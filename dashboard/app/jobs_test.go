@@ -6,6 +6,7 @@
 package dash
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -166,6 +167,8 @@ Raw console output: %[3]v
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 		c.checkURLContents(logLink, jobDoneReq.CrashLog)
 	}
+
+	// Testing fails with an error.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(2))
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	jobDoneReq = &dashapi.JobDoneReq{
@@ -206,7 +209,54 @@ Kernel config: %[2]v
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
+	// Testing fails with a huge error that can't be inlined in email.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(3))
+	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	jobDoneReq = &dashapi.JobDoneReq{
+		ID:    pollResp.ID,
+		Build: *build,
+		Error: bytes.Repeat([]byte{'a', 'b', 'c'}, (maxInlineError+100)/3),
+	}
+	c.expectOK(c.API(client2, key2, "job_done", jobDoneReq, nil))
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 1)
+	{
+		dbJob, dbBuild := c.loadJob(pollResp.ID)
+		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
+		errorLink := externalLink(c.ctx, textError, dbJob.Error)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
+		msg := <-c.emailSink
+		c.expectEQ(len(msg.Attachments), 0)
+		truncatedError := string(jobDoneReq.Error[len(jobDoneReq.Error)-maxInlineError:])
+		body := fmt.Sprintf(`Hello,
+
+syzbot tried to test the proposed patch but build/boot failed:
+
+%[1]v
+
+Error text is too large and was truncated, full error text is at:
+%[2]v
+
+
+Tested on repo1/branch1 commit
+kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title1
+
+compiler: compiler1
+Patch: %[3]v
+Kernel config: %[4]v
+
+
+`, truncatedError, errorLink, patchLink, kernelConfigLink)
+		if msg.Body != body {
+			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
+		}
+		c.checkURLContents(patchLink, []byte(patch))
+		c.checkURLContents(errorLink, jobDoneReq.Error)
+		c.checkURLContents(kernelConfigLink, build.KernelConfig)
+	}
+
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(4))
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,

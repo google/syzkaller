@@ -341,9 +341,6 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if err != nil {
 		return nil, err
 	}
-	if len(jobError) > maxMailLogLen {
-		jobError = jobError[:maxMailLogLen]
-	}
 	patch, _, err := getText(c, textPatch, job.Patch)
 	if err != nil {
 		return nil, err
