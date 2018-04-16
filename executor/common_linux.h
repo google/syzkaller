@@ -1505,8 +1505,14 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 	int fd, i;
 
 	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
-	if (fd == -1)
+	if (fd == -1) {
+		switch (errno) {
+		case EAFNOSUPPORT:
+		case ENOPROTOOPT:
+			return;
+		}
 		fail("socket(%d, SOCK_STREAM, IPPROTO_TCP)", family);
+	}
 	for (i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
 		strcpy(table->info.name, table->name);
