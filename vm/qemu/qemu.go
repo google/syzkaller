@@ -127,9 +127,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		if !osutil.IsExist(env.Image) {
 			return nil, fmt.Errorf("image file '%v' does not exist", env.Image)
 		}
-		if !osutil.IsExist(env.SSHKey) {
-			return nil, fmt.Errorf("ssh key '%v' does not exist", env.SSHKey)
-		}
 	}
 	if cfg.CPU <= 0 || cfg.CPU > 1024 {
 		return nil, fmt.Errorf("bad qemu cpu: %v, want [1-1024]", cfg.CPU)
@@ -485,7 +482,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 func (inst *instance) sshArgs(portArg string) []string {
 	args := []string{
-		"-i", inst.sshkey,
 		portArg, strconv.Itoa(inst.port),
 		"-F", "/dev/null",
 		"-o", "ConnectionAttempts=10",
@@ -495,6 +491,9 @@ func (inst *instance) sshArgs(portArg string) []string {
 		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "LogLevel=error",
+	}
+	if inst.sshkey != "" {
+		args = append(args, "-i", inst.sshkey)
 	}
 	if inst.debug {
 		args = append(args, "-v")
