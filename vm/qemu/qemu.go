@@ -68,7 +68,7 @@ type archConfig struct {
 var archConfigs = map[string]archConfig{
 	"linux/amd64": {
 		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm -usb -usbdevice mouse -usbdevice tablet -soundhw all",
+		QemuArgs: "-enable-kvm",
 	},
 	"linux/386": {
 		Qemu: "qemu-system-i386",
@@ -85,11 +85,11 @@ var archConfigs = map[string]archConfig{
 	},
 	"freebsd/amd64": {
 		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm -usb -usbdevice mouse -usbdevice tablet -soundhw all",
+		QemuArgs: "-enable-kvm",
 	},
 	"netbsd/amd64": {
 		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm -usb -usbdevice mouse -usbdevice tablet -soundhw all",
+		QemuArgs: "-enable-kvm",
 	},
 	"fuchsia/amd64": {
 		Qemu:     "qemu-system-x86_64",
