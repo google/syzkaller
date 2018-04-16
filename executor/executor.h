@@ -79,15 +79,18 @@ const uint64 arg_csum_inet = 0;
 const uint64 arg_csum_chunk_data = 0;
 const uint64 arg_csum_chunk_const = 1;
 
+// TODO(dvyukov): for 32-bit kernel this needs to be uint32.
+typedef uint64 cover_t;
+
 struct thread_t {
 	bool created;
 	int id;
 	osthread_t th;
 	// TODO(dvyukov): this assumes 64-bit kernel. This must be "kernel long" somehow.
-	uint64* cover_data;
+	cover_t* cover_data;
 	// Pointer to the size of coverage (stored as first word of memory).
-	uint64* cover_size_ptr;
-	uint64 cover_buffer[1]; // fallback coverage buffer
+	cover_t* cover_size_ptr;
+	cover_t cover_buffer[1]; // fallback coverage buffer
 
 	event_t ready;
 	event_t done;
@@ -101,7 +104,7 @@ struct thread_t {
 	long args[kMaxArgs];
 	long res;
 	uint32 reserrno;
-	uint64 cover_size;
+	cover_t cover_size;
 	bool fault_injected;
 	int cover_fd;
 };
@@ -154,6 +157,7 @@ enum {
 };
 
 struct kcov_comparison_t {
+	// Note: comparisons are always 64-bits regardless of kernel bitness.
 	uint64 type;
 	uint64 arg1;
 	uint64 arg2;
@@ -182,7 +186,7 @@ bool copyout(char* addr, uint64 size, uint64* res);
 void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
-uint64 read_cover_size(thread_t* th);
+cover_t read_cover_size(thread_t* th);
 static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
 
@@ -536,10 +540,12 @@ void handle_completion(thread_t* th)
 
 		if (flag_collect_comps) {
 			// Collect only the comparisons
+			// TODO(dvyukov): this is broken for 32-bit kernels.
+			// cover_data is offsetted by cover_t, but kernel always offsetted it by uint64.
 			uint32 ncomps = th->cover_size;
 			kcov_comparison_t* start = (kcov_comparison_t*)th->cover_data;
 			kcov_comparison_t* end = start + ncomps;
-			if ((uint64*)end >= th->cover_data + kCoverSize)
+			if ((cover_t*)end >= th->cover_data + kCoverSize)
 				fail("too many comparisons %u", ncomps);
 			std::sort(start, end);
 			ncomps = std::unique(start, end) - start;
@@ -567,8 +573,8 @@ void handle_completion(thread_t* th)
 				// Write out real coverage (basic block PCs).
 				cover_size = th->cover_size;
 				if (flag_dedup_cover) {
-					uint64* start = (uint64*)th->cover_data;
-					uint64* end = start + cover_size;
+					cover_t* start = th->cover_data;
+					cover_t* end = start + cover_size;
 					std::sort(start, end);
 					cover_size = std::unique(start, end) - start;
 				}
