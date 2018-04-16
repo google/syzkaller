@@ -55,10 +55,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Target_Dir == "" {
 		return nil, fmt.Errorf("config param target_dir is empty")
 	}
-	// sshkey is optional
-	if env.SSHKey != "" && !osutil.IsExist(env.SSHKey) {
-		return nil, fmt.Errorf("ssh key '%v' does not exist", env.SSHKey)
-	}
 	for _, target := range cfg.Targets {
 		if _, _, err := splitTargetPort(target); err != nil {
 			return nil, fmt.Errorf("bad target %q: %v", target, err)
