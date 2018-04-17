@@ -185,7 +185,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 	}
 	time.Sleep(500 * time.Millisecond)
 	unique := fmt.Sprintf(">>>%v<<<", dev)
-	cmd := osutil.Command(adb, "-s", dev, "shell", "echo", "\"", unique, "\"", ">", "/dev/kmsg")
+	cmd := osutil.Command(adb, "-s", dev, "shell", "echo", "\"<1>", unique, "\"", ">", "/dev/kmsg")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("failed to run adb shell: %v\n%s", err, out)
 	}
