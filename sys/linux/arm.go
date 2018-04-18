@@ -3932,6 +3932,13 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4, ArgDir: 2}}},
 		&UnionType{Key: StructKey{Name: "ifs_ifsu", Dir: 2}, FldName: "ifs_ifsu"},
 	}}},
+	{Key: StructKey{Name: "if_stats_msg[AF_UNSPEC]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "if_stats_msg[AF_UNSPEC]", TypeSize: 12}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad1", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad2", TypeSize: 2}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "ifindex", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "filter_mask", FldName: "filter_mask", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5}},
+	}}},
 	{Key: StructKey{Name: "ifa_cacheinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifa_cacheinfo", TypeSize: 16}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifa_prefered", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifa_valid", TypeSize: 4}}},
@@ -7052,7 +7059,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETADDR, int16], rtgenmsg[AF_UNSPEC], void]"}, FldName: "getaddr"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[AF_UNSPEC], void]"}, FldName: "getroute"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETNETCONF, int16], rtgenmsg[AF_UNSPEC], void]"}, FldName: "getnetconf"},
-		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETSTATS, int16], rtgenmsg[AF_UNSPEC], void]"}, FldName: "getstats"},
+		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETSTATS, int16], if_stats_msg[AF_UNSPEC], void]"}, FldName: "getstats"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_NEWNEIGH, int16], ndmsg, nd_policy]"}, FldName: "newneigh"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_DELNEIGH, int16], ndmsg, nd_policy]"}, FldName: "delneigh"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETNEIGH, int16], rtgenmsg[AF_UNSPEC], void]"}, FldName: "getneigh"},
@@ -7063,7 +7070,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETADDR, int16], ifaddrmsg[AF_INET], ifa_ipv4_policy]"}, FldName: "ipv4_getaddr"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_NEWROUTE, int16], rtmsg[AF_INET], rtm_ipv4_policy]"}, FldName: "ipv4_newroute"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_DELROUTE, int16], rtmsg[AF_INET], rtm_ipv4_policy]"}, FldName: "ipv4_delroute"},
-		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[AF_INET], void]"}, FldName: "ipv4_getroute"},
+		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[AF_INET], void]"}, FldName: "ipv4_getroute"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETNETCONF, int16], netconfmsg[AF_INET], devconf_ip_policy]"}, FldName: "ipv4_getnetconf"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_NEWADDR, int16], ifaddrmsg[AF_INET6], ifa_ipv6_policy]"}, FldName: "ipv6_newaddr"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_DELADDR, int16], ifaddrmsg[AF_INET6], ifa_ipv6_policy]"}, FldName: "ipv6_deladdr"},
@@ -7076,7 +7083,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETNETCONF, int16], netconfmsg[AF_INET6], devconf_ip_policy]"}, FldName: "ipv6_getnetconf"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_NEWROUTE, int16], rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]"}, FldName: "ipmr_newroute"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_DELROUTE, int16], rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]"}, FldName: "ipmr_delroute"},
-		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[RTNL_FAMILY_IPMR], void]"}, FldName: "ipmr_getroute"},
+		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[RTNL_FAMILY_IPMR], void]"}, FldName: "ipmr_getroute"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_NEWROUTE, int16], rtmsg[AF_MPLS], rtm_mpls_policy]"}, FldName: "mpls_newroute"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_DELROUTE, int16], rtmsg[AF_MPLS], rtm_mpls_policy]"}, FldName: "mpls_delroute"},
 		&StructType{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[AF_MPLS], rtm_mpls_policy]"}, FldName: "mpls_getroute"},
@@ -7349,16 +7356,6 @@ var structDescs_arm = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "void"}, Kind: 1}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[AF_INET], void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[AF_INET], void]", TypeSize: 20}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 26},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
-		&StructType{Key: StructKey{Name: "rtgenmsg[AF_INET]"}, FldName: "payload"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "void"}, Kind: 1}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[AF_UNSPEC], void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[AF_UNSPEC], void]", TypeSize: 20}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 26},
@@ -7366,16 +7363,6 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
 		&StructType{Key: StructKey{Name: "rtgenmsg[AF_UNSPEC]"}, FldName: "payload"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "void"}, Kind: 1}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[RTNL_FAMILY_IPMR], void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_GETROUTE, int16], rtgenmsg[RTNL_FAMILY_IPMR], void]", TypeSize: 20}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 26},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
-		&StructType{Key: StructKey{Name: "rtgenmsg[RTNL_FAMILY_IPMR]"}, FldName: "payload"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "void"}, Kind: 1}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 	}, AlignAttr: 4}},
@@ -7388,6 +7375,15 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "rtmsg[AF_INET6]"}, FldName: "payload"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "rtm_ipv6_policy"}}},
 	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[AF_INET], void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[AF_INET], void]", TypeSize: 28}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 26},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
+		&StructType{Key: StructKey{Name: "rtmsg[AF_INET]"}, FldName: "payload"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "void"}, Kind: 1}},
+	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[AF_MPLS], rtm_mpls_policy]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[AF_MPLS], rtm_mpls_policy]", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 26},
@@ -7397,15 +7393,23 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "rtmsg[AF_MPLS]"}, FldName: "payload"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "rtm_mpls_policy"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETSTATS, int16], rtgenmsg[AF_UNSPEC], void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_GETSTATS, int16], rtgenmsg[AF_UNSPEC], void]", TypeSize: 20}, Fields: []Type{
+	{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[RTNL_FAMILY_IPMR], void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_GETROUTE, int16], rtmsg[RTNL_FAMILY_IPMR], void]", TypeSize: 28}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 26},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
+		&StructType{Key: StructKey{Name: "rtmsg[RTNL_FAMILY_IPMR]"}, FldName: "payload"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "void"}, Kind: 1}},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "netlink_msg_t[const[RTM_GETSTATS, int16], if_stats_msg[AF_UNSPEC], void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_GETSTATS, int16], if_stats_msg[AF_UNSPEC], void]", TypeSize: 28}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 94},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
-		&StructType{Key: StructKey{Name: "rtgenmsg[AF_UNSPEC]"}, FldName: "payload"},
+		&StructType{Key: StructKey{Name: "if_stats_msg[AF_UNSPEC]"}, FldName: "payload"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "void"}, Kind: 1}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "netlink_msg_t[const[RTM_NEWADDR, int16], ifaddrmsg[AF_INET6], ifa_ipv6_policy]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[const[RTM_NEWADDR, int16], ifaddrmsg[AF_INET6], ifa_ipv6_policy]", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
@@ -9817,14 +9821,8 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "rtgenmsg[AF_INET6]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rtgenmsg[AF_INET6]", TypeSize: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "rtgen_family", TypeSize: 1}}, Val: 10},
 	}}},
-	{Key: StructKey{Name: "rtgenmsg[AF_INET]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rtgenmsg[AF_INET]", TypeSize: 1}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "rtgen_family", TypeSize: 1}}, Val: 2},
-	}}},
 	{Key: StructKey{Name: "rtgenmsg[AF_UNSPEC]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rtgenmsg[AF_UNSPEC]", TypeSize: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "rtgen_family", TypeSize: 1}}},
-	}}},
-	{Key: StructKey{Name: "rtgenmsg[RTNL_FAMILY_IPMR]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rtgenmsg[RTNL_FAMILY_IPMR]", TypeSize: 1}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "rtgen_family", TypeSize: 1}}, Val: 128},
 	}}},
 	{Key: StructKey{Name: "rtm_ipv4_policy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rtm_ipv4_policy", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "nlattr_t[const[RTA_DST, int16], ipv4_addr]"}, FldName: "RTA_DST"},
@@ -25203,6 +25201,12 @@ var consts_arm = []ConstValue{
 	{Name: "IFLA_PORT_SELF", Value: 25},
 	{Name: "IFLA_PROMISCUITY", Value: 30},
 	{Name: "IFLA_PROTO_DOWN", Value: 39},
+	{Name: "IFLA_STATS_AF_SPEC", Value: 5},
+	{Name: "IFLA_STATS_LINK_64", Value: 1},
+	{Name: "IFLA_STATS_LINK_OFFLOAD_XSTATS", Value: 4},
+	{Name: "IFLA_STATS_LINK_XSTATS", Value: 2},
+	{Name: "IFLA_STATS_LINK_XSTATS_SLAVE", Value: 3},
+	{Name: "IFLA_STATS_UNSPEC"},
 	{Name: "IFLA_TXQLEN", Value: 13},
 	{Name: "IFLA_VFINFO_LIST", Value: 22},
 	{Name: "IFLA_VF_INFO", Value: 1},
@@ -28322,4 +28326,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "ed1efc9855ce67169ddb3588a5f7295bd619e729"
+const revision_arm = "ace49a8f778ef3af7544f14c8b909dc8c0c5169a"
