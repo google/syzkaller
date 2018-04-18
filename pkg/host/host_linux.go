@@ -46,7 +46,8 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	if newname := kallsymsMap[name]; newname != "" {
 		name = newname
 	}
-	if !bytes.Contains(kallsyms, []byte(" T sys_"+name+"\n")) {
+	if !bytes.Contains(kallsyms, []byte(" T sys_"+name+"\n")) &&
+		!bytes.Contains(kallsyms, []byte(" T ksys_"+name+"\n")) {
 		return false, fmt.Sprintf("sys_%v is not present in /proc/kallsyms", name)
 	}
 	return true, ""
