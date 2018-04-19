@@ -925,10 +925,10 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 	Logf(0, "machine check: %v calls enabled, kcov=%v, kleakcheck=%v, faultinjection=%v, comps=%v",
 		len(a.Calls), a.Kcov, a.Leak, a.Fault, a.CompsSupported)
 	if mgr.cfg.Cover && !a.Kcov {
-		Fatalf("/sys/kernel/debug/kcov is missing. Enable CONFIG_KCOV and mount debugfs")
+		Fatalf("/sys/kernel/debug/kcov is missing on target machine. Enable CONFIG_KCOV and mount debugfs")
 	}
 	if mgr.cfg.Sandbox == "namespace" && !a.UserNamespaces {
-		Fatalf("/proc/self/ns/user is missing or permission is denied. Requested namespace sandbox but user namespaces are not enabled. Enable CONFIG_USER_NS")
+		Fatalf("/proc/self/ns/user is missing on target machine or permission is denied. Can't use requested namespace sandbox. Enable CONFIG_USER_NS")
 	}
 	if mgr.vmPool != nil {
 		if mgr.target.Arch != a.ExecutorArch {
