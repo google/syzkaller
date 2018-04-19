@@ -1162,8 +1162,8 @@ var linuxOopses = []*oops{
 		[]byte("unregister_netdevice: waiting for"),
 		[]oopsFormat{
 			{
-				title:        compile("unregister_netdevice: waiting for (.*) to become free"),
-				fmt:          "unregister_netdevice: waiting for %[1]v to become free",
+				title:        compile("unregister_netdevice: waiting for (?:.*) to become free"),
+				fmt:          "unregister_netdevice: waiting for DEV to become free",
 				noStackTrace: true,
 			},
 		},
