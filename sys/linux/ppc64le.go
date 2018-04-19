@@ -34,6 +34,7 @@ var resources_ppc64le = []*ResourceDesc{
 	{Name: "fd_event", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_event"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_fanotify", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_fanotify"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_fuse", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_fuse"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "fd_i2c", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_i2c"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_inotify", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_inotify"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_ion", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_ion"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_kvm", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_kvm"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -3764,6 +3765,30 @@ var structDescs_ppc64le = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cnum", TypeSize: 4}}, Buf: "ci"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ci", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "hidp_conninfo", Dir: 1}}}},
+	}}},
+	{Key: StructKey{Name: "i2c_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "i2c_msg", TypeSize: 16}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "addr", TypeSize: 2}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "i2c_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 16, 512, 1024, 2048, 4096, 8192, 16384, 32768}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 2}}, Buf: "buf"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+	}}},
+	{Key: StructKey{Name: "i2c_rdwr_ioctl_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "i2c_rdwr_ioctl_data", TypeSize: 16}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msgs", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "i2c_msg"}}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nmsgs", TypeSize: 4}}, Buf: "msgs"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "i2c_smbus_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "i2c_smbus_data", TypeSize: 34}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "byte", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "word", TypeSize: 2}}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "block", TypeSize: 34}, Kind: 1, RangeBegin: 34, RangeEnd: 34},
+	}}},
+	{Key: StructKey{Name: "i2c_smbus_ioctl_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "i2c_smbus_ioctl_data", TypeSize: 16}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "read_write", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "command", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4}}, Kind: 2, RangeEnd: 8},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "i2c_smbus_data"}}},
 	}}},
 	{Key: StructKey{Name: "ib_addr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ib_addr", TypeSize: 16}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", TypeSize: 16}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
@@ -17547,6 +17572,51 @@ var syscalls_ppc64le = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19305},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
+	{NR: 54, Name: "ioctl$I2C_FUNCS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1797},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
+	}},
+	{NR: 54, Name: "ioctl$I2C_PEC", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1800},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "arg", TypeSize: 8}}},
+	}},
+	{NR: 54, Name: "ioctl$I2C_RDWR", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1799},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "i2c_rdwr_ioctl_data"}}},
+	}},
+	{NR: 54, Name: "ioctl$I2C_RETRIES", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1793},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "arg", TypeSize: 8}}},
+	}},
+	{NR: 54, Name: "ioctl$I2C_SLAVE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1795},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "arg", TypeSize: 8}}, Kind: 2, RangeEnd: 1023},
+	}},
+	{NR: 54, Name: "ioctl$I2C_SLAVE_FORCE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1798},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "arg", TypeSize: 8}}, Kind: 2, RangeEnd: 1023},
+	}},
+	{NR: 54, Name: "ioctl$I2C_SMBUS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1824},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "i2c_smbus_ioctl_data"}}},
+	}},
+	{NR: 54, Name: "ioctl$I2C_TENBIT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1796},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "arg", TypeSize: 8}}, Kind: 2, RangeEnd: 1},
+	}},
+	{NR: 54, Name: "ioctl$I2C_TIMEOUT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1794},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "arg", TypeSize: 8}}},
+	}},
 	{NR: 54, Name: "ioctl$ION_IOC_ALLOC", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3222817024},
@@ -23520,6 +23590,11 @@ var syscalls_ppc64le = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "xfs_full_options"}}},
 	}},
+	{Name: "syz_open_dev$I2C", CallName: "syz_open_dev", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 11}, Kind: 2, Values: []string{"/dev/i2c-#\x00"}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_i2c", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "syz_open_dev$admmidi", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 14}, Kind: 2, Values: []string{"/dev/admmidi#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
@@ -24981,6 +25056,27 @@ var consts_ppc64le = []ConstValue{
 	{Name: "HW_BREAKPOINT_R", Value: 1},
 	{Name: "HW_BREAKPOINT_W", Value: 2},
 	{Name: "HW_BREAKPOINT_X", Value: 4},
+	{Name: "I2C_FUNCS", Value: 1797},
+	{Name: "I2C_MAX_BLOCK", Value: 34},
+	{Name: "I2C_M_DMA_SAFE", Value: 512},
+	{Name: "I2C_M_IGNORE_NAK", Value: 4096},
+	{Name: "I2C_M_NOSTART", Value: 16384},
+	{Name: "I2C_M_NO_RD_ACK", Value: 2048},
+	{Name: "I2C_M_RD", Value: 1},
+	{Name: "I2C_M_RECV_LEN", Value: 1024},
+	{Name: "I2C_M_REV_DIR_ADDR", Value: 8192},
+	{Name: "I2C_M_STOP", Value: 32768},
+	{Name: "I2C_M_TEN", Value: 16},
+	{Name: "I2C_PEC", Value: 1800},
+	{Name: "I2C_RDWR", Value: 1799},
+	{Name: "I2C_RETRIES", Value: 1793},
+	{Name: "I2C_SLAVE", Value: 1795},
+	{Name: "I2C_SLAVE_FORCE", Value: 1798},
+	{Name: "I2C_SMBUS", Value: 1824},
+	{Name: "I2C_SMBUS_I2C_BLOCK_DATA", Value: 8},
+	{Name: "I2C_SMBUS_QUICK"},
+	{Name: "I2C_TENBIT", Value: 1796},
+	{Name: "I2C_TIMEOUT", Value: 1794},
 	{Name: "IB_EVENT_CLIENT_REREGISTER", Value: 17},
 	{Name: "IB_EVENT_COMM_EST", Value: 4},
 	{Name: "IB_EVENT_CQ_ERR"},
@@ -28271,4 +28367,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_ppc64le = "e9495aae8da8022d330e29c5bc70dcc4066184bf"
+const revision_ppc64le = "2384d64bdb573f4dde8f1e1df12af42289c24ebb"
