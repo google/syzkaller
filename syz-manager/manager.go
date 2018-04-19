@@ -1247,7 +1247,11 @@ func (mgr *Manager) checkUsedFiles() {
 			Fatalf("failed to stat %v: %v", f, err)
 		}
 		if mod != stat.ModTime() {
-			Fatalf("modification time of %v has changed: %v -> %v", f, mod, stat.ModTime())
+			Fatalf("file %v that syz-manager uses has been modified by an external program\n"+
+				"this can lead to arbitrary syz-manager misbehavior\n"+
+				"modification time has changed: %v -> %v\n"+
+				"don't modify files that syz-manager uses. exiting to prevent harm",
+				f, mod, stat.ModTime())
 		}
 	}
 }
