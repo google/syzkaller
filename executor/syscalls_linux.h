@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "c1cffce2533618cc16d65bcdf36543edbb86c62a"
+#define SYZ_REVISION "9c95269da86216a24368bbacfbd1dbb01e7c6dc6"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1700;
+unsigned syscall_count = 1701;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1608,6 +1608,7 @@ call_t syscalls[] = {
     {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$f2fs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
@@ -1714,11 +1715,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "419554fa64eb8ea5032f6676282d7134e468ad6f"
+#define SYZ_REVISION "6cf4596dfa0047e10116ea038f0e08fd0a03bf6b"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1752;
+unsigned syscall_count = 1753;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3372,6 +3373,7 @@ call_t syscalls[] = {
     {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$f2fs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
@@ -3478,11 +3480,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "4374ad62df63257035ce9399cf6302403f17330c"
+#define SYZ_REVISION "7481c783d7a05ef3e22a39eb8aecc1ce08bcaada"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1709;
+unsigned syscall_count = 1710;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5095,6 +5097,7 @@ call_t syscalls[] = {
     {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$f2fs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
@@ -5199,11 +5202,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "171606e5652b433103cae8bab1d09225faa6221e"
+#define SYZ_REVISION "067e79d32cdb305f6ecae6b6d2da2bfc1d8a2b7e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1681;
+unsigned syscall_count = 1682;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6792,6 +6795,7 @@ call_t syscalls[] = {
     {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$f2fs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
@@ -6892,11 +6896,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "2384d64bdb573f4dde8f1e1df12af42289c24ebb"
+#define SYZ_REVISION "173082ff7b8211ebef59420f07bc501ad3de7a9e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1671;
+unsigned syscall_count = 1672;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8469,6 +8473,7 @@ call_t syscalls[] = {
     {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$f2fs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
