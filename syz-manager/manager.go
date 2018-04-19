@@ -924,9 +924,6 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 	}
 	Logf(0, "machine check: %v calls enabled, kcov=%v, kleakcheck=%v, faultinjection=%v, comps=%v",
 		len(a.Calls), a.Kcov, a.Leak, a.Fault, a.CompsSupported)
-	if len(a.Calls) == 0 {
-		Fatalf("no system calls enabled")
-	}
 	if mgr.cfg.Cover && !a.Kcov {
 		Fatalf("/sys/kernel/debug/kcov is missing. Enable CONFIG_KCOV and mount debugfs")
 	}
@@ -962,6 +959,9 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 				Logf(0, "disabling %v: %v", name, reason)
 			}
 		}
+	}
+	if len(a.Calls) == 0 {
+		Fatalf("all system calls are disabled")
 	}
 	mgr.vmChecked = true
 	mgr.enabledCalls = a.Calls
