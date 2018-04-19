@@ -256,6 +256,9 @@ func processArch(OS OS, arch *Arch) (map[string]*compiler.ConstInfo, error) {
 func processFile(OS OS, arch *Arch, file *File) (map[string]uint64, map[string]bool, error) {
 	inname := filepath.Join("sys", arch.target.OS, file.name)
 	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
+	if file.info == nil {
+		return nil, nil, fmt.Errorf("input file %v is missing", inname)
+	}
 	if len(file.info.Consts) == 0 {
 		os.Remove(outname)
 		return nil, nil, nil
