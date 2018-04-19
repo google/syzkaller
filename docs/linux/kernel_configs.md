@@ -8,7 +8,13 @@ To enable coverage collection, which is extremely important for effective fuzzin
 ```
 CONFIG_KCOV=y
 CONFIG_KCOV_INSTRUMENT_ALL=y
+CONFIG_KCOV_ENABLE_COMPARISONS=y
 CONFIG_DEBUG_FS=y
+```
+Note that `CONFIG_KCOV_ENABLE_COMPARISONS` feature also requires `gcc8+` and the following commits if you are testing an old kernel:
+```
+    kcov: support comparison operands collection
+    kcov: fix comparison callback signature
 ```
 
 To show code coverage in web interface:
@@ -44,6 +50,23 @@ Enable `KASAN` for use-after-free and out-of-bounds detection:
 ```
 CONFIG_KASAN=y
 CONFIG_KASAN_INLINE=y
+```
+
+For testing with fault injection enable the following configs (syzkaller will pick it up automatically):
+```
+CONFIG_FAULT_INJECTION=y
+CONFIG_FAULT_INJECTION_DEBUG_FS=y
+CONFIG_FAILSLAB=y
+CONFIG_FAIL_PAGE_ALLOC=y
+CONFIG_FAIL_MAKE_REQUEST=y
+CONFIG_FAIL_IO_TIMEOUT=y
+CONFIG_FAIL_FUTEX=y
+```
+Note: you also need the following commits if you are testing an old kernel:
+```
+    fault-inject: support systematic fault injection
+    fault-inject: simplify access check for fail-nth
+    fault-inject: fix wrong should_fail() decision in task context
 ```
 
 Any other debugging configs, the more the better, here are some that proved to be especially useful:
