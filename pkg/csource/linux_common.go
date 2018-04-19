@@ -949,7 +949,7 @@ struct fs_image_segment {
 };
 
 #define IMAGE_MAX_SEGMENTS 4096
-#define IMAGE_MAX_SIZE (32 << 20)
+#define IMAGE_MAX_SIZE (129 << 20)
 
 #if defined(__i386__)
 #define SYZ_memfd_create 356
@@ -2191,11 +2191,11 @@ static void sandbox_common()
 #endif
 
 	struct rlimit rlim;
-	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
+	rlim.rlim_cur = rlim.rlim_max = 160 << 20;
 	setrlimit(RLIMIT_AS, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
 	setrlimit(RLIMIT_MEMLOCK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 32 << 20;
+	rlim.rlim_cur = rlim.rlim_max = 136 << 20;
 	setrlimit(RLIMIT_FSIZE, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
 	setrlimit(RLIMIT_STACK, &rlim);
