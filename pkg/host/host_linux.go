@@ -47,7 +47,9 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 		name = newname
 	}
 	if !bytes.Contains(kallsyms, []byte(" T sys_"+name+"\n")) &&
-		!bytes.Contains(kallsyms, []byte(" T ksys_"+name+"\n")) {
+		!bytes.Contains(kallsyms, []byte(" T ksys_"+name+"\n")) &&
+		!bytes.Contains(kallsyms, []byte(" T __ia32_sys_"+name+"\n")) &&
+		!bytes.Contains(kallsyms, []byte(" T __x64_sys_"+name+"\n")) {
 		return false, fmt.Sprintf("sys_%v is not present in /proc/kallsyms", name)
 	}
 	return true, ""
