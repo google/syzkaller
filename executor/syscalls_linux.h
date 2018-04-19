@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "fc0ed121007ac102aa0fb131706b566974a23dd1"
+#define SYZ_REVISION "c1cffce2533618cc16d65bcdf36543edbb86c62a"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1690;
+unsigned syscall_count = 1700;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -509,6 +509,15 @@ call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$I2C_FUNCS", 54},
+    {"ioctl$I2C_PEC", 54},
+    {"ioctl$I2C_RDWR", 54},
+    {"ioctl$I2C_RETRIES", 54},
+    {"ioctl$I2C_SLAVE", 54},
+    {"ioctl$I2C_SLAVE_FORCE", 54},
+    {"ioctl$I2C_SMBUS", 54},
+    {"ioctl$I2C_TENBIT", 54},
+    {"ioctl$I2C_TIMEOUT", 54},
     {"ioctl$ION_IOC_ALLOC", 54},
     {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
@@ -1610,6 +1619,7 @@ call_t syscalls[] = {
     {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
+    {"syz_open_dev$I2C", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
@@ -1704,11 +1714,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "c716d2ca89f24a2f3b177b6521926eb6936a91de"
+#define SYZ_REVISION "419554fa64eb8ea5032f6676282d7134e468ad6f"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1742;
+unsigned syscall_count = 1752;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2221,6 +2231,15 @@ call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 16},
     {"ioctl$GIO_UNIMAP", 16},
     {"ioctl$GIO_UNISCRNMAP", 16},
+    {"ioctl$I2C_FUNCS", 16},
+    {"ioctl$I2C_PEC", 16},
+    {"ioctl$I2C_RDWR", 16},
+    {"ioctl$I2C_RETRIES", 16},
+    {"ioctl$I2C_SLAVE", 16},
+    {"ioctl$I2C_SLAVE_FORCE", 16},
+    {"ioctl$I2C_SMBUS", 16},
+    {"ioctl$I2C_TENBIT", 16},
+    {"ioctl$I2C_TIMEOUT", 16},
     {"ioctl$ION_IOC_ALLOC", 16},
     {"ioctl$ION_IOC_HEAP_QUERY", 16},
     {"ioctl$KDADDIO", 16},
@@ -3364,6 +3383,7 @@ call_t syscalls[] = {
     {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
+    {"syz_open_dev$I2C", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
@@ -3458,11 +3478,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "ace49a8f778ef3af7544f14c8b909dc8c0c5169a"
+#define SYZ_REVISION "4374ad62df63257035ce9399cf6302403f17330c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1699;
+unsigned syscall_count = 1709;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3970,6 +3990,15 @@ call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$I2C_FUNCS", 54},
+    {"ioctl$I2C_PEC", 54},
+    {"ioctl$I2C_RDWR", 54},
+    {"ioctl$I2C_RETRIES", 54},
+    {"ioctl$I2C_SLAVE", 54},
+    {"ioctl$I2C_SLAVE_FORCE", 54},
+    {"ioctl$I2C_SMBUS", 54},
+    {"ioctl$I2C_TENBIT", 54},
+    {"ioctl$I2C_TIMEOUT", 54},
     {"ioctl$ION_IOC_ALLOC", 54},
     {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
@@ -5077,6 +5106,7 @@ call_t syscalls[] = {
     {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
+    {"syz_open_dev$I2C", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
@@ -5169,11 +5199,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "cdd5bf8cff3ec1e711a0c754a33646dad6bb2157"
+#define SYZ_REVISION "171606e5652b433103cae8bab1d09225faa6221e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1671;
+unsigned syscall_count = 1681;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5672,6 +5702,15 @@ call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 29},
     {"ioctl$GIO_UNIMAP", 29},
     {"ioctl$GIO_UNISCRNMAP", 29},
+    {"ioctl$I2C_FUNCS", 29},
+    {"ioctl$I2C_PEC", 29},
+    {"ioctl$I2C_RDWR", 29},
+    {"ioctl$I2C_RETRIES", 29},
+    {"ioctl$I2C_SLAVE", 29},
+    {"ioctl$I2C_SLAVE_FORCE", 29},
+    {"ioctl$I2C_SMBUS", 29},
+    {"ioctl$I2C_TENBIT", 29},
+    {"ioctl$I2C_TIMEOUT", 29},
     {"ioctl$ION_IOC_ALLOC", 29},
     {"ioctl$ION_IOC_HEAP_QUERY", 29},
     {"ioctl$KDADDIO", 29},
@@ -6764,6 +6803,7 @@ call_t syscalls[] = {
     {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
+    {"syz_open_dev$I2C", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
@@ -6852,11 +6892,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "e9495aae8da8022d330e29c5bc70dcc4066184bf"
+#define SYZ_REVISION "2384d64bdb573f4dde8f1e1df12af42289c24ebb"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1661;
+unsigned syscall_count = 1671;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7367,6 +7407,15 @@ call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$I2C_FUNCS", 54},
+    {"ioctl$I2C_PEC", 54},
+    {"ioctl$I2C_RDWR", 54},
+    {"ioctl$I2C_RETRIES", 54},
+    {"ioctl$I2C_SLAVE", 54},
+    {"ioctl$I2C_SLAVE_FORCE", 54},
+    {"ioctl$I2C_SMBUS", 54},
+    {"ioctl$I2C_TENBIT", 54},
+    {"ioctl$I2C_TIMEOUT", 54},
     {"ioctl$ION_IOC_ALLOC", 54},
     {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
@@ -8431,6 +8480,7 @@ call_t syscalls[] = {
     {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
     {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
+    {"syz_open_dev$I2C", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
