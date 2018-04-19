@@ -939,11 +939,15 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 				mgr.target.Arch, a.ExecutorArch)
 		}
 		if sys.GitRevision != a.FuzzerGitRev || sys.GitRevision != a.ExecutorGitRev {
-			Fatalf("mismatching git revisions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
+			Fatalf("syz-manager, syz-fuzzer and syz-executor binaries are built on different git revisions\n"+
+				"manager= %v\nfuzzer=  %v\nexecutor=%v\n"+
+				"this is not supported, rebuild all binaries with make",
 				sys.GitRevision, a.FuzzerGitRev, a.ExecutorGitRev)
 		}
 		if mgr.target.Revision != a.FuzzerSyzRev || mgr.target.Revision != a.ExecutorSyzRev {
-			Fatalf("mismatching syscall descriptions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
+			Fatalf("syz-manager, syz-fuzzer and syz-executor binaries have different versions of system call descriptions compiled in\n"+
+				"manager= %v\nfuzzer=  %v\nexecutor=%v\n"+
+				"this is not supported, rebuild all binaries with make",
 				mgr.target.Revision, a.FuzzerSyzRev, a.ExecutorSyzRev)
 		}
 	}
