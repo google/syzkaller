@@ -1,0 +1,34 @@
+TITLE: Unable to handle kernel paging request at virtual address ADDR
+CORRUPTED: Y
+
+Unable to handle kernel paging request at virtual address 80b0f484
+pgd = e78b78b5
+[80b0f484] *pgd=80a1141e(bad)
+Internal error: Oops: 8000000d [#1] SMP ARM
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 0 PID: 948 Comm: syz-executor0 Not tainted 4.16.1+ #7
+Hardware name: ARM-Versatile Express
+PC is at 0x80b0f484
+LR is at do_futex+0x158/0xf14
+pc : [<80b0f484>]    lr : [<801a7168>]    psr: 200f0013
+sp : 9a917f68  ip : 9a8e8040  fp : 00000005
+r10: 80117ea8  r9 : 00000000  r8 : 000b0028
+r7 : 00000000  r6 : 00000000  r5 : 00000000  r4 : 00000000
+r3 : 000003cb  r2 : ab388000  r1 : 00040000  r0 : 00000000
+Flags: nzCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment none
+Control: 10c5387d  Table: 9a8e406a  DAC: 00000051
+Process syz-executor0 (pid: 948, stack limit = 0x239be54a)
+Stack: (0x9a917f68 to 0x9a918000)
+7f60:                   00000005 ab48c000 9a918028 80117e24 9a918000 80802570
+7f80: 9a91fddc 80117f5c 75fd7b80 0009dd60 000b0010 000000f0 801011e4 9a910000
+7fa0: 00000000 80101000 75fd7b80 0009dd60 000b0028 00000000 00000000 00000000
+7fc0: 75fd7b80 0009dd60 000b0010 000000f0 0009dd60 00000000 00000000 00000000
+7fe0: 75fd7b58 75fd7b48 0001286f 00034f42 60070030 000b0028 00000000 00000000
+Code: 80117e24 0000000b 00000001 808bcc2c (80117e24) 
+---[ end trace 6aa35cf5a5d5b1b2 ]---
+Kernel panic - not syncing: Fatal exception
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Rebooting in 86400 seconds..

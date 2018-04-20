@@ -1,0 +1,56 @@
+TITLE: unable to handle kernel paging request in migrate_task_rq_fair
+CORRUPTED: Y
+
+syzkaller login: Unable to handle kernel paging request at virtual address fc14ef08
+pgd = c60b8887
+[fc14ef08] *pgd=00000000
+Internal error: Oops: 5 [#1] SMP ARM
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 0 PID: 983 Comm: syz-executor3 Not tainted 4.17.0-rc1+ #8
+Hardware name: ARM-Versatile Express
+PC is at migrate_task_rq_fair+0x58/0xa8
+LR is at set_task_cpu+0x4c/0xf8
+pc : [<8015df40>]    lr : [<801559ec>]    psr: 60000093
+sp : 97f07e00  ip : 80b0b008  fp : 97f07e2c
+r10: 00000000  r9 : a0000013  r8 : 80b0b008
+r7 : 00000004  r6 : 80a72400  r5 : 00000000  r4 : 9ecb0000
+r3 : 80a72400  r2 : 80b0b008  r1 : 9ed90fc0  r0 : 9ecb0000
+Flags: nZCv  IRQs off  FIQs on  Mode SVC_32  ISA ARM  Segment none
+Control: 10c5387d  Table: 97a6406a  DAC: 00000051
+Process syz-executor3 (pid: 983, stack limit = 0xbdd3cf51)
+Stack: (0x97f07e00 to 0x97f08000)
+7e00: 9ecb0000 80a72400 00000004 80b0b008 a0000013 801559ec 9ecb0000 9ecb0444
+7e20: 80a72400 00000004 97f07e64 80155eb8 00000001 9ecb0218 9ff99a20 00000000
+7e40: 979f7621 9ecb0008 9ecb0448 00000001 9ecb0000 00000000 ffffffff 7e964e40
+7e60: 97f07e84 8015616c 9f65fc7c 9f65fc88 97f07e8c 9f65fc80 00000001 ffffffff
+7e80: 9f65fc7c 801a5618 1f132000 9ecb0448 9ecb0448 000b0000 97a18540 0000011a
+7ea0: 97f00000 7e964e40 00000001 ffffffff 00000001 00000001 00000000 000b0118
+7ec0: 00000573 801a7bc8 00000000 807d8a1c 0000c350 00000000 00000001 8015b9f8
+7ee0: 0000001d 0000000a ffd58571 ffffffff 00000008 8080263c 9fba4400 9fba4400
+7f00: 00000000 00100590 00000000 0000c350 00000000 00000001 000f4240 000f4240
+7f20: 00000000 80192cf8 97f07f28 806439d4 97f07f88 80193e68 00d70830 00000000
+7f40: 0000007f 00000000 00000001 00000000 00000001 000b0118 7e964e40 00000000
+7f60: 00000573 801a87e8 00000018 00000000 ffffffff 1dd816e0 00000000 00000000
+7f80: 00000001 8019d308 00000018 00000001 00000005 000000f0 801011e4 97f00000
+7fa0: 00000000 80101000 00000018 00000001 000b0118 00000001 7e964e40 00000000
+7fc0: 00000018 00000001 00000005 000000f0 000b0100 000b0010 000b011c 00000573
+7fe0: 7e964d30 7e964d20 00014039 000358c2 20000030 000b0118 00000000 00000000
+[<8015df40>] (migrate_task_rq_fair) from [<801559ec>] (set_task_cpu+0x4c/0xf8)
+[<801559ec>] (set_task_cpu) from [<80155eb8>] (try_to_wake_up+0x164/0x3a4)
+[<80155eb8>] (try_to_wake_up) from [<8015616c>] (wake_up_q+0x58/0x98)
+[<8015616c>] (wake_up_q) from [<801a5618>] (futex_wake+0x19c/0x1b0)
+[<801a5618>] (futex_wake) from [<801a7bc8>] (do_futex+0x45c/0xf18)
+[<801a7bc8>] (do_futex) from [<801a87e8>] (sys_futex+0x164/0x1d8)
+[<801a87e8>] (sys_futex) from [<80101000>] (ret_fast_syscall+0x0/0x54)
+Exception stack(0x97f07fa8 to 0x97f07ff0)
+7fa0:                   00000018 00000001 000b0118 00000001 7e964e40 00000000
+7fc0: 00000018 00000001 00000005 000000f0 000b0100 000b0010 000b011c 00000573
+7fe0: 7e964d30 7e964d20 00014039 000358c2
+Code: e34820b0 e3023400 e34830a7 e5911010 (e7922101) 
+---[ end trace 40a40345abe25c43 ]---
+Kernel panic - not syncing: Fatal exception
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Rebooting in 86400 seconds..

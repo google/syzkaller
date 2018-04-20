@@ -1,0 +1,45 @@
+TITLE: kernel panic: Fatal exception
+CORRUPTED: Y
+
+Alignment trap: not handling instruction e1932f9f at [<8028bd58>]
+Unhandled fault: alignment exception (0x001) at 0x000008ad
+pgd = 522df9df
+[000008ad] *pgd=8c7d2835, *pte=00000000, *ppte=00000000
+Internal error: : 1 [#1] SMP ARM
+Modules linked in:
+CPU: 0 PID: 3797 Comm: syz-executor1 Not tainted 4.17.0-rc1+ #11
+Hardware name: ARM-Versatile Express
+PC is at dup_fd+0x154/0x39c
+LR is at dup_fd+0x148/0x39c
+pc : [<8028bd5c>]    lr : [<8028bd50>]    psr: 20030013
+sp : 9ec4fea0  ip : 00000000  fp : 9f6a3700
+r10: 0000088d  r9 : 9eae886c  r8 : 9eaea868
+r7 : 8c785800  r6 : 00000001  r5 : 0000001a  r4 : 00000100
+r3 : 000008ad  r2 : ae648000  r1 : 00040000  r0 : 00000019
+Flags: nzCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM  Segment none
+Control: 10c5387d  Table: 8a80006a  DAC: 00000051
+Process syz-executor1 (pid: 3797, stack limit = 0x45da35a0)
+Stack: (0x9ec4fea0 to 0x9ec50000)
+fea0: 9eaea800 9f6a3800 9ec4fecc 9f542e00 00000000 00000000 9f5431b0 80f4bc08
+fec0: ffffe000 9f6a3700 00000000 80132060 00001053 00000000 00000000 00000000
+fee0: 20000000 00000000 00000000 9f5430d8 20d2d000 20d2d000 8d53e380 80234dc8
+ff00: 0002092d 00000001 000003db 00000001 00000000 00400000 fffffff4 8d53e3b8
+ff20: 2092d000 00000000 20000000 20000ffc 00000000 00000000 00000000 00000000
+ff40: 0000004f 801334b4 00000000 00000000 ffffffff 000b0028 00000000 00000000
+ff60: 00000000 801a8c74 20000000 20000ffc 00000000 20000000 20000ffc 9ec4e000
+ff80: 00000000 80133938 20000000 20000ffc 20000000 00000000 00000000 00000078
+ffa0: 801011e4 80101000 20000000 00000000 00000000 20000000 20000ffc 20000ffc
+ffc0: 20000000 00000000 00000000 00000078 75fe87e4 00061b14 0000009e 0000004f
+ffe0: 75fe7b10 75fe7b00 00013291 000358c2 60030030 00000000 9fffd861 9fffdc61
+[<8028bd5c>] (dup_fd) from [<80132060>] (copy_process.part.3+0x58c/0x1844)
+[<80132060>] (copy_process.part.3) from [<801334b4>] (_do_fork+0xcc/0x428)
+[<801334b4>] (_do_fork) from [<80133938>] (sys_clone+0x38/0x40)
+[<80133938>] (sys_clone) from [<80101000>] (ret_fast_syscall+0x0/0x54)
+Exception stack(0x9ec4ffa8 to 0x9ec4fff0)
+ffa0:                   20000000 00000000 00000000 20000000 20000ffc 20000ffc
+ffc0: 20000000 00000000 00000000 00000078 75fe87e4 00061b14 0000009e 0000004f
+ffe0: 75fe7b10 75fe7b00 00013291 000358c2
+Code: ebfcdd4b e28a3020 f593f000 e1932f9f (e2822001) 
+---[ end trace 0eb64bd854360932 ]---
+Kernel panic - not syncing: Fatal exception
+Rebooting in 86400 seconds..
