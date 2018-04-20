@@ -134,7 +134,7 @@ func main() {
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	initAllCover(cfg.Vmlinux)
+	initAllCover(cfg.TargetOS, cfg.TargetVMArch, cfg.Vmlinux)
 	RunManager(cfg, target, syscalls)
 }
 
