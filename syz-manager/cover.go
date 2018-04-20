@@ -64,7 +64,7 @@ const (
 	callLen = 5 // length of a call instruction, x86-ism
 )
 
-func initAllCover(vmlinux string) {
+func initAllCover(os, arch, vmlinux string) {
 	// Running objdump on vmlinux takes 20-30 seconds, so we do it asynchronously on start.
 	// Running nm on vmlinux may takes 200 microsecond and being called during symbolization of every crash,
 	// so also do it asynchronously on start and reuse the value during each crash.
@@ -76,7 +76,7 @@ func initAllCover(vmlinux string) {
 		if vmlinux == "" {
 			return
 		}
-		pcs, err := coveredPCs(vmlinux)
+		pcs, err := coveredPCs(arch, vmlinux)
 		if err == nil {
 			sort.Sort(uint64Array(pcs))
 			allCoverPCs = pcs
@@ -306,7 +306,7 @@ func uncoveredPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
 }
 
 // coveredPCs returns list of PCs of __sanitizer_cov_trace_pc calls in binary bin.
-func coveredPCs(bin string) ([]uint64, error) {
+func coveredPCs(arch, bin string) ([]uint64, error) {
 	cmd := osutil.Command("objdump", "-d", "--no-show-raw-insn", bin)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -319,9 +319,28 @@ func coveredPCs(bin string) ([]uint64, error) {
 	defer cmd.Wait()
 	var pcs []uint64
 	s := bufio.NewScanner(stdout)
-	// A line looks as: "ffffffff8100206a:       callq  ffffffff815cc1d0 <__sanitizer_cov_trace_pc>"
-	callInsn := []byte("callq ")
 	traceFunc := []byte(" <__sanitizer_cov_trace_pc>")
+	var callInsn []byte
+	switch arch {
+	case "amd64":
+		// ffffffff8100206a:       callq  ffffffff815cc1d0 <__sanitizer_cov_trace_pc>
+		callInsn = []byte("\tcallq ")
+	case "386":
+		// c1000102:       call   c10001f0 <__sanitizer_cov_trace_pc>
+		callInsn = []byte("\tcall ")
+	case "arm64":
+		// ffff0000080d9cc0:       bl      ffff00000820f478 <__sanitizer_cov_trace_pc>
+		callInsn = []byte("\tbl\t")
+	case "arm":
+		// 8010252c:       bl      801c3280 <__sanitizer_cov_trace_pc>
+		callInsn = []byte("\tbl\t")
+	case "ppc64le":
+		// c00000000006d904:       bl      c000000000350780 <.__sanitizer_cov_trace_pc>
+		callInsn = []byte("\tbl ")
+		traceFunc = []byte(" <.__sanitizer_cov_trace_pc>")
+	default:
+		panic("unknown arch")
+	}
 	for s.Scan() {
 		ln := s.Bytes()
 		if pos := bytes.Index(ln, callInsn); pos == -1 {
