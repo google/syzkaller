@@ -67,6 +67,7 @@ Note: you also need the following commits if you are testing an old kernel:
     fault-inject: support systematic fault injection
     fault-inject: simplify access check for fail-nth
     fault-inject: fix wrong should_fail() decision in task context
+    fault-inject: add /proc/<pid>/fail-nth
 ```
 
 Any other debugging configs, the more the better, here are some that proved to be especially useful:
