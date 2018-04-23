@@ -58,10 +58,8 @@ func Clean(dir string) error {
 		return err
 	}
 	cmd.Dir = dir
-	if _, err := osutil.Run(10*time.Minute, cmd); err != nil {
-		return err
-	}
-	return nil
+	_, err := osutil.Run(10*time.Minute, cmd)
+	return err
 }
 
 // CreateImage creates a disk image that is suitable for syzkaller.
