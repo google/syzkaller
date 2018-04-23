@@ -52,6 +52,18 @@ func Build(dir, compiler, config string) error {
 	return err
 }
 
+func Clean(dir string) error {
+	cmd := osutil.Command("make", "distclean")
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
+		return err
+	}
+	cmd.Dir = dir
+	if _, err := osutil.Run(10*time.Minute, cmd); err != nil {
+		return err
+	}
+	return nil
+}
+
 // CreateImage creates a disk image that is suitable for syzkaller.
 // Kernel is taken from kernelDir, userspace system is taken from userspaceDir.
 // If cmdlineFile is not empty, contents of the file are appended to the kernel command line.
