@@ -189,26 +189,6 @@ const (
 )
 
 func MakeEnv(config *Config, pid int) (*Env, error) {
-	const (
-		executorTimeout = 5 * time.Second
-		minTimeout      = executorTimeout + 2*time.Second
-	)
-	if config.Timeout == 0 {
-		// Executor protects against most hangs, so we use quite large timeout here.
-		// Executor can be slow due to global locks in namespaces and other things,
-		// so let's better wait than report false misleading crashes.
-		config.Timeout = time.Minute
-		if config.Flags&FlagUseForkServer == 0 {
-			// If there is no fork server, executor does not have internal timeout.
-			config.Timeout = executorTimeout
-		}
-	}
-	// IPC timeout must be larger then executor timeout.
-	// Otherwise IPC will kill parent executor but leave child executor alive.
-	if config.Flags&FlagUseForkServer != 0 && config.Timeout < minTimeout {
-		config.Timeout = minTimeout
-	}
-
 	var inf, outf *os.File
 	var inmem, outmem []byte
 	if config.Flags&FlagUseShmem != 0 {
@@ -486,6 +466,7 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 type command struct {
 	pid      int
 	config   *Config
+	timeout  time.Duration
 	cmd      *exec.Cmd
 	dir      string
 	readDone chan []byte
@@ -550,9 +531,10 @@ func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile
 	}
 
 	c := &command{
-		pid:    pid,
-		config: config,
-		dir:    dir,
+		pid:     pid,
+		config:  config,
+		timeout: sanitizeTimeout(config),
+		dir:     dir,
 	}
 	defer func() {
 		if c != nil {
@@ -775,7 +757,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 	done := make(chan bool)
 	hang := make(chan bool)
 	go func() {
-		t := time.NewTimer(c.config.Timeout)
+		t := time.NewTimer(c.timeout)
 		select {
 		case <-t.C:
 			c.abort()
@@ -851,4 +833,28 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 			c.pid, exitStatus, c.cmd.ProcessState)
 	}
 	return
+}
+
+func sanitizeTimeout(config *Config) time.Duration {
+	const (
+		executorTimeout = 5 * time.Second
+		minTimeout      = executorTimeout + 2*time.Second
+	)
+	timeout := config.Timeout
+	if timeout == 0 {
+		// Executor protects against most hangs, so we use quite large timeout here.
+		// Executor can be slow due to global locks in namespaces and other things,
+		// so let's better wait than report false misleading crashes.
+		timeout = time.Minute
+		if config.Flags&FlagUseForkServer == 0 {
+			// If there is no fork server, executor does not have internal timeout.
+			timeout = executorTimeout
+		}
+	}
+	// IPC timeout must be larger then executor timeout.
+	// Otherwise IPC will kill parent executor but leave child executor alive.
+	if config.Flags&FlagUseForkServer != 0 && timeout < minTimeout {
+		timeout = minTimeout
+	}
+	return timeout
 }
