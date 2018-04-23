@@ -228,6 +228,9 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	resp.Build.KernelCommitTitle = kernelCommit.Title
 	resp.Build.KernelCommitDate = kernelCommit.Date
 
+	if err := kernel.Clean(kernelDir); err != nil {
+		return fmt.Errorf("kernel clean failed: %v", err)
+	}
 	if err := git.Patch(kernelDir, req.Patch); err != nil {
 		return err
 	}
