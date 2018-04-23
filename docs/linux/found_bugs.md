@@ -3,6 +3,7 @@
 Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs). Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [KASAN: use-after-free Read in set_page_dirty_lock](https://groups.google.com/forum/#!topic/syzkaller/w-u4MXthFoI)
 * [System freeze and NULL pointer dereference](https://groups.google.com/d/msg/syzkaller-bugs/LxPlUEk62IA/OIfFWHr_AgAJ)
 * [RDS: WARNING in rds_recv_hs_exthdrs](https://groups.google.com/d/msg/syzkaller/TTR-hlzVO1I/T7ncQ3xjAQAJ)
 * [RDS: slab-out-of-bounds Read in rds_rdma_extra_size](https://groups.google.com/d/msg/syzkaller/VxPgmfL9H8k/PJxhMJZiAQAJ)
