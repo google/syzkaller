@@ -58,14 +58,13 @@ func Poll(dir, repo, branch string) (*Commit, error) {
 }
 
 // CheckoutBranch checkouts the specified repository/branch in dir.
-// It does not fetch history and efficiently supports checkouts of different repos in the same dir.
 func CheckoutBranch(dir, repo, branch string) (*Commit, error) {
 	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
 		if err := initRepo(dir); err != nil {
 			return nil, err
 		}
 	}
-	_, err := runSandboxed(dir, "git", "fetch", "--no-tags", "--depth=1", repo, branch)
+	_, err := runSandboxed(dir, "git", "fetch", repo, branch)
 	if err != nil {
 		return nil, err
 	}
