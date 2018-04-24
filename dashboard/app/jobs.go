@@ -100,19 +100,22 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 		return "This bug is already upstreamed. Please test upstream.", nil
 	}
 
-	patchID, err := putText(c, bug.Namespace, textPatch, []byte(patch), false)
-	if err != nil {
-		return "", err
-	}
-
 	manager := crash.Manager
 	for _, ns := range config.Namespaces {
 		if mgr, ok := ns.Managers[manager]; ok {
+			if mgr.RestrictedTestingRepo != "" && repo != mgr.RestrictedTestingRepo {
+				return mgr.RestrictedTestingReason, nil
+			}
 			if mgr.Decommissioned {
 				manager = mgr.DelegatedTo
-				break
 			}
+			break
 		}
+	}
+
+	patchID, err := putText(c, bug.Namespace, textPatch, []byte(patch), false)
+	if err != nil {
+		return "", err
 	}
 
 	job := &Job{

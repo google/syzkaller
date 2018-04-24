@@ -300,6 +300,7 @@ correction.
 	c.expectEQ(pollResp.ID, "")
 }
 
+// Test on particular commit and without a patch.
 func TestJobWithoutPatch(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -310,8 +311,6 @@ func TestJobWithoutPatch(t *testing.T) {
 	crash := testCrash(build, 1)
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
-	crash.ReproC = []byte("repro C")
-	crash.Maintainers = []string{"maintainer@kernel.org"}
 	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
 
 	c.expectOK(c.GET("/email_poll"))
@@ -322,7 +321,6 @@ func TestJobWithoutPatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Test on particular commit and without a patch.
 	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git 5e6a2eea\n", EmailOptMessageID(1))
 	pollResp := new(dashapi.JobPollResp)
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
@@ -374,4 +372,36 @@ correction.
 
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	c.expectEQ(pollResp.ID, "")
+}
+
+// Test on a restricted manager.
+func TestJobRestrictedManager(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	build.Manager = "restricted-manager"
+	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+
+	crash := testCrash(build, 1)
+	crash.ReproSyz = []byte("repro syz")
+	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 1)
+	sender := (<-c.emailSink).Sender
+
+	// Testing on a wrong repo must fail and no test jobs passed to manager.
+	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git master\n", EmailOptMessageID(1))
+	c.expectEQ(strings.Contains((<-c.emailSink).Body, "you should test only on restricted.git"), true)
+	pollResp := new(dashapi.JobPollResp)
+	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	c.expectEQ(pollResp.ID, "")
+
+	// Testing on the right repo must succeed.
+	c.incomingEmail(sender, "#syz test: git://restricted.git/restricted.git master\n", EmailOptMessageID(2))
+	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	c.expectEQ(pollResp.ID != "", true)
+	c.expectEQ(pollResp.Manager, build.Manager)
+	c.expectEQ(pollResp.KernelRepo, "git://restricted.git/restricted.git")
 }
