@@ -107,8 +107,11 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 
 	manager := crash.Manager
 	for _, ns := range config.Namespaces {
-		if delegated, ok := ns.DecommissionedManagers[manager]; ok {
-			manager = delegated
+		if mgr, ok := ns.Managers[manager]; ok {
+			if mgr.Decommissioned {
+				manager = mgr.DelegatedTo
+				break
+			}
 		}
 	}
 
