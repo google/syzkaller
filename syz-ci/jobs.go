@@ -133,7 +133,6 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		{"kernel branch", req.KernelBranch != ""},
 		{"kernel config", len(req.KernelConfig) != 0},
 		{"syzkaller commit", req.SyzkallerCommit != ""},
-		{"test patch", len(req.Patch) != 0},
 		{"reproducer options", len(req.ReproOpts) != 0},
 		{"reproducer program", len(req.ReproSyz) != 0},
 	}
