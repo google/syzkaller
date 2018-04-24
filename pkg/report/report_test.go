@@ -198,14 +198,7 @@ func testGuiltyFile(t *testing.T, reporter Reporter, fn string) {
 	}
 	file := string(data[len(prefix) : len(prefix)+nlnl])
 	report := data[len(prefix)+nlnl:]
-	type guilter interface {
-		extractGuiltyFile([]byte) string
-	}
-	g, ok := reporter.(guilter)
-	if !ok {
-		t.Fatalf("os does not support extraction of guilty files")
-	}
-	if guilty := g.extractGuiltyFile(report); guilty != file {
+	if guilty := reporter.(guilter).extractGuiltyFile(report); guilty != file {
 		t.Fatalf("got guilty %q, want %q", guilty, file)
 	}
 }
