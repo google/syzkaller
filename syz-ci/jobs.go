@@ -199,7 +199,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	}
 
 	Logf(0, "job: fetching syzkaller on %v...", req.SyzkallerCommit)
-	err := git.CheckoutCommit(syzkallerDir, jp.syzkallerRepo, jp.syzkallerBranch, req.SyzkallerCommit)
+	_, err := git.CheckoutCommit(syzkallerDir, jp.syzkallerRepo, req.SyzkallerCommit)
 	if err != nil {
 		return fmt.Errorf("failed to checkout syzkaller repo: %v", err)
 	}
@@ -220,9 +220,20 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	resp.Build.SyzkallerCommit = req.SyzkallerCommit
 
 	Logf(0, "job: fetching kernel...")
-	kernelCommit, err := git.Checkout(kernelDir, req.KernelRepo, req.KernelBranch)
-	if err != nil {
-		return fmt.Errorf("failed to checkout kernel repo: %v", err)
+	var kernelCommit *git.Commit
+	if git.CheckCommitHash(req.KernelBranch) {
+		kernelCommit, err = git.CheckoutCommit(kernelDir, req.KernelRepo, req.KernelBranch)
+		if err != nil {
+			return fmt.Errorf("failed to checkout kernel repo %v on commit %v: %v",
+				req.KernelRepo, req.KernelBranch, err)
+		}
+		resp.Build.KernelBranch = ""
+	} else {
+		kernelCommit, err = git.CheckoutBranch(kernelDir, req.KernelRepo, req.KernelBranch)
+		if err != nil {
+			return fmt.Errorf("failed to checkout kernel repo %v/%v: %v",
+				req.KernelRepo, req.KernelBranch, err)
+		}
 	}
 	resp.Build.KernelCommit = kernelCommit.Hash
 	resp.Build.KernelCommitTitle = kernelCommit.Title
@@ -231,8 +242,10 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	if err := kernel.Clean(kernelDir); err != nil {
 		return fmt.Errorf("kernel clean failed: %v", err)
 	}
-	if err := git.Patch(kernelDir, req.Patch); err != nil {
-		return err
+	if len(req.Patch) != 0 {
+		if err := git.Patch(kernelDir, req.Patch); err != nil {
+			return err
+		}
 	}
 
 	Logf(0, "job: building kernel...")

@@ -78,11 +78,6 @@ func TestJob(t *testing.T) {
 	c.expectEQ(len(c.emailSink), 1)
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "does not look like a valid git repo"), true)
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git master",
-		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
-	c.expectEQ(len(c.emailSink), 1)
-	c.expectEQ(strings.Contains((<-c.emailSink).Body, "I don't see any patch attached to the request"), true)
-
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
 		EmailOptFrom("\"foo\" <blAcklisteD@dOmain.COM>"))
 	c.expectOK(c.GET("/email_poll"))
@@ -200,7 +195,6 @@ compiler: compiler1
 Patch: %[1]v
 Kernel config: %[2]v
 
-
 `, patchLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
@@ -246,7 +240,6 @@ compiler: compiler1
 Patch: %[3]v
 Kernel config: %[4]v
 
-
 `, truncatedError, errorLink, patchLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
@@ -287,7 +280,6 @@ compiler: compiler1
 Patch: %[2]v
 Kernel config: %[3]v
 
-
 ---
 There is no WARRANTY for the result, to the extent permitted by applicable law.
 Except when otherwise stated in writing syzbot provides the result "AS IS"
@@ -302,6 +294,82 @@ correction.
 		}
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
+	}
+
+	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	c.expectEQ(pollResp.ID, "")
+}
+
+func TestJobWithoutPatch(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+
+	crash := testCrash(build, 1)
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("repro syz")
+	crash.ReproC = []byte("repro C")
+	crash.Maintainers = []string{"maintainer@kernel.org"}
+	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 1)
+	sender := (<-c.emailSink).Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test on particular commit and without a patch.
+	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git 5e6a2eea\n", EmailOptMessageID(1))
+	pollResp := new(dashapi.JobPollResp)
+	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	testBuild := testBuild(2)
+	testBuild.KernelRepo = "git://mygit.com/git.git"
+	testBuild.KernelBranch = ""
+	testBuild.KernelCommit = "5e6a2eea5e6a2eea5e6a2eea5e6a2eea5e6a2eea"
+	jobDoneReq := &dashapi.JobDoneReq{
+		ID:    pollResp.ID,
+		Build: *testBuild,
+	}
+	c.expectOK(c.API(client2, key2, "job_done", jobDoneReq, nil))
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 1)
+	{
+		_, dbBuild := c.loadJob(pollResp.ID)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
+		msg := <-c.emailSink
+		c.expectEQ(len(msg.Attachments), 0)
+		body := fmt.Sprintf(`Hello,
+
+syzbot has tested the proposed patch and the reproducer did not trigger crash:
+
+Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
+
+Note: the tag will also help syzbot to understand when the bug is fixed.
+
+Tested on git://mygit.com/git.git commit
+5e6a2eea5e6a2eea5e6a2eea5e6a2eea5e6a2eea (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title2
+
+compiler: compiler2
+Kernel config: %[2]v
+
+---
+There is no WARRANTY for the result, to the extent permitted by applicable law.
+Except when otherwise stated in writing syzbot provides the result "AS IS"
+without warranty of any kind, either expressed or implied, but not limited to,
+the implied warranties of merchantability and fittness for a particular purpose.
+The entire risk as to the quality of the result is with you. Should the result
+prove defective, you assume the cost of all necessary servicing, repair or
+correction.
+`, extBugID, kernelConfigLink)
+		if msg.Body != body {
+			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
+		}
+		c.checkURLContents(kernelConfigLink, testBuild.KernelConfig)
 	}
 
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
