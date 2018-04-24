@@ -67,6 +67,12 @@ type Config struct {
 type ConfigManager struct {
 	Decommissioned bool   // The instance is no longer active.
 	DelegatedTo    string // If Decommissioned, test requests should go to this instance instead.
+	// Normally instances can test patches on any tree.
+	// However, some (e.g. non-upstreamed KMSAN) can test only on a fixed tree.
+	// RestrictedTestingRepo contains the repo for such instances
+	// and RestrictedTestingReason contains a human readable reason for the restriction.
+	RestrictedTestingRepo   string
+	RestrictedTestingReason string
 }
 
 // One reporting stage.
@@ -165,6 +171,14 @@ func init() {
 			}
 			if !mgr.Decommissioned && mgr.DelegatedTo != "" {
 				panic(fmt.Sprintf("non-decommissioned manager %v/%v has delegate",
+					ns, name))
+			}
+			if mgr.RestrictedTestingRepo != "" && mgr.RestrictedTestingReason == "" {
+				panic(fmt.Sprintf("restricted manager %v/%v does not have restriction reason",
+					ns, name))
+			}
+			if mgr.RestrictedTestingRepo == "" && mgr.RestrictedTestingReason != "" {
+				panic(fmt.Sprintf("unrestricted manager %v/%v has restriction reason",
 					ns, name))
 			}
 		}

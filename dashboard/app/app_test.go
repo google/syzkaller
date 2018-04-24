@@ -61,6 +61,12 @@ var config = GlobalConfig{
 			Clients: map[string]string{
 				client2: key2,
 			},
+			Managers: map[string]ConfigManager{
+				"restricted-manager": {
+					RestrictedTestingRepo:   "git://restricted.git/restricted.git",
+					RestrictedTestingReason: "you should test only on restricted.git",
+				},
+			},
 			Reporting: []Reporting{
 				{
 					Name:       "reporting1",
