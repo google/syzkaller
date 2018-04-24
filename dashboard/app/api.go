@@ -398,10 +398,10 @@ func managerList(c context.Context, ns string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query builds: %v", err)
 	}
-	decommissioned := config.Namespaces[ns].DecommissionedManagers
+	configManagers := config.Namespaces[ns].Managers
 	var managers []string
 	for _, build := range builds {
-		if _, ok := decommissioned[build.Manager]; ok {
+		if configManagers[build.Manager].Decommissioned {
 			continue
 		}
 		managers = append(managers, build.Manager)

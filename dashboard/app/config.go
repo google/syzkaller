@@ -55,11 +55,18 @@ type Config struct {
 	ReportingDelay time.Duration
 	// How long should we wait for a C repro before reporting a bug.
 	WaitForRepro time.Duration
-	// Managers that were turned down and will not hold bug fixing due to missed commits.
-	// The value is delegated manager that will handle patch testing instead of the decommissioned one.
-	DecommissionedManagers map[string]string
+	// Managers contains some special additional info about syz-manager instances.
+	Managers map[string]ConfigManager
 	// Reporting config.
 	Reporting []Reporting
+}
+
+// ConfigManager describes a single syz-manager instance.
+// Dashboard does not generally need to know about all of them,
+// but in some special cases it needs to know some additional information.
+type ConfigManager struct {
+	Decommissioned bool   // The instance is no longer active.
+	DelegatedTo    string // If Decommissioned, test requests should go to this instance instead.
 }
 
 // One reporting stage.
@@ -151,6 +158,16 @@ func init() {
 			cfg.DisplayTitle = ns
 		}
 		checkClients(clientNames, cfg.Clients)
+		for name, mgr := range cfg.Managers {
+			if mgr.Decommissioned && mgr.DelegatedTo == "" {
+				panic(fmt.Sprintf("decommissioned manager %v/%v does not have delegate",
+					ns, name))
+			}
+			if !mgr.Decommissioned && mgr.DelegatedTo != "" {
+				panic(fmt.Sprintf("non-decommissioned manager %v/%v has delegate",
+					ns, name))
+			}
+		}
 		if !clientKeyRe.MatchString(cfg.Key) {
 			panic(fmt.Sprintf("bad namespace %q key: %q", ns, cfg.Key))
 		}

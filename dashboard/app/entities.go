@@ -253,7 +253,7 @@ func loadAllManagers(c context.Context) ([]*Manager, []*datastore.Key, error) {
 	var resultKeys []*datastore.Key
 
 	for i, mgr := range managers {
-		if _, ok := config.Namespaces[mgr.Namespace].DecommissionedManagers[mgr.Name]; ok {
+		if config.Namespaces[mgr.Namespace].Managers[mgr.Name].Decommissioned {
 			continue
 		}
 		result = append(result, mgr)
