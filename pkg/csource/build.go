@@ -19,7 +19,9 @@ import (
 // Build builds a C/C++ program from source src and returns name of the resulting binary.
 // lang can be "c" or "c++".
 func Build(target *prog.Target, lang, src string) (string, error) {
-	bin, err := ioutil.TempFile("", "syzkaller")
+	// We call the binary syz-executor because it sometimes shows in bug titles,
+	// and we don't want 2 different bugs for when a crash is triggered during fuzzing and during repro.
+	bin, err := ioutil.TempFile("", "syz-executor")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %v", err)
 	}
