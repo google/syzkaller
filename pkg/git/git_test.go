@@ -66,11 +66,36 @@ func TestCheckBranch(t *testing.T) {
 		{"linux-4.9.y", true},
 		{"abi_spec", true},
 		{"@", false},
+		{"", false},
 	}
 	for _, test := range tests {
 		res := CheckBranch(test.branch)
 		if res != test.result {
 			t.Errorf("%v: got %v, want %v", test.branch, res, test.result)
+		}
+	}
+}
+
+func TestCheckCommitHash(t *testing.T) {
+	var tests = []struct {
+		hash   string
+		result bool
+	}{
+		{"ff12bea91c22bba93d3ffc3034d813d686bc7eeb", true}, // 40
+		{"eae05cb0aaeae05cb0aa", true},                     // 20
+		{"449dd6984d0eaabb", true},                         // 16
+		{"449dd6984d0e", true},                             // 12
+		{"eae05cb0aa", true},                               // 10
+		{"eae05cb0", true},                                 // 8
+		{"", false},
+		{"aa", false},
+		{"eae05cb0aab", false},
+		{"xxxxxxxx", false},
+	}
+	for _, test := range tests {
+		res := CheckCommitHash(test.hash)
+		if res != test.result {
+			t.Errorf("%v: got %v, want %v", test.hash, res, test.result)
 		}
 	}
 }

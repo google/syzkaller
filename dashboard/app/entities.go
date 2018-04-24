@@ -355,7 +355,10 @@ func kernelRepoInfo(build *Build) KernelRepo {
 }
 
 func kernelRepoInfoRaw(repo, branch string) KernelRepo {
-	repoID := repo + "/" + branch
+	repoID := repo
+	if branch != "" {
+		repoID += "/" + branch
+	}
 	info := config.KernelRepos[repoID]
 	if info.Alias == "" {
 		info.Alias = repoID

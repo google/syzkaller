@@ -57,9 +57,9 @@ func Poll(dir, repo, branch string) (*Commit, error) {
 	return HeadCommit(dir)
 }
 
-// Checkout checkouts the specified repository/branch in dir.
+// CheckoutBranch checkouts the specified repository/branch in dir.
 // It does not fetch history and efficiently supports checkouts of different repos in the same dir.
-func Checkout(dir, repo, branch string) (*Commit, error) {
+func CheckoutBranch(dir, repo, branch string) (*Commit, error) {
 	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
 		if err := initRepo(dir); err != nil {
 			return nil, err
@@ -75,21 +75,21 @@ func Checkout(dir, repo, branch string) (*Commit, error) {
 	return HeadCommit(dir)
 }
 
-// CheckoutCommit checkouts the specified repository/branch/commit in dir.
-func CheckoutCommit(dir, repo, branch, commit string) error {
+// CheckoutCommit checkouts the specified repository on the specified commit in dir.
+func CheckoutCommit(dir, repo, commit string) (*Commit, error) {
 	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
 		if err := initRepo(dir); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	_, err := runSandboxed(dir, "git", "fetch", repo, branch)
+	_, err := runSandboxed(dir, "git", "fetch", repo)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := runSandboxed(dir, "git", "checkout", commit); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return HeadCommit(dir)
 }
 
 func clone(dir, repo, branch string) error {
@@ -322,11 +322,21 @@ func CheckRepoAddress(repo string) bool {
 	return gitRepoRe.MatchString(repo)
 }
 
-var gitRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\.git(/)?$`)
-
 // CheckBranch does a best-effort approximate check of a git branch name.
 func CheckBranch(branch string) bool {
 	return gitBranchRe.MatchString(branch)
 }
 
-var gitBranchRe = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
+func CheckCommitHash(hash string) bool {
+	if !gitHashRe.MatchString(hash) {
+		return false
+	}
+	ln := len(hash)
+	return ln == 8 || ln == 10 || ln == 12 || ln == 16 || ln == 20 || ln == 40
+}
+
+var (
+	gitRepoRe   = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\.git(/)?$`)
+	gitBranchRe = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
+	gitHashRe   = regexp.MustCompile("^[a-f0-9]+$")
+)

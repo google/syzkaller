@@ -87,10 +87,8 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 	switch {
 	case !git.CheckRepoAddress(repo):
 		return fmt.Sprintf("%q does not look like a valid git repo address.", repo), nil
-	case !git.CheckBranch(branch):
-		return fmt.Sprintf("%q does not look like a valid git branch name.", branch), nil
-	case len(patch) == 0:
-		return "I don't see any patch attached to the request.", nil
+	case !git.CheckBranch(branch) && !git.CheckCommitHash(branch):
+		return fmt.Sprintf("%q does not look like a valid git branch or commit.", branch), nil
 	case crash.ReproC == 0 && crash.ReproSyz == 0:
 		return "This crash does not have a reproducer. I cannot test it.", nil
 	case bug.Status == BugStatusFixed:
@@ -164,7 +162,7 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 		return nil
 	}
 	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true, Attempts: 30})
-	if deletePatch || err != nil {
+	if patchID != 0 && deletePatch || err != nil {
 		datastore.Delete(c, datastore.NewKey(c, textPatch, "", patchID, nil))
 	}
 	if err != nil {
@@ -268,7 +266,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 			return fmt.Errorf("job %v: already finished", jobID)
 		}
 		ns := job.Namespace
-		if isNewBuild, err := uploadBuild(c, ns, &req.Build, BuildJob); err != nil {
+		if isNewBuild, err := uploadBuild(c, now, ns, &req.Build, BuildJob); err != nil {
 			return err
 		} else if !isNewBuild {
 			log.Errorf(c, "job %v: duplicate build %v", jobID, req.Build.ID)

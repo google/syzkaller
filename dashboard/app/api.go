@@ -233,7 +233,8 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byt
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	isNewBuild, err := uploadBuild(c, ns, req, BuildNormal)
+	now := timeNow(c)
+	isNewBuild, err := uploadBuild(c, now, ns, req, BuildNormal)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +254,7 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byt
 	return nil, nil
 }
 
-func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType) (bool, error) {
+func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build, typ BuildType) (bool, error) {
 	if _, err := loadBuild(c, ns, req.ID); err == nil {
 		return false, nil
 	}
@@ -276,8 +277,8 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType
 	if err := checkStrLen(req.KernelRepo, "Build.KernelRepo", MaxStringLen); err != nil {
 		return false, err
 	}
-	if err := checkStrLen(req.KernelBranch, "Build.KernelBranch", MaxStringLen); err != nil {
-		return false, err
+	if len(req.KernelBranch) > MaxStringLen {
+		return false, fmt.Errorf("Build.KernelBranch is too long (%v)", len(req.KernelBranch))
 	}
 	if err := checkStrLen(req.SyzkallerCommit, "Build.SyzkallerCommit", MaxStringLen); err != nil {
 		return false, err
@@ -297,7 +298,7 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType
 		Manager:           req.Manager,
 		ID:                req.ID,
 		Type:              typ,
-		Time:              timeNow(c),
+		Time:              now,
 		OS:                req.OS,
 		Arch:              req.Arch,
 		VMArch:            req.VMArch,
@@ -450,7 +451,8 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	if _, err := uploadBuild(c, ns, &req.Build, BuildFailed); err != nil {
+	now := timeNow(c)
+	if _, err := uploadBuild(c, now, ns, &req.Build, BuildFailed); err != nil {
 		return nil, err
 	}
 	req.Crash.BuildID = req.Build.ID

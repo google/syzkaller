@@ -24,10 +24,10 @@ Tested on {{.KernelRepo}} commit
 {{.KernelCommitTitle}}{{end}}
 
 compiler: {{.CompilerID}}
-{{if .PatchLink}}Patch: {{.PatchLink}}{{end}}
-{{if .KernelConfigLink}}Kernel config: {{.KernelConfigLink}}{{end}}
-{{if .LogLink}}Raw console output: {{.LogLink}}{{end}}
-{{if and (not .CrashTitle) (not .Error)}}
+{{if .PatchLink}}Patch: {{.PatchLink}}
+{{end}}{{if .KernelConfigLink}}Kernel config: {{.KernelConfigLink}}
+{{end}}{{if .LogLink}}Raw console output: {{.LogLink}}
+{{end}}{{if and (not .CrashTitle) (not .Error)}}
 ---
 There is no WARRANTY for the result, to the extent permitted by applicable law.
 Except when otherwise stated in writing syzbot provides the result "AS IS"
