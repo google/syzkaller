@@ -466,7 +466,7 @@ func TestHintsData(t *testing.T) {
 		sort.Strings(test.out)
 		sort.Strings(got)
 		if !reflect.DeepEqual(got, test.out) {
-			t.Fatalf("comps: %s\ninput: %v\ngot : %+v\nwant: %+v",
+			t.Fatalf("comps: %v\ninput: %v\ngot : %+v\nwant: %+v",
 				test.comps, test.in, got, test.out)
 		}
 	}
