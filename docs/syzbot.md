@@ -33,18 +33,6 @@ you don't need to wait for the commit to be merged into upstream tree.
 `syzbot` only needs to know the title by which it will appear in tested trees.
 In case of an error or a title change, you can override the commit simply
 by sending another `#syz fix` command.
-- to test a patch for a bug *with reproducer*:
-```
-#syz test: git://repo/address.git branch
-```
-and provide the patch inline or as a text attachment. Attachments are more
-reliable because of email clients splitting lines and messing with whitespaces.
-`syzbot` will test the patch on `HEAD` of the specified git repo/branch.
-Note: this can be used both for testing fix patches and just for debugging
-(i.e. adding additional checks to code and testing with them).
-Note: you may send the request only to `syzbot` email address, as patches sent
-to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
-After sending an email you should get a reply email with results within an hour.
 - to mark the bug as a duplicate of another `syzbot` bug:
 ```
 #syz dup: exact-subject-of-another-report
@@ -63,6 +51,33 @@ After sending an email you should get a reply email with results within an hour.
 
 **Note**: please keep `syzkaller-bugs@googlegroups.com` mailing list in CC.
 It serves as a history of what happened with each bug report.
+
+## Testing patches
+
+`syzbot` can test patches for bugs *with reproducers*. This can be used for
+testing of fix patches, or just for debugging (i.e. adding additional checks to
+code and testing with them), or to check if the bug still happens. To test on
+a particular git tree and branch reply with:
+```
+#syz test: git://repo/address.git branch
+```
+or alternatively, to test on exact commit reply with:
+```
+#syz test: git://repo/address.git commit-hash
+```
+If you also provide a patch with the email, `syzbot` will apply it on top of the
+tree before testing. The patch can be provided either inline in email text or as
+a text attachment (which is more reliable if your email client messes with
+whitespaces).
+
+If you don't provide a patch, `syzbot` will test the tree as is.
+This is useful if this is your own tree which already contains the patch,
+or to check if the bug is already fixed by some recent commit.
+
+After sending an email you should get a reply email with results within an hour.
+
+Note: you may send the request only to `syzbot` email address, as patches sent
+to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 
 ## syzkaller reproducers
 
