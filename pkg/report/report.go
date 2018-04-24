@@ -59,7 +59,11 @@ func NewReporter(os, kernelSrc, kernelObj string, symbols map[string][]symbolize
 	if kernelObj == "" {
 		kernelObj = kernelSrc // assume in-tree build
 	}
-	return ctor(kernelSrc, kernelObj, symbols, ignores)
+	rep, err := ctor(kernelSrc, kernelObj, symbols, ignores)
+	if err != nil {
+		return nil, err
+	}
+	return reporterWrapper{rep}, nil
 }
 
 var ctors = map[string]fn{
@@ -72,6 +76,51 @@ var ctors = map[string]fn{
 }
 
 type fn func(string, string, map[string][]symbolizer.Symbol, []*regexp.Regexp) (Reporter, error)
+
+type reporterWrapper struct {
+	Reporter
+}
+
+func (wrap reporterWrapper) Parse(output []byte) *Report {
+	rep := wrap.Reporter.Parse(output)
+	if rep == nil {
+		return nil
+	}
+	rep.Title = sanitizeTitle(rep.Title)
+	return rep
+}
+
+func sanitizeTitle(title string) string {
+	const maxTitleLen = 120 // Corrupted/intermixed lines can be very long.
+	res := make([]byte, 0, len(title))
+	prev := byte(' ')
+	for i := 0; i < len(title) && i < maxTitleLen; i++ {
+		ch := title[i]
+		switch {
+		case ch == '\t':
+			ch = ' '
+		case ch < 0x20 || ch >= 0x7f:
+			continue
+		}
+		if ch == ' ' && prev == ' ' {
+			continue
+		}
+		res = append(res, ch)
+		prev = ch
+	}
+	return strings.TrimSpace(string(res))
+}
+
+type guilter interface {
+	extractGuiltyFile([]byte) string
+}
+
+func (wrap reporterWrapper) extractGuiltyFile(report []byte) string {
+	if g, ok := wrap.Reporter.(guilter); ok {
+		return g.extractGuiltyFile(report)
+	}
+	panic("not implemented")
+}
 
 type oops struct {
 	header       []byte
@@ -214,14 +263,6 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 			end += pos
 		}
 		desc = string(output[pos:end])
-	}
-	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
-		desc = desc[:len(desc)-1]
-	}
-	// Corrupted/intermixed lines can be very long.
-	const maxDescLen = 180
-	if len(desc) > maxDescLen {
-		desc = desc[:maxDescLen]
 	}
 	return
 }

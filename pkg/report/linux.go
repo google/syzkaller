@@ -896,6 +896,16 @@ var linuxOopses = []*oops{
 				report: compile("WARNING: held lock freed!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
 				fmt:    "WARNING: held lock freed in %[1]v",
 			},
+			{
+				title:        compile("WARNING: kernel stack regs .* has bad 'bp' value"),
+				fmt:          "WARNING: kernel stack regs has bad value",
+				noStackTrace: true,
+			},
+			{
+				title:        compile("WARNING: kernel stack frame pointer .* has bad value"),
+				fmt:          "WARNING: kernel stack regs has bad value",
+				noStackTrace: true,
+			},
 		},
 		[]*regexp.Regexp{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
