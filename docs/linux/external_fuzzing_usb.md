@@ -36,7 +36,9 @@ How to set this up:
 
 6. Enable `syz_usb_connect` and `syz_usb_disconnect` syscalls in the manager config.
 
-7. Run.
+7. Set `sandbox` to `none` and `procs` to `1` in the manager config.
+
+8. Run.
 
 Syzkaller descriptions for USB fuzzing can be found here: [1](/sys/linux/vusb.txt) and [2](/sys/linux/vusb_ids.txt).
 
