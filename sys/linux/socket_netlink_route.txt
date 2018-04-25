@@ -13,6 +13,7 @@ include <uapi/linux/netconf.h>
 include <uapi/linux/rtnetlink.h>
 include <uapi/linux/lwtunnel.h>
 include <uapi/linux/neighbour.h>
+include <uapi/linux/fib_rules.h>
 
 resource sock_nl_route[sock_netlink]
 
@@ -27,6 +28,7 @@ netlink_msg_route [
 	dellink			netlink_msg[RTM_DELLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
 	getaddr			netlink_msg[RTM_GETADDR, rtgenmsg[AF_UNSPEC], void]
 	getroute		netlink_msg[RTM_GETROUTE, rtgenmsg[AF_UNSPEC], void]
+	getrule			netlink_msg[RTM_GETRULE, rtgenmsg[AF_UNSPEC], void]
 	getnetconf		netlink_msg[RTM_GETNETCONF, rtgenmsg[AF_UNSPEC], void]
 	getstats		netlink_msg[RTM_GETSTATS, if_stats_msg[AF_UNSPEC], void]
 	newneigh		netlink_msg[RTM_NEWNEIGH, ndmsg, nd_policy]
@@ -42,6 +44,9 @@ netlink_msg_route [
 	ipv4_delroute		netlink_msg[RTM_DELROUTE, rtmsg[AF_INET], rtm_ipv4_policy]
 	ipv4_getroute		netlink_msg[RTM_GETROUTE, rtmsg[AF_INET], void]
 	ipv4_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_INET], devconf_ip_policy]
+	ipv4_newrule		netlink_msg[RTM_NEWRULE, fib_rule_hdr[AF_INET], fib4_rule_policy]
+	ipv4_delrule		netlink_msg[RTM_DELRULE, fib_rule_hdr[AF_INET], fib4_rule_policy]
+	ipv4_getrule		netlink_msg[RTM_GETRULE, fib_rule_hdr[AF_INET], void]
 
 	ipv6_newaddr		netlink_msg[RTM_NEWADDR, ifaddrmsg[AF_INET6], ifa_ipv6_policy]
 	ipv6_deladdr		netlink_msg[RTM_DELADDR, ifaddrmsg[AF_INET6], ifa_ipv6_policy]
@@ -52,6 +57,9 @@ netlink_msg_route [
 	ipv6_getmulticast	netlink_msg[RTM_GETMULTICAST, rtgenmsg[AF_INET6], void]
 	ipv6_getanyicast	netlink_msg[RTM_GETANYCAST, rtgenmsg[AF_INET6], void]
 	ipv6_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_INET6], devconf_ip_policy]
+	ipv6_newrule		netlink_msg[RTM_NEWRULE, fib_rule_hdr[AF_INET6], fib6_rule_policy]
+	ipv6_delrule		netlink_msg[RTM_DELRULE, fib_rule_hdr[AF_INET6], fib6_rule_policy]
+	ipv6_getrule		netlink_msg[RTM_GETRULE, fib_rule_hdr[AF_INET6], void]
 
 	ipmr_newroute		netlink_msg[RTM_NEWROUTE, rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]
 	ipmr_delroute		netlink_msg[RTM_DELROUTE, rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]
@@ -205,7 +213,7 @@ rtm_ipv4_policy [
 	RTA_PREFSRC	nlattr[RTA_PREFSRC, ipv4_addr]
 # TODO: what's this? is this interesting?
 	RTA_METRICS	nlattr[RTA_METRICS, array[int8]]
-	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, array[rtnexthop]]
+	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, rtnexthop]
 	RTA_FLOW	nlattr[RTA_FLOW, int32]
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
 # TODO: describe RTA_ENCAP
@@ -221,7 +229,7 @@ rtm_ipv6_policy [
 	RTA_PRIORITY	nlattr[RTA_PRIORITY, int32]
 # TODO: what's this? is this interesting?
 	RTA_METRICS	nlattr[RTA_METRICS, array[int8]]
-	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, array[rtnexthop]]
+	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, rtnexthop]
 	RTA_PREF	nlattr[RTA_PREF, int8]
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
 # TODO: describe RTA_ENCAP
@@ -235,6 +243,61 @@ rtm_mpls_policy [
 	RTA_DST			nlattr[RTA_DST, array[mpls_label]]
 	RTA_OIF			nlattr[RTA_OIF, ifindex]
 	RTA_TTL_PROPAGATE	nlattr[RTA_TTL_PROPAGATE, int8]
+] [varlen]
+
+type fib_rule_hdr[FAMILY] {
+	family		const[FAMILY, int8]
+	dst_len		flags[rtm_addr_len, int8]
+	rcdst_len	flags[rtm_addr_len, int8]
+	tos		int8
+	table		int8
+	res1		const[0, int8]
+	res2		const[0, int8]
+	action		flags[fr_actions, int32]
+	flags		flags[fr_flags, int32]
+}
+
+fib_rule_uid_range {
+	start	uid
+	end	uid
+}
+
+fib_rule_port_range {
+	start	sock_port
+	end	sock_port
+}
+
+fra_generic_policy [
+	FRA_IIFNAME		nlattr[FRA_IIFNAME, devname]
+	FRA_OIFNAME		nlattr[FRA_OIFNAME, devname]
+	FRA_PRIORITY		nlattr[FRA_PRIORITY, int32]
+	FRA_FWMARK		nlattr[FRA_FWMARK, int32]
+	FRA_FWMASK		nlattr[FRA_FWMASK, int32]
+	FRA_TABLE		nlattr[FRA_TABLE, int32]
+	FRA_SUPPRESS_PREFIXLEN	nlattr[FRA_SUPPRESS_PREFIXLEN, int32]
+	FRA_SUPPRESS_IFGROUP	nlattr[FRA_SUPPRESS_IFGROUP, int32]
+	FRA_GOTO		nlattr[FRA_GOTO, int32]
+	FRA_L3MDEV		nlattr[FRA_L3MDEV, int8]
+	FRA_UID_RANGE		nlattr[FRA_UID_RANGE, fib_rule_uid_range]
+	FRA_PROTOCOL		nlattr[FRA_PROTOCOL, flags[rtm_protocol, int8]]
+	FRA_IP_PROTO		nlattr[FRA_IP_PROTO, flags[ipv6_types, int8]]
+	FRA_SPORT_RANGE		nlattr[FRA_SPORT_RANGE, fib_rule_port_range]
+	FRA_DPORT_RANGE		nlattr[FRA_DPORT_RANGE, fib_rule_port_range]
+] [varlen]
+
+# FRA_DST/SRC are not in fib4/6_rule_policy. But fib4/6 still need them.
+# So I add them here.
+fib4_rule_policy [
+	FRA_DST			nlattr[RTA_DST, ipv4_addr]
+	FRA_SRC			nlattr[RTA_SRC, ipv4_addr]
+	FRA_GENERIC_POLICY	fra_generic_policy
+	FRA_FLOW		nlattr[FRA_FLOW, int32]
+] [varlen]
+
+fib6_rule_policy [
+	FRA_DST		nlattr[RTA_DST, ipv6_addr]
+	FRA_SRC		nlattr[RTA_SRC, ipv6_addr]
+	FIB_RULE_POLICY	fra_generic_policy
 ] [varlen]
 
 nl_neightbl_policy [
@@ -339,6 +402,8 @@ rt_scope_t = RT_SCOPE_UNIVERSE, RT_SCOPE_SITE, RT_SCOPE_LINK, RT_SCOPE_HOST, RT_
 rtm_protocol = RTPROT_UNSPEC, RTPROT_REDIRECT, RTPROT_KERNEL, RTPROT_BOOT, RTPROT_STATIC
 rtm_type = RTN_UNSPEC, RTN_UNICAST, RTN_LOCAL, RTN_BROADCAST, RTN_ANYCAST, RTN_MULTICAST, RTN_BLACKHOLE, RTN_UNREACHABLE, RTN_PROHIBIT, RTN_THROW, RTN_NAT, RTN_XRESOLVE
 rtm_flags = RTM_F_NOTIFY, RTM_F_CLONED, RTM_F_EQUALIZE, RTM_F_PREFIX, RTM_F_LOOKUP_TABLE, RTM_F_FIB_MATCH
+fr_actions = FR_ACT_UNSPEC, FR_ACT_TO_TBL, FR_ACT_GOTO, FR_ACT_NOP, FR_ACT_RES3, FR_ACT_RES4, FR_ACT_BLACKHOLE, FR_ACT_UNREACHABLE, FR_ACT_PROHIBIT
+fr_flags = FIB_RULE_PERMANENT, FIB_RULE_INVERT, FIB_RULE_UNRESOLVED, FIB_RULE_IIF_DETACHED, FIB_RULE_OIF_DETACHED, FIB_RULE_FIND_SADDR
 lwtunnel_encap_types = LWTUNNEL_ENCAP_NONE, LWTUNNEL_ENCAP_MPLS, LWTUNNEL_ENCAP_IP, LWTUNNEL_ENCAP_ILA, LWTUNNEL_ENCAP_IP6, LWTUNNEL_ENCAP_SEG6, LWTUNNEL_ENCAP_BPF, LWTUNNEL_ENCAP_SEG6_LOCAL
 rt_table_types = RT_TABLE_UNSPEC, RT_TABLE_COMPAT, RT_TABLE_DEFAULT, RT_TABLE_MAIN, RT_TABLE_LOCAL
 ndm_state = NUD_INCOMPLETE, NUD_REACHABLE, NUD_STALE, NUD_DELAY, NUD_PROBE, NUD_FAILED, NUD_NOARP, NUD_PERMANENT, NUD_NONE
