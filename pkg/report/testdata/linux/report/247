@@ -1,0 +1,42 @@
+TITLE: BUG: unable to handle kernel NULL pointer dereference in inet_sendmsg
+
+[   61.889077] BUG: unable to handle kernel NULL pointer dereference at           (null)
+[   61.890070] IP: [<          (null)>]           (null)
+[   61.890919] PGD 73c74067 PUD 73114067 PMD 0 
+[   61.890919] Oops: 0010 [#1] SMP DEBUG_PAGEALLOC 
+[   61.892273] Modules linked in:
+[   61.892273] CPU: 1 PID: 7447 Comm: syz-executor5 Not tainted 4.1.15+ #4
+[   61.892273] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[   61.894174] task: ffff880073063930 ti: ffff880073470000 task.ti: ffff880073470000
+[   61.895826] RIP: 0010:[<0000000000000000>]  [<          (null)>]           (null)
+[   61.895826] RSP: 0018:ffff880073473cb0  EFLAGS: 00010246
+[   61.895826] RAX: ffffffff81e9fe80 RBX: ffff880073b55b00 RCX: 0000000000000006
+[   61.895826] RDX: 0000000000000006 RSI: 0000000000000000 RDI: ffff880073b55b00
+[   61.895826] RBP: ffff880073473cc0 R08: 0000000000000000 R09: 0000000000000000
+[   61.895826] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[   61.895826] R13: ffff880073473ec8 R14: 0000000000000000 R15: 0000000000000000
+[   61.895826] FS:  00007f20cc321700(0000) GS:ffff88007f840000(0000) knlGS:0000000000000000
+[   61.895826] CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
+[   61.895826] CR2: 0000000000000000 CR3: 0000000073729000 CR4: 00000000000006e0
+[   61.895826] Stack:
+[   61.895826]  ffffffff8175ec15 ffff880073b55b00 ffff880073473d00 ffffffff81760e50
+[   61.895826]  ffffffff81760cc0 ffff880073473ec8 ffff880079724600 0000000000000000
+[   61.895826]  0000000000000000 ffff880073473ec8 ffff880073473d20 ffffffff8169ff95
+[   61.895826] Call Trace:
+[   61.895826]  [<ffffffff8175ec15>] ? inet_autobind+0x25/0x60
+[   61.895826]  [<ffffffff81760e50>] inet_sendmsg+0x190/0x1e0
+[   61.895826]  [<ffffffff81760cc0>] ? inet_recvmsg+0x1e0/0x1e0
+[   61.895826]  [<ffffffff8169ff95>] sock_sendmsg+0x35/0x40
+[   61.895826]  [<ffffffff816a08ab>] ___sys_sendmsg+0x27b/0x2b0
+[   61.895826]  [<ffffffff81099fb5>] ? __lock_acquire+0x535/0x1ab0
+[   61.895826]  [<ffffffff81097dd1>] ? __lock_is_held+0x51/0x80
+[   61.895826]  [<ffffffff816a178d>] __sys_sendmsg+0x3d/0x80
+[   61.895826]  [<ffffffff816a17dd>] SyS_sendmsg+0xd/0x20
+[   61.895826]  [<ffffffff818e2dae>] system_call_fastpath+0x12/0x76
+[   61.895826] Code:  Bad RIP value.
+[   61.895826] RIP  [<          (null)>]           (null)
+[   61.895826]  RSP <ffff880073473cb0>
+[   61.895826] CR2: 0000000000000000
+[   61.919641] ---[ end trace e4754c7187702be5 ]---
+[   61.920336] Kernel panic - not syncing: Fatal exception
+[   61.921115] Kernel Offset: disabled
