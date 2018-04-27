@@ -6,11 +6,13 @@ package main
 import (
 	"bytes"
 	"os"
+	"runtime"
 	"syscall"
 	"time"
 	"unsafe"
 
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/linux"
 )
 
@@ -146,6 +148,11 @@ func checkCompsSupported() (kcov, comps bool) {
 		return
 	}
 	defer syscall.Close(fd)
+	// Trigger host target lazy initialization, it will fill linux.KCOV_INIT_TRACE.
+	// It's all wrong and needs to be refactored.
+	if _, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+		log.Fatalf("%v", err)
+	}
 	kcov = true
 	coverSize := uintptr(64 << 10)
 	_, _, errno := syscall.Syscall(
