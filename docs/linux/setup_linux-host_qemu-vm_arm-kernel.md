@@ -28,6 +28,7 @@ CONFIG_UTS_NS=y
 CONFIG_IPC_NS=y
 CONFIG_PID_NS=y
 CONFIG_NET_NS=y
+```
 
 Also check out general kernel configuration [recommendations](/docs/linux/kernel_configs.md).
 
