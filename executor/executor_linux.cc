@@ -25,8 +25,8 @@
 
 #include "syscalls_linux.h"
 
-#define KCOV_INIT_TRACE _IOR('c', 1, cover_t)
-#define KCOV_INIT_CMP _IOR('c', 2, cover_t)
+#define KCOV_INIT_TRACE32 _IOR('c', 1, uint32)
+#define KCOV_INIT_TRACE64 _IOR('c', 1, uint64)
 #define KCOV_ENABLE _IO('c', 100)
 #define KCOV_DISABLE _IO('c', 101)
 
@@ -42,8 +42,11 @@ void* const kOutputDataAddr = (void*)0x1b2bc20000ull;
 uint32* output_data;
 uint32* output_pos;
 
+static bool detect_kernel_bitness();
+
 int main(int argc, char** argv)
 {
+	is_kernel_64_bit = detect_kernel_bitness();
 	if (argc == 2 && strcmp(argv[1], "version") == 0) {
 		puts(GOOS " " GOARCH " " SYZ_REVISION " " GIT_REVISION);
 		return 0;
@@ -137,15 +140,15 @@ void cover_open()
 		th->cover_fd = open("/sys/kernel/debug/kcov", O_RDWR);
 		if (th->cover_fd == -1)
 			fail("open of /sys/kernel/debug/kcov failed");
-		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
+		const int kcov_init_trace = is_kernel_64_bit ? KCOV_INIT_TRACE64 : KCOV_INIT_TRACE32;
+		if (ioctl(th->cover_fd, kcov_init_trace, kCoverSize))
 			fail("cover init trace write failed");
-		size_t mmap_alloc_size = kCoverSize * sizeof(th->cover_data[0]);
-		void* mmap_ptr = mmap(NULL, mmap_alloc_size,
-				      PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
-		if (mmap_ptr == MAP_FAILED)
+		size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
+		th->cover_data = (char*)mmap(NULL, mmap_alloc_size,
+					     PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
+		th->cover_end = th->cover_data + mmap_alloc_size;
+		if (th->cover_data == MAP_FAILED)
 			fail("cover mmap failed");
-		th->cover_size_ptr = (cover_t*)mmap_ptr;
-		th->cover_data = &th->cover_size_ptr[1];
 	}
 }
 
@@ -170,17 +173,18 @@ void cover_reset(thread_t* th)
 		return;
 	if (th == 0)
 		th = current_thread;
-	__atomic_store_n(th->cover_size_ptr, 0, __ATOMIC_RELAXED);
+	*(uint64*)th->cover_data = 0;
 }
 
-cover_t read_cover_size(thread_t* th)
+uint32 read_cover_size(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
-	cover_t n = __atomic_load_n(th->cover_size_ptr, __ATOMIC_RELAXED);
-	debug("#%d: read cover size = %llu\n", th->id, (uint64)n);
+	// Note: this assumes little-endian kernel.
+	uint32 n = *(uint32*)th->cover_data;
+	debug("#%d: read cover size = %u\n", th->id, n);
 	if (n >= kCoverSize)
-		fail("#%d: too much cover %llu", th->id, (uint64)n);
+		fail("#%d: too much cover %u", th->id, n);
 	return n;
 }
 
@@ -231,4 +235,26 @@ bool kcov_comparison_t::ignore() const
 #endif
 	}
 	return false;
+}
+
+static bool detect_kernel_bitness()
+{
+	if (sizeof(void*) == 8)
+		return true;
+	// It turns out to be surprisingly hard to understand if the kernel underneath is 64-bits.
+	// A common method is to look at uname.machine. But it is produced in some involved ways,
+	// and we will need to know about all strings it returns and in the end it can be overriden
+	// during build and lie (and there are known precedents of this).
+	// So instead we look at size of addresses in /proc/kallsyms.
+	bool wide = true;
+	int fd = open("/proc/kallsyms", O_RDONLY);
+	if (fd != -1) {
+		char buf[16];
+		if (read(fd, buf, sizeof(buf)) == sizeof(buf) &&
+		    (buf[8] == ' ' || buf[8] == '\t'))
+			wide = false;
+		close(fd);
+	}
+	debug("detected %d-bit kernel\n", wide ? 64 : 32);
+	return wide;
 }

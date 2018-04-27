@@ -68,6 +68,7 @@ unsigned long long procid;
 int running;
 uint32 completed;
 bool collide;
+bool is_kernel_64_bit = true;
 
 ALIGNED(64 << 10)
 char input_data[kMaxInput];
@@ -79,18 +80,13 @@ const uint64 arg_csum_inet = 0;
 const uint64 arg_csum_chunk_data = 0;
 const uint64 arg_csum_chunk_const = 1;
 
-// TODO(dvyukov): for 32-bit kernel this needs to be uint32.
-typedef uint64 cover_t;
-
 struct thread_t {
 	bool created;
 	int id;
 	osthread_t th;
-	// TODO(dvyukov): this assumes 64-bit kernel. This must be "kernel long" somehow.
-	cover_t* cover_data;
-	// Pointer to the size of coverage (stored as first word of memory).
-	cover_t* cover_size_ptr;
-	cover_t cover_buffer[1]; // fallback coverage buffer
+	char* cover_data;
+	char* cover_end;
+	uint64 cover_buffer[1]; // fallback coverage buffer
 
 	event_t ready;
 	event_t done;
@@ -104,7 +100,7 @@ struct thread_t {
 	long args[kMaxArgs];
 	long res;
 	uint32 reserrno;
-	cover_t cover_size;
+	uint32 cover_size;
 	bool fault_injected;
 	int cover_fd;
 };
@@ -186,7 +182,7 @@ bool copyout(char* addr, uint64 size, uint64* res);
 void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
-cover_t read_cover_size(thread_t* th);
+uint32 read_cover_size(thread_t* th);
 static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
 
@@ -491,6 +487,42 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 	return th;
 }
 
+template <typename cover_t>
+void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover_count_pos)
+{
+	// Write out feedback signals.
+	// Currently it is code edges computed as xor of two subsequent basic block PCs.
+	cover_t* cover_data = ((cover_t*)th->cover_data) + 1;
+	uint32 nsig = 0;
+	uint32 prev = 0;
+	for (uint32 i = 0; i < th->cover_size; i++) {
+		uint32 pc = cover_data[i];
+		uint32 sig = pc ^ prev;
+		prev = hash(pc);
+		if (dedup(sig))
+			continue;
+		write_output(sig);
+		nsig++;
+	}
+	// Write out number of signals.
+	*signal_count_pos = nsig;
+
+	if (!flag_collect_cover)
+		return;
+	// Write out real coverage (basic block PCs).
+	uint32 cover_size = th->cover_size;
+	if (flag_dedup_cover) {
+		cover_t* end = cover_data + cover_size;
+		std::sort(cover_data, end);
+		cover_size = std::unique(cover_data, end) - cover_data;
+	}
+	// Truncate PCs to uint32 assuming that they fit into 32-bits.
+	// True for x86_64 and arm64 without KASLR.
+	for (uint32 i = 0; i < cover_size; i++)
+		write_output(cover_data[i]);
+	*cover_count_pos = cover_size;
+}
+
 void handle_completion(thread_t* th)
 {
 	debug("completion of call %d [%s] on thread %d\n", th->call_index, syscalls[th->call_num].name, th->id);
@@ -536,63 +568,34 @@ void handle_completion(thread_t* th)
 		uint32* signal_count_pos = write_output(0); // filled in later
 		uint32* cover_count_pos = write_output(0); // filled in later
 		uint32* comps_count_pos = write_output(0); // filled in later
-		uint32 nsig = 0, cover_size = 0, comps_size = 0;
 
 		if (flag_collect_comps) {
 			// Collect only the comparisons
-			// TODO(dvyukov): this is broken for 32-bit kernels.
-			// cover_data is offsetted by cover_t, but kernel always offsetted it by uint64.
 			uint32 ncomps = th->cover_size;
-			kcov_comparison_t* start = (kcov_comparison_t*)th->cover_data;
+			kcov_comparison_t* start = (kcov_comparison_t*)(th->cover_data + sizeof(uint64));
 			kcov_comparison_t* end = start + ncomps;
-			if ((cover_t*)end >= th->cover_data + kCoverSize)
+			if ((char*)end > th->cover_end)
 				fail("too many comparisons %u", ncomps);
 			std::sort(start, end);
 			ncomps = std::unique(start, end) - start;
+			uint32 comps_size = 0;
 			for (uint32 i = 0; i < ncomps; ++i) {
 				if (start[i].ignore())
 					continue;
 				comps_size++;
 				start[i].write();
 			}
+			// Write out number of comparisons.
+			*comps_count_pos = comps_size;
 		} else {
-			// Write out feedback signals.
-			// Currently it is code edges computed as xor of
-			// two subsequent basic block PCs.
-			uint32 prev = 0;
-			for (uint32 i = 0; i < th->cover_size; i++) {
-				uint32 pc = (uint32)th->cover_data[i];
-				uint32 sig = pc ^ prev;
-				prev = hash(pc);
-				if (dedup(sig))
-					continue;
-				write_output(sig);
-				nsig++;
-			}
-			if (flag_collect_cover) {
-				// Write out real coverage (basic block PCs).
-				cover_size = th->cover_size;
-				if (flag_dedup_cover) {
-					cover_t* start = th->cover_data;
-					cover_t* end = start + cover_size;
-					std::sort(start, end);
-					cover_size = std::unique(start, end) - start;
-				}
-				// Truncate PCs to uint32 assuming that they fit into 32-bits.
-				// True for x86_64 and arm64 without KASLR.
-				for (uint32 i = 0; i < cover_size; i++)
-					write_output((uint32)th->cover_data[i]);
-			}
+			if (is_kernel_64_bit)
+				write_coverage_signal<uint64>(th, signal_count_pos, cover_count_pos);
+			else
+				write_coverage_signal<uint32>(th, signal_count_pos, cover_count_pos);
 		}
-		// Write out real coverage (basic block PCs).
-		*cover_count_pos = cover_size;
-		// Write out number of comparisons
-		*comps_count_pos = comps_size;
-		// Write out number of signals
-		*signal_count_pos = nsig;
 		debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u comps=%u\n",
-		      completed, th->call_index, th->call_num, reserrno, nsig,
-		      cover_size, comps_size);
+		      completed, th->call_index, th->call_num, reserrno,
+		      *signal_count_pos, *cover_count_pos, *comps_count_pos);
 		completed++;
 		write_completed(completed);
 	}
