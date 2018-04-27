@@ -8,6 +8,7 @@ import (
 	"os"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/sys/linux"
@@ -153,7 +154,7 @@ func checkCompsSupported() (kcov, comps bool) {
 		log.Logf(1, "KCOV_CHECK: KCOV_INIT_TRACE = %v", errno)
 		return
 	}
-	_, err = syscall.Mmap(fd, 0, int(coverSize*8),
+	_, err = syscall.Mmap(fd, 0, int(coverSize*unsafe.Sizeof(uintptr(0))),
 		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
 		log.Logf(1, "KCOV_CHECK: mmap = %v", err)
