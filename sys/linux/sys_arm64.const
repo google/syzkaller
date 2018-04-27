@@ -779,7 +779,6 @@ __NR_setfsuid = 151
 __NR_setgid = 144
 __NR_setgroups = 159
 __NR_setitimer = 103
-__NR_setns = 268
 __NR_setpgid = 154
 __NR_setpriority = 140
 __NR_setregid = 143
@@ -820,7 +819,6 @@ __NR_truncate = 45
 __NR_uname = 160
 # __NR_unlink is not set
 __NR_unlinkat = 35
-__NR_unshare = 97
 # __NR_uselib is not set
 # __NR_ustat is not set
 # __NR_utime is not set

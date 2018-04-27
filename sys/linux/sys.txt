@@ -146,7 +146,6 @@ munlock(addr vma, size len[addr])
 mlockall(flags flags[mlockall_flags])
 munlockall()
 memfd_create(name ptr[in, string], flags flags[memfd_flags]) fd
-unshare(flags flags[clone_flags])
 kcmp(pid1 pid, pid2 pid, type flags[kcmp_flags], fd1 fd, fd2 fd)
 kcmp$KCMP_EPOLL_TFD(pid1 pid, pid2 pid, type const[KCMP_EPOLL_TFD], fd1 fd, idx2 ptr[in, kcmp_epoll_slot])
 
@@ -366,7 +365,6 @@ ioprio_get$pid(which flags[ioprio_which_pid], who pid)
 ioprio_get$uid(which flags[ioprio_which_uid], who uid)
 ioprio_set$pid(which flags[ioprio_which_pid], who pid, prio intptr)
 ioprio_set$uid(which flags[ioprio_which_uid], who uid, prio intptr)
-setns(fd fd, type flags[ns_type])
 
 resource timerid[int32]
 timer_create(id flags[clock_id], ev ptr[in, sigevent], timerid ptr[out, timerid])
@@ -431,7 +429,7 @@ membarrier(cmd flags[membarrier_cmd], flags const[0])
 
 syz_open_procfs(pid pid, file ptr[in, string[procfs_file]]) fd
 
-procfs_file = "auxv", "cmdline", "environ", "autogroup", "cgroup", "clear_refs", "comm", "coredump_filter", "cpuset", "gid_map", "io", "limits", "loginuid", "maps", "mountinfo", "mounts", "mountstats", "numa_maps", "oom_adj", "oom_score", "oom_score_adj", "pagemap", "personality", "projid_map", "sched", "schedstat", "sessionid", "setgroups", "smaps", "stack", "stat", "statm", "status", "syscall", "timers", "uid_map", "wchan", "map_files", "attr", "attr/current", "attr/exec", "attr/fscreate", "attr/keycreate", "attr/prev", "attr/sockcreate", "ns", "ns/cgroup", "ns/ipc", "ns/mnt", "ns/net", "ns/pid", "ns/user", "ns/uts", "children", "task", "fdinfo", "net", "net/anycast6", "net/arp", "net/bnep", "net/connector", "net/dev", "net/dev_mcast", "net/dev_snmp6", "net/fib_trie", "net/fib_triestat", "net/hci", "net/icmp", "net/icmp6", "net/if_inet6", "net/igmp", "net/igmp6", "net/ip6_flowlabel", "net/ip6_mr_cache", "net/ip6_mr_vif", "net/ip6_tables_matches", "net/ip6_tables_names", "net/ip6_tables_targets", "net/ip_mr_cache", "net/ip_mr_vif", "net/ip_tables_matches", "net/ip_tables_names", "net/ip_tables_targets", "net/ipv6_route", "net/ipx", "net/l2cap", "net/llc", "net/mcfilter", "net/mcfilter6", "net/netfilter", "net/netlink", "net/netstat", "net/nfsfs", "net/packet", "net/protocols", "net/psched", "net/ptype", "net/raw", "net/raw6", "net/rfcomm", "net/route", "net/rpc", "net/rt6_stats", "net/rt_acct", "net/rt_cache", "net/sco", "net/sctp", "net/snmp", "net/snmp6", "net/sockstat", "net/sockstat6", "net/softnet_stat", "net/stat", "net/tcp", "net/tcp6", "net/udp", "net/udp6", "net/udplite", "net/udplite6", "net/unix", "net/wireless", "net/xfrm_stat", "net/ip_vs", "net/ip_vs_stats", "net/ip_vs_stats_percpu"
+procfs_file = "auxv", "cmdline", "environ", "autogroup", "cgroup", "clear_refs", "comm", "coredump_filter", "cpuset", "gid_map", "io", "limits", "loginuid", "maps", "mountinfo", "mounts", "mountstats", "numa_maps", "oom_adj", "oom_score", "oom_score_adj", "pagemap", "personality", "projid_map", "sched", "schedstat", "sessionid", "setgroups", "smaps", "smaps_rollup", "stack", "stat", "statm", "status", "syscall", "timers", "uid_map", "wchan", "map_files", "attr", "attr/current", "attr/exec", "attr/fscreate", "attr/keycreate", "attr/prev", "attr/sockcreate", "ns", "children", "task", "fd", "fd/3", "fd/4", "fdinfo", "fdinfo/3", "fdinfo/4", "net", "net/anycast6", "net/arp", "net/bnep", "net/connector", "net/dev", "net/dev_mcast", "net/dev_snmp6", "net/fib_trie", "net/fib_triestat", "net/hci", "net/icmp", "net/icmp6", "net/if_inet6", "net/igmp", "net/igmp6", "net/ip6_flowlabel", "net/ip6_mr_cache", "net/ip6_mr_vif", "net/ip6_tables_matches", "net/ip6_tables_names", "net/ip6_tables_targets", "net/ip_mr_cache", "net/ip_mr_vif", "net/ip_tables_matches", "net/ip_tables_names", "net/ip_tables_targets", "net/ipv6_route", "net/ipx", "net/l2cap", "net/llc", "net/mcfilter", "net/mcfilter6", "net/netfilter", "net/netlink", "net/netstat", "net/nfsfs", "net/packet", "net/protocols", "net/psched", "net/ptype", "net/raw", "net/raw6", "net/rfcomm", "net/route", "net/rpc", "net/rt6_stats", "net/rt_acct", "net/rt_cache", "net/sco", "net/sctp", "net/snmp", "net/snmp6", "net/sockstat", "net/sockstat6", "net/softnet_stat", "net/stat", "net/tcp", "net/tcp6", "net/udp", "net/udp6", "net/udplite", "net/udplite6", "net/unix", "net/wireless", "net/xfrm_stat", "net/ip_vs", "net/ip_vs_stats", "net/ip_vs_stats_percpu"
 
 # Uncomment on your own account.
 #syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
@@ -953,7 +951,6 @@ rlimit_type = RLIMIT_AS, RLIMIT_CORE, RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLI
 syslog_cmd = SYSLOG_ACTION_CLOSE, SYSLOG_ACTION_OPEN, SYSLOG_ACTION_READ, SYSLOG_ACTION_READ_ALL, SYSLOG_ACTION_READ_CLEAR, SYSLOG_ACTION_CLEAR, SYSLOG_ACTION_CONSOLE_ON, SYSLOG_ACTION_CONSOLE_OFF, SYSLOG_ACTION_SIZE_UNREAD, SYSLOG_ACTION_SIZE_BUFFER
 ioprio_which_pid = IOPRIO_WHO_PROCESS, IOPRIO_WHO_PGRP
 ioprio_which_uid = IOPRIO_WHO_USER
-ns_type = 0, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWUTS
 personality_flags = PER_LINUX, PER_SVR4, PER_SVR3, PER_OSR5, PER_WYSEV386, PER_ISCR4, PER_BSD, PER_XENIX, PER_LINUX32, PER_IRIX32, PER_IRIXN32, PER_IRIX64, PER_RISCOS, PER_SOLARIS, PER_UW7, PER_OSF4, PER_HPUX, ADDR_NO_RANDOMIZE, MMAP_PAGE_ZERO, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, ADDR_LIMIT_32BIT, SHORT_INODE, WHOLE_SECONDS, STICKY_TIMEOUTS, ADDR_LIMIT_3GB
 clock_id = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
 sigprocmask_how = SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK
