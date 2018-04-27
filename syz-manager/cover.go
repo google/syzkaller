@@ -60,10 +60,6 @@ var (
 	vmOffsets       = make(map[string]uint32)
 )
 
-const (
-	callLen = 5 // length of a call instruction, x86-ism
-)
-
 func initAllCover(os, arch, vmlinux string) {
 	// Running objdump on vmlinux takes 20-30 seconds, so we do it asynchronously on start.
 	// Running nm on vmlinux may takes 200 microsecond and being called during symbolization of every crash,
@@ -91,7 +87,7 @@ func initAllCover(os, arch, vmlinux string) {
 	}()
 }
 
-func generateCoverHTML(w io.Writer, vmlinux string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, vmlinux, arch string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("No coverage data available")
 	}
@@ -102,7 +98,9 @@ func generateCoverHTML(w io.Writer, vmlinux string, cov cover.Cover) error {
 	}
 	pcs := make([]uint64, 0, len(cov))
 	for pc := range cov {
-		pcs = append(pcs, cover.RestorePC(pc, base)-callLen)
+		fullPC := cover.RestorePC(pc, base)
+		prevPC := previousInstructionPC(arch, fullPC)
+		pcs = append(pcs, prevPC)
 	}
 	uncovered, err := uncoveredPcsInFuncs(vmlinux, pcs)
 	if err != nil {
@@ -391,6 +389,25 @@ func symbolize(vmlinux string, pcs []uint64) ([]symbolizer.Frame, string, error)
 
 	}
 	return frames, prefix, nil
+}
+
+func previousInstructionPC(arch string, pc uint64) uint64 {
+	switch arch {
+	case "amd64":
+		return pc - 5
+	case "386":
+		return pc - 1
+	case "arm64":
+		return pc - 4
+	case "arm":
+		// THUMB instructions are 2 or 4 bytes with low bit set.
+		// ARM instructions are always 4 bytes.
+		return (pc - 3) & ^uint64(1)
+	case "ppc64le":
+		return pc - 4
+	default:
+		panic("unknown arch")
+	}
 }
 
 type templateData struct {
