@@ -22,6 +22,12 @@ To show code coverage in web interface:
 CONFIG_DEBUG_INFO=y
 ```
 
+For detection of enabled syscalls and kernel bitness:
+```
+CONFIG_KALLSYMS=y
+CONFIG_KALLSYMS_ALL=y
+```
+
 For `namespace` sandbox:
 ```
 CONFIG_NAMESPACES=y
