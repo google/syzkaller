@@ -163,16 +163,17 @@ void cover_open()
 			fail("open of /dev/kcov failed");
 		if (ioctl(th->cover_fd, KIOSETBUFSIZE, &kCoverSize))
 			fail("ioctl init trace write failed");
-		size_t mmap_alloc_size = kCoverSize * sizeof(th->cover_data[0]);
-		uint64* mmap_ptr = (uint64*)mmap(NULL, mmap_alloc_size,
-						 PROT_READ | PROT_WRITE,
-						 MAP_SHARED, th->cover_fd, 0);
+		size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
+		char* mmap_ptr = (char*)mmap(NULL, mmap_alloc_size,
+					     PROT_READ | PROT_WRITE,
+					     MAP_SHARED, th->cover_fd, 0);
 		if (mmap_ptr == NULL)
 			fail("cover mmap failed");
-		th->cover_size_ptr = mmap_ptr;
-		th->cover_data = &mmap_ptr[1];
+		th->cover_data = mmap_ptr;
+		th->cover_end = mmap_ptr + mmap_alloc_size;
 #else
-		th->cover_data = &th->cover_buffer[0];
+		th->cover_data = (char*)&th->cover_buffer[0];
+		th->cover_end = th->cover_data + sizeof(th->cover_buffer);
 #endif
 	}
 }
