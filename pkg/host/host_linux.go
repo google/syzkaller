@@ -215,10 +215,19 @@ func extractStringConst(typ prog.Type) (string, bool) {
 
 func EnableFaultInjection() error {
 	if err := osutil.WriteFile("/sys/kernel/debug/failslab/ignore-gfp-wait", []byte("N")); err != nil {
-		return fmt.Errorf("failed to write /sys/kernel/debug/failslab/ignore-gfp-wait: %v", err)
+		return fmt.Errorf("failed to write /failslab/ignore-gfp-wait: %v", err)
 	}
 	if err := osutil.WriteFile("/sys/kernel/debug/fail_futex/ignore-private", []byte("N")); err != nil {
-		return fmt.Errorf("failed to write /sys/kernel/debug/fail_futex/ignore-private: %v", err)
+		return fmt.Errorf("failed to write /fail_futex/ignore-private: %v", err)
+	}
+	if err := osutil.WriteFile("/sys/kernel/debug/fail_page_alloc/ignore-gfp-highmem", []byte("N")); err != nil {
+		return fmt.Errorf("failed to write /fail_page_alloc/ignore-gfp-highmem: %v", err)
+	}
+	if err := osutil.WriteFile("/sys/kernel/debug/fail_page_alloc/ignore-gfp-wait", []byte("N")); err != nil {
+		return fmt.Errorf("failed to write /fail_page_alloc/ignore-gfp-wait: %v", err)
+	}
+	if err := osutil.WriteFile("/sys/kernel/debug/fail_page_alloc/min-order", []byte("0")); err != nil {
+		return fmt.Errorf("failed to write /fail_page_alloc/min-order: %v", err)
 	}
 	return nil
 }
