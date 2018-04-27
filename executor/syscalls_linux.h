@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "84c53d32853cc775f2dfd37019d57297db7f2b3b"
+#define SYZ_REVISION "461b4401f435b02f4dbbd4eb29ea65d974cce896"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1701;
+unsigned syscall_count = 1702;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1655,6 +1655,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
+    {"syz_open_procfs$namespace", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
     {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 315},
@@ -1715,11 +1716,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "5e7ba513507e7d4f521debef48179bff8c5a38a5"
+#define SYZ_REVISION "795914aeb4dee8692590a5849b8b798bda6ac600"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1753;
+unsigned syscall_count = 1754;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3420,6 +3421,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
+    {"syz_open_procfs$namespace", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
     {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 276},
@@ -3480,11 +3482,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "2dbd32257faac18a8dba1d81c18741ca6b74d3a1"
+#define SYZ_REVISION "a34ee00c91ffd00f6d3ce3ec7639ee0f37a5fdf8"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1710;
+unsigned syscall_count = 1711;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5144,6 +5146,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
+    {"syz_open_procfs$namespace", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
     {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 342},
@@ -5202,11 +5205,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "bdb5ff7dcca0446c041419cf514f1776d90e641e"
+#define SYZ_REVISION "628fa07a3fb2cad0c6c0661209c33fc430181784"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1682;
+unsigned syscall_count = 1683;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6842,6 +6845,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
+    {"syz_open_procfs$namespace", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
     {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 77},
@@ -6896,11 +6900,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "6d59aca8cdd36f9b01a0a0b4406b2e88a5eb429d"
+#define SYZ_REVISION "3e755423b7aeddd6988e40ec0401d5c67e14e628"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1672;
+unsigned syscall_count = 1673;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8520,6 +8524,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
+    {"syz_open_procfs$namespace", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
     {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 284},

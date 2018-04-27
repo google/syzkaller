@@ -44,6 +44,7 @@ var resources_arm64 = []*ResourceDesc{
 	{Name: "fd_loop_ctrl", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_loop_ctrl"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_loop_num", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"fd_loop_num"}, Values: []uint64{0, 1, 2, 10, 11, 12}},
 	{Name: "fd_mq", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_mq"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "fd_namespace", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_namespace"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_perf", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_perf"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_random", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_random"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_rdma_cm", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_rdma_cm"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -21824,8 +21825,8 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "itimerval", Dir: 1}}},
 	}},
 	{NR: 268, Name: "setns", CallName: "setns", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ns_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{0, 134217728, 1073741824, 67108864}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_namespace", FldName: "fd", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ns_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{0, 134217728, 1073741824, 67108864, 33554432, 131072, 536870912, 268435456}},
 	}},
 	{NR: 154, Name: "setpgid", CallName: "setpgid", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
@@ -24362,8 +24363,12 @@ var syscalls_arm64 = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "syz_open_procfs", CallName: "syz_open_procfs", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "procfs_file", Values: []string{"auxv\x00", "cmdline\x00", "environ\x00", "autogroup\x00", "cgroup\x00", "clear_refs\x00", "comm\x00", "coredump_filter\x00", "cpuset\x00", "gid_map\x00", "io\x00", "limits\x00", "loginuid\x00", "maps\x00", "mountinfo\x00", "mounts\x00", "mountstats\x00", "numa_maps\x00", "oom_adj\x00", "oom_score\x00", "oom_score_adj\x00", "pagemap\x00", "personality\x00", "projid_map\x00", "sched\x00", "schedstat\x00", "sessionid\x00", "setgroups\x00", "smaps\x00", "stack\x00", "stat\x00", "statm\x00", "status\x00", "syscall\x00", "timers\x00", "uid_map\x00", "wchan\x00", "map_files\x00", "attr\x00", "attr/current\x00", "attr/exec\x00", "attr/fscreate\x00", "attr/keycreate\x00", "attr/prev\x00", "attr/sockcreate\x00", "ns\x00", "ns/cgroup\x00", "ns/ipc\x00", "ns/mnt\x00", "ns/net\x00", "ns/pid\x00", "ns/user\x00", "ns/uts\x00", "children\x00", "task\x00", "fdinfo\x00", "net\x00", "net/anycast6\x00", "net/arp\x00", "net/bnep\x00", "net/connector\x00", "net/dev\x00", "net/dev_mcast\x00", "net/dev_snmp6\x00", "net/fib_trie\x00", "net/fib_triestat\x00", "net/hci\x00", "net/icmp\x00", "net/icmp6\x00", "net/if_inet6\x00", "net/igmp\x00", "net/igmp6\x00", "net/ip6_flowlabel\x00", "net/ip6_mr_cache\x00", "net/ip6_mr_vif\x00", "net/ip6_tables_matches\x00", "net/ip6_tables_names\x00", "net/ip6_tables_targets\x00", "net/ip_mr_cache\x00", "net/ip_mr_vif\x00", "net/ip_tables_matches\x00", "net/ip_tables_names\x00", "net/ip_tables_targets\x00", "net/ipv6_route\x00", "net/ipx\x00", "net/l2cap\x00", "net/llc\x00", "net/mcfilter\x00", "net/mcfilter6\x00", "net/netfilter\x00", "net/netlink\x00", "net/netstat\x00", "net/nfsfs\x00", "net/packet\x00", "net/protocols\x00", "net/psched\x00", "net/ptype\x00", "net/raw\x00", "net/raw6\x00", "net/rfcomm\x00", "net/route\x00", "net/rpc\x00", "net/rt6_stats\x00", "net/rt_acct\x00", "net/rt_cache\x00", "net/sco\x00", "net/sctp\x00", "net/snmp\x00", "net/snmp6\x00", "net/sockstat\x00", "net/sockstat6\x00", "net/softnet_stat\x00", "net/stat\x00", "net/tcp\x00", "net/tcp6\x00", "net/udp\x00", "net/udp6\x00", "net/udplite\x00", "net/udplite6\x00", "net/unix\x00", "net/wireless\x00", "net/xfrm_stat\x00", "net/ip_vs\x00", "net/ip_vs_stats\x00", "net/ip_vs_stats_percpu\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "procfs_file", Values: []string{"auxv\x00", "cmdline\x00", "environ\x00", "autogroup\x00", "cgroup\x00", "clear_refs\x00", "comm\x00", "coredump_filter\x00", "cpuset\x00", "gid_map\x00", "io\x00", "limits\x00", "loginuid\x00", "maps\x00", "mountinfo\x00", "mounts\x00", "mountstats\x00", "numa_maps\x00", "oom_adj\x00", "oom_score\x00", "oom_score_adj\x00", "pagemap\x00", "personality\x00", "projid_map\x00", "sched\x00", "schedstat\x00", "sessionid\x00", "setgroups\x00", "smaps\x00", "smaps_rollup\x00", "stack\x00", "stat\x00", "statm\x00", "status\x00", "syscall\x00", "timers\x00", "uid_map\x00", "wchan\x00", "map_files\x00", "attr\x00", "attr/current\x00", "attr/exec\x00", "attr/fscreate\x00", "attr/keycreate\x00", "attr/prev\x00", "attr/sockcreate\x00", "ns\x00", "children\x00", "task\x00", "fd\x00", "fd/3\x00", "fd/4\x00", "fdinfo\x00", "fdinfo/3\x00", "fdinfo/4\x00", "net\x00", "net/anycast6\x00", "net/arp\x00", "net/bnep\x00", "net/connector\x00", "net/dev\x00", "net/dev_mcast\x00", "net/dev_snmp6\x00", "net/fib_trie\x00", "net/fib_triestat\x00", "net/hci\x00", "net/icmp\x00", "net/icmp6\x00", "net/if_inet6\x00", "net/igmp\x00", "net/igmp6\x00", "net/ip6_flowlabel\x00", "net/ip6_mr_cache\x00", "net/ip6_mr_vif\x00", "net/ip6_tables_matches\x00", "net/ip6_tables_names\x00", "net/ip6_tables_targets\x00", "net/ip_mr_cache\x00", "net/ip_mr_vif\x00", "net/ip_tables_matches\x00", "net/ip_tables_names\x00", "net/ip_tables_targets\x00", "net/ipv6_route\x00", "net/ipx\x00", "net/l2cap\x00", "net/llc\x00", "net/mcfilter\x00", "net/mcfilter6\x00", "net/netfilter\x00", "net/netlink\x00", "net/netstat\x00", "net/nfsfs\x00", "net/packet\x00", "net/protocols\x00", "net/psched\x00", "net/ptype\x00", "net/raw\x00", "net/raw6\x00", "net/rfcomm\x00", "net/route\x00", "net/rpc\x00", "net/rt6_stats\x00", "net/rt_acct\x00", "net/rt_cache\x00", "net/sco\x00", "net/sctp\x00", "net/snmp\x00", "net/snmp6\x00", "net/sockstat\x00", "net/sockstat6\x00", "net/softnet_stat\x00", "net/stat\x00", "net/tcp\x00", "net/tcp6\x00", "net/udp\x00", "net/udp6\x00", "net/udplite\x00", "net/udplite6\x00", "net/unix\x00", "net/wireless\x00", "net/xfrm_stat\x00", "net/ip_vs\x00", "net/ip_vs_stats\x00", "net/ip_vs_stats_percpu\x00"}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_open_procfs$namespace", CallName: "syz_open_procfs", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "procfs_namespace_file", Values: []string{"ns/cgroup\x00", "ns/ipc\x00", "ns/mnt\x00", "ns/net\x00", "ns/pid\x00", "ns/user\x00", "ns/uts\x00", "ns/pid_for_children\x00"}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_namespace", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "syz_open_pts", CallName: "syz_open_pts", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 65536, 16384, 128, 131072, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
@@ -24443,7 +24448,7 @@ var syscalls_arm64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unlinkat_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 512}},
 	}},
 	{NR: 97, Name: "unshare", CallName: "unshare", Args: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clone_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{256, 512, 1024, 2048, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456, 536870912, 1073741824, 2147483648}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unshare_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1024, 512, 33554432, 134217728, 1073741824, 131072, 536870912, 268435456, 67108864, 262144, 65536, 2048, 256}},
 	}},
 	{NR: 282, Name: "userfaultfd", CallName: "userfaultfd", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "userfaultfd_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2048, 524288}},
@@ -26346,6 +26351,7 @@ var consts_arm64 = []ConstValue{
 	{Name: "KCMP_SYSVSEM", Value: 6},
 	{Name: "KCMP_VM", Value: 1},
 	{Name: "KCM_RECV_DISABLE", Value: 1},
+	{Name: "KCOV_DISABLE", Value: 25445},
 	{Name: "KCOV_ENABLE", Value: 25444},
 	{Name: "KCOV_INIT_TRACE", Value: 2148033281},
 	{Name: "KCOV_TRACE_CMP", Value: 1},
@@ -28985,4 +28991,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "bdb5ff7dcca0446c041419cf514f1776d90e641e"
+const revision_arm64 = "628fa07a3fb2cad0c6c0661209c33fc430181784"
