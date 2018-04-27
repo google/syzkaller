@@ -9,6 +9,7 @@ include <asm/mce.h>
 resource fd_kvm[fd]
 resource fd_kvmvm[fd]
 resource fd_kvmcpu[fd]
+resource fd_kvmdev[fd]
 
 openat$kvm(fd const[AT_FDCWD], file ptr[in, string["/dev/kvm"]], flags flags[open_flags], mode const[0]) fd_kvm
 
@@ -56,14 +57,12 @@ ioctl$KVM_PPC_GET_SMMU_INFO(fd fd_kvmvm, cmd const[KVM_PPC_GET_SMMU_INFO], arg b
 ioctl$KVM_IRQFD(fd fd_kvmvm, cmd const[KVM_IRQFD], arg ptr[in, kvm_irqfd])
 ioctl$KVM_PPC_ALLOCATE_HTAB(fd fd_kvmvm, cmd const[KVM_PPC_ALLOCATE_HTAB], arg ptr[in, int32])
 ioctl$KVM_CREATE_DEVICE(fd fd_kvmvm, cmd const[KVM_CREATE_DEVICE], arg ptr[inout, kvm_create_device])
-ioctl$KVM_SET_DEVICE_ATTR(fd fd_kvmvm, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
-ioctl$KVM_GET_DEVICE_ATTR(fd fd_kvmvm, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
-ioctl$KVM_HAS_DEVICE_ATTR(fd fd_kvmvm, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
 ioctl$KVM_REGISTER_COALESCED_MMIO(fd fd_kvmvm, cmd const[KVM_REGISTER_COALESCED_MMIO], arg ptr[in, kvm_coalesced_mmio_zone])
 ioctl$KVM_UNREGISTER_COALESCED_MMIO(fd fd_kvmvm, cmd const[KVM_UNREGISTER_COALESCED_MMIO], arg ptr[in, kvm_coalesced_mmio_zone])
 ioctl$KVM_SET_NR_MMU_PAGES(fd fd_kvmvm, cmd const[KVM_SET_NR_MMU_PAGES], arg intptr)
 ioctl$KVM_GET_NR_MMU_PAGES(fd fd_kvmvm, cmd const[KVM_GET_NR_MMU_PAGES], arg intptr)
 ioctl$KVM_REINJECT_CONTROL(fd fd_kvmvm, cmd const[KVM_REINJECT_CONTROL], arg ptr[in, kvm_reinject_control])
+ioctl$KVM_HYPERV_EVENTFD(fd fd_kvmvm, cmd const[KVM_HYPERV_EVENTFD], arg ptr[in, kvm_hyperv_eventfd])
 
 ioctl$KVM_RUN(fd fd_kvmcpu, cmd const[KVM_RUN], arg const[0])
 ioctl$KVM_GET_REGS(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs])
@@ -114,6 +113,10 @@ ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, 
 ioctl$KVM_X86_SET_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SET_MCE], arg ptr[in, kvm_x86_mce])
 ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
 ioctl$KVM_ARM_SET_DEVICE_ADDR(fd fd_kvmcpu, cmd const[KVM_ARM_SET_DEVICE_ADDR], arg ptr[in, kvm_arm_device_addr])
+
+ioctl$KVM_SET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
+ioctl$KVM_GET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
+ioctl$KVM_HAS_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_HAS_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD
@@ -295,12 +298,12 @@ kvm_device_attr {
 	flags	const[0, int32]
 	group	int32
 	attr	int64
-	addr	ptr[out, int64]
+	addr	ptr64[in, int64]
 }
 
 kvm_create_device {
 	type	flags[kvm_device_type, int32]
-	fd	fd
+	fd	fd_kvmdev
 	flags	flags[kvm_device_flags, int32]
 }
 
@@ -770,6 +773,13 @@ kvm_vcpu_init {
 	target	flags[kvm_vcpu_target, int32]
 	feature	flags[kvm_vcpu_features_arm64, int32]
 	pad	array[const[0, int32], 6]
+}
+
+kvm_hyperv_eventfd {
+	conn_id	int32[0:4]
+	fd	fd_event
+	flags	bool32
+	padding	array[const[0, int32], 3]
 }
 
 # pkg/ifuzz/pseudo.go also knows this list

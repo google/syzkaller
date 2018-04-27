@@ -20,6 +20,7 @@ ioctl$PERF_EVENT_IOC_SET_FILTER(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_FILTER]
 ioctl$PERF_EVENT_IOC_SET_BPF(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_BPF], prog fd_bpf_prog)
 ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT(fd fd_perf, cmd const[PERF_EVENT_IOC_PAUSE_OUTPUT], arg boolptr)
 ioctl$PERF_EVENT_IOC_QUERY_BPF(fd fd_perf, cmd const[PERF_EVENT_IOC_QUERY_BPF], arg ptr[in, perf_event_query_bpf])
+ioctl$PERF_EVENT_IOC_MODIFY_ATTRIBUTES(fd fd_perf, cmd const[PERF_EVENT_IOC_MODIFY_ATTRIBUTES], arg ptr[in, perf_event_attr])
 
 perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_FD_CLOEXEC
 perf_flags_cgroup = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
