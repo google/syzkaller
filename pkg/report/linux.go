@@ -840,17 +840,17 @@ var linuxOopses = []*oops{
 			},
 			{
 				title:  compile("WARNING: possible circular locking dependency detected"),
-				report: compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				report: compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
 				fmt:    "possible deadlock in %[1]v",
 			},
 			{
 				title:  compile("WARNING: possible irq lock inversion dependency detected"),
-				report: compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				report: compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
 				fmt:    "possible deadlock in %[1]v",
 			},
 			{
 				title:  compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detecte"),
-				report: compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected(?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				report: compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected(?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
 				fmt:    "possible deadlock in %[1]v",
 			},
 			{
@@ -860,7 +860,7 @@ var linuxOopses = []*oops{
 			},
 			{
 				title:  compile("WARNING: inconsistent lock state"),
-				report: compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				report: compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
 				fmt:    "inconsistent lock state in %[1]v",
 			},
 			{
