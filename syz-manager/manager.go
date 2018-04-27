@@ -595,7 +595,7 @@ func (mgr *Manager) isSuppressed(crash *Crash) bool {
 		if !re.Match(crash.Output) {
 			continue
 		}
-		Logf(1, "vm-%v: suppressing '%v' with '%v'", crash.vmIndex, crash.Title, re.String())
+		Logf(0, "vm-%v: suppressing '%v' with '%v'", crash.vmIndex, crash.Title, re.String())
 		mgr.mu.Lock()
 		mgr.stats["suppressed"]++
 		mgr.mu.Unlock()
