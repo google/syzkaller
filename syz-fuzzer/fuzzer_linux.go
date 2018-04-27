@@ -154,15 +154,20 @@ func checkCompsSupported() (kcov, comps bool) {
 		log.Logf(1, "KCOV_CHECK: KCOV_INIT_TRACE = %v", errno)
 		return
 	}
-	_, err = syscall.Mmap(fd, 0, int(coverSize*unsafe.Sizeof(uintptr(0))),
+	mem, err := syscall.Mmap(fd, 0, int(coverSize*unsafe.Sizeof(uintptr(0))),
 		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
 		log.Logf(1, "KCOV_CHECK: mmap = %v", err)
 		return
 	}
+	defer syscall.Munmap(mem)
 	_, _, errno = syscall.Syscall(syscall.SYS_IOCTL,
 		uintptr(fd), linux.KCOV_ENABLE, linux.KCOV_TRACE_CMP)
-	log.Logf(1, "KCOV_CHECK: KCOV_ENABLE = %v", errno)
-	comps = errno == 0
+	if errno != 0 {
+		log.Logf(1, "KCOV_CHECK: KCOV_ENABLE = %v", errno)
+		return
+	}
+	defer syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), linux.KCOV_DISABLE, 0)
+	comps = true
 	return
 }

@@ -60,6 +60,7 @@ func initTarget(target *prog.Target) {
 	if target.Arch == runtime.GOARCH {
 		KCOV_INIT_TRACE = uintptr(target.ConstMap["KCOV_INIT_TRACE"])
 		KCOV_ENABLE = uintptr(target.ConstMap["KCOV_ENABLE"])
+		KCOV_DISABLE = uintptr(target.ConstMap["KCOV_DISABLE"])
 		KCOV_TRACE_CMP = uintptr(target.ConstMap["KCOV_TRACE_CMP"])
 	}
 }
@@ -72,6 +73,7 @@ var (
 	// This should not be here, but for now we expose this for syz-fuzzer.
 	KCOV_INIT_TRACE uintptr
 	KCOV_ENABLE     uintptr
+	KCOV_DISABLE    uintptr
 	KCOV_TRACE_CMP  uintptr
 
 	// TODO(dvyukov): get rid of this, this must be in descriptions.
