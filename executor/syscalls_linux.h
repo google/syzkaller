@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "461b4401f435b02f4dbbd4eb29ea65d974cce896"
+#define SYZ_REVISION "5e6a0e82e515abb30595e05062acf43acece43f0"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1702;
+unsigned syscall_count = 1712;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -58,6 +58,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_GET_NEXT_ID", 357},
     {"bpf$BPF_PROG_QUERY", 357},
     {"bpf$BPF_PROG_TEST_RUN", 357},
+    {"bpf$BPF_RAW_TRACEPOINT_OPEN", 357},
     {"bpf$MAP_CREATE", 357},
     {"bpf$MAP_DELETE_ELEM", 357},
     {"bpf$MAP_GET_NEXT_KEY", 357},
@@ -518,6 +519,7 @@ call_t syscalls[] = {
     {"ioctl$I2C_SMBUS", 54},
     {"ioctl$I2C_TENBIT", 54},
     {"ioctl$I2C_TIMEOUT", 54},
+    {"ioctl$INOTIFY_IOC_SETNEXTWD", 54},
     {"ioctl$ION_IOC_ALLOC", 54},
     {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
@@ -588,6 +590,7 @@ call_t syscalls[] = {
     {"ioctl$KVM_GET_XCRS", 54},
     {"ioctl$KVM_GET_XSAVE", 54},
     {"ioctl$KVM_HAS_DEVICE_ATTR", 54},
+    {"ioctl$KVM_HYPERV_EVENTFD", 54},
     {"ioctl$KVM_INTERRUPT", 54},
     {"ioctl$KVM_IOEVENTFD", 54},
     {"ioctl$KVM_IRQFD", 54},
@@ -658,6 +661,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ID", 54},
+    {"ioctl$PERF_EVENT_IOC_MODIFY_ATTRIBUTES", 54},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
     {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 54},
@@ -1353,6 +1357,8 @@ call_t syscalls[] = {
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 366},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 366},
     {"setsockopt$inet6_tcp_TCP_ULP", 366},
+    {"setsockopt$inet6_tcp_TLS_RX", 366},
+    {"setsockopt$inet6_tcp_TLS_TX", 366},
     {"setsockopt$inet6_tcp_buf", 366},
     {"setsockopt$inet6_tcp_int", 366},
     {"setsockopt$inet6_udp_encap", 366},
@@ -1380,6 +1386,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_ASSOCINFO", 366},
     {"setsockopt$inet_sctp6_SCTP_AUTH_ACTIVE_KEY", 366},
     {"setsockopt$inet_sctp6_SCTP_AUTH_CHUNK", 366},
+    {"setsockopt$inet_sctp6_SCTP_AUTH_DEACTIVATE_KEY", 366},
     {"setsockopt$inet_sctp6_SCTP_AUTH_DELETE_KEY", 366},
     {"setsockopt$inet_sctp6_SCTP_AUTH_KEY", 366},
     {"setsockopt$inet_sctp6_SCTP_AUTOCLOSE", 366},
@@ -1422,6 +1429,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 366},
     {"setsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 366},
     {"setsockopt$inet_sctp_SCTP_AUTH_CHUNK", 366},
+    {"setsockopt$inet_sctp_SCTP_AUTH_DEACTIVATE_KEY", 366},
     {"setsockopt$inet_sctp_SCTP_AUTH_DELETE_KEY", 366},
     {"setsockopt$inet_sctp_SCTP_AUTH_KEY", 366},
     {"setsockopt$inet_sctp_SCTP_AUTOCLOSE", 366},
@@ -1465,6 +1473,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 366},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 366},
     {"setsockopt$inet_tcp_TCP_ULP", 366},
+    {"setsockopt$inet_tcp_TLS_RX", 366},
+    {"setsockopt$inet_tcp_TLS_TX", 366},
     {"setsockopt$inet_tcp_buf", 366},
     {"setsockopt$inet_tcp_int", 366},
     {"setsockopt$inet_udp_encap", 366},
@@ -1716,11 +1726,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "795914aeb4dee8692590a5849b8b798bda6ac600"
+#define SYZ_REVISION "da581d8b3ba30b0267d7aefde54178b56e7e5005"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1754;
+unsigned syscall_count = 1764;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1782,6 +1792,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_GET_NEXT_ID", 321},
     {"bpf$BPF_PROG_QUERY", 321},
     {"bpf$BPF_PROG_TEST_RUN", 321},
+    {"bpf$BPF_RAW_TRACEPOINT_OPEN", 321},
     {"bpf$MAP_CREATE", 321},
     {"bpf$MAP_DELETE_ELEM", 321},
     {"bpf$MAP_GET_NEXT_KEY", 321},
@@ -2242,6 +2253,7 @@ call_t syscalls[] = {
     {"ioctl$I2C_SMBUS", 16},
     {"ioctl$I2C_TENBIT", 16},
     {"ioctl$I2C_TIMEOUT", 16},
+    {"ioctl$INOTIFY_IOC_SETNEXTWD", 16},
     {"ioctl$ION_IOC_ALLOC", 16},
     {"ioctl$ION_IOC_HEAP_QUERY", 16},
     {"ioctl$KDADDIO", 16},
@@ -2312,6 +2324,7 @@ call_t syscalls[] = {
     {"ioctl$KVM_GET_XCRS", 16},
     {"ioctl$KVM_GET_XSAVE", 16},
     {"ioctl$KVM_HAS_DEVICE_ATTR", 16},
+    {"ioctl$KVM_HYPERV_EVENTFD", 16},
     {"ioctl$KVM_INTERRUPT", 16},
     {"ioctl$KVM_IOEVENTFD", 16},
     {"ioctl$KVM_IRQFD", 16},
@@ -2382,6 +2395,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 16},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 16},
     {"ioctl$PERF_EVENT_IOC_ID", 16},
+    {"ioctl$PERF_EVENT_IOC_MODIFY_ATTRIBUTES", 16},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 16},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 16},
     {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 16},
@@ -3107,6 +3121,8 @@ call_t syscalls[] = {
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 54},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 54},
     {"setsockopt$inet6_tcp_TCP_ULP", 54},
+    {"setsockopt$inet6_tcp_TLS_RX", 54},
+    {"setsockopt$inet6_tcp_TLS_TX", 54},
     {"setsockopt$inet6_tcp_buf", 54},
     {"setsockopt$inet6_tcp_int", 54},
     {"setsockopt$inet6_udp_encap", 54},
@@ -3134,6 +3150,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_ASSOCINFO", 54},
     {"setsockopt$inet_sctp6_SCTP_AUTH_ACTIVE_KEY", 54},
     {"setsockopt$inet_sctp6_SCTP_AUTH_CHUNK", 54},
+    {"setsockopt$inet_sctp6_SCTP_AUTH_DEACTIVATE_KEY", 54},
     {"setsockopt$inet_sctp6_SCTP_AUTH_DELETE_KEY", 54},
     {"setsockopt$inet_sctp6_SCTP_AUTH_KEY", 54},
     {"setsockopt$inet_sctp6_SCTP_AUTOCLOSE", 54},
@@ -3176,6 +3193,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 54},
     {"setsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 54},
     {"setsockopt$inet_sctp_SCTP_AUTH_CHUNK", 54},
+    {"setsockopt$inet_sctp_SCTP_AUTH_DEACTIVATE_KEY", 54},
     {"setsockopt$inet_sctp_SCTP_AUTH_DELETE_KEY", 54},
     {"setsockopt$inet_sctp_SCTP_AUTH_KEY", 54},
     {"setsockopt$inet_sctp_SCTP_AUTOCLOSE", 54},
@@ -3219,6 +3237,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 54},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 54},
     {"setsockopt$inet_tcp_TCP_ULP", 54},
+    {"setsockopt$inet_tcp_TLS_RX", 54},
+    {"setsockopt$inet_tcp_TLS_TX", 54},
     {"setsockopt$inet_tcp_buf", 54},
     {"setsockopt$inet_tcp_int", 54},
     {"setsockopt$inet_udp_encap", 54},
@@ -3482,11 +3502,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "a34ee00c91ffd00f6d3ce3ec7639ee0f37a5fdf8"
+#define SYZ_REVISION "c0274e89245b3a3e69429b23de425ea9d159f71c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1711;
+unsigned syscall_count = 1721;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3546,6 +3566,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_GET_NEXT_ID", 386},
     {"bpf$BPF_PROG_QUERY", 386},
     {"bpf$BPF_PROG_TEST_RUN", 386},
+    {"bpf$BPF_RAW_TRACEPOINT_OPEN", 386},
     {"bpf$MAP_CREATE", 386},
     {"bpf$MAP_DELETE_ELEM", 386},
     {"bpf$MAP_GET_NEXT_KEY", 386},
@@ -4003,6 +4024,7 @@ call_t syscalls[] = {
     {"ioctl$I2C_SMBUS", 54},
     {"ioctl$I2C_TENBIT", 54},
     {"ioctl$I2C_TIMEOUT", 54},
+    {"ioctl$INOTIFY_IOC_SETNEXTWD", 54},
     {"ioctl$ION_IOC_ALLOC", 54},
     {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
@@ -4062,6 +4084,7 @@ call_t syscalls[] = {
     {"ioctl$KVM_GET_TSC_KHZ", 54},
     {"ioctl$KVM_GET_VCPU_MMAP_SIZE", 54},
     {"ioctl$KVM_HAS_DEVICE_ATTR", 54},
+    {"ioctl$KVM_HYPERV_EVENTFD", 54},
     {"ioctl$KVM_INTERRUPT", 54},
     {"ioctl$KVM_IOEVENTFD", 54},
     {"ioctl$KVM_IRQFD", 54},
@@ -4120,6 +4143,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ID", 54},
+    {"ioctl$PERF_EVENT_IOC_MODIFY_ATTRIBUTES", 54},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
     {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 54},
@@ -4833,6 +4857,8 @@ call_t syscalls[] = {
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 294},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 294},
     {"setsockopt$inet6_tcp_TCP_ULP", 294},
+    {"setsockopt$inet6_tcp_TLS_RX", 294},
+    {"setsockopt$inet6_tcp_TLS_TX", 294},
     {"setsockopt$inet6_tcp_buf", 294},
     {"setsockopt$inet6_tcp_int", 294},
     {"setsockopt$inet6_udp_encap", 294},
@@ -4860,6 +4886,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_ASSOCINFO", 294},
     {"setsockopt$inet_sctp6_SCTP_AUTH_ACTIVE_KEY", 294},
     {"setsockopt$inet_sctp6_SCTP_AUTH_CHUNK", 294},
+    {"setsockopt$inet_sctp6_SCTP_AUTH_DEACTIVATE_KEY", 294},
     {"setsockopt$inet_sctp6_SCTP_AUTH_DELETE_KEY", 294},
     {"setsockopt$inet_sctp6_SCTP_AUTH_KEY", 294},
     {"setsockopt$inet_sctp6_SCTP_AUTOCLOSE", 294},
@@ -4902,6 +4929,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 294},
     {"setsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 294},
     {"setsockopt$inet_sctp_SCTP_AUTH_CHUNK", 294},
+    {"setsockopt$inet_sctp_SCTP_AUTH_DEACTIVATE_KEY", 294},
     {"setsockopt$inet_sctp_SCTP_AUTH_DELETE_KEY", 294},
     {"setsockopt$inet_sctp_SCTP_AUTH_KEY", 294},
     {"setsockopt$inet_sctp_SCTP_AUTOCLOSE", 294},
@@ -4945,6 +4973,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 294},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 294},
     {"setsockopt$inet_tcp_TCP_ULP", 294},
+    {"setsockopt$inet_tcp_TLS_RX", 294},
+    {"setsockopt$inet_tcp_TLS_TX", 294},
     {"setsockopt$inet_tcp_buf", 294},
     {"setsockopt$inet_tcp_int", 294},
     {"setsockopt$inet_udp_encap", 294},
@@ -5205,11 +5235,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "628fa07a3fb2cad0c6c0661209c33fc430181784"
+#define SYZ_REVISION "75221c93bce5c757ee3c3cdc23107b0d16825abd"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1683;
+unsigned syscall_count = 1693;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5269,6 +5299,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_GET_NEXT_ID", 280},
     {"bpf$BPF_PROG_QUERY", 280},
     {"bpf$BPF_PROG_TEST_RUN", 280},
+    {"bpf$BPF_RAW_TRACEPOINT_OPEN", 280},
     {"bpf$MAP_CREATE", 280},
     {"bpf$MAP_DELETE_ELEM", 280},
     {"bpf$MAP_GET_NEXT_KEY", 280},
@@ -5717,6 +5748,7 @@ call_t syscalls[] = {
     {"ioctl$I2C_SMBUS", 29},
     {"ioctl$I2C_TENBIT", 29},
     {"ioctl$I2C_TIMEOUT", 29},
+    {"ioctl$INOTIFY_IOC_SETNEXTWD", 29},
     {"ioctl$ION_IOC_ALLOC", 29},
     {"ioctl$ION_IOC_HEAP_QUERY", 29},
     {"ioctl$KDADDIO", 29},
@@ -5776,6 +5808,7 @@ call_t syscalls[] = {
     {"ioctl$KVM_GET_TSC_KHZ", 29},
     {"ioctl$KVM_GET_VCPU_MMAP_SIZE", 29},
     {"ioctl$KVM_HAS_DEVICE_ATTR", 29},
+    {"ioctl$KVM_HYPERV_EVENTFD", 29},
     {"ioctl$KVM_INTERRUPT", 29},
     {"ioctl$KVM_IOEVENTFD", 29},
     {"ioctl$KVM_IRQFD", 29},
@@ -5834,6 +5867,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 29},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 29},
     {"ioctl$PERF_EVENT_IOC_ID", 29},
+    {"ioctl$PERF_EVENT_IOC_MODIFY_ATTRIBUTES", 29},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 29},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 29},
     {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 29},
@@ -6537,6 +6571,8 @@ call_t syscalls[] = {
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 208},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 208},
     {"setsockopt$inet6_tcp_TCP_ULP", 208},
+    {"setsockopt$inet6_tcp_TLS_RX", 208},
+    {"setsockopt$inet6_tcp_TLS_TX", 208},
     {"setsockopt$inet6_tcp_buf", 208},
     {"setsockopt$inet6_tcp_int", 208},
     {"setsockopt$inet6_udp_encap", 208},
@@ -6564,6 +6600,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_ASSOCINFO", 208},
     {"setsockopt$inet_sctp6_SCTP_AUTH_ACTIVE_KEY", 208},
     {"setsockopt$inet_sctp6_SCTP_AUTH_CHUNK", 208},
+    {"setsockopt$inet_sctp6_SCTP_AUTH_DEACTIVATE_KEY", 208},
     {"setsockopt$inet_sctp6_SCTP_AUTH_DELETE_KEY", 208},
     {"setsockopt$inet_sctp6_SCTP_AUTH_KEY", 208},
     {"setsockopt$inet_sctp6_SCTP_AUTOCLOSE", 208},
@@ -6606,6 +6643,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 208},
     {"setsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 208},
     {"setsockopt$inet_sctp_SCTP_AUTH_CHUNK", 208},
+    {"setsockopt$inet_sctp_SCTP_AUTH_DEACTIVATE_KEY", 208},
     {"setsockopt$inet_sctp_SCTP_AUTH_DELETE_KEY", 208},
     {"setsockopt$inet_sctp_SCTP_AUTH_KEY", 208},
     {"setsockopt$inet_sctp_SCTP_AUTOCLOSE", 208},
@@ -6649,6 +6687,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 208},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 208},
     {"setsockopt$inet_tcp_TCP_ULP", 208},
+    {"setsockopt$inet_tcp_TLS_RX", 208},
+    {"setsockopt$inet_tcp_TLS_TX", 208},
     {"setsockopt$inet_tcp_buf", 208},
     {"setsockopt$inet_tcp_int", 208},
     {"setsockopt$inet_udp_encap", 208},
@@ -6900,11 +6940,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "3e755423b7aeddd6988e40ec0401d5c67e14e628"
+#define SYZ_REVISION "6db54b75c3aba18428825bf19e88c75d48cad73c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1673;
+unsigned syscall_count = 1683;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6965,6 +7005,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_GET_NEXT_ID", 361},
     {"bpf$BPF_PROG_QUERY", 361},
     {"bpf$BPF_PROG_TEST_RUN", 361},
+    {"bpf$BPF_RAW_TRACEPOINT_OPEN", 361},
     {"bpf$MAP_CREATE", 361},
     {"bpf$MAP_DELETE_ELEM", 361},
     {"bpf$MAP_GET_NEXT_KEY", 361},
@@ -7424,6 +7465,7 @@ call_t syscalls[] = {
     {"ioctl$I2C_SMBUS", 54},
     {"ioctl$I2C_TENBIT", 54},
     {"ioctl$I2C_TIMEOUT", 54},
+    {"ioctl$INOTIFY_IOC_SETNEXTWD", 54},
     {"ioctl$ION_IOC_ALLOC", 54},
     {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
@@ -7482,6 +7524,7 @@ call_t syscalls[] = {
     {"ioctl$KVM_GET_TSC_KHZ", 54},
     {"ioctl$KVM_GET_VCPU_MMAP_SIZE", 54},
     {"ioctl$KVM_HAS_DEVICE_ATTR", 54},
+    {"ioctl$KVM_HYPERV_EVENTFD", 54},
     {"ioctl$KVM_INTERRUPT", 54},
     {"ioctl$KVM_IOEVENTFD", 54},
     {"ioctl$KVM_IRQFD", 54},
@@ -7540,6 +7583,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ID", 54},
+    {"ioctl$PERF_EVENT_IOC_MODIFY_ATTRIBUTES", 54},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
     {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 54},
@@ -8223,6 +8267,8 @@ call_t syscalls[] = {
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 339},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 339},
     {"setsockopt$inet6_tcp_TCP_ULP", 339},
+    {"setsockopt$inet6_tcp_TLS_RX", 339},
+    {"setsockopt$inet6_tcp_TLS_TX", 339},
     {"setsockopt$inet6_tcp_buf", 339},
     {"setsockopt$inet6_tcp_int", 339},
     {"setsockopt$inet6_udp_encap", 339},
@@ -8250,6 +8296,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_ASSOCINFO", 339},
     {"setsockopt$inet_sctp6_SCTP_AUTH_ACTIVE_KEY", 339},
     {"setsockopt$inet_sctp6_SCTP_AUTH_CHUNK", 339},
+    {"setsockopt$inet_sctp6_SCTP_AUTH_DEACTIVATE_KEY", 339},
     {"setsockopt$inet_sctp6_SCTP_AUTH_DELETE_KEY", 339},
     {"setsockopt$inet_sctp6_SCTP_AUTH_KEY", 339},
     {"setsockopt$inet_sctp6_SCTP_AUTOCLOSE", 339},
@@ -8292,6 +8339,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 339},
     {"setsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 339},
     {"setsockopt$inet_sctp_SCTP_AUTH_CHUNK", 339},
+    {"setsockopt$inet_sctp_SCTP_AUTH_DEACTIVATE_KEY", 339},
     {"setsockopt$inet_sctp_SCTP_AUTH_DELETE_KEY", 339},
     {"setsockopt$inet_sctp_SCTP_AUTH_KEY", 339},
     {"setsockopt$inet_sctp_SCTP_AUTOCLOSE", 339},
@@ -8335,6 +8383,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 339},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 339},
     {"setsockopt$inet_tcp_TCP_ULP", 339},
+    {"setsockopt$inet_tcp_TLS_RX", 339},
+    {"setsockopt$inet_tcp_TLS_TX", 339},
     {"setsockopt$inet_tcp_buf", 339},
     {"setsockopt$inet_tcp_int", 339},
     {"setsockopt$inet_udp_encap", 339},

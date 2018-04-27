@@ -43,31 +43,72 @@ msghdr_sctp {
 }
 
 cmsghdr_sctp [
-	init	cmsghdr_sctp_init
-	sndrcv	cmsghdr_sctp_sndrcv
-	sndinfo	cmsghdr_sctp_sndinfo
-]
+	init		cmsghdr_sctp_init
+	sndrcv		cmsghdr_sctp_sndrcv
+	sndinfo		cmsghdr_sctp_sndinfo
+	prinfo		cmsghdr_sctp_prinfo
+	authinfo	cmsghdr_sctp_authinfo
+	dstaddrv4	cmsghdr_sctp_dstaddrv4
+	dstaddrv6	cmsghdr_sctp_dstaddrv6
+] [varlen]
 
 cmsghdr_sctp_init {
 	len	len[parent, intptr]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_INIT, int32]
 	msg	sctp_initmsg
-}
+} [align_ptr]
 
 cmsghdr_sctp_sndrcv {
 	len	len[parent, intptr]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_SNDRCV, int32]
 	msg	sctp_sndrcvinfo
-}
+} [align_ptr]
 
 cmsghdr_sctp_sndinfo {
 	len	len[parent, intptr]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_SNDINFO, int32]
 	msg	sctp_sndinfo
+} [align_ptr]
+
+cmsghdr_sctp_prinfo {
+	len	len[parent, intptr]
+	level	const[IPPROTO_SCTP, int32]
+	type	const[SCTP_PRINFO, int32]
+	msg	sctp_prinfo
+} [align_ptr]
+
+sctp_prinfo {
+	pr_policy	flags[sctp_pr_policies, int16]
+	pr_value	int32
 }
+
+cmsghdr_sctp_authinfo {
+	len	len[parent, intptr]
+	level	const[IPPROTO_SCTP, int32]
+	type	const[SCTP_AUTHINFO, int32]
+	msg	sctp_authinfo
+} [align_ptr]
+
+sctp_authinfo {
+	auth_keynumber	int16
+}
+
+cmsghdr_sctp_dstaddrv4 {
+	len	len[parent, intptr]
+	level	const[IPPROTO_SCTP, int32]
+	type	const[SCTP_DSTADDRV4, int32]
+	msg	ipv4_addr
+} [align_ptr]
+
+cmsghdr_sctp_dstaddrv6 {
+	len	len[parent, intptr]
+	level	const[IPPROTO_SCTP, int32]
+	type	const[SCTP_DSTADDRV6, int32]
+	msg	ipv6_addr
+} [align_ptr]
 
 # Specific SCTP socket options
 
@@ -227,6 +268,9 @@ setsockopt$inet_sctp_SCTP_DEFAULT_SNDINFO(fd sock_sctp, level const[SOL_SCTP], o
 setsockopt$inet_sctp6_SCTP_DEFAULT_SNDINFO(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_DEFAULT_SNDINFO], val ptr[in, sctp_sndinfo], len len[val])
 getsockopt$inet_sctp_SCTP_DEFAULT_SNDINFO(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_DEFAULT_SNDINFO], val ptr[inout, sctp_sndinfo], len ptr[inout, len[val, int32]])
 getsockopt$inet_sctp6_SCTP_DEFAULT_SNDINFO(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_DEFAULT_SNDINFO], val ptr[inout, sctp_sndinfo], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_AUTH_DEACTIVATE_KEY(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_AUTH_DEACTIVATE_KEY], val ptr[in, sctp_authkeyid], len len[val])
+setsockopt$inet_sctp6_SCTP_AUTH_DEACTIVATE_KEY(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_AUTH_DEACTIVATE_KEY], val ptr[in, sctp_authkeyid], len len[val])
 
 setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_ADD(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_ADD], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
 setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_ADD(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_ADD], val ptr[in, array[sockaddr_sctp]], len bytesize[val])

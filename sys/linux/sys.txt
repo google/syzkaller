@@ -302,6 +302,7 @@ inotify_add_watch(fd fd_inotify, file ptr[in, filename], mask flags[inotify_mask
 inotify_rm_watch(fd fd_inotify, wd inotifydesc)
 fanotify_init(flags flags[fanotify_flags], events flags[fanotify_events]) fd_fanotify
 fanotify_mark(fd fd_fanotify, flags flags[fanotify_mark], mask flags[fanotify_mask], fddir fd_dir, path ptr[in, filename])
+ioctl$INOTIFY_IOC_SETNEXTWD(fd fd_inotify, cmd const[INOTIFY_IOC_SETNEXTWD], arg intptr)
 
 link(old ptr[in, filename], new ptr[in, filename])
 linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
