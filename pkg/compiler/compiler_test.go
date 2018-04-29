@@ -5,6 +5,7 @@ package compiler
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -14,6 +15,8 @@ import (
 	"github.com/google/syzkaller/pkg/serializer"
 	"github.com/google/syzkaller/sys/targets"
 )
+
+var flagUpdate = flag.Bool("update", false, "reformat all.txt")
 
 func TestCompileAll(t *testing.T) {
 	for os, arches := range targets.List {
@@ -63,13 +66,21 @@ func TestNoErrors(t *testing.T) {
 				eh := func(pos ast.Pos, msg string) {
 					t.Logf("%v: %v", pos, msg)
 				}
-				data, err := ioutil.ReadFile(filepath.Join("testdata", name))
+				fileName := filepath.Join("testdata", name)
+				data, err := ioutil.ReadFile(fileName)
 				if err != nil {
 					t.Fatal(err)
 				}
 				astDesc := ast.Parse(data, name, eh)
 				if astDesc == nil {
 					t.Fatalf("parsing failed")
+				}
+				formatted := ast.Format(astDesc)
+				if !bytes.Equal(data, formatted) {
+					if *flagUpdate {
+						ioutil.WriteFile(fileName, formatted, 0644)
+					}
+					t.Fatalf("description is not formatted")
 				}
 				constInfo := ExtractConsts(astDesc, target, eh)
 				if constInfo == nil {

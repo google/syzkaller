@@ -413,7 +413,7 @@ func (p *parser) parseType() *Type {
 	switch p.tok {
 	case tokInt:
 		allowColon = true
-		arg.Value, arg.ValueHex = p.parseIntValue()
+		arg.Value, arg.valueFmt = p.parseIntValue()
 	case tokIdent:
 		allowColon = true
 		arg.Ident = p.lit
@@ -429,7 +429,7 @@ func (p *parser) parseType() *Type {
 		arg.Pos2 = p.pos
 		switch p.tok {
 		case tokInt:
-			arg.Value2, arg.Value2Hex = p.parseIntValue()
+			arg.Value2, arg.value2Fmt = p.parseIntValue()
 		case tokIdent:
 			arg.Ident2 = p.lit
 		default:
@@ -479,7 +479,7 @@ func (p *parser) parseInt() *Int {
 	}
 	switch p.tok {
 	case tokInt:
-		i.Value, i.ValueHex = p.parseIntValue()
+		i.Value, i.valueFmt = p.parseIntValue()
 	case tokIdent:
 		i.Ident = p.lit
 	default:
@@ -489,13 +489,16 @@ func (p *parser) parseInt() *Int {
 	return i
 }
 
-func (p *parser) parseIntValue() (uint64, bool) {
+func (p *parser) parseIntValue() (uint64, intFmt) {
+	if p.lit[0] == '\'' {
+		return uint64(p.lit[1]), intFmtChar
+	}
 	if v, err := strconv.ParseUint(p.lit, 10, 64); err == nil {
-		return v, false
+		return v, intFmtDec
 	}
 	if len(p.lit) > 2 && p.lit[0] == '0' && p.lit[1] == 'x' {
 		if v, err := strconv.ParseUint(p.lit[2:], 16, 64); err == nil {
-			return v, true
+			return v, intFmtHex
 		}
 	}
 	panic(fmt.Sprintf("scanner returned bad integer %q", p.lit))

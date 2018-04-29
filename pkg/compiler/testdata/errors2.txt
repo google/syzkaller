@@ -183,5 +183,6 @@ foo$505(a proc[20, 0])		### proc per-process values must not be 0
 foo$506(a ptr[in, array[int32, 0]])	### arrays of size 0 are not supported
 foo$507(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
 foo$508(a ptr[in, string["foo", 3]])	### string value "foo\x00" exceeds buffer length 3
+foo$509(a int8['b':'a'])		### bad int range [98:97]
 
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs

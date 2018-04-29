@@ -159,14 +159,14 @@ func fmtType(t *Type) string {
 	case t.HasString:
 		v = fmt.Sprintf("\"%v\"", t.String)
 	default:
-		v = fmtIntValue(t.Value, t.ValueHex)
+		v = fmtIntValue(t.Value, t.valueFmt)
 	}
 	if t.HasColon {
 		switch {
 		case t.Ident2 != "":
 			v += fmt.Sprintf(":%v", t.Ident2)
 		default:
-			v += fmt.Sprintf(":%v", fmtIntValue(t.Value2, t.Value2Hex))
+			v += fmt.Sprintf(":%v", fmtIntValue(t.Value2, t.value2Fmt))
 		}
 	}
 	v += fmtTypeList(t.Args)
@@ -206,15 +206,21 @@ func fmtInt(i *Int) string {
 	case i.CExpr != "":
 		return fmt.Sprintf("%v", i.CExpr)
 	default:
-		return fmtIntValue(i.Value, i.ValueHex)
+		return fmtIntValue(i.Value, i.valueFmt)
 	}
 }
 
-func fmtIntValue(v uint64, hex bool) string {
-	if hex {
+func fmtIntValue(v uint64, format intFmt) string {
+	switch format {
+	case intFmtDec:
+		return fmt.Sprint(v)
+	case intFmtHex:
 		return fmt.Sprintf("0x%x", v)
+	case intFmtChar:
+		return fmt.Sprintf("'%c'", v)
+	default:
+		panic(fmt.Sprintf("unknown int format %v", format))
 	}
-	return fmt.Sprint(v)
 }
 
 func comma(i int, or string) string {

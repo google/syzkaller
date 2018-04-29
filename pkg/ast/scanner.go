@@ -200,6 +200,17 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 			s.Error(pos, fmt.Sprintf("bad integer %q", lit))
 			lit = "0"
 		}
+	case s.ch == '\'':
+		tok = tokInt
+		lit = "0"
+		s.next()
+		s.next()
+		if s.ch != '\'' {
+			s.Error(pos, "char literal is not terminated")
+			return
+		}
+		s.next()
+		lit = string(s.data[pos.Off : pos.Off+3])
 	case s.ch == '_' || s.ch >= 'a' && s.ch <= 'z' || s.ch >= 'A' && s.ch <= 'Z':
 		tok = tokIdent
 		for s.ch == '_' || s.ch == '$' ||
