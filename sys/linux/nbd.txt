@@ -1,0 +1,8 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+
+resource fd_ndb[fd_block]
+
+syz_open_dev$ndb(dev ptr[in, string["/dev/nbd#"]], id proc[0, 1], flags flags[open_flags]) fd_ndb

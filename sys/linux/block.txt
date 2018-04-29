@@ -1,0 +1,125 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fs.h>
+include <uapi/linux/blktrace_api.h>
+include <uapi/linux/blkzoned.h>
+include <uapi/linux/pr.h>
+include <uapi/linux/hdreg.h>
+include <uapi/linux/blkpg.h>
+
+resource fd_block_trace[fd]
+resource fd_block[fd_block_trace]
+
+openat$nullb(fd const[AT_FDCWD], file ptr[in, string["/dev/nullb0"]], flags flags[open_flags], mode const[0]) fd_block
+openat$md(fd const[AT_FDCWD], file ptr[in, string["/dev/md0"]], flags flags[open_flags], mode const[0]) fd_block
+
+ioctl$BLKTRACESETUP(fd fd_block_trace, cmd const[BLKTRACESETUP], arg ptr[in, blk_user_trace_setup])
+ioctl$BLKTRACESTART(fd fd_block_trace, cmd const[BLKTRACESTART], arg const[0])
+ioctl$BLKTRACESTOP(fd fd_block_trace, cmd const[BLKTRACESTOP], arg const[0])
+ioctl$BLKTRACETEARDOWN(fd fd_block_trace, cmd const[BLKTRACETEARDOWN], arg const[0])
+
+ioctl$BLKFLSBUF(fd fd_block, cmd const[BLKFLSBUF], arg ptr[in, intptr])
+ioctl$BLKROSET(fd fd_block, cmd const[BLKROSET], arg ptr[in, intptr])
+ioctl$BLKDISCARD(fd fd_block, cmd const[BLKDISCARD], arg ptr[in, intptr])
+ioctl$BLKSECDISCARD(fd fd_block, cmd const[BLKSECDISCARD], arg ptr[in, intptr])
+ioctl$BLKZEROOUT(fd fd_block, cmd const[BLKZEROOUT], arg ptr[in, blk_zone_range])
+ioctl$BLKREPORTZONE(fd fd_block, cmd const[BLKREPORTZONE], arg ptr[in, blk_zone_report])
+ioctl$BLKRESETZONE(fd fd_block, cmd const[BLKRESETZONE], arg ptr[in, blk_zone_range])
+ioctl$BLKRAGET(fd fd_block, cmd const[BLKRAGET], arg ptr[out, intptr])
+ioctl$BLKROGET(fd fd_block, cmd const[BLKROGET], arg ptr[out, intptr])
+ioctl$BLKBSZGET(fd fd_block, cmd const[BLKBSZGET], arg ptr[out, intptr])
+ioctl$BLKPBSZGET(fd fd_block, cmd const[BLKPBSZGET], arg ptr[out, intptr])
+ioctl$BLKIOMIN(fd fd_block, cmd const[BLKIOMIN], arg ptr[out, intptr])
+ioctl$BLKIOOPT(fd fd_block, cmd const[BLKIOOPT], arg ptr[out, intptr])
+ioctl$BLKALIGNOFF(fd fd_block, cmd const[BLKALIGNOFF], arg ptr[out, intptr])
+ioctl$BLKSECTGET(fd fd_block, cmd const[BLKSECTGET], arg ptr[out, intptr])
+ioctl$BLKROTATIONAL(fd fd_block, cmd const[BLKROTATIONAL], arg ptr[out, intptr])
+ioctl$BLKFRASET(fd fd_block, cmd const[BLKFRASET], arg ptr[in, intptr])
+ioctl$BLKBSZSET(fd fd_block, cmd const[BLKBSZSET], arg ptr[in, intptr])
+ioctl$BLKPG(fd fd_block, cmd const[BLKPG], arg ptr[in, blkpg_ioctl_arg])
+ioctl$BLKRRPART(fd fd_block, cmd const[BLKRRPART], arg const[0])
+ioctl$BLKGETSIZE(fd fd_block, cmd const[BLKGETSIZE], arg ptr[out, intptr])
+ioctl$BLKGETSIZE64(fd fd_block, cmd const[BLKGETSIZE64], arg ptr[out, int64])
+
+ioctl$HDIO_GETGEO(fd fd_block, cmd const[HDIO_GETGEO], arg ptr[out, hd_geometry])
+
+ioctl$IOC_PR_REGISTER(fd fd_block, cmd const[IOC_PR_REGISTER], arg ptr[in, pr_registration])
+ioctl$IOC_PR_RESERVE(fd fd_block, cmd const[IOC_PR_RESERVE], arg ptr[in, pr_reservation])
+ioctl$IOC_PR_RELEASE(fd fd_block, cmd const[IOC_PR_RELEASE], arg ptr[in, pr_reservation])
+ioctl$IOC_PR_PREEMPT(fd fd_block, cmd const[IOC_PR_PREEMPT], arg ptr[in, pr_preempt])
+ioctl$IOC_PR_PREEMPT_ABORT(fd fd_block, cmd const[IOC_PR_PREEMPT_ABORT], arg ptr[in, pr_preempt])
+ioctl$IOC_PR_CLEAR(fd fd_block, cmd const[IOC_PR_CLEAR], arg ptr[in, pr_clear])
+
+blk_zone_report {
+	sector		int64
+	nr_zones	len[zones, int32]
+	reserved	const[0, int32]
+	zones		array[blk_zone]
+} [packed]
+
+blk_zone {
+	start		int64
+	len		int64
+	wp		int64
+	type		int8
+	cond		int8
+	non_seq		int8
+	reset		int8
+	reserved	array[const[0, int8], 36]
+}
+
+blk_zone_range {
+	sector		int64
+	nr_sectors	int64
+}
+
+hd_geometry {
+	heads		int8
+	sectors		int8
+	cylinders	int16
+	start		intptr
+}
+
+blkpg_ioctl_arg {
+	op	int32
+	flags	int32
+	datalen	bytesize[data, int32]
+	data	ptr[in, array[int8]]
+}
+
+blk_user_trace_setup {
+	name		array[const[0, int8], BLKTRACE_BDEV_SIZE]
+	act_mask	int16
+	buf_size	int32
+	buf_nr		int32
+	start_lba	int64
+	end_lba		int64
+	pid		pid
+}
+
+pr_registration {
+	old_key	int64
+	new_key	int64
+	flags	bool32
+	pad	const[0, int32]
+}
+
+pr_reservation {
+	key	int64
+	type	int32
+	flags	bool32
+}
+
+pr_preempt {
+	old_key	int64
+	new_key	int64
+	type	int32
+	flags	int32
+}
+
+pr_clear {
+	key	int64
+	flags	const[0, int32]
+	pad	const[0, int32]
+}

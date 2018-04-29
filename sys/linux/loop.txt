@@ -4,7 +4,7 @@
 include <linux/fcntl.h>
 include <linux/loop.h>
 
-resource fd_loop[fd]
+resource fd_loop[fd_block]
 syz_open_dev$loop(dev ptr[in, string["/dev/loop#"]], id intptr, flags flags[open_flags]) fd_loop
 
 ioctl$LOOP_SET_FD(fd fd_loop, cmd const[LOOP_SET_FD], arg fd)
