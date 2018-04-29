@@ -247,6 +247,21 @@ The `proc[20000, 4, int16be]` type means that we want to generate an `int16be`
 integer starting from `20000` and assign `4` values for each process.
 As a result the executor number `n` will get values in the `[20000 + n * 4, 20000 + (n + 1) * 4)` range.
 
+## Integer Constants
+
+Integer constants can be specified as decimal literals, as `0x`-prefixed
+hex literals, as `'`-surrounded char literals, or as symbolic constants
+extracted from kernel headers or defined by `define` directives. For example:
+
+```
+foo(a const[10])
+foo(a const[0xabcd])
+foo(a int8['a':'z'])
+foo(a const[PATH_MAX])
+foo(a ptr[in, array[int8, MY_PATH_MAX]])
+define MY_PATH_MAX	PATH_MAX + 2
+```
+
 ## Misc
 
 Description files also contain `include` directives that refer to Linux kernel header files,

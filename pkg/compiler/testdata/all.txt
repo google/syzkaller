@@ -6,6 +6,7 @@ foo$1(a int8[C1:C2])
 foo$2(a ptr[out, array[int32]])
 foo$3(a union_arg)
 foo$4() r0
+foo$5(a int8['a':'z'])
 
 resource r0[intptr]
 
@@ -139,8 +140,8 @@ type templ_struct1[C] {
 }
 
 union_with_templ_struct [
-	f1		templ_struct0[C1, type0]
-	f2		templ_struct0[C2, struct0]
+	f1	templ_struct0[C1, type0]
+	f2	templ_struct0[C2, struct0]
 ] [varlen]
 
 struct0 {
@@ -182,7 +183,6 @@ foo$templ3(a ptr[in, templ_struct1[1]], b ptr[in, templ_struct1[2]])
 foo$templ4(a ptr[in, templ_struct1[3]])
 foo$templ5(a ptr[in, templ_struct1[3]])
 foo$templ6(a ptr[in, templ_struct4])
-
 
 # Structs.
 
