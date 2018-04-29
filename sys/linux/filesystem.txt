@@ -42,6 +42,16 @@ ext4_types = "ext4", "ext3", "ext2"
 
 syz_mount_image$f2fs(fs ptr[in, string["f2fs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[f2fs_options]])
 
+syz_mount_image$ocfs2(fs ptr[in, string["ocfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
+
+syz_mount_image$nfs(fs ptr[in, string["nfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
+
+syz_mount_image$nfs4(fs ptr[in, string["nfs4"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
+
+syz_mount_image$cifs(fs ptr[in, string["cifs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
+
+syz_mount_image$ceph(fs ptr[in, string["ceph"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
+
 fs_image_segment {
 	data	ptr[in, array[int8]]
 	size	len[data, intptr]
