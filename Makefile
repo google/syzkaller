@@ -34,7 +34,11 @@ EXE :=
 ifeq ("$(TARGETARCH)", "amd64")
 	CC = "x86_64-linux-gnu-gcc"
 else ifeq ("$(TARGETARCH)", "386")
+ifeq ("$(HOSTARCH)", "386")
+	CC = "i686-linux-gnu-gcc"
+else
 	CC = "x86_64-linux-gnu-gcc"
+endif
 	ADDCFLAGS = "-m32"
 else ifeq ("$(TARGETARCH)", "arm64")
 	CC = "aarch64-linux-gnu-gcc"
