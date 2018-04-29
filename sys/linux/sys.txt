@@ -33,7 +33,6 @@ include <linux/elf.h>
 include <linux/fiemap.h>
 include <linux/kd.h>
 include <linux/vt.h>
-include <linux/fuse.h>
 include <linux/if_alg.h>
 include <linux/nfc.h>
 include <linux/sockios.h>
@@ -448,7 +447,6 @@ syz_open_dev$floppy(dev ptr[in, string["/dev/fd#"]], id intptr, flags flags[open
 syz_open_dev$vcsn(dev ptr[in, string["/dev/vcs#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$vcsa(dev ptr[in, string["/dev/vcsa#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$usbmon(dev ptr[in, string["/dev/usbmon#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sg(dev ptr[in, string["/dev/sg#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$midi(dev ptr[in, string["/dev/midi#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$ircomm(dev ptr[in, string["/dev/ircomm#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$dspn(dev ptr[in, string["/dev/dsp#"]], id intptr, flags flags[open_flags]) fd
@@ -463,10 +461,16 @@ syz_open_dev$sndmidi(dev ptr[in, string["/dev/snd/midiC#D#"]], id intptr, flags 
 syz_open_dev$sndpcmc(dev ptr[in, string["/dev/snd/pcmC#D#c"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndpcmp(dev ptr[in, string["/dev/snd/pcmC#D#p"]], id intptr, flags flags[open_flags]) fd
 
+openat$null(fd const[AT_FDCWD], file ptr[in, string["/dev/null"]], flags flags[open_flags], mode const[0]) fd
+openat$zero(fd const[AT_FDCWD], file ptr[in, string["/dev/zero"]], flags flags[open_flags], mode const[0]) fd
+openat$full(fd const[AT_FDCWD], file ptr[in, string["/dev/full"]], flags flags[open_flags], mode const[0]) fd
+openat$snapshot(fd const[AT_FDCWD], file ptr[in, string["/dev/snapshot"]], flags flags[open_flags], mode const[0]) fd
+openat$uinput(fd const[AT_FDCWD], file ptr[in, string["/dev/uinput"]], flags flags[open_flags], mode const[0]) fd
+openat$urandom(fd const[AT_FDCWD], file ptr[in, string["/dev/urandom"]], flags flags[open_flags], mode const[0]) fd
 openat$vga_arbiter(fd const[AT_FDCWD], file ptr[in, string["/dev/vga_arbiter"]], flags flags[open_flags], mode const[0]) fd
 openat$vhci(fd const[AT_FDCWD], file ptr[in, string["/dev/vhci"]], flags flags[open_flags], mode const[0]) fd
 openat$userio(fd const[AT_FDCWD], file ptr[in, string["/dev/userio"]], flags flags[open_flags], mode const[0]) fd
-openat$rtc(fd const[AT_FDCWD], file ptr[in, string["/dev/rtc"]], flags flags[open_flags], mode const[0]) fd
+openat$rtc(fd const[AT_FDCWD], file ptr[in, string["/dev/rtc0"]], flags flags[open_flags], mode const[0]) fd
 openat$rfkill(fd const[AT_FDCWD], file ptr[in, string["/dev/rfkill"]], flags flags[open_flags], mode const[0]) fd
 openat$qat_adf_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/qat_adf_ctl"]], flags flags[open_flags], mode const[0]) fd
 openat$ppp(fd const[AT_FDCWD], file ptr[in, string["/dev/ppp"]], flags flags[open_flags], mode const[0]) fd
@@ -482,7 +486,6 @@ openat$autofs(fd const[AT_FDCWD], file ptr[in, string["/dev/autofs"]], flags fla
 openat$keychord(fd const[AT_FDCWD], file ptr[in, string["/dev/keychord"]], flags flags[open_flags], mode const[0]) fd
 openat$zygote(fd const[AT_FDCWD], file ptr[in, string["/dev/socket/zygote"]], flags flags[open_flags], mode const[0]) fd
 openat$sw_sync(fd const[AT_FDCWD], file ptr[in, string["/dev/sw_sync"]], flags flags[open_flags], mode const[0]) fd
-openat$sr(fd const[AT_FDCWD], file ptr[in, string["/dev/sr0"]], flags flags[open_flags], mode const[0]) fd
 openat$pktcdvd(fd const[AT_FDCWD], file ptr[in, string["/dev/pktcdvd/control"]], flags flags[open_flags], mode const[0]) fd
 openat$lightnvm(fd const[AT_FDCWD], file ptr[in, string["/dev/lightnvm/control"]], flags flags[open_flags], mode const[0]) fd
 openat$vcs(fd const[AT_FDCWD], file ptr[in, string["/dev/vcs"]], flags flags[open_flags], mode const[0]) fd

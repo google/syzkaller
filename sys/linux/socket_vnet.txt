@@ -33,7 +33,9 @@ socket$vsock_dgram(domain const[AF_VSOCK], type const[SOCK_DGRAM], proto const[0
 bind$vsock_dgram(fd sock_vsock_dgram, addr ptr[in, sockaddr_vm], addrlen len[addr])
 connect$vsock_dgram(fd sock_vsock_dgram, addr ptr[in, sockaddr_vm], addrlen len[addr])
 
-openat$vsock(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-vsock"]], flags const[O_RDWR], mode const[0]) vhost_vsock
+openat$vsock(fd const[AT_FDCWD], file ptr[in, string["/dev/vsock"]], flags flags[open_flags], mode const[0]) fd
+
+openat$vhost_vsock(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-vsock"]], flags const[O_RDWR], mode const[0]) vhost_vsock
 ioctl$VHOST_VSOCK_SET_GUEST_CID(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_GUEST_CID], arg ptr[in, vmaddr_cid64])
 ioctl$VHOST_VSOCK_SET_RUNNING(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_RUNNING], arg ptr[in, bool32])
 
