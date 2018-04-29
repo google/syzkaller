@@ -145,7 +145,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		syscall.Close(fd)
 		return true, ""
 	case "syz_mount_image":
-		return onlySandboxNoneOrNamespace(sandbox)
+		return onlySandboxNone(sandbox)
 	case "syz_read_part_table":
 		return onlySandboxNone(sandbox)
 	}
