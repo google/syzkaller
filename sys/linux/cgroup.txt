@@ -45,10 +45,8 @@ cgroup_control {
 cgroup_dirs = "./cgroup/syz0", "./cgroup/syz1", "./cgroup.cpu/syz0", "./cgroup.cpu/syz1", "./cgroup.net/syz0", "./cgroup.net/syz1"
 cgroup_names = "syz0", "syz1"
 cgroup_paths = "./cgroup/syz0", "./cgroup.cpu/syz0", "./cgroup.net/syz0", "./cgroup/syz1", "./cgroup.cpu/syz1", "./cgroup.net/syz1"
-# '+', '-'
-cgroup_control_signs = 43, 45
-# '+', '-', ',', '/', ';' and digits
-cgroup_digits = 0, 43, 45, 44, 47, 58, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57
+cgroup_control_signs = '+', '-'
+cgroup_digits = 0, '+', '-', ',', '/', ':', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
 cgroup_subsystems = "cpu", "memory", "io", "pids", "rdma"
 cgroup_proc_files = "cgroup.procs", "cgroup.threads", "tasks"
 cgroup_ctrl_read = "cgroup.controllers", "cgroup.events", "cgroup.stat", "cpu.stat", "cpu.stat", "io.stat", "memory.current", "memory.events", "memory.stat", "memory.swap.current", "pids.current", "pids.events", "rdma.current", "cpuacct.stat", "cpuacct.usage_all", "cpuacct.usage_percpu", "cpuacct.usage_percpu_sys", "cpuacct.usage_percpu_user", "cpuacct.usage_sys", "cpuacct.usage_user", "cpuset.effective_cpus", "cpuset.effective_mems", "cpuset.memory_pressure", "hugetlb.2MB.usage_in_bytes"
