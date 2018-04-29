@@ -24429,6 +24429,24 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fs_options[btrfs_options]"}}},
 	}},
+	{Name: "syz_mount_image$ceph", CallName: "syz_mount_image", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 5}, Kind: 2, Values: []string{"ceph\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 4}}, Buf: "segments"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
+	}},
+	{Name: "syz_mount_image$cifs", CallName: "syz_mount_image", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 5}, Kind: 2, Values: []string{"cifs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 4}}, Buf: "segments"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
+	}},
 	{Name: "syz_mount_image$ext4", CallName: "syz_mount_image", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 5}, Kind: 2, SubKind: "ext4_types", Values: []string{"ext4\x00", "ext3\x00", "ext2\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -24510,6 +24528,24 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fs_options[vfat_options]"}}},
 	}},
+	{Name: "syz_mount_image$nfs", CallName: "syz_mount_image", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, Values: []string{"nfs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 4}}, Buf: "segments"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
+	}},
+	{Name: "syz_mount_image$nfs4", CallName: "syz_mount_image", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 5}, Kind: 2, Values: []string{"nfs4\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 4}}, Buf: "segments"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
+	}},
 	{Name: "syz_mount_image$ntfs", CallName: "syz_mount_image", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 5}, Kind: 2, Values: []string{"ntfs\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -24518,6 +24554,15 @@ var syscalls_arm = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fs_options[ntfs_options]"}}},
+	}},
+	{Name: "syz_mount_image$ocfs2", CallName: "syz_mount_image", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 6}, Kind: 2, Values: []string{"ocfs2\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 4}}, Buf: "segments"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
 	{Name: "syz_mount_image$reiserfs", CallName: "syz_mount_image", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 9}, Kind: 2, Values: []string{"reiserfs\x00"}}},
@@ -29472,4 +29517,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "866200baba7865030f8d7eaf17ec2ed2fa716d78"
+const revision_arm = "59d36d16217ff18657fa1b5dd417c8c9e3dfee3b"
