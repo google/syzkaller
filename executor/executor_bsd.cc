@@ -201,7 +201,7 @@ void cover_reset(thread_t* th)
 #endif
 }
 
-uint64 read_cover_size(thread_t* th)
+uint32 read_cover_size(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
