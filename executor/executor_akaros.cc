@@ -91,7 +91,7 @@ void cover_reset(thread_t* th)
 {
 }
 
-uint64 read_cover_size(thread_t* th)
+uint32 read_cover_size(thread_t* th)
 {
 	return 0;
 }
