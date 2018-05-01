@@ -125,7 +125,7 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 			}
 			// We need to support structs as resources,
 			// but for now we just special-case timespec/timeval.
-			if cantCreate == "" && !haveGettime {
+			if cantCreate == "" && !haveGettime && target.SyscallMap["clock_gettime"] != nil {
 				ForeachType(c, func(typ Type) {
 					if a, ok := typ.(*StructType); ok && a.Dir() != DirOut && (a.Name() == "timespec" || a.Name() == "timeval") {
 						cantCreate = a.Name()
