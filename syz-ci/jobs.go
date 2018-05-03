@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/kernel"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
@@ -55,7 +55,7 @@ func (jp *JobProcessor) loop(stop chan struct{}) {
 		case <-ticker.C:
 			jp.poll()
 		case <-stop:
-			Logf(0, "job loop stopped")
+			log.Logf(0, "job loop stopped")
 			return
 		}
 	}
@@ -89,10 +89,10 @@ func (jp *JobProcessor) poll() {
 		req: req,
 		mgr: mgr,
 	}
-	Logf(0, "starting job %v for manager %v on %v/%v",
+	log.Logf(0, "starting job %v for manager %v on %v/%v",
 		req.ID, req.Manager, req.KernelRepo, req.KernelBranch)
 	resp := jp.process(job)
-	Logf(0, "done job %v: commit %v, crash %q, error: %s",
+	log.Logf(0, "done job %v: commit %v, crash %q, error: %s",
 		resp.ID, resp.Build.KernelCommit, resp.CrashTitle, resp.Error)
 	if err := jp.dash.JobDone(resp); err != nil {
 		jp.Errorf("failed to mark job as done: %v", err)
@@ -163,7 +163,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		if err = jp.test(job); err == nil {
 			break
 		}
-		Logf(0, "job: testing failed, trying once again\n%v", err)
+		log.Logf(0, "job: testing failed, trying once again\n%v", err)
 	}
 	if err != nil {
 		job.resp.Error = []byte(err.Error())
@@ -197,13 +197,13 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 		return fmt.Errorf("failed to create temp dir: %v", err)
 	}
 
-	Logf(0, "job: fetching syzkaller on %v...", req.SyzkallerCommit)
+	log.Logf(0, "job: fetching syzkaller on %v...", req.SyzkallerCommit)
 	_, err := git.CheckoutCommit(syzkallerDir, jp.syzkallerRepo, req.SyzkallerCommit)
 	if err != nil {
 		return fmt.Errorf("failed to checkout syzkaller repo: %v", err)
 	}
 
-	Logf(0, "job: building syzkaller...")
+	log.Logf(0, "job: building syzkaller...")
 	cmd := osutil.Command("make", "target")
 	cmd.Dir = syzkallerDir
 	cmd.Env = append([]string{}, os.Environ()...)
@@ -218,7 +218,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	}
 	resp.Build.SyzkallerCommit = req.SyzkallerCommit
 
-	Logf(0, "job: fetching kernel...")
+	log.Logf(0, "job: fetching kernel...")
 	var kernelCommit *git.Commit
 	if git.CheckCommitHash(req.KernelBranch) {
 		kernelCommit, err = git.CheckoutCommit(kernelDir, req.KernelRepo, req.KernelBranch)
@@ -247,7 +247,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 		}
 	}
 
-	Logf(0, "job: building kernel...")
+	log.Logf(0, "job: building kernel...")
 	configFile := filepath.Join(dir, "kernel.config")
 	if err := osutil.WriteFile(configFile, req.KernelConfig); err != nil {
 		return fmt.Errorf("failed to write temp file: %v", err)
@@ -261,7 +261,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	}
 	resp.Build.KernelConfig = kernelConfig
 
-	Logf(0, "job: creating image...")
+	log.Logf(0, "job: creating image...")
 	image := filepath.Join(imageDir, "image")
 	key := filepath.Join(imageDir, "key")
 	err = kernel.CreateImage(kernelDir, mgr.mgrcfg.Userspace,
@@ -294,7 +294,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 func (jp *JobProcessor) test(job *Job) error {
 	req, mgrcfg := job.req, job.mgrcfg
 
-	Logf(0, "job: booting VM...")
+	log.Logf(0, "job: booting VM...")
 	inst, reporter, rep, err := bootInstance(mgrcfg)
 	if err != nil {
 		return err
@@ -306,7 +306,7 @@ func (jp *JobProcessor) test(job *Job) error {
 	}
 	defer inst.Close()
 
-	Logf(0, "job: testing instance...")
+	log.Logf(0, "job: testing instance...")
 	rep, err = testInstance(inst, reporter, mgrcfg)
 	if err != nil {
 		return err
@@ -317,7 +317,7 @@ func (jp *JobProcessor) test(job *Job) error {
 		return fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
 	}
 
-	Logf(0, "job: copying binaries...")
+	log.Logf(0, "job: copying binaries...")
 	execprogBin, err := inst.Copy(mgrcfg.SyzExecprogBin)
 	if err != nil {
 		return fmt.Errorf("failed to copy test binary to VM: %v", err)
@@ -335,7 +335,7 @@ func (jp *JobProcessor) test(job *Job) error {
 		return fmt.Errorf("failed to copy to VM: %v", err)
 	}
 
-	Logf(0, "job: testing syzkaller program...")
+	log.Logf(0, "job: testing syzkaller program...")
 	opts, err := csource.DeserializeOptions(req.ReproOpts)
 	if err != nil {
 		return err
@@ -360,7 +360,7 @@ func (jp *JobProcessor) test(job *Job) error {
 	}
 
 	if len(req.ReproC) != 0 {
-		Logf(0, "job: testing C program...")
+		log.Logf(0, "job: testing C program...")
 		cFile := filepath.Join(mgrcfg.Workdir, "repro.c")
 		if err := osutil.WriteFile(cFile, req.ReproC); err != nil {
 			return fmt.Errorf("failed to write temp file: %v", err)
@@ -408,7 +408,7 @@ func (jp *JobProcessor) testProgram(job *Job, inst *vm.Instance, command string,
 
 // Errorf logs non-fatal error and sends it to dashboard.
 func (jp *JobProcessor) Errorf(msg string, args ...interface{}) {
-	Logf(0, "job: "+msg, args...)
+	log.Logf(0, "job: "+msg, args...)
 	if jp.dash != nil {
 		jp.dash.LogError(jp.name, msg, args...)
 	}

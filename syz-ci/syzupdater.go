@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/git"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
@@ -46,7 +46,7 @@ type SyzUpdater struct {
 func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	wd, err := os.Getwd()
 	if err != nil {
-		Fatalf("failed to get wd: %v", err)
+		log.Fatalf("failed to get wd: %v", err)
 	}
 	bin := os.Args[0]
 	if !filepath.IsAbs(bin) {
@@ -55,7 +55,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	bin = filepath.Clean(bin)
 	exe := filepath.Base(bin)
 	if wd != filepath.Dir(bin) {
-		Fatalf("%v executable must be in cwd (it will be overwritten on update)", exe)
+		log.Fatalf("%v executable must be in cwd (it will be overwritten on update)", exe)
 	}
 
 	gopath := filepath.Join(wd, "gopath")
@@ -75,11 +75,11 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	for _, mgr := range cfg.Managers {
 		mgrcfg := new(mgrconfig.Config)
 		if err := config.LoadData(mgr.Manager_Config, mgrcfg); err != nil {
-			Fatalf("failed to load manager %v config: %v", mgr.Name, err)
+			log.Fatalf("failed to load manager %v config: %v", mgr.Name, err)
 		}
 		os, vmarch, arch, err := mgrconfig.SplitTarget(mgrcfg.Target)
 		if err != nil {
-			Fatalf("failed to load manager %v config: %v", mgr.Name, err)
+			log.Fatalf("failed to load manager %v config: %v", mgr.Name, err)
 		}
 		targets[os+"/"+vmarch+"/"+arch] = true
 		files[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
@@ -114,17 +114,17 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 	latestTag := upd.checkLatest()
 	if exeTag == latestTag && time.Since(exeMod) < time.Minute {
 		// Have a freash up-to-date build, probably just restarted.
-		Logf(0, "current executable is up-to-date (%v)", exeTag)
+		log.Logf(0, "current executable is up-to-date (%v)", exeTag)
 		if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
-			Fatal(err)
+			log.Fatal(err)
 		}
 		return
 	}
 	if exeTag == "" {
-		Logf(0, "current executable is bootstrap")
+		log.Logf(0, "current executable is bootstrap")
 	} else {
-		Logf(0, "current executable is on %v", exeTag)
-		Logf(0, "latest syzkaller build is on %v", latestTag)
+		log.Logf(0, "current executable is on %v", exeTag)
+		log.Logf(0, "latest syzkaller build is on %v", latestTag)
 	}
 
 	// No syzkaller build or executable is stale.
@@ -135,9 +135,9 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 		if latestTag != "" {
 			// The build was successful or we had the latest build from previous runs.
 			// Either way, use the latest build.
-			Logf(0, "using syzkaller built on %v", latestTag)
+			log.Logf(0, "using syzkaller built on %v", latestTag)
 			if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
-				Fatal(err)
+				log.Fatal(err)
 			}
 			if exeTag != latestTag {
 				upd.UpdateAndRestart()
@@ -146,7 +146,7 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 		}
 
 		// No good build at all, try again later.
-		Logf(0, "retrying in %v", buildRetryPeriod)
+		log.Logf(0, "retrying in %v", buildRetryPeriod)
 		select {
 		case <-time.After(buildRetryPeriod):
 		case <-shutdown:
@@ -168,38 +168,38 @@ func (upd *SyzUpdater) WaitForUpdate() {
 		}
 		time.Sleep(buildRetryPeriod)
 	}
-	Logf(0, "syzkaller: update available, restarting")
+	log.Logf(0, "syzkaller: update available, restarting")
 }
 
 // UpdateAndRestart updates and restarts the current executable.
 // Does not return.
 func (upd *SyzUpdater) UpdateAndRestart() {
-	Logf(0, "restarting executable for update")
+	log.Logf(0, "restarting executable for update")
 	latestBin := filepath.Join(upd.latestDir, "bin", upd.exe)
 	latestTag := filepath.Join(upd.latestDir, "tag")
 	if err := osutil.CopyFile(latestBin, upd.exe); err != nil {
-		Fatal(err)
+		log.Fatal(err)
 	}
 	if err := osutil.CopyFile(latestTag, upd.exe+".tag"); err != nil {
-		Fatal(err)
+		log.Fatal(err)
 	}
 	if err := syscall.Exec(upd.exe, os.Args, os.Environ()); err != nil {
-		Fatal(err)
+		log.Fatal(err)
 	}
-	Fatalf("not reachable")
+	log.Fatalf("not reachable")
 }
 
 func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 	commit, err := git.Poll(upd.syzkallerDir, upd.repo, upd.branch)
 	if err != nil {
-		Logf(0, "syzkaller: failed to poll: %v", err)
+		log.Logf(0, "syzkaller: failed to poll: %v", err)
 	} else {
-		Logf(0, "syzkaller: poll: %v (%v)", commit.Hash, commit.Title)
+		log.Logf(0, "syzkaller: poll: %v (%v)", commit.Hash, commit.Title)
 		if lastCommit != commit.Hash {
-			Logf(0, "syzkaller: building ...")
+			log.Logf(0, "syzkaller: building ...")
 			lastCommit = commit.Hash
 			if err := upd.build(); err != nil {
-				Logf(0, "syzkaller: %v", err)
+				log.Logf(0, "syzkaller: %v", err)
 			}
 		}
 	}

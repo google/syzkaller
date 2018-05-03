@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -42,19 +42,19 @@ func (mgr *Manager) initHTTP() {
 
 	ln, err := net.Listen("tcp4", mgr.cfg.HTTP)
 	if err != nil {
-		Fatalf("failed to listen on %v: %v", mgr.cfg.HTTP, err)
+		log.Fatalf("failed to listen on %v: %v", mgr.cfg.HTTP, err)
 	}
-	Logf(0, "serving http on http://%v", ln.Addr())
+	log.Logf(0, "serving http on http://%v", ln.Addr())
 	go func() {
 		err := http.Serve(ln, nil)
-		Fatalf("failed to serve http: %v", err)
+		log.Fatalf("failed to serve http: %v", err)
 	}()
 }
 
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
 		Name:  mgr.cfg.Name,
-		Log:   CachedLogOutput(),
+		Log:   log.CachedLogOutput(),
 		Stats: mgr.collectStats(),
 	}
 

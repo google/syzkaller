@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
@@ -73,29 +73,29 @@ func Make(dir string) (*State, error) {
 			return nil, err
 		}
 	}
-	Logf(0, "purging corpus...")
+	log.Logf(0, "purging corpus...")
 	st.purgeCorpus()
-	Logf(0, "done, %v programs", len(st.Corpus.Records))
+	log.Logf(0, "done, %v programs", len(st.Corpus.Records))
 
 	return st, err
 }
 
 func loadDB(file, name string) (*db.DB, uint64) {
-	Logf(0, "reading %v...", name)
+	log.Logf(0, "reading %v...", name)
 	db, err := db.Open(file)
 	if err != nil {
-		Fatalf("failed to open %v database: %v", name, err)
+		log.Fatalf("failed to open %v database: %v", name, err)
 	}
-	Logf(0, "read %v programs", len(db.Records))
+	log.Logf(0, "read %v programs", len(db.Records))
 	var maxSeq uint64
 	for key, rec := range db.Records {
 		if _, err := prog.CallSet(rec.Val); err != nil {
-			Logf(0, "bad file: can't parse call set: %v", err)
+			log.Logf(0, "bad file: can't parse call set: %v", err)
 			db.Delete(key)
 			continue
 		}
 		if sig := hash.Hash(rec.Val); sig.String() != key {
-			Logf(0, "bad file: hash %v, want hash %v", key, sig.String())
+			log.Logf(0, "bad file: hash %v, want hash %v", key, sig.String())
 			db.Delete(key)
 			continue
 		}
@@ -104,7 +104,7 @@ func loadDB(file, name string) (*db.DB, uint64) {
 		}
 	}
 	if err := db.Flush(); err != nil {
-		Fatalf("failed to flush corpus database: %v", err)
+		log.Fatalf("failed to flush corpus database: %v", err)
 	}
 	return db, maxSeq
 }
@@ -135,7 +135,7 @@ func (st *State) createManager(name string) (*Manager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open manager corpus %v: %v", mgr.corpusFile, err)
 	}
-	Logf(0, "created manager %v: corpus=%v, corpusSeq=%v, reproSeq=%v",
+	log.Logf(0, "created manager %v: corpus=%v, corpusSeq=%v, reproSeq=%v",
 		mgr.name, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
 	st.Managers[name] = mgr
 	return mgr, nil
@@ -167,7 +167,7 @@ func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byt
 	var err error
 	mgr.Corpus, err = db.Open(mgr.corpusFile)
 	if err != nil {
-		Logf(0, "failed to open corpus database: %v", err)
+		log.Logf(0, "failed to open corpus database: %v", err)
 		return err
 	}
 	st.addInputs(mgr, corpus)
@@ -185,7 +185,7 @@ func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, int, e
 			mgr.Corpus.Delete(sig)
 		}
 		if err := mgr.Corpus.Flush(); err != nil {
-			Logf(0, "failed to flush corpus database: %v", err)
+			log.Logf(0, "failed to flush corpus database: %v", err)
 		}
 		st.purgeCorpus()
 	}
@@ -203,7 +203,7 @@ func (st *State) AddRepro(name string, repro []byte) error {
 		return fmt.Errorf("unconnected manager %v", name)
 	}
 	if _, err := prog.CallSet(repro); err != nil {
-		Logf(0, "manager %v: failed to extract call set: %v, program:\n%v",
+		log.Logf(0, "manager %v: failed to extract call set: %v, program:\n%v",
 			mgr.name, err, string(repro))
 		return nil
 	}
@@ -220,7 +220,7 @@ func (st *State) AddRepro(name string, repro []byte) error {
 	st.reproSeq++
 	st.Repros.Save(sig, repro, st.reproSeq)
 	if err := st.Repros.Flush(); err != nil {
-		Logf(0, "failed to flush repro database: %v", err)
+		log.Logf(0, "failed to flush repro database: %v", err)
 	}
 	return nil
 }
@@ -319,16 +319,16 @@ func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
 		st.addInput(mgr, input)
 	}
 	if err := mgr.Corpus.Flush(); err != nil {
-		Logf(0, "failed to flush corpus database: %v", err)
+		log.Logf(0, "failed to flush corpus database: %v", err)
 	}
 	if err := st.Corpus.Flush(); err != nil {
-		Logf(0, "failed to flush corpus database: %v", err)
+		log.Logf(0, "failed to flush corpus database: %v", err)
 	}
 }
 
 func (st *State) addInput(mgr *Manager, input []byte) {
 	if _, err := prog.CallSet(input); err != nil {
-		Logf(0, "manager %v: failed to extract call set: %v, program:\n%v", mgr.name, err, string(input))
+		log.Logf(0, "manager %v: failed to extract call set: %v, program:\n%v", mgr.name, err, string(input))
 		return
 	}
 	sig := hash.String(input)
@@ -352,7 +352,7 @@ func (st *State) purgeCorpus() {
 		st.Corpus.Delete(key)
 	}
 	if err := st.Corpus.Flush(); err != nil {
-		Logf(0, "failed to flush corpus database: %v", err)
+		log.Logf(0, "failed to flush corpus database: %v", err)
 	}
 }
 
@@ -367,7 +367,7 @@ func managerSupportsAllCalls(mgr, prog map[string]struct{}) bool {
 
 func writeFile(name string, data []byte) {
 	if err := osutil.WriteFile(name, data); err != nil {
-		Logf(0, "failed to write file %v: %v", name, err)
+		log.Logf(0, "failed to write file %v: %v", name, err)
 	}
 }
 

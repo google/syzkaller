@@ -26,7 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/kd"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -94,17 +94,17 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to init gce: %v", err)
 	}
-	Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
+	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
 		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
 
 	if cfg.GCE_Image == "" {
 		cfg.GCE_Image = env.Name
 		gcsImage := filepath.Join(cfg.GCS_Path, env.Name+"-image.tar.gz")
-		Logf(0, "uploading image to %v...", gcsImage)
+		log.Logf(0, "uploading image to %v...", gcsImage)
 		if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
 			return nil, err
 		}
-		Logf(0, "creating GCE image %v...", cfg.GCE_Image)
+		log.Logf(0, "creating GCE image %v...", cfg.GCE_Image)
 		if err := GCE.DeleteImage(cfg.GCE_Image); err != nil {
 			return nil, fmt.Errorf("failed to delete GCE image: %v", err)
 		}
@@ -137,11 +137,11 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, fmt.Errorf("failed to read file: %v", err)
 	}
 
-	Logf(0, "deleting instance: %v", name)
+	log.Logf(0, "deleting instance: %v", name)
 	if err := pool.GCE.DeleteInstance(name, true); err != nil {
 		return nil, err
 	}
-	Logf(0, "creating instance: %v", name)
+	log.Logf(0, "creating instance: %v", name)
 	ip, err := pool.GCE.CreateInstance(name, pool.cfg.Machine_Type, pool.cfg.GCE_Image, string(gceKeyPub))
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshKey = gceKey
 		sshUser = "syzkaller"
 	}
-	Logf(0, "wait instance to boot: %v (%v)", name, ip)
+	log.Logf(0, "wait instance to boot: %v (%v)", name, ip)
 	if err := pool.waitInstanceBoot(name, ip, sshKey, sshUser, gceKey); err != nil {
 		return nil, err
 	}
@@ -327,13 +327,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			} else if merr, ok := err.(vmimpl.MergerError); ok && merr.R == conRpipe {
 				// Console connection must never fail. If it does, it's either
 				// instance preemption or a GCE bug. In either case, not a kernel bug.
-				Logf(1, "%v: gce console connection failed with %v", inst.name, merr.Err)
+				log.Logf(1, "%v: gce console connection failed with %v", inst.name, merr.Err)
 				err = vmimpl.ErrTimeout
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
 				time.Sleep(5 * time.Second) // just to avoid any GCE races
 				if !inst.GCE.IsInstanceRunning(inst.name) {
-					Logf(1, "%v: ssh exited but instance is not running", inst.name)
+					log.Logf(1, "%v: ssh exited but instance is not running", inst.name)
 					err = vmimpl.ErrTimeout
 				}
 			}
@@ -475,11 +475,11 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 
 func runCmd(debug bool, bin string, args ...string) ([]byte, error) {
 	if debug {
-		Logf(0, "running command: %v %#v", bin, args)
+		log.Logf(0, "running command: %v %#v", bin, args)
 	}
 	output, err := osutil.RunCmd(time.Minute, "", bin, args...)
 	if debug {
-		Logf(0, "result: %v\n%s", err, output)
+		log.Logf(0, "result: %v\n%s", err, output)
 	}
 	return output, err
 }

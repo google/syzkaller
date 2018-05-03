@@ -20,9 +20,9 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	. "github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
@@ -39,7 +39,7 @@ type Fuzzer struct {
 	needPoll    chan struct{}
 	choiceTable *prog.ChoiceTable
 	stats       [StatCount]uint64
-	manager     *RPCClient
+	manager     *rpctype.RPCClient
 	target      *prog.Target
 
 	faultInjectionEnabled    bool
@@ -122,11 +122,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "-output flag must be one of none/stdout/dmesg/file\n")
 		os.Exit(1)
 	}
-	Logf(0, "fuzzer started")
+	log.Logf(0, "fuzzer started")
 
 	target, err := prog.GetTarget(runtime.GOOS, *flagArch)
 	if err != nil {
-		Fatalf("%v", err)
+		log.Fatalf("%v", err)
 	}
 
 	config, execOpts, err := ipc.DefaultConfig()
@@ -145,7 +145,7 @@ func main() {
 	go func() {
 		// Handles graceful preemption on GCE.
 		<-shutdown
-		Logf(0, "SYZ-FUZZER: PREEMPTED")
+		log.Logf(0, "SYZ-FUZZER: PREEMPTED")
 		os.Exit(1)
 	}()
 
@@ -157,16 +157,16 @@ func main() {
 	if *flagPprof != "" {
 		go func() {
 			err := http.ListenAndServe(*flagPprof, nil)
-			Fatalf("failed to serve pprof profiles: %v", err)
+			log.Fatalf("failed to serve pprof profiles: %v", err)
 		}()
 	} else {
 		runtime.MemProfileRate = 0
 	}
 
-	Logf(0, "dialing manager at %v", *flagManager)
-	a := &ConnectArgs{Name: *flagName}
-	r := &ConnectRes{}
-	if err := RPCCall(*flagManager, "Manager.Connect", a, r); err != nil {
+	log.Logf(0, "dialing manager at %v", *flagManager)
+	a := &rpctype.ConnectArgs{Name: *flagName}
+	r := &rpctype.ConnectRes{}
+	if err := rpctype.RPCCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
 	calls, disabled := buildCallList(target, r.EnabledCalls, sandbox)
@@ -193,7 +193,7 @@ func main() {
 	coverageEnabled := config.Flags&ipc.FlagSignal != 0
 
 	kcov, comparisonTracingEnabled := checkCompsSupported()
-	Logf(0, "kcov=%v, comps=%v", kcov, comparisonTracingEnabled)
+	log.Logf(0, "kcov=%v, comps=%v", kcov, comparisonTracingEnabled)
 	if r.NeedCheck {
 		out, err := osutil.RunCmd(time.Minute, "", config.Executor, "version")
 		if err != nil {
@@ -203,7 +203,7 @@ func main() {
 		if len(vers) != 4 {
 			panic(fmt.Sprintf("bad executor version: %q", string(out)))
 		}
-		a := &CheckArgs{
+		a := &rpctype.CheckArgs{
 			Name:           *flagName,
 			UserNamespaces: osutil.IsExist("/proc/self/ns/user"),
 			FuzzerGitRev:   sys.GitRevision,
@@ -223,7 +223,7 @@ func main() {
 		for c := range calls {
 			a.Calls = append(a.Calls, c.Name)
 		}
-		if err := RPCCall(*flagManager, "Manager.Check", a, nil); err != nil {
+		if err := rpctype.RPCCall(*flagManager, "Manager.Check", a, nil); err != nil {
 			panic(err)
 		}
 	}
@@ -232,7 +232,7 @@ func main() {
 	// So we do the call on a transient connection, free all memory and reconnect.
 	// The rest of rpc requests have bounded size.
 	debug.FreeOSMemory()
-	manager, err := NewRPCClient(*flagManager)
+	manager, err := rpctype.NewRPCClient(*flagManager)
 	if err != nil {
 		panic(err)
 	}
@@ -288,7 +288,7 @@ func main() {
 	for pid := 0; pid < *flagProcs; pid++ {
 		proc, err := newProc(fuzzer, pid)
 		if err != nil {
-			Fatalf("failed to create proc: %v", err)
+			log.Fatalf("failed to create proc: %v", err)
 		}
 		fuzzer.procs = append(fuzzer.procs, proc)
 		go proc.loop()
@@ -311,7 +311,7 @@ func (fuzzer *Fuzzer) pollLoop() {
 		}
 		if fuzzer.outputType != OutputStdout && time.Since(lastPrint) > 10*time.Second {
 			// Keep-alive for manager.
-			Logf(0, "alive, executed %v", execTotal)
+			log.Logf(0, "alive, executed %v", execTotal)
 			lastPrint = time.Now()
 		}
 		if poll || time.Since(lastPoll) > 10*time.Second {
@@ -320,7 +320,7 @@ func (fuzzer *Fuzzer) pollLoop() {
 				continue
 			}
 
-			a := &PollArgs{
+			a := &rpctype.PollArgs{
 				Name:           fuzzer.name,
 				NeedCandidates: needCandidates,
 				Stats:          make(map[string]uint64),
@@ -337,12 +337,12 @@ func (fuzzer *Fuzzer) pollLoop() {
 				execTotal += v
 			}
 
-			r := &PollRes{}
+			r := &rpctype.PollRes{}
 			if err := fuzzer.manager.Call("Manager.Poll", a, r); err != nil {
 				panic(err)
 			}
 			maxSignal := r.MaxSignal.Deserialize()
-			Logf(1, "poll: candidates=%v inputs=%v signal=%v",
+			log.Logf(1, "poll: candidates=%v inputs=%v signal=%v",
 				len(r.Candidates), len(r.NewInputs), maxSignal.Len())
 			fuzzer.addMaxSignal(maxSignal)
 			for _, inp := range r.NewInputs {
@@ -381,24 +381,24 @@ func (fuzzer *Fuzzer) pollLoop() {
 	}
 }
 
-func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (map[*prog.Syscall]bool, []SyscallReason) {
+func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (map[*prog.Syscall]bool, []rpctype.SyscallReason) {
 	calls := make(map[*prog.Syscall]bool)
 	for _, n := range enabledCalls {
 		if n >= len(target.Syscalls) {
-			Fatalf("invalid enabled syscall: %v", n)
+			log.Fatalf("invalid enabled syscall: %v", n)
 		}
 		calls[target.Syscalls[n]] = true
 	}
 
-	var disabled []SyscallReason
+	var disabled []rpctype.SyscallReason
 	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox)
 	if err != nil {
-		Fatalf("failed to detect host supported syscalls: %v", err)
+		log.Fatalf("failed to detect host supported syscalls: %v", err)
 	}
 	for c := range calls {
 		if reason, ok := unsupported[c]; ok {
-			Logf(1, "unsupported syscall: %v: %v", c.Name, reason)
-			disabled = append(disabled, SyscallReason{
+			log.Logf(1, "unsupported syscall: %v: %v", c.Name, reason)
+			disabled = append(disabled, rpctype.SyscallReason{
 				Name:   c.Name,
 				Reason: reason,
 			})
@@ -408,8 +408,8 @@ func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (map
 	_, unsupported = target.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if reason, ok := unsupported[c]; ok {
-			Logf(1, "transitively unsupported: %v: %v", c.Name, reason)
-			disabled = append(disabled, SyscallReason{
+			log.Logf(1, "transitively unsupported: %v: %v", c.Name, reason)
+			disabled = append(disabled, rpctype.SyscallReason{
 				Name:   c.Name,
 				Reason: reason,
 			})
@@ -419,8 +419,8 @@ func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (map
 	return calls, disabled
 }
 
-func (fuzzer *Fuzzer) sendInputToManager(inp RPCInput) {
-	a := &NewInputArgs{
+func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.RPCInput) {
+	a := &rpctype.NewInputArgs{
 		Name:     fuzzer.name,
 		RPCInput: inp,
 	}
@@ -429,7 +429,7 @@ func (fuzzer *Fuzzer) sendInputToManager(inp RPCInput) {
 	}
 }
 
-func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp RPCInput) {
+func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
 	if !fuzzer.coverageEnabled {
 		panic("should not be called when coverage is disabled")
 	}

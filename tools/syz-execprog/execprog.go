@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/ipc"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -45,25 +45,25 @@ func main() {
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
-		Fatalf("%v", err)
+		log.Fatalf("%v", err)
 	}
 
 	var entries []*prog.LogEntry
 	for _, fn := range flag.Args() {
 		data, err := ioutil.ReadFile(fn)
 		if err != nil {
-			Fatalf("failed to read log file: %v", err)
+			log.Fatalf("failed to read log file: %v", err)
 		}
 		entries = append(entries, target.ParseLog(data)...)
 	}
-	Logf(0, "parsed %v programs", len(entries))
+	log.Logf(0, "parsed %v programs", len(entries))
 	if len(entries) == 0 {
 		return
 	}
 
 	config, execOpts, err := ipc.DefaultConfig()
 	if err != nil {
-		Fatalf("%v", err)
+		log.Fatalf("%v", err)
 	}
 	if config.Flags&ipc.FlagSignal != 0 {
 		execOpts.Flags |= ipc.FlagCollectCover
@@ -110,7 +110,7 @@ func main() {
 			defer wg.Done()
 			env, err := ipc.MakeEnv(config, pid)
 			if err != nil {
-				Fatalf("failed to create ipc env: %v", err)
+				log.Fatalf("failed to create ipc env: %v", err)
 			}
 			defer env.Close()
 			for {
@@ -123,7 +123,7 @@ func main() {
 					idx := pos
 					pos++
 					if idx%len(entries) == 0 && time.Since(lastPrint) > 5*time.Second {
-						Logf(0, "executed programs: %v", idx)
+						log.Logf(0, "executed programs: %v", idx)
 						lastPrint = time.Now()
 					}
 					posMu.Unlock()
@@ -147,7 +147,7 @@ func main() {
 						}
 						data := entry.P.Serialize()
 						logMu.Lock()
-						Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
+						log.Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
 						logMu.Unlock()
 					}
 					output, info, failed, hanged, err := env.Exec(callOpts, entry.P)
@@ -157,21 +157,21 @@ func main() {
 					default:
 					}
 					if failed {
-						Logf(0, "BUG: executor-detected bug:\n%s", output)
+						log.Logf(0, "BUG: executor-detected bug:\n%s", output)
 					}
 					if config.Flags&ipc.FlagDebug != 0 || err != nil {
-						Logf(0, "result: failed=%v hanged=%v err=%v\n\n%s",
+						log.Logf(0, "result: failed=%v hanged=%v err=%v\n\n%s",
 							failed, hanged, err, output)
 					}
 					if len(info) != 0 {
-						Logf(1, "RESULT: signal %v, coverage %v errno %v",
+						log.Logf(1, "RESULT: signal %v, coverage %v errno %v",
 							len(info[0].Signal), len(info[0].Cover), info[0].Errno)
 					} else {
-						Logf(1, "RESULT: no calls executed")
+						log.Logf(1, "RESULT: no calls executed")
 					}
 					if *flagCoverFile != "" {
 						for i, inf := range info {
-							Logf(0, "call #%v: signal %v, coverage %v",
+							log.Logf(0, "call #%v: signal %v, coverage %v",
 								i, len(inf.Signal), len(inf.Cover))
 							if len(inf.Cover) == 0 {
 								continue
@@ -182,7 +182,7 @@ func main() {
 							}
 							err := osutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes())
 							if err != nil {
-								Fatalf("failed to write coverage file: %v", err)
+								log.Fatalf("failed to write coverage file: %v", err)
 							}
 						}
 					}
@@ -206,11 +206,11 @@ func main() {
 							entry.P.MutateWithHints(i, comps, func(p *prog.Prog) {
 								ncandidates++
 								if *flagOutput == "stdout" {
-									Logf(1, "PROGRAM:\n%s", p.Serialize())
+									log.Logf(1, "PROGRAM:\n%s", p.Serialize())
 								}
 							})
 						}
-						Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
+						log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
 					}
 					return true
 				}() {

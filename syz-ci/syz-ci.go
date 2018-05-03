@@ -60,7 +60,7 @@ import (
 	"sync"
 
 	"github.com/google/syzkaller/pkg/config"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
@@ -100,10 +100,10 @@ type ManagerConfig struct {
 
 func main() {
 	flag.Parse()
-	EnableLogCaching(1000, 1<<20)
+	log.EnableLogCaching(1000, 1<<20)
 	cfg, err := loadConfig(*flagConfig)
 	if err != nil {
-		Fatalf("failed to load config: %v", err)
+		log.Fatalf("failed to load config: %v", err)
 	}
 
 	shutdownPending := make(chan struct{})

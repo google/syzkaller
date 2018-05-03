@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -138,16 +138,16 @@ func findConsole(adb, dev string) string {
 	}
 	con, err := findConsoleImpl(adb, dev)
 	if err != nil {
-		Logf(0, "failed to associate adb device %v with console: %v", dev, err)
-		Logf(0, "falling back to 'adb shell dmesg -w'")
-		Logf(0, "note: some bugs may be detected as 'lost connection to test machine' with no kernel output")
+		log.Logf(0, "failed to associate adb device %v with console: %v", dev, err)
+		log.Logf(0, "falling back to 'adb shell dmesg -w'")
+		log.Logf(0, "note: some bugs may be detected as 'lost connection to test machine' with no kernel output")
 		con = "adb"
 		devToConsole[dev] = con
 		return con
 	}
 	devToConsole[dev] = con
 	consoleToDev[con] = dev
-	Logf(0, "associating adb device %v with console %v", dev, con)
+	log.Logf(0, "associating adb device %v with console %v", dev, con)
 	return con
 }
 
@@ -231,7 +231,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) adb(args ...string) ([]byte, error) {
 	if inst.debug {
-		Logf(0, "executing adb %+v", args)
+		log.Logf(0, "executing adb %+v", args)
 	}
 	rpipe, wpipe, err := os.Pipe()
 	if err != nil {
@@ -251,7 +251,7 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 		select {
 		case <-time.After(time.Minute):
 			if inst.debug {
-				Logf(0, "adb hanged")
+				log.Logf(0, "adb hanged")
 			}
 			cmd.Process.Kill()
 		case <-done:
@@ -261,13 +261,13 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 		close(done)
 		out, _ := ioutil.ReadAll(rpipe)
 		if inst.debug {
-			Logf(0, "adb failed: %v\n%s", err, out)
+			log.Logf(0, "adb failed: %v\n%s", err, out)
 		}
 		return nil, fmt.Errorf("adb %+v failed: %v\n%s", args, err, out)
 	}
 	close(done)
 	if inst.debug {
-		Logf(0, "adb returned")
+		log.Logf(0, "adb returned")
 	}
 	out, _ := ioutil.ReadAll(rpipe)
 	return out, nil
@@ -320,11 +320,11 @@ func (inst *instance) checkBatteryLevel() error {
 		return err
 	}
 	if val >= minLevel {
-		Logf(0, "device %v: battery level %v%%, OK", inst.device, val)
+		log.Logf(0, "device %v: battery level %v%%, OK", inst.device, val)
 		return nil
 	}
 	for {
-		Logf(0, "device %v: battery level %v%%, waiting for %v%%", inst.device, val, requiredLevel)
+		log.Logf(0, "device %v: battery level %v%%, waiting for %v%%", inst.device, val, requiredLevel)
 		if !vmimpl.SleepInterruptible(time.Minute) {
 			return nil
 		}
@@ -400,7 +400,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 	if inst.debug {
-		Logf(0, "starting: adb shell %v", command)
+		log.Logf(0, "starting: adb shell %v", command)
 	}
 	adb := osutil.Command(inst.adbBin, "-s", inst.device, "shell", "cd /data; "+command)
 	adb.Stdout = adbWpipe
@@ -437,7 +437,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(vmimpl.ErrTimeout)
 		case <-inst.closed:
 			if inst.debug {
-				Logf(0, "instance closed")
+				log.Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:

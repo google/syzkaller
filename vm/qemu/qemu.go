@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -306,7 +306,7 @@ func (inst *instance) Boot() error {
 		)
 	}
 	if inst.debug {
-		Logf(0, "running command: %v %#v", inst.cfg.Qemu, args)
+		log.Logf(0, "running command: %v %#v", inst.cfg.Qemu, args)
 	}
 	qemu := osutil.Command(inst.cfg.Qemu, args...)
 	qemu.Stdout = inst.wpipe
@@ -396,7 +396,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	args := append(inst.sshArgs("-P"), hostSrc, inst.sshuser+"@localhost:"+vmDst)
 	cmd := osutil.Command("scp", args...)
 	if inst.debug {
-		Logf(0, "running command: scp %#v", args)
+		log.Logf(0, "running command: scp %#v", args)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
 	}
@@ -428,7 +428,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	args := append(inst.sshArgs("-p"), inst.sshuser+"@localhost", command)
 	if inst.debug {
-		Logf(0, "running command: ssh %#v", args)
+		log.Logf(0, "running command: ssh %#v", args)
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe

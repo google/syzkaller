@@ -25,6 +25,6 @@
 		"exported .* should have comment",
 		"comment on exported type",
 		"comment on .* should be of the form",
-		"should not use dot imports"
+		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* should not use dot imports"
 	]
 }
