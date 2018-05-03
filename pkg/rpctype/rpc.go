@@ -9,7 +9,7 @@ import (
 	"net/rpc"
 	"time"
 
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 )
 
 type RPCServer struct {
@@ -35,7 +35,7 @@ func (serv *RPCServer) Serve() {
 	for {
 		conn, err := serv.ln.Accept()
 		if err != nil {
-			Logf(0, "failed to accept an rpc connection: %v", err)
+			log.Logf(0, "failed to accept an rpc connection: %v", err)
 			continue
 		}
 		conn.(*net.TCPConn).SetKeepAlive(true)

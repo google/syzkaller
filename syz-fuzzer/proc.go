@@ -16,8 +16,8 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
-	. "github.com/google/syzkaller/pkg/log"
-	. "github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
@@ -85,20 +85,20 @@ func (proc *Proc) loop() {
 		if len(corpus) == 0 || i%100 == 0 {
 			// Generate a new prog.
 			p := proc.fuzzer.target.Generate(proc.rnd, programLength, ct)
-			Logf(1, "#%v: generated", proc.pid)
+			log.Logf(1, "#%v: generated", proc.pid)
 			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
 			// Mutate an existing prog.
 			p := corpus[proc.rnd.Intn(len(corpus))].Clone()
 			p.Mutate(proc.rnd, programLength, ct, corpus)
-			Logf(1, "#%v: mutated", proc.pid)
+			log.Logf(1, "#%v: mutated", proc.pid)
 			proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
 		}
 	}
 }
 
 func (proc *Proc) triageInput(item *WorkTriage) {
-	Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
+	log.Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
 	if !proc.fuzzer.coverageEnabled {
 		panic("should not be called when coverage is disabled")
 	}
@@ -109,7 +109,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	if newSignal.Empty() {
 		return
 	}
-	Logf(3, "triaging input for %v (new signal=%v)", call.Meta.CallName, newSignal.Len())
+	log.Logf(3, "triaging input for %v (new signal=%v)", call.Meta.CallName, newSignal.Len())
 	var inputCover cover.Cover
 	const (
 		signalRuns       = 3
@@ -165,8 +165,8 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	data := item.p.Serialize()
 	sig := hash.Hash(data)
 
-	Logf(2, "added new input for %v to corpus:\n%s", call.Meta.CallName, data)
-	proc.fuzzer.sendInputToManager(RPCInput{
+	log.Logf(2, "added new input for %v to corpus:\n%s", call.Meta.CallName, data)
+	proc.fuzzer.sendInputToManager(rpctype.RPCInput{
 		Call:   call.Meta.CallName,
 		Prog:   data,
 		Signal: inputSignal.Serialize(),
@@ -191,14 +191,14 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 	for i := 0; i < 100; i++ {
 		p := item.p.Clone()
 		p.Mutate(proc.rnd, programLength, proc.fuzzer.choiceTable, corpus)
-		Logf(1, "#%v: smash mutated", proc.pid)
+		log.Logf(1, "#%v: smash mutated", proc.pid)
 		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
 	}
 }
 
 func (proc *Proc) failCall(p *prog.Prog, call int) {
 	for nth := 0; nth < 100; nth++ {
-		Logf(1, "#%v: injecting fault into call %v/%v", proc.pid, call, nth)
+		log.Logf(1, "#%v: injecting fault into call %v/%v", proc.pid, call, nth)
 		opts := *proc.execOpts
 		opts.Flags |= ipc.FlagInjectFault
 		opts.FaultCall = call
@@ -211,7 +211,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 }
 
 func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
-	Logf(1, "#%v: collecting comparisons", proc.pid)
+	log.Logf(1, "#%v: collecting comparisons", proc.pid)
 	// First execute the original program to dump comparisons from KCOV.
 	info := proc.execute(proc.execOptsComps, p, ProgNormal, StatSeed)
 	if info == nil {
@@ -222,7 +222,7 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	// a syscall argument and a comparison operand.
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(call, info[call].Comps, func(p *prog.Prog) {
-		Logf(1, "#%v: executing comparison hint", proc.pid)
+		log.Logf(1, "#%v: executing comparison hint", proc.pid)
 		proc.execute(proc.execOpts, p, ProgNormal, StatHint)
 	})
 }
@@ -262,7 +262,7 @@ retry:
 	output, info, failed, hanged, err := proc.env.Exec(opts, p)
 	if failed {
 		// BUG in output should be recognized by manager.
-		Logf(0, "BUG: executor-detected bug:\n%s", output)
+		log.Logf(0, "BUG: executor-detected bug:\n%s", output)
 		// Don't return any cover so that the input is not added to corpus.
 		return nil
 	}
@@ -271,12 +271,12 @@ retry:
 			panic(err)
 		}
 		try++
-		Logf(4, "fuzzer detected executor failure='%v', retrying #%d\n", err, (try + 1))
+		log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d\n", err, (try + 1))
 		debug.FreeOSMemory()
 		time.Sleep(time.Second)
 		goto retry
 	}
-	Logf(2, "result failed=%v hanged=%v: %v\n", failed, hanged, string(output))
+	log.Logf(2, "result failed=%v hanged=%v: %v\n", failed, hanged, string(output))
 	return info
 }
 
@@ -296,7 +296,7 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 	switch proc.fuzzer.outputType {
 	case OutputStdout:
 		proc.fuzzer.logMu.Lock()
-		Logf(0, "executing program %v%v:\n%s\n", proc.pid, strOpts, data)
+		log.Logf(0, "executing program %v%v:\n%s\n", proc.pid, strOpts, data)
 		proc.fuzzer.logMu.Unlock()
 	case OutputDmesg:
 		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)

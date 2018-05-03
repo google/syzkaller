@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
@@ -42,7 +42,7 @@ func bootInstance(mgrcfg *mgrconfig.Config) (*vm.Instance, report.Reporter, *rep
 			}
 			if err := reporter.Symbolize(rep); err != nil {
 				// TODO(dvyukov): send such errors to dashboard.
-				Logf(0, "failed to symbolize report: %v", err)
+				log.Logf(0, "failed to symbolize report: %v", err)
 			}
 			return nil, nil, rep, nil
 		}
@@ -92,7 +92,7 @@ func testInstance(inst *vm.Instance, reporter report.Reporter, mgrcfg *mgrconfig
 	if rep != nil {
 		if err := reporter.Symbolize(rep); err != nil {
 			// TODO(dvyukov): send such errors to dashboard.
-			Logf(0, "failed to symbolize report: %v", err)
+			log.Logf(0, "failed to symbolize report: %v", err)
 		}
 		return rep, nil
 	}

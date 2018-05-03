@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
@@ -629,7 +629,7 @@ func (ctx *context) returnInstance(inst *instance) {
 
 func (ctx *context) reproLog(level int, format string, args ...interface{}) {
 	prefix := fmt.Sprintf("reproducing crash '%v': ", ctx.crashTitle)
-	Logf(level, prefix+format, args...)
+	log.Logf(level, prefix+format, args...)
 	ctx.stats.Log = append(ctx.stats.Log, []byte(fmt.Sprintf(format, args...)+"\n")...)
 }
 

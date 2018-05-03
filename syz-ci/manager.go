@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/kernel"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
@@ -62,7 +62,7 @@ type Manager struct {
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
 	if err := osutil.MkdirAll(dir); err != nil {
-		Fatal(err)
+		log.Fatal(err)
 	}
 	if mgrcfg.Repo_Alias == "" {
 		mgrcfg.Repo_Alias = mgrcfg.Repo
@@ -76,25 +76,25 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	// Assume compiler and config don't change underneath us.
 	compilerID, err := kernel.CompilerIdentity(mgrcfg.Compiler)
 	if err != nil {
-		Fatal(err)
+		log.Fatal(err)
 	}
 	configData, err := ioutil.ReadFile(mgrcfg.Kernel_Config)
 	if err != nil {
-		Fatal(err)
+		log.Fatal(err)
 	}
 	syzkallerCommit, _ := readTag(filepath.FromSlash("syzkaller/current/tag"))
 	if syzkallerCommit == "" {
-		Fatalf("no tag in syzkaller/current/tag")
+		log.Fatalf("no tag in syzkaller/current/tag")
 	}
 
 	// Prepare manager config skeleton (other fields are filled in writeConfig).
 	managercfg := mgrconfig.DefaultValues()
 	if err := config.LoadData(mgrcfg.Manager_Config, managercfg); err != nil {
-		Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
+		log.Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
 	}
 	managercfg.TargetOS, managercfg.TargetVMArch, managercfg.TargetArch, err = mgrconfig.SplitTarget(managercfg.Target)
 	if err != nil {
-		Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
+		log.Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
 	}
 	managercfg.Name = cfg.Name + "-" + mgrcfg.Name
 
@@ -130,12 +130,12 @@ func (mgr *Manager) loop() {
 	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 {
 		// If we have a reasonably fresh build,
 		// start manager straight away and don't rebuild kernel for a while.
-		Logf(0, "%v: using latest image built on %v", mgr.name, latestInfo.KernelCommit)
+		log.Logf(0, "%v: using latest image built on %v", mgr.name, latestInfo.KernelCommit)
 		managerRestartTime = latestInfo.Time
 		nextBuildTime = time.Now().Add(kernelRebuildPeriod)
 		mgr.restartManager()
 	} else if latestInfo != nil {
-		Logf(0, "%v: latest image is on %v", mgr.name, latestInfo.KernelCommit)
+		log.Logf(0, "%v: latest image is on %v", mgr.name, latestInfo.KernelCommit)
 	}
 
 	ticker := time.NewTicker(buildRetryPeriod)
@@ -149,7 +149,7 @@ loop:
 			if err != nil {
 				mgr.Errorf("failed to poll: %v", err)
 			} else {
-				Logf(0, "%v: poll: %v", mgr.name, commit.Hash)
+				log.Logf(0, "%v: poll: %v", mgr.name, commit.Hash)
 				if commit.Hash != lastCommit &&
 					(latestInfo == nil ||
 						commit.Hash != latestInfo.KernelCommit ||
@@ -158,11 +158,11 @@ loop:
 					lastCommit = commit.Hash
 					select {
 					case kernelBuildSem <- struct{}{}:
-						Logf(0, "%v: building kernel...", mgr.name)
+						log.Logf(0, "%v: building kernel...", mgr.name)
 						if err := mgr.build(); err != nil {
-							Logf(0, "%v: %v", mgr.name, err)
+							log.Logf(0, "%v: %v", mgr.name, err)
 						} else {
-							Logf(0, "%v: build successful, [re]starting manager", mgr.name)
+							log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
 							rebuildAfter = kernelRebuildPeriod
 							latestInfo = mgr.checkLatest()
 							if latestInfo == nil {
@@ -200,7 +200,7 @@ loop:
 		mgr.cmd.Close()
 		mgr.cmd = nil
 	}
-	Logf(0, "%v: stopped", mgr.name)
+	log.Logf(0, "%v: stopped", mgr.name)
 }
 
 // BuildInfo characterizes a kernel build.
@@ -347,7 +347,7 @@ func (mgr *Manager) restartManager() {
 }
 
 func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
-	Logf(0, "%v: testing image...", mgr.name)
+	log.Logf(0, "%v: testing image...", mgr.name)
 	mgrcfg, err := mgr.createTestConfig(imageDir, info)
 	if err != nil {
 		return fmt.Errorf("failed to create manager config: %v", err)
@@ -391,7 +391,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 
 func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) error {
 	if mgr.dash == nil {
-		Logf(0, "%v: image testing failed: %v\n\n%s\n\n%s\n",
+		log.Logf(0, "%v: image testing failed: %v\n\n%s\n\n%s\n",
 			mgr.name, rep.Title, rep.Report, rep.Output)
 		return nil
 	}
@@ -571,7 +571,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixComm
 
 // Errorf logs non-fatal error and sends it to dashboard.
 func (mgr *Manager) Errorf(msg string, args ...interface{}) {
-	Logf(0, mgr.name+": "+msg, args...)
+	log.Logf(0, mgr.name+": "+msg, args...)
 	if mgr.dash != nil {
 		mgr.dash.LogError(mgr.name, msg, args...)
 	}

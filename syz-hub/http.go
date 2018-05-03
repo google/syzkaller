@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 )
 
 func (hub *Hub) initHTTP(addr string) {
@@ -19,12 +19,12 @@ func (hub *Hub) initHTTP(addr string) {
 
 	ln, err := net.Listen("tcp4", addr)
 	if err != nil {
-		Fatalf("failed to listen on %v: %v", addr, err)
+		log.Fatalf("failed to listen on %v: %v", addr, err)
 	}
-	Logf(0, "serving http on http://%v", ln.Addr())
+	log.Logf(0, "serving http on http://%v", ln.Addr())
 	go func() {
 		err := http.Serve(ln, nil)
-		Fatalf("failed to serve http: %v", err)
+		log.Fatalf("failed to serve http: %v", err)
 	}()
 }
 
@@ -33,7 +33,7 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 	defer hub.mu.Unlock()
 
 	data := &UISummaryData{
-		Log: CachedLogOutput(),
+		Log: log.CachedLogOutput(),
 	}
 	total := UIManager{
 		Name:   "total",
@@ -59,7 +59,7 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 	sort.Sort(UIManagerArray(data.Managers))
 	data.Managers = append([]UIManager{total}, data.Managers...)
 	if err := summaryTemplate.Execute(w, data); err != nil {
-		Logf(0, "failed to execute template: %v", err)
+		log.Logf(0, "failed to execute template: %v", err)
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}

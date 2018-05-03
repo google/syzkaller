@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -88,7 +88,7 @@ func (mc *ManagerCmd) loop() {
 						mc.errorf("failed to start manager: %v", err)
 						cmd = nil
 					} else {
-						Logf(1, "%v: started manager", mc.name)
+						log.Logf(1, "%v: started manager", mc.name)
 						go func() {
 							stopped <- cmd.Wait()
 						}()
@@ -98,7 +98,7 @@ func (mc *ManagerCmd) loop() {
 		} else {
 			// cmd is running
 			if closing == nil && time.Since(interrupted) > interruptTimeout {
-				Logf(1, "%v: killing manager", mc.name)
+				log.Logf(1, "%v: killing manager", mc.name)
 				cmd.Process.Kill()
 				interrupted = time.Now()
 			}
@@ -108,7 +108,7 @@ func (mc *ManagerCmd) loop() {
 		case <-closing:
 			closing = nil
 			if cmd != nil {
-				Logf(1, "%v: stopping manager", mc.name)
+				log.Logf(1, "%v: stopping manager", mc.name)
 				cmd.Process.Signal(syscall.SIGINT)
 				interrupted = time.Now()
 			}
@@ -120,7 +120,7 @@ func (mc *ManagerCmd) loop() {
 				mc.errorf("manager exited unexpectedly: %v", err)
 			}
 			cmd = nil
-			Logf(1, "%v: manager exited with %v", mc.name, err)
+			log.Logf(1, "%v: manager exited with %v", mc.name, err)
 		case <-ticker1.C:
 		case <-ticker2.C:
 		}

@@ -18,7 +18,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 )
@@ -77,12 +77,12 @@ func initAllCover(os, arch, vmlinux string) {
 			sort.Sort(uint64Array(pcs))
 			allCoverPCs = pcs
 		} else {
-			Logf(0, "failed to run objdump on %v: %v", vmlinux, err)
+			log.Logf(0, "failed to run objdump on %v: %v", vmlinux, err)
 		}
 
 		allSymbols, err = symbolizer.ReadSymbols(vmlinux)
 		if err != nil {
-			Logf(0, "failed to run nm on %v: %v", vmlinux, err)
+			log.Logf(0, "failed to run nm on %v: %v", vmlinux, err)
 		}
 	}()
 }

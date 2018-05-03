@@ -18,7 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -178,7 +178,7 @@ func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, 
 	records = make(map[string]Record)
 	ver, err := deserializeHeader(r)
 	if err != nil {
-		Logf(0, "failed to deserialize database header: %v", err)
+		log.Logf(0, "failed to deserialize database header: %v", err)
 		return
 	}
 	version = ver
@@ -188,7 +188,7 @@ func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, 
 			return
 		}
 		if err != nil {
-			Logf(0, "failed to deserialize database record: %v", err)
+			log.Logf(0, "failed to deserialize database record: %v", err)
 			return
 		}
 		uncompacted++

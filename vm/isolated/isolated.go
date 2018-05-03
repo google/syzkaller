@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
@@ -117,7 +117,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) ssh(command string) ([]byte, error) {
 	if inst.debug {
-		Logf(0, "executing ssh %+v", command)
+		log.Logf(0, "executing ssh %+v", command)
 	}
 
 	rpipe, wpipe, err := osutil.LongPipe()
@@ -127,7 +127,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 
 	args := append(inst.sshArgs("-p"), inst.target, command)
 	if inst.debug {
-		Logf(0, "running command: ssh %#v", args)
+		log.Logf(0, "running command: ssh %#v", args)
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
@@ -143,7 +143,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 		select {
 		case <-time.After(time.Second * 30):
 			if inst.debug {
-				Logf(0, "ssh hanged")
+				log.Logf(0, "ssh hanged")
 			}
 			cmd.Process.Kill()
 		case <-done:
@@ -153,39 +153,39 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 		close(done)
 		out, _ := ioutil.ReadAll(rpipe)
 		if inst.debug {
-			Logf(0, "ssh failed: %v\n%s", err, out)
+			log.Logf(0, "ssh failed: %v\n%s", err, out)
 		}
 		return nil, fmt.Errorf("ssh %+v failed: %v\n%s", args, err, out)
 	}
 	close(done)
 	if inst.debug {
-		Logf(0, "ssh returned")
+		log.Logf(0, "ssh returned")
 	}
 	out, _ := ioutil.ReadAll(rpipe)
 	return out, nil
 }
 
 func (inst *instance) repair() error {
-	Logf(2, "isolated: trying to ssh")
+	log.Logf(2, "isolated: trying to ssh")
 	if err := inst.waitForSSH(30 * 60); err == nil {
 		if inst.cfg.Target_Reboot {
-			Logf(2, "isolated: trying to reboot")
+			log.Logf(2, "isolated: trying to reboot")
 			inst.ssh("reboot") // reboot will return an error, ignore it
 			if err := inst.waitForReboot(5 * 60); err != nil {
-				Logf(2, "isolated: machine did not reboot")
+				log.Logf(2, "isolated: machine did not reboot")
 				return err
 			}
-			Logf(2, "isolated: rebooted wait for comeback")
+			log.Logf(2, "isolated: rebooted wait for comeback")
 			if err := inst.waitForSSH(30 * 60); err != nil {
-				Logf(2, "isolated: machine did not comeback")
+				log.Logf(2, "isolated: machine did not comeback")
 				return err
 			}
-			Logf(2, "isolated: reboot succeeded")
+			log.Logf(2, "isolated: reboot succeeded")
 		} else {
-			Logf(2, "isolated: ssh succeeded")
+			log.Logf(2, "isolated: ssh succeeded")
 		}
 	} else {
-		Logf(2, "isolated: ssh failed")
+		log.Logf(2, "isolated: ssh failed")
 		return fmt.Errorf("SSH failed")
 	}
 
@@ -238,7 +238,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	args := append(inst.sshArgs("-P"), hostSrc, inst.target+":"+vmDst)
 	cmd := osutil.Command("scp", args...)
 	if inst.debug {
-		Logf(0, "running command: scp %#v", args)
+		log.Logf(0, "running command: scp %#v", args)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
 	}
@@ -281,9 +281,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		args = append(args, "-R", proxy)
 	}
 	args = append(args, inst.target, "cd "+inst.cfg.Target_Dir+" && exec "+command)
-	Logf(0, "running command: ssh %#v", args)
+	log.Logf(0, "running command: ssh %#v", args)
 	if inst.debug {
-		Logf(0, "running command: ssh %#v", args)
+		log.Logf(0, "running command: ssh %#v", args)
 	}
 	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
@@ -320,7 +320,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(vmimpl.ErrTimeout)
 		case <-inst.closed:
 			if inst.debug {
-				Logf(0, "instance closed")
+				log.Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
