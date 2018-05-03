@@ -61,7 +61,7 @@ func TestJob(t *testing.T) {
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
-	c.expectEQ(strings.Contains((<-c.emailSink).Body, "syzbot has found reproducer"), true)
+	c.expectEQ(strings.Contains((<-c.emailSink).Body, "syzbot has found a reproducer"), true)
 
 	c.incomingEmail(sender, "#syz test: repo",
 		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
@@ -145,14 +145,14 @@ test crash title
 
 test crash report
 
-Tested on repo1/branch1 commit
-kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
-kernel_commit_title1
+Tested on:
 
-compiler: compiler1
-Patch: %[1]v
-Kernel config: %[2]v
-Raw console output: %[3]v
+commit:         111111111111 kernel_commit_title1
+git tree:       repo1/branch1
+console output: %[3]v
+kernel config:  %[2]v
+compiler:       compiler1
+patch:          %[1]v
 
 `, patchLink, kernelConfigLink, logLink)
 		if msg.Body != body {
@@ -187,13 +187,13 @@ syzbot tried to test the proposed patch but build/boot failed:
 failed to apply patch
 
 
-Tested on repo1/branch1 commit
-kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
-kernel_commit_title1
+Tested on:
 
-compiler: compiler1
-Patch: %[1]v
-Kernel config: %[2]v
+commit:         111111111111 kernel_commit_title1
+git tree:       repo1/branch1
+kernel config:  %[2]v
+compiler:       compiler1
+patch:          %[1]v
 
 `, patchLink, kernelConfigLink)
 		if msg.Body != body {
@@ -232,13 +232,13 @@ Error text is too large and was truncated, full error text is at:
 %[2]v
 
 
-Tested on repo1/branch1 commit
-kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
-kernel_commit_title1
+Tested on:
 
-compiler: compiler1
-Patch: %[3]v
-Kernel config: %[4]v
+commit:         111111111111 kernel_commit_title1
+git tree:       repo1/branch1
+kernel config:  %[4]v
+compiler:       compiler1
+patch:          %[3]v
 
 `, truncatedError, errorLink, patchLink, kernelConfigLink)
 		if msg.Body != body {
@@ -270,24 +270,15 @@ syzbot has tested the proposed patch and the reproducer did not trigger crash:
 
 Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 
-Note: the tag will also help syzbot to understand when the bug is fixed.
+Tested on:
 
-Tested on repo1/branch1 commit
-kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
-kernel_commit_title1
+commit:         111111111111 kernel_commit_title1
+git tree:       repo1/branch1
+kernel config:  %[3]v
+compiler:       compiler1
+patch:          %[2]v
 
-compiler: compiler1
-Patch: %[2]v
-Kernel config: %[3]v
-
----
-There is no WARRANTY for the result, to the extent permitted by applicable law.
-Except when otherwise stated in writing syzbot provides the result "AS IS"
-without warranty of any kind, either expressed or implied, but not limited to,
-the implied warranties of merchantability and fittness for a particular purpose.
-The entire risk as to the quality of the result is with you. Should the result
-prove defective, you assume the cost of all necessary servicing, repair or
-correction.
+Note: testing is done by a robot and is best-effort only.
 `, extBugID, patchLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
@@ -346,23 +337,14 @@ syzbot has tested the proposed patch and the reproducer did not trigger crash:
 
 Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 
-Note: the tag will also help syzbot to understand when the bug is fixed.
+Tested on:
 
-Tested on git://mygit.com/git.git commit
-5e6a2eea5e6a2eea5e6a2eea5e6a2eea5e6a2eea (Sat Feb 3 04:05:06 0001 +0000)
-kernel_commit_title2
+commit:         5e6a2eea5e6a kernel_commit_title2
+git tree:       git://mygit.com/git.git
+kernel config:  %[2]v
+compiler:       compiler2
 
-compiler: compiler2
-Kernel config: %[2]v
-
----
-There is no WARRANTY for the result, to the extent permitted by applicable law.
-Except when otherwise stated in writing syzbot provides the result "AS IS"
-without warranty of any kind, either expressed or implied, but not limited to,
-the implied warranties of merchantability and fittness for a particular purpose.
-The entire risk as to the quality of the result is with you. Should the result
-prove defective, you assume the cost of all necessary servicing, repair or
-correction.
+Note: testing is done by a robot and is best-effort only.
 `, extBugID, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)

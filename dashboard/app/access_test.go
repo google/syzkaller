@@ -8,6 +8,7 @@ package dash
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -100,8 +101,20 @@ func TestAccess(t *testing.T) {
 			},
 			{
 				level: level,
+				ref:   fmt.Sprint(crash.Log),
+				url: fmt.Sprintf("/text?tag=CrashLog&x=%v",
+					strconv.FormatUint(uint64(crash.Log), 16)),
+			},
+			{
+				level: level,
 				ref:   fmt.Sprint(crash.Report),
 				url:   fmt.Sprintf("/text?tag=CrashReport&id=%v", crash.Report),
+			},
+			{
+				level: level,
+				ref:   fmt.Sprint(crash.Report),
+				url: fmt.Sprintf("/text?tag=CrashReport&x=%v",
+					strconv.FormatUint(uint64(crash.Report), 16)),
 			},
 			{
 				level: level,
@@ -110,8 +123,20 @@ func TestAccess(t *testing.T) {
 			},
 			{
 				level: level,
+				ref:   fmt.Sprint(crash.ReproC),
+				url: fmt.Sprintf("/text?tag=ReproC&x=%v",
+					strconv.FormatUint(uint64(crash.ReproC), 16)),
+			},
+			{
+				level: level,
 				ref:   fmt.Sprint(crash.ReproSyz),
 				url:   fmt.Sprintf("/text?tag=ReproSyz&id=%v", crash.ReproSyz),
+			},
+			{
+				level: level,
+				ref:   fmt.Sprint(crash.ReproSyz),
+				url: fmt.Sprintf("/text?tag=ReproSyz&x=%v",
+					strconv.FormatUint(uint64(crash.ReproSyz), 16)),
 			},
 		}...)
 	}

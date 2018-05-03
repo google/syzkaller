@@ -370,7 +370,7 @@ func textLink(tag string, id int64) string {
 	if id == 0 {
 		return ""
 	}
-	return fmt.Sprintf("/text?tag=%v&id=%v", tag, id)
+	return fmt.Sprintf("/text?tag=%v&x=%v", tag, strconv.FormatUint(uint64(id), 16))
 }
 
 // timeDate returns t's date as a single int YYYYMMDD.

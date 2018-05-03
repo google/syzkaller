@@ -16,23 +16,15 @@ Error text is too large and was truncated, full error text is at:
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
 
 Reported-and-tested-by: {{.CreditEmail}}
-
-Note: the tag will also help syzbot to understand when the bug is fixed.
 {{end}}
-Tested on {{.KernelRepo}} commit
-{{.KernelCommit}}{{if .KernelCommitDate}} ({{.KernelCommitDate}}){{end}}{{if .KernelCommitTitle}}
-{{.KernelCommitTitle}}{{end}}
+Tested on:
 
-compiler: {{.CompilerID}}
-{{if .PatchLink}}Patch: {{.PatchLink}}
-{{end}}{{if .KernelConfigLink}}Kernel config: {{.KernelConfigLink}}
-{{end}}{{if .LogLink}}Raw console output: {{.LogLink}}
+commit:         {{.KernelCommit}} {{.KernelCommitTitle}}
+git tree:       {{.KernelRepo}}
+{{if .LogLink}}console output: {{.LogLink}}
+{{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
+{{end}}compiler:       {{.CompilerID}}
+{{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
+{{end}}{{if .PatchLink}}patch:          {{.PatchLink}}
 {{end}}{{if and (not .CrashTitle) (not .Error)}}
----
-There is no WARRANTY for the result, to the extent permitted by applicable law.
-Except when otherwise stated in writing syzbot provides the result "AS IS"
-without warranty of any kind, either expressed or implied, but not limited to,
-the implied warranties of merchantability and fittness for a particular purpose.
-The entire risk as to the quality of the result is with you. Should the result
-prove defective, you assume the cost of all necessary servicing, repair or
-correction.{{end}}
+Note: testing is done by a robot and is best-effort only.{{end}}

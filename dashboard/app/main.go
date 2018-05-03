@@ -259,9 +259,20 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).
 func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, tag string) error {
-	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
-	if err != nil || id == 0 {
-		return ErrDontLog(fmt.Errorf("failed to parse text id: %v", err))
+	var id int64
+	if x := r.FormValue("x"); x != "" {
+		xid, err := strconv.ParseUint(x, 16, 64)
+		if err != nil || xid == 0 {
+			return ErrDontLog(fmt.Errorf("failed to parse text id: %v", err))
+		}
+		id = int64(xid)
+	} else {
+		// Old link support, don't remove.
+		xid, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+		if err != nil || xid == 0 {
+			return ErrDontLog(fmt.Errorf("failed to parse text id: %v", err))
+		}
+		id = xid
 	}
 	crash, err := checkTextAccess(c, r, tag, id)
 	if err != nil {

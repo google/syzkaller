@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/mail"
 	"regexp"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -48,6 +49,8 @@ const (
 	// entry pending for review. The prefix makes Patchwork
 	// treat it as a comment for a previous patch.
 	replySubjectPrefix = "Re: "
+	commitHashLen      = 12
+	commitTitleLen     = 47 // so that whole line fits into 78 chars
 )
 
 var mailingLists map[string]bool
@@ -223,6 +226,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		NumCrashes:        rep.NumCrashes,
 		HappenedOn:        rep.HappenedOn,
 		PatchLink:         rep.PatchLink,
+	}
+	if len(data.KernelCommit) > commitHashLen {
+		data.KernelCommit = data.KernelCommit[:commitHashLen]
+	}
+	if len(data.KernelCommitTitle) > commitTitleLen {
+		data.KernelCommitTitle = data.KernelCommitTitle[:commitTitleLen-2] + ".."
 	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
 	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, nil, templ, data)
@@ -467,7 +476,7 @@ func externalLink(c context.Context, tag string, id int64) string {
 	if id == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%v/x/%v?id=%v", appURL(c), textFilename(tag), id)
+	return fmt.Sprintf("%v/x/%v?x=%v", appURL(c), textFilename(tag), strconv.FormatUint(uint64(id), 16))
 }
 
 func appURL(c context.Context) string {

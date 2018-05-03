@@ -180,7 +180,7 @@ func testBuild(id int) *dashapi.Build {
 		CompilerID:        fmt.Sprintf("compiler%v", id),
 		KernelRepo:        fmt.Sprintf("repo%v", id),
 		KernelBranch:      fmt.Sprintf("branch%v", id),
-		KernelCommit:      fmt.Sprintf("kernel_commit%v", id),
+		KernelCommit:      strings.Repeat(fmt.Sprint(id), 40)[:40],
 		KernelCommitTitle: fmt.Sprintf("kernel_commit_title%v", id),
 		KernelCommitDate:  buildCommitDate,
 		KernelConfig:      []byte(fmt.Sprintf("config%v", id)),
