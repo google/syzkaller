@@ -350,17 +350,17 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 		Priv: true,
 		Exec: true,
 		MemRegions: []ifuzz.MemRegion{
-			{0 << 12, 1 << 12},
-			{1 << 12, 1 << 12},
-			{2 << 12, 1 << 12},
-			{3 << 12, 1 << 12},
-			{4 << 12, 1 << 12},
-			{5 << 12, 1 << 12},
-			{6 << 12, 1 << 12},
-			{7 << 12, 1 << 12},
-			{8 << 12, 1 << 12},
-			{9 << 12, 1 << 12},
-			{0xfec00000, 0x100}, // ioapic
+			{Start: 0 << 12, Size: 1 << 12},
+			{Start: 1 << 12, Size: 1 << 12},
+			{Start: 2 << 12, Size: 1 << 12},
+			{Start: 3 << 12, Size: 1 << 12},
+			{Start: 4 << 12, Size: 1 << 12},
+			{Start: 5 << 12, Size: 1 << 12},
+			{Start: 6 << 12, Size: 1 << 12},
+			{Start: 7 << 12, Size: 1 << 12},
+			{Start: 8 << 12, Size: 1 << 12},
+			{Start: 9 << 12, Size: 1 << 12},
+			{Start: 0xfec00000, Size: 0x100}, // ioapic
 		},
 	}
 	switch kind {

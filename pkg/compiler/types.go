@@ -624,7 +624,10 @@ func init() {
 	}
 	typeStruct.Gen = func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		s := comp.structs[t.Ident]
-		key := prog.StructKey{t.Ident, base.ArgDir}
+		key := prog.StructKey{
+			Name: t.Ident,
+			Dir:  base.ArgDir,
+		}
 		desc := comp.structDescs[key]
 		if desc == nil {
 			// Need to assign to structDescs before calling genStructDesc to break recursion.

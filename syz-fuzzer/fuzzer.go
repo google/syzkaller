@@ -164,7 +164,7 @@ func main() {
 	}
 
 	Logf(0, "dialing manager at %v", *flagManager)
-	a := &ConnectArgs{*flagName}
+	a := &ConnectArgs{Name: *flagName}
 	r := &ConnectRes{}
 	if err := RPCCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)

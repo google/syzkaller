@@ -255,7 +255,7 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 		return
 	}
 	if valLen != 0 {
-		fr := flate.NewReader(&io.LimitedReader{r, int64(valLen)})
+		fr := flate.NewReader(&io.LimitedReader{R: r, N: int64(valLen)})
 		if val, err = ioutil.ReadAll(fr); err != nil {
 			return
 		}
