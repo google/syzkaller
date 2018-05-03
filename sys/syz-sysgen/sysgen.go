@@ -157,7 +157,7 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 
 	constArr := make([]prog.ConstValue, 0, len(consts))
 	for name, val := range consts {
-		constArr = append(constArr, prog.ConstValue{name, val})
+		constArr = append(constArr, prog.ConstValue{Name: name, Value: val})
 	}
 	sort.Slice(constArr, func(i, j int) bool {
 		return constArr[i].Name < constArr[j].Name

@@ -25,7 +25,6 @@
 		"exported .* should have comment",
 		"comment on exported type",
 		"comment on .* should be of the form",
-		"should not use dot imports",
-		"composite literal uses unkeyed fields"
+		"should not use dot imports"
 	]
 }
