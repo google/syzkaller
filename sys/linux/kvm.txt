@@ -128,7 +128,7 @@ kvm_device_type = KVM_DEV_TYPE_FSL_MPIC_20, KVM_DEV_TYPE_FSL_MPIC_42, KVM_DEV_TY
 kvm_device_flags = 0, KVM_CREATE_DEVICE_TEST
 kvm_guest_debug_flags = KVM_GUESTDBG_ENABLE, KVM_GUESTDBG_SINGLESTEP, KVM_GUESTDBG_USE_SW_BP, KVM_GUESTDBG_USE_HW_BP, KVM_GUESTDBG_INJECT_DB, KVM_GUESTDBG_INJECT_BP
 kvm_chip_id = KVM_IRQCHIP_PIC_MASTER, KVM_IRQCHIP_PIC_SLAVE, KVM_IRQCHIP_IOAPIC
-kvm_cpu_funciton = 0, 1, 2, 4, 6, 7, 10, 11, 13, KVM_CPUID_SIGNATURE, KVM_CPUID_FEATURES, 0x80000000, 0x80000001, 0x80000007, 0x80000008, 0x80000019, 0xc0000000, 0xc0000001
+kvm_cpu_function = 0, 1, 2, 4, 6, 7, 10, 11, 13, KVM_CPUID_SIGNATURE, KVM_CPUID_FEATURES, 0x80000000, 0x80000001, 0x80000007, 0x80000008, 0x80000019, 0xc0000000, 0xc0000001
 kvm_guest_selector = 0, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 16
 kvm_mce_flags = 1, 2, 4
 kvm_mcg_status = MCG_STATUS_RIPV, MCG_STATUS_EIPV, MCG_STATUS_MCIP, MCG_STATUS_LMCES
@@ -547,7 +547,7 @@ kvm_signal_mask {
 }
 
 kvm_cpuid_entry {
-	func	flags[kvm_cpu_funciton, int32]
+	func	flags[kvm_cpu_function, int32]
 	eax	int32
 	ebx	int32
 	ecx	int32
@@ -562,7 +562,7 @@ kvm_cpuid {
 }
 
 kvm_cpuid_entry2 {
-	func	flags[kvm_cpu_funciton, int32]
+	func	flags[kvm_cpu_function, int32]
 	index	int32
 	flags	flags[kvm_cpuid_flags, int32]
 	eax	int32

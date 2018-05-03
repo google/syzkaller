@@ -126,7 +126,7 @@ func TestTemplateAlg1(t *testing.T) {
 // TestTemplateAlg2 tests creation of all templates with 2 argument.
 func TestTemplateAlg2(t *testing.T) {
 	algTest(t)
-	// Can't affort to test all permutations of 2 algorithms,
+	// Can't afford to test all permutations of 2 algorithms,
 	// 20 algorithm pairs for each type pair and use them.
 	selections := make(map[int][]int)
 	for typ1, algs1 := range allAlgs {
