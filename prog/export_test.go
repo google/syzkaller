@@ -49,6 +49,16 @@ func initTest(t *testing.T) (*Target, rand.Source, int) {
 	return initRandomTargetTest(t, "linux", "amd64")
 }
 
+func testEachTarget(t *testing.T, fn func(t *testing.T, target *Target)) {
+	for _, target := range AllTargets() {
+		target := target
+		t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
+			t.Parallel()
+			fn(t, target)
+		})
+	}
+}
+
 func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs rand.Source, iters int)) {
 	iters := 10000
 	if testing.Short() {

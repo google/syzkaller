@@ -4,48 +4,56 @@
 package prog
 
 import (
-	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestResourceCtors(t *testing.T) {
-	target, err := GetTarget("linux", runtime.GOARCH)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, c := range target.Syscalls {
-		for _, res := range c.inputResources() {
-			if len(target.calcResourceCtors(res.Desc.Kind, true)) == 0 {
-				t.Errorf("call %v requires input resource %v, but there are no calls that can create this resource", c.Name, res.Desc.Name)
+	testEachTarget(t, func(t *testing.T, target *Target) {
+		for _, c := range target.Syscalls {
+			for _, res := range c.inputResources() {
+				if len(target.calcResourceCtors(res.Desc.Kind, true)) == 0 {
+					t.Errorf("call %v requires input resource %v,"+
+						" but there are no calls that can create this resource",
+						c.Name, res.Desc.Name)
+				}
 			}
 		}
-	}
+	})
 }
 
 func TestTransitivelyEnabledCalls(t *testing.T) {
+	testEachTarget(t, func(t *testing.T, target *Target) {
+		calls := make(map[*Syscall]bool)
+		for _, c := range target.Syscalls {
+			calls[c] = true
+		}
+		if trans, disabled := target.TransitivelyEnabledCalls(calls); len(disabled) != 0 {
+			for c, reason := range disabled {
+				t.Logf("disabled %v: %v", c.Name, reason)
+			}
+			t.Fatalf("can't create some resource")
+		} else if len(trans) != len(calls) {
+			t.Fatalf("transitive syscalls are not full")
+		} else {
+			for c, ok := range trans {
+				if !ok {
+					t.Fatalf("syscalls %v is false in transitive map", c.Name)
+				}
+			}
+		}
+	})
+}
+
+func TestTransitivelyEnabledCallsLinux(t *testing.T) {
 	t.Parallel()
-	target, err := GetTarget("linux", runtime.GOARCH)
+	target, err := GetTarget("linux", "amd64")
 	if err != nil {
 		t.Fatal(err)
 	}
 	calls := make(map[*Syscall]bool)
 	for _, c := range target.Syscalls {
 		calls[c] = true
-	}
-	if trans, disabled := target.TransitivelyEnabledCalls(calls); len(disabled) != 0 {
-		for c, reason := range disabled {
-			t.Logf("disabled %v: %v", c.Name, reason)
-		}
-		t.Fatalf("can't create some resource")
-	} else if len(trans) != len(calls) {
-		t.Fatalf("transitive syscalls are not full")
-	} else {
-		for c, ok := range trans {
-			if !ok {
-				t.Fatalf("syscalls %v is false in transitive map", c.Name)
-			}
-		}
 	}
 	delete(calls, target.SyscallMap["epoll_create"])
 	if trans, disabled := target.TransitivelyEnabledCalls(calls); len(disabled) != 0 || len(trans) != len(calls) {
@@ -74,7 +82,7 @@ func TestTransitivelyEnabledCalls(t *testing.T) {
 
 func TestClockGettime(t *testing.T) {
 	t.Parallel()
-	target, err := GetTarget("linux", runtime.GOARCH)
+	target, err := GetTarget("linux", "amd64")
 	if err != nil {
 		t.Fatal(err)
 	}
