@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// package dashapi defines data structures used in dashboard communication
+// Package dashapi defines data structures used in dashboard communication
 // and provides client interface.
 package dashapi
 

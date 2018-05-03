@@ -2,7 +2,7 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "88188c72dcf69cae330d7ea531d2d69773177a5c"
+#define SYZ_REVISION "328d9ffcbca65ffa7b21b9705dc57aeed48d21e4"
 #define SYZ_PAGE_SIZE 8192
 #define SYZ_NUM_PAGES 2048
 #define SYZ_DATA_OFFSET 536870912
@@ -111,7 +111,7 @@ call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "5d44fc53feb6e540adc5b87ec9ee5cde1093f925"
+#define SYZ_REVISION "379749ecc3394eab3b4d1ae617f394a30fc0a285"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
