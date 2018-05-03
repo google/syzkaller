@@ -115,15 +115,16 @@ func (inst *instance) Forward(port int) (string, error) {
 	return fmt.Sprintf("127.0.0.1:%v", port), nil
 }
 
-func (inst *instance) ssh(command string) ([]byte, error) {
+func (inst *instance) ssh(command string) error {
 	if inst.debug {
 		log.Logf(0, "executing ssh %+v", command)
 	}
 
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
-		return nil, err
+		return err
 	}
+	// TODO(dvyukov): who is closing rpipe?
 
 	args := append(inst.sshArgs("-p"), inst.target, command)
 	if inst.debug {
@@ -134,7 +135,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
-		return nil, err
+		return err
 	}
 	wpipe.Close()
 
@@ -155,14 +156,13 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 		if inst.debug {
 			log.Logf(0, "ssh failed: %v\n%s", err, out)
 		}
-		return nil, fmt.Errorf("ssh %+v failed: %v\n%s", args, err, out)
+		return fmt.Errorf("ssh %+v failed: %v\n%s", args, err, out)
 	}
 	close(done)
 	if inst.debug {
 		log.Logf(0, "ssh returned")
 	}
-	out, _ := ioutil.ReadAll(rpipe)
-	return out, nil
+	return nil
 }
 
 func (inst *instance) repair() error {
@@ -199,7 +199,7 @@ func (inst *instance) waitForSSH(timeout int) error {
 		if !vmimpl.SleepInterruptible(time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
-		if _, err = inst.ssh("pwd"); err == nil {
+		if err = inst.ssh("pwd"); err == nil {
 			return nil
 		}
 		if time.Since(start).Seconds() > float64(timeout) {
@@ -217,7 +217,7 @@ func (inst *instance) waitForReboot(timeout int) error {
 			return fmt.Errorf("shutdown in progress")
 		}
 		// If it fails, then the reboot started
-		if _, err = inst.ssh("pwd"); err != nil {
+		if err = inst.ssh("pwd"); err != nil {
 			return nil
 		}
 		if time.Since(start).Seconds() > float64(timeout) {
