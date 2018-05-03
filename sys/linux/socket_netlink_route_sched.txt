@@ -1,0 +1,392 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_ROUTE SCHED support.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/rtnetlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/can.h>
+include <uapi/linux/pkt_cls.h>
+include <uapi/linux/pkt_sched.h>
+include <uapi/linux/tc_act/tc_bpf.h>
+include <uapi/linux/tc_act/tc_connmark.h>
+include <uapi/linux/tc_ematch/tc_em_cmp.h>
+include <uapi/linux/tc_ematch/tc_em_ipt.h>
+include <uapi/linux/tc_ematch/tc_em_meta.h>
+
+sendmsg$nl_route_sched(fd sock_nl_route, msg ptr[in, msghdr_netlink[netlink_msg_route_sched]], f flags[send_flags])
+
+netlink_msg_route_sched [
+	newqdisc	netlink_msg[RTM_NEWQDISC, tcmsg[AF_UNSPEC], qdisc_policy]
+	delqdisc	netlink_msg[RTM_DELQDISC, tcmsg[AF_UNSPEC], qdisc_policy]
+	getqdisc	netlink_msg[RTM_GETQDISC, tcmsg[AF_UNSPEC], nlattr[TCA_DUMP_INVISIBLE, void]]
+	newtclass	netlink_msg[RTM_NEWTCLASS, tcmsg[AF_UNSPEC], tclass_policy]
+	deltclass	netlink_msg[RTM_DELTCLASS, tcmsg[AF_UNSPEC], tclass_policy]
+	gettclass	netlink_msg[RTM_GETTCLASS, tcmsg[AF_UNSPEC], void]
+	newtfilter	netlink_msg[RTM_NEWTFILTER, tcmsg[AF_UNSPEC], filter_policy]
+	deltfilter	netlink_msg[RTM_DELTFILTER, tcmsg[AF_UNSPEC], filter_policy]
+	gettfilter	netlink_msg[RTM_GETTFILTER, tcmsg[AF_UNSPEC], nlattr[TCA_CHAIN, int32]]
+	newtaction	netlink_msg[RTM_NEWACTION, tcamsg[AF_UNSPEC], nlattr[TCA_ACT_TAB, tca_actions]]
+	deltaction	netlink_msg[RTM_DELACTION, tcamsg[AF_UNSPEC], action_gd_policy]
+	gettaction	netlink_msg[RTM_GETACTION, tcamsg[AF_UNSPEC], action_dump_policy]
+] [varlen]
+
+type tcmsg[FAMILY] {
+	family		const[FAMILY, int8]
+	ifindex		ifindex
+	tcm_handle	tcm_handle
+	tcm_parent	tcm_handle
+	tcm_info	tcm_handle
+}
+
+tcm_handle {
+	minor	flags[tcm_handle_offsets, int16]
+	major	flags[tcm_handle_offsets, int16]
+}
+
+type tcamsg[FAMILY] {
+	family		const[FAMILY, int8]
+	tca__pad1	int8
+	tca__pad2	int16
+}
+
+qdisc_policy [
+	qdisc_kind_options	qdisc_kind_options
+	TCA_RATE		nlattr[TCA_RATE, tc_estimator]
+	TCA_STAB		nlattr[TCA_STAB, stab_policy]
+	TCA_INGRESS_BLOCK	nlattr[TCA_INGRESS_BLOCK, int32]
+	TCA_EGRESS_BLOCK	nlattr[TCA_EGRESS_BLOCK, int32]
+] [varlen]
+
+tclass_policy [
+	tclass_kind_options	tclass_kind_options
+	TCA_RATE		nlattr[TCA_RATE, tc_estimator]
+] [varlen]
+
+filter_policy [
+	filter_kind_options	filter_kind_options
+	TCA_RATE		nlattr[TCA_RATE, tc_estimator]
+	TCA_CHAIN		nlattr[TCA_CHAIN, int32]
+] [varlen]
+
+type tca_kind_options_t[NAME, VALUES] {
+	TCA_KIND	nlattr[TCA_KIND, string[NAME]]
+	TCA_OPTIONS	nlattr[TCA_OPTIONS, VALUES]
+}
+
+# ------------------------------ tc qdisc ------------------------------
+# TODO: qdisc_kind left "choke", "clsact", "codel", "drr", "dsmark", "bfifo", "pfifo", "pfifo_head_drop", "pfifo_fast", "fq", "fq_codel", "gred", "hfsc", "hhf", "htb", "ingress", "mqprio", "multiq", "netem", "pie", "prio", "qfq", "red", "rr", "sfb", "sfq", "tbf"
+qdisc_kind_options [
+	q_cbq	tca_kind_options_t["cbq", q_cbq_options]
+	q_cbs	tca_kind_options_t["cbs", q_cbs_options]
+] [varlen]
+
+q_cbq_options [
+	TCA_CBQ_LSSOPT	nlattr[TCA_CBQ_LSSOPT, tc_cbq_lssopt]
+	TCA_CBQ_WRROPT	nlattr[TCA_CBQ_WRROPT, tc_cbq_wrropt]
+	TCA_CBQ_FOPT	nlattr[TCA_CBQ_FOPT, tc_cbq_fopt]
+	TCA_CBQ_RATE	nlattr[TCA_CBQ_RATE, tc_ratespec]
+	TCA_CBQ_RTAB	nlattr[TCA_CBQ_RTAB, array[int32, 256]]
+] [varlen]
+
+q_cbs_options [
+	TCA_CBS_PARMS	nlattr[TCA_CBS_PARMS, tc_cbs_qopt]
+] [varlen]
+
+tc_cbq_lssopt {
+	change		int8[0:64]
+	flags		int8[0:3]
+	ewma_log	int8[0:32]
+	level		int8
+	maxidle		int32
+	minidle		int32
+	offtime		int32
+	avpkt		int32
+}
+
+tc_cbq_wrropt {
+	flags		int8
+	priority	int8[0:TC_CBQ_MAXPRIO]
+	cpriority	int8
+	__reserved	int8
+	allot		int32
+	weight		int32
+}
+
+tc_cbq_fopt {
+	split		tcm_handle
+	defmap		int32
+	defchange	int32
+}
+
+tc_cbs_qopt {
+	offload		int8
+	_pad		array[int8, 3]
+	hicredit	int32
+	locredit	int32
+	idleslope	int32
+	sendslope	int32
+}
+
+# ------------------------------ tc class ------------------------------
+# TODO: tclass_kind left "drr", "dsmark", "hfsc", "htb", "qfq"
+tclass_kind_options [
+	c_atm	tca_kind_options_t["atm", c_atm_options]
+	c_cbq	tca_kind_options_t["cbq", c_cbq_options]
+] [varlen]
+
+c_atm_options [
+	TCA_ATM_FD	nlattr[TCA_ATM_FD, sock]
+	TCA_ATM_HDR	nlattr[TCA_ATM_HDR, array[int8, 0:64]]
+	TCA_ATM_EXCESS	nlattr[TCA_ATM_EXCESS, tcm_handle]
+] [varlen]
+
+type c_cbq_options q_cbq_options
+
+# ------------------------------ tc filter ------------------------------
+# TODO: filter_kind left "cgroup", "flow", "flower", "fw", "matchall", "route", "rsvp", "rsvp6", "tcindex", "u32"
+filter_kind_options [
+	f_basic	tca_kind_options_t["basic", f_basic_options]
+	f_bpf	tca_kind_options_t["bpf", f_bpf_options]
+] [varlen]
+
+f_basic_options [
+	TCA_BASIC_CLASSID	nlattr[TCA_BASIC_CLASSID, tcm_handle]
+	TCA_BASIC_EMATCHES	nlattr[TCA_BASIC_EMATCHES, tca_ematches]
+	TCA_BASIC_ACT		nlattr[TCA_BASIC_ACT, tca_actions]
+	TCA_BASIC_POLICE	nlattr[TCA_BASIC_POLICE, tca_polices]
+] [varlen]
+
+f_bpf_options [
+	TCA_BPF_ACT		nlattr[TCA_BPF_ACT, tca_actions]
+	TCA_BPF_POLICE		nlattr[TCA_BPF_POLICE, tca_polices]
+	TCA_BPF_CLASSID		nlattr[TCA_BPF_CLASSID, tcm_handle]
+# TODO: TCA_BPF_OPS should equal to TCA_BPF_OPS_LEN * sizeof(struct sock_filter)
+	TCA_BPF_OPS_LEN		nlattr[TCA_BPF_OPS_LEN, int16[0:10]]
+	TCA_BPF_OPS		nlattr[TCA_BPF_OPS, array[sock_filter]]
+	TCA_BPF_FD		nlattr[TCA_BPF_FD, fd]
+	TCA_BPF_NAME		nlattr[TCA_BPF_NAME, string[filename]]
+	TCA_BPF_FLAGS		nlattr[TCA_BPF_FLAGS, int32[0:1]]
+	TCA_BPF_FLAGS_GEN	nlattr[TCA_BPF_FLAGS_GEN, int32[0:8]]
+] [varlen]
+
+# ------------------------------ tc action ------------------------------
+# TODO: Add m_csum, m_gact, m_ife, m_ipt, m_mirred, m_nat, m_pedit,
+# m_police, m_sample, m_skbedit, m_skbmod, m_tunnel_key, m_vlan, m_xt
+tca_actions [
+	m_bpf		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["bpf", m_bpf_options]]
+	m_connmark	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["connmark", m_connmark_options]]
+] [varlen]
+
+type tca_actions_t[NAME, VALUES] {
+	TCA_ACT_KIND	nlattr[TCA_ACT_KIND, string[NAME]]
+	TCA_ACT_OPTIONS	nlattr[TCA_ACT_OPTIONS, VALUES]
+	TCA_ACT_COOKIE	nlattr[TCA_ACT_COOKIE, array[int8]]
+} [packed, align_4]
+
+m_bpf_options [
+	TCA_ACT_BPF_PARMS	nlattr[TCA_ACT_BPF_PARMS, tc_act_bpf]
+	TCA_ACT_BPF_OPS_LEN	nlattr[TCA_ACT_BPF_OPS_LEN, int16[0:10]]
+	TCA_ACT_BPF_OPS		nlattr[TCA_ACT_BPF_OPS, array[sock_filter]]
+	TCA_ACT_BPF_FD		nlattr[TCA_ACT_BPF_FD, fd]
+	TCA_ACT_BPF_NAME	nlattr[TCA_ACT_BPF_NAME, string[filename]]
+] [varlen]
+
+m_connmark_options [
+	TCA_CONNMARK_PARMS	nlattr[TCA_CONNMARK_PARMS, tc_connmark]
+] [varlen]
+
+action_gd_policy [
+	TCA_ACT_TAB	nlattr[TCA_ACT_TAB, array[nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_kind_index]]]
+] [varlen]
+
+tca_actions_kind_index [
+	TCA_ACT_KIND	nlattr[TCA_ACT_KIND, string[tca_actions_kinds]]
+	TCA_ACT_INDEX	nlattr[TCA_ACT_INDEX, int32]
+] [varlen]
+
+action_dump_flags [
+	TCA_ROOT_FLAGS		nlattr[TCA_ROOT_FLAGS, nla_bitfield32]
+	TCA_ROOT_TIME_DELTA	nlattr[TCA_ROOT_TIME_DELTA, int32]
+] [varlen]
+
+action_dump_policy [
+	action_gd		action_gd_policy
+	action_dump_flags	action_dump_flags
+] [varlen]
+
+tc_gen {
+	index	int32
+	capab	int32
+	action	flags[tc_actions, int32]
+	refcnt	int32
+	bindcnt	int32
+}
+
+type tc_act_bpf tc_gen
+
+tc_connmark {
+	tc_gen	tc_gen
+	zone	int16
+}
+
+nla_bitfield32 {
+	value		int32[0:1]
+	selector	int32[0:1]
+}
+
+# ------------------------------ tc police ------------------------------
+tca_polices [
+	TCA_POLICE_TBF		nlattr[TCA_POLICE_TBF, tc_police]
+	TCA_POLICE_RATE		nlattr[TCA_POLICE_RATE, array[int32, 256]]
+	TCA_POLICE_PEAKRATE	nlattr[TCA_POLICE_PEAKRATE, array[int32, 256]]
+	TCA_POLICE_AVRATE	nlattr[TCA_POLICE_AVRATE, int32]
+	TCA_POLICE_RESULT	nlattr[TCA_POLICE_RESULT, int32]
+] [varlen]
+
+tc_police {
+	index		int32
+	action		flags[tc_actions, int32]
+	limit		int32
+	burst		int32
+	mtu		int32
+	rate		tc_ratespec
+	peakrate	tc_ratespec
+	refcnt		int32
+	bindcnt		int32
+	capab		int32
+}
+
+tc_ratespec {
+	cell_log	int8
+	linklayer	flags[linklayer, int8]
+	overhead	int16
+	cell_align	int16
+	mpu		int16
+	rate		int32
+}
+
+# ------------------------------ tc ematch ------------------------------
+tca_ematches [
+	TCA_EMATCH_TREE_HDR	nlattr[TCA_EMATCH_TREE_HDR, tcf_ematch_tree_hdr]
+	TCA_EMATCH_TREE_LIST	nlattr[TCA_EMATCH_TREE_LIST, tca_ematch_tree_list]
+] [varlen]
+
+tcf_ematch_tree_hdr {
+	nmatches	int16
+	progid		const[TCF_EM_PROG_TC, int16]
+}
+
+tca_ematch_tree_list [
+	TCF_EM_CONTAINER	nlattr_t[int32, tcf_ematch_hdr[TCF_EM_CONTAINER, array[int8]]]
+	TCF_EM_CMP		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_CMP, tcf_em_cmp]]
+	TCF_EM_NBYTE		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_NBYTE, tcf_em_nbyte]]
+	TCF_EM_U32		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_U32, tc_u32_key]]
+	TCF_EM_META		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_META, tcf_em_meta_policy]]
+	TCF_EM_CANID		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_CANID, can_filter]]
+	TCF_EM_IPSET		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_IPSET, xt_set_info]]
+	TCF_EM_IPT		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_IPT, tcf_em_ipt_policy]]
+] [varlen]
+
+type tcf_ematch_hdr[KIND, PAYLOAD] {
+	matchid	int16
+	kind	const[KIND, int16]
+	flags	int16
+	pad	int16
+	payload	PAYLOAD
+} [align_4]
+
+tcf_em_cmp {
+	val	int32
+	mask	int32
+	off	int16
+	align	flags[tcf_em_aligns, int8:4]
+	flags	int8:4
+	layer	flags[tcf_layers, int8:4]
+	opnd	flags[tcf_em_opnds, int8:4]
+}
+
+tcf_em_nbyte {
+	off	int32
+	len	int16:12[0:10]
+	layer	flags[tcf_layers, int8:4]
+# TODO: The payload data len should be equal to tcf_em_nbyte.len
+	payload	array[int8, 0:10]
+} [align_4]
+
+tc_u32_key {
+	mask	int32be
+	val	int32be
+	off	int32
+	offmask	int32
+}
+
+tcf_em_meta_policy [
+	TCA_EM_META_HDR		nlattr[TCA_EM_META_HDR, tcf_meta_hdr]
+	TCA_EM_META_LVALUE	nlattr[TCA_EM_META_LVALUE, tcf_em_meta_int_var]
+	TCA_EM_META_RVALUE	nlattr[TCA_EM_META_RVALUE, tcf_em_meta_int_var]
+] [varlen]
+
+tcf_meta_hdr {
+	left	tcf_meta_val
+	right	tcf_meta_val
+}
+
+tcf_meta_val {
+# TODO: kind value should be TCF_META_TYPE_VAR << 12 or TCF_META_TYPE_INT << 12
+	kind	int16
+	shift	int8
+	op	flags[tcf_em_opnds, int8]
+}
+
+tcf_em_meta_int_var [
+	TCF_META_TYPE_INT	int32[0:10]
+	TCF_META_TYPE_VAR	array[int8, 0:10]
+] [varlen]
+
+can_filter {
+	can_id		int32
+	can_mask	int32
+}
+
+tcf_em_ipt_policy [
+	TCA_EM_IPT_HOOK			nlattr[TCA_EM_IPT_HOOK, flags[nf_inet_hooks, int32]]
+	TCA_EM_IPT_MATCH_NAME		nlattr[TCA_EM_IPT_MATCH_NAME, string["policy"]]
+	TCA_EM_IPT_MATCH_REVISION	nlattr[TCA_EM_IPT_MATCH_REVISION, int8]
+	TCA_EM_IPT_NFPROTO		nlattr[TCA_EM_IPT_NFPROTO, flags[nfproto, int8]]
+	TCA_EM_IPT_MATCH_DATA		nlattr[TCA_EM_IPT_MATCH_DATA, array[int8]]
+] [varlen]
+
+# ------------------------------ tc others ------------------------------
+tc_estimator {
+	interval	int8
+	ewma_log	int8
+}
+
+stab_policy [
+	TCA_STAB_BASE	nlattr[TCA_STAB_BASE, tc_sizespec]
+# TODO: stab data should be tc_sizespec.tsize * sizeof(__u16)
+	TCA_STAB_DATA	nlattr[TCA_STAB_DATA, array[int16, 0:10]]
+] [varlen]
+
+tc_sizespec {
+	cell_log	int8
+	size_log	int8
+	cell_align	int16
+	overhead	int32
+	linklayer	flags[linklayer, int32]
+	mpu		int32
+	mtu		int32
+	tsize		int32[0:10]
+}
+
+tcm_handle_offsets = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0xffe0, 0xfff1, 0xfff2, 0xfff3, 0xffff
+tcf_em_aligns = TCF_EM_ALIGN_U8, TCF_EM_ALIGN_U16, TCF_EM_ALIGN_U32
+tcf_layers = TCF_LAYER_LINK, TCF_LAYER_NETWORK, TCF_LAYER_TRANSPORT
+tcf_em_opnds = TCF_EM_OPND_EQ, TCF_EM_OPND_GT, TCF_EM_OPND_LT
+nf_inet_hooks = NF_INET_PRE_ROUTING, NF_INET_LOCAL_IN, NF_INET_FORWARD, NF_INET_LOCAL_OUT, NF_INET_POST_ROUTING
+linklayer = TC_LINKLAYER_UNAWARE, TC_LINKLAYER_ETHERNET, TC_LINKLAYER_ATM
+tc_actions = TC_ACT_UNSPEC, TC_ACT_OK, TC_ACT_RECLASSIFY, TC_ACT_SHOT, TC_ACT_PIPE, TC_ACT_STOLEN, TC_ACT_QUEUED, TC_ACT_REPEAT, TC_ACT_REDIRECT, TC_ACT_TRAP, TC_ACT_JUMP, TC_ACT_GOTO_CHAIN
+tca_actions_kinds = "bpf", "connmark", "csum", "gact", "ife", "ipt", "mirred", "nat", "pedit", "police", "sample", "skbedit", "skbmod", "tunnel_key", "vlan", "xt"
