@@ -6313,7 +6313,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "entries", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "kvm_cpuid_entry2", Dir: 1}}},
 	}}},
 	{Key: StructKey{Name: "kvm_cpuid_entry"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_entry", TypeSize: 24}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_funciton", FldName: "func", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 1073741824, 1073741825, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_function", FldName: "func", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 1073741824, 1073741825, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "eax", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ebx", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ecx", TypeSize: 4}}},
@@ -6321,7 +6321,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "kvm_cpuid_entry2"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_entry2", TypeSize: 40}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_funciton", FldName: "func", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 1073741824, 1073741825, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_function", FldName: "func", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 1073741824, 1073741825, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "index", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "eax", TypeSize: 4}}},
@@ -6331,7 +6331,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 12}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 4}}}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
 	}}},
 	{Key: StructKey{Name: "kvm_cpuid_entry2", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_entry2", TypeSize: 40, ArgDir: 1}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_funciton", FldName: "func", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 1073741824, 1073741825, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_function", FldName: "func", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 1073741824, 1073741825, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "index", TypeSize: 4, ArgDir: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_flags", FldName: "flags", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 2, 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "eax", TypeSize: 4, ArgDir: 1}}},
@@ -30326,4 +30326,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_amd64 = "a2463ce91be2e035728a8241aa9c54bde7fe127a"
+const revision_amd64 = "f8acbe0e15423ec80dfcf52662c0f6109ef208bf"

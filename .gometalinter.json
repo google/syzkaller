@@ -17,6 +17,7 @@
 		"unused",
 		"gosimple",
 		"varcheck",
+		"misspell",
 		"vet"
 	],
 	"exclude": [
@@ -24,6 +25,7 @@
 		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/init.* don't use ALL_CAPS in Go names",
 		"exported .* should have comment",
 		"comment on .* should be of the form",
-		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* should not use dot imports"
+		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* should not use dot imports",
+		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* is a misspelling of"
 	]
 }
