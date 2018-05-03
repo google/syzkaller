@@ -192,7 +192,7 @@ func (inst *instance) Forward(port int) (string, error) {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
 	args := append(sshArgs(inst.debug, inst.sshKey, "-P", 22), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
-	if _, err := runCmd(inst.debug, "scp", args...); err != nil {
+	if err := runCmd(inst.debug, "scp", args...); err != nil {
 		return "", err
 	}
 	return vmDst, nil
@@ -359,7 +359,7 @@ func (pool *Pool) waitInstanceBoot(name, ip, sshKey, sshUser, gceKey string) err
 			return fmt.Errorf("shutdown in progress")
 		}
 		args := append(sshArgs(pool.env.Debug, sshKey, "-p", 22), sshUser+"@"+ip, pwd)
-		if _, err := runCmd(pool.env.Debug, "ssh", args...); err == nil {
+		if err := runCmd(pool.env.Debug, "ssh", args...); err == nil {
 			return nil
 		}
 	}
@@ -473,7 +473,7 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 	return nil
 }
 
-func runCmd(debug bool, bin string, args ...string) ([]byte, error) {
+func runCmd(debug bool, bin string, args ...string) error {
 	if debug {
 		log.Logf(0, "running command: %v %#v", bin, args)
 	}
@@ -481,7 +481,7 @@ func runCmd(debug bool, bin string, args ...string) ([]byte, error) {
 	if debug {
 		log.Logf(0, "result: %v\n%s", err, output)
 	}
-	return output, err
+	return err
 }
 
 func sshArgs(debug bool, sshKey, portArg string, port int) []string {

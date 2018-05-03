@@ -170,7 +170,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			n := decl.(*ast.IntFlags)
 			var values []*ast.Int
 			for _, v := range n.Values {
-				if comp.patchIntConst(v.Pos, &v.Value, &v.Ident, consts, nil) {
+				if comp.patchIntConst(&v.Value, &v.Ident, consts, nil) {
 					values = append(values, v)
 				}
 			}
@@ -182,10 +182,9 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				args []*ast.Type, _ prog.IntTypeCommon) {
 				for i, arg := range args {
 					if desc.Args[i].Type.Kind == kindInt {
-						comp.patchIntConst(arg.Pos, &arg.Value,
-							&arg.Ident, consts, &missing)
+						comp.patchIntConst(&arg.Value, &arg.Ident, consts, &missing)
 						if arg.HasColon {
-							comp.patchIntConst(arg.Pos2, &arg.Value2,
+							comp.patchIntConst(&arg.Value2,
 								&arg.Ident2, consts, &missing)
 						}
 					}
@@ -193,16 +192,14 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			})
 			if n, ok := decl.(*ast.Resource); ok {
 				for _, v := range n.Values {
-					comp.patchIntConst(v.Pos, &v.Value,
-						&v.Ident, consts, &missing)
+					comp.patchIntConst(&v.Value, &v.Ident, consts, &missing)
 				}
 			}
 			if n, ok := decl.(*ast.Struct); ok {
 				for _, attr := range n.Attrs {
 					if attr.Ident == "size" {
 						sz := attr.Args[0]
-						comp.patchIntConst(sz.Pos, &sz.Value,
-							&sz.Ident, consts, &missing)
+						comp.patchIntConst(&sz.Value, &sz.Ident, consts, &missing)
 					}
 				}
 			}
@@ -227,8 +224,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 	}
 }
 
-func (comp *compiler) patchIntConst(pos ast.Pos, val *uint64, id *string,
-	consts map[string]uint64, missing *string) bool {
+func (comp *compiler) patchIntConst(val *uint64, id *string, consts map[string]uint64, missing *string) bool {
 	if *id == "" {
 		return true
 	}

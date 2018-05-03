@@ -176,7 +176,7 @@ func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool, size uint64) 
 			}
 			varlen = true
 		case "size":
-			size = comp.parseSizeAttr(n, attr)
+			size = comp.parseSizeAttr(attr)
 		default:
 			comp.error(attr.Pos, "unknown union %v attribute %v",
 				n.Name.Name, attr.Ident)
@@ -215,7 +215,7 @@ func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, size, align 
 			}
 			align = a
 		case attr.Ident == "size":
-			size = comp.parseSizeAttr(n, attr)
+			size = comp.parseSizeAttr(attr)
 		default:
 			comp.error(attr.Pos, "unknown struct %v attribute %v",
 				n.Name.Name, attr.Ident)
@@ -224,7 +224,7 @@ func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, size, align 
 	return
 }
 
-func (comp *compiler) parseSizeAttr(n *ast.Struct, attr *ast.Type) uint64 {
+func (comp *compiler) parseSizeAttr(attr *ast.Type) uint64 {
 	if len(attr.Args) != 1 {
 		comp.error(attr.Pos, "%v attribute is expected to have 1 argument", attr.Ident)
 		return sizeUnassigned

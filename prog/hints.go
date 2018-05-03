@@ -75,11 +75,11 @@ func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog))
 		exec(p)
 	}
 	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
-		generateHints(p, comps, c, arg, execValidate)
+		generateHints(comps, arg, execValidate)
 	})
 }
 
-func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func()) {
+func generateHints(compMap CompMap, arg Arg, exec func()) {
 	typ := arg.Type()
 	if typ == nil || typ.Dir() == DirOut {
 		return
