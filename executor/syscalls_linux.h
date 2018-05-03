@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "4c6d0af70679490e322df745c8fa4dadae283c39"
+#define SYZ_REVISION "01d727a561e48155518c4822e1bb41451f9ef5cd"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1783;
+unsigned syscall_count = 1784;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1312,6 +1312,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_generic", 370},
     {"sendmsg$nl_netfilter", 370},
     {"sendmsg$nl_route", 370},
+    {"sendmsg$nl_route_sched", 370},
     {"sendmsg$nl_xfrm", 370},
     {"sendmsg$rds", 370},
     {"sendmsg$unix", 370},
@@ -1797,11 +1798,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "277587fb6c542ca7062a505c11fc03ef9904f304"
+#define SYZ_REVISION "0a918da7d4ea62a6fa684211429a4fb3af625ef0"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1835;
+unsigned syscall_count = 1836;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3147,6 +3148,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_generic", 46},
     {"sendmsg$nl_netfilter", 46},
     {"sendmsg$nl_route", 46},
+    {"sendmsg$nl_route_sched", 46},
     {"sendmsg$nl_xfrm", 46},
     {"sendmsg$rds", 46},
     {"sendmsg$unix", 46},
@@ -3644,11 +3646,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "a34cd0cdc59606f38cb712367c20831f10dc478d"
+#define SYZ_REVISION "3af04548443e6882e968220381e96f9dcb1a3ea4"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1792;
+unsigned syscall_count = 1793;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4955,6 +4957,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_generic", 296},
     {"sendmsg$nl_netfilter", 296},
     {"sendmsg$nl_route", 296},
+    {"sendmsg$nl_route_sched", 296},
     {"sendmsg$nl_xfrm", 296},
     {"sendmsg$rds", 296},
     {"sendmsg$unix", 296},
@@ -5448,11 +5451,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "7040c6f6b778e74ce07b7286262276f0cb49f7ee"
+#define SYZ_REVISION "30c0580979dde035319c8e7402baa1f9ae95df4a"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1764;
+unsigned syscall_count = 1765;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6740,6 +6743,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_generic", 211},
     {"sendmsg$nl_netfilter", 211},
     {"sendmsg$nl_route", 211},
+    {"sendmsg$nl_route_sched", 211},
     {"sendmsg$nl_xfrm", 211},
     {"sendmsg$rds", 211},
     {"sendmsg$unix", 211},
@@ -7224,11 +7228,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "90d89d7881b95ee12d0c43664882db875068a881"
+#define SYZ_REVISION "2a5bda06434eb51bb0459a45bfd2441e7e746614"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1754;
+unsigned syscall_count = 1755;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8507,6 +8511,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_generic", 341},
     {"sendmsg$nl_netfilter", 341},
     {"sendmsg$nl_route", 341},
+    {"sendmsg$nl_route_sched", 341},
     {"sendmsg$nl_xfrm", 341},
     {"sendmsg$rds", 341},
     {"sendmsg$unix", 341},
