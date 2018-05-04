@@ -31,10 +31,15 @@ TARGETVMARCH ?= $(TARGETARCH)
 GO := go
 EXE :=
 
+ifeq ("$(BUILDOS)", "linux")
+	NCORES ?= $(shell grep -c "vendor_id" /proc/cpuinfo)
+	MAKEFLAGS += " -j$(NCORES) "
+endif
+
 ifeq ("$(TARGETARCH)", "amd64")
 	CC = "x86_64-linux-gnu-gcc"
 else ifeq ("$(TARGETARCH)", "386")
-ifeq ("$(HOSTARCH)", "386")
+ifeq ("$(BUILDARCH)", "386")
 	CC = "i686-linux-gnu-gcc"
 else
 	CC = "x86_64-linux-gnu-gcc"
@@ -110,8 +115,15 @@ endif
 	ci hub \
 	execprog mutate prog2c stress repro upgrade db parse \
 	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
-	extract generate \
-	format tidy test check_links check_diff arch presubmit clean
+	extract generate generate_go generate_sys \
+	format format_go format_cpp format_sys \
+	tidy test test_race check_links check_diff \
+	arch arch_darwin_amd64_host arch_linux_amd64_host \
+	arch_freebsd_amd64_host arch_netbsd_amd64_host \
+	arch_linux_amd64_target arch_linux_386_target \
+	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
+	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_windows_amd64_target \
+	presubmit presubmit_parallel clean
 
 all: host target
 
@@ -171,16 +183,27 @@ extract: bin/syz-extract
 bin/syz-extract:
 	$(GO) build $(GOFLAGS) -o $@ ./sys/syz-extract
 
-generate: bin/syz-sysgen
-	bin/syz-sysgen
-	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/kernel
+generate: generate_go generate_sys
 	$(MAKE) format
+
+generate_go:
+	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/kernel
+
+generate_sys: bin/syz-sysgen
+	bin/syz-sysgen
+
 bin/syz-sysgen:
 	$(GO) build $(GOFLAGS) -o $@ ./sys/syz-sysgen
 
-format: bin/syz-fmt
+format: format_go format_cpp format_sys
+
+format_go:
 	$(GO) fmt ./...
+
+format_cpp:
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
+
+format_sys: bin/syz-fmt
 	bin/syz-fmt sys/test
 	bin/syz-fmt sys/akaros
 	bin/syz-fmt sys/freebsd
@@ -188,6 +211,7 @@ format: bin/syz-fmt
 	bin/syz-fmt sys/linux
 	bin/syz-fmt sys/fuchsia
 	bin/syz-fmt sys/windows
+
 bin/syz-fmt:
 	$(GO) build $(GOFLAGS) -o $@ ./tools/syz-fmt
 
@@ -200,52 +224,69 @@ tidy:
 gometalinter:
 	env CGO_ENABLED=1 gometalinter.v2 ./...
 
-test:
-	# Executor tests use cgo.
-	env CGO_ENABLED=1 $(GO) test -short ./...
-	env CGO_ENABLED=1 $(GO) test -short -race -bench=.* ./...
+arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host arch_netbsd_amd64_host \
+	arch_linux_amd64_target arch_linux_386_target \
+	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
+	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_windows_amd64_target
 
-arch:
-	env GOOG=darwin GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
+arch_darwin_amd64_host:
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
-	env GOOG=linux GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
+
+arch_linux_amd64_host:
 	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
-	env GOOG=freebsd GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
-	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
-	env GOOG=netbsd GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
-	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
-	env GOOG=linux GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
+
+arch_linux_amd64_target:
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
-	env GOOG=linux GOARCH=arm64 go install github.com/google/syzkaller/syz-fuzzer
-	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
-	env GOOG=linux GOARCH=ppc64le go install github.com/google/syzkaller/syz-fuzzer
-	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
-	# executor build on arm fails with:
-	# Error: alignment too large: 15 assumed
-	env GOOG=linux GOARCH=arm64 go install github.com/google/syzkaller/syz-fuzzer
-	env TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm $(MAKE) target
+
+arch_linux_386_target:
 	# executor build on 386 on travis fails with:
 	# fatal error: asm/errno.h: No such file or directory
 	# We install a bunch of additional packages in .travis.yml,
 	# but I can't guess the right one.
-	env GOOG=linux GOARCH=386 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
-	env GOOG=windows GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
-	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
-	env GOOG=freebsd GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
+
+arch_linux_arm64_target:
+	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
+
+arch_linux_arm_target:
+	# executor build on arm fails with:
+	# Error: alignment too large: 15 assumed
+	env TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm $(MAKE) target
+
+arch_linux_ppc64le_target:
+	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
+
+arch_freebsd_amd64_host:
+	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
+
+arch_freebsd_amd64_target:
 	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
-	env GOOG=netbsd GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
+
+arch_netbsd_amd64_host:
+	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
+
+arch_netbsd_amd64_target:
 	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
 
+arch_windows_amd64_target:
+	env GOOG=windows GOARCH=amd64 $(GO) install ./syz-fuzzer
+	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
+
 presubmit:
-	$(MAKE) check_links
 	$(MAKE) generate
 	$(MAKE) check_diff
-	$(MAKE) all
-	$(MAKE) test
-	$(MAKE) gometalinter
-	$(MAKE) arch
+	$(GO) install ./...
+	$(MAKE) presubmit_parallel
 	echo LGTM
+
+presubmit_parallel: test test_race gometalinter arch check_links
+
+test:
+	# Executor tests use cgo.
+	env CGO_ENABLED=1 $(GO) test -short ./...
+
+test_race:
+	env CGO_ENABLED=1 $(GO) test -short -race -bench=.* -benchtime=.2s ./...
 
 clean:
 	rm -rf ./bin/
