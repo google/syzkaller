@@ -114,6 +114,7 @@ func TestVmaType(t *testing.T) {
 // deserialized for another arch. This happens when managers exchange
 // programs via hub.
 func TestCrossTarget(t *testing.T) {
+	t.Parallel()
 	for os, archs := range targetsPkg.List {
 		if len(archs) == 1 {
 			continue

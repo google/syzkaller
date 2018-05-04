@@ -55,6 +55,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
+			t.Parallel()
 			res := uint64Set{}
 			constArg := &ConstArg{ArgCommon{nil}, test.in}
 			checkConstArg(constArg, test.comps, func() {
@@ -187,6 +188,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
+			t.Parallel()
 			res := make(map[string]bool)
 			// Whatever type here. It's just needed to pass the
 			// dataArg.Type().Dir() == DirIn check.
@@ -363,6 +365,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
+			t.Parallel()
 			res := shrinkExpand(test.in, test.comps)
 			if !reflect.DeepEqual(res, test.res) {
 				t.Fatalf("\ngot : %v\nwant: %v", res, test.res)

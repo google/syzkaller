@@ -8,6 +8,7 @@ import (
 )
 
 func TestParseSingle(t *testing.T) {
+	t.Parallel()
 	target, err := GetTarget("linux", "amd64")
 	if err != nil {
 		t.Fatal(err)
@@ -40,6 +41,7 @@ gettid()
 }
 
 func TestParseMulti(t *testing.T) {
+	t.Parallel()
 	target, err := GetTarget("linux", "amd64")
 	if err != nil {
 		t.Fatal(err)
@@ -107,6 +109,7 @@ munlockall()
 `
 
 func TestParseFault(t *testing.T) {
+	t.Parallel()
 	target, err := GetTarget("linux", "amd64")
 	if err != nil {
 		t.Fatal(err)

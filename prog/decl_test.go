@@ -9,6 +9,9 @@ import (
 )
 
 func TestResourceCtors(t *testing.T) {
+	if testing.Short() && raceEnabled {
+		t.Skip("too slow")
+	}
 	testEachTarget(t, func(t *testing.T, target *Target) {
 		for _, c := range target.Syscalls {
 			for _, res := range c.inputResources() {

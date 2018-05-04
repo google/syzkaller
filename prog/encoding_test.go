@@ -48,6 +48,7 @@ func TestSerializeData(t *testing.T) {
 }
 
 func TestCallSet(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		prog  string
 		ok    bool
