@@ -176,12 +176,14 @@ func (err errSkip) Error() string {
 	return string(err)
 }
 
+// nolint: gocyclo
 func parsePattern(insn *ifuzz.Insn, vals []string) error {
 	if insn.Opcode != nil {
 		return fmt.Errorf("PATTERN is already parsed for the instruction")
 	}
 	// As spelled these have incorrect format for 16-bit addressing mode and with 67 prefix.
-	if insn.Name == "NOP5" || insn.Name == "NOP6" || insn.Name == "NOP7" || insn.Name == "NOP8" || insn.Name == "NOP9" {
+	if insn.Name == "NOP5" || insn.Name == "NOP6" || insn.Name == "NOP7" ||
+		insn.Name == "NOP8" || insn.Name == "NOP9" {
 		return errSkip("")
 	}
 	if insn.Mode == 0 {
@@ -270,10 +272,8 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			insn.Mod = 1
 		case v == "MOD=2":
 			insn.Mod = 2
-		case v == "MODRM()":
 		case v == "lock_prefix":
 			insn.Prefix = append(insn.Prefix, 0xF0)
-		case v == "nolock_prefix":
 
 		// Immediates.
 		case v == "UIMM8()", v == "SIMM8()":
@@ -331,8 +331,6 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			insn.VexL = -1
 		case v == "VL256", v == "VL=1":
 			insn.VexL = 1
-		case v == "VL512":
-			// VL=2
 		case v == "NOVSR":
 			insn.VexNoR = true
 		case v == "NOEVSR":
@@ -340,49 +338,6 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			// VEXDEST3=0b1 VEXDEST210=0b111 VEXDEST4=0b0
 		case v == "SE_IMM8()":
 			addImm(insn, 1)
-		case v == "VMODRM_XMM()":
-		case v == "VMODRM_YMM()":
-		case v == "BCRC=0":
-		case v == "BCRC=1":
-		case v == "ESIZE_8_BITS()":
-		case v == "ESIZE_16_BITS()":
-		case v == "ESIZE_32_BITS()":
-		case v == "ESIZE_64_BITS()":
-		case v == "NELEM_GPR_WRITER_STORE()":
-		case v == "NELEM_GPR_WRITER_STORE_BYTE()":
-		case v == "NELEM_GPR_WRITER_STORE_WORD()":
-		case v == "NELEM_GPR_WRITER_LDOP_Q()":
-		case v == "NELEM_GPR_WRITER_LDOP_D()":
-		case v == "NELEM_GPR_READER()":
-		case v == "NELEM_GPR_READER_BYTE()":
-		case v == "NELEM_GPR_READER_WORD()":
-		case v == "NELEM_GSCAT()":
-		case v == "NELEM_HALF()":
-		case v == "NELEM_FULL()":
-		case v == "NELEM_FULLMEM()":
-		case v == "NELEM_QUARTERMEM()":
-		case v == "NELEM_EIGHTHMEM()":
-		case v == "NELEM_HALFMEM()":
-		case v == "NELEM_QUARTERMEM()":
-		case v == "NELEM_MEM128()":
-		case v == "NELEM_SCALAR()":
-		case v == "NELEM_TUPLE1()":
-		case v == "NELEM_TUPLE2()":
-		case v == "NELEM_TUPLE4()":
-		case v == "NELEM_TUPLE8()":
-		case v == "NELEM_TUPLE1_4X()":
-		case v == "NELEM_TUPLE1_BYTE()":
-		case v == "NELEM_TUPLE1_WORD()":
-		case v == "NELEM_MOVDDUP()":
-		case v == "UISA_VMODRM_XMM()":
-		case v == "UISA_VMODRM_YMM()":
-		case v == "UISA_VMODRM_ZMM()":
-		case v == "MASK=0":
-		case v == "FIX_ROUND_LEN128()":
-		case v == "FIX_ROUND_LEN512()":
-		case v == "AVX512_ROUND()":
-		case v == "ZEROING=0":
-		case v == "SAE()":
 
 		// Modes
 		case v == "mode64":
@@ -393,17 +348,16 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			insn.Mode &= 1 << ifuzz.ModeProt32
 		case v == "mode16":
 			insn.Mode &= 1<<ifuzz.ModeProt16 | 1<<ifuzz.ModeReal16
-		case v == "eamode64":
-		case v == "eamode32":
-		case v == "eamode16":
-		case v == "eanot16":
+		case v == "eamode64",
+			v == "eamode32",
+			v == "eamode16",
+			v == "eanot16":
 
 		case v == "no_refining_prefix":
 			insn.NoRepPrefix = true
 			insn.No66Prefix = true
-		case v == "no66_prefix":
+		case v == "no66_prefix", v == "eosz32", v == "eosz64":
 			insn.No66Prefix = true
-		case v == "not_refining_f3":
 		case v == "f2_refining_prefix", v == "refining_f2", v == "repne", v == "REP=2":
 			insn.Prefix = append(insn.Prefix, 0xF2)
 			insn.NoRepPrefix = true
@@ -419,23 +373,83 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			insn.Rexw = 1
 		case v == "norexw_prefix", v == "W0":
 			insn.Rexw = -1
-		case v == "MPXMODE=1", v == "MPXMODE=0":
-		case v == "TZCNT=1", v == "TZCNT=0":
-		case v == "LZCNT=1", v == "LZCNT=0":
-		case v == "CR_WIDTH()":
-		case v == "DF64()":
-		case v == "IMMUNE_REXW()":
-		case v == "FORCE64()":
-		case v == "eosz32", v == "eosz64":
-			insn.No66Prefix = true
-		case v == "EOSZ=1", v == "EOSZ!=1", v == "EOSZ=2", v == "EOSZ!=2", v == "EOSZ=3", v == "EOSZ!=3":
-		case v == "BRANCH_HINT()":
-		case v == "P4=1", v == "P4=0":
-		case v == "rexb_prefix", v == "norexb_prefix":
-		case strings.HasPrefix(v, "MODEP5="):
-		case v == "IMMUNE66()", v == "REFINING66()", v == "IGNORE66()", v == "IMMUNE66_LOOP64()":
-		case v == "OVERRIDE_SEG0()", v == "OVERRIDE_SEG1()", v == "REMOVE_SEGMENT()":
-		case v == "ONE()":
+		case v == "MPXMODE=1",
+			v == "MPXMODE=0",
+			v == "TZCNT=1",
+			v == "TZCNT=0",
+			v == "LZCNT=1",
+			v == "LZCNT=0",
+			v == "CR_WIDTH()",
+			v == "DF64()",
+			v == "IMMUNE_REXW()",
+			v == "FORCE64()",
+			v == "EOSZ=1",
+			v == "EOSZ!=1",
+			v == "EOSZ=2",
+			v == "EOSZ!=2",
+			v == "EOSZ=3",
+			v == "EOSZ!=3",
+			v == "BRANCH_HINT()",
+			v == "P4=1",
+			v == "P4=0",
+			v == "rexb_prefix",
+			v == "norexb_prefix",
+			v == "IMMUNE66()",
+			v == "REFINING66()",
+			v == "IGNORE66()",
+			v == "IMMUNE66_LOOP64()",
+			v == "OVERRIDE_SEG0()",
+			v == "OVERRIDE_SEG1()",
+			v == "REMOVE_SEGMENT()",
+			v == "ONE()",
+			v == "nolock_prefix",
+			v == "MODRM()",
+			v == "VMODRM_XMM()",
+			v == "VMODRM_YMM()",
+			v == "BCRC=0",
+			v == "BCRC=1",
+			v == "ESIZE_8_BITS()",
+			v == "ESIZE_16_BITS()",
+			v == "ESIZE_32_BITS()",
+			v == "ESIZE_64_BITS()",
+			v == "NELEM_GPR_WRITER_STORE()",
+			v == "NELEM_GPR_WRITER_STORE_BYTE()",
+			v == "NELEM_GPR_WRITER_STORE_WORD()",
+			v == "NELEM_GPR_WRITER_LDOP_Q()",
+			v == "NELEM_GPR_WRITER_LDOP_D()",
+			v == "NELEM_GPR_READER()",
+			v == "NELEM_GPR_READER_BYTE()",
+			v == "NELEM_GPR_READER_WORD()",
+			v == "NELEM_GSCAT()",
+			v == "NELEM_HALF()",
+			v == "NELEM_FULL()",
+			v == "NELEM_FULLMEM()",
+			v == "NELEM_QUARTERMEM()",
+			v == "NELEM_EIGHTHMEM()",
+			v == "NELEM_HALFMEM()",
+			v == "NELEM_QUARTERMEM()",
+			v == "NELEM_MEM128()",
+			v == "NELEM_SCALAR()",
+			v == "NELEM_TUPLE1()",
+			v == "NELEM_TUPLE2()",
+			v == "NELEM_TUPLE4()",
+			v == "NELEM_TUPLE8()",
+			v == "NELEM_TUPLE1_4X()",
+			v == "NELEM_TUPLE1_BYTE()",
+			v == "NELEM_TUPLE1_WORD()",
+			v == "NELEM_MOVDDUP()",
+			v == "UISA_VMODRM_XMM()",
+			v == "UISA_VMODRM_YMM()",
+			v == "UISA_VMODRM_ZMM()",
+			v == "MASK=0",
+			v == "FIX_ROUND_LEN128()",
+			v == "FIX_ROUND_LEN512()",
+			v == "AVX512_ROUND()",
+			v == "ZEROING=0",
+			v == "SAE()",
+			v == "VL512", // VL=2
+			v == "not_refining_f3",
+			strings.HasPrefix(v, "MODEP5="):
 		default:
 			return errSkip(fmt.Sprintf("unknown pattern %v", v))
 		}
