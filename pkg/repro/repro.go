@@ -523,7 +523,8 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 	return ctx.testProgs([]*prog.LogEntry{&entry}, duration, opts)
 }
 
-func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, opts csource.Options) (crashed bool, err error) {
+func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, opts csource.Options) (
+	crashed bool, err error) {
 	inst := <-ctx.instances
 	if inst == nil {
 		return false, fmt.Errorf("all VMs failed to boot")
@@ -633,7 +634,8 @@ func (ctx *context) reproLog(level int, format string, args ...interface{}) {
 	ctx.stats.Log = append(ctx.stats.Log, []byte(fmt.Sprintf(format, args...)+"\n")...)
 }
 
-func (ctx *context) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.LogEntry) (bool, error)) ([]*prog.LogEntry, error) {
+func (ctx *context) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.LogEntry) (bool, error)) (
+	[]*prog.LogEntry, error) {
 	ctx.reproLog(3, "bisect: bisecting %d programs", len(progs))
 
 	compose := func(guilty1, guilty2 [][]*prog.LogEntry, chunk []*prog.LogEntry) []*prog.LogEntry {

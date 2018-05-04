@@ -32,7 +32,8 @@ type Email struct {
 
 const commandPrefix = "#syz "
 
-var groupsLinkRe = regexp.MustCompile("\nTo view this discussion on the web visit (https://groups\\.google\\.com/.*?)\\.(?:\r)?\n")
+var groupsLinkRe = regexp.MustCompile("\nTo view this discussion on the web visit" +
+	" (https://groups\\.google\\.com/.*?)\\.(?:\r)?\n")
 
 func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)

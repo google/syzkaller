@@ -4,6 +4,7 @@
 	"deadline": "10m",
 	"sort": ["path", "line"],
 	"minconstlength": 7,
+	"linelength": 120,
 	"skip": [
 		"pkg/kd"
 	],
@@ -18,7 +19,8 @@
 		"gosimple",
 		"varcheck",
 		"misspell",
-		"vet"
+		"vet",
+		"lll"
 	],
 	"exclude": [
 		"don't use underscores in Go names",
@@ -26,6 +28,7 @@
 		"exported .* should have comment",
 		"comment on .* should be of the form",
 		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* should not use dot imports",
-		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* is a misspelling of"
+		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* is a misspelling of",
+		"(pkg/ifuzz/insns.go|pkg/csource/.*_common.go|pkg/csource/gen.go|pkg/report/linux.go|pkg/kernel/generated.go|sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go).* line is [0-9]+ characters"
 	]
 }

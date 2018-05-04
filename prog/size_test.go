@@ -30,6 +30,7 @@ func TestAssignSizeRandom(t *testing.T) {
 
 func TestAssignSize(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
+	// nolint: lll
 	tests := []struct {
 		unsizedProg string
 		sizedProg   string

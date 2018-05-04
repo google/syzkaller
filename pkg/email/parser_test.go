@@ -258,6 +258,7 @@ type ParseTest struct {
 	res   Email
 }
 
+// nolint: lll
 var parseTests = []ParseTest{
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
 Message-ID: <123>

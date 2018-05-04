@@ -127,7 +127,8 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 			// but for now we just special-case timespec/timeval.
 			if cantCreate == "" && !haveGettime && target.SyscallMap["clock_gettime"] != nil {
 				ForeachType(c, func(typ Type) {
-					if a, ok := typ.(*StructType); ok && a.Dir() != DirOut && (a.Name() == "timespec" || a.Name() == "timeval") {
+					if a, ok := typ.(*StructType); ok && a.Dir() != DirOut &&
+						(a.Name() == "timespec" || a.Name() == "timeval") {
 						cantCreate = a.Name()
 						resourceCtors = []*Syscall{target.SyscallMap["clock_gettime"]}
 					}
@@ -139,7 +140,9 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 				for _, ctor := range resourceCtors {
 					ctorNames = append(ctorNames, ctor.Name)
 				}
-				disabled[c] = fmt.Sprintf("no syscalls can create resource %v, enable some syscalls that can create it %v", cantCreate, ctorNames)
+				disabled[c] = fmt.Sprintf("no syscalls can create resource %v,"+
+					" enable some syscalls that can create it %v",
+					cantCreate, ctorNames)
 			}
 		}
 		if n == len(supported) {

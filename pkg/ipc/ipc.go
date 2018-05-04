@@ -67,9 +67,10 @@ var (
 	flagSandbox     = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
 	flagDebug       = flag.Bool("debug", false, "debug output from executor")
 	flagTimeout     = flag.Duration("timeout", 0, "execution timeout")
-	flagAbortSignal = flag.Int("abort_signal", 0, "initial signal to send to executor in error conditions; upgrades to SIGKILL if executor does not exit")
-	flagBufferSize  = flag.Uint64("buffer_size", 0, "internal buffer size (in bytes) for executor output")
-	flagIPC         = flag.String("ipc", "", "ipc scheme (pipe/shmem)")
+	flagAbortSignal = flag.Int("abort_signal", 0, "initial signal to send to executor"+
+		" in error conditions; upgrades to SIGKILL if executor does not exit")
+	flagBufferSize = flag.Uint64("buffer_size", 0, "internal buffer size (in bytes) for executor output")
+	flagIPC        = flag.String("ipc", "", "ipc scheme (pipe/shmem)")
 )
 
 type ExecOpts struct {
@@ -375,7 +376,9 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 	}
 	for i := uint32(0); i < ncmd; i++ {
 		var callIndex, callNum, errno, faultInjected, signalSize, coverSize, compsSize uint32
-		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) || !readOut(&faultInjected) || !readOut(&signalSize) || !readOut(&coverSize) || !readOut(&compsSize) {
+		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) ||
+			!readOut(&faultInjected) || !readOut(&signalSize) ||
+			!readOut(&coverSize) || !readOut(&compsSize) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
 		}
@@ -386,7 +389,8 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		}
 		c := p.Calls[callIndex]
 		if num := c.Meta.ID; uint32(num) != callNum {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v call %v: expect syscall %v, got %v, executed %v (cov: %v)",
+			err0 = fmt.Errorf("executor %v: failed to read output coverage:"+
+				" record %v call %v: expect syscall %v, got %v, executed %v (cov: %v)",
 				env.pid, i, callIndex, num, callNum, ncmd, dumpCov())
 			return
 		}
