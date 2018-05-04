@@ -225,7 +225,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 	return
 }
 
-func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg /*, allowNil bool*/) (Arg, error) {
+func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 	r := ""
 	if p.Char() == '<' {
 		p.Parse('<')
@@ -233,249 +233,275 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg /*, allo
 		p.Parse('=')
 		p.Parse('>')
 	}
-	var arg Arg
-top:
-	switch p.Char() {
-	case '0':
-		val := p.Ident()
-		v, err := strconv.ParseUint(val, 0, 64)
-		if err != nil {
-			return nil, fmt.Errorf("wrong arg value '%v': %v", val, err)
-		}
-		switch typ.(type) {
-		case *ConstType, *IntType, *FlagsType, *ProcType, *LenType, *CsumType:
-			arg = MakeConstArg(typ, v)
-		case *ResourceType:
-			arg = MakeResultArg(typ, nil, v)
-		case *PtrType, *VmaType:
-			if typ.Optional() {
-				arg = MakeNullPointerArg(typ)
-			} else {
-				arg = target.defaultArg(typ)
-			}
-		default:
-			eatExcessive(p, true)
-			arg = target.defaultArg(typ)
-			break top
-		}
-	case 'r':
-		id := p.Ident()
-		var div, add uint64
-		if p.Char() == '/' {
-			p.Parse('/')
-			op := p.Ident()
-			v, err := strconv.ParseUint(op, 0, 64)
-			if err != nil {
-				return nil, fmt.Errorf("wrong result div op: '%v'", op)
-			}
-			div = v
-		}
-		if p.Char() == '+' {
-			p.Parse('+')
-			op := p.Ident()
-			v, err := strconv.ParseUint(op, 0, 64)
-			if err != nil {
-				return nil, fmt.Errorf("wrong result add op: '%v'", op)
-			}
-			add = v
-		}
-		v, ok := vars[id]
-		if !ok || v == nil {
-			arg = target.defaultArg(typ)
-			break
-		}
-		if _, ok := v.(ArgUsed); !ok {
-			arg = target.defaultArg(typ)
-			break
-		}
-		resArg := MakeResultArg(typ, v, 0)
-		resArg.OpDiv = div
-		resArg.OpAdd = add
-		arg = resArg
-	case '&':
-		var typ1 Type
-		switch t1 := typ.(type) {
-		case *PtrType:
-			typ1 = t1.Type
-		case *VmaType:
-		default:
-			eatExcessive(p, true)
-			arg = target.defaultArg(typ)
-			break top
-		}
-		p.Parse('&')
-		addr, vmaSize, err := target.parseAddr(p)
-		if err != nil {
-			return nil, err
-		}
-		var inner Arg
-		if p.Char() == '=' {
-			p.Parse('=')
-			if p.Char() == 'A' {
-				p.Parse('A')
-				p.Parse('N')
-				p.Parse('Y')
-				p.Parse('=')
-				typ = target.makeAnyPtrType(typ.Size(), typ.FieldName())
-				typ1 = target.any.array
-			}
-			inner, err = target.parseArg(typ1, p, vars)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if typ1 != nil {
-			if inner == nil {
-				inner = target.defaultArg(typ1)
-			}
-			arg = MakePointerArg(typ, addr, inner)
-		} else {
-			arg = MakeVmaPointerArg(typ, addr, vmaSize)
-		}
-	case '"', '\'':
-		if _, ok := typ.(*BufferType); !ok {
-			eatExcessive(p, true)
-			arg = target.defaultArg(typ)
-			break
-		}
-		data, err := deserializeData(p)
-		if err != nil {
-			return nil, err
-		}
-		size := ^uint64(0)
-		if p.Char() == '/' {
-			p.Parse('/')
-			sizeStr := p.Ident()
-			size, err = strconv.ParseUint(sizeStr, 0, 64)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse buffer size: %q", sizeStr)
-			}
-		}
-		if !typ.Varlen() {
-			size = typ.Size()
-		} else if size == ^uint64(0) {
-			size = uint64(len(data))
-		}
-		if typ.Dir() == DirOut {
-			arg = MakeOutDataArg(typ, size)
-		} else {
-			if diff := int(size) - len(data); diff > 0 {
-				data = append(data, make([]byte, diff)...)
-			}
-			data = data[:size]
-			arg = MakeDataArg(typ, data)
-		}
-	case '{':
-		p.Parse('{')
-		t1, ok := typ.(*StructType)
-		if !ok {
-			eatExcessive(p, false)
-			p.Parse('}')
-			arg = target.defaultArg(typ)
-			break
-		}
-		var inner []Arg
-		for i := 0; p.Char() != '}'; i++ {
-			if i >= len(t1.Fields) {
-				eatExcessive(p, false)
-				break
-			}
-			fld := t1.Fields[i]
-			if IsPad(fld) {
-				inner = append(inner, MakeConstArg(fld, 0))
-			} else {
-				arg, err := target.parseArg(fld, p, vars)
-				if err != nil {
-					return nil, err
-				}
-				inner = append(inner, arg)
-				if p.Char() != '}' {
-					p.Parse(',')
-				}
-			}
-		}
-		p.Parse('}')
-		for len(inner) < len(t1.Fields) {
-			inner = append(inner, target.defaultArg(t1.Fields[len(inner)]))
-		}
-		arg = MakeGroupArg(typ, inner)
-	case '[':
-		p.Parse('[')
-		t1, ok := typ.(*ArrayType)
-		if !ok {
-			eatExcessive(p, false)
-			p.Parse(']')
-			arg = target.defaultArg(typ)
-			break
-		}
-		var inner []Arg
-		for i := 0; p.Char() != ']'; i++ {
-			arg, err := target.parseArg(t1.Type, p, vars)
-			if err != nil {
-				return nil, err
-			}
-			inner = append(inner, arg)
-			if p.Char() != ']' {
-				p.Parse(',')
-			}
-		}
-		p.Parse(']')
-		if t1.Kind == ArrayRangeLen && t1.RangeBegin == t1.RangeEnd {
-			for uint64(len(inner)) < t1.RangeBegin {
-				inner = append(inner, target.defaultArg(t1.Type))
-			}
-			inner = inner[:t1.RangeBegin]
-		}
-		arg = MakeGroupArg(typ, inner)
-	case '@':
-		t1, ok := typ.(*UnionType)
-		if !ok {
-			eatExcessive(p, true)
-			arg = target.defaultArg(typ)
-			break
-		}
-		p.Parse('@')
-		name := p.Ident()
-		var optType Type
-		for _, t2 := range t1.Fields {
-			if name == t2.FieldName() {
-				optType = t2
-				break
-			}
-		}
-		if optType == nil {
-			eatExcessive(p, true)
-			arg = target.defaultArg(typ)
-			break
-		}
-		var opt Arg
-		if p.Char() == '=' {
-			p.Parse('=')
-			var err error
-			opt, err = target.parseArg(optType, p, vars)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			opt = target.defaultArg(optType)
-		}
-		arg = MakeUnionArg(typ, opt)
-	case 'n':
-		p.Parse('n')
-		p.Parse('i')
-		p.Parse('l')
+	arg, err := target.parseArgImpl(typ, p, vars)
+	if err != nil {
+		return nil, err
+	}
+	if arg == nil {
 		if typ != nil {
 			arg = target.defaultArg(typ)
 		} else if r != "" {
 			return nil, fmt.Errorf("named nil argument")
 		}
-	default:
-		return nil, fmt.Errorf("failed to parse argument at %v (line #%v/%v: %v)", int(p.Char()), p.l, p.i, p.s)
 	}
 	if r != "" {
 		vars[r] = arg
 	}
 	return arg, nil
+}
+
+func (target *Target) parseArgImpl(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+	switch p.Char() {
+	case '0':
+		return target.parseArgInt(typ, p)
+	case 'r':
+		return target.parseArgRes(typ, p, vars)
+	case '&':
+		return target.parseArgAddr(typ, p, vars)
+	case '"', '\'':
+		return target.parseArgString(typ, p)
+	case '{':
+		return target.parseArgStruct(typ, p, vars)
+	case '[':
+		return target.parseArgArray(typ, p, vars)
+	case '@':
+		return target.parseArgUnion(typ, p, vars)
+	case 'n':
+		p.Parse('n')
+		p.Parse('i')
+		p.Parse('l')
+		return nil, nil
+
+	default:
+		return nil, fmt.Errorf("failed to parse argument at %v (line #%v/%v: %v)",
+			int(p.Char()), p.l, p.i, p.s)
+	}
+}
+
+func (target *Target) parseArgInt(typ Type, p *parser) (Arg, error) {
+	val := p.Ident()
+	v, err := strconv.ParseUint(val, 0, 64)
+	if err != nil {
+		return nil, fmt.Errorf("wrong arg value '%v': %v", val, err)
+	}
+	switch typ.(type) {
+	case *ConstType, *IntType, *FlagsType, *ProcType, *LenType, *CsumType:
+		return MakeConstArg(typ, v), nil
+	case *ResourceType:
+		return MakeResultArg(typ, nil, v), nil
+	case *PtrType, *VmaType:
+		if typ.Optional() {
+			return MakeNullPointerArg(typ), nil
+		}
+		return target.defaultArg(typ), nil
+	default:
+		eatExcessive(p, true)
+		return target.defaultArg(typ), nil
+	}
+}
+
+func (target *Target) parseArgRes(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+	id := p.Ident()
+	var div, add uint64
+	if p.Char() == '/' {
+		p.Parse('/')
+		op := p.Ident()
+		v, err := strconv.ParseUint(op, 0, 64)
+		if err != nil {
+			return nil, fmt.Errorf("wrong result div op: '%v'", op)
+		}
+		div = v
+	}
+	if p.Char() == '+' {
+		p.Parse('+')
+		op := p.Ident()
+		v, err := strconv.ParseUint(op, 0, 64)
+		if err != nil {
+			return nil, fmt.Errorf("wrong result add op: '%v'", op)
+		}
+		add = v
+	}
+	v, ok := vars[id]
+	if !ok || v == nil {
+		return target.defaultArg(typ), nil
+	}
+	if _, ok := v.(ArgUsed); !ok {
+		return target.defaultArg(typ), nil
+	}
+	arg := MakeResultArg(typ, v, 0)
+	arg.OpDiv = div
+	arg.OpAdd = add
+	return arg, nil
+}
+
+func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+	var typ1 Type
+	switch t1 := typ.(type) {
+	case *PtrType:
+		typ1 = t1.Type
+	case *VmaType:
+	default:
+		eatExcessive(p, true)
+		return target.defaultArg(typ), nil
+	}
+	p.Parse('&')
+	addr, vmaSize, err := target.parseAddr(p)
+	if err != nil {
+		return nil, err
+	}
+	var inner Arg
+	if p.Char() == '=' {
+		p.Parse('=')
+		if p.Char() == 'A' {
+			p.Parse('A')
+			p.Parse('N')
+			p.Parse('Y')
+			p.Parse('=')
+			typ = target.makeAnyPtrType(typ.Size(), typ.FieldName())
+			typ1 = target.any.array
+		}
+		inner, err = target.parseArg(typ1, p, vars)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if typ1 == nil {
+		return MakeVmaPointerArg(typ, addr, vmaSize), nil
+	}
+	if inner == nil {
+		inner = target.defaultArg(typ1)
+	}
+	return MakePointerArg(typ, addr, inner), nil
+}
+
+func (target *Target) parseArgString(typ Type, p *parser) (Arg, error) {
+	if _, ok := typ.(*BufferType); !ok {
+		eatExcessive(p, true)
+		return target.defaultArg(typ), nil
+	}
+	data, err := deserializeData(p)
+	if err != nil {
+		return nil, err
+	}
+	size := ^uint64(0)
+	if p.Char() == '/' {
+		p.Parse('/')
+		sizeStr := p.Ident()
+		size, err = strconv.ParseUint(sizeStr, 0, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse buffer size: %q", sizeStr)
+		}
+	}
+	if !typ.Varlen() {
+		size = typ.Size()
+	} else if size == ^uint64(0) {
+		size = uint64(len(data))
+	}
+	if typ.Dir() == DirOut {
+		return MakeOutDataArg(typ, size), nil
+	}
+	if diff := int(size) - len(data); diff > 0 {
+		data = append(data, make([]byte, diff)...)
+	}
+	data = data[:size]
+	return MakeDataArg(typ, data), nil
+}
+
+func (target *Target) parseArgStruct(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+	p.Parse('{')
+	t1, ok := typ.(*StructType)
+	if !ok {
+		eatExcessive(p, false)
+		p.Parse('}')
+		return target.defaultArg(typ), nil
+	}
+	var inner []Arg
+	for i := 0; p.Char() != '}'; i++ {
+		if i >= len(t1.Fields) {
+			eatExcessive(p, false)
+			break
+		}
+		fld := t1.Fields[i]
+		if IsPad(fld) {
+			inner = append(inner, MakeConstArg(fld, 0))
+		} else {
+			arg, err := target.parseArg(fld, p, vars)
+			if err != nil {
+				return nil, err
+			}
+			inner = append(inner, arg)
+			if p.Char() != '}' {
+				p.Parse(',')
+			}
+		}
+	}
+	p.Parse('}')
+	for len(inner) < len(t1.Fields) {
+		inner = append(inner, target.defaultArg(t1.Fields[len(inner)]))
+	}
+	return MakeGroupArg(typ, inner), nil
+}
+
+func (target *Target) parseArgArray(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+	p.Parse('[')
+	t1, ok := typ.(*ArrayType)
+	if !ok {
+		eatExcessive(p, false)
+		p.Parse(']')
+		return target.defaultArg(typ), nil
+	}
+	var inner []Arg
+	for i := 0; p.Char() != ']'; i++ {
+		arg, err := target.parseArg(t1.Type, p, vars)
+		if err != nil {
+			return nil, err
+		}
+		inner = append(inner, arg)
+		if p.Char() != ']' {
+			p.Parse(',')
+		}
+	}
+	p.Parse(']')
+	if t1.Kind == ArrayRangeLen && t1.RangeBegin == t1.RangeEnd {
+		for uint64(len(inner)) < t1.RangeBegin {
+			inner = append(inner, target.defaultArg(t1.Type))
+		}
+		inner = inner[:t1.RangeBegin]
+	}
+	return MakeGroupArg(typ, inner), nil
+}
+
+func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+	t1, ok := typ.(*UnionType)
+	if !ok {
+		eatExcessive(p, true)
+		return target.defaultArg(typ), nil
+	}
+	p.Parse('@')
+	name := p.Ident()
+	var optType Type
+	for _, t2 := range t1.Fields {
+		if name == t2.FieldName() {
+			optType = t2
+			break
+		}
+	}
+	if optType == nil {
+		eatExcessive(p, true)
+		return target.defaultArg(typ), nil
+	}
+	var opt Arg
+	if p.Char() == '=' {
+		p.Parse('=')
+		var err error
+		opt, err = target.parseArg(optType, p, vars)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		opt = target.defaultArg(optType)
+	}
+	return MakeUnionArg(typ, opt), nil
 }
 
 // Eats excessive call arguments and struct fields to recover after description changes.

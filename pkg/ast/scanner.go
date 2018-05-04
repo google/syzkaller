@@ -134,14 +134,7 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		s.next()
 	case s.ch == '`':
 		tok = tokCExpr
-		for s.next(); s.ch != '`' && s.ch != '\n'; s.next() {
-		}
-		if s.ch == '\n' {
-			s.Error(pos, "C expression is not terminated")
-		} else {
-			lit = string(s.data[pos.Off+1 : s.off])
-			s.next()
-		}
+		lit = s.scanCExpr(pos)
 	case s.prev2 == tokDefine && s.prev1 == tokIdent:
 		// Note: the old form for C expressions, not really lexable.
 		// TODO(dvyukov): get rid of this eventually.
@@ -155,74 +148,16 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		}
 		lit = string(s.data[pos.Off+1 : s.off])
 	case s.ch == '"' || s.ch == '<':
-		// TODO(dvyukov): get rid of <...> strings, that's only includes
 		tok = tokString
-		closing := byte('"')
-		if s.ch == '<' {
-			closing = '>'
-		}
-		for s.next(); s.ch != closing; s.next() {
-			if s.ch == 0 || s.ch == '\n' {
-				s.Error(pos, "string literal is not terminated")
-				return
-			}
-		}
-		lit = string(s.data[pos.Off+1 : s.off])
-		for i := 0; i < len(lit); i++ {
-			if lit[i] < 0x20 || lit[i] >= 0x80 {
-				pos1 := pos
-				pos1.Col += i + 1
-				pos1.Off += i + 1
-				s.Error(pos1, "illegal character %#U in string literal", lit[i])
-				break
-			}
-		}
-		s.next()
+		lit = s.scanStr(pos)
 	case s.ch >= '0' && s.ch <= '9':
 		tok = tokInt
-		for s.ch >= '0' && s.ch <= '9' ||
-			s.ch >= 'a' && s.ch <= 'f' ||
-			s.ch >= 'A' && s.ch <= 'F' || s.ch == 'x' {
-			s.next()
-		}
-		lit = string(s.data[pos.Off:s.off])
-		bad := false
-		if _, err := strconv.ParseUint(lit, 10, 64); err != nil {
-			if len(lit) > 2 && lit[0] == '0' && lit[1] == 'x' {
-				if _, err := strconv.ParseUint(lit[2:], 16, 64); err != nil {
-					bad = true
-				}
-			} else {
-				bad = true
-			}
-		}
-		if bad {
-			s.Error(pos, fmt.Sprintf("bad integer %q", lit))
-			lit = "0"
-		}
+		lit = s.scanInt(pos)
 	case s.ch == '\'':
 		tok = tokInt
-		lit = "0"
-		s.next()
-		s.next()
-		if s.ch != '\'' {
-			s.Error(pos, "char literal is not terminated")
-			return
-		}
-		s.next()
-		lit = string(s.data[pos.Off : pos.Off+3])
+		lit = s.scanChar(pos)
 	case s.ch == '_' || s.ch >= 'a' && s.ch <= 'z' || s.ch >= 'A' && s.ch <= 'Z':
-		tok = tokIdent
-		for s.ch == '_' || s.ch == '$' ||
-			s.ch >= 'a' && s.ch <= 'z' ||
-			s.ch >= 'A' && s.ch <= 'Z' ||
-			s.ch >= '0' && s.ch <= '9' {
-			s.next()
-		}
-		lit = string(s.data[pos.Off:s.off])
-		if key, ok := keywords[lit]; ok {
-			tok = key
-		}
+		tok, lit = s.scanIdent(pos)
 	default:
 		tok = punctuation[s.ch]
 		if tok == tokIllegal {
@@ -232,6 +167,94 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 	}
 	s.prev2 = s.prev1
 	s.prev1 = tok
+	return
+}
+
+func (s *scanner) scanCExpr(pos Pos) string {
+	for s.next(); s.ch != '`' && s.ch != '\n'; s.next() {
+	}
+	if s.ch == '\n' {
+		s.Error(pos, "C expression is not terminated")
+		return ""
+	}
+	lit := string(s.data[pos.Off+1 : s.off])
+	s.next()
+	return lit
+}
+
+func (s *scanner) scanStr(pos Pos) string {
+	// TODO(dvyukov): get rid of <...> strings, that's only includes
+	closing := byte('"')
+	if s.ch == '<' {
+		closing = '>'
+	}
+	for s.next(); s.ch != closing; s.next() {
+		if s.ch == 0 || s.ch == '\n' {
+			s.Error(pos, "string literal is not terminated")
+			return ""
+		}
+	}
+	lit := string(s.data[pos.Off+1 : s.off])
+	for i := 0; i < len(lit); i++ {
+		if lit[i] < 0x20 || lit[i] >= 0x80 {
+			pos1 := pos
+			pos1.Col += i + 1
+			pos1.Off += i + 1
+			s.Error(pos1, "illegal character %#U in string literal", lit[i])
+			break
+		}
+	}
+	s.next()
+	return lit
+}
+
+func (s *scanner) scanInt(pos Pos) string {
+	for s.ch >= '0' && s.ch <= '9' ||
+		s.ch >= 'a' && s.ch <= 'f' ||
+		s.ch >= 'A' && s.ch <= 'F' || s.ch == 'x' {
+		s.next()
+	}
+	lit := string(s.data[pos.Off:s.off])
+	bad := false
+	if _, err := strconv.ParseUint(lit, 10, 64); err != nil {
+		if len(lit) > 2 && lit[0] == '0' && lit[1] == 'x' {
+			if _, err := strconv.ParseUint(lit[2:], 16, 64); err != nil {
+				bad = true
+			}
+		} else {
+			bad = true
+		}
+	}
+	if bad {
+		s.Error(pos, fmt.Sprintf("bad integer %q", lit))
+		lit = "0"
+	}
+	return lit
+}
+
+func (s *scanner) scanChar(pos Pos) string {
+	s.next()
+	s.next()
+	if s.ch != '\'' {
+		s.Error(pos, "char literal is not terminated")
+		return "0"
+	}
+	s.next()
+	return string(s.data[pos.Off : pos.Off+3])
+}
+
+func (s *scanner) scanIdent(pos Pos) (tok token, lit string) {
+	tok = tokIdent
+	for s.ch == '_' || s.ch == '$' ||
+		s.ch >= 'a' && s.ch <= 'z' ||
+		s.ch >= 'A' && s.ch <= 'Z' ||
+		s.ch >= '0' && s.ch <= '9' {
+		s.next()
+	}
+	lit = string(s.data[pos.Off:s.off])
+	if key, ok := keywords[lit]; ok {
+		tok = key
+	}
 	return
 }
 

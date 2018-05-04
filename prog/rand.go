@@ -511,163 +511,182 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 		}
 	}
 
-	switch a := typ.(type) {
-	case *ResourceType:
-		switch {
-		case r.nOutOf(1000, 1011):
-			// Get an existing resource.
-			var allres []Arg
-			for name1, res1 := range s.resources {
-				if name1 == "iocbptr" {
-					continue
-				}
-				if r.target.isCompatibleResource(a.Desc.Name, name1) ||
-					r.oneOf(20) && r.target.isCompatibleResource(a.Desc.Kind[0], name1) {
-					allres = append(allres, res1...)
-				}
-			}
-			if len(allres) != 0 {
-				arg = MakeResultArg(a, allres[r.Intn(len(allres))], 0)
-			} else {
-				arg, calls = r.createResource(s, a)
-			}
-		case r.nOutOf(10, 11):
-			// Create a new resource.
-			arg, calls = r.createResource(s, a)
-		default:
-			special := a.SpecialValues()
-			arg = MakeResultArg(a, nil, special[r.Intn(len(special))])
-		}
-		return arg, calls
-	case *BufferType:
-		switch a.Kind {
-		case BufferBlobRand, BufferBlobRange:
-			sz := r.randBufLen()
-			if a.Kind == BufferBlobRange {
-				sz = r.randRange(a.RangeBegin, a.RangeEnd)
-			}
-			if a.Dir() == DirOut {
-				return MakeOutDataArg(a, sz), nil
-			}
-			data := make([]byte, sz)
-			for i := range data {
-				data[i] = byte(r.Intn(256))
-			}
-			return MakeDataArg(a, data), nil
-		case BufferString:
-			data := r.randString(s, a)
-			if a.Dir() == DirOut {
-				return MakeOutDataArg(a, uint64(len(data))), nil
-			}
-			return MakeDataArg(a, data), nil
-		case BufferFilename:
-			if a.Dir() == DirOut {
-				var sz uint64
-				switch {
-				case !a.Varlen():
-					sz = a.Size()
-				case r.nOutOf(1, 3):
-					sz = r.rand(100)
-				case r.nOutOf(1, 2):
-					sz = 108 // UNIX_PATH_MAX
-				default:
-					sz = 4096 // PATH_MAX
-				}
-				return MakeOutDataArg(a, sz), nil
-			}
-			return MakeDataArg(a, []byte(r.filename(s, a))), nil
-		case BufferText:
-			if a.Dir() == DirOut {
-				return MakeOutDataArg(a, uint64(r.Intn(100))), nil
-			}
-			return MakeDataArg(a, r.generateText(a.Text)), nil
-		default:
-			panic("unknown buffer kind")
-		}
-	case *VmaType:
-		npages := r.randPageCount()
-		if a.RangeBegin != 0 || a.RangeEnd != 0 {
-			npages = a.RangeBegin + uint64(r.Intn(int(a.RangeEnd-a.RangeBegin+1)))
-		}
-		arg := r.allocVMA(s, a, npages)
-		return arg, nil
-	case *FlagsType:
-		return MakeConstArg(a, r.flags(a.Vals)), nil
-	case *ConstType:
-		return MakeConstArg(a, a.Val), nil
-	case *IntType:
-		v := r.randInt()
-		switch a.Kind {
-		case IntFileoff:
-			switch {
-			case r.nOutOf(90, 101):
-				v = 0
-			case r.nOutOf(10, 11):
-				v = r.rand(100)
-			default:
-				v = r.randInt()
-			}
-		case IntRange:
-			v = r.randRangeInt(a.RangeBegin, a.RangeEnd)
-		}
-		return MakeConstArg(a, v), nil
-	case *ProcType:
-		return MakeConstArg(a, r.rand(int(a.ValuesPerProc))), nil
-	case *ArrayType:
-		var count uint64
-		switch a.Kind {
-		case ArrayRandLen:
-			count = r.randArrayLen()
-		case ArrayRangeLen:
-			count = r.randRange(a.RangeBegin, a.RangeEnd)
-		}
-		var inner []Arg
-		var calls []*Call
-		for i := uint64(0); i < count; i++ {
-			arg1, calls1 := r.generateArg(s, a.Type)
-			inner = append(inner, arg1)
-			calls = append(calls, calls1...)
-		}
-		return MakeGroupArg(a, inner), calls
-	case *StructType:
-		if !ignoreSpecial {
-			if gen := r.target.SpecialTypes[a.Name()]; gen != nil && a.Dir() != DirOut {
-				arg, calls = gen(&Gen{r, s}, a, nil)
-				return
+	if !ignoreSpecial && typ.Dir() != DirOut {
+		switch typ.(type) {
+		case *StructType, *UnionType:
+			if gen := r.target.SpecialTypes[typ.Name()]; gen != nil {
+				return gen(&Gen{r, s}, typ, nil)
 			}
 		}
-		args, calls := r.generateArgs(s, a.Fields)
-		group := MakeGroupArg(a, args)
-		return group, calls
-	case *UnionType:
-		if !ignoreSpecial {
-			if gen := r.target.SpecialTypes[a.Name()]; gen != nil && a.Dir() != DirOut {
-				arg, calls = gen(&Gen{r, s}, a, nil)
-				return
-			}
-		}
-		optType := a.Fields[r.Intn(len(a.Fields))]
-		opt, calls := r.generateArg(s, optType)
-		return MakeUnionArg(a, opt), calls
-	case *PtrType:
-		inner, calls := r.generateArg(s, a.Type)
-		// TODO(dvyukov): remove knowledge about iocb from prog.
-		if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
-			// It is weird, but these are actually identified by kernel by address.
-			// So try to reuse a previously used address.
-			addrs := s.resources["iocbptr"]
-			addr := addrs[r.Intn(len(addrs))].(*PointerArg)
-			arg = MakePointerArg(a, addr.Address, inner)
-			return arg, calls
-		}
-		arg := r.allocAddr(s, a, inner.Size(), inner)
-		return arg, calls
-	case *LenType:
-		// Return placeholder value of 0 while generating len arg.
-		return MakeConstArg(a, 0), nil
-	case *CsumType:
-		return MakeConstArg(a, 0), nil
-	default:
-		panic("unknown argument type")
 	}
+
+	return typ.generate(r, s)
+}
+
+func (a *ResourceType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	switch {
+	case r.nOutOf(1000, 1011):
+		// Get an existing resource.
+		var allres []Arg
+		for name1, res1 := range s.resources {
+			if name1 == "iocbptr" {
+				continue
+			}
+			if r.target.isCompatibleResource(a.Desc.Name, name1) ||
+				r.oneOf(20) && r.target.isCompatibleResource(a.Desc.Kind[0], name1) {
+				allres = append(allres, res1...)
+			}
+		}
+		if len(allres) != 0 {
+			arg = MakeResultArg(a, allres[r.Intn(len(allres))], 0)
+		} else {
+			arg, calls = r.createResource(s, a)
+		}
+	case r.nOutOf(10, 11):
+		// Create a new resource.
+		arg, calls = r.createResource(s, a)
+	default:
+		special := a.SpecialValues()
+		arg = MakeResultArg(a, nil, special[r.Intn(len(special))])
+	}
+	return arg, calls
+}
+
+func (a *BufferType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	switch a.Kind {
+	case BufferBlobRand, BufferBlobRange:
+		sz := r.randBufLen()
+		if a.Kind == BufferBlobRange {
+			sz = r.randRange(a.RangeBegin, a.RangeEnd)
+		}
+		if a.Dir() == DirOut {
+			return MakeOutDataArg(a, sz), nil
+		}
+		data := make([]byte, sz)
+		for i := range data {
+			data[i] = byte(r.Intn(256))
+		}
+		return MakeDataArg(a, data), nil
+	case BufferString:
+		data := r.randString(s, a)
+		if a.Dir() == DirOut {
+			return MakeOutDataArg(a, uint64(len(data))), nil
+		}
+		return MakeDataArg(a, data), nil
+	case BufferFilename:
+		if a.Dir() == DirOut {
+			var sz uint64
+			switch {
+			case !a.Varlen():
+				sz = a.Size()
+			case r.nOutOf(1, 3):
+				sz = r.rand(100)
+			case r.nOutOf(1, 2):
+				sz = 108 // UNIX_PATH_MAX
+			default:
+				sz = 4096 // PATH_MAX
+			}
+			return MakeOutDataArg(a, sz), nil
+		}
+		return MakeDataArg(a, []byte(r.filename(s, a))), nil
+	case BufferText:
+		if a.Dir() == DirOut {
+			return MakeOutDataArg(a, uint64(r.Intn(100))), nil
+		}
+		return MakeDataArg(a, r.generateText(a.Text)), nil
+	default:
+		panic("unknown buffer kind")
+	}
+}
+
+func (a *VmaType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	npages := r.randPageCount()
+	if a.RangeBegin != 0 || a.RangeEnd != 0 {
+		npages = a.RangeBegin + uint64(r.Intn(int(a.RangeEnd-a.RangeBegin+1)))
+	}
+	return r.allocVMA(s, a, npages), nil
+}
+
+func (a *FlagsType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	return MakeConstArg(a, r.flags(a.Vals)), nil
+}
+
+func (a *ConstType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	return MakeConstArg(a, a.Val), nil
+}
+
+func (a *IntType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	v := r.randInt()
+	switch a.Kind {
+	case IntFileoff:
+		switch {
+		case r.nOutOf(90, 101):
+			v = 0
+		case r.nOutOf(10, 11):
+			v = r.rand(100)
+		default:
+			v = r.randInt()
+		}
+	case IntRange:
+		v = r.randRangeInt(a.RangeBegin, a.RangeEnd)
+	}
+	return MakeConstArg(a, v), nil
+}
+
+func (a *ProcType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	return MakeConstArg(a, r.rand(int(a.ValuesPerProc))), nil
+}
+
+func (a *ArrayType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	var count uint64
+	switch a.Kind {
+	case ArrayRandLen:
+		count = r.randArrayLen()
+	case ArrayRangeLen:
+		count = r.randRange(a.RangeBegin, a.RangeEnd)
+	}
+	var inner []Arg
+	for i := uint64(0); i < count; i++ {
+		arg1, calls1 := r.generateArg(s, a.Type)
+		inner = append(inner, arg1)
+		calls = append(calls, calls1...)
+	}
+	return MakeGroupArg(a, inner), calls
+}
+
+func (a *StructType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	args, calls := r.generateArgs(s, a.Fields)
+	group := MakeGroupArg(a, args)
+	return group, calls
+}
+
+func (a *UnionType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	optType := a.Fields[r.Intn(len(a.Fields))]
+	opt, calls := r.generateArg(s, optType)
+	return MakeUnionArg(a, opt), calls
+}
+
+func (a *PtrType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	inner, calls := r.generateArg(s, a.Type)
+	// TODO(dvyukov): remove knowledge about iocb from prog.
+	if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
+		// It is weird, but these are actually identified by kernel by address.
+		// So try to reuse a previously used address.
+		addrs := s.resources["iocbptr"]
+		addr := addrs[r.Intn(len(addrs))].(*PointerArg)
+		arg = MakePointerArg(a, addr.Address, inner)
+		return arg, calls
+	}
+	arg = r.allocAddr(s, a, inner.Size(), inner)
+	return arg, calls
+}
+
+func (a *LenType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	// Updated later in assignSizesCall.
+	return MakeConstArg(a, 0), nil
+}
+
+func (a *CsumType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	// Updated later in calcChecksumsCall.
+	return MakeConstArg(a, 0), nil
 }

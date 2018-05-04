@@ -49,6 +49,8 @@ type Type interface {
 	BitfieldOffset() uint64
 	BitfieldLength() uint64
 	BitfieldMiddle() bool // returns true for all but last bitfield in a group
+
+	generate(r *randGen, s *state) (arg Arg, calls []*Call)
 }
 
 func IsPad(t Type) bool {

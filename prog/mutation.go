@@ -343,223 +343,220 @@ func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
 }
 
 func mutateData(r *randGen, data []byte, minLen, maxLen uint64) []byte {
-	const maxInc = 35
-	retry := false
-loop:
-	for stop := false; !stop || retry; stop = r.oneOf(3) {
-		retry = false
-		// TODO(dvyukov): duplicate part of data.
-		switch r.Intn(7) {
-		case 0:
-			// Flip bit in byte.
-			if len(data) == 0 {
-				retry = true
-				continue loop
-			}
-			byt := r.Intn(len(data))
-			bit := r.Intn(8)
-			data[byt] ^= 1 << uint(bit)
-		case 1:
-			// Insert random bytes.
-			if len(data) == 0 || uint64(len(data)) >= maxLen {
-				retry = true
-				continue loop
-			}
-			n := r.Intn(16) + 1
-			if r := int(maxLen) - len(data); n > r {
-				n = r
-			}
-			pos := r.Intn(len(data))
-			for i := 0; i < n; i++ {
-				data = append(data, 0)
-			}
-			copy(data[pos+n:], data[pos:])
-			for i := 0; i < n; i++ {
-				data[pos+i] = byte(r.Int31())
-			}
-			if r.bin() {
-				data = data[:len(data)-n] // preserve original length
-			}
-		case 2:
-			// Remove bytes.
-			if uint64(len(data)) <= minLen {
-				retry = true
-				continue loop
-			}
-			n := r.Intn(16) + 1
-			if n > len(data) {
-				n = len(data)
-			}
-			pos := 0
-			if n < len(data) {
-				pos = r.Intn(len(data) - n)
-			}
-			copy(data[pos:], data[pos+n:])
-			data = data[:len(data)-n]
-			if r.bin() {
-				for i := 0; i < n; i++ {
-					data = append(data, 0) // preserve original length
-				}
-			}
-		case 3:
-			// Append a bunch of bytes.
-			if uint64(len(data)) >= maxLen {
-				retry = true
-				continue loop
-			}
-			const max = 256
-			n := max - r.biasedRand(max, 10)
-			if r := int(maxLen) - len(data); n > r {
-				n = r
-			}
-			for i := 0; i < n; i++ {
-				data = append(data, byte(r.rand(256)))
-			}
-		case 4:
-			// Replace int8/int16/int32/int64 with a random value.
-			switch r.Intn(4) {
-			case 0: // int8
-				if len(data) == 0 {
-					retry = true
-					continue loop
-				}
-				data[r.Intn(len(data))] = byte(r.rand(1 << 8))
-			case 1: // int16
-				if len(data) < 2 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 1)
-				p := (*uint16)(unsafe.Pointer(&data[i]))
-				*p = uint16(r.rand(1 << 16))
-			case 2: // int32
-				if len(data) < 4 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 3)
-				p := (*uint32)(unsafe.Pointer(&data[i]))
-				*p = r.Uint32()
-			case 3: // int64
-				if len(data) < 8 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 7)
-				p := (*uint64)(unsafe.Pointer(&data[i]))
-				*p = r.Uint64()
-			}
-		case 5:
-			// Add/subtract from an int8/int16/int32/int64.
-			switch r.Intn(4) {
-			case 0: // int8
-				if len(data) == 0 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data))
-				delta := byte(r.rand(2*maxInc+1) - maxInc)
-				if delta == 0 {
-					delta = 1
-				}
-				data[i] += delta
-			case 1: // int16
-				if len(data) < 2 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 1)
-				p := (*uint16)(unsafe.Pointer(&data[i]))
-				delta := uint16(r.rand(2*maxInc+1) - maxInc)
-				if delta == 0 {
-					delta = 1
-				}
-				if r.oneOf(10) {
-					*p = swap16(swap16(*p) + delta)
-				} else {
-					*p += delta
-				}
-			case 2: // int32
-				if len(data) < 4 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 3)
-				p := (*uint32)(unsafe.Pointer(&data[i]))
-				delta := uint32(r.rand(2*maxInc+1) - maxInc)
-				if delta == 0 {
-					delta = 1
-				}
-				if r.oneOf(10) {
-					*p = swap32(swap32(*p) + delta)
-				} else {
-					*p += delta
-				}
-			case 3: // int64
-				if len(data) < 8 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 7)
-				p := (*uint64)(unsafe.Pointer(&data[i]))
-				delta := r.rand(2*maxInc+1) - maxInc
-				if delta == 0 {
-					delta = 1
-				}
-				if r.oneOf(10) {
-					*p = swap64(swap64(*p) + delta)
-				} else {
-					*p += delta
-				}
-			}
-		case 6:
-			// Set int8/int16/int32/int64 to an interesting value.
-			switch r.Intn(4) {
-			case 0: // int8
-				if len(data) == 0 {
-					retry = true
-					continue loop
-				}
-				data[r.Intn(len(data))] = byte(r.randInt())
-			case 1: // int16
-				if len(data) < 2 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 1)
-				value := uint16(r.randInt())
-				if r.oneOf(10) {
-					value = swap16(value)
-				}
-				*(*uint16)(unsafe.Pointer(&data[i])) = value
-			case 2: // int32
-				if len(data) < 4 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 3)
-				value := uint32(r.randInt())
-				if r.oneOf(10) {
-					value = swap32(value)
-				}
-				*(*uint32)(unsafe.Pointer(&data[i])) = value
-			case 3: // int64
-				if len(data) < 8 {
-					retry = true
-					continue loop
-				}
-				i := r.Intn(len(data) - 7)
-				value := r.randInt()
-				if r.oneOf(10) {
-					value = swap64(value)
-				}
-				*(*uint64)(unsafe.Pointer(&data[i])) = value
-			}
-		default:
-			panic("bad")
-		}
+	for stop := false; !stop; stop = stop && r.oneOf(3) {
+		f := mutateDataFuncs[r.Intn(len(mutateDataFuncs))]
+		data, stop = f(r, data, minLen, maxLen)
 	}
 	return data
+}
+
+const maxInc = 35
+
+var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool){
+	// TODO(dvyukov): duplicate part of data.
+	// Flip bit in byte.
+	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
+		if len(data) == 0 {
+			return data, false
+		}
+		byt := r.Intn(len(data))
+		bit := r.Intn(8)
+		data[byt] ^= 1 << uint(bit)
+		return data, true
+	},
+	// Insert random bytes.
+	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
+		if len(data) == 0 || uint64(len(data)) >= maxLen {
+			return data, false
+		}
+		n := r.Intn(16) + 1
+		if r := int(maxLen) - len(data); n > r {
+			n = r
+		}
+		pos := r.Intn(len(data))
+		for i := 0; i < n; i++ {
+			data = append(data, 0)
+		}
+		copy(data[pos+n:], data[pos:])
+		for i := 0; i < n; i++ {
+			data[pos+i] = byte(r.Int31())
+		}
+		if r.bin() {
+			data = data[:len(data)-n] // preserve original length
+		}
+		return data, true
+	},
+	// Remove bytes.
+	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
+		if uint64(len(data)) <= minLen {
+			return data, false
+		}
+		n := r.Intn(16) + 1
+		if n > len(data) {
+			n = len(data)
+		}
+		pos := 0
+		if n < len(data) {
+			pos = r.Intn(len(data) - n)
+		}
+		copy(data[pos:], data[pos+n:])
+		data = data[:len(data)-n]
+		if r.bin() {
+			for i := 0; i < n; i++ {
+				data = append(data, 0) // preserve original length
+			}
+		}
+		return data, true
+	},
+	// Append a bunch of bytes.
+	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
+		if uint64(len(data)) >= maxLen {
+			return data, false
+		}
+		const max = 256
+		n := max - r.biasedRand(max, 10)
+		if r := int(maxLen) - len(data); n > r {
+			n = r
+		}
+		for i := 0; i < n; i++ {
+			data = append(data, byte(r.rand(256)))
+		}
+		return data, true
+	},
+	// Replace int8/int16/int32/int64 with a random value.
+	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
+		switch r.Intn(4) {
+		case 0: // int8
+			if len(data) == 0 {
+				return data, false
+			}
+			data[r.Intn(len(data))] = byte(r.rand(1 << 8))
+		case 1: // int16
+			if len(data) < 2 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 1)
+			p := (*uint16)(unsafe.Pointer(&data[i]))
+			*p = uint16(r.rand(1 << 16))
+		case 2: // int32
+			if len(data) < 4 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 3)
+			p := (*uint32)(unsafe.Pointer(&data[i]))
+			*p = r.Uint32()
+		case 3: // int64
+			if len(data) < 8 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 7)
+			p := (*uint64)(unsafe.Pointer(&data[i]))
+			*p = r.Uint64()
+		}
+		return data, true
+	},
+	// Add/subtract from an int8/int16/int32/int64.
+	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
+		switch r.Intn(4) {
+		case 0: // int8
+			if len(data) == 0 {
+				return data, false
+			}
+			i := r.Intn(len(data))
+			delta := byte(r.rand(2*maxInc+1) - maxInc)
+			if delta == 0 {
+				delta = 1
+			}
+			data[i] += delta
+		case 1: // int16
+			if len(data) < 2 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 1)
+			p := (*uint16)(unsafe.Pointer(&data[i]))
+			delta := uint16(r.rand(2*maxInc+1) - maxInc)
+			if delta == 0 {
+				delta = 1
+			}
+			if r.oneOf(10) {
+				*p = swap16(swap16(*p) + delta)
+			} else {
+				*p += delta
+			}
+		case 2: // int32
+			if len(data) < 4 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 3)
+			p := (*uint32)(unsafe.Pointer(&data[i]))
+			delta := uint32(r.rand(2*maxInc+1) - maxInc)
+			if delta == 0 {
+				delta = 1
+			}
+			if r.oneOf(10) {
+				*p = swap32(swap32(*p) + delta)
+			} else {
+				*p += delta
+			}
+		case 3: // int64
+			if len(data) < 8 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 7)
+			p := (*uint64)(unsafe.Pointer(&data[i]))
+			delta := r.rand(2*maxInc+1) - maxInc
+			if delta == 0 {
+				delta = 1
+			}
+			if r.oneOf(10) {
+				*p = swap64(swap64(*p) + delta)
+			} else {
+				*p += delta
+			}
+		}
+		return data, true
+	},
+	// Set int8/int16/int32/int64 to an interesting value.
+	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
+		switch r.Intn(4) {
+		case 0: // int8
+			if len(data) == 0 {
+				return data, false
+			}
+			data[r.Intn(len(data))] = byte(r.randInt())
+		case 1: // int16
+			if len(data) < 2 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 1)
+			value := uint16(r.randInt())
+			if r.oneOf(10) {
+				value = swap16(value)
+			}
+			*(*uint16)(unsafe.Pointer(&data[i])) = value
+		case 2: // int32
+			if len(data) < 4 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 3)
+			value := uint32(r.randInt())
+			if r.oneOf(10) {
+				value = swap32(value)
+			}
+			*(*uint32)(unsafe.Pointer(&data[i])) = value
+		case 3: // int64
+			if len(data) < 8 {
+				return data, false
+			}
+			i := r.Intn(len(data) - 7)
+			value := r.randInt()
+			if r.oneOf(10) {
+				value = swap64(value)
+			}
+			*(*uint64)(unsafe.Pointer(&data[i])) = value
+		}
+		return data, true
+	},
 }
 
 func swap16(v uint16) uint16 {

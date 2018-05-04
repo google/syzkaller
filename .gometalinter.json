@@ -5,6 +5,7 @@
 	"sort": ["path", "line"],
 	"minconstlength": 7,
 	"linelength": 120,
+	"cyclo": 50,
 	"skip": [
 		"pkg/kd"
 	],
@@ -19,6 +20,7 @@
 		"gosimple",
 		"varcheck",
 		"misspell",
+		"gocyclo",
 		"vet",
 		"lll"
 	],
