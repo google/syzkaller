@@ -12,10 +12,14 @@ import (
 
 func TestIsComplexPtr(t *testing.T) {
 	target, rs, _ := initRandomTargetTest(t, "linux", "amd64")
+	iters := 10
+	if testing.Short() {
+		iters = 1
+	}
 	r := newRand(target, rs)
 	compl := make(map[string]bool)
 	for _, meta := range target.Syscalls {
-		for i := 0; i < 10; i++ {
+		for i := 0; i < iters; i++ {
 			s := newState(target, nil)
 			calls := r.generateParticularCall(s, meta)
 			p := &Prog{Target: target, Calls: calls}

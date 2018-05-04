@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 )
 
@@ -194,10 +195,10 @@ func BenchmarkMutate(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	prios := target.CalculatePriorities(nil)
-	ct := target.BuildChoiceTable(prios, nil)
+	ct := linuxAmd64ChoiceTable(target)
 	const progLen = 30
 	p := target.Generate(rand.NewSource(0), progLen, nil)
+	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		rs := rand.NewSource(0)
 		for pb.Next() {
@@ -214,13 +215,25 @@ func BenchmarkGenerate(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	prios := target.CalculatePriorities(nil)
-	ct := target.BuildChoiceTable(prios, nil)
+	ct := linuxAmd64ChoiceTable(target)
 	const progLen = 30
+	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		rs := rand.NewSource(0)
 		for pb.Next() {
 			target.Generate(rs, progLen, ct)
 		}
 	})
+}
+
+var (
+	linuxCTOnce sync.Once
+	linuxCT     *ChoiceTable
+)
+
+func linuxAmd64ChoiceTable(target *Target) *ChoiceTable {
+	linuxCTOnce.Do(func() {
+		linuxCT = target.BuildChoiceTable(target.CalculatePriorities(nil), nil)
+	})
+	return linuxCT
 }
