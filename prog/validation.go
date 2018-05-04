@@ -34,7 +34,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 		return fmt.Errorf("call does not have meta information")
 	}
 	if len(c.Args) != len(c.Meta.Args) {
-		return fmt.Errorf("syscall %v: wrong number of arguments, want %v, got %v", c.Meta.Name, len(c.Meta.Args), len(c.Args))
+		return fmt.Errorf("syscall %v: wrong number of arguments, want %v, got %v",
+			c.Meta.Name, len(c.Meta.Args), len(c.Args))
 	}
 	var checkArg func(arg Arg) error
 	checkArg = func(arg Arg) error {
@@ -67,7 +68,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 					break
 				}
 				if a.Val != 0 && a.Val != a.Type().Default() {
-					return fmt.Errorf("syscall %v: output arg '%v'/'%v' has non default value '%+v'", c.Meta.Name, a.Type().FieldName(), a.Type().Name(), a)
+					return fmt.Errorf("syscall %v: output arg '%v'/'%v' has non default value '%+v'",
+						c.Meta.Name, a.Type().FieldName(), a.Type().Name(), a)
 				}
 			case *DataArg:
 				if len(a.data) != 0 {
@@ -81,21 +83,25 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			switch a := arg.(type) {
 			case *ConstArg:
 				if a.Type().Dir() == DirOut && (a.Val != 0 && a.Val != a.Type().Default()) {
-					return fmt.Errorf("syscall %v: out int arg '%v' has bad const value %v", c.Meta.Name, a.Type().Name(), a.Val)
+					return fmt.Errorf("syscall %v: out int arg '%v' has bad const value %v",
+						c.Meta.Name, a.Type().Name(), a.Val)
 				}
 			case *ReturnArg:
 			default:
-				return fmt.Errorf("syscall %v: int arg '%v' has bad kind %v", c.Meta.Name, arg.Type().Name(), arg)
+				return fmt.Errorf("syscall %v: int arg '%v' has bad kind %v",
+					c.Meta.Name, arg.Type().Name(), arg)
 			}
 		case *ResourceType:
 			switch a := arg.(type) {
 			case *ResultArg:
 				if a.Type().Dir() == DirOut && (a.Val != 0 && a.Val != a.Type().Default()) {
-					return fmt.Errorf("syscall %v: out resource arg '%v' has bad const value %v", c.Meta.Name, a.Type().Name(), a.Val)
+					return fmt.Errorf("syscall %v: out resource arg '%v' has bad const value %v",
+						c.Meta.Name, a.Type().Name(), a.Val)
 				}
 			case *ReturnArg:
 			default:
-				return fmt.Errorf("syscall %v: fd arg '%v' has bad kind %v", c.Meta.Name, arg.Type().Name(), arg)
+				return fmt.Errorf("syscall %v: fd arg '%v' has bad kind %v",
+					c.Meta.Name, arg.Type().Name(), arg)
 			}
 		case *StructType, *ArrayType:
 			switch arg.(type) {
@@ -108,16 +114,19 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			switch arg.(type) {
 			case *UnionArg:
 			default:
-				return fmt.Errorf("syscall %v: union arg '%v' has bad kind %v", c.Meta.Name, arg.Type().Name(), arg)
+				return fmt.Errorf("syscall %v: union arg '%v' has bad kind %v",
+					c.Meta.Name, arg.Type().Name(), arg)
 			}
 		case *ProcType:
 			switch a := arg.(type) {
 			case *ConstArg:
 				if a.Val >= typ1.ValuesPerProc && a.Val != typ1.Default() {
-					return fmt.Errorf("syscall %v: per proc arg '%v' has bad value '%v'", c.Meta.Name, a.Type().Name(), a.Val)
+					return fmt.Errorf("syscall %v: per proc arg '%v' has bad value '%v'",
+						c.Meta.Name, a.Type().Name(), a.Val)
 				}
 			default:
-				return fmt.Errorf("syscall %v: proc arg '%v' has bad kind %v", c.Meta.Name, arg.Type().Name(), arg)
+				return fmt.Errorf("syscall %v: proc arg '%v' has bad kind %v",
+					c.Meta.Name, arg.Type().Name(), arg)
 			}
 		case *BufferType:
 			switch a := arg.(type) {
@@ -130,28 +139,34 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 					}
 				}
 			default:
-				return fmt.Errorf("syscall %v: buffer arg '%v' has bad kind %v", c.Meta.Name, arg.Type().Name(), arg)
+				return fmt.Errorf("syscall %v: buffer arg '%v' has bad kind %v",
+					c.Meta.Name, arg.Type().Name(), arg)
 			}
 		case *CsumType:
 			switch a := arg.(type) {
 			case *ConstArg:
 				if a.Val != 0 {
-					return fmt.Errorf("syscall %v: csum arg '%v' has nonzero value %v", c.Meta.Name, a.Type().Name(), a.Val)
+					return fmt.Errorf("syscall %v: csum arg '%v' has nonzero value %v",
+						c.Meta.Name, a.Type().Name(), a.Val)
 				}
 			default:
-				return fmt.Errorf("syscall %v: csum arg '%v' has bad kind %v", c.Meta.Name, arg.Type().Name(), arg)
+				return fmt.Errorf("syscall %v: csum arg '%v' has bad kind %v",
+					c.Meta.Name, arg.Type().Name(), arg)
 			}
 		case *PtrType:
 			switch a := arg.(type) {
 			case *PointerArg:
 				if a.Type().Dir() == DirOut {
-					return fmt.Errorf("syscall %v: pointer arg '%v' has output direction", c.Meta.Name, a.Type().Name())
+					return fmt.Errorf("syscall %v: pointer arg '%v' has output direction",
+						c.Meta.Name, a.Type().Name())
 				}
 				if a.Res == nil && !a.Type().Optional() {
-					return fmt.Errorf("syscall %v: non optional pointer arg '%v' is nil", c.Meta.Name, a.Type().Name())
+					return fmt.Errorf("syscall %v: non optional pointer arg '%v' is nil",
+						c.Meta.Name, a.Type().Name())
 				}
 			default:
-				return fmt.Errorf("syscall %v: ptr arg '%v' has bad kind %v", c.Meta.Name, arg.Type().Name(), arg)
+				return fmt.Errorf("syscall %v: ptr arg '%v' has bad kind %v",
+					c.Meta.Name, arg.Type().Name(), arg)
 			}
 		}
 		switch a := arg.(type) {
@@ -169,7 +184,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			switch t := a.Type().(type) {
 			case *VmaType:
 				if a.Res != nil {
-					return fmt.Errorf("syscall %v: vma arg '%v' has data", c.Meta.Name, a.Type().Name())
+					return fmt.Errorf("syscall %v: vma arg '%v' has data",
+						c.Meta.Name, a.Type().Name())
 				}
 				if a.VmaSize == 0 && t.Dir() != DirOut && !t.Optional() {
 					return fmt.Errorf("syscall %v: vma arg '%v' has size 0",
@@ -186,7 +202,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 						c.Meta.Name, a.Type().Name())
 				}
 			default:
-				return fmt.Errorf("syscall %v: pointer arg '%v' has bad meta type %+v", c.Meta.Name, arg.Type().Name(), arg.Type())
+				return fmt.Errorf("syscall %v: pointer arg '%v' has bad meta type %+v",
+					c.Meta.Name, arg.Type().Name(), arg.Type())
 			}
 		case *DataArg:
 			typ1 := a.Type()
@@ -205,7 +222,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			switch typ1 := a.Type().(type) {
 			case *StructType:
 				if len(a.Inner) != len(typ1.Fields) {
-					return fmt.Errorf("syscall %v: struct arg '%v' has wrong number of fields: want %v, got %v", c.Meta.Name, a.Type().Name(), len(typ1.Fields), len(a.Inner))
+					return fmt.Errorf("syscall %v: struct arg '%v' has wrong number of fields: want %v, got %v",
+						c.Meta.Name, a.Type().Name(), len(typ1.Fields), len(a.Inner))
 				}
 				for _, arg1 := range a.Inner {
 					if err := checkArg(arg1); err != nil {
@@ -226,12 +244,14 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 					}
 				}
 			default:
-				return fmt.Errorf("syscall %v: group arg '%v' has bad underlying type %+v", c.Meta.Name, arg.Type().Name(), arg.Type())
+				return fmt.Errorf("syscall %v: group arg '%v' has bad underlying type %+v",
+					c.Meta.Name, arg.Type().Name(), arg.Type())
 			}
 		case *UnionArg:
 			typ1, ok := a.Type().(*UnionType)
 			if !ok {
-				return fmt.Errorf("syscall %v: union arg '%v' has bad type", c.Meta.Name, a.Type().Name())
+				return fmt.Errorf("syscall %v: union arg '%v' has bad type",
+					c.Meta.Name, a.Type().Name())
 			}
 			found := false
 			for _, typ2 := range typ1.Fields {
@@ -241,7 +261,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 				}
 			}
 			if !found {
-				return fmt.Errorf("syscall %v: union arg '%v' has bad option", c.Meta.Name, a.Type().Name())
+				return fmt.Errorf("syscall %v: union arg '%v' has bad option",
+					c.Meta.Name, a.Type().Name())
 			}
 			if err := checkArg(a.Option); err != nil {
 				return err
@@ -250,7 +271,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			switch a.Type().(type) {
 			case *ResourceType:
 			default:
-				return fmt.Errorf("syscall %v: result arg '%v' has bad meta type %+v", c.Meta.Name, arg.Type().Name(), arg.Type())
+				return fmt.Errorf("syscall %v: result arg '%v' has bad meta type %+v",
+					c.Meta.Name, arg.Type().Name(), arg.Type())
 			}
 			if a.Res == nil {
 				break
@@ -268,16 +290,19 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			case *ResourceType:
 			case *VmaType:
 			default:
-				return fmt.Errorf("syscall %v: result arg '%v' has bad meta type %+v", c.Meta.Name, arg.Type().Name(), arg.Type())
+				return fmt.Errorf("syscall %v: result arg '%v' has bad meta type %+v",
+					c.Meta.Name, arg.Type().Name(), arg.Type())
 			}
 		default:
-			return fmt.Errorf("syscall %v: unknown arg '%v' kind", c.Meta.Name, arg.Type().Name())
+			return fmt.Errorf("syscall %v: unknown arg '%v' kind",
+				c.Meta.Name, arg.Type().Name())
 		}
 		return nil
 	}
 	for _, arg := range c.Args {
 		if _, ok := arg.(*ReturnArg); ok {
-			return fmt.Errorf("syscall %v: arg '%v' has wrong return kind", c.Meta.Name, arg.Type().Name())
+			return fmt.Errorf("syscall %v: arg '%v' has wrong return kind",
+				c.Meta.Name, arg.Type().Name())
 		}
 		if err := checkArg(arg); err != nil {
 			return err
@@ -294,7 +319,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			return err
 		}
 	} else if c.Ret.Type() != nil {
-		return fmt.Errorf("syscall %v: return value has spurious type: %+v", c.Meta.Name, c.Ret.Type())
+		return fmt.Errorf("syscall %v: return value has spurious type: %+v",
+			c.Meta.Name, c.Ret.Type())
 	}
 	return nil
 }

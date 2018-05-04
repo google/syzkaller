@@ -423,7 +423,8 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 	return ok, reply, nil
 }
 
-func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate, bugKey *datastore.Key, dupHash string) (bool, string, error) {
+func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
+	bugKey *datastore.Key, dupHash string) (bool, string, error) {
 	bug := new(Bug)
 	if err := datastore.Get(c, bugKey, bug); err != nil {
 		return false, internalError, fmt.Errorf("can't find the corresponding bug: %v", err)

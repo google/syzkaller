@@ -74,7 +74,8 @@ func TestTransitivelyEnabledCallsLinux(t *testing.T) {
 		t.Fatalf("disabled %v syscalls, want 6", len(disabled))
 	}
 	for c, reason := range disabled {
-		if !strings.Contains(reason, "no syscalls can create resource fd_epoll, enable some syscalls that can create it [epoll_create epoll_create1]") {
+		if !strings.Contains(reason, "no syscalls can create resource fd_epoll,"+
+			" enable some syscalls that can create it [epoll_create epoll_create1]") {
 			t.Fatalf("%v: wrong disable reason: %v", c.Name, reason)
 		}
 	}

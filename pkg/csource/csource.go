@@ -323,20 +323,7 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, []uint64) {
 				switch arg.Kind {
 				case prog.ExecArgCsumInet:
 					csumSeq++
-					fmt.Fprintf(w, "\tstruct csum_inet csum_%d;\n", csumSeq)
-					fmt.Fprintf(w, "\tcsum_inet_init(&csum_%d);\n", csumSeq)
-					for i, chunk := range arg.Chunks {
-						switch chunk.Kind {
-						case prog.ExecArgCsumChunkData:
-							fmt.Fprintf(w, "\tNONFAILING(csum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d));\n", csumSeq, chunk.Value, chunk.Size)
-						case prog.ExecArgCsumChunkConst:
-							fmt.Fprintf(w, "\tuint%d_t csum_%d_chunk_%d = 0x%x;\n", chunk.Size*8, csumSeq, i, chunk.Value)
-							fmt.Fprintf(w, "\tcsum_inet_update(&csum_%d, (const uint8_t*)&csum_%d_chunk_%d, %d);\n", csumSeq, csumSeq, i, chunk.Size)
-						default:
-							panic(fmt.Sprintf("unknown checksum chunk kind %v", chunk.Kind))
-						}
-					}
-					fmt.Fprintf(w, "\tNONFAILING(*(uint16_t*)0x%x = csum_inet_digest(&csum_%d));\n", copyin.Addr, csumSeq)
+					ctx.generateCsumInet(w, copyin.Addr, arg, csumSeq)
 				default:
 					panic(fmt.Sprintf("unknown csum kind %v", arg.Kind))
 				}
@@ -407,6 +394,27 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, []uint64) {
 		calls = append(calls, w.String())
 	}
 	return calls, p.Vars
+}
+
+func (ctx *context) generateCsumInet(w *bytes.Buffer, addr uint64, arg prog.ExecArgCsum, csumSeq int) {
+	fmt.Fprintf(w, "\tstruct csum_inet csum_%d;\n", csumSeq)
+	fmt.Fprintf(w, "\tcsum_inet_init(&csum_%d);\n", csumSeq)
+	for i, chunk := range arg.Chunks {
+		switch chunk.Kind {
+		case prog.ExecArgCsumChunkData:
+			fmt.Fprintf(w, "\tNONFAILING(csum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d));\n",
+				csumSeq, chunk.Value, chunk.Size)
+		case prog.ExecArgCsumChunkConst:
+			fmt.Fprintf(w, "\tuint%d_t csum_%d_chunk_%d = 0x%x;\n",
+				chunk.Size*8, csumSeq, i, chunk.Value)
+			fmt.Fprintf(w, "\tcsum_inet_update(&csum_%d, (const uint8_t*)&csum_%d_chunk_%d, %d);\n",
+				csumSeq, csumSeq, i, chunk.Size)
+		default:
+			panic(fmt.Sprintf("unknown checksum chunk kind %v", chunk.Kind))
+		}
+	}
+	fmt.Fprintf(w, "\tNONFAILING(*(uint16_t*)0x%x = csum_inet_digest(&csum_%d));\n",
+		addr, csumSeq)
 }
 
 func (ctx *context) constArgToStr(arg prog.ExecArgConst) string {

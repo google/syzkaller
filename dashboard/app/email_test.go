@@ -91,6 +91,7 @@ To upstream this report, please reply with:
 
 	// Emulate receive of the report from a mailing list.
 	// This should update the bug with the link/Message-ID.
+	// nolint: lll
 	incoming1 := fmt.Sprintf(`Sender: syzkaller@googlegroups.com
 Date: Tue, 15 Aug 2017 14:59:00 -0700
 Message-ID: <1234>

@@ -9,8 +9,6 @@ import (
 	"testing"
 )
 
-//{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}
-
 func TestParseOptions(t *testing.T) {
 	for _, opts := range allOptionsSingle() {
 		data := opts.Serialize()
@@ -27,6 +25,7 @@ func TestParseOptions(t *testing.T) {
 func TestParseOptionsCanned(t *testing.T) {
 	// Dashboard stores csource options with syzkaller reproducers,
 	// so we need to be able to parse old formats.
+	// nolint: lll
 	canned := map[string]Options{
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
 			Threaded:      true,

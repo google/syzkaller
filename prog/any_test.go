@@ -34,6 +34,7 @@ func TestIsComplexPtr(t *testing.T) {
 
 func TestSquash(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
+	// nolint: lll
 	tests := []struct {
 		prog     string
 		squashed string

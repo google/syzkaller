@@ -3,7 +3,9 @@
 
 // XedDecode is required for tests, but it requires Intel XED library installed, so it is disabled by default.
 // To run full tests, check out and build github.com/intelxed/xed, then run:
-// INTELXED=/path/to/intelxed CGO_CFLAGS="-I $INTELXED/xed/include/public -I $INTELXED/build/obj" CGO_LDFLAGS="$INTELXED/build/obj/libxed.a" go test -v -tags xed
+// INTELXED=/path/to/intelxed CGO_CFLAGS="-I $INTELXED/xed/include/public \
+//	-I $INTELXED/build/obj" CGO_LDFLAGS="$INTELXED/build/obj/libxed.a" \
+//	go test -v -tags xed
 
 // +build xed
 

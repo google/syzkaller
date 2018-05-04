@@ -335,6 +335,7 @@ func CheckCommitHash(hash string) bool {
 }
 
 var (
+	// nolint: lll
 	gitRepoRe   = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\.git(/)?$`)
 	gitBranchRe = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
 	gitHashRe   = regexp.MustCompile("^[a-f0-9]+$")
