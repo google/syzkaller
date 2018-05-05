@@ -50,11 +50,9 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 	if c.Ret == nil {
 		return fmt.Errorf("syscall %v: return value is absent", c.Meta.Name)
 	}
-	if ret, ok := c.Ret.(*ResultArg); !ok {
-		return fmt.Errorf("syscall %v: return value has wrong kind %v", c.Meta.Name, c.Ret)
-	} else if ret.Type() != nil && ret.Type().Dir() != DirOut {
+	if c.Ret.Type() != nil && c.Ret.Type().Dir() != DirOut {
 		return fmt.Errorf("syscall %v: return value %v is not output", c.Meta.Name, c.Ret)
-	} else if ret.Res != nil || ret.Val != 0 || ret.OpDiv != 0 || ret.OpAdd != 0 {
+	} else if c.Ret.Res != nil || c.Ret.Val != 0 || c.Ret.OpDiv != 0 || c.Ret.OpAdd != 0 {
 		return fmt.Errorf("syscall %v: return value %v is not empty", c.Meta.Name, c.Ret)
 	}
 	if c.Meta.Ret != nil {
@@ -78,8 +76,8 @@ func validateArg(ctx *validCtx, c *Call, arg Arg) error {
 			c.Meta.Name, arg)
 	}
 	ctx.args[arg] = true
-	if used, ok := arg.(ArgUsed); ok {
-		for u := range *used.Used() {
+	if used, ok := arg.(*ResultArg); ok {
+		for u := range used.uses {
 			if u == nil {
 				return fmt.Errorf("syscall %v: nil reference in uses for arg %+v",
 					c.Meta.Name, arg)
@@ -305,9 +303,9 @@ func validateArg(ctx *validCtx, c *Call, arg Arg) error {
 			return fmt.Errorf("syscall %v: result arg %v references out-of-tree result: %#v -> %#v",
 				c.Meta.Name, a.Type().Name(), arg, a.Res)
 		}
-		if !(*a.Res.(ArgUsed).Used())[arg] {
+		if !a.Res.uses[a] {
 			return fmt.Errorf("syscall %v: result arg '%v' has broken link (%+v)",
-				c.Meta.Name, a.Type().Name(), *a.Res.(ArgUsed).Used())
+				c.Meta.Name, a.Type().Name(), a.Res.uses)
 		}
 	default:
 		return fmt.Errorf("syscall %v: unknown arg '%v' kind",
