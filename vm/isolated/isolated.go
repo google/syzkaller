@@ -261,7 +261,8 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
+func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+	<-chan []byte, <-chan error, error) {
 	args := append(inst.sshArgs("-p"), inst.target)
 	dmesg, err := vmimpl.OpenRemoteConsole("ssh", args...)
 	if err != nil {

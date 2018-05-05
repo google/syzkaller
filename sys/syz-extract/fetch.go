@@ -17,7 +17,8 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf bool) (map[string]uint64, map[string]bool, error) {
+func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf bool) (
+	map[string]uint64, map[string]bool, error) {
 	data := &CompileData{
 		AddSource:     addSource,
 		Defines:       info.Defines,
