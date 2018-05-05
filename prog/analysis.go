@@ -16,7 +16,7 @@ type state struct {
 	target    *Target
 	ct        *ChoiceTable
 	files     map[string]bool
-	resources map[string][]Arg
+	resources map[string][]*ResultArg
 	strings   map[string]bool
 	ma        *memAlloc
 	va        *vmaAlloc
@@ -40,7 +40,7 @@ func newState(target *Target, ct *ChoiceTable) *state {
 		target:    target,
 		ct:        ct,
 		files:     make(map[string]bool),
-		resources: make(map[string][]Arg),
+		resources: make(map[string][]*ResultArg),
 		strings:   make(map[string]bool),
 		ma:        newMemAlloc(target.NumPages * target.PageSize),
 		va:        newVmaAlloc(target.NumPages),
@@ -66,8 +66,9 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 		}
 		switch typ := arg.Type().(type) {
 		case *ResourceType:
+			a := arg.(*ResultArg)
 			if resources && typ.Dir() != DirIn {
-				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
+				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], a)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
 		case *BufferType:

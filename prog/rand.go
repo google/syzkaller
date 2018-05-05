@@ -285,7 +285,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		s1 := newState(r.target, s.ct)
 		s1.analyze(calls[len(calls)-1])
 		// Now see if we have what we want.
-		var allres []Arg
+		var allres []*ResultArg
 		for kind1, res1 := range s1.resources {
 			if r.target.isCompatibleResource(kind, kind1) {
 				allres = append(allres, res1...)
@@ -303,7 +303,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		for _, c := range calls {
 			ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 				if a, ok := arg.(*ResultArg); ok && a.Res != nil {
-					delete(*a.Res.(ArgUsed).Used(), arg)
+					delete(a.Res.uses, a)
 				}
 			})
 		}
@@ -527,11 +527,8 @@ func (a *ResourceType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 	switch {
 	case r.nOutOf(1000, 1011):
 		// Get an existing resource.
-		var allres []Arg
+		var allres []*ResultArg
 		for name1, res1 := range s.resources {
-			if name1 == "iocbptr" {
-				continue
-			}
 			if r.target.isCompatibleResource(a.Desc.Name, name1) ||
 				r.oneOf(20) && r.target.isCompatibleResource(a.Desc.Kind[0], name1) {
 				allres = append(allres, res1...)
@@ -668,15 +665,6 @@ func (a *UnionType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 
 func (a *PtrType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 	inner, calls := r.generateArg(s, a.Type)
-	// TODO(dvyukov): remove knowledge about iocb from prog.
-	if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
-		// It is weird, but these are actually identified by kernel by address.
-		// So try to reuse a previously used address.
-		addrs := s.resources["iocbptr"]
-		addr := addrs[r.Intn(len(addrs))].(*PointerArg)
-		arg = MakePointerArg(a, addr.Address, inner)
-		return arg, calls
-	}
 	arg = r.allocAddr(s, a, inner.Size(), inner)
 	return arg, calls
 }

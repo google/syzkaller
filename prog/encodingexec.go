@@ -91,7 +91,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 				return
 			}
 			addr := p.Target.PhysicalAddr(ctx.Base) + ctx.Offset
-			if isUsed(arg) || csumUses[arg] {
+			if res, ok := arg.(*ResultArg); ok && len(res.uses) != 0 || csumUses[arg] {
 				w.args[arg] = argInfo{Addr: addr}
 			}
 			if _, ok := arg.(*GroupArg); ok {
@@ -152,7 +152,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		}
 		// Generate the call itself.
 		w.write(uint64(c.Meta.ID))
-		if isUsed(c.Ret) {
+		if len(c.Ret.uses) != 0 {
 			if _, ok := w.args[c.Ret]; ok {
 				panic("argInfo is already created for return value")
 			}
@@ -168,15 +168,11 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		}
 		// Generate copyout instructions that persist interesting return values.
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
-			if !isUsed(arg) {
-				return
-			}
-			switch arg.(type) {
-			case *ConstArg, *ResultArg:
+			if res, ok := arg.(*ResultArg); ok && len(res.uses) != 0 {
 				// Create a separate copyout instruction that has own Idx.
 				info := w.args[arg]
 				if info.Ret {
-					break // Idx is already assigned above.
+					return // Idx is already assigned above.
 				}
 				info.Idx = copyoutSeq
 				copyoutSeq++
@@ -185,8 +181,6 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 				w.write(info.Idx)
 				w.write(info.Addr)
 				w.write(arg.Size())
-			default:
-				panic("bad arg kind in copyout")
 			}
 		})
 	}

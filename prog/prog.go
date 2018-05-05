@@ -15,30 +15,12 @@ type Prog struct {
 type Call struct {
 	Meta *Syscall
 	Args []Arg
-	Ret  Arg
+	Ret  *ResultArg
 }
 
 type Arg interface {
 	Type() Type
 	Size() uint64
-}
-
-// ArgUser is interface of an argument that uses value of another output argument.
-type ArgUser interface {
-	Uses() *Arg
-}
-
-// ArgUsed is interface of an argument that can be used by other arguments.
-type ArgUsed interface {
-	Used() *map[Arg]bool
-}
-
-func isUsed(arg Arg) bool {
-	used, ok := arg.(ArgUsed)
-	if !ok {
-		return false
-	}
-	return len(*used.Used()) != 0
 }
 
 type ArgCommon struct {
@@ -259,23 +241,22 @@ func (arg *UnionArg) Size() uint64 {
 // Either holds constant value or reference another ResultArg.
 type ResultArg struct {
 	ArgCommon
-	Res   Arg          // reference to arg which we use
-	OpDiv uint64       // divide result (executed before OpAdd)
-	OpAdd uint64       // add to result
-	Val   uint64       // value used if Res is nil
-	uses  map[Arg]bool // ArgResult args that use this arg
+	Res   *ResultArg          // reference to arg which we use
+	OpDiv uint64              // divide result (executed before OpAdd)
+	OpAdd uint64              // add to result
+	Val   uint64              // value used if Res is nil
+	uses  map[*ResultArg]bool // ArgResult args that use this arg
 }
 
-func MakeResultArg(t Type, r Arg, v uint64) *ResultArg {
+func MakeResultArg(t Type, r *ResultArg, v uint64) *ResultArg {
 	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
 	if r == nil {
 		return arg
 	}
-	used := r.(ArgUsed)
-	if *used.Used() == nil {
-		*used.Used() = make(map[Arg]bool)
+	if r.uses == nil {
+		r.uses = make(map[*ResultArg]bool)
 	}
-	(*used.Used())[arg] = true
+	r.uses[arg] = true
 	return arg
 }
 
@@ -289,14 +270,6 @@ func MakeReturnArg(t Type) *ResultArg {
 
 func (arg *ResultArg) Size() uint64 {
 	return arg.typ.Size()
-}
-
-func (arg *ResultArg) Used() *map[Arg]bool {
-	return &arg.uses
-}
-
-func (arg *ResultArg) Uses() *Arg {
-	return &arg.Res
 }
 
 // Returns inner arg for pointer args.
@@ -479,36 +452,34 @@ func replaceArg(arg, arg1 Arg) {
 func replaceResultArg(arg, arg1 *ResultArg) {
 	// Remove link from `a.Res` to `arg`.
 	if arg.Res != nil {
-		delete(*arg.Res.(ArgUsed).Used(), arg)
+		delete(arg.Res.uses, arg)
 	}
 	// Copy all fields from `arg1` to `arg` except for the list of args that use `arg`.
-	used := *arg.Used()
+	uses := arg.uses
 	*arg = *arg1
-	*arg.Used() = used
+	arg.uses = uses
 	// Make the link in `arg.Res` (which is now `Res` of `arg1`) to point to `arg` instead of `arg1`.
 	if arg.Res != nil {
-		delete(*arg.Res.(ArgUsed).Used(), arg1)
-		(*arg.Res.(ArgUsed).Used())[arg] = true
+		resUses := arg.Res.uses
+		delete(resUses, arg1)
+		resUses[arg] = true
 	}
 }
 
 // removeArg removes all references to/from arg0 from a program.
 func removeArg(arg0 Arg) {
 	ForeachSubArg(arg0, func(arg Arg, ctx *ArgCtx) {
-		if a, ok := arg.(*ResultArg); ok && a.Res != nil {
-			if !(*a.Res.(ArgUsed).Used())[arg] {
-				panic("broken tree")
-			}
-			delete(*a.Res.(ArgUsed).Used(), arg)
-		}
-		if used, ok := arg.(ArgUsed); ok {
-			for arg1 := range *used.Used() {
-				a1, ok := arg1.(*ResultArg)
-				if !ok {
-					panic("use references not ArgResult")
+		if a, ok := arg.(*ResultArg); ok {
+			if a.Res != nil {
+				uses := a.Res.uses
+				if !uses[a] {
+					panic("broken tree")
 				}
+				delete(uses, a)
+			}
+			for arg1 := range a.uses {
 				arg2 := MakeResultArg(arg1.Type(), nil, arg1.Type().Default())
-				replaceResultArg(a1, arg2)
+				replaceResultArg(arg1, arg2)
 			}
 		}
 	})

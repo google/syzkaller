@@ -30,10 +30,10 @@ func (p *Prog) Serialize() []byte {
 		}
 	}
 	buf := new(bytes.Buffer)
-	vars := make(map[Arg]int)
+	vars := make(map[*ResultArg]int)
 	varSeq := 0
 	for _, c := range p.Calls {
-		if isUsed(c.Ret) {
+		if len(c.Ret.uses) != 0 {
 			fmt.Fprintf(buf, "r%v = ", varSeq)
 			vars[c.Ret] = varSeq
 			varSeq++
@@ -53,15 +53,10 @@ func (p *Prog) Serialize() []byte {
 	return buf.Bytes()
 }
 
-func (target *Target) serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
+func (target *Target) serialize(arg Arg, buf *bytes.Buffer, vars map[*ResultArg]int, varSeq *int) {
 	if arg == nil {
 		fmt.Fprintf(buf, "nil")
 		return
-	}
-	if isUsed(arg) {
-		fmt.Fprintf(buf, "<r%v=>", *varSeq)
-		vars[arg] = *varSeq
-		*varSeq++
 	}
 	switch a := arg.(type) {
 	case *ConstArg:
@@ -130,6 +125,11 @@ func (target *Target) serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, va
 			target.serialize(a.Option, buf, vars, varSeq)
 		}
 	case *ResultArg:
+		if len(a.uses) != 0 {
+			fmt.Fprintf(buf, "<r%v=>", *varSeq)
+			vars[a] = *varSeq
+			*varSeq++
+		}
 		if a.Res == nil {
 			fmt.Fprintf(buf, "0x%x", a.Val)
 			break
@@ -155,7 +155,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 		Target: target,
 	}
 	p := newParser(data)
-	vars := make(map[string]Arg)
+	vars := make(map[string]*ResultArg)
 	for p.Scan() {
 		if p.EOF() || p.Char() == '#' {
 			continue
@@ -225,7 +225,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 	return
 }
 
-func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArg(typ Type, p *parser, vars map[string]*ResultArg) (Arg, error) {
 	r := ""
 	if p.Char() == '<' {
 		p.Parse('<')
@@ -245,12 +245,14 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		}
 	}
 	if r != "" {
-		vars[r] = arg
+		if res, ok := arg.(*ResultArg); ok {
+			vars[r] = res
+		}
 	}
 	return arg, nil
 }
 
-func (target *Target) parseArgImpl(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArgImpl(typ Type, p *parser, vars map[string]*ResultArg) (Arg, error) {
 	switch p.Char() {
 	case '0':
 		return target.parseArgInt(typ, p)
@@ -300,7 +302,7 @@ func (target *Target) parseArgInt(typ Type, p *parser) (Arg, error) {
 	}
 }
 
-func (target *Target) parseArgRes(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArgRes(typ Type, p *parser, vars map[string]*ResultArg) (Arg, error) {
 	id := p.Ident()
 	var div, add uint64
 	if p.Char() == '/' {
@@ -321,11 +323,8 @@ func (target *Target) parseArgRes(typ Type, p *parser, vars map[string]Arg) (Arg
 		}
 		add = v
 	}
-	v, ok := vars[id]
-	if !ok || v == nil {
-		return target.defaultArg(typ), nil
-	}
-	if _, ok := v.(ArgUsed); !ok {
+	v := vars[id]
+	if v == nil {
 		return target.defaultArg(typ), nil
 	}
 	arg := MakeResultArg(typ, v, 0)
@@ -334,7 +333,7 @@ func (target *Target) parseArgRes(typ Type, p *parser, vars map[string]Arg) (Arg
 	return arg, nil
 }
 
-func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]*ResultArg) (Arg, error) {
 	var typ1 Type
 	switch t1 := typ.(type) {
 	case *PtrType:
@@ -407,7 +406,7 @@ func (target *Target) parseArgString(typ Type, p *parser) (Arg, error) {
 	return MakeDataArg(typ, data), nil
 }
 
-func (target *Target) parseArgStruct(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArgStruct(typ Type, p *parser, vars map[string]*ResultArg) (Arg, error) {
 	p.Parse('{')
 	t1, ok := typ.(*StructType)
 	if !ok {
@@ -442,7 +441,7 @@ func (target *Target) parseArgStruct(typ Type, p *parser, vars map[string]Arg) (
 	return MakeGroupArg(typ, inner), nil
 }
 
-func (target *Target) parseArgArray(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArgArray(typ Type, p *parser, vars map[string]*ResultArg) (Arg, error) {
 	p.Parse('[')
 	t1, ok := typ.(*ArrayType)
 	if !ok {
@@ -471,7 +470,7 @@ func (target *Target) parseArgArray(typ Type, p *parser, vars map[string]Arg) (A
 	return MakeGroupArg(typ, inner), nil
 }
 
-func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]*ResultArg) (Arg, error) {
 	t1, ok := typ.(*UnionType)
 	if !ok {
 		eatExcessive(p, true)
