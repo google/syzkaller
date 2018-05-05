@@ -186,7 +186,7 @@ bin/syz-extract:
 generate: generate_go generate_sys
 	$(MAKE) format
 
-generate_go:
+generate_go: bin/syz-sysgen
 	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/kernel
 
 generate_sys: bin/syz-sysgen
