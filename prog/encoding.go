@@ -33,7 +33,7 @@ func (p *Prog) Serialize() []byte {
 	vars := make(map[*ResultArg]int)
 	varSeq := 0
 	for _, c := range p.Calls {
-		if len(c.Ret.uses) != 0 {
+		if c.Ret != nil && len(c.Ret.uses) != 0 {
 			fmt.Fprintf(buf, "r%v = ", varSeq)
 			vars[c.Ret] = varSeq
 			varSeq++
@@ -206,7 +206,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 		if len(c.Args) != len(meta.Args) {
 			return nil, fmt.Errorf("wrong call arg count: %v, want %v", len(c.Args), len(meta.Args))
 		}
-		if r != "" {
+		if r != "" && c.Ret != nil {
 			vars[r] = c.Ret
 		}
 	}

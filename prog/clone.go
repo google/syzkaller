@@ -12,7 +12,9 @@ func (p *Prog) Clone() *Prog {
 	for ci, c := range p.Calls {
 		c1 := new(Call)
 		c1.Meta = c.Meta
-		c1.Ret = clone(c.Ret, newargs).(*ResultArg)
+		if c.Ret != nil {
+			c1.Ret = clone(c.Ret, newargs).(*ResultArg)
+		}
 		c1.Args = make([]Arg, len(c.Args))
 		for ai, arg := range c.Args {
 			c1.Args[ai] = clone(arg, newargs)

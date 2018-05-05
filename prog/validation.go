@@ -47,26 +47,31 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			return err
 		}
 	}
-	if c.Ret == nil {
-		return fmt.Errorf("syscall %v: return value is absent", c.Meta.Name)
-	}
-	if c.Ret.Type() != nil && c.Ret.Type().Dir() != DirOut {
-		return fmt.Errorf("syscall %v: return value %v is not output", c.Meta.Name, c.Ret)
-	} else if c.Ret.Res != nil || c.Ret.Val != 0 || c.Ret.OpDiv != 0 || c.Ret.OpAdd != 0 {
-		return fmt.Errorf("syscall %v: return value %v is not empty", c.Meta.Name, c.Ret)
-	}
-	if c.Meta.Ret != nil {
+	if c.Meta.Ret == nil {
+		if c.Ret != nil {
+			return fmt.Errorf("syscall %v: return value without type", c.Meta.Name)
+		}
+	} else {
+		if c.Ret == nil {
+			return fmt.Errorf("syscall %v: return value is absent", c.Meta.Name)
+		}
+		if c.Ret.Type() != c.Meta.Ret {
+			return fmt.Errorf("syscall %v: wrong return type", c.Meta.Name)
+		}
+		if c.Ret.Type().Dir() != DirOut {
+			return fmt.Errorf("syscall %v: return value %v is not output", c.Meta.Name, c.Ret)
+		}
+		if c.Ret.Res != nil || c.Ret.Val != 0 || c.Ret.OpDiv != 0 || c.Ret.OpAdd != 0 {
+			return fmt.Errorf("syscall %v: return value %v is not empty", c.Meta.Name, c.Ret)
+		}
 		if err := validateArg(ctx, c, c.Ret); err != nil {
 			return err
 		}
-	} else if c.Ret.Type() != nil {
-		return fmt.Errorf("syscall %v: return value has spurious type: %+v",
-			c.Meta.Name, c.Ret.Type())
 	}
 	return nil
 }
 
-// nolint
+// nolint: gocyclo
 func validateArg(ctx *validCtx, c *Call, arg Arg) error {
 	if arg == nil {
 		return fmt.Errorf("syscall %v: nil arg", c.Meta.Name)
@@ -76,6 +81,7 @@ func validateArg(ctx *validCtx, c *Call, arg Arg) error {
 			c.Meta.Name, arg)
 	}
 	ctx.args[arg] = true
+	// TODO(dvyukov): move this to ResultArg verification.
 	if used, ok := arg.(*ResultArg); ok {
 		for u := range used.uses {
 			if u == nil {
