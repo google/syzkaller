@@ -21,6 +21,7 @@ type Call struct {
 type Arg interface {
 	Type() Type
 	Size() uint64
+	validate(ctx *validCtx) error
 }
 
 type ArgCommon struct {
