@@ -7,7 +7,16 @@ import (
 	"runtime"
 
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/linux/gen"
 )
+
+func init() {
+	prog.RegisterTarget(gen.Target_amd64, initTarget)
+	prog.RegisterTarget(gen.Target_386, initTarget)
+	prog.RegisterTarget(gen.Target_arm64, initTarget)
+	prog.RegisterTarget(gen.Target_arm, initTarget)
+	prog.RegisterTarget(gen.Target_ppc64le, initTarget)
+}
 
 func initTarget(target *prog.Target) {
 	arch := &arch{

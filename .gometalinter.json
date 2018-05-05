@@ -7,7 +7,14 @@
 	"linelength": 120,
 	"cyclo": 50,
 	"skip": [
-		"pkg/kd"
+		"pkg/kd",
+		"sys/akaros/gen",
+		"sys/freebsd/gen",
+		"sys/fuchsia/gen",
+		"sys/linux/gen",
+		"sys/netbsd/gen",
+		"sys/windows/gen",
+		"sys/test/gen"
 	],
 	"enable": [
 		"golint",
@@ -29,8 +36,6 @@
 		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/init.* don't use ALL_CAPS in Go names",
 		"exported .* should have comment",
 		"comment on .* should be of the form",
-		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* should not use dot imports",
-		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go.* is a misspelling of",
-		"(pkg/ifuzz/insns.go|pkg/csource/.*_common.go|pkg/csource/gen.go|pkg/report/linux.go|pkg/kernel/generated.go|sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/(386|amd64|arm|arm64|ppc64le|32|64).go).* line is [0-9]+ characters"
+		"(pkg/ifuzz/insns.go|pkg/csource/.*_common.go|pkg/csource/gen.go|pkg/report/linux.go|pkg/kernel/generated.go).* line is [0-9]+ characters"
 	]
 }

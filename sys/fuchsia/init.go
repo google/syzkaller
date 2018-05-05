@@ -5,7 +5,13 @@ package fuchsia
 
 import (
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/fuchsia/gen"
 )
+
+func init() {
+	prog.RegisterTarget(gen.Target_amd64, initTarget)
+	prog.RegisterTarget(gen.Target_arm64, initTarget)
+}
 
 func initTarget(target *prog.Target) {
 	arch := &arch{

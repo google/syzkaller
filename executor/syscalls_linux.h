@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "9c1e3d88594580bd4b3123526425c29d9753a03a"
+#define SYZ_REVISION "4c6d0af70679490e322df745c8fa4dadae283c39"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -1797,7 +1797,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "f8acbe0e15423ec80dfcf52662c0f6109ef208bf"
+#define SYZ_REVISION "277587fb6c542ca7062a505c11fc03ef9904f304"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -3644,7 +3644,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "5f20b8c644dfc68c4f871523b4e3377cece897b5"
+#define SYZ_REVISION "a34cd0cdc59606f38cb712367c20831f10dc478d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -5448,7 +5448,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "1b0779569d22aeee458f1015be6b3831602ed203"
+#define SYZ_REVISION "7040c6f6b778e74ce07b7286262276f0cb49f7ee"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -7224,7 +7224,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "90526274f947d332127c3e331252c843ecc73b7e"
+#define SYZ_REVISION "90d89d7881b95ee12d0c43664882db875068a881"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912

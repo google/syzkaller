@@ -5,7 +5,12 @@ package netbsd
 
 import (
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/netbsd/gen"
 )
+
+func init() {
+	prog.RegisterTarget(gen.Target_amd64, initTarget)
+}
 
 func initTarget(target *prog.Target) {
 	arch := &arch{
