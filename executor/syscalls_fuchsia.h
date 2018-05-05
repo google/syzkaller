@@ -2,7 +2,7 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "3dd446fa4ace2ebb500e2a7568889e29d60e9a3b"
+#define SYZ_REVISION "747de15ad198405e62ce2ef83650f88ad9f3343d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -173,7 +173,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "b330dd06bf4ee8dc69069d54cd7c18c28d2de00f"
+#define SYZ_REVISION "d346095f00a7bf5d98fe5c2a9ac934220eb4b0d5"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
