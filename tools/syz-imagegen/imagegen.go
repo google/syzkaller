@@ -94,7 +94,8 @@ func main() {
 		if syscallSuffix == "ext2" || syscallSuffix == "ext3" {
 			syscallSuffix = "ext4"
 		}
-		fmt.Printf(`syz_mount_image$%v(&(0x7f0000000000)='%v\x00', &(0x7f0000000100)='./file0\x00', 0x%x, 0x%x, &(0x7f0000000200)=[`,
+		fmt.Printf(`syz_mount_image$%v(&(0x7f0000000000)='%v\x00', &(0x7f0000000100)='./file0\x00',`+
+			` 0x%x, 0x%x, &(0x7f0000000200)=[`,
 			syscallSuffix, *flagFS, len(data0), len(segs))
 		addr := 0x7f0000010000
 		for i, seg := range segs {

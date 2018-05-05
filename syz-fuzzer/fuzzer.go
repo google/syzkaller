@@ -381,7 +381,8 @@ func (fuzzer *Fuzzer) pollLoop() {
 	}
 }
 
-func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (map[*prog.Syscall]bool, []rpctype.SyscallReason) {
+func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
+	map[*prog.Syscall]bool, []rpctype.SyscallReason) {
 	calls := make(map[*prog.Syscall]bool)
 	for _, n := range enabledCalls {
 		if n >= len(target.Syscalls) {

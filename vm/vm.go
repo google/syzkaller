@@ -92,7 +92,8 @@ func (inst *Instance) Forward(port int) (string, error) {
 	return inst.impl.Forward(port)
 }
 
-func (inst *Instance) Run(timeout time.Duration, stop <-chan bool, command string) (outc <-chan []byte, errc <-chan error, err error) {
+func (inst *Instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+	outc <-chan []byte, errc <-chan error, err error) {
 	return inst.impl.Run(timeout, stop, command)
 }
 

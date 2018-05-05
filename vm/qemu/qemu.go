@@ -419,7 +419,8 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
-func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
+func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
+	<-chan []byte, <-chan error, error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
@@ -489,6 +490,7 @@ func (inst *instance) sshArgs(portArg string) []string {
 	return args
 }
 
+// nolint: lll
 const initScript = `#! /bin/bash
 set -eux
 mount -t proc none /proc

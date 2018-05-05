@@ -757,8 +757,10 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 		osutil.WriteFile(filepath.Join(dir, "repro.report"), rep.Report)
 	}
 	osutil.WriteFile(filepath.Join(dir, "repro.stats.log"), res.Stats.Log)
-	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\nExtracting C: %s\nSimplifying C: %s\n",
-		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime, res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
+	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\n"+
+		"Extracting C: %s\nSimplifying C: %s\n",
+		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime,
+		res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
 	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
 	var cprogText []byte
 	if res.CRepro {
@@ -928,7 +930,8 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 		log.Fatalf("/sys/kernel/debug/kcov is missing on target machine. Enable CONFIG_KCOV and mount debugfs")
 	}
 	if mgr.cfg.Sandbox == "namespace" && !a.UserNamespaces {
-		log.Fatalf("/proc/self/ns/user is missing on target machine or permission is denied. Can't use requested namespace sandbox. Enable CONFIG_USER_NS")
+		log.Fatalf("/proc/self/ns/user is missing on target machine or permission is denied." +
+			" Can't use requested namespace sandbox. Enable CONFIG_USER_NS")
 	}
 	if mgr.vmPool != nil {
 		if mgr.target.Arch != a.ExecutorArch {
@@ -936,13 +939,15 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 				mgr.target.Arch, a.ExecutorArch)
 		}
 		if sys.GitRevision != a.FuzzerGitRev || sys.GitRevision != a.ExecutorGitRev {
-			log.Fatalf("syz-manager, syz-fuzzer and syz-executor binaries are built on different git revisions\n"+
+			log.Fatalf("syz-manager, syz-fuzzer and syz-executor binaries are built"+
+				" on different git revisions\n"+
 				"manager= %v\nfuzzer=  %v\nexecutor=%v\n"+
 				"this is not supported, rebuild all binaries with make",
 				sys.GitRevision, a.FuzzerGitRev, a.ExecutorGitRev)
 		}
 		if mgr.target.Revision != a.FuzzerSyzRev || mgr.target.Revision != a.ExecutorSyzRev {
-			log.Fatalf("syz-manager, syz-fuzzer and syz-executor binaries have different versions of system call descriptions compiled in\n"+
+			log.Fatalf("syz-manager, syz-fuzzer and syz-executor binaries have different"+
+				" versions of system call descriptions compiled in\n"+
 				"manager= %v\nfuzzer=  %v\nexecutor=%v\n"+
 				"this is not supported, rebuild all binaries with make",
 				mgr.target.Revision, a.FuzzerSyzRev, a.ExecutorSyzRev)
@@ -1209,8 +1214,10 @@ func (mgr *Manager) hubSync() {
 		mgr.stats["hub new"] += uint64(len(r.Progs) - dropped)
 		mgr.stats["hub sent repros"] += uint64(len(a.Repros))
 		mgr.stats["hub recv repros"] += uint64(len(r.Repros) - reproDropped)
-		log.Logf(0, "hub sync: send: add %v, del %v, repros %v; recv: progs: drop %v, new %v, repros: drop: %v, new %v; more %v",
-			len(a.Add), len(a.Del), len(a.Repros), dropped, len(r.Progs)-dropped, reproDropped, len(r.Repros)-reproDropped, r.More)
+		log.Logf(0, "hub sync: send: add %v, del %v, repros %v; recv: progs: drop %v, new %v,"+
+			" repros: drop: %v, new %v; more %v",
+			len(a.Add), len(a.Del), len(a.Repros), dropped, len(r.Progs)-dropped,
+			reproDropped, len(r.Repros)-reproDropped, r.More)
 		if len(r.Progs)+r.More == 0 {
 			break
 		}
