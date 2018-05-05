@@ -43,10 +43,6 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 			c.Meta.Name, len(c.Meta.Args), len(c.Args))
 	}
 	for _, arg := range c.Args {
-		if _, ok := arg.(*ReturnArg); ok {
-			return fmt.Errorf("syscall %v: arg '%v' has wrong return kind",
-				c.Meta.Name, arg.Type().Name())
-		}
 		if err := validateArg(ctx, c, arg); err != nil {
 			return err
 		}
@@ -54,8 +50,12 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 	if c.Ret == nil {
 		return fmt.Errorf("syscall %v: return value is absent", c.Meta.Name)
 	}
-	if _, ok := c.Ret.(*ReturnArg); !ok {
+	if ret, ok := c.Ret.(*ResultArg); !ok {
 		return fmt.Errorf("syscall %v: return value has wrong kind %v", c.Meta.Name, c.Ret)
+	} else if ret.Type() != nil && ret.Type().Dir() != DirOut {
+		return fmt.Errorf("syscall %v: return value %v is not output", c.Meta.Name, c.Ret)
+	} else if ret.Res != nil || ret.Val != 0 || ret.OpDiv != 0 || ret.OpAdd != 0 {
+		return fmt.Errorf("syscall %v: return value %v is not empty", c.Meta.Name, c.Ret)
 	}
 	if c.Meta.Ret != nil {
 		if err := validateArg(ctx, c, c.Ret); err != nil {
@@ -129,7 +129,6 @@ func validateArg(ctx *validCtx, c *Call, arg Arg) error {
 				return fmt.Errorf("syscall %v: out resource arg '%v' has bad const value %v",
 					c.Meta.Name, a.Type().Name(), a.Val)
 			}
-		case *ReturnArg:
 		default:
 			return fmt.Errorf("syscall %v: fd arg '%v' has bad kind %v",
 				c.Meta.Name, arg.Type().Name(), arg)
@@ -309,13 +308,6 @@ func validateArg(ctx *validCtx, c *Call, arg Arg) error {
 		if !(*a.Res.(ArgUsed).Used())[arg] {
 			return fmt.Errorf("syscall %v: result arg '%v' has broken link (%+v)",
 				c.Meta.Name, a.Type().Name(), *a.Res.(ArgUsed).Used())
-		}
-	case *ReturnArg:
-		switch a.Type().(type) {
-		case *ResourceType:
-		default:
-			return fmt.Errorf("syscall %v: result arg '%v' has bad meta type %+v",
-				c.Meta.Name, arg.Type().Name(), arg.Type())
 		}
 	default:
 		return fmt.Errorf("syscall %v: unknown arg '%v' kind",

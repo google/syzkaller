@@ -255,7 +255,8 @@ func (arg *UnionArg) Size() uint64 {
 }
 
 // Used for ResourceType.
-// Either holds constant value or reference another ResultArg or ReturnArg.
+// This is the only argument that can be used as syscall return value.
+// Either holds constant value or reference another ResultArg.
 type ResultArg struct {
 	ArgCommon
 	Res   Arg          // reference to arg which we use
@@ -278,6 +279,14 @@ func MakeResultArg(t Type, r Arg, v uint64) *ResultArg {
 	return arg
 }
 
+func MakeReturnArg(t Type) *ResultArg {
+	// TODO(dvyukov): we should not create return arg at all if t is nil.
+	if t != nil && t.Dir() != DirOut {
+		panic("return arg is not out")
+	}
+	return &ResultArg{ArgCommon: ArgCommon{typ: t}}
+}
+
 func (arg *ResultArg) Size() uint64 {
 	return arg.typ.Size()
 }
@@ -288,25 +297,6 @@ func (arg *ResultArg) Used() *map[Arg]bool {
 
 func (arg *ResultArg) Uses() *Arg {
 	return &arg.Res
-}
-
-// Used for ResourceType and VmaType.
-// This argument denotes syscall return value.
-type ReturnArg struct {
-	ArgCommon
-	uses map[Arg]bool // ArgResult args that use this arg
-}
-
-func MakeReturnArg(t Type) *ReturnArg {
-	return &ReturnArg{ArgCommon: ArgCommon{typ: t}}
-}
-
-func (arg *ReturnArg) Size() uint64 {
-	panic("not called")
-}
-
-func (arg *ReturnArg) Used() *map[Arg]bool {
-	return &arg.uses
 }
 
 // Returns inner arg for pointer args.
