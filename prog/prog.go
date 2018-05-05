@@ -261,8 +261,10 @@ func MakeResultArg(t Type, r *ResultArg, v uint64) *ResultArg {
 }
 
 func MakeReturnArg(t Type) *ResultArg {
-	// TODO(dvyukov): we should not create return arg at all if t is nil.
-	if t != nil && t.Dir() != DirOut {
+	if t == nil {
+		return nil
+	}
+	if t.Dir() != DirOut {
 		panic("return arg is not out")
 	}
 	return &ResultArg{ArgCommon: ArgCommon{typ: t}}
@@ -491,7 +493,9 @@ func (p *Prog) removeCall(idx int) {
 	for _, arg := range c.Args {
 		removeArg(arg)
 	}
-	removeArg(c.Ret)
+	if c.Ret != nil {
+		removeArg(c.Ret)
+	}
 	copy(p.Calls[idx:], p.Calls[idx+1:])
 	p.Calls = p.Calls[:len(p.Calls)-1]
 }

@@ -152,7 +152,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		}
 		// Generate the call itself.
 		w.write(uint64(c.Meta.ID))
-		if len(c.Ret.uses) != 0 {
+		if c.Ret != nil && len(c.Ret.uses) != 0 {
 			if _, ok := w.args[c.Ret]; ok {
 				panic("argInfo is already created for return value")
 			}
