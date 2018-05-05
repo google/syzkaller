@@ -63,10 +63,6 @@ func clone(arg Arg, newargs map[Arg]Arg) Arg {
 		a1 := new(ResultArg)
 		*a1 = *a
 		arg1 = a1
-	case *ReturnArg:
-		a1 := new(ReturnArg)
-		*a1 = *a
-		arg1 = a1
 	default:
 		panic("bad arg kind")
 	}

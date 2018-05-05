@@ -153,7 +153,10 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		// Generate the call itself.
 		w.write(uint64(c.Meta.ID))
 		if isUsed(c.Ret) {
-			w.args[c.Ret] = argInfo{Idx: copyoutSeq}
+			if _, ok := w.args[c.Ret]; ok {
+				panic("argInfo is already created for return value")
+			}
+			w.args[c.Ret] = argInfo{Idx: copyoutSeq, Ret: true}
 			w.write(copyoutSeq)
 			copyoutSeq++
 		} else {
@@ -169,11 +172,12 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 				return
 			}
 			switch arg.(type) {
-			case *ReturnArg:
-				// Idx is already assigned above.
 			case *ConstArg, *ResultArg:
 				// Create a separate copyout instruction that has own Idx.
 				info := w.args[arg]
+				if info.Ret {
+					break // Idx is already assigned above.
+				}
 				info.Idx = copyoutSeq
 				copyoutSeq++
 				w.args[arg] = info
@@ -210,6 +214,7 @@ type execContext struct {
 type argInfo struct {
 	Addr uint64 // physical addr
 	Idx  uint64 // copyout instruction index
+	Ret  bool
 }
 
 func (w *execContext) write(v uint64) {
