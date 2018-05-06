@@ -4,11 +4,11 @@
 package db
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -25,40 +25,28 @@ func TestBasic(t *testing.T) {
 	db.Save("", nil, 0)
 	db.Save("1", []byte("ab"), 1)
 	db.Save("23", []byte("abcd"), 2)
-	checkContents := func(where string) {
-		if len(db.Records) != 3 {
-			t.Fatalf("bad record count %v %v, want 3", where, len(db.Records))
-		}
-		for key, rec := range db.Records {
-			switch key {
-			case "":
-				if len(rec.Val) == 0 && rec.Seq == 0 {
-					return
-				}
-			case "1":
-				if bytes.Equal(rec.Val, []byte("ab")) && rec.Seq == 1 {
-					return
-				}
-			case "23":
-				if bytes.Equal(rec.Val, []byte("abcd")) && rec.Seq == 2 {
-					return
-				}
-			default:
-				t.Fatalf("unknown key: %v", key)
-			}
-			t.Fatalf("bad record for key %v: %+v", key, rec)
-		}
+
+	want := map[string]Record{
+		"":   {Val: nil, Seq: 0},
+		"1":  {Val: []byte("ab"), Seq: 1},
+		"23": {Val: []byte("abcd"), Seq: 2},
 	}
-	checkContents("after save")
+	if !reflect.DeepEqual(db.Records, want) {
+		t.Fatalf("bad db after save: %v, want: %v", db.Records, want)
+	}
 	if err := db.Flush(); err != nil {
 		t.Fatalf("failed to flush db: %v", err)
 	}
-	checkContents("after flush")
+	if !reflect.DeepEqual(db.Records, want) {
+		t.Fatalf("bad db after flush: %v, want: %v", db.Records, want)
+	}
 	db, err = Open(fn)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
-	checkContents("after reopen")
+	if !reflect.DeepEqual(db.Records, want) {
+		t.Fatalf("bad db after reopen: %v, want: %v", db.Records, want)
+	}
 }
 
 func TestModify(t *testing.T) {
@@ -78,40 +66,28 @@ func TestModify(t *testing.T) {
 	db.Delete("7890")
 	db.Save("456", []byte("efg"), 0)
 	db.Save("7890", []byte("bc"), 0)
-	checkContents := func(where string) {
-		if len(db.Records) != 3 {
-			t.Fatalf("bad record count %v %v, want 3", where, len(db.Records))
-		}
-		for key, rec := range db.Records {
-			switch key {
-			case "1":
-				if len(rec.Val) == 0 && rec.Seq == 5 {
-					return
-				}
-			case "456":
-				if bytes.Equal(rec.Val, []byte("efg")) && rec.Seq == 0 {
-					return
-				}
-			case "7890":
-				if bytes.Equal(rec.Val, []byte("bc")) && rec.Seq == 0 {
-					return
-				}
-			default:
-				t.Fatalf("unknown key: %v", key)
-			}
-			t.Fatalf("bad record for key %v: %+v", key, rec)
-		}
+
+	want := map[string]Record{
+		"1":    {Val: nil, Seq: 5},
+		"456":  {Val: []byte("efg"), Seq: 0},
+		"7890": {Val: []byte("bc"), Seq: 0},
 	}
-	checkContents("after modification")
+	if !reflect.DeepEqual(db.Records, want) {
+		t.Fatalf("bad db after modification: %v, want: %v", db.Records, want)
+	}
 	if err := db.Flush(); err != nil {
 		t.Fatalf("failed to flush db: %v", err)
 	}
-	checkContents("after flush")
+	if !reflect.DeepEqual(db.Records, want) {
+		t.Fatalf("bad db after flush: %v, want: %v", db.Records, want)
+	}
 	db, err = Open(fn)
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
-	checkContents("after reopen")
+	if !reflect.DeepEqual(db.Records, want) {
+		t.Fatalf("bad db after reopen: %v, want: %v", db.Records, want)
+	}
 }
 
 func TestLarge(t *testing.T) {
