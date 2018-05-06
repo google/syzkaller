@@ -422,41 +422,5 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	merger.Add("console", tty)
 	merger.Add("adb", adbRpipe)
 
-	errc := make(chan error, 1)
-	signal := func(err error) {
-		select {
-		case errc <- err:
-		default:
-		}
-	}
-
-	go func() {
-		select {
-		case <-time.After(timeout):
-			signal(vmimpl.ErrTimeout)
-		case <-stop:
-			signal(vmimpl.ErrTimeout)
-		case <-inst.closed:
-			if inst.debug {
-				log.Logf(0, "instance closed")
-			}
-			signal(fmt.Errorf("instance closed"))
-		case err := <-merger.Err:
-			adb.Process.Kill()
-			tty.Close()
-			merger.Wait()
-			if cmdErr := adb.Wait(); cmdErr == nil {
-				// If the command exited successfully, we got EOF error from merger.
-				// But in this case no error has happened and the EOF is expected.
-				err = nil
-			}
-			signal(err)
-			return
-		}
-		adb.Process.Kill()
-		tty.Close()
-		merger.Wait()
-		adb.Wait()
-	}()
-	return merger.Output, errc, nil
+	return vmimpl.Multiplex(adb, merger, tty, timeout, stop, inst.closed, inst.debug)
 }
