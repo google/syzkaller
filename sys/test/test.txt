@@ -3,7 +3,7 @@
 
 # Syscalls used in syzkaller tests.
 
-mmap(addr vma, len len[addr])
+syz_mmap(addr vma, len len[addr])
 syz_test()
 
 # Integer types.

@@ -430,37 +430,6 @@ func TestNeedRepro4_dup(t *testing.T)         { testNeedRepro4(t, dupCrash) }
 func TestNeedRepro4_closed(t *testing.T)      { testNeedRepro4(t, closedCrash) }
 func TestNeedRepro4_closedRepro(t *testing.T) { testNeedRepro4(t, closedWithReproCrash) }
 
-func testNeedRepro5(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
-	c := NewCtx(t)
-	defer c.Close()
-
-	crash1 := crashCtor(c)
-	crash1.ReproOpts = []byte("opts")
-	crash1.ReproSyz = []byte("repro syz")
-	resp := new(dashapi.ReportCrashResp)
-	cid := testCrashID(crash1)
-	needReproResp := new(dashapi.NeedReproResp)
-
-	for i := 0; i < maxReproPerBug-1; i++ {
-		c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
-		c.expectEQ(resp.NeedRepro, true)
-
-		c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-		c.expectEQ(needReproResp.NeedRepro, true)
-	}
-
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
-	c.expectEQ(resp.NeedRepro, false)
-
-	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-	c.expectEQ(needReproResp.NeedRepro, false)
-}
-
-func TestNeedRepro5_normal(t *testing.T)      { testNeedRepro5(t, normalCrash) }
-func TestNeedRepro5_dup(t *testing.T)         { testNeedRepro5(t, dupCrash) }
-func TestNeedRepro5_closed(t *testing.T)      { testNeedRepro5(t, closedCrash) }
-func TestNeedRepro5_closedRepro(t *testing.T) { testNeedRepro5(t, closedWithReproCrash) }
-
 func normalCrash(c *Ctx) *dashapi.Crash {
 	build := testBuild(1)
 	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
