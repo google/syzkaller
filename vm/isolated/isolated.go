@@ -305,43 +305,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	merger.Add("dmesg", dmesg)
 	merger.Add("ssh", rpipe)
 
-	errc := make(chan error, 1)
-	signal := func(err error) {
-		select {
-		case errc <- err:
-		default:
-		}
-	}
-
-	go func() {
-		select {
-		case <-time.After(timeout):
-			signal(vmimpl.ErrTimeout)
-		case <-stop:
-			signal(vmimpl.ErrTimeout)
-		case <-inst.closed:
-			if inst.debug {
-				log.Logf(0, "instance closed")
-			}
-			signal(fmt.Errorf("instance closed"))
-		case err := <-merger.Err:
-			cmd.Process.Kill()
-			dmesg.Close()
-			merger.Wait()
-			if cmdErr := cmd.Wait(); cmdErr == nil {
-				// If the command exited successfully, we got EOF error from merger.
-				// But in this case no error has happened and the EOF is expected.
-				err = nil
-			}
-			signal(err)
-			return
-		}
-		cmd.Process.Kill()
-		dmesg.Close()
-		merger.Wait()
-		cmd.Wait()
-	}()
-	return merger.Output, errc, nil
+	return vmimpl.Multiplex(cmd, merger, dmesg, timeout, stop, inst.closed, inst.debug)
 }
 
 func (inst *instance) sshArgs(portArg string) []string {

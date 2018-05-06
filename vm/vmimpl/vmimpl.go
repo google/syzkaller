@@ -10,7 +10,11 @@ package vmimpl
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os/exec"
 	"time"
+
+	"github.com/google/syzkaller/pkg/log"
 )
 
 // Pool represents a set of test machines (VMs, physical devices, etc) of particular type.
@@ -93,3 +97,43 @@ var (
 )
 
 type ctorFunc func(env *Env) (Pool, error)
+
+func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout time.Duration,
+	stop, closed <-chan bool, debug bool) (<-chan []byte, <-chan error, error) {
+	errc := make(chan error, 1)
+	signal := func(err error) {
+		select {
+		case errc <- err:
+		default:
+		}
+	}
+	go func() {
+		select {
+		case <-time.After(timeout):
+			signal(ErrTimeout)
+		case <-stop:
+			signal(ErrTimeout)
+		case <-closed:
+			if debug {
+				log.Logf(0, "instance closed")
+			}
+			signal(fmt.Errorf("instance closed"))
+		case err := <-merger.Err:
+			cmd.Process.Kill()
+			console.Close()
+			merger.Wait()
+			if cmdErr := cmd.Wait(); cmdErr == nil {
+				// If the command exited successfully, we got EOF error from merger.
+				// But in this case no error has happened and the EOF is expected.
+				err = nil
+			}
+			signal(err)
+			return
+		}
+		cmd.Process.Kill()
+		console.Close()
+		merger.Wait()
+		cmd.Wait()
+	}()
+	return merger.Output, errc, nil
+}
