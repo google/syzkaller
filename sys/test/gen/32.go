@@ -506,10 +506,6 @@ var syscalls_32 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 4}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "anyres32", TypeSize: 4, ArgDir: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a1", TypeSize: 4}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "anyres64", TypeSize: 8, ArgDir: 1}}},
 	}},
-	{Name: "mmap", CallName: "mmap", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
-	}},
 	{Name: "mutate0", CallName: "mutate0"},
 	{Name: "mutate1", CallName: "mutate1"},
 	{Name: "mutate2", CallName: "mutate2"},
@@ -543,6 +539,10 @@ var syscalls_32 = []*Syscall{
 	{Name: "serialize1", CallName: "serialize1", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "b", TypeSize: 4}}, Buf: "a"},
+	}},
+	{Name: "syz_mmap", CallName: "syz_mmap", Args: []Type{
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
 	}},
 	{Name: "syz_test", CallName: "syz_test"},
 	{Name: "syz_test$align0", CallName: "syz_test", Args: []Type{
@@ -822,4 +822,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "e64e7aa2b83bf3882517a64e4d760868ce7e378f"
+const revision_32 = "03eb61c17cd6775babc6992bed09fd510eec1467"

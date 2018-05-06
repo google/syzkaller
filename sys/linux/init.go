@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/linux/gen"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func init() {
@@ -20,12 +21,7 @@ func init() {
 
 func initTarget(target *prog.Target) {
 	arch := &arch{
-		mmapSyscall:               target.SyscallMap["mmap"],
 		clockGettimeSyscall:       target.SyscallMap["clock_gettime"],
-		PROT_READ:                 target.ConstMap["PROT_READ"],
-		PROT_WRITE:                target.ConstMap["PROT_WRITE"],
-		MAP_ANONYMOUS:             target.ConstMap["MAP_ANONYMOUS"],
-		MAP_PRIVATE:               target.ConstMap["MAP_PRIVATE"],
 		MAP_FIXED:                 target.ConstMap["MAP_FIXED"],
 		MREMAP_MAYMOVE:            target.ConstMap["MREMAP_MAYMOVE"],
 		MREMAP_FIXED:              target.ConstMap["MREMAP_FIXED"],
@@ -48,7 +44,7 @@ func initTarget(target *prog.Target) {
 		AF_BLUETOOTH:              target.ConstMap["AF_BLUETOOTH"],
 	}
 
-	target.MakeMmap = arch.makeMmap
+	target.MakeMmap = targets.MakePosixMmap(target)
 	target.SanitizeCall = arch.sanitizeCall
 	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, old prog.Arg) (
 		prog.Arg, []*prog.Call){
@@ -74,10 +70,6 @@ func initTarget(target *prog.Target) {
 	}
 }
 
-const (
-	invalidFD = ^uint64(0)
-)
-
 var (
 	// This should not be here, but for now we expose this for syz-fuzzer.
 	KCOV_INIT_TRACE uintptr
@@ -94,13 +86,8 @@ var (
 )
 
 type arch struct {
-	mmapSyscall         *prog.Syscall
 	clockGettimeSyscall *prog.Syscall
 
-	PROT_READ                 uint64
-	PROT_WRITE                uint64
-	MAP_ANONYMOUS             uint64
-	MAP_PRIVATE               uint64
 	MAP_FIXED                 uint64
 	MREMAP_MAYMOVE            uint64
 	MREMAP_FIXED              uint64
@@ -121,23 +108,6 @@ type arch struct {
 	AF_NFC                    uint64
 	AF_LLC                    uint64
 	AF_BLUETOOTH              uint64
-}
-
-// createMmapCall creates a "normal" mmap call that maps [addr, addr+size) memory range.
-func (arch *arch) makeMmap(addr, size uint64) *prog.Call {
-	meta := arch.mmapSyscall
-	return &prog.Call{
-		Meta: meta,
-		Args: []prog.Arg{
-			prog.MakeVmaPointerArg(meta.Args[0], addr, size),
-			prog.MakeConstArg(meta.Args[1], size),
-			prog.MakeConstArg(meta.Args[2], arch.PROT_READ|arch.PROT_WRITE),
-			prog.MakeConstArg(meta.Args[3], arch.MAP_ANONYMOUS|arch.MAP_PRIVATE|arch.MAP_FIXED),
-			prog.MakeResultArg(meta.Args[4], nil, invalidFD),
-			prog.MakeConstArg(meta.Args[5], 0),
-		},
-		Ret: prog.MakeReturnArg(meta.Ret),
-	}
 }
 
 func (arch *arch) sanitizeCall(c *prog.Call) {

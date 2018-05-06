@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	targetsPkg "github.com/google/syzkaller/sys/targets"
 )
 
 func TestGeneration(t *testing.T) {
@@ -115,34 +113,33 @@ func TestVmaType(t *testing.T) {
 // programs via hub.
 func TestCrossTarget(t *testing.T) {
 	t.Parallel()
-	for os, archs := range targetsPkg.List {
-		if len(archs) == 1 {
-			continue
+	const OS = "linux"
+	var archs []string
+	for _, target := range AllTargets() {
+		if target.OS == OS {
+			archs = append(archs, target.Arch)
 		}
-		if os != "linux" {
-			continue
+	}
+	for _, arch := range archs {
+		target, err := GetTarget(OS, arch)
+		if err != nil {
+			t.Fatal(err)
 		}
-		for arch := range archs {
-			target, err := GetTarget(os, arch)
+		var crossTargets []*Target
+		for _, crossArch := range archs {
+			if crossArch == arch {
+				continue
+			}
+			crossTarget, err := GetTarget(OS, crossArch)
 			if err != nil {
 				t.Fatal(err)
 			}
-			var crossTargets []*Target
-			for crossArch := range archs {
-				if crossArch == arch {
-					continue
-				}
-				crossTarget, err := GetTarget(os, crossArch)
-				if err != nil {
-					t.Fatal(err)
-				}
-				crossTargets = append(crossTargets, crossTarget)
-			}
-			t.Run(fmt.Sprintf("%v/%v", os, arch), func(t *testing.T) {
-				t.Parallel()
-				testCrossTarget(t, target, crossTargets)
-			})
+			crossTargets = append(crossTargets, crossTarget)
 		}
+		t.Run(fmt.Sprintf("%v/%v", OS, arch), func(t *testing.T) {
+			t.Parallel()
+			testCrossTarget(t, target, crossTargets)
+		})
 	}
 }
 
