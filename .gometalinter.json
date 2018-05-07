@@ -9,6 +9,7 @@
 	"duplthreshold": 63,
 	"skip": [
 		"pkg/kd",
+		"pkg/ifuzz/generated",
 		"sys/akaros/gen",
 		"sys/freebsd/gen",
 		"sys/fuchsia/gen",
@@ -37,6 +38,6 @@
 		"(sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/init.*|sys/targets/common.go).* don't use ALL_CAPS in Go names",
 		"exported .* should have comment",
 		"comment on .* should be of the form",
-		"(pkg/ifuzz/insns.go|pkg/csource/.*_common.go|pkg/csource/gen.go|pkg/report/linux.go|pkg/kernel/generated.go).* line is [0-9]+ characters"
+		"(pkg/csource/.*_common.go|pkg/csource/gen.go|pkg/report/linux.go|pkg/kernel/generated.go).* line is [0-9]+ characters"
 	]
 }
