@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	unix_CBAUD     = unix.CBAUD
-	unix_CRTSCTS   = unix.CRTSCTS
-	syscall_TCGETS = unix.TCGETS2
-	syscall_TCSETS = unix.TCSETS2
+	unixCBAUD     = unix.CBAUD
+	unixCRTSCTS   = unix.CRTSCTS
+	syscallTCGETS = unix.TCGETS2
+	syscallTCSETS = unix.TCSETS2
 )

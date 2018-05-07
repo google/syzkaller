@@ -35,11 +35,11 @@ func newJobProcessor(cfg *Config, managers []*Manager) *JobProcessor {
 	jp := &JobProcessor{
 		name:            fmt.Sprintf("%v-job", cfg.Name),
 		managers:        managers,
-		syzkallerRepo:   cfg.Syzkaller_Repo,
-		syzkallerBranch: cfg.Syzkaller_Branch,
+		syzkallerRepo:   cfg.SyzkallerRepo,
+		syzkallerBranch: cfg.SyzkallerBranch,
 	}
-	if cfg.Dashboard_Addr != "" && cfg.Dashboard_Client != "" {
-		jp.dash = dashapi.New(cfg.Dashboard_Client, cfg.Dashboard_Addr, cfg.Dashboard_Key)
+	if cfg.DashboardAddr != "" && cfg.DashboardClient != "" {
+		jp.dash = dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
 	}
 	return jp
 }
@@ -265,7 +265,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	image := filepath.Join(imageDir, "image")
 	key := filepath.Join(imageDir, "key")
 	err = kernel.CreateImage(kernelDir, mgr.mgrcfg.Userspace,
-		mgr.mgrcfg.Kernel_Cmdline, mgr.mgrcfg.Kernel_Sysctl, image, key)
+		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, image, key)
 	if err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
@@ -275,7 +275,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	mgrcfg.Name += "-job"
 	mgrcfg.Workdir = workDir
 	mgrcfg.Vmlinux = filepath.Join(kernelDir, "vmlinux")
-	mgrcfg.Kernel_Src = kernelDir
+	mgrcfg.KernelSrc = kernelDir
 	mgrcfg.Syzkaller = syzkallerDir
 	mgrcfg.Image = image
 	mgrcfg.SSHKey = key

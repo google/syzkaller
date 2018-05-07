@@ -74,7 +74,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	targets := make(map[string]bool)
 	for _, mgr := range cfg.Managers {
 		mgrcfg := new(mgrconfig.Config)
-		if err := config.LoadData(mgr.Manager_Config, mgrcfg); err != nil {
+		if err := config.LoadData(mgr.ManagerConfig, mgrcfg); err != nil {
 			log.Fatalf("failed to load manager %v config: %v", mgr.Name, err)
 		}
 		os, vmarch, arch, err := mgrconfig.SplitTarget(mgrcfg.Target)
@@ -93,9 +93,9 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 
 	return &SyzUpdater{
 		exe:          exe,
-		repo:         cfg.Syzkaller_Repo,
-		branch:       cfg.Syzkaller_Branch,
-		descriptions: cfg.Syzkaller_Descriptions,
+		repo:         cfg.SyzkallerRepo,
+		branch:       cfg.SyzkallerBranch,
+		descriptions: cfg.SyzkallerDescriptions,
 		gopathDir:    gopath,
 		syzkallerDir: syzkallerDir,
 		latestDir:    filepath.Join("syzkaller", "latest"),

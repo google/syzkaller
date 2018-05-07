@@ -57,7 +57,7 @@ func main() {
 	for i := range vmIndexes {
 		vmIndexes[i] = i
 	}
-	reporter, err := report.NewReporter(cfg.TargetOS, cfg.Kernel_Src, "", nil, cfg.ParsedIgnores)
+	reporter, err := report.NewReporter(cfg.TargetOS, cfg.KernelSrc, "", nil, cfg.ParsedIgnores)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

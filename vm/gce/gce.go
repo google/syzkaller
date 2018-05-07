@@ -36,10 +36,10 @@ func init() {
 }
 
 type Config struct {
-	Count        int    // number of VMs to use
-	Machine_Type string // GCE machine type (e.g. "n1-highcpu-2")
-	GCS_Path     string // GCS path to upload image
-	GCE_Image    string // Pre-created GCE image to use
+	Count       int    `json:"count"`        // number of VMs to use
+	MachineType string `json:"machine_type"` // GCE machine type (e.g. "n1-highcpu-2")
+	GCSPath     string `json:"gcs_path"`     // GCS path to upload image
+	GCEImage    string `json:"gce_image"`    // Pre-created GCE image to use
 }
 
 type Pool struct {
@@ -77,16 +77,16 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Debug {
 		cfg.Count = 1
 	}
-	if cfg.Machine_Type == "" {
+	if cfg.MachineType == "" {
 		return nil, fmt.Errorf("machine_type parameter is empty")
 	}
-	if cfg.GCE_Image == "" && cfg.GCS_Path == "" {
+	if cfg.GCEImage == "" && cfg.GCSPath == "" {
 		return nil, fmt.Errorf("gcs_path parameter is empty")
 	}
-	if cfg.GCE_Image == "" && env.Image == "" {
+	if cfg.GCEImage == "" && env.Image == "" {
 		return nil, fmt.Errorf("config param image is empty (required for GCE)")
 	}
-	if cfg.GCE_Image != "" && env.Image != "" {
+	if cfg.GCEImage != "" && env.Image != "" {
 		return nil, fmt.Errorf("both image and gce_image are specified")
 	}
 
@@ -97,18 +97,18 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	log.Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
 		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
 
-	if cfg.GCE_Image == "" {
-		cfg.GCE_Image = env.Name
-		gcsImage := filepath.Join(cfg.GCS_Path, env.Name+"-image.tar.gz")
+	if cfg.GCEImage == "" {
+		cfg.GCEImage = env.Name
+		gcsImage := filepath.Join(cfg.GCSPath, env.Name+"-image.tar.gz")
 		log.Logf(0, "uploading image to %v...", gcsImage)
 		if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
 			return nil, err
 		}
-		log.Logf(0, "creating GCE image %v...", cfg.GCE_Image)
-		if err := GCE.DeleteImage(cfg.GCE_Image); err != nil {
+		log.Logf(0, "creating GCE image %v...", cfg.GCEImage)
+		if err := GCE.DeleteImage(cfg.GCEImage); err != nil {
 			return nil, fmt.Errorf("failed to delete GCE image: %v", err)
 		}
-		if err := GCE.CreateImage(cfg.GCE_Image, gcsImage); err != nil {
+		if err := GCE.CreateImage(cfg.GCEImage, gcsImage); err != nil {
 			return nil, fmt.Errorf("failed to create GCE image: %v", err)
 		}
 	}
@@ -142,7 +142,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	log.Logf(0, "creating instance: %v", name)
-	ip, err := pool.GCE.CreateInstance(name, pool.cfg.Machine_Type, pool.cfg.GCE_Image, string(gceKeyPub))
+	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage, string(gceKeyPub))
 	if err != nil {
 		return nil, err
 	}

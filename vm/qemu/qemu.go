@@ -30,15 +30,15 @@ func init() {
 }
 
 type Config struct {
-	Count        int    // number of VMs to use
-	Qemu         string // qemu binary name (qemu-system-arch by default)
-	Qemu_Args    string // additional command line arguments for qemu binary
-	Kernel       string // kernel for injected boot (e.g. arch/x86/boot/bzImage)
-	Cmdline      string // kernel command line (can only be specified with kernel)
-	Initrd       string // linux initial ramdisk. (optional)
-	Image_Device string // qemu image device (hda by default)
-	CPU          int    // number of VM CPUs
-	Mem          int    // amount of VM memory in MBs
+	Count       int    `json:"count"`        // number of VMs to use
+	Qemu        string `json:"qemu"`         // qemu binary name (qemu-system-arch by default)
+	QemuArgs    string `json:"qemu_args"`    // additional command line arguments for qemu binary
+	Kernel      string `json:"kernel"`       // kernel for injected boot (e.g. arch/x86/boot/bzImage)
+	Cmdline     string `json:"cmdline"`      // kernel command line (can only be specified with kernel)
+	Initrd      string `json:"initrd"`       // linux initial ramdisk. (optional)
+	ImageDevice string `json:"image_device"` // qemu image device (hda by default)
+	CPU         int    `json:"cpu"`          // number of VM CPUs
+	Mem         int    `json:"mem"`          // amount of VM memory in MBs
 }
 
 type Pool struct {
@@ -101,10 +101,10 @@ var archConfigs = map[string]archConfig{
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	archConfig := archConfigs[env.OS+"/"+env.Arch]
 	cfg := &Config{
-		Count:        1,
-		Image_Device: "hda",
-		Qemu:         archConfig.Qemu,
-		Qemu_Args:    archConfig.QemuArgs,
+		Count:       1,
+		ImageDevice: "hda",
+		Qemu:        archConfig.Qemu,
+		QemuArgs:    archConfig.QemuArgs,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse qemu vm config: %v", err)
@@ -244,7 +244,7 @@ func (inst *instance) Boot() error {
 		"-serial", "stdio",
 		"-no-reboot",
 	}
-	args = append(args, strings.Split(inst.cfg.Qemu_Args, " ")...)
+	args = append(args, strings.Split(inst.cfg.QemuArgs, " ")...)
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
@@ -252,7 +252,7 @@ func (inst *instance) Boot() error {
 		)
 	} else {
 		args = append(args,
-			"-"+inst.cfg.Image_Device, inst.image,
+			"-"+inst.cfg.ImageDevice, inst.image,
 			"-snapshot",
 		)
 	}
