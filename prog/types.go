@@ -51,6 +51,7 @@ type Type interface {
 	BitfieldMiddle() bool // returns true for all but last bitfield in a group
 
 	generate(r *randGen, s *state) (arg Arg, calls []*Call)
+	mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool)
 }
 
 func IsPad(t Type) bool {
