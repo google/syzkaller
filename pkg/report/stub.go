@@ -9,16 +9,16 @@ import (
 	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
-type akaros struct {
+type stub struct {
 	kernelSrc string
 	kernelObj string
 	symbols   map[string][]symbolizer.Symbol
 	ignores   []*regexp.Regexp
 }
 
-func ctorAkaros(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
+func ctorStub(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
 	ignores []*regexp.Regexp) (Reporter, error) {
-	ctx := &akaros{
+	ctx := &stub{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,
 		symbols:   symbols,
@@ -27,14 +27,14 @@ func ctorAkaros(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Sym
 	return ctx, nil
 }
 
-func (ctx *akaros) ContainsCrash(output []byte) bool {
+func (ctx *stub) ContainsCrash(output []byte) bool {
 	panic("not implemented")
 }
 
-func (ctx *akaros) Parse(output []byte) *Report {
+func (ctx *stub) Parse(output []byte) *Report {
 	panic("not implemented")
 }
 
-func (ctx *akaros) Symbolize(rep *Report) error {
+func (ctx *stub) Symbolize(rep *Report) error {
 	panic("not implemented")
 }

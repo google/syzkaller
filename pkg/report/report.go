@@ -67,12 +67,12 @@ func NewReporter(os, kernelSrc, kernelObj string, symbols map[string][]symbolize
 }
 
 var ctors = map[string]fn{
-	"akaros":  ctorAkaros,
+	"akaros":  ctorStub,
 	"linux":   ctorLinux,
 	"freebsd": ctorFreebsd,
 	"netbsd":  ctorNetbsd,
-	"fuchsia": ctorFuchsia,
-	"windows": ctorWindows,
+	"fuchsia": ctorStub,
+	"windows": ctorStub,
 }
 
 type fn func(string, string, map[string][]symbolizer.Symbol, []*regexp.Regexp) (Reporter, error)
