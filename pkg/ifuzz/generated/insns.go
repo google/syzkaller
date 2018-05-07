@@ -2,7 +2,11 @@
 
 package ifuzz
 
-var Insns = []*Insn{
+import . "github.com/google/syzkaller/pkg/ifuzz"
+
+func init() { Insns = insns }
+
+var insns = []*Insn{
 	{Name: "FADD", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Rm: -1, Mem32: true, VexP: -1},
 	{Name: "FMUL", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Reg: 1, Rm: -1, Mem32: true, VexP: -1},
 	{Name: "FCOMP", Extension: "X87", Mode: 15, Opcode: []uint8{216}, Modrm: true, Mod: -3, Reg: 3, Rm: -1, Mem32: true, VexP: -1},
