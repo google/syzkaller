@@ -70,50 +70,19 @@ func main() {
 		os.Exit(1)
 	}
 	flag.Parse()
-
-	OS := oses[*flagOS]
-	if OS == nil {
-		failf("unknown os: %v", *flagOS)
-	}
 	if *flagBuild && *flagBuildDir != "" {
 		failf("-build and -builddir is an invalid combination")
 	}
-	android := false
-	if *flagOS == "android" {
-		android = true
-		*flagOS = "linux"
-	}
-	var archArray []string
-	if *flagArch != "" {
-		archArray = strings.Split(*flagArch, ",")
-	} else {
-		for arch := range targets.List[*flagOS] {
-			archArray = append(archArray, arch)
-		}
-		if android {
-			archArray = []string{"amd64", "arm64"}
-		}
-		sort.Strings(archArray)
-	}
-	files := flag.Args()
-	if len(files) == 0 {
-		matches, err := filepath.Glob(filepath.Join("sys", *flagOS, "*.txt"))
-		if err != nil || len(matches) == 0 {
-			failf("failed to find sys files: %v", err)
-		}
-		androidFiles := map[string]bool{
-			"tlk_device.txt": true,
-		}
-		for _, f := range matches {
-			f = filepath.Base(f)
-			if *flagOS == "linux" && android != androidFiles[f] {
-				continue
-			}
-			files = append(files, filepath.Base(f))
-		}
-		sort.Strings(files)
+
+	osStr, archArray, files, err := archFileList(*flagOS, *flagArch, flag.Args())
+	if err != nil {
+		failf("%v", err)
 	}
 
+	OS := oses[osStr]
+	if OS == nil {
+		failf("unknown os: %v", osStr)
+	}
 	if err := OS.prepare(*flagSourceDir, *flagBuild, archArray); err != nil {
 		failf("%v", err)
 	}
@@ -135,7 +104,7 @@ func main() {
 			buildDir = *flagSourceDir
 		}
 
-		target := targets.List[*flagOS][archStr]
+		target := targets.List[osStr][archStr]
 		if target == nil {
 			failf("unknown arch: %v", archStr)
 		}
@@ -232,6 +201,44 @@ func main() {
 	if failed {
 		os.Exit(1)
 	}
+}
+
+func archFileList(os, arch string, files []string) (string, []string, []string, error) {
+	android := false
+	if os == "android" {
+		android = true
+		os = "linux"
+	}
+	var arches []string
+	if arch != "" {
+		arches = strings.Split(arch, ",")
+	} else {
+		for arch := range targets.List[os] {
+			arches = append(arches, arch)
+		}
+		if android {
+			arches = []string{"amd64", "arm64"}
+		}
+		sort.Strings(arches)
+	}
+	if len(files) == 0 {
+		matches, err := filepath.Glob(filepath.Join("sys", os, "*.txt"))
+		if err != nil || len(matches) == 0 {
+			return "", nil, nil, fmt.Errorf("failed to find sys files: %v", err)
+		}
+		androidFiles := map[string]bool{
+			"tlk_device.txt": true,
+		}
+		for _, f := range matches {
+			f = filepath.Base(f)
+			if os == "linux" && android != androidFiles[f] {
+				continue
+			}
+			files = append(files, f)
+		}
+		sort.Strings(files)
+	}
+	return os, arches, files, nil
 }
 
 func processArch(OS OS, arch *Arch) (map[string]*compiler.ConstInfo, error) {

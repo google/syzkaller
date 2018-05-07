@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/serializer"
 )
 
+// nolint: gocyclo
 func main() {
 	if len(os.Args) != 2 {
 		failf("usage: gen instructions.txt")
