@@ -429,43 +429,12 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	if err := datastore.Get(c, bugKey, bug); err != nil {
 		return false, internalError, fmt.Errorf("can't find the corresponding bug: %v", err)
 	}
-	switch bug.Status {
-	case BugStatusOpen:
-	case BugStatusDup:
-		canon, err := canonicalBug(c, bug)
-		if err != nil {
-			return false, internalError, err
-		}
-		if canon.Status != BugStatusOpen {
-			// We used to reject updates to closed bugs,
-			// but this is confusing and non-actionable for users.
-			// So now we fail the update, but give empty reason,
-			// which means "don't notify user".
-			if cmd.Status == dashapi.BugStatusUpdate {
-				// This happens when people discuss old bugs.
-				log.Infof(c, "Dup bug is already closed")
-			} else {
-				log.Errorf(c, "Dup bug is already closed")
-			}
-			return false, "", nil
-		}
-	case BugStatusFixed, BugStatusInvalid:
-		if cmd.Status != dashapi.BugStatusUpdate {
-			log.Errorf(c, "This bug is already closed")
-		}
-		return false, "", nil
-	default:
-		return false, internalError, fmt.Errorf("unknown bug status %v", bug.Status)
-	}
 	bugReporting, final := bugReportingByID(bug, cmd.ID)
 	if bugReporting == nil {
 		return false, internalError, fmt.Errorf("can't find bug reporting")
 	}
-	if !bugReporting.Closed.IsZero() {
-		if cmd.Status != dashapi.BugStatusUpdate {
-			log.Errorf(c, "This bug reporting is already closed")
-		}
-		return false, "", nil
+	if ok, reply, err := checkBugStatus(c, cmd, bug, bugReporting); !ok {
+		return false, reply, err
 	}
 	state, err := loadReportingState(c)
 	if err != nil {
@@ -563,6 +532,45 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	}
 	if err := saveReportingState(c, state); err != nil {
 		return false, internalError, err
+	}
+	return true, "", nil
+}
+
+func checkBugStatus(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugReporting *BugReporting) (
+	bool, string, error) {
+	switch bug.Status {
+	case BugStatusOpen:
+	case BugStatusDup:
+		canon, err := canonicalBug(c, bug)
+		if err != nil {
+			return false, internalError, err
+		}
+		if canon.Status != BugStatusOpen {
+			// We used to reject updates to closed bugs,
+			// but this is confusing and non-actionable for users.
+			// So now we fail the update, but give empty reason,
+			// which means "don't notify user".
+			if cmd.Status == dashapi.BugStatusUpdate {
+				// This happens when people discuss old bugs.
+				log.Infof(c, "Dup bug is already closed")
+			} else {
+				log.Errorf(c, "Dup bug is already closed")
+			}
+			return false, "", nil
+		}
+	case BugStatusFixed, BugStatusInvalid:
+		if cmd.Status != dashapi.BugStatusUpdate {
+			log.Errorf(c, "This bug is already closed")
+		}
+		return false, "", nil
+	default:
+		return false, internalError, fmt.Errorf("unknown bug status %v", bug.Status)
+	}
+	if !bugReporting.Closed.IsZero() {
+		if cmd.Status != dashapi.BugStatusUpdate {
+			log.Errorf(c, "This bug reporting is already closed")
+		}
+		return false, "", nil
 	}
 	return true, "", nil
 }
