@@ -48,54 +48,12 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	var entries []*prog.LogEntry
-	for _, fn := range flag.Args() {
-		data, err := ioutil.ReadFile(fn)
-		if err != nil {
-			log.Fatalf("failed to read log file: %v", err)
-		}
-		entries = append(entries, target.ParseLog(data)...)
-	}
-	log.Logf(0, "parsed %v programs", len(entries))
+	entries := loadPrograms(target, flag.Args())
 	if len(entries) == 0 {
 		return
 	}
 
-	config, execOpts, err := ipc.DefaultConfig()
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	if config.Flags&ipc.FlagSignal != 0 {
-		execOpts.Flags |= ipc.FlagCollectCover
-	}
-	if *flagCoverFile != "" {
-		config.Flags |= ipc.FlagSignal
-		execOpts.Flags |= ipc.FlagCollectCover
-		execOpts.Flags &^= ipc.FlagDedupCover
-	}
-	if *flagHints {
-		if execOpts.Flags&ipc.FlagCollectCover != 0 {
-			execOpts.Flags ^= ipc.FlagCollectCover
-		}
-		execOpts.Flags |= ipc.FlagCollectComps
-	}
-
-	if *flagFaultCall >= 0 {
-		config.Flags |= ipc.FlagEnableFault
-		execOpts.Flags |= ipc.FlagInjectFault
-		execOpts.FaultCall = *flagFaultCall
-		execOpts.FaultNth = *flagFaultNth
-	}
-
-	handled := make(map[string]bool)
-	for _, entry := range entries {
-		for _, call := range entry.P.Calls {
-			handled[call.Meta.CallName] = true
-		}
-	}
-	if handled["syz_emit_ethernet"] || handled["syz_extract_tcp_res"] {
-		config.Flags |= ipc.FlagEnableTun
-	}
+	config, execOpts := createConfig(entries)
 
 	var wg sync.WaitGroup
 	wg.Add(*flagProcs)
@@ -222,4 +180,54 @@ func main() {
 
 	osutil.HandleInterrupts(shutdown)
 	wg.Wait()
+}
+
+func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
+	var entries []*prog.LogEntry
+	for _, fn := range files {
+		data, err := ioutil.ReadFile(fn)
+		if err != nil {
+			log.Fatalf("failed to read log file: %v", err)
+		}
+		entries = append(entries, target.ParseLog(data)...)
+	}
+	log.Logf(0, "parsed %v programs", len(entries))
+	return entries
+}
+
+func createConfig(entries []*prog.LogEntry) (*ipc.Config, *ipc.ExecOpts) {
+	config, execOpts, err := ipc.DefaultConfig()
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	if config.Flags&ipc.FlagSignal != 0 {
+		execOpts.Flags |= ipc.FlagCollectCover
+	}
+	if *flagCoverFile != "" {
+		config.Flags |= ipc.FlagSignal
+		execOpts.Flags |= ipc.FlagCollectCover
+		execOpts.Flags &^= ipc.FlagDedupCover
+	}
+	if *flagHints {
+		if execOpts.Flags&ipc.FlagCollectCover != 0 {
+			execOpts.Flags ^= ipc.FlagCollectCover
+		}
+		execOpts.Flags |= ipc.FlagCollectComps
+	}
+	if *flagFaultCall >= 0 {
+		config.Flags |= ipc.FlagEnableFault
+		execOpts.Flags |= ipc.FlagInjectFault
+		execOpts.FaultCall = *flagFaultCall
+		execOpts.FaultNth = *flagFaultNth
+	}
+	handled := make(map[string]bool)
+	for _, entry := range entries {
+		for _, call := range entry.P.Calls {
+			handled[call.Meta.CallName] = true
+		}
+	}
+	if handled["syz_emit_ethernet"] || handled["syz_extract_tcp_res"] {
+		config.Flags |= ipc.FlagEnableTun
+	}
+	return config, execOpts
 }
