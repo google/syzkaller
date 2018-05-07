@@ -162,13 +162,16 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 // Note that executor sign extends all the comparison operands to int64.
 // ======================================================================
 func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
-	for _, isize := range []int{64, 32, 16, 8, -32, -16, -8} {
+	for _, iwidth := range []int{8, 4, 2, 1, -4, -2, -1} {
+		var width int
 		var size, mutant uint64
-		if isize > 0 {
-			size = uint64(isize)
+		if iwidth > 0 {
+			width = iwidth
+			size = uint64(width) * 8
 			mutant = v & ((1 << size) - 1)
 		} else {
-			size = uint64(-isize)
+			width = -iwidth
+			size = uint64(width) * 8
 			mutant = v | ^((1 << size) - 1)
 		}
 		// Use big-endian match/replace for both blobs and ints.
@@ -181,10 +184,10 @@ func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
 		// In such case we will see dynamic operand that does not match what we have in the program.
 		for _, bigendian := range []bool{false, true} {
 			if bigendian {
-				if size == 8 {
+				if width == 1 {
 					continue
 				}
-				mutant = swap(mutant, size)
+				mutant = swapInt(mutant, width)
 			}
 			for newV := range compMap[mutant] {
 				mask := uint64(1<<size - 1)
@@ -194,7 +197,7 @@ func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
 					continue
 				}
 				if bigendian {
-					newV = swap(newV, size)
+					newV = swapInt(newV, width)
 				}
 				if specialIntsSet[newV] {
 					continue
