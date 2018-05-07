@@ -6,7 +6,7 @@
 	"minconstlength": 7,
 	"linelength": 120,
 	"cyclo": 50,
-	"duplthreshold": 83,
+	"duplthreshold": 80,
 	"skip": [
 		"pkg/kd",
 		"sys/akaros/gen",
@@ -34,7 +34,7 @@
 	],
 	"exclude": [
 		"don't use underscores in Go names",
-		"sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/init.* don't use ALL_CAPS in Go names",
+		"(sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/init.*|sys/targets/common.go).* don't use ALL_CAPS in Go names",
 		"exported .* should have comment",
 		"comment on .* should be of the form",
 		"(pkg/ifuzz/insns.go|pkg/csource/.*_common.go|pkg/csource/gen.go|pkg/report/linux.go|pkg/kernel/generated.go).* line is [0-9]+ characters"
