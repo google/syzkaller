@@ -1,7 +1,7 @@
 {
 	"vendor": true,
 	"tests": true,
-	"deadline": "8m",
+	"deadline": "9m",
 	"sort": ["path", "line"],
 	"minconstlength": 7,
 	"linelength": 120,
