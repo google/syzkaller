@@ -17,7 +17,7 @@ func init() {
 	for _, arg := range os.Args[1:] {
 		if strings.Contains(arg, "-test.short") {
 			fmt.Printf("skipping race testing in short mode\n")
-			os.Exit(1)
+			os.Exit(0)
 		}
 	}
 }
