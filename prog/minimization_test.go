@@ -123,22 +123,15 @@ func TestMinimizeRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	iters /= 10 // Long test.
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 5, nil)
-		Minimize(p, len(p.Calls)-1, true, func(p1 *Prog, callIndex int) bool {
-			return false
-		})
-		Minimize(p, len(p.Calls)-1, true, func(p1 *Prog, callIndex int) bool {
-			return true
-		})
-	}
-	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 5, nil)
-		Minimize(p, len(p.Calls)-1, false, func(p1 *Prog, callIndex int) bool {
-			return false
-		})
-		Minimize(p, len(p.Calls)-1, false, func(p1 *Prog, callIndex int) bool {
-			return true
-		})
+		for _, crash := range []bool{false, true} {
+			p := target.Generate(rs, 5, nil)
+			Minimize(p, len(p.Calls)-1, crash, func(p1 *Prog, callIndex int) bool {
+				return false
+			})
+			Minimize(p, len(p.Calls)-1, crash, func(p1 *Prog, callIndex int) bool {
+				return true
+			})
+		}
 	}
 }
 
