@@ -322,7 +322,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 
 func (r *randGen) generateText(kind TextKind) []byte {
 	switch kind {
-	case Text_arm64:
+	case TextArm64:
 		// Just a stub, need something better.
 		text := make([]byte, 50)
 		for i := range text {
@@ -337,7 +337,7 @@ func (r *randGen) generateText(kind TextKind) []byte {
 
 func (r *randGen) mutateText(kind TextKind, text []byte) []byte {
 	switch kind {
-	case Text_arm64:
+	case TextArm64:
 		return mutateData(r, text, 40, 60)
 	default:
 		cfg := createIfuzzConfig(kind)
@@ -365,13 +365,13 @@ func createIfuzzConfig(kind TextKind) *ifuzz.Config {
 		},
 	}
 	switch kind {
-	case Text_x86_real:
+	case TextX86Real:
 		cfg.Mode = ifuzz.ModeReal16
-	case Text_x86_16:
+	case TextX86bit16:
 		cfg.Mode = ifuzz.ModeProt16
-	case Text_x86_32:
+	case TextX86bit32:
 		cfg.Mode = ifuzz.ModeProt32
-	case Text_x86_64:
+	case TextX86bit64:
 		cfg.Mode = ifuzz.ModeLong64
 	}
 	return cfg

@@ -392,15 +392,15 @@ var typeArgTextType = &typeArg{
 func genTextType(t *ast.Type) prog.TextKind {
 	switch t.Ident {
 	case "x86_real":
-		return prog.Text_x86_real
+		return prog.TextX86Real
 	case "x86_16":
-		return prog.Text_x86_16
+		return prog.TextX86bit16
 	case "x86_32":
-		return prog.Text_x86_32
+		return prog.TextX86bit32
 	case "x86_64":
-		return prog.Text_x86_64
+		return prog.TextX86bit64
 	case "arm64":
-		return prog.Text_arm64
+		return prog.TextArm64
 	default:
 		panic(fmt.Sprintf("unknown text type %q", t.Ident))
 	}

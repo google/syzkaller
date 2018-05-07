@@ -19,48 +19,69 @@ import (
 )
 
 type Config struct {
-	Name       string // Instance name (used for identification and as GCE instance prefix)
-	Target     string // Target OS/arch, e.g. "linux/arm64" or "linux/amd64/386" (amd64 OS with 386 test process)
-	HTTP       string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
-	RPC        string // TCP address to serve RPC for fuzzer processes (optional)
-	Workdir    string
-	Vmlinux    string
-	Kernel_Src string // kernel source directory
-	Tag        string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
-	Image      string // linux image for VMs
-	SSHKey     string // ssh key for the image (may be empty for some VM types)
-	SSH_User   string // ssh user ("root" by default)
+	// Instance name (used for identification and as GCE instance prefix).
+	Name string `json:"name"`
+	// Target OS/arch, e.g. "linux/arm64" or "linux/amd64/386" (amd64 OS with 386 test process).
+	Target string `json:"target"`
+	// TCP address to serve HTTP stats page (e.g. "localhost:50000").
+	HTTP string `json:"http"`
+	// TCP address to serve RPC for fuzzer processes (optional).
+	RPC     string `json:"rpc"`
+	Workdir string `json:"workdir"`
+	Vmlinux string `json:"vmlinux"`
+	// Kernel source directory.
+	KernelSrc string `json:"kernel_src"`
+	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
+	Tag string `json:"tag"`
+	// Linux image for VMs.
+	Image string `json:"image"`
+	// SSH key for the image (may be empty for some VM types).
+	SSHKey string `json:"sshkey"`
+	// SSH user ("root" by default).
+	SSHUser string `json:"ssh_user"`
 
-	Hub_Client string
-	Hub_Addr   string
-	Hub_Key    string
+	HubClient string `json:"hub_client"`
+	HubAddr   string `json:"hub_addr"`
+	HubKey    string `json:"hub_key"`
 
-	Email_Addrs []string // syz-manager will send crash emails to this list of emails using mailx (optional)
+	// syz-manager will send crash emails to this list of emails using mailx (optional).
+	EmailAddrs []string `json:"email_addrs"`
 
-	Dashboard_Client string
-	Dashboard_Addr   string
-	Dashboard_Key    string
+	DashboardClient string `json:"dashboard_client"`
+	DashboardAddr   string `json:"dashboard_addr"`
+	DashboardKey    string `json:"dashboard_key"`
 
-	Syzkaller string // path to syzkaller checkout (syz-manager will look for binaries in bin subdir)
-	Procs     int    // number of parallel processes inside of every VM
+	// Path to syzkaller checkout (syz-manager will look for binaries in bin subdir).
+	Syzkaller string `json:"syzkaller"`
+	// Number of parallel processes inside of every VM.
+	Procs int `json:"procs"`
 
-	Sandbox string // type of sandbox to use during fuzzing:
+	// Type of sandbox to use during fuzzing:
 	// "none": don't do anything special (has false positives, e.g. due to killing init)
 	// "setuid": impersonate into user nobody (65534), default
 	// "namespace": create a new namespace for fuzzer using CLONE_NEWNS/CLONE_NEWNET/CLONE_NEWPID/etc,
-	//	requires building kernel with CONFIG_NAMESPACES, CONFIG_UTS_NS, CONFIG_USER_NS, CONFIG_PID_NS and CONFIG_NET_NS.
+	//	requires building kernel with CONFIG_NAMESPACES, CONFIG_UTS_NS, CONFIG_USER_NS,
+	//	CONFIG_PID_NS and CONFIG_NET_NS.
+	Sandbox string `json:"sandbox"`
 
-	Cover     bool // use kcov coverage (default: true)
-	Leak      bool // do memory leak checking
-	Reproduce bool // reproduce, localize and minimize crashers (on by default)
+	// Use KCOV coverage (default: true).
+	Cover bool `json:"cover"`
+	// Do memory leak checking.
+	Leak bool `json:"leak"`
+	// Reproduce, localize and minimize crashers (default: true).
+	Reproduce bool `json:"reproduce"`
 
-	Enable_Syscalls  []string
-	Disable_Syscalls []string
-	Suppressions     []string // don't save reports matching these regexps, but reboot VM after them
-	Ignores          []string // completely ignore reports matching these regexps (don't save nor reboot)
+	EnabledSyscalls  []string `json:"enable_syscalls"`
+	DisabledSyscalls []string `json:"disable_syscalls"`
+	// Don't save reports matching these regexps, but reboot VM after them.
+	Suppressions []string `json:"suppressions"`
+	// Completely ignore reports matching these regexps (don't save nor reboot).
+	Ignores []string `json:"ignores"`
 
-	Type string          // VM type (qemu, kvm, local)
-	VM   json.RawMessage // VM-type-specific config
+	// VM type (qemu, gce, android, isolated, etc).
+	Type string `json:"type"`
+	// VM-type-specific config.
+	VM json.RawMessage `json:"vm"`
 
 	// Implementation details beyond this point.
 	ParsedSuppressions []*regexp.Regexp `json:"-"`
@@ -85,7 +106,7 @@ func LoadFile(filename string) (*Config, error) {
 
 func DefaultValues() *Config {
 	return &Config{
-		SSH_User:  "root",
+		SSHUser:   "root",
 		Cover:     true,
 		Reproduce: true,
 		Sandbox:   "setuid",
@@ -161,20 +182,20 @@ func load(data []byte, filename string) (*Config, error) {
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
 	cfg.Vmlinux = osutil.Abs(cfg.Vmlinux)
 	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
-	if cfg.Kernel_Src == "" {
-		cfg.Kernel_Src = filepath.Dir(cfg.Vmlinux) // assume in-tree build by default
+	if cfg.KernelSrc == "" {
+		cfg.KernelSrc = filepath.Dir(cfg.Vmlinux) // assume in-tree build by default
 	}
 
 	if err := parseSuppressions(cfg); err != nil {
 		return nil, err
 	}
 
-	if cfg.Hub_Client != "" && (cfg.Name == "" || cfg.Hub_Addr == "" || cfg.Hub_Key == "") {
+	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
 		return nil, fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
-	if cfg.Dashboard_Client != "" && (cfg.Name == "" ||
-		cfg.Dashboard_Addr == "" ||
-		cfg.Dashboard_Key == "") {
+	if cfg.DashboardClient != "" && (cfg.Name == "" ||
+		cfg.DashboardAddr == "" ||
+		cfg.DashboardKey == "") {
 		return nil, fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
 	}
 
@@ -292,7 +313,7 @@ func CreateVMEnv(cfg *Config, debug bool) *vm.Env {
 		Workdir: cfg.Workdir,
 		Image:   cfg.Image,
 		SSHKey:  cfg.SSHKey,
-		SSHUser: cfg.SSH_User,
+		SSHUser: cfg.SSHUser,
 		Debug:   debug,
 		Config:  cfg.VM,
 	}

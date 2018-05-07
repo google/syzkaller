@@ -5,8 +5,8 @@ package vmimpl
 
 // Merely to fix build.
 const (
-	unix_CBAUD     = 0
-	unix_CRTSCTS   = 0
-	syscall_TCGETS = 0
-	syscall_TCSETS = 0
+	unixCBAUD     = 0
+	unixCRTSCTS   = 0
+	syscallTCGETS = 0
+	syscallTCSETS = 0
 )

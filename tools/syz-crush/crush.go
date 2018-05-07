@@ -44,7 +44,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	reporter, err := report.NewReporter(cfg.TargetOS, cfg.Kernel_Src,
+	reporter, err := report.NewReporter(cfg.TargetOS, cfg.KernelSrc,
 		filepath.Dir(cfg.Vmlinux), nil, cfg.ParsedIgnores)
 	if err != nil {
 		log.Fatalf("%v", err)

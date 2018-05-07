@@ -27,12 +27,12 @@ func OpenConsole(con string) (rc io.ReadCloser, err error) {
 		}
 	}()
 	var term unix.Termios
-	_, _, errno := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), syscall_TCGETS, uintptr(unsafe.Pointer(&term)))
+	_, _, errno := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), syscallTCGETS, uintptr(unsafe.Pointer(&term)))
 	if errno != 0 {
 		return nil, fmt.Errorf("failed to get console termios: %v", errno)
 	}
 	// no parity bit, only need 1 stop bit, no hardware flowcontrol
-	term.Cflag &^= unix_CBAUD | unix.CSIZE | unix.PARENB | unix.CSTOPB | unix_CRTSCTS
+	term.Cflag &^= unixCBAUD | unix.CSIZE | unix.PARENB | unix.CSTOPB | unixCRTSCTS
 	// ignore modem controls
 	term.Cflag |= unix.B115200 | unix.CS8 | unix.CLOCAL | unix.CREAD
 	// setup for non-canonical mode
@@ -42,7 +42,7 @@ func OpenConsole(con string) (rc io.ReadCloser, err error) {
 	term.Oflag &^= unix.OPOST
 	term.Cc[unix.VMIN] = 0
 	term.Cc[unix.VTIME] = 10 // 1 second timeout
-	_, _, errno = syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), syscall_TCSETS, uintptr(unsafe.Pointer(&term)))
+	_, _, errno = syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), syscallTCSETS, uintptr(unsafe.Pointer(&term)))
 	if errno != 0 {
 		return nil, fmt.Errorf("failed to get console termios: %v", errno)
 	}

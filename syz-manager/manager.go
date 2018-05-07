@@ -130,7 +130,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	syscalls, err := mgrconfig.ParseEnabledSyscalls(target, cfg.Enable_Syscalls, cfg.Disable_Syscalls)
+	syscalls, err := mgrconfig.ParseEnabledSyscalls(target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -268,8 +268,8 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	mgr.port = s.Addr().(*net.TCPAddr).Port
 	go s.Serve()
 
-	if cfg.Dashboard_Addr != "" {
-		mgr.dash = dashapi.New(cfg.Dashboard_Client, cfg.Dashboard_Addr, cfg.Dashboard_Key)
+	if cfg.DashboardAddr != "" {
+		mgr.dash = dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
 	}
 
 	go func() {
@@ -336,7 +336,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		go mgr.dashboardReporter()
 	}
 
-	if mgr.cfg.Hub_Client != "" {
+	if mgr.cfg.HubClient != "" {
 		go func() {
 			for {
 				time.Sleep(time.Minute)
@@ -605,12 +605,12 @@ func (mgr *Manager) isSuppressed(crash *Crash) bool {
 }
 
 func (mgr *Manager) emailCrash(crash *Crash) {
-	if len(mgr.cfg.Email_Addrs) == 0 {
+	if len(mgr.cfg.EmailAddrs) == 0 {
 		return
 	}
 	args := []string{"-s", "syzkaller: " + crash.Title}
-	args = append(args, mgr.cfg.Email_Addrs...)
-	log.Logf(0, "sending email to %v", mgr.cfg.Email_Addrs)
+	args = append(args, mgr.cfg.EmailAddrs...)
+	log.Logf(0, "sending email to %v", mgr.cfg.EmailAddrs)
 
 	cmd := exec.Command("mailx", args...)
 	cmd.Stdin = bytes.NewReader(crash.Report.Report)
@@ -816,7 +816,7 @@ func (mgr *Manager) getReporter() report.Reporter {
 		// This will be more general taking into account modules and other OSes.
 		kernelSrc, kernelObj := "", ""
 		if mgr.cfg.Vmlinux != "" {
-			kernelSrc = mgr.cfg.Kernel_Src
+			kernelSrc = mgr.cfg.KernelSrc
 			kernelObj = filepath.Dir(mgr.cfg.Vmlinux)
 		}
 		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, kernelSrc, kernelObj,
@@ -953,7 +953,7 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 				mgr.target.Revision, a.FuzzerSyzRev, a.ExecutorSyzRev)
 		}
 	}
-	if len(mgr.cfg.Enable_Syscalls) != 0 && len(a.DisabledCalls) != 0 {
+	if len(mgr.cfg.EnabledSyscalls) != 0 && len(a.DisabledCalls) != 0 {
 		disabled := make(map[string]string)
 		for _, dc := range a.DisabledCalls {
 			disabled[dc.Name] = dc.Reason
@@ -1069,7 +1069,7 @@ func (mgr *Manager) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	if len(mgr.candidates) == 0 {
 		mgr.candidates = nil
 		if mgr.phase == phaseInit {
-			if mgr.cfg.Hub_Client != "" {
+			if mgr.cfg.HubClient != "" {
 				mgr.phase = phaseTriagedCorpus
 			} else {
 				mgr.phase = phaseTriagedHub
@@ -1101,8 +1101,8 @@ func (mgr *Manager) hubSync() {
 	mgr.minimizeCorpus()
 	if mgr.hub == nil {
 		a := &rpctype.HubConnectArgs{
-			Client:  mgr.cfg.Hub_Client,
-			Key:     mgr.cfg.Hub_Key,
+			Client:  mgr.cfg.HubClient,
+			Key:     mgr.cfg.HubKey,
 			Manager: mgr.cfg.Name,
 			Fresh:   mgr.fresh,
 			Calls:   mgr.enabledCalls,
@@ -1116,27 +1116,27 @@ func (mgr *Manager) hubSync() {
 		// Hub.Connect request can be very large, so do it on a transient connection
 		// (rpc connection buffers never shrink).
 		// Also don't do hub rpc's under the mutex -- hub can be slow or inaccessible.
-		if err := rpctype.RPCCall(mgr.cfg.Hub_Addr, "Hub.Connect", a, nil); err != nil {
+		if err := rpctype.RPCCall(mgr.cfg.HubAddr, "Hub.Connect", a, nil); err != nil {
 			mgr.mu.Lock()
 			log.Logf(0, "Hub.Connect rpc failed: %v", err)
 			return
 		}
-		conn, err := rpctype.NewRPCClient(mgr.cfg.Hub_Addr)
+		conn, err := rpctype.NewRPCClient(mgr.cfg.HubAddr)
 		if err != nil {
 			mgr.mu.Lock()
-			log.Logf(0, "failed to connect to hub at %v: %v", mgr.cfg.Hub_Addr, err)
+			log.Logf(0, "failed to connect to hub at %v: %v", mgr.cfg.HubAddr, err)
 			return
 		}
 		mgr.mu.Lock()
 		mgr.hub = conn
 		mgr.hubCorpus = hubCorpus
 		mgr.fresh = false
-		log.Logf(0, "connected to hub at %v, corpus %v", mgr.cfg.Hub_Addr, len(mgr.corpus))
+		log.Logf(0, "connected to hub at %v, corpus %v", mgr.cfg.HubAddr, len(mgr.corpus))
 	}
 
 	a := &rpctype.HubSyncArgs{
-		Client:  mgr.cfg.Hub_Client,
-		Key:     mgr.cfg.Hub_Key,
+		Client:  mgr.cfg.HubClient,
+		Key:     mgr.cfg.HubKey,
 		Manager: mgr.cfg.Name,
 	}
 	corpus := make(map[hash.Sig]bool)

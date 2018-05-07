@@ -34,7 +34,6 @@
 		"lll"
 	],
 	"exclude": [
-		"don't use underscores in Go names",
 		"(sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/init.*|sys/targets/common.go).* don't use ALL_CAPS in Go names",
 		"exported .* should have comment",
 		"comment on .* should be of the form",

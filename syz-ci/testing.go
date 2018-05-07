@@ -19,7 +19,7 @@ import (
 // bootInstance boots one VM using the provided config.
 // Returns either instance and reporter, or report with boot failure, or error.
 func bootInstance(mgrcfg *mgrconfig.Config) (*vm.Instance, report.Reporter, *report.Report, error) {
-	reporter, err := report.NewReporter(mgrcfg.TargetOS, mgrcfg.Kernel_Src,
+	reporter, err := report.NewReporter(mgrcfg.TargetOS, mgrcfg.KernelSrc,
 		filepath.Dir(mgrcfg.Vmlinux), nil, mgrcfg.ParsedIgnores)
 	if err != nil {
 		return nil, nil, nil, err

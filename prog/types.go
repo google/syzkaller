@@ -252,11 +252,11 @@ const (
 type TextKind int
 
 const (
-	Text_x86_real TextKind = iota
-	Text_x86_16
-	Text_x86_32
-	Text_x86_64
-	Text_arm64
+	TextX86Real TextKind = iota
+	TextX86bit16
+	TextX86bit32
+	TextX86bit64
+	TextArm64
 )
 
 type BufferType struct {

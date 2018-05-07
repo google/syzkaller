@@ -63,10 +63,18 @@ func checkUnknownFieldsRec(data []byte, prefix string, typ reflect.Type) error {
 	fields := make(map[string]reflect.Type)
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
-		if field.Tag.Get("json") == "-" {
+		tag := field.Tag.Get("json")
+		if tag == "-" {
 			continue
 		}
-		fields[strings.ToLower(field.Name)] = field.Type
+		name := strings.ToLower(field.Name)
+		if tag != "" {
+			if tag != strings.ToLower(tag) {
+				return fmt.Errorf("json tag on '%v%v' should be lower-case", prefix, name)
+			}
+			name = tag
+		}
+		fields[name] = field.Type
 	}
 	f := make(map[string]interface{})
 	if err := json.Unmarshal(data, &f); err != nil {

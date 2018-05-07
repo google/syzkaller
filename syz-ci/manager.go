@@ -64,13 +64,13 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	if err := osutil.MkdirAll(dir); err != nil {
 		log.Fatal(err)
 	}
-	if mgrcfg.Repo_Alias == "" {
-		mgrcfg.Repo_Alias = mgrcfg.Repo
+	if mgrcfg.RepoAlias == "" {
+		mgrcfg.RepoAlias = mgrcfg.Repo
 	}
 
 	var dash *dashapi.Dashboard
-	if cfg.Dashboard_Addr != "" && mgrcfg.Dashboard_Client != "" {
-		dash = dashapi.New(mgrcfg.Dashboard_Client, cfg.Dashboard_Addr, mgrcfg.Dashboard_Key)
+	if cfg.DashboardAddr != "" && mgrcfg.DashboardClient != "" {
+		dash = dashapi.New(mgrcfg.DashboardClient, cfg.DashboardAddr, mgrcfg.DashboardKey)
 	}
 
 	// Assume compiler and config don't change underneath us.
@@ -78,7 +78,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	if err != nil {
 		log.Fatal(err)
 	}
-	configData, err := ioutil.ReadFile(mgrcfg.Kernel_Config)
+	configData, err := ioutil.ReadFile(mgrcfg.KernelConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 
 	// Prepare manager config skeleton (other fields are filled in writeConfig).
 	managercfg := mgrconfig.DefaultValues()
-	if err := config.LoadData(mgrcfg.Manager_Config, managercfg); err != nil {
+	if err := config.LoadData(mgrcfg.ManagerConfig, managercfg); err != nil {
 		log.Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
 	}
 	managercfg.TargetOS, managercfg.TargetVMArch, managercfg.TargetArch, err = mgrconfig.SplitTarget(managercfg.Target)
@@ -266,7 +266,7 @@ func (mgr *Manager) build() error {
 		return fmt.Errorf("failed to create tmp dir: %v", err)
 	}
 	kernelConfig := filepath.Join(tmpDir, "kernel.config")
-	if err := osutil.CopyFile(mgr.mgrcfg.Kernel_Config, kernelConfig); err != nil {
+	if err := osutil.CopyFile(mgr.mgrcfg.KernelConfig, kernelConfig); err != nil {
 		return err
 	}
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
@@ -275,7 +275,7 @@ func (mgr *Manager) build() error {
 
 	if err := kernel.Build(mgr.kernelDir, mgr.mgrcfg.Compiler, kernelConfig); err != nil {
 		rep := &report.Report{
-			Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.Repo_Alias),
+			Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
 			Output: []byte(err.Error()),
 		}
 		if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
@@ -290,7 +290,7 @@ func (mgr *Manager) build() error {
 	image := filepath.Join(tmpDir, "image")
 	key := filepath.Join(tmpDir, "key")
 	err = kernel.CreateImage(mgr.kernelDir, mgr.mgrcfg.Userspace,
-		mgr.mgrcfg.Kernel_Cmdline, mgr.mgrcfg.Kernel_Sysctl, image, key)
+		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, image, key)
 	if err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
@@ -368,7 +368,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 		return err
 	}
 	if rep != nil {
-		rep.Title = fmt.Sprintf("%v boot error: %v", mgr.mgrcfg.Repo_Alias, rep.Title)
+		rep.Title = fmt.Sprintf("%v boot error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
 		if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
 			mgr.Errorf("failed to report image error: %v", err)
 		}
@@ -380,7 +380,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 		return err
 	}
 	if rep != nil {
-		rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.Repo_Alias, rep.Title)
+		rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
 		if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
 			mgr.Errorf("failed to report image error: %v", err)
 		}
@@ -421,7 +421,7 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.Vmlinux = filepath.Join(imageDir, "obj", "vmlinux")
 	mgrcfg.Image = filepath.Join(imageDir, "image")
 	mgrcfg.SSHKey = filepath.Join(imageDir, "key")
-	mgrcfg.Kernel_Src = mgr.kernelDir
+	mgrcfg.KernelSrc = mgr.kernelDir
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	cfgdata, err := config.SaveData(mgrcfg)
 	if err != nil {
@@ -439,14 +439,14 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	*mgrcfg = *mgr.managercfg
 
 	if mgr.dash != nil {
-		mgrcfg.Dashboard_Client = mgr.dash.Client
-		mgrcfg.Dashboard_Addr = mgr.dash.Addr
-		mgrcfg.Dashboard_Key = mgr.dash.Key
+		mgrcfg.DashboardClient = mgr.dash.Client
+		mgrcfg.DashboardAddr = mgr.dash.Addr
+		mgrcfg.DashboardKey = mgr.dash.Key
 	}
-	if mgr.cfg.Hub_Addr != "" {
-		mgrcfg.Hub_Client = mgr.cfg.Name
-		mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
-		mgrcfg.Hub_Key = mgr.cfg.Hub_Key
+	if mgr.cfg.HubAddr != "" {
+		mgrcfg.HubClient = mgr.cfg.Name
+		mgrcfg.HubAddr = mgr.cfg.HubAddr
+		mgrcfg.HubKey = mgr.cfg.HubKey
 	}
 	mgrcfg.Tag = buildTag
 	mgrcfg.Workdir = mgr.workDir
@@ -454,7 +454,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	// Strictly saying this is somewhat racy as builder can concurrently
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
-	mgrcfg.Kernel_Src = mgr.kernelDir
+	mgrcfg.KernelSrc = mgr.kernelDir
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	mgrcfg.Image = filepath.Join(mgr.currentDir, "image")
 	mgrcfg.SSHKey = filepath.Join(mgr.currentDir, "key")
