@@ -82,7 +82,7 @@ func TestGenerateOptions(t *testing.T) {
 	allPermutations := allOptionsPermutations()
 	if testing.Short() {
 		r := rand.New(rs)
-		for i := 0; i < 32; i++ {
+		for i := 0; i < 16; i++ {
 			permutations = append(permutations, allPermutations[r.Intn(len(allPermutations))])
 		}
 	} else {
@@ -93,9 +93,11 @@ func TestGenerateOptions(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			target, rs, iters := initTest(t)
 			t.Logf("opts: %+v", opts)
-			for i := 0; i < iters; i++ {
-				p := target.Generate(rs, 10, nil)
-				testOne(t, p, opts)
+			if !testing.Short() {
+				for i := 0; i < iters; i++ {
+					p := target.Generate(rs, 10, nil)
+					testOne(t, p, opts)
+				}
 			}
 			testOne(t, syzProg, opts)
 		})
