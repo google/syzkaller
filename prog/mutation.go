@@ -141,156 +141,205 @@ outer:
 	}
 }
 
-func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updateSizes *bool) (calls []*Call, ok bool) {
+func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updateSizes *bool) ([]*Call, bool) {
 	var baseSize uint64
 	if ctx.Base != nil {
 		baseSize = ctx.Base.Res.Size()
 	}
-	switch t := arg.Type().(type) {
-	case *IntType, *FlagsType:
-		a := arg.(*ConstArg)
-		if r.bin() {
-			var newArg Arg
-			newArg, calls = r.generateArg(s, arg.Type())
-			replaceArg(arg, newArg)
-		} else {
-			switch {
-			case r.nOutOf(1, 3):
-				a.Val += uint64(r.Intn(4)) + 1
-			case r.nOutOf(1, 2):
-				a.Val -= uint64(r.Intn(4)) + 1
-			default:
-				a.Val ^= 1 << uint64(r.Intn(64))
-			}
-		}
-	case *LenType:
-		if !r.mutateSize(arg.(*ConstArg), *ctx.Parent) {
-			return nil, false
-		}
-		*updateSizes = false
-	case *ResourceType, *VmaType, *ProcType:
-		var newArg Arg
-		newArg, calls = r.generateArg(s, arg.Type())
-		replaceArg(arg, newArg)
-	case *BufferType:
-		a := arg.(*DataArg)
-		switch t.Kind {
-		case BufferBlobRand, BufferBlobRange:
-			data := append([]byte{}, a.Data()...)
-			minLen, maxLen := uint64(0), maxBlobLen
-			if t.Kind == BufferBlobRange {
-				minLen, maxLen = t.RangeBegin, t.RangeEnd
-			}
-			a.data = mutateData(r, data, minLen, maxLen)
-		case BufferString:
-			data := append([]byte{}, a.Data()...)
-			if r.bin() {
-				minLen, maxLen := uint64(0), maxBlobLen
-				if t.TypeSize != 0 {
-					minLen, maxLen = t.TypeSize, t.TypeSize
-				}
-				a.data = mutateData(r, data, minLen, maxLen)
-			} else {
-				a.data = r.randString(s, t)
-			}
-		case BufferFilename:
-			a.data = []byte(r.filename(s, t))
-		case BufferText:
-			data := append([]byte{}, a.Data()...)
-			a.data = r.mutateText(t.Text, data)
-		default:
-			panic("unknown buffer kind")
-		}
-	case *ArrayType:
-		a := arg.(*GroupArg)
-		count := uint64(0)
-		switch t.Kind {
-		case ArrayRandLen:
-			for count == uint64(len(a.Inner)) {
-				count = r.randArrayLen()
-			}
-		case ArrayRangeLen:
-			if t.RangeBegin == t.RangeEnd {
-				panic("trying to mutate fixed length array")
-			}
-			for count == uint64(len(a.Inner)) {
-				count = r.randRange(t.RangeBegin, t.RangeEnd)
-			}
-		}
-		if count > uint64(len(a.Inner)) {
-			for count > uint64(len(a.Inner)) {
-				newArg, newCalls := r.generateArg(s, t.Type)
-				a.Inner = append(a.Inner, newArg)
-				calls = append(calls, newCalls...)
-				for _, c := range newCalls {
-					s.analyze(c)
-				}
-			}
-		} else if count < uint64(len(a.Inner)) {
-			for _, arg := range a.Inner[count:] {
-				removeArg(arg)
-			}
-			a.Inner = a.Inner[:count]
-		}
-		// TODO: swap elements of the array
-	case *PtrType:
-		a := arg.(*PointerArg)
-		newArg := r.allocAddr(s, t, a.Res.Size(), a.Res)
-		replaceArg(arg, newArg)
-	case *StructType:
-		gen := target.SpecialTypes[t.Name()]
-		if gen == nil {
-			panic("bad arg returned by mutationArgs: StructType")
-		}
-		var newArg Arg
-		newArg, calls = gen(&Gen{r, s}, t, arg)
-		for i, f := range newArg.(*GroupArg).Inner {
-			replaceArg(arg.(*GroupArg).Inner[i], f)
-		}
-	case *UnionType:
-		if gen := target.SpecialTypes[t.Name()]; gen != nil {
-			var newArg Arg
-			newArg, calls = gen(&Gen{r, s}, t, arg)
-			replaceArg(arg, newArg)
-		} else {
-			a := arg.(*UnionArg)
-			current := -1
-			for i, option := range t.Fields {
-				if a.Option.Type().FieldName() == option.FieldName() {
-					current = i
-					break
-				}
-			}
-			if current == -1 {
-				panic("can't find current option in union")
-			}
-			newIdx := r.Intn(len(t.Fields) - 1)
-			if newIdx >= current {
-				newIdx++
-			}
-			optType := t.Fields[newIdx]
-			removeArg(a.Option)
-			var newOpt Arg
-			newOpt, calls = r.generateArg(s, optType)
-			replaceArg(arg, MakeUnionArg(t, newOpt))
-		}
-	case *CsumType:
-		panic("bad arg returned by mutationArgs: CsumType")
-	case *ConstType:
-		panic("bad arg returned by mutationArgs: ConstType")
-	default:
-		panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", arg, arg.Type()))
+	calls, retry, preserve := arg.Type().mutate(r, s, arg, ctx)
+	if retry {
+		return nil, false
 	}
-
+	if preserve {
+		*updateSizes = false
+	}
 	// Update base pointer if size has increased.
 	if base := ctx.Base; base != nil && baseSize < base.Res.Size() {
 		newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
-		*base = *newArg
+		replaceArg(base, newArg)
 	}
 	for _, c := range calls {
 		target.SanitizeCall(c)
 	}
 	return calls, true
+}
+
+func regenerate(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve bool) {
+	var newArg Arg
+	newArg, calls = r.generateArg(s, arg.Type())
+	replaceArg(arg, newArg)
+	return
+}
+
+func mutateInt(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve bool) {
+	if r.bin() {
+		return regenerate(r, s, arg)
+	}
+	a := arg.(*ConstArg)
+	switch {
+	case r.nOutOf(1, 3):
+		a.Val += uint64(r.Intn(4)) + 1
+	case r.nOutOf(1, 2):
+		a.Val -= uint64(r.Intn(4)) + 1
+	default:
+		a.Val ^= 1 << uint64(r.Intn(64))
+	}
+	return
+}
+
+func (t *IntType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	return mutateInt(r, s, arg)
+}
+
+func (t *FlagsType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	return mutateInt(r, s, arg)
+}
+
+func (t *LenType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	if !r.mutateSize(arg.(*ConstArg), *ctx.Parent) {
+		retry = true
+		return
+	}
+	preserve = true
+	return
+}
+
+func (t *ResourceType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	return regenerate(r, s, arg)
+}
+
+func (t *VmaType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	return regenerate(r, s, arg)
+}
+
+func (t *ProcType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	return regenerate(r, s, arg)
+}
+
+func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	a := arg.(*DataArg)
+	switch t.Kind {
+	case BufferBlobRand, BufferBlobRange:
+		data := append([]byte{}, a.Data()...)
+		minLen, maxLen := uint64(0), maxBlobLen
+		if t.Kind == BufferBlobRange {
+			minLen, maxLen = t.RangeBegin, t.RangeEnd
+		}
+		a.data = mutateData(r, data, minLen, maxLen)
+	case BufferString:
+		data := append([]byte{}, a.Data()...)
+		if r.bin() {
+			minLen, maxLen := uint64(0), maxBlobLen
+			if t.TypeSize != 0 {
+				minLen, maxLen = t.TypeSize, t.TypeSize
+			}
+			a.data = mutateData(r, data, minLen, maxLen)
+		} else {
+			a.data = r.randString(s, t)
+		}
+	case BufferFilename:
+		a.data = []byte(r.filename(s, t))
+	case BufferText:
+		data := append([]byte{}, a.Data()...)
+		a.data = r.mutateText(t.Text, data)
+	default:
+		panic("unknown buffer kind")
+	}
+	return
+}
+
+func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	// TODO: swap elements of the array
+	a := arg.(*GroupArg)
+	count := uint64(0)
+	switch t.Kind {
+	case ArrayRandLen:
+		for count == uint64(len(a.Inner)) {
+			count = r.randArrayLen()
+		}
+	case ArrayRangeLen:
+		if t.RangeBegin == t.RangeEnd {
+			panic("trying to mutate fixed length array")
+		}
+		for count == uint64(len(a.Inner)) {
+			count = r.randRange(t.RangeBegin, t.RangeEnd)
+		}
+	}
+	if count > uint64(len(a.Inner)) {
+		for count > uint64(len(a.Inner)) {
+			newArg, newCalls := r.generateArg(s, t.Type)
+			a.Inner = append(a.Inner, newArg)
+			calls = append(calls, newCalls...)
+			for _, c := range newCalls {
+				s.analyze(c)
+			}
+		}
+	} else if count < uint64(len(a.Inner)) {
+		for _, arg := range a.Inner[count:] {
+			removeArg(arg)
+		}
+		a.Inner = a.Inner[:count]
+	}
+	return
+}
+
+func (t *PtrType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	a := arg.(*PointerArg)
+	newArg := r.allocAddr(s, t, a.Res.Size(), a.Res)
+	replaceArg(arg, newArg)
+	return
+}
+
+func (t *StructType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	gen := r.target.SpecialTypes[t.Name()]
+	if gen == nil {
+		panic("bad arg returned by mutationArgs: StructType")
+	}
+	var newArg Arg
+	newArg, calls = gen(&Gen{r, s}, t, arg)
+	a := arg.(*GroupArg)
+	for i, f := range newArg.(*GroupArg).Inner {
+		replaceArg(a.Inner[i], f)
+	}
+	return
+}
+
+func (t *UnionType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	if gen := r.target.SpecialTypes[t.Name()]; gen != nil {
+		var newArg Arg
+		newArg, calls = gen(&Gen{r, s}, t, arg)
+		replaceArg(arg, newArg)
+	} else {
+		a := arg.(*UnionArg)
+		current := -1
+		for i, option := range t.Fields {
+			if a.Option.Type().FieldName() == option.FieldName() {
+				current = i
+				break
+			}
+		}
+		if current == -1 {
+			panic("can't find current option in union")
+		}
+		newIdx := r.Intn(len(t.Fields) - 1)
+		if newIdx >= current {
+			newIdx++
+		}
+		optType := t.Fields[newIdx]
+		removeArg(a.Option)
+		var newOpt Arg
+		newOpt, calls = r.generateArg(s, optType)
+		replaceArg(arg, MakeUnionArg(t, newOpt))
+	}
+	return
+}
+
+func (t *CsumType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	panic("CsumType can't be mutated")
+}
+
+func (t *ConstType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	panic("ConstType can't be mutated")
 }
 
 type mutationArgs struct {
