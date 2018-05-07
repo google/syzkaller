@@ -26,75 +26,6 @@ type CsumChunk struct {
 	Size  uint64 // for CsumChunkConst
 }
 
-func getFieldByName(arg *GroupArg, name string) Arg {
-	for _, field := range arg.Inner {
-		if field.Type().FieldName() == name {
-			return field
-		}
-	}
-	panic(fmt.Sprintf("failed to find %v field in %v", name, arg.Type().Name()))
-}
-
-func extractHeaderParamsIPv4(arg *GroupArg) (Arg, Arg) {
-	srcAddr := getFieldByName(arg, "src_ip")
-	if srcAddr.Size() != 4 {
-		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type().Name()))
-	}
-	dstAddr := getFieldByName(arg, "dst_ip")
-	if dstAddr.Size() != 4 {
-		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type().Name()))
-	}
-	return srcAddr, dstAddr
-}
-
-func extractHeaderParamsIPv6(arg *GroupArg) (Arg, Arg) {
-	srcAddr := getFieldByName(arg, "src_ip")
-	if srcAddr.Size() != 16 {
-		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type().Name()))
-	}
-	dstAddr := getFieldByName(arg, "dst_ip")
-	if dstAddr.Size() != 16 {
-		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type().Name()))
-	}
-	return srcAddr, dstAddr
-}
-
-func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr Arg, protocol uint8) CsumInfo {
-	info := CsumInfo{Kind: CsumInet}
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap16(uint16(protocol))), 2})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap16(uint16(tcpPacket.Size()))), 2})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, tcpPacket, 0, 0})
-	return info
-}
-
-func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr Arg, protocol uint8) CsumInfo {
-	info := CsumInfo{Kind: CsumInet}
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap32(uint32(tcpPacket.Size()))), 4})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap32(uint32(protocol))), 4})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, tcpPacket, 0, 0})
-	return info
-}
-
-func findCsummedArg(arg Arg, typ *CsumType, parentsMap map[Arg]Arg) Arg {
-	if typ.Buf == "parent" {
-		if csummedArg, ok := parentsMap[arg]; ok {
-			return csummedArg
-		}
-		panic(fmt.Sprintf("parent for %v is not in parents map", typ.Name()))
-	} else {
-		for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
-			if typ.Buf == parent.Type().Name() {
-				return parent
-			}
-		}
-	}
-	panic(fmt.Sprintf("csum field '%v' references non existent field '%v'", typ.FieldName(), typ.Buf))
-}
-
 func calcChecksumsCall(c *Call) map[Arg]CsumInfo {
 	var inetCsumFields []Arg
 	var pseudoCsumFields []Arg
@@ -182,4 +113,73 @@ func calcChecksumsCall(c *Call) map[Arg]CsumInfo {
 	}
 
 	return csumMap
+}
+
+func findCsummedArg(arg Arg, typ *CsumType, parentsMap map[Arg]Arg) Arg {
+	if typ.Buf == "parent" {
+		if csummedArg, ok := parentsMap[arg]; ok {
+			return csummedArg
+		}
+		panic(fmt.Sprintf("parent for %v is not in parents map", typ.Name()))
+	} else {
+		for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
+			if typ.Buf == parent.Type().Name() {
+				return parent
+			}
+		}
+	}
+	panic(fmt.Sprintf("csum field '%v' references non existent field '%v'", typ.FieldName(), typ.Buf))
+}
+
+func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr Arg, protocol uint8) CsumInfo {
+	info := CsumInfo{Kind: CsumInet}
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap16(uint16(protocol))), 2})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap16(uint16(tcpPacket.Size()))), 2})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, tcpPacket, 0, 0})
+	return info
+}
+
+func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr Arg, protocol uint8) CsumInfo {
+	info := CsumInfo{Kind: CsumInet}
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap32(uint32(tcpPacket.Size()))), 4})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap32(uint32(protocol))), 4})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, tcpPacket, 0, 0})
+	return info
+}
+
+func extractHeaderParamsIPv4(arg *GroupArg) (Arg, Arg) {
+	srcAddr := getFieldByName(arg, "src_ip")
+	if srcAddr.Size() != 4 {
+		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type().Name()))
+	}
+	dstAddr := getFieldByName(arg, "dst_ip")
+	if dstAddr.Size() != 4 {
+		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type().Name()))
+	}
+	return srcAddr, dstAddr
+}
+
+func extractHeaderParamsIPv6(arg *GroupArg) (Arg, Arg) {
+	srcAddr := getFieldByName(arg, "src_ip")
+	if srcAddr.Size() != 16 {
+		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type().Name()))
+	}
+	dstAddr := getFieldByName(arg, "dst_ip")
+	if dstAddr.Size() != 16 {
+		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type().Name()))
+	}
+	return srcAddr, dstAddr
+}
+
+func getFieldByName(arg *GroupArg, name string) Arg {
+	for _, field := range arg.Inner {
+		if field.Type().FieldName() == name {
+			return field
+		}
+	}
+	panic(fmt.Sprintf("failed to find %v field in %v", name, arg.Type().Name()))
 }
