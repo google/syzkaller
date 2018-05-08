@@ -38,4 +38,4 @@ make TARGETOS=linux TARGETARCH=arm64
  - Start `syz-manager -config adb.cfg` as usual.
 
 If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
-Also see [this page](/docs/troubleshooting.md) for troubleshooting tips and [Building a Pixel kernel with KASAN+KCOV](https://source.android.com/devices/tech/debug/kasan-kcov) for kernel build/boot instructions.
+Also see [this page](/docs/troubleshooting.md) for troubleshooting tips and [Building a Pixel kernel with KASAN+KCOV](https://source.android.com/devices/tech/debug/kasan-kcov) or [Building a PH-1 kernel with KASAN+KCOV](https://github.com/EssentialOpenSource/kernel-manifest/blob/master/README.md) for kernel build/boot instructions.
