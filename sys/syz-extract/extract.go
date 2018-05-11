@@ -228,6 +228,11 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 		}
 		androidFiles := map[string]bool{
 			"tlk_device.txt": true,
+			// video4linux consts are generated on upstream tree,
+			// except for arm64 (which is generated on unknown tree).
+			// We add video4linux.txt here so that arm64 consts are not
+			// overwritten during make extract.
+			"video4linux.txt": true,
 		}
 		for _, f := range matches {
 			f = filepath.Base(f)
