@@ -529,7 +529,7 @@ type callReply struct {
 */
 
 func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File) (*command, error) {
-	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
+	dir, err := ioutil.TempDir("", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}
