@@ -155,7 +155,8 @@ int printf(const char *format, ...);
 int main() {
 	int i;
 	unsigned long long vals[] = {
-		{{range $val := $.Values}}(unsigned long long){{$val}},{{end}}
+		{{range $val := $.Values}}(unsigned long long){{$val}},
+		{{end}}
 	};
 	for (i = 0; i < sizeof(vals)/sizeof(vals[0]); i++) {
 		if (i != 0)
