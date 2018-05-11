@@ -217,7 +217,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 			arches = append(arches, arch)
 		}
 		if android {
-			arches = []string{"amd64", "arm64"}
+			arches = []string{"386", "amd64", "arm", "arm64"}
 		}
 		sort.Strings(arches)
 	}
@@ -228,10 +228,8 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 		}
 		androidFiles := map[string]bool{
 			"tlk_device.txt": true,
-			// video4linux consts are generated on upstream tree,
-			// except for arm64 (which is generated on unknown tree).
-			// We add video4linux.txt here so that arm64 consts are not
-			// overwritten during make extract.
+			// This was generated on:
+			// https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
 			"video4linux.txt": true,
 		}
 		for _, f := range matches {

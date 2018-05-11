@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "04980aaea91ef6b3f2635bdb18dc9f0c75bc3d34"
+#define SYZ_REVISION "32901134fbc257557538f4e1609f6960b5ed8528"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -1901,7 +1901,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "bad2b90e4a16592a16c57462266fec5cf3260199"
+#define SYZ_REVISION "bd7f05f00e021da4d1562fd11c029cb4cb7e92f7"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -3852,7 +3852,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "b49f82f77d963531955f6f0488ce181825c29268"
+#define SYZ_REVISION "9cc5f036a2df40217389f4d792583a40cf08f586"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -7640,11 +7640,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "a52465b0cdb5ef0a2864eab3dc7c89e9b3dab05b"
+#define SYZ_REVISION "9ff9bad596bc664bf6c3ac0f9abe2208d2bab239"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1858;
+unsigned syscall_count = 1757;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8525,107 +8525,6 @@ call_t syscalls[] = {
     {"ioctl$VHOST_SET_VRING_NUM", 54},
     {"ioctl$VHOST_VSOCK_SET_GUEST_CID", 54},
     {"ioctl$VHOST_VSOCK_SET_RUNNING", 54},
-    {"ioctl$VIDIOC_CREATE_BUFS", 54},
-    {"ioctl$VIDIOC_CROPCAP", 54},
-    {"ioctl$VIDIOC_DBG_G_CHIP_INFO", 54},
-    {"ioctl$VIDIOC_DBG_G_REGISTER", 54},
-    {"ioctl$VIDIOC_DBG_S_REGISTER", 54},
-    {"ioctl$VIDIOC_DECODER_CMD", 54},
-    {"ioctl$VIDIOC_DQBUF", 54},
-    {"ioctl$VIDIOC_DQEVENT", 54},
-    {"ioctl$VIDIOC_DV_TIMINGS_CAP", 54},
-    {"ioctl$VIDIOC_ENCODER_CMD", 54},
-    {"ioctl$VIDIOC_ENUMAUDIO", 54},
-    {"ioctl$VIDIOC_ENUMAUDOUT", 54},
-    {"ioctl$VIDIOC_ENUMINPUT", 54},
-    {"ioctl$VIDIOC_ENUMOUTPUT", 54},
-    {"ioctl$VIDIOC_ENUMSTD", 54},
-    {"ioctl$VIDIOC_ENUM_DV_TIMINGS", 54},
-    {"ioctl$VIDIOC_ENUM_FMT", 54},
-    {"ioctl$VIDIOC_ENUM_FRAMEINTERVALS", 54},
-    {"ioctl$VIDIOC_ENUM_FRAMESIZES", 54},
-    {"ioctl$VIDIOC_ENUM_FREQ_BANDS", 54},
-    {"ioctl$VIDIOC_EXPBUF", 54},
-    {"ioctl$VIDIOC_G_AUDIO", 54},
-    {"ioctl$VIDIOC_G_AUDOUT", 54},
-    {"ioctl$VIDIOC_G_CROP", 54},
-    {"ioctl$VIDIOC_G_CTRL", 54},
-    {"ioctl$VIDIOC_G_DV_TIMINGS", 54},
-    {"ioctl$VIDIOC_G_EDID", 54},
-    {"ioctl$VIDIOC_G_ENC_INDEX", 54},
-    {"ioctl$VIDIOC_G_EXT_CTRLS", 54},
-    {"ioctl$VIDIOC_G_FBUF", 54},
-    {"ioctl$VIDIOC_G_FMT", 54},
-    {"ioctl$VIDIOC_G_FREQUENCY", 54},
-    {"ioctl$VIDIOC_G_INPUT", 54},
-    {"ioctl$VIDIOC_G_JPEGCOMP", 54},
-    {"ioctl$VIDIOC_G_MODULATOR", 54},
-    {"ioctl$VIDIOC_G_OUTPUT", 54},
-    {"ioctl$VIDIOC_G_PARM", 54},
-    {"ioctl$VIDIOC_G_PRIORITY", 54},
-    {"ioctl$VIDIOC_G_SELECTION", 54},
-    {"ioctl$VIDIOC_G_SLICED_VBI_CAP", 54},
-    {"ioctl$VIDIOC_G_STD", 54},
-    {"ioctl$VIDIOC_G_TUNER", 54},
-    {"ioctl$VIDIOC_LOG_STATUS", 54},
-    {"ioctl$VIDIOC_OVERLAY", 54},
-    {"ioctl$VIDIOC_PREPARE_BUF", 54},
-    {"ioctl$VIDIOC_QBUF", 54},
-    {"ioctl$VIDIOC_QUERYBUF", 54},
-    {"ioctl$VIDIOC_QUERYCAP", 54},
-    {"ioctl$VIDIOC_QUERYCTRL", 54},
-    {"ioctl$VIDIOC_QUERYMENU", 54},
-    {"ioctl$VIDIOC_QUERYSTD", 54},
-    {"ioctl$VIDIOC_QUERY_DV_TIMINGS", 54},
-    {"ioctl$VIDIOC_QUERY_EXT_CTRL", 54},
-    {"ioctl$VIDIOC_REQBUFS", 54},
-    {"ioctl$VIDIOC_RESERVED", 54},
-    {"ioctl$VIDIOC_STREAMOFF", 54},
-    {"ioctl$VIDIOC_STREAMON", 54},
-    {"ioctl$VIDIOC_SUBDEV_DV_TIMINGS_CAP", 54},
-    {"ioctl$VIDIOC_SUBDEV_ENUM_DV_TIMINGS", 54},
-    {"ioctl$VIDIOC_SUBDEV_ENUM_FRAME_INTERVAL", 54},
-    {"ioctl$VIDIOC_SUBDEV_ENUM_FRAME_SIZE", 54},
-    {"ioctl$VIDIOC_SUBDEV_ENUM_MBUS_CODE", 54},
-    {"ioctl$VIDIOC_SUBDEV_G_CROP", 54},
-    {"ioctl$VIDIOC_SUBDEV_G_DV_TIMINGS", 54},
-    {"ioctl$VIDIOC_SUBDEV_G_EDID", 54},
-    {"ioctl$VIDIOC_SUBDEV_G_FMT", 54},
-    {"ioctl$VIDIOC_SUBDEV_G_FRAME_INTERVAL", 54},
-    {"ioctl$VIDIOC_SUBDEV_G_SELECTION", 54},
-    {"ioctl$VIDIOC_SUBDEV_QUERY_DV_TIMINGS", 54},
-    {"ioctl$VIDIOC_SUBDEV_S_CROP", 54},
-    {"ioctl$VIDIOC_SUBDEV_S_DV_TIMINGS", 54},
-    {"ioctl$VIDIOC_SUBDEV_S_EDID", 54},
-    {"ioctl$VIDIOC_SUBDEV_S_FMT", 54},
-    {"ioctl$VIDIOC_SUBDEV_S_FRAME_INTERVAL", 54},
-    {"ioctl$VIDIOC_SUBDEV_S_SELECTION", 54},
-    {"ioctl$VIDIOC_SUBSCRIBE_EVENT", 54},
-    {"ioctl$VIDIOC_S_AUDIO", 54},
-    {"ioctl$VIDIOC_S_AUDOUT", 54},
-    {"ioctl$VIDIOC_S_CROP", 54},
-    {"ioctl$VIDIOC_S_CTRL", 54},
-    {"ioctl$VIDIOC_S_DV_TIMINGS", 54},
-    {"ioctl$VIDIOC_S_EDID", 54},
-    {"ioctl$VIDIOC_S_EXT_CTRLS", 54},
-    {"ioctl$VIDIOC_S_FBUF", 54},
-    {"ioctl$VIDIOC_S_FMT", 54},
-    {"ioctl$VIDIOC_S_FREQUENCY", 54},
-    {"ioctl$VIDIOC_S_HW_FREQ_SEEK", 54},
-    {"ioctl$VIDIOC_S_INPUT", 54},
-    {"ioctl$VIDIOC_S_JPEGCOMP", 54},
-    {"ioctl$VIDIOC_S_MODULATOR", 54},
-    {"ioctl$VIDIOC_S_OUTPUT", 54},
-    {"ioctl$VIDIOC_S_PARM", 54},
-    {"ioctl$VIDIOC_S_PRIORITY", 54},
-    {"ioctl$VIDIOC_S_SELECTION", 54},
-    {"ioctl$VIDIOC_S_STD", 54},
-    {"ioctl$VIDIOC_S_TUNER", 54},
-    {"ioctl$VIDIOC_TRY_DECODER_CMD", 54},
-    {"ioctl$VIDIOC_TRY_ENCODER_CMD", 54},
-    {"ioctl$VIDIOC_TRY_EXT_CTRLS", 54},
-    {"ioctl$VIDIOC_TRY_FMT", 54},
-    {"ioctl$VIDIOC_UNSUBSCRIBE_EVENT", 54},
     {"ioctl$VT_ACTIVATE", 54},
     {"ioctl$VT_DISALLOCATE", 54},
     {"ioctl$VT_GETMODE", 54},
