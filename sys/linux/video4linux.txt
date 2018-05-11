@@ -1,6 +1,9 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# Constants for this descriptions were generated on the following tree:
+# https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
+
 include <stdio.h>
 include <linux/ioctl.h>
 include <linux/time.h>
@@ -946,40 +949,3 @@ v4l2_input_capabilities = V4L2_IN_CAP_DV_TIMINGS, V4L2_IN_CAP_CUSTOM_TIMINGS, V4
 v4l2_output_type = V4L2_OUTPUT_TYPE_MODULATOR, V4L2_OUTPUT_TYPE_ANALOG, V4L2_OUTPUT_TYPE_ANALOGVGAOVERLAY
 v4l2_output_capabilities = V4L2_OUT_CAP_DV_TIMINGS, V4L2_OUT_CAP_CUSTOM_TIMINGS, V4L2_OUT_CAP_STD, V4L2_OUT_CAP_NATIVE_SIZE
 v4l2_query_ext_ctrl = V4L2_CTRL_FLAG_NEXT_CTRL, V4L2_CTRL_FLAG_NEXT_COMPOUND
-
-# arm64 constants are generated on an unknown tree which includes all constants.
-# Other archs were generated on upstream tree, but it does not have the following consts.
-# Potentially we could use https://android.googlesource.com/kernel/msm/+/android-msm-wahoo-4.4-p-preview-2
-# but it does not contain a different subset of consts.
-define V4L2_QCOM_BUF_FLAG_PERF_MODE	1
-define V4L2_QCOM_CMD_FLUSH_CAPTURE	1
-define V4L2_QCOM_CMD_SESSION_CONTINUE	1
-define V4L2_EVENT_MSM_VIDC_FLUSH_DONE	1
-define V4L2_QCOM_CMD_FLUSH_OUTPUT	1
-define V4L2_QCOM_BUF_FLAG_READONLY	1
-define V4L2_PIX_FMT_NV12_UBWC	1
-define V4L2_EVENT_MSM_VIDC_SYS_ERROR	1
-define V4L2_PIX_FMT_RGBA8888_UBWC	1
-define V4L2_QCOM_BUF_FLAG_CODECCONFIG	1
-define V4L2_EVENT_MSM_VIDC_HW_UNSUPPORTED	1
-define V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_BITDEPTH_CHANGED_INSUFFICIENT	1
-define V4L2_QCOM_BUF_TIMESTAMP_INVALID	1
-define V4L2_QCOM_BUF_FLAG_EOSEQ	1
-define V4L2_QCOM_BUF_FLAG_EOS	1
-define V4L2_EVENT_MSM_VIDC_MAX_CLIENTS	1
-define V4L2_PIX_FMT_NV12_P010_UBWC	1
-define V4L2_PIX_FMT_NV12_TP10_UBWC	1
-define V4L2_QCOM_BUF_INPUT_UNSUPPORTED	1
-define V4L2_EVENT_MSM_VIDC_HW_OVERLOAD	1
-define V4L2_EVENT_MSM_VIDC_RELEASE_UNQUEUED_BUFFER	1
-define V4L2_PIX_FMT_TME	1
-define V4L2_QCOM_CMD_FLUSH	1
-define V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_SUFFICIENT	1
-define V4L2_QCOM_BUF_FLAG_IDRFRAME	1
-define V4L2_EVENT_MSM_VIDC_START	1
-define V4L2_QCOM_BUF_DATA_CORRUPT	1
-define V4L2_QCOM_BUF_FLAG_DECODEONLY	1
-define V4L2_MSM_BUF_FLAG_DEFER	1
-define V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_INSUFFICIENT	1
-define V4L2_EVENT_MSM_VIDC_RELEASE_BUFFER_REFERENCE	1
-define V4L2_DEC_QCOM_CMD_RECONFIG_HINT	1
