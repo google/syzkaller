@@ -277,9 +277,10 @@ presubmit:
 	$(MAKE) check_diff
 	$(GO) install ./...
 	$(MAKE) presubmit_parallel
+	$(MAKE) gometalinter
 	echo LGTM
 
-presubmit_parallel: test test_race gometalinter arch check_links
+presubmit_parallel: test test_race arch check_links
 
 test:
 	# Executor tests use cgo.
@@ -297,7 +298,6 @@ clean:
 install_prerequisites:
 	uname -a
 	sudo apt-get update
-	apt-cache search gcc | grep gcc | grep aarch64
 	sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev \
 		gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-powerpc64le-linux-gnu || true
 	sudo apt-get install -y -q g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf || true
