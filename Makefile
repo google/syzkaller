@@ -295,6 +295,9 @@ clean:
 # We use "|| true" for apt-get install because packages are all different on different distros,
 # and we want to install at least gometalinter on Travis CI.
 install_prerequisites:
+	uname -a
+	sudo apt-get update
+	apt-cache search gcc | grep gcc | grep aarch64
 	sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev \
 		gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-powerpc64le-linux-gnu || true
 	sudo apt-get install -y -q g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf || true
