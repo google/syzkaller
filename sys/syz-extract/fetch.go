@@ -6,7 +6,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
@@ -98,39 +97,26 @@ type CompileData struct {
 }
 
 func compile(cc string, args []string, data *CompileData) (bin string, out []byte, err error) {
-	srcFile, err := ioutil.TempFile("", "")
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to create temp file: %v", err)
-	}
-	srcFile.Close()
-	os.Remove(srcFile.Name())
-	srcName := srcFile.Name() + ".c"
-	defer os.Remove(srcName)
 	src := new(bytes.Buffer)
 	if err := srcTemplate.Execute(src, data); err != nil {
 		return "", nil, fmt.Errorf("failed to generate source: %v", err)
 	}
-	if err := ioutil.WriteFile(srcName, src.Bytes(), 0600); err != nil {
-		return "", nil, fmt.Errorf("failed to write source file: %v", err)
-	}
-
-	binFile, err := ioutil.TempFile("", "")
+	binFile, err := osutil.TempFile("syz-extract-bin")
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to create temp file: %v", err)
+		return "", nil, err
 	}
-	binFile.Close()
-
 	args = append(args, []string{
-		srcName,
-		"-o", binFile.Name(),
+		"-x", "c", "-",
+		"-o", binFile,
 		"-w",
 	}...)
-	out, err = osutil.Command(cc, args...).CombinedOutput()
-	if err != nil {
-		os.Remove(binFile.Name())
+	cmd := osutil.Command(cc, args...)
+	cmd.Stdin = src
+	if out, err := cmd.CombinedOutput(); err != nil {
+		os.Remove(binFile)
 		return "", out, err
 	}
-	return binFile.Name(), nil, nil
+	return binFile, nil, nil
 }
 
 var srcTemplate = template.Must(template.New("").Parse(`

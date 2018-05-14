@@ -141,6 +141,17 @@ func WriteExecFile(filename string, data []byte) error {
 	return ioutil.WriteFile(filename, data, DefaultExecPerm)
 }
 
+// TempFile creates a unique temp filename.
+// Note: the file already exists when the function returns.
+func TempFile(prefix string) (string, error) {
+	f, err := ioutil.TempFile("", prefix)
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %v", err)
+	}
+	f.Close()
+	return f.Name(), nil
+}
+
 // Return all files in a directory.
 func ListDir(dir string) ([]string, error) {
 	f, err := os.Open(dir)
