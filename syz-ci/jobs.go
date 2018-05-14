@@ -11,15 +11,12 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/git"
+	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/kernel"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
-	"github.com/google/syzkaller/vm"
 )
 
 type JobProcessor struct {
@@ -100,10 +97,9 @@ func (jp *JobProcessor) poll() {
 }
 
 type Job struct {
-	req    *dashapi.JobPollResp
-	resp   *dashapi.JobDoneReq
-	mgr    *Manager
-	mgrcfg *mgrconfig.Config
+	req  *dashapi.JobPollResp
+	resp *dashapi.JobDoneReq
+	mgr  *Manager
 }
 
 func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
@@ -153,69 +149,40 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		jp.Errorf("%s", job.resp.Error)
 		return job.resp
 	}
-	if err := jp.buildImage(job); err != nil {
-		job.resp.Error = []byte(err.Error())
-		return job.resp
-	}
-	var err error
-	for try := 0; try < 3; try++ {
-		if err = jp.test(job); err == nil {
-			break
-		}
-		log.Logf(0, "job: testing failed, trying once again\n%v", err)
-	}
-	if err != nil {
+	if err := jp.test(job); err != nil {
 		job.resp.Error = []byte(err.Error())
 	}
 	return job.resp
 }
 
-func (jp *JobProcessor) buildImage(job *Job) error {
+func (jp *JobProcessor) test(job *Job) error {
 	kernelBuildSem <- struct{}{}
 	defer func() { <-kernelBuildSem }()
 	req, resp, mgr := job.req, job.resp, job.mgr
 
 	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS))
 	kernelDir := filepath.Join(dir, "kernel")
-	if err := osutil.MkdirAll(kernelDir); err != nil {
-		return fmt.Errorf("failed to create temp dir: %v", err)
-	}
-	imageDir := filepath.Join(dir, "image")
-	os.RemoveAll(imageDir)
-	if err := osutil.MkdirAll(imageDir); err != nil {
-		return fmt.Errorf("failed to create temp dir: %v", err)
-	}
-	workDir := filepath.Join(dir, "workdir")
-	os.RemoveAll(workDir)
-	if err := osutil.MkdirAll(workDir); err != nil {
-		return fmt.Errorf("failed to create temp dir: %v", err)
-	}
-	gopathDir := filepath.Join(dir, "gopath")
-	syzkallerDir := filepath.Join(gopathDir, "src", "github.com", "google", "syzkaller")
-	if err := osutil.MkdirAll(syzkallerDir); err != nil {
-		return fmt.Errorf("failed to create temp dir: %v", err)
-	}
 
-	log.Logf(0, "job: fetching syzkaller on %v...", req.SyzkallerCommit)
-	_, err := git.CheckoutCommit(syzkallerDir, jp.syzkallerRepo, req.SyzkallerCommit)
+	mgrcfg := new(mgrconfig.Config)
+	*mgrcfg = *mgr.managercfg
+	mgrcfg.Name += "-job"
+	mgrcfg.Workdir = filepath.Join(dir, "workdir")
+	mgrcfg.KernelSrc = kernelDir
+	mgrcfg.Vmlinux = filepath.Join(kernelDir, "vmlinux")
+	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
+
+	os.RemoveAll(mgrcfg.Workdir)
+	defer os.RemoveAll(mgrcfg.Workdir)
+
+	env, err := instance.NewEnv(mgrcfg)
 	if err != nil {
-		return fmt.Errorf("failed to checkout syzkaller repo: %v", err)
+		return err
 	}
-
-	log.Logf(0, "job: building syzkaller...")
-	cmd := osutil.Command("make", "target")
-	cmd.Dir = syzkallerDir
-	cmd.Env = append([]string{}, os.Environ()...)
-	cmd.Env = append(cmd.Env,
-		"GOPATH="+gopathDir,
-		"TARGETOS="+mgr.managercfg.TargetOS,
-		"TARGETVMARCH="+mgr.managercfg.TargetVMArch,
-		"TARGETARCH="+mgr.managercfg.TargetArch,
-	)
-	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return fmt.Errorf("syzkaller build failed: %v", err)
-	}
+	log.Logf(0, "job: building syzkaller on %v...", req.SyzkallerCommit)
 	resp.Build.SyzkallerCommit = req.SyzkallerCommit
+	if err := env.BuildSyzkaller(jp.syzkallerRepo, req.SyzkallerCommit); err != nil {
+		return err
+	}
 
 	log.Logf(0, "job: fetching kernel...")
 	var kernelCommit *git.Commit
@@ -247,152 +214,46 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	}
 
 	log.Logf(0, "job: building kernel...")
-	if err := kernel.Build(kernelDir, mgr.mgrcfg.Compiler, req.KernelConfig); err != nil {
-		return fmt.Errorf("kernel build failed: %v", err)
+	if err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline,
+		mgr.mgrcfg.KernelSysctl, req.KernelConfig); err != nil {
+		return err
 	}
-	resp.Build.KernelConfig, err = ioutil.ReadFile(filepath.Join(kernelDir, ".config"))
+	resp.Build.KernelConfig, err = ioutil.ReadFile(filepath.Join(mgrcfg.KernelSrc, ".config"))
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %v", err)
 	}
 
-	log.Logf(0, "job: creating image...")
-	image := filepath.Join(imageDir, "image")
-	key := filepath.Join(imageDir, "key")
-	err = kernel.CreateImage(kernelDir, mgr.mgrcfg.Userspace,
-		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, image, key)
-	if err != nil {
-		return fmt.Errorf("image build failed: %v", err)
-	}
-
-	mgrcfg := new(mgrconfig.Config)
-	*mgrcfg = *mgr.managercfg
-	mgrcfg.Name += "-job"
-	mgrcfg.Workdir = workDir
-	mgrcfg.Vmlinux = filepath.Join(kernelDir, "vmlinux")
-	mgrcfg.KernelSrc = kernelDir
-	mgrcfg.Syzkaller = syzkallerDir
-	mgrcfg.Image = image
-	mgrcfg.SSHKey = key
-	if err := mgrconfig.Complete(mgrcfg); err != nil {
-		return fmt.Errorf("bad manager config: %v", err)
-	}
-	job.mgrcfg = mgrcfg
-	return nil
-}
-
-func (jp *JobProcessor) test(job *Job) error {
-	req, mgrcfg := job.req, job.mgrcfg
-
-	log.Logf(0, "job: booting VM...")
-	inst, reporter, rep, err := bootInstance(mgrcfg)
+	log.Logf(0, "job: testing...")
+	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC)
 	if err != nil {
 		return err
 	}
-	if rep != nil {
-		// We should not put rep into resp.CrashTitle/CrashReport,
-		// because that will be treated as patch not fixing the bug.
-		return fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
-	}
-	defer inst.Close()
-
-	log.Logf(0, "job: testing instance...")
-	rep, err = testInstance(inst, reporter, mgrcfg)
-	if err != nil {
-		return err
-	}
-	if rep != nil {
-		// We should not put rep into resp.CrashTitle/CrashReport,
-		// because that will be treated as patch not fixing the bug.
-		return fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
-	}
-
-	log.Logf(0, "job: copying binaries...")
-	execprogBin, err := inst.Copy(mgrcfg.SyzExecprogBin)
-	if err != nil {
-		return fmt.Errorf("failed to copy test binary to VM: %v", err)
-	}
-	executorBin, err := inst.Copy(mgrcfg.SyzExecutorBin)
-	if err != nil {
-		return fmt.Errorf("failed to copy test binary to VM: %v", err)
-	}
-	progFile := filepath.Join(mgrcfg.Workdir, "repro.prog")
-	if err := osutil.WriteFile(progFile, req.ReproSyz); err != nil {
-		return fmt.Errorf("failed to write temp file: %v", err)
-	}
-	vmProgFile, err := inst.Copy(progFile)
-	if err != nil {
-		return fmt.Errorf("failed to copy to VM: %v", err)
-	}
-
-	log.Logf(0, "job: testing syzkaller program...")
-	opts, err := csource.DeserializeOptions(req.ReproOpts)
-	if err != nil {
-		return err
-	}
-	// Combine repro options and default options in a way that increases chances to reproduce the crash.
-	// First, we always enable threaded/collide as it should be [almost] strictly better.
-	// Executor does not support empty sandbox, so we use none instead.
-	// Finally, always use repeat and multiple procs.
-	if opts.Sandbox == "" {
-		opts.Sandbox = "none"
-	}
-	if !opts.Fault {
-		opts.FaultCall = -1
-	}
-	cmdSyz := fmt.Sprintf("%v -executor %v -arch=%v -procs=%v -sandbox=%v"+
-		" -fault_call=%v -fault_nth=%v -repeat=0 -cover=0 %v",
-		execprogBin, executorBin, mgrcfg.TargetArch, mgrcfg.Procs, opts.Sandbox,
-		opts.FaultCall, opts.FaultNth, vmProgFile)
-	crashed, err := jp.testProgram(job, inst, cmdSyz, reporter, 7*time.Minute)
-	if crashed || err != nil {
-		return err
-	}
-
-	if len(req.ReproC) != 0 {
-		log.Logf(0, "job: testing C program...")
-		cFile := filepath.Join(mgrcfg.Workdir, "repro.c")
-		if err := osutil.WriteFile(cFile, req.ReproC); err != nil {
-			return fmt.Errorf("failed to write temp file: %v", err)
+	var anyErr, testErr error
+	for _, res := range results {
+		if res == nil {
+			continue
 		}
-		target, err := prog.GetTarget(mgrcfg.TargetOS, mgrcfg.TargetArch)
-		if err != nil {
-			return err
-		}
-		bin, err := csource.Build(target, "c", cFile)
-		if err != nil {
-			return err
-		}
-		vmBin, err := inst.Copy(bin)
-		if err != nil {
-			return fmt.Errorf("failed to copy test binary to VM: %v", err)
-		}
-		// We should test for longer (e.g. 5 mins), but the problem is that
-		// reproducer does not print anything, so after 3 mins we detect "no output".
-		crashed, err := jp.testProgram(job, inst, vmBin, reporter, time.Minute)
-		if crashed || err != nil {
-			return err
+		anyErr = res
+		switch err := res.(type) {
+		case *instance.TestError:
+			// We should not put rep into resp.CrashTitle/CrashReport,
+			// because that will be treated as patch not fixing the bug.
+			if rep := err.Report; rep != nil {
+				testErr = fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
+			} else {
+				testErr = fmt.Errorf("%v\n\n%s", err.Title, err.Output)
+			}
+		case *instance.CrashError:
+			resp.CrashTitle = err.Report.Title
+			resp.CrashReport = err.Report.Report
+			resp.CrashLog = err.Report.Output
+			return nil
 		}
 	}
-	return nil
-}
-
-func (jp *JobProcessor) testProgram(job *Job, inst *vm.Instance, command string,
-	reporter report.Reporter, testTime time.Duration) (bool, error) {
-	outc, errc, err := inst.Run(testTime, nil, command)
-	if err != nil {
-		return false, fmt.Errorf("failed to run binary in VM: %v", err)
+	if testErr != nil {
+		return testErr
 	}
-	rep := vm.MonitorExecution(outc, errc, reporter, true)
-	if rep == nil {
-		return false, nil
-	}
-	if err := reporter.Symbolize(rep); err != nil {
-		jp.Errorf("failed to symbolize report: %v", err)
-	}
-	job.resp.CrashTitle = rep.Title
-	job.resp.CrashReport = rep.Report
-	job.resp.CrashLog = rep.Output
-	return true, nil
+	return anyErr
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.
