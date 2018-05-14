@@ -188,6 +188,21 @@ uint32 read_cover_size(thread_t* th)
 	return n;
 }
 
+bool cover_check(uint32 pc)
+{
+	return true;
+}
+
+bool cover_check(uint64 pc)
+{
+#if defined(__i386__) || defined(__x86_64__)
+	// Text/modules range for x86_64.
+	return pc >= 0xffffffff80000000ull && pc < 0xffffffffff000000ull;
+#else
+	return true;
+#endif
+}
+
 uint32* write_output(uint32 v)
 {
 	if (collide)

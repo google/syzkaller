@@ -183,6 +183,8 @@ void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
 uint32 read_cover_size(thread_t* th);
+bool cover_check(uint32 pc);
+bool cover_check(uint64 pc);
 static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
 
@@ -494,10 +496,12 @@ void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
 	cover_t* cover_data = ((cover_t*)th->cover_data) + 1;
 	uint32 nsig = 0;
-	uint32 prev = 0;
+	cover_t prev = 0;
 	for (uint32 i = 0; i < th->cover_size; i++) {
-		uint32 pc = cover_data[i];
-		uint32 sig = pc ^ prev;
+		cover_t pc = cover_data[i];
+		if (!cover_check(pc))
+			break;
+		cover_t sig = pc ^ prev;
 		prev = hash(pc);
 		if (dedup(sig))
 			continue;
