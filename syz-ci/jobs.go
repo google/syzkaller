@@ -247,18 +247,13 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	}
 
 	log.Logf(0, "job: building kernel...")
-	configFile := filepath.Join(dir, "kernel.config")
-	if err := osutil.WriteFile(configFile, req.KernelConfig); err != nil {
-		return fmt.Errorf("failed to write temp file: %v", err)
-	}
-	if err := kernel.Build(kernelDir, mgr.mgrcfg.Compiler, configFile); err != nil {
+	if err := kernel.Build(kernelDir, mgr.mgrcfg.Compiler, req.KernelConfig); err != nil {
 		return fmt.Errorf("kernel build failed: %v", err)
 	}
-	kernelConfig, err := ioutil.ReadFile(filepath.Join(kernelDir, ".config"))
+	resp.Build.KernelConfig, err = ioutil.ReadFile(filepath.Join(kernelDir, ".config"))
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %v", err)
 	}
-	resp.Build.KernelConfig = kernelConfig
 
 	log.Logf(0, "job: creating image...")
 	image := filepath.Join(imageDir, "image")
