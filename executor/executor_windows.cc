@@ -59,6 +59,16 @@ uint32 read_cover_size(thread_t* th)
 	return 0;
 }
 
+bool cover_check(uint32 pc)
+{
+	return true;
+}
+
+bool cover_check(uint64 pc)
+{
+	return true;
+}
+
 uint32* write_output(uint32 v)
 {
 	return &output;
