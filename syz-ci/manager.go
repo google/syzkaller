@@ -94,6 +94,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 		log.Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
 	}
 	managercfg.Name = cfg.Name + "-" + mgrcfg.Name
+	managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 
 	mgr := &Manager{
 		name:            managercfg.Name,
@@ -438,7 +439,6 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.Image = filepath.Join(imageDir, "image")
 	mgrcfg.SSHKey = filepath.Join(imageDir, "key")
 	mgrcfg.KernelSrc = mgr.kernelDir
-	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return nil, fmt.Errorf("bad manager config: %v", err)
 	}
@@ -466,15 +466,13 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.KernelSrc = mgr.kernelDir
-	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	mgrcfg.Image = filepath.Join(mgr.currentDir, "image")
 	mgrcfg.SSHKey = filepath.Join(mgr.currentDir, "key")
-
+	if err := mgrconfig.Complete(mgrcfg); err != nil {
+		return "", fmt.Errorf("bad manager config: %v", err)
+	}
 	configFile := filepath.Join(mgr.currentDir, "manager.cfg")
 	if err := config.SaveFile(configFile, mgrcfg); err != nil {
-		return "", err
-	}
-	if _, err := mgrconfig.LoadFile(configFile); err != nil {
 		return "", err
 	}
 	return configFile, nil

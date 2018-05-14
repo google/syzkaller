@@ -151,16 +151,6 @@ func loadPartial(cfg *Config) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	targetBin := func(name, arch string) string {
-		exe := ""
-		if cfg.TargetOS == "windows" {
-			exe = ".exe"
-		}
-		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
-	}
-	cfg.SyzFuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
-	cfg.SyzExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
-	cfg.SyzExecutorBin = targetBin("syz-executor", cfg.TargetArch)
 	return cfg, nil
 }
 
@@ -171,6 +161,24 @@ func Complete(cfg *Config) error {
 	if cfg.SSHUser == "" {
 		return fmt.Errorf("bad config syzkaller param: ssh user is empty")
 	}
+	if cfg.Workdir == "" {
+		return fmt.Errorf("config param workdir is empty")
+	}
+	cfg.Workdir = osutil.Abs(cfg.Workdir)
+	if cfg.Syzkaller == "" {
+		return fmt.Errorf("config param syzkaller is empty")
+	}
+	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
+	targetBin := func(name, arch string) string {
+		exe := ""
+		if cfg.TargetOS == "windows" {
+			exe = ".exe"
+		}
+		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
+	}
+	cfg.SyzFuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
+	cfg.SyzExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
+	cfg.SyzExecutorBin = targetBin("syz-executor", cfg.TargetArch)
 	if !osutil.IsExist(cfg.SyzFuzzerBin) {
 		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
 	}
@@ -182,9 +190,6 @@ func Complete(cfg *Config) error {
 	}
 	if cfg.HTTP == "" {
 		return fmt.Errorf("config param http is empty")
-	}
-	if cfg.Workdir == "" {
-		return fmt.Errorf("config param workdir is empty")
 	}
 	if cfg.Type == "" {
 		return fmt.Errorf("config param type is empty")
@@ -207,9 +212,7 @@ func Complete(cfg *Config) error {
 		}
 	}
 
-	cfg.Workdir = osutil.Abs(cfg.Workdir)
 	cfg.Vmlinux = osutil.Abs(cfg.Vmlinux)
-	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
 	if cfg.KernelSrc == "" {
 		cfg.KernelSrc = filepath.Dir(cfg.Vmlinux) // assume in-tree build by default
 	}
