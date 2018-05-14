@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/kernel"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -349,39 +350,57 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	if err != nil {
 		return fmt.Errorf("failed to create manager config: %v", err)
 	}
+	defer os.RemoveAll(mgrcfg.Workdir)
 	switch typ := mgrcfg.Type; typ {
 	case "gce", "qemu":
 	default:
 		// Other types don't support creating machines out of thin air.
 		return nil
 	}
-	if err := osutil.MkdirAll(mgrcfg.Workdir); err != nil {
-		return fmt.Errorf("failed to create tmp dir: %v", err)
-	}
-	defer os.RemoveAll(mgrcfg.Workdir)
-
-	inst, reporter, rep, err := bootInstance(mgrcfg)
+	env, err := instance.NewEnv(mgrcfg)
 	if err != nil {
 		return err
 	}
-	if rep != nil {
-		rep.Title = fmt.Sprintf("%v boot error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
-		if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-			mgr.Errorf("failed to report image error: %v", err)
-		}
-		return fmt.Errorf("VM boot failed with: %v", rep.Title)
-	}
-	defer inst.Close()
-	rep, err = testInstance(inst, reporter, mgrcfg)
+	const (
+		testVMs     = 3
+		maxFailures = 1
+	)
+	results, err := env.Test(testVMs, nil, nil, nil)
 	if err != nil {
 		return err
 	}
-	if rep != nil {
-		rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.RepoAlias, rep.Title)
-		if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-			mgr.Errorf("failed to report image error: %v", err)
+	failures := 0
+	var failureErr error
+	for _, res := range results {
+		if res == nil {
+			continue
 		}
-		return fmt.Errorf("VM testing failed with: %v", rep.Title)
+		failures++
+		switch err := res.(type) {
+		case *instance.TestError:
+			if rep := err.Report; rep != nil {
+				if err.Boot {
+					rep.Title = fmt.Sprintf("%v boot error: %v",
+						mgr.mgrcfg.RepoAlias, rep.Title)
+				} else {
+					rep.Title = fmt.Sprintf("%v test error: %v",
+						mgr.mgrcfg.RepoAlias, rep.Title)
+				}
+				if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
+					mgr.Errorf("failed to report image error: %v", err)
+				}
+			}
+			if err.Boot {
+				failureErr = fmt.Errorf("VM boot failed with: %v", err)
+			} else {
+				failureErr = fmt.Errorf("VM testing failed with: %v", err)
+			}
+		default:
+			failureErr = res
+		}
+	}
+	if failures > maxFailures {
+		return failureErr
 	}
 	return nil
 }
