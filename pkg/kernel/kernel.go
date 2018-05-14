@@ -53,7 +53,8 @@ func Build(dir, compiler, config string) error {
 }
 
 func Clean(dir string) error {
-	cmd := osutil.Command("make", "distclean")
+	cpu := strconv.Itoa(runtime.NumCPU())
+	cmd := osutil.Command("make", "distclean", "-j", cpu)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
