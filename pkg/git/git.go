@@ -85,6 +85,11 @@ func CheckoutCommit(dir, repo, commit string) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
+	return SwitchCommit(dir, commit)
+}
+
+// SwitchCommit checkouts the specified commit without fetching.
+func SwitchCommit(dir, commit string) (*Commit, error) {
 	if _, err := runSandboxed(dir, "git", "checkout", commit); err != nil {
 		return nil, err
 	}
@@ -128,7 +133,11 @@ type Commit struct {
 
 // HeadCommit returns info about the HEAD commit of the current branch of git repository in dir.
 func HeadCommit(dir string) (*Commit, error) {
-	output, err := runSandboxed(dir, "git", "log", "--pretty=format:%H%n%s%n%ad", "-n", "1")
+	return GetCommit(dir, "HEAD")
+}
+
+func GetCommit(dir, commit string) (*Commit, error) {
+	output, err := runSandboxed(dir, "git", "log", "--pretty=format:%H%n%s%n%ad", "-n", "1", commit)
 	if err != nil {
 		return nil, err
 	}
