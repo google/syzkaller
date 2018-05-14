@@ -32,7 +32,9 @@ func Build(dir, compiler string, config []byte) error {
 	if err := osutil.SandboxChown(configFile); err != nil {
 		return err
 	}
-	cmd := osutil.Command("make", "olddefconfig")
+	// One would expect olddefconfig here, but olddefconfig is not present in v3.6 and below.
+	// oldconfig is the same as olddefconfig if stdin is not set.
+	cmd := osutil.Command("make", "oldconfig")
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
