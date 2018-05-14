@@ -30,6 +30,7 @@ const (
 // This involves fetching/resetting/cloning as necessary to recover from all possible problems.
 // Returns hash of the HEAD commit in the specified branch.
 func Poll(dir, repo, branch string) (*Commit, error) {
+	runSandboxed(dir, "git", "bisect", "reset")
 	runSandboxed(dir, "git", "reset", "--hard")
 	origin, err := runSandboxed(dir, "git", "remote", "get-url", "origin")
 	if err != nil || strings.TrimSpace(string(origin)) != repo {
@@ -61,6 +62,7 @@ func Poll(dir, repo, branch string) (*Commit, error) {
 
 // CheckoutBranch checkouts the specified repository/branch in dir.
 func CheckoutBranch(dir, repo, branch string) (*Commit, error) {
+	runSandboxed(dir, "git", "bisect", "reset")
 	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
 		if err := initRepo(dir); err != nil {
 			return nil, err
@@ -78,6 +80,7 @@ func CheckoutBranch(dir, repo, branch string) (*Commit, error) {
 
 // CheckoutCommit checkouts the specified repository on the specified commit in dir.
 func CheckoutCommit(dir, repo, commit string) (*Commit, error) {
+	runSandboxed(dir, "git", "bisect", "reset")
 	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
 		if err := initRepo(dir); err != nil {
 			return nil, err
@@ -316,6 +319,65 @@ func Patch(dir string, patch []byte) error {
 		return fmt.Errorf("failed to apply patch after dry run:\n%s", output)
 	}
 	return nil
+}
+
+type BisectResult int
+
+const (
+	BisectBad BisectResult = iota
+	BisectGood
+	BisectSkip
+)
+
+// Bisect bisects good..bad commit range against the provided predicate (wrapper around git bisect).
+// The predicate should return an error only if there is no way to proceed
+// (it will abort the process), if possible it should prefer to return BisectSkip.
+// Progress of the process is streamed to the provided trace.
+// Returns the first commit on which the predicate returns BisectBad.
+func Bisect(dir, bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error) {
+	runSandboxed(dir, "git", "bisect", "reset")
+	runSandboxed(dir, "git", "reset", "--hard")
+	firstBad, err := GetCommit(dir, bad)
+	if err != nil {
+		return nil, err
+	}
+	output, err := runSandboxed(dir, "git", "bisect", "start", bad, good)
+	if err != nil {
+		return nil, err
+	}
+	defer runSandboxed(dir, "git", "bisect", "reset")
+	fmt.Fprintf(trace, "# git bisect start %v %v\n%s", bad, good, output)
+	current, err := HeadCommit(dir)
+	if err != nil {
+		return nil, err
+	}
+	var bisectTerms = [...]string{
+		BisectBad:  "bad",
+		BisectGood: "good",
+		BisectSkip: "skip",
+	}
+	for {
+		res, err := pred()
+		if err != nil {
+			return nil, err
+		}
+		if res == BisectBad {
+			firstBad = current
+		}
+		output, err = runSandboxed(dir, "git", "bisect", bisectTerms[res])
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(trace, "# git bisect %v %v\n%s", bisectTerms[res], current.Hash, output)
+		next, err := HeadCommit(dir)
+		if err != nil {
+			return nil, err
+		}
+		if current.Hash == next.Hash {
+			return firstBad, nil
+		}
+		current = next
+	}
 }
 
 // PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
