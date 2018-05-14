@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -73,14 +72,11 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	}
 	targets := make(map[string]bool)
 	for _, mgr := range cfg.Managers {
-		mgrcfg := new(mgrconfig.Config)
-		if err := config.LoadData(mgr.ManagerConfig, mgrcfg); err != nil {
-			log.Fatalf("failed to load manager %v config: %v", mgr.Name, err)
-		}
-		os, vmarch, arch, err := mgrconfig.SplitTarget(mgrcfg.Target)
+		mgrcfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
 		if err != nil {
 			log.Fatalf("failed to load manager %v config: %v", mgr.Name, err)
 		}
+		os, vmarch, arch := mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.TargetArch
 		targets[os+"/"+vmarch+"/"+arch] = true
 		files[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
 		files[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true

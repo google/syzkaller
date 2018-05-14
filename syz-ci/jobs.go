@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
-	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/kernel"
@@ -279,15 +278,10 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	mgrcfg.Syzkaller = syzkallerDir
 	mgrcfg.Image = image
 	mgrcfg.SSHKey = key
-
-	// Reload config to fill derived fields (ugly hack).
-	cfgdata, err := config.SaveData(mgrcfg)
-	if err != nil {
-		return fmt.Errorf("failed to save manager config: %v", err)
+	if err := mgrconfig.Complete(mgrcfg); err != nil {
+		return fmt.Errorf("bad manager config: %v", err)
 	}
-	if job.mgrcfg, err = mgrconfig.LoadData(cfgdata); err != nil {
-		return fmt.Errorf("failed to reload manager config: %v", err)
-	}
+	job.mgrcfg = mgrcfg
 	return nil
 }
 

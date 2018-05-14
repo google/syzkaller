@@ -88,11 +88,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	}
 
 	// Prepare manager config skeleton (other fields are filled in writeConfig).
-	managercfg := mgrconfig.DefaultValues()
-	if err := config.LoadData(mgrcfg.ManagerConfig, managercfg); err != nil {
-		log.Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
-	}
-	managercfg.TargetOS, managercfg.TargetVMArch, managercfg.TargetArch, err = mgrconfig.SplitTarget(managercfg.Target)
+	managercfg, err := mgrconfig.LoadPartialData(mgrcfg.ManagerConfig)
 	if err != nil {
 		log.Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
 	}
@@ -423,13 +419,8 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.SSHKey = filepath.Join(imageDir, "key")
 	mgrcfg.KernelSrc = mgr.kernelDir
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
-	cfgdata, err := config.SaveData(mgrcfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save manager config: %v", err)
-	}
-	mgrcfg, err = mgrconfig.LoadData(cfgdata)
-	if err != nil {
-		return nil, fmt.Errorf("failed to reload manager config: %v", err)
+	if err := mgrconfig.Complete(mgrcfg); err != nil {
+		return nil, fmt.Errorf("bad manager config: %v", err)
 	}
 	return mgrcfg, nil
 }

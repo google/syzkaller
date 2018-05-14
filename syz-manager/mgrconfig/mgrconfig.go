@@ -97,14 +97,44 @@ type Config struct {
 }
 
 func LoadData(data []byte) (*Config, error) {
-	return load(data, "")
+	cfg, err := LoadPartialData(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := Complete(cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }
 
 func LoadFile(filename string) (*Config, error) {
-	return load(nil, filename)
+	cfg, err := LoadPartialFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	if err := Complete(cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }
 
-func DefaultValues() *Config {
+func LoadPartialData(data []byte) (*Config, error) {
+	cfg := defaultValues()
+	if err := config.LoadData(data, cfg); err != nil {
+		return nil, err
+	}
+	return loadPartial(cfg)
+}
+
+func LoadPartialFile(filename string) (*Config, error) {
+	cfg := defaultValues()
+	if err := config.LoadFile(filename, cfg); err != nil {
+		return nil, err
+	}
+	return loadPartial(cfg)
+}
+
+func defaultValues() *Config {
 	return &Config{
 		SSHUser:   "root",
 		Cover:     true,
@@ -115,24 +145,12 @@ func DefaultValues() *Config {
 	}
 }
 
-func load(data []byte, filename string) (*Config, error) {
-	cfg := DefaultValues()
-	if data != nil {
-		if err := config.LoadData(data, cfg); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := config.LoadFile(filename, cfg); err != nil {
-			return nil, err
-		}
-	}
-
+func loadPartial(cfg *Config) (*Config, error) {
 	var err error
-	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = SplitTarget(cfg.Target)
+	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = splitTarget(cfg.Target)
 	if err != nil {
 		return nil, err
 	}
-
 	targetBin := func(name, arch string) string {
 		exe := ""
 		if cfg.TargetOS == "windows" {
@@ -143,39 +161,49 @@ func load(data []byte, filename string) (*Config, error) {
 	cfg.SyzFuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
 	cfg.SyzExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
 	cfg.SyzExecutorBin = targetBin("syz-executor", cfg.TargetArch)
+	return cfg, nil
+}
+
+func Complete(cfg *Config) error {
+	if cfg.TargetOS == "" || cfg.TargetVMArch == "" || cfg.TargetArch == "" {
+		return fmt.Errorf("target parameters are not filled in")
+	}
+	if cfg.SSHUser == "" {
+		return fmt.Errorf("bad config syzkaller param: ssh user is empty")
+	}
 	if !osutil.IsExist(cfg.SyzFuzzerBin) {
-		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
 	}
 	if !osutil.IsExist(cfg.SyzExecprogBin) {
-		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecprogBin)
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecprogBin)
 	}
 	if !osutil.IsExist(cfg.SyzExecutorBin) {
-		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecutorBin)
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecutorBin)
 	}
 	if cfg.HTTP == "" {
-		return nil, fmt.Errorf("config param http is empty")
+		return fmt.Errorf("config param http is empty")
 	}
 	if cfg.Workdir == "" {
-		return nil, fmt.Errorf("config param workdir is empty")
+		return fmt.Errorf("config param workdir is empty")
 	}
 	if cfg.Type == "" {
-		return nil, fmt.Errorf("config param type is empty")
+		return fmt.Errorf("config param type is empty")
 	}
 	if cfg.Procs < 1 || cfg.Procs > 32 {
-		return nil, fmt.Errorf("bad config param procs: '%v', want [1, 32]", cfg.Procs)
+		return fmt.Errorf("bad config param procs: '%v', want [1, 32]", cfg.Procs)
 	}
 	switch cfg.Sandbox {
 	case "none", "setuid", "namespace":
 	default:
-		return nil, fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
+		return fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
 	}
 	if cfg.SSHKey != "" {
 		info, err := os.Stat(cfg.SSHKey)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if info.Mode()&0077 != 0 {
-			return nil, fmt.Errorf("sshkey %v is unprotected, ssh will reject it, do chmod 0600 on it", cfg.SSHKey)
+			return fmt.Errorf("sshkey %v is unprotected, ssh will reject it, do chmod 0600", cfg.SSHKey)
 		}
 	}
 
@@ -187,22 +215,22 @@ func load(data []byte, filename string) (*Config, error) {
 	}
 
 	if err := parseSuppressions(cfg); err != nil {
-		return nil, err
+		return err
 	}
 
 	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
-		return nil, fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
+		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
 	if cfg.DashboardClient != "" && (cfg.Name == "" ||
 		cfg.DashboardAddr == "" ||
 		cfg.DashboardKey == "") {
-		return nil, fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
+		return fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
 	}
 
-	return cfg, nil
+	return nil
 }
 
-func SplitTarget(target string) (string, string, string, error) {
+func splitTarget(target string) (string, string, string, error) {
 	if target == "" {
 		return "", "", "", fmt.Errorf("target is empty")
 	}
