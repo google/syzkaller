@@ -9,6 +9,9 @@ set -eux
 
 trap "" SIGINT
 
+CLEANUP=""
+trap 'eval " $CLEANUP"' EXIT
+
 if [ ! -e $1/sbin/init ]; then
 	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
 	exit 1
@@ -19,18 +22,18 @@ if [ "$(basename $2)" != "bzImage" ]; then
 	exit 1
 fi
 
-sudo umount disk.mnt || true
-sudo qemu-nbd -d /dev/nbd0 || true
-rm -rf disk.mnt disk.raw tag obj || true
-
-sudo modprobe nbd
+rm -rf disk.mnt disk.raw || true
 fallocate -l 2G disk.raw
-sudo qemu-nbd -c /dev/nbd0 --format=raw disk.raw
+echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk disk.raw
+LODEV="$(sudo losetup -f --show -P disk.raw)"
+LODEVPART=$LODEV"p1"
+CLEANUP="sudo losetup -d $LODEV; $CLEANUP"
+until [ -e $LODEVPART ]; do sleep 1; done
+sudo mkfs.ext4 $LODEVPART
 mkdir -p disk.mnt
-echo -en "o\nn\np\n1\n2048\n\na\n1\nw\n" | sudo fdisk /dev/nbd0
-until [ -e /dev/nbd0p1 ]; do sleep 1; done
-sudo mkfs.ext4 /dev/nbd0p1
-sudo mount /dev/nbd0p1 disk.mnt
+CLEANUP="rm -rf disk.mnt; $CLEANUP"
+sudo mount $LODEVPART disk.mnt
+CLEANUP="sudo umount disk.mnt; $CLEANUP"
 sudo cp -a $1/. disk.mnt/.
 sudo cp $2 disk.mnt/vmlinuz
 sudo sed -i "/^root/ { s/:x:/::/ }" disk.mnt/etc/passwd
@@ -40,7 +43,7 @@ echo "debugfs /sys/kernel/debug debugfs defaults 0 0" | sudo tee -a disk.mnt/etc
 echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee -a disk.mnt/etc/fstab
 for i in {0..31}; do
 	echo "KERNEL==\"binder$i\", NAME=\"binder$i\", MODE=\"0666\"" | \
-		tee -a disk.mnt/etc/udev/50-binder.rules
+		sudo tee -a disk.mnt/etc/udev/50-binder.rules
 done
 echo 'SELINUX=disabled' | sudo tee disk.mnt/etc/selinux/config
 
@@ -84,8 +87,5 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 $CMDLINE
 }
 EOF
-sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
-sudo umount disk.mnt
-rm -rf disk.mnt
-sudo qemu-nbd -d /dev/nbd0
+sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $LODEV
 `
