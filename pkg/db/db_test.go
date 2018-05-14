@@ -5,11 +5,12 @@ package db
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func TestBasic(t *testing.T) {
@@ -118,10 +119,9 @@ func TestLarge(t *testing.T) {
 }
 
 func tempFile(t *testing.T) string {
-	f, err := ioutil.TempFile("", "syzkaller.test.db")
+	fn, err := osutil.TempFile("syzkaller.test.db")
 	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
+		t.Fatal(err)
 	}
-	f.Close()
-	return f.Name()
+	return fn
 }

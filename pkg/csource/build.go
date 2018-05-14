@@ -19,21 +19,19 @@ import (
 // Build builds a C/C++ program from source src and returns name of the resulting binary.
 // lang can be "c" or "c++".
 func Build(target *prog.Target, lang, src string) (string, error) {
-	// We call the binary syz-executor because it sometimes shows in bug titles,
-	// and we don't want 2 different bugs for when a crash is triggered during fuzzing and during repro.
-	bin, err := ioutil.TempFile("", "syz-executor")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %v", err)
-	}
-	bin.Close()
 	sysTarget := targets.List[target.OS][target.Arch]
 	compiler := sysTarget.CCompilerPrefix + "gcc"
 	if _, err := exec.LookPath(compiler); err != nil {
 		return "", ErrNoCompiler
 	}
+	// We call the binary syz-executor because it sometimes shows in bug titles,
+	// and we don't want 2 different bugs for when a crash is triggered during fuzzing and during repro.
+	bin, err := osutil.TempFile("syz-executor")
+	if err != nil {
+		return "", err
+	}
 	flags := []string{
-		"-x", lang, "-Wall", "-Werror", "-O1", "-g", "-o", bin.Name(),
-		src, "-pthread",
+		"-x", lang, "-Wall", "-Werror", "-O1", "-g", "-o", bin, src, "-pthread",
 	}
 	flags = append(flags, sysTarget.CrossCFlags...)
 	if sysTarget.PtrSize == 4 {
@@ -46,12 +44,12 @@ func Build(target *prog.Target, lang, src string) (string, error) {
 		out, err = osutil.Command(compiler, flags...).CombinedOutput()
 	}
 	if err != nil {
-		os.Remove(bin.Name())
+		os.Remove(bin)
 		data, _ := ioutil.ReadFile(src)
 		return "", fmt.Errorf("failed to build program:\n%s\n%s\ncompiler invocation: %v %v",
 			data, out, compiler, flags)
 	}
-	return bin.Name(), nil
+	return bin, nil
 }
 
 var ErrNoCompiler = errors.New("no target compiler")
