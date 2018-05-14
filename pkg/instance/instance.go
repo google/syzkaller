@@ -27,8 +27,7 @@ import (
 )
 
 type Env struct {
-	cfg    *mgrconfig.Config
-	gopath string
+	cfg *mgrconfig.Config
 }
 
 func NewEnv(cfg *mgrconfig.Config) (*Env, error) {
@@ -46,32 +45,32 @@ func NewEnv(cfg *mgrconfig.Config) (*Env, error) {
 	if cfg.Syzkaller == "" {
 		return nil, fmt.Errorf("syzkaller path is empty")
 	}
-	srcIndex := strings.LastIndex(cfg.Syzkaller, "/src/")
-	if srcIndex == -1 {
-		return nil, fmt.Errorf("syzkaller path %q is not in GOPATH", cfg.Syzkaller)
-	}
 	if err := osutil.MkdirAll(cfg.Workdir); err != nil {
 		return nil, fmt.Errorf("failed to create tmp dir: %v", err)
 	}
 	env := &Env{
-		cfg:    cfg,
-		gopath: cfg.Syzkaller[:srcIndex],
+		cfg: cfg,
 	}
 	return env, nil
 }
 
 func (env *Env) BuildSyzkaller(repo, commit string) error {
-	if _, err := git.CheckoutCommit(env.cfg.Syzkaller, repo, commit); err != nil {
+	cfg := env.cfg
+	srcIndex := strings.LastIndex(cfg.Syzkaller, "/src/")
+	if srcIndex == -1 {
+		return fmt.Errorf("syzkaller path %q is not in GOPATH", cfg.Syzkaller)
+	}
+	if _, err := git.CheckoutCommit(cfg.Syzkaller, repo, commit); err != nil {
 		return fmt.Errorf("failed to checkout syzkaller repo: %v", err)
 	}
 	cmd := osutil.Command("make", "target")
-	cmd.Dir = env.cfg.Syzkaller
+	cmd.Dir = cfg.Syzkaller
 	cmd.Env = append([]string{}, os.Environ()...)
 	cmd.Env = append(cmd.Env,
-		"GOPATH="+env.gopath,
-		"TARGETOS="+env.cfg.TargetOS,
-		"TARGETVMARCH="+env.cfg.TargetVMArch,
-		"TARGETARCH="+env.cfg.TargetArch,
+		"GOPATH="+cfg.Syzkaller[:srcIndex],
+		"TARGETOS="+cfg.TargetOS,
+		"TARGETVMARCH="+cfg.TargetVMArch,
+		"TARGETARCH="+cfg.TargetArch,
 	)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("syzkaller build failed: %v", err)
