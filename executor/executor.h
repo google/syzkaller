@@ -500,7 +500,7 @@ void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover
 	for (uint32 i = 0; i < th->cover_size; i++) {
 		cover_t pc = cover_data[i];
 		if (!cover_check(pc))
-			break;
+			doexit(0);
 		cover_t sig = pc ^ prev;
 		prev = hash(pc);
 		if (dedup(sig))
