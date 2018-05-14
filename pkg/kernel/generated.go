@@ -22,17 +22,20 @@ if [ "$(basename $2)" != "bzImage" ]; then
 	exit 1
 fi
 
+sudo umount disk.mnt || true
+sudo qemu-nbd -d /dev/nbd0 || true
 rm -rf disk.mnt disk.raw || true
+
+sudo modprobe nbd
 fallocate -l 2G disk.raw
-echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk disk.raw
-LODEV="$(sudo losetup -f --show -P disk.raw)"
-LODEVPART=$LODEV"p1"
-CLEANUP="sudo losetup -d $LODEV; $CLEANUP"
-until [ -e $LODEVPART ]; do sleep 1; done
-sudo mkfs.ext4 $LODEVPART
+sudo qemu-nbd -c /dev/nbd0 --format=raw disk.raw
+CLEANUP="sudo qemu-nbd -d /dev/nbd0; $CLEANUP"
+echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk /dev/nbd0
+until [ -e /dev/nbd0p1 ]; do sleep 1; done
+sudo mkfs.ext4 /dev/nbd0p1
 mkdir -p disk.mnt
 CLEANUP="rm -rf disk.mnt; $CLEANUP"
-sudo mount $LODEVPART disk.mnt
+sudo mount /dev/nbd0p1 disk.mnt
 CLEANUP="sudo umount disk.mnt; $CLEANUP"
 sudo cp -a $1/. disk.mnt/.
 sudo cp $2 disk.mnt/vmlinuz
@@ -87,5 +90,5 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 $CMDLINE
 }
 EOF
-sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $LODEV
+sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
 `
