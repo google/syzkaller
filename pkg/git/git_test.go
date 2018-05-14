@@ -82,6 +82,51 @@ func testPredicate(t *testing.T, fn func(string) bool, tests map[string]bool) {
 	}
 }
 
+func TestParseReleaseTags(t *testing.T) {
+	input := `
+v3.1
+v2.6.12
+v2.6.39
+v3.0
+v3.10
+v2.6.13
+v3.11
+v3.19
+v3.9
+v3.2
+v4.9
+v2.6.32
+v4.0
+voo
+v1.foo
+v10.2.foo
+v1.2.
+v1.
+`
+	want := []string{
+		"v4.9",
+		"v4.0",
+		"v3.19",
+		"v3.11",
+		"v3.10",
+		"v3.9",
+		"v3.2",
+		"v3.1",
+		"v3.0",
+		"v2.6.39",
+		"v2.6.32",
+		"v2.6.13",
+		"v2.6.12",
+	}
+	got, err := parseReleaseTags([]byte(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got bad tags\ngot:  %+v\nwant: %+v", got, want)
+	}
+}
+
 func TestExtractFixTags(t *testing.T) {
 	commits, err := extractFixTags(strings.NewReader(extractFixTagsInput), extractFixTagsEmail)
 	if err != nil {

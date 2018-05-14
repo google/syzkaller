@@ -13,6 +13,8 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -316,6 +318,49 @@ func Patch(dir string, patch []byte) error {
 	return nil
 }
 
+// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
+// Note: linux-specific.
+func PreviousReleaseTags(dir, commit string) ([]string, error) {
+	output, err := runSandboxed(dir, "git", "tag", "--no-contains", commit, "--merged", commit, "v*.*")
+	if err != nil {
+		return nil, err
+	}
+	return parseReleaseTags(output)
+}
+
+func parseReleaseTags(output []byte) ([]string, error) {
+	var tags []string
+	for _, tag := range bytes.Split(output, []byte{'\n'}) {
+		if releaseTagRe.Match(tag) && releaseTagToInt(string(tag)) != 0 {
+			tags = append(tags, string(tag))
+		}
+	}
+	sort.Slice(tags, func(i, j int) bool {
+		return releaseTagToInt(tags[i]) > releaseTagToInt(tags[j])
+	})
+	return tags, nil
+}
+
+func releaseTagToInt(tag string) uint64 {
+	matches := releaseTagRe.FindStringSubmatchIndex(tag)
+	v1, err := strconv.ParseUint(tag[matches[2]:matches[3]], 10, 64)
+	if err != nil {
+		return 0
+	}
+	v2, err := strconv.ParseUint(tag[matches[4]:matches[5]], 10, 64)
+	if err != nil {
+		return 0
+	}
+	var v3 uint64
+	if matches[6] != -1 {
+		v3, err = strconv.ParseUint(tag[matches[6]:matches[7]], 10, 64)
+		if err != nil {
+			return 0
+		}
+	}
+	return v1*1e6 + v2*1e3 + v3
+}
+
 func runSandboxed(dir, command string, args ...string) ([]byte, error) {
 	cmd := osutil.Command(command, args...)
 	cmd.Dir = dir
@@ -345,7 +390,8 @@ func CheckCommitHash(hash string) bool {
 
 var (
 	// nolint: lll
-	gitRepoRe   = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\.git(/)?$`)
-	gitBranchRe = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
-	gitHashRe   = regexp.MustCompile("^[a-f0-9]+$")
+	gitRepoRe    = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\.git(/)?$`)
+	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
+	gitHashRe    = regexp.MustCompile("^[a-f0-9]+$")
+	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:\.([0-9]+))?$`)
 )
