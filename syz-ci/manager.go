@@ -261,15 +261,15 @@ func (mgr *Manager) build() error {
 	if err := osutil.MkdirAll(tmpDir); err != nil {
 		return fmt.Errorf("failed to create tmp dir: %v", err)
 	}
-	kernelConfig := filepath.Join(tmpDir, "kernel.config")
-	if err := osutil.CopyFile(mgr.mgrcfg.KernelConfig, kernelConfig); err != nil {
+	kernelConfigData, err := ioutil.ReadFile(mgr.mgrcfg.KernelConfig)
+	if err != nil {
 		return err
 	}
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
 
-	if err := kernel.Build(mgr.kernelDir, mgr.mgrcfg.Compiler, kernelConfig); err != nil {
+	if err := kernel.Build(mgr.kernelDir, mgr.mgrcfg.Compiler, kernelConfigData); err != nil {
 		rep := &report.Report{
 			Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
 			Output: []byte(err.Error()),
@@ -279,6 +279,7 @@ func (mgr *Manager) build() error {
 		}
 		return fmt.Errorf("kernel build failed: %v", err)
 	}
+	kernelConfig := filepath.Join(tmpDir, "kernel.config")
 	if err := osutil.CopyFile(filepath.Join(mgr.kernelDir, ".config"), kernelConfig); err != nil {
 		return err
 	}

@@ -24,9 +24,9 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-func Build(dir, compiler, config string) error {
+func Build(dir, compiler string, config []byte) error {
 	configFile := filepath.Join(dir, ".config")
-	if err := osutil.CopyFile(config, configFile); err != nil {
+	if err := osutil.WriteFile(configFile, config); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
 	if err := osutil.SandboxChown(configFile); err != nil {
@@ -89,6 +89,7 @@ func CreateImage(kernelDir, userspaceDir, cmdlineFile, sysctlFile, image, sshkey
 	if _, err = osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
+	// Note: we use CopyFile instead of Rename because src and dst can be on different filesystems.
 	if err := osutil.CopyFile(filepath.Join(tempDir, "disk.raw"), image); err != nil {
 		return err
 	}
