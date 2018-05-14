@@ -144,11 +144,13 @@ void cover_open()
 		if (ioctl(th->cover_fd, kcov_init_trace, kCoverSize))
 			fail("cover init trace write failed");
 		size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
-		th->cover_data = (char*)mmap(NULL, mmap_alloc_size,
-					     PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
+		th->cover_data = (char*)mmap(NULL, mmap_alloc_size, PROT_READ, MAP_SHARED, th->cover_fd, 0);
 		th->cover_end = th->cover_data + mmap_alloc_size;
 		if (th->cover_data == MAP_FAILED)
 			fail("cover mmap failed");
+		// We only write to the first page, so protect the rest from fuzzer.
+		if (mprotect(th->cover_data, SYZ_PAGE_SIZE, PROT_READ | PROT_WRITE))
+			fail("cover mprotect failed");
 	}
 }
 
