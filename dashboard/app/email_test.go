@@ -72,7 +72,7 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this bug report. See:
 https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.`,
-	extBugID0, crashLogLink, kernelConfigLink)
+			extBugID0, crashLogLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
@@ -222,7 +222,7 @@ syzbot will keep track of this bug report. See:
 https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.
 syzbot can test patches for this bug, for details see:
 https://goo.gl/tpsmEJ#testing-patches`,
-extBugID1, reproSyzLink, crashLogLink, kernelConfigLink)
+			extBugID1, reproSyzLink, crashLogLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
