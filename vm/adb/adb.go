@@ -112,6 +112,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if _, err := inst.adb("shell", "rm -Rf /data/syzkaller*"); err != nil {
 		return nil, err
 	}
+	inst.adb("shell", "echo 0 > /proc/sys/kernel/kptr_restrict")
 	closeInst = nil
 	return inst, nil
 }
