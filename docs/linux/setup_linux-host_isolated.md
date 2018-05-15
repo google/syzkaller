@@ -90,7 +90,7 @@ Use the following config:
 	"vm": {
 		"targets" : [ "10.0.0.1" ],
 		"target_dir" : "/home/user/tmp/syzkaller",
-                "target_reboot" : false,
+                "target_reboot" : false
 	}
 }
 ```
