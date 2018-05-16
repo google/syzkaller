@@ -89,6 +89,7 @@ type uiBugNamespace struct {
 type uiBugGroup struct {
 	Now           time.Time
 	Caption       string
+	Fragment      string
 	Namespace     string
 	ShowNamespace bool
 	ShowPatch     bool
@@ -409,20 +410,25 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	var uiGroups []*uiBugGroup
 	for index, bugs := range groups {
 		sort.Sort(uiBugSorter(bugs))
-		caption, showPatch, showPatched := "", false, false
+		caption, fragment, showPatch, showPatched := "", "", false, false
 		switch index {
 		case -1:
 			caption, showPatch, showPatched = "fixed", true, false
 		case -2:
 			caption, showPatch, showPatched = "fix pending", false, true
+			fragment = ns + "-pending"
 		case len(config.Namespaces[ns].Reporting) - 1:
 			caption, showPatch, showPatched = "open", false, false
+			fragment = ns + "-open"
 		default:
-			caption, showPatch, showPatched = config.Namespaces[ns].Reporting[index].DisplayTitle, false, false
+			reporting := &config.Namespaces[ns].Reporting[index]
+			caption, showPatch, showPatched = reporting.DisplayTitle, false, false
+			fragment = ns + "-" + reporting.Name
 		}
 		uiGroups = append(uiGroups, &uiBugGroup{
 			Now:         timeNow(c),
 			Caption:     fmt.Sprintf("%v (%v)", caption, len(bugs)),
+			Fragment:    fragment,
 			Namespace:   ns,
 			ShowPatch:   showPatch,
 			ShowPatched: showPatched,
