@@ -32,7 +32,7 @@ sudo qemu-nbd -c /dev/nbd0 --format=raw disk.raw
 CLEANUP="sudo qemu-nbd -d /dev/nbd0; $CLEANUP"
 echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk /dev/nbd0
 until [ -e /dev/nbd0p1 ]; do sleep 1; done
-sudo mkfs.ext4 /dev/nbd0p1
+sudo -E mkfs.ext4 /dev/nbd0p1
 mkdir -p disk.mnt
 CLEANUP="rm -rf disk.mnt; $CLEANUP"
 sudo mount /dev/nbd0p1 disk.mnt
