@@ -143,6 +143,23 @@ state in kernel (e.g. lockdep reports); some crashes are caused by
 non-reproducible coincidences (e.g. an integer `0x12345` happened to reference an
 existing IPC object) and there is long tail of other reasons.
 
+## Moderation queue
+
+Bugs with reproducers are automatically reported to kernel mailing lists.
+Bugs without reproducers are first staged in moderation queue to filter out
+invalid, unactionable or duplicate reports. Staged bugs are shown on dashboard
+in [moderation](https://syzkaller.appspot.com/#upstream-moderation2) section
+and mailed to
+[syzkaller-upstream-moderation](https://groups.google.com/forum/#!forum/syzkaller-upstream-moderation)
+mailing list. Staged bugs accept all commands supported for reported bugs
+(`fix`, `dup`, `invalid`) with a restriction that reported and staged bugs
+can't be `dup`-ed onto each other in any direction. Additionally, staged bugs
+accept upstream command:
+```
+#syz upstream
+```
+which sends the bug to kernel mailing lists.
+
 ## KMSAN bugs
 
 `KMSAN` is a dynamic, compiler-based tool (similar to `KASAN`) that detects
