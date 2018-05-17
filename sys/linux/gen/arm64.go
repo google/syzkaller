@@ -5729,55 +5729,55 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "ipv4_addr_t[const[170, int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[const[170, int8]]", TypeSize: 4}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1}}, Val: 20},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1}}, Val: 170},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_t[const[170, int8]]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[const[170, int8]]", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1, ArgDir: 1}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 1}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 1}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 1}}, Val: 20},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1, ArgDir: 1}}, Val: 170},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_t[const[170, int8]]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[const[170, int8]]", TypeSize: 4, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1, ArgDir: 2}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 2}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 2}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 2}}, Val: 20},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1, ArgDir: 2}}, Val: 170},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_t[const[187, int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[const[187, int8]]", TypeSize: 4}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1}}, Val: 20},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1}}, Val: 187},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_t[const[187, int8]]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[const[187, int8]]", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1, ArgDir: 1}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 1}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 1}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 1}}, Val: 20},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1, ArgDir: 1}}, Val: 187},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_t[const[187, int8]]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[const[187, int8]]", TypeSize: 4, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1, ArgDir: 2}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 2}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 2}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 2}}, Val: 20},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1, ArgDir: 2}}, Val: 187},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_t[netdev_addr_id]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[netdev_addr_id]", TypeSize: 4}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1}}, Val: 20},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a3", TypeSize: 1}}, Kind: 2, RangeBegin: 10, RangeEnd: 33},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_t[netdev_addr_id]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[netdev_addr_id]", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1, ArgDir: 1}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 1}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 1}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 1}}, Val: 20},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a3", TypeSize: 1, ArgDir: 1}}, Kind: 2, RangeBegin: 10, RangeEnd: 33},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_t[netdev_addr_id]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_t[netdev_addr_id]", TypeSize: 4, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1, ArgDir: 2}}, Val: 172},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 2}}, Val: 20},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 2}}, Val: 20},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 2}}, Val: 20},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a3", TypeSize: 1, ArgDir: 2}}, Kind: 2, RangeBegin: 10, RangeEnd: 33},
 	}}},
 	{Key: StructKey{Name: "ipv4_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_header", IsVarlen: true}, Fields: []Type{
@@ -33111,4 +33111,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "ffaa1d320cff543b4010969ec9f3585fe3f96fbe"
+const revision_arm64 = "20353259404399b35c73ba56ae78cdaff1b2942a"
