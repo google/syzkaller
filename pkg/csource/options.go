@@ -5,6 +5,7 @@ package csource
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -12,27 +13,27 @@ import (
 // Options control various aspects of source generation.
 // Dashboard also provides serialized Options along with syzkaller reproducers.
 type Options struct {
-	Threaded bool
-	Collide  bool
-	Repeat   bool
-	Procs    int
-	Sandbox  string
+	Threaded bool   `json:"threaded,omitempty"`
+	Collide  bool   `json:"collide,omitempty"`
+	Repeat   bool   `json:"repeat,omitempty"`
+	Procs    int    `json:"procs"`
+	Sandbox  string `json:"sandbox"`
 
-	Fault     bool // inject fault into FaultCall/FaultNth
-	FaultCall int
-	FaultNth  int
+	Fault     bool `json:"fault,omitempty"` // inject fault into FaultCall/FaultNth
+	FaultCall int  `json:"fault_call,omitempty"`
+	FaultNth  int  `json:"fault_nth,omitempty"`
 
 	// These options allow for a more fine-tuned control over the generated C code.
-	EnableTun     bool
-	UseTmpDir     bool
-	EnableCgroups bool
-	HandleSegv    bool
-	WaitRepeat    bool
-	Debug         bool
+	EnableTun     bool `json:"tun,omitempty"`
+	UseTmpDir     bool `json:"tmpdir,omitempty"`
+	EnableCgroups bool `json:"cgroups,omitempty"`
+	HandleSegv    bool `json:"segv,omitempty"`
+	WaitRepeat    bool `json:"waitrepeat,omitempty"`
+	Debug         bool `json:"debug,omitempty"`
 
 	// Generate code for use with repro package to prints log messages,
 	// which allows to distinguish between a hang and an absent crash.
-	Repro bool
+	Repro bool `json:"repro,omitempty"`
 }
 
 // Check checks if the opts combination is valid or not.
@@ -69,12 +70,20 @@ func (opts Options) Check() error {
 }
 
 func (opts Options) Serialize() []byte {
-	return []byte(fmt.Sprintf("%+v", opts))
+	data, err := json.Marshal(opts)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
 
 func DeserializeOptions(data []byte) (Options, error) {
-	data = bytes.Replace(data, []byte("Sandbox: "), []byte("Sandbox:empty "), -1)
 	var opts Options
+	if err := json.Unmarshal(data, &opts); err == nil {
+		return opts, nil
+	}
+	// Support for legacy formats.
+	data = bytes.Replace(data, []byte("Sandbox: "), []byte("Sandbox:empty "), -1)
 	n, err := fmt.Sscanf(string(data),
 		"{Threaded:%t Collide:%t Repeat:%t Procs:%d Sandbox:%s"+
 			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+

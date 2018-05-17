@@ -27,6 +27,23 @@ func TestParseOptionsCanned(t *testing.T) {
 	// so we need to be able to parse old formats.
 	// nolint: lll
 	canned := map[string]Options{
+		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"namespace","fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: Options{
+			Threaded:      true,
+			Collide:       true,
+			Repeat:        true,
+			Procs:         10,
+			Sandbox:       "namespace",
+			Fault:         true,
+			FaultCall:     1,
+			FaultNth:      2,
+			EnableTun:     true,
+			UseTmpDir:     true,
+			EnableCgroups: true,
+			HandleSegv:    true,
+			WaitRepeat:    true,
+			Debug:         true,
+			Repro:         true,
+		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
 			Threaded:      true,
 			Collide:       true,
