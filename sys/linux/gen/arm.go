@@ -10236,6 +10236,14 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fs_opt[\"nls\", stringnoz[codepages_names]]"}, FldName: "nls"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "utf8", TypeSize: 4}, Kind: 2, Values: []string{"utf8"}, NoZ: true},
 	}}},
+	{Key: StructKey{Name: "optional[tun_pi]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "optional[tun_pi]", IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "tun_pi"}, FldName: "val"},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "optional[virtio_net_hdr]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "optional[virtio_net_hdr]", IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "virtio_net_hdr"}, FldName: "val"},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
 	{Key: StructKey{Name: "packet_fanout_val"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "packet_fanout_val", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "id", TypeSize: 2}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "packet_fanout_types", FldName: "type", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7}},
@@ -13516,8 +13524,8 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "tpacket_req3"}, FldName: "req3"},
 	}}},
 	{Key: StructKey{Name: "tun_buffer"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_buffer", IsVarlen: true}, Fields: []Type{
-		&UnionType{Key: StructKey{Name: "tun_pi_or_void"}, FldName: "pi"},
-		&UnionType{Key: StructKey{Name: "virtio_net_hdr_or_void"}, FldName: "hdr"},
+		&UnionType{Key: StructKey{Name: "optional[tun_pi]"}, FldName: "pi"},
+		&UnionType{Key: StructKey{Name: "optional[virtio_net_hdr]"}, FldName: "hdr"},
 		&UnionType{Key: StructKey{Name: "tun_payload"}, FldName: "data"},
 	}}},
 	{Key: StructKey{Name: "tun_filter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_filter", IsVarlen: true}, Fields: []Type{
@@ -13538,10 +13546,6 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "tun_pi"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_pi", TypeSize: 4}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 2}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "proto", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 8939, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
-	}}},
-	{Key: StructKey{Name: "tun_pi_or_void"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_pi_or_void", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "tun_pi"}, FldName: "pi"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "ucred"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ucred", TypeSize: 12}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
@@ -14503,10 +14507,6 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "gsosize", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "start", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "offset", TypeSize: 2}}},
-	}}},
-	{Key: StructKey{Name: "virtio_net_hdr_or_void"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "virtio_net_hdr_or_void", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "virtio_net_hdr"}, FldName: "hdr"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "vlan_tag"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vlan_tag", IsVarlen: true}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "tag_ad", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "vlan_tag_ad"}}, Kind: 1, RangeEnd: 1},
@@ -32914,4 +32914,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "1b96898113dbc4516a907e37799afe3ea36deeab"
+const revision_arm = "2b5e231755e9fa44244d44f48b976dc9dfcfabf5"
