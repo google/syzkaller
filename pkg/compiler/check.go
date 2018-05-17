@@ -137,9 +137,11 @@ func (comp *compiler) checkFields() {
 		switch n := decl.(type) {
 		case *ast.Struct:
 			_, typ, name := n.Info()
-			comp.checkFieldGroup(n.Fields, "field", typ+" "+name)
-			if len(n.Fields) < 1 {
-				comp.error(n.Pos, "%v %v has no fields, need at least 1 field", typ, name)
+			comp.checkStructFields(n, typ, name)
+		case *ast.TypeDef:
+			if n.Struct != nil {
+				_, typ, _ := n.Struct.Info()
+				comp.checkStructFields(n.Struct, "template "+typ, n.Name.Name)
 			}
 		case *ast.Call:
 			name := n.Name.Name
@@ -149,6 +151,13 @@ func (comp *compiler) checkFields() {
 					name, len(n.Args), maxArgs)
 			}
 		}
+	}
+}
+
+func (comp *compiler) checkStructFields(n *ast.Struct, typ, name string) {
+	comp.checkFieldGroup(n.Fields, "field", typ+" "+name)
+	if len(n.Fields) < 1 {
+		comp.error(n.Pos, "%v %v has no fields, need at least 1 field", typ, name)
 	}
 }
 

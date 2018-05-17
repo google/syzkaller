@@ -288,6 +288,7 @@ type templ_struct0[A, B] {
 
 type templ_struct1[STR] {
 	f	string[STR, 40]
+	f	int32		### duplicate field f in template struct templ_struct1
 }
 
 type templ_struct2[A] {
