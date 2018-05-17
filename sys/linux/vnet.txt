@@ -312,7 +312,7 @@ include <net/cipso_ipv4.h>
 type ipv4_addr_t[LAST] {
 	a0	const[0xac, int8]
 	a1	const[0x14, int8]
-	a1	const[0x14, int8]
+	a2	const[0x14, int8]
 	a3	LAST
 } [packed]
 
