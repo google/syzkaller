@@ -12,6 +12,7 @@
 package kernel
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -50,8 +51,10 @@ func Build(dir, compiler string, config []byte) error {
 	}
 	cmd.Dir = dir
 	// Build of a large kernel can take a while on a 1 CPU VM.
-	_, err := osutil.Run(3*time.Hour, cmd)
-	return err
+	if _, err := osutil.Run(3*time.Hour, cmd); err != nil {
+		return extractRootCause(err)
+	}
+	return nil
 }
 
 func Clean(dir string) error {
@@ -121,4 +124,40 @@ func CompilerIdentity(compiler string) (string, error) {
 		return "", fmt.Errorf("no output from compiler --version")
 	}
 	return strings.Split(string(output), "\n")[0], nil
+}
+
+func extractRootCause(err error) error {
+	verr, ok := err.(*osutil.VerboseError)
+	if !ok {
+		return err
+	}
+	var cause []byte
+	for _, line := range bytes.Split(verr.Output, []byte{'\n'}) {
+		for _, pattern := range buildFailureCauses {
+			if pattern.weak && cause != nil {
+				continue
+			}
+			if bytes.Contains(line, pattern.pattern) {
+				cause = line
+				break
+			}
+		}
+	}
+	if cause != nil {
+		verr.Title = string(cause)
+	}
+	return verr
+}
+
+type buildFailureCause struct {
+	pattern []byte
+	weak    bool
+}
+
+var buildFailureCauses = [...]buildFailureCause{
+	{pattern: []byte(": error: ")},
+	{pattern: []byte(": fatal error: ")},
+	{pattern: []byte(": undefined reference to")},
+	{weak: true, pattern: []byte(": final link failed: ")},
+	{weak: true, pattern: []byte("collect2: error: ")},
 }

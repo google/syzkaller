@@ -227,7 +227,12 @@ func (env *env) test() (git.BisectResult, error) {
 		cfg.Kernel.Cmdline, cfg.Kernel.Sysctl, cfg.Kernel.Config)
 	env.buildTime += time.Since(buildStart)
 	if err != nil {
-		env.log("kernel build failed: %v", err)
+		if verr, ok := err.(*osutil.VerboseError); ok {
+			env.log("%v", verr.Title)
+			env.saveDebugFile(current.Hash, 0, verr.Output)
+		} else {
+			env.log("%v", err)
+		}
 		return git.BisectSkip, nil
 	}
 	testStart := time.Now()
