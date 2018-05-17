@@ -40,20 +40,10 @@ ioctl$TUNSETVNETBE(fd fd_tun, cmd const[TUNSETVNETBE], arg ptr[in, bool32])
 # virtio_net_hdr can be present or missing (depending on IFF_VNET_HDR).
 # We may want to support optional fields, which will make this simpler.
 tun_buffer {
-	pi	tun_pi_or_void
-	hdr	virtio_net_hdr_or_void
+	pi	optional[tun_pi]
+	hdr	optional[virtio_net_hdr]
 	data	tun_payload
 } [packed]
-
-tun_pi_or_void [
-	pi	tun_pi
-	void	void
-] [varlen]
-
-virtio_net_hdr_or_void [
-	hdr	virtio_net_hdr
-	void	void
-] [varlen]
 
 tun_pi {
 	flags	const[0, int16]
