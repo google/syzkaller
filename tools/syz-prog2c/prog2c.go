@@ -30,6 +30,7 @@ var (
 	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
 	flagWaitRepeat = flag.Bool("waitrepeat", false, "wait for each repeat attempt")
+	flagCgroups = flag.Bool("cgroups", false, "enable cgroups support")
 	flagDebug      = flag.Bool("debug", false, "generate debug printfs")
 )
 
@@ -65,6 +66,7 @@ func main() {
 		FaultNth:   *flagFaultNth,
 		EnableTun:  *flagEnableTun,
 		UseTmpDir:  *flagUseTmpDir,
+		EnableCgroups: *flagCgroups,
 		HandleSegv: *flagHandleSegv,
 		WaitRepeat: *flagWaitRepeat,
 		Debug:      *flagDebug,
