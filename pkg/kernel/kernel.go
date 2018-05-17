@@ -70,7 +70,14 @@ func Clean(dir string) error {
 // If cmdlineFile is not empty, contents of the file are appended to the kernel command line.
 // If sysctlFile is not empty, contents of the file are appended to the image /etc/sysctl.conf.
 // Produces image and root ssh key in the specified files.
-func CreateImage(kernelDir, userspaceDir, cmdlineFile, sysctlFile, image, sshkey string) error {
+func CreateImage(targetOS, targetArch, vmType, kernelDir, userspaceDir, cmdlineFile, sysctlFile,
+	image, sshkey string) error {
+	if targetOS != "linux" || targetArch != "amd64" {
+		return fmt.Errorf("only linux/amd64 is supported")
+	}
+	if vmType != "qemu" && vmType != "gce" {
+		return fmt.Errorf("images can be built only for qemu/gce machines")
+	}
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -85,6 +92,7 @@ func CreateImage(kernelDir, userspaceDir, cmdlineFile, sysctlFile, image, sshkey
 	cmd.Dir = tempDir
 	cmd.Env = append([]string{}, os.Environ()...)
 	cmd.Env = append(cmd.Env,
+		"SYZ_VM_TYPE="+vmType,
 		"SYZ_CMDLINE_FILE="+osutil.Abs(cmdlineFile),
 		"SYZ_SYSCTL_FILE="+osutil.Abs(sysctlFile),
 	)
