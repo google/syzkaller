@@ -131,9 +131,11 @@ func initRepo(dir string) error {
 }
 
 type Commit struct {
-	Hash  string
-	Title string
-	Date  time.Time
+	Hash   string
+	Title  string
+	Author string
+	CC     []string
+	Date   time.Time
 }
 
 // HeadCommit returns info about the HEAD commit of the current branch of git repository in dir.
@@ -142,22 +144,49 @@ func HeadCommit(dir string) (*Commit, error) {
 }
 
 func GetCommit(dir, commit string) (*Commit, error) {
-	output, err := runSandboxed(dir, "git", "log", "--pretty=format:%H%n%s%n%ad", "-n", "1", commit)
+	output, err := runSandboxed(dir, "git", "log", "--format=%H%n%s%n%ae%n%ad%n%b", "-n", "1", commit)
 	if err != nil {
 		return nil, err
 	}
+	return parseCommit(output)
+}
+
+func parseCommit(output []byte) (*Commit, error) {
 	lines := bytes.Split(output, []byte{'\n'})
-	if len(lines) != 3 || len(lines[0]) != 40 {
+	if len(lines) < 4 || len(lines[0]) != 40 {
 		return nil, fmt.Errorf("unexpected git log output: %q", output)
 	}
-	date, err := time.Parse(DateFormat, string(lines[2]))
+	date, err := time.Parse(DateFormat, string(lines[3]))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse date in git log output: %v\n%q", err, output)
 	}
+	cc := make(map[string]bool)
+	cc[strings.ToLower(string(lines[2]))] = true
+	for _, line := range lines[4:] {
+		for _, re := range ccRes {
+			matches := re.FindSubmatchIndex(line)
+			if matches == nil {
+				continue
+			}
+			addr, err := mail.ParseAddress(string(line[matches[2]:matches[3]]))
+			if err != nil {
+				break
+			}
+			cc[strings.ToLower(addr.Address)] = true
+			break
+		}
+	}
+	sortedCC := make([]string, 0, len(cc))
+	for addr := range cc {
+		sortedCC = append(sortedCC, addr)
+	}
+	sort.Strings(sortedCC)
 	com := &Commit{
-		Hash:  string(lines[0]),
-		Title: string(lines[1]),
-		Date:  date,
+		Hash:   string(lines[0]),
+		Title:  string(lines[1]),
+		Author: string(lines[2]),
+		CC:     sortedCC,
+		Date:   date,
 	}
 	return com, nil
 }
@@ -456,4 +485,12 @@ var (
 	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
 	gitHashRe    = regexp.MustCompile("^[a-f0-9]+$")
 	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:\.([0-9]+))?$`)
+	ccRes        = []*regexp.Regexp{
+		regexp.MustCompile(`^Reviewed\-.*: (.*)$`),
+		regexp.MustCompile(`^[A-Za-z-]+\-and\-[Rr]eviewed\-.*: (.*)$`),
+		regexp.MustCompile(`^Acked\-.*: (.*)$`),
+		regexp.MustCompile(`^[A-Za-z-]+\-and\-[Aa]cked\-.*: (.*)$`),
+		regexp.MustCompile(`^Tested\-.*: (.*)$`),
+		regexp.MustCompile(`^[A-Za-z-]+\-and\-[Tt]ested\-.*: (.*)$`),
+	}
 )
