@@ -222,43 +222,13 @@ func (env *env) test() (git.BisectResult, error) {
 		return git.BisectSkip, nil
 	}
 	testStart := time.Now()
-	results, err := env.inst.Test(5, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
+	results, err := env.inst.Test(8, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
 	env.testTime += time.Since(testStart)
 	if err != nil {
 		env.log("failed: %v", err)
 		return git.BisectSkip, nil
 	}
-	var bad, good int
-	for i, res := range results {
-		if res == nil {
-			good++
-			env.log("try #%v: OK", i)
-			continue
-		}
-		switch err := res.(type) {
-		case *instance.TestError:
-			what := "basic kernel testing"
-			if err.Boot {
-				what = "boot"
-			}
-			env.log("try #%v: %v failed: %v", i, what, err)
-			output := err.Output
-			if err.Report != nil {
-				output = err.Report.Output
-			}
-			env.saveDebugFile(current.Hash, i, output)
-		case *instance.CrashError:
-			bad++
-			env.log("try #%v: kernel crashed: %v", i, err)
-			output := err.Report.Report
-			if len(output) == 0 {
-				output = err.Report.Output
-			}
-			env.saveDebugFile(current.Hash, i, output)
-		default:
-			env.log("try #%v: failed: %v", i, err)
-		}
-	}
+	bad, good := env.processResults(current, results)
 	res := git.BisectSkip
 	if bad != 0 {
 		res = git.BisectBad
@@ -266,6 +236,52 @@ func (env *env) test() (git.BisectResult, error) {
 		res = git.BisectGood
 	}
 	return res, nil
+}
+
+func (env *env) processResults(current *git.Commit, results []error) (bad, good int) {
+	var verdicts []string
+	for i, res := range results {
+		if res == nil {
+			good++
+			verdicts = append(verdicts, "OK")
+			continue
+		}
+		switch err := res.(type) {
+		case *instance.TestError:
+			if err.Boot {
+				verdicts = append(verdicts, fmt.Sprintf("boot failed: %v", err))
+			} else {
+				verdicts = append(verdicts, fmt.Sprintf("basic kernel testing failed: %v", err))
+			}
+			output := err.Output
+			if err.Report != nil {
+				output = err.Report.Output
+			}
+			env.saveDebugFile(current.Hash, i, output)
+		case *instance.CrashError:
+			bad++
+			verdicts = append(verdicts, fmt.Sprintf("crashed: %v", err))
+			output := err.Report.Report
+			if len(output) == 0 {
+				output = err.Report.Output
+			}
+			env.saveDebugFile(current.Hash, i, output)
+		default:
+			verdicts = append(verdicts, fmt.Sprintf("failed: %v", err))
+		}
+	}
+	unique := make(map[string]bool)
+	for _, verdict := range verdicts {
+		unique[verdict] = true
+	}
+	if len(unique) == 1 {
+		env.log("all runs: %v", verdicts[0])
+	} else {
+		for i, verdict := range verdicts {
+			env.log("run #%v: %v", i, verdict)
+		}
+	}
+	return
 }
 
 // Note: linux-specific.
