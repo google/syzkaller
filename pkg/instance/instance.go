@@ -81,14 +81,14 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) error {
 	cfg := env.cfg
 	if err := kernel.Build(cfg.KernelSrc, compilerBin, kernelConfig); err != nil {
-		return fmt.Errorf("kernel build failed: %v", err)
+		return osutil.PrependContext("kernel build failed", err)
 	}
 	cfg.Vmlinux = filepath.Join(cfg.KernelSrc, "vmlinux")
 	cfg.Image = filepath.Join(cfg.Workdir, "syz-image")
 	cfg.SSHKey = filepath.Join(cfg.Workdir, "syz-key")
 	if err := kernel.CreateImage(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
 		cfg.KernelSrc, userspaceDir, cmdlineFile, sysctlFile, cfg.Image, cfg.SSHKey); err != nil {
-		return fmt.Errorf("image build failed: %v", err)
+		return osutil.PrependContext("image build failed", err)
 	}
 	return nil
 }

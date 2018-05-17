@@ -47,8 +47,10 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	}()
 	defer close(done)
 	if err := cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to run %v %+v: %v\n%v",
-			cmd.Path, cmd.Args, err, output.String())
+		return nil, &VerboseError{
+			Title:  fmt.Sprintf("failed to run %v %+v: %v", cmd.Path, cmd.Args, err),
+			Output: output.Bytes(),
+		}
 	}
 	return output.Bytes(), nil
 }
@@ -58,6 +60,25 @@ func Command(bin string, args ...string) *exec.Cmd {
 	cmd := exec.Command(bin, args...)
 	setPdeathsig(cmd)
 	return cmd
+}
+
+type VerboseError struct {
+	Title  string
+	Output []byte
+}
+
+func (err *VerboseError) Error() string {
+	return fmt.Sprintf("%v\n%s", err.Title, err.Output)
+}
+
+func PrependContext(ctx string, err error) error {
+	switch err1 := err.(type) {
+	case *VerboseError:
+		err1.Title = fmt.Sprintf("%v: %v", ctx, err1.Title)
+		return err1
+	default:
+		return fmt.Errorf("%v: %v", ctx, err)
+	}
 }
 
 // IsExist returns true if the file name exists.
