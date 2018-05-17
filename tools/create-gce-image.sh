@@ -8,14 +8,18 @@
 # Prerequisites:
 # - you need a user-space system, a basic Debian system can be created with:
 #   sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default stable debian
-# - you need qemu-nbd, grub and maybe something else:
-#   sudo apt-get install qemu-utils grub-efi
-# - you need nbd support in kernel
 # - you need kernel to use with image (e.g. arch/x86/boot/bzImage)
 #   note: kernel modules are not supported
+# - you need grub:
+#   sudo apt-get install grub-efi
 #
 # Usage:
 #   ./create-gce-image.sh /dir/with/user/space/system /path/to/bzImage
+#
+# SYZ_VM_TYPE env var controls type of target test machine. Supported values:
+# - qemu (default, uses /dev/loop)
+# - gce (uses /dev/nbd0)
+#   Needs nbd support in kernel and qemu-utils (qemu-nbd) installed.
 #
 # If SYZ_SYSCTL_FILE env var is set and points to a file,
 # then its contents will be appended to the image /etc/sysctl.conf.
@@ -43,11 +47,6 @@
 
 set -eux
 
-# If the script is aborted at an unfortunate point, it leaves the whole system broken.
-# E.g. we've seen that fdisk cannot update partition table until the next reboot.
-# If you really need to kill it, use a different signal. But better wait.
-trap "" SIGINT
-
 CLEANUP=""
 trap 'eval " $CLEANUP"' EXIT
 
@@ -61,21 +60,42 @@ if [ "$(basename $2)" != "bzImage" ]; then
 	exit 1
 fi
 
+SYZ_VM_TYPE="${SYZ_VM_TYPE:-qemu}"
+if [ "$SYZ_VM_TYPE" == "qemu" ]; then
+	:
+elif [ "$SYZ_VM_TYPE" == "gce" ]; then
+	:
+else
+	echo "SYZ_VM_TYPE has unsupported value $SYZ_VM_TYPE"
+	exit 1
+fi
+
 # Clean up after previous unsuccessful run.
 sudo umount disk.mnt || true
-sudo qemu-nbd -d /dev/nbd0 || true
+if [ "$SYZ_VM_TYPE" == "qemu" ]; then
+	:
+elif [ "$SYZ_VM_TYPE" == "gce" ]; then
+	sudo modprobe nbd
+	sudo qemu-nbd -d /dev/nbd0 || true
+fi
 rm -rf disk.mnt disk.raw || true
 
-sudo modprobe nbd
 fallocate -l 2G disk.raw
-sudo qemu-nbd -c /dev/nbd0 --format=raw disk.raw
-CLEANUP="sudo qemu-nbd -d /dev/nbd0; $CLEANUP"
-echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk /dev/nbd0
-until [ -e /dev/nbd0p1 ]; do sleep 1; done
-sudo -E mkfs.ext4 /dev/nbd0p1
+if [ "$SYZ_VM_TYPE" == "qemu" ]; then
+	DISKDEV="$(sudo losetup -f --show -P disk.raw)"
+	CLEANUP="sudo losetup -d $DISKDEV; $CLEANUP"
+elif [ "$SYZ_VM_TYPE" == "gce" ]; then
+	DISKDEV="/dev/nbd0"
+	sudo qemu-nbd -c $DISKDEV --format=raw disk.raw
+	CLEANUP="sudo qemu-nbd -d $DISKDEV; $CLEANUP"
+fi
+echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk $DISKDEV
+PARTDEV=$DISKDEV"p1"
+until [ -e $PARTDEV ]; do sleep 1; done
+sudo -E mkfs.ext4 $PARTDEV
 mkdir -p disk.mnt
 CLEANUP="rm -rf disk.mnt; $CLEANUP"
-sudo mount /dev/nbd0p1 disk.mnt
+sudo mount $PARTDEV disk.mnt
 CLEANUP="sudo umount disk.mnt; $CLEANUP"
 sudo cp -a $1/. disk.mnt/.
 sudo cp $2 disk.mnt/vmlinuz
@@ -138,4 +158,4 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 $CMDLINE
 }
 EOF
-sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
+sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $DISKDEV

@@ -288,8 +288,8 @@ func (mgr *Manager) build() error {
 
 	image := filepath.Join(tmpDir, "image")
 	key := filepath.Join(tmpDir, "key")
-	err = kernel.CreateImage(mgr.kernelDir, mgr.mgrcfg.Userspace,
-		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, image, key)
+	err = kernel.CreateImage(mgr.managercfg.TargetOS, mgr.managercfg.TargetVMArch, mgr.managercfg.Type,
+		mgr.kernelDir, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, image, key)
 	if err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}

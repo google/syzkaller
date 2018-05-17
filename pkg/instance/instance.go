@@ -79,14 +79,15 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 }
 
 func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) error {
-	if err := kernel.Build(env.cfg.KernelSrc, compilerBin, kernelConfig); err != nil {
+	cfg := env.cfg
+	if err := kernel.Build(cfg.KernelSrc, compilerBin, kernelConfig); err != nil {
 		return fmt.Errorf("kernel build failed: %v", err)
 	}
-	env.cfg.Vmlinux = filepath.Join(env.cfg.KernelSrc, "vmlinux")
-	env.cfg.Image = filepath.Join(env.cfg.Workdir, "syz-image")
-	env.cfg.SSHKey = filepath.Join(env.cfg.Workdir, "syz-key")
-	if err := kernel.CreateImage(env.cfg.KernelSrc, userspaceDir,
-		cmdlineFile, sysctlFile, env.cfg.Image, env.cfg.SSHKey); err != nil {
+	cfg.Vmlinux = filepath.Join(cfg.KernelSrc, "vmlinux")
+	cfg.Image = filepath.Join(cfg.Workdir, "syz-image")
+	cfg.SSHKey = filepath.Join(cfg.Workdir, "syz-key")
+	if err := kernel.CreateImage(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
+		cfg.KernelSrc, userspaceDir, cmdlineFile, sysctlFile, cfg.Image, cfg.SSHKey); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
 	return nil
