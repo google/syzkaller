@@ -185,10 +185,7 @@ type filename string[filename]
 
 ## Type Templates
 
-**Note: type templates are experimental, can have error handling bugs and are subject to change**
-
 Type templates can be declared as follows:
-
 ```
 type buffer[DIR] ptr[DIR, array[int8]]
 type fileoff[BASE] BASE
@@ -200,9 +197,16 @@ type nlattr[TYPE, PAYLOAD] {
 ```
 
 and later used as follows:
-
 ```
 syscall(a buffer[in], b fileoff[int64], c ptr[in, nlattr[FOO, int32]])
+```
+
+There is builtin type template `optional` defined as:
+```
+type optional[T] [
+	val	T
+	void	void
+] [varlen]
 ```
 
 ## Length

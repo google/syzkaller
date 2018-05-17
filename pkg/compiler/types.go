@@ -744,6 +744,11 @@ type boolptr intptr[0:1]
 
 type filename string[filename]
 filename = "", "."
+
+type optional[T] [
+	val	T
+	void	void
+] [varlen]
 `
 
 func init() {

@@ -102,6 +102,7 @@ struct_with_void1 {
 	f1	int8
 	f2	array[void5]
 	f3	int64
+	f4	optional[int8]
 }
 
 foo$void0(a ptr[in, void0])
