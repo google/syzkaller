@@ -28,9 +28,11 @@ var (
 	flagFaultNth   = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
 	flagEnableTun  = flag.Bool("tun", false, "set up TUN/TAP interface")
 	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
+	flagCgroups    = flag.Bool("cgroups", false, "enable cgroups support")
+	flagNetdev     = flag.Bool("netdev", false, "setup various net devices")
+	flagResetNet   = flag.Bool("resetnet", false, "reset net namespace after each test")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
 	flagWaitRepeat = flag.Bool("waitrepeat", false, "wait for each repeat attempt")
-	flagCgroups = flag.Bool("cgroups", false, "enable cgroups support")
 	flagDebug      = flag.Bool("debug", false, "generate debug printfs")
 )
 
@@ -56,21 +58,23 @@ func main() {
 		os.Exit(1)
 	}
 	opts := csource.Options{
-		Threaded:   *flagThreaded,
-		Collide:    *flagCollide,
-		Repeat:     *flagRepeat,
-		Procs:      *flagProcs,
-		Sandbox:    *flagSandbox,
-		Fault:      *flagFaultCall >= 0,
-		FaultCall:  *flagFaultCall,
-		FaultNth:   *flagFaultNth,
-		EnableTun:  *flagEnableTun,
-		UseTmpDir:  *flagUseTmpDir,
+		Threaded:      *flagThreaded,
+		Collide:       *flagCollide,
+		Repeat:        *flagRepeat,
+		Procs:         *flagProcs,
+		Sandbox:       *flagSandbox,
+		Fault:         *flagFaultCall >= 0,
+		FaultCall:     *flagFaultCall,
+		FaultNth:      *flagFaultNth,
+		EnableTun:     *flagEnableTun,
+		UseTmpDir:     *flagUseTmpDir,
 		EnableCgroups: *flagCgroups,
-		HandleSegv: *flagHandleSegv,
-		WaitRepeat: *flagWaitRepeat,
-		Debug:      *flagDebug,
-		Repro:      false,
+		EnableNetdev:  *flagNetdev,
+		ResetNet:      *flagResetNet,
+		HandleSegv:    *flagHandleSegv,
+		WaitRepeat:    *flagWaitRepeat,
+		Debug:         *flagDebug,
+		Repro:         false,
 	}
 	src, err := csource.Write(p, opts)
 	if err != nil {

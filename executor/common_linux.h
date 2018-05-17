@@ -58,7 +58,7 @@
 #include <sys/mman.h>
 #include <sys/mount.h>
 #endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_ENABLE_NETDEV)
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -261,7 +261,7 @@ static void use_temporary_dir()
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_ENABLE_NETDEV)
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
@@ -271,15 +271,6 @@ static void vsnprintf_check(char* str, size_t size, const char* format, va_list 
 		fail("tun: snprintf failed");
 	if ((size_t)rv >= size)
 		fail("tun: string '%s...' doesn't fit into buffer", str);
-}
-
-static void snprintf_check(char* str, size_t size, const char* format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vsnprintf_check(str, size, format, args);
-	va_end(args);
 }
 
 #define COMMAND_MAX_LEN 128
@@ -306,7 +297,9 @@ static void execute_command(bool panic, const char* format, ...)
 		debug("command '%s': %d\n", &command[0], rv);
 	}
 }
+#endif
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 static int tunfd = -1;
 static int tun_frags_enabled;
 
@@ -393,11 +386,23 @@ static void initialize_tun(void)
 			REMOTE_IPV6, REMOTE_MAC, TUN_IFACE);
 	execute_command(1, "ip link set dev %s up", TUN_IFACE);
 }
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_NETDEV)
 
 // Addresses are chosen to be in the same subnet as tun addresses.
 #define DEV_IPV4 "172.20.20.%d"
 #define DEV_IPV6 "fe80::%02hx"
 #define DEV_MAC "aa:aa:aa:aa:aa:%02hx"
+
+static void snprintf_check(char* str, size_t size, const char* format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf_check(str, size, format, args);
+	va_end(args);
+}
 
 // We test in a separate namespace, which does not have any network devices initially (even lo).
 // Create/up as many as we can.
@@ -415,10 +420,6 @@ static void initialize_netdevices(void)
 				  "veth0_to_team", "veth1_to_team"};
 	const char* devmasters[] = {"bridge", "bond", "team"};
 
-#ifdef SYZ_EXECUTOR
-	if (!flag_enable_tun)
-		return;
-#endif
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
 	// This adds connected veth0 and veth1 devices.
@@ -1202,10 +1203,10 @@ static int do_sandbox_none(void)
 	}
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	initialize_tun();
-	// TODO(dvyukov): this should be separated from tun and minimized by csource separately.
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_NETDEV)
 	initialize_netdevices();
 #endif
-
 	loop();
 	doexit(1);
 }
@@ -1231,7 +1232,8 @@ static int do_sandbox_setuid(void)
 		fail("unshare(CLONE_NEWNET)");
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	initialize_tun();
-	// TODO(dvyukov): this should be separated from tun and minimized by csource separately.
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_NETDEV)
 	initialize_netdevices();
 #endif
 
@@ -1279,7 +1281,8 @@ static int namespace_sandbox_proc(void* arg)
 	// However, IFF_NAPI_FRAGS will fail as we are not root already.
 	// There does not seem to be a call sequence that would satisfy all of that.
 	initialize_tun();
-	// TODO(dvyukov): this should be separated from tun and minimized by csource separately.
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_NETDEV)
 	initialize_netdevices();
 #endif
 

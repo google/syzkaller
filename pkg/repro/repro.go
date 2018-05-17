@@ -298,6 +298,8 @@ func (ctx *context) createDefaultOps() csource.Options {
 		Sandbox:       ctx.cfg.Sandbox,
 		EnableTun:     true,
 		EnableCgroups: true,
+		EnableNetdev:  true,
+		ResetNet:      true,
 		UseTmpDir:     true,
 		HandleSegv:    true,
 		WaitRepeat:    true,
@@ -795,6 +797,8 @@ var progSimplifies = []Simplify{
 		}
 		opts.Repeat = false
 		opts.WaitRepeat = false
+		opts.EnableCgroups = false
+		opts.ResetNet = false
 		opts.Procs = 1
 		return true
 	},
@@ -822,6 +826,8 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.Sandbox = ""
 		opts.EnableTun = false
 		opts.EnableCgroups = false
+		opts.EnableNetdev = false
+		opts.ResetNet = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -836,6 +842,20 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.EnableCgroups = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.EnableNetdev {
+			return false
+		}
+		opts.EnableNetdev = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.ResetNet {
+			return false
+		}
+		opts.ResetNet = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -857,6 +877,8 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.WaitRepeat = false
+		opts.EnableCgroups = false
+		opts.ResetNet = false
 		return true
 	},
 }...)

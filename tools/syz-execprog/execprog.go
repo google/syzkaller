@@ -226,8 +226,5 @@ func createConfig(entries []*prog.LogEntry) (*ipc.Config, *ipc.ExecOpts) {
 			handled[call.Meta.CallName] = true
 		}
 	}
-	if handled["syz_emit_ethernet"] || handled["syz_extract_tcp_res"] {
-		config.Flags |= ipc.FlagEnableTun
-	}
 	return config, execOpts
 }

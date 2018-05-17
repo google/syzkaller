@@ -27,6 +27,8 @@ type Options struct {
 	EnableTun     bool `json:"tun,omitempty"`
 	UseTmpDir     bool `json:"tmpdir,omitempty"`
 	EnableCgroups bool `json:"cgroups,omitempty"`
+	EnableNetdev  bool `json:"netdev,omitempty"`
+	ResetNet      bool `json:"resetnet,omitempty"`
 	HandleSegv    bool `json:"segv,omitempty"`
 	WaitRepeat    bool `json:"waitrepeat,omitempty"`
 	Debug         bool `json:"debug,omitempty"`
@@ -65,6 +67,18 @@ func (opts Options) Check() error {
 	}
 	if opts.EnableCgroups && !opts.UseTmpDir {
 		return errors.New("EnableCgroups without UseTmpDir")
+	}
+	if opts.EnableCgroups && !opts.WaitRepeat {
+		return errors.New("EnableCgroups without WaitRepeat")
+	}
+	if opts.EnableNetdev && opts.Sandbox == "" {
+		return errors.New("EnableNetdev without sandbox")
+	}
+	if opts.ResetNet && opts.Sandbox == "" {
+		return errors.New("ResetNet without sandbox")
+	}
+	if opts.ResetNet && !opts.WaitRepeat {
+		return errors.New("ResetNet without WaitRepeat")
 	}
 	return nil
 }
