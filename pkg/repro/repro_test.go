@@ -74,6 +74,8 @@ func TestSimplifies(t *testing.T) {
 		Sandbox:       "namespace",
 		EnableTun:     true,
 		EnableCgroups: true,
+		EnableNetdev:  true,
+		ResetNet:      true,
 		UseTmpDir:     true,
 		HandleSegv:    true,
 		WaitRepeat:    true,
