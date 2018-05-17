@@ -88,6 +88,7 @@ func Run(cfg *Config) (*git.Commit, error) {
 		what = "good"
 	}
 	env.log("first %v commit: %v %v", what, res.Hash, res.Title)
+	env.log("cc: %q", res.CC)
 	return res, nil
 }
 

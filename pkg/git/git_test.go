@@ -7,7 +7,72 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestParseCommit(t *testing.T) {
+	tests := map[string]*Commit{
+		`2075b16e32c26e4031b9fd3cbe26c54676a8fcb5
+rbtree: include rcu.h
+foobar@foobar.de
+Fri May 11 16:02:14 2018 -0700
+Since commit c1adf20052d8 ("Introduce rb_replace_node_rcu()")
+rbtree_augmented.h uses RCU related data structures but does not include
+the header file.  It works as long as it gets somehow included before
+that and fails otherwise.
+
+Link: http://lkml.kernel.org/r/20180504103159.19938-1-bigeasy@linutronix.de
+Signed-off-by: Foo Bad Baz <another@email.de>
+Reviewed-by: <yetanother@email.org>
+Cc: Unrelated Guy <somewhere@email.com>
+Acked-by: Subsystem reviewer <Subsystem@reviewer.com>
+Reported-and-tested-by: and@me.com
+Reported-and-Tested-by: Name-name <name@name.com>
+Tested-by: Must be correct <mustbe@correct.com>
+Signed-off-by: Linux Master <linux@linux-foundation.org>
+`: &Commit{
+			Hash:   "2075b16e32c26e4031b9fd3cbe26c54676a8fcb5",
+			Title:  "rbtree: include rcu.h",
+			Author: "foobar@foobar.de",
+			CC: []string{
+				"and@me.com",
+				"foobar@foobar.de",
+				"mustbe@correct.com",
+				"name@name.com",
+				"subsystem@reviewer.com",
+				"yetanother@email.org",
+			},
+			Date: time.Date(2018, 5, 11, 16, 02, 14, 0, time.FixedZone("", -7*60*60)),
+		},
+	}
+	for input, com := range tests {
+		res, err := parseCommit([]byte(input))
+		if err != nil && com != nil {
+			t.Fatalf("want %+v, got error: %v", com, err)
+		}
+		if err == nil && com == nil {
+			t.Fatalf("want error, got commit %+v", res)
+		}
+		if com == nil {
+			continue
+		}
+		if com.Hash != res.Hash {
+			t.Fatalf("want hash %q, got %q", com.Hash, res.Hash)
+		}
+		if com.Title != res.Title {
+			t.Fatalf("want title %q, got %q", com.Title, res.Title)
+		}
+		if com.Author != res.Author {
+			t.Fatalf("want author %q, got %q", com.Author, res.Author)
+		}
+		if !reflect.DeepEqual(com.CC, res.CC) {
+			t.Fatalf("want CC %q, got %q", com.CC, res.CC)
+		}
+		if !com.Date.Equal(res.Date) {
+			t.Fatalf("want date %v, got %v", com.Date, res.Date)
+		}
+	}
+}
 
 func TestCanonicalizeCommit(t *testing.T) {
 	tests := map[string]string{
