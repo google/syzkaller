@@ -167,6 +167,15 @@ func (env *env) commitRangeForBug() (*git.Commit, string, string, error) {
 	if err != nil {
 		return nil, "", "", err
 	}
+	for i, tag := range tags {
+		if tag == "v3.8" {
+			// v3.8 does not work with modern perl, and as we go further in history
+			// make stops to work, then binutils, glibc, etc. So we stop at v3.8.
+			// Up to that point we only need an ancient gcc.
+			tags = tags[:i]
+			break
+		}
+	}
 	if len(tags) == 0 {
 		return nil, "", "", fmt.Errorf("no release tags before this commit")
 	}
