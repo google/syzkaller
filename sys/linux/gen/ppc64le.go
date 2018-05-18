@@ -21661,7 +21661,7 @@ var syscalls_ppc64le = []*Syscall{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{0, 4, 1, 2, 8, 16777216, 33554432}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0, 3, 0}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0, 3, 0, 1048576}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
 	}},
@@ -21669,7 +21669,7 @@ var syscalls_ppc64le = []*Syscall{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{0, 4, 1, 2, 8, 16777216, 33554432}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0, 3, 0}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0, 3, 0, 1048576}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_binder", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "binder_ptr", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
@@ -22599,7 +22599,7 @@ var syscalls_ppc64le = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{0, 4, 1, 2, 8, 16777216, 33554432}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "pgoff", TypeSize: 8}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0, 3, 0}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0, 3, 0, 1048576}},
 	}},
 	{NR: 218, Name: "removexattr", CallName: "removexattr", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -28060,6 +28060,7 @@ var consts_ppc64le = []ConstValue{
 	{Name: "MAP_EXECUTABLE", Value: 4096},
 	{Name: "MAP_FILE"},
 	{Name: "MAP_FIXED", Value: 16},
+	{Name: "MAP_FIXED_NOREPLACE", Value: 1048576},
 	{Name: "MAP_GROWSDOWN", Value: 256},
 	{Name: "MAP_HUGETLB", Value: 262144},
 	{Name: "MAP_LOCKED", Value: 128},
@@ -30521,4 +30522,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_ppc64le = "eae94073f1ff3ad2bedabb5df416f14856b29e2c"
+const revision_ppc64le = "a2b48f4b460148bc487115d7c17f267ecbc9bd43"
