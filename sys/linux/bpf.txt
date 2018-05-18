@@ -76,17 +76,18 @@ bpf_map_get_next_arg {
 }
 
 bpf_prog {
-	type		flags[bpf_prog_type, int32]
-	ninsn		bytesize8[insns, int32]
-	insns		ptr64[in, bpf_instructions]
-	license		ptr64[in, string[bpf_licenses]]
-	loglev		int32
-	logsize		len[log, int32]
-	log		ptr64[out, array[int8]]
-	kern_version	flags[bpf_kern_version, int32]
-	flags		flags[bpf_prog_load_flags, int32]
-	prog_name	array[const[0, int8], BPF_OBJ_NAME_LEN]
-	prog_ifindex	ifindex[opt]
+	type			flags[bpf_prog_type, int32]
+	ninsn			bytesize8[insns, int32]
+	insns			ptr64[in, bpf_instructions]
+	license			ptr64[in, string[bpf_licenses]]
+	loglev			int32
+	logsize			len[log, int32]
+	log			ptr64[out, array[int8], opt]
+	kern_version		flags[bpf_kern_version, int32]
+	flags			flags[bpf_prog_load_flags, int32]
+	prog_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
+	prog_ifindex		ifindex[opt]
+	expected_attach_type	flags[bpf_attach_type, int32]
 }
 
 bpf_licenses = "GPL", "syzkaller"
@@ -290,7 +291,7 @@ bpf_test_prog_arg {
 	indata	ptr64[in, array[int8]]
 	outdata	ptr64[out, array[int8]]
 	repeat	int32
-	dur	int32
+	dur	const[0, int32]
 }
 
 bpf_get_prog_info_arg {

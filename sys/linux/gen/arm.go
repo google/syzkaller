@@ -823,12 +823,12 @@ var structDescs_arm = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "license", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "bpf_licenses", Values: []string{"GPL\x00", "syzkaller\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "loglev", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "logsize", TypeSize: 4}}, Buf: "log"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "log", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "log", TypeSize: 8, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_kern_version", FldName: "kern_version", TypeSize: 4}}, Vals: []uint64{265984, 266240, 266496}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_load_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "prog_name", TypeSize: 16}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "prog_ifindex", TypeSize: 4, IsOptional: true}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_attach_type", FldName: "expected_attach_type", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
 	}}},
 	{Key: StructKey{Name: "bpf_prog_info", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_prog_info", TypeSize: 80, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", TypeSize: 4, ArgDir: 1}}},
@@ -861,7 +861,7 @@ var structDescs_arm = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "indata", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "outdata", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "repeat", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dur", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "dur", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "brctl_arg", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "brctl_arg", TypeSize: 24, ArgDir: 2}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "brctl_arg_get", Dir: 2}, FldName: "get"},
@@ -32915,4 +32915,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "045a417f21159c680d182d73f1848c96745272df"
+const revision_arm = "a2234f4678446972b6ffd337131dcb942ccace66"
