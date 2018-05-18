@@ -179,7 +179,7 @@ upgrade:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
-	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR)
+	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR) $(FILES)
 bin/syz-extract:
 	$(GO) build $(GOFLAGS) -o $@ ./sys/syz-extract
 
@@ -300,7 +300,9 @@ install_prerequisites:
 	sudo apt-get update
 	sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev \
 		gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-powerpc64le-linux-gnu || true
-	sudo apt-get install -y -q g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf || true
+	sudo apt-get install -y -q g++-aarch64-linux-gnu || true
+	sudo apt-get install -y -q g++-powerpc64le-linux-gnu || true
+	sudo apt-get install -y -q g++-arm-linux-gnueabihf || true
 	go get -u gopkg.in/alecthomas/gometalinter.v2
 	gometalinter.v2 --install
 
