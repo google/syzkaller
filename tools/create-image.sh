@@ -25,7 +25,7 @@ echo 'debug.exception-trace = 0' | sudo tee -a $DIR/etc/sysctl.conf
 echo "net.core.bpf_jit_enable = 1" | sudo tee -a $DIR/etc/sysctl.conf
 echo "kernel.softlockup_all_cpu_backtrace = 1" | sudo tee -a $DIR/etc/sysctl.conf
 echo "kernel.kptr_restrict = 0" | sudo tee -a $DIR/etc/sysctl.conf
-echo "kernel.watchdog_thresh = 120" | sudo tee -a $DIR/etc/sysctl.conf
+echo "kernel.watchdog_thresh = 60" | sudo tee -a $DIR/etc/sysctl.conf
 echo "net.ipv4.ping_group_range = 0 65535" | sudo tee -a $DIR/etc/sysctl.conf
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee $DIR/etc/hosts
 echo "nameserver 8.8.8.8" | sudo tee -a $DIR/etc/resolve.conf
