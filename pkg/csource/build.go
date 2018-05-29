@@ -20,7 +20,10 @@ import (
 // lang can be "c" or "c++".
 func Build(target *prog.Target, lang, src string) (string, error) {
 	sysTarget := targets.List[target.OS][target.Arch]
-	compiler := sysTarget.CCompilerPrefix + "gcc"
+	compiler := os.Getenv("CC")
+	if compiler == "" {
+		compiler = sysTarget.CCompilerPrefix + "gcc"
+	}
 	if _, err := exec.LookPath(compiler); err != nil {
 		return "", ErrNoCompiler
 	}
