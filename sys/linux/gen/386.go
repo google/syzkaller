@@ -14566,18 +14566,18 @@ var structDescs_386 = []*KeyedStruct{
 	{Key: StructKey{Name: "v4l2_jpegcompression"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "v4l2_jpegcompression", TypeSize: 140}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "quality", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "APPn", TypeSize: 4}}, Kind: 2, RangeEnd: 15},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "APP_len", TypeSize: 4}}, Buf: "APPn"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "APP_len", TypeSize: 4}}, Kind: 2, RangeEnd: 60},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "APP_data", TypeSize: 60}, Kind: 1, RangeBegin: 60, RangeEnd: 60},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "COM_len", TypeSize: 4}}, Buf: "COM_data"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "COM_len", TypeSize: 4}}, Kind: 2, RangeEnd: 60},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "COM_data", TypeSize: 60}, Kind: 1, RangeBegin: 60, RangeEnd: 60},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "v4l2_jpeg_markers", FldName: "jpeg_markers", TypeSize: 4}}, Vals: []uint64{8, 16, 32, 64, 128}},
 	}}},
 	{Key: StructKey{Name: "v4l2_jpegcompression", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "v4l2_jpegcompression", TypeSize: 140, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "quality", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "APPn", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 15},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "APP_len", TypeSize: 4, ArgDir: 1}}, Buf: "APPn"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "APP_len", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 60},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "APP_data", TypeSize: 60, ArgDir: 1}, Kind: 1, RangeBegin: 60, RangeEnd: 60},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "COM_len", TypeSize: 4, ArgDir: 1}}, Buf: "COM_data"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "COM_len", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 60},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "COM_data", TypeSize: 60, ArgDir: 1}, Kind: 1, RangeBegin: 60, RangeEnd: 60},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "v4l2_jpeg_markers", FldName: "jpeg_markers", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{8, 16, 32, 64, 128}},
 	}}},
@@ -33638,4 +33638,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "11fb3a25eb4d8074b3f4e915beb4d22e5c85b8e1"
+const revision_386 = "f64c8804f0438140866cfa6e9b3fa0922cb028d5"

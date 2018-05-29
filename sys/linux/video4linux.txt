@@ -455,9 +455,9 @@ v4l2_crop {
 v4l2_jpegcompression {
 	quality		int32
 	APPn		int32[0:15]
-	APP_len		len[APPn, int32]
+	APP_len		int32[0:60]
 	APP_data	array[int8, 60]
-	COM_len		len[COM_data, int32]
+	COM_len		int32[0:60]
 	COM_data	array[int8, 60]
 	jpeg_markers	flags[v4l2_jpeg_markers, int32]
 }
