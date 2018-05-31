@@ -145,6 +145,17 @@ var allAlgs = map[int][]algDesc{
 		{"generic-gcm-aesni", nil},
 		{"rfc4106(gcm(aes))", nil},
 		{"rfc4106-gcm-aesni", nil},
+		{"morus640", nil},
+		{"morus640-sse2", nil},
+		{"morus1280", nil},
+		{"morus1280-sse2", nil},
+		{"morus1280-avx2", nil},
+		{"aegis128", nil},
+		{"aegis128-aesni", nil},
+		{"aegis128l", nil},
+		{"aegis128l-aesni", nil},
+		{"aegis256", nil},
+		{"aegis256-aesni", nil},
 	},
 	ALG_BLKCIPHER: []algDesc{
 		// templates:
