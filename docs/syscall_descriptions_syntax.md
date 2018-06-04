@@ -75,9 +75,9 @@ flagname = "\"" literal "\"" ["," "\"" literal "\""]*
 
 ## Ints
 
-You can use `int8`, `int16`, `int32`, `int64` and `int64` to denote an integer of the corresponding size.
+`int8`, `int16`, `int32` and `int64` denote an integer of the corresponding size. `intptr` denotes a pointer-sized integer, i.e. C `long` type.
 
-By appending `be` suffix (like `int16be`) integers become big-endian.
+By appending `be` suffix (e.g. `int16be`) integers become big-endian.
 
 It's possible to specify range of values for an integer in the format of `int32[0:100]`.
 
