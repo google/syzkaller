@@ -1007,11 +1007,11 @@ var linuxOopses = []*oops{
 		[]*regexp.Regexp{
 			compile("INFO: lockdep is turned off"),
 			compile("INFO: Stall ended before state dump start"),
-			compile("INFO: NMI handler .* took too long to run"),
+			compile("INFO: NMI handler"),
+			compile("(handler|interrupt).*took too long"),
 			compile("_INFO::"),                                       // Android can print this during boot.
 			compile("INFO: sys_.* is not present in /proc/kallsyms"), // pkg/host output in debug mode
 			compile("INFO: no syscalls can create resource"),         // pkg/host output in debug mode
-			compile("(handler|interrupt).*took too long"),
 		},
 	},
 	&oops{
