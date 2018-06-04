@@ -131,14 +131,13 @@ but rather length of a particular chosen option.
 
 ## Resources
 
-Custom resources are described as:
+Resources represent values that need to be passed from output of one syscall to input of another syscall. For example, `close` syscall requires an input value (fd) previously returned by `open` or `pipe` syscall. To achieve this, `fd` is declared as a resource. Resources are described as:
 
 ```
-resource identifier "[" underlying_type "]" [ ":" const ("," const)* ]
+"resource" identifier "[" underlying_type "]" [ ":" const ("," const)* ]
 ```
 
-`underlying_type` is either one of `int8`, `int16`, `int32`, `int64`, `intptr` or another resource.
-Resources can then be used as types. For example:
+`underlying_type` is either one of `int8`, `int16`, `int32`, `int64`, `intptr` or another resource (which models inheritance, for example, a socket is a subype of fd). The optional set of constants represent resource special values, for example, `0xffffffffffffffff` (-1) for "no fd", or `AT_FDCWD` for "the current dir". Special values are used once in a while as resource values. If no special values specified, special value of `0` is used. Resources can then be used as types, for example:
 
 ```
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD, 1000000
