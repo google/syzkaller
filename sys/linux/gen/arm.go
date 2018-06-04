@@ -906,6 +906,7 @@ var structDescs_arm = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "compress_force", TypeSize: 14}, Kind: 2, Values: []string{"compress-force"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "ssd", TypeSize: 3}, Kind: 2, Values: []string{"ssd"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "ssd_spread", TypeSize: 10}, Kind: 2, Values: []string{"ssd_spread"}, NoZ: true},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "nossd_spread", TypeSize: 12}, Kind: 2, Values: []string{"nossd_spread"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "nossd", TypeSize: 5}, Kind: 2, Values: []string{"nossd"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "acl", TypeSize: 3}, Kind: 2, Values: []string{"acl"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "noacl", TypeSize: 5}, Kind: 2, Values: []string{"noacl"}, NoZ: true},
@@ -15291,6 +15292,8 @@ var structDescs_arm = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "filestreams", TypeSize: 11}, Kind: 2, Values: []string{"filestreams"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "quota", TypeSize: 5}, Kind: 2, Values: []string{"quota"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "noquota", TypeSize: 7}, Kind: 2, Values: []string{"noquota"}, NoZ: true},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "lazytime", TypeSize: 8}, Kind: 2, Values: []string{"lazytime"}, NoZ: true},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "nolazytime", TypeSize: 10}, Kind: 2, Values: []string{"nolazytime"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "usrquota", TypeSize: 8}, Kind: 2, Values: []string{"usrquota"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "grpquota", TypeSize: 8}, Kind: 2, Values: []string{"grpquota"}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "prjquota", TypeSize: 8}, Kind: 2, Values: []string{"prjquota"}, NoZ: true},
@@ -33523,4 +33526,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "b79014bd05edc06999bb4b6c7ef39ac45440abab"
+const revision_arm = "b8c5273058572a80fa1677921b69b0b3191947a5"
