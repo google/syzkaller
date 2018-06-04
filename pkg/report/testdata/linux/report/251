@@ -1,0 +1,2 @@
+
+INFO: NMI handler (peperf: interrupt took too long (5143 > 5080), lowering kernel.perf_event_max_sample_rate to 38000
