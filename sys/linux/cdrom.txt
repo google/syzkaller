@@ -1,6 +1,18 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# For fuzzing with qemu you need to enable cdrom option and provide an iso image.
+# For example: in "vm" section of syzkaller configuration
+# "vm" : {
+#     ...
+#     "cmdline": " -cdrom /.../ubuntu-18.04-desktop-amd64.iso "
+# }
+# In the kernel CONFIG_CDROM should be enabled.
+#
+# For more effective fuzzing one might want to disable
+# CDROMEJECT && CDROMEJECT_SW.
+# "disable_syscalls" : [ "ioctl$CDROMEJECT*" ]
+
 include <linux/cdrom.h>
 include <uapi/linux/cdrom.h>
 
@@ -52,7 +64,7 @@ ioctl$CDROM_LOCKDOOR(fd fd_cdrom, cmd const[CDROM_LOCKDOOR], lock boolptr)
 ioctl$CDROM_DEBUG(fd fd_cdrom, cmd const[CDROM_DEBUG], debug boolptr)
 ioctl$CDROM_GET_CAPABILITY(fd fd_cdrom, cmd const[CDROM_GET_CAPABILITY])
 
-ioctl$CDROMAUDIOBUFSIZ(fd fd_cdrom, cmd const[CDROMAUDIOBUFSIZ], val intptr)
+ioctl$CDROMAUDIOBUFSIZ(fd fd_cdrom, cmd const[CDROMAUDIOBUFSIZ], val int32)
 
 ioctl$DVD_READ_STRUCT(fd fd_cdrom, cmd const[DVD_READ_STRUCT], arg ptr[inout, dvd_struct])
 ioctl$DVD_WRITE_STRUCT(fd fd_cdrom, cmd const[DVD_READ_STRUCT], arg ptr[in, dvd_struct])
@@ -68,9 +80,9 @@ cdrom_output_buffer {
 }
 
 cdrom_read {
-	cdread_lba	intptr
+	cdread_lba	int32
 	cdread_bufaddr	ptr[out, array[int8]]
-	cdread_buflen	len[cdread_bufaddr, intptr]
+	cdread_buflen	len[cdread_bufaddr, int32]
 }
 
 cdrom_msf {
@@ -115,7 +127,7 @@ cdrom_tocentry {
 
 cdrom_addr [
 	msf	cdrom_msf0
-	lba	intptr
+	lba	int32
 ]
 
 cdrom_msf0 {
@@ -127,7 +139,7 @@ cdrom_msf0 {
 cdrom_read_audio {
 	addr		cdrom_addr
 	addr_format	flags[cdrom_format, int8]
-	nframes		bytesize[buf, intptr[1:CD_FRAMES]]
+	nframes		bytesize[buf, int32[1:CD_FRAMES]]
 	buf		ptr[out, array[int8]]
 }
 
@@ -160,7 +172,7 @@ cdrom_mcn {
 }
 
 cdrom_blk {
-	from	intptr
+	from	int32
 	len	int16
 }
 
@@ -207,14 +219,14 @@ dvd_copyright {
 dvd_disckey {
 	type	const[DVD_STRUCT_DISCKEY, int8]
 
-	agid	intptr:2
+	agid	int32:2
 	value	array[int8, 2048]
 }
 
 dvd_bca {
 	type	const[DVD_STRUCT_BCA, int8]
 
-	len	len[value, intptr]
+	len	len[value, int32]
 	value	array[int8, 188]
 }
 
@@ -222,7 +234,7 @@ dvd_manufact {
 	type		const[DVD_STRUCT_MANUFACT, int8]
 
 	layer_num	int8[0:3]
-	len		len[value, intptr]
+	len		len[value, int32]
 	value		array[int8, 2048]
 }
 
@@ -245,12 +257,12 @@ type dvd_challenge array[int8, 10]
 
 dvd_lu_send_agid {
 	type	const[DVD_LU_SEND_AGID, int8]
-	agid	intptr:2
+	agid	int32:2
 }
 
 dvd_host_send_challenge {
 	type	const[DVD_HOST_SEND_CHALLENGE, int8]
-	agid	intptr:2
+	agid	int32:2
 
 	chal	dvd_challenge
 }
@@ -259,34 +271,34 @@ dvd_send_key_type = DVD_LU_SEND_KEY1, DVD_HOST_SEND_KEY2
 
 dvd_send_key {
 	type	flags[dvd_send_key_type, int8]
-	agid	intptr:2
+	agid	int32:2
 
 	key	dvd_key
 }
 
 dvd_lu_send_challenge {
 	type	const[DVD_LU_SEND_CHALLENGE, int8]
-	agid	intptr:2
+	agid	int32:2
 
 	chal	dvd_challenge
 }
 
 dvd_lu_send_title_key {
 	type		const[DVD_LU_SEND_TITLE_KEY, int8]
-	agid		intptr:2
+	agid		int32:2
 
 	title_key	dvd_key
-	lba		intptr
-	cpm		intptr:1
-	cp_sec		intptr:1
-	cgms		intptr:2
+	lba		int32
+	cpm		int32:1
+	cp_sec		int32:1
+	cgms		int32:2
 }
 
 dvd_lu_send_asf {
 	type	const[DVD_LU_SEND_ASF, int8]
-	agid	intptr:2
+	agid	int32:2
 
-	asf	intptr:1
+	asf	int32:1
 }
 
 dvd_host_send_rpcstate {
@@ -305,12 +317,12 @@ dvd_lu_send_rpcstate {
 cdrom_generic_command {
 	cmd		array[int8, CDROM_PACKET_SIZE]
 	buffer		ptr[inout, array[int8]]
-	buflen		len[buffer, intptr]
-	stat		intptr
+	buflen		len[buffer, int32]
+	stat		int32
 	sense		ptr[inout, request_sense]
 	data_direction	flags[cdrom_data_direction, int8]
-	quiet		intptr
-	timeout		intptr
+	quiet		int32
+	timeout		int32
 	reserved	ptr[out, array[intptr, 1]]
 }
 
