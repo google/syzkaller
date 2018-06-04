@@ -1007,14 +1007,14 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "cdrom_addr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cdrom_addr", TypeSize: 4}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "cdrom_msf0"}, FldName: "msf"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "lba", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lba", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "cdrom_addr", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cdrom_addr", TypeSize: 4, ArgDir: 2}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "cdrom_msf0", Dir: 2}, FldName: "msf"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "lba", TypeSize: 4, ArgDir: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lba", TypeSize: 4, ArgDir: 2}}},
 	}}},
 	{Key: StructKey{Name: "cdrom_blk"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cdrom_blk", TypeSize: 8}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "from", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "from", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "len", TypeSize: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 	}}},
@@ -1022,12 +1022,12 @@ var structDescs_arm = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "cmd", TypeSize: 12, ArgDir: 2}, Kind: 1, RangeBegin: 12, RangeEnd: 12},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "buflen", TypeSize: 4, ArgDir: 2}}, Buf: "buffer"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "stat", TypeSize: 4, ArgDir: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "stat", TypeSize: 4, ArgDir: 2}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sense", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "request_sense", Dir: 2}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "cdrom_data_direction", FldName: "data_direction", TypeSize: 1, ArgDir: 2}}, Vals: []uint64{0, 1, 2, 3}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "quiet", TypeSize: 4, ArgDir: 2}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "timeout", TypeSize: 4, ArgDir: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "quiet", TypeSize: 4, ArgDir: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4, ArgDir: 2}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "reserved", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 4, ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 4, ArgDir: 1}}}, Kind: 1, RangeBegin: 1, RangeEnd: 1}},
 	}}},
 	{Key: StructKey{Name: "cdrom_mcn", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cdrom_mcn", TypeSize: 14, ArgDir: 1}, Fields: []Type{
@@ -1633,19 +1633,19 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "dvd_disckey"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_disckey", TypeSize: 2056}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 2},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "agid", TypeSize: 4}, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "agid", TypeSize: 4}, BitfieldLen: 2}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "value", TypeSize: 2048}, Kind: 1, RangeBegin: 2048, RangeEnd: 2048},
 	}}},
 	{Key: StructKey{Name: "dvd_disckey", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_disckey", TypeSize: 2056, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1, ArgDir: 2}}, Val: 2},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "value", TypeSize: 2048, ArgDir: 2}, Kind: 1, RangeBegin: 2048, RangeEnd: 2048},
 	}}},
 	{Key: StructKey{Name: "dvd_host_send_challenge", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_host_send_challenge", TypeSize: 20, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1, ArgDir: 2}}, Val: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "chal", TypeSize: 10, ArgDir: 2}, Kind: 1, RangeBegin: 10, RangeEnd: 10},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 	}}},
@@ -1688,18 +1688,18 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "dvd_lu_send_agid", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_lu_send_agid", TypeSize: 8, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1, ArgDir: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
 	}}},
 	{Key: StructKey{Name: "dvd_lu_send_asf", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_lu_send_asf", TypeSize: 8, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1, ArgDir: 2}}, Val: 8},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2, BitfieldMdl: true}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "asf", TypeSize: 4, ArgDir: 2}, BitfieldOff: 2, BitfieldLen: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "asf", TypeSize: 4, ArgDir: 2}, BitfieldOff: 2, BitfieldLen: 1}},
 	}}},
 	{Key: StructKey{Name: "dvd_lu_send_challenge", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_lu_send_challenge", TypeSize: 20, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1, ArgDir: 2}}, Val: 3},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "chal", TypeSize: 10, ArgDir: 2}, Kind: 1, RangeBegin: 10, RangeEnd: 10},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 	}}},
@@ -1713,13 +1713,13 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "dvd_lu_send_title_key", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_lu_send_title_key", TypeSize: 24, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1, ArgDir: 2}}, Val: 7},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "title_key", TypeSize: 5, ArgDir: 2}, Kind: 1, RangeBegin: 5, RangeEnd: 5},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "lba", TypeSize: 4, ArgDir: 2}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "cpm", TypeSize: 4, ArgDir: 2}, BitfieldLen: 1, BitfieldMdl: true}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "cp_sec", TypeSize: 4, ArgDir: 2}, BitfieldOff: 1, BitfieldLen: 1, BitfieldMdl: true}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "cgms", TypeSize: 4, ArgDir: 2}, BitfieldOff: 2, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lba", TypeSize: 4, ArgDir: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cpm", TypeSize: 4, ArgDir: 2}, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cp_sec", TypeSize: 4, ArgDir: 2}, BitfieldOff: 1, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cgms", TypeSize: 4, ArgDir: 2}, BitfieldOff: 2, BitfieldLen: 2}},
 	}}},
 	{Key: StructKey{Name: "dvd_manufact"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_manufact", TypeSize: 2056}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 4},
@@ -1750,7 +1750,7 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "dvd_send_key", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dvd_send_key", TypeSize: 16, ArgDir: 2}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dvd_send_key_type", FldName: "type", TypeSize: 1, ArgDir: 2}}, Vals: []uint64{2, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "agid", TypeSize: 4, ArgDir: 2}, BitfieldLen: 2}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "key", TypeSize: 5, ArgDir: 2}, Kind: 1, RangeBegin: 5, RangeEnd: 5},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 	}}},
@@ -19581,7 +19581,7 @@ var syscalls_arm = []*Syscall{
 	{NR: 54, Name: "ioctl$CDROMAUDIOBUFSIZ", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_cdrom", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 21378},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "val", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "val", TypeSize: 4}}},
 	}},
 	{NR: 54, Name: "ioctl$CDROMCLOSETRAY", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_cdrom", FldName: "fd", TypeSize: 4}},
@@ -33523,4 +33523,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "3e7f1693d65a9c120f55ffe695d40e6dc50d83e9"
+const revision_arm = "b79014bd05edc06999bb4b6c7ef39ac45440abab"
