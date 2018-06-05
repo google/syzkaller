@@ -3,6 +3,7 @@
 Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs). Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [net: BUG still has locks held in unix_stream_splice_read](https://groups.google.com/d/msg/syzkaller/q_BUZHm-Nug/Y0o4RfDJBQAJ)
 * [general protection fault in sockfs_setattr](https://groups.google.com/d/msg/syzkaller/y4V_gr5sjsE/GRA81a6EAQAJ)
 * [RDMA/mlx5: Fix NULL dereference while accessing XRC_TGT QPslogin ](https://patchwork.kernel.org/patch/10274675/)
 * [KASAN: use-after-free Read in set_page_dirty_lock](https://groups.google.com/forum/#!topic/syzkaller/w-u4MXthFoI)
