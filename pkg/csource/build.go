@@ -19,8 +19,8 @@ import (
 // Build builds a C/C++ program from source src and returns name of the resulting binary.
 // lang can be "c" or "c++".
 func Build(target *prog.Target, lang, src string) (string, error) {
-	sysTarget := targets.List[target.OS][target.Arch]
-	compiler := sysTarget.CCompilerPrefix + "gcc"
+	sysTarget := targets.Get(target.OS, target.Arch)
+	compiler := sysTarget.CCompiler
 	if _, err := exec.LookPath(compiler); err != nil {
 		return "", ErrNoCompiler
 	}
@@ -38,11 +38,7 @@ func Build(target *prog.Target, lang, src string) (string, error) {
 		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
 		flags = append(flags, "-Wno-overflow")
 	}
-	out, err := osutil.Command(compiler, append(flags, "-static")...).CombinedOutput()
-	if err != nil {
-		// Some distributions don't have static libraries.
-		out, err = osutil.Command(compiler, flags...).CombinedOutput()
-	}
+	out, err := osutil.Command(compiler, flags...).CombinedOutput()
 	if err != nil {
 		os.Remove(bin)
 		data, _ := ioutil.ReadFile(src)

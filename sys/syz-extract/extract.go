@@ -104,7 +104,7 @@ func main() {
 			buildDir = *flagSourceDir
 		}
 
-		target := targets.List[osStr][archStr]
+		target := targets.Get(osStr, archStr)
 		if target == nil {
 			failf("unknown arch: %v", archStr)
 		}

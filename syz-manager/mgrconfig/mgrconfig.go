@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys" // most mgrconfig users want targets too
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -169,11 +170,8 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("config param syzkaller is empty")
 	}
 	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
+	exe := targets.Get(cfg.TargetOS, cfg.TargetArch).ExeExtension
 	targetBin := func(name, arch string) string {
-		exe := ""
-		if cfg.TargetOS == "windows" {
-			exe = ".exe"
-		}
 		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
 	}
 	cfg.SyzFuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
