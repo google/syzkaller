@@ -1,8 +1,7 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# There are 4 OS/arch pairs:
-#  - BUILDOS/BUILDARCH: the current machine's pair used for build.
+# There are 3 OS/arch pairs:
 #  - HOSTOS/HOSTARCH: pair where syz-manager will run.
 #  - TARGETOS/TARGETVMARCH: pair of the target OS under test.
 #  - TARGETOS/TARGETARCH: pair of the target test process.
@@ -21,72 +20,40 @@
 # (you don't need this unless you update system call descriptions):
 #    make extract TARGETOS=android SOURCEDIR=/path/to/android/checkout
 
-BUILDOS := $(shell go env GOOS)
-BUILDARCH := $(shell go env GOARCH)
-HOSTOS ?= $(BUILDOS)
-HOSTARCH ?= $(BUILDARCH)
-TARGETOS ?= $(HOSTOS)
-TARGETARCH ?= $(HOSTARCH)
-TARGETVMARCH ?= $(TARGETARCH)
+define newline
+
+
+endef
+ENV := $(subst \n,$(newline),$(shell \
+	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
+	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
+	go run tools/syz-env/env.go))
+$(info $(ENV))
+$(eval $(ENV))
+ifeq ("$(NCORES)", "")
+$(error syz-env failed)
+endif
+MAKEFLAGS += " -j$(NCORES) "
+export MAKEFLAGS
+
 GO := go
-EXE :=
-
-ifeq ("$(BUILDOS)", "linux")
-	NCORES ?= $(shell grep -c "vendor_id" /proc/cpuinfo)
-	MAKEFLAGS += " -j$(NCORES) "
-endif
-
-ifeq ("$(TARGETARCH)", "amd64")
-	CC = "x86_64-linux-gnu-gcc"
-else ifeq ("$(TARGETARCH)", "386")
-ifeq ("$(BUILDARCH)", "386")
-	CC = "i686-linux-gnu-gcc"
-else
-	CC = "x86_64-linux-gnu-gcc"
-endif
-	ADDCFLAGS = "-m32"
-else ifeq ("$(TARGETARCH)", "arm64")
-	CC = "aarch64-linux-gnu-gcc"
-else ifeq ("$(TARGETARCH)", "arm")
-	CC = "arm-linux-gnueabihf-gcc"
-	ADDCFLAGS = "-march=armv6t2"
-else ifeq ("$(TARGETARCH)", "ppc64le")
-	CC = "powerpc64le-linux-gnu-gcc"
-endif
-
 # By default, build all Go binaries as static. We don't need cgo and it is
 # known to cause problems at least on Android emulator.
 export CGO_ENABLED=0
 
 ifeq ("$(TARGETOS)", "fuchsia")
-	# SOURCEDIR should point to fuchsia checkout.
+	# SOURCEDIR should point to zircon checkout.
 	GO = $(SOURCEDIR)/buildtools/go
-	CC = $(SOURCEDIR)/buildtools/linux-x64/clang/bin/clang++
 	export CGO_ENABLED=1
-	NOSTATIC = 1
 	ifeq ("$(TARGETARCH)", "amd64")
-		ADDCFLAGS = --target=x86_64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-x64/sysroot
 		export GOROOT=$(SOURCEDIR)/out/debug-x64/goroot
 		# Required by the goroot.
 		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-x64
 	else ifeq ("$(TARGETARCH)", "arm64")
-		ADDCFLAGS = --target=aarch64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-arm64/sysroot
 		export GOROOT=$(SOURCEDIR)/out/debug-arm64/goroot
 		# Required by the goroot.
 		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-arm64
 	endif
-endif
-
-ifeq ("$(TARGETOS)", "akaros")
-	# SOURCEDIR should point to bootstrapped akaros checkout.
-	# There is no up-to-date Go for akaros, so building Go will fail.
-	CC = $(SOURCEDIR)/install/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++
-	# Most likely this is incorrect (why doesn't it know own sysroot?), but worked for me.
-	ADDCFLAGS = -I $(SOURCEDIR)/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/include/x86_64-ucb-akaros -I $(SOURCEDIR)/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/include -I $(SOURCEDIR)/tools/compilers/gcc-glibc/gcc-4.9.2/libstdc++-v3/libsupc++ -L $(SOURCEDIR)/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/src/.libs
-endif
-
-ifeq ("$(TARGETOS)", "windows")
-	EXE = .exe
 endif
 
 GITREV=$(shell git rev-parse HEAD)
@@ -94,11 +61,6 @@ ifeq ("$(shell git diff --shortstat)", "")
 	REV=$(GITREV)
 else
 	REV=$(GITREV)+
-endif
-
-NOSTATIC ?= 0
-ifeq ($(NOSTATIC), 0)
-	ADDCFLAGS += -static
 endif
 
 # Don't generate symbol table and DWARF debug info.

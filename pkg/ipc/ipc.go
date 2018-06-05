@@ -128,7 +128,7 @@ func DefaultConfig() (*Config, *ExecOpts, error) {
 		return nil, nil, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
 	}
 
-	sysTarget := targets.List[runtime.GOOS][runtime.GOARCH]
+	sysTarget := targets.Get(runtime.GOOS, runtime.GOARCH)
 	if sysTarget.ExecutorUsesShmem {
 		c.Flags |= FlagUseShmem
 	}

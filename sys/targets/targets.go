@@ -3,26 +3,35 @@
 
 package targets
 
+import (
+	"os"
+	"os/exec"
+	"runtime"
+	"strings"
+	"sync"
+)
+
 type Target struct {
-	os
-	OS                 string
-	Arch               string
-	PtrSize            uint64
-	PageSize           uint64
-	NumPages           uint64
-	DataOffset         uint64
-	CArch              []string
-	CFlags             []string
-	CrossCFlags        []string
-	CCompilerPrefix    string
-	KernelArch         string
-	KernelHeaderArch   string
-	KernelCrossCompile string
+	init sync.Once
+	osCommon
+	OS               string
+	Arch             string
+	PtrSize          uint64
+	PageSize         uint64
+	NumPages         uint64
+	DataOffset       uint64
+	CArch            []string
+	CFlags           []string
+	CrossCFlags      []string
+	CCompilerPrefix  string
+	CCompiler        string
+	KernelArch       string
+	KernelHeaderArch string
 	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
 	NeedSyscallDefine func(nr uint64) bool
 }
 
-type os struct {
+type osCommon struct {
 	// Does the OS use syscall numbers (e.g. Linux) or has interface based on functions (e.g. fuchsia).
 	SyscallNumbers bool
 	// E.g. "__NR_" or "SYS_".
@@ -32,8 +41,22 @@ type os struct {
 	ExecutorUsesShmem bool
 	// If ExecutorUsesForkServer, executor uses extended protocol with handshake.
 	ExecutorUsesForkServer bool
+	// Extension of executable files (notably, .exe for windows).
+	ExeExtension string
 }
 
+func Get(OS, arch string) *Target {
+	target := List[OS][arch]
+	if target == nil {
+		return nil
+	}
+	target.init.Do(func() {
+		checkStaticBuild(target)
+	})
+	return target
+}
+
+// nolint: lll
 var List = map[string]map[string]*Target{
 	"test": map[string]*Target{
 		"32": {
@@ -51,7 +74,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			CArch:            []string{"__x86_64__"},
 			CFlags:           []string{"-m64"},
-			CrossCFlags:      []string{"-m64"},
+			CrossCFlags:      []string{"-m64", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "x86_64",
 			KernelHeaderArch: "x86",
@@ -66,7 +89,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			CArch:            []string{"__i386__"},
 			CFlags:           []string{"-m32"},
-			CrossCFlags:      []string{"-m32"},
+			CrossCFlags:      []string{"-m32", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "i386",
 			KernelHeaderArch: "x86",
@@ -75,6 +98,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			CArch:            []string{"__aarch64__"},
+			CrossCFlags:      []string{"-static"},
 			CCompilerPrefix:  "aarch64-linux-gnu-",
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
@@ -84,7 +108,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			CArch:            []string{"__arm__"},
 			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-m32", "-D__ARM_EABI__"},
-			CrossCFlags:      []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6t2"},
+			CrossCFlags:      []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6t2", "-static"},
 			CCompilerPrefix:  "arm-linux-gnueabihf-",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
@@ -94,7 +118,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			CArch:            []string{"__ppc64__", "__PPC64__", "__powerpc64__"},
 			CFlags:           []string{"-D__powerpc64__"},
-			CrossCFlags:      []string{"-D__powerpc64__"},
+			CrossCFlags:      []string{"-D__powerpc64__", "-static"},
 			CCompilerPrefix:  "powerpc64le-linux-gnu-",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
@@ -102,18 +126,20 @@ var List = map[string]map[string]*Target{
 	},
 	"freebsd": map[string]*Target{
 		"amd64": {
-			PtrSize:  8,
-			PageSize: 4 << 10,
-			CArch:    []string{"__x86_64__"},
-			CFlags:   []string{"-m64"},
+			PtrSize:     8,
+			PageSize:    4 << 10,
+			CArch:       []string{"__x86_64__"},
+			CFlags:      []string{"-m64"},
+			CrossCFlags: []string{"-m64", "-static"},
 		},
 	},
 	"netbsd": map[string]*Target{
 		"amd64": {
-			PtrSize:  8,
-			PageSize: 4 << 10,
-			CArch:    []string{"__x86_64__"},
-			CFlags:   []string{"-m64"},
+			PtrSize:     8,
+			PageSize:    4 << 10,
+			CArch:       []string{"__x86_64__"},
+			CFlags:      []string{"-m64"},
+			CrossCFlags: []string{"-m64", "-static"},
 		},
 	},
 	"fuchsia": map[string]*Target{
@@ -122,12 +148,26 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			CArch:            []string{"__x86_64__"},
 			KernelHeaderArch: "x64",
+			CCompiler:        os.ExpandEnv("${SOURCEDIR}/buildtools/linux-x64/clang/bin/clang"),
+			CrossCFlags: []string{
+				"--target=x86_64-fuchsia",
+				"-lfdio",
+				"-lzircon",
+				"--sysroot", os.ExpandEnv("${SOURCEDIR}/out/build-zircon/build-x64/sysroot"),
+			},
 		},
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			CArch:            []string{"__aarch64__"},
 			KernelHeaderArch: "arm64",
+			CCompiler:        os.ExpandEnv("${SOURCEDIR}/buildtools/linux-x64/clang/bin/clang"),
+			CrossCFlags: []string{
+				"--target=aarch64-fuchsia",
+				"-lfdio",
+				"-lzircon",
+				"--sysroot", os.ExpandEnv("${SOURCEDIR}/out/build-zircon/build-arm64/sysroot"),
+			},
 		},
 	},
 	"windows": map[string]*Target{
@@ -144,11 +184,20 @@ var List = map[string]map[string]*Target{
 			PageSize:          4 << 10,
 			CArch:             []string{"__x86_64__"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
+			CCompiler:         os.ExpandEnv("${SOURCEDIR}/install/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
+			// Most likely this is incorrect (why doesn't it know own sysroot?), but worked for me.
+			CrossCFlags: []string{
+				"-static",
+				"-I", os.ExpandEnv("${SOURCEDIR}/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/include/x86_64-ucb-akaros"),
+				"-I", os.ExpandEnv("${SOURCEDIR}/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/include"),
+				"-I", os.ExpandEnv("${SOURCEDIR}/tools/compilers/gcc-glibc/gcc-4.9.2/libstdc++-v3/libsupc++"),
+				"-L", os.ExpandEnv("${SOURCEDIR}/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/src/.libs"),
+			},
 		},
 	},
 }
 
-var oses = map[string]os{
+var oses = map[string]osCommon{
 	"linux": {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "__NR_",
@@ -176,6 +225,7 @@ var oses = map[string]os{
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
+		ExeExtension:           ".exe",
 	},
 	"akaros": {
 		SyscallNumbers:         true,
@@ -188,16 +238,49 @@ var oses = map[string]os{
 func init() {
 	for OS, archs := range List {
 		for arch, target := range archs {
-			target.os = oses[OS]
-			target.OS = OS
-			target.Arch = arch
-			if target.NeedSyscallDefine == nil {
-				target.NeedSyscallDefine = needSyscallDefine
-			}
-			target.DataOffset = 512 << 20
-			target.NumPages = (16 << 20) / target.PageSize
+			initTarget(target, OS, arch)
 		}
 	}
+}
+
+func initTarget(target *Target, OS, arch string) {
+	target.osCommon = oses[OS]
+	target.OS = OS
+	target.Arch = arch
+	if target.NeedSyscallDefine == nil {
+		target.NeedSyscallDefine = needSyscallDefine
+	}
+	target.DataOffset = 512 << 20
+	target.NumPages = (16 << 20) / target.PageSize
+	if OS == runtime.GOOS && arch == runtime.GOARCH {
+		// Don't use cross-compiler for native compilation, there are cases when this does not work:
+		// https://github.com/google/syzkaller/pull/619
+		// https://github.com/google/syzkaller/issues/387
+		// https://github.com/google/syzkaller/commit/06db3cec94c54e1cf720cdd5db72761514569d56
+		target.CCompilerPrefix = ""
+	}
+	if target.CCompiler == "" {
+		target.CCompiler = target.CCompilerPrefix + "gcc"
+	}
+}
+
+func checkStaticBuild(target *Target) {
+	for i, flag := range target.CrossCFlags {
+		if flag == "-static" {
+			// Some distributions don't have static libraries.
+			if !supportsStatic(target) {
+				copy(target.CrossCFlags[i:], target.CrossCFlags[i+1:])
+				target.CrossCFlags = target.CrossCFlags[:len(target.CrossCFlags)-1]
+			}
+			break
+		}
+	}
+}
+
+func supportsStatic(target *Target) bool {
+	cmd := exec.Command(target.CCompiler, "-x", "c", "-", "-o", "/dev/null")
+	cmd.Stdin = strings.NewReader("int main(){}")
+	return cmd.Run() == nil
 }
 
 func needSyscallDefine(nr uint64) bool {

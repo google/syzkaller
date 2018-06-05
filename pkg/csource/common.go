@@ -113,7 +113,7 @@ func defineList(p *prog.Prog, opts Options) ([]string, error) {
 	for _, c := range p.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)
 	}
-	defines = append(defines, targets.List[p.Target.OS][p.Target.Arch].CArch...)
+	defines = append(defines, targets.Get(p.Target.OS, p.Target.Arch).CArch...)
 	return defines, nil
 }
 

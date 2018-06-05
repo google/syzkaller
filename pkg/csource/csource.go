@@ -22,7 +22,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		p:         p,
 		opts:      opts,
 		target:    p.Target,
-		sysTarget: targets.List[p.Target.OS][p.Target.Arch],
+		sysTarget: targets.Get(p.Target.OS, p.Target.Arch),
 		w:         new(bytes.Buffer),
 		calls:     make(map[string]uint64),
 	}
