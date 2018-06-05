@@ -676,7 +676,7 @@ v4l2_event_motion_det {
 
 v4l2_event_subscription {
 	type		flags[v4l2_event_type, int32]
-	id		len[type, int32]
+	id		int32
 	flags		flags[v4l2_event_subscription_flags, int32]
 	reserved	array[const[0, int32], 5]
 }
