@@ -14475,7 +14475,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "v4l2_event_subscription"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "v4l2_event_subscription", TypeSize: 32}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "v4l2_event_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 134217728, 134221824, 134221825, 134221826, 134221827, 134221828, 134221829, 134221830, 134221831, 134221832, 134221833, 134221834}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "id", TypeSize: 4}}, Buf: "type"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "id", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "v4l2_event_subscription_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 20}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 4}}}, Kind: 1, RangeBegin: 5, RangeEnd: 5},
 	}}},
@@ -33727,4 +33727,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "db3b56a840a32603a5eee9c20d97cf9d05293022"
+const revision_arm64 = "1e5f965fce82c3d2a90ab9addf0a6d68379e0e15"
