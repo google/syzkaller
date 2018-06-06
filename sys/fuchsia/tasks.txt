@@ -8,7 +8,9 @@ resource zx_task[zx_handle]
 
 zx_task_resume(task zx_task, options flags[task_resume_options])
 zx_task_bind_exception_port(task zx_task, eport zx_port, key proc[1000, 4], options flags[exception_port_options])
-zx_task_kill(handle zx_task)
+
+# This is disabled until we figure out how to prevent executor from killing fuzzer (#594).
+# zx_task_kill(handle zx_task)
 
 task_resume_options = ZX_RESUME_EXCEPTION, ZX_RESUME_TRY_NEXT
 exception_port_options = ZX_EXCEPTION_PORT_UNBIND_QUIETLY, ZX_EXCEPTION_PORT_DEBUGGER

@@ -2,11 +2,11 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "e7013a5597663fd453629ada2b2be037a661e70d"
+#define SYZ_REVISION "59c616fe9bad684c719408b4e8de7412bfe233eb"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 158;
+unsigned syscall_count = 157;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -133,7 +133,6 @@ call_t syscalls[] = {
     {"zx_system_get_physmem", 0, (syscall_t)zx_system_get_physmem},
     {"zx_system_get_version", 0, (syscall_t)zx_system_get_version},
     {"zx_task_bind_exception_port", 0, (syscall_t)zx_task_bind_exception_port},
-    {"zx_task_kill", 0, (syscall_t)zx_task_kill},
     {"zx_task_resume", 0, (syscall_t)zx_task_resume},
     {"zx_thread_create", 0, (syscall_t)zx_thread_create},
     {"zx_thread_exit", 0, (syscall_t)zx_thread_exit},
@@ -172,11 +171,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "c84351552d0bff950e1b08ddf86986d7ce6d0a82"
+#define SYZ_REVISION "815dd53cedad67cc59ee449f253b189bd1d01c94"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 158;
+unsigned syscall_count = 157;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -303,7 +302,6 @@ call_t syscalls[] = {
     {"zx_system_get_physmem", 0, (syscall_t)zx_system_get_physmem},
     {"zx_system_get_version", 0, (syscall_t)zx_system_get_version},
     {"zx_task_bind_exception_port", 0, (syscall_t)zx_task_bind_exception_port},
-    {"zx_task_kill", 0, (syscall_t)zx_task_kill},
     {"zx_task_resume", 0, (syscall_t)zx_task_resume},
     {"zx_thread_create", 0, (syscall_t)zx_thread_create},
     {"zx_thread_exit", 0, (syscall_t)zx_thread_exit},
