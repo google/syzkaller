@@ -300,15 +300,11 @@ func (inst *inst) testRepro() error {
 	if len(inst.reproC) == 0 {
 		return nil
 	}
-	cFile := filepath.Join(cfg.Workdir, "repro.c")
-	if err := osutil.WriteFile(cFile, inst.reproC); err != nil {
-		return fmt.Errorf("failed to write temp file: %v", err)
-	}
 	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
 	if err != nil {
 		return err
 	}
-	bin, err := csource.Build(target, "c", cFile)
+	bin, err := csource.Build(target, inst.reproC)
 	if err != nil {
 		return err
 	}

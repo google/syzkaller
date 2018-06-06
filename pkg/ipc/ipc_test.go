@@ -20,14 +20,10 @@ import (
 const timeout = 10 * time.Second
 
 func buildExecutor(t *testing.T, target *prog.Target) string {
-	src := fmt.Sprintf("../../executor/executor_%v.cc", target.OS)
-	return buildProgram(t, target, filepath.FromSlash(src))
-}
-
-func buildProgram(t *testing.T, target *prog.Target, src string) string {
-	bin, err := csource.Build(target, "c++", src)
+	src := filepath.FromSlash(fmt.Sprintf("../../executor/executor_%v.cc", target.OS))
+	bin, err := csource.BuildFile(target, src)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	return bin
 }
