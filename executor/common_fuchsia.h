@@ -66,7 +66,7 @@ static void* ex_handler(void* arg)
 	zx_handle_t port = (zx_handle_t)(long)arg;
 	for (int i = 0; i < 10000; i++) {
 		zx_port_packet_t packet = {};
-		zx_status_t status = zx_port_wait(port, ZX_TIME_INFINITE, &packet, 0);
+		zx_status_t status = zx_port_wait(port, ZX_TIME_INFINITE, &packet);
 		if (status != ZX_OK) {
 			debug("zx_port_wait failed: %d\n", status);
 			continue;
