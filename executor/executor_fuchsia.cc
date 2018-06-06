@@ -35,8 +35,10 @@ long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, lon
 {
 	long res = ZX_ERR_INVALID_ARGS;
 	NONFAILING(res = c->call(a0, a1, a2, a3, a4, a5, a6, a7, a8));
+	if (res == ZX_OK)
+		return 0;
 	errno = res;
-	return res;
+	return -1;
 }
 
 void cover_open()
