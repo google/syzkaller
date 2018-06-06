@@ -42,7 +42,7 @@ GO := go
 export CGO_ENABLED=0
 
 ifeq ("$(TARGETOS)", "fuchsia")
-	# SOURCEDIR should point to zircon checkout.
+	# SOURCEDIR should point to fuchsia checkout.
 	GO = $(SOURCEDIR)/buildtools/go
 	export CGO_ENABLED=1
 	ifeq ("$(TARGETARCH)", "amd64")
