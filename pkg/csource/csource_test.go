@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -110,13 +109,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Logf("program:\n%s\n", p.Serialize())
 		t.Fatalf("%v", err)
 	}
-	srcf, err := osutil.WriteTempFile(src)
-	if err != nil {
-		t.Logf("program:\n%s\n", p.Serialize())
-		t.Fatalf("%v", err)
-	}
-	defer os.Remove(srcf)
-	bin, err := Build(p.Target, "c", srcf)
+	bin, err := Build(p.Target, src)
 	if err == ErrNoCompiler {
 		t.Skip(err)
 	}

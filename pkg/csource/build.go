@@ -16,9 +16,17 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// Build builds a C/C++ program from source src and returns name of the resulting binary.
-// lang can be "c" or "c++".
-func Build(target *prog.Target, lang, src string) (string, error) {
+// Build builds a C program from source src and returns name of the resulting binary.
+func Build(target *prog.Target, src []byte) (string, error) {
+	return build(target, src, "")
+}
+
+// BuildFile builds a C/C++ program from file src and returns name of the resulting binary.
+func BuildFile(target *prog.Target, src string) (string, error) {
+	return build(target, nil, src)
+}
+
+func build(target *prog.Target, src []byte, file string) (string, error) {
 	sysTarget := targets.Get(target.OS, target.Arch)
 	compiler := sysTarget.CCompiler
 	if _, err := exec.LookPath(compiler); err != nil {
@@ -30,20 +38,29 @@ func Build(target *prog.Target, lang, src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	flags := []string{
-		"-x", lang, "-Wall", "-Werror", "-O1", "-g", "-o", bin, src, "-pthread",
+	flags := []string{"-Wall", "-Werror", "-O1", "-g", "-o", bin, "-pthread"}
+	if file == "" {
+		flags = append(flags, "-x", "c", "-")
+	} else {
+		flags = append(flags, file)
 	}
 	flags = append(flags, sysTarget.CrossCFlags...)
 	if sysTarget.PtrSize == 4 {
 		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
 		flags = append(flags, "-Wno-overflow")
 	}
-	out, err := osutil.Command(compiler, flags...).CombinedOutput()
+	cmd := osutil.Command(compiler, flags...)
+	if file == "" {
+		cmd.Stdin = bytes.NewReader(src)
+	}
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		os.Remove(bin)
-		data, _ := ioutil.ReadFile(src)
+		if file != "" {
+			src, _ = ioutil.ReadFile(file)
+		}
 		return "", fmt.Errorf("failed to build program:\n%s\n%s\ncompiler invocation: %v %v",
-			data, out, compiler, flags)
+			src, out, compiler, flags)
 	}
 	return bin, nil
 }
