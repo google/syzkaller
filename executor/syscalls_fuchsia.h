@@ -2,11 +2,11 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "747de15ad198405e62ce2ef83650f88ad9f3343d"
+#define SYZ_REVISION "e7013a5597663fd453629ada2b2be037a661e70d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 159;
+unsigned syscall_count = 158;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -162,7 +162,6 @@ call_t syscalls[] = {
     {"zx_vmo_op_range$ZX_VMO_OP_CACHE_SYNC", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_op_range$ZX_VMO_OP_COMMIT", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_op_range$ZX_VMO_OP_DECOMMIT", 0, (syscall_t)zx_vmo_op_range},
-    {"zx_vmo_op_range$ZX_VMO_OP_LOOKUP", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_read", 0, (syscall_t)zx_vmo_read},
     {"zx_vmo_set_cache_policy", 0, (syscall_t)zx_vmo_set_cache_policy},
     {"zx_vmo_set_size", 0, (syscall_t)zx_vmo_set_size},
@@ -173,11 +172,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "d346095f00a7bf5d98fe5c2a9ac934220eb4b0d5"
+#define SYZ_REVISION "c84351552d0bff950e1b08ddf86986d7ce6d0a82"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 159;
+unsigned syscall_count = 158;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -333,7 +332,6 @@ call_t syscalls[] = {
     {"zx_vmo_op_range$ZX_VMO_OP_CACHE_SYNC", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_op_range$ZX_VMO_OP_COMMIT", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_op_range$ZX_VMO_OP_DECOMMIT", 0, (syscall_t)zx_vmo_op_range},
-    {"zx_vmo_op_range$ZX_VMO_OP_LOOKUP", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_read", 0, (syscall_t)zx_vmo_read},
     {"zx_vmo_set_cache_policy", 0, (syscall_t)zx_vmo_set_cache_policy},
     {"zx_vmo_set_size", 0, (syscall_t)zx_vmo_set_size},

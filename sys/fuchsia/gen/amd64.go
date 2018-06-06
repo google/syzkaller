@@ -1031,14 +1031,6 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "data", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "buffer_size", TypeSize: 8}}},
 	}},
-	{Name: "zx_vmo_op_range$ZX_VMO_OP_LOOKUP", CallName: "zx_vmo_op_range", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "op", TypeSize: 8}}, Val: 5},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "offset", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "size", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "buffer_size", TypeSize: 8}}, Buf: "data"},
-	}},
 	{Name: "zx_vmo_read", CallName: "zx_vmo_read", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "handle", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
@@ -1199,7 +1191,6 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_VMO_OP_CACHE_SYNC", Value: 6},
 	{Name: "ZX_VMO_OP_COMMIT", Value: 1},
 	{Name: "ZX_VMO_OP_DECOMMIT", Value: 2},
-	{Name: "ZX_VMO_OP_LOOKUP", Value: 5},
 	{Name: "ZX_VM_FLAG_CAN_MAP_EXECUTE", Value: 512},
 	{Name: "ZX_VM_FLAG_CAN_MAP_READ", Value: 128},
 	{Name: "ZX_VM_FLAG_CAN_MAP_SPECIFIC", Value: 64},
@@ -1215,4 +1206,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_amd64 = "747de15ad198405e62ce2ef83650f88ad9f3343d"
+const revision_amd64 = "e7013a5597663fd453629ada2b2be037a661e70d"

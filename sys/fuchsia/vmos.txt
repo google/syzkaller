@@ -17,7 +17,6 @@ zx_vmo_op_range$ZX_VMO_OP_CACHE_SYNC(handle zx_vmo, op const[ZX_VMO_OP_CACHE_SYN
 zx_vmo_op_range$ZX_VMO_OP_CACHE_INVALIDATE(handle zx_vmo, op const[ZX_VMO_OP_CACHE_INVALIDATE], offset int64, size int64, data const[0], buffer_size const[0])
 zx_vmo_op_range$ZX_VMO_OP_CACHE_CLEAN(handle zx_vmo, op const[ZX_VMO_OP_CACHE_CLEAN], offset int64, size int64, data const[0], buffer_size const[0])
 zx_vmo_op_range$ZX_VMO_OP_CACHE_CLEAN_INVALIDATE(handle zx_vmo, op const[ZX_VMO_OP_CACHE_CLEAN_INVALIDATE], offset int64, size int64, data const[0], buffer_size const[0])
-zx_vmo_op_range$ZX_VMO_OP_LOOKUP(handle zx_vmo, op const[ZX_VMO_OP_LOOKUP], offset int64, size int64, data ptr[out, array[int8]], buffer_size len[data])
 
 # Not public:
 zx_vmo_set_cache_policy(handle zx_vmo, cache_policy flags[vmo_cache_policy])
