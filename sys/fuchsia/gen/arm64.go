@@ -867,9 +867,6 @@ var syscalls_arm64 = []*Syscall{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "key", TypeSize: 8}}, ValuesStart: 1000, ValuesPerProc: 4},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "exception_port_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{2, 1}},
 	}},
-	{Name: "zx_task_kill", CallName: "zx_task_kill", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_task", FldName: "handle", TypeSize: 4}},
-	}},
 	{Name: "zx_task_resume", CallName: "zx_task_resume", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_task", FldName: "task", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "task_resume_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1, 2}},
@@ -1206,4 +1203,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_arm64 = "c84351552d0bff950e1b08ddf86986d7ce6d0a82"
+const revision_arm64 = "815dd53cedad67cc59ee449f253b189bd1d01c94"
