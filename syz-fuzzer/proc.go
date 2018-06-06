@@ -295,8 +295,11 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 	// It must not be intermixed.
 	switch proc.fuzzer.outputType {
 	case OutputStdout:
+		now := time.Now()
 		proc.fuzzer.logMu.Lock()
-		log.Logf(0, "executing program %v%v:\n%s\n", proc.pid, strOpts, data)
+		fmt.Printf("%02v:%02v:%02v executing program %v%v:\n%s\n",
+			now.Hour(), now.Minute(), now.Second(),
+			proc.pid, strOpts, data)
 		proc.fuzzer.logMu.Unlock()
 	case OutputDmesg:
 		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
