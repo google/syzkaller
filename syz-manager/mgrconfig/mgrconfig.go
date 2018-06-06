@@ -140,7 +140,7 @@ func defaultValues() *Config {
 		SSHUser:   "root",
 		Cover:     true,
 		Reproduce: true,
-		Sandbox:   "setuid",
+		Sandbox:   "none",
 		RPC:       ":0",
 		Procs:     1,
 	}
