@@ -71,7 +71,7 @@ var ctors = map[string]fn{
 	"linux":   ctorLinux,
 	"freebsd": ctorFreebsd,
 	"netbsd":  ctorNetbsd,
-	"fuchsia": ctorStub,
+	"fuchsia": ctorFuchsia,
 	"windows": ctorStub,
 }
 
