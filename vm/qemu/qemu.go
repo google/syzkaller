@@ -42,60 +42,108 @@ type Config struct {
 }
 
 type Pool struct {
-	env *vmimpl.Env
-	cfg *Config
+	env        *vmimpl.Env
+	cfg        *Config
+	archConfig *archConfig
 }
 
 type instance struct {
-	cfg     *Config
-	image   string
-	debug   bool
-	workdir string
-	sshkey  string
-	sshuser string
-	port    int
-	rpipe   io.ReadCloser
-	wpipe   io.WriteCloser
-	qemu    *exec.Cmd
-	waiterC chan error
-	merger  *vmimpl.OutputMerger
+	cfg        *Config
+	archConfig *archConfig
+	image      string
+	debug      bool
+	workdir    string
+	sshkey     string
+	sshuser    string
+	port       int
+	rpipe      io.ReadCloser
+	wpipe      io.WriteCloser
+	qemu       *exec.Cmd
+	waiterC    chan error
+	merger     *vmimpl.OutputMerger
 }
 
 type archConfig struct {
-	Qemu     string
-	QemuArgs string
+	Qemu      string
+	QemuArgs  string
+	TargetDir string
+	CmdLine   []string
 }
 
-var archConfigs = map[string]archConfig{
+var archConfigs = map[string]*archConfig{
 	"linux/amd64": {
-		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm",
+		Qemu:      "qemu-system-x86_64",
+		QemuArgs:  "-enable-kvm",
+		TargetDir: "/",
+		CmdLine: append(linuxCmdline,
+			"kvm-intel.nested=1",
+			"kvm-intel.unrestricted_guest=1",
+			"kvm-intel.vmm_exclusive=1",
+			"kvm-intel.fasteoi=1",
+			"kvm-intel.ept=1",
+			"kvm-intel.flexpriority=1",
+			"kvm-intel.vpid=1",
+			"kvm-intel.emulate_invalid_guest_state=1",
+			"kvm-intel.eptad=1",
+			"kvm-intel.enable_shadow_vmcs=1",
+			"kvm-intel.pml=1",
+			"kvm-intel.enable_apicv=1",
+		),
 	},
 	"linux/386": {
-		Qemu: "qemu-system-i386",
+		Qemu:      "qemu-system-i386",
+		TargetDir: "/",
+		CmdLine:   linuxCmdline,
 	},
 	"linux/arm64": {
-		Qemu:     "qemu-system-aarch64",
-		QemuArgs: "-machine virt -cpu cortex-a57",
+		Qemu:      "qemu-system-aarch64",
+		QemuArgs:  "-machine virt -cpu cortex-a57",
+		TargetDir: "/",
+		CmdLine:   linuxCmdline,
 	},
 	"linux/arm": {
-		Qemu: "qemu-system-arm",
+		Qemu:      "qemu-system-arm",
+		TargetDir: "/",
+		CmdLine:   linuxCmdline,
 	},
 	"linux/ppc64le": {
-		Qemu: "qemu-system-ppc64",
+		Qemu:      "qemu-system-ppc64",
+		TargetDir: "/",
+		CmdLine:   linuxCmdline,
 	},
 	"freebsd/amd64": {
-		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm",
+		Qemu:      "qemu-system-x86_64",
+		TargetDir: "/",
+		QemuArgs:  "-enable-kvm",
 	},
 	"netbsd/amd64": {
-		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm",
+		Qemu:      "qemu-system-x86_64",
+		TargetDir: "/",
+		QemuArgs:  "-enable-kvm",
 	},
 	"fuchsia/amd64": {
-		Qemu:     "qemu-system-x86_64",
-		QemuArgs: "-enable-kvm",
+		Qemu:      "qemu-system-x86_64",
+		QemuArgs:  "-enable-kvm -machine q35 -cpu host",
+		TargetDir: "/tmp",
+		CmdLine: []string{
+			"kernel.serial=legacy",
+			"kernel.halt-on-panic=true",
+		},
 	},
+}
+
+var linuxCmdline = []string{
+	"console=ttyS0",
+	"earlyprintk=serial",
+	"oops=panic",
+	"nmi_watchdog=panic",
+	"panic_on_warn=1",
+	"panic=86400",
+	"ftrace_dump_on_oops=orig_cpu",
+	"rodata=n",
+	"vsyscall=native",
+	"net.ifnames=0",
+	"biosdevname=0",
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -139,8 +187,9 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg.Kernel = osutil.Abs(cfg.Kernel)
 	cfg.Initrd = osutil.Abs(cfg.Initrd)
 	pool := &Pool{
-		cfg: cfg,
-		env: env,
+		cfg:        cfg,
+		env:        env,
+		archConfig: archConfig,
 	}
 	return pool, nil
 }
@@ -180,12 +229,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
-		cfg:     pool.cfg,
-		image:   pool.env.Image,
-		debug:   pool.env.Debug,
-		workdir: workdir,
-		sshkey:  sshkey,
-		sshuser: sshuser,
+		cfg:        pool.cfg,
+		archConfig: pool.archConfig,
+		image:      pool.env.Image,
+		debug:      pool.env.Debug,
+		workdir:    workdir,
+		sshkey:     sshkey,
+		sshuser:    sshuser,
 	}
 	closeInst := inst
 	defer func() {
@@ -262,31 +312,7 @@ func (inst *instance) Boot() error {
 		)
 	}
 	if inst.cfg.Kernel != "" {
-		cmdline := []string{
-			"console=ttyS0",
-			"vsyscall=native",
-			"rodata=n",
-			"oops=panic",
-			"nmi_watchdog=panic",
-			"panic_on_warn=1",
-			"panic=86400",
-			"ftrace_dump_on_oops=orig_cpu",
-			"earlyprintk=serial",
-			"net.ifnames=0",
-			"biosdevname=0",
-			"kvm-intel.nested=1",
-			"kvm-intel.unrestricted_guest=1",
-			"kvm-intel.vmm_exclusive=1",
-			"kvm-intel.fasteoi=1",
-			"kvm-intel.ept=1",
-			"kvm-intel.flexpriority=1",
-			"kvm-intel.vpid=1",
-			"kvm-intel.emulate_invalid_guest_state=1",
-			"kvm-intel.eptad=1",
-			"kvm-intel.enable_shadow_vmcs=1",
-			"kvm-intel.pml=1",
-			"kvm-intel.enable_apicv=1",
-		}
+		cmdline := append([]string{}, inst.archConfig.CmdLine...)
 		if inst.image == "9p" {
 			cmdline = append(cmdline,
 				"root=/dev/root",
@@ -295,9 +321,7 @@ func (inst *instance) Boot() error {
 				"init="+filepath.Join(inst.workdir, "init.sh"),
 			)
 		} else {
-			cmdline = append(cmdline,
-				"root=/dev/sda",
-			)
+			cmdline = append(cmdline, "root=/dev/sda")
 		}
 		cmdline = append(cmdline, inst.cfg.Cmdline)
 		args = append(args,
@@ -387,12 +411,15 @@ func (inst *instance) Forward(port int) (string, error) {
 	return fmt.Sprintf("%v:%v", hostAddr, port), nil
 }
 
-func (inst *instance) Copy(hostSrc string) (string, error) {
-	basePath := "/"
+func (inst *instance) targetDir() string {
 	if inst.image == "9p" {
-		basePath = "/tmp"
+		return "/tmp"
 	}
-	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
+	return inst.archConfig.TargetDir
+}
+
+func (inst *instance) Copy(hostSrc string) (string, error) {
+	vmDst := filepath.Join(inst.targetDir(), filepath.Base(hostSrc))
 	args := append(inst.sshArgs("-P"), hostSrc, inst.sshuser+"@localhost:"+vmDst)
 	cmd := osutil.Command("scp", args...)
 	if inst.debug {
@@ -427,7 +454,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	args := append(inst.sshArgs("-p"), inst.sshuser+"@localhost", command)
+	args := append(inst.sshArgs("-p"), inst.sshuser+"@localhost", "cd "+inst.targetDir()+" && "+command)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
 	}
