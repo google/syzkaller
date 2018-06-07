@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "6cda41f0f4f262a9c712b30c0ee8f23d58a79977"
+#define SYZ_REVISION "300bf5ff303811c4e4b2ec0232ab52e0a1b0780c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1938;
+unsigned syscall_count = 1949;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -48,6 +48,7 @@ call_t syscalls[] = {
     {"bind$unix", 361},
     {"bind$vsock_dgram", 361},
     {"bind$vsock_stream", 361},
+    {"bind$xdp", 361},
     {"bpf$BPF_GET_MAP_INFO", 357},
     {"bpf$BPF_GET_PROG_INFO", 357},
     {"bpf$BPF_MAP_GET_FD_BY_ID", 357},
@@ -229,6 +230,8 @@ call_t syscalls[] = {
     {"getsockopt$SO_BINDTODEVICE", 365},
     {"getsockopt$SO_COOKIE", 365},
     {"getsockopt$SO_TIMESTAMPING", 365},
+    {"getsockopt$XDP_MMAP_OFFSETS", 365},
+    {"getsockopt$XDP_STATISTICS", 365},
     {"getsockopt$ax25_buf", 365},
     {"getsockopt$ax25_int", 365},
     {"getsockopt$bt_BT_CHANNEL_POLICY", 365},
@@ -1229,6 +1232,7 @@ call_t syscalls[] = {
     {"mlockall", 152},
     {"mmap", 192},
     {"mmap$binder", 192},
+    {"mmap$xdp", 192},
     {"modify_ldt$read", 123},
     {"modify_ldt$read_default", 123},
     {"modify_ldt$write", 123},
@@ -1467,6 +1471,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_xfrm", 370},
     {"sendmsg$rds", 370},
     {"sendmsg$unix", 370},
+    {"sendmsg$xdp", 370},
     {"sendto", 369},
     {"sendto$ax25", 369},
     {"sendto$inet", 369},
@@ -1529,6 +1534,11 @@ call_t syscalls[] = {
     {"setsockopt$SO_VM_SOCKETS_BUFFER_MIN_SIZE", 366},
     {"setsockopt$SO_VM_SOCKETS_BUFFER_SIZE", 366},
     {"setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT", 366},
+    {"setsockopt$XDP_RX_RING", 366},
+    {"setsockopt$XDP_TX_RING", 366},
+    {"setsockopt$XDP_UMEM_COMPLETION_RING", 366},
+    {"setsockopt$XDP_UMEM_FILL_RING", 366},
+    {"setsockopt$XDP_UMEM_REG", 366},
     {"setsockopt$ax25_buf", 366},
     {"setsockopt$ax25_int", 366},
     {"setsockopt$bt_BT_CHANNEL_POLICY", 366},
@@ -1782,6 +1792,7 @@ call_t syscalls[] = {
     {"socket$unix", 359},
     {"socket$vsock_dgram", 359},
     {"socket$vsock_stream", 359},
+    {"socket$xdp", 359},
     {"socketpair", 360},
     {"socketpair$ax25", 360},
     {"socketpair$inet", 360},
@@ -1952,11 +1963,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "be16abb889dde6de6d526a36bc8afe0432af2315"
+#define SYZ_REVISION "60646f7095a1697774552d90dbc88fdd58f01a3e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1990;
+unsigned syscall_count = 2001;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2008,6 +2019,7 @@ call_t syscalls[] = {
     {"bind$unix", 49},
     {"bind$vsock_dgram", 49},
     {"bind$vsock_stream", 49},
+    {"bind$xdp", 49},
     {"bpf$BPF_GET_MAP_INFO", 321},
     {"bpf$BPF_GET_PROG_INFO", 321},
     {"bpf$BPF_MAP_GET_FD_BY_ID", 321},
@@ -2189,6 +2201,8 @@ call_t syscalls[] = {
     {"getsockopt$SO_BINDTODEVICE", 55},
     {"getsockopt$SO_COOKIE", 55},
     {"getsockopt$SO_TIMESTAMPING", 55},
+    {"getsockopt$XDP_MMAP_OFFSETS", 55},
+    {"getsockopt$XDP_STATISTICS", 55},
     {"getsockopt$ax25_buf", 55},
     {"getsockopt$ax25_int", 55},
     {"getsockopt$bt_BT_CHANNEL_POLICY", 55},
@@ -3193,6 +3207,7 @@ call_t syscalls[] = {
     {"mlockall", 151},
     {"mmap", 9},
     {"mmap$binder", 9},
+    {"mmap$xdp", 9},
     {"modify_ldt$read", 154},
     {"modify_ldt$read_default", 154},
     {"modify_ldt$write", 154},
@@ -3457,6 +3472,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_xfrm", 46},
     {"sendmsg$rds", 46},
     {"sendmsg$unix", 46},
+    {"sendmsg$xdp", 46},
     {"sendto", 44},
     {"sendto$ax25", 44},
     {"sendto$inet", 44},
@@ -3519,6 +3535,11 @@ call_t syscalls[] = {
     {"setsockopt$SO_VM_SOCKETS_BUFFER_MIN_SIZE", 54},
     {"setsockopt$SO_VM_SOCKETS_BUFFER_SIZE", 54},
     {"setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT", 54},
+    {"setsockopt$XDP_RX_RING", 54},
+    {"setsockopt$XDP_TX_RING", 54},
+    {"setsockopt$XDP_UMEM_COMPLETION_RING", 54},
+    {"setsockopt$XDP_UMEM_FILL_RING", 54},
+    {"setsockopt$XDP_UMEM_REG", 54},
     {"setsockopt$ax25_buf", 54},
     {"setsockopt$ax25_int", 54},
     {"setsockopt$bt_BT_CHANNEL_POLICY", 54},
@@ -3784,6 +3805,7 @@ call_t syscalls[] = {
     {"socket$unix", 41},
     {"socket$vsock_dgram", 41},
     {"socket$vsock_stream", 41},
+    {"socket$xdp", 41},
     {"socketpair", 53},
     {"socketpair$ax25", 53},
     {"socketpair$inet", 53},
@@ -3954,11 +3976,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "52a014c5715eeb48a861e4bfee00acd5fb810574"
+#define SYZ_REVISION "b0e47dbe0e191152532614009887357d446f5d00"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1947;
+unsigned syscall_count = 1958;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4008,6 +4030,7 @@ call_t syscalls[] = {
     {"bind$unix", 282},
     {"bind$vsock_dgram", 282},
     {"bind$vsock_stream", 282},
+    {"bind$xdp", 282},
     {"bpf$BPF_GET_MAP_INFO", 386},
     {"bpf$BPF_GET_PROG_INFO", 386},
     {"bpf$BPF_MAP_GET_FD_BY_ID", 386},
@@ -4186,6 +4209,8 @@ call_t syscalls[] = {
     {"getsockopt$SO_BINDTODEVICE", 295},
     {"getsockopt$SO_COOKIE", 295},
     {"getsockopt$SO_TIMESTAMPING", 295},
+    {"getsockopt$XDP_MMAP_OFFSETS", 295},
+    {"getsockopt$XDP_STATISTICS", 295},
     {"getsockopt$ax25_buf", 295},
     {"getsockopt$ax25_int", 295},
     {"getsockopt$bt_BT_CHANNEL_POLICY", 295},
@@ -5160,6 +5185,7 @@ call_t syscalls[] = {
     {"mlockall", 152},
     {"mmap", 192},
     {"mmap$binder", 192},
+    {"mmap$xdp", 192},
     {"mount", 21},
     {"move_pages", 344},
     {"mprotect", 125},
@@ -5420,6 +5446,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_xfrm", 296},
     {"sendmsg$rds", 296},
     {"sendmsg$unix", 296},
+    {"sendmsg$xdp", 296},
     {"sendto", 290},
     {"sendto$ax25", 290},
     {"sendto$inet", 290},
@@ -5481,6 +5508,11 @@ call_t syscalls[] = {
     {"setsockopt$SO_VM_SOCKETS_BUFFER_MIN_SIZE", 294},
     {"setsockopt$SO_VM_SOCKETS_BUFFER_SIZE", 294},
     {"setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT", 294},
+    {"setsockopt$XDP_RX_RING", 294},
+    {"setsockopt$XDP_TX_RING", 294},
+    {"setsockopt$XDP_UMEM_COMPLETION_RING", 294},
+    {"setsockopt$XDP_UMEM_FILL_RING", 294},
+    {"setsockopt$XDP_UMEM_REG", 294},
     {"setsockopt$ax25_buf", 294},
     {"setsockopt$ax25_int", 294},
     {"setsockopt$bt_BT_CHANNEL_POLICY", 294},
@@ -5746,6 +5778,7 @@ call_t syscalls[] = {
     {"socket$unix", 281},
     {"socket$vsock_dgram", 281},
     {"socket$vsock_stream", 281},
+    {"socket$xdp", 281},
     {"socketpair", 288},
     {"socketpair$ax25", 288},
     {"socketpair$inet", 288},
@@ -5913,11 +5946,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "e8646a3fc1b9f03d8bb0aeb09a612bfb72188041"
+#define SYZ_REVISION "64d8f466e406291f0ce4eb228754cd7a2cc6104d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1919;
+unsigned syscall_count = 1930;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5967,6 +6000,7 @@ call_t syscalls[] = {
     {"bind$unix", 200},
     {"bind$vsock_dgram", 200},
     {"bind$vsock_stream", 200},
+    {"bind$xdp", 200},
     {"bpf$BPF_GET_MAP_INFO", 280},
     {"bpf$BPF_GET_PROG_INFO", 280},
     {"bpf$BPF_MAP_GET_FD_BY_ID", 280},
@@ -6137,6 +6171,8 @@ call_t syscalls[] = {
     {"getsockopt$SO_BINDTODEVICE", 209},
     {"getsockopt$SO_COOKIE", 209},
     {"getsockopt$SO_TIMESTAMPING", 209},
+    {"getsockopt$XDP_MMAP_OFFSETS", 209},
+    {"getsockopt$XDP_STATISTICS", 209},
     {"getsockopt$ax25_buf", 209},
     {"getsockopt$ax25_int", 209},
     {"getsockopt$bt_BT_CHANNEL_POLICY", 209},
@@ -7109,6 +7145,7 @@ call_t syscalls[] = {
     {"mlockall", 230},
     {"mmap", 222},
     {"mmap$binder", 222},
+    {"mmap$xdp", 222},
     {"mount", 40},
     {"move_pages", 239},
     {"mprotect", 226},
@@ -7360,6 +7397,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_xfrm", 211},
     {"sendmsg$rds", 211},
     {"sendmsg$unix", 211},
+    {"sendmsg$xdp", 211},
     {"sendto", 206},
     {"sendto$ax25", 206},
     {"sendto$inet", 206},
@@ -7421,6 +7459,11 @@ call_t syscalls[] = {
     {"setsockopt$SO_VM_SOCKETS_BUFFER_MIN_SIZE", 208},
     {"setsockopt$SO_VM_SOCKETS_BUFFER_SIZE", 208},
     {"setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT", 208},
+    {"setsockopt$XDP_RX_RING", 208},
+    {"setsockopt$XDP_TX_RING", 208},
+    {"setsockopt$XDP_UMEM_COMPLETION_RING", 208},
+    {"setsockopt$XDP_UMEM_FILL_RING", 208},
+    {"setsockopt$XDP_UMEM_REG", 208},
     {"setsockopt$ax25_buf", 208},
     {"setsockopt$ax25_int", 208},
     {"setsockopt$bt_BT_CHANNEL_POLICY", 208},
@@ -7685,6 +7728,7 @@ call_t syscalls[] = {
     {"socket$unix", 198},
     {"socket$vsock_dgram", 198},
     {"socket$vsock_stream", 198},
+    {"socket$xdp", 198},
     {"socketpair", 199},
     {"socketpair$ax25", 199},
     {"socketpair$inet", 199},
@@ -7844,11 +7888,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "72cbb03e7c697832efe4492f00164c4b20f238b1"
+#define SYZ_REVISION "240d492d9f61f94a2fc4baabad75e92ac06070ae"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1808;
+unsigned syscall_count = 1819;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7899,6 +7943,7 @@ call_t syscalls[] = {
     {"bind$unix", 327},
     {"bind$vsock_dgram", 327},
     {"bind$vsock_stream", 327},
+    {"bind$xdp", 327},
     {"bpf$BPF_GET_MAP_INFO", 361},
     {"bpf$BPF_GET_PROG_INFO", 361},
     {"bpf$BPF_MAP_GET_FD_BY_ID", 361},
@@ -8079,6 +8124,8 @@ call_t syscalls[] = {
     {"getsockopt$SO_BINDTODEVICE", 340},
     {"getsockopt$SO_COOKIE", 340},
     {"getsockopt$SO_TIMESTAMPING", 340},
+    {"getsockopt$XDP_MMAP_OFFSETS", 340},
+    {"getsockopt$XDP_STATISTICS", 340},
     {"getsockopt$ax25_buf", 340},
     {"getsockopt$ax25_int", 340},
     {"getsockopt$bt_BT_CHANNEL_POLICY", 340},
@@ -8944,6 +8991,7 @@ call_t syscalls[] = {
     {"mlockall", 152},
     {"mmap", 90},
     {"mmap$binder", 90},
+    {"mmap$xdp", 90},
     {"modify_ldt$read", 123},
     {"modify_ldt$read_default", 123},
     {"modify_ldt$write", 123},
@@ -9181,6 +9229,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_xfrm", 341},
     {"sendmsg$rds", 341},
     {"sendmsg$unix", 341},
+    {"sendmsg$xdp", 341},
     {"sendto", 335},
     {"sendto$ax25", 335},
     {"sendto$inet", 335},
@@ -9242,6 +9291,11 @@ call_t syscalls[] = {
     {"setsockopt$SO_VM_SOCKETS_BUFFER_MIN_SIZE", 339},
     {"setsockopt$SO_VM_SOCKETS_BUFFER_SIZE", 339},
     {"setsockopt$SO_VM_SOCKETS_CONNECT_TIMEOUT", 339},
+    {"setsockopt$XDP_RX_RING", 339},
+    {"setsockopt$XDP_TX_RING", 339},
+    {"setsockopt$XDP_UMEM_COMPLETION_RING", 339},
+    {"setsockopt$XDP_UMEM_FILL_RING", 339},
+    {"setsockopt$XDP_UMEM_REG", 339},
     {"setsockopt$ax25_buf", 339},
     {"setsockopt$ax25_int", 339},
     {"setsockopt$bt_BT_CHANNEL_POLICY", 339},
@@ -9495,6 +9549,7 @@ call_t syscalls[] = {
     {"socket$unix", 326},
     {"socket$vsock_dgram", 326},
     {"socket$vsock_stream", 326},
+    {"socket$xdp", 326},
     {"socketpair", 333},
     {"socketpair$ax25", 333},
     {"socketpair$inet", 333},
