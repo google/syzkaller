@@ -993,7 +993,7 @@ var linuxOopses = []*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
-					skip: []string{"sched", "_lock", "completion", "kthread",
+					skip: []string{"sched", "_lock", "down", "completion", "kthread",
 						"wait", "synchronize"},
 				},
 			},
