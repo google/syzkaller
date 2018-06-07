@@ -6,8 +6,8 @@
 #define SYZ_PAGE_SIZE 8192
 #define SYZ_NUM_PAGES 2048
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 97;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 97
+const call_t syscalls[] = {
 	{"foo$any0", 0, (syscall_t)foo},
 	{"foo$anyres", 0, (syscall_t)foo},
 	{"mutate0", 0, (syscall_t)mutate0},
@@ -115,8 +115,8 @@ call_t syscalls[] = {
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 97;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 97
+const call_t syscalls[] = {
 	{"foo$any0", 0, (syscall_t)foo},
 	{"foo$anyres", 0, (syscall_t)foo},
 	{"mutate0", 0, (syscall_t)mutate0},

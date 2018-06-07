@@ -69,9 +69,6 @@ struct call_t {
 	syscall_t call;
 };
 
-// Defined in generated syscalls_OS.h files.
-extern call_t syscalls[];
-extern unsigned syscall_count;
 #endif // #if defined(SYZ_EXECUTOR)
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||               \

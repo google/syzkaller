@@ -6,8 +6,8 @@
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 188;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 188
+const call_t syscalls[] = {
     {"accept", 30},
     {"accept$inet", 30},
     {"accept$inet6", 30},
