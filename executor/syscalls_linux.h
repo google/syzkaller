@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "2816607dc1030d54c6abf98aaa99ea7054785e51"
+#define SYZ_REVISION "6cda41f0f4f262a9c712b30c0ee8f23d58a79977"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1932;
+unsigned syscall_count = 1938;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -819,6 +819,12 @@ call_t syscalls[] = {
     {"ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND", 54},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_READ", 54},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_WRITE", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DRAIN", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DROP", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_INFO", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PARAMS", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PVERSION", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_STATUS", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CLIENT_ID", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_PORT", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_QUEUE", 54},
@@ -1946,11 +1952,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "4dfc7b2093255c116f8e02b3be10ddce87927081"
+#define SYZ_REVISION "be16abb889dde6de6d526a36bc8afe0432af2315"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1984;
+unsigned syscall_count = 1990;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2773,6 +2779,12 @@ call_t syscalls[] = {
     {"ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND", 16},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_READ", 16},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_WRITE", 16},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DRAIN", 16},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DROP", 16},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_INFO", 16},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PARAMS", 16},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PVERSION", 16},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_STATUS", 16},
     {"ioctl$SNDRV_SEQ_IOCTL_CLIENT_ID", 16},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_PORT", 16},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_QUEUE", 16},
@@ -3942,11 +3954,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "ab6166ffafd1b575c22c14ae79cd813f97f13bf6"
+#define SYZ_REVISION "52a014c5715eeb48a861e4bfee00acd5fb810574"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1941;
+unsigned syscall_count = 1947;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4741,6 +4753,12 @@ call_t syscalls[] = {
     {"ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND", 54},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_READ", 54},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_WRITE", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DRAIN", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DROP", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_INFO", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PARAMS", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PVERSION", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_STATUS", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CLIENT_ID", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_PORT", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_QUEUE", 54},
@@ -5895,11 +5913,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "1e5f965fce82c3d2a90ab9addf0a6d68379e0e15"
+#define SYZ_REVISION "e8646a3fc1b9f03d8bb0aeb09a612bfb72188041"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1913;
+unsigned syscall_count = 1919;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6685,6 +6703,12 @@ call_t syscalls[] = {
     {"ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND", 29},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_READ", 29},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_WRITE", 29},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DRAIN", 29},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DROP", 29},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_INFO", 29},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PARAMS", 29},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PVERSION", 29},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_STATUS", 29},
     {"ioctl$SNDRV_SEQ_IOCTL_CLIENT_ID", 29},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_PORT", 29},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_QUEUE", 29},
@@ -7820,11 +7844,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "5a190c0a1bbecc5bfdfdcedbb91e8b8dc25ced02"
+#define SYZ_REVISION "72cbb03e7c697832efe4492f00164c4b20f238b1"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1802;
+unsigned syscall_count = 1808;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8621,6 +8645,12 @@ call_t syscalls[] = {
     {"ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND", 54},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_READ", 54},
     {"ioctl$SNDRV_CTL_IOCTL_TLV_WRITE", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DRAIN", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_DROP", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_INFO", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PARAMS", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_PVERSION", 54},
+    {"ioctl$SNDRV_RAWMIDI_IOCTL_STATUS", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CLIENT_ID", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_PORT", 54},
     {"ioctl$SNDRV_SEQ_IOCTL_CREATE_QUEUE", 54},

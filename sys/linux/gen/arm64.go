@@ -47,6 +47,7 @@ var resources_arm64 = []*ResourceDesc{
 	{Name: "fd_loop", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_block_trace", "fd_block", "fd_loop"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_loop_ctrl", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_loop_ctrl"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_loop_num", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"fd_loop_num"}, Values: []uint64{0, 1, 2, 10, 11, 12}},
+	{Name: "fd_midi", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_midi"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_mq", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_mq"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_namespace", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_namespace"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_ndb", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_block_trace", "fd_block", "fd_ndb"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -12332,6 +12333,34 @@ var structDescs_arm64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "avail", TypeSize: 4}}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 64}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
 	}}},
+	{Key: StructKey{Name: "snd_rawmidi_info_raw", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_rawmidi_info_raw", TypeSize: 268, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "device", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "subdevice", TypeSize: 4, ArgDir: 1}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sndrv_rawmidi_stream", FldName: "stream", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{0, 1, 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "card", TypeSize: 4, ArgDir: 1}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "snd_rawmidi_info_flags", FldName: "flags", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 2, 4}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "id", TypeSize: 64, ArgDir: 1}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "name", TypeSize: 80, ArgDir: 1}, Kind: 1, RangeBegin: 80, RangeEnd: 80},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "subname", TypeSize: 32, ArgDir: 1}, Kind: 1, RangeBegin: 32, RangeEnd: 32},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "subdevices_count", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "subdevices_avail", TypeSize: 4, ArgDir: 1}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 64, ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 1}}}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
+	}}},
+	{Key: StructKey{Name: "snd_rawmidi_params", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_rawmidi_params", TypeSize: 32, ArgDir: 2}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sndrv_rawmidi_stream", FldName: "stream", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{0, 1, 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "buffer_size", TypeSize: 4, ArgDir: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "avail_min", TypeSize: 4, ArgDir: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "no_active_sensing", TypeSize: 4, ArgDir: 2}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 16, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 2}}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
+	}}},
+	{Key: StructKey{Name: "snd_rawmidi_status", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_rawmidi_status", TypeSize: 48, ArgDir: 2}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sndrv_rawmidi_stream", FldName: "stream", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{0, 1, 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&StructType{Key: StructKey{Name: "timespec", Dir: 2}, FldName: "tstamp"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "avail", TypeSize: 4, ArgDir: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "xruns", TypeSize: 4, ArgDir: 2}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 16, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 2}}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
+	}}},
 	{Key: StructKey{Name: "snd_seq_addr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_seq_addr", TypeSize: 2}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "client", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "port", TypeSize: 1}}},
@@ -21633,6 +21662,36 @@ var syscalls_arm64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3221771547},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "snd_ctl_tlv"}}},
 	}},
+	{NR: 29, Name: "ioctl$SNDRV_RAWMIDI_IOCTL_DRAIN", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_midi", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074026289},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 29, Name: "ioctl$SNDRV_RAWMIDI_IOCTL_DROP", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_midi", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074026288},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 29, Name: "ioctl$SNDRV_RAWMIDI_IOCTL_INFO", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_midi", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2165069569},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "snd_rawmidi_info_raw", Dir: 1}}},
+	}},
+	{NR: 29, Name: "ioctl$SNDRV_RAWMIDI_IOCTL_PARAMS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_midi", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3224393488},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "snd_rawmidi_params", Dir: 2}}},
+	}},
+	{NR: 29, Name: "ioctl$SNDRV_RAWMIDI_IOCTL_PVERSION", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_midi", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147768064},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{NR: 29, Name: "ioctl$SNDRV_RAWMIDI_IOCTL_STATUS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_midi", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3224917792},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "snd_rawmidi_status", Dir: 2}}},
+	}},
 	{NR: 29, Name: "ioctl$SNDRV_SEQ_IOCTL_CLIENT_ID", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndseq", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147767041},
@@ -27699,7 +27758,7 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 18}, Kind: 2, Values: []string{"/dev/snd/midiC#D#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 65536, 16384, 128, 131072, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_midi", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "syz_open_dev$sndpcmc", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 18}, Kind: 2, Values: []string{"/dev/snd/pcmC#D#c\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
@@ -31522,6 +31581,18 @@ var consts_arm64 = []ConstValue{
 	{Name: "SNDRV_CTL_IOCTL_TLV_COMMAND", Value: 3221771548},
 	{Name: "SNDRV_CTL_IOCTL_TLV_READ", Value: 3221771546},
 	{Name: "SNDRV_CTL_IOCTL_TLV_WRITE", Value: 3221771547},
+	{Name: "SNDRV_RAWMIDI_INFO_DUPLEX", Value: 4},
+	{Name: "SNDRV_RAWMIDI_INFO_INPUT", Value: 2},
+	{Name: "SNDRV_RAWMIDI_INFO_OUTPUT", Value: 1},
+	{Name: "SNDRV_RAWMIDI_IOCTL_DRAIN", Value: 1074026289},
+	{Name: "SNDRV_RAWMIDI_IOCTL_DROP", Value: 1074026288},
+	{Name: "SNDRV_RAWMIDI_IOCTL_INFO", Value: 2165069569},
+	{Name: "SNDRV_RAWMIDI_IOCTL_PARAMS", Value: 3224393488},
+	{Name: "SNDRV_RAWMIDI_IOCTL_PVERSION", Value: 2147768064},
+	{Name: "SNDRV_RAWMIDI_IOCTL_STATUS", Value: 3224917792},
+	{Name: "SNDRV_RAWMIDI_STREAM_INPUT", Value: 1},
+	{Name: "SNDRV_RAWMIDI_STREAM_LAST", Value: 1},
+	{Name: "SNDRV_RAWMIDI_STREAM_OUTPUT"},
 	{Name: "SNDRV_SEQ_FILTER_BOUNCE", Value: 4},
 	{Name: "SNDRV_SEQ_FILTER_BROADCAST", Value: 1},
 	{Name: "SNDRV_SEQ_FILTER_MULTICAST", Value: 2},
@@ -33727,4 +33798,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "1e5f965fce82c3d2a90ab9addf0a6d68379e0e15"
+const revision_arm64 = "e8646a3fc1b9f03d8bb0aeb09a612bfb72188041"

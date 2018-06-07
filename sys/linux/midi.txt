@@ -1,0 +1,48 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sound/asound.h>
+
+resource fd_midi[fd]
+
+syz_open_dev$sndmidi(dev ptr[in, string["/dev/snd/midiC#D#"]], id intptr, flags flags[open_flags]) fd_midi
+
+ioctl$SNDRV_RAWMIDI_IOCTL_PVERSION(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_PVERSION], arg ptr[out, int32])
+ioctl$SNDRV_RAWMIDI_IOCTL_INFO(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_INFO], arg ptr[out, snd_rawmidi_info_raw])
+ioctl$SNDRV_RAWMIDI_IOCTL_PARAMS(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_PARAMS], arg ptr[inout, snd_rawmidi_params])
+ioctl$SNDRV_RAWMIDI_IOCTL_STATUS(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_STATUS], arg ptr[inout, snd_rawmidi_status])
+ioctl$SNDRV_RAWMIDI_IOCTL_DROP(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_DROP], arg ptr[in, int32])
+ioctl$SNDRV_RAWMIDI_IOCTL_DRAIN(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_DRAIN], arg ptr[in, int32])
+
+snd_rawmidi_info_raw {
+	device			int32
+	subdevice		int32
+	stream			flags[sndrv_rawmidi_stream, int32]
+	card			int32
+	flags			flags[snd_rawmidi_info_flags, int32]
+	id			array[int8, 64]
+	name			array[int8, 80]
+	subname			array[int8, 32]
+	subdevices_count	int32
+	subdevices_avail	int32
+	reserved		array[const[0, int8], 64]
+}
+
+snd_rawmidi_params {
+	stream			flags[sndrv_rawmidi_stream, int32]
+	buffer_size		int32
+	avail_min		int32
+	no_active_sensing	int32
+	reserved		array[const[0, int8], 16]
+}
+
+snd_rawmidi_status {
+	stream		flags[sndrv_rawmidi_stream, int32]
+	tstamp		timespec
+	avail		int32
+	xruns		int32
+	reserved	array[const[0, int8], 16]
+}
+
+sndrv_rawmidi_stream = SNDRV_RAWMIDI_STREAM_OUTPUT, SNDRV_RAWMIDI_STREAM_INPUT, SNDRV_RAWMIDI_STREAM_LAST
+snd_rawmidi_info_flags = SNDRV_RAWMIDI_INFO_OUTPUT, SNDRV_RAWMIDI_INFO_INPUT, SNDRV_RAWMIDI_INFO_DUPLEX
