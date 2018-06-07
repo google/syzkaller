@@ -8,9 +8,9 @@
 
 #include "executor_posix.h"
 
-#include "executor.h"
-
 #include "syscalls_fuchsia.h"
+
+#include "executor.h"
 
 uint32 output;
 
@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
+long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
 {
 	long res = ZX_ERR_INVALID_ARGS;
 	NONFAILING(res = c->call(a0, a1, a2, a3, a4, a5, a6, a7, a8));

@@ -6,8 +6,8 @@
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 2955;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 2955
+const call_t syscalls[] = {
     {"AbortDoc", 0, (syscall_t)AbortDoc},
     {"AbortPath", 0, (syscall_t)AbortPath},
     {"AbortPrinter", 0, (syscall_t)AbortPrinter},

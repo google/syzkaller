@@ -21,9 +21,9 @@
 
 #include "executor_linux.h"
 
-#include "executor.h"
-
 #include "syscalls_linux.h"
+
+#include "executor.h"
 
 #define KCOV_INIT_TRACE32 _IOR('c', 1, uint32)
 #define KCOV_INIT_TRACE64 _IOR('c', 1, uint64)
@@ -124,7 +124,7 @@ int main(int argc, char** argv)
 
 static __thread thread_t* current_thread;
 
-long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
+long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
 {
 	if (c->call)
 		return c->call(a0, a1, a2, a3, a4, a5, a6, a7, a8);

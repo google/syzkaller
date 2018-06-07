@@ -165,7 +165,7 @@ struct kcov_comparison_t {
 	bool operator<(const struct kcov_comparison_t& other) const;
 };
 
-long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8);
+long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8);
 thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
 void handle_completion(thread_t* th);
 void execute_call(thread_t* th);
@@ -393,7 +393,7 @@ retry:
 		}
 
 		// Normal syscall.
-		if (call_num >= syscall_count)
+		if (call_num >= SYZ_SYSCALL_COUNT)
 			fail("invalid command number %llu", call_num);
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
@@ -634,7 +634,7 @@ void* worker_thread(void* arg)
 void execute_call(thread_t* th)
 {
 	event_reset(&th->ready);
-	call_t* call = &syscalls[th->call_num];
+	const call_t* call = &syscalls[th->call_num];
 	debug("#%d: %s(", th->id, call->name);
 	for (int i = 0; i < th->num_args; i++) {
 		if (i != 0)

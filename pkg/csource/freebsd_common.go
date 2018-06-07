@@ -95,8 +95,6 @@ struct call_t {
 	syscall_t call;
 };
 
-extern call_t syscalls[];
-extern unsigned syscall_count;
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||               \

@@ -6,8 +6,8 @@
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 35;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 35
+const call_t syscalls[] = {
     {"abort_sysc_fd", 33},
     {"chdir", 116},
     {"close", 103},

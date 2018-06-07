@@ -251,8 +251,8 @@ var archTempl = template.Must(template.New("").Parse(`
 #define SYZ_PAGE_SIZE {{.PageSize}}
 #define SYZ_NUM_PAGES {{.NumPages}}
 #define SYZ_DATA_OFFSET {{.DataOffset}}
-unsigned syscall_count = {{len $.Calls}};
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT {{len $.Calls}}
+const call_t syscalls[] = {
 {{range $c := $.Calls}}	{"{{$c.Name}}", {{$c.NR}}{{if $c.NeedCall}}, (syscall_t){{$c.CallName}}{{end}}},
 {{end}}
 };

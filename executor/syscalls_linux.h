@@ -6,8 +6,8 @@
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1949;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 1949
+const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
     {"accept4$ax25", 364},
@@ -1967,8 +1967,8 @@ call_t syscalls[] = {
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 2001;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 2001
+const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
     {"accept$ax25", 43},
@@ -3980,8 +3980,8 @@ call_t syscalls[] = {
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1958;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 1958
+const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
     {"accept$ax25", 285},
@@ -5950,8 +5950,8 @@ call_t syscalls[] = {
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1930;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 1930
+const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
     {"accept$ax25", 202},
@@ -7892,8 +7892,8 @@ call_t syscalls[] = {
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1819;
-call_t syscalls[] = {
+#define SYZ_SYSCALL_COUNT 1819
+const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
     {"accept$ax25", 330},
