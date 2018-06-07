@@ -35,7 +35,8 @@ func Build(dir, compiler string, config []byte) error {
 	}
 	// One would expect olddefconfig here, but olddefconfig is not present in v3.6 and below.
 	// oldconfig is the same as olddefconfig if stdin is not set.
-	cmd := osutil.Command("make", "oldconfig")
+	// Note: passing in compiler is important since 4.17 (at the very least it's noted in the config).
+	cmd := osutil.Command("make", "oldconfig", "CC="+compiler)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
