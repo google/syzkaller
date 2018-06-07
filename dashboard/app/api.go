@@ -519,9 +519,10 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 	} else if len(req.ReproSyz) != 0 {
 		reproLevel = ReproLevelSyz
 	}
-	saveCrash := bug.NumCrashes < maxCrashes ||
-		now.Sub(bug.LastTime) > time.Hour ||
-		reproLevel != ReproLevelNone
+	saveCrash := reproLevel != ReproLevelNone ||
+		bug.NumCrashes < maxCrashes ||
+		now.Sub(bug.LastSavedCrash) > time.Hour ||
+		bug.NumCrashes%20 == 0
 	if saveCrash {
 		// Reporting priority of this crash.
 		// Currently it is computed only from repository ReportingPriority and Arch,
@@ -566,6 +567,9 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		}
 		bug.NumCrashes++
 		bug.LastTime = now
+		if saveCrash {
+			bug.LastSavedCrash = now
+		}
 		if reproLevel != ReproLevelNone {
 			bug.NumRepro++
 		}
@@ -593,7 +597,7 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 }
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
-	if bug.NumCrashes <= maxCrashes || bug.NumCrashes%10 != 0 {
+	if bug.NumCrashes-bug.NumRepro <= maxCrashes || (bug.NumCrashes-1)%10 != 0 {
 		return
 	}
 	var crashes []*Crash

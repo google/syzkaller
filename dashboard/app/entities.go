@@ -65,22 +65,23 @@ type Build struct {
 }
 
 type Bug struct {
-	Namespace  string
-	Seq        int64 // sequences of the bug with the same title
-	Title      string
-	Status     int
-	DupOf      string
-	NumCrashes int64
-	NumRepro   int64
-	ReproLevel dashapi.ReproLevel
-	HasReport  bool
-	FirstTime  time.Time
-	LastTime   time.Time
-	Closed     time.Time
-	Reporting  []BugReporting
-	Commits    []string
-	HappenedOn []string `datastore:",noindex"` // list of managers
-	PatchedOn  []string `datastore:",noindex"` // list of managers
+	Namespace      string
+	Seq            int64 // sequences of the bug with the same title
+	Title          string
+	Status         int
+	DupOf          string
+	NumCrashes     int64
+	NumRepro       int64
+	ReproLevel     dashapi.ReproLevel
+	HasReport      bool
+	FirstTime      time.Time
+	LastTime       time.Time
+	LastSavedCrash time.Time
+	Closed         time.Time
+	Reporting      []BugReporting
+	Commits        []string
+	HappenedOn     []string `datastore:",noindex"` // list of managers
+	PatchedOn      []string `datastore:",noindex"` // list of managers
 }
 
 type BugReporting struct {
