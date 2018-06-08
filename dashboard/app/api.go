@@ -597,7 +597,7 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 }
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
-	if bug.NumCrashes-bug.NumRepro <= maxCrashes || (bug.NumCrashes-1)%10 != 0 {
+	if bug.NumCrashes <= maxCrashes || (bug.NumCrashes-1)%10 != 0 {
 		return
 	}
 	var crashes []*Crash
