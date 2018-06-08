@@ -1,0 +1,40 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/aio_abi.h>
+
+resource io_ctx[intptr]
+
+io_setup(n int32, ctx ptr[out, io_ctx])
+io_destroy(ctx io_ctx)
+io_getevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec])
+# TODO: kernel identifies requets by address, so pointers passed to io_submit
+# need to be forwarded to io_cancel somehow.
+io_submit(ctx io_ctx, nr len[iocbpp], iocbpp ptr[in, array[ptr[in, iocb]]])
+io_cancel(ctx io_ctx, iocb ptr[in, iocb], res ptr[out, io_event])
+
+lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV
+iocb_flags = 0, IOCB_FLAG_RESFD
+iocb_key = 0
+
+io_event {
+	data	int64
+	obj	int64
+	res	int64
+	res2	int32
+}
+
+iocb {
+	data	const[0, int64]
+	key	flags[iocb_key, int32]
+	pad	const[0, int32]
+	op	flags[lio_opcode, int16]
+	prio	int16
+	fd	fd
+	buf	ptr64[inout, array[int8]]
+	nbytes	len[buf, int64]
+	offset	int64
+	reserv	const[0, int64]
+	flags	flags[iocb_flags, int32]
+	resfd	fd_event
+}
