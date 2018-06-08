@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "d46aca292f246c1637fff96c494fefa3a5e37013"
+#define SYZ_REVISION "4277a454526c67cd782af4f21917c21a4e6b8b6f"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1959
+#define SYZ_SYSCALL_COUNT 1961
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -261,6 +261,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet6_mtu", 365},
     {"getsockopt$inet6_opts", 365},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 365},
+    {"getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE", 365},
     {"getsockopt$inet6_tcp_buf", 365},
     {"getsockopt$inet6_tcp_int", 365},
     {"getsockopt$inet6_udp_int", 365},
@@ -367,6 +368,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 365},
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 365},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 365},
+    {"getsockopt$inet_tcp_TCP_ZEROCOPY_RECEIVE", 365},
     {"getsockopt$inet_tcp_buf", 365},
     {"getsockopt$inet_tcp_int", 365},
     {"getsockopt$inet_udp_int", 365},
@@ -1973,11 +1975,11 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "f037383b0a19c25306abdb73461ae4854a0b4964"
+#define SYZ_REVISION "ea5d0dfbc1565cb7d0be88b4a71f83337d7767c6"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2011
+#define SYZ_SYSCALL_COUNT 2013
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2242,6 +2244,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet6_mtu", 55},
     {"getsockopt$inet6_opts", 55},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 55},
+    {"getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE", 55},
     {"getsockopt$inet6_tcp_buf", 55},
     {"getsockopt$inet6_tcp_int", 55},
     {"getsockopt$inet6_udp_int", 55},
@@ -2348,6 +2351,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 55},
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 55},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 55},
+    {"getsockopt$inet_tcp_TCP_ZEROCOPY_RECEIVE", 55},
     {"getsockopt$inet_tcp_buf", 55},
     {"getsockopt$inet_tcp_int", 55},
     {"getsockopt$inet_udp_int", 55},
@@ -3996,11 +4000,11 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "e9f3fb0ca9c9c5fb1ee8a8cdd20492a1128e200a"
+#define SYZ_REVISION "351f31a1a25f912453a202d9a5877ed79cf0417f"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1967
+#define SYZ_SYSCALL_COUNT 1969
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4260,6 +4264,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet6_mtu", 295},
     {"getsockopt$inet6_opts", 295},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 295},
+    {"getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE", 295},
     {"getsockopt$inet6_tcp_buf", 295},
     {"getsockopt$inet6_tcp_int", 295},
     {"getsockopt$inet6_udp_int", 295},
@@ -4366,6 +4371,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 295},
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 295},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 295},
+    {"getsockopt$inet_tcp_TCP_ZEROCOPY_RECEIVE", 295},
     {"getsockopt$inet_tcp_buf", 295},
     {"getsockopt$inet_tcp_int", 295},
     {"getsockopt$inet_udp_int", 295},
@@ -5975,11 +5981,11 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "3998017f34c65afc1232a273299d7e769cc740b4"
+#define SYZ_REVISION "a572239f5db6b2e348768b5c0bc0f50bc156090c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1940
+#define SYZ_SYSCALL_COUNT 1942
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6231,6 +6237,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet6_mtu", 209},
     {"getsockopt$inet6_opts", 209},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 209},
+    {"getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE", 209},
     {"getsockopt$inet6_tcp_buf", 209},
     {"getsockopt$inet6_tcp_int", 209},
     {"getsockopt$inet6_udp_int", 209},
@@ -6337,6 +6344,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 209},
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 209},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 209},
+    {"getsockopt$inet_tcp_TCP_ZEROCOPY_RECEIVE", 209},
     {"getsockopt$inet_tcp_buf", 209},
     {"getsockopt$inet_tcp_int", 209},
     {"getsockopt$inet_udp_int", 209},
@@ -7927,11 +7935,11 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "6c0b72a4509a302ee8c10faaff410c64128c3410"
+#define SYZ_REVISION "3ee087a60ac3de56b9db957dec9f999e93062c3f"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1828
+#define SYZ_SYSCALL_COUNT 1830
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8194,6 +8202,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet6_mtu", 340},
     {"getsockopt$inet6_opts", 340},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 340},
+    {"getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE", 340},
     {"getsockopt$inet6_tcp_buf", 340},
     {"getsockopt$inet6_tcp_int", 340},
     {"getsockopt$inet6_udp_int", 340},
@@ -8300,6 +8309,7 @@ const call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 340},
     {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 340},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 340},
+    {"getsockopt$inet_tcp_TCP_ZEROCOPY_RECEIVE", 340},
     {"getsockopt$inet_tcp_buf", 340},
     {"getsockopt$inet_tcp_int", 340},
     {"getsockopt$inet_udp_int", 340},
