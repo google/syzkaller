@@ -1,40 +1,40 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-include <linux/aio_abi.h>
+include <uapi/linux/aio_abi.h>
 
 resource io_ctx[intptr]
 
 io_setup(n int32, ctx ptr[out, io_ctx])
 io_destroy(ctx io_ctx)
-io_getevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec])
+io_getevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec, opt])
+io_pgetevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec, opt], usig ptr[in, sigset_size, opt])
 # TODO: kernel identifies requets by address, so pointers passed to io_submit
 # need to be forwarded to io_cancel somehow.
 io_submit(ctx io_ctx, nr len[iocbpp], iocbpp ptr[in, array[ptr[in, iocb]]])
 io_cancel(ctx io_ctx, iocb ptr[in, iocb], res ptr[out, io_event])
 
-lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV
+lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV, IOCB_CMD_POLL
 iocb_flags = 0, IOCB_FLAG_RESFD
-iocb_key = 0
 
 io_event {
 	data	int64
 	obj	int64
 	res	int64
-	res2	int32
+	res2	int64
 }
 
 iocb {
-	data	const[0, int64]
-	key	flags[iocb_key, int32]
-	pad	const[0, int32]
-	op	flags[lio_opcode, int16]
-	prio	int16
-	fd	fd
-	buf	ptr64[inout, array[int8]]
-	nbytes	len[buf, int64]
-	offset	int64
-	reserv	const[0, int64]
-	flags	flags[iocb_flags, int32]
-	resfd	fd_event
+	aio_data	const[0, int64]
+	aio_key		const[0, int32]
+	aio_rw_flags	const[0, int32]
+	aio_lio_opcode	flags[lio_opcode, int16]
+	aio_reqprio	int16
+	aio_fildes	fd
+	aio_buf		ptr64[inout, array[int8]]
+	aio_nbytes	len[aio_buf, int64]
+	aio_offset	int64
+	aio_reserved2	const[0, int64]
+	aio_flags	flags[iocb_flags, int32]
+	aio_resfd	fd_event
 }
