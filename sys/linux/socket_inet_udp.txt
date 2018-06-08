@@ -15,7 +15,9 @@ udp_pair {
 }
 
 socket$inet_udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0]) sock_udp
+socket$inet_udplite(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE]) sock_udp
 socketpair$inet_udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp_pair])
+socketpair$inet_udplite(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE], fds ptr[out, udp_pair])
 
 resource sock_udp6[sock_in6]
 
@@ -25,11 +27,13 @@ udp6_pair {
 }
 
 socket$inet6_udp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0]) sock_udp6
+socket$inet6_udplite(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE]) sock_udp6
 socketpair$inet6_udp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp6_pair])
+socketpair$inet6_udplite(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE], fds ptr[out, udp6_pair])
 
 # Generic UDP socket options
 
-udp_option_types_int = UDP_CORK, UDP_ENCAP, UDP_NO_CHECK6_TX, UDP_NO_CHECK6_RX
+udp_option_types_int = UDP_CORK, UDP_NO_CHECK6_TX, UDP_NO_CHECK6_RX, UDP_SEGMENT, UDPLITE_SEND_CSCOV, UDPLITE_RECV_CSCOV
 
 getsockopt$inet_udp_int(fd sock_udp, level const[IPPROTO_UDP], optname flags[udp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet_udp_int(fd sock_udp, level const[IPPROTO_UDP], optname flags[udp_option_types_int], optval ptr[in, int32], optlen len[optval])
@@ -43,8 +47,6 @@ udp_encap_option_values = UDP_ENCAP_ESPINUDP_NON_IKE, UDP_ENCAP_ESPINUDP, UDP_EN
 setsockopt$inet_udp_encap(fd sock_udp, level const[IPPROTO_UDP], optname const[UDP_ENCAP], optval ptr[in, flags[udp_encap_option_values, int32]], optlen len[optval])
 setsockopt$inet6_udp_encap(fd sock_udp6, level const[IPPROTO_UDP], optname const[UDP_ENCAP], optval ptr[in, flags[udp_encap_option_values, int32]], optlen len[optval])
 
-# TODO: UDPLITE_SEND_CSCOV, UDPLITE_RECV_CSCOV
-
 # UDP ioctls
 
 ioctl$sock_inet_udp_SIOCINQ(fd sock_udp, cmd const[SIOCINQ], arg ptr[out, int32])
@@ -52,3 +54,6 @@ ioctl$sock_inet6_udp_SIOCINQ(fd sock_udp6, cmd const[SIOCINQ], arg ptr[out, int3
 
 ioctl$sock_inet_udp_SIOCOUTQ(fd sock_udp, cmd const[SIOCOUTQ], arg ptr[out, int32])
 ioctl$sock_inet6_udp_SIOCOUTQ(fd sock_udp6, cmd const[SIOCOUTQ], arg ptr[out, int32])
+
+define UDPLITE_SEND_CSCOV	10
+define UDPLITE_RECV_CSCOV	11

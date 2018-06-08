@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "4277a454526c67cd782af4f21917c21a4e6b8b6f"
+#define SYZ_REVISION "eda3de1125f0e93ef7b53a4612abbf97269305da"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1961
+#define SYZ_SYSCALL_COUNT 1965
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1779,6 +1779,7 @@ const call_t syscalls[] = {
     {"socket$inet6_sctp", 359},
     {"socket$inet6_tcp", 359},
     {"socket$inet6_udp", 359},
+    {"socket$inet6_udplite", 359},
     {"socket$inet_dccp", 359},
     {"socket$inet_icmp", 359},
     {"socket$inet_icmp_raw", 359},
@@ -1786,6 +1787,7 @@ const call_t syscalls[] = {
     {"socket$inet_smc", 359},
     {"socket$inet_tcp", 359},
     {"socket$inet_udp", 359},
+    {"socket$inet_udplite", 359},
     {"socket$ipx", 359},
     {"socket$kcm", 359},
     {"socket$key", 359},
@@ -1815,6 +1817,7 @@ const call_t syscalls[] = {
     {"socketpair$inet6_sctp", 360},
     {"socketpair$inet6_tcp", 360},
     {"socketpair$inet6_udp", 360},
+    {"socketpair$inet6_udplite", 360},
     {"socketpair$inet_dccp", 360},
     {"socketpair$inet_icmp", 360},
     {"socketpair$inet_icmp_raw", 360},
@@ -1822,6 +1825,7 @@ const call_t syscalls[] = {
     {"socketpair$inet_smc", 360},
     {"socketpair$inet_tcp", 360},
     {"socketpair$inet_udp", 360},
+    {"socketpair$inet_udplite", 360},
     {"socketpair$ipx", 360},
     {"socketpair$packet", 360},
     {"socketpair$unix", 360},
@@ -1975,11 +1979,11 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "ea5d0dfbc1565cb7d0be88b4a71f83337d7767c6"
+#define SYZ_REVISION "272b01a3b16d0c410493224a23f0e9513c21aad5"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2013
+#define SYZ_SYSCALL_COUNT 2017
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3804,6 +3808,7 @@ const call_t syscalls[] = {
     {"socket$inet6_sctp", 41},
     {"socket$inet6_tcp", 41},
     {"socket$inet6_udp", 41},
+    {"socket$inet6_udplite", 41},
     {"socket$inet_dccp", 41},
     {"socket$inet_icmp", 41},
     {"socket$inet_icmp_raw", 41},
@@ -3811,6 +3816,7 @@ const call_t syscalls[] = {
     {"socket$inet_smc", 41},
     {"socket$inet_tcp", 41},
     {"socket$inet_udp", 41},
+    {"socket$inet_udplite", 41},
     {"socket$ipx", 41},
     {"socket$kcm", 41},
     {"socket$key", 41},
@@ -3840,6 +3846,7 @@ const call_t syscalls[] = {
     {"socketpair$inet6_sctp", 53},
     {"socketpair$inet6_tcp", 53},
     {"socketpair$inet6_udp", 53},
+    {"socketpair$inet6_udplite", 53},
     {"socketpair$inet_dccp", 53},
     {"socketpair$inet_icmp", 53},
     {"socketpair$inet_icmp_raw", 53},
@@ -3847,6 +3854,7 @@ const call_t syscalls[] = {
     {"socketpair$inet_smc", 53},
     {"socketpair$inet_tcp", 53},
     {"socketpair$inet_udp", 53},
+    {"socketpair$inet_udplite", 53},
     {"socketpair$ipx", 53},
     {"socketpair$packet", 53},
     {"socketpair$unix", 53},
@@ -4000,11 +4008,11 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "351f31a1a25f912453a202d9a5877ed79cf0417f"
+#define SYZ_REVISION "b13a1e650be47cd4a9cc00ddb999fdfd4382e3fa"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1969
+#define SYZ_SYSCALL_COUNT 1973
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5788,6 +5796,7 @@ const call_t syscalls[] = {
     {"socket$inet6_sctp", 281},
     {"socket$inet6_tcp", 281},
     {"socket$inet6_udp", 281},
+    {"socket$inet6_udplite", 281},
     {"socket$inet_dccp", 281},
     {"socket$inet_icmp", 281},
     {"socket$inet_icmp_raw", 281},
@@ -5795,6 +5804,7 @@ const call_t syscalls[] = {
     {"socket$inet_smc", 281},
     {"socket$inet_tcp", 281},
     {"socket$inet_udp", 281},
+    {"socket$inet_udplite", 281},
     {"socket$ipx", 281},
     {"socket$kcm", 281},
     {"socket$key", 281},
@@ -5824,6 +5834,7 @@ const call_t syscalls[] = {
     {"socketpair$inet6_sctp", 288},
     {"socketpair$inet6_tcp", 288},
     {"socketpair$inet6_udp", 288},
+    {"socketpair$inet6_udplite", 288},
     {"socketpair$inet_dccp", 288},
     {"socketpair$inet_icmp", 288},
     {"socketpair$inet_icmp_raw", 288},
@@ -5831,6 +5842,7 @@ const call_t syscalls[] = {
     {"socketpair$inet_smc", 288},
     {"socketpair$inet_tcp", 288},
     {"socketpair$inet_udp", 288},
+    {"socketpair$inet_udplite", 288},
     {"socketpair$ipx", 288},
     {"socketpair$packet", 288},
     {"socketpair$unix", 288},
@@ -5981,11 +5993,11 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "a572239f5db6b2e348768b5c0bc0f50bc156090c"
+#define SYZ_REVISION "8f35ff6320416fc8d2dd77a773e6331b63cb6c8e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1942
+#define SYZ_SYSCALL_COUNT 1946
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -7750,6 +7762,7 @@ const call_t syscalls[] = {
     {"socket$inet6_sctp", 198},
     {"socket$inet6_tcp", 198},
     {"socket$inet6_udp", 198},
+    {"socket$inet6_udplite", 198},
     {"socket$inet_dccp", 198},
     {"socket$inet_icmp", 198},
     {"socket$inet_icmp_raw", 198},
@@ -7757,6 +7770,7 @@ const call_t syscalls[] = {
     {"socket$inet_smc", 198},
     {"socket$inet_tcp", 198},
     {"socket$inet_udp", 198},
+    {"socket$inet_udplite", 198},
     {"socket$ipx", 198},
     {"socket$kcm", 198},
     {"socket$key", 198},
@@ -7786,6 +7800,7 @@ const call_t syscalls[] = {
     {"socketpair$inet6_sctp", 199},
     {"socketpair$inet6_tcp", 199},
     {"socketpair$inet6_udp", 199},
+    {"socketpair$inet6_udplite", 199},
     {"socketpair$inet_dccp", 199},
     {"socketpair$inet_icmp", 199},
     {"socketpair$inet_icmp_raw", 199},
@@ -7793,6 +7808,7 @@ const call_t syscalls[] = {
     {"socketpair$inet_smc", 199},
     {"socketpair$inet_tcp", 199},
     {"socketpair$inet_udp", 199},
+    {"socketpair$inet_udplite", 199},
     {"socketpair$ipx", 199},
     {"socketpair$packet", 199},
     {"socketpair$unix", 199},
@@ -7935,11 +7951,11 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "3ee087a60ac3de56b9db957dec9f999e93062c3f"
+#define SYZ_REVISION "e0d23caf525ff9f06001b9586ae733b13ba454da"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1830
+#define SYZ_SYSCALL_COUNT 1834
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -9582,6 +9598,7 @@ const call_t syscalls[] = {
     {"socket$inet6_sctp", 326},
     {"socket$inet6_tcp", 326},
     {"socket$inet6_udp", 326},
+    {"socket$inet6_udplite", 326},
     {"socket$inet_dccp", 326},
     {"socket$inet_icmp", 326},
     {"socket$inet_icmp_raw", 326},
@@ -9589,6 +9606,7 @@ const call_t syscalls[] = {
     {"socket$inet_smc", 326},
     {"socket$inet_tcp", 326},
     {"socket$inet_udp", 326},
+    {"socket$inet_udplite", 326},
     {"socket$ipx", 326},
     {"socket$kcm", 326},
     {"socket$key", 326},
@@ -9618,6 +9636,7 @@ const call_t syscalls[] = {
     {"socketpair$inet6_sctp", 333},
     {"socketpair$inet6_tcp", 333},
     {"socketpair$inet6_udp", 333},
+    {"socketpair$inet6_udplite", 333},
     {"socketpair$inet_dccp", 333},
     {"socketpair$inet_icmp", 333},
     {"socketpair$inet_icmp_raw", 333},
@@ -9625,6 +9644,7 @@ const call_t syscalls[] = {
     {"socketpair$inet_smc", 333},
     {"socketpair$inet_tcp", 333},
     {"socketpair$inet_udp", 333},
+    {"socketpair$inet_udplite", 333},
     {"socketpair$ipx", 333},
     {"socketpair$packet", 333},
     {"socketpair$unix", 333},
