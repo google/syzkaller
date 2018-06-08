@@ -165,6 +165,60 @@ ioctl$void(fd fd, cmd flags[ioctl_void])
 ioctl$int_in(fd fd, cmd flags[ioctl_int_in], v ptr[in, int64])
 ioctl$int_out(fd fd, cmd flags[ioctl_int_out], v ptr[out, intptr])
 ioctl$fiemap(fd fd, cmd const[FS_IOC_FIEMAP], v ptr[in, fiemap])
+ioctl$FS_IOC_RESVSP(fd fd, cmd const[FS_IOC_RESVSP], arg ptr[in, space_resv])
+ioctl$FIBMAP(fd fd, cmd const[FIBMAP], arg ptr[in, int32])
+ioctl$FICLONE(fd fd, cmd const[FICLONE], arg fd)
+ioctl$FICLONERANGE(fd fd, cmd const[FICLONERANGE], arg ptr[in, file_clone_range])
+ioctl$FIDEDUPERANGE(fd fd, cmd const[FIDEDUPERANGE], arg ptr[in, file_dedupe_range])
+ioctl$FS_IOC_FSGETXATTR(fd fd, cmd const[FS_IOC_FSGETXATTR], arg ptr[in, fsxattr])
+ioctl$FS_IOC_FSSETXATTR(fd fd, cmd const[FS_IOC_FSSETXATTR], arg ptr[in, fsxattr])
+ioctl$FS_IOC_GETFSLABEL(fd fd, cmd const[FS_IOC_GETFSLABEL], arg ptr[out, array[const[0, int8], FSLABEL_MAX]])
+ioctl$FS_IOC_SETFSLABEL(fd fd, cmd const[FS_IOC_SETFSLABEL], arg ptr[in, array[int8, FSLABEL_MAX]])
+
+space_resv {
+	l_type		const[0, int16]
+	l_whence	flags[seek_whence, int16]
+	l_start		int64
+	l_len		int64
+	l_sysid		const[0, int32]
+	l_pid		const[0, int32]
+	l_pad		array[const[0, int32], 4]
+}
+
+file_clone_range {
+	src_fd		fd
+	pad		const[0, int32]
+	src_offset	int64
+	src_length	int64
+	dest_offset	int64
+}
+
+file_dedupe_range {
+	src_offset	int64
+	src_length	int64
+	dest_count	len[info, int16]
+	reserved1	const[0, int16]
+	reserved2	const[0, int32]
+	info		array[file_dedupe_range_info]
+}
+
+file_dedupe_range_info {
+	dest_fd		fd
+	pad		const[0, int32]
+	dest_offset	int64
+	bytes_deduped	const[0, int64]
+	status		const[0, int32]
+	reserved	const[0, int32]
+}
+
+fsxattr {
+	fsx_xflags	int32
+	fsx_extsize	int32
+	fsx_nextents	int32
+	fsx_projid	int32
+	fsx_cowextsize	int32
+	fsx_pad		const[0, int64]
+}
 
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
@@ -890,7 +944,7 @@ epoll_ev = POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLL
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLMSG, POLLREMOVE, POLLRDHUP, POLLFREE, POLL_BUSY_LOOP
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 at_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUNT, AT_EMPTY_PATH
-fallocate_mode = 0, FALLOC_FL_KEEP_SIZE, FALLOC_FL_PUNCH_HOLE
+fallocate_mode = 0, FALLOC_FL_KEEP_SIZE, FALLOC_FL_PUNCH_HOLE, FALLOC_FL_COLLAPSE_RANGE, FALLOC_FL_ZERO_RANGE, FALLOC_FL_INSERT_RANGE, FALLOC_FL_UNSHARE_RANGE
 linkat_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
 unlinkat_flags = 0, AT_REMOVEDIR
 renameat2_flags = RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT

@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "07d5b669a7a1a0b250afc0f8937adc4f2c039ca4"
+#define SYZ_REVISION "020dc2b867a4cc5746da644d59b17c2cc8358bee"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1950
+#define SYZ_SYSCALL_COUNT 1959
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -576,7 +576,16 @@ const call_t syscalls[] = {
     {"ioctl$EVIOCSKEYCODE_V2", 54},
     {"ioctl$EVIOCSMASK", 54},
     {"ioctl$EVIOCSREP", 54},
+    {"ioctl$FIBMAP", 54},
+    {"ioctl$FICLONE", 54},
+    {"ioctl$FICLONERANGE", 54},
+    {"ioctl$FIDEDUPERANGE", 54},
     {"ioctl$FIONREAD", 54},
+    {"ioctl$FS_IOC_FSGETXATTR", 54},
+    {"ioctl$FS_IOC_FSSETXATTR", 54},
+    {"ioctl$FS_IOC_GETFSLABEL", 54},
+    {"ioctl$FS_IOC_RESVSP", 54},
+    {"ioctl$FS_IOC_SETFSLABEL", 54},
     {"ioctl$FUSE_DEV_IOC_CLONE", 54},
     {"ioctl$GIO_CMAP", 54},
     {"ioctl$GIO_FONT", 54},
@@ -1964,11 +1973,11 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "7321a0fb512677313acc4f1ebeaa68b3f47a3442"
+#define SYZ_REVISION "7d7779033df7d7e38b24995d04506aa8e09ceab1"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2002
+#define SYZ_SYSCALL_COUNT 2011
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2548,7 +2557,16 @@ const call_t syscalls[] = {
     {"ioctl$EVIOCSKEYCODE_V2", 16},
     {"ioctl$EVIOCSMASK", 16},
     {"ioctl$EVIOCSREP", 16},
+    {"ioctl$FIBMAP", 16},
+    {"ioctl$FICLONE", 16},
+    {"ioctl$FICLONERANGE", 16},
+    {"ioctl$FIDEDUPERANGE", 16},
     {"ioctl$FIONREAD", 16},
+    {"ioctl$FS_IOC_FSGETXATTR", 16},
+    {"ioctl$FS_IOC_FSSETXATTR", 16},
+    {"ioctl$FS_IOC_GETFSLABEL", 16},
+    {"ioctl$FS_IOC_RESVSP", 16},
+    {"ioctl$FS_IOC_SETFSLABEL", 16},
     {"ioctl$FUSE_DEV_IOC_CLONE", 16},
     {"ioctl$GIO_CMAP", 16},
     {"ioctl$GIO_FONT", 16},
@@ -3978,11 +3996,11 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "85339b6286a8309690620ef51e21fce96cfeaa12"
+#define SYZ_REVISION "02404d4b022e4b9468be627d6b5ce09cf3ecedcf"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1958
+#define SYZ_SYSCALL_COUNT 1967
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4556,7 +4574,16 @@ const call_t syscalls[] = {
     {"ioctl$EVIOCSKEYCODE_V2", 54},
     {"ioctl$EVIOCSMASK", 54},
     {"ioctl$EVIOCSREP", 54},
+    {"ioctl$FIBMAP", 54},
+    {"ioctl$FICLONE", 54},
+    {"ioctl$FICLONERANGE", 54},
+    {"ioctl$FIDEDUPERANGE", 54},
     {"ioctl$FIONREAD", 54},
+    {"ioctl$FS_IOC_FSGETXATTR", 54},
+    {"ioctl$FS_IOC_FSSETXATTR", 54},
+    {"ioctl$FS_IOC_GETFSLABEL", 54},
+    {"ioctl$FS_IOC_RESVSP", 54},
+    {"ioctl$FS_IOC_SETFSLABEL", 54},
     {"ioctl$FUSE_DEV_IOC_CLONE", 54},
     {"ioctl$GIO_CMAP", 54},
     {"ioctl$GIO_FONT", 54},
@@ -5948,11 +5975,11 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "477596f47c60bcb98a175c9c4df0982feff218d9"
+#define SYZ_REVISION "d87e07e3aa11539e86a2c274e8ed54bc7ef66653"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1931
+#define SYZ_SYSCALL_COUNT 1940
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6518,7 +6545,16 @@ const call_t syscalls[] = {
     {"ioctl$EVIOCSKEYCODE_V2", 29},
     {"ioctl$EVIOCSMASK", 29},
     {"ioctl$EVIOCSREP", 29},
+    {"ioctl$FIBMAP", 29},
+    {"ioctl$FICLONE", 29},
+    {"ioctl$FICLONERANGE", 29},
+    {"ioctl$FIDEDUPERANGE", 29},
     {"ioctl$FIONREAD", 29},
+    {"ioctl$FS_IOC_FSGETXATTR", 29},
+    {"ioctl$FS_IOC_FSSETXATTR", 29},
+    {"ioctl$FS_IOC_GETFSLABEL", 29},
+    {"ioctl$FS_IOC_RESVSP", 29},
+    {"ioctl$FS_IOC_SETFSLABEL", 29},
     {"ioctl$FUSE_DEV_IOC_CLONE", 29},
     {"ioctl$GIO_CMAP", 29},
     {"ioctl$GIO_FONT", 29},
@@ -7891,11 +7927,11 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "bf27af2c473538a5ad60c9aa42185834aa7fa451"
+#define SYZ_REVISION "bfeabb36851c5973bd345bcf994d13b5791bbcc4"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1819
+#define SYZ_SYSCALL_COUNT 1828
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8472,7 +8508,16 @@ const call_t syscalls[] = {
     {"ioctl$EVIOCSKEYCODE_V2", 54},
     {"ioctl$EVIOCSMASK", 54},
     {"ioctl$EVIOCSREP", 54},
+    {"ioctl$FIBMAP", 54},
+    {"ioctl$FICLONE", 54},
+    {"ioctl$FICLONERANGE", 54},
+    {"ioctl$FIDEDUPERANGE", 54},
     {"ioctl$FIONREAD", 54},
+    {"ioctl$FS_IOC_FSGETXATTR", 54},
+    {"ioctl$FS_IOC_FSSETXATTR", 54},
+    {"ioctl$FS_IOC_GETFSLABEL", 54},
+    {"ioctl$FS_IOC_RESVSP", 54},
+    {"ioctl$FS_IOC_SETFSLABEL", 54},
     {"ioctl$FUSE_DEV_IOC_CLONE", 54},
     {"ioctl$GIO_CMAP", 54},
     {"ioctl$GIO_FONT", 54},
