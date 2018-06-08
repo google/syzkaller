@@ -509,7 +509,7 @@ var (
 	executorBinRe    = regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`)
 	syzkallerBinRe   = regexp.MustCompile(`syzkaller[0-9]+((/|:)[0-9]+)?`)
 	linuxRcuStall    = compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall")
-	linuxRipFrame    = compile(`IP: (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\))`)
+	linuxRipFrame    = compile(`IP: (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
 )
 
 var linuxCorruptedTitles = []*regexp.Regexp{
