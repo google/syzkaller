@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "4834cc8bb9a0059059dad5ea63d7c006feba5c7e"
+#define SYZ_REVISION "07d5b669a7a1a0b250afc0f8937adc4f2c039ca4"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1949
+#define SYZ_SYSCALL_COUNT 1950
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -398,6 +398,7 @@ const call_t syscalls[] = {
     {"io_cancel", 249},
     {"io_destroy", 246},
     {"io_getevents", 247},
+    {"io_pgetevents", 385},
     {"io_setup", 245},
     {"io_submit", 248},
     {"ioctl", 54},
@@ -1963,11 +1964,11 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "481aa31f07ad28350ffe63499cd5b08e2299dec2"
+#define SYZ_REVISION "7321a0fb512677313acc4f1ebeaa68b3f47a3442"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2001
+#define SYZ_SYSCALL_COUNT 2002
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2369,6 +2370,7 @@ const call_t syscalls[] = {
     {"io_cancel", 210},
     {"io_destroy", 207},
     {"io_getevents", 208},
+    {"io_pgetevents", 333},
     {"io_setup", 206},
     {"io_submit", 209},
     {"ioctl", 16},
@@ -3976,7 +3978,7 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "21c24d07a350f065369bf4db3606dfbbf0ecddd5"
+#define SYZ_REVISION "85339b6286a8309690620ef51e21fce96cfeaa12"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -5946,11 +5948,11 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "e1500c432dd088ec7acbc4d5d596ce0966267779"
+#define SYZ_REVISION "477596f47c60bcb98a175c9c4df0982feff218d9"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1930
+#define SYZ_SYSCALL_COUNT 1931
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6338,6 +6340,7 @@ const call_t syscalls[] = {
     {"io_cancel", 3},
     {"io_destroy", 1},
     {"io_getevents", 4},
+    {"io_pgetevents", 292},
     {"io_setup", 0},
     {"io_submit", 2},
     {"ioctl", 29},
@@ -7888,7 +7891,7 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "258eb025835ee668ac6466001ffcc0fe051b377f"
+#define SYZ_REVISION "bf27af2c473538a5ad60c9aa42185834aa7fa451"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
