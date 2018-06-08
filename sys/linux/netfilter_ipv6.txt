@@ -125,6 +125,7 @@ ipt6_matches [
 	ipv6header	xt_entry_match["ipv6header", ip6t_ipv6header_info, 0]
 	hl		xt_entry_match["hl", ipt_ttl_info, 0]
 	srh		xt_entry_match["srh", ip6t_srh, 0]
+	srh1		xt_entry_match["srh", ip6t_srh1, 1]
 ] [varlen]
 
 ip6t_filter_matches [
@@ -226,7 +227,23 @@ ip6t_srh {
 	mt_invflags	flags[ip6t_srh_flags, int16]
 }
 
-ip6t_srh_flags = IP6T_SRH_NEXTHDR, IP6T_SRH_LEN_EQ, IP6T_SRH_LEN_GT, IP6T_SRH_LEN_LT, IP6T_SRH_SEGS_EQ, IP6T_SRH_SEGS_GT, IP6T_SRH_SEGS_LT, IP6T_SRH_LAST_EQ, IP6T_SRH_LAST_GT, IP6T_SRH_LAST_LT, IP6T_SRH_TAG
+ip6t_srh1 {
+	next_hdr	flags[ipv6_types, int8]
+	hdr_len		int8
+	segs_left	int8
+	last_entry	int8
+	tag		int16
+	psid_addr	ipv6_addr
+	nsid_addr	ipv6_addr
+	lsid_addr	ipv6_addr
+	psid_msk	ipv6_addr_mask
+	nsid_msk	ipv6_addr_mask
+	lsid_msk	ipv6_addr_mask
+	mt_flags	flags[ip6t_srh_flags, int16]
+	mt_invflags	flags[ip6t_srh_flags, int16]
+}
+
+ip6t_srh_flags = IP6T_SRH_NEXTHDR, IP6T_SRH_LEN_EQ, IP6T_SRH_LEN_GT, IP6T_SRH_LEN_LT, IP6T_SRH_SEGS_EQ, IP6T_SRH_SEGS_GT, IP6T_SRH_SEGS_LT, IP6T_SRH_LAST_EQ, IP6T_SRH_LAST_GT, IP6T_SRH_LAST_LT, IP6T_SRH_TAG, IP6T_SRH_PSID, IP6T_SRH_NSID, IP6T_SRH_LSID
 
 # TARGETS:
 
