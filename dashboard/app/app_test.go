@@ -225,23 +225,20 @@ func TestApp(t *testing.T) {
 
 	c.expectOK(c.GET("/"))
 
-	c.expectFail("unknown api method", c.API(client1, key1, "unsupported_method", nil, nil))
-
-	ent := &dashapi.LogEntry{
-		Name: "name",
-		Text: "text",
-	}
-	c.expectOK(c.API(client1, key1, "log_error", ent, nil))
+	apiClient1 := c.makeClient(client1, key1, false)
+	apiClient2 := c.makeClient(client2, key2, false)
+	c.expectFail("unknown api method", apiClient1.Query("unsupported_method", nil, nil))
+	c.client.LogError("name", "msg %s", "arg")
 
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 	// Uploading the same build must be OK.
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
 	// Some bad combinations of client/key.
-	c.expectFail("unauthorized", c.API(client1, "", "upload_build", build, nil))
-	c.expectFail("unauthorized", c.API("unknown", key1, "upload_build", build, nil))
-	c.expectFail("unauthorized", c.API(client1, key2, "upload_build", build, nil))
+	c.expectFail("unauthorized", c.makeClient(client1, "", false).Query("upload_build", build, nil))
+	c.expectFail("unauthorized", c.makeClient("unknown", key1, false).Query("upload_build", build, nil))
+	c.expectFail("unauthorized", c.makeClient(client1, key2, false).Query("upload_build", build, nil))
 
 	crash1 := &dashapi.Crash{
 		BuildID:     "build1",
@@ -250,10 +247,10 @@ func TestApp(t *testing.T) {
 		Log:         []byte("log1"),
 		Report:      []byte("report1"),
 	}
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	c.client.ReportCrash(crash1)
 
 	// Test that namespace isolation works.
-	c.expectFail("unknown build", c.API(client2, key2, "report_crash", crash1, nil))
+	c.expectFail("unknown build", apiClient2.Query("report_crash", crash1, nil))
 
 	crash2 := &dashapi.Crash{
 		BuildID:     "build1",
@@ -265,7 +262,7 @@ func TestApp(t *testing.T) {
 		ReproSyz:    []byte("syz repro"),
 		ReproC:      []byte("c repro"),
 	}
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+	c.client.ReportCrash(crash2)
 
 	// Provoke purgeOldCrashes.
 	for i := 0; i < 30; i++ {
@@ -276,28 +273,22 @@ func TestApp(t *testing.T) {
 			Log:         []byte(fmt.Sprintf("log%v", i)),
 			Report:      []byte(fmt.Sprintf("report%v", i)),
 		}
-		c.expectOK(c.API(client1, key1, "report_crash", crash, nil))
+		c.client.ReportCrash(crash)
 	}
 
 	cid := &dashapi.CrashID{
 		BuildID: "build1",
 		Title:   "title1",
 	}
-	c.expectOK(c.API(client1, key1, "report_failed_repro", cid, nil))
+	c.client.ReportFailedRepro(cid)
 
-	pr := &dashapi.PollBugsRequest{
-		Type: "test",
-	}
-	resp := new(dashapi.PollBugsResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
+	c.client.ReportingPollBugs("test")
 
-	cmd := &dashapi.BugUpdate{
+	c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         "id",
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: dashapi.ReproLevelC,
-		DupOf:      "",
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, nil))
+	})
 }
 
 // Normal workflow:
@@ -309,37 +300,35 @@ func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	defer c.Close()
 
 	crash1 := crashCtor(c)
-	resp := new(dashapi.ReportCrashResp)
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
+	resp, _ := c.client.ReportCrash(crash1)
 	c.expectEQ(resp.NeedRepro, true)
 
 	cid := testCrashID(crash1)
-	needReproResp := new(dashapi.NeedReproResp)
-	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-	c.expectEQ(needReproResp.NeedRepro, true)
+	needRepro, _ := c.client.NeedRepro(cid)
+	c.expectEQ(needRepro, true)
 
 	// Still need repro for this crash.
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
+	resp, _ = c.client.ReportCrash(crash1)
 	c.expectEQ(resp.NeedRepro, true)
-	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-	c.expectEQ(needReproResp.NeedRepro, true)
+	needRepro, _ = c.client.NeedRepro(cid)
+	c.expectEQ(needRepro, true)
 
 	crash2 := new(dashapi.Crash)
 	*crash2 = *crash1
 	crash2.ReproOpts = []byte("opts")
 	crash2.ReproSyz = []byte("repro syz")
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, resp))
+	resp, _ = c.client.ReportCrash(crash2)
 	c.expectEQ(resp.NeedRepro, true)
-	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-	c.expectEQ(needReproResp.NeedRepro, true)
+	needRepro, _ = c.client.NeedRepro(cid)
+	c.expectEQ(needRepro, true)
 
 	crash2.ReproC = []byte("repro C")
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, resp))
+	resp, _ = c.client.ReportCrash(crash2)
 	c.expectEQ(resp.NeedRepro, false)
-	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-	c.expectEQ(needReproResp.NeedRepro, false)
+	needRepro, _ = c.client.NeedRepro(cid)
+	c.expectEQ(needRepro, false)
 
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
+	resp, _ = c.client.ReportCrash(crash2)
 	c.expectEQ(resp.NeedRepro, false)
 }
 
@@ -357,14 +346,11 @@ func testNeedRepro2(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	crash1.ReproOpts = []byte("opts")
 	crash1.ReproSyz = []byte("repro syz")
 	crash1.ReproC = []byte("repro C")
-	resp := new(dashapi.ReportCrashResp)
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
+	resp, _ := c.client.ReportCrash(crash1)
 	c.expectEQ(resp.NeedRepro, false)
 
-	cid := testCrashID(crash1)
-	needReproResp := new(dashapi.NeedReproResp)
-	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-	c.expectEQ(needReproResp.NeedRepro, false)
+	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
+	c.expectEQ(needRepro, false)
 }
 
 func TestNeedRepro2_normal(t *testing.T)      { testNeedRepro2(t, normalCrash) }
@@ -378,25 +364,20 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	defer c.Close()
 
 	crash1 := crashCtor(c)
-	resp := new(dashapi.ReportCrashResp)
-	cid := testCrashID(crash1)
-	needReproResp := new(dashapi.NeedReproResp)
-
 	for i := 0; i < maxReproPerBug; i++ {
-		c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
+		resp, _ := c.client.ReportCrash(crash1)
 		c.expectEQ(resp.NeedRepro, true)
 
-		c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-		c.expectEQ(needReproResp.NeedRepro, true)
-
-		c.expectOK(c.API(client1, key1, "report_failed_repro", cid, nil))
+		needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
+		c.expectEQ(needRepro, true)
+		c.client.ReportFailedRepro(testCrashID(crash1))
 	}
 
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
+	resp, _ := c.client.ReportCrash(crash1)
 	c.expectEQ(resp.NeedRepro, false)
 
-	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-	c.expectEQ(needReproResp.NeedRepro, false)
+	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
+	c.expectEQ(needRepro, false)
 }
 
 func TestNeedRepro3_normal(t *testing.T)      { testNeedRepro3(t, normalCrash) }
@@ -412,23 +393,19 @@ func testNeedRepro4(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	crash1 := crashCtor(c)
 	crash1.ReproOpts = []byte("opts")
 	crash1.ReproSyz = []byte("repro syz")
-	resp := new(dashapi.ReportCrashResp)
-	cid := testCrashID(crash1)
-	needReproResp := new(dashapi.NeedReproResp)
-
 	for i := 0; i < maxReproPerBug-1; i++ {
-		c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
+		resp, _ := c.client.ReportCrash(crash1)
 		c.expectEQ(resp.NeedRepro, true)
 
-		c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-		c.expectEQ(needReproResp.NeedRepro, true)
+		needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
+		c.expectEQ(needRepro, true)
 	}
 
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
+	resp, _ := c.client.ReportCrash(crash1)
 	c.expectEQ(resp.NeedRepro, false)
 
-	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
-	c.expectEQ(needReproResp.NeedRepro, false)
+	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
+	c.expectEQ(needRepro, false)
 }
 
 func TestNeedRepro4_normal(t *testing.T)      { testNeedRepro4(t, normalCrash) }
@@ -438,37 +415,18 @@ func TestNeedRepro4_closedRepro(t *testing.T) { testNeedRepro4(t, closedWithRepr
 
 func normalCrash(c *Ctx) *dashapi.Crash {
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 	return testCrash(build, 1)
 }
 
 func dupCrash(c *Ctx) *dashapi.Crash {
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
-
-	crash1 := testCrash(build, 1)
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
-
+	c.client.UploadBuild(build)
+	c.client.ReportCrash(testCrash(build, 1))
 	crash2 := testCrash(build, 2)
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
-
-	pr := &dashapi.PollBugsRequest{
-		Type: "test",
-	}
-	resp := new(dashapi.PollBugsResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 2)
-	rep1 := resp.Reports[0]
-	rep2 := resp.Reports[1]
-	cmd := &dashapi.BugUpdate{
-		ID:     rep2.ID,
-		Status: dashapi.BugStatusDup,
-		DupOf:  rep1.ID,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-
+	c.client.ReportCrash(crash2)
+	reports := c.client.pollBugs(2)
+	c.client.updateBug(reports[1].ID, dashapi.BugStatusDup, reports[0].ID)
 	return crash2
 }
 
@@ -482,30 +440,17 @@ func closedWithReproCrash(c *Ctx) *dashapi.Crash {
 
 func closedCrashImpl(c *Ctx, withRepro bool) *dashapi.Crash {
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
 	crash := testCrash(build, 1)
 	if withRepro {
 		crash.ReproC = []byte("repro C")
 	}
-	resp := new(dashapi.ReportCrashResp)
-	c.expectOK(c.API(client1, key1, "report_crash", crash, resp))
+	resp, _ := c.client.ReportCrash(crash)
 	c.expectEQ(resp.NeedRepro, !withRepro)
 
-	pr := &dashapi.PollBugsRequest{
-		Type: "test",
-	}
-	pollResp := new(dashapi.PollBugsResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, pollResp))
-	c.expectEQ(len(pollResp.Reports), 1)
-	rep := pollResp.Reports[0]
-	cmd := &dashapi.BugUpdate{
-		ID:     rep.ID,
-		Status: dashapi.BugStatusInvalid,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
+	rep := c.client.pollBug()
+	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 
 	crash.ReproC = nil
 	return crash
