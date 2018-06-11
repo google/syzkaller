@@ -26,7 +26,7 @@ import (
 
 // Email reporting interface.
 
-func init() {
+func initEmailReporting() {
 	http.HandleFunc("/email_poll", handleEmailPoll)
 	http.HandleFunc("/_ah/mail/", handleIncomingMail)
 	http.HandleFunc("/_ah/bounce", handleEmailBounce)
