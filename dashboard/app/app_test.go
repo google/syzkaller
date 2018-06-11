@@ -240,39 +240,20 @@ func TestApp(t *testing.T) {
 	c.expectFail("unauthorized", c.makeClient("unknown", key1, false).Query("upload_build", build, nil))
 	c.expectFail("unauthorized", c.makeClient(client1, key2, false).Query("upload_build", build, nil))
 
-	crash1 := &dashapi.Crash{
-		BuildID:     "build1",
-		Title:       "title1",
-		Maintainers: []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`},
-		Log:         []byte("log1"),
-		Report:      []byte("report1"),
-	}
+	crash1 := testCrash(build, 1)
 	c.client.ReportCrash(crash1)
 
 	// Test that namespace isolation works.
 	c.expectFail("unknown build", apiClient2.Query("report_crash", crash1, nil))
 
-	crash2 := &dashapi.Crash{
-		BuildID:     "build1",
-		Title:       "title2",
-		Maintainers: []string{`bar@foo.com`},
-		Log:         []byte("log2"),
-		Report:      []byte("report2"),
-		ReproOpts:   []byte("opts"),
-		ReproSyz:    []byte("syz repro"),
-		ReproC:      []byte("c repro"),
-	}
+	crash2 := testCrashWithRepro(build, 2)
 	c.client.ReportCrash(crash2)
 
 	// Provoke purgeOldCrashes.
 	for i := 0; i < 30; i++ {
-		crash := &dashapi.Crash{
-			BuildID:     "build1",
-			Title:       "title1",
-			Maintainers: []string{`bar@foo.com`},
-			Log:         []byte(fmt.Sprintf("log%v", i)),
-			Report:      []byte(fmt.Sprintf("report%v", i)),
-		}
+		crash := testCrash(build, 3)
+		crash.Log = []byte(fmt.Sprintf("log%v", i))
+		crash.Report = []byte(fmt.Sprintf("report%v", i))
 		c.client.ReportCrash(crash)
 	}
 
