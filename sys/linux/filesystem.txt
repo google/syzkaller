@@ -16,7 +16,7 @@ syz_mount_image$msdos(fs ptr[in, string["msdos"]], dir ptr[in, filename], size i
 
 syz_mount_image$bfs(fs ptr[in, string["bfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts const[0])
 
-syz_mount_image$xfs(fs ptr[in, string["xfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, xfs_full_options])
+syz_mount_image$xfs(fs ptr[in, string["xfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, xfs_options])
 
 syz_mount_image$minix(fs ptr[in, string["minix"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts const[0])
 
@@ -112,13 +112,6 @@ vfat_options [
 	time_offset	fs_opt_dec["time_offset"]
 	codepage	fs_opt_cp_num["codepage"]
 ] [varlen]
-
-xfs_full_options {
-# We always set nouuid because xfs has a global table uuids and if two parallel
-# executors mounts fs with the same uuid, second mount fails.
-	nouuid	stringnoz["nouuid,"]
-	options	fs_options[xfs_options]
-}
 
 xfs_options [
 	wsync		stringnoz["wsync"]

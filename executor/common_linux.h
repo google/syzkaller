@@ -953,9 +953,9 @@ error:
 //	size	len[data, intptr]
 //	offset	intptr
 //}
-static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, uintptr_t nsegs, uintptr_t segments, uintptr_t flags, uintptr_t opts)
+static uintptr_t syz_mount_image(uintptr_t fsarg, uintptr_t dir, uintptr_t size, uintptr_t nsegs, uintptr_t segments, uintptr_t flags, uintptr_t optsarg)
 {
-	char loopname[64];
+	char loopname[64], fs[32], opts[256];
 	int loopfd, err = 0, res = -1;
 	uintptr_t i;
 	// Strictly saying we ought to do a nonfailing copyout of segments into a local var.
@@ -1010,12 +1010,28 @@ static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, ui
 		}
 	}
 	mkdir((char*)dir, 0777);
-	NONFAILING(if (strcmp((char*)fs, "iso9660") == 0) flags |= MS_RDONLY);
-	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir, (char*)fs, (char*)opts);
+	memset(fs, 0, sizeof(fs));
+	NONFAILING(strncpy(fs, (char*)fsarg, sizeof(fs) - 1));
+	memset(opts, 0, sizeof(opts));
+	// Leave some space for the additional options we append below.
+	NONFAILING(strncpy(opts, (char*)optsarg, sizeof(opts) - 32));
+	if (strcmp(fs, "iso9660") == 0) {
+		flags |= MS_RDONLY;
+	} else if (strncmp(fs, "ext", 3) == 0) {
+		// For ext2/3/4 we have to have errors=continue because the image
+		// can contain errors=panic flag and can legally crash kernel.
+		if (strstr(opts, "errors=panic") || strstr(opts, "errors=remount-ro") == 0)
+			strcat(opts, ",errors=continue");
+	} else if (strcmp(fs, "xfs") == 0) {
+		// For xfs we need nouuid because xfs has a global uuids table
+		// and if two parallel executors mounts fs with the same uuid, second mount fails.
+		strcat(opts, ",nouuid");
+	}
+	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir, fs, (uint64)flags, opts);
 #if defined(SYZ_EXECUTOR)
 	cover_reset(0);
 #endif
-	if (mount(loopname, (char*)dir, (char*)fs, flags, (char*)opts)) {
+	if (mount(loopname, (char*)dir, fs, flags, opts)) {
 		err = errno;
 		goto error_clear_loop;
 	}
