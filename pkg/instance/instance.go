@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
@@ -215,13 +214,13 @@ func (inst *inst) testInstance() error {
 		return fmt.Errorf("failed to open listening socket: %v", err)
 	}
 	defer ln.Close()
-	var gotConn uint32
+	acceptErr := make(chan error, 1)
 	go func() {
 		conn, err := ln.Accept()
 		if err == nil {
 			conn.Close()
-			atomic.StoreUint32(&gotConn, 1)
 		}
+		acceptErr <- err
 	}()
 	fwdAddr, err := inst.vm.Forward(ln.Addr().(*net.TCPAddr).Port)
 	if err != nil {
@@ -252,10 +251,12 @@ func (inst *inst) testInstance() error {
 			Report: rep,
 		}
 	}
-	if atomic.LoadUint32(&gotConn) == 0 {
+	select {
+	case err := <-acceptErr:
+		return err
+	case <-time.After(10 * time.Second):
 		return fmt.Errorf("test machine failed to connect to host")
 	}
-	return nil
 }
 
 func (inst *inst) testRepro() error {
