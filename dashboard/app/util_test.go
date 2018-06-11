@@ -357,7 +357,7 @@ Content-Type: text/plain
 	c.expectOK(c.POST("/_ah/mail/", email))
 }
 
-func init() {
+func initMocks() {
 	// Mock time as some functionality relies on real time.
 	timeNow = func(c context.Context) time.Time {
 		return getRequestContext(c).mockedTime

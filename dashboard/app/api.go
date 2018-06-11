@@ -25,7 +25,7 @@ import (
 	"google.golang.org/appengine/log"
 )
 
-func init() {
+func initAPIHandlers() {
 	http.Handle("/api", handleJSON(handleAPI))
 }
 
