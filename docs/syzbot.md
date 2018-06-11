@@ -206,6 +206,10 @@ We've experimented with application of custom patches in the past and it lead
 to unrecoverable mess. If you want `syzbot` to pick up patches sooner,
 ask tree maintainers for priority handling.
 
+## Kernel configs
+
+Kernel configs, sysctls and command line arguments that `syzbot` uses are available in [/dashboard/config](/dashboard/config).
+
 ## Is syzbot code available?
 
 Yes, it is [here](https://github.com/google/syzkaller/tree/master/dashboard/app).
