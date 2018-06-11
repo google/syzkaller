@@ -534,8 +534,10 @@ mkdir /run/network
 printf 'auto lo\niface lo inet loopback\n\n' >> /etc/network/interfaces
 printf 'auto eth0\niface eth0 inet static\naddress 10.0.2.15\nnetmask 255.255.255.0\nnetwork 10.0.2.0\ngateway 10.0.2.1\nbroadcast 10.0.2.255\n\n' >> /etc/network/interfaces
 printf 'auto eth0\niface eth0 inet6 static\naddress fe80::5054:ff:fe12:3456/64\ngateway 2000:da8:203:612:0:3:0:1\n\n' >> /etc/network/interfaces
+mkdir -p /etc/network/if-pre-up.d
+mkdir -p /etc/network/if-up.d
 ifup lo
-ifup eth0
+ifup eth0 || true
 echo "root::0:0:root:/root:/bin/bash" > /etc/passwd
 mkdir -p /etc/ssh
 cp {{KEY}}.pub /root/
@@ -543,6 +545,8 @@ chmod 0700 /root
 chmod 0600 /root/key.pub
 mkdir -p /var/run/sshd/
 chmod 700 /var/run/sshd
+groupadd -g 33 sshd
+useradd -u 33 -g 33 -c sshd -d / sshd
 cat > /etc/ssh/sshd_config <<EOF
           Port 22
           Protocol 2
