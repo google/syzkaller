@@ -21,7 +21,7 @@ import (
 
 // This file contains web UI http handlers.
 
-func init() {
+func initHTTPHandlers() {
 	http.Handle("/", handlerWrapper(handleMain))
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))

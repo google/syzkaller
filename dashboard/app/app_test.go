@@ -14,8 +14,13 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
+func init() {
+	initMocks()
+	installConfig(testConfig)
+}
+
 // Config used in tests.
-var config = GlobalConfig{
+var testConfig = &GlobalConfig{
 	AccessLevel: AccessPublic,
 	AuthDomain:  "@syzkaller.com",
 	Clients: map[string]string{
@@ -124,7 +129,8 @@ var config = GlobalConfig{
 			},
 		},
 		"access-public": &Config{
-			Key: "publickeypublickeypublickey",
+			AccessLevel: AccessPublic,
+			Key:         "publickeypublickeypublickey",
 			Clients: map[string]string{
 				clientPublic: keyPublic,
 			},

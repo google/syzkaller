@@ -126,10 +126,6 @@ const (
 	FilterHold                       // Hold off with reporting this bug.
 )
 
-func reportAllFilter(bug *Bug) FilterResult  { return FilterReport }
-func reportSkipFilter(bug *Bug) FilterResult { return FilterSkip }
-func reportHoldFilter(bug *Bug) FilterResult { return FilterHold }
-
 func (cfg *Config) ReportingByName(name string) *Reporting {
 	for i := range cfg.Reporting {
 		reporting := &cfg.Reporting[i]
@@ -140,19 +136,26 @@ func (cfg *Config) ReportingByName(name string) *Reporting {
 	return nil
 }
 
-func init() {
-	// Validate the global config.
-	if len(config.Namespaces) == 0 {
+// config is populated by installConfig which should be called either from tests
+// or from a separate file that provides actual production config.
+var config *GlobalConfig
+
+func installConfig(cfg *GlobalConfig) {
+	if config != nil {
+		panic("another config is already installed")
+	}
+	// Validate the global cfg.
+	if len(cfg.Namespaces) == 0 {
 		panic("no namespaces found")
 	}
-	for i := range config.EmailBlacklist {
-		config.EmailBlacklist[i] = email.CanonicalEmail(config.EmailBlacklist[i])
+	for i := range cfg.EmailBlacklist {
+		cfg.EmailBlacklist[i] = email.CanonicalEmail(cfg.EmailBlacklist[i])
 	}
 	namespaces := make(map[string]bool)
 	clientNames := make(map[string]bool)
-	checkClients(clientNames, config.Clients)
-	checkConfigAccessLevel(&config.AccessLevel, AccessPublic, "global")
-	for ns, cfg := range config.Namespaces {
+	checkClients(clientNames, cfg.Clients)
+	checkConfigAccessLevel(&cfg.AccessLevel, AccessPublic, "global")
+	for ns, cfg := range cfg.Namespaces {
 		if ns == "" {
 			panic("empty namespace name")
 		}
@@ -188,7 +191,7 @@ func init() {
 		if len(cfg.Reporting) == 0 {
 			panic(fmt.Sprintf("no reporting in namespace %q", ns))
 		}
-		checkConfigAccessLevel(&cfg.AccessLevel, config.AccessLevel, fmt.Sprintf("namespace %q", ns))
+		checkConfigAccessLevel(&cfg.AccessLevel, cfg.AccessLevel, fmt.Sprintf("namespace %q", ns))
 		parentAccessLevel := cfg.AccessLevel
 		reportingNames := make(map[string]bool)
 		// Go backwards because access levels get stricter backwards.
@@ -207,7 +210,7 @@ func init() {
 				fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
 			parentAccessLevel = reporting.AccessLevel
 			if reporting.Filter == nil {
-				reporting.Filter = reportAllFilter
+				reporting.Filter = func(bug *Bug) FilterResult { return FilterReport }
 			}
 			reportingNames[reporting.Name] = true
 			if reporting.Config.Type() == "" {
@@ -222,13 +225,24 @@ func init() {
 			}
 		}
 	}
-	for repo, info := range config.KernelRepos {
+	for repo, info := range cfg.KernelRepos {
 		if info.Alias == "" {
 			panic(fmt.Sprintf("empty kernel repo alias for %q", repo))
 		}
 		if prio := info.ReportingPriority; prio < 0 || prio > 9 {
 			panic(fmt.Sprintf("bad kernel repo reporting priority %v for %q", prio, repo))
 		}
+	}
+	config = cfg
+	initEmailReporting()
+	initHTTPHandlers()
+	initAPIHandlers()
+}
+
+func init() {
+	// Prevents gometalinter from considering everything as dead code.
+	if false {
+		installConfig(nil)
 	}
 }
 
