@@ -336,59 +336,84 @@ func addCommitsToBugs(c context.Context, ns, manager string,
 		return err
 	}
 	var bugs []*Bug
-	keys, err := datastore.NewQuery("Bug").
+	_, err = datastore.NewQuery("Bug").
 		Filter("Namespace=", ns).
-		Filter("Status<", BugStatusFixed).
 		GetAll(c, &bugs)
 	if err != nil {
 		return fmt.Errorf("failed to query bugs: %v", err)
 	}
-	now := timeNow(c)
-	for i, bug := range bugs {
+nextBug:
+	for _, bug := range bugs {
+		switch bug.Status {
+		case BugStatusOpen, BugStatusDup:
+		case BugStatusFixed, BugStatusInvalid:
+			continue nextBug
+		default:
+			return fmt.Errorf("addCommitsToBugs: unknown bug status %v", bug.Status)
+		}
 		var fixCommits []string
 		for i := range bug.Reporting {
 			fixCommits = append(fixCommits, bugFixedBy[bug.Reporting[i].ID]...)
 		}
 		sort.Strings(fixCommits)
-		if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits) {
-			continue
-		}
-		tx := func(c context.Context) error {
-			bug := new(Bug)
-			if err := datastore.Get(c, keys[i], bug); err != nil {
-				return fmt.Errorf("failed to get bug %v: %v", keys[i].StringID(), err)
-			}
-			if !bugNeedsCommitUpdate(nil, bug, manager, fixCommits, presentCommits) {
-				return nil
-			}
-			if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
-				bug.Commits = fixCommits
-				bug.PatchedOn = nil
-			}
-			bug.PatchedOn = append(bug.PatchedOn, manager)
-			if bug.Status == BugStatusOpen {
-				fixed := true
-				for _, mgr := range managers {
-					if !stringInList(bug.PatchedOn, mgr) {
-						fixed = false
-						break
-					}
-				}
-				if fixed {
-					bug.Status = BugStatusFixed
-					bug.Closed = now
-				}
-			}
-			if _, err := datastore.Put(c, keys[i], bug); err != nil {
-				return fmt.Errorf("failed to put bug: %v", err)
-			}
-			return nil
-		}
-		if err := datastore.RunInTransaction(c, tx, nil); err != nil {
+		if err := addCommitsToBug(c, bug, manager, managers, fixCommits, presentCommits); err != nil {
 			return err
+		}
+		if bug.Status == BugStatusDup {
+			canon, err := canonicalBug(c, bug)
+			if err != nil {
+				return err
+			}
+			if canon.Status == BugStatusOpen && len(bug.Commits) == 0 {
+				if err := addCommitsToBug(c, canon, manager, managers,
+					fixCommits, presentCommits); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil
+}
+
+func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []string,
+	fixCommits []string, presentCommits map[string]bool) error {
+	if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits) {
+		return nil
+	}
+	now := timeNow(c)
+	bugKey := datastore.NewKey(c, "Bug", bugKeyHash(bug.Namespace, bug.Title, bug.Seq), 0, nil)
+	tx := func(c context.Context) error {
+		bug := new(Bug)
+		if err := datastore.Get(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to get bug %v: %v", bugKey.StringID(), err)
+		}
+		if !bugNeedsCommitUpdate(nil, bug, manager, fixCommits, presentCommits) {
+			return nil
+		}
+		if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
+			bug.Commits = fixCommits
+			bug.PatchedOn = nil
+		}
+		bug.PatchedOn = append(bug.PatchedOn, manager)
+		if bug.Status == BugStatusOpen {
+			fixed := true
+			for _, mgr := range managers {
+				if !stringInList(bug.PatchedOn, mgr) {
+					fixed = false
+					break
+				}
+			}
+			if fixed {
+				bug.Status = BugStatusFixed
+				bug.Closed = now
+			}
+		}
+		if _, err := datastore.Put(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to put bug: %v", err)
+		}
+		return nil
+	}
+	return datastore.RunInTransaction(c, tx, nil)
 }
 
 func managerList(c context.Context, ns string) ([]string, error) {

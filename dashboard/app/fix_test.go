@@ -7,6 +7,7 @@ package dash
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
@@ -409,4 +410,122 @@ func TestFixedWithCommitTags(t *testing.T) {
 	c.client.ReportCrash(crash1)
 	rep2 := c.client.pollBug()
 	c.expectEQ(rep2.Title, "title1 (2)")
+}
+
+// TestFixedDup tests Reported-by commit tag that comes for a dup.
+// In such case we need to associate it with the canonical bugs.
+func TestFixedDup(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	crash1 := testCrash(build, 1)
+	c.client.ReportCrash(crash1)
+	rep1 := c.client.pollBug()
+
+	crash2 := testCrash(build, 2)
+	c.client.ReportCrash(crash2)
+	rep2 := c.client.pollBug()
+
+	// rep2 is a dup of rep1.
+	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
+
+	// Upload build that fixes rep2.
+	build.FixCommits = []dashapi.FixCommit{{"fix commit 1", rep2.ID}}
+	c.client.UploadBuild(build)
+
+	// This must fix rep1.
+	c.client.ReportCrash(crash1)
+	rep3 := c.client.pollBug()
+	c.expectEQ(rep3.Title, rep1.Title+" (2)")
+}
+
+// TestFixedDup2 tests Reported-by commit tag that comes for a dup.
+// Ensure that non-canonical bug gets fixing commit too.
+func TestFixedDup2(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build1 := testBuild(1)
+	c.client.UploadBuild(build1)
+
+	build2 := testBuild(2)
+	c.client.UploadBuild(build2)
+
+	crash1 := testCrash(build1, 1)
+	c.client.ReportCrash(crash1)
+	rep1 := c.client.pollBug()
+
+	crash2 := testCrash(build1, 2)
+	c.client.ReportCrash(crash2)
+	rep2 := c.client.pollBug()
+
+	// rep2 is a dup of rep1.
+	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
+
+	// Upload build that fixes rep2.
+	build1.FixCommits = []dashapi.FixCommit{{"fix commit 1", rep2.ID}}
+	c.client.UploadBuild(build1)
+
+	/*
+		dbBug1, _, _ := c.loadBug(rep1.ID)
+		t.Logf("BUG1: status=%v, commits: %+v, patched: %+v", dbBug1.Status, dbBug1.Commits, dbBug1.PatchedOn)
+		dbBug2, _, _ := c.loadBug(rep2.ID)
+		t.Logf("BUG2: status=%v, commits: %+v, patched: %+v", dbBug2.Status, dbBug2.Commits, dbBug2.PatchedOn)
+	*/
+
+	// Now undup the bugs. They are still unfixed as only 1 manager uploaded the commit.
+	c.client.updateBug(rep2.ID, dashapi.BugStatusOpen, "")
+
+	// Now the second manager reports the same commits. This must close both bugs.
+	build2.FixCommits = build1.FixCommits
+	c.client.UploadBuild(build2)
+	c.client.pollBugs(0)
+
+	c.advanceTime(24 * time.Hour)
+	c.client.ReportCrash(crash1)
+	rep3 := c.client.pollBug()
+	c.expectEQ(rep3.Title, rep1.Title+" (2)")
+
+	c.client.ReportCrash(crash2)
+	rep4 := c.client.pollBug()
+	c.expectEQ(rep4.Title, rep2.Title+" (2)")
+}
+
+// TestFixedDup3 tests Reported-by commit tag that comes for both dup and canonical bug.
+func TestFixedDup3(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build1 := testBuild(1)
+	c.client.UploadBuild(build1)
+
+	build2 := testBuild(2)
+	c.client.UploadBuild(build2)
+
+	crash1 := testCrash(build1, 1)
+	c.client.ReportCrash(crash1)
+	rep1 := c.client.pollBug()
+
+	crash2 := testCrash(build1, 2)
+	c.client.ReportCrash(crash2)
+	rep2 := c.client.pollBug()
+
+	// rep2 is a dup of rep1.
+	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
+
+	// Upload builds that fix rep1 and rep2 with different commits.
+	// This must fix rep1 eventually and we must not livelock in such scenario.
+	build1.FixCommits = []dashapi.FixCommit{{"fix commit 1", rep1.ID}, {"fix commit 2", rep2.ID}}
+	build2.FixCommits = build1.FixCommits
+	c.client.UploadBuild(build1)
+	c.client.UploadBuild(build2)
+	c.client.UploadBuild(build1)
+	c.client.UploadBuild(build2)
+
+	c.client.ReportCrash(crash1)
+	rep3 := c.client.pollBug()
+	c.expectEQ(rep3.Title, rep1.Title+" (2)")
 }
