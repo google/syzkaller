@@ -965,8 +965,8 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 			}
 		}
 	}
-	if len(a.Calls) == 0 {
-		log.Fatalf("all system calls are disabled")
+	if a.Error != "" {
+		log.Fatalf("machine check: %v", a.Error)
 	}
 	mgr.vmChecked = true
 	mgr.enabledCalls = a.Calls
