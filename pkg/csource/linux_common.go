@@ -1054,9 +1054,9 @@ error:
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image)
-static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, uintptr_t nsegs, uintptr_t segments, uintptr_t flags, uintptr_t opts)
+static uintptr_t syz_mount_image(uintptr_t fsarg, uintptr_t dir, uintptr_t size, uintptr_t nsegs, uintptr_t segments, uintptr_t flags, uintptr_t optsarg)
 {
-	char loopname[64];
+	char loopname[64], fs[32], opts[256];
 	int loopfd, err = 0, res = -1;
 	uintptr_t i;
 	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
@@ -1107,12 +1107,23 @@ static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, ui
 		}
 	}
 	mkdir((char*)dir, 0777);
-	NONFAILING(if (strcmp((char*)fs, "iso9660") == 0) flags |= MS_RDONLY);
-	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir, (char*)fs, (char*)opts);
+	memset(fs, 0, sizeof(fs));
+	NONFAILING(strncpy(fs, (char*)fsarg, sizeof(fs) - 1));
+	memset(opts, 0, sizeof(opts));
+	NONFAILING(strncpy(opts, (char*)optsarg, sizeof(opts) - 32));
+	if (strcmp(fs, "iso9660") == 0) {
+		flags |= MS_RDONLY;
+	} else if (strncmp(fs, "ext", 3) == 0) {
+		if (strstr(opts, "errors=panic") || strstr(opts, "errors=remount-ro") == 0)
+			strcat(opts, ",errors=continue");
+	} else if (strcmp(fs, "xfs") == 0) {
+		strcat(opts, ",nouuid");
+	}
+	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir, fs, (uint64)flags, opts);
 #if defined(SYZ_EXECUTOR)
 	cover_reset(0);
 #endif
-	if (mount(loopname, (char*)dir, (char*)fs, flags, (char*)opts)) {
+	if (mount(loopname, (char*)dir, fs, flags, opts)) {
 		err = errno;
 		goto error_clear_loop;
 	}
