@@ -77,6 +77,7 @@ type Bug struct {
 	FirstTime      time.Time
 	LastTime       time.Time
 	LastSavedCrash time.Time
+	LastReproTime  time.Time
 	Closed         time.Time
 	Reporting      []BugReporting
 	Commits        []string

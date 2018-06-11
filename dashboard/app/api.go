@@ -52,7 +52,10 @@ type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
 type APIHandler func(c context.Context, r *http.Request, payload []byte) (interface{}, error)
 type APINamespaceHandler func(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error)
 
-const maxReproPerBug = 10
+const (
+	maxReproPerBug   = 10
+	reproRetryPeriod = 24 * time.Hour // try 1 repro per day until we have at least syz repro
+)
 
 // Overridable for testing.
 var timeNow = func(c context.Context) time.Time {
@@ -572,6 +575,7 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		}
 		if reproLevel != ReproLevelNone {
 			bug.NumRepro++
+			bug.LastReproTime = now
 		}
 		if bug.ReproLevel < reproLevel {
 			bug.ReproLevel = reproLevel
@@ -674,12 +678,14 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 	if bug == nil {
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
+	now := timeNow(c)
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := datastore.Get(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %v", err)
 		}
 		bug.NumRepro++
+		bug.LastReproTime = now
 		if _, err := datastore.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)
 		}
@@ -825,7 +831,7 @@ func isActiveBug(c context.Context, bug *Bug) (bool, error) {
 }
 
 func needRepro(c context.Context, bug *Bug) bool {
-	if !needReproForBug(bug) {
+	if !needReproForBug(c, bug) {
 		return false
 	}
 	canon, err := canonicalBug(c, bug)
@@ -833,14 +839,15 @@ func needRepro(c context.Context, bug *Bug) bool {
 		log.Errorf(c, "failed to get canonical bug: %v", err)
 		return false
 	}
-	return needReproForBug(canon)
+	return needReproForBug(c, canon)
 }
 
-func needReproForBug(bug *Bug) bool {
+func needReproForBug(c context.Context, bug *Bug) bool {
 	return bug.ReproLevel < ReproLevelC &&
-		bug.NumRepro < maxReproPerBug &&
 		len(bug.Commits) == 0 &&
-		bug.Title != corruptedReportTitle
+		bug.Title != corruptedReportTitle &&
+		(bug.NumRepro < maxReproPerBug ||
+			bug.ReproLevel == ReproLevelNone && timeSince(c, bug.LastReproTime) > reproRetryPeriod)
 }
 
 func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64, error) {

@@ -7,6 +7,7 @@ package dash
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
@@ -87,17 +88,29 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	for i := 0; i < maxReproPerBug; i++ {
 		resp, _ := c.client.ReportCrash(crash1)
 		c.expectEQ(resp.NeedRepro, true)
-
 		needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
 		c.expectEQ(needRepro, true)
 		c.client.ReportFailedRepro(testCrashID(crash1))
 	}
 
-	resp, _ := c.client.ReportCrash(crash1)
-	c.expectEQ(resp.NeedRepro, false)
+	for i := 0; i < 3; i++ {
+		// No more repros today.
+		c.advanceTime(time.Hour)
+		resp, _ := c.client.ReportCrash(crash1)
+		c.expectEQ(resp.NeedRepro, false)
+		needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
+		c.expectEQ(needRepro, false)
 
-	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
-	c.expectEQ(needRepro, false)
+		// Then another repro after a day.
+		c.advanceTime(25 * time.Hour)
+		for j := 0; j < 2; j++ {
+			resp, _ := c.client.ReportCrash(crash1)
+			c.expectEQ(resp.NeedRepro, true)
+			needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
+			c.expectEQ(needRepro, true)
+		}
+		c.client.ReportFailedRepro(testCrashID(crash1))
+	}
 }
 
 func TestNeedRepro3_normal(t *testing.T)      { testNeedRepro3(t, normalCrash) }
@@ -116,15 +129,23 @@ func testNeedRepro4(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	for i := 0; i < maxReproPerBug-1; i++ {
 		resp, _ := c.client.ReportCrash(crash1)
 		c.expectEQ(resp.NeedRepro, true)
-
 		needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
 		c.expectEQ(needRepro, true)
 	}
 
 	resp, _ := c.client.ReportCrash(crash1)
 	c.expectEQ(resp.NeedRepro, false)
-
 	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
+	c.expectEQ(needRepro, false)
+
+	// No more repros even after a day.
+	c.advanceTime(25 * time.Hour)
+	crash1.ReproOpts = nil
+	crash1.ReproSyz = nil
+
+	resp, _ = c.client.ReportCrash(crash1)
+	c.expectEQ(resp.NeedRepro, false)
+	needRepro, _ = c.client.NeedRepro(testCrashID(crash1))
 	c.expectEQ(needRepro, false)
 }
 
