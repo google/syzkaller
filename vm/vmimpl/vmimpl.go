@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
+	"net"
 	"os/exec"
 	"time"
 
@@ -136,4 +138,19 @@ func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout t
 		cmd.Wait()
 	}()
 	return merger.Output, errc, nil
+}
+
+func RandomPort() int {
+	return rand.Intn(64<<10-1<<10) + 1<<10
+}
+
+func UnusedTCPPort() int {
+	for {
+		port := RandomPort()
+		ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", port))
+		if err == nil {
+			ln.Close()
+			return port
+		}
+	}
 }

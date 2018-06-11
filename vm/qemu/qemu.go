@@ -6,7 +6,6 @@ package qemu
 import (
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"os"
 	"os/exec"
@@ -276,15 +275,7 @@ func (inst *instance) Close() {
 }
 
 func (inst *instance) Boot() error {
-	for {
-		// Find an unused TCP port.
-		inst.port = rand.Intn(64<<10-1<<10) + 1<<10
-		ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", inst.port))
-		if err == nil {
-			ln.Close()
-			break
-		}
-	}
+	inst.port = vmimpl.UnusedTCPPort()
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
