@@ -37,6 +37,7 @@ type ConnectRes struct {
 
 type CheckArgs struct {
 	Name           string
+	Error          string
 	Kcov           bool
 	Leak           bool
 	Fault          bool

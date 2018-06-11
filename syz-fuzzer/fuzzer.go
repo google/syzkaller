@@ -169,7 +169,14 @@ func main() {
 	if err := rpctype.RPCCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
-	calls, disabled := buildCallList(target, r.EnabledCalls, sandbox)
+	envCheckError := "" // this will be passed to manager to print to user and abort
+
+	calls, disabled, err := buildCallList(target, r.EnabledCalls, sandbox)
+	if err != nil {
+		envCheckError += err.Error() + "\n"
+	} else if len(calls) == 0 {
+		envCheckError += "all system calls are disabled\n"
+	}
 	ct := target.BuildChoiceTable(r.Prios, calls)
 
 	// This requires "fault-inject: support systematic fault injection" kernel commit.
@@ -205,6 +212,7 @@ func main() {
 		}
 		a := &rpctype.CheckArgs{
 			Name:           *flagName,
+			Error:          envCheckError,
 			UserNamespaces: osutil.IsExist("/proc/self/ns/user"),
 			FuzzerGitRev:   sys.GitRevision,
 			FuzzerSyzRev:   target.Revision,
@@ -224,8 +232,11 @@ func main() {
 			a.Calls = append(a.Calls, c.Name)
 		}
 		if err := rpctype.RPCCall(*flagManager, "Manager.Check", a, nil); err != nil {
-			panic(err)
+			log.Fatalf("Manager.Check call failed: %v", err)
 		}
+	}
+	if envCheckError != "" {
+		log.Fatalf("%v", envCheckError)
 	}
 
 	// Manager.Connect reply can ve very large and that memory will be permanently cached in the connection.
@@ -382,11 +393,11 @@ func (fuzzer *Fuzzer) pollLoop() {
 }
 
 func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
-	map[*prog.Syscall]bool, []rpctype.SyscallReason) {
+	map[*prog.Syscall]bool, []rpctype.SyscallReason, error) {
 	calls := make(map[*prog.Syscall]bool)
 	for _, n := range enabledCalls {
 		if n >= len(target.Syscalls) {
-			log.Fatalf("invalid enabled syscall: %v", n)
+			return nil, nil, fmt.Errorf("unknown enabled syscall: %v", n)
 		}
 		calls[target.Syscalls[n]] = true
 	}
@@ -394,7 +405,7 @@ func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
 	var disabled []rpctype.SyscallReason
 	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox)
 	if err != nil {
-		log.Fatalf("failed to detect host supported syscalls: %v", err)
+		return nil, nil, fmt.Errorf("failed to detect host supported syscalls: %v", err)
 	}
 	for c := range calls {
 		if reason, ok := unsupported[c]; ok {
@@ -417,7 +428,7 @@ func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
 			delete(calls, c)
 		}
 	}
-	return calls, disabled
+	return calls, disabled, nil
 }
 
 func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.RPCInput) {
