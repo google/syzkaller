@@ -1,6 +1,6 @@
 kernel.watchdog_thresh = 60
 net.core.bpf_jit_enable = 1
 net.core.bpf_jit_kallsyms = 1
-net.core.bpf_jit_harden = 1
+net.core.bpf_jit_harden = 0
 kernel.kptr_restrict = 0
 kernel.softlockup_all_cpu_backtrace = 1
