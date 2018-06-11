@@ -222,12 +222,15 @@ func findConsoleImpl(adb, dev string) (string, error) {
 }
 
 func (inst *instance) Forward(port int) (string, error) {
-	// If 35099 turns out to be busy, try to forward random ports several times.
-	devicePort := 35099
-	if _, err := inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port)); err != nil {
-		return "", err
+	var err error
+	for i := 0; i < 1000; i++ {
+		devicePort := vmimpl.RandomPort()
+		_, err = inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port))
+		if err == nil {
+			return fmt.Sprintf("127.0.0.1:%v", devicePort), nil
+		}
 	}
-	return fmt.Sprintf("127.0.0.1:%v", devicePort), nil
+	return "", err
 }
 
 func (inst *instance) adb(args ...string) ([]byte, error) {
