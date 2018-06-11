@@ -20,16 +20,35 @@ import (
 )
 
 type Dashboard struct {
-	Client string
-	Addr   string
-	Key    string
+	Client       string
+	Addr         string
+	Key          string
+	ctor         RequestCtor
+	doer         RequestDoer
+	logger       RequestLogger
+	errorHandler func(error)
 }
 
 func New(client, addr, key string) *Dashboard {
+	return NewCustom(client, addr, key, http.NewRequest, http.DefaultClient.Do, nil, nil)
+}
+
+type (
+	RequestCtor   func(method, url string, body io.Reader) (*http.Request, error)
+	RequestDoer   func(req *http.Request) (*http.Response, error)
+	RequestLogger func(msg string, args ...interface{})
+)
+
+func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
+	logger RequestLogger, errorHandler func(error)) *Dashboard {
 	return &Dashboard{
-		Client: client,
-		Addr:   addr,
-		Key:    key,
+		Client:       client,
+		Addr:         addr,
+		Key:          key,
+		ctor:         ctor,
+		doer:         doer,
+		logger:       logger,
+		errorHandler: errorHandler,
 	}
 }
 
@@ -58,7 +77,7 @@ type FixCommit struct {
 }
 
 func (dash *Dashboard) UploadBuild(build *Build) error {
-	return dash.query("upload_build", build, nil)
+	return dash.Query("upload_build", build, nil)
 }
 
 // BuilderPoll request is done by kernel builder before uploading a new build
@@ -83,7 +102,7 @@ func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
 		Manager: manager,
 	}
 	resp := new(BuilderPollResp)
-	err := dash.query("builder_poll", req, resp)
+	err := dash.Query("builder_poll", req, resp)
 	return resp, err
 }
 
@@ -125,12 +144,12 @@ type JobDoneReq struct {
 func (dash *Dashboard) JobPoll(managers []string) (*JobPollResp, error) {
 	req := &JobPollReq{Managers: managers}
 	resp := new(JobPollResp)
-	err := dash.query("job_poll", req, resp)
+	err := dash.Query("job_poll", req, resp)
 	return resp, err
 }
 
 func (dash *Dashboard) JobDone(req *JobDoneReq) error {
-	return dash.query("job_done", req, nil)
+	return dash.Query("job_done", req, nil)
 }
 
 type BuildErrorReq struct {
@@ -139,7 +158,7 @@ type BuildErrorReq struct {
 }
 
 func (dash *Dashboard) ReportBuildError(req *BuildErrorReq) error {
-	return dash.query("report_build_error", req, nil)
+	return dash.Query("report_build_error", req, nil)
 }
 
 // Crash describes a single kernel crash (potentially with repro).
@@ -162,7 +181,7 @@ type ReportCrashResp struct {
 
 func (dash *Dashboard) ReportCrash(crash *Crash) (*ReportCrashResp, error) {
 	resp := new(ReportCrashResp)
-	err := dash.query("report_crash", crash, resp)
+	err := dash.Query("report_crash", crash, resp)
 	return resp, err
 }
 
@@ -180,13 +199,13 @@ type NeedReproResp struct {
 // NeedRepro checks if dashboard needs a repro for this crash or not.
 func (dash *Dashboard) NeedRepro(crash *CrashID) (bool, error) {
 	resp := new(NeedReproResp)
-	err := dash.query("need_repro", crash, resp)
+	err := dash.Query("need_repro", crash, resp)
 	return resp.NeedRepro, err
 }
 
 // ReportFailedRepro notifies dashboard about a failed repro attempt for the crash.
 func (dash *Dashboard) ReportFailedRepro(crash *CrashID) error {
-	return dash.query("report_failed_repro", crash, nil)
+	return dash.Query("report_failed_repro", crash, nil)
 }
 
 type LogEntry struct {
@@ -200,7 +219,7 @@ func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
 		Name: name,
 		Text: fmt.Sprintf(msg, args...),
 	}
-	dash.query("log_error", req, nil)
+	dash.Query("log_error", req, nil)
 }
 
 // BugReport describes a single bug.
@@ -283,6 +302,36 @@ type PollClosedResponse struct {
 	IDs []string
 }
 
+func (dash *Dashboard) ReportingPollBugs(typ string) (*PollBugsResponse, error) {
+	req := &PollBugsRequest{
+		Type: typ,
+	}
+	resp := new(PollBugsResponse)
+	if err := dash.Query("reporting_poll_bugs", req, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (dash *Dashboard) ReportingPollClosed(ids []string) ([]string, error) {
+	req := &PollClosedRequest{
+		IDs: ids,
+	}
+	resp := new(PollClosedResponse)
+	if err := dash.Query("reporting_poll_closed", req, resp); err != nil {
+		return nil, err
+	}
+	return resp.IDs, nil
+}
+
+func (dash *Dashboard) ReportingUpdate(upd *BugUpdate) (*BugUpdateReply, error) {
+	resp := new(BugUpdateReply)
+	if err := dash.Query("reporting_update", upd, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 type ManagerStatsReq struct {
 	Name string
 	Addr string
@@ -299,7 +348,7 @@ type ManagerStatsReq struct {
 }
 
 func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
-	return dash.query("manager_stats", req, nil)
+	return dash.Query("manager_stats", req, nil)
 }
 
 type (
@@ -321,17 +370,27 @@ const (
 	ReproLevelC
 )
 
-func (dash *Dashboard) query(method string, req, reply interface{}) error {
-	return Query(dash.Client, dash.Addr, dash.Key, method,
-		http.NewRequest, http.DefaultClient.Do, req, reply)
+func (dash *Dashboard) Query(method string, req, reply interface{}) error {
+	if dash.logger != nil {
+		dash.logger("API(%v): %#v", method, req)
+	}
+	err := dash.queryImpl(method, req, reply)
+	if err != nil {
+		if dash.logger != nil {
+			dash.logger("API(%v): ERROR: %v", method, err)
+		}
+		if dash.errorHandler != nil {
+			dash.errorHandler(err)
+		}
+		return err
+	}
+	if dash.logger != nil {
+		dash.logger("API(%v): REPLY: %#v", method, reply)
+	}
+	return nil
 }
 
-type (
-	RequestCtor func(method, url string, body io.Reader) (*http.Request, error)
-	RequestDoer func(req *http.Request) (*http.Response, error)
-)
-
-func Query(client, addr, key, method string, ctor RequestCtor, doer RequestDoer, req, reply interface{}) error {
+func (dash *Dashboard) queryImpl(method string, req, reply interface{}) error {
 	if reply != nil {
 		// json decoding behavior is somewhat surprising
 		// (see // https://github.com/golang/go/issues/21092).
@@ -343,8 +402,8 @@ func Query(client, addr, key, method string, ctor RequestCtor, doer RequestDoer,
 		reflect.ValueOf(reply).Elem().Set(reflect.New(typ.Elem()).Elem())
 	}
 	values := make(url.Values)
-	values.Add("client", client)
-	values.Add("key", key)
+	values.Add("client", dash.Client)
+	values.Add("key", dash.Key)
 	values.Add("method", method)
 	if req != nil {
 		data, err := json.Marshal(req)
@@ -361,12 +420,12 @@ func Query(client, addr, key, method string, ctor RequestCtor, doer RequestDoer,
 		}
 		values.Add("payload", buf.String())
 	}
-	r, err := ctor("POST", fmt.Sprintf("%v/api", addr), strings.NewReader(values.Encode()))
+	r, err := dash.ctor("POST", fmt.Sprintf("%v/api", dash.Addr), strings.NewReader(values.Encode()))
 	if err != nil {
 		return err
 	}
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := doer(r)
+	resp, err := dash.doer(r)
 	if err != nil {
 		return fmt.Errorf("http request failed: %v", err)
 	}

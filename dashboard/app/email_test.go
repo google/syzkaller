@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 )
 
@@ -19,11 +18,11 @@ func TestEmailReport(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+	c.client2.UploadBuild(build)
 
 	crash := testCrash(build, 1)
 	crash.Maintainers = []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`}
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 
 	// Report the crash over email and check all fields.
 	var sender0, extBugID0, body0 string
@@ -120,7 +119,7 @@ For more options, visit https://groups.google.com/d/optout.
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("getpid()")
 	syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 
 	{
 		c.expectOK(c.GET("/email_poll"))
@@ -249,11 +248,11 @@ Content-Type: text/plain
 	// Now upload a C reproducer.
 	build2 := testBuild(2)
 	build2.KernelCommitTitle = "a really long title, longer than 80 chars, really long-long-long-long-long-long title"
-	c.expectOK(c.API(client2, key2, "upload_build", build2, nil))
+	c.client2.UploadBuild(build2)
 	crash.BuildID = build2.ID
 	crash.ReproC = []byte("int main() {}")
 	crash.Maintainers = []string{"\"qux\" <qux@qux.com>"}
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 
 	{
 		c.expectOK(c.GET("/email_poll"))
@@ -334,24 +333,22 @@ unknown command "bad-command"
 	c.expectEQ(len(c.emailSink), 0)
 
 	// Check that the commit is now passed to builders.
-	builderPollReq := &dashapi.BuilderPollReq{build.Manager}
-	builderPollResp := new(dashapi.BuilderPollResp)
-	c.expectOK(c.API(client2, key2, "builder_poll", builderPollReq, builderPollResp))
+	builderPollResp, _ := c.client2.BuilderPoll(build.Manager)
 	c.expectEQ(len(builderPollResp.PendingCommits), 1)
 	c.expectEQ(builderPollResp.PendingCommits[0], "some: commit title")
 
 	build3 := testBuild(3)
 	build3.Manager = build.Manager
 	build3.Commits = []string{"some: commit title"}
-	c.expectOK(c.API(client2, key2, "upload_build", build3, nil))
+	c.client2.UploadBuild(build3)
 
 	build4 := testBuild(4)
 	build4.Manager = build2.Manager
 	build4.Commits = []string{"some: commit title"}
-	c.expectOK(c.API(client2, key2, "upload_build", build4, nil))
+	c.client2.UploadBuild(build4)
 
 	// New crash must produce new bug in the first reporting.
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 	{
 		c.expectOK(c.GET("/email_poll"))
 		c.expectEQ(len(c.emailSink), 1)
@@ -369,10 +366,10 @@ func TestEmailNoMaintainers(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+	c.client2.UploadBuild(build)
 
 	crash := testCrash(build, 1)
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
@@ -400,15 +397,15 @@ func TestEmailDup(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+	c.client2.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
 	crash1.Title = "BUG: slightly more elaborate title"
-	c.expectOK(c.API(client2, key2, "report_crash", crash1, nil))
+	c.client2.ReportCrash(crash1)
 
 	crash2 := testCrash(build, 2)
 	crash1.Title = "KASAN: another title"
-	c.expectOK(c.API(client2, key2, "report_crash", crash2, nil))
+	c.client2.ReportCrash(crash2)
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 2)
@@ -422,7 +419,7 @@ func TestEmailDup(t *testing.T) {
 
 	// Second crash happens again
 	crash2.ReproC = []byte("int main() {}")
-	c.expectOK(c.API(client2, key2, "report_crash", crash2, nil))
+	c.client2.ReportCrash(crash2)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 
@@ -430,7 +427,7 @@ func TestEmailDup(t *testing.T) {
 	c.incomingEmail(msg1.Sender, "#syz invalid")
 
 	// New crash must produce new bug in the first reporting.
-	c.expectOK(c.API(client2, key2, "report_crash", crash2, nil))
+	c.client2.ReportCrash(crash2)
 	{
 		c.expectOK(c.GET("/email_poll"))
 		c.expectEQ(len(c.emailSink), 1)
@@ -444,15 +441,15 @@ func TestEmailUndup(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+	c.client2.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
 	crash1.Title = "BUG: slightly more elaborate title"
-	c.expectOK(c.API(client2, key2, "report_crash", crash1, nil))
+	c.client2.ReportCrash(crash1)
 
 	crash2 := testCrash(build, 2)
 	crash1.Title = "KASAN: another title"
-	c.expectOK(c.API(client2, key2, "report_crash", crash2, nil))
+	c.client2.ReportCrash(crash2)
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 2)
@@ -471,7 +468,7 @@ func TestEmailUndup(t *testing.T) {
 
 	// Now close the original bug, and check that new crashes for the dup does not create bugs.
 	c.incomingEmail(msg1.Sender, "#syz invalid")
-	c.expectOK(c.API(client2, key2, "report_crash", crash2, nil))
+	c.client2.ReportCrash(crash2)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 }

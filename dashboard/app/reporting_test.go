@@ -6,7 +6,6 @@
 package dash
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -18,7 +17,7 @@ func TestReportBug(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
 	crash1 := &dashapi.Crash{
 		BuildID:     "build1",
@@ -27,19 +26,14 @@ func TestReportBug(t *testing.T) {
 		Log:         []byte("log1"),
 		Report:      []byte("report1"),
 	}
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	c.client.ReportCrash(crash1)
 
 	// Must get no reports for "unknown" type.
-	pr := &dashapi.PollBugsRequest{
-		Type: "unknown",
-	}
-	resp := new(dashapi.PollBugsResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
+	resp, _ := c.client.ReportingPollBugs("unknown")
 	c.expectEQ(len(resp.Reports), 0)
 
 	// Must get a proper report for "test" type.
-	pr.Type = "test"
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
+	resp, _ = c.client.ReportingPollBugs("test")
 	c.expectEQ(len(resp.Reports), 1)
 	rep := resp.Reports[0]
 	if rep.ID == "" {
@@ -73,66 +67,51 @@ func TestReportBug(t *testing.T) {
 	c.expectEQ(rep, want)
 
 	// Since we did not update bug status yet, should get the same report again.
-	reports := reportAllBugs(c, 1)
-	c.expectEQ(reports[0], want)
+	c.expectEQ(c.client.pollBug(), want)
 
 	// Now add syz repro and check that we get another bug report.
 	crash1.ReproOpts = []byte("some opts")
 	crash1.ReproSyz = []byte("getpid()")
 	want.First = false
 	want.ReproSyz = []byte(syzReproPrefix + "#some opts\ngetpid()")
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
-	reports = reportAllBugs(c, 1)
-	if want.CrashID == reports[0].CrashID {
+	c.client.ReportCrash(crash1)
+	rep1 := c.client.pollBug()
+	if want.CrashID == rep1.CrashID {
 		t.Fatal("get the same CrashID for new crash")
 	}
 	_, dbCrash, _ = c.loadBug(rep.ID)
-	want.CrashID = reports[0].CrashID
+	want.CrashID = rep1.CrashID
 	want.NumCrashes = 2
 	want.ReproSyzLink = externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
 	want.LogLink = externalLink(c.ctx, textCrashLog, dbCrash.Log)
 	want.ReportLink = externalLink(c.ctx, textCrashReport, dbCrash.Report)
-	c.expectEQ(reports[0], want)
+	c.expectEQ(rep1, want)
 
-	cmd := &dashapi.BugUpdate{
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: dashapi.ReproLevelSyz,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	})
 	c.expectEQ(reply.OK, true)
 
 	// After bug update should not get the report again.
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 0)
+	c.client.pollBugs(0)
 
 	// Now close the bug in the first reporting.
-	cmd = &dashapi.BugUpdate{
-		ID:     rep.ID,
-		Status: dashapi.BugStatusUpstream,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
+	c.client.updateBug(rep.ID, dashapi.BugStatusUpstream, "")
 
 	// Check that bug updates for the first reporting fail now.
-	cmd = &dashapi.BugUpdate{
-		ID:     rep.ID,
-		Status: dashapi.BugStatusOpen,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{ID: rep.ID, Status: dashapi.BugStatusOpen})
 	c.expectEQ(reply.OK, false)
 
 	// Report another crash with syz repro for this bug,
 	// ensure that we still report the original crash in the next reporting.
 	// That's what we've upstreammed, it's bad to switch crashes without reason.
 	crash1.Report = []byte("report2")
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	c.client.ReportCrash(crash1)
 
 	// Check that we get the report in the second reporting.
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 1)
-	rep2 := resp.Reports[0]
+	rep2 := c.client.pollBug()
 	if rep2.ID == "" || rep2.ID == rep.ID {
 		t.Fatalf("bad report ID: %q", rep2.ID)
 	}
@@ -143,11 +122,10 @@ func TestReportBug(t *testing.T) {
 	c.expectEQ(rep2, want)
 
 	// Check that that we can't upstream the bug in the final reporting.
-	cmd = &dashapi.BugUpdate{
+	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep2.ID,
 		Status: dashapi.BugStatusUpstream,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	})
 	c.expectEQ(reply.OK, false)
 }
 
@@ -156,60 +134,37 @@ func TestInvalidBug(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
-	crash1 := testCrash(build, 1)
-	crash1.ReproC = []byte("int main() {}")
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	crash1 := testCrashWithRepro(build, 1)
+	c.client.ReportCrash(crash1)
 
-	pr := &dashapi.PollBugsRequest{
-		Type: "test",
-	}
-	resp := new(dashapi.PollBugsResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 1)
-	rep := resp.Reports[0]
+	rep := c.client.pollBug()
 	c.expectEQ(rep.Title, "title1")
 
-	cmd := &dashapi.BugUpdate{
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: dashapi.ReproLevelC,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	})
 	c.expectEQ(reply.OK, true)
 
 	{
-		req := &dashapi.PollClosedRequest{
-			IDs: []string{rep.ID, "foobar"},
-		}
-		resp := new(dashapi.PollClosedResponse)
-		c.expectOK(c.API(client1, key1, "reporting_poll_closed", req, resp))
-		c.expectEQ(len(resp.IDs), 0)
+		closed, _ := c.client.ReportingPollClosed([]string{rep.ID, "foobar"})
+		c.expectEQ(len(closed), 0)
 	}
 
 	// Mark the bug as invalid.
-	cmd = &dashapi.BugUpdate{
-		ID:     rep.ID,
-		Status: dashapi.BugStatusInvalid,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
+	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 
 	{
-		req := &dashapi.PollClosedRequest{
-			IDs: []string{rep.ID, "foobar"},
-		}
-		resp := new(dashapi.PollClosedResponse)
-		c.expectOK(c.API(client1, key1, "reporting_poll_closed", req, resp))
-		c.expectEQ(len(resp.IDs), 1)
-		c.expectEQ(resp.IDs[0], rep.ID)
+		closed, _ := c.client.ReportingPollClosed([]string{rep.ID, "foobar"})
+		c.expectEQ(len(closed), 1)
+		c.expectEQ(closed[0], rep.ID)
 	}
 
 	// Now it should not be reported in either reporting.
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 0)
+	c.client.pollBugs(0)
 
 	// Now a similar crash happens again.
 	crash2 := &dashapi.Crash{
@@ -219,12 +174,10 @@ func TestInvalidBug(t *testing.T) {
 		Report:  []byte("report2"),
 		ReproC:  []byte("int main() { return 1; }"),
 	}
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+	c.client.ReportCrash(crash2)
 
 	// Now it should be reported again.
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 1)
-	rep = resp.Reports[0]
+	rep = c.client.pollBug()
 	if rep.ID == "" {
 		t.Fatalf("empty report ID")
 	}
@@ -255,12 +208,7 @@ func TestInvalidBug(t *testing.T) {
 		HappenedOn:        []string{"repo1/branch1"},
 	}
 	c.expectEQ(rep, want)
-
-	cid := &dashapi.CrashID{
-		BuildID: build.ID,
-		Title:   crash1.Title,
-	}
-	c.expectOK(c.API(client1, key1, "report_failed_repro", cid, nil))
+	c.client.ReportFailedRepro(testCrashID(crash1))
 }
 
 func TestReportingQuota(t *testing.T) {
@@ -268,39 +216,18 @@ func TestReportingQuota(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
 	const numReports = 8 // quota is 3 per day
 	for i := 0; i < numReports; i++ {
-		crash := &dashapi.Crash{
-			BuildID: "build1",
-			Title:   fmt.Sprintf("title%v", i),
-			Log:     []byte(fmt.Sprintf("log%v", i)),
-			Report:  []byte(fmt.Sprintf("report%v", i)),
-		}
-		c.expectOK(c.API(client1, key1, "report_crash", crash, nil))
+		c.client.ReportCrash(testCrash(build, i))
 	}
 
 	for _, reports := range []int{3, 3, 2, 0, 0} {
 		c.advanceTime(24 * time.Hour)
-		pr := &dashapi.PollBugsRequest{
-			Type: "test",
-		}
-		resp := new(dashapi.PollBugsResponse)
-		c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-		c.expectEQ(len(resp.Reports), reports)
-		for _, rep := range resp.Reports {
-			cmd := &dashapi.BugUpdate{
-				ID:     rep.ID,
-				Status: dashapi.BugStatusOpen,
-			}
-			reply := new(dashapi.BugUpdateReply)
-			c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-			c.expectEQ(reply.OK, true)
-		}
+		c.client.pollBugs(reports)
 		// Out of quota for today, so must get 0 reports.
-		c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-		c.expectEQ(len(resp.Reports), 0)
+		c.client.pollBugs(0)
 	}
 }
 
@@ -310,111 +237,56 @@ func TestReportingDup(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	c.client.ReportCrash(crash1)
 
 	crash2 := testCrash(build, 2)
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+	c.client.ReportCrash(crash2)
 
-	pr := &dashapi.PollBugsRequest{
-		Type: "test",
-	}
-	resp := new(dashapi.PollBugsResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 2)
-
-	rep1 := resp.Reports[0]
-	cmd := &dashapi.BugUpdate{
-		ID:     rep1.ID,
-		Status: dashapi.BugStatusOpen,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-
-	rep2 := resp.Reports[1]
-	cmd = &dashapi.BugUpdate{
-		ID:     rep2.ID,
-		Status: dashapi.BugStatusOpen,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
+	reports := c.client.pollBugs(2)
+	rep1 := reports[0]
+	rep2 := reports[1]
 
 	// Dup.
-	cmd = &dashapi.BugUpdate{
-		ID:     rep2.ID,
-		Status: dashapi.BugStatusDup,
-		DupOf:  rep1.ID,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-
+	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 	{
 		// Both must be reported as open.
-		req := &dashapi.PollClosedRequest{
-			IDs: []string{rep1.ID, rep2.ID},
-		}
-		resp := new(dashapi.PollClosedResponse)
-		c.expectOK(c.API(client1, key1, "reporting_poll_closed", req, resp))
-		c.expectEQ(len(resp.IDs), 0)
+		closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID})
+		c.expectEQ(len(closed), 0)
 	}
 
 	// Undup.
-	cmd = &dashapi.BugUpdate{
-		ID:     rep2.ID,
-		Status: dashapi.BugStatusOpen,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
+	c.client.updateBug(rep2.ID, dashapi.BugStatusOpen, "")
 
 	// Dup again.
-	cmd = &dashapi.BugUpdate{
-		ID:     rep2.ID,
-		Status: dashapi.BugStatusDup,
-		DupOf:  rep1.ID,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
+	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 
 	// Dup crash happens again, new bug must not be created.
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 0)
+	c.client.ReportCrash(crash2)
+	c.client.pollBugs(0)
 
 	// Now close the original bug, and check that new bugs for dup are now created.
-	cmd = &dashapi.BugUpdate{
-		ID:     rep1.ID,
-		Status: dashapi.BugStatusInvalid,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-
+	c.client.updateBug(rep1.ID, dashapi.BugStatusInvalid, "")
 	{
 		// Now both must be reported as closed.
-		req := &dashapi.PollClosedRequest{
-			IDs: []string{rep1.ID, rep2.ID},
-		}
-		resp := new(dashapi.PollClosedResponse)
-		c.expectOK(c.API(client1, key1, "reporting_poll_closed", req, resp))
-		c.expectEQ(len(resp.IDs), 2)
-		c.expectEQ(resp.IDs[0], rep1.ID)
-		c.expectEQ(resp.IDs[1], rep2.ID)
+		closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID})
+		c.expectEQ(len(closed), 2)
+		c.expectEQ(closed[0], rep1.ID)
+		c.expectEQ(closed[1], rep2.ID)
 	}
 
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	c.expectEQ(len(resp.Reports), 1)
-	c.expectEQ(resp.Reports[0].Title, crash2.Title+" (2)")
+	c.client.ReportCrash(crash2)
+	rep3 := c.client.pollBug()
+	c.expectEQ(rep3.Title, crash2.Title+" (2)")
 
 	// Unduping after the canonical bugs was closed must not work
 	// (we already created new bug for this report).
-	cmd = &dashapi.BugUpdate{
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     rep2.ID,
 		Status: dashapi.BugStatusOpen,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	})
 	c.expectEQ(reply.OK, false)
 }
 
@@ -425,35 +297,21 @@ func TestReportingDupToClosed(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	c.client.ReportCrash(crash1)
 
 	crash2 := testCrash(build, 2)
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+	c.client.ReportCrash(crash2)
 
-	reports := reportAllBugs(c, 2)
+	reports := c.client.pollBugs(2)
+	c.client.updateBug(reports[0].ID, dashapi.BugStatusInvalid, "")
+	c.client.updateBug(reports[1].ID, dashapi.BugStatusDup, reports[0].ID)
 
-	cmd := &dashapi.BugUpdate{
-		ID:     reports[0].ID,
-		Status: dashapi.BugStatusInvalid,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-
-	cmd = &dashapi.BugUpdate{
-		ID:     reports[1].ID,
-		Status: dashapi.BugStatusDup,
-		DupOf:  reports[0].ID,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
-	reports2 := reportAllBugs(c, 1)
-	c.expectEQ(reports2[0].Title, crash2.Title+" (2)")
+	c.client.ReportCrash(crash2)
+	rep2 := c.client.pollBug()
+	c.expectEQ(rep2.Title, crash2.Title+" (2)")
 }
 
 // Test that marking dups across reporting levels is not permitted.
@@ -462,56 +320,44 @@ func TestReportingDupCrossReporting(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	c.client.ReportCrash(crash1)
 
 	crash2 := testCrash(build, 2)
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+	c.client.ReportCrash(crash2)
 
-	reports := reportAllBugs(c, 2)
+	reports := c.client.pollBugs(2)
 	rep1 := reports[0]
 	rep2 := reports[1]
 
 	// Upstream second bug.
-	cmd := &dashapi.BugUpdate{
-		ID:     rep2.ID,
-		Status: dashapi.BugStatusUpstream,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-
-	reports = reportAllBugs(c, 1)
-	rep3 := reports[0]
+	c.client.updateBug(rep2.ID, dashapi.BugStatusUpstream, "")
+	rep3 := c.client.pollBug()
 
 	{
-		req := &dashapi.PollClosedRequest{
-			IDs: []string{rep1.ID, rep2.ID, rep3.ID},
-		}
-		resp := new(dashapi.PollClosedResponse)
-		c.expectOK(c.API(client1, key1, "reporting_poll_closed", req, resp))
-		c.expectEQ(len(resp.IDs), 1)
-		c.expectEQ(resp.IDs[0], rep2.ID)
+		closed, _ := c.client.ReportingPollClosed([]string{rep1.ID, rep2.ID, rep3.ID})
+		c.expectEQ(len(closed), 1)
+		c.expectEQ(closed[0], rep2.ID)
 	}
 
 	// Duping must fail all ways.
 	cmds := []*dashapi.BugUpdate{
-		&dashapi.BugUpdate{ID: rep1.ID, DupOf: rep1.ID},
-		&dashapi.BugUpdate{ID: rep1.ID, DupOf: rep2.ID},
-		&dashapi.BugUpdate{ID: rep1.ID, DupOf: rep3.ID},
-		&dashapi.BugUpdate{ID: rep2.ID, DupOf: rep1.ID},
-		&dashapi.BugUpdate{ID: rep2.ID, DupOf: rep2.ID},
-		&dashapi.BugUpdate{ID: rep2.ID, DupOf: rep3.ID},
-		&dashapi.BugUpdate{ID: rep3.ID, DupOf: rep1.ID},
-		&dashapi.BugUpdate{ID: rep3.ID, DupOf: rep2.ID},
-		&dashapi.BugUpdate{ID: rep3.ID, DupOf: rep3.ID},
+		{ID: rep1.ID, DupOf: rep1.ID},
+		{ID: rep1.ID, DupOf: rep2.ID},
+		{ID: rep1.ID, DupOf: rep3.ID},
+		{ID: rep2.ID, DupOf: rep1.ID},
+		{ID: rep2.ID, DupOf: rep2.ID},
+		{ID: rep2.ID, DupOf: rep3.ID},
+		{ID: rep3.ID, DupOf: rep1.ID},
+		{ID: rep3.ID, DupOf: rep2.ID},
+		{ID: rep3.ID, DupOf: rep3.ID},
 	}
 	for _, cmd := range cmds {
 		t.Logf("duping %v -> %v", cmd.ID, cmd.DupOf)
 		cmd.Status = dashapi.BugStatusDup
-		c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+		reply, _ := c.client.ReportingUpdate(cmd)
 		c.expectEQ(reply.OK, false)
 	}
 }
@@ -521,42 +367,36 @@ func TestReportingFilter(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+	c.client.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
 	crash1.Title = "skip without repro 1"
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	c.client.ReportCrash(crash1)
 
 	// This does not skip first reporting, because it does not have repro.
-	rep1 := reportAllBugs(c, 1)[0]
+	rep1 := c.client.pollBug()
 	c.expectEQ(string(rep1.Config), `{"Index":1}`)
 
 	crash1.ReproSyz = []byte("getpid()")
-	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	c.client.ReportCrash(crash1)
 
 	// This has repro but was already reported to first reporting,
 	// so repro must go to the first reporting as well.
-	rep2 := reportAllBugs(c, 1)[0]
+	rep2 := c.client.pollBug()
 	c.expectEQ(string(rep2.Config), `{"Index":1}`)
 
 	// Now upstream it and it must go to the second reporting.
-	cmd := &dashapi.BugUpdate{
-		ID:     rep1.ID,
-		Status: dashapi.BugStatusUpstream,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
+	c.client.updateBug(rep1.ID, dashapi.BugStatusUpstream, "")
 
-	rep3 := reportAllBugs(c, 1)[0]
+	rep3 := c.client.pollBug()
 	c.expectEQ(string(rep3.Config), `{"Index":2}`)
 
 	// Now report a bug that must go to the second reporting right away.
 	crash2 := testCrash(build, 2)
 	crash2.Title = "skip without repro 2"
 	crash2.ReproSyz = []byte("getpid()")
-	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+	c.client.ReportCrash(crash2)
 
-	rep4 := reportAllBugs(c, 1)[0]
+	rep4 := c.client.pollBug()
 	c.expectEQ(string(rep4.Config), `{"Index":2}`)
 }

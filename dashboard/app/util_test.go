@@ -39,6 +39,8 @@ type Ctx struct {
 	ctx        context.Context
 	mockedTime time.Time
 	emailSink  chan *aemail.Message
+	client     *apiClient
+	client2    *apiClient
 }
 
 func NewCtx(t *testing.T) *Ctx {
@@ -62,6 +64,8 @@ func NewCtx(t *testing.T) *Ctx {
 		mockedTime: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		emailSink:  make(chan *aemail.Message, 100),
 	}
+	c.client = c.makeClient(client1, key1, true)
+	c.client2 = c.makeClient(client2, key2, true)
 	registerContext(r, c)
 	return c
 }
@@ -131,35 +135,6 @@ func (c *Ctx) Close() {
 
 func (c *Ctx) advanceTime(d time.Duration) {
 	c.mockedTime = c.mockedTime.Add(d)
-}
-
-// API makes an api request to the app from the specified client.
-func (c *Ctx) API(client, key, method string, req, reply interface{}) error {
-	doer := func(r *http.Request) (*http.Response, error) {
-		registerContext(r, c)
-		w := httptest.NewRecorder()
-		http.DefaultServeMux.ServeHTTP(w, r)
-		// Later versions of Go have a nice w.Result method,
-		// but we stuck on 1.6 on appengine.
-		if w.Body == nil {
-			w.Body = new(bytes.Buffer)
-		}
-		res := &http.Response{
-			StatusCode: w.Code,
-			Status:     http.StatusText(w.Code),
-			Body:       ioutil.NopCloser(bytes.NewReader(w.Body.Bytes())),
-		}
-		return res, nil
-	}
-
-	c.t.Logf("API(%v): %#v", method, req)
-	err := dashapi.Query(client, "", key, method, c.inst.NewRequest, doer, req, reply)
-	if err != nil {
-		c.t.Logf("ERROR: %v", err)
-		return err
-	}
-	c.t.Logf("REPLY: %#v", reply)
-	return nil
 }
 
 // GET sends admin-authorized HTTP GET request to the app.
@@ -258,39 +233,44 @@ func (c *Ctx) checkURLContents(url string, want []byte) {
 
 type apiClient struct {
 	*Ctx
-	client string
-	key    string
+	*dashapi.Dashboard
 }
 
-func (c *Ctx) makeClient(client, key string) *apiClient {
+func (c *Ctx) makeClient(client, key string, failOnErrors bool) *apiClient {
+	doer := func(r *http.Request) (*http.Response, error) {
+		registerContext(r, c)
+		w := httptest.NewRecorder()
+		http.DefaultServeMux.ServeHTTP(w, r)
+		// Later versions of Go have a nice w.Result method,
+		// but we stuck on 1.6 on appengine.
+		if w.Body == nil {
+			w.Body = new(bytes.Buffer)
+		}
+		res := &http.Response{
+			StatusCode: w.Code,
+			Status:     http.StatusText(w.Code),
+			Body:       ioutil.NopCloser(bytes.NewReader(w.Body.Bytes())),
+		}
+		return res, nil
+	}
+	logger := func(msg string, args ...interface{}) {
+		c.t.Logf("%v: "+msg, append([]interface{}{caller(3)}, args...)...)
+	}
+	errorHandler := func(err error) {
+		if failOnErrors {
+			c.t.Fatalf("\n%v: %v", caller(2), err)
+		}
+	}
 	return &apiClient{
-		Ctx:    c,
-		client: client,
-		key:    key,
+		Ctx:       c,
+		Dashboard: dashapi.NewCustom(client, "", key, c.inst.NewRequest, doer, logger, errorHandler),
 	}
 }
 
-func (client *apiClient) API(method string, req, reply interface{}) error {
-	return client.Ctx.API(client.client, client.key, method, req, reply)
-}
-
-func (client *apiClient) uploadBuild(build *dashapi.Build) {
-	client.expectOK(client.API("upload_build", build, nil))
-}
-
-func (client *apiClient) reportCrash(crash *dashapi.Crash) {
-	client.expectOK(client.API("report_crash", crash, nil))
-}
-
-// TODO(dvyukov): make this apiClient method.
-func reportAllBugs(c *Ctx, expect int) []*dashapi.BugReport {
-	pr := &dashapi.PollBugsRequest{
-		Type: "test",
-	}
-	resp := new(dashapi.PollBugsResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
+func (client *apiClient) pollBugs(expect int) []*dashapi.BugReport {
+	resp, _ := client.ReportingPollBugs("test")
 	if len(resp.Reports) != expect {
-		c.t.Fatalf("\n%v: want %v reports, got %v", caller(0), expect, len(resp.Reports))
+		client.t.Fatalf("\n%v: want %v reports, got %v", caller(0), expect, len(resp.Reports))
 	}
 	for _, rep := range resp.Reports {
 		reproLevel := dashapi.ReproLevelNone
@@ -299,28 +279,28 @@ func reportAllBugs(c *Ctx, expect int) []*dashapi.BugReport {
 		} else if len(rep.ReproSyz) != 0 {
 			reproLevel = dashapi.ReproLevelSyz
 		}
-		cmd := &dashapi.BugUpdate{
+		reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
 			ID:         rep.ID,
 			Status:     dashapi.BugStatusOpen,
 			ReproLevel: reproLevel,
-		}
-		reply := new(dashapi.BugUpdateReply)
-		c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-		c.expectEQ(reply.Error, false)
-		c.expectEQ(reply.OK, true)
+		})
+		client.expectEQ(reply.Error, false)
+		client.expectEQ(reply.OK, true)
 	}
 	return resp.Reports
 }
 
-func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup string) *dashapi.BugUpdateReply {
-	cmd := &dashapi.BugUpdate{
+func (client *apiClient) pollBug() *dashapi.BugReport {
+	return client.pollBugs(1)[0]
+}
+
+func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup string) {
+	reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:     extID,
 		Status: status,
 		DupOf:  dup,
-	}
-	reply := new(dashapi.BugUpdateReply)
-	client.expectOK(client.API("reporting_update", cmd, reply))
-	return reply
+	})
+	client.expectTrue(reply.OK)
 }
 
 type (
