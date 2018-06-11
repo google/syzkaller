@@ -20,7 +20,7 @@ func TestJob(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+	c.client2.UploadBuild(build)
 
 	patch := `--- a/mm/kasan/kasan.c
 +++ b/mm/kasan/kasan.c
@@ -31,7 +31,7 @@ func TestJob(t *testing.T) {
 	// Report crash without repro, check that test requests are not accepted.
 	crash := testCrash(build, 1)
 	crash.Maintainers = []string{"maintainer@kernel.org"}
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
@@ -57,7 +57,7 @@ func TestJob(t *testing.T) {
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
 	crash.ReproC = []byte("repro C")
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
@@ -82,8 +82,7 @@ func TestJob(t *testing.T) {
 		EmailOptFrom("\"foo\" <blAcklisteD@dOmain.COM>"))
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
-	pollResp := new(dashapi.JobPollResp)
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ := c.client2.JobPoll([]string{build.Manager})
 	c.expectEQ(pollResp.ID, "")
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
@@ -99,9 +98,9 @@ func TestJob(t *testing.T) {
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{"foobar"}}, pollResp))
+	pollResp, _ = c.client2.JobPoll([]string{"foobar"})
 	c.expectEQ(pollResp.ID, "")
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
 	c.expectEQ(pollResp.ID != "", true)
 	c.expectEQ(pollResp.Manager, build.Manager)
 	c.expectEQ(pollResp.KernelRepo, "git://git.git/git.git")
@@ -113,8 +112,7 @@ func TestJob(t *testing.T) {
 	c.expectEQ(pollResp.ReproSyz, []byte("repro syz"))
 	c.expectEQ(pollResp.ReproC, []byte("repro C"))
 
-	pollResp2 := new(dashapi.JobPollResp)
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp2))
+	pollResp2, _ := c.client2.JobPoll([]string{build.Manager})
 	c.expectEQ(pollResp2, pollResp)
 
 	jobDoneReq := &dashapi.JobDoneReq{
@@ -124,7 +122,7 @@ func TestJob(t *testing.T) {
 		CrashLog:    []byte("test crash log"),
 		CrashReport: []byte("test crash report"),
 	}
-	c.expectOK(c.API(client2, key2, "job_done", jobDoneReq, nil))
+	c.client2.JobDone(jobDoneReq)
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
@@ -165,13 +163,13 @@ patch:          %[1]v
 
 	// Testing fails with an error.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(2))
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
 		Build: *build,
 		Error: []byte("failed to apply patch"),
 	}
-	c.expectOK(c.API(client2, key2, "job_done", jobDoneReq, nil))
+	c.client2.JobDone(jobDoneReq)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	{
@@ -205,13 +203,13 @@ patch:          %[1]v
 
 	// Testing fails with a huge error that can't be inlined in email.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(3))
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
 		Build: *build,
 		Error: bytes.Repeat([]byte{'a', 'b', 'c'}, (maxInlineError+100)/3),
 	}
-	c.expectOK(c.API(client2, key2, "job_done", jobDoneReq, nil))
+	c.client2.JobDone(jobDoneReq)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	{
@@ -250,12 +248,12 @@ patch:          %[3]v
 	}
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(4))
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
 		Build: *build,
 	}
-	c.expectOK(c.API(client2, key2, "job_done", jobDoneReq, nil))
+	c.client2.JobDone(jobDoneReq)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	{
@@ -287,7 +285,7 @@ Note: testing is done by a robot and is best-effort only.
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -297,12 +295,12 @@ func TestJobWithoutPatch(t *testing.T) {
 	defer c.Close()
 
 	build := testBuild(1)
-	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+	c.client2.UploadBuild(build)
 
 	crash := testCrash(build, 1)
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
@@ -313,8 +311,7 @@ func TestJobWithoutPatch(t *testing.T) {
 	}
 
 	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git 5e6a2eea\n", EmailOptMessageID(1))
-	pollResp := new(dashapi.JobPollResp)
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ := c.client2.JobPoll([]string{build.Manager})
 	testBuild := testBuild(2)
 	testBuild.KernelRepo = "git://mygit.com/git.git"
 	testBuild.KernelBranch = ""
@@ -323,7 +320,7 @@ func TestJobWithoutPatch(t *testing.T) {
 		ID:    pollResp.ID,
 		Build: *testBuild,
 	}
-	c.expectOK(c.API(client2, key2, "job_done", jobDoneReq, nil))
+	c.client2.JobDone(jobDoneReq)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	{
@@ -352,7 +349,7 @@ Note: testing is done by a robot and is best-effort only.
 		c.checkURLContents(kernelConfigLink, testBuild.KernelConfig)
 	}
 
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -363,11 +360,11 @@ func TestJobRestrictedManager(t *testing.T) {
 
 	build := testBuild(1)
 	build.Manager = "restricted-manager"
-	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+	c.client2.UploadBuild(build)
 
 	crash := testCrash(build, 1)
 	crash.ReproSyz = []byte("repro syz")
-	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
+	c.client2.ReportCrash(crash)
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
@@ -376,13 +373,12 @@ func TestJobRestrictedManager(t *testing.T) {
 	// Testing on a wrong repo must fail and no test jobs passed to manager.
 	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git master\n", EmailOptMessageID(1))
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "you should test only on restricted.git"), true)
-	pollResp := new(dashapi.JobPollResp)
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ := c.client2.JobPoll([]string{build.Manager})
 	c.expectEQ(pollResp.ID, "")
 
 	// Testing on the right repo must succeed.
 	c.incomingEmail(sender, "#syz test: git://restricted.git/restricted.git master\n", EmailOptMessageID(2))
-	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
 	c.expectEQ(pollResp.ID != "", true)
 	c.expectEQ(pollResp.Manager, build.Manager)
 	c.expectEQ(pollResp.KernelRepo, "git://restricted.git/restricted.git")
