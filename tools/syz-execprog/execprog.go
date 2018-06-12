@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -53,7 +54,15 @@ func main() {
 		return
 	}
 
-	config, execOpts := createConfig(entries)
+	features, err := host.Check()
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	if _, err = host.Setup(features); err != nil {
+		log.Fatalf("%v", err)
+	}
+
+	config, execOpts := createConfig(entries, features)
 
 	var wg sync.WaitGroup
 	wg.Add(*flagProcs)
@@ -195,7 +204,7 @@ func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
 	return entries
 }
 
-func createConfig(entries []*prog.LogEntry) (*ipc.Config, *ipc.ExecOpts) {
+func createConfig(entries []*prog.LogEntry, features *host.Features) (*ipc.Config, *ipc.ExecOpts) {
 	config, execOpts, err := ipc.DefaultConfig()
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -226,7 +235,7 @@ func createConfig(entries []*prog.LogEntry) (*ipc.Config, *ipc.ExecOpts) {
 			handled[call.Meta.CallName] = true
 		}
 	}
-	if handled["syz_emit_ethernet"] || handled["syz_extract_tcp_res"] {
+	if features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
 	return config, execOpts

@@ -67,8 +67,6 @@ type Config struct {
 
 	// Use KCOV coverage (default: true).
 	Cover bool `json:"cover"`
-	// Do memory leak checking.
-	Leak bool `json:"leak"`
 	// Reproduce, localize and minimize crashers (default: true).
 	Reproduce bool `json:"reproduce"`
 

@@ -56,7 +56,7 @@ type Manager struct {
 	stats          map[string]uint64
 	crashTypes     map[string]bool
 	vmStop         chan bool
-	vmChecked      bool
+	checkResult    *rpctype.CheckArgs
 	fresh          bool
 	numFuzzing     uint32
 	numReproducing uint32
@@ -66,7 +66,6 @@ type Manager struct {
 	mu              sync.Mutex
 	phase           int
 	enabledSyscalls []int
-	enabledCalls    []string // as determined by fuzzer
 
 	candidates     []rpctype.RPCCandidate // untriaged inputs from corpus and hub
 	disabledHashes map[string]struct{}
@@ -227,7 +226,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 			// This program contains a disabled syscall.
 			// We won't execute it, but remember its hash so
 			// it is not deleted during minimization.
-			// TODO: use mgr.enabledCalls which accounts for missing devices, etc.
+			// TODO: use mgr.checkResult.EnabledCalls which accounts for missing devices, etc.
 			// But it is available only after vm check.
 			mgr.disabledHashes[hash.String(rec.Val)] = struct{}{}
 			continue
@@ -554,8 +553,6 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
 
-	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
-	leak := mgr.cfg.Leak && index == 0
 	fuzzerV := 0
 	procs := mgr.cfg.Procs
 	if *flagDebug {
@@ -568,9 +565,9 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	atomic.AddUint32(&mgr.numFuzzing, 1)
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 	cmd := fmt.Sprintf("%v -executor=%v -name=vm-%v -arch=%v -manager=%v -procs=%v"+
-		" -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
+		" -cover=%v -sandbox=%v -debug=%v -v=%d",
 		fuzzerBin, executorBin, index, mgr.cfg.TargetArch, fwdAddr, procs,
-		leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV)
+		mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
@@ -864,11 +861,6 @@ func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	if mgr.firstConnect.IsZero() {
-		mgr.firstConnect = time.Now()
-		log.Logf(0, "received first connection from test machine %v", a.Name)
-	}
-
 	mgr.stats["vm restarts"]++
 	f := &Fuzzer{
 		name: a.Name,
@@ -904,8 +896,10 @@ func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error
 	}
 	r.Prios = mgr.prios
 	r.EnabledCalls = mgr.enabledSyscalls
-	r.NeedCheck = !mgr.vmChecked
+	r.CheckResult = mgr.checkResult
 	r.MaxSignal = mgr.maxSignal.Serialize()
+	r.GitRevision = sys.GitRevision
+	r.TargetRevision = mgr.target.Revision
 	for i := 0; i < mgr.cfg.Procs && len(mgr.candidates) > 0; i++ {
 		last := len(mgr.candidates) - 1
 		r.Candidates = append(r.Candidates, mgr.candidates[last])
@@ -921,42 +915,13 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	if mgr.vmChecked {
+	if mgr.checkResult != nil {
 		return nil
-	}
-	log.Logf(0, "machine check: %v calls enabled, kcov=%v, kleakcheck=%v, faultinjection=%v, comps=%v",
-		len(a.Calls), a.Kcov, a.Leak, a.Fault, a.CompsSupported)
-	if mgr.cfg.Cover && !a.Kcov {
-		log.Fatalf("/sys/kernel/debug/kcov is missing on target machine. Enable CONFIG_KCOV and mount debugfs")
-	}
-	if mgr.cfg.Sandbox == "namespace" && !a.UserNamespaces {
-		log.Fatalf("/proc/self/ns/user is missing on target machine or permission is denied." +
-			" Can't use requested namespace sandbox. Enable CONFIG_USER_NS")
-	}
-	if mgr.vmPool != nil {
-		if mgr.target.Arch != a.ExecutorArch {
-			log.Fatalf("mismatching target/executor arch: target=%v executor=%v",
-				mgr.target.Arch, a.ExecutorArch)
-		}
-		if sys.GitRevision != a.FuzzerGitRev || sys.GitRevision != a.ExecutorGitRev {
-			log.Fatalf("syz-manager, syz-fuzzer and syz-executor binaries are built"+
-				" on different git revisions\n"+
-				"manager= %v\nfuzzer=  %v\nexecutor=%v\n"+
-				"this is not supported, rebuild all binaries with make",
-				sys.GitRevision, a.FuzzerGitRev, a.ExecutorGitRev)
-		}
-		if mgr.target.Revision != a.FuzzerSyzRev || mgr.target.Revision != a.ExecutorSyzRev {
-			log.Fatalf("syz-manager, syz-fuzzer and syz-executor binaries have different"+
-				" versions of system call descriptions compiled in\n"+
-				"manager= %v\nfuzzer=  %v\nexecutor=%v\n"+
-				"this is not supported, rebuild all binaries with make",
-				mgr.target.Revision, a.FuzzerSyzRev, a.ExecutorSyzRev)
-		}
 	}
 	if len(mgr.cfg.EnabledSyscalls) != 0 && len(a.DisabledCalls) != 0 {
 		disabled := make(map[string]string)
 		for _, dc := range a.DisabledCalls {
-			disabled[dc.Name] = dc.Reason
+			disabled[mgr.target.Syscalls[dc.ID].Name] = dc.Reason
 		}
 		for _, id := range mgr.enabledSyscalls {
 			name := mgr.target.Syscalls[id].Name
@@ -968,8 +933,14 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 	if a.Error != "" {
 		log.Fatalf("machine check: %v", a.Error)
 	}
-	mgr.vmChecked = true
-	mgr.enabledCalls = a.Calls
+	log.Logf(0, "machine check:")
+	log.Logf(0, "%-24v: %v", "syscalls", len(a.EnabledCalls))
+	for _, feat := range a.Features {
+		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
+	}
+	a.DisabledCalls = nil
+	mgr.checkResult = a
+	mgr.firstConnect = time.Now()
 	return nil
 }
 
@@ -1105,7 +1076,9 @@ func (mgr *Manager) hubSync() {
 			Key:     mgr.cfg.HubKey,
 			Manager: mgr.cfg.Name,
 			Fresh:   mgr.fresh,
-			Calls:   mgr.enabledCalls,
+		}
+		for _, id := range mgr.checkResult.EnabledCalls {
+			a.Calls = append(a.Calls, mgr.target.Syscalls[id].Name)
 		}
 		hubCorpus := make(map[hash.Sig]bool)
 		for _, inp := range mgr.corpus {

@@ -18,7 +18,6 @@ following keys in its top-level object:
  - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested
    (used for report symbolization and coverage reports, optional).
  - `procs`: Number of parallel test processes in each VM (4 or 8 would be a reasonable number).
- - `leak`: Detect memory leaks with kmemleak.
  - `image`: Location of the disk image file for the QEMU instance; a copy of this file is passed as the
    `-hda` option to `qemu-system-x86_64`.
  - `sshkey`: Location (on the host machine) of a root SSH identity to use for communicating with
