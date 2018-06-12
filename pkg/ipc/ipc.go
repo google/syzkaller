@@ -19,7 +19,6 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -278,13 +277,6 @@ var enableFaultOnce sync.Once
 // hanged: program hanged and was killed
 // err0: failed to start process, or executor has detected a logical error
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
-	if opts.Flags&FlagInjectFault != 0 {
-		enableFaultOnce.Do(func() {
-			if err := host.EnableFaultInjection(); err != nil {
-				panic(err)
-			}
-		})
-	}
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)
 	if err != nil {

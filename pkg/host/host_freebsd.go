@@ -11,6 +11,6 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	return true, ""
 }
 
-func EnableFaultInjection() error {
-	return nil
+func init() {
+	checkFeature[FeatureCoverage] = unconditionallyEnabled
 }

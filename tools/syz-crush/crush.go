@@ -101,7 +101,7 @@ func runInstance(cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Poo
 		return
 	}
 
-	cmd := fmt.Sprintf("%v -executor=%v -repeat=0 -procs=%v -cover=0 -sandbox=%v %v",
+	cmd := fmt.Sprintf("%v -executor=%v -repeat=0 -procs=%v -sandbox=%v %v",
 		execprogBin, executorBin, cfg.Procs, cfg.Sandbox, logFile)
 	outc, errc, err := inst.Run(time.Hour, nil, cmd)
 	if err != nil {

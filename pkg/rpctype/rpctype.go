@@ -6,6 +6,7 @@
 package rpctype
 
 import (
+	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/signal"
 )
 
@@ -27,33 +28,26 @@ type ConnectArgs struct {
 }
 
 type ConnectRes struct {
-	Prios        [][]float32
-	Inputs       []RPCInput
-	MaxSignal    signal.Serial
-	Candidates   []RPCCandidate
-	EnabledCalls []int
-	NeedCheck    bool
+	Prios          [][]float32
+	Inputs         []RPCInput
+	MaxSignal      signal.Serial
+	Candidates     []RPCCandidate
+	EnabledCalls   []int
+	GitRevision    string
+	TargetRevision string
+	CheckResult    *CheckArgs
 }
 
 type CheckArgs struct {
-	Name           string
-	Error          string
-	Kcov           bool
-	Leak           bool
-	Fault          bool
-	UserNamespaces bool
-	CompsSupported bool
-	Calls          []string
-	DisabledCalls  []SyscallReason
-	FuzzerGitRev   string
-	FuzzerSyzRev   string
-	ExecutorGitRev string
-	ExecutorSyzRev string
-	ExecutorArch   string
+	Name          string
+	Error         string
+	EnabledCalls  []int
+	DisabledCalls []SyscallReason
+	Features      *host.Features
 }
 
 type SyscallReason struct {
-	Name   string
+	ID     int
 	Reason string
 }
 

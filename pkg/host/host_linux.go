@@ -7,14 +7,18 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
+	"time"
+	"unsafe"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/linux"
 )
 
 func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
@@ -110,12 +114,8 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		}
 		return onlySandboxNoneOrNamespace(sandbox)
 	case "syz_emit_ethernet", "syz_extract_tcp_res":
-		fd, err := syscall.Open("/dev/net/tun", syscall.O_RDWR, 0)
-		if err != nil {
-			return false, fmt.Sprintf("open(/dev/net/tun) failed: %v", err)
-		}
-		syscall.Close(fd)
-		return true, ""
+		reason := checkNetworkInjection()
+		return reason == "", reason
 	case "syz_kvm_setup_cpu":
 		switch c.Name {
 		case "syz_kvm_setup_cpu$x86":
@@ -213,7 +213,87 @@ func extractStringConst(typ prog.Type) (string, bool) {
 	return v, true
 }
 
-func EnableFaultInjection() error {
+func init() {
+	checkFeature[FeatureCoverage] = checkCoverage
+	checkFeature[FeatureComparisons] = checkComparisons
+	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
+	checkFeature[FeatureSandboxNamespace] = checkSandboxNamespace
+	checkFeature[FeatureFaultInjection] = checkFaultInjection
+	setupFeature[FeatureFaultInjection] = setupFaultInjection
+	checkFeature[FeatureLeakChecking] = checkLeakChecking
+	setupFeature[FeatureLeakChecking] = setupLeakChecking
+	callbFeature[FeatureLeakChecking] = callbackLeakChecking
+	checkFeature[FeatureNetworkInjection] = checkNetworkInjection
+}
+
+func checkCoverage() string {
+	if !osutil.IsExist("/sys/kernel/debug") {
+		return "debugfs is not enabled or not mounted"
+	}
+	if !osutil.IsExist("/sys/kernel/debug/kcov") {
+		return "CONFIG_KCOV is not enabled"
+	}
+	return ""
+}
+
+func checkComparisons() string {
+	if !osutil.IsExist("/sys/kernel/debug") {
+		return "debugfs is not enabled or not mounted"
+	}
+	// TODO(dvyukov): this should run under target arch.
+	// E.g. KCOV ioctls were initially not supported on 386 (missing compat_ioctl),
+	// and a 386 executor won't be able to use them, but an amd64 fuzzer will be.
+	fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0)
+	if err != nil {
+		return "CONFIG_KCOV is not enabled"
+	}
+	defer syscall.Close(fd)
+	// Trigger host target lazy initialization, it will fill linux.KCOV_INIT_TRACE.
+	// It's all wrong and needs to be refactored.
+	if _, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+		return fmt.Sprintf("failed to get target: %v", err)
+	}
+	coverSize := uintptr(64 << 10)
+	_, _, errno := syscall.Syscall(
+		syscall.SYS_IOCTL, uintptr(fd), linux.KCOV_INIT_TRACE, coverSize)
+	if errno != 0 {
+		return fmt.Sprintf("ioctl(KCOV_INIT_TRACE) failed: %v", errno)
+	}
+	mem, err := syscall.Mmap(fd, 0, int(coverSize*unsafe.Sizeof(uintptr(0))),
+		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	if err != nil {
+		return fmt.Sprintf("KCOV mmap failed: %v", err)
+	}
+	defer syscall.Munmap(mem)
+	_, _, errno = syscall.Syscall(syscall.SYS_IOCTL,
+		uintptr(fd), linux.KCOV_ENABLE, linux.KCOV_TRACE_CMP)
+	if errno != 0 {
+		if errno == syscall.ENOTTY {
+			return "kernel does not have comparison tracing support"
+		}
+		return fmt.Sprintf("ioctl(KCOV_TRACE_CMP) failed: %v", errno)
+	}
+	defer syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), linux.KCOV_DISABLE, 0)
+	return ""
+}
+
+func checkFaultInjection() string {
+	if !osutil.IsExist("/proc/self/make-it-fail") {
+		return "CONFIG_FAULT_INJECTION is not enabled"
+	}
+	if !osutil.IsExist("/proc/thread-self/fail-nth") {
+		return "kernel does not have systematic fault injection support"
+	}
+	if !osutil.IsExist("/sys/kernel/debug") {
+		return "debugfs is not enabled or not mounted"
+	}
+	if !osutil.IsExist("/sys/kernel/debug/failslab/ignore-gfp-wait") {
+		return "CONFIG_FAULT_INJECTION_DEBUG_FS is not enabled"
+	}
+	return ""
+}
+
+func setupFaultInjection() error {
 	if err := osutil.WriteFile("/sys/kernel/debug/failslab/ignore-gfp-wait", []byte("N")); err != nil {
 		return fmt.Errorf("failed to write /failslab/ignore-gfp-wait: %v", err)
 	}
@@ -230,4 +310,145 @@ func EnableFaultInjection() error {
 		return fmt.Errorf("failed to write /fail_page_alloc/min-order: %v", err)
 	}
 	return nil
+}
+
+func checkLeakChecking() string {
+	if !osutil.IsExist("/sys/kernel/debug") {
+		return "debugfs is not enabled or not mounted"
+	}
+	if !osutil.IsExist("/sys/kernel/debug/kmemleak") {
+		return "CONFIG_DEBUG_KMEMLEAK is not enabled"
+	}
+	return ""
+}
+
+func setupLeakChecking() error {
+	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open /sys/kernel/debug/kmemleak: %v", err)
+	}
+	defer syscall.Close(fd)
+	if _, err := syscall.Write(fd, []byte("scan=off")); err != nil {
+		// kmemleak returns EBUSY when kmemleak is already turned off.
+		if err != syscall.EBUSY {
+			return fmt.Errorf("write(kmemleak, scan=off) failed: %v", err)
+		}
+	}
+	// Flush boot leaks.
+	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
+		return fmt.Errorf("write(kmemleak, scan) failed: %v", err)
+	}
+	time.Sleep(5 * time.Second) // account for MSECS_MIN_AGE
+	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
+		return fmt.Errorf("write(kmemleak, scan) failed: %v", err)
+	}
+	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
+		return fmt.Errorf("write(kmemleak, clear) failed: %v", err)
+	}
+	return nil
+}
+
+func callbackLeakChecking() {
+	start := time.Now()
+	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
+	if err != nil {
+		panic(err)
+	}
+	defer syscall.Close(fd)
+	// KMEMLEAK has false positives. To mitigate most of them, it checksums
+	// potentially leaked objects, and reports them only on the next scan
+	// iff the checksum does not change. Because of that we do the following
+	// intricate dance:
+	// Scan, sleep, scan again. At this point we can get some leaks.
+	// If there are leaks, we sleep and scan again, this can remove
+	// false leaks. Then, read kmemleak again. If we get leaks now, then
+	// hopefully these are true positives during the previous testing cycle.
+	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
+		panic(err)
+	}
+	time.Sleep(time.Second)
+	// Account for MSECS_MIN_AGE
+	// (1 second less because scanning will take at least a second).
+	for time.Since(start) < 4*time.Second {
+		time.Sleep(time.Second)
+	}
+	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
+		panic(err)
+	}
+	buf := make([]byte, 128<<10)
+	n, err := syscall.Read(fd, buf)
+	if err != nil {
+		panic(err)
+	}
+	if n != 0 {
+		time.Sleep(time.Second)
+		if _, err := syscall.Write(fd, []byte("scan")); err != nil {
+			panic(err)
+		}
+		n, err := syscall.Read(fd, buf)
+		if err != nil {
+			panic(err)
+		}
+		nleaks := 0
+		for buf = buf[:n]; len(buf) != 0; {
+			end := bytes.Index(buf[1:], []byte("unreferenced object"))
+			if end != -1 {
+				end++
+			} else {
+				end = len(buf)
+			}
+			report := buf[:end]
+			buf = buf[end:]
+			if kmemleakIgnore(report) {
+				continue
+			}
+			// BUG in output should be recognized by manager.
+			fmt.Printf("BUG: memory leak\n%s\n", report)
+			nleaks++
+		}
+		if nleaks != 0 {
+			os.Exit(1)
+		}
+	}
+	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
+		panic(err)
+	}
+}
+
+func kmemleakIgnore(report []byte) bool {
+	// kmemleak has a bunch of false positives (at least what looks like
+	// false positives at first glance). So we are conservative with what we report.
+	// First, we filter out any allocations that don't come from executor processes.
+	// Second, we ignore a bunch of functions entirely.
+	// Ideally, someone should debug/fix all these cases and remove ignores.
+	if !bytes.Contains(report, []byte(`comm "syz-executor`)) {
+		return true
+	}
+	for _, ignore := range []string{
+		" copy_process",
+		" do_execveat_common",
+		" __ext4_",
+		" get_empty_filp",
+		" do_filp_open",
+		" new_inode",
+	} {
+		if bytes.Contains(report, []byte(ignore)) {
+			return true
+		}
+	}
+	return false
+}
+
+func checkSandboxNamespace() string {
+	if !osutil.IsExist("/proc/self/ns/user") {
+		return "/proc/self/ns/user is not present"
+	}
+	return ""
+}
+
+func checkNetworkInjection() string {
+	if !osutil.IsExist("/dev/net/tun") {
+		return "/dev/net/tun is not present"
+	}
+	return ""
 }

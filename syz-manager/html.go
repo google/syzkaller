@@ -100,14 +100,21 @@ func (mgr *Manager) collectStats() []UIStat {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	var stats []UIStat
-	stats = append(stats, UIStat{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)})
-	stats = append(stats, UIStat{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)})
-	stats = append(stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
-	stats = append(stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
-	stats = append(stats, UIStat{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"})
-	stats = append(stats, UIStat{Name: "signal", Value: fmt.Sprint(mgr.corpusSignal.Len())})
-	stats = append(stats, UIStat{Name: "syscalls", Value: fmt.Sprint(len(mgr.enabledCalls)), Link: "/syscalls"})
+	stats := []UIStat{
+		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
+		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
+		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))},
+		{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))},
+		{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"},
+		{Name: "signal", Value: fmt.Sprint(mgr.corpusSignal.Len())},
+	}
+	if mgr.checkResult != nil {
+		stats = append(stats, UIStat{
+			Name:  "syscalls",
+			Value: fmt.Sprint(len(mgr.checkResult.EnabledCalls)),
+			Link:  "/syscalls",
+		})
+	}
 
 	secs := uint64(1)
 	if !mgr.firstConnect.IsZero() {

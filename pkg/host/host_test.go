@@ -11,7 +11,7 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
-func TestLog(t *testing.T) {
+func TestDetectSupportedSyscalls(t *testing.T) {
 	t.Parallel()
 	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
 	if err != nil {
@@ -35,5 +35,16 @@ func TestLog(t *testing.T) {
 	t.Logf("\n\ntransitively unsupported:")
 	for c, reason := range disabled {
 		t.Logf("%v: %v", c.Name, reason)
+	}
+}
+
+func TestCheck(t *testing.T) {
+	t.Parallel()
+	features, err := Check()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, feat := range features {
+		t.Logf("%-24v: %v", feat.Name, feat.Reason)
 	}
 }

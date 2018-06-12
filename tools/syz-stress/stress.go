@@ -48,6 +48,14 @@ func main() {
 		log.Fatalf("nothing to mutate (-generate=false and no corpus)")
 	}
 
+	features, err := host.Check()
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	if _, err = host.Setup(features); err != nil {
+		log.Fatalf("%v", err)
+	}
+
 	calls := buildCallList(target)
 	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, calls)
@@ -55,6 +63,9 @@ func main() {
 	config, execOpts, err := ipc.DefaultConfig()
 	if err != nil {
 		log.Fatalf("%v", err)
+	}
+	if features[host.FeatureNetworkInjection].Enabled {
+		config.Flags |= ipc.FlagEnableTun
 	}
 	gate = ipc.NewGate(2**flagProcs, nil)
 	for pid := 0; pid < *flagProcs; pid++ {
