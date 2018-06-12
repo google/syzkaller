@@ -4,7 +4,7 @@ Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here]
 
 _newer first_
 * [net: BUG still has locks held in unix_stream_splice_read](https://groups.google.com/d/msg/syzkaller/q_BUZHm-Nug/Y0o4RfDJBQAJ)
-* [general protection fault in sockfs_setattr](https://groups.google.com/d/msg/syzkaller/y4V_gr5sjsE/GRA81a6EAQAJ)
+* [general protection fault in sockfs_setattr](https://groups.google.com/d/msg/syzkaller/y4V_gr5sjsE/GRA81a6EAQAJ) [CVE-2018-12232](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-12232)
 * [RDMA/mlx5: Fix NULL dereference while accessing XRC_TGT QPslogin ](https://patchwork.kernel.org/patch/10274675/)
 * [KASAN: use-after-free Read in set_page_dirty_lock](https://groups.google.com/forum/#!topic/syzkaller/w-u4MXthFoI)
 * [System freeze and NULL pointer dereference](https://groups.google.com/d/msg/syzkaller-bugs/LxPlUEk62IA/OIfFWHr_AgAJ)
@@ -49,7 +49,7 @@ _newer first_
 * [net/xfrm: stack-out-of-bounds in xfrm_state_find](https://groups.google.com/forum/#!topic/syzkaller/WA6MdAfCYS0)
 * [net/bonding: stack-out-of-bounds in bond_enslave](https://groups.google.com/forum/#!topic/syzkaller/IDoQHFmrnRI)
 * [net: ipv6: RTF_PCPU should not be settable from userspace](https://www.spinics.net/lists/netdev/msg430947.html)
-* [fs/notify/inotify: slab-out-of-bounds write in strcpy](https://groups.google.com/d/msg/syzkaller/ecGeXh44M50/r7OSshSOCAAJ)
+* [fs/notify/inotify: slab-out-of-bounds write in strcpy](https://groups.google.com/d/msg/syzkaller/ecGeXh44M50/r7OSshSOCAAJ) [CVE-2017-7533](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7533)
 * [net/ipv6: slab-out-of-bounds read in seg6_validate_srh](https://groups.google.com/forum/#!topic/syzkaller/U3NMWDD16PM)
 * [kernel BUG at mm/hugetlb.c:742!](https://lkml.org/lkml/2017/4/10/1154)
 * [net/key: slab-out-of-bounds in parse_ipsecrequests](https://groups.google.com/forum/#!topic/syzkaller/vG7Cyfx-mvU)
