@@ -139,11 +139,17 @@ func checkSimpleProgram(args *checkArgs) error {
 func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
 	enabled []int, disabled []rpctype.SyscallReason, err error) {
 	calls := make(map[*prog.Syscall]bool)
-	for _, n := range enabledCalls {
-		if n >= len(target.Syscalls) {
-			return nil, nil, fmt.Errorf("unknown enabled syscall %v", n)
+	if len(enabledCalls) != 0 {
+		for _, n := range enabledCalls {
+			if n >= len(target.Syscalls) {
+				return nil, nil, fmt.Errorf("unknown enabled syscall %v", n)
+			}
+			calls[target.Syscalls[n]] = true
 		}
-		calls[target.Syscalls[n]] = true
+	} else {
+		for _, c := range target.Syscalls {
+			calls[c] = true
+		}
 	}
 	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox)
 	if err != nil {
