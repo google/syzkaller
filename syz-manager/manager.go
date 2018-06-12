@@ -735,44 +735,8 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	if err := mgr.getReporter().Symbolize(rep); err != nil {
 		log.Logf(0, "failed to symbolize repro: %v", err)
 	}
-	dir := filepath.Join(mgr.crashdir, hash.String([]byte(rep.Title)))
-	osutil.MkdirAll(dir)
-
-	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
-		log.Logf(0, "failed to write crash: %v", err)
-	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
-	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
-	if len(mgr.cfg.Tag) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
-	}
-	if len(rep.Output) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.log"), rep.Output)
-	}
-	if len(rep.Report) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.report"), rep.Report)
-	}
-	osutil.WriteFile(filepath.Join(dir, "repro.stats.log"), res.Stats.Log)
-	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\n"+
-		"Extracting C: %s\nSimplifying C: %s\n",
-		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime,
-		res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
-	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
-	var cprogText []byte
-	if res.CRepro {
-		cprog, err := csource.Write(res.Prog, res.Opts)
-		if err == nil {
-			formatted, err := csource.Format(cprog)
-			if err == nil {
-				cprog = formatted
-			}
-			osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprog)
-			cprogText = cprog
-		} else {
-			log.Logf(0, "failed to write C source: %v", err)
-		}
-	}
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
 	if !hub {
@@ -781,6 +745,20 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 		mgr.mu.Lock()
 		mgr.newRepros = append(mgr.newRepros, progForHub)
 		mgr.mu.Unlock()
+	}
+
+	var cprogText []byte
+	if res.CRepro {
+		cprog, err := csource.Write(res.Prog, res.Opts)
+		if err == nil {
+			formatted, err := csource.Format(cprog)
+			if err == nil {
+				cprog = formatted
+			}
+			cprogText = cprog
+		} else {
+			log.Logf(0, "failed to write C source: %v", err)
+		}
 	}
 
 	if mgr.dash != nil {
@@ -801,8 +779,38 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 		}
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
 			log.Logf(0, "failed to report repro to dashboard: %v", err)
+		} else {
+			// Don't store the crash locally, if we've successfully
+			// uploaded it to the dashboard. These will just eat disk space.
+			return
 		}
 	}
+
+	dir := filepath.Join(mgr.crashdir, hash.String([]byte(rep.Title)))
+	osutil.MkdirAll(dir)
+
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
+		log.Logf(0, "failed to write crash: %v", err)
+	}
+	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
+	if len(mgr.cfg.Tag) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
+	}
+	if len(rep.Output) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.log"), rep.Output)
+	}
+	if len(rep.Report) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.report"), rep.Report)
+	}
+	if len(cprogText) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprogText)
+	}
+	osutil.WriteFile(filepath.Join(dir, "repro.stats.log"), res.Stats.Log)
+	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\n"+
+		"Extracting C: %s\nSimplifying C: %s\n",
+		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime,
+		res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
+	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
 }
 
 func (mgr *Manager) getReporter() report.Reporter {
