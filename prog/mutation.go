@@ -415,7 +415,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 	},
 	// Insert random bytes.
 	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
-		if len(data) == 0 || uint64(len(data)) >= maxLen {
+		if len(data) == 0 {
 			return data, false
 		}
 		n := r.Intn(16) + 1
@@ -430,14 +430,14 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		for i := 0; i < n; i++ {
 			data[pos+i] = byte(r.Int31())
 		}
-		if r.bin() {
+		if uint64(len(data)) > maxLen || r.bin() {
 			data = data[:len(data)-n] // preserve original length
 		}
 		return data, true
 	},
 	// Remove bytes.
 	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
-		if uint64(len(data)) <= minLen {
+		if len(data) == 0 {
 			return data, false
 		}
 		n := r.Intn(16) + 1
@@ -450,7 +450,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		}
 		copy(data[pos:], data[pos+n:])
 		data = data[:len(data)-n]
-		if r.bin() {
+		if uint64(len(data)) < minLen || r.bin() {
 			for i := 0; i < n; i++ {
 				data = append(data, 0) // preserve original length
 			}
