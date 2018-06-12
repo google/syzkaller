@@ -5,6 +5,7 @@ Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here]
 _newer first_
 * [net: BUG still has locks held in unix_stream_splice_read](https://groups.google.com/d/msg/syzkaller/q_BUZHm-Nug/Y0o4RfDJBQAJ)
 * [general protection fault in sockfs_setattr](https://groups.google.com/d/msg/syzkaller/y4V_gr5sjsE/GRA81a6EAQAJ) [CVE-2018-12232](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-12232)
+* [KASAN: slab out of bounds Write in __jfs_setxattr](https://lkml.org/lkml/2018/6/1/829) [CVE-2018-12233](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-12233)
 * [RDMA/mlx5: Fix NULL dereference while accessing XRC_TGT QPslogin ](https://patchwork.kernel.org/patch/10274675/)
 * [KASAN: use-after-free Read in set_page_dirty_lock](https://groups.google.com/forum/#!topic/syzkaller/w-u4MXthFoI)
 * [System freeze and NULL pointer dereference](https://groups.google.com/d/msg/syzkaller-bugs/LxPlUEk62IA/OIfFWHr_AgAJ)
