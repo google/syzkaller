@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "955b3b5300af8efd38b4f547a3f09ad5fe151dbb"
+#define SYZ_REVISION "bde06e23f09731bf5b0fdf0015b8501b8966e505"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1965
+#define SYZ_SYSCALL_COUNT 1966
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1414,6 +1414,7 @@ const call_t syscalls[] = {
     {"request_key", 287},
     {"restart_syscall", 0},
     {"rmdir", 40},
+    {"rseq", 386},
     {"rt_sigaction", 174},
     {"rt_sigpending", 176},
     {"rt_sigprocmask", 175},
@@ -1979,11 +1980,11 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "7097498c6946c1eb9722af2ad0538f54e559ac58"
+#define SYZ_REVISION "785dabbb3f7361d500be84940319f1447172ce8b"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2017
+#define SYZ_SYSCALL_COUNT 2018
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3415,6 +3416,7 @@ const call_t syscalls[] = {
     {"request_key", 249},
     {"restart_syscall", 219},
     {"rmdir", 84},
+    {"rseq", 334},
     {"rt_sigaction", 13},
     {"rt_sigpending", 127},
     {"rt_sigprocmask", 14},
@@ -4008,11 +4010,11 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "6b6722dfc791e76f8e5ea43bb5ed38f3cabaa311"
+#define SYZ_REVISION "ee15ae72d74ca765e2db3496672f951a1b9bfaa1"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1973
+#define SYZ_SYSCALL_COUNT 1974
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5404,6 +5406,7 @@ const call_t syscalls[] = {
     {"request_key", 310},
     {"restart_syscall", 0},
     {"rmdir", 40},
+    {"rseq", 398},
     {"rt_sigaction", 174},
     {"rt_sigpending", 176},
     {"rt_sigprocmask", 175},
@@ -5993,7 +5996,7 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "c62a27e289c952463593743f46ab30695095ad93"
+#define SYZ_REVISION "3425b5fc030a24ba1be46429544418dd9b05de5c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -7951,11 +7954,11 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "4d1d8966c4e9be19a8def1df7840f085c1e49434"
+#define SYZ_REVISION "ff218fc605d30d57dd34d66caa68cebc72b830f8"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1834
+#define SYZ_SYSCALL_COUNT 1835
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -9235,6 +9238,7 @@ const call_t syscalls[] = {
     {"request_key", 270},
     {"restart_syscall", 0},
     {"rmdir", 40},
+    {"rseq", 387},
     {"rt_sigaction", 173},
     {"rt_sigpending", 175},
     {"rt_sigprocmask", 174},
