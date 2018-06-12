@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -267,8 +266,6 @@ func (env *Env) Close() error {
 		return nil
 	}
 }
-
-var enableFaultOnce sync.Once
 
 // Exec starts executor binary to execute program p and returns information about the execution:
 // output: process output

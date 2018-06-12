@@ -43,7 +43,6 @@ type Fuzzer struct {
 	faultInjectionEnabled    bool
 	comparisonTracingEnabled bool
 	coverageEnabled          bool
-	leakCheckEnabled         bool
 
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog

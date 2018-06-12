@@ -227,8 +227,8 @@ func init() {
 }
 
 func checkCoverage() string {
-	if !osutil.IsExist("/sys/kernel/debug") {
-		return "debugfs is not enabled or not mounted"
+	if reason := checkDebugFS(); reason != "" {
+		return reason
 	}
 	if !osutil.IsExist("/sys/kernel/debug/kcov") {
 		return "CONFIG_KCOV is not enabled"
@@ -237,8 +237,8 @@ func checkCoverage() string {
 }
 
 func checkComparisons() string {
-	if !osutil.IsExist("/sys/kernel/debug") {
-		return "debugfs is not enabled or not mounted"
+	if reason := checkDebugFS(); reason != "" {
+		return reason
 	}
 	// TODO(dvyukov): this should run under target arch.
 	// E.g. KCOV ioctls were initially not supported on 386 (missing compat_ioctl),
@@ -284,8 +284,8 @@ func checkFaultInjection() string {
 	if !osutil.IsExist("/proc/thread-self/fail-nth") {
 		return "kernel does not have systematic fault injection support"
 	}
-	if !osutil.IsExist("/sys/kernel/debug") {
-		return "debugfs is not enabled or not mounted"
+	if reason := checkDebugFS(); reason != "" {
+		return reason
 	}
 	if !osutil.IsExist("/sys/kernel/debug/failslab/ignore-gfp-wait") {
 		return "CONFIG_FAULT_INJECTION_DEBUG_FS is not enabled"
@@ -313,8 +313,8 @@ func setupFaultInjection() error {
 }
 
 func checkLeakChecking() string {
-	if !osutil.IsExist("/sys/kernel/debug") {
-		return "debugfs is not enabled or not mounted"
+	if reason := checkDebugFS(); reason != "" {
+		return reason
 	}
 	if !osutil.IsExist("/sys/kernel/debug/kmemleak") {
 		return "CONFIG_DEBUG_KMEMLEAK is not enabled"
@@ -449,6 +449,13 @@ func checkSandboxNamespace() string {
 func checkNetworkInjection() string {
 	if !osutil.IsExist("/dev/net/tun") {
 		return "/dev/net/tun is not present"
+	}
+	return ""
+}
+
+func checkDebugFS() string {
+	if !osutil.IsExist("/sys/kernel/debug") {
+		return "debugfs is not enabled or not mounted"
 	}
 	return ""
 }
