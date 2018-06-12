@@ -470,7 +470,29 @@ sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags flags[sc
 sched_setattr(pid pid, attr ptr[in, sched_attr], flags flags[sched_attr_flags])
 sched_yield()
 getrandom(buf buffer[out], len len[buf], flags flags[getrandom_flags])
+
 membarrier(cmd flags[membarrier_cmd], flags const[0])
+
+membarrier_cmd = MEMBARRIER_CMD_GLOBAL, MEMBARRIER_CMD_GLOBAL_EXPEDITED, MEMBARRIER_CMD_PRIVATE_EXPEDITED, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE
+
+rseq(rseq ptr[in, rseq], rseq_len bytesize[rseq], flags boolptr, sig const[0])
+
+rseq {
+	cpu_id_start	const[0, int32]
+	cpu_id		const[0, int32]
+	rseq_cs		ptr[in, rseq_cs, opt]
+	flags		flags[rseq_cs_flags, int32]
+} [align_32]
+
+rseq_cs {
+	version			const[0, int32]
+	flags			flags[rseq_cs_flags, int32]
+	start_ip		intptr
+	post_commit_offset	intptr
+	abort_ip		intptr
+} [align_32]
+
+rseq_cs_flags = RSEQ_CS_FLAG_NO_RESTART_ON_PREEMPT, RSEQ_CS_FLAG_NO_RESTART_ON_SIGNAL, RSEQ_CS_FLAG_NO_RESTART_ON_MIGRATE
 
 syz_open_procfs(pid pid, file ptr[in, string[procfs_file]]) fd
 
@@ -1015,7 +1037,6 @@ fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 getrandom_flags = GRND_NONBLOCK, GRND_RANDOM
 clone_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK, CLONE_PARENT, CLONE_THREAD, CLONE_NEWNS, CLONE_SYSVSEM, CLONE_SETTLS, CLONE_PARENT_SETTID, CLONE_CHILD_CLEARTID, CLONE_UNTRACED, CLONE_CHILD_SETTID, CLONE_NEWCGROUP, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER, CLONE_NEWPID, CLONE_NEWNET, CLONE_IO
-membarrier_cmd = MEMBARRIER_CMD_GLOBAL, MEMBARRIER_CMD_GLOBAL_EXPEDITED, MEMBARRIER_CMD_PRIVATE_EXPEDITED, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE
 
 kcov_ioctls = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE
 kcov_modes = KCOV_TRACE_PC, KCOV_TRACE_CMP
