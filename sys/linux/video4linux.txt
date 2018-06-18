@@ -267,7 +267,7 @@ v4l2_buffer_union [
 	offset	int32
 	userptr	intptr
 	planes	ptr[inout, v4l2_plane]
-	fd	fd_v4l2_buffer
+	fd	fd_v4l2_buffer[opt]
 ]
 
 v4l2_timecode {
@@ -291,7 +291,7 @@ v4l2_plane {
 v4l2_plane_union [
 	mem_offset	int32
 	userptr		intptr
-	fd		fd_v4l2_buffer
+	fd		fd_v4l2_buffer[opt]
 ]
 
 v4l2_framebuffer {
@@ -317,7 +317,7 @@ v4l2_exportbuffer {
 	index		int32
 	plane		int32
 	flags		flags[pipe_flags, int32]
-	fd		fd_dmabuf
+	fd		fd_dmabuf[opt]
 	reserved	array[const[0, int32], 11]
 }
 

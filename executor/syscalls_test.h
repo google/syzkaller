@@ -2,11 +2,11 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "03eb61c17cd6775babc6992bed09fd510eec1467"
+#define SYZ_REVISION "d92d7712e00dad64bba08d7850d58c2c07fce4a2"
 #define SYZ_PAGE_SIZE 8192
 #define SYZ_NUM_PAGES 2048
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 97
+#define SYZ_SYSCALL_COUNT 99
 const call_t syscalls[] = {
 	{"foo$any0", 0, (syscall_t)foo},
 	{"foo$anyres", 0, (syscall_t)foo},
@@ -105,17 +105,19 @@ const call_t syscalls[] = {
 	{"syz_test$union1", 0, (syscall_t)syz_test},
 	{"syz_test$union2", 0, (syscall_t)syz_test},
 	{"syz_test$vma0", 0, (syscall_t)syz_test},
+	{"unsupported$0", 0, (syscall_t)unsupported},
+	{"unsupported$1", 0, (syscall_t)unsupported},
 
 };
 #endif
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "d00f8c6b2c92c5a3d3155c34bcafacc4ee1efce3"
+#define SYZ_REVISION "043151c0569399dabddfd351e1e4e097cf457238"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 97
+#define SYZ_SYSCALL_COUNT 99
 const call_t syscalls[] = {
 	{"foo$any0", 0, (syscall_t)foo},
 	{"foo$anyres", 0, (syscall_t)foo},
@@ -214,6 +216,8 @@ const call_t syscalls[] = {
 	{"syz_test$union1", 0, (syscall_t)syz_test},
 	{"syz_test$union2", 0, (syscall_t)syz_test},
 	{"syz_test$vma0", 0, (syscall_t)syz_test},
+	{"unsupported$0", 0, (syscall_t)unsupported},
+	{"unsupported$1", 0, (syscall_t)unsupported},
 
 };
 #endif
