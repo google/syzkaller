@@ -10,7 +10,7 @@ include <uapi/linux/if_xdp.h>
 resource sock_xdp[sock]
 
 socket$xdp(domain const[AF_XDP], type const[SOCK_RAW], proto const[0]) sock_xdp
-bind$xdp(fd sock_xdp, addr ptr[in, sockaddr_xdp], len bytesize[addr])
+bind$xdp(fd sock_xdp, addr ptr[in, sockaddr_xdp_bind], len bytesize[addr])
 sendmsg$xdp(fd sock_xdp, msg ptr[in, msghdr_xdp], f flags[send_flags])
 mmap$xdp(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd sock_xdp, offset flags[xdp_mmap_offsets])
 
@@ -27,6 +27,14 @@ xdp_mmap_offsets = XDP_PGOFF_RX_RING, XDP_PGOFF_TX_RING, XDP_UMEM_PGOFF_FILL_RIN
 xdp_ring_sizes = 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 1048576, 2097152, 16777216
 
 sockaddr_xdp {
+	sxdp_family		const[AF_XDP, int16]
+	sxdp_flags		flags[sxdp_flags, int16]
+	sxdp_ifindex		ifindex
+	sxdp_queue_id		int32[0:64]
+	sxdp_shared_umem_fd	const[0, int32]
+}
+
+sockaddr_xdp_bind {
 	sxdp_family		const[AF_XDP, int16]
 	sxdp_flags		flags[sxdp_flags, int16]
 	sxdp_ifindex		ifindex
