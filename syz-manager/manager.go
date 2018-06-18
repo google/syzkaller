@@ -45,6 +45,7 @@ type Manager struct {
 	cfg            *mgrconfig.Config
 	vmPool         *vm.Pool
 	target         *prog.Target
+	reporterInit   sync.Once
 	reporter       report.Reporter
 	crashdir       string
 	port           int
@@ -824,7 +825,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 }
 
 func (mgr *Manager) getReporter() report.Reporter {
-	if mgr.reporter == nil {
+	mgr.reporterInit.Do(func() {
 		<-allSymbolsReady
 		var err error
 		// TODO(dvyukov): we should introduce cfg.Kernel_Obj dir instead of Vmlinux.
@@ -839,7 +840,7 @@ func (mgr *Manager) getReporter() report.Reporter {
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
-	}
+	})
 	return mgr.reporter
 }
 
