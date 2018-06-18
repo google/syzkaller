@@ -112,8 +112,10 @@ var (
 		"umount":  "oldumount",
 		"umount2": "umount",
 	}
-	trialMu        sync.Mutex
-	trialSupported = make(map[uint64]bool)
+	trialMu         sync.Mutex
+	trialSupported  = make(map[uint64]bool)
+	filesystems     []byte
+	filesystemsOnce sync.Once
 )
 
 func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
@@ -190,7 +192,20 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		syscall.Close(fd)
 		return true, ""
 	case "syz_mount_image":
-		return onlySandboxNone(sandbox)
+		if ok, reason := onlySandboxNone(sandbox); !ok {
+			return ok, reason
+		}
+		fstype, ok := extractStringConst(c.Args[0])
+		if !ok {
+			panic("syz_mount_image arg is not string")
+		}
+		filesystemsOnce.Do(func() {
+			filesystems, _ = ioutil.ReadFile("/proc/filesystems")
+		})
+		if !bytes.Contains(filesystems, []byte("\t"+fstype+"\n")) {
+			return false, "/proc/filesystems does not contain this fs"
+		}
+		return true, ""
 	case "syz_read_part_table":
 		return onlySandboxNone(sandbox)
 	}
@@ -267,11 +282,13 @@ func extractStringConst(typ prog.Type) (string, bool) {
 		panic("first open arg is not a pointer to string const")
 	}
 	str, ok := ptr.Type.(*prog.BufferType)
-	if !ok || str.Kind != prog.BufferString || len(str.Values) != 1 {
+	if !ok || str.Kind != prog.BufferString || len(str.Values) == 0 {
 		return "", false
 	}
 	v := str.Values[0]
-	v = v[:len(v)-1] // string terminating \x00
+	for len(v) != 0 && v[len(v)-1] == 0 {
+		v = v[:len(v)-1] // string terminating \x00
+	}
 	return v, true
 }
 
