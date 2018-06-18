@@ -91,6 +91,8 @@ type Manager struct {
 const (
 	// Just started, nothing done yet.
 	phaseInit = iota
+	// Corpus is loaded and machine is checked.
+	phaseLoadedCorpus
 	// Triaged all inputs from corpus.
 	// This is when we start querying hub and minimizing persistent corpus.
 	phaseTriagedCorpus
@@ -184,74 +186,6 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	mgr.corpusDB, err = db.Open(filepath.Join(cfg.Workdir, "corpus.db"))
 	if err != nil {
 		log.Fatalf("failed to open corpus database: %v", err)
-	}
-	// By default we don't re-minimize/re-smash programs from corpus,
-	// it takes lots of time on start and is unnecessary.
-	// However, on version bumps we can selectively re-minimize/re-smash.
-	minimized, smashed := true, true
-	switch mgr.corpusDB.Version {
-	case 0:
-		// Version 0 had broken minimization, so we need to re-minimize.
-		minimized = false
-		fallthrough
-	case 1:
-		// Version 1->2: memory is preallocated so lots of mmaps become unnecessary.
-		minimized = false
-		fallthrough
-	case 2:
-		// Version 2->3: big-endian hints.
-		smashed = false
-		fallthrough
-	case currentDBVersion:
-	}
-	deleted := 0
-	for key, rec := range mgr.corpusDB.Records {
-		p, err := mgr.target.Deserialize(rec.Val)
-		if err != nil {
-			if deleted < 10 {
-				log.Logf(0, "deleting broken program: %v\n%s", err, rec.Val)
-			}
-			mgr.corpusDB.Delete(key)
-			deleted++
-			continue
-		}
-		disabled := false
-		for _, c := range p.Calls {
-			if !syscalls[c.Meta.ID] {
-				disabled = true
-				break
-			}
-		}
-		if disabled {
-			// This program contains a disabled syscall.
-			// We won't execute it, but remember its hash so
-			// it is not deleted during minimization.
-			// TODO: use mgr.checkResult.EnabledCalls which accounts for missing devices, etc.
-			// But it is available only after vm check.
-			mgr.disabledHashes[hash.String(rec.Val)] = struct{}{}
-			continue
-		}
-		mgr.candidates = append(mgr.candidates, rpctype.RPCCandidate{
-			Prog:      rec.Val,
-			Minimized: minimized,
-			Smashed:   smashed,
-		})
-	}
-	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	log.Logf(0, "loaded %v programs (%v total, %v deleted)",
-		len(mgr.candidates), len(mgr.corpusDB.Records), deleted)
-
-	// Now this is ugly.
-	// We duplicate all inputs in the corpus and shuffle the second part.
-	// This solves the following problem. A fuzzer can crash while triaging candidates,
-	// in such case it will also lost all cached candidates. Or, the input can be somewhat flaky
-	// and doesn't give the coverage on first try. So we give each input the second chance.
-	// Shuffling should alleviate deterministically losing the same inputs on fuzzer crashing.
-	mgr.candidates = append(mgr.candidates, mgr.candidates...)
-	shuffle := mgr.candidates[len(mgr.candidates)/2:]
-	for i := range shuffle {
-		j := i + rand.Intn(len(shuffle)-i)
-		shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
 	}
 
 	// Create HTTP server.
@@ -530,6 +464,82 @@ func (mgr *Manager) vmLoop() {
 			reply <- repros
 		}
 	}
+}
+
+func (mgr *Manager) loadCorpus() {
+	// By default we don't re-minimize/re-smash programs from corpus,
+	// it takes lots of time on start and is unnecessary.
+	// However, on version bumps we can selectively re-minimize/re-smash.
+	minimized, smashed := true, true
+	switch mgr.corpusDB.Version {
+	case 0:
+		// Version 0 had broken minimization, so we need to re-minimize.
+		minimized = false
+		fallthrough
+	case 1:
+		// Version 1->2: memory is preallocated so lots of mmaps become unnecessary.
+		minimized = false
+		fallthrough
+	case 2:
+		// Version 2->3: big-endian hints.
+		smashed = false
+		fallthrough
+	case currentDBVersion:
+	}
+	syscalls := make(map[int]bool)
+	for _, id := range mgr.checkResult.EnabledCalls {
+		syscalls[id] = true
+	}
+	deleted := 0
+	for key, rec := range mgr.corpusDB.Records {
+		p, err := mgr.target.Deserialize(rec.Val)
+		if err != nil {
+			if deleted < 10 {
+				log.Logf(0, "deleting broken program: %v\n%s", err, rec.Val)
+			}
+			mgr.corpusDB.Delete(key)
+			deleted++
+			continue
+		}
+		disabled := false
+		for _, c := range p.Calls {
+			if !syscalls[c.Meta.ID] {
+				disabled = true
+				break
+			}
+		}
+		if disabled {
+			// This program contains a disabled syscall.
+			// We won't execute it, but remember its hash so
+			// it is not deleted during minimization.
+			mgr.disabledHashes[hash.String(rec.Val)] = struct{}{}
+			continue
+		}
+		mgr.candidates = append(mgr.candidates, rpctype.RPCCandidate{
+			Prog:      rec.Val,
+			Minimized: minimized,
+			Smashed:   smashed,
+		})
+	}
+	mgr.fresh = len(mgr.corpusDB.Records) == 0
+	log.Logf(0, "%-24v: %v (%v deleted)", "corpus", len(mgr.candidates), deleted)
+
+	// Now this is ugly.
+	// We duplicate all inputs in the corpus and shuffle the second part.
+	// This solves the following problem. A fuzzer can crash while triaging candidates,
+	// in such case it will also lost all cached candidates. Or, the input can be somewhat flaky
+	// and doesn't give the coverage on first try. So we give each input the second chance.
+	// Shuffling should alleviate deterministically losing the same inputs on fuzzer crashing.
+	mgr.candidates = append(mgr.candidates, mgr.candidates...)
+	shuffle := mgr.candidates[len(mgr.candidates)/2:]
+	for i := range shuffle {
+		j := i + rand.Intn(len(shuffle)-i)
+		shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
+	}
+	if mgr.phase != phaseInit {
+		panic(fmt.Sprintf("loadCorpus: bad phase %v", mgr.phase))
+	}
+	mgr.phase = phaseLoadedCorpus
 }
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
@@ -942,12 +952,13 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 		log.Fatalf("machine check: %v", a.Error)
 	}
 	log.Logf(0, "machine check:")
-	log.Logf(0, "%-24v: %v", "syscalls", len(a.EnabledCalls))
+	log.Logf(0, "%-24v: %v/%v", "syscalls", len(a.EnabledCalls), len(mgr.target.Syscalls))
 	for _, feat := range a.Features {
 		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 	}
 	a.DisabledCalls = nil
 	mgr.checkResult = a
+	mgr.loadCorpus()
 	mgr.firstConnect = time.Now()
 	return nil
 }
@@ -1047,7 +1058,7 @@ func (mgr *Manager) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	}
 	if len(mgr.candidates) == 0 {
 		mgr.candidates = nil
-		if mgr.phase == phaseInit {
+		if mgr.phase == phaseLoadedCorpus {
 			if mgr.cfg.HubClient != "" {
 				mgr.phase = phaseTriagedCorpus
 			} else {
@@ -1064,7 +1075,7 @@ func (mgr *Manager) hubSync() {
 	defer mgr.mu.Unlock()
 
 	switch mgr.phase {
-	case phaseInit:
+	case phaseInit, phaseLoadedCorpus:
 		return
 	case phaseTriagedCorpus:
 		mgr.phase = phaseQueriedHub
