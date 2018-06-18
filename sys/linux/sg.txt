@@ -4,6 +4,7 @@
 include <linux/types.h>
 include <uapi/linux/fs.h>
 include <scsi/sg.h>
+include <scsi/scsi.h>
 include <scsi/scsi_ioctl.h>
 include <uapi/linux/blktrace_api.h>
 
@@ -34,8 +35,18 @@ ioctl$SG_SET_DEBUG(fd fd_sg, cmd const[SG_SET_DEBUG], arg ptr[in, bool32])
 ioctl$SG_SCSI_RESET(fd fd_sg, cmd const[SG_SCSI_RESET], arg const[0])
 ioctl$SG_GET_REQUEST_TABLE(fd fd_sg, cmd const[SG_GET_REQUEST_TABLE], arg ptr[out, array[int8, SG_REQUEST_TABLE_SIZE]])
 
-# TODO: describe more SCSI ioctls and more to a separate file.
 ioctl$SCSI_IOCTL_SEND_COMMAND(fd fd_sg, cmd const[SCSI_IOCTL_SEND_COMMAND], arg ptr[in, scsi_ioctl_command])
+ioctl$SCSI_IOCTL_TEST_UNIT_READY(fd fd_sg, cmd const[SCSI_IOCTL_TEST_UNIT_READY])
+ioctl$SCSI_IOCTL_DOORLOCK(fd fd_sg, cmd const[SCSI_IOCTL_DOORLOCK])
+ioctl$SCSI_IOCTL_DOORUNLOCK(fd fd_sg, cmd const[SCSI_IOCTL_DOORUNLOCK])
+ioctl$SCSI_IOCTL_START_UNIT(fd fd_sg, cmd const[SCSI_IOCTL_START_UNIT])
+ioctl$SCSI_IOCTL_STOP_UNIT(fd fd_sg, cmd const[SCSI_IOCTL_STOP_UNIT])
+ioctl$SCSI_IOCTL_SYNC(fd fd_sg, cmd const[SCSI_IOCTL_SYNC])
+ioctl$SCSI_IOCTL_BENCHMARK_COMMAND(fd fd_sg, cmd const[SCSI_IOCTL_BENCHMARK_COMMAND])
+ioctl$SCSI_IOCTL_GET_BUS_NUMBER(fd fd_sg, cmd const[SCSI_IOCTL_GET_BUS_NUMBER], arg ptr[out, int32])
+ioctl$SCSI_IOCTL_GET_PCI(fd fd_sg, cmd const[SCSI_IOCTL_GET_PCI], arg ptr[out, array[int8, 20]])
+ioctl$SCSI_IOCTL_PROBE_HOST(fd fd_sg, cmd const[SCSI_IOCTL_PROBE_HOST], arg ptr[out, scsi_ioctl_probe_host_out_buffer])
+ioctl$SCSI_IOCTL_GET_IDLUN(fd fd_sg, cmd const[SCSI_IOCTL_GET_IDLUN], arg ptr[out, scsi_idlun])
 
 sg_io_hdr {
 	interface_id	flags[sg_interface_id, int32]
@@ -83,6 +94,16 @@ scsi_ioctl_command {
 	opcode	int32
 # TODO: this needs improvement: there are some command headers depending on opcode
 # and inlen only describes data past header.
+	data	array[int8]
+}
+
+scsi_idlun {
+	dev_id		int32
+	host_unique_id	int32
+}
+
+scsi_ioctl_probe_host_out_buffer {
+	len	bytesize[data, int32]
 	data	array[int8]
 }
 

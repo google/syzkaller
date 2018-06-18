@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "0e6a1736718141be72dd878068a421fea5189e8f"
+#define SYZ_REVISION "56fb40048c1a6ad5b7531f4028c39df29c0ec46a"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1986
+#define SYZ_SYSCALL_COUNT 1997
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -783,7 +783,18 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 54},
     {"ioctl$RNDGETENTCNT", 54},
     {"ioctl$RNDZAPENTCNT", 54},
+    {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 54},
+    {"ioctl$SCSI_IOCTL_DOORLOCK", 54},
+    {"ioctl$SCSI_IOCTL_DOORUNLOCK", 54},
+    {"ioctl$SCSI_IOCTL_GET_BUS_NUMBER", 54},
+    {"ioctl$SCSI_IOCTL_GET_IDLUN", 54},
+    {"ioctl$SCSI_IOCTL_GET_PCI", 54},
+    {"ioctl$SCSI_IOCTL_PROBE_HOST", 54},
     {"ioctl$SCSI_IOCTL_SEND_COMMAND", 54},
+    {"ioctl$SCSI_IOCTL_START_UNIT", 54},
+    {"ioctl$SCSI_IOCTL_STOP_UNIT", 54},
+    {"ioctl$SCSI_IOCTL_SYNC", 54},
+    {"ioctl$SCSI_IOCTL_TEST_UNIT_READY", 54},
     {"ioctl$SG_EMULATED_HOST", 54},
     {"ioctl$SG_GET_ACCESS_COUNT", 54},
     {"ioctl$SG_GET_COMMAND_Q", 54},
@@ -2000,11 +2011,11 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "82afcf536c9fe59ad5ff5eeafc5f6cc92f10f483"
+#define SYZ_REVISION "43db287579be73b1d0535702676e3d0698c36610"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2038
+#define SYZ_SYSCALL_COUNT 2049
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2791,7 +2802,18 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 16},
     {"ioctl$RNDGETENTCNT", 16},
     {"ioctl$RNDZAPENTCNT", 16},
+    {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 16},
+    {"ioctl$SCSI_IOCTL_DOORLOCK", 16},
+    {"ioctl$SCSI_IOCTL_DOORUNLOCK", 16},
+    {"ioctl$SCSI_IOCTL_GET_BUS_NUMBER", 16},
+    {"ioctl$SCSI_IOCTL_GET_IDLUN", 16},
+    {"ioctl$SCSI_IOCTL_GET_PCI", 16},
+    {"ioctl$SCSI_IOCTL_PROBE_HOST", 16},
     {"ioctl$SCSI_IOCTL_SEND_COMMAND", 16},
+    {"ioctl$SCSI_IOCTL_START_UNIT", 16},
+    {"ioctl$SCSI_IOCTL_STOP_UNIT", 16},
+    {"ioctl$SCSI_IOCTL_SYNC", 16},
+    {"ioctl$SCSI_IOCTL_TEST_UNIT_READY", 16},
     {"ioctl$SG_EMULATED_HOST", 16},
     {"ioctl$SG_GET_ACCESS_COUNT", 16},
     {"ioctl$SG_GET_COMMAND_Q", 16},
@@ -4050,11 +4072,11 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "50ea1d839a20210c30de6527e1f822af449e3c3b"
+#define SYZ_REVISION "2cc3e17a8ad782834dc72de4458366f40d96da68"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1994
+#define SYZ_SYSCALL_COUNT 2005
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4812,7 +4834,18 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 54},
     {"ioctl$RNDGETENTCNT", 54},
     {"ioctl$RNDZAPENTCNT", 54},
+    {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 54},
+    {"ioctl$SCSI_IOCTL_DOORLOCK", 54},
+    {"ioctl$SCSI_IOCTL_DOORUNLOCK", 54},
+    {"ioctl$SCSI_IOCTL_GET_BUS_NUMBER", 54},
+    {"ioctl$SCSI_IOCTL_GET_IDLUN", 54},
+    {"ioctl$SCSI_IOCTL_GET_PCI", 54},
+    {"ioctl$SCSI_IOCTL_PROBE_HOST", 54},
     {"ioctl$SCSI_IOCTL_SEND_COMMAND", 54},
+    {"ioctl$SCSI_IOCTL_START_UNIT", 54},
+    {"ioctl$SCSI_IOCTL_STOP_UNIT", 54},
+    {"ioctl$SCSI_IOCTL_SYNC", 54},
+    {"ioctl$SCSI_IOCTL_TEST_UNIT_READY", 54},
     {"ioctl$SG_EMULATED_HOST", 54},
     {"ioctl$SG_GET_ACCESS_COUNT", 54},
     {"ioctl$SG_GET_COMMAND_Q", 54},
@@ -6056,11 +6089,11 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "fd08fc3e4dd89e5c2addde8d343893d2b75c27b1"
+#define SYZ_REVISION "10035aa14875c0f41ab4dc51f5f46089da0b606a"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1966
+#define SYZ_SYSCALL_COUNT 1977
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6810,7 +6843,18 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 29},
     {"ioctl$RNDGETENTCNT", 29},
     {"ioctl$RNDZAPENTCNT", 29},
+    {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 29},
+    {"ioctl$SCSI_IOCTL_DOORLOCK", 29},
+    {"ioctl$SCSI_IOCTL_DOORUNLOCK", 29},
+    {"ioctl$SCSI_IOCTL_GET_BUS_NUMBER", 29},
+    {"ioctl$SCSI_IOCTL_GET_IDLUN", 29},
+    {"ioctl$SCSI_IOCTL_GET_PCI", 29},
+    {"ioctl$SCSI_IOCTL_PROBE_HOST", 29},
     {"ioctl$SCSI_IOCTL_SEND_COMMAND", 29},
+    {"ioctl$SCSI_IOCTL_START_UNIT", 29},
+    {"ioctl$SCSI_IOCTL_STOP_UNIT", 29},
+    {"ioctl$SCSI_IOCTL_SYNC", 29},
+    {"ioctl$SCSI_IOCTL_TEST_UNIT_READY", 29},
     {"ioctl$SG_EMULATED_HOST", 29},
     {"ioctl$SG_GET_ACCESS_COUNT", 29},
     {"ioctl$SG_GET_COMMAND_Q", 29},
@@ -8034,11 +8078,11 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "155130f5e0b881de4212bf35ed02389a6df2b276"
+#define SYZ_REVISION "4c81549a7b63463f240b69fb56ff9933c3762e5e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1855
+#define SYZ_SYSCALL_COUNT 1866
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8798,7 +8842,18 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 54},
     {"ioctl$RNDGETENTCNT", 54},
     {"ioctl$RNDZAPENTCNT", 54},
+    {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 54},
+    {"ioctl$SCSI_IOCTL_DOORLOCK", 54},
+    {"ioctl$SCSI_IOCTL_DOORUNLOCK", 54},
+    {"ioctl$SCSI_IOCTL_GET_BUS_NUMBER", 54},
+    {"ioctl$SCSI_IOCTL_GET_IDLUN", 54},
+    {"ioctl$SCSI_IOCTL_GET_PCI", 54},
+    {"ioctl$SCSI_IOCTL_PROBE_HOST", 54},
     {"ioctl$SCSI_IOCTL_SEND_COMMAND", 54},
+    {"ioctl$SCSI_IOCTL_START_UNIT", 54},
+    {"ioctl$SCSI_IOCTL_STOP_UNIT", 54},
+    {"ioctl$SCSI_IOCTL_SYNC", 54},
+    {"ioctl$SCSI_IOCTL_TEST_UNIT_READY", 54},
     {"ioctl$SG_EMULATED_HOST", 54},
     {"ioctl$SG_GET_ACCESS_COUNT", 54},
     {"ioctl$SG_GET_COMMAND_Q", 54},
