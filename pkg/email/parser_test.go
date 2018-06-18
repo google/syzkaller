@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestExtractCommand(t *testing.T) {
@@ -122,10 +124,8 @@ func TestParse(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(email, &test.res) {
-				t.Logf("expect:\n%#v", &test.res)
-				t.Logf("got:\n%#v", email)
-				t.Fail()
+			if diff := cmp.Diff(&test.res, email); diff != "" {
+				t.Error(diff)
 			}
 		}
 		t.Run(fmt.Sprint(i), func(t *testing.T) { body(t, test) })
@@ -526,4 +526,52 @@ index 3d85747bd86e..a257b872a53d 100644
 			Command:     "test",
 			CommandArgs: "",
 		}},
+
+	{`Sender: syzkaller-bugs@googlegroups.com
+Subject: Re: BUG: unable to handle kernel NULL pointer dereference in
+ sock_poll
+To: syzbot <syzbot+344bb0f46d7719cd9483@syzkaller.appspotmail.com>
+From: bar <bar@foo.com>
+Message-ID: <1250334f-7220-2bff-5d87-b87573758d81@bar.com>
+Date: Sun, 10 Jun 2018 10:38:20 +0900
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Language: en-US
+Content-Transfer-Encoding: quoted-printable
+
+On 2018/06/10 4:57, syzbot wrote:
+> Hello,
+>=20
+> syzbot found the following crash on:
+>=20
+> HEAD commit: 7d3bf613e99a Merge tag 'libnvdimm-for-4.18=
+' of git://git.k..
+> git tree: upstream
+> console output: https://syzkaller.appspot.com/x/log.txt?x=3D1188a05f80000=
+0
+> kernel config: https://syzkaller.appspot.com/x/.config?x=3Df04d8d0a=
+2afb789a
+
+#syz dup: BUG: unable to handle kernel NULL pointer dereference in corrupte=
+d
+`, Email{
+		MessageID: "<1250334f-7220-2bff-5d87-b87573758d81@bar.com>",
+		Subject:   "Re: BUG: unable to handle kernel NULL pointer dereference in sock_poll",
+		From:      "\"bar\" <bar@foo.com>",
+		Cc:        []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Body: `On 2018/06/10 4:57, syzbot wrote:
+> Hello,
+> 
+> syzbot found the following crash on:
+> 
+> HEAD commit: 7d3bf613e99a Merge tag 'libnvdimm-for-4.18' of git://git.k..
+> git tree: upstream
+> console output: https://syzkaller.appspot.com/x/log.txt?x=1188a05f800000
+> kernel config: https://syzkaller.appspot.com/x/.config?x=f04d8d0a2afb789a
+
+#syz dup: BUG: unable to handle kernel NULL pointer dereference in corrupted
+`,
+		Command:     "dup:",
+		CommandArgs: "BUG: unable to handle kernel NULL pointer dereference in corrupted",
+	}},
 }
