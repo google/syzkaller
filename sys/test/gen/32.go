@@ -12,6 +12,7 @@ var resources_32 = []*ResourceDesc{
 	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615}},
 	{Name: "syz_missing_const_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_missing_const_res"}, Values: []uint64{1}},
 	{Name: "syz_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_res"}, Values: []uint64{65535}},
+	{Name: "unsupported", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"unsupported"}, Values: []uint64{0}},
 }
 
 var structDescs_32 = []*KeyedStruct{
@@ -813,6 +814,12 @@ var syscalls_32 = []*Syscall{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v2", TypeSize: 4}, RangeBegin: 7, RangeEnd: 9},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "l2", TypeSize: 4}}, Buf: "v2"},
 	}},
+	{Name: "unsupported$0", CallName: "unsupported", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "unsupported", FldName: "a", TypeSize: 4}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "unsupported", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "unsupported$1", CallName: "unsupported", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "unsupported", FldName: "a", TypeSize: 4}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "unsupported", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 }
 
 var consts_32 = []ConstValue{
@@ -822,4 +829,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "03eb61c17cd6775babc6992bed09fd510eec1467"
+const revision_32 = "d92d7712e00dad64bba08d7850d58c2c07fce4a2"

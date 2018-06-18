@@ -11,7 +11,7 @@ include <unistd.h>
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
 resource pid[int32]: 0, 0xffffffffffffffff
 
-openat(fd fd, file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+openat(fd fd[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 read(fd fd, buf buffer[out], count len[buf])
 write(fd fd, buf buffer[in], count len[buf])
 close(fd fd)

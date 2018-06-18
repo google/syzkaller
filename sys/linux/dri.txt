@@ -227,7 +227,7 @@ drm_control {
 
 drm_agp_buffer {
 	size	intptr
-	handle	drm_agp_handle
+	handle	drm_agp_handle[opt]
 	type	flags[drm_agp_mem_type, intptr]
 	physic	intptr
 }
@@ -255,9 +255,9 @@ drm_modeset_ctl {
 
 drm_gem_open {
 # input:
-	name	drm_gem_name
+	name	drm_gem_name[opt]
 # output:
-	handle	drm_gem_handle
+	handle	drm_gem_handle[opt]
 	size	int64
 }
 
@@ -267,8 +267,8 @@ drm_gem_close {
 }
 
 drm_gem_flink {
-	handle	drm_gem_handle
-	name	drm_gem_name
+	handle	drm_gem_handle[opt]
+	name	drm_gem_name[opt]
 }
 
 drm_mode_card_res {

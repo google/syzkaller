@@ -6,8 +6,8 @@ include <linux/hw_breakpoint.h>
 
 resource fd_perf[fd]
 
-perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr[0:16], group fd_perf, flags flags[perf_flags]) fd_perf
-perf_event_open$cgroup(attr ptr[in, perf_event_attr], fd fd_cgroup, cpu intptr[0:16], group fd_perf, flags flags[perf_flags]) fd_perf
+perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr[0:16], group fd_perf[opt], flags flags[perf_flags]) fd_perf
+perf_event_open$cgroup(attr ptr[in, perf_event_attr], fd fd_cgroup, cpu intptr[0:16], group fd_perf[opt], flags flags[perf_flags]) fd_perf
 
 ioctl$PERF_EVENT_IOC_ENABLE(fd fd_perf, cmd const[PERF_EVENT_IOC_ENABLE], flags intptr)
 ioctl$PERF_EVENT_IOC_DISABLE(fd fd_perf, cmd const[PERF_EVENT_IOC_DISABLE], flags intptr)

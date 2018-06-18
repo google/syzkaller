@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "bde06e23f09731bf5b0fdf0015b8501b8966e505"
+#define SYZ_REVISION "ce1fd419049f0fae706b5bffe64e425e739b31e0"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1966
+#define SYZ_SYSCALL_COUNT 1986
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1951,6 +1951,27 @@ const call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 284},
     {"write", 4},
+    {"write$RDMA_USER_CM_CMD_ACCEPT", 4},
+    {"write$RDMA_USER_CM_CMD_BIND", 4},
+    {"write$RDMA_USER_CM_CMD_BIND_IP", 4},
+    {"write$RDMA_USER_CM_CMD_CONNECT", 4},
+    {"write$RDMA_USER_CM_CMD_CREATE_ID", 4},
+    {"write$RDMA_USER_CM_CMD_DESTROY_ID", 4},
+    {"write$RDMA_USER_CM_CMD_DISCONNECT", 4},
+    {"write$RDMA_USER_CM_CMD_GET_EVENT", 4},
+    {"write$RDMA_USER_CM_CMD_INIT_QP_ATTR", 4},
+    {"write$RDMA_USER_CM_CMD_JOIN_IP_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_JOIN_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_LEAVE_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_LISTEN", 4},
+    {"write$RDMA_USER_CM_CMD_MIGRATE_ID", 4},
+    {"write$RDMA_USER_CM_CMD_NOTIFY", 4},
+    {"write$RDMA_USER_CM_CMD_QUERY", 4},
+    {"write$RDMA_USER_CM_CMD_QUERY_ROUTE", 4},
+    {"write$RDMA_USER_CM_CMD_REJECT", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 4},
     {"write$binfmt_aout", 4},
     {"write$binfmt_elf32", 4},
     {"write$binfmt_elf64", 4},
@@ -1963,7 +1984,6 @@ const call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
-    {"write$rdma_cm", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},
@@ -1980,11 +2000,11 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "785dabbb3f7361d500be84940319f1447172ce8b"
+#define SYZ_REVISION "e38763f2db8f15ab6e56da5f3ff0b17982f65b95"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2018
+#define SYZ_SYSCALL_COUNT 2038
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3981,6 +4001,27 @@ const call_t syscalls[] = {
     {"wait4", 61},
     {"waitid", 247},
     {"write", 1},
+    {"write$RDMA_USER_CM_CMD_ACCEPT", 1},
+    {"write$RDMA_USER_CM_CMD_BIND", 1},
+    {"write$RDMA_USER_CM_CMD_BIND_IP", 1},
+    {"write$RDMA_USER_CM_CMD_CONNECT", 1},
+    {"write$RDMA_USER_CM_CMD_CREATE_ID", 1},
+    {"write$RDMA_USER_CM_CMD_DESTROY_ID", 1},
+    {"write$RDMA_USER_CM_CMD_DISCONNECT", 1},
+    {"write$RDMA_USER_CM_CMD_GET_EVENT", 1},
+    {"write$RDMA_USER_CM_CMD_INIT_QP_ATTR", 1},
+    {"write$RDMA_USER_CM_CMD_JOIN_IP_MCAST", 1},
+    {"write$RDMA_USER_CM_CMD_JOIN_MCAST", 1},
+    {"write$RDMA_USER_CM_CMD_LEAVE_MCAST", 1},
+    {"write$RDMA_USER_CM_CMD_LISTEN", 1},
+    {"write$RDMA_USER_CM_CMD_MIGRATE_ID", 1},
+    {"write$RDMA_USER_CM_CMD_NOTIFY", 1},
+    {"write$RDMA_USER_CM_CMD_QUERY", 1},
+    {"write$RDMA_USER_CM_CMD_QUERY_ROUTE", 1},
+    {"write$RDMA_USER_CM_CMD_REJECT", 1},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 1},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 1},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 1},
     {"write$binfmt_aout", 1},
     {"write$binfmt_elf32", 1},
     {"write$binfmt_elf64", 1},
@@ -3993,7 +4034,6 @@ const call_t syscalls[] = {
     {"write$evdev", 1},
     {"write$eventfd", 1},
     {"write$fuse", 1},
-    {"write$rdma_cm", 1},
     {"write$selinux_access", 1},
     {"write$selinux_context", 1},
     {"write$selinux_create", 1},
@@ -4010,11 +4050,11 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "ee15ae72d74ca765e2db3496672f951a1b9bfaa1"
+#define SYZ_REVISION "04d8b88574ed69df06b61443822f4faf11ba462e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1974
+#define SYZ_SYSCALL_COUNT 1994
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5967,6 +6007,27 @@ const call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 280},
     {"write", 4},
+    {"write$RDMA_USER_CM_CMD_ACCEPT", 4},
+    {"write$RDMA_USER_CM_CMD_BIND", 4},
+    {"write$RDMA_USER_CM_CMD_BIND_IP", 4},
+    {"write$RDMA_USER_CM_CMD_CONNECT", 4},
+    {"write$RDMA_USER_CM_CMD_CREATE_ID", 4},
+    {"write$RDMA_USER_CM_CMD_DESTROY_ID", 4},
+    {"write$RDMA_USER_CM_CMD_DISCONNECT", 4},
+    {"write$RDMA_USER_CM_CMD_GET_EVENT", 4},
+    {"write$RDMA_USER_CM_CMD_INIT_QP_ATTR", 4},
+    {"write$RDMA_USER_CM_CMD_JOIN_IP_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_JOIN_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_LEAVE_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_LISTEN", 4},
+    {"write$RDMA_USER_CM_CMD_MIGRATE_ID", 4},
+    {"write$RDMA_USER_CM_CMD_NOTIFY", 4},
+    {"write$RDMA_USER_CM_CMD_QUERY", 4},
+    {"write$RDMA_USER_CM_CMD_QUERY_ROUTE", 4},
+    {"write$RDMA_USER_CM_CMD_REJECT", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 4},
     {"write$binfmt_aout", 4},
     {"write$binfmt_elf32", 4},
     {"write$binfmt_elf64", 4},
@@ -5979,7 +6040,6 @@ const call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
-    {"write$rdma_cm", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},
@@ -5996,11 +6056,11 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "3425b5fc030a24ba1be46429544418dd9b05de5c"
+#define SYZ_REVISION "40babaee5d693fdd03746ce87a73990926352eec"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1946
+#define SYZ_SYSCALL_COUNT 1966
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -7925,6 +7985,27 @@ const call_t syscalls[] = {
     {"wait4", 260},
     {"waitid", 95},
     {"write", 64},
+    {"write$RDMA_USER_CM_CMD_ACCEPT", 64},
+    {"write$RDMA_USER_CM_CMD_BIND", 64},
+    {"write$RDMA_USER_CM_CMD_BIND_IP", 64},
+    {"write$RDMA_USER_CM_CMD_CONNECT", 64},
+    {"write$RDMA_USER_CM_CMD_CREATE_ID", 64},
+    {"write$RDMA_USER_CM_CMD_DESTROY_ID", 64},
+    {"write$RDMA_USER_CM_CMD_DISCONNECT", 64},
+    {"write$RDMA_USER_CM_CMD_GET_EVENT", 64},
+    {"write$RDMA_USER_CM_CMD_INIT_QP_ATTR", 64},
+    {"write$RDMA_USER_CM_CMD_JOIN_IP_MCAST", 64},
+    {"write$RDMA_USER_CM_CMD_JOIN_MCAST", 64},
+    {"write$RDMA_USER_CM_CMD_LEAVE_MCAST", 64},
+    {"write$RDMA_USER_CM_CMD_LISTEN", 64},
+    {"write$RDMA_USER_CM_CMD_MIGRATE_ID", 64},
+    {"write$RDMA_USER_CM_CMD_NOTIFY", 64},
+    {"write$RDMA_USER_CM_CMD_QUERY", 64},
+    {"write$RDMA_USER_CM_CMD_QUERY_ROUTE", 64},
+    {"write$RDMA_USER_CM_CMD_REJECT", 64},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 64},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 64},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 64},
     {"write$binfmt_aout", 64},
     {"write$binfmt_elf32", 64},
     {"write$binfmt_elf64", 64},
@@ -7937,7 +8018,6 @@ const call_t syscalls[] = {
     {"write$evdev", 64},
     {"write$eventfd", 64},
     {"write$fuse", 64},
-    {"write$rdma_cm", 64},
     {"write$selinux_access", 64},
     {"write$selinux_context", 64},
     {"write$selinux_create", 64},
@@ -7954,11 +8034,11 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "ff218fc605d30d57dd34d66caa68cebc72b830f8"
+#define SYZ_REVISION "7901cf563a8493ad6e2f2f55d35bedbac2777c4e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1835
+#define SYZ_SYSCALL_COUNT 1855
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -9772,6 +9852,27 @@ const call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 272},
     {"write", 4},
+    {"write$RDMA_USER_CM_CMD_ACCEPT", 4},
+    {"write$RDMA_USER_CM_CMD_BIND", 4},
+    {"write$RDMA_USER_CM_CMD_BIND_IP", 4},
+    {"write$RDMA_USER_CM_CMD_CONNECT", 4},
+    {"write$RDMA_USER_CM_CMD_CREATE_ID", 4},
+    {"write$RDMA_USER_CM_CMD_DESTROY_ID", 4},
+    {"write$RDMA_USER_CM_CMD_DISCONNECT", 4},
+    {"write$RDMA_USER_CM_CMD_GET_EVENT", 4},
+    {"write$RDMA_USER_CM_CMD_INIT_QP_ATTR", 4},
+    {"write$RDMA_USER_CM_CMD_JOIN_IP_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_JOIN_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_LEAVE_MCAST", 4},
+    {"write$RDMA_USER_CM_CMD_LISTEN", 4},
+    {"write$RDMA_USER_CM_CMD_MIGRATE_ID", 4},
+    {"write$RDMA_USER_CM_CMD_NOTIFY", 4},
+    {"write$RDMA_USER_CM_CMD_QUERY", 4},
+    {"write$RDMA_USER_CM_CMD_QUERY_ROUTE", 4},
+    {"write$RDMA_USER_CM_CMD_REJECT", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 4},
+    {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 4},
     {"write$binfmt_aout", 4},
     {"write$binfmt_elf32", 4},
     {"write$binfmt_elf64", 4},
@@ -9784,7 +9885,6 @@ const call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
-    {"write$rdma_cm", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},

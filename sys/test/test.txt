@@ -671,3 +671,10 @@ serialize0_struct {
 }
 
 serialize_strings = "aaa", "bbb"
+
+# Unsupported syscalls due to resources.
+
+resource unsupported[int32]
+
+unsupported$0(a unsupported) unsupported
+unsupported$1(a unsupported) unsupported

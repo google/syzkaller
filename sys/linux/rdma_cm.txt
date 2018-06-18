@@ -14,32 +14,28 @@ resource rdma_cm_mcast_id[int32]: 0xffffffff
 type rdma_cm_uid int64[0:4]
 
 openat$rdma_cm(fd const[AT_FDCWD], file ptr[in, string["/dev/infiniband/rdma_cm"]], flags const[O_RDWR], mode const[0]) fd_rdma_cm
-write$rdma_cm(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd], len bytesize[data])
 
-rdma_ucm_cmd [
-	create_id	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_CREATE_ID, rdma_ucm_create_id]
-	destroy_id	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_DESTROY_ID, rdma_ucm_destroy_id]
-	bind_ip		rdma_ucm_cmd_t[RDMA_USER_CM_CMD_BIND_IP, rdma_ucm_bind_ip]
-	resolve_ip	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_IP, rdma_ucm_resolve_ip]
-	resolve_route	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_ROUTE, rdma_ucm_resolve_route]
-	query_route	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_QUERY_ROUTE, rdma_ucm_query]
-	connect		rdma_ucm_cmd_t[RDMA_USER_CM_CMD_CONNECT, rdma_ucm_connect]
-	listen		rdma_ucm_cmd_t[RDMA_USER_CM_CMD_LISTEN, rdma_ucm_listen]
-	accept		rdma_ucm_cmd_t[RDMA_USER_CM_CMD_ACCEPT, rdma_ucm_accept]
-	reject		rdma_ucm_cmd_t[RDMA_USER_CM_CMD_REJECT, rdma_ucm_reject]
-	disconnect	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_DISCONNECT, rdma_ucm_disconnect]
-	init_qp_attr	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_INIT_QP_ATTR, rdma_ucm_init_qp_attr]
-	get_event	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_GET_EVENT, rdma_ucm_get_event]
-	set_option	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_SET_OPTION, rdma_ucm_set_option]
-	notify		rdma_ucm_cmd_t[RDMA_USER_CM_CMD_NOTIFY, rdma_ucm_notify]
-	join_ip_mcast	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_JOIN_IP_MCAST, rdma_ucm_join_ip_mcast]
-	leave_mcast	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_LEAVE_MCAST, rdma_ucm_leave_mcast]
-	migrate_id	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_MIGRATE_ID, rdma_ucm_migrate_id]
-	query		rdma_ucm_cmd_t[RDMA_USER_CM_CMD_QUERY, rdma_ucm_query]
-	bind		rdma_ucm_cmd_t[RDMA_USER_CM_CMD_BIND, rdma_ucm_bind]
-	resolve_addr	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_ADDR, rdma_ucm_resolve_addr]
-	join_mcast	rdma_ucm_cmd_t[RDMA_USER_CM_CMD_JOIN_MCAST, rdma_ucm_join_mcast]
-] [varlen]
+write$RDMA_USER_CM_CMD_CREATE_ID(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_CREATE_ID, rdma_ucm_create_id]], len bytesize[data])
+write$RDMA_USER_CM_CMD_DESTROY_ID(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_DESTROY_ID, rdma_ucm_destroy_id]], len bytesize[data])
+write$RDMA_USER_CM_CMD_BIND_IP(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_BIND_IP, rdma_ucm_bind_ip]], len bytesize[data])
+write$RDMA_USER_CM_CMD_RESOLVE_IP(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_IP, rdma_ucm_resolve_ip]], len bytesize[data])
+write$RDMA_USER_CM_CMD_RESOLVE_ROUTE(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_ROUTE, rdma_ucm_resolve_route]], len bytesize[data])
+write$RDMA_USER_CM_CMD_QUERY_ROUTE(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_QUERY_ROUTE, rdma_ucm_query]], len bytesize[data])
+write$RDMA_USER_CM_CMD_CONNECT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_CONNECT, rdma_ucm_connect]], len bytesize[data])
+write$RDMA_USER_CM_CMD_LISTEN(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_LISTEN, rdma_ucm_listen]], len bytesize[data])
+write$RDMA_USER_CM_CMD_ACCEPT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_ACCEPT, rdma_ucm_accept]], len bytesize[data])
+write$RDMA_USER_CM_CMD_REJECT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_REJECT, rdma_ucm_reject]], len bytesize[data])
+write$RDMA_USER_CM_CMD_DISCONNECT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_DISCONNECT, rdma_ucm_disconnect]], len bytesize[data])
+write$RDMA_USER_CM_CMD_INIT_QP_ATTR(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_INIT_QP_ATTR, rdma_ucm_init_qp_attr]], len bytesize[data])
+write$RDMA_USER_CM_CMD_GET_EVENT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_GET_EVENT, rdma_ucm_get_event]], len bytesize[data])
+write$RDMA_USER_CM_CMD_NOTIFY(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_NOTIFY, rdma_ucm_notify]], len bytesize[data])
+write$RDMA_USER_CM_CMD_JOIN_IP_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_JOIN_IP_MCAST, rdma_ucm_join_ip_mcast]], len bytesize[data])
+write$RDMA_USER_CM_CMD_LEAVE_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_LEAVE_MCAST, rdma_ucm_leave_mcast]], len bytesize[data])
+write$RDMA_USER_CM_CMD_MIGRATE_ID(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_MIGRATE_ID, rdma_ucm_migrate_id]], len bytesize[data])
+write$RDMA_USER_CM_CMD_QUERY(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_QUERY, rdma_ucm_query]], len bytesize[data])
+write$RDMA_USER_CM_CMD_BIND(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_BIND, rdma_ucm_bind]], len bytesize[data])
+write$RDMA_USER_CM_CMD_RESOLVE_ADDR(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_RESOLVE_ADDR, rdma_ucm_resolve_addr]], len bytesize[data])
+write$RDMA_USER_CM_CMD_JOIN_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_JOIN_MCAST, rdma_ucm_join_mcast]], len bytesize[data])
 
 type rdma_ucm_cmd_t[CMD, MSG] {
 	cmd	const[CMD, int32]

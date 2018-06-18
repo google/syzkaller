@@ -145,7 +145,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rem", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "timespec", Dir: 1}}},
 	}},
 	{NR: 102, Name: "openat", CallName: "openat", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4, IsOptional: true}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 65536, 128, 256, 131072, 2048, 1052672, 512, 4259840}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
@@ -284,4 +284,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__O_TMPFILE", Value: 4259840},
 }
 
-const revision_amd64 = "b3ec742aa8b8f4d014d4030760d098325dfb1f62"
+const revision_amd64 = "9c09d67e0d2fb4a004add22093616420ce831dfc"
