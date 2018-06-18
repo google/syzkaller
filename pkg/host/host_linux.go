@@ -37,7 +37,8 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	if strings.HasPrefix(c.CallName, "syz_") {
 		return isSupportedSyzkall(sandbox, c)
 	}
-	if strings.HasPrefix(c.Name, "socket$") {
+	if strings.HasPrefix(c.Name, "socket$") ||
+		strings.HasPrefix(c.Name, "socketpair$") {
 		return isSupportedSocket(c)
 	}
 	if strings.HasPrefix(c.Name, "openat$") {
@@ -181,7 +182,24 @@ func isSupportedSocket(c *prog.Syscall) (bool, string) {
 	if err == syscall.EAFNOSUPPORT {
 		return false, "socket family is not supported (EAFNOSUPPORT)"
 	}
-	return true, ""
+	proto, ok := c.Args[2].(*prog.ConstType)
+	if !ok {
+		return true, ""
+	}
+	var typ uint64
+	if arg, ok := c.Args[1].(*prog.ConstType); ok {
+		typ = arg.Val
+	} else if arg, ok := c.Args[1].(*prog.FlagsType); ok {
+		typ = arg.Vals[0]
+	} else {
+		return true, ""
+	}
+	fd, err = syscall.Socket(int(af.Val), int(typ), int(proto.Val))
+	if fd != -1 {
+		syscall.Close(fd)
+		return true, ""
+	}
+	return false, err.Error()
 }
 
 func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
