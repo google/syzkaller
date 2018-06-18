@@ -22,18 +22,6 @@ import (
 )
 
 func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
-	// There are 3 possible strategies for detecting supported syscalls:
-	// 1. Executes all syscalls with presumably invalid arguments and check for ENOprog.
-	//    But not all syscalls are safe to execute. For example, pause will hang,
-	//    while setpgrp will push the process into own process group.
-	// 2. Check presence of /sys/kernel/debug/tracing/events/syscalls/sys_enter_* files.
-	//    This requires root and CONFIG_FTRACE_SYSCALLS. Also it lies for some syscalls.
-	//    For example, on x86_64 it says that sendfile is not present (only sendfile64).
-	// 3. Check sys_syscallname in /proc/kallsyms.
-	//    Requires CONFIG_KALLSYMS. Seems to be the most reliable. That's what we use here.
-	kallsymsOnce.Do(func() {
-		kallsyms, _ = ioutil.ReadFile("/proc/kallsyms")
-	})
 	if strings.HasPrefix(c.CallName, "syz_") {
 		return isSupportedSyzkall(sandbox, c)
 	}
@@ -44,9 +32,27 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	if strings.HasPrefix(c.Name, "openat$") {
 		return isSupportedOpenAt(c)
 	}
-	if len(kallsyms) == 0 {
-		return true, ""
+	// There are 3 possible strategies for detecting supported syscalls:
+	// 1. Executes all syscalls with presumably invalid arguments and check for ENOprog.
+	//    But not all syscalls are safe to execute. For example, pause will hang,
+	//    while setpgrp will push the process into own process group.
+	// 2. Check presence of /sys/kernel/debug/tracing/events/syscalls/sys_enter_* files.
+	//    This requires root and CONFIG_FTRACE_SYSCALLS. Also it lies for some syscalls.
+	//    For example, on x86_64 it says that sendfile is not present (only sendfile64).
+	// 3. Check sys_syscallname in /proc/kallsyms.
+	//    Requires CONFIG_KALLSYMS.
+	// Kallsyms seems to be the most reliable and fast. That's what we use first.
+	// If kallsyms is not present, we fallback to execution of syscalls.
+	kallsymsOnce.Do(func() {
+		kallsyms, _ = ioutil.ReadFile("/proc/kallsyms")
+	})
+	if !testFallback && len(kallsyms) != 0 {
+		return isSupportedKallsyms(c)
 	}
+	return isSupportedTrial(c)
+}
+
+func isSupportedKallsyms(c *prog.Syscall) (bool, string) {
 	name := c.CallName
 	if newname := kallsymsMap[name]; newname != "" {
 		name = newname
@@ -60,6 +66,42 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	return true, ""
 }
 
+func isSupportedTrial(c *prog.Syscall) (bool, string) {
+	switch c.CallName {
+	// These known to cause hangs.
+	case "exit", "pause":
+		return true, ""
+	}
+	trialMu.Lock()
+	defer trialMu.Unlock()
+	if res, ok := trialSupported[c.NR]; ok {
+		return res, "ENOSYS"
+	}
+	cmd := osutil.Command(os.Args[0])
+	cmd.Env = []string{fmt.Sprintf("SYZ_TRIAL_TEST=%v", c.NR)}
+	_, err := osutil.Run(10*time.Second, cmd)
+	res := err != nil
+	trialSupported[c.NR] = res
+	return res, "ENOSYS"
+}
+
+func init() {
+	str := os.Getenv("SYZ_TRIAL_TEST")
+	if str == "" {
+		return
+	}
+	nr, err := strconv.Atoi(str)
+	if err != nil {
+		panic(err)
+	}
+	arg := ^uintptr(0) - 1e4 // something as invalid as possible
+	_, _, err = syscall.Syscall6(uintptr(nr), arg, arg, arg, arg, arg, arg)
+	if err == syscall.ENOSYS {
+		os.Exit(0)
+	}
+	os.Exit(1)
+}
+
 // Some syscall names diverge in __NR_* consts and kallsyms.
 // umount2 is renamed to umount in arch/x86/entry/syscalls/syscall_64.tbl.
 // Where umount is renamed to oldumount is unclear.
@@ -70,6 +112,8 @@ var (
 		"umount":  "oldumount",
 		"umount2": "umount",
 	}
+	trialMu        sync.Mutex
+	trialSupported = make(map[uint64]bool)
 )
 
 func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {

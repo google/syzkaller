@@ -27,6 +27,8 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 	return supported, unsupported, nil
 }
 
+var testFallback = false
+
 const (
 	FeatureCoverage = iota
 	FeatureComparisons
