@@ -491,6 +491,10 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 	}
 
 	if typ.Optional() && r.oneOf(5) {
+		if res, ok := typ.(*ResourceType); ok {
+			v := res.Desc.Values[r.Intn(len(res.Desc.Values))]
+			return MakeResultArg(typ, nil, v), nil
+		}
 		return r.target.defaultArg(typ), nil
 	}
 
