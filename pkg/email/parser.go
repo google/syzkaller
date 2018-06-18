@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
+	"mime/quotedprintable"
 	"net/mail"
 	"regexp"
 	"sort"
@@ -256,8 +257,10 @@ func parseBody(r io.Reader, headers mail.Header) (body []byte, attachments [][]b
 			return nil, nil, fmt.Errorf("failed to parse email header 'Content-Type': %v", err)
 		}
 	}
-	// Note: mime package handles quoted-printable internally.
-	if strings.ToLower(headers.Get("Content-Transfer-Encoding")) == "base64" {
+	switch strings.ToLower(headers.Get("Content-Transfer-Encoding")) {
+	case "quoted-printable":
+		r = quotedprintable.NewReader(r)
+	case "base64":
 		r = base64.NewDecoder(base64.StdEncoding, r)
 	}
 	disp, _, _ := mime.ParseMediaType(headers.Get("Content-Disposition"))
