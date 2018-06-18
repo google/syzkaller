@@ -14,11 +14,11 @@ func TestResourceCtors(t *testing.T) {
 	}
 	testEachTarget(t, func(t *testing.T, target *Target) {
 		for _, c := range target.Syscalls {
-			for _, res := range c.inputResources() {
-				if len(target.calcResourceCtors(res.Desc.Kind, true)) == 0 {
+			for _, res := range target.inputResources(c) {
+				if len(target.calcResourceCtors(res.Kind, true)) == 0 {
 					t.Errorf("call %v requires input resource %v,"+
 						" but there are no calls that can create this resource",
-						c.Name, res.Desc.Name)
+						c.Name, res.Name)
 				}
 			}
 		}
@@ -31,18 +31,29 @@ func TestTransitivelyEnabledCalls(t *testing.T) {
 		for _, c := range target.Syscalls {
 			calls[c] = true
 		}
-		if trans, disabled := target.TransitivelyEnabledCalls(calls); len(disabled) != 0 {
-			for c, reason := range disabled {
-				t.Logf("disabled %v: %v", c.Name, reason)
+		enabled, disabled := target.TransitivelyEnabledCalls(calls)
+		for c, ok := range enabled {
+			if !ok {
+				t.Fatalf("syscalls %v is false in enabled map", c.Name)
 			}
-			t.Fatalf("can't create some resource")
-		} else if len(trans) != len(calls) {
-			t.Fatalf("transitive syscalls are not full")
-		} else {
-			for c, ok := range trans {
-				if !ok {
-					t.Fatalf("syscalls %v is false in transitive map", c.Name)
+		}
+		if target.OS == "test" {
+			for c := range enabled {
+				if c.CallName == "unsupported" {
+					t.Errorf("call %v is not disabled", c.Name)
 				}
+			}
+			for c, reason := range disabled {
+				if c.CallName != "unsupported" {
+					t.Errorf("call %v is disabled: %v", c.Name, reason)
+				}
+			}
+		} else {
+			if len(enabled) != len(target.Syscalls) {
+				t.Errorf("some calls are disabled: %v/%v", len(enabled), len(target.Syscalls))
+			}
+			for c, reason := range disabled {
+				t.Errorf("disabled %v: %v", c.Name, reason)
 			}
 		}
 	})
