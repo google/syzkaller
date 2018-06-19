@@ -37,17 +37,17 @@ Page with details about a single bug.
 	<table class="list_table">
 		<caption>All crashes ({{.Bug.NumCrashes}}):</caption>
 		<tr>
-			<th><a onclick="return sortTable('Manager', textSort)" href="#">Manager</a></th>
-			<th><a onclick="return sortTable('Time', dateSort)" href="#">Time</a></th>
-			<th><a onclick="return sortTable('Kernel', textSort)" href="#">Kernel</a></th>
-			<th><a onclick="return sortTable('Commit', textSort)" href="#">Commit</a></th>
-			<th><a onclick="return sortTable('Syzkaller', textSort)" href="#">Syzkaller</a></th>
-			<th><a onclick="return sortTable('Config', textSort)" href="#">Config</a></th>
-			<th><a onclick="return sortTable('Log', textSort)" href="#">Log</a></th>
-			<th><a onclick="return sortTable('Report', reproSort)" href="#">Report</a></th>
-			<th><a onclick="return sortTable('Syz repro', reproSort)" href="#">Syz repro</a></th>
-			<th><a onclick="return sortTable('C repro', textSort)" href="#">C repro</a></th>
-			<th><a onclick="return sortTable('Maintainers', textSort)" href="#">Maintainers</a></th>
+			<th><a onclick="return sortTable(this, 'Manager', textSort)" href="#">Manager</a></th>
+			<th><a onclick="return sortTable(this, 'Time', dateSort)" href="#">Time</a></th>
+			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
+			<th><a onclick="return sortTable(this, 'Commit', textSort)" href="#">Commit</a></th>
+			<th><a onclick="return sortTable(this, 'Syzkaller', textSort)" href="#">Syzkaller</a></th>
+			<th><a onclick="return sortTable(this, 'Config', textSort)" href="#">Config</a></th>
+			<th><a onclick="return sortTable(this, 'Log', textSort)" href="#">Log</a></th>
+			<th><a onclick="return sortTable(this, 'Report', reproSort)" href="#">Report</a></th>
+			<th><a onclick="return sortTable(this, 'Syz repro', reproSort)" href="#">Syz repro</a></th>
+			<th><a onclick="return sortTable(this, 'C repro', textSort)" href="#">C repro</a></th>
+			<th><a onclick="return sortTable(this, 'Maintainers', textSort)" href="#">Maintainers</a></th>
 		</tr>
 		{{range $c := $.Crashes}}
 			<tr>

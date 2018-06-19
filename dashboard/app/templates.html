@@ -48,22 +48,22 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	<caption id="{{.Fragment}}">{{$.Caption}}:</caption>
 	<tr>
 		{{if $.ShowNamespace}}
-			<th><a onclick="return sortTable('Kernel', textSort)" href="#">Kernel</a></th>
+			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
 		{{end}}
-		<th><a onclick="return sortTable('Title', textSort)" href="#">Title</a></th>
-		<th><a onclick="return sortTable('Repro', reproSort)" href="#">Repro</a></th>
-		<th><a onclick="return sortTable('Count', numSort)" href="#">Count</a></th>
-		<th><a onclick="return sortTable('Last', timeSort)" href="#">Last</a></th>
-		<th><a onclick="return sortTable('Reported', timeSort)" href="#">Reported</a></th>
+		<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
+		<th><a onclick="return sortTable(this, 'Repro', reproSort)" href="#">Repro</a></th>
+		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
+		<th><a onclick="return sortTable(this, 'Last', timeSort)" href="#">Last</a></th>
+		<th><a onclick="return sortTable(this, 'Reported', timeSort)" href="#">Reported</a></th>
 		{{if $.ShowPatch}}
-			<th><a onclick="return sortTable('Closed', timeSort)" href="#">Closed</a></th>
-			<th><a onclick="return sortTable('Patch', textSort)" href="#">Patch</a></th>
+			<th><a onclick="return sortTable(this, 'Closed', timeSort)" href="#">Closed</a></th>
+			<th><a onclick="return sortTable(this, 'Patch', textSort)" href="#">Patch</a></th>
 		{{end}}
 		{{if $.ShowPatched}}
-			<th><a onclick="return sortTable('Patched', patchedSort)" href="#">Patched</a></th>
+			<th><a onclick="return sortTable(this, 'Patched', patchedSort)" href="#">Patched</a></th>
 		{{end}}
 		{{if $.ShowStatus}}
-			<th><a onclick="return sortTable('Status', textSort)" href="#">Status</a></th>
+			<th><a onclick="return sortTable(this, 'Status', textSort)" href="#">Status</a></th>
 		{{end}}
 	</tr>
 	{{range $b := .Bugs}}
