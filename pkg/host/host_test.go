@@ -13,7 +13,7 @@ import (
 )
 
 func TestDetectSupportedSyscalls(t *testing.T) {
-	t.Parallel()
+	// Note: this test is not parallel because it modifies global testFallback var.
 	for _, fallback := range []bool{false, true} {
 		t.Run(fmt.Sprintf("fallback=%v", fallback), func(t *testing.T) {
 			oldFallback := testFallback
