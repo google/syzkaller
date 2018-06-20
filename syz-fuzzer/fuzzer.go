@@ -165,9 +165,13 @@ func main() {
 	}
 
 	log.Logf(0, "dialing manager at %v", *flagManager)
+	manager, err := rpctype.NewRPCClient(*flagManager)
+	if err != nil {
+		log.Fatalf("failed to connect to manager: %v ", err)
+	}
 	a := &rpctype.ConnectArgs{Name: *flagName}
 	r := &rpctype.ConnectRes{}
-	if err := rpctype.RPCCall(*flagManager, "Manager.Connect", a, r); err != nil {
+	if err := manager.Call("Manager.Connect", a, r); err != nil {
 		log.Fatalf("failed to connect to manager: %v ", err)
 	}
 	if r.CheckResult == nil {
@@ -181,7 +185,7 @@ func main() {
 			}
 		}
 		r.CheckResult.Name = *flagName
-		if err := rpctype.RPCCall(*flagManager, "Manager.Check", r.CheckResult, nil); err != nil {
+		if err := manager.Call("Manager.Check", r.CheckResult, nil); err != nil {
 			log.Fatalf("Manager.Check call failed: %v", err)
 		}
 		if r.CheckResult.Error != "" {
@@ -208,15 +212,6 @@ func main() {
 		calls[target.Syscalls[id]] = true
 	}
 	ct := target.BuildChoiceTable(r.Prios, calls)
-
-	// Manager.Connect reply can ve very large and that memory will be permanently cached in the connection.
-	// So we do the call on a transient connection, free all memory and reconnect.
-	// The rest of rpc requests have bounded size.
-	debug.FreeOSMemory()
-	manager, err := rpctype.NewRPCClient(*flagManager)
-	if err != nil {
-		log.Fatalf("failed to connect to manager: %v ", err)
-	}
 
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
