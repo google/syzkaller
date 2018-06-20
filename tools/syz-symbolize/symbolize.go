@@ -26,7 +26,7 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	reporter, err := report.NewReporter(*flagOS, *flagKernelSrc, *flagKernelObj, nil, nil)
+	reporter, err := report.NewReporter(*flagOS, "", *flagKernelSrc, *flagKernelObj, nil, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create reporter: %v\n", err)
 		os.Exit(1)

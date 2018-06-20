@@ -40,7 +40,7 @@ func parseReport(os, file string) {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
-	reporter, err := report.NewReporter(os, "", "", nil, nil)
+	reporter, err := report.NewReporter(os, "", "", "", nil, nil)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
