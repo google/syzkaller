@@ -487,6 +487,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.merger.Output, errc, nil
 }
 
+func (inst *instance) Diagnose() bool {
+	return false
+}
+
 func (inst *instance) sshArgs(portArg string) []string {
 	args := []string{
 		portArg, strconv.Itoa(inst.port),
