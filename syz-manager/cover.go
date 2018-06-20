@@ -107,7 +107,7 @@ func generateCoverHTML(w io.Writer, vmlinux, kernelDir, arch string, cov cover.C
 		return err
 	}
 
-	coveredFrames, _, err := symbolize(vmlinux, pcs)
+	coveredFrames, prefix, err := symbolize(vmlinux, arch, pcs)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func generateCoverHTML(w io.Writer, vmlinux, kernelDir, arch string, cov cover.C
 		return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
 	}
 
-	uncoveredFrames, prefix, err := symbolize(vmlinux, uncovered)
+	uncoveredFrames, _, err := symbolize(vmlinux, arch, uncovered)
 	if err != nil {
 		return err
 	}
@@ -366,7 +366,7 @@ func coveredPCs(arch, bin string) ([]uint64, error) {
 	return pcs, nil
 }
 
-func symbolize(vmlinux string, pcs []uint64) ([]symbolizer.Frame, string, error) {
+func symbolize(vmlinux string, arch string, pcs []uint64) ([]symbolizer.Frame, string, error) {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
 
@@ -378,7 +378,14 @@ func symbolize(vmlinux string, pcs []uint64) ([]symbolizer.Frame, string, error)
 	prefix := ""
 	for i := range frames {
 		frame := &frames[i]
-		frame.PC--
+		switch arch {
+		case "arm64":
+		case "arm":
+			break
+		default:
+			frame.PC--
+			break
+		}
 		if prefix == "" {
 			prefix = frame.File
 		} else {

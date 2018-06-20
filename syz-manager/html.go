@@ -370,7 +370,7 @@ func (mgr *Manager) httpRawCoverFiles(w http.ResponseWriter, r *http.Request) {
 		return pcs[i] < pcs[j]
 	})
 
-	coveredFrames, prefix, err := symbolize(mgr.cfg.Vmlinux, pcs)
+	coveredFrames, prefix, err := symbolize(mgr.cfg.Vmlinux, mgr.cfg.TargetVMArch, pcs)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to symbolize: %v", err), http.StatusInternalServerError)
 		return
@@ -385,7 +385,7 @@ func (mgr *Manager) httpRawCoverFiles(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Failed to find uncovered PCs: %v", err), http.StatusInternalServerError)
 		return
 	}
-	uncoveredFrames, _, err := symbolize(mgr.cfg.Vmlinux, uncovered)
+	uncoveredFrames, _, err := symbolize(mgr.cfg.Vmlinux, mgr.cfg.TargetVMArch, uncovered)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to symbolize: %v", err), http.StatusInternalServerError)
 		return
