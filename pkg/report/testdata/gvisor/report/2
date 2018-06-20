@@ -1,0 +1,68 @@
+TITLE: panic: ptrace set regs failed: no such process
+
+I0616 12:16:04.416012   11084 x:0] [ 3656] Error opening /bin/sh: no such file or directory
+I0616 12:16:04.416026   11084 x:0] [ 3656] Failed to load /bin/sh: no such file or directory
+panic: ptrace set regs failed: no such process
+
+goroutine 340101 [running]:
+panic(0xa8fd00, 0xc4203340b0)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc420b41c08 sp=0xc420b41b68 pc=0x428fa1
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).switchToApp(0xc420130b40, 0xc4204209c0, 0xc99620, 0xc42033ca20, 0x404800)
+	pkg/sentry/platform/ptrace/subprocess.go:437 +0xa72 fp=0xc420b41d90 sp=0xc420b41c08 pc=0x8b7952
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*context).Switch(0xc4204209c0, 0xc93e80, 0xc420130b40, 0xc99620, 0xc42033ca20, 0x7feaffffffff, 0x0, 0x0, 0x0, 0x0)
+	pkg/sentry/platform/ptrace/ptrace.go:102 +0x71 fp=0xc420b41e10 sp=0xc420b41d90 pc=0x8b4901
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc42039e400, 0xc87be0, 0x0)
+	pkg/sentry/kernel/task_run.go:207 +0x17d fp=0xc420b41f88 sp=0xc420b41e10 pc=0x732d9d
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc42039e400, 0xd44)
+	pkg/sentry/kernel/task_run.go:95 +0x174 fp=0xc420b41fd0 sp=0xc420b41f88 pc=0x7328b4
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc420b41fd8 sp=0xc420b41fd0 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x100
+
+goroutine 1 [semacquire]:
+runtime.gopark(0xbfba68, 0x10ec340, 0xbd8524, 0xa, 0xc420127919, 0x4)
+	GOROOT/src/runtime/proc.go:291 +0x11a fp=0xc420457920 sp=0xc420457900 pc=0x42b10a
+runtime.goparkunlock(0x10ec340, 0xbd8524, 0xa, 0x19, 0x4)
+	GOROOT/src/runtime/proc.go:297 +0x5e fp=0xc420457960 sp=0xc420457920 pc=0x42b1be
+runtime.semacquire1(0xc4200e0280, 0x403300, 0x1)
+	GOROOT/src/runtime/sema.go:144 +0x1d4 fp=0xc4204579d0 sp=0xc420457960 pc=0x43b3e4
+sync.runtime_Semacquire(0xc4200e0280)
+	GOROOT/src/runtime/sema.go:56 +0x39 fp=0xc4204579f8 sp=0xc4204579d0 pc=0x43b009
+sync.(*WaitGroup).Wait(0xc4200e0274)
+	GOROOT/src/sync/waitgroup.go:129 +0x72 fp=0xc420457a20 sp=0xc4204579f8 pc=0x46bd72
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).WaitExited(0xc42029e000)
+	pkg/sentry/kernel/kernel.go:730 +0x35 fp=0xc420457a38 sp=0xc420457a20 pc=0x70bbb5
+gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).WaitExit(0xc4201e00c0, 0x0, 0x0)
+	runsc/boot/loader.go:354 +0x2e fp=0xc420457a60 sp=0xc420457a38 pc=0x97e95e
+gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute(0xc420146740, 0xc8f900, 0xc420122000, 0xc4201263c0, 0xc42012fe60, 0x2, 0x2, 0x0)
+	runsc/cmd/boot.go:144 +0xa28 fp=0xc420457c00 sp=0xc420457a60 pc=0xa05148
+github.com/google/subcommands.(*Commander).Execute(0xc420128000, 0xc8f900, 0xc420122000, 0xc42012fe60, 0x2, 0x2, 0xc42012fe60)
+	external/com_github_google_subcommands/subcommands.go:141 +0x29f fp=0xc420457ca8 sp=0xc420457c00 pc=0x4e263f
+github.com/google/subcommands.Execute(0xc8f900, 0xc420122000, 0xc42012fe60, 0x2, 0x2, 0x5)
+	external/com_github_google_subcommands/subcommands.go:371 +0x5f fp=0xc420457cf0 sp=0xc420457ca8 pc=0x4e406f
+main.main()
+	runsc/main.go:188 +0xfda fp=0xc420457f88 sp=0xc420457cf0 pc=0xa0ff7a
+runtime.main()
+	GOROOT/src/runtime/proc.go:198 +0x212 fp=0xc420457fe0 sp=0xc420457f88 pc=0x42acb2
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc420457fe8 sp=0xc420457fe0 pc=0x455f11
+
+REPORT:
+panic: ptrace set regs failed: no such process
+
+goroutine 340101 [running]:
+panic(0xa8fd00, 0xc4203340b0)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc420b41c08 sp=0xc420b41b68 pc=0x428fa1
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).switchToApp(0xc420130b40, 0xc4204209c0, 0xc99620, 0xc42033ca20, 0x404800)
+	pkg/sentry/platform/ptrace/subprocess.go:437 +0xa72 fp=0xc420b41d90 sp=0xc420b41c08 pc=0x8b7952
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*context).Switch(0xc4204209c0, 0xc93e80, 0xc420130b40, 0xc99620, 0xc42033ca20, 0x7feaffffffff, 0x0, 0x0, 0x0, 0x0)
+	pkg/sentry/platform/ptrace/ptrace.go:102 +0x71 fp=0xc420b41e10 sp=0xc420b41d90 pc=0x8b4901
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc42039e400, 0xc87be0, 0x0)
+	pkg/sentry/kernel/task_run.go:207 +0x17d fp=0xc420b41f88 sp=0xc420b41e10 pc=0x732d9d
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc42039e400, 0xd44)
+	pkg/sentry/kernel/task_run.go:95 +0x174 fp=0xc420b41fd0 sp=0xc420b41f88 pc=0x7328b4
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc420b41fd8 sp=0xc420b41fd0 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x100
