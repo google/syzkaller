@@ -350,6 +350,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return merger.Output, errc, nil
 }
 
+func (inst *instance) Diagnose() bool {
+	return false
+}
+
 func (pool *Pool) waitInstanceBoot(name, ip, sshKey, sshUser, gceKey string) error {
 	pwd := "pwd"
 	if pool.env.OS == "windows" {

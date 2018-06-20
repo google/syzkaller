@@ -285,6 +285,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return outputC, errorC, nil
 }
 
+func (inst *instance) Diagnose() bool {
+	return false
+}
+
 const script = `#! /bin/bash
 while true; do
 	if [ -e "/syz-cmd" ]; then
