@@ -218,7 +218,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := generateCoverHTML(w, mgr.cfg.Vmlinux, mgr.cfg.TargetVMArch, cov); err != nil {
+	if err := generateCoverHTML(w, mgr.cfg.Vmlinux, mgr.cfg.KernelSrc, mgr.cfg.TargetVMArch, cov); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
