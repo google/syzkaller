@@ -243,22 +243,6 @@ func (ctx *linux) Parse(output []byte) *Report {
 	if !rep.Corrupted {
 		rep.Corrupted, rep.corruptedReason = ctx.isCorrupted(title, report, format)
 	}
-	// Executor PIDs are not interesting.
-	rep.Title = executorBinRe.ReplaceAllLiteralString(rep.Title, "syz-executor")
-	// syzkaller binaries are coming from repro.
-	rep.Title = syzkallerBinRe.ReplaceAllLiteralString(rep.Title, "syzkaller")
-	// Replace that everything looks like an address with "ADDR",
-	// addresses in descriptions can't be good regardless of the oops regexps.
-	rep.Title = addrRe.ReplaceAllString(rep.Title, "${1}ADDR")
-	// Replace that everything looks like a decimal number with "NUM".
-	rep.Title = decNumRe.ReplaceAllString(rep.Title, "${1}NUM")
-	// Replace that everything looks like a file line number with "LINE".
-	rep.Title = lineNumRe.ReplaceAllLiteralString(rep.Title, ":LINE")
-	// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
-	// with just function name ("ip6_fragment"). Offsets and sizes are not stable.
-	rep.Title = funcRe.ReplaceAllString(rep.Title, "$1")
-	// CPU numbers are not interesting.
-	rep.Title = cpuRe.ReplaceAllLiteralString(rep.Title, "CPU")
 	return rep
 }
 
@@ -501,13 +485,6 @@ var (
 	filenameRe       = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	stackFrameRe     = regexp.MustCompile(`^ *(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	lineNumRe        = regexp.MustCompile(`(:[0-9]+)+`)
-	addrRe           = regexp.MustCompile(`([^a-zA-Z])(?:0x)?[0-9a-f]{8,}`)
-	decNumRe         = regexp.MustCompile(`([^a-zA-Z])[0-9]{5,}`)
-	funcRe           = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9_.]+)\+0x[0-9a-z]+/0x[0-9a-z]+`)
-	cpuRe            = regexp.MustCompile(`CPU#[0-9]+`)
-	executorBinRe    = regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`)
-	syzkallerBinRe   = regexp.MustCompile(`syzkaller[0-9]+((/|:)[0-9]+)?`)
 	linuxRcuStall    = compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall")
 	linuxRipFrame    = compile(`IP: (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
 )

@@ -86,8 +86,60 @@ func (wrap reporterWrapper) Parse(output []byte) *Report {
 	if rep == nil {
 		return nil
 	}
-	rep.Title = sanitizeTitle(rep.Title)
+	rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
 	return rep
+}
+
+type replacement struct {
+	match       *regexp.Regexp
+	replacement string
+}
+
+func replaceTable(replacements []replacement, str string) string {
+	for _, repl := range replacements {
+		str = repl.match.ReplaceAllString(str, repl.replacement)
+	}
+	return str
+}
+
+var dynamicTitleReplacement = []replacement{
+	{
+		// Executor PIDs are not interesting.
+		regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`),
+		"syz-executor",
+	},
+	{
+		// syzkaller binaries are coming from repro.
+		regexp.MustCompile(`syzkaller[0-9]+((/|:)[0-9]+)?`),
+		"syzkaller",
+	},
+	{
+		// Replace that everything looks like an address with "ADDR",
+		// addresses in descriptions can't be good regardless of the oops regexps.
+		regexp.MustCompile(`([^a-zA-Z])(?:0x)?[0-9a-f]{6,}`),
+		"${1}ADDR",
+	},
+	{
+		// Replace that everything looks like a decimal number with "NUM".
+		regexp.MustCompile(`([^a-zA-Z])[0-9]{5,}`),
+		"${1}NUM",
+	},
+	{
+		// Replace that everything looks like a file line number with "LINE".
+		regexp.MustCompile(`(:[0-9]+)+`),
+		":LINE",
+	},
+	{
+		// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
+		// with just function name ("ip6_fragment"). Offsets and sizes are not stable.
+		regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9_.]+)\+0x[0-9a-z]+/0x[0-9a-z]+`),
+		"${1}",
+	},
+	{
+		// CPU numbers are not interesting.
+		regexp.MustCompile(`CPU#[0-9]+`),
+		"CPU",
+	},
 }
 
 func sanitizeTitle(title string) string {
