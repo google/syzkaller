@@ -1,0 +1,123 @@
+TITLE: panic: runtime error: invalid memory address or nil pointer dereference
+
+r9 = getuid()
+ioctl$TUNSETOWNER(r3, 0x400454cc, r9)
+
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x40 pc=0x811ac1]
+
+goroutine 9707990 [running]:
+panic(0xaddd00, 0x10d2b90)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc4205d15b0 sp=0xc4205d1510 pc=0x428fa1
+runtime.panicmem()
+	GOROOT/src/runtime/panic.go:63 +0x5e fp=0xc4205d15d0 sp=0xc4205d15b0 pc=0x427e7e
+runtime.sigpanic()
+	GOROOT/src/runtime/signal_unix.go:388 +0x17a fp=0xc4205d1620 sp=0xc4205d15d0 pc=0x43e59a
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/gofer.(*handleReadWriter).WriteFromBlocks(0xc420ef06e0, 0x7fe2a3453200, 0xffffffffffffffff, 0x0, 0x61, 0x0, 0x0, 0x0)
+	pkg/sentry/fs/gofer/handles.go:133 +0x41 fp=0xc4205d1698 sp=0xc4205d1620 pc=0x811ac1
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/gofer.(*inodeFileState).WriteFromBlocksAt(0xc4204e24d0, 0xc94d20, 0xc4203fdcc8, 0x7fe2a3453200, 0xffffffffffffffff, 0x0, 0x61, 0x200, 0x0, 0x0, ...)
+	pkg/sentry/fs/gofer/inode.go:204 +0xfe fp=0xc4205d1710 sp=0xc4205d1698 pc=0x81239e
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/fsutil.(*inodeReadWriter).WriteFromBlocks(0xc421cdcf40, 0x7fe2a3453200, 0xffffffffffffffff, 0x0, 0x61, 0x0, 0x0, 0x0)
+	pkg/sentry/fs/fsutil/inode_cached.go:605 +0x35d fp=0xc4205d1848 sp=0xc4205d1710 pc=0x660f8d
+gvisor.googlesource.com/gvisor/pkg/sentry/safemem.(Writer).WriteFromBlocks-fm(0x7fe2a3453200, 0xffffffffffffffff, 0x0, 0x61, 0x20000261, 0x7fe2a3453200, 0xffffffffffffffff)
+	pkg/sentry/mm/io.go:309 +0x57 fp=0xc4205d1898 sp=0xc4205d1848 pc=0x6bacd7
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).withInternalMappings(0xc4214a6580, 0xc94d20, 0xc4203fdcc8, 0x20000200, 0x20000261, 0x1, 0xc420ef0b40, 0x10fd8e0, 0x6e5a33137f9f62, 0xc420ef0a88)
+	pkg/sentry/mm/io.go:464 +0x72c fp=0xc4205d1998 sp=0xc4205d1898 pc=0x694c4c
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).withVecInternalMappings(0xc4214a6580, 0xc94d20, 0xc4203fdcc8, 0x0, 0x1, 0x20000200, 0x61, 0xc400000001, 0xc420ef0b40, 0x1538c53a716d7b9c, ...)
+	pkg/sentry/mm/io.go:533 +0x7f1 fp=0xc4205d1a90 sp=0xc4205d1998 pc=0x6954c1
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).CopyInTo(0xc4214a6580, 0xc94d20, 0xc4203fdcc8, 0x0, 0x1, 0x20000200, 0x61, 0xc87960, 0xc421cdcf40, 0x0, ...)
+	pkg/sentry/mm/io.go:309 +0x17c fp=0xc4205d1b68 sp=0xc4205d1a90 pc=0x69370c
+gvisor.googlesource.com/gvisor/pkg/sentry/usermem.IOSequence.CopyInTo(0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, 0x0, 0xc94d20, 0xc4203fdcc8, 0xc87960, ...)
+	pkg/sentry/usermem/usermem.go:528 +0xad fp=0xc4205d1be0 sp=0xc4205d1b68 pc=0x590a4d
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/fsutil.(*CachingInodeOperations).Write(0xc4202ed800, 0xc94d20, 0xc4203fdcc8, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, 0x0, ...)
+	pkg/sentry/fs/fsutil/inode_cached.go:474 +0x19e fp=0xc4205d1ca0 sp=0xc4205d1be0 pc=0x66037e
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/gofer.(*fileOperations).Write(0xc421fcd1d0, 0xc94d20, 0xc4203fdcc8, 0xc4205e9000, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, ...)
+	pkg/sentry/fs/gofer/file.go:192 +0x271 fp=0xc4205d1d78 sp=0xc4205d1ca0 pc=0x80dbf1
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*overlayFileOperations).Write(0xc421fcd200, 0xc94d20, 0xc4203fdcc8, 0xc4205e9080, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, ...)
+	pkg/sentry/fs/file_overlay.go:222 +0x9b fp=0xc4205d1e00 sp=0xc4205d1d78 pc=0x61d95b
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*File).Pwritev(0xc4205e9080, 0xc94d20, 0xc4203fdcc8, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, 0x0, ...)
+	pkg/sentry/fs/file.go:269 +0x1c2 fp=0xc4205d1ea8 sp=0xc4205d1e00 pc=0x61b532
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.performCallback(0xc421b91b00, 0xc4205e9080, 0x20000280, 0xc4204a8a80, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, ...)
+	pkg/sentry/syscalls/linux/sys_aio.go:264 +0x2a4 fp=0xc4205d1f38 sp=0xc4205d1ea8 pc=0x8c2144
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.submitCallback.func1()
+	pkg/sentry/syscalls/linux/sys_aio.go:342 +0x7c fp=0xc4205d1fb0 sp=0xc4205d1f38 pc=0x8ef8bc
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.Async.func1(0xc420172b60)
+	pkg/sentry/fs/fs.go:82 +0x4f fp=0xc4205d1fd8 sp=0xc4205d1fb0 pc=0x63408f
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc4205d1fe0 sp=0xc4205d1fd8 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/fs.Async
+	pkg/sentry/fs/fs.go:80 +0x58
+
+goroutine 1 [semacquire, 23 minutes]:
+runtime.gopark(0xbfba68, 0x10ec600, 0xbd8524, 0xa, 0xc4200e0319, 0x4)
+	GOROOT/src/runtime/proc.go:291 +0x11a fp=0xc4204f1920 sp=0xc4204f1900 pc=0x42b10a
+runtime.goparkunlock(0x10ec600, 0xbd8524, 0xa, 0x19, 0x4)
+	GOROOT/src/runtime/proc.go:297 +0x5e fp=0xc4204f1960 sp=0xc4204f1920 pc=0x42b1be
+runtime.semacquire1(0xc42011e700, 0x403300, 0x1)
+	GOROOT/src/runtime/sema.go:144 +0x1d4 fp=0xc4204f19d0 sp=0xc4204f1960 pc=0x43b3e4
+sync.runtime_Semacquire(0xc42011e700)
+	GOROOT/src/runtime/sema.go:56 +0x39 fp=0xc4204f19f8 sp=0xc4204f19d0 pc=0x43b009
+sync.(*WaitGroup).Wait(0xc42011e6f4)
+	GOROOT/src/sync/waitgroup.go:129 +0x72 fp=0xc4204f1a20 sp=0xc4204f19f8 pc=0x46bd72
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).WaitExited(0xc42025eb40)
+	pkg/sentry/kernel/kernel.go:730 +0x35 fp=0xc4204f1a38 sp=0xc4204f1a20 pc=0x70bbb5
+gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).WaitExit(0xc420318000, 0x0, 0x0)
+	runsc/boot/loader.go:354 +0x2e fp=0xc4204f1a60 sp=0xc4204f1a38 pc=0x97e95e
+gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute(0xc420136740, 0xc8f900, 0xc42010c010, 0xc42011e420, 0xc42011de40, 0x2, 0x2, 0x0)
+	runsc/cmd/boot.go:144 +0xa28 fp=0xc4204f1c00 sp=0xc4204f1a60 pc=0xa05148
+github.com/google/subcommands.(*Commander).Execute(0xc420120000, 0xc8f900, 0xc42010c010, 0xc42011de40, 0x2, 0x2, 0xc42011de40)
+	external/com_github_google_subcommands/subcommands.go:141 +0x29f fp=0xc4204f1ca8 sp=0xc4204f1c00 pc=0x4e263f
+github.com/google/subcommands.Execute(0xc8f900, 0xc42010c010, 0xc42011de40, 0x2, 0x2, 0x5)
+	external/com_github_google_subcommands/subcommands.go:371 +0x5f fp=0xc4204f1cf0 sp=0xc4204f1ca8 pc=0x4e406f
+main.main()
+	runsc/main.go:188 +0xfda fp=0xc4204f1f88 sp=0xc4204f1cf0 pc=0xa0ff7a
+runtime.main()
+	GOROOT/src/runtime/proc.go:198 +0x212 fp=0xc4204f1fe0 sp=0xc4204f1f88 pc=0x42acb2
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc4204f1fe8 sp=0xc4204f1fe0 pc=0x455f11
+
+REPORT:
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x40 pc=0x811ac1]
+
+goroutine 9707990 [running]:
+panic(0xaddd00, 0x10d2b90)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc4205d15b0 sp=0xc4205d1510 pc=0x428fa1
+runtime.panicmem()
+	GOROOT/src/runtime/panic.go:63 +0x5e fp=0xc4205d15d0 sp=0xc4205d15b0 pc=0x427e7e
+runtime.sigpanic()
+	GOROOT/src/runtime/signal_unix.go:388 +0x17a fp=0xc4205d1620 sp=0xc4205d15d0 pc=0x43e59a
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/gofer.(*handleReadWriter).WriteFromBlocks(0xc420ef06e0, 0x7fe2a3453200, 0xffffffffffffffff, 0x0, 0x61, 0x0, 0x0, 0x0)
+	pkg/sentry/fs/gofer/handles.go:133 +0x41 fp=0xc4205d1698 sp=0xc4205d1620 pc=0x811ac1
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/gofer.(*inodeFileState).WriteFromBlocksAt(0xc4204e24d0, 0xc94d20, 0xc4203fdcc8, 0x7fe2a3453200, 0xffffffffffffffff, 0x0, 0x61, 0x200, 0x0, 0x0, ...)
+	pkg/sentry/fs/gofer/inode.go:204 +0xfe fp=0xc4205d1710 sp=0xc4205d1698 pc=0x81239e
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/fsutil.(*inodeReadWriter).WriteFromBlocks(0xc421cdcf40, 0x7fe2a3453200, 0xffffffffffffffff, 0x0, 0x61, 0x0, 0x0, 0x0)
+	pkg/sentry/fs/fsutil/inode_cached.go:605 +0x35d fp=0xc4205d1848 sp=0xc4205d1710 pc=0x660f8d
+gvisor.googlesource.com/gvisor/pkg/sentry/safemem.(Writer).WriteFromBlocks-fm(0x7fe2a3453200, 0xffffffffffffffff, 0x0, 0x61, 0x20000261, 0x7fe2a3453200, 0xffffffffffffffff)
+	pkg/sentry/mm/io.go:309 +0x57 fp=0xc4205d1898 sp=0xc4205d1848 pc=0x6bacd7
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).withInternalMappings(0xc4214a6580, 0xc94d20, 0xc4203fdcc8, 0x20000200, 0x20000261, 0x1, 0xc420ef0b40, 0x10fd8e0, 0x6e5a33137f9f62, 0xc420ef0a88)
+	pkg/sentry/mm/io.go:464 +0x72c fp=0xc4205d1998 sp=0xc4205d1898 pc=0x694c4c
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).withVecInternalMappings(0xc4214a6580, 0xc94d20, 0xc4203fdcc8, 0x0, 0x1, 0x20000200, 0x61, 0xc400000001, 0xc420ef0b40, 0x1538c53a716d7b9c, ...)
+	pkg/sentry/mm/io.go:533 +0x7f1 fp=0xc4205d1a90 sp=0xc4205d1998 pc=0x6954c1
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).CopyInTo(0xc4214a6580, 0xc94d20, 0xc4203fdcc8, 0x0, 0x1, 0x20000200, 0x61, 0xc87960, 0xc421cdcf40, 0x0, ...)
+	pkg/sentry/mm/io.go:309 +0x17c fp=0xc4205d1b68 sp=0xc4205d1a90 pc=0x69370c
+gvisor.googlesource.com/gvisor/pkg/sentry/usermem.IOSequence.CopyInTo(0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, 0x0, 0xc94d20, 0xc4203fdcc8, 0xc87960, ...)
+	pkg/sentry/usermem/usermem.go:528 +0xad fp=0xc4205d1be0 sp=0xc4205d1b68 pc=0x590a4d
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/fsutil.(*CachingInodeOperations).Write(0xc4202ed800, 0xc94d20, 0xc4203fdcc8, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, 0x0, ...)
+	pkg/sentry/fs/fsutil/inode_cached.go:474 +0x19e fp=0xc4205d1ca0 sp=0xc4205d1be0 pc=0x66037e
+gvisor.googlesource.com/gvisor/pkg/sentry/fs/gofer.(*fileOperations).Write(0xc421fcd1d0, 0xc94d20, 0xc4203fdcc8, 0xc4205e9000, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, ...)
+	pkg/sentry/fs/gofer/file.go:192 +0x271 fp=0xc4205d1d78 sp=0xc4205d1ca0 pc=0x80dbf1
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*overlayFileOperations).Write(0xc421fcd200, 0xc94d20, 0xc4203fdcc8, 0xc4205e9080, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, ...)
+	pkg/sentry/fs/file_overlay.go:222 +0x9b fp=0xc4205d1e00 sp=0xc4205d1d78 pc=0x61d95b
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.(*File).Pwritev(0xc4205e9080, 0xc94d20, 0xc4203fdcc8, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, 0x0, ...)
+	pkg/sentry/fs/file.go:269 +0x1c2 fp=0xc4205d1ea8 sp=0xc4205d1e00 pc=0x61b532
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.performCallback(0xc421b91b00, 0xc4205e9080, 0x20000280, 0xc4204a8a80, 0xc93580, 0xc4214a6580, 0x0, 0x1, 0x20000200, 0x61, ...)
+	pkg/sentry/syscalls/linux/sys_aio.go:264 +0x2a4 fp=0xc4205d1f38 sp=0xc4205d1ea8 pc=0x8c2144
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.submitCallback.func1()
+	pkg/sentry/syscalls/linux/sys_aio.go:342 +0x7c fp=0xc4205d1fb0 sp=0xc4205d1f38 pc=0x8ef8bc
+gvisor.googlesource.com/gvisor/pkg/sentry/fs.Async.func1(0xc420172b60)
+	pkg/sentry/fs/fs.go:82 +0x4f fp=0xc4205d1fd8 sp=0xc4205d1fb0 pc=0x63408f
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc4205d1fe0 sp=0xc4205d1fd8 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/fs.Async
+	pkg/sentry/fs/fs.go:80 +0x58

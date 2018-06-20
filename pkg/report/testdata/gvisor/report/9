@@ -1,0 +1,96 @@
+TITLE: DATA RACE in kernel.(*Task).accountTaskGoroutineEnter
+
+==================
+WARNING: DATA RACE
+Write at 0x00c4203e8058 by goroutine 27:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).accountTaskGoroutineEnter()
+      pkg/sentry/kernel/task_sched.go:94 +0x13c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:206 +0x125
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Previous read at 0x00c4203e8058 by goroutine 23:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.SeqAtomicLoadTaskGoroutineSchedInfo()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/kernel/seqatomic_taskgoroutineschedinfo.go:25 +0x68
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).TaskGoroutineSchedInfo()
+      pkg/sentry/kernel/task_sched.go:120 +0x4b
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).cpuStatsAt()
+      pkg/sentry/kernel/task_sched.go:134 +0x3c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*ThreadGroup).CPUStats()
+      pkg/sentry/kernel/task_sched.go:167 +0x1e5
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*tgClock).Now()
+      pkg/sentry/kernel/timer.go:78 +0x4d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel/time.(*Timer).Tick()
+      pkg/sentry/kernel/time/time.go:491 +0x5e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel/time.(*Timer).runGoroutine()
+      pkg/sentry/kernel/time/time.go:484 +0x52
+
+Goroutine 27 (running) created at:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start()
+      pkg/sentry/kernel/task_start.go:251 +0x193
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).Start()
+      pkg/sentry/kernel/kernel.go:664 +0x320
+  gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).run()
+      runsc/boot/loader.go:343 +0x2f2
+  gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).Run()
+      runsc/boot/loader.go:298 +0x3c
+  gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute()
+      runsc/cmd/boot.go:140 +0xf02
+  github.com/google/subcommands.(*Commander).Execute()
+      external/com_github_google_subcommands/subcommands.go:141 +0x486
+  github.com/google/subcommands.Execute()
+      external/com_github_google_subcommands/subcommands.go:371 +0x80
+  main.main()
+      runsc/main.go:188 +0x16d0
+
+Goroutine 23 (running) created at:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel/time.(*Timer).init()
+      pkg/sentry/kernel/time/time.go:455 +0x2bc
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel/time.NewTimer()
+      pkg/sentry/kernel/time/time.go:418 +0xf4
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.newTimerManager()
+      pkg/sentry/kernel/timer.go:219 +0x47c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.NewThreadGroup()
+      pkg/sentry/kernel/thread_group.go:218 +0x1e5
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).CreateProcess()
+      pkg/sentry/kernel/kernel.go:572 +0x343
+  gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).run()
+      runsc/boot/loader.go:335 +0x15b
+  gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).Run()
+      runsc/boot/loader.go:298 +0x3c
+  gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute()
+      runsc/cmd/boot.go:140 +0xf02
+  github.com/google/subcommands.(*Commander).Execute()
+      external/com_github_google_subcommands/subcommands.go:141 +0x486
+  github.com/google/subcommands.Execute()
+      external/com_github_google_subcommands/subcommands.go:371 +0x80
+  main.main()
+      runsc/main.go:188 +0x16d0
+==================
+
+REPORT:
+WARNING: DATA RACE
+Write at 0x00c4203e8058 by goroutine 27:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).accountTaskGoroutineEnter()
+      pkg/sentry/kernel/task_sched.go:94 +0x13c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute()
+      pkg/sentry/kernel/task_run.go:206 +0x125
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run()
+      pkg/sentry/kernel/task_run.go:95 +0x264
+
+Previous read at 0x00c4203e8058 by goroutine 23:
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.SeqAtomicLoadTaskGoroutineSchedInfo()
+      bazel-out/k8-fastbuild/bin/pkg/sentry/kernel/seqatomic_taskgoroutineschedinfo.go:25 +0x68
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).TaskGoroutineSchedInfo()
+      pkg/sentry/kernel/task_sched.go:120 +0x4b
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).cpuStatsAt()
+      pkg/sentry/kernel/task_sched.go:134 +0x3c
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*ThreadGroup).CPUStats()
+      pkg/sentry/kernel/task_sched.go:167 +0x1e5
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*tgClock).Now()
+      pkg/sentry/kernel/timer.go:78 +0x4d
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel/time.(*Timer).Tick()
+      pkg/sentry/kernel/time/time.go:491 +0x5e
+  gvisor.googlesource.com/gvisor/pkg/sentry/kernel/time.(*Timer).runGoroutine()
+      pkg/sentry/kernel/time/time.go:484 +0x52
