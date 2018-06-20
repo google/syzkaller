@@ -240,7 +240,7 @@ func (inst *inst) testInstance() error {
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
 	}
-	rep := vm.MonitorExecution(outc, errc, inst.reporter, true)
+	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, true)
 	if rep != nil {
 		if err := inst.reporter.Symbolize(rep); err != nil {
 			// TODO(dvyukov): send such errors to dashboard.
@@ -323,7 +323,7 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
 	}
-	rep := vm.MonitorExecution(outc, errc, inst.reporter, true)
+	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, true)
 	if rep == nil {
 		return nil
 	}
