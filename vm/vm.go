@@ -97,6 +97,10 @@ func (inst *Instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.impl.Run(timeout, stop, command)
 }
 
+func (inst *Instance) Diagnose() bool {
+	return inst.impl.Diagnose()
+}
+
 func (inst *Instance) Close() {
 	inst.impl.Close()
 	os.RemoveAll(inst.workdir)
@@ -217,6 +221,9 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			// We intentionally produce the same title as no output at all,
 			// because frequently it's the same condition.
 			if time.Since(lastExecuteTime) > 3*time.Minute {
+				if inst.Diagnose() {
+					waitForOutput()
+				}
 				rep := &report.Report{
 					Title:  "no output from test machine",
 					Output: output,
@@ -225,6 +232,9 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			}
 		case <-ticker.C:
 			tickerFired = true
+			if inst.Diagnose() {
+				waitForOutput()
+			}
 			rep := &report.Report{
 				Title:  "no output from test machine",
 				Output: output,
