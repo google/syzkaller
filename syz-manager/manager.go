@@ -835,8 +835,8 @@ func (mgr *Manager) getReporter() report.Reporter {
 			kernelSrc = mgr.cfg.KernelSrc
 			kernelObj = filepath.Dir(mgr.cfg.Vmlinux)
 		}
-		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, kernelSrc, kernelObj,
-			allSymbols, mgr.cfg.ParsedIgnores)
+		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, mgr.cfg.Type,
+			kernelSrc, kernelObj, allSymbols, mgr.cfg.ParsedIgnores)
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
