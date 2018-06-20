@@ -1,0 +1,97 @@
+TITLE: panic: munmap(ADDR, 0)) failed: invalid argument
+
+perf_event_open(&(0x7f000025c000)={0x2, 0x70, 0x3e4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, @perf_bp={&(0x7f0000000100)}}, 0x0, 0xffffffffffffffff, 0xffffffffffffffff, 0x0)
+bpf$PROG_LOAD(0x5, &(0x7f0000001380)={0x3, 0x2, &(0x7f0000000000)=@raw=[@exit={0x95}], &(0x7f0000000100)='syzkaller\x00', 0x2, 0xb9, &(0x7f00000012c0)=""/185, 0x0, 0x0, [], r1}, 0x48)
+
+panic: munmap(2000d000, 0)) failed: invalid argument
+
+goroutine 1158490 [running]:
+panic(0xa8fd00, 0xc420496000)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc4201955d8 sp=0xc420195538 pc=0x428fa1
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).Unmap(0xc420252a20, 0x2000d000, 0x0)
+	pkg/sentry/platform/ptrace/subprocess.go:556 +0x3c6 fp=0xc420195758 sp=0xc4201955d8 pc=0x8b7f96
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).unmapASLocked(0xc420e78c80, 0x2000d000, 0x2000d000)
+	pkg/sentry/mm/address_space.go:217 +0x74 fp=0xc420195780 sp=0xc420195758 pc=0x6890a4
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).movePMAsLocked(0xc420e78c80, 0x2000d000, 0x2000d000, 0x20007000, 0x20008000)
+	pkg/sentry/mm/pma.go:628 +0x4d8 fp=0xc4201958f8 sp=0xc420195780 pc=0x69f478
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).MRemap(0xc420e78c80, 0xc94840, 0xc4205dbb00, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x2, 0x20007000, 0x0, 0x0, ...)
+	pkg/sentry/mm/syscalls.go:464 +0x8e8 fp=0xc420195b10 sp=0xc4201958f8 pc=0x6ad108
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Mremap(0xc4205dbb00, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x3, 0x20007000, 0x0, 0x428854, 0xbfb7d0, 0xc420195c08, ...)
+	pkg/sentry/syscalls/linux/sys_mmap.go:137 +0xc6 fp=0xc420195b78 sp=0xc420195b10 pc=0x8d15d6
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall(0xc4205dbb00, 0x19, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x3, 0x20007000, 0x0, 0xc4202703c0, 0xbd3380, ...)
+	pkg/sentry/kernel/task_syscall.go:162 +0x307 fp=0xc420195c30 sp=0xc420195b78 pc=0x73c3f7
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke(0xc4205dbb00, 0x19, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x3, 0x20007000, 0x0, 0x20007000, 0x0)
+	pkg/sentry/kernel/task_syscall.go:278 +0x62 fp=0xc420195cb8 sp=0xc420195c30 pc=0x73d092
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter(0xc4205dbb00, 0x19, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x3, 0x20007000, 0x0, 0xc87be0, 0xc420195e00)
+	pkg/sentry/kernel/task_syscall.go:241 +0x91 fp=0xc420195d18 sp=0xc420195cb8 pc=0x73ccc1
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall(0xc4205dbb00, 0x2, 0xc420252a20)
+	pkg/sentry/kernel/task_syscall.go:216 +0x10c fp=0xc420195e10 sp=0xc420195d18 pc=0x73c61c
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc4205dbb00, 0xc87be0, 0x0)
+	pkg/sentry/kernel/task_run.go:217 +0xed8 fp=0xc420195f88 sp=0xc420195e10 pc=0x733af8
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc4205dbb00, 0x1cd5)
+	pkg/sentry/kernel/task_run.go:95 +0x174 fp=0xc420195fd0 sp=0xc420195f88 pc=0x7328b4
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc420195fd8 sp=0xc420195fd0 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x100
+
+goroutine 1 [semacquire, 2 minutes]:
+runtime.gopark(0xbfba68, 0x10ebf80, 0xbd8524, 0xa, 0xc42026e219, 0x4)
+	GOROOT/src/runtime/proc.go:291 +0x11a fp=0xc4203eb920 sp=0xc4203eb900 pc=0x42b10a
+runtime.goparkunlock(0x10ebf80, 0xbd8524, 0xa, 0x19, 0x4)
+	GOROOT/src/runtime/proc.go:297 +0x5e fp=0xc4203eb960 sp=0xc4203eb920 pc=0x42b1be
+runtime.semacquire1(0xc4200e8760, 0x403300, 0x1)
+	GOROOT/src/runtime/sema.go:144 +0x1d4 fp=0xc4203eb9d0 sp=0xc4203eb960 pc=0x43b3e4
+sync.runtime_Semacquire(0xc4200e8760)
+	GOROOT/src/runtime/sema.go:56 +0x39 fp=0xc4203eb9f8 sp=0xc4203eb9d0 pc=0x43b009
+sync.(*WaitGroup).Wait(0xc4200e8754)
+	GOROOT/src/sync/waitgroup.go:129 +0x72 fp=0xc4203eba20 sp=0xc4203eb9f8 pc=0x46bd72
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Kernel).WaitExited(0xc420222360)
+	pkg/sentry/kernel/kernel.go:730 +0x35 fp=0xc4203eba38 sp=0xc4203eba20 pc=0x70bbb5
+gvisor.googlesource.com/gvisor/runsc/boot.(*Loader).WaitExit(0xc4202f0000, 0x0, 0x0)
+	runsc/boot/loader.go:354 +0x2e fp=0xc4203eba60 sp=0xc4203eba38 pc=0x97e95e
+gvisor.googlesource.com/gvisor/runsc/cmd.(*Boot).Execute(0xc4200de780, 0xc8f900, 0xc4200380c8, 0xc4200e8480, 0xc42000be80, 0x2, 0x2, 0x0)
+	runsc/cmd/boot.go:144 +0xa28 fp=0xc4203ebc00 sp=0xc4203eba60 pc=0xa05148
+github.com/google/subcommands.(*Commander).Execute(0xc4200fa000, 0xc8f900, 0xc4200380c8, 0xc42000be80, 0x2, 0x2, 0xc42000be80)
+	external/com_github_google_subcommands/subcommands.go:141 +0x29f fp=0xc4203ebca8 sp=0xc4203ebc00 pc=0x4e263f
+github.com/google/subcommands.Execute(0xc8f900, 0xc4200380c8, 0xc42000be80, 0x2, 0x2, 0x5)
+	external/com_github_google_subcommands/subcommands.go:371 +0x5f fp=0xc4203ebcf0 sp=0xc4203ebca8 pc=0x4e406f
+main.main()
+	runsc/main.go:188 +0xfda fp=0xc4203ebf88 sp=0xc4203ebcf0 pc=0xa0ff7a
+runtime.main()
+	GOROOT/src/runtime/proc.go:198 +0x212 fp=0xc4203ebfe0 sp=0xc4203ebf88 pc=0x42acb2
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc4203ebfe8 sp=0xc4203ebfe0 pc=0x455f11
+
+REPORT:
+panic: munmap(2000d000, 0)) failed: invalid argument
+
+goroutine 1158490 [running]:
+panic(0xa8fd00, 0xc420496000)
+	GOROOT/src/runtime/panic.go:551 +0x3c1 fp=0xc4201955d8 sp=0xc420195538 pc=0x428fa1
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).Unmap(0xc420252a20, 0x2000d000, 0x0)
+	pkg/sentry/platform/ptrace/subprocess.go:556 +0x3c6 fp=0xc420195758 sp=0xc4201955d8 pc=0x8b7f96
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).unmapASLocked(0xc420e78c80, 0x2000d000, 0x2000d000)
+	pkg/sentry/mm/address_space.go:217 +0x74 fp=0xc420195780 sp=0xc420195758 pc=0x6890a4
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).movePMAsLocked(0xc420e78c80, 0x2000d000, 0x2000d000, 0x20007000, 0x20008000)
+	pkg/sentry/mm/pma.go:628 +0x4d8 fp=0xc4201958f8 sp=0xc420195780 pc=0x69f478
+gvisor.googlesource.com/gvisor/pkg/sentry/mm.(*MemoryManager).MRemap(0xc420e78c80, 0xc94840, 0xc4205dbb00, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x2, 0x20007000, 0x0, 0x0, ...)
+	pkg/sentry/mm/syscalls.go:464 +0x8e8 fp=0xc420195b10 sp=0xc4201958f8 pc=0x6ad108
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Mremap(0xc4205dbb00, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x3, 0x20007000, 0x0, 0x428854, 0xbfb7d0, 0xc420195c08, ...)
+	pkg/sentry/syscalls/linux/sys_mmap.go:137 +0xc6 fp=0xc420195b78 sp=0xc420195b10 pc=0x8d15d6
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall(0xc4205dbb00, 0x19, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x3, 0x20007000, 0x0, 0xc4202703c0, 0xbd3380, ...)
+	pkg/sentry/kernel/task_syscall.go:162 +0x307 fp=0xc420195c30 sp=0xc420195b78 pc=0x73c3f7
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke(0xc4205dbb00, 0x19, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x3, 0x20007000, 0x0, 0x20007000, 0x0)
+	pkg/sentry/kernel/task_syscall.go:278 +0x62 fp=0xc420195cb8 sp=0xc420195c30 pc=0x73d092
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter(0xc4205dbb00, 0x19, 0x2000d000, 0xfffffffffffffe74, 0x1000, 0x3, 0x20007000, 0x0, 0xc87be0, 0xc420195e00)
+	pkg/sentry/kernel/task_syscall.go:241 +0x91 fp=0xc420195d18 sp=0xc420195cb8 pc=0x73ccc1
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall(0xc4205dbb00, 0x2, 0xc420252a20)
+	pkg/sentry/kernel/task_syscall.go:216 +0x10c fp=0xc420195e10 sp=0xc420195d18 pc=0x73c61c
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc4205dbb00, 0xc87be0, 0x0)
+	pkg/sentry/kernel/task_run.go:217 +0xed8 fp=0xc420195f88 sp=0xc420195e10 pc=0x733af8
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc4205dbb00, 0x1cd5)
+	pkg/sentry/kernel/task_run.go:95 +0x174 fp=0xc420195fd0 sp=0xc420195f88 pc=0x7328b4
+runtime.goexit()
+	bazel-out/k8-fastbuild/bin/external/io_bazel_rules_go/linux_amd64_pure_stripped/stdlib~/src/runtime/asm_amd64.s:2361 +0x1 fp=0xc420195fd8 sp=0xc420195fd0 pc=0x455f11
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x100
