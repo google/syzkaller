@@ -584,7 +584,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
-	rep := vm.MonitorExecution(outc, errc, mgr.getReporter(), false)
+	rep := inst.MonitorExecution(outc, errc, mgr.getReporter(), false)
 	if rep == nil {
 		// This is the only "OK" outcome.
 		log.Logf(0, "vm-%v: running for %v, restarting", index, time.Since(start))
