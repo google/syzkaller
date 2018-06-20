@@ -1621,8 +1621,14 @@ static void checkpoint_arptables(void)
 	int fd;
 
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (fd == -1)
+	if (fd == -1) {
+		switch (errno) {
+		case EAFNOSUPPORT:
+		case ENOPROTOOPT:
+			return;
+		}
 		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	}
 	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
 		strcpy(table->info.name, table->name);
@@ -1668,8 +1674,14 @@ static void reset_arptables()
 	int fd;
 
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (fd == -1)
+	if (fd == -1) {
+		switch (errno) {
+		case EAFNOSUPPORT:
+		case ENOPROTOOPT:
+			return;
+		}
 		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	}
 	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
 		if (table->info.valid_hooks == 0)
@@ -1721,8 +1733,14 @@ static void checkpoint_ebtables(void)
 	int fd;
 
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (fd == -1)
+	if (fd == -1) {
+		switch (errno) {
+		case EAFNOSUPPORT:
+		case ENOPROTOOPT:
+			return;
+		}
 		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	}
 	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
 		struct ebt_table_desc* table = &ebt_tables[i];
 		strcpy(table->replace.name, table->name);
@@ -1757,8 +1775,14 @@ static void reset_ebtables()
 	int fd;
 
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (fd == -1)
+	if (fd == -1) {
+		switch (errno) {
+		case EAFNOSUPPORT:
+		case ENOPROTOOPT:
+			return;
+		}
 		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	}
 	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
 		struct ebt_table_desc* table = &ebt_tables[i];
 		if (table->replace.valid_hooks == 0)
