@@ -12,14 +12,14 @@ import (
 )
 
 func TestLinuxIgnores(t *testing.T) {
-	reporter, err := NewReporter("linux", "", "", nil, nil)
+	reporter, err := NewReporter("linux", "", "", "", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ignores1 := []*regexp.Regexp{
 		regexp.MustCompile("BUG: bug3"),
 	}
-	reporter1, err := NewReporter("linux", "", "", nil, ignores1)
+	reporter1, err := NewReporter("linux", "", "", "", nil, ignores1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestLinuxIgnores(t *testing.T) {
 		regexp.MustCompile("BUG: bug3"),
 		regexp.MustCompile("BUG: bug1"),
 	}
-	reporter2, err := NewReporter("linux", "", "", nil, ignores2)
+	reporter2, err := NewReporter("linux", "", "", "", nil, ignores2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestLinuxIgnores(t *testing.T) {
 		regexp.MustCompile("BUG: bug1"),
 		regexp.MustCompile("BUG: bug2"),
 	}
-	reporter3, err := NewReporter("linux", "", "", nil, ignores3)
+	reporter3, err := NewReporter("linux", "", "", "", nil, ignores3)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -214,7 +214,7 @@ func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Report
 		if err != nil {
 			t.Fatal(err)
 		}
-		reporter, err := NewReporter(os, "", "", nil, nil)
+		reporter, err := NewReporter(os, "", "", "", nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

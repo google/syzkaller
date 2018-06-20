@@ -45,12 +45,12 @@ type Report struct {
 	Maintainers []string
 }
 
-// NewReporter creates reporter for the specified OS:
+// NewReporter creates reporter for the specified OS/vmType:
 // kernelSrc: path to kernel sources directory
 // kernelObj: path to kernel build directory (can be empty for in-tree build)
 // symbols: kernel symbols (result of pkg/symbolizer.ReadSymbols on kernel object file)
 // ignores: optional list of regexps to ignore (must match first line of crash message)
-func NewReporter(os, kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
+func NewReporter(os, vmType, kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
 	ignores []*regexp.Regexp) (Reporter, error) {
 	ctor := ctors[os]
 	if ctor == nil {
