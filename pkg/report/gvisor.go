@@ -6,20 +6,23 @@ package report
 import (
 	"bytes"
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 type gvisor struct {
 	ignores []*regexp.Regexp
 }
 
-func ctorGvisor(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
-	ignores []*regexp.Regexp) (Reporter, error) {
+func ctorGvisor(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &gvisor{
 		ignores: ignores,
 	}
-	return ctx, nil
+	suppressions := []string{
+		"fatal error: runtime: out of memory",
+		"fatal error: runtime: cannot allocate memory",
+		"panic: failed to start executor binary",
+		"panic: executor failed: pthread_create failed",
+	}
+	return ctx, suppressions, nil
 }
 
 func (ctx *gvisor) ContainsCrash(output []byte) bool {

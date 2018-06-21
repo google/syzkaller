@@ -45,7 +45,6 @@ type Manager struct {
 	cfg            *mgrconfig.Config
 	vmPool         *vm.Pool
 	target         *prog.Target
-	reporterInit   sync.Once
 	reporter       report.Reporter
 	crashdir       string
 	port           int
@@ -136,7 +135,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	initAllCover(cfg.TargetOS, cfg.TargetVMArch, cfg.Vmlinux)
 	RunManager(cfg, target, syscalls)
 }
 
@@ -146,9 +144,8 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	// does not start any VMs, but instead you start them manually
 	// and start syz-fuzzer there.
 	if cfg.Type != "none" {
-		env := mgrconfig.CreateVMEnv(cfg, *flagDebug)
 		var err error
-		vmPool, err = vm.Create(cfg.Type, env)
+		vmPool, err = vm.Create(cfg, *flagDebug)
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
@@ -162,10 +159,16 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		enabledSyscalls = append(enabledSyscalls, c)
 	}
 
+	reporter, err := report.NewReporter(cfg)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+
 	mgr := &Manager{
 		cfg:             cfg,
 		vmPool:          vmPool,
 		target:          target,
+		reporter:        reporter,
 		crashdir:        crashdir,
 		startTime:       time.Now(),
 		stats:           make(map[string]uint64),
@@ -183,7 +186,6 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	}
 
 	log.Logf(0, "loading corpus...")
-	var err error
 	mgr.corpusDB, err = db.Open(filepath.Join(cfg.Workdir, "corpus.db"))
 	if err != nil {
 		log.Fatalf("failed to open corpus database: %v", err)
@@ -384,7 +386,7 @@ func (mgr *Manager) vmLoop() {
 				atomic.AddUint32(&mgr.numReproducing, 1)
 				log.Logf(1, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
 				go func() {
-					res, err := repro.Run(crash.Output, mgr.cfg, mgr.getReporter(), mgr.vmPool, vmIndexes)
+					res, err := repro.Run(crash.Output, mgr.cfg, mgr.reporter, mgr.vmPool, vmIndexes)
 					reproDone <- &ReproResult{vmIndexes, crash.Title, res, err, crash.hub}
 				}()
 			}
@@ -418,7 +420,7 @@ func (mgr *Manager) vmLoop() {
 			instances = append(instances, res.idx)
 			// On shutdown qemu crashes with "qemu: terminating on signal 2",
 			// which we detect as "lost connection". Don't save that as crash.
-			if shutdown != nil && res.crash != nil && !mgr.isSuppressed(res.crash) {
+			if shutdown != nil && res.crash != nil {
 				needRepro := mgr.saveCrash(res.crash)
 				if needRepro {
 					log.Logf(1, "loop: add pending repro for '%v'", res.crash.Title)
@@ -584,7 +586,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
-	rep := inst.MonitorExecution(outc, errc, mgr.getReporter(), false)
+	rep := inst.MonitorExecution(outc, errc, mgr.reporter, false)
 	if rep == nil {
 		// This is the only "OK" outcome.
 		log.Logf(0, "vm-%v: running for %v, restarting", index, time.Since(start))
@@ -596,20 +598,6 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		Report:  rep,
 	}
 	return cash, nil
-}
-
-func (mgr *Manager) isSuppressed(crash *Crash) bool {
-	for _, re := range mgr.cfg.ParsedSuppressions {
-		if !re.Match(crash.Output) {
-			continue
-		}
-		log.Logf(0, "vm-%v: suppressing '%v' with '%v'", crash.vmIndex, crash.Title, re.String())
-		mgr.mu.Lock()
-		mgr.stats["suppressed"]++
-		mgr.mu.Unlock()
-		return true
-	}
-	return false
 }
 
 func (mgr *Manager) emailCrash(crash *Crash) {
@@ -628,12 +616,19 @@ func (mgr *Manager) emailCrash(crash *Crash) {
 }
 
 func (mgr *Manager) saveCrash(crash *Crash) bool {
+	if crash.Suppressed {
+		log.Logf(0, "vm-%v: suppressed crash %v", crash.vmIndex, crash.Title)
+		mgr.mu.Lock()
+		mgr.stats["suppressed"]++
+		mgr.mu.Unlock()
+		return false
+	}
 	corrupted := ""
 	if crash.Corrupted {
 		corrupted = " [corrupted]"
 	}
 	log.Logf(0, "vm-%v: crash: %v%v", crash.vmIndex, crash.Title, corrupted)
-	if err := mgr.getReporter().Symbolize(crash.Report); err != nil {
+	if err := mgr.reporter.Symbolize(crash.Report); err != nil {
 		log.Logf(0, "failed to symbolize report: %v", err)
 	}
 
@@ -743,7 +738,7 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 
 func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	rep := res.Report
-	if err := mgr.getReporter().Symbolize(rep); err != nil {
+	if err := mgr.reporter.Symbolize(rep); err != nil {
 		log.Logf(0, "failed to symbolize repro: %v", err)
 	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
@@ -822,26 +817,6 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime,
 		res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
 	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
-}
-
-func (mgr *Manager) getReporter() report.Reporter {
-	mgr.reporterInit.Do(func() {
-		<-allSymbolsReady
-		var err error
-		// TODO(dvyukov): we should introduce cfg.Kernel_Obj dir instead of Vmlinux.
-		// This will be more general taking into account modules and other OSes.
-		kernelSrc, kernelObj := "", ""
-		if mgr.cfg.Vmlinux != "" {
-			kernelSrc = mgr.cfg.KernelSrc
-			kernelObj = filepath.Dir(mgr.cfg.Vmlinux)
-		}
-		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, mgr.cfg.Type,
-			kernelSrc, kernelObj, allSymbols, mgr.cfg.ParsedIgnores)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-	})
-	return mgr.reporter
 }
 
 func (mgr *Manager) minimizeCorpus() {
@@ -1240,7 +1215,9 @@ func (mgr *Manager) collectUsedFiles() {
 	addUsedFile(cfg.SyzExecprogBin)
 	addUsedFile(cfg.SyzExecutorBin)
 	addUsedFile(cfg.SSHKey)
-	addUsedFile(cfg.Vmlinux)
+	if vmlinux := filepath.Join(cfg.KernelObj, "vmlinux"); osutil.IsExist(vmlinux) {
+		addUsedFile(vmlinux)
+	}
 	if cfg.Image != "9p" {
 		addUsedFile(cfg.Image)
 	}

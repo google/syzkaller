@@ -6,26 +6,21 @@ package report
 import (
 	"bytes"
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 type freebsd struct {
 	kernelSrc string
 	kernelObj string
-	symbols   map[string][]symbolizer.Symbol
 	ignores   []*regexp.Regexp
 }
 
-func ctorFreebsd(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
-	ignores []*regexp.Regexp) (Reporter, error) {
+func ctorFreebsd(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &freebsd{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,
-		symbols:   symbols,
 		ignores:   ignores,
 	}
-	return ctx, nil
+	return ctx, nil, nil
 }
 
 func (ctx *freebsd) ContainsCrash(output []byte) bool {

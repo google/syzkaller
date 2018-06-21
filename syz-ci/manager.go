@@ -435,9 +435,9 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.Name += "-test"
 	mgrcfg.Tag = info.KernelCommit
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
-	mgrcfg.Vmlinux = filepath.Join(imageDir, "obj", "vmlinux")
 	mgrcfg.Image = filepath.Join(imageDir, "image")
 	mgrcfg.SSHKey = filepath.Join(imageDir, "key")
+	mgrcfg.KernelObj = filepath.Join(imageDir, "obj")
 	mgrcfg.KernelSrc = mgr.kernelDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return nil, fmt.Errorf("bad manager config: %v", err)
@@ -461,7 +461,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	}
 	mgrcfg.Tag = buildTag
 	mgrcfg.Workdir = mgr.workDir
-	mgrcfg.Vmlinux = filepath.Join(mgr.currentDir, "obj", "vmlinux")
+	mgrcfg.KernelObj = filepath.Join(mgr.currentDir, "obj")
 	// Strictly saying this is somewhat racy as builder can concurrently
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.

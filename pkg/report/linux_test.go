@@ -5,38 +5,32 @@ package report
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 func TestLinuxIgnores(t *testing.T) {
-	reporter, err := NewReporter("linux", "", "", "", nil, nil)
+	cfg := &mgrconfig.Config{
+		TargetOS: "linux",
+	}
+	reporter, err := NewReporter(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ignores1 := []*regexp.Regexp{
-		regexp.MustCompile("BUG: bug3"),
-	}
-	reporter1, err := NewReporter("linux", "", "", "", nil, ignores1)
+	cfg.Ignores = []string{"BUG: bug3"}
+	reporter1, err := NewReporter(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ignores2 := []*regexp.Regexp{
-		regexp.MustCompile("BUG: bug3"),
-		regexp.MustCompile("BUG: bug1"),
-	}
-	reporter2, err := NewReporter("linux", "", "", "", nil, ignores2)
+	cfg.Ignores = []string{"BUG: bug3", "BUG: bug1"}
+	reporter2, err := NewReporter(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ignores3 := []*regexp.Regexp{
-		regexp.MustCompile("BUG: bug3"),
-		regexp.MustCompile("BUG: bug1"),
-		regexp.MustCompile("BUG: bug2"),
-	}
-	reporter3, err := NewReporter("linux", "", "", "", nil, ignores3)
+	cfg.Ignores = []string{"BUG: bug3", "BUG: bug1", "BUG: bug2"}
+	reporter3, err := NewReporter(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 type Reporter interface {
@@ -37,6 +37,8 @@ type Report struct {
 	// StartPos/EndPos denote region of output with oops message(s).
 	StartPos int
 	EndPos   int
+	// Suppressed indicates whether the report should not be reported to user.
+	Suppressed bool
 	// Corrupted indicates whether the report is truncated of corrupted in some other way.
 	Corrupted bool
 	// corruptedReason contains reason why the report is marked as corrupted.
@@ -45,28 +47,29 @@ type Report struct {
 	Maintainers []string
 }
 
-// NewReporter creates reporter for the specified OS/vmType:
-// kernelSrc: path to kernel sources directory
-// kernelObj: path to kernel build directory (can be empty for in-tree build)
-// symbols: kernel symbols (result of pkg/symbolizer.ReadSymbols on kernel object file)
-// ignores: optional list of regexps to ignore (must match first line of crash message)
-func NewReporter(os, vmType, kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
-	ignores []*regexp.Regexp) (Reporter, error) {
-	if vmType == "gvisor" {
-		os = vmType
+// NewReporter creates reporter for the specified OS/Type.
+func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
+	typ := cfg.TargetOS
+	if cfg.Type == "gvisor" {
+		typ = cfg.Type
 	}
-	ctor := ctors[os]
+	ctor := ctors[typ]
 	if ctor == nil {
-		return nil, fmt.Errorf("unknown os: %v", os)
+		return nil, fmt.Errorf("unknown OS: %v", typ)
 	}
-	if kernelObj == "" {
-		kernelObj = kernelSrc // assume in-tree build
-	}
-	rep, err := ctor(kernelSrc, kernelObj, symbols, ignores)
+	ignores, err := compileRegexps(cfg.Ignores)
 	if err != nil {
 		return nil, err
 	}
-	return reporterWrapper{rep}, nil
+	rep, suppressions, err := ctor(cfg.KernelSrc, cfg.KernelObj, ignores)
+	if err != nil {
+		return nil, err
+	}
+	supps, err := compileRegexps(append(suppressions, cfg.Suppressions...))
+	if err != nil {
+		return nil, err
+	}
+	return reporterWrapper{rep, supps}, nil
 }
 
 var ctors = map[string]fn{
@@ -79,10 +82,23 @@ var ctors = map[string]fn{
 	"windows": ctorStub,
 }
 
-type fn func(string, string, map[string][]symbolizer.Symbol, []*regexp.Regexp) (Reporter, error)
+type fn func(string, string, []*regexp.Regexp) (Reporter, []string, error)
+
+func compileRegexps(list []string) ([]*regexp.Regexp, error) {
+	compiled := make([]*regexp.Regexp, len(list))
+	for i, str := range list {
+		re, err := regexp.Compile(str)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile %q: %v", str, err)
+		}
+		compiled[i] = re
+	}
+	return compiled, nil
+}
 
 type reporterWrapper struct {
 	Reporter
+	suppressions []*regexp.Regexp
 }
 
 func (wrap reporterWrapper) Parse(output []byte) *Report {
@@ -91,6 +107,7 @@ func (wrap reporterWrapper) Parse(output []byte) *Report {
 		return nil
 	}
 	rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
+	rep.Suppressed = matchesAny(rep.Output, wrap.suppressions)
 	return rep
 }
 

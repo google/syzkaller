@@ -11,6 +11,7 @@ import (
 	"runtime"
 
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 var (
@@ -26,7 +27,12 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	reporter, err := report.NewReporter(*flagOS, "", *flagKernelSrc, *flagKernelObj, nil, nil)
+	cfg := &mgrconfig.Config{
+		TargetOS:  *flagOS,
+		KernelObj: *flagKernelObj,
+		KernelSrc: *flagKernelSrc,
+	}
+	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create reporter: %v\n", err)
 		os.Exit(1)
@@ -44,5 +50,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
 		os.Exit(1)
 	}
+	fmt.Printf("TITLE: %v\n", rep.Title)
+	fmt.Printf("CORRUPTED: %v\n", rep.Corrupted)
+	fmt.Printf("\n")
 	os.Stdout.Write(rep.Report)
 }
