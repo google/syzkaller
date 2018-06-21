@@ -41,8 +41,7 @@ func main() {
 	if _, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
 		log.Fatalf("%v", err)
 	}
-	env := mgrconfig.CreateVMEnv(cfg, false)
-	vmPool, err := vm.Create(cfg.Type, env)
+	vmPool, err := vm.Create(cfg, false)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -57,7 +56,7 @@ func main() {
 	for i := range vmIndexes {
 		vmIndexes[i] = i
 	}
-	reporter, err := report.NewReporter(cfg.TargetOS, cfg.Type, cfg.KernelSrc, "", nil, cfg.ParsedIgnores)
+	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

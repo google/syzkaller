@@ -5,26 +5,21 @@ package report
 
 import (
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 type stub struct {
 	kernelSrc string
 	kernelObj string
-	symbols   map[string][]symbolizer.Symbol
 	ignores   []*regexp.Regexp
 }
 
-func ctorStub(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
-	ignores []*regexp.Regexp) (Reporter, error) {
+func ctorStub(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &stub{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,
-		symbols:   symbols,
 		ignores:   ignores,
 	}
-	return ctx, nil
+	return ctx, nil, nil
 }
 
 func (ctx *stub) ContainsCrash(output []byte) bool {

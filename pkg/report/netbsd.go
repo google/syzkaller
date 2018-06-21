@@ -5,26 +5,21 @@ package report
 
 import (
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 type netbsd struct {
 	kernelSrc string
 	kernelObj string
-	symbols   map[string][]symbolizer.Symbol
 	ignores   []*regexp.Regexp
 }
 
-func ctorNetbsd(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
-	ignores []*regexp.Regexp) (Reporter, error) {
+func ctorNetbsd(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &netbsd{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,
-		symbols:   symbols,
 		ignores:   ignores,
 	}
-	return ctx, nil
+	return ctx, nil, nil
 }
 
 func (ctx *netbsd) ContainsCrash(output []byte) bool {

@@ -202,8 +202,8 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	if mgr.cfg.Vmlinux == "" {
-		http.Error(w, fmt.Sprintf("no vmlinux in config file"), http.StatusInternalServerError)
+	if mgr.cfg.KernelObj == "" {
+		http.Error(w, fmt.Sprintf("no kernel_obj in config file"), http.StatusInternalServerError)
 		return
 	}
 	var cov cover.Cover
@@ -218,7 +218,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := generateCoverHTML(w, mgr.cfg.Vmlinux, mgr.cfg.TargetVMArch, cov); err != nil {
+	if err := generateCoverHTML(w, mgr.cfg.KernelObj, mgr.cfg.TargetVMArch, cov); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -317,9 +317,9 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	base, err := getVMOffset(mgr.cfg.Vmlinux)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to get vmlinux base: %v", err), http.StatusInternalServerError)
+	initCoverOnce.Do(func() { initCoverError = initCover(mgr.cfg.KernelObj, mgr.cfg.TargetArch) })
+	if initCoverError != nil {
+		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -329,7 +329,7 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	}
 	pcs := make([]uint64, 0, len(cov))
 	for pc := range cov {
-		fullPC := cover.RestorePC(pc, base)
+		fullPC := cover.RestorePC(pc, initCoverVMOffset)
 		prevPC := previousInstructionPC(mgr.cfg.TargetVMArch, fullPC)
 		pcs = append(pcs, prevPC)
 	}

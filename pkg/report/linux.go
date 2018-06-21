@@ -32,17 +32,15 @@ type linux struct {
 	eoi                   []byte
 }
 
-func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
-	ignores []*regexp.Regexp) (Reporter, error) {
+func ctorLinux(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	vmlinux := ""
+	var symbols map[string][]symbolizer.Symbol
 	if kernelObj != "" {
 		vmlinux = filepath.Join(kernelObj, "vmlinux")
-		if symbols == nil {
-			var err error
-			symbols, err = symbolizer.ReadSymbols(vmlinux)
-			if err != nil {
-				return nil, err
-			}
+		var err error
+		symbols, err = symbolizer.ReadSymbols(vmlinux)
+		if err != nil {
+			return nil, nil, err
 		}
 	}
 	ctx := &linux{
@@ -95,7 +93,23 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		[]byte("FAULT_INJECTION: forcing a failure"),
 		[]byte("FAULT_FLAG_ALLOW_RETRY missing"),
 	}
-	return ctx, nil
+	suppressions := []string{
+		"fatal error: runtime: out of memory",
+		"fatal error: runtime: cannot allocate memory",
+		"panic: failed to start executor binary",
+		"panic: executor failed: pthread_create failed",
+		"panic: failed to create temp dir",
+		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
+		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
+		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
+		"Out of memory: Kill process .* \\(sshd\\)",
+		"Killed process .* \\(syz-fuzzer\\)",
+		"Killed process .* \\(sshd\\)",
+		"lowmemorykiller: Killing 'syz-fuzzer'",
+		"lowmemorykiller: Killing 'sshd'",
+		"INIT: PANIC: segmentation violation!",
+	}
+	return ctx, suppressions, nil
 }
 
 func (ctx *linux) ContainsCrash(output []byte) bool {

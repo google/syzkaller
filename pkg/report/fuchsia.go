@@ -6,26 +6,21 @@ package report
 import (
 	"bytes"
 	"regexp"
-
-	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 type fuchsia struct {
 	kernelSrc string
 	kernelObj string
-	symbols   map[string][]symbolizer.Symbol
 	ignores   []*regexp.Regexp
 }
 
-func ctorFuchsia(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
-	ignores []*regexp.Regexp) (Reporter, error) {
+func ctorFuchsia(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &fuchsia{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,
-		symbols:   symbols,
 		ignores:   ignores,
 	}
-	return ctx, nil
+	return ctx, nil, nil
 }
 
 func (ctx *fuchsia) ContainsCrash(output []byte) bool {

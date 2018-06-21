@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 var flagUpdate = flag.Bool("update", false, "update test files accordingly to current results")
@@ -214,7 +215,10 @@ func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Report
 		if err != nil {
 			t.Fatal(err)
 		}
-		reporter, err := NewReporter(os, "", "", "", nil, nil)
+		cfg := &mgrconfig.Config{
+			TargetOS: os,
+		}
+		reporter, err := NewReporter(cfg)
 		if err != nil {
 			t.Fatal(err)
 		}

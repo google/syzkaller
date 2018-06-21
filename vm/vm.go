@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm/vmimpl"
 
 	// Import all VM implementations, so that users only need to import vm.
@@ -39,8 +40,6 @@ type Instance struct {
 	index   int
 }
 
-type Env vmimpl.Env
-
 var (
 	Shutdown   = vmimpl.Shutdown
 	ErrTimeout = vmimpl.ErrTimeout
@@ -50,8 +49,19 @@ type BootErrorer interface {
 	BootError() (string, []byte)
 }
 
-func Create(typ string, env *Env) (*Pool, error) {
-	impl, err := vmimpl.Create(typ, (*vmimpl.Env)(env))
+func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
+	env := &vmimpl.Env{
+		Name:    cfg.Name,
+		OS:      cfg.TargetOS,
+		Arch:    cfg.TargetVMArch,
+		Workdir: cfg.Workdir,
+		Image:   cfg.Image,
+		SSHKey:  cfg.SSHKey,
+		SSHUser: cfg.SSHUser,
+		Debug:   debug,
+		Config:  cfg.VM,
+	}
+	impl, err := vmimpl.Create(cfg.Type, env)
 	if err != nil {
 		return nil, err
 	}

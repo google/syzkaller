@@ -14,11 +14,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 )
@@ -29,79 +29,63 @@ type symbol struct {
 	name  string
 }
 
-type symbolArray []symbol
-
-func (a symbolArray) Len() int           { return len(a) }
-func (a symbolArray) Less(i, j int) bool { return a[i].start < a[j].start }
-func (a symbolArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
 type coverage struct {
 	line    int
 	covered bool
 }
 
-type coverageArray []coverage
-
-func (a coverageArray) Len() int           { return len(a) }
-func (a coverageArray) Less(i, j int) bool { return a[i].line < a[j].line }
-func (a coverageArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type uint64Array []uint64
-
-func (a uint64Array) Len() int           { return len(a) }
-func (a uint64Array) Less(i, j int) bool { return a[i] < a[j] }
-func (a uint64Array) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
 var (
-	allCoverPCs     []uint64
-	allCoverReady   = make(chan bool)
-	allSymbols      map[string][]symbolizer.Symbol
-	allSymbolsReady = make(chan bool)
-	vmOffsets       = make(map[string]uint32)
+	initCoverOnce     sync.Once
+	initCoverError    error
+	initCoverSymbols  []symbol
+	initCoverPCs      []uint64
+	initCoverVMOffset uint32
 )
 
-func initAllCover(os, arch, vmlinux string) {
-	// Running objdump on vmlinux takes 20-30 seconds, so we do it asynchronously on start.
-	// Running nm on vmlinux may takes 200 microsecond and being called during symbolization of every crash,
-	// so also do it asynchronously on start and reuse the value during each crash.
-	go func() {
-		defer func() {
-			close(allCoverReady)
-			close(allSymbolsReady)
-		}()
-		if vmlinux == "" {
-			return
+func initCover(kernelObj, arch string) error {
+	if kernelObj == "" {
+		return fmt.Errorf("kernel_obj is not specified")
+	}
+	vmlinux := filepath.Join(kernelObj, "vmlinux")
+	symbols, err := symbolizer.ReadSymbols(vmlinux)
+	if err != nil {
+		return fmt.Errorf("failed to run nm on %v: %v", vmlinux, err)
+	}
+	for name, ss := range symbols {
+		for _, s := range ss {
+			initCoverSymbols = append(initCoverSymbols, symbol{s.Addr, s.Addr + uint64(s.Size), name})
 		}
-		pcs, err := coveredPCs(arch, vmlinux)
-		if err == nil {
-			sort.Sort(uint64Array(pcs))
-			allCoverPCs = pcs
-		} else {
-			log.Logf(0, "failed to run objdump on %v: %v", vmlinux, err)
-		}
-
-		allSymbols, err = symbolizer.ReadSymbols(vmlinux)
-		if err != nil {
-			log.Logf(0, "failed to run nm on %v: %v", vmlinux, err)
-		}
-	}()
+	}
+	sort.Slice(initCoverSymbols, func(i, j int) bool {
+		return initCoverSymbols[i].start < initCoverSymbols[j].start
+	})
+	initCoverPCs, err = coveredPCs(arch, vmlinux)
+	if err != nil {
+		return fmt.Errorf("failed to run objdump on %v: %v", vmlinux, err)
+	}
+	sort.Slice(initCoverPCs, func(i, j int) bool {
+		return initCoverPCs[i] < initCoverPCs[j]
+	})
+	initCoverVMOffset, err = getVMOffset(vmlinux)
+	return err
 }
 
-func generateCoverHTML(w io.Writer, vmlinux, arch string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, kernelObj, arch string, cov cover.Cover) error {
 	if len(cov) == 0 {
-		return fmt.Errorf("No coverage data available")
+		return fmt.Errorf("no coverage data available")
+	}
+	initCoverOnce.Do(func() { initCoverError = initCover(kernelObj, arch) })
+	if initCoverError != nil {
+		return initCoverError
 	}
 
-	base, err := getVMOffset(vmlinux)
-	if err != nil {
-		return err
-	}
 	pcs := make([]uint64, 0, len(cov))
 	for pc := range cov {
-		fullPC := cover.RestorePC(pc, base)
+		fullPC := cover.RestorePC(pc, initCoverVMOffset)
 		prevPC := previousInstructionPC(arch, fullPC)
 		pcs = append(pcs, prevPC)
 	}
+	vmlinux := filepath.Join(kernelObj, "vmlinux")
 	uncovered, err := uncoveredPcsInFuncs(vmlinux, pcs)
 	if err != nil {
 		return err
@@ -186,7 +170,9 @@ func fileSet(covered, uncovered []symbolizer.Frame) map[string][]coverage {
 		for ln, covered := range lines {
 			sorted = append(sorted, coverage{ln, covered})
 		}
-		sort.Sort(coverageArray(sorted))
+		sort.Slice(sorted, func(i, j int) bool {
+			return sorted[i].line < sorted[j].line
+		})
 		res[f] = sorted
 	}
 	return res
@@ -214,9 +200,6 @@ func parseFile(fn string) ([][]byte, error) {
 }
 
 func getVMOffset(vmlinux string) (uint32, error) {
-	if v, ok := vmOffsets[vmlinux]; ok {
-		return v, nil
-	}
 	out, err := osutil.RunCmd(time.Hour, "", "readelf", "-SW", vmlinux)
 	if err != nil {
 		return 0, err
@@ -246,51 +229,33 @@ func getVMOffset(vmlinux string) (uint32, error) {
 			}
 		}
 	}
-	vmOffsets[vmlinux] = addr
 	return addr, nil
 }
 
 // uncoveredPcsInFuncs returns uncovered PCs with __sanitizer_cov_trace_pc calls in functions containing pcs.
 func uncoveredPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
-	<-allSymbolsReady
-	if allSymbols == nil {
-		return nil, fmt.Errorf("failed to run nm on vmlinux")
-	}
-	var symbols symbolArray
-	for name, ss := range allSymbols {
-		for _, s := range ss {
-			symbols = append(symbols, symbol{s.Addr, s.Addr + uint64(s.Size), name})
-		}
-	}
-	sort.Sort(symbols)
-
-	<-allCoverReady
-	if len(allCoverPCs) == 0 {
-		return nil, nil
-	}
-
 	handledFuncs := make(map[uint64]bool)
 	uncovered := make(map[uint64]bool)
 	for _, pc := range pcs {
-		idx := sort.Search(len(symbols), func(i int) bool {
-			return pc < symbols[i].end
+		idx := sort.Search(len(initCoverSymbols), func(i int) bool {
+			return pc < initCoverSymbols[i].end
 		})
-		if idx == len(symbols) {
+		if idx == len(initCoverSymbols) {
 			continue
 		}
-		s := symbols[idx]
+		s := initCoverSymbols[idx]
 		if pc < s.start || pc > s.end {
 			continue
 		}
 		if !handledFuncs[s.start] {
 			handledFuncs[s.start] = true
-			startPC := sort.Search(len(allCoverPCs), func(i int) bool {
-				return s.start <= allCoverPCs[i]
+			startPC := sort.Search(len(initCoverPCs), func(i int) bool {
+				return s.start <= initCoverPCs[i]
 			})
-			endPC := sort.Search(len(allCoverPCs), func(i int) bool {
-				return s.end < allCoverPCs[i]
+			endPC := sort.Search(len(initCoverPCs), func(i int) bool {
+				return s.end < initCoverPCs[i]
 			})
-			for _, pc1 := range allCoverPCs[startPC:endPC] {
+			for _, pc1 := range initCoverPCs[startPC:endPC] {
 				uncovered[pc1] = true
 			}
 		}
