@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/instance"
-	"github.com/google/syzkaller/pkg/kernel"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
@@ -204,7 +204,7 @@ func (jp *JobProcessor) test(job *Job) error {
 	resp.Build.KernelCommitTitle = kernelCommit.Title
 	resp.Build.KernelCommitDate = kernelCommit.Date
 
-	if err := kernel.Clean(kernelDir); err != nil {
+	if err := build.Clean(kernelDir); err != nil {
 		return fmt.Errorf("kernel clean failed: %v", err)
 	}
 	if len(req.Patch) != 0 {
