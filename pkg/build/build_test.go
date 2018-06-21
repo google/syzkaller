@@ -10,21 +10,27 @@ import (
 )
 
 func TestCompilerIdentity(t *testing.T) {
-	compiler := "gcc"
-	if _, err := exec.LookPath(compiler); err != nil {
-		t.Skipf("compiler '%v' is not found: %v", compiler, err)
+	t.Parallel()
+	for _, compiler := range []string{"gcc", "clang", "bazel"} {
+		compiler := compiler
+		t.Run(compiler, func(t *testing.T) {
+			t.Parallel()
+			if _, err := exec.LookPath(compiler); err != nil {
+				t.Skipf("compiler '%v' is not found: %v", compiler, err)
+			}
+			id, err := CompilerIdentity(compiler)
+			if err != nil {
+				t.Fatalf("failed: %v", err)
+			}
+			if len(id) == 0 {
+				t.Fatalf("identity is empty")
+			}
+			if strings.Contains(id, "\n") {
+				t.Fatalf("identity contains a new line")
+			}
+			// We don't know what's the right answer,
+			// so just print it for manual inspection.
+			t.Logf("id: '%v'", id)
+		})
 	}
-	id, err := CompilerIdentity(compiler)
-	if err != nil {
-		t.Fatalf("failed: %v", err)
-	}
-	if len(id) == 0 {
-		t.Fatalf("identity is empty")
-	}
-	if strings.Contains(id, "\n") {
-		t.Fatalf("identity contains a new line")
-	}
-	// We don't know what's the right answer,
-	// so just print it for manual inspection.
-	t.Logf("id: '%v'", id)
 }

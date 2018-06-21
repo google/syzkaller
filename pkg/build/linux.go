@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -112,17 +111,6 @@ func CreateImage(targetOS, targetArch, vmType, kernelDir, userspaceDir, cmdlineF
 		return err
 	}
 	return nil
-}
-
-func CompilerIdentity(compiler string) (string, error) {
-	output, err := osutil.RunCmd(time.Minute, "", compiler, "--version")
-	if err != nil {
-		return "", err
-	}
-	if len(output) == 0 {
-		return "", fmt.Errorf("no output from compiler --version")
-	}
-	return strings.Split(string(output), "\n")[0], nil
 }
 
 func extractRootCause(err error) error {
