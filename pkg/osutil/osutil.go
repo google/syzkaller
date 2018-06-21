@@ -89,8 +89,11 @@ func IsExist(name string) bool {
 
 // FilesExist returns true if all files exist in dir.
 // Files are assumed to be relative names in slash notation.
-func FilesExist(dir string, files []string) bool {
-	for _, f := range files {
+func FilesExist(dir string, files map[string]bool) bool {
+	for f, required := range files {
+		if !required {
+			continue
+		}
 		if !IsExist(filepath.Join(dir, filepath.FromSlash(f))) {
 			return false
 		}
@@ -101,7 +104,7 @@ func FilesExist(dir string, files []string) bool {
 // CopyFiles copies files from srcDir to dstDir as atomically as possible.
 // Files are assumed to be relative names in slash notation.
 // All other files in dstDir are removed.
-func CopyFiles(srcDir, dstDir string, files []string) error {
+func CopyFiles(srcDir, dstDir string, files map[string]bool) error {
 	// Linux does not support atomic dir replace, so we copy to tmp dir first.
 	// Then remove dst dir and rename tmp to dst (as atomic as can get on Linux).
 	tmpDir := dstDir + ".tmp"
@@ -111,8 +114,11 @@ func CopyFiles(srcDir, dstDir string, files []string) error {
 	if err := MkdirAll(tmpDir); err != nil {
 		return err
 	}
-	for _, f := range files {
+	for f, required := range files {
 		src := filepath.Join(srcDir, filepath.FromSlash(f))
+		if !required && !IsExist(src) {
+			continue
+		}
 		dst := filepath.Join(tmpDir, filepath.FromSlash(f))
 		if err := MkdirAll(filepath.Dir(dst)); err != nil {
 			return err
@@ -130,15 +136,18 @@ func CopyFiles(srcDir, dstDir string, files []string) error {
 // LinkFiles creates hard links for files from dstDir to srcDir.
 // Files are assumed to be relative names in slash notation.
 // All other files in dstDir are removed.
-func LinkFiles(srcDir, dstDir string, files []string) error {
+func LinkFiles(srcDir, dstDir string, files map[string]bool) error {
 	if err := os.RemoveAll(dstDir); err != nil {
 		return err
 	}
 	if err := MkdirAll(dstDir); err != nil {
 		return err
 	}
-	for _, f := range files {
+	for f, required := range files {
 		src := filepath.Join(srcDir, filepath.FromSlash(f))
+		if !required && !IsExist(src) {
+			continue
+		}
 		dst := filepath.Join(dstDir, filepath.FromSlash(f))
 		if err := MkdirAll(filepath.Dir(dst)); err != nil {
 			return err

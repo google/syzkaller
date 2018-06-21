@@ -30,12 +30,12 @@ import (
 const kernelRebuildPeriod = syzkallerRebuildPeriod + time.Hour
 
 // List of required files in kernel build (contents of latest/current dirs).
-var imageFiles = []string{
-	"tag",           // serialized BuildInfo
-	"kernel.config", // kernel config used for build
-	"image",         // kernel image
-	"key",           // root ssh key for the image
-	"obj/vmlinux",   // vmlinux with debug info
+var imageFiles = map[string]bool{
+	"tag":           true,  // serialized BuildInfo
+	"kernel.config": false, // kernel config used for build
+	"image":         true,  // kernel image
+	"key":           false, // root ssh key for the image
+	"obj/vmlinux":   false, // vmlinux with debug info
 }
 
 // Manager represents a single syz-manager instance.
@@ -52,6 +52,7 @@ type Manager struct {
 	compilerID      string
 	syzkallerCommit string
 	configTag       string
+	configData      []byte
 	cfg             *Config
 	mgrcfg          *ManagerConfig
 	managercfg      *mgrconfig.Config
@@ -79,9 +80,11 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	if err != nil {
 		log.Fatal(err)
 	}
-	configData, err := ioutil.ReadFile(mgrcfg.KernelConfig)
-	if err != nil {
-		log.Fatal(err)
+	var configData []byte
+	if mgrcfg.KernelConfig != "" {
+		if configData, err = ioutil.ReadFile(mgrcfg.KernelConfig); err != nil {
+			log.Fatal(err)
+		}
 	}
 	syzkallerCommit, _ := readTag(filepath.FromSlash("syzkaller/current/tag"))
 	if syzkallerCommit == "" {
@@ -105,6 +108,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 		compilerID:      compilerID,
 		syzkallerCommit: syzkallerCommit,
 		configTag:       hash.String(configData),
+		configData:      configData,
 		cfg:             cfg,
 		mgrcfg:          mgrcfg,
 		managercfg:      managercfg,
@@ -263,16 +267,12 @@ func (mgr *Manager) build() error {
 	if err := osutil.MkdirAll(tmpDir); err != nil {
 		return fmt.Errorf("failed to create tmp dir: %v", err)
 	}
-	kernelConfigData, err := ioutil.ReadFile(mgr.mgrcfg.KernelConfig)
-	if err != nil {
-		return err
-	}
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
 	if err := build.Image(mgr.managercfg.TargetOS, mgr.managercfg.TargetVMArch, mgr.managercfg.Type,
 		mgr.kernelDir, tmpDir, mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace,
-		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, kernelConfigData); err != nil {
+		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, mgr.configData); err != nil {
 		if _, ok := err.(build.KernelBuildError); ok {
 			rep := &report.Report{
 				Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
@@ -420,7 +420,9 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.Tag = info.KernelCommit
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
 	mgrcfg.Image = filepath.Join(imageDir, "image")
-	mgrcfg.SSHKey = filepath.Join(imageDir, "key")
+	if keyFile := filepath.Join(imageDir, "key"); osutil.IsExist(keyFile) {
+		mgrcfg.SSHKey = keyFile
+	}
 	mgrcfg.KernelObj = filepath.Join(imageDir, "obj")
 	mgrcfg.KernelSrc = mgr.kernelDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
@@ -451,7 +453,9 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.KernelSrc = mgr.kernelDir
 	mgrcfg.Image = filepath.Join(mgr.currentDir, "image")
-	mgrcfg.SSHKey = filepath.Join(mgr.currentDir, "key")
+	if keyFile := filepath.Join(mgr.currentDir, "key"); osutil.IsExist(keyFile) {
+		mgrcfg.SSHKey = keyFile
+	}
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return "", fmt.Errorf("bad manager config: %v", err)
 	}
@@ -490,9 +494,12 @@ func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) (string, error
 }
 
 func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) (*dashapi.Build, error) {
-	kernelConfig, err := ioutil.ReadFile(filepath.Join(imageDir, "kernel.config"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read kernel.config: %v", err)
+	var kernelConfig []byte
+	if kernelConfigFile := filepath.Join(imageDir, "kernel.config"); osutil.IsExist(kernelConfigFile) {
+		var err error
+		if kernelConfig, err = ioutil.ReadFile(kernelConfigFile); err != nil {
+			return nil, fmt.Errorf("failed to read kernel.config: %v", err)
+		}
 	}
 	// Resulting build depends on both kernel build tag and syzkaller commmit.
 	// Also mix in build type, so that image error builds are not merged into normal builds.
