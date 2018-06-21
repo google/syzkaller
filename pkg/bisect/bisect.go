@@ -101,7 +101,8 @@ func (env *env) bisect() (*git.Commit, error) {
 	if env.head, err = git.Poll(cfg.Manager.KernelSrc, cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
 		return nil, err
 	}
-	if err := build.Clean(cfg.Manager.KernelSrc); err != nil {
+	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetArch,
+		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return nil, fmt.Errorf("kernel clean failed: %v", err)
 	}
 	env.log("building syzkaller on %v", cfg.Syzkaller.Commit)
@@ -220,7 +221,8 @@ func (env *env) test() (git.BisectResult, error) {
 	}
 	env.log("testing commit %v with %v", current.Hash, compilerID)
 	buildStart := time.Now()
-	if err := build.Clean(cfg.Manager.KernelSrc); err != nil {
+	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetArch,
+		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return 0, fmt.Errorf("kernel clean failed: %v", err)
 	}
 	err = env.inst.BuildKernel(be.compiler, cfg.Kernel.Userspace,
