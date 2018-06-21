@@ -79,16 +79,15 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 
 func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) error {
 	cfg := env.cfg
-	if err := build.Build(cfg.KernelSrc, compilerBin, kernelConfig); err != nil {
-		return osutil.PrependContext("kernel build failed", err)
+	imageDir := filepath.Join(cfg.Workdir, "image")
+	if err := build.Image(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
+		cfg.KernelSrc, imageDir, compilerBin, userspaceDir,
+		cmdlineFile, sysctlFile, kernelConfig); err != nil {
+		return err
 	}
-	cfg.KernelObj = cfg.KernelSrc
-	cfg.Image = filepath.Join(cfg.Workdir, "syz-image")
-	cfg.SSHKey = filepath.Join(cfg.Workdir, "syz-key")
-	if err := build.CreateImage(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
-		cfg.KernelSrc, userspaceDir, cmdlineFile, sysctlFile, cfg.Image, cfg.SSHKey); err != nil {
-		return osutil.PrependContext("image build failed", err)
-	}
+	cfg.KernelObj = filepath.Join(imageDir, "obj")
+	cfg.Image = filepath.Join(imageDir, "image")
+	cfg.SSHKey = filepath.Join(imageDir, "key")
 	return nil
 }
 

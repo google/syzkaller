@@ -22,8 +22,24 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-func Build(dir, compiler string, config []byte) error {
-	configFile := filepath.Join(dir, ".config")
+type linux struct{}
+
+func (linux linux) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
+	cmdlineFile, sysctlFile string, config []byte) error {
+	if err := osutil.MkdirAll(filepath.Join(outputDir, "obj")); err != nil {
+		return err
+	}
+	if err := linux.buildKernel(kernelDir, outputDir, compiler, config); err != nil {
+		return err
+	}
+	if err := linux.createImage(vmType, kernelDir, outputDir, userspaceDir, cmdlineFile, sysctlFile); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (linux) buildKernel(kernelDir, outputDir, compiler string, config []byte) error {
+	configFile := filepath.Join(kernelDir, ".config")
 	if err := osutil.WriteFile(configFile, config); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
@@ -37,7 +53,7 @@ func Build(dir, compiler string, config []byte) error {
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
-	cmd.Dir = dir
+	cmd.Dir = kernelDir
 	if _, err := osutil.Run(10*time.Minute, cmd); err != nil {
 		return err
 	}
@@ -47,38 +63,23 @@ func Build(dir, compiler string, config []byte) error {
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
-	cmd.Dir = dir
-	// Build of a large kernel can take a while on a 1 CPU VM.
-	if _, err := osutil.Run(3*time.Hour, cmd); err != nil {
+	cmd.Dir = kernelDir
+	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return extractRootCause(err)
+	}
+	outputConfig := filepath.Join(outputDir, "kernel.config")
+	if err := osutil.CopyFile(configFile, outputConfig); err != nil {
+		return err
+	}
+	vmlinux := filepath.Join(kernelDir, "vmlinux")
+	outputVmlinux := filepath.Join(outputDir, "obj", "vmlinux")
+	if err := os.Rename(vmlinux, outputVmlinux); err != nil {
+		return fmt.Errorf("failed to rename vmlinux: %v", err)
 	}
 	return nil
 }
 
-func Clean(dir string) error {
-	cpu := strconv.Itoa(runtime.NumCPU())
-	cmd := osutil.Command("make", "distclean", "-j", cpu)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return err
-	}
-	cmd.Dir = dir
-	_, err := osutil.Run(10*time.Minute, cmd)
-	return err
-}
-
-// CreateImage creates a disk image that is suitable for syzkaller.
-// Kernel is taken from kernelDir, userspace system is taken from userspaceDir.
-// If cmdlineFile is not empty, contents of the file are appended to the kernel command line.
-// If sysctlFile is not empty, contents of the file are appended to the image /etc/sysctl.conf.
-// Produces image and root ssh key in the specified files.
-func CreateImage(targetOS, targetArch, vmType, kernelDir, userspaceDir, cmdlineFile, sysctlFile,
-	image, sshkey string) error {
-	if targetOS != "linux" || targetArch != "amd64" {
-		return fmt.Errorf("only linux/amd64 is supported")
-	}
-	if vmType != "qemu" && vmType != "gce" {
-		return fmt.Errorf("images can be built only for qemu/gce machines")
-	}
+func (linux) createImage(vmType, kernelDir, outputDir, userspaceDir, cmdlineFile, sysctlFile string) error {
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -101,16 +102,29 @@ func CreateImage(targetOS, targetArch, vmType, kernelDir, userspaceDir, cmdlineF
 		return fmt.Errorf("image build failed: %v", err)
 	}
 	// Note: we use CopyFile instead of Rename because src and dst can be on different filesystems.
-	if err := osutil.CopyFile(filepath.Join(tempDir, "disk.raw"), image); err != nil {
+	imageFile := filepath.Join(outputDir, "image")
+	if err := osutil.CopyFile(filepath.Join(tempDir, "disk.raw"), imageFile); err != nil {
 		return err
 	}
-	if err := osutil.CopyFile(filepath.Join(tempDir, "key"), sshkey); err != nil {
+	keyFile := filepath.Join(outputDir, "key")
+	if err := osutil.CopyFile(filepath.Join(tempDir, "key"), keyFile); err != nil {
 		return err
 	}
-	if err := os.Chmod(sshkey, 0600); err != nil {
+	if err := os.Chmod(keyFile, 0600); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (linux) clean(kernelDir string) error {
+	cpu := strconv.Itoa(runtime.NumCPU())
+	cmd := osutil.Command("make", "distclean", "-j", cpu)
+	if err := osutil.Sandbox(cmd, true, true); err != nil {
+		return err
+	}
+	cmd.Dir = kernelDir
+	_, err := osutil.Run(10*time.Minute, cmd)
+	return err
 }
 
 func extractRootCause(err error) error {
@@ -133,7 +147,7 @@ func extractRootCause(err error) error {
 	if cause != nil {
 		verr.Title = string(cause)
 	}
-	return verr
+	return KernelBuildError{verr}
 }
 
 type buildFailureCause struct {
