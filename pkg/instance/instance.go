@@ -82,7 +82,7 @@ func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile s
 	if err := kernel.Build(cfg.KernelSrc, compilerBin, kernelConfig); err != nil {
 		return osutil.PrependContext("kernel build failed", err)
 	}
-	cfg.Vmlinux = filepath.Join(cfg.KernelSrc, "vmlinux")
+	cfg.KernelObj = cfg.KernelSrc
 	cfg.Image = filepath.Join(cfg.Workdir, "syz-image")
 	cfg.SSHKey = filepath.Join(cfg.Workdir, "syz-key")
 	if err := kernel.CreateImage(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
@@ -118,13 +118,11 @@ func (env *Env) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, e
 	if err := mgrconfig.Complete(env.cfg); err != nil {
 		return nil, err
 	}
-	reporter, err := report.NewReporter(env.cfg.TargetOS, env.cfg.Type,
-		env.cfg.KernelSrc, filepath.Dir(env.cfg.Vmlinux), nil, env.cfg.ParsedIgnores)
+	reporter, err := report.NewReporter(env.cfg)
 	if err != nil {
 		return nil, err
 	}
-	vmEnv := mgrconfig.CreateVMEnv(env.cfg, false)
-	vmPool, err := vm.Create(env.cfg.Type, vmEnv)
+	vmPool, err := vm.Create(env.cfg, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create VM pool: %v", err)
 	}

@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -39,13 +38,11 @@ func main() {
 	if _, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
 		log.Fatalf("%v", err)
 	}
-	env := mgrconfig.CreateVMEnv(cfg, false)
-	vmPool, err := vm.Create(cfg.Type, env)
+	vmPool, err := vm.Create(cfg, false)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	reporter, err := report.NewReporter(cfg.TargetOS, cfg.Type,
-		cfg.KernelSrc, filepath.Dir(cfg.Vmlinux), nil, cfg.ParsedIgnores)
+	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

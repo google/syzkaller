@@ -75,7 +75,7 @@ endif
 .PHONY: all host target \
 	manager fuzzer executor \
 	ci hub \
-	execprog mutate prog2c stress repro upgrade db parse \
+	execprog mutate prog2c stress repro upgrade db \
 	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
@@ -91,7 +91,7 @@ all: host target
 
 host:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) install ./syz-manager
-	$(MAKE) manager repro mutate prog2c db parse upgrade
+	$(MAKE) manager repro mutate prog2c db upgrade
 
 target:
 	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) install ./syz-fuzzer
@@ -133,9 +133,6 @@ stress:
 
 db:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
-
-parse:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-parse github.com/google/syzkaller/tools/syz-parse
 
 upgrade:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade

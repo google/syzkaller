@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -16,7 +15,6 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys" // most mgrconfig users want targets too
 	"github.com/google/syzkaller/sys/targets"
-	"github.com/google/syzkaller/vm"
 )
 
 type Config struct {
@@ -27,9 +25,12 @@ type Config struct {
 	// TCP address to serve HTTP stats page (e.g. "localhost:50000").
 	HTTP string `json:"http"`
 	// TCP address to serve RPC for fuzzer processes (optional).
-	RPC     string `json:"rpc"`
-	Workdir string `json:"workdir"`
-	Vmlinux string `json:"vmlinux"`
+	RPC           string `json:"rpc"`
+	Workdir       string `json:"workdir"`
+	VmlinuxUnused string `json:"vmlinux"` // vmlinux should go away eventually.
+	// Directory with kernel object files.
+	// If not set, inferred as base dir of Vmlinux.
+	KernelObj string `json:"kernel_obj"`
 	// Kernel source directory.
 	KernelSrc string `json:"kernel_src"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
@@ -72,9 +73,11 @@ type Config struct {
 
 	EnabledSyscalls  []string `json:"enable_syscalls"`
 	DisabledSyscalls []string `json:"disable_syscalls"`
-	// Don't save reports matching these regexps, but reboot VM after them.
+	// Don't save reports matching these regexps, but reboot VM after them,
+	// matched against whole report output.
 	Suppressions []string `json:"suppressions"`
-	// Completely ignore reports matching these regexps (don't save nor reboot).
+	// Completely ignore reports matching these regexps (don't save nor reboot),
+	// must match the first line of crash message.
 	Ignores []string `json:"ignores"`
 
 	// VM type (qemu, gce, android, isolated, etc).
@@ -83,8 +86,6 @@ type Config struct {
 	VM json.RawMessage `json:"vm"`
 
 	// Implementation details beyond this point.
-	ParsedSuppressions []*regexp.Regexp `json:"-"`
-	ParsedIgnores      []*regexp.Regexp `json:"-"`
 	// Parsed Target:
 	TargetOS     string `json:"-"`
 	TargetArch   string `json:"-"`
@@ -208,15 +209,13 @@ func Complete(cfg *Config) error {
 		}
 	}
 
-	cfg.Vmlinux = osutil.Abs(cfg.Vmlinux)
+	cfg.VmlinuxUnused = osutil.Abs(cfg.VmlinuxUnused)
+	if cfg.KernelObj == "" {
+		cfg.KernelObj = filepath.Dir(cfg.VmlinuxUnused) // assume in-tree build by default
+	}
 	if cfg.KernelSrc == "" {
-		cfg.KernelSrc = filepath.Dir(cfg.Vmlinux) // assume in-tree build by default
+		cfg.KernelSrc = filepath.Dir(cfg.VmlinuxUnused) // assume in-tree build by default
 	}
-
-	if err := parseSuppressions(cfg); err != nil {
-		return err
-	}
-
 	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
 		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
@@ -293,55 +292,4 @@ func matchSyscall(name, pattern string) bool {
 		return true
 	}
 	return false
-}
-
-func parseSuppressions(cfg *Config) error {
-	// Add some builtin suppressions.
-	// TODO(dvyukov): this should be moved to pkg/report.
-	supp := append(cfg.Suppressions, []string{
-		"panic: failed to start executor binary",
-		"panic: executor failed: pthread_create failed",
-		"panic: failed to create temp dir",
-		"fatal error: runtime: out of memory",
-		"fatal error: runtime: cannot allocate memory",
-		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
-		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
-		// TODO(dvyukov): these should be moved sys/targets as they are really linux-specific.
-		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
-		"Out of memory: Kill process .* \\(sshd\\)",
-		"Killed process .* \\(syz-fuzzer\\)",
-		"Killed process .* \\(sshd\\)",
-		"lowmemorykiller: Killing 'syz-fuzzer'",
-		"lowmemorykiller: Killing 'sshd'",
-		"INIT: PANIC: segmentation violation!",
-	}...)
-	for _, s := range supp {
-		re, err := regexp.Compile(s)
-		if err != nil {
-			return fmt.Errorf("failed to compile suppression '%v': %v", s, err)
-		}
-		cfg.ParsedSuppressions = append(cfg.ParsedSuppressions, re)
-	}
-	for _, ignore := range cfg.Ignores {
-		re, err := regexp.Compile(ignore)
-		if err != nil {
-			return fmt.Errorf("failed to compile ignore '%v': %v", ignore, err)
-		}
-		cfg.ParsedIgnores = append(cfg.ParsedIgnores, re)
-	}
-	return nil
-}
-
-func CreateVMEnv(cfg *Config, debug bool) *vm.Env {
-	return &vm.Env{
-		Name:    cfg.Name,
-		OS:      cfg.TargetOS,
-		Arch:    cfg.TargetVMArch,
-		Workdir: cfg.Workdir,
-		Image:   cfg.Image,
-		SSHKey:  cfg.SSHKey,
-		SSHUser: cfg.SSHUser,
-		Debug:   debug,
-		Config:  cfg.VM,
-	}
 }
