@@ -38,7 +38,7 @@ type SyzUpdater struct {
 	syzkallerDir string
 	latestDir    string
 	currentDir   string
-	syzFiles     []string
+	syzFiles     map[string]bool
 	targets      map[string]bool
 }
 
@@ -82,9 +82,9 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		files[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true
 		files[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true
 	}
-	var syzFiles []string
+	syzFiles := make(map[string]bool)
 	for f := range files {
-		syzFiles = append(syzFiles, f)
+		syzFiles[f] = true
 	}
 
 	return &SyzUpdater{
