@@ -87,7 +87,7 @@ func initAllCover(os, arch, vmlinux string) {
 	}()
 }
 
-func generateCoverHTML(w io.Writer, vmlinux, arch string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, vmlinux, kernelDir, arch string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("No coverage data available")
 	}
@@ -107,7 +107,7 @@ func generateCoverHTML(w io.Writer, vmlinux, arch string, cov cover.Cover) error
 		return err
 	}
 
-	coveredFrames, _, err := symbolize(vmlinux, pcs)
+	coveredFrames, prefix, err := symbolize(vmlinux, arch, pcs)
 	if err != nil {
 		return err
 	}
@@ -115,13 +115,17 @@ func generateCoverHTML(w io.Writer, vmlinux, arch string, cov cover.Cover) error
 		return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
 	}
 
-	uncoveredFrames, prefix, err := symbolize(vmlinux, uncovered)
+	uncoveredFrames, _, err := symbolize(vmlinux, arch, uncovered)
 	if err != nil {
 		return err
 	}
 
 	var d templateData
 	for f, covered := range fileSet(coveredFrames, uncoveredFrames) {
+		remain := strings.TrimPrefix(f, prefix)
+		if kernelDir != "" {
+			f = filepath.Join(kernelDir, remain)
+		}
 		lines, err := parseFile(f)
 		if err != nil {
 			return err
@@ -138,7 +142,7 @@ func generateCoverHTML(w io.Writer, vmlinux, arch string, cov cover.Cover) error
 				} else {
 					buf.Write([]byte("<span id='uncovered'>"))
 					buf.Write(ln)
-					buf.Write([]byte("</span>\n"))
+					buf.Write([]byte("</span> /*uncovered*/\n"))
 				}
 				covered = covered[1:]
 			} else {
@@ -146,7 +150,7 @@ func generateCoverHTML(w io.Writer, vmlinux, arch string, cov cover.Cover) error
 				buf.Write([]byte{'\n'})
 			}
 		}
-		f = filepath.Clean(strings.TrimPrefix(f, prefix))
+		f = filepath.Clean(remain)
 		d.Files = append(d.Files, &templateFile{
 			ID:       hash.String([]byte(f)),
 			Name:     f,
@@ -362,7 +366,7 @@ func coveredPCs(arch, bin string) ([]uint64, error) {
 	return pcs, nil
 }
 
-func symbolize(vmlinux string, pcs []uint64) ([]symbolizer.Frame, string, error) {
+func symbolize(vmlinux string, arch string, pcs []uint64) ([]symbolizer.Frame, string, error) {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
 
@@ -374,7 +378,14 @@ func symbolize(vmlinux string, pcs []uint64) ([]symbolizer.Frame, string, error)
 	prefix := ""
 	for i := range frames {
 		frame := &frames[i]
-		frame.PC--
+		switch arch {
+		case "arm64":
+		case "arm":
+			break
+		default:
+			frame.PC--
+			break
+		}
 		if prefix == "" {
 			prefix = frame.File
 		} else {

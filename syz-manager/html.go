@@ -37,6 +37,7 @@ func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
 	http.HandleFunc("/rawcover", mgr.httpRawCover)
+	http.HandleFunc("/rawcoverfiles", mgr.httpRawCoverFiles)
 	// Browsers like to request this, without special handler this goes to / handler.
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
@@ -218,7 +219,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := generateCoverHTML(w, mgr.cfg.Vmlinux, mgr.cfg.TargetVMArch, cov); err != nil {
+	if err := generateCoverHTML(w, mgr.cfg.Vmlinux, mgr.cfg.KernelSrc, mgr.cfg.TargetVMArch, cov); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -342,6 +343,91 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	for _, pc := range pcs {
 		fmt.Fprintf(buf, "0x%x\n", pc)
 	}
+	buf.Flush()
+}
+
+func (mgr *Manager) httpRawCoverFiles(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	base, err := getVMOffset(mgr.cfg.Vmlinux)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get vmlinux base: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var cov cover.Cover
+	for _, inp := range mgr.corpus {
+		cov.Merge(inp.Cover)
+	}
+	pcs := make([]uint64, 0, len(cov))
+	for pc := range cov {
+		fullPC := cover.RestorePC(pc, base)
+		prevPC := previousInstructionPC(mgr.cfg.TargetVMArch, fullPC)
+		pcs = append(pcs, prevPC)
+	}
+	sort.Slice(pcs, func(i, j int) bool {
+		return pcs[i] < pcs[j]
+	})
+
+	coveredFrames, prefix, err := symbolize(mgr.cfg.Vmlinux, mgr.cfg.TargetVMArch, pcs)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to symbolize: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if len(coveredFrames) == 0 {
+		http.Error(w, fmt.Sprintf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", mgr.cfg.Vmlinux), http.StatusInternalServerError)
+		return
+	}
+
+	uncovered, err := uncoveredPcsInFuncs(mgr.cfg.Vmlinux, pcs)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to find uncovered PCs: %v", err), http.StatusInternalServerError)
+		return
+	}
+	uncoveredFrames, _, err := symbolize(mgr.cfg.Vmlinux, mgr.cfg.TargetVMArch, uncovered)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to symbolize: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	grep := r.FormValue("grep")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	buf := bufio.NewWriter(w)
+
+	coveredCount := 0
+	for _, frame := range coveredFrames {
+		frame.File = strings.TrimPrefix(frame.File, prefix)
+		if grep != "" {
+			if strings.Contains(frame.File, grep) {
+				fmt.Fprintf(buf, "0x%x %v %v %v\n", frame.PC, frame.Func, frame.File, frame.Line)
+				coveredCount++
+			}
+		} else {
+			fmt.Fprintf(buf, "0x%x %v %v %v\n", frame.PC, frame.Func, frame.File, frame.Line)
+			coveredCount++
+		}
+	}
+
+	uncoveredCount := 0
+	for _, frame := range uncoveredFrames {
+		frame.File = strings.TrimPrefix(frame.File, prefix)
+		if grep != "" {
+			if strings.Contains(frame.File, grep) {
+				fmt.Fprintf(buf, "-0x%x %v %v %v\n", frame.PC, frame.Func, frame.File, frame.Line)
+				uncoveredCount++
+			}
+		} else {
+			fmt.Fprintf(buf, "-0x%x %v %v %v\n", frame.PC, frame.Func, frame.File, frame.Line)
+			uncoveredCount++
+		}
+	}
+
+	fmt.Fprintf(buf, "======================stats==================\n")
+	fmt.Fprintf(buf, "grep coverage/uncoverage count: %d/%d\n", coveredCount, uncoveredCount)
+	fmt.Fprintf(buf, "Frames coverage/uncoverage count: %d/%d\n", len(coveredFrames), len(uncoveredFrames))
+	fmt.Fprintf(buf, "PCs count: %d\n", len(pcs))
+
 	buf.Flush()
 }
 
