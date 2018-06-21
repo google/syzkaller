@@ -231,7 +231,7 @@ var oses = map[string]osCommon{
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      false,
-		ExecutorUsesForkServer: false,
+		ExecutorUsesForkServer: true,
 	},
 }
 

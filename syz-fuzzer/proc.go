@@ -99,9 +99,6 @@ func (proc *Proc) loop() {
 
 func (proc *Proc) triageInput(item *WorkTriage) {
 	log.Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
-	if !proc.fuzzer.coverageEnabled {
-		panic("should not be called when coverage is disabled")
-	}
 
 	call := item.p.Calls[item.call]
 	inputSignal := signal.FromRaw(item.info.Signal, signalPrio(item.p.Target, call, &item.info))

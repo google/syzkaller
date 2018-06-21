@@ -3,6 +3,8 @@
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
 #define SYZ_REVISION "9c09d67e0d2fb4a004add22093616420ce831dfc"
+#define SYZ_EXECUTOR_USES_FORK_SERVER true
+#define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912

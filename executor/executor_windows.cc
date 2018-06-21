@@ -27,8 +27,7 @@ int main(int argc, char** argv)
 			 MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE) != (void*)SYZ_DATA_OFFSET)
 		fail("mmap of data segment failed");
 
-	setup_control_pipes();
-	receive_execute(true);
+	main_init();
 	execute_one();
 	return 0;
 }
@@ -54,7 +53,7 @@ void cover_reset(thread_t* th)
 {
 }
 
-uint32 read_cover_size(thread_t* th)
+uint32 cover_read_size(thread_t* th)
 {
 	return 0;
 }
