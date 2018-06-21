@@ -146,7 +146,7 @@ generate: generate_go generate_sys
 	$(MAKE) format
 
 generate_go: bin/syz-sysgen
-	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/kernel
+	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/build
 
 generate_sys: bin/syz-sysgen
 	bin/syz-sysgen

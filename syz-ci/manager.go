@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
-	"github.com/google/syzkaller/pkg/kernel"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -75,7 +75,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	}
 
 	// Assume compiler and config don't change underneath us.
-	compilerID, err := kernel.CompilerIdentity(mgrcfg.Compiler)
+	compilerID, err := build.CompilerIdentity(mgrcfg.Compiler)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -271,7 +271,7 @@ func (mgr *Manager) build() error {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
 
-	if err := kernel.Build(mgr.kernelDir, mgr.mgrcfg.Compiler, kernelConfigData); err != nil {
+	if err := build.Build(mgr.kernelDir, mgr.mgrcfg.Compiler, kernelConfigData); err != nil {
 		rep := &report.Report{
 			Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
 			Output: []byte(err.Error()),
@@ -288,7 +288,7 @@ func (mgr *Manager) build() error {
 
 	image := filepath.Join(tmpDir, "image")
 	key := filepath.Join(tmpDir, "key")
-	err = kernel.CreateImage(mgr.managercfg.TargetOS, mgr.managercfg.TargetVMArch, mgr.managercfg.Type,
+	err = build.CreateImage(mgr.managercfg.TargetOS, mgr.managercfg.TargetVMArch, mgr.managercfg.Type,
 		mgr.kernelDir, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, image, key)
 	if err != nil {
 		return fmt.Errorf("image build failed: %v", err)
