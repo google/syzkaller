@@ -2963,7 +2963,7 @@ extern unsigned long long procid;
 
 #if defined(SYZ_EXECUTOR)
 void reply_handshake();
-void receive_execute(bool need_prog);
+void receive_execute();
 void reply_execute(int status);
 extern uint32* output_data;
 extern uint32* output_pos;
@@ -3027,7 +3027,7 @@ static void loop()
 		}
 #endif
 #if defined(SYZ_EXECUTOR)
-		receive_execute(false);
+		receive_execute();
 #endif
 		int pid = fork();
 		if (pid < 0)

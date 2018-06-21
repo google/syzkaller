@@ -89,13 +89,11 @@ int main(int argc, char** argv)
 	setrlimit(RLIMIT_CORE, &rlim);
 
 	install_segv_handler();
-	setup_control_pipes();
-	receive_handshake();
+	main_init();
 	reply_handshake();
-	cover_open();
 
 	for (;;) {
-		receive_execute(false);
+		receive_execute();
 		char cwdbuf[128] = "/syz-tmpXXXXXX";
 		if (!mkdtemp(cwdbuf))
 			fail("mkdtemp failed");
@@ -153,11 +151,9 @@ long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a
 
 void cover_open()
 {
-	if (!flag_cover)
-		return;
+#if defined(__FreeBSD__)
 	for (int i = 0; i < kMaxThreads; i++) {
 		thread_t* th = &threads[i];
-#if defined(__FreeBSD__)
 		th->cover_fd = open("/dev/kcov", O_RDWR);
 		if (th->cover_fd == -1)
 			fail("open of /dev/kcov failed");
@@ -171,18 +167,13 @@ void cover_open()
 			fail("cover mmap failed");
 		th->cover_data = mmap_ptr;
 		th->cover_end = mmap_ptr + mmap_alloc_size;
-#else
-		th->cover_data = (char*)&th->cover_buffer[0];
-		th->cover_end = th->cover_data + sizeof(th->cover_buffer);
-#endif
 	}
+#endif
 }
 
 void cover_enable(thread_t* th)
 {
 #if defined(__FreeBSD__)
-	if (!flag_cover)
-		return;
 	debug("#%d: enabling /dev/kcov\n", th->id);
 	int kcov_mode = flag_collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
 	if (ioctl(th->cover_fd, KIOENABLE, &kcov_mode))
@@ -194,17 +185,12 @@ void cover_enable(thread_t* th)
 void cover_reset(thread_t* th)
 {
 #if defined(__FreeBSD__)
-	if (!flag_cover)
-		return;
-
 	*th->cover_size_ptr = 0;
 #endif
 }
 
-uint32 read_cover_size(thread_t* th)
+uint32 cover_read_size(thread_t* th)
 {
-	if (!flag_cover)
-		return 0;
 #if defined(__FreeBSD__)
 	uint64 size = *th->cover_size_ptr;
 	debug("#%d: read cover size = %llu\n", th->id, size);
@@ -212,11 +198,7 @@ uint32 read_cover_size(thread_t* th)
 		fail("#%d: too much cover %llu", th->id, size);
 	return size;
 #else
-	// Fallback coverage since we have no real coverage available.
-	// We use syscall number or-ed with returned errno value as signal.
-	// At least this gives us all combinations of syscall+errno.
-	th->cover_data[0] = (th->call_num << 16) | ((th->res == -1 ? th->reserrno : 0) & 0x3ff);
-	return 1;
+	return 0;
 #endif
 }
 

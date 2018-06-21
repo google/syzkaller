@@ -86,7 +86,6 @@ struct thread_t {
 	osthread_t th;
 	char* cover_data;
 	char* cover_end;
-	uint64 cover_buffer[1]; // fallback coverage buffer
 
 	event_t ready;
 	event_t done;
@@ -182,11 +181,25 @@ bool copyout(char* addr, uint64 size, uint64* res);
 void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
-uint32 read_cover_size(thread_t* th);
+uint32 cover_read_size(thread_t* th);
 bool cover_check(uint32 pc);
 bool cover_check(uint64 pc);
 static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
+void setup_control_pipes();
+void receive_handshake();
+void receive_execute();
+
+void main_init()
+{
+	setup_control_pipes();
+	if (SYZ_EXECUTOR_USES_FORK_SERVER)
+		receive_handshake();
+	else
+		receive_execute();
+	if (flag_cover)
+		cover_open();
+}
 
 void setup_control_pipes()
 {
@@ -235,7 +248,7 @@ void reply_handshake()
 		fail("control pipe write failed");
 }
 
-void receive_execute(bool need_prog)
+void receive_execute()
 {
 	execute_req req;
 	if (read(kInPipeFd, &req, sizeof(req)) != (ssize_t)sizeof(req))
@@ -260,11 +273,13 @@ void receive_execute(bool need_prog)
 	      procid, flag_threaded, flag_collide, flag_collect_cover, flag_collect_comps,
 	      flag_dedup_cover, flag_inject_fault, flag_fault_call, flag_fault_nth,
 	      req.prog_size);
-	if (req.prog_size == 0) {
-		if (need_prog)
+	if (SYZ_EXECUTOR_USES_SHMEM) {
+		if (req.prog_size)
 			fail("need_prog: no program");
 		return;
 	}
+	if (req.prog_size == 0)
+		fail("need_prog: no program");
 	uint64 pos = 0;
 	for (;;) {
 		ssize_t rv = read(kInPipeFd, input_data + pos, sizeof(input_data) - pos);
@@ -301,7 +316,7 @@ void execute_one()
 retry:
 	uint64* input_pos = (uint64*)input_data;
 
-	if (!colliding && !flag_threaded)
+	if (flag_cover && !colliding && !flag_threaded)
 		cover_enable(&threads[0]);
 
 	int call_index = 0;
@@ -499,8 +514,10 @@ void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover
 	cover_t prev = 0;
 	for (uint32 i = 0; i < th->cover_size; i++) {
 		cover_t pc = cover_data[i];
-		if (!cover_check(pc))
+		if (!cover_check(pc)) {
+			debug("got bad pc: 0x%llx\n", (uint64)pc);
 			doexit(0);
+		}
 		cover_t sig = pc ^ prev;
 		prev = hash(pc);
 		if (dedup(sig))
@@ -591,7 +608,7 @@ void handle_completion(thread_t* th)
 			}
 			// Write out number of comparisons.
 			*comps_count_pos = comps_size;
-		} else {
+		} else if (flag_cover) {
 			if (is_kernel_64_bit)
 				write_coverage_signal<uint64>(th, signal_count_pos, cover_count_pos);
 			else
@@ -623,7 +640,8 @@ void* worker_thread(void* arg)
 {
 	thread_t* th = (thread_t*)arg;
 
-	cover_enable(th);
+	if (flag_cover)
+		cover_enable(th);
 	for (;;) {
 		event_wait(&th->ready);
 		execute_call(th);
@@ -651,7 +669,8 @@ void execute_call(thread_t* th)
 		fail_fd = inject_fault(flag_fault_nth);
 	}
 
-	cover_reset(th);
+	if (flag_cover)
+		cover_reset(th);
 	errno = 0;
 	th->res = execute_syscall(call, th->args[0], th->args[1], th->args[2],
 				  th->args[3], th->args[4], th->args[5],
@@ -659,7 +678,8 @@ void execute_call(thread_t* th)
 	th->reserrno = errno;
 	if (th->res == -1 && th->reserrno == 0)
 		th->reserrno = EINVAL; // our syz syscalls may misbehave
-	th->cover_size = read_cover_size(th);
+	if (flag_cover)
+		th->cover_size = cover_read_size(th);
 	th->fault_injected = false;
 
 	if (flag_inject_fault && th->call_index == flag_fault_call) {

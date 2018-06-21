@@ -845,34 +845,36 @@ func (mgr *Manager) getReporter() report.Reporter {
 }
 
 func (mgr *Manager) minimizeCorpus() {
-	if mgr.cfg.Cover && len(mgr.corpus) != 0 {
-		inputs := make([]signal.Context, 0, len(mgr.corpus))
-		for _, inp := range mgr.corpus {
-			inputs = append(inputs, signal.Context{
-				Signal:  inp.Signal.Deserialize(),
-				Context: inp,
-			})
-		}
-		newCorpus := make(map[string]rpctype.RPCInput)
-		for _, ctx := range signal.Minimize(inputs) {
-			inp := ctx.(rpctype.RPCInput)
-			newCorpus[hash.String(inp.Prog)] = inp
-		}
-		log.Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
-		mgr.corpus = newCorpus
+	if mgr.phase < phaseLoadedCorpus {
+		return
 	}
+	inputs := make([]signal.Context, 0, len(mgr.corpus))
+	for _, inp := range mgr.corpus {
+		inputs = append(inputs, signal.Context{
+			Signal:  inp.Signal.Deserialize(),
+			Context: inp,
+		})
+	}
+	newCorpus := make(map[string]rpctype.RPCInput)
+	for _, ctx := range signal.Minimize(inputs) {
+		inp := ctx.(rpctype.RPCInput)
+		newCorpus[hash.String(inp.Prog)] = inp
+	}
+	log.Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
+	mgr.corpus = newCorpus
 
 	// Don't minimize persistent corpus until fuzzers have triaged all inputs from it.
-	if mgr.phase >= phaseTriagedCorpus {
-		for key := range mgr.corpusDB.Records {
-			_, ok1 := mgr.corpus[key]
-			_, ok2 := mgr.disabledHashes[key]
-			if !ok1 && !ok2 {
-				mgr.corpusDB.Delete(key)
-			}
-		}
-		mgr.corpusDB.BumpVersion(currentDBVersion)
+	if mgr.phase < phaseTriagedCorpus {
+		return
 	}
+	for key := range mgr.corpusDB.Records {
+		_, ok1 := mgr.corpus[key]
+		_, ok2 := mgr.disabledHashes[key]
+		if !ok1 && !ok2 {
+			mgr.corpusDB.Delete(key)
+		}
+	}
+	mgr.corpusDB.BumpVersion(currentDBVersion)
 }
 
 func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {

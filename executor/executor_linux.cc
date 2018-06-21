@@ -72,10 +72,7 @@ int main(int argc, char** argv)
 	// That's also the reason why we close kInPipeFd/kOutPipeFd below.
 	close(kInFd);
 	close(kOutFd);
-	setup_control_pipes();
-	receive_handshake();
-
-	cover_open();
+	main_init();
 	install_segv_handler();
 	use_temporary_dir();
 
@@ -133,8 +130,6 @@ long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a
 
 void cover_open()
 {
-	if (!flag_cover)
-		return;
 	for (int i = 0; i < kMaxThreads; i++) {
 		thread_t* th = &threads[i];
 		th->cover_fd = open("/sys/kernel/debug/kcov", O_RDWR);
@@ -154,8 +149,6 @@ void cover_open()
 
 void cover_enable(thread_t* th)
 {
-	if (!flag_cover)
-		return;
 	debug("#%d: enabling /sys/kernel/debug/kcov\n", th->id);
 	int kcov_mode = flag_collect_comps ? KCOV_TRACE_CMP : KCOV_TRACE_PC;
 	// This should be fatal,
@@ -169,17 +162,13 @@ void cover_enable(thread_t* th)
 
 void cover_reset(thread_t* th)
 {
-	if (!flag_cover)
-		return;
 	if (th == 0)
 		th = current_thread;
 	*(uint64*)th->cover_data = 0;
 }
 
-uint32 read_cover_size(thread_t* th)
+uint32 cover_read_size(thread_t* th)
 {
-	if (!flag_cover)
-		return 0;
 	// Note: this assumes little-endian kernel.
 	uint32 n = *(uint32*)th->cover_data;
 	debug("#%d: read cover size = %u\n", th->id, n);

@@ -29,12 +29,11 @@ int main(int argc, char** argv)
 
 	use_temporary_dir();
 	install_segv_handler();
-	setup_control_pipes();
-	receive_handshake();
+	main_init();
 	reply_handshake();
 
 	for (;;) {
-		receive_execute(true);
+		receive_execute();
 		char cwdbuf[128] = "/syz-tmpXXXXXX";
 		mkdtemp(cwdbuf);
 		int pid = fork();
@@ -91,7 +90,7 @@ void cover_reset(thread_t* th)
 {
 }
 
-uint32 read_cover_size(thread_t* th)
+uint32 cover_read_size(thread_t* th)
 {
 	return 0;
 }
