@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/git"
-	"github.com/google/syzkaller/pkg/kernel"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -79,13 +79,13 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 
 func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) error {
 	cfg := env.cfg
-	if err := kernel.Build(cfg.KernelSrc, compilerBin, kernelConfig); err != nil {
+	if err := build.Build(cfg.KernelSrc, compilerBin, kernelConfig); err != nil {
 		return osutil.PrependContext("kernel build failed", err)
 	}
 	cfg.KernelObj = cfg.KernelSrc
 	cfg.Image = filepath.Join(cfg.Workdir, "syz-image")
 	cfg.SSHKey = filepath.Join(cfg.Workdir, "syz-key")
-	if err := kernel.CreateImage(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
+	if err := build.CreateImage(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
 		cfg.KernelSrc, userspaceDir, cmdlineFile, sysctlFile, cfg.Image, cfg.SSHKey); err != nil {
 		return osutil.PrependContext("image build failed", err)
 	}
