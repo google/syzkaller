@@ -25,8 +25,7 @@ int main(int argc, char** argv)
 		fail("mmap of data segment failed");
 
 	install_segv_handler();
-	setup_control_pipes();
-	receive_execute(true);
+	main_init();
 	execute_one();
 	return 0;
 }
@@ -53,7 +52,7 @@ void cover_reset(thread_t* th)
 {
 }
 
-uint32 read_cover_size(thread_t* th)
+uint32 cover_read_size(thread_t* th)
 {
 	return 0;
 }

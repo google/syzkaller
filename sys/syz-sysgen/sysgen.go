@@ -176,6 +176,8 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 	}
 	type ArchData struct {
 		Revision   string
+		ForkServer bool
+		Shmem      bool
 		GOARCH     string
 		CARCH      []string
 		PageSize   uint64
@@ -185,6 +187,8 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 	}
 	data := ArchData{
 		Revision:   rev,
+		ForkServer: target.ExecutorUsesForkServer,
+		Shmem:      target.ExecutorUsesShmem,
 		GOARCH:     target.Arch,
 		CARCH:      target.CArch,
 		PageSize:   target.PageSize,
@@ -248,6 +252,8 @@ var archTempl = template.Must(template.New("").Parse(`
 #if {{range $cdef := $.CARCH}}defined({{$cdef}}) || {{end}}0
 #define GOARCH "{{.GOARCH}}"
 #define SYZ_REVISION "{{.Revision}}"
+#define SYZ_EXECUTOR_USES_FORK_SERVER {{.ForkServer}}
+#define SYZ_EXECUTOR_USES_SHMEM {{.Shmem}}
 #define SYZ_PAGE_SIZE {{.PageSize}}
 #define SYZ_NUM_PAGES {{.NumPages}}
 #define SYZ_DATA_OFFSET {{.DataOffset}}

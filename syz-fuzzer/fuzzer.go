@@ -42,7 +42,6 @@ type Fuzzer struct {
 
 	faultInjectionEnabled    bool
 	comparisonTracingEnabled bool
-	coverageEnabled          bool
 
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
@@ -206,7 +205,6 @@ func main() {
 	if r.CheckResult.Features[host.FeatureFaultInjection].Enabled {
 		config.Flags |= ipc.FlagEnableFault
 	}
-	coverageEnabled := config.Flags&ipc.FlagSignal != 0
 	calls := make(map[*prog.Syscall]bool)
 	for _, id := range r.CheckResult.EnabledCalls {
 		calls[target.Syscalls[id]] = true
@@ -227,7 +225,6 @@ func main() {
 		target:                   target,
 		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFaultInjection].Enabled,
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
-		coverageEnabled:          coverageEnabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
 	}
 	fuzzer.gate = ipc.NewGate(2**flagProcs, periodicCallback)
@@ -241,21 +238,17 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to deserialize program: %v", err)
 		}
-		if coverageEnabled {
-			flags := ProgCandidate
-			if candidate.Minimized {
-				flags |= ProgMinimized
-			}
-			if candidate.Smashed {
-				flags |= ProgSmashed
-			}
-			fuzzer.workQueue.enqueue(&WorkCandidate{
-				p:     p,
-				flags: flags,
-			})
-		} else {
-			fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
+		flags := ProgCandidate
+		if candidate.Minimized {
+			flags |= ProgMinimized
 		}
+		if candidate.Smashed {
+			flags |= ProgSmashed
+		}
+		fuzzer.workQueue.enqueue(&WorkCandidate{
+			p:     p,
+			flags: flags,
+		})
 	}
 
 	for pid := 0; pid < *flagProcs; pid++ {
@@ -326,21 +319,17 @@ func (fuzzer *Fuzzer) pollLoop() {
 				if err != nil {
 					log.Fatalf("failed to parse program from manager: %v", err)
 				}
-				if fuzzer.coverageEnabled {
-					flags := ProgCandidate
-					if candidate.Minimized {
-						flags |= ProgMinimized
-					}
-					if candidate.Smashed {
-						flags |= ProgSmashed
-					}
-					fuzzer.workQueue.enqueue(&WorkCandidate{
-						p:     p,
-						flags: flags,
-					})
-				} else {
-					fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
+				flags := ProgCandidate
+				if candidate.Minimized {
+					flags |= ProgMinimized
 				}
+				if candidate.Smashed {
+					flags |= ProgSmashed
+				}
+				fuzzer.workQueue.enqueue(&WorkCandidate{
+					p:     p,
+					flags: flags,
+				})
 			}
 			if len(r.NewInputs) == 0 && len(r.Candidates) == 0 {
 				lastPoll = time.Now()
@@ -360,9 +349,6 @@ func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.RPCInput) {
 }
 
 func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
-	if !fuzzer.coverageEnabled {
-		panic("should not be called when coverage is disabled")
-	}
 	p, err := fuzzer.target.Deserialize(inp.Prog)
 	if err != nil {
 		panic(err)

@@ -128,10 +128,13 @@ func checkSimpleProgram(args *checkArgs) error {
 		return fmt.Errorf("no calls executed:\n%s", output)
 	}
 	if info[0].Errno != 0 {
-		return fmt.Errorf("simple call failed: %v\n%s", info[0].Errno, output)
+		return fmt.Errorf("simple call failed: %+v\n%s", info[0], output)
 	}
-	if args.ipcConfig.Flags&ipc.FlagSignal != 0 && len(info[0].Signal) == 0 {
+	if args.ipcConfig.Flags&ipc.FlagSignal != 0 && len(info[0].Signal) < 2 {
 		return fmt.Errorf("got no coverage:\n%s", output)
+	}
+	if len(info[0].Signal) < 1 {
+		return fmt.Errorf("got no fallback coverage:\n%s", output)
 	}
 	return nil
 }

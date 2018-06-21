@@ -157,8 +157,9 @@ func DefaultConfig() (*Config, *ExecOpts, error) {
 }
 
 type CallInfo struct {
-	Signal []uint32 // feedback signal, filled if FlagSignal is set
-	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
+	Executed bool
+	Signal   []uint32 // feedback signal, filled if FlagSignal is set
+	Cover    []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
 	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
 	Comps         prog.CompMap // per-call comparison operands
 	Errno         int          // call errno (0 if the call was successful)
@@ -310,8 +311,24 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 
 	if env.out != nil {
 		info, err0 = env.readOutCoverage(p)
+		if info != nil {
+			addFallbackSignal(p, info)
+		}
 	}
 	return
+}
+
+// addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
+// We use syscall number or-ed with returned errno value as signal.
+// At least this gives us all combinations of syscall+errno.
+func addFallbackSignal(p *prog.Prog, info []CallInfo) {
+	for i, call := range p.Calls {
+		inf := &info[i]
+		if !inf.Executed || len(inf.Signal) != 0 {
+			continue
+		}
+		inf.Signal = []uint32{uint32(call.Meta.ID)<<16 | uint32(inf.Errno)&0x3ff}
+	}
 }
 
 func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
@@ -377,6 +394,7 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 			return
 		}
 		c := p.Calls[callIndex]
+		info[callIndex].Executed = true
 		if num := c.Meta.ID; uint32(num) != callNum {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage:"+
 				" record %v call %v: expect syscall %v, got %v, executed %v (cov: %v)",

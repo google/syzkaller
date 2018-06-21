@@ -216,7 +216,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (
 	<-chan []byte, <-chan error, error) {
-	args := []string{"exec"}
+	args := []string{"exec", "-user=0:0"}
 	for _, c := range sandboxCaps {
 		args = append(args, "-cap", c)
 	}
