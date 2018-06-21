@@ -270,35 +270,19 @@ func (mgr *Manager) build() error {
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
-
-	if err := build.Build(mgr.kernelDir, mgr.mgrcfg.Compiler, kernelConfigData); err != nil {
-		rep := &report.Report{
-			Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
-			Output: []byte(err.Error()),
-		}
-		if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
-			mgr.Errorf("failed to report image error: %v", err)
+	if err := build.Image(mgr.managercfg.TargetOS, mgr.managercfg.TargetVMArch, mgr.managercfg.Type,
+		mgr.kernelDir, tmpDir, mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace,
+		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, kernelConfigData); err != nil {
+		if _, ok := err.(build.KernelBuildError); ok {
+			rep := &report.Report{
+				Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
+				Output: []byte(err.Error()),
+			}
+			if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
+				mgr.Errorf("failed to report image error: %v", err)
+			}
 		}
 		return fmt.Errorf("kernel build failed: %v", err)
-	}
-	kernelConfig := filepath.Join(tmpDir, "kernel.config")
-	if err := osutil.CopyFile(filepath.Join(mgr.kernelDir, ".config"), kernelConfig); err != nil {
-		return err
-	}
-
-	image := filepath.Join(tmpDir, "image")
-	key := filepath.Join(tmpDir, "key")
-	err = build.CreateImage(mgr.managercfg.TargetOS, mgr.managercfg.TargetVMArch, mgr.managercfg.Type,
-		mgr.kernelDir, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, image, key)
-	if err != nil {
-		return fmt.Errorf("image build failed: %v", err)
-	}
-
-	vmlinux := filepath.Join(mgr.kernelDir, "vmlinux")
-	objDir := filepath.Join(tmpDir, "obj")
-	osutil.MkdirAll(objDir)
-	if err := os.Rename(vmlinux, filepath.Join(objDir, "vmlinux")); err != nil {
-		return fmt.Errorf("failed to rename vmlinux file: %v", err)
 	}
 
 	if err := mgr.testImage(tmpDir, info); err != nil {
