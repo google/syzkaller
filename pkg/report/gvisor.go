@@ -150,22 +150,22 @@ var gvisorOopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	&oops{
-		[]byte("signal SIGSEGV"),
+		[]byte("SIGSEGV:"),
 		[]oopsFormat{
 			{
-				title:        compile("signal SIGSEGV(.*)"),
-				fmt:          "signal SIGSEGV%[1]v",
+				title:        compile("SIGSEGV:(.*)"),
+				fmt:          "SIGSEGV:%[1]v",
 				noStackTrace: true,
 			},
 		},
 		[]*regexp.Regexp{},
 	},
 	&oops{
-		[]byte("signal SIGBUS"),
+		[]byte("SIGBUS:"),
 		[]oopsFormat{
 			{
-				title:        compile("signal SIGBUS(.*)"),
-				fmt:          "signal SIGBUS%[1]v",
+				title:        compile("SIGBUS:(.*)"),
+				fmt:          "SIGBUS:%[1]v",
 				noStackTrace: true,
 			},
 		},
