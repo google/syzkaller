@@ -41,6 +41,22 @@ func testImage(hostAddr string, args *checkArgs) {
 }
 
 func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
+	// Machine checking can be very slow on some machines (qemu without kvm, KMEMLEAK linux, etc),
+	// so print periodic heartbeats for vm.MonitorExecution so that it does not decide that we are dead.
+	done := make(chan bool)
+	defer close(done)
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				fmt.Printf("executing program\n")
+			}
+		}
+	}()
 	if err := checkRevisions(args); err != nil {
 		return nil, err
 	}
