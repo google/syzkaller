@@ -75,7 +75,7 @@ func (proc *Proc) loop() {
 			case *WorkSmash:
 				proc.smashInput(item)
 			default:
-				panic("unknown work type")
+				log.Fatalf("unknown work type: %#v", item)
 			}
 			continue
 		}
@@ -245,7 +245,7 @@ func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes,
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) []ipc.CallInfo {
 	if opts.Flags&ipc.FlagDedupCover == 0 {
-		panic("dedup cover is not enabled")
+		log.Fatalf("dedup cover is not enabled")
 	}
 
 	// Limit concurrency window and do leak checking once in a while.
@@ -265,7 +265,7 @@ retry:
 	}
 	if err != nil {
 		if _, ok := err.(ipc.ExecutorFailure); ok || try > 10 {
-			panic(err)
+			log.Fatalf("executor failed %v times:\n%v", try, err)
 		}
 		try++
 		log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d\n", err, (try + 1))
@@ -317,6 +317,6 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 			f.Close()
 		}
 	default:
-		panic("unknown output type")
+		log.Fatalf("unknown output type: %v", proc.fuzzer.outputType)
 	}
 }

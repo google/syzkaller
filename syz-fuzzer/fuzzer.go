@@ -351,7 +351,7 @@ func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.RPCInput) {
 func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
 	p, err := fuzzer.target.Deserialize(inp.Prog)
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to deserialize prog from another fuzzer: %v", err)
 	}
 	sig := hash.Hash(inp.Prog)
 	sign := inp.Signal.Deserialize()
