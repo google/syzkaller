@@ -185,7 +185,9 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 		"-root", inst.rootDir,
 		"-network=none",
 	}
-	args = append(args, strings.Split(inst.cfg.RunscArgs, " ")...)
+	if inst.cfg.RunscArgs != "" {
+		args = append(args, strings.Split(inst.cfg.RunscArgs, " ")...)
+	}
 	args = append(args, add...)
 	cmd := osutil.Command(inst.image, args...)
 	cmd.Env = []string{
