@@ -197,7 +197,8 @@ uint32* write_output(uint32 v)
 	if (collide)
 		return 0;
 	if (output_pos < output_data || (char*)output_pos >= (char*)output_data + kMaxOutput)
-		fail("output overflow");
+		fail("output overflow: pos=%p region=[%p:%p]",
+		     output_pos, output_data, (char*)output_data + kMaxOutput);
 	*output_pos = v;
 	return output_pos++;
 }
