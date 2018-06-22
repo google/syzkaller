@@ -82,7 +82,15 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	osutil.MkdirAll(rootDir)
 	osutil.MkdirAll(bundleDir)
 	osutil.MkdirAll(imageDir)
-	vmConfig := fmt.Sprintf(configTempl, imageDir)
+
+	caps := ""
+	for _, c := range sandboxCaps {
+		if caps != "" {
+			caps += ", "
+		}
+		caps += "\"" + c + "\""
+	}
+	vmConfig := fmt.Sprintf(configTempl, imageDir, caps)
 	if err := osutil.WriteFile(filepath.Join(bundleDir, "config.json"), []byte(vmConfig)); err != nil {
 		return nil, err
 	}
@@ -326,13 +334,20 @@ const initStartMsg = "SYZKALLER INIT STARTED\n"
 const configTempl = `
 {
 	"root": {
-		"path": "%v",
+		"path": "%[1]v",
 		"readonly": true
 	},
 	"process":{
                 "args": ["/init"],
                 "cwd": "/tmp",
-                "env": ["SYZ_GVISOR_PROXY=1"]
+                "env": ["SYZ_GVISOR_PROXY=1"],
+                "capabilities": {
+                	"bounding": [%[2]v],
+                	"effective": [%[2]v],
+                	"inheritable": [%[2]v],
+                	"permitted": [%[2]v],
+                	"ambient": [%[2]v]
+                }
 	}
 }
 `
