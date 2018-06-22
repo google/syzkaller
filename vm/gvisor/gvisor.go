@@ -111,7 +111,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 
 	// Kill the previous instance in case it's still running.
-	inst.runscCmd("delete", "-force", inst.name).CombinedOutput()
+	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	time.Sleep(3 * time.Second)
 
 	cmd := inst.runscCmd("run", "-bundle", bundleDir, inst.name)
@@ -187,11 +187,11 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 
 func (inst *instance) Close() {
 	time.Sleep(3 * time.Second)
-	inst.runscCmd("delete", "-force", inst.name).CombinedOutput()
+	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	inst.cmd.Process.Kill()
 	inst.merger.Wait()
 	inst.cmd.Wait()
-	inst.runscCmd("delete", "-force", inst.name).CombinedOutput()
+	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	time.Sleep(3 * time.Second)
 }
 
@@ -308,7 +308,7 @@ func (inst *instance) guestProxy() (*os.File, error) {
 }
 
 func (inst *instance) Diagnose() bool {
-	inst.runscCmd("debug", "-stacks", inst.name).CombinedOutput()
+	osutil.Run(time.Minute, inst.runscCmd("debug", "-stacks", inst.name))
 	return true
 }
 
