@@ -1,0 +1,9 @@
+TITLE: FATAL ERROR: error running container: err waiting on container NAME: EOF
+
+request_key(&(0x7f0000005e80)='trusted\x00', &(0x7f0000005ec0)={0x73, 0x79, 0x7a, 0x0}, &(0x7f0000005f00)='(selinuxppp0eth0proc\x00', 0xfffffffffffffff8)
+add_key(&(0x7f0000005f40)='dns_resolver\x00', &(0x7f0000005f80)={0x73, 0x79, 0x7a, 0x0}, &(0x7f0000005fc0)="786015083dc3dbe94536578dc260891f45c4b3713a210099", 0x18, 0xffffffffffffffff)
+
+W0622 11:59:19.138728   18712 x:0] FATAL ERROR: error running container: err waiting on container "syz-8": EOF
+error running container: err waiting on container "syz-8": EOF
+W0622 11:59:19.138713   19300 x:0] FATAL ERROR: error getting processes for container: error executing in sandbox: EOF
+error getting processes for container: error executing in sandbox: EOF

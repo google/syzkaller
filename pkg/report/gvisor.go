@@ -59,7 +59,7 @@ func (ctx *gvisor) Parse(output []byte) *Report {
 		return nil
 	}
 	title, corrupted, _ := extractDescription(output[rep.StartPos:], oops, nil)
-	rep.Title = title
+	rep.Title = replaceTable(gvisorTitleReplacement, title)
 	rep.Report = ctx.shortenReport(output[rep.StartPos:])
 	rep.Corrupted = corrupted != ""
 	rep.corruptedReason = corrupted
@@ -95,6 +95,13 @@ func (ctx *gvisor) shortenReport(report []byte) []byte {
 
 func (ctx *gvisor) Symbolize(rep *Report) error {
 	return nil
+}
+
+var gvisorTitleReplacement = []replacement{
+	{
+		regexp.MustCompile(`container ".*"`),
+		"container NAME",
+	},
 }
 
 var gvisorOopses = []*oops{
@@ -159,6 +166,17 @@ var gvisorOopses = []*oops{
 			{
 				title:        compile("signal SIGBUS(.*)"),
 				fmt:          "signal SIGBUS%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	&oops{
+		[]byte("FATAL ERROR:"),
+		[]oopsFormat{
+			{
+				title:        compile("FATAL ERROR:(.*)"),
+				fmt:          "FATAL ERROR:%[1]v",
 				noStackTrace: true,
 			},
 		},
