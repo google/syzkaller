@@ -4,6 +4,7 @@
 package build
 
 import (
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -17,12 +18,17 @@ func (gvisor) build(targetArch, vmType, kernelDir, outputDir, compiler, userspac
 	if err := osutil.MkdirAll(outputDir); err != nil {
 		return err
 	}
-	if _, err := osutil.RunCmd(20*time.Minute, kernelDir, compiler, "build", "--verbose_failures", "--sandbox_debug", "runsc"); err != nil {
+	if _, err := osutil.RunCmd(20*time.Minute, kernelDir, compiler, "build", "--verbose_failures", "runsc"); err != nil {
 		return err
 	}
 	runsc := filepath.Join(kernelDir, "bazel-bin", "runsc", "linux_amd64_pure_stripped", "runsc")
 	if err := osutil.CopyFile(runsc, filepath.Join(outputDir, "image")); err != nil {
 		return err
+	}
+	if len(config) != 0 {
+		if err := osutil.WriteFile(filepath.Join(outputDir, "kernel.config"), config); err != nil {
+			return fmt.Errorf("failed to save kernel config: %v", err)
+		}
 	}
 	osutil.RunCmd(10*time.Minute, kernelDir, compiler, "shutdown")
 	return nil
