@@ -27,7 +27,8 @@ func init() {
 }
 
 type Config struct {
-	Count int `json:"count"` // number of VMs to use
+	Count     int    `json:"count"` // number of VMs to use
+	RunscArgs string `json:"runsc_args"`
 }
 
 type Pool struct {
@@ -176,6 +177,7 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 		"-root", inst.rootDir,
 		"-network=none",
 	}
+	args = append(args, strings.Split(inst.cfg.RunscArgs, " ")...)
 	args = append(args, add...)
 	cmd := osutil.Command(inst.image, args...)
 	cmd.Env = []string{
