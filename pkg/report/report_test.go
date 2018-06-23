@@ -26,14 +26,15 @@ func TestParse(t *testing.T) {
 }
 
 type ParseTest struct {
-	FileName  string
-	Log       []byte
-	Title     string
-	StartLine string
-	EndLine   string
-	Corrupted bool
-	HasReport bool
-	Report    []byte
+	FileName   string
+	Log        []byte
+	Title      string
+	StartLine  string
+	EndLine    string
+	Corrupted  bool
+	Suppressed bool
+	HasReport  bool
+	Report     []byte
 }
 
 func testParseFile(t *testing.T, reporter Reporter, fn string) {
@@ -57,10 +58,11 @@ func testParseFile(t *testing.T, reporter Reporter, fn string) {
 		switch phase {
 		case phaseHeaders:
 			const (
-				titlePrefix     = "TITLE: "
-				startPrefix     = "START: "
-				endPrefix       = "END: "
-				corruptedPrefix = "CORRUPTED: "
+				titlePrefix      = "TITLE: "
+				startPrefix      = "START: "
+				endPrefix        = "END: "
+				corruptedPrefix  = "CORRUPTED: "
+				suppressedPrefix = "SUPPRESSED: "
 			)
 			switch ln := s.Text(); {
 			case strings.HasPrefix(ln, "#"):
@@ -77,7 +79,16 @@ func testParseFile(t *testing.T, reporter Reporter, fn string) {
 				case "N":
 					test.Corrupted = false
 				default:
-					t.Fatalf("unknown corrupted value %q", v)
+					t.Fatalf("unknown CORRUPTED value %q", v)
+				}
+			case strings.HasPrefix(ln, suppressedPrefix):
+				switch v := ln[len(suppressedPrefix):]; v {
+				case "Y":
+					test.Suppressed = true
+				case "N":
+					test.Suppressed = false
+				default:
+					t.Fatalf("unknown SUPPRESSED value %q", v)
 				}
 			case ln == "":
 				phase = phaseLog
@@ -124,18 +135,22 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	if rep != nil && rep.Title == "" {
 		t.Fatalf("found crash, but title is empty")
 	}
-	title, corrupted, corruptedReason := "", false, ""
+	title, corrupted, corruptedReason, suppressed := "", false, "", false
 	if rep != nil {
 		title = rep.Title
 		corrupted = rep.Corrupted
 		corruptedReason = rep.corruptedReason
+		suppressed = rep.Suppressed
 	}
-	if title != test.Title || corrupted != test.Corrupted {
+	if title != test.Title || corrupted != test.Corrupted || suppressed != test.Suppressed {
 		if *flagUpdate && test.StartLine == "" && test.EndLine == "" {
 			buf := new(bytes.Buffer)
 			fmt.Fprintf(buf, "TITLE: %v\n", title)
 			if corrupted {
 				fmt.Fprintf(buf, "CORRUPTED: Y\n")
+			}
+			if suppressed {
+				fmt.Fprintf(buf, "SUPPRESSED: Y\n")
 			}
 			fmt.Fprintf(buf, "\n%s", test.Log)
 			if test.HasReport {
@@ -145,8 +160,10 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 				t.Logf("failed to update test file: %v", err)
 			}
 		}
-		t.Fatalf("want:\nTITLE: %s\nCORRUPTED: %v\ngot:\nTITLE: %s\nCORRUPTED: %v (%v)\n",
-			test.Title, test.Corrupted, title, corrupted, corruptedReason)
+		t.Fatalf("want:\nTITLE: %s\nCORRUPTED: %v\nSUPPRESSED: %v\n"+
+			"got:\nTITLE: %s\nCORRUPTED: %v (%v)\nSUPPRESSED: %v\n",
+			test.Title, test.Corrupted, test.Suppressed,
+			title, corrupted, corruptedReason, suppressed)
 	}
 	if title != "" && len(rep.Report) == 0 {
 		t.Fatalf("found crash message but report is empty")
