@@ -306,8 +306,8 @@ utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flag
 clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in])
 
 resource pid[int32]: 0, 0xffffffffffffffff
-resource uid[int32]: 0, 0xffffffffffffffff
-resource gid[int32]: 0, 0xffffffffffffffff
+resource uid[int32]: 0, 0xffffffffffffffff, 0xee00, 0xee01
+resource gid[int32]: 0, 0xffffffffffffffff, 0xee00, 0xee01
 
 getgid() gid
 getegid() gid
