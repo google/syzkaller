@@ -21,9 +21,13 @@ func (gvisor) build(targetArch, vmType, kernelDir, outputDir, compiler, userspac
 	if _, err := osutil.RunCmd(20*time.Minute, kernelDir, compiler, "build", "--verbose_failures", "runsc"); err != nil {
 		return err
 	}
+	// Funny it's not possible to understand what bazel actually built...
 	runsc := filepath.Join(kernelDir, "bazel-bin", "runsc", "linux_amd64_pure_stripped", "runsc")
 	if err := osutil.CopyFile(runsc, filepath.Join(outputDir, "image")); err != nil {
-		return err
+		runsc = filepath.Join(kernelDir, "bazel-bin", "runsc", "linux_amd64_static_race_stripped", "runsc")
+		if err := osutil.CopyFile(runsc, filepath.Join(outputDir, "image")); err != nil {
+			return err
+		}
 	}
 	if len(config) != 0 {
 		if err := osutil.WriteFile(filepath.Join(outputDir, "kernel.config"), config); err != nil {
