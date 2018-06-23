@@ -5,8 +5,8 @@ include <linux/random.h>
 
 resource fd_random[fd]
 
-syz_open_dev$random(dev ptr[in, string["/dev/random"]], id const[0], flags flags[open_flags]) fd_random
-syz_open_dev$urandom(dev ptr[in, string["/dev/urandom"]], id const[0], flags flags[open_flags]) fd_random
+openat$random(fd const[AT_FDCWD], file ptr[in, string["/dev/urandom"]], flags flags[open_flags], mode const[0]) fd_random
+openat$urandom(fd const[AT_FDCWD], file ptr[in, string["/dev/urandom"]], flags flags[open_flags], mode const[0]) fd_random
 
 ioctl$RNDGETENTCNT(fd fd_random, cmd const[RNDGETENTCNT], arg ptr[out, int32])
 ioctl$RNDADDTOENTCNT(fd fd_random, cmd const[RNDADDTOENTCNT], arg ptr[in, int32])

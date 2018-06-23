@@ -2,13 +2,13 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "fb282f1b092787fbad00ac8e1b8c7b09fe9c4508"
+#define SYZ_REVISION "3cc00d5b278c80ccbb69bfb9b2089b9cefd52254"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1997
+#define SYZ_SYSCALL_COUNT 1996
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1317,6 +1317,7 @@ const call_t syscalls[] = {
     {"openat$ppp", 295},
     {"openat$ptmx", 295},
     {"openat$qat_adf_ctl", 295},
+    {"openat$random", 295},
     {"openat$rdma_cm", 295},
     {"openat$rfkill", 295},
     {"openat$rtc", 295},
@@ -1913,7 +1914,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$random", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -1924,7 +1924,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$urandom", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
@@ -2013,13 +2012,13 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "ebc5f87dbeb579da0b2fa1afa8b276abd3d76db7"
+#define SYZ_REVISION "2f499ab1475633090aadc9399405f16e619480e8"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2049
+#define SYZ_SYSCALL_COUNT 2048
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3352,6 +3351,7 @@ const call_t syscalls[] = {
     {"openat$ppp", 257},
     {"openat$ptmx", 257},
     {"openat$qat_adf_ctl", 257},
+    {"openat$random", 257},
     {"openat$rdma_cm", 257},
     {"openat$rfkill", 257},
     {"openat$rtc", 257},
@@ -3976,7 +3976,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$random", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -3987,7 +3986,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$urandom", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
@@ -4076,13 +4074,13 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "feecafc9df92bb96d867216b25547470c3c5df58"
+#define SYZ_REVISION "d373b7418e22d2a44adc3f3621d56ac784732e3c"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2005
+#define SYZ_SYSCALL_COUNT 2004
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5375,6 +5373,7 @@ const call_t syscalls[] = {
     {"openat$ppp", 322},
     {"openat$ptmx", 322},
     {"openat$qat_adf_ctl", 322},
+    {"openat$random", 322},
     {"openat$rdma_cm", 322},
     {"openat$rfkill", 322},
     {"openat$rtc", 322},
@@ -5997,7 +5996,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$random", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -6008,7 +6006,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$urandom", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
@@ -6095,13 +6092,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "2cb4965554b7542cf6dc6680a92afe835ce1734f"
+#define SYZ_REVISION "954a49c1b90d58ca64a0dadec955f9fcf36ba8ab"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1977
+#define SYZ_SYSCALL_COUNT 1976
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -7383,6 +7380,7 @@ const call_t syscalls[] = {
     {"openat$ppp", 56},
     {"openat$ptmx", 56},
     {"openat$qat_adf_ctl", 56},
+    {"openat$random", 56},
     {"openat$rdma_cm", 56},
     {"openat$rfkill", 56},
     {"openat$rtc", 56},
@@ -7992,7 +7990,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$random", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -8003,7 +8000,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$urandom", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
@@ -8086,13 +8082,13 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "49784caa8d5d34e193d979e258ed6b6d04fbfe8a"
+#define SYZ_REVISION "886d52124a6cc12f25a912481c05e19f75a41818"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1866
+#define SYZ_SYSCALL_COUNT 1865
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -9273,6 +9269,7 @@ const call_t syscalls[] = {
     {"openat$ppp", 286},
     {"openat$ptmx", 286},
     {"openat$qat_adf_ctl", 286},
+    {"openat$random", 286},
     {"openat$rdma_cm", 286},
     {"openat$rfkill", 286},
     {"openat$rtc", 286},
@@ -9866,7 +9863,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$random", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -9877,7 +9873,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$urandom", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
