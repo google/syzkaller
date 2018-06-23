@@ -337,7 +337,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	}
 	defer os.RemoveAll(mgrcfg.Workdir)
 	switch typ := mgrcfg.Type; typ {
-	case "gce", "qemu":
+	case "gce", "qemu", "gvisor":
 	default:
 		// Other types don't support creating machines out of thin air.
 		return nil

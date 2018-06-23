@@ -31,7 +31,7 @@ type Env struct {
 
 func NewEnv(cfg *mgrconfig.Config) (*Env, error) {
 	switch cfg.Type {
-	case "gce", "qemu":
+	case "gce", "qemu", "gvisor":
 	default:
 		return nil, fmt.Errorf("test instances can only work with qemu/gce")
 	}
