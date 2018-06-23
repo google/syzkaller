@@ -311,7 +311,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 
 	if env.out != nil {
 		info, err0 = env.readOutCoverage(p)
-		if info != nil {
+		if info != nil && env.config.Flags&FlagSignal == 0 {
 			addFallbackSignal(p, info)
 		}
 	}
