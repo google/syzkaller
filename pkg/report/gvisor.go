@@ -21,6 +21,8 @@ func ctorGvisor(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter
 		"fatal error: runtime: cannot allocate memory",
 		"panic: failed to start executor binary",
 		"panic: executor failed: pthread_create failed",
+		"ERROR: ThreadSanitizer", // Go race failing due to OOM.
+		"FATAL: ThreadSanitizer",
 	}
 	return ctx, suppressions, nil
 }
