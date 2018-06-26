@@ -51,7 +51,6 @@ type Manager struct {
 	corpusDB       *db.DB
 	startTime      time.Time
 	firstConnect   time.Time
-	lastPrioCalc   time.Time
 	fuzzingTime    time.Duration
 	stats          map[string]uint64
 	crashTypes     map[string]bool
