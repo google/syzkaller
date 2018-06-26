@@ -8,7 +8,6 @@ package instance
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -216,20 +215,9 @@ func (inst *inst) testInstance() error {
 	go func() {
 		conn, err := ln.Accept()
 		if err != nil {
-			acceptErr <- err
-			return
+			conn.Close()
 		}
-		defer conn.Close()
-		data, err := ioutil.ReadAll(conn)
-		if err != nil {
-			acceptErr <- err
-			return
-		}
-		if string(data) != "HELLO" {
-			acceptErr <- fmt.Errorf("received bad handshake from VM: %q", string(data))
-			return
-		}
-		acceptErr <- nil
+		acceptErr <- err
 	}()
 	fwdAddr, err := inst.vm.Forward(ln.Addr().(*net.TCPAddr).Port)
 	if err != nil {
