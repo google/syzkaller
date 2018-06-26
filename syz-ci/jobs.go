@@ -228,9 +228,16 @@ func (jp *JobProcessor) test(job *Job) error {
 	if err != nil {
 		return err
 	}
+	// We can have transient errors and other errors of different types.
+	// We need to avoid reporting transient "failed to boot" or "failed to copy binary" errors.
+	// If any of the instances crash during testing, we report this with the highest priority.
+	// Then if any of the runs succeed, we report that (to avoid transient errors).
+	// If all instances failed to boot, then we report one of these errors.
+	anySuccess := false
 	var anyErr, testErr error
 	for _, res := range results {
 		if res == nil {
+			anySuccess = true
 			continue
 		}
 		anyErr = res
@@ -249,6 +256,9 @@ func (jp *JobProcessor) test(job *Job) error {
 			resp.CrashLog = err.Report.Output
 			return nil
 		}
+	}
+	if anySuccess {
+		return nil
 	}
 	if testErr != nil {
 		return testErr
