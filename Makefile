@@ -43,14 +43,13 @@ export CGO_ENABLED=0
 
 ifeq ("$(TARGETOS)", "fuchsia")
 	# SOURCEDIR should point to fuchsia checkout.
-	GO = $(SOURCEDIR)/buildtools/go
+	GO = $(SOURCEDIR)/third_party/go/bin/go
+	export GOROOT=$(SOURCEDIR)/third_party/go
 	export CGO_ENABLED=1
 	ifeq ("$(TARGETARCH)", "amd64")
-		export GOROOT=$(SOURCEDIR)/out/debug-x64/goroot
 		# Required by the goroot.
 		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-x64
 	else ifeq ("$(TARGETARCH)", "arm64")
-		export GOROOT=$(SOURCEDIR)/out/debug-arm64/goroot
 		# Required by the goroot.
 		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-arm64
 	endif
