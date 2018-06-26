@@ -128,6 +128,7 @@ func checkSimpleProgram(args *checkArgs) error {
 	if err != nil {
 		return fmt.Errorf("failed to create ipc env: %v", err)
 	}
+	defer env.Close()
 	p := args.target.GenerateSimpleProg()
 	output, info, failed, hanged, err := env.Exec(args.ipcExecOpts, p)
 	if err != nil {
@@ -138,6 +139,11 @@ func checkSimpleProgram(args *checkArgs) error {
 	}
 	if failed {
 		return fmt.Errorf("program failed:\n%s", output)
+	}
+	if args.ipcConfig.Flags&ipc.FlagUseShmem == 0 {
+		// Output is currently only supported via shmem.
+		// So if we are using pipes, we won't get any info.
+		return nil
 	}
 	if len(info) == 0 {
 		return fmt.Errorf("no calls executed:\n%s", output)
