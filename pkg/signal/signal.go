@@ -28,6 +28,33 @@ func (s Signal) Empty() bool {
 	return len(s) == 0
 }
 
+func (s Signal) Copy() Signal {
+	c := make(Signal, len(s))
+	for e, p := range s {
+		c[e] = p
+	}
+	return c
+}
+
+func (s *Signal) Split(n int) Signal {
+	if s.Empty() {
+		return nil
+	}
+	c := make(Signal, n)
+	for e, p := range *s {
+		delete(*s, e)
+		c[e] = p
+		n--
+		if n == 0 {
+			break
+		}
+	}
+	if len(*s) == 0 {
+		*s = nil
+	}
+	return c
+}
+
 func FromRaw(raw []uint32, prio uint8) Signal {
 	if len(raw) == 0 {
 		return nil

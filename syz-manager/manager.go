@@ -863,47 +863,15 @@ func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error
 	}
 	mgr.fuzzers[a.Name] = f
 	mgr.minimizeCorpus()
-
-	if mgr.prios == nil || time.Since(mgr.lastPrioCalc) > 30*time.Minute {
-		// Deserializing all programs is slow, so we do it episodically and without holding the mutex.
-		mgr.lastPrioCalc = time.Now()
-		inputs := make([][]byte, 0, len(mgr.corpus))
-		for _, inp := range mgr.corpus {
-			inputs = append(inputs, inp.Prog)
-		}
-		mgr.mu.Unlock()
-
-		corpus := make([]*prog.Prog, 0, len(inputs))
-		for _, inp := range inputs {
-			p, err := mgr.target.Deserialize(inp)
-			if err != nil {
-				panic(err)
-			}
-			corpus = append(corpus, p)
-		}
-		prios := mgr.target.CalculatePriorities(corpus)
-
-		mgr.mu.Lock()
-		mgr.prios = prios
-	}
-
+	f.newMaxSignal = mgr.maxSignal.Copy()
+	f.inputs = make([]rpctype.RPCInput, 0, len(mgr.corpus))
 	for _, inp := range mgr.corpus {
-		r.Inputs = append(r.Inputs, inp)
+		f.inputs = append(f.inputs, inp)
 	}
-	r.Prios = mgr.prios
 	r.EnabledCalls = mgr.enabledSyscalls
 	r.CheckResult = mgr.checkResult
-	r.MaxSignal = mgr.maxSignal.Serialize()
 	r.GitRevision = sys.GitRevision
 	r.TargetRevision = mgr.target.Revision
-	for i := 0; i < mgr.cfg.Procs && len(mgr.candidates) > 0; i++ {
-		last := len(mgr.candidates) - 1
-		r.Candidates = append(r.Candidates, mgr.candidates[last])
-		mgr.candidates = mgr.candidates[:last]
-	}
-	if len(mgr.candidates) == 0 {
-		mgr.candidates = nil
-	}
 	return nil
 }
 
@@ -1014,37 +982,42 @@ func (mgr *Manager) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 			f1.newMaxSignal.Merge(newMaxSignal)
 		}
 	}
-	if !f.newMaxSignal.Empty() {
-		r.MaxSignal = f.newMaxSignal.Serialize()
-		f.newMaxSignal = nil
+	r.MaxSignal = f.newMaxSignal.Split(500).Serialize()
+	maxInputs := 5
+	if maxInputs < mgr.cfg.Procs {
+		maxInputs = mgr.cfg.Procs
 	}
-	for i := 0; i < 100 && len(f.inputs) > 0; i++ {
-		last := len(f.inputs) - 1
-		r.NewInputs = append(r.NewInputs, f.inputs[last])
-		f.inputs = f.inputs[:last]
-	}
-	if len(f.inputs) == 0 {
-		f.inputs = nil
-	}
-
 	if a.NeedCandidates {
-		for i := 0; i < mgr.cfg.Procs && len(mgr.candidates) > 0; i++ {
+		for i := 0; i < maxInputs && len(mgr.candidates) > 0; i++ {
 			last := len(mgr.candidates) - 1
 			r.Candidates = append(r.Candidates, mgr.candidates[last])
+			mgr.candidates[last] = rpctype.RPCCandidate{}
 			mgr.candidates = mgr.candidates[:last]
 		}
-	}
-	if len(mgr.candidates) == 0 {
-		mgr.candidates = nil
-		if mgr.phase == phaseLoadedCorpus {
-			if mgr.cfg.HubClient != "" {
-				mgr.phase = phaseTriagedCorpus
-			} else {
-				mgr.phase = phaseTriagedHub
+		if len(mgr.candidates) == 0 {
+			mgr.candidates = nil
+			if mgr.phase == phaseLoadedCorpus {
+				if mgr.cfg.HubClient != "" {
+					mgr.phase = phaseTriagedCorpus
+				} else {
+					mgr.phase = phaseTriagedHub
+				}
 			}
 		}
 	}
-	log.Logf(4, "poll from %v: candidates=%v inputs=%v", a.Name, len(r.Candidates), len(r.NewInputs))
+	if len(r.Candidates) == 0 {
+		for i := 0; i < maxInputs && len(f.inputs) > 0; i++ {
+			last := len(f.inputs) - 1
+			r.NewInputs = append(r.NewInputs, f.inputs[last])
+			f.inputs[last] = rpctype.RPCInput{}
+			f.inputs = f.inputs[:last]
+		}
+		if len(f.inputs) == 0 {
+			f.inputs = nil
+		}
+	}
+	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
+		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
 	return nil
 }
 

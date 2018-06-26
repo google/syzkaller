@@ -289,7 +289,7 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
 	maxSeq := st.corpusSeq
 	more := 0
 	// Send at most that many records (rounded up to next seq number).
-	const maxRecords = 1000
+	const maxRecords = 100
 	if len(records) > maxRecords {
 		sort.Sort(recordSeqSorter(records))
 		pos := maxRecords
