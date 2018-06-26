@@ -596,11 +596,6 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "policy", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "zx_policy_basic"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 8}}, Buf: "policy"},
 	}},
-	{Name: "zx_job_set_relative_importance", CallName: "zx_job_set_relative_importance", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "res", TypeSize: 4}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_job", FldName: "job", TypeSize: 4}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_job", FldName: "less_important_job", TypeSize: 4}},
-	}},
 	{Name: "zx_log_create", CallName: "zx_log_create", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "log_create_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1073741824}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_log", TypeSize: 4, ArgDir: 1}}},
@@ -1203,4 +1198,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_amd64 = "5c60584793306c995f51b459bc98d260d6af8fd2"
+const revision_amd64 = "645dbfff12afae9426af03afc23a64312ae0df1d"

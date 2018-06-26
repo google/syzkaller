@@ -2,13 +2,13 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "5c60584793306c995f51b459bc98d260d6af8fd2"
+#define SYZ_REVISION "645dbfff12afae9426af03afc23a64312ae0df1d"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 157
+#define SYZ_SYSCALL_COUNT 156
 const call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -91,7 +91,6 @@ const call_t syscalls[] = {
     {"zx_handle_replace", 0, (syscall_t)zx_handle_replace},
     {"zx_job_create", 0, (syscall_t)zx_job_create},
     {"zx_job_set_policy", 0, (syscall_t)zx_job_set_policy},
-    {"zx_job_set_relative_importance", 0, (syscall_t)zx_job_set_relative_importance},
     {"zx_log_create", 0, (syscall_t)zx_log_create},
     {"zx_log_read", 0, (syscall_t)zx_log_read},
     {"zx_log_write", 0, (syscall_t)zx_log_write},
@@ -173,13 +172,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "2e963a82bfbf3c29beae3fc949984472c9ef3512"
+#define SYZ_REVISION "69d0a813384bec892b44830fd5ae59c04a46023e"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 157
+#define SYZ_SYSCALL_COUNT 156
 const call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -262,7 +261,6 @@ const call_t syscalls[] = {
     {"zx_handle_replace", 0, (syscall_t)zx_handle_replace},
     {"zx_job_create", 0, (syscall_t)zx_job_create},
     {"zx_job_set_policy", 0, (syscall_t)zx_job_set_policy},
-    {"zx_job_set_relative_importance", 0, (syscall_t)zx_job_set_relative_importance},
     {"zx_log_create", 0, (syscall_t)zx_log_create},
     {"zx_log_read", 0, (syscall_t)zx_log_read},
     {"zx_log_write", 0, (syscall_t)zx_log_write},
