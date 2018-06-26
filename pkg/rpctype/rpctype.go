@@ -28,10 +28,6 @@ type ConnectArgs struct {
 }
 
 type ConnectRes struct {
-	Prios          [][]float32
-	Inputs         []RPCInput
-	MaxSignal      signal.Serial
-	Candidates     []RPCCandidate
 	EnabledCalls   []int
 	GitRevision    string
 	TargetRevision string

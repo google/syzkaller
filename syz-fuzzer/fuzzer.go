@@ -205,11 +205,6 @@ func main() {
 	if r.CheckResult.Features[host.FeatureFaultInjection].Enabled {
 		config.Flags |= ipc.FlagEnableFault
 	}
-	calls := make(map[*prog.Syscall]bool)
-	for _, id := range r.CheckResult.EnabledCalls {
-		calls[target.Syscalls[id]] = true
-	}
-	ct := target.BuildChoiceTable(r.Prios, calls)
 
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
@@ -218,38 +213,23 @@ func main() {
 		outputType:               outputType,
 		config:                   config,
 		execOpts:                 execOpts,
+		gate:                     ipc.NewGate(2**flagProcs, periodicCallback),
 		workQueue:                newWorkQueue(*flagProcs, needPoll),
 		needPoll:                 needPoll,
-		choiceTable:              ct,
 		manager:                  manager,
 		target:                   target,
 		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFaultInjection].Enabled,
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
 	}
-	fuzzer.gate = ipc.NewGate(2**flagProcs, periodicCallback)
-
-	for _, inp := range r.Inputs {
-		fuzzer.addInputFromAnotherFuzzer(inp)
+	for i := 0; fuzzer.poll(i == 0, nil); i++ {
 	}
-	fuzzer.addMaxSignal(r.MaxSignal.Deserialize())
-	for _, candidate := range r.Candidates {
-		p, err := fuzzer.target.Deserialize(candidate.Prog)
-		if err != nil {
-			log.Fatalf("failed to deserialize program: %v", err)
-		}
-		flags := ProgCandidate
-		if candidate.Minimized {
-			flags |= ProgMinimized
-		}
-		if candidate.Smashed {
-			flags |= ProgSmashed
-		}
-		fuzzer.workQueue.enqueue(&WorkCandidate{
-			p:     p,
-			flags: flags,
-		})
+	calls := make(map[*prog.Syscall]bool)
+	for _, id := range r.CheckResult.EnabledCalls {
+		calls[target.Syscalls[id]] = true
 	}
+	prios := target.CalculatePriorities(fuzzer.corpus)
+	fuzzer.choiceTable = target.BuildChoiceTable(prios, calls)
 
 	for pid := 0; pid < *flagProcs; pid++ {
 		proc, err := newProc(fuzzer, pid)
@@ -285,57 +265,59 @@ func (fuzzer *Fuzzer) pollLoop() {
 			if poll && !needCandidates {
 				continue
 			}
-
-			a := &rpctype.PollArgs{
-				Name:           fuzzer.name,
-				NeedCandidates: needCandidates,
-				Stats:          make(map[string]uint64),
-			}
-			a.MaxSignal = fuzzer.grabNewSignal().Serialize()
+			stats := make(map[string]uint64)
 			for _, proc := range fuzzer.procs {
-				a.Stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
-				a.Stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
+				stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
+				stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
 			}
-
 			for stat := Stat(0); stat < StatCount; stat++ {
 				v := atomic.SwapUint64(&fuzzer.stats[stat], 0)
-				a.Stats[statNames[stat]] = v
+				stats[statNames[stat]] = v
 				execTotal += v
 			}
-
-			r := &rpctype.PollRes{}
-			if err := fuzzer.manager.Call("Manager.Poll", a, r); err != nil {
-				log.Fatalf("Manager.Poll call failed: %v", err)
-			}
-			maxSignal := r.MaxSignal.Deserialize()
-			log.Logf(1, "poll: candidates=%v inputs=%v signal=%v",
-				len(r.Candidates), len(r.NewInputs), maxSignal.Len())
-			fuzzer.addMaxSignal(maxSignal)
-			for _, inp := range r.NewInputs {
-				fuzzer.addInputFromAnotherFuzzer(inp)
-			}
-			for _, candidate := range r.Candidates {
-				p, err := fuzzer.target.Deserialize(candidate.Prog)
-				if err != nil {
-					log.Fatalf("failed to parse program from manager: %v", err)
-				}
-				flags := ProgCandidate
-				if candidate.Minimized {
-					flags |= ProgMinimized
-				}
-				if candidate.Smashed {
-					flags |= ProgSmashed
-				}
-				fuzzer.workQueue.enqueue(&WorkCandidate{
-					p:     p,
-					flags: flags,
-				})
-			}
-			if len(r.NewInputs) == 0 && len(r.Candidates) == 0 {
+			if !fuzzer.poll(needCandidates, stats) {
 				lastPoll = time.Now()
 			}
 		}
 	}
+}
+
+func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
+	a := &rpctype.PollArgs{
+		Name:           fuzzer.name,
+		NeedCandidates: needCandidates,
+		MaxSignal:      fuzzer.grabNewSignal().Serialize(),
+		Stats:          stats,
+	}
+	r := &rpctype.PollRes{}
+	if err := fuzzer.manager.Call("Manager.Poll", a, r); err != nil {
+		log.Fatalf("Manager.Poll call failed: %v", err)
+	}
+	maxSignal := r.MaxSignal.Deserialize()
+	log.Logf(1, "poll: candidates=%v inputs=%v signal=%v",
+		len(r.Candidates), len(r.NewInputs), maxSignal.Len())
+	fuzzer.addMaxSignal(maxSignal)
+	for _, inp := range r.NewInputs {
+		fuzzer.addInputFromAnotherFuzzer(inp)
+	}
+	for _, candidate := range r.Candidates {
+		p, err := fuzzer.target.Deserialize(candidate.Prog)
+		if err != nil {
+			log.Fatalf("failed to parse program from manager: %v", err)
+		}
+		flags := ProgCandidate
+		if candidate.Minimized {
+			flags |= ProgMinimized
+		}
+		if candidate.Smashed {
+			flags |= ProgSmashed
+		}
+		fuzzer.workQueue.enqueue(&WorkCandidate{
+			p:     p,
+			flags: flags,
+		})
+	}
+	return len(r.NewInputs) != 0 || len(r.Candidates) != 0 || maxSignal.Len() != 0
 }
 
 func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.RPCInput) {
