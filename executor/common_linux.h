@@ -371,18 +371,21 @@ static void initialize_tun(void)
 	debug("tun_frags_enabled=%d\n", tun_frags_enabled);
 
 	// Disable IPv6 DAD, otherwise the address remains unusable until DAD completes.
-	execute_command(1, "sysctl -w net.ipv6.conf.%s.accept_dad=0", TUN_IFACE);
+	// Don't panic because this is an optional config.
+	execute_command(0, "sysctl -w net.ipv6.conf.%s.accept_dad=0", TUN_IFACE);
 
 	// Disable IPv6 router solicitation to prevent IPv6 spam.
-	execute_command(1, "sysctl -w net.ipv6.conf.%s.router_solicitations=0", TUN_IFACE);
+	// Don't panic because this is an optional config.
+	execute_command(0, "sysctl -w net.ipv6.conf.%s.router_solicitations=0", TUN_IFACE);
 	// There seems to be no way to disable IPv6 MTD to prevent more IPv6 spam.
 
 	execute_command(1, "ip link set dev %s address %s", TUN_IFACE, LOCAL_MAC);
 	execute_command(1, "ip addr add %s/24 dev %s", LOCAL_IPV4, TUN_IFACE);
-	execute_command(1, "ip -6 addr add %s/120 dev %s", LOCAL_IPV6, TUN_IFACE);
 	execute_command(1, "ip neigh add %s lladdr %s dev %s nud permanent",
 			REMOTE_IPV4, REMOTE_MAC, TUN_IFACE);
-	execute_command(1, "ip -6 neigh add %s lladdr %s dev %s nud permanent",
+	// Don't panic because ipv6 may be not enabled in kernel.
+	execute_command(0, "ip -6 addr add %s/120 dev %s", LOCAL_IPV6, TUN_IFACE);
+	execute_command(0, "ip -6 neigh add %s lladdr %s dev %s nud permanent",
 			REMOTE_IPV6, REMOTE_MAC, TUN_IFACE);
 	execute_command(1, "ip link set dev %s up", TUN_IFACE);
 }
