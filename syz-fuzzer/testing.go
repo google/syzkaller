@@ -33,9 +33,6 @@ func testImage(hostAddr string, args *checkArgs) {
 	if err != nil {
 		log.Fatalf("failed to connect: %v", err)
 	}
-	if _, err := conn.Write([]byte("HELLO")); err != nil {
-		log.Fatalf("failed to write to host: %v", err)
-	}
 	conn.Close()
 	if _, err := checkMachine(args); err != nil {
 		log.Fatalf("%v", err)
