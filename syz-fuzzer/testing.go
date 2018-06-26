@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
@@ -30,9 +29,12 @@ type checkArgs struct {
 
 func testImage(hostAddr string, args *checkArgs) {
 	log.Logf(0, "connecting to host at %v", hostAddr)
-	conn, err := net.Dial("tcp", hostAddr)
+	conn, err := rpctype.Dial(hostAddr)
 	if err != nil {
 		log.Fatalf("failed to connect: %v", err)
+	}
+	if _, err := conn.Write([]byte("HELLO")); err != nil {
+		log.Fatalf("failed to write to host: %v", err)
 	}
 	conn.Close()
 	if _, err := checkMachine(args); err != nil {

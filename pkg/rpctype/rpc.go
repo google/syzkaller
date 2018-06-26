@@ -56,20 +56,25 @@ type RPCClient struct {
 	c    *rpc.Client
 }
 
-func NewRPCClient(addr string) (*RPCClient, error) {
+func Dial(addr string) (net.Conn, error) {
 	var conn net.Conn
 	var err error
 	if addr == "stdin" {
 		// This is used by vm/gvisor which passes us a unix socket connection in stdin.
-		if conn, err = net.FileConn(os.Stdin); err != nil {
-			return nil, err
-		}
-	} else {
-		if conn, err = net.DialTimeout("tcp", addr, 60*time.Second); err != nil {
-			return nil, err
-		}
-		conn.(*net.TCPConn).SetKeepAlive(true)
-		conn.(*net.TCPConn).SetKeepAlivePeriod(time.Minute)
+		return net.FileConn(os.Stdin)
+	}
+	if conn, err = net.DialTimeout("tcp", addr, 60*time.Second); err != nil {
+		return nil, err
+	}
+	conn.(*net.TCPConn).SetKeepAlive(true)
+	conn.(*net.TCPConn).SetKeepAlivePeriod(time.Minute)
+	return conn, nil
+}
+
+func NewRPCClient(addr string) (*RPCClient, error) {
+	conn, err := Dial(addr)
+	if err != nil {
+		return nil, err
 	}
 	cli := &RPCClient{
 		conn: conn,
