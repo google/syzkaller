@@ -12,10 +12,10 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/build"
-	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
@@ -185,16 +185,16 @@ func (jp *JobProcessor) test(job *Job) error {
 	}
 
 	log.Logf(0, "job: fetching kernel...")
-	var kernelCommit *git.Commit
-	if git.CheckCommitHash(req.KernelBranch) {
-		kernelCommit, err = git.CheckoutCommit(kernelDir, req.KernelRepo, req.KernelBranch)
+	var kernelCommit *vcs.Commit
+	if vcs.CheckCommitHash(req.KernelBranch) {
+		kernelCommit, err = vcs.CheckoutCommit(kernelDir, req.KernelRepo, req.KernelBranch)
 		if err != nil {
 			return fmt.Errorf("failed to checkout kernel repo %v on commit %v: %v",
 				req.KernelRepo, req.KernelBranch, err)
 		}
 		resp.Build.KernelBranch = ""
 	} else {
-		kernelCommit, err = git.CheckoutBranch(kernelDir, req.KernelRepo, req.KernelBranch)
+		kernelCommit, err = vcs.CheckoutBranch(kernelDir, req.KernelRepo, req.KernelBranch)
 		if err != nil {
 			return fmt.Errorf("failed to checkout kernel repo %v/%v: %v",
 				req.KernelRepo, req.KernelBranch, err)
@@ -208,7 +208,7 @@ func (jp *JobProcessor) test(job *Job) error {
 		return fmt.Errorf("kernel clean failed: %v", err)
 	}
 	if len(req.Patch) != 0 {
-		if err := git.Patch(kernelDir, req.Patch); err != nil {
+		if err := vcs.Patch(kernelDir, req.Patch); err != nil {
 			return err
 		}
 	}

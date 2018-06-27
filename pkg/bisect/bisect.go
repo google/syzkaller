@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/build"
-	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
@@ -51,7 +51,7 @@ type ReproConfig struct {
 
 type env struct {
 	cfg       *Config
-	head      *git.Commit
+	head      *vcs.Commit
 	inst      *instance.Env
 	numTests  int
 	buildTime time.Duration
@@ -62,7 +62,7 @@ type buildEnv struct {
 	compiler string
 }
 
-func Run(cfg *Config) (*git.Commit, error) {
+func Run(cfg *Config) (*vcs.Commit, error) {
 	env := &env{
 		cfg: cfg,
 	}
@@ -92,13 +92,13 @@ func Run(cfg *Config) (*git.Commit, error) {
 	return res, nil
 }
 
-func (env *env) bisect() (*git.Commit, error) {
+func (env *env) bisect() (*vcs.Commit, error) {
 	cfg := env.cfg
 	var err error
 	if env.inst, err = instance.NewEnv(&cfg.Manager); err != nil {
 		return nil, err
 	}
-	if env.head, err = git.Poll(cfg.Manager.KernelSrc, cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
+	if env.head, err = vcs.Poll(cfg.Manager.KernelSrc, cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
 		return nil, err
 	}
 	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetArch,
@@ -109,12 +109,12 @@ func (env *env) bisect() (*git.Commit, error) {
 	if err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
 		return nil, err
 	}
-	if _, err := git.SwitchCommit(cfg.Manager.KernelSrc, cfg.Kernel.Commit); err != nil {
+	if _, err := vcs.SwitchCommit(cfg.Manager.KernelSrc, cfg.Kernel.Commit); err != nil {
 		return nil, err
 	}
 	if res, err := env.test(); err != nil {
 		return nil, err
-	} else if res != git.BisectBad {
+	} else if res != vcs.BisectBad {
 		return nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
 	}
 	res, bad, good, err := env.commitRange()
@@ -127,44 +127,44 @@ func (env *env) bisect() (*git.Commit, error) {
 	if good == "" {
 		return nil, nil // still not fixed
 	}
-	return git.Bisect(cfg.Manager.KernelSrc, bad, good, cfg.Trace, func() (git.BisectResult, error) {
+	return vcs.Bisect(cfg.Manager.KernelSrc, bad, good, cfg.Trace, func() (vcs.BisectResult, error) {
 		res, err := env.test()
 		if cfg.Fix {
-			if res == git.BisectBad {
-				res = git.BisectGood
-			} else if res == git.BisectGood {
-				res = git.BisectBad
+			if res == vcs.BisectBad {
+				res = vcs.BisectGood
+			} else if res == vcs.BisectGood {
+				res = vcs.BisectBad
 			}
 		}
 		return res, err
 	})
 }
 
-func (env *env) commitRange() (*git.Commit, string, string, error) {
+func (env *env) commitRange() (*vcs.Commit, string, string, error) {
 	if env.cfg.Fix {
 		return env.commitRangeForFix()
 	}
 	return env.commitRangeForBug()
 }
 
-func (env *env) commitRangeForFix() (*git.Commit, string, string, error) {
+func (env *env) commitRangeForFix() (*vcs.Commit, string, string, error) {
 	env.log("testing current HEAD %v", env.head.Hash)
-	if _, err := git.SwitchCommit(env.cfg.Manager.KernelSrc, env.head.Hash); err != nil {
+	if _, err := vcs.SwitchCommit(env.cfg.Manager.KernelSrc, env.head.Hash); err != nil {
 		return nil, "", "", err
 	}
 	res, err := env.test()
 	if err != nil {
 		return nil, "", "", err
 	}
-	if res != git.BisectGood {
+	if res != vcs.BisectGood {
 		return nil, "", "", nil
 	}
 	return nil, env.head.Hash, env.cfg.Kernel.Commit, nil
 }
 
-func (env *env) commitRangeForBug() (*git.Commit, string, string, error) {
+func (env *env) commitRangeForBug() (*vcs.Commit, string, string, error) {
 	cfg := env.cfg
-	tags, err := git.PreviousReleaseTags(cfg.Manager.KernelSrc, cfg.Kernel.Commit)
+	tags, err := vcs.PreviousReleaseTags(cfg.Manager.KernelSrc, cfg.Kernel.Commit)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -183,7 +183,7 @@ func (env *env) commitRangeForBug() (*git.Commit, string, string, error) {
 	lastBad := cfg.Kernel.Commit
 	for i, tag := range tags {
 		env.log("testing release %v", tag)
-		commit, err := git.SwitchCommit(cfg.Manager.KernelSrc, tag)
+		commit, err := vcs.SwitchCommit(cfg.Manager.KernelSrc, tag)
 		if err != nil {
 			return nil, "", "", err
 		}
@@ -191,10 +191,10 @@ func (env *env) commitRangeForBug() (*git.Commit, string, string, error) {
 		if err != nil {
 			return nil, "", "", err
 		}
-		if res == git.BisectGood {
+		if res == vcs.BisectGood {
 			return nil, lastBad, tag, nil
 		}
-		if res == git.BisectBad {
+		if res == vcs.BisectBad {
 			lastBad = tag
 		}
 		if i == len(tags)-1 {
@@ -204,10 +204,10 @@ func (env *env) commitRangeForBug() (*git.Commit, string, string, error) {
 	panic("unreachable")
 }
 
-func (env *env) test() (git.BisectResult, error) {
+func (env *env) test() (vcs.BisectResult, error) {
 	cfg := env.cfg
 	env.numTests++
-	current, err := git.HeadCommit(cfg.Manager.KernelSrc)
+	current, err := vcs.HeadCommit(cfg.Manager.KernelSrc)
 	if err != nil {
 		return 0, err
 	}
@@ -235,26 +235,26 @@ func (env *env) test() (git.BisectResult, error) {
 		} else {
 			env.log("%v", err)
 		}
-		return git.BisectSkip, nil
+		return vcs.BisectSkip, nil
 	}
 	testStart := time.Now()
 	results, err := env.inst.Test(8, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
 	env.testTime += time.Since(testStart)
 	if err != nil {
 		env.log("failed: %v", err)
-		return git.BisectSkip, nil
+		return vcs.BisectSkip, nil
 	}
 	bad, good := env.processResults(current, results)
-	res := git.BisectSkip
+	res := vcs.BisectSkip
 	if bad != 0 {
-		res = git.BisectBad
+		res = vcs.BisectBad
 	} else if good != 0 {
-		res = git.BisectGood
+		res = vcs.BisectGood
 	}
 	return res, nil
 }
 
-func (env *env) processResults(current *git.Commit, results []error) (bad, good int) {
+func (env *env) processResults(current *vcs.Commit, results []error) (bad, good int) {
 	var verdicts []string
 	for i, res := range results {
 		if res == nil {
@@ -303,7 +303,7 @@ func (env *env) processResults(current *git.Commit, results []error) (bad, good 
 // Note: linux-specific.
 func (env *env) buildEnvForCommit(commit string) (*buildEnv, error) {
 	cfg := env.cfg
-	tags, err := git.PreviousReleaseTags(cfg.Manager.KernelSrc, commit)
+	tags, err := vcs.PreviousReleaseTags(cfg.Manager.KernelSrc, commit)
 	if err != nil {
 		return nil, err
 	}

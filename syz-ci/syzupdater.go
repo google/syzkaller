@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
@@ -186,7 +186,7 @@ func (upd *SyzUpdater) UpdateAndRestart() {
 }
 
 func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
-	commit, err := git.Poll(upd.syzkallerDir, upd.repo, upd.branch)
+	commit, err := vcs.Poll(upd.syzkallerDir, upd.repo, upd.branch)
 	if err != nil {
 		log.Logf(0, "syzkaller: failed to poll: %v", err)
 	} else {
@@ -203,7 +203,7 @@ func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 }
 
 func (upd *SyzUpdater) build() error {
-	commit, err := git.HeadCommit(upd.syzkallerDir)
+	commit, err := vcs.HeadCommit(upd.syzkallerDir)
 	if err != nil {
 		return fmt.Errorf("failed to get HEAD commit: %v", err)
 	}
