@@ -30,8 +30,9 @@ const (
 // Additionally it updates and restarts the current executable as necessary.
 // Current executable is always built on the same revision as the rest of syzkaller binaries.
 type SyzUpdater struct {
+	repo         vcs.Repo
 	exe          string
-	repo         string
+	repoAddress  string
 	branch       string
 	descriptions string
 	gopathDir    string
@@ -86,10 +87,10 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	for f := range files {
 		syzFiles[f] = true
 	}
-
 	return &SyzUpdater{
+		repo:         vcs.NewSyzkallerRepo(syzkallerDir),
 		exe:          exe,
-		repo:         cfg.SyzkallerRepo,
+		repoAddress:  cfg.SyzkallerRepo,
 		branch:       cfg.SyzkallerBranch,
 		descriptions: cfg.SyzkallerDescriptions,
 		gopathDir:    gopath,
@@ -186,27 +187,23 @@ func (upd *SyzUpdater) UpdateAndRestart() {
 }
 
 func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
-	commit, err := vcs.Poll(upd.syzkallerDir, upd.repo, upd.branch)
+	commit, err := upd.repo.Poll(upd.repoAddress, upd.branch)
 	if err != nil {
 		log.Logf(0, "syzkaller: failed to poll: %v", err)
-	} else {
-		log.Logf(0, "syzkaller: poll: %v (%v)", commit.Hash, commit.Title)
-		if lastCommit != commit.Hash {
-			log.Logf(0, "syzkaller: building ...")
-			lastCommit = commit.Hash
-			if err := upd.build(); err != nil {
-				log.Logf(0, "syzkaller: %v", err)
-			}
+		return lastCommit
+	}
+	log.Logf(0, "syzkaller: poll: %v (%v)", commit.Hash, commit.Title)
+	if lastCommit != commit.Hash {
+		log.Logf(0, "syzkaller: building ...")
+		lastCommit = commit.Hash
+		if err := upd.build(commit); err != nil {
+			log.Logf(0, "syzkaller: %v", err)
 		}
 	}
 	return lastCommit
 }
 
-func (upd *SyzUpdater) build() error {
-	commit, err := vcs.HeadCommit(upd.syzkallerDir)
-	if err != nil {
-		return fmt.Errorf("failed to get HEAD commit: %v", err)
-	}
+func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	if upd.descriptions != "" {
 		files, err := ioutil.ReadDir(upd.descriptions)
 		if err != nil {

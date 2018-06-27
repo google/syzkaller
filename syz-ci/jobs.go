@@ -185,16 +185,20 @@ func (jp *JobProcessor) test(job *Job) error {
 	}
 
 	log.Logf(0, "job: fetching kernel...")
+	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, kernelDir)
+	if err != nil {
+		return fmt.Errorf("failed to create kernel repo: %v", err)
+	}
 	var kernelCommit *vcs.Commit
 	if vcs.CheckCommitHash(req.KernelBranch) {
-		kernelCommit, err = vcs.CheckoutCommit(kernelDir, req.KernelRepo, req.KernelBranch)
+		kernelCommit, err = repo.CheckoutCommit(req.KernelRepo, req.KernelBranch)
 		if err != nil {
 			return fmt.Errorf("failed to checkout kernel repo %v on commit %v: %v",
 				req.KernelRepo, req.KernelBranch, err)
 		}
 		resp.Build.KernelBranch = ""
 	} else {
-		kernelCommit, err = vcs.CheckoutBranch(kernelDir, req.KernelRepo, req.KernelBranch)
+		kernelCommit, err = repo.CheckoutBranch(req.KernelRepo, req.KernelBranch)
 		if err != nil {
 			return fmt.Errorf("failed to checkout kernel repo %v/%v: %v",
 				req.KernelRepo, req.KernelBranch, err)
