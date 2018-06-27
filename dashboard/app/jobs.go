@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
-	"github.com/google/syzkaller/pkg/git"
+	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -85,9 +85,9 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 	}
 
 	switch {
-	case !git.CheckRepoAddress(repo):
+	case !vcs.CheckRepoAddress(repo):
 		return fmt.Sprintf("%q does not look like a valid git repo address.", repo), nil
-	case !git.CheckBranch(branch) && !git.CheckCommitHash(branch):
+	case !vcs.CheckBranch(branch) && !vcs.CheckCommitHash(branch):
 		return fmt.Sprintf("%q does not look like a valid git branch or commit.", branch), nil
 	case crash.ReproC == 0 && crash.ReproSyz == 0:
 		return "This crash does not have a reproducer. I cannot test it.", nil

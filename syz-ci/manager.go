@@ -13,12 +13,12 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
@@ -147,7 +147,7 @@ loop:
 	for {
 		if time.Since(nextBuildTime) >= 0 {
 			rebuildAfter := buildRetryPeriod
-			commit, err := git.Poll(mgr.kernelDir, mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
+			commit, err := vcs.Poll(mgr.kernelDir, mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
 			if err != nil {
 				mgr.Errorf("failed to poll: %v", err)
 			} else {
@@ -237,7 +237,7 @@ func (mgr *Manager) checkLatest() *BuildInfo {
 }
 
 func (mgr *Manager) build() error {
-	kernelCommit, err := git.HeadCommit(mgr.kernelDir)
+	kernelCommit, err := vcs.HeadCommit(mgr.kernelDir)
 	if err != nil {
 		return fmt.Errorf("failed to get git HEAD commit: %v", err)
 	}
@@ -535,16 +535,16 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixComm
 	}
 	var present []string
 	if len(resp.PendingCommits) != 0 {
-		commits, err := git.ListRecentCommits(mgr.kernelDir, buildCommit)
+		commits, err := vcs.ListRecentCommits(mgr.kernelDir, buildCommit)
 		if err != nil {
 			return nil, nil, err
 		}
 		m := make(map[string]bool, len(commits))
 		for _, com := range commits {
-			m[git.CanonicalizeCommit(com)] = true
+			m[vcs.CanonicalizeCommit(com)] = true
 		}
 		for _, com := range resp.PendingCommits {
-			if m[git.CanonicalizeCommit(com)] {
+			if m[vcs.CanonicalizeCommit(com)] {
 				present = append(present, com)
 			}
 		}
@@ -554,7 +554,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixComm
 		// TODO(dvyukov): mmots contains weird squashed commits titled "linux-next" or "origin",
 		// which contain hundreds of other commits. This makes fix attribution totally broken.
 		if mgr.mgrcfg.Repo != "git://git.cmpxchg.org/linux-mmots.git" {
-			commits, err := git.ExtractFixTagsFromCommits(mgr.kernelDir, buildCommit, resp.ReportEmail)
+			commits, err := vcs.ExtractFixTagsFromCommits(mgr.kernelDir, buildCommit, resp.ReportEmail)
 			if err != nil {
 				return nil, nil, err
 			}
