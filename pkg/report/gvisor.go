@@ -19,6 +19,7 @@ func ctorGvisor(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter
 	suppressions := []string{
 		"fatal error: runtime: out of memory",
 		"fatal error: runtime: cannot allocate memory",
+		"panic: ptrace sysemu failed: no such process", // OOM kill
 		"panic: failed to start executor binary",
 		"panic: executor failed: pthread_create failed",
 		"ERROR: ThreadSanitizer", // Go race failing due to OOM.
