@@ -1,35 +1,87 @@
-TITLE: Supervisor Page Fault
+TITLE: Supervisor fault
 
+[00171.272] 01102.01116> <PAGE FAULT> Error Code Value      = 0x0
+ZIRCON KERNEL PANIC
+[00171.272] 01102.01116> <PAGE FAULT> Error Code Type       = supervisor read data, page not present
+
+[00171.272] 01102.01116> dump_thread: t 0xffffff80007236c0 (svchost:initial-thread)
+UPTIME: 171276ms
+[00171.272] 01102.01116> 	state run, curr/last cpu 2/2, cpu_affinity 0xffffffff, priority 20 [16:4,20], remaining time slice 382244
+BUILDID git-d0845c2dca0182181dfbf2209e1c03905ebfd739
+[00171.272] 01102.01116> 	runtime_ns 631146343, runtime_s 0
+
+[00171.272] 01102.01116> 	stack 0xffffff99d68d8000, stack_size 8192
+dso: id=8ac492895f1aa9dc4798a997fa132e9b3809a5e6 base=0xffffffff00100000 name=zircon.elf
+[00171.272] 01102.01116> 	entry 0xffffffff00163be8, arg 0xffffff8000723548, flags 0x0 
+stopping other cpus
+halting cpu 0
+halting cpu 1
+halting cpu 3
 vector 14
 Supervisor Page Fault exception, halting
-CS: 0x10 RIP: 0xffffffff8019fabf EFL: 0x10282 CR2: 0x18
-RAX: 0xffffffff801d1fe0 RBX: 0xffffff806496e0e0 RCX: 0x10000 RDX: 0
-RSI: 0xffffff806496e0e0 RDI: 0 RBP: 0xffffff93ab473d30 RSP: 0xffffff93ab473d20
-R8: 0xa9 R9: 0xffffffff801ccd46 R10: 0 R11: 0xffffffff
-R12: 0xffffff806496e0e0 R13: 0xffffff93ab473e98 R14: 0xffffff93ab473e98 R15: 0xffffff8051d507a8
-errc: 0
-bottom of kernel stack at 0xffffff93ab473c70:
-0xffffff93ab473c70: 00000000 00000000 6496e0e0 ffffff80 |...........d....|
-0xffffff93ab473c80: ab473d30 ffffff93 6496e0e0 ffffff80 |0=G........d....|
-0xffffff93ab473c90: 00000000 00000000 00010000 00000000 |................|
-0xffffff93ab473ca0: 801d1fe0 ffffffff 000000a9 00000000 |................|
-0xffffff93ab473cb0: 801ccd46 ffffffff 00000000 00000000 |F...............|
-0xffffff93ab473cc0: ffffffff 00000000 6496e0e0 ffffff80 |...........d....|
-0xffffff93ab473cd0: ab473e98 ffffff93 ab473e98 ffffff93 |.>G......>G.....|
-0xffffff93ab473ce0: 51d507a8 ffffff80 0000000e 00000000 |...Q............|
+ CS:                0x10 RIP: 0xffffffff00118e64 EFL:            0x10293 CR2:                0x8
+ RAX:               0xff RBX:                0x1 RCX:                  0 RDX:                0x1
+ RSI:               0xff RDI:                0x3 RBP: 0xffffff99d68d9cf0 RSP: 0xffffff99d68d9cb0
+  R8:               0x14  R9: 0xffffffff00201419 R10: 0xffffffff0021ec50 R11:               0x1b
+ R12:                0x3 R13:          0x1000000 R14: 0xffffff800961b5c0 R15:       0x7ffffff000
+errc:                  0
+bottom of kernel stack at 0xffffff99d68d9c00:
+0xffffff99d68d9c00: 00000003 00000000 000000ff 00000000 |................|
+0xffffff99d68d9c10: d68d9cf0 ffffff99 00000001 00000000 |................|
+0xffffff99d68d9c20: 00000001 00000000 00000000 00000000 |................|
+0xffffff99d68d9c30: 000000ff 00000000 00000014 00000000 |................|
+0xffffff99d68d9c40: 00201419 ffffffff 0021ec50 ffffffff |.. .....P.!.....|
+0xffffff99d68d9c50: 0000001b 00000000 00000003 00000000 |................|
+0xffffff99d68d9c60: 01000000 00000000 0961b5c0 ffffff80 |..........a.....|
+0xffffff99d68d9c70: fffff000 0000007f 0000000e 00000000 |................|
 platform_halt suggested_action 0 reason 9
 Halting...
-bt#00: 0xffffffff80105861
-bt#01: 0xffffffff801061bb
-bt#02: 0xffffffff80112d0d
-bt#03: 0xffffffff8013c8a0
-bt#04: 0xffffffff801481a1
-bt#05: 0xffffffff80148212
-bt#06: 0xffffffff80148212
-bt#07: 0xffffffff8013cee3
-bt#08: 0xffffffff801b1d55
-bt#09: 0xffffffff80105ad3
-bt#10: end
-cannot create qrcode
+bt#00: 0xffffffff001058a6
+bt#01: 0xffffffff00108359
+bt#02: 0xffffffff00108ee3
+bt#03: 0xffffffff001158d2
+bt#04: 0xffffffff0010d1ce
+bt#05: 0xffffffff001c0ace
+bt#06: 0xffffffff001c0e26
+bt#07: 0xffffffff0015c0f0
+bt#08: 0xffffffff0015ec6b
+bt#09: 0xffffffff0018ed58
+bt#10: 0xffffffff0016fb9a
+bt#11: 0xffffffff00115e7b
+bt#12: end
 Halted
 entering panic shell loop
+
+REPORT:
+ZIRCON KERNEL PANIC
+vector 14
+Supervisor Page Fault exception, halting
+ CS:                0x10 RIP: 0xffffffff00118e64 EFL:            0x10293 CR2:                0x8
+ RAX:               0xff RBX:                0x1 RCX:                  0 RDX:                0x1
+ RSI:               0xff RDI:                0x3 RBP: 0xffffff99d68d9cf0 RSP: 0xffffff99d68d9cb0
+  R8:               0x14  R9: 0xffffffff00201419 R10: 0xffffffff0021ec50 R11:               0x1b
+ R12:                0x3 R13:          0x1000000 R14: 0xffffff800961b5c0 R15:       0x7ffffff000
+errc:                  0
+bottom of kernel stack at 0xffffff99d68d9c00:
+0xffffff99d68d9c00: 00000003 00000000 000000ff 00000000 |................|
+0xffffff99d68d9c10: d68d9cf0 ffffff99 00000001 00000000 |................|
+0xffffff99d68d9c20: 00000001 00000000 00000000 00000000 |................|
+0xffffff99d68d9c30: 000000ff 00000000 00000014 00000000 |................|
+0xffffff99d68d9c40: 00201419 ffffffff 0021ec50 ffffffff |.. .....P.!.....|
+0xffffff99d68d9c50: 0000001b 00000000 00000003 00000000 |................|
+0xffffff99d68d9c60: 01000000 00000000 0961b5c0 ffffff80 |..........a.....|
+0xffffff99d68d9c70: fffff000 0000007f 0000000e 00000000 |................|
+platform_halt suggested_action 0 reason 9
+bt#00: 0xffffffff001058a6
+bt#01: 0xffffffff00108359
+bt#02: 0xffffffff00108ee3
+bt#03: 0xffffffff001158d2
+bt#04: 0xffffffff0010d1ce
+bt#05: 0xffffffff001c0ace
+bt#06: 0xffffffff001c0e26
+bt#07: 0xffffffff0015c0f0
+bt#08: 0xffffffff0015ec6b
+bt#09: 0xffffffff0018ed58
+bt#10: 0xffffffff0016fb9a
+bt#11: 0xffffffff00115e7b
+bt#12: end
