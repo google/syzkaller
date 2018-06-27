@@ -59,7 +59,7 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 	if srcIndex == -1 {
 		return fmt.Errorf("syzkaller path %q is not in GOPATH", cfg.Syzkaller)
 	}
-	if _, err := vcs.CheckoutCommit(cfg.Syzkaller, repo, commit); err != nil {
+	if _, err := vcs.NewSyzkallerRepo(cfg.Syzkaller).CheckoutCommit(repo, commit); err != nil {
 		return fmt.Errorf("failed to checkout syzkaller repo: %v", err)
 	}
 	cmd := osutil.Command("make", "target")

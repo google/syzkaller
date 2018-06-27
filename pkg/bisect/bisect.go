@@ -51,6 +51,7 @@ type ReproConfig struct {
 
 type env struct {
 	cfg       *Config
+	repo      vcs.Repo
 	head      *vcs.Commit
 	inst      *instance.Env
 	numTests  int
@@ -63,8 +64,13 @@ type buildEnv struct {
 }
 
 func Run(cfg *Config) (*vcs.Commit, error) {
+	repo, err := vcs.NewRepo(cfg.Manager.TargetOS, cfg.Manager.Type, cfg.Manager.KernelSrc)
+	if err != nil {
+		return nil, err
+	}
 	env := &env{
-		cfg: cfg,
+		cfg:  cfg,
+		repo: repo,
 	}
 	if cfg.Fix {
 		env.log("searching for fixing commit since %v", cfg.Kernel.Commit)
@@ -98,7 +104,7 @@ func (env *env) bisect() (*vcs.Commit, error) {
 	if env.inst, err = instance.NewEnv(&cfg.Manager); err != nil {
 		return nil, err
 	}
-	if env.head, err = vcs.Poll(cfg.Manager.KernelSrc, cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
+	if env.head, err = env.repo.Poll(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
 		return nil, err
 	}
 	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetArch,
@@ -109,7 +115,7 @@ func (env *env) bisect() (*vcs.Commit, error) {
 	if err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
 		return nil, err
 	}
-	if _, err := vcs.SwitchCommit(cfg.Manager.KernelSrc, cfg.Kernel.Commit); err != nil {
+	if _, err := env.repo.SwitchCommit(cfg.Kernel.Commit); err != nil {
 		return nil, err
 	}
 	if res, err := env.test(); err != nil {
@@ -127,7 +133,7 @@ func (env *env) bisect() (*vcs.Commit, error) {
 	if good == "" {
 		return nil, nil // still not fixed
 	}
-	return vcs.Bisect(cfg.Manager.KernelSrc, bad, good, cfg.Trace, func() (vcs.BisectResult, error) {
+	return env.repo.Bisect(bad, good, cfg.Trace, func() (vcs.BisectResult, error) {
 		res, err := env.test()
 		if cfg.Fix {
 			if res == vcs.BisectBad {
@@ -149,7 +155,7 @@ func (env *env) commitRange() (*vcs.Commit, string, string, error) {
 
 func (env *env) commitRangeForFix() (*vcs.Commit, string, string, error) {
 	env.log("testing current HEAD %v", env.head.Hash)
-	if _, err := vcs.SwitchCommit(env.cfg.Manager.KernelSrc, env.head.Hash); err != nil {
+	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
 		return nil, "", "", err
 	}
 	res, err := env.test()
@@ -164,7 +170,7 @@ func (env *env) commitRangeForFix() (*vcs.Commit, string, string, error) {
 
 func (env *env) commitRangeForBug() (*vcs.Commit, string, string, error) {
 	cfg := env.cfg
-	tags, err := vcs.PreviousReleaseTags(cfg.Manager.KernelSrc, cfg.Kernel.Commit)
+	tags, err := env.repo.PreviousReleaseTags(cfg.Kernel.Commit)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -183,7 +189,7 @@ func (env *env) commitRangeForBug() (*vcs.Commit, string, string, error) {
 	lastBad := cfg.Kernel.Commit
 	for i, tag := range tags {
 		env.log("testing release %v", tag)
-		commit, err := vcs.SwitchCommit(cfg.Manager.KernelSrc, tag)
+		commit, err := env.repo.SwitchCommit(tag)
 		if err != nil {
 			return nil, "", "", err
 		}
@@ -207,7 +213,7 @@ func (env *env) commitRangeForBug() (*vcs.Commit, string, string, error) {
 func (env *env) test() (vcs.BisectResult, error) {
 	cfg := env.cfg
 	env.numTests++
-	current, err := vcs.HeadCommit(cfg.Manager.KernelSrc)
+	current, err := env.repo.HeadCommit()
 	if err != nil {
 		return 0, err
 	}
@@ -303,7 +309,7 @@ func (env *env) processResults(current *vcs.Commit, results []error) (bad, good 
 // Note: linux-specific.
 func (env *env) buildEnvForCommit(commit string) (*buildEnv, error) {
 	cfg := env.cfg
-	tags, err := vcs.PreviousReleaseTags(cfg.Manager.KernelSrc, commit)
+	tags, err := env.repo.PreviousReleaseTags(commit)
 	if err != nil {
 		return nil, err
 	}

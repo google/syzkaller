@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func TestParseCommit(t *testing.T) {
+func TestGitParseCommit(t *testing.T) {
 	tests := map[string]*Commit{
 		`2075b16e32c26e4031b9fd3cbe26c54676a8fcb5
 rbtree: include rcu.h
@@ -46,7 +46,7 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 		},
 	}
 	for input, com := range tests {
-		res, err := parseCommit([]byte(input))
+		res, err := gitParseCommit([]byte(input))
 		if err != nil && com != nil {
 			t.Fatalf("want %+v, got error: %v", com, err)
 		}
@@ -74,80 +74,7 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 	}
 }
 
-func TestCanonicalizeCommit(t *testing.T) {
-	tests := map[string]string{
-		"foo bar":                     "foo bar",
-		" foo ":                       "foo",
-		"UPSTREAM: foo bar":           "foo bar",
-		"BACKPORT: UPSTREAM: foo bar": "UPSTREAM: foo bar",
-	}
-	for in, want := range tests {
-		got := CanonicalizeCommit(in)
-		if got != want {
-			t.Errorf("input %q: got %q, want %q", in, got, want)
-		}
-	}
-}
-
-func TestCheckRepoAddress(t *testing.T) {
-	testPredicate(t, CheckRepoAddress, map[string]bool{
-		"git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git":      true,
-		"https://github.com/torvalds/linux.git":                                 true,
-		"git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git": true,
-		"git://git.cmpxchg.org/linux-mmots.git":                                 true,
-		"https://anonscm.debian.org/git/kernel/linux.git":                       true,
-		"git://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                       true,
-		"http://host.xz:123/path/to/repo.git/":                                  true,
-		"":           false,
-		"foobar":     false,
-		"linux-next": false,
-		"foo://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":    false,
-		"git://kernel/ubuntu.git":                            false,
-		"git://kernel.com/ubuntu":                            false,
-		"gitgit://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git": false,
-	})
-}
-
-func TestCheckBranch(t *testing.T) {
-	testPredicate(t, CheckBranch, map[string]bool{
-		"master":                  true,
-		"core/core":               true,
-		"irq-irqdomain-for-linus": true,
-		"timers/2038":             true,
-		"ubuntu-zesty/v4.9.4":     true,
-		"WIP.locking/atomics":     true,
-		"linux-4.9.y":             true,
-		"abi_spec":                true,
-		"@":                       false,
-		"":                        false,
-	})
-}
-
-func TestCheckCommitHash(t *testing.T) {
-	testPredicate(t, CheckCommitHash, map[string]bool{
-		"ff12bea91c22bba93d3ffc3034d813d686bc7eeb": true, // 40
-		"eae05cb0aaeae05cb0aa":                     true, // 20
-		"449dd6984d0eaabb":                         true, // 16
-		"449dd6984d0e":                             true, // 12
-		"eae05cb0aa":                               true, // 10
-		"eae05cb0":                                 true, // 8
-		"":                                         false,
-		"aa":                                       false,
-		"eae05cb0aab":                              false,
-		"xxxxxxxx":                                 false,
-	})
-}
-
-func testPredicate(t *testing.T, fn func(string) bool, tests map[string]bool) {
-	for input, want := range tests {
-		res := fn(input)
-		if res != want {
-			t.Errorf("%v: got %v, want %v", input, res, want)
-		}
-	}
-}
-
-func TestParseReleaseTags(t *testing.T) {
+func TestGitParseReleaseTags(t *testing.T) {
 	input := `
 v3.1
 v2.6.12
@@ -183,7 +110,7 @@ v1.
 		"v2.6.13",
 		"v2.6.12",
 	}
-	got, err := parseReleaseTags([]byte(input))
+	got, err := gitParseReleaseTags([]byte(input))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,8 +119,8 @@ v1.
 	}
 }
 
-func TestExtractFixTags(t *testing.T) {
-	commits, err := extractFixTags(strings.NewReader(extractFixTagsInput), extractFixTagsEmail)
+func TestGitExtractFixTags(t *testing.T) {
+	commits, err := gitExtractFixTags(strings.NewReader(extractFixTagsInput), extractFixTagsEmail)
 	if err != nil {
 		t.Fatal(err)
 	}

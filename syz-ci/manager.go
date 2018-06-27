@@ -54,6 +54,7 @@ type Manager struct {
 	configTag       string
 	configData      []byte
 	cfg             *Config
+	repo            vcs.Repo
 	mgrcfg          *ManagerConfig
 	managercfg      *mgrconfig.Config
 	cmd             *ManagerCmd
@@ -99,10 +100,16 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	managercfg.Name = cfg.Name + "-" + mgrcfg.Name
 	managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 
+	kernelDir := filepath.Join(dir, "kernel")
+	repo, err := vcs.NewRepo(managercfg.TargetOS, managercfg.Type, kernelDir)
+	if err != nil {
+		log.Fatalf("failed to create repo for %v: %v", mgrcfg.Name, err)
+	}
+
 	mgr := &Manager{
 		name:            managercfg.Name,
 		workDir:         filepath.Join(dir, "workdir"),
-		kernelDir:       filepath.Join(dir, "kernel"),
+		kernelDir:       kernelDir,
 		currentDir:      filepath.Join(dir, "current"),
 		latestDir:       filepath.Join(dir, "latest"),
 		compilerID:      compilerID,
@@ -110,6 +117,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 		configTag:       hash.String(configData),
 		configData:      configData,
 		cfg:             cfg,
+		repo:            repo,
 		mgrcfg:          mgrcfg,
 		managercfg:      managercfg,
 		dash:            dash,
@@ -147,7 +155,7 @@ loop:
 	for {
 		if time.Since(nextBuildTime) >= 0 {
 			rebuildAfter := buildRetryPeriod
-			commit, err := vcs.Poll(mgr.kernelDir, mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
+			commit, err := mgr.repo.Poll(mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
 			if err != nil {
 				mgr.Errorf("failed to poll: %v", err)
 			} else {
@@ -161,7 +169,7 @@ loop:
 					select {
 					case kernelBuildSem <- struct{}{}:
 						log.Logf(0, "%v: building kernel...", mgr.name)
-						if err := mgr.build(); err != nil {
+						if err := mgr.build(commit); err != nil {
 							log.Logf(0, "%v: %v", mgr.name, err)
 						} else {
 							log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
@@ -236,12 +244,7 @@ func (mgr *Manager) checkLatest() *BuildInfo {
 	return info
 }
 
-func (mgr *Manager) build() error {
-	kernelCommit, err := vcs.HeadCommit(mgr.kernelDir)
-	if err != nil {
-		return fmt.Errorf("failed to get git HEAD commit: %v", err)
-	}
-
+func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	var tagData []byte
 	tagData = append(tagData, mgr.name...)
 	tagData = append(tagData, kernelCommit.Hash...)
@@ -535,7 +538,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixComm
 	}
 	var present []string
 	if len(resp.PendingCommits) != 0 {
-		commits, err := vcs.ListRecentCommits(mgr.kernelDir, buildCommit)
+		commits, err := mgr.repo.ListRecentCommits(buildCommit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -554,7 +557,7 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixComm
 		// TODO(dvyukov): mmots contains weird squashed commits titled "linux-next" or "origin",
 		// which contain hundreds of other commits. This makes fix attribution totally broken.
 		if mgr.mgrcfg.Repo != "git://git.cmpxchg.org/linux-mmots.git" {
-			commits, err := vcs.ExtractFixTagsFromCommits(mgr.kernelDir, buildCommit, resp.ReportEmail)
+			commits, err := mgr.repo.ExtractFixTagsFromCommits(buildCommit, resp.ReportEmail)
 			if err != nil {
 				return nil, nil, err
 			}
