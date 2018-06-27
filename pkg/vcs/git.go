@@ -1,7 +1,6 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// Package vcs provides helper functions for working with git repositories.
 package vcs
 
 import (
@@ -137,10 +136,10 @@ func (git *git) initRepo() error {
 }
 
 func (git *git) HeadCommit() (*Commit, error) {
-	return git.GetCommit("HEAD")
+	return git.getCommit("HEAD")
 }
 
-func (git *git) GetCommit(commit string) (*Commit, error) {
+func (git *git) getCommit(commit string) (*Commit, error) {
 	output, err := runSandboxed(git.dir, "git", "log", "--format=%H%n%s%n%ae%n%ad%n%b", "-n", "1", commit)
 	if err != nil {
 		return nil, err
@@ -285,7 +284,7 @@ func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectRes
 	dir := git.dir
 	runSandboxed(dir, "git", "bisect", "reset")
 	runSandboxed(dir, "git", "reset", "--hard")
-	firstBad, err := git.GetCommit(bad)
+	firstBad, err := git.getCommit(bad)
 	if err != nil {
 		return nil, err
 	}
@@ -368,13 +367,4 @@ func gitReleaseTagToInt(tag string) uint64 {
 		}
 	}
 	return v1*1e6 + v2*1e3 + v3
-}
-
-func runSandboxed(dir, command string, args ...string) ([]byte, error) {
-	cmd := osutil.Command(command, args...)
-	cmd.Dir = dir
-	if err := osutil.Sandbox(cmd, true, false); err != nil {
-		return nil, err
-	}
-	return osutil.Run(timeout, cmd)
 }

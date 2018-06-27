@@ -77,6 +77,8 @@ func NewRepo(os, vm, dir string) (Repo, error) {
 	switch os {
 	case "linux":
 		return newGit(os, vm, dir), nil
+	case "fuchsia":
+		return newFuchsia(vm, dir), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }
@@ -138,7 +140,14 @@ func CheckCommitHash(hash string) bool {
 	return ln == 8 || ln == 10 || ln == 12 || ln == 16 || ln == 20 || ln == 40
 }
 
-const timeout = time.Hour // timeout for all git invocations
+func runSandboxed(dir, command string, args ...string) ([]byte, error) {
+	cmd := osutil.Command(command, args...)
+	cmd.Dir = dir
+	if err := osutil.Sandbox(cmd, true, false); err != nil {
+		return nil, err
+	}
+	return osutil.Run(time.Hour, cmd)
+}
 
 var (
 	// nolint: lll
