@@ -13,7 +13,6 @@ special regarding `gVisor` besides that. Here is an example manager config:
 	"http": ":12345",
 	"workdir": "/workdir",
 	"image": "/usr/local/bin/runsc",
-	"vmlinux": "/usr/local/bin/runsc",
 	"syzkaller": "/gopath/src/github.com/google/syzkaller",
 	"cover": false,
 	"procs": 8,

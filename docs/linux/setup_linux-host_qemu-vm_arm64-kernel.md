@@ -132,7 +132,7 @@ A sample config file that exercises the required options are shown below. Modify
     "target": "linux/arm64",
     "http": ":56700",
     "workdir": "/path/to/a/dir/to/store/syzkaller/corpus”,
-    "vmlinux": “/path/to/vmlinux",
+    "kernel_obj": “/path/to/linux/build/dir",
     "syzkaller": "/path/to/syzkaller/arm64/",
     "image": "/path/to/rootfs.ext3",
     "sshkey": "/path/to/ida_rsa",

@@ -289,7 +289,7 @@ Use the following config:
 	"target": "linux/arm64",
 	"http": "127.0.0.1:56741",
 	"workdir": "/syzkaller/workdir",
-	"vmlinux": "/linux-next/vmlinux",
+	"kernel_obj": "/linux-next",
 	"syzkaller": "/go/src/github.com/google/syzkaller",
 	"sshkey": "/odroid/ssh/id_rsa",
 	"rpc": "172.16.0.30:0",
@@ -310,7 +310,7 @@ Use the following config:
 
 Don't forget to update:
  - `workdir` (path to the workdir)
- - `vmlinux` (path to the `vmlinux` binary)
+ - `kernel_obj` (path to kernel build directory)
  - `sshkey` (path to the generated ssh private key)
  - `vm.console` (serial device you used in `minicom`)
  - `vm.hub_bus` (number of the bus to which USB hub is connected, view with `lsusb`)

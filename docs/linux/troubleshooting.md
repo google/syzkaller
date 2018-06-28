@@ -7,7 +7,7 @@ Here are some things to check if there are problems running syzkaller.
    and `KERNEL` is set to the test kernel (as per the `kernel` config value)
    then something like the following command should start the VM successfully:
 
-     ```shell   
+     ```shell
      qemu-system-x86_64 -hda $IMAGE -m 256 -net nic -net user,host=10.0.2.10,hostfwd=tcp::23505-:22 -enable-kvm -kernel $KERNEL -append root=/dev/sda
      ```
 
@@ -15,7 +15,7 @@ Here are some things to check if there are problems running syzkaller.
    a VM running and with `SSHKEY` set to the SSH identity (as per the `sshkey` config value) the
    following command should connect:
 
-     ```shell    
+     ```shell
      ssh -i $SSHKEY -p 23505 root@localhost
      ```
 
@@ -35,7 +35,7 @@ Here are some things to check if there are problems running syzkaller.
 
  - Check that debug information (from the `CONFIG_DEBUG_INFO` option) is available
     - Pass the hex output from the kcov test program to `addr2line -a -i -f -e $VMLINUX` (where
-      `VMLINUX` is the vmlinux file, as per the `vmlinux` config value), to confirm
+      `VMLINUX` is the vmlinux file, as per the `kernel_obj` config value), to confirm
       that symbols for the kernel are available.
 
 Also see [this](/docs/troubleshooting.md) for generic troubleshooting advice.

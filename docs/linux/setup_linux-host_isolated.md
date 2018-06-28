@@ -83,7 +83,7 @@ Use the following config:
 	"rpc": "127.0.0.1:0",
 	"sshkey" : "/path/to/optional/sshkey",
 	"workdir": "/syzkaller/workdir",
-	"vmlinux": "/linux-next/vmlinux",
+	"kernel_obj": "/linux-next",
 	"syzkaller": "/go/src/github.com/google/syzkaller",
 	"sandbox": "setuid",
 	"type": "isolated",
@@ -98,7 +98,7 @@ Use the following config:
 Don't forget to update:
  - `target` (target OS/arch)
  - `workdir` (path to the workdir)
- - `vmlinux` (path to the `vmlinux` binary)
+ - `kernel_obj` (path to kernel build directory)
  - `sshkey` You can setup an sshkey (optional)
  - `vm.targets` List of hosts to use for fufzzing
  - `vm.target_dir` Working directory on the target host

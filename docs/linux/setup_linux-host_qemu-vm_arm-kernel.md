@@ -113,7 +113,7 @@ similar to the following one (changing paths as necessary):
 	"target": "linux/arm",
 	"http": ":12345",
 	"workdir": "/workdir",
-	"vmlinux": "/linux/vmlinux",
+	"kernel_obj": "/linux",
 	"syzkaller": "/gopath/src/github.com/google/syzkaller",
 	"image": "/buildroot/output/images/rootfs.ext2",
 	"sandbox": "none",
