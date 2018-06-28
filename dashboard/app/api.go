@@ -377,7 +377,7 @@ nextBug:
 
 func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []string,
 	fixCommits []string, presentCommits map[string]bool) error {
-	if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits) {
+	if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits, true) {
 		return nil
 	}
 	now := timeNow(c)
@@ -387,7 +387,7 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []str
 		if err := datastore.Get(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug %v: %v", bugKey.StringID(), err)
 		}
-		if !bugNeedsCommitUpdate(nil, bug, manager, fixCommits, presentCommits) {
+		if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits, false) {
 			return nil
 		}
 		if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
@@ -438,9 +438,9 @@ func managerList(c context.Context, ns string) ([]string, error) {
 }
 
 func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommits []string,
-	presentCommits map[string]bool) bool {
+	presentCommits map[string]bool, dolog bool) bool {
 	if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
-		if c != nil {
+		if dolog {
 			log.Infof(c, "bug %q is fixed with %q", bug.Title, fixCommits)
 		}
 		return true
