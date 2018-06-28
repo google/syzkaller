@@ -7,6 +7,7 @@ package instance
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -85,9 +86,42 @@ func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile s
 		cmdlineFile, sysctlFile, kernelConfig); err != nil {
 		return err
 	}
+	return SetConfigImage(cfg, imageDir)
+}
+
+func SetConfigImage(cfg *mgrconfig.Config, imageDir string) error {
 	cfg.KernelObj = filepath.Join(imageDir, "obj")
 	cfg.Image = filepath.Join(imageDir, "image")
-	cfg.SSHKey = filepath.Join(imageDir, "key")
+	if keyFile := filepath.Join(imageDir, "key"); osutil.IsExist(keyFile) {
+		cfg.SSHKey = keyFile
+	}
+	if cfg.Type == "qemu" {
+		kernel := filepath.Join(imageDir, "kernel")
+		if !osutil.IsExist(kernel) {
+			kernel = ""
+		}
+		initrd := filepath.Join(imageDir, "initrd")
+		if !osutil.IsExist(initrd) {
+			initrd = ""
+		}
+		if kernel != "" || initrd != "" {
+			qemu := make(map[string]interface{})
+			if err := json.Unmarshal(cfg.VM, &qemu); err != nil {
+				return fmt.Errorf("failed to parse qemu config: %v", err)
+			}
+			if kernel != "" {
+				qemu["kernel"] = kernel
+			}
+			if initrd != "" {
+				qemu["initrd"] = initrd
+			}
+			vmCfg, err := json.Marshal(qemu)
+			if err != nil {
+				return fmt.Errorf("failed to serialize qemu config: %v", err)
+			}
+			cfg.VM = vmCfg
+		}
+	}
 	return nil
 }
 
