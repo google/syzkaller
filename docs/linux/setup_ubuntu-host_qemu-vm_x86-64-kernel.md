@@ -216,7 +216,7 @@ variables `$GOPATH`, `$KERNEL` and `$IMAGE` with their actual values.
 	"target": "linux/amd64",
 	"http": "127.0.0.1:56741",
 	"workdir": "$GOPATH/src/github.com/google/syzkaller/workdir",
-	"vmlinux": "$KERNEL/vmlinux",
+	"kernel_obj": "$KERNEL",
 	"image": "$IMAGE/wheezy.img",
 	"sshkey": "$IMAGE/ssh/id_rsa",
 	"syzkaller": "$GOPATH/src/github.com/google/syzkaller",

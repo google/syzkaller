@@ -209,6 +209,10 @@ func Complete(cfg *Config) error {
 		}
 	}
 
+	if cfg.VmlinuxUnused != "" {
+		fmt.Printf("WARNING: vmlinux config parameter is deprecated and will be removed soon.\n" +
+			"Use kernel_obj to specify vmlinux dir instead.\n")
+	}
 	cfg.VmlinuxUnused = osutil.Abs(cfg.VmlinuxUnused)
 	if cfg.KernelObj == "" {
 		cfg.KernelObj = filepath.Dir(cfg.VmlinuxUnused) // assume in-tree build by default

@@ -48,13 +48,13 @@ make TARGETOS=linux TARGETARCH=arm
 ### Create a manager configuration file
 
 Create a manager config myboard.cfg, replacing the environment
-variables `$GOPATH`, `$VMLINUX` (path to vmlinux for the ARM32 board), and `$DEVICES` (the device ID for your board as reported by adb devices) with their actual values. Change any other flags as needed for your ARM board.
+variables `$GOPATH`, `$KERNEL` (path to kernel build dir for the ARM32 board), and `$DEVICES` (the device ID for your board as reported by adb devices) with their actual values. Change any other flags as needed for your ARM board.
 ```
 {
 	"target": "linux/arm",
 	"http": "127.0.0.1:56741",
 	"workdir": "$GOPATH/src/github.com/google/syzkaller/workdir",
-	"vmlinux": "$KERNEL/vmlinux",
+	"kernel_obj": "$KERNEL",
 	"syzkaller": "$GOPATH/src/github.com/google/syzkaller",
 	"sandbox": none,
 	"procs": 1,

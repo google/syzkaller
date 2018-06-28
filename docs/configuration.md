@@ -15,7 +15,7 @@ following keys in its top-level object:
  - `syzkaller`: Location of the `syzkaller` checkout, `syz-manager` will look
    for binaries in `bin` subdir (does not have to be `syzkaller` checkout as
    long as it preserves `bin` dir structure)
- - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested
+ - `kernel_obj`: Directory with object files (e.g. `vmlinux` for linux)
    (used for report symbolization and coverage reports, optional).
  - `procs`: Number of parallel test processes in each VM (4 or 8 would be a reasonable number).
  - `image`: Location of the disk image file for the QEMU instance; a copy of this file is passed as the
