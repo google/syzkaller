@@ -284,7 +284,7 @@ func checkStaticBuild(target *Target) {
 }
 
 func supportsStatic(target *Target) bool {
-	cmd := exec.Command(target.CCompiler, "-x", "c", "-", "-o", "/dev/null")
+	cmd := exec.Command(target.CCompiler, "-x", "c", "-", "-o", "/dev/null", "-static")
 	cmd.Stdin = strings.NewReader("int main(){}")
 	return cmd.Run() == nil
 }
