@@ -71,7 +71,7 @@ func (i *instance) NewRequest(method, urlStr string, body io.Reader) (*http.Requ
 	}
 
 	// Associate this request.
-	release := internal.RegisterTestRequest(req, i.apiURL, func(ctx context.Context) context.Context {
+	req, release := internal.RegisterTestRequest(req, i.apiURL, func(ctx context.Context) context.Context {
 		ctx = internal.WithAppIDOverride(ctx, "dev~"+i.appID)
 		return ctx
 	})
