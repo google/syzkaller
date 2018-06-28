@@ -168,7 +168,6 @@ func (jp *JobProcessor) test(job *Job) error {
 	mgrcfg.Name += "-job"
 	mgrcfg.Workdir = filepath.Join(dir, "workdir")
 	mgrcfg.KernelSrc = kernelDir
-	mgrcfg.KernelObj = kernelDir
 	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
 
 	os.RemoveAll(mgrcfg.Workdir)

@@ -6,6 +6,7 @@ package build
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -16,15 +17,20 @@ import (
 // Kernel is taken from kernelDir, userspace system is taken from userspaceDir.
 // If cmdlineFile is not empty, contents of the file are appended to the kernel command line.
 // If sysctlFile is not empty, contents of the file are appended to the image /etc/sysctl.conf.
-// Output is stored in outputDir and includes:
+// Output is stored in outputDir and includes (everything except for image is optional):
 //  - image: the image
-//  - key: ssh key for the image if applicable
+//  - key: ssh key for the image
+//  - kernel: kernel for injected boot
+//  - initrd: initrd for injected boot
 //  - kernel.config: actual kernel config used during build
 //  - obj/: directory with kernel object files (e.g. vmlinux for linux)
 func Image(targetOS, targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
 	builder, err := getBuilder(targetOS, targetArch, vmType)
 	if err != nil {
+		return err
+	}
+	if err := osutil.MkdirAll(filepath.Join(outputDir, "obj")); err != nil {
 		return err
 	}
 	return builder.build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir, cmdlineFile, sysctlFile, config)
@@ -54,6 +60,8 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		return gvisor{}, nil
 	case targetOS == "linux" && targetArch == "amd64" && (vmType == "qemu" || vmType == "gce"):
 		return linux{}, nil
+	case targetOS == "fuchsia" && (targetArch == "amd64" || targetArch == "arm64") && vmType == "qemu":
+		return fuchsia{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
 	}

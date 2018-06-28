@@ -31,11 +31,14 @@ const kernelRebuildPeriod = syzkallerRebuildPeriod + time.Hour
 
 // List of required files in kernel build (contents of latest/current dirs).
 var imageFiles = map[string]bool{
-	"tag":           true,  // serialized BuildInfo
-	"kernel.config": false, // kernel config used for build
-	"image":         true,  // kernel image
-	"key":           false, // root ssh key for the image
-	"obj/vmlinux":   false, // vmlinux with debug info
+	"tag":            true,  // serialized BuildInfo
+	"kernel.config":  false, // kernel config used for build
+	"image":          true,  // kernel image
+	"kernel":         false,
+	"initrd":         false,
+	"key":            false, // root ssh key for the image
+	"obj/vmlinux":    false, // Linux object file with debug info
+	"obj/zircon.elf": false, // Zircon object file with debug info
 }
 
 // Manager represents a single syz-manager instance.
@@ -422,11 +425,9 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.Name += "-test"
 	mgrcfg.Tag = info.KernelCommit
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
-	mgrcfg.Image = filepath.Join(imageDir, "image")
-	if keyFile := filepath.Join(imageDir, "key"); osutil.IsExist(keyFile) {
-		mgrcfg.SSHKey = keyFile
+	if err := instance.SetConfigImage(mgrcfg, imageDir); err != nil {
+		return nil, err
 	}
-	mgrcfg.KernelObj = filepath.Join(imageDir, "obj")
 	mgrcfg.KernelSrc = mgr.kernelDir
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return nil, fmt.Errorf("bad manager config: %v", err)
@@ -450,15 +451,13 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	}
 	mgrcfg.Tag = buildTag
 	mgrcfg.Workdir = mgr.workDir
-	mgrcfg.KernelObj = filepath.Join(mgr.currentDir, "obj")
+	if err := instance.SetConfigImage(mgrcfg, mgr.currentDir); err != nil {
+		return "", err
+	}
 	// Strictly saying this is somewhat racy as builder can concurrently
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.KernelSrc = mgr.kernelDir
-	mgrcfg.Image = filepath.Join(mgr.currentDir, "image")
-	if keyFile := filepath.Join(mgr.currentDir, "key"); osutil.IsExist(keyFile) {
-		mgrcfg.SSHKey = keyFile
-	}
 	if err := mgrconfig.Complete(mgrcfg); err != nil {
 		return "", fmt.Errorf("bad manager config: %v", err)
 	}

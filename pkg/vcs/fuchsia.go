@@ -26,11 +26,6 @@ func newFuchsia(vm, dir string) *fuchsia {
 	}
 }
 
-// mkdir DIR; cd DIR
-// curl -s "https://fuchsia.googlesource.com/scripts/+/master/bootstrap?format=TEXT" | base64 --decode | bash -s topaz
-// (cd fuchsia && .jiri_root/bin/jiri update)
-// (cd fuchsia/zircon/ && git show HEAD)
-
 func (fu *fuchsia) Poll(repo, branch string) (*Commit, error) {
 	if repo != "https://fuchsia.googlesource.com" || branch != "master" {
 		// fuchsia ecosystem is hard-tailored to the main repo.

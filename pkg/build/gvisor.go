@@ -16,9 +16,6 @@ type gvisor struct{}
 
 func (gvisor gvisor) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
-	if err := osutil.MkdirAll(outputDir); err != nil {
-		return err
-	}
 	args := []string{"build", "--verbose_failures"}
 	if strings.Contains(" "+string(config)+" ", " -race ") {
 		args = append(args, "--features=race")

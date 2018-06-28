@@ -26,9 +26,6 @@ type linux struct{}
 
 func (linux linux) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
-	if err := osutil.MkdirAll(filepath.Join(outputDir, "obj")); err != nil {
-		return err
-	}
 	if err := linux.buildKernel(kernelDir, outputDir, compiler, config); err != nil {
 		return err
 	}
