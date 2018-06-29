@@ -57,6 +57,10 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "timeval"}, FldName: "interv"},
 		&StructType{Key: StructKey{Name: "timeval"}, FldName: "value"},
 	}}},
+	{Key: StructKey{Name: "pipefd", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pipefd", TypeSize: 8, ArgDir: 1}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "rfd", TypeSize: 4, ArgDir: 1}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "wfd", TypeSize: 4, ArgDir: 1}},
+	}}},
 	{Key: StructKey{Name: "pollfd"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pollfd", TypeSize: 8}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pollfd_events", FldName: "events", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 8192}},
@@ -351,6 +355,9 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1048576, 1024, 256, 65536, 2048, 524288, 131072, 4096, 8192, 512, 128, 16, 4194304, 96, 262144}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "pipe", CallName: "pipe", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pipefd", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "pipefd", Dir: 1}}},
+	}},
 	{Name: "poll", CallName: "poll", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "pollfd"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfds", TypeSize: 8}}, Buf: "fds"},
@@ -1198,4 +1205,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_amd64 = "645dbfff12afae9426af03afc23a64312ae0df1d"
+const revision_amd64 = "221d37f0d1790191b43e5892bb21f7fa292fa530"

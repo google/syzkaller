@@ -2,13 +2,13 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "645dbfff12afae9426af03afc23a64312ae0df1d"
+#define SYZ_REVISION "221d37f0d1790191b43e5892bb21f7fa292fa530"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 156
+#define SYZ_SYSCALL_COUNT 157
 const call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -40,6 +40,7 @@ const call_t syscalls[] = {
     {"mkdirat", 0, (syscall_t)mkdirat},
     {"open", 0, (syscall_t)open},
     {"openat", 0, (syscall_t)openat},
+    {"pipe", 0, (syscall_t)pipe},
     {"poll", 0, (syscall_t)poll},
     {"ppoll", 0, (syscall_t)ppoll},
     {"preadv", 0, (syscall_t)preadv},
@@ -172,13 +173,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "69d0a813384bec892b44830fd5ae59c04a46023e"
+#define SYZ_REVISION "b2a15a8a4841d4635c2f63e4b19a3966cc01908b"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 156
+#define SYZ_SYSCALL_COUNT 157
 const call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -210,6 +211,7 @@ const call_t syscalls[] = {
     {"mkdirat", 0, (syscall_t)mkdirat},
     {"open", 0, (syscall_t)open},
     {"openat", 0, (syscall_t)openat},
+    {"pipe", 0, (syscall_t)pipe},
     {"poll", 0, (syscall_t)poll},
     {"ppoll", 0, (syscall_t)ppoll},
     {"preadv", 0, (syscall_t)preadv},
