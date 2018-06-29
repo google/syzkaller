@@ -64,6 +64,12 @@ func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
 }
 
 func (proc *Proc) loop() {
+	generatePeriod := 100
+	if proc.fuzzer.config.Flags&ipc.FlagSignal == 0 {
+		// If we don't have real coverage signal, generate programs more frequently
+		// because fallback signal is weak.
+		generatePeriod = 10
+	}
 	for i := 0; ; i++ {
 		item := proc.fuzzer.workQueue.dequeue()
 		if item != nil {
@@ -82,7 +88,7 @@ func (proc *Proc) loop() {
 
 		ct := proc.fuzzer.choiceTable
 		corpus := proc.fuzzer.corpusSnapshot()
-		if len(corpus) == 0 || i%100 == 0 {
+		if len(corpus) == 0 || i%generatePeriod == 0 {
 			// Generate a new prog.
 			p := proc.fuzzer.target.Generate(proc.rnd, programLength, ct)
 			log.Logf(1, "#%v: generated", proc.pid)
