@@ -80,6 +80,13 @@ getgid() gid
 getuid() uid
 getpid() pid
 
+pipe(pipefd ptr[out, pipefd])
+
+pipefd {
+	rfd	fd
+	wfd	fd
+}
+
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 seek_whence = SEEK_SET, SEEK_CUR, SEEK_END
