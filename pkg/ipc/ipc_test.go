@@ -114,35 +114,37 @@ func TestParallel(t *testing.T) {
 				errs <- fmt.Errorf("failed to create env: %v", err)
 				return
 			}
-			defer env.Close()
+			defer func() {
+				env.Close()
+				errs <- err
+			}()
 			p := target.GenerateSimpleProg()
 			opts := &ExecOpts{}
 			output, info, failed, hanged, err := env.Exec(opts, p)
 			if err != nil {
-				errs <- fmt.Errorf("failed to run executor: %v", err)
+				err = fmt.Errorf("failed to run executor: %v", err)
 				return
 			}
 			if hanged {
-				errs <- fmt.Errorf("program hanged:\n%s", output)
+				err = fmt.Errorf("program hanged:\n%s", output)
 				return
 			}
 			if failed {
-				errs <- fmt.Errorf("program failed:\n%s", output)
+				err = fmt.Errorf("program failed:\n%s", output)
 				return
 			}
 			if len(info) == 0 {
-				errs <- fmt.Errorf("no calls executed:\n%s", output)
+				err = fmt.Errorf("no calls executed:\n%s", output)
 				return
 			}
 			if info[0].Errno != 0 {
-				errs <- fmt.Errorf("simple call failed: %v\n%s", info[0].Errno, output)
+				err = fmt.Errorf("simple call failed: %v\n%s", info[0].Errno, output)
 				return
 			}
 			if len(output) != 0 {
-				errs <- fmt.Errorf("output on empty program")
+				err = fmt.Errorf("output on empty program")
 				return
 			}
-			errs <- nil
 		}()
 	}
 	for p := 0; p < P; p++ {
