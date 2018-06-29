@@ -286,8 +286,8 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 	if err := checkStrLen(req.SyzkallerCommit, "Build.SyzkallerCommit", MaxStringLen); err != nil {
 		return false, err
 	}
-	if err := checkStrLen(req.CompilerID, "Build.CompilerID", MaxStringLen); err != nil {
-		return false, err
+	if len(req.CompilerID) > MaxStringLen {
+		return false, fmt.Errorf("Build.CompilerID is too long (%v)", len(req.CompilerID))
 	}
 	if err := checkStrLen(req.KernelCommit, "Build.KernelCommit", MaxStringLen); err != nil {
 		return false, err
