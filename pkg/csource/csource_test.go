@@ -8,25 +8,13 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
-
-func initTest(t *testing.T) (*prog.Target, rand.Source, int) {
-	t.Parallel()
-	iters := 1
-	seed := int64(time.Now().UnixNano())
-	rs := rand.NewSource(seed)
-	t.Logf("seed=%v", seed)
-	target, err := prog.GetTarget("linux", runtime.GOARCH)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return target, rs, iters
-}
 
 func TestGenerateOne(t *testing.T) {
 	t.Parallel()
@@ -35,7 +23,7 @@ func TestGenerateOne(t *testing.T) {
 		Collide:   true,
 		Repeat:    true,
 		Procs:     2,
-		Sandbox:   "namespace",
+		Sandbox:   "none",
 		Repro:     true,
 		UseTmpDir: true,
 	}
@@ -43,8 +31,8 @@ func TestGenerateOne(t *testing.T) {
 		if target.OS == "test" {
 			continue
 		}
-		if target.OS == "fuchsia" {
-			continue // TODO(dvyukov): support fuchsia
+		if target.OS == "fuchsia" && !strings.Contains(os.Getenv("SOURCEDIR"), "fuchsia") {
+			continue
 		}
 		if target.OS == "windows" {
 			continue // TODO(dvyukov): support windows
@@ -73,14 +61,36 @@ func TestGenerateOne(t *testing.T) {
 	}
 }
 
-func TestGenerateOptions(t *testing.T) {
-	target, rs, _ := initTest(t)
+func TestGenerateOptionsHost(t *testing.T) {
+	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGenerateOptions(t, target)
+}
+
+func TestGenerateOptionsFuchsia(t *testing.T) {
+	if !strings.Contains(os.Getenv("SOURCEDIR"), "fuchsia") {
+		t.Skip("SOURCEDIR is not set")
+	}
+	target, err := prog.GetTarget("fuchsia", runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGenerateOptions(t, target)
+}
+
+func testGenerateOptions(t *testing.T, target *prog.Target) {
+	t.Parallel()
+	seed := int64(time.Now().UnixNano())
+	rs := rand.NewSource(seed)
+	t.Logf("seed=%v", seed)
+	r := rand.New(rs)
 	syzProg := target.GenerateAllSyzProg(rs)
 	t.Logf("syz program:\n%s\n", syzProg.Serialize())
-	permutations := allOptionsSingle()
-	allPermutations := allOptionsPermutations()
+	permutations := allOptionsSingle(target.OS)
+	allPermutations := allOptionsPermutations(target.OS)
 	if testing.Short() {
-		r := rand.New(rs)
 		for i := 0; i < 16; i++ {
 			permutations = append(permutations, allPermutations[r.Intn(len(allPermutations))])
 		}
@@ -89,14 +99,13 @@ func TestGenerateOptions(t *testing.T) {
 	}
 	for i, opts := range permutations {
 		opts := opts
+		rs1 := rand.NewSource(r.Int63())
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
-			target, rs, iters := initTest(t)
+			t.Parallel()
 			t.Logf("opts: %+v", opts)
 			if !testing.Short() {
-				for i := 0; i < iters; i++ {
-					p := target.Generate(rs, 10, nil)
-					testOne(t, p, opts)
-				}
+				p := target.Generate(rs1, 10, nil)
+				testOne(t, p, opts)
 			}
 			testOne(t, syzProg, opts)
 		})

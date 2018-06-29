@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 // Options control various aspects of source generation.
@@ -41,7 +43,28 @@ type Options struct {
 // Check checks if the opts combination is valid or not.
 // For example, Collide without Threaded is not valid.
 // Invalid combinations must not be passed to Write.
-func (opts Options) Check() error {
+func (opts Options) Check(OS string) error {
+	switch OS {
+	case fuchsia:
+		if opts.Fault {
+			return errors.New("Fault is not supported on fuchsia")
+		}
+		if opts.EnableTun {
+			return errors.New("EnableTun is not supported on fuchsia")
+		}
+		if opts.EnableCgroups {
+			return errors.New("EnableCgroups is not supported on fuchsia")
+		}
+		if opts.EnableNetdev {
+			return errors.New("EnableNetdev is not supported on fuchsia")
+		}
+		if opts.ResetNet {
+			return errors.New("ResetNet is not supported on fuchsia")
+		}
+		if opts.Sandbox != "" && opts.Sandbox != "none" {
+			return fmt.Errorf("Sandbox=%v is not supported on fuchsia", opts.Sandbox)
+		}
+	}
 	if !opts.Threaded && opts.Collide {
 		// Collide requires threaded.
 		return errors.New("Collide without Threaded")
@@ -81,6 +104,35 @@ func (opts Options) Check() error {
 		return errors.New("ResetNet without WaitRepeat")
 	}
 	return nil
+}
+
+func DefaultOpts(cfg *mgrconfig.Config) Options {
+	opts := Options{
+		Threaded:      true,
+		Collide:       true,
+		Repeat:        true,
+		Procs:         cfg.Procs,
+		Sandbox:       cfg.Sandbox,
+		EnableTun:     true,
+		EnableCgroups: true,
+		EnableNetdev:  true,
+		ResetNet:      true,
+		UseTmpDir:     true,
+		HandleSegv:    true,
+		WaitRepeat:    true,
+		Repro:         true,
+	}
+	switch cfg.TargetOS {
+	case fuchsia:
+		opts.EnableTun = false
+		opts.EnableCgroups = false
+		opts.EnableNetdev = false
+		opts.ResetNet = false
+	}
+	if err := opts.Check(cfg.TargetOS); err != nil {
+		panic(fmt.Sprintf("DefaultOpts created bad opts: %v", err))
+	}
+	return opts
 }
 
 func (opts Options) Serialize() []byte {

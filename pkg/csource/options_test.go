@@ -10,7 +10,7 @@ import (
 )
 
 func TestParseOptions(t *testing.T) {
-	for _, opts := range allOptionsSingle() {
+	for _, opts := range allOptionsSingle("linux") {
 		data := opts.Serialize()
 		got, err := DeserializeOptions(data)
 		if err != nil {
@@ -112,7 +112,7 @@ func TestParseOptionsCanned(t *testing.T) {
 	}
 }
 
-func allOptionsSingle() []Options {
+func allOptionsSingle(OS string) []Options {
 	var opts []Options
 	fields := reflect.TypeOf(Options{}).NumField()
 	for i := 0; i < fields; i++ {
@@ -124,25 +124,25 @@ func allOptionsSingle() []Options {
 			Sandbox:   "none",
 			UseTmpDir: true,
 		}
-		opts = append(opts, enumerateField(opt, i)...)
+		opts = append(opts, enumerateField(OS, opt, i)...)
 	}
 	return opts
 }
 
-func allOptionsPermutations() []Options {
+func allOptionsPermutations(OS string) []Options {
 	opts := []Options{Options{}}
 	fields := reflect.TypeOf(Options{}).NumField()
 	for i := 0; i < fields; i++ {
 		var newOpts []Options
 		for _, opt := range opts {
-			newOpts = append(newOpts, enumerateField(opt, i)...)
+			newOpts = append(newOpts, enumerateField(OS, opt, i)...)
 		}
 		opts = newOpts
 	}
 	return opts
 }
 
-func enumerateField(opt Options, field int) []Options {
+func enumerateField(OS string, opt Options, field int) []Options {
 	var opts []Options
 	s := reflect.ValueOf(&opt).Elem()
 	fldName := s.Type().Field(field).Name
@@ -171,7 +171,7 @@ func enumerateField(opt Options, field int) []Options {
 	}
 	var checked []Options
 	for _, opt := range opts {
-		if err := opt.Check(); err == nil {
+		if err := opt.Check(OS); err == nil {
 			checked = append(checked, opt)
 		}
 	}

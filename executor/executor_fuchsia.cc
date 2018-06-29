@@ -6,7 +6,7 @@
 #define SYZ_EXECUTOR
 #include "common_fuchsia.h"
 
-#include "executor_posix.h"
+#include "executor_fuchsia.h"
 
 #include "syscalls_fuchsia.h"
 
@@ -27,6 +27,7 @@ int main(int argc, char** argv)
 	install_segv_handler();
 	main_init();
 	execute_one();
+	(void)error; // prevent unused function warning
 	return 0;
 }
 
@@ -34,10 +35,18 @@ long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a
 {
 	long res = ZX_ERR_INVALID_ARGS;
 	NONFAILING(res = c->call(a0, a1, a2, a3, a4, a5, a6, a7, a8));
-	if (res == ZX_OK)
-		return 0;
-	errno = res;
-	return -1;
+	if (strncmp(c->name, "zx_", 3) == 0) {
+		// Convert zircon error convention to the libc convention that executor expects.
+		if (res == ZX_OK)
+			return 0;
+		errno = res;
+		return -1;
+	}
+	// We cast libc functions to signature returning long,
+	// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
+	if (res == 0xffffffff)
+		res = (long)-1;
+	return res;
 }
 
 void cover_open()
