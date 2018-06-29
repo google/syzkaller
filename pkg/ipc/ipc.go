@@ -529,6 +529,8 @@ type executeReply struct {
 }
 
 // TODO(dvyukov): we currently parse this manually, should cast output to this struct instead.
+// gometalinter complains about unused fields
+// nolint
 type callReply struct {
 	callIndex     uint32
 	callNum       uint32
@@ -540,7 +542,8 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File, outmem []byte) (*command, error) {
+func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File,
+	outmem []byte) (*command, error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
