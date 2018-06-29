@@ -131,8 +131,10 @@ func main() {
 							failed, hanged, err, output)
 					}
 					if len(info) != 0 {
-						log.Logf(1, "RESULT: signal %v, coverage %v errno %v",
-							len(info[0].Signal), len(info[0].Cover), info[0].Errno)
+						for i, inf := range info {
+							log.Logf(1, "CALL %v: signal %v, coverage %v errno %v",
+								i, len(inf.Signal), len(inf.Cover), inf.Errno)
+						}
 					} else {
 						log.Logf(1, "RESULT: no calls executed")
 					}

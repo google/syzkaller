@@ -214,6 +214,7 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 		}()
 	} else {
 		inmem = make([]byte, prog.ExecBufferSize)
+		outmem = make([]byte, outputSize)
 	}
 	env := &Env{
 		in:      inmem,
@@ -290,35 +291,35 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 	if env.config.Flags&FlagUseShmem == 0 {
 		progData = env.in[:progSize]
 	}
-	if env.out != nil {
-		// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
-		// if executor crashes before writing non-garbage there.
-		for i := 0; i < 4; i++ {
-			env.out[i] = 0
-		}
+	// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
+	// if executor crashes before writing non-garbage there.
+	for i := 0; i < 4; i++ {
+		env.out[i] = 0
 	}
 
 	atomic.AddUint64(&env.StatExecs, 1)
 	if env.cmd == nil {
 		atomic.AddUint64(&env.StatRestarts, 1)
-		env.cmd, err0 = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile)
+		env.cmd, err0 = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out)
 		if err0 != nil {
 			return
 		}
 	}
 	var restart bool
 	output, failed, hanged, restart, err0 = env.cmd.exec(opts, progData)
-	if err0 != nil || restart {
+	if err0 != nil {
 		env.cmd.close()
 		env.cmd = nil
 		return
 	}
 
-	if env.out != nil {
-		info, err0 = env.readOutCoverage(p)
-		if info != nil && env.config.Flags&FlagSignal == 0 {
-			addFallbackSignal(p, info)
-		}
+	info, err0 = env.readOutCoverage(p)
+	if info != nil && env.config.Flags&FlagSignal == 0 {
+		addFallbackSignal(p, info)
+	}
+	if restart {
+		env.cmd.close()
+		env.cmd = nil
 	}
 	return
 }
@@ -489,6 +490,7 @@ type command struct {
 	exited   chan struct{}
 	inrp     *os.File
 	outwp    *os.File
+	outmem   []byte
 }
 
 const (
@@ -526,21 +528,18 @@ type executeReply struct {
 }
 
 // TODO(dvyukov): we currently parse this manually, should cast output to this struct instead.
-/*
 type callReply struct {
 	callIndex     uint32
 	callNum       uint32
 	errno         uint32
-	blocked       uint32
 	faultInjected uint32
 	signalSize    uint32
 	coverSize     uint32
 	compsSize     uint32
 	// signal/cover/comps follow
 }
-*/
 
-func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File) (*command, error) {
+func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File, outmem []byte) (*command, error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
@@ -552,6 +551,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile
 		config:  config,
 		timeout: sanitizeTimeout(config),
 		dir:     dir,
+		outmem:  outmem,
 	}
 	defer func() {
 		if c != nil {
@@ -784,44 +784,57 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 			hang <- false
 		}
 	}()
-	var exitStatus int
-	if c.config.Flags&FlagUseForkServer == 0 {
-		restart = true
-		c.cmd.Wait()
-		close(done)
-		<-hang
-		exitStatus = osutil.ProcessExitStatus(c.cmd.ProcessState)
-	} else {
+	restart = c.config.Flags&FlagUseForkServer == 0
+	exitStatus := -1
+	completedCalls := (*uint32)(unsafe.Pointer(&c.outmem[0]))
+	outmem := c.outmem[4:]
+	for {
 		reply := &executeReply{}
 		replyData := (*[unsafe.Sizeof(*reply)]byte)(unsafe.Pointer(reply))[:]
-		_, readErr := io.ReadFull(c.inrp, replyData)
-		close(done)
-		if readErr == nil {
-			if reply.magic != outMagic {
-				panic(fmt.Sprintf("executor %v: got bad reply magic 0x%x", c.pid, reply.magic))
-			}
-			if reply.done == 0 {
-				// TODO: call completion/coverage over the control pipe is not supported yet.
-				panic(fmt.Sprintf("executor %v: got call reply", c.pid))
-			}
-			if reply.status == 0 {
-				// Program was OK.
-				<-hang
-				return
-			}
-			// Executor writes magic values into the pipe before exiting,
-			// so proceed with killing and joining it.
+		if _, err := io.ReadFull(c.inrp, replyData); err != nil {
+			break
 		}
-		c.abort()
-		output = <-c.readDone
-		if err := c.wait(); <-hang {
-			hanged = true
-			// In all likelihood, this will be duplicated by the default
-			// case below, but that's fine.
-			output = append(output, []byte(err.Error())...)
-			output = append(output, '\n')
+		if reply.magic != outMagic {
+			fmt.Fprintf(os.Stderr, "executor %v: got bad reply magic 0x%x\n", c.pid, reply.magic)
+			os.Exit(1)
 		}
-		exitStatus = int(reply.status)
+		if reply.done != 0 {
+			exitStatus = int(reply.status)
+			break
+		}
+		callReply := &callReply{}
+		callReplyData := (*[unsafe.Sizeof(*callReply)]byte)(unsafe.Pointer(callReply))[:]
+		if _, err := io.ReadFull(c.inrp, callReplyData); err != nil {
+			break
+		}
+		if callReply.signalSize != 0 || callReply.coverSize != 0 || callReply.compsSize != 0 {
+			// This is unsupported yet.
+			fmt.Fprintf(os.Stderr, "executor %v: got call reply with coverage\n", c.pid)
+			os.Exit(1)
+		}
+		copy(outmem, callReplyData)
+		outmem = outmem[len(callReplyData):]
+		*completedCalls++
+	}
+	close(done)
+	if exitStatus == 0 {
+		// Program was OK.
+		<-hang
+		return
+	}
+	c.abort()
+	output = <-c.readDone
+	if err := c.wait(); <-hang {
+		hanged = true
+		// In all likelihood, this will be duplicated by the default
+		// case below, but that's fine.
+		output = append(output, []byte(err.Error())...)
+		output = append(output, '\n')
+	} else if exitStatus == -1 {
+		exitStatus = osutil.ProcessExitStatus(c.cmd.ProcessState)
+		if exitStatus == 0 {
+			exitStatus = statusRetry // fuchsia always returns wrong exit status 0
+		}
 	}
 	// Handle magic values returned by executor.
 	switch exitStatus {
@@ -839,15 +852,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 		hanged = false
 		restart = true
 	default:
-		if c.config.Flags&FlagUseForkServer == 0 {
-			return
-		}
-		// Failed to get a valid (or perhaps any) status from the executor.
-		//
-		// Once the executor is serving the status is always written to
-		// the pipe, so we don't bother to check the specific exit codes from wait.
-		err0 = fmt.Errorf("executor %v: invalid status %d, exit status: %s",
-			c.pid, exitStatus, c.cmd.ProcessState)
+		err0 = fmt.Errorf("executor %v: exit status %d", c.pid, exitStatus)
 	}
 	return
 }

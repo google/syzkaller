@@ -67,7 +67,7 @@ static void segv_handler()
 		longjmp(segv_env, 1);
 	}
 	debug("recover: exiting\n");
-	doexit(1);
+	doexit(SIGSEGV);
 }
 
 static void* ex_handler(void* arg)
