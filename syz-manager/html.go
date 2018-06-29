@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/signal"
 )
 
 const dateFormat = "Jan 02 2006 15:04:05 MST"
@@ -202,6 +203,14 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
+	if mgr.cfg.Cover {
+		mgr.httpCoverCover(w, r)
+	} else {
+		mgr.httpCoverFallback(w, r)
+	}
+}
+
+func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 	if mgr.cfg.KernelObj == "" {
 		http.Error(w, fmt.Sprintf("no kernel_obj in config file"), http.StatusInternalServerError)
 		return
@@ -223,6 +232,40 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	runtime.GC()
+}
+
+func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
+	calls := make(map[int][]int)
+	for s, _ := range mgr.maxSignal {
+		id, errno := signal.DecodeFallback(uint32(s))
+		calls[id] = append(calls[id], errno)
+	}
+	data := &UIFallbackCoverData{}
+	for id, errnos := range calls {
+		if id < 0 || id >= len(mgr.target.Syscalls) {
+			http.Error(w, fmt.Sprintf("bad call ID %v", id), http.StatusInternalServerError)
+			return
+		}
+		sort.Ints(errnos)
+		ok := false
+		if errnos[0] == 0 {
+			ok = true
+			errnos = errnos[1:]
+		}
+		data.Calls = append(data.Calls, UIFallbackCall{
+			Name:   mgr.target.Syscalls[id].Name,
+			Errnos: errnos,
+			OK:     ok,
+		})
+	}
+	sort.Slice(data.Calls, func(i, j int) bool {
+		return data.Calls[i].Name < data.Calls[j].Name
+	})
+
+	if err := fallbackCoverTemplate.Execute(w, data); err != nil {
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
@@ -710,6 +753,43 @@ Priorities for {{$.Call}} <br> <br>
 {{range $p := $.Prios}}
 	{{printf "%.4f\t%s" $p.Prio $p.Call}} <br>
 {{end}}
+</body></html>
+`)))
+
+type UIFallbackCoverData struct {
+	Calls []UIFallbackCall
+}
+
+type UIFallbackCall struct {
+	Name   string
+	OK     bool
+	Errnos []int
+}
+
+var fallbackCoverTemplate = template.Must(template.New("").Parse(addStyle(`
+<!doctype html>
+<html>
+<head>
+	<title>syzkaller coverage</title>
+	{{STYLE}}
+</head>
+<body>
+<table>
+	<tr>
+		<th>Call</th>
+		<th>Succeeded</th>
+		<th>Errnos</th>
+	</tr>
+	{{range $c := $.Calls}}
+	<tr>
+		<td>{{$c.Name}}</td>
+		<td>{{if $c.OK}}YES{{end}}</td>
+		<td>
+			{{range $e := $c.Errnos}}{{$e}}&nbsp;{{end}}
+		</td>
+	</tr>
+	{{end}}
+</table>
 </body></html>
 `)))
 

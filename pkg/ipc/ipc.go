@@ -19,6 +19,7 @@ import (
 	"unsafe"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -333,7 +334,7 @@ func addFallbackSignal(p *prog.Prog, info []CallInfo) {
 		if !inf.Executed || len(inf.Signal) != 0 {
 			continue
 		}
-		inf.Signal = []uint32{uint32(call.Meta.ID)<<16 | uint32(inf.Errno)&0x3ff}
+		inf.Signal = []uint32{signal.EncodeFallback(call.Meta.ID, inf.Errno)}
 	}
 }
 
