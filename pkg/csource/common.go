@@ -13,12 +13,12 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func createCommonHeader(p *prog.Prog, opts Options) ([]byte, error) {
+func createCommonHeader(p, mmapProg *prog.Prog, opts Options) ([]byte, error) {
 	commonHeader, err := getCommonHeader(p.Target.OS)
 	if err != nil {
 		return nil, err
 	}
-	defines, err := defineList(p, opts)
+	defines, err := defineList(p, mmapProg, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func createCommonHeader(p *prog.Prog, opts Options) ([]byte, error) {
 	return src, nil
 }
 
-func defineList(p *prog.Prog, opts Options) ([]string, error) {
+func defineList(p, mmapProg *prog.Prog, opts Options) ([]string, error) {
 	var defines []string
 	bitmasks, csums := prog.RequiredFeatures(p)
 	if bitmasks {
@@ -111,6 +111,9 @@ func defineList(p *prog.Prog, opts Options) ([]string, error) {
 		defines = append(defines, "SYZ_DEBUG")
 	}
 	for _, c := range p.Calls {
+		defines = append(defines, "__NR_"+c.Meta.CallName)
+	}
+	for _, c := range mmapProg.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)
 	}
 	defines = append(defines, targets.Get(p.Target.OS, p.Target.Arch).CArch...)

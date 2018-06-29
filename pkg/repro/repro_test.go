@@ -83,7 +83,7 @@ func TestSimplifies(t *testing.T) {
 	}
 	var check func(opts csource.Options, i int)
 	check = func(opts csource.Options, i int) {
-		if err := opts.Check(); err != nil {
+		if err := opts.Check("linux"); err != nil {
 			t.Fatalf("opts are invalid: %v", err)
 		}
 		if i == len(cSimplifies) {

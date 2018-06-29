@@ -76,27 +76,20 @@ int main(int argc, char** argv)
 	install_segv_handler();
 	use_temporary_dir();
 
-	int pid = -1;
+	int status = 0;
 	switch (flag_sandbox) {
 	case sandbox_none:
-		pid = do_sandbox_none();
+		status = do_sandbox_none();
 		break;
 	case sandbox_setuid:
-		pid = do_sandbox_setuid();
+		status = do_sandbox_setuid();
 		break;
 	case sandbox_namespace:
-		pid = do_sandbox_namespace();
+		status = do_sandbox_namespace();
 		break;
 	default:
 		fail("unknown sandbox type");
 	}
-	if (pid < 0)
-		fail("clone failed");
-	debug("spawned loop pid %d\n", pid);
-	int status = 0;
-	while (waitpid(-1, &status, __WALL) != pid) {
-	}
-	status = WEXITSTATUS(status);
 	// Other statuses happen when fuzzer processes manages to kill loop.
 	if (status != kFailStatus && status != kErrorStatus)
 		status = kRetryStatus;

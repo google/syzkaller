@@ -289,30 +289,10 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 	return nil, nil
 }
 
-func (ctx *context) createDefaultOps() csource.Options {
-	opts := csource.Options{
-		Threaded:      true,
-		Collide:       true,
-		Repeat:        true,
-		Procs:         ctx.cfg.Procs,
-		Sandbox:       ctx.cfg.Sandbox,
-		EnableTun:     true,
-		EnableCgroups: true,
-		EnableNetdev:  true,
-		ResetNet:      true,
-		UseTmpDir:     true,
-		HandleSegv:    true,
-		WaitRepeat:    true,
-		Repro:         true,
-	}
-	return opts
-}
-
 func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Duration) (*Result, error) {
 	ctx.reproLog(3, "single: executing %d programs separately with timeout %s", len(entries), duration)
 
-	opts := ctx.createDefaultOps()
-
+	opts := csource.DefaultOpts(ctx.cfg)
 	for _, ent := range entries {
 		opts.Fault = ent.Fault
 		opts.FaultCall = ent.FaultCall
@@ -342,8 +322,7 @@ func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Du
 func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration time.Duration) (*Result, error) {
 	ctx.reproLog(3, "bisect: bisecting %d programs with base timeout %s", len(entries), baseDuration)
 
-	opts := ctx.createDefaultOps()
-
+	opts := csource.DefaultOpts(ctx.cfg)
 	duration := func(entries int) time.Duration {
 		return baseDuration + time.Duration((entries/4))*time.Second
 	}

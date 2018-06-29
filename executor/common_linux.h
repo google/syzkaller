@@ -1192,6 +1192,17 @@ static void sandbox_common()
 		debug("unshare(CLONE_SYSVSEM): %d\n", errno);
 	}
 }
+
+int wait_for_loop(int pid)
+{
+	if (pid < 0)
+		fail("sandbox fork failed");
+	debug("spawned loop pid %d\n", pid);
+	int status = 0;
+	while (waitpid(-1, &status, __WALL) != pid) {
+	}
+	return WEXITSTATUS(status);
+}
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
@@ -1207,10 +1218,8 @@ static int do_sandbox_none(void)
 		debug("unshare(CLONE_NEWPID): %d\n", errno);
 	}
 	int pid = fork();
-	if (pid < 0)
-		fail("sandbox fork failed");
-	if (pid)
-		return pid;
+	if (pid <= 0)
+		return wait_for_loop(pid);
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
 	setup_cgroups();
@@ -1237,10 +1246,8 @@ static int do_sandbox_setuid(void)
 	if (unshare(CLONE_NEWPID))
 		fail("unshare(CLONE_NEWPID)");
 	int pid = fork();
-	if (pid < 0)
-		fail("sandbox fork failed");
-	if (pid)
-		return pid;
+	if (pid <= 0)
+		return wait_for_loop(pid);
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
 	setup_cgroups();
@@ -1404,9 +1411,7 @@ static int do_sandbox_namespace(void)
 	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
 	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
 		    CLONE_NEWUSER | CLONE_NEWPID, 0);
-	if (pid < 0)
-		fail("sandbox clone failed");
-	return pid;
+	return wait_for_loop(pid);
 }
 #endif
 
@@ -2205,7 +2210,7 @@ static void execute(int num_calls)
 				ts.tv_sec = 0;
 				ts.tv_nsec = 20 * 1000 * 1000;
 				syscall(SYS_futex, &th->running, FUTEX_WAIT, 1, &ts);
-				if (running)
+				if (__atomic_load_n(&running, __ATOMIC_RELAXED))
 					usleep((call == num_calls - 1) ? 10000 : 1000);
 				break;
 			}
