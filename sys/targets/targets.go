@@ -173,6 +173,8 @@ var List = map[string]map[string]*Target{
 				"-lfdio",
 				"-lzircon",
 				"--sysroot", os.ExpandEnv("${SOURCEDIR}/out/build-zircon/build-arm64/sysroot"),
+				"-L", os.ExpandEnv("${SOURCEDIR}/out/arm64/arm64-shared"),
+				"-L", os.ExpandEnv("${SOURCEDIR}/out/arm64/sdks/zircon_sysroot/sysroot/lib"),
 			},
 		},
 	},
