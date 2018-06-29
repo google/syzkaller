@@ -170,12 +170,13 @@ type Env struct {
 	in  []byte
 	out []byte
 
-	cmd     *command
-	inFile  *os.File
-	outFile *os.File
-	bin     []string
-	pid     int
-	config  *Config
+	cmd       *command
+	inFile    *os.File
+	outFile   *os.File
+	bin       []string
+	linkedBin string
+	pid       int
+	config    *Config
 
 	StatExecs    uint64
 	StatRestarts uint64
@@ -241,6 +242,7 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 	binCopy := filepath.Join(filepath.Dir(env.bin[0]), base+pidStr)
 	if err := os.Link(env.bin[0], binCopy); err == nil {
 		env.bin[0] = binCopy
+		env.linkedBin = binCopy
 	}
 	inf = nil
 	outf = nil
@@ -250,6 +252,9 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 func (env *Env) Close() error {
 	if env.cmd != nil {
 		env.cmd.close()
+	}
+	if env.linkedBin != "" {
+		os.Remove(env.linkedBin)
 	}
 	var err1, err2 error
 	if env.inFile != nil {
