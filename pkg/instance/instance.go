@@ -248,7 +248,7 @@ func (inst *inst) testInstance() error {
 	acceptErr := make(chan error, 1)
 	go func() {
 		conn, err := ln.Accept()
-		if err != nil {
+		if err == nil {
 			conn.Close()
 		}
 		acceptErr <- err
