@@ -1218,7 +1218,7 @@ static int do_sandbox_none(void)
 		debug("unshare(CLONE_NEWPID): %d\n", errno);
 	}
 	int pid = fork();
-	if (pid <= 0)
+	if (pid != 0)
 		return wait_for_loop(pid);
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
@@ -1246,7 +1246,7 @@ static int do_sandbox_setuid(void)
 	if (unshare(CLONE_NEWPID))
 		fail("unshare(CLONE_NEWPID)");
 	int pid = fork();
-	if (pid <= 0)
+	if (pid != 0)
 		return wait_for_loop(pid);
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
