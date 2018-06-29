@@ -18,6 +18,7 @@ import (
 var (
 	flagOS         = flag.String("os", runtime.GOOS, "target os")
 	flagArch       = flag.String("arch", runtime.GOARCH, "target arch")
+	flagBuild      = flag.Bool("build", false, "also build the generated program")
 	flagThreaded   = flag.Bool("threaded", false, "create threaded program")
 	flagCollide    = flag.Bool("collide", false, "create collide program")
 	flagRepeat     = flag.Bool("repeat", false, "repeat program infinitely or not")
@@ -87,4 +88,14 @@ func main() {
 		src = formatted
 	}
 	os.Stdout.Write(src)
+	if !*flagBuild {
+		return
+	}
+	bin, err := csource.Build(target, src)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to build C source: %v\n", err)
+		os.Exit(1)
+	}
+	os.Remove(bin)
+	fmt.Fprintf(os.Stderr, "binary build OK\n")
 }
