@@ -508,6 +508,16 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
+	{Name: "zx_channel_read_etc", CallName: "zx_channel_read_etc", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", FldName: "handle", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "handles", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "num_bytes", TypeSize: 8}}, Buf: "bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "num_handles", TypeSize: 8}}, Buf: "handles"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
 	{Name: "zx_channel_write", CallName: "zx_channel_write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
@@ -580,6 +590,10 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_handle_close", CallName: "zx_handle_close", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
+	}},
+	{Name: "zx_handle_close_many", CallName: "zx_handle_close_many", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "handles", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4}}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "num_handles", TypeSize: 8}}, Buf: "handles"},
 	}},
 	{Name: "zx_handle_duplicate", CallName: "zx_handle_duplicate", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
@@ -758,6 +772,11 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "scope", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cookie", TypeSize: 8}}},
 	}},
+	{Name: "zx_object_set_profile", CallName: "zx_object_set_profile", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "profile", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
+	}},
 	{Name: "zx_object_set_property", CallName: "zx_object_set_property", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "property", TypeSize: 4}}},
@@ -838,6 +857,10 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "arg1", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "arg2", TypeSize: 8}}},
 	}},
+	{Name: "zx_socket_accept", CallName: "zx_socket_accept", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "handle", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out_socket", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", TypeSize: 4, ArgDir: 1}}},
+	}},
 	{Name: "zx_socket_create", CallName: "zx_socket_create", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_create_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{0, 1, 2}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", TypeSize: 4, ArgDir: 1}}},
@@ -849,6 +872,10 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "buffer"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
+	{Name: "zx_socket_share", CallName: "zx_socket_share", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "handle", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "socket_to_share", TypeSize: 4}},
 	}},
 	{Name: "zx_socket_write", CallName: "zx_socket_write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "handle", TypeSize: 4}},
@@ -1205,4 +1232,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_amd64 = "221d37f0d1790191b43e5892bb21f7fa292fa530"
+const revision_amd64 = "20265be5cc9017ab4755cfae72327279ff50da99"

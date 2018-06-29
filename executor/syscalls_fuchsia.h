@@ -2,13 +2,13 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "221d37f0d1790191b43e5892bb21f7fa292fa530"
+#define SYZ_REVISION "20265be5cc9017ab4755cfae72327279ff50da99"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 157
+#define SYZ_SYSCALL_COUNT 162
 const call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -74,6 +74,7 @@ const call_t syscalls[] = {
     {"zx_channel_call", 0, (syscall_t)zx_channel_call},
     {"zx_channel_create", 0, (syscall_t)zx_channel_create},
     {"zx_channel_read", 0, (syscall_t)zx_channel_read},
+    {"zx_channel_read_etc", 0, (syscall_t)zx_channel_read_etc},
     {"zx_channel_write", 0, (syscall_t)zx_channel_write},
     {"zx_clock_get", 0, (syscall_t)zx_clock_get},
     {"zx_cprng_add_entropy", 0, (syscall_t)zx_cprng_add_entropy},
@@ -88,6 +89,7 @@ const call_t syscalls[] = {
     {"zx_futex_wake", 0, (syscall_t)zx_futex_wake},
     {"zx_futex_wake_handle_close_thread_exit", 0, (syscall_t)zx_futex_wake_handle_close_thread_exit},
     {"zx_handle_close", 0, (syscall_t)zx_handle_close},
+    {"zx_handle_close_many", 0, (syscall_t)zx_handle_close_many},
     {"zx_handle_duplicate", 0, (syscall_t)zx_handle_duplicate},
     {"zx_handle_replace", 0, (syscall_t)zx_handle_replace},
     {"zx_job_create", 0, (syscall_t)zx_job_create},
@@ -114,6 +116,7 @@ const call_t syscalls[] = {
     {"zx_object_get_info$ZX_INFO_VMAR", 0, (syscall_t)zx_object_get_info},
     {"zx_object_get_property", 0, (syscall_t)zx_object_get_property},
     {"zx_object_set_cookie", 0, (syscall_t)zx_object_set_cookie},
+    {"zx_object_set_profile", 0, (syscall_t)zx_object_set_profile},
     {"zx_object_set_property", 0, (syscall_t)zx_object_set_property},
     {"zx_object_signal", 0, (syscall_t)zx_object_signal},
     {"zx_object_signal_peer", 0, (syscall_t)zx_object_signal_peer},
@@ -128,8 +131,10 @@ const call_t syscalls[] = {
     {"zx_process_exit", 0, (syscall_t)zx_process_exit},
     {"zx_process_read_memory", 0, (syscall_t)zx_process_read_memory},
     {"zx_process_start", 0, (syscall_t)zx_process_start},
+    {"zx_socket_accept", 0, (syscall_t)zx_socket_accept},
     {"zx_socket_create", 0, (syscall_t)zx_socket_create},
     {"zx_socket_read", 0, (syscall_t)zx_socket_read},
+    {"zx_socket_share", 0, (syscall_t)zx_socket_share},
     {"zx_socket_write", 0, (syscall_t)zx_socket_write},
     {"zx_system_get_num_cpus", 0, (syscall_t)zx_system_get_num_cpus},
     {"zx_system_get_physmem", 0, (syscall_t)zx_system_get_physmem},
@@ -173,13 +178,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "b2a15a8a4841d4635c2f63e4b19a3966cc01908b"
+#define SYZ_REVISION "7d924bf21433b5120c6267acc126dccad054236d"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 157
+#define SYZ_SYSCALL_COUNT 162
 const call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -245,6 +250,7 @@ const call_t syscalls[] = {
     {"zx_channel_call", 0, (syscall_t)zx_channel_call},
     {"zx_channel_create", 0, (syscall_t)zx_channel_create},
     {"zx_channel_read", 0, (syscall_t)zx_channel_read},
+    {"zx_channel_read_etc", 0, (syscall_t)zx_channel_read_etc},
     {"zx_channel_write", 0, (syscall_t)zx_channel_write},
     {"zx_clock_get", 0, (syscall_t)zx_clock_get},
     {"zx_cprng_add_entropy", 0, (syscall_t)zx_cprng_add_entropy},
@@ -259,6 +265,7 @@ const call_t syscalls[] = {
     {"zx_futex_wake", 0, (syscall_t)zx_futex_wake},
     {"zx_futex_wake_handle_close_thread_exit", 0, (syscall_t)zx_futex_wake_handle_close_thread_exit},
     {"zx_handle_close", 0, (syscall_t)zx_handle_close},
+    {"zx_handle_close_many", 0, (syscall_t)zx_handle_close_many},
     {"zx_handle_duplicate", 0, (syscall_t)zx_handle_duplicate},
     {"zx_handle_replace", 0, (syscall_t)zx_handle_replace},
     {"zx_job_create", 0, (syscall_t)zx_job_create},
@@ -285,6 +292,7 @@ const call_t syscalls[] = {
     {"zx_object_get_info$ZX_INFO_VMAR", 0, (syscall_t)zx_object_get_info},
     {"zx_object_get_property", 0, (syscall_t)zx_object_get_property},
     {"zx_object_set_cookie", 0, (syscall_t)zx_object_set_cookie},
+    {"zx_object_set_profile", 0, (syscall_t)zx_object_set_profile},
     {"zx_object_set_property", 0, (syscall_t)zx_object_set_property},
     {"zx_object_signal", 0, (syscall_t)zx_object_signal},
     {"zx_object_signal_peer", 0, (syscall_t)zx_object_signal_peer},
@@ -299,8 +307,10 @@ const call_t syscalls[] = {
     {"zx_process_exit", 0, (syscall_t)zx_process_exit},
     {"zx_process_read_memory", 0, (syscall_t)zx_process_read_memory},
     {"zx_process_start", 0, (syscall_t)zx_process_start},
+    {"zx_socket_accept", 0, (syscall_t)zx_socket_accept},
     {"zx_socket_create", 0, (syscall_t)zx_socket_create},
     {"zx_socket_read", 0, (syscall_t)zx_socket_read},
+    {"zx_socket_share", 0, (syscall_t)zx_socket_share},
     {"zx_socket_write", 0, (syscall_t)zx_socket_write},
     {"zx_system_get_num_cpus", 0, (syscall_t)zx_system_get_num_cpus},
     {"zx_system_get_physmem", 0, (syscall_t)zx_system_get_physmem},

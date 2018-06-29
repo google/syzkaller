@@ -10,6 +10,8 @@ zx_channel_call(handle zx_chan, options const[0], deadline zx_time, args ptr[in,
 zx_channel_read(handle zx_chan, options flags[chan_read_options], bytes ptr[out, array[int8]], handles ptr[out, zx_handle], num_bytes len[bytes], num_handles len[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_write(handle zx_chan, options const[0], bytes ptr[in, array[int8]], num_bytes len[bytes], handles ptr[in, array[zx_handle]], num_handles len[handles])
 
+zx_channel_read_etc(handle zx_chan, options int32, bytes ptr[out, array[int8]], handles ptr[out, zx_handle], num_bytes len[bytes], num_handles len[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+
 zx_channel_call_args {
 	wr_bytes	ptr[in, array[int8]]
 	wr_handles	ptr[in, array[zx_handle]]
