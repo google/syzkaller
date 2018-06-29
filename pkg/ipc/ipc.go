@@ -19,7 +19,6 @@ import (
 	"unsafe"
 
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -329,12 +328,14 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 // We use syscall number or-ed with returned errno value as signal.
 // At least this gives us all combinations of syscall+errno.
 func addFallbackSignal(p *prog.Prog, info []CallInfo) {
-	for i, call := range p.Calls {
-		inf := &info[i]
-		if !inf.Executed || len(inf.Signal) != 0 {
-			continue
-		}
-		inf.Signal = []uint32{signal.EncodeFallback(call.Meta.ID, inf.Errno)}
+	callInfos := make([]prog.CallInfo, len(info))
+	for i, inf := range info {
+		callInfos[i].Executed = inf.Executed
+		callInfos[i].Errno = inf.Errno
+	}
+	p.FallbackSignal(callInfos)
+	for i, inf := range callInfos {
+		info[i].Signal = inf.Signal
 	}
 }
 

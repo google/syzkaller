@@ -23,7 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/signal"
+	"github.com/google/syzkaller/prog"
 )
 
 const dateFormat = "Jan 02 2006 15:04:05 MST"
@@ -203,6 +203,10 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
+	if mgr.checkResult == nil {
+		http.Error(w, fmt.Sprintf("machine is not checked yet"), http.StatusInternalServerError)
+		return
+	}
 	if mgr.cfg.Cover {
 		mgr.httpCoverCover(w, r)
 	} else {
@@ -236,26 +240,23 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 
 func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 	calls := make(map[int][]int)
-	for s, _ := range mgr.maxSignal {
-		id, errno := signal.DecodeFallback(uint32(s))
+	for s := range mgr.maxSignal {
+		id, errno := prog.DecodeFallbackSignal(uint32(s))
 		calls[id] = append(calls[id], errno)
 	}
 	data := &UIFallbackCoverData{}
-	for id, errnos := range calls {
-		if id < 0 || id >= len(mgr.target.Syscalls) {
-			http.Error(w, fmt.Sprintf("bad call ID %v", id), http.StatusInternalServerError)
-			return
-		}
+	for _, id := range mgr.checkResult.EnabledCalls {
+		errnos := calls[id]
 		sort.Ints(errnos)
-		ok := false
-		if errnos[0] == 0 {
-			ok = true
+		successful := 0
+		for len(errnos) != 0 && errnos[0] == 0 {
+			successful++
 			errnos = errnos[1:]
 		}
 		data.Calls = append(data.Calls, UIFallbackCall{
-			Name:   mgr.target.Syscalls[id].Name,
-			Errnos: errnos,
-			OK:     ok,
+			Name:       mgr.target.Syscalls[id].Name,
+			Successful: successful,
+			Errnos:     errnos,
 		})
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
@@ -761,9 +762,9 @@ type UIFallbackCoverData struct {
 }
 
 type UIFallbackCall struct {
-	Name   string
-	OK     bool
-	Errnos []int
+	Name       string
+	Successful int
+	Errnos     []int
 }
 
 var fallbackCoverTemplate = template.Must(template.New("").Parse(addStyle(`
@@ -777,16 +778,14 @@ var fallbackCoverTemplate = template.Must(template.New("").Parse(addStyle(`
 <table>
 	<tr>
 		<th>Call</th>
-		<th>Succeeded</th>
+		<th>Successful</th>
 		<th>Errnos</th>
 	</tr>
 	{{range $c := $.Calls}}
 	<tr>
 		<td>{{$c.Name}}</td>
-		<td>{{if $c.OK}}YES{{end}}</td>
-		<td>
-			{{range $e := $c.Errnos}}{{$e}}&nbsp;{{end}}
-		</td>
+		<td>{{if $c.Successful}}{{$c.Successful}}{{end}}</td>
+		<td>{{range $e := $c.Errnos}}{{$e}}&nbsp;{{end}}</td>
 	</tr>
 	{{end}}
 </table>
