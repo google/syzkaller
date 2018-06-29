@@ -540,6 +540,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}
+	dir = osutil.Abs(dir)
 
 	c := &command{
 		pid:     pid,
