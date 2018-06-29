@@ -48,6 +48,9 @@ func (fu *fuchsia) initRepo() error {
 		return fmt.Errorf("failed to create repo dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
+	if err := osutil.SandboxChown(tmpDir); err != nil {
+		return err
+	}
 	cmd := "curl -s 'https://fuchsia.googlesource.com/scripts/+/master/bootstrap?format=TEXT' |" +
 		"base64 --decode | bash -s topaz"
 	if _, err := runSandboxed(tmpDir, "bash", "-c", cmd); err != nil {
