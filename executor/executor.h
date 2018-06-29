@@ -142,6 +142,18 @@ struct execute_reply {
 	uint32 status;
 };
 
+struct call_reply {
+	execute_reply header;
+	uint32 call_index;
+	uint32 call_num;
+	uint32 reserrno;
+	uint32 fault_injected;
+	uint32 signal_size;
+	uint32 cover_size;
+	uint32 comps_size;
+	// signal/cover/comps follow
+};
+
 enum {
 	KCOV_CMP_CONST = 1,
 	KCOV_CMP_SIZE1 = 0,
@@ -581,44 +593,60 @@ void handle_completion(thread_t* th)
 		}
 	}
 	if (!collide && !th->colliding) {
-		write_output(th->call_index);
-		write_output(th->call_num);
 		uint32 reserrno = th->res != -1 ? 0 : th->reserrno;
-		write_output(reserrno);
-		write_output(th->fault_injected);
-		uint32* signal_count_pos = write_output(0); // filled in later
-		uint32* cover_count_pos = write_output(0); // filled in later
-		uint32* comps_count_pos = write_output(0); // filled in later
+		if (SYZ_EXECUTOR_USES_SHMEM) {
+			write_output(th->call_index);
+			write_output(th->call_num);
+			write_output(reserrno);
+			write_output(th->fault_injected);
+			uint32* signal_count_pos = write_output(0); // filled in later
+			uint32* cover_count_pos = write_output(0); // filled in later
+			uint32* comps_count_pos = write_output(0); // filled in later
 
-		if (flag_collect_comps) {
-			// Collect only the comparisons
-			uint32 ncomps = th->cover_size;
-			kcov_comparison_t* start = (kcov_comparison_t*)(th->cover_data + sizeof(uint64));
-			kcov_comparison_t* end = start + ncomps;
-			if ((char*)end > th->cover_end)
-				fail("too many comparisons %u", ncomps);
-			std::sort(start, end);
-			ncomps = std::unique(start, end) - start;
-			uint32 comps_size = 0;
-			for (uint32 i = 0; i < ncomps; ++i) {
-				if (start[i].ignore())
-					continue;
-				comps_size++;
-				start[i].write();
+			if (flag_collect_comps) {
+				// Collect only the comparisons
+				uint32 ncomps = th->cover_size;
+				kcov_comparison_t* start = (kcov_comparison_t*)(th->cover_data + sizeof(uint64));
+				kcov_comparison_t* end = start + ncomps;
+				if ((char*)end > th->cover_end)
+					fail("too many comparisons %u", ncomps);
+				std::sort(start, end);
+				ncomps = std::unique(start, end) - start;
+				uint32 comps_size = 0;
+				for (uint32 i = 0; i < ncomps; ++i) {
+					if (start[i].ignore())
+						continue;
+					comps_size++;
+					start[i].write();
+				}
+				// Write out number of comparisons.
+				*comps_count_pos = comps_size;
+			} else if (flag_cover) {
+				if (is_kernel_64_bit)
+					write_coverage_signal<uint64>(th, signal_count_pos, cover_count_pos);
+				else
+					write_coverage_signal<uint32>(th, signal_count_pos, cover_count_pos);
 			}
-			// Write out number of comparisons.
-			*comps_count_pos = comps_size;
-		} else if (flag_cover) {
-			if (is_kernel_64_bit)
-				write_coverage_signal<uint64>(th, signal_count_pos, cover_count_pos);
-			else
-				write_coverage_signal<uint32>(th, signal_count_pos, cover_count_pos);
+			debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u comps=%u\n",
+			      completed, th->call_index, th->call_num, reserrno,
+			      *signal_count_pos, *cover_count_pos, *comps_count_pos);
+			completed++;
+			write_completed(completed);
+		} else {
+			call_reply reply;
+			reply.header.magic = kOutMagic;
+			reply.header.done = 0;
+			reply.header.status = 0;
+			reply.call_index = th->call_index;
+			reply.call_num = th->call_num;
+			reply.reserrno = reserrno;
+			reply.fault_injected = th->fault_injected;
+			reply.signal_size = 0;
+			reply.cover_size = 0;
+			reply.comps_size = 0;
+			if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
+				fail("control pipe call write failed");
 		}
-		debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u comps=%u\n",
-		      completed, th->call_index, th->call_num, reserrno,
-		      *signal_count_pos, *cover_count_pos, *comps_count_pos);
-		completed++;
-		write_completed(completed);
 	}
 	th->handled = true;
 	running--;

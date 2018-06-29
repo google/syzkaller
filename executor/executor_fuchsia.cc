@@ -27,6 +27,7 @@ int main(int argc, char** argv)
 	install_segv_handler();
 	main_init();
 	execute_one();
+	reply_execute(0);
 	(void)error; // prevent unused function warning
 	return 0;
 }
