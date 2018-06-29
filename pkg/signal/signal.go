@@ -191,11 +191,3 @@ func Minimize(corpus []Context) []interface{} {
 	}
 	return result
 }
-
-func EncodeFallback(id, errno int) uint32 {
-	return uint32(id)<<16 | uint32(errno)&0x3ff
-}
-
-func DecodeFallback(s uint32) (int, int) {
-	return int(s >> 16), int(s & 0x3ff)
-}

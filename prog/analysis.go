@@ -9,6 +9,9 @@
 package prog
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/binary"
 	"fmt"
 )
 
@@ -169,4 +172,106 @@ func RequiredFeatures(p *Prog) (bitmasks, csums bool) {
 		})
 	}
 	return
+}
+
+type CallInfo struct {
+	Executed bool
+	Errno    int
+	Signal   []uint32
+}
+
+const (
+	fallbackSignalErrno = iota
+	fallbackSignalCtor
+	fallbackSignalFlags
+	fallbackCallMask = 0x3fff
+)
+
+func (p *Prog) FallbackSignal(info []CallInfo) {
+	resources := make(map[*ResultArg]*Call)
+	for i, c := range p.Calls {
+		inf := &info[i]
+		if !inf.Executed {
+			continue
+		}
+		id := c.Meta.ID
+		inf.Signal = append(inf.Signal, encodeFallbackSignal(fallbackSignalErrno, id, inf.Errno))
+		if inf.Errno != 0 {
+			continue
+		}
+		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+			if a, ok := arg.(*ResultArg); ok {
+				resources[a] = c
+			}
+		})
+		// Specifically look only at top-level arguments,
+		// deeper arguments can produce too much false signal.
+		flags := new(bytes.Buffer)
+		for _, arg := range c.Args {
+			switch a := arg.(type) {
+			case *ResultArg:
+				if a.Res != nil {
+					ctor := resources[a.Res]
+					if ctor != nil {
+						inf.Signal = append(inf.Signal,
+							encodeFallbackSignal(fallbackSignalCtor, id, ctor.Meta.ID))
+					}
+				} else {
+					for _, v := range a.Type().(*ResourceType).SpecialValues() {
+						if a.Val == v {
+							binary.Write(flags, binary.LittleEndian, v)
+						}
+					}
+				}
+			case *ConstArg:
+				switch typ := a.Type().(type) {
+				case *FlagsType:
+					var mask uint64
+					for _, v := range typ.Vals {
+						mask |= v
+					}
+					binary.Write(flags, binary.LittleEndian, a.Val&mask)
+				case *LenType:
+					if a.Val == 0 {
+						flags.WriteByte(0x42)
+					}
+				}
+			case *PointerArg:
+				if a.IsNull() {
+					flags.WriteByte(0x43)
+				}
+			}
+			if flags.Len() != 0 {
+				hash := sha1.Sum(flags.Bytes())
+				inf.Signal = append(inf.Signal,
+					encodeFallbackSignal(fallbackSignalFlags, id, int(hash[0])))
+			}
+		}
+	}
+}
+
+func DecodeFallbackSignal(s uint32) (callID, errno int) {
+	typ, id, aux := decodeFallbackSignal(s)
+	switch typ {
+	case fallbackSignalErrno:
+		return id, aux
+	case fallbackSignalCtor, fallbackSignalFlags:
+		return id, 0
+	default:
+		panic(fmt.Sprintf("bad fallback signal type %v", typ))
+	}
+}
+
+func encodeFallbackSignal(typ, id, aux int) uint32 {
+	if typ & ^3 != 0 {
+		panic(fmt.Sprintf("bad fallback signal type %v", typ))
+	}
+	if id & ^fallbackCallMask != 0 {
+		panic(fmt.Sprintf("bad call id in fallback signal %v", id))
+	}
+	return uint32(typ) | uint32(id&0x3fff)<<2 | uint32(aux)<<16
+}
+
+func decodeFallbackSignal(s uint32) (typ, id, aux int) {
+	return int(s & 3), int((s >> 2) & fallbackCallMask), int(s >> 16)
 }
