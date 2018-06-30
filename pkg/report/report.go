@@ -69,7 +69,7 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return reporterWrapper{rep, supps}, nil
+	return &reporterWrapper{rep, supps}, nil
 }
 
 var ctors = map[string]fn{
@@ -101,7 +101,7 @@ type reporterWrapper struct {
 	suppressions []*regexp.Regexp
 }
 
-func (wrap reporterWrapper) Parse(output []byte) *Report {
+func (wrap *reporterWrapper) Parse(output []byte) *Report {
 	rep := wrap.Reporter.Parse(output)
 	if rep == nil {
 		return nil
@@ -109,6 +109,10 @@ func (wrap reporterWrapper) Parse(output []byte) *Report {
 	rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
 	rep.Suppressed = matchesAny(rep.Output, wrap.suppressions)
 	return rep
+}
+
+func IsSuppressed(reporter Reporter, output []byte) bool {
+	return matchesAny(output, reporter.(*reporterWrapper).suppressions)
 }
 
 type replacement struct {
