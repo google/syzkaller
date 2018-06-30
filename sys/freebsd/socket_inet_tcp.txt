@@ -52,8 +52,3 @@ setsockopt$inet_tcp_TCP_CONGESTION(fd sock_tcp, level const[IPPROTO_TCP], optnam
 setsockopt$inet6_tcp_TCP_CONGESTION(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
 
 tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois"
-
-sockaddr_storage_tcp {
-	in	sockaddr_storage_in
-	in6	sockaddr_storage_in6
-}

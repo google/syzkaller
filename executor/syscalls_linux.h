@@ -2,13 +2,13 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "31de49700d92081b29f19299f9436f0571d256dc"
+#define SYZ_REVISION "b4050c8ea56e0fa6d944c424b5e03399e929745e"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1996
+#define SYZ_SYSCALL_COUNT 1998
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -597,6 +597,7 @@ const call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$HCIINQUIRY", 54},
     {"ioctl$HDIO_GETGEO", 54},
     {"ioctl$I2C_FUNCS", 54},
     {"ioctl$I2C_PEC", 54},
@@ -1984,6 +1985,7 @@ const call_t syscalls[] = {
     {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 4},
     {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 4},
     {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 4},
+    {"write$RDMA_USER_CM_CMD_SET_OPTION", 4},
     {"write$binfmt_aout", 4},
     {"write$binfmt_elf32", 4},
     {"write$binfmt_elf64", 4},
@@ -2012,13 +2014,13 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "d09a70511a6f3ffcd31382007c4d84e55ad90efb"
+#define SYZ_REVISION "fc69ece5307d371a63232a03bac964a9ede3c7d2"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2048
+#define SYZ_SYSCALL_COUNT 2050
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2617,6 +2619,7 @@ const call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 16},
     {"ioctl$GIO_UNIMAP", 16},
     {"ioctl$GIO_UNISCRNMAP", 16},
+    {"ioctl$HCIINQUIRY", 16},
     {"ioctl$HDIO_GETGEO", 16},
     {"ioctl$I2C_FUNCS", 16},
     {"ioctl$I2C_PEC", 16},
@@ -4046,6 +4049,7 @@ const call_t syscalls[] = {
     {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 1},
     {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 1},
     {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 1},
+    {"write$RDMA_USER_CM_CMD_SET_OPTION", 1},
     {"write$binfmt_aout", 1},
     {"write$binfmt_elf32", 1},
     {"write$binfmt_elf64", 1},
@@ -4074,13 +4078,13 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "7685391c83d55a4f98fddef408b43e62eaf32746"
+#define SYZ_REVISION "dd5ad897499c0d9a2e3cbc471197a813b506d043"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2004
+#define SYZ_SYSCALL_COUNT 2006
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4673,6 +4677,7 @@ const call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$HCIINQUIRY", 54},
     {"ioctl$HDIO_GETGEO", 54},
     {"ioctl$I2C_FUNCS", 54},
     {"ioctl$I2C_PEC", 54},
@@ -6064,6 +6069,7 @@ const call_t syscalls[] = {
     {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 4},
     {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 4},
     {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 4},
+    {"write$RDMA_USER_CM_CMD_SET_OPTION", 4},
     {"write$binfmt_aout", 4},
     {"write$binfmt_elf32", 4},
     {"write$binfmt_elf64", 4},
@@ -6092,13 +6098,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "490cd226cdc33533cddaab7834be0768dcfad0d9"
+#define SYZ_REVISION "45ca78852b7500e7612287085dee2292ff1d6a8e"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1976
+#define SYZ_SYSCALL_COUNT 1978
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6683,6 +6689,7 @@ const call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 29},
     {"ioctl$GIO_UNIMAP", 29},
     {"ioctl$GIO_UNISCRNMAP", 29},
+    {"ioctl$HCIINQUIRY", 29},
     {"ioctl$HDIO_GETGEO", 29},
     {"ioctl$I2C_FUNCS", 29},
     {"ioctl$I2C_PEC", 29},
@@ -8054,6 +8061,7 @@ const call_t syscalls[] = {
     {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 64},
     {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 64},
     {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 64},
+    {"write$RDMA_USER_CM_CMD_SET_OPTION", 64},
     {"write$binfmt_aout", 64},
     {"write$binfmt_elf32", 64},
     {"write$binfmt_elf64", 64},
@@ -8082,13 +8090,13 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "1b8b56d3ab966b2443749c78f2dac56bef54fb9c"
+#define SYZ_REVISION "fb8f49f6dceef512594c9f30fdc24bb287e02e4f"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1865
+#define SYZ_SYSCALL_COUNT 1868
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8490,6 +8498,7 @@ const call_t syscalls[] = {
     {"io_cancel", 231},
     {"io_destroy", 228},
     {"io_getevents", 229},
+    {"io_pgetevents", 388},
     {"io_setup", 227},
     {"io_submit", 230},
     {"ioctl", 54},
@@ -8684,6 +8693,7 @@ const call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$HCIINQUIRY", 54},
     {"ioctl$HDIO_GETGEO", 54},
     {"ioctl$I2C_FUNCS", 54},
     {"ioctl$I2C_PEC", 54},
@@ -9933,6 +9943,7 @@ const call_t syscalls[] = {
     {"write$RDMA_USER_CM_CMD_RESOLVE_ADDR", 4},
     {"write$RDMA_USER_CM_CMD_RESOLVE_IP", 4},
     {"write$RDMA_USER_CM_CMD_RESOLVE_ROUTE", 4},
+    {"write$RDMA_USER_CM_CMD_SET_OPTION", 4},
     {"write$binfmt_aout", 4},
     {"write$binfmt_elf32", 4},
     {"write$binfmt_elf64", 4},

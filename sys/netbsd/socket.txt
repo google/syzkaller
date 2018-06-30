@@ -41,29 +41,12 @@ send_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_NOSIGNAL
 recv_flags = MSG_CMSG_CLOEXEC, MSG_OOB, MSG_PEEK, MSG_WAITALL
 cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, LINUX_SOL_IP, LINUX_SOL_TCP, LINUX_SOL_UDP, LINUX_SOL_IPV6, LINUX_SOL_IPX, LINUX_SOL_AX25
 
-# This sockaddr type corresponds to the struct sockaddr and is 16 bytes or less.
-sockaddr [
-# AF_UNIX sockaddr in bigger than 16 bytes
-	in	sockaddr_in
-	random	array[int32, 4]
-]
-
 # This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
 sockaddr_storage [
 	un	sockaddr_un
 	in	sockaddr_in
 	in6	sockaddr_in6
 ] [varlen]
-
-sockaddr_generic {
-	sa_family	flags[socket_domain, int16]
-	sa_data		array[int8, 14]
-}
-
-sockaddr_storage_generic {
-	sa_family	flags[socket_domain, int16]
-	sa_data		array[int8, 126]
-}
 
 send_msghdr {
 	msg_name	ptr[in, sockaddr_storage, opt]
@@ -75,11 +58,6 @@ send_msghdr {
 	msg_flags	flags[send_flags, int32]
 }
 
-send_mmsghdr {
-	msg_hdr	send_msghdr
-	msg_len	int32
-}
-
 recv_msghdr {
 	msg_name	ptr[out, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
@@ -88,11 +66,6 @@ recv_msghdr {
 	msg_control	buffer[out]
 	msg_controllen	len[msg_control, intptr]
 	msg_flags	int32
-}
-
-recv_mmsghdr {
-	msg_hdr	recv_msghdr
-	msg_len	int32
 }
 
 cmsghdr {

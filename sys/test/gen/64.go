@@ -406,6 +406,9 @@ var structDescs_64 = []*KeyedStruct{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "f0", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f1", TypeSize: 8}}, Buf: "f0"},
 	}}},
+	{Key: StructKey{Name: "syz_missing_const_struct"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_missing_const_struct", TypeSize: 4}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 4}}},
+	}}},
 	{Key: StructKey{Name: "syz_recur_0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_recur_0", TypeSize: 8}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "syz_recur_0"}}},
 	}}},
@@ -483,6 +486,10 @@ var structDescs_64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "syz_union3"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_union3", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f0", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "syz_use_missing"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_use_missing", TypeSize: 8}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "syz_missing_const_res", FldName: "a0", TypeSize: 4}},
+		&StructType{Key: StructKey{Name: "syz_missing_const_struct"}, FldName: "a1"},
 	}}},
 	{Key: StructKey{Name: "type_confusion"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "type_confusion", TypeSize: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
@@ -734,6 +741,9 @@ var syscalls_64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_length_vma_struct"}}},
 	}},
 	{Name: "syz_test$missing_resource", CallName: "syz_test", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "syz_missing_const_res", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_test$missing_struct", CallName: "syz_test", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_use_missing"}}},
+	}},
 	{Name: "syz_test$opt0", CallName: "syz_test", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "a0", TypeSize: 8, IsOptional: true}}},
 	}},
@@ -827,4 +837,4 @@ var consts_64 = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64 = "34eb49c0f2636be2ae3cff8b4b19a535846131fa"
+const revision_64 = "2bae1e3049afe17220914a995ab078c5510e19f3"

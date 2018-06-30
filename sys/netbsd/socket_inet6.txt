@@ -26,11 +26,6 @@ sockaddr_in6 {
 	scope	int32
 }
 
-sockaddr_storage_in6 {
-	addr	sockaddr_in6
-	pad	array[const[0, int64], 12]
-}
-
 socket$inet6(domain const[AF_INET6], type flags[socket_type], proto int8) sock_in6
 socketpair$inet6(domain const[AF_INET6], type flags[socket_type], proto int8, fds ptr[out, sock_in6_pair])
 accept$inet6(fd sock_in6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_in6
@@ -68,26 +63,4 @@ mf6cctl {
 	mf6cc_mcastgrp	sockaddr_in6
 	mf6cc_parent	int16
 	mf6cc_ifset	array[int32, 8]
-}
-
-group_req_in6 {
-	gr_interface	int32
-	gr_group	sockaddr_storage_in6
-}
-
-group_source_req_in6 {
-	gsr_interface	int32
-	gsr_group	sockaddr_storage_in6
-	gsr_source	sockaddr_storage_in6
-}
-
-group_filter_in6 {
-	gf_interface	int32
-	gf_group	sockaddr_storage_in6
-	gf_numsrc	len[gf_slist, int32]
-	gf_slist	array[sockaddr_storage_in6]
-}
-
-in6_ifreq {
-	ifr6_prefixlen	int32
 }

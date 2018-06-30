@@ -105,12 +105,6 @@ ip_msfilter {
 
 ip_msfilter_mode = MCAST_INCLUDE, MCAST_EXCLUDE
 
-in_pktinfo {
-	ipi_ifindex	ifindex
-	ipi_spec_dst	ipv4_addr
-	ipi_addr	ipv4_addr
-}
-
 group_req_in {
 	gr_interface	int32
 	gr_group	sockaddr_storage_in
@@ -120,12 +114,4 @@ group_source_req_in {
 	gsr_interface	int32
 	gsr_group	sockaddr_storage_in
 	gsr_source	sockaddr_storage_in
-}
-
-group_filter_in {
-	gf_interface	int32
-	gf_group	sockaddr_storage_in
-	gf_fmode	flags[ip_msfilter_mode, int32]
-	gf_numsrc	len[gf_slist, int32]
-	gf_slist	array[sockaddr_storage_in]
 }

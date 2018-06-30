@@ -60,12 +60,14 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		intFlags:     make(map[string]*ast.IntFlags),
 		strFlags:     make(map[string]*ast.StrFlags),
 		used:         make(map[string]bool),
+		usedTypedefs: make(map[string]bool),
 		structDescs:  make(map[prog.StructKey]*prog.StructDesc),
 		structNodes:  make(map[*prog.StructDesc]*ast.Struct),
 		structVarlen: make(map[string]bool),
 	}
 	for name, n := range builtinTypedefs {
 		comp.typedefs[name] = n
+		comp.usedTypedefs[name] = true
 	}
 	for name, n := range builtinStrFlags {
 		comp.strFlags[name] = n
@@ -116,13 +118,14 @@ type compiler struct {
 	warnings []warn
 	ptrSize  uint64
 
-	unsupported map[string]bool
-	resources   map[string]*ast.Resource
-	typedefs    map[string]*ast.TypeDef
-	structs     map[string]*ast.Struct
-	intFlags    map[string]*ast.IntFlags
-	strFlags    map[string]*ast.StrFlags
-	used        map[string]bool // contains used structs/resources
+	unsupported  map[string]bool
+	resources    map[string]*ast.Resource
+	typedefs     map[string]*ast.TypeDef
+	structs      map[string]*ast.Struct
+	intFlags     map[string]*ast.IntFlags
+	strFlags     map[string]*ast.StrFlags
+	used         map[string]bool // contains used structs/resources
+	usedTypedefs map[string]bool
 
 	structDescs  map[prog.StructKey]*prog.StructDesc
 	structNodes  map[*prog.StructDesc]*ast.Struct

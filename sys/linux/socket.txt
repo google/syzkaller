@@ -377,7 +377,7 @@ brctl_arg_add_del {
 }
 
 brctl_arg_generic {
-	a0	int64
+	a0	flags[brctl_cmds, int64]
 	a1	int64
 	a2	int64
 }

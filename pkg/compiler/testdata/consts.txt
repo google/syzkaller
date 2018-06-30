@@ -35,3 +35,6 @@ foo$1(a ptr[in, templ1[CONST20]])
 str2 {
 	f1	int8
 } [size[CONST21]]
+
+_ = CONST22, CONST23
+_ = CONST24

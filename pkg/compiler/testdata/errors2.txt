@@ -6,6 +6,7 @@
 resource r0[r0]			### recursive resource r0->r0
 resource r1[r2]			### recursive resource r1->r2->r1
 resource r2[r1]			### recursive resource r2->r1->r2
+resource r3[int32]		### unused resource r3
 
 foo$0(a0 ptr[out, r0], a1 ptr[out, r1], a2 ptr[out, r2])
 
@@ -53,6 +54,28 @@ sr8 {
 sr9 {
 	f	templ_sr[ptr[in, sr9]]	### recursive declaration: sr9.f -> templ_sr[ptr[in, sr9]].f -> sr9 (mark some pointers as opt)
 }
+
+use_sr {
+	u2	u2
+		u3	u3
+	s3	s3
+	s4	s4
+	s6	s6
+	sr1 sr1
+	sr2	sr2
+	sr5	sr5
+	sr7	sr7
+	sr8 sr8
+	sr9 sr9
+	s400	s400
+	s401	s401
+	u400	u400
+	u401	u401
+	s402	s402
+	s403	s403
+} [packed]
+
+foo$sr0(a ptr[in, use_sr])
 
 # Len target tests.
 
@@ -169,8 +192,17 @@ s403 {
 	f3	int32
 }
 
+s404 {				### unused struct s404
+	f1	int8
+}
+
+u404 [				### unused union u404
+	f1	int8
+]
+
 sf400 = "foo", "bar", "baz"
 sf401 = "a", "b", "cd"
+sf402 = "a", "b"		### unused string flags sf402
 
 # Const argument checks.
 
@@ -184,5 +216,8 @@ foo$506(a ptr[in, array[int32, 0]])	### arrays of size 0 are not supported
 foo$507(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
 foo$508(a ptr[in, string["foo", 3]])	### string value "foo\x00" exceeds buffer length 3
 foo$509(a int8['b':'a'])		### bad int range [98:97]
+foo$510(a type500)
 
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
+type type501 int8		### unused type type501
+type type502[C] const[C, int8]	### unused type type502

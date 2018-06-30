@@ -67,4 +67,4 @@ xdp_umem_chunk_sizes = 2048, 4096
 define XDP_MMAP_OFFSETS_SIZE	sizeof(struct xdp_mmap_offsets)
 define XDP_STATISTICS_SIZE	sizeof(struct xdp_statistics)
 
-legacy_mmap_number_xdp = __NR_mmap2
+_ = __NR_mmap2
