@@ -37,6 +37,7 @@ MAKEFLAGS += " -j$(NCORES) "
 export MAKEFLAGS
 
 GO := go
+HOSTGO := go
 # By default, build all Go binaries as static. We don't need cgo and it is
 # known to cause problems at least on Android emulator.
 export CGO_ENABLED=0
@@ -80,7 +81,7 @@ endif
 all: host target
 
 host:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) install ./syz-manager
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) install ./syz-manager
 	$(MAKE) manager repro mutate prog2c db upgrade
 
 target:
@@ -95,7 +96,7 @@ executor:
 		$(ADDCFLAGS) $(CFLAGS) -DGOOS=\"$(TARGETOS)\" -DGIT_REVISION=\"$(REV)\"
 
 manager:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
 fuzzer:
 	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer$(EXE) github.com/google/syzkaller/syz-fuzzer
@@ -104,33 +105,33 @@ execprog:
 	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog$(EXE) github.com/google/syzkaller/tools/syz-execprog
 
 ci:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
 
 hub:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
 
 repro:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
 
 mutate:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
 
 prog2c:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
 
 stress:
 	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress$(EXE) github.com/google/syzkaller/tools/syz-stress
 
 db:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
 
 upgrade:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
 	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR) $(FILES)
 bin/syz-extract:
-	$(GO) build $(GOFLAGS) -o $@ ./sys/syz-extract
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o $@ ./sys/syz-extract
 
 generate: generate_go generate_sys
 	$(MAKE) format
