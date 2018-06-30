@@ -2,7 +2,7 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "d92d7712e00dad64bba08d7850d58c2c07fce4a2"
+#define SYZ_REVISION "4c2bdbb514a55ad5a173660c10184a590dcd8928"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 8192
@@ -115,7 +115,7 @@ const call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "043151c0569399dabddfd351e1e4e097cf457238"
+#define SYZ_REVISION "34eb49c0f2636be2ae3cff8b4b19a535846131fa"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096

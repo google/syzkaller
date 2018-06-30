@@ -191,7 +191,8 @@ type IntType struct {
 
 type FlagsType struct {
 	IntTypeCommon
-	Vals []uint64
+	Vals    []uint64
+	BitMask bool
 }
 
 type LenType struct {
