@@ -9,9 +9,6 @@
 package prog
 
 import (
-	"bytes"
-	"crypto/sha1"
-	"encoding/binary"
 	"fmt"
 )
 
@@ -206,10 +203,11 @@ func (p *Prog) FallbackSignal(info []CallInfo) {
 		})
 		// Specifically look only at top-level arguments,
 		// deeper arguments can produce too much false signal.
-		flags := new(bytes.Buffer)
+		flags := 0
 		for _, arg := range c.Args {
 			switch a := arg.(type) {
 			case *ResultArg:
+				flags <<= 1
 				if a.Res != nil {
 					ctor := resources[a.Res]
 					if ctor != nil {
@@ -217,35 +215,45 @@ func (p *Prog) FallbackSignal(info []CallInfo) {
 							encodeFallbackSignal(fallbackSignalCtor, id, ctor.Meta.ID))
 					}
 				} else {
-					for _, v := range a.Type().(*ResourceType).SpecialValues() {
-						if a.Val == v {
-							binary.Write(flags, binary.LittleEndian, v)
-						}
+					if a.Val != a.Type().(*ResourceType).SpecialValues()[0] {
+						flags |= 1
 					}
 				}
 			case *ConstArg:
+				const width = 3
+				flags <<= width
 				switch typ := a.Type().(type) {
 				case *FlagsType:
-					var mask uint64
-					for _, v := range typ.Vals {
-						mask |= v
+					if typ.BitMask {
+						for i, v := range typ.Vals {
+							if a.Val&v != 0 {
+								flags ^= 1 << (uint(i) % width)
+							}
+						}
+					} else {
+						for i, v := range typ.Vals {
+							if a.Val == v {
+								flags |= i % (1 << width)
+								break
+							}
+						}
 					}
-					binary.Write(flags, binary.LittleEndian, a.Val&mask)
 				case *LenType:
+					flags <<= 1
 					if a.Val == 0 {
-						flags.WriteByte(0x42)
+						flags |= 1
 					}
 				}
 			case *PointerArg:
+				flags <<= 1
 				if a.IsNull() {
-					flags.WriteByte(0x43)
+					flags |= 1
 				}
 			}
-			if flags.Len() != 0 {
-				hash := sha1.Sum(flags.Bytes())
-				inf.Signal = append(inf.Signal,
-					encodeFallbackSignal(fallbackSignalFlags, id, int(hash[0])))
-			}
+		}
+		if flags != 0 {
+			inf.Signal = append(inf.Signal,
+				encodeFallbackSignal(fallbackSignalFlags, id, flags))
 		}
 	}
 }
