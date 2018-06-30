@@ -12,7 +12,7 @@ resource fd_dma_buf[fd]
 openat$ion(fd const[AT_FDCWD], file ptr[in, string["/dev/ion"]], flags flags[open_flags], mode const[0]) fd_ion
 
 ioctl$ION_IOC_ALLOC(fd fd_ion, cmd const[ION_IOC_ALLOC], arg ptr[inout, ion_allocation_data])
-ioctl$ION_IOC_HEAP_QUERY(fd fd_ion, cmd const[ION_IOC_HEAP_QUERY], arg ptr[inout, ion_allocation_data])
+ioctl$ION_IOC_HEAP_QUERY(fd fd_ion, cmd const[ION_IOC_HEAP_QUERY], arg ptr[inout, ion_heap_query])
 
 ioctl$DMA_BUF_IOCTL_SYNC(fd fd_dma_buf, cmd const[DMA_BUF_IOCTL_SYNC], arg ptr[in, flags[dma_buf_sync_flags, int64]])
 

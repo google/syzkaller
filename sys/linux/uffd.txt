@@ -13,8 +13,8 @@ ioctl$UFFDIO_API(fd fd_uffd, cmd const[UFFDIO_API], arg ptr[in, uffdio_api])
 ioctl$UFFDIO_REGISTER(fd fd_uffd, cmd const[UFFDIO_REGISTER], arg ptr[in, uffdio_register])
 ioctl$UFFDIO_UNREGISTER(fd fd_uffd, cmd const[UFFDIO_UNREGISTER], arg ptr[in, uffdio_range])
 ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_COPY], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_ZEROPAGE], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_COPY], arg ptr[in, uffdio_copy])
+ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_ZEROPAGE], arg ptr[in, uffdio_zeropage])
 
 userfaultfd_flags = O_NONBLOCK, O_CLOEXEC
 uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP

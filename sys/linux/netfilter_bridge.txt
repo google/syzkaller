@@ -23,7 +23,7 @@ include <uapi/linux/netfilter_bridge/ebt_nflog.h>
 include <uapi/linux/netfilter_bridge/ebt_redirect.h>
 
 setsockopt$EBT_SO_SET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[EBT_SO_SET_ENTRIES], val ptr[in, ebt_replace], len const[0])
-setsockopt$EBT_SO_SET_COUNTERS(fd sock_in, level const[SOL_IP], opt const[EBT_SO_SET_COUNTERS], val ptr[in, ipt_counters_info], len len[val])
+setsockopt$EBT_SO_SET_COUNTERS(fd sock_in, level const[SOL_IP], opt const[EBT_SO_SET_COUNTERS], val ptr[in, ebt_counters_info], len len[val])
 getsockopt$EBT_SO_GET_INFO(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_INFO], val ptr[in, ebt_getinfo], len ptr[in, len[val, int32]])
 getsockopt$EBT_SO_GET_INIT_INFO(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_INIT_INFO], val ptr[in, ebt_getinfo], len ptr[in, len[val, int32]])
 getsockopt$EBT_SO_GET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_ENTRIES], val ptr[in, ebt_get_entries], len ptr[in, len[val, int32]])
@@ -203,7 +203,7 @@ ebt_among_info {
 # dst and src can also be not present in the struct, in which case ofs are 0
 	wh_dst_ofs	int32
 	wh_src_ofs	int32
-	bitmask		int32
+	bitmask		flags[ebt_among_flags, int32]
 	dst		ebt_mac_wormhash
 	src		ebt_mac_wormhash
 } [packed]

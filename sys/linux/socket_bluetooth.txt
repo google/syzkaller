@@ -22,6 +22,7 @@ resource sock_bt_hci[sock_bt]
 syz_init_net_socket$bt_hci(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HCI]) sock_bt_hci
 bind$bt_hci(fd sock_bt_hci, addr ptr[in, sockaddr_hci], addrlen len[addr])
 ioctl$sock_bt_hci(fd sock_bt_hci, cmd flags[bt_hci_ioctl], arg buffer[inout])
+ioctl$HCIINQUIRY(fd sock_bt_hci, cmd const[HCIINQUIRY], arg ptr[in, hci_inquiry_req])
 setsockopt$bt_hci_HCI_DATA_DIR(fd sock_bt_hci, level const[0], opt const[HCI_DATA_DIR], arg ptr[in, int32], arglen len[arg])
 setsockopt$bt_hci_HCI_TIME_STAMP(fd sock_bt_hci, level const[0], opt const[HCI_TIME_STAMP], arg ptr[in, int32], arglen len[arg])
 setsockopt$bt_hci_HCI_FILTER(fd sock_bt_hci, level const[0], opt const[HCI_FILTER], arg ptr[in, hci_ufilter], arglen len[arg])

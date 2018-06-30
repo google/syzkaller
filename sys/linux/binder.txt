@@ -22,7 +22,7 @@ ioctl$BINDER_GET_NODE_DEBUG_INFO(fd fd_binder, cmd const[BINDER_GET_NODE_DEBUG_I
 ioctl$BINDER_WRITE_READ(fd fd_binder, cmd const[BINDER_WRITE_READ], arg ptr[in, binder_write_read])
 
 binder_open_flags = O_RDWR, O_NONBLOCK
-legacy_mmap_number_binder = __NR_mmap2
+_ = __NR_mmap2
 
 binder_node_debug_info {
 	ptr		binder_ptr

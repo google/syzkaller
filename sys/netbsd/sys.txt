@@ -112,71 +112,19 @@ pollfd {
 	revents	const[0, int16]
 }
 
-sigset {
-	mask	int64
-}
-
-sigset_size {
-	ss	ptr[inout, sigset]
-	len	len[ss, intptr]
-}
-
-resource time_sec[intptr]
-resource time_nsec[intptr]
-resource time_usec[intptr]
-
-# prog knowns about this struct type
 timespec {
 	sec	intptr
 	nsec	intptr
 }
 
-# prog knowns about this struct type
 timeval {
 	sec	intptr
 	usec	intptr
 }
 
-statx_timestamp {
-	sec		int64
-	nsec		int32
-	__reserved	int32
-}
-
-itimerspec {
-	interv	timespec
-	value	timespec
-}
-
 itimerval {
 	interv	timeval
 	value	timeval
-}
-
-utimbuf {
-	actime	intptr
-	modtime	intptr
-}
-
-io_event {
-	data	int64
-	obj	int64
-	res	int64
-	res2	int32
-}
-
-cap_header {
-	var	flags[cap_version, int32]
-	pid	pid
-}
-
-cap_data {
-	eff0	int32
-	perm0	int32
-	inher0	int32
-	eff1	int32
-	perm1	int32
-	inher1	int32
 }
 
 # TODO: fd_set needs to be a separate type
@@ -189,49 +137,6 @@ fd_set {
 	mask5	int64
 	mask6	int64
 	mask7	int64
-}
-
-sock_fprog {
-	len	len[filter, int16]
-	filter	ptr[in, array[sock_filter]]
-}
-
-sock_filter {
-	code	int16
-	jt	int8
-	jf	int8
-	k	int32
-}
-
-file_handle {
-	bytes	len[parent, int32]
-	type	int32
-	handle	array[int8]
-}
-
-mq_attr {
-	flags	intptr
-	maxmsg	intptr
-	msgsize	intptr
-	curmsg	intptr
-	res0	intptr
-	res1	intptr
-	res2	intptr
-	res3	intptr
-}
-
-kexec_segment {
-	buf	buffer[in]
-	sz	len[buf, intptr]
-# TODO: this is address in kernel
-	mem	intptr
-	memsz	intptr
-}
-
-robust_list {
-	next	vma
-	off	intptr
-	pend	vma
 }
 
 rusage {
@@ -258,68 +163,6 @@ rlimit {
 	hard	intptr
 }
 
-tms {
-	utime	intptr
-	stime	intptr
-	cutime	intptr
-	cstime	intptr
-}
-
-timex {
-	stuff0	intptr
-	stuff1	intptr
-	stuff2	intptr
-	stuff3	intptr
-	stuff4	intptr
-	stuff5	intptr
-	stuff6	intptr
-	stuff7	intptr
-	stuff8	intptr
-	stuff9	intptr
-	stuff10	intptr
-	stuff11	intptr
-	stuff12	intptr
-	stuff13	intptr
-	stuff14	intptr
-	stuff15	intptr
-	stuff16	intptr
-	stuff17	intptr
-	stuff18	intptr
-	stuff19	intptr
-	stuff20	intptr
-	stuff21	intptr
-	stuff22	intptr
-	stuff23	intptr
-	stuff24	intptr
-	stuff25	intptr
-}
-
-ustat {
-	free	int32
-	inode	intptr
-	nampac0	int32
-	nampac1	int32
-	nampac2	int32
-}
-
-user_desc {
-	entry_number	int32
-# Base should be vma and limit should be len[base]
-# But these fields are int32, so we can't use vma.
-	base_addr	flags[user_desc_bases, int32]
-	limit		flags[user_desc_limits, int32]
-	seg_32bit	int32:1
-	contents	int32:2
-	read_exec_only	int32:1
-	limit_in_pages	int32:1
-	seg_not_present	int32:1
-	useable		int32:1
-	lm		int32:1
-}
-
-user_desc_bases = 0, 4096, 1048576, 536870912, 536872960, 536875008, 0xffffffff
-user_desc_limits = 0, 1024, 4096, 8192, 16384, 0xffffffff
-
 flock {
 	type	flags[flock_type, int16]
 	whence	flags[seek_whence, int16]
@@ -339,9 +182,6 @@ ucred {
 	gid	gid
 }
 
-fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_SEQUENTIAL, POSIX_FADV_RANDOM, POSIX_FADV_NOREUSE, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED
-clock_type = CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
-cap_version = 0x19980330, 0x20071026, 0x20080522
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 at_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW
@@ -352,13 +192,10 @@ faccessat_flags = AT_EACCESS, AT_SYMLINK_NOFOLLOW
 rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN
 rlimit_type = RLIMIT_AS, RLIMIT_CORE, RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLIMIT_MEMLOCK, RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_RSS, RLIMIT_STACK, RLIMIT_NTHR, RLIMIT_STACK
 clock_id = CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID, CLOCK_VIRTUAL, CLOCK_PROF
-sigprocmask_how = SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK
 getitimer_which = ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF, ITIMER_MONOTONIC
 wait_options = WALLSIG, WALTSIG, WCONTINUED, WEXITED, WNOHANG, WNOZOMBIE, WSTOPPED, WTRAPPED, WUNTRACED
-waitid_which = P_PID, P_PGID, P_ALL
 timer_flags = 0, TIMER_ABSTIME
 utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
-priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
 fcntl_dupfd = F_DUPFD, F_DUPFD_CLOEXEC
 fcntl_getflags = F_GETFD, F_GETFL
 fcntl_lock = F_SETLK, F_SETLKW, F_GETLK

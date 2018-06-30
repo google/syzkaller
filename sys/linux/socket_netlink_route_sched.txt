@@ -927,11 +927,6 @@ m_pedit_key_ex {
 	cmd	flags[pedit_cmd, int16]
 }
 
-m_pedit_key {
-	tc_pedit_key	tc_pedit_key
-	m_pedit_key_ex	m_pedit_key_ex
-}
-
 tc_skbmod {
 	tc_gen	tc_gen
 	flags	int64[0:16]

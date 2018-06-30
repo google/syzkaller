@@ -79,12 +79,6 @@ cdrom_output_buffer {
 	reserved	array[int8, CD_FRAMESIZE_RAWER]
 }
 
-cdrom_read {
-	cdread_lba	int32
-	cdread_bufaddr	ptr[out, array[int8]]
-	cdread_buflen	len[cdread_bufaddr, int32]
-}
-
 cdrom_msf {
 	cdmsf_min0	int8
 	cdmsf_sec0	int8

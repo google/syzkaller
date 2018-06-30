@@ -21,11 +21,6 @@ sockaddr_in {
 	pad	array[const[0, int8], 8]
 }
 
-sockaddr_storage_in {
-	addr	sockaddr_in
-	pad	array[const[0, int64], 15]
-}
-
 socket$inet(domain const[AF_INET], type flags[socket_type], proto int8) sock_in
 socketpair$inet(domain const[AF_INET], type flags[socket_type], proto int8, fds ptr[out, sock_in_pair])
 accept$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]]) sock_in
@@ -44,21 +39,3 @@ sockopt_opt_ip_opts = IP_OPTIONS
 
 getsockopt$inet_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[in], optlen len[optval])
-
-group_req_in {
-	gr_interface	int32
-	gr_group	sockaddr_storage_in
-}
-
-group_source_req_in {
-	gsr_interface	int32
-	gsr_group	sockaddr_storage_in
-	gsr_source	sockaddr_storage_in
-}
-
-group_filter_in {
-	gf_interface	int32
-	gf_group	sockaddr_storage_in
-	gf_numsrc	len[gf_slist, int32]
-	gf_slist	array[sockaddr_storage_in]
-}

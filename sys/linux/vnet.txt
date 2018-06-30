@@ -570,7 +570,7 @@ ipv6_sr_hdr {
 	type		const[IPV6_SRCRT_TYPE_4, int8]
 	segments_left	len[segments, int8]
 	first_segment	int8
-	flags		int8
+	flags		flags[ipv6_sr_flags, int8]
 	tag		int16
 	segments	array[ipv6_addr]
 # TODO: this may be followed by sr6_tlv_hmac if SR6_FLAG1_HMAC is set.
@@ -1263,6 +1263,7 @@ icmpv6_packet [
 	echo_request	icmpv6_echo_request_packet
 	echo_reply	icmpv6_echo_reply_packet
 	mld		icmpv6_mld_packet
+	ni		icmpv6_ni_packet
 # TODO: ICMPV6_MLD2_REPORT
 # TODO: ICMPV6_DHAAD_REQUEST, ICMPV6_DHAAD_REPLY, ICMPV6_MOBILE_PREFIX_SOL, ICMPV6_MOBILE_PREFIX_ADV (with ipv6 ext headers)
 ] [varlen]

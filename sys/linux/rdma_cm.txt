@@ -28,6 +28,7 @@ write$RDMA_USER_CM_CMD_REJECT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_US
 write$RDMA_USER_CM_CMD_DISCONNECT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_DISCONNECT, rdma_ucm_disconnect]], len bytesize[data])
 write$RDMA_USER_CM_CMD_INIT_QP_ATTR(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_INIT_QP_ATTR, rdma_ucm_init_qp_attr]], len bytesize[data])
 write$RDMA_USER_CM_CMD_GET_EVENT(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_GET_EVENT, rdma_ucm_get_event]], len bytesize[data])
+write$RDMA_USER_CM_CMD_SET_OPTION(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_SET_OPTION, rdma_ucm_set_option]], len bytesize[data])
 write$RDMA_USER_CM_CMD_NOTIFY(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_NOTIFY, rdma_ucm_notify]], len bytesize[data])
 write$RDMA_USER_CM_CMD_JOIN_IP_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_JOIN_IP_MCAST, rdma_ucm_join_ip_mcast]], len bytesize[data])
 write$RDMA_USER_CM_CMD_LEAVE_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDMA_USER_CM_CMD_LEAVE_MCAST, rdma_ucm_leave_mcast]], len bytesize[data])
@@ -237,15 +238,6 @@ rdma_ucm_conn_param {
 	retry_count		int8
 	rnr_retry_count		int8
 	valid			bool8
-}
-
-rdma_ucm_ud_param {
-	qp_num			int32
-	qkey			int32
-	ah_attr			array[int8, IB_UVERBS_AH_ATTR_SIZE]
-	private_data		array[int8, RDMA_MAX_PRIVATE_DATA]
-	private_data_len	int8[0:RDMA_MAX_PRIVATE_DATA]
-	reserved		array[const[0, int8], 7]
 }
 
 define IB_UVERBS_AH_ATTR_SIZE	sizeof(struct ib_uverbs_ah_attr)

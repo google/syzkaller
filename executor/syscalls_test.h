@@ -2,13 +2,13 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "4c2bdbb514a55ad5a173660c10184a590dcd8928"
+#define SYZ_REVISION "a76874ba311d847b933d888f21392a7d837f1dce"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 8192
 #define SYZ_NUM_PAGES 2048
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 99
+#define SYZ_SYSCALL_COUNT 100
 const call_t syscalls[] = {
 	{"foo$any0", 0, (syscall_t)foo},
 	{"foo$anyres", 0, (syscall_t)foo},
@@ -83,6 +83,7 @@ const call_t syscalls[] = {
 	{"syz_test$length8", 0, (syscall_t)syz_test},
 	{"syz_test$length9", 0, (syscall_t)syz_test},
 	{"syz_test$missing_resource", 0, (syscall_t)syz_test},
+	{"syz_test$missing_struct", 0, (syscall_t)syz_test},
 	{"syz_test$opt0", 0, (syscall_t)syz_test},
 	{"syz_test$opt1", 0, (syscall_t)syz_test},
 	{"syz_test$opt2", 0, (syscall_t)syz_test},
@@ -115,13 +116,13 @@ const call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "34eb49c0f2636be2ae3cff8b4b19a535846131fa"
+#define SYZ_REVISION "2bae1e3049afe17220914a995ab078c5510e19f3"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 99
+#define SYZ_SYSCALL_COUNT 100
 const call_t syscalls[] = {
 	{"foo$any0", 0, (syscall_t)foo},
 	{"foo$anyres", 0, (syscall_t)foo},
@@ -196,6 +197,7 @@ const call_t syscalls[] = {
 	{"syz_test$length8", 0, (syscall_t)syz_test},
 	{"syz_test$length9", 0, (syscall_t)syz_test},
 	{"syz_test$missing_resource", 0, (syscall_t)syz_test},
+	{"syz_test$missing_struct", 0, (syscall_t)syz_test},
 	{"syz_test$opt0", 0, (syscall_t)syz_test},
 	{"syz_test$opt1", 0, (syscall_t)syz_test},
 	{"syz_test$opt2", 0, (syscall_t)syz_test},

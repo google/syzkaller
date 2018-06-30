@@ -632,6 +632,7 @@ syz_test$res1(a0 syz_res)
 resource syz_missing_const_res[int32]: ONLY_32BITS_CONST
 
 syz_test$missing_resource() syz_missing_const_res
+syz_test$missing_struct(a ptr[in, syz_use_missing])
 
 syz_missing_const_struct {
 	a0	const[ONLY_32BITS_CONST, int32]

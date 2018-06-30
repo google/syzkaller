@@ -381,11 +381,6 @@ type ifla_vf_policy nl_generic_attr
 type ifla_port_policy nl_generic_attr
 type ifla_xdp_policy nl_generic_attr
 
-dev_addr [
-	empty	array[const[0, int8], MAX_ADDR_LEN]
-	mac	mac_addr
-] [varlen]
-
 rtnl_link_ifmap {
 	mem_start	int64
 	mem_end		int64

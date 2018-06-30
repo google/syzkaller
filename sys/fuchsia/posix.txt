@@ -96,7 +96,6 @@ at_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUN
 utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
 linkat_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
 unlinkat_flags = 0, AT_REMOVEDIR
-flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
 faccessat_flags = 0x100, 0x200, 0x400, 0x800, 0x1000
 
 iovec_in {
@@ -111,11 +110,6 @@ iovec_out {
 
 sigset {
 	mask	int64
-}
-
-sigset_size {
-	ss	ptr[inout, sigset]
-	len	len[ss, intptr]
 }
 
 fd_set {

@@ -23,7 +23,7 @@ func (comp *compiler) typecheck() {
 func (comp *compiler) check() {
 	comp.checkTypeValues()
 	comp.checkAttributeValues()
-	comp.checkUsed()
+	comp.checkUnused()
 	comp.checkRecursion()
 	comp.checkLenTargets()
 	comp.checkConstructors()
@@ -94,6 +94,9 @@ func (comp *compiler) checkNames() {
 			}
 		case *ast.IntFlags:
 			name := n.Name.Name
+			if name == "_" {
+				continue
+			}
 			if reservedName[name] {
 				comp.error(n.Pos, "flags uses reserved name %v", name)
 				continue
@@ -359,48 +362,95 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 	comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
 }
 
-func (comp *compiler) checkUsed() {
+func (comp *compiler) collectUsed(all bool) (structs, flags, strflags map[string]bool) {
+	structs = make(map[string]bool)
+	flags = make(map[string]bool)
+	strflags = make(map[string]bool)
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.Call:
-			if n.NR == ^uint64(0) {
+			if !all && n.NR == ^uint64(0) {
 				break
 			}
 			for _, arg := range n.Args {
-				comp.checkUsedType(arg.Type, true)
+				comp.collectUsedType(structs, flags, strflags, arg.Type, true)
 			}
 			if n.Ret != nil {
-				comp.checkUsedType(n.Ret, true)
+				comp.collectUsedType(structs, flags, strflags, n.Ret, true)
 			}
 		}
 	}
+	return
 }
 
-func (comp *compiler) checkUsedType(t *ast.Type, isArg bool) {
-	if comp.used[t.Ident] {
-		return
-	}
+func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, t *ast.Type, isArg bool) {
 	desc := comp.getTypeDesc(t)
 	if desc == typeResource {
 		r := comp.resources[t.Ident]
-		for r != nil && !comp.used[r.Name.Name] {
-			comp.used[r.Name.Name] = true
+		for r != nil && !structs[r.Name.Name] {
+			structs[r.Name.Name] = true
 			r = comp.resources[r.Base.Ident]
 		}
 		return
 	}
 	if desc == typeStruct {
-		comp.used[t.Ident] = true
+		if structs[t.Ident] {
+			return
+		}
+		structs[t.Ident] = true
 		s := comp.structs[t.Ident]
 		for _, fld := range s.Fields {
-			comp.checkUsedType(fld.Type, false)
+			comp.collectUsedType(structs, flags, strflags, fld.Type, false)
+		}
+		return
+	}
+	if desc == typeFlags {
+		flags[t.Args[0].Ident] = true
+		return
+	}
+	if desc == typeString {
+		if len(t.Args) != 0 && t.Args[0].Ident != "" {
+			strflags[t.Args[0].Ident] = true
 		}
 		return
 	}
 	_, args, _ := comp.getArgsBase(t, "", prog.DirIn, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkUsedType(arg, false)
+			comp.collectUsedType(structs, flags, strflags, arg, false)
+		}
+	}
+}
+
+func (comp *compiler) checkUnused() {
+	comp.used, _, _ = comp.collectUsed(false)
+	structs, flags, strflags := comp.collectUsed(true)
+	_, _, _ = structs, flags, strflags
+
+	for name, n := range comp.intFlags {
+		if !flags[name] {
+			comp.error(n.Pos, "unused flags %v", name)
+		}
+	}
+	for name, n := range comp.strFlags {
+		if !strflags[name] && builtinStrFlags[name] == nil {
+			comp.error(n.Pos, "unused string flags %v", name)
+		}
+	}
+	for name, n := range comp.resources {
+		if !structs[name] {
+			comp.error(n.Pos, "unused resource %v", name)
+		}
+	}
+	for name, n := range comp.structs {
+		if !structs[name] {
+			_, typ, _ := n.Info()
+			comp.error(n.Pos, "unused %v %v", typ, name)
+		}
+	}
+	for name, n := range comp.typedefs {
+		if !comp.usedTypedefs[name] {
+			comp.error(n.Pos, "unused type %v", name)
 		}
 	}
 }
@@ -697,6 +747,7 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 
 func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlags) {
 	typedefName := t.Ident
+	comp.usedTypedefs[typedefName] = true
 	if t.HasColon {
 		comp.error(t.Pos, "type alias %v with ':'", t.Ident)
 		return

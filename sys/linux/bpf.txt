@@ -32,7 +32,7 @@ bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_ge
 bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_prog_info_arg], size len[arg])
 bpf$BPF_GET_MAP_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_map_info_arg], size len[arg])
 bpf$BPF_PROG_QUERY(cmd const[BPF_PROG_QUERY], arg ptr[in, bpf_prog_query], size len[arg])
-bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_prog_query], size len[arg]) fd
+bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd
 
 bpf_map_create_arg {
 	type		flags[bpf_map_type, int32]

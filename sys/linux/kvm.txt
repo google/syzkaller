@@ -27,8 +27,8 @@ ioctl$KVM_GET_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_GET_DIRTY_LOG], arg ptr[in, k
 ioctl$KVM_CREATE_IRQCHIP(fd fd_kvmvm, cmd const[KVM_CREATE_IRQCHIP])
 ioctl$KVM_IRQ_LINE(fd fd_kvmvm, cmd const[KVM_IRQ_LINE], arg ptr[in, kvm_irq_level])
 ioctl$KVM_IRQ_LINE_STATUS(fd fd_kvmvm, cmd const[KVM_IRQ_LINE_STATUS], arg ptr[in, kvm_irq_level])
-ioctl$KVM_GET_IRQCHIP(fd fd_kvmvm, cmd const[KVM_GET_IRQCHIP], arg ptr[out, kvm_irq_chip])
-ioctl$KVM_SET_IRQCHIP(fd fd_kvmvm, cmd const[KVM_SET_IRQCHIP], arg ptr[in, kvm_irq_chip])
+ioctl$KVM_GET_IRQCHIP(fd fd_kvmvm, cmd const[KVM_GET_IRQCHIP], arg ptr[out, kvm_irqchip])
+ioctl$KVM_SET_IRQCHIP(fd fd_kvmvm, cmd const[KVM_SET_IRQCHIP], arg ptr[in, kvm_irqchip])
 ioctl$KVM_XEN_HVM_CONFIG(fd fd_kvmvm, cmd const[KVM_XEN_HVM_CONFIG], arg ptr[in, kvm_xen_hvm_config])
 ioctl$KVM_GET_CLOCK(fd fd_kvmvm, cmd const[KVM_GET_CLOCK], arg ptr[out, kvm_clock_data])
 ioctl$KVM_SET_CLOCK(fd fd_kvmvm, cmd const[KVM_SET_CLOCK], arg ptr[in, kvm_clock_data])
@@ -590,13 +590,6 @@ kvm_dirty_log {
 	slot	flags[kvm_mem_slots, int32]
 	pad	const[0, int32]
 	bitmap	vma
-}
-
-kvm_memory_region {
-	slot	flags[kvm_mem_slots, int32]
-	flags	flags[kvm_mem_region_flags, int32]
-	paddr	flags[kvm_guest_addrs, int64]
-	size	flags[kvm_guest_addr_size, int64]
 }
 
 kvm_msr_list {

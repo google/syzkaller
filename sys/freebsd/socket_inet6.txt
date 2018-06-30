@@ -91,11 +91,6 @@ mf6cctl {
 	mf6cc_ifset	array[int32, 8]
 }
 
-ipv6_mreq {
-	multi	ipv6_addr
-	ifindex	ifindex
-}
-
 group_req_in6 {
 	gr_interface	int32
 	gr_group	sockaddr_storage_in6
@@ -107,21 +102,7 @@ group_source_req_in6 {
 	gsr_source	sockaddr_storage_in6
 }
 
-group_filter_in6 {
-	gf_interface	int32
-	gf_group	sockaddr_storage_in6
-	gf_fmode	flags[ip_msfilter_mode, int32]
-	gf_numsrc	len[gf_slist, int32]
-	gf_slist	array[sockaddr_storage_in6]
-}
-
 in6_pktinfo {
 	ipi6_addr	ipv6_addr
 	ipi6_ifindex	ifindex
-}
-
-in6_ifreq {
-	ifr6_addr	ipv6_addr
-	ifr6_prefixlen	int32
-	ifr6_ifindex	ifindex
 }
