@@ -38,7 +38,10 @@ long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a
 	NONFAILING(res = c->call(a0, a1, a2, a3, a4, a5, a6, a7, a8));
 	if (strncmp(c->name, "zx_", 3) == 0) {
 		// Convert zircon error convention to the libc convention that executor expects.
-		if (res == ZX_OK || !strcmp(c->name, "zx_clock_get") || !strcmp(c->name, "zx_ticks_get"))
+		if (res == ZX_OK ||
+		    !strcmp(c->name, "zx_log_read") ||
+		    !strcmp(c->name, "zx_clock_get") ||
+		    !strcmp(c->name, "zx_ticks_get"))
 			return 0;
 		errno = (-res) & 0x7f;
 		return -1;
