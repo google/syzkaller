@@ -24,6 +24,7 @@ type fuchsia struct {
 var (
 	zirconPanic      = []byte("ZIRCON KERNEL PANIC")
 	zirconPanicShort = []byte("KERNEL PANIC")
+	zirconKernelHang = []byte("stopping other cpus")
 	zirconRIP        = regexp.MustCompile(` RIP: (0x[0-9a-f]+) `)
 	zirconBT         = regexp.MustCompile(`^bt#[0-9]+: (0x[0-9a-f]+)`)
 	zirconReportEnd  = []byte("Halted")
@@ -52,24 +53,30 @@ func ctorFuchsia(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporte
 }
 
 func (ctx *fuchsia) ContainsCrash(output []byte) bool {
-	return bytes.Contains(output, zirconPanic)
+	return bytes.Contains(output, zirconPanic) ||
+		bytes.Contains(output, zirconKernelHang)
 }
 
 func (ctx *fuchsia) Parse(output []byte) *Report {
-	pos := bytes.Index(output, zirconPanic)
-	if pos == -1 {
-		return nil
-	}
 	rep := &Report{
-		Title:    string(zirconPanicShort),
-		Output:   output,
-		StartPos: pos,
-		EndPos:   len(output),
+		Output: output,
+		EndPos: len(output),
+	}
+	wantLocation := true
+	if pos := bytes.Index(output, zirconPanic); pos != -1 {
+		rep.Title = string(zirconPanicShort)
+		rep.StartPos = pos
+	} else if pos := bytes.Index(output, zirconKernelHang); pos != -1 {
+		rep.Title = string(zirconKernelHang)
+		rep.StartPos = pos
+		wantLocation = false // these tend to produce random locations
+	} else {
+		return nil
 	}
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
 	where := ""
-	for s := bufio.NewScanner(bytes.NewReader(output[pos:])); s.Scan(); {
+	for s := bufio.NewScanner(bytes.NewReader(output[rep.StartPos:])); s.Scan(); {
 		line := s.Bytes()
 		if len(line) == 0 || matchesAny(line, zirconUnrelated) {
 			continue
@@ -83,6 +90,9 @@ func (ctx *fuchsia) Parse(output []byte) *Report {
 		if bytes.Contains(line, []byte("Supervisor Page Fault exception")) {
 			rep.Title = "Supervisor fault"
 		}
+		if bytes.Contains(line, []byte("recursion in interrupt handler")) {
+			rep.Title = "recursion in interrupt handler"
+		}
 		if match := zirconRIP.FindSubmatchIndex(line); match != nil {
 			ctx.processPC(rep, symb, line, match, false, &where)
 		} else if match := zirconBT.FindSubmatchIndex(line); match != nil {
@@ -93,7 +103,7 @@ func (ctx *fuchsia) Parse(output []byte) *Report {
 		rep.Report = append(rep.Report, line...)
 		rep.Report = append(rep.Report, '\n')
 	}
-	if where != "" {
+	if wantLocation && where != "" {
 		rep.Title = fmt.Sprintf("%v in %v", rep.Title, where)
 	}
 	return rep

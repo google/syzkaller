@@ -1,4 +1,4 @@
-TITLE: KERNEL PANIC
+TITLE: recursion in interrupt handler
 
 gfxconsole: rows <PAGE FAULT> Instruction Pointer   = 0x10:0xffffffff801a41a7
 48<PAGE FAULT> Stack Pointer         = 0x18:0xffffff9951906e90
