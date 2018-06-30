@@ -831,11 +831,11 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 	output = <-c.readDone
 	if err := c.wait(); <-hang {
 		hanged = true
-		// In all likelihood, this will be duplicated by the default
-		// case below, but that's fine.
 		output = append(output, []byte(err.Error())...)
 		output = append(output, '\n')
-	} else if exitStatus == -1 {
+		return
+	}
+	if exitStatus == -1 {
 		exitStatus = osutil.ProcessExitStatus(c.cmd.ProcessState)
 		if exitStatus == 0 {
 			exitStatus = statusRetry // fuchsia always returns wrong exit status 0
