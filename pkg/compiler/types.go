@@ -244,9 +244,20 @@ var typeFlags = &typeDesc{
 				Kind:          prog.IntPlain,
 			}
 		}
+		bitmask := true
+		var combined uint64
+		values := genIntArray(f.Values)
+		for _, v := range values {
+			if v&combined != 0 {
+				bitmask = false
+				break
+			}
+			combined |= v
+		}
 		return &prog.FlagsType{
 			IntTypeCommon: base,
-			Vals:          genIntArray(f.Values),
+			Vals:          values,
+			BitMask:       bitmask,
 		}
 	},
 }

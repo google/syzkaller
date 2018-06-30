@@ -202,7 +202,7 @@ var structDescs_32 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f1", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "syz_bf_struct0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct0", TypeSize: 32}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_bf_flags", FldName: "f0", TypeSize: 2}, BitfieldLen: 10}, Vals: []uint64{0, 1, 2}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_bf_flags", FldName: "f0", TypeSize: 2}, BitfieldLen: 10}, Vals: []uint64{0, 1, 2}, BitMask: true},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f1", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f2", TypeSize: 2}, BitfieldLen: 5, BitfieldMdl: true}, Val: 66},
@@ -285,7 +285,7 @@ var structDescs_32 = []*KeyedStruct{
 	{Key: StructKey{Name: "syz_end_var_struct"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_end_var_struct", TypeSize: 14}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f0", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f1", TypeSize: 4}, BigEndian: true}, Val: 66},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_end_flags", FldName: "f2", TypeSize: 8}, BigEndian: true}, Vals: []uint64{0, 1}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_end_flags", FldName: "f2", TypeSize: 8}, BigEndian: true}, Vals: []uint64{0, 1}, BitMask: true},
 	}}},
 	{Key: StructKey{Name: "syz_length_array2_struct"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_length_array2_struct", TypeSize: 10}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f0", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
@@ -355,7 +355,7 @@ var structDescs_32 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f1", TypeSize: 4}}, Buf: "f0"},
 	}}},
 	{Key: StructKey{Name: "syz_length_flags_struct"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_length_flags_struct", TypeSize: 16}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_length_flags", FldName: "f0", TypeSize: 8}}, Vals: []uint64{0, 1}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_length_flags", FldName: "f0", TypeSize: 8}}, Vals: []uint64{0, 1}, BitMask: true},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f1", TypeSize: 8}}, Buf: "f0"},
 	}}},
 	{Key: StructKey{Name: "syz_length_int_struct"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_length_int_struct", TypeSize: 4}, Fields: []Type{
@@ -494,7 +494,7 @@ var structDescs_32 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "f3", TypeSize: 4}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "f4", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f5", TypeSize: 4}}, Val: 1},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_length_flags", FldName: "f6", TypeSize: 4}}, Vals: []uint64{0, 1}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_length_flags", FldName: "f6", TypeSize: 4}}, Vals: []uint64{0, 1}, BitMask: true},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "f7", TypeSize: 2}}, ValuesPerProc: 1},
 	}}},
 }
@@ -829,4 +829,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "d92d7712e00dad64bba08d7850d58c2c07fce4a2"
+const revision_32 = "4c2bdbb514a55ad5a173660c10184a590dcd8928"
