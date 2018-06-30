@@ -2,7 +2,7 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "9305c28557ddc3bab7ba88bc9958d26aca22e419"
+#define SYZ_REVISION "5ce842ebcec58232491c33abad5d2f25f4b4bea0"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
@@ -178,7 +178,7 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "2586fc26bde1c23368df2388e03cfe8236392119"
+#define SYZ_REVISION "f385e79d53b401a933dd01ccc6f89a0936affaf6"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096

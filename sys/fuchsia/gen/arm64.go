@@ -208,7 +208,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "zx_policy_basic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_policy_basic", TypeSize: 8}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_policy_condition", FldName: "condition", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_policy_condition", FldName: "condition", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 4, 5, 6, 8, 9, 10, 11, 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_policy_policy", FldName: "policy", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 5}},
 	}}},
 	{Key: StructKey{Name: "zx_port_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_port_packet", TypeSize: 48}, Fields: []Type{
@@ -1174,7 +1174,6 @@ var consts_arm64 = []ConstValue{
 	{Name: "ZX_POL_NEW_ANY", Value: 3},
 	{Name: "ZX_POL_NEW_CHANNEL", Value: 5},
 	{Name: "ZX_POL_NEW_EVENT", Value: 6},
-	{Name: "ZX_POL_NEW_EVPAIR", Value: 7},
 	{Name: "ZX_POL_NEW_FIFO", Value: 10},
 	{Name: "ZX_POL_NEW_PORT", Value: 8},
 	{Name: "ZX_POL_NEW_SOCKET", Value: 9},
@@ -1232,4 +1231,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_arm64 = "2586fc26bde1c23368df2388e03cfe8236392119"
+const revision_arm64 = "f385e79d53b401a933dd01ccc6f89a0936affaf6"
