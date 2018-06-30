@@ -49,7 +49,10 @@ func ctorFuchsia(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporte
 		obj:     filepath.Join(kernelObj, "zircon.elf"),
 		ignores: ignores,
 	}
-	return ctx, nil, nil
+	suppressions := []string{
+		"fatal exception: process /tmp/syz-fuzzer", // OOM presumably
+	}
+	return ctx, suppressions, nil
 }
 
 func (ctx *fuchsia) ContainsCrash(output []byte) bool {
