@@ -184,14 +184,8 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 	}
 
 	lastExecuteTime := time.Now()
-	ticker := time.NewTimer(3 * time.Minute)
-	tickerFired := false
+	ticker := time.NewTimer(10 * time.Second)
 	for {
-		if !tickerFired && !ticker.Stop() {
-			<-ticker.C
-		}
-		tickerFired = false
-		ticker.Reset(3 * time.Minute)
 		select {
 		case err := <-errc:
 			switch err {
@@ -208,12 +202,8 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			}
 		case out := <-outc:
 			output = append(output, out...)
-			// syz-fuzzer output
-			if bytes.Contains(output[matchPos:], []byte("executing program")) {
-				lastExecuteTime = time.Now()
-			}
-			// syz-execprog output
-			if bytes.Contains(output[matchPos:], []byte("executed programs:")) {
+			if bytes.Contains(output[matchPos:], executingProgram1) ||
+				bytes.Contains(output[matchPos:], executingProgram2) {
 				lastExecuteTime = time.Now()
 			}
 			if reporter.ContainsCrash(output[matchPos:]) {
@@ -227,22 +217,12 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			if matchPos < 0 {
 				matchPos = 0
 			}
-			// In some cases kernel episodically prints something to console,
-			// but fuzzer is not actually executing programs.
-			// We intentionally produce the same title as no output at all,
-			// because frequently it's the same condition.
-			if time.Since(lastExecuteTime) > 3*time.Minute {
-				if inst.Diagnose() {
-					waitForOutput()
-				}
-				rep := &report.Report{
-					Title:  "no output from test machine",
-					Output: output,
-				}
-				return rep
-			}
 		case <-ticker.C:
-			tickerFired = true
+			// Detect both "not output whatsoever" and "kernel episodically prints
+			// something to console, but fuzzer is not actually executing programs".
+			if time.Since(lastExecuteTime) < 3*time.Minute {
+				break
+			}
 			if inst.Diagnose() {
 				waitForOutput()
 			}
@@ -256,3 +236,8 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 		}
 	}
 }
+
+var (
+	executingProgram1 = []byte("executing program")  // syz-fuzzer output
+	executingProgram2 = []byte("executed programs:") // syz-execprog output
+)
