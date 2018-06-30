@@ -419,8 +419,6 @@ void loop()
 struct thread_t {
 	int created, running, call;
 	pthread_t th;
-	pthread_mutex_t mu;
-	pthread_cond_t cv;
 };
 
 static struct thread_t threads[16];
@@ -434,23 +432,18 @@ static void* thr(void* arg)
 {
 	struct thread_t* th = (struct thread_t*)arg;
 	for (;;) {
-		pthread_mutex_lock(&th->mu);
-		while (!th->running)
-			pthread_cond_wait(&th->cv, &th->mu);
-		pthread_mutex_unlock(&th->mu);
+		while (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE))
+			usleep(200);
 		execute_call(th->call);
 		__atomic_fetch_sub(&running, 1, __ATOMIC_RELAXED);
-		pthread_mutex_lock(&th->mu);
 		__atomic_store_n(&th->running, 0, __ATOMIC_RELEASE);
-		pthread_mutex_unlock(&th->mu);
-		pthread_cond_signal(&th->cv);
 	}
 	return 0;
 }
 
 static void execute(int num_calls)
 {
-	int call, thread;
+	int i, call, thread;
 	running = 0;
 	for (call = 0; call < num_calls; call++) {
 		for (thread = 0; thread < sizeof(threads) / sizeof(threads[0]); thread++) {
@@ -461,30 +454,20 @@ static void execute(int num_calls)
 				pthread_attr_init(&attr);
 				pthread_attr_setstacksize(&attr, 128 << 10);
 				pthread_create(&th->th, &attr, thr, th);
-				pthread_mutex_init(&th->mu, 0);
-				pthread_cond_init(&th->cv, 0);
 			}
 			if (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE)) {
 				th->call = call;
 				__atomic_fetch_add(&running, 1, __ATOMIC_RELAXED);
-
-				pthread_mutex_lock(&th->mu);
-				th->running = 1;
-				pthread_mutex_unlock(&th->mu);
-				pthread_cond_signal(&th->cv);
+				__atomic_store_n(&th->running, 1, __ATOMIC_RELEASE);
 #if defined(SYZ_COLLIDE)
 				if (collide && call % 2)
 					break;
 #endif
-				struct timespec ts;
-				ts.tv_sec = 0;
-				ts.tv_nsec = 20 * 1000 * 1000;
-				pthread_mutex_lock(&th->mu);
-				while (th->running && ts.tv_nsec >= 5 * 1000 * 1000) {
-					pthread_cond_timedwait(&th->cv, &th->mu, &ts);
-					ts.tv_nsec /= 2;
+				for (i = 0; i < 100; i++) {
+					if (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE))
+						break;
+					usleep(200);
 				}
-				pthread_mutex_unlock(&th->mu);
 				if (__atomic_load_n(&running, __ATOMIC_RELAXED))
 					usleep((call == num_calls - 1) ? 10000 : 1000);
 				break;
