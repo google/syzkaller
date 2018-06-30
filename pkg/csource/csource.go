@@ -365,13 +365,18 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, []uint64) {
 
 		// Copyout.
 		if resCopyout || argCopyout {
-			cast := ""
-			if !ctx.sysTarget.SyscallNumbers {
-				// On fuchsia we call libc calls to function returning long,
+			if ctx.sysTarget.OS == "fuchsia" {
+				// On fuchsia we have real system calls that return ZX_OK on success,
+				// and libc calls that are casted to function returning long,
 				// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
-				cast = "(int)"
+				if strings.HasPrefix(callName, "zx_") {
+					fmt.Fprintf(w, "\tif (res == ZX_OK)")
+				} else {
+					fmt.Fprintf(w, "\tif ((int)res != -1)")
+				}
+			} else {
+				fmt.Fprintf(w, "\tif (res != -1)")
 			}
-			fmt.Fprintf(w, "\tif (%vres != -1)", cast)
 			copyoutMultiple := len(call.Copyout) > 1 || resCopyout && len(call.Copyout) > 0
 			if copyoutMultiple {
 				fmt.Fprintf(w, " {")
