@@ -594,6 +594,10 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 		ctx.reproLog(2, "program did not crash")
 		return false, nil
 	}
+	if rep.Suppressed {
+		ctx.reproLog(2, "suppressed program crash: %v", rep.Title)
+		return false, nil
+	}
 	ctx.report = rep
 	ctx.reproLog(2, "program crashed: %v", rep.Title)
 	return true, nil
