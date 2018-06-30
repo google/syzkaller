@@ -160,8 +160,9 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 				defaultError = "lost connection to test machine"
 			}
 			rep := &report.Report{
-				Title:  defaultError,
-				Output: output,
+				Title:      defaultError,
+				Output:     output,
+				Suppressed: report.IsSuppressed(reporter, output),
 			}
 			return rep
 		}
@@ -227,8 +228,9 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 				waitForOutput()
 			}
 			rep := &report.Report{
-				Title:  "no output from test machine",
-				Output: output,
+				Title:      "no output from test machine",
+				Output:     output,
+				Suppressed: report.IsSuppressed(reporter, output),
 			}
 			return rep
 		case <-Shutdown:
