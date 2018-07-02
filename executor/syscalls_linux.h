@@ -2,13 +2,13 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "b4050c8ea56e0fa6d944c424b5e03399e929745e"
+#define SYZ_REVISION "7c3b92654cfa280739a2cab1908dd7fbafba5a74"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1998
+#define SYZ_SYSCALL_COUNT 2021
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -786,6 +786,28 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 54},
     {"ioctl$RNDGETENTCNT", 54},
     {"ioctl$RNDZAPENTCNT", 54},
+    {"ioctl$RTC_AIE_OFF", 54},
+    {"ioctl$RTC_AIE_ON", 54},
+    {"ioctl$RTC_ALM_READ", 54},
+    {"ioctl$RTC_ALM_SET", 54},
+    {"ioctl$RTC_EPOCH_READ", 54},
+    {"ioctl$RTC_EPOCH_SET", 54},
+    {"ioctl$RTC_IRQP_READ", 54},
+    {"ioctl$RTC_IRQP_SET", 54},
+    {"ioctl$RTC_PIE_OFF", 54},
+    {"ioctl$RTC_PIE_ON", 54},
+    {"ioctl$RTC_PLL_GET", 54},
+    {"ioctl$RTC_PLL_SET", 54},
+    {"ioctl$RTC_RD_TIME", 54},
+    {"ioctl$RTC_SET_TIME", 54},
+    {"ioctl$RTC_UIE_OFF", 54},
+    {"ioctl$RTC_UIE_ON", 54},
+    {"ioctl$RTC_VL_CLR", 54},
+    {"ioctl$RTC_VL_READ", 54},
+    {"ioctl$RTC_WIE_OFF", 54},
+    {"ioctl$RTC_WIE_ON", 54},
+    {"ioctl$RTC_WKALM_RD", 54},
+    {"ioctl$RTC_WKALM_SET", 54},
     {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 54},
     {"ioctl$SCSI_IOCTL_DOORLOCK", 54},
     {"ioctl$SCSI_IOCTL_DOORUNLOCK", 54},
@@ -1915,6 +1937,7 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
+    {"syz_open_dev$rtc", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -2014,13 +2037,13 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "fc69ece5307d371a63232a03bac964a9ede3c7d2"
+#define SYZ_REVISION "9b691ef1ad3871279dddf35bbadcb13736803e01"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2050
+#define SYZ_SYSCALL_COUNT 2073
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2808,6 +2831,28 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 16},
     {"ioctl$RNDGETENTCNT", 16},
     {"ioctl$RNDZAPENTCNT", 16},
+    {"ioctl$RTC_AIE_OFF", 16},
+    {"ioctl$RTC_AIE_ON", 16},
+    {"ioctl$RTC_ALM_READ", 16},
+    {"ioctl$RTC_ALM_SET", 16},
+    {"ioctl$RTC_EPOCH_READ", 16},
+    {"ioctl$RTC_EPOCH_SET", 16},
+    {"ioctl$RTC_IRQP_READ", 16},
+    {"ioctl$RTC_IRQP_SET", 16},
+    {"ioctl$RTC_PIE_OFF", 16},
+    {"ioctl$RTC_PIE_ON", 16},
+    {"ioctl$RTC_PLL_GET", 16},
+    {"ioctl$RTC_PLL_SET", 16},
+    {"ioctl$RTC_RD_TIME", 16},
+    {"ioctl$RTC_SET_TIME", 16},
+    {"ioctl$RTC_UIE_OFF", 16},
+    {"ioctl$RTC_UIE_ON", 16},
+    {"ioctl$RTC_VL_CLR", 16},
+    {"ioctl$RTC_VL_READ", 16},
+    {"ioctl$RTC_WIE_OFF", 16},
+    {"ioctl$RTC_WIE_ON", 16},
+    {"ioctl$RTC_WKALM_RD", 16},
+    {"ioctl$RTC_WKALM_SET", 16},
     {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 16},
     {"ioctl$SCSI_IOCTL_DOORLOCK", 16},
     {"ioctl$SCSI_IOCTL_DOORUNLOCK", 16},
@@ -3979,6 +4024,7 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
+    {"syz_open_dev$rtc", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -4078,13 +4124,13 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "dd5ad897499c0d9a2e3cbc471197a813b506d043"
+#define SYZ_REVISION "2d48f7b04fa6aa40cf950630cc96b02d6a248012"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2006
+#define SYZ_SYSCALL_COUNT 2029
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4843,6 +4889,28 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 54},
     {"ioctl$RNDGETENTCNT", 54},
     {"ioctl$RNDZAPENTCNT", 54},
+    {"ioctl$RTC_AIE_OFF", 54},
+    {"ioctl$RTC_AIE_ON", 54},
+    {"ioctl$RTC_ALM_READ", 54},
+    {"ioctl$RTC_ALM_SET", 54},
+    {"ioctl$RTC_EPOCH_READ", 54},
+    {"ioctl$RTC_EPOCH_SET", 54},
+    {"ioctl$RTC_IRQP_READ", 54},
+    {"ioctl$RTC_IRQP_SET", 54},
+    {"ioctl$RTC_PIE_OFF", 54},
+    {"ioctl$RTC_PIE_ON", 54},
+    {"ioctl$RTC_PLL_GET", 54},
+    {"ioctl$RTC_PLL_SET", 54},
+    {"ioctl$RTC_RD_TIME", 54},
+    {"ioctl$RTC_SET_TIME", 54},
+    {"ioctl$RTC_UIE_OFF", 54},
+    {"ioctl$RTC_UIE_ON", 54},
+    {"ioctl$RTC_VL_CLR", 54},
+    {"ioctl$RTC_VL_READ", 54},
+    {"ioctl$RTC_WIE_OFF", 54},
+    {"ioctl$RTC_WIE_ON", 54},
+    {"ioctl$RTC_WKALM_RD", 54},
+    {"ioctl$RTC_WKALM_SET", 54},
     {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 54},
     {"ioctl$SCSI_IOCTL_DOORLOCK", 54},
     {"ioctl$SCSI_IOCTL_DOORUNLOCK", 54},
@@ -6001,6 +6069,7 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
+    {"syz_open_dev$rtc", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -6098,13 +6167,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "45ca78852b7500e7612287085dee2292ff1d6a8e"
+#define SYZ_REVISION "e0996c58f44d1178a9173f9c61fc9868155e4f7f"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1978
+#define SYZ_SYSCALL_COUNT 2001
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6855,6 +6924,28 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 29},
     {"ioctl$RNDGETENTCNT", 29},
     {"ioctl$RNDZAPENTCNT", 29},
+    {"ioctl$RTC_AIE_OFF", 29},
+    {"ioctl$RTC_AIE_ON", 29},
+    {"ioctl$RTC_ALM_READ", 29},
+    {"ioctl$RTC_ALM_SET", 29},
+    {"ioctl$RTC_EPOCH_READ", 29},
+    {"ioctl$RTC_EPOCH_SET", 29},
+    {"ioctl$RTC_IRQP_READ", 29},
+    {"ioctl$RTC_IRQP_SET", 29},
+    {"ioctl$RTC_PIE_OFF", 29},
+    {"ioctl$RTC_PIE_ON", 29},
+    {"ioctl$RTC_PLL_GET", 29},
+    {"ioctl$RTC_PLL_SET", 29},
+    {"ioctl$RTC_RD_TIME", 29},
+    {"ioctl$RTC_SET_TIME", 29},
+    {"ioctl$RTC_UIE_OFF", 29},
+    {"ioctl$RTC_UIE_ON", 29},
+    {"ioctl$RTC_VL_CLR", 29},
+    {"ioctl$RTC_VL_READ", 29},
+    {"ioctl$RTC_WIE_OFF", 29},
+    {"ioctl$RTC_WIE_ON", 29},
+    {"ioctl$RTC_WKALM_RD", 29},
+    {"ioctl$RTC_WKALM_SET", 29},
     {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 29},
     {"ioctl$SCSI_IOCTL_DOORLOCK", 29},
     {"ioctl$SCSI_IOCTL_DOORUNLOCK", 29},
@@ -7997,6 +8088,7 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
+    {"syz_open_dev$rtc", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
@@ -8090,13 +8182,13 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "fb8f49f6dceef512594c9f30fdc24bb287e02e4f"
+#define SYZ_REVISION "e810a038c6e7e93c823407bb0a01ba0d48281b55"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1868
+#define SYZ_SYSCALL_COUNT 1891
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8858,6 +8950,28 @@ const call_t syscalls[] = {
     {"ioctl$RNDCLEARPOOL", 54},
     {"ioctl$RNDGETENTCNT", 54},
     {"ioctl$RNDZAPENTCNT", 54},
+    {"ioctl$RTC_AIE_OFF", 54},
+    {"ioctl$RTC_AIE_ON", 54},
+    {"ioctl$RTC_ALM_READ", 54},
+    {"ioctl$RTC_ALM_SET", 54},
+    {"ioctl$RTC_EPOCH_READ", 54},
+    {"ioctl$RTC_EPOCH_SET", 54},
+    {"ioctl$RTC_IRQP_READ", 54},
+    {"ioctl$RTC_IRQP_SET", 54},
+    {"ioctl$RTC_PIE_OFF", 54},
+    {"ioctl$RTC_PIE_ON", 54},
+    {"ioctl$RTC_PLL_GET", 54},
+    {"ioctl$RTC_PLL_SET", 54},
+    {"ioctl$RTC_RD_TIME", 54},
+    {"ioctl$RTC_SET_TIME", 54},
+    {"ioctl$RTC_UIE_OFF", 54},
+    {"ioctl$RTC_UIE_ON", 54},
+    {"ioctl$RTC_VL_CLR", 54},
+    {"ioctl$RTC_VL_READ", 54},
+    {"ioctl$RTC_WIE_OFF", 54},
+    {"ioctl$RTC_WIE_ON", 54},
+    {"ioctl$RTC_WKALM_RD", 54},
+    {"ioctl$RTC_WKALM_SET", 54},
     {"ioctl$SCSI_IOCTL_BENCHMARK_COMMAND", 54},
     {"ioctl$SCSI_IOCTL_DOORLOCK", 54},
     {"ioctl$SCSI_IOCTL_DOORUNLOCK", 54},
@@ -9873,6 +9987,7 @@ const call_t syscalls[] = {
     {"syz_open_dev$midi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$mouse", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$ndb", 0, (syscall_t)syz_open_dev},
+    {"syz_open_dev$rtc", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sg", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndctrl", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndhw", 0, (syscall_t)syz_open_dev},
