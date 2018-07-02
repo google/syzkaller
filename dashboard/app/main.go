@@ -804,7 +804,7 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 			if !strings.Contains(rec.Resource, "method=log_error") {
 				res = fmt.Sprintf(" (%v)", rec.Resource)
 			}
-			entry := fmt.Sprintf("%v: %v%v\n", formatTime(al.Time), text, res)
+			entry := fmt.Sprintf("%v: %v%v\n", al.Time.Format("Jan 02 15:04"), text, res)
 			lines = append(lines, entry)
 		}
 	}

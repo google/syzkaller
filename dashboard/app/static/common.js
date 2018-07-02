@@ -62,26 +62,3 @@ function timeSort(v) {
 		return parseInt(v) * 60 * 24;
 	return 1000000000;
 }
-
-function dateSort(v) {
-	if (v == "")
-		return 0;
-	switch (v.substring(0, 3)) {
-	case "Jan": w = 0; break;
-	case "Feb": w = 1; break;
-	case "Mar": w = 2; break;
-	case "Apr": w = 3; break;
-	case "May": w = 4; break;
-	case "Jun": w = 5; break;
-	case "Jul": w = 6; break;
-	case "Aug": w = 7; break;
-	case "Sep": w = 8; break;
-	case "Oct": w = 9; break;
-	case "Nov": w = 10; break;
-	case "Dec": w = 11; break;
-	}
-	w = w * 100 + parseInt(v.substring(4, 6));
-	w = w * 100 + parseInt(v.substring(7, 9));
-	w = w * 100 + parseInt(v.substring(10, 12));
-	return -w;
-}
