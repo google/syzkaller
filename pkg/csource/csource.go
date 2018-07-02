@@ -209,7 +209,7 @@ func (ctx *context) generateTestFunc(calls []string, hasVars bool, name string) 
 			ctx.printf("\tdebug(\"%v\\n\");\n", name)
 		}
 		if opts.Repro {
-			ctx.printf("\twrite(1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
+			ctx.printf("\tif (write(1, \"executing program\\n\", strlen(\"executing program\\n\"))) {}\n")
 		}
 		for _, c := range calls {
 			ctx.printf("%s", c)
@@ -235,7 +235,7 @@ func (ctx *context) generateTestFunc(calls []string, hasVars bool, name string) 
 			ctx.printf("\tdebug(\"%v\\n\");\n", name)
 		}
 		if opts.Repro {
-			ctx.printf("\twrite(1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
+			ctx.printf("\tif (write(1, \"executing program\\n\", strlen(\"executing program\\n\"))) {}\n")
 		}
 		ctx.printf("\texecute(%v);\n", len(calls))
 		if opts.Collide {
