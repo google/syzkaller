@@ -46,8 +46,10 @@ var (
 
 func ctorFuchsia(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &fuchsia{
-		obj:     filepath.Join(kernelObj, "zircon.elf"),
 		ignores: ignores,
+	}
+	if kernelObj != "" {
+		ctx.obj = filepath.Join(kernelObj, "zircon.elf")
 	}
 	suppressions := []string{
 		"fatal exception: process /tmp/syz-fuzzer", // OOM presumably
@@ -114,6 +116,9 @@ func (ctx *fuchsia) Parse(output []byte) *Report {
 
 func (ctx *fuchsia) processPC(rep *Report, symb *symbolizer.Symbolizer,
 	line []byte, match []int, call bool, where *string) bool {
+	if ctx.obj == "" {
+		return false
+	}
 	prefix := line[match[0]:match[1]]
 	pcStart := match[2] - match[0]
 	pcEnd := match[3] - match[0]
