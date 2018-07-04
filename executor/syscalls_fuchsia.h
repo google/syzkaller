@@ -2,13 +2,13 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "5ce842ebcec58232491c33abad5d2f25f4b4bea0"
+#define SYZ_REVISION "9540132f74bbe9bfb7e8f215844bdb3a88b9a665"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 162
+#define SYZ_SYSCALL_COUNT 179
 const call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -27,6 +27,7 @@ const call_t syscalls[] = {
     {"fstat", 0, (syscall_t)fstat},
     {"fsync", 0, (syscall_t)fsync},
     {"ftruncate", 0, (syscall_t)ftruncate},
+    {"get_root_resource", 0, (syscall_t)get_root_resource},
     {"getcwd", 0, (syscall_t)getcwd},
     {"getgid", 0, (syscall_t)getgid},
     {"getpid", 0, (syscall_t)getpid},
@@ -71,14 +72,20 @@ const call_t syscalls[] = {
     {"utimes", 0, (syscall_t)utimes},
     {"write", 0, (syscall_t)write},
     {"writev", 0, (syscall_t)writev},
+    {"zx_cache_flush", 0, (syscall_t)zx_cache_flush},
     {"zx_channel_call", 0, (syscall_t)zx_channel_call},
     {"zx_channel_create", 0, (syscall_t)zx_channel_create},
     {"zx_channel_read", 0, (syscall_t)zx_channel_read},
     {"zx_channel_read_etc", 0, (syscall_t)zx_channel_read_etc},
     {"zx_channel_write", 0, (syscall_t)zx_channel_write},
     {"zx_clock_get", 0, (syscall_t)zx_clock_get},
+    {"zx_clock_get_monotonic", 0, (syscall_t)zx_clock_get_monotonic},
+    {"zx_clock_get_new", 0, (syscall_t)zx_clock_get_new},
     {"zx_cprng_add_entropy", 0, (syscall_t)zx_cprng_add_entropy},
     {"zx_cprng_draw", 0, (syscall_t)zx_cprng_draw},
+    {"zx_debuglog_create", 0, (syscall_t)zx_debuglog_create},
+    {"zx_debuglog_read", 0, (syscall_t)zx_debuglog_read},
+    {"zx_debuglog_write", 0, (syscall_t)zx_debuglog_write},
     {"zx_event_create", 0, (syscall_t)zx_event_create},
     {"zx_eventpair_create", 0, (syscall_t)zx_eventpair_create},
     {"zx_fifo_create", 0, (syscall_t)zx_fifo_create},
@@ -88,10 +95,15 @@ const call_t syscalls[] = {
     {"zx_futex_wait", 0, (syscall_t)zx_futex_wait},
     {"zx_futex_wake", 0, (syscall_t)zx_futex_wake},
     {"zx_futex_wake_handle_close_thread_exit", 0, (syscall_t)zx_futex_wake_handle_close_thread_exit},
+    {"zx_guest_create", 0, (syscall_t)zx_guest_create},
+    {"zx_guest_set_trap", 0, (syscall_t)zx_guest_set_trap},
     {"zx_handle_close", 0, (syscall_t)zx_handle_close},
     {"zx_handle_close_many", 0, (syscall_t)zx_handle_close_many},
     {"zx_handle_duplicate", 0, (syscall_t)zx_handle_duplicate},
     {"zx_handle_replace", 0, (syscall_t)zx_handle_replace},
+    {"zx_interrupt_ack", 0, (syscall_t)zx_interrupt_ack},
+    {"zx_interrupt_create", 0, (syscall_t)zx_interrupt_create},
+    {"zx_interrupt_destroy", 0, (syscall_t)zx_interrupt_destroy},
     {"zx_job_create", 0, (syscall_t)zx_job_create},
     {"zx_job_set_policy", 0, (syscall_t)zx_job_set_policy},
     {"zx_log_create", 0, (syscall_t)zx_log_create},
@@ -153,6 +165,11 @@ const call_t syscalls[] = {
     {"zx_timer_cancel", 0, (syscall_t)zx_timer_cancel},
     {"zx_timer_create", 0, (syscall_t)zx_timer_create},
     {"zx_timer_set", 0, (syscall_t)zx_timer_set},
+    {"zx_vcpu_create", 0, (syscall_t)zx_vcpu_create},
+    {"zx_vcpu_interrupt", 0, (syscall_t)zx_vcpu_interrupt},
+    {"zx_vcpu_read_state", 0, (syscall_t)zx_vcpu_read_state},
+    {"zx_vcpu_resume", 0, (syscall_t)zx_vcpu_resume},
+    {"zx_vcpu_write_state", 0, (syscall_t)zx_vcpu_write_state},
     {"zx_vmar_allocate", 0, (syscall_t)zx_vmar_allocate},
     {"zx_vmar_destroy", 0, (syscall_t)zx_vmar_destroy},
     {"zx_vmar_map", 0, (syscall_t)zx_vmar_map},
@@ -178,13 +195,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "f385e79d53b401a933dd01ccc6f89a0936affaf6"
+#define SYZ_REVISION "ebb425942f2bbfd2db293e4a2a0a417f6aaafb1c"
 #define SYZ_EXECUTOR_USES_FORK_SERVER false
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 162
+#define SYZ_SYSCALL_COUNT 179
 const call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -203,6 +220,7 @@ const call_t syscalls[] = {
     {"fstat", 0, (syscall_t)fstat},
     {"fsync", 0, (syscall_t)fsync},
     {"ftruncate", 0, (syscall_t)ftruncate},
+    {"get_root_resource", 0, (syscall_t)get_root_resource},
     {"getcwd", 0, (syscall_t)getcwd},
     {"getgid", 0, (syscall_t)getgid},
     {"getpid", 0, (syscall_t)getpid},
@@ -247,14 +265,20 @@ const call_t syscalls[] = {
     {"utimes", 0, (syscall_t)utimes},
     {"write", 0, (syscall_t)write},
     {"writev", 0, (syscall_t)writev},
+    {"zx_cache_flush", 0, (syscall_t)zx_cache_flush},
     {"zx_channel_call", 0, (syscall_t)zx_channel_call},
     {"zx_channel_create", 0, (syscall_t)zx_channel_create},
     {"zx_channel_read", 0, (syscall_t)zx_channel_read},
     {"zx_channel_read_etc", 0, (syscall_t)zx_channel_read_etc},
     {"zx_channel_write", 0, (syscall_t)zx_channel_write},
     {"zx_clock_get", 0, (syscall_t)zx_clock_get},
+    {"zx_clock_get_monotonic", 0, (syscall_t)zx_clock_get_monotonic},
+    {"zx_clock_get_new", 0, (syscall_t)zx_clock_get_new},
     {"zx_cprng_add_entropy", 0, (syscall_t)zx_cprng_add_entropy},
     {"zx_cprng_draw", 0, (syscall_t)zx_cprng_draw},
+    {"zx_debuglog_create", 0, (syscall_t)zx_debuglog_create},
+    {"zx_debuglog_read", 0, (syscall_t)zx_debuglog_read},
+    {"zx_debuglog_write", 0, (syscall_t)zx_debuglog_write},
     {"zx_event_create", 0, (syscall_t)zx_event_create},
     {"zx_eventpair_create", 0, (syscall_t)zx_eventpair_create},
     {"zx_fifo_create", 0, (syscall_t)zx_fifo_create},
@@ -264,10 +288,15 @@ const call_t syscalls[] = {
     {"zx_futex_wait", 0, (syscall_t)zx_futex_wait},
     {"zx_futex_wake", 0, (syscall_t)zx_futex_wake},
     {"zx_futex_wake_handle_close_thread_exit", 0, (syscall_t)zx_futex_wake_handle_close_thread_exit},
+    {"zx_guest_create", 0, (syscall_t)zx_guest_create},
+    {"zx_guest_set_trap", 0, (syscall_t)zx_guest_set_trap},
     {"zx_handle_close", 0, (syscall_t)zx_handle_close},
     {"zx_handle_close_many", 0, (syscall_t)zx_handle_close_many},
     {"zx_handle_duplicate", 0, (syscall_t)zx_handle_duplicate},
     {"zx_handle_replace", 0, (syscall_t)zx_handle_replace},
+    {"zx_interrupt_ack", 0, (syscall_t)zx_interrupt_ack},
+    {"zx_interrupt_create", 0, (syscall_t)zx_interrupt_create},
+    {"zx_interrupt_destroy", 0, (syscall_t)zx_interrupt_destroy},
     {"zx_job_create", 0, (syscall_t)zx_job_create},
     {"zx_job_set_policy", 0, (syscall_t)zx_job_set_policy},
     {"zx_log_create", 0, (syscall_t)zx_log_create},
@@ -329,6 +358,11 @@ const call_t syscalls[] = {
     {"zx_timer_cancel", 0, (syscall_t)zx_timer_cancel},
     {"zx_timer_create", 0, (syscall_t)zx_timer_create},
     {"zx_timer_set", 0, (syscall_t)zx_timer_set},
+    {"zx_vcpu_create", 0, (syscall_t)zx_vcpu_create},
+    {"zx_vcpu_interrupt", 0, (syscall_t)zx_vcpu_interrupt},
+    {"zx_vcpu_read_state", 0, (syscall_t)zx_vcpu_read_state},
+    {"zx_vcpu_resume", 0, (syscall_t)zx_vcpu_resume},
+    {"zx_vcpu_write_state", 0, (syscall_t)zx_vcpu_write_state},
     {"zx_vmar_allocate", 0, (syscall_t)zx_vmar_allocate},
     {"zx_vmar_destroy", 0, (syscall_t)zx_vmar_destroy},
     {"zx_vmar_map", 0, (syscall_t)zx_vmar_map},
