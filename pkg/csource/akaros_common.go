@@ -5,6 +5,11 @@ package csource
 var commonHeaderAkaros = `
 
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <sys/syscall.h>
 #include <unistd.h>
 #if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
 #include <pthread.h>
@@ -240,12 +245,12 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
-		debug("SIGSEGV on %p, skipping\n", addr);
+		debug("SIGSEGV on 0x%lx, skipping\n", addr);
 		struct user_context* uctx = (struct user_context*)ctx;
 		uctx->tf.hw_tf.tf_rip = (long)(void*)recover;
 		return;
 	}
-	debug("SIGSEGV on %p, exiting\n", addr);
+	debug("SIGSEGV on 0x%lx, exiting\n", addr);
 	doexit(sig);
 	for (;;) {
 	}
@@ -322,11 +327,9 @@ static void remove_dir(const char* dir)
 {
 	DIR* dp;
 	struct dirent* ep;
-	int iter = 0;
-retry:
 	dp = opendir(dir);
 	if (dp == NULL)
-		return;
+		exitf("opendir(%s) failed", dir);
 	while ((ep = readdir(dp))) {
 		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
 			continue;
@@ -334,43 +337,33 @@ retry:
 		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
 		struct stat st;
 		if (lstat(filename, &st))
-			return;
+			exitf("lstat(%s) failed", filename);
 		if (S_ISDIR(st.st_mode)) {
 			remove_dir(filename);
 			continue;
 		}
-		int i;
-		for (i = 0;; i++) {
-			if (unlink(filename) == 0)
-				break;
-			if (errno == EROFS)
-				break;
-			if (errno != EBUSY || i > 100)
-				return;
-		}
+		if (unlink(filename))
+			exitf("unlink(%s) failed", filename);
 	}
 	closedir(dp);
-	int i;
-	for (i = 0;; i++) {
-		if (rmdir(dir) == 0)
-			break;
-		if (i < 100) {
-			if (errno == EROFS)
-				break;
-			if (errno == ENOTEMPTY) {
-				if (iter < 100) {
-					iter++;
-					goto retry;
-				}
-			}
-		}
-		return;
-	}
+	if (rmdir(dir))
+		exitf("rmdir(%s) failed", dir);
+}
+#endif
+
+#if defined(SYZ_SANDBOX_NONE)
+static void loop();
+static int do_sandbox_none(void)
+{
+	loop();
+	doexit(0);
+	fail("doexit returned");
+	return 0;
 }
 #endif
 
 #if defined(SYZ_REPEAT)
-static void test();
+static void execute_one();
 
 #if defined(SYZ_WAIT_REPEAT)
 void loop()
@@ -391,7 +384,7 @@ void loop()
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
 #endif
-			test();
+			execute_one();
 			doexit(0);
 		}
 		int status = 0;
@@ -417,9 +410,71 @@ void loop()
 void loop()
 {
 	while (1) {
-		test();
+		execute_one();
 	}
 }
 #endif
+#endif
+
+#if defined(SYZ_THREADED)
+struct thread_t {
+	int created, running, call;
+	pthread_t th;
+};
+
+static struct thread_t threads[16];
+static void execute_call(int call);
+static int running;
+#if defined(SYZ_COLLIDE)
+static int collide;
+#endif
+
+static void* thr(void* arg)
+{
+	struct thread_t* th = (struct thread_t*)arg;
+	for (;;) {
+		while (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE))
+			usleep(200);
+		execute_call(th->call);
+		__atomic_fetch_sub(&running, 1, __ATOMIC_RELAXED);
+		__atomic_store_n(&th->running, 0, __ATOMIC_RELEASE);
+	}
+	return 0;
+}
+
+static void execute(int num_calls)
+{
+	int i, call, thread;
+	running = 0;
+	for (call = 0; call < num_calls; call++) {
+		for (thread = 0; thread < sizeof(threads) / sizeof(threads[0]); thread++) {
+			struct thread_t* th = &threads[thread];
+			if (!th->created) {
+				th->created = 1;
+				pthread_attr_t attr;
+				pthread_attr_init(&attr);
+				pthread_attr_setstacksize(&attr, 128 << 10);
+				pthread_create(&th->th, &attr, thr, th);
+			}
+			if (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE)) {
+				th->call = call;
+				__atomic_fetch_add(&running, 1, __ATOMIC_RELAXED);
+				__atomic_store_n(&th->running, 1, __ATOMIC_RELEASE);
+#if defined(SYZ_COLLIDE)
+				if (collide && call % 2)
+					break;
+#endif
+				for (i = 0; i < 100; i++) {
+					if (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE))
+						break;
+					usleep(200);
+				}
+				if (__atomic_load_n(&running, __ATOMIC_RELAXED))
+					usleep((call == num_calls - 1) ? 10000 : 1000);
+				break;
+			}
+		}
+	}
+}
 #endif
 `

@@ -16,51 +16,38 @@
 
 uint32 output;
 
+static void child();
+
 int main(int argc, char** argv)
 {
 	if (argc == 2 && strcmp(argv[1], "version") == 0) {
 		puts(GOOS " " GOARCH " " SYZ_REVISION " " GIT_REVISION);
 		return 0;
 	}
-
-	if (mmap((void*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE, PROT_READ | PROT_WRITE,
-		 MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != (void*)SYZ_DATA_OFFSET)
-		fail("mmap of data segment failed");
+	if (argc == 2 && strcmp(argv[1], "child") == 0) {
+		child();
+		doexit(0);
+	}
 
 	use_temporary_dir();
-	install_segv_handler();
 	main_init();
 	reply_handshake();
 
 	for (;;) {
-		receive_execute();
 		char cwdbuf[128] = "/syz-tmpXXXXXX";
 		mkdtemp(cwdbuf);
 		int pid = fork();
 		if (pid < 0)
 			fail("fork failed");
 		if (pid == 0) {
-			close(kInPipeFd);
-			close(kOutPipeFd);
 			if (chdir(cwdbuf))
 				fail("chdir failed");
-			execute_one();
-			doexit(0);
+			execl(argv[0], argv[0], "child", NULL);
+			fail("execl failed");
+			return 0;
 		}
 		int status = 0;
-		uint64 start = current_time_ms();
-		for (;;) {
-			int res = waitpid(pid, &status, WNOHANG);
-			if (res == pid)
-				break;
-			sleep_ms(10);
-			uint64 now = current_time_ms();
-			if (now - start < 3 * 1000)
-				continue;
-			kill(pid, SIGKILL);
-			while (waitpid(pid, &status, 0) != pid) {
-			}
-			break;
+		while (waitpid(pid, &status, 0) != pid) {
 		}
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
@@ -71,6 +58,17 @@ int main(int argc, char** argv)
 		reply_execute(0);
 	}
 	return 0;
+}
+
+static void child()
+{
+	install_segv_handler();
+	if (mmap((void*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE, PROT_READ | PROT_WRITE,
+		 MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != (void*)SYZ_DATA_OFFSET)
+		fail("mmap of data segment failed");
+	receive_execute();
+	close(kInPipeFd);
+	execute_one();
 }
 
 long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
