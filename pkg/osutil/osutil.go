@@ -30,8 +30,12 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 // Returns combined output. If the command fails, err includes output.
 func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 	output := new(bytes.Buffer)
-	cmd.Stdout = output
-	cmd.Stderr = output
+	if cmd.Stdout == nil {
+		cmd.Stdout = output
+	}
+	if cmd.Stderr == nil {
+		cmd.Stderr = output
+	}
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start %v %+v: %v", cmd.Path, cmd.Args, err)
 	}
