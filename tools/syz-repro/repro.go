@@ -22,6 +22,7 @@ import (
 var (
 	flagConfig = flag.String("config", "", "configuration file")
 	flagCount  = flag.Int("count", 0, "number of VMs to use (overrides config count param)")
+	flagDebug  = flag.Bool("debug", false, "print debug output")
 )
 
 func main() {
@@ -41,7 +42,7 @@ func main() {
 	if _, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
 		log.Fatalf("%v", err)
 	}
-	vmPool, err := vm.Create(cfg, false)
+	vmPool, err := vm.Create(cfg, *flagDebug)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
