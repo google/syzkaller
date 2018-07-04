@@ -1,0 +1,15 @@
+TITLE: assertion failed: buf == buf_end
+
+kernel panic at kern/src/vfs.c:1359, from core 1: assertion failed: buf == buf_end
+Entering Nanwan's Dungeon on Core 1 (Ints on):
+Type 'help' for a list of commands.
+ROS(Core 1)> bash-4.3$ bt
+Stack Backtrace on Core 1:
+#01 [<0xffffffffc2016074>] in mon_backtrace
+#02 [<0xffffffffc2017177>] in monitor
+#03 [<0xffffffffc200cbfc>] in _panic
+#04 [<0xffffffffc205c51c>] in generic_file_write
+#05 [<0xffffffffc2053890>] in sys_write
+#06 [<0xffffffffc2056919>] in syscall
+#07 [<0xffffffffc2056ad4>] in run_local_syscall
+#08 [<0xffffffffc20a28aa>] in sysenter_callwrapper
