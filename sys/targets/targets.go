@@ -192,14 +192,9 @@ var List = map[string]map[string]*Target{
 			PageSize:          4 << 10,
 			CArch:             []string{"__x86_64__"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
-			CCompiler:         os.ExpandEnv("${SOURCEDIR}/install/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
-			// Most likely this is incorrect (why doesn't it know own sysroot?), but worked for me.
+			CCompiler:         os.ExpandEnv("${SOURCEDIR}/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
 			CrossCFlags: []string{
 				"-static",
-				"-I", os.ExpandEnv("${SOURCEDIR}/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/include/x86_64-ucb-akaros"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/include"),
-				"-I", os.ExpandEnv("${SOURCEDIR}/tools/compilers/gcc-glibc/gcc-4.9.2/libstdc++-v3/libsupc++"),
-				"-L", os.ExpandEnv("${SOURCEDIR}/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/src/.libs"),
 			},
 		},
 	},
