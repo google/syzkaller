@@ -20,6 +20,16 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
+type Result struct {
+	Prog     *prog.Prog
+	Duration time.Duration
+	Opts     csource.Options
+	CRepro   bool
+	// Information about the final (non-symbolized) crash that we reproduced.
+	// Can be different from what we started reproducing.
+	Report *report.Report
+}
+
 type Stats struct {
 	Log              []byte
 	ExtractProgTime  time.Duration
@@ -29,24 +39,13 @@ type Stats struct {
 	SimplifyCTime    time.Duration
 }
 
-type Result struct {
-	Prog     *prog.Prog
-	Duration time.Duration
-	Opts     csource.Options
-	CRepro   bool
-	Stats    Stats
-	// Information about the final (non-symbolized) crash that we reproduced.
-	// Can be different from what we started reproducing.
-	Report *report.Report
-}
-
 type context struct {
 	cfg          *mgrconfig.Config
 	reporter     report.Reporter
 	crashTitle   string
 	instances    chan *instance
 	bootRequests chan int
-	stats        Stats
+	stats        *Stats
 	report       *report.Report
 }
 
@@ -58,17 +57,17 @@ type instance struct {
 }
 
 func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Pool,
-	vmIndexes []int) (*Result, error) {
+	vmIndexes []int) (*Result, *Stats, error) {
 	if len(vmIndexes) == 0 {
-		return nil, fmt.Errorf("no VMs provided")
+		return nil, nil, fmt.Errorf("no VMs provided")
 	}
 	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	entries := target.ParseLog(crashLog)
 	if len(entries) == 0 {
-		return nil, fmt.Errorf("crash log does not contain any programs")
+		return nil, nil, fmt.Errorf("crash log does not contain any programs")
 	}
 	crashStart := len(crashLog) // assuming VM hanged
 	crashTitle := "hang"
@@ -83,6 +82,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 		crashTitle:   crashTitle,
 		instances:    make(chan *instance, len(vmIndexes)),
 		bootRequests: make(chan int, len(vmIndexes)),
+		stats:        new(Stats),
 	}
 	ctx.reproLog(0, "%v programs, %v VMs", len(entries), len(vmIndexes))
 	var wg sync.WaitGroup
@@ -144,7 +144,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 
 	res, err := ctx.repro(entries, crashStart)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if res != nil {
 		ctx.reproLog(3, "repro crashed as (corrupted=%v):\n%s",
@@ -158,20 +158,19 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 				_, err = ctx.testProg(res.Prog, res.Duration, res.Opts)
 			}
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 		ctx.reproLog(3, "final repro crashed as (corrupted=%v):\n%s",
 			ctx.report.Corrupted, ctx.report.Report)
 		res.Report = ctx.report
-		res.Stats = ctx.stats
 	}
 
 	close(ctx.bootRequests)
 	for inst := range ctx.instances {
 		inst.Close()
 	}
-	return res, err
+	return res, ctx.stats, nil
 }
 
 func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {
