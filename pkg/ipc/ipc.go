@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -68,7 +67,6 @@ var (
 	flagAbortSignal = flag.Int("abort_signal", 0, "initial signal to send to executor"+
 		" in error conditions; upgrades to SIGKILL if executor does not exit")
 	flagBufferSize = flag.Uint64("buffer_size", 0, "internal buffer size (in bytes) for executor output")
-	flagIPC        = flag.String("ipc", "", "ipc scheme (pipe/shmem)")
 )
 
 type ExecOpts struct {
@@ -103,7 +101,7 @@ type Config struct {
 	BufferSize uint64
 }
 
-func DefaultConfig() (*Config, *ExecOpts, error) {
+func DefaultConfig(target *prog.Target) (*Config, *ExecOpts, error) {
 	c := &Config{
 		Executor:    *flagExecutor,
 		Timeout:     *flagTimeout,
@@ -126,21 +124,12 @@ func DefaultConfig() (*Config, *ExecOpts, error) {
 		return nil, nil, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
 	}
 
-	sysTarget := targets.Get(runtime.GOOS, runtime.GOARCH)
+	sysTarget := targets.Get(target.OS, target.Arch)
 	if sysTarget.ExecutorUsesShmem {
 		c.Flags |= FlagUseShmem
 	}
 	if sysTarget.ExecutorUsesForkServer {
 		c.Flags |= FlagUseForkServer
-	}
-	switch *flagIPC {
-	case "":
-	case "pipe":
-		c.Flags &^= FlagUseShmem
-	case "shmem":
-		c.Flags |= FlagUseShmem
-	default:
-		return nil, nil, fmt.Errorf("unknown ipc scheme: %v", *flagIPC)
 	}
 
 	opts := &ExecOpts{

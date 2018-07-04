@@ -94,6 +94,7 @@ func main() {
 
 	var (
 		flagName    = flag.String("name", "test", "unique name for manager")
+		flagOS      = flag.String("os", runtime.GOOS, "target OS")
 		flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
 		flagManager = flag.String("manager", "", "manager rpc address")
 		flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
@@ -118,12 +119,12 @@ func main() {
 	}
 	log.Logf(0, "fuzzer started")
 
-	target, err := prog.GetTarget(runtime.GOOS, *flagArch)
+	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 
-	config, execOpts, err := ipc.DefaultConfig()
+	config, execOpts, err := ipc.DefaultConfig(target)
 	if err != nil {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}

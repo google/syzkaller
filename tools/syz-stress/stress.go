@@ -60,7 +60,7 @@ func main() {
 	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, calls)
 
-	config, execOpts, err := ipc.DefaultConfig()
+	config, execOpts, err := ipc.DefaultConfig(target)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
