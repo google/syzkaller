@@ -23,12 +23,10 @@ zx_object_get_info$ZX_INFO_TASK_STATS(handle zx_process, topic const[ZX_INFO_TAS
 zx_object_get_info$ZX_INFO_PROCESS_MAPS(handle zx_process, topic const[ZX_INFO_PROCESS_MAPS], buffer ptr[out, array[zx_info_maps]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_PROCESS_VMOS(handle zx_process, topic const[ZX_INFO_PROCESS_VMOS], buffer ptr[out, array[zx_info_vmo]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_THREAD_STATS(handle zx_thread, topic const[ZX_INFO_THREAD_STATS], buffer ptr[out, zx_info_thread_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_CPU_STATS(root_resource zx_root_resource, topic const[ZX_INFO_CPU_STATS], buffer ptr[out, array[zx_info_cpu_stats]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_KMEM_STATS(root_resource zx_root_resource, topic const[ZX_INFO_KMEM_STATS], buffer ptr[out, zx_info_kmem_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 # TODO: what is handle type here?
-zx_object_get_info$ZX_INFO_CPU_STATS(handle zx_handle, topic const[ZX_INFO_CPU_STATS], buffer ptr[out, array[zx_info_cpu_stats]], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
-# TODO: handle is "root resource", where does one get one?
-zx_object_get_info$ZX_INFO_KMEM_STATS(handle zx_handle, topic const[ZX_INFO_KMEM_STATS], buffer ptr[out, zx_info_kmem_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
-# TODO: what is handle type here?
-zx_object_get_info$ZX_INFO_RESOURCE(handle zx_handle, topic const[ZX_INFO_RESOURCE], buffer ptr[out, zx_info_resource], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+zx_object_get_info$ZX_INFO_RESOURCE(resource_handle zx_handle, topic const[ZX_INFO_RESOURCE], buffer ptr[out, zx_info_resource], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 # TODO: detail properties
 zx_object_get_property(handle zx_handle, property int32, value ptr[out, array[int8]], size len[value])
 zx_object_set_property(handle zx_handle, property int32, value ptr[in, array[int8]], size len[value])

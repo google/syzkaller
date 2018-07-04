@@ -7,6 +7,8 @@ resource zx_time[int64]: 0, ZX_TIME_INFINITE
 
 zx_nanosleep(deadline zx_time)
 zx_clock_get(clock_id flags[clock_id]) zx_time
+zx_clock_get_new(clock_id int32, zx_time ptr[out, intptr])
+zx_clock_get_monotonic()
 zx_ticks_get()
 zx_ticks_per_second()
 
