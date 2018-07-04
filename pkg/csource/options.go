@@ -45,24 +45,24 @@ type Options struct {
 // Invalid combinations must not be passed to Write.
 func (opts Options) Check(OS string) error {
 	switch OS {
-	case fuchsia:
+	case fuchsia, akaros:
 		if opts.Fault {
-			return errors.New("Fault is not supported on fuchsia")
+			return fmt.Errorf("Fault is not supported on %v", OS)
 		}
 		if opts.EnableTun {
-			return errors.New("EnableTun is not supported on fuchsia")
+			return fmt.Errorf("EnableTun is not supported on %v", OS)
 		}
 		if opts.EnableCgroups {
-			return errors.New("EnableCgroups is not supported on fuchsia")
+			return fmt.Errorf("EnableCgroups is not supported on %v", OS)
 		}
 		if opts.EnableNetdev {
-			return errors.New("EnableNetdev is not supported on fuchsia")
+			return fmt.Errorf("EnableNetdev is not supported on %v", OS)
 		}
 		if opts.ResetNet {
-			return errors.New("ResetNet is not supported on fuchsia")
+			return fmt.Errorf("ResetNet is not supported on %v", OS)
 		}
 		if opts.Sandbox != "" && opts.Sandbox != "none" {
-			return fmt.Errorf("Sandbox=%v is not supported on fuchsia", opts.Sandbox)
+			return fmt.Errorf("Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 		}
 	}
 	if !opts.Threaded && opts.Collide {
@@ -123,7 +123,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		Repro:         true,
 	}
 	switch cfg.TargetOS {
-	case fuchsia:
+	case fuchsia, akaros:
 		opts.EnableTun = false
 		opts.EnableCgroups = false
 		opts.EnableNetdev = false
