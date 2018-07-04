@@ -301,6 +301,7 @@ type ReproResult struct {
 	instances []int
 	title0    string
 	res       *repro.Result
+	stats     *repro.Stats
 	err       error
 	hub       bool // repro came from hub
 }
@@ -385,8 +386,8 @@ func (mgr *Manager) vmLoop() {
 				atomic.AddUint32(&mgr.numReproducing, 1)
 				log.Logf(1, "loop: starting repro of '%v' on instances %+v", crash.Title, vmIndexes)
 				go func() {
-					res, err := repro.Run(crash.Output, mgr.cfg, mgr.reporter, mgr.vmPool, vmIndexes)
-					reproDone <- &ReproResult{vmIndexes, crash.Title, res, err, crash.hub}
+					res, stats, err := repro.Run(crash.Output, mgr.cfg, mgr.reporter, mgr.vmPool, vmIndexes)
+					reproDone <- &ReproResult{vmIndexes, crash.Title, res, stats, err, crash.hub}
 				}()
 			}
 			for !canRepro() && len(instances) != 0 {
@@ -444,10 +445,10 @@ func (mgr *Manager) vmLoop() {
 			reproInstances -= instancesPerRepro
 			if res.res == nil {
 				if !res.hub {
-					mgr.saveFailedRepro(res.title0)
+					mgr.saveFailedRepro(res.title0, res.stats)
 				}
 			} else {
-				mgr.saveRepro(res.res, res.hub)
+				mgr.saveRepro(res.res, res.stats, res.hub)
 			}
 		case <-shutdown:
 			log.Logf(1, "loop: shutting down...")
@@ -714,7 +715,7 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 	return false
 }
 
-func (mgr *Manager) saveFailedRepro(desc string) {
+func (mgr *Manager) saveFailedRepro(desc string, stats *repro.Stats) {
 	if mgr.dash != nil {
 		cid := &dashapi.CrashID{
 			BuildID: mgr.cfg.Tag,
@@ -722,6 +723,8 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 		}
 		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
 			log.Logf(0, "failed to report failed repro to dashboard: %v", err)
+		} else {
+			return
 		}
 	}
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(desc)))
@@ -729,13 +732,13 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 	for i := 0; i < maxReproAttempts; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
 		if !osutil.IsExist(name) {
-			osutil.WriteFile(name, nil)
+			saveReproStats(name, stats)
 			break
 		}
 	}
 }
 
-func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
+func (mgr *Manager) saveRepro(res *repro.Result, stats *repro.Stats, hub bool) {
 	rep := res.Report
 	if err := mgr.reporter.Symbolize(rep); err != nil {
 		log.Logf(0, "failed to symbolize repro: %v", err)
@@ -810,12 +813,18 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	if len(cprogText) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprogText)
 	}
-	osutil.WriteFile(filepath.Join(dir, "repro.stats.log"), res.Stats.Log)
-	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\n"+
-		"Extracting C: %s\nSimplifying C: %s\n",
-		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime,
-		res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
-	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
+	saveReproStats(filepath.Join(dir, "repro.stats"), stats)
+}
+
+func saveReproStats(filename string, stats *repro.Stats) {
+	text := ""
+	if stats != nil {
+		text = fmt.Sprintf("Extracting prog: %v\nMinimizing prog: %v\n"+
+			"Simplifying prog options: %v\nExtracting C: %v\nSimplifying C: %v\n\n\n%s",
+			stats.ExtractProgTime, stats.MinimizeProgTime,
+			stats.SimplifyProgTime, stats.ExtractCTime, stats.SimplifyCTime, stats.Log)
+	}
+	osutil.WriteFile(filename, []byte(text))
 }
 
 func (mgr *Manager) minimizeCorpus() {

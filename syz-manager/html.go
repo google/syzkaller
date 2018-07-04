@@ -330,8 +330,6 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	prog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.prog"))
 	cprog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.cprog"))
 	rep, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.report"))
-	log, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.stats.log"))
-	stats, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.stats"))
 
 	commitDesc := ""
 	if len(tag) != 0 {
@@ -348,12 +346,6 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 		if len(cprog) != 0 {
 			fmt.Fprintf(w, "C reproducer:\n%s\n\n", cprog)
 		}
-	}
-	if len(stats) > 0 {
-		fmt.Fprintf(w, "Reproducing stats:\n%s\n\n", stats)
-	}
-	if len(log) > 0 {
-		fmt.Fprintf(w, "Reproducing log:\n%s\n\n", log)
 	}
 }
 

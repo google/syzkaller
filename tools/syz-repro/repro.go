@@ -63,9 +63,16 @@ func main() {
 	}
 	osutil.HandleInterrupts(vm.Shutdown)
 
-	res, err := repro.Run(data, cfg, reporter, vmPool, vmIndexes)
+	res, stats, err := repro.Run(data, cfg, reporter, vmPool, vmIndexes)
 	if err != nil {
 		log.Logf(0, "reproduction failed: %v", err)
+	}
+	if stats != nil {
+		fmt.Printf("Extracting prog: %v\n", stats.ExtractProgTime)
+		fmt.Printf("Minimizing prog: %v\n", stats.MinimizeProgTime)
+		fmt.Printf("Simplifying prog options: %v\n", stats.SimplifyProgTime)
+		fmt.Printf("Extracting C: %v\n", stats.ExtractCTime)
+		fmt.Printf("Simplifying C: %v\n", stats.SimplifyCTime)
 	}
 	if res == nil {
 		return

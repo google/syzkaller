@@ -24,7 +24,9 @@ func initTest(t *testing.T) (*rand.Rand, int) {
 }
 
 func TestBisect(t *testing.T) {
-	ctx := &context{}
+	ctx := &context{
+		stats: new(Stats),
+	}
 
 	rd, iters := initTest(t)
 	for n := 0; n < iters; n++ {
