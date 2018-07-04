@@ -73,7 +73,7 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 }
 
 var ctors = map[string]fn{
-	"akaros":  ctorStub,
+	"akaros":  ctorAkaros,
 	"linux":   ctorLinux,
 	"gvisor":  ctorGvisor,
 	"freebsd": ctorFreebsd,
