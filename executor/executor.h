@@ -646,6 +646,7 @@ void handle_completion(thread_t* th)
 			reply.comps_size = 0;
 			if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
 				fail("control pipe call write failed");
+			debug("out: index=%u num=%u errno=%d\n", th->call_index, th->call_num, reserrno);
 		}
 	}
 	th->handled = true;
@@ -862,7 +863,7 @@ uint64 read_input(uint64** input_posp, bool peek)
 {
 	uint64* input_pos = *input_posp;
 	if ((char*)input_pos >= input_data + kMaxInput)
-		fail("input command overflows input");
+		fail("input command overflows input %p: [%p:%p)", input_pos, input_data, input_data + kMaxInput);
 	if (!peek)
 		*input_posp = input_pos + 1;
 	return *input_pos;
