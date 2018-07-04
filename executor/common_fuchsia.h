@@ -262,7 +262,7 @@ static void use_temporary_dir()
 }
 #endif
 
-#if (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
+#if defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR)
 static void remove_dir(const char* dir)
 {
 	struct dirent* ep;
