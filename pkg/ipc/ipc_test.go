@@ -41,7 +41,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, EnvFlags) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, _, err := DefaultConfig()
+	cfg, _, err := DefaultConfig(target)
 	if err != nil {
 		t.Fatal(err)
 	}

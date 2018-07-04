@@ -61,8 +61,7 @@ func main() {
 	if _, err = host.Setup(features); err != nil {
 		log.Fatalf("%v", err)
 	}
-
-	config, execOpts := createConfig(entries, features)
+	config, execOpts := createConfig(target, entries, features)
 
 	var wg sync.WaitGroup
 	wg.Add(*flagProcs)
@@ -206,8 +205,9 @@ func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
 	return entries
 }
 
-func createConfig(entries []*prog.LogEntry, features *host.Features) (*ipc.Config, *ipc.ExecOpts) {
-	config, execOpts, err := ipc.DefaultConfig()
+func createConfig(target *prog.Target, entries []*prog.LogEntry, features *host.Features) (
+	*ipc.Config, *ipc.ExecOpts) {
+	config, execOpts, err := ipc.DefaultConfig(target)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
