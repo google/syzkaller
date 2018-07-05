@@ -183,6 +183,7 @@ func (inst *instance) waitBoot() error {
 func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 	args := []string{
 		"-root", inst.rootDir,
+		"-watchdog-action=panic",
 		"-network=none",
 	}
 	if inst.cfg.RunscArgs != "" {
