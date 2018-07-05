@@ -77,6 +77,8 @@ func NewRepo(os, vm, dir string) (Repo, error) {
 	switch os {
 	case "linux":
 		return newGit(os, vm, dir), nil
+	case "akaros":
+		return newAkaros(vm, dir), nil
 	case "fuchsia":
 		return newFuchsia(vm, dir), nil
 	}
