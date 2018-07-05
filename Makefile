@@ -41,10 +41,17 @@ HOSTGO := go
 # By default, build all Go binaries as static. We don't need cgo and it is
 # known to cause problems at least on Android emulator.
 export CGO_ENABLED=0
+TARGETGOOS := $(TARGETOS)
+TARGETGOARCH := $(TARGETVMARCH)
 
 ifeq ("$(TARGETOS)", "fuchsia")
 	# SOURCEDIR should point to fuchsia checkout.
 	GO = "$(SOURCEDIR)/scripts/devshell/go"
+endif
+
+ifeq ("$(TARGETOS)", "akaros")
+	TARGETGOOS := $(HOSTOS)
+	TARGETGOARCH := $(HOSTARCH)
 endif
 
 GITREV=$(shell git rev-parse HEAD)
@@ -85,7 +92,7 @@ host:
 	$(MAKE) manager repro mutate prog2c db upgrade
 
 target:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) install ./syz-fuzzer
+	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) install ./syz-fuzzer
 	$(MAKE) fuzzer execprog stress executor
 
 # executor uses stacks of limited size, so no jumbo frames.
@@ -99,10 +106,10 @@ manager:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
 fuzzer:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer$(EXE) github.com/google/syzkaller/syz-fuzzer
+	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer$(EXE) github.com/google/syzkaller/syz-fuzzer
 
 execprog:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog$(EXE) github.com/google/syzkaller/tools/syz-execprog
+	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog$(EXE) github.com/google/syzkaller/tools/syz-execprog
 
 ci:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
@@ -120,7 +127,7 @@ prog2c:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
 
 stress:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress$(EXE) github.com/google/syzkaller/tools/syz-stress
+	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress$(EXE) github.com/google/syzkaller/tools/syz-stress
 
 db:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
