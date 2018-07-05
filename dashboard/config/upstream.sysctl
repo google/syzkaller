@@ -1,4 +1,4 @@
-kernel.watchdog_thresh = 60
+kernel.watchdog_thresh = 55
 net.core.bpf_jit_enable = 1
 net.core.bpf_jit_kallsyms = 1
 net.core.bpf_jit_harden = 0
