@@ -99,6 +99,10 @@ type Config struct {
 
 	// BufferSize is the size of the internal buffer for executor output.
 	BufferSize uint64
+
+	// RateLimit flag tells to start one executor at a time.
+	// Currently used only for akaros where executor is actually ssh.
+	RateLimit bool
 }
 
 func DefaultConfig(target *prog.Target) (*Config, *ExecOpts, error) {
@@ -107,6 +111,7 @@ func DefaultConfig(target *prog.Target) (*Config, *ExecOpts, error) {
 		Timeout:     *flagTimeout,
 		AbortSignal: *flagAbortSignal,
 		BufferSize:  *flagBufferSize,
+		RateLimit:   target.OS == "akaros",
 	}
 	if *flagSignal {
 		c.Flags |= FlagSignal
@@ -532,8 +537,13 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
+var rateLimit = time.NewTicker(3 * time.Second)
+
 func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File,
 	outmem []byte) (*command, error) {
+	if config.RateLimit {
+		<-rateLimit.C
+	}
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
