@@ -191,8 +191,9 @@ var List = map[string]map[string]*Target{
 			PtrSize:           8,
 			PageSize:          4 << 10,
 			CArch:             []string{"__x86_64__"},
+			KernelHeaderArch:  "x86",
 			NeedSyscallDefine: dontNeedSyscallDefine,
-			CCompiler:         os.ExpandEnv("${SOURCEDIR}/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
+			CCompiler:         os.ExpandEnv("${SOURCEDIR}/toolchain/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
 			CrossCFlags: []string{
 				"-static",
 			},
