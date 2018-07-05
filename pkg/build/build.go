@@ -62,6 +62,8 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		return linux{}, nil
 	case targetOS == "fuchsia" && (targetArch == "amd64" || targetArch == "arm64") && vmType == "qemu":
 		return fuchsia{}, nil
+	case targetOS == "akaros" && targetArch == "amd64" && vmType == "qemu":
+		return akaros{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
 	}
