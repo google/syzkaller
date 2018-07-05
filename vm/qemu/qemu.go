@@ -60,6 +60,7 @@ type instance struct {
 	qemu       *exec.Cmd
 	waiterC    chan error
 	merger     *vmimpl.OutputMerger
+	files      map[string]string
 }
 
 type archConfig struct {
@@ -67,6 +68,10 @@ type archConfig struct {
 	QemuArgs  string
 	TargetDir string
 	CmdLine   []string
+	// Weird mode for akaros.
+	// Currently akaros does not have support for building Go binaries.
+	// So we will run Go binaries (but not executor on host).
+	HostFuzzer bool
 }
 
 var archConfigs = map[string]*archConfig{
@@ -128,6 +133,12 @@ var archConfigs = map[string]*archConfig{
 			"kernel.serial=legacy",
 			"kernel.halt-on-panic=true",
 		},
+	},
+	"akaros/amd64": {
+		Qemu:       "qemu-system-x86_64",
+		QemuArgs:   "-enable-kvm -cpu host",
+		TargetDir:  "/",
+		HostFuzzer: true,
 	},
 }
 
@@ -236,6 +247,12 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 		sshkey:     sshkey,
 		sshuser:    sshuser,
 	}
+	if st, err := os.Stat(inst.image); err != nil && st.Size() == 0 {
+		// Some kernels may not need an image, however caller may still
+		// want to pass us a fake empty image because the rest of syzkaller
+		// assumes that an image is mandatory. So if the image is empty, we ignore it.
+		inst.image = ""
+	}
 	closeInst := inst
 	defer func() {
 		if closeInst != nil {
@@ -291,7 +308,7 @@ func (inst *instance) Boot() error {
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
 			"-device", "virtio-9p-pci,fsdev=fsdev0,mount_tag=/dev/root",
 		)
-	} else {
+	} else if inst.image != "" {
 		args = append(args,
 			"-"+inst.cfg.ImageDevice, inst.image,
 			"-snapshot",
@@ -399,7 +416,11 @@ func (inst *instance) Boot() error {
 }
 
 func (inst *instance) Forward(port int) (string, error) {
-	return fmt.Sprintf("%v:%v", hostAddr, port), nil
+	addr := hostAddr
+	if inst.archConfig.HostFuzzer {
+		addr = "127.0.0.1"
+	}
+	return fmt.Sprintf("%v:%v", addr, port), nil
 }
 
 func (inst *instance) targetDir() string {
@@ -410,27 +431,23 @@ func (inst *instance) targetDir() string {
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
-	vmDst := filepath.Join(inst.targetDir(), filepath.Base(hostSrc))
+	base := filepath.Base(hostSrc)
+	vmDst := filepath.Join(inst.targetDir(), base)
+	if inst.archConfig.HostFuzzer {
+		if base == "syz-fuzzer" || base == "syz-execprog" {
+			return hostSrc, nil // we will run these on host
+		}
+		if inst.files == nil {
+			inst.files = make(map[string]string)
+		}
+		inst.files[vmDst] = hostSrc
+	}
+
 	args := append(inst.sshArgs("-P"), hostSrc, inst.sshuser+"@localhost:"+vmDst)
-	cmd := osutil.Command("scp", args...)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stdout
 	}
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-time.After(3 * time.Minute):
-			cmd.Process.Kill()
-		case <-done:
-		}
-	}()
-	err := cmd.Wait()
-	close(done)
+	_, err := osutil.RunCmd(3*time.Minute, "", "scp", args...)
 	if err != nil {
 		return "", err
 	}
@@ -445,11 +462,31 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	args := append(inst.sshArgs("-p"), inst.sshuser+"@localhost", "cd "+inst.targetDir()+" && "+command)
-	if inst.debug {
-		log.Logf(0, "running command: ssh %#v", args)
+	args := strings.Split(command, " ")
+	if bin := filepath.Base(args[0]); inst.archConfig.HostFuzzer &&
+		(bin == "syz-fuzzer" || bin == "syz-execprog") {
+		// Weird mode for akaros.
+		// Fuzzer and execprog are on host (we did not copy them), so we will run them as is,
+		// but we will also wrap executor with ssh invocation.
+		for i, arg := range args {
+			if strings.HasPrefix(arg, "-executor=") {
+				args[i] = "-executor=" + "/usr/bin/ssh " + strings.Join(inst.sshArgs("-p"), " ") +
+					" " + inst.sshuser + "@localhost " + arg[len("-executor="):]
+			}
+			if host := inst.files[arg]; host != "" {
+				args[i] = host
+			}
+		}
+	} else {
+		args = []string{"ssh"}
+		args = append(args, inst.sshArgs("-p")...)
+		args = append(args, inst.sshuser+"@localhost", "cd "+inst.targetDir()+" && "+command)
 	}
-	cmd := osutil.Command("ssh", args...)
+	if inst.debug {
+		log.Logf(0, "running command: %#v", args)
+	}
+	cmd := osutil.Command(args[0], args[1:]...)
+	cmd.Dir = inst.workdir
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
