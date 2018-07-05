@@ -139,11 +139,9 @@ func (ctx *fuchsia) processPC(rep *Report, symb *symbolizer.Symbolizer,
 	for _, frame := range frames {
 		file := ctx.trimFile(frame.File)
 		name := demangle.Filter(frame.Func, demangle.NoParams, demangle.NoTemplateParams)
-		if wrap := "do_syscall<wrapper_"; strings.HasPrefix(name, wrap) {
-			// Work around clang bug which results in demangled name into debug info.
-			if brace := strings.IndexByte(name, '('); brace != -1 {
-				name = name[len(wrap):brace]
-			}
+		if strings.Contains(name, "<lambda(") {
+			// demangle produces super long (full) names for lambdas.
+			name = "lambda"
 		}
 		if *where == "" && !matchesAny([]byte(name), zirconSkip) {
 			*where = name
