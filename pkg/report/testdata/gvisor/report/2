@@ -1,4 +1,5 @@
 TITLE: panic: ptrace set regs failed: no such process
+SUPPRESSED: Y
 
 I0616 12:16:04.416012   11084 x:0] [ 3656] Error opening /bin/sh: no such file or directory
 I0616 12:16:04.416026   11084 x:0] [ 3656] Failed to load /bin/sh: no such file or directory
