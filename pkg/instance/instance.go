@@ -265,8 +265,8 @@ func (inst *inst) testInstance() error {
 	if err != nil {
 		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 	}
-	cmd := fmt.Sprintf("%v -test -executor=%v -name=test -arch=%v -manager=%v -cover=0 -sandbox=%v",
-		fuzzerBin, executorBin, inst.cfg.TargetArch, fwdAddr, inst.cfg.Sandbox)
+	cmd := fmt.Sprintf("%v -test -executor=%v -name=test -os=%v -arch=%v -manager=%v -cover=0 -sandbox=%v",
+		fuzzerBin, executorBin, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr, inst.cfg.Sandbox)
 	outc, errc, err := inst.vm.Run(5*time.Minute, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
@@ -322,9 +322,9 @@ func (inst *inst) testRepro() error {
 	if !opts.Fault {
 		opts.FaultCall = -1
 	}
-	cmdSyz := fmt.Sprintf("%v -executor %v -arch=%v -procs=%v -sandbox=%v"+
+	cmdSyz := fmt.Sprintf("%v -executor=%v -os=%v -arch=%v -procs=%v -sandbox=%v"+
 		" -fault_call=%v -fault_nth=%v -repeat=0 -cover=0 %v",
-		execprogBin, executorBin, cfg.TargetArch, cfg.Procs, opts.Sandbox,
+		execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, cfg.Procs, opts.Sandbox,
 		opts.FaultCall, opts.FaultNth, vmProgFile)
 	if err := inst.testProgram(cmdSyz, 7*time.Minute); err != nil {
 		return err
