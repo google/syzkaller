@@ -221,7 +221,16 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 		case <-ticker.C:
 			// Detect both "not output whatsoever" and "kernel episodically prints
 			// something to console, but fuzzer is not actually executing programs".
-			if time.Since(lastExecuteTime) < 3*time.Minute {
+			// The timeout used to be 3 mins for a long time.
+			// But (1) we were seeing flakes on linux where net namespace
+			// destruction can be really slow, and (2) gVisor watchdog timeout
+			// is 3 mins + 1/4 of that for checking period = 3m45s.
+			// Current linux max timeout is CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=140
+			// and workqueue.watchdog_thresh=140 which both actually result
+			// in 140-280s detection delay.
+			// So the current timeout is 5 mins (300s).
+			// We don't want it to be too long too because it will waste time on real hangs.
+			if time.Since(lastExecuteTime) < 5*time.Minute {
 				break
 			}
 			if inst.Diagnose() {
