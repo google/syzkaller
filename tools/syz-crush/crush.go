@@ -8,12 +8,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -98,8 +98,8 @@ func runInstance(cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Poo
 		return
 	}
 
-	cmd := fmt.Sprintf("%v -executor=%v -repeat=0 -procs=%v -sandbox=%v %v",
-		execprogBin, executorBin, cfg.Procs, cfg.Sandbox, logFile)
+	cmd := instance.ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, cfg.Sandbox,
+		true, true, true, cfg.Procs, -1, -1, logFile)
 	outc, errc, err := inst.Run(time.Hour, nil, cmd)
 	if err != nil {
 		log.Logf(0, "failed to run execprog: %v", err)
