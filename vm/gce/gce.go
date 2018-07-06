@@ -161,8 +161,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshUser = "syzkaller"
 	}
 	log.Logf(0, "wait instance to boot: %v (%v)", name, ip)
-	if err := pool.waitInstanceBoot(name, ip, sshKey, sshUser, gceKey); err != nil {
-		return nil, err
+	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
+		sshKey, sshUser, pool.env.OS, 22); err != nil {
+		output, outputErr := pool.getSerialPortOutput(name, gceKey)
+		if outputErr != nil {
+			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))
+		}
+		return nil, vmimpl.BootError{Title: err.Error(), Output: output}
 	}
 	ok = true
 	inst := &instance{
@@ -191,7 +196,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(sshArgs(inst.debug, inst.sshKey, "-P", 22), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshKey, 22), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
 	if err := runCmd(inst.debug, "scp", args...); err != nil {
 		return "", err
 	}
@@ -207,7 +212,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
 		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
-	conArgs := append(sshArgs(inst.debug, inst.gceKey, "-p", 9600), conAddr)
+	conArgs := append(vmimpl.SSHArgs(inst.debug, inst.gceKey, 9600), conAddr)
 	con := osutil.Command("ssh", conArgs...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
@@ -286,7 +291,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			command = fmt.Sprintf("sudo bash -c '%v'", command)
 		}
 	}
-	args := append(sshArgs(inst.debug, inst.sshKey, "-p", 22), inst.sshUser+"@"+inst.ip, command)
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshKey, 22), inst.sshUser+"@"+inst.ip, command)
 	ssh := osutil.Command("ssh", args...)
 	ssh.Stdout = sshWpipe
 	ssh.Stderr = sshWpipe
@@ -354,27 +359,6 @@ func (inst *instance) Diagnose() bool {
 	return false
 }
 
-func (pool *Pool) waitInstanceBoot(name, ip, sshKey, sshUser, gceKey string) error {
-	pwd := "pwd"
-	if pool.env.OS == "windows" {
-		pwd = "dir"
-	}
-	for startTime := time.Now(); time.Since(startTime) < 5*time.Minute; {
-		if !vmimpl.SleepInterruptible(5 * time.Second) {
-			return fmt.Errorf("shutdown in progress")
-		}
-		args := append(sshArgs(pool.env.Debug, sshKey, "-p", 22), sshUser+"@"+ip, pwd)
-		if err := runCmd(pool.env.Debug, "ssh", args...); err == nil {
-			return nil
-		}
-	}
-	output, err := pool.getSerialPortOutput(name, gceKey)
-	if err != nil {
-		output = []byte(fmt.Sprintf("failed to get boot output: %v", err))
-	}
-	return vmimpl.BootError{Title: "can't ssh into the instance", Output: output}
-}
-
 func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
 	conRpipe, conWpipe, err := osutil.LongPipe()
 	if err != nil {
@@ -384,7 +368,7 @@ func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
 	defer conWpipe.Close()
 	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1.replay-lines=10000@ssh-serialport.googleapis.com",
 		pool.GCE.ProjectID, pool.GCE.ZoneID, name)
-	conArgs := append(sshArgs(pool.env.Debug, gceKey, "-p", 9600), conAddr)
+	conArgs := append(vmimpl.SSHArgs(pool.env.Debug, gceKey, 9600), conAddr)
 	con := osutil.Command("ssh", conArgs...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
@@ -487,21 +471,4 @@ func runCmd(debug bool, bin string, args ...string) error {
 		log.Logf(0, "result: %v\n%s", err, output)
 	}
 	return err
-}
-
-func sshArgs(debug bool, sshKey, portArg string, port int) []string {
-	args := []string{
-		portArg, fmt.Sprint(port),
-		"-i", sshKey,
-		"-F", "/dev/null",
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-o", "BatchMode=yes",
-		"-o", "IdentitiesOnly=yes",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "ConnectTimeout=10",
-	}
-	if debug {
-		args = append(args, "-v")
-	}
-	return args
 }

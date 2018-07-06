@@ -537,7 +537,7 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-var rateLimit = time.NewTicker(3 * time.Second)
+var rateLimit = time.NewTicker(1 * time.Second)
 
 func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File,
 	outmem []byte) (*command, error) {

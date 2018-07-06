@@ -4,7 +4,11 @@
 package vmimpl
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 // Sleep for d.
@@ -16,4 +20,57 @@ func SleepInterruptible(d time.Duration) bool {
 	case <-Shutdown:
 		return false
 	}
+}
+
+func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS string, port int) error {
+	pwd := "pwd"
+	if OS == "windows" {
+		pwd = "dir"
+	}
+	startTime := time.Now()
+	SleepInterruptible(5 * time.Second)
+	for {
+		if !SleepInterruptible(5 * time.Second) {
+			return fmt.Errorf("shutdown in progress")
+		}
+		args := append(SSHArgs(debug, sshKey, port), sshUser+"@"+addr, pwd)
+		if debug {
+			log.Logf(0, "running ssh: %#v", args)
+		}
+		_, err := osutil.RunCmd(time.Minute, "", "ssh", args...)
+		if err == nil {
+			return nil
+		}
+		if time.Since(startTime) > timeout {
+			return fmt.Errorf("can't ssh into the instance: %v", err)
+		}
+	}
+}
+
+func SSHArgs(debug bool, sshKey string, port int) []string {
+	return sshArgs(debug, sshKey, "-p", port)
+}
+
+func SCPArgs(debug bool, sshKey string, port int) []string {
+	return sshArgs(debug, sshKey, "-P", port)
+}
+
+func sshArgs(debug bool, sshKey, portArg string, port int) []string {
+	args := []string{
+		portArg, fmt.Sprint(port),
+		"-i", sshKey,
+		"-F", "/dev/null",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "BatchMode=yes",
+		"-o", "IdentitiesOnly=yes",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "ConnectTimeout=10",
+	}
+	if sshKey != "" {
+		args = append(args, "-i", sshKey)
+	}
+	if debug {
+		args = append(args, "-v")
+	}
+	return args
 }
