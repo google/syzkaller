@@ -196,7 +196,7 @@ func main() {
 	for _, feat := range r.CheckResult.Features {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
-	periodicCallback, err := host.Setup(r.CheckResult.Features)
+	periodicCallback, err := host.Setup(target, r.CheckResult.Features)
 	if err != nil {
 		log.Fatalf("BUG: %v", err)
 	}
