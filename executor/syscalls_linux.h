@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "70b295f1a545559789eb83853bb3909e07a60615"
+#define SYZ_REVISION "67ce9ea29876ab79ef6f877cbca319149ef71f6e"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -965,10 +965,10 @@ const call_t syscalls[] = {
     {"ioctl$TIOCSSOFTCAR", 54},
     {"ioctl$TIOCSTI", 54},
     {"ioctl$TIOCSWINSZ", 54},
-    {"ioctl$TTUNGETFILTER", 54},
     {"ioctl$TUNATTACHFILTER", 54},
     {"ioctl$TUNDETACHFILTER", 54},
     {"ioctl$TUNGETFEATURES", 54},
+    {"ioctl$TUNGETFILTER", 54},
     {"ioctl$TUNGETIFF", 54},
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
@@ -1367,6 +1367,7 @@ const call_t syscalls[] = {
     {"openat$snapshot", 295},
     {"openat$sr", 295},
     {"openat$sw_sync", 295},
+    {"openat$tun", 295},
     {"openat$uinput", 295},
     {"openat$urandom", 295},
     {"openat$userio", 295},
@@ -1948,7 +1949,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndseq", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
@@ -2038,7 +2038,7 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "09c93afce4c1b5753d5a4089a40d0f59fd6d1fe4"
+#define SYZ_REVISION "a32514e756ab23ff8bfed882c7e2e6848d98680d"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -3015,10 +3015,10 @@ const call_t syscalls[] = {
     {"ioctl$TIOCSSOFTCAR", 16},
     {"ioctl$TIOCSTI", 16},
     {"ioctl$TIOCSWINSZ", 16},
-    {"ioctl$TTUNGETFILTER", 16},
     {"ioctl$TUNATTACHFILTER", 16},
     {"ioctl$TUNDETACHFILTER", 16},
     {"ioctl$TUNGETFEATURES", 16},
+    {"ioctl$TUNGETFILTER", 16},
     {"ioctl$TUNGETIFF", 16},
     {"ioctl$TUNGETSNDBUF", 16},
     {"ioctl$TUNGETVNETHDRSZ", 16},
@@ -3427,6 +3427,7 @@ const call_t syscalls[] = {
     {"openat$snapshot", 257},
     {"openat$sr", 257},
     {"openat$sw_sync", 257},
+    {"openat$tun", 257},
     {"openat$uinput", 257},
     {"openat$urandom", 257},
     {"openat$userio", 257},
@@ -4036,7 +4037,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndseq", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
@@ -4126,7 +4126,7 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "a396da016f3f7925820e5eceae43d819dac7948e"
+#define SYZ_REVISION "08568507592beb006e9f0235cb967a91f41c01f8"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -5070,10 +5070,10 @@ const call_t syscalls[] = {
     {"ioctl$TIOCSSOFTCAR", 54},
     {"ioctl$TIOCSTI", 54},
     {"ioctl$TIOCSWINSZ", 54},
-    {"ioctl$TTUNGETFILTER", 54},
     {"ioctl$TUNATTACHFILTER", 54},
     {"ioctl$TUNDETACHFILTER", 54},
     {"ioctl$TUNGETFEATURES", 54},
+    {"ioctl$TUNGETFILTER", 54},
     {"ioctl$TUNGETIFF", 54},
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
@@ -5475,6 +5475,7 @@ const call_t syscalls[] = {
     {"openat$snapshot", 322},
     {"openat$sr", 322},
     {"openat$sw_sync", 322},
+    {"openat$tun", 322},
     {"openat$uinput", 322},
     {"openat$urandom", 322},
     {"openat$userio", 322},
@@ -6082,7 +6083,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndseq", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
@@ -6170,7 +6170,7 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "664998504b047f3f7cd626048e96cc61ba18e310"
+#define SYZ_REVISION "974f87343130d4e4b1ec2a7834a9f2e01bfd8de3"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -7110,10 +7110,10 @@ const call_t syscalls[] = {
     {"ioctl$TIOCSSOFTCAR", 29},
     {"ioctl$TIOCSTI", 29},
     {"ioctl$TIOCSWINSZ", 29},
-    {"ioctl$TTUNGETFILTER", 29},
     {"ioctl$TUNATTACHFILTER", 29},
     {"ioctl$TUNDETACHFILTER", 29},
     {"ioctl$TUNGETFEATURES", 29},
+    {"ioctl$TUNGETFILTER", 29},
     {"ioctl$TUNGETIFF", 29},
     {"ioctl$TUNGETSNDBUF", 29},
     {"ioctl$TUNGETVNETHDRSZ", 29},
@@ -7508,6 +7508,7 @@ const call_t syscalls[] = {
     {"openat$snapshot", 56},
     {"openat$sr", 56},
     {"openat$sw_sync", 56},
+    {"openat$tun", 56},
     {"openat$uinput", 56},
     {"openat$urandom", 56},
     {"openat$userio", 56},
@@ -8102,7 +8103,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndseq", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
@@ -8186,7 +8186,7 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "08aad7ac72c71a5be51593af085b0358875e488b"
+#define SYZ_REVISION "cde6842cc2b0c6c5808b4e93dca852a8889c9c99"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -9123,10 +9123,10 @@ const call_t syscalls[] = {
     {"ioctl$TIOCSPGRP", 54},
     {"ioctl$TIOCSSOFTCAR", 54},
     {"ioctl$TIOCSTI", 54},
-    {"ioctl$TTUNGETFILTER", 54},
     {"ioctl$TUNATTACHFILTER", 54},
     {"ioctl$TUNDETACHFILTER", 54},
     {"ioctl$TUNGETFEATURES", 54},
+    {"ioctl$TUNGETFILTER", 54},
     {"ioctl$TUNGETIFF", 54},
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
@@ -9424,6 +9424,7 @@ const call_t syscalls[] = {
     {"openat$snapshot", 286},
     {"openat$sr", 286},
     {"openat$sw_sync", 286},
+    {"openat$tun", 286},
     {"openat$uinput", 286},
     {"openat$urandom", 286},
     {"openat$userio", 286},
@@ -10002,7 +10003,6 @@ const call_t syscalls[] = {
     {"syz_open_dev$sndseq", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$sndtimer", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$tlk_device", 0, (syscall_t)syz_open_dev},
-    {"syz_open_dev$tun", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usb", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$usbmon", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$vcsa", 0, (syscall_t)syz_open_dev},
