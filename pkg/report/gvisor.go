@@ -199,4 +199,16 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
+	&oops{
+		[]byte("Invalid request partialResult"),
+		[]oopsFormat{
+			{
+				title:        compile("Invalid request partialResult"),
+				report:       compile("Invalid request partialResult .* for (.*) operation"),
+				fmt:          "Invalid request partialResult in %[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
 }
