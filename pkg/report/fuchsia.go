@@ -98,6 +98,9 @@ func (ctx *fuchsia) Parse(output []byte) *Report {
 		if bytes.Contains(line, []byte("recursion in interrupt handler")) {
 			rep.Title = "recursion in interrupt handler"
 		}
+		if bytes.Contains(line, []byte("double fault")) {
+			rep.Title = "double fault"
+		}
 		if match := zirconRIP.FindSubmatchIndex(line); match != nil {
 			ctx.processPC(rep, symb, line, match, false, &where)
 		} else if match := zirconBT.FindSubmatchIndex(line); match != nil {
