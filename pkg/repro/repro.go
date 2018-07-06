@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	instancePkg "github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
@@ -525,10 +526,6 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 		return false, fmt.Errorf("failed to copy to VM: %v", err)
 	}
 
-	repeat := 1
-	if opts.Repeat {
-		repeat = 0
-	}
 	if !opts.Fault {
 		opts.FaultCall = -1
 	}
@@ -543,10 +540,10 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 		}
 		program += "]"
 	}
-	command := fmt.Sprintf("%v -executor=%v -os=%v -arch=%v -cover=0 -procs=%v -repeat=%v"+
-		" -sandbox %v -threaded=%v -collide=%v %v",
-		inst.execprogBin, inst.executorBin, ctx.cfg.TargetOS, ctx.cfg.TargetArch, opts.Procs, repeat,
-		opts.Sandbox, opts.Threaded, opts.Collide, vmProgFile)
+
+	command := instancePkg.ExecprogCmd(inst.execprogBin, inst.executorBin,
+		ctx.cfg.TargetOS, ctx.cfg.TargetArch, opts.Sandbox, opts.Repeat,
+		opts.Threaded, opts.Collide, opts.Procs, -1, -1, vmProgFile)
 	ctx.reproLog(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	return ctx.testImpl(inst.Instance, command, duration)
 }

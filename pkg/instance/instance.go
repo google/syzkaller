@@ -265,8 +265,9 @@ func (inst *inst) testInstance() error {
 	if err != nil {
 		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 	}
-	cmd := fmt.Sprintf("%v -test -executor=%v -name=test -os=%v -arch=%v -manager=%v -cover=0 -sandbox=%v",
-		fuzzerBin, executorBin, inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr, inst.cfg.Sandbox)
+
+	cmd := FuzzerCmd(fuzzerBin, executorBin, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
+		inst.cfg.Sandbox, 0, 0, false, false, true)
 	outc, errc, err := inst.vm.Run(5*time.Minute, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
@@ -322,10 +323,8 @@ func (inst *inst) testRepro() error {
 	if !opts.Fault {
 		opts.FaultCall = -1
 	}
-	cmdSyz := fmt.Sprintf("%v -executor=%v -os=%v -arch=%v -procs=%v -sandbox=%v"+
-		" -fault_call=%v -fault_nth=%v -repeat=0 -cover=0 %v",
-		execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, cfg.Procs, opts.Sandbox,
-		opts.FaultCall, opts.FaultNth, vmProgFile)
+	cmdSyz := ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
+		true, true, true, cfg.Procs, opts.FaultCall, opts.FaultNth, vmProgFile)
 	if err := inst.testProgram(cmdSyz, 7*time.Minute); err != nil {
 		return err
 	}
@@ -362,4 +361,37 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 		log.Logf(0, "failed to symbolize report: %v", err)
 	}
 	return &CrashError{Report: rep}
+}
+
+func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs, verbosity int,
+	cover, debug, test bool) string {
+	osArg := ""
+	if OS == "akaros" {
+		// Only akaros needs OS, because the rest assume host OS.
+		// But speciying OS for all OSes breaks patch testing on syzbot
+		// because old execprog does not have os flag.
+		osArg = " -os=" + OS
+	}
+	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
+		" -procs=%v -v=%d -cover=%v -debug=%v -test=%v",
+		fuzzer, executor, name, arch, osArg, fwdAddr, sandbox,
+		procs, verbosity, cover, debug, test)
+}
+
+func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded, collide bool,
+	procs, faultCall, faultNth int, progFile string) string {
+	repeatCount := 1
+	if repeat {
+		repeatCount = 0
+	}
+	osArg := ""
+	if OS == "akaros" {
+		osArg = " -os=" + OS
+	}
+	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
+		" -procs=%v -repeat=%v -threaded=%v -collide=%v -cover=0"+
+		" -fault_call=%v -fault_nth=%v %v",
+		execprog, executor, arch, osArg, sandbox,
+		procs, repeatCount, threaded, collide,
+		faultCall, faultNth, progFile)
 }
