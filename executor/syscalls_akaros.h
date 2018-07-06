@@ -2,31 +2,41 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "c9ad4b6b2170889e4578f982cada749d94dfbd59"
+#define SYZ_REVISION "f6dc674ef2200959a7b03f71a281c2b60ebe0820"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 35
+#define SYZ_SYSCALL_COUNT 70
 const call_t syscalls[] = {
+    {"abort_sysc", 31},
     {"abort_sysc_fd", 33},
+    {"access", 108},
+    {"block", 2},
+    {"cache_invalidate", 3},
+    {"change_to_m", 29},
+    {"change_vcore", 14},
     {"chdir", 116},
     {"close", 103},
+    {"dup_fds_to", 125},
+    {"exec", 16},
     {"fchdir", 124},
     {"fcntl$F_DUPFD", 107},
-    {"fcntl$F_DUPFD_CLOEXEC", 107},
     {"fcntl$F_GETFD", 107},
     {"fcntl$F_GETFL", 107},
-    {"fcntl$F_GETLK", 107},
-    {"fcntl$F_GETOWN", 107},
     {"fcntl$F_SETFD", 107},
     {"fcntl$F_SETFL", 107},
-    {"fcntl$F_SETLK", 107},
-    {"fcntl$F_SETLKW", 107},
-    {"fcntl$F_SETOWN", 107},
+    {"fcntl$F_SYNC", 107},
+    {"fd2path", 149},
+    {"fork", 15},
     {"fstat", 104},
+    {"fwstat", 122},
     {"getcwd", 117},
+    {"getpcoreid", 7},
+    {"getvcoreid", 8},
+    {"halt_core", 27},
+    {"init_arsc", 28},
     {"link", 112},
     {"llseek", 111},
     {"lstat", 106},
@@ -35,16 +45,41 @@ const call_t syscalls[] = {
     {"mprotect", 20},
     {"munmap", 19},
     {"nanosleep", 36},
+    {"nbind", 145},
+    {"nmount", 146},
+    {"notify", 25},
+    {"nunmount", 147},
     {"openat", 102},
+    {"poke_ksched", 30},
+    {"pop_ctx", 37},
+    {"populate_va", 32},
+    {"proc_create", 10},
+    {"proc_destroy", 12},
+    {"proc_run", 11},
+    {"proc_yield", 13},
+    {"provision", 24},
     {"read", 100},
     {"readlink", 115},
     {"rename", 123},
     {"rmdir", 119},
+    {"self_notify", 26},
+    {"send_event", 39},
     {"stat", 105},
     {"symlink", 114},
+    {"tap_fds", 126},
+    {"tcgetattr", 141},
+    {"umask", 109},
     {"unlink", 113},
+    {"vc_entry", 35},
+    {"vmm_add_gpcs", 34},
+    {"vmm_ctl$VMM_CTL_GET_EXITS", 40},
+    {"vmm_ctl$VMM_CTL_GET_FLAGS", 40},
+    {"vmm_ctl$VMM_CTL_SET_EXITS", 40},
+    {"vmm_ctl$VMM_CTL_SET_FLAGS", 40},
+    {"vmm_poke_guest", 38},
     {"waitpid", 17},
     {"write", 101},
+    {"wstat", 121},
 
 };
 #endif
