@@ -97,6 +97,9 @@ func checkRevisions(args *checkArgs) error {
 	executorArgs = append(executorArgs, "version")
 	cmd := osutil.Command(executorArgs[0], executorArgs[1:]...)
 	cmd.Stderr = ioutil.Discard
+	if _, err := cmd.StdinPipe(); err != nil { // for the case executor is wrapped with ssh
+		return err
+	}
 	out, err := osutil.Run(time.Minute, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run executor version: %v\n%s", err, out)
