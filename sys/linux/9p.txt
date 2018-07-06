@@ -1,0 +1,63 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fs.h>
+
+mount$9p_fd(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, fs9p_options_trans["fd"]])
+mount$9p_tcp(src ptr[in, string[ipv4_addr_str]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, fs9p_options_trans["tcp"]])
+mount$9p_rdma(src ptr[in, string[ipv4_addr_str]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, fs9p_options_trans["rdma"]])
+mount$9p_unix(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, fs9p_options_trans["unix"]])
+# TODO: src is some "virtio chan tag name".
+mount$9p_virtio(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, fs9p_options_trans["virtio"]])
+# TODO: src is some "xen dev tag name".
+mount$9p_xen(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, fs9p_options_trans["xen"]])
+
+# TODO: need to convert ip addresses to string.
+ipv4_addr_str = "0.0.0.0", "127.0.0.1", "224.0.0.1", "224.0.0.2", "225.225.225.225", "224.20.20.170", "224.20.20.187", "224.20.20.0", "224.20.20.10", "224.20.20.11", "224.20.20.12", "224.20.20.13", "224.20.20.14", "224.20.20.14", "224.20.20.16", "224.20.20.17", "224.20.20.18", "224.20.20.19", "224.20.20.20", "224.20.20.21", "224.20.20.22", "224.20.20.23", "224.20.20.24", "224.20.20.25", "224.20.20.26", "224.20.20.27", "224.20.20.28", "224.20.20.29", "224.20.20.30", "224.20.20.31", "224.20.20.32", "224.20.20.33"
+
+type fs9p_options_trans[TRANSPORT] {
+	name	stringnoz["trans="]
+	trans	stringnoz[TRANSPORT]
+	comma1	const[',', int8]
+# TODO: we give all transport-required options, perhaps need something better.
+	port	fs_opt_dec["port"]
+	comma2	const[',', int8]
+	rfdno	fs_opt_dec["rfdno"]
+	comma3	const[',', int8]
+	wfdno	fs_opt_dec["wfdno"]
+	comma4	const[',', int8]
+	opts	fs_options[fs9p_options]
+} [packed]
+
+fs9p_options [
+	uname		fs_opt_str["uname"]
+	aname		fs_opt_str["aname"]
+	cache_none	stringnoz["cache=none"]
+	cache_loose	stringnoz["cache=loose"]
+	cache_fscache	stringnoz["cache=fscache"]
+	cache_mmap	stringnoz["cache=mmap"]
+	debug		fs_opt_dec["fs_opt_dec"]
+	noextend	stringnoz["noextend"]
+	nodevmap	stringnoz["nodevmap"]
+	version_9p2000	stringnoz["version=9p2000"]
+	version_u	stringnoz["version=9p2000.u"]
+	version_L	stringnoz["version=9p2000.L"]
+	cachetag	fs_opt_str["cachetag"]
+	loose		stringnoz["loose"]
+	fscache		stringnoz["fscache"]
+	mmap		stringnoz["mmap"]
+	posixacl	stringnoz["posixacl"]
+	privport	stringnoz["privport"]
+	msize		fs_opt_dec["msize"]
+	dfltuid		fs_opt_dec["dfltuid"]
+	dfltgid		fs_opt_dec["dfltgid"]
+	afid		fs_opt_dec["afid"]
+	access_user	stringnoz["access=user"]
+	access_any	stringnoz["access=any"]
+	access_client	stringnoz["access=client"]
+	access_uid	fs_opt_dec["access"]
+# There are rdma-specific:
+	timeout		fs_opt_dec["timeout"]
+	sq		fs_opt_dec["sq"]
+	rq		fs_opt_dec["rq"]
+] [varlen]
