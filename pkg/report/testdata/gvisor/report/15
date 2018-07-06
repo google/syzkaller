@@ -1,0 +1,26 @@
+TITLE: Invalid request partialResult in sendfile
+
+W0627 10:46:34.954366   26638 x:0] Invalid request partialResult true and err (type *errors.errorString) short write for sendfile operation on "/tmp/syzkaller-testdir196415805/syzkaller.c6Cdoe/30/bus", *tmpfs.regularFileOperations:
+goroutine 10769 [running]:
+gvisor.googlesource.com/gvisor/pkg/log.Stacks(0xb39600, 0xc420635c00, 0xc4207ff798, 0x7f2588c38f78)
+	pkg/log/log.go:259 +0xd2
+gvisor.googlesource.com/gvisor/pkg/log.Traceback(0xfe487b, 0x50, 0xc420270c00, 0x6, 0x6)
+	pkg/log/log.go:274 +0x3e
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.handleIOError(0xc4208c8900, 0x20d83f01, 0x10c4180, 0xc4200f0040, 0x10c6080, 0x10c0098, 0xfc5fd7, 0x8, 0xc4204f4630, 0x7099, ...)
+	pkg/sentry/syscalls/linux/error.go:114 +0x44c
+gvisor.googlesource.com/gvisor/pkg/sentry/syscalls/linux.Sendfile(0xc4208c8900, 0x3, 0x4, 0x20d83ff8, 0x840100000002, 0x0, 0x0, 0x0, 0x0, 0x0, ...)
+	pkg/sentry/syscalls/linux/sys_file.go:2025 +0x6df
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).executeSyscall(0xc4208c8900, 0x28, 0x3, 0x4, 0x20d83ff8, 0x840100000002, 0x0, 0x0, 0x0, 0x0, ...)
+	pkg/sentry/kernel/task_syscall.go:162 +0x14f
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallInvoke(0xc4208c8900, 0x28, 0x3, 0x4, 0x20d83ff8, 0x840100000002, 0x0, 0x0, 0x3, 0x4)
+	pkg/sentry/kernel/task_syscall.go:278 +0x7e
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscallEnter(0xc4208c8900, 0x28, 0x3, 0x4, 0x20d83ff8, 0x840100000002, 0x0, 0x0, 0xc4205cc760, 0xc4207ffc50)
+	pkg/sentry/kernel/task_syscall.go:241 +0xc4
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).doSyscall(0xc4208c8900, 0x2, 0xc42020b8c0)
+	pkg/sentry/kernel/task_syscall.go:216 +0x19d
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc4208c8900, 0x10c48c0, 0x0)
+	pkg/sentry/kernel/task_run.go:217 +0x157d
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc4208c8900, 0x37e)
+	pkg/sentry/kernel/task_run.go:95 +0x265
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+	pkg/sentry/kernel/task_start.go:251 +0x194
