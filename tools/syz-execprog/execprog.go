@@ -54,11 +54,11 @@ func main() {
 		return
 	}
 
-	features, err := host.Check()
+	features, err := host.Check(target)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if _, err = host.Setup(features); err != nil {
+	if _, err = host.Setup(target, features); err != nil {
 		log.Fatalf("%v", err)
 	}
 	config, execOpts := createConfig(target, entries, features)

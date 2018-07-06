@@ -60,7 +60,7 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 	if err := checkRevisions(args); err != nil {
 		return nil, err
 	}
-	features, err := host.Check()
+	features, err := host.Check(args.target)
 	if err != nil {
 		return nil, err
 	}

@@ -48,7 +48,11 @@ func TestDetectSupportedSyscalls(t *testing.T) {
 
 func TestCheck(t *testing.T) {
 	t.Parallel()
-	features, err := Check()
+	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	features, err := Check(target)
 	if err != nil {
 		t.Fatal(err)
 	}
