@@ -177,8 +177,8 @@ implementation limitations of course).
 it lives in [github.com/google/kmsan](https://github.com/google/kmsan) and is
 based on a reasonably fresh upstream tree. As the result, any patch testing
 requests for `KMSAN` bugs need to go to `KMSAN` tree
-(`https://github.com/google/kmsan.git`). Also note that `KMSAN` requires
-`clang` compiler.
+(`https://github.com/google/kmsan.git` repo, `master` branch). Also note that
+`KMSAN` requires `clang` compiler.
 
 Report explanation. The first call trace points to the `use` of the uninit value
 (which is usually a branching or copying it to userspace). Then there are 0 or
