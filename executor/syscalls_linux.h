@@ -2,13 +2,13 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "67ce9ea29876ab79ef6f877cbca319149ef71f6e"
+#define SYZ_REVISION "cf997d1199a66365a41408900fd122b504315695"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2022
+#define SYZ_SYSCALL_COUNT 2028
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1286,6 +1286,12 @@ const call_t syscalls[] = {
     {"modify_ldt$write", 123},
     {"modify_ldt$write2", 123},
     {"mount", 21},
+    {"mount$9p_fd", 21},
+    {"mount$9p_rdma", 21},
+    {"mount$9p_tcp", 21},
+    {"mount$9p_unix", 21},
+    {"mount$9p_virtio", 21},
+    {"mount$9p_xen", 21},
     {"mount$bpf", 21},
     {"move_pages", 317},
     {"mprotect", 125},
@@ -2038,13 +2044,13 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "a32514e756ab23ff8bfed882c7e2e6848d98680d"
+#define SYZ_REVISION "bca8355bd5a322980aee7b69352d85d0aabd600c"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2074
+#define SYZ_SYSCALL_COUNT 2080
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3336,6 +3342,12 @@ const call_t syscalls[] = {
     {"modify_ldt$write", 154},
     {"modify_ldt$write2", 154},
     {"mount", 165},
+    {"mount$9p_fd", 165},
+    {"mount$9p_rdma", 165},
+    {"mount$9p_tcp", 165},
+    {"mount$9p_unix", 165},
+    {"mount$9p_virtio", 165},
+    {"mount$9p_xen", 165},
     {"mount$bpf", 165},
     {"move_pages", 279},
     {"mprotect", 10},
@@ -4126,13 +4138,13 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "08568507592beb006e9f0235cb967a91f41c01f8"
+#define SYZ_REVISION "719f666fb08fc8ce1a0b5a23d15b6f808b7712c9"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2030
+#define SYZ_SYSCALL_COUNT 2036
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5384,6 +5396,12 @@ const call_t syscalls[] = {
     {"mmap$binder", 192},
     {"mmap$xdp", 192},
     {"mount", 21},
+    {"mount$9p_fd", 21},
+    {"mount$9p_rdma", 21},
+    {"mount$9p_tcp", 21},
+    {"mount$9p_unix", 21},
+    {"mount$9p_virtio", 21},
+    {"mount$9p_xen", 21},
     {"mount$bpf", 21},
     {"move_pages", 344},
     {"mprotect", 125},
@@ -6170,13 +6188,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "974f87343130d4e4b1ec2a7834a9f2e01bfd8de3"
+#define SYZ_REVISION "728bedc655889739b342618d43782a7e012eaedb"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2002
+#define SYZ_SYSCALL_COUNT 2008
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -7419,6 +7437,12 @@ const call_t syscalls[] = {
     {"mmap$binder", 222},
     {"mmap$xdp", 222},
     {"mount", 40},
+    {"mount$9p_fd", 40},
+    {"mount$9p_rdma", 40},
+    {"mount$9p_tcp", 40},
+    {"mount$9p_unix", 40},
+    {"mount$9p_virtio", 40},
+    {"mount$9p_xen", 40},
     {"mount$bpf", 40},
     {"move_pages", 239},
     {"mprotect", 226},
@@ -8186,13 +8210,13 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "cde6842cc2b0c6c5808b4e93dca852a8889c9c99"
+#define SYZ_REVISION "4b0dd8680e2388674a5e6c81256fa2c9b031a202"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1892
+#define SYZ_SYSCALL_COUNT 1898
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -9343,6 +9367,12 @@ const call_t syscalls[] = {
     {"modify_ldt$write", 123},
     {"modify_ldt$write2", 123},
     {"mount", 21},
+    {"mount$9p_fd", 21},
+    {"mount$9p_rdma", 21},
+    {"mount$9p_tcp", 21},
+    {"mount$9p_unix", 21},
+    {"mount$9p_virtio", 21},
+    {"mount$9p_xen", 21},
     {"mount$bpf", 21},
     {"move_pages", 301},
     {"mprotect", 125},
