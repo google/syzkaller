@@ -102,7 +102,7 @@ func checkRevisions(args *checkArgs) error {
 	}
 	out, err := osutil.Run(time.Minute, cmd)
 	if err != nil {
-		return fmt.Errorf("failed to run executor version: %v\n%s", err, out)
+		return fmt.Errorf("failed to run executor version: %v", err)
 	}
 	vers := strings.Split(strings.TrimSpace(string(out)), " ")
 	if len(vers) != 4 {

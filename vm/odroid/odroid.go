@@ -48,6 +48,7 @@ type Pool struct {
 
 type instance struct {
 	cfg    *Config
+	os     string
 	sshkey string
 	closed chan bool
 	debug  bool
@@ -93,6 +94,7 @@ func (pool *Pool) Count() int {
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
 		cfg:    pool.cfg,
+		os:     pool.env.OS,
 		sshkey: pool.env.Sshkey,
 		closed: make(chan bool),
 		debug:  pool.env.Debug,
@@ -131,7 +133,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 		return nil, err
 	}
 
-	args := append(inst.sshArgs("-p"), "root@"+inst.cfg.Slave_Addr, command)
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, 22), "root@"+inst.cfg.Slave_Addr, command)
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
@@ -237,7 +239,7 @@ func switchPortPower(busNum, deviceNum, portNum int, power bool) error {
 func (inst *instance) repair() error {
 	// Try to shutdown gracefully.
 	Logf(1, "odroid: trying to ssh")
-	if err := inst.waitForSsh(10); err == nil {
+	if err := inst.waitForSSH(10 * time.Second); err == nil {
 		Logf(1, "odroid: ssh succeeded, shutting down now")
 		inst.ssh("shutdown now")
 		if !vmimpl.SleepInterruptible(20 * time.Second) {
@@ -261,7 +263,7 @@ func (inst *instance) repair() error {
 
 	// Now wait for boot.
 	Logf(1, "odroid: power back on, waiting for boot")
-	if err := inst.waitForSsh(150); err != nil {
+	if err := inst.waitForSSH(150 * time.Second); err != nil {
 		return err
 	}
 
@@ -269,21 +271,8 @@ func (inst *instance) repair() error {
 	return nil
 }
 
-func (inst *instance) waitForSsh(timeout int) error {
-	var err error
-	start := time.Now()
-	for {
-		if !vmimpl.SleepInterruptible(time.Second) {
-			return fmt.Errorf("shutdown in progress")
-		}
-		if _, err = inst.ssh("pwd"); err == nil {
-			return nil
-		}
-		if time.Since(start).Seconds() > float64(timeout) {
-			break
-		}
-	}
-	return fmt.Errorf("instance is dead and unrepairable: %v", err)
+func (inst *instance) waitForSSH(timeout time.Duration) error {
+	return vmimpl.WaitForSSH(inst.debug, timeout, inst.cfg.Slave_Addr, inst.sshkey, "root", inst.os, 22)
 }
 
 func (inst *instance) Close() {
@@ -293,7 +282,7 @@ func (inst *instance) Close() {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	basePath := "/data/"
 	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
-	args := append(inst.sshArgs("-P"), hostSrc, "root@"+inst.cfg.Slave_Addr+":"+vmDst)
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, 22), hostSrc, "root@"+inst.cfg.Slave_Addr+":"+vmDst)
 	cmd := osutil.Command("scp", args...)
 	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
@@ -332,7 +321,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, err
 	}
 
-	args := append(inst.sshArgs("-p"), "root@"+inst.cfg.Slave_Addr, "cd /data; "+command)
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, 22),
+		"root@"+inst.cfg.Slave_Addr, "cd /data; "+command)
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
@@ -392,25 +382,4 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		cmd.Wait()
 	}()
 	return merger.Output, errc, nil
-}
-
-func (inst *instance) sshArgs(portArg string) []string {
-	args := []string{
-		portArg, "22",
-		"-F", "/dev/null",
-		"-o", "ConnectionAttempts=10",
-		"-o", "ConnectTimeout=10",
-		"-o", "BatchMode=yes",
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-o", "IdentitiesOnly=yes",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "LogLevel=error",
-	}
-	if inst.sshkey != "" {
-		args = append(args, "-i", inst.sshkey)
-	}
-	if inst.debug {
-		args = append(args, "-v")
-	}
-	return args
 }

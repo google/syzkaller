@@ -6,7 +6,6 @@ package qemu
 import (
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -51,6 +50,7 @@ type instance struct {
 	archConfig *archConfig
 	image      string
 	debug      bool
+	os         string
 	workdir    string
 	sshkey     string
 	sshuser    string
@@ -58,7 +58,6 @@ type instance struct {
 	rpipe      io.ReadCloser
 	wpipe      io.WriteCloser
 	qemu       *exec.Cmd
-	waiterC    chan error
 	merger     *vmimpl.OutputMerger
 	files      map[string]string
 }
@@ -243,6 +242,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 		archConfig: pool.archConfig,
 		image:      pool.env.Image,
 		debug:      pool.env.Debug,
+		os:         pool.env.OS,
 		workdir:    workdir,
 		sshkey:     sshkey,
 		sshuser:    sshuser,
@@ -277,8 +277,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 func (inst *instance) Close() {
 	if inst.qemu != nil {
 		inst.qemu.Process.Kill()
-		err := <-inst.waiterC
-		inst.waiterC <- err // repost it for waiting goroutines
+		inst.qemu.Wait()
 	}
 	if inst.merger != nil {
 		inst.merger.Wait()
@@ -373,43 +372,11 @@ func (inst *instance) Boot() error {
 			}
 		}
 	}()
-
-	// Wait for the qemu asynchronously.
-	inst.waiterC = make(chan error, 1)
-	go func() {
-		err := qemu.Wait()
-		inst.waiterC <- err
-	}()
-
-	// Wait for ssh server to come up.
-	time.Sleep(5 * time.Second)
-	start := time.Now()
-	for {
-		c, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%v", inst.port), 1*time.Second)
-		if err == nil {
-			c.SetDeadline(time.Now().Add(1 * time.Second))
-			var tmp [1]byte
-			n, err := c.Read(tmp[:])
-			c.Close()
-			if err == nil && n > 0 {
-				break // ssh is up and responding
-			}
-			time.Sleep(3 * time.Second)
-		}
-		select {
-		case err := <-inst.waiterC:
-			inst.waiterC <- err     // repost it for Close
-			time.Sleep(time.Second) // wait for any pending output
-			bootOutputStop <- true
-			<-bootOutputStop
-			return vmimpl.BootError{Title: "qemu stopped", Output: bootOutput}
-		default:
-		}
-		if time.Since(start) > 10*time.Minute {
-			bootOutputStop <- true
-			<-bootOutputStop
-			return vmimpl.BootError{Title: "ssh server did not start", Output: bootOutput}
-		}
+	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute, "localhost",
+		inst.sshkey, inst.sshuser, inst.os, inst.port); err != nil {
+		bootOutputStop <- true
+		<-bootOutputStop
+		return vmimpl.BootError{Title: err.Error(), Output: bootOutput}
 	}
 	bootOutputStop <- true
 	return nil
@@ -443,7 +410,8 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		inst.files[vmDst] = hostSrc
 	}
 
-	args := append(inst.sshArgs("-P"), hostSrc, inst.sshuser+"@localhost:"+vmDst)
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.port),
+		hostSrc, inst.sshuser+"@localhost:"+vmDst)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
 	}
@@ -462,6 +430,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
+	sshArgs := vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port)
 	args := strings.Split(command, " ")
 	if bin := filepath.Base(args[0]); inst.archConfig.HostFuzzer &&
 		(bin == "syz-fuzzer" || bin == "syz-execprog") {
@@ -470,7 +439,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		// but we will also wrap executor with ssh invocation.
 		for i, arg := range args {
 			if strings.HasPrefix(arg, "-executor=") {
-				args[i] = "-executor=" + "/usr/bin/ssh " + strings.Join(inst.sshArgs("-p"), " ") +
+				args[i] = "-executor=" + "/usr/bin/ssh " + strings.Join(sshArgs, " ") +
 					" " + inst.sshuser + "@localhost " + arg[len("-executor="):]
 			}
 			if host := inst.files[arg]; host != "" {
@@ -479,7 +448,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		}
 	} else {
 		args = []string{"ssh"}
-		args = append(args, inst.sshArgs("-p")...)
+		args = append(args, sshArgs...)
 		args = append(args, inst.sshuser+"@localhost", "cd "+inst.targetDir()+" && "+command)
 	}
 	if inst.debug {
@@ -526,27 +495,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 func (inst *instance) Diagnose() bool {
 	return false
-}
-
-func (inst *instance) sshArgs(portArg string) []string {
-	args := []string{
-		portArg, strconv.Itoa(inst.port),
-		"-F", "/dev/null",
-		"-o", "ConnectionAttempts=10",
-		"-o", "ConnectTimeout=10",
-		"-o", "BatchMode=yes",
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-o", "IdentitiesOnly=yes",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "LogLevel=error",
-	}
-	if inst.sshkey != "" {
-		args = append(args, "-i", inst.sshkey)
-	}
-	if inst.debug {
-		args = append(args, "-v")
-	}
-	return args
 }
 
 // nolint: lll
