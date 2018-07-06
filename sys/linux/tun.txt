@@ -7,7 +7,7 @@ include <uapi/linux/if_arp.h>
 
 resource fd_tun[fd]
 
-syz_open_dev$tun(dev ptr[in, string["/dev/net/tun"]], id const[0], flags flags[open_flags]) fd_tun
+openat$tun(fd const[AT_FDCWD], file ptr[in, string["/dev/net/tun"]], flags flags[open_flags], mode const[0]) fd_tun
 write$tun(fd fd_tun, buf ptr[in, tun_buffer], count len[buf])
 ioctl$TUNGETFEATURES(fd fd_tun, cmd const[TUNGETFEATURES], arg ptr[out, int32])
 ioctl$TUNSETQUEUE(fd fd_tun, cmd const[TUNSETQUEUE], arg ptr[in, ifreq_t[flags[tun_queue_flags, int16]]])
@@ -29,7 +29,7 @@ ioctl$TUNGETVNETHDRSZ(fd fd_tun, cmd const[TUNGETVNETHDRSZ], arg ptr[out, int32]
 ioctl$TUNSETVNETHDRSZ(fd fd_tun, cmd const[TUNSETVNETHDRSZ], arg ptr[in, int32])
 ioctl$TUNATTACHFILTER(fd fd_tun, cmd const[TUNATTACHFILTER], arg ptr[in, sock_fprog])
 ioctl$TUNDETACHFILTER(fd fd_tun, cmd const[TUNDETACHFILTER], arg const[0])
-ioctl$TTUNGETFILTER(fd fd_tun, cmd const[TUNGETFILTER], arg buffer[out])
+ioctl$TUNGETFILTER(fd fd_tun, cmd const[TUNGETFILTER], arg buffer[out])
 ioctl$TUNSETSTEERINGEBPF(fd fd_tun, cmd const[TUNSETSTEERINGEBPF], arg ptr[in, fd_bpf_prog])
 ioctl$TUNSETFILTEREBPF(fd fd_tun, cmd const[TUNSETFILTEREBPF], arg ptr[in, fd_bpf_prog])
 ioctl$TUNSETVNETLE(fd fd_tun, cmd const[TUNSETVNETLE], arg ptr[in, bool32])
