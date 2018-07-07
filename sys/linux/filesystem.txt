@@ -14,7 +14,7 @@ syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_
 
 syz_mount_image$vfat(fs ptr[in, string["vfat"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
 
-syz_mount_image$msdos(fs ptr[in, string["msdos"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
+syz_mount_image$msdos(fs ptr[in, string["msdos"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[msdos_options]])
 
 syz_mount_image$bfs(fs ptr[in, string["bfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts const[0])
 
@@ -87,7 +87,29 @@ type fs_opt_cp_num[NAME] fs_opt[NAME, stringnoz[codepage_nums]]
 fs_opt_digits = '-', 'x', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
 fs_opt_digits_suffix = '-', 'x', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'k', 'm', 'g', 't', 'p', 'e'
 
+msdos_options [
+	fat	fat_options
+	nodots	stringnoz["nodots"]
+	dots	stringnoz["dots"]
+] [varlen]
+
 vfat_options [
+	fat		fat_options
+	iocharset	fs_opt_codepage["iocharset"]
+	rodir		stringnoz["rodir"]
+	utf8no		stringnoz["utf8=0"]
+	utf8		stringnoz["utf8=1"]
+	uni_xlateno	stringnoz["uni_xlate=0"]
+	uni_xlate	stringnoz["uni_xlate=1"]
+	numtail		stringnoz["nonumtail=0"]
+	nonumtail	stringnoz["nnonumtail=1"]
+	shortname_lower	stringnoz["shortname=lower"]
+	shortname_win95	stringnoz["shortname=win95"]
+	shortname_winnt	stringnoz["shortname=winnt"]
+	shortname_mixed	stringnoz["shortname=mixed"]
+] [varlen]
+
+fat_options [
 	check_relaxed	stringnoz["check=relaxed"]
 	check_strict	stringnoz["check=strict"]
 	check_normal	stringnoz["check=normal"]
