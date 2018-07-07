@@ -7,6 +7,7 @@
 #define _GNU_SOURCE
 #endif
 
+#include <ddk/driver.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
