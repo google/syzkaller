@@ -309,7 +309,7 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 		if argDesc.Type == typeArgLenTarget {
 			comp.checkLenTarget(t, name, arg.Ident, fields, parents)
 		} else if argDesc.Type == typeArgType {
-			comp.checkLenType(arg, name, fields, parents, checked, false)
+			comp.checkLenType(arg, name, fields, parents, checked, argDesc.IsArg)
 		}
 	}
 }
@@ -417,7 +417,7 @@ func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, 
 	_, args, _ := comp.getArgsBase(t, "", prog.DirIn, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.collectUsedType(structs, flags, strflags, arg, false)
+			comp.collectUsedType(structs, flags, strflags, arg, desc.Args[i].IsArg)
 		}
 	}
 }
@@ -524,7 +524,7 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 	_, args, _ := comp.getArgsBase(t, "", dir, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkTypeCtors(arg, dir, false, ctors, checked)
+			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, ctors, checked)
 		}
 	}
 }
@@ -722,7 +722,11 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 	err0 := comp.errors
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkType(ctx, arg, 0)
+			var innerFlags checkFlags
+			if desc.Args[i].IsArg {
+				innerFlags |= checkIsArg
+			}
+			comp.checkType(ctx, arg, innerFlags)
 		} else {
 			comp.checkTypeArg(t, arg, desc.Args[i])
 		}

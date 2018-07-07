@@ -213,3 +213,16 @@ u0 [
 ]
 
 foo$u0(a ptr[in, u0])
+
+# fmt
+
+foo$fmt0(a ptr[in, fmt[dec, int32[1:10]]])
+foo$fmt1(a ptr[in, fmt[hex, flags[int_flags]]])
+foo$fmt2(a ptr[in, fmt[oct, len[b]]], b ptr[in, array[int8]])
+foo$fmt3(a ptr[in, fmt[dec, proc[10, 20]]])
+foo$fmt4(a ptr[in, fmt[dec, r0]])
+foo$fmt5(a ptr[in, struct$fmt0])
+
+struct$fmt0 {
+	f0	fmt[dec, int8]
+}

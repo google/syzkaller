@@ -46,8 +46,9 @@ type typeArg struct {
 }
 
 type namedArg struct {
-	Name string
-	Type *typeArg
+	Name  string
+	Type  *typeArg
+	IsArg bool // does not need base type
 }
 
 const (
@@ -67,7 +68,7 @@ var typeInt = &typeDesc{
 	AllowColon:   true,
 	ResourceBase: true,
 	OptArgs:      1,
-	Args:         []namedArg{{"range", typeArgRange}},
+	Args:         []namedArg{{Name: "range", Type: typeArgRange}},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		typeArgBase.Type.Check(comp, t)
 	},
@@ -91,7 +92,7 @@ var typePtr = &typeDesc{
 	Names:        []string{"ptr", "ptr64"},
 	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
-	Args:         []namedArg{{"direction", typeArgDir}, {"type", typeArgType}},
+	Args:         []namedArg{{Name: "direction", Type: typeArgDir}, {Name: "type", Type: typeArgType}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.ArgDir = prog.DirIn // pointers are always in
 		base.TypeSize = comp.ptrSize
@@ -127,7 +128,7 @@ var typeArray = &typeDesc{
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	OptArgs:      1,
-	Args:         []namedArg{{"type", typeArgType}, {"size", typeArgRange}},
+	Args:         []namedArg{{Name: "type", Type: typeArgType}, {Name: "size", Type: typeArgRange}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 1 && args[1].Value == 0 && args[1].Value2 == 0 {
 			comp.error(args[1].Pos, "arrays of size 0 are not supported")
@@ -187,7 +188,7 @@ var typeLen = &typeDesc{
 	CanBeArgRet: canBeArg,
 	CantBeOpt:   true,
 	NeedBase:    true,
-	Args:        []namedArg{{"len target", typeArgLenTarget}},
+	Args:        []namedArg{{Name: "len target", Type: typeArgLenTarget}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		var bitSize uint64
 		switch t.Ident {
@@ -213,7 +214,7 @@ var typeConst = &typeDesc{
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	NeedBase:     true,
-	Args:         []namedArg{{"value", typeArgInt}},
+	Args:         []namedArg{{Name: "value", Type: typeArgInt}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		return &prog.ConstType{
 			IntTypeCommon: base,
@@ -232,7 +233,7 @@ var typeFlags = &typeDesc{
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	NeedBase:     true,
-	Args:         []namedArg{{"flags", typeArgFlags}},
+	Args:         []namedArg{{Name: "flags", Type: typeArgFlags}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		name := args[0].Ident
 		base.TypeName = name
@@ -289,7 +290,7 @@ var typeVMA = &typeDesc{
 	Names:       []string{"vma"},
 	CanBeArgRet: canBeArg,
 	OptArgs:     1,
-	Args:        []namedArg{{"size range", typeArgRange}},
+	Args:        []namedArg{{Name: "size range", Type: typeArgRange}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		begin, end := uint64(0), uint64(0)
 		if len(args) > 0 {
@@ -309,7 +310,11 @@ var typeCsum = &typeDesc{
 	NeedBase:  true,
 	CantBeOpt: true,
 	OptArgs:   1,
-	Args:      []namedArg{{"csum target", typeArgLenTarget}, {"kind", typeArgCsumType}, {"proto", typeArgInt}},
+	Args: []namedArg{
+		{Name: "csum target", Type: typeArgLenTarget},
+		{Name: "kind", Type: typeArgCsumType},
+		{Name: "proto", Type: typeArgInt},
+	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 2 && genCsumKind(args[1]) != prog.CsumPseudo {
 			comp.error(args[2].Pos, "only pseudo csum can have proto")
@@ -350,7 +355,10 @@ var typeProc = &typeDesc{
 	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	NeedBase:     true,
-	Args:         []namedArg{{"range start", typeArgInt}, {"per-proc values", typeArgInt}},
+	Args: []namedArg{
+		{Name: "range start", Type: typeArgInt},
+		{Name: "per-proc values", Type: typeArgInt},
+	},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		start := args[0].Value
 		perProc := args[1].Value
@@ -381,7 +389,7 @@ var typeProc = &typeDesc{
 var typeText = &typeDesc{
 	Names:     []string{"text"},
 	CantBeOpt: true,
-	Args:      []namedArg{{"kind", typeArgTextType}},
+	Args:      []namedArg{{Name: "kind", Type: typeArgTextType}},
 	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		return true
 	},
@@ -420,7 +428,7 @@ func genTextType(t *ast.Type) prog.TextKind {
 var typeBuffer = &typeDesc{
 	Names:       []string{"buffer"},
 	CanBeArgRet: canBeArg,
-	Args:        []namedArg{{"direction", typeArgDir}},
+	Args:        []namedArg{{Name: "direction", Type: typeArgDir}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.TypeSize = comp.ptrSize
 		common := genCommon("", "", 0, genDir(args[0]), false)
@@ -444,7 +452,10 @@ var typeString = &typeDesc{
 	Names:        []string{"string", stringnoz},
 	CanBeTypedef: true,
 	OptArgs:      2,
-	Args:         []namedArg{{"literal or flags", typeArgStringFlags}, {"size", typeArgInt}},
+	Args: []namedArg{
+		{Name: "literal or flags", Type: typeArgStringFlags},
+		{Name: "size", Type: typeArgInt},
+	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if t.Ident == stringnoz && len(args) > 1 {
 			comp.error(args[0].Pos, "fixed-size string can't be non-zero-terminated")
@@ -570,6 +581,66 @@ var typeArgStringFlags = &typeArg{
 	},
 }
 
+var typeFmt = &typeDesc{
+	Names:        []string{"fmt"},
+	CanBeTypedef: true,
+	CantBeOpt:    true,
+	Args: []namedArg{
+		{Name: "format", Type: typeFmtFormat},
+		{Name: "value", Type: typeArgType, IsArg: true},
+	},
+	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+		desc, _, _ := comp.getArgsBase(args[1], "", base.TypeCommon.ArgDir, true)
+		switch desc {
+		case typeResource, typeInt, typeLen, typeFlags, typeProc:
+		default:
+			comp.error(t.Pos, "bad fmt value %v, expect an integer", args[1].Ident)
+			return
+		}
+	},
+	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		var format prog.BinaryFormat
+		var size uint64
+		switch args[0].Ident {
+		case "dec":
+			format = prog.FormatStrDec
+			size = 20
+		case "hex":
+			format = prog.FormatStrHex
+			size = 18
+		case "oct":
+			format = prog.FormatStrOct
+			size = 23
+		}
+		typ := comp.genType(args[1], "", base.TypeCommon.ArgDir, true)
+		switch t := typ.(type) {
+		case *prog.ResourceType:
+			t.ArgFormat = format
+			t.TypeSize = size
+		case *prog.IntType:
+			t.ArgFormat = format
+			t.TypeSize = size
+		case *prog.LenType:
+			t.ArgFormat = format
+			t.TypeSize = size
+		case *prog.FlagsType:
+			t.ArgFormat = format
+			t.TypeSize = size
+		case *prog.ProcType:
+			t.ArgFormat = format
+			t.TypeSize = size
+		default:
+			panic(fmt.Sprintf("unexpected type: %#v", typ))
+		}
+		return typ
+	},
+}
+
+var typeFmtFormat = &typeArg{
+	Names: []string{"dec", "hex", "oct"},
+	Kind:  kindIdent,
+}
+
 // typeArgType is used as placeholder for any type (e.g. ptr target type).
 var typeArgType = &typeArg{}
 
@@ -588,9 +659,11 @@ func init() {
 			baseType = r.Base
 			r = comp.resources[r.Base.Ident]
 		}
-		base.TypeSize = comp.genType(baseType, "", prog.DirIn, false).Size()
+		baseProgType := comp.genType(baseType, "", prog.DirIn, false)
+		base.TypeSize = baseProgType.Size()
 		return &prog.ResourceType{
 			TypeCommon: base.TypeCommon,
+			ArgFormat:  baseProgType.Format(),
 		}
 	}
 }
@@ -778,6 +851,7 @@ func init() {
 		typeText,
 		typeBuffer,
 		typeString,
+		typeFmt,
 	}
 	for _, desc := range builtins {
 		for _, name := range desc.Names {
