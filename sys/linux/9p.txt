@@ -36,7 +36,7 @@ fs9p_options [
 	cache_loose	stringnoz["cache=loose"]
 	cache_fscache	stringnoz["cache=fscache"]
 	cache_mmap	stringnoz["cache=mmap"]
-	debug		fs_opt_dec["fs_opt_dec"]
+	debug		fs_opt_dec["debug"]
 	noextend	stringnoz["noextend"]
 	nodevmap	stringnoz["nodevmap"]
 	version_9p2000	stringnoz["version=9p2000"]
