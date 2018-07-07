@@ -396,9 +396,13 @@ func genCommon(name, field string, size uint64, dir prog.Dir, opt bool) prog.Typ
 }
 
 func genIntCommon(com prog.TypeCommon, bitLen uint64, bigEndian bool) prog.IntTypeCommon {
+	bf := prog.FormatNative
+	if bigEndian {
+		bf = prog.FormatBigEndian
+	}
 	return prog.IntTypeCommon{
 		TypeCommon:  com,
-		BigEndian:   bigEndian,
+		ArgFormat:   bf,
 		BitfieldLen: bitLen,
 	}
 }

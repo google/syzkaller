@@ -288,33 +288,7 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, []uint64) {
 		w := new(bytes.Buffer)
 		// Copyin.
 		for _, copyin := range call.Copyin {
-			switch arg := copyin.Arg.(type) {
-			case prog.ExecArgConst:
-				if arg.BitfieldOffset == 0 && arg.BitfieldLength == 0 {
-					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n",
-						arg.Size*8, copyin.Addr, ctx.constArgToStr(arg))
-				} else {
-					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, %v, %v, %v));\n",
-						arg.Size*8, copyin.Addr, ctx.constArgToStr(arg),
-						arg.BitfieldOffset, arg.BitfieldLength)
-				}
-			case prog.ExecArgResult:
-				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n",
-					arg.Size*8, copyin.Addr, ctx.resultArgToStr(arg))
-			case prog.ExecArgData:
-				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n",
-					copyin.Addr, toCString(arg.Data), len(arg.Data))
-			case prog.ExecArgCsum:
-				switch arg.Kind {
-				case prog.ExecArgCsumInet:
-					csumSeq++
-					ctx.generateCsumInet(w, copyin.Addr, arg, csumSeq)
-				default:
-					panic(fmt.Sprintf("unknown csum kind %v", arg.Kind))
-				}
-			default:
-				panic(fmt.Sprintf("bad argument type: %+v", arg))
-			}
+			ctx.copyin(w, &csumSeq, copyin)
 		}
 
 		// Call itself.
@@ -353,8 +327,14 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, []uint64) {
 				}
 				switch arg := arg.(type) {
 				case prog.ExecArgConst:
+					if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
+						panic("sring format in syscall argument")
+					}
 					fmt.Fprintf(w, "%v", ctx.constArgToStr(arg))
 				case prog.ExecArgResult:
+					if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
+						panic("sring format in syscall argument")
+					}
 					fmt.Fprintf(w, "%v", ctx.resultArgToStr(arg))
 				default:
 					panic(fmt.Sprintf("unknown arg type: %+v", arg))
@@ -419,6 +399,61 @@ func (ctx *context) generateCsumInet(w *bytes.Buffer, addr uint64, arg prog.Exec
 		addr, csumSeq)
 }
 
+func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin) {
+	switch arg := copyin.Arg.(type) {
+	case prog.ExecArgConst:
+		if arg.BitfieldOffset == 0 && arg.BitfieldLength == 0 {
+			ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.constArgToStr(arg), arg.Format)
+		} else {
+			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
+				panic("bitfield+string format")
+			}
+			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, %v, %v, %v));\n",
+				arg.Size*8, copyin.Addr, ctx.constArgToStr(arg),
+				arg.BitfieldOffset, arg.BitfieldLength)
+		}
+	case prog.ExecArgResult:
+		ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.resultArgToStr(arg), arg.Format)
+	case prog.ExecArgData:
+		fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n",
+			copyin.Addr, toCString(arg.Data), len(arg.Data))
+	case prog.ExecArgCsum:
+		switch arg.Kind {
+		case prog.ExecArgCsumInet:
+			*csumSeq++
+			ctx.generateCsumInet(w, copyin.Addr, arg, *csumSeq)
+		default:
+			panic(fmt.Sprintf("unknown csum kind %v", arg.Kind))
+		}
+	default:
+		panic(fmt.Sprintf("bad argument type: %+v", arg))
+	}
+}
+
+func (ctx *context) copyinVal(w *bytes.Buffer, addr, size uint64, val string, bf prog.BinaryFormat) {
+	switch bf {
+	case prog.FormatNative, prog.FormatBigEndian:
+		fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n", size*8, addr, val)
+	case prog.FormatStrDec:
+		if size != 20 {
+			panic("bad strdec size")
+		}
+		fmt.Fprintf(w, "\tNONFAILING(sprintf((char*)0x%x, \"%%020llu\", (long long)%v));\n", addr, val)
+	case prog.FormatStrHex:
+		if size != 18 {
+			panic("bad strdec size")
+		}
+		fmt.Fprintf(w, "\tNONFAILING(sprintf((char*)0x%x, \"0x%%016llx\", (long long)%v));\n", addr, val)
+	case prog.FormatStrOct:
+		if size != 23 {
+			panic("bad strdec size")
+		}
+		fmt.Fprintf(w, "\tNONFAILING(sprintf((char*)0x%x, \"%%023llo\", (long long)%v));\n", addr, val)
+	default:
+		panic("unknown binary format")
+	}
+}
+
 func (ctx *context) constArgToStr(arg prog.ExecArgConst) string {
 	mask := (uint64(1) << (arg.Size * 8)) - 1
 	v := arg.Value & mask
@@ -431,7 +466,7 @@ func (ctx *context) constArgToStr(arg prog.ExecArgConst) string {
 	if ctx.opts.Procs > 1 && arg.PidStride != 0 {
 		val += fmt.Sprintf(" + procid*%v", arg.PidStride)
 	}
-	if arg.BigEndian {
+	if arg.Format == prog.FormatBigEndian {
 		val = fmt.Sprintf("htobe%v(%v)", arg.Size*8, val)
 	}
 	return val
@@ -444,6 +479,9 @@ func (ctx *context) resultArgToStr(arg prog.ExecArgResult) string {
 	}
 	if arg.AddOp != 0 {
 		res = fmt.Sprintf("%v+%v", res, arg.AddOp)
+	}
+	if arg.Format == prog.FormatBigEndian {
+		res = fmt.Sprintf("htobe%v(%v)", arg.Size*8, res)
 	}
 	return res
 }

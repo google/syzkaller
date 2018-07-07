@@ -13,6 +13,9 @@ type anyTypes struct {
 	res16  *ResourceType
 	res32  *ResourceType
 	res64  *ResourceType
+	resdec *ResourceType
+	reshex *ResourceType
+	resoct *ResourceType
 }
 
 // This generates type descriptions for:
@@ -27,6 +30,9 @@ type anyTypes struct {
 // 	res16	ANYRES16
 // 	res32	ANYRES32
 // 	res64	ANYRES64
+//	resdec	fmt[dec, ANYRES64]
+//	reshex	fmt[hex, ANYRES64]
+//	resoct	fmt[oct, ANYRES64]
 // ] [varlen]
 func initAnyTypes(target *Target) {
 	target.any.union = &UnionType{
@@ -65,7 +71,7 @@ func initAnyTypes(target *Target) {
 			IsVarlen: true,
 		},
 	}
-	createResource := func(name, base string, size uint64) *ResourceType {
+	createResource := func(name, base string, bf BinaryFormat, size uint64) *ResourceType {
 		return &ResourceType{
 			TypeCommon: TypeCommon{
 				TypeName:   name,
@@ -74,6 +80,7 @@ func initAnyTypes(target *Target) {
 				TypeSize:   size,
 				IsOptional: true,
 			},
+			ArgFormat: bf,
 			Desc: &ResourceDesc{
 				Name:   name,
 				Kind:   []string{name},
@@ -89,9 +96,12 @@ func initAnyTypes(target *Target) {
 			},
 		}
 	}
-	target.any.res16 = createResource("ANYRES16", "int16", 2)
-	target.any.res32 = createResource("ANYRES32", "int32", 4)
-	target.any.res64 = createResource("ANYRES64", "int64", 8)
+	target.any.res16 = createResource("ANYRES16", "int16", FormatNative, 2)
+	target.any.res32 = createResource("ANYRES32", "int32", FormatNative, 4)
+	target.any.res64 = createResource("ANYRES64", "int64", FormatNative, 8)
+	target.any.resdec = createResource("ANYRESDEC", "int64", FormatStrDec, 20)
+	target.any.reshex = createResource("ANYRESHEX", "int64", FormatStrHex, 18)
+	target.any.resoct = createResource("ANYRESOCT", "int64", FormatStrOct, 23)
 	target.any.union.StructDesc = &StructDesc{
 		TypeCommon: TypeCommon{
 			TypeName: "ANYUNION",
@@ -106,6 +116,9 @@ func initAnyTypes(target *Target) {
 			target.any.res16,
 			target.any.res32,
 			target.any.res64,
+			target.any.resdec,
+			target.any.reshex,
+			target.any.resoct,
 		},
 	}
 }
@@ -220,28 +233,9 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 	var pad uint64
 	switch arg := a.(type) {
 	case *ConstArg:
-		if IsPad(arg.Type()) {
-			pad = arg.Size()
-		} else {
-			v := target.squashConst(arg)
-			elem := target.ensureDataElem(elems)
-			for i := uint64(0); i < arg.Size(); i++ {
-				elem.data = append(elem.Data(), byte(v))
-				v >>= 8
-			}
-		}
+		target.squashConst(arg, elems)
 	case *ResultArg:
-		switch arg.Size() {
-		case 2:
-			arg.typ = target.any.res16
-		case 4:
-			arg.typ = target.any.res32
-		case 8:
-			arg.typ = target.any.res64
-		default:
-			panic("bad size")
-		}
-		*elems = append(*elems, MakeUnionArg(target.any.union, arg))
+		target.squashResult(arg, elems)
 	case *PointerArg:
 		if arg.Res != nil {
 			target.squashPtr(arg, false)
@@ -267,38 +261,7 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 			elem.data = append(elem.Data(), arg.Data()...)
 		}
 	case *GroupArg:
-		if typ, ok := arg.Type().(*StructType); ok && typ.Varlen() && typ.AlignAttr != 0 {
-			var fieldsSize uint64
-			for _, fld := range arg.Inner {
-				if !fld.Type().BitfieldMiddle() {
-					fieldsSize += fld.Size()
-				}
-			}
-			if fieldsSize%typ.AlignAttr != 0 {
-				pad = typ.AlignAttr - fieldsSize%typ.AlignAttr
-			}
-		}
-		var bitfield uint64
-		for _, fld := range arg.Inner {
-			// Squash bitfields separately.
-			if bfLen := fld.Type().BitfieldLength(); bfLen != 0 {
-				bfOff := fld.Type().BitfieldOffset()
-				// Note: we can have a ResultArg here as well,
-				// but it is unsupported at the moment.
-				v := target.squashConst(fld.(*ConstArg))
-				bitfield |= (v & ((1 << bfLen) - 1)) << bfOff
-				if !fld.Type().BitfieldMiddle() {
-					elem := target.ensureDataElem(elems)
-					for i := uint64(0); i < fld.Size(); i++ {
-						elem.data = append(elem.Data(), byte(bitfield))
-						bitfield >>= 8
-					}
-					bitfield = 0
-				}
-				continue
-			}
-			target.squashPtrImpl(fld, elems)
-		}
+		target.squashGroup(arg, elems)
 	default:
 		panic("bad arg kind")
 	}
@@ -308,15 +271,130 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 	}
 }
 
-func (target *Target) squashConst(arg *ConstArg) uint64 {
-	// Note: we need a constant value, but it depends on pid for proc.
-	v := arg.ValueForProc(0)
+func (target *Target) squashConst(arg *ConstArg, elems *[]Arg) {
+	if IsPad(arg.Type()) {
+		elem := target.ensureDataElem(elems)
+		elem.data = append(elem.Data(), make([]byte, arg.Size())...)
+		return
+	}
+	v, bf := target.squashedValue(arg)
+	var data []byte
+	switch bf {
+	case FormatNative:
+		for i := uint64(0); i < arg.Size(); i++ {
+			data = append(data, byte(v))
+			v >>= 8
+		}
+	case FormatStrDec:
+		data = []byte(fmt.Sprintf("%020v", v))
+	case FormatStrHex:
+		data = []byte(fmt.Sprintf("0x%016x", v))
+	case FormatStrOct:
+		data = []byte(fmt.Sprintf("%023o", v))
+	default:
+		panic(fmt.Sprintf("unknown binary format: %v", bf))
+	}
+	if uint64(len(data)) != arg.Size() {
+		panic("squashed value of wrong size")
+	}
+	elem := target.ensureDataElem(elems)
+	elem.data = append(elem.Data(), data...)
+}
+
+func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
+	switch arg.Type().Format() {
+	case FormatNative, FormatBigEndian:
+		switch arg.Size() {
+		case 2:
+			arg.typ = target.any.res16
+		case 4:
+			arg.typ = target.any.res32
+		case 8:
+			arg.typ = target.any.res64
+		default:
+			panic("bad size")
+		}
+	case FormatStrDec:
+		arg.typ = target.any.resdec
+	case FormatStrHex:
+		arg.typ = target.any.reshex
+	case FormatStrOct:
+		arg.typ = target.any.resoct
+	default:
+		panic("bad")
+	}
+	*elems = append(*elems, MakeUnionArg(target.any.union, arg))
+}
+
+func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
+	var pad uint64
+	if typ, ok := arg.Type().(*StructType); ok && typ.Varlen() && typ.AlignAttr != 0 {
+		var fieldsSize uint64
+		for _, fld := range arg.Inner {
+			if !fld.Type().BitfieldMiddle() {
+				fieldsSize += fld.Size()
+			}
+		}
+		if fieldsSize%typ.AlignAttr != 0 {
+			pad = typ.AlignAttr - fieldsSize%typ.AlignAttr
+		}
+	}
+	var bitfield uint64
+	for _, fld := range arg.Inner {
+		// Squash bitfields separately.
+		if bfLen := fld.Type().BitfieldLength(); bfLen != 0 {
+			bfOff := fld.Type().BitfieldOffset()
+			// Note: we can have a ResultArg here as well,
+			// but it is unsupported at the moment.
+			v, bf := target.squashedValue(fld.(*ConstArg))
+			if bf != FormatNative {
+				panic(fmt.Sprintf("bitfield has bad format %v", bf))
+			}
+			bitfield |= (v & ((1 << bfLen) - 1)) << bfOff
+			if !fld.Type().BitfieldMiddle() {
+				elem := target.ensureDataElem(elems)
+				for i := uint64(0); i < fld.Size(); i++ {
+					elem.data = append(elem.Data(), byte(bitfield))
+					bitfield >>= 8
+				}
+				bitfield = 0
+			}
+			continue
+		}
+		target.squashPtrImpl(fld, elems)
+	}
+	if pad != 0 {
+		elem := target.ensureDataElem(elems)
+		elem.data = append(elem.Data(), make([]byte, pad)...)
+	}
+}
+
+func (target *Target) squashedValue(arg *ConstArg) (uint64, BinaryFormat) {
+	bf := arg.Type().Format()
 	if _, ok := arg.Type().(*CsumType); ok {
 		// We can't compute value for the checksum here,
 		// but at least leave something recognizable by hints code.
-		v = 0xabcdef1234567890
+		// TODO: hints code won't recognize this, because it won't find
+		// the const in any arg. We either need to put this const as
+		// actual csum arg value, or special case it in hints.
+		return 0xabcdef1234567890, FormatNative
 	}
-	return v
+	// Note: we need a constant value, but it depends on pid for proc.
+	v, _ := arg.Value()
+	if bf == FormatBigEndian {
+		bf = FormatNative
+		switch arg.Size() {
+		case 2:
+			v = uint64(swap16(uint16(v)))
+		case 4:
+			v = uint64(swap32(uint32(v)))
+		case 8:
+			v = swap64(v)
+		default:
+			panic(fmt.Sprintf("bad const size %v", arg.Size()))
+		}
+	}
+	return v, bf
 }
 
 func (target *Target) ensureDataElem(elems *[]Arg) *DataArg {

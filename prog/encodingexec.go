@@ -230,26 +230,27 @@ func (w *execContext) write(v uint64) {
 func (w *execContext) writeArg(arg Arg) {
 	switch a := arg.(type) {
 	case *ConstArg:
-		val, pidStride, bigEndian := a.Value()
-		w.writeConstArg(a.Size(), val, a.Type().BitfieldOffset(), a.Type().BitfieldLength(),
-			pidStride, bigEndian)
+		val, pidStride := a.Value()
+		typ := a.Type()
+		w.writeConstArg(a.Size(), val, typ.BitfieldOffset(), typ.BitfieldLength(), pidStride, typ.Format())
 	case *ResultArg:
 		if a.Res == nil {
-			w.writeConstArg(a.Size(), a.Val, 0, 0, 0, false)
+			w.writeConstArg(a.Size(), a.Val, 0, 0, 0, a.Type().Format())
 		} else {
 			info, ok := w.args[a.Res]
 			if !ok {
 				panic("no copyout index")
 			}
 			w.write(execArgResult)
-			w.write(a.Size())
+			meta := a.Size() | uint64(a.Type().Format())<<8
+			w.write(meta)
 			w.write(info.Idx)
 			w.write(a.OpDiv)
 			w.write(a.OpAdd)
 			w.write(a.Type().(*ResourceType).Default())
 		}
 	case *PointerArg:
-		w.writeConstArg(a.Size(), w.target.PhysicalAddr(a), 0, 0, 0, false)
+		w.writeConstArg(a.Size(), w.target.PhysicalAddr(a), 0, 0, 0, FormatNative)
 	case *DataArg:
 		data := a.Data()
 		w.write(execArgData)
@@ -271,12 +272,9 @@ func (w *execContext) writeArg(arg Arg) {
 	}
 }
 
-func (w *execContext) writeConstArg(size, val, bfOffset, bfLength, pidStride uint64, bigEndian bool) {
+func (w *execContext) writeConstArg(size, val, bfOffset, bfLength, pidStride uint64, bf BinaryFormat) {
 	w.write(execArgConst)
-	meta := size | bfOffset<<16 | bfLength<<24 | pidStride<<32
-	if bigEndian {
-		meta |= 1 << 8
-	}
+	meta := size | uint64(bf)<<8 | bfOffset<<16 | bfLength<<24 | pidStride<<32
 	w.write(meta)
 	w.write(val)
 }

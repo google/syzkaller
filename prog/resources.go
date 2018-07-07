@@ -15,17 +15,24 @@ var timespecRes = &ResourceDesc{
 }
 
 func (target *Target) calcResourceCtors(kind []string, precise bool) []*Syscall {
+
+	//fmt.Printf("calcResourceCtors: kind=%+v\n", kind)
+
 	// Find calls that produce the necessary resources.
 	var metas []*Syscall
 	for _, meta := range target.Syscalls {
 		// Recurse into arguments to see if there is an out/inout arg of necessary type.
 		ok := false
+		//if meta.Name != "pipe$9p" { continue }
+		//fmt.Printf("found pipe$9p\n")
+
 		ForeachType(meta, func(typ Type) {
 			if ok {
 				return
 			}
 			switch typ1 := typ.(type) {
 			case *ResourceType:
+				//fmt.Printf("   output: %+v\n", typ1.Desc.Kind)
 				if typ1.Dir() != DirIn && isCompatibleResourceImpl(kind, typ1.Desc.Kind, precise) {
 					ok = true
 				}
@@ -47,7 +54,10 @@ func (target *Target) calcResourceCtors(kind []string, precise bool) []*Syscall 
 func (target *Target) isCompatibleResource(dst, src string) bool {
 	if dst == target.any.res16.TypeName ||
 		dst == target.any.res32.TypeName ||
-		dst == target.any.res64.TypeName {
+		dst == target.any.res64.TypeName ||
+		dst == target.any.resdec.TypeName ||
+		dst == target.any.reshex.TypeName ||
+		dst == target.any.resoct.TypeName {
 		return true
 	}
 	dstRes := target.resourceMap[dst]
@@ -65,9 +75,11 @@ func (target *Target) isCompatibleResource(dst, src string) bool {
 // If precise is true, then it does not allow passing a less specialized resource (e.g. fd)
 // as a more specialized resource (e.g. socket). Otherwise it does.
 func isCompatibleResourceImpl(dst, src []string, precise bool) bool {
+	//fmt.Printf("isCompatibleResourceImpl: %+v/%v vs %+v/%v\n", dst, len(dst), src, len(src))
 	if len(dst) > len(src) {
 		// dst is more specialized, e.g dst=socket, src=fd.
 		if precise {
+			//fmt.Printf("     = false1\n")
 			return false
 		}
 		dst = dst[:len(src)]
@@ -78,9 +90,11 @@ func isCompatibleResourceImpl(dst, src []string, precise bool) bool {
 	}
 	for i, k := range dst {
 		if k != src[i] {
+			//fmt.Printf("     = false2\n")
 			return false
 		}
 	}
+	//fmt.Printf("     = true\n")
 	return true
 }
 
@@ -127,6 +141,10 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 	inputResources := make(map[*Syscall][]*ResourceDesc)
 	for c := range enabled {
 		inputResources[c] = target.inputResources(c)
+
+		if c.Name == "pipe$9p" {
+			fmt.Printf("%v: input resource: %+v\n", c.Name, inputResources[c])
+		}
 	}
 	for {
 		n := len(supported)

@@ -324,10 +324,10 @@ func TestSerializeForExec(t *testing.T) {
 								Addr: dataOffset + 26,
 								Arg: ExecArgConst{
 									Size:           2,
+									Format:         FormatBigEndian,
 									Value:          0x42,
 									BitfieldOffset: 0,
 									BitfieldLength: 11,
-									BigEndian:      true,
 								},
 							},
 							{
