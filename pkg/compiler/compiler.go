@@ -311,7 +311,7 @@ func (comp *compiler) foreachSubType(t *ast.Type, isArg bool,
 	cb(t, desc, args, base)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.foreachSubType(arg, false, cb)
+			comp.foreachSubType(arg, desc.Args[i].IsArg, cb)
 		}
 	}
 }

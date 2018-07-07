@@ -10,6 +10,7 @@ var commonHeaderLinux = `
 #endif
 
 #include <endian.h>
+#include <stdio.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 #if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
@@ -21,7 +22,6 @@ var commonHeaderLinux = `
 #include <errno.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -39,7 +39,6 @@ var commonHeaderLinux = `
 #include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -72,7 +71,6 @@ var commonHeaderLinux = `
 #include <net/if_arp.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -88,24 +86,20 @@ var commonHeaderLinux = `
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_dev) || defined(__NR_syz_open_procfs)
 #include <fcntl.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_fuse_mount) || defined(__NR_syz_fuseblk_mount)
 #include <fcntl.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_pts)
 #include <fcntl.h>
-#include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #endif
@@ -115,7 +109,6 @@ var commonHeaderLinux = `
 #include <linux/kvm.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #endif
@@ -140,7 +133,6 @@ var commonHeaderLinux = `
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/loop.h>
-#include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
 #include <sys/stat.h>

@@ -37,6 +37,16 @@ func (dir Dir) String() string {
 	}
 }
 
+type BinaryFormat int
+
+const (
+	FormatNative BinaryFormat = iota
+	FormatBigEndian
+	FormatStrDec
+	FormatStrHex
+	FormatStrOct
+)
+
 type Type interface {
 	String() string
 	Name() string
@@ -46,6 +56,7 @@ type Type interface {
 	Default() uint64
 	Varlen() bool
 	Size() uint64
+	Format() BinaryFormat
 	BitfieldOffset() uint64
 	BitfieldLength() uint64
 	BitfieldMiddle() bool // returns true for all but last bitfield in a group
@@ -97,6 +108,10 @@ func (t *TypeCommon) Varlen() bool {
 	return t.IsVarlen
 }
 
+func (t *TypeCommon) Format() BinaryFormat {
+	return FormatNative
+}
+
 func (t *TypeCommon) BitfieldOffset() uint64 {
 	return 0
 }
@@ -122,7 +137,8 @@ type ResourceDesc struct {
 
 type ResourceType struct {
 	TypeCommon
-	Desc *ResourceDesc
+	ArgFormat BinaryFormat
+	Desc      *ResourceDesc
 }
 
 func (t *ResourceType) String() string {
@@ -137,16 +153,24 @@ func (t *ResourceType) SpecialValues() []uint64 {
 	return t.Desc.Values
 }
 
+func (t *ResourceType) Format() BinaryFormat {
+	return t.ArgFormat
+}
+
 type IntTypeCommon struct {
 	TypeCommon
+	ArgFormat   BinaryFormat
 	BitfieldOff uint64
 	BitfieldLen uint64
-	BigEndian   bool
 	BitfieldMdl bool
 }
 
 func (t *IntTypeCommon) String() string {
 	return t.Name()
+}
+
+func (t *IntTypeCommon) Format() BinaryFormat {
+	return t.ArgFormat
 }
 
 func (t *IntTypeCommon) BitfieldOffset() uint64 {

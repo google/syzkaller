@@ -47,48 +47,29 @@ func (arg *ConstArg) Size() uint64 {
 }
 
 // Value returns value, pid stride and endianness.
-func (arg *ConstArg) Value() (uint64, uint64, bool) {
+func (arg *ConstArg) Value() (uint64, uint64) {
 	switch typ := (*arg).Type().(type) {
 	case *IntType:
-		return arg.Val, 0, typ.BigEndian
+		return arg.Val, 0
 	case *ConstType:
-		return arg.Val, 0, typ.BigEndian
+		return arg.Val, 0
 	case *FlagsType:
-		return arg.Val, 0, typ.BigEndian
+		return arg.Val, 0
 	case *LenType:
-		return arg.Val, 0, typ.BigEndian
+		return arg.Val, 0
 	case *CsumType:
 		// Checksums are computed dynamically in executor.
-		return 0, 0, false
+		return 0, 0
 	case *ResourceType:
-		t := typ.Desc.Type.(*IntType)
-		return arg.Val, 0, t.BigEndian
+		return arg.Val, 0
 	case *ProcType:
 		if arg.Val == typ.Default() {
-			return 0, 0, false
+			return 0, 0
 		}
-		return typ.ValuesStart + arg.Val, typ.ValuesPerProc, typ.BigEndian
+		return typ.ValuesStart + arg.Val, typ.ValuesPerProc
 	default:
 		panic(fmt.Sprintf("unknown ConstArg type %#v", typ))
 	}
-}
-
-func (arg *ConstArg) ValueForProc(pid uint64) uint64 {
-	v, stride, be := arg.Value()
-	v += stride * pid
-	if be {
-		switch arg.Size() {
-		case 2:
-			v = uint64(swap16(uint16(v)))
-		case 4:
-			v = uint64(swap32(uint32(v)))
-		case 8:
-			v = swap64(v)
-		default:
-			panic(fmt.Sprintf("bad const size %v", arg.Size()))
-		}
-	}
-	return v
 }
 
 // Used for PtrType and VmaType.

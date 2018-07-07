@@ -166,24 +166,24 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad2", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr", TypeSize: 4}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "empty", TypeSize: 4}, BigEndian: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "empty", TypeSize: 4}, ArgFormat: 1}},
 		&StructType{Key: StructKey{Name: "ipv4_addr_local"}, FldName: "local"},
 		&StructType{Key: StructKey{Name: "ipv4_addr_remote"}, FldName: "remote"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "loopback", TypeSize: 4}, BigEndian: true}, Val: 2130706433},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "multicast1", TypeSize: 4}, BigEndian: true}, Val: 3758096385},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "multicast2", TypeSize: 4}, BigEndian: true}, Val: 3758096386},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "broadcast", TypeSize: 4}, BigEndian: true}, Val: 4294967295},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "rand_addr", TypeSize: 4}, BigEndian: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "loopback", TypeSize: 4}, ArgFormat: 1}, Val: 2130706433},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "multicast1", TypeSize: 4}, ArgFormat: 1}, Val: 3758096385},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "multicast2", TypeSize: 4}, ArgFormat: 1}, Val: 3758096386},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "broadcast", TypeSize: 4}, ArgFormat: 1}, Val: 4294967295},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "rand_addr", TypeSize: 4}, ArgFormat: 1}},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr", TypeSize: 4, ArgDir: 1}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "empty", TypeSize: 4, ArgDir: 1}, BigEndian: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "empty", TypeSize: 4, ArgDir: 1}, ArgFormat: 1}},
 		&StructType{Key: StructKey{Name: "ipv4_addr_local", Dir: 1}, FldName: "local"},
 		&StructType{Key: StructKey{Name: "ipv4_addr_remote", Dir: 1}, FldName: "remote"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "loopback", TypeSize: 4, ArgDir: 1}, BigEndian: true}, Val: 2130706433},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "multicast1", TypeSize: 4, ArgDir: 1}, BigEndian: true}, Val: 3758096385},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "multicast2", TypeSize: 4, ArgDir: 1}, BigEndian: true}, Val: 3758096386},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "broadcast", TypeSize: 4, ArgDir: 1}, BigEndian: true}, Val: 4294967295},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "rand_addr", TypeSize: 4, ArgDir: 1}, BigEndian: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "loopback", TypeSize: 4, ArgDir: 1}, ArgFormat: 1}, Val: 2130706433},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "multicast1", TypeSize: 4, ArgDir: 1}, ArgFormat: 1}, Val: 3758096385},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "multicast2", TypeSize: 4, ArgDir: 1}, ArgFormat: 1}, Val: 3758096386},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "broadcast", TypeSize: 4, ArgDir: 1}, ArgFormat: 1}, Val: 4294967295},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "rand_addr", TypeSize: 4, ArgDir: 1}, ArgFormat: 1}},
 	}}},
 	{Key: StructKey{Name: "ipv4_addr_local"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_addr_local", TypeSize: 4}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1}}, Val: 172},
@@ -242,12 +242,12 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a4", TypeSize: 1, ArgDir: 1}}, Val: 170},
 	}}},
 	{Key: StructKey{Name: "ipv6_addr_loopback"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_addr_loopback", TypeSize: 16}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 8}, BigEndian: true}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 8}, BigEndian: true}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 8}, ArgFormat: 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 8}, ArgFormat: 1}, Val: 1},
 	}}},
 	{Key: StructKey{Name: "ipv6_addr_loopback", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_addr_loopback", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 8, ArgDir: 1}, BigEndian: true}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 8, ArgDir: 1}, BigEndian: true}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 8, ArgDir: 1}, ArgFormat: 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 8, ArgDir: 1}, ArgFormat: 1}, Val: 1},
 	}}},
 	{Key: StructKey{Name: "ipv6_addr_remote"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_addr_remote", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1}}, Val: 254},
@@ -424,26 +424,26 @@ var structDescs_amd64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "sockaddr_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2}}, Val: 2},
-		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "addr"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 8}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in", TypeSize: 16, ArgDir: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 1}}, Val: 2},
-		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2, ArgDir: 1}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2, ArgDir: 1}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&UnionType{Key: StructKey{Name: "ipv4_addr", Dir: 1}, FldName: "addr"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 8, ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 1}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in6", TypeSize: 28}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2}}, Val: 28},
-		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flow", TypeSize: 4}}},
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "addr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "scope", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in6", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in6", TypeSize: 28, ArgDir: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 1}}, Val: 28},
-		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2, ArgDir: 1}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2, ArgDir: 1}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flow", TypeSize: 4, ArgDir: 1}}},
 		&UnionType{Key: StructKey{Name: "ipv6_addr", Dir: 1}, FldName: "addr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "scope", TypeSize: 4, ArgDir: 1}}},
@@ -2439,4 +2439,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "977887b29dc5f436046cd99cf1d6fc2a661e2e77"
+const revision_amd64 = "fd7de83a3ebf8e454b041bbfe7513ed4a139d44d"

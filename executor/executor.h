@@ -36,6 +36,12 @@ const uint64 arg_result = 1;
 const uint64 arg_data = 2;
 const uint64 arg_csum = 3;
 
+const uint64 binary_format_native = 0;
+const uint64 binary_format_bigendian = 1;
+const uint64 binary_format_strdec = 2;
+const uint64 binary_format_strhex = 3;
+const uint64 binary_format_stroct = 4;
+
 const uint64 no_copyout = -1;
 
 enum sandbox_type {
@@ -186,9 +192,9 @@ uint32* write_output(uint32 v);
 void write_completed(uint32 completed);
 uint64 read_input(uint64** input_posp, bool peek = false);
 uint64 read_arg(uint64** input_posp);
-uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_off_p, uint64* bf_len_p);
+uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf, uint64* bf_off_p, uint64* bf_len_p);
 uint64 read_result(uint64** input_posp);
-void copyin(char* addr, uint64 val, uint64 size, uint64 bf_off, uint64 bf_len);
+void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len);
 bool copyout(char* addr, uint64 size, uint64* res);
 void cover_open();
 void cover_enable(thread_t* th);
@@ -341,15 +347,17 @@ retry:
 			uint64 typ = read_input(&input_pos);
 			switch (typ) {
 			case arg_const: {
-				uint64 size, bf_off, bf_len;
-				uint64 arg = read_const_arg(&input_pos, &size, &bf_off, &bf_len);
-				copyin(addr, arg, size, bf_off, bf_len);
+				uint64 size, bf, bf_off, bf_len;
+				uint64 arg = read_const_arg(&input_pos, &size, &bf, &bf_off, &bf_len);
+				copyin(addr, arg, size, bf, bf_off, bf_len);
 				break;
 			}
 			case arg_result: {
-				uint64 size = read_input(&input_pos);
+				uint64 meta = read_input(&input_pos);
+				uint64 size = meta & 0xff;
+				uint64 bf = meta >> 8;
 				uint64 val = read_result(&input_pos);
-				copyin(addr, val, size, 0, 0);
+				copyin(addr, val, size, bf, 0, 0);
 				break;
 			}
 			case arg_data: {
@@ -367,9 +375,8 @@ retry:
 				uint64 csum_kind = read_input(&input_pos);
 				switch (csum_kind) {
 				case arg_csum_inet: {
-					if (size != 2) {
+					if (size != 2)
 						fail("inet checksum must be 2 bytes, not %llu", size);
-					}
 					debug("calculating checksum for %p\n", csum_addr);
 					struct csum_inet csum;
 					csum_inet_init(&csum);
@@ -398,7 +405,7 @@ retry:
 					}
 					uint16 csum_value = csum_inet_digest(&csum);
 					debug("writing inet checksum %hx to %p\n", csum_value, csum_addr);
-					copyin(csum_addr, csum_value, 2, 0, 0);
+					copyin(csum_addr, csum_value, 2, binary_format_native, 0, 0);
 					break;
 				}
 				default:
@@ -754,24 +761,47 @@ static bool dedup(uint32 sig)
 	return false;
 }
 
-void copyin(char* addr, uint64 val, uint64 size, uint64 bf_off, uint64 bf_len)
+void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len)
 {
-	NONFAILING(switch (size) {
-		case 1:
-			STORE_BY_BITMASK(uint8, addr, val, bf_off, bf_len);
-			break;
-		case 2:
-			STORE_BY_BITMASK(uint16, addr, val, bf_off, bf_len);
-			break;
-		case 4:
-			STORE_BY_BITMASK(uint32, addr, val, bf_off, bf_len);
-			break;
-		case 8:
-			STORE_BY_BITMASK(uint64, addr, val, bf_off, bf_len);
-			break;
-		default:
-			fail("copyin: bad argument size %llu", size);
-	});
+	if (bf != binary_format_native && (bf_off != 0 || bf_len != 0))
+		fail("bitmask for string format %llu/%llu", bf_off, bf_len);
+	switch (bf) {
+	case binary_format_native:
+		NONFAILING(switch (size) {
+			case 1:
+				STORE_BY_BITMASK(uint8, addr, val, bf_off, bf_len);
+				break;
+			case 2:
+				STORE_BY_BITMASK(uint16, addr, val, bf_off, bf_len);
+				break;
+			case 4:
+				STORE_BY_BITMASK(uint32, addr, val, bf_off, bf_len);
+				break;
+			case 8:
+				STORE_BY_BITMASK(uint64, addr, val, bf_off, bf_len);
+				break;
+			default:
+				fail("copyin: bad argument size %llu", size);
+		});
+		break;
+	case binary_format_strdec:
+		if (size != 20)
+			fail("bad strdec size %llu", size);
+		NONFAILING(sprintf((char*)addr, "%020llu", val));
+		break;
+	case binary_format_strhex:
+		if (size != 18)
+			fail("bad strhex size %llu", size);
+		NONFAILING(sprintf((char*)addr, "0x%016llx", val));
+		break;
+	case binary_format_stroct:
+		if (size != 23)
+			fail("bad stroct size %llu", size);
+		NONFAILING(sprintf((char*)addr, "%023llo", val));
+		break;
+	default:
+		fail("unknown binary format %llu", bf);
+	}
 }
 
 bool copyout(char* addr, uint64 size, uint64* res)
@@ -802,11 +832,19 @@ uint64 read_arg(uint64** input_posp)
 	uint64 typ = read_input(input_posp);
 	switch (typ) {
 	case arg_const: {
-		uint64 size, bf_off, bf_len;
-		return read_const_arg(input_posp, &size, &bf_off, &bf_len);
+		uint64 size, bf, bf_off, bf_len;
+		uint64 val = read_const_arg(input_posp, &size, &bf, &bf_off, &bf_len);
+		if (bf != binary_format_native)
+			fail("bad argument binary format %llu", bf);
+		if (bf_off != 0 || bf_len != 0)
+			fail("bad argument bitfield %llu/%llu", bf_off, bf_len);
+		return val;
 	}
 	case arg_result: {
-		read_input(input_posp); // size
+		uint64 meta = read_input(input_posp);
+		uint64 bf = meta >> 8;
+		if (bf != binary_format_native)
+			fail("bad result argument format %llu", bf);
 		return read_result(input_posp);
 	}
 	default:
@@ -814,17 +852,18 @@ uint64 read_arg(uint64** input_posp)
 	}
 }
 
-uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_off_p, uint64* bf_len_p)
+uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_p, uint64* bf_off_p, uint64* bf_len_p)
 {
 	uint64 meta = read_input(input_posp);
 	uint64 val = read_input(input_posp);
 	*size_p = meta & 0xff;
-	bool be = meta & (1 << 8);
+	uint64 bf = (meta >> 8) & 0xff;
 	*bf_off_p = (meta >> 16) & 0xff;
 	*bf_len_p = (meta >> 24) & 0xff;
 	uint64 pid_stride = meta >> 32;
 	val += pid_stride * procid;
-	if (be) {
+	if (bf == binary_format_bigendian) {
+		bf = binary_format_native;
 		switch (*size_p) {
 		case 2:
 			val = htobe16(val);
@@ -836,9 +875,10 @@ uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_off_p, uin
 			val = htobe64(val);
 			break;
 		default:
-			fail("bad big-endian int size %d", (int)*size_p);
+			fail("bad big-endian int size %llu", *size_p);
 		}
 	}
+	*bf_p = bf;
 	return val;
 }
 
