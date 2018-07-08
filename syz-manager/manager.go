@@ -408,6 +408,7 @@ func (mgr *Manager) vmLoop() {
 			stopRequest = mgr.vmStop
 		}
 
+	wait:
 		select {
 		case stopRequest <- true:
 			log.Logf(1, "loop: issued stop request")
@@ -460,12 +461,14 @@ func (mgr *Manager) vmLoop() {
 		case reply := <-mgr.needMoreRepros:
 			reply <- phase >= phaseTriagedHub &&
 				len(reproQueue)+len(pendingRepro)+len(reproducing) == 0
+			goto wait
 		case reply := <-mgr.reproRequest:
 			repros := make(map[string]bool)
 			for title := range reproducing {
 				repros[title] = true
 			}
 			reply <- repros
+			goto wait
 		}
 	}
 }
