@@ -33,7 +33,7 @@ write$9p(fd wfd9p, data ptr[in, array[int8]], size bytesize[data])
 
 write$P9_RLERROR(fd wfd9p, data ptr[in, p9_msg[P9_RLERROR, p9_rerror]], size bytesize[data])
 write$P9_RLERRORu(fd wfd9p, data ptr[in, p9_msg[P9_RLERROR, p9_rerroru]], size bytesize[data])
-write$P9_RVERSION(fd wfd9p, data ptr[in, p9_msg[P9_RVERSION, p9_rversion]], size bytesize[data])
+write$P9_RVERSION(fd wfd9p, data ptr[in, p9_rversion], size bytesize[data])
 write$P9_RAUTH(fd wfd9p, data ptr[in, p9_msg[P9_RAUTH, p9_qid]], size bytesize[data])
 write$P9_RFLUSH(fd wfd9p, data ptr[in, p9_msg[P9_RFLUSH, void]], size bytesize[data])
 write$P9_RATTACH(fd wfd9p, data ptr[in, p9_msg[P9_RATTACH, p9_qid]], size bytesize[data])
@@ -70,7 +70,7 @@ write$P9_RUNLINKAT(fd wfd9p, data ptr[in, p9_msg[P9_RUNLINKAT, void]], size byte
 type p9_msg[MSG, PAYLOAD] {
 	size	bytesize[parent, int32]
 	type	const[MSG, int8]
-	tag	int16[1:4]
+	tag	int16[1:2]
 	payload	PAYLOAD
 } [packed]
 
@@ -85,6 +85,9 @@ p9_rerroru {
 } [packed]
 
 p9_rversion {
+	size		bytesize[parent, int32]
+	type		const[P9_RVERSION, int8]
+	tag		const[0xffff, int16]
 	msize		int32
 	version_len	len[version, int16]
 	version		stringnoz[p9_versions]
