@@ -1868,6 +1868,11 @@ retry:
 			continue;
 		char filename[FILENAME_MAX];
 		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
+		// If it's 9p mount with broken transport, lstat will fail.
+		// So try to umount first.
+		while (umount2(filename, MNT_DETACH) == 0) {
+			debug("umount(%s)\n", filename);
+		}
 		struct stat st;
 		if (lstat(filename, &st))
 			exitf("lstat(%s) failed", filename);
@@ -2069,6 +2074,11 @@ static void loop()
 #endif
 			execute_one();
 			debug("worker exiting\n");
+			// Keeping a 9p transport pipe open will hang the proccess dead,
+			// so close all opened file descriptors.
+			int fd;
+			for (fd = 3; fd < 30; fd++)
+				close(fd);
 			doexit(0);
 		}
 		debug("spawned worker pid %d\n", pid);
@@ -2101,17 +2111,17 @@ static void loop()
 			// is that the test processes setups a userfaultfd for itself,
 			// then the main thread hangs when it wants to page in a page.
 			// Below we check if the test process still executes syscalls
-			// and kill it after 500ms of inactivity.
+			// and kill it after 1s of inactivity.
 			uint64 now = current_time_ms();
 			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 			if (executed_calls != now_executed) {
 				executed_calls = now_executed;
 				last_executed = now;
 			}
-			if ((now - start < 3 * 1000) && (now - start < 1000 || now - last_executed < 500))
+			if ((now - start < 5 * 1000) && (now - start < 3000 || now - last_executed < 1000))
 				continue;
 #else
-			if (current_time_ms() - start < 3 * 1000)
+			if (current_time_ms() - start < 5 * 1000)
 				continue;
 #endif
 			debug("waitpid(%d)=%d\n", pid, res);
