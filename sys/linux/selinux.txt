@@ -58,22 +58,20 @@ selinux_policy {
 # This gives us "%s %s %hu" string.
 selinux_access_req {
 	scon	stringnoz[selinux_security_context]
-	sp0	const[0x20, int8]
+	sp0	const[' ', int8]
 	tcon	stringnoz[selinux_task_context]
-	sp1	const[0x20, int8]
-	class0	int8[0x30:0x39]
-	class1	int8[0x30:0x39]
+	sp1	const[' ', int8]
+	class	fmt[dec, int16]
 	z	const[0, int8]
 } [packed]
 
 selinux_create_objname {
 	scon	stringnoz[selinux_security_context]
-	sp0	const[0x20, int8]
+	sp0	const[' ', int8]
 	tcon	stringnoz[selinux_task_context]
-	sp1	const[0x20, int8]
-	class0	int8[0x30:0x39]
-	class1	int8[0x30:0x39]
-	sp2	const[0x20, int8]
+	sp1	const[' ', int8]
+	class	fmt[dec, int16]
+	sp2	const[' ', int8]
 	objname	filename
 } [packed]
 
@@ -84,18 +82,17 @@ selinux_create_req [
 
 selinux_validatetrans_req {
 	scon0	stringnoz[selinux_security_context]
-	sp0	const[0x20, int8]
+	sp0	const[' ', int8]
 	scon1	stringnoz[selinux_security_context]
-	sp1	const[0x20, int8]
-	class0	int8[0x30:0x39]
-	class1	int8[0x30:0x39]
-	sp2	const[0x20, int8]
+	sp1	const[' ', int8]
+	class	fmt[dec, int16]
+	sp2	const[' ', int8]
 	tcon	string[selinux_task_context]
 } [packed]
 
 selinux_user_req {
 	scon	stringnoz[selinux_security_context]
-	sp0	const[0x20, int8]
+	sp0	const[' ', int8]
 	user	string[selinux_user_context]
 } [packed]
 
