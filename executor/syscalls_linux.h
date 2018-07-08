@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "622fd7dca5deefc11e95fb0b609c0ff9acfdaa26"
+#define SYZ_REVISION "dbf3d96d2ab6ea07a713e868b93df17e17010e32"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -2081,7 +2081,7 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "dd67115f60562407c454b7c2c3a9e0119a809599"
+#define SYZ_REVISION "0c7d0f281179f92cc13d5a0707d5d8add119604e"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -4212,7 +4212,7 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "34eed31ba56f03d9a1473b8307ade80dad7af9cd"
+#define SYZ_REVISION "b4b1a830b4361f981486973c99a0055602c93b81"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -6299,7 +6299,7 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "06ba6b91a086878625a0392e3806aac59159893d"
+#define SYZ_REVISION "01e2ba848bb65ed76ff6773ce56a0dfe9d1ef3c7"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
@@ -8358,7 +8358,7 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "e8294e0f35033c1790b864b1139cd45bba0d8cfd"
+#define SYZ_REVISION "9a9705b844a22bcfa745c6e246d7f721ac8419c4"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
