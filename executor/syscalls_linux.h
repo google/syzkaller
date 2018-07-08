@@ -2,13 +2,13 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "abe91701009699b416d21dfb78e885f3e8c221c3"
+#define SYZ_REVISION "b857e4ee844d1e57b36dc5a1d327da1ab3a7e727"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2028
+#define SYZ_SYSCALL_COUNT 2065
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1392,6 +1392,7 @@ const call_t syscalls[] = {
     {"personality", 136},
     {"pipe", 42},
     {"pipe2", 331},
+    {"pipe2$9p", 331},
     {"pivot_root", 217},
     {"pkey_alloc", 381},
     {"pkey_free", 382},
@@ -1994,6 +1995,42 @@ const call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 284},
     {"write", 4},
+    {"write$9p", 4},
+    {"write$P9_RATTACH", 4},
+    {"write$P9_RAUTH", 4},
+    {"write$P9_RCLUNK", 4},
+    {"write$P9_RCREATE", 4},
+    {"write$P9_RFLUSH", 4},
+    {"write$P9_RFSYNC", 4},
+    {"write$P9_RGETATTR", 4},
+    {"write$P9_RGETLOCK", 4},
+    {"write$P9_RLCREATE", 4},
+    {"write$P9_RLERROR", 4},
+    {"write$P9_RLERRORu", 4},
+    {"write$P9_RLINK", 4},
+    {"write$P9_RLOCK", 4},
+    {"write$P9_RLOPEN", 4},
+    {"write$P9_RMKDIR", 4},
+    {"write$P9_RMKNOD", 4},
+    {"write$P9_ROPEN", 4},
+    {"write$P9_RREAD", 4},
+    {"write$P9_RREADDIR", 4},
+    {"write$P9_RREADLINK", 4},
+    {"write$P9_RREMOVE", 4},
+    {"write$P9_RRENAME", 4},
+    {"write$P9_RRENAMEAT", 4},
+    {"write$P9_RSETATTR", 4},
+    {"write$P9_RSTAT", 4},
+    {"write$P9_RSTATFS", 4},
+    {"write$P9_RSTATu", 4},
+    {"write$P9_RSYMLINK", 4},
+    {"write$P9_RUNLINKAT", 4},
+    {"write$P9_RVERSION", 4},
+    {"write$P9_RWALK", 4},
+    {"write$P9_RWRITE", 4},
+    {"write$P9_RWSTAT", 4},
+    {"write$P9_RXATTRCREATE", 4},
+    {"write$P9_RXATTRWALK", 4},
     {"write$RDMA_USER_CM_CMD_ACCEPT", 4},
     {"write$RDMA_USER_CM_CMD_BIND", 4},
     {"write$RDMA_USER_CM_CMD_BIND_IP", 4},
@@ -2044,13 +2081,13 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "06c3998f782443d4a7cba5903032fb542d094d4e"
+#define SYZ_REVISION "e4ac1334f12d70f0517b8594cd6aab770f330154"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2080
+#define SYZ_SYSCALL_COUNT 2117
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3458,6 +3495,7 @@ const call_t syscalls[] = {
     {"personality", 135},
     {"pipe", 22},
     {"pipe2", 293},
+    {"pipe2$9p", 293},
     {"pivot_root", 155},
     {"pkey_alloc", 330},
     {"pkey_free", 331},
@@ -4088,6 +4126,42 @@ const call_t syscalls[] = {
     {"wait4", 61},
     {"waitid", 247},
     {"write", 1},
+    {"write$9p", 1},
+    {"write$P9_RATTACH", 1},
+    {"write$P9_RAUTH", 1},
+    {"write$P9_RCLUNK", 1},
+    {"write$P9_RCREATE", 1},
+    {"write$P9_RFLUSH", 1},
+    {"write$P9_RFSYNC", 1},
+    {"write$P9_RGETATTR", 1},
+    {"write$P9_RGETLOCK", 1},
+    {"write$P9_RLCREATE", 1},
+    {"write$P9_RLERROR", 1},
+    {"write$P9_RLERRORu", 1},
+    {"write$P9_RLINK", 1},
+    {"write$P9_RLOCK", 1},
+    {"write$P9_RLOPEN", 1},
+    {"write$P9_RMKDIR", 1},
+    {"write$P9_RMKNOD", 1},
+    {"write$P9_ROPEN", 1},
+    {"write$P9_RREAD", 1},
+    {"write$P9_RREADDIR", 1},
+    {"write$P9_RREADLINK", 1},
+    {"write$P9_RREMOVE", 1},
+    {"write$P9_RRENAME", 1},
+    {"write$P9_RRENAMEAT", 1},
+    {"write$P9_RSETATTR", 1},
+    {"write$P9_RSTAT", 1},
+    {"write$P9_RSTATFS", 1},
+    {"write$P9_RSTATu", 1},
+    {"write$P9_RSYMLINK", 1},
+    {"write$P9_RUNLINKAT", 1},
+    {"write$P9_RVERSION", 1},
+    {"write$P9_RWALK", 1},
+    {"write$P9_RWRITE", 1},
+    {"write$P9_RWSTAT", 1},
+    {"write$P9_RXATTRCREATE", 1},
+    {"write$P9_RXATTRWALK", 1},
     {"write$RDMA_USER_CM_CMD_ACCEPT", 1},
     {"write$RDMA_USER_CM_CMD_BIND", 1},
     {"write$RDMA_USER_CM_CMD_BIND_IP", 1},
@@ -4138,13 +4212,13 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "bc6b7742f47f750741e4be87bbdb49a3f5332d95"
+#define SYZ_REVISION "5b719f25e76a6afc879f2e6f88d93505a8e0d072"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2036
+#define SYZ_SYSCALL_COUNT 2073
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5512,6 +5586,7 @@ const call_t syscalls[] = {
     {"personality", 136},
     {"pipe", 42},
     {"pipe2", 359},
+    {"pipe2$9p", 359},
     {"pivot_root", 218},
     {"pkey_alloc", 395},
     {"pkey_free", 396},
@@ -6138,6 +6213,42 @@ const call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 280},
     {"write", 4},
+    {"write$9p", 4},
+    {"write$P9_RATTACH", 4},
+    {"write$P9_RAUTH", 4},
+    {"write$P9_RCLUNK", 4},
+    {"write$P9_RCREATE", 4},
+    {"write$P9_RFLUSH", 4},
+    {"write$P9_RFSYNC", 4},
+    {"write$P9_RGETATTR", 4},
+    {"write$P9_RGETLOCK", 4},
+    {"write$P9_RLCREATE", 4},
+    {"write$P9_RLERROR", 4},
+    {"write$P9_RLERRORu", 4},
+    {"write$P9_RLINK", 4},
+    {"write$P9_RLOCK", 4},
+    {"write$P9_RLOPEN", 4},
+    {"write$P9_RMKDIR", 4},
+    {"write$P9_RMKNOD", 4},
+    {"write$P9_ROPEN", 4},
+    {"write$P9_RREAD", 4},
+    {"write$P9_RREADDIR", 4},
+    {"write$P9_RREADLINK", 4},
+    {"write$P9_RREMOVE", 4},
+    {"write$P9_RRENAME", 4},
+    {"write$P9_RRENAMEAT", 4},
+    {"write$P9_RSETATTR", 4},
+    {"write$P9_RSTAT", 4},
+    {"write$P9_RSTATFS", 4},
+    {"write$P9_RSTATu", 4},
+    {"write$P9_RSYMLINK", 4},
+    {"write$P9_RUNLINKAT", 4},
+    {"write$P9_RVERSION", 4},
+    {"write$P9_RWALK", 4},
+    {"write$P9_RWRITE", 4},
+    {"write$P9_RWSTAT", 4},
+    {"write$P9_RXATTRCREATE", 4},
+    {"write$P9_RXATTRWALK", 4},
     {"write$RDMA_USER_CM_CMD_ACCEPT", 4},
     {"write$RDMA_USER_CM_CMD_BIND", 4},
     {"write$RDMA_USER_CM_CMD_BIND_IP", 4},
@@ -6188,13 +6299,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "74ab87999aec68e5daff6eb71e2ff5610ea5c4fa"
+#define SYZ_REVISION "c13ba972eee0132c7d310dadc8a75c067cb12f70"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2008
+#define SYZ_SYSCALL_COUNT 2045
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -7549,6 +7660,7 @@ const call_t syscalls[] = {
     {"perf_event_open$cgroup", 241},
     {"personality", 92},
     {"pipe2", 59},
+    {"pipe2$9p", 59},
     {"pivot_root", 41},
     {"pkey_alloc", 289},
     {"pkey_free", 290},
@@ -8160,6 +8272,42 @@ const call_t syscalls[] = {
     {"wait4", 260},
     {"waitid", 95},
     {"write", 64},
+    {"write$9p", 64},
+    {"write$P9_RATTACH", 64},
+    {"write$P9_RAUTH", 64},
+    {"write$P9_RCLUNK", 64},
+    {"write$P9_RCREATE", 64},
+    {"write$P9_RFLUSH", 64},
+    {"write$P9_RFSYNC", 64},
+    {"write$P9_RGETATTR", 64},
+    {"write$P9_RGETLOCK", 64},
+    {"write$P9_RLCREATE", 64},
+    {"write$P9_RLERROR", 64},
+    {"write$P9_RLERRORu", 64},
+    {"write$P9_RLINK", 64},
+    {"write$P9_RLOCK", 64},
+    {"write$P9_RLOPEN", 64},
+    {"write$P9_RMKDIR", 64},
+    {"write$P9_RMKNOD", 64},
+    {"write$P9_ROPEN", 64},
+    {"write$P9_RREAD", 64},
+    {"write$P9_RREADDIR", 64},
+    {"write$P9_RREADLINK", 64},
+    {"write$P9_RREMOVE", 64},
+    {"write$P9_RRENAME", 64},
+    {"write$P9_RRENAMEAT", 64},
+    {"write$P9_RSETATTR", 64},
+    {"write$P9_RSTAT", 64},
+    {"write$P9_RSTATFS", 64},
+    {"write$P9_RSTATu", 64},
+    {"write$P9_RSYMLINK", 64},
+    {"write$P9_RUNLINKAT", 64},
+    {"write$P9_RVERSION", 64},
+    {"write$P9_RWALK", 64},
+    {"write$P9_RWRITE", 64},
+    {"write$P9_RWSTAT", 64},
+    {"write$P9_RXATTRCREATE", 64},
+    {"write$P9_RXATTRWALK", 64},
     {"write$RDMA_USER_CM_CMD_ACCEPT", 64},
     {"write$RDMA_USER_CM_CMD_BIND", 64},
     {"write$RDMA_USER_CM_CMD_BIND_IP", 64},
@@ -8210,13 +8358,13 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "8250afa17af5035248b66b60794303ffa52f480c"
+#define SYZ_REVISION "6628f6a634675bb87609b3761d2fbf5eb0d1d6c5"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1898
+#define SYZ_SYSCALL_COUNT 1935
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -9473,6 +9621,7 @@ const call_t syscalls[] = {
     {"personality", 136},
     {"pipe", 42},
     {"pipe2", 317},
+    {"pipe2$9p", 317},
     {"pivot_root", 203},
     {"pkey_alloc", 384},
     {"pkey_free", 385},
@@ -10072,6 +10221,42 @@ const call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 272},
     {"write", 4},
+    {"write$9p", 4},
+    {"write$P9_RATTACH", 4},
+    {"write$P9_RAUTH", 4},
+    {"write$P9_RCLUNK", 4},
+    {"write$P9_RCREATE", 4},
+    {"write$P9_RFLUSH", 4},
+    {"write$P9_RFSYNC", 4},
+    {"write$P9_RGETATTR", 4},
+    {"write$P9_RGETLOCK", 4},
+    {"write$P9_RLCREATE", 4},
+    {"write$P9_RLERROR", 4},
+    {"write$P9_RLERRORu", 4},
+    {"write$P9_RLINK", 4},
+    {"write$P9_RLOCK", 4},
+    {"write$P9_RLOPEN", 4},
+    {"write$P9_RMKDIR", 4},
+    {"write$P9_RMKNOD", 4},
+    {"write$P9_ROPEN", 4},
+    {"write$P9_RREAD", 4},
+    {"write$P9_RREADDIR", 4},
+    {"write$P9_RREADLINK", 4},
+    {"write$P9_RREMOVE", 4},
+    {"write$P9_RRENAME", 4},
+    {"write$P9_RRENAMEAT", 4},
+    {"write$P9_RSETATTR", 4},
+    {"write$P9_RSTAT", 4},
+    {"write$P9_RSTATFS", 4},
+    {"write$P9_RSTATu", 4},
+    {"write$P9_RSYMLINK", 4},
+    {"write$P9_RUNLINKAT", 4},
+    {"write$P9_RVERSION", 4},
+    {"write$P9_RWALK", 4},
+    {"write$P9_RWRITE", 4},
+    {"write$P9_RWSTAT", 4},
+    {"write$P9_RXATTRCREATE", 4},
+    {"write$P9_RXATTRWALK", 4},
     {"write$RDMA_USER_CM_CMD_ACCEPT", 4},
     {"write$RDMA_USER_CM_CMD_BIND", 4},
     {"write$RDMA_USER_CM_CMD_BIND_IP", 4},
