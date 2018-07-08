@@ -18,19 +18,10 @@ openat$cgroup_int(fd fd_cgroup, file ptr[in, string[cgroup_ctrl_int]], flags con
 openat$cgroup_procs(fd fd_cgroup, file ptr[in, string[cgroup_proc_files]], flags const[O_RDWR], mode const[0]) fd_cgroup_pid
 openat$cgroup_subtree(fd fd_cgroup, file ptr[in, string["cgroup.subtree_control"]], flags const[O_RDWR], mode const[0]) fd_cgroup_subtree
 openat$cgroup_type(fd fd_cgroup, file ptr[in, string["cgroup.type"]], flags const[O_RDWR], mode const[0]) fd_cgroup_type
-write$cgroup_int(fd fd_cgroup_int, buf ptr[in, cgroup_int], len bytesize[buf])
-write$cgroup_pid(fd fd_cgroup_pid, buf ptr[in, cgroup_pid], len bytesize[buf])
+write$cgroup_int(fd fd_cgroup_int, buf ptr[in, fmt[hex, int64]], len bytesize[buf])
+write$cgroup_pid(fd fd_cgroup_pid, buf ptr[in, fmt[hex, pid]], len bytesize[buf])
 write$cgroup_subtree(fd fd_cgroup_subtree, buf ptr[in, cgroup_subtree], len bytesize[buf])
 write$cgroup_type(fd fd_cgroup_type, buf ptr[in, string["threaded"]], len bytesize[buf])
-
-cgroup_int {
-	digits	array[flags[cgroup_digits, int8]]
-} [packed]
-
-# TODO: these are bad pid's. We need something like sprintf["%v", pid].
-cgroup_pid {
-	digits	array[int8[48:57]]
-} [packed]
 
 cgroup_subtree {
 	controls	array[cgroup_control]
@@ -39,14 +30,13 @@ cgroup_subtree {
 cgroup_control {
 	sign	flags[cgroup_control_signs, int8]
 	subsys	stringnoz[cgroup_subsystems]
-	sp	const[32, int8]
+	sp	const[' ', int8]
 } [packed]
 
 cgroup_dirs = "./cgroup/syz0", "./cgroup/syz1", "./cgroup.cpu/syz0", "./cgroup.cpu/syz1", "./cgroup.net/syz0", "./cgroup.net/syz1"
 cgroup_names = "syz0", "syz1"
 cgroup_paths = "./cgroup/syz0", "./cgroup.cpu/syz0", "./cgroup.net/syz0", "./cgroup/syz1", "./cgroup.cpu/syz1", "./cgroup.net/syz1"
 cgroup_control_signs = '+', '-'
-cgroup_digits = 0, '+', '-', ',', '/', ':', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
 cgroup_subsystems = "cpu", "memory", "io", "pids", "rdma"
 cgroup_proc_files = "cgroup.procs", "cgroup.threads", "tasks"
 cgroup_ctrl_read = "cgroup.controllers", "cgroup.events", "cgroup.stat", "cpu.stat", "cpu.stat", "io.stat", "memory.current", "memory.events", "memory.stat", "memory.swap.current", "pids.current", "pids.events", "rdma.current", "cpuacct.stat", "cpuacct.usage_all", "cpuacct.usage_percpu", "cpuacct.usage_percpu_sys", "cpuacct.usage_percpu_user", "cpuacct.usage_sys", "cpuacct.usage_user", "cpuset.effective_cpus", "cpuset.effective_mems", "cpuset.memory_pressure", "hugetlb.2MB.usage_in_bytes"
