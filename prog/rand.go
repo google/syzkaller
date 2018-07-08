@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifuzz"
@@ -168,7 +169,7 @@ func (r *randGen) filename(s *state, typ *BufferType) string {
 	return fn
 }
 
-var specialFiles = []string{"", "/", "."}
+var specialFiles = []string{"", "."}
 
 func (r *randGen) filenameImpl(s *state) string {
 	if r.oneOf(100) {
@@ -185,6 +186,9 @@ func (r *randGen) filenameImpl(s *state) string {
 			dir = files[r.Intn(len(files))]
 			if len(dir) > 0 && dir[len(dir)-1] == 0 {
 				dir = dir[:len(dir)-1]
+			}
+			if r.oneOf(10) && filepath.Clean(dir)[0] != '.' {
+				dir += "/.."
 			}
 		}
 		for i := 0; ; i++ {
