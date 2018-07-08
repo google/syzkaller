@@ -185,7 +185,8 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 	}
 
 	lastExecuteTime := time.Now()
-	ticker := time.NewTimer(10 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case err := <-errc:
@@ -202,9 +203,10 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 				return extractError("lost connection to test machine")
 			}
 		case out := <-outc:
+			lastPos := len(output)
 			output = append(output, out...)
-			if bytes.Contains(output[matchPos:], executingProgram1) ||
-				bytes.Contains(output[matchPos:], executingProgram2) {
+			if bytes.Contains(output[lastPos:], executingProgram1) ||
+				bytes.Contains(output[lastPos:], executingProgram2) {
 				lastExecuteTime = time.Now()
 			}
 			if reporter.ContainsCrash(output[matchPos:]) {
