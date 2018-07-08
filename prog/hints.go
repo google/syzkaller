@@ -84,7 +84,7 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 	if typ == nil || typ.Dir() == DirOut {
 		return
 	}
-	switch typ.(type) {
+	switch t := typ.(type) {
 	case *ProcType:
 		// Random proc will not pass validation.
 		// We can mutate it, but only if the resulting value is within the legal range.
@@ -92,6 +92,11 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 	case *CsumType:
 		// Csum will not pass validation and is always computed.
 		return
+	case *BufferType:
+		if t.Kind == BufferFilename {
+			// This can generate escaping paths and is probably not too useful anyway.
+			return
+		}
 	}
 
 	switch a := arg.(type) {
