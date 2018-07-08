@@ -221,15 +221,6 @@ func (arg *UnionArg) validate(ctx *validCtx) error {
 }
 
 func (arg *PointerArg) validate(ctx *validCtx) error {
-	maxMem := ctx.target.NumPages * ctx.target.PageSize
-	size := arg.VmaSize
-	if size == 0 && arg.Res != nil {
-		size = arg.Res.Size()
-	}
-	if arg.Address >= maxMem || arg.Address+size > maxMem {
-		return fmt.Errorf("ptr %v has bad address %v/%v/%v",
-			arg.Type().Name(), arg.Address, arg.VmaSize, size)
-	}
 	switch typ := arg.Type().(type) {
 	case *VmaType:
 		if arg.Res != nil {
@@ -255,6 +246,15 @@ func (arg *PointerArg) validate(ctx *validCtx) error {
 		}
 	default:
 		return fmt.Errorf("ptr arg %v has bad type %v", arg, typ.Name())
+	}
+	maxMem := ctx.target.NumPages * ctx.target.PageSize
+	size := arg.VmaSize
+	if size == 0 && arg.Res != nil {
+		size = arg.Res.Size()
+	}
+	if arg.Address >= maxMem || arg.Address+size > maxMem {
+		return fmt.Errorf("ptr %v has bad address %v/%v/%v",
+			arg.Type().Name(), arg.Address, arg.VmaSize, size)
 	}
 	return nil
 }
