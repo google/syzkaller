@@ -77,6 +77,8 @@ type fs_opt[NAME, TYPE] {
 } [packed]
 
 type fs_opt_str[NAME] fs_opt[NAME, stringnoz]
+type fs_opt_hex[NAME, VAL] fs_opt[NAME, fmt[hex, VAL]]
+type fs_opt_dec1[NAME, VAL] fs_opt[NAME, fmt[dec, VAL]]
 type fs_opt_oct[NAME] fs_opt[NAME, array[int8['0':'7']]]
 type fs_opt_dec[NAME] fs_opt[NAME, array[flags[fs_opt_digits, int8]]]
 type fs_opt_dec_suffix[NAME] fs_opt[NAME, array[flags[fs_opt_digits_suffix, int8]]]
