@@ -2872,6 +2872,9 @@ retry:
 			continue;
 		char filename[FILENAME_MAX];
 		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
+		while (umount2(filename, MNT_DETACH) == 0) {
+			debug("umount(%s)\n", filename);
+		}
 		struct stat st;
 		if (lstat(filename, &st))
 			exitf("lstat(%s) failed", filename);
@@ -3063,6 +3066,9 @@ static void loop()
 #endif
 			execute_one();
 			debug("worker exiting\n");
+			int fd;
+			for (fd = 3; fd < 30; fd++)
+				close(fd);
 			doexit(0);
 		}
 		debug("spawned worker pid %d\n", pid);
@@ -3087,10 +3093,10 @@ static void loop()
 				executed_calls = now_executed;
 				last_executed = now;
 			}
-			if ((now - start < 3 * 1000) && (now - start < 1000 || now - last_executed < 500))
+			if ((now - start < 5 * 1000) && (now - start < 3000 || now - last_executed < 1000))
 				continue;
 #else
-			if (current_time_ms() - start < 3 * 1000)
+			if (current_time_ms() - start < 5 * 1000)
 				continue;
 #endif
 			debug("waitpid(%d)=%d\n", pid, res);
