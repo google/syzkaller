@@ -218,7 +218,7 @@ func Complete(cfg *Config) error {
 		cfg.KernelObj = filepath.Dir(cfg.VmlinuxUnused) // assume in-tree build by default
 	}
 	if cfg.KernelSrc == "" {
-		cfg.KernelSrc = filepath.Dir(cfg.VmlinuxUnused) // assume in-tree build by default
+		cfg.KernelSrc = cfg.KernelObj // assume in-tree build by default
 	}
 	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
 		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
