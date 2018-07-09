@@ -9,8 +9,8 @@ include <linux/bpf.h>
 
 resource fd_bpf_map[fd]: BPF_PSEUDO_MAP_FD
 resource fd_bpf_prog[fd]
-resource bpf_prog_id[int32]: 0, 0xffffffff
-resource bpf_map_id[int32]: 0, 0xffffffff
+resource bpf_prog_id[int32]: 0, -1
+resource bpf_map_id[int32]: 0, -1
 
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
@@ -247,8 +247,8 @@ bpf_insn_map {
 define bpf_insn_load_imm_dw	BPF_LD | BPF_DW | BPF_IMM
 
 # Slightly prune state space, these values frequently must be 0.
-bpf_insn_offsets = 0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 80, 128, 256, 0xffffffff, 0xfffffffe, 0xfffffffc, 0xfffffff8, 0xfffffff4, 0xfffffff0, 0xffffffc0
-bpf_insn_immediates = 0, 1, 4, 8, 16, 0xffffffffffffffff, 0xfffffffffffffffc, 0xfffffffffffffff0
+bpf_insn_offsets = 0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 80, 128, 256, -1, -2, -4, -8, -12, -16, -32, -64
+bpf_insn_immediates = 0, 1, 4, 8, 16, -1, -4, -16
 bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_REG_6, BPF_REG_7, BPF_REG_8, BPF_REG_9, BPF_REG_10
 
 # TODO: these filenames must be on bpf filesystem

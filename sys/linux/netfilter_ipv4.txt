@@ -52,7 +52,7 @@ type ipt_replace_entries[NENTRIES, MATCHES, TARGETS] {
 } [packed, align_ptr]
 
 type ipt_hook const[0, int32]
-type ipt_unused const[0xffffffff, int32]
+type ipt_unused const[-1, int32]
 
 type ipt_entry[MATCHES, TARGETS] {
 	matches	ipt_entry_matches[MATCHES]
