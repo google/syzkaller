@@ -169,19 +169,20 @@ func (n *String) Info() (Pos, string, string) {
 	return n.Pos, tok2str[tokString], ""
 }
 
-type intFmt int
+type IntFmt int
 
 const (
-	intFmtDec intFmt = iota
-	intFmtHex
-	intFmtChar
+	IntFmtDec IntFmt = iota
+	IntFmtNeg
+	IntFmtHex
+	IntFmtChar
 )
 
 type Int struct {
 	Pos Pos
 	// Only one of Value, Ident, CExpr is filled.
 	Value    uint64
-	valueFmt intFmt
+	ValueFmt IntFmt
 	Ident    string
 	CExpr    string
 }
@@ -194,7 +195,7 @@ type Type struct {
 	Pos Pos
 	// Only one of Value, Ident, String is filled.
 	Value     uint64
-	valueFmt  intFmt
+	ValueFmt  IntFmt
 	Ident     string
 	String    string
 	HasString bool
@@ -202,7 +203,7 @@ type Type struct {
 	HasColon  bool
 	Pos2      Pos
 	Value2    uint64
-	value2Fmt intFmt
+	Value2Fmt IntFmt
 	Ident2    string
 	Args      []*Type
 }

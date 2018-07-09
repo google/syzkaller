@@ -78,7 +78,8 @@ flagname = "\"" literal "\"" ["," "\"" literal "\""]*
 
 ## Ints
 
-`int8`, `int16`, `int32` and `int64` denote an integer of the corresponding size. `intptr` denotes a pointer-sized integer, i.e. C `long` type.
+`int8`, `int16`, `int32` and `int64` denote an integer of the corresponding size.
+`intptr` denotes a pointer-sized integer, i.e. C `long` type.
 
 By appending `be` suffix (e.g. `int16be`) integers become big-endian.
 
@@ -260,7 +261,7 @@ hex literals, as `'`-surrounded char literals, or as symbolic constants
 extracted from kernel headers or defined by `define` directives. For example:
 
 ```
-foo(a const[10])
+foo(a const[10], b const[-10])
 foo(a const[0xabcd])
 foo(a int8['a':'z'])
 foo(a const[PATH_MAX])

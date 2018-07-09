@@ -68,7 +68,7 @@ var typeInt = &typeDesc{
 	AllowColon:   true,
 	ResourceBase: true,
 	OptArgs:      1,
-	Args:         []namedArg{{Name: "range", Type: typeArgRange}},
+	Args:         []namedArg{{Name: "range", Type: typeArgIntRange}},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		typeArgBase.Type.Check(comp, t)
 	},
@@ -128,7 +128,7 @@ var typeArray = &typeDesc{
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	OptArgs:      1,
-	Args:         []namedArg{{Name: "type", Type: typeArgType}, {Name: "size", Type: typeArgRange}},
+	Args:         []namedArg{{Name: "type", Type: typeArgType}, {Name: "size", Type: typeArgSizeRange}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 1 && args[1].Value == 0 && args[1].Value2 == 0 {
 			comp.error(args[1].Pos, "arrays of size 0 are not supported")
@@ -290,7 +290,7 @@ var typeVMA = &typeDesc{
 	Names:       []string{"vma"},
 	CanBeArgRet: canBeArg,
 	OptArgs:     1,
-	Args:        []namedArg{{Name: "size range", Type: typeArgRange}},
+	Args:        []namedArg{{Name: "size range", Type: typeArgSizeRange}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		begin, end := uint64(0), uint64(0)
 		if len(args) > 0 {
@@ -367,14 +367,16 @@ var typeProc = &typeDesc{
 			return
 		}
 		size := base.TypeSize * 8
-		if size != 64 {
-			const maxPids = 32 // executor knows about this constant (MAX_PIDS)
-			if start >= 1<<size {
-				comp.error(args[0].Pos, "values starting from %v overflow base type", start)
-			} else if start+maxPids*perProc > 1<<size {
-				comp.error(args[0].Pos, "values starting from %v with step %v overflow base type for %v procs",
-					start, perProc, maxPids)
-			}
+		max := uint64(1) << size
+		if size == 64 {
+			max = ^uint64(0)
+		}
+		const maxPids = 32 // executor knows about this constant (MAX_PIDS)
+		if start >= max {
+			comp.error(args[0].Pos, "values starting from %v overflow base type", start)
+		} else if perProc > (max-start)/maxPids {
+			comp.error(args[0].Pos, "values starting from %v with step %v overflow base type for %v procs",
+				start, perProc, maxPids)
 		}
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -763,15 +765,31 @@ var typeArgInt = &typeArg{
 	Kind: kindInt,
 }
 
-var typeArgRange = &typeArg{
+var typeArgIntRange = &typeArg{
+	Kind:       kindInt,
+	AllowColon: true,
+	CheckConsts: func(comp *compiler, t *ast.Type) {
+		if !t.HasColon {
+			t.Value2 = t.Value
+			t.Value2Fmt = t.ValueFmt
+		}
+		if t.Value2-t.Value > 1<<64-1<<32 {
+			comp.error(t.Pos, "bad int range [%v:%v]", t.Value, t.Value2)
+		}
+	},
+}
+
+// Size of array and vma's.
+var typeArgSizeRange = &typeArg{
 	Kind:       kindInt,
 	AllowColon: true,
 	CheckConsts: func(comp *compiler, t *ast.Type) {
 		if !t.HasColon {
 			t.Value2 = t.Value
 		}
-		if t.Value > t.Value2 {
-			comp.error(t.Pos, "bad int range [%v:%v]", t.Value, t.Value2)
+		const maxVal = 1e6
+		if t.Value > t.Value2 || t.Value > maxVal || t.Value2 > maxVal {
+			comp.error(t.Pos, "bad size range [%v:%v]", t.Value, t.Value2)
 		}
 	},
 }

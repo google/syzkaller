@@ -217,6 +217,11 @@ foo$507(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
 foo$508(a ptr[in, string["foo", 3]])	### string value "foo\x00" exceeds buffer length 3
 foo$509(a int8['b':'a'])		### bad int range [98:97]
 foo$510(a type500)
+foo$511(a int32[-10:-20])		### bad int range [18446744073709551606:18446744073709551596]
+foo$512(a ptr[in, array[int8, -2:-1]])	### bad size range [18446744073709551614:18446744073709551615]
+foo$513(a ptr[in, array[int8, -2:2]])	### bad size range [18446744073709551614:2]
+foo$514(a vma[-2:2])			### bad size range [18446744073709551614:2]
+foo$515(a ptr[in, proc[1, -10, int64]])	### values starting from 1 with step 18446744073709551606 overflow base type for 32 procs
 
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
 type type501 int8		### unused type type501
