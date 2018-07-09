@@ -165,7 +165,7 @@ func (n *Int) Clone() Node {
 	return &Int{
 		Pos:      n.Pos,
 		Value:    n.Value,
-		valueFmt: n.valueFmt,
+		ValueFmt: n.ValueFmt,
 		Ident:    n.Ident,
 		CExpr:    n.CExpr,
 	}
@@ -179,14 +179,14 @@ func (n *Type) Clone() Node {
 	return &Type{
 		Pos:       n.Pos,
 		Value:     n.Value,
-		valueFmt:  n.valueFmt,
+		ValueFmt:  n.ValueFmt,
 		Ident:     n.Ident,
 		String:    n.String,
 		HasString: n.HasString,
 		HasColon:  n.HasColon,
 		Pos2:      n.Pos2,
 		Value2:    n.Value2,
-		value2Fmt: n.value2Fmt,
+		Value2Fmt: n.Value2Fmt,
 		Ident2:    n.Ident2,
 		Args:      args,
 	}

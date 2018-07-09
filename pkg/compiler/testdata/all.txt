@@ -7,7 +7,9 @@ foo$2(a ptr[out, array[int32]])
 foo$3(a union_arg)
 foo$4() r0
 foo$5(a int8['a':'z'])
-foo$6(a ptr[in, strings])
+foo$6(a int8[-20:-10])
+foo$7(a int8[-20:20])
+foo$8(a ptr[in, strings])
 
 resource r0[intptr]
 
@@ -38,7 +40,7 @@ strings {
 
 string_flags1 = "foo", "barbaz"
 string_flags2 = ""
-int_flags = 0, 1
+int_flags = 0, 1, 0xabc, 'x', -11
 _ = 1, 2
 _ = C1, C2
 

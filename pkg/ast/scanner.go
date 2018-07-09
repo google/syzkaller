@@ -150,7 +150,7 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 	case s.ch == '"' || s.ch == '<':
 		tok = tokString
 		lit = s.scanStr(pos)
-	case s.ch >= '0' && s.ch <= '9':
+	case s.ch >= '0' && s.ch <= '9' || s.ch == '-':
 		tok = tokInt
 		lit = s.scanInt(pos)
 	case s.ch == '\'':
@@ -211,25 +211,26 @@ func (s *scanner) scanStr(pos Pos) string {
 func (s *scanner) scanInt(pos Pos) string {
 	for s.ch >= '0' && s.ch <= '9' ||
 		s.ch >= 'a' && s.ch <= 'f' ||
-		s.ch >= 'A' && s.ch <= 'F' || s.ch == 'x' {
+		s.ch >= 'A' && s.ch <= 'F' ||
+		s.ch == 'x' || s.ch == '-' {
 		s.next()
 	}
 	lit := string(s.data[pos.Off:s.off])
-	bad := false
-	if _, err := strconv.ParseUint(lit, 10, 64); err != nil {
-		if len(lit) > 2 && lit[0] == '0' && lit[1] == 'x' {
-			if _, err := strconv.ParseUint(lit[2:], 16, 64); err != nil {
-				bad = true
-			}
-		} else {
-			bad = true
+	if _, err := strconv.ParseUint(lit, 10, 64); err == nil {
+		return lit
+	}
+	if len(lit) > 1 && lit[0] == '-' {
+		if _, err := strconv.ParseInt(lit, 10, 64); err == nil {
+			return lit
 		}
 	}
-	if bad {
-		s.Error(pos, fmt.Sprintf("bad integer %q", lit))
-		lit = "0"
+	if len(lit) > 2 && lit[0] == '0' && lit[1] == 'x' {
+		if _, err := strconv.ParseUint(lit[2:], 16, 64); err == nil {
+			return lit
+		}
 	}
-	return lit
+	s.Error(pos, fmt.Sprintf("bad integer %q", lit))
+	return "0"
 }
 
 func (s *scanner) scanChar(pos Pos) string {

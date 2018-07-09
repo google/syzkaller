@@ -12,6 +12,7 @@ int_flags = 0, "foo"			### unexpected string, expecting int, identifier
 int_flags2 = '				### char literal is not terminated
 int_flags3 = 'a				### char literal is not terminated
 int_flags3 = 'a, 1			### char literal is not terminated
+int_flags4 = 1, -2-			### bad integer "-2-"
 
 str_flags0 = "foo", "bar"
 str_flags1 = "non terminated		### string literal is not terminated

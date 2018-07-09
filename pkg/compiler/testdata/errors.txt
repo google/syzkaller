@@ -329,4 +329,5 @@ foo$fmt4(a ptr[in, fmt[dec, int8:3]])		### unexpected ':', only struct fields ca
 
 struct$fmt0 {
 	f0	fmt[dec, int8:3]		### unexpected ':', only struct fields can be bitfields
+	f1	int32:-1			### bitfield of size 18446744073709551615 is too large for base type of size 32
 }
