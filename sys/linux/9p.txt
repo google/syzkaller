@@ -249,9 +249,9 @@ p9_options_rdma {
 
 p9_options_rdma_opt [
 	common	p9_options
-	timeout	fs_opt_dec1["timeout", intptr]
-	sq	fs_opt_dec1["sq", intptr]
-	rq	fs_opt_dec1["rq", intptr]
+	timeout	fs_opt_hex["timeout", intptr]
+	sq	fs_opt_hex["sq", intptr]
+	rq	fs_opt_hex["rq", intptr]
 ] [varlen]
 
 p9_options_virtio {
@@ -290,5 +290,5 @@ p9_options [
 	access_user	stringnoz["access=user"]
 	access_any	stringnoz["access=any"]
 	access_client	stringnoz["access=client"]
-	access_uid	fs_opt_dec1["access", uid]
+	access_uid	fs_opt_dec["access", uid]
 ] [varlen]
