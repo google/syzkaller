@@ -8,7 +8,7 @@ include <linux/shm.h>
 include <linux/msg.h>
 include <linux/sem.h>
 
-resource ipc[int32]: 0, 0xffffffffffffffff
+resource ipc[int32]: 0, -1
 
 # TODO: describe ipc syscall
 

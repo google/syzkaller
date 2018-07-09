@@ -111,7 +111,7 @@ sg_interface_id = 0, 'S'
 sg_dxfer_direction = SG_DXFER_NONE, SG_DXFER_TO_DEV, SG_DXFER_FROM_DEV, SG_DXFER_TO_FROM_DEV, SG_DXFER_UNKNOWN
 sg_flags = SG_FLAG_DIRECT_IO, SG_FLAG_UNUSED_LUN_INHIBIT, SG_FLAG_MMAP_IO, SG_FLAG_NO_DXFER, SG_FLAG_Q_AT_TAIL, SG_FLAG_Q_AT_HEAD
 # TODO: we need negative integers for -1
-sg_pack_id = 0xffffffffffffffff, 0, 1, 2, 3
+sg_pack_id = -1, 0, 1, 2, 3
 
 define SG_MAX_CDB_SIZE	252
 define SG_REQUEST_TABLE_SIZE	SG_MAX_QUEUE * sizeof(sg_req_info_t)

@@ -58,4 +58,4 @@ rtc_pll_info {
 	pll_clock	intptr
 }
 
-rtc_isdst = 0, 1, 0xffffffffffffffff
+rtc_isdst = 0, 1, -1

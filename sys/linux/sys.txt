@@ -55,7 +55,7 @@ include <linux/membarrier.h>
 include <uapi/linux/kcov.h>
 include <uapi/linux/membarrier.h>
 
-resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
+resource fd[int32]: -1, AT_FDCWD
 resource fd_dir[fd]
 
 type signalno int32[0:65]
@@ -147,7 +147,7 @@ memfd_create(name ptr[in, string], flags flags[memfd_flags]) fd
 kcmp(pid1 pid, pid2 pid, type flags[kcmp_flags], fd1 fd, fd2 fd)
 kcmp$KCMP_EPOLL_TFD(pid1 pid, pid2 pid, type const[KCMP_EPOLL_TFD], fd1 fd, idx2 ptr[in, kcmp_epoll_slot])
 
-resource pkey[int32]: 0xffffffffffffffff
+resource pkey[int32]: -1
 pkey_alloc(flags const[0], val flags[pkey_flags]) pkey
 pkey_free(key pkey)
 pkey_mprotect(addr vma, len len[addr], prot flags[mmap_prot], key pkey)
@@ -305,9 +305,9 @@ utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flag
 
 clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in])
 
-resource pid[int32]: 0, 0xffffffffffffffff
-resource uid[int32]: 0, 0xffffffffffffffff, 0xee00, 0xee01
-resource gid[int32]: 0, 0xffffffffffffffff, 0xee00, 0xee01
+resource pid[int32]: 0, -1
+resource uid[int32]: 0, -1, 0xee00, 0xee01
+resource gid[int32]: 0, -1, 0xee00, 0xee01
 
 getgid() gid
 getegid() gid
@@ -866,8 +866,8 @@ user_desc {
 	lm		int32:1
 }
 
-user_desc_bases = 0, 4096, 1048576, 536870912, 536872960, 536875008, 0xffffffff
-user_desc_limits = 0, 1024, 4096, 8192, 16384, 0xffffffff
+user_desc_bases = 0, 4096, 1048576, 536870912, 536872960, 536875008, -1
+user_desc_limits = 0, 1024, 4096, 8192, 16384, -1
 
 sched_attr {
 	size	flags[sched_attr_size, int32]

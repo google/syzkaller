@@ -9,8 +9,8 @@ include <rdma/ib_verbs.h>
 include <rdma/ib.h>
 
 resource fd_rdma_cm[fd]
-resource rdma_cm_id[int32]: 0xffffffff
-resource rdma_cm_mcast_id[int32]: 0xffffffff
+resource rdma_cm_id[int32]: -1
+resource rdma_cm_mcast_id[int32]: -1
 type rdma_cm_uid int64[0:4]
 
 openat$rdma_cm(fd const[AT_FDCWD], file ptr[in, string["/dev/infiniband/rdma_cm"]], flags const[O_RDWR], mode const[0]) fd_rdma_cm

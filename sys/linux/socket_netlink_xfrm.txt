@@ -363,4 +363,4 @@ xfrm_policy_flags = XFRM_POLICY_LOCALOK, XFRM_POLICY_ICMP
 xfrm_policy_shares = XFRM_SHARE_ANY, XFRM_SHARE_SESSION, XFRM_SHARE_USER, XFRM_SHARE_UNIQUE
 xfrm_policy_dir = XFRM_POLICY_IN, XFRM_POLICY_OUT, XFRM_POLICY_FWD
 xfrm_prefixlens = 32, 128
-xfrm_encap_type = 0xfffffffffffffffd, 0xfffffffffffffffe, 0xffffffffffffffff, 0, 1, 2, 3
+xfrm_encap_type = -3, -2, -1, 0, 1, 2, 3
