@@ -30,7 +30,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 		"out/" + arch + "/ssh-keys/id_ed25519":           "key",
 		"out/build-zircon/build-" + arch + "/zircon.elf": "obj/zircon.elf",
 		"out/build-zircon/build-" + arch + "/zircon.bin": "kernel",
-		"out/" + arch + "/bootdata-blob.bin":             "initrd",
+		"out/" + arch + "/bootdata-blob-pc.bin":          "initrd",
 	} {
 		fullSrc := filepath.Join(kernelDir, filepath.FromSlash(src))
 		fullDst := filepath.Join(outputDir, filepath.FromSlash(dst))
