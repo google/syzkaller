@@ -2,13 +2,13 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "cd6ea97ca09b0aa6a6a2d089fac024b7d9f19fdb"
+#define SYZ_REVISION "963ecf7b6a3bb7ac49d9d5e5b6d5df46ecabb63a"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2066
+#define SYZ_SYSCALL_COUNT 2088
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1438,6 +1438,7 @@ const call_t syscalls[] = {
     {"pwritev", 334},
     {"quotactl", 131},
     {"read", 3},
+    {"read$FUSE", 3},
     {"read$eventfd", 3},
     {"readahead", 225},
     {"readlink", 85},
@@ -1997,6 +1998,28 @@ const call_t syscalls[] = {
     {"waitid", 284},
     {"write", 4},
     {"write$9p", 4},
+    {"write$FUSE_ATTR", 4},
+    {"write$FUSE_BMAP", 4},
+    {"write$FUSE_CREATE_OPEN", 4},
+    {"write$FUSE_DIRENT", 4},
+    {"write$FUSE_DIRENTPLUS", 4},
+    {"write$FUSE_ENTRY", 4},
+    {"write$FUSE_GETXATTR", 4},
+    {"write$FUSE_INIT", 4},
+    {"write$FUSE_INTERRUPT", 4},
+    {"write$FUSE_IOCTL", 4},
+    {"write$FUSE_LK", 4},
+    {"write$FUSE_LSEEK", 4},
+    {"write$FUSE_NOTIFY_DELETE", 4},
+    {"write$FUSE_NOTIFY_INVAL_ENTRY", 4},
+    {"write$FUSE_NOTIFY_INVAL_INODE", 4},
+    {"write$FUSE_NOTIFY_POLL", 4},
+    {"write$FUSE_NOTIFY_RETRIEVE", 4},
+    {"write$FUSE_NOTIFY_STORE", 4},
+    {"write$FUSE_OPEN", 4},
+    {"write$FUSE_POLL", 4},
+    {"write$FUSE_STATFS", 4},
+    {"write$FUSE_WRITE", 4},
     {"write$P9_RATTACH", 4},
     {"write$P9_RAUTH", 4},
     {"write$P9_RCLUNK", 4},
@@ -2065,7 +2088,6 @@ const call_t syscalls[] = {
     {"write$cgroup_type", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
-    {"write$fuse", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},
@@ -2082,13 +2104,13 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "190aa8aa436cf7ab56fd26c5e3ffe361d46fd2ed"
+#define SYZ_REVISION "7781a6fa63da2cd6674a6c212aedcdd325334aac"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2118
+#define SYZ_SYSCALL_COUNT 2140
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3542,6 +3564,7 @@ const call_t syscalls[] = {
     {"pwritev", 296},
     {"quotactl", 179},
     {"read", 0},
+    {"read$FUSE", 0},
     {"read$eventfd", 0},
     {"readahead", 187},
     {"readlink", 89},
@@ -4129,6 +4152,28 @@ const call_t syscalls[] = {
     {"waitid", 247},
     {"write", 1},
     {"write$9p", 1},
+    {"write$FUSE_ATTR", 1},
+    {"write$FUSE_BMAP", 1},
+    {"write$FUSE_CREATE_OPEN", 1},
+    {"write$FUSE_DIRENT", 1},
+    {"write$FUSE_DIRENTPLUS", 1},
+    {"write$FUSE_ENTRY", 1},
+    {"write$FUSE_GETXATTR", 1},
+    {"write$FUSE_INIT", 1},
+    {"write$FUSE_INTERRUPT", 1},
+    {"write$FUSE_IOCTL", 1},
+    {"write$FUSE_LK", 1},
+    {"write$FUSE_LSEEK", 1},
+    {"write$FUSE_NOTIFY_DELETE", 1},
+    {"write$FUSE_NOTIFY_INVAL_ENTRY", 1},
+    {"write$FUSE_NOTIFY_INVAL_INODE", 1},
+    {"write$FUSE_NOTIFY_POLL", 1},
+    {"write$FUSE_NOTIFY_RETRIEVE", 1},
+    {"write$FUSE_NOTIFY_STORE", 1},
+    {"write$FUSE_OPEN", 1},
+    {"write$FUSE_POLL", 1},
+    {"write$FUSE_STATFS", 1},
+    {"write$FUSE_WRITE", 1},
     {"write$P9_RATTACH", 1},
     {"write$P9_RAUTH", 1},
     {"write$P9_RCLUNK", 1},
@@ -4197,7 +4242,6 @@ const call_t syscalls[] = {
     {"write$cgroup_type", 1},
     {"write$evdev", 1},
     {"write$eventfd", 1},
-    {"write$fuse", 1},
     {"write$selinux_access", 1},
     {"write$selinux_context", 1},
     {"write$selinux_create", 1},
@@ -4214,13 +4258,13 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "32a63ff52926ed737c5cc558a9906c658179d72e"
+#define SYZ_REVISION "32a27f1091774bab38d5d1b8ff63ca191b656f67"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2074
+#define SYZ_SYSCALL_COUNT 2096
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5634,6 +5678,7 @@ const call_t syscalls[] = {
     {"pwritev", 362},
     {"quotactl", 131},
     {"read", 3},
+    {"read$FUSE", 3},
     {"read$eventfd", 3},
     {"readahead", 225},
     {"readlink", 85},
@@ -6217,6 +6262,28 @@ const call_t syscalls[] = {
     {"waitid", 280},
     {"write", 4},
     {"write$9p", 4},
+    {"write$FUSE_ATTR", 4},
+    {"write$FUSE_BMAP", 4},
+    {"write$FUSE_CREATE_OPEN", 4},
+    {"write$FUSE_DIRENT", 4},
+    {"write$FUSE_DIRENTPLUS", 4},
+    {"write$FUSE_ENTRY", 4},
+    {"write$FUSE_GETXATTR", 4},
+    {"write$FUSE_INIT", 4},
+    {"write$FUSE_INTERRUPT", 4},
+    {"write$FUSE_IOCTL", 4},
+    {"write$FUSE_LK", 4},
+    {"write$FUSE_LSEEK", 4},
+    {"write$FUSE_NOTIFY_DELETE", 4},
+    {"write$FUSE_NOTIFY_INVAL_ENTRY", 4},
+    {"write$FUSE_NOTIFY_INVAL_INODE", 4},
+    {"write$FUSE_NOTIFY_POLL", 4},
+    {"write$FUSE_NOTIFY_RETRIEVE", 4},
+    {"write$FUSE_NOTIFY_STORE", 4},
+    {"write$FUSE_OPEN", 4},
+    {"write$FUSE_POLL", 4},
+    {"write$FUSE_STATFS", 4},
+    {"write$FUSE_WRITE", 4},
     {"write$P9_RATTACH", 4},
     {"write$P9_RAUTH", 4},
     {"write$P9_RCLUNK", 4},
@@ -6285,7 +6352,6 @@ const call_t syscalls[] = {
     {"write$cgroup_type", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
-    {"write$fuse", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},
@@ -6302,13 +6368,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "0aa61c09fc377c7a6af3bc9ea44434c03484b8a9"
+#define SYZ_REVISION "75c78f3cb7303133b05cc783c1386d3fecf64138"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2046
+#define SYZ_SYSCALL_COUNT 2068
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -7708,6 +7774,7 @@ const call_t syscalls[] = {
     {"pwritev", 70},
     {"quotactl", 60},
     {"read", 63},
+    {"read$FUSE", 63},
     {"read$eventfd", 63},
     {"readahead", 213},
     {"readlinkat", 78},
@@ -8277,6 +8344,28 @@ const call_t syscalls[] = {
     {"waitid", 95},
     {"write", 64},
     {"write$9p", 64},
+    {"write$FUSE_ATTR", 64},
+    {"write$FUSE_BMAP", 64},
+    {"write$FUSE_CREATE_OPEN", 64},
+    {"write$FUSE_DIRENT", 64},
+    {"write$FUSE_DIRENTPLUS", 64},
+    {"write$FUSE_ENTRY", 64},
+    {"write$FUSE_GETXATTR", 64},
+    {"write$FUSE_INIT", 64},
+    {"write$FUSE_INTERRUPT", 64},
+    {"write$FUSE_IOCTL", 64},
+    {"write$FUSE_LK", 64},
+    {"write$FUSE_LSEEK", 64},
+    {"write$FUSE_NOTIFY_DELETE", 64},
+    {"write$FUSE_NOTIFY_INVAL_ENTRY", 64},
+    {"write$FUSE_NOTIFY_INVAL_INODE", 64},
+    {"write$FUSE_NOTIFY_POLL", 64},
+    {"write$FUSE_NOTIFY_RETRIEVE", 64},
+    {"write$FUSE_NOTIFY_STORE", 64},
+    {"write$FUSE_OPEN", 64},
+    {"write$FUSE_POLL", 64},
+    {"write$FUSE_STATFS", 64},
+    {"write$FUSE_WRITE", 64},
     {"write$P9_RATTACH", 64},
     {"write$P9_RAUTH", 64},
     {"write$P9_RCLUNK", 64},
@@ -8345,7 +8434,6 @@ const call_t syscalls[] = {
     {"write$cgroup_type", 64},
     {"write$evdev", 64},
     {"write$eventfd", 64},
-    {"write$fuse", 64},
     {"write$selinux_access", 64},
     {"write$selinux_context", 64},
     {"write$selinux_create", 64},
@@ -8362,13 +8450,13 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "ca8ac1887b3b4c2cf472011a33654e1c2125548b"
+#define SYZ_REVISION "18a16cc2d5ce57a61d8325d27fc311a8ba925ee2"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1936
+#define SYZ_SYSCALL_COUNT 1958
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -9671,6 +9759,7 @@ const call_t syscalls[] = {
     {"pwritev", 321},
     {"quotactl", 131},
     {"read", 3},
+    {"read$FUSE", 3},
     {"read$eventfd", 3},
     {"readahead", 191},
     {"readlink", 85},
@@ -10227,6 +10316,28 @@ const call_t syscalls[] = {
     {"waitid", 272},
     {"write", 4},
     {"write$9p", 4},
+    {"write$FUSE_ATTR", 4},
+    {"write$FUSE_BMAP", 4},
+    {"write$FUSE_CREATE_OPEN", 4},
+    {"write$FUSE_DIRENT", 4},
+    {"write$FUSE_DIRENTPLUS", 4},
+    {"write$FUSE_ENTRY", 4},
+    {"write$FUSE_GETXATTR", 4},
+    {"write$FUSE_INIT", 4},
+    {"write$FUSE_INTERRUPT", 4},
+    {"write$FUSE_IOCTL", 4},
+    {"write$FUSE_LK", 4},
+    {"write$FUSE_LSEEK", 4},
+    {"write$FUSE_NOTIFY_DELETE", 4},
+    {"write$FUSE_NOTIFY_INVAL_ENTRY", 4},
+    {"write$FUSE_NOTIFY_INVAL_INODE", 4},
+    {"write$FUSE_NOTIFY_POLL", 4},
+    {"write$FUSE_NOTIFY_RETRIEVE", 4},
+    {"write$FUSE_NOTIFY_STORE", 4},
+    {"write$FUSE_OPEN", 4},
+    {"write$FUSE_POLL", 4},
+    {"write$FUSE_STATFS", 4},
+    {"write$FUSE_WRITE", 4},
     {"write$P9_RATTACH", 4},
     {"write$P9_RAUTH", 4},
     {"write$P9_RCLUNK", 4},
@@ -10295,7 +10406,6 @@ const call_t syscalls[] = {
     {"write$cgroup_type", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
-    {"write$fuse", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},
