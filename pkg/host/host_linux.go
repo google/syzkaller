@@ -133,6 +133,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		var check func(dev string) bool
 		check = func(dev string) bool {
 			if !strings.Contains(dev, "#") {
+				// Note: don't try to open them all, some can hang (e.g. /dev/snd/pcmC#D#p).
 				return osutil.IsExist(dev)
 			}
 			for i := 0; i < 10; i++ {
@@ -151,13 +152,13 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	case "syz_open_pts":
 		return true, ""
 	case "syz_fuse_mount":
-		if !osutil.IsExist("/dev/fuse") {
-			return false, "/dev/fuse does not exist"
+		if err := osutil.IsAccessible("/dev/fuse"); err != nil {
+			return false, err.Error()
 		}
 		return onlySandboxNoneOrNamespace(sandbox)
 	case "syz_fuseblk_mount":
-		if !osutil.IsExist("/dev/fuse") {
-			return false, "/dev/fuse does not exist"
+		if err := osutil.IsAccessible("/dev/fuse"); err != nil {
+			return false, err.Error()
 		}
 		return onlySandboxNoneOrNamespace(sandbox)
 	case "syz_emit_ethernet", "syz_extract_tcp_res":
@@ -312,6 +313,9 @@ func checkCoverage() string {
 	if !osutil.IsExist("/sys/kernel/debug/kcov") {
 		return "CONFIG_KCOV is not enabled"
 	}
+	if err := osutil.IsAccessible("/sys/kernel/debug/kcov"); err != nil {
+		return err.Error()
+	}
 	return ""
 }
 
@@ -347,8 +351,8 @@ func checkComparisons() string {
 	_, _, errno = syscall.Syscall(syscall.SYS_IOCTL,
 		uintptr(fd), linux.KCOV_ENABLE, linux.KCOV_TRACE_CMP)
 	if errno != 0 {
-		if errno == syscall.ENOTTY {
-			return "kernel does not have comparison tracing support"
+		if errno == 524 { // ENOTSUPP
+			return "CONFIG_KCOV_ENABLE_COMPARISONS is not enabled"
 		}
 		return fmt.Sprintf("ioctl(KCOV_TRACE_CMP) failed: %v", errno)
 	}
@@ -357,16 +361,16 @@ func checkComparisons() string {
 }
 
 func checkFaultInjection() string {
-	if !osutil.IsExist("/proc/self/make-it-fail") {
+	if err := osutil.IsAccessible("/proc/self/make-it-fail"); err != nil {
 		return "CONFIG_FAULT_INJECTION is not enabled"
 	}
-	if !osutil.IsExist("/proc/thread-self/fail-nth") {
+	if err := osutil.IsAccessible("/proc/thread-self/fail-nth"); err != nil {
 		return "kernel does not have systematic fault injection support"
 	}
 	if reason := checkDebugFS(); reason != "" {
 		return reason
 	}
-	if !osutil.IsExist("/sys/kernel/debug/failslab/ignore-gfp-wait") {
+	if err := osutil.IsAccessible("/sys/kernel/debug/failslab/ignore-gfp-wait"); err != nil {
 		return "CONFIG_FAULT_INJECTION_DEBUG_FS is not enabled"
 	}
 	return ""
@@ -395,7 +399,7 @@ func checkLeakChecking() string {
 	if reason := checkDebugFS(); reason != "" {
 		return reason
 	}
-	if !osutil.IsExist("/sys/kernel/debug/kmemleak") {
+	if err := osutil.IsAccessible("/sys/kernel/debug/kmemleak"); err != nil {
 		return "CONFIG_DEBUG_KMEMLEAK is not enabled"
 	}
 	return ""
@@ -519,21 +523,21 @@ func kmemleakIgnore(report []byte) bool {
 }
 
 func checkSandboxNamespace() string {
-	if !osutil.IsExist("/proc/self/ns/user") {
-		return "/proc/self/ns/user is not present"
+	if err := osutil.IsAccessible("/proc/self/ns/user"); err != nil {
+		return err.Error()
 	}
 	return ""
 }
 
 func checkNetworkInjection() string {
-	if !osutil.IsExist("/dev/net/tun") {
-		return "/dev/net/tun is not present"
+	if err := osutil.IsAccessible("/dev/net/tun"); err != nil {
+		return err.Error()
 	}
 	return ""
 }
 
 func checkDebugFS() string {
-	if !osutil.IsExist("/sys/kernel/debug") {
+	if err := osutil.IsAccessible("/sys/kernel/debug"); err != nil {
 		return "debugfs is not enabled or not mounted"
 	}
 	return ""
