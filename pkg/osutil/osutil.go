@@ -91,6 +91,19 @@ func IsExist(name string) bool {
 	return err == nil
 }
 
+// IsAccessible checks if the file can be opened.
+func IsAccessible(name string) error {
+	if !IsExist(name) {
+		return fmt.Errorf("%v does not exist", name)
+	}
+	f, err := os.Open(name)
+	if err != nil {
+		return fmt.Errorf("%v can't be opened (%v)", name, err)
+	}
+	f.Close()
+	return nil
+}
+
 // FilesExist returns true if all files exist in dir.
 // Files are assumed to be relative names in slash notation.
 func FilesExist(dir string, files map[string]bool) bool {
