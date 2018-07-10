@@ -2,13 +2,13 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "ec450bcb41c5e3373266da33b010e0bd31d45af0"
+#define SYZ_REVISION "cd6ea97ca09b0aa6a6a2d089fac024b7d9f19fdb"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2065
+#define SYZ_SYSCALL_COUNT 2066
 const call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1293,6 +1293,8 @@ const call_t syscalls[] = {
     {"mount$9p_virtio", 21},
     {"mount$9p_xen", 21},
     {"mount$bpf", 21},
+    {"mount$fuse", 21},
+    {"mount$fuseblk", 21},
     {"move_pages", 317},
     {"mprotect", 125},
     {"mq_getsetattr", 282},
@@ -1328,6 +1330,7 @@ const call_t syscalls[] = {
     {"openat$dsp", 295},
     {"openat$fb0", 295},
     {"openat$full", 295},
+    {"openat$fuse", 295},
     {"openat$hidraw0", 295},
     {"openat$hpet", 295},
     {"openat$hwrng", 295},
@@ -1893,8 +1896,6 @@ const call_t syscalls[] = {
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
-    {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
-    {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -2081,13 +2082,13 @@ const call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "b6f1ae1051d4fd59e760214c9d2e9fd8aac59225"
+#define SYZ_REVISION "190aa8aa436cf7ab56fd26c5e3ffe361d46fd2ed"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2117
+#define SYZ_SYSCALL_COUNT 2118
 const call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3386,6 +3387,8 @@ const call_t syscalls[] = {
     {"mount$9p_virtio", 165},
     {"mount$9p_xen", 165},
     {"mount$bpf", 165},
+    {"mount$fuse", 165},
+    {"mount$fuseblk", 165},
     {"move_pages", 279},
     {"mprotect", 10},
     {"mq_getsetattr", 245},
@@ -3431,6 +3434,7 @@ const call_t syscalls[] = {
     {"openat$dsp", 257},
     {"openat$fb0", 257},
     {"openat$full", 257},
+    {"openat$fuse", 257},
     {"openat$hidraw0", 257},
     {"openat$hpet", 257},
     {"openat$hwrng", 257},
@@ -4024,8 +4028,6 @@ const call_t syscalls[] = {
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
-    {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
-    {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -4212,13 +4214,13 @@ const call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "186635723e9a89e330000a5d1a3af2f5a06dcb22"
+#define SYZ_REVISION "32a63ff52926ed737c5cc558a9906c658179d72e"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2073
+#define SYZ_SYSCALL_COUNT 2074
 const call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5477,6 +5479,8 @@ const call_t syscalls[] = {
     {"mount$9p_virtio", 21},
     {"mount$9p_xen", 21},
     {"mount$bpf", 21},
+    {"mount$fuse", 21},
+    {"mount$fuseblk", 21},
     {"move_pages", 344},
     {"mprotect", 125},
     {"mq_getsetattr", 279},
@@ -5522,6 +5526,7 @@ const call_t syscalls[] = {
     {"openat$dsp", 322},
     {"openat$fb0", 322},
     {"openat$full", 322},
+    {"openat$fuse", 322},
     {"openat$hidraw0", 322},
     {"openat$hpet", 322},
     {"openat$hwrng", 322},
@@ -6113,8 +6118,6 @@ const call_t syscalls[] = {
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
-    {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
-    {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -6299,13 +6302,13 @@ const call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "419df384f5db4871e5a0f094c3545fcae4685a2f"
+#define SYZ_REVISION "0aa61c09fc377c7a6af3bc9ea44434c03484b8a9"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 2045
+#define SYZ_SYSCALL_COUNT 2046
 const call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -7555,6 +7558,8 @@ const call_t syscalls[] = {
     {"mount$9p_virtio", 40},
     {"mount$9p_xen", 40},
     {"mount$bpf", 40},
+    {"mount$fuse", 40},
+    {"mount$fuseblk", 40},
     {"move_pages", 239},
     {"mprotect", 226},
     {"mq_getsetattr", 185},
@@ -7598,6 +7603,7 @@ const call_t syscalls[] = {
     {"openat$dsp", 56},
     {"openat$fb0", 56},
     {"openat$full", 56},
+    {"openat$fuse", 56},
     {"openat$hidraw0", 56},
     {"openat$hpet", 56},
     {"openat$hwrng", 56},
@@ -8176,8 +8182,6 @@ const call_t syscalls[] = {
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
-    {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
-    {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -8358,13 +8362,13 @@ const call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "1f1d0afaa0e7982e9137fec861d5d3e6c3f492f0"
+#define SYZ_REVISION "ca8ac1887b3b4c2cf472011a33654e1c2125548b"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM true
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 1935
+#define SYZ_SYSCALL_COUNT 1936
 const call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -9522,6 +9526,8 @@ const call_t syscalls[] = {
     {"mount$9p_virtio", 21},
     {"mount$9p_xen", 21},
     {"mount$bpf", 21},
+    {"mount$fuse", 21},
+    {"mount$fuseblk", 21},
     {"move_pages", 301},
     {"mprotect", 125},
     {"mq_getsetattr", 267},
@@ -9557,6 +9563,7 @@ const call_t syscalls[] = {
     {"openat$dsp", 286},
     {"openat$fb0", 286},
     {"openat$full", 286},
+    {"openat$fuse", 286},
     {"openat$hidraw0", 286},
     {"openat$hpet", 286},
     {"openat$hwrng", 286},
@@ -10119,8 +10126,6 @@ const call_t syscalls[] = {
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
-    {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
-    {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},

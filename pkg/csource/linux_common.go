@@ -93,11 +93,6 @@ var commonHeaderLinux = `
 #include <string.h>
 #include <sys/stat.h>
 #endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_fuse_mount) || defined(__NR_syz_fuseblk_mount)
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/sysmacros.h>
-#endif
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_pts)
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -798,64 +793,6 @@ static uintptr_t syz_open_pts(uintptr_t a0, uintptr_t a1)
 	char buf[128];
 	sprintf(buf, "/dev/pts/%d", ptyno);
 	return open(buf, a1, 0);
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_fuse_mount)
-static uintptr_t syz_fuse_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5)
-{
-	uint64 target = a0;
-	uint64 mode = a1;
-	uint64 uid = a2;
-	uint64 gid = a3;
-	uint64 maxread = a4;
-	uint64 flags = a5;
-
-	int fd = open("/dev/fuse", O_RDWR);
-	if (fd == -1)
-		return fd;
-	char buf[1024];
-	sprintf(buf, "fd=%d,user_id=%ld,group_id=%ld,rootmode=0%o", fd, (long)uid, (long)gid, (unsigned)mode & ~3u);
-	if (maxread != 0)
-		sprintf(buf + strlen(buf), ",max_read=%ld", (long)maxread);
-	if (mode & 1)
-		strcat(buf, ",default_permissions");
-	if (mode & 2)
-		strcat(buf, ",allow_other");
-	syscall(SYS_mount, "", target, "fuse", flags, buf);
-	return fd;
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_fuseblk_mount)
-static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
-{
-	uint64 target = a0;
-	uint64 blkdev = a1;
-	uint64 mode = a2;
-	uint64 uid = a3;
-	uint64 gid = a4;
-	uint64 maxread = a5;
-	uint64 blksize = a6;
-	uint64 flags = a7;
-
-	int fd = open("/dev/fuse", O_RDWR);
-	if (fd == -1)
-		return fd;
-	if (syscall(SYS_mknodat, AT_FDCWD, blkdev, S_IFBLK, makedev(7, 199)))
-		return fd;
-	char buf[256];
-	sprintf(buf, "fd=%d,user_id=%ld,group_id=%ld,rootmode=0%o", fd, (long)uid, (long)gid, (unsigned)mode & ~3u);
-	if (maxread != 0)
-		sprintf(buf + strlen(buf), ",max_read=%ld", (long)maxread);
-	if (blksize != 0)
-		sprintf(buf + strlen(buf), ",blksize=%ld", (long)blksize);
-	if (mode & 1)
-		strcat(buf, ",default_permissions");
-	if (mode & 2)
-		strcat(buf, ",allow_other");
-	syscall(SYS_mount, blkdev, target, "fuseblk", flags, buf);
-	return fd;
 }
 #endif
 
