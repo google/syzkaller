@@ -21,11 +21,8 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 		return fmt.Errorf("unsupported fuchsia arch %v", targetArch)
 	}
 	arch := sysTarget.KernelHeaderArch
-	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "scripts/fx", "set", arch,
+	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "clean-build", arch,
 		"--packages", "garnet/packages/products/sshd"); err != nil {
-		return err
-	}
-	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "full-build"); err != nil {
 		return err
 	}
 	for src, dst := range map[string]string{
@@ -45,6 +42,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 }
 
 func (fu fuchsia) clean(kernelDir string) error {
-	// Let's assume that fx always properly handles build without cleaning (until proven otherwise).
+	// We always do clean build because incremental build is frequently broken.
+	// So no need to clean separately.
 	return nil
 }
