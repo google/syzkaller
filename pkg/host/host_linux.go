@@ -32,6 +32,9 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	if strings.HasPrefix(c.Name, "openat$") {
 		return isSupportedOpenAt(c)
 	}
+	if strings.HasPrefix(c.Name, "mount$") {
+		return isSupportedMount(c, sandbox)
+	}
 	// There are 3 possible strategies for detecting supported syscalls:
 	// 1. Executes all syscalls with presumably invalid arguments and check for ENOprog.
 	//    But not all syscalls are safe to execute. For example, pause will hang,
@@ -151,16 +154,6 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		return true, ""
 	case "syz_open_pts":
 		return true, ""
-	case "syz_fuse_mount":
-		if err := osutil.IsAccessible("/dev/fuse"); err != nil {
-			return false, err.Error()
-		}
-		return onlySandboxNoneOrNamespace(sandbox)
-	case "syz_fuseblk_mount":
-		if err := osutil.IsAccessible("/dev/fuse"); err != nil {
-			return false, err.Error()
-		}
-		return onlySandboxNoneOrNamespace(sandbox)
 	case "syz_emit_ethernet", "syz_extract_tcp_res":
 		reason := checkNetworkInjection()
 		return reason == "", reason
@@ -200,13 +193,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		if !ok {
 			panic("syz_mount_image arg is not string")
 		}
-		filesystemsOnce.Do(func() {
-			filesystems, _ = ioutil.ReadFile("/proc/filesystems")
-		})
-		if !bytes.Contains(filesystems, []byte("\t"+fstype+"\n")) {
-			return false, "/proc/filesystems does not contain this fs"
-		}
-		return true, ""
+		return isSupportedFilesystem(fstype)
 	case "syz_read_part_table":
 		return onlySandboxNone(sandbox)
 	}
@@ -273,6 +260,35 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 	}
 	if err != nil {
 		return false, fmt.Sprintf("open(%v) failed: %v", fname, err)
+	}
+	return true, ""
+}
+
+func isSupportedMount(c *prog.Syscall, sandbox string) (bool, string) {
+	fstype, ok := extractStringConst(c.Args[2])
+	if !ok {
+		panic(fmt.Sprintf("%v: filesystem is not string const", c.Name))
+	}
+	if ok, reason := isSupportedFilesystem(fstype); !ok {
+		return ok, reason
+	}
+	switch fstype {
+	case "fuse", "fuseblk":
+		if err := osutil.IsAccessible("/dev/fuse"); err != nil {
+			return false, err.Error()
+		}
+		return onlySandboxNoneOrNamespace(sandbox)
+	default:
+		return onlySandboxNone(sandbox)
+	}
+}
+
+func isSupportedFilesystem(fstype string) (bool, string) {
+	filesystemsOnce.Do(func() {
+		filesystems, _ = ioutil.ReadFile("/proc/filesystems")
+	})
+	if !bytes.Contains(filesystems, []byte("\t"+fstype+"\n")) {
+		return false, fmt.Sprintf("/proc/filesystems does not contain %v", fstype)
 	}
 	return true, ""
 }

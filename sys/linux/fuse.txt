@@ -7,13 +7,34 @@ include <uapi/linux/fuse.h>
 
 resource fd_fuse[fd]
 
-syz_fuse_mount(target ptr[in, filename], mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd_fuse
-syz_fuseblk_mount(target ptr[in, filename], blkdev ptr[in, filename], mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd_fuse
+openat$fuse(fd const[AT_FDCWD], file ptr[in, string["/dev/fuse"]], flags const[O_RDWR], mode const[0]) fd_fuse
 ioctl$FUSE_DEV_IOC_CLONE(fd fd_fuse, cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd_fuse])
 write$fuse(fd fd_fuse, arg ptr[in, fuse_out], len bytesize[arg])
 
-# 1 stands for default_permissions, 2 - allow_other
-fuse_mode = 1, 2, S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IFLNK, S_IFDIR
+mount$fuse(src const[0], dst ptr[in, filename], type ptr[in, string["fuse"]], flags flags[mount_flags], opts ptr[in, fuse_options])
+mount$fuseblk(src ptr[in, string["/dev/loop0"]], dst ptr[in, filename], type ptr[in, string["fuseblk"]], flags flags[mount_flags], opts ptr[in, fuse_options])
+
+fuse_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IFLNK, S_IFDIR
+fuse_block_sizes = 512, 1024, 2048, 4096
+
+fuse_options {
+	fd		fs_opt_hex["fd", fd_fuse]
+	comma0		const[',', int8]
+	rootmode	fs_opt_oct["rootmode", flags[fuse_mode]]
+	comma1		const[',', int8]
+	user_id		fs_opt_dec["user_id", uid]
+	comma2		const[',', int8]
+	group_id	fs_opt_dec["group_id", gid]
+	comma3		const[',', int8]
+	opts		fs_options[fuse_opts]
+} [packed]
+
+fuse_opts [
+	max_read		fs_opt_hex["max_read", int32]
+	allow_other		stringnoz["allow_other"]
+	default_permissions	stringnoz["default_permissions"]
+	blksize			fs_opt_hex["blksize", flags[fuse_block_sizes]]
+] [varlen]
 
 fuse_out {
 	len	len[parent, int32]
