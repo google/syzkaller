@@ -1,0 +1,26 @@
+TITLE: panic: cleaned vnode isn't
+
+login: cleaned vnode: 0xffffff001742a5c0, type VBAD, use 0, write 0, hold 0,
+	tag VT_UFS, ino 26028, on dev 4, 0 flags 0x100, effnlink 1, nlink 1
+	mode 0177755, owner 0, group 0, size 0
+panic: cleaned vnode isn't
+Stopped at      db_enter+0xa:   popq    %rbp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+*329861   4439      0         0x2          0    0K syz-executor1
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+getnewvnode() at getnewvnode+0x3bc
+ffs_vget(ffff80000e400558,ffff80000e400580,ffffff000e5a7e20) at ffs_vget+0xc1
+ufs_lookup() at ufs_lookup+0xee3
+VOP_LOOKUP(ffffff001bf4d758,ffff80000e400530,ffffff001bf4d758) at VOP_LOOKUP+0x
+56
+vfs_lookup(ffff80000e400568) at vfs_lookup+0x3c1
+namei(ffff80000e400530) at namei+0x2f4
+dofstatat(280,ffff80000e3b12a0,0,ffff80000e400750,7f7ffffe3bd8) at dofstatat+0x
+93
+syscall(0) at syscall+0x489
+Xsyscall_untramp(6,0,0,0,0,28) at Xsyscall_untramp+0xe4
+end of kernel
+end trace frame: 0x7f7ffffe40b0, count: 4
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.
