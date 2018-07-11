@@ -191,6 +191,10 @@ type ConstType struct {
 	IsPad bool
 }
 
+func (t *ConstType) Default() uint64 {
+	return t.Val
+}
+
 func (t *ConstType) String() string {
 	if t.IsPad {
 		return fmt.Sprintf("pad[%v]", t.Size())
