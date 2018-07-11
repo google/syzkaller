@@ -59,6 +59,7 @@ var extractors = map[string]Extractor{
 	"linux":   new(linux),
 	"freebsd": new(freebsd),
 	"netbsd":  new(netbsd),
+	"openbsd": new(openbsd),
 	"android": new(linux),
 	"fuchsia": new(fuchsia),
 	"windows": new(windows),
