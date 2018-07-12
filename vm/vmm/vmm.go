@@ -250,36 +250,13 @@ func (inst *instance) Boot() error {
 }
 
 func (inst *instance) Close() {
-	defer os.Remove(inst.image)
-
-	if out, err := inst.vmctl("stop", inst.vmIdent()); err != nil {
+	if out, err := inst.vmctl("stop", inst.vmIdent(), "-f"); err != nil {
 		if inst.debug {
 			log.Logf(0, "vmctl stop: %v: %s", err, string(out))
 		}
 	}
 
-	var status *vmStatus
-	start := time.Now()
-	for {
-		var err error
-		status, err = inst.status()
-		if err != nil || status.pid == 0 {
-			return
-		}
-		if time.Since(start) > 2*time.Minute {
-			if inst.debug {
-				log.Logf(0, "vm %d not dead after 2 minute", inst.vmID)
-			}
-			break
-		}
-		time.Sleep(time.Second)
-	}
-	proc, err := os.FindProcess(status.pid)
-	if err != nil {
-		return
-	}
-	proc.Kill()
-	proc.Wait()
+	os.Remove(inst.image)
 }
 
 func (inst *instance) Forward(port int) (string, error) {
@@ -439,32 +416,6 @@ func (inst *instance) sshArgs(portArg string) []string {
 		args = append(args, "-v")
 	}
 	return args
-}
-
-func (inst *instance) status() (*vmStatus, error) {
-	output, err := inst.vmctl("status", inst.vmIdent())
-	if err != nil {
-		return nil, err
-	}
-
-	lines := strings.Split(string(output), "\n")
-	if len(lines) < 2 {
-		return nil, fmt.Errorf("too few lines in status output")
-	}
-	status := &vmStatus{}
-	fields := strings.Fields(lines[1])
-	if len(fields) < 2 {
-		return nil, fmt.Errorf("too few fields in status output")
-	}
-	status.id, err = strconv.Atoi(fields[0])
-	if err != nil {
-		return nil, err
-	}
-	status.pid, err = strconv.Atoi(fields[1])
-	if err != nil {
-		return nil, err
-	}
-	return status, nil
 }
 
 // Run the given vmctl(8) command and wait for it to finish.
