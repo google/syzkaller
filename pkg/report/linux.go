@@ -819,6 +819,13 @@ var linuxOopses = []*oops{
 				fmt:   "WARNING: locking bug in %[1]v",
 				stack: warningStackFmt(),
 			},
+
+			{
+				title:        compile("WARNING: lock held when returning to user space"),
+				report:       compile("WARNING: lock held when returning to user space(?:.*\\n)+?.*leaving the kernel with locks still held(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
+				fmt:          "WARNING: lock held when returning to user space in %[1]v",
+				noStackTrace: true,
+			},
 			{
 				title: compile("WARNING: .*mm/.*\\.c.* k?.?malloc"),
 				fmt:   "WARNING: kmalloc bug in %[1]v",
