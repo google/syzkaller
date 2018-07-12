@@ -1,0 +1,9 @@
+TITLE: WARNING: lock held when returning to user space in fuse_lock_inode
+
+[  197.071637] ================================================
+[  197.073115] WARNING: lock held when returning to user space!
+[  197.074536] 4.18.0-rc4+ #51 Not tainted
+[  197.075539] ------------------------------------------------
+[  197.076969] syz-executor0/17896 is leaving the kernel with locks still held!
+[  197.078741] 1 lock held by syz-executor0/17896:
+[  197.079733]  #0: 00000000a3b01fa0 (&fi->mutex){+.+.}, at: fuse_lock_inode+0xaf/0xe0
