@@ -67,6 +67,7 @@ func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog))
 	p = p.Clone()
 	c := p.Calls[callIndex]
 	execValidate := func() {
+		p.Target.SanitizeCall(c)
 		if debug {
 			if err := p.validate(); err != nil {
 				panic(fmt.Sprintf("invalid hints candidate: %v", err))
