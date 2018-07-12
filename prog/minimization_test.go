@@ -46,7 +46,7 @@ func TestMinimize(t *testing.T) {
 				// Aim at removal of sched_yield.
 				return len(p.Calls) == 2 && p.Calls[0].Meta.Name == "mmap" && p.Calls[1].Meta.Name == "pipe2"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
+			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x0, 0x10, 0xffffffffffffffff, 0x0)\n" +
 				"pipe2(&(0x7f0000000000), 0x0)\n",
 			1,
 		},
@@ -79,7 +79,7 @@ func TestMinimize(t *testing.T) {
 			func(p *Prog, callIndex int) bool {
 				return p.String() == "mmap-write-sched_yield"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
+			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x0, 0x10, 0xffffffffffffffff, 0x0)\n" +
 				"write(0xffffffffffffffff, &(0x7f0000000000), 0x0)\n" +
 				"sched_yield()\n",
 			2,
@@ -94,7 +94,7 @@ func TestMinimize(t *testing.T) {
 			func(p *Prog, callIndex int) bool {
 				return p.String() == "mmap-write-sched_yield"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
+			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x0, 0x10, 0xffffffffffffffff, 0x0)\n" +
 				"write(0xffffffffffffffff, &(0x7f0000000000), 0x0)\n" +
 				"sched_yield()\n",
 			-1,

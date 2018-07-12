@@ -48,7 +48,11 @@ func (ctx *validCtx) validateCall(c *Call) error {
 			return err
 		}
 	}
-	return ctx.validateRet(c)
+	if err := ctx.validateRet(c); err != nil {
+		return err
+	}
+	ctx.target.SanitizeCall(c)
+	return nil
 }
 
 func (ctx *validCtx) validateRet(c *Call) error {
