@@ -114,7 +114,7 @@ func (comp *compiler) checkNames() {
 				continue
 			}
 			if builtinStrFlags[name] != nil {
-				comp.error(n.Pos, "string flags conflicts with builtin flags", name)
+				comp.error(n.Pos, "string flags %v conflicts with builtin flags", name)
 				continue
 			}
 			if prev := comp.strFlags[name]; prev != nil {
