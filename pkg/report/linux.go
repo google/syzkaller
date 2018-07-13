@@ -694,6 +694,12 @@ var linuxOopses = []*oops{
 				fmt:    "BUG: still has locks held in %[1]v",
 			},
 			{
+				title:        compile("BUG: lock held when returning to user space"),
+				report:       compile("BUG: lock held when returning to user space(?:.*\\n)+?.*leaving the kernel with locks still held(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
+				fmt:          "BUG: lock held when returning to user space in %[1]v",
+				noStackTrace: true,
+			},
+			{
 				title:  compile("BUG: bad unlock balance detected!"),
 				report: compile("BUG: bad unlock balance detected!(?:.*\\n){0,15}?.*is trying to release lock(?:.*\\n){0,15}?.*{{PC}} +{{FUNC}}"),
 				fmt:    "BUG: bad unlock balance in %[1]v",
@@ -819,7 +825,6 @@ var linuxOopses = []*oops{
 				fmt:   "WARNING: locking bug in %[1]v",
 				stack: warningStackFmt(),
 			},
-
 			{
 				title:        compile("WARNING: lock held when returning to user space"),
 				report:       compile("WARNING: lock held when returning to user space(?:.*\\n)+?.*leaving the kernel with locks still held(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
