@@ -203,6 +203,9 @@ func main() {
 	if r.CheckResult.Features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
+	if r.CheckResult.Features[host.FeatureNetworkDevices].Enabled {
+		config.Flags |= ipc.FlagEnableNetDev
+	}
 	if r.CheckResult.Features[host.FeatureFaultInjection].Enabled {
 		config.Flags |= ipc.FlagEnableFault
 	}

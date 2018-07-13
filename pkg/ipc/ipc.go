@@ -31,9 +31,11 @@ const (
 	FlagSandboxSetuid                         // impersonate nobody user
 	FlagSandboxNamespace                      // use namespaces for sandboxing
 	FlagEnableTun                             // initialize and use tun in executor
+	FlagEnableNetDev                          // setup a bunch of various network devices for testing
 	FlagEnableFault                           // enable fault injection support
-	FlagUseShmem                              // use shared memory instead of pipes for communication
-	FlagUseForkServer                         // use extended protocol with handshake
+	// Executor does not know about these:
+	FlagUseShmem      // use shared memory instead of pipes for communication
+	FlagUseForkServer // use extended protocol with handshake
 )
 
 // Per-exec flags for ExecOpts.Flags:
