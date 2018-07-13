@@ -54,6 +54,7 @@ bool flag_cover;
 bool flag_sandbox_privs;
 sandbox_type flag_sandbox;
 bool flag_enable_tun;
+bool flag_enable_net_dev;
 bool flag_enable_fault_injection;
 
 bool flag_collect_cover;
@@ -243,7 +244,8 @@ void parse_env_flags(uint64 flags)
 	else if (flags & (1 << 3))
 		flag_sandbox = sandbox_namespace;
 	flag_enable_tun = flags & (1 << 4);
-	flag_enable_fault_injection = flags & (1 << 5);
+	flag_enable_net_dev = flags & (1 << 5);
+	flag_enable_fault_injection = flags & (1 << 6);
 }
 
 void receive_handshake()

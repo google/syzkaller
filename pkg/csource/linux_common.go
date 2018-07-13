@@ -538,8 +538,16 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 	va_end(args);
 }
 
+#ifdef SYZ_EXECUTOR
+extern bool flag_enable_net_dev;
+#endif
+
 static void initialize_netdevices(void)
 {
+#ifdef SYZ_EXECUTOR
+	if (!flag_enable_net_dev)
+		return;
+#endif
 	unsigned i;
 	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "team"};
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",

@@ -394,10 +394,18 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 	va_end(args);
 }
 
+#ifdef SYZ_EXECUTOR
+extern bool flag_enable_net_dev;
+#endif
+
 // We test in a separate namespace, which does not have any network devices initially (even lo).
 // Create/up as many as we can.
 static void initialize_netdevices(void)
 {
+#ifdef SYZ_EXECUTOR
+	if (!flag_enable_net_dev)
+		return;
+#endif
 	unsigned i;
 	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "team"};
 	// If you extend this array, also update netdev_addr_id in vnet.txt.

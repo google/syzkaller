@@ -44,6 +44,7 @@ const (
 	FeatureFaultInjection
 	FeatureLeakChecking
 	FeatureNetworkInjection
+	FeatureNetworkDevices
 	numFeatures
 )
 
@@ -74,6 +75,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureFaultInjection:   {Name: "fault injection", Reason: unsupported},
 		FeatureLeakChecking:     {Name: "leak checking", Reason: unsupported},
 		FeatureNetworkInjection: {Name: "net packed injection", Reason: unsupported},
+		FeatureNetworkDevices:   {Name: "net device setup", Reason: unsupported},
 	}
 	if target.OS == "akaros" {
 		return res, nil

@@ -67,6 +67,9 @@ func main() {
 	if features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
+	if features[host.FeatureNetworkDevices].Enabled {
+		config.Flags |= ipc.FlagEnableNetDev
+	}
 	gate = ipc.NewGate(2**flagProcs, nil)
 	for pid := 0; pid < *flagProcs; pid++ {
 		pid := pid

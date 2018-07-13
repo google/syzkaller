@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -320,6 +321,7 @@ func init() {
 	setupFeature[FeatureLeakChecking] = setupLeakChecking
 	callbFeature[FeatureLeakChecking] = callbackLeakChecking
 	checkFeature[FeatureNetworkInjection] = checkNetworkInjection
+	checkFeature[FeatureNetworkDevices] = checkNetworkDevices
 }
 
 func checkCoverage() string {
@@ -548,6 +550,13 @@ func checkSandboxNamespace() string {
 func checkNetworkInjection() string {
 	if err := osutil.IsAccessible("/dev/net/tun"); err != nil {
 		return err.Error()
+	}
+	return checkNetworkDevices()
+}
+
+func checkNetworkDevices() string {
+	if _, err := exec.LookPath("ip"); err != nil {
+		return "ip command is not found"
 	}
 	return ""
 }
