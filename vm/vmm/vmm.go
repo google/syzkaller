@@ -28,10 +28,11 @@ func init() {
 }
 
 type Config struct {
-	Count  int    `json:"count"`  // number of VMs to use
-	CPU    int    `json:"cpu"`    // number of VM CPUs
-	Mem    int    `json:"mem"`    // amount of VM memory in MBs
-	Kernel string `json:"kernel"` // kernel to boot
+	Count    int    `json:"count"`    // number of VMs to use
+	CPU      int    `json:"cpu"`      // number of VM CPUs
+	Mem      int    `json:"mem"`      // amount of VM memory in MBs
+	Kernel   string `json:"kernel"`   // kernel to boot
+	Template string `json:"template"` // vm template
 }
 
 type Pool struct {
@@ -101,6 +102,12 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Kernel == "" {
 		return nil, fmt.Errorf("missing config param kernel")
 	}
+	if !osutil.IsExist(cfg.Kernel) {
+		return nil, fmt.Errorf("kernel '%v' does not exist", cfg.Kernel)
+	}
+	if cfg.Template == "" {
+		return nil, fmt.Errorf("missing config param template")
+	}
 	pool := &Pool{
 		cfg: cfg,
 		env: env,
@@ -166,11 +173,10 @@ func (inst *instance) Boot() error {
 	mem := fmt.Sprintf("%dM", inst.cfg.Mem)
 	startArgs := []string{
 		"start", name,
-		"-L",
+		"-t", inst.cfg.Template,
 		"-b", inst.cfg.Kernel,
 		"-d", inst.image,
 		"-m", mem,
-		"-n", "1",
 	}
 	startOut, err := inst.vmctl(startArgs...)
 	if err != nil {
