@@ -1,0 +1,83 @@
+TITLE: kernel panic: Proc-ful Page Fault in the Kernel at ADDR!
+
+HW TRAP frame at 0xfffffff00006dd00 on core 3
+
+  rax  0x0000000000000001
+
+  rbx  0x00000002deadbabe
+
+  rcx  0x0000000000000080
+
+  rdx  0x00000002deadbac6
+
+  rbp  0xfffffff00006ddc8
+
+  rsi  0x0000000000000003
+
+  rdi  0x00000002deadbac6
+
+  r8   0x0000000000000000
+
+  r9   0x0000000000000000
+
+  r10  0x000010000000a4c0
+
+  r11  0x0000000000000206
+
+  r12  0xffff800002182e60
+
+  r13  0x00000000ffffffff
+
+  r14  0x0000000000000004
+
+  r15  0xffff800002182ac0
+
+  trap 0x0000000e Page Fault
+
+  gsbs 0xffffffffc8704140
+
+  fsbs 0x0000000000000000
+
+  err  0x--------00000000
+
+  rip  0xffffffffc2007ab7
+
+  cs   0x------------0008
+
+  flag 0x0000000000010206
+
+  rsp  0xfffffff00006ddc8
+
+  ss   0x------------0010
+
+
+Backtrace of kernel context on Core 3:
+
+#01 [<0xffffffffc2007ab7>] in kref_put
+
+#02 [<0xffffffffc2007e36>] in remove_fd_tap
+
+#03 [<0xffffffffc205846c>] in sys_tap_fds
+
+#04 [<0xffffffffc2059129>] in syscall
+
+#05 [<0xffffffffc20592e4>] in run_local_syscall
+
+#06 [<0xffffffffc2059819>] in prep_syscalls
+
+#07 [<0xffffffffc20aaefa>] in sysenter_callwrapper
+
+kernel panic at kern/arch/x86/trap.c:311, from core 3: Proc-ful Page Fault in the Kernel at 0x00000002deadbac6!
+
+Stack Backtrace on Core 3:
+
+#01 [<0xffffffffc200a3b7>] in backtrace
+
+#02 [<0xffffffffc2009b7c>] in _panic
+
+#03 [<0xffffffffc20aa629>] in trap
+
+
+Entering Nanwan's Dungeon on Core 3 (Ints off):
+
+Type 'help' for a list of commands.

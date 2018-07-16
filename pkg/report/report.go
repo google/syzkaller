@@ -41,8 +41,8 @@ type Report struct {
 	Suppressed bool
 	// Corrupted indicates whether the report is truncated of corrupted in some other way.
 	Corrupted bool
-	// corruptedReason contains reason why the report is marked as corrupted.
-	corruptedReason string
+	// CorruptedReason contains reason why the report is marked as corrupted.
+	CorruptedReason string
 	// Maintainers is list of maintainer emails.
 	Maintainers []string
 }
@@ -239,7 +239,7 @@ var parseStackTrace *regexp.Regexp
 
 func compile(re string) *regexp.Regexp {
 	re = strings.Replace(re, "{{ADDR}}", "0x[0-9a-f]+", -1)
-	re = strings.Replace(re, "{{PC}}", "\\[\\<[0-9a-f]+\\>\\]", -1)
+	re = strings.Replace(re, "{{PC}}", "\\[\\<(?:0x)?[0-9a-f]+\\>\\]", -1)
 	re = strings.Replace(re, "{{FUNC}}", "([a-zA-Z0-9_]+)(?:\\.|\\+)", -1)
 	re = strings.Replace(re, "{{SRC}}", "([a-zA-Z0-9-_/.]+\\.[a-z]+:[0-9]+)", -1)
 	return regexp.MustCompile(re)
@@ -341,6 +341,9 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 		}
 		desc = string(output[pos:end])
 	}
+	if corrupted == "" && format.corrupted {
+		corrupted = "report format is marked as corrupted"
+	}
 	return
 }
 
@@ -378,7 +381,7 @@ nextPart:
 	for _, part := range parts {
 		if part == parseStackTrace {
 			for s.Scan() {
-				ln := s.Bytes()
+				ln := bytes.Trim(s.Bytes(), "\r")
 				if corrupted == "" && matchesAny(ln, params.corruptedLines) {
 					corrupted = "corrupted line in report (1)"
 				}
@@ -402,7 +405,7 @@ nextPart:
 			}
 		} else {
 			for s.Scan() {
-				ln := s.Bytes()
+				ln := bytes.Trim(s.Bytes(), "\r")
 				if corrupted == "" && matchesAny(ln, params.corruptedLines) {
 					corrupted = "corrupted line in report (2)"
 				}
@@ -445,3 +448,7 @@ func replace(where []byte, start, end int, what []byte) []byte {
 	}
 	return where
 }
+
+var (
+	filenameRe = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
+)

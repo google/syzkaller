@@ -69,7 +69,7 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 	title, corrupted, _ := extractDescription(output[rep.StartPos:], oops, freebsdStackParams)
 	rep.Title = title
 	rep.Corrupted = corrupted != ""
-	rep.corruptedReason = corrupted
+	rep.CorruptedReason = corrupted
 	return rep
 }
 

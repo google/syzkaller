@@ -246,7 +246,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 	}
 	rep.Title = title
 	rep.Corrupted = corrupted != ""
-	rep.corruptedReason = corrupted
+	rep.CorruptedReason = corrupted
 	// Prepend 5 lines preceding start of the report,
 	// they can contain additional info related to the report.
 	for _, prefix := range reportPrefix {
@@ -255,7 +255,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 	}
 	rep.Report = append(rep.Report, report...)
 	if !rep.Corrupted {
-		rep.Corrupted, rep.corruptedReason = ctx.isCorrupted(title, report, format)
+		rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
 	}
 	return rep
 }
@@ -445,10 +445,6 @@ func (ctx *linux) extractFiles(report []byte) []string {
 }
 
 func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (bool, string) {
-	// Check if this crash format is marked as corrupted.
-	if format.corrupted {
-		return true, "report format is marked as corrupted"
-	}
 	// Check if the report contains stack trace.
 	if !format.noStackTrace && !bytes.Contains(report, []byte("Call Trace")) &&
 		!bytes.Contains(report, []byte("backtrace")) {
@@ -496,7 +492,6 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 }
 
 var (
-	filenameRe       = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	stackFrameRe     = regexp.MustCompile(`^ *(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	linuxRcuStall    = compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall")

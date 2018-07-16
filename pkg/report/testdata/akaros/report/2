@@ -1,15 +1,20 @@
-TITLE: assertion failed: buf == buf_end
+TITLE: assertion failed: rpi->gp_acked + 1 == READ_ONCE(rsp->gpnum)
 
-kernel panic at kern/src/vfs.c:1359, from core 1: assertion failed: buf == buf_end
-Entering Nanwan's Dungeon on Core 1 (Ints on):
+kernel panic at kern/src/rcu.c:325, from core 3: assertion failed: rpi->gp_acked + 1 == READ_ONCE(rsp->gpnum)
+
+Stack Backtrace on Core 3:
+
+#01 [<0xffffffffc200a3b7>] in backtrace
+
+#02 [<0xffffffffc2009b7c>] in _panic
+
+#03 [<0xffffffffc20502d9>] in rcu_report_qs_rpi
+
+#04 [<0xffffffffc2050c2c>] in rcu_report_qs
+
+#05 [<0xffffffffc2054343>] in __smp_idle
+
+
+Entering Nanwan's Dungeon on Core 3 (Ints off):
+
 Type 'help' for a list of commands.
-ROS(Core 1)> bash-4.3$ bt
-Stack Backtrace on Core 1:
-#01 [<0xffffffffc2016074>] in mon_backtrace
-#02 [<0xffffffffc2017177>] in monitor
-#03 [<0xffffffffc200cbfc>] in _panic
-#04 [<0xffffffffc205c51c>] in generic_file_write
-#05 [<0xffffffffc2053890>] in sys_write
-#06 [<0xffffffffc2056919>] in syscall
-#07 [<0xffffffffc2056ad4>] in run_local_syscall
-#08 [<0xffffffffc20a28aa>] in sysenter_callwrapper

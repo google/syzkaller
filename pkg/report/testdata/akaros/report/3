@@ -1,4 +1,5 @@
 TITLE: assertion failed: page && pm_slot_check_refcnt(*page->pg_tree_slot)
+CORRUPTED: Y
 
 Unhandled user trap in vcore context from VC 1
 HW TRAP frame (partial) at 0xffffffffc82cbd20 on core 1

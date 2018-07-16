@@ -139,7 +139,7 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	if rep != nil {
 		title = rep.Title
 		corrupted = rep.Corrupted
-		corruptedReason = rep.corruptedReason
+		corruptedReason = rep.CorruptedReason
 		suppressed = rep.Suppressed
 	}
 	if title != test.Title || corrupted != test.Corrupted || suppressed != test.Suppressed {

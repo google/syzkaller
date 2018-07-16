@@ -1,4 +1,5 @@
 TITLE: assertion failed: n >= sizeof(struct kdirent)
+CORRUPTED: Y
 
 kernel panic at kern/src/ns/sysfile.c:719, from core 1: assertion failed: n >= sizeof(struct kdirent)
 
