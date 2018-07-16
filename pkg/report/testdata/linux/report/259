@@ -1,0 +1,83 @@
+TITLE: WARNING: kmalloc bug in vfs_getxattr_alloc
+
+[   47.228351] WARNING: CPU: 0 PID: 4406 at mm/slab_common.c:1031 kmalloc_slab+0x56/0x70
+[   47.236374] Kernel panic - not syncing: panic_on_warn set ...
+[   47.236374] 
+[   47.243724] CPU: 0 PID: 4406 Comm: syz-executor177 Not tainted 4.18.0-rc4-next-20180713+ #7
+[   47.252201] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   47.261542] Call Trace:
+[   47.264113]  dump_stack+0x1c9/0x2b4
+[   47.267717]  ? dump_stack_print_info.cold.2+0x52/0x52
+[   47.272889]  panic+0x238/0x4e7
+[   47.276064]  ? add_taint.cold.5+0x16/0x16
+[   47.280205]  ? __warn.cold.8+0x148/0x1ba
+[   47.284245]  ? __warn.cold.8+0x117/0x1ba
+[   47.288290]  ? kmalloc_slab+0x56/0x70
+[   47.292660]  __warn.cold.8+0x163/0x1ba
+[   47.296530]  ? kmalloc_slab+0x56/0x70
+[   47.300327]  report_bug+0x252/0x2d0
+[   47.303946]  do_error_trap+0x1fc/0x4d0
+[   47.307812]  ? p9_fcall_alloc+0x90/0x90
+[   47.311774]  ? p9_client_zc_rpc.constprop.11+0x1560/0x1560
+[   47.317374]  ? math_error+0x3e0/0x3e0
+[   47.321161]  ? p9_client_clunk+0xde/0x180
+[   47.325290]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   47.330111]  do_invalid_op+0x1b/0x20
+[   47.333807]  invalid_op+0x14/0x20
+[   47.337243] RIP: 0010:kmalloc_slab+0x56/0x70
+[   47.341626] Code: c5 c0 1a d1 88 5d c3 b8 10 00 00 00 48 85 ff 74 f4 83 ef 01 c1 ef 03 0f b6 87 e0 19 d1 88 eb d8 31 c0 81 e6 00 02 00 00 75 db <0f> 0b 5d c3 48 8b 04 c5 00 1a d1 88 5d c3 66 90 66 2e 0f 1f 84 00 
+[   47.360744] RSP: 0018:ffff8801af0ef830 EFLAGS: 00010246
+[   47.366085] RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffffffff81d098cd
+[   47.373332] RDX: ffffffff81d09964 RSI: 0000000000000000 RDI: 0000000000550001
+[   47.380580] RBP: ffff8801af0ef830 R08: ffff8801b640c6c0 R09: fffffbfff12569a0
+[   47.387846] R10: fffffbfff12569a0 R11: ffffffff892b4d03 R12: 0000000000550001
+[   47.395094] R13: 0000000000600040 R14: ffff8801af0ef998 R15: 0000000000600040
+[   47.402349]  ? vfs_getxattr_alloc+0x1dd/0x3c0
+[   47.406820]  ? vfs_getxattr_alloc+0x274/0x3c0
+[   47.411310]  __kmalloc_track_caller+0x21/0x760
+[   47.415873]  ? vfs_getxattr_alloc+0x274/0x3c0
+[   47.420349]  krealloc+0x65/0xb0
+[   47.423605]  vfs_getxattr_alloc+0x274/0x3c0
+[   47.427905]  ? path_setxattr+0x230/0x230
+[   47.431945]  ? lock_acquire+0x1e4/0x540
+[   47.435912]  ? fs_reclaim_acquire+0x20/0x20
+[   47.440212]  ? lock_downgrade+0x8f0/0x8f0
+[   47.444350]  cap_inode_getsecurity+0x104/0x820
+[   47.448912]  ? rootid_owns_currentns+0x1d0/0x1d0
+[   47.453647]  ? kasan_unpoison_shadow+0x35/0x50
+[   47.458224]  ? kasan_kmalloc+0xc4/0xe0
+[   47.462106]  security_inode_getsecurity+0xe1/0x130
+[   47.467016]  vfs_getxattr+0x1db/0x390
+[   47.470804]  ? xattr_permission+0x310/0x310
+[   47.475106]  ? __kmalloc_node+0x47/0x70
+[   47.479064]  getxattr+0x139/0x2c0
+[   47.482509]  ? path_listxattr+0x1a0/0x1a0
+[   47.486640]  ? mpi_free.cold.1+0x19/0x19
+[   47.490695]  ? _raw_spin_unlock_irqrestore+0x63/0xc0
+[   47.495785]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[   47.501302]  ? getname_flags+0x26e/0x5a0
+[   47.505346]  path_getxattr+0x103/0x1b0
+[   47.509212]  ? __kasan_slab_free+0x131/0x170
+[   47.513602]  ? getxattr+0x2c0/0x2c0
+[   47.517216]  ? ksys_mount+0xa8/0x140
+[   47.520914]  __x64_sys_getxattr+0x9d/0x100
+[   47.525129]  do_syscall_64+0x1b9/0x820
+[   47.528997]  ? syscall_slow_exit_work+0x500/0x500
+[   47.533837]  ? syscall_return_slowpath+0x5e0/0x5e0
+[   47.538745]  ? syscall_return_slowpath+0x31d/0x5e0
+[   47.543667]  ? prepare_exit_to_usermode+0x291/0x3b0
+[   47.548663]  ? perf_trace_sys_enter+0xb10/0xb10
+[   47.553312]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   47.558138]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   47.563309] RIP: 0033:0x440639
+[   47.566475] Code: 18 89 d0 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 fb 13 fc ff c3 66 2e 0f 1f 84 00 00 00 00 
+[   47.585590] RSP: 002b:00007ffdc307f058 EFLAGS: 00000217 ORIG_RAX: 00000000000000bf
+[   47.593287] RAX: ffffffffffffffda RBX: 0030656c69662f2e RCX: 0000000000440639
+[   47.600542] RDX: 00000000200002c0 RSI: 0000000020000500 RDI: 00000000200004c0
+[   47.607789] RBP: 64663d736e617274 R08: 00007ffdc307f1d8 R09: 00007ffdc307f1d8
+[   47.615039] R10: 0000000000000143 R11: 0000000000000217 R12: 0000000000401ec0
+[   47.622296] R13: 0000000000401f50 R14: 0000000000000000 R15: 0000000000000000
+[   47.629927] Dumping ftrace buffer:
+[   47.633444]    (ftrace buffer empty)
+[   47.637145] Kernel Offset: disabled
+[   47.640756] Rebooting in 86400 seconds..

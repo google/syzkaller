@@ -834,8 +834,8 @@ var linuxOopses = []*oops{
 			{
 				title: compile("WARNING: .*mm/.*\\.c.* k?.?malloc"),
 				fmt:   "WARNING: kmalloc bug in %[1]v",
-				stack: warningStackFmt("kmalloc", "kcalloc", "kzalloc", "vmalloc",
-					"slab", "kmem"),
+				stack: warningStackFmt("kmalloc", "kcalloc", "kzalloc", "krealloc",
+					"vmalloc", "slab", "kmem"),
 			},
 			{
 				title: compile("WARNING: .* at {{SRC}} {{FUNC}}"),
