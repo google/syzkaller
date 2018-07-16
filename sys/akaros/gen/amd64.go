@@ -152,7 +152,6 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 27, Name: "halt_core", CallName: "halt_core", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "usec", TypeSize: 8}}},
 	}},
-	{NR: 28, Name: "init_arsc", CallName: "init_arsc"},
 	{NR: 112, Name: "link", CallName: "link", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -446,7 +445,6 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_getpcoreid", Value: 7},
 	{Name: "SYS_getvcoreid", Value: 8},
 	{Name: "SYS_halt_core", Value: 27},
-	{Name: "SYS_init_arsc", Value: 28},
 	{Name: "SYS_link", Value: 112},
 	{Name: "SYS_llseek", Value: 111},
 	{Name: "SYS_lstat", Value: 106},
@@ -510,4 +508,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "f6dc674ef2200959a7b03f71a281c2b60ebe0820"
+const revision_amd64 = "687c84c69215ebd90b47978898d8133e3aa86cbe"

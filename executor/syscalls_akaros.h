@@ -2,13 +2,13 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "f6dc674ef2200959a7b03f71a281c2b60ebe0820"
+#define SYZ_REVISION "687c84c69215ebd90b47978898d8133e3aa86cbe"
 #define SYZ_EXECUTOR_USES_FORK_SERVER true
 #define SYZ_EXECUTOR_USES_SHMEM false
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-#define SYZ_SYSCALL_COUNT 70
+#define SYZ_SYSCALL_COUNT 69
 const call_t syscalls[] = {
     {"abort_sysc", 31},
     {"abort_sysc_fd", 33},
@@ -36,7 +36,6 @@ const call_t syscalls[] = {
     {"getpcoreid", 7},
     {"getvcoreid", 8},
     {"halt_core", 27},
-    {"init_arsc", 28},
     {"link", 112},
     {"llseek", 111},
     {"lstat", 106},

@@ -97,7 +97,6 @@ SYS_getcwd = 117
 SYS_getpcoreid = 7
 SYS_getvcoreid = 8
 SYS_halt_core = 27
-SYS_init_arsc = 28
 SYS_link = 112
 SYS_llseek = 111
 SYS_lstat = 106
