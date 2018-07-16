@@ -79,7 +79,6 @@ provision(target_pid pid, res_type const[RES_CORES], res_val intptr)
 notify(target_pid pid, ev_type flags[event_type], u_msg ptr[in, event_msg])
 self_notify(vcoreid int32, ev_type flags[event_type], u_msg ptr[in, event_msg], priv bool32)
 halt_core(usec intptr)
-init_arsc()
 change_to_m()
 poke_ksched(target_pid pid, res_type const[0])
 abort_sysc(syscall intptr)
@@ -100,6 +99,9 @@ nbind(src_path ptr[in, filename], src_l len[src_path], onto_path ptr[in, filenam
 nmount(fd fd, onto_path ptr[in, filename], onto_l len[onto_path], lag flags[bind_flags])
 nunmount(src_path ptr[in, filename], src_l len[src_path], onto_path ptr[in, filename], onto_l len[onto_path])
 fd2path(fd fd, u_buf ptr[out, array[int8]], len len[u_buf])
+
+# Depends on deprecated CONFIG_ARSC_SERVER.
+#init_arsc()
 
 vmm_ctl$VMM_CTL_GET_EXITS(cmd const[VMM_CTL_GET_EXITS])
 vmm_ctl$VMM_CTL_SET_EXITS(cmd const[VMM_CTL_SET_EXITS], arg flags[vmm_exits])
