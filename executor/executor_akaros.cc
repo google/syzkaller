@@ -46,8 +46,20 @@ int main(int argc, char** argv)
 			fail("execl failed");
 			return 0;
 		}
+
 		int status = 0;
-		while (waitpid(pid, &status, 0) != pid) {
+		uint64 start = current_time_ms();
+		for (;;) {
+			int res = waitpid(-1, &status, WNOHANG);
+			if (res == pid)
+				break;
+			usleep(1000);
+			if (current_time_ms() - start < 6 * 1000)
+				continue;
+			kill(pid, SIGKILL);
+			while (waitpid(-1, &status, 0) != pid) {
+			}
+			break;
 		}
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
