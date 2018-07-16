@@ -67,7 +67,7 @@ func (ctx *gvisor) Parse(output []byte) *Report {
 	rep.Title = replaceTable(gvisorTitleReplacement, title)
 	rep.Report = ctx.shortenReport(output[rep.StartPos:])
 	rep.Corrupted = corrupted != ""
-	rep.corruptedReason = corrupted
+	rep.CorruptedReason = corrupted
 	return rep
 }
 

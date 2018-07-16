@@ -1,4 +1,5 @@
 TITLE: kernel panic: Proc-ful Page Fault in the Kernel at ADDR!
+CORRUPTED: Y
 
 HW TRAP frame at 0xfffffff00006ab90 on core 0
   rax  0xffff8000044a0b60
