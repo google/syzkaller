@@ -16,27 +16,27 @@ include <termios.h>
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
 resource pid[int32]: 0, 0xffffffffffffffff
 
-openat(fd fd[opt], file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+openat(fromfd fd[opt], path ptr[in, filename], path_l len[path], oflag flags[open_flags], mode flags[open_mode]) fd
 read(fd fd, buf buffer[out], count len[buf])
 write(fd fd, buf buffer[in], count len[buf])
 close(fd fd)
 abort_sysc_fd(fd fd)
-stat(file ptr[in, filename], statbuf ptr[out, array[int8]])
-fstat(fd fd, statbuf ptr[out, array[int8]])
-lstat(file ptr[in, filename], statbuf ptr[out, array[int8]])
+stat(path ptr[in, filename], path_l len[path], statbuf ptr[out, array[int8, KSTAT_SIZE]])
+fstat(fd fd, statbuf ptr[out, array[int8, KSTAT_SIZE]])
+lstat(path ptr[in, filename], path_l len[path], statbuf ptr[out, array[int8, KSTAT_SIZE]])
 llseek(fd fd, offset_hi intptr, offset_lo intptr, result ptr[out, int64], whence flags[seek_whence])
-link(old ptr[in, filename], new ptr[in, filename])
-unlink(path ptr[in, filename])
-symlink(old ptr[in, filename], new ptr[in, filename])
-readlink(path ptr[in, filename], buf buffer[out], siz len[buf])
-chdir(dir ptr[in, filename])
-fchdir(fd fd)
+link(old ptr[in, filename], old_l len[old], new ptr[in, filename], new_l len[new])
+unlink(path ptr[in, filename], path_l len[path])
+symlink(old ptr[in, filename], old_l len[old], new ptr[in, filename], new_l len[new])
+readlink(path ptr[in, filename], path_l len[path], buf buffer[out], siz len[buf])
+chdir(pid pid[opt], path ptr[in, filename], path_l len[path])
+fchdir(pid pid[opt], fd fd)
 getcwd(buf buffer[out], size len[buf])
-rename(old ptr[in, filename], new ptr[in, filename])
-mkdir(path ptr[in, filename], mode flags[open_mode])
-rmdir(path ptr[in, filename])
+rename(old_path ptr[in, filename], old_path_l len[old_path], new_path ptr[in, filename], new_path_l len[new_path])
+mkdir(path ptr[in, filename], path_l len[path], mode flags[open_mode])
+rmdir(path ptr[in, filename], path_l len[path])
 
-fcntl$F_DUPFD(fd fd, cmd const[F_DUPFD], arg fd) fd
+fcntl$F_DUPFD(fd fd, cmd const[F_DUPFD], arg fd, must_use_low boolptr) fd
 fcntl$F_GETFD(fd fd, cmd const[F_GETFD])
 fcntl$F_GETFL(fd fd, cmd const[F_GETFL])
 fcntl$F_SETFD(fd fd, cmd const[F_SETFD], flags flags[fcntl_flags])
@@ -51,13 +51,13 @@ fork()
 waitpid(pid pid, status ptr[out, int32], options flags[wait_options])
 nanosleep(req ptr[in, timespec], rem ptr[out, timespec, opt])
 
-open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CLOEXEC, O_CREAT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC
+open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CLOEXEC, O_CREAT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC, O_REMCLO, O_PATH
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 mmap_prot = PROT_EXEC, PROT_READ, PROT_WRITE, PROT_GROWSDOWN, PROT_GROWSUP
 mmap_flags = MAP_SHARED, MAP_PRIVATE, MAP_ANONYMOUS, MAP_DENYWRITE, MAP_EXECUTABLE, MAP_FIXED, MAP_GROWSDOWN, MAP_LOCKED, MAP_NONBLOCK, MAP_NORESERVE, MAP_POPULATE, MAP_STACK
 wait_options = WNOHANG, WUNTRACED
 fcntl_flags = FD_CLOEXEC
-fcntl_status = O_APPEND, O_NONBLOCK
+fcntl_status = O_APPEND, O_NONBLOCK, O_CLOEXEC, O_REMCLO, O_PATH
 seek_whence = SEEK_SET, SEEK_CUR, SEEK_END
 
 timespec {
@@ -70,17 +70,17 @@ cache_invalidate()
 getpcoreid()
 getvcoreid()
 proc_create(path ptr[in, filename], path_l len[path], argenv ptr[in, string], argenv_l len[argenv], flags boolptr) pid
-proc_run(pid pid)
-proc_destroy(pid pid, exitcode int32)
+proc_run(pid pid[opt])
+proc_destroy(pid pid[opt], exitcode int32)
 proc_yield(being_nice bool32)
 change_vcore(vcoreid int32, enable_my_notif bool32)
 exec(path ptr[in, filename], path_l len[path], argenv ptr[in, string], argenv_l len[argenv])
-provision(target_pid pid, res_type const[RES_CORES], res_val intptr)
-notify(target_pid pid, ev_type flags[event_type], u_msg ptr[in, event_msg])
+provision(target_pid pid[opt], res_type const[RES_CORES], res_val intptr)
+notify(target_pid pid[opt], ev_type flags[event_type], u_msg ptr[in, event_msg])
 self_notify(vcoreid int32, ev_type flags[event_type], u_msg ptr[in, event_msg], priv bool32)
 halt_core(usec intptr)
 change_to_m()
-poke_ksched(target_pid pid, res_type const[0])
+poke_ksched(target_pid pid[opt], res_type const[0])
 abort_sysc(syscall intptr)
 populate_va(va vma, nr_pgs intptr)
 vmm_add_gpcs(nr_more_gpcs intptr, gpcis ptr[in, vmm_gpcore_init])
@@ -92,7 +92,7 @@ access(path ptr[in, filename], path_l len[path], mode flags[open_mode])
 umask(mask int32)
 wstat(path ptr[in, filename], path_l len[path], stat_m ptr[out, array[int8]], stat_sz bytesize[stat_m], flags const[0])
 fwstat(fd fd, stat_m ptr[out, array[int8]], stat_sz bytesize[stat_m], flags const[0])
-dup_fds_to(pid pid, map ptr[in, array[childfdmap]], nentries len[map])
+dup_fds_to(pid pid[opt], map ptr[in, array[childfdmap]], nentries len[map])
 tap_fds(tap_reqs ptr[in, array[fd_tap_req]], nr_reqs len[tap_reqs])
 tcgetattr(fd fd, termios_p ptr[out, array[int8, TERMIOS_SIZE]])
 nbind(src_path ptr[in, filename], src_l len[src_path], onto_path ptr[in, filename], onto_l len[onto_path], flag flags[bind_flags])
@@ -166,6 +166,7 @@ type user_context array[int8, USER_CONTEXT_SIZE]
 define USER_CONTEXT_SIZE	sizeof(struct user_context)
 define TERMIOS_SIZE	sizeof(struct termios)
 define EVENT_MBOX_SIZE	sizeof(struct event_mbox)
+define KSTAT_SIZE	sizeof(struct kstat)
 
 event_type = EV_NONE, EV_PREEMPT_PENDING, EV_GANG_PREMPT_PENDING, EV_VCORE_PREEMPT, EV_GANG_RETURN, EV_USER_IPI, EV_PAGE_FAULT, EV_ALARM, EV_EVENT, EV_FREE_APPLE_PIE, EV_SYSCALL, EV_CHECK_MSGS, EV_POSIX_SIGNAL, NR_EVENT_TYPES, MAX_NR_EVENT
 
