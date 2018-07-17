@@ -107,7 +107,7 @@ func (env *env) bisect() (*vcs.Commit, error) {
 	if env.head, err = env.repo.Poll(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
 		return nil, err
 	}
-	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetArch,
+	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return nil, fmt.Errorf("kernel clean failed: %v", err)
 	}
@@ -227,7 +227,7 @@ func (env *env) test() (vcs.BisectResult, error) {
 	}
 	env.log("testing commit %v with %v", current.Hash, compilerID)
 	buildStart := time.Now()
-	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetArch,
+	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return 0, fmt.Errorf("kernel clean failed: %v", err)
 	}
