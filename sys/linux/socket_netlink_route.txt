@@ -14,6 +14,8 @@ include <uapi/linux/rtnetlink.h>
 include <uapi/linux/lwtunnel.h>
 include <uapi/linux/neighbour.h>
 include <uapi/linux/fib_rules.h>
+include <uapi/linux/if_tunnel.h>
+include <uapi/linux/veth.h>
 
 resource sock_nl_route[sock_netlink]
 
@@ -152,7 +154,7 @@ ifla_policy [
 	IFLA_WEIGHT		nlattr[IFLA_WEIGHT, int32]
 	IFLA_OPERSTATE		nlattr[IFLA_OPERSTATE, int8]
 	IFLA_LINKMODE		nlattr[IFLA_LINKMODE, int8]
-	IFLA_LINKINFO		nlattr[IFLA_LINKINFO, array[ifla_info_policy]]
+	IFLA_LINKINFO		nlattr[IFLA_LINKINFO, ifla_info_policy]
 	IFLA_NET_NS_PID		nlattr[IFLA_NET_NS_PID, pid]
 # TODO: this must be some 'nsfd' fd.
 	IFLA_NET_NS_FD		nlattr[IFLA_NET_NS_FD, fd]
@@ -179,12 +181,227 @@ ifla_policy [
 	IFLA_IF_NETNSID		nlattr[IFLA_IF_NETNSID, int32]
 ] [varlen]
 
+type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {
+	IFLA_INFO_KIND	nlattr[IFLA_INFO_KIND, string[TYPE]]
+	IFLA_INFO_DATA	nlattr[DATA_TYPE, DATA]
+}
+
+# TODO: can, dummy, geneve, hsr, ifb, ipoib, ipvlan, macvlan, macvtap, netdevsim
+# nlmon, vlan, vrf, vxlan, macsec
 ifla_info_policy [
-	IFLA_INFO_KIND		nlattr[IFLA_INFO_KIND, string]
-# TODO: strictly saying this and IFLA_INFO_SLAVE_DATA is yet another NLA_NESTED.
-	IFLA_INFO_DATA		nlattr[IFLA_INFO_DATA, array[int8]]
-	IFLA_INFO_SLAVE_KIND	nlattr[IFLA_INFO_SLAVE_KIND, string]
-	IFLA_INFO_SLAVE_DATA	nlattr[IFLA_INFO_SLAVE_DATA, array[int8]]
+	bond		ifla_info_policy_t["bond", IFLA_INFO_DATA, array[bond_policy]]
+	bond_slave	ifla_info_policy_t["bond_slave", IFLA_INFO_SLAVE_DATA, bond_slave_policy]
+	bridge		ifla_info_policy_t["bridge", IFLA_INFO_DATA, array[br_policy]]
+	bridge_slave	ifla_info_policy_t["bridge_slave", IFLA_INFO_SLAVE_DATA, array[br_port_policy]]
+	gre		ifla_info_policy_t["gre", IFLA_INFO_DATA, array[ipgre_policy]]
+	gretap		ifla_info_policy_t["gretap", IFLA_INFO_DATA, array[ipgre_policy]]
+	erspan		ifla_info_policy_t["erspan", IFLA_INFO_DATA, array[ipgre_policy]]
+	ip6gre		ifla_info_policy_t["ip6gre", IFLA_INFO_DATA, array[ip6gre_policy]]
+	ip6gretap	ifla_info_policy_t["ip6gretap", IFLA_INFO_DATA, array[ip6gre_policy]]
+	ip6erspan	ifla_info_policy_t["ip6erspan", IFLA_INFO_DATA, array[ip6gre_policy]]
+	ipip		ifla_info_policy_t["ipip", IFLA_INFO_DATA, array[ipip_policy]]
+	ipip6		ifla_info_policy_t["ip6tnl", IFLA_INFO_DATA, array[ipip6_policy]]
+	ip6ip6		ifla_info_policy_t["ip6tnl", IFLA_INFO_DATA, array[ip6ip6_policy]]
+	sit		ifla_info_policy_t["sit", IFLA_INFO_DATA, array[sit_policy]]
+	veth		ifla_info_policy_t["veth", IFLA_INFO_DATA, veth_policy]
+	vti		ifla_info_policy_t["vti", IFLA_INFO_DATA, array[vti_policy]]
+	ip6vti		ifla_info_policy_t["ip6vti", IFLA_INFO_DATA, array[ip6vti_policy]]
+] [varlen]
+
+bond_policy [
+	IFLA_BOND_MODE			nlattr[IFLA_BOND_MODE, int8[0:6]]
+	IFLA_BOND_ACTIVE_SLAVE		nlattr[IFLA_BOND_ACTIVE_SLAVE, ifindex]
+	IFLA_BOND_MIIMON		nlattr[IFLA_BOND_MIIMON, int32]
+	IFLA_BOND_UPDELAY		nlattr[IFLA_BOND_UPDELAY, int32]
+	IFLA_BOND_DOWNDELAY		nlattr[IFLA_BOND_DOWNDELAY, int32]
+	IFLA_BOND_USE_CARRIER		nlattr[IFLA_BOND_USE_CARRIER, int8]
+	IFLA_BOND_ARP_INTERVAL		nlattr[IFLA_BOND_ARP_INTERVAL, int32]
+	IFLA_BOND_ARP_IP_TARGET		nlattr[IFLA_BOND_ARP_IP_TARGET, array[ipv4_addr]]
+	IFLA_BOND_ARP_VALIDATE		nlattr[IFLA_BOND_ARP_VALIDATE, int32[0:3]]
+	IFLA_BOND_ARP_ALL_TARGETS	nlattr[IFLA_BOND_ARP_ALL_TARGETS, int32[0:1]]
+	IFLA_BOND_PRIMARY		nlattr[IFLA_BOND_PRIMARY, ifindex]
+	IFLA_BOND_PRIMARY_RESELECT	nlattr[IFLA_BOND_PRIMARY_RESELECT, int8[0:2]]
+	IFLA_BOND_FAIL_OVER_MAC		nlattr[IFLA_BOND_FAIL_OVER_MAC, int8[0:2]]
+	IFLA_BOND_XMIT_HASH_POLICY	nlattr[IFLA_BOND_XMIT_HASH_POLICY, int8[0:4]]
+	IFLA_BOND_RESEND_IGMP		nlattr[IFLA_BOND_RESEND_IGMP, int32]
+	IFLA_BOND_NUM_PEER_NOTIF	nlattr[IFLA_BOND_NUM_PEER_NOTIF, int8]
+	IFLA_BOND_ALL_SLAVES_ACTIVE	nlattr[IFLA_BOND_ALL_SLAVES_ACTIVE, int8]
+	IFLA_BOND_MIN_LINKS		nlattr[IFLA_BOND_MIN_LINKS, int32]
+	IFLA_BOND_LP_INTERVAL		nlattr[IFLA_BOND_LP_INTERVAL, int32]
+	IFLA_BOND_PACKETS_PER_SLAVE	nlattr[IFLA_BOND_PACKETS_PER_SLAVE, int32]
+	IFLA_BOND_AD_LACP_RATE		nlattr[IFLA_BOND_AD_LACP_RATE, int8[0:1]]
+	IFLA_BOND_AD_SELECT		nlattr[IFLA_BOND_AD_SELECT, int8[0:2]]
+	IFLA_BOND_AD_ACTOR_SYS_PRIO	nlattr[IFLA_BOND_AD_ACTOR_SYS_PRIO, int16]
+	IFLA_BOND_AD_USER_PORT_KEY	nlattr[IFLA_BOND_AD_USER_PORT_KEY, int16]
+	IFLA_BOND_AD_ACTOR_SYSTEM	nlattr[IFLA_BOND_AD_ACTOR_SYSTEM, ipv4_addr]
+	IFLA_BOND_TLB_DYNAMIC_LB	nlattr[IFLA_BOND_TLB_DYNAMIC_LB, int8]
+] [varlen]
+
+bond_slave_policy [
+	IFLA_BOND_SLAVE_QUEUE_ID	nlattr[IFLA_BOND_SLAVE_QUEUE_ID, int16]
+] [varlen]
+
+br_policy [
+	IFLA_BR_FORWARD_DELAY			nlattr[IFLA_BR_FORWARD_DELAY, int32[2:30]]
+	IFLA_BR_HELLO_TIME			nlattr[IFLA_BR_HELLO_TIME, int32[1:10]]
+	IFLA_BR_MAX_AGE				nlattr[IFLA_BR_MAX_AGE, int32[6:40]]
+	IFLA_BR_AGEING_TIME			nlattr[IFLA_BR_AGEING_TIME, int32]
+	IFLA_BR_STP_STATE			nlattr[IFLA_BR_STP_STATE, int32[0:1]]
+	IFLA_BR_PRIORITY			nlattr[IFLA_BR_PRIORITY, int16]
+	IFLA_BR_VLAN_FILTERING			nlattr[IFLA_BR_VLAN_FILTERING, int8]
+	IFLA_BR_VLAN_PROTOCOL			nlattr[IFLA_BR_VLAN_PROTOCOL, int32]
+	IFLA_BR_GROUP_FWD_MASK			nlattr[IFLA_BR_GROUP_FWD_MASK, int32]
+	IFLA_BR_GROUP_ADDR			nlattr[IFLA_BR_GROUP_ADDR, int32]
+	IFLA_BR_MCAST_ROUTER			nlattr[IFLA_BR_MCAST_ROUTER, int32]
+	IFLA_BR_MCAST_SNOOPING			nlattr[IFLA_BR_MCAST_SNOOPING, int32]
+	IFLA_BR_MCAST_QUERY_USE_IFADDR		nlattr[IFLA_BR_MCAST_QUERY_USE_IFADDR, int32]
+	IFLA_BR_MCAST_QUERIER			nlattr[IFLA_BR_MCAST_QUERIER, int32]
+	IFLA_BR_MCAST_HASH_ELASTICITY		nlattr[IFLA_BR_MCAST_HASH_ELASTICITY, int32]
+	IFLA_BR_MCAST_HASH_MAX			nlattr[IFLA_BR_MCAST_HASH_MAX, int32]
+	IFLA_BR_MCAST_LAST_MEMBER_CNT		nlattr[IFLA_BR_MCAST_LAST_MEMBER_CNT, int32]
+	IFLA_BR_MCAST_STARTUP_QUERY_CNT		nlattr[IFLA_BR_MCAST_STARTUP_QUERY_CNT, int32]
+	IFLA_BR_MCAST_LAST_MEMBER_INTVL		nlattr[IFLA_BR_MCAST_LAST_MEMBER_INTVL, int32]
+	IFLA_BR_MCAST_MEMBERSHIP_INTVL		nlattr[IFLA_BR_MCAST_MEMBERSHIP_INTVL, int32]
+	IFLA_BR_MCAST_QUERIER_INTVL		nlattr[IFLA_BR_MCAST_QUERIER_INTVL, int32]
+	IFLA_BR_MCAST_QUERY_INTVL		nlattr[IFLA_BR_MCAST_QUERY_INTVL, int32]
+	IFLA_BR_MCAST_QUERY_RESPONSE_INTVL	nlattr[IFLA_BR_MCAST_QUERY_RESPONSE_INTVL, int32]
+	IFLA_BR_MCAST_STARTUP_QUERY_INTVL	nlattr[IFLA_BR_MCAST_STARTUP_QUERY_INTVL, int32]
+	IFLA_BR_NF_CALL_IPTABLES		nlattr[IFLA_BR_NF_CALL_IPTABLES, int32]
+	IFLA_BR_NF_CALL_IP6TABLES		nlattr[IFLA_BR_NF_CALL_IP6TABLES, int32]
+	IFLA_BR_NF_CALL_ARPTABLES		nlattr[IFLA_BR_NF_CALL_ARPTABLES, int32]
+	IFLA_BR_VLAN_DEFAULT_PVID		nlattr[IFLA_BR_VLAN_DEFAULT_PVID, int32]
+	IFLA_BR_VLAN_STATS_ENABLED		nlattr[IFLA_BR_VLAN_STATS_ENABLED, int32]
+	IFLA_BR_MCAST_STATS_ENABLED		nlattr[IFLA_BR_MCAST_STATS_ENABLED, int32]
+	IFLA_BR_MCAST_IGMP_VERSION		nlattr[IFLA_BR_MCAST_IGMP_VERSION, int32]
+	IFLA_BR_MCAST_MLD_VERSION		nlattr[IFLA_BR_MCAST_MLD_VERSION, int32]
+] [varlen]
+
+br_port_policy [
+	IFLA_BRPORT_STATE		nlattr[IFLA_BRPORT_STATE, int8[0:4]]
+	IFLA_BRPORT_COST		nlattr[IFLA_BRPORT_COST, int32]
+	IFLA_BRPORT_PRIORITY		nlattr[IFLA_BRPORT_PRIORITY, int16]
+	IFLA_BRPORT_MODE		nlattr[IFLA_BRPORT_MODE, int8[0:1]]
+	IFLA_BRPORT_GUARD		nlattr[IFLA_BRPORT_GUARD, int8[0:1]]
+	IFLA_BRPORT_PROTECT		nlattr[IFLA_BRPORT_PROTECT, int8[0:1]]
+	IFLA_BRPORT_FAST_LEAVE		nlattr[IFLA_BRPORT_FAST_LEAVE, int8[0:1]]
+	IFLA_BRPORT_LEARNING		nlattr[IFLA_BRPORT_LEARNING, int8[0:1]]
+	IFLA_BRPORT_UNICAST_FLOOD	nlattr[IFLA_BRPORT_UNICAST_FLOOD, int8[0:1]]
+	IFLA_BRPORT_PROXYARP		nlattr[IFLA_BRPORT_PROXYARP, int8[0:1]]
+	IFLA_BRPORT_PROXYARP_WIFI	nlattr[IFLA_BRPORT_PROXYARP_WIFI, int8[0:1]]
+	IFLA_BRPORT_MULTICAST_ROUTER	nlattr[IFLA_BRPORT_MULTICAST_ROUTER, int8[0:3]]
+	IFLA_BRPORT_MCAST_TO_UCAST	nlattr[IFLA_BRPORT_MCAST_TO_UCAST, int8[0:1]]
+	IFLA_BRPORT_MCAST_FLOOD		nlattr[IFLA_BRPORT_MCAST_FLOOD, int8[0:1]]
+	IFLA_BRPORT_BCAST_FLOOD		nlattr[IFLA_BRPORT_BCAST_FLOOD, int8[0:1]]
+	IFLA_BRPORT_VLAN_TUNNEL		nlattr[IFLA_BRPORT_VLAN_TUNNEL, int8[0:1]]
+	IFLA_BRPORT_GROUP_FWD_MASK	nlattr[IFLA_BRPORT_GROUP_FWD_MASK, int16]
+	IFLA_BRPORT_NEIGH_SUPPRESS	nlattr[IFLA_BRPORT_NEIGH_SUPPRESS, int8[0:1]]
+	IFLA_BRPORT_ISOLATED		nlattr[IFLA_BRPORT_ISOLATED, int8[0:1]]
+	IFLA_BRPORT_FLUSH		nlattr[IFLA_BRPORT_FLUSH, void]
+] [varlen]
+
+gre_common_policy [
+	IFLA_GRE_LINK			nlattr[IFLA_GRE_LINK, ifindex]
+	IFLA_GRE_IFLAGS			nlattr[IFLA_GRE_IFLAGS, int16]
+	IFLA_GRE_OFLAGS			nlattr[IFLA_GRE_OFLAGS, int16]
+	IFLA_GRE_IKEY			nlattr[IFLA_GRE_IKEY, int32]
+	IFLA_GRE_OKEY			nlattr[IFLA_GRE_OKEY, int32]
+	IFLA_GRE_TTL			nlattr[IFLA_GRE_TTL, int8]
+	IFLA_GRE_TOS			nlattr[IFLA_GRE_TOS, int8]
+	IFLA_GRE_PMTUDISC		nlattr[IFLA_GRE_PMTUDISC, int8[0:1]]
+	IFLA_GRE_ENCAP_TYPE		nlattr[IFLA_GRE_ENCAP_TYPE, flags[tunnel_encap_types, int16]]
+	IFLA_GRE_ENCAP_FLAGS		nlattr[IFLA_GRE_ENCAP_FLAGS, int16]
+	IFLA_GRE_ENCAP_SPORT		nlattr[IFLA_GRE_ENCAP_SPORT, sock_port]
+	IFLA_GRE_ENCAP_DPORT		nlattr[IFLA_GRE_ENCAP_DPORT, sock_port]
+	IFLA_GRE_COLLECT_METADATA	nlattr[IFLA_GRE_COLLECT_METADATA, void]
+	IFLA_GRE_IGNORE_DF		nlattr[IFLA_GRE_IGNORE_DF, int8[0:1]]
+	IFLA_GRE_FWMARK			nlattr[IFLA_GRE_FWMARK, int32]
+	IFLA_GRE_ERSPAN_INDEX		nlattr[IFLA_GRE_ERSPAN_INDEX, int32[1:0xfffff]]
+	IFLA_GRE_ERSPAN_VER		nlattr[IFLA_GRE_ERSPAN_VER, int8[1:2]]
+	IFLA_GRE_ERSPAN_DIR		nlattr[IFLA_GRE_ERSPAN_DIR, int8[0:1]]
+	IFLA_GRE_ERSPAN_HWID		nlattr[IFLA_GRE_ERSPAN_HWID, int16]
+] [varlen]
+
+ipgre_policy [
+	IFLA_GRE_LOCAL		nlattr[IFLA_GRE_LOCAL, ipv4_addr]
+	IFLA_GRE_REMOTE		nlattr[IFLA_GRE_REMOTE, ipv4_addr]
+	gre_common_policy	array[gre_common_policy]
+] [varlen]
+
+ip6gre_policy [
+	IFLA_GRE_LOCAL		nlattr[IFLA_GRE_LOCAL, ipv6_addr]
+	IFLA_GRE_REMOTE		nlattr[IFLA_GRE_REMOTE, ipv6_addr]
+	gre_common_policy	array[gre_common_policy]
+] [varlen]
+
+# TODO: There could have some ifla_policy after ifinfomsg
+veth_policy [
+	VETH_INFO_PEER	nlattr[VETH_INFO_PEER, ifinfomsg[AF_UNSPEC]]
+] [varlen]
+
+vit_common_policy [
+	IFLA_VTI_LINK	nlattr[IFLA_VTI_LINK, ifindex]
+	IFLA_VTI_IKEY	nlattr[IFLA_VTI_IKEY, int32]
+	IFLA_VTI_OKEY	nlattr[IFLA_VTI_OKEY, int32]
+	IFLA_VTI_FWMARK	nlattr[IFLA_VTI_FWMARK, int32]
+] [varlen]
+
+vti_policy [
+	IFLA_VTI_LOCAL		nlattr[IFLA_VTI_LOCAL, ipv4_addr]
+	IFLA_VTI_REMOTE		nlattr[IFLA_VTI_REMOTE, ipv4_addr]
+	vit_common_policy	array[vit_common_policy]
+] [varlen]
+
+ip6vti_policy [
+	IFLA_VTI_LOCAL		nlattr[IFLA_VTI_LOCAL, ipv6_addr]
+	IFLA_VTI_REMOTE		nlattr[IFLA_VTI_REMOTE, ipv6_addr]
+	vit_common_policy	array[vit_common_policy]
+] [varlen]
+
+tunl_policy [
+	IFLA_IPTUN_LINK			nlattr[IFLA_INFO_DATA, ifindex]
+	IFLA_IPTUN_TTL			nlattr[IFLA_IPTUN_TTL, int8]
+	IFLA_IPTUN_TOS			nlattr[IFLA_IPTUN_TOS, int8]
+	IFLA_IPTUN_ENCAP_TYPE		nlattr[IFLA_IPTUN_ENCAP_TYPE, flags[tunnel_encap_types, int16]]
+	IFLA_IPTUN_ENCAP_FLAGS		nlattr[IFLA_IPTUN_ENCAP_FLAGS, int16]
+	IFLA_IPTUN_ENCAP_SPORT		nlattr[IFLA_IPTUN_ENCAP_SPORT, sock_port]
+	IFLA_IPTUN_ENCAP_DPORT		nlattr[IFLA_IPTUN_ENCAP_DPORT, sock_port]
+	IFLA_IPTUN_COLLECT_METADATA	nlattr[IFLA_IPTUN_COLLECT_METADATA, void]
+	IFLA_IPTUN_FWMARK		nlattr[IFLA_IPTUN_FWMARK, int32]
+] [varlen]
+
+ipip_policy [
+	IFLA_IPTUN_PROTO	nlattr[IFLA_IPTUN_PROTO, const[IPPROTO_IPIP, int8]]
+	IFLA_IPTUN_LOCAL	nlattr[IFLA_IPTUN_LOCAL, ipv4_addr]
+	IFLA_IPTUN_REMOTE	nlattr[IFLA_IPTUN_REMOTE, ipv4_addr]
+	tunl_policy		array[tunl_policy]
+	IFLA_IPTUN_PMTUDISC	nlattr[IFLA_IPTUN_PMTUDISC, int8[0:1]]
+] [varlen]
+
+tunl6_policy [
+	IFLA_IPTUN_LOCAL	nlattr[IFLA_IPTUN_LOCAL, ipv6_addr]
+	IFLA_IPTUN_REMOTE	nlattr[IFLA_IPTUN_REMOTE, ipv6_addr]
+	tunl_policy		array[tunl_policy]
+	IFLA_IPTUN_ENCAP_LIMIT	nlattr[IFLA_IPTUN_ENCAP_LIMIT, int8]
+	IFLA_IPTUN_FLOWINFO	nlattr[IFLA_IPTUN_FLOWINFO, int32]
+	IFLA_IPTUN_FLAGS	nlattr[IFLA_IPTUN_FLAGS, int32[0:0x40]]
+] [varlen]
+
+ipip6_policy [
+	IFLA_IPTUN_PROTO	nlattr[IFLA_IPTUN_PROTO, const[IPPROTO_IPIP, int8]]
+	tunl6_policy		array[tunl6_policy]
+] [varlen]
+
+ip6ip6_policy [
+	IFLA_IPTUN_PROTO	nlattr[IFLA_IPTUN_PROTO, const[IPPROTO_IPV6, int8]]
+	tunl6_policy		array[tunl6_policy]
+] [varlen]
+
+sit_policy [
+	IFLA_IPTUN_PROTO	nlattr[IFLA_IPTUN_PROTO, const[IPPROTO_IPV6, int8]]
+	IFLA_IPTUN_LOCAL	nlattr[IFLA_IPTUN_LOCAL, ipv6_addr]
+	IFLA_IPTUN_REMOTE	nlattr[IFLA_IPTUN_REMOTE, ipv6_addr]
+	tunl_policy		array[tunl_policy]
+	IFLA_IPTUN_FLAGS	nlattr[IFLA_IPTUN_FLAGS, int32[0:0x40]]
 ] [varlen]
 
 ifa_ipv4_policy [
@@ -406,3 +623,4 @@ ndm_flags = NTF_USE, NTF_SELF, NTF_MASTER, NTF_PROXY, NTF_EXT_LEARNED, NTF_OFFLO
 ifa_prefixlen = 0, 1, 8, 16, 24, 31, 32, 56, 63, 64, 128
 rtm_addr_len = 0, 16, 20, 32, 128
 filter_mask = IFLA_STATS_UNSPEC, IFLA_STATS_LINK_64, IFLA_STATS_LINK_XSTATS, IFLA_STATS_LINK_XSTATS_SLAVE, IFLA_STATS_LINK_OFFLOAD_XSTATS, IFLA_STATS_AF_SPEC
+tunnel_encap_types = TUNNEL_ENCAP_NONE, TUNNEL_ENCAP_FOU, TUNNEL_ENCAP_GUE, TUNNEL_ENCAP_MPLS
