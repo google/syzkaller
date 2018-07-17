@@ -207,7 +207,7 @@ func (jp *JobProcessor) test(job *Job) error {
 	resp.Build.KernelCommitTitle = kernelCommit.Title
 	resp.Build.KernelCommitDate = kernelCommit.Date
 
-	if err := build.Clean(mgrcfg.TargetOS, mgrcfg.TargetArch, mgrcfg.Type, kernelDir); err != nil {
+	if err := build.Clean(mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.Type, kernelDir); err != nil {
 		return fmt.Errorf("kernel clean failed: %v", err)
 	}
 	if len(req.Patch) != 0 {
