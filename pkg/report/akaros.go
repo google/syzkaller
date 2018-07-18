@@ -135,11 +135,12 @@ func (ctx *akaros) minimizeReport(report []byte) []byte {
 
 var (
 	akarosSymbolizeRe = compile(`^#[0-9]+ \[\<(0x[0-9a-f]+)\>\] in ([a-zA-Z0-9_]+)`)
+	akarosBacktraceRe = compile(`(?:Stack Backtrace|Backtrace of kernel context) on Core [0-9]+:`)
 )
 
 var akarosStackParams = &stackParams{
 	stackStartRes: []*regexp.Regexp{
-		regexp.MustCompile(`Stack Backtrace on Core [0-9]+:`),
+		akarosBacktraceRe,
 	},
 	frameRes: []*regexp.Regexp{
 		compile(`^#[0-9]+ {{PC}} in ([a-zA-Z0-9_]+)`),
@@ -161,7 +162,7 @@ var akarosOopses = []*oops{
 				fmt:   "assertion failed: %[2]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
-						compile(`Stack Backtrace on Core [0-9]+:`),
+						akarosBacktraceRe,
 						parseStackTrace,
 					},
 				},
@@ -171,7 +172,7 @@ var akarosOopses = []*oops{
 				fmt:   "kernel panic: %[2]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
-						compile(`Stack Backtrace on Core [0-9]+:`),
+						akarosBacktraceRe,
 						parseStackTrace,
 					},
 				},
