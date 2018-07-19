@@ -153,6 +153,14 @@ func findConsole(adb, dev string) string {
 }
 
 func findConsoleImpl(adb, dev string) (string, error) {
+	// Attempt to find an exact match, at /dev/ttyUSB.{SERIAL}
+	// This is something that can be set up on Linux via 'udev' rules
+	exactCon := "/dev/ttyUSB." + dev
+	if osutil.IsExist(exactCon) {
+		return exactCon, nil
+	}
+
+	// Search all consoles, as described in 'findConsole'
 	consoles, err := filepath.Glob("/dev/ttyUSB*")
 	if err != nil {
 		return "", fmt.Errorf("failed to list /dev/ttyUSB devices: %v", err)
