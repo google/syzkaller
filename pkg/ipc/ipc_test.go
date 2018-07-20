@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -20,7 +21,7 @@ import (
 const timeout = 10 * time.Second
 
 func buildExecutor(t *testing.T, target *prog.Target) string {
-	src := filepath.FromSlash(fmt.Sprintf("../../executor/executor_%v.cc", target.OS))
+	src := filepath.FromSlash("../../executor/executor.cc")
 	bin, err := csource.BuildFile(target, src)
 	if err != nil {
 		t.Fatal(err)
@@ -47,6 +48,22 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, EnvFlags) {
 	}
 	flags := cfg.Flags & (FlagUseShmem | FlagUseForkServer)
 	return target, rs, iters, flags
+}
+
+// TestExecutor runs all internal executor unit tests.
+// We do it here because we already build executor binary here.
+func TestExecutor(t *testing.T) {
+	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bin := buildExecutor(t, target)
+	defer os.Remove(bin)
+	output, err := osutil.RunCmd(time.Minute, "", bin, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("executor output:\n%s", output)
 }
 
 func TestExecute(t *testing.T) {

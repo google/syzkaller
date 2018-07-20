@@ -5,26 +5,13 @@
 
 #include <windows.h>
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||      \
-    defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || \
-    defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||                   \
-    defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
-__attribute__((noreturn)) static void doexit(int status)
-{
-	_exit(status);
-	for (;;) {
-	}
-}
-#endif
-
 #include "common.h"
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
 static void install_segv_handler()
 {
 }
 
-// TODO(dvyukov): implement me
 #define NONFAILING(...)                          \
 	__try {                                  \
 		__VA_ARGS__;                     \
@@ -32,28 +19,91 @@ static void install_segv_handler()
 	}
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-static uint64 current_time_ms()
+#if SYZ_EXECUTOR || SYZ_REPEAT
+uint64 current_time_ms()
 {
 	return GetTickCount64();
 }
 #endif
 
-#if defined(SYZ_EXECUTOR)
+#if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT
 static void sleep_ms(uint64 ms)
 {
 	Sleep(ms);
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
-static int inject_fault(int nth)
+#if SYZ_EXECUTOR || SYZ_THREADED
+static void thread_start(void* (*fn)(void*), void* arg)
 {
-	return 0;
+	HANDLE th = CreateThread(NULL, 128 << 10, (LPTHREAD_START_ROUTINE)fn, arg, 0, NULL);
+	if (th == NULL)
+		exitf("CreateThread failed");
 }
 
-static int fault_injected(int fail_fd)
+struct event_t {
+	CRITICAL_SECTION cs;
+	CONDITION_VARIABLE cv;
+	int state;
+};
+
+static void event_init(event_t* ev)
 {
-	return 0;
+	InitializeCriticalSection(&ev->cs);
+	InitializeConditionVariable(&ev->cv);
+	ev->state = 0;
+}
+
+static void event_reset(event_t* ev)
+{
+	ev->state = 0;
+}
+
+static void event_set(event_t* ev)
+{
+	EnterCriticalSection(&ev->cs);
+	if (ev->state)
+		fail("event already set");
+	ev->state = 1;
+	LeaveCriticalSection(&ev->cs);
+	WakeAllConditionVariable(&ev->cv);
+}
+
+static void event_wait(event_t* ev)
+{
+	EnterCriticalSection(&ev->cs);
+	while (!ev->state)
+		SleepConditionVariableCS(&ev->cv, &ev->cs, INFINITE);
+	LeaveCriticalSection(&ev->cs);
+}
+
+static int event_isset(event_t* ev)
+{
+	EnterCriticalSection(&ev->cs);
+	int res = ev->state;
+	LeaveCriticalSection(&ev->cs);
+	return res;
+}
+
+static int event_timedwait(event_t* ev, uint64 timeout_ms)
+{
+	EnterCriticalSection(&ev->cs);
+	uint64 start = current_time_ms();
+	for (;;) {
+		if (ev->state)
+			break;
+		uint64 now = current_time_ms();
+		if (now - start > timeout_ms)
+			break;
+		SleepConditionVariableCS(&ev->cv, &ev->cs, timeout_ms - (now - start));
+	}
+	int res = ev->state;
+	LeaveCriticalSection(&ev->cs);
+	return res;
 }
 #endif
+
+#define setup_loop()
+#define reset_loop()
+#define setup_test()
+#define reset_test()

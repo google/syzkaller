@@ -1,6 +1,8 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+//go:generate ./gen.sh
+
 package csource
 
 import (
@@ -13,11 +15,17 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
+const (
+	linux   = "linux"
+	akaros  = "akaros"
+	fuchsia = "fuchsia"
+
+	sandboxNone      = "none"
+	sandboxSetuid    = "setuid"
+	sandboxNamespace = "namespace"
+)
+
 func createCommonHeader(p, mmapProg *prog.Prog, opts Options) ([]byte, error) {
-	commonHeader, err := getCommonHeader(p.Target.OS)
-	if err != nil {
-		return nil, err
-	}
 	defines, err := defineList(p, mmapProg, opts)
 	if err != nil {
 		return nil, err
@@ -65,11 +73,11 @@ func defineList(p, mmapProg *prog.Prog, opts Options) ([]string, error) {
 	switch opts.Sandbox {
 	case "":
 		// No sandbox, do nothing.
-	case "none":
+	case sandboxNone:
 		defines = append(defines, "SYZ_SANDBOX_NONE")
-	case "setuid":
+	case sandboxSetuid:
 		defines = append(defines, "SYZ_SANDBOX_SETUID")
-	case "namespace":
+	case sandboxNamespace:
 		defines = append(defines, "SYZ_SANDBOX_NAMESPACE")
 	default:
 		return nil, fmt.Errorf("unknown sandbox mode: %v", opts.Sandbox)
@@ -104,19 +112,21 @@ func defineList(p, mmapProg *prog.Prog, opts Options) ([]string, error) {
 	if opts.HandleSegv {
 		defines = append(defines, "SYZ_HANDLE_SEGV")
 	}
-	if opts.WaitRepeat {
-		defines = append(defines, "SYZ_WAIT_REPEAT")
-	}
-	if opts.Debug {
-		defines = append(defines, "SYZ_DEBUG")
-	}
 	for _, c := range p.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)
 	}
 	for _, c := range mmapProg.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)
 	}
-	defines = append(defines, targets.Get(p.Target.OS, p.Target.Arch).CArch...)
+	defines = append(defines, "GOOS_"+p.Target.OS)
+	defines = append(defines, "GOARCH_"+p.Target.Arch)
+	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
+	if sysTarget.ExecutorUsesShmem {
+		defines = append(defines, "SYZ_EXECUTOR_USES_SHMEM")
+	}
+	if sysTarget.ExecutorUsesForkServer {
+		defines = append(defines, "SYZ_EXECUTOR_USES_FORK_SERVER")
+	}
 	return defines, nil
 }
 

@@ -443,7 +443,7 @@ func TestHintsData(t *testing.T) {
 			out:   []string{"0810000000131415"},
 		},
 	}
-	call := target.SyscallMap["syz_test$hint_data"]
+	call := target.SyscallMap["test$hint_data"]
 	for _, test := range tests {
 		input, err := hex.DecodeString(test.in)
 		if err != nil {

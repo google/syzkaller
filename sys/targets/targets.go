@@ -20,7 +20,6 @@ type Target struct {
 	PageSize         uint64
 	NumPages         uint64
 	DataOffset       uint64
-	CArch            []string
 	CFlags           []string
 	CrossCFlags      []string
 	CCompilerPrefix  string
@@ -59,20 +58,59 @@ func Get(OS, arch string) *Target {
 // nolint: lll
 var List = map[string]map[string]*Target{
 	"test": map[string]*Target{
-		"32": {
-			PtrSize:  4,
-			PageSize: 8 << 10,
-		},
 		"64": {
-			PtrSize:  8,
-			PageSize: 4 << 10,
+			PtrSize:     8,
+			PageSize:    4 << 10,
+			CFlags:      []string{"-m64"},
+			CrossCFlags: []string{"-m64", "-static"},
+			osCommon: osCommon{
+				SyscallNumbers:         true,
+				SyscallPrefix:          "SYS_",
+				ExecutorUsesShmem:      false,
+				ExecutorUsesForkServer: false,
+			},
+		},
+		"64_fork": {
+			PtrSize:     8,
+			PageSize:    8 << 10,
+			CFlags:      []string{"-m64"},
+			CrossCFlags: []string{"-m64", "-static"},
+			osCommon: osCommon{
+				SyscallNumbers:         true,
+				SyscallPrefix:          "SYS_",
+				ExecutorUsesShmem:      false,
+				ExecutorUsesForkServer: true,
+			},
+		},
+		"32_shmem": {
+			PtrSize:     4,
+			PageSize:    8 << 10,
+			CFlags:      []string{"-m32"},
+			CrossCFlags: []string{"-m32", "-static"},
+			osCommon: osCommon{
+				SyscallNumbers:         true,
+				SyscallPrefix:          "SYS_",
+				ExecutorUsesShmem:      true,
+				ExecutorUsesForkServer: false,
+			},
+		},
+		"32_fork_shmem": {
+			PtrSize:     4,
+			PageSize:    4 << 10,
+			CFlags:      []string{"-m32"},
+			CrossCFlags: []string{"-m32", "-static"},
+			osCommon: osCommon{
+				SyscallNumbers:         true,
+				SyscallPrefix:          "SYS_",
+				ExecutorUsesShmem:      true,
+				ExecutorUsesForkServer: true,
+			},
 		},
 	},
 	"linux": map[string]*Target{
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CArch:            []string{"__x86_64__"},
 			CFlags:           []string{"-m64"},
 			CrossCFlags:      []string{"-m64", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
@@ -87,7 +125,6 @@ var List = map[string]map[string]*Target{
 		"386": {
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			CArch:            []string{"__i386__"},
 			CFlags:           []string{"-m32"},
 			CrossCFlags:      []string{"-m32", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
@@ -97,7 +134,6 @@ var List = map[string]map[string]*Target{
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CArch:            []string{"__aarch64__"},
 			CrossCFlags:      []string{"-static"},
 			CCompilerPrefix:  "aarch64-linux-gnu-",
 			KernelArch:       "arm64",
@@ -106,7 +142,6 @@ var List = map[string]map[string]*Target{
 		"arm": {
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			CArch:            []string{"__arm__"},
 			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-m32", "-D__ARM_EABI__"},
 			CrossCFlags:      []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6t2", "-static"},
 			CCompilerPrefix:  "arm-linux-gnueabihf-",
@@ -116,7 +151,6 @@ var List = map[string]map[string]*Target{
 		"ppc64le": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CArch:            []string{"__ppc64__", "__PPC64__", "__powerpc64__"},
 			CFlags:           []string{"-D__powerpc64__"},
 			CrossCFlags:      []string{"-D__powerpc64__", "-static"},
 			CCompilerPrefix:  "powerpc64le-linux-gnu-",
@@ -128,7 +162,6 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:     8,
 			PageSize:    4 << 10,
-			CArch:       []string{"__x86_64__"},
 			CFlags:      []string{"-m64"},
 			CrossCFlags: []string{"-m64", "-static"},
 		},
@@ -137,7 +170,6 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:     8,
 			PageSize:    4 << 10,
-			CArch:       []string{"__x86_64__"},
 			CFlags:      []string{"-m64"},
 			CrossCFlags: []string{"-m64", "-static"},
 		},
@@ -146,7 +178,6 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CArch:            []string{"__x86_64__"},
 			KernelHeaderArch: "x64",
 			CCompiler:        os.ExpandEnv("${SOURCEDIR}/buildtools/linux-x64/clang/bin/clang++"),
 			CrossCFlags: []string{
@@ -165,7 +196,6 @@ var List = map[string]map[string]*Target{
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CArch:            []string{"__aarch64__"},
 			KernelHeaderArch: "arm64",
 			CCompiler:        os.ExpandEnv("${SOURCEDIR}/buildtools/linux-x64/clang/bin/clang++"),
 			CrossCFlags: []string{
@@ -187,19 +217,18 @@ var List = map[string]map[string]*Target{
 			PtrSize: 8,
 			// TODO(dvyukov): what should we do about 4k vs 64k?
 			PageSize: 4 << 10,
-			CArch:    []string{"_M_X64"},
 		},
 	},
 	"akaros": map[string]*Target{
 		"amd64": {
 			PtrSize:           8,
 			PageSize:          4 << 10,
-			CArch:             []string{"__x86_64__"},
 			KernelHeaderArch:  "x86",
 			NeedSyscallDefine: dontNeedSyscallDefine,
 			CCompiler:         os.ExpandEnv("${SOURCEDIR}/toolchain/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
 			CrossCFlags: []string{
 				"-static",
+				"-Wno-strict-aliasing",
 			},
 		},
 	},
@@ -252,7 +281,9 @@ func init() {
 }
 
 func initTarget(target *Target, OS, arch string) {
-	target.osCommon = oses[OS]
+	if common, ok := oses[OS]; ok {
+		target.osCommon = common
+	}
 	target.OS = OS
 	target.Arch = arch
 	if target.NeedSyscallDefine == nil {

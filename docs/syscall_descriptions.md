@@ -29,7 +29,7 @@ For example, [sys/linux/tty.txt](/sys/linux/tty.txt) is translated into [sys/lin
 
 The second step is generation of Go code for syzkaller.
 This step uses syscall descriptions and the const files generated during the first step.
-You can see a result in [sys/linux/gen/amd64.go](/sys/linux/gen/amd64.go) and in [executor/syscalls_linux.h](/executor/syscalls_linux.h).
+You can see a result in [sys/linux/gen/amd64.go](/sys/linux/gen/amd64.go) and in [executor/syscalls.h](/executor/syscalls.h).
 
 ## Describing new system calls
 

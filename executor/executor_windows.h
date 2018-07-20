@@ -1,74 +1,22 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+#include <io.h>
 #include <windows.h>
 
-typedef HANDLE osthread_t;
+#include "nocover.h"
 
-void thread_start(osthread_t* t, void* (*fn)(void*), void* arg)
+static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
-	*t = CreateThread(NULL, 128 << 10, (LPTHREAD_START_ROUTINE)fn, arg, 0, NULL);
-	if (*t == NULL)
-		exitf("CreateThread failed");
+	if (VirtualAlloc(data, data_size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE) != data)
+		fail("mmap of data segment failed");
 }
 
-struct event_t {
-	CRITICAL_SECTION cs;
-	CONDITION_VARIABLE cv;
-	int state;
-};
-
-void event_init(event_t* ev)
+static long execute_syscall(const call_t* c, long a[kMaxArgs])
 {
-	InitializeCriticalSection(&ev->cs);
-	InitializeConditionVariable(&ev->cv);
-	ev->state = 0;
-}
-
-void event_reset(event_t* ev)
-{
-	ev->state = 0;
-}
-
-void event_set(event_t* ev)
-{
-	EnterCriticalSection(&ev->cs);
-	if (ev->state)
-		fail("event already set");
-	ev->state = true;
-	LeaveCriticalSection(&ev->cs);
-	WakeAllConditionVariable(&ev->cv);
-}
-
-void event_wait(event_t* ev)
-{
-	EnterCriticalSection(&ev->cs);
-	while (!ev->state)
-		SleepConditionVariableCS(&ev->cv, &ev->cs, INFINITE);
-	LeaveCriticalSection(&ev->cs);
-}
-
-bool event_isset(event_t* ev)
-{
-	EnterCriticalSection(&ev->cs);
-	bool res = ev->state;
-	LeaveCriticalSection(&ev->cs);
-	return res;
-}
-
-bool event_timedwait(event_t* ev, uint64 timeout_ms)
-{
-	EnterCriticalSection(&ev->cs);
-	uint64 start = current_time_ms();
-	for (;;) {
-		if (ev->state)
-			break;
-		uint64 now = current_time_ms();
-		if (now - start > timeout_ms)
-			break;
-		SleepConditionVariableCS(&ev->cv, &ev->cs, timeout_ms - (now - start));
+	__try {
+		return c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
+	} __except (EXCEPTION_EXECUTE_HANDLER) {
+		return -1;
 	}
-	bool res = ev->state;
-	LeaveCriticalSection(&ev->cs);
-	return res;
 }

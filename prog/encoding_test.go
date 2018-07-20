@@ -131,80 +131,80 @@ func TestDeserialize(t *testing.T) {
 		err    *regexp.Regexp
 	}{
 		{
-			input: `syz_test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
+			input: `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
 		},
 		{
-			input:  `syz_test$struct(&(0x7f0000000000)=0x0)`,
-			output: `syz_test$struct(&(0x7f0000000000))`,
+			input:  `test$struct(&(0x7f0000000000)=0x0)`,
+			output: `test$struct(&(0x7f0000000000))`,
 		},
 		{
-			input: `syz_test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
+			input: `test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
 		},
 		{
-			input: `syz_test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
+			input: `test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
 		},
 		{
-			input: `syz_test$excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
+			input: `test$excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
 		},
 		{
-			input: `syz_test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
+			input: `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
 		},
 		{
-			input: `syz_test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
+			input: `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
 		},
 		{
-			input: `syz_test$excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
+			input: `test$excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
 		},
 		{
-			input: `syz_test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
+			input: `test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
 		},
 		{
-			input:  `syz_test$excessive_fields1(0x0)`,
-			output: `syz_test$excessive_fields1(&(0x7f0000000000))`,
+			input:  `test$excessive_fields1(0x0)`,
+			output: `test$excessive_fields1(&(0x7f0000000000))`,
 		},
 		{
-			input:  `syz_test$excessive_fields1(r0)`,
-			output: `syz_test$excessive_fields1(&(0x7f0000000000))`,
+			input:  `test$excessive_fields1(r0)`,
+			output: `test$excessive_fields1(&(0x7f0000000000))`,
 		},
 		{
-			input:  `syz_test$excessive_args2(r1)`,
-			output: `syz_test$excessive_args2(0x0)`,
+			input:  `test$excessive_args2(r1)`,
+			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `syz_test$excessive_args2({0x0, 0x1})`,
-			output: `syz_test$excessive_args2(0x0)`,
+			input:  `test$excessive_args2({0x0, 0x1})`,
+			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `syz_test$excessive_args2([0x0], 0x0)`,
-			output: `syz_test$excessive_args2(0x0)`,
+			input:  `test$excessive_args2([0x0], 0x0)`,
+			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `syz_test$excessive_args2(@foo)`,
-			output: `syz_test$excessive_args2(0x0)`,
+			input:  `test$excessive_args2(@foo)`,
+			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `syz_test$excessive_args2('foo')`,
-			output: `syz_test$excessive_args2(0x0)`,
+			input:  `test$excessive_args2('foo')`,
+			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `syz_test$excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
-			output: `syz_test$excessive_args2(0x0)`,
+			input:  `test$excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
+			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `syz_test$excessive_args2(nil)`,
-			output: `syz_test$excessive_args2(0x0)`,
+			input:  `test$excessive_args2(nil)`,
+			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `syz_test$type_confusion1(&(0x7f0000000000)=@unknown)`,
-			output: `syz_test$type_confusion1(&(0x7f0000000000))`,
+			input:  `test$type_confusion1(&(0x7f0000000000)=@unknown)`,
+			output: `test$type_confusion1(&(0x7f0000000000))`,
 		},
 		{
-			input:  `syz_test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
-			output: `syz_test$type_confusion1(&(0x7f0000000000))`,
+			input:  `test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
+			output: `test$type_confusion1(&(0x7f0000000000))`,
 		},
 		{
-			input:  `syz_test$excessive_fields1(&(0x7f0000000000)=0x0)`,
-			output: `syz_test$excessive_fields1(&(0x7f0000000000))`,
+			input:  `test$excessive_fields1(&(0x7f0000000000)=0x0)`,
+			output: `test$excessive_fields1(&(0x7f0000000000))`,
 		},
 	}
 	buf := make([]byte, ExecBufferSize)

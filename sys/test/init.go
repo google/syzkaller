@@ -10,8 +10,10 @@ import (
 )
 
 func init() {
-	prog.RegisterTarget(gen.Target_32, initTarget)
 	prog.RegisterTarget(gen.Target_64, initTarget)
+	prog.RegisterTarget(gen.Target_64_fork, initTarget)
+	prog.RegisterTarget(gen.Target_32_shmem, initTarget)
+	prog.RegisterTarget(gen.Target_32_fork_shmem, initTarget)
 }
 
 func initTarget(target *prog.Target) {
