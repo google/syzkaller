@@ -167,6 +167,7 @@ void cover_open()
 			fail("cover mmap failed");
 		th->cover_data = mmap_ptr;
 		th->cover_end = mmap_ptr + mmap_alloc_size;
+		th->cover_size_ptr = (uint64*)mmap_ptr;
 	}
 #endif
 }

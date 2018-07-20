@@ -93,6 +93,7 @@ struct thread_t {
 	osthread_t th;
 	char* cover_data;
 	char* cover_end;
+	uint64* cover_size_ptr;
 
 	event_t ready;
 	event_t done;
