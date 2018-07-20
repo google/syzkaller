@@ -1,62 +1,37 @@
-// Copyright 2018 syzkaller project authors. All rights reserved.
+// Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// Fuchsia's pthread_cond_timedwait just returns immidiately, so we use simple spin wait.
-
+#include <errno.h>
 #include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <zircon/syscalls.h>
 
-typedef pthread_t osthread_t;
+#include "nocover.h"
 
-void thread_start(osthread_t* t, void* (*fn)(void*), void* arg)
+static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setstacksize(&attr, 128 << 10);
-	if (pthread_create(t, &attr, fn, arg))
-		exitf("pthread_create failed");
-	pthread_attr_destroy(&attr);
+	if (syz_mmap((size_t)data, data_size) != ZX_OK)
+		fail("mmap of data segment failed");
 }
 
-struct event_t {
-	int state;
-};
-
-void event_init(event_t* ev)
+static long execute_syscall(const call_t* c, long a[kMaxArgs])
 {
-	ev->state = 0;
-}
-
-void event_reset(event_t* ev)
-{
-	ev->state = 0;
-}
-
-void event_set(event_t* ev)
-{
-	if (ev->state)
-		fail("event already set");
-	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
-}
-
-void event_wait(event_t* ev)
-{
-	while (!__atomic_load_n(&ev->state, __ATOMIC_ACQUIRE))
-		usleep(200);
-}
-
-bool event_isset(event_t* ev)
-{
-	return __atomic_load_n(&ev->state, __ATOMIC_ACQUIRE);
-}
-
-bool event_timedwait(event_t* ev, uint64 timeout_ms)
-{
-	uint64 start = current_time_ms();
-	for (;;) {
-		if (__atomic_load_n(&ev->state, __ATOMIC_RELAXED))
-			return true;
-		if (current_time_ms() - start > timeout_ms)
-			return false;
-		usleep(200);
+	long res = c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
+	if (strncmp(c->name, "zx_", 3) == 0) {
+		// Convert zircon error convention to the libc convention that executor expects.
+		if (res == ZX_OK ||
+		    !strcmp(c->name, "zx_log_read") ||
+		    !strcmp(c->name, "zx_clock_get") ||
+		    !strcmp(c->name, "zx_ticks_get"))
+			return 0;
+		errno = (-res) & 0x7f;
+		return -1;
 	}
+	// We cast libc functions to signature returning long,
+	// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
+	if (res == 0xffffffff)
+		res = (long)-1;
+	return res;
 }

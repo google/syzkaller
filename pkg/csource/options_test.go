@@ -45,8 +45,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			EnableNetdev:  true,
 			ResetNet:      true,
 			HandleSegv:    true,
-			WaitRepeat:    true,
-			Debug:         true,
 			Repro:         true,
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
@@ -62,8 +60,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			UseTmpDir:     true,
 			EnableCgroups: false,
 			HandleSegv:    true,
-			WaitRepeat:    true,
-			Debug:         false,
 			Repro:         false,
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox: Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
@@ -79,8 +75,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			UseTmpDir:     true,
 			EnableCgroups: false,
 			HandleSegv:    true,
-			WaitRepeat:    true,
-			Debug:         false,
 			Repro:         false,
 		},
 		"{Threaded:false Collide:true Repeat:true Procs:1 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true EnableCgroups:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
@@ -96,8 +90,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			UseTmpDir:     true,
 			EnableCgroups: true,
 			HandleSegv:    true,
-			WaitRepeat:    true,
-			Debug:         false,
 			Repro:         false,
 		},
 	}

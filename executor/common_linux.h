@@ -3,252 +3,84 @@
 
 // This file is shared between executor and csource package.
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+#include <stdlib.h>
+#include <sys/mount.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#if SYZ_EXECUTOR
+struct cover_t;
+static void cover_reset(cover_t* cov);
 #endif
 
-#include <endian.h>
-#include <stdio.h>
-#include <sys/syscall.h>
-#include <unistd.h>
-#if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
+#if SYZ_EXECUTOR || SYZ_THREADED
 #include <linux/futex.h>
 #include <pthread.h>
-#include <stdlib.h>
-#endif
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-#include <errno.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <time.h>
-#endif
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-#include <sys/prctl.h>
-#endif
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
-#include <dirent.h>
-#include <sys/mount.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
-#include <errno.h>
-#include <sched.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <sys/prctl.h>
-#include <sys/resource.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION) || defined(SYZ_SANDBOX_NAMESPACE) || \
-    defined(SYZ_ENABLE_CGROUPS)
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
-#include <grp.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
-#include <linux/capability.h>
-#include <sys/mman.h>
-#include <sys/mount.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_ENABLE_NETDEV)
-#include <arpa/inet.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <linux/if.h>
-#include <linux/if_ether.h>
-#include <linux/if_tun.h>
-#include <linux/ip.h>
-#include <linux/tcp.h>
-#include <net/if_arp.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/uio.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_RESET_NET_NAMESPACE)
-#include <linux/net.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
-#include <errno.h>
-#include <fcntl.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <sys/stat.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_dev) || defined(__NR_syz_open_procfs)
-#include <fcntl.h>
-#include <string.h>
-#include <sys/stat.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_pts)
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_kvm_setup_cpu)
-#include <errno.h>
-#include <fcntl.h>
-#include <linux/kvm.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_init_net_socket)
-#include <fcntl.h>
-#include <sched.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_genetlink_get_family_id)
-#include <errno.h>
-#include <linux/genetlink.h>
-#include <linux/netlink.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-#include <sys/mount.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image) || defined(__NR_syz_read_part_table)
-#include <errno.h>
-#include <fcntl.h>
-#include <linux/loop.h>
-#include <sys/ioctl.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||      \
-    defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || \
-    defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||                   \
-    defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) ||                       \
-    defined(__NR_syz_kvm_setup_cpu) || defined(__NR_syz_init_net_socket) && (defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE))
-// One does not simply exit.
-// _exit can in fact fail.
-// syzkaller did manage to generate a seccomp filter that prohibits exit_group syscall.
-// Previously, we get into infinite recursion via segv_handler in such case
-// and corrupted output_data, which does matter in our case since it is shared
-// with fuzzer process. Loop infinitely instead. Parent will kill us.
-// But one does not simply loop either. Compilers are sure that _exit never returns,
-// so they remove all code after _exit as dead. Call _exit via volatile indirection.
-// And this does not work as well. _exit has own handling of failing exit_group
-// in the form of HLT instruction, it will divert control flow from our loop.
-// So call the syscall directly.
-__attribute__((noreturn)) static void doexit(int status)
+typedef struct {
+	int state;
+} event_t;
+
+static void event_init(event_t* ev)
 {
-	volatile unsigned i;
-	syscall(__NR_exit_group, status);
-	for (i = 0;; i++) {
-	}
-}
-#endif
-
-#include "common.h"
-
-#if defined(SYZ_EXECUTOR)
-struct thread_t;
-void cover_reset(thread_t* th);
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
-static __thread int skip_segv;
-static __thread jmp_buf segv_env;
-
-static void segv_handler(int sig, siginfo_t* info, void* uctx)
-{
-	// Generated programs can contain bad (unmapped/protected) addresses,
-	// which cause SIGSEGVs during copyin/copyout.
-	// This handler ignores such crashes to allow the program to proceed.
-	// We additionally opportunistically check that the faulty address
-	// is not within executable data region, because such accesses can corrupt
-	// output region and then fuzzer will fail on corrupted data.
-	uintptr_t addr = (uintptr_t)info->si_addr;
-	const uintptr_t prog_start = 1 << 20;
-	const uintptr_t prog_end = 100 << 20;
-	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
-		debug("SIGSEGV on %p, skipping\n", (void*)addr);
-		_longjmp(segv_env, 1);
-	}
-	debug("SIGSEGV on %p, exiting\n", (void*)addr);
-	doexit(sig);
+	ev->state = 0;
 }
 
-static void install_segv_handler()
+static void event_reset(event_t* ev)
 {
-	struct sigaction sa;
-
-	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
-	// SIGCANCEL sent to main thread causes it to exit
-	// without bringing down the whole group.
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = SIG_IGN;
-	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
-	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
-
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_sigaction = segv_handler;
-	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
-	sigaction(SIGSEGV, &sa, NULL);
-	sigaction(SIGBUS, &sa, NULL);
+	ev->state = 0;
 }
 
-#define NONFAILING(...)                                              \
-	{                                                            \
-		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-		if (_setjmp(segv_env) == 0) {                        \
-			__VA_ARGS__;                                 \
-		}                                                    \
-		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-	}
-#endif
+static void event_set(event_t* ev)
+{
+	if (ev->state)
+		fail("event already set");
+	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
+	syscall(SYS_futex, &ev->state, FUTEX_WAKE);
+}
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-static uint64 current_time_ms()
+static void event_wait(event_t* ev)
+{
+	while (!__atomic_load_n(&ev->state, __ATOMIC_ACQUIRE))
+		syscall(SYS_futex, &ev->state, FUTEX_WAIT, 0, 0);
+}
+
+static int event_isset(event_t* ev)
+{
+	return __atomic_load_n(&ev->state, __ATOMIC_ACQUIRE);
+}
+
+static int event_timedwait(event_t* ev, uint64 timeout_ms)
 {
 	struct timespec ts;
-
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
-	return (uint64)ts.tv_sec * 1000 + (uint64)ts.tv_nsec / 1000000;
+	const uint64 kNsPerSec = 1000 * 1000 * 1000;
+	uint64 start_ns = (uint64)ts.tv_sec * kNsPerSec + (uint64)ts.tv_nsec;
+	uint64 now_ns = start_ns;
+	uint64 timeout_ns = timeout_ms * 1000 * 1000;
+	for (;;) {
+		uint64 remain_ns = timeout_ns - (now_ns - start_ns);
+		ts.tv_sec = remain_ns / kNsPerSec;
+		ts.tv_nsec = remain_ns % kNsPerSec;
+		syscall(SYS_futex, &ev->state, FUTEX_WAIT, 0, &ts);
+		if (__atomic_load_n(&ev->state, __ATOMIC_RELAXED))
+			return 1;
+		if (clock_gettime(CLOCK_MONOTONIC, &ts))
+			fail("clock_gettime failed");
+		now_ns = (uint64)ts.tv_sec * kNsPerSec + (uint64)ts.tv_nsec;
+		if (now_ns - start_ns > timeout_ns)
+			return 0;
+	}
 }
 #endif
 
-#if defined(SYZ_EXECUTOR)
-static void sleep_ms(uint64 ms)
-{
-	usleep(ms * 1000);
-}
-#endif
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE || SYZ_ENABLE_NETDEV
+#include <stdarg.h>
+#include <stdbool.h>
+#include <string.h>
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
-static void use_temporary_dir()
-{
-	char tmpdir_template[] = "./syzkaller.XXXXXX";
-	char* tmpdir = mkdtemp(tmpdir_template);
-	if (!tmpdir)
-		fail("failed to mkdtemp");
-	if (chmod(tmpdir, 0777))
-		fail("failed to chmod");
-	if (chdir(tmpdir))
-		fail("failed to chdir");
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_ENABLE_NETDEV)
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
@@ -286,7 +118,21 @@ static void execute_command(bool panic, const char* format, ...)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/if.h>
+#include <linux/if_ether.h>
+#include <linux/if_tun.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
+#include <net/if_arp.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+
 static int tunfd = -1;
 static int tun_frags_enabled;
 
@@ -312,19 +158,15 @@ static int tun_frags_enabled;
 #define IFF_NAPI_FRAGS 0x0020
 #endif
 
-#ifdef SYZ_EXECUTOR
-extern bool flag_enable_tun;
-#endif
-
 static void initialize_tun(void)
 {
-#ifdef SYZ_EXECUTOR
+#if SYZ_EXECUTOR
 	if (!flag_enable_tun)
 		return;
 #endif
 	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
-#ifdef SYZ_EXECUTOR
+#if SYZ_EXECUTOR
 		fail("tun: can't open /dev/net/tun\n");
 #else
 		printf("tun: can't open /dev/net/tun: please enable CONFIG_TUN=y\n");
@@ -333,8 +175,8 @@ static void initialize_tun(void)
 #endif
 	}
 	// Remap tun onto higher fd number to hide it from fuzzer and to keep
-	// fd numbers stable regardless of whether tun is opened or not.
-	const int kTunFd = 252;
+	// fd numbers stable regardless of whether tun is opened or not (also see kMaxFd).
+	const int kTunFd = 240;
 	if (dup2(tunfd, kTunFd) < 0)
 		fail("dup2(tunfd, kTunFd) failed");
 	close(tunfd);
@@ -378,7 +220,21 @@ static void initialize_tun(void)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_NETDEV)
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/if.h>
+#include <linux/if_ether.h>
+#include <linux/if_tun.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
+#include <net/if_arp.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
 
 // Addresses are chosen to be in the same subnet as tun addresses.
 #define DEV_IPV4 "172.20.20.%d"
@@ -394,15 +250,11 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 	va_end(args);
 }
 
-#ifdef SYZ_EXECUTOR
-extern bool flag_enable_net_dev;
-#endif
-
 // We test in a separate namespace, which does not have any network devices initially (even lo).
 // Create/up as many as we can.
 static void initialize_netdevices(void)
 {
-#ifdef SYZ_EXECUTOR
+#if SYZ_EXECUTOR
 	if (!flag_enable_net_dev)
 		return;
 #endif
@@ -456,7 +308,9 @@ static void initialize_netdevices(void)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_extract_tcp_res) || defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)))
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
+#include <errno.h>
+
 static int read_tun(char* data, int size)
 {
 	if (tunfd < 0)
@@ -475,21 +329,10 @@ static int read_tun(char* data, int size)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_DEBUG) && defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_emit_ethernet) || defined(__NR_syz_extract_tcp_res)))
-static void debug_dump_data(const char* data, int length)
-{
-	int i;
-	for (i = 0; i < length; i++) {
-		debug("%02x ", data[i] & 0xff);
-		if (i % 16 == 15)
-			debug("\n");
-	}
-	if (i % 16 != 0)
-		debug("\n");
-}
-#endif
+#if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_TUN_ENABLE
+#include <stdbool.h>
+#include <sys/uio.h>
 
-#if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE))
 #define MAX_FRAGS 4
 struct vnet_fragmentation {
 	uint32 full;
@@ -497,7 +340,7 @@ struct vnet_fragmentation {
 	uint32 frags[MAX_FRAGS];
 };
 
-static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
+static long syz_emit_ethernet(long a0, long a1, long a2)
 {
 	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet], frags ptr[in, vnet_fragmentation, opt])
 	// vnet_fragmentation {
@@ -547,16 +390,20 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_TUN_ENABLE))
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_TUN_ENABLE
 static void flush_tun()
 {
+#if SYZ_EXECUTOR
+	if (!flag_enable_tun)
+		return;
+#endif
 	char data[SYZ_TUN_MAX_PACKET_SIZE];
-	while (read_tun(&data[0], sizeof(data)) != -1)
-		;
+	while (read_tun(&data[0], sizeof(data)) != -1) {
+	}
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(__NR_syz_extract_tcp_res) && defined(SYZ_TUN_ENABLE))
+#if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_TUN_ENABLE
 #ifndef __ANDROID__
 // Can't include <linux/ipv6.h>, since it causes
 // conflicts due to some structs redefinition.
@@ -579,7 +426,7 @@ struct tcp_resources {
 	uint32 ack;
 };
 
-static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
+static long syz_extract_tcp_res(long a0, long a1, long a2)
 {
 	// syz_extract_tcp_res(res ptr[out, tcp_resources], seq_inc int32, ack_inc int32)
 
@@ -631,8 +478,13 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_dev)
-static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
+#if SYZ_EXECUTOR || __NR_syz_open_dev
+#include <fcntl.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+static long syz_open_dev(long a0, long a1, long a2)
 {
 	if (a0 == 0xc || a0 == 0xb) {
 		// syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
@@ -655,8 +507,13 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_procfs)
-static uintptr_t syz_open_procfs(uintptr_t a0, uintptr_t a1)
+#if SYZ_EXECUTOR || __NR_syz_open_procfs
+#include <fcntl.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+static long syz_open_procfs(long a0, long a1)
 {
 	// syz_open_procfs(pid pid, file ptr[in, string[procfs_file]]) fd
 
@@ -664,7 +521,7 @@ static uintptr_t syz_open_procfs(uintptr_t a0, uintptr_t a1)
 	memset(buf, 0, sizeof(buf));
 	if (a0 == 0) {
 		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/%s", (char*)a1));
-	} else if (a0 == (uintptr_t)-1) {
+	} else if (a0 == -1) {
 		NONFAILING(snprintf(buf, sizeof(buf), "/proc/thread-self/%s", (char*)a1));
 	} else {
 		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/task/%d/%s", (int)a0, (char*)a1));
@@ -676,8 +533,13 @@ static uintptr_t syz_open_procfs(uintptr_t a0, uintptr_t a1)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_pts)
-static uintptr_t syz_open_pts(uintptr_t a0, uintptr_t a1)
+#if SYZ_EXECUTOR || __NR_syz_open_pts
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+static long syz_open_pts(long a0, long a1)
 {
 	// syz_openpts(fd fd[tty], flags flags[open_flags]) fd[tty]
 	int ptyno = 0;
@@ -689,12 +551,18 @@ static uintptr_t syz_open_pts(uintptr_t a0, uintptr_t a1)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_init_net_socket)
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
-const int kInitNetNsFd = 253;
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#include <fcntl.h>
+#include <sched.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+const int kInitNetNsFd = 239; // see kMaxFd
 // syz_init_net_socket opens a socket in init net namespace.
 // Used for families that can only be created in init net namespace.
-static uintptr_t syz_init_net_socket(uintptr_t domain, uintptr_t type, uintptr_t proto)
+static long syz_init_net_socket(long domain, long type, long proto)
 {
 	int netns = open("/proc/self/ns/net", O_RDONLY);
 	if (netns == -1)
@@ -710,15 +578,21 @@ static uintptr_t syz_init_net_socket(uintptr_t domain, uintptr_t type, uintptr_t
 	return sock;
 }
 #else
-static uintptr_t syz_init_net_socket(uintptr_t domain, uintptr_t type, uintptr_t proto)
+static long syz_init_net_socket(long domain, long type, long proto)
 {
 	return syscall(__NR_socket, domain, type, proto);
 }
 #endif
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_genetlink_get_family_id)
-static uintptr_t syz_genetlink_get_family_id(uintptr_t name)
+#if SYZ_EXECUTOR || __NR_syz_genetlink_get_family_id
+#include <errno.h>
+#include <linux/genetlink.h>
+#include <linux/netlink.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+static long syz_genetlink_get_family_id(long name)
 {
 	char buf[512] = {0};
 	struct nlmsghdr* hdr = (struct nlmsghdr*)buf;
@@ -765,7 +639,14 @@ static uintptr_t syz_genetlink_get_family_id(uintptr_t name)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image) || defined(__NR_syz_read_part_table)
+#if SYZ_EXECUTOR || __NR_syz_mount_image || __NR_syz_read_part_table
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/loop.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 extern unsigned long long procid;
 
 struct fs_image_segment {
@@ -777,26 +658,26 @@ struct fs_image_segment {
 #define IMAGE_MAX_SEGMENTS 4096
 #define IMAGE_MAX_SIZE (129 << 20)
 
-#if defined(__i386__)
+#if GOARCH_386
 #define SYZ_memfd_create 356
-#elif defined(__x86_64__)
+#elif GOARCH_amd64
 #define SYZ_memfd_create 319
-#elif defined(__arm__)
+#elif GOARCH_arm
 #define SYZ_memfd_create 385
-#elif defined(__aarch64__)
+#elif GOARCH_arm64
 #define SYZ_memfd_create 279
-#elif defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__)
+#elif GOARCH_ppc64le
 #define SYZ_memfd_create 360
 #endif
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_read_part_table)
+#if SYZ_EXECUTOR || __NR_syz_read_part_table
 // syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
-static uintptr_t syz_read_part_table(uintptr_t size, uintptr_t nsegs, uintptr_t segments)
+static long syz_read_part_table(unsigned long size, unsigned long nsegs, long segments)
 {
 	char loopname[64], linkname[64];
 	int loopfd, err = 0, res = -1;
-	uintptr_t i, j;
+	unsigned long i, j;
 	// See the comment in syz_mount_image.
 	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 
@@ -850,7 +731,7 @@ static uintptr_t syz_read_part_table(uintptr_t size, uintptr_t nsegs, uintptr_t 
 		err = errno;
 		goto error_clear_loop;
 	}
-#if defined(SYZ_EXECUTOR)
+#if SYZ_EXECUTOR
 	cover_reset(0);
 #endif
 	info.lo_flags |= LO_FLAGS_PARTSCAN;
@@ -882,18 +763,18 @@ error:
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image)
+#if SYZ_EXECUTOR || __NR_syz_mount_image
 //syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
 //fs_image_segment {
 //	data	ptr[in, array[int8]]
 //	size	len[data, intptr]
 //	offset	intptr
 //}
-static uintptr_t syz_mount_image(uintptr_t fsarg, uintptr_t dir, uintptr_t size, uintptr_t nsegs, uintptr_t segments, uintptr_t flags, uintptr_t optsarg)
+static long syz_mount_image(long fsarg, long dir, unsigned long size, unsigned long nsegs, long segments, long flags, long optsarg)
 {
 	char loopname[64], fs[32], opts[256];
 	int loopfd, err = 0, res = -1;
-	uintptr_t i;
+	unsigned long i;
 	// Strictly saying we ought to do a nonfailing copyout of segments into a local var.
 	// But some filesystems have large number of segments (2000+),
 	// we can't allocate that much on stack and allocating elsewhere is problematic,
@@ -964,7 +845,7 @@ static uintptr_t syz_mount_image(uintptr_t fsarg, uintptr_t dir, uintptr_t size,
 		strcat(opts, ",nouuid");
 	}
 	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir, fs, (uint64)flags, opts);
-#if defined(SYZ_EXECUTOR)
+#if SYZ_EXECUTOR
 	cover_reset(0);
 #endif
 	if (mount(loopname, (char*)dir, fs, flags, opts)) {
@@ -984,21 +865,35 @@ error:
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_kvm_setup_cpu)
+#if SYZ_EXECUTOR || __NR_syz_kvm_setup_cpu
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/kvm.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+
 #if defined(__x86_64__)
 #include "common_kvm_amd64.h"
 #elif defined(__aarch64__)
 #include "common_kvm_arm64.h"
 #else
-static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
+static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7)
 {
 	return 0;
 }
 #endif
-#endif // #ifdef __NR_syz_kvm_setup_cpu
+#endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION) || defined(SYZ_SANDBOX_NAMESPACE) || \
-    defined(SYZ_ENABLE_CGROUPS)
+#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION || SYZ_SANDBOX_NAMESPACE || SYZ_ENABLE_CGROUPS
+#include <errno.h>
+#include <fcntl.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 static bool write_file(const char* file, const char* what, ...)
 {
 	char buf[1024];
@@ -1023,332 +918,12 @@ static bool write_file(const char* file, const char* what, ...)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-static void setup_cgroups()
-{
-	if (mkdir("/syzcgroup", 0777)) {
-		debug("mkdir(/syzcgroup) failed: %d\n", errno);
-	}
-	if (mkdir("/syzcgroup/unified", 0777)) {
-		debug("mkdir(/syzcgroup/unified) failed: %d\n", errno);
-	}
-	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
-		debug("mount(cgroup2) failed: %d\n", errno);
-	}
-	if (chmod("/syzcgroup/unified", 0777)) {
-		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
-	}
-	if (!write_file("/syzcgroup/unified/cgroup.subtree_control", "+cpu +memory +io +pids +rdma")) {
-		debug("write(cgroup.subtree_control) failed: %d\n", errno);
-	}
-	if (mkdir("/syzcgroup/cpu", 0777)) {
-		debug("mkdir(/syzcgroup/cpu) failed: %d\n", errno);
-	}
-	if (mount("none", "/syzcgroup/cpu", "cgroup", 0, "cpuset,cpuacct,perf_event,hugetlb")) {
-		debug("mount(cgroup cpu) failed: %d\n", errno);
-	}
-	if (!write_file("/syzcgroup/cpu/cgroup.clone_children", "1")) {
-		debug("write(/syzcgroup/cpu/cgroup.clone_children) failed: %d\n", errno);
-	}
-	if (chmod("/syzcgroup/cpu", 0777)) {
-		debug("chmod(/syzcgroup/cpu) failed: %d\n", errno);
-	}
-	if (mkdir("/syzcgroup/net", 0777)) {
-		debug("mkdir(/syzcgroup/net) failed: %d\n", errno);
-	}
-	if (mount("none", "/syzcgroup/net", "cgroup", 0, "net_cls,net_prio,devices,freezer")) {
-		debug("mount(cgroup net) failed: %d\n", errno);
-	}
-	if (chmod("/syzcgroup/net", 0777)) {
-		debug("chmod(/syzcgroup/net) failed: %d\n", errno);
-	}
-}
+#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+#include <errno.h>
+#include <linux/net.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
-// TODO(dvyukov): this should be under a separate define for separate minimization,
-// but for now we bundle this with cgroups.
-static void setup_binfmt_misc()
-{
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:syz0::./file0:")) {
-		debug("write(/proc/sys/fs/binfmt_misc/register, syz0) failed: %d\n", errno);
-	}
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:yz1::./file0:POC")) {
-		debug("write(/proc/sys/fs/binfmt_misc/register, syz1) failed: %d\n", errno);
-	}
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
-static void loop();
-
-static void sandbox_common()
-{
-	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	setpgrp();
-	setsid();
-
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_init_net_socket)
-	int netns = open("/proc/self/ns/net", O_RDONLY);
-	if (netns == -1)
-		fail("open(/proc/self/ns/net) failed");
-	if (dup2(netns, kInitNetNsFd) < 0)
-		fail("dup2(netns, kInitNetNsFd) failed");
-	close(netns);
-#endif
-
-	struct rlimit rlim;
-	rlim.rlim_cur = rlim.rlim_max = 160 << 20;
-	setrlimit(RLIMIT_AS, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
-	setrlimit(RLIMIT_MEMLOCK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 136 << 20;
-	setrlimit(RLIMIT_FSIZE, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
-	setrlimit(RLIMIT_STACK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 0;
-	setrlimit(RLIMIT_CORE, &rlim);
-
-	// CLONE_NEWNS/NEWCGROUP cause EINVAL on some systems,
-	// so we do them separately of clone in do_sandbox_namespace.
-	if (unshare(CLONE_NEWNS)) {
-		debug("unshare(CLONE_NEWNS): %d\n", errno);
-	}
-	if (unshare(CLONE_NEWIPC)) {
-		debug("unshare(CLONE_NEWIPC): %d\n", errno);
-	}
-	if (unshare(0x02000000)) {
-		debug("unshare(CLONE_NEWCGROUP): %d\n", errno);
-	}
-	if (unshare(CLONE_NEWUTS)) {
-		debug("unshare(CLONE_NEWUTS): %d\n", errno);
-	}
-	if (unshare(CLONE_SYSVSEM)) {
-		debug("unshare(CLONE_SYSVSEM): %d\n", errno);
-	}
-}
-
-int wait_for_loop(int pid)
-{
-	if (pid < 0)
-		fail("sandbox fork failed");
-	debug("spawned loop pid %d\n", pid);
-	int status = 0;
-	while (waitpid(-1, &status, __WALL) != pid) {
-	}
-	return WEXITSTATUS(status);
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
-static int do_sandbox_none(void)
-{
-	// CLONE_NEWPID takes effect for the first child of the current process,
-	// so we do it before fork to make the loop "init" process of the namespace.
-	// We ought to do fail here, but sandbox=none is used in pkg/ipc tests
-	// and they are usually run under non-root.
-	// Also since debug is stripped by pkg/csource, we need to do {}
-	// even though we generally don't do {} around single statements.
-	if (unshare(CLONE_NEWPID)) {
-		debug("unshare(CLONE_NEWPID): %d\n", errno);
-	}
-	int pid = fork();
-	if (pid != 0)
-		return wait_for_loop(pid);
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-	setup_cgroups();
-	setup_binfmt_misc();
-#endif
-	sandbox_common();
-	if (unshare(CLONE_NEWNET)) {
-		debug("unshare(CLONE_NEWNET): %d\n", errno);
-	}
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	initialize_tun();
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_NETDEV)
-	initialize_netdevices();
-#endif
-	loop();
-	doexit(1);
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
-static int do_sandbox_setuid(void)
-{
-	if (unshare(CLONE_NEWPID))
-		fail("unshare(CLONE_NEWPID)");
-	int pid = fork();
-	if (pid != 0)
-		return wait_for_loop(pid);
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-	setup_cgroups();
-	setup_binfmt_misc();
-#endif
-	sandbox_common();
-	if (unshare(CLONE_NEWNET))
-		fail("unshare(CLONE_NEWNET)");
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	initialize_tun();
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_NETDEV)
-	initialize_netdevices();
-#endif
-
-	const int nobody = 65534;
-	if (setgroups(0, NULL))
-		fail("failed to setgroups");
-	if (syscall(SYS_setresgid, nobody, nobody, nobody))
-		fail("failed to setresgid");
-	if (syscall(SYS_setresuid, nobody, nobody, nobody))
-		fail("failed to setresuid");
-
-	// This is required to open /proc/self/* files.
-	// Otherwise they are owned by root and we can't open them after setuid.
-	// See task_dump_owner function in kernel.
-	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
-
-	loop();
-	doexit(1);
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
-static int real_uid;
-static int real_gid;
-__attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
-
-static int namespace_sandbox_proc(void* arg)
-{
-	sandbox_common();
-
-	// /proc/self/setgroups is not present on some systems, ignore error.
-	write_file("/proc/self/setgroups", "deny");
-	if (!write_file("/proc/self/uid_map", "0 %d 1\n", real_uid))
-		fail("write of /proc/self/uid_map failed");
-	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
-		fail("write of /proc/self/gid_map failed");
-
-	// CLONE_NEWNET must always happen before tun setup,
-	// because we want the tun device in the test namespace.
-	if (unshare(CLONE_NEWNET))
-		fail("unshare(CLONE_NEWNET)");
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	// We setup tun here as it needs to be in the test net namespace,
-	// which in turn needs to be in the test user namespace.
-	// However, IFF_NAPI_FRAGS will fail as we are not root already.
-	// There does not seem to be a call sequence that would satisfy all of that.
-	initialize_tun();
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_NETDEV)
-	initialize_netdevices();
-#endif
-
-	if (mkdir("./syz-tmp", 0777))
-		fail("mkdir(syz-tmp) failed");
-	if (mount("", "./syz-tmp", "tmpfs", 0, NULL))
-		fail("mount(tmpfs) failed");
-	if (mkdir("./syz-tmp/newroot", 0777))
-		fail("mkdir failed");
-	if (mkdir("./syz-tmp/newroot/dev", 0700))
-		fail("mkdir failed");
-	unsigned mount_flags = MS_BIND | MS_REC | MS_PRIVATE;
-	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, mount_flags, NULL))
-		fail("mount(dev) failed");
-	if (mkdir("./syz-tmp/newroot/proc", 0700))
-		fail("mkdir failed");
-	if (mount(NULL, "./syz-tmp/newroot/proc", "proc", 0, NULL))
-		fail("mount(proc) failed");
-	if (mkdir("./syz-tmp/newroot/selinux", 0700))
-		fail("mkdir failed");
-	// selinux mount used to be at /selinux, but then moved to /sys/fs/selinux.
-	const char* selinux_path = "./syz-tmp/newroot/selinux";
-	if (mount("/selinux", selinux_path, NULL, mount_flags, NULL)) {
-		if (errno != ENOENT)
-			fail("mount(/selinux) failed");
-		if (mount("/sys/fs/selinux", selinux_path, NULL, mount_flags, NULL) && errno != ENOENT)
-			fail("mount(/sys/fs/selinux) failed");
-	}
-	if (mkdir("./syz-tmp/newroot/sys", 0700))
-		fail("mkdir failed");
-	if (mount(NULL, "./syz-tmp/newroot/sys", "sysfs", 0, NULL))
-		fail("mount(sysfs) failed");
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-	if (mkdir("./syz-tmp/newroot/syzcgroup", 0700))
-		fail("mkdir failed");
-	if (mkdir("./syz-tmp/newroot/syzcgroup/unified", 0700))
-		fail("mkdir failed");
-	if (mkdir("./syz-tmp/newroot/syzcgroup/cpu", 0700))
-		fail("mkdir failed");
-	if (mkdir("./syz-tmp/newroot/syzcgroup/net", 0700))
-		fail("mkdir failed");
-	if (mount("/syzcgroup/unified", "./syz-tmp/newroot/syzcgroup/unified", NULL, mount_flags, NULL)) {
-		debug("mount(cgroup2, MS_BIND) failed: %d\n", errno);
-	}
-	if (mount("/syzcgroup/cpu", "./syz-tmp/newroot/syzcgroup/cpu", NULL, mount_flags, NULL)) {
-		debug("mount(cgroup/cpu, MS_BIND) failed: %d\n", errno);
-	}
-	if (mount("/syzcgroup/net", "./syz-tmp/newroot/syzcgroup/net", NULL, mount_flags, NULL)) {
-		debug("mount(cgroup/net, MS_BIND) failed: %d\n", errno);
-	}
-#endif
-	if (mkdir("./syz-tmp/pivot", 0777))
-		fail("mkdir failed");
-	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
-		debug("pivot_root failed\n");
-		if (chdir("./syz-tmp"))
-			fail("chdir failed");
-	} else {
-		debug("pivot_root OK\n");
-		if (chdir("/"))
-			fail("chdir failed");
-		if (umount2("./pivot", MNT_DETACH))
-			fail("umount failed");
-	}
-	if (chroot("./newroot"))
-		fail("chroot failed");
-	if (chdir("/"))
-		fail("chdir failed");
-
-	// Drop CAP_SYS_PTRACE so that test processes can't attach to parent processes.
-	// Previously it lead to hangs because the loop process stopped due to SIGSTOP.
-	// Note that a process can always ptrace its direct children, which is enough
-	// for testing purposes.
-	struct __user_cap_header_struct cap_hdr = {};
-	struct __user_cap_data_struct cap_data[2] = {};
-	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
-	cap_hdr.pid = getpid();
-	if (syscall(SYS_capget, &cap_hdr, &cap_data))
-		fail("capget failed");
-	cap_data[0].effective &= ~(1 << CAP_SYS_PTRACE);
-	cap_data[0].permitted &= ~(1 << CAP_SYS_PTRACE);
-	cap_data[0].inheritable &= ~(1 << CAP_SYS_PTRACE);
-	if (syscall(SYS_capset, &cap_hdr, &cap_data))
-		fail("capset failed");
-
-	loop();
-	doexit(1);
-}
-
-static int do_sandbox_namespace(void)
-{
-	int pid;
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-	setup_cgroups();
-	setup_binfmt_misc();
-#endif
-	real_uid = getuid();
-	real_gid = getgid();
-	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
-	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
-		    CLONE_NEWUSER | CLONE_NEWPID, 0);
-	return wait_for_loop(pid);
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_RESET_NET_NAMESPACE)
 // checkpoint/reset_net_namespace partially resets net namespace to initial state
 // after each test. Currently it resets only ipv4 netfilter state.
 // Ideally, we just create a new net namespace for each test,
@@ -1779,7 +1354,361 @@ static void reset_net_namespace(void)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
+#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+#include <fcntl.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+static void setup_cgroups()
+{
+	if (mkdir("/syzcgroup", 0777)) {
+		debug("mkdir(/syzcgroup) failed: %d\n", errno);
+	}
+	if (mkdir("/syzcgroup/unified", 0777)) {
+		debug("mkdir(/syzcgroup/unified) failed: %d\n", errno);
+	}
+	if (mount("none", "/syzcgroup/unified", "cgroup2", 0, NULL)) {
+		debug("mount(cgroup2) failed: %d\n", errno);
+	}
+	if (chmod("/syzcgroup/unified", 0777)) {
+		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
+	}
+	if (!write_file("/syzcgroup/unified/cgroup.subtree_control", "+cpu +memory +io +pids +rdma")) {
+		debug("write(cgroup.subtree_control) failed: %d\n", errno);
+	}
+	if (mkdir("/syzcgroup/cpu", 0777)) {
+		debug("mkdir(/syzcgroup/cpu) failed: %d\n", errno);
+	}
+	if (mount("none", "/syzcgroup/cpu", "cgroup", 0, "cpuset,cpuacct,perf_event,hugetlb")) {
+		debug("mount(cgroup cpu) failed: %d\n", errno);
+	}
+	if (!write_file("/syzcgroup/cpu/cgroup.clone_children", "1")) {
+		debug("write(/syzcgroup/cpu/cgroup.clone_children) failed: %d\n", errno);
+	}
+	if (chmod("/syzcgroup/cpu", 0777)) {
+		debug("chmod(/syzcgroup/cpu) failed: %d\n", errno);
+	}
+	if (mkdir("/syzcgroup/net", 0777)) {
+		debug("mkdir(/syzcgroup/net) failed: %d\n", errno);
+	}
+	if (mount("none", "/syzcgroup/net", "cgroup", 0, "net_cls,net_prio,devices,freezer")) {
+		debug("mount(cgroup net) failed: %d\n", errno);
+	}
+	if (chmod("/syzcgroup/net", 0777)) {
+		debug("chmod(/syzcgroup/net) failed: %d\n", errno);
+	}
+}
+
+// TODO(dvyukov): this should be under a separate define for separate minimization,
+// but for now we bundle this with cgroups.
+static void setup_binfmt_misc()
+{
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:syz0::./file0:")) {
+		debug("write(/proc/sys/fs/binfmt_misc/register, syz0) failed: %d\n", errno);
+	}
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:yz1::./file0:POC")) {
+		debug("write(/proc/sys/fs/binfmt_misc/register, syz1) failed: %d\n", errno);
+	}
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+static void setup_common()
+{
+#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+	setup_cgroups();
+	setup_binfmt_misc();
+#endif
+#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+	checkpoint_net_namespace();
+#endif
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#include <sys/prctl.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+
+static void loop();
+
+static void sandbox_common()
+{
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
+	setpgrp();
+	setsid();
+
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket
+	int netns = open("/proc/self/ns/net", O_RDONLY);
+	if (netns == -1)
+		fail("open(/proc/self/ns/net) failed");
+	if (dup2(netns, kInitNetNsFd) < 0)
+		fail("dup2(netns, kInitNetNsFd) failed");
+	close(netns);
+#endif
+
+	struct rlimit rlim;
+	rlim.rlim_cur = rlim.rlim_max = 160 << 20;
+	setrlimit(RLIMIT_AS, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
+	setrlimit(RLIMIT_MEMLOCK, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 136 << 20;
+	setrlimit(RLIMIT_FSIZE, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	setrlimit(RLIMIT_STACK, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 0;
+	setrlimit(RLIMIT_CORE, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 256; // see kMaxFd
+	setrlimit(RLIMIT_NOFILE, &rlim);
+
+	// CLONE_NEWNS/NEWCGROUP cause EINVAL on some systems,
+	// so we do them separately of clone in do_sandbox_namespace.
+	if (unshare(CLONE_NEWNS)) {
+		debug("unshare(CLONE_NEWNS): %d\n", errno);
+	}
+	if (unshare(CLONE_NEWIPC)) {
+		debug("unshare(CLONE_NEWIPC): %d\n", errno);
+	}
+	if (unshare(0x02000000)) {
+		debug("unshare(CLONE_NEWCGROUP): %d\n", errno);
+	}
+	if (unshare(CLONE_NEWUTS)) {
+		debug("unshare(CLONE_NEWUTS): %d\n", errno);
+	}
+	if (unshare(CLONE_SYSVSEM)) {
+		debug("unshare(CLONE_SYSVSEM): %d\n", errno);
+	}
+}
+
+int wait_for_loop(int pid)
+{
+	if (pid < 0)
+		fail("sandbox fork failed");
+	debug("spawned loop pid %d\n", pid);
+	int status = 0;
+	while (waitpid(-1, &status, __WALL) != pid) {
+	}
+	return WEXITSTATUS(status);
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+#include <sched.h>
+#include <sys/types.h>
+
+static int do_sandbox_none(void)
+{
+	// CLONE_NEWPID takes effect for the first child of the current process,
+	// so we do it before fork to make the loop "init" process of the namespace.
+	// We ought to do fail here, but sandbox=none is used in pkg/ipc tests
+	// and they are usually run under non-root.
+	// Also since debug is stripped by pkg/csource, we need to do {}
+	// even though we generally don't do {} around single statements.
+	if (unshare(CLONE_NEWPID)) {
+		debug("unshare(CLONE_NEWPID): %d\n", errno);
+	}
+	int pid = fork();
+	if (pid != 0)
+		return wait_for_loop(pid);
+
+	setup_common();
+	sandbox_common();
+	if (unshare(CLONE_NEWNET)) {
+		debug("unshare(CLONE_NEWNET): %d\n", errno);
+	}
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+	initialize_tun();
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices();
+#endif
+	loop();
+	doexit(1);
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_SETUID
+#include <grp.h>
+#include <sched.h>
+#include <sys/prctl.h>
+
+static int do_sandbox_setuid(void)
+{
+	if (unshare(CLONE_NEWPID))
+		fail("unshare(CLONE_NEWPID)");
+	int pid = fork();
+	if (pid != 0)
+		return wait_for_loop(pid);
+
+	setup_common();
+	sandbox_common();
+	if (unshare(CLONE_NEWNET))
+		fail("unshare(CLONE_NEWNET)");
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+	initialize_tun();
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices();
+#endif
+
+	const int nobody = 65534;
+	if (setgroups(0, NULL))
+		fail("failed to setgroups");
+	if (syscall(SYS_setresgid, nobody, nobody, nobody))
+		fail("failed to setresgid");
+	if (syscall(SYS_setresuid, nobody, nobody, nobody))
+		fail("failed to setresuid");
+
+	// This is required to open /proc/self/* files.
+	// Otherwise they are owned by root and we can't open them after setuid.
+	// See task_dump_owner function in kernel.
+	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
+
+	loop();
+	doexit(1);
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NAMESPACE
+#include <linux/capability.h>
+#include <sys/mman.h>
+
+static int real_uid;
+static int real_gid;
+__attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
+
+static int namespace_sandbox_proc(void* arg)
+{
+	sandbox_common();
+
+	// /proc/self/setgroups is not present on some systems, ignore error.
+	write_file("/proc/self/setgroups", "deny");
+	if (!write_file("/proc/self/uid_map", "0 %d 1\n", real_uid))
+		fail("write of /proc/self/uid_map failed");
+	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
+		fail("write of /proc/self/gid_map failed");
+
+	// CLONE_NEWNET must always happen before tun setup,
+	// because we want the tun device in the test namespace.
+	if (unshare(CLONE_NEWNET))
+		fail("unshare(CLONE_NEWNET)");
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+	// We setup tun here as it needs to be in the test net namespace,
+	// which in turn needs to be in the test user namespace.
+	// However, IFF_NAPI_FRAGS will fail as we are not root already.
+	// There does not seem to be a call sequence that would satisfy all of that.
+	initialize_tun();
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices();
+#endif
+
+	if (mkdir("./syz-tmp", 0777))
+		fail("mkdir(syz-tmp) failed");
+	if (mount("", "./syz-tmp", "tmpfs", 0, NULL))
+		fail("mount(tmpfs) failed");
+	if (mkdir("./syz-tmp/newroot", 0777))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/dev", 0700))
+		fail("mkdir failed");
+	unsigned bind_mount_flags = MS_BIND | MS_REC | MS_PRIVATE;
+	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, bind_mount_flags, NULL))
+		fail("mount(dev) failed");
+	if (mkdir("./syz-tmp/newroot/proc", 0700))
+		fail("mkdir failed");
+	if (mount(NULL, "./syz-tmp/newroot/proc", "proc", 0, NULL))
+		fail("mount(proc) failed");
+	if (mkdir("./syz-tmp/newroot/selinux", 0700))
+		fail("mkdir failed");
+	// selinux mount used to be at /selinux, but then moved to /sys/fs/selinux.
+	const char* selinux_path = "./syz-tmp/newroot/selinux";
+	if (mount("/selinux", selinux_path, NULL, bind_mount_flags, NULL)) {
+		if (errno != ENOENT)
+			fail("mount(/selinux) failed");
+		if (mount("/sys/fs/selinux", selinux_path, NULL, bind_mount_flags, NULL) && errno != ENOENT)
+			fail("mount(/sys/fs/selinux) failed");
+	}
+	if (mkdir("./syz-tmp/newroot/sys", 0700))
+		fail("mkdir failed");
+	if (mount("/sys", "./syz-tmp/newroot/sys", 0, bind_mount_flags, NULL))
+		fail("mount(sysfs) failed");
+#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+	if (mkdir("./syz-tmp/newroot/syzcgroup", 0700))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/syzcgroup/unified", 0700))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/syzcgroup/cpu", 0700))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/syzcgroup/net", 0700))
+		fail("mkdir failed");
+	if (mount("/syzcgroup/unified", "./syz-tmp/newroot/syzcgroup/unified", NULL, bind_mount_flags, NULL)) {
+		debug("mount(cgroup2, MS_BIND) failed: %d\n", errno);
+	}
+	if (mount("/syzcgroup/cpu", "./syz-tmp/newroot/syzcgroup/cpu", NULL, bind_mount_flags, NULL)) {
+		debug("mount(cgroup/cpu, MS_BIND) failed: %d\n", errno);
+	}
+	if (mount("/syzcgroup/net", "./syz-tmp/newroot/syzcgroup/net", NULL, bind_mount_flags, NULL)) {
+		debug("mount(cgroup/net, MS_BIND) failed: %d\n", errno);
+	}
+#endif
+	if (mkdir("./syz-tmp/pivot", 0777))
+		fail("mkdir failed");
+	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
+		debug("pivot_root failed\n");
+		if (chdir("./syz-tmp"))
+			fail("chdir failed");
+	} else {
+		debug("pivot_root OK\n");
+		if (chdir("/"))
+			fail("chdir failed");
+		if (umount2("./pivot", MNT_DETACH))
+			fail("umount failed");
+	}
+	if (chroot("./newroot"))
+		fail("chroot failed");
+	if (chdir("/"))
+		fail("chdir failed");
+
+	// Drop CAP_SYS_PTRACE so that test processes can't attach to parent processes.
+	// Previously it lead to hangs because the loop process stopped due to SIGSTOP.
+	// Note that a process can always ptrace its direct children, which is enough
+	// for testing purposes.
+	struct __user_cap_header_struct cap_hdr = {};
+	struct __user_cap_data_struct cap_data[2] = {};
+	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
+	cap_hdr.pid = getpid();
+	if (syscall(SYS_capget, &cap_hdr, &cap_data))
+		fail("capget failed");
+	cap_data[0].effective &= ~(1 << CAP_SYS_PTRACE);
+	cap_data[0].permitted &= ~(1 << CAP_SYS_PTRACE);
+	cap_data[0].inheritable &= ~(1 << CAP_SYS_PTRACE);
+	if (syscall(SYS_capset, &cap_hdr, &cap_data))
+		fail("capset failed");
+
+	loop();
+	doexit(1);
+}
+
+static int do_sandbox_namespace(void)
+{
+	int pid;
+
+	setup_common();
+	real_uid = getuid();
+	real_gid = getgid();
+	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
+	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
+		    CLONE_NEWUSER | CLONE_NEWPID, 0);
+	return wait_for_loop(pid);
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR
+#include <dirent.h>
+#include <errno.h>
+
 // One does not simply remove a directory.
 // There can be mounts, so we need to try to umount.
 // Moreover, a mount can be mounted several times, so we need to try to umount in a loop.
@@ -1866,7 +1795,11 @@ retry:
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
+#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 static int inject_fault(int nth)
 {
 	int fd;
@@ -1885,7 +1818,7 @@ static int inject_fault(int nth)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR)
+#if SYZ_EXECUTOR
 static int fault_injected(int fail_fd)
 {
 	char buf[16];
@@ -1901,263 +1834,97 @@ static int fault_injected(int fail_fd)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
-static void execute_one();
+#if SYZ_EXECUTOR || SYZ_REPEAT
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/prctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 extern unsigned long long procid;
 
-#if defined(SYZ_EXECUTOR)
-void reply_handshake();
-void receive_execute();
-void reply_execute(int status);
-extern uint32* output_data;
-extern uint32* output_pos;
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_WAIT_REPEAT)
-static void loop()
+static void setup_loop()
 {
-#if defined(SYZ_EXECUTOR)
-	// Tell parent that we are ready to serve.
-	reply_handshake();
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_RESET_NET_NAMESPACE)
-	checkpoint_net_namespace();
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
+#if SYZ_ENABLE_CGROUPS
+	int pid = getpid();
 	char cgroupdir[64];
+	char procs_file[128];
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/unified/syz%llu", procid);
-	char cgroupdir_cpu[64];
-	snprintf(cgroupdir_cpu, sizeof(cgroupdir_cpu), "/syzcgroup/cpu/syz%llu", procid);
-	char cgroupdir_net[64];
-	snprintf(cgroupdir_net, sizeof(cgroupdir_net), "/syzcgroup/net/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
 	}
-	if (mkdir(cgroupdir_cpu, 0777)) {
-		debug("mkdir(%s) failed: %d\n", cgroupdir_cpu, errno);
-	}
-	if (mkdir(cgroupdir_net, 0777)) {
-		debug("mkdir(%s) failed: %d\n", cgroupdir_net, errno);
-	}
-	int pid = getpid();
-	char procs_file[128];
 	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir);
 	if (!write_file(procs_file, "%d", pid)) {
 		debug("write(%s) failed: %d\n", procs_file, errno);
 	}
-	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir_cpu);
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
+	if (mkdir(cgroupdir, 0777)) {
+		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
+	}
+	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir);
 	if (!write_file(procs_file, "%d", pid)) {
 		debug("write(%s) failed: %d\n", procs_file, errno);
 	}
-	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir_net);
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
+	if (mkdir(cgroupdir, 0777)) {
+		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
+	}
+	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir);
 	if (!write_file(procs_file, "%d", pid)) {
 		debug("write(%s) failed: %d\n", procs_file, errno);
 	}
 #endif
-	int iter;
-	for (iter = 0;; iter++) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
-		// Create a new private work dir for this test (removed at the end of the loop).
-		char cwdbuf[32];
-		sprintf(cwdbuf, "./%d", iter);
-		if (mkdir(cwdbuf, 0777))
-			fail("failed to mkdir");
-#endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image) || defined(__NR_syz_read_part_table)
-		char buf[64];
-		snprintf(buf, sizeof(buf), "/dev/loop%llu", procid);
-		int loopfd = open(buf, O_RDWR);
-		if (loopfd != -1) {
-			ioctl(loopfd, LOOP_CLR_FD, 0);
-			close(loopfd);
-		}
-#endif
-#if defined(SYZ_EXECUTOR)
-		// TODO: consider moving the read into the child.
-		// Potentially it can speed up things a bit -- when the read finishes
-		// we already have a forked worker process.
-		receive_execute();
-#endif
-		int pid = fork();
-		if (pid < 0)
-			fail("clone failed");
-		if (pid == 0) {
-			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-			setpgrp();
-#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
-			if (chdir(cwdbuf))
-				fail("failed to chdir");
-#endif
-#if defined(SYZ_EXECUTOR)
-			close(kInPipeFd);
-			close(kOutPipeFd);
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-			if (symlink(cgroupdir, "./cgroup")) {
-				debug("symlink(%s, ./cgroup) failed: %d\n", cgroupdir, errno);
-			}
-			if (symlink(cgroupdir_cpu, "./cgroup.cpu")) {
-				debug("symlink(%s, ./cgroup.cpu) failed: %d\n", cgroupdir_cpu, errno);
-			}
-			if (symlink(cgroupdir_net, "./cgroup.net")) {
-				debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir_net, errno);
-			}
-#endif
-#if defined(SYZ_EXECUTOR)
-			if (flag_enable_tun) {
-				// Read all remaining packets from tun to better
-				// isolate consequently executing programs.
-				flush_tun();
-			}
-			output_pos = output_data;
-#elif defined(SYZ_TUN_ENABLE)
-			flush_tun();
-#endif
-			execute_one();
-			debug("worker exiting\n");
-			// Keeping a 9p transport pipe open will hang the proccess dead,
-			// so close all opened file descriptors.
-			int fd;
-			for (fd = 3; fd < 30; fd++)
-				close(fd);
-			doexit(0);
-		}
-		debug("spawned worker pid %d\n", pid);
-
-		// We used to use sigtimedwait(SIGCHLD) to wait for the subprocess.
-		// But SIGCHLD is also delivered when a process stops/continues,
-		// so it would require a loop with status analysis and timeout recalculation.
-		// SIGCHLD should also unblock the usleep below, so the spin loop
-		// should be as efficient as sigtimedwait.
-		int status = 0;
-		uint64 start = current_time_ms();
-#if defined(SYZ_EXECUTOR)
-		uint64 last_executed = start;
-		uint32 executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
-#endif
-		for (;;) {
-			int res = waitpid(-1, &status, __WALL | WNOHANG);
-			if (res == pid) {
-				debug("waitpid(%d)=%d\n", pid, res);
-				break;
-			}
-			usleep(1000);
-#if defined(SYZ_EXECUTOR)
-			// Even though the test process executes exit at the end
-			// and execution time of each syscall is bounded by 20ms,
-			// this backup watchdog is necessary and its performance is important.
-			// The problem is that exit in the test processes can fail (sic).
-			// One observed scenario is that the test processes prohibits
-			// exit_group syscall using seccomp. Another observed scenario
-			// is that the test processes setups a userfaultfd for itself,
-			// then the main thread hangs when it wants to page in a page.
-			// Below we check if the test process still executes syscalls
-			// and kill it after 1s of inactivity.
-			uint64 now = current_time_ms();
-			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
-			if (executed_calls != now_executed) {
-				executed_calls = now_executed;
-				last_executed = now;
-			}
-			if ((now - start < 5 * 1000) && (now - start < 3000 || now - last_executed < 1000))
-				continue;
-#else
-			if (current_time_ms() - start < 5 * 1000)
-				continue;
-#endif
-			debug("waitpid(%d)=%d\n", pid, res);
-			debug("killing\n");
-			kill(-pid, SIGKILL);
-			kill(pid, SIGKILL);
-			while (waitpid(-1, &status, __WALL) != pid) {
-			}
-			break;
-		}
-#if defined(SYZ_EXECUTOR)
-		status = WEXITSTATUS(status);
-		if (status == kFailStatus)
-			fail("child failed");
-		if (status == kErrorStatus)
-			error("child errored");
-		reply_execute(0);
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
-		remove_dir(cwdbuf);
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_RESET_NET_NAMESPACE)
-		reset_net_namespace();
-#endif
-	}
-}
-#else
-void loop()
-{
-	while (1) {
-		execute_one();
-	}
-}
-#endif
-#endif
-
-#if defined(SYZ_THREADED)
-struct thread_t {
-	int created, running, call;
-	pthread_t th;
-};
-
-static struct thread_t threads[16];
-static void execute_call(int call);
-static int running;
-#if defined(SYZ_COLLIDE)
-static int collide;
-#endif
-
-static void* thr(void* arg)
-{
-	struct thread_t* th = (struct thread_t*)arg;
-	for (;;) {
-		while (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE))
-			syscall(SYS_futex, &th->running, FUTEX_WAIT, 0, 0);
-		execute_call(th->call);
-		__atomic_fetch_sub(&running, 1, __ATOMIC_RELAXED);
-		__atomic_store_n(&th->running, 0, __ATOMIC_RELEASE);
-		syscall(SYS_futex, &th->running, FUTEX_WAKE);
-	}
-	return 0;
 }
 
-static void execute(int num_calls)
+static void reset_loop()
 {
-	int call, thread;
-	running = 0;
-	for (call = 0; call < num_calls; call++) {
-		for (thread = 0; thread < sizeof(threads) / sizeof(threads[0]); thread++) {
-			struct thread_t* th = &threads[thread];
-			if (!th->created) {
-				th->created = 1;
-				pthread_attr_t attr;
-				pthread_attr_init(&attr);
-				pthread_attr_setstacksize(&attr, 128 << 10);
-				pthread_create(&th->th, &attr, thr, th);
-			}
-			if (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE)) {
-				th->call = call;
-				__atomic_fetch_add(&running, 1, __ATOMIC_RELAXED);
-				__atomic_store_n(&th->running, 1, __ATOMIC_RELEASE);
-				syscall(SYS_futex, &th->running, FUTEX_WAKE);
-#if defined(SYZ_COLLIDE)
-				if (collide && call % 2)
-					break;
-#endif
-				struct timespec ts;
-				ts.tv_sec = 0;
-				ts.tv_nsec = 20 * 1000 * 1000;
-				syscall(SYS_futex, &th->running, FUTEX_WAIT, 1, &ts);
-				if (__atomic_load_n(&running, __ATOMIC_RELAXED))
-					usleep((call == num_calls - 1) ? 10000 : 1000);
-				break;
-			}
-		}
+#if SYZ_EXECUTOR || __NR_syz_mount_image || __NR_syz_read_part_table
+	char buf[64];
+	snprintf(buf, sizeof(buf), "/dev/loop%llu", procid);
+	int loopfd = open(buf, O_RDWR);
+	if (loopfd != -1) {
+		ioctl(loopfd, LOOP_CLR_FD, 0);
+		close(loopfd);
 	}
+#endif
+#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+	reset_net_namespace();
+#endif
+}
+
+static void setup_test()
+{
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
+	setpgrp();
+#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+	char cgroupdir[64];
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/unified/syz%llu", procid);
+	if (symlink(cgroupdir, "./cgroup")) {
+		debug("symlink(%s, ./cgroup) failed: %d\n", cgroupdir, errno);
+	}
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
+	if (symlink(cgroupdir, "./cgroup.cpu")) {
+		debug("symlink(%s, ./cgroup.cpu) failed: %d\n", cgroupdir, errno);
+	}
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
+	if (symlink(cgroupdir, "./cgroup.net")) {
+		debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir, errno);
+	}
+#endif
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+	// Read all remaining packets from tun to better
+	// isolate consequently executing programs.
+	flush_tun();
+#endif
+}
+
+static void reset_test()
+{
+	// Keeping a 9p transport pipe open will hang the proccess dead,
+	// so close all opened file descriptors.
+	int fd;
+	for (fd = 3; fd < 30; fd++)
+		close(fd);
 }
 #endif

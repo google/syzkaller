@@ -33,8 +33,6 @@ var (
 	flagNetdev     = flag.Bool("netdev", false, "setup various net devices")
 	flagResetNet   = flag.Bool("resetnet", false, "reset net namespace after each test")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
-	flagWaitRepeat = flag.Bool("waitrepeat", false, "wait for each repeat attempt")
-	flagDebug      = flag.Bool("debug", false, "generate debug printfs")
 )
 
 func main() {
@@ -73,8 +71,6 @@ func main() {
 		EnableNetdev:  *flagNetdev,
 		ResetNet:      *flagResetNet,
 		HandleSegv:    *flagHandleSegv,
-		WaitRepeat:    *flagWaitRepeat,
-		Debug:         *flagDebug,
 		Repro:         false,
 	}
 	src, err := csource.Write(p, opts)

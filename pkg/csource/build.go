@@ -38,7 +38,12 @@ func build(target *prog.Target, src []byte, file string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	flags := []string{"-Wall", "-Werror", "-O1", "-g", "-o", bin, "-pthread"}
+
+	flags := []string{
+		"-Wall", "-Werror", "-O1", "-g", "-o", bin, "-pthread",
+		"-DGOOS_" + target.OS + "=1",
+		"-DGOARCH_" + target.Arch + "=1",
+	}
 	if file == "" {
 		flags = append(flags, "-x", "c", "-")
 	} else {

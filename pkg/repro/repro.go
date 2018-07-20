@@ -770,7 +770,6 @@ var progSimplifies = []Simplify{
 			return false
 		}
 		opts.Repeat = false
-		opts.WaitRepeat = false
 		opts.EnableCgroups = false
 		opts.ResetNet = false
 		opts.Procs = 1
@@ -844,15 +843,6 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.HandleSegv = false
-		return true
-	},
-	func(opts *csource.Options) bool {
-		if !opts.WaitRepeat {
-			return false
-		}
-		opts.WaitRepeat = false
-		opts.EnableCgroups = false
-		opts.ResetNet = false
 		return true
 	},
 }...)
