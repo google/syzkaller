@@ -88,6 +88,12 @@ int main(int argc, char** argv)
 	rlim.rlim_cur = rlim.rlim_max = 0;
 	setrlimit(RLIMIT_CORE, &rlim);
 
+	const int nfiles = 1 << 8;
+	if (kInPipeFd >= nfiles)
+		fail("RLIMIT_NOFILE too low: %d > %d", kInPipeFd, nfiles);
+	rlim.rlim_cur = rlim.rlim_max = nfiles;
+	setrlimit(RLIMIT_NOFILE, &rlim);
+
 	install_segv_handler();
 	main_init();
 	reply_handshake();
