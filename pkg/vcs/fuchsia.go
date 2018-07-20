@@ -26,24 +26,24 @@ func newFuchsia(vm, dir string) *fuchsia {
 	}
 }
 
-func (fu *fuchsia) Poll(repo, branch string) (*Commit, error) {
+func (ctx *fuchsia) Poll(repo, branch string) (*Commit, error) {
 	if repo != "https://fuchsia.googlesource.com" || branch != "master" {
 		// fuchsia ecosystem is hard-tailored to the main repo.
 		return nil, fmt.Errorf("fuchsia: can only check out https://fuchsia.googlesource.com/master")
 	}
-	if _, err := runSandboxed(fu.dir, "./.jiri_root/bin/jiri", "update"); err != nil {
-		if err := fu.initRepo(); err != nil {
+	if _, err := runSandboxed(ctx.dir, "./.jiri_root/bin/jiri", "update"); err != nil {
+		if err := ctx.initRepo(); err != nil {
 			return nil, err
 		}
 	}
-	return fu.zircon.HeadCommit()
+	return ctx.zircon.HeadCommit()
 }
 
-func (fu *fuchsia) initRepo() error {
-	if err := os.RemoveAll(fu.dir); err != nil {
+func (ctx *fuchsia) initRepo() error {
+	if err := os.RemoveAll(ctx.dir); err != nil {
 		return fmt.Errorf("failed to remove repo dir: %v", err)
 	}
-	tmpDir := fu.dir + ".tmp"
+	tmpDir := ctx.dir + ".tmp"
 	if err := osutil.MkdirAll(tmpDir); err != nil {
 		return fmt.Errorf("failed to create repo dir: %v", err)
 	}
@@ -56,37 +56,37 @@ func (fu *fuchsia) initRepo() error {
 	if _, err := runSandboxed(tmpDir, "bash", "-c", cmd); err != nil {
 		return err
 	}
-	return os.Rename(filepath.Join(tmpDir, "fuchsia"), fu.dir)
+	return os.Rename(filepath.Join(tmpDir, "fuchsia"), ctx.dir)
 }
 
-func (fu *fuchsia) CheckoutBranch(repo, branch string) (*Commit, error) {
+func (ctx *fuchsia) CheckoutBranch(repo, branch string) (*Commit, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
 
-func (fu *fuchsia) CheckoutCommit(repo, commit string) (*Commit, error) {
+func (ctx *fuchsia) CheckoutCommit(repo, commit string) (*Commit, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
 
-func (fu *fuchsia) SwitchCommit(commit string) (*Commit, error) {
+func (ctx *fuchsia) SwitchCommit(commit string) (*Commit, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
 
-func (fu *fuchsia) HeadCommit() (*Commit, error) {
+func (ctx *fuchsia) HeadCommit() (*Commit, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
 
-func (fu *fuchsia) ListRecentCommits(baseCommit string) ([]string, error) {
-	return nil, nil
+func (ctx *fuchsia) ListRecentCommits(baseCommit string) ([]string, error) {
+	return ctx.zircon.ListRecentCommits(baseCommit)
 }
 
-func (fu *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit, error) {
+func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit, error) {
+	return ctx.zircon.ExtractFixTagsFromCommits(baseCommit, email)
+}
+
+func (ctx *fuchsia) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
 
-func (fu *fuchsia) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for fuchsia")
-}
-
-func (fu *fuchsia) PreviousReleaseTags(commit string) ([]string, error) {
+func (ctx *fuchsia) PreviousReleaseTags(commit string) ([]string, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
