@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"runtime"
-	"strings"
 	"testing"
 	"time"
 
@@ -16,26 +14,12 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
-func TestGenerateOne(t *testing.T) {
+func TestGenerate(t *testing.T) {
 	t.Parallel()
-	opts := Options{
-		Threaded:  true,
-		Collide:   true,
-		Repeat:    true,
-		Procs:     2,
-		Sandbox:   "none",
-		Repro:     true,
-		UseTmpDir: true,
-	}
 	for _, target := range prog.AllTargets() {
-		if target.OS == "test" {
+		switch target.OS {
+		case "netbsd", "windows":
 			continue
-		}
-		if target.OS == "fuchsia" && !strings.Contains(os.Getenv("SOURCEDIR"), "fuchsia") {
-			continue
-		}
-		if target.OS == "windows" {
-			continue // TODO(dvyukov): support windows
 		}
 		target := target
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
@@ -51,71 +35,56 @@ func TestGenerateOne(t *testing.T) {
 				t.Skip("broken")
 			}
 			t.Parallel()
-			rs := rand.NewSource(0)
-			p := target.GenerateAllSyzProg(rs)
-			if len(p.Calls) == 0 {
-				t.Skip("no syz syscalls")
-			}
-			testOne(t, p, opts)
+			testTarget(t, target)
 		})
 	}
 }
 
-func TestGenerateOptionsHost(t *testing.T) {
-	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
-	if err != nil {
-		t.Fatal(err)
-	}
-	testGenerateOptions(t, target)
-}
-
-func TestGenerateOptionsFuchsia(t *testing.T) {
-	if !strings.Contains(os.Getenv("SOURCEDIR"), "fuchsia") {
-		t.Skip("SOURCEDIR is not set")
-	}
-	target, err := prog.GetTarget("fuchsia", runtime.GOARCH)
-	if err != nil {
-		t.Fatal(err)
-	}
-	testGenerateOptions(t, target)
-}
-
-func testGenerateOptions(t *testing.T, target *prog.Target) {
-	t.Parallel()
+func testTarget(t *testing.T, target *prog.Target) {
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
 	r := rand.New(rs)
-	syzProg := target.GenerateAllSyzProg(rs)
-	t.Logf("syz program:\n%s\n", syzProg.Serialize())
-	permutations := allOptionsSingle(target.OS)
+	progs := []*prog.Prog{target.GenerateSimpleProg()}
+	if p := target.GenerateAllSyzProg(rs); len(p.Calls) != 0 {
+		progs = append(progs, p)
+	}
+	if !testing.Short() {
+		progs = append(progs, target.Generate(rs, 10, nil))
+	}
+	opts := allOptionsSingle(target.OS)
+	opts = append(opts, Options{
+		Threaded:  true,
+		Collide:   true,
+		Repeat:    true,
+		Procs:     2,
+		Sandbox:   "none",
+		Repro:     true,
+		UseTmpDir: true,
+	})
 	allPermutations := allOptionsPermutations(target.OS)
 	if testing.Short() {
 		for i := 0; i < 16; i++ {
-			permutations = append(permutations, allPermutations[r.Intn(len(allPermutations))])
+			opts = append(opts, allPermutations[r.Intn(len(allPermutations))])
 		}
 	} else {
-		permutations = allPermutations
+		opts = allPermutations
 	}
-	for i, opts := range permutations {
-		opts := opts
-		rs1 := rand.NewSource(r.Int63())
-		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
-			t.Parallel()
-			t.Logf("opts: %+v", opts)
-			if !testing.Short() {
-				p := target.Generate(rs1, 10, nil)
+	for pi, p := range progs {
+		for opti, opts := range opts {
+			p, opts := p, opts
+			t.Run(fmt.Sprintf("%v/%v", pi, opti), func(t *testing.T) {
+				t.Parallel()
 				testOne(t, p, opts)
-			}
-			testOne(t, syzProg, opts)
-		})
+			})
+		}
 	}
 }
 
 func testOne(t *testing.T, p *prog.Prog, opts Options) {
 	src, err := Write(p, opts)
 	if err != nil {
-		t.Logf("program:\n%s\n", p.Serialize())
+		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	bin, err := Build(p.Target, src)
@@ -123,7 +92,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Skip(err)
 	}
 	if err != nil {
-		t.Logf("program:\n%s\n", p.Serialize())
+		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(bin)

@@ -52,13 +52,13 @@ func TestCompileAll(t *testing.T) {
 func TestNoErrors(t *testing.T) {
 	t.Parallel()
 	consts := map[string]uint64{
-		"__NR_foo": 1,
-		"C0":       0,
-		"C1":       1,
-		"C2":       2,
+		"SYS_foo": 1,
+		"C0":      0,
+		"C1":      1,
+		"C2":      2,
 	}
 	for _, name := range []string{"all.txt"} {
-		for _, arch := range []string{"32", "64"} {
+		for _, arch := range []string{"32_shmem", "64"} {
 			name, arch := name, arch
 			t.Run(fmt.Sprintf("%v/%v", name, arch), func(t *testing.T) {
 				t.Parallel()
@@ -110,7 +110,7 @@ func TestNoErrors(t *testing.T) {
 
 func TestErrors(t *testing.T) {
 	t.Parallel()
-	for _, arch := range []string{"32", "64"} {
+	for _, arch := range []string{"32_shmem", "64"} {
 		target := targets.List["test"][arch]
 		t.Run(arch, func(t *testing.T) {
 			t.Parallel()
@@ -129,12 +129,12 @@ func TestErrors(t *testing.T) {
 func TestErrors2(t *testing.T) {
 	t.Parallel()
 	consts := map[string]uint64{
-		"__NR_foo": 1,
-		"C0":       0,
-		"C1":       1,
-		"C2":       2,
+		"SYS_foo": 1,
+		"C0":      0,
+		"C1":      1,
+		"C2":      2,
 	}
-	for _, arch := range []string{"32", "64"} {
+	for _, arch := range []string{"32_shmem", "64"} {
 		target := targets.List["test"][arch]
 		t.Run(arch, func(t *testing.T) {
 			t.Parallel()
@@ -163,7 +163,7 @@ func TestFuzz(t *testing.T) {
 		"define\x98define(define\x98define\x98define\x98define\x98define)define\tdefin",
 		"resource g[g]",
 	}
-	consts := map[string]uint64{"A": 1, "B": 2, "C": 3, "__NR_C": 4}
+	consts := map[string]uint64{"A": 1, "B": 2, "C": 3, "SYS_C": 4}
 	eh := func(pos ast.Pos, msg string) {
 		t.Logf("%v: %v", pos, msg)
 	}
@@ -198,7 +198,7 @@ s2 {
 	if desc == nil {
 		t.Fatal("failed to parse")
 	}
-	p := Compile(desc, map[string]uint64{"__NR_foo": 1}, targets.List["test"]["64"], nil)
+	p := Compile(desc, map[string]uint64{"SYS_foo": 1}, targets.List["test"]["64"], nil)
 	if p == nil {
 		t.Fatal("failed to compile")
 	}

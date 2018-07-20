@@ -1,201 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-#define SYZ_EXECUTOR
-#include "common_linux.h"
-
-#include "syscalls_linux.h"
-
 #include <sys/utsname.h>
-
-unsigned long long procid;
-
-void cover_reset(thread_t*)
-{
-}
-
-extern "C" int test_copyin()
-{
-	unsigned char x[4] = {};
-	STORE_BY_BITMASK(uint16, &x[1], 0x1234, 0, 0);
-	if (x[0] != 0 || x[1] != 0x34 || x[2] != 0x12 || x[3] != 0) {
-		printf("bad result of STORE_BY_BITMASK(0, 0): %x %x %x %x\n", x[0], x[1], x[2], x[3]);
-		return 1;
-	}
-	STORE_BY_BITMASK(uint16, &x[1], 0x555a, 5, 4);
-	if (x[0] != 0 || x[1] != 0x54 || x[2] != 0x13 || x[3] != 0) {
-		printf("bad result of STORE_BY_BITMASK(7, 3): %x %x %x %x\n", x[0], x[1], x[2], x[3]);
-		return 1;
-	}
-	return 0;
-}
-
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
-struct csum_inet_test {
-	const char* data;
-	size_t length;
-	uint16 csum;
-};
-
-extern "C" int test_csum_inet()
-{
-	struct csum_inet_test tests[] = {
-	    {// 0
-	     "",
-	     0,
-	     0xffff},
-	    {
-		// 1
-		"\x00",
-		1,
-		0xffff,
-	    },
-	    {
-		// 2
-		"\x00\x00",
-		2,
-		0xffff,
-	    },
-	    {
-		// 3
-		"\x00\x00\xff\xff",
-		4,
-		0x0000,
-	    },
-	    {
-		// 4
-		"\xfc",
-		1,
-		0xff03,
-	    },
-	    {
-		// 5
-		"\xfc\x12",
-		2,
-		0xed03,
-	    },
-	    {
-		// 6
-		"\xfc\x12\x3e",
-		3,
-		0xecc5,
-	    },
-	    {
-		// 7
-		"\xfc\x12\x3e\x00\xc5\xec",
-		6,
-		0x0000,
-	    },
-	    {
-		// 8
-		"\x42\x00\x00\x43\x44\x00\x00\x00\x45\x00\x00\x00\xba\xaa\xbb\xcc\xdd",
-		17,
-		0x43e1,
-	    },
-	    {
-		// 9
-		"\x42\x00\x00\x43\x44\x00\x00\x00\x45\x00\x00\x00\xba\xaa\xbb\xcc\xdd\x00",
-		18,
-		0x43e1,
-	    },
-	    {
-		// 10
-		"\x00\x00\x42\x00\x00\x43\x44\x00\x00\x00\x45\x00\x00\x00\xba\xaa\xbb\xcc\xdd",
-		19,
-		0x43e1,
-	    },
-	    {
-		// 11
-		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\xab\xcd",
-		15,
-		0x5032,
-	    },
-	    {
-		// 12
-		"\x00\x00\x12\x34\x56\x78",
-		6,
-		0x5397,
-	    },
-	    {
-		// 13
-		"\x00\x00\x12\x34\x00\x00\x56\x78\x00\x06\x00\x04\xab\xcd",
-		14,
-		0x7beb,
-	    },
-	    {
-		// 14
-		"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\xff\xee\xdd\xcc\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x00\x00\x00\x00\x04\x00\x00\x00\x06\x00\x00\xab\xcd",
-		44,
-		0x2854,
-	    },
-	    {
-		// 15
-		"\x00\x00\x12\x34\x00\x00\x56\x78\x00\x11\x00\x04\xab\xcd",
-		14,
-		0x70eb,
-	    },
-	    {
-		// 16
-		"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\xff\xee\xdd\xcc\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x00\x00\x00\x00\x04\x00\x00\x00\x11\x00\x00\xab\xcd",
-		44,
-		0x1d54,
-	    },
-	    {
-		// 17
-		"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\xff\xee\xdd\xcc\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x00\x00\x00\x00\x04\x00\x00\x00\x3a\x00\x00\xab\xcd",
-		44,
-		0xf453,
-	    }};
-
-	for (unsigned i = 0; i < ARRAY_SIZE(tests); i++) {
-		struct csum_inet csum;
-		csum_inet_init(&csum);
-		csum_inet_update(&csum, (const uint8*)tests[i].data, tests[i].length);
-		if (csum_inet_digest(&csum) != tests[i].csum) {
-			fprintf(stderr, "bad checksum in test #%u, want: %hx, got: %hx\n", i, tests[i].csum, csum_inet_digest(&csum));
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
-int randInt(int start, int end)
-{
-	return rand() % (end + 1 - start) + start;
-}
-
-extern "C" int test_csum_inet_acc()
-{
-	uint8 buffer[128];
-
-	int test;
-	for (test = 0; test < 256; test++) {
-		int size = randInt(1, 128);
-		int step = randInt(1, 8) * 2;
-
-		int i;
-		for (i = 0; i < size; i++)
-			buffer[i] = randInt(0, 255);
-
-		struct csum_inet csum_acc;
-		csum_inet_init(&csum_acc);
-
-		for (i = 0; i < size / step; i++)
-			csum_inet_update(&csum_acc, &buffer[i * step], step);
-		if (size % step != 0)
-			csum_inet_update(&csum_acc, &buffer[size - size % step], size % step);
-
-		struct csum_inet csum;
-		csum_inet_init(&csum);
-		csum_inet_update(&csum, &buffer[0], size);
-
-		if (csum_inet_digest(&csum_acc) != csum_inet_digest(&csum))
-			return 1;
-	}
-	return 0;
-}
 
 static unsigned host_kernel_version();
 static void dump_cpu_state(int cpufd, char* vm_mem);
@@ -231,7 +37,8 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 		printf("KVM_GET_VCPU_MMAP_SIZE failed (%d)\n", errno);
 		return 1;
 	}
-	struct kvm_run* cpu_mem = (struct kvm_run*)mmap(0, cpu_mem_size, PROT_READ | PROT_WRITE, MAP_SHARED, cpufd, 0);
+	struct kvm_run* cpu_mem = (struct kvm_run*)mmap(0, cpu_mem_size,
+							PROT_READ | PROT_WRITE, MAP_SHARED, cpufd, 0);
 	if (cpu_mem == MAP_FAILED) {
 		printf("cpu mmap failed (%d)\n", errno);
 		return 1;
@@ -263,7 +70,8 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 	if (cpu_mem->exit_reason != reason) {
 		printf("KVM_RUN exit reason %d, expect %d\n", cpu_mem->exit_reason, reason);
 		if (cpu_mem->exit_reason == KVM_EXIT_FAIL_ENTRY)
-			printf("hardware exit reason 0x%llx\n", cpu_mem->fail_entry.hardware_entry_failure_reason);
+			printf("hardware exit reason 0x%llx\n",
+			       cpu_mem->fail_entry.hardware_entry_failure_reason);
 		dump_cpu_state(cpufd, (char*)vm_mem);
 		return 1;
 	}
@@ -280,7 +88,7 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 	return 0;
 }
 
-extern "C" int test_kvm()
+static int test_kvm()
 {
 	int res;
 
@@ -345,7 +153,8 @@ extern "C" int test_kvm()
 
 		// Also ensure that we are actually in SMM.
 		// If we do MOV to RAX and then RSM, RAX will be restored to host value so RAX check will fail.
-		// So instead we execute just RSM, if we are in SMM we will get KVM_EXIT_HLT, otherwise KVM_EXIT_INTERNAL_ERROR.
+		// So instead we execute just RSM, if we are in SMM we will get KVM_EXIT_HLT,
+		// otherwise KVM_EXIT_INTERNAL_ERROR.
 		const char text_rsm[] = "\x0f\xaa";
 		if ((res = test_one(8, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false)))
 			return res;

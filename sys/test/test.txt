@@ -4,29 +4,29 @@
 # Syscalls used in syzkaller tests.
 
 syz_mmap(addr vma, len len[addr])
-syz_test()
+test()
 
 # Integer types.
 
-syz_test$int(a0 intptr, a1 int8, a2 int16, a3 int32, a4 int64)
+test$int(a0 intptr, a1 int8, a2 int16, a3 int32, a4 int64)
 
 # Opt arguments
 
-syz_test$opt0(a0 intptr[opt])
-syz_test$opt1(a0 ptr[in, intptr, opt])
-syz_test$opt2(a0 vma[opt])
-syz_test$opt3(a0 proc[100, 4, opt])
+test$opt0(a0 intptr[opt])
+test$opt1(a0 ptr[in, intptr, opt])
+test$opt2(a0 vma[opt])
+test$opt3(a0 proc[100, 4, opt])
 
 # Alignment and padding
 
-syz_test$align0(a0 ptr[in, syz_align0])
-syz_test$align1(a0 ptr[in, syz_align1])
-syz_test$align2(a0 ptr[in, syz_align2])
-syz_test$align3(a0 ptr[in, syz_align3])
-syz_test$align4(a0 ptr[in, syz_align4])
-syz_test$align5(a0 ptr[in, syz_align5])
-syz_test$align6(a0 ptr[in, syz_align6])
-syz_test$align7(a0 ptr[in, syz_align7])
+test$align0(a0 ptr[in, syz_align0])
+test$align1(a0 ptr[in, syz_align1])
+test$align2(a0 ptr[in, syz_align2])
+test$align3(a0 ptr[in, syz_align3])
+test$align4(a0 ptr[in, syz_align4])
+test$align5(a0 ptr[in, syz_align5])
+test$align6(a0 ptr[in, syz_align6])
+test$align7(a0 ptr[in, syz_align7])
 
 syz_align0 {
 	f0	int16
@@ -114,7 +114,7 @@ syz_align8 {
 
 # Structs
 
-syz_test$struct(a0 ptr[in, syz_struct0])
+test$struct(a0 ptr[in, syz_struct0])
 
 syz_struct0 {
 	f0	int64
@@ -127,9 +127,9 @@ syz_struct1 {
 
 # Unions
 
-syz_test$union0(a0 ptr[in, syz_union0_struct])
-syz_test$union1(a0 ptr[in, syz_union1_struct])
-syz_test$union2(a0 ptr[in, syz_union2_struct])
+test$union0(a0 ptr[in, syz_union0_struct])
+test$union1(a0 ptr[in, syz_union1_struct])
+test$union2(a0 ptr[in, syz_union2_struct])
 
 syz_union0 [
 	f0	int64
@@ -176,14 +176,14 @@ union_arg [
 	f7	proc[0, 1, int16]
 ]
 
-syz_test$syz_union3(a0 ptr[in, syz_union3])
-syz_test$syz_union4(a0 union_arg)
+test$syz_union3(a0 ptr[in, syz_union3])
+test$syz_union4(a0 union_arg)
 
 # Arrays
 
-syz_test$array0(a0 ptr[in, syz_array_struct])
-syz_test$array1(a0 ptr[in, syz_array_trailing])
-syz_test$array2(a0 ptr[in, syz_array_blob])
+test$array0(a0 ptr[in, syz_array_struct])
+test$array1(a0 ptr[in, syz_array_trailing])
+test$array2(a0 ptr[in, syz_array_blob])
 
 # Struct with a variable-length array or variable-length unions.
 syz_array_struct {
@@ -210,32 +210,32 @@ syz_array_blob {
 
 # Length
 
-syz_test$length0(a0 ptr[in, syz_length_int_struct])
-syz_test$length1(a0 ptr[in, syz_length_const_struct])
-syz_test$length2(a0 ptr[in, syz_length_flags_struct])
-syz_test$length3(a0 ptr[in, syz_length_len_struct])
-syz_test$length4(a0 ptr[in, syz_length_len2_struct])
-syz_test$length5(a0 ptr[in, syz_length_parent_struct])
-syz_test$length6(a0 ptr[in, syz_length_array_struct])
-syz_test$length7(a0 ptr[in, syz_length_array2_struct])
-syz_test$length8(a0 ptr[in, syz_length_complex_struct])
-syz_test$length9(a0 ptr[in, syz_length_vma_struct])
+test$length0(a0 ptr[in, syz_length_int_struct])
+test$length1(a0 ptr[in, syz_length_const_struct])
+test$length2(a0 ptr[in, syz_length_flags_struct])
+test$length3(a0 ptr[in, syz_length_len_struct])
+test$length4(a0 ptr[in, syz_length_len2_struct])
+test$length5(a0 ptr[in, syz_length_parent_struct])
+test$length6(a0 ptr[in, syz_length_array_struct])
+test$length7(a0 ptr[in, syz_length_array2_struct])
+test$length8(a0 ptr[in, syz_length_complex_struct])
+test$length9(a0 ptr[in, syz_length_vma_struct])
 
-syz_test$length10(a0 vma, a1 len[a0], a2 bytesize[a0], a3 bytesize2[a0], a4 bytesize4[a0])
-syz_test$length11(a0 ptr[in, syz_length_large_struct], a1 len[a0])
-syz_test$length12(a0 ptr[in, syz_length_large_struct, opt], a1 len[a0])
-syz_test$length13(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64]])
-syz_test$length14(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64], opt])
-syz_test$length15(a0 int16, a1 len[a0])
+test$length10(a0 vma, a1 len[a0], a2 bytesize[a0], a3 bytesize2[a0], a4 bytesize4[a0])
+test$length11(a0 ptr[in, syz_length_large_struct], a1 len[a0])
+test$length12(a0 ptr[in, syz_length_large_struct, opt], a1 len[a0])
+test$length13(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64]])
+test$length14(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64], opt])
+test$length15(a0 int16, a1 len[a0])
 
-syz_test$length16(a0 ptr[in, syz_length_bytesize_struct])
-syz_test$length17(a0 ptr[in, syz_length_bytesize2_struct])
-syz_test$length18(a0 ptr[in, syz_length_bytesize3_struct])
-syz_test$length19(a0 ptr[in, syz_length_bf_struct])
+test$length16(a0 ptr[in, syz_length_bytesize_struct])
+test$length17(a0 ptr[in, syz_length_bytesize2_struct])
+test$length18(a0 ptr[in, syz_length_bytesize3_struct])
+test$length19(a0 ptr[in, syz_length_bf_struct])
 
-syz_test$length20(a0 ptr[in, syz_length_parent2_struct])
-syz_test$length21(a0 ptr[in, int64], a1 bitsize[a0])
-syz_test$length22(a0 ptr[in, array[int8]], a1 bitsize[a0])
+test$length20(a0 ptr[in, syz_length_parent2_struct])
+test$length21(a0 ptr[in, int64], a1 bitsize[a0])
+test$length22(a0 ptr[in, array[int8]], a1 bitsize[a0])
 
 syz_length_flags = 0, 1
 
@@ -380,7 +380,7 @@ type len_temp2[DATA] {
 	len	len[len_templ1, int8]
 }
 
-syz_test$length23(a ptr[in, len_templ1[int8, int16]])
+test$length23(a ptr[in, len_templ1[int8, int16]])
 
 type len_temp3[DATA] {
 	f1	DATA
@@ -417,17 +417,17 @@ static_filename {
 	f5	bytesize[parent, int8]
 }
 
-syz_test$length24(a ptr[in, len_nontemp5])
-syz_test$length25(a0 ptr[in, array[array[int8]]], a1 len[a0])
-syz_test$length26(a ptr[in, len_unaligned], b bytesize[a])
-syz_test$length27(a0 ptr[in, explicitly_sized], a1 len[a0])
-syz_test$length28(a0 ptr[in, explicitly_sized_union], a1 len[a0])
-syz_test$length29(a ptr[in, static_filename])
+test$length24(a ptr[in, len_nontemp5])
+test$length25(a0 ptr[in, array[array[int8]]], a1 len[a0])
+test$length26(a ptr[in, len_unaligned], b bytesize[a])
+test$length27(a0 ptr[in, explicitly_sized], a1 len[a0])
+test$length28(a0 ptr[in, explicitly_sized_union], a1 len[a0])
+test$length29(a ptr[in, static_filename])
 
 # Big endian
 
-syz_test$end0(a0 ptr[in, syz_end_int_struct])
-syz_test$end1(a0 ptr[in, syz_end_var_struct])
+test$end0(a0 ptr[in, syz_end_int_struct])
+test$end1(a0 ptr[in, syz_end_var_struct])
 
 syz_end_flags = 0, 1
 
@@ -446,30 +446,30 @@ syz_end_var_struct {
 
 # Vma type
 
-syz_test$vma0(v0 vma, l0 len[v0], v1 vma[5], l1 len[v1], v2 vma[7:9], l2 len[v2])
+test$vma0(v0 vma, l0 len[v0], v1 vma[5], l1 len[v1], v2 vma[7:9], l2 len[v2])
 
 # Text type
 
-syz_test$text_x86_real(a0 ptr[in, text[x86_real]], a1 len[a0])
-syz_test$text_x86_16(a0 ptr[in, text[x86_16]], a1 len[a0])
-syz_test$text_x86_32(a0 ptr[in, text[x86_32]], a1 len[a0])
-syz_test$text_x86_64(a0 ptr[in, text[x86_64]], a1 len[a0])
+test$text_x86_real(a0 ptr[in, text[x86_real]], a1 len[a0])
+test$text_x86_16(a0 ptr[in, text[x86_16]], a1 len[a0])
+test$text_x86_32(a0 ptr[in, text[x86_32]], a1 len[a0])
+test$text_x86_64(a0 ptr[in, text[x86_64]], a1 len[a0])
 
 # Regression tests
 
-syz_test$regression0(a0 ptr[inout, syz_regression0_struct])
+test$regression0(a0 ptr[inout, syz_regression0_struct])
 
 syz_regression0_struct {
 	f0	buffer[out]
 }
 
-syz_test$regression1(a1 ptr[in, array[syz_regression1_struct]])
+test$regression1(a1 ptr[in, array[syz_regression1_struct]])
 
 syz_regression1_struct {
 	f0	array[int8, 4]
 }
 
-syz_test$regression2(a1 ptr[in, array[int32, 4]])
+test$regression2(a1 ptr[in, array[int32, 4]])
 
 excessive_fields {
 	f1	int8
@@ -479,10 +479,10 @@ type_confusion [
 	f1	int8
 ]
 
-syz_test$excessive_args1()
-syz_test$excessive_args2(a1 int8)
-syz_test$excessive_fields1(a1 ptr[in, excessive_fields])
-syz_test$type_confusion1(a1 ptr[in, type_confusion])
+test$excessive_args1()
+test$excessive_args2(a1 int8)
+test$excessive_fields1(a1 ptr[in, excessive_fields])
+test$type_confusion1(a1 ptr[in, type_confusion])
 
 # Bitfields
 
@@ -510,18 +510,18 @@ syz_bf_struct1 {
 	f1	int8
 }
 
-syz_test$bf0(a0 ptr[in, syz_bf_struct0])
-syz_test$bf1(a0 ptr[in, syz_bf_struct1])
+test$bf0(a0 ptr[in, syz_bf_struct0])
+test$bf1(a0 ptr[in, syz_bf_struct1])
 
 # Checksums
 
-syz_test$csum_encode(a0 ptr[in, syz_csum_encode])
-syz_test$csum_ipv4(a0 ptr[in, syz_csum_ipv4_header])
-syz_test$csum_ipv4_tcp(a0 ptr[in, syz_csum_ipv4_tcp_packet])
-syz_test$csum_ipv6_tcp(a0 ptr[in, syz_csum_ipv6_tcp_packet])
-syz_test$csum_ipv4_udp(a0 ptr[in, syz_csum_ipv4_udp_packet])
-syz_test$csum_ipv6_udp(a0 ptr[in, syz_csum_ipv6_udp_packet])
-syz_test$csum_ipv6_icmp(a0 ptr[in, syz_csum_ipv6_icmp_packet])
+test$csum_encode(a0 ptr[in, syz_csum_encode])
+test$csum_ipv4(a0 ptr[in, syz_csum_ipv4_header])
+test$csum_ipv4_tcp(a0 ptr[in, syz_csum_ipv4_tcp_packet])
+test$csum_ipv6_tcp(a0 ptr[in, syz_csum_ipv6_tcp_packet])
+test$csum_ipv4_udp(a0 ptr[in, syz_csum_ipv4_udp_packet])
+test$csum_ipv6_udp(a0 ptr[in, syz_csum_ipv6_udp_packet])
+test$csum_ipv6_icmp(a0 ptr[in, syz_csum_ipv6_icmp_packet])
 
 syz_csum_encode {
 	f0	int16
@@ -614,25 +614,26 @@ syz_recur_2 {
 	a5	ptr[in, syz_recur_2, opt]
 }
 
-syz_test$recur0(a0 ptr[inout, syz_recur_0])
-syz_test$recur1(a0 ptr[inout, syz_recur_1])
-syz_test$recur2(a0 ptr[inout, syz_recur_2])
+test$recur0(a0 ptr[inout, syz_recur_0])
+test$recur1(a0 ptr[inout, syz_recur_1])
+test$recur2(a0 ptr[inout, syz_recur_2])
 
 # Resources.
 
 resource fd[int32]: 0xffffffffffffffff
 resource syz_res[int32]: 0xffff
 
-syz_test$res0() syz_res
-syz_test$res1(a0 syz_res)
+test$res0() syz_res
+test$res1(a0 syz_res)
+test$res2() fd
 
 # ONLY_32BITS_CONST const is not present on all arches.
 # Ensure that it does not break build.
 
 resource syz_missing_const_res[int32]: ONLY_32BITS_CONST
 
-syz_test$missing_resource() syz_missing_const_res
-syz_test$missing_struct(a ptr[in, syz_use_missing])
+test$missing_resource() syz_missing_const_res
+test$missing_struct(a ptr[in, syz_use_missing])
 
 syz_missing_const_struct {
 	a0	const[ONLY_32BITS_CONST, int32]
@@ -645,7 +646,7 @@ syz_use_missing {
 
 # Hints tests.
 
-syz_test$hint_data(a0 ptr[in, array[int8]])
+test$hint_data(a0 ptr[in, array[int8]])
 
 # Mutation tests.
 

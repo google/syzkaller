@@ -83,7 +83,7 @@ endif
 	arch_linux_amd64_target arch_linux_386_target \
 	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
 	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_windows_amd64_target \
-	presubmit presubmit_parallel clean
+	arch_test presubmit presubmit_parallel clean
 
 all: host target
 
@@ -98,9 +98,9 @@ target:
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
-	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor_$(TARGETOS).cc \
-		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O2 \
-		$(ADDCFLAGS) $(CFLAGS) -DGOOS=\"$(TARGETOS)\" -DGIT_REVISION=\"$(REV)\"
+	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor.cc \
+		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O2 $(ADDCFLAGS) $(CFLAGS) \
+		-DGOOS_$(TARGETOS)=1 -DGOARCH_$(TARGETARCH)=1  -DGIT_REVISION=\"$(REV)\"
 
 manager:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
@@ -184,7 +184,8 @@ gometalinter:
 arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host arch_netbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
 	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
-	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_windows_amd64_target
+	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_windows_amd64_target \
+	arch_test
 
 arch_darwin_amd64_host:
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
@@ -228,6 +229,12 @@ arch_netbsd_amd64_target:
 arch_windows_amd64_target:
 	env GOOG=windows GOARCH=amd64 $(GO) install ./syz-fuzzer
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
+
+arch_test:
+	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
+	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
+	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
+	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
 
 presubmit:
 	$(MAKE) generate

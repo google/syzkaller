@@ -22,4 +22,4 @@ func Fuzz(data []byte) int {
 	return 1
 }
 
-var fuzzConsts = map[string]uint64{"A": 1, "B": 2, "C": 3, "__NR_C": 4}
+var fuzzConsts = map[string]uint64{"A": 1, "B": 2, "C": 3, "SYS_C": 4}

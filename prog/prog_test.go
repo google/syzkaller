@@ -72,14 +72,14 @@ func TestSerialize(t *testing.T) {
 
 func TestVmaType(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
-	meta := target.SyscallMap["syz_test$vma0"]
+	meta := target.SyscallMap["test$vma0"]
 	r := newRand(target, rs)
 	pageSize := target.PageSize
 	for i := 0; i < iters; i++ {
 		s := newState(target, nil)
 		calls := r.generateParticularCall(s, meta)
 		c := calls[len(calls)-1]
-		if c.Meta.Name != "syz_test$vma0" {
+		if c.Meta.Name != "test$vma0" {
 			t.Fatalf("generated wrong call %v", c.Meta.Name)
 		}
 		if len(c.Args) != 6 {

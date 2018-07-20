@@ -1,6 +1,8 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// +build
+
 #include <algorithm>
 #include <errno.h>
 #include <signal.h>
@@ -11,38 +13,87 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+
+#include "defs.h"
+
+#if defined(__GNUC__)
+#define SYSCALLAPI
+#define NORETURN __attribute__((noreturn))
+#define ALIGNED(N) __attribute__((aligned(N)))
+#define PRINTF __attribute__((format(printf, 1, 2)))
+#else
+// Assuming windows/cl.
+#define SYSCALLAPI WINAPI
+#define NORETURN __declspec(noreturn)
+#define ALIGNED(N) __declspec(align(N))
+#define PRINTF
+#endif
 
 #ifndef GIT_REVISION
 #define GIT_REVISION "unknown"
 #endif
 
-#ifndef GOOS
-#define GOOS "unknown"
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
+// uint64 is impossible to printf without using the clumsy and verbose "%" PRId64.
+// So we define and use uint64. Note: pkg/csource does s/uint64/uint64/.
+// Also define uint32/16/8 for consistency.
+typedef unsigned long long uint64;
+typedef unsigned int uint32;
+typedef unsigned short uint16;
+typedef unsigned char uint8;
+
+// exit/_exit do not necessary work (e.g. if fuzzer sets seccomp filter that prohibits exit_group).
+// Use doexit instead.  We must redefine exit to something that exists in stdlib,
+// because some standard libraries contain "using ::exit;", but has different signature.
+#define exit vsnprintf
+
+// Note: zircon max fd is 256.
+// Some common_OS.h files know about this constant for RLIMIT_NOFILE.
+const int kMaxFd = 250;
+const int kInPipeFd = kMaxFd - 1; // remapped from stdin
+const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
+const int kMaxArgs = 9;
+const int kCoverSize = 256 << 10;
+const int kFailStatus = 67;
+const int kRetryStatus = 69;
+const int kErrorStatus = 68;
+
+// Logical error (e.g. invalid input program), use as an assert() alternative.
+NORETURN PRINTF void fail(const char* msg, ...);
+// Kernel error (e.g. wrong syscall return value).
+NORETURN PRINTF void error(const char* msg, ...);
+// Just exit (e.g. due to temporal ENOMEM error).
+NORETURN PRINTF void exitf(const char* msg, ...);
+// Print debug output, does not add \n at the end of msg as opposed to the previous functions.
+PRINTF void debug(const char* msg, ...);
+void debug_dump_data(const char* data, int length);
+NORETURN void doexit(int status);
+
+static void receive_execute();
+static void reply_execute(int status);
+
+#if GOOS_akaros
+static void resend_execute(int fd);
 #endif
 
-const int kMaxInput = 2 << 20;
+#if SYZ_EXECUTOR_USES_FORK_SERVER
+static void receive_handshake();
+static void reply_handshake();
+#endif
+
+#if SYZ_EXECUTOR_USES_SHMEM
 const int kMaxOutput = 16 << 20;
-const int kCoverSize = 256 << 10;
-const int kMaxArgs = 9;
-const int kMaxThreads = 16;
-const int kMaxCommands = 1000;
-
-const uint64 instr_eof = -1;
-const uint64 instr_copyin = -2;
-const uint64 instr_copyout = -3;
-
-const uint64 arg_const = 0;
-const uint64 arg_result = 1;
-const uint64 arg_data = 2;
-const uint64 arg_csum = 3;
-
-const uint64 binary_format_native = 0;
-const uint64 binary_format_bigendian = 1;
-const uint64 binary_format_strdec = 2;
-const uint64 binary_format_strhex = 3;
-const uint64 binary_format_stroct = 4;
-
-const uint64 no_copyout = -1;
+const int kInFd = 3;
+const int kOutFd = 4;
+uint32* output_data;
+uint32* output_pos;
+static uint32* write_output(uint32 v);
+static void write_completed(uint32 completed);
+static uint32 hash(uint32 a);
+static bool dedup(uint32 sig);
+#endif
 
 enum sandbox_type {
 	sandbox_none,
@@ -50,6 +101,7 @@ enum sandbox_type {
 	sandbox_namespace,
 };
 
+bool flag_debug;
 bool flag_cover;
 bool flag_sandbox_privs;
 sandbox_type flag_sandbox;
@@ -70,8 +122,31 @@ bool flag_inject_fault;
 int flag_fault_call;
 int flag_fault_nth;
 
-unsigned long long procid;
+#define SYZ_EXECUTOR 1
+#include "common.h"
 
+const int kMaxCommands = 1000;
+const int kMaxInput = 2 << 20;
+const int kMaxThreads = 16;
+
+const uint64 instr_eof = -1;
+const uint64 instr_copyin = -2;
+const uint64 instr_copyout = -3;
+
+const uint64 arg_const = 0;
+const uint64 arg_result = 1;
+const uint64 arg_data = 2;
+const uint64 arg_csum = 3;
+
+const uint64 binary_format_native = 0;
+const uint64 binary_format_bigendian = 1;
+const uint64 binary_format_strdec = 2;
+const uint64 binary_format_strhex = 3;
+const uint64 binary_format_stroct = 4;
+
+const uint64 no_copyout = -1;
+
+unsigned long long procid;
 int running;
 uint32 completed;
 bool collide;
@@ -87,14 +162,24 @@ const uint64 arg_csum_inet = 0;
 const uint64 arg_csum_chunk_data = 0;
 const uint64 arg_csum_chunk_const = 1;
 
-struct thread_t {
-	bool created;
-	int id;
-	osthread_t th;
-	char* cover_data;
-	char* cover_end;
-	uint64* cover_size_ptr;
+typedef long(SYSCALLAPI* syscall_t)(long, long, long, long, long, long, long, long, long);
 
+struct call_t {
+	const char* name;
+	int sys_nr;
+	syscall_t call;
+};
+
+struct cover_t {
+	int fd;
+	uint32 size;
+	char* data;
+	char* data_end;
+};
+
+struct thread_t {
+	int id;
+	bool created;
 	event_t ready;
 	event_t done;
 	uint64* copyout_pos;
@@ -107,9 +192,8 @@ struct thread_t {
 	long args[kMaxArgs];
 	long res;
 	uint32 reserrno;
-	uint32 cover_size;
 	bool fault_injected;
-	int cover_fd;
+	cover_t cov;
 };
 
 thread_t threads[kMaxThreads];
@@ -184,41 +268,124 @@ struct kcov_comparison_t {
 	bool operator<(const struct kcov_comparison_t& other) const;
 };
 
-long execute_syscall(const call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8);
-thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
-void handle_completion(thread_t* th);
-void execute_call(thread_t* th);
-void thread_create(thread_t* th, int id);
-void* worker_thread(void* arg);
-uint32* write_output(uint32 v);
-void write_completed(uint32 completed);
-uint64 read_input(uint64** input_posp, bool peek = false);
-uint64 read_arg(uint64** input_posp);
-uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf, uint64* bf_off_p, uint64* bf_len_p);
-uint64 read_result(uint64** input_posp);
-void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len);
-bool copyout(char* addr, uint64 size, uint64* res);
-void cover_open();
-void cover_enable(thread_t* th);
-void cover_reset(thread_t* th);
-uint32 cover_read_size(thread_t* th);
-bool cover_check(uint32 pc);
-bool cover_check(uint64 pc);
-static uint32 hash(uint32 a);
-static bool dedup(uint32 sig);
-void setup_control_pipes();
-void receive_handshake();
-void receive_execute();
+static thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
+static void handle_completion(thread_t* th);
+static void execute_call(thread_t* th);
+static void thread_create(thread_t* th, int id);
+static void* worker_thread(void* arg);
+static uint64 read_input(uint64** input_posp, bool peek = false);
+static uint64 read_arg(uint64** input_posp);
+static uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf, uint64* bf_off_p, uint64* bf_len_p);
+static uint64 read_result(uint64** input_posp);
+static void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len);
+static bool copyout(char* addr, uint64 size, uint64* res);
+static void setup_control_pipes();
 
-void main_init()
+#include "syscalls.h"
+
+#if GOOS_linux
+#include "executor_linux.h"
+#elif GOOS_fuchsia
+#include "executor_fuchsia.h"
+#elif GOOS_akaros
+#include "executor_akaros.h"
+#elif GOOS_freebsd || GOOS_netbsd
+#include "executor_bsd.h"
+#elif GOOS_windows
+#include "executor_windows.h"
+#elif GOOS_test
+#include "executor_test.h"
+#else
+#error "unknown OS"
+#endif
+
+#include "test.h"
+
+int main(int argc, char** argv)
 {
+	if (argc == 2 && strcmp(argv[1], "version") == 0) {
+		puts(GOOS " " GOARCH " " SYZ_REVISION " " GIT_REVISION);
+		return 0;
+	}
+	if (argc == 2 && strcmp(argv[1], "test") == 0)
+		return run_tests();
+
+	os_init(argc, argv, (void*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE);
+
+#if SYZ_EXECUTOR_USES_SHMEM
+	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
+		fail("mmap of input file failed");
+	// The output region is the only thing in executor process for which consistency matters.
+	// If it is corrupted ipc package will fail to parse its contents and panic.
+	// But fuzzer constantly invents new ways of how to currupt the region,
+	// so we map the region at a (hopefully) hard to guess address with random offset,
+	// surrounded by unmapped pages.
+	// The address chosen must also work on 32-bit kernels with 1GB user address space.
+	void* preferred = (void*)(0x1b2bc20000ull + (1 << 20) * (getpid() % 128));
+	output_data = (uint32*)mmap(preferred, kMaxOutput,
+				    PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
+	if (output_data != preferred)
+		fail("mmap of output file failed");
+
+	// Prevent test programs to mess with these fds.
+	// Due to races in collider mode, a program can e.g. ftruncate one of these fds,
+	// which will cause fuzzer to crash.
+	close(kInFd);
+	close(kOutFd);
+#endif
+
+	use_temporary_dir();
+	install_segv_handler();
 	setup_control_pipes();
-	if (SYZ_EXECUTOR_USES_FORK_SERVER)
-		receive_handshake();
-	else
-		receive_execute();
-	if (flag_cover)
-		cover_open();
+#if SYZ_EXECUTOR_USES_FORK_SERVER
+	receive_handshake();
+#else
+	receive_execute();
+#endif
+	if (flag_cover) {
+		for (int i = 0; i < kMaxThreads; i++)
+			cover_open(&threads[i].cov);
+	}
+
+	int status = 0;
+	switch (flag_sandbox) {
+	case sandbox_none:
+		status = do_sandbox_none();
+		break;
+	case sandbox_setuid:
+		status = do_sandbox_setuid();
+		break;
+	case sandbox_namespace:
+		status = do_sandbox_namespace();
+		break;
+	default:
+		fail("unknown sandbox type");
+	}
+#if SYZ_EXECUTOR_USES_FORK_SERVER
+	// Other statuses happen when fuzzer processes manages to kill loop.
+	if (status != kFailStatus && status != kErrorStatus)
+		status = kRetryStatus;
+	// If an external sandbox process wraps executor, the out pipe will be closed
+	// before the sandbox process exits this will make ipc package kill the sandbox.
+	// As the result sandbox process will exit with exit status 9 instead of the executor
+	// exit status (notably kRetryStatus). Consequently, ipc will treat it as hard
+	// failure rather than a temporal failure. So we duplicate the exit status on the pipe.
+	reply_execute(status);
+	errno = 0;
+	if (status == kFailStatus)
+		fail("loop failed");
+	if (status == kErrorStatus)
+		error("loop errored");
+	// Loop can be killed by a test process with e.g.:
+	// ptrace(PTRACE_SEIZE, 1, 0, 0x100040)
+	// This is unfortunate, but I don't have a better solution than ignoring it for now.
+	exitf("loop exited with status %d", status);
+	// Unreachable.
+	return 1;
+#else
+	reply_execute(status);
+	return status;
+#endif
 }
 
 void setup_control_pipes()
@@ -249,6 +416,7 @@ void parse_env_flags(uint64 flags)
 	flag_enable_fault_injection = flags & (1 << 6);
 }
 
+#if SYZ_EXECUTOR_USES_FORK_SERVER
 void receive_handshake()
 {
 	handshake_req req = {};
@@ -268,10 +436,13 @@ void reply_handshake()
 	if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
 		fail("control pipe write failed");
 }
+#endif
+
+static execute_req last_execute_req;
 
 void receive_execute()
 {
-	execute_req req;
+	execute_req& req = last_execute_req;
 	if (read(kInPipeFd, &req, sizeof(req)) != (ssize_t)sizeof(req))
 		fail("control pipe read failed");
 	if (req.magic != kInMagic)
@@ -314,6 +485,17 @@ void receive_execute()
 		fail("bad input size %lld, want %lld", pos, req.prog_size);
 }
 
+#if GOOS_akaros
+void resend_execute(int fd)
+{
+	execute_req& req = last_execute_req;
+	if (write(fd, &req, sizeof(req)) != sizeof(req))
+		fail("child pipe header write failed");
+	if (write(fd, input_data, req.prog_size) != (ssize_t)req.prog_size)
+		fail("child pipe program write failed");
+}
+#endif
+
 void reply_execute(int status)
 {
 	execute_reply reply = {};
@@ -331,14 +513,17 @@ void execute_one()
 	// Fuzzer once come up with ioctl(fd, FIONREAD, 0x920000),
 	// where 0x920000 was exactly collide address, so every iteration reset collide to 0.
 	bool colliding = false;
+#if SYZ_EXECUTOR_USES_SHMEM
+	output_pos = output_data;
 	write_output(0); // Number of executed syscalls (updated later).
+#endif
 	uint64 start = current_time_ms();
 
 retry:
 	uint64* input_pos = (uint64*)input_data;
 
 	if (flag_cover && !colliding && !flag_threaded)
-		cover_enable(&threads[0]);
+		cover_enable(&threads[0].cov, flag_collect_comps);
 
 	int call_index = 0;
 	for (;;) {
@@ -430,7 +615,7 @@ retry:
 		}
 
 		// Normal syscall.
-		if (call_num >= SYZ_SYSCALL_COUNT)
+		if (call_num >= ARRAY_SIZE(syscalls))
 			fail("invalid command number %llu", call_num);
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
@@ -478,7 +663,9 @@ retry:
 			// Execute directly.
 			if (th != &threads[0])
 				fail("using non-main thread in non-thread mode");
+			event_reset(&th->ready);
 			execute_call(th);
+			event_set(&th->done);
 			handle_completion(th);
 		}
 	}
@@ -526,15 +713,16 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 	return th;
 }
 
+#if SYZ_EXECUTOR_USES_SHMEM
 template <typename cover_t>
 void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover_count_pos)
 {
 	// Write out feedback signals.
 	// Currently it is code edges computed as xor of two subsequent basic block PCs.
-	cover_t* cover_data = ((cover_t*)th->cover_data) + 1;
+	cover_t* cover_data = ((cover_t*)th->cov.data) + 1;
 	uint32 nsig = 0;
 	cover_t prev = 0;
-	for (uint32 i = 0; i < th->cover_size; i++) {
+	for (uint32 i = 0; i < th->cov.size; i++) {
 		cover_t pc = cover_data[i];
 		if (!cover_check(pc)) {
 			debug("got bad pc: 0x%llx\n", (uint64)pc);
@@ -553,7 +741,7 @@ void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover
 	if (!flag_collect_cover)
 		return;
 	// Write out real coverage (basic block PCs).
-	uint32 cover_size = th->cover_size;
+	uint32 cover_size = th->cov.size;
 	if (flag_dedup_cover) {
 		cover_t* end = cover_data + cover_size;
 		std::sort(cover_data, end);
@@ -565,6 +753,7 @@ void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover
 		write_output(cover_data[i]);
 	*cover_count_pos = cover_size;
 }
+#endif
 
 void handle_completion(thread_t* th)
 {
@@ -604,60 +793,60 @@ void handle_completion(thread_t* th)
 	}
 	if (!collide && !th->colliding) {
 		uint32 reserrno = th->res != -1 ? 0 : th->reserrno;
-		if (SYZ_EXECUTOR_USES_SHMEM) {
-			write_output(th->call_index);
-			write_output(th->call_num);
-			write_output(reserrno);
-			write_output(th->fault_injected);
-			uint32* signal_count_pos = write_output(0); // filled in later
-			uint32* cover_count_pos = write_output(0); // filled in later
-			uint32* comps_count_pos = write_output(0); // filled in later
+#if SYZ_EXECUTOR_USES_SHMEM
+		write_output(th->call_index);
+		write_output(th->call_num);
+		write_output(reserrno);
+		write_output(th->fault_injected);
+		uint32* signal_count_pos = write_output(0); // filled in later
+		uint32* cover_count_pos = write_output(0); // filled in later
+		uint32* comps_count_pos = write_output(0); // filled in later
 
-			if (flag_collect_comps) {
-				// Collect only the comparisons
-				uint32 ncomps = th->cover_size;
-				kcov_comparison_t* start = (kcov_comparison_t*)(th->cover_data + sizeof(uint64));
-				kcov_comparison_t* end = start + ncomps;
-				if ((char*)end > th->cover_end)
-					fail("too many comparisons %u", ncomps);
-				std::sort(start, end);
-				ncomps = std::unique(start, end) - start;
-				uint32 comps_size = 0;
-				for (uint32 i = 0; i < ncomps; ++i) {
-					if (start[i].ignore())
-						continue;
-					comps_size++;
-					start[i].write();
-				}
-				// Write out number of comparisons.
-				*comps_count_pos = comps_size;
-			} else if (flag_cover) {
-				if (is_kernel_64_bit)
-					write_coverage_signal<uint64>(th, signal_count_pos, cover_count_pos);
-				else
-					write_coverage_signal<uint32>(th, signal_count_pos, cover_count_pos);
+		if (flag_collect_comps) {
+			// Collect only the comparisons
+			uint32 ncomps = th->cov.size;
+			kcov_comparison_t* start = (kcov_comparison_t*)(th->cov.data + sizeof(uint64));
+			kcov_comparison_t* end = start + ncomps;
+			if ((char*)end > th->cov.data_end)
+				fail("too many comparisons %u", ncomps);
+			std::sort(start, end);
+			ncomps = std::unique(start, end) - start;
+			uint32 comps_size = 0;
+			for (uint32 i = 0; i < ncomps; ++i) {
+				if (start[i].ignore())
+					continue;
+				comps_size++;
+				start[i].write();
 			}
-			debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u comps=%u\n",
-			      completed, th->call_index, th->call_num, reserrno,
-			      *signal_count_pos, *cover_count_pos, *comps_count_pos);
-			completed++;
-			write_completed(completed);
-		} else {
-			call_reply reply;
-			reply.header.magic = kOutMagic;
-			reply.header.done = 0;
-			reply.header.status = 0;
-			reply.call_index = th->call_index;
-			reply.call_num = th->call_num;
-			reply.reserrno = reserrno;
-			reply.fault_injected = th->fault_injected;
-			reply.signal_size = 0;
-			reply.cover_size = 0;
-			reply.comps_size = 0;
-			if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
-				fail("control pipe call write failed");
-			debug("out: index=%u num=%u errno=%d\n", th->call_index, th->call_num, reserrno);
+			// Write out number of comparisons.
+			*comps_count_pos = comps_size;
+		} else if (flag_cover) {
+			if (is_kernel_64_bit)
+				write_coverage_signal<uint64>(th, signal_count_pos, cover_count_pos);
+			else
+				write_coverage_signal<uint32>(th, signal_count_pos, cover_count_pos);
 		}
+		debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u comps=%u\n",
+		      completed, th->call_index, th->call_num, reserrno,
+		      *signal_count_pos, *cover_count_pos, *comps_count_pos);
+		completed++;
+		write_completed(completed);
+#else
+		call_reply reply;
+		reply.header.magic = kOutMagic;
+		reply.header.done = 0;
+		reply.header.status = 0;
+		reply.call_index = th->call_index;
+		reply.call_num = th->call_num;
+		reply.reserrno = reserrno;
+		reply.fault_injected = th->fault_injected;
+		reply.signal_size = 0;
+		reply.cover_size = 0;
+		reply.comps_size = 0;
+		if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
+			fail("control pipe call write failed");
+		debug("out: index=%u num=%u errno=%d\n", th->call_index, th->call_num, reserrno);
+#endif
 	}
 	th->handled = true;
 	running--;
@@ -672,7 +861,7 @@ void thread_create(thread_t* th, int id)
 	event_init(&th->done);
 	event_set(&th->done);
 	if (flag_threaded)
-		thread_start(&th->th, worker_thread, th);
+		thread_start(worker_thread, th);
 }
 
 void* worker_thread(void* arg)
@@ -680,17 +869,18 @@ void* worker_thread(void* arg)
 	thread_t* th = (thread_t*)arg;
 
 	if (flag_cover)
-		cover_enable(th);
+		cover_enable(&th->cov, flag_collect_comps);
 	for (;;) {
 		event_wait(&th->ready);
+		event_reset(&th->ready);
 		execute_call(th);
+		event_set(&th->done);
 	}
 	return 0;
 }
 
 void execute_call(thread_t* th)
 {
-	event_reset(&th->ready);
 	const call_t* call = &syscalls[th->call_num];
 	debug("#%d: %s(", th->id, call->name);
 	for (int i = 0; i < th->num_args; i++) {
@@ -709,16 +899,18 @@ void execute_call(thread_t* th)
 	}
 
 	if (flag_cover)
-		cover_reset(th);
+		cover_reset(&th->cov);
 	errno = 0;
-	th->res = execute_syscall(call, th->args[0], th->args[1], th->args[2],
-				  th->args[3], th->args[4], th->args[5],
-				  th->args[6], th->args[7], th->args[8]);
+	th->res = execute_syscall(call, th->args);
 	th->reserrno = errno;
 	if (th->res == -1 && th->reserrno == 0)
 		th->reserrno = EINVAL; // our syz syscalls may misbehave
-	if (flag_cover)
-		th->cover_size = cover_read_size(th);
+	if (flag_cover) {
+		cover_collect(&th->cov);
+		debug("#%d: read cover size = %u\n", th->id, th->cov.size);
+		if (th->cov.size >= kCoverSize)
+			fail("#%d: too much cover %u", th->id, th->cov.size);
+	}
 	th->fault_injected = false;
 
 	if (flag_inject_fault && th->call_index == flag_fault_call) {
@@ -730,9 +922,9 @@ void execute_call(thread_t* th)
 		debug("#%d: %s = errno(%d)\n", th->id, call->name, th->reserrno);
 	else
 		debug("#%d: %s = 0x%lx\n", th->id, call->name, th->res);
-	event_set(&th->done);
 }
 
+#if SYZ_EXECUTOR_USES_SHMEM
 static uint32 hash(uint32 a)
 {
 	a = (a ^ 61) ^ (a >> 16);
@@ -763,6 +955,7 @@ static bool dedup(uint32 sig)
 	dedup_table[sig % dedup_table_size] = sig;
 	return false;
 }
+#endif
 
 void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len)
 {
@@ -912,6 +1105,23 @@ uint64 read_input(uint64** input_posp, bool peek)
 	return *input_pos;
 }
 
+#if SYZ_EXECUTOR_USES_SHMEM
+uint32* write_output(uint32 v)
+{
+	if (output_pos < output_data || (char*)output_pos >= (char*)output_data + kMaxOutput)
+		fail("output overflow: pos=%p region=[%p:%p]",
+		     output_pos, output_data, (char*)output_data + kMaxOutput);
+	*output_pos = v;
+	return output_pos++;
+}
+
+void write_completed(uint32 completed)
+{
+	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
+}
+#endif
+
+#if SYZ_EXECUTOR_USES_SHMEM
 void kcov_comparison_t::write()
 {
 	// Write order: type arg1 arg2 pc.
@@ -950,6 +1160,40 @@ void kcov_comparison_t::write()
 	write_output((uint32)(arg2 >> 32));
 }
 
+bool kcov_comparison_t::ignore() const
+{
+	// Comparisons with 0 are not interesting, fuzzer should be able to guess 0's without help.
+	if (arg1 == 0 && (arg2 == 0 || (type & KCOV_CMP_CONST)))
+		return true;
+	if ((type & KCOV_CMP_SIZE_MASK) == KCOV_CMP_SIZE8) {
+		// This can be a pointer (assuming 64-bit kernel).
+		// First of all, we want avert fuzzer from our output region.
+		// Without this fuzzer manages to discover and corrupt it.
+		uint64 out_start = (uint64)output_data;
+		uint64 out_end = out_start + kMaxOutput;
+		if (arg1 >= out_start && arg1 <= out_end)
+			return true;
+		if (arg2 >= out_start && arg2 <= out_end)
+			return true;
+#if defined(GOOS_linux)
+		// Filter out kernel physical memory addresses.
+		// These are internal kernel comparisons and should not be interesting.
+		// The range covers first 1TB of physical mapping.
+		uint64 kmem_start = (uint64)0xffff880000000000ull;
+		uint64 kmem_end = (uint64)0xffff890000000000ull;
+		bool kptr1 = arg1 >= kmem_start && arg1 <= kmem_end;
+		bool kptr2 = arg2 >= kmem_start && arg2 <= kmem_end;
+		if (kptr1 && kptr2)
+			return true;
+		if (kptr1 && arg2 == 0)
+			return true;
+		if (kptr2 && arg1 == 0)
+			return true;
+#endif
+	}
+	return false;
+}
+
 bool kcov_comparison_t::operator==(const struct kcov_comparison_t& other) const
 {
 	// We don't check for PC equality now, because it is not used.
@@ -964,4 +1208,62 @@ bool kcov_comparison_t::operator<(const struct kcov_comparison_t& other) const
 		return arg1 < other.arg1;
 	// We don't check for PC equality now, because it is not used.
 	return arg2 < other.arg2;
+}
+#endif
+
+void fail(const char* msg, ...)
+{
+	int e = errno;
+	va_list args;
+	va_start(args, msg);
+	vfprintf(stderr, msg, args);
+	va_end(args);
+	fprintf(stderr, " (errno %d)\n", e);
+	// ENOMEM/EAGAIN is frequent cause of failures in fuzzing context,
+	// so handle it here as non-fatal error.
+	doexit((e == ENOMEM || e == EAGAIN) ? kRetryStatus : kFailStatus);
+}
+
+void error(const char* msg, ...)
+{
+	va_list args;
+	va_start(args, msg);
+	vfprintf(stderr, msg, args);
+	va_end(args);
+	fprintf(stderr, "\n");
+	doexit(kErrorStatus);
+}
+
+void exitf(const char* msg, ...)
+{
+	int e = errno;
+	va_list args;
+	va_start(args, msg);
+	vfprintf(stderr, msg, args);
+	va_end(args);
+	fprintf(stderr, " (errno %d)\n", e);
+	doexit(kRetryStatus);
+}
+
+void debug(const char* msg, ...)
+{
+	if (!flag_debug)
+		return;
+	va_list args;
+	va_start(args, msg);
+	vfprintf(stderr, msg, args);
+	va_end(args);
+	fflush(stderr);
+}
+
+void debug_dump_data(const char* data, int length)
+{
+	if (!flag_debug)
+		return;
+	for (int i = 0; i < length; i++) {
+		debug("%02x ", data[i] & 0xff);
+		if (i % 16 == 15)
+			debug("\n");
+	}
+	debug("\n");
 }

@@ -80,7 +80,6 @@ func TestSimplifies(t *testing.T) {
 		ResetNet:      true,
 		UseTmpDir:     true,
 		HandleSegv:    true,
-		WaitRepeat:    true,
 		Repro:         true,
 	}
 	var check func(opts csource.Options, i int)

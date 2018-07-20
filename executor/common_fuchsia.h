@@ -3,14 +3,11 @@
 
 // This file is shared between executor and csource package.
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <ddk/driver.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -23,43 +20,15 @@
 #include <utime.h>
 #include <zircon/process.h>
 #include <zircon/syscalls.h>
-#if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE) || defined(SYZ_HANDLE_SEGV)
+
+#if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
 #include <pthread.h>
-#include <stdlib.h>
-#endif
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
-#include <dirent.h>
-#endif
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+#include <setjmp.h>
 #include <zircon/syscalls/debug.h>
 #include <zircon/syscalls/exception.h>
 #include <zircon/syscalls/object.h>
 #include <zircon/syscalls/port.h>
-#endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||      \
-    defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || \
-    defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||                   \
-    defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) ||                       \
-    defined(__NR_syz_mmap)
-__attribute__((noreturn)) static void doexit(int status)
-{
-	_exit(status);
-	for (;;) {
-	}
-}
-#endif
-
-#include "common.h"
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
@@ -99,9 +68,9 @@ static void* ex_handler(void* arg)
 			debug("zx_thread_read_state failed: %d (%d)\n",
 			      (int)sizeof(regs), status);
 		} else {
-#if defined(__x86_64__)
+#if GOARCH_amd64
 			regs.rip = (uint64)(void*)&segv_handler;
-#elif defined(__aarch64__)
+#elif GOARCH_arm64
 			regs.pc = (uint64)(void*)&segv_handler;
 #else
 #error "unsupported arch"
@@ -144,37 +113,56 @@ static void install_segv_handler()
 	}
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-static uint64 current_time_ms()
-{
-	struct timespec ts;
+#if SYZ_EXECUTOR || SYZ_THREADED
+#include <unistd.h>
 
-	if (clock_gettime(CLOCK_MONOTONIC, &ts))
-		fail("clock_gettime failed");
-	return (uint64)ts.tv_sec * 1000 + (uint64)ts.tv_nsec / 1000000;
+// Fuchsia's pthread_cond_timedwait just returns immidiately, so we use simple spin wait.
+typedef struct {
+	int state;
+} event_t;
+
+static void event_init(event_t* ev)
+{
+	ev->state = 0;
+}
+
+static void event_reset(event_t* ev)
+{
+	ev->state = 0;
+}
+
+static void event_set(event_t* ev)
+{
+	if (ev->state)
+		fail("event already set");
+	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
+}
+
+static void event_wait(event_t* ev)
+{
+	while (!__atomic_load_n(&ev->state, __ATOMIC_ACQUIRE))
+		usleep(200);
+}
+
+static int event_isset(event_t* ev)
+{
+	return __atomic_load_n(&ev->state, __ATOMIC_ACQUIRE);
+}
+
+static int event_timedwait(event_t* ev, uint64 timeout_ms)
+{
+	uint64 start = current_time_ms();
+	for (;;) {
+		if (__atomic_load_n(&ev->state, __ATOMIC_RELAXED))
+			return 1;
+		if (current_time_ms() - start > timeout_ms)
+			return 0;
+		usleep(200);
+	}
 }
 #endif
 
-#if defined(SYZ_EXECUTOR)
-static void sleep_ms(uint64 ms)
-{
-	usleep(ms * 1000);
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
-static int inject_fault(int nth)
-{
-	return 0;
-}
-
-static int fault_injected(int fail_fd)
-{
-	return 0;
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mmap)
+#if SYZ_EXECUTOR || __NR_syz_mmap
 long syz_mmap(size_t addr, size_t size)
 {
 	zx_handle_t root = zx_vmar_root_self();
@@ -195,36 +183,36 @@ long syz_mmap(size_t addr, size_t size)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_process_self)
-long syz_process_self()
+#if SYZ_EXECUTOR || __NR_syz_process_self
+static long syz_process_self()
 {
 	return zx_process_self();
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_thread_self)
-long syz_thread_self()
+#if SYZ_EXECUTOR || __NR_syz_thread_self
+static long syz_thread_self()
 {
 	return zx_thread_self();
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_vmar_root_self)
-long syz_vmar_root_self()
+#if SYZ_EXECUTOR || __NR_syz_vmar_root_self
+static long syz_vmar_root_self()
 {
 	return zx_vmar_root_self();
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_job_default)
-long syz_job_default()
+#if SYZ_EXECUTOR || __NR_syz_job_default
+static long syz_job_default()
 {
 	return zx_job_default();
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_future_time)
-long syz_future_time(long when)
+#if SYZ_EXECUTOR || __NR_syz_future_time
+static long syz_future_time(long when)
 {
 	zx_time_t delta_ms;
 	switch (when) {
@@ -240,7 +228,7 @@ long syz_future_time(long when)
 }
 #endif
 
-#if defined(SYZ_SANDBOX_NONE)
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
 static int do_sandbox_none(void)
 {
@@ -249,233 +237,9 @@ static int do_sandbox_none(void)
 }
 #endif
 
-#if defined(SYZ_USE_TMP_DIR)
-static void use_temporary_dir()
-{
-	char tmpdir_template[] = "./syzkaller.XXXXXX";
-	char* tmpdir = mkdtemp(tmpdir_template);
-	if (!tmpdir)
-		fail("failed to mkdtemp");
-	if (chmod(tmpdir, 0777))
-		fail("failed to chmod");
-	if (chdir(tmpdir))
-		fail("failed to chdir");
-}
-#endif
-
-#if defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR)
-static void remove_dir(const char* dir)
-{
-	struct dirent* ep;
-	DIR* dp = opendir(dir);
-	if (dp == NULL)
-		exitf("opendir(%s) failed", dir);
-	while ((ep = readdir(dp))) {
-		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
-			continue;
-		char filename[FILENAME_MAX];
-		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
-		struct stat st;
-		if (lstat(filename, &st))
-			exitf("lstat(%s) failed", filename);
-		if (S_ISDIR(st.st_mode)) {
-			remove_dir(filename);
-			continue;
-		}
-		if (unlink(filename))
-			exitf("unlink(%s) failed", filename);
-	}
-	closedir(dp);
-	if (rmdir(dir))
-		exitf("rmdir(%s) failed", dir);
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
-static void execute_one();
-extern unsigned long long procid;
-
-#if defined(SYZ_EXECUTOR)
-void reply_handshake();
-void receive_execute();
-void reply_execute(int status);
-extern uint32* output_data;
-extern uint32* output_pos;
-#endif
-
-#if defined(SYZ_WAIT_REPEAT)
-static void loop()
-{
-#if defined(SYZ_EXECUTOR)
-	// Tell parent that we are ready to serve.
-	reply_handshake();
-#endif
-	int iter;
-	for (iter = 0;; iter++) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
-		// Create a new private work dir for this test (removed at the end of the loop).
-		char cwdbuf[32];
-		sprintf(cwdbuf, "./%d", iter);
-		if (mkdir(cwdbuf, 0777))
-			fail("failed to mkdir");
-#endif
-#if defined(SYZ_EXECUTOR)
-		// TODO: consider moving the read into the child.
-		// Potentially it can speed up things a bit -- when the read finishes
-		// we already have a forked worker process.
-		receive_execute();
-#endif
-		int pid = fork();
-		if (pid < 0)
-			fail("clone failed");
-		if (pid == 0) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
-			if (chdir(cwdbuf))
-				fail("failed to chdir");
-#endif
-#if defined(SYZ_EXECUTOR)
-			close(kInPipeFd);
-			close(kOutPipeFd);
-#endif
-#if defined(SYZ_EXECUTOR)
-			output_pos = output_data;
-#endif
-			execute_one();
-			debug("worker exiting\n");
-			doexit(0);
-		}
-		debug("spawned worker pid %d\n", pid);
-
-		// We used to use sigtimedwait(SIGCHLD) to wait for the subprocess.
-		// But SIGCHLD is also delivered when a process stops/continues,
-		// so it would require a loop with status analysis and timeout recalculation.
-		// SIGCHLD should also unblock the usleep below, so the spin loop
-		// should be as efficient as sigtimedwait.
-		int status = 0;
-		uint64 start = current_time_ms();
-#if defined(SYZ_EXECUTOR)
-		uint64 last_executed = start;
-		uint32 executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
-#endif
-		for (;;) {
-			int res = waitpid(-1, &status, WNOHANG);
-			if (res == pid) {
-				debug("waitpid(%d)=%d\n", pid, res);
-				break;
-			}
-			usleep(1000);
-#if defined(SYZ_EXECUTOR)
-			// Even though the test process executes exit at the end
-			// and execution time of each syscall is bounded by 20ms,
-			// this backup watchdog is necessary and its performance is important.
-			// The problem is that exit in the test processes can fail (sic).
-			// One observed scenario is that the test processes prohibits
-			// exit_group syscall using seccomp. Another observed scenario
-			// is that the test processes setups a userfaultfd for itself,
-			// then the main thread hangs when it wants to page in a page.
-			// Below we check if the test process still executes syscalls
-			// and kill it after 500ms of inactivity.
-			uint64 now = current_time_ms();
-			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
-			if (executed_calls != now_executed) {
-				executed_calls = now_executed;
-				last_executed = now;
-			}
-			if ((now - start < 3 * 1000) && (now - start < 1000 || now - last_executed < 500))
-				continue;
-#else
-			if (current_time_ms() - start < 3 * 1000)
-				continue;
-#endif
-			debug("waitpid(%d)=%d\n", pid, res);
-			debug("killing\n");
-			kill(-pid, SIGKILL);
-			kill(pid, SIGKILL);
-			while (waitpid(-1, &status, 0) != pid) {
-			}
-			break;
-		}
-#if defined(SYZ_EXECUTOR)
-		status = WEXITSTATUS(status);
-		if (status == kFailStatus)
-			fail("child failed");
-		if (status == kErrorStatus)
-			error("child errored");
-		reply_execute(0);
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
-		remove_dir(cwdbuf);
-#endif
-	}
-}
-#else
-void loop()
-{
-	while (1) {
-		execute_one();
-	}
-}
-#endif
-#endif
-
-#if defined(SYZ_THREADED)
-struct thread_t {
-	int created, running, call;
-	pthread_t th;
-};
-
-static struct thread_t threads[16];
-static void execute_call(int call);
-static int running;
-#if defined(SYZ_COLLIDE)
-static int collide;
-#endif
-
-static void* thr(void* arg)
-{
-	struct thread_t* th = (struct thread_t*)arg;
-	for (;;) {
-		while (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE))
-			usleep(200);
-		execute_call(th->call);
-		__atomic_fetch_sub(&running, 1, __ATOMIC_RELAXED);
-		__atomic_store_n(&th->running, 0, __ATOMIC_RELEASE);
-	}
-	return 0;
-}
-
-static void execute(int num_calls)
-{
-	int i, call, thread;
-	running = 0;
-	for (call = 0; call < num_calls; call++) {
-		for (thread = 0; thread < sizeof(threads) / sizeof(threads[0]); thread++) {
-			struct thread_t* th = &threads[thread];
-			if (!th->created) {
-				th->created = 1;
-				pthread_attr_t attr;
-				pthread_attr_init(&attr);
-				pthread_attr_setstacksize(&attr, 128 << 10);
-				pthread_create(&th->th, &attr, thr, th);
-			}
-			if (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE)) {
-				th->call = call;
-				__atomic_fetch_add(&running, 1, __ATOMIC_RELAXED);
-				__atomic_store_n(&th->running, 1, __ATOMIC_RELEASE);
-#if defined(SYZ_COLLIDE)
-				if (collide && call % 2)
-					break;
-#endif
-				for (i = 0; i < 100; i++) {
-					if (!__atomic_load_n(&th->running, __ATOMIC_ACQUIRE))
-						break;
-					usleep(200);
-				}
-				if (__atomic_load_n(&running, __ATOMIC_RELAXED))
-					usleep((call == num_calls - 1) ? 10000 : 1000);
-				break;
-			}
-		}
-	}
-}
-#endif
+#define do_sandbox_setuid() 0
+#define do_sandbox_namespace() 0
+#define setup_loop()
+#define reset_loop()
+#define setup_test()
+#define reset_test()

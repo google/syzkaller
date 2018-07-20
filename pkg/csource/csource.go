@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/prog"
@@ -74,34 +75,40 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		ctx.printf("unsigned long long procid;\n")
 	}
 
-	if !opts.Repeat {
+	if opts.Repeat {
+		ctx.generateTestFunc(calls, len(vars) != 0, "execute_one")
+	} else {
 		ctx.generateTestFunc(calls, len(vars) != 0, "loop")
+	}
 
+	if ctx.target.OS == "akaros" && opts.Repeat {
+		ctx.printf("const char* program_name;\n")
+		ctx.print("int main(int argc, char** argv)\n{\n")
+	} else {
 		ctx.print("int main()\n{\n")
-		for _, c := range mmapCalls {
-			ctx.printf("%s", c)
-		}
-		if opts.HandleSegv {
-			ctx.printf("\tinstall_segv_handler();\n")
-		}
+	}
+	for _, c := range mmapCalls {
+		ctx.printf("%s", c)
+	}
+	if ctx.target.OS == "akaros" && opts.Repeat {
+		ctx.printf("\tprogram_name = argv[0];\n")
+		ctx.printf("\tif (argc == 2 && strcmp(argv[1], \"child\") == 0)\n")
+		ctx.printf("\t\tchild();\n")
+	}
+	if opts.HandleSegv {
+		ctx.printf("\tinstall_segv_handler();\n")
+	}
+
+	if !opts.Repeat {
 		if opts.UseTmpDir {
 			ctx.printf("\tuse_temporary_dir();\n")
 		}
 		ctx.writeLoopCall()
-		ctx.print("\treturn 0;\n}\n")
 	} else {
-		ctx.generateTestFunc(calls, len(vars) != 0, "execute_one")
+		if opts.UseTmpDir {
+			ctx.print("\tchar *cwd = get_current_dir_name();\n")
+		}
 		if opts.Procs <= 1 {
-			ctx.print("int main()\n{\n")
-			for _, c := range mmapCalls {
-				ctx.printf("%s", c)
-			}
-			if opts.HandleSegv {
-				ctx.print("\tinstall_segv_handler();\n")
-			}
-			if opts.UseTmpDir {
-				ctx.print("\tchar *cwd = get_current_dir_name();\n")
-			}
 			ctx.print("\tfor (;;) {\n")
 			if opts.UseTmpDir {
 				ctx.print("\t\tif (chdir(cwd))\n")
@@ -109,20 +116,10 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 				ctx.print("\t\tuse_temporary_dir();\n")
 			}
 			ctx.writeLoopCall()
-			ctx.print("\t}\n}\n")
+			ctx.print("\t}\n")
 		} else {
-			ctx.print("int main()\n{\n")
-			for _, c := range mmapCalls {
-				ctx.printf("%s", c)
-			}
-			if opts.UseTmpDir {
-				ctx.print("\tchar *cwd = get_current_dir_name();\n")
-			}
 			ctx.printf("\tfor (procid = 0; procid < %v; procid++) {\n", opts.Procs)
 			ctx.print("\t\tif (fork() == 0) {\n")
-			if opts.HandleSegv {
-				ctx.print("\t\t\tinstall_segv_handler();\n")
-			}
 			ctx.print("\t\t\tfor (;;) {\n")
 			if opts.UseTmpDir {
 				ctx.print("\t\t\t\tif (chdir(cwd))\n")
@@ -134,35 +131,12 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			ctx.print("\t\t}\n")
 			ctx.print("\t}\n")
 			ctx.print("\tsleep(1000000);\n")
-			ctx.print("\treturn 0;\n}\n")
 		}
 	}
 
-	// Remove NONFAILING and debug calls.
-	result := ctx.w.Bytes()
-	if !opts.HandleSegv {
-		re := regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`)
-		result = re.ReplaceAll(result, []byte("$1;\n"))
-	}
-	if !opts.Debug {
-		re := regexp.MustCompile(`\t*debug\((.*\n)*?.*\);\n`)
-		result = re.ReplaceAll(result, nil)
-		re = regexp.MustCompile(`\t*debug_dump_data\((.*\n)*?.*\);\n`)
-		result = re.ReplaceAll(result, nil)
-	}
-	result = bytes.Replace(result, []byte("NORETURN"), nil, -1)
-	result = bytes.Replace(result, []byte("PRINTF"), nil, -1)
+	ctx.print("\treturn 0;\n}\n")
 
-	// Remove duplicate new lines.
-	for {
-		result1 := bytes.Replace(result, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
-		result1 = bytes.Replace(result1, []byte("\n\n#include"), []byte("\n#include"), -1)
-		if len(result1) == len(result) {
-			break
-		}
-		result = result1
-	}
-
+	result := ctx.postProcess(ctx.w.Bytes())
 	return result, nil
 }
 
@@ -204,10 +178,6 @@ func (ctx *context) generateTestFunc(calls []string, hasVars bool, name string) 
 		if hasVars {
 			ctx.printf("\tlong res = 0;\n")
 		}
-		if opts.Debug {
-			// Use debug to avoid: error: ‘debug’ defined but not used.
-			ctx.printf("\tdebug(\"%v\\n\");\n", name)
-		}
 		if opts.Repro {
 			ctx.printf("\tif (write(1, \"executing program\\n\", strlen(\"executing program\\n\"))) {}\n")
 		}
@@ -230,10 +200,6 @@ func (ctx *context) generateTestFunc(calls []string, hasVars bool, name string) 
 		ctx.printf("}\n\n")
 
 		ctx.printf("void %v()\n{\n", name)
-		if opts.Debug {
-			// Use debug to avoid: error: ‘debug’ defined but not used.
-			ctx.printf("\tdebug(\"%v\\n\");\n", name)
-		}
 		if opts.Repro {
 			ctx.printf("\tif (write(1, \"executing program\\n\", strlen(\"executing program\\n\"))) {}\n")
 		}
@@ -484,6 +450,67 @@ func (ctx *context) resultArgToStr(arg prog.ExecArgResult) string {
 		res = fmt.Sprintf("htobe%v(%v)", arg.Size*8, res)
 	}
 	return res
+}
+
+func (ctx *context) postProcess(result []byte) []byte {
+	// Remove NONFAILING, debug, fail, etc calls.
+	if !ctx.opts.HandleSegv {
+		result = regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`).ReplaceAll(result, []byte("$1;\n"))
+	}
+	result = bytes.Replace(result, []byte("NORETURN"), nil, -1)
+	result = bytes.Replace(result, []byte("PRINTF"), nil, -1)
+	result = bytes.Replace(result, []byte("doexit("), []byte("exit("), -1)
+	result = regexp.MustCompile(`\t*debug\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
+	result = regexp.MustCompile(`\t*debug_dump_data\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
+	result = regexp.MustCompile(`\t*exitf\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
+	result = regexp.MustCompile(`\t*fail\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
+	result = regexp.MustCompile(`\t*error\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
+
+	result = ctx.hoistIncludes(result)
+	result = ctx.removeEmptyLines(result)
+	return result
+}
+
+// hoistIncludes moves all includes to the top, removes dups and sorts.
+func (ctx *context) hoistIncludes(result []byte) []byte {
+	includesStart := bytes.Index(result, []byte("#include"))
+	if includesStart == -1 {
+		return result
+	}
+	includes := make(map[string]bool)
+	includeRe := regexp.MustCompile("#include <.*>\n")
+	for _, match := range includeRe.FindAll(result, -1) {
+		includes[string(match)] = true
+	}
+	result = includeRe.ReplaceAll(result, nil)
+	// Linux headers are broken, so we have to move all linux includes to the bottom.
+	var sorted, sortedLinux []string
+	for include := range includes {
+		if strings.Contains(include, "<linux/") {
+			sortedLinux = append(sortedLinux, include)
+		} else {
+			sorted = append(sorted, include)
+		}
+	}
+	sort.Strings(sorted)
+	sort.Strings(sortedLinux)
+	newResult := append([]byte{}, result[:includesStart]...)
+	newResult = append(newResult, strings.Join(sorted, "")...)
+	newResult = append(newResult, '\n')
+	newResult = append(newResult, strings.Join(sortedLinux, "")...)
+	newResult = append(newResult, result[includesStart:]...)
+	return newResult
+}
+
+// removeEmptyLines removes duplicate new lines.
+func (ctx *context) removeEmptyLines(result []byte) []byte {
+	for {
+		newResult := bytes.Replace(result, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
+		if len(newResult) == len(result) {
+			return result
+		}
+		result = newResult
+	}
 }
 
 func toCString(data []byte) []byte {
