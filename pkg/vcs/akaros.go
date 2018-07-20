@@ -45,11 +45,11 @@ func (ctx *akaros) HeadCommit() (*Commit, error) {
 }
 
 func (ctx *akaros) ListRecentCommits(baseCommit string) ([]string, error) {
-	return nil, nil
+	return ctx.git.ListRecentCommits(baseCommit)
 }
 
 func (ctx *akaros) ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit, error) {
-	return nil, fmt.Errorf("not implemented for akaros")
+	return ctx.git.ExtractFixTagsFromCommits(baseCommit, email)
 }
 
 func (ctx *akaros) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error) {
