@@ -90,7 +90,7 @@ const int kErrorStatus = 68;
     defined(__NR_syz_init_net_socket) &&                                                                \
 	(defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)) || \
     defined(__NR_syz_mmap)
-// logical error (e.g. invalid input program), use as an assert() alernative
+// logical error (e.g. invalid input program), use as an assert() alternative
 NORETURN PRINTF static void fail(const char* msg, ...)
 {
 	int e = errno;
