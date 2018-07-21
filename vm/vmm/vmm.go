@@ -200,8 +200,7 @@ func (inst *instance) Boot() error {
 	inst.merger.Add("vmm", inst.rpipe)
 	inst.rpipe = nil
 
-	consoleStop := make(chan bool)
-	if err := inst.console(consoleStop); err != nil {
+	if err := inst.console(); err != nil {
 		return err
 	}
 
@@ -220,10 +219,6 @@ func (inst *instance) Boot() error {
 	}()
 
 	done := func() {
-		consoleStop <- true
-		<-consoleStop
-		close(consoleStop)
-
 		bootOutputStop <- true
 		<-bootOutputStop
 		close(bootOutputStop)
@@ -329,11 +324,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		}
 	}
 
-	consoleStop := make(chan bool)
-	if err := inst.console(consoleStop); err != nil {
-		return nil, nil, err
-	}
-
 	go func() {
 		select {
 		case <-time.After(timeout):
@@ -348,19 +338,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 				err = nil
 			}
 
-			consoleStop <- true
-			<-consoleStop
-			close(consoleStop)
-
 			signal(err)
 			return
 		}
 		cmd.Process.Kill()
 		cmd.Wait()
-
-		consoleStop <- true
-		<-consoleStop
-		close(consoleStop)
 	}()
 	return inst.merger.Output, errc, nil
 }
@@ -369,7 +351,7 @@ func (inst *instance) Diagnose() bool {
 	return false
 }
 
-func (inst *instance) console(stop chan bool) error {
+func (inst *instance) console() error {
 	outr, outw, err := osutil.LongPipe()
 	if err != nil {
 		return err
@@ -383,14 +365,12 @@ func (inst *instance) console(stop chan bool) error {
 	cmd.Stdout = outw
 	cmd.Stderr = outw
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("vmctl console: %v", err)
+		return fmt.Errorf("vmctl console %s: %v", inst.vmIdent(), err)
 	}
 	outw.Close()
 	inr.Close()
 	inst.merger.Add("console", outr)
 	go func() {
-		<-stop
-		cmd.Process.Kill()
 		cmd.Process.Wait()
 		inw.Close()
 		outr.Close()
@@ -398,7 +378,6 @@ func (inst *instance) console(stop chan bool) error {
 		case <-inst.merger.Err:
 			// Error is expected since the process is gone.
 		}
-		stop <- true
 	}()
 	return nil
 }
