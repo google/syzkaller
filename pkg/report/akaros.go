@@ -150,6 +150,7 @@ var akarosStackParams = &stackParams{
 		"mon_backtrace",
 		"monitor",
 		"_panic",
+		"_warn",
 	},
 }
 
@@ -180,6 +181,28 @@ var akarosOopses = []*oops{
 			{
 				title:        compile("kernel panic"),
 				fmt:          "kernel panic",
+				noStackTrace: true,
+				corrupted:    true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	&oops{
+		[]byte("kernel warning"),
+		[]oopsFormat{
+			{
+				title: compile("kernel warning at {{SRC}}, from core [0-9]+"),
+				fmt:   "kernel warning in %[2]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						akarosBacktraceRe,
+						parseStackTrace,
+					},
+				},
+			},
+			{
+				title:        compile("kernel warning"),
+				fmt:          "kernel warning",
 				noStackTrace: true,
 				corrupted:    true,
 			},
