@@ -70,7 +70,7 @@ func initCover(kernelObj, arch string) error {
 	return err
 }
 
-func generateCoverHTML(w io.Writer, kernelObj, arch string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, kernelObj, kernelSrc, arch string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("no coverage data available")
 	}
@@ -106,6 +106,10 @@ func generateCoverHTML(w io.Writer, kernelObj, arch string, cov cover.Cover) err
 
 	var d templateData
 	for f, covered := range fileSet(coveredFrames, uncoveredFrames) {
+		remain := strings.TrimPrefix(f, prefix)
+		if kernelSrc != "" {
+			f = filepath.Join(kernelSrc, remain)
+		}
 		lines, err := parseFile(f)
 		if err != nil {
 			return err
@@ -130,7 +134,7 @@ func generateCoverHTML(w io.Writer, kernelObj, arch string, cov cover.Cover) err
 				buf.Write([]byte{'\n'})
 			}
 		}
-		f = filepath.Clean(strings.TrimPrefix(f, prefix))
+		f = filepath.Clean(remain)
 		d.Files = append(d.Files, &templateFile{
 			ID:       hash.String([]byte(f)),
 			Name:     f,
