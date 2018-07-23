@@ -295,7 +295,9 @@ func (inst *instance) Boot() error {
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
-		"-net", "nic",
+		// e1000e fails on recent Debian distros with:
+		// Initialization of device e1000e failed: failed to find romfile "efi-e1000e.rom
+		"-net", "nic,model=e1000",
 		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port),
 		"-display", "none",
 		"-serial", "stdio",
