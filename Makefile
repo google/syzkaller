@@ -233,8 +233,11 @@ arch_windows_amd64_target:
 arch_test:
 	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
 	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
-	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
-	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
+	# 32-bit build fails on travis with:
+	# /usr/include/c++/4.8/utility:68:28: fatal error: bits/c++config.h: No such file or directory
+	# #include <bits/c++config.h>
+	# env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
+	# env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
 
 presubmit:
 	$(MAKE) generate
