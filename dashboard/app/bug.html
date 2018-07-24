@@ -56,7 +56,7 @@ Page with details about a single bug.
 				<td class="kernel" title="{{$c.KernelAlias}}">{{$c.KernelAlias}}</td>
 				<td class="tag">{{$c.KernelCommit}}</td>
 				<td class="tag">{{$c.SyzkallerCommit}}</td>
-				<td class="config"><a href="{{$c.KernelConfigLink}}">.config</a></td>
+				<td class="config">{{if $c.KernelConfigLink}}<a href="{{$c.KernelConfigLink}}">.config</a>{{end}}</td>
 				<td class="repro">{{if $c.LogLink}}<a href="{{$c.LogLink}}">log</a>{{end}}</td>
 				<td class="repro">{{if $c.ReportLink}}<a href="{{$c.ReportLink}}">report</a>{{end}}</td>
 				<td class="repro">{{if $c.ReproSyzLink}}<a href="{{$c.ReproSyzLink}}">syz</a>{{end}}</td>
