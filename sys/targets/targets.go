@@ -182,7 +182,8 @@ var List = map[string]map[string]*Target{
 			PtrSize:     8,
 			PageSize:    4 << 10,
 			CFlags:      []string{"-m64"},
-			CrossCFlags: []string{"-m64", "-static"},
+			CCompiler:   "c++",
+			CrossCFlags: []string{"-m64", "-static", "-lutil"},
 		},
 	},
 	"fuchsia": {

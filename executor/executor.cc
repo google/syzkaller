@@ -298,7 +298,7 @@ static void setup_control_pipes();
 #include "executor_fuchsia.h"
 #elif GOOS_akaros
 #include "executor_akaros.h"
-#elif GOOS_freebsd || GOOS_netbsd
+#elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
 #include "executor_bsd.h"
 #elif GOOS_windows
 #include "executor_windows.h"
