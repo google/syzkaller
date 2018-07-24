@@ -33,6 +33,12 @@ func Image(targetOS, targetArch, vmType, kernelDir, outputDir, compiler, userspa
 	if err := osutil.MkdirAll(filepath.Join(outputDir, "obj")); err != nil {
 		return err
 	}
+	if len(config) != 0 {
+		// Write kernel config early, so that it's captured on build failures.
+		if err := osutil.WriteFile(filepath.Join(outputDir, "kernel.config"), config); err != nil {
+			return fmt.Errorf("failed to write config file: %v", err)
+		}
+	}
 	return builder.build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir, cmdlineFile, sysctlFile, config)
 }
 

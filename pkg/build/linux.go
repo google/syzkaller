@@ -54,6 +54,11 @@ func (linux) buildKernel(kernelDir, outputDir, compiler string, config []byte) e
 	if _, err := osutil.Run(10*time.Minute, cmd); err != nil {
 		return err
 	}
+	// Write updated kernel config early, so that it's captured on build failures.
+	outputConfig := filepath.Join(outputDir, "kernel.config")
+	if err := osutil.CopyFile(configFile, outputConfig); err != nil {
+		return err
+	}
 	// We build only bzImage as we currently don't use modules.
 	cpu := strconv.Itoa(runtime.NumCPU())
 	cmd = osutil.Command("make", "bzImage", "-j", cpu, "CC="+compiler)
@@ -63,10 +68,6 @@ func (linux) buildKernel(kernelDir, outputDir, compiler string, config []byte) e
 	cmd.Dir = kernelDir
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return extractRootCause(err)
-	}
-	outputConfig := filepath.Join(outputDir, "kernel.config")
-	if err := osutil.CopyFile(configFile, outputConfig); err != nil {
-		return err
 	}
 	vmlinux := filepath.Join(kernelDir, "vmlinux")
 	outputVmlinux := filepath.Join(outputDir, "obj", "vmlinux")
