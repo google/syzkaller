@@ -60,6 +60,7 @@ type instance struct {
 	qemu       *exec.Cmd
 	merger     *vmimpl.OutputMerger
 	files      map[string]string
+	diagnose   chan bool
 }
 
 type archConfig struct {
@@ -246,6 +247,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 		workdir:    workdir,
 		sshkey:     sshkey,
 		sshuser:    sshuser,
+		diagnose:   make(chan bool, 1),
 	}
 	if st, err := os.Stat(inst.image); err != nil && st.Size() == 0 {
 		// Some kernels may not need an image, however caller may still
@@ -479,6 +481,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(vmimpl.ErrTimeout)
 		case <-stop:
 			signal(vmimpl.ErrTimeout)
+		case <-inst.diagnose:
+			cmd.Process.Kill()
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
@@ -496,6 +500,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() bool {
+	select {
+	case inst.diagnose <- true:
+	default:
+	}
 	return false
 }
 

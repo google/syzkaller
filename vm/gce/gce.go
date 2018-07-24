@@ -49,16 +49,17 @@ type Pool struct {
 }
 
 type instance struct {
-	env     *vmimpl.Env
-	cfg     *Config
-	GCE     *gce.Context
-	debug   bool
-	name    string
-	ip      string
-	gceKey  string // per-instance private ssh key associated with the instance
-	sshKey  string // ssh key
-	sshUser string
-	closed  chan bool
+	env      *vmimpl.Env
+	cfg      *Config
+	GCE      *gce.Context
+	debug    bool
+	name     string
+	ip       string
+	gceKey   string // per-instance private ssh key associated with the instance
+	sshKey   string // ssh key
+	sshUser  string
+	closed   chan bool
+	diagnose chan bool
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -171,16 +172,17 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	ok = true
 	inst := &instance{
-		env:     pool.env,
-		cfg:     pool.cfg,
-		debug:   pool.env.Debug,
-		GCE:     pool.GCE,
-		name:    name,
-		ip:      ip,
-		gceKey:  gceKey,
-		sshKey:  sshKey,
-		sshUser: sshUser,
-		closed:  make(chan bool),
+		env:      pool.env,
+		cfg:      pool.cfg,
+		debug:    pool.env.Debug,
+		GCE:      pool.GCE,
+		name:     name,
+		ip:       ip,
+		gceKey:   gceKey,
+		sshKey:   sshKey,
+		sshUser:  sshUser,
+		closed:   make(chan bool),
+		diagnose: make(chan bool, 1),
 	}
 	return inst, nil
 }
@@ -321,6 +323,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(vmimpl.ErrTimeout)
 		case <-inst.closed:
 			signal(fmt.Errorf("instance closed"))
+		case <-inst.diagnose:
+			ssh.Process.Kill()
 		case err := <-merger.Err:
 			con.Process.Kill()
 			ssh.Process.Kill()
@@ -356,6 +360,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() bool {
+	select {
+	case inst.diagnose <- true:
+	default:
+	}
 	return false
 }
 

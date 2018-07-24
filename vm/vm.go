@@ -148,6 +148,7 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 	)
 	extractError := func(defaultError string) *report.Report {
 		// Give it some time to finish writing the error message.
+		inst.Diagnose()
 		waitForOutput()
 		if bytes.Contains(output, []byte("SYZ-FUZZER: PREEMPTED")) {
 			return nil
