@@ -228,7 +228,6 @@ var List = map[string]map[string]*Target{
 			CCompiler:         os.ExpandEnv("${SOURCEDIR}/toolchain/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
 			CrossCFlags: []string{
 				"-static",
-				"-Wno-strict-aliasing",
 			},
 		},
 	},
