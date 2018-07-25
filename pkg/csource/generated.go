@@ -2938,6 +2938,7 @@ static void setup_common()
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#include <sched.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -3039,16 +3040,18 @@ static int do_sandbox_none(void)
 
 static int do_sandbox_setuid(void)
 {
-	if (unshare(CLONE_NEWPID))
-		fail("unshare(CLONE_NEWPID)");
+	if (unshare(CLONE_NEWPID)) {
+		debug("unshare(CLONE_NEWPID): %d\n", errno);
+	}
 	int pid = fork();
 	if (pid != 0)
 		return wait_for_loop(pid);
 
 	setup_common();
 	sandbox_common();
-	if (unshare(CLONE_NEWNET))
-		fail("unshare(CLONE_NEWNET)");
+	if (unshare(CLONE_NEWNET)) {
+		debug("unshare(CLONE_NEWNET): %d\n", errno);
+	}
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 	initialize_tun();
 #endif
@@ -3073,6 +3076,7 @@ static int do_sandbox_setuid(void)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NAMESPACE
 #include <linux/capability.h>
+#include <sched.h>
 #include <sys/mman.h>
 
 static int real_uid;
