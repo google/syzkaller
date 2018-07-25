@@ -371,12 +371,11 @@ var typeProc = &typeDesc{
 		if size == 64 {
 			max = ^uint64(0)
 		}
-		const maxPids = 32 // executor knows about this constant (MAX_PIDS)
 		if start >= max {
 			comp.error(args[0].Pos, "values starting from %v overflow base type", start)
-		} else if perProc > (max-start)/maxPids {
+		} else if perProc > (max-start)/prog.MaxPids {
 			comp.error(args[0].Pos, "values starting from %v with step %v overflow base type for %v procs",
-				start, perProc, maxPids)
+				start, perProc, prog.MaxPids)
 		}
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
