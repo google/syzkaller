@@ -119,8 +119,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		HandleSegv:    true,
 		Repro:         true,
 	}
-	switch cfg.TargetOS {
-	case fuchsia, akaros:
+	if cfg.TargetOS != linux {
 		opts.EnableTun = false
 		opts.EnableCgroups = false
 		opts.EnableNetdev = false
