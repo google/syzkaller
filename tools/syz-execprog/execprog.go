@@ -240,5 +240,8 @@ func createConfig(target *prog.Target, entries []*prog.LogEntry, features *host.
 	if features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
+	if features[host.FeatureNetworkDevices].Enabled {
+		config.Flags |= ipc.FlagEnableNetDev
+	}
 	return config, execOpts
 }
