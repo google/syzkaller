@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -88,10 +89,10 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Fatalf("%v", err)
 	}
 	bin, err := Build(p.Target, src)
-	if err == ErrNoCompiler {
-		t.Skip(err)
-	}
 	if err != nil {
+		if strings.Contains(err.Error(), "no target compiler") {
+			t.Skip(err)
+		}
 		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
