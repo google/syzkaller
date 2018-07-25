@@ -20,7 +20,7 @@ func (mgr *Manager) hubSyncLoop() {
 		cfg:           mgr.cfg,
 		target:        mgr.target,
 		stats:         mgr.stats,
-		enabledCalls:  mgr.checkResult.EnabledCalls,
+		enabledCalls:  mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox],
 		fresh:         mgr.fresh,
 		hubReproQueue: mgr.hubReproQueue,
 	}

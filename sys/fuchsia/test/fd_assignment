@@ -1,0 +1,9 @@
+# Tests that fd's are always allocated starting from 3.
+
+close(0x3)	# EBADF
+close(0x4)	# EBADF
+close(0x5)	# EBADF
+pipe(&(0x7f0000000000)={<r0=>0x0, <r1=>0x0})
+close(0x3)
+close(0x4)
+close(0x5)	# EBADF

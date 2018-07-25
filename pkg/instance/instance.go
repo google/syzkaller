@@ -267,7 +267,7 @@ func (inst *inst) testInstance() error {
 	}
 
 	cmd := FuzzerCmd(fuzzerBin, executorBin, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
-		inst.cfg.Sandbox, 0, 0, false, false, true)
+		inst.cfg.Sandbox, 0, 0, false, false, true, false)
 	outc, errc, err := inst.vm.Run(5*time.Minute, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
@@ -364,7 +364,7 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 }
 
 func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs, verbosity int,
-	cover, debug, test bool) string {
+	cover, debug, test, runtest bool) string {
 	osArg := ""
 	if OS == "akaros" {
 		// Only akaros needs OS, because the rest assume host OS.
@@ -373,9 +373,9 @@ func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs,
 		osArg = " -os=" + OS
 	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -procs=%v -v=%d -cover=%v -debug=%v -test=%v",
+		" -procs=%v -v=%d -cover=%v -debug=%v -test=%v -runtest=%v",
 		fuzzer, executor, name, arch, osArg, fwdAddr, sandbox,
-		procs, verbosity, cover, debug, test)
+		procs, verbosity, cover, debug, test, runtest)
 }
 
 func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded, collide bool,

@@ -79,7 +79,7 @@ ifeq ("$(TARGETOS)", "akaros")
 endif
 
 .PHONY: all host target \
-	manager fuzzer executor \
+	manager runtest fuzzer executor \
 	ci hub \
 	execprog mutate prog2c stress repro upgrade db \
 	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
@@ -97,7 +97,7 @@ all: host target
 
 host:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) install ./syz-manager
-	$(MAKE) manager repro mutate prog2c db upgrade
+	$(MAKE) manager runtest repro mutate prog2c db upgrade
 
 target:
 	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) install ./syz-fuzzer
@@ -112,6 +112,9 @@ executor:
 
 manager:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
+
+runtest:
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-runtest github.com/google/syzkaller/tools/syz-runtest
 
 fuzzer:
 	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) build $(GOTARGETFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer$(EXE) github.com/google/syzkaller/syz-fuzzer

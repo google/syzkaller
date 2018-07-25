@@ -251,7 +251,7 @@ func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
 		calls[id] = append(calls[id], errno)
 	}
 	data := &UIFallbackCoverData{}
-	for _, id := range mgr.checkResult.EnabledCalls {
+	for _, id := range mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox] {
 		errnos := calls[id]
 		sort.Ints(errnos)
 		successful := 0
