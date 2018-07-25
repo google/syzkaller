@@ -303,3 +303,35 @@ func testSerializeDeserialize(t *testing.T, p0 *Prog, data0, data1 []byte) (bool
 	}
 	return true, 0, 0
 }
+
+func TestDeserializeComments(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	p, err := target.Deserialize([]byte(`
+# comment1
+# comment2
+serialize0()
+serialize0()
+# comment3
+serialize0()
+# comment4
+serialize0()	#  comment5
+#comment6
+
+serialize0()
+#comment7
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range []string{
+		"comment2",
+		"",
+		"comment3",
+		"comment5",
+		"",
+	} {
+		if got := p.Calls[i].Comment; got != want {
+			t.Errorf("bad call %v comment: %q, want %q", i, got, want)
+		}
+	}
+}

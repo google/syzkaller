@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // String generates a very compact program description (mostly for debug output).
@@ -156,8 +157,14 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 	}
 	p := newParser(data)
 	vars := make(map[string]*ResultArg)
+	comment := ""
 	for p.Scan() {
-		if p.EOF() || p.Char() == '#' {
+		if p.EOF() {
+			comment = ""
+			continue
+		}
+		if p.Char() == '#' {
+			comment = strings.TrimSpace(p.s[p.i+1:])
 			continue
 		}
 		name := p.Ident()
@@ -173,8 +180,9 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 			return nil, fmt.Errorf("unknown syscall %v", name)
 		}
 		c := &Call{
-			Meta: meta,
-			Ret:  MakeReturnArg(meta.Ret),
+			Meta:    meta,
+			Ret:     MakeReturnArg(meta.Ret),
+			Comment: comment,
 		}
 		prog.Calls = append(prog.Calls, c)
 		p.Parse('(')
@@ -197,8 +205,12 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 			}
 		}
 		p.Parse(')')
+		p.SkipWs()
 		if !p.EOF() {
-			return nil, fmt.Errorf("tailing data (line #%v)", p.l)
+			if p.Char() != '#' {
+				return nil, fmt.Errorf("tailing data (line #%v)", p.l)
+			}
+			c.Comment = strings.TrimSpace(p.s[p.i+1:])
 		}
 		for i := len(c.Args); i < len(meta.Args); i++ {
 			c.Args = append(c.Args, target.defaultArg(meta.Args[i]))
@@ -209,6 +221,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 		if r != "" && c.Ret != nil {
 			vars[r] = c.Ret
 		}
+		comment = ""
 	}
 	if err := p.Err(); err != nil {
 		return nil, err
