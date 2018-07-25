@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
 )
@@ -24,6 +25,7 @@ type checkArgs struct {
 	gitRevision    string
 	targetRevision string
 	enabledCalls   []int
+	allSandboxes   bool
 	ipcConfig      *ipc.Config
 	ipcExecOpts    *ipc.ExecOpts
 }
@@ -38,6 +40,64 @@ func testImage(hostAddr string, args *checkArgs) {
 	if _, err := checkMachine(args); err != nil {
 		log.Fatalf("%v", err)
 	}
+}
+
+func runTest(target *prog.Target, manager *rpctype.RPCClient, name, executor string) {
+	pollReq := &rpctype.RunTestPollReq{Name: name}
+	for {
+		req := new(rpctype.RunTestPollRes)
+		if err := manager.Call("Manager.Poll", pollReq, req); err != nil {
+			log.Fatalf("Manager.Poll call failed: %v", err)
+		}
+		if len(req.Bin) == 0 && len(req.Prog) == 0 {
+			return
+		}
+		test := convertTestReq(target, req)
+		if test.Err == nil {
+			runtest.RunTest(test, executor)
+		}
+		reply := &rpctype.RunTestDoneArgs{
+			Name:   name,
+			ID:     req.ID,
+			Output: test.Output,
+			Info:   test.Info,
+		}
+		if test.Err != nil {
+			reply.Error = test.Err.Error()
+		}
+		if err := manager.Call("Manager.Done", reply, nil); err != nil {
+			log.Fatalf("Manager.Done call failed: %v", err)
+		}
+	}
+}
+
+func convertTestReq(target *prog.Target, req *rpctype.RunTestPollRes) *runtest.RunRequest {
+	test := &runtest.RunRequest{
+		Cfg:    req.Cfg,
+		Opts:   req.Opts,
+		Repeat: req.Repeat,
+	}
+	if len(req.Bin) != 0 {
+		bin, err := osutil.TempFile("syz-runtest")
+		if err != nil {
+			test.Err = err
+			return test
+		}
+		if err := osutil.WriteExecFile(bin, req.Bin); err != nil {
+			test.Err = err
+			return test
+		}
+		test.Bin = bin
+	}
+	if len(req.Prog) != 0 {
+		p, err := target.Deserialize(req.Prog)
+		if err != nil {
+			test.Err = err
+			return test
+		}
+		test.P = p
+	}
+	return test
 }
 
 func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
@@ -79,14 +139,39 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 	if err := checkSimpleProgram(args); err != nil {
 		return nil, err
 	}
-	enabledCalls, disabledCalls, err := buildCallList(args.target, args.enabledCalls, args.sandbox)
-	if err != nil {
-		return nil, err
-	}
 	res := &rpctype.CheckArgs{
-		EnabledCalls:  enabledCalls,
-		DisabledCalls: disabledCalls,
 		Features:      features,
+		EnabledCalls:  make(map[string][]int),
+		DisabledCalls: make(map[string][]rpctype.SyscallReason),
+	}
+	sandboxes := []string{args.sandbox}
+	if args.allSandboxes {
+		if features[host.FeatureSandboxSetuid].Enabled {
+			sandboxes = append(sandboxes, "setuid")
+		}
+		if features[host.FeatureSandboxNamespace].Enabled {
+			sandboxes = append(sandboxes, "namespace")
+		}
+	}
+	for _, sandbox := range sandboxes {
+		enabledCalls, disabledCalls, err := buildCallList(args.target, args.enabledCalls, sandbox)
+		if err != nil {
+			return nil, err
+		}
+		res.EnabledCalls[sandbox] = enabledCalls
+		res.DisabledCalls[sandbox] = disabledCalls
+	}
+	if args.allSandboxes {
+		var enabled []int
+		for _, id := range res.EnabledCalls["none"] {
+			switch args.target.Syscalls[id].Name {
+			default:
+				enabled = append(enabled, id)
+			case "syz_emit_ethernet", "syz_extract_tcp_res":
+				// Tun is not setup without sandbox, this is a hacky way to workaround this.
+			}
+		}
+		res.EnabledCalls[""] = enabled
 	}
 	return res, nil
 }

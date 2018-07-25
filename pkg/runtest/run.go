@@ -21,7 +21,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
@@ -206,19 +205,20 @@ func (ctx *Context) parseProg(filename string) (*prog.Prog, []int, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to deserialize %v: %v", filename, err)
 	}
+	errnos := map[string]int{
+		"":       0,
+		"EPERM":  1,
+		"EBADF":  9,
+		"ENOMEM": 12,
+		"EINVAL": 22,
+	}
 	results := make([]int, len(p.Calls))
 	for i, call := range p.Calls {
-		switch call.Comment {
-		case "":
-		case "EINVAL":
-			results[i] = int(syscall.EINVAL)
-		case "EBADF":
-			results[i] = int(syscall.EBADF)
-		case "ENOMEM":
-			results[i] = int(syscall.ENOMEM)
-		default:
+		res, ok := errnos[call.Comment]
+		if !ok {
 			return nil, nil, fmt.Errorf("%v: unknown comment %q", filename, call.Comment)
 		}
+		results[i] = res
 	}
 	return p, results, nil
 }

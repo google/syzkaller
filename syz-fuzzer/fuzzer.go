@@ -100,7 +100,8 @@ func main() {
 		flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
 		flagOutput  = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
 		flagPprof   = flag.String("pprof", "", "address to serve pprof profiles")
-		flagTest    = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
+		flagTest    = flag.Bool("test", false, "enable image testing mode")      // used by syz-ci
+		flagRunTest = flag.Bool("runtest", false, "enable program testing mode") // used by pkg/runtest
 	)
 	flag.Parse()
 	outputType := parseOutputType(*flagOutput)
@@ -165,6 +166,7 @@ func main() {
 		checkArgs.gitRevision = r.GitRevision
 		checkArgs.targetRevision = r.TargetRevision
 		checkArgs.enabledCalls = r.EnabledCalls
+		checkArgs.allSandboxes = r.AllSandboxes
 		r.CheckResult, err = checkMachine(checkArgs)
 		if err != nil {
 			r.CheckResult = &rpctype.CheckArgs{
@@ -197,6 +199,11 @@ func main() {
 		config.Flags |= ipc.FlagEnableFault
 	}
 
+	if *flagRunTest {
+		runTest(target, manager, *flagName, config.Executor)
+		return
+	}
+
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
 	fuzzer := &Fuzzer{
@@ -216,7 +223,7 @@ func main() {
 	for i := 0; fuzzer.poll(i == 0, nil); i++ {
 	}
 	calls := make(map[*prog.Syscall]bool)
-	for _, id := range r.CheckResult.EnabledCalls {
+	for _, id := range r.CheckResult.EnabledCalls[sandbox] {
 		calls[target.Syscalls[id]] = true
 	}
 	prios := target.CalculatePriorities(fuzzer.corpus)

@@ -469,7 +469,7 @@ func (mgr *Manager) loadCorpus() {
 	case currentDBVersion:
 	}
 	syscalls := make(map[int]bool)
-	for _, id := range mgr.checkResult.EnabledCalls {
+	for _, id := range mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox] {
 		syscalls[id] = true
 	}
 	deleted := 0
@@ -558,7 +558,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, fmt.Sprintf("vm-%v", index),
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
-		mgr.cfg.Cover, *flagDebug, false)
+		mgr.cfg.Cover, *flagDebug, false, false)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
@@ -915,9 +915,9 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 	if mgr.checkResult != nil {
 		return nil
 	}
-	if len(mgr.cfg.EnabledSyscalls) != 0 && len(a.DisabledCalls) != 0 {
+	if len(mgr.cfg.EnabledSyscalls) != 0 && len(a.DisabledCalls[mgr.cfg.Sandbox]) != 0 {
 		disabled := make(map[string]string)
-		for _, dc := range a.DisabledCalls {
+		for _, dc := range a.DisabledCalls[mgr.cfg.Sandbox] {
 			disabled[mgr.target.Syscalls[dc.ID].Name] = dc.Reason
 		}
 		for _, id := range mgr.enabledSyscalls {
@@ -931,7 +931,8 @@ func (mgr *Manager) Check(a *rpctype.CheckArgs, r *int) error {
 		log.Fatalf("machine check: %v", a.Error)
 	}
 	log.Logf(0, "machine check:")
-	log.Logf(0, "%-24v: %v/%v", "syscalls", len(a.EnabledCalls), len(mgr.target.Syscalls))
+	log.Logf(0, "%-24v: %v/%v", "syscalls",
+		len(a.EnabledCalls[mgr.cfg.Sandbox]), len(mgr.target.Syscalls))
 	for _, feat := range a.Features {
 		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 	}

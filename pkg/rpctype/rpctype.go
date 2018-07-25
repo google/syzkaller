@@ -7,6 +7,7 @@ package rpctype
 
 import (
 	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/signal"
 )
 
@@ -31,14 +32,15 @@ type ConnectRes struct {
 	EnabledCalls   []int
 	GitRevision    string
 	TargetRevision string
+	AllSandboxes   bool
 	CheckResult    *CheckArgs
 }
 
 type CheckArgs struct {
 	Name          string
 	Error         string
-	EnabledCalls  []int
-	DisabledCalls []SyscallReason
+	EnabledCalls  map[string][]int
+	DisabledCalls map[string][]SyscallReason
 	Features      *host.Features
 }
 
@@ -102,4 +104,25 @@ type HubSyncRes struct {
 	// Number of remaining pending programs,
 	// if >0 manager should do sync again.
 	More int
+}
+
+type RunTestPollReq struct {
+	Name string
+}
+
+type RunTestPollRes struct {
+	ID     int
+	Bin    []byte
+	Prog   []byte
+	Cfg    *ipc.Config
+	Opts   *ipc.ExecOpts
+	Repeat int
+}
+
+type RunTestDoneArgs struct {
+	Name   string
+	ID     int
+	Output []byte
+	Info   [][]ipc.CallInfo
+	Error  string
 }
