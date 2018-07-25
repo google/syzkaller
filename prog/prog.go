@@ -13,9 +13,10 @@ type Prog struct {
 }
 
 type Call struct {
-	Meta *Syscall
-	Args []Arg
-	Ret  *ResultArg
+	Meta    *Syscall
+	Args    []Arg
+	Ret     *ResultArg
+	Comment string
 }
 
 type Arg interface {
