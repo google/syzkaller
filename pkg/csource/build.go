@@ -5,7 +5,6 @@ package csource
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -30,7 +29,7 @@ func build(target *prog.Target, src []byte, file string) (string, error) {
 	sysTarget := targets.Get(target.OS, target.Arch)
 	compiler := sysTarget.CCompiler
 	if _, err := exec.LookPath(compiler); err != nil {
-		return "", ErrNoCompiler
+		return "", fmt.Errorf("no target compiler %v", compiler)
 	}
 	// We call the binary syz-executor because it sometimes shows in bug titles,
 	// and we don't want 2 different bugs for when a crash is triggered during fuzzing and during repro.
@@ -69,8 +68,6 @@ func build(target *prog.Target, src []byte, file string) (string, error) {
 	}
 	return bin, nil
 }
-
-var ErrNoCompiler = errors.New("no target compiler")
 
 // Format reformats C source using clang-format.
 func Format(src []byte) ([]byte, error) {
