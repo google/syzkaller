@@ -235,6 +235,8 @@ type ProcType struct {
 	ValuesPerProc uint64
 }
 
+const MaxPids = 32
+
 func (t *ProcType) Default() uint64 {
 	// Special value denoting 0 for all procs.
 	return 0xffffffffffffffff
