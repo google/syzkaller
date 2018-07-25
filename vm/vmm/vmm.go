@@ -9,9 +9,7 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,26 +50,9 @@ type instance struct {
 	sshuser string
 	sshhost string
 	port    int
-	rpipe   io.ReadCloser
-	wpipe   io.WriteCloser
-	start   *exec.Cmd
-	waiterC chan error
 	merger  *vmimpl.OutputMerger
 	vmID    int
 }
-
-type vmStatus struct {
-	id     int
-	pid    int
-	cpu    int
-	memMax int
-	memCur int
-	tty    string
-	owner  string
-	name   string
-}
-
-var idRegexp = regexp.MustCompile("started vm (\\d+)")
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
@@ -147,11 +128,6 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		}
 	}()
 
-	inst.rpipe, inst.wpipe, err = osutil.LongPipe()
-	if err != nil {
-		return nil, err
-	}
-
 	if err := inst.Boot(); err != nil {
 		return nil, err
 	}
@@ -197,8 +173,6 @@ func (inst *instance) Boot() error {
 		tee = os.Stdout
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
-	inst.merger.Add("vmm", inst.rpipe)
-	inst.rpipe = nil
 
 	if err := inst.console(); err != nil {
 		return err
@@ -253,7 +227,7 @@ func (inst *instance) Boot() error {
 func (inst *instance) Close() {
 	if out, err := inst.vmctl("stop", inst.vmIdent(), "-f"); err != nil {
 		if inst.debug {
-			log.Logf(0, "vmctl stop: %v: %s", err, string(out))
+			log.Logf(0, "vmctl stop %s: %v: %s", inst.vmIdent(), err, string(out))
 		}
 	}
 
@@ -262,9 +236,6 @@ func (inst *instance) Close() {
 
 func (inst *instance) Forward(port int) (string, error) {
 	addr := fmt.Sprintf("100.64.%v.2:%v", inst.vmID, port)
-	if inst.debug {
-		log.Logf(0, "forward %v", addr)
-	}
 	return addr, nil
 }
 
