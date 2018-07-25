@@ -595,12 +595,12 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		log.Logf(0, "vm-%v: running for %v, restarting", index, time.Since(start))
 		return nil, nil
 	}
-	cash := &Crash{
+	crash := &Crash{
 		vmIndex: index,
 		hub:     false,
 		Report:  rep,
 	}
-	return cash, nil
+	return crash, nil
 }
 
 func (mgr *Manager) emailCrash(crash *Crash) {
