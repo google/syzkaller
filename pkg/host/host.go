@@ -14,7 +14,7 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 	supported := make(map[*prog.Syscall]bool)
 	unsupported := make(map[*prog.Syscall]string)
 	// Akaros does not have own host and parasitizes on some other OS.
-	if target.OS == "akaros" {
+	if target.OS == "akaros" || target.OS == "test" {
 		for _, c := range target.Syscalls {
 			supported[c] = true
 		}
@@ -77,7 +77,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureNetworkInjection: {Name: "net packed injection", Reason: unsupported},
 		FeatureNetworkDevices:   {Name: "net device setup", Reason: unsupported},
 	}
-	if target.OS == "akaros" {
+	if target.OS == "akaros" || target.OS == "test" {
 		return res, nil
 	}
 	for n, check := range checkFeature {
@@ -97,7 +97,7 @@ func Check(target *prog.Target) (*Features, error) {
 // Setup enables and does any one-time setup for the requested features on the host.
 // Note: this can be called multiple times and must be idempotent.
 func Setup(target *prog.Target, features *Features) (func(), error) {
-	if target.OS == "akaros" {
+	if target.OS == "akaros" || target.OS == "test" {
 		return nil, nil
 	}
 	var callback func()
