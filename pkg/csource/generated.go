@@ -15,6 +15,10 @@ var commonHeader = `
 #include <stdlib.h>
 #include <string.h>
 
+#if SYZ_TRACE
+#include <errno.h>
+#endif
+
 #if SYZ_EXECUTOR && !GOOS_linux
 #include <unistd.h>
 NORETURN void doexit(int status)
@@ -3613,6 +3617,9 @@ static void loop()
 	if (write(1, "executing program\n", sizeof("executing program\n") - 1)) {
 	}
 #endif
+#if SYZ_TRACE
+	printf("### start\n");
+#endif
 	int call, thread;
 #if SYZ_COLLIDE
 	int collide = 0;
@@ -3684,7 +3691,11 @@ static void loop()
 		fail("pipe failed");
 #endif
 	int iter;
+#if SYZ_REPEAT_TIMES
+	for (iter = 0; iter < [[REPEAT_TIMES]]; iter++) {
+#else
 	for (iter = 0;; iter++) {
+#endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 		char cwdbuf[32];
 		sprintf(cwdbuf, "./%d", iter);

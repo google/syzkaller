@@ -149,6 +149,11 @@ func enumerateField(OS string, opt Options, field int) []Options {
 			fld.SetInt(procs)
 			opts = append(opts, opt)
 		}
+	} else if fldName == "RepeatTimes" {
+		for _, times := range []int64{0, 10} {
+			fld.SetInt(times)
+			opts = append(opts, opt)
+		}
 	} else if fldName == "FaultCall" {
 		opts = append(opts, opt)
 	} else if fldName == "FaultNth" {
