@@ -253,27 +253,22 @@ static int event_isset(event_t* ev)
 	return res;
 }
 
-static int event_timedwait(event_t* ev, uint64 timeout_ms)
+static int event_timedwait(event_t* ev, uint64 timeout)
 {
-	struct timespec ts;
-	if (clock_gettime(CLOCK_MONOTONIC, &ts))
-		fail("clock_gettime failed");
-	const uint64 kNsPerSec = 1000 * 1000 * 1000;
-	uint64 start_ns = (uint64)ts.tv_sec * kNsPerSec + (uint64)ts.tv_nsec;
-	uint64 timeout_ns = timeout_ms * 1000 * 1000;
+	uint64 start = current_time_ms();
+	uint64 now = start;
 	pthread_mutex_lock(&ev->mu);
 	for (;;) {
 		if (ev->state)
 			break;
-		if (clock_gettime(CLOCK_MONOTONIC, &ts))
-			fail("clock_gettime failed");
-		uint64 now_ns = (uint64)ts.tv_sec * kNsPerSec + (uint64)ts.tv_nsec;
-		if (now_ns - start_ns > timeout_ns)
-			break;
-		uint64 remain_ns = timeout_ns - (now_ns - start_ns);
-		ts.tv_sec = remain_ns / kNsPerSec;
-		ts.tv_nsec = remain_ns % kNsPerSec;
+		uint64 remain = timeout - (now - start);
+		struct timespec ts;
+		ts.tv_sec = remain / 1000;
+		ts.tv_nsec = (remain % 1000) * 1000 * 1000;
 		pthread_cond_timedwait(&ev->cv, &ev->mu, &ts);
+		now = current_time_ms();
+		if (now - start > timeout)
+			break;
 	}
 	int res = ev->state;
 	pthread_mutex_unlock(&ev->mu);
@@ -684,26 +679,20 @@ static int event_isset(event_t* ev)
 	return __atomic_load_n(&ev->state, __ATOMIC_ACQUIRE);
 }
 
-static int event_timedwait(event_t* ev, uint64 timeout_ms)
+static int event_timedwait(event_t* ev, uint64 timeout)
 {
-	struct timespec ts;
-	if (clock_gettime(CLOCK_MONOTONIC, &ts))
-		fail("clock_gettime failed");
-	const uint64 kNsPerSec = 1000 * 1000 * 1000;
-	uint64 start_ns = (uint64)ts.tv_sec * kNsPerSec + (uint64)ts.tv_nsec;
-	uint64 now_ns = start_ns;
-	uint64 timeout_ns = timeout_ms * 1000 * 1000;
+	uint64 start = current_time_ms();
+	uint64 now = start;
 	for (;;) {
-		uint64 remain_ns = timeout_ns - (now_ns - start_ns);
-		ts.tv_sec = remain_ns / kNsPerSec;
-		ts.tv_nsec = remain_ns % kNsPerSec;
+		uint64 remain = timeout - (now - start);
+		struct timespec ts;
+		ts.tv_sec = remain / 1000;
+		ts.tv_nsec = (remain % 1000) * 1000 * 1000;
 		syscall(SYS_futex, &ev->state, FUTEX_WAIT, 0, &ts);
 		if (__atomic_load_n(&ev->state, __ATOMIC_RELAXED))
 			return 1;
-		if (clock_gettime(CLOCK_MONOTONIC, &ts))
-			fail("clock_gettime failed");
-		now_ns = (uint64)ts.tv_sec * kNsPerSec + (uint64)ts.tv_nsec;
-		if (now_ns - start_ns > timeout_ns)
+		now = current_time_ms();
+		if (now - start > timeout)
 			return 0;
 	}
 }
