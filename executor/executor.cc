@@ -146,7 +146,6 @@ const uint64 binary_format_stroct = 4;
 
 const uint64 no_copyout = -1;
 
-unsigned long long procid;
 int running;
 uint32 completed;
 bool collide;

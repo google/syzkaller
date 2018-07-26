@@ -103,7 +103,16 @@ static int event_timedwait(event_t* ev, uint64 timeout_ms)
 }
 #endif
 
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+static void loop();
+static int do_sandbox_none(void)
+{
+	loop();
+	doexit(0);
+}
+#endif
+
+#if SYZ_EXECUTOR
+#define do_sandbox_setuid() 0
+#define do_sandbox_namespace() 0
+#endif
