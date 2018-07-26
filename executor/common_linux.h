@@ -4,7 +4,6 @@
 // This file is shared between executor and csource package.
 
 #include <stdlib.h>
-#include <sys/mount.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -641,8 +640,6 @@ static long syz_genetlink_get_family_id(long name)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-extern unsigned long long procid;
-
 struct fs_image_segment {
 	void* data;
 	uintptr_t size;
@@ -758,6 +755,9 @@ error:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_mount_image
+#include <string.h>
+#include <sys/mount.h>
+
 //syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
 //fs_image_segment {
 //	data	ptr[in, array[int8]]
@@ -885,6 +885,7 @@ static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long 
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -916,6 +917,7 @@ static bool write_file(const char* file, const char* what, ...)
 #include <errno.h>
 #include <linux/net.h>
 #include <netinet/in.h>
+#include <string.h>
 #include <sys/socket.h>
 
 // checkpoint/reset_net_namespace partially resets net namespace to initial state
@@ -1572,6 +1574,7 @@ static int do_sandbox_setuid(void)
 #include <linux/capability.h>
 #include <sched.h>
 #include <sys/mman.h>
+#include <sys/mount.h>
 
 static int real_uid;
 static int real_gid;
@@ -1706,6 +1709,8 @@ static int do_sandbox_namespace(void)
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR
 #include <dirent.h>
 #include <errno.h>
+#include <string.h>
+#include <sys/mount.h>
 
 // One does not simply remove a directory.
 // There can be mounts, so we need to try to umount.
@@ -1795,6 +1800,7 @@ retry:
 
 #if SYZ_EXECUTOR || SYZ_FAULT_INJECTION
 #include <fcntl.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -1832,16 +1838,14 @@ static int fault_injected(int fail_fd)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_ENABLE_CGROUPS
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-extern unsigned long long procid;
-
+#define SYZ_HAVE_SETUP_LOOP 1
 static void setup_loop()
 {
 #if SYZ_ENABLE_CGROUPS
@@ -1874,7 +1878,10 @@ static void setup_loop()
 	}
 #endif
 }
+#endif
 
+#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_RESET_NET_NAMESPACE || __NR_syz_mount_image || __NR_syz_read_part_table)
+#define SYZ_HAVE_RESET_LOOP 1
 static void reset_loop()
 {
 #if SYZ_EXECUTOR || __NR_syz_mount_image || __NR_syz_read_part_table
@@ -1890,7 +1897,12 @@ static void reset_loop()
 	reset_net_namespace();
 #endif
 }
+#endif
 
+#if SYZ_EXECUTOR || SYZ_REPEAT
+#include <sys/prctl.h>
+
+#define SYZ_HAVE_SETUP_TEST 1
 static void setup_test()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
@@ -1917,6 +1929,7 @@ static void setup_test()
 #endif
 }
 
+#define SYZ_HAVE_RESET_TEST 1
 static void reset_test()
 {
 	// Keeping a 9p transport pipe open will hang the proccess dead,

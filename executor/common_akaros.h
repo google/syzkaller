@@ -3,9 +3,8 @@
 
 // This file is shared between executor and csource package.
 
+#include <ros/syscall.h>
 #include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/syscall.h>
 #include <unistd.h>
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
@@ -35,9 +34,7 @@ void child()
 }
 #endif
 
+#if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
+#endif

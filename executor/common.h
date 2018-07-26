@@ -2,6 +2,14 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // This file is shared between executor and csource package.
+// csource does a bunch of transformations with this file:
+// - unused parts are stripped using #if SYZ* defines
+// - includes are hoisted to the top and deduplicated
+// - comments and empty lines are stripped
+// - NORETURN/PRINTF/debug are removed
+// - exitf/failf/fail are replaced with exit
+// - uintN types are replaced with uintN_t
+// - [[FOO]] placeholders are replaced by actual values
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -21,6 +29,11 @@ NORETURN void doexit(int status)
 	for (;;) {
 	}
 }
+#endif
+
+#if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS || \
+    __NR_syz_mount_image || __NR_syz_read_part_table
+unsigned long long procid;
 #endif
 
 #if !GOOS_fuchsia && !GOOS_windows
@@ -359,9 +372,6 @@ struct thread_t {
 static struct thread_t threads[16];
 static void execute_call(int call);
 static int running;
-#if SYZ_COLLIDE
-static int collide;
-#endif
 
 static void* thr(void* arg)
 {
@@ -376,11 +386,22 @@ static void* thr(void* arg)
 	return 0;
 }
 
-static void execute(int num_calls)
+#if SYZ_REPEAT
+static void execute_one()
+#else
+static void loop()
+#endif
 {
+#if SYZ_REPRO
+	if (write(1, "executing program\n", sizeof("executing program\n") - 1)) {
+	}
+#endif
 	int call, thread;
-	running = 0;
-	for (call = 0; call < num_calls; call++) {
+#if SYZ_COLLIDE
+	int collide = 0;
+again:
+#endif
+	for (call = 0; call < [[NUM_CALLS]]; call++) {
 		for (thread = 0; thread < sizeof(threads) / sizeof(threads[0]); thread++) {
 			struct thread_t* th = &threads[thread];
 			if (!th->created) {
@@ -402,10 +423,16 @@ static void execute(int num_calls)
 #endif
 			event_timedwait(&th->done, 25);
 			if (__atomic_load_n(&running, __ATOMIC_RELAXED))
-				sleep_ms((call == num_calls - 1) ? 10 : 2);
+				sleep_ms((call == [[NUM_CALLS]] - 1) ? 10 : 2);
 			break;
 		}
 	}
+#if SYZ_COLLIDE
+	if (!collide) {
+		collide = 1;
+		goto again;
+	}
+#endif
 }
 #endif
 
@@ -428,7 +455,9 @@ static void reply_handshake();
 
 static void loop()
 {
+#if SYZ_HAVE_SETUP_LOOP
 	setup_loop();
+#endif
 #if SYZ_EXECUTOR
 	// Tell parent that we are ready to serve.
 	reply_handshake();
@@ -449,7 +478,9 @@ static void loop()
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
 #endif
+#if SYZ_HAVE_RESET_LOOP
 		reset_loop();
+#endif
 #if SYZ_EXECUTOR
 		receive_execute();
 #endif
@@ -457,7 +488,9 @@ static void loop()
 		if (pid < 0)
 			fail("clone failed");
 		if (pid == 0) {
+#if SYZ_HAVE_SETUP_TEST
 			setup_test();
+#endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
@@ -479,7 +512,9 @@ static void loop()
 #endif
 			execute_one();
 			debug("worker exiting\n");
+#if SYZ_HAVE_RESET_TEST
 			reset_test();
+#endif
 			doexit(0);
 #endif
 		}
@@ -555,4 +590,62 @@ static void loop()
 	execute_one();
 }
 #endif
+#endif
+
+#if !SYZ_EXECUTOR
+[[SYSCALL_DEFINES]]
+
+[[RESULTS]]
+
+#if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#if SYZ_THREADED
+void
+execute_call(int call)
+#elif SYZ_REPEAT
+void
+execute_one()
+#else
+void
+loop()
+#endif
+{
+	[[SYSCALLS]]
+}
+#endif
+
+// This is the main function for csource.
+#if GOOS_akaros && SYZ_REPEAT
+#include <string.h>
+
+int main(int argc, char** argv)
+{
+	[[MMAP_DATA]]
+
+	program_name = argv[0];
+	if (argc == 2 && strcmp(argv[1], "child") == 0)
+		child();
+#else
+int
+main()
+{
+	[[MMAP_DATA]]
+#endif
+#if SYZ_HANDLE_SEGV
+	install_segv_handler();
+#endif
+#if SYZ_PROCS
+	for (procid = 0; procid < [[PROCS]]; procid++) {
+		if (fork() == 0) {
+#endif
+#if SYZ_USE_TMP_DIR
+			use_temporary_dir();
+#endif
+			[[SANDBOX_FUNC]]
+#if SYZ_PROCS
+		}
+	}
+	sleep(1000000);
+#endif
+	return 0;
+}
 #endif

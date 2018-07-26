@@ -25,6 +25,11 @@ NORETURN void doexit(int status)
 }
 #endif
 
+#if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS || \
+    __NR_syz_mount_image || __NR_syz_read_part_table
+unsigned long long procid;
+#endif
+
 #if !GOOS_fuchsia && !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
 #include <setjmp.h>
@@ -328,9 +333,8 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 #if GOOS_akaros
 
 
+#include <ros/syscall.h>
 #include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/syscall.h>
 #include <unistd.h>
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
@@ -360,12 +364,10 @@ void child()
 }
 #endif
 
+#if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
+#endif
 #elif GOOS_freebsd || GOOS_netbsd
 
 
@@ -380,12 +382,10 @@ static int do_sandbox_none(void)
 }
 #endif
 
+#if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
+#endif
 #elif GOOS_fuchsia
 
 
@@ -622,8 +622,11 @@ static int do_sandbox_none(void)
 }
 #endif
 
+#if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#endif
+
 #define setup_loop()
 #define reset_loop()
 #define setup_test()
@@ -632,7 +635,6 @@ static int do_sandbox_none(void)
 
 
 #include <stdlib.h>
-#include <sys/mount.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -1221,8 +1223,6 @@ static long syz_genetlink_get_family_id(long name)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-extern unsigned long long procid;
-
 struct fs_image_segment {
 	void* data;
 	uintptr_t size;
@@ -1335,6 +1335,9 @@ error:
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_mount_image
+#include <string.h>
+#include <sys/mount.h>
+
 static long syz_mount_image(long fsarg, long dir, unsigned long size, unsigned long nsegs, long segments, long flags, long optsarg)
 {
 	char loopname[64], fs[32], opts[256];
@@ -2399,6 +2402,7 @@ static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long 
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -2430,6 +2434,7 @@ static bool write_file(const char* file, const char* what, ...)
 #include <errno.h>
 #include <linux/net.h>
 #include <netinet/in.h>
+#include <string.h>
 #include <sys/socket.h>
 
 
@@ -3067,6 +3072,7 @@ static int do_sandbox_setuid(void)
 #include <linux/capability.h>
 #include <sched.h>
 #include <sys/mman.h>
+#include <sys/mount.h>
 
 static int real_uid;
 static int real_gid;
@@ -3189,6 +3195,8 @@ static int do_sandbox_namespace(void)
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR
 #include <dirent.h>
 #include <errno.h>
+#include <string.h>
+#include <sys/mount.h>
 
 static void remove_dir(const char* dir)
 {
@@ -3268,6 +3276,7 @@ retry:
 
 #if SYZ_EXECUTOR || SYZ_FAULT_INJECTION
 #include <fcntl.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -3302,16 +3311,14 @@ static int fault_injected(int fail_fd)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_ENABLE_CGROUPS
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-extern unsigned long long procid;
-
+#define SYZ_HAVE_SETUP_LOOP 1
 static void setup_loop()
 {
 #if SYZ_ENABLE_CGROUPS
@@ -3344,7 +3351,10 @@ static void setup_loop()
 	}
 #endif
 }
+#endif
 
+#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_RESET_NET_NAMESPACE || __NR_syz_mount_image || __NR_syz_read_part_table)
+#define SYZ_HAVE_RESET_LOOP 1
 static void reset_loop()
 {
 #if SYZ_EXECUTOR || __NR_syz_mount_image || __NR_syz_read_part_table
@@ -3360,7 +3370,12 @@ static void reset_loop()
 	reset_net_namespace();
 #endif
 }
+#endif
 
+#if SYZ_EXECUTOR || SYZ_REPEAT
+#include <sys/prctl.h>
+
+#define SYZ_HAVE_SETUP_TEST 1
 static void setup_test()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
@@ -3385,6 +3400,7 @@ static void setup_test()
 #endif
 }
 
+#define SYZ_HAVE_RESET_TEST 1
 static void reset_test()
 {
 	int fd;
@@ -3414,12 +3430,10 @@ static int do_sandbox_none(void)
 }
 #endif
 
+#if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
+#endif
 #elif GOOS_windows
 
 
@@ -3523,10 +3537,19 @@ static int event_timedwait(event_t* ev, uint64 timeout_ms)
 }
 #endif
 
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+static void loop();
+static int do_sandbox_none(void)
+{
+	loop();
+	doexit(0);
+}
+#endif
+
+#if SYZ_EXECUTOR
+#define do_sandbox_setuid() 0
+#define do_sandbox_namespace() 0
+#endif
 #elif GOOS_test
 
 
@@ -3549,12 +3572,10 @@ static int do_sandbox_none(void)
 }
 #endif
 
+#if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
+#endif
 #else
 #error "unknown OS"
 #endif
@@ -3568,9 +3589,6 @@ struct thread_t {
 static struct thread_t threads[16];
 static void execute_call(int call);
 static int running;
-#if SYZ_COLLIDE
-static int collide;
-#endif
 
 static void* thr(void* arg)
 {
@@ -3585,11 +3603,22 @@ static void* thr(void* arg)
 	return 0;
 }
 
-static void execute(int num_calls)
+#if SYZ_REPEAT
+static void execute_one()
+#else
+static void loop()
+#endif
 {
+#if SYZ_REPRO
+	if (write(1, "executing program\n", sizeof("executing program\n") - 1)) {
+	}
+#endif
 	int call, thread;
-	running = 0;
-	for (call = 0; call < num_calls; call++) {
+#if SYZ_COLLIDE
+	int collide = 0;
+again:
+#endif
+	for (call = 0; call < [[NUM_CALLS]]; call++) {
 		for (thread = 0; thread < sizeof(threads) / sizeof(threads[0]); thread++) {
 			struct thread_t* th = &threads[thread];
 			if (!th->created) {
@@ -3611,10 +3640,16 @@ static void execute(int num_calls)
 #endif
 			event_timedwait(&th->done, 25);
 			if (__atomic_load_n(&running, __ATOMIC_RELAXED))
-				sleep_ms((call == num_calls - 1) ? 10 : 2);
+				sleep_ms((call == [[NUM_CALLS]] - 1) ? 10 : 2);
 			break;
 		}
 	}
+#if SYZ_COLLIDE
+	if (!collide) {
+		collide = 1;
+		goto again;
+	}
+#endif
 }
 #endif
 
@@ -3637,7 +3672,9 @@ static void reply_handshake();
 
 static void loop()
 {
+#if SYZ_HAVE_SETUP_LOOP
 	setup_loop();
+#endif
 #if SYZ_EXECUTOR
 	reply_handshake();
 #endif
@@ -3654,7 +3691,9 @@ static void loop()
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
 #endif
+#if SYZ_HAVE_RESET_LOOP
 		reset_loop();
+#endif
 #if SYZ_EXECUTOR
 		receive_execute();
 #endif
@@ -3662,7 +3701,9 @@ static void loop()
 		if (pid < 0)
 			fail("clone failed");
 		if (pid == 0) {
+#if SYZ_HAVE_SETUP_TEST
 			setup_test();
+#endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
@@ -3684,7 +3725,9 @@ static void loop()
 #endif
 			execute_one();
 			debug("worker exiting\n");
+#if SYZ_HAVE_RESET_TEST
 			reset_test();
+#endif
 			doexit(0);
 #endif
 		}
@@ -3745,5 +3788,62 @@ static void loop()
 	execute_one();
 }
 #endif
+#endif
+
+#if !SYZ_EXECUTOR
+[[SYSCALL_DEFINES]]
+
+[[RESULTS]]
+
+#if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#if SYZ_THREADED
+void
+execute_call(int call)
+#elif SYZ_REPEAT
+void
+execute_one()
+#else
+void
+loop()
+#endif
+{
+	[[SYSCALLS]]
+}
+#endif
+
+#if GOOS_akaros && SYZ_REPEAT
+#include <string.h>
+
+int main(int argc, char** argv)
+{
+	[[MMAP_DATA]]
+
+	program_name = argv[0];
+	if (argc == 2 && strcmp(argv[1], "child") == 0)
+		child();
+#else
+int
+main()
+{
+	[[MMAP_DATA]]
+#endif
+#if SYZ_HANDLE_SEGV
+	install_segv_handler();
+#endif
+#if SYZ_PROCS
+	for (procid = 0; procid < [[PROCS]]; procid++) {
+		if (fork() == 0) {
+#endif
+#if SYZ_USE_TMP_DIR
+			use_temporary_dir();
+#endif
+			[[SANDBOX_FUNC]]
+#if SYZ_PROCS
+		}
+	}
+	sleep(1000000);
+#endif
+	return 0;
+}
 #endif
 `
