@@ -21,7 +21,7 @@ var (
 	flagBuild      = flag.Bool("build", false, "also build the generated program")
 	flagThreaded   = flag.Bool("threaded", false, "create threaded program")
 	flagCollide    = flag.Bool("collide", false, "create collide program")
-	flagRepeat     = flag.Bool("repeat", false, "repeat program infinitely or not")
+	flagRepeat     = flag.Int("repeat", 1, "repeat program that many times (<=0 - infinitely)")
 	flagProcs      = flag.Int("procs", 1, "number of parallel processes")
 	flagSandbox    = flag.String("sandbox", "", "sandbox to use (none, setuid, namespace)")
 	flagProg       = flag.String("prog", "", "file with program to convert (required)")
@@ -33,6 +33,7 @@ var (
 	flagNetdev     = flag.Bool("netdev", false, "setup various net devices")
 	flagResetNet   = flag.Bool("resetnet", false, "reset net namespace after each test")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
+	flagTrace      = flag.Bool("trace", false, "trace syscall results")
 )
 
 func main() {
@@ -59,7 +60,8 @@ func main() {
 	opts := csource.Options{
 		Threaded:      *flagThreaded,
 		Collide:       *flagCollide,
-		Repeat:        *flagRepeat,
+		Repeat:        *flagRepeat != 1,
+		RepeatTimes:   *flagRepeat,
 		Procs:         *flagProcs,
 		Sandbox:       *flagSandbox,
 		Fault:         *flagFaultCall >= 0,
@@ -72,6 +74,7 @@ func main() {
 		ResetNet:      *flagResetNet,
 		HandleSegv:    *flagHandleSegv,
 		Repro:         false,
+		Trace:         *flagTrace,
 	}
 	src, err := csource.Write(p, opts)
 	if err != nil {

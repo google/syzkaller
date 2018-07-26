@@ -27,13 +27,13 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		calls:     make(map[string]uint64),
 	}
 
-	calls, vars, err := ctx.generateProgCalls(ctx.p)
+	calls, vars, err := ctx.generateProgCalls(ctx.p, opts.Trace)
 	if err != nil {
 		return nil, err
 	}
 
 	mmapProg := p.Target.GenerateUberMmapProg()
-	mmapCalls, _, err := ctx.generateProgCalls(mmapProg)
+	mmapCalls, _, err := ctx.generateProgCalls(mmapProg, false)
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +60,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 	replacements := map[string]string{
 		"PROCS":           fmt.Sprint(opts.Procs),
+		"REPEAT_TIMES":    fmt.Sprint(opts.RepeatTimes),
 		"NUM_CALLS":       fmt.Sprint(len(p.Calls)),
 		"MMAP_DATA":       strings.Join(mmapCalls, ""),
 		"SYSCALL_DEFINES": ctx.generateSyscallDefines(),
@@ -94,17 +95,20 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 	opts := ctx.opts
 	buf := new(bytes.Buffer)
 	if !opts.Threaded && !opts.Collide {
-		if hasVars {
+		if hasVars || opts.Trace {
 			fmt.Fprintf(buf, "\tlong res = 0;\n")
 		}
 		if opts.Repro {
 			fmt.Fprintf(buf, "\tif (write(1, \"executing program\\n\", sizeof(\"executing program\\n\") - 1)) {}\n")
 		}
+		if opts.Trace {
+			fmt.Fprintf(buf, "\tprintf(\"### start\\n\");\n")
+		}
 		for _, c := range calls {
 			fmt.Fprintf(buf, "%s", c)
 		}
 	} else {
-		if hasVars {
+		if hasVars || opts.Trace {
 			fmt.Fprintf(buf, "\tlong res;")
 		}
 		fmt.Fprintf(buf, "\tswitch (call) {\n")
@@ -145,7 +149,7 @@ func (ctx *context) generateSyscallDefines() string {
 	return buf.String()
 }
 
-func (ctx *context) generateProgCalls(p *prog.Prog) ([]string, []uint64, error) {
+func (ctx *context) generateProgCalls(p *prog.Prog, trace bool) ([]string, []uint64, error) {
 	exec := make([]byte, prog.ExecBufferSize)
 	progSize, err := p.SerializeForExec(exec)
 	if err != nil {
@@ -155,11 +159,11 @@ func (ctx *context) generateProgCalls(p *prog.Prog) ([]string, []uint64, error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	calls, vars := ctx.generateCalls(decoded)
+	calls, vars := ctx.generateCalls(decoded, trace)
 	return calls, vars, nil
 }
 
-func (ctx *context) generateCalls(p prog.ExecProg) ([]string, []uint64) {
+func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint64) {
 	var calls []string
 	csumSeq := 0
 	for ci, call := range p.Calls {
@@ -185,7 +189,7 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, []uint64) {
 		if emitCall {
 			native := ctx.sysTarget.SyscallNumbers && !strings.HasPrefix(callName, "syz_")
 			fmt.Fprintf(w, "\t")
-			if resCopyout || argCopyout {
+			if resCopyout || argCopyout || trace {
 				fmt.Fprintf(w, "res = ")
 			}
 			if native {
@@ -219,6 +223,9 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, []uint64) {
 				}
 			}
 			fmt.Fprintf(w, ");\n")
+			if trace {
+				fmt.Fprintf(w, "\tprintf(\"### call=%v errno=%%d\\n\", res == -1 ? errno : 0);\n", ci)
+			}
 		}
 
 		// Copyout.

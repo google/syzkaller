@@ -95,6 +95,9 @@ func defineList(p, mmapProg *prog.Prog, opts Options) ([]string, error) {
 	if opts.Repeat {
 		defines = append(defines, "SYZ_REPEAT")
 	}
+	if opts.RepeatTimes > 1 {
+		defines = append(defines, "SYZ_REPEAT_TIMES")
+	}
 	if opts.Procs > 1 {
 		defines = append(defines, "SYZ_PROCS")
 	}
@@ -121,6 +124,9 @@ func defineList(p, mmapProg *prog.Prog, opts Options) ([]string, error) {
 	}
 	if opts.Repro {
 		defines = append(defines, "SYZ_REPRO")
+	}
+	if opts.Trace {
+		defines = append(defines, "SYZ_TRACE")
 	}
 	for _, c := range p.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)

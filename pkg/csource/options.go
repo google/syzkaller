@@ -15,11 +15,12 @@ import (
 // Options control various aspects of source generation.
 // Dashboard also provides serialized Options along with syzkaller reproducers.
 type Options struct {
-	Threaded bool   `json:"threaded,omitempty"`
-	Collide  bool   `json:"collide,omitempty"`
-	Repeat   bool   `json:"repeat,omitempty"`
-	Procs    int    `json:"procs"`
-	Sandbox  string `json:"sandbox"`
+	Threaded    bool   `json:"threaded,omitempty"`
+	Collide     bool   `json:"collide,omitempty"`
+	Repeat      bool   `json:"repeat,omitempty"`
+	RepeatTimes int    `json:"repeat_times,omitempty"` // if non-0, repeat that many times
+	Procs       int    `json:"procs"`
+	Sandbox     string `json:"sandbox"`
 
 	Fault     bool `json:"fault,omitempty"` // inject fault into FaultCall/FaultNth
 	FaultCall int  `json:"fault_call,omitempty"`
@@ -34,8 +35,9 @@ type Options struct {
 	HandleSegv    bool `json:"segv,omitempty"`
 
 	// Generate code for use with repro package to prints log messages,
-	// which allows to distinguish between a hang and an absent crash.
+	// which allows to detect hangs.
 	Repro bool `json:"repro,omitempty"`
+	Trace bool `json:"trace,omitempty"`
 }
 
 // Check checks if the opts combination is valid or not.
@@ -100,6 +102,9 @@ func (opts Options) Check(OS string) error {
 	}
 	if opts.ResetNet && !opts.Repeat {
 		return errors.New("ResetNet without Repeat")
+	}
+	if !opts.Repeat && opts.RepeatTimes != 0 && opts.RepeatTimes != 1 {
+		return errors.New("RepeatTimes without Repeat")
 	}
 	return nil
 }
