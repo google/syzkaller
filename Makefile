@@ -265,7 +265,6 @@ clean:
 install_prerequisites:
 	uname -a
 	sudo apt-get update
-	sudo apt-get install dash
 	sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev \
 		gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-powerpc64le-linux-gnu || true
 	sudo apt-get install -y -q g++-aarch64-linux-gnu || true
