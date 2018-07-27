@@ -7,14 +7,14 @@ go:
 
 before_install:
   - echo $PATH
-  - export PATH=`echo $PATH | sed -e 's/:\/usr\/local\/clang-3.5.0\/bin//'`
+  - export PATH=`echo $PATH | sed -e 's/:\/usr\/local\/clang-[0-9].[0-9].[0-9]\/bin//'`
   - wget http://security.ubuntu.com/ubuntu/pool/main/g/gcc-5/libstdc++6_5.4.0-6ubuntu1~16.04.10_amd64.deb
   - mkdir ./libc
   - dpkg-deb -x ./libstdc++6_5.4.0-6ubuntu1~16.04.10_amd64.deb ./libc
   - export LD_LIBRARY_PATH=`pwd`/libc/usr/lib/x86_64-linux-gnu/
-  - wget http://releases.llvm.org/4.0.1/clang+llvm-4.0.1-x86_64-linux-gnu-debian8.tar.xz
-  - tar -xf ./clang+llvm-4.0.1-x86_64-linux-gnu-debian8.tar.xz
-  - sudo cp clang+llvm-4.0.1-x86_64-linux-gnu-debian8/bin/clang-format /usr/local/bin/
+  - wget http://releases.llvm.org/6.0.1/clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+  - tar -xf ./clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
+  - sudo cp clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04/bin/clang-format /usr/local/bin/
   - which clang-format
   - clang-format --version
 
