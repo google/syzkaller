@@ -45,6 +45,16 @@ indexes:
 - kind: Crash
   ancestor: yes
   properties:
+  - name: ReportLen
+    direction: desc
+  - name: Reported
+    direction: desc
+  - name: Time
+    direction: desc
+
+- kind: Crash
+  ancestor: yes
+  properties:
   - name: ReproC
     direction: desc
   - name: ReproSyz

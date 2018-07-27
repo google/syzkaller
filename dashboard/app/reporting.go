@@ -630,8 +630,6 @@ func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) (
 	var crashes []*Crash
 	keys, err := datastore.NewQuery("Crash").
 		Ancestor(bugKey).
-		Order("-ReproC").
-		Order("-ReproSyz").
 		Order("-ReportLen").
 		Order("-Reported").
 		Order("-Time").

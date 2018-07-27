@@ -111,7 +111,7 @@ type Crash struct {
 	// Custom crash priority for reporting (greater values are higher priority).
 	// For example, a crash in mainline kernel has higher priority than a crash in a side branch.
 	// For historical reasons this is called ReportLen.
-	ReportLen int
+	ReportLen int64
 }
 
 // ReportingState holds dynamic info associated with reporting.
