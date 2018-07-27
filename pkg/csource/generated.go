@@ -336,7 +336,6 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 
 #if GOOS_akaros
 
-
 #include <ros/syscall.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -372,8 +371,8 @@ void child()
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
 #endif
-#elif GOOS_freebsd || GOOS_netbsd
 
+#elif GOOS_freebsd || GOOS_netbsd
 
 #include <unistd.h>
 
@@ -390,8 +389,8 @@ static int do_sandbox_none(void)
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
 #endif
-#elif GOOS_fuchsia
 
+#elif GOOS_fuchsia
 
 #include <ddk/driver.h>
 #include <fcntl.h>
@@ -505,7 +504,6 @@ static void install_segv_handler()
 
 #if SYZ_EXECUTOR || SYZ_THREADED
 #include <unistd.h>
-
 typedef struct {
 	int state;
 } event_t;
@@ -635,8 +633,8 @@ static int do_sandbox_none(void)
 #define reset_loop()
 #define setup_test()
 #define reset_test()
-#elif GOOS_linux
 
+#elif GOOS_linux
 
 #include <stdlib.h>
 #include <sys/syscall.h>
@@ -760,7 +758,6 @@ static void execute_command(bool panic, const char* format, ...)
 
 static int tunfd = -1;
 static int tun_frags_enabled;
-
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
 
 #define TUN_IFACE "syz_tun"
@@ -816,9 +813,7 @@ static void initialize_tun(void)
 		fail("tun: ioctl(TUNGETIFF) failed");
 	tun_frags_enabled = (ifr.ifr_flags & IFF_NAPI_FRAGS) != 0;
 	debug("tun_frags_enabled=%d\n", tun_frags_enabled);
-
 	execute_command(0, "sysctl -w net.ipv6.conf.%s.accept_dad=0", TUN_IFACE);
-
 	execute_command(0, "sysctl -w net.ipv6.conf.%s.router_solicitations=0", TUN_IFACE);
 
 	execute_command(1, "ip link set dev %s address %s", TUN_IFACE, LOCAL_MAC);
@@ -847,7 +842,6 @@ static void initialize_tun(void)
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
-
 #define DEV_IPV4 "172.20.20.%d"
 #define DEV_IPV6 "fe80::%02hx"
 #define DEV_MAC "aa:aa:aa:aa:aa:%02hx"
@@ -860,7 +854,6 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 	vsnprintf_check(str, size, format, args);
 	va_end(args);
 }
-
 static void initialize_netdevices(void)
 {
 #if SYZ_EXECUTOR
@@ -881,7 +874,6 @@ static void initialize_netdevices(void)
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
 	execute_command(0, "ip link add type veth");
-
 	for (i = 0; i < sizeof(devmasters) / (sizeof(devmasters[0])); i++) {
 		execute_command(0, "ip link add name %s_slave_0 type veth peer name veth0_to_%s", devmasters[i], devmasters[i]);
 		execute_command(0, "ip link add name %s_slave_1 type veth peer name veth1_to_%s", devmasters[i], devmasters[i]);
@@ -1341,7 +1333,6 @@ error:
 #if SYZ_EXECUTOR || __NR_syz_mount_image
 #include <string.h>
 #include <sys/mount.h>
-
 static long syz_mount_image(long fsarg, long dir, unsigned long size, unsigned long nsegs, long segments, long flags, long optsarg)
 {
 	char loopname[64], fs[32], opts[256];
@@ -1438,9 +1429,6 @@ error:
 #include <sys/stat.h>
 
 #if defined(__x86_64__)
-
-
-
 const char kvm_asm16_cpl3[] = "\x0f\x20\xc0\x66\x83\xc8\x01\x0f\x22\xc0\xb8\xa0\x00\x0f\x00\xd8\xb8\x2b\x00\x8e\xd8\x8e\xc0\x8e\xe0\x8e\xe8\xbc\x00\x01\xc7\x06\x00\x01\x1d\xba\xc7\x06\x02\x01\x23\x00\xc7\x06\x04\x01\x00\x01\xc7\x06\x06\x01\x2b\x00\xcb";
 const char kvm_asm32_paged[] = "\x0f\x20\xc0\x0d\x00\x00\x00\x80\x0f\x22\xc0";
 const char kvm_asm32_vm86[] = "\x66\xb8\xb8\x00\x0f\x00\xd8\xea\x00\x00\x00\x00\xd0\x00";
@@ -1526,6 +1514,7 @@ const char kvm_asm64_cpl3[] = "\x0f\x20\xc0\x0d\x00\x00\x00\x80\x0f\x22\xc0\xea\
 #define NEXT_INSN $0xbadc0de
 #define PREFIX_SIZE 0xba1d
 
+
 #ifndef KVM_SMI
 #define KVM_SMI _IO(KVMIO, 0xb7)
 #endif
@@ -1571,12 +1560,10 @@ const char kvm_asm64_cpl3[] = "\x0f\x20\xc0\x0d\x00\x00\x00\x80\x0f\x22\xc0\xea\
 #define EFER_LMSLE (1 << 13)
 #define EFER_FFXSR (1 << 14)
 #define EFER_TCE (1 << 15)
-
 #define PDE32_PRESENT 1
 #define PDE32_RW (1 << 1)
 #define PDE32_USER (1 << 2)
 #define PDE32_PS (1 << 7)
-
 #define PDE64_PRESENT 1
 #define PDE64_RW (1 << 1)
 #define PDE64_USER (1 << 2)
@@ -1775,7 +1762,6 @@ struct kvm_opt {
 #define KVM_SETUP_VIRT86 (1 << 4)
 #define KVM_SETUP_SMM (1 << 5)
 #define KVM_SETUP_VM (1 << 6)
-
 static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
 {
 	const int vmfd = a0;
@@ -2313,9 +2299,8 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 		return -1;
 	return 0;
 }
+
 #elif defined(__aarch64__)
-
-
 
 struct kvm_text {
 	uintptr_t typ;
@@ -2327,7 +2312,6 @@ struct kvm_opt {
 	uint64 typ;
 	uint64 val;
 };
-
 static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
 {
 	const int vmfd = a0;
@@ -2393,6 +2377,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 
 	return 0;
 }
+
 #else
 static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7)
 {
@@ -2440,8 +2425,6 @@ static bool write_file(const char* file, const char* what, ...)
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/socket.h>
-
-
 #define XT_TABLE_SIZE 1536
 #define XT_MAX_ENTRIES 10
 
@@ -2910,7 +2893,6 @@ static void setup_cgroups()
 		debug("chmod(/syzcgroup/net) failed: %d\n", errno);
 	}
 }
-
 static void setup_binfmt_misc()
 {
 	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:syz0::./file0:")) {
@@ -2972,7 +2954,6 @@ static void sandbox_common()
 	setrlimit(RLIMIT_CORE, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 256;
 	setrlimit(RLIMIT_NOFILE, &rlim);
-
 	if (unshare(CLONE_NEWNS)) {
 		debug("unshare(CLONE_NEWNS): %d\n", errno);
 	}
@@ -3064,7 +3045,6 @@ static int do_sandbox_setuid(void)
 		fail("failed to setresgid");
 	if (syscall(SYS_setresuid, nobody, nobody, nobody))
 		fail("failed to setresuid");
-
 	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
 
 	loop();
@@ -3085,13 +3065,11 @@ __attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 static int namespace_sandbox_proc(void* arg)
 {
 	sandbox_common();
-
 	write_file("/proc/self/setgroups", "deny");
 	if (!write_file("/proc/self/uid_map", "0 %d 1\n", real_uid))
 		fail("write of /proc/self/uid_map failed");
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
-
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
@@ -3165,7 +3143,6 @@ static int namespace_sandbox_proc(void* arg)
 		fail("chroot failed");
 	if (chdir("/"))
 		fail("chdir failed");
-
 	struct __user_cap_header_struct cap_hdr = {};
 	struct __user_cap_data_struct cap_data[2] = {};
 	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
@@ -3201,7 +3178,6 @@ static int do_sandbox_namespace(void)
 #include <errno.h>
 #include <string.h>
 #include <sys/mount.h>
-
 static void remove_dir(const char* dir)
 {
 	DIR* dp;
@@ -3412,8 +3388,8 @@ static void reset_test()
 		close(fd);
 }
 #endif
-#elif GOOS_test
 
+#elif GOOS_test
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -3438,8 +3414,8 @@ static int do_sandbox_none(void)
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
 #endif
-#elif GOOS_windows
 
+#elif GOOS_windows
 
 #include <windows.h>
 
@@ -3554,8 +3530,8 @@ static int do_sandbox_none(void)
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
 #endif
-#elif GOOS_test
 
+#elif GOOS_test
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -3580,6 +3556,7 @@ static int do_sandbox_none(void)
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
 #endif
+
 #else
 #error "unknown OS"
 #endif
@@ -3821,7 +3798,6 @@ loop()
 	[[SYSCALLS]]
 }
 #endif
-
 #if GOOS_akaros && SYZ_REPEAT
 #include <string.h>
 
