@@ -3777,7 +3777,6 @@ static void loop()
 }
 #endif
 #endif
-
 #if !SYZ_EXECUTOR
 [[SYSCALL_DEFINES]]
 
@@ -3785,14 +3784,11 @@ static void loop()
 
 #if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
 #if SYZ_THREADED
-void
-execute_call(int call)
+void execute_call(int call)
 #elif SYZ_REPEAT
-void
-execute_one()
+void execute_one()
 #else
-void
-loop()
+void loop()
 #endif
 {
 	[[SYSCALLS]]
@@ -3809,11 +3805,11 @@ int main(int argc, char** argv)
 	if (argc == 2 && strcmp(argv[1], "child") == 0)
 		child();
 #else
-int
-main()
+int main()
 {
 	[[MMAP_DATA]]
 #endif
+
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();
 #endif
