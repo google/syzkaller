@@ -283,6 +283,7 @@ func (client *apiClient) pollBugs(expect int) []*dashapi.BugReport {
 			ID:         rep.ID,
 			Status:     dashapi.BugStatusOpen,
 			ReproLevel: reproLevel,
+			CrashID:    rep.CrashID,
 		})
 		client.expectEQ(reply.Error, false)
 		client.expectEQ(reply.OK, true)

@@ -553,9 +553,14 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		bug.NumCrashes%20 == 0
 	if saveCrash {
 		// Reporting priority of this crash.
-		// Currently it is computed only from repository ReportingPriority and Arch,
-		// but can be extended to account for other factors as well.
-		prio := kernelRepoInfo(build).ReportingPriority * 1e6
+		var prio int64
+		switch reproLevel {
+		case ReproLevelSyz:
+			prio += 2e12
+		case ReproLevelC:
+			prio += 4e12
+		}
+		prio += int64(kernelRepoInfo(build).ReportingPriority) * 1e6
 		if build.Arch == "amd64" {
 			prio += 1e3
 		}
