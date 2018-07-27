@@ -35,6 +35,10 @@ func TestGenerate(t *testing.T) {
 				// fatal error: asm/unistd.h: No such file or directory
 				t.Skip("broken")
 			}
+			if target.OS == "test" && target.PtrSize == 4 {
+				// The same reason as linux/32.
+				t.Skip("broken")
+			}
 			t.Parallel()
 			testTarget(t, target)
 		})
