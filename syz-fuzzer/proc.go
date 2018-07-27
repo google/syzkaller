@@ -68,7 +68,7 @@ func (proc *Proc) loop() {
 	if proc.fuzzer.config.Flags&ipc.FlagSignal == 0 {
 		// If we don't have real coverage signal, generate programs more frequently
 		// because fallback signal is weak.
-		generatePeriod = 10
+		generatePeriod = 2
 	}
 	for i := 0; ; i++ {
 		item := proc.fuzzer.workQueue.dequeue()
