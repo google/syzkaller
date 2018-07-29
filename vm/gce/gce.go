@@ -314,7 +314,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 
 	go func() {
-	retry:
 		select {
 		case <-time.After(timeout):
 			signal(vmimpl.ErrTimeout)
