@@ -207,7 +207,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 		opts.FaultCall = call
 		opts.FaultNth = nth
 		info := proc.executeRaw(&opts, p, StatSmash)
-		if info != nil && len(info) > call && !info[call].FaultInjected {
+		if info != nil && len(info) > call && info[call].Flags&ipc.CallFaultInjected == 0 {
 			break
 		}
 	}

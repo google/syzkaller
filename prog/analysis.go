@@ -171,28 +171,41 @@ func RequiredFeatures(p *Prog) (bitmasks, csums bool) {
 	return
 }
 
+type CallFlags int
+
+const (
+	CallExecuted CallFlags = 1 << iota // was started at all
+	CallFinished                       // finished executing (rather than blocked forever)
+	CallBlocked                        // finished but blocked during execution
+)
+
 type CallInfo struct {
-	Executed bool
-	Errno    int
-	Signal   []uint32
+	Flags  CallFlags
+	Errno  int
+	Signal []uint32
 }
 
 const (
 	fallbackSignalErrno = iota
+	fallbackSignalErrnoBlocked
 	fallbackSignalCtor
 	fallbackSignalFlags
-	fallbackCallMask = 0x3fff
+	fallbackCallMask = 0x1fff
 )
 
 func (p *Prog) FallbackSignal(info []CallInfo) {
 	resources := make(map[*ResultArg]*Call)
 	for i, c := range p.Calls {
 		inf := &info[i]
-		if !inf.Executed {
+		if inf.Flags&CallExecuted == 0 {
 			continue
 		}
 		id := c.Meta.ID
-		inf.Signal = append(inf.Signal, encodeFallbackSignal(fallbackSignalErrno, id, inf.Errno))
+		typ := fallbackSignalErrno
+		if inf.Flags&CallFinished != 0 && inf.Flags&CallBlocked != 0 {
+			typ = fallbackSignalErrnoBlocked
+		}
+		inf.Signal = append(inf.Signal, encodeFallbackSignal(typ, id, inf.Errno))
 		if inf.Errno != 0 {
 			continue
 		}
@@ -261,7 +274,7 @@ func (p *Prog) FallbackSignal(info []CallInfo) {
 func DecodeFallbackSignal(s uint32) (callID, errno int) {
 	typ, id, aux := decodeFallbackSignal(s)
 	switch typ {
-	case fallbackSignalErrno:
+	case fallbackSignalErrno, fallbackSignalErrnoBlocked:
 		return id, aux
 	case fallbackSignalCtor, fallbackSignalFlags:
 		return id, 0
@@ -271,15 +284,15 @@ func DecodeFallbackSignal(s uint32) (callID, errno int) {
 }
 
 func encodeFallbackSignal(typ, id, aux int) uint32 {
-	if typ & ^3 != 0 {
+	if typ & ^7 != 0 {
 		panic(fmt.Sprintf("bad fallback signal type %v", typ))
 	}
 	if id & ^fallbackCallMask != 0 {
 		panic(fmt.Sprintf("bad call id in fallback signal %v", id))
 	}
-	return uint32(typ) | uint32(id&0x3fff)<<2 | uint32(aux)<<16
+	return uint32(typ) | uint32(id&fallbackCallMask)<<3 | uint32(aux)<<16
 }
 
 func decodeFallbackSignal(s uint32) (typ, id, aux int) {
-	return int(s & 3), int((s >> 2) & fallbackCallMask), int(s >> 16)
+	return int(s & 7), int((s >> 3) & fallbackCallMask), int(s >> 16)
 }

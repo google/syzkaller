@@ -152,14 +152,22 @@ func DefaultConfig(target *prog.Target) (*Config, *ExecOpts, error) {
 	return c, opts, nil
 }
 
+type CallFlags uint32
+
+const (
+	CallExecuted      CallFlags = 1 << iota // was started at all
+	CallFinished                            // finished executing (rather than blocked forever)
+	CallBlocked                             // finished but blocked during execution
+	CallFaultInjected                       // fault was injected into this call
+)
+
 type CallInfo struct {
-	Executed bool
-	Signal   []uint32 // feedback signal, filled if FlagSignal is set
-	Cover    []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
+	Flags  CallFlags
+	Signal []uint32 // feedback signal, filled if FlagSignal is set
+	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
 	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
-	Comps         prog.CompMap // per-call comparison operands
-	Errno         int          // call errno (0 if the call was successful)
-	FaultInjected bool
+	Comps prog.CompMap // per-call comparison operands
+	Errno int          // call errno (0 if the call was successful)
 }
 
 type Env struct {
@@ -326,7 +334,15 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 func addFallbackSignal(p *prog.Prog, info []CallInfo) {
 	callInfos := make([]prog.CallInfo, len(info))
 	for i, inf := range info {
-		callInfos[i].Executed = inf.Executed
+		if inf.Flags&CallExecuted != 0 {
+			callInfos[i].Flags |= prog.CallExecuted
+		}
+		if inf.Flags&CallFinished != 0 {
+			callInfos[i].Flags |= prog.CallFinished
+		}
+		if inf.Flags&CallBlocked != 0 {
+			callInfos[i].Flags |= prog.CallBlocked
+		}
 		callInfos[i].Errno = inf.Errno
 	}
 	p.FallbackSignal(callInfos)
@@ -385,9 +401,9 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		return buf.String()
 	}
 	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, errno, faultInjected, signalSize, coverSize, compsSize uint32
+		var callIndex, callNum, errno, callFlags, signalSize, coverSize, compsSize uint32
 		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) ||
-			!readOut(&faultInjected) || !readOut(&signalSize) ||
+			!readOut(&callFlags) || !readOut(&signalSize) ||
 			!readOut(&coverSize) || !readOut(&compsSize) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
@@ -398,7 +414,6 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 			return
 		}
 		c := p.Calls[callIndex]
-		info[callIndex].Executed = true
 		if num := c.Meta.ID; uint32(num) != callNum {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage:"+
 				" record %v call %v: expect syscall %v, got %v, executed %v (cov: %v)",
@@ -411,7 +426,7 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 			return
 		}
 		info[callIndex].Errno = int(errno)
-		info[callIndex].FaultInjected = faultInjected != 0
+		info[callIndex].Flags = CallFlags(callFlags)
 		if signalSize > uint32(len(out)) {
 			err0 = fmt.Errorf("executor %v: failed to read output signal: record %v, call %v, signalsize=%v coversize=%v",
 				env.pid, i, callIndex, signalSize, coverSize)
@@ -529,13 +544,13 @@ type executeReply struct {
 // gometalinter complains about unused fields
 // nolint
 type callReply struct {
-	callIndex     uint32
-	callNum       uint32
-	errno         uint32
-	faultInjected uint32
-	signalSize    uint32
-	coverSize     uint32
-	compsSize     uint32
+	callIndex  uint32
+	callNum    uint32
+	errno      uint32
+	flags      uint32 // see CallFlags
+	signalSize uint32
+	coverSize  uint32
+	compsSize  uint32
 	// signal/cover/comps follow
 }
 
