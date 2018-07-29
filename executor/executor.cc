@@ -184,7 +184,7 @@ struct thread_t {
 	uint64* copyout_pos;
 	uint64 copyout_index;
 	bool colliding;
-	bool handled;
+	bool executing;
 	int call_index;
 	int call_num;
 	int num_args;
@@ -195,7 +195,8 @@ struct thread_t {
 	cover_t cov;
 };
 
-thread_t threads[kMaxThreads];
+static thread_t threads[kMaxThreads];
+static thread_t* last_scheduled;
 
 struct res_t {
 	bool executed;
@@ -233,12 +234,18 @@ struct execute_reply {
 	uint32 status;
 };
 
+// call_reply.flags
+const uint32 call_flag_executed = 1 << 0;
+const uint32 call_flag_finished = 1 << 1;
+const uint32 call_flag_blocked = 1 << 2;
+const uint32 call_flag_fault_injected = 1 << 3;
+
 struct call_reply {
 	execute_reply header;
 	uint32 call_index;
 	uint32 call_num;
 	uint32 reserrno;
-	uint32 fault_injected;
+	uint32 flags;
 	uint32 signal_size;
 	uint32 cover_size;
 	uint32 comps_size;
@@ -269,6 +276,8 @@ struct kcov_comparison_t {
 
 static thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
 static void handle_completion(thread_t* th);
+static void copyout_call_results(thread_t* th);
+static void write_call_output(thread_t* th, bool finished);
 static void execute_call(thread_t* th);
 static void thread_create(thread_t* th, int id);
 static void* worker_thread(void* arg);
@@ -625,38 +634,23 @@ retry:
 			args[i] = read_arg(&input_pos);
 		for (uint64 i = num_args; i < 6; i++)
 			args[i] = 0;
-		thread_t* th = schedule_call(call_index++, call_num, colliding, copyout_index, num_args, args, input_pos);
+		thread_t* th = schedule_call(call_index++, call_num, colliding, copyout_index,
+					     num_args, args, input_pos);
 
 		if (colliding && (call_index % 2) == 0) {
 			// Don't wait for every other call.
 			// We already have results from the previous execution.
 		} else if (flag_threaded) {
 			// Wait for call completion.
-			// Note: sys knows about this 25ms timeout when it generates
-			// timespec/timeval values.
-			const uint64 timeout_ms = flag_debug ? 3000 : 25;
+			// Note: sys knows about this 25ms timeout when it generates timespec/timeval values.
+			const uint64 timeout_ms = flag_debug ? 1000 : 25;
 			if (event_timedwait(&th->done, timeout_ms))
 				handle_completion(th);
 			// Check if any of previous calls have completed.
-			// Give them some additional time, because they could have been
-			// just unblocked by the current call.
-			if (running < 0)
-				fail("running = %d", running);
-			if (running > 0) {
-				bool last = read_input(&input_pos, true) == instr_eof;
-				uint64 wait = last ? 100 : 2;
-				uint64 wait_start = current_time_ms();
-				uint64 wait_end = wait_start + wait;
-				if (!colliding && wait_end < start + 800)
-					wait_end = start + 800;
-				while (running > 0 && current_time_ms() <= wait_end) {
-					sleep_ms(1);
-					for (int i = 0; i < kMaxThreads; i++) {
-						th = &threads[i];
-						if (!th->handled && event_isset(&th->done))
-							handle_completion(th);
-					}
-				}
+			for (int i = 0; i < kMaxThreads; i++) {
+				th = &threads[i];
+				if (th->executing && event_isset(&th->done))
+					handle_completion(th);
 			}
 		} else {
 			// Execute directly.
@@ -666,6 +660,33 @@ retry:
 			execute_call(th);
 			event_set(&th->done);
 			handle_completion(th);
+		}
+	}
+
+	if (!colliding && !collide && running > 0) {
+		// Give unfinished syscalls some additional time.
+		uint64 wait = 100;
+		uint64 wait_start = current_time_ms();
+		uint64 wait_end = wait_start + wait;
+		if (wait_end < start + 800)
+			wait_end = start + 800;
+		while (running > 0 && current_time_ms() <= wait_end) {
+			sleep_ms(1);
+			for (int i = 0; i < kMaxThreads; i++) {
+				thread_t* th = &threads[i];
+				if (th->executing && event_isset(&th->done))
+					handle_completion(th);
+			}
+		}
+		// Write output coverage for unfinished calls.
+		if (flag_cover && running > 0) {
+			for (int i = 0; i < kMaxThreads; i++) {
+				thread_t* th = &threads[i];
+				if (th->executing) {
+					cover_collect(&th->cov);
+					write_call_output(th, false);
+				}
+			}
 		}
 	}
 
@@ -685,7 +706,7 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 		if (!th->created)
 			thread_create(th, i);
 		if (event_isset(&th->done)) {
-			if (!th->handled)
+			if (th->executing)
 				handle_completion(th);
 			break;
 		}
@@ -694,14 +715,15 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 		exitf("out of threads");
 	thread_t* th = &threads[i];
 	debug("scheduling call %d [%s] on thread %d\n", call_index, syscalls[call_num].name, th->id);
-	if (event_isset(&th->ready) || !event_isset(&th->done) || !th->handled)
-		fail("bad thread state in schedule: ready=%d done=%d handled=%d",
-		     event_isset(&th->ready), event_isset(&th->done), th->handled);
+	if (event_isset(&th->ready) || !event_isset(&th->done) || th->executing)
+		fail("bad thread state in schedule: ready=%d done=%d executing=%d",
+		     event_isset(&th->ready), event_isset(&th->done), th->executing);
+	last_scheduled = th;
 	th->colliding = colliding;
 	th->copyout_pos = pos;
 	th->copyout_index = copyout_index;
 	event_reset(&th->done);
-	th->handled = false;
+	th->executing = true;
 	th->call_index = call_index;
 	th->call_num = call_num;
 	th->num_args = num_args;
@@ -757,105 +779,124 @@ void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover
 void handle_completion(thread_t* th)
 {
 	debug("completion of call %d [%s] on thread %d\n", th->call_index, syscalls[th->call_num].name, th->id);
-	if (event_isset(&th->ready) || !event_isset(&th->done) || th->handled)
-		fail("bad thread state in completion: ready=%d done=%d handled=%d",
-		     event_isset(&th->ready), event_isset(&th->done), th->handled);
-	if (th->res != (long)-1) {
-		if (th->copyout_index != no_copyout) {
-			if (th->copyout_index >= kMaxCommands)
-				fail("result idx %lld overflows kMaxCommands", th->copyout_index);
-			results[th->copyout_index].executed = true;
-			results[th->copyout_index].val = th->res;
-		}
-		for (bool done = false; !done;) {
-			uint64 instr = read_input(&th->copyout_pos);
-			switch (instr) {
-			case instr_copyout: {
-				uint64 index = read_input(&th->copyout_pos);
-				if (index >= kMaxCommands)
-					fail("result idx %lld overflows kMaxCommands", index);
-				char* addr = (char*)read_input(&th->copyout_pos);
-				uint64 size = read_input(&th->copyout_pos);
-				uint64 val = 0;
-				if (copyout(addr, size, &val)) {
-					results[index].executed = true;
-					results[index].val = val;
-				}
-				debug("copyout 0x%llx from %p\n", val, addr);
-				break;
-			}
-			default:
-				done = true;
-				break;
-			}
-		}
-	}
-	if (!collide && !th->colliding) {
-		uint32 reserrno = th->res != -1 ? 0 : th->reserrno;
-#if SYZ_EXECUTOR_USES_SHMEM
-		write_output(th->call_index);
-		write_output(th->call_num);
-		write_output(reserrno);
-		write_output(th->fault_injected);
-		uint32* signal_count_pos = write_output(0); // filled in later
-		uint32* cover_count_pos = write_output(0); // filled in later
-		uint32* comps_count_pos = write_output(0); // filled in later
-
-		if (flag_collect_comps) {
-			// Collect only the comparisons
-			uint32 ncomps = th->cov.size;
-			kcov_comparison_t* start = (kcov_comparison_t*)(th->cov.data + sizeof(uint64));
-			kcov_comparison_t* end = start + ncomps;
-			if ((char*)end > th->cov.data_end)
-				fail("too many comparisons %u", ncomps);
-			std::sort(start, end);
-			ncomps = std::unique(start, end) - start;
-			uint32 comps_size = 0;
-			for (uint32 i = 0; i < ncomps; ++i) {
-				if (start[i].ignore())
-					continue;
-				comps_size++;
-				start[i].write();
-			}
-			// Write out number of comparisons.
-			*comps_count_pos = comps_size;
-		} else if (flag_cover) {
-			if (is_kernel_64_bit)
-				write_coverage_signal<uint64>(th, signal_count_pos, cover_count_pos);
-			else
-				write_coverage_signal<uint32>(th, signal_count_pos, cover_count_pos);
-		}
-		debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u comps=%u\n",
-		      completed, th->call_index, th->call_num, reserrno,
-		      *signal_count_pos, *cover_count_pos, *comps_count_pos);
-		completed++;
-		write_completed(completed);
-#else
-		call_reply reply;
-		reply.header.magic = kOutMagic;
-		reply.header.done = 0;
-		reply.header.status = 0;
-		reply.call_index = th->call_index;
-		reply.call_num = th->call_num;
-		reply.reserrno = reserrno;
-		reply.fault_injected = th->fault_injected;
-		reply.signal_size = 0;
-		reply.cover_size = 0;
-		reply.comps_size = 0;
-		if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
-			fail("control pipe call write failed");
-		debug("out: index=%u num=%u errno=%d\n", th->call_index, th->call_num, reserrno);
-#endif
-	}
-	th->handled = true;
+	if (event_isset(&th->ready) || !event_isset(&th->done) || !th->executing)
+		fail("bad thread state in completion: ready=%d done=%d executing=%d",
+		     event_isset(&th->ready), event_isset(&th->done), th->executing);
+	if (th->res != (long)-1)
+		copyout_call_results(th);
+	if (!collide && !th->colliding)
+		write_call_output(th, true);
+	th->executing = false;
 	running--;
+	if (running < 0)
+		fail("running = %d", running);
+}
+
+void copyout_call_results(thread_t* th)
+{
+	if (th->copyout_index != no_copyout) {
+		if (th->copyout_index >= kMaxCommands)
+			fail("result idx %lld overflows kMaxCommands", th->copyout_index);
+		results[th->copyout_index].executed = true;
+		results[th->copyout_index].val = th->res;
+	}
+	for (bool done = false; !done;) {
+		uint64 instr = read_input(&th->copyout_pos);
+		switch (instr) {
+		case instr_copyout: {
+			uint64 index = read_input(&th->copyout_pos);
+			if (index >= kMaxCommands)
+				fail("result idx %lld overflows kMaxCommands", index);
+			char* addr = (char*)read_input(&th->copyout_pos);
+			uint64 size = read_input(&th->copyout_pos);
+			uint64 val = 0;
+			if (copyout(addr, size, &val)) {
+				results[index].executed = true;
+				results[index].val = val;
+			}
+			debug("copyout 0x%llx from %p\n", val, addr);
+			break;
+		}
+		default:
+			done = true;
+			break;
+		}
+	}
+}
+
+void write_call_output(thread_t* th, bool finished)
+{
+	uint32 reserrno = 999;
+	uint32 call_flags = call_flag_executed;
+	const bool blocked = th != last_scheduled;
+	if (finished) {
+		reserrno = th->res != -1 ? 0 : th->reserrno;
+		call_flags |= call_flag_finished |
+			      (blocked ? call_flag_blocked : 0) |
+			      (th->fault_injected ? call_flag_fault_injected : 0);
+	}
+#if SYZ_EXECUTOR_USES_SHMEM
+	write_output(th->call_index);
+	write_output(th->call_num);
+	write_output(reserrno);
+	write_output(call_flags);
+	uint32* signal_count_pos = write_output(0); // filled in later
+	uint32* cover_count_pos = write_output(0); // filled in later
+	uint32* comps_count_pos = write_output(0); // filled in later
+
+	if (flag_collect_comps) {
+		// Collect only the comparisons
+		uint32 ncomps = th->cov.size;
+		kcov_comparison_t* start = (kcov_comparison_t*)(th->cov.data + sizeof(uint64));
+		kcov_comparison_t* end = start + ncomps;
+		if ((char*)end > th->cov.data_end)
+			fail("too many comparisons %u", ncomps);
+		std::sort(start, end);
+		ncomps = std::unique(start, end) - start;
+		uint32 comps_size = 0;
+		for (uint32 i = 0; i < ncomps; ++i) {
+			if (start[i].ignore())
+				continue;
+			comps_size++;
+			start[i].write();
+		}
+		// Write out number of comparisons.
+		*comps_count_pos = comps_size;
+	} else if (flag_cover) {
+		if (is_kernel_64_bit)
+			write_coverage_signal<uint64>(th, signal_count_pos, cover_count_pos);
+		else
+			write_coverage_signal<uint32>(th, signal_count_pos, cover_count_pos);
+	}
+	debug("out #%u: index=%u num=%u errno=%d finished=%d blocked=%d sig=%u cover=%u comps=%u\n",
+	      completed, th->call_index, th->call_num, reserrno, finished, blocked,
+	      *signal_count_pos, *cover_count_pos, *comps_count_pos);
+	completed++;
+	write_completed(completed);
+#else
+	call_reply reply;
+	reply.header.magic = kOutMagic;
+	reply.header.done = 0;
+	reply.header.status = 0;
+	reply.call_index = th->call_index;
+	reply.call_num = th->call_num;
+	reply.reserrno = reserrno;
+	reply.flags = call_flags;
+	reply.signal_size = 0;
+	reply.cover_size = 0;
+	reply.comps_size = 0;
+	if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
+		fail("control pipe call write failed");
+	debug("out: index=%u num=%u errno=%d finished=%d blocked=%d\n",
+	      th->call_index, th->call_num, reserrno, finished, blocked);
+#endif
 }
 
 void thread_create(thread_t* th, int id)
 {
 	th->created = true;
 	th->id = id;
-	th->handled = true;
+	th->executing = false;
 	event_init(&th->ready);
 	event_init(&th->done);
 	event_set(&th->done);
