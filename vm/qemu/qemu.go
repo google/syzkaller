@@ -476,6 +476,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 
 	go func() {
+	retry:
 		select {
 		case <-time.After(timeout):
 			signal(vmimpl.ErrTimeout)
@@ -483,6 +484,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(vmimpl.ErrTimeout)
 		case <-inst.diagnose:
 			cmd.Process.Kill()
+			goto retry
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
