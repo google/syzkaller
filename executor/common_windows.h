@@ -19,14 +19,14 @@ static void install_segv_handler()
 	}
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT
-uint64 current_time_ms()
+#if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
+static uint64 current_time_ms()
 {
 	return GetTickCount64();
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT
+#if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
 static void sleep_ms(uint64 ms)
 {
 	Sleep(ms);
