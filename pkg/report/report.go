@@ -426,6 +426,43 @@ nextPart:
 	return "", corrupted
 }
 
+func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignores []*regexp.Regexp) *Report {
+	rep := &Report{
+		Output: output,
+	}
+	var oops *oops
+	for pos := 0; pos < len(output); {
+		next := bytes.IndexByte(output[pos:], '\n')
+		if next != -1 {
+			next += pos
+		} else {
+			next = len(output)
+		}
+		line := output[pos:next]
+		for _, oops1 := range oopses {
+			match := matchOops(line, oops1, ignores)
+			if match != -1 {
+				oops = oops1
+				rep.StartPos = pos
+				break
+			}
+		}
+		if oops != nil {
+			break
+		}
+		pos = next + 1
+	}
+	if oops == nil {
+		return nil
+	}
+	title, corrupted, _ := extractDescription(output[rep.StartPos:], oops, params)
+	rep.Title = title
+	rep.Report = output[rep.StartPos:]
+	rep.Corrupted = corrupted != ""
+	rep.CorruptedReason = corrupted
+	return rep
+}
+
 func matchesAny(line []byte, res []*regexp.Regexp) bool {
 	for _, re := range res {
 		if re.Match(line) {

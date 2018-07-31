@@ -47,15 +47,11 @@ func (n *Define) Clone() Node {
 }
 
 func (n *Resource) Clone() Node {
-	var values []*Int
-	for _, v := range n.Values {
-		values = append(values, v.Clone().(*Int))
-	}
 	return &Resource{
 		Pos:    n.Pos,
 		Name:   n.Name.Clone().(*Ident),
 		Base:   n.Base.Clone().(*Type),
-		Values: values,
+		Values: cloneInts(n.Values),
 	}
 }
 
@@ -82,10 +78,6 @@ func (n *TypeDef) Clone() Node {
 }
 
 func (n *Call) Clone() Node {
-	var args []*Field
-	for _, a := range n.Args {
-		args = append(args, a.Clone().(*Field))
-	}
 	var ret *Type
 	if n.Ret != nil {
 		ret = n.Ret.Clone().(*Type)
@@ -95,43 +87,27 @@ func (n *Call) Clone() Node {
 		Name:     n.Name.Clone().(*Ident),
 		CallName: n.CallName,
 		NR:       n.NR,
-		Args:     args,
+		Args:     cloneFields(n.Args),
 		Ret:      ret,
 	}
 }
 
 func (n *Struct) Clone() Node {
-	var fields []*Field
-	for _, f := range n.Fields {
-		fields = append(fields, f.Clone().(*Field))
-	}
-	var attrs []*Type
-	for _, a := range n.Attrs {
-		attrs = append(attrs, a.Clone().(*Type))
-	}
-	var comments []*Comment
-	for _, c := range n.Comments {
-		comments = append(comments, c.Clone().(*Comment))
-	}
 	return &Struct{
 		Pos:      n.Pos,
 		Name:     n.Name.Clone().(*Ident),
-		Fields:   fields,
-		Attrs:    attrs,
-		Comments: comments,
+		Fields:   cloneFields(n.Fields),
+		Attrs:    cloneTypes(n.Attrs),
+		Comments: cloneComments(n.Comments),
 		IsUnion:  n.IsUnion,
 	}
 }
 
 func (n *IntFlags) Clone() Node {
-	var values []*Int
-	for _, v := range n.Values {
-		values = append(values, v.Clone().(*Int))
-	}
 	return &IntFlags{
 		Pos:    n.Pos,
 		Name:   n.Name.Clone().(*Ident),
-		Values: values,
+		Values: cloneInts(n.Values),
 	}
 }
 
@@ -172,10 +148,6 @@ func (n *Int) Clone() Node {
 }
 
 func (n *Type) Clone() Node {
-	var args []*Type
-	for _, a := range n.Args {
-		args = append(args, a.Clone().(*Type))
-	}
 	return &Type{
 		Pos:       n.Pos,
 		Value:     n.Value,
@@ -188,20 +160,44 @@ func (n *Type) Clone() Node {
 		Value2:    n.Value2,
 		Value2Fmt: n.Value2Fmt,
 		Ident2:    n.Ident2,
-		Args:      args,
+		Args:      cloneTypes(n.Args),
 	}
 }
 
 func (n *Field) Clone() Node {
-	var comments []*Comment
-	for _, c := range n.Comments {
-		comments = append(comments, c.Clone().(*Comment))
-	}
 	return &Field{
 		Pos:      n.Pos,
 		Name:     n.Name.Clone().(*Ident),
 		Type:     n.Type.Clone().(*Type),
 		NewBlock: n.NewBlock,
-		Comments: comments,
+		Comments: cloneComments(n.Comments),
 	}
+}
+
+func cloneFields(list []*Field) (res []*Field) {
+	for _, n := range list {
+		res = append(res, n.Clone().(*Field))
+	}
+	return
+}
+
+func cloneInts(list []*Int) (res []*Int) {
+	for _, n := range list {
+		res = append(res, n.Clone().(*Int))
+	}
+	return
+}
+
+func cloneTypes(list []*Type) (res []*Type) {
+	for _, n := range list {
+		res = append(res, n.Clone().(*Type))
+	}
+	return
+}
+
+func cloneComments(list []*Comment) (res []*Comment) {
+	for _, n := range list {
+		res = append(res, n.Clone().(*Comment))
+	}
+	return
 }

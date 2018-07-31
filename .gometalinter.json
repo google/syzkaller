@@ -6,7 +6,7 @@
 	"minconstlength": 7,
 	"linelength": 120,
 	"cyclo": 40,
-	"duplthreshold": 63,
+	"duplthreshold": 60,
 	"skip": [
 		"pkg/kd",
 		"pkg/ifuzz/generated",
