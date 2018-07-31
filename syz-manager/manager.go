@@ -327,7 +327,7 @@ func (mgr *Manager) vmLoop() {
 	reproDone := make(chan *ReproResult, 1)
 	stopPending := false
 	shutdown := vm.Shutdown
-	for {
+	for shutdown != nil || len(instances) != vmCount {
 		mgr.mu.Lock()
 		phase := mgr.phase
 		mgr.mu.Unlock()
@@ -337,25 +337,8 @@ func (mgr *Manager) vmLoop() {
 				continue
 			}
 			delete(pendingRepro, crash)
-			if !crash.hub {
-				if mgr.dash == nil {
-					if !mgr.needRepro(crash) {
-						continue
-					}
-				} else {
-					cid := &dashapi.CrashID{
-						BuildID:   mgr.cfg.Tag,
-						Title:     crash.Title,
-						Corrupted: crash.Corrupted,
-					}
-					needRepro, err := mgr.dash.NeedRepro(cid)
-					if err != nil {
-						log.Logf(0, "dashboard.NeedRepro failed: %v", err)
-					}
-					if !needRepro {
-						continue
-					}
-				}
+			if !mgr.needRepro(crash) {
+				continue
 			}
 			log.Logf(1, "loop: add to repro queue '%v'", crash.Title)
 			reproducing[crash.Title] = true
@@ -371,11 +354,7 @@ func (mgr *Manager) vmLoop() {
 				len(reproQueue) != 0 && reproInstances+instancesPerRepro <= vmCount
 		}
 
-		if shutdown == nil {
-			if len(instances) == vmCount {
-				return
-			}
-		} else {
+		if shutdown != nil {
 			for canRepro() && len(instances) >= instancesPerRepro {
 				last := len(reproQueue) - 1
 				crash := reproQueue[last]
@@ -696,12 +675,12 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.Report.Report)
 	}
 
-	return mgr.needRepro(crash)
+	return mgr.needLocalRepro(crash)
 }
 
 const maxReproAttempts = 3
 
-func (mgr *Manager) needRepro(crash *Crash) bool {
+func (mgr *Manager) needLocalRepro(crash *Crash) bool {
 	if !mgr.cfg.Reproduce || crash.Corrupted {
 		return false
 	}
@@ -716,6 +695,25 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 		}
 	}
 	return false
+}
+
+func (mgr *Manager) needRepro(crash *Crash) bool {
+	if crash.hub {
+		return true
+	}
+	if mgr.dash == nil {
+		return mgr.needLocalRepro(crash)
+	}
+	cid := &dashapi.CrashID{
+		BuildID:   mgr.cfg.Tag,
+		Title:     crash.Title,
+		Corrupted: crash.Corrupted,
+	}
+	needRepro, err := mgr.dash.NeedRepro(cid)
+	if err != nil {
+		log.Logf(0, "dashboard.NeedRepro failed: %v", err)
+	}
+	return needRepro
 }
 
 func (mgr *Manager) saveFailedRepro(desc string, stats *repro.Stats) {
