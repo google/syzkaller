@@ -117,16 +117,58 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *linux) Parse(output []byte) *Report {
-	rep := &Report{
-		Output: output,
+	oops, startPos, endPos, logReport, consoleReport, consoleReportReliable,
+		logReportPrefix, consoleReportPrefix := ctx.parseOutput(output)
+	if oops == nil {
+		return nil
 	}
-	var oops *oops
-	var logReportPrefix [][]byte
-	var consoleReportPrefix [][]byte
-	var consoleReport []byte
-	textLines := 0
+	rep := &Report{
+		Output:   output,
+		StartPos: startPos,
+		EndPos:   endPos,
+	}
+	var report []byte
+	var reportPrefix [][]byte
+	// Try extracting report from console output only.
+	title, corrupted, format := extractDescription(consoleReportReliable, oops, linuxStackParams)
+	if title != "" {
+		report = consoleReport
+		reportPrefix = consoleReportPrefix
+	} else {
+		// Failure. Try extracting report from the whole log.
+		report = logReport
+		reportPrefix = logReportPrefix
+		title, corrupted, format = extractDescription(report, oops, linuxStackParams)
+		if title == "" {
+			panic(fmt.Sprintf("non matching oops for %q in:\n%s\n\nconsole:\n%s\n"+
+				"output [range:%v-%v]:\n%s\n",
+				oops.header, report, consoleReportReliable,
+				rep.StartPos, rep.StartPos+len(report), output))
+		}
+	}
+	rep.Title = title
+	rep.Corrupted = corrupted != ""
+	rep.CorruptedReason = corrupted
+	// Prepend 5 lines preceding start of the report,
+	// they can contain additional info related to the report.
+	for _, prefix := range reportPrefix {
+		rep.Report = append(rep.Report, prefix...)
+		rep.Report = append(rep.Report, '\n')
+	}
+	rep.Report = append(rep.Report, report...)
+	if !rep.Corrupted {
+		rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
+	}
+	return rep
+}
+
+func (ctx *linux) parseOutput(output []byte) (
+	oops *oops, startPos, endPos int,
+	logReport, consoleReport, consoleReportReliable []byte,
+	logReportPrefix, consoleReportPrefix [][]byte) {
 	firstReportEnd := 0
 	secondReportPos := 0
+	textLines := 0
 	skipText := false
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
@@ -149,11 +191,10 @@ func (ctx *linux) Parse(output []byte) *Report {
 				}
 				continue
 			}
-			rep.EndPos = next
+			endPos = next
 			if oops == nil {
 				oops = oops1
-				rep.StartPos = pos
-				rep.Title = string(output[pos+match : next])
+				startPos = pos
 				break
 			} else if secondReportPos == 0 {
 				ignored := false
@@ -219,45 +260,14 @@ func (ctx *linux) Parse(output []byte) *Report {
 		pos = next + 1
 	}
 	if oops == nil {
-		return nil
+		return
 	}
 	if secondReportPos == 0 {
 		secondReportPos = len(output)
 	}
-	var report []byte
-	var reportPrefix [][]byte
-	// Try extracting report from console output only.
-	title, corrupted, format := extractDescription(consoleReport[:firstReportEnd], oops, linuxStackParams)
-	if title != "" {
-		// Success.
-		report = consoleReport
-		reportPrefix = consoleReportPrefix
-	} else {
-		// Failure. Try extracting report from the whole log.
-		report = output[rep.StartPos:secondReportPos]
-		reportPrefix = logReportPrefix
-		title, corrupted, format = extractDescription(report, oops, linuxStackParams)
-		if title == "" {
-			panic(fmt.Sprintf("non matching oops for %q in:\n%s\n\nconsole:\n%s\n"+
-				"output [range:%v-%v]:\n%s\n",
-				oops.header, report, consoleReport[:firstReportEnd],
-				rep.StartPos, secondReportPos, output))
-		}
-	}
-	rep.Title = title
-	rep.Corrupted = corrupted != ""
-	rep.CorruptedReason = corrupted
-	// Prepend 5 lines preceding start of the report,
-	// they can contain additional info related to the report.
-	for _, prefix := range reportPrefix {
-		rep.Report = append(rep.Report, prefix...)
-		rep.Report = append(rep.Report, '\n')
-	}
-	rep.Report = append(rep.Report, report...)
-	if !rep.Corrupted {
-		rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
-	}
-	return rep
+	logReport = output[startPos:secondReportPos]
+	consoleReportReliable = consoleReport[:firstReportEnd]
+	return
 }
 
 func (ctx *linux) Symbolize(rep *Report) error {
