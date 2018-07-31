@@ -591,7 +591,7 @@ func warningStackFmt(skip ...string) *stackFmt {
 }
 
 var linuxOopses = []*oops{
-	&oops{
+	{
 		[]byte("BUG:"),
 		[]oopsFormat{
 			{
@@ -785,7 +785,7 @@ var linuxOopses = []*oops{
 			compile("BUG: no syscalls can create resource"),
 		},
 	},
-	&oops{
+	{
 		[]byte("WARNING:"),
 		[]oopsFormat{
 			{
@@ -909,7 +909,7 @@ var linuxOopses = []*oops{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
 		},
 	},
-	&oops{
+	{
 		[]byte("INFO:"),
 		[]oopsFormat{
 			{
@@ -1012,7 +1012,7 @@ var linuxOopses = []*oops{
 			compile("INFO: no syscalls can create resource"),         // pkg/host output in debug mode
 		},
 	},
-	&oops{
+	{
 		[]byte("Unable to handle kernel paging request"),
 		[]oopsFormat{
 			{
@@ -1023,7 +1023,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("general protection fault:"),
 		[]oopsFormat{
 			{
@@ -1040,7 +1040,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("Kernel panic"),
 		[]oopsFormat{
 			{
@@ -1078,7 +1078,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("kernel BUG"),
 		[]oopsFormat{
 			{
@@ -1104,7 +1104,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("Kernel BUG"),
 		[]oopsFormat{
 			{
@@ -1114,7 +1114,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("BUG kmalloc-"),
 		[]oopsFormat{
 			{
@@ -1124,7 +1124,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("divide error:"),
 		[]oopsFormat{
 			{
@@ -1135,7 +1135,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("invalid opcode:"),
 		[]oopsFormat{
 			{
@@ -1146,7 +1146,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("UBSAN:"),
 		[]oopsFormat{
 			{
@@ -1156,7 +1156,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("Booting the kernel."),
 		[]oopsFormat{
 			{
@@ -1167,7 +1167,7 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("unregister_netdevice: waiting for"),
 		[]oopsFormat{
 			{

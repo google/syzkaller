@@ -116,11 +116,11 @@ func TestLoad(t *testing.T) {
 			Config{
 				Foo: 1,
 				Arr: []Nested{
-					Nested{
+					{
 						Aaa: 12,
 						Bbb: "bbb",
 					},
-					Nested{
+					{
 						Aaa: 13,
 						Bbb: "ccc",
 					},

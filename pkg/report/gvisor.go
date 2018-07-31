@@ -110,7 +110,7 @@ var gvisorTitleReplacement = []replacement{
 }
 
 var gvisorOopses = []*oops{
-	&oops{
+	{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{
@@ -121,7 +121,7 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("Panic:"),
 		[]oopsFormat{
 			{
@@ -132,7 +132,7 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("fatal error:"),
 		[]oopsFormat{
 			{
@@ -143,7 +143,7 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("runtime error:"),
 		[]oopsFormat{
 			{
@@ -154,7 +154,7 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("SIGSEGV:"),
 		[]oopsFormat{
 			{
@@ -165,7 +165,7 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("SIGBUS:"),
 		[]oopsFormat{
 			{
@@ -176,7 +176,7 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("FATAL ERROR:"),
 		[]oopsFormat{
 			{
@@ -187,7 +187,7 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("WARNING: DATA RACE"),
 		[]oopsFormat{
 			{
@@ -199,7 +199,7 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("Invalid request partialResult"),
 		[]oopsFormat{
 			{

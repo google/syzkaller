@@ -550,9 +550,9 @@ func pciAddrPort(r *rand.Rand) (addr uint32, port uint16, size int) {
 
 var controlRegisters = []uint8{0, 3, 4, 8}
 var controlRegistersBits = map[uint8][]uint8{
-	0: []uint8{0, 1, 2, 3, 4, 5, 16, 18, 29, 30, 31},
-	3: []uint8{3, 5},
-	4: []uint8{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 16, 17, 18, 20, 21, 22},
+	0: {0, 1, 2, 3, 4, 5, 16, 18, 29, 30, 31},
+	3: {3, 5},
+	4: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 14, 16, 17, 18, 20, 21, 22},
 }
 
 const eferMSR = 0xC0000080

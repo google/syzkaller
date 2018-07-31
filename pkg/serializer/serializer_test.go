@@ -12,7 +12,7 @@ func TestSerializer(t *testing.T) {
 	x := &X{
 		Y: Y{1},
 		P: &Y{2},
-		A: []Y{Y{3}, Y{4}},
+		A: []Y{{3}, {4}},
 		F: true,
 		S: "a\x09b",
 		T: T1,

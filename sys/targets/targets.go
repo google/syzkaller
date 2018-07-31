@@ -57,7 +57,7 @@ func Get(OS, arch string) *Target {
 
 // nolint: lll
 var List = map[string]map[string]*Target{
-	"test": map[string]*Target{
+	"test": {
 		"64": {
 			PtrSize:     8,
 			PageSize:    4 << 10,
@@ -107,7 +107,7 @@ var List = map[string]map[string]*Target{
 			},
 		},
 	},
-	"linux": map[string]*Target{
+	"linux": {
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
@@ -158,7 +158,7 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "powerpc",
 		},
 	},
-	"freebsd": map[string]*Target{
+	"freebsd": {
 		"amd64": {
 			PtrSize:     8,
 			PageSize:    4 << 10,
@@ -166,7 +166,7 @@ var List = map[string]map[string]*Target{
 			CrossCFlags: []string{"-m64", "-static"},
 		},
 	},
-	"netbsd": map[string]*Target{
+	"netbsd": {
 		"amd64": {
 			PtrSize:     8,
 			PageSize:    4 << 10,
@@ -174,7 +174,7 @@ var List = map[string]map[string]*Target{
 			CrossCFlags: []string{"-m64", "-static"},
 		},
 	},
-	"fuchsia": map[string]*Target{
+	"fuchsia": {
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
@@ -212,14 +212,14 @@ var List = map[string]map[string]*Target{
 			},
 		},
 	},
-	"windows": map[string]*Target{
+	"windows": {
 		"amd64": {
 			PtrSize: 8,
 			// TODO(dvyukov): what should we do about 4k vs 64k?
 			PageSize: 4 << 10,
 		},
 	},
-	"akaros": map[string]*Target{
+	"akaros": {
 		"amd64": {
 			PtrSize:           8,
 			PageSize:          4 << 10,

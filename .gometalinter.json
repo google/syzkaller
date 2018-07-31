@@ -19,6 +19,7 @@
 		"sys/test/gen"
 	],
 	"enable": [
+		"gofmt",
 		"golint",
 		"structcheck",
 		"megacheck",
