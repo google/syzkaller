@@ -1,6 +1,6 @@
 # syzkaller - kernel fuzzer
 
-[![Build Status](https://travis-ci.org/google/syzkaller.svg?branch=master)](https://travis-ci.org/google/syzkaller)
+[![Build Status](https://travis-ci.org/google/syzkaller.svg?branch=master)](https://travis-ci.org/google/syzkaller) [![Go Report Card](https://goreportcard.com/badge/github.com/google/syzkaller)](https://goreportcard.com/report/github.com/google/syzkaller) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 `syzkaller` is an unsupervised coverage-guided kernel fuzzer. `Linux` kernel fuzzing has the most support, `akaros`, `freebsd`, `fuchsia`, `netbsd`, `windows` and `gvisor` are supported to varying degrees.
 
