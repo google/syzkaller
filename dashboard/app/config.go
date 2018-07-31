@@ -140,6 +140,13 @@ func (cfg *Config) ReportingByName(name string) *Reporting {
 // or from a separate file that provides actual production config.
 var config *GlobalConfig
 
+func init() {
+	// Prevents gometalinter from considering everything as dead code.
+	if false {
+		installConfig(nil)
+	}
+}
+
 func installConfig(cfg *GlobalConfig) {
 	if config != nil {
 		panic("another config is already installed")
@@ -156,74 +163,7 @@ func installConfig(cfg *GlobalConfig) {
 	checkClients(clientNames, cfg.Clients)
 	checkConfigAccessLevel(&cfg.AccessLevel, AccessPublic, "global")
 	for ns, cfg := range cfg.Namespaces {
-		if ns == "" {
-			panic("empty namespace name")
-		}
-		if namespaces[ns] {
-			panic(fmt.Sprintf("duplicate namespace %q", ns))
-		}
-		namespaces[ns] = true
-		if cfg.DisplayTitle == "" {
-			cfg.DisplayTitle = ns
-		}
-		checkClients(clientNames, cfg.Clients)
-		for name, mgr := range cfg.Managers {
-			if mgr.Decommissioned && mgr.DelegatedTo == "" {
-				panic(fmt.Sprintf("decommissioned manager %v/%v does not have delegate",
-					ns, name))
-			}
-			if !mgr.Decommissioned && mgr.DelegatedTo != "" {
-				panic(fmt.Sprintf("non-decommissioned manager %v/%v has delegate",
-					ns, name))
-			}
-			if mgr.RestrictedTestingRepo != "" && mgr.RestrictedTestingReason == "" {
-				panic(fmt.Sprintf("restricted manager %v/%v does not have restriction reason",
-					ns, name))
-			}
-			if mgr.RestrictedTestingRepo == "" && mgr.RestrictedTestingReason != "" {
-				panic(fmt.Sprintf("unrestricted manager %v/%v has restriction reason",
-					ns, name))
-			}
-		}
-		if !clientKeyRe.MatchString(cfg.Key) {
-			panic(fmt.Sprintf("bad namespace %q key: %q", ns, cfg.Key))
-		}
-		if len(cfg.Reporting) == 0 {
-			panic(fmt.Sprintf("no reporting in namespace %q", ns))
-		}
-		checkConfigAccessLevel(&cfg.AccessLevel, cfg.AccessLevel, fmt.Sprintf("namespace %q", ns))
-		parentAccessLevel := cfg.AccessLevel
-		reportingNames := make(map[string]bool)
-		// Go backwards because access levels get stricter backwards.
-		for ri := len(cfg.Reporting) - 1; ri >= 0; ri-- {
-			reporting := &cfg.Reporting[ri]
-			if reporting.Name == "" {
-				panic(fmt.Sprintf("empty reporting name in namespace %q", ns))
-			}
-			if reportingNames[reporting.Name] {
-				panic(fmt.Sprintf("duplicate reporting name %q", reporting.Name))
-			}
-			if reporting.DisplayTitle == "" {
-				reporting.DisplayTitle = reporting.Name
-			}
-			checkConfigAccessLevel(&reporting.AccessLevel, parentAccessLevel,
-				fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
-			parentAccessLevel = reporting.AccessLevel
-			if reporting.Filter == nil {
-				reporting.Filter = func(bug *Bug) FilterResult { return FilterReport }
-			}
-			reportingNames[reporting.Name] = true
-			if reporting.Config.Type() == "" {
-				panic(fmt.Sprintf("empty reporting type for %q", reporting.Name))
-			}
-			if err := reporting.Config.Validate(); err != nil {
-				panic(err)
-			}
-			if _, err := json.Marshal(reporting.Config); err != nil {
-				panic(fmt.Sprintf("failed to json marshal %q config: %v",
-					reporting.Name, err))
-			}
-		}
+		checkNamespace(ns, cfg, namespaces, clientNames)
 	}
 	for repo, info := range cfg.KernelRepos {
 		if info.Alias == "" {
@@ -239,10 +179,74 @@ func installConfig(cfg *GlobalConfig) {
 	initAPIHandlers()
 }
 
-func init() {
-	// Prevents gometalinter from considering everything as dead code.
-	if false {
-		installConfig(nil)
+func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]bool) {
+	if ns == "" {
+		panic("empty namespace name")
+	}
+	if namespaces[ns] {
+		panic(fmt.Sprintf("duplicate namespace %q", ns))
+	}
+	namespaces[ns] = true
+	if cfg.DisplayTitle == "" {
+		cfg.DisplayTitle = ns
+	}
+	checkClients(clientNames, cfg.Clients)
+	for name, mgr := range cfg.Managers {
+		checkManager(ns, name, mgr)
+	}
+	if !clientKeyRe.MatchString(cfg.Key) {
+		panic(fmt.Sprintf("bad namespace %q key: %q", ns, cfg.Key))
+	}
+	if len(cfg.Reporting) == 0 {
+		panic(fmt.Sprintf("no reporting in namespace %q", ns))
+	}
+	checkConfigAccessLevel(&cfg.AccessLevel, cfg.AccessLevel, fmt.Sprintf("namespace %q", ns))
+	parentAccessLevel := cfg.AccessLevel
+	reportingNames := make(map[string]bool)
+	// Go backwards because access levels get stricter backwards.
+	for ri := len(cfg.Reporting) - 1; ri >= 0; ri-- {
+		reporting := &cfg.Reporting[ri]
+		if reporting.Name == "" {
+			panic(fmt.Sprintf("empty reporting name in namespace %q", ns))
+		}
+		if reportingNames[reporting.Name] {
+			panic(fmt.Sprintf("duplicate reporting name %q", reporting.Name))
+		}
+		if reporting.DisplayTitle == "" {
+			reporting.DisplayTitle = reporting.Name
+		}
+		checkConfigAccessLevel(&reporting.AccessLevel, parentAccessLevel,
+			fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
+		parentAccessLevel = reporting.AccessLevel
+		if reporting.Filter == nil {
+			reporting.Filter = func(bug *Bug) FilterResult { return FilterReport }
+		}
+		reportingNames[reporting.Name] = true
+		if reporting.Config.Type() == "" {
+			panic(fmt.Sprintf("empty reporting type for %q", reporting.Name))
+		}
+		if err := reporting.Config.Validate(); err != nil {
+			panic(err)
+		}
+		if _, err := json.Marshal(reporting.Config); err != nil {
+			panic(fmt.Sprintf("failed to json marshal %q config: %v",
+				reporting.Name, err))
+		}
+	}
+}
+
+func checkManager(ns, name string, mgr ConfigManager) {
+	if mgr.Decommissioned && mgr.DelegatedTo == "" {
+		panic(fmt.Sprintf("decommissioned manager %v/%v does not have delegate", ns, name))
+	}
+	if !mgr.Decommissioned && mgr.DelegatedTo != "" {
+		panic(fmt.Sprintf("non-decommissioned manager %v/%v has delegate", ns, name))
+	}
+	if mgr.RestrictedTestingRepo != "" && mgr.RestrictedTestingReason == "" {
+		panic(fmt.Sprintf("restricted manager %v/%v does not have restriction reason", ns, name))
+	}
+	if mgr.RestrictedTestingRepo == "" && mgr.RestrictedTestingReason != "" {
+		panic(fmt.Sprintf("unrestricted manager %v/%v has restriction reason", ns, name))
 	}
 }
 
