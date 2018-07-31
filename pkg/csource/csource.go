@@ -230,33 +230,7 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 
 		// Copyout.
 		if resCopyout || argCopyout {
-			if ctx.sysTarget.OS == "fuchsia" {
-				// On fuchsia we have real system calls that return ZX_OK on success,
-				// and libc calls that are casted to function returning long,
-				// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
-				if strings.HasPrefix(callName, "zx_") {
-					fmt.Fprintf(w, "\tif (res == ZX_OK)")
-				} else {
-					fmt.Fprintf(w, "\tif ((int)res != -1)")
-				}
-			} else {
-				fmt.Fprintf(w, "\tif (res != -1)")
-			}
-			copyoutMultiple := len(call.Copyout) > 1 || resCopyout && len(call.Copyout) > 0
-			if copyoutMultiple {
-				fmt.Fprintf(w, " {")
-			}
-			fmt.Fprintf(w, "\n")
-			if resCopyout {
-				fmt.Fprintf(w, "\t\tr[%v] = res;\n", call.Index)
-			}
-			for _, copyout := range call.Copyout {
-				fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v*)0x%x);\n",
-					copyout.Index, copyout.Size*8, copyout.Addr)
-			}
-			if copyoutMultiple {
-				fmt.Fprintf(w, "\t}\n")
-			}
+			ctx.copyout(w, call, resCopyout)
 		}
 		calls = append(calls, w.String())
 	}
@@ -336,6 +310,36 @@ func (ctx *context) copyinVal(w *bytes.Buffer, addr, size uint64, val string, bf
 		fmt.Fprintf(w, "\tNONFAILING(sprintf((char*)0x%x, \"%%023llo\", (long long)%v));\n", addr, val)
 	default:
 		panic("unknown binary format")
+	}
+}
+
+func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool) {
+	if ctx.sysTarget.OS == "fuchsia" {
+		// On fuchsia we have real system calls that return ZX_OK on success,
+		// and libc calls that are casted to function returning long,
+		// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
+		if strings.HasPrefix(call.Meta.CallName, "zx_") {
+			fmt.Fprintf(w, "\tif (res == ZX_OK)")
+		} else {
+			fmt.Fprintf(w, "\tif ((int)res != -1)")
+		}
+	} else {
+		fmt.Fprintf(w, "\tif (res != -1)")
+	}
+	copyoutMultiple := len(call.Copyout) > 1 || resCopyout && len(call.Copyout) > 0
+	if copyoutMultiple {
+		fmt.Fprintf(w, " {")
+	}
+	fmt.Fprintf(w, "\n")
+	if resCopyout {
+		fmt.Fprintf(w, "\t\tr[%v] = res;\n", call.Index)
+	}
+	for _, copyout := range call.Copyout {
+		fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v*)0x%x);\n",
+			copyout.Index, copyout.Size*8, copyout.Addr)
+	}
+	if copyoutMultiple {
+		fmt.Fprintf(w, "\t}\n")
 	}
 }
 
