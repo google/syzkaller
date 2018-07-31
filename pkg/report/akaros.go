@@ -33,39 +33,11 @@ func (ctx *akaros) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *akaros) Parse(output []byte) *Report {
-	rep := &Report{
-		Output: output,
-	}
-	var oops *oops
-	for pos := 0; pos < len(output); {
-		next := bytes.IndexByte(output[pos:], '\n')
-		if next != -1 {
-			next += pos
-		} else {
-			next = len(output)
-		}
-		line := output[pos:next]
-		for _, oops1 := range akarosOopses {
-			match := matchOops(line, oops1, ctx.ignores)
-			if match != -1 {
-				oops = oops1
-				rep.StartPos = pos
-				break
-			}
-		}
-		if oops != nil {
-			break
-		}
-		pos = next + 1
-	}
-	if oops == nil {
+	rep := simpleLineParser(output, akarosOopses, akarosStackParams, ctx.ignores)
+	if rep == nil {
 		return nil
 	}
-	title, corrupted, _ := extractDescription(output[rep.StartPos:], oops, akarosStackParams)
-	rep.Title = title
-	rep.Report = ctx.minimizeReport(output[rep.StartPos:])
-	rep.Corrupted = corrupted != ""
-	rep.CorruptedReason = corrupted
+	rep.Report = ctx.minimizeReport(rep.Report)
 	return rep
 }
 
