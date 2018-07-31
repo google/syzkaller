@@ -16,9 +16,7 @@ import (
 )
 
 const (
-	linux   = "linux"
-	akaros  = "akaros"
-	fuchsia = "fuchsia"
+	linux = "linux"
 
 	sandboxNone      = "none"
 	sandboxSetuid    = "setuid"
