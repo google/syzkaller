@@ -262,11 +262,11 @@ func (p *parser) parseTypeDef() *TypeDef {
 		}
 		p.consume(tokRBrack)
 		if p.tok == tokLBrace || p.tok == tokLBrack {
-			name := &Ident{
+			emptyName := &Ident{
 				Pos:  pos0,
 				Name: "",
 			}
-			str = p.parseStruct(name)
+			str = p.parseStruct(emptyName)
 		} else {
 			typ = p.parseType()
 		}

@@ -48,13 +48,13 @@ type File struct {
 	done       chan bool
 }
 
-type OS interface {
+type Extractor interface {
 	prepare(sourcedir string, build bool, arches []string) error
 	prepareArch(arch *Arch) error
 	processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error)
 }
 
-var oses = map[string]OS{
+var extractors = map[string]Extractor{
 	"akaros":  new(akaros),
 	"linux":   new(linux),
 	"freebsd": new(freebsd),
@@ -79,11 +79,11 @@ func main() {
 		failf("%v", err)
 	}
 
-	OS := oses[osStr]
-	if OS == nil {
+	extractor := extractors[osStr]
+	if extractor == nil {
 		failf("unknown os: %v", osStr)
 	}
-	if err := OS.prepare(*flagSourceDir, *flagBuild, archArray); err != nil {
+	if err := extractor.prepare(*flagSourceDir, *flagBuild, archArray); err != nil {
 		failf("%v", err)
 	}
 
@@ -132,7 +132,7 @@ func main() {
 			for job := range jobC {
 				switch j := job.(type) {
 				case *Arch:
-					infos, err := processArch(OS, j)
+					infos, err := processArch(extractor, j)
 					j.err = err
 					close(j.done)
 					if j.err == nil {
@@ -142,7 +142,7 @@ func main() {
 						}
 					}
 				case *File:
-					j.consts, j.undeclared, j.err = processFile(OS, j.arch, j)
+					j.consts, j.undeclared, j.err = processFile(extractor, j.arch, j)
 					close(j.done)
 				}
 			}
@@ -244,7 +244,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 	return os, arches, files, nil
 }
 
-func processArch(OS OS, arch *Arch) (map[string]*compiler.ConstInfo, error) {
+func processArch(extractor Extractor, arch *Arch) (map[string]*compiler.ConstInfo, error) {
 	errBuf := new(bytes.Buffer)
 	eh := func(pos ast.Pos, msg string) {
 		fmt.Fprintf(errBuf, "%v: %v\n", pos, msg)
@@ -257,13 +257,13 @@ func processArch(OS OS, arch *Arch) (map[string]*compiler.ConstInfo, error) {
 	if infos == nil {
 		return nil, fmt.Errorf("%v", errBuf.String())
 	}
-	if err := OS.prepareArch(arch); err != nil {
+	if err := extractor.prepareArch(arch); err != nil {
 		return nil, err
 	}
 	return infos, nil
 }
 
-func processFile(OS OS, arch *Arch, file *File) (map[string]uint64, map[string]bool, error) {
+func processFile(extractor Extractor, arch *Arch, file *File) (map[string]uint64, map[string]bool, error) {
 	inname := filepath.Join("sys", arch.target.OS, file.name)
 	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
 	if file.info == nil {
@@ -273,7 +273,7 @@ func processFile(OS OS, arch *Arch, file *File) (map[string]uint64, map[string]b
 		os.Remove(outname)
 		return nil, nil, nil
 	}
-	consts, undeclared, err := OS.processFile(arch, file.info)
+	consts, undeclared, err := extractor.processFile(arch, file.info)
 	if err != nil {
 		return nil, nil, err
 	}

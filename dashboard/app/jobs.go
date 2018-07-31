@@ -54,7 +54,7 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 			if err := datastore.Get(c, bugKey, bug); err != nil {
 				return err
 			}
-			bugReporting := bugReportingByName(bug, bugReporting.Name)
+			bugReporting = bugReportingByName(bug, bugReporting.Name)
 			bugCC := strings.Split(bugReporting.CC, "|")
 			merged := email.MergeEmailLists(bugCC, jobCC)
 			bugReporting.CC = strings.Join(merged, "|")
@@ -150,12 +150,12 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 		if len(jobs) != 0 {
 			// The job is already present, update link.
 			deletePatch = true
-			job, jobKey := jobs[0], keys[0]
-			if job.Link != "" || link == "" {
+			existingJob, jobKey := jobs[0], keys[0]
+			if existingJob.Link != "" || link == "" {
 				return nil
 			}
-			job.Link = link
-			if _, err := datastore.Put(c, jobKey, job); err != nil {
+			existingJob.Link = link
+			if _, err := datastore.Put(c, jobKey, existingJob); err != nil {
 				return fmt.Errorf("failed to put job: %v", err)
 			}
 			return nil
@@ -218,7 +218,7 @@ retry:
 	stale := false
 	tx := func(c context.Context) error {
 		stale = false
-		job := new(Job)
+		job = new(Job)
 		if err := datastore.Get(c, jobKey, job); err != nil {
 			return fmt.Errorf("job %v: failed to get in tx: %v", jobID, err)
 		}

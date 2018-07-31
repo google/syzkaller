@@ -158,23 +158,23 @@ func Mutate(cfg *Config, r *rand.Rand, text []byte) []byte {
 				switch x := r.Intn(100); {
 				case x < 5 && len(text1) != 0:
 					// delete byte
-					i := r.Intn(len(text1))
-					copy(text1[i:], text1[i+1:])
+					pos := r.Intn(len(text1))
+					copy(text1[pos:], text1[pos+1:])
 					text1 = text1[:len(text1)-1]
 				case x < 40 && len(text1) != 0:
 					// replace a byte
-					i := r.Intn(len(text1))
-					text1[i] = byte(r.Intn(256))
+					pos := r.Intn(len(text1))
+					text1[pos] = byte(r.Intn(256))
 				case x < 70 && len(text1) != 0:
 					// flip a bit
-					i := r.Intn(len(text1))
-					text1[i] ^= 1 << byte(r.Intn(8))
+					pos := r.Intn(len(text1))
+					text1[pos] ^= 1 << byte(r.Intn(8))
 				default:
 					// insert a byte
-					i := r.Intn(len(text1) + 1)
+					pos := r.Intn(len(text1) + 1)
 					text1 = append(text1, 0)
-					copy(text1[i+1:], text1[i:])
-					text1[i] = byte(r.Intn(256))
+					copy(text1[pos+1:], text1[pos:])
+					text1[pos] = byte(r.Intn(256))
 				}
 			}
 			insns[i] = text1
