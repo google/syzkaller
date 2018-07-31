@@ -85,12 +85,13 @@ func (comp *compiler) checkNames() {
 					name, typ, prev.Pos)
 				continue
 			}
-			if res, ok := decl.(*ast.Resource); ok {
-				comp.resources[name] = res
-			} else if n, ok := decl.(*ast.TypeDef); ok {
+			switch n := decl.(type) {
+			case *ast.Resource:
+				comp.resources[name] = n
+			case *ast.TypeDef:
 				comp.typedefs[name] = n
-			} else if str, ok := decl.(*ast.Struct); ok {
-				comp.structs[name] = str
+			case *ast.Struct:
+				comp.structs[name] = n
 			}
 		case *ast.IntFlags:
 			name := n.Name.Name
