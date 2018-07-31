@@ -5,7 +5,7 @@
 	"sort": ["path", "line"],
 	"minconstlength": 7,
 	"linelength": 120,
-	"cyclo": 40,
+	"cyclo": 35,
 	"duplthreshold": 60,
 	"skip": [
 		"pkg/kd",
