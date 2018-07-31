@@ -63,133 +63,157 @@ func main() {
 	}
 	config, execOpts := createConfig(target, entries, features)
 
+	ctx := &Context{
+		entries:  entries,
+		config:   config,
+		execOpts: execOpts,
+		gate:     ipc.NewGate(2**flagProcs, nil),
+		shutdown: make(chan struct{}),
+		repeat:   *flagRepeat,
+	}
 	var wg sync.WaitGroup
 	wg.Add(*flagProcs)
-	var posMu, logMu sync.Mutex
-	gate := ipc.NewGate(2**flagProcs, nil)
-	var pos int
-	var lastPrint time.Time
-	shutdown := make(chan struct{})
 	for p := 0; p < *flagProcs; p++ {
 		pid := p
 		go func() {
 			defer wg.Done()
-			env, err := ipc.MakeEnv(config, pid)
-			if err != nil {
-				log.Fatalf("failed to create ipc env: %v", err)
-			}
-			defer env.Close()
-			for {
-				if !func() bool {
-					// Limit concurrency window.
-					ticket := gate.Enter()
-					defer gate.Leave(ticket)
-
-					posMu.Lock()
-					idx := pos
-					pos++
-					if idx%len(entries) == 0 && time.Since(lastPrint) > 5*time.Second {
-						log.Logf(0, "executed programs: %v", idx)
-						lastPrint = time.Now()
-					}
-					posMu.Unlock()
-					if *flagRepeat > 0 && idx >= len(entries)**flagRepeat {
-						return false
-					}
-					entry := entries[idx%len(entries)]
-					callOpts := execOpts
-					if *flagFaultCall == -1 && entry.Fault {
-						newOpts := *execOpts
-						newOpts.Flags |= ipc.FlagInjectFault
-						newOpts.FaultCall = entry.FaultCall
-						newOpts.FaultNth = entry.FaultNth
-						callOpts = &newOpts
-					}
-					switch *flagOutput {
-					case "stdout":
-						strOpts := ""
-						if callOpts.Flags&ipc.FlagInjectFault != 0 {
-							strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)", callOpts.FaultCall, callOpts.FaultNth)
-						}
-						data := entry.P.Serialize()
-						logMu.Lock()
-						log.Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
-						logMu.Unlock()
-					}
-					output, info, failed, hanged, err := env.Exec(callOpts, entry.P)
-					select {
-					case <-shutdown:
-						return false
-					default:
-					}
-					if failed {
-						log.Logf(0, "BUG: executor-detected bug:\n%s", output)
-					}
-					if config.Flags&ipc.FlagDebug != 0 || err != nil {
-						log.Logf(0, "result: failed=%v hanged=%v err=%v\n\n%s",
-							failed, hanged, err, output)
-					}
-					if len(info) != 0 {
-						for i, inf := range info {
-							log.Logf(1, "CALL %v: signal %v, coverage %v errno %v",
-								i, len(inf.Signal), len(inf.Cover), inf.Errno)
-						}
-					} else {
-						log.Logf(1, "RESULT: no calls executed")
-					}
-					if *flagCoverFile != "" {
-						for i, inf := range info {
-							log.Logf(0, "call #%v: signal %v, coverage %v",
-								i, len(inf.Signal), len(inf.Cover))
-							if len(inf.Cover) == 0 {
-								continue
-							}
-							buf := new(bytes.Buffer)
-							for _, pc := range inf.Cover {
-								fmt.Fprintf(buf, "0x%x\n", cover.RestorePC(pc, 0xffffffff))
-							}
-							err := osutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes())
-							if err != nil {
-								log.Fatalf("failed to write coverage file: %v", err)
-							}
-						}
-					}
-					if *flagHints {
-						ncomps, ncandidates := 0, 0
-						for i := range entry.P.Calls {
-							if *flagOutput == "stdout" {
-								fmt.Printf("call %v:\n", i)
-							}
-							comps := info[i].Comps
-							for v, args := range comps {
-								ncomps += len(args)
-								if *flagOutput == "stdout" {
-									fmt.Printf("comp 0x%x:", v)
-									for arg := range args {
-										fmt.Printf(" 0x%x", arg)
-									}
-									fmt.Printf("\n")
-								}
-							}
-							entry.P.MutateWithHints(i, comps, func(p *prog.Prog) {
-								ncandidates++
-								if *flagOutput == "stdout" {
-									log.Logf(1, "PROGRAM:\n%s", p.Serialize())
-								}
-							})
-						}
-						log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
-					}
-					return true
-				}() {
-					return
-				}
-			}
+			ctx.run(pid)
 		}()
 	}
-
-	osutil.HandleInterrupts(shutdown)
+	osutil.HandleInterrupts(ctx.shutdown)
 	wg.Wait()
+}
+
+type Context struct {
+	entries   []*prog.LogEntry
+	config    *ipc.Config
+	execOpts  *ipc.ExecOpts
+	gate      *ipc.Gate
+	shutdown  chan struct{}
+	logMu     sync.Mutex
+	posMu     sync.Mutex
+	repeat    int
+	pos       int
+	lastPrint time.Time
+}
+
+func (ctx *Context) run(pid int) {
+	env, err := ipc.MakeEnv(ctx.config, pid)
+	if err != nil {
+		log.Fatalf("failed to create ipc env: %v", err)
+	}
+	defer env.Close()
+	for {
+		select {
+		case <-ctx.shutdown:
+			return
+		default:
+		}
+		idx := ctx.getProgramIndex()
+		if ctx.repeat > 0 && idx >= len(ctx.entries)*ctx.repeat {
+			return
+		}
+		entry := ctx.entries[idx%len(ctx.entries)]
+		ctx.execute(pid, env, entry)
+	}
+}
+
+func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
+	// Limit concurrency window.
+	ticket := ctx.gate.Enter()
+	defer ctx.gate.Leave(ticket)
+
+	callOpts := ctx.execOpts
+	if *flagFaultCall == -1 && entry.Fault {
+		newOpts := *ctx.execOpts
+		newOpts.Flags |= ipc.FlagInjectFault
+		newOpts.FaultCall = entry.FaultCall
+		newOpts.FaultNth = entry.FaultNth
+		callOpts = &newOpts
+	}
+	switch *flagOutput {
+	case "stdout":
+		strOpts := ""
+		if callOpts.Flags&ipc.FlagInjectFault != 0 {
+			strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)",
+				callOpts.FaultCall, callOpts.FaultNth)
+		}
+		data := entry.P.Serialize()
+		ctx.logMu.Lock()
+		log.Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
+		ctx.logMu.Unlock()
+	}
+	output, info, failed, hanged, err := env.Exec(callOpts, entry.P)
+	if failed {
+		log.Logf(0, "BUG: executor-detected bug:\n%s", output)
+	}
+	if ctx.config.Flags&ipc.FlagDebug != 0 || err != nil {
+		log.Logf(0, "result: failed=%v hanged=%v err=%v\n\n%s",
+			failed, hanged, err, output)
+	}
+	if len(info) != 0 {
+		for i, inf := range info {
+			log.Logf(1, "CALL %v: signal %v, coverage %v errno %v",
+				i, len(inf.Signal), len(inf.Cover), inf.Errno)
+		}
+	} else {
+		log.Logf(1, "RESULT: no calls executed")
+	}
+	if *flagCoverFile != "" {
+		for i, inf := range info {
+			log.Logf(0, "call #%v: signal %v, coverage %v",
+				i, len(inf.Signal), len(inf.Cover))
+			if len(inf.Cover) == 0 {
+				continue
+			}
+			buf := new(bytes.Buffer)
+			for _, pc := range inf.Cover {
+				fmt.Fprintf(buf, "0x%x\n", cover.RestorePC(pc, 0xffffffff))
+			}
+			err := osutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes())
+			if err != nil {
+				log.Fatalf("failed to write coverage file: %v", err)
+			}
+		}
+	}
+	if *flagHints {
+		ncomps, ncandidates := 0, 0
+		for i := range entry.P.Calls {
+			if *flagOutput == "stdout" {
+				fmt.Printf("call %v:\n", i)
+			}
+			comps := info[i].Comps
+			for v, args := range comps {
+				ncomps += len(args)
+				if *flagOutput == "stdout" {
+					fmt.Printf("comp 0x%x:", v)
+					for arg := range args {
+						fmt.Printf(" 0x%x", arg)
+					}
+					fmt.Printf("\n")
+				}
+			}
+			entry.P.MutateWithHints(i, comps, func(p *prog.Prog) {
+				ncandidates++
+				if *flagOutput == "stdout" {
+					log.Logf(1, "PROGRAM:\n%s", p.Serialize())
+				}
+			})
+		}
+		log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
+	}
+}
+
+func (ctx *Context) getProgramIndex() int {
+	ctx.posMu.Lock()
+	idx := ctx.pos
+	ctx.pos++
+	if idx%len(ctx.entries) == 0 && time.Since(ctx.lastPrint) > 5*time.Second {
+		log.Logf(0, "executed programs: %v", idx)
+		ctx.lastPrint = time.Now()
+	}
+	ctx.posMu.Unlock()
+	return idx
 }
 
 func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
