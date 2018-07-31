@@ -48,11 +48,7 @@ func (ctx *validCtx) validateCall(c *Call) error {
 			return err
 		}
 	}
-	if err := ctx.validateRet(c); err != nil {
-		return err
-	}
-	ctx.target.SanitizeCall(c)
-	return nil
+	return ctx.validateRet(c)
 }
 
 func (ctx *validCtx) validateRet(c *Call) error {
@@ -132,6 +128,9 @@ func (arg *ResultArg) validate(ctx *validCtx) error {
 	for u := range arg.uses {
 		if u == nil {
 			return fmt.Errorf("nil reference in uses for arg %+v", arg)
+		}
+		if u.Res != arg {
+			return fmt.Errorf("result arg '%v' has broken uses link to (%+v)", arg, u)
 		}
 		ctx.uses[u] = arg
 	}

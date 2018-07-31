@@ -63,6 +63,7 @@ type Type interface {
 
 	generate(r *randGen, s *state) (arg Arg, calls []*Call)
 	mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool)
+	minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 }
 
 func IsPad(t Type) bool {
