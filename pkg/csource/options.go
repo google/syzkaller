@@ -44,33 +44,6 @@ type Options struct {
 // For example, Collide without Threaded is not valid.
 // Invalid combinations must not be passed to Write.
 func (opts Options) Check(OS string) error {
-	switch OS {
-	case fuchsia, akaros:
-		if opts.Fault {
-			return fmt.Errorf("Fault is not supported on %v", OS)
-		}
-		if opts.EnableTun {
-			return fmt.Errorf("EnableTun is not supported on %v", OS)
-		}
-		if opts.EnableCgroups {
-			return fmt.Errorf("EnableCgroups is not supported on %v", OS)
-		}
-		if opts.EnableNetdev {
-			return fmt.Errorf("EnableNetdev is not supported on %v", OS)
-		}
-		if opts.ResetNet {
-			return fmt.Errorf("ResetNet is not supported on %v", OS)
-		}
-		if opts.Sandbox != "" && opts.Sandbox != sandboxNone {
-			return fmt.Errorf("Sandbox=%v is not supported on %v", opts.Sandbox, OS)
-		}
-	}
-	if OS != linux && (opts.Sandbox == sandboxNamespace || opts.Sandbox == sandboxSetuid) {
-		return fmt.Errorf("Sandbox=%v is not supported on %v", opts.Sandbox, OS)
-	}
-	if OS != linux && opts.Fault {
-		return fmt.Errorf("Fault is not supported on %v", OS)
-	}
 	if !opts.Threaded && opts.Collide {
 		// Collide requires threaded.
 		return errors.New("Collide without Threaded")
@@ -105,6 +78,31 @@ func (opts Options) Check(OS string) error {
 	}
 	if !opts.Repeat && opts.RepeatTimes != 0 && opts.RepeatTimes != 1 {
 		return errors.New("RepeatTimes without Repeat")
+	}
+	return opts.checkLinuxOnly(OS)
+}
+
+func (opts Options) checkLinuxOnly(OS string) error {
+	if OS == linux {
+		return nil
+	}
+	if opts.EnableTun {
+		return fmt.Errorf("EnableTun is not supported on %v", OS)
+	}
+	if opts.EnableCgroups {
+		return fmt.Errorf("EnableCgroups is not supported on %v", OS)
+	}
+	if opts.EnableNetdev {
+		return fmt.Errorf("EnableNetdev is not supported on %v", OS)
+	}
+	if opts.ResetNet {
+		return fmt.Errorf("ResetNet is not supported on %v", OS)
+	}
+	if opts.Sandbox == sandboxNamespace || opts.Sandbox == sandboxSetuid {
+		return fmt.Errorf("Sandbox=%v is not supported on %v", opts.Sandbox, OS)
+	}
+	if opts.Fault {
+		return fmt.Errorf("Fault is not supported on %v", OS)
 	}
 	return nil
 }
