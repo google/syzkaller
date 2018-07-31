@@ -433,22 +433,24 @@ func (ctx *context) simplifyProg(res *Result) (*Result, error) {
 
 	for _, simplify := range progSimplifies {
 		opts := res.Opts
-		if simplify(&opts) {
-			crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
-			if err != nil {
-				return nil, err
-			}
-			if crashed {
-				res.Opts = opts
-				// Simplification successful, try extracting C repro.
-				res, err := ctx.extractC(res)
-				if err != nil {
-					return nil, err
-				}
-				if res.CRepro {
-					return res, nil
-				}
-			}
+		if !simplify(&opts) {
+			continue
+		}
+		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
+		if err != nil {
+			return nil, err
+		}
+		if !crashed {
+			continue
+		}
+		res.Opts = opts
+		// Simplification successful, try extracting C repro.
+		res, err = ctx.extractC(res)
+		if err != nil {
+			return nil, err
+		}
+		if res.CRepro {
+			return res, nil
 		}
 	}
 
@@ -614,30 +616,6 @@ func (ctx *context) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.LogEnt
 	[]*prog.LogEntry, error) {
 	ctx.reproLog(3, "bisect: bisecting %d programs", len(progs))
 
-	compose := func(guilty1, guilty2 [][]*prog.LogEntry, chunk []*prog.LogEntry) []*prog.LogEntry {
-		progs := []*prog.LogEntry{}
-		for _, c := range guilty1 {
-			progs = append(progs, c...)
-		}
-		progs = append(progs, chunk...)
-		for _, c := range guilty2 {
-			progs = append(progs, c...)
-		}
-		return progs
-	}
-
-	logGuilty := func(guilty [][]*prog.LogEntry) string {
-		log := "["
-		for i, chunk := range guilty {
-			log += fmt.Sprintf("<%d>", len(chunk))
-			if i != len(guilty)-1 {
-				log += ", "
-			}
-		}
-		log += "]"
-		return log
-	}
-
 	ctx.reproLog(3, "bisect: executing all %d programs", len(progs))
 	crashed, err := pred(progs)
 	if err != nil {
@@ -650,7 +628,7 @@ func (ctx *context) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.LogEnt
 
 	guilty := [][]*prog.LogEntry{progs}
 again:
-	ctx.reproLog(3, "bisect: guilty chunks: %v", logGuilty(guilty))
+	ctx.reproLog(3, "bisect: guilty chunks: %v", chunksToStr(guilty))
 	for i, chunk := range guilty {
 		if len(chunk) == 1 {
 			continue
@@ -658,14 +636,16 @@ again:
 
 		guilty1 := guilty[:i]
 		guilty2 := guilty[i+1:]
-		ctx.reproLog(3, "bisect: guilty chunks split: %v, <%v>, %v", logGuilty(guilty1), len(chunk), logGuilty(guilty2))
+		ctx.reproLog(3, "bisect: guilty chunks split: %v, <%v>, %v",
+			chunksToStr(guilty1), len(chunk), chunksToStr(guilty2))
 
 		chunk1 := chunk[0 : len(chunk)/2]
 		chunk2 := chunk[len(chunk)/2:]
-		ctx.reproLog(3, "bisect: chunk split: <%v> => <%v>, <%v>", len(chunk), len(chunk1), len(chunk2))
+		ctx.reproLog(3, "bisect: chunk split: <%v> => <%v>, <%v>",
+			len(chunk), len(chunk1), len(chunk2))
 
 		ctx.reproLog(3, "bisect: triggering crash without chunk #1")
-		progs := compose(guilty1, guilty2, chunk2)
+		progs = flatenChunks(guilty1, guilty2, chunk2)
 		crashed, err := pred(progs)
 		if err != nil {
 			return nil, err
@@ -681,7 +661,7 @@ again:
 		}
 
 		ctx.reproLog(3, "bisect: triggering crash without chunk #2")
-		progs = compose(guilty1, guilty2, chunk1)
+		progs = flatenChunks(guilty1, guilty2, chunk1)
 		crashed, err = pred(progs)
 		if err != nil {
 			return nil, err
@@ -717,6 +697,30 @@ again:
 
 	ctx.reproLog(3, "bisect: success, %d programs left", len(progs))
 	return progs, nil
+}
+
+func flatenChunks(guilty1, guilty2 [][]*prog.LogEntry, chunk []*prog.LogEntry) []*prog.LogEntry {
+	var progs []*prog.LogEntry
+	for _, c := range guilty1 {
+		progs = append(progs, c...)
+	}
+	progs = append(progs, chunk...)
+	for _, c := range guilty2 {
+		progs = append(progs, c...)
+	}
+	return progs
+}
+
+func chunksToStr(chunks [][]*prog.LogEntry) string {
+	log := "["
+	for i, chunk := range chunks {
+		log += fmt.Sprintf("<%d>", len(chunk))
+		if i != len(chunks)-1 {
+			log += ", "
+		}
+	}
+	log += "]"
+	return log
 }
 
 func reverseEntries(entries []*prog.LogEntry) []*prog.LogEntry {

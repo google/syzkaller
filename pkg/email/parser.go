@@ -247,11 +247,12 @@ func extractArgsLine(body []byte) string {
 	return strings.TrimSpace(string(body[pos : pos+lineEnd]))
 }
 
-func parseBody(r io.Reader, headers mail.Header) (body []byte, attachments [][]byte, err error) {
+func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
 	// git-send-email sends emails without Content-Type, let's assume it's text.
 	mediaType := "text/plain"
 	var params map[string]string
 	if contentType := headers.Get("Content-Type"); contentType != "" {
+		var err error
 		mediaType, params, err = mime.ParseMediaType(headers.Get("Content-Type"))
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to parse email header 'Content-Type': %v", err)
@@ -281,6 +282,8 @@ func parseBody(r io.Reader, headers mail.Header) (body []byte, attachments [][]b
 	if !strings.HasPrefix(mediaType, "multipart/") {
 		return nil, nil, nil
 	}
+	var body []byte
+	var attachments [][]byte
 	mr := multipart.NewReader(r, params["boundary"])
 	for {
 		p, err := mr.NextPart()

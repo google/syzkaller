@@ -232,7 +232,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	}
 	for target := range upd.targets {
 		parts := strings.Split(target, "/")
-		cmd := osutil.Command("make", "target")
+		cmd = osutil.Command("make", "target")
 		cmd.Dir = upd.syzkallerDir
 		cmd.Env = append([]string{}, os.Environ()...)
 		cmd.Env = append(cmd.Env,

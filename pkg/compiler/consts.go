@@ -293,7 +293,7 @@ func DeserializeConsts(data []byte, file string, eh ast.ErrorHandler) map[string
 			ok = false
 			continue
 		}
-		if _, ok := consts[name]; ok {
+		if _, dup := consts[name]; dup {
 			eh(pos, fmt.Sprintf("duplicate const %q", name))
 			ok = false
 			continue
