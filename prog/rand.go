@@ -684,6 +684,6 @@ func (a *LenType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 }
 
 func (a *CsumType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	// Updated later in calcChecksumsCall.
+	// Filled at runtime by executor.
 	return MakeConstArg(a, 0), nil
 }
