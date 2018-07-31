@@ -22,7 +22,9 @@ type Call struct {
 type Arg interface {
 	Type() Type
 	Size() uint64
+
 	validate(ctx *validCtx) error
+	serialize(ctx *serializer)
 }
 
 type ArgCommon struct {
