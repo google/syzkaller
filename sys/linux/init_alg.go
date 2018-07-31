@@ -122,7 +122,7 @@ var allTypes = []algType{
 }
 
 var allAlgs = map[int][]algDesc{
-	ALG_AEAD: []algDesc{
+	ALG_AEAD: {
 		// templates:
 		{"authencesn", []int{ALG_HASH, ALG_BLKCIPHER}},
 		{"authenc", []int{ALG_HASH, ALG_BLKCIPHER}},
@@ -162,7 +162,7 @@ var allAlgs = map[int][]algDesc{
 		{"aegis256-generic", nil},
 		{"aegis256-aesni", nil},
 	},
-	ALG_BLKCIPHER: []algDesc{
+	ALG_BLKCIPHER: {
 		// templates:
 		{"pcbc", []int{ALG_CIPHER}},
 		{"cbc", []int{ALG_CIPHER}},
@@ -289,7 +289,7 @@ var allAlgs = map[int][]algDesc{
 		{"ecb(des3_ede)", nil},
 		{"ecb-des3_ede-asm", nil},
 	},
-	ALG_CIPHER: []algDesc{
+	ALG_CIPHER: {
 		{"aes", nil},
 		{"aes-aesni", nil},
 		{"seed", nil},
@@ -336,7 +336,7 @@ var allAlgs = map[int][]algDesc{
 		{"cipher_null-generic", nil},
 		{"aes-asm", nil},
 	},
-	ALG_HASH: []algDesc{
+	ALG_HASH: {
 		// templates:
 		{"cmac", []int{ALG_CIPHER}},
 		{"cbcmac", []int{ALG_CIPHER}},
@@ -435,7 +435,7 @@ var allAlgs = map[int][]algDesc{
 		{"sha1-ssse3", nil},
 		{"crc32c-intel", nil},
 	},
-	ALG_RNG: []algDesc{
+	ALG_RNG: {
 		{"stdrng", nil},
 		{"ansi_cprng", nil},
 		{"jitterentropy_rng", nil},

@@ -125,7 +125,7 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (str
 			},
 		},
 		NetworkInterfaces: []*compute.NetworkInterface{
-			&compute.NetworkInterface{
+			{
 				Network:    ctx.Network,
 				Subnetwork: ctx.Subnetwork,
 			},

@@ -136,13 +136,13 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 		},
 	}
 	symbols := map[string][]symbolizer.Symbol{
-		"foo": []symbolizer.Symbol{
+		"foo": {
 			{Addr: 0x1000000, Size: 0x190},
 		},
-		"do_ipv6_setsockopt.isra.7.part.3": []symbolizer.Symbol{
+		"do_ipv6_setsockopt.isra.7.part.3": {
 			{Addr: 0x2000000, Size: 0x2830},
 		},
-		"baz": []symbolizer.Symbol{
+		"baz": {
 			{Addr: 0x3000000, Size: 0x100},
 			{Addr: 0x4000000, Size: 0x200},
 			{Addr: 0x5000000, Size: 0x300},

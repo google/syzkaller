@@ -30,7 +30,7 @@ var testConfig = &GlobalConfig{
 		"\"Bar\" <BlackListed@Domain.com>",
 	},
 	Namespaces: map[string]*Config{
-		"test1": &Config{
+		"test1": {
 			AccessLevel: AccessAdmin,
 			Key:         "test1keytest1keytest1key",
 			Clients: map[string]string{
@@ -60,7 +60,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 		},
-		"test2": &Config{
+		"test2": {
 			AccessLevel: AccessAdmin,
 			Key:         "test2keytest2keytest2key",
 			Clients: map[string]string{
@@ -93,7 +93,7 @@ var testConfig = &GlobalConfig{
 			},
 		},
 		// Namespaces for access level testing.
-		"access-admin": &Config{
+		"access-admin": {
 			AccessLevel: AccessAdmin,
 			Key:         "adminkeyadminkeyadminkey",
 			Clients: map[string]string{
@@ -110,7 +110,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 		},
-		"access-user": &Config{
+		"access-user": {
 			AccessLevel: AccessUser,
 			Key:         "userkeyuserkeyuserkey",
 			Clients: map[string]string{
@@ -128,7 +128,7 @@ var testConfig = &GlobalConfig{
 				},
 			},
 		},
-		"access-public": &Config{
+		"access-public": {
 			AccessLevel: AccessPublic,
 			Key:         "publickeypublickeypublickey",
 			Clients: map[string]string{

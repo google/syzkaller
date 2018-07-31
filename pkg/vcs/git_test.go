@@ -30,7 +30,7 @@ Reported-and-tested-by: and@me.com
 Reported-and-Tested-by: Name-name <name@name.com>
 Tested-by: Must be correct <mustbe@correct.com>
 Signed-off-by: Linux Master <linux@linux-foundation.org>
-`: &Commit{
+`: {
 			Hash:   "2075b16e32c26e4031b9fd3cbe26c54676a8fcb5",
 			Title:  "rbtree: include rcu.h",
 			Author: "foobar@foobar.de",

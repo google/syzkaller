@@ -30,7 +30,7 @@ func TestParseOptionsCanned(t *testing.T) {
 		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"namespace",
 		"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,
 		"netdev":true,"resetnet":true,
-		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: Options{
+		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: {
 			Threaded:      true,
 			Collide:       true,
 			Repeat:        true,
@@ -47,7 +47,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:    true,
 			Repro:         true,
 		},
-		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
+		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:      true,
 			Collide:       true,
 			Repeat:        true,
@@ -62,7 +62,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:    true,
 			Repro:         false,
 		},
-		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox: Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
+		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox: Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:      true,
 			Collide:       true,
 			Repeat:        true,
@@ -77,7 +77,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:    true,
 			Repro:         false,
 		},
-		"{Threaded:false Collide:true Repeat:true Procs:1 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true EnableCgroups:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
+		"{Threaded:false Collide:true Repeat:true Procs:1 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true EnableCgroups:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
 			Threaded:      false,
 			Collide:       true,
 			Repeat:        true,
@@ -122,7 +122,7 @@ func allOptionsSingle(OS string) []Options {
 }
 
 func allOptionsPermutations(OS string) []Options {
-	opts := []Options{Options{}}
+	opts := []Options{{}}
 	fields := reflect.TypeOf(Options{}).NumField()
 	for i := 0; i < fields; i++ {
 		var newOpts []Options

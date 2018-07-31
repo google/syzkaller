@@ -80,7 +80,7 @@ func (ctx *freebsd) Symbolize(rep *Report) error {
 var freebsdStackParams = &stackParams{}
 
 var freebsdOopses = []*oops{
-	&oops{
+	{
 		[]byte("Fatal trap"),
 		[]oopsFormat{
 			{
@@ -94,7 +94,7 @@ var freebsdOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{

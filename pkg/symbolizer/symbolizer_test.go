@@ -24,7 +24,7 @@ func TestParse(t *testing.T) {
 				"__asan_report_load2_noabort\n" +
 				"mm/kasan/report.c:320\n",
 			[]Frame{
-				Frame{
+				{
 					PC:     0xffffffff8180a42e,
 					Func:   "__asan_report_load2_noabort",
 					File:   "mm/kasan/report.c",
@@ -41,14 +41,14 @@ func TestParse(t *testing.T) {
 				"__asan_report_load2_noabort\n" +
 				"mm/kasan/report.c:320\n",
 			[]Frame{
-				Frame{
+				{
 					PC:     0xffffffff8180a42d,
 					Func:   "kasan_report",
 					File:   "mm/kasan/report.c",
 					Line:   301,
 					Inline: true,
 				},
-				Frame{
+				{
 					PC:     0xffffffff8180a42d,
 					Func:   "__asan_report_load2_noabort",
 					File:   "mm/kasan/report.c",
@@ -63,7 +63,7 @@ func TestParse(t *testing.T) {
 				"fbcon_invert_region\n" +
 				"drivers/video/console/fbcon.c:2750\n",
 			[]Frame{
-				Frame{
+				{
 					PC:     0xffffffff82fdbe0b,
 					Func:   "fbcon_invert_region",
 					File:   "drivers/video/console/fbcon.c",
@@ -92,7 +92,7 @@ func TestParse(t *testing.T) {
 				"devpts_get_priv\n" +
 				"fs/devpts/inode.c:588 (discriminator 3)\n",
 			[]Frame{
-				Frame{
+				{
 					PC:     0xffffffff81a2aff9,
 					Func:   "devpts_get_priv",
 					File:   "fs/devpts/inode.c",

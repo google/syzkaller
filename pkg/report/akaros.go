@@ -155,7 +155,7 @@ var akarosStackParams = &stackParams{
 }
 
 var akarosOopses = []*oops{
-	&oops{
+	{
 		[]byte("kernel panic"),
 		[]oopsFormat{
 			{
@@ -187,7 +187,7 @@ var akarosOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("kernel warning"),
 		[]oopsFormat{
 			{

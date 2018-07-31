@@ -44,10 +44,10 @@ func main() {
 	}
 
 	graphs := []*Graph{
-		&Graph{Name: "coverage"},
-		&Graph{Name: "corpus"},
-		&Graph{Name: "exec total"},
-		&Graph{Name: "crash types"},
+		{Name: "coverage"},
+		{Name: "corpus"},
+		{Name: "exec total"},
+		{Name: "crash types"},
 	}
 	for i, fname := range flag.Args() {
 		data := readFile(fname)

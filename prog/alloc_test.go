@@ -15,7 +15,7 @@ func TestMemAlloc(t *testing.T) {
 		size int // if positive do noteAlloc, otherwise -- alloc
 	}
 	tests := [][]op{
-		[]op{
+		{
 			// Just sequential allocation.
 			{0, -1},
 			{64, -64},
@@ -23,7 +23,7 @@ func TestMemAlloc(t *testing.T) {
 			{256, -16},
 			{320, -8},
 		},
-		[]op{
+		{
 			// First reserve some memory and then allocate.
 			{0, 1},
 			{64, 63},
