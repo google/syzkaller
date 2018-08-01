@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/syzkaller/syz-manager/mgrconfig"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
 // Options control various aspects of source generation.

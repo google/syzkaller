@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/syzkaller/syz-manager/mgrconfig"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
 type Reporter interface {

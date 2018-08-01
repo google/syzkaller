@@ -61,8 +61,8 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 var flagConfig = flag.String("config", "", "config file")
