@@ -123,68 +123,14 @@ func (inst *Instance) Close() {
 // If canExit is false and the program exits, it is treated as an error.
 // Returns a non-symbolized crash report, or nil if no error happens.
 func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
-	reporter report.Reporter, canExit bool) (
-	rep *report.Report) {
-	var output []byte
-	waitForOutput := func() {
-		timer := time.NewTimer(10 * time.Second).C
-		for {
-			select {
-			case out, ok := <-outc:
-				if !ok {
-					return
-				}
-				output = append(output, out...)
-			case <-timer:
-				return
-			}
-		}
+	reporter report.Reporter, canExit bool) (rep *report.Report) {
+	mon := &monitor{
+		inst:     inst,
+		outc:     outc,
+		errc:     errc,
+		reporter: reporter,
+		canExit:  canExit,
 	}
-
-	matchPos := 0
-	const (
-		beforeContext = 1024 << 10
-		afterContext  = 128 << 10
-	)
-	extractError := func(defaultError string) *report.Report {
-		// Give it some time to finish writing the error message.
-		inst.Diagnose()
-		waitForOutput()
-		if bytes.Contains(output, []byte("SYZ-FUZZER: PREEMPTED")) {
-			return nil
-		}
-		if !reporter.ContainsCrash(output[matchPos:]) {
-			if defaultError == "" {
-				if canExit {
-					return nil
-				}
-				defaultError = "lost connection to test machine"
-			}
-			rep := &report.Report{
-				Title:      defaultError,
-				Output:     output,
-				Suppressed: report.IsSuppressed(reporter, output),
-			}
-			return rep
-		}
-		rep := reporter.Parse(output[matchPos:])
-		if rep == nil {
-			panic(fmt.Sprintf("reporter.ContainsCrash/Parse disagree:\n%s", output[matchPos:]))
-		}
-		start := matchPos + rep.StartPos - beforeContext
-		if start < 0 {
-			start = 0
-		}
-		end := matchPos + rep.EndPos + afterContext
-		if end > len(output) {
-			end = len(output)
-		}
-		rep.Output = output[start:end]
-		rep.StartPos += matchPos - start
-		rep.EndPos += matchPos - start
-		return rep
-	}
-
 	lastExecuteTime := time.Now()
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -195,31 +141,31 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			case nil:
 				// The program has exited without errors,
 				// but wait for kernel output in case there is some delayed oops.
-				return extractError("")
+				return mon.extractError("")
 			case ErrTimeout:
 				return nil
 			default:
 				// Note: connection lost can race with a kernel oops message.
 				// In such case we want to return the kernel oops.
-				return extractError("lost connection to test machine")
+				return mon.extractError("lost connection to test machine")
 			}
 		case out := <-outc:
-			lastPos := len(output)
-			output = append(output, out...)
-			if bytes.Contains(output[lastPos:], executingProgram1) ||
-				bytes.Contains(output[lastPos:], executingProgram2) {
+			lastPos := len(mon.output)
+			mon.output = append(mon.output, out...)
+			if bytes.Contains(mon.output[lastPos:], executingProgram1) ||
+				bytes.Contains(mon.output[lastPos:], executingProgram2) {
 				lastExecuteTime = time.Now()
 			}
-			if reporter.ContainsCrash(output[matchPos:]) {
-				return extractError("unknown error")
+			if reporter.ContainsCrash(mon.output[mon.matchPos:]) {
+				return mon.extractError("unknown error")
 			}
-			if len(output) > 2*beforeContext {
-				copy(output, output[len(output)-beforeContext:])
-				output = output[:beforeContext]
+			if len(mon.output) > 2*beforeContext {
+				copy(mon.output, mon.output[len(mon.output)-beforeContext:])
+				mon.output = mon.output[:beforeContext]
 			}
-			matchPos = len(output) - 512
-			if matchPos < 0 {
-				matchPos = 0
+			mon.matchPos = len(mon.output) - maxErrorLength
+			if mon.matchPos < 0 {
+				mon.matchPos = 0
 			}
 		case <-ticker.C:
 			// Detect both "not output whatsoever" and "kernel episodically prints
@@ -237,12 +183,12 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 				break
 			}
 			if inst.Diagnose() {
-				waitForOutput()
+				mon.waitForOutput()
 			}
 			rep := &report.Report{
 				Title:      "no output from test machine",
-				Output:     output,
-				Suppressed: report.IsSuppressed(reporter, output),
+				Output:     mon.output,
+				Suppressed: report.IsSuppressed(mon.reporter, mon.output),
 			}
 			return rep
 		case <-Shutdown:
@@ -250,6 +196,77 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 		}
 	}
 }
+
+type monitor struct {
+	inst     *Instance
+	outc     <-chan []byte
+	errc     <-chan error
+	reporter report.Reporter
+	canExit  bool
+	output   []byte
+	matchPos int
+}
+
+func (mon *monitor) extractError(defaultError string) *report.Report {
+	// Give it some time to finish writing the error message.
+	mon.inst.Diagnose()
+	mon.waitForOutput()
+	if bytes.Contains(mon.output, []byte("SYZ-FUZZER: PREEMPTED")) {
+		return nil
+	}
+	if !mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
+		if defaultError == "" {
+			if mon.canExit {
+				return nil
+			}
+			defaultError = "lost connection to test machine"
+		}
+		rep := &report.Report{
+			Title:      defaultError,
+			Output:     mon.output,
+			Suppressed: report.IsSuppressed(mon.reporter, mon.output),
+		}
+		return rep
+	}
+	rep := mon.reporter.Parse(mon.output[mon.matchPos:])
+	if rep == nil {
+		panic(fmt.Sprintf("reporter.ContainsCrash/Parse disagree:\n%s", mon.output[mon.matchPos:]))
+	}
+	start := mon.matchPos + rep.StartPos - beforeContext
+	if start < 0 {
+		start = 0
+	}
+	end := mon.matchPos + rep.EndPos + afterContext
+	if end > len(mon.output) {
+		end = len(mon.output)
+	}
+	rep.Output = mon.output[start:end]
+	rep.StartPos += mon.matchPos - start
+	rep.EndPos += mon.matchPos - start
+	return rep
+}
+
+func (mon *monitor) waitForOutput() {
+	timer := time.NewTimer(10 * time.Second)
+	for {
+		select {
+		case out, ok := <-mon.outc:
+			if !ok {
+				timer.Stop()
+				return
+			}
+			mon.output = append(mon.output, out...)
+		case <-timer.C:
+			return
+		}
+	}
+}
+
+const (
+	beforeContext  = 1024 << 10
+	afterContext   = 128 << 10
+	maxErrorLength = 512
+)
 
 var (
 	executingProgram1 = []byte("executing program")  // syz-fuzzer output
