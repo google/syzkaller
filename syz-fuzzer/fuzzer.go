@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -103,20 +102,7 @@ func main() {
 		flagTest    = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
 	)
 	flag.Parse()
-	var outputType OutputType
-	switch *flagOutput {
-	case "none":
-		outputType = OutputNone
-	case "stdout":
-		outputType = OutputStdout
-	case "dmesg":
-		outputType = OutputDmesg
-	case "file":
-		outputType = OutputFile
-	default:
-		fmt.Fprintf(os.Stderr, "-output flag must be one of none/stdout/dmesg/file\n")
-		os.Exit(1)
-	}
+	outputType := parseOutputType(*flagOutput)
 	log.Logf(0, "fuzzer started")
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
@@ -419,4 +405,20 @@ func signalPrio(target *prog.Target, c *prog.Call, ci *ipc.CallInfo) (prio uint8
 		prio |= 1 << 0
 	}
 	return
+}
+
+func parseOutputType(str string) OutputType {
+	switch str {
+	case "none":
+		return OutputNone
+	case "stdout":
+		return OutputStdout
+	case "dmesg":
+		return OutputDmesg
+	case "file":
+		return OutputFile
+	default:
+		log.Fatalf("-output flag must be one of none/stdout/dmesg/file")
+		return OutputNone
+	}
 }
