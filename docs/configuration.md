@@ -23,8 +23,8 @@ following keys in its top-level object:
  - `sshkey`: Location (on the host machine) of a root SSH identity to use for communicating with
    the virtual machine.
  - `sandbox` : Sandboxing mode, the following modes are supported:
-     - "none": don't do anything special (has false positives, e.g. due to killing init)
-     - "setuid": impersonate into user nobody (65534), default
+     - "none": don't do anything special (has false positives, e.g. due to killing init), default
+     - "setuid": impersonate into user nobody (65534)
      - "namespace": use namespaces to drop privileges
        (requires a kernel built with `CONFIG_NAMESPACES`, `CONFIG_UTS_NS`,
        `CONFIG_USER_NS`, `CONFIG_PID_NS` and `CONFIG_NET_NS`)
