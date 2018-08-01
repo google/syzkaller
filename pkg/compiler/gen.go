@@ -148,82 +148,95 @@ func (ctx *structGen) check(key prog.StructKey, descp **prog.StructDesc) bool {
 }
 
 func (ctx *structGen) walk(t0 prog.Type) {
-	comp := ctx.comp
 	switch t := t0.(type) {
 	case *prog.PtrType:
 		ctx.walk(t.Type)
 	case *prog.ArrayType:
-		if ctx.padded[t] {
-			return
-		}
-		ctx.walk(t.Type)
-		if !t.Type.Varlen() && t.Type.Size() == sizeUnassigned {
-			// An inner struct is not padded yet.
-			// Leave this array for next iteration.
-			return
-		}
-		ctx.padded[t] = true
-		t.TypeSize = 0
-		if t.Kind == prog.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Type.Varlen() {
-			t.TypeSize = t.RangeBegin * t.Type.Size()
-		}
+		ctx.walkArray(t)
 	case *prog.StructType:
-		if !ctx.check(t.Key, &t.StructDesc) {
-			return
-		}
-		structNode := comp.structNodes[t.StructDesc]
-		// Add paddings, calculate size, mark bitfields.
-		varlen := false
-		for _, f := range t.Fields {
-			if f.Varlen() {
-				varlen = true
-			}
-		}
-		comp.markBitfields(t.Fields)
-		packed, sizeAttr, alignAttr := comp.parseStructAttrs(structNode)
-		t.Fields = comp.addAlignment(t.Fields, varlen, packed, alignAttr)
-		t.AlignAttr = alignAttr
-		t.TypeSize = 0
-		if !varlen {
-			for _, f := range t.Fields {
-				if !f.BitfieldMiddle() {
-					t.TypeSize += f.Size()
-				}
-			}
-			if sizeAttr != sizeUnassigned {
-				if t.TypeSize > sizeAttr {
-					comp.error(structNode.Pos, "struct %v has size attribute %v"+
-						" which is less than struct size %v",
-						structNode.Name.Name, sizeAttr, t.TypeSize)
-				}
-				if pad := sizeAttr - t.TypeSize; pad != 0 {
-					t.Fields = append(t.Fields, genPad(pad))
-				}
-				t.TypeSize = sizeAttr
-			}
-		}
+		ctx.walkStruct(t)
 	case *prog.UnionType:
-		if !ctx.check(t.Key, &t.StructDesc) {
-			return
+		ctx.walkUnion(t)
+	}
+}
+
+func (ctx *structGen) walkArray(t *prog.ArrayType) {
+	if ctx.padded[t] {
+		return
+	}
+	ctx.walk(t.Type)
+	if !t.Type.Varlen() && t.Type.Size() == sizeUnassigned {
+		// An inner struct is not padded yet.
+		// Leave this array for next iteration.
+		return
+	}
+	ctx.padded[t] = true
+	t.TypeSize = 0
+	if t.Kind == prog.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Type.Varlen() {
+		t.TypeSize = t.RangeBegin * t.Type.Size()
+	}
+}
+
+func (ctx *structGen) walkStruct(t *prog.StructType) {
+	if !ctx.check(t.Key, &t.StructDesc) {
+		return
+	}
+	comp := ctx.comp
+	structNode := comp.structNodes[t.StructDesc]
+	// Add paddings, calculate size, mark bitfields.
+	varlen := false
+	for _, f := range t.Fields {
+		if f.Varlen() {
+			varlen = true
 		}
-		structNode := comp.structNodes[t.StructDesc]
-		varlen, sizeAttr := comp.parseUnionAttrs(structNode)
-		t.TypeSize = 0
-		if !varlen {
-			for _, fld := range t.Fields {
-				sz := fld.Size()
-				if sizeAttr != sizeUnassigned && sz > sizeAttr {
-					comp.error(structNode.Pos, "union %v has size attribute %v"+
-						" which is less than field %v size %v",
-						structNode.Name.Name, sizeAttr, fld.Name(), sz)
-				}
-				if t.TypeSize < sz {
-					t.TypeSize = sz
-				}
+	}
+	comp.markBitfields(t.Fields)
+	packed, sizeAttr, alignAttr := comp.parseStructAttrs(structNode)
+	t.Fields = comp.addAlignment(t.Fields, varlen, packed, alignAttr)
+	t.AlignAttr = alignAttr
+	t.TypeSize = 0
+	if !varlen {
+		for _, f := range t.Fields {
+			if !f.BitfieldMiddle() {
+				t.TypeSize += f.Size()
 			}
-			if sizeAttr != sizeUnassigned {
-				t.TypeSize = sizeAttr
+		}
+		if sizeAttr != sizeUnassigned {
+			if t.TypeSize > sizeAttr {
+				comp.error(structNode.Pos, "struct %v has size attribute %v"+
+					" which is less than struct size %v",
+					structNode.Name.Name, sizeAttr, t.TypeSize)
 			}
+			if pad := sizeAttr - t.TypeSize; pad != 0 {
+				t.Fields = append(t.Fields, genPad(pad))
+			}
+			t.TypeSize = sizeAttr
+		}
+	}
+}
+
+func (ctx *structGen) walkUnion(t *prog.UnionType) {
+	if !ctx.check(t.Key, &t.StructDesc) {
+		return
+	}
+	comp := ctx.comp
+	structNode := comp.structNodes[t.StructDesc]
+	varlen, sizeAttr := comp.parseUnionAttrs(structNode)
+	t.TypeSize = 0
+	if !varlen {
+		for _, fld := range t.Fields {
+			sz := fld.Size()
+			if sizeAttr != sizeUnassigned && sz > sizeAttr {
+				comp.error(structNode.Pos, "union %v has size attribute %v"+
+					" which is less than field %v size %v",
+					structNode.Name.Name, sizeAttr, fld.Name(), sz)
+			}
+			if t.TypeSize < sz {
+				t.TypeSize = sz
+			}
+		}
+		if sizeAttr != sizeUnassigned {
+			t.TypeSize = sizeAttr
 		}
 	}
 }
