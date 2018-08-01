@@ -95,7 +95,7 @@ func (a *PointerArg) serialize(ctx *serializer) {
 	}
 	target := ctx.target
 	ctx.printf("&%v", target.serializeAddr(a))
-	if a.Res != nil && target.isDefaultArg(a.Res) && !target.isAnyPtr(a.Type()) {
+	if a.Res != nil && isDefault(a.Res) && !target.isAnyPtr(a.Type()) {
 		return
 	}
 	ctx.printf("=")
@@ -135,7 +135,7 @@ func (a *GroupArg) serialize(ctx *serializer) {
 	lastNonDefault := len(a.Inner) - 1
 	if a.fixedInnerSize() {
 		for ; lastNonDefault >= 0; lastNonDefault-- {
-			if !ctx.target.isDefaultArg(a.Inner[lastNonDefault]) {
+			if !isDefault(a.Inner[lastNonDefault]) {
 				break
 			}
 		}
@@ -155,7 +155,7 @@ func (a *GroupArg) serialize(ctx *serializer) {
 
 func (a *UnionArg) serialize(ctx *serializer) {
 	ctx.printf("@%v", a.Option.Type().FieldName())
-	if ctx.target.isDefaultArg(a.Option) {
+	if isDefault(a.Option) {
 		return
 	}
 	ctx.printf("=")
@@ -245,7 +245,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 			c.Comment = strings.TrimSpace(p.s[p.i+1:])
 		}
 		for i := len(c.Args); i < len(meta.Args); i++ {
-			c.Args = append(c.Args, target.defaultArg(meta.Args[i]))
+			c.Args = append(c.Args, meta.Args[i].makeDefaultArg())
 		}
 		if len(c.Args) != len(meta.Args) {
 			return nil, fmt.Errorf("wrong call arg count: %v, want %v", len(c.Args), len(meta.Args))
@@ -284,7 +284,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]*ResultArg) 
 	}
 	if arg == nil {
 		if typ != nil {
-			arg = target.defaultArg(typ)
+			arg = typ.makeDefaultArg()
 		} else if r != "" {
 			return nil, fmt.Errorf("named nil argument")
 		}
@@ -340,10 +340,10 @@ func (target *Target) parseArgInt(typ Type, p *parser) (Arg, error) {
 		if typ.Optional() {
 			return MakeNullPointerArg(typ), nil
 		}
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	default:
 		eatExcessive(p, true)
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 }
 
@@ -370,7 +370,7 @@ func (target *Target) parseArgRes(typ Type, p *parser, vars map[string]*ResultAr
 	}
 	v := vars[id]
 	if v == nil {
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 	arg := MakeResultArg(typ, v, 0)
 	arg.OpDiv = div
@@ -386,7 +386,7 @@ func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]*ResultA
 	case *VmaType:
 	default:
 		eatExcessive(p, true)
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 	p.Parse('&')
 	addr, vmaSize, err := target.parseAddr(p)
@@ -413,7 +413,7 @@ func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]*ResultA
 		return MakeVmaPointerArg(typ, addr, vmaSize), nil
 	}
 	if inner == nil {
-		inner = target.defaultArg(typ1)
+		inner = typ1.makeDefaultArg()
 	}
 	return MakePointerArg(typ, addr, inner), nil
 }
@@ -421,7 +421,7 @@ func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]*ResultA
 func (target *Target) parseArgString(typ Type, p *parser) (Arg, error) {
 	if _, ok := typ.(*BufferType); !ok {
 		eatExcessive(p, true)
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 	data, err := deserializeData(p)
 	if err != nil {
@@ -457,7 +457,7 @@ func (target *Target) parseArgStruct(typ Type, p *parser, vars map[string]*Resul
 	if !ok {
 		eatExcessive(p, false)
 		p.Parse('}')
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 	var inner []Arg
 	for i := 0; p.Char() != '}'; i++ {
@@ -481,7 +481,7 @@ func (target *Target) parseArgStruct(typ Type, p *parser, vars map[string]*Resul
 	}
 	p.Parse('}')
 	for len(inner) < len(t1.Fields) {
-		inner = append(inner, target.defaultArg(t1.Fields[len(inner)]))
+		inner = append(inner, t1.Fields[len(inner)].makeDefaultArg())
 	}
 	return MakeGroupArg(typ, inner), nil
 }
@@ -492,7 +492,7 @@ func (target *Target) parseArgArray(typ Type, p *parser, vars map[string]*Result
 	if !ok {
 		eatExcessive(p, false)
 		p.Parse(']')
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 	var inner []Arg
 	for i := 0; p.Char() != ']'; i++ {
@@ -508,7 +508,7 @@ func (target *Target) parseArgArray(typ Type, p *parser, vars map[string]*Result
 	p.Parse(']')
 	if t1.Kind == ArrayRangeLen && t1.RangeBegin == t1.RangeEnd {
 		for uint64(len(inner)) < t1.RangeBegin {
-			inner = append(inner, target.defaultArg(t1.Type))
+			inner = append(inner, t1.Type.makeDefaultArg())
 		}
 		inner = inner[:t1.RangeBegin]
 	}
@@ -519,7 +519,7 @@ func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]*Result
 	t1, ok := typ.(*UnionType)
 	if !ok {
 		eatExcessive(p, true)
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 	p.Parse('@')
 	name := p.Ident()
@@ -532,7 +532,7 @@ func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]*Result
 	}
 	if optType == nil {
 		eatExcessive(p, true)
-		return target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 	var opt Arg
 	if p.Char() == '=' {
@@ -543,7 +543,7 @@ func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]*Result
 			return nil, err
 		}
 	} else {
-		opt = target.defaultArg(optType)
+		opt = optType.makeDefaultArg()
 	}
 	return MakeUnionArg(typ, opt), nil
 }

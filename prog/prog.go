@@ -60,13 +60,13 @@ func (arg *ConstArg) Value() (uint64, uint64) {
 		return arg.Val, 0
 	case *LenType:
 		return arg.Val, 0
+	case *ResourceType:
+		return arg.Val, 0
 	case *CsumType:
 		// Checksums are computed dynamically in executor.
 		return 0, 0
-	case *ResourceType:
-		return arg.Val, 0
 	case *ProcType:
-		if arg.Val == typ.Default() {
+		if arg.Val == procDefaultValue {
 			return 0, 0
 		}
 		return typ.ValuesStart + arg.Val, typ.ValuesPerProc
@@ -276,119 +276,8 @@ func InnerArg(arg Arg) Arg {
 	return arg // Not a pointer.
 }
 
-func (target *Target) defaultArg(t Type) Arg {
-	switch typ := t.(type) {
-	case *IntType, *ConstType, *FlagsType, *LenType, *ProcType, *CsumType:
-		return MakeConstArg(t, t.Default())
-	case *ResourceType:
-		return MakeResultArg(t, nil, typ.Default())
-	case *BufferType:
-		if t.Dir() == DirOut {
-			var sz uint64
-			if !typ.Varlen() {
-				sz = typ.Size()
-			}
-			return MakeOutDataArg(t, sz)
-		}
-		var data []byte
-		if !typ.Varlen() {
-			data = make([]byte, typ.Size())
-		}
-		return MakeDataArg(t, data)
-	case *ArrayType:
-		var elems []Arg
-		if typ.Kind == ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
-			for i := uint64(0); i < typ.RangeBegin; i++ {
-				elems = append(elems, target.defaultArg(typ.Type))
-			}
-		}
-		return MakeGroupArg(t, elems)
-	case *StructType:
-		var inner []Arg
-		for _, field := range typ.Fields {
-			inner = append(inner, target.defaultArg(field))
-		}
-		return MakeGroupArg(t, inner)
-	case *UnionType:
-		return MakeUnionArg(t, target.defaultArg(typ.Fields[0]))
-	case *VmaType:
-		if t.Optional() {
-			return MakeNullPointerArg(t)
-		}
-		return MakeVmaPointerArg(t, 0, target.PageSize)
-	case *PtrType:
-		if t.Optional() {
-			return MakeNullPointerArg(t)
-		}
-		return MakePointerArg(t, 0, target.defaultArg(typ.Type))
-	default:
-		panic(fmt.Sprintf("unknown arg type: %#v", t))
-	}
-}
-
-func (target *Target) isDefaultArg(arg Arg) bool {
-	if IsPad(arg.Type()) {
-		return true
-	}
-	switch a := arg.(type) {
-	case *ConstArg:
-		switch t := a.Type().(type) {
-		case *IntType, *ConstType, *FlagsType, *LenType, *ProcType, *CsumType:
-			return a.Val == t.Default()
-		default:
-			panic(fmt.Sprintf("unknown const type: %#v", t))
-		}
-	case *GroupArg:
-		if !a.fixedInnerSize() && len(a.Inner) != 0 {
-			return false
-		}
-		for _, elem := range a.Inner {
-			if !target.isDefaultArg(elem) {
-				return false
-			}
-		}
-		return true
-	case *UnionArg:
-		t := a.Type().(*UnionType)
-		return a.Option.Type().FieldName() == t.Fields[0].FieldName() &&
-			target.isDefaultArg(a.Option)
-	case *DataArg:
-		if a.Size() == 0 {
-			return true
-		}
-		if a.Type().Varlen() {
-			return false
-		}
-		if a.Type().Dir() == DirOut {
-			return true
-		}
-		for _, v := range a.Data() {
-			if v != 0 {
-				return false
-			}
-		}
-		return true
-	case *PointerArg:
-		switch t := a.Type().(type) {
-		case *PtrType:
-			if t.Optional() {
-				return a.IsNull()
-			}
-			return a.Address == 0 && target.isDefaultArg(a.Res)
-		case *VmaType:
-			if t.Optional() {
-				return a.IsNull()
-			}
-			return a.Address == 0 && a.VmaSize == target.PageSize
-		default:
-			panic(fmt.Sprintf("unknown pointer type: %#v", t))
-		}
-	case *ResultArg:
-		t := a.Type().(*ResourceType)
-		return a.Res == nil && a.OpDiv == 0 && a.OpAdd == 0 &&
-			len(a.uses) == 0 && a.Val == t.Default()
-	}
-	return false
+func isDefault(arg Arg) bool {
+	return arg.Type().isDefaultArg(arg)
 }
 
 func (p *Prog) insertBefore(c *Call, calls []*Call) {
@@ -456,18 +345,20 @@ func replaceResultArg(arg, arg1 *ResultArg) {
 // removeArg removes all references to/from arg0 from a program.
 func removeArg(arg0 Arg) {
 	ForeachSubArg(arg0, func(arg Arg, ctx *ArgCtx) {
-		if a, ok := arg.(*ResultArg); ok {
-			if a.Res != nil {
-				uses := a.Res.uses
-				if !uses[a] {
-					panic("broken tree")
-				}
-				delete(uses, a)
+		a, ok := arg.(*ResultArg)
+		if !ok {
+			return
+		}
+		if a.Res != nil {
+			uses := a.Res.uses
+			if !uses[a] {
+				panic("broken tree")
 			}
-			for arg1 := range a.uses {
-				arg2 := MakeResultArg(arg1.Type(), nil, arg1.Type().Default())
-				replaceResultArg(arg1, arg2)
-			}
+			delete(uses, a)
+		}
+		for arg1 := range a.uses {
+			arg2 := arg1.Type().makeDefaultArg().(*ResultArg)
+			replaceResultArg(arg1, arg2)
 		}
 	})
 }

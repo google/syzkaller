@@ -53,7 +53,6 @@ type Type interface {
 	FieldName() string
 	Dir() Dir
 	Optional() bool
-	Default() uint64
 	Varlen() bool
 	Size() uint64
 	Format() BinaryFormat
@@ -61,6 +60,8 @@ type Type interface {
 	BitfieldLength() uint64
 	BitfieldMiddle() bool // returns true for all but last bitfield in a group
 
+	makeDefaultArg() Arg
+	isDefaultArg(arg Arg) bool
 	generate(r *randGen, s *state) (arg Arg, calls []*Call)
 	mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool)
 	minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
@@ -92,10 +93,6 @@ func (t *TypeCommon) FieldName() string {
 
 func (t *TypeCommon) Optional() bool {
 	return t.IsOptional
-}
-
-func (t *TypeCommon) Default() uint64 {
-	return 0
 }
 
 func (t *TypeCommon) Size() uint64 {
@@ -146,6 +143,16 @@ func (t *ResourceType) String() string {
 	return t.Name()
 }
 
+func (t *ResourceType) makeDefaultArg() Arg {
+	return MakeResultArg(t, nil, t.Default())
+}
+
+func (t *ResourceType) isDefaultArg(arg Arg) bool {
+	a := arg.(*ResultArg)
+	return a.Res == nil && a.OpDiv == 0 && a.OpAdd == 0 &&
+		len(a.uses) == 0 && a.Val == t.Default()
+}
+
 func (t *ResourceType) Default() uint64 {
 	return t.Desc.Values[0]
 }
@@ -192,8 +199,12 @@ type ConstType struct {
 	IsPad bool
 }
 
-func (t *ConstType) Default() uint64 {
-	return t.Val
+func (t *ConstType) makeDefaultArg() Arg {
+	return MakeConstArg(t, t.Val)
+}
+
+func (t *ConstType) isDefaultArg(arg Arg) bool {
+	return arg.(*ConstArg).Val == t.Val
 }
 
 func (t *ConstType) String() string {
@@ -218,10 +229,26 @@ type IntType struct {
 	RangeEnd   uint64
 }
 
+func (t *IntType) makeDefaultArg() Arg {
+	return MakeConstArg(t, 0)
+}
+
+func (t *IntType) isDefaultArg(arg Arg) bool {
+	return arg.(*ConstArg).Val == 0
+}
+
 type FlagsType struct {
 	IntTypeCommon
 	Vals    []uint64
 	BitMask bool
+}
+
+func (t *FlagsType) makeDefaultArg() Arg {
+	return MakeConstArg(t, 0)
+}
+
+func (t *FlagsType) isDefaultArg(arg Arg) bool {
+	return arg.(*ConstArg).Val == 0
 }
 
 type LenType struct {
@@ -230,17 +257,31 @@ type LenType struct {
 	Buf     string
 }
 
+func (t *LenType) makeDefaultArg() Arg {
+	return MakeConstArg(t, 0)
+}
+
+func (t *LenType) isDefaultArg(arg Arg) bool {
+	return arg.(*ConstArg).Val == 0
+}
+
 type ProcType struct {
 	IntTypeCommon
 	ValuesStart   uint64
 	ValuesPerProc uint64
 }
 
-const MaxPids = 32
+const (
+	MaxPids          = 32
+	procDefaultValue = 0xffffffffffffffff // special value denoting 0 for all procs
+)
 
-func (t *ProcType) Default() uint64 {
-	// Special value denoting 0 for all procs.
-	return 0xffffffffffffffff
+func (t *ProcType) makeDefaultArg() Arg {
+	return MakeConstArg(t, procDefaultValue)
+}
+
+func (t *ProcType) isDefaultArg(arg Arg) bool {
+	return arg.(*ConstArg).Val == procDefaultValue
 }
 
 type CsumKind int
@@ -261,6 +302,14 @@ func (t *CsumType) String() string {
 	return "csum"
 }
 
+func (t *CsumType) makeDefaultArg() Arg {
+	return MakeConstArg(t, 0)
+}
+
+func (t *CsumType) isDefaultArg(arg Arg) bool {
+	return arg.(*ConstArg).Val == 0
+}
+
 type VmaType struct {
 	TypeCommon
 	RangeBegin uint64 // in pages
@@ -269,6 +318,14 @@ type VmaType struct {
 
 func (t *VmaType) String() string {
 	return "vma"
+}
+
+func (t *VmaType) makeDefaultArg() Arg {
+	return MakeNullPointerArg(t)
+}
+
+func (t *VmaType) isDefaultArg(arg Arg) bool {
+	return arg.(*PointerArg).IsNull()
 }
 
 type BufferKind int
@@ -306,6 +363,40 @@ func (t *BufferType) String() string {
 	return "buffer"
 }
 
+func (t *BufferType) makeDefaultArg() Arg {
+	if t.Dir() == DirOut {
+		var sz uint64
+		if !t.Varlen() {
+			sz = t.Size()
+		}
+		return MakeOutDataArg(t, sz)
+	}
+	var data []byte
+	if !t.Varlen() {
+		data = make([]byte, t.Size())
+	}
+	return MakeDataArg(t, data)
+}
+
+func (t *BufferType) isDefaultArg(arg Arg) bool {
+	a := arg.(*DataArg)
+	if a.Size() == 0 {
+		return true
+	}
+	if a.Type().Varlen() {
+		return false
+	}
+	if a.Type().Dir() == DirOut {
+		return true
+	}
+	for _, v := range a.Data() {
+		if v != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 type ArrayKind int
 
 const (
@@ -325,6 +416,29 @@ func (t *ArrayType) String() string {
 	return fmt.Sprintf("array[%v]", t.Type.String())
 }
 
+func (t *ArrayType) makeDefaultArg() Arg {
+	var elems []Arg
+	if t.Kind == ArrayRangeLen && t.RangeBegin == t.RangeEnd {
+		for i := uint64(0); i < t.RangeBegin; i++ {
+			elems = append(elems, t.Type.makeDefaultArg())
+		}
+	}
+	return MakeGroupArg(t, elems)
+}
+
+func (t *ArrayType) isDefaultArg(arg Arg) bool {
+	a := arg.(*GroupArg)
+	if !a.fixedInnerSize() && len(a.Inner) != 0 {
+		return false
+	}
+	for _, elem := range a.Inner {
+		if !t.Type.isDefaultArg(elem) {
+			return false
+		}
+	}
+	return true
+}
+
 type PtrType struct {
 	TypeCommon
 	Type Type
@@ -332,6 +446,21 @@ type PtrType struct {
 
 func (t *PtrType) String() string {
 	return fmt.Sprintf("ptr[%v, %v]", t.Dir(), t.Type.String())
+}
+
+func (t *PtrType) makeDefaultArg() Arg {
+	if t.Optional() {
+		return MakeNullPointerArg(t)
+	}
+	return MakePointerArg(t, 0, t.Type.makeDefaultArg())
+}
+
+func (t *PtrType) isDefaultArg(arg Arg) bool {
+	a := arg.(*PointerArg)
+	if t.Optional() {
+		return a.IsNull()
+	}
+	return a.Address == 0 && t.Type.isDefaultArg(a.Res)
 }
 
 type StructType struct {
@@ -348,6 +477,24 @@ func (t *StructType) FieldName() string {
 	return t.FldName
 }
 
+func (t *StructType) makeDefaultArg() Arg {
+	inner := make([]Arg, len(t.Fields))
+	for i, field := range t.Fields {
+		inner[i] = field.makeDefaultArg()
+	}
+	return MakeGroupArg(t, inner)
+}
+
+func (t *StructType) isDefaultArg(arg Arg) bool {
+	a := arg.(*GroupArg)
+	for i, elem := range a.Inner {
+		if !t.Fields[i].isDefaultArg(elem) {
+			return false
+		}
+	}
+	return true
+}
+
 type UnionType struct {
 	Key     StructKey
 	FldName string
@@ -360,6 +507,16 @@ func (t *UnionType) String() string {
 
 func (t *UnionType) FieldName() string {
 	return t.FldName
+}
+
+func (t *UnionType) makeDefaultArg() Arg {
+	return MakeUnionArg(t, t.Fields[0].makeDefaultArg())
+}
+
+func (t *UnionType) isDefaultArg(arg Arg) bool {
+	a := arg.(*UnionArg)
+	return a.Option.Type().FieldName() == t.Fields[0].FieldName() &&
+		t.Fields[0].isDefaultArg(a.Option)
 }
 
 type StructDesc struct {
