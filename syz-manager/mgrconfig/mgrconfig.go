@@ -156,9 +156,6 @@ func Complete(cfg *Config) error {
 	if cfg.TargetOS == "" || cfg.TargetVMArch == "" || cfg.TargetArch == "" {
 		return fmt.Errorf("target parameters are not filled in")
 	}
-	if cfg.SSHUser == "" {
-		return fmt.Errorf("bad config syzkaller param: ssh user is empty")
-	}
 	if cfg.Workdir == "" {
 		return fmt.Errorf("config param workdir is empty")
 	}
@@ -183,14 +180,8 @@ func Complete(cfg *Config) error {
 	default:
 		return fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
 	}
-	if cfg.SSHKey != "" {
-		info, err := os.Stat(cfg.SSHKey)
-		if err != nil {
-			return err
-		}
-		if info.Mode()&0077 != 0 {
-			return fmt.Errorf("sshkey %v is unprotected, ssh will reject it, do chmod 0600", cfg.SSHKey)
-		}
+	if err := checkSSHParams(cfg); err != nil {
+		return err
 	}
 
 	cfg.KernelObj = osutil.Abs(cfg.KernelObj)
@@ -207,6 +198,23 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
 	}
 
+	return nil
+}
+
+func checkSSHParams(cfg *Config) error {
+	if cfg.SSHUser == "" {
+		return fmt.Errorf("bad config syzkaller param: ssh user is empty")
+	}
+	if cfg.SSHKey == "" {
+		return nil
+	}
+	info, err := os.Stat(cfg.SSHKey)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&0077 != 0 {
+		return fmt.Errorf("sshkey %v is unprotected, ssh will reject it, do chmod 0600", cfg.SSHKey)
+	}
 	return nil
 }
 
