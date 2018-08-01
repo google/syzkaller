@@ -271,7 +271,7 @@ retry:
 	}
 	if err != nil {
 		if _, ok := err.(ipc.ExecutorFailure); ok || try > 10 {
-			log.Fatalf("executor failed %v times:\n%v", try, err)
+			log.Fatalf("executor %v failed %v times:\n%v", proc.pid, try, err)
 		}
 		try++
 		log.Logf(4, "fuzzer detected executor failure='%v', retrying #%d\n", err, (try + 1))
@@ -279,7 +279,7 @@ retry:
 		time.Sleep(time.Second)
 		goto retry
 	}
-	log.Logf(2, "result failed=%v hanged=%v: %v\n", failed, hanged, string(output))
+	log.Logf(2, "result failed=%v hanged=%v: %s\n", failed, hanged, output)
 	return info
 }
 

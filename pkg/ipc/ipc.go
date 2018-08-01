@@ -4,7 +4,6 @@
 package ipc
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -288,7 +287,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)
 	if err != nil {
-		err0 = fmt.Errorf("executor %v: failed to serialize: %v", env.pid, err)
+		err0 = fmt.Errorf("failed to serialize: %v", err)
 		return
 	}
 	var progData []byte
@@ -317,7 +316,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 		return
 	}
 
-	info, err0 = env.readOutCoverage(p)
+	info, err0 = env.parseOutput(p)
 	if info != nil && env.config.Flags&FlagSignal == 0 {
 		addFallbackSignal(p, info)
 	}
@@ -351,146 +350,120 @@ func addFallbackSignal(p *prog.Prog, info []CallInfo) {
 	}
 }
 
-func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
-	out := ((*[1 << 28]uint32)(unsafe.Pointer(&env.out[0])))[:len(env.out)/int(unsafe.Sizeof(uint32(0)))]
-	readOut := func(v *uint32) bool {
-		if len(out) == 0 {
-			return false
-		}
-		*v = out[0]
-		out = out[1:]
-		return true
+func (env *Env) parseOutput(p *prog.Prog) ([]CallInfo, error) {
+	out := env.out
+	ncmd, ok := readUint32(&out)
+	if !ok {
+		return nil, fmt.Errorf("failed to read number of calls")
 	}
-
-	readOutAndSetErr := func(v *uint32, msg string, args ...interface{}) bool {
-		if !readOut(v) {
-			err0 = fmt.Errorf(msg, args)
-			return false
-		}
-		return true
-	}
-
-	// Reads out a 64 bits int in Little-endian as two blocks of 32 bits.
-	readOut64 := func(v *uint64, msg string, args ...interface{}) bool {
-		var a, b uint32
-		if !(readOutAndSetErr(&a, msg, args) && readOutAndSetErr(&b, msg, args)) {
-			return false
-		}
-		*v = uint64(a) + uint64(b)<<32
-		return true
-	}
-
-	var ncmd uint32
-	if !readOutAndSetErr(&ncmd,
-		"executor %v: failed to read output coverage", env.pid) {
-		return
-	}
-	info = make([]CallInfo, len(p.Calls))
-	for i := range info {
-		info[i].Errno = -1 // not executed
-	}
-	dumpCov := func() string {
-		buf := new(bytes.Buffer)
-		for i, inf := range info {
-			str := "nil"
-			if inf.Signal != nil {
-				str = fmt.Sprint(len(inf.Signal))
-			}
-			fmt.Fprintf(buf, "%v:%v|", i, str)
-		}
-		return buf.String()
-	}
+	info := make([]CallInfo, len(p.Calls))
 	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, errno, callFlags, signalSize, coverSize, compsSize uint32
-		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) ||
-			!readOut(&callFlags) || !readOut(&signalSize) ||
-			!readOut(&coverSize) || !readOut(&compsSize) {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
-			return
+		if len(out) < int(unsafe.Sizeof(callReply{})) {
+			return nil, fmt.Errorf("failed to read call %v reply", i)
 		}
-		if int(callIndex) >= len(info) {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, total calls %v (cov: %v)",
-				env.pid, i, callIndex, len(info), dumpCov())
-			return
+		reply := *(*callReply)(unsafe.Pointer(&out[0]))
+		out = out[unsafe.Sizeof(callReply{}):]
+		if int(reply.index) >= len(info) {
+			return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info))
 		}
-		c := p.Calls[callIndex]
-		if num := c.Meta.ID; uint32(num) != callNum {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage:"+
-				" record %v call %v: expect syscall %v, got %v, executed %v (cov: %v)",
-				env.pid, i, callIndex, num, callNum, ncmd, dumpCov())
-			return
+		if num := p.Calls[reply.index].Meta.ID; int(reply.num) != num {
+			return nil, fmt.Errorf("wrong call %v num %v/%v", i, reply.num, num)
 		}
-		if info[callIndex].Signal != nil {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: double coverage for call %v (cov: %v)",
-				env.pid, callIndex, dumpCov())
-			return
+		inf := &info[reply.index]
+		if inf.Flags != 0 || inf.Signal != nil {
+			return nil, fmt.Errorf("duplicate reply for call %v/%v/%v", i, reply.index, reply.num)
 		}
-		info[callIndex].Errno = int(errno)
-		info[callIndex].Flags = CallFlags(callFlags)
-		if signalSize > uint32(len(out)) {
-			err0 = fmt.Errorf("executor %v: failed to read output signal: record %v, call %v, signalsize=%v coversize=%v",
-				env.pid, i, callIndex, signalSize, coverSize)
-			return
+		inf.Errno = int(reply.errno)
+		inf.Flags = CallFlags(reply.flags)
+		if inf.Signal, ok = readUint32Array(&out, reply.signalSize); !ok {
+			return nil, fmt.Errorf("call %v/%v/%v: signal overflow: %v/%v",
+				i, reply.index, reply.num, reply.signalSize, len(out))
 		}
-		// Read out signals.
-		info[callIndex].Signal = out[:signalSize:signalSize]
-		out = out[signalSize:]
-		// Read out coverage.
-		if coverSize > uint32(len(out)) {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, signalsize=%v coversize=%v",
-				env.pid, i, callIndex, signalSize, coverSize)
-			return
+		if inf.Cover, ok = readUint32Array(&out, reply.coverSize); !ok {
+			return nil, fmt.Errorf("call %v/%v/%v: cover overflow: %v/%v",
+				i, reply.index, reply.num, reply.coverSize, len(out))
 		}
-		info[callIndex].Cover = out[:coverSize:coverSize]
-		out = out[coverSize:]
-		// Read out comparisons.
-		compMap := make(prog.CompMap)
-		for j := uint32(0); j < compsSize; j++ {
-			var typ uint32
-			if !readOutAndSetErr(&typ,
-				"executor %v: failed while reading type of comparison %v/%v",
-				env.pid, callIndex, j) {
-				return
-			}
-			if typ > compConstMask|compSizeMask {
-				err0 = fmt.Errorf("executor %v: got wrong value (%v) while reading type of comparison %v/%v",
-					env.pid, typ, callIndex, j)
-				return
-			}
-
-			arg1ErrString := "executor %v: failed while reading op1 of comparison %v"
-			arg2ErrString := "executor %v: failed while reading op2 of comparison %v"
-			var op1, op2 uint64
-			if (typ & compSizeMask) == compSize8 {
-				if !readOut64(&op1, arg1ErrString, env.pid, j) ||
-					!readOut64(&op2, arg2ErrString, env.pid, j) {
-					return
-				}
-			} else {
-				var tmp1, tmp2 uint32
-				if !readOutAndSetErr(&tmp1, arg1ErrString, env.pid, j) ||
-					!readOutAndSetErr(&tmp2, arg2ErrString, env.pid, j) {
-					return
-				}
-				op1 = uint64(tmp1)
-				op2 = uint64(tmp2)
-			}
-			if op1 == op2 {
-				continue // it's useless to store such comparisons
-			}
-			compMap.AddComp(op2, op1)
-			if (typ & compConstMask) != 0 {
-				// If one of the operands was const, then this operand is always
-				// placed first in the instrumented callbacks. Such an operand
-				// could not be an argument of our syscalls (because otherwise
-				// it wouldn't be const), thus we simply ignore it.
-				continue
-			}
-			compMap.AddComp(op1, op2)
+		comps, err := readComps(&out, reply.compsSize)
+		if err != nil {
+			return nil, err
 		}
-		info[callIndex].Comps = compMap
+		inf.Comps = comps
 	}
-	return
+	return info, nil
+}
+
+func readComps(outp *[]byte, compsSize uint32) (prog.CompMap, error) {
+	if compsSize == 0 {
+		return nil, nil
+	}
+	compMap := make(prog.CompMap)
+	for i := uint32(0); i < compsSize; i++ {
+		typ, ok := readUint32(outp)
+		if !ok {
+			return nil, fmt.Errorf("failed to read comp %v", i)
+		}
+		if typ > compConstMask|compSizeMask {
+			return nil, fmt.Errorf("bad comp %v type %v", i, typ)
+		}
+		var op1, op2 uint64
+		var ok1, ok2 bool
+		if typ&compSizeMask == compSize8 {
+			op1, ok1 = readUint64(outp)
+			op2, ok2 = readUint64(outp)
+		} else {
+			var tmp1, tmp2 uint32
+			tmp1, ok1 = readUint32(outp)
+			tmp2, ok2 = readUint32(outp)
+			op1, op2 = uint64(tmp1), uint64(tmp2)
+		}
+		if !ok1 || !ok2 {
+			return nil, fmt.Errorf("failed to read comp %v op", i)
+		}
+		if op1 == op2 {
+			continue // it's useless to store such comparisons
+		}
+		compMap.AddComp(op2, op1)
+		if (typ & compConstMask) != 0 {
+			// If one of the operands was const, then this operand is always
+			// placed first in the instrumented callbacks. Such an operand
+			// could not be an argument of our syscalls (because otherwise
+			// it wouldn't be const), thus we simply ignore it.
+			continue
+		}
+		compMap.AddComp(op1, op2)
+	}
+	return compMap, nil
+}
+
+func readUint32(outp *[]byte) (uint32, bool) {
+	out := *outp
+	if len(out) < 4 {
+		return 0, false
+	}
+	v := *(*uint32)(unsafe.Pointer(&out[0]))
+	*outp = out[4:]
+	return v, true
+}
+
+func readUint64(outp *[]byte) (uint64, bool) {
+	out := *outp
+	if len(out) < 8 {
+		return 0, false
+	}
+	v := *(*uint64)(unsafe.Pointer(&out[0]))
+	*outp = out[8:]
+	return v, true
+}
+
+func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
+	out := *outp
+	if int(size)*4 > len(out) {
+		return nil, false
+	}
+	arr := ((*[1 << 28]uint32)(unsafe.Pointer(&out[0])))
+	res := arr[:size:size]
+	*outp = out[size*4:]
+	return res, true
 }
 
 type command struct {
@@ -540,12 +513,9 @@ type executeReply struct {
 	status uint32
 }
 
-// TODO(dvyukov): we currently parse this manually, should cast output to this struct instead.
-// gometalinter complains about unused fields
-// nolint
 type callReply struct {
-	callIndex  uint32
-	callNum    uint32
+	index      uint32 // call index in the program
+	num        uint32 // syscall number (for cross-checking)
 	errno      uint32
 	flags      uint32 // see CallFlags
 	signalSize uint32
