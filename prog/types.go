@@ -432,7 +432,7 @@ func (t *ArrayType) isDefaultArg(arg Arg) bool {
 		return false
 	}
 	for _, elem := range a.Inner {
-		if !t.Type.isDefaultArg(elem) {
+		if !isDefault(elem) {
 			return false
 		}
 	}
@@ -460,7 +460,7 @@ func (t *PtrType) isDefaultArg(arg Arg) bool {
 	if t.Optional() {
 		return a.IsNull()
 	}
-	return a.Address == 0 && t.Type.isDefaultArg(a.Res)
+	return a.Address == 0 && isDefault(a.Res)
 }
 
 type StructType struct {
@@ -487,8 +487,8 @@ func (t *StructType) makeDefaultArg() Arg {
 
 func (t *StructType) isDefaultArg(arg Arg) bool {
 	a := arg.(*GroupArg)
-	for i, elem := range a.Inner {
-		if !t.Fields[i].isDefaultArg(elem) {
+	for _, elem := range a.Inner {
+		if !isDefault(elem) {
 			return false
 		}
 	}
@@ -515,8 +515,7 @@ func (t *UnionType) makeDefaultArg() Arg {
 
 func (t *UnionType) isDefaultArg(arg Arg) bool {
 	a := arg.(*UnionArg)
-	return a.Option.Type().FieldName() == t.Fields[0].FieldName() &&
-		t.Fields[0].isDefaultArg(a.Option)
+	return a.Option.Type().FieldName() == t.Fields[0].FieldName() && isDefault(a.Option)
 }
 
 type StructDesc struct {
