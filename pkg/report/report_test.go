@@ -169,23 +169,27 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 		t.Fatalf("found crash message but report is empty")
 	}
 	if rep != nil {
-		if test.HasReport && !bytes.Equal(rep.Report, test.Report) {
-			t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", rep.Report, test.Report)
+		checkReport(t, rep, test)
+	}
+}
+
+func checkReport(t *testing.T, rep *Report, test *ParseTest) {
+	if test.HasReport && !bytes.Equal(rep.Report, test.Report) {
+		t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", rep.Report, test.Report)
+	}
+	if !bytes.Equal(rep.Output, test.Log) {
+		t.Fatalf("bad Output:\n%s", rep.Output)
+	}
+	if test.StartLine != "" {
+		if test.EndLine == "" {
+			test.EndLine = test.StartLine
 		}
-		if !bytes.Equal(rep.Output, test.Log) {
-			t.Fatalf("bad Output:\n%s", rep.Output)
-		}
-		if test.StartLine != "" {
-			if test.EndLine == "" {
-				test.EndLine = test.StartLine
-			}
-			startPos := bytes.Index(test.Log, []byte(test.StartLine))
-			endPos := bytes.Index(test.Log, []byte(test.EndLine)) + len(test.EndLine)
-			if rep.StartPos != startPos || rep.EndPos != endPos {
-				t.Fatalf("bad start/end pos %v-%v, want %v-%v, line %q",
-					rep.StartPos, rep.EndPos, startPos, endPos,
-					string(test.Log[rep.StartPos:rep.EndPos]))
-			}
+		startPos := bytes.Index(test.Log, []byte(test.StartLine))
+		endPos := bytes.Index(test.Log, []byte(test.EndLine)) + len(test.EndLine)
+		if rep.StartPos != startPos || rep.EndPos != endPos {
+			t.Fatalf("bad start/end pos %v-%v, want %v-%v, line %q",
+				rep.StartPos, rep.EndPos, startPos, endPos,
+				string(test.Log[rep.StartPos:rep.EndPos]))
 		}
 	}
 }
