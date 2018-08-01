@@ -67,6 +67,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		args:   make(map[Arg]argInfo),
 	}
 	for _, c := range p.Calls {
+		w.csumMap, w.csumUses = calcChecksumsCall(c)
 		w.serializeCall(c)
 	}
 	w.write(execInstrEOF)
@@ -77,88 +78,12 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 }
 
 func (w *execContext) serializeCall(c *Call) {
-	// Calculate checksums.
-	csumMap := calcChecksumsCall(c)
-	var csumUses map[Arg]bool
-	if csumMap != nil {
-		csumUses = make(map[Arg]bool)
-		for arg, info := range csumMap {
-			csumUses[arg] = true
-			if info.Kind == CsumInet {
-				for _, chunk := range info.Chunks {
-					if chunk.Kind == CsumChunkArg {
-						csumUses[chunk.Arg] = true
-					}
-				}
-			}
-		}
-	}
 	// Calculate arg offsets within structs.
 	// Generate copyin instructions that fill in data into pointer arguments.
-	ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
-		if ctx.Base == nil {
-			return
-		}
-		addr := w.target.PhysicalAddr(ctx.Base) + ctx.Offset
-		if res, ok := arg.(*ResultArg); ok && len(res.uses) != 0 || csumUses[arg] {
-			w.args[arg] = argInfo{Addr: addr}
-		}
-		if _, ok := arg.(*GroupArg); ok {
-			return
-		}
-		if _, ok := arg.(*UnionArg); ok {
-			return
-		}
-		typ := arg.Type()
-		if typ.Dir() == DirOut || IsPad(typ) || arg.Size() == 0 {
-			return
-		}
-		w.write(execInstrCopyin)
-		w.write(addr)
-		w.writeArg(arg)
-	})
+	w.writeCopyin(c)
 	// Generate checksum calculation instructions starting from the last one,
 	// since checksum values can depend on values of the latter ones
-	if csumMap != nil {
-		var csumArgs []Arg
-		for arg := range csumMap {
-			csumArgs = append(csumArgs, arg)
-		}
-		sort.Slice(csumArgs, func(i, j int) bool {
-			return w.args[csumArgs[i]].Addr < w.args[csumArgs[j]].Addr
-		})
-		for i := len(csumArgs) - 1; i >= 0; i-- {
-			arg := csumArgs[i]
-			if _, ok := arg.Type().(*CsumType); !ok {
-				panic("csum arg is not csum type")
-			}
-			w.write(execInstrCopyin)
-			w.write(w.args[arg].Addr)
-			w.write(execArgCsum)
-			w.write(arg.Size())
-			switch csumMap[arg].Kind {
-			case CsumInet:
-				w.write(ExecArgCsumInet)
-				w.write(uint64(len(csumMap[arg].Chunks)))
-				for _, chunk := range csumMap[arg].Chunks {
-					switch chunk.Kind {
-					case CsumChunkArg:
-						w.write(ExecArgCsumChunkData)
-						w.write(w.args[chunk.Arg].Addr)
-						w.write(chunk.Arg.Size())
-					case CsumChunkConst:
-						w.write(ExecArgCsumChunkConst)
-						w.write(chunk.Value)
-						w.write(chunk.Size)
-					default:
-						panic(fmt.Sprintf("csum chunk has unknown kind %v", chunk.Kind))
-					}
-				}
-			default:
-				panic(fmt.Sprintf("csum arg has unknown kind %v", csumMap[arg].Kind))
-			}
-		}
-	}
+	w.writeChecksums()
 	// Generate the call itself.
 	w.write(uint64(c.Meta.ID))
 	if c.Ret != nil && len(c.Ret.uses) != 0 {
@@ -176,6 +101,111 @@ func (w *execContext) serializeCall(c *Call) {
 		w.writeArg(arg)
 	}
 	// Generate copyout instructions that persist interesting return values.
+	w.writeCopyout(c)
+}
+
+func (target *Target) PhysicalAddr(arg *PointerArg) uint64 {
+	if arg.IsNull() {
+		return 0
+	}
+	return target.DataOffset + arg.Address
+}
+
+type execContext struct {
+	target     *Target
+	buf        []byte
+	eof        bool
+	args       map[Arg]argInfo
+	copyoutSeq uint64
+	// Per-call state cached here to not pass it through all functions.
+	csumMap  map[Arg]CsumInfo
+	csumUses map[Arg]struct{}
+}
+
+type argInfo struct {
+	Addr uint64 // physical addr
+	Idx  uint64 // copyout instruction index
+	Ret  bool
+}
+
+func (w *execContext) writeCopyin(c *Call) {
+	ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
+		if ctx.Base == nil {
+			return
+		}
+		addr := w.target.PhysicalAddr(ctx.Base) + ctx.Offset
+		if w.willBeUsed(arg) {
+			w.args[arg] = argInfo{Addr: addr}
+		}
+		switch arg.(type) {
+		case *GroupArg, *UnionArg:
+			return
+		}
+		typ := arg.Type()
+		if typ.Dir() == DirOut || IsPad(typ) || arg.Size() == 0 {
+			return
+		}
+		w.write(execInstrCopyin)
+		w.write(addr)
+		w.writeArg(arg)
+	})
+}
+
+func (w *execContext) willBeUsed(arg Arg) bool {
+	if res, ok := arg.(*ResultArg); ok && len(res.uses) != 0 {
+		return true
+	}
+	_, ok1 := w.csumMap[arg]
+	_, ok2 := w.csumUses[arg]
+	return ok1 || ok2
+}
+
+func (w *execContext) writeChecksums() {
+	if len(w.csumMap) == 0 {
+		return
+	}
+	csumArgs := make([]Arg, 0, len(w.csumMap))
+	for arg := range w.csumMap {
+		csumArgs = append(csumArgs, arg)
+	}
+	sort.Slice(csumArgs, func(i, j int) bool {
+		return w.args[csumArgs[i]].Addr < w.args[csumArgs[j]].Addr
+	})
+	for i := len(csumArgs) - 1; i >= 0; i-- {
+		arg := csumArgs[i]
+		info := w.csumMap[arg]
+		if _, ok := arg.Type().(*CsumType); !ok {
+			panic("csum arg is not csum type")
+		}
+		w.write(execInstrCopyin)
+		w.write(w.args[arg].Addr)
+		w.write(execArgCsum)
+		w.write(arg.Size())
+		switch info.Kind {
+		case CsumInet:
+			w.write(ExecArgCsumInet)
+			w.write(uint64(len(info.Chunks)))
+			for _, chunk := range info.Chunks {
+				switch chunk.Kind {
+				case CsumChunkArg:
+					w.write(ExecArgCsumChunkData)
+					w.write(w.args[chunk.Arg].Addr)
+					w.write(chunk.Arg.Size())
+				case CsumChunkConst:
+					w.write(ExecArgCsumChunkConst)
+					w.write(chunk.Value)
+					w.write(chunk.Size)
+				default:
+					panic(fmt.Sprintf("csum chunk has unknown kind %v", chunk.Kind))
+				}
+			}
+		default:
+			panic(fmt.Sprintf("csum arg has unknown kind %v", info.Kind))
+		}
+	}
+}
+
+func (w *execContext) writeCopyout(c *Call) {
 	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 		if res, ok := arg.(*ResultArg); ok && len(res.uses) != 0 {
 			// Create a separate copyout instruction that has own Idx.
@@ -192,27 +222,6 @@ func (w *execContext) serializeCall(c *Call) {
 			w.write(arg.Size())
 		}
 	})
-}
-
-func (target *Target) PhysicalAddr(arg *PointerArg) uint64 {
-	if arg.IsNull() {
-		return 0
-	}
-	return target.DataOffset + arg.Address
-}
-
-type execContext struct {
-	target     *Target
-	buf        []byte
-	eof        bool
-	args       map[Arg]argInfo
-	copyoutSeq uint64
-}
-
-type argInfo struct {
-	Addr uint64 // physical addr
-	Idx  uint64 // copyout instruction index
-	Ret  bool
 }
 
 func (w *execContext) write(v uint64) {
