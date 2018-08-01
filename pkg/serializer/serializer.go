@@ -33,18 +33,7 @@ type writer struct {
 func (w *writer) do(v reflect.Value, sliceElem bool) {
 	switch v.Kind() {
 	case reflect.Ptr:
-		if v.IsNil() {
-			w.string("nil")
-			return
-		}
-		if !sliceElem {
-			w.byte('&')
-		}
-		if v.Elem().Kind() != reflect.Struct {
-			panic(fmt.Sprintf("only pointers to structs are supported, got %v",
-				v.Type().Name()))
-		}
-		w.do(v.Elem(), sliceElem)
+		w.doPtr(v, sliceElem)
 	case reflect.Interface:
 		if v.IsNil() {
 			w.string("nil")
@@ -52,51 +41,9 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 			w.do(v.Elem(), false)
 		}
 	case reflect.Slice:
-		if v.IsNil() || v.Len() == 0 {
-			w.string("nil")
-		} else {
-			w.typ(v.Type())
-			sub := v.Type().Elem().Kind()
-			if sub == reflect.Ptr || sub == reflect.Interface || sub == reflect.Struct {
-				// Elem per-line.
-				w.string("{\n")
-				for i := 0; i < v.Len(); i++ {
-					w.do(v.Index(i), true)
-					w.string(",\n")
-				}
-				w.byte('}')
-			} else {
-				// All on one line.
-				w.byte('{')
-				for i := 0; i < v.Len(); i++ {
-					if i > 0 {
-						w.byte(',')
-					}
-					w.do(v.Index(i), true)
-				}
-				w.byte('}')
-			}
-		}
+		w.doSlice(v)
 	case reflect.Struct:
-		if !sliceElem {
-			w.string(v.Type().Name())
-		}
-		w.byte('{')
-		needComma := false
-		for i := 0; i < v.NumField(); i++ {
-			f := v.Field(i)
-			if isDefaultValue(f) {
-				continue
-			}
-			if needComma {
-				w.byte(',')
-			}
-			w.string(v.Type().Field(i).Name)
-			w.byte(':')
-			w.do(f, false)
-			needComma = true
-		}
-		w.byte('}')
+		w.doStruct(v, sliceElem)
 	case reflect.Bool:
 		if v.Bool() {
 			w.string("true")
@@ -114,6 +61,71 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %#v", v.Type().String()))
 	}
+}
+
+func (w *writer) doPtr(v reflect.Value, sliceElem bool) {
+	if v.IsNil() {
+		w.string("nil")
+		return
+	}
+	if !sliceElem {
+		w.byte('&')
+	}
+	if v.Elem().Kind() != reflect.Struct {
+		panic(fmt.Sprintf("only pointers to structs are supported, got %v",
+			v.Type().Name()))
+	}
+	w.do(v.Elem(), sliceElem)
+}
+
+func (w *writer) doSlice(v reflect.Value) {
+	if v.IsNil() || v.Len() == 0 {
+		w.string("nil")
+		return
+	}
+	w.typ(v.Type())
+	sub := v.Type().Elem().Kind()
+	if sub == reflect.Ptr || sub == reflect.Interface || sub == reflect.Struct {
+		// Elem per-line.
+		w.string("{\n")
+		for i := 0; i < v.Len(); i++ {
+			w.do(v.Index(i), true)
+			w.string(",\n")
+		}
+		w.byte('}')
+		return
+	}
+	// All on one line.
+	w.byte('{')
+	for i := 0; i < v.Len(); i++ {
+		if i > 0 {
+			w.byte(',')
+		}
+		w.do(v.Index(i), true)
+	}
+	w.byte('}')
+}
+
+func (w *writer) doStruct(v reflect.Value, sliceElem bool) {
+	if !sliceElem {
+		w.string(v.Type().Name())
+	}
+	w.byte('{')
+	needComma := false
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Field(i)
+		if isDefaultValue(f) {
+			continue
+		}
+		if needComma {
+			w.byte(',')
+		}
+		w.string(v.Type().Field(i).Name)
+		w.byte(':')
+		w.do(f, false)
+		needComma = true
+	}
+	w.byte('}')
 }
 
 func (w *writer) typ(t reflect.Type) {
