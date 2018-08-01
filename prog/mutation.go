@@ -13,128 +13,155 @@ const maxBlobLen = uint64(100 << 10)
 
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
 	r := newRand(p.Target, rs)
-
-	retry := false
-outer:
-	for stop := false; !stop || retry; stop = r.oneOf(3) {
-		retry = false
+	ctx := &mutator{
+		p:      p,
+		r:      r,
+		ncalls: ncalls,
+		ct:     ct,
+		corpus: corpus,
+	}
+	for stop, ok := false, false; !stop; stop = ok && r.oneOf(3) {
 		switch {
 		case r.oneOf(5):
 			// Not all calls have anything squashable,
 			// so this has lower priority in reality.
-			complexPtrs := p.complexPtrs()
-			if len(complexPtrs) == 0 {
-				retry = true
-				continue
-			}
-			ptr := complexPtrs[r.Intn(len(complexPtrs))]
-			if !p.Target.isAnyPtr(ptr.Type()) {
-				p.Target.squashPtr(ptr, true)
-			}
-			var blobs []*DataArg
-			var bases []*PointerArg
-			ForeachSubArg(ptr, func(arg Arg, ctx *ArgCtx) {
-				if data, ok := arg.(*DataArg); ok && arg.Type().Dir() != DirOut {
-					blobs = append(blobs, data)
-					bases = append(bases, ctx.Base)
-				}
-			})
-			if len(blobs) == 0 {
-				retry = true
-				continue
-			}
-			// TODO(dvyukov): we probably want special mutation for ANY.
-			// E.g. merging adjacent ANYBLOBs (we don't create them,
-			// but they can appear in future); or replacing ANYRES
-			// with a blob (and merging it with adjacent blobs).
-			idx := r.Intn(len(blobs))
-			arg := blobs[idx]
-			base := bases[idx]
-			baseSize := base.Res.Size()
-			arg.data = mutateData(r, arg.Data(), 0, maxBlobLen)
-			// Update base pointer if size has increased.
-			if baseSize < base.Res.Size() {
-				s := analyze(ct, p, p.Calls[0])
-				newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
-				*base = *newArg
-			}
+			ok = ctx.squashAny()
 		case r.nOutOf(1, 100):
-			// Splice with another prog from corpus.
-			if len(corpus) == 0 || len(p.Calls) == 0 {
-				retry = true
-				continue
-			}
-			p0 := corpus[r.Intn(len(corpus))]
-			p0c := p0.Clone()
-			idx := r.Intn(len(p.Calls))
-			p.Calls = append(p.Calls[:idx], append(p0c.Calls, p.Calls[idx:]...)...)
-			for i := len(p.Calls) - 1; i >= ncalls; i-- {
-				p.removeCall(i)
-			}
+			ok = ctx.splice()
 		case r.nOutOf(20, 31):
-			// Insert a new call.
-			if len(p.Calls) >= ncalls {
-				retry = true
-				continue
-			}
-			idx := r.biasedRand(len(p.Calls)+1, 5)
-			var c *Call
-			if idx < len(p.Calls) {
-				c = p.Calls[idx]
-			}
-			s := analyze(ct, p, c)
-			calls := r.generateCall(s, p)
-			p.insertBefore(c, calls)
+			ok = ctx.insertCall()
 		case r.nOutOf(10, 11):
-			// Change args of a call.
-			if len(p.Calls) == 0 {
-				retry = true
-				continue
-			}
-			c := p.Calls[r.Intn(len(p.Calls))]
-			if len(c.Args) == 0 {
-				retry = true
-				continue
-			}
-			s := analyze(ct, p, c)
-			updateSizes := true
-			retryArg := false
-			for stop := false; !stop || retryArg; stop = r.oneOf(3) {
-				retryArg = false
-				ma := &mutationArgs{target: p.Target}
-				ForeachArg(c, ma.collectArg)
-				if len(ma.args) == 0 {
-					retry = true
-					continue outer
-				}
-				idx := r.Intn(len(ma.args))
-				arg, ctx := ma.args[idx], ma.ctxes[idx]
-				calls, ok := p.Target.mutateArg(r, s, arg, ctx, &updateSizes)
-				if !ok {
-					retryArg = true
-					continue
-				}
-				p.insertBefore(c, calls)
-				if updateSizes {
-					p.Target.assignSizesCall(c)
-				}
-				p.Target.SanitizeCall(c)
-			}
+			ok = ctx.mutateArg()
 		default:
-			// Remove a random call.
-			if len(p.Calls) == 0 {
-				retry = true
-				continue
-			}
-			idx := r.Intn(len(p.Calls))
-			p.removeCall(idx)
+			ok = ctx.removeCall()
 		}
 	}
-
 	for _, c := range p.Calls {
 		p.Target.SanitizeCall(c)
 	}
 	p.debugValidate()
+}
+
+type mutator struct {
+	p      *Prog
+	r      *randGen
+	ncalls int
+	ct     *ChoiceTable
+	corpus []*Prog
+}
+
+func (ctx *mutator) splice() bool {
+	p, r := ctx.p, ctx.r
+	if len(ctx.corpus) == 0 || len(p.Calls) == 0 {
+		return false
+	}
+	p0 := ctx.corpus[r.Intn(len(ctx.corpus))]
+	p0c := p0.Clone()
+	idx := r.Intn(len(p.Calls))
+	p.Calls = append(p.Calls[:idx], append(p0c.Calls, p.Calls[idx:]...)...)
+	for i := len(p.Calls) - 1; i >= ctx.ncalls; i-- {
+		p.removeCall(i)
+	}
+	return true
+}
+
+func (ctx *mutator) squashAny() bool {
+	p, r := ctx.p, ctx.r
+	complexPtrs := p.complexPtrs()
+	if len(complexPtrs) == 0 {
+		return false
+	}
+	ptr := complexPtrs[r.Intn(len(complexPtrs))]
+	if !p.Target.isAnyPtr(ptr.Type()) {
+		p.Target.squashPtr(ptr, true)
+	}
+	var blobs []*DataArg
+	var bases []*PointerArg
+	ForeachSubArg(ptr, func(arg Arg, ctx *ArgCtx) {
+		if data, ok := arg.(*DataArg); ok && arg.Type().Dir() != DirOut {
+			blobs = append(blobs, data)
+			bases = append(bases, ctx.Base)
+		}
+	})
+	if len(blobs) == 0 {
+		return false
+	}
+	// TODO(dvyukov): we probably want special mutation for ANY.
+	// E.g. merging adjacent ANYBLOBs (we don't create them,
+	// but they can appear in future); or replacing ANYRES
+	// with a blob (and merging it with adjacent blobs).
+	idx := r.Intn(len(blobs))
+	arg := blobs[idx]
+	base := bases[idx]
+	baseSize := base.Res.Size()
+	arg.data = mutateData(r, arg.Data(), 0, maxBlobLen)
+	// Update base pointer if size has increased.
+	if baseSize < base.Res.Size() {
+		s := analyze(ctx.ct, p, p.Calls[0])
+		newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
+		*base = *newArg
+	}
+	return true
+}
+
+func (ctx *mutator) insertCall() bool {
+	p, r := ctx.p, ctx.r
+	if len(p.Calls) >= ctx.ncalls {
+		return false
+	}
+	idx := r.biasedRand(len(p.Calls)+1, 5)
+	var c *Call
+	if idx < len(p.Calls) {
+		c = p.Calls[idx]
+	}
+	s := analyze(ctx.ct, p, c)
+	calls := r.generateCall(s, p)
+	p.insertBefore(c, calls)
+	return true
+}
+
+func (ctx *mutator) removeCall() bool {
+	p, r := ctx.p, ctx.r
+	if len(p.Calls) == 0 {
+		return false
+	}
+	idx := r.Intn(len(p.Calls))
+	p.removeCall(idx)
+	return true
+}
+
+func (ctx *mutator) mutateArg() bool {
+	p, r := ctx.p, ctx.r
+	if len(p.Calls) == 0 {
+		return false
+	}
+	c := p.Calls[r.Intn(len(p.Calls))]
+	if len(c.Args) == 0 {
+		return false
+	}
+	s := analyze(ctx.ct, p, c)
+	updateSizes := true
+	for stop, ok := false, false; !stop; stop = ok && r.oneOf(3) {
+		ok = true
+		ma := &mutationArgs{target: p.Target}
+		ForeachArg(c, ma.collectArg)
+		if len(ma.args) == 0 {
+			return false
+		}
+		idx := r.Intn(len(ma.args))
+		arg, ctx := ma.args[idx], ma.ctxes[idx]
+		calls, ok1 := p.Target.mutateArg(r, s, arg, ctx, &updateSizes)
+		if !ok1 {
+			ok = false
+			continue
+		}
+		p.insertBefore(c, calls)
+		if updateSizes {
+			p.Target.assignSizesCall(c)
+		}
+		p.Target.SanitizeCall(c)
+	}
+	return true
 }
 
 func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updateSizes *bool) ([]*Call, bool) {
