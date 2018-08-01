@@ -80,24 +80,8 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 	if err != nil {
 		return "", err
 	}
-	if crash.ReproC == 0 && crash.ReproSyz == 0 {
-		return "This crash does not have a reproducer. I cannot test it.", nil
-	}
-
-	switch {
-	case !vcs.CheckRepoAddress(repo):
-		return fmt.Sprintf("%q does not look like a valid git repo address.", repo), nil
-	case !vcs.CheckBranch(branch) && !vcs.CheckCommitHash(branch):
-		return fmt.Sprintf("%q does not look like a valid git branch or commit.", branch), nil
-	case crash.ReproC == 0 && crash.ReproSyz == 0:
-		return "This crash does not have a reproducer. I cannot test it.", nil
-	case bug.Status == BugStatusFixed:
-		return "This bug is already marked as fixed. No point in testing.", nil
-	case bug.Status == BugStatusInvalid:
-		return "This bug is already marked as invalid. No point in testing.", nil
-	// TODO(dvyukov): for BugStatusDup check status of the canonical bug.
-	case !bugReporting.Closed.IsZero():
-		return "This bug is already upstreamed. Please test upstream.", nil
+	if reason := checkTestJob(c, bug, bugReporting, crash, repo, branch); reason != "" {
+		return reason, nil
 	}
 
 	manager := crash.Manager
@@ -177,6 +161,28 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 		return "", fmt.Errorf("job tx failed: %v", err)
 	}
 	return "", nil
+}
+
+func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash *Crash,
+	repo, branch string) string {
+	switch {
+	case crash.ReproC == 0 && crash.ReproSyz == 0:
+		return "This crash does not have a reproducer. I cannot test it."
+	case !vcs.CheckRepoAddress(repo):
+		return fmt.Sprintf("%q does not look like a valid git repo address.", repo)
+	case !vcs.CheckBranch(branch) && !vcs.CheckCommitHash(branch):
+		return fmt.Sprintf("%q does not look like a valid git branch or commit.", branch)
+	case crash.ReproC == 0 && crash.ReproSyz == 0:
+		return "This crash does not have a reproducer. I cannot test it."
+	case bug.Status == BugStatusFixed:
+		return "This bug is already marked as fixed. No point in testing."
+	case bug.Status == BugStatusInvalid:
+		return "This bug is already marked as invalid. No point in testing."
+	// TODO(dvyukov): for BugStatusDup check status of the canonical bug.
+	case !bugReporting.Closed.IsZero():
+		return "This bug is already upstreamed. Please test upstream."
+	}
+	return ""
 }
 
 // pollPendingJobs returns the next job to execute for the provided list of managers.
