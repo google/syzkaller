@@ -169,7 +169,11 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("config param syzkaller is empty")
 	}
 	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
-	exe := targets.Get(cfg.TargetOS, cfg.TargetArch).ExeExtension
+	sysTarget := targets.Get(cfg.TargetOS, cfg.TargetArch)
+	if sysTarget == nil {
+		return fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetArch)
+	}
+	exe := sysTarget.ExeExtension
 	targetBin := func(name, arch string) string {
 		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
 	}
