@@ -352,20 +352,26 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 			log.Infof(c, "no bug ID (%q)", msg.Subject)
 		} else {
 			log.Errorf(c, "no bug ID (%q)", msg.Subject)
-			replyTo(c, msg, "Can't find the corresponding bug.", nil)
+			if err := replyTo(c, msg, "Can't find the corresponding bug.", nil); err != nil {
+				log.Errorf(c, "failed to send reply: %v", err)
+			}
 		}
 		return nil, nil, nil
 	}
 	bug, _, err := findBugByReportingID(c, msg.BugID)
 	if err != nil {
 		log.Errorf(c, "can't find bug: %v", err)
-		replyTo(c, msg, "Can't find the corresponding bug.", nil)
+		if err := replyTo(c, msg, "Can't find the corresponding bug.", nil); err != nil {
+			log.Errorf(c, "failed to send reply: %v", err)
+		}
 		return nil, nil, nil
 	}
 	bugReporting, _ = bugReportingByID(bug, msg.BugID)
 	if bugReporting == nil {
 		log.Errorf(c, "can't find bug reporting: %v", err)
-		replyTo(c, msg, "Can't find the corresponding bug.", nil)
+		if err := replyTo(c, msg, "Can't find the corresponding bug.", nil); err != nil {
+			log.Errorf(c, "failed to send reply: %v", err)
+		}
 		return nil, nil, nil
 	}
 	reporting = config.Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)

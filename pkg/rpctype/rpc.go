@@ -26,7 +26,9 @@ func NewRPCServer(addr string, receiver interface{}) (*RPCServer, error) {
 		return nil, fmt.Errorf("failed to listen on %v: %v", addr, err)
 	}
 	s := rpc.NewServer()
-	s.Register(receiver)
+	if err := s.Register(receiver); err != nil {
+		return nil, err
+	}
 	serv := &RPCServer{
 		ln: ln,
 		s:  s,
@@ -41,8 +43,7 @@ func (serv *RPCServer) Serve() {
 			log.Logf(0, "failed to accept an rpc connection: %v", err)
 			continue
 		}
-		conn.(*net.TCPConn).SetKeepAlive(true)
-		conn.(*net.TCPConn).SetKeepAlivePeriod(10 * time.Second)
+		setupKeepAlive(conn, 10*time.Second)
 		go serv.s.ServeConn(newFlateConn(conn))
 	}
 }
@@ -66,8 +67,7 @@ func Dial(addr string) (net.Conn, error) {
 	if conn, err = net.DialTimeout("tcp", addr, 60*time.Second); err != nil {
 		return nil, err
 	}
-	conn.(*net.TCPConn).SetKeepAlive(true)
-	conn.(*net.TCPConn).SetKeepAlivePeriod(time.Minute)
+	setupKeepAlive(conn, time.Minute)
 	return conn, nil
 }
 
@@ -84,10 +84,11 @@ func NewRPCClient(addr string) (*RPCClient, error) {
 }
 
 func (cli *RPCClient) Call(method string, args, reply interface{}) error {
-	cli.conn.SetDeadline(time.Now().Add(5 * 60 * time.Second))
-	err := cli.c.Call(method, args, reply)
-	cli.conn.SetDeadline(time.Time{})
-	return err
+	if err := cli.conn.SetDeadline(time.Now().Add(5 * 60 * time.Second)); err != nil {
+		return err
+	}
+	defer cli.conn.SetDeadline(time.Time{})
+	return cli.c.Call(method, args, reply)
 }
 
 func (cli *RPCClient) Close() {
@@ -101,6 +102,11 @@ func RPCCall(addr, method string, args, reply interface{}) error {
 	}
 	defer c.Close()
 	return c.Call(method, args, reply)
+}
+
+func setupKeepAlive(conn net.Conn, keepAlive time.Duration) {
+	conn.(*net.TCPConn).SetKeepAlive(true)
+	conn.(*net.TCPConn).SetKeepAlivePeriod(keepAlive)
 }
 
 // flateConn wraps net.Conn in flate.Reader/Writer for compressed traffic.

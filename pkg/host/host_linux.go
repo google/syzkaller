@@ -337,8 +337,8 @@ func checkCoverage() string {
 	return ""
 }
 
-func checkComparisons() string {
-	if reason := checkDebugFS(); reason != "" {
+func checkComparisons() (reason string) {
+	if reason = checkDebugFS(); reason != "" {
 		return reason
 	}
 	// TODO(dvyukov): this should run under target arch.
@@ -365,7 +365,11 @@ func checkComparisons() string {
 	if err != nil {
 		return fmt.Sprintf("KCOV mmap failed: %v", err)
 	}
-	defer syscall.Munmap(mem)
+	defer func() {
+		if err := syscall.Munmap(mem); err != nil {
+			reason = fmt.Sprintf("munmap failed: %v", err)
+		}
+	}()
 	_, _, errno = syscall.Syscall(syscall.SYS_IOCTL,
 		uintptr(fd), linux.KCOV_ENABLE, linux.KCOV_TRACE_CMP)
 	if errno != 0 {
@@ -374,7 +378,12 @@ func checkComparisons() string {
 		}
 		return fmt.Sprintf("ioctl(KCOV_TRACE_CMP) failed: %v", errno)
 	}
-	defer syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), linux.KCOV_DISABLE, 0)
+	defer func() {
+		_, _, errno = syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), linux.KCOV_DISABLE, 0)
+		if errno != 0 {
+			reason = fmt.Sprintf("ioctl(KCOV_DISABLE) failed: %v", errno)
+		}
+	}()
 	return ""
 }
 

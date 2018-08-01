@@ -82,10 +82,14 @@ func handleJSON(fn JSONHandler) http.Handler {
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			w.Header().Set("Content-Encoding", "gzip")
 			gz := gzip.NewWriter(w)
-			json.NewEncoder(gz).Encode(reply)
+			if err := json.NewEncoder(gz).Encode(reply); err != nil {
+				log.Errorf(c, "failed to encode reply: %v", err)
+			}
 			gz.Close()
 		} else {
-			json.NewEncoder(w).Encode(reply)
+			if err := json.NewEncoder(w).Encode(reply); err != nil {
+				log.Errorf(c, "failed to encode reply: %v", err)
+			}
 		}
 	})
 }
