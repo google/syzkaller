@@ -551,47 +551,13 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 	} else if len(req.ReproSyz) != 0 {
 		reproLevel = ReproLevelSyz
 	}
-	saveCrash := reproLevel != ReproLevelNone ||
+	save := reproLevel != ReproLevelNone ||
 		bug.NumCrashes < maxCrashes ||
 		now.Sub(bug.LastSavedCrash) > time.Hour ||
 		bug.NumCrashes%20 == 0
-	if saveCrash {
-		// Reporting priority of this crash.
-		var prio int64
-		switch reproLevel {
-		case ReproLevelSyz:
-			prio += 2e12
-		case ReproLevelC:
-			prio += 4e12
-		}
-		prio += int64(kernelRepoInfo(build).ReportingPriority) * 1e6
-		if build.Arch == "amd64" {
-			prio += 1e3
-		}
-		crash := &Crash{
-			Manager:     build.Manager,
-			BuildID:     req.BuildID,
-			Time:        now,
-			Maintainers: req.Maintainers,
-			ReproOpts:   req.ReproOpts,
-			ReportLen:   prio,
-		}
-		if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {
+	if save {
+		if err := saveCrash(c, ns, req, bugKey, build); err != nil {
 			return nil, err
-		}
-		if crash.Report, err = putText(c, ns, textCrashReport, req.Report, false); err != nil {
-			return nil, err
-		}
-		if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz, false); err != nil {
-			return nil, err
-		}
-		if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC, false); err != nil {
-			return nil, err
-		}
-
-		crashKey := datastore.NewIncompleteKey(c, "Crash", bugKey)
-		if _, err = datastore.Put(c, crashKey, crash); err != nil {
-			return nil, fmt.Errorf("failed to put crash: %v", err)
 		}
 	} else {
 		log.Infof(c, "not saving crash for %q", bug.Title)
@@ -604,7 +570,7 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		}
 		bug.NumCrashes++
 		bug.LastTime = now
-		if saveCrash {
+		if save {
 			bug.LastSavedCrash = now
 		}
 		if reproLevel != ReproLevelNone {
@@ -628,10 +594,49 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true}); err != nil {
 		return nil, err
 	}
-	if saveCrash {
+	if save {
 		purgeOldCrashes(c, bug, bugKey)
 	}
 	return bug, nil
+}
+
+func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *datastore.Key, build *Build) error {
+	// Reporting priority of this crash.
+	prio := int64(kernelRepoInfo(build).ReportingPriority) * 1e6
+	if len(req.ReproC) != 0 {
+		prio += 4e12
+	} else if len(req.ReproSyz) != 0 {
+		prio += 2e12
+	}
+	if build.Arch == "amd64" {
+		prio += 1e3
+	}
+	crash := &Crash{
+		Manager:     build.Manager,
+		BuildID:     req.BuildID,
+		Time:        timeNow(c),
+		Maintainers: req.Maintainers,
+		ReproOpts:   req.ReproOpts,
+		ReportLen:   prio,
+	}
+	var err error
+	if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {
+		return err
+	}
+	if crash.Report, err = putText(c, ns, textCrashReport, req.Report, false); err != nil {
+		return err
+	}
+	if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz, false); err != nil {
+		return err
+	}
+	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC, false); err != nil {
+		return err
+	}
+	crashKey := datastore.NewIncompleteKey(c, "Crash", bugKey)
+	if _, err = datastore.Put(c, crashKey, crash); err != nil {
+		return fmt.Errorf("failed to put crash: %v", err)
+	}
+	return nil
 }
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
