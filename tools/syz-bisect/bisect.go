@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/bisect"
 	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/syz-manager/mgrconfig"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 )
 
 var (

@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
-	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 var (

@@ -2,7 +2,7 @@
 
 The operation of the syzkaller `syz-manager` process is governed by a configuration file, passed at
 invocation time with the `-config` option.  This configuration can be based on the
-[example](/syz-manager/mgrconfig/testdata/qemu.cfg); the file is in JSON format with the
+[example](/pkg/mgrconfig/testdata/qemu.cfg); the file is in JSON format with the
 following keys in its top-level object:
 
  - `http`: URL that will display information about the running `syz-manager` process.
@@ -40,4 +40,4 @@ following keys in its top-level object:
      - `cpu`: Number of CPUs to simulate in the VM (*not currently used*).
      - `mem`: Amount of memory (in MiB) for the VM; this is passed as the `-m` option to `qemu-system-x86_64`.
 
-See also [config.go](/syz-manager/mgrconfig/mgrconfig.go) for all config parameters.
+See also [config.go](/pkg/mgrconfig/mgrconfig.go) for all config parameters.

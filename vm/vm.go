@@ -14,9 +14,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm/vmimpl"
 
 	// Import all VM implementations, so that users only need to import vm.

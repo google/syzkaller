@@ -14,9 +14,9 @@ import (
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 type JobProcessor struct {

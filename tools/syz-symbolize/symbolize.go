@@ -10,8 +10,8 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 var (
