@@ -441,6 +441,59 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		return false, internalError, err
 	}
 	stateEnt := state.getEntry(now, bug.Namespace, bugReporting.Name)
+	if ok, reply, err := incomingCommandCmd(c, now, cmd, bug, bugReporting, final, dupHash, stateEnt); !ok {
+		return false, reply, err
+	}
+	if len(cmd.FixCommits) != 0 && (bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
+		sort.Strings(cmd.FixCommits)
+		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
+			bug.Commits = cmd.FixCommits
+			bug.PatchedOn = nil
+		}
+	}
+	if cmd.CrashID != 0 {
+		// Rememeber that we've reported this crash.
+		crash := new(Crash)
+		crashKey := datastore.NewKey(c, "Crash", "", cmd.CrashID, bugKey)
+		if err := datastore.Get(c, crashKey, crash); err != nil {
+			return false, internalError, fmt.Errorf("failed to get reported crash %v: %v",
+				cmd.CrashID, err)
+		}
+		crash.Reported = now
+		if _, err := datastore.Put(c, crashKey, crash); err != nil {
+			return false, internalError, fmt.Errorf("failed to put reported crash %v: %v",
+				cmd.CrashID, err)
+		}
+		bugReporting.CrashID = cmd.CrashID
+	}
+	if bugReporting.ExtID == "" {
+		bugReporting.ExtID = cmd.ExtID
+	}
+	if bugReporting.Link == "" {
+		bugReporting.Link = cmd.Link
+	}
+	if len(cmd.CC) != 0 {
+		merged := email.MergeEmailLists(strings.Split(bugReporting.CC, "|"), cmd.CC)
+		bugReporting.CC = strings.Join(merged, "|")
+	}
+	if bugReporting.ReproLevel < cmd.ReproLevel {
+		bugReporting.ReproLevel = cmd.ReproLevel
+	}
+	if bug.Status != BugStatusDup {
+		bug.DupOf = ""
+	}
+	if _, err := datastore.Put(c, bugKey, bug); err != nil {
+		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
+	}
+	if err := saveReportingState(c, state); err != nil {
+		return false, internalError, err
+	}
+	return true, "", nil
+}
+
+func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
+	bug *Bug, bugReporting *BugReporting, final bool, dupHash string,
+	stateEnt *ReportingStateEntry) (bool, string, error) {
 	switch cmd.Status {
 	case dashapi.BugStatusOpen:
 		bug.Status = BugStatusOpen
@@ -488,50 +541,6 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		// Just update Link, Commits, etc below.
 	default:
 		return false, internalError, fmt.Errorf("unknown bug status %v", cmd.Status)
-	}
-	if len(cmd.FixCommits) != 0 && (bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
-		sort.Strings(cmd.FixCommits)
-		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
-			bug.Commits = cmd.FixCommits
-			bug.PatchedOn = nil
-		}
-	}
-	if cmd.CrashID != 0 {
-		// Rememeber that we've reported this crash.
-		crash := new(Crash)
-		crashKey := datastore.NewKey(c, "Crash", "", cmd.CrashID, bugKey)
-		if err := datastore.Get(c, crashKey, crash); err != nil {
-			return false, internalError, fmt.Errorf("failed to get reported crash %v: %v",
-				cmd.CrashID, err)
-		}
-		crash.Reported = now
-		if _, err := datastore.Put(c, crashKey, crash); err != nil {
-			return false, internalError, fmt.Errorf("failed to put reported crash %v: %v",
-				cmd.CrashID, err)
-		}
-		bugReporting.CrashID = cmd.CrashID
-	}
-	if bugReporting.ExtID == "" {
-		bugReporting.ExtID = cmd.ExtID
-	}
-	if bugReporting.Link == "" {
-		bugReporting.Link = cmd.Link
-	}
-	if len(cmd.CC) != 0 {
-		merged := email.MergeEmailLists(strings.Split(bugReporting.CC, "|"), cmd.CC)
-		bugReporting.CC = strings.Join(merged, "|")
-	}
-	if bugReporting.ReproLevel < cmd.ReproLevel {
-		bugReporting.ReproLevel = cmd.ReproLevel
-	}
-	if bug.Status != BugStatusDup {
-		bug.DupOf = ""
-	}
-	if _, err := datastore.Put(c, bugKey, bug); err != nil {
-		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
-	}
-	if err := saveReportingState(c, state); err != nil {
-		return false, internalError, err
 	}
 	return true, "", nil
 }
