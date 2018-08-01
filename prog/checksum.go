@@ -26,9 +26,8 @@ type CsumChunk struct {
 	Size  uint64 // for CsumChunkConst
 }
 
-func calcChecksumsCall(c *Call) map[Arg]CsumInfo {
-	var inetCsumFields []Arg
-	var pseudoCsumFields []Arg
+func calcChecksumsCall(c *Call) (map[Arg]CsumInfo, map[Arg]struct{}) {
+	var inetCsumFields, pseudoCsumFields []Arg
 
 	// Find all csum fields.
 	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
@@ -39,14 +38,13 @@ func calcChecksumsCall(c *Call) map[Arg]CsumInfo {
 			case CsumPseudo:
 				pseudoCsumFields = append(pseudoCsumFields, arg)
 			default:
-				panic(fmt.Sprintf("unknown csum kind %v\n", typ.Kind))
+				panic(fmt.Sprintf("unknown csum kind %v", typ.Kind))
 			}
 		}
 	})
 
-	// Return if no csum fields found.
 	if len(inetCsumFields) == 0 && len(pseudoCsumFields) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// Build map of each field to its parent struct.
@@ -60,20 +58,20 @@ func calcChecksumsCall(c *Call) map[Arg]CsumInfo {
 	})
 
 	csumMap := make(map[Arg]CsumInfo)
+	csumUses := make(map[Arg]struct{})
 
 	// Calculate generic inet checksums.
 	for _, arg := range inetCsumFields {
 		typ, _ := arg.Type().(*CsumType)
 		csummedArg := findCsummedArg(arg, typ, parentsMap)
+		csumUses[csummedArg] = struct{}{}
 		chunk := CsumChunk{CsumChunkArg, csummedArg, 0, 0}
-		info := CsumInfo{Kind: CsumInet, Chunks: make([]CsumChunk, 0)}
-		info.Chunks = append(info.Chunks, chunk)
-		csumMap[arg] = info
+		csumMap[arg] = CsumInfo{Kind: CsumInet, Chunks: []CsumChunk{chunk}}
 	}
 
 	// No need to continue if there are no pseudo csum fields.
 	if len(pseudoCsumFields) == 0 {
-		return csumMap
+		return csumMap, csumUses
 	}
 
 	// Extract ipv4 or ipv6 source and destination addresses.
@@ -109,7 +107,7 @@ func calcChecksumsCall(c *Call) map[Arg]CsumInfo {
 		csumMap[arg] = info
 	}
 
-	return csumMap
+	return csumMap, csumUses
 }
 
 func findCsummedArg(arg Arg, typ *CsumType, parentsMap map[Arg]Arg) Arg {
