@@ -245,44 +245,12 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 	if inst.debug {
 		log.Logf(0, "executing adb %+v", args)
 	}
-	rpipe, wpipe, err := os.Pipe()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create pipe: %v", err)
-	}
-	defer wpipe.Close()
-	defer rpipe.Close()
-	cmd := osutil.Command(inst.adbBin, append([]string{"-s", inst.device}, args...)...)
-	cmd.Stdout = wpipe
-	cmd.Stderr = wpipe
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	wpipe.Close()
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-time.After(time.Minute):
-			if inst.debug {
-				log.Logf(0, "adb hanged")
-			}
-			cmd.Process.Kill()
-		case <-done:
-		}
-	}()
-	if err := cmd.Wait(); err != nil {
-		close(done)
-		out, _ := ioutil.ReadAll(rpipe)
-		if inst.debug {
-			log.Logf(0, "adb failed: %v\n%s", err, out)
-		}
-		return nil, fmt.Errorf("adb %+v failed: %v\n%s", args, err, out)
-	}
-	close(done)
+	args = append([]string{"-s", inst.device}, args...)
+	out, err := osutil.RunCmd(time.Minute, "", inst.adbBin, args...)
 	if inst.debug {
 		log.Logf(0, "adb returned")
 	}
-	out, _ := ioutil.ReadAll(rpipe)
-	return out, nil
+	return out, err
 }
 
 func (inst *instance) repair() error {

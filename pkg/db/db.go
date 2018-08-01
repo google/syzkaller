@@ -47,7 +47,9 @@ func Open(filename string) (*DB, error) {
 	db.Version, db.Records, db.uncompacted = deserializeDB(bufio.NewReader(f))
 	f.Close()
 	if len(db.Records) == 0 || db.uncompacted/10*9 > len(db.Records) {
-		db.compact()
+		if err := db.compact(); err != nil {
+			return nil, err
+		}
 	}
 	return db, nil
 }
@@ -75,8 +77,7 @@ func (db *DB) Delete(key string) {
 
 func (db *DB) Flush() error {
 	if db.uncompacted/10*9 > len(db.Records) {
-		db.compact()
-		return nil
+		return db.compact()
 	}
 	if db.pending == nil {
 		return nil
@@ -168,7 +169,6 @@ func serializeRecord(w *bytes.Buffer, key string, val []byte, seq uint64) {
 		if _, err := fw.Write(val); err != nil {
 			panic(err)
 		}
-		fw.Flush()
 		fw.Close()
 		binary.Write(bytes.NewBuffer(w.Bytes()[lenPos:lenPos:lenPos+8]), binary.LittleEndian, uint32(len(w.Bytes())-startPos))
 	}

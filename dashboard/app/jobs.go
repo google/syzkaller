@@ -169,7 +169,9 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 	}
 	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true, Attempts: 30})
 	if patchID != 0 && deletePatch || err != nil {
-		datastore.Delete(c, datastore.NewKey(c, textPatch, "", patchID, nil))
+		if err := datastore.Delete(c, datastore.NewKey(c, textPatch, "", patchID, nil)); err != nil {
+			log.Errorf(c, "failed to delete patch for dup job: %v", err)
+		}
 	}
 	if err != nil {
 		return "", fmt.Errorf("job tx failed: %v", err)
