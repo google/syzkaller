@@ -168,26 +168,8 @@ func Complete(cfg *Config) error {
 	if cfg.Syzkaller == "" {
 		return fmt.Errorf("config param syzkaller is empty")
 	}
-	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
-	sysTarget := targets.Get(cfg.TargetOS, cfg.TargetArch)
-	if sysTarget == nil {
-		return fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetArch)
-	}
-	exe := sysTarget.ExeExtension
-	targetBin := func(name, arch string) string {
-		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
-	}
-	cfg.SyzFuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
-	cfg.SyzExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
-	cfg.SyzExecutorBin = targetBin("syz-executor", cfg.TargetArch)
-	if !osutil.IsExist(cfg.SyzFuzzerBin) {
-		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
-	}
-	if !osutil.IsExist(cfg.SyzExecprogBin) {
-		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecprogBin)
-	}
-	if !osutil.IsExist(cfg.SyzExecutorBin) {
-		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecutorBin)
+	if err := completeBinaries(cfg); err != nil {
+		return err
 	}
 	if cfg.HTTP == "" {
 		return fmt.Errorf("config param http is empty")
@@ -233,6 +215,31 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
 	}
 
+	return nil
+}
+
+func completeBinaries(cfg *Config) error {
+	sysTarget := targets.Get(cfg.TargetOS, cfg.TargetArch)
+	if sysTarget == nil {
+		return fmt.Errorf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetArch)
+	}
+	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
+	exe := sysTarget.ExeExtension
+	targetBin := func(name, arch string) string {
+		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+arch, name+exe)
+	}
+	cfg.SyzFuzzerBin = targetBin("syz-fuzzer", cfg.TargetVMArch)
+	cfg.SyzExecprogBin = targetBin("syz-execprog", cfg.TargetVMArch)
+	cfg.SyzExecutorBin = targetBin("syz-executor", cfg.TargetArch)
+	if !osutil.IsExist(cfg.SyzFuzzerBin) {
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
+	}
+	if !osutil.IsExist(cfg.SyzExecprogBin) {
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecprogBin)
+	}
+	if !osutil.IsExist(cfg.SyzExecutorBin) {
+		return fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecutorBin)
+	}
 	return nil
 }
 
