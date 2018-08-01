@@ -279,7 +279,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		metas = append(metas, meta)
 	}
 	if len(metas) == 0 {
-		return MakeResultArg(res, nil, res.Default()), nil
+		return res.makeDefaultArg(), nil
 	}
 
 	// Now we have a set of candidate calls that can create the necessary resource.
@@ -490,7 +490,7 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 		switch typ.(type) {
 		case *IntType, *FlagsType, *ConstType, *ProcType,
 			*VmaType, *ResourceType:
-			return r.target.defaultArg(typ), nil
+			return typ.makeDefaultArg(), nil
 		}
 	}
 
@@ -499,7 +499,7 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 			v := res.Desc.Values[r.Intn(len(res.Desc.Values))]
 			return MakeResultArg(typ, nil, v), nil
 		}
-		return r.target.defaultArg(typ), nil
+		return typ.makeDefaultArg(), nil
 	}
 
 	// Allow infinite recursion for optional pointers.

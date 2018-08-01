@@ -178,12 +178,12 @@ func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 		return false
 	}
 	a := arg.(*ConstArg)
-	def := arg.Type().Default()
-	if a.Val == def {
+	def := arg.Type().makeDefaultArg().(*ConstArg)
+	if a.Val == def.Val {
 		return false
 	}
 	v0 := a.Val
-	a.Val = def
+	a.Val = def.Val
 	if ctx.pred(ctx.p, ctx.callIndex0) {
 		*ctx.p0 = ctx.p
 	} else {

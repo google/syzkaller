@@ -90,20 +90,18 @@ func (ctx *validCtx) validateArg(arg Arg) error {
 func (arg *ConstArg) validate(ctx *validCtx) error {
 	switch typ := arg.Type().(type) {
 	case *IntType:
-		if typ.Dir() == DirOut && (arg.Val != 0 && arg.Val != typ.Default()) {
+		if typ.Dir() == DirOut && !isDefault(arg) {
 			return fmt.Errorf("out int arg '%v' has bad const value %v", typ.Name(), arg.Val)
 		}
 	case *ProcType:
-		if arg.Val >= typ.ValuesPerProc && arg.Val != typ.Default() {
+		if arg.Val >= typ.ValuesPerProc && !isDefault(arg) {
 			return fmt.Errorf("per proc arg '%v' has bad value %v", typ.Name(), arg.Val)
 		}
 	case *CsumType:
 		if arg.Val != 0 {
 			return fmt.Errorf("csum arg '%v' has nonzero value %v", typ.Name(), arg.Val)
 		}
-	case *ConstType:
-	case *FlagsType:
-	case *LenType:
+	case *ConstType, *FlagsType, *LenType:
 	default:
 		return fmt.Errorf("const arg %v has bad type %v", arg, typ.Name())
 	}
@@ -111,7 +109,7 @@ func (arg *ConstArg) validate(ctx *validCtx) error {
 		// We generate output len arguments, which makes sense since it can be
 		// a length of a variable-length array which is not known otherwise.
 		if _, isLen := typ.(*LenType); !isLen {
-			if arg.Val != 0 && arg.Val != typ.Default() {
+			if !typ.isDefaultArg(arg) {
 				return fmt.Errorf("output arg '%v'/'%v' has non default value '%+v'",
 					typ.FieldName(), typ.Name(), arg)
 			}
@@ -134,7 +132,7 @@ func (arg *ResultArg) validate(ctx *validCtx) error {
 		}
 		ctx.uses[u] = arg
 	}
-	if typ.Dir() == DirOut && (arg.Val != 0 && arg.Val != typ.Default()) {
+	if typ.Dir() == DirOut && arg.Val != 0 && arg.Val != typ.Default() {
 		return fmt.Errorf("out resource arg '%v' has bad const value %v", typ.Name(), arg.Val)
 	}
 	if arg.Res != nil {
@@ -228,9 +226,6 @@ func (arg *PointerArg) validate(ctx *validCtx) error {
 	case *VmaType:
 		if arg.Res != nil {
 			return fmt.Errorf("vma arg '%v' has data", typ.Name())
-		}
-		if arg.VmaSize == 0 && typ.Dir() != DirOut && !typ.Optional() {
-			return fmt.Errorf("vma arg '%v' has size 0", typ.Name())
 		}
 	case *PtrType:
 		if arg.Res == nil && !arg.Type().Optional() {
