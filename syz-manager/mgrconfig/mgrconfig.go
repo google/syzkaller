@@ -25,13 +25,11 @@ type Config struct {
 	// TCP address to serve HTTP stats page (e.g. "localhost:50000").
 	HTTP string `json:"http"`
 	// TCP address to serve RPC for fuzzer processes (optional).
-	RPC           string `json:"rpc"`
-	Workdir       string `json:"workdir"`
-	VmlinuxUnused string `json:"vmlinux"` // vmlinux should go away eventually.
+	RPC     string `json:"rpc"`
+	Workdir string `json:"workdir"`
 	// Directory with kernel object files.
-	// If not set, inferred as base dir of Vmlinux.
 	KernelObj string `json:"kernel_obj"`
-	// Kernel source directory.
+	// Kernel source directory (if not set defaults to KernelObj).
 	KernelSrc string `json:"kernel_src"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
 	Tag string `json:"tag"`
@@ -195,17 +193,11 @@ func Complete(cfg *Config) error {
 		}
 	}
 
-	if cfg.VmlinuxUnused != "" {
-		fmt.Printf("WARNING: vmlinux config parameter is deprecated and will be removed soon.\n" +
-			"Use kernel_obj to specify vmlinux dir instead.\n")
-	}
-	cfg.VmlinuxUnused = osutil.Abs(cfg.VmlinuxUnused)
-	if cfg.KernelObj == "" {
-		cfg.KernelObj = filepath.Dir(cfg.VmlinuxUnused) // assume in-tree build by default
-	}
+	cfg.KernelObj = osutil.Abs(cfg.KernelObj)
 	if cfg.KernelSrc == "" {
 		cfg.KernelSrc = cfg.KernelObj // assume in-tree build by default
 	}
+	cfg.KernelSrc = osutil.Abs(cfg.KernelSrc)
 	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
 		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
