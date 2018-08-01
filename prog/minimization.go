@@ -16,11 +16,7 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 		for _, call := range p.Calls {
 			p.Target.SanitizeCall(call)
 		}
-		if debug {
-			if err := p.validate(); err != nil {
-				panic(err)
-			}
-		}
+		p.debugValidate()
 		return pred0(p, callIndex)
 	}
 	name0 := ""

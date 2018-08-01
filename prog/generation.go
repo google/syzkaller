@@ -22,10 +22,6 @@ func (target *Target) Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Pro
 			p.Calls = append(p.Calls, c)
 		}
 	}
-	if debug {
-		if err := p.validate(); err != nil {
-			panic(err)
-		}
-	}
+	p.debugValidate()
 	return p
 }

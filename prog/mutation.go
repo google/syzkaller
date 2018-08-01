@@ -134,11 +134,7 @@ outer:
 	for _, c := range p.Calls {
 		p.Target.SanitizeCall(c)
 	}
-	if debug {
-		if err := p.validate(); err != nil {
-			panic(err)
-		}
-	}
+	p.debugValidate()
 }
 
 func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updateSizes *bool) ([]*Call, bool) {

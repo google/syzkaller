@@ -10,6 +10,14 @@ import (
 
 var debug = false // enabled in tests
 
+func (p *Prog) debugValidate() {
+	if debug {
+		if err := p.validate(); err != nil {
+			panic(err)
+		}
+	}
+}
+
 type validCtx struct {
 	target *Target
 	args   map[Arg]bool

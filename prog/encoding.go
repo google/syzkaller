@@ -25,11 +25,7 @@ func (p *Prog) String() string {
 }
 
 func (p *Prog) Serialize() []byte {
-	if debug {
-		if err := p.validate(); err != nil {
-			panic("serializing invalid program")
-		}
-	}
+	p.debugValidate()
 	ctx := &serializer{
 		target: p.Target,
 		buf:    new(bytes.Buffer),
