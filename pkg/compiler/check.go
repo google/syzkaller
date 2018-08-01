@@ -14,6 +14,7 @@ import (
 )
 
 func (comp *compiler) typecheck() {
+	comp.checkDirectives()
 	comp.checkNames()
 	comp.checkFields()
 	comp.checkTypedefs()
@@ -31,11 +32,10 @@ func (comp *compiler) check() {
 	comp.checkDupConsts()
 }
 
-func (comp *compiler) checkNames() {
+func (comp *compiler) checkDirectives() {
 	includes := make(map[string]bool)
 	incdirs := make(map[string]bool)
 	defines := make(map[string]bool)
-	calls := make(map[string]*ast.Call)
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.Include:
@@ -59,6 +59,14 @@ func (comp *compiler) checkNames() {
 				comp.error(n.Pos, "duplicate define %v", name)
 			}
 			defines[path] = true
+		}
+	}
+}
+
+func (comp *compiler) checkNames() {
+	calls := make(map[string]*ast.Call)
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
 		case *ast.Resource, *ast.Struct, *ast.TypeDef:
 			pos, typ, name := decl.Info()
 			if reservedName[name] {
