@@ -21,11 +21,7 @@ func (p *Prog) Clone() *Prog {
 		}
 		p1.Calls[ci] = c1
 	}
-	if debug {
-		if err := p1.validate(); err != nil {
-			panic(err)
-		}
-	}
+	p1.debugValidate()
 	return p1
 }
 
