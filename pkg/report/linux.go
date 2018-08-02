@@ -162,6 +162,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 	return rep
 }
 
+// Yes, it is complex, but all state and logic are tightly coupled. It's unclear how to simplify it.
+// nolint: gocyclo
 func (ctx *linux) parseOutput(output []byte) (
 	oops *oops, startPos, endPos int,
 	logReport, consoleReport, consoleReportReliable []byte,

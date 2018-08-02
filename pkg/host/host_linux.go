@@ -122,6 +122,10 @@ var (
 	filesystemsOnce sync.Once
 )
 
+// The function is lengthy as it handles all pseudo-syscalls,
+// but it does not seem to cause comprehension problems as there is no shared state.
+// Splitting this per-syscall will only increase code size.
+// nolint: gocyclo
 func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	switch c.CallName {
 	case "syz_open_dev":
