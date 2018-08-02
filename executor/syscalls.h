@@ -47,8 +47,6 @@ const call_t syscalls[] = {
     {"openat$dev_caphash", 102},
     {"openat$dev_capuse", 102},
     {"openat$dev_config", 102},
-    {"openat$dev_cons", 102},
-    {"openat$dev_consctl", 102},
     {"openat$dev_cputime", 102},
     {"openat$dev_drivers", 102},
     {"openat$dev_empty", 102},
