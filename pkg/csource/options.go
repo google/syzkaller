@@ -44,6 +44,11 @@ type Options struct {
 // For example, Collide without Threaded is not valid.
 // Invalid combinations must not be passed to Write.
 func (opts Options) Check(OS string) error {
+	switch opts.Sandbox {
+	case "", sandboxNone, sandboxNamespace, sandboxSetuid:
+	default:
+		return fmt.Errorf("unknown sandbox %v", opts.Sandbox)
+	}
 	if !opts.Threaded && opts.Collide {
 		// Collide requires threaded.
 		return errors.New("Collide without Threaded")

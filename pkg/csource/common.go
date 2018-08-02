@@ -8,6 +8,7 @@ package csource
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -24,11 +25,7 @@ const (
 )
 
 func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, opts Options) ([]byte, error) {
-	defines, err := defineList(p, mmapProg, opts)
-	if err != nil {
-		return nil, err
-	}
-
+	defines := defineList(p, mmapProg, opts)
 	cmd := osutil.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
 	for _, def := range defines {
 		cmd.Args = append(cmd.Args, "-D"+def)
@@ -63,68 +60,38 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	return src, nil
 }
 
-func defineList(p, mmapProg *prog.Prog, opts Options) ([]string, error) {
-	var defines []string
+func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
+	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
 	bitmasks, csums := prog.RequiredFeatures(p)
-	if bitmasks {
-		defines = append(defines, "SYZ_USE_BITMASKS")
+	enabled := map[string]bool{
+		"GOOS_" + p.Target.OS:           true,
+		"GOARCH_" + p.Target.Arch:       true,
+		"SYZ_USE_BITMASKS":              bitmasks,
+		"SYZ_USE_CHECKSUMS":             csums,
+		"SYZ_SANDBOX_NONE":              opts.Sandbox == sandboxNone,
+		"SYZ_SANDBOX_SETUID":            opts.Sandbox == sandboxSetuid,
+		"SYZ_SANDBOX_NAMESPACE":         opts.Sandbox == sandboxNamespace,
+		"SYZ_THREADED":                  opts.Threaded,
+		"SYZ_COLLIDE":                   opts.Collide,
+		"SYZ_REPEAT":                    opts.Repeat,
+		"SYZ_REPEAT_TIMES":              opts.RepeatTimes > 1,
+		"SYZ_PROCS":                     opts.Procs > 1,
+		"SYZ_FAULT_INJECTION":           opts.Fault,
+		"SYZ_TUN_ENABLE":                opts.EnableTun,
+		"SYZ_ENABLE_CGROUPS":            opts.EnableCgroups,
+		"SYZ_ENABLE_NETDEV":             opts.EnableNetdev,
+		"SYZ_RESET_NET_NAMESPACE":       opts.ResetNet,
+		"SYZ_USE_TMP_DIR":               opts.UseTmpDir,
+		"SYZ_HANDLE_SEGV":               opts.HandleSegv,
+		"SYZ_REPRO":                     opts.Repro,
+		"SYZ_TRACE":                     opts.Trace,
+		"SYZ_EXECUTOR_USES_SHMEM":       sysTarget.ExecutorUsesShmem,
+		"SYZ_EXECUTOR_USES_FORK_SERVER": sysTarget.ExecutorUsesForkServer,
 	}
-	if csums {
-		defines = append(defines, "SYZ_USE_CHECKSUMS")
-	}
-	switch opts.Sandbox {
-	case "":
-		// No sandbox, do nothing.
-	case sandboxNone:
-		defines = append(defines, "SYZ_SANDBOX_NONE")
-	case sandboxSetuid:
-		defines = append(defines, "SYZ_SANDBOX_SETUID")
-	case sandboxNamespace:
-		defines = append(defines, "SYZ_SANDBOX_NAMESPACE")
-	default:
-		return nil, fmt.Errorf("unknown sandbox mode: %v", opts.Sandbox)
-	}
-	if opts.Threaded {
-		defines = append(defines, "SYZ_THREADED")
-	}
-	if opts.Collide {
-		defines = append(defines, "SYZ_COLLIDE")
-	}
-	if opts.Repeat {
-		defines = append(defines, "SYZ_REPEAT")
-	}
-	if opts.RepeatTimes > 1 {
-		defines = append(defines, "SYZ_REPEAT_TIMES")
-	}
-	if opts.Procs > 1 {
-		defines = append(defines, "SYZ_PROCS")
-	}
-	if opts.Fault {
-		defines = append(defines, "SYZ_FAULT_INJECTION")
-	}
-	if opts.EnableTun {
-		defines = append(defines, "SYZ_TUN_ENABLE")
-	}
-	if opts.EnableCgroups {
-		defines = append(defines, "SYZ_ENABLE_CGROUPS")
-	}
-	if opts.EnableNetdev {
-		defines = append(defines, "SYZ_ENABLE_NETDEV")
-	}
-	if opts.ResetNet {
-		defines = append(defines, "SYZ_RESET_NET_NAMESPACE")
-	}
-	if opts.UseTmpDir {
-		defines = append(defines, "SYZ_USE_TMP_DIR")
-	}
-	if opts.HandleSegv {
-		defines = append(defines, "SYZ_HANDLE_SEGV")
-	}
-	if opts.Repro {
-		defines = append(defines, "SYZ_REPRO")
-	}
-	if opts.Trace {
-		defines = append(defines, "SYZ_TRACE")
+	for def, ok := range enabled {
+		if ok {
+			defines = append(defines, def)
+		}
 	}
 	for _, c := range p.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)
@@ -132,16 +99,8 @@ func defineList(p, mmapProg *prog.Prog, opts Options) ([]string, error) {
 	for _, c := range mmapProg.Calls {
 		defines = append(defines, "__NR_"+c.Meta.CallName)
 	}
-	defines = append(defines, "GOOS_"+p.Target.OS)
-	defines = append(defines, "GOARCH_"+p.Target.Arch)
-	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
-	if sysTarget.ExecutorUsesShmem {
-		defines = append(defines, "SYZ_EXECUTOR_USES_SHMEM")
-	}
-	if sysTarget.ExecutorUsesForkServer {
-		defines = append(defines, "SYZ_EXECUTOR_USES_FORK_SERVER")
-	}
-	return defines, nil
+	sort.Strings(defines)
+	return
 }
 
 func removeSystemDefines(src []byte, defines []string) ([]byte, error) {
