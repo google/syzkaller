@@ -8,8 +8,6 @@ openat$dev_random(fromfd const[AT_FDCWD], path ptr[in, string["/dev/random"]], p
 openat$dev_urandom(fromfd const[AT_FDCWD], path ptr[in, string["/dev/urandom"]], path_l len[path], oflag const[O_RDONLY], mode const[0]) fd
 openat$dev_bintime(fromfd const[AT_FDCWD], path ptr[in, string["/dev/bintime"]], path_l len[path], oflag const[O_RDWR], mode const[0]) fd
 openat$dev_config(fromfd const[AT_FDCWD], path ptr[in, string["/dev/config"]], path_l len[path], oflag const[O_RDONLY], mode const[0]) fd
-openat$dev_cons(fromfd const[AT_FDCWD], path ptr[in, string["/dev/cons"]], path_l len[path], oflag const[O_RDWR], mode const[0]) fd
-openat$dev_consctl(fromfd const[AT_FDCWD], path ptr[in, string["/dev/consctl"]], path_l len[path], oflag const[O_RDWR], mode const[0]) fd
 openat$dev_killkid(fromfd const[AT_FDCWD], path ptr[in, string["/dev/killkid"]], path_l len[path], oflag const[O_RDWR], mode const[0]) fd
 openat$dev_cputime(fromfd const[AT_FDCWD], path ptr[in, string["/dev/cputime"]], path_l len[path], oflag const[O_RDONLY], mode const[0]) fd
 openat$dev_drivers(fromfd const[AT_FDCWD], path ptr[in, string["/dev/drivers"]], path_l len[path], oflag const[O_RDONLY], mode const[0]) fd
