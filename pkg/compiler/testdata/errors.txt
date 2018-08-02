@@ -321,7 +321,7 @@ foo$207(a ptr[in, templ_struct2[1]])
 
 # fmt
 
-foo$fmt0(a fmt)					### wrong number of arguments for type fmt, expect format, value
+foo$fmt0(a ptr[in, fmt])			### wrong number of arguments for type fmt, expect format, value
 foo$fmt1(a fmt[dec, int8])			### fmt can't be syscall argument
 foo$fmt2(a ptr[in, fmt[dec, ptr[in, int8]]])	### bad fmt value ptr, expect an integer
 foo$fmt3(a ptr[in, fmt[foo, int8]])		### unexpected value foo for format argument of fmt type, expect [dec hex oct]
