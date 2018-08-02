@@ -122,8 +122,16 @@ func (mgr *Manager) collectStats() []UIStat {
 		secs = uint64(time.Since(mgr.firstConnect))/1e9 + 1
 	}
 
+	intStats := convertStats(mgr.stats.all(), secs)
+	intStats = append(intStats, convertStats(mgr.fuzzerStats, secs)...)
+	sort.Sort(UIStatArray(intStats))
+	stats = append(stats, intStats...)
+	return stats
+}
+
+func convertStats(stats map[string]uint64, secs uint64) []UIStat {
 	var intStats []UIStat
-	for k, v := range mgr.stats {
+	for k, v := range stats {
 		val := fmt.Sprintf("%v", v)
 		if x := v / secs; x >= 10 {
 			val += fmt.Sprintf(" (%v/sec)", x)
@@ -135,9 +143,7 @@ func (mgr *Manager) collectStats() []UIStat {
 		}
 		intStats = append(intStats, UIStat{Name: k, Value: val})
 	}
-	sort.Sort(UIStatArray(intStats))
-	stats = append(stats, intStats...)
-	return stats
+	return intStats
 }
 
 func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
@@ -413,11 +419,11 @@ func readCrash(workdir, dir string, repros map[string]bool, full bool) *UICrashT
 		return nil
 	}
 	defer descFile.Close()
-	desc, err := ioutil.ReadAll(descFile)
-	if err != nil || len(desc) == 0 {
+	descBytes, err := ioutil.ReadAll(descFile)
+	if err != nil || len(descBytes) == 0 {
 		return nil
 	}
-	desc = trimNewLines(desc)
+	desc := string(trimNewLines(descBytes))
 	stat, err := descFile.Stat()
 	if err != nil {
 		return nil
@@ -471,26 +477,30 @@ func readCrash(workdir, dir string, repros map[string]bool, full bool) *UICrashT
 		sort.Sort(UICrashArray(crashes))
 	}
 
-	triaged := ""
-	if hasRepro {
-		if hasCRepro {
-			triaged = "has C repro"
-		} else {
-			triaged = "has repro"
-		}
-	} else if repros[string(desc)] {
-		triaged = "reproducing"
-	} else if reproAttempts >= maxReproAttempts {
-		triaged = "non-reproducible"
-	}
+	triaged := reproStatus(hasRepro, hasCRepro, repros[desc], reproAttempts >= maxReproAttempts)
 	return &UICrashType{
-		Description: string(desc),
+		Description: desc,
 		LastTime:    modTime.Format(dateFormat),
 		ID:          dir,
 		Count:       len(crashes),
 		Triaged:     triaged,
 		Crashes:     crashes,
 	}
+}
+
+func reproStatus(hasRepro, hasCRepro, reproducing, nonReproducible bool) string {
+	status := ""
+	if hasRepro {
+		status = "has repro"
+		if hasCRepro {
+			status = "has C repro"
+		}
+	} else if reproducing {
+		status = "reproducing"
+	} else if nonReproducible {
+		status = "non-reproducible"
+	}
+	return status
 }
 
 func trimNewLines(data []byte) []byte {
