@@ -240,45 +240,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		decoder = kd.Decode
 	}
 	merger.AddDecoder("console", conRpipe, decoder)
-
-	// We've started the console reading ssh command, but it has not necessary connected yet.
-	// If we proceed to running the target command right away, we can miss part
-	// of console output. During repro we can crash machines very quickly and
-	// would miss beginning of a crash. Before ssh starts piping console output,
-	// it usually prints:
-	// "serialport: Connected to ... port 1 (session ID: ..., active connections: 1)"
-	// So we wait for this line, or at least a minute and at least some output.
-	{
-		var output []byte
-		timeout := time.NewTimer(time.Minute)
-		connectedMsg := []byte("serialport: Connected")
-		permissionDeniedMsg := []byte("Permission denied (publickey)")
-	loop:
-		for {
-			select {
-			case out := <-merger.Output:
-				output = append(output, out...)
-				if bytes.Contains(output, connectedMsg) {
-					// Just to make sure (otherwise we still see trimmed reports).
-					time.Sleep(5 * time.Second)
-					break loop
-				}
-				if bytes.Contains(output, permissionDeniedMsg) {
-					// This is a GCE bug.
-					break loop
-				}
-			case <-timeout.C:
-				break loop
-			}
-		}
-		timeout.Stop()
-		if len(output) == 0 || bytes.Contains(output, permissionDeniedMsg) {
-			con.Process.Kill()
-			merger.Wait()
-			return nil, nil, fmt.Errorf("no output from console or permission denied")
-		}
+	if err := waitForConsoleConnect(merger); err != nil {
+		con.Process.Kill()
+		merger.Wait()
+		return nil, nil, err
 	}
-
 	sshRpipe, sshWpipe, err := osutil.LongPipe()
 	if err != nil {
 		con.Process.Kill()
@@ -353,6 +319,41 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		ssh.Wait()
 	}()
 	return merger.Output, errc, nil
+}
+
+func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
+	// We've started the console reading ssh command, but it has not necessary connected yet.
+	// If we proceed to running the target command right away, we can miss part
+	// of console output. During repro we can crash machines very quickly and
+	// would miss beginning of a crash. Before ssh starts piping console output,
+	// it usually prints:
+	// "serialport: Connected to ... port 1 (session ID: ..., active connections: 1)"
+	// So we wait for this line, or at least a minute and at least some output.
+	timeout := time.NewTimer(time.Minute)
+	defer timeout.Stop()
+	connectedMsg := []byte("serialport: Connected")
+	permissionDeniedMsg := []byte("Permission denied (publickey)")
+	var output []byte
+	for {
+		select {
+		case out := <-merger.Output:
+			output = append(output, out...)
+			if bytes.Contains(output, connectedMsg) {
+				// Just to make sure (otherwise we still see trimmed reports).
+				time.Sleep(5 * time.Second)
+				return nil
+			}
+			if bytes.Contains(output, permissionDeniedMsg) {
+				// This is a GCE bug.
+				return fmt.Errorf("broken console: %s", permissionDeniedMsg)
+			}
+		case <-timeout.C:
+			if len(output) == 0 {
+				return fmt.Errorf("broken console: no output")
+			}
+			return nil
+		}
+	}
 }
 
 func (inst *instance) Diagnose() bool {
