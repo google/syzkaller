@@ -7,10 +7,10 @@ import (
 	"runtime"
 
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/linux/gen"
 	"github.com/google/syzkaller/sys/targets"
 )
 
+/*
 func init() {
 	prog.RegisterTarget(gen.Target_amd64, initTarget)
 	prog.RegisterTarget(gen.Target_386, initTarget)
@@ -18,8 +18,9 @@ func init() {
 	prog.RegisterTarget(gen.Target_arm, initTarget)
 	prog.RegisterTarget(gen.Target_ppc64le, initTarget)
 }
+*/
 
-func initTarget(target *prog.Target) {
+func InitTarget(target *prog.Target) {
 	arch := &arch{
 		unix:                      targets.MakeUnixSanitizer(target),
 		clockGettimeSyscall:       target.SyscallMap["clock_gettime"],

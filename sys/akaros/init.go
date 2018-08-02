@@ -5,19 +5,14 @@ package akaros
 
 import (
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/akaros/gen"
 	"github.com/google/syzkaller/sys/targets"
 )
-
-func init() {
-	prog.RegisterTarget(gen.Target_amd64, initTarget)
-}
 
 type arch struct {
 	unix *targets.UnixSanitizer
 }
 
-func initTarget(target *prog.Target) {
+func InitTarget(target *prog.Target) {
 	arch := &arch{
 		unix: targets.MakeUnixSanitizer(target),
 	}

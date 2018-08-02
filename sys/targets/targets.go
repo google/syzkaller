@@ -16,6 +16,7 @@ type Target struct {
 	osCommon
 	OS               string
 	Arch             string
+	VMArch           string // e.g. amd64 for 386, or arm64 for arm
 	PtrSize          uint64
 	PageSize         uint64
 	NumPages         uint64
@@ -123,6 +124,7 @@ var List = map[string]map[string]*Target{
 			},
 		},
 		"386": {
+			VMArch:           "amd64",
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			CFlags:           []string{"-m32"},
@@ -140,6 +142,7 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "arm64",
 		},
 		"arm": {
+			VMArch:           "arm64",
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-m32", "-D__ARM_EABI__"},
