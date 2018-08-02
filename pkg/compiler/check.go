@@ -681,6 +681,36 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 		}
 		return
 	}
+	err0 := comp.errors
+	comp.checkTypeBasic(t, desc, flags)
+	if err0 != comp.errors {
+		return
+	}
+	args := comp.checkTypeArgs(t, desc, flags)
+	if err0 != comp.errors {
+		return
+	}
+	for i, arg := range args {
+		if desc.Args[i].Type == typeArgType {
+			var innerFlags checkFlags
+			if desc.Args[i].IsArg {
+				innerFlags |= checkIsArg
+			}
+			comp.checkType(ctx, arg, innerFlags)
+		} else {
+			comp.checkTypeArg(t, arg, desc.Args[i])
+		}
+	}
+	if err0 != comp.errors {
+		return
+	}
+	if desc.Check != nil {
+		_, args, base := comp.getArgsBase(t, "", prog.DirIn, flags&checkIsArg != 0)
+		desc.Check(comp, t, args, base)
+	}
+}
+
+func (comp *compiler) checkTypeBasic(t *ast.Type, desc *typeDesc, flags checkFlags) {
 	if t.HasColon {
 		if !desc.AllowColon {
 			comp.error(t.Pos2, "unexpected ':'")
@@ -699,47 +729,6 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 		comp.error(t.Pos, "%v can't be resource base (int types can)", t.Ident)
 		return
 	}
-	args, opt := removeOpt(t)
-	if opt != nil {
-		if len(opt.Args) != 0 {
-			comp.error(opt.Pos, "opt can't have arguments")
-		}
-		if flags&checkIsResourceBase != 0 || desc.CantBeOpt {
-			what := "resource base"
-			if desc.CantBeOpt {
-				what = t.Ident
-			}
-			comp.error(opt.Pos, "%v can't be marked as opt", what)
-			return
-		}
-	}
-	addArgs := 0
-	needBase := flags&checkIsArg == 0 && desc.NeedBase
-	if needBase {
-		addArgs++ // last arg must be base type, e.g. const[0, int32]
-	}
-	if len(args) > len(desc.Args)+addArgs || len(args) < len(desc.Args)-desc.OptArgs+addArgs {
-		comp.error(t.Pos, "wrong number of arguments for type %v, expect %v",
-			t.Ident, expectedTypeArgs(desc, needBase))
-		return
-	}
-	if needBase {
-		base := args[len(args)-1]
-		args = args[:len(args)-1]
-		comp.checkTypeArg(t, base, typeArgBase)
-	}
-	err0 := comp.errors
-	for i, arg := range args {
-		if desc.Args[i].Type == typeArgType {
-			var innerFlags checkFlags
-			if desc.Args[i].IsArg {
-				innerFlags |= checkIsArg
-			}
-			comp.checkType(ctx, arg, innerFlags)
-		} else {
-			comp.checkTypeArg(t, arg, desc.Args[i])
-		}
-	}
 	canBeArg, canBeRet := false, false
 	if desc.CanBeArgRet != nil {
 		canBeArg, canBeRet = desc.CanBeArgRet(comp, t)
@@ -752,10 +741,39 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 		comp.error(t.Pos, "%v can't be syscall argument", t.Ident)
 		return
 	}
-	if desc.Check != nil && err0 == comp.errors {
-		_, args, base := comp.getArgsBase(t, "", prog.DirIn, flags&checkIsArg != 0)
-		desc.Check(comp, t, args, base)
+}
+
+func (comp *compiler) checkTypeArgs(t *ast.Type, desc *typeDesc, flags checkFlags) []*ast.Type {
+	args, opt := removeOpt(t)
+	if opt != nil {
+		if len(opt.Args) != 0 {
+			comp.error(opt.Pos, "opt can't have arguments")
+		}
+		if flags&checkIsResourceBase != 0 || desc.CantBeOpt {
+			what := "resource base"
+			if desc.CantBeOpt {
+				what = t.Ident
+			}
+			comp.error(opt.Pos, "%v can't be marked as opt", what)
+			return nil
+		}
 	}
+	addArgs := 0
+	needBase := flags&checkIsArg == 0 && desc.NeedBase
+	if needBase {
+		addArgs++ // last arg must be base type, e.g. const[0, int32]
+	}
+	if len(args) > len(desc.Args)+addArgs || len(args) < len(desc.Args)-desc.OptArgs+addArgs {
+		comp.error(t.Pos, "wrong number of arguments for type %v, expect %v",
+			t.Ident, expectedTypeArgs(desc, needBase))
+		return nil
+	}
+	if needBase {
+		base := args[len(args)-1]
+		args = args[:len(args)-1]
+		comp.checkTypeArg(t, base, typeArgBase)
+	}
+	return args
 }
 
 func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlags) {
