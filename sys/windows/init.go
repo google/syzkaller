@@ -5,14 +5,9 @@ package windows
 
 import (
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/windows/gen"
 )
 
-func init() {
-	prog.RegisterTarget(gen.Target_amd64, initTarget)
-}
-
-func initTarget(target *prog.Target) {
+func InitTarget(target *prog.Target) {
 	arch := &arch{
 		virtualAllocSyscall:    target.SyscallMap["VirtualAlloc"],
 		MEM_COMMIT:             target.ConstMap["MEM_COMMIT"],

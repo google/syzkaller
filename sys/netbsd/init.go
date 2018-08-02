@@ -5,15 +5,10 @@ package netbsd
 
 import (
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/netbsd/gen"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-func init() {
-	prog.RegisterTarget(gen.Target_amd64, initTarget)
-}
-
-func initTarget(target *prog.Target) {
+func InitTarget(target *prog.Target) {
 	arch := &arch{
 		MAP_FIXED: target.ConstMap["MAP_FIXED"],
 	}
