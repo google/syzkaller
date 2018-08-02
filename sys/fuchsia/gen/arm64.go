@@ -24,7 +24,6 @@ var resources_arm64 = []*ResourceDesc{
 	{Name: "zx_handle", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle"}, Values: []uint64{0}},
 	{Name: "zx_interrupt", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"zx_interrupt"}, Values: []uint64{0}},
 	{Name: "zx_job", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_task", "zx_job"}, Values: []uint64{0}},
-	{Name: "zx_log", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_log"}, Values: []uint64{0}},
 	{Name: "zx_port", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_port"}, Values: []uint64{0}},
 	{Name: "zx_process", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_task", "zx_process"}, Values: []uint64{0}},
 	{Name: "zx_root_resource", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_root_resource"}, Values: []uint64{0}},
@@ -680,22 +679,6 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "policy", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "zx_policy_basic"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 8}}, Buf: "policy"},
 	}},
-	{Name: "zx_log_create", CallName: "zx_log_create", Args: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "log_create_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1073741824}, BitMask: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_log", TypeSize: 4, ArgDir: 1}}},
-	}},
-	{Name: "zx_log_read", CallName: "zx_log_read", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_log", FldName: "handle", TypeSize: 4}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "ptr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
-	}},
-	{Name: "zx_log_write", CallName: "zx_log_write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_log", FldName: "handle", TypeSize: 4}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "ptr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
-	}},
 	{Name: "zx_nanosleep", CallName: "zx_nanosleep", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 	}},
@@ -1321,4 +1304,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_arm64 = "42ba25aa193b27b48c8f8ade1c9186cb89c7ca61"
+const revision_arm64 = "d48c47eb82c0f95aff60923c0e24bbeef6a1e131"
