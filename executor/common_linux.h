@@ -1042,7 +1042,7 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("socket(%d, SOCK_STREAM, IPPROTO_TCP)", family);
+		fail("iptable checkpoint %d: socket failed", family);
 	}
 	for (i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
@@ -1056,19 +1056,24 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 			case ENOPROTOOPT:
 				continue;
 			}
-			fail("getsockopt(IPT_SO_GET_INFO)");
+			fail("iptable checkpoint %s/%d: getsockopt(IPT_SO_GET_INFO)", table->name, family);
 		}
-		debug("checkpoint iptable %s/%d: entries=%d hooks=%x size=%d\n", table->name, family, table->info.num_entries, table->info.valid_hooks, table->info.size);
+		debug("iptable checkpoint %s/%d: checkpoint entries=%d hooks=%x size=%d\n",
+		      table->name, family, table->info.num_entries,
+		      table->info.valid_hooks, table->info.size);
 		if (table->info.size > sizeof(table->replace.entrytable))
-			fail("table size is too large: %u", table->info.size);
+			fail("iptable checkpoint %s/%d: table size is too large: %u",
+			     table->name, family, table->info.size);
 		if (table->info.num_entries > XT_MAX_ENTRIES)
-			fail("too many counters: %u", table->info.num_entries);
+			fail("iptable checkpoint %s/%d: too many counters: %u",
+			     table->name, family, table->info.num_entries);
 		memset(&entries, 0, sizeof(entries));
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
 		optlen = sizeof(entries) - sizeof(entries.entrytable) + table->info.size;
 		if (getsockopt(fd, level, IPT_SO_GET_ENTRIES, &entries, &optlen))
-			fail("getsockopt(IPT_SO_GET_ENTRIES)");
+			fail("iptable checkpoint %s/%d: getsockopt(IPT_SO_GET_ENTRIES)",
+			     table->name, family);
 		table->replace.valid_hooks = table->info.valid_hooks;
 		table->replace.num_entries = table->info.num_entries;
 		table->replace.size = table->info.size;
@@ -1094,7 +1099,7 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("socket(%d, SOCK_STREAM, IPPROTO_TCP)", family);
+		fail("iptable %d: socket failed", family);
 	}
 	for (i = 0; i < num_tables; i++) {
 		struct ipt_table_desc* table = &tables[i];
@@ -1104,23 +1109,23 @@ static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int fa
 		strcpy(info.name, table->name);
 		optlen = sizeof(info);
 		if (getsockopt(fd, level, IPT_SO_GET_INFO, &info, &optlen))
-			fail("getsockopt(IPT_SO_GET_INFO)");
+			fail("iptable %s/%d: getsockopt(IPT_SO_GET_INFO)", table->name, family);
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
 			memset(&entries, 0, sizeof(entries));
 			strcpy(entries.name, table->name);
 			entries.size = table->info.size;
 			optlen = sizeof(entries) - sizeof(entries.entrytable) + entries.size;
 			if (getsockopt(fd, level, IPT_SO_GET_ENTRIES, &entries, &optlen))
-				fail("getsockopt(IPT_SO_GET_ENTRIES)");
+				fail("iptable %s/%d: getsockopt(IPT_SO_GET_ENTRIES)", table->name, family);
 			if (memcmp(table->replace.entrytable, entries.entrytable, table->info.size) == 0)
 				continue;
 		}
-		debug("resetting iptable %s\n", table->name);
+		debug("iptable %s/%d: resetting\n", table->name, family);
 		table->replace.num_counters = info.num_entries;
 		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
 		if (setsockopt(fd, level, IPT_SO_SET_REPLACE, &table->replace, optlen))
-			fail("setsockopt(IPT_SO_SET_REPLACE)");
+			fail("iptable %s/%d: setsockopt(IPT_SO_SET_REPLACE)", table->name, family);
 	}
 	close(fd);
 }
@@ -1139,7 +1144,7 @@ static void checkpoint_arptables(void)
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+		fail("arptable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
 	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
@@ -1153,19 +1158,22 @@ static void checkpoint_arptables(void)
 			case ENOPROTOOPT:
 				continue;
 			}
-			fail("getsockopt(ARPT_SO_GET_INFO)");
+			fail("arptable checkpoint %s: getsockopt(ARPT_SO_GET_INFO)", table->name);
 		}
-		debug("checkpoint arptable %s: entries=%d hooks=%x size=%d\n", table->name, table->info.num_entries, table->info.valid_hooks, table->info.size);
+		debug("arptable checkpoint %s: entries=%d hooks=%x size=%d\n",
+		      table->name, table->info.num_entries, table->info.valid_hooks, table->info.size);
 		if (table->info.size > sizeof(table->replace.entrytable))
-			fail("table size is too large: %u", table->info.size);
+			fail("arptable checkpoint %s: table size is too large: %u",
+			     table->name, table->info.size);
 		if (table->info.num_entries > XT_MAX_ENTRIES)
-			fail("too many counters: %u", table->info.num_entries);
+			fail("arptable checkpoint %s: too many counters: %u",
+			     table->name, table->info.num_entries);
 		memset(&entries, 0, sizeof(entries));
 		strcpy(entries.name, table->name);
 		entries.size = table->info.size;
 		optlen = sizeof(entries) - sizeof(entries.entrytable) + table->info.size;
 		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_ENTRIES, &entries, &optlen))
-			fail("getsockopt(ARPT_SO_GET_ENTRIES)");
+			fail("arptable checkpoint %s: getsockopt(ARPT_SO_GET_ENTRIES)", table->name);
 		table->replace.valid_hooks = table->info.valid_hooks;
 		table->replace.num_entries = table->info.num_entries;
 		table->replace.size = table->info.size;
@@ -1192,7 +1200,7 @@ static void reset_arptables()
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+		fail("arptable: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
 	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
 		struct arpt_table_desc* table = &arpt_tables[i];
@@ -1202,23 +1210,26 @@ static void reset_arptables()
 		strcpy(info.name, table->name);
 		optlen = sizeof(info);
 		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_INFO, &info, &optlen))
-			fail("getsockopt(ARPT_SO_GET_INFO)");
+			fail("arptable %s:getsockopt(ARPT_SO_GET_INFO)", table->name);
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
 			memset(&entries, 0, sizeof(entries));
 			strcpy(entries.name, table->name);
 			entries.size = table->info.size;
 			optlen = sizeof(entries) - sizeof(entries.entrytable) + entries.size;
 			if (getsockopt(fd, SOL_IP, ARPT_SO_GET_ENTRIES, &entries, &optlen))
-				fail("getsockopt(ARPT_SO_GET_ENTRIES)");
+				fail("arptable %s: getsockopt(ARPT_SO_GET_ENTRIES)", table->name);
 			if (memcmp(table->replace.entrytable, entries.entrytable, table->info.size) == 0)
 				continue;
+			debug("arptable %s: data changed\n", table->name);
+		} else {
+			debug("arptable %s: header changed\n", table->name);
 		}
-		debug("resetting arptable %s\n", table->name);
+		debug("arptable %s: resetting\n", table->name);
 		table->replace.num_counters = info.num_entries;
 		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
 		if (setsockopt(fd, SOL_IP, ARPT_SO_SET_REPLACE, &table->replace, optlen))
-			fail("setsockopt(ARPT_SO_SET_REPLACE)");
+			fail("arptable %s: setsockopt(ARPT_SO_SET_REPLACE)", table->name);
 	}
 	close(fd);
 }
@@ -1251,7 +1262,7 @@ static void checkpoint_ebtables(void)
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+		fail("ebtable checkpoint: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
 	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
 		struct ebt_table_desc* table = &ebt_tables[i];
@@ -1264,16 +1275,19 @@ static void checkpoint_ebtables(void)
 			case ENOPROTOOPT:
 				continue;
 			}
-			fail("getsockopt(EBT_SO_GET_INIT_INFO)");
+			fail("ebtable checkpoint %s: getsockopt(EBT_SO_GET_INIT_INFO)", table->name);
 		}
-		debug("checkpoint ebtable %s: entries=%d hooks=%x size=%d\n", table->name, table->replace.nentries, table->replace.valid_hooks, table->replace.entries_size);
+		debug("ebtable checkpoint %s: entries=%d hooks=%x size=%d\n",
+		      table->name, table->replace.nentries, table->replace.valid_hooks,
+		      table->replace.entries_size);
 		if (table->replace.entries_size > sizeof(table->entrytable))
-			fail("table size is too large: %u", table->replace.entries_size);
+			fail("ebtable checkpoint %s: table size is too large: %u",
+			     table->name, table->replace.entries_size);
 		table->replace.num_counters = 0;
 		table->replace.entries = table->entrytable;
 		optlen = sizeof(table->replace) + table->replace.entries_size;
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INIT_ENTRIES, &table->replace, &optlen))
-			fail("getsockopt(EBT_SO_GET_INIT_ENTRIES)");
+			fail("ebtable checkpoint %s: getsockopt(EBT_SO_GET_INIT_ENTRIES)", table->name);
 	}
 	close(fd);
 }
@@ -1293,7 +1307,7 @@ static void reset_ebtables()
 		case ENOPROTOOPT:
 			return;
 		}
-		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+		fail("ebtable: socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
 	}
 	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
 		struct ebt_table_desc* table = &ebt_tables[i];
@@ -1303,7 +1317,7 @@ static void reset_ebtables()
 		strcpy(replace.name, table->name);
 		optlen = sizeof(replace);
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INFO, &replace, &optlen))
-			fail("getsockopt(EBT_SO_GET_INFO)");
+			fail("ebtable %s: getsockopt(EBT_SO_GET_INFO)", table->name);
 		replace.num_counters = 0;
 		table->replace.entries = 0;
 		for (h = 0; h < NF_BR_NUMHOOKS; h++)
@@ -1313,11 +1327,11 @@ static void reset_ebtables()
 			replace.entries = entrytable;
 			optlen = sizeof(replace) + replace.entries_size;
 			if (getsockopt(fd, SOL_IP, EBT_SO_GET_ENTRIES, &replace, &optlen))
-				fail("getsockopt(EBT_SO_GET_ENTRIES)");
+				fail("ebtable %s: getsockopt(EBT_SO_GET_ENTRIES)", table->name);
 			if (memcmp(table->entrytable, entrytable, replace.entries_size) == 0)
 				continue;
 		}
-		debug("resetting ebtable %s\n", table->name);
+		debug("ebtable %s: resetting\n", table->name);
 		// Kernel does not seem to return actual entry points (wat?).
 		for (j = 0, h = 0; h < NF_BR_NUMHOOKS; h++) {
 			if (table->replace.valid_hooks & (1 << h)) {
@@ -1328,7 +1342,7 @@ static void reset_ebtables()
 		table->replace.entries = table->entrytable;
 		optlen = sizeof(table->replace) + table->replace.entries_size;
 		if (setsockopt(fd, SOL_IP, EBT_SO_SET_ENTRIES, &table->replace, optlen))
-			fail("setsockopt(EBT_SO_SET_ENTRIES)");
+			fail("ebtable %s: setsockopt(EBT_SO_SET_ENTRIES)", table->name);
 	}
 	close(fd);
 }
@@ -1417,6 +1431,7 @@ static void setup_common()
 	setup_binfmt_misc();
 #endif
 #if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+	// TODO(dvukov): we do this in the wrong net namespace. Does this matter?
 	checkpoint_net_namespace();
 #endif
 }
