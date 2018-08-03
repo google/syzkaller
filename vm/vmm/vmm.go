@@ -49,7 +49,7 @@ type instance struct {
 	sshkey  string
 	sshuser string
 	sshhost string
-	port    int
+	sshport int
 	merger  *vmimpl.OutputMerger
 	vmID    int
 }
@@ -119,7 +119,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		workdir: workdir,
 		sshkey:  pool.env.SSHKey,
 		sshuser: pool.env.SSHUser,
-		port:    22,
+		sshport: 22,
 	}
 	closeInst := inst
 	defer func() {
@@ -202,7 +202,7 @@ func (inst *instance) Boot() error {
 	time.Sleep(5 * time.Second)
 	start := time.Now()
 	for {
-		c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%v", inst.sshhost, inst.port), 1*time.Second)
+		c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%v", inst.sshhost, inst.sshport), 1*time.Second)
 		if err == nil {
 			c.SetDeadline(time.Now().Add(1 * time.Second))
 			var tmp [1]byte
@@ -241,7 +241,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/root", filepath.Base(hostSrc))
-	args := append(inst.sshArgs("-P"), hostSrc, inst.sshuser+"@"+inst.sshhost+":"+vmDst)
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.sshport), hostSrc, inst.sshuser+"@"+inst.sshhost+":"+vmDst)
 	cmd := osutil.Command("scp", args...)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
@@ -275,7 +275,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	args := append(inst.sshArgs("-p"), inst.sshuser+"@"+inst.sshhost, command)
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.sshport), inst.sshuser+"@"+inst.sshhost, command)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
 	}
@@ -351,27 +351,6 @@ func (inst *instance) console() error {
 		}
 	}()
 	return nil
-}
-
-func (inst *instance) sshArgs(portArg string) []string {
-	args := []string{
-		portArg, strconv.Itoa(inst.port),
-		"-F", "/dev/null",
-		"-o", "ConnectionAttempts=10",
-		"-o", "ConnectTimeout=10",
-		"-o", "BatchMode=yes",
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-o", "IdentitiesOnly=yes",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "LogLevel=error",
-	}
-	if inst.sshkey != "" {
-		args = append(args, "-i", inst.sshkey)
-	}
-	if inst.debug {
-		args = append(args, "-v")
-	}
-	return args
 }
 
 // Run the given vmctl(8) command and wait for it to finish.
