@@ -31,6 +31,10 @@ func test(t *testing.T, sysTarget *targets.Target) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if testing.Short() && target.PtrSize == 4 {
+		// Building 32-bit binaries fails on travis (see comments in Makefile).
+		t.Skip("skipping in short mode")
+	}
 	executor, err := csource.BuildFile(target, filepath.FromSlash("../../executor/executor.cc"))
 	if err != nil {
 		t.Fatal(err)
