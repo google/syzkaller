@@ -94,7 +94,11 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if err := osutil.WriteFile(filepath.Join(bundleDir, "config.json"), []byte(vmConfig)); err != nil {
 		return nil, err
 	}
-	if err := osutil.CopyFile(os.Args[0], filepath.Join(imageDir, "init")); err != nil {
+	bin, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup %v: %v", os.Args[0], err)
+	}
+	if err := osutil.CopyFile(bin, filepath.Join(imageDir, "init")); err != nil {
 		return nil, err
 	}
 
