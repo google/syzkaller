@@ -5,6 +5,7 @@
 
 #include <ddk/driver.h>
 #include <fcntl.h>
+#include <lib/fdio/util.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdlib.h>

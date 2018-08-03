@@ -1,0 +1,13 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_chan_fuchsia_process_Launcher_client[zx_chan]
+resource zx_chan_fuchsia_process_Launcher_server[zx_chan]
+
+zx_channel_create$fuchsia_process_Launcher(options const[0], out0 ptr[out, zx_chan_fuchsia_process_Launcher_client], out1 ptr[out, zx_chan_fuchsia_process_Launcher_server])
+
+fdio_service_connect$fuchsia_process_Launcher(path ptr[in, string["/svc/fuchsia.process.Launcher"]], handle zx_chan_fuchsia_process_Launcher_server)
+
+zx_channel_call$fuchsia_process_LauncherLaunch(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, zx_channel_call_args], actual_bytes ptr[out, int32], actual_handles ptr[out, int32], read_status ptr[out, int32])
