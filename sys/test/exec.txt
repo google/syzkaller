@@ -1,0 +1,18 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+syz_mmap(addr vma, len len[addr])
+syz_errno(v int32)
+syz_compare(want ptr[in, string], want_len len[want], got ptr[in, compare_data], got_len len[got])
+
+compare_data [
+	align0	align0
+] [varlen]
+
+align0 {
+	f0	int16
+	f1	int32
+	f2	int8
+	f3	int16
+	f4	int64
+}

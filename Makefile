@@ -68,6 +68,11 @@ ifneq ("$(GOTAGS)", "")
 endif
 GOTARGETFLAGS += "-tags=syz_target syz_os_$(TARGETOS) syz_arch_$(TARGETVMARCH) $(GOTAGS)"
 
+ifeq ("$(TARGETOS)", "test")
+	TARGETGOOS := $(HOSTOS)
+	TARGETGOARCH := $(HOSTARCH)
+endif
+
 ifeq ("$(TARGETOS)", "akaros")
 	TARGETGOOS := $(HOSTOS)
 	TARGETGOARCH := $(HOSTARCH)
