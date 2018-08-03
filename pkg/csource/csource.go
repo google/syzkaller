@@ -189,6 +189,8 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 		// However, simply skipping whole iteration breaks tests due to unused static functions.
 		if emitCall {
 			ctx.emitCall(w, call, ci, resCopyout || argCopyout, trace)
+		} else if trace {
+			fmt.Fprintf(w, "\t(void)res;\n")
 		}
 
 		// Copyout.
@@ -239,7 +241,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	}
 	fmt.Fprintf(w, ");\n")
 	if trace {
-		fmt.Fprintf(w, "\tprintf(\"### call=%v errno=%%d\\n\", res == -1 ? errno : 0);\n", ci)
+		fmt.Fprintf(w, "\tprintf(\"### call=%v errno=%%u\\n\", res == -1 ? errno : 0);\n", ci)
 	}
 }
 
