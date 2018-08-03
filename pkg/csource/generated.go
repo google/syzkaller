@@ -2925,9 +2925,6 @@ static void setup_common()
 	setup_cgroups();
 	setup_binfmt_misc();
 #endif
-#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
-	checkpoint_net_namespace();
-#endif
 }
 #endif
 
@@ -3733,6 +3730,11 @@ static void loop()
 #endif
 #if SYZ_EXECUTOR
 	reply_handshake();
+#endif
+#if GOOS_linux
+#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+       checkpoint_net_namespace();
+#endif
 #endif
 #if SYZ_EXECUTOR && GOOS_akaros
 	int child_pipe[2];
