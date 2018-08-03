@@ -30,10 +30,6 @@ func ProcessExitStatus(ps *os.ProcessState) int {
 	return 0
 }
 
-func ProcessSignal(p *os.Process, sig int) bool {
-	return false
-}
-
 func prolongPipe(r, w *os.File) {
 }
 

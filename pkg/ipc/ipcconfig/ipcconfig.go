@@ -13,25 +13,19 @@ import (
 )
 
 var (
-	flagExecutor    = flag.String("executor", "./syz-executor", "path to executor binary")
-	flagThreaded    = flag.Bool("threaded", true, "use threaded mode in executor")
-	flagCollide     = flag.Bool("collide", true, "collide syscalls to provoke data races")
-	flagSignal      = flag.Bool("cover", false, "collect feedback signals (coverage)")
-	flagSandbox     = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
-	flagDebug       = flag.Bool("debug", false, "debug output from executor")
-	flagTimeout     = flag.Duration("timeout", 0, "execution timeout")
-	flagAbortSignal = flag.Int("abort_signal", 0, "initial signal to send to executor"+
-		" in error conditions; upgrades to SIGKILL if executor does not exit")
-	flagBufferSize = flag.Uint64("buffer_size", 0, "internal buffer size (in bytes) for executor output")
+	flagExecutor = flag.String("executor", "./syz-executor", "path to executor binary")
+	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
+	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
+	flagSignal   = flag.Bool("cover", false, "collect feedback signals (coverage)")
+	flagSandbox  = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
+	flagDebug    = flag.Bool("debug", false, "debug output from executor")
+	flagTimeout  = flag.Duration("timeout", 0, "execution timeout")
 )
 
 func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	c := &ipc.Config{
-		Executor:    *flagExecutor,
-		Timeout:     *flagTimeout,
-		AbortSignal: *flagAbortSignal,
-		BufferSize:  *flagBufferSize,
-		RateLimit:   target.OS == "akaros",
+		Executor: *flagExecutor,
+		Timeout:  *flagTimeout,
 	}
 	if *flagSignal {
 		c.Flags |= ipc.FlagSignal

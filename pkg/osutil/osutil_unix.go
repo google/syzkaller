@@ -144,14 +144,3 @@ func CloseMemMappedFile(f *os.File, mem []byte) error {
 func ProcessExitStatus(ps *os.ProcessState) int {
 	return ps.Sys().(syscall.WaitStatus).ExitStatus()
 }
-
-// ProcessSignal sends signal sig to the process, returns true if the process was killed.
-// Again, this is here only because of fuchsia.
-func ProcessSignal(p *os.Process, sig int) bool {
-	SIGKILL := int(syscall.SIGKILL)
-	if sig <= 0 || sig >= 32 {
-		sig = SIGKILL
-	}
-	p.Signal(syscall.Signal(sig))
-	return sig == SIGKILL
-}

@@ -33,10 +33,6 @@ func ProcessExitStatus(ps *os.ProcessState) int {
 	return ps.Sys().(syscall.WaitStatus).ExitStatus()
 }
 
-func ProcessSignal(p *os.Process, sig int) bool {
-	return false
-}
-
 func Sandbox(cmd *exec.Cmd, user, net bool) error {
 	return nil
 }
