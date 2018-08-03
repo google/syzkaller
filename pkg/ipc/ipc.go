@@ -71,16 +71,6 @@ type Config struct {
 
 	// Timeout is the execution timeout for a single program.
 	Timeout time.Duration
-
-	// AbortSignal is the signal to send to the executor in error conditions.
-	AbortSignal int
-
-	// BufferSize is the size of the internal buffer for executor output.
-	BufferSize uint64
-
-	// RateLimit flag tells to start one executor at a time.
-	// Currently used only for akaros where executor is actually ssh.
-	RateLimit bool
 }
 
 type CallFlags uint32
@@ -215,6 +205,8 @@ func (env *Env) Close() error {
 	}
 }
 
+var rateLimit = time.NewTicker(1 * time.Second)
+
 // Exec starts executor binary to execute program p and returns information about the execution:
 // output: process output
 // info: per-call info
@@ -240,6 +232,11 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 
 	atomic.AddUint64(&env.StatExecs, 1)
 	if env.cmd == nil {
+		if p.Target.OS == "akaros" {
+			// On akaros executor is actually ssh,
+			// starting them too frequently leads to timeouts.
+			<-rateLimit.C
+		}
 		atomic.AddUint64(&env.StatRestarts, 1)
 		env.cmd, err0 = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out)
 		if err0 != nil {
@@ -462,13 +459,8 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-var rateLimit = time.NewTicker(1 * time.Second)
-
-func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File,
-	outmem []byte) (*command, error) {
-	if config.RateLimit {
-		<-rateLimit.C
-	}
+func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File, outmem []byte) (
+	*command, error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
@@ -538,10 +530,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile
 		cmd.Stderr = wp
 		go func(c *command) {
 			// Read out output in case executor constantly prints something.
-			bufSize := c.config.BufferSize
-			if bufSize == 0 {
-				bufSize = 128 << 10
-			}
+			const bufSize = 128 << 10
 			output := make([]byte, bufSize)
 			var size uint64
 			for {
@@ -581,7 +570,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile
 
 func (c *command) close() {
 	if c.cmd != nil {
-		c.abort()
+		c.cmd.Process.Kill()
 		c.wait()
 	}
 	osutil.UmountAll(c.dir)
@@ -634,7 +623,7 @@ func (c *command) handshake() error {
 }
 
 func (c *command) handshakeError(err error) error {
-	c.abort()
+	c.cmd.Process.Kill()
 	output := <-c.readDone
 	err = fmt.Errorf("executor %v: %v\n%s", c.pid, err, output)
 	c.wait()
@@ -645,22 +634,6 @@ func (c *command) handshakeError(err error) error {
 		}
 	}
 	return err
-}
-
-// abort sends the abort signal to the command and then SIGKILL if wait doesn't return within 5s.
-func (c *command) abort() {
-	if osutil.ProcessSignal(c.cmd.Process, c.config.AbortSignal) {
-		return
-	}
-	go func() {
-		t := time.NewTimer(5 * time.Second)
-		select {
-		case <-t.C:
-			c.cmd.Process.Kill()
-		case <-c.exited:
-			t.Stop()
-		}
-	}()
 }
 
 func (c *command) wait() error {
@@ -706,7 +679,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 		t := time.NewTimer(c.timeout)
 		select {
 		case <-t.C:
-			c.abort()
+			c.cmd.Process.Kill()
 			hang <- true
 		case <-done:
 			t.Stop()
@@ -751,7 +724,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 		<-hang
 		return
 	}
-	c.abort()
+	c.cmd.Process.Kill()
 	output = <-c.readDone
 	if err := c.wait(); <-hang {
 		hanged = true
