@@ -41,17 +41,19 @@ type Pool struct {
 }
 
 type instance struct {
-	cfg     *Config
-	image   string
-	imageID int
-	debug   bool
-	workdir string
-	sshkey  string
-	sshuser string
-	sshhost string
-	sshport int
-	merger  *vmimpl.OutputMerger
-	vmID    int
+	cfg       *Config
+	image     string
+	imageID   int
+	imagePath string
+	debug     bool
+	workdir   string
+	sshkey    string
+	sshuser   string
+	sshhost   string
+	sshport   int
+	merger    *vmimpl.OutputMerger
+	vmID      int
+	wpipe     io.WriteCloser
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -112,14 +114,15 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 
 	inst := &instance{
-		cfg:     pool.cfg,
-		image:   imagePath,
-		imageID: imageID,
-		debug:   pool.env.Debug,
-		workdir: workdir,
-		sshkey:  pool.env.SSHKey,
-		sshuser: pool.env.SSHUser,
-		sshport: 22,
+		cfg:       pool.cfg,
+		image:     imagePath,
+		imageID:   imageID,
+		imagePath: imagePath,
+		debug:     pool.env.Debug,
+		workdir:   workdir,
+		sshkey:    pool.env.SSHKey,
+		sshuser:   pool.env.SSHUser,
+		sshport:   22,
 	}
 	closeInst := inst
 	defer func() {
@@ -174,9 +177,7 @@ func (inst *instance) Boot() error {
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
 
-	if err := inst.console(); err != nil {
-		return err
-	}
+	inst.console()
 
 	var bootOutput []byte
 	bootOutputStop := make(chan bool)
@@ -319,38 +320,61 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() bool {
-	return false
+	didWrite := false
+	commands := []string{"", "trace", "show registers"}
+	for _, c := range commands {
+		if inst.wpipe != nil {
+			didWrite = true
+			inst.wpipe.Write([]byte(c + "\n"))
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	return didWrite
 }
 
-func (inst *instance) console() error {
-	outr, outw, err := osutil.LongPipe()
-	if err != nil {
-		return err
-	}
-	inr, inw, err := osutil.LongPipe()
-	if err != nil {
-		return err
-	}
-	cmd := osutil.Command("vmctl", "console", inst.vmIdent())
-	cmd.Stdin = inr
-	cmd.Stdout = outw
-	cmd.Stderr = outw
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("vmctl console %s: %v", inst.vmIdent(), err)
-	}
-	outw.Close()
-	inr.Close()
-	inst.merger.Add("console", outr)
-	go func() {
-		cmd.Process.Wait()
+func (inst *instance) console() {
+	run := func() error {
+		outr, outw, err := osutil.LongPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create output pipe: %v", err)
+		}
+		inr, inw, err := osutil.LongPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create input pipe: %v", err)
+		}
+		inst.wpipe = inw
+
+		cmd := osutil.Command("vmctl", "console", inst.vmIdent())
+		cmd.Stdin = inr
+		cmd.Stdout = outw
+		cmd.Stderr = outw
+		if err := cmd.Start(); err != nil {
+			return err
+		}
+		outw.Close()
+		inr.Close()
+		inst.merger.Add("console", outr)
+
+		if _, err := cmd.Process.Wait(); err != nil {
+			return err
+		}
+		inst.wpipe = nil
 		inw.Close()
 		outr.Close()
-		select {
-		case <-inst.merger.Err:
-			// Error is expected since the process is gone.
+		return nil
+	}
+	go func() {
+		for inst.alive() {
+			if err := run(); err != nil && inst.debug {
+				log.Logf(0, "console: %s", err)
+			}
+			time.Sleep(1 * time.Second)
 		}
 	}()
-	return nil
+}
+
+func (inst *instance) alive() bool {
+	return osutil.IsExist(inst.imagePath)
 }
 
 // Run the given vmctl(8) command and wait for it to finish.
