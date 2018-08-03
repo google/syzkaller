@@ -84,9 +84,8 @@ func NewRPCClient(addr string) (*RPCClient, error) {
 }
 
 func (cli *RPCClient) Call(method string, args, reply interface{}) error {
-	if err := cli.conn.SetDeadline(time.Now().Add(5 * 60 * time.Second)); err != nil {
-		return err
-	}
+	// Note: SetDeadline is not implemented on fuchsia, so don't fail on error.
+	cli.conn.SetDeadline(time.Now().Add(5 * 60 * time.Second))
 	defer cli.conn.SetDeadline(time.Time{})
 	return cli.c.Call(method, args, reply)
 }
