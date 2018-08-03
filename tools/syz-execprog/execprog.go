@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
@@ -231,7 +232,7 @@ func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
 
 func createConfig(target *prog.Target, entries []*prog.LogEntry, features *host.Features) (
 	*ipc.Config, *ipc.ExecOpts) {
-	config, execOpts, err := ipc.DefaultConfig(target)
+	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
