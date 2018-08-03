@@ -2946,9 +2946,6 @@ static void setup_common()
 	setup_cgroups();
 	setup_binfmt_misc();
 #endif
-#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
-	checkpoint_net_namespace();
-#endif
 }
 #endif
 
@@ -3377,7 +3374,7 @@ static void kill_and_wait(int pid, int* status)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_ENABLE_CGROUPS || SYZ_RESET_NET_NAMESPACE)
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -3415,6 +3412,9 @@ static void setup_loop()
 	if (!write_file(procs_file, "%d", pid)) {
 		debug("write(%s) failed: %d\n", procs_file, errno);
 	}
+#endif
+#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+	checkpoint_net_namespace();
 #endif
 }
 #endif
