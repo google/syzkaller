@@ -471,7 +471,7 @@ static void loop()
 #endif
 #if GOOS_linux
 #if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
-        checkpoint_net_namespace();
+	checkpoint_net_namespace();
 #endif
 #endif
 #if SYZ_EXECUTOR && GOOS_akaros
