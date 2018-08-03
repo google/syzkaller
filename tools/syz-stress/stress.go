@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -60,7 +61,7 @@ func main() {
 	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, calls)
 
-	config, execOpts, err := ipc.DefaultConfig(target)
+	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

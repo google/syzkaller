@@ -4,7 +4,6 @@
 package ipc
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,7 +17,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 // Configuration flags for Config.Flags.
@@ -49,35 +47,14 @@ const (
 	FlagCollide                            // collide syscalls to provoke data races
 )
 
-const (
-	outputSize = 16 << 20
-
-	statusFail  = 67
-	statusError = 68
-	statusRetry = 69
-)
-
-var (
-	flagExecutor    = flag.String("executor", "./syz-executor", "path to executor binary")
-	flagThreaded    = flag.Bool("threaded", true, "use threaded mode in executor")
-	flagCollide     = flag.Bool("collide", true, "collide syscalls to provoke data races")
-	flagSignal      = flag.Bool("cover", false, "collect feedback signals (coverage)")
-	flagSandbox     = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
-	flagDebug       = flag.Bool("debug", false, "debug output from executor")
-	flagTimeout     = flag.Duration("timeout", 0, "execution timeout")
-	flagAbortSignal = flag.Int("abort_signal", 0, "initial signal to send to executor"+
-		" in error conditions; upgrades to SIGKILL if executor does not exit")
-	flagBufferSize = flag.Uint64("buffer_size", 0, "internal buffer size (in bytes) for executor output")
-)
-
 type ExecOpts struct {
 	Flags     ExecFlags
 	FaultCall int // call index for fault injection (0-based)
 	FaultNth  int // fault n-th operation in the call (0-based)
 }
 
-// ExecutorFailure is returned from MakeEnv or from env.Exec when executor terminates by calling fail function.
-// This is considered a logical error (a failed assert).
+// ExecutorFailure is returned from MakeEnv or from env.Exec when executor terminates
+// by calling fail function. This is considered a logical error (a failed assert).
 type ExecutorFailure string
 
 func (err ExecutorFailure) Error() string {
@@ -104,51 +81,6 @@ type Config struct {
 	// RateLimit flag tells to start one executor at a time.
 	// Currently used only for akaros where executor is actually ssh.
 	RateLimit bool
-}
-
-func DefaultConfig(target *prog.Target) (*Config, *ExecOpts, error) {
-	c := &Config{
-		Executor:    *flagExecutor,
-		Timeout:     *flagTimeout,
-		AbortSignal: *flagAbortSignal,
-		BufferSize:  *flagBufferSize,
-		RateLimit:   target.OS == "akaros",
-	}
-	if *flagSignal {
-		c.Flags |= FlagSignal
-	}
-	if *flagDebug {
-		c.Flags |= FlagDebug
-	}
-	switch *flagSandbox {
-	case "none":
-	case "setuid":
-		c.Flags |= FlagSandboxSetuid
-	case "namespace":
-		c.Flags |= FlagSandboxNamespace
-	default:
-		return nil, nil, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
-	}
-
-	sysTarget := targets.Get(target.OS, target.Arch)
-	if sysTarget.ExecutorUsesShmem {
-		c.Flags |= FlagUseShmem
-	}
-	if sysTarget.ExecutorUsesForkServer {
-		c.Flags |= FlagUseForkServer
-	}
-
-	opts := &ExecOpts{
-		Flags: FlagDedupCover,
-	}
-	if *flagThreaded {
-		opts.Flags |= FlagThreaded
-	}
-	if *flagCollide {
-		opts.Flags |= FlagCollide
-	}
-
-	return c, opts, nil
 }
 
 type CallFlags uint32
@@ -186,6 +118,12 @@ type Env struct {
 }
 
 const (
+	outputSize = 16 << 20
+
+	statusFail  = 67
+	statusError = 68
+	statusRetry = 69
+
 	// Comparison types masks taken from KCOV headers.
 	compSizeMask  = 6
 	compSize8     = 6

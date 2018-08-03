@@ -1,7 +1,7 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package ipc
+package ipc_test
 
 import (
 	"fmt"
@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
+	. "github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -42,7 +44,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, EnvFlags) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, _, err := DefaultConfig(target)
+	cfg, _, err := ipcconfig.Default(target)
 	if err != nil {
 		t.Fatal(err)
 	}

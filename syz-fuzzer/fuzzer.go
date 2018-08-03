@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/rpctype"
@@ -110,7 +111,7 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	config, execOpts, err := ipc.DefaultConfig(target)
+	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}
