@@ -40,19 +40,27 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 		return nil, fmt.Errorf("failed to start %v %+v: %v", cmd.Path, cmd.Args, err)
 	}
 	done := make(chan bool)
+	timedout := make(chan bool, 1)
 	timer := time.NewTimer(timeout)
 	go func() {
 		select {
 		case <-timer.C:
+			timedout <- true
 			cmd.Process.Kill()
 		case <-done:
+			timedout <- false
 			timer.Stop()
 		}
 	}()
-	defer close(done)
-	if err := cmd.Wait(); err != nil {
+	err := cmd.Wait()
+	close(done)
+	if err != nil {
+		text := fmt.Sprintf("failed to run %q: %v", cmd.Args, err)
+		if <-timedout {
+			text = fmt.Sprintf("timedout %q", cmd.Args)
+		}
 		return nil, &VerboseError{
-			Title:  fmt.Sprintf("failed to run %v %+v: %v", cmd.Path, cmd.Args, err),
+			Title:  text,
 			Output: output.Bytes(),
 		}
 	}
@@ -72,6 +80,9 @@ type VerboseError struct {
 }
 
 func (err *VerboseError) Error() string {
+	if len(err.Output) == 0 {
+		return err.Title
+	}
 	return fmt.Sprintf("%v\n%s", err.Title, err.Output)
 }
 
@@ -185,7 +196,10 @@ func WriteFile(filename string, data []byte) error {
 }
 
 func WriteExecFile(filename string, data []byte) error {
-	return ioutil.WriteFile(filename, data, DefaultExecPerm)
+	if err := ioutil.WriteFile(filename, data, DefaultExecPerm); err != nil {
+		return err
+	}
+	return os.Chmod(filename, DefaultExecPerm)
 }
 
 // TempFile creates a unique temp filename.
