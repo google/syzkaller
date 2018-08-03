@@ -11439,6 +11439,8 @@ const call_t syscalls[] = {
 
 #if GOARCH_32_fork_shmem
 const call_t syscalls[] = {
+    {"syz_compare", 0, (syscall_t)syz_compare},
+    {"syz_errno", 0, (syscall_t)syz_errno},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };
@@ -11446,6 +11448,8 @@ const call_t syscalls[] = {
 
 #if GOARCH_32_shmem
 const call_t syscalls[] = {
+    {"syz_compare", 0, (syscall_t)syz_compare},
+    {"syz_errno", 0, (syscall_t)syz_errno},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };
@@ -11472,6 +11476,8 @@ const call_t syscalls[] = {
     {"mutate8", 0},
     {"serialize0", 0},
     {"serialize1", 0},
+    {"syz_compare", 0, (syscall_t)syz_compare},
+    {"syz_errno", 0, (syscall_t)syz_errno},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
     {"test", 0},
     {"test$align0", 0},
@@ -11566,6 +11572,8 @@ const call_t syscalls[] = {
 
 #if GOARCH_64_fork
 const call_t syscalls[] = {
+    {"syz_compare", 0, (syscall_t)syz_compare},
+    {"syz_errno", 0, (syscall_t)syz_errno},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };
