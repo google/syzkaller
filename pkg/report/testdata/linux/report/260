@@ -1,0 +1,116 @@
+TITLE: general protection fault in p9_conn_cancel
+
+[  242.871006] kasan: CONFIG_KASAN_INLINE enabled
+[  242.875630] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[  242.882995] general protection fault: 0000 [#1] SMP KASAN
+[  242.888540] CPU: 0 PID: 26 Comm: kworker/0:2 Not tainted 4.18.0-rc7+ #176
+[  242.895468] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  242.904838] Workqueue: events p9_poll_workfn
+[  242.909334] RIP: 0010:perf_trace_lock+0xbb/0x920
+[  242.914109] Code: 20 f2 f2 f2 f2 c7 40 24 00 f2 f2 f2 65 48 8b 04 25 28 00 00 00 48 89 45 d0 31 c0 48 8d 46 18 48 89 85 70 fe ff ff 48 c1 e8 03 <80> 3c 10 00 0f 85 3a 05 00 00 49 8b 78 18 48 85 ff 0f 84 23 04 00 
+[  242.929387] binder: 21725:21756 BC_ACQUIRE_DONE u0000000000000000 no match
+[  242.933327] RSP: 0018:ffff8801d9847008 EFLAGS: 00010006
+[  242.933338] RAX: 0000000000000006 RBX: 1ffff1003b308e09 RCX: ffffffff867e85e5
+[  242.933346] RDX: dffffc0000000000 RSI: 0000000000000018 RDI: ffffffff87f7b700
+[  242.933353] RBP: ffff8801d98471d0 R08: 0000000000000018 R09: ffffed00332291b0
+[  242.933361] R10: ffffed00332291b0 R11: ffff880199148d83 R12: ffff8801d98471a8
+[  242.933369] R13: 0000000000000018 R14: dffffc0000000000 R15: ffffffff87f7b700
+[  242.933379] FS:  0000000000000000(0000) GS:ffff8801db000000(0000) knlGS:0000000000000000
+[  242.933386] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  242.933400] CR2: 00007f0b2981bdb8 CR3: 000000019c56e000 CR4: 00000000001406f0
+[  243.003306] DR0: 0000000020000000 DR1: 0000000020000000 DR2: 0000000000000000
+[  243.010559] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[  243.017807] Call Trace:
+[  243.020386]  ? perf_trace_lock_acquire+0xeb/0x9a0
+[  243.025214]  ? perf_trace_lock+0x920/0x920
+[  243.029430]  ? zap_class+0x740/0x740
+[  243.033127]  ? print_usage_bug+0xc0/0xc0
+[  243.037177]  ? find_held_lock+0x36/0x1c0
+[  243.041225]  ? trace_hardirqs_on+0x10/0x10
+[  243.045444]  ? find_held_lock+0x36/0x1c0
+[  243.049491]  ? print_usage_bug+0xc0/0xc0
+[  243.053537]  ? __lock_acquire+0x7fc/0x5020
+[  243.057752]  ? print_usage_bug+0xc0/0xc0
+[  243.061805]  lock_release+0x5fa/0xa30
+[  243.065600]  ? lock_acquire+0x1e4/0x540
+[  243.069558]  ? p9_conn_cancel+0x9b6/0xd30
+[  243.073689]  ? lock_downgrade+0x8f0/0x8f0
+[  243.077819]  ? lock_release+0xa30/0xa30
+[  243.081776]  ? zap_class+0x740/0x740
+[  243.085488]  ? kasan_check_write+0x14/0x20
+[  243.089705]  ? do_raw_spin_lock+0xc1/0x200
+[  243.093933]  _raw_spin_unlock_irqrestore+0x1f/0xc0
+[  243.098849]  p9_conn_cancel+0x9b6/0xd30
+[  243.102813]  ? p9_fd_cancelled+0x2f0/0x2f0
+[  243.107036]  ? lock_downgrade+0x8f0/0x8f0
+[  243.111171]  ? mark_held_locks+0xc9/0x160
+[  243.115305]  ? do_raw_spin_trylock+0x1c0/0x1c0
+[  243.119871]  ? _raw_spin_unlock_irqrestore+0x74/0xc0
+[  243.124980]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  243.129984]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  243.135592]  p9_poll_workfn+0x4b2/0x6d0
+[  243.139552]  ? p9_read_work+0x1060/0x1060
+[  243.143685]  ? graph_lock+0x170/0x170
+[  243.147472]  ? lock_acquire+0x1e4/0x540
+[  243.151431]  ? process_one_work+0xb9b/0x1ba0
+[  243.155823]  ? kasan_check_read+0x11/0x20
+[  243.159969]  ? __lock_is_held+0xb5/0x140
+[  243.164020]  process_one_work+0xc73/0x1ba0
+[  243.168244]  ? trace_hardirqs_on+0x10/0x10
+[  243.172468]  ? pwq_dec_nr_in_flight+0x4a0/0x4a0
+[  243.177127]  ? lock_repin_lock+0x430/0x430
+[  243.181351]  ? perf_trace_lock_acquire+0xeb/0x9a0
+[  243.186178]  ? perf_trace_lock+0x920/0x920
+[  243.190397]  ? lock_downgrade+0x8f0/0x8f0
+[  243.194529]  ? retint_kernel+0x10/0x10
+[  243.198402]  ? graph_lock+0x170/0x170
+[  243.202189]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  243.206937]  ? lock_acquire+0x1e4/0x540
+[  243.210897]  ? worker_thread+0x3dc/0x13c0
+[  243.215033]  ? lock_downgrade+0x8f0/0x8f0
+[  243.219165]  ? lock_release+0xa30/0xa30
+[  243.223125]  ? kasan_check_read+0x11/0x20
+[  243.227258]  ? do_raw_spin_unlock+0xa7/0x2f0
+[  243.231651]  ? do_raw_spin_trylock+0x1c0/0x1c0
+[  243.236218]  ? kasan_check_write+0x14/0x20
+[  243.240441]  ? do_raw_spin_lock+0xc1/0x200
+[  243.244662]  worker_thread+0x189/0x13c0
+[  243.248625]  ? process_one_work+0x1ba0/0x1ba0
+[  243.253106]  ? graph_lock+0x170/0x170
+[  243.256906]  ? graph_lock+0x170/0x170
+[  243.260692]  ? find_held_lock+0x36/0x1c0
+[  243.264743]  ? find_held_lock+0x36/0x1c0
+[  243.268797]  ? kasan_check_read+0x11/0x20
+[  243.272936]  ? do_raw_spin_unlock+0xa7/0x2f0
+[  243.277334]  ? _raw_spin_unlock_irqrestore+0x74/0xc0
+[  243.282433]  ? __kthread_parkme+0x58/0x1b0
+[  243.286654]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  243.291655]  ? trace_hardirqs_on+0xd/0x10
+[  243.295790]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  243.301311]  ? __kthread_parkme+0x106/0x1b0
+[  243.305616]  kthread+0x345/0x410
+[  243.308968]  ? process_one_work+0x1ba0/0x1ba0
+[  243.313444]  ? kthread_bind+0x40/0x40
+[  243.317227]  ret_from_fork+0x3a/0x50
+[  243.320922] Modules linked in:
+[  243.324100] Dumping ftrace buffer:
+[  243.327619]    (ftrace buffer empty)
+[  243.331321] ---[ end trace a22d9bc3f66cafcb ]---
+[  243.336069] RIP: 0010:perf_trace_lock+0xbb/0x920
+[  243.340800] Code: 20 f2 f2 f2 f2 c7 40 24 00 f2 f2 f2 65 48 8b 04 25 28 00 00 00 48 89 45 d0 31 c0 48 8d 46 18 48 89 85 70 fe ff ff 48 c1 e8 03 <80> 3c 10 00 0f 85 3a 05 00 00 49 8b 78 18 48 85 ff 0f 84 23 04 00 
+[  243.359985] RSP: 0018:ffff8801d9847008 EFLAGS: 00010006
+[  243.365332] RAX: 0000000000000006 RBX: 1ffff1003b308e09 RCX: ffffffff867e85e5
+[  243.372584] RDX: dffffc0000000000 RSI: 0000000000000018 RDI: ffffffff87f7b700
+[  243.379838] RBP: ffff8801d98471d0 R08: 0000000000000018 R09: ffffed00332291b0
+[  243.387090] R10: ffffed00332291b0 R11: ffff880199148d83 R12: ffff8801d98471a8
+[  243.394341] R13: 0000000000000018 R14: dffffc0000000000 R15: ffffffff87f7b700
+[  243.401599] FS:  0000000000000000(0000) GS:ffff8801db000000(0000) knlGS:0000000000000000
+[  243.409806] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  243.415667] CR2: 00007f0b2981bdb8 CR3: 000000019c56e000 CR4: 00000000001406f0
+[  243.422928] DR0: 0000000020000000 DR1: 0000000020000000 DR2: 0000000000000000
+[  243.430187] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[  243.437444] Kernel panic - not syncing: Fatal exception
+[  243.443364] Dumping ftrace buffer:
+[  243.446892]    (ftrace buffer empty)
+[  243.450580] Kernel Offset: disabled
+[  243.454197] Rebooting in 86400 seconds..
