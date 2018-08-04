@@ -10,6 +10,10 @@ import (
 	"os/exec"
 )
 
+func RemoveAll(dir string) error {
+	return os.RemoveAll(dir)
+}
+
 func prolongPipe(r, w *os.File) {
 }
 

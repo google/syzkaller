@@ -14,7 +14,8 @@ import (
 func HandleInterrupts(shutdown chan struct{}) {
 }
 
-func UmountAll(dir string) {
+func RemoveAll(dir string) error {
+	return os.RemoveAll(dir)
 }
 
 func CreateMemMappedFile(size int) (f *os.File, mem []byte, err error) {
