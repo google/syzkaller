@@ -112,7 +112,7 @@ func (mgr *Manager) collectStats() []UIStat {
 	if mgr.checkResult != nil {
 		stats = append(stats, UIStat{
 			Name:  "syscalls",
-			Value: fmt.Sprint(len(mgr.checkResult.EnabledCalls)),
+			Value: fmt.Sprint(len(mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox])),
 			Link:  "/syscalls",
 		})
 	}
