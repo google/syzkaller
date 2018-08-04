@@ -116,6 +116,17 @@ static void install_segv_handler()
 #endif
 #endif
 
+#if !GOOS_linux
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
+static void kill_and_wait(int pid, int* status)
+{
+	kill(pid, SIGKILL);
+	while (waitpid(-1, status, 0) != pid) {
+	}
+}
+#endif
+#endif
+
 #if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
 static void sleep_ms(uint64 ms)
@@ -573,12 +584,7 @@ static void loop()
 				continue;
 #endif
 			debug("killing\n");
-#if GOOS_linux
-			kill(-pid, SIGKILL);
-#endif
-			kill(pid, SIGKILL);
-			while (waitpid(-1, &status, WAIT_FLAGS) != pid) {
-			}
+			kill_and_wait(pid, &status);
 			break;
 		}
 #if SYZ_EXECUTOR

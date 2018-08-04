@@ -101,6 +101,17 @@ static void install_segv_handler()
 #endif
 #endif
 
+#if !GOOS_linux
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
+static void kill_and_wait(int pid, int* status)
+{
+	kill(pid, SIGKILL);
+	while (waitpid(-1, status, 0) != pid) {
+	}
+}
+#endif
+#endif
+
 #if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
 static void sleep_ms(uint64 ms)
@@ -2919,8 +2930,14 @@ static void setup_binfmt_misc()
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#include <errno.h>
+#include <sys/mount.h>
+
 static void setup_common()
 {
+	if (mount(0, "/sys/fs/fuse/connections", "fusectl", 0, 0)) {
+		debug("mount(fusectl) failed: %d\n", errno);
+	}
 #if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
 	setup_cgroups();
 	setup_binfmt_misc();
@@ -3302,6 +3319,53 @@ static int fault_injected(int fail_fd)
 		exitf("failed to write /proc/thread-self/fail-nth");
 	close(fail_fd);
 	return res;
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_REPEAT
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+static void kill_and_wait(int pid, int* status)
+{
+	kill(-pid, SIGKILL);
+	kill(pid, SIGKILL);
+	int i;
+	for (i = 0; i < 100; i++) {
+		if (waitpid(-1, status, WNOHANG | __WALL) == pid)
+			return;
+		usleep(1000);
+	}
+	debug("kill is not working\n");
+	DIR* dir = opendir("/sys/fs/fuse/connections");
+	if (dir) {
+		for (;;) {
+			struct dirent* ent = readdir(dir);
+			if (!ent)
+				break;
+			if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
+				continue;
+			char abort[300];
+			snprintf(abort, sizeof(abort), "/sys/fs/fuse/connections/%s/abort", ent->d_name);
+			int fd = open(abort, O_WRONLY);
+			if (fd == -1) {
+				debug("failed to open %s: %d\n", abort, errno);
+				continue;
+			}
+			debug("aborting fuse conn %s\n", ent->d_name);
+			write(fd, abort, 1);
+			close(fd);
+		}
+		closedir(dir);
+	} else {
+		debug("failed to open /sys/fs/fuse/connections: %d\n", errno);
+	}
+	while (waitpid(-1, status, __WALL) != pid) {
+	}
 }
 #endif
 
@@ -3820,12 +3884,7 @@ static void loop()
 				continue;
 #endif
 			debug("killing\n");
-#if GOOS_linux
-			kill(-pid, SIGKILL);
-#endif
-			kill(pid, SIGKILL);
-			while (waitpid(-1, &status, WAIT_FLAGS) != pid) {
-			}
+			kill_and_wait(pid, &status);
 			break;
 		}
 #if SYZ_EXECUTOR
