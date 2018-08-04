@@ -10,7 +10,8 @@ import (
 	"os/exec"
 )
 
-func UmountAll(dir string) {
+func RemoveAll(dir string) error {
+	return os.RemoveAll(dir)
 }
 
 func prolongPipe(r, w *os.File) {

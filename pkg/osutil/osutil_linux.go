@@ -19,17 +19,18 @@ import (
 	"unsafe"
 )
 
-// UmountAll recurusively unmounts all mounts in dir.
-func UmountAll(dir string) {
+// RemoveAll is similar to os.RemoveAll, but can handle more cases.
+func RemoveAll(dir string) error {
 	files, _ := ioutil.ReadDir(dir)
 	for _, f := range files {
 		name := filepath.Join(dir, f.Name())
 		if f.IsDir() {
-			UmountAll(name)
+			RemoveAll(name)
 		}
 		fn := []byte(name + "\x00")
 		syscall.Syscall(syscall.SYS_UMOUNT2, uintptr(unsafe.Pointer(&fn[0])), syscall.MNT_FORCE, 0)
 	}
+	return os.RemoveAll(dir)
 }
 
 func Sandbox(cmd *exec.Cmd, user, net bool) error {

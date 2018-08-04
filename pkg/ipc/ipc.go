@@ -573,8 +573,7 @@ func (c *command) close() {
 		c.cmd.Process.Kill()
 		c.wait()
 	}
-	osutil.UmountAll(c.dir)
-	os.RemoveAll(c.dir)
+	osutil.RemoveAll(c.dir)
 	if c.inrp != nil {
 		c.inrp.Close()
 	}
