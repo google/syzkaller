@@ -117,7 +117,11 @@ static void install_segv_handler()
 #endif
 
 #if !GOOS_linux
-#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
+#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 static void kill_and_wait(int pid, int* status)
 {
 	kill(pid, SIGKILL);
