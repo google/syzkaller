@@ -1863,9 +1863,11 @@ static int fault_injected(int fail_fd)
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 static void kill_and_wait(int pid, int* status)
 {
@@ -1900,7 +1902,9 @@ static void kill_and_wait(int pid, int* status)
 				continue;
 			}
 			debug("aborting fuse conn %s\n", ent->d_name);
-			write(fd, abort, 1);
+			if (write(fd, abort, 1) < 0) {
+				debug("failed to abort: %d\n", errno);
+			}
 			close(fd);
 		}
 		closedir(dir);
