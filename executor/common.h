@@ -484,6 +484,11 @@ static void loop()
 	// Tell parent that we are ready to serve.
 	reply_handshake();
 #endif
+#if GOOS_linux
+#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+	checkpoint_net_namespace();
+#endif
+#endif
 #if SYZ_EXECUTOR && GOOS_akaros
 	// For akaros we do exec in the child process because new threads can't be created in the fork child.
 	// Thus we proxy input program over the child_pipe to the child process.

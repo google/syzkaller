@@ -1436,10 +1436,6 @@ static void setup_common()
 	setup_cgroups();
 	setup_binfmt_misc();
 #endif
-#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
-	// TODO(dvukov): we do this in the wrong net namespace. Does this matter?
-	checkpoint_net_namespace();
-#endif
 }
 #endif
 
