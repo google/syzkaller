@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <zircon/syscalls.h>
+include <lib/fdio/util.h>
 
 resource zx_chan[zx_handle]
 
@@ -24,3 +25,5 @@ zx_channel_call_args {
 }
 
 chan_read_options = ZX_CHANNEL_READ_MAY_DISCARD
+
+fdio_service_connect(path ptr[in, string], handle zx_chan)
