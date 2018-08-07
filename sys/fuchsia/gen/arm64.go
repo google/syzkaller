@@ -300,6 +300,10 @@ var syscalls_arm64 = []*Syscall{
 	{Name: "fdatasync", CallName: "fdatasync", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 	}},
+	{Name: "fdio_service_connect", CallName: "fdio_service_connect", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", FldName: "handle", TypeSize: 4}},
+	}},
 	{Name: "fstat", CallName: "fstat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "statbuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
@@ -1304,4 +1308,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_arm64 = "d48c47eb82c0f95aff60923c0e24bbeef6a1e131"
+const revision_arm64 = "380c4117d33092b2fd8370b35e5bb1f7cc094295"
