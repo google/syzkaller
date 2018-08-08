@@ -188,10 +188,16 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 	comment := ""
 	for p.Scan() {
 		if p.EOF() {
-			comment = ""
+			if comment != "" {
+				prog.Comments = append(prog.Comments, comment)
+				comment = ""
+			}
 			continue
 		}
 		if p.Char() == '#' {
+			if comment != "" {
+				prog.Comments = append(prog.Comments, comment)
+			}
 			comment = strings.TrimSpace(p.s[p.i+1:])
 			continue
 		}
@@ -238,6 +244,9 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 			if p.Char() != '#' {
 				return nil, fmt.Errorf("tailing data (line #%v)", p.l)
 			}
+			if c.Comment != "" {
+				prog.Comments = append(prog.Comments, c.Comment)
+			}
 			c.Comment = strings.TrimSpace(p.s[p.i+1:])
 		}
 		for i := len(c.Args); i < len(meta.Args); i++ {
@@ -250,6 +259,9 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 			vars[r] = c.Ret
 		}
 		comment = ""
+	}
+	if comment != "" {
+		prog.Comments = append(prog.Comments, comment)
 	}
 	if err := p.Err(); err != nil {
 		return nil, err

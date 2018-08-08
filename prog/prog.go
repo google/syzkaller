@@ -8,8 +8,9 @@ import (
 )
 
 type Prog struct {
-	Target *Target
-	Calls  []*Call
+	Target   *Target
+	Calls    []*Call
+	Comments []string
 }
 
 type Call struct {
