@@ -1349,6 +1349,10 @@ static void reset_ebtables()
 
 static void checkpoint_net_namespace(void)
 {
+#if SYZ_EXECUTOR
+	if (flag_sandbox == sandbox_setuid)
+		return;
+#endif
 	checkpoint_ebtables();
 	checkpoint_arptables();
 	checkpoint_iptables(ipv4_tables, sizeof(ipv4_tables) / sizeof(ipv4_tables[0]), AF_INET, SOL_IP);
@@ -1357,6 +1361,10 @@ static void checkpoint_net_namespace(void)
 
 static void reset_net_namespace(void)
 {
+#if SYZ_EXECUTOR
+	if (flag_sandbox == sandbox_setuid)
+		return;
+#endif
 	reset_ebtables();
 	reset_arptables();
 	reset_iptables(ipv4_tables, sizeof(ipv4_tables) / sizeof(ipv4_tables[0]), AF_INET, SOL_IP);
@@ -1923,6 +1931,7 @@ static void kill_and_wait(int pid, int* status)
 #define SYZ_HAVE_SETUP_LOOP 1
 static void setup_loop()
 {
+// TODO(dvyukov): this needs SYZ_EXECUTOR and a test.
 #if SYZ_ENABLE_CGROUPS
 	int pid = getpid();
 	char cgroupdir[64];

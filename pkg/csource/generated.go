@@ -2862,6 +2862,10 @@ static void reset_ebtables()
 
 static void checkpoint_net_namespace(void)
 {
+#if SYZ_EXECUTOR
+	if (flag_sandbox == sandbox_setuid)
+		return;
+#endif
 	checkpoint_ebtables();
 	checkpoint_arptables();
 	checkpoint_iptables(ipv4_tables, sizeof(ipv4_tables) / sizeof(ipv4_tables[0]), AF_INET, SOL_IP);
@@ -2870,6 +2874,10 @@ static void checkpoint_net_namespace(void)
 
 static void reset_net_namespace(void)
 {
+#if SYZ_EXECUTOR
+	if (flag_sandbox == sandbox_setuid)
+		return;
+#endif
 	reset_ebtables();
 	reset_arptables();
 	reset_iptables(ipv4_tables, sizeof(ipv4_tables) / sizeof(ipv4_tables[0]), AF_INET, SOL_IP);
