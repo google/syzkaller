@@ -31,7 +31,7 @@ var (
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
-	flagOutput    = flag.String("output", "none", "write programs to none/stdout")
+	flagOutput    = flag.Bool("output", false, "write programs and results to stdout")
 	flagFaultCall = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
 	flagFaultNth  = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
 	flagHints     = flag.Bool("hints", false, "do a hints-generation run")
@@ -132,17 +132,8 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 		newOpts.FaultNth = entry.FaultNth
 		callOpts = &newOpts
 	}
-	switch *flagOutput {
-	case "stdout":
-		strOpts := ""
-		if callOpts.Flags&ipc.FlagInjectFault != 0 {
-			strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)",
-				callOpts.FaultCall, callOpts.FaultNth)
-		}
-		data := entry.P.Serialize()
-		ctx.logMu.Lock()
-		log.Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
-		ctx.logMu.Unlock()
+	if *flagOutput {
+		ctx.logProgram(pid, entry.P, callOpts)
 	}
 	output, info, failed, hanged, err := env.Exec(callOpts, entry.P)
 	if failed {
@@ -153,55 +144,91 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 			failed, hanged, err, output)
 	}
 	if len(info) != 0 {
-		for i, inf := range info {
-			log.Logf(1, "CALL %v: signal %v, coverage %v errno %v",
-				i, len(inf.Signal), len(inf.Cover), inf.Errno)
+		ctx.printCallResults(info)
+		if *flagHints {
+			ctx.printHints(entry.P, info)
 		}
 	} else {
 		log.Logf(1, "RESULT: no calls executed")
 	}
 	if *flagCoverFile != "" {
-		for i, inf := range info {
-			log.Logf(0, "call #%v: signal %v, coverage %v",
-				i, len(inf.Signal), len(inf.Cover))
-			if len(inf.Cover) == 0 {
-				continue
-			}
-			buf := new(bytes.Buffer)
-			for _, pc := range inf.Cover {
-				fmt.Fprintf(buf, "0x%x\n", cover.RestorePC(pc, 0xffffffff))
-			}
-			err := osutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes())
-			if err != nil {
-				log.Fatalf("failed to write coverage file: %v", err)
-			}
-		}
+		ctx.dumpCoverage(*flagCoverFile, info)
 	}
-	if *flagHints {
-		ncomps, ncandidates := 0, 0
-		for i := range entry.P.Calls {
-			if *flagOutput == "stdout" {
-				fmt.Printf("call %v:\n", i)
-			}
-			comps := info[i].Comps
-			for v, args := range comps {
-				ncomps += len(args)
-				if *flagOutput == "stdout" {
-					fmt.Printf("comp 0x%x:", v)
-					for arg := range args {
-						fmt.Printf(" 0x%x", arg)
-					}
-					fmt.Printf("\n")
-				}
-			}
-			entry.P.MutateWithHints(i, comps, func(p *prog.Prog) {
-				ncandidates++
-				if *flagOutput == "stdout" {
-					log.Logf(1, "PROGRAM:\n%s", p.Serialize())
-				}
-			})
+}
+
+func (ctx *Context) logProgram(pid int, p *prog.Prog, callOpts *ipc.ExecOpts) {
+	strOpts := ""
+	if callOpts.Flags&ipc.FlagInjectFault != 0 {
+		strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)",
+			callOpts.FaultCall, callOpts.FaultNth)
+	}
+	data := p.Serialize()
+	ctx.logMu.Lock()
+	log.Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
+	ctx.logMu.Unlock()
+}
+
+func (ctx *Context) printCallResults(info []ipc.CallInfo) {
+	for i, inf := range info {
+		if inf.Flags&ipc.CallExecuted == 0 {
+			continue
 		}
-		log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
+		flags := ""
+		if inf.Flags&ipc.CallFinished == 0 {
+			flags += " unfinished"
+		}
+		if inf.Flags&ipc.CallBlocked != 0 {
+			flags += " blocked"
+		}
+		if inf.Flags&ipc.CallFaultInjected != 0 {
+			flags += " faulted"
+		}
+		log.Logf(1, "CALL %v: signal %v, coverage %v errno %v%v",
+			i, len(inf.Signal), len(inf.Cover), inf.Errno, flags)
+	}
+}
+
+func (ctx *Context) printHints(p *prog.Prog, info []ipc.CallInfo) {
+	ncomps, ncandidates := 0, 0
+	for i := range p.Calls {
+		if *flagOutput {
+			fmt.Printf("call %v:\n", i)
+		}
+		comps := info[i].Comps
+		for v, args := range comps {
+			ncomps += len(args)
+			if *flagOutput {
+				fmt.Printf("comp 0x%x:", v)
+				for arg := range args {
+					fmt.Printf(" 0x%x", arg)
+				}
+				fmt.Printf("\n")
+			}
+		}
+		p.MutateWithHints(i, comps, func(p *prog.Prog) {
+			ncandidates++
+			if *flagOutput {
+				log.Logf(1, "PROGRAM:\n%s", p.Serialize())
+			}
+		})
+	}
+	log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
+}
+
+func (ctx *Context) dumpCoverage(coverFile string, info []ipc.CallInfo) {
+	for i, inf := range info {
+		log.Logf(0, "call #%v: signal %v, coverage %v", i, len(inf.Signal), len(inf.Cover))
+		if len(inf.Cover) == 0 {
+			continue
+		}
+		buf := new(bytes.Buffer)
+		for _, pc := range inf.Cover {
+			fmt.Fprintf(buf, "0x%x\n", cover.RestorePC(pc, 0xffffffff))
+		}
+		err := osutil.WriteFile(fmt.Sprintf("%v.%v", coverFile, i), buf.Bytes())
+		if err != nil {
+			log.Fatalf("failed to write coverage file: %v", err)
+		}
 	}
 }
 
