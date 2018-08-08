@@ -58,9 +58,12 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 
 static void cover_open(cover_t* cov)
 {
-	cov->fd = open("/dev/kcov", O_RDWR);
-	if (cov->fd == -1)
+	int fd = open("/dev/kcov", O_RDWR);
+	if (fd == -1)
 		fail("open of /dev/kcov failed");
+	if (dup2(fd, cov->fd) < 0)
+		fail("filed to dup2(%d, %d) cover fd", fd, cov->fd);
+	close(fd);
 	if (ioctl(cov->fd, KIOSETBUFSIZE, &kCoverSize))
 		fail("ioctl init trace write failed");
 	size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);

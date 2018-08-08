@@ -40,9 +40,12 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 
 static void cover_open(cover_t* cov)
 {
-	cov->fd = open("/sys/kernel/debug/kcov", O_RDWR);
-	if (cov->fd == -1)
+	int fd = open("/sys/kernel/debug/kcov", O_RDWR);
+	if (fd == -1)
 		fail("open of /sys/kernel/debug/kcov failed");
+	if (dup2(fd, cov->fd) < 0)
+		fail("filed to dup2(%d, %d) cover fd", fd, cov->fd);
+	close(fd);
 	const int kcov_init_trace = is_kernel_64_bit ? KCOV_INIT_TRACE64 : KCOV_INIT_TRACE32;
 	if (ioctl(cov->fd, kcov_init_trace, kCoverSize))
 		fail("cover init trace write failed");

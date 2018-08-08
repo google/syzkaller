@@ -52,8 +52,10 @@ typedef unsigned char uint8;
 // Note: zircon max fd is 256.
 // Some common_OS.h files know about this constant for RLIMIT_NOFILE.
 const int kMaxFd = 250;
+const int kMaxThreads = 16;
 const int kInPipeFd = kMaxFd - 1; // remapped from stdin
 const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
+const int kCoverFd = kOutPipeFd - kMaxThreads;
 const int kMaxArgs = 9;
 const int kCoverSize = 256 << 10;
 const int kFailStatus = 67;
@@ -127,7 +129,6 @@ int flag_fault_nth;
 
 const int kMaxCommands = 1000;
 const int kMaxInput = 2 << 20;
-const int kMaxThreads = 16;
 
 const uint64 instr_eof = -1;
 const uint64 instr_copyin = -2;
@@ -351,8 +352,10 @@ int main(int argc, char** argv)
 	receive_execute();
 #endif
 	if (flag_cover) {
-		for (int i = 0; i < kMaxThreads; i++)
+		for (int i = 0; i < kMaxThreads; i++) {
+			threads[i].cov.fd = kCoverFd + i;
 			cover_open(&threads[i].cov);
+		}
 	}
 
 	int status = 0;
@@ -679,11 +682,12 @@ retry:
 			}
 		}
 		// Write output coverage for unfinished calls.
-		if (flag_cover && running > 0) {
+		if (running > 0) {
 			for (int i = 0; i < kMaxThreads; i++) {
 				thread_t* th = &threads[i];
 				if (th->executing) {
-					cover_collect(&th->cov);
+					if (flag_cover)
+						cover_collect(&th->cov);
 					write_call_output(th, false);
 				}
 			}
