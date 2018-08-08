@@ -334,4 +334,13 @@ serialize0()
 			t.Errorf("bad call %v comment: %q, want %q", i, got, want)
 		}
 	}
+	wantComments := []string{
+		"comment1",
+		"comment4",
+		"comment6",
+		"comment7",
+	}
+	if !reflect.DeepEqual(p.Comments, wantComments) {
+		t.Errorf("bad program comments %q\nwant: %q", p.Comments, wantComments)
+	}
 }
