@@ -3289,6 +3289,16 @@ retry:
 		if (rmdir(dir) == 0)
 			break;
 		if (i < 100) {
+			if (errno == EPERM) {
+				int fd = open(dir, O_RDONLY);
+				if (fd != -1) {
+					struct fsxattr attr = {0};
+					if (ioctl(fd, FS_IOC_FSSETXATTR, &attr) == 0)
+						debug("reset FS_XFLAG_IMMUTABLE\n");
+					close(fd);
+					continue;
+				}
+			}
 			if (errno == EROFS) {
 				debug("ignoring EROFS\n");
 				break;
