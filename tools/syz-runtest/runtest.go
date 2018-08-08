@@ -72,12 +72,23 @@ func main() {
 	}
 	mgr.port = s.Addr().(*net.TCPAddr).Port
 	go s.Serve()
+	var wg sync.WaitGroup
+	wg.Add(vmPool.Count())
 	fmt.Printf("booting VMs...\n")
 	for i := 0; i < vmPool.Count(); i++ {
 		i := i
 		go func() {
+			defer wg.Done()
+			name := fmt.Sprintf("vm-%v", i)
 			for {
-				if err := mgr.boot(i); err != nil {
+				rep, err := mgr.boot(name, i)
+				if err != nil {
+					log.Fatal(err)
+				}
+				if rep == nil {
+					return
+				}
+				if err := mgr.finishRequest(name, rep); err != nil {
 					log.Fatal(err)
 				}
 			}
@@ -107,7 +118,10 @@ func main() {
 		Requests:     mgr.requests,
 		LogFunc:      func(text string) { fmt.Println(text) },
 	}
-	if err := ctx.Run(); err != nil {
+	err = ctx.Run()
+	close(vm.Shutdown)
+	wg.Wait()
+	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -132,49 +146,46 @@ type Manager struct {
 	lastReq map[string]int
 }
 
-func (mgr *Manager) boot(index int) error {
+func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
-		return fmt.Errorf("failed to create instance: %v", err)
+		return nil, fmt.Errorf("failed to create instance: %v", err)
 	}
 	defer inst.Close()
 
 	fwdAddr, err := inst.Forward(mgr.port)
 	if err != nil {
-		return fmt.Errorf("failed to setup port forwarding: %v", err)
+		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
 	fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
 	if err != nil {
-		return fmt.Errorf("failed to copy binary: %v", err)
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
 	executorBin, err := inst.Copy(mgr.cfg.SyzExecutorBin)
 	if err != nil {
-		return fmt.Errorf("failed to copy binary: %v", err)
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
-	name := fmt.Sprintf("vm-%v", index)
 	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, name,
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, mgr.cfg.Procs, 0,
 		mgr.cfg.Cover, mgr.debug, false, true)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
-		return fmt.Errorf("failed to run fuzzer: %v", err)
+		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 	rep := inst.MonitorExecution(outc, errc, mgr.reporter, true)
-	if rep == nil {
-		return nil
-	}
+	return rep, nil
+}
+
+func (mgr *Manager) finishRequest(name string, rep *report.Report) error {
 	mgr.reqMu.Lock()
+	defer mgr.reqMu.Unlock()
 	lastReq := mgr.lastReq[name]
-	if lastReq == 0 {
+	req := mgr.reqMap[lastReq]
+	if lastReq == 0 || req == nil {
 		return fmt.Errorf("vm crash: %v\n%s\n%s", rep.Title, rep.Report, rep.Output)
 	}
-	req := mgr.reqMap[lastReq]
 	delete(mgr.reqMap, lastReq)
 	delete(mgr.lastReq, name)
-	mgr.reqMu.Unlock()
-	if req == nil {
-		return fmt.Errorf("vm crash: %v\n%s\n%s", rep.Title, rep.Report, rep.Output)
-	}
 	req.Err = fmt.Errorf("%v", rep.Title)
 	req.Output = rep.Report
 	if len(req.Output) == 0 {
