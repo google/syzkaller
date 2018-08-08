@@ -1734,9 +1734,21 @@ static int do_sandbox_namespace(void)
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR
 #include <dirent.h>
 #include <errno.h>
-#include <linux/fs.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/mount.h>
+
+// This should be in <linux/fs.h> but is not there on some distros/arches as expected.
+struct fsxattr {
+	uint32 fsx_xflags;
+	uint32 fsx_extsize;
+	uint32 fsx_nextents;
+	uint32 fsx_projid;
+	uint32 fsx_cowextsize;
+	char fsx_pad[8];
+};
+
+#define FS_IOC_FSSETXATTR _IOW('X', 32, struct fsxattr)
 
 // One does not simply remove a directory.
 // There can be mounts, so we need to try to umount.
