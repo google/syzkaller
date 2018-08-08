@@ -53,9 +53,28 @@ func (opts Options) Check(OS string) error {
 		// Collide requires threaded.
 		return errors.New("Collide without Threaded")
 	}
-	if !opts.Repeat && opts.Procs > 1 {
-		// This does not affect generated code.
-		return errors.New("Procs>1 without Repeat")
+	if !opts.Repeat {
+		if opts.Procs > 1 {
+			// This does not affect generated code.
+			return errors.New("Procs>1 without Repeat")
+		}
+		if opts.ResetNet {
+			return errors.New("ResetNet without Repeat")
+		}
+		if opts.RepeatTimes > 1 {
+			return errors.New("RepeatTimes without Repeat")
+		}
+	}
+	if opts.Sandbox == "" {
+		if opts.EnableTun {
+			return errors.New("EnableTun without sandbox")
+		}
+		if opts.EnableCgroups {
+			return errors.New("EnableCgroups without sandbox")
+		}
+		if opts.EnableNetdev {
+			return errors.New("EnableNetdev without sandbox")
+		}
 	}
 	if opts.Sandbox == sandboxNamespace && !opts.UseTmpDir {
 		// This is borken and never worked.
@@ -63,26 +82,11 @@ func (opts Options) Check(OS string) error {
 		// which will fail if procs>1 and on second run of the program.
 		return errors.New("Sandbox=namespace without UseTmpDir")
 	}
-	if opts.EnableTun && opts.Sandbox == "" {
-		return errors.New("EnableTun without sandbox")
-	}
-	if opts.EnableCgroups && opts.Sandbox == "" {
-		return errors.New("EnableCgroups without sandbox")
-	}
 	if opts.EnableCgroups && !opts.UseTmpDir {
 		return errors.New("EnableCgroups without UseTmpDir")
 	}
-	if opts.EnableNetdev && opts.Sandbox == "" {
-		return errors.New("EnableNetdev without sandbox")
-	}
-	if opts.ResetNet && opts.Sandbox == "" {
+	if opts.ResetNet && (opts.Sandbox == "" || opts.Sandbox == sandboxSetuid) {
 		return errors.New("ResetNet without sandbox")
-	}
-	if opts.ResetNet && !opts.Repeat {
-		return errors.New("ResetNet without Repeat")
-	}
-	if !opts.Repeat && opts.RepeatTimes != 0 && opts.RepeatTimes != 1 {
-		return errors.New("RepeatTimes without Repeat")
 	}
 	return opts.checkLinuxOnly(OS)
 }
@@ -131,6 +135,9 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.EnableTun = false
 		opts.EnableCgroups = false
 		opts.EnableNetdev = false
+		opts.ResetNet = false
+	}
+	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.ResetNet = false
 	}
 	if err := opts.Check(cfg.TargetOS); err != nil {
