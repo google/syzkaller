@@ -1734,6 +1734,7 @@ static int do_sandbox_namespace(void)
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR
 #include <dirent.h>
 #include <errno.h>
+#include <linux/fs.h>
 #include <string.h>
 #include <sys/mount.h>
 
@@ -1783,6 +1784,17 @@ retry:
 			debug("unlink(%s)\n", filename);
 			if (unlink(filename) == 0)
 				break;
+			if (errno == EPERM) {
+				// Try to reset FS_XFLAG_IMMUTABLE.
+				int fd = open(filename, O_RDONLY);
+				if (fd != -1) {
+					struct fsxattr attr = {0};
+					if (ioctl(fd, FS_IOC_FSSETXATTR, &attr) == 0)
+						debug("reset FS_XFLAG_IMMUTABLE\n");
+					close(fd);
+					continue;
+				}
+			}
 			if (errno == EROFS) {
 				debug("ignoring EROFS\n");
 				break;
