@@ -43,7 +43,7 @@ type RunRequest struct {
 	Info   [][]ipc.CallInfo
 	Err    error
 
-	results []int
+	results []ipc.CallInfo
 	name    string
 	broken  string
 	skip    string
@@ -63,7 +63,7 @@ func (ctx *Context) log(msg string, args ...interface{}) {
 }
 
 func (ctx *Context) Run() error {
-	progs := make(chan *RunRequest, 2*cap(ctx.Requests))
+	progs := make(chan *RunRequest, 1000+2*cap(ctx.Requests))
 	errc := make(chan error, 1)
 	go func() {
 		defer close(progs)
@@ -133,7 +133,7 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 		if strings.HasSuffix(file.Name(), "~") {
 			continue
 		}
-		p, results, err := ctx.parseProg(file.Name())
+		p, requires, results, err := ctx.parseProg(file.Name())
 		if err != nil {
 			return err
 		}
@@ -150,11 +150,15 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 					continue nextSandbox
 				}
 			}
+			properties := map[string]bool{
+				"sandbox=" + sandbox: true,
+			}
 			for _, threaded := range []bool{false, true} {
 				name := name
 				if threaded {
 					name += "/thr"
 				}
+				properties["threaded"] = threaded
 				for _, cov := range cover {
 					if sandbox == "" {
 						break // executor does not support empty sandbox
@@ -163,14 +167,21 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 					if cov {
 						name += "/cover"
 					}
+					properties["cover"] = cov
+					properties["C"] = false
+					properties["executor"] = true
 					req, err := ctx.createSyzTest(p, sandbox, threaded, cov)
 					if err != nil {
 						return err
 					}
-					ctx.produceTest(progs, req, name, results)
+					ctx.produceTest(progs, req, name, properties, requires, results)
 				}
 				for _, times := range []int{1, 3} {
 					name := name
+					properties["C"] = true
+					properties["executor"] = false
+					properties["repeat"] = times > 1
+					properties["norepeat"] = times <= 1
 					if times > 1 {
 						name += "/repeat"
 					}
@@ -188,7 +199,7 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 					if err != nil {
 						return err
 					}
-					ctx.produceTest(progs, req, name, results)
+					ctx.produceTest(progs, req, name, properties, requires, results)
 				}
 			}
 		}
@@ -196,14 +207,29 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 	return nil
 }
 
-func (ctx *Context) parseProg(filename string) (*prog.Prog, []int, error) {
+func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, []ipc.CallInfo, error) {
 	data, err := ioutil.ReadFile(filepath.Join(ctx.Dir, filename))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read %v: %v", filename, err)
+		return nil, nil, nil, fmt.Errorf("failed to read %v: %v", filename, err)
 	}
 	p, err := ctx.Target.Deserialize(data)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to deserialize %v: %v", filename, err)
+		return nil, nil, nil, fmt.Errorf("failed to deserialize %v: %v", filename, err)
+	}
+	requires := make(map[string]bool)
+	for _, comment := range p.Comments {
+		const prefix = "requires:"
+		if !strings.HasPrefix(comment, prefix) {
+			continue
+		}
+		for _, req := range strings.Fields(comment[len(prefix):]) {
+			positive := true
+			if req[0] == '-' {
+				positive = false
+				req = req[1:]
+			}
+			requires[req] = positive
+		}
 	}
 	errnos := map[string]int{
 		"":       0,
@@ -212,23 +238,60 @@ func (ctx *Context) parseProg(filename string) (*prog.Prog, []int, error) {
 		"ENOMEM": 12,
 		"EINVAL": 22,
 	}
-	results := make([]int, len(p.Calls))
+	info := make([]ipc.CallInfo, len(p.Calls))
 	for i, call := range p.Calls {
-		res, ok := errnos[call.Comment]
-		if !ok {
-			return nil, nil, fmt.Errorf("%v: unknown comment %q", filename, call.Comment)
+		info[i].Flags |= ipc.CallExecuted | ipc.CallFinished
+		switch call.Comment {
+		case "blocked":
+			info[i].Flags |= ipc.CallBlocked
+		case "unfinished":
+			info[i].Flags &^= ipc.CallFinished
+		default:
+			res, ok := errnos[call.Comment]
+			if !ok {
+				return nil, nil, nil, fmt.Errorf("%v: unknown comment %q",
+					filename, call.Comment)
+			}
+			info[i].Errno = res
 		}
-		results[i] = res
 	}
-	return p, results, nil
+	return p, requires, info, nil
 }
 
-func (ctx *Context) produceTest(progs chan *RunRequest, req *RunRequest, name string, results []int) {
+func (ctx *Context) produceTest(progs chan *RunRequest, req *RunRequest, name string,
+	properties, requires map[string]bool, results []ipc.CallInfo) {
 	req.name = name
 	req.results = results
-	req.Done = make(chan struct{})
-	ctx.Requests <- req
+	if match(properties, requires) {
+		req.Done = make(chan struct{})
+		ctx.Requests <- req
+	} else {
+		req.skip = "excluded by constraints"
+		req.Done = make(chan struct{})
+		close(req.Done)
+	}
 	progs <- req
+}
+
+func match(props map[string]bool, requires map[string]bool) bool {
+	for req, positive := range requires {
+		if positive {
+			if !props[req] {
+				return false
+			}
+			continue
+		}
+		matched := true
+		for _, req1 := range strings.Split(req, ",") {
+			if !props[req1] {
+				matched = false
+			}
+		}
+		if matched {
+			return false
+		}
+	}
+	return true
 }
 
 func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool) (*RunRequest, error) {
@@ -318,12 +381,27 @@ func checkResult(req *RunRequest) error {
 	}
 	for run, info := range req.Info {
 		for i, inf := range info {
-			if inf.Flags&ipc.CallExecuted == 0 {
-				return fmt.Errorf("run %v: call %v is not executed", run, i)
+			want := req.results[i]
+			for flag, what := range map[ipc.CallFlags]string{
+				ipc.CallExecuted: "executed",
+				ipc.CallBlocked:  "blocked",
+				ipc.CallFinished: "finished",
+			} {
+				if flag == ipc.CallBlocked && req.Bin != "" {
+					// C code does not detect when a call was blocked.
+					continue
+				}
+				if (inf.Flags^want.Flags)&flag != 0 {
+					not := " not"
+					if inf.Flags&flag != 0 {
+						not = ""
+					}
+					return fmt.Errorf("run %v: call %v is%v %v", run, i, not, what)
+				}
 			}
-			if inf.Errno != req.results[i] {
+			if inf.Flags&ipc.CallFinished != 0 && inf.Errno != want.Errno {
 				return fmt.Errorf("run %v: wrong call %v result %v, want %v",
-					run, i, inf.Errno, req.results[i])
+					run, i, inf.Errno, want.Errno)
 			}
 		}
 	}
@@ -362,8 +440,13 @@ func parseBinOutput(req *RunRequest) ([][]ipc.CallInfo, error) {
 		if info[call].Flags != 0 {
 			return nil, fmt.Errorf("double result for call %v", call)
 		}
-		info[call].Flags |= ipc.CallExecuted
+		info[call].Flags |= ipc.CallExecuted | ipc.CallFinished
 		info[call].Errno = int(errno)
+	}
+	for _, info := range infos {
+		for i := range info {
+			info[i].Flags |= ipc.CallExecuted
+		}
 	}
 	return infos, nil
 }
@@ -376,7 +459,7 @@ func RunTest(req *RunRequest, executor string) {
 			return
 		}
 		defer os.RemoveAll(tmpDir)
-		req.Output, req.Err = osutil.RunCmd(15*time.Second, tmpDir, req.Bin)
+		req.Output, req.Err = osutil.RunCmd(20*time.Second, tmpDir, req.Bin)
 		return
 	}
 	req.Cfg.Executor = executor
