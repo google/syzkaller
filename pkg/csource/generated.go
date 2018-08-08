@@ -645,11 +645,6 @@ static int do_sandbox_none(void)
 #define do_sandbox_namespace() 0
 #endif
 
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
-
 #elif GOOS_linux
 
 #include <stdlib.h>

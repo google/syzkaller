@@ -242,8 +242,3 @@ static int do_sandbox_none(void)
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
 #endif
-
-#define setup_loop()
-#define reset_loop()
-#define setup_test()
-#define reset_test()
