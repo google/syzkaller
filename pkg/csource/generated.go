@@ -3216,9 +3216,19 @@ static int do_sandbox_namespace(void)
 #if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_USE_TMP_DIR
 #include <dirent.h>
 #include <errno.h>
-#include <linux/fs.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/mount.h>
+struct fsxattr {
+	uint32 fsx_xflags;
+	uint32 fsx_extsize;
+	uint32 fsx_nextents;
+	uint32 fsx_projid;
+	uint32 fsx_cowextsize;
+	char fsx_pad[8];
+};
+
+#define FS_IOC_FSSETXATTR _IOW('X', 32, struct fsxattr)
 static void remove_dir(const char* dir)
 {
 	DIR* dp;
