@@ -2928,10 +2928,13 @@ static void setup_cgroups()
 }
 static void setup_binfmt_misc()
 {
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:syz0::./file0:")) {
+	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0)) {
+		debug("mount(binfmt_misc) failed: %d\n", errno);
+	}
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:")) {
 		debug("write(/proc/sys/fs/binfmt_misc/register, syz0) failed: %d\n", errno);
 	}
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:yz1::./file0:POC")) {
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC")) {
 		debug("write(/proc/sys/fs/binfmt_misc/register, syz1) failed: %d\n", errno);
 	}
 }
@@ -3776,7 +3779,7 @@ static void loop()
 #if SYZ_TRACE
 	printf("### start\n");
 #endif
-	int call, thread;
+	int i, call, thread;
 #if SYZ_COLLIDE
 	int collide = 0;
 again:
@@ -3801,12 +3804,12 @@ again:
 			if (collide && (call % 2) == 0)
 				break;
 #endif
-			event_timedwait(&th->done, 25);
-			if (__atomic_load_n(&running, __ATOMIC_RELAXED))
-				sleep_ms((call == [[NUM_CALLS]] - 1) ? 10 : 2);
+			event_timedwait(&th->done, 45);
 			break;
 		}
 	}
+	for (i = 0; i < 100 && __atomic_load_n(&running, __ATOMIC_RELAXED); i++)
+		sleep_ms(1);
 #if SYZ_COLLIDE
 	if (!collide) {
 		collide = 1;

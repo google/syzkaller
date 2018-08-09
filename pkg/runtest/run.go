@@ -232,11 +232,14 @@ func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, []i
 		}
 	}
 	errnos := map[string]int{
-		"":       0,
-		"EPERM":  1,
-		"EBADF":  9,
-		"ENOMEM": 12,
-		"EINVAL": 22,
+		"":        0,
+		"EPERM":   1,
+		"ENOENT":  2,
+		"ENOEXEC": 8,
+		"EBADF":   9,
+		"ENOMEM":  12,
+		"EACCES":  13,
+		"EINVAL":  22,
 	}
 	info := make([]ipc.CallInfo, len(p.Calls))
 	for i, call := range p.Calls {

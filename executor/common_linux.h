@@ -1422,10 +1422,13 @@ static void setup_cgroups()
 // but for now we bundle this with cgroups.
 static void setup_binfmt_misc()
 {
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:syz0::./file0:")) {
+	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0)) {
+		debug("mount(binfmt_misc) failed: %d\n", errno);
+	}
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:")) {
 		debug("write(/proc/sys/fs/binfmt_misc/register, syz0) failed: %d\n", errno);
 	}
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:yz1::./file0:POC")) {
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC")) {
 		debug("write(/proc/sys/fs/binfmt_misc/register, syz1) failed: %d\n", errno);
 	}
 }
