@@ -418,7 +418,7 @@ static void loop()
 #if SYZ_TRACE
 	printf("### start\n");
 #endif
-	int call, thread;
+	int i, call, thread;
 #if SYZ_COLLIDE
 	int collide = 0;
 again:
@@ -443,12 +443,12 @@ again:
 			if (collide && (call % 2) == 0)
 				break;
 #endif
-			event_timedwait(&th->done, 25);
-			if (__atomic_load_n(&running, __ATOMIC_RELAXED))
-				sleep_ms((call == [[NUM_CALLS]] - 1) ? 10 : 2);
+			event_timedwait(&th->done, 45);
 			break;
 		}
 	}
+	for (i = 0; i < 100 && __atomic_load_n(&running, __ATOMIC_RELAXED); i++)
+		sleep_ms(1);
 #if SYZ_COLLIDE
 	if (!collide) {
 		collide = 1;

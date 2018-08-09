@@ -646,7 +646,7 @@ retry:
 		} else if (flag_threaded) {
 			// Wait for call completion.
 			// Note: sys knows about this 25ms timeout when it generates timespec/timeval values.
-			const uint64 timeout_ms = flag_debug ? 1000 : 25;
+			const uint64 timeout_ms = flag_debug ? 1000 : 45;
 			if (event_timedwait(&th->done, timeout_ms))
 				handle_completion(th);
 			// Check if any of previous calls have completed.
@@ -668,6 +668,7 @@ retry:
 
 	if (!colliding && !collide && running > 0) {
 		// Give unfinished syscalls some additional time.
+		last_scheduled = 0;
 		uint64 wait = 100;
 		uint64 wait_start = current_time_ms();
 		uint64 wait_end = wait_start + wait;
