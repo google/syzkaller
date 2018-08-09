@@ -3422,7 +3422,7 @@ static void kill_and_wait(int pid, int* status)
 #define SYZ_HAVE_SETUP_LOOP 1
 static void setup_loop()
 {
-#if SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
 	int pid = getpid();
 	char cgroupdir[64];
 	char procs_file[128];
@@ -3871,12 +3871,12 @@ static void loop()
 		if (pid < 0)
 			fail("clone failed");
 		if (pid == 0) {
-#if SYZ_HAVE_SETUP_TEST
-			setup_test();
-#endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
+#endif
+#if SYZ_HAVE_SETUP_TEST
+			setup_test();
 #endif
 #if GOOS_akaros
 #if SYZ_EXECUTOR

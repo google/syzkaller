@@ -514,12 +514,12 @@ static void loop()
 		if (pid < 0)
 			fail("clone failed");
 		if (pid == 0) {
-#if SYZ_HAVE_SETUP_TEST
-			setup_test();
-#endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
+#endif
+#if SYZ_HAVE_SETUP_TEST
+			setup_test();
 #endif
 #if GOOS_akaros
 #if SYZ_EXECUTOR
