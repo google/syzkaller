@@ -3218,16 +3218,8 @@ static int do_sandbox_namespace(void)
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
-struct fsxattr {
-	uint32 fsx_xflags;
-	uint32 fsx_extsize;
-	uint32 fsx_nextents;
-	uint32 fsx_projid;
-	uint32 fsx_cowextsize;
-	char fsx_pad[8];
-};
 
-#define FS_IOC_FSSETXATTR _IOW('X', 32, struct fsxattr)
+#define FS_IOC_SETFLAGS _IOW('f', 2, long)
 static void remove_dir(const char* dir)
 {
 	DIR* dp;
@@ -3267,8 +3259,8 @@ retry:
 			if (errno == EPERM) {
 				int fd = open(filename, O_RDONLY);
 				if (fd != -1) {
-					struct fsxattr attr = {0};
-					if (ioctl(fd, FS_IOC_FSSETXATTR, &attr) == 0)
+					long flags = 0;
+					if (ioctl(fd, FS_IOC_SETFLAGS, &flags) == 0)
 						debug("reset FS_XFLAG_IMMUTABLE\n");
 					close(fd);
 					continue;
@@ -3295,8 +3287,8 @@ retry:
 			if (errno == EPERM) {
 				int fd = open(dir, O_RDONLY);
 				if (fd != -1) {
-					struct fsxattr attr = {0};
-					if (ioctl(fd, FS_IOC_FSSETXATTR, &attr) == 0)
+					long flags = 0;
+					if (ioctl(fd, FS_IOC_SETFLAGS, &flags) == 0)
 						debug("reset FS_XFLAG_IMMUTABLE\n");
 					close(fd);
 					continue;
