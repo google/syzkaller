@@ -27,6 +27,8 @@ var resources_arm64 = []*ResourceDesc{
 	{Name: "zx_chan_fuchsia_io_Object_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_io_Object_server"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_process_Launcher_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_process_Launcher_client"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_process_Launcher_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_process_Launcher_server"}, Values: []uint64{0}},
+	{Name: "zx_chan_fuchsia_process_Resolver_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_process_Resolver_client"}, Values: []uint64{0}},
+	{Name: "zx_chan_fuchsia_process_Resolver_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_process_Resolver_server"}, Values: []uint64{0}},
 	{Name: "zx_debug_log", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_debug_log"}, Values: []uint64{0}},
 	{Name: "zx_event", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_event"}, Values: []uint64{0}},
 	{Name: "zx_fifo", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_fifo"}, Values: []uint64{0}},
@@ -441,6 +443,16 @@ var structDescs_arm64 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_LauncherLaunchRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_LauncherLaunchResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_process_ResolverResolveRequest, fuchsia_process_ResolverResolveRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_process_ResolverResolveResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_process_ResolverResolveRequest, fuchsia_process_ResolverResolveRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_process_ResolverResolveResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_ResolverResolveRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_ResolverResolveRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_ResolverResolveResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
@@ -1226,6 +1238,18 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "thread", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", FldName: "bootstrap", TypeSize: 4, ArgDir: 1}},
 	}}},
+	{Key: StructKey{Name: "fuchsia_process_ResolverResolveRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_ResolverResolveRequest", IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[1]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "nameInLine"},
+		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "nameOutOfLine"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_process_ResolverResolveRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_ResolverResolveRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_process_ResolverResolveResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_ResolverResolveResponseHandles", TypeSize: 8, ArgDir: 1}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "executable", TypeSize: 4, ArgDir: 1}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", FldName: "ldsvc", TypeSize: 4, ArgDir: 1}},
+	}}},
 	{Key: StructKey{Name: "iovec_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_in", TypeSize: 16}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
@@ -1240,11 +1264,11 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "parallel_array[fidl_string, fidl_aligned[stringnoz]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "parallel_array[fidl_string, fidl_aligned[stringnoz]]", IsVarlen: true}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fidl_string"}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "b", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "b", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}}, Kind: 2, LenTarget: "a"},
 	}}},
 	{Key: StructKey{Name: "parallel_array[fuchsia_process_NameInfoInLine, fuchsia_process_NameInfoOutOfLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "parallel_array[fuchsia_process_NameInfoInLine, fuchsia_process_NameInfoOutOfLine]", IsVarlen: true}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_NameInfoInLine"}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "b", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_NameInfoOutOfLine"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "b", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_NameInfoOutOfLine"}}, Kind: 2, LenTarget: "a"},
 	}}},
 	{Key: StructKey{Name: "pipefd", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pipefd", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "rfd", TypeSize: 4, ArgDir: 1}},
@@ -1500,6 +1524,10 @@ var syscalls_arm64 = []*Syscall{
 	{Name: "fdio_service_connect$fuchsia_process_Launcher", CallName: "fdio_service_connect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 30}, Kind: 2, Values: []string{"/svc/fuchsia.process.Launcher\x00"}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_process_Launcher_server", FldName: "handle", TypeSize: 4}},
+	}},
+	{Name: "fdio_service_connect$fuchsia_process_Resolver", CallName: "fdio_service_connect", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 30}, Kind: 2, Values: []string{"/svc/fuchsia.process.Resolver\x00"}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_process_Resolver_server", FldName: "handle", TypeSize: 4}},
 	}},
 	{Name: "fstat", CallName: "fstat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -2014,6 +2042,14 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
+	{Name: "zx_channel_call$fuchsia_process_ResolverResolve", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_process_Resolver_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_process_ResolverResolveRequest, fuchsia_process_ResolverResolveRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_process_ResolverResolveResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
 	{Name: "zx_channel_create", CallName: "zx_channel_create", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", TypeSize: 4, ArgDir: 1}}},
@@ -2043,6 +2079,11 @@ var syscalls_arm64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_process_Launcher_client", TypeSize: 4, ArgDir: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out1", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_process_Launcher_server", TypeSize: 4, ArgDir: 1}}},
+	}},
+	{Name: "zx_channel_create$fuchsia_process_Resolver", CallName: "zx_channel_create", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_process_Resolver_client", TypeSize: 4, ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out1", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_process_Resolver_server", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{Name: "zx_channel_read", CallName: "zx_channel_read", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", FldName: "handle", TypeSize: 4}},
@@ -2988,4 +3029,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "fuchsia_io_SeekOrigin_Start"},
 }
 
-const revision_arm64 = "80d5b2ce01d8c9deca31efaa1a61da313eaa44e6"
+const revision_arm64 = "66a7d031282739bfe70b76c36170c3fe4e9ec15a"

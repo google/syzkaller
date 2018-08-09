@@ -226,3 +226,23 @@ foo$515(a ptr[in, proc[1, -10, int64]])	### values starting from 1 with step 184
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
 type type501 int8		### unused type type501
 type type502[C] const[C, int8]	### unused type type502
+
+# Array len target tests.
+
+foo$600(a ptr[in, array[int64, len[a]]])	### array len target a refers to itself
+foo$601(a int32, b ptr[in, array[int64, len[c]]])	### array len target c does not exist
+foo$602(a int32, b ptr[in, array[int64, len[a]]])	### array len target a refers to non-array
+foo$603(a ptr[in, array[int64, len[b]]], b int32)	### array len target b refers to non-array
+foo$604(a ptr[in, array[int64, len[b]]], b ptr[in, array[int64]])	### array len target b refers to non-array
+
+s600 {
+	a1	array[int32, len[a2]]	### array len target a2 does not exist
+}
+
+s601 {
+	a1	array[int32, len[a2]]	### array a1 precedes its len target a2
+	a2	array[int32]
+} [packed]
+
+foo$605(a ptr[in, s600])
+foo$606(a ptr[in, s601])

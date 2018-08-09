@@ -68,6 +68,15 @@ foo$len_templ(a ptr[in, len_templ1[int8, int16]])
 foo$len_var0(a ptr[in, array[string]], b len[a])
 foo$len_var1(a ptr[in, array[string]], b ptr[in, len[a, int32]])
 
+# Array type len target arguments.
+
+type arraylen_templ[DATA1, DATA2] {
+	arr1	array[DATA1]
+	arr2	array[DATA2, len[arr1]]
+} [packed]
+
+foo$arraylen_templ(a ptr[in, arraylen_templ[int32, int64]])
+
 # Void type.
 
 void0 {

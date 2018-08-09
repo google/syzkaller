@@ -68,7 +68,7 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 			comp.foreachType(decl, func(t *ast.Type, desc *typeDesc,
 				args []*ast.Type, _ prog.IntTypeCommon) {
 				for i, arg := range args {
-					if desc.Args[i].Type.Kind == kindInt {
+					if isConstArg(desc.Args[i].Type, arg) {
 						if arg.Ident != "" {
 							info := getConstInfo(infos, arg.Pos)
 							info.consts[arg.Ident] = true
@@ -181,7 +181,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			comp.foreachType(decl, func(_ *ast.Type, desc *typeDesc,
 				args []*ast.Type, _ prog.IntTypeCommon) {
 				for i, arg := range args {
-					if desc.Args[i].Type.Kind == kindInt {
+					if isConstArg(desc.Args[i].Type, arg) {
 						comp.patchIntConst(&arg.Value, &arg.Ident, consts, &missing)
 						if arg.HasColon {
 							comp.patchIntConst(&arg.Value2,
@@ -236,6 +236,13 @@ func (comp *compiler) patchIntConst(val *uint64, id *string, consts map[string]u
 	}
 	*val = v
 	return ok
+}
+
+func isConstArg(desc *typeArg, arg *ast.Type) bool {
+	if desc.IsConst != nil {
+		return desc.IsConst(arg)
+	}
+	return desc.Kind == kindInt
 }
 
 func SerializeConsts(consts map[string]uint64, undeclared map[string]bool) []byte {
