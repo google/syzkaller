@@ -234,7 +234,13 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("sring format in syscall argument")
 			}
-			fmt.Fprintf(w, "%v", ctx.resultArgToStr(arg))
+			val := ctx.resultArgToStr(arg)
+			if native && ctx.target.PtrSize == 4 {
+				// syscall accepts args as ellipsis, resources are uint64
+				// and take 2 slots without the cast, which would be wrong.
+				val = "(long)" + val
+			}
+			fmt.Fprintf(w, "%v", val)
 		default:
 			panic(fmt.Sprintf("unknown arg type: %+v", arg))
 		}
