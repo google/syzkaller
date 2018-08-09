@@ -1969,8 +1969,7 @@ static void kill_and_wait(int pid, int* status)
 #define SYZ_HAVE_SETUP_LOOP 1
 static void setup_loop()
 {
-// TODO(dvyukov): this needs SYZ_EXECUTOR and a test.
-#if SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
 	int pid = getpid();
 	char cgroupdir[64];
 	char procs_file[128];
