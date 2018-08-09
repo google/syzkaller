@@ -1741,17 +1741,7 @@ static int do_sandbox_namespace(void)
 #include <sys/ioctl.h>
 #include <sys/mount.h>
 
-// This should be in <linux/fs.h> but is not there on some distros/arches as expected.
-struct fsxattr {
-	uint32 fsx_xflags;
-	uint32 fsx_extsize;
-	uint32 fsx_nextents;
-	uint32 fsx_projid;
-	uint32 fsx_cowextsize;
-	char fsx_pad[8];
-};
-
-#define FS_IOC_FSSETXATTR _IOW('X', 32, struct fsxattr)
+#define FS_IOC_SETFLAGS _IOW('f', 2, long)
 
 // One does not simply remove a directory.
 // There can be mounts, so we need to try to umount.
@@ -1803,8 +1793,8 @@ retry:
 				// Try to reset FS_XFLAG_IMMUTABLE.
 				int fd = open(filename, O_RDONLY);
 				if (fd != -1) {
-					struct fsxattr attr = {0};
-					if (ioctl(fd, FS_IOC_FSSETXATTR, &attr) == 0)
+					long flags = 0;
+					if (ioctl(fd, FS_IOC_SETFLAGS, &flags) == 0)
 						debug("reset FS_XFLAG_IMMUTABLE\n");
 					close(fd);
 					continue;
@@ -1832,8 +1822,8 @@ retry:
 				// Try to reset FS_XFLAG_IMMUTABLE.
 				int fd = open(dir, O_RDONLY);
 				if (fd != -1) {
-					struct fsxattr attr = {0};
-					if (ioctl(fd, FS_IOC_FSSETXATTR, &attr) == 0)
+					long flags = 0;
+					if (ioctl(fd, FS_IOC_SETFLAGS, &flags) == 0)
 						debug("reset FS_XFLAG_IMMUTABLE\n");
 					close(fd);
 					continue;
