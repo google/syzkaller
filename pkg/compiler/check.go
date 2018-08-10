@@ -908,6 +908,10 @@ func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
 		comp.error(arg.Pos2, "unexpected ':'")
 		return
 	}
+	if len(arg.Args) > desc.MaxArgs {
+		comp.error(arg.Pos, "%v argument has subargs", argDesc.Name)
+		return
+	}
 	if desc.Check != nil {
 		desc.Check(comp, arg)
 	}

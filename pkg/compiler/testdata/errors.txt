@@ -116,6 +116,8 @@ foo$59(a s1)			### s1 can't be syscall argument
 foo$60() s1			### s1 can't be syscall return
 foo$61(a u6)			### u6 can't be syscall argument
 foo$62() u6			### u6 can't be syscall return
+foo$63(a int32[1[2]])		### range argument has subargs
+foo$64(a ptr[in, flags[f1[int32], int32]])	### flags argument has subargs
 
 opt {				### struct uses reserved name opt
 	f1	int32
