@@ -39,6 +39,7 @@ type typeDesc struct {
 type typeArg struct {
 	Names      []string
 	Kind       int  // int/ident/string
+	MaxArgs    int  // maxiumum number of subargs
 	AllowColon bool // allow colon (2:3)?
 	// Check does custom verification of the arg (optional).
 	Check       func(comp *compiler, t *ast.Type)
