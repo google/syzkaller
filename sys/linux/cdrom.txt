@@ -133,8 +133,8 @@ cdrom_msf0 {
 cdrom_read_audio {
 	addr		cdrom_addr
 	addr_format	flags[cdrom_format, int8]
-	nframes		bytesize[buf, int32[1:CD_FRAMES]]
-	buf		ptr[out, array[int8]]
+	nframes		bytesize[buf, int32]
+	buf		ptr[out, array[int8, 1:CD_FRAMES]]
 }
 
 cdrom_volctrl {
