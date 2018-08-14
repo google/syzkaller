@@ -197,26 +197,12 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/root", filepath.Base(hostSrc))
-	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.sshport), hostSrc, inst.sshuser+"@"+inst.sshhost+":"+vmDst)
-	cmd := osutil.Command("scp", args...)
+	args := append(vmimpl.SCPArgs(inst.debug, inst.sshkey, inst.sshport),
+		hostSrc, inst.sshuser+"@"+inst.sshhost+":"+vmDst)
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stdout
 	}
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-time.After(3 * time.Minute):
-			cmd.Process.Kill()
-		case <-done:
-		}
-	}()
-	err := cmd.Wait()
-	close(done)
+	_, err := osutil.RunCmd(3*time.Minute, "", "scp", args...)
 	if err != nil {
 		return "", err
 	}
