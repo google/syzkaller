@@ -142,13 +142,10 @@ func (inst *instance) Boot() error {
 	}
 	startOut, err := inst.vmctl(startArgs...)
 	if err != nil {
-		return fmt.Errorf("start failed: %v: %s", err, string(startOut))
-	}
-	if inst.debug {
-		log.Logf(0, "start output: %s", string(startOut))
+		return err
 	}
 
-	inst.vmID, err = parseID(string(startOut))
+	inst.vmID, err = parseID(startOut)
 	if err != nil {
 		return err
 	}
@@ -209,12 +206,7 @@ func (inst *instance) Boot() error {
 }
 
 func (inst *instance) Close() {
-	if out, err := inst.vmctl("stop", inst.vmIdent(), "-f"); err != nil {
-		if inst.debug {
-			log.Logf(0, "vmctl stop %s: %v: %s", inst.vmIdent(), err, string(out))
-		}
-	}
-
+	inst.vmctl("stop", inst.vmIdent(), "-f")
 	os.Remove(inst.image)
 }
 
@@ -361,12 +353,21 @@ func (inst *instance) alive() bool {
 }
 
 // Run the given vmctl(8) command and wait for it to finish.
-func (inst *instance) vmctl(args ...string) ([]byte, error) {
+func (inst *instance) vmctl(args ...string) (string, error) {
 	if inst.debug {
 		log.Logf(0, "running command: vmctl %#v", args)
 	}
-	cmd := osutil.Command("vmctl", args...)
-	return cmd.CombinedOutput()
+	out, err := osutil.RunCmd(10*time.Second, "", "vmctl", args...)
+	if err != nil {
+		if inst.debug {
+			log.Logf(0, "vmctl failed: %v", err)
+		}
+		return "", err
+	}
+	if inst.debug {
+		log.Logf(0, "vmctl output: %v", string(out))
+	}
+	return string(out), nil
 }
 
 func (inst *instance) vmIdent() string {
