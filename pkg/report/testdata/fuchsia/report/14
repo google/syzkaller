@@ -1,0 +1,19 @@
+TITLE: double fault in x86_df_handler
+
+ZIRCON KERNEL PANIC
+vector 8
+double fault, halting
+ CS:                0x33 RIP:     0x6b8144262960 EFL:            0x10202 CR2: 0xfffffffffffffff8
+ RAX:                  0 RBX:                  0 RCX:                  0 RDX:                  0
+ RSI:                  0 RDI:                  0 RBP:                  0 RSP:                  0
+  R8:                  0  R9:                  0 R10:                  0 R11:                  0
+ R12:                  0 R13:                  0 R14:                  0 R15:                  0
+errc:                  0
+platform_halt suggested_action 0 reason 9
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x00108425 exception_die arch/x86/faults.cpp:97
+bt#02: [ inline ] x86_df_handler arch/x86/faults.cpp:175
+bt#02: [ inline ] handle_exception_types arch/x86/faults.cpp:349
+bt#02: 0x00108d63 x86_exception_handler arch/x86/faults.cpp:455
+bt#03: 0x0011599e interrupt_common arch/x86/exceptions.S:127
+bt#04: end

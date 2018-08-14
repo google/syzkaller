@@ -1,87 +1,20 @@
-TITLE: Supervisor fault
+TITLE: ASSERT FAILED: wait->magic == WAIT_QUEUE_MAGIC
 
-[00171.272] 01102.01116> <PAGE FAULT> Error Code Value      = 0x0
 ZIRCON KERNEL PANIC
-[00171.272] 01102.01116> <PAGE FAULT> Error Code Type       = supervisor read data, page not present
 
-[00171.272] 01102.01116> dump_thread: t 0xffffff80007236c0 (svchost:initial-thread)
-UPTIME: 171276ms
-[00171.272] 01102.01116> 	state run, curr/last cpu 2/2, cpu_affinity 0xffffffff, priority 20 [16:4,20], remaining time slice 382244
-BUILDID git-d0845c2dca0182181dfbf2209e1c03905ebfd739
-[00171.272] 01102.01116> 	runtime_ns 631146343, runtime_s 0
+UPTIME: 796655ms
+BUILDID git-5f588306b2998fea1c021f992444971b1ce92581
 
-[00171.272] 01102.01116> 	stack 0xffffff99d68d8000, stack_size 8192
-dso: id=8ac492895f1aa9dc4798a997fa132e9b3809a5e6 base=0xffffffff00100000 name=zircon.elf
-[00171.272] 01102.01116> 	entry 0xffffffff00163be8, arg 0xffffff8000723548, flags 0x0 
+dso: id=c9e63845b8cc355bb42713bfb8eec04942ec7bcd base=0xffffffff00100000 name=zircon.elf
 stopping other cpus
-halting cpu 0
-halting cpu 1
-halting cpu 3
-vector 14
-Supervisor Page Fault exception, halting
- CS:                0x10 RIP: 0xffffffff00118e64 EFL:            0x10293 CR2:                0x8
- RAX:               0xff RBX:                0x1 RCX:                  0 RDX:                0x1
- RSI:               0xff RDI:                0x3 RBP: 0xffffff99d68d9cf0 RSP: 0xffffff99d68d9cb0
-  R8:               0x14  R9: 0xffffffff00201419 R10: 0xffffffff0021ec50 R11:               0x1b
- R12:                0x3 R13:          0x1000000 R14: 0xffffff800961b5c0 R15:       0x7ffffff000
-errc:                  0
-bottom of kernel stack at 0xffffff99d68d9c00:
-0xffffff99d68d9c00: 00000003 00000000 000000ff 00000000 |................|
-0xffffff99d68d9c10: d68d9cf0 ffffff99 00000001 00000000 |................|
-0xffffff99d68d9c20: 00000001 00000000 00000000 00000000 |................|
-0xffffff99d68d9c30: 000000ff 00000000 00000014 00000000 |................|
-0xffffff99d68d9c40: 00201419 ffffffff 0021ec50 ffffffff |.. .....P.!.....|
-0xffffff99d68d9c50: 0000001b 00000000 00000003 00000000 |................|
-0xffffff99d68d9c60: 01000000 00000000 0961b5c0 ffffff80 |..........a.....|
-0xffffff99d68d9c70: fffff000 0000007f 0000000e 00000000 |................|
+panic (caller 0xffffffff00131673 frame 0xffffff9c8a6c3da0): DEBUG ASSERT FAILED at (kernel/kernel/wait.cpp:382): wait->magic ==
+ WAIT_QUEUE_MAGIC
 platform_halt suggested_action 0 reason 9
 Halting...
-bt#00: 0xffffffff001058a6
-bt#01: 0xffffffff00108359
-bt#02: 0xffffffff00108ee3
-bt#03: 0xffffffff001158d2
-bt#04: 0xffffffff0010d1ce
-bt#05: 0xffffffff001c0ace
-bt#06: 0xffffffff001c0e26
-bt#07: 0xffffffff0015c0f0
-bt#08: 0xffffffff0015ec6b
-bt#09: 0xffffffff0018ed58
-bt#10: 0xffffffff0016fb9a
-bt#11: 0xffffffff00115e7b
-bt#12: end
 Halted
 entering panic shell loop
 
 REPORT:
 ZIRCON KERNEL PANIC
-vector 14
-Supervisor Page Fault exception, halting
- CS:                0x10 RIP: 0xffffffff00118e64 EFL:            0x10293 CR2:                0x8
- RAX:               0xff RBX:                0x1 RCX:                  0 RDX:                0x1
- RSI:               0xff RDI:                0x3 RBP: 0xffffff99d68d9cf0 RSP: 0xffffff99d68d9cb0
-  R8:               0x14  R9: 0xffffffff00201419 R10: 0xffffffff0021ec50 R11:               0x1b
- R12:                0x3 R13:          0x1000000 R14: 0xffffff800961b5c0 R15:       0x7ffffff000
-errc:                  0
-bottom of kernel stack at 0xffffff99d68d9c00:
-0xffffff99d68d9c00: 00000003 00000000 000000ff 00000000 |................|
-0xffffff99d68d9c10: d68d9cf0 ffffff99 00000001 00000000 |................|
-0xffffff99d68d9c20: 00000001 00000000 00000000 00000000 |................|
-0xffffff99d68d9c30: 000000ff 00000000 00000014 00000000 |................|
-0xffffff99d68d9c40: 00201419 ffffffff 0021ec50 ffffffff |.. .....P.!.....|
-0xffffff99d68d9c50: 0000001b 00000000 00000003 00000000 |................|
-0xffffff99d68d9c60: 01000000 00000000 0961b5c0 ffffff80 |..........a.....|
-0xffffff99d68d9c70: fffff000 0000007f 0000000e 00000000 |................|
+panic (caller 0xffffffff00131673 frame 0xffffff9c8a6c3da0): DEBUG ASSERT FAILED at (kernel/kernel/wait.cpp:382): wait->magic == WAIT_QUEUE_MAGIC
 platform_halt suggested_action 0 reason 9
-bt#00: 0xffffffff001058a6
-bt#01: 0xffffffff00108359
-bt#02: 0xffffffff00108ee3
-bt#03: 0xffffffff001158d2
-bt#04: 0xffffffff0010d1ce
-bt#05: 0xffffffff001c0ace
-bt#06: 0xffffffff001c0e26
-bt#07: 0xffffffff0015c0f0
-bt#08: 0xffffffff0015ec6b
-bt#09: 0xffffffff0018ed58
-bt#10: 0xffffffff0016fb9a
-bt#11: 0xffffffff00115e7b
-bt#12: end

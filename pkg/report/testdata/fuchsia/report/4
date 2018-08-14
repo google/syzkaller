@@ -13,6 +13,5 @@ Connection to localhost closed by remote host.
 halting cpu 0
 
 REPORT:
-vector 14
 recursion in interrupt handler
 Connection to localhost closed by remote host.

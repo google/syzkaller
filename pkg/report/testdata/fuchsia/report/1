@@ -1,83 +1,64 @@
-TITLE: ASSERT FAILED
+TITLE: ASSERT FAILED in size_to_index_helper
+
+executing program
+gfxconsole: rows 48, columns 113, extray 0
 
 ZIRCON KERNEL PANIC
 
-UPTIME: 255780ms
+UPTIME: 128577ms
+BUILDID git-5f588306b2998fea1c021f992444971b1ce92581
+
+dso: id=c9e63845b8cc355bb42713bfb8eec04942ec7bcd base=0xffffffff00100000 name=zircon.elf
 stopping other cpus
-BUILDID git-9fd63dbbac9589e8c902f28e73f9e980a859fc7d-dirty
 halting cpu 0
-
-dso: id=9c808053206b45ef38224aa56daad5e8aac8c998 base=0xffffffff80100000 name=zircon.elf
-panic (caller 0xffffffff80106655 frame 0xffffff9a0e934eb0): DEBUG ASSERT FAILED at (system/ulib/fbl/include/fbl/ref_counted_int
-ernal.h:46): magic_ == expected
-Invalid magic (expect: 0x52634144, got: 0x00)
-
+panic (caller 0xffffffff001dd965 frame 0xffffff95faf71b80): DEBUG ASSERT FAILED at (kernel/lib/heap/cmpctmalloc/cmpctmalloc.c:2
+90): answer < NUMBER_OF_BUCKETS
 platform_halt suggested_action 0 reason 9
 Halting...
-bt#00: 0xffffffff80180dc8
-bt#01: 0xffffffff8013d438
-bt#02: 0xffffffff80106655
-bt#03: 0xffffffff80106c90
-bt#04: 0xffffffff80113fd3
-bt#05: end
-
-start of symbolized stack:
-bt#00: 0xffffffff80180dc8 => _panic at ../../zircon/kernel/lib/debug/debug.c:42
-bt#01: 0xffffffff8013d438 => fbl::internal::AdoptionValidator<true>::AssertMagic(unsigned int) const at ../../zircon/system/ulib/fbl/include/fbl/ref_counted_internal.h:43
-(inlined by) fbl::internal::AdoptionValidator<true>::ValidateRelease() const at ../../zircon/system/ulib/fbl/include/fbl/ref_counted_internal.h:38
-(inlined by) fbl::internal::RefCountedBase<true>::Release() const at ../../zircon/system/ulib/fbl/include/fbl/ref_counted_internal.h:113
-(inlined by) fbl::RefPtr<JobDispatcher>::~RefPtr() at ../../zircon/system/ulib/fbl/include/fbl/ref_ptr.h:165
-(inlined by) ExceptionPortIterator::~ExceptionPortIterator() at ../../zircon/kernel/object/exception.cpp:53
-(inlined by) exception_handler_worker at ../../zircon/kernel/object/exception.cpp:155
-(inlined by) dispatch_user_exception at ../../zircon/kernel/object/exception.cpp:216
-bt#02: 0xffffffff80106655 => call_dispatch_user_exception at ../../zircon/kernel/arch/x86/faults.cpp:81
-(inlined by) try_dispatch_user_exception at ../../zircon/kernel/arch/x86/faults.cpp:93
-bt#03: 0xffffffff80106c90 => try_dispatch_user_exception at ../../zircon/kernel/arch/x86/faults.cpp:105
-(inlined by) x86_invop_handler at ../../zircon/kernel/arch/x86/faults.cpp:146
-(inlined by) x86_exception_handler at ../../zircon/kernel/arch/x86/faults.cpp:344
-bt#04: 0xffffffff80113fd3 => interrupt_common at ../../zircon/kernel/arch/x86/exceptions.S:125
-end of symbolized stack
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a22c4 _panic lib/debug/debug.cpp:39
+bt#02: 0x001dd8ef size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:290
+bt#03: 0x001dd965 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:254
+bt#04: [ inline ] size_to_index_freeing lib/heap/cmpctmalloc/cmpctmalloc.c:303
+bt#04: 0x001dd995 create_free_area lib/heap/cmpctmalloc/cmpctmalloc.c:358
+bt#05: 0x001ddd71 cmpct_alloc lib/heap/cmpctmalloc/cmpctmalloc.c:943
+bt#06: 0x001a38b3 malloc lib/heap/heap_wrapper.cpp:55
+bt#07: 0x0013eb76 operator new system/ulib/fbl/alloc_checker.cpp:70
+bt#08: 0x001cc668 VmPageList::AddPage vm/vm_page_list.cpp:84
+bt#09: 0x001c66db VmObjectPaged::AddPageLocked system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#10: 0x001c6a1f VmObjectPaged::GetPageLocked system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#11: 0x001c4560 VmMapping::PageFault vm/vm_mapping.cpp:649
+bt#12: 0x001ba1ed VmAddressRegion::PageFault vm/vm_address_region.cpp:402
+bt#13: 0x001bfcd6 VmAspace::PageFault system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#14: 0x001d2b76 vmm_page_fault_handler vm/vmm.cpp:61
+bt#15: [ inline ] x86_pfe_handler arch/x86/faults.cpp:288
+bt#15: [ inline ] handle_exception_types arch/x86/faults.cpp:367
+bt#15: 0x00108a57 x86_exception_handler arch/x86/faults.cpp:455
+bt#16: end
 Halted
 entering panic shell loop
-! vector 14
-recursion in interrupt handler
-CS: 0x10 RIP: 0xffffffff8012758f EFL: 0x10007 CR2: 0x210
-RAX: 0x1f8 RBX: 0xffffffff80249f50 RCX: 0x3b8e54b573 RDX: 0xe
-RSI: 0xffffffff80249f50 RDI: 0x2 RBP: 0xffffff9a0e918e20 RSP: 0xffffff9a0e918df0
-R8: 0x200 R9: 0x3b8e54b573 R10: 0xffffffff80249f40 R11: 0x246
-R12: 0 R13: 0x3b8e54b573 R14: 0x46 R15: 0xffffffff80248d40
-errc: 0
-bottom of kernel stack at 0xffffff9a0e918d40:
-0xffffff9a0e918d40: 00000002 00000000 80249f50 ffffffff |........P.$.....|
-0xffffff9a0e918d50: 0e918e20 ffffff9a 80249f50 ffffffff | .......P.$.....|
-0xffffff9a0e918d60: 0000000e 00000000 8e54b573 0000003b |........s.T.;...|
-0xffffff9a0e918d70: 000001f8 00000000 00000200 00000000 |................|
-0xffffff9a0e918d80: 8e54b573 0000003b 80249f40 ffffffff |s.T.;...@.$.....|
-0xffffff9a0e918d90: 00000246 00000000 00000000 00000000 |F...............|
-0xffffff9a0e918da0: 8e54b573 0000003b 00000046 00000000 |s.T.;...F.......|
-0xffffff9a0e918db0: 80248d40 ffffffff 0000000e 00000000 |@.$.............|
+
+REPORT:
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff001dd965 frame 0xffffff95faf71b80): DEBUG ASSERT FAILED at (kernel/lib/heap/cmpctmalloc/cmpctmalloc.c:290): answer < NUMBER_OF_BUCKETS
 platform_halt suggested_action 0 reason 9
-Halting...
-bt#00: 0xffffffff8010659d
-bt#01: 0xffffffff801069e0
-bt#02: 0xffffffff80113fd3
-bt#03: 0xffffffff80127959
-bt#04: 0xffffffff8012431c
-bt#05: 0xffffffff80127eb3
-bt#06: 0xffffffff80106b1f
-bt#07: 0xffffffff80113fd3
-bt#08: end
-
-start of symbolized stack:
-#05: (unknown)
-#00: (unknown)
-#01: (unknown)
-#02: (unknown)
-#03: (unknown)
-#04: (unknown)
-#05: (unknown)
-#06: (unknown)
-#07: (unknown)
-end of symbolized stack
-Halted
-entering panic shell loop
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a22c4 _panic lib/debug/debug.cpp:39
+bt#02: 0x001dd8ef size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:290
+bt#03: 0x001dd965 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:254
+bt#04: [ inline ] size_to_index_freeing lib/heap/cmpctmalloc/cmpctmalloc.c:303
+bt#04: 0x001dd995 create_free_area lib/heap/cmpctmalloc/cmpctmalloc.c:358
+bt#05: 0x001ddd71 cmpct_alloc lib/heap/cmpctmalloc/cmpctmalloc.c:943
+bt#06: 0x001a38b3 malloc lib/heap/heap_wrapper.cpp:55
+bt#07: 0x0013eb76 operator new system/ulib/fbl/alloc_checker.cpp:70
+bt#08: 0x001cc668 VmPageList::AddPage vm/vm_page_list.cpp:84
+bt#09: 0x001c66db VmObjectPaged::AddPageLocked system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#10: 0x001c6a1f VmObjectPaged::GetPageLocked system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#11: 0x001c4560 VmMapping::PageFault vm/vm_mapping.cpp:649
+bt#12: 0x001ba1ed VmAddressRegion::PageFault vm/vm_address_region.cpp:402
+bt#13: 0x001bfcd6 VmAspace::PageFault system/ulib/fbl/include/fbl/ref_counted_internal.h:103
+bt#14: 0x001d2b76 vmm_page_fault_handler vm/vmm.cpp:61
+bt#15: [ inline ] x86_pfe_handler arch/x86/faults.cpp:288
+bt#15: [ inline ] handle_exception_types arch/x86/faults.cpp:367
+bt#15: 0x00108a57 x86_exception_handler arch/x86/faults.cpp:455
+bt#16: end

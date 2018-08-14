@@ -1,0 +1,16 @@
+TITLE: ASSERT FAILED in exception_handler_worker
+
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff00108eac frame 0xffffff92d60e7ed0): ASSERT FAILED at (kernel/object/exception.cpp:182): 0
+unexpected exception result -24
+platform_halt suggested_action 0 reason 9
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a2390 _panic lib/debug/debug.cpp:39
+bt#02: [ inline ] exception_handler_worker object/exception.cpp:182
+bt#02: 0x0014c959 dispatch_user_exception object/exception.cpp:215
+bt#03: [ inline ] call_dispatch_user_exception arch/x86/faults.cpp:105
+bt#03: [ inline ] x86_pfe_handler arch/x86/faults.cpp:306
+bt#03: [ inline ] handle_exception_types arch/x86/faults.cpp:367
+bt#03: 0x00108eac x86_exception_handler arch/x86/faults.cpp:455
+bt#04: 0x0011599e interrupt_common arch/x86/exceptions.S:127
+bt#05: end

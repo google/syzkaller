@@ -1,93 +1,93 @@
-TITLE: recursion in interrupt handler
+TITLE: ASSERT FAILED in Dispatcher::UpdateInternalLocked
 
-gfxconsole: rows <PAGE FAULT> Instruction Pointer   = 0x10:0xffffffff801a41a7
-48<PAGE FAULT> Stack Pointer         = 0x18:0xffffff9951906e90
-, columns <PAGE FAULT> Fault Linear Address  = 0xb0
-113<PAGE FAULT> Error Code Value      = 0x0
-, extray <PAGE FAULT> Error Code Type       = supervisor read data, page not present
-0dump_thread: t 0xffffff806c388ae0 (/syz-executor:initial-thread)
-
-	state run, curr/last cpu 0/0, cpu_affinity 0xffffffff, priority 16:0, remaining time slice 6101766
-	runtime_ns 11497170, runtime_s 0
-	stack 0xffffff9951905000, stack_size 8192
-	entry 0xffffffff8015262c, arg 0xffffff806c3888c0, flags 0x0 
+executing program
+gfxconsole: rows 48, columns 113, extray 0
 
 ZIRCON KERNEL PANIC
 
-UPTIME: 	wait queue 0, blocked_status 0, interruptable 0
-311133	aspace 0xffffff806c372d98
-ms
-	user_thread 0xffffff806c3888c0, pid 1923727, tid 1923758
-BUILDID stopping other cpus
-git-9fd63dbbac9589e8c902f28e73f9e980a859fc7d-dirtyhalting cpu 3
+UPTIME: 147487ms
+BUILDID git-93f14256334010c7d11fa34fea4fd9e49880e132
 
-
-dso: id=9c808053206b45ef38224aa56daad5e8aac8c998 base=0xffffffff80100000 name=zircon.elf
+<PAGE FAULT> Instruction Pointer   = 0x10:0xffffffff0014d1c4
+dso: id=2792436d6b3e6202542e152902c480c97da3d5d7 base=0xffffffff00100000 name=zircon.elf
+stopping other cpus
+<PAGE FAULT> Stack Pointer         = 0x18:0xffffff96f3008de0
+<PAGE FAULT> Fault Linear Address  = 0x8
+<PAGE FAULT> Error Code Value      = 0x0
+<PAGE FAULT> Error Code Type       = supervisor read data, page not present
+dump_thread: t 0xffffff8003432198 (devhost:pci#2:8086:100e:eth-irq-thread)
+	state run, curr/last cpu 0/0, cpu_affinity 0xffffffff, priority 20 [16:4,-1], remaining time slice 10000000
+	runtime_ns 43749957338, runtime_s 43
+	stack 0xffffff96f3007000, stack_size 8192
+	entry 0xffffffff00169788, arg 0xffffff8003432020, flags 0x0 
+	wait queue 0, blocked_status 0, interruptable 0, mutexes held 1
+	aspace 0xffffff80008a1e18
+	user_thread 0xffffff8003432020, pid 2369, tid 2620
 vector 14
-recursion in interrupt handler
- CS:                0x10 RIP: 0xffffffff801066f3 EFL:            0x10006 CR2:               0x38
- RAX:                  0 RBX: 0xffffff995190ee50 RCX:                0x2 RDX:                  0
- RSI:              0xe00 RDI:          0x2003002 RBP: 0xffffff995190ee40 RSP: 0xffffff995190ee00
-  R8:               0xab  R9: 0xffffffff801dc0b6 R10: 0xffffff806c343508 R11:                  0
- R12:               0x10 R13:                  0 R14:                0xc R15:               0x1d
-errc:                  0
-bottom of kernel stack at 0xffffff995190ed50:
-0xffffff995190ed50: 02003002 00000000 00000e00 00000000 |.0..............|
-0xffffff995190ed60: 5190ee40 ffffff99 5190ee50 ffffff99 |@..Q....P..Q....|
-0xffffff995190ed70: 00000000 00000000 00000002 00000000 |................|
-0xffffff995190ed80: 00000000 00000000 000000ab 00000000 |................|
-0xffffff995190ed90: 801dc0b6 ffffffff 6c343508 ffffff80 |.........54l....|
-0xffffff995190eda0: 00000000 00000000 00000010 00000000 |................|
-0xffffff995190edb0: 00000000 00000000 0000000c 00000000 |................|
-0xffffff995190edc0: 0000001d 00000000 0000000e 00000000 |................|
-platform_halt suggested_action 0 reason 9
-Halting...
-Halted
-entering panic shell loop
-! vector 14
 Supervisor Page Fault exception, halting
- CS:                0x10 RIP: 0xffffffff801a41a7 EFL:            0x10202 CR2:               0xb0
- RAX: 0xffffff801ea2a830 RBX: 0xffffff806c324770 RCX:                  0 RDX:               0xb0
- RSI: 0xffffff9951906eb8 RDI: 0xffffffff802876c0 RBP: 0xffffff9951906ea0 RSP: 0xffffff9951906e90
-  R8:              0x200  R9: 0xffffffff801d4e58 R10:     0x4578b7f95dd0 R11: 0xffffffff801d698a
- R12:                  0 R13:            0x41000 R14: 0xffffff9951906f50 R15:     0x63e5e31e8d20
+ RIP: 0x0014d1c4  Dispatcher::UpdateInternalLocked object/dispatcher.cpp:104
+ CS:                0x10 RIP: 0xffffffff0014d1c4 EFL:            0x10246 CR2:                0x8
+ RAX:                  0 RBX: 0xffffff8003501b98 RCX: 0xffffffff00148044 RDX: 0xffffffff00148044
+ RSI:                0x3 RDI: 0xffffff8003501b98 RBP: 0xffffff96f3008e20 RSP: 0xffffff96f3008de0
+  R8:             0x898f  R9: 0xffffffff002051e8 R10: 0xffffff80034326d0 R11: 0xffffffff00205d78
+panic (caller 0xffffffff001e6b59 frame 0xffffff96f4094db0): DEBUG ASSERT FAILED at (kernel/lib/heap/cmpctmalloc/cmpctmalloc.c:2
+ R12: 0xffffff80034e8fb1 R13:                0x3 R14: 0xffffff96f3008e48 R15: 0xffffff80034e8f90
+90): answer < NUMBER_OF_BUCKETS
 errc:                  0
-bottom of kernel stack at 0xffffff9951906de0:
-0xffffff9951906de0: 802876c0 ffffffff 51906eb8 ffffff99 |.v(......n.Q....|
-0xffffff9951906df0: 51906ea0 ffffff99 6c324770 ffffff80 |.n.Q....pG2l....|
-0xffffff9951906e00: 000000b0 00000000 00000000 00000000 |................|
-0xffffff9951906e10: 1ea2a830 ffffff80 00000200 00000000 |0...............|
-0xffffff9951906e20: 801d4e58 ffffffff b7f95dd0 00004578 |XN.......]..xE..|
-0xffffff9951906e30: 801d698a ffffffff 00000000 00000000 |.i..............|
-0xffffff9951906e40: 00041000 00000000 51906f50 ffffff99 |........Po.Q....|
-0xffffff9951906e50: e31e8d20 000063e5 0000000e 00000000 | ....c..........|
-platform_halt suggested_action 0 reason 9
+platform_halt suggested_action 0 reason 2
 Halting...
-bt#00: 0xffffffff8010659d
-bt#01: 0xffffffff80106eaa
-bt#02: 0xffffffff80113fd3
-bt#03: 0xffffffff801a5fd4
-bt#04: 0xffffffff801a6109
-bt#05: 0xffffffff80175177
-bt#06: 0xffffffff8015a1e4
-bt#07: 0xffffffff80114569
-bt#08: end
-
-start of symbolized stack:
-   pc: 0xffffffff801a41a7 => fbl::DoublyLinkedList<VmObject*, VmObject::GlobalListTraits>::internal_insert(VmObject*, VmObject*&&) at ../../zircon/system/ulib/fbl/include/fbl/intrusive_double_list.h:549
-                              (inlined by) fbl::DoublyLinkedList<VmObject*, VmObject::GlobalListTraits>::push_back(VmObject*&&) at ../../zircon/system/ulib/fbl/include/fbl/intrusive_double_list.h:174
-                              (inlined by) VmObject::VmObject(fbl::RefPtr<VmObject>) at ../../zircon/kernel/vm/vm_object.cpp:41
-bt#00: 0xffffffff8010659d => exception_die(x86_64_iframe*, char const*) at ../../zircon/kernel/arch/x86/faults.cpp:72
-bt#01: 0xffffffff80106eaa => x86_fatal_pfe_handler at ../../zircon/kernel/arch/x86/faults.cpp:223
-                              (inlined by) x86_exception_handler at ../../zircon/kernel/arch/x86/faults.cpp:379
-bt#02: 0xffffffff80113fd3 => interrupt_common at ../../zircon/kernel/arch/x86/exceptions.S:125
-bt#03: 0xffffffff801a5fd4 => VmObjectPaged::VmObjectPaged(unsigned int, fbl::RefPtr<VmObject>) at ../../zircon/kernel/vm/vm_object_paged.cpp:55
-bt#04: 0xffffffff801a6109 => VmObjectPaged::Create(unsigned int, unsigned long, fbl::RefPtr<VmObject>*) at ../../zircon/kernel/vm/vm_object_paged.cpp:83 (discriminator 1)
-bt#05: 0xffffffff80175177 => sys_vmo_create(unsigned long, unsigned int, user_ptr<unsigned int>) at ../../zircon/kernel/syscalls/syscalls_vmo.cpp:40
-bt#06: 0xffffffff8015a1e4 => operator() at /usr/local/google/home/dvyukov/src/fuchsia/out/build-zircon/build-zircon-pc-x86-64/gen/include/zircon/syscall-kernel-wrappers.inc:282
-                              (inlined by) do_syscall<wrapper_vmo_create(uint64_t, uint32_t, zx_handle_t*, uint64_t)::<lambda()> > at ../../zircon/kernel/syscalls/syscalls.cpp:60
-                              (inlined by) wrapper_vmo_create at /usr/local/google/home/dvyukov/src/fuchsia/out/build-zircon/build-zircon-pc-x86-64/gen/include/zircon/syscall-kernel-wrappers.inc:283
-bt#07: 0xffffffff80114569 => x86_syscall at /usr/local/google/home/dvyukov/src/fuchsia/out/build-zircon/build-zircon-pc-x86-64/gen/include/zircon/syscall-kernel-branches.S:60
-end of symbolized stack
-cannot create qrcode
-Halted
+bottom of kernel stack at 0xffffff96f3008d30:
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+0xffffff96f3008d30: 03501b98 ffffff80 00000003 00000000 |..P.............|
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x001e6ae3 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:290
+bt#03: 0x001e6b59 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:254
+0xffffff96f3008d40: f3008e20 ffffff96 03501b98 ffffff80 | .........P.....|
+bt#04: [ inline ] size_to_index_freeing lib/heap/cmpctmalloc/cmpctmalloc.c:303
+bt#04: 0x001e6b89 create_free_area lib/heap/cmpctmalloc/cmpctmalloc.c:358
+bt#05: 0x001e6f65 cmpct_alloc lib/heap/cmpctmalloc/cmpctmalloc.c:943
+bt#06: 0x001ab783 malloc lib/heap/heap_wrapper.cpp:55
+bt#07: 0x0014156a operator new system/ulib/fbl/alloc_checker.cpp:70
+0xffffff96f3008d50: 00148044 ffffffff 00148044 ffffffff |D.......D.......|
+bt#08: 0x001d1d27 VmObjectPaged::Create vm/vm_object_paged.cpp:112
+0xffffff96f3008d60: 00000000 00000000 0000898f 00000000 |................|
+bt#09: 0x00199ddc sys_vmo_create syscalls/vmo.cpp:54
+0xffffff96f3008d70: 002051e8 ffffffff 034326d0 ffffff80 |.Q ......&C.....|
+bt#10: [ inline ] operator() syscall-kernel-wrappers.inc:461
+bt#10: [ inline ] lambda syscalls/syscalls.cpp:60
+bt#10: 0x00177ff5 wrapper_vmo_create syscall-kernel-wrappers.inc:466
+0xffffff96f3008d80: 00205d78 ffffffff 034e8fb1 ffffff80 |x] .......N.....|
+bt#11: 0x00116c31 x86_syscall syscall-kernel-branches.S:69
+0xffffff96f3008d90: 00000003 00000000 f3008e48 ffffff96 |........H.......|
+bt#12: end
+0xffffff96f3008da0: 034e8f90 ffffff80 0000000e 00000000 |..N.............|
+<PAGE FAULT> Instruction Pointer   = 0x10:0xffffffff00139911
+platform_halt suggested_action 0 reason 2
+<PAGE FAULT> Stack Pointer         = 0x18:0xffffff96f4094c90
+<PAGE FAULT> Fault Linear Address  = 0x90
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+<PAGE FAULT> Error Code Value      = 0x0
+bt#01: 0x00108b08 exception_die arch/x86/faults.cpp:100
+<PAGE FAULT> Error Code Type       = supervisor read data, page not present
+bt#02: [ inline ] x86_fatal_pfe_handler arch/x86/faults.cpp:240
+bt#02: [ inline ] handle_exception_types arch/x86/faults.cpp:371
+bt#02: 0x0010968f x86_exception_handler arch/x86/faults.cpp:458
+dump_thread: t 0xffffff8003531d18 (/tmp/syz-executor958367616:initial-thread)
+bt#03: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+	state run, curr/last cpu 1/1, cpu_affinity 0xffffffff, priority 19 [16:3,17], remaining time slice 10000000
+bt#04: [ inline ] Dispatcher::UpdateStateHelper object/dispatcher.cpp:270
+bt#04: 0x0014dde3 Dispatcher::UpdateStateLocked object/dispatcher.cpp:290
+	runtime_ns 868738779, runtime_s 0
+bt#05: 0x001524c3 FifoDispatcher::WriteSelfLocked object/fifo_dispatcher.cpp:159
+	stack 0xffffff96f4093000, stack_size 8192
+bt#06: 0x00152546 FifoDispatcher::WriteFromUser object/fifo_dispatcher.cpp:107
+	entry 0xffffffff00169788, arg 0xffffff8003531ba0, flags 0x0 
+bt#07: 0x001885dc sys_fifo_write syscalls/fifo.cpp:56
+	wait queue 0, blocked_status 0, interruptable 0, mutexes held 1
+bt#08: [ inline ] operator() syscall-kernel-wrappers.inc:610
+bt#08: [ inline ] lambda syscalls/syscalls.cpp:60
+bt#08: 0x00179d0c wrapper_fifo_write syscall-kernel-wrappers.inc:612
+	aspace 0xffffff800a14ee10
+bt#09: 0x00116dd8 x86_syscall syscall-kernel-branches.S:90
+	user_thread 0xffffff8003531ba0, pid 18288, tid 18302
+bt#10: end
