@@ -7,7 +7,6 @@ package vmm
 import (
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -42,6 +41,7 @@ type instance struct {
 	index   int
 	image   string
 	debug   bool
+	os      string
 	workdir string
 	sshkey  string
 	sshuser string
@@ -110,6 +110,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		index:   index,
 		image:   image,
 		debug:   pool.env.Debug,
+		os:      pool.env.OS,
 		workdir: workdir,
 		sshkey:  pool.env.SSHKey,
 		sshuser: pool.env.SSHUser,
@@ -173,35 +174,13 @@ func (inst *instance) Boot() error {
 		}
 	}()
 
-	done := func() {
+	if err := vmimpl.WaitForSSH(inst.debug, 2*time.Minute, inst.sshhost,
+		inst.sshkey, inst.sshuser, inst.os, inst.sshport); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
-		close(bootOutputStop)
+		return vmimpl.BootError{Title: err.Error(), Output: bootOutput}
 	}
-
-	// Wait for ssh server to come up.
-	time.Sleep(5 * time.Second)
-	start := time.Now()
-	for {
-		c, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%v", inst.sshhost, inst.sshport), 1*time.Second)
-		if err == nil {
-			c.SetDeadline(time.Now().Add(1 * time.Second))
-			var tmp [1]byte
-			n, err := c.Read(tmp[:])
-			c.Close()
-			if err == nil && n > 0 {
-				break // ssh is up and responding
-			}
-			time.Sleep(3 * time.Second)
-		}
-		if time.Since(start) > 2*time.Minute {
-			done()
-			inst.merger.Wait()
-			return vmimpl.BootError{Title: "ssh server did not start", Output: bootOutput}
-		}
-	}
-	done()
-
+	bootOutputStop <- true
 	return nil
 }
 
