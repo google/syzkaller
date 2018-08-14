@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -34,26 +33,23 @@ type Config struct {
 }
 
 type Pool struct {
-	env   *vmimpl.Env
-	cfg   *Config
-	count int
-	mu    sync.Mutex
+	env *vmimpl.Env
+	cfg *Config
 }
 
 type instance struct {
-	cfg       *Config
-	image     string
-	imageID   int
-	imagePath string
-	debug     bool
-	workdir   string
-	sshkey    string
-	sshuser   string
-	sshhost   string
-	sshport   int
-	merger    *vmimpl.OutputMerger
-	vmID      int
-	wpipe     io.WriteCloser
+	cfg     *Config
+	index   int
+	image   string
+	debug   bool
+	workdir string
+	sshkey  string
+	sshuser string
+	sshhost string
+	sshport int
+	merger  *vmimpl.OutputMerger
+	vmID    int
+	wpipe   io.WriteCloser
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -104,25 +100,20 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	imageID := pool.nextID()
-	imagePath, err := copyImage(pool.env.Image, imageID)
-	if err != nil {
+	image := filepath.Join(workdir, "disk.img")
+	if err := osutil.CopyFile(pool.env.Image, image); err != nil {
 		return nil, err
-	}
-	if pool.env.Debug {
-		log.Logf(0, "using image: %s", imagePath)
 	}
 
 	inst := &instance{
-		cfg:       pool.cfg,
-		image:     imagePath,
-		imageID:   imageID,
-		imagePath: imagePath,
-		debug:     pool.env.Debug,
-		workdir:   workdir,
-		sshkey:    pool.env.SSHKey,
-		sshuser:   pool.env.SSHUser,
-		sshport:   22,
+		cfg:     pool.cfg,
+		index:   index,
+		image:   image,
+		debug:   pool.env.Debug,
+		workdir: workdir,
+		sshkey:  pool.env.SSHKey,
+		sshuser: pool.env.SSHUser,
+		sshport: 22,
 	}
 	closeInst := inst
 	defer func() {
@@ -139,16 +130,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	return inst, nil
 }
 
-func (pool *Pool) nextID() int {
-	pool.mu.Lock()
-	pool.count++
-	id := pool.count
-	pool.mu.Unlock()
-	return id
-}
-
 func (inst *instance) Boot() error {
-	name := fmt.Sprintf("syzkaller-%d", inst.imageID)
+	name := fmt.Sprintf("syzkaller-%d", inst.index)
 	mem := fmt.Sprintf("%dM", inst.cfg.Mem)
 	startArgs := []string{
 		"start", name,
@@ -374,7 +357,7 @@ func (inst *instance) console() {
 }
 
 func (inst *instance) alive() bool {
-	return osutil.IsExist(inst.imagePath)
+	return osutil.IsExist(inst.image)
 }
 
 // Run the given vmctl(8) command and wait for it to finish.
@@ -388,20 +371,6 @@ func (inst *instance) vmctl(args ...string) ([]byte, error) {
 
 func (inst *instance) vmIdent() string {
 	return strconv.Itoa(inst.vmID)
-}
-
-// Copy the disk image since every VM needs its own disk.
-// Something similar to the snapshot feature in QEMU is not supported.
-func copyImage(src string, id int) (string, error) {
-	dirname := filepath.Dir(src)
-	basename := filepath.Base(src)
-	dst := fmt.Sprintf("%s/%s.%d", dirname, basename, id)
-	os.Remove(dst)
-	cmd := osutil.Command("cp", src, dst)
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-	return dst, nil
 }
 
 // Extract VM ID from vmctl start output.
