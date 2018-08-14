@@ -1,0 +1,81 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/uhid.h>
+
+resource fd_uhid[fd]
+
+openat$uhid(fd const[AT_FDCWD], file ptr[in, string["/dev/uhid"]], flags flags[uhid_open_flags], mode const[0]) fd_uhid
+write$UHID_CREATE(fd fd_uhid, data ptr[in, uhid_create_req], len len[data])
+write$UHID_CREATE2(fd fd_uhid, data ptr[in, uhid_create2_req], len len[data])
+write$UHID_DESTROY(fd fd_uhid, data ptr[in, uhid_destroy_req], len len[data])
+write$UHID_INPUT(fd fd_uhid, data ptr[in, uhid_input_req], len len[data])
+write$UHID_INPUT2(fd fd_uhid, data ptr[in, uhid_input2_req], len len[data])
+write$UHID_GET_REPORT_REPLY(fd fd_uhid, data ptr[in, uhid_get_report_req], len len[data])
+write$UHID_SET_REPORT_REPLY(fd fd_uhid, data ptr[in, uhid_set_report_req], len len[data])
+
+uhid_create_req {
+	type	const[UHID_CREATE, int32]
+	name	string[uhid_names, 128]
+	phys	string[uhid_names, 64]
+	uniq	string[uhid_names, 64]
+	rd_data	ptr[out, array[int8]]
+	rd_size	len[rd_data, int16]
+	bus	int16
+	vendor	int32
+	product	int32
+	version	int32
+	country	int32
+} [packed]
+
+uhid_create2_req {
+	type	const[UHID_CREATE2, int32]
+	name	string[uhid_names, 128]
+	phys	string[uhid_names, 64]
+	uniq	string[uhid_names, 64]
+	rd_size	len[rd_data, int16]
+	bus	int16
+	vendor	int32
+	product	int32
+	version	int32
+	country	int32
+	rd_data	array[int8]
+} [packed]
+
+uhid_destroy_req {
+	type	const[UHID_DESTROY, int32]
+} [packed]
+
+uhid_input_req {
+	type	const[UHID_INPUT, int32]
+	data	array[int8, UHID_DATA_MAX]
+	size	len[data, int16]
+} [packed]
+
+uhid_input2_req {
+	type	const[UHID_INPUT2, int32]
+	size	len[data, int16]
+	data	array[int8]
+} [packed]
+
+uhid_get_report_req {
+	type	const[UHID_GET_REPORT_REPLY, int32]
+	id	int32[0:10]
+	rnum	int8
+	rtype	int8
+} [packed]
+
+uhid_set_report_req {
+	type	const[UHID_SET_REPORT_REPLY, int32]
+	id	int32[0:10]
+	rnum	int8
+	rtype	int8
+	size	len[data, int16]
+	data	array[int8]
+} [packed]
+
+uhid_names = "syz0", "syz1"
+uhid_open_flags = O_RDWR, O_RDWR_NONBLOCK
+
+define O_RDWR_NONBLOCK	O_RDWR | O_NONBLOCK
