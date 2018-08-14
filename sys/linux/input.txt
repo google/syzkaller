@@ -53,11 +53,11 @@ ioctl$EVIOCSABS3F(fd fd_evdev, cmd const[EVIOCSABS3F], arg ptr[in, input_absinfo
 
 ff_effect_type = FF_PERIODIC, FF_CONSTANT, FF_SPRING, FF_FRICTION, FF_DAMPER, FF_INERTIA, FF_RAMP
 ff_periodic_effect_wave = FF_SQUARE, FF_TRIANGLE, FF_SINE, FF_SAW_UP, FF_SAW_DOWN, FF_CUSTOM
-input_mask_type = EV_SYN, EV_KEY, EV_REL, EV_ABS, EV_MSC, EV_SW, EV_LED, EV_SND, EV_FF
+input_codes = EV_SYN, EV_KEY, EV_REL, EV_ABS, EV_MSC, EV_SW, EV_LED, EV_SND, EV_REP, EV_FF, EV_PWR, EV_FF_STATUS, EV_MAX
 
 input_event {
 	time	timeval
-	type	int16
+	type	flags[input_codes, int16]
 	code	int16
 	val	int32
 }
@@ -85,7 +85,7 @@ ff_effect_u [
 	period	ff_periodic_effect
 	cond	array[ff_condition_effect, 2]
 	rumble	ff_rumble_effect
-] [varlen]
+]
 
 ff_trigger {
 	button	int16
@@ -109,14 +109,14 @@ ff_ramp_effect {
 }
 
 ff_periodic_effect {
-	wave	flags[ff_periodic_effect_wave, int16]
-	period	int16
-	magnit	int16
-	offset	int16
-	phase	int16
-	envelop	ff_envelope
-	len	len[custom, int32]
-	custom	array[int16]
+	wave		flags[ff_periodic_effect_wave, int16]
+	period		int16
+	magnit		int16
+	offset		int16
+	phase		int16
+	envelope	ff_envelope
+	custom_len	len[custom_data, int32]
+	custom_data	ptr[in, array[int16]]
 }
 
 ff_condition_effect {
@@ -141,7 +141,7 @@ ff_envelope {
 }
 
 input_mask {
-	type	flags[input_mask_type, int32]
+	type	flags[input_codes, int32]
 	size	bytesize[ptr, int32]
 	ptr	buffer[in]
 }
