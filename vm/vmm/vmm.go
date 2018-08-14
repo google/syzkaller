@@ -352,17 +352,20 @@ func (inst *instance) vmIdent() string {
 
 // Extract VM ID from vmctl start output.
 func parseID(str string) (int, error) {
-	prefix := "vmctl: started vm "
+	const prefix = "vmctl: started vm "
 	if !strings.HasPrefix(str, prefix) {
-		return 0, fmt.Errorf("could not extract ID from: %s", str)
+		return 0, fmt.Errorf("could not extract ID from: %v", str)
 	}
 	fields := strings.Fields(str)
+	if len(fields) < 4 {
+		return 0, fmt.Errorf("could not extract ID from: %v", str)
+	}
 	i, err := strconv.Atoi(fields[3])
 	if err != nil {
 		return 0, err
 	}
 	if i <= 0 {
-		return 0, fmt.Errorf("invalid ID: %d", i)
+		return 0, fmt.Errorf("invalid ID: %v", i)
 	}
 	return i, nil
 }
