@@ -1,0 +1,76 @@
+TITLE: ASSERT FAILED in size_to_index_helper
+
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff001e6b59 frame 0xffffff99ad05ee00): DEBUG ASSERT FAILED at (kernel/lib/heap/cmpctmalloc/cmpctmalloc.c:2
+90): answer < NUMBER_OF_BUCKETS
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x001e6ae3 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:290
+bt#03: 0x001e6b59 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:254
+bt#04: [ inline ] size_to_index_freeing lib/heap/cmpctmalloc/cmpctmalloc.c:303
+bt#04: 0x001e6b89 create_free_area lib/heap/cmpctmalloc/cmpctmalloc.c:358
+bt#05: 0x001e6f65 cmpct_alloc lib/heap/cmpctmalloc/cmpctmalloc.c:943
+bt#06: 0x001ab783 malloc lib/heap/heap_wrapper.cpp:55
+bt#07: 0x0014156a operator new system/ulib/fbl/alloc_checker.cpp:70
+bt#08: 0x0015eac8 PortDispatcher::Create object/port_dispatcher.cpp:159
+bt#09: 0x00190e91 sys_port_create syscalls/port.cpp:37
+bt#10: [ inline ] operator() syscall-kernel-wrappers.inc:411
+bt#10: [ inline ] lambda syscalls/syscalls.cpp:60
+bt#10: 0x001776d9 wrapper_port_create syscall-kernel-wrappers.inc:416
+bt#11: 0x00116bbb x86_syscall syscall-kernel-branches.S:62
+bt#12: end
+<PAGE FAULT> Instruction Pointer   = 0x10:0xffffffff00139911
+<PAGE FAULT> Stack Pointer         = 0x18:0xffffff99ad05ece0
+<PAGE FAULT> Fault Linear Address  = 0x90
+<PAGE FAULT> Error Code Value      = 0x0
+<PAGE FAULT> Error Code Type       = supervisor read data, page not present
+dump_thread: t 0xffffff8003505998 (/system/bin/sshd:initial-thread)
+	state run, curr/last cpu 0/0, cpu_affinity 0xffffffff, priority 19 [16:3,18], remaining time slice 10000000
+	runtime_ns 429170420, runtime_s 0
+	stack 0xffffff99ad05d000, stack_size 8192
+	entry 0xffffffff00169788, arg 0xffffff8003505820, flags 0x0 
+	wait queue 0, blocked_status 0, interruptable 0, mutexes held 1
+	aspace 0xffffff800a089780
+	user_thread 0xffffff8003505820, pid 17966, tid 17980
+vector 14
+Supervisor Page Fault exception, halting
+ RIP: 0x00139911  crashlog_to_string lib/crashlog/crashlog.cpp:131
+ CS:                0x10 RIP: 0xffffffff00139911 EFL:            0x10086 CR2:               0x90
+ RAX:                  0 RBX:             0x1000 RCX:               0x20 RDX:                  0
+ RSI:                0x2 RDI: 0xffffffff0020c55b RBP: 0xffffff99ad05ed40 RSP: 0xffffff99ad05ece0
+  R8: 0xffffffff0020c55b  R9: 0xffffffff002a98ee R10:                0xa R11:               0x21
+ R12: 0xffffffff002a990f R13:               0x15 R14:              0xf41 R15:               0x14
+errc:                  0
+bottom of kernel stack at 0xffffff99ad05ec30:
+0xffffff99ad05ec30: 0020c55b ffffffff 00000002 00000000 |[. .............|
+0xffffff99ad05ec40: ad05ed40 ffffff99 00001000 00000000 |@...............|
+0xffffff99ad05ec50: 00000000 00000000 00000020 00000000 |........ .......|
+0xffffff99ad05ec60: 00000000 00000000 0020c55b ffffffff |........[. .....|
+0xffffff99ad05ec70: 002a98ee ffffffff 0000000a 00000000 |..*.............|
+0xffffff99ad05ec80: 00000021 00000000 002a990f ffffffff |!.........*.....|
+0xffffff99ad05ec90: 00000015 00000000 00000f41 00000000 |........A.......|
+0xffffff99ad05eca0: 00000014 00000000 0000000e 00000000 |................|
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x00108b08 exception_die arch/x86/faults.cpp:100
+bt#02: [ inline ] x86_fatal_pfe_handler arch/x86/faults.cpp:240
+bt#02: [ inline ] handle_exception_types arch/x86/faults.cpp:371
+bt#02: 0x0010968f x86_exception_handler arch/x86/faults.cpp:458
+bt#03: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#04: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#05: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#06: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#07: 0x001e6ae3 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:290
+bt#08: 0x001e6b59 size_to_index_helper lib/heap/cmpctmalloc/cmpctmalloc.c:254
+bt#09: [ inline ] size_to_index_freeing lib/heap/cmpctmalloc/cmpctmalloc.c:303
+bt#09: 0x001e6b89 create_free_area lib/heap/cmpctmalloc/cmpctmalloc.c:358
+bt#10: 0x001e6f65 cmpct_alloc lib/heap/cmpctmalloc/cmpctmalloc.c:943
+bt#11: 0x001ab783 malloc lib/heap/heap_wrapper.cpp:55
+bt#12: 0x0014156a operator new system/ulib/fbl/alloc_checker.cpp:70
+bt#13: 0x0015eac8 PortDispatcher::Create object/port_dispatcher.cpp:159
+bt#14: 0x00190e91 sys_port_create syscalls/port.cpp:37
+bt#15: [ inline ] operator() syscall-kernel-wrappers.inc:411
+bt#15: [ inline ] lambda syscalls/syscalls.cpp:60
+bt#15: 0x001776d9 wrapper_port_create syscall-kernel-wrappers.inc:416
+bt#16: end

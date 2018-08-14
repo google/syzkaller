@@ -1,0 +1,50 @@
+TITLE: ASSERT FAILED in fbl::WAVLTree::iterator_impl::advance
+
+gfxconsole: rows 48, columns 113, extray 0
+stopping other cpus
+
+ZIRCON KERNEL PANIC
+
+UPTIME: 1558452ms
+BUILDID git-93f14256334010c7d11fa34fea4fd9e49880e132
+
+dso: id=2792436d6b3e6202542e152902c480c97da3d5d7 base=0xffffffff00100000 name=zircon.elf
+panic (caller 0xffffffff001c7025 frame 0xffffff96fb75ad60): DEBUG ASSERT FAILED at (system/ulib/fbl/include/fbl/intrusive_wavl_
+tree.h:652): PtrTraits::IsValid(ns->parent_)
+platform_halt suggested_action 0 reason 2
+Halting...
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: [ inline ] fbl::WAVLTree::iterator_impl::advance system/ulib/fbl/include/fbl/intrusive_wavl_tree.h:641
+bt#02: [ inline ] fbl::WAVLTree::iterator_impl::operator++ system/ulib/fbl/include/fbl/intrusive_wavl_tree.h:572
+bt#02: [ inline ] lambda vm/vm_address_region.cpp:808
+bt#02: 0x001c5bd7 VmAddressRegion::NonCompactRandomizedRegionAllocatorLocked vm/vm_address_region.cpp:851
+bt#03: 0x001c7025 VmAddressRegion::CreateSubVmarInternal vm/vm_address_region.cpp:157
+bt#04: 0x001c759d VmAddressRegion::CreateSubVmar vm/vm_address_region.cpp:218
+bt#05: 0x0016ba19 VmAddressRegionDispatcher::Allocate object/vm_address_region_dispatcher.cpp:144
+bt#06: 0x00199357 sys_vmar_allocate syscalls/vmar.cpp:53
+bt#07: [ inline ] operator() syscall-kernel-wrappers.inc:539
+bt#07: [ inline ] lambda syscalls/syscalls.cpp:60
+bt#07: 0x00178f4d wrapper_vmar_allocate syscall-kernel-wrappers.inc:544
+bt#08: 0x00116d0e x86_syscall syscall-kernel-branches.S:80
+bt#09: end
+halting cpu 1
+vector 8
+double fault, halting
+ CS:                0x33 RIP:     0x58ce83a74210 EFL:            0x10202 CR2: 0xfffffffffffffff8
+ RAX:                  0 RBX:                  0 RCX:                  0 RDX:                  0
+ RSI:                  0 RDI:                  0 RBP:                  0 RSP:                  0
+  R8:                  0  R9:                  0 R10:                  0 R11:                  0
+ R12:                  0 R13:                  0 R14:                  0 R15:                  0
+errc:                  0
+platform_halt suggested_action 0 reason 2
+Halting...
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x00108b08 exception_die arch/x86/faults.cpp:100
+bt#02: [ inline ] x86_df_handler arch/x86/faults.cpp:178
+bt#02: [ inline ] handle_exception_types arch/x86/faults.cpp:352
+bt#02: 0x00109443 x86_exception_handler arch/x86/faults.cpp:458
+bt#03: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#04: end
+Halted
+entering panic shell loop

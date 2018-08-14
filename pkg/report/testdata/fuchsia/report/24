@@ -1,0 +1,65 @@
+TITLE: ASSERT FAILED in ExceptionPort::SetTarget
+
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff00187dc2 frame 0xffffff9b59433ef0): DEBUG ASSERT FAILED at (kernel/object/excp_port.cpp:84): port_ != n
+ullptr
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x0014feb8 ExceptionPort::SetTarget object/excp_port.cpp:83
+bt#03: [ inline ] task_bind_exception_port syscalls/exceptions.cpp:90
+bt#03: 0x00187dc2 sys_task_bind_exception_port syscalls/exceptions.cpp:149
+bt#04: [ inline ] operator() syscall-kernel-wrappers.inc:328
+bt#04: [ inline ] lambda syscalls/syscalls.cpp:60
+bt#04: 0x001767ff wrapper_task_bind_exception_port syscall-kernel-wrappers.inc:330
+bt#05: 0x00116af0 x86_syscall syscall-kernel-branches.S:51
+bt#06: end
+<PAGE FAULT> Instruction Pointer   = 0x10:0xffffffff00139911
+<PAGE FAULT> Stack Pointer         = 0x18:0xffffff9b59433da0
+<PAGE FAULT> Fault Linear Address  = 0x90
+<PAGE FAULT> Error Code Value      = 0x0
+<PAGE FAULT> Error Code Type       = supervisor read data, page not present
+dump_thread: t 0xffffff800c1a6b88 (/tmp/syz-executor13:pthread_t:0x4d4bcf6e3b30)
+	state run, curr/last cpu 0/0, cpu_affinity 0xffffffff, priority 19 [16:3,-1], remaining time slice 10000000
+	runtime_ns 252291478, runtime_s 0
+	stack 0xffffff9b59432000, stack_size 8192
+	entry 0xffffffff00169788, arg 0xffffff800c1a6a10, flags 0x0 
+	wait queue 0, blocked_status 0, interruptable 0, mutexes held 1
+	aspace 0xffffff800d03fd40
+	user_thread 0xffffff800c1a6a10, pid 822439, tid 823621
+vector 14
+Supervisor Page Fault exception, halting
+ RIP: 0x00139911  crashlog_to_string lib/crashlog/crashlog.cpp:131
+ CS:                0x10 RIP: 0xffffffff00139911 EFL:            0x10092 CR2:               0x90
+ RAX:                  0 RBX:             0x1000 RCX:               0x20 RDX:     0x3191ab138c90
+ RSI:                0x2 RDI: 0xffffffff0020c55b RBP: 0xffffff9b59433e00 RSP: 0xffffff9b59433da0
+  R8: 0xffffffff0020c55b  R9: 0xffffffff002a98ef R10:                0xa R11:               0x21
+ R12: 0xffffffff002a9910 R13:               0x15 R14:              0xf40 R15:               0x15
+errc:                  0
+bottom of kernel stack at 0xffffff9b59433cf0:
+0xffffff9b59433cf0: 0020c55b ffffffff 00000002 00000000 |[. .............|
+0xffffff9b59433d00: 59433e00 ffffff9b 00001000 00000000 |.>CY............|
+0xffffff9b59433d10: ab138c90 00003191 00000020 00000000 |.....1.. .......|
+0xffffff9b59433d20: 00000000 00000000 0020c55b ffffffff |........[. .....|
+0xffffff9b59433d30: 002a98ef ffffffff 0000000a 00000000 |..*.............|
+0xffffff9b59433d40: 00000021 00000000 002a9910 ffffffff |!.........*.....|
+0xffffff9b59433d50: 00000015 00000000 00000f40 00000000 |........@.......|
+0xffffff9b59433d60: 00000015 00000000 0000000e 00000000 |................|
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x00108b08 exception_die arch/x86/faults.cpp:100
+bt#02: [ inline ] x86_fatal_pfe_handler arch/x86/faults.cpp:240
+bt#02: [ inline ] handle_exception_types arch/x86/faults.cpp:371
+bt#02: 0x0010968f x86_exception_handler arch/x86/faults.cpp:458
+bt#03: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#04: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#05: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#06: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#07: 0x0014feb8 ExceptionPort::SetTarget object/excp_port.cpp:83
+bt#08: [ inline ] task_bind_exception_port syscalls/exceptions.cpp:90
+bt#08: 0x00187dc2 sys_task_bind_exception_port syscalls/exceptions.cpp:149
+bt#09: [ inline ] operator() syscall-kernel-wrappers.inc:328
+bt#09: [ inline ] lambda syscalls/syscalls.cpp:60
+bt#09: 0x001767ff wrapper_task_bind_exception_port syscall-kernel-wrappers.inc:330
+bt#10: 0x00116af0 x86_syscall syscall-kernel-branches.S:51
+bt#11: end

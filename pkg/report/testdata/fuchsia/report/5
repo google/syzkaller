@@ -1,4 +1,4 @@
-TITLE: recursion in interrupt handler
+TITLE: recursion in interrupt handler in fillrect16
 
 gfxconsole: rows stopping other cpus
 48halting cpu 0

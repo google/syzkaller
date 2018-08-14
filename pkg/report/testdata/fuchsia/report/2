@@ -1,49 +1,59 @@
-TITLE: KERNEL PANIC
+TITLE: ASSERT FAILED in fbl::Canary::Assert
+
+gfxconsole: rows 48, columns 113, extray 0
+[00124.537] 01044.01197> devmgr: analyzer_starter: analyzing exception type 0x108
 
 ZIRCON KERNEL PANIC
 
-UPTIME: 36568ms
-BUILDID git-9fd63dbbac9589e8c902f28e73f9e980a859fc7d-dirty
+UPTIME: 124582ms
+BUILDID git-5f588306b2998fea1c021f992444971b1ce92581
 
-dso: id=198a153579d0f1484482cf2ef63189a62575a4e8 base=0xffffffff80100000 name=zircon.elf
+dso: id=c9e63845b8cc355bb42713bfb8eec04942ec7bcd base=0xffffffff00100000 name=zircon.elf
 stopping other cpus
-halting cpu 0
-halting cpu 2
-halting cpu 3
-panic (caller 0xffffffff801a3c99 frame 0xffffff9f79f37c10): mutex_acquire: thread 0xffffff806c3a9f60 (pthread_t:0x3d22e7178b30)
-tried to acquire mutex 0xffffff806c3301a0 it already owns.
+halting cpu 1
+panic (caller 0xffffffff0015ae53 frame 0xffffff921934cdb0): DEBUG ASSERT FAILED at (system/ulib/fbl/include/fbl/canary.h:68): m
+agic_ == magic
+Invalid canary (expt: 504f5254, got: 00000000)
+
 platform_halt suggested_action 0 reason 9
 Halting...
-bt#00: 0xffffffff80180f18
-bt#01: 0xffffffff80123a29
-bt#02: 0xffffffff801a3c99
-bt#03: 0xffffffff80197938
-bt#04: 0xffffffff8019f90d
-bt#05: 0xffffffff80106808
-bt#06: 0xffffffff8011408f
-bt#07: 0xffffffff801a74bb
-bt#08: 0xffffffff80173b44
-bt#09: 0xffffffff80158df6
-bt#10: end
-
-start of symbolized stack:
-bt#00: 0xffffffff80180f18 => _panic at ../../zircon/kernel/lib/debug/debug.c:42
-bt#01: 0xffffffff80123a29 => mutex_acquire at ../../zircon/kernel/kernel/mutex.c:81
-bt#02: 0xffffffff801a3c99 => fbl::AutoLock::AutoLock(mutex*) at ../../zircon/system/ulib/fbl/include/fbl/auto_lock.h:31
-(inlined by) fbl::AutoLock::AutoLock(fbl::Mutex*) at ../../zircon/system/ulib/fbl/include/fbl/auto_lock.h:35
-(inlined by) VmMapping::PageFault(unsigned long, unsigned int) at ../../zircon/kernel/vm/vm_mapping.cpp:562
-bt#03: 0xffffffff80197938 => VmAddressRegion::PageFault(unsigned long, unsigned int) at ../../zircon/kernel/vm/vm_address_region.cpp:391
-bt#04: 0xffffffff8019f90d => VmAspace::PageFault(unsigned long, unsigned int) at ../../zircon/kernel/vm/vm_aspace.cpp:548
-bt#05: 0xffffffff80106808 => x86_pfe_handler at ../../zircon/kernel/arch/x86/faults.cpp:273
-(inlined by) x86_exception_handler at ../../zircon/kernel/arch/x86/faults.cpp:378
-bt#06: 0xffffffff8011408f => interrupt_common at ../../zircon/kernel/arch/x86/exceptions.S:125
-bt#07: 0xffffffff801a74bb => user_ptr<void const>::copy_array_from_user(void*, unsigned long) const at ../../zircon/kernel/lib/user_copy/include/lib/user_copy/user_ptr.h:81
-(inlined by) operator() at ../../zircon/kernel/vm/vm_object_paged.cpp:1001
-(inlined by) ReadWriteInternal<VmObjectPaged::WriteUser(user_ptr<void const>, uint64_t, size_t, size_t*)::<lambda(void*, size_t, size_t)> > at ../../zircon/kernel/vm/vm_object_paged.cpp:858
-(inlined by) VmObjectPaged::WriteUser(user_ptr<void const>, unsigned long, unsigned long, unsigned long*) at ../../zircon/kernel/vm/vm_object_paged.cpp:1004
-bt#08: 0xffffffff80173b44 => sys_process_write_memory(unsigned int, unsigned long, user_ptr<void const>, unsigned long, user_ptr<unsigned long>) at ../../zircon/kernel/syscalls/syscalls_task.cpp:542 (discriminator 1)
-bt#09: 0xffffffff80158df6 => operator() at /usr/local/google/home/dvyukov/src/fuchsia/out/build-zircon/build-zircon-pc-x86-64/gen/include/zircon/syscall-kernel-wrappers.inc:187
-(inlined by) do_syscall<wrapper_process_write_memory(zx_handle_t, uintptr_t, void const*, size_t, size_t*, uint64_t)::<lambda()> > at ../../zircon/kernel/syscalls/syscalls.cpp:60
-(inlined by) wrapper_process_write_memory at /usr/local/google/home/dvyukov/src/fuchsia/out/build-zircon/build-zircon-pc-x86-64/gen/include/zircon/syscall-kernel-wrappers.inc:188
-end of symbolized stack
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a22c4 _panic lib/debug/debug.cpp:39
+bt#02: [ inline ] fbl::Canary::Assert object/port_dispatcher.cpp:159
+bt#02: 0x0015ad92 PortDispatcher::Queue object/port_dispatcher.cpp:258
+bt#03: 0x0015ae53 PortObserver::MaybeQueue object/port_dispatcher.cpp:159
+bt#04: 0x0014a19f Dispatcher::UpdateInternalLocked object/dispatcher.cpp:104
+bt#05: [ inline ] Dispatcher::UpdateStateHelper object/dispatcher.cpp:270
+bt#05: 0x0014adbb Dispatcher::UpdateStateLocked object/dispatcher.cpp:290
+bt#06: 0x001619ba SocketDispatcher::WriteSelfLocked object/socket_dispatcher.cpp:275
+bt#07: 0x00161a39 SocketDispatcher::Write object/socket_dispatcher.cpp:212
+bt#08: 0x0018bf7b sys_socket_write syscalls/socket.cpp:68
+bt#09: [ inline ] operator() syscall-kernel-wrappers.inc:204
+bt#09: [ inline ] socket_write syscalls/syscalls.cpp:60
+bt#09: 0x0016f9a4 wrapper_socket_write syscall-kernel-wrappers.inc:206
+bt#10: 0x00115e7f x86_syscall syscall-kernel-branches.S:34
+bt#11: end
 Halted
+entering panic shell loop
+
+REPORT:
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff0015ae53 frame 0xffffff921934cdb0): DEBUG ASSERT FAILED at (system/ulib/fbl/include/fbl/canary.h:68): magic_ == magic
+Invalid canary (expt: 504f5254, got: 00000000)
+platform_halt suggested_action 0 reason 9
+bt#00: 0x00105972 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001a22c4 _panic lib/debug/debug.cpp:39
+bt#02: [ inline ] fbl::Canary::Assert object/port_dispatcher.cpp:159
+bt#02: 0x0015ad92 PortDispatcher::Queue object/port_dispatcher.cpp:258
+bt#03: 0x0015ae53 PortObserver::MaybeQueue object/port_dispatcher.cpp:159
+bt#04: 0x0014a19f Dispatcher::UpdateInternalLocked object/dispatcher.cpp:104
+bt#05: [ inline ] Dispatcher::UpdateStateHelper object/dispatcher.cpp:270
+bt#05: 0x0014adbb Dispatcher::UpdateStateLocked object/dispatcher.cpp:290
+bt#06: 0x001619ba SocketDispatcher::WriteSelfLocked object/socket_dispatcher.cpp:275
+bt#07: 0x00161a39 SocketDispatcher::Write object/socket_dispatcher.cpp:212
+bt#08: 0x0018bf7b sys_socket_write syscalls/socket.cpp:68
+bt#09: [ inline ] operator() syscall-kernel-wrappers.inc:204
+bt#09: [ inline ] socket_write syscalls/syscalls.cpp:60
+bt#09: 0x0016f9a4 wrapper_socket_write syscall-kernel-wrappers.inc:206
+bt#10: 0x00115e7f x86_syscall syscall-kernel-branches.S:34
+bt#11: end

@@ -1,0 +1,190 @@
+TITLE: ASSERT FAILED in ProcessDispatcher::GetCurrent
+
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff001167b2 frame 0xffffff93064d4fd0): DEBUG ASSERT FAILED at (kernel/object/include/object/process_dispat
+cher.h:57): current
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: [ inline ] ProcessDispatcher::GetCurrent object/include/object/process_dispatcher.h:57
+bt#02: [ inline ] lambda syscalls/syscalls.cpp:53
+bt#02: 0x00172d03 wrapper_clock_get_monotonic syscall-kernel-wrappers.inc:22
+bt#03: 0x001167b2 x86_syscall syscall-kernel-branches.S:8
+bt#04: end
+panic (caller 0xffffffff00108e7e frame 0xffffff93064d4c50): DEBUG ASSERT FAILED at (kernel/kernel/thread.cpp:784): current_thre
+ad->magic == THREAD_MAGIC
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#03: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#04: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#05: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#06: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#07: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#08: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#09: [ inline ] ProcessDispatcher::GetCurrent object/include/object/process_dispatcher.h:57
+bt#09: [ inline ] lambda syscalls/syscalls.cpp:53
+bt#09: 0x00172d03 wrapper_clock_get_monotonic syscall-kernel-wrappers.inc:22
+bt#10: 0x001167b2 x86_syscall syscall-kernel-branches.S:8
+bt#11: end
+panic (caller 0xffffffff00108e7e frame 0xffffff93064d48d0): DEBUG ASSERT FAILED at (kernel/kernel/thread.cpp:784): current_thre
+ad->magic == THREAD_MAGIC
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#03: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#04: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#05: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#06: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#07: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#08: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#09: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#10: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#11: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#12: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#13: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#14: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#15: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#16: end
+panic (caller 0xffffffff00108e7e frame 0xffffff93064d4550): DEBUG ASSERT FAILED at (kernel/kernel/thread.cpp:784): current_thre
+ad->magic == THREAD_MAGIC
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#03: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#04: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#05: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#06: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#07: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#08: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#09: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#10: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#11: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#12: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#13: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#14: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#15: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#16: end
+panic (caller 0xffffffff00108e7e frame 0xffffff93064d41d0): DEBUG ASSERT FAILED at (kernel/kernel/thread.cpp:784): current_thre
+ad->magic == THREAD_MAGIC
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#03: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#04: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#05: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#06: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#07: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#08: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#09: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#10: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#11: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#12: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#13: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#14: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#15: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#16: end
+panic (caller 0xffffffff00108e7e frame 0xffffff93064d3e50): DEBUG ASSERT FAILED at (kernel/kernel/thread.cpp:784): current_thre
+ad->magic == THREAD_MAGIC
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#03: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#04: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#05: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#06: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#07: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#08: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#09: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#10: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#11: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#12: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#13: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#14: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#15: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#16: end
+panic (caller 0xffffffff00108e7e frame 0xffffff93064d3ad0): DEBUG ASSERT FAILED at (kernel/kernel/thread.cpp:784): current_thre
+ad->magic == THREAD_MAGIC
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#03: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#04: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#05: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#06: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#07: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#08: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#09: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#10: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#11: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#12: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#13: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#14: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#15: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#16: end
+panic (caller 0xffffffff00108e7e frame 0xffffff93064d3750): DEBUG ASSERT FAILED at (kernel/kernel/thread.cpp:784): current_thre
+ad->magic == THREAD_MAGIC
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#03: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#04: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#05: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#06: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#07: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#08: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#09: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#10: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#11: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#12: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#13: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#14: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#15: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#16: end
+panic (caller 0xffffffff00108e7e frame 0xffffff93064d33d0): DEBUG ASSERT FAILED at (kernel/kernel/thread.cpp:784): current_thre
+ad->magic == THREAD_MAGIC
+platform_halt suggested_action 0 reason 2
+bt#00: 0x00105e46 platform_halt platform/pc/power.cpp:122
+bt#01: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#02: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#03: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#04: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#05: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#06: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#07: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#08: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#09: 0x00133aa3 thread_preempt kernel/thread.cpp:1018
+bt#10: 0x00108e7e x86_exception_handler arch/x86/faults.cpp:471
+bt#11: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#12: 0x001164b7 interrupt_common arch/x86/exceptions.S:127
+bt#13: 0x001a5ed5 dlog_bluescreen_halt system/ulib/fbl/include/fbl/ref_counted_internal.h:119
+bt#14: 0x00105e4b platform_halt platform/pc/power.cpp:123
+bt#15: 0x001aa1a4 _panic lib/debug/debug.cpp:39
+bt#16: end
+vector 8
+recursion in interrupt handler
+ RIP: 0x0013189a  sched_preempt_timer_tick kernel/sched.cpp:726
+ CS:                0x10 RIP: 0xffffffff0013189a EFL:            0x10002 CR2: 0xffffff93064d2ff8
+ RAX: 0xffffff800d6cbd48 RBX:                  0 RCX:                  0 RDX:                  0
+ RSI:       0xfa4bcf7463 RDI:       0xfa4c680ae3 RBP: 0xffffff93064d3000 RSP: 0xffffff93064d3000
+  R8:              0x15e  R9: 0xffffffff002012e8 R10:                0xa R11:               0x21
+ R12: 0xffffffff00229140 R13:                  0 R14: 0xffffffff00229140 R15:       0xfa4bcf7463
+errc:                  0
+bottom of kernel stack at 0xffffffff002376d0:
+0xffffffff002376d0: 4c680ae3 000000fa 4bcf7463 000000fa |..hL....ct.K....|
+0xffffffff002376e0: 064d3000 ffffff93 00000000 00000000 |.0M.............|
+0xffffffff002376f0: 00000000 00000000 00000000 00000000 |................|
+0xffffffff00237700: 0d6cbd48 ffffff80 0000015e 00000000 |H.l.....^.......|
+0xffffffff00237710: 002012e8 ffffffff 0000000a 00000000 |.. .............|
+0xffffffff00237720: 00000021 00000000 00229140 ffffffff |!.......@.".....|
+0xffffffff00237730: 00000000 00000000 00229140 ffffffff |........@.".....|
+0xffffffff00237740: 4bcf7463 000000fa 00000008 00000000 |ct.K............|
+platform_halt suggested_action 0 reason 2
+

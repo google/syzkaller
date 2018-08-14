@@ -1,0 +1,39 @@
+TITLE: ASSERT FAILED: thread_resched_disable_count() > 0
+
+ZIRCON KERNEL PANIC
+panic (caller 0xffffffff00150518 frame 0xffffff953a957d50): DEBUG ASSERT FAILED at (kernel/include/kernel/thread.h:452): thread
+_resched_disable_count() > 0
+platform_halt suggested_action 0 reason 2
+<PAGE FAULT> Instruction Pointer   = 0x10:0xffffffff00139911
+<PAGE FAULT> Stack Pointer         = 0x0:0xffffff953a957c00
+<PAGE FAULT> Fault Linear Address  = 0x90
+<PAGE FAULT> Error Code Value      = 0x0
+<PAGE FAULT> Error Code Type       = supervisor read data, page not present
+dump_thread: t 0xffffff800ba91438 (/tmp/syz-executor2:)
+	state run, curr/last cpu 1/1, cpu_affinity 0xffffffff, priority 18 [16:1,18], remaining time slice 10000000
+	runtime_ns 233286797, runtime_s 0
+	stack 0xffffff953a956000, stack_size 0
+	entry 0, arg 0, flags 0x0 
+	wait queue 0, blocked_status 0, interruptable 0, mutexes held 1
+	aspace 0xffffff800c199cc0
+	user_thread 0xffffff800ba912c0, pid 253992, tid 255276
+vector 14
+Supervisor Page Fault exception, halting
+ RIP: 0x00139911  crashlog_to_string lib/crashlog/crashlog.cpp:131
+ CS:                0x10 RIP: 0xffffffff00139911 EFL:            0x10092 CR2:               0x90
+ RAX:                  0 RBX:             0x1000 RCX:               0x20 RDX:     0x10649023ed60
+ RSI:                0x2 RDI: 0xffffffff0020c55b RBP: 0xffffff953a957c60 RSP: 0xffffff953a957c00
+  R8: 0xffffffff0020c55b  R9: 0xffffffff002a98ef R10:                0xa R11:               0x21
+ R12: 0xffffffff002a9910 R13:               0x15 R14:              0xf40 R15:               0x15
+errc:                  0
+bottom of kernel stack at 0xffffff953a957b50:
+0xffffff953a957b50: 0020c55b ffffffff 00000002 00000000 |[. .............|
+0xffffff953a957b60: 3a957c60 ffffff95 00001000 00000000 |`|.:............|
+0xffffff953a957b70: 9023ed60 00001064 00000020 00000000 |`.#.d... .......|
+0xffffff953a957b80: 00000000 00000000 0020c55b ffffffff |........[. .....|
+0xffffff953a957b90: 002a98ef ffffffff 0000000a 00000000 |..*.............|
+0xffffff953a957ba0: 00000021 00000000 002a9910 ffffffff |!.........*.....|
+0xffffff953a957bb0: 00000015 00000000 00000f40 00000000 |........@.......|
+0xffffff953a957bc0: 00000015 00000000 0000000e 00000000 |................|
+platform_halt suggested_action 0 reason 2
+
