@@ -1,0 +1,102 @@
+TITLE: KASAN: use-after-free Write in snd_timer_user_interrupt
+
+[  168.248365] ==================================================================
+[  168.255760] BUG: KASAN: use-after-free in register_lock_class+0xf9c/0x1470
+[  168.262774] Write of size 8 at addr ffff8801cc92af68 by task syz-executor2/9916
+[  168.270213] 
+[  168.271831] CPU: 0 PID: 9916 Comm: syz-executor2 Not tainted 4.9.119-g9dc978d #27
+[  168.279430] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  168.288775]  ffff8801db207910 ffffffff81eb4be9 ffffea0007324a80 ffff8801cc92af68
+[  168.296826]  0000000000000001 ffff8801cc92af68 0000000000000000 ffff8801db207948
+[  168.304896]  ffffffff81567f89 ffff8801cc92af68 0000000000000008 0000000000000001
+[  168.312949] Call Trace:
+[  168.315516]  <IRQ> [  168.317567]  [<ffffffff81eb4be9>] dump_stack+0xc1/0x128
+[  168.322961]  [<ffffffff81567f89>] print_address_description+0x6c/0x234
+[  168.329612]  [<ffffffff81568393>] kasan_report.cold.6+0x242/0x2fe
+[  168.335832]  [<ffffffff8123248c>] ? register_lock_class+0xf9c/0x1470
+[  168.342314]  [<ffffffff8153bfb7>] __asan_report_store8_noabort+0x17/0x20
+[  168.349145]  [<ffffffff8123248c>] register_lock_class+0xf9c/0x1470
+[  168.355456]  [<ffffffff812362f9>] __lock_acquire+0x169/0x4070
+[  168.361343]  [<ffffffff81236190>] ? debug_check_no_locks_freed+0x210/0x210
+[  168.368371]  [<ffffffff81236190>] ? debug_check_no_locks_freed+0x210/0x210
+[  168.375372]  [<ffffffff81236190>] ? debug_check_no_locks_freed+0x210/0x210
+[  168.382387]  [<ffffffff82f5875a>] ? snd_seq_check_queue.part.4+0x1aa/0x340
+[  168.389390]  [<ffffffff82f5880d>] ? snd_seq_check_queue.part.4+0x25d/0x340
+[  168.396391]  [<ffffffff8123ac70>] lock_acquire+0x130/0x3e0
+[  168.402018]  [<ffffffff82ee482f>] ? snd_timer_user_interrupt+0x4f/0x3c0
+[  168.408760]  [<ffffffff839fc066>] _raw_spin_lock+0x36/0x50
+[  168.414374]  [<ffffffff82ee482f>] ? snd_timer_user_interrupt+0x4f/0x3c0
+[  168.421127]  [<ffffffff82ee482f>] snd_timer_user_interrupt+0x4f/0x3c0
+[  168.427710]  [<ffffffff82ee7150>] snd_timer_interrupt+0x5c0/0xc40
+[  168.433928]  [<ffffffff82ee47e0>] ? snd_timer_user_disconnect+0x80/0x80
+[  168.440665]  [<ffffffff82eee140>] snd_hrtimer_callback+0x1f0/0x3c0
+[  168.446970]  [<ffffffff82eedf50>] ? snd_hrtimer_close+0x130/0x130
+[  168.453196]  [<ffffffff812a4775>] __hrtimer_run_queues+0x375/0xe50
+[  168.459504]  [<ffffffff812a4400>] ? retrigger_next_event+0x1c0/0x1c0
+[  168.466014]  [<ffffffff810ced53>] ? kvm_clock_read+0x23/0x40
+[  168.471799]  [<ffffffff810ced79>] ? kvm_clock_get_cycles+0x9/0x10
+[  168.478019]  [<ffffffff812a5c2d>] ? hrtimer_interrupt+0x12d/0x430
+[  168.484239]  [<ffffffff812a5cb1>] hrtimer_interrupt+0x1b1/0x430
+[  168.490293]  [<ffffffff810b2384>] local_apic_timer_interrupt+0x74/0xa0
+[  168.496948]  [<ffffffff83a0249c>] smp_apic_timer_interrupt+0x7c/0xa0
+[  168.503427]  [<ffffffff839fe630>] apic_timer_interrupt+0xa0/0xb0
+[  168.509569]  <EOI> [  168.511621]  [<ffffffff81ee2a47>] ? clear_page_c_e+0x7/0x10
+[  168.517346]  [<ffffffff814d406c>] ? clear_huge_page+0xdc/0x470
+[  168.523303]  [<ffffffff812430fd>] ? __raw_spin_lock_init+0x2d/0x100
+[  168.529705]  [<ffffffff81546737>] do_huge_pmd_anonymous_page+0x3c7/0x10f0
+[  168.536625]  [<ffffffff814d143e>] handle_mm_fault+0x1a9e/0x28e0
+[  168.542686]  [<ffffffff814cf9a0>] ? vm_insert_mixed+0x200/0x200
+[  168.548731]  [<ffffffff81230202>] ? __lock_is_held+0xa2/0xf0
+[  168.554522]  [<ffffffff810dba1f>] __do_page_fault+0x5af/0xd50
+[  168.560406]  [<ffffffff810db470>] ? mm_fault_error+0x2c0/0x2c0
+[  168.566371]  [<ffffffff81003036>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  168.573022]  [<ffffffff810dc1e7>] do_page_fault+0x27/0x30
+[  168.578546]  [<ffffffff839fde48>] page_fault+0x28/0x30
+[  168.583801] 
+[  168.585415] Allocated by task 9921:
+[  168.589027]  save_stack_trace+0x16/0x20
+[  168.592985]  save_stack+0x43/0xd0
+[  168.596435]  kasan_kmalloc+0xc7/0xe0
+[  168.600153]  kmem_cache_alloc_trace+0xfd/0x2b0
+[  168.604728]  snd_timer_user_open+0x68/0x220
+[  168.609031]  snd_open+0x204/0x400
+[  168.612465]  chrdev_open+0x22d/0x4c0
+[  168.616182]  do_dentry_open+0x703/0xc80
+[  168.620149]  vfs_open+0x11c/0x210
+[  168.623589]  path_openat+0x758/0x3590
+[  168.627405]  do_filp_open+0x197/0x270
+[  168.631199]  do_sys_open+0x30d/0x5c0
+[  168.634899]  compat_SyS_open+0x2a/0x40
+[  168.638771]  do_fast_syscall_32+0x2f7/0x870
+[  168.643085]  entry_SYSENTER_compat+0x90/0xa2
+[  168.647481] 
+[  168.649093] Freed by task 9920:
+[  168.652365]  save_stack_trace+0x16/0x20
+[  168.656328]  save_stack+0x43/0xd0
+[  168.659764]  kasan_slab_free+0x72/0xc0
+[  168.663632]  kfree+0xfb/0x310
+[  168.666721]  snd_timer_user_release+0xf4/0x130
+[  168.671313]  __fput+0x263/0x700
+[  168.674572]  ____fput+0x15/0x20
+[  168.677833]  task_work_run+0x10c/0x180
+[  168.681701]  exit_to_usermode_loop+0xfc/0x120
+[  168.686195]  do_fast_syscall_32+0x5c3/0x870
+[  168.690501]  entry_SYSENTER_compat+0x90/0xa2
+[  168.694886] 
+[  168.696495] The buggy address belongs to the object at ffff8801cc92af00
+[  168.696495]  which belongs to the cache kmalloc-512 of size 512
+[  168.709156] The buggy address is located 104 bytes inside of
+[  168.709156]  512-byte region [ffff8801cc92af00, ffff8801cc92b100)
+[  168.721013] The buggy address belongs to the page:
+[  168.725930] page:ffffea0007324a80 count:1 mapcount:0 mapping:          (null) index:0x0 compound_mapcount: 0
+[  168.736616] flags: 0x8000000000004080(slab|head)
+[  168.741389] page dumped because: kasan: bad access detected
+[  168.747079] 
+[  168.748696] Memory state around the buggy address:
+[  168.753625]  ffff8801cc92ae00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  168.760968]  ffff8801cc92ae80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  168.768310] >ffff8801cc92af00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  168.775656]                                                           ^
+[  168.782392]  ffff8801cc92af80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  168.789739]  ffff8801cc92b000: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  168.797082] ==================================================================
