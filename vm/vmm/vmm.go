@@ -37,19 +37,19 @@ type Pool struct {
 }
 
 type instance struct {
-	cfg     *Config
-	index   int
-	image   string
-	debug   bool
-	os      string
-	workdir string
-	sshkey  string
-	sshuser string
-	sshhost string
-	sshport int
-	merger  *vmimpl.OutputMerger
-	vmID    int
-	wpipe   io.WriteCloser
+	cfg      *Config
+	index    int
+	image    string
+	debug    bool
+	os       string
+	workdir  string
+	sshkey   string
+	sshuser  string
+	sshhost  string
+	sshport  int
+	merger   *vmimpl.OutputMerger
+	vmID     int
+	diagnose chan string
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -106,15 +106,16 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 
 	inst := &instance{
-		cfg:     pool.cfg,
-		index:   index,
-		image:   image,
-		debug:   pool.env.Debug,
-		os:      pool.env.OS,
-		workdir: workdir,
-		sshkey:  pool.env.SSHKey,
-		sshuser: pool.env.SSHUser,
-		sshport: 22,
+		cfg:      pool.cfg,
+		index:    index,
+		image:    image,
+		debug:    pool.env.Debug,
+		os:       pool.env.OS,
+		workdir:  workdir,
+		sshkey:   pool.env.SSHKey,
+		sshuser:  pool.env.SSHUser,
+		sshport:  22,
+		diagnose: make(chan string),
 	}
 	closeInst := inst
 	defer func() {
@@ -274,16 +275,14 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() bool {
-	didWrite := false
 	commands := []string{"", "trace", "show registers"}
 	for _, c := range commands {
-		if inst.wpipe != nil {
-			didWrite = true
-			inst.wpipe.Write([]byte(c + "\n"))
-			time.Sleep(100 * time.Millisecond)
+		select {
+		case inst.diagnose <- c:
+		case <-time.After(1 * time.Second):
 		}
 	}
-	return didWrite
+	return true
 }
 
 func (inst *instance) console() {
@@ -296,8 +295,8 @@ func (inst *instance) console() {
 		if err != nil {
 			return fmt.Errorf("failed to create input pipe: %v", err)
 		}
-		inst.wpipe = inw
 
+		stop := make(chan bool)
 		cmd := osutil.Command("vmctl", "console", inst.vmIdent())
 		cmd.Stdin = inr
 		cmd.Stdout = outw
@@ -309,12 +308,24 @@ func (inst *instance) console() {
 		inr.Close()
 		inst.merger.Add("console", outr)
 
+		go func() {
+			for {
+				select {
+				case s := <-inst.diagnose:
+					outw.Write([]byte(s + "\n"))
+				case <-stop:
+					return
+				}
+			}
+		}()
+
 		if _, err := cmd.Process.Wait(); err != nil {
+			stop <- true
 			return err
 		}
-		inst.wpipe = nil
 		inw.Close()
 		outr.Close()
+		stop <- true
 		return nil
 	}
 	go func() {
