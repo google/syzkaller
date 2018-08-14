@@ -217,7 +217,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.sshport), inst.sshuser+"@"+inst.sshhost, command)
+	args := append(vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.sshport),
+		inst.sshuser+"@"+inst.sshhost, command)
 	if inst.debug {
 		log.Logf(0, "running command: ssh %#v", args)
 	}
@@ -245,6 +246,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(vmimpl.ErrTimeout)
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()
+			inst.merger.Wait()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
@@ -255,6 +257,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			return
 		}
 		cmd.Process.Kill()
+		inst.merger.Wait()
 		cmd.Wait()
 	}()
 	return inst.merger.Output, errc, nil
