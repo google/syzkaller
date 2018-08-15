@@ -223,11 +223,11 @@ func TestEscapingPaths(t *testing.T) {
 		"file/../../file":        true,
 		"../file":                true,
 		"./file/../../file/file": true,
-		"":          false,
-		".":         false,
-		"file":      false,
-		"./file":    false,
-		"./file/..": false,
+		"":                       false,
+		".":                      false,
+		"file":                   false,
+		"./file":                 false,
+		"./file/..":              false,
 	}
 	target, err := GetTarget("test", "64")
 	if err != nil {
