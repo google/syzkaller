@@ -49,6 +49,7 @@ type instance struct {
 	sshport  int
 	merger   *vmimpl.OutputMerger
 	vmID     int
+	stop     chan bool
 	diagnose chan string
 }
 
@@ -115,6 +116,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshkey:   pool.env.SSHKey,
 		sshuser:  pool.env.SSHUser,
 		sshport:  22,
+		stop:     make(chan bool),
 		diagnose: make(chan string),
 	}
 	closeInst := inst
@@ -246,6 +248,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(vmimpl.ErrTimeout)
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()
+			inst.stop <- true
 			inst.merger.Wait()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
@@ -257,6 +260,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			return
 		}
 		cmd.Process.Kill()
+		inst.stop <- true
 		inst.merger.Wait()
 		cmd.Wait()
 	}()
@@ -268,7 +272,7 @@ func (inst *instance) Diagnose() bool {
 	for _, c := range commands {
 		select {
 		case inst.diagnose <- c:
-		case <-time.After(1 * time.Second):
+		case <-time.After(2 * time.Second):
 		}
 	}
 	return true
@@ -285,7 +289,6 @@ func (inst *instance) console() {
 			return fmt.Errorf("failed to create input pipe: %v", err)
 		}
 
-		stop := make(chan bool)
 		cmd := osutil.Command("vmctl", "console", inst.vmIdent())
 		cmd.Stdin = inr
 		cmd.Stdout = outw
@@ -297,25 +300,34 @@ func (inst *instance) console() {
 		inr.Close()
 		inst.merger.Add("console", outr)
 
+		stopDiagnose := make(chan bool)
 		go func() {
 			for {
 				select {
 				case s := <-inst.diagnose:
-					outw.Write([]byte(s + "\n"))
-				case <-stop:
+					inw.Write([]byte(s + "\n"))
+					time.Sleep(1 * time.Second)
+				case <-stopDiagnose:
 					return
 				}
 			}
 		}()
 
-		if _, err := cmd.Process.Wait(); err != nil {
-			stop <- true
-			return err
-		}
+		stopProcess := make(chan bool)
+		go func() {
+			select {
+			case <-inst.stop:
+				cmd.Process.Kill()
+			case <-stopProcess:
+			}
+		}()
+
+		_, err = cmd.Process.Wait()
 		inw.Close()
 		outr.Close()
-		stop <- true
-		return nil
+		stopDiagnose <- true
+		stopProcess <- true
+		return err
 	}
 	go func() {
 		for inst.alive() {
