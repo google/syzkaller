@@ -191,7 +191,6 @@ func (inst *instance) Boot() error {
 
 func (inst *instance) Close() {
 	inst.vmctl("stop", inst.vmIdent(), "-f")
-	os.Remove(inst.image)
 }
 
 func (inst *instance) Forward(port int) (string, error) {
