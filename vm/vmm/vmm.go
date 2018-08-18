@@ -135,8 +135,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 }
 
 func (inst *instance) Boot() error {
-	name := fmt.Sprintf("syzkaller-%d", inst.index)
-	mem := fmt.Sprintf("%dM", inst.cfg.Mem)
+	name := fmt.Sprintf("syzkaller-%v", inst.index)
+	mem := fmt.Sprintf("%vM", inst.cfg.Mem)
 	startArgs := []string{
 		"start", name,
 		"-t", inst.cfg.Template,
@@ -153,7 +153,7 @@ func (inst *instance) Boot() error {
 	if err != nil {
 		return err
 	}
-	inst.sshhost = fmt.Sprintf("100.64.%d.3", inst.vmID)
+	inst.sshhost = fmt.Sprintf("100.64.%v.3", inst.vmID)
 
 	var tee io.Writer
 	if inst.debug {
