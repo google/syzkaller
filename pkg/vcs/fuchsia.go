@@ -52,7 +52,7 @@ func (ctx *fuchsia) initRepo() error {
 		return err
 	}
 	cmd := "curl -s 'https://fuchsia.googlesource.com/scripts/+/master/bootstrap?format=TEXT' |" +
-		"base64 --decode | bash -s topaz"
+		"base64 --decode | bash -s garnet"
 	if _, err := runSandboxed(tmpDir, "bash", "-c", cmd); err != nil {
 		return err
 	}
