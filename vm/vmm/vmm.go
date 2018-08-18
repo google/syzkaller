@@ -161,7 +161,9 @@ func (inst *instance) Boot() error {
 	}
 	inst.merger = vmimpl.NewOutputMerger(tee)
 
-	inst.console()
+	if err := inst.console(); err != nil {
+		return err
+	}
 
 	var bootOutput []byte
 	bootOutputStop := make(chan bool)
@@ -278,28 +280,28 @@ func (inst *instance) Diagnose() bool {
 	return true
 }
 
-func (inst *instance) console() {
-	run := func() error {
-		outr, outw, err := osutil.LongPipe()
-		if err != nil {
-			return fmt.Errorf("failed to create output pipe: %v", err)
-		}
-		inr, inw, err := osutil.LongPipe()
-		if err != nil {
-			return fmt.Errorf("failed to create input pipe: %v", err)
-		}
+func (inst *instance) console() error {
+	outr, outw, err := osutil.LongPipe()
+	if err != nil {
+		return err
+	}
+	inr, inw, err := osutil.LongPipe()
+	if err != nil {
+		return err
+	}
 
-		cmd := osutil.Command("vmctl", "console", inst.vmIdent())
-		cmd.Stdin = inr
-		cmd.Stdout = outw
-		cmd.Stderr = outw
-		if err := cmd.Start(); err != nil {
-			return err
-		}
-		outw.Close()
-		inr.Close()
-		inst.merger.Add("console", outr)
+	cmd := osutil.Command("vmctl", "console", inst.vmIdent())
+	cmd.Stdin = inr
+	cmd.Stdout = outw
+	cmd.Stderr = outw
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	outw.Close()
+	inr.Close()
+	inst.merger.Add("console", outr)
 
+	go func() {
 		stopDiagnose := make(chan bool)
 		go func() {
 			for {
@@ -327,20 +329,9 @@ func (inst *instance) console() {
 		outr.Close()
 		stopDiagnose <- true
 		stopProcess <- true
-		return err
-	}
-	go func() {
-		for inst.alive() {
-			if err := run(); err != nil && inst.debug {
-				log.Logf(0, "console: %s", err)
-			}
-			time.Sleep(1 * time.Second)
-		}
 	}()
-}
 
-func (inst *instance) alive() bool {
-	return osutil.IsExist(inst.image)
+	return nil
 }
 
 // Run the given vmctl(8) command and wait for it to finish.
