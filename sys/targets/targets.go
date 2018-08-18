@@ -185,7 +185,6 @@ var List = map[string]map[string]*Target{
 			CCompiler:        os.ExpandEnv("${SOURCEDIR}/buildtools/linux-x64/clang/bin/clang++"),
 			CrossCFlags: []string{
 				"-Wno-deprecated",
-				"-Wno-error",
 				"--target=x86_64-fuchsia",
 				"-lfdio",
 				"-lzircon",
@@ -203,7 +202,6 @@ var List = map[string]map[string]*Target{
 			CCompiler:        os.ExpandEnv("${SOURCEDIR}/buildtools/linux-x64/clang/bin/clang++"),
 			CrossCFlags: []string{
 				"-Wno-deprecated",
-				"-Wno-error",
 				"--target=aarch64-fuchsia",
 				"-lfdio",
 				"-lzircon",

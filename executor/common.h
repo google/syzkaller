@@ -55,7 +55,7 @@ static __thread jmp_buf segv_env;
 
 #if GOOS_akaros
 #include <parlib/parlib.h>
-static void recover()
+static void recover(void)
 {
 	_longjmp(segv_env, 1);
 }
@@ -86,7 +86,7 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	doexit(sig);
 }
 
-static void install_segv_handler()
+static void install_segv_handler(void)
 {
 	struct sigaction sa;
 #if GOOS_linux
@@ -142,7 +142,7 @@ static void sleep_ms(uint64 ms)
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <time.h>
 
-static uint64 current_time_ms()
+static uint64 current_time_ms(void)
 {
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
@@ -156,7 +156,7 @@ static uint64 current_time_ms()
 #include <sys/stat.h>
 #include <unistd.h>
 
-static void use_temporary_dir()
+static void use_temporary_dir(void)
 {
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
 	char* tmpdir = mkdtemp(tmpdir_template);
@@ -406,9 +406,9 @@ static void* thr(void* arg)
 }
 
 #if SYZ_REPEAT
-static void execute_one()
+static void execute_one(void)
 #else
-static void loop()
+static void loop(void)
 #endif
 {
 #if SYZ_REPRO
@@ -424,7 +424,7 @@ static void loop()
 again:
 #endif
 	for (call = 0; call < [[NUM_CALLS]]; call++) {
-		for (thread = 0; thread < sizeof(threads) / sizeof(threads[0]); thread++) {
+		for (thread = 0; thread < (int)(sizeof(threads) / sizeof(threads[0])); thread++) {
 			struct thread_t* th = &threads[thread];
 			if (!th->created) {
 				th->created = 1;
@@ -459,7 +459,7 @@ again:
 #endif
 
 #if SYZ_EXECUTOR || SYZ_REPEAT
-static void execute_one();
+static void execute_one(void);
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 #include <signal.h>
 #include <sys/types.h>
@@ -475,7 +475,7 @@ static void execute_one();
 static void reply_handshake();
 #endif
 
-static void loop()
+static void loop(void)
 {
 #if SYZ_HAVE_SETUP_LOOP
 	setup_loop();
@@ -605,7 +605,7 @@ static void loop()
 	}
 }
 #else
-static void loop()
+static void loop(void)
 {
 	execute_one();
 }
@@ -623,9 +623,9 @@ static void loop()
 #if SYZ_THREADED
 void execute_call(int call)
 #elif SYZ_REPEAT
-void execute_one()
+void execute_one(void)
 #else
-void loop()
+void loop(void)
 #endif
 {
 	[[SYSCALLS]]
@@ -644,7 +644,7 @@ int main(int argc, char** argv)
 	if (argc == 2 && strcmp(argv[1], "child") == 0)
 		child();
 #else
-int main()
+int main(void)
 {
 	[[MMAP_DATA]]
 #endif

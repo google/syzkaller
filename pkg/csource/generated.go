@@ -49,7 +49,7 @@ static __thread jmp_buf segv_env;
 
 #if GOOS_akaros
 #include <parlib/parlib.h>
-static void recover()
+static void recover(void)
 {
 	_longjmp(segv_env, 1);
 }
@@ -74,7 +74,7 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	doexit(sig);
 }
 
-static void install_segv_handler()
+static void install_segv_handler(void)
 {
 	struct sigaction sa;
 #if GOOS_linux
@@ -127,7 +127,7 @@ static void sleep_ms(uint64 ms)
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
 #include <time.h>
 
-static uint64 current_time_ms()
+static uint64 current_time_ms(void)
 {
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
@@ -141,7 +141,7 @@ static uint64 current_time_ms()
 #include <sys/stat.h>
 #include <unistd.h>
 
-static void use_temporary_dir()
+static void use_temporary_dir(void)
 {
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
 	char* tmpdir = mkdtemp(tmpdir_template);
@@ -407,7 +407,6 @@ static int do_sandbox_none(void)
 
 #elif GOOS_fuchsia
 
-#include <ddk/driver.h>
 #include <fcntl.h>
 #include <lib/fdio/util.h>
 #include <poll.h>
@@ -426,6 +425,10 @@ static int do_sandbox_none(void)
 #include <zircon/process.h>
 #include <zircon/syscalls.h>
 
+#if SYZ_EXECUTOR || __NR_get_root_resource
+#include <ddk/driver.h>
+#endif
+
 #if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
 #include <pthread.h>
 #include <setjmp.h>
@@ -437,7 +440,7 @@ static int do_sandbox_none(void)
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
-static void segv_handler()
+static void segv_handler(void)
 {
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED)) {
 		debug("recover: skipping\n");
@@ -495,7 +498,7 @@ static void* ex_handler(void* arg)
 	return 0;
 }
 
-static void install_segv_handler()
+static void install_segv_handler(void)
 {
 	zx_status_t status;
 	zx_handle_t port;
@@ -587,28 +590,28 @@ long syz_mmap(size_t addr, size_t size)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_process_self
-static long syz_process_self()
+static long syz_process_self(void)
 {
 	return zx_process_self();
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_thread_self
-static long syz_thread_self()
+static long syz_thread_self(void)
 {
 	return zx_thread_self();
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_vmar_root_self
-static long syz_vmar_root_self()
+static long syz_vmar_root_self(void)
 {
 	return zx_vmar_root_self();
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_job_default
-static long syz_job_default()
+static long syz_job_default(void)
 {
 	return zx_job_default();
 }
@@ -644,6 +647,7 @@ static int do_sandbox_none(void)
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
 #endif
+#define CAST(f) ({void* p = (void*)f; p; })
 
 #elif GOOS_linux
 
@@ -3759,9 +3763,9 @@ static void* thr(void* arg)
 }
 
 #if SYZ_REPEAT
-static void execute_one()
+static void execute_one(void)
 #else
-static void loop()
+static void loop(void)
 #endif
 {
 #if SYZ_REPRO
@@ -3777,7 +3781,7 @@ static void loop()
 again:
 #endif
 	for (call = 0; call < [[NUM_CALLS]]; call++) {
-		for (thread = 0; thread < sizeof(threads) / sizeof(threads[0]); thread++) {
+		for (thread = 0; thread < (int)(sizeof(threads) / sizeof(threads[0])); thread++) {
 			struct thread_t* th = &threads[thread];
 			if (!th->created) {
 				th->created = 1;
@@ -3812,7 +3816,7 @@ again:
 #endif
 
 #if SYZ_EXECUTOR || SYZ_REPEAT
-static void execute_one();
+static void execute_one(void);
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 #include <signal.h>
 #include <sys/types.h>
@@ -3828,7 +3832,7 @@ static void execute_one();
 static void reply_handshake();
 #endif
 
-static void loop()
+static void loop(void)
 {
 #if SYZ_HAVE_SETUP_LOOP
 	setup_loop();
@@ -3939,7 +3943,7 @@ static void loop()
 	}
 }
 #else
-static void loop()
+static void loop(void)
 {
 	execute_one();
 }
@@ -3954,9 +3958,9 @@ static void loop()
 #if SYZ_THREADED
 void execute_call(int call)
 #elif SYZ_REPEAT
-void execute_one()
+void execute_one(void)
 #else
-void loop()
+void loop(void)
 #endif
 {
 	[[SYSCALLS]]
@@ -3973,7 +3977,7 @@ int main(int argc, char** argv)
 	if (argc == 2 && strcmp(argv[1], "child") == 0)
 		child();
 #else
-int main()
+int main(void)
 {
 	[[MMAP_DATA]]
 #endif

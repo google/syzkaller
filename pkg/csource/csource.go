@@ -218,7 +218,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 		if args != "" {
 			args = args[1:]
 		}
-		fmt.Fprintf(w, "((long(*)(%v))%v)(", args, callName)
+		fmt.Fprintf(w, "((long(*)(%v))CAST(%v))(", args, callName)
 	}
 	for ai, arg := range call.Args {
 		if native || ai > 0 {

@@ -3,7 +3,6 @@
 
 // This file is shared between executor and csource package.
 
-#include <ddk/driver.h>
 #include <fcntl.h>
 #include <lib/fdio/util.h>
 #include <poll.h>
@@ -22,6 +21,10 @@
 #include <zircon/process.h>
 #include <zircon/syscalls.h>
 
+#if SYZ_EXECUTOR || __NR_get_root_resource
+#include <ddk/driver.h>
+#endif
+
 #if SYZ_EXECUTOR || SYZ_HANDLE_SEGV
 #include <pthread.h>
 #include <setjmp.h>
@@ -33,7 +36,7 @@
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
-static void segv_handler()
+static void segv_handler(void)
 {
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED)) {
 		debug("recover: skipping\n");
@@ -91,7 +94,7 @@ static void* ex_handler(void* arg)
 	return 0;
 }
 
-static void install_segv_handler()
+static void install_segv_handler(void)
 {
 	zx_status_t status;
 	zx_handle_t port;
@@ -185,28 +188,28 @@ long syz_mmap(size_t addr, size_t size)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_process_self
-static long syz_process_self()
+static long syz_process_self(void)
 {
 	return zx_process_self();
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_thread_self
-static long syz_thread_self()
+static long syz_thread_self(void)
 {
 	return zx_thread_self();
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_vmar_root_self
-static long syz_vmar_root_self()
+static long syz_vmar_root_self(void)
 {
 	return zx_vmar_root_self();
 }
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_job_default
-static long syz_job_default()
+static long syz_job_default(void)
 {
 	return zx_job_default();
 }
@@ -242,3 +245,7 @@ static int do_sandbox_none(void)
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
 #endif
+
+// Ugly way to work around gcc's "error: function called through a non-compatible type".
+// The macro is used in generated C code.
+#define CAST(f) ({void* p = (void*)f; p; })
