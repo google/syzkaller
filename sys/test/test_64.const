@@ -12,6 +12,8 @@ SYS_serialize0 = 0
 SYS_serialize1 = 0
 SYS_test = 0
 SYS_unsupported = 0
+SYS_fallback = 0
+SYS_seccomp = 0
 
 IPPROTO_ICMPV6 = 58
 IPPROTO_TCP = 6

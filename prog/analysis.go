@@ -209,6 +209,10 @@ func (p *Prog) FallbackSignal(info []CallInfo) {
 		if inf.Errno != 0 {
 			continue
 		}
+		if c.Meta.CallName == "seccomp" {
+			// seccomp filter can produce arbitrary errno values for subsequent syscalls. Don't trust anything afterwards.
+			break
+		}
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if a, ok := arg.(*ResultArg); ok {
 				resources[a] = c
@@ -218,57 +222,62 @@ func (p *Prog) FallbackSignal(info []CallInfo) {
 		// deeper arguments can produce too much false signal.
 		flags := 0
 		for _, arg := range c.Args {
-			switch a := arg.(type) {
-			case *ResultArg:
-				flags <<= 1
-				if a.Res != nil {
-					ctor := resources[a.Res]
-					if ctor != nil {
-						inf.Signal = append(inf.Signal,
-							encodeFallbackSignal(fallbackSignalCtor, id, ctor.Meta.ID))
-					}
-				} else {
-					if a.Val != a.Type().(*ResourceType).SpecialValues()[0] {
-						flags |= 1
-					}
-				}
-			case *ConstArg:
-				const width = 3
-				flags <<= width
-				switch typ := a.Type().(type) {
-				case *FlagsType:
-					if typ.BitMask {
-						for i, v := range typ.Vals {
-							if a.Val&v != 0 {
-								flags ^= 1 << (uint(i) % width)
-							}
-						}
-					} else {
-						for i, v := range typ.Vals {
-							if a.Val == v {
-								flags |= i % (1 << width)
-								break
-							}
-						}
-					}
-				case *LenType:
-					flags <<= 1
-					if a.Val == 0 {
-						flags |= 1
-					}
-				}
-			case *PointerArg:
-				flags <<= 1
-				if a.IsNull() {
-					flags |= 1
-				}
-			}
+			flags = extractArgSignal(arg, id, flags, inf, resources)
 		}
 		if flags != 0 {
 			inf.Signal = append(inf.Signal,
 				encodeFallbackSignal(fallbackSignalFlags, id, flags))
 		}
 	}
+}
+
+func extractArgSignal(arg Arg, callID, flags int, inf *CallInfo, resources map[*ResultArg]*Call) int {
+	switch a := arg.(type) {
+	case *ResultArg:
+		flags <<= 1
+		if a.Res != nil {
+			ctor := resources[a.Res]
+			if ctor != nil {
+				inf.Signal = append(inf.Signal,
+					encodeFallbackSignal(fallbackSignalCtor, callID, ctor.Meta.ID))
+			}
+		} else {
+			if a.Val != a.Type().(*ResourceType).SpecialValues()[0] {
+				flags |= 1
+			}
+		}
+	case *ConstArg:
+		const width = 3
+		flags <<= width
+		switch typ := a.Type().(type) {
+		case *FlagsType:
+			if typ.BitMask {
+				for i, v := range typ.Vals {
+					if a.Val&v != 0 {
+						flags ^= 1 << (uint(i) % width)
+					}
+				}
+			} else {
+				for i, v := range typ.Vals {
+					if a.Val == v {
+						flags |= i % (1 << width)
+						break
+					}
+				}
+			}
+		case *LenType:
+			flags <<= 1
+			if a.Val == 0 {
+				flags |= 1
+			}
+		}
+	case *PointerArg:
+		flags <<= 1
+		if a.IsNull() {
+			flags |= 1
+		}
+	}
+	return flags
 }
 
 func DecodeFallbackSignal(s uint32) (callID, errno int) {

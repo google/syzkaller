@@ -13,7 +13,7 @@ func init() {
 var resources_64 = []*ResourceDesc{
 	{Name: "anyres32", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"anyres32"}, Values: []uint64{0}},
 	{Name: "anyres64", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, Kind: []string{"anyres64"}, Values: []uint64{0}},
-	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615}},
+	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 999}},
 	{Name: "r_any", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", TypeSize: 4}, ArgFormat: 1}}, Kind: []string{"r_any"}, Values: []uint64{0}},
 	{Name: "syz_missing_const_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_missing_const_res"}, Values: []uint64{0}},
 	{Name: "syz_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_res"}, Values: []uint64{65535}},
@@ -527,6 +527,10 @@ var structDescs_64 = []*KeyedStruct{
 }
 
 var syscalls_64 = []*Syscall{
+	{Name: "fallback$0", CallName: "fallback", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "fallback$1", CallName: "fallback", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "a", TypeSize: 4}},
+	}},
 	{Name: "foo$any0", CallName: "foo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "any0"}}},
 	}},
@@ -580,6 +584,7 @@ var syscalls_64 = []*Syscall{
 	{Name: "mutate8", CallName: "mutate8", Args: []Type{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a0", TypeSize: 8, IsOptional: true}}, ValuesStart: 100, ValuesPerProc: 4},
 	}},
+	{Name: "seccomp", CallName: "seccomp"},
 	{Name: "serialize0", CallName: "serialize0", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "serialize0_struct"}}},
 	}},
@@ -885,6 +890,7 @@ var consts_64 = []ConstValue{
 	{Name: "IPPROTO_ICMPV6", Value: 58},
 	{Name: "IPPROTO_TCP", Value: 6},
 	{Name: "IPPROTO_UDP", Value: 17},
+	{Name: "SYS_fallback"},
 	{Name: "SYS_foo"},
 	{Name: "SYS_mutate0"},
 	{Name: "SYS_mutate1"},
@@ -895,10 +901,11 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_mutate6"},
 	{Name: "SYS_mutate7"},
 	{Name: "SYS_mutate8"},
+	{Name: "SYS_seccomp"},
 	{Name: "SYS_serialize0"},
 	{Name: "SYS_serialize1"},
 	{Name: "SYS_test"},
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "285bb68296c57fc93062731e5c0ecfbfc105d685"
+const revision_64 = "3a71e90e1d9f2ae8b0cbfa9e76a429a74ca2ce90"
