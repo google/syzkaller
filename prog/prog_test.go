@@ -244,3 +244,156 @@ func TestEscapingPaths(t *testing.T) {
 		}
 	}
 }
+
+func TestFallbackSignal(t *testing.T) {
+	type desc struct {
+		prog string
+		info []CallInfo
+	}
+	tests := []desc{
+		// Test restored errno values and that non-executed syscalls don't get fallback signal.
+		{
+			`
+fallback$0()
+fallback$0()
+fallback$0()
+`,
+			[]CallInfo{
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  42,
+					Signal: make([]uint32, 1),
+				},
+				{},
+			},
+		},
+		// Test different cases of argument-dependent signal and that unsuccessful calls don't get it.
+		{
+			`
+r0 = fallback$0()
+fallback$1(r0)
+fallback$1(r0)
+fallback$1(0xffffffffffffffff)
+fallback$1(0x0)
+fallback$1(0x0)
+`,
+			[]CallInfo{
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  1,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 2),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 2),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  2,
+					Signal: make([]uint32, 1),
+				},
+			},
+		},
+		// Test that calls get no signal after a successful seccomp.
+		{
+			`
+fallback$0()
+fallback$0()
+seccomp()
+fallback$0()
+seccomp()
+fallback$0()
+fallback$0()
+`,
+			[]CallInfo{
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  1,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags: CallExecuted,
+				},
+				{
+					Flags: CallExecuted,
+				},
+			},
+		},
+	}
+	target, err := GetTarget("test", "64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			p, err := target.Deserialize([]byte(test.prog))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(p.Calls) != len(test.info) {
+				t.Fatalf("call=%v info=%v", len(p.Calls), len(test.info))
+			}
+			wantSignal := make([]int, len(test.info))
+			for i := range test.info {
+				wantSignal[i] = len(test.info[i].Signal)
+				test.info[i].Signal = nil
+			}
+			p.FallbackSignal(test.info)
+			for i := range test.info {
+				if len(test.info[i].Signal) != wantSignal[i] {
+					t.Errorf("call %v: signal=%v want=%v", i, len(test.info[i].Signal), wantSignal[i])
+				}
+				for _, sig := range test.info[i].Signal {
+					call, errno := DecodeFallbackSignal(sig)
+					if call != p.Calls[i].Meta.ID {
+						t.Errorf("call %v: sig=%x id=%v want=%v", i, sig, call, p.Calls[i].Meta.ID)
+					}
+					if errno != test.info[i].Errno {
+						t.Errorf("call %v: sig=%x errno=%v want=%v", i, sig, errno, test.info[i].Errno)
+					}
+				}
+			}
+		})
+	}
+}

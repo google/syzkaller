@@ -11628,6 +11628,8 @@ const call_t syscalls[] = {
 
 #if GOARCH_64
 const call_t syscalls[] = {
+    {"fallback$0", 0},
+    {"fallback$1", 0},
     {"foo$any0", 0},
     {"foo$anyres", 0},
     {"foo$fmt0", 0},
@@ -11645,6 +11647,7 @@ const call_t syscalls[] = {
     {"mutate6", 0},
     {"mutate7", 0},
     {"mutate8", 0},
+    {"seccomp", 0},
     {"serialize0", 0},
     {"serialize1", 0},
     {"syz_compare", 0, (syscall_t)syz_compare},

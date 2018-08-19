@@ -619,7 +619,7 @@ test$recur2(a0 ptr[inout, syz_recur_2])
 
 # Resources.
 
-resource fd[int32]: 0xffffffffffffffff
+resource fd[int32]: 0xffffffffffffffff, 999
 resource syz_res[int32]: 0xffff
 
 test$res0() syz_res
@@ -679,3 +679,9 @@ resource unsupported[int32]
 
 unsupported$0(a unsupported) unsupported
 unsupported$1(a unsupported) unsupported
+
+# Fallback coverage.
+
+fallback$0() fd
+fallback$1(a fd)
+seccomp()
