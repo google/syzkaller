@@ -22,7 +22,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	}
 	arch := sysTarget.KernelHeaderArch
 	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "clean-build", arch,
-		"--packages", "garnet/packages/products/sshd", "--variant", "asan"); err != nil {
+		"--packages", "garnet/packages/products/sshd"); err != nil {
 		return err
 	}
 	for src, dst := range map[string]string{
