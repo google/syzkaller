@@ -111,7 +111,7 @@ Main page.
 
 	{{range $ns := $.BugNamespaces}}
 		<br>
-		<h2 id="{{$ns.Name}}">{{$ns.Caption}}</h2>
+		<a class="plain" href="#{{$ns.Name}}"><h2 id="{{$ns.Name}}">{{$ns.Caption}}</h2></a>
 		{{if $ns.FixedLink}}
 			{{if $ns.CoverLink}}
 				<a href="{{$ns.CoverLink}}" target="_blank">source coverage</a> |

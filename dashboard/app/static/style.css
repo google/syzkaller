@@ -127,6 +127,10 @@ table td, table th {
 	font-weight: bold;
 }
 
+.plain {
+	text-decoration: none;
+}
+
 textarea {
 	width:100%;
 	font-family: monospace;
