@@ -153,7 +153,7 @@ console output: %[3]v
 kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler1
-syzkaller repro:%[2]v
+syz repro:      %[2]v
 CC:             [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -205,7 +205,7 @@ console output: %[3]v
 kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler1
-syzkaller repro:%[2]v
+syz repro:      %[2]v
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -281,7 +281,7 @@ console output: %[4]v
 kernel config:  %[5]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler2
-syzkaller repro:%[3]v
+syz repro:      %[3]v
 C reproducer:   %[2]v
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:

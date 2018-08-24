@@ -11,7 +11,7 @@ git tree:       {{.KernelRepo}}
 {{end}}dashboard link: {{.Link}}
 compiler:       {{.CompilerID}}
 {{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
-{{end}}{{if .ReproSyzLink}}syzkaller repro:{{.ReproSyzLink}}
+{{end}}{{if .ReproSyzLink}}syz repro:      {{.ReproSyzLink}}
 {{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
 {{end}}{{if .Moderation}}CC:             {{.Maintainers}}
 {{end}}{{if and (not .ReproCLink) (not .ReproSyzLink)}}
