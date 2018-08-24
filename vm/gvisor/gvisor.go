@@ -188,6 +188,7 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 	args := []string{
 		"-root", inst.rootDir,
 		"-watchdog-action=panic",
+		"-panic-signal=12",
 		"-network=none",
 	}
 	if inst.cfg.RunscArgs != "" {
@@ -325,7 +326,7 @@ func (inst *instance) guestProxy() (*os.File, error) {
 }
 
 func (inst *instance) Diagnose() bool {
-	osutil.Run(time.Minute, inst.runscCmd("debug", "-stacks", inst.name))
+	osutil.Run(time.Minute, inst.runscCmd("debug", "-signal=12", inst.name))
 	return true
 }
 
