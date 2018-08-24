@@ -1,14 +1,17 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-function sortTable(item, colName, conv) {
+function sortTable(item, colName, conv, desc = false) {
 	table = item.parentNode.parentNode.parentNode;
 	rows = table.getElementsByTagName("tr");
 	col = findColumnByName(rows[0].getElementsByTagName("th"), colName);
 	values = new Array;
 	for (i = 1; i < rows.length; i++)
 		values[i] = conv(rows[i].getElementsByTagName("td")[col].textContent);
-	desc = isSorted(values);
+	if (desc)
+		desc = !isSorted(values.slice().reverse())
+	else
+		desc = isSorted(values);
 	do {
 		changed = false;
 		for (i = 1; i < values.length - 1; i++) {

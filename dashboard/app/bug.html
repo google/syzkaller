@@ -38,7 +38,7 @@ Page with details about a single bug.
 		<caption>All crashes ({{.Bug.NumCrashes}}):</caption>
 		<tr>
 			<th><a onclick="return sortTable(this, 'Manager', textSort)" href="#">Manager</a></th>
-			<th><a onclick="return sortTable(this, 'Time', textSort)" href="#">Time</a></th>
+			<th><a onclick="return sortTable(this, 'Time', textSort, true)" href="#">Time</a></th>
 			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
 			<th><a onclick="return sortTable(this, 'Commit', textSort)" href="#">Commit</a></th>
 			<th><a onclick="return sortTable(this, 'Syzkaller', textSort)" href="#">Syzkaller</a></th>
