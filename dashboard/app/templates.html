@@ -45,7 +45,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{if .}}
 {{if .Bugs}}
 <table class="list_table">
-	<caption id="{{.Fragment}}">{{$.Caption}}:</caption>
+	<caption id="{{$.Fragment}}"><a class="plain" href="#{{$.Fragment}}">{{$.Caption}}:</a></caption>
 	<tr>
 		{{if $.ShowNamespace}}
 			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>

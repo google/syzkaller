@@ -15,7 +15,7 @@ Main page.
 	{{template "header" .Header}}
 
 	{{if .Log}}
-	<b>Error log:</b><br>
+	<a class="plain" href="#log"><div id="log"><b>Error log:</b></div></a>
 	<textarea id="log_textarea" readonly rows="20" wrap=off>{{printf "%s" .Log}}</textarea>
 	<script>
 		var textarea = document.getElementById("log_textarea");
@@ -25,8 +25,8 @@ Main page.
 	{{end}}
 
 	{{if $.Managers}}
-	<table class="list_table" id="managers">
-		<caption>Managers:</caption>
+	<table class="list_table">
+		<caption id="managers"><a class="plain" href="#managers">Managers:</a></caption>
 		<tr>
 			<th>Name</th>
 			<th>Last Active</th>
@@ -62,8 +62,8 @@ Main page.
 	{{end}}
 
 	{{if $.Jobs}}
-	<table class="list_table" id="jobs">
-		<caption>Recent jobs:</caption>
+	<table class="list_table">
+		<caption id="jobs"><a class="plain" href="#jobs">Recent jobs:</a></caption>
 		<tr>
 			<th>Bug</th>
 			<th>Created</th>
