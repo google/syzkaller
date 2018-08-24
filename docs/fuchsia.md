@@ -44,3 +44,18 @@ Run `syz-manager` with a config along the lines of:
 	}
 }
 ```
+
+
+## How to generate syscall description for FIDL
+
+FIDL files should first be compiled into FIDL intermediate representation (JSON) files using `fidlc`:
+
+```bash
+/fuchsia/out/x64/host_x64/fidlc --json /tmp/io.json --files /fuchsia/zircon/system/fidl/fuchsia-io/io.fidl
+```
+
+Then run FIDL compiler backend `fidlgen` with syzkaller generator, which compiles a FIDL IR file into a syscall description file:
+
+```bash
+/fuchsia/out/x64/host_x64/fidlgen -generators syzkaller -json /tmp/io.json -output-base fidl_io -include-base fidl_io
+```
