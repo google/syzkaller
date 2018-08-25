@@ -796,6 +796,8 @@ var linuxOopses = []*oops{
 			compile("ODEBUG:"),
 			// Android prints this sometimes during boot.
 			compile("Boot_DEBUG:"),
+			// Android ART debug output.
+			compile("DEBUG:"),
 			// pkg/host output in debug mode.
 			compile("BUG: no syscalls can create resource"),
 		},
