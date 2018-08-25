@@ -10,3 +10,7 @@ import (
 func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	return true, ""
 }
+
+func init() {
+	checkFeature[FeatureCoverage] = unconditionallyEnabled
+}
