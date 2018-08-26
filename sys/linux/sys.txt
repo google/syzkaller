@@ -533,7 +533,6 @@ openat$full(fd const[AT_FDCWD], file ptr[in, string["/dev/full"]], flags flags[o
 openat$snapshot(fd const[AT_FDCWD], file ptr[in, string["/dev/snapshot"]], flags flags[open_flags], mode const[0]) fd
 openat$vga_arbiter(fd const[AT_FDCWD], file ptr[in, string["/dev/vga_arbiter"]], flags flags[open_flags], mode const[0]) fd
 openat$vhci(fd const[AT_FDCWD], file ptr[in, string["/dev/vhci"]], flags flags[open_flags], mode const[0]) fd
-openat$userio(fd const[AT_FDCWD], file ptr[in, string["/dev/userio"]], flags flags[open_flags], mode const[0]) fd
 openat$rtc(fd const[AT_FDCWD], file ptr[in, string["/dev/rtc0"]], flags flags[open_flags], mode const[0]) fd
 openat$rfkill(fd const[AT_FDCWD], file ptr[in, string["/dev/rfkill"]], flags flags[open_flags], mode const[0]) fd
 openat$qat_adf_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/qat_adf_ctl"]], flags flags[open_flags], mode const[0]) fd
