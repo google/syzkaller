@@ -5,6 +5,7 @@
 
 include <linux/socket.h>
 include <linux/net.h>
+include <uapi/linux/in6.h>
 include <uapi/linux/rds.h>
 
 resource sock_rds[sock]
