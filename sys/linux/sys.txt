@@ -543,7 +543,6 @@ openat$hwrng(fd const[AT_FDCWD], file ptr[in, string["/dev/hwrng"]], flags flags
 openat$hpet(fd const[AT_FDCWD], file ptr[in, string["/dev/hpet"]], flags flags[open_flags], mode const[0]) fd
 openat$hidraw0(fd const[AT_FDCWD], file ptr[in, string["/dev/hidraw0"]], flags flags[open_flags], mode const[0]) fd
 openat$fb0(fd const[AT_FDCWD], file ptr[in, string["/dev/fb0"]], flags flags[open_flags], mode const[0]) fd
-openat$cuse(fd const[AT_FDCWD], file ptr[in, string["/dev/cuse"]], flags flags[open_flags], mode const[0]) fd
 openat$capi20(fd const[AT_FDCWD], file ptr[in, string["/dev/capi20"]], flags flags[open_flags], mode const[0]) fd
 openat$autofs(fd const[AT_FDCWD], file ptr[in, string["/dev/autofs"]], flags flags[open_flags], mode const[0]) fd
 openat$keychord(fd const[AT_FDCWD], file ptr[in, string["/dev/keychord"]], flags flags[open_flags], mode const[0]) fd

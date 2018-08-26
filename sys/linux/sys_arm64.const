@@ -754,7 +754,7 @@ __NR_renameat = 38
 __NR_renameat2 = 276
 __NR_restart_syscall = 128
 # __NR_rmdir is not set
-# __NR_rseq is not set
+__NR_rseq = 293
 __NR_rt_sigaction = 134
 __NR_rt_sigpending = 136
 __NR_rt_sigprocmask = 135
