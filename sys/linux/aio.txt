@@ -14,8 +14,8 @@ io_pgetevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[i
 io_submit(ctx io_ctx, nr len[iocbpp], iocbpp ptr[in, array[ptr[in, iocb]]])
 io_cancel(ctx io_ctx, iocb ptr[in, iocb], res ptr[out, io_event])
 
-lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV
-iocb_flags = 0, IOCB_FLAG_RESFD
+lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV, IOCB_CMD_POLL
+iocb_flags = 0, IOCB_FLAG_RESFD, IOCB_FLAG_IOPRIO
 
 io_event {
 	data	int64
@@ -36,5 +36,5 @@ iocb {
 	aio_offset	int64
 	aio_reserved2	const[0, int64]
 	aio_flags	flags[iocb_flags, int32]
-	aio_resfd	fd_event
+	aio_resfd	fd_event[opt]
 }
