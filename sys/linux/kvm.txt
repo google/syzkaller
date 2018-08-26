@@ -378,10 +378,11 @@ kvm_dirty_tlb {
 
 kvm_ioeventfd {
 	datam	flags[kvm_guest_addrs, int64]
-	addr	ptr[out, int64]
+	addr	ptr64[out, int64]
 	len	flags[kvm_ioeventfd_len, int32]
 	fd	fd_event
 	flags	flags[kvm_ioeventfd_flags, int32]
+	pad	array[const[0, int8], 36]
 }
 
 kvm_lapic_state {
