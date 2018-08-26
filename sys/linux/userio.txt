@@ -1,0 +1,18 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+include <uapi/linux/userio.h>
+
+resource fd_userio[fd]
+
+openat$userio(fd const[AT_FDCWD], file ptr[in, string["/dev/userio"]], flags flags[open_flags], mode const[0]) fd_userio
+
+write$USERIO_CMD_REGISTER(fd fd_userio, data ptr[in, userio_cmd[USERIO_CMD_REGISTER]], len len[data])
+write$USERIO_CMD_SET_PORT_TYPE(fd fd_userio, data ptr[in, userio_cmd[USERIO_CMD_SET_PORT_TYPE]], len len[data])
+write$USERIO_CMD_SEND_INTERRUPT(fd fd_userio, data ptr[in, userio_cmd[USERIO_CMD_SEND_INTERRUPT]], len len[data])
+
+type userio_cmd[TYPE] {
+	type	const[TYPE, int8]
+	data	int8
+}
