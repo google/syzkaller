@@ -4,7 +4,6 @@
 package report
 
 import (
-	"bytes"
 	"regexp"
 )
 
@@ -28,47 +27,7 @@ func (ctx *openbsd) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *openbsd) Parse(output []byte) *Report {
-	rep := &Report{
-		Output: output,
-	}
-	var oops *oops
-	for pos := 0; pos < len(output); {
-		next := bytes.IndexByte(output[pos:], '\n')
-		if next != -1 {
-			next += pos
-		} else {
-			next = len(output)
-		}
-		for _, oops1 := range openbsdOopses {
-			match := matchOops(output[pos:next], oops1, ctx.ignores)
-			if match == -1 {
-				continue
-			}
-			if oops == nil {
-				oops = oops1
-				rep.StartPos = pos
-				rep.Title = string(output[pos+match : next])
-			}
-			rep.EndPos = next
-		}
-		if oops != nil {
-			lineBegin := pos
-			if output[pos] == '\r' {
-				lineBegin++
-			}
-			rep.Report = append(rep.Report, output[lineBegin:next]...)
-			rep.Report = append(rep.Report, '\n')
-		}
-		pos = next + 1
-	}
-	if oops == nil {
-		return nil
-	}
-	title, corrupted, _ := extractDescription(output[rep.StartPos:], oops, openbsdStackParams)
-	rep.Title = title
-	rep.Corrupted = corrupted != ""
-	rep.CorruptedReason = corrupted
-	return rep
+	return simpleLineParser(output, openbsdOopses, nil, ctx.ignores)
 }
 
 func (ctx *openbsd) Symbolize(rep *Report) error {
