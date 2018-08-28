@@ -116,3 +116,4 @@ $ cat openbsd.cfg
   }
 }
 $ ./bin/syz-manager -config openbsd.cfg
+```
