@@ -52,7 +52,7 @@ type UnixSanitizer struct {
 	S_IFBLK        uint64
 	S_IFIFO        uint64
 	S_IFSOCK       uint64
-	S_IFMT	       uint64
+	S_IFMT         uint64
 }
 
 func MakeUnixSanitizer(target *prog.Target) *UnixSanitizer {
@@ -65,7 +65,7 @@ func MakeUnixSanitizer(target *prog.Target) *UnixSanitizer {
 		S_IFBLK:        target.ConstMap["S_IFBLK"],
 		S_IFIFO:        target.ConstMap["S_IFIFO"],
 		S_IFSOCK:       target.ConstMap["S_IFSOCK"],
-		S_IFMT:		target.ConstMap["S_IFMT"],
+		S_IFMT:         target.ConstMap["S_IFMT"],
 	}
 }
 
