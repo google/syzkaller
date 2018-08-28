@@ -6,6 +6,22 @@
 include <fuchsia/io/c/fidl.h>
 fuchsia_io_SeekOrigin = fuchsia_io_SeekOrigin_Start, fuchsia_io_SeekOrigin_Current, fuchsia_io_SeekOrigin_End
 
+fuchsia_io_FileObjectHandles {
+	event	zx_event
+} [packed]
+
+fuchsia_io_PipeHandles {
+	socket	zx_socket
+} [packed]
+
+fuchsia_io_VmofileHandles {
+	vmo	zx_vmo
+} [packed]
+
+fuchsia_io_DeviceHandles {
+	event	zx_event
+} [packed]
+
 fuchsia_io_NodeAttributesInLine {
 	mode			int32
 	id			int64
@@ -15,6 +31,13 @@ fuchsia_io_NodeAttributesInLine {
 	creation_time		int64
 	modification_time	int64
 } [packed]
+
+fuchsia_io_ObjectInfoHandles [
+	file	fuchsia_io_FileObjectHandles
+	pipe	fuchsia_io_PipeHandles
+	vmofile	fuchsia_io_VmofileHandles
+	device	fuchsia_io_DeviceHandles
+] [varlen]
 
 fuchsia_io_ObjectCloneRequest {
 	hdr	fidl_message_header[2147483649]
@@ -31,6 +54,10 @@ fuchsia_io_ObjectCloseRequest {
 } [packed]
 
 fuchsia_io_ObjectCloseRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_ObjectCloseResponseHandles {
 	void	void
 } [packed]
 
@@ -52,12 +79,12 @@ fuchsia_io_ObjectDescribeRequestHandles {
 	void	void
 } [packed]
 
-fuchsia_io_ObjectOnOpenRequest {
-	hdr	fidl_message_header[2147483655]
+fuchsia_io_ObjectDescribeResponseHandles {
+	info	fuchsia_io_ObjectInfoHandles
 } [packed]
 
-fuchsia_io_ObjectOnOpenRequestHandles {
-	void	void
+fuchsia_io_ObjectOnOpenEventHandles {
+	info	fuchsia_io_ObjectInfoHandles
 } [packed]
 
 resource zx_chan_fuchsia_io_Object_client[zx_chan]
@@ -65,11 +92,11 @@ resource zx_chan_fuchsia_io_Object_server[zx_chan]
 
 zx_channel_create$fuchsia_io_Object(options const[0], out0 ptr[out, zx_chan_fuchsia_io_Object_client], out1 ptr[out, zx_chan_fuchsia_io_Object_server])
 fdio_service_connect$fuchsia_io_Object(path ptr[in, string["/svc/"]], handle zx_chan_fuchsia_io_Object_server)
-zx_channel_call$fuchsia_io_ObjectClone(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectCloneRequest, fuchsia_io_ObjectCloneRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_ObjectClose(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectCloseRequest, fuchsia_io_ObjectCloseRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_ObjectBind(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectBindRequest, fuchsia_io_ObjectBindRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_ObjectDescribe(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectDescribeRequest, fuchsia_io_ObjectDescribeRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_ObjectOnOpen(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectOnOpenRequest, fuchsia_io_ObjectOnOpenRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_ObjectClone(handle zx_chan_fuchsia_io_Object_client, options const[0], bytes ptr[in, fuchsia_io_ObjectCloneRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_ObjectCloneRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_ObjectClose(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectCloseRequest, fuchsia_io_ObjectCloseRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_ObjectCloseResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_ObjectBind(handle zx_chan_fuchsia_io_Object_client, options const[0], bytes ptr[in, fuchsia_io_ObjectBindRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_ObjectBindRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_ObjectDescribe(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectDescribeRequest, fuchsia_io_ObjectDescribeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_ObjectDescribeResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_read$fuchsia_io_ObjectOnOpen(handle zx_chan_fuchsia_io_Object_client, options const[0], bytes ptr[out, array[int8, ZX_CHANNEL_MAX_MSG_BYTES]], num_bytes bytesize[bytes], handles ptr[out, fuchsia_io_ObjectOnOpenEventHandles], num_handles bytesize[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_io_NodeCloneRequest {
 	hdr	fidl_message_header[2147483649]
@@ -86,6 +113,10 @@ fuchsia_io_NodeCloseRequest {
 } [packed]
 
 fuchsia_io_NodeCloseRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_NodeCloseResponseHandles {
 	void	void
 } [packed]
 
@@ -107,12 +138,12 @@ fuchsia_io_NodeDescribeRequestHandles {
 	void	void
 } [packed]
 
-fuchsia_io_NodeOnOpenRequest {
-	hdr	fidl_message_header[2147483655]
+fuchsia_io_NodeDescribeResponseHandles {
+	info	fuchsia_io_ObjectInfoHandles
 } [packed]
 
-fuchsia_io_NodeOnOpenRequestHandles {
-	void	void
+fuchsia_io_NodeOnOpenEventHandles {
+	info	fuchsia_io_ObjectInfoHandles
 } [packed]
 
 fuchsia_io_NodeSyncRequest {
@@ -120,6 +151,10 @@ fuchsia_io_NodeSyncRequest {
 } [packed]
 
 fuchsia_io_NodeSyncRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_NodeSyncResponseHandles {
 	void	void
 } [packed]
 
@@ -131,6 +166,10 @@ fuchsia_io_NodeGetAttrRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_NodeGetAttrResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_NodeSetAttrRequest {
 	hdr			fidl_message_header[2164260867]
 	flags_			int32
@@ -138,6 +177,10 @@ fuchsia_io_NodeSetAttrRequest {
 } [packed]
 
 fuchsia_io_NodeSetAttrRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_NodeSetAttrResponseHandles {
 	void	void
 } [packed]
 
@@ -155,20 +198,24 @@ fuchsia_io_NodeIoctlRequestHandles {
 	handles	array[zx_handle]
 } [packed]
 
+fuchsia_io_NodeIoctlResponseHandles {
+	handles	array[zx_handle]
+} [packed]
+
 resource zx_chan_fuchsia_io_Node_client[zx_chan]
 resource zx_chan_fuchsia_io_Node_server[zx_chan]
 
 zx_channel_create$fuchsia_io_Node(options const[0], out0 ptr[out, zx_chan_fuchsia_io_Node_client], out1 ptr[out, zx_chan_fuchsia_io_Node_server])
 fdio_service_connect$fuchsia_io_Node(path ptr[in, string["/svc/"]], handle zx_chan_fuchsia_io_Node_server)
-zx_channel_call$fuchsia_io_NodeClone(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeCloneRequest, fuchsia_io_NodeCloneRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_NodeClose(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeCloseRequest, fuchsia_io_NodeCloseRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_NodeBind(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeBindRequest, fuchsia_io_NodeBindRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_NodeDescribe(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeDescribeRequest, fuchsia_io_NodeDescribeRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_NodeOnOpen(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeOnOpenRequest, fuchsia_io_NodeOnOpenRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_NodeSync(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeSyncRequest, fuchsia_io_NodeSyncRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_NodeGetAttr(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeGetAttrRequest, fuchsia_io_NodeGetAttrRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_NodeSetAttr(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeSetAttrRequest, fuchsia_io_NodeSetAttrRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_NodeIoctl(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeIoctlRequest, fuchsia_io_NodeIoctlRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_NodeClone(handle zx_chan_fuchsia_io_Node_client, options const[0], bytes ptr[in, fuchsia_io_NodeCloneRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_NodeCloneRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_NodeClose(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeCloseRequest, fuchsia_io_NodeCloseRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeCloseResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_NodeBind(handle zx_chan_fuchsia_io_Node_client, options const[0], bytes ptr[in, fuchsia_io_NodeBindRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_NodeBindRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_NodeDescribe(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeDescribeRequest, fuchsia_io_NodeDescribeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeDescribeResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_read$fuchsia_io_NodeOnOpen(handle zx_chan_fuchsia_io_Node_client, options const[0], bytes ptr[out, array[int8, ZX_CHANNEL_MAX_MSG_BYTES]], num_bytes bytesize[bytes], handles ptr[out, fuchsia_io_NodeOnOpenEventHandles], num_handles bytesize[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_NodeSync(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeSyncRequest, fuchsia_io_NodeSyncRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeSyncResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_NodeGetAttr(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeGetAttrRequest, fuchsia_io_NodeGetAttrRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeGetAttrResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_NodeSetAttr(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeSetAttrRequest, fuchsia_io_NodeSetAttrRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeSetAttrResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_NodeIoctl(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeIoctlRequest, fuchsia_io_NodeIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeIoctlResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_io_FileCloneRequest {
 	hdr	fidl_message_header[2147483649]
@@ -185,6 +232,10 @@ fuchsia_io_FileCloseRequest {
 } [packed]
 
 fuchsia_io_FileCloseRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_FileCloseResponseHandles {
 	void	void
 } [packed]
 
@@ -206,12 +257,12 @@ fuchsia_io_FileDescribeRequestHandles {
 	void	void
 } [packed]
 
-fuchsia_io_FileOnOpenRequest {
-	hdr	fidl_message_header[2147483655]
+fuchsia_io_FileDescribeResponseHandles {
+	info	fuchsia_io_ObjectInfoHandles
 } [packed]
 
-fuchsia_io_FileOnOpenRequestHandles {
-	void	void
+fuchsia_io_FileOnOpenEventHandles {
+	info	fuchsia_io_ObjectInfoHandles
 } [packed]
 
 fuchsia_io_FileSyncRequest {
@@ -219,6 +270,10 @@ fuchsia_io_FileSyncRequest {
 } [packed]
 
 fuchsia_io_FileSyncRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_FileSyncResponseHandles {
 	void	void
 } [packed]
 
@@ -230,6 +285,10 @@ fuchsia_io_FileGetAttrRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_FileGetAttrResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_FileSetAttrRequest {
 	hdr			fidl_message_header[2164260867]
 	flags_			int32
@@ -237,6 +296,10 @@ fuchsia_io_FileSetAttrRequest {
 } [packed]
 
 fuchsia_io_FileSetAttrRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_FileSetAttrResponseHandles {
 	void	void
 } [packed]
 
@@ -254,12 +317,20 @@ fuchsia_io_FileIoctlRequestHandles {
 	handles	array[zx_handle]
 } [packed]
 
+fuchsia_io_FileIoctlResponseHandles {
+	handles	array[zx_handle]
+} [packed]
+
 fuchsia_io_FileReadRequest {
 	hdr	fidl_message_header[2181038081]
 	count	int64
 } [packed]
 
 fuchsia_io_FileReadRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_FileReadResponseHandles {
 	void	void
 } [packed]
 
@@ -273,6 +344,10 @@ fuchsia_io_FileReadAtRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_FileReadAtResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_FileWriteRequest {
 	hdr		fidl_message_header[2181038083]
 	dataInLine	fidl_vector
@@ -280,6 +355,10 @@ fuchsia_io_FileWriteRequest {
 } [packed]
 
 fuchsia_io_FileWriteRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_FileWriteResponseHandles {
 	void	void
 } [packed]
 
@@ -294,6 +373,10 @@ fuchsia_io_FileWriteAtRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_FileWriteAtResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_FileSeekRequest {
 	hdr	fidl_message_header[2181038085]
 	offset	int64
@@ -301,6 +384,10 @@ fuchsia_io_FileSeekRequest {
 } [packed]
 
 fuchsia_io_FileSeekRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_FileSeekResponseHandles {
 	void	void
 } [packed]
 
@@ -313,11 +400,19 @@ fuchsia_io_FileTruncateRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_FileTruncateResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_FileGetFlagsRequest {
 	hdr	fidl_message_header[2181038087]
 } [packed]
 
 fuchsia_io_FileGetFlagsRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_FileGetFlagsResponseHandles {
 	void	void
 } [packed]
 
@@ -330,6 +425,10 @@ fuchsia_io_FileSetFlagsRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_FileSetFlagsResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_FileGetVmoRequest {
 	hdr	fidl_message_header[2181038089]
 	flags_	int32
@@ -337,6 +436,10 @@ fuchsia_io_FileGetVmoRequest {
 
 fuchsia_io_FileGetVmoRequestHandles {
 	void	void
+} [packed]
+
+fuchsia_io_FileGetVmoResponseHandles {
+	vmo	zx_vmo
 } [packed]
 
 fuchsia_io_FileGetVmoAtRequest {
@@ -350,30 +453,34 @@ fuchsia_io_FileGetVmoAtRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_FileGetVmoAtResponseHandles {
+	vmo	zx_vmo
+} [packed]
+
 resource zx_chan_fuchsia_io_File_client[zx_chan]
 resource zx_chan_fuchsia_io_File_server[zx_chan]
 
 zx_channel_create$fuchsia_io_File(options const[0], out0 ptr[out, zx_chan_fuchsia_io_File_client], out1 ptr[out, zx_chan_fuchsia_io_File_server])
 fdio_service_connect$fuchsia_io_File(path ptr[in, string["/svc/"]], handle zx_chan_fuchsia_io_File_server)
-zx_channel_call$fuchsia_io_FileClone(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileCloneRequest, fuchsia_io_FileCloneRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileClose(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileCloseRequest, fuchsia_io_FileCloseRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileBind(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileBindRequest, fuchsia_io_FileBindRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileDescribe(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileDescribeRequest, fuchsia_io_FileDescribeRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileOnOpen(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileOnOpenRequest, fuchsia_io_FileOnOpenRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileSync(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSyncRequest, fuchsia_io_FileSyncRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileGetAttr(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetAttrRequest, fuchsia_io_FileGetAttrRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileSetAttr(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSetAttrRequest, fuchsia_io_FileSetAttrRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileIoctl(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileIoctlRequest, fuchsia_io_FileIoctlRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileRead(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileReadRequest, fuchsia_io_FileReadRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileReadAt(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileReadAtRequest, fuchsia_io_FileReadAtRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileWrite(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileWriteRequest, fuchsia_io_FileWriteRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileWriteAt(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileWriteAtRequest, fuchsia_io_FileWriteAtRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileSeek(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSeekRequest, fuchsia_io_FileSeekRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileTruncate(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileTruncateRequest, fuchsia_io_FileTruncateRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileGetFlags(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetFlagsRequest, fuchsia_io_FileGetFlagsRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileSetFlags(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSetFlagsRequest, fuchsia_io_FileSetFlagsRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileGetVmo(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetVmoRequest, fuchsia_io_FileGetVmoRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileGetVmoAt(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetVmoAtRequest, fuchsia_io_FileGetVmoAtRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_FileClone(handle zx_chan_fuchsia_io_File_client, options const[0], bytes ptr[in, fuchsia_io_FileCloneRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_FileCloneRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_FileClose(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileCloseRequest, fuchsia_io_FileCloseRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileCloseResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_FileBind(handle zx_chan_fuchsia_io_File_client, options const[0], bytes ptr[in, fuchsia_io_FileBindRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_FileBindRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_FileDescribe(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileDescribeRequest, fuchsia_io_FileDescribeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileDescribeResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_read$fuchsia_io_FileOnOpen(handle zx_chan_fuchsia_io_File_client, options const[0], bytes ptr[out, array[int8, ZX_CHANNEL_MAX_MSG_BYTES]], num_bytes bytesize[bytes], handles ptr[out, fuchsia_io_FileOnOpenEventHandles], num_handles bytesize[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileSync(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSyncRequest, fuchsia_io_FileSyncRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileSyncResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileGetAttr(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetAttrRequest, fuchsia_io_FileGetAttrRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileGetAttrResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileSetAttr(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSetAttrRequest, fuchsia_io_FileSetAttrRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileSetAttrResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileIoctl(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileIoctlRequest, fuchsia_io_FileIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileIoctlResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileRead(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileReadRequest, fuchsia_io_FileReadRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileReadResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileReadAt(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileReadAtRequest, fuchsia_io_FileReadAtRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileReadAtResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileWrite(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileWriteRequest, fuchsia_io_FileWriteRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileWriteResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileWriteAt(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileWriteAtRequest, fuchsia_io_FileWriteAtRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileWriteAtResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileSeek(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSeekRequest, fuchsia_io_FileSeekRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileSeekResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileTruncate(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileTruncateRequest, fuchsia_io_FileTruncateRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileTruncateResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileGetFlags(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetFlagsRequest, fuchsia_io_FileGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileGetFlagsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileSetFlags(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSetFlagsRequest, fuchsia_io_FileSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileSetFlagsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileGetVmo(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetVmoRequest, fuchsia_io_FileGetVmoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileGetVmoResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileGetVmoAt(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetVmoAtRequest, fuchsia_io_FileGetVmoAtRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileGetVmoAtResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_io_DirectoryCloneRequest {
 	hdr	fidl_message_header[2147483649]
@@ -390,6 +497,10 @@ fuchsia_io_DirectoryCloseRequest {
 } [packed]
 
 fuchsia_io_DirectoryCloseRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_DirectoryCloseResponseHandles {
 	void	void
 } [packed]
 
@@ -411,12 +522,12 @@ fuchsia_io_DirectoryDescribeRequestHandles {
 	void	void
 } [packed]
 
-fuchsia_io_DirectoryOnOpenRequest {
-	hdr	fidl_message_header[2147483655]
+fuchsia_io_DirectoryDescribeResponseHandles {
+	info	fuchsia_io_ObjectInfoHandles
 } [packed]
 
-fuchsia_io_DirectoryOnOpenRequestHandles {
-	void	void
+fuchsia_io_DirectoryOnOpenEventHandles {
+	info	fuchsia_io_ObjectInfoHandles
 } [packed]
 
 fuchsia_io_DirectorySyncRequest {
@@ -424,6 +535,10 @@ fuchsia_io_DirectorySyncRequest {
 } [packed]
 
 fuchsia_io_DirectorySyncRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_DirectorySyncResponseHandles {
 	void	void
 } [packed]
 
@@ -435,6 +550,10 @@ fuchsia_io_DirectoryGetAttrRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_DirectoryGetAttrResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_DirectorySetAttrRequest {
 	hdr			fidl_message_header[2164260867]
 	flags_			int32
@@ -442,6 +561,10 @@ fuchsia_io_DirectorySetAttrRequest {
 } [packed]
 
 fuchsia_io_DirectorySetAttrRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_DirectorySetAttrResponseHandles {
 	void	void
 } [packed]
 
@@ -456,6 +579,10 @@ fuchsia_io_DirectoryIoctlRequest {
 } [packed]
 
 fuchsia_io_DirectoryIoctlRequestHandles {
+	handles	array[zx_handle]
+} [packed]
+
+fuchsia_io_DirectoryIoctlResponseHandles {
 	handles	array[zx_handle]
 } [packed]
 
@@ -482,12 +609,20 @@ fuchsia_io_DirectoryUnlinkRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_DirectoryUnlinkResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_DirectoryReadDirentsRequest {
 	hdr	fidl_message_header[2197815299]
 	max_out	int64
 } [packed]
 
 fuchsia_io_DirectoryReadDirentsRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_io_DirectoryReadDirentsResponseHandles {
 	void	void
 } [packed]
 
@@ -499,12 +634,20 @@ fuchsia_io_DirectoryRewindRequestHandles {
 	void	void
 } [packed]
 
+fuchsia_io_DirectoryRewindResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_DirectoryGetTokenRequest {
 	hdr	fidl_message_header[2197815301]
 } [packed]
 
 fuchsia_io_DirectoryGetTokenRequestHandles {
 	void	void
+} [packed]
+
+fuchsia_io_DirectoryGetTokenResponseHandles {
+	token	zx_handle
 } [packed]
 
 fuchsia_io_DirectoryRenameRequest {
@@ -520,6 +663,10 @@ fuchsia_io_DirectoryRenameRequestHandles {
 	dst_parent_token	zx_handle
 } [packed]
 
+fuchsia_io_DirectoryRenameResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_io_DirectoryLinkRequest {
 	hdr			fidl_message_header[2197815303]
 	srcInLine		fidl_string
@@ -533,24 +680,28 @@ fuchsia_io_DirectoryLinkRequestHandles {
 	dst_parent_token	zx_handle
 } [packed]
 
+fuchsia_io_DirectoryLinkResponseHandles {
+	void	void
+} [packed]
+
 resource zx_chan_fuchsia_io_Directory_client[zx_chan]
 resource zx_chan_fuchsia_io_Directory_server[zx_chan]
 
 zx_channel_create$fuchsia_io_Directory(options const[0], out0 ptr[out, zx_chan_fuchsia_io_Directory_client], out1 ptr[out, zx_chan_fuchsia_io_Directory_server])
 fdio_service_connect$fuchsia_io_Directory(path ptr[in, string["/svc/"]], handle zx_chan_fuchsia_io_Directory_server)
-zx_channel_call$fuchsia_io_DirectoryClone(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryCloneRequest, fuchsia_io_DirectoryCloneRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryClose(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryCloseRequest, fuchsia_io_DirectoryCloseRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryBind(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryBindRequest, fuchsia_io_DirectoryBindRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryDescribe(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryDescribeRequest, fuchsia_io_DirectoryDescribeRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryOnOpen(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryOnOpenRequest, fuchsia_io_DirectoryOnOpenRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectorySync(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectorySyncRequest, fuchsia_io_DirectorySyncRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryGetAttr(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryGetAttrRequest, fuchsia_io_DirectoryGetAttrRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectorySetAttr(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectorySetAttrRequest, fuchsia_io_DirectorySetAttrRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryIoctl(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryIoctlRequest, fuchsia_io_DirectoryIoctlRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryOpen(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryOpenRequest, fuchsia_io_DirectoryOpenRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryUnlink(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryUnlinkRequest, fuchsia_io_DirectoryUnlinkRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryReadDirents(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryReadDirentsRequest, fuchsia_io_DirectoryReadDirentsRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryRewind(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryRewindRequest, fuchsia_io_DirectoryRewindRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryGetToken(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryGetTokenRequest, fuchsia_io_DirectoryGetTokenRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryRename(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryRenameRequest, fuchsia_io_DirectoryRenameRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_DirectoryLink(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryLinkRequest, fuchsia_io_DirectoryLinkRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_DirectoryClone(handle zx_chan_fuchsia_io_Directory_client, options const[0], bytes ptr[in, fuchsia_io_DirectoryCloneRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_DirectoryCloneRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_DirectoryClose(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryCloseRequest, fuchsia_io_DirectoryCloseRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryCloseResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_DirectoryBind(handle zx_chan_fuchsia_io_Directory_client, options const[0], bytes ptr[in, fuchsia_io_DirectoryBindRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_DirectoryBindRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_DirectoryDescribe(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryDescribeRequest, fuchsia_io_DirectoryDescribeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryDescribeResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_read$fuchsia_io_DirectoryOnOpen(handle zx_chan_fuchsia_io_Directory_client, options const[0], bytes ptr[out, array[int8, ZX_CHANNEL_MAX_MSG_BYTES]], num_bytes bytesize[bytes], handles ptr[out, fuchsia_io_DirectoryOnOpenEventHandles], num_handles bytesize[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectorySync(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectorySyncRequest, fuchsia_io_DirectorySyncRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectorySyncResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectoryGetAttr(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryGetAttrRequest, fuchsia_io_DirectoryGetAttrRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryGetAttrResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectorySetAttr(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectorySetAttrRequest, fuchsia_io_DirectorySetAttrRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectorySetAttrResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectoryIoctl(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryIoctlRequest, fuchsia_io_DirectoryIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryIoctlResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_io_DirectoryOpen(handle zx_chan_fuchsia_io_Directory_client, options const[0], bytes ptr[in, fuchsia_io_DirectoryOpenRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_DirectoryOpenRequestHandles], num_handles bytesize[handles])
+zx_channel_call$fuchsia_io_DirectoryUnlink(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryUnlinkRequest, fuchsia_io_DirectoryUnlinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryUnlinkResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectoryReadDirents(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryReadDirentsRequest, fuchsia_io_DirectoryReadDirentsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryReadDirentsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectoryRewind(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryRewindRequest, fuchsia_io_DirectoryRewindRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryRewindResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectoryGetToken(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryGetTokenRequest, fuchsia_io_DirectoryGetTokenRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryGetTokenResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectoryRename(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryRenameRequest, fuchsia_io_DirectoryRenameRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryRenameResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_DirectoryLink(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryLinkRequest, fuchsia_io_DirectoryLinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryLinkResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
