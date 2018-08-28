@@ -15,9 +15,24 @@ fuchsia_process_LaunchInfoOutOfLine {
 	nameOutOfLine	fidl_aligned[stringnoz]
 } [packed]
 
-fuchsia_process_LaunchInfo {
+fuchsia_process_LaunchInfoHandles {
 	executable	zx_vmo
 	job		zx_job
+} [packed]
+
+fuchsia_process_LaunchResultHandles {
+	process	zx_process
+} [packed]
+
+fuchsia_process_ProcessStartDataHandles {
+	process		zx_process
+	root_vmar	zx_vmar
+	thread		zx_thread
+	bootstrap	zx_chan
+} [packed]
+
+fuchsia_process_CreateWithoutStartingResultHandles {
+	data	fuchsia_process_ProcessStartDataHandles
 } [packed]
 
 fuchsia_process_NameInfoInLine {
@@ -29,7 +44,7 @@ fuchsia_process_NameInfoOutOfLine {
 	pathOutOfLine	fidl_aligned[stringnoz]
 } [packed]
 
-fuchsia_process_NameInfo {
+fuchsia_process_NameInfoHandles {
 	directory	zx_chan
 } [packed]
 
@@ -38,7 +53,7 @@ fuchsia_process_HandleInfoInLine {
 	id	int32
 } [packed]
 
-fuchsia_process_HandleInfo {
+fuchsia_process_HandleInfoHandles {
 	handle	zx_handle
 } [packed]
 
@@ -49,7 +64,11 @@ fuchsia_process_LauncherLaunchRequest {
 } [packed]
 
 fuchsia_process_LauncherLaunchRequestHandles {
-	info	fuchsia_process_LaunchInfo
+	info	fuchsia_process_LaunchInfoHandles
+} [packed]
+
+fuchsia_process_LauncherLaunchResponseHandles {
+	result	fuchsia_process_LaunchResultHandles
 } [packed]
 
 fuchsia_process_LauncherCreateWithoutStartingRequest {
@@ -59,7 +78,11 @@ fuchsia_process_LauncherCreateWithoutStartingRequest {
 } [packed]
 
 fuchsia_process_LauncherCreateWithoutStartingRequestHandles {
-	info	fuchsia_process_LaunchInfo
+	info	fuchsia_process_LaunchInfoHandles
+} [packed]
+
+fuchsia_process_LauncherCreateWithoutStartingResponseHandles {
+	result	fuchsia_process_CreateWithoutStartingResultHandles
 } [packed]
 
 fuchsia_process_LauncherAddArgsRequest {
@@ -89,7 +112,7 @@ fuchsia_process_LauncherAddNamesRequest {
 } [packed]
 
 fuchsia_process_LauncherAddNamesRequestHandles {
-	names	array[fuchsia_process_NameInfo]
+	names	array[fuchsia_process_NameInfoHandles]
 } [packed]
 
 fuchsia_process_LauncherAddHandlesRequest {
@@ -99,7 +122,7 @@ fuchsia_process_LauncherAddHandlesRequest {
 } [packed]
 
 fuchsia_process_LauncherAddHandlesRequestHandles {
-	handles	array[fuchsia_process_HandleInfo]
+	handles	array[fuchsia_process_HandleInfoHandles]
 } [packed]
 
 resource zx_chan_fuchsia_process_Launcher_client[zx_chan]
@@ -107,9 +130,9 @@ resource zx_chan_fuchsia_process_Launcher_server[zx_chan]
 
 zx_channel_create$fuchsia_process_Launcher(options const[0], out0 ptr[out, zx_chan_fuchsia_process_Launcher_client], out1 ptr[out, zx_chan_fuchsia_process_Launcher_server])
 fdio_service_connect$fuchsia_process_Launcher(path ptr[in, string["/svc/fuchsia.process.Launcher"]], handle zx_chan_fuchsia_process_Launcher_server)
-zx_channel_call$fuchsia_process_LauncherLaunch(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_process_LauncherLaunchRequest, fuchsia_process_LauncherLaunchRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_process_LauncherCreateWithoutStarting(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_process_LauncherCreateWithoutStartingRequest, fuchsia_process_LauncherCreateWithoutStartingRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_process_LauncherAddArgs(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_process_LauncherAddArgsRequest, fuchsia_process_LauncherAddArgsRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_process_LauncherAddEnvirons(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_process_LauncherAddEnvironsRequest, fuchsia_process_LauncherAddEnvironsRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_process_LauncherAddNames(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_process_LauncherAddNamesRequest, fuchsia_process_LauncherAddNamesRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_process_LauncherAddHandles(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_process_LauncherAddHandlesRequest, fuchsia_process_LauncherAddHandlesRequestHandles, array[zx_handle]]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_process_LauncherLaunch(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_process_LauncherLaunchRequest, fuchsia_process_LauncherLaunchRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_process_LauncherLaunchResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_process_LauncherCreateWithoutStarting(handle zx_chan_fuchsia_process_Launcher_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_process_LauncherCreateWithoutStartingRequest, fuchsia_process_LauncherCreateWithoutStartingRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_process_LauncherCreateWithoutStartingResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_write$fuchsia_process_LauncherAddArgs(handle zx_chan_fuchsia_process_Launcher_client, options const[0], bytes ptr[in, fuchsia_process_LauncherAddArgsRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_process_LauncherAddArgsRequestHandles], num_handles bytesize[handles])
+zx_channel_write$fuchsia_process_LauncherAddEnvirons(handle zx_chan_fuchsia_process_Launcher_client, options const[0], bytes ptr[in, fuchsia_process_LauncherAddEnvironsRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_process_LauncherAddEnvironsRequestHandles], num_handles bytesize[handles])
+zx_channel_write$fuchsia_process_LauncherAddNames(handle zx_chan_fuchsia_process_Launcher_client, options const[0], bytes ptr[in, fuchsia_process_LauncherAddNamesRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_process_LauncherAddNamesRequestHandles], num_handles bytesize[handles])
+zx_channel_write$fuchsia_process_LauncherAddHandles(handle zx_chan_fuchsia_process_Launcher_client, options const[0], bytes ptr[in, fuchsia_process_LauncherAddHandlesRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_process_LauncherAddHandlesRequestHandles], num_handles bytesize[handles])
