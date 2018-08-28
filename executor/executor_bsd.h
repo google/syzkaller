@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#if !defined(__FreeBSD__) && !defined(__NetBSD__)
+#if !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__OpenBSD__)
 // This is just so that "make executor TARGETOS=freebsd/netbsd" works on linux.
 #define __syscall syscall
 #endif
@@ -48,6 +48,7 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 }
 
 #if GOOS_freebsd
+
 #define KIOENABLE _IOW('c', 2, int) // Enable coverage recording
 #define KIODISABLE _IO('c', 3) // Disable coverage recording
 #define KIOSETBUFSIZE _IOW('c', 4, unsigned int) // Set the buffer size
@@ -56,16 +57,34 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 #define KCOV_MODE_TRACE_PC 0
 #define KCOV_MODE_TRACE_CMP 1
 
+#elif GOOS_openbsd
+
+#define KIOSETBUFSIZE _IOW('K', 1, unsigned long)
+#define KIOENABLE _IO('K', 2)
+#define KIODISABLE _IO('K', 3)
+
+#endif
+
+#if GOOS_freebsd || GOOS_openbsd
+
 static void cover_open(cover_t* cov)
 {
 	int fd = open("/dev/kcov", O_RDWR);
 	if (fd == -1)
 		fail("open of /dev/kcov failed");
 	if (dup2(fd, cov->fd) < 0)
-		fail("filed to dup2(%d, %d) cover fd", fd, cov->fd);
+		fail("failed to dup2(%d, %d) cover fd", fd, cov->fd);
 	close(fd);
+
+#if GOOS_freebsd
 	if (ioctl(cov->fd, KIOSETBUFSIZE, &kCoverSize))
 		fail("ioctl init trace write failed");
+#elif GOOS_openbsd
+	unsigned long cover_size = kCoverSize;
+	if (ioctl(cov->fd, KIOSETBUFSIZE, &cover_size))
+		fail("ioctl init trace write failed");
+#endif
+
 	size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
 	char* mmap_ptr = (char*)mmap(NULL, mmap_alloc_size,
 				     PROT_READ | PROT_WRITE,
@@ -78,9 +97,14 @@ static void cover_open(cover_t* cov)
 
 static void cover_enable(cover_t* cov, bool collect_comps)
 {
+#if GOOS_freebsd
 	int kcov_mode = flag_collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
 	if (ioctl(cov->fd, KIOENABLE, &kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
+#elif GOOS_openbsd
+	if (ioctl(cov->fd, KIOENABLE))
+		exitf("cover enable write trace failed");
+#endif
 }
 
 static void cover_reset(cover_t* cov)

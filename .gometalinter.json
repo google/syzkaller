@@ -15,6 +15,7 @@
 		"sys/fuchsia/gen",
 		"sys/linux/gen",
 		"sys/netbsd/gen",
+		"sys/openbsd/gen",
 		"sys/windows/gen",
 		"sys/test/gen"
 	],

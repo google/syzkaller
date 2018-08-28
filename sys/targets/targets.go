@@ -177,6 +177,15 @@ var List = map[string]map[string]*Target{
 			CrossCFlags: []string{"-m64", "-static"},
 		},
 	},
+	"openbsd": {
+		"amd64": {
+			PtrSize:     8,
+			PageSize:    4 << 10,
+			CFlags:      []string{"-m64"},
+			CCompiler:   "c++",
+			CrossCFlags: []string{"-m64", "-static", "-lutil"},
+		},
+	},
 	"fuchsia": {
 		"amd64": {
 			PtrSize:          8,
@@ -248,6 +257,12 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: true,
 	},
 	"netbsd": {
+		SyscallNumbers:         true,
+		SyscallPrefix:          "SYS_",
+		ExecutorUsesShmem:      true,
+		ExecutorUsesForkServer: true,
+	},
+	"openbsd": {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,

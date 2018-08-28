@@ -1,0 +1,24 @@
+TITLE: pool: double put: mbufpl
+
+panic: pool_do_put: mbufpl: double pool_put: 0xffffff001d506200
+Stopped at      db_enter+0xa:   popq    %rbp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+*350399  57238      0           0  0x4000000    0  syz-executor1
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+pool_do_put(ffffff001d506200,ffffffff81eacbe8) at pool_do_put+0x2e2
+pool_put(fecbcf835145a619,ffffff001d506200) at pool_put+0x37
+m_free(ffffff001d506200) at m_free+0x11e
+m_freem(2d) at m_freem+0x2d
+soreceive(38a,ffffff001a63c930,0,0,ffff80000e423648,ffffff001071db90) at sorece
+ive+0x1fc
+recvit(ffff80000e2b7050,ffff80000e4236e0,0,ffff80000e4236f8,12eb78e821c8) at re
+cvit+0x253
+sys_recvfrom(ffff80000e423780,ffff80000e2b7050,ffff80000e315170) at sys_recvfro
+m+0xbc
+syscall(0) at syscall+0x3e4
+Xsyscall_untramp(6,0,0,0,0,0) at Xsyscall_untramp+0xe4
+end of kernel
+end trace frame: 0x12eb78e82220, count: 4
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.

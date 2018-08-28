@@ -125,6 +125,21 @@
 
 #endif
 
+#if GOOS_openbsd
+#define GOOS "openbsd"
+
+#if GOARCH_amd64
+#define GOARCH "amd64"
+#define SYZ_REVISION "f1bde02bbb60bf849ed61dda9a552900891199ef"
+#define SYZ_EXECUTOR_USES_FORK_SERVER 1
+#define SYZ_EXECUTOR_USES_SHMEM 1
+#define SYZ_PAGE_SIZE 4096
+#define SYZ_NUM_PAGES 4096
+#define SYZ_DATA_OFFSET 536870912
+#endif
+
+#endif
+
 #if GOOS_test
 #define GOOS "test"
 
