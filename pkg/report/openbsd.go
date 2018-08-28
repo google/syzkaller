@@ -34,10 +34,8 @@ func (ctx *openbsd) Symbolize(rep *Report) error {
 	return nil
 }
 
-var openbsdStackParams = &stackParams{}
-
 var openbsdOopses = []*oops{
-	&oops{
+	{
 		[]byte("cleaned vnode"),
 		[]oopsFormat{
 			{
@@ -47,7 +45,7 @@ var openbsdOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("uvm_fault"),
 		[]oopsFormat{
 			{
@@ -57,7 +55,7 @@ var openbsdOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("panic"),
 		[]oopsFormat{
 			{
@@ -71,7 +69,7 @@ var openbsdOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-	&oops{
+	{
 		[]byte("kernel:"),
 		[]oopsFormat{},
 		[]*regexp.Regexp{
