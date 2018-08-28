@@ -170,7 +170,7 @@ static void use_temporary_dir(void)
 #endif
 #endif
 
-#if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_test
+#if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_openbsd || GOOS_test
 #if SYZ_EXECUTOR || SYZ_EXECUTOR_USES_FORK_SERVER && SYZ_REPEAT && SYZ_USE_TMP_DIR
 #include <dirent.h>
 #include <stdio.h>
@@ -240,7 +240,7 @@ static void thread_start(void* (*fn)(void*), void* arg)
 #endif
 #endif
 
-#if GOOS_freebsd || GOOS_netbsd || GOOS_akaros || GOOS_test
+#if GOOS_freebsd || GOOS_netbsd || GOOS_openbsd || GOOS_akaros || GOOS_test
 #if SYZ_EXECUTOR || SYZ_THREADED
 
 #include <pthread.h>
@@ -366,7 +366,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 
 #if GOOS_akaros
 #include "common_akaros.h"
-#elif GOOS_freebsd || GOOS_netbsd
+#elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
 #include "common_bsd.h"
 #elif GOOS_fuchsia
 #include "common_fuchsia.h"

@@ -155,7 +155,7 @@ static void use_temporary_dir(void)
 #endif
 #endif
 
-#if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_test
+#if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_openbsd || GOOS_test
 #if SYZ_EXECUTOR || SYZ_EXECUTOR_USES_FORK_SERVER && SYZ_REPEAT && SYZ_USE_TMP_DIR
 #include <dirent.h>
 #include <stdio.h>
@@ -225,7 +225,7 @@ static void thread_start(void* (*fn)(void*), void* arg)
 #endif
 #endif
 
-#if GOOS_freebsd || GOOS_netbsd || GOOS_akaros || GOOS_test
+#if GOOS_freebsd || GOOS_netbsd || GOOS_openbsd || GOOS_akaros || GOOS_test
 #if SYZ_EXECUTOR || SYZ_THREADED
 
 #include <pthread.h>
@@ -387,7 +387,7 @@ void child()
 #define do_sandbox_namespace() 0
 #endif
 
-#elif GOOS_freebsd || GOOS_netbsd
+#elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
 
 #include <unistd.h>
 
@@ -403,6 +403,34 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#endif
+
+#if GOOS_openbsd
+
+#define __syscall syscall
+
+#if SYZ_EXECUTOR || __NR_syz_open_pts
+
+#if defined(__OpenBSD__)
+#include <termios.h>
+#include <util.h>
+#else
+#include <pty.h>
+#endif
+
+static uintptr_t syz_open_pts(void)
+{
+	int master, slave;
+
+	if (openpty(&master, &slave, NULL, NULL, NULL) == -1)
+		return -1;
+	if (dup2(master, master + 100) != -1)
+		close(master);
+	return slave;
+}
+
+#endif
+
 #endif
 
 #elif GOOS_fuchsia
