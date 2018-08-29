@@ -9,7 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
+	"regexp"
 	"strings"
 	"time"
 
@@ -48,10 +48,12 @@ type instance struct {
 	sshhost  string
 	sshport  int
 	merger   *vmimpl.OutputMerger
-	vmID     int
+	vmName   string
 	stop     chan bool
 	diagnose chan string
 }
+
+var ipRegex = regexp.MustCompile(`bound to (([0-9]+\.){3}3)`)
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
@@ -106,6 +108,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
+	name := fmt.Sprintf("syzkaller-%v-%v", pool.env.Name, index)
 	inst := &instance{
 		cfg:      pool.cfg,
 		index:    index,
@@ -116,6 +119,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshkey:   pool.env.SSHKey,
 		sshuser:  pool.env.SSHUser,
 		sshport:  22,
+		vmName:   name,
 		stop:     make(chan bool),
 		diagnose: make(chan string),
 	}
@@ -135,25 +139,17 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 }
 
 func (inst *instance) Boot() error {
-	name := fmt.Sprintf("syzkaller-%v", inst.index)
 	mem := fmt.Sprintf("%vM", inst.cfg.Mem)
 	startArgs := []string{
-		"start", name,
+		"start", inst.vmName,
 		"-t", inst.cfg.Template,
 		"-b", inst.cfg.Kernel,
 		"-d", inst.image,
 		"-m", mem,
 	}
-	startOut, err := inst.vmctl(startArgs...)
-	if err != nil {
+	if _, err := inst.vmctl(startArgs...); err != nil {
 		return err
 	}
-
-	inst.vmID, err = parseID(startOut)
-	if err != nil {
-		return err
-	}
-	inst.sshhost = fmt.Sprintf("100.64.%v.3", inst.vmID)
 
 	var tee io.Writer
 	if inst.debug {
@@ -167,7 +163,9 @@ func (inst *instance) Boot() error {
 
 	var bootOutput []byte
 	bootOutputStop := make(chan bool)
+	ipch := make(chan string, 1)
 	go func() {
+		gotip := false
 		for {
 			select {
 			case out := <-inst.merger.Output:
@@ -176,8 +174,24 @@ func (inst *instance) Boot() error {
 				bootOutputStop <- true
 				return
 			}
+			if gotip {
+				continue
+			}
+			if ip := parseIP(bootOutput); ip != "" {
+				ipch <- ip
+				gotip = true
+			}
 		}
 	}()
+
+	select {
+	case ip := <-ipch:
+		inst.sshhost = ip
+	case <-time.After(1 * time.Minute):
+		bootOutputStop <- true
+		<-bootOutputStop
+		return vmimpl.BootError{Title: "no IP found", Output: bootOutput}
+	}
 
 	if err := vmimpl.WaitForSSH(inst.debug, 2*time.Minute, inst.sshhost,
 		inst.sshkey, inst.sshuser, inst.os, inst.sshport); err != nil {
@@ -190,11 +204,15 @@ func (inst *instance) Boot() error {
 }
 
 func (inst *instance) Close() {
-	inst.vmctl("stop", inst.vmIdent(), "-f")
+	inst.vmctl("stop", inst.vmName, "-f")
 }
 
 func (inst *instance) Forward(port int) (string, error) {
-	addr := fmt.Sprintf("100.64.%v.2:%v", inst.vmID, port)
+	octets := strings.Split(inst.sshhost, ".")
+	if len(octets) < 3 {
+		return "", fmt.Errorf("too few octets in hostname %v", inst.sshhost)
+	}
+	addr := fmt.Sprintf("%v.%v.%v.2:%v", octets[0], octets[1], octets[2], port)
 	return addr, nil
 }
 
@@ -289,7 +307,7 @@ func (inst *instance) console() error {
 		return err
 	}
 
-	cmd := osutil.Command("vmctl", "console", inst.vmIdent())
+	cmd := osutil.Command("vmctl", "console", inst.vmName)
 	cmd.Stdin = inr
 	cmd.Stdout = outw
 	cmd.Stderr = outw
@@ -351,26 +369,10 @@ func (inst *instance) vmctl(args ...string) (string, error) {
 	return string(out), nil
 }
 
-func (inst *instance) vmIdent() string {
-	return strconv.Itoa(inst.vmID)
-}
-
-// Extract VM ID from vmctl start output.
-func parseID(str string) (int, error) {
-	const prefix = "vmctl: started vm "
-	if !strings.HasPrefix(str, prefix) {
-		return 0, fmt.Errorf("could not extract ID from: %v", str)
+func parseIP(output []byte) string {
+	matches := ipRegex.FindSubmatch(output)
+	if len(matches) < 2 {
+		return ""
 	}
-	fields := strings.Fields(str)
-	if len(fields) < 4 {
-		return 0, fmt.Errorf("could not extract ID from: %v", str)
-	}
-	i, err := strconv.Atoi(fields[3])
-	if err != nil {
-		return 0, err
-	}
-	if i <= 0 {
-		return 0, fmt.Errorf("invalid ID: %v", i)
-	}
-	return i, nil
+	return string(matches[1])
 }
