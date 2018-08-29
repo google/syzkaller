@@ -36,6 +36,10 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	if strings.HasPrefix(c.Name, "mount$") {
 		return isSupportedMount(c, sandbox)
 	}
+	if c.Name == "ioctl$EXT4_IOC_SHUTDOWN" && sandbox == "none" {
+		// Don't shutdown root filesystem.
+		return false, "unsafe with sandbox=none"
+	}
 	// There are 3 possible strategies for detecting supported syscalls:
 	// 1. Executes all syscalls with presumably invalid arguments and check for ENOprog.
 	//    But not all syscalls are safe to execute. For example, pause will hang,
