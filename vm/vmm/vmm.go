@@ -108,7 +108,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
-	name := fmt.Sprintf("syzkaller-%v", index)
+	name := fmt.Sprintf("syzkaller-%v-%v", pool.env.Name, index)
 	inst := &instance{
 		cfg:      pool.cfg,
 		index:    index,
@@ -163,7 +163,7 @@ func (inst *instance) Boot() error {
 
 	var bootOutput []byte
 	bootOutputStop := make(chan bool)
-	ipch := make(chan string)
+	ipch := make(chan string, 1)
 	go func() {
 		gotip := false
 		for {
