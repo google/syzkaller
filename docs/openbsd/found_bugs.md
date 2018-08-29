@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
+- [flock: double free](https://marc.info/?l=openbsd-cvs&m=153886035406317&w=2)
+
 - [poll: execution of address `0x0` caused by console redirection](https://marc.info/?l=openbsd-cvs&m=153552269821957&w=2)
 
 - [kqueue: use-after-free in `kqueue_close()`](https://marc.info/?l=openbsd-cvs&m=153364550327224&w=2)
