@@ -188,6 +188,8 @@ func (inst *instance) Boot() error {
 	case ip := <-ipch:
 		inst.sshhost = ip
 	case <-time.After(1 * time.Minute):
+		bootOutputStop <- true
+		<-bootOutputStop
 		return vmimpl.BootError{Title: "no IP found", Output: bootOutput}
 	}
 
