@@ -1,0 +1,39 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fs.h>
+include <uapi/linux/fsmap.h>
+include <fs/ext4/ext4.h>
+
+ioctl$EXT4_IOC_SETFLAGS(fd fd, cmd const[EXT4_IOC_SETFLAGS], arg ptr[in, flags[ext4_inode_flags, intptr]])
+ioctl$EXT4_IOC_GROUP_EXTEND(fd fd, cmd const[EXT4_IOC_GROUP_EXTEND], arg ptr[in, intptr])
+ioctl$EXT4_IOC_GROUP_ADD(fd fd, cmd const[EXT4_IOC_GROUP_ADD], arg ptr[in, ext4_new_group_input])
+ioctl$EXT4_IOC_MIGRATE(fd fd, cmd const[EXT4_IOC_MIGRATE])
+ioctl$EXT4_IOC_ALLOC_DA_BLKS(fd fd, cmd const[EXT4_IOC_ALLOC_DA_BLKS])
+ioctl$EXT4_IOC_MOVE_EXT(fd fd, cmd const[EXT4_IOC_MOVE_EXT], arg ptr[in, move_extent])
+ioctl$EXT4_IOC_RESIZE_FS(fd fd, cmd const[EXT4_IOC_RESIZE_FS], arg ptr[in, int64])
+ioctl$EXT4_IOC_SWAP_BOOT(fd fd, cmd const[EXT4_IOC_SWAP_BOOT])
+ioctl$EXT4_IOC_PRECACHE_EXTENTS(fd fd, cmd const[EXT4_IOC_PRECACHE_EXTENTS])
+ioctl$EXT4_IOC_SHUTDOWN(fd fd, cmd const[EXT4_IOC_SHUTDOWN], arg ptr[in, flags[ext4_shutdown_flags, int64]])
+
+ext4_inode_flags = EXT4_SECRM_FL, EXT4_UNRM_FL, EXT4_COMPR_FL, EXT4_SYNC_FL, EXT4_IMMUTABLE_FL, EXT4_APPEND_FL, EXT4_NODUMP_FL, EXT4_NOATIME_FL, EXT4_PROJINHERIT_FL, EXT4_EOFBLOCKS_FL, EXT4_JOURNAL_DATA_FL, EXT4_NOTAIL_FL, EXT4_DIRSYNC_FL, EXT4_TOPDIR_FL, EXT4_EXTENTS_FL
+ext4_shutdown_flags = EXT4_GOING_FLAGS_DEFAULT, EXT4_GOING_FLAGS_LOGFLUSH, EXT4_GOING_FLAGS_NOLOGFLUSH
+
+ext4_new_group_input {
+	group		int32
+	block_bitmap	int64
+	inode_bitmap	int64
+	inode_table	int64
+	blocks_count	int32
+	reserved_blocks	int16
+	unused		const[0, int16]
+}
+
+move_extent {
+	reserved	const[0, int32]
+	donor_fd	fd
+	orig_start	int64
+	donor_start	int64
+	len		int64
+	moved_len	int64
+}
