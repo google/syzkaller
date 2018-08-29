@@ -1,6 +1,6 @@
 # Linux kernel configs
 
-List of recommended kernel configs for `syzkaller`:
+List of recommended kernel configs for `syzkaller`. See [syzbot config](/dashboard/config/upstream-kasan.config) for a reference config.
 
 ## Syzkaller features
 
@@ -38,8 +38,8 @@ CONFIG_PID_NS=y
 CONFIG_NET_NS=y
 ```
 
-If your kernel doesn't have commits [arm64: setup: introduce kaslr_offset()](https://github.com/torvalds/linux/commit/7ede8665f27cde7da69e8b2fbeaa1ed0664879c5)
- and [kcov: make kcov work properly with KASLR enabled](https://github.com/torvalds/linux/commit/4983f0ab7ffaad1e534b21975367429736475205), disable the following config:
+It is recommended to disable the following config (and required if your kernel doesn't have commits [arm64: setup: introduce kaslr_offset()](https://github.com/torvalds/linux/commit/7ede8665f27cde7da69e8b2fbeaa1ed0664879c5)
+ and [kcov: make kcov work properly with KASLR enabled](https://github.com/torvalds/linux/commit/4983f0ab7ffaad1e534b21975367429736475205)):
 ```
 # CONFIG_RANDOMIZE_BASE is not set
 ```
@@ -89,11 +89,13 @@ CONFIG_HARDENED_USERCOPY=y
 CONFIG_LOCKUP_DETECTOR=y
 CONFIG_SOFTLOCKUP_DETECTOR=y
 CONFIG_HARDLOCKUP_DETECTOR=y
+CONFIG_BOOTPARAM_HARDLOCKUP_PANIC=y
 CONFIG_DETECT_HUNG_TASK=y
 CONFIG_WQ_WATCHDOG=y
 ```
 
-Increase RCU stall timeout to reduce false positive rate:
+Increase hung/stall timeout to reduce false positive rate:
 ```
-CONFIG_RCU_CPU_STALL_TIMEOUT=60
+CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=140
+CONFIG_RCU_CPU_STALL_TIMEOUT=100
 ```
