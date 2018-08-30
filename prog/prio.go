@@ -175,6 +175,9 @@ func normalizePrio(prios [][]float32) {
 		if nzero != 0 {
 			min /= 2 * float32(nzero)
 		}
+		if min == max {
+			max = 0
+		}
 		for i, p := range prio {
 			if max == 0 {
 				prio[i] = 1
