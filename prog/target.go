@@ -44,6 +44,9 @@ type Target struct {
 	// Used as fallback when string type does not have own dictionary.
 	StringDictionary []string
 
+	// Additional special invalid pointer values besides NULL to use.
+	SpecialPointers []uint64
+
 	// Filled by prog package:
 	init        sync.Once
 	initArch    func(target *Target)
@@ -54,6 +57,8 @@ type Target struct {
 	resourceCtors map[string][]*Syscall
 	any           anyTypes
 }
+
+const maxSpecialPointers = 16
 
 var targets = make(map[string]*Target)
 
@@ -101,6 +106,15 @@ func (target *Target) lazyInit() {
 	target.initTarget()
 	target.initArch(target)
 	target.ConstMap = nil // currently used only by initArch
+	// Give these 2 known addresses fixed positions and prepend target-specific ones at the end.
+	target.SpecialPointers = append([]uint64{
+		0x0000000000000000, // NULL pointer (keep this first because code uses special index=0 as NULL)
+		0xffffffffffffffff, // unmapped kernel address (keep second because serialized value will match actual pointer value)
+		0x9999999999999999, // non-canonical address
+	}, target.SpecialPointers...)
+	if len(target.SpecialPointers) > maxSpecialPointers {
+		panic("too many special pointers")
+	}
 }
 
 func (target *Target) initTarget() {

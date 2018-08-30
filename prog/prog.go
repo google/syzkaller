@@ -106,9 +106,13 @@ func MakeVmaPointerArg(t Type, addr, size uint64) *PointerArg {
 	}
 }
 
-func MakeNullPointerArg(t Type) *PointerArg {
+func MakeSpecialPointerArg(t Type, index uint64) *PointerArg {
+	if index >= maxSpecialPointers {
+		panic("bad special pointer index")
+	}
 	return &PointerArg{
 		ArgCommon: ArgCommon{typ: t},
+		Address:   -index,
 	}
 }
 
@@ -116,8 +120,15 @@ func (arg *PointerArg) Size() uint64 {
 	return arg.typ.Size()
 }
 
-func (arg *PointerArg) IsNull() bool {
-	return arg.Address == 0 && arg.VmaSize == 0 && arg.Res == nil
+func (arg *PointerArg) IsSpecial() bool {
+	return arg.VmaSize == 0 && arg.Res == nil && -arg.Address < maxSpecialPointers
+}
+
+func (target *Target) PhysicalAddr(arg *PointerArg) uint64 {
+	if arg.IsSpecial() {
+		return target.SpecialPointers[-arg.Address]
+	}
+	return target.DataOffset + arg.Address
 }
 
 // Used for BufferType.
@@ -262,17 +273,12 @@ func (arg *ResultArg) Size() uint64 {
 
 // Returns inner arg for pointer args.
 func InnerArg(arg Arg) Arg {
-	if t, ok := arg.Type().(*PtrType); ok {
-		if a, ok := arg.(*PointerArg); ok {
-			if a.Res == nil {
-				if !t.Optional() {
-					panic(fmt.Sprintf("non-optional pointer is nil\narg: %+v\ntype: %+v", a, t))
-				}
-				return nil
-			}
-			return InnerArg(a.Res)
+	if _, ok := arg.Type().(*PtrType); ok {
+		res := arg.(*PointerArg).Res
+		if res == nil {
+			return nil
 		}
-		return nil // *ConstArg.
+		return InnerArg(res)
 	}
 	return arg // Not a pointer.
 }

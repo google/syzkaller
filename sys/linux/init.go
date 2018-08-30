@@ -10,16 +10,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-/*
-func init() {
-	prog.RegisterTarget(gen.Target_amd64, initTarget)
-	prog.RegisterTarget(gen.Target_386, initTarget)
-	prog.RegisterTarget(gen.Target_arm64, initTarget)
-	prog.RegisterTarget(gen.Target_arm, initTarget)
-	prog.RegisterTarget(gen.Target_ppc64le, initTarget)
-}
-*/
-
 func InitTarget(target *prog.Target) {
 	arch := &arch{
 		unix:                      targets.MakeUnixSanitizer(target),
@@ -54,7 +44,26 @@ func InitTarget(target *prog.Target) {
 		"arpt_replace":       arch.generateArptables,
 		"ebt_replace":        arch.generateEbtables,
 	}
-	target.StringDictionary = stringDictionary
+	// TODO(dvyukov): get rid of this, this must be in descriptions.
+	target.StringDictionary = []string{
+		"user", "keyring", "trusted", "system", "security", "selinux",
+		"posix_acl_access", "mime_type", "md5sum", "nodev", "self",
+		"bdev", "proc", "cgroup", "cpuset",
+		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1",
+		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1", "GPL",
+	}
+	switch target.Arch {
+	case "amd64":
+		target.SpecialPointers = []uint64{
+			0xffffffff81000000, // kernel text
+		}
+	case "386":
+	case "arm64":
+	case "arm":
+	case "ppc64le":
+	default:
+		panic("unknown arch")
+	}
 
 	if target.Arch == runtime.GOARCH {
 		KCOV_INIT_TRACE = uintptr(target.ConstMap["KCOV_INIT_TRACE"])
@@ -70,13 +79,6 @@ var (
 	KCOV_ENABLE     uintptr
 	KCOV_DISABLE    uintptr
 	KCOV_TRACE_CMP  uintptr
-
-	// TODO(dvyukov): get rid of this, this must be in descriptions.
-	stringDictionary = []string{"user", "keyring", "trusted", "system", "security", "selinux",
-		"posix_acl_access", "mime_type", "md5sum", "nodev", "self",
-		"bdev", "proc", "cgroup", "cpuset",
-		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1",
-		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1", "GPL"}
 )
 
 type arch struct {

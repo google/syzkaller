@@ -515,7 +515,7 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 				}
 			}()
 			if r.recDepth[name] >= 3 {
-				return MakeNullPointerArg(typ), nil
+				return MakeSpecialPointerArg(typ, 0), nil
 			}
 		}
 	}
@@ -673,6 +673,10 @@ func (a *UnionType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 }
 
 func (a *PtrType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+	if r.oneOf(1000) {
+		index := r.rand(len(r.target.SpecialPointers))
+		return MakeSpecialPointerArg(a, index), nil
+	}
 	inner, calls := r.generateArg(s, a.Type)
 	arg = r.allocAddr(s, a, inner.Size(), inner)
 	return arg, calls

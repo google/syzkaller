@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func setToArray(s map[string]struct{}) []string {
@@ -160,7 +162,7 @@ func TestDeserialize(t *testing.T) {
 		},
 		{
 			input:  `test$excessive_fields1(0x0)`,
-			output: `test$excessive_fields1(&(0x7f0000000000))`,
+			output: `test$excessive_fields1(0x0)`,
 		},
 		{
 			input:  `test$excessive_fields1(r0)`,
@@ -205,6 +207,26 @@ func TestDeserialize(t *testing.T) {
 		{
 			input:  `test$excessive_fields1(&(0x7f0000000000)=0x0)`,
 			output: `test$excessive_fields1(&(0x7f0000000000))`,
+		},
+		{
+			input:  `test$excessive_fields1(0x0)`,
+			output: `test$excessive_fields1(0x0)`,
+		},
+		{
+			input:  `test$excessive_fields1(0xffffffffffffffff)`,
+			output: `test$excessive_fields1(0xffffffffffffffff)`,
+		},
+		{
+			input:  `test$excessive_fields1(0xfffffffffffffffe)`,
+			output: `test$excessive_fields1(0xfffffffffffffffe)`,
+		},
+		{
+			input:  `test$excessive_fields1(0xfffffffffffffffd)`,
+			output: `test$excessive_fields1(0x0)`,
+		},
+		{
+			input:  `test$excessive_fields1(0xfffffffffffffffc)`,
+			output: `test$excessive_fields1(0xffffffffffffffff)`,
 		},
 	}
 	buf := make([]byte, ExecBufferSize)
@@ -276,8 +298,18 @@ func TestSerializeDeserializeRandom(t *testing.T) {
 			})
 			ok, n0, n1 := testSerializeDeserialize(t, p0, data0, data1)
 			if ok {
-				t.Fatal("flaky?")
+				t.Log("flaky?")
 			}
+			decoded0, err := target.DeserializeExec(data0[:n0])
+			if err != nil {
+				t.Fatal(err)
+			}
+			decoded1, err := target.DeserializeExec(data1[:n1])
+			if err != nil {
+				t.Fatal(err)
+			}
+			diff := cmp.Diff(decoded0, decoded1)
+			t.Logf("decoded diff: %v", diff)
 			t.Fatalf("was: %q\ngot: %q\nprogram:\n%s",
 				data0[:n0], data1[:n1], p0.Serialize())
 		}

@@ -126,6 +126,9 @@ func (arch *arch) generateEbtables(g *prog.Gen, typ prog.Type, old prog.Arg) (
 	}
 	tableArg := arg.(*prog.UnionArg).Option.(*prog.GroupArg)
 	entriesPtr := tableArg.Inner[entriesField].(*prog.PointerArg)
+	if entriesPtr.Res == nil {
+		return
+	}
 	entriesArray := entriesPtr.Res.(*prog.GroupArg)
 	offsets := make([]uint64, len(entriesArray.Inner))
 	var pos, totalEntries uint64
@@ -165,8 +168,15 @@ func (arch *arch) sanitizeEbtables(c *prog.Call) {
 	// This is very hacky... just as netfilter interfaces.
 	// setsockopt's len argument must be equal to size of ebt_replace + entries size.
 	lenArg := c.Args[4].(*prog.ConstArg)
-	tableArg := c.Args[3].(*prog.PointerArg).Res.(*prog.UnionArg).Option.(*prog.GroupArg)
+	tablePtr := c.Args[3].(*prog.PointerArg).Res
+	if tablePtr == nil {
+		return
+	}
+	tableArg := tablePtr.(*prog.UnionArg).Option.(*prog.GroupArg)
 	entriesField := len(tableArg.Inner) - 1
 	entriesArg := tableArg.Inner[entriesField].(*prog.PointerArg).Res
+	if entriesArg == nil {
+		return
+	}
 	lenArg.Val = tableArg.Size() + entriesArg.Size()
 }

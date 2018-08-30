@@ -57,7 +57,7 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 		switch a := arg.(type) {
 		case *PointerArg:
 			switch {
-			case a.IsNull():
+			case a.IsSpecial():
 			case a.VmaSize != 0:
 				s.va.noteAlloc(a.Address/s.target.PageSize, a.VmaSize/s.target.PageSize)
 			default:
@@ -273,7 +273,7 @@ func extractArgSignal(arg Arg, callID, flags int, inf *CallInfo, resources map[*
 		}
 	case *PointerArg:
 		flags <<= 1
-		if a.IsNull() {
+		if a.IsSpecial() {
 			flags |= 1
 		}
 	}

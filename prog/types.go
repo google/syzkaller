@@ -321,11 +321,12 @@ func (t *VmaType) String() string {
 }
 
 func (t *VmaType) makeDefaultArg() Arg {
-	return MakeNullPointerArg(t)
+	return MakeSpecialPointerArg(t, 0)
 }
 
 func (t *VmaType) isDefaultArg(arg Arg) bool {
-	return arg.(*PointerArg).IsNull()
+	a := arg.(*PointerArg)
+	return a.IsSpecial() && a.Address == 0
 }
 
 type BufferKind int
@@ -450,7 +451,7 @@ func (t *PtrType) String() string {
 
 func (t *PtrType) makeDefaultArg() Arg {
 	if t.Optional() {
-		return MakeNullPointerArg(t)
+		return MakeSpecialPointerArg(t, 0)
 	}
 	return MakePointerArg(t, 0, t.Type.makeDefaultArg())
 }
@@ -458,9 +459,9 @@ func (t *PtrType) makeDefaultArg() Arg {
 func (t *PtrType) isDefaultArg(arg Arg) bool {
 	a := arg.(*PointerArg)
 	if t.Optional() {
-		return a.IsNull()
+		return a.IsSpecial() && a.Address == 0
 	}
-	return a.Address == 0 && isDefault(a.Res)
+	return a.Address == 0 && a.Res != nil && isDefault(a.Res)
 }
 
 type StructType struct {
