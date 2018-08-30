@@ -372,10 +372,14 @@ func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs,
 		// because old execprog does not have os flag.
 		osArg = " -os=" + OS
 	}
+	runtestArg := ""
+	if runtest {
+		runtestArg = " -runtest"
+	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -procs=%v -v=%d -cover=%v -debug=%v -test=%v -runtest=%v",
+		" -procs=%v -v=%d -cover=%v -debug=%v -test=%v%v",
 		fuzzer, executor, name, arch, osArg, fwdAddr, sandbox,
-		procs, verbosity, cover, debug, test, runtest)
+		procs, verbosity, cover, debug, test, runtestArg)
 }
 
 func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded, collide bool,
