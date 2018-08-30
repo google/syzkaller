@@ -29,7 +29,8 @@ func TestFuzzerCmd(t *testing.T) {
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
 	flagDebug := flags.Bool("debug", false, "debug output from executor")
 	flagV := flags.Int("v", 0, "verbosity")
-	cmdLine := FuzzerCmd(os.Args[0], "/myexecutor", "myname", "linux", "386", "localhost:1234", "namespace", 3, 5, true, false, true, false)
+	cmdLine := FuzzerCmd(os.Args[0], "/myexecutor", "myname", "linux", "386", "localhost:1234",
+		"namespace", 3, 5, true, false, true, false)
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := flags.Parse(args); err != nil {
 		t.Fatal(err)
@@ -46,7 +47,7 @@ func TestFuzzerCmd(t *testing.T) {
 	if *flagProcs != 3 {
 		t.Errorf("bad procs: %v, want: %v", *flagProcs, 3)
 	}
-	if *flagLeak != false {
+	if *flagLeak {
 		t.Errorf("bad leak: %v, want: %v", *flagLeak, false)
 	}
 	if *flagOutput != "stdout" {
@@ -55,7 +56,7 @@ func TestFuzzerCmd(t *testing.T) {
 	if *flagPprof != "" {
 		t.Errorf("bad pprof: %q, want: %q", *flagPprof, "")
 	}
-	if *flagTest != true {
+	if !*flagTest {
 		t.Errorf("bad test: %v, want: %v", *flagTest, true)
 	}
 	if *flagExecutor != "/myexecutor" {
@@ -64,10 +65,10 @@ func TestFuzzerCmd(t *testing.T) {
 	if *flagSandbox != "namespace" {
 		t.Errorf("bad sandbox: %q, want: %q", *flagSandbox, "namespace")
 	}
-	if *flagSignal != true {
+	if !*flagSignal {
 		t.Errorf("bad signal: %v, want: %v", *flagSignal, true)
 	}
-	if *flagDebug != false {
+	if *flagDebug {
 		t.Errorf("bad debug: %v, want: %v", *flagDebug, false)
 	}
 	if *flagV != 5 {
@@ -122,13 +123,13 @@ func TestExecprogCmd(t *testing.T) {
 	if *flagSandbox != "namespace" {
 		t.Errorf("bad sandbox: %q, want: %q", *flagSandbox, "namespace")
 	}
-	if *flagSignal != false {
+	if *flagSignal {
 		t.Errorf("bad signal: %v, want: %v", *flagSignal, false)
 	}
-	if *flagThreaded != false {
+	if *flagThreaded {
 		t.Errorf("bad threaded: %v, want: %v", *flagThreaded, false)
 	}
-	if *flagCollide != false {
+	if *flagCollide {
 		t.Errorf("bad collide: %v, want: %v", *flagCollide, false)
 	}
 }
