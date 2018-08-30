@@ -403,6 +403,30 @@ func TestSerializeForExec(t *testing.T) {
 			},
 			nil,
 		},
+		{
+			"test$excessive_fields1(0x0)",
+			[]uint64{
+				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0x0,
+				execInstrEOF,
+			},
+			nil,
+		},
+		{
+			"test$excessive_fields1(0xffffffffffffffff)",
+			[]uint64{
+				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0xffffffffffffffff,
+				execInstrEOF,
+			},
+			nil,
+		},
+		{
+			"test$excessive_fields1(0xfffffffffffffffe)",
+			[]uint64{
+				callID("test$excessive_fields1"), ExecNoCopyout, 1, execArgConst, ptrSize, 0x9999999999999999,
+				execInstrEOF,
+			},
+			nil,
+		},
 	}
 
 	buf := make([]byte, ExecBufferSize)

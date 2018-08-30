@@ -100,13 +100,6 @@ func (w *execContext) serializeCall(c *Call) {
 	w.writeCopyout(c)
 }
 
-func (target *Target) PhysicalAddr(arg *PointerArg) uint64 {
-	if arg.IsNull() {
-		return 0
-	}
-	return target.DataOffset + arg.Address
-}
-
 type execContext struct {
 	target     *Target
 	buf        []byte

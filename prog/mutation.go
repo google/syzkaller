@@ -308,6 +308,13 @@ func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 
 func (t *PtrType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	a := arg.(*PointerArg)
+	if r.oneOf(1000) {
+		removeArg(a.Res)
+		index := r.rand(len(r.target.SpecialPointers))
+		newArg := MakeSpecialPointerArg(t, index)
+		replaceArg(arg, newArg)
+		return
+	}
 	newArg := r.allocAddr(s, t, a.Res.Size(), a.Res)
 	replaceArg(arg, newArg)
 	return
@@ -401,7 +408,7 @@ func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
 			return // string const
 		}
 	case *PtrType:
-		if arg.(*PointerArg).IsNull() {
+		if arg.(*PointerArg).IsSpecial() {
 			// TODO: we ought to mutate this, but we don't have code for this yet.
 			return
 		}

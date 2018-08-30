@@ -85,8 +85,8 @@ func (a *ConstArg) serialize(ctx *serializer) {
 }
 
 func (a *PointerArg) serialize(ctx *serializer) {
-	if a.IsNull() {
-		ctx.printf("0x0")
+	if a.IsSpecial() {
+		ctx.printf("0x%x", a.Address)
 		return
 	}
 	target := ctx.target
@@ -345,10 +345,8 @@ func (target *Target) parseArgInt(typ Type, p *parser) (Arg, error) {
 	case *ResourceType:
 		return MakeResultArg(typ, nil, v), nil
 	case *PtrType, *VmaType:
-		if typ.Optional() {
-			return MakeNullPointerArg(typ), nil
-		}
-		return typ.makeDefaultArg(), nil
+		index := -v % uint64(len(target.SpecialPointers))
+		return MakeSpecialPointerArg(typ, index), nil
 	default:
 		eatExcessive(p, true)
 		return typ.makeDefaultArg(), nil
