@@ -166,7 +166,9 @@ bin/syz-sysgen:
 format: format_go format_cpp format_sys
 
 format_go:
-	$(GO) fmt ./...
+	# When working from a symlinked directory, 'go fmt ./...' will fail.
+	# We need to invoke it from the "real" path inside GOROOT.
+	cd $(realpath ${PWD}) && $(GO) fmt ./...
 
 format_cpp:
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
