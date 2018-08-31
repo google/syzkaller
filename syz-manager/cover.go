@@ -42,11 +42,11 @@ var (
 	initCoverVMOffset uint32
 )
 
-func initCover(kernelObj, arch string) error {
+func initCover(kernelObj, kernelObjName, arch string) error {
 	if kernelObj == "" {
 		return fmt.Errorf("kernel_obj is not specified")
 	}
-	vmlinux := filepath.Join(kernelObj, "vmlinux")
+	vmlinux := filepath.Join(kernelObj, kernelObjName)
 	symbols, err := symbolizer.ReadSymbols(vmlinux)
 	if err != nil {
 		return fmt.Errorf("failed to run nm on %v: %v", vmlinux, err)
@@ -70,11 +70,11 @@ func initCover(kernelObj, arch string) error {
 	return err
 }
 
-func generateCoverHTML(w io.Writer, kernelObj, kernelSrc, arch string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, arch string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("no coverage data available")
 	}
-	initCoverOnce.Do(func() { initCoverError = initCover(kernelObj, arch) })
+	initCoverOnce.Do(func() { initCoverError = initCover(kernelObj, kernelObjName, arch) })
 	if initCoverError != nil {
 		return initCoverError
 	}
@@ -85,7 +85,7 @@ func generateCoverHTML(w io.Writer, kernelObj, kernelSrc, arch string, cov cover
 		prevPC := previousInstructionPC(arch, fullPC)
 		pcs = append(pcs, prevPC)
 	}
-	vmlinux := filepath.Join(kernelObj, "vmlinux")
+	vmlinux := filepath.Join(kernelObj, kernelObjName)
 	uncovered, err := uncoveredPcsInFuncs(vmlinux, pcs)
 	if err != nil {
 		return err

@@ -33,6 +33,7 @@ import (
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -46,6 +47,7 @@ type Manager struct {
 	cfg            *mgrconfig.Config
 	vmPool         *vm.Pool
 	target         *prog.Target
+	sysTarget      *targets.Target
 	reporter       report.Reporter
 	crashdir       string
 	port           int
@@ -131,14 +133,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	sysTarget := targets.Get(cfg.TargetOS, cfg.TargetArch)
+	if sysTarget == nil {
+		log.Fatalf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetArch)
+	}
 	syscalls, err := mgrconfig.ParseEnabledSyscalls(target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	RunManager(cfg, target, syscalls)
+	RunManager(cfg, target, sysTarget, syscalls)
 }
 
-func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]bool) {
+func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.Target, syscalls map[int]bool) {
 	var vmPool *vm.Pool
 	// Type "none" is a special case for debugging/development when manager
 	// does not start any VMs, but instead you start them manually
@@ -168,6 +174,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		cfg:             cfg,
 		vmPool:          vmPool,
 		target:          target,
+		sysTarget:       sysTarget,
 		reporter:        reporter,
 		crashdir:        crashdir,
 		startTime:       time.Now(),
@@ -1084,7 +1091,7 @@ func (mgr *Manager) collectUsedFiles() {
 	addUsedFile(cfg.SyzExecprogBin)
 	addUsedFile(cfg.SyzExecutorBin)
 	addUsedFile(cfg.SSHKey)
-	if vmlinux := filepath.Join(cfg.KernelObj, "vmlinux"); osutil.IsExist(vmlinux) {
+	if vmlinux := filepath.Join(cfg.KernelObj, mgr.sysTarget.KernelObject); osutil.IsExist(vmlinux) {
 		addUsedFile(vmlinux)
 	}
 	if zircon := filepath.Join(cfg.KernelObj, "zircon.elf"); osutil.IsExist(zircon) {
