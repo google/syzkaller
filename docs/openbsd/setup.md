@@ -103,6 +103,8 @@ $ cat openbsd.cfg
   "target": "openbsd/amd64",
   "http": ":10000",
   "workdir": "$HOME/go/src/github.com/google/syzkaller/workdir",
+  "kernel_obj": "/sys/arch/amd64/compile/GENERIC/obj",
+  "kernel_src": "/",
   "syzkaller": "$HOME/go/src/github.com/google/syzkaller",
   "image": "$VMDIR/syzkaller.img",
   "sshkey": "$SSKEY",
