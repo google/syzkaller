@@ -76,6 +76,7 @@ type Manager struct {
 	maxSignal      signal.Signal
 	prios          [][]float32
 	newRepros      [][]byte
+	lastMinCorpus  int
 
 	fuzzers        map[string]*Fuzzer
 	needMoreRepros chan chan bool
@@ -853,7 +854,7 @@ func (mgr *Manager) addNewCandidates(progs [][]byte) {
 }
 
 func (mgr *Manager) minimizeCorpus() {
-	if mgr.phase < phaseLoadedCorpus {
+	if mgr.phase < phaseLoadedCorpus || len(mgr.corpus) <= mgr.lastMinCorpus*101/100 {
 		return
 	}
 	inputs := make([]signal.Context, 0, len(mgr.corpus))
@@ -870,6 +871,7 @@ func (mgr *Manager) minimizeCorpus() {
 	}
 	log.Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
 	mgr.corpus = newCorpus
+	mgr.lastMinCorpus = len(newCorpus)
 
 	// Don't minimize persistent corpus until fuzzers have triaged all inputs from it.
 	if mgr.phase < phaseTriagedCorpus {
