@@ -364,6 +364,15 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_execute_func
+// syz_execute_func(text ptr[in, text[taget]])
+static long syz_execute_func(long text)
+{
+	((void (*)(void))(text))();
+	return 0;
+}
+#endif
+
 #if GOOS_akaros
 #include "common_akaros.h"
 #elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd

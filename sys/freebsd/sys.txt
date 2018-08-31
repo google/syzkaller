@@ -19,6 +19,8 @@ include <sys/wait.h>
 include <linux/linux.h>
 include <compat/linux/linux_event.h>
 
+syz_execute_func(text ptr[in, text[target]])
+
 pipe(pipefd ptr[out, pipefd])
 
 sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count int64)

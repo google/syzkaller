@@ -16,6 +16,8 @@ include <time.h>
 include <signal.h>
 include <sys/wait.h>
 
+syz_execute_func(text ptr[in, text[target]])
+
 pipe(pipefd ptr[out, pipefd])
 
 stat(file ptr[in, filename], statbuf ptr[out, stat])

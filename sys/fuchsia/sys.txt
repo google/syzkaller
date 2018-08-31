@@ -6,6 +6,8 @@
 include <zircon/syscalls.h>
 include <ddk/driver.h>
 
+syz_execute_func(text ptr[in, text[target]])
+
 # Provided by sysroot (include/ddk/driver.h)
 resource zx_root_resource[zx_handle]
 get_root_resource() zx_root_resource

@@ -21,7 +21,13 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 		return supported, unsupported, nil
 	}
 	for _, c := range target.Syscalls {
-		ok, reason := isSupported(c, sandbox)
+		ok, reason := false, ""
+		switch c.CallName {
+		case "syz_execute_func":
+			ok = true
+		default:
+			ok, reason = isSupported(c, sandbox)
+		}
 		if ok {
 			supported[c] = true
 		} else {

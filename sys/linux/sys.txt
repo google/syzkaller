@@ -60,6 +60,8 @@ resource fd_dir[fd]
 
 type signalno int32[0:65]
 
+syz_execute_func(text ptr[in, text[target]])
+
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 # Just so that we have something that creates fd_dir resources.
 open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
@@ -734,11 +736,10 @@ rlimit {
 }
 
 sigaction {
-# TODO: function pointers need special support
-	handler	intptr
+	handler	ptr[in, text[target]]
 	mask	sigset
 	flags	flags[sigaction_flags, intptr]
-	restor	intptr
+	restor	ptr[in, text[target]]
 }
 
 tms {
