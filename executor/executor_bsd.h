@@ -17,7 +17,14 @@
 
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
-	if (mmap(data, data_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data)
+#if GOOS_openbsd
+	// W^X not allowed by default on OpenBSD.
+	int prot = PROT_READ | PROT_WRITE;
+#else
+	int prot = PROT_READ | PROT_WRITE | PROT_EXEC;
+#endif
+
+	if (mmap(data, data_size, prot, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data)
 		fail("mmap of data segment failed");
 
 	// Some minimal sandboxing.
