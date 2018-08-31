@@ -22,31 +22,20 @@ type arch struct {
 }
 
 func (arch *arch) SanitizeCall(c *prog.Call) {
-	arch.unix.SanitizeCall(c)
-
 	// Prevent vnodes of type VBAD from being created. Such vnodes will
 	// likely trigger assertion errors by the kernel.
-	// TODO(dvyukov): this is disabled for now because TestSanitizeRandom fails.
-	if false {
-		pos := 1
-		switch c.Meta.CallName {
-		case "mknodat":
-			pos = 2
-			fallthrough
-		case "mknod":
-			mode := c.Args[pos].(*prog.ConstArg)
-			if mode.Val&arch.unix.S_IFMT != arch.unix.S_IFMT {
-				return
-			}
-			saneMode := mode.Val & ^arch.unix.S_IFMT
-			switch {
-			case mode.Val&arch.unix.S_IFCHR == arch.unix.S_IFCHR:
-				mode.Val = saneMode | arch.unix.S_IFCHR
-			case mode.Val&arch.unix.S_IFBLK == arch.unix.S_IFBLK:
-				mode.Val = saneMode | arch.unix.S_IFBLK
-			case mode.Val&arch.unix.S_IFIFO == arch.unix.S_IFIFO:
-				mode.Val = saneMode | arch.unix.S_IFIFO
-			}
+	pos := 1
+	switch c.Meta.CallName {
+	case "mknodat":
+		pos = 2
+		fallthrough
+	case "mknod":
+		mode := c.Args[pos].(*prog.ConstArg)
+		if mode.Val&arch.unix.S_IFMT == arch.unix.S_IFMT {
+			mode.Val &^= arch.unix.S_IFMT
+			mode.Val |= arch.unix.S_IFCHR
 		}
+	default:
+		arch.unix.SanitizeCall(c)
 	}
 }
