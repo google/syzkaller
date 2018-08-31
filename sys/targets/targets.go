@@ -43,6 +43,8 @@ type osCommon struct {
 	ExecutorUsesForkServer bool
 	// Extension of executable files (notably, .exe for windows).
 	ExeExtension string
+	// Name of the kernel object file.
+	KernelObject string
 }
 
 func Get(OS, arch string) *Target {
@@ -249,41 +251,48 @@ var oses = map[string]osCommon{
 		SyscallPrefix:          "__NR_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
+		KernelObject:           "vmlinux",
 	},
 	"freebsd": {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
+		KernelObject:           "vmlinux",
 	},
 	"netbsd": {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
+		KernelObject:           "vmlinux",
 	},
 	"openbsd": {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
+		KernelObject:           "bsd.gdb",
 	},
 	"fuchsia": {
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
+		KernelObject:           "vmlinux",
 	},
 	"windows": {
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		ExeExtension:           ".exe",
+		KernelObject:           "vmlinux",
 	},
 	"akaros": {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: true,
+		KernelObject:           "vmlinux",
 	},
 }
 
