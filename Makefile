@@ -166,7 +166,9 @@ bin/syz-sysgen:
 format: format_go format_cpp format_sys
 
 format_go:
-	$(GO) fmt ./...
+	# When working from a symlinked directory outside of GOPATH, 'go fmt' will fail.
+	# We need to invoke it from a path inside of GOPATH.
+	cd $(realpath ${PWD}) && $(GO) fmt ./...
 
 format_cpp:
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
