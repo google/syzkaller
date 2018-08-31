@@ -205,6 +205,8 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		return isSupportedFilesystem(fstype)
 	case "syz_read_part_table":
 		return onlySandboxNone(sandbox)
+	case "syz_execute_func":
+		return true, ""
 	}
 	panic("unknown syzkall: " + c.Name)
 }

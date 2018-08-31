@@ -16,6 +16,8 @@ include <termios.h>
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
 resource pid[int32]: 0, 0xffffffffffffffff
 
+syz_execute_func(text ptr[in, text[target]])
+
 openat(fromfd fd[opt], path ptr[in, filename], path_l len[path], oflag flags[open_flags], mode flags[open_mode]) fd
 read(fd fd, buf buffer[out], count len[buf])
 write(fd fd, buf buffer[in], count len[buf])

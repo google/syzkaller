@@ -349,6 +349,14 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_execute_func
+static long syz_execute_func(long text)
+{
+	((void (*)(void))(text))();
+	return 0;
+}
+#endif
+
 #if GOOS_akaros
 
 #include <ros/syscall.h>
@@ -712,13 +720,13 @@ static void event_set(event_t* ev)
 	if (ev->state)
 		fail("event already set");
 	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
-	syscall(SYS_futex, &ev->state, FUTEX_WAKE);
+	syscall(SYS_futex, &ev->state, FUTEX_WAKE | FUTEX_PRIVATE_FLAG);
 }
 
 static void event_wait(event_t* ev)
 {
 	while (!__atomic_load_n(&ev->state, __ATOMIC_ACQUIRE))
-		syscall(SYS_futex, &ev->state, FUTEX_WAIT, 0, 0);
+		syscall(SYS_futex, &ev->state, FUTEX_WAIT | FUTEX_PRIVATE_FLAG, 0, 0);
 }
 
 static int event_isset(event_t* ev)
@@ -735,7 +743,7 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 		struct timespec ts;
 		ts.tv_sec = remain / 1000;
 		ts.tv_nsec = (remain % 1000) * 1000 * 1000;
-		syscall(SYS_futex, &ev->state, FUTEX_WAIT, 0, &ts);
+		syscall(SYS_futex, &ev->state, FUTEX_WAIT | FUTEX_PRIVATE_FLAG, 0, &ts);
 		if (__atomic_load_n(&ev->state, __ATOMIC_RELAXED))
 			return 1;
 		now = current_time_ms();

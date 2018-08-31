@@ -1456,6 +1456,9 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{NR: 36, Name: "sync", CallName: "sync"},
+	{Name: "syz_execute_func", CallName: "syz_execute_func", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
+	}},
 	{Name: "syz_open_pts", CallName: "syz_open_pts", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 200, Name: "truncate", CallName: "truncate", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -1877,4 +1880,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "f1bde02bbb60bf849ed61dda9a552900891199ef"
+const revision_amd64 = "b7a0cb1d6df43d07bd4ab11d2c4b1a2e1c046ac1"

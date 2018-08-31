@@ -342,7 +342,8 @@ const (
 type TextKind int
 
 const (
-	TextX86Real TextKind = iota
+	TextTarget TextKind = iota
+	TextX86Real
 	TextX86bit16
 	TextX86bit32
 	TextX86bit64

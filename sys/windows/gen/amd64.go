@@ -14272,6 +14272,9 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "protocol", TypeSize: 4}}},
 	}},
+	{Name: "syz_execute_func", CallName: "syz_execute_func", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
+	}},
 	{Name: "timeBeginPeriod", CallName: "timeBeginPeriod", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uPeriod", TypeSize: 4}}},
 	}},
@@ -14615,4 +14618,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WRITE_OWNER", Value: 524288},
 }
 
-const revision_amd64 = "f2b48fb82a68b0cb24b2ab9638add66deb9542dd"
+const revision_amd64 = "7f58e6832b5d8674b8a77505e6eb0fa213781c23"

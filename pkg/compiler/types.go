@@ -407,11 +407,13 @@ var typeText = &typeDesc{
 
 var typeArgTextType = &typeArg{
 	Kind:  kindIdent,
-	Names: []string{"x86_real", "x86_16", "x86_32", "x86_64", "arm64"},
+	Names: []string{"target", "x86_real", "x86_16", "x86_32", "x86_64", "arm64"},
 }
 
 func genTextType(t *ast.Type) prog.TextKind {
 	switch t.Ident {
+	case "target":
+		return prog.TextTarget
 	case "x86_real":
 		return prog.TextX86Real
 	case "x86_16":

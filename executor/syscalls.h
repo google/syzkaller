@@ -201,6 +201,7 @@ const call_t syscalls[] = {
     {"send_event", 39},
     {"stat", 105},
     {"symlink", 114},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"tap_fds", 126},
     {"tcgetattr", 141},
     {"umask", 109},
@@ -471,6 +472,7 @@ const call_t syscalls[] = {
     {"symlink", 57},
     {"symlinkat", 502},
     {"sync", 36},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"truncate", 479},
     {"unlink", 10},
     {"unlinkat", 503},
@@ -542,6 +544,7 @@ const call_t syscalls[] = {
     {"symlink", 0, (syscall_t)symlink},
     {"symlinkat", 0, (syscall_t)symlinkat},
     {"sync", 0, (syscall_t)sync},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_future_time", 0, (syscall_t)syz_future_time},
     {"syz_job_default", 0, (syscall_t)syz_job_default},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
@@ -789,6 +792,7 @@ const call_t syscalls[] = {
     {"symlink", 0, (syscall_t)symlink},
     {"symlinkat", 0, (syscall_t)symlinkat},
     {"sync", 0, (syscall_t)sync},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_future_time", 0, (syscall_t)syz_future_time},
     {"syz_job_default", 0, (syscall_t)syz_job_default},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
@@ -2932,6 +2936,7 @@ const call_t syscalls[] = {
     {"sysinfo", 116},
     {"syslog", 103},
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -5152,6 +5157,7 @@ const call_t syscalls[] = {
     {"sysinfo", 99},
     {"syslog", 103},
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -7330,6 +7336,7 @@ const call_t syscalls[] = {
     {"sysinfo", 116},
     {"syslog", 103},
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -9483,6 +9490,7 @@ const call_t syscalls[] = {
     {"sysinfo", 179},
     {"syslog", 116},
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -11513,6 +11521,7 @@ const call_t syscalls[] = {
     {"sysinfo", 116},
     {"syslog", 103},
     {"syz_emit_ethernet", 0, (syscall_t)syz_emit_ethernet},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_extract_tcp_res", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
@@ -11920,6 +11929,7 @@ const call_t syscalls[] = {
     {"symlink", 57},
     {"symlinkat", 470},
     {"sync", 36},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"truncate", 200},
     {"unlink", 10},
     {"unlinkat", 471},
@@ -12152,6 +12162,7 @@ const call_t syscalls[] = {
     {"symlink", 57},
     {"symlinkat", 324},
     {"sync", 36},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
     {"truncate", 200},
     {"unlink", 10},
@@ -12174,6 +12185,7 @@ const call_t syscalls[] = {
 const call_t syscalls[] = {
     {"syz_compare", 0, (syscall_t)syz_compare},
     {"syz_errno", 0, (syscall_t)syz_errno},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };
@@ -12183,6 +12195,7 @@ const call_t syscalls[] = {
 const call_t syscalls[] = {
     {"syz_compare", 0, (syscall_t)syz_compare},
     {"syz_errno", 0, (syscall_t)syz_errno},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };
@@ -12214,6 +12227,7 @@ const call_t syscalls[] = {
     {"serialize1", 0},
     {"syz_compare", 0, (syscall_t)syz_compare},
     {"syz_errno", 0, (syscall_t)syz_errno},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
     {"test", 0},
     {"test$align0", 0},
@@ -12310,6 +12324,7 @@ const call_t syscalls[] = {
 const call_t syscalls[] = {
     {"syz_compare", 0, (syscall_t)syz_compare},
     {"syz_errno", 0, (syscall_t)syz_errno},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };
@@ -15215,6 +15230,7 @@ const call_t syscalls[] = {
     {"setsockopt", 0, (syscall_t)setsockopt},
     {"sndPlaySoundA", 0, (syscall_t)sndPlaySoundA},
     {"socket", 0, (syscall_t)socket},
+    {"syz_execute_func", 0, (syscall_t)syz_execute_func},
     {"timeBeginPeriod", 0, (syscall_t)timeBeginPeriod},
     {"timeEndPeriod", 0, (syscall_t)timeEndPeriod},
     {"timeGetDevCaps", 0, (syscall_t)timeGetDevCaps},

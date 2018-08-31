@@ -1305,6 +1305,9 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "new_l", TypeSize: 8}}, Buf: "new"},
 	}},
+	{Name: "syz_execute_func", CallName: "syz_execute_func", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
+	}},
 	{NR: 126, Name: "tap_fds", CallName: "tap_fds", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "tap_reqs", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fd_tap_req"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nr_reqs", TypeSize: 8}}, Buf: "tap_reqs"},
@@ -1526,4 +1529,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "44785e2dac3e0f922841ab905a8c4e7838585083"
+const revision_amd64 = "f9824f5b26bc0ee36bc1e6debd6e8a8d6eee33ab"
