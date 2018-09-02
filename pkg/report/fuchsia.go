@@ -171,10 +171,10 @@ func (ctx *fuchsia) Symbolize(rep *Report) error {
 
 var zirconStackParams = &stackParams{
 	frameRes: []*regexp.Regexp{
-		compile(` RIP: 0x[0-9a-f]{8} +([a-zA-Z0-9_:]+)`),
-		compile(` RIP: \[ inline \] +([a-zA-Z0-9_:]+)`),
-		compile(`^bt#[0-9]+: 0x[0-9a-f]{8} +([a-zA-Z0-9_:]+)`),
-		compile(`^bt#[0-9]+: \[ inline \] +([a-zA-Z0-9_:]+)`),
+		compile(` RIP: 0x[0-9a-f]{8} +([a-zA-Z0-9_:~]+)`),
+		compile(` RIP: \[ inline \] +([a-zA-Z0-9_:~]+)`),
+		compile(`^bt#[0-9]+: 0x[0-9a-f]{8} +([a-zA-Z0-9_:~]+)`),
+		compile(`^bt#[0-9]+: \[ inline \] +([a-zA-Z0-9_:~]+)`),
 	},
 	skipPatterns: []string{
 		"^platform_halt$",
