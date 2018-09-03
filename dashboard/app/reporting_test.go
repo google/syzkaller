@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
@@ -49,7 +50,7 @@ func TestReportBug(t *testing.T) {
 		Maintainers:       []string{"bar@foo.com", "foo@bar.com"},
 		CompilerID:        "compiler1",
 		KernelRepo:        "repo1",
-		KernelRepoAlias:   "repo1/branch1",
+		KernelRepoAlias:   "repo1 branch1",
 		KernelBranch:      "branch1",
 		KernelCommit:      "1111111111111111111111111111111111111111",
 		KernelCommitTitle: build.KernelCommitTitle,
@@ -62,9 +63,11 @@ func TestReportBug(t *testing.T) {
 		ReportLink:        externalLink(c.ctx, textCrashReport, dbCrash.Report),
 		CrashID:           rep.CrashID,
 		NumCrashes:        1,
-		HappenedOn:        []string{"repo1/branch1"},
+		HappenedOn:        []string{"repo1 branch1"},
 	}
-	c.expectEQ(rep, want)
+	if diff := cmp.Diff(want, rep); diff != "" {
+		t.Fatal(diff)
+	}
 
 	// Since we did not update bug status yet, should get the same report again.
 	c.expectEQ(c.client.pollBug(), want)
@@ -85,7 +88,9 @@ func TestReportBug(t *testing.T) {
 	want.ReproSyzLink = externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
 	want.LogLink = externalLink(c.ctx, textCrashLog, dbCrash.Log)
 	want.ReportLink = externalLink(c.ctx, textCrashReport, dbCrash.Report)
-	c.expectEQ(rep1, want)
+	if diff := cmp.Diff(want, rep1); diff != "" {
+		t.Fatal(diff)
+	}
 
 	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
@@ -119,7 +124,9 @@ func TestReportBug(t *testing.T) {
 	want.First = true
 	want.Config = []byte(`{"Index":2}`)
 	want.NumCrashes = 3
-	c.expectEQ(rep2, want)
+	if diff := cmp.Diff(want, rep2); diff != "" {
+		t.Fatal(diff)
+	}
 
 	// Check that that we can't upstream the bug in the final reporting.
 	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
@@ -190,7 +197,7 @@ func TestInvalidBug(t *testing.T) {
 		Title:             "title1 (2)",
 		CompilerID:        "compiler1",
 		KernelRepo:        "repo1",
-		KernelRepoAlias:   "repo1/branch1",
+		KernelRepoAlias:   "repo1 branch1",
 		KernelBranch:      "branch1",
 		KernelCommit:      "1111111111111111111111111111111111111111",
 		KernelCommitTitle: build.KernelCommitTitle,
@@ -205,9 +212,11 @@ func TestInvalidBug(t *testing.T) {
 		ReproCLink:        externalLink(c.ctx, textReproC, dbCrash.ReproC),
 		CrashID:           rep.CrashID,
 		NumCrashes:        1,
-		HappenedOn:        []string{"repo1/branch1"},
+		HappenedOn:        []string{"repo1 branch1"},
 	}
-	c.expectEQ(rep, want)
+	if diff := cmp.Diff(want, rep); diff != "" {
+		t.Fatal(diff)
+	}
 	c.client.ReportFailedRepro(testCrashID(crash1))
 }
 

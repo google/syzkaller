@@ -363,7 +363,10 @@ func kernelRepoInfoRaw(repo, branch string) KernelRepo {
 	}
 	info := config.KernelRepos[repoID]
 	if info.Alias == "" {
-		info.Alias = repoID
+		info.Alias = repo
+		if branch != "" {
+			info.Alias += " " + branch
+		}
 	}
 	return info
 }

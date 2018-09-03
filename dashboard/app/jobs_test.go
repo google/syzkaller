@@ -146,7 +146,7 @@ test crash report
 Tested on:
 
 commit:         111111111111 kernel_commit_title1
-git tree:       repo1/branch1
+git tree:       repo1 branch1
 console output: %[3]v
 kernel config:  %[2]v
 compiler:       compiler1
@@ -188,7 +188,7 @@ failed to apply patch
 Tested on:
 
 commit:         111111111111 kernel_commit_title1
-git tree:       repo1/branch1
+git tree:       repo1 branch1
 kernel config:  %[2]v
 compiler:       compiler1
 patch:          %[1]v
@@ -233,7 +233,7 @@ Error text is too large and was truncated, full error text is at:
 Tested on:
 
 commit:         111111111111 kernel_commit_title1
-git tree:       repo1/branch1
+git tree:       repo1 branch1
 kernel config:  %[4]v
 compiler:       compiler1
 patch:          %[3]v
@@ -271,7 +271,7 @@ Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 Tested on:
 
 commit:         111111111111 kernel_commit_title1
-git tree:       repo1/branch1
+git tree:       repo1 branch1
 kernel config:  %[3]v
 compiler:       compiler1
 patch:          %[2]v
