@@ -79,6 +79,8 @@ After sending an email you should get a reply email with results within an hour.
 Note: you may send the request only to `syzbot` email address, as patches sent
 to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 
+Note: see [below](#kmsan-bugs) for testing `KMSAN` bugs.
+
 ## syzkaller reproducers
 
 `syzbot` aims at providing stand-alone C reproducers for all reported bugs.
@@ -177,11 +179,13 @@ implementation limitations of course). Note that `KMSAN` requires `clang` compil
 it lives in [github.com/google/kmsan](https://github.com/google/kmsan) and is
 based on a reasonably fresh upstream tree. As the result, any patch testing
 requests for `KMSAN` bugs need to go to `KMSAN` tree
-(`https://github.com/google/kmsan.git` repo, `master` branch) and you need to
-explicitly attach/inline the patch for testing, i.e.:
+(`https://github.com/google/kmsan.git` repo, `master` branch).
+A standard way for triggering the test with `KMSAN` tree is to send an
+email to `syzbot+HASH` address containing the following line:
 ```
 #syz test: https://github.com/google/kmsan.git master
 ```
+and attach/inline your test patch in the same email.
 
 Report explanation. The first call trace points to the `use` of the uninit value
 (which is usually a branching or copying it to userspace). Then there are 0 or
