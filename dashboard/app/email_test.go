@@ -50,7 +50,7 @@ func TestEmailReport(t *testing.T) {
 syzbot found the following crash on:
 
 HEAD commit:    111111111111 kernel_commit_title1
-git tree:       repo1/branch1
+git tree:       repo1 branch1
 console output: %[2]v
 kernel config:  %[3]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
@@ -148,7 +148,7 @@ For more options, visit https://groups.google.com/d/optout.
 		body := fmt.Sprintf(`syzbot has found a reproducer for the following crash on:
 
 HEAD commit:    111111111111 kernel_commit_title1
-git tree:       repo1/branch1
+git tree:       repo1 branch1
 console output: %[3]v
 kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
@@ -200,7 +200,7 @@ report1
 syzbot found the following crash on:
 
 HEAD commit:    111111111111 kernel_commit_title1
-git tree:       repo1/branch1
+git tree:       repo1 branch1
 console output: %[3]v
 kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
@@ -246,7 +246,7 @@ Content-Type: text/plain
 	c.expectOK(c.POST("/_ah/mail/", incoming3))
 
 	// Now upload a C reproducer.
-	build2 := testBuild(2)
+	build2 := testBuild(10)
 	build2.KernelCommitTitle = "a really long title, longer than 80 chars, really long-long-long-long-long-long title"
 	c.client2.UploadBuild(build2)
 	crash.BuildID = build2.ID
@@ -275,12 +275,12 @@ Content-Type: text/plain
 		c.expectEQ(len(msg.Attachments), 0)
 		body := fmt.Sprintf(`syzbot has found a reproducer for the following crash on:
 
-HEAD commit:    222222222222 a really long title, longer than 80 chars, re..
-git tree:       repo2/branch2
+HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
+git tree:       repo10alias
 console output: %[4]v
 kernel config:  %[5]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
-compiler:       compiler2
+compiler:       compiler10
 syz repro:      %[3]v
 C reproducer:   %[2]v
 

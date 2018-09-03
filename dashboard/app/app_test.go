@@ -147,6 +147,11 @@ var testConfig = &GlobalConfig{
 			},
 		},
 	},
+	KernelRepos: map[string]KernelRepo{
+		"repo10/branch10": {
+			Alias: "repo10alias",
+		},
+	},
 }
 
 const (
