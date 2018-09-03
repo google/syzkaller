@@ -171,14 +171,17 @@ actual eventual uses of uninitialized values. For example, `KMSAN` will detect
 a branch on or a `copy_to_user()` of values that transitively come from
 uninitialized memory created by heap/stack allocations. This ensures
 /theoretical/ absense of both false positives and false negatives (with some
-implementation limitations of course).
+implementation limitations of course). Note that `KMSAN` requires `clang` compiler.
 
 `KMSAN` is not upstream yet, though, we want to upstream it later. For now,
 it lives in [github.com/google/kmsan](https://github.com/google/kmsan) and is
 based on a reasonably fresh upstream tree. As the result, any patch testing
 requests for `KMSAN` bugs need to go to `KMSAN` tree
-(`https://github.com/google/kmsan.git` repo, `master` branch). Also note that
-`KMSAN` requires `clang` compiler.
+(`https://github.com/google/kmsan.git` repo, `master` branch) and you need to
+explicitly attach/inline the patch for testing, i.e.:
+```
+#syz test: https://github.com/google/kmsan.git master
+```
 
 Report explanation. The first call trace points to the `use` of the uninit value
 (which is usually a branching or copying it to userspace). Then there are 0 or
