@@ -15,12 +15,28 @@ make extract TARGETOS=fuchsia SOURCEDIR=/path/to/fuchsia/checkout
 make generate
 ```
 
-To build binaries:
+Fuchsia generally does not support out-of-tree Go binary builds.
+
+However, syzkaller is mirrored in third_party/syzkaller.
+
+So, to build target binaries, run `fx full-build` in your SOURCEDIR.
+
+Then build host binaries in SYZKALLERDIR:
+
 ```
-make TARGETOS=fuchsia TARGETARCH=amd64 SOURCEDIR=/path/to/fuchsia/checkout
+make host TARGETOS=fuchsia TARGETARCH=amd64 SOURCEDIR=/path/to/fuchsia/checkout
 ```
 
-Run `syz-manager` with a config along the lines of:
+And then copy the target binaries into the SYZKALLERDIR:
+
+```
+cp $SOURCEDIR/out/[x64,aarch64]/syz-execprog $SYZKALLERDIR/bin/fuchsia_[amd64,arm64]/
+cp $SOURCEDIR/out/[x64,aarch64]/syz-executor $SYZKALLERDIR/bin/fuchsia_[amd64,arm64]/
+cp $SOURCEDIR/out/[x64,aarch64]/syz-fuzzer $SYZKALLERDIR/bin/fuchsia_[amd64,arm64]/
+cp $SOURCEDIR/out/[x64,aarch64]/syz-stress $SYZKALLERDIR/bin/fuchsia_[amd64,arm64]/
+```
+
+Finally, run `syz-manager` with a config along the lines of:
 ```
 {
 	"name": "fuchsia",
