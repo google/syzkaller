@@ -105,8 +105,8 @@ Install debootstrap:
 sudo apt-get install debootstrap
 ```
 
-Use [this script](https://github.com/google/syzkaller/blob/master/tools/create-image.sh) to create a minimal Debian-wheezy Linux image.
-The result should be `$IMAGE/wheezy.img` disk image.
+Use [this script](https://github.com/google/syzkaller/blob/master/tools/create-image.sh) to create a minimal Debian-stretch Linux image.
+The result should be `$IMAGE/stretch.img` disk image.
 
 Sometimes it's useful to have some additional packages and tools available in the VM even though they are not required to run syzkaller.
 The instructions to install some useful tools are below.
@@ -114,22 +114,22 @@ They should obviously be executed before packing the `.img` file.
 
 To install other packages (not required to run syzkaller):
 ``` bash
-sudo chroot wheezy /bin/bash -c "apt-get update; apt-get install -y curl tar time strace gcc make sysbench git vim screen usbutils"
+sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y curl tar time strace gcc make sysbench git vim screen usbutils"
 ```
 
 To install Trinity (not required to run syzkaller):
 ``` bash
-sudo chroot wheezy /bin/bash -c "mkdir -p ~; cd ~/; wget https://github.com/kernelslacker/trinity/archive/v1.5.tar.gz -O trinity-1.5.tar.gz; tar -xf trinity-1.5.tar.gz"
-sudo chroot wheezy /bin/bash -c "cd ~/trinity-1.5 ; ./configure.sh ; make -j16 ; make install"
+sudo chroot stretch /bin/bash -c "mkdir -p ~; cd ~/; wget https://github.com/kernelslacker/trinity/archive/v1.5.tar.gz -O trinity-1.5.tar.gz; tar -xf trinity-1.5.tar.gz"
+sudo chroot stretch /bin/bash -c "cd ~/trinity-1.5 ; ./configure.sh ; make -j16 ; make install"
 ```
 
 To install perf (not required to run syzkaller):
 ``` bash
-cp -r $KERNEL wheezy/tmp/
-sudo chroot wheezy /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind7-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
-sudo chroot wheezy /bin/bash -c "cd /tmp/linux/tools/perf/; make"
-sudo chroot wheezy /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
-rm -r wheezy/tmp/linux
+cp -r $KERNEL stretch/tmp/
+sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind7-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
+sudo chroot stretch /bin/bash -c "cd /tmp/linux/tools/perf/; make"
+sudo chroot stretch /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
+rm -r stretch/tmp/linux
 ```
 
 ## QEMU
@@ -144,7 +144,7 @@ Make sure the kernel boots and `sshd` starts:
 qemu-system-x86_64 \
   -kernel $KERNEL/arch/x86/boot/bzImage \
   -append "console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=QUZ"\
-  -hda $IMAGE/wheezy.img \
+  -hda $IMAGE/stretch.img \
   -net user,hostfwd=tcp::10021-:22 -net nic \
   -enable-kvm \
   -nographic \
@@ -217,8 +217,8 @@ variables `$GOPATH`, `$KERNEL` and `$IMAGE` with their actual values.
 	"http": "127.0.0.1:56741",
 	"workdir": "$GOPATH/src/github.com/google/syzkaller/workdir",
 	"kernel_obj": "$KERNEL",
-	"image": "$IMAGE/wheezy.img",
-	"sshkey": "$IMAGE/wheezy.id_rsa",
+	"image": "$IMAGE/stretch.img",
+	"sshkey": "$IMAGE/stretch.id_rsa",
 	"syzkaller": "$GOPATH/src/github.com/google/syzkaller",
 	"procs": 8,
 	"type": "qemu",
