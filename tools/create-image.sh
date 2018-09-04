@@ -2,13 +2,13 @@
 # Copyright 2016 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# create-image.sh creates a minimal Debian-wheezy Linux image suitable for syzkaller.
+# create-image.sh creates a minimal Debian Linux image suitable for syzkaller.
 
 set -eux
 
-# Create a minimal Debian-wheezy distributive as a directory.
-RELEASE=wheezy
-DIR=wheezy
+# Create a minimal Debian distribution in a directory.
+RELEASE=stretch
+DIR=stretch
 sudo rm -rf $DIR
 mkdir -p $DIR
 sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default $RELEASE $DIR
@@ -17,6 +17,7 @@ sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sud
 sudo sed -i '/^root/ { s/:x:/::/ }' $DIR/etc/passwd
 echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' | sudo tee -a $DIR/etc/inittab
 printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a $DIR/etc/network/interfaces
+echo '/dev/root / ext4 defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo "kernel.printk = 7 4 1 3" | sudo tee -a $DIR/etc/sysctl.conf
