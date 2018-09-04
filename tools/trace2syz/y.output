@@ -1,0 +1,2555 @@
+
+state 0
+	$accept: .syscall $end 
+
+	IDENTIFIER  shift 2
+	INT  shift 4
+	RESUMED  shift 3
+	.  error
+
+	syscall  goto 1
+
+state 1
+	$accept:  syscall.$end 
+
+	$end  accept
+	.  error
+
+
+state 2
+	syscall:  IDENTIFIER.LPAREN UNFINISHED 
+	syscall:  IDENTIFIER.LPAREN types UNFINISHED 
+	syscall:  IDENTIFIER.LPAREN RESUMED RPAREN EQUALS INT 
+	syscall:  IDENTIFIER.LPAREN RPAREN EQUALS INT 
+	syscall:  IDENTIFIER.LPAREN RPAREN EQUALS UINT 
+	syscall:  IDENTIFIER.LPAREN types RPAREN EQUALS INT 
+	syscall:  IDENTIFIER.LPAREN types RPAREN EQUALS UINT 
+	syscall:  IDENTIFIER.LPAREN types RPAREN EQUALS QUESTION 
+	syscall:  IDENTIFIER.LPAREN types RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER.LPAREN types RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER.LPAREN types RPAREN EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER.LPAREN types RPAREN EQUALS UINT LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER.LPAREN RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER.LPAREN RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 5
+	.  error
+
+
+state 3
+	syscall:  RESUMED.UNFINISHED RPAREN EQUALS QUESTION 
+	syscall:  RESUMED.RPAREN EQUALS INT 
+	syscall:  RESUMED.RPAREN EQUALS UINT 
+	syscall:  RESUMED.RPAREN EQUALS QUESTION 
+	syscall:  RESUMED.RPAREN EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED.RPAREN EQUALS UINT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED.RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  RESUMED.types RPAREN EQUALS INT 
+	syscall:  RESUMED.types RPAREN EQUALS UINT 
+	syscall:  RESUMED.types RPAREN EQUALS QUESTION 
+	syscall:  RESUMED.types RPAREN EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED.types RPAREN EQUALS UINT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED.types RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  RESUMED.types RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	RPAREN  shift 7
+	UNFINISHED  shift 6
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 9
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+	types  goto 8
+
+state 4
+	syscall:  INT.syscall 
+
+	IDENTIFIER  shift 2
+	INT  shift 4
+	RESUMED  shift 3
+	.  error
+
+	syscall  goto 39
+
+state 5
+	syscall:  IDENTIFIER LPAREN.UNFINISHED 
+	syscall:  IDENTIFIER LPAREN.types UNFINISHED 
+	syscall:  IDENTIFIER LPAREN.RESUMED RPAREN EQUALS INT 
+	syscall:  IDENTIFIER LPAREN.RPAREN EQUALS INT 
+	syscall:  IDENTIFIER LPAREN.RPAREN EQUALS UINT 
+	syscall:  IDENTIFIER LPAREN.types RPAREN EQUALS INT 
+	syscall:  IDENTIFIER LPAREN.types RPAREN EQUALS UINT 
+	syscall:  IDENTIFIER LPAREN.types RPAREN EQUALS QUESTION 
+	syscall:  IDENTIFIER LPAREN.types RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN.types RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN.types RPAREN EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN.types RPAREN EQUALS UINT LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN.RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN.RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	RPAREN  shift 43
+	UNFINISHED  shift 40
+	RESUMED  shift 42
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 9
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+	types  goto 41
+
+state 6
+	syscall:  RESUMED UNFINISHED.RPAREN EQUALS QUESTION 
+
+	RPAREN  shift 44
+	.  error
+
+
+state 7
+	syscall:  RESUMED RPAREN.EQUALS INT 
+	syscall:  RESUMED RPAREN.EQUALS UINT 
+	syscall:  RESUMED RPAREN.EQUALS QUESTION 
+	syscall:  RESUMED RPAREN.EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED RPAREN.EQUALS UINT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED RPAREN.EQUALS INT FLAG LPAREN parentheticals RPAREN 
+
+	EQUALS  shift 45
+	.  error
+
+
+state 8
+	syscall:  RESUMED types.RPAREN EQUALS INT 
+	syscall:  RESUMED types.RPAREN EQUALS UINT 
+	syscall:  RESUMED types.RPAREN EQUALS QUESTION 
+	syscall:  RESUMED types.RPAREN EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types.RPAREN EQUALS UINT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types.RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types.RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	types:  types.COMMA type 
+
+	COMMA  shift 47
+	RPAREN  shift 46
+	.  error
+
+
+state 9
+	types:  type.    (42)
+
+	.  reduce 42 (src line 168)
+
+
+state 10
+	type:  buf_type.    (44)
+
+	.  reduce 44 (src line 173)
+
+
+state 11
+	type:  field_type.    (45)
+
+	.  reduce 45 (src line 175)
+
+
+state 12
+	type:  pointer_type.    (46)
+
+	.  reduce 46 (src line 176)
+
+
+state 13
+	type:  array_type.    (47)
+
+	.  reduce 47 (src line 177)
+
+
+state 14
+	type:  struct_type.    (48)
+
+	.  reduce 48 (src line 178)
+
+
+state 15
+	type:  call_type.    (49)
+
+	.  reduce 49 (src line 179)
+
+
+state 16
+	type:  ip_type.    (50)
+
+	.  reduce 50 (src line 180)
+
+
+state 17
+	type:  expr_type.    (51)
+	type:  expr_type.ARROW type 
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+
+	ARROW  shift 48
+	OR  shift 49
+	AND  shift 50
+	LOR  shift 53
+	TIMES  shift 56
+	LAND  shift 54
+	LEQUAL  shift 55
+	LSHIFT  shift 51
+	RSHIFT  shift 52
+	.  reduce 51 (src line 181)
+
+
+state 18
+	type:  ONESCOMP.array_type 
+	expr_type:  ONESCOMP.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	array_type  goto 57
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 58
+	flags  goto 29
+	ints  goto 30
+
+state 19
+	buf_type:  STRING_LITERAL.    (88)
+
+	.  reduce 88 (src line 238)
+
+
+state 20
+	buf_type:  DATETIME.    (89)
+
+	.  reduce 89 (src line 240)
+
+
+state 21
+	call_type:  IDENTIFIER.LPAREN types RPAREN 
+	field_type:  IDENTIFIER.EQUALS 
+	field_type:  IDENTIFIER.EQUALS type 
+	field_type:  IDENTIFIER.COLON type 
+	field_type:  IDENTIFIER.EQUALS AT type 
+	field_type:  IDENTIFIER.LBRACKET_SQUARE FLAG RBRACKET_SQUARE EQUALS type 
+
+	LBRACKET_SQUARE  shift 63
+	LPAREN  shift 60
+	EQUALS  shift 61
+	COLON  shift 62
+	.  error
+
+
+state 22
+	pointer_type:  AND.IDENTIFIER 
+	pointer_type:  AND.UINT EQUALS type 
+
+	IDENTIFIER  shift 64
+	UINT  shift 65
+	.  error
+
+
+state 23
+	pointer_type:  NULL.    (77)
+
+	.  reduce 77 (src line 220)
+
+
+state 24
+	array_type:  LBRACKET_SQUARE.types RBRACKET_SQUARE 
+	array_type:  LBRACKET_SQUARE.RBRACKET_SQUARE 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RBRACKET_SQUARE  shift 67
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 9
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+	types  goto 66
+
+state 25
+	struct_type:  LBRACKET.types RBRACKET 
+	struct_type:  LBRACKET.types COMMA RBRACKET 
+	struct_type:  LBRACKET.RBRACKET 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	RBRACKET  shift 69
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 9
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+	types  goto 68
+
+state 26
+	ip_type:  IPV4.    (93)
+
+	.  reduce 93 (src line 250)
+
+
+state 27
+	ip_type:  IPV6.    (94)
+
+	.  reduce 94 (src line 252)
+
+
+state 28
+	ip_type:  MAC.    (95)
+
+	.  reduce 95 (src line 253)
+
+
+state 29
+	expr_type:  flags.    (54)
+	flags:  flags.flag_type 
+
+	FLAG  shift 71
+	.  reduce 54 (src line 186)
+
+	flag_type  goto 70
+
+state 30
+	expr_type:  ints.    (55)
+	ints:  ints.int_type 
+
+	INT  shift 37
+	UINT  shift 38
+	.  reduce 55 (src line 188)
+
+	int_type  goto 72
+
+state 31
+	expr_type:  macro_type.    (56)
+
+	.  reduce 56 (src line 189)
+
+
+state 32
+	expr_type:  LPAREN.expr_type RPAREN 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 73
+	flags  goto 29
+	ints  goto 30
+
+state 33
+	flags:  flag_type.    (69)
+
+	.  reduce 69 (src line 205)
+
+
+state 34
+	ints:  int_type.    (67)
+
+	.  reduce 67 (src line 201)
+
+
+state 35
+	macro_type:  FLAG.LPAREN types RPAREN 
+	macro_type:  FLAG.LPAREN identifiers RPAREN 
+	flag_type:  FLAG.    (92)
+
+	LPAREN  shift 74
+	.  reduce 92 (src line 247)
+
+
+state 36
+	macro_type:  KEYWORD.LPAREN KEYWORD IDENTIFIER RPAREN 
+
+	LPAREN  shift 75
+	.  error
+
+
+state 37
+	int_type:  INT.    (90)
+
+	.  reduce 90 (src line 243)
+
+
+state 38
+	int_type:  UINT.    (91)
+
+	.  reduce 91 (src line 245)
+
+
+state 39
+	syscall:  INT syscall.    (29)
+
+	.  reduce 29 (src line 149)
+
+
+state 40
+	syscall:  IDENTIFIER LPAREN UNFINISHED.    (1)
+
+	.  reduce 1 (src line 77)
+
+
+state 41
+	syscall:  IDENTIFIER LPAREN types.UNFINISHED 
+	syscall:  IDENTIFIER LPAREN types.RPAREN EQUALS INT 
+	syscall:  IDENTIFIER LPAREN types.RPAREN EQUALS UINT 
+	syscall:  IDENTIFIER LPAREN types.RPAREN EQUALS QUESTION 
+	syscall:  IDENTIFIER LPAREN types.RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types.RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types.RPAREN EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types.RPAREN EQUALS UINT LPAREN parentheticals RPAREN 
+	types:  types.COMMA type 
+
+	COMMA  shift 47
+	RPAREN  shift 77
+	UNFINISHED  shift 76
+	.  error
+
+
+state 42
+	syscall:  IDENTIFIER LPAREN RESUMED.RPAREN EQUALS INT 
+
+	RPAREN  shift 78
+	.  error
+
+
+state 43
+	syscall:  IDENTIFIER LPAREN RPAREN.EQUALS INT 
+	syscall:  IDENTIFIER LPAREN RPAREN.EQUALS UINT 
+	syscall:  IDENTIFIER LPAREN RPAREN.EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN RPAREN.EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+
+	EQUALS  shift 79
+	.  error
+
+
+state 44
+	syscall:  RESUMED UNFINISHED RPAREN.EQUALS QUESTION 
+
+	EQUALS  shift 80
+	.  error
+
+
+state 45
+	syscall:  RESUMED RPAREN EQUALS.INT 
+	syscall:  RESUMED RPAREN EQUALS.UINT 
+	syscall:  RESUMED RPAREN EQUALS.QUESTION 
+	syscall:  RESUMED RPAREN EQUALS.INT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED RPAREN EQUALS.UINT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED RPAREN EQUALS.INT FLAG LPAREN parentheticals RPAREN 
+
+	INT  shift 81
+	UINT  shift 82
+	QUESTION  shift 83
+	.  error
+
+
+state 46
+	syscall:  RESUMED types RPAREN.EQUALS INT 
+	syscall:  RESUMED types RPAREN.EQUALS UINT 
+	syscall:  RESUMED types RPAREN.EQUALS QUESTION 
+	syscall:  RESUMED types RPAREN.EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types RPAREN.EQUALS UINT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types RPAREN.EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types RPAREN.EQUALS INT FLAG LPAREN parentheticals RPAREN 
+
+	EQUALS  shift 84
+	.  error
+
+
+state 47
+	types:  types COMMA.type 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 85
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+
+state 48
+	type:  expr_type ARROW.type 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 86
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+
+state 49
+	expr_type:  expr_type OR.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 87
+	flags  goto 29
+	ints  goto 30
+
+state 50
+	expr_type:  expr_type AND.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 88
+	flags  goto 29
+	ints  goto 30
+
+state 51
+	expr_type:  expr_type LSHIFT.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 89
+	flags  goto 29
+	ints  goto 30
+
+state 52
+	expr_type:  expr_type RSHIFT.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 90
+	flags  goto 29
+	ints  goto 30
+
+state 53
+	expr_type:  expr_type LOR.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 91
+	flags  goto 29
+	ints  goto 30
+
+state 54
+	expr_type:  expr_type LAND.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 92
+	flags  goto 29
+	ints  goto 30
+
+state 55
+	expr_type:  expr_type LEQUAL.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 93
+	flags  goto 29
+	ints  goto 30
+
+state 56
+	expr_type:  expr_type TIMES.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 94
+	flags  goto 29
+	ints  goto 30
+
+state 57
+	type:  ONESCOMP array_type.    (53)
+
+	.  reduce 53 (src line 183)
+
+
+state 58
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+	expr_type:  ONESCOMP expr_type.    (66)
+
+	.  reduce 66 (src line 199)
+
+
+state 59
+	expr_type:  ONESCOMP.expr_type 
+
+	FLAG  shift 35
+	INT  shift 37
+	UINT  shift 38
+	ONESCOMP  shift 59
+	LPAREN  shift 32
+	KEYWORD  shift 36
+	.  error
+
+	int_type  goto 34
+	flag_type  goto 33
+	macro_type  goto 31
+	expr_type  goto 58
+	flags  goto 29
+	ints  goto 30
+
+state 60
+	call_type:  IDENTIFIER LPAREN.types RPAREN 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 9
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+	types  goto 95
+
+state 61
+	field_type:  IDENTIFIER EQUALS.    (83)
+	field_type:  IDENTIFIER EQUALS.type 
+	field_type:  IDENTIFIER EQUALS.AT type 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	AT  shift 97
+	KEYWORD  shift 36
+	.  reduce 83 (src line 231)
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 96
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+
+state 62
+	field_type:  IDENTIFIER COLON.type 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 98
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+
+state 63
+	field_type:  IDENTIFIER LBRACKET_SQUARE.FLAG RBRACKET_SQUARE EQUALS type 
+
+	FLAG  shift 99
+	.  error
+
+
+state 64
+	pointer_type:  AND IDENTIFIER.    (75)
+
+	.  reduce 75 (src line 217)
+
+
+state 65
+	pointer_type:  AND UINT.EQUALS type 
+
+	EQUALS  shift 100
+	.  error
+
+
+state 66
+	types:  types.COMMA type 
+	array_type:  LBRACKET_SQUARE types.RBRACKET_SQUARE 
+
+	COMMA  shift 47
+	RBRACKET_SQUARE  shift 101
+	.  error
+
+
+state 67
+	array_type:  LBRACKET_SQUARE RBRACKET_SQUARE.    (79)
+
+	.  reduce 79 (src line 224)
+
+
+state 68
+	types:  types.COMMA type 
+	struct_type:  LBRACKET types.RBRACKET 
+	struct_type:  LBRACKET types.COMMA RBRACKET 
+
+	COMMA  shift 102
+	RBRACKET  shift 103
+	.  error
+
+
+state 69
+	struct_type:  LBRACKET RBRACKET.    (82)
+
+	.  reduce 82 (src line 229)
+
+
+state 70
+	flags:  flags flag_type.    (70)
+
+	.  reduce 70 (src line 207)
+
+
+state 71
+	flag_type:  FLAG.    (92)
+
+	.  reduce 92 (src line 247)
+
+
+state 72
+	ints:  ints int_type.    (68)
+
+	.  reduce 68 (src line 203)
+
+
+state 73
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  LPAREN expr_type.RPAREN 
+	expr_type:  expr_type.TIMES expr_type 
+
+	OR  shift 49
+	AND  shift 50
+	LOR  shift 53
+	TIMES  shift 56
+	LAND  shift 54
+	LEQUAL  shift 55
+	LSHIFT  shift 51
+	RSHIFT  shift 52
+	RPAREN  shift 104
+	.  error
+
+
+state 74
+	macro_type:  FLAG LPAREN.types RPAREN 
+	macro_type:  FLAG LPAREN.identifiers RPAREN 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 107
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	identifiers  goto 106
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 9
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+	types  goto 105
+
+state 75
+	macro_type:  KEYWORD LPAREN.KEYWORD IDENTIFIER RPAREN 
+
+	KEYWORD  shift 108
+	.  error
+
+
+state 76
+	syscall:  IDENTIFIER LPAREN types UNFINISHED.    (2)
+
+	.  reduce 2 (src line 80)
+
+
+state 77
+	syscall:  IDENTIFIER LPAREN types RPAREN.EQUALS INT 
+	syscall:  IDENTIFIER LPAREN types RPAREN.EQUALS UINT 
+	syscall:  IDENTIFIER LPAREN types RPAREN.EQUALS QUESTION 
+	syscall:  IDENTIFIER LPAREN types RPAREN.EQUALS INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types RPAREN.EQUALS UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types RPAREN.EQUALS INT LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types RPAREN.EQUALS UINT LPAREN parentheticals RPAREN 
+
+	EQUALS  shift 109
+	.  error
+
+
+state 78
+	syscall:  IDENTIFIER LPAREN RESUMED RPAREN.EQUALS INT 
+
+	EQUALS  shift 110
+	.  error
+
+
+state 79
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS.INT 
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS.UINT 
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS.INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS.UINT FLAG LPAREN parentheticals RPAREN 
+
+	INT  shift 111
+	UINT  shift 112
+	.  error
+
+
+state 80
+	syscall:  RESUMED UNFINISHED RPAREN EQUALS.QUESTION 
+
+	QUESTION  shift 113
+	.  error
+
+
+state 81
+	syscall:  RESUMED RPAREN EQUALS INT.    (5)
+	syscall:  RESUMED RPAREN EQUALS INT.LPAREN parentheticals RPAREN 
+	syscall:  RESUMED RPAREN EQUALS INT.FLAG LPAREN parentheticals RPAREN 
+
+	FLAG  shift 115
+	LPAREN  shift 114
+	.  reduce 5 (src line 92)
+
+
+state 82
+	syscall:  RESUMED RPAREN EQUALS UINT.    (6)
+	syscall:  RESUMED RPAREN EQUALS UINT.LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 116
+	.  reduce 6 (src line 94)
+
+
+state 83
+	syscall:  RESUMED RPAREN EQUALS QUESTION.    (7)
+
+	.  reduce 7 (src line 96)
+
+
+state 84
+	syscall:  RESUMED types RPAREN EQUALS.INT 
+	syscall:  RESUMED types RPAREN EQUALS.UINT 
+	syscall:  RESUMED types RPAREN EQUALS.QUESTION 
+	syscall:  RESUMED types RPAREN EQUALS.INT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types RPAREN EQUALS.UINT LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types RPAREN EQUALS.UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types RPAREN EQUALS.INT FLAG LPAREN parentheticals RPAREN 
+
+	INT  shift 117
+	UINT  shift 118
+	QUESTION  shift 119
+	.  error
+
+
+state 85
+	types:  types COMMA type.    (43)
+
+	.  reduce 43 (src line 170)
+
+
+state 86
+	type:  expr_type ARROW type.    (52)
+
+	.  reduce 52 (src line 182)
+
+
+state 87
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type OR expr_type.    (57)
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+
+	AND  shift 50
+	TIMES  shift 56
+	LEQUAL  shift 55
+	LSHIFT  shift 51
+	RSHIFT  shift 52
+	.  reduce 57 (src line 190)
+
+
+state 88
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type AND expr_type.    (58)
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+
+	TIMES  shift 56
+	LEQUAL  shift 55
+	LSHIFT  shift 51
+	RSHIFT  shift 52
+	.  reduce 58 (src line 191)
+
+
+state 89
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type LSHIFT expr_type.    (59)
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+
+	TIMES  shift 56
+	.  reduce 59 (src line 192)
+
+
+state 90
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type RSHIFT expr_type.    (60)
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+
+	TIMES  shift 56
+	.  reduce 60 (src line 193)
+
+
+state 91
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type LOR expr_type.    (61)
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+
+	OR  shift 49
+	AND  shift 50
+	TIMES  shift 56
+	LAND  shift 54
+	LEQUAL  shift 55
+	LSHIFT  shift 51
+	RSHIFT  shift 52
+	.  reduce 61 (src line 194)
+
+
+state 92
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type LAND expr_type.    (62)
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+
+	OR  shift 49
+	AND  shift 50
+	TIMES  shift 56
+	LEQUAL  shift 55
+	LSHIFT  shift 51
+	RSHIFT  shift 52
+	.  reduce 62 (src line 195)
+
+
+state 93
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type LEQUAL expr_type.    (63)
+	expr_type:  expr_type.TIMES expr_type 
+
+	TIMES  shift 56
+	LSHIFT  shift 51
+	RSHIFT  shift 52
+	.  reduce 63 (src line 196)
+
+
+state 94
+	expr_type:  expr_type.OR expr_type 
+	expr_type:  expr_type.AND expr_type 
+	expr_type:  expr_type.LSHIFT expr_type 
+	expr_type:  expr_type.RSHIFT expr_type 
+	expr_type:  expr_type.LOR expr_type 
+	expr_type:  expr_type.LAND expr_type 
+	expr_type:  expr_type.LEQUAL expr_type 
+	expr_type:  expr_type.TIMES expr_type 
+	expr_type:  expr_type TIMES expr_type.    (65)
+
+	.  reduce 65 (src line 198)
+
+
+state 95
+	types:  types.COMMA type 
+	call_type:  IDENTIFIER LPAREN types.RPAREN 
+
+	COMMA  shift 47
+	RPAREN  shift 120
+	.  error
+
+
+state 96
+	field_type:  IDENTIFIER EQUALS type.    (84)
+
+	.  reduce 84 (src line 233)
+
+
+state 97
+	field_type:  IDENTIFIER EQUALS AT.type 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 121
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+
+state 98
+	field_type:  IDENTIFIER COLON type.    (85)
+
+	.  reduce 85 (src line 234)
+
+
+state 99
+	field_type:  IDENTIFIER LBRACKET_SQUARE FLAG.RBRACKET_SQUARE EQUALS type 
+
+	RBRACKET_SQUARE  shift 122
+	.  error
+
+
+state 100
+	pointer_type:  AND UINT EQUALS.type 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 123
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+
+state 101
+	array_type:  LBRACKET_SQUARE types RBRACKET_SQUARE.    (78)
+
+	.  reduce 78 (src line 222)
+
+
+state 102
+	types:  types COMMA.type 
+	struct_type:  LBRACKET types COMMA.RBRACKET 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	RBRACKET  shift 124
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 85
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+
+state 103
+	struct_type:  LBRACKET types RBRACKET.    (80)
+
+	.  reduce 80 (src line 226)
+
+
+state 104
+	expr_type:  LPAREN expr_type RPAREN.    (64)
+
+	.  reduce 64 (src line 197)
+
+
+state 105
+	types:  types.COMMA type 
+	macro_type:  FLAG LPAREN types.RPAREN 
+
+	COMMA  shift 47
+	RPAREN  shift 125
+	.  error
+
+
+state 106
+	macro_type:  FLAG LPAREN identifiers.RPAREN 
+
+	RPAREN  shift 126
+	.  error
+
+
+state 107
+	call_type:  IDENTIFIER.LPAREN types RPAREN 
+	field_type:  IDENTIFIER.EQUALS 
+	field_type:  IDENTIFIER.EQUALS type 
+	field_type:  IDENTIFIER.COLON type 
+	field_type:  IDENTIFIER.EQUALS AT type 
+	field_type:  IDENTIFIER.LBRACKET_SQUARE FLAG RBRACKET_SQUARE EQUALS type 
+	identifiers:  IDENTIFIER.    (96)
+	identifiers:  IDENTIFIER.identifiers 
+
+	IDENTIFIER  shift 128
+	LBRACKET_SQUARE  shift 63
+	LPAREN  shift 60
+	EQUALS  shift 61
+	COLON  shift 62
+	.  reduce 96 (src line 255)
+
+	identifiers  goto 127
+
+state 108
+	macro_type:  KEYWORD LPAREN KEYWORD.IDENTIFIER RPAREN 
+
+	IDENTIFIER  shift 129
+	.  error
+
+
+state 109
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS.INT 
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS.UINT 
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS.QUESTION 
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS.INT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS.UINT FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS.INT LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS.UINT LPAREN parentheticals RPAREN 
+
+	INT  shift 130
+	UINT  shift 131
+	QUESTION  shift 132
+	.  error
+
+
+state 110
+	syscall:  IDENTIFIER LPAREN RESUMED RPAREN EQUALS.INT 
+
+	INT  shift 133
+	.  error
+
+
+state 111
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS INT.    (18)
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS INT.FLAG LPAREN parentheticals RPAREN 
+
+	FLAG  shift 134
+	.  reduce 18 (src line 118)
+
+
+state 112
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS UINT.    (19)
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS UINT.FLAG LPAREN parentheticals RPAREN 
+
+	FLAG  shift 135
+	.  reduce 19 (src line 120)
+
+
+state 113
+	syscall:  RESUMED UNFINISHED RPAREN EQUALS QUESTION.    (3)
+
+	.  reduce 3 (src line 82)
+
+
+state 114
+	syscall:  RESUMED RPAREN EQUALS INT LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 136
+
+state 115
+	syscall:  RESUMED RPAREN EQUALS INT FLAG.LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 148
+	.  error
+
+
+state 116
+	syscall:  RESUMED RPAREN EQUALS UINT LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 149
+
+state 117
+	syscall:  RESUMED types RPAREN EQUALS INT.    (11)
+	syscall:  RESUMED types RPAREN EQUALS INT.LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types RPAREN EQUALS INT.FLAG LPAREN parentheticals RPAREN 
+
+	FLAG  shift 151
+	LPAREN  shift 150
+	.  reduce 11 (src line 104)
+
+
+state 118
+	syscall:  RESUMED types RPAREN EQUALS UINT.    (12)
+	syscall:  RESUMED types RPAREN EQUALS UINT.LPAREN parentheticals RPAREN 
+	syscall:  RESUMED types RPAREN EQUALS UINT.FLAG LPAREN parentheticals RPAREN 
+
+	FLAG  shift 153
+	LPAREN  shift 152
+	.  reduce 12 (src line 106)
+
+
+state 119
+	syscall:  RESUMED types RPAREN EQUALS QUESTION.    (13)
+
+	.  reduce 13 (src line 108)
+
+
+state 120
+	call_type:  IDENTIFIER LPAREN types RPAREN.    (71)
+
+	.  reduce 71 (src line 209)
+
+
+state 121
+	field_type:  IDENTIFIER EQUALS AT type.    (86)
+
+	.  reduce 86 (src line 235)
+
+
+state 122
+	field_type:  IDENTIFIER LBRACKET_SQUARE FLAG RBRACKET_SQUARE.EQUALS type 
+
+	EQUALS  shift 154
+	.  error
+
+
+state 123
+	pointer_type:  AND UINT EQUALS type.    (76)
+
+	.  reduce 76 (src line 219)
+
+
+state 124
+	struct_type:  LBRACKET types COMMA RBRACKET.    (81)
+
+	.  reduce 81 (src line 228)
+
+
+state 125
+	macro_type:  FLAG LPAREN types RPAREN.    (72)
+
+	.  reduce 72 (src line 212)
+
+
+state 126
+	macro_type:  FLAG LPAREN identifiers RPAREN.    (73)
+
+	.  reduce 73 (src line 214)
+
+
+state 127
+	identifiers:  IDENTIFIER identifiers.    (97)
+
+	.  reduce 97 (src line 257)
+
+
+state 128
+	identifiers:  IDENTIFIER.    (96)
+	identifiers:  IDENTIFIER.identifiers 
+
+	IDENTIFIER  shift 128
+	.  reduce 96 (src line 255)
+
+	identifiers  goto 127
+
+state 129
+	macro_type:  KEYWORD LPAREN KEYWORD IDENTIFIER.RPAREN 
+
+	RPAREN  shift 155
+	.  error
+
+
+state 130
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT.    (20)
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT.FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT.LPAREN parentheticals RPAREN 
+
+	FLAG  shift 156
+	LPAREN  shift 157
+	.  reduce 20 (src line 122)
+
+
+state 131
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT.    (21)
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT.FLAG LPAREN parentheticals RPAREN 
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT.LPAREN parentheticals RPAREN 
+
+	FLAG  shift 158
+	LPAREN  shift 159
+	.  reduce 21 (src line 125)
+
+
+state 132
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS QUESTION.    (22)
+
+	.  reduce 22 (src line 128)
+
+
+state 133
+	syscall:  IDENTIFIER LPAREN RESUMED RPAREN EQUALS INT.    (4)
+
+	.  reduce 4 (src line 87)
+
+
+state 134
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS INT FLAG.LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 160
+	.  error
+
+
+state 135
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS UINT FLAG.LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 161
+	.  error
+
+
+state 136
+	syscall:  RESUMED RPAREN EQUALS INT LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 162
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 137
+	parentheticals:  parenthetical.    (30)
+
+	.  reduce 30 (src line 151)
+
+
+state 138
+	parenthetical:  COMMA.    (32)
+
+	.  reduce 32 (src line 155)
+
+
+state 139
+	parenthetical:  OR.    (33)
+
+	.  reduce 33 (src line 157)
+
+
+state 140
+	parenthetical:  AND.    (34)
+
+	.  reduce 34 (src line 158)
+
+
+state 141
+	parenthetical:  LSHIFT.    (35)
+
+	.  reduce 35 (src line 159)
+
+
+state 142
+	parenthetical:  RSHIFT.    (36)
+
+	.  reduce 36 (src line 160)
+
+
+state 143
+	parenthetical:  IDENTIFIER.    (37)
+
+	.  reduce 37 (src line 161)
+
+
+state 144
+	parenthetical:  struct_type.    (38)
+
+	.  reduce 38 (src line 162)
+
+
+state 145
+	parenthetical:  array_type.    (39)
+
+	.  reduce 39 (src line 163)
+
+
+state 146
+	parenthetical:  flag_type.    (40)
+
+	.  reduce 40 (src line 164)
+
+
+state 147
+	parenthetical:  int_type.    (41)
+
+	.  reduce 41 (src line 165)
+
+
+state 148
+	syscall:  RESUMED RPAREN EQUALS INT FLAG LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 164
+
+state 149
+	syscall:  RESUMED RPAREN EQUALS UINT LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 165
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 150
+	syscall:  RESUMED types RPAREN EQUALS INT LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 166
+
+state 151
+	syscall:  RESUMED types RPAREN EQUALS INT FLAG.LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 167
+	.  error
+
+
+state 152
+	syscall:  RESUMED types RPAREN EQUALS UINT LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 168
+
+state 153
+	syscall:  RESUMED types RPAREN EQUALS UINT FLAG.LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 169
+	.  error
+
+
+state 154
+	field_type:  IDENTIFIER LBRACKET_SQUARE FLAG RBRACKET_SQUARE EQUALS.type 
+
+	STRING_LITERAL  shift 19
+	IPV4  shift 26
+	IPV6  shift 27
+	IDENTIFIER  shift 21
+	FLAG  shift 35
+	DATETIME  shift 20
+	MAC  shift 28
+	INT  shift 37
+	UINT  shift 38
+	AND  shift 22
+	ONESCOMP  shift 18
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	LPAREN  shift 32
+	NULL  shift 23
+	KEYWORD  shift 36
+	.  error
+
+	field_type  goto 11
+	int_type  goto 34
+	buf_type  goto 10
+	struct_type  goto 14
+	array_type  goto 13
+	flag_type  goto 33
+	call_type  goto 15
+	macro_type  goto 31
+	type  goto 170
+	expr_type  goto 17
+	flags  goto 29
+	ints  goto 30
+	pointer_type  goto 12
+	ip_type  goto 16
+
+state 155
+	macro_type:  KEYWORD LPAREN KEYWORD IDENTIFIER RPAREN.    (74)
+
+	.  reduce 74 (src line 215)
+
+
+state 156
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT FLAG.LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 171
+	.  error
+
+
+state 157
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 172
+
+state 158
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT FLAG.LPAREN parentheticals RPAREN 
+
+	LPAREN  shift 173
+	.  error
+
+
+state 159
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 174
+
+state 160
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS INT FLAG LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 175
+
+state 161
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS UINT FLAG LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 176
+
+state 162
+	syscall:  RESUMED RPAREN EQUALS INT LPAREN parentheticals RPAREN.    (8)
+
+	.  reduce 8 (src line 98)
+
+
+state 163
+	parentheticals:  parentheticals parenthetical.    (31)
+
+	.  reduce 31 (src line 153)
+
+
+state 164
+	syscall:  RESUMED RPAREN EQUALS INT FLAG LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 177
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 165
+	syscall:  RESUMED RPAREN EQUALS UINT LPAREN parentheticals RPAREN.    (9)
+
+	.  reduce 9 (src line 100)
+
+
+state 166
+	syscall:  RESUMED types RPAREN EQUALS INT LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 178
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 167
+	syscall:  RESUMED types RPAREN EQUALS INT FLAG LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 179
+
+state 168
+	syscall:  RESUMED types RPAREN EQUALS UINT LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 180
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 169
+	syscall:  RESUMED types RPAREN EQUALS UINT FLAG LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 181
+
+state 170
+	field_type:  IDENTIFIER LBRACKET_SQUARE FLAG RBRACKET_SQUARE EQUALS type.    (87)
+
+	.  reduce 87 (src line 236)
+
+
+state 171
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT FLAG LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 182
+
+state 172
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 183
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 173
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT FLAG LPAREN.parentheticals RPAREN 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 137
+	parentheticals  goto 184
+
+state 174
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 185
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 175
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS INT FLAG LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 186
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 176
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS UINT FLAG LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 187
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 177
+	syscall:  RESUMED RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN.    (10)
+
+	.  reduce 10 (src line 102)
+
+
+state 178
+	syscall:  RESUMED types RPAREN EQUALS INT LPAREN parentheticals RPAREN.    (14)
+
+	.  reduce 14 (src line 110)
+
+
+state 179
+	syscall:  RESUMED types RPAREN EQUALS INT FLAG LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 188
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 180
+	syscall:  RESUMED types RPAREN EQUALS UINT LPAREN parentheticals RPAREN.    (15)
+
+	.  reduce 15 (src line 112)
+
+
+state 181
+	syscall:  RESUMED types RPAREN EQUALS UINT FLAG LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 189
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 182
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT FLAG LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 190
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 183
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT LPAREN parentheticals RPAREN.    (25)
+
+	.  reduce 25 (src line 137)
+
+
+state 184
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT FLAG LPAREN parentheticals.RPAREN 
+	parentheticals:  parentheticals.parenthetical 
+
+	IDENTIFIER  shift 143
+	FLAG  shift 71
+	INT  shift 37
+	UINT  shift 38
+	OR  shift 139
+	AND  shift 140
+	LSHIFT  shift 141
+	RSHIFT  shift 142
+	COMMA  shift 138
+	LBRACKET  shift 25
+	LBRACKET_SQUARE  shift 24
+	RPAREN  shift 191
+	.  error
+
+	int_type  goto 147
+	struct_type  goto 144
+	array_type  goto 145
+	flag_type  goto 146
+	parenthetical  goto 163
+
+state 185
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT LPAREN parentheticals RPAREN.    (26)
+
+	.  reduce 26 (src line 140)
+
+
+state 186
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN.    (27)
+
+	.  reduce 27 (src line 143)
+
+
+state 187
+	syscall:  IDENTIFIER LPAREN RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN.    (28)
+
+	.  reduce 28 (src line 146)
+
+
+state 188
+	syscall:  RESUMED types RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN.    (17)
+
+	.  reduce 17 (src line 116)
+
+
+state 189
+	syscall:  RESUMED types RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN.    (16)
+
+	.  reduce 16 (src line 114)
+
+
+state 190
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS INT FLAG LPAREN parentheticals RPAREN.    (23)
+
+	.  reduce 23 (src line 131)
+
+
+state 191
+	syscall:  IDENTIFIER LPAREN types RPAREN EQUALS UINT FLAG LPAREN parentheticals RPAREN.    (24)
+
+	.  reduce 24 (src line 134)
+
+
+44 terminals, 20 nonterminals
+98 grammar rules, 192/8000 states
+0 shift/reduce, 0 reduce/reduce conflicts reported
+69 working sets used
+memory: parser 417/120000
+69 extra closures
+730 shift entries, 1 exceptions
+151 goto entries
+268 entries saved by goto default
+Optimizer space used: output 942/120000
+942 table entries, 347 zero
+maximum spread: 41, maximum offset: 184

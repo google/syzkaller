@@ -1,0 +1,47 @@
+{
+	"vendor": true,
+	"tests": true,
+	"deadline": "9m",
+	"sort": ["path", "line"],
+	"minconstlength": 7,
+	"linelength": 120,
+	"cyclo": 24,
+	"duplthreshold": 60,
+	"skip": [
+		"pkg/kd",
+		"pkg/ifuzz/generated",
+		"sys/akaros/gen",
+		"sys/freebsd/gen",
+		"sys/fuchsia/gen",
+		"sys/linux/gen",
+		"sys/netbsd/gen",
+		"sys/openbsd/gen",
+		"sys/windows/gen",
+		"sys/test/gen"
+	],
+	"enable": [
+		"gofmt",
+		"golint",
+		"structcheck",
+		"megacheck",
+		"unconvert",
+		"deadcode",
+		"goconst",
+		"unused",
+		"gosimple",
+		"varcheck",
+		"misspell",
+		"gocyclo",
+		"vet",
+		"vetshadow",
+		"lll"
+	],
+	"exclude": [
+		"(lex.go|strace.go)",
+		"(sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/init.*|sys/targets/common.go).* don't use ALL_CAPS in Go names",
+		"exported .* should have comment",
+		"comment on .* should be of the form",
+		"declaration of \"err\" shadows",
+		"(pkg/csource/generated.go|pkg/report/linux.go|pkg/build/linux_generated.go).* line is [0-9]+ characters"
+	]
+}
