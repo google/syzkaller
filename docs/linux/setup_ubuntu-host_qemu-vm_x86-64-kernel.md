@@ -176,6 +176,7 @@ Booting the kernel.
 After that you should be able to ssh to QEMU instance in another terminal:
 ``` bash
 ssh -i $IMAGE/ssh/id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost
+ssh -i $IMAGE/wheezy.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost
 ```
 
 If this fails with "too many tries", ssh may be passing default keys before
