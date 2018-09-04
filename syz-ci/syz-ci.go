@@ -130,6 +130,7 @@ func main() {
 		case <-shutdownPending:
 		case <-updatePending:
 		}
+		kernelBuildSem <- struct{}{} // wait for all current builds
 		close(stop)
 		wg.Done()
 	}()
@@ -147,11 +148,11 @@ func main() {
 		}()
 	}
 	if cfg.EnableJobs {
-		jp := newJobProcessor(cfg, managers)
+		jp := newJobProcessor(cfg, managers, stop)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			jp.loop(stop)
+			jp.loop()
 		}()
 	}
 

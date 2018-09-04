@@ -22,15 +22,17 @@ import (
 type JobProcessor struct {
 	name            string
 	managers        []*Manager
+	stop            chan struct{}
 	dash            *dashapi.Dashboard
 	syzkallerRepo   string
 	syzkallerBranch string
 }
 
-func newJobProcessor(cfg *Config, managers []*Manager) *JobProcessor {
+func newJobProcessor(cfg *Config, managers []*Manager, stop chan struct{}) *JobProcessor {
 	jp := &JobProcessor{
 		name:            fmt.Sprintf("%v-job", cfg.Name),
 		managers:        managers,
+		stop:            stop,
 		syzkallerRepo:   cfg.SyzkallerRepo,
 		syzkallerBranch: cfg.SyzkallerBranch,
 	}
@@ -40,7 +42,7 @@ func newJobProcessor(cfg *Config, managers []*Manager) *JobProcessor {
 	return jp
 }
 
-func (jp *JobProcessor) loop(stop chan struct{}) {
+func (jp *JobProcessor) loop() {
 	if jp.dash == nil {
 		return
 	}
@@ -50,7 +52,7 @@ func (jp *JobProcessor) loop(stop chan struct{}) {
 		select {
 		case <-ticker.C:
 			jp.poll()
-		case <-stop:
+		case <-jp.stop:
 			log.Logf(0, "job loop stopped")
 			return
 		}
@@ -85,6 +87,18 @@ func (jp *JobProcessor) poll() {
 		req: req,
 		mgr: mgr,
 	}
+	jp.processJob(job)
+}
+
+func (jp *JobProcessor) processJob(job *Job) {
+	select {
+	case kernelBuildSem <- struct{}{}:
+	case <-jp.stop:
+		return
+	}
+	defer func() { <-kernelBuildSem }()
+
+	req := job.req
 	log.Logf(0, "starting job %v for manager %v on %v/%v",
 		req.ID, req.Manager, req.KernelRepo, req.KernelBranch)
 	resp := jp.process(job)
@@ -156,8 +170,6 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 }
 
 func (jp *JobProcessor) test(job *Job) error {
-	kernelBuildSem <- struct{}{}
-	defer func() { <-kernelBuildSem }()
 	req, resp, mgr := job.req, job.resp, job.mgr
 
 	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS))
