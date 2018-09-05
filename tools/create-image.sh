@@ -19,7 +19,6 @@ echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' | sudo tee -a $DIR/etc/in
 printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a $DIR/etc/network/interfaces
 echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee -a $DIR/etc/fstab
-echo 'SELINUX=disabled' | sudo tee $DIR/etc/selinux/config
 echo "kernel.printk = 7 4 1 3" | sudo tee -a $DIR/etc/sysctl.conf
 echo 'debug.exception-trace = 0' | sudo tee -a $DIR/etc/sysctl.conf
 echo "net.core.bpf_jit_enable = 1" | sudo tee -a $DIR/etc/sysctl.conf

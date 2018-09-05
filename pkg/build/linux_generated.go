@@ -67,7 +67,6 @@ for i in {0..31}; do
 	echo "KERNEL==\"binder$i\", NAME=\"binder$i\", MODE=\"0666\"" | \
 		sudo tee -a disk.mnt/etc/udev/50-binder.rules
 done
-echo 'SELINUX=disabled' | sudo tee disk.mnt/etc/selinux/config
 
 echo "kernel.printk = 7 4 1 3" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
