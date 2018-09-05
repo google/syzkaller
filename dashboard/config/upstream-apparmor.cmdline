@@ -1,3 +1,4 @@
+security=apparmor
 workqueue.watchdog_thresh=140
 kvm-intel.nested=1
 nf-conntrack-ftp.ports=20000
