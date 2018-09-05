@@ -160,6 +160,10 @@ generate_go: bin/syz-sysgen format_cpp
 generate_sys: bin/syz-sysgen
 	bin/syz-sysgen
 
+generate_fidl:
+	$(GO) generate ./sys/fuchsia
+	$(MAKE) format_sys
+
 bin/syz-sysgen:
 	$(GO) build $(GOHOSTFLAGS) -o $@ ./sys/syz-sysgen
 
