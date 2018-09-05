@@ -353,7 +353,9 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 			opts.EnableTun = true
 		}
 		if ctx.Features[host.FeatureNetworkDevices].Enabled {
-			opts.EnableNetdev = true
+			opts.EnableNetdevTypes = true
+			opts.EnableNetdevNames = true
+			opts.EnableNetdevMasters = true
 		}
 	}
 	src, err := csource.Write(p, opts)

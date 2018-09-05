@@ -803,7 +803,9 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.Sandbox = ""
 		opts.EnableTun = false
 		opts.EnableCgroups = false
-		opts.EnableNetdev = false
+		opts.EnableNetdevTypes = false
+		opts.EnableNetdevNames = false
+		opts.EnableNetdevMasters = false
 		opts.ResetNet = false
 		return true
 	},
@@ -822,10 +824,24 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.EnableNetdev {
+		if !opts.EnableNetdevTypes {
 			return false
 		}
-		opts.EnableNetdev = false
+		opts.EnableNetdevTypes = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.EnableNetdevNames {
+			return false
+		}
+		opts.EnableNetdevNames = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.EnableNetdevMasters {
+			return false
+		}
+		opts.EnableNetdevMasters = false
 		return true
 	},
 	func(opts *csource.Options) bool {

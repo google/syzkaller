@@ -897,6 +897,7 @@ static void initialize_tun(void)
 #define DEV_IPV6 "fe80::%02hx"
 #define DEV_MAC "aa:aa:aa:aa:aa:%02hx"
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVNAMES
 static void snprintf_check(char* str, size_t size, const char* format, ...)
 {
 	va_list args;
@@ -905,14 +906,20 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 	vsnprintf_check(str, size, format, args);
 	va_end(args);
 }
+#endif
 static void initialize_netdevices(void)
 {
 #if SYZ_EXECUTOR
 	if (!flag_enable_net_dev)
 		return;
 #endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVTYPES || SYZ_ENABLE_NETDEV_DEVNAMES || SYZ_ENABLE_NETDEV_DEVMASTERS
 	unsigned i;
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVTYPES
 	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "team"};
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVNAMES
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
 				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
 				  "ip6tnl0", "ip6gre0", "ip6gretap0",
@@ -920,11 +927,18 @@ static void initialize_netdevices(void)
 				  "veth0_to_bridge", "veth1_to_bridge",
 				  "veth0_to_bond", "veth1_to_bond",
 				  "veth0_to_team", "veth1_to_team"};
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVMASTERS
 	const char* devmasters[] = {"bridge", "bond", "team"};
+#endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVTYPES
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
 	execute_command(0, "ip link add type veth");
+#endif
+
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVMASTERS
 	for (i = 0; i < sizeof(devmasters) / (sizeof(devmasters[0])); i++) {
 		execute_command(0, "ip link add name %s_slave_0 type veth peer name veth0_to_%s", devmasters[i], devmasters[i]);
 		execute_command(0, "ip link add name %s_slave_1 type veth peer name veth1_to_%s", devmasters[i], devmasters[i]);
@@ -935,7 +949,9 @@ static void initialize_netdevices(void)
 	}
 	execute_command(0, "ip link set bridge_slave_0 up");
 	execute_command(0, "ip link set bridge_slave_1 up");
+#endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVNAMES
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
 		char addr[32];
 		snprintf_check(addr, sizeof(addr), DEV_IPV4, i + 10);
@@ -946,6 +962,7 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
+#endif
 }
 #endif
 

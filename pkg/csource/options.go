@@ -27,12 +27,14 @@ type Options struct {
 	FaultNth  int  `json:"fault_nth,omitempty"`
 
 	// These options allow for a more fine-tuned control over the generated C code.
-	EnableTun     bool `json:"tun,omitempty"`
-	UseTmpDir     bool `json:"tmpdir,omitempty"`
-	EnableCgroups bool `json:"cgroups,omitempty"`
-	EnableNetdev  bool `json:"netdev,omitempty"`
-	ResetNet      bool `json:"resetnet,omitempty"`
-	HandleSegv    bool `json:"segv,omitempty"`
+	EnableTun           bool `json:"tun,omitempty"`
+	UseTmpDir           bool `json:"tmpdir,omitempty"`
+	EnableCgroups       bool `json:"cgroups,omitempty"`
+	EnableNetdevTypes   bool `json:"netdev_devtypes,omitempty"`
+	EnableNetdevNames   bool `json:"netdev_devnames,omitempty"`
+	EnableNetdevMasters bool `json:"netdev_devmasters,omitempty"`
+	ResetNet            bool `json:"resetnet,omitempty"`
+	HandleSegv          bool `json:"segv,omitempty"`
 
 	// Generate code for use with repro package to prints log messages,
 	// which allows to detect hangs.
@@ -72,8 +74,14 @@ func (opts Options) Check(OS string) error {
 		if opts.EnableCgroups {
 			return errors.New("EnableCgroups without sandbox")
 		}
-		if opts.EnableNetdev {
-			return errors.New("EnableNetdev without sandbox")
+		if opts.EnableNetdevTypes {
+			return errors.New("EnableNetdevTypes without sandbox")
+		}
+		if opts.EnableNetdevNames {
+			return errors.New("EnableNetdevNames without sandbox")
+		}
+		if opts.EnableNetdevMasters {
+			return errors.New("EnableNetdevMasters without sandbox")
 		}
 	}
 	if opts.Sandbox == sandboxNamespace && !opts.UseTmpDir {
@@ -101,8 +109,14 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.EnableCgroups {
 		return fmt.Errorf("EnableCgroups is not supported on %v", OS)
 	}
-	if opts.EnableNetdev {
-		return fmt.Errorf("EnableNetdev is not supported on %v", OS)
+	if opts.EnableNetdevTypes {
+		return fmt.Errorf("EnableNetdevTypes is not supported on %v", OS)
+	}
+	if opts.EnableNetdevNames {
+		return fmt.Errorf("EnableNetdevNames is not supported on %v", OS)
+	}
+	if opts.EnableNetdevMasters {
+		return fmt.Errorf("EnableNetdevMasters is not supported on %v", OS)
 	}
 	if opts.ResetNet {
 		return fmt.Errorf("ResetNet is not supported on %v", OS)
@@ -118,23 +132,27 @@ func (opts Options) checkLinuxOnly(OS string) error {
 
 func DefaultOpts(cfg *mgrconfig.Config) Options {
 	opts := Options{
-		Threaded:      true,
-		Collide:       true,
-		Repeat:        true,
-		Procs:         cfg.Procs,
-		Sandbox:       cfg.Sandbox,
-		EnableTun:     true,
-		EnableCgroups: true,
-		EnableNetdev:  true,
-		ResetNet:      true,
-		UseTmpDir:     true,
-		HandleSegv:    true,
-		Repro:         true,
+		Threaded:            true,
+		Collide:             true,
+		Repeat:              true,
+		Procs:               cfg.Procs,
+		Sandbox:             cfg.Sandbox,
+		EnableTun:           true,
+		EnableCgroups:       true,
+		EnableNetdevTypes:   true,
+		EnableNetdevNames:   true,
+		EnableNetdevMasters: true,
+		ResetNet:            true,
+		UseTmpDir:           true,
+		HandleSegv:          true,
+		Repro:               true,
 	}
 	if cfg.TargetOS != linux {
 		opts.EnableTun = false
 		opts.EnableCgroups = false
-		opts.EnableNetdev = false
+		opts.EnableNetdevTypes = false
+		opts.EnableNetdevNames = false
+		opts.EnableNetdevMasters = false
 		opts.ResetNet = false
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {

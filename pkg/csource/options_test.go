@@ -42,7 +42,6 @@ func TestParseOptionsCanned(t *testing.T) {
 			EnableTun:     true,
 			UseTmpDir:     true,
 			EnableCgroups: true,
-			EnableNetdev:  true,
 			ResetNet:      true,
 			HandleSegv:    true,
 			Repro:         true,

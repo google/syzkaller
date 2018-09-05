@@ -234,6 +234,7 @@ static void initialize_tun(void)
 #define DEV_IPV6 "fe80::%02hx"
 #define DEV_MAC "aa:aa:aa:aa:aa:%02hx"
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVNAMES
 static void snprintf_check(char* str, size_t size, const char* format, ...)
 {
 	va_list args;
@@ -242,6 +243,7 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 	vsnprintf_check(str, size, format, args);
 	va_end(args);
 }
+#endif
 
 // We test in a separate namespace, which does not have any network devices initially (even lo).
 // Create/up as many as we can.
@@ -251,8 +253,13 @@ static void initialize_netdevices(void)
 	if (!flag_enable_net_dev)
 		return;
 #endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVTYPES || SYZ_ENABLE_NETDEV_DEVNAMES || SYZ_ENABLE_NETDEV_DEVMASTERS
 	unsigned i;
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVTYPES
 	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "team"};
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVNAMES
 	// If you extend this array, also update netdev_addr_id in vnet.txt.
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
 				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
@@ -261,13 +268,20 @@ static void initialize_netdevices(void)
 				  "veth0_to_bridge", "veth1_to_bridge",
 				  "veth0_to_bond", "veth1_to_bond",
 				  "veth0_to_team", "veth1_to_team"};
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVMASTERS
+	// If you extend this array, also update netdev_addr_id in vnet.txt.
 	const char* devmasters[] = {"bridge", "bond", "team"};
+#endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVTYPES
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
 	// This adds connected veth0 and veth1 devices.
 	execute_command(0, "ip link add type veth");
+#endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVMASTERS
 	// This creates connected bridge/bond/team_slave devices of type veth,
 	// and makes them slaves of bridge/bond/team devices, respectively.
 	// Note: slave devices don't need MAC/IP addresses, only master devices.
@@ -284,7 +298,9 @@ static void initialize_netdevices(void)
 	// But bridge_slave_* need to set up manually.
 	execute_command(0, "ip link set bridge_slave_0 up");
 	execute_command(0, "ip link set bridge_slave_1 up");
+#endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV_DEVNAMES
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
 		char addr[32];
 		// Assign some unique address to devices. Some devices won't up without this.
@@ -298,6 +314,7 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
+#endif
 }
 #endif
 
