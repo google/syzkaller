@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 )
 
@@ -59,6 +60,11 @@ type Config struct {
 	Managers map[string]ConfigManager
 	// Reporting config.
 	Reporting []Reporting
+	// TransformCrash hook is called when a manager uploads a crash.
+	// The hook can transform the crash or discard the crash by returning false.
+	TransformCrash func(build *Build, crash *dashapi.Crash) bool
+	// NeedRepro hook can be used to prevent reproduction of some bugs.
+	NeedRepro func(bug *Bug) bool
 }
 
 // ConfigManager describes a single syz-manager instance.
@@ -199,6 +205,16 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	}
 	if len(cfg.Reporting) == 0 {
 		panic(fmt.Sprintf("no reporting in namespace %q", ns))
+	}
+	if cfg.TransformCrash == nil {
+		cfg.TransformCrash = func(build *Build, crash *dashapi.Crash) bool {
+			return true
+		}
+	}
+	if cfg.NeedRepro == nil {
+		cfg.NeedRepro = func(bug *Bug) bool {
+			return true
+		}
 	}
 	checkConfigAccessLevel(&cfg.AccessLevel, cfg.AccessLevel, fmt.Sprintf("namespace %q", ns))
 	parentAccessLevel := cfg.AccessLevel

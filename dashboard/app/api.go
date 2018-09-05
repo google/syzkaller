@@ -241,7 +241,7 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byt
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	now := timeNow(c)
-	isNewBuild, err := uploadBuild(c, now, ns, req, BuildNormal)
+	_, isNewBuild, err := uploadBuild(c, now, ns, req, BuildNormal)
 	if err != nil {
 		return nil, err
 	}
@@ -261,9 +261,10 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byt
 	return nil, nil
 }
 
-func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build, typ BuildType) (bool, error) {
-	if _, err := loadBuild(c, ns, req.ID); err == nil {
-		return false, nil
+func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build, typ BuildType) (
+	*Build, bool, error) {
+	if build, err := loadBuild(c, ns, req.ID); err == nil {
+		return build, false, nil
 	}
 
 	checkStrLen := func(str, name string, maxLen int) error {
@@ -276,29 +277,29 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 		return nil
 	}
 	if err := checkStrLen(req.Manager, "Build.Manager", MaxStringLen); err != nil {
-		return false, err
+		return nil, false, err
 	}
 	if err := checkStrLen(req.ID, "Build.ID", MaxStringLen); err != nil {
-		return false, err
+		return nil, false, err
 	}
 	if err := checkStrLen(req.KernelRepo, "Build.KernelRepo", MaxStringLen); err != nil {
-		return false, err
+		return nil, false, err
 	}
 	if len(req.KernelBranch) > MaxStringLen {
-		return false, fmt.Errorf("Build.KernelBranch is too long (%v)", len(req.KernelBranch))
+		return nil, false, fmt.Errorf("Build.KernelBranch is too long (%v)", len(req.KernelBranch))
 	}
 	if err := checkStrLen(req.SyzkallerCommit, "Build.SyzkallerCommit", MaxStringLen); err != nil {
-		return false, err
+		return nil, false, err
 	}
 	if len(req.CompilerID) > MaxStringLen {
-		return false, fmt.Errorf("Build.CompilerID is too long (%v)", len(req.CompilerID))
+		return nil, false, fmt.Errorf("Build.CompilerID is too long (%v)", len(req.CompilerID))
 	}
 	if err := checkStrLen(req.KernelCommit, "Build.KernelCommit", MaxStringLen); err != nil {
-		return false, err
+		return nil, false, err
 	}
 	configID, err := putText(c, ns, textKernelConfig, req.KernelConfig, true)
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 	build := &Build{
 		Namespace:         ns,
@@ -319,9 +320,9 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 		KernelConfig:      configID,
 	}
 	if _, err := datastore.Put(c, buildKey(c, ns, req.ID), build); err != nil {
-		return false, err
+		return nil, false, err
 	}
-	return true, nil
+	return build, true, nil
 }
 
 func addCommitsToBugs(c context.Context, ns, manager string,
@@ -484,11 +485,12 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	now := timeNow(c)
-	if _, err := uploadBuild(c, now, ns, &req.Build, BuildFailed); err != nil {
+	build, _, err := uploadBuild(c, now, ns, &req.Build, BuildFailed)
+	if err != nil {
 		return nil, err
 	}
 	req.Crash.BuildID = req.Build.ID
-	bug, err := reportCrash(c, ns, &req.Crash)
+	bug, err := reportCrash(c, build, &req.Crash)
 	if err != nil {
 		return nil, err
 	}
@@ -507,7 +509,14 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	bug, err := reportCrash(c, ns, req)
+	build, err := loadBuild(c, ns, req.BuildID)
+	if err != nil {
+		return nil, err
+	}
+	if !config.Namespaces[ns].TransformCrash(build, req) {
+		return new(dashapi.ReportCrashResp), nil
+	}
+	bug, err := reportCrash(c, build, req)
 	if err != nil {
 		return nil, err
 	}
@@ -517,7 +526,7 @@ func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byt
 	return resp, nil
 }
 
-func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error) {
+func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, error) {
 	req.Title = limitLength(req.Title, maxTextLen)
 	req.Maintainers = email.MergeEmailLists(req.Maintainers)
 	if req.Corrupted {
@@ -527,6 +536,7 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		req.Title = corruptedReportTitle
 	}
 
+	ns := build.Namespace
 	bug, bugKey, err := findBugForCrash(c, ns, req.Title)
 	if err != nil {
 		return nil, err
@@ -538,10 +548,6 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		if err != nil {
 			return nil, err
 		}
-	}
-	build, err := loadBuild(c, ns, req.BuildID)
-	if err != nil {
-		return nil, err
 	}
 
 	now := timeNow(c)
@@ -885,8 +891,10 @@ func needReproForBug(c context.Context, bug *Bug) bool {
 	return bug.ReproLevel < ReproLevelC &&
 		len(bug.Commits) == 0 &&
 		bug.Title != corruptedReportTitle &&
+		config.Namespaces[bug.Namespace].NeedRepro(bug) &&
 		(bug.NumRepro < maxReproPerBug ||
-			bug.ReproLevel == ReproLevelNone && timeSince(c, bug.LastReproTime) > reproRetryPeriod)
+			bug.ReproLevel == ReproLevelNone &&
+				timeSince(c, bug.LastReproTime) > reproRetryPeriod)
 }
 
 func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64, error) {
