@@ -43,13 +43,9 @@ type Prog struct {
 	fileConsts map[string]*ConstInfo
 }
 
-// Compile compiles sys description.
-func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Target, eh ast.ErrorHandler) *Prog {
-	if eh == nil {
-		eh = ast.LoggingHandler
-	}
+func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) *compiler {
 	comp := &compiler{
-		desc:         desc.Clone(),
+		desc:         desc,
 		target:       target,
 		eh:           eh,
 		ptrSize:      target.PtrSize,
@@ -72,6 +68,15 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 	for name, n := range builtinStrFlags {
 		comp.strFlags[name] = n
 	}
+	return comp
+}
+
+// Compile compiles sys description.
+func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Target, eh ast.ErrorHandler) *Prog {
+	if eh == nil {
+		eh = ast.LoggingHandler
+	}
+	comp := createCompiler(desc.Clone(), target, eh)
 	comp.typecheck()
 	// The subsequent, more complex, checks expect basic validity of the tree,
 	// in particular corrent number of type arguments. If there were errors,
