@@ -1,0 +1,9 @@
+security=smack
+workqueue.watchdog_thresh=140
+kvm-intel.nested=1
+nf-conntrack-ftp.ports=20000
+nf-conntrack-tftp.ports=20000
+nf-conntrack-sip.ports=20000
+nf-conntrack-irc.ports=20000
+nf-conntrack-sane.ports=20000
+nopcid
