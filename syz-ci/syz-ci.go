@@ -68,8 +68,10 @@ import (
 var flagConfig = flag.String("config", "", "config file")
 
 type Config struct {
-	Name            string `json:"name"`
-	HTTP            string `json:"http"`
+	Name string `json:"name"`
+	HTTP string `json:"http"`
+	// If manager http address is not specified, give it an address starting from this port. Optional.
+	ManagerPort     int    `json:"manager_port_start"`
 	DashboardAddr   string `json:"dashboard_addr"`   // Optional.
 	DashboardClient string `json:"dashboard_client"` // Optional.
 	DashboardKey    string `json:"dashboard_key"`    // Optional.

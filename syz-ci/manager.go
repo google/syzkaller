@@ -103,6 +103,10 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	}
 	managercfg.Name = cfg.Name + "-" + mgrcfg.Name
 	managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
+	if managercfg.HTTP == "" && cfg.ManagerPort != 0 {
+		managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
+		cfg.ManagerPort++
+	}
 
 	kernelDir := filepath.Join(dir, "kernel")
 	repo, err := vcs.NewRepo(managercfg.TargetOS, managercfg.Type, kernelDir)
