@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func (comp *compiler) typecheck() {
@@ -371,6 +372,48 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 	comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
 }
 
+func CollectUnused(desc *ast.Description, target *targets.Target) []ast.Node {
+	comp := createCompiler(desc, target, nil)
+	comp.typecheck()
+	return comp.collectUnused()
+}
+
+func (comp *compiler) collectUnused() []ast.Node {
+	var unused []ast.Node
+
+	comp.used, _, _ = comp.collectUsed(false)
+	structs, flags, strflags := comp.collectUsed(true)
+	_, _, _ = structs, flags, strflags
+
+	for name, n := range comp.intFlags {
+		if !flags[name] {
+			unused = append(unused, n)
+		}
+	}
+	for name, n := range comp.strFlags {
+		if !strflags[name] && builtinStrFlags[name] == nil {
+			unused = append(unused, n)
+		}
+	}
+	for name, n := range comp.resources {
+		if !structs[name] {
+			unused = append(unused, n)
+		}
+	}
+	for name, n := range comp.structs {
+		if !structs[name] {
+			unused = append(unused, n)
+		}
+	}
+	for name, n := range comp.typedefs {
+		if !comp.usedTypedefs[name] {
+			unused = append(unused, n)
+		}
+	}
+
+	return unused
+}
+
 func (comp *compiler) collectUsed(all bool) (structs, flags, strflags map[string]bool) {
 	structs = make(map[string]bool)
 	flags = make(map[string]bool)
@@ -432,35 +475,9 @@ func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, 
 }
 
 func (comp *compiler) checkUnused() {
-	comp.used, _, _ = comp.collectUsed(false)
-	structs, flags, strflags := comp.collectUsed(true)
-	_, _, _ = structs, flags, strflags
-
-	for name, n := range comp.intFlags {
-		if !flags[name] {
-			comp.error(n.Pos, "unused flags %v", name)
-		}
-	}
-	for name, n := range comp.strFlags {
-		if !strflags[name] && builtinStrFlags[name] == nil {
-			comp.error(n.Pos, "unused string flags %v", name)
-		}
-	}
-	for name, n := range comp.resources {
-		if !structs[name] {
-			comp.error(n.Pos, "unused resource %v", name)
-		}
-	}
-	for name, n := range comp.structs {
-		if !structs[name] {
-			_, typ, _ := n.Info()
-			comp.error(n.Pos, "unused %v %v", typ, name)
-		}
-	}
-	for name, n := range comp.typedefs {
-		if !comp.usedTypedefs[name] {
-			comp.error(n.Pos, "unused type %v", name)
-		}
+	for _, n := range comp.collectUnused() {
+		pos, typ, name := n.Info()
+		comp.error(pos, fmt.Sprintf("unused %v %v", typ, name))
 	}
 }
 

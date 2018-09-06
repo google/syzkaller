@@ -10,11 +10,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 var zirconLibs = []string{
+	"fuchsia-mem",
+	"fuchsia-cobalt",
 	"fuchsia-process",
 	"fuchsia-io",
 }
@@ -43,6 +47,8 @@ func main() {
 		failf("cannot find fidlgen %s", fidlgenPath)
 	}
 
+	var newFiles []string
+
 	for _, lib := range zirconLibs {
 		jsonPath := filepath.Join(
 			sourceDir,
@@ -67,7 +73,40 @@ func main() {
 		)
 
 		if err != nil {
-			failf("fidlgen failed: %v\n", err)
+			failf("fidlgen failed: %v", err)
+		}
+
+		newFiles = append(newFiles, fmt.Sprintf("%s.txt", txtPath))
+	}
+
+	var errorPos ast.Pos
+	var errorMsg string
+	desc := ast.ParseGlob("*.txt", func(pos ast.Pos, msg string) {
+		errorPos = pos
+		errorMsg = msg
+	})
+	if desc == nil {
+		failf("parsing failed at %v: %v", errorPos, errorMsg)
+	}
+
+	unused := make(map[ast.Node]bool)
+	for _, n := range compiler.CollectUnused(desc, target) {
+		unused[n] = true
+	}
+
+	pruned := desc.Filter(func(n ast.Node) bool {
+		_, ok := unused[n]
+		return !ok
+	})
+
+	for _, file := range newFiles {
+		desc := ast.Format(pruned.Filter(func(n ast.Node) bool {
+			pos, _, _ := n.Info()
+			return pos.File == file
+		}))
+
+		if err := osutil.WriteFile(file, desc); err != nil {
+			failf("%v", err)
 		}
 	}
 }
