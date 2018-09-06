@@ -6,8 +6,16 @@
 include <fuchsia/io/c/fidl.h>
 fuchsia_io_SeekOrigin = fuchsia_io_SeekOrigin_Start, fuchsia_io_SeekOrigin_Current, fuchsia_io_SeekOrigin_End
 
+fuchsia_io_ServiceHandles {
+	void	void
+} [packed]
+
 fuchsia_io_FileObjectHandles {
 	event	zx_event
+} [packed]
+
+fuchsia_io_DirectoryObjectHandles {
+	void	void
 } [packed]
 
 fuchsia_io_PipeHandles {
@@ -32,71 +40,22 @@ fuchsia_io_NodeAttributesInLine {
 	modification_time	int64
 } [packed]
 
-fuchsia_io_ObjectInfoHandles [
-	file	fuchsia_io_FileObjectHandles
-	pipe	fuchsia_io_PipeHandles
-	vmofile	fuchsia_io_VmofileHandles
-	device	fuchsia_io_DeviceHandles
+fuchsia_io_NodeAttributesOutOfLine {
+	void	void
+} [packed]
+
+fuchsia_io_NodeAttributesHandles {
+	void	void
+} [packed]
+
+fuchsia_io_NodeInfoHandles [
+	service		fuchsia_io_ServiceHandles
+	file		fuchsia_io_FileObjectHandles
+	directory	fuchsia_io_DirectoryObjectHandles
+	pipe		fuchsia_io_PipeHandles
+	vmofile		fuchsia_io_VmofileHandles
+	device		fuchsia_io_DeviceHandles
 ] [varlen]
-
-fuchsia_io_ObjectCloneRequest {
-	hdr	fidl_message_header[2147483649]
-	flags_	int32
-	object	flags[fidl_handle_presence, int32]
-} [packed]
-
-fuchsia_io_ObjectCloneRequestHandles {
-	object	zx_chan_fuchsia_io_Object_server
-} [packed]
-
-fuchsia_io_ObjectCloseRequest {
-	hdr	fidl_message_header[2147483650]
-} [packed]
-
-fuchsia_io_ObjectCloseRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_io_ObjectCloseResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_io_ObjectBindRequest {
-	hdr			fidl_message_header[2147483653]
-	interface_nameInLine	fidl_string
-	interface_nameOutOfLine	fidl_aligned[stringnoz]
-} [packed]
-
-fuchsia_io_ObjectBindRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_io_ObjectDescribeRequest {
-	hdr	fidl_message_header[2147483654]
-} [packed]
-
-fuchsia_io_ObjectDescribeRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_io_ObjectDescribeResponseHandles {
-	info	fuchsia_io_ObjectInfoHandles
-} [packed]
-
-fuchsia_io_ObjectOnOpenEventHandles {
-	info	fuchsia_io_ObjectInfoHandles
-} [packed]
-
-resource zx_chan_fuchsia_io_Object_client[zx_chan]
-resource zx_chan_fuchsia_io_Object_server[zx_chan]
-
-zx_channel_create$fuchsia_io_Object(options const[0], out0 ptr[out, zx_chan_fuchsia_io_Object_client], out1 ptr[out, zx_chan_fuchsia_io_Object_server])
-fdio_service_connect$fuchsia_io_Object(path ptr[in, string["/svc/"]], handle zx_chan_fuchsia_io_Object_server)
-zx_channel_write$fuchsia_io_ObjectClone(handle zx_chan_fuchsia_io_Object_client, options const[0], bytes ptr[in, fuchsia_io_ObjectCloneRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_ObjectCloneRequestHandles], num_handles bytesize[handles])
-zx_channel_call$fuchsia_io_ObjectClose(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectCloseRequest, fuchsia_io_ObjectCloseRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_ObjectCloseResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_write$fuchsia_io_ObjectBind(handle zx_chan_fuchsia_io_Object_client, options const[0], bytes ptr[in, fuchsia_io_ObjectBindRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_ObjectBindRequestHandles], num_handles bytesize[handles])
-zx_channel_call$fuchsia_io_ObjectDescribe(handle zx_chan_fuchsia_io_Object_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_ObjectDescribeRequest, fuchsia_io_ObjectDescribeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_ObjectDescribeResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_read$fuchsia_io_ObjectOnOpen(handle zx_chan_fuchsia_io_Object_client, options const[0], bytes ptr[out, array[int8, ZX_CHANNEL_MAX_MSG_BYTES]], num_bytes bytesize[bytes], handles ptr[out, fuchsia_io_ObjectOnOpenEventHandles], num_handles bytesize[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_io_NodeCloneRequest {
 	hdr	fidl_message_header[2147483649]
@@ -105,7 +64,7 @@ fuchsia_io_NodeCloneRequest {
 } [packed]
 
 fuchsia_io_NodeCloneRequestHandles {
-	object	zx_chan_fuchsia_io_Object_server
+	object	zx_chan_fuchsia_io_Node_server
 } [packed]
 
 fuchsia_io_NodeCloseRequest {
@@ -139,11 +98,11 @@ fuchsia_io_NodeDescribeRequestHandles {
 } [packed]
 
 fuchsia_io_NodeDescribeResponseHandles {
-	info	fuchsia_io_ObjectInfoHandles
+	info	fuchsia_io_NodeInfoHandles
 } [packed]
 
 fuchsia_io_NodeOnOpenEventHandles {
-	info	fuchsia_io_ObjectInfoHandles
+	info	fuchsia_io_NodeInfoHandles
 } [packed]
 
 fuchsia_io_NodeSyncRequest {
@@ -167,17 +126,18 @@ fuchsia_io_NodeGetAttrRequestHandles {
 } [packed]
 
 fuchsia_io_NodeGetAttrResponseHandles {
-	void	void
+	attributes	fuchsia_io_NodeAttributesHandles
 } [packed]
 
 fuchsia_io_NodeSetAttrRequest {
 	hdr			fidl_message_header[2164260867]
 	flags_			int32
 	attributesInLine	fuchsia_io_NodeAttributesInLine
+	attributesOutOfLine	fuchsia_io_NodeAttributesOutOfLine
 } [packed]
 
 fuchsia_io_NodeSetAttrRequestHandles {
-	void	void
+	attributes	fuchsia_io_NodeAttributesHandles
 } [packed]
 
 fuchsia_io_NodeSetAttrResponseHandles {
@@ -224,7 +184,7 @@ fuchsia_io_FileCloneRequest {
 } [packed]
 
 fuchsia_io_FileCloneRequestHandles {
-	object	zx_chan_fuchsia_io_Object_server
+	object	zx_chan_fuchsia_io_Node_server
 } [packed]
 
 fuchsia_io_FileCloseRequest {
@@ -258,11 +218,11 @@ fuchsia_io_FileDescribeRequestHandles {
 } [packed]
 
 fuchsia_io_FileDescribeResponseHandles {
-	info	fuchsia_io_ObjectInfoHandles
+	info	fuchsia_io_NodeInfoHandles
 } [packed]
 
 fuchsia_io_FileOnOpenEventHandles {
-	info	fuchsia_io_ObjectInfoHandles
+	info	fuchsia_io_NodeInfoHandles
 } [packed]
 
 fuchsia_io_FileSyncRequest {
@@ -286,17 +246,18 @@ fuchsia_io_FileGetAttrRequestHandles {
 } [packed]
 
 fuchsia_io_FileGetAttrResponseHandles {
-	void	void
+	attributes	fuchsia_io_NodeAttributesHandles
 } [packed]
 
 fuchsia_io_FileSetAttrRequest {
 	hdr			fidl_message_header[2164260867]
 	flags_			int32
 	attributesInLine	fuchsia_io_NodeAttributesInLine
+	attributesOutOfLine	fuchsia_io_NodeAttributesOutOfLine
 } [packed]
 
 fuchsia_io_FileSetAttrRequestHandles {
-	void	void
+	attributes	fuchsia_io_NodeAttributesHandles
 } [packed]
 
 fuchsia_io_FileSetAttrResponseHandles {
@@ -489,7 +450,7 @@ fuchsia_io_DirectoryCloneRequest {
 } [packed]
 
 fuchsia_io_DirectoryCloneRequestHandles {
-	object	zx_chan_fuchsia_io_Object_server
+	object	zx_chan_fuchsia_io_Node_server
 } [packed]
 
 fuchsia_io_DirectoryCloseRequest {
@@ -523,11 +484,11 @@ fuchsia_io_DirectoryDescribeRequestHandles {
 } [packed]
 
 fuchsia_io_DirectoryDescribeResponseHandles {
-	info	fuchsia_io_ObjectInfoHandles
+	info	fuchsia_io_NodeInfoHandles
 } [packed]
 
 fuchsia_io_DirectoryOnOpenEventHandles {
-	info	fuchsia_io_ObjectInfoHandles
+	info	fuchsia_io_NodeInfoHandles
 } [packed]
 
 fuchsia_io_DirectorySyncRequest {
@@ -551,17 +512,18 @@ fuchsia_io_DirectoryGetAttrRequestHandles {
 } [packed]
 
 fuchsia_io_DirectoryGetAttrResponseHandles {
-	void	void
+	attributes	fuchsia_io_NodeAttributesHandles
 } [packed]
 
 fuchsia_io_DirectorySetAttrRequest {
 	hdr			fidl_message_header[2164260867]
 	flags_			int32
 	attributesInLine	fuchsia_io_NodeAttributesInLine
+	attributesOutOfLine	fuchsia_io_NodeAttributesOutOfLine
 } [packed]
 
 fuchsia_io_DirectorySetAttrRequestHandles {
-	void	void
+	attributes	fuchsia_io_NodeAttributesHandles
 } [packed]
 
 fuchsia_io_DirectorySetAttrResponseHandles {
@@ -596,7 +558,7 @@ fuchsia_io_DirectoryOpenRequest {
 } [packed]
 
 fuchsia_io_DirectoryOpenRequestHandles {
-	object	zx_chan_fuchsia_io_Object_server
+	object	zx_chan_fuchsia_io_Node_server
 } [packed]
 
 fuchsia_io_DirectoryUnlinkRequest {

@@ -16,6 +16,11 @@ type fidl_call_args[REQ_MESSAGE, REQ_HANDLES, RESP_MESSAGE, RESP_HANDLES] {
 	rd_num_handles	bytesize4[rd_handles, int32]
 }
 
+type fidl_union_member[TAG, TYPE] {
+	tag	const[TAG, int32]
+	data	TYPE
+}
+
 type fidl_message_header[METHOD_ORDINAL] {
 	txid		const[0, int32]
 	reserved	const[0, int32]
