@@ -196,10 +196,8 @@ func WriteFile(filename string, data []byte) error {
 }
 
 func WriteExecFile(filename string, data []byte) error {
-	if err := ioutil.WriteFile(filename, data, DefaultExecPerm); err != nil {
-		return err
-	}
-	return os.Chmod(filename, DefaultExecPerm)
+	os.Remove(filename)
+	return ioutil.WriteFile(filename, data, DefaultExecPerm)
 }
 
 // TempFile creates a unique temp filename.

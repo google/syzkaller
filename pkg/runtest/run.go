@@ -100,7 +100,7 @@ func (ctx *Context) Run() error {
 				result = "OK"
 			}
 		}
-		ctx.log("%-36v: %v", req.name, result)
+		ctx.log("%-38v: %v", req.name, result)
 	}
 	if err := <-errc; err != nil {
 		return err
@@ -318,7 +318,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	}
 	if cov {
 		cfg.Flags |= ipc.FlagSignal
-		opts.Flags |= ipc.FlagCollectCover | ipc.FlagDedupCover
+		opts.Flags |= ipc.FlagCollectCover
 	}
 	if ctx.Features[host.FeatureNetworkInjection].Enabled {
 		cfg.Flags |= ipc.FlagEnableTun
@@ -373,7 +373,8 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 }
 
 func checkResult(req *RunRequest) error {
-	if req.Bin != "" {
+	isC := req.Bin != ""
+	if isC {
 		var err error
 		if req.Info, err = parseBinOutput(req); err != nil {
 			return err
@@ -383,6 +384,7 @@ func checkResult(req *RunRequest) error {
 		return fmt.Errorf("should repeat %v times, but repeated %v",
 			req.Repeat, len(req.Info))
 	}
+	calls := make(map[string]bool)
 	for run, info := range req.Info {
 		for i, inf := range info {
 			want := req.results[i]
@@ -391,7 +393,7 @@ func checkResult(req *RunRequest) error {
 				ipc.CallBlocked:  "blocked",
 				ipc.CallFinished: "finished",
 			} {
-				if flag == ipc.CallBlocked && req.Bin != "" {
+				if isC && flag == ipc.CallBlocked {
 					// C code does not detect when a call was blocked.
 					continue
 				}
@@ -406,6 +408,25 @@ func checkResult(req *RunRequest) error {
 			if inf.Flags&ipc.CallFinished != 0 && inf.Errno != want.Errno {
 				return fmt.Errorf("run %v: wrong call %v result %v, want %v",
 					run, i, inf.Errno, want.Errno)
+			}
+			if isC {
+				continue
+			}
+			if req.Cfg.Flags&ipc.FlagSignal != 0 {
+				// Signal is always deduplicated, so we may not get any signal
+				// on a second invocation of the same syscall.
+				callName := req.P.Calls[i].Meta.CallName
+				if len(inf.Signal) < 2 && !calls[callName] {
+					return fmt.Errorf("run %v: call %v: no signal", run, i)
+				}
+				if len(inf.Cover) == 0 {
+					return fmt.Errorf("run %v: call %v: no cover", run, i)
+				}
+				calls[callName] = true
+			} else {
+				if len(inf.Signal) == 0 {
+					return fmt.Errorf("run %v: call %v: no fallback signal", run, i)
+				}
 			}
 		}
 	}

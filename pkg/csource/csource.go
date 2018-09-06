@@ -247,7 +247,13 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	}
 	fmt.Fprintf(w, ");\n")
 	if trace {
-		fmt.Fprintf(w, "\tprintf(\"### call=%v errno=%%u\\n\", res == -1 ? errno : 0);\n", ci)
+		cast := ""
+		if !native && !strings.HasPrefix(callName, "syz_") {
+			// Potentially we casted a function returning int to a function returning long.
+			// So instead of long -1 we can get 0x00000000ffffffff. Sign extend it to long.
+			cast = "(long)(int)"
+		}
+		fmt.Fprintf(w, "\tprintf(\"### call=%v errno=%%u\\n\", %vres == -1 ? errno : 0);\n", ci, cast)
 	}
 }
 
