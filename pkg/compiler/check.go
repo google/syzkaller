@@ -317,6 +317,8 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 		argDesc := desc.Args[i]
 		if argDesc.Type == typeArgLenTarget {
 			comp.checkLenTarget(t, name, arg.Ident, fields, parents)
+		} else if argDesc.Type == typeArgSizeRangeLenTarget && !argDesc.Type.IsConst(arg) {
+			comp.checkArraySizeLenTarget(t, name, arg.Args[0].Ident, fields, parents)
 		} else if argDesc.Type == typeArgType {
 			comp.checkLenType(arg, name, fields, parents, checked, argDesc.IsArg)
 		}
@@ -369,6 +371,30 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 		}
 	}
 	comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
+}
+
+func (comp *compiler) checkArraySizeLenTarget(t *ast.Type, name, target string, fields []*ast.Field, parents []*ast.Struct) {
+	if target == name {
+		comp.error(t.Pos, "array len target %v refers to itself", target)
+		return
+	}
+	targetTooLate := false
+	for _, fld := range fields {
+		if target != fld.Name.Name {
+			if name == fld.Name.Name {
+				targetTooLate = true
+			}
+			continue
+		}
+		if fld.Type.Ident != "array" {
+			comp.error(t.Pos, "array len target %v refers to non-array", target)
+		} else if targetTooLate {
+			comp.error(t.Pos, "array %v precedes its len target %v", name, target)
+		}
+		return
+	}
+
+	comp.error(t.Pos, "array len target %v does not exist", target)
 }
 
 func (comp *compiler) collectUsed(all bool) (structs, flags, strflags map[string]bool) {

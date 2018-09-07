@@ -44,6 +44,7 @@ type typeArg struct {
 	// Check does custom verification of the arg (optional).
 	Check       func(comp *compiler, t *ast.Type)
 	CheckConsts func(comp *compiler, t *ast.Type)
+	IsConst     func(arg *ast.Type) bool
 }
 
 type namedArg struct {
@@ -129,13 +130,16 @@ var typeArray = &typeDesc{
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	OptArgs:      1,
-	Args:         []namedArg{{Name: "type", Type: typeArgType}, {Name: "size", Type: typeArgSizeRange}},
+	Args:         []namedArg{{Name: "type", Type: typeArgType}, {Name: "size", Type: typeArgSizeRangeLenTarget}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
-		if len(args) > 1 && args[1].Value == 0 && args[1].Value2 == 0 {
+		if len(args) > 1 && args[1].Ident == "" && args[1].Value == 0 && args[1].Value2 == 0 {
 			comp.error(args[1].Pos, "arrays of size 0 are not supported")
 		}
 	},
 	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
+		if len(args) > 1 && args[1].Ident == "len" {
+			return true
+		}
 		if comp.isZeroSize(args[0]) {
 			return false
 		}
@@ -153,8 +157,13 @@ var typeArray = &typeDesc{
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		elemType := comp.genType(args[0], "", base.ArgDir, false)
 		kind, begin, end := prog.ArrayRandLen, uint64(0), uint64(0)
+		target := ""
 		if len(args) > 1 {
-			kind, begin, end = prog.ArrayRangeLen, args[1].Value, args[1].Value2
+			if args[1].Ident == "len" {
+				kind, target = prog.ArrayLenTarget, args[1].Args[0].Ident
+			} else {
+				kind, begin, end = prog.ArrayRangeLen, args[1].Value, args[1].Value2
+			}
 		}
 		if it, ok := elemType.(*prog.IntType); ok && it.Kind == prog.IntPlain && it.TypeSize == 1 {
 			// Special case: buffer is better mutated.
@@ -180,6 +189,7 @@ var typeArray = &typeDesc{
 			Kind:       kind,
 			RangeBegin: begin,
 			RangeEnd:   end,
+			LenTarget:  target,
 		}
 	},
 }
@@ -793,6 +803,43 @@ var typeArgSizeRange = &typeArg{
 		if t.Value > t.Value2 || t.Value > maxVal || t.Value2 > maxVal {
 			comp.error(t.Pos, "bad size range [%v:%v]", t.Value, t.Value2)
 		}
+	},
+}
+
+var typeArgSizeRangeLenTarget = &typeArg{
+	AllowColon: true,
+	MaxArgs:    1,
+	CheckConsts: func(comp *compiler, t *ast.Type) {
+		if t.Ident == "len" {
+			return
+		}
+		if !t.HasColon {
+			t.Value2 = t.Value
+		}
+		const maxVal = 1e6
+		if t.Value > t.Value2 || t.Value > maxVal || t.Value2 > maxVal {
+			comp.error(t.Pos, "bad size range [%v:%v]", t.Value, t.Value2)
+		}
+	},
+	Check: func(comp *compiler, t *ast.Type) {
+		if t.Ident == "len" {
+			if len(t.Args) == 0 {
+				comp.error(t.Pos, "missing len target in array size")
+			} else if t.Args[0].Ident == "" {
+				comp.error(t.Pos, "len target in array size must be an identifier")
+			}
+		} else if len(t.Args) == 1 {
+			if t.HasColon {
+				comp.error(t.Pos, "unexpected colon in array size")
+			} else {
+				comp.error(t.Pos, "unexpected argument in array size")
+			}
+		} else if t.HasString {
+			comp.error(t.Pos, "unexpected string \"%v\" in array size", t.String)
+		}
+	},
+	IsConst: func(t *ast.Type) bool {
+		return t.Ident != "len"
 	},
 }
 

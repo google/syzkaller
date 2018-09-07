@@ -690,7 +690,12 @@ func (a *ArrayType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 		count = r.randArrayLen()
 	case ArrayRangeLen:
 		count = r.randRange(a.RangeBegin, a.RangeEnd)
+	case ArrayLenTarget:
+		count = s.arraySizes[a.LenTarget]
 	}
+
+	s.arraySizes[a.FldName] = count
+
 	var inner []Arg
 	for i := uint64(0); i < count; i++ {
 		arg1, calls1 := r.generateArg(s, a.Type)

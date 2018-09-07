@@ -39,7 +39,7 @@ type fidl_aligned[T] {
 
 type parallel_array[A, B] {
 	a	array[A]
-	b	array[B]
+	b	array[B, len[a]]
 } [packed]
 
 fidl_alloc_presence = FIDL_ALLOC_ABSENT, FIDL_ALLOC_PRESENT, FIDL_ALLOC_PRESENT, FIDL_ALLOC_PRESENT, FIDL_ALLOC_PRESENT, FIDL_ALLOC_PRESENT

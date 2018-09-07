@@ -13,13 +13,14 @@ import (
 )
 
 type state struct {
-	target    *Target
-	ct        *ChoiceTable
-	files     map[string]bool
-	resources map[string][]*ResultArg
-	strings   map[string]bool
-	ma        *memAlloc
-	va        *vmaAlloc
+	target     *Target
+	ct         *ChoiceTable
+	files      map[string]bool
+	resources  map[string][]*ResultArg
+	strings    map[string]bool
+	arraySizes map[string]uint64
+	ma         *memAlloc
+	va         *vmaAlloc
 }
 
 // analyze analyzes the program p up to but not including call c.
@@ -37,13 +38,14 @@ func analyze(ct *ChoiceTable, p *Prog, c *Call) *state {
 
 func newState(target *Target, ct *ChoiceTable) *state {
 	s := &state{
-		target:    target,
-		ct:        ct,
-		files:     make(map[string]bool),
-		resources: make(map[string][]*ResultArg),
-		strings:   make(map[string]bool),
-		ma:        newMemAlloc(target.NumPages * target.PageSize),
-		va:        newVmaAlloc(target.NumPages),
+		target:     target,
+		ct:         ct,
+		files:      make(map[string]bool),
+		resources:  make(map[string][]*ResultArg),
+		strings:    make(map[string]bool),
+		arraySizes: make(map[string]uint64),
+		ma:         newMemAlloc(target.NumPages * target.PageSize),
+		va:         newVmaAlloc(target.NumPages),
 	}
 	return s
 }

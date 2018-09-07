@@ -333,3 +333,12 @@ struct$fmt0 {
 	f0	fmt[dec, int8:3]		### unexpected ':', only struct fields can be bitfields
 	f1	int32:-1			### bitfield of size 18446744073709551615 is too large for base type of size 32
 }
+
+# Array len target tests.
+
+foo$arraylen0(a ptr[in, array[int64, len]])			### missing len target in array size
+foo$arraylen1(a ptr[in, array[int64, len["foo"]]])	### len target in array size must be an identifier
+foo$arraylen2(a ptr[in, array[int64, len[5]]])		### len target in array size must be an identifier
+foo$arraylen3(a ptr[in, array[int64, foo[a]]])		### unexpected argument in array size
+foo$arraylen4(a ptr[in, array[int64, 1:len[b]]])	### unexpected colon in array size
+foo$arraylen5(a ptr[in, array[int64, "foo"]])		### unexpected string "foo" in array size

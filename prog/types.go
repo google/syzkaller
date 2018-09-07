@@ -404,6 +404,7 @@ type ArrayKind int
 const (
 	ArrayRandLen ArrayKind = iota
 	ArrayRangeLen
+	ArrayLenTarget
 )
 
 type ArrayType struct {
@@ -412,6 +413,7 @@ type ArrayType struct {
 	Kind       ArrayKind
 	RangeBegin uint64
 	RangeEnd   uint64
+	LenTarget  string
 }
 
 func (t *ArrayType) String() string {
