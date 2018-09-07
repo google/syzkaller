@@ -30,20 +30,25 @@ else
 	exit 1
 fi
 
+BLOCK_DEVICE="loop"
+if [ "$(uname -a | grep Ubuntu)" != "" ]; then
+	BLOCK_DEVICE="nbd"
+fi
+
 sudo umount disk.mnt || true
-if [ "$SYZ_VM_TYPE" == "qemu" ]; then
+if [ "$BLOCK_DEVICE" == "loop" ]; then
 	:
-elif [ "$SYZ_VM_TYPE" == "gce" ]; then
+elif [ "$BLOCK_DEVICE" == "nbd" ]; then
 	sudo modprobe nbd
 	sudo qemu-nbd -d /dev/nbd0 || true
 fi
 rm -rf disk.mnt disk.raw || true
 
 fallocate -l 2G disk.raw
-if [ "$SYZ_VM_TYPE" == "qemu" ]; then
+if [ "$BLOCK_DEVICE" == "loop" ]; then
 	DISKDEV="$(sudo losetup -f --show -P disk.raw)"
 	CLEANUP="sudo losetup -d $DISKDEV; $CLEANUP"
-elif [ "$SYZ_VM_TYPE" == "gce" ]; then
+elif [ "$BLOCK_DEVICE" == "nbd" ]; then
 	DISKDEV="/dev/nbd0"
 	sudo qemu-nbd -c $DISKDEV --format=raw disk.raw
 	CLEANUP="sudo qemu-nbd -d $DISKDEV; $CLEANUP"
