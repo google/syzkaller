@@ -47,6 +47,7 @@ const (
 	FeatureComparisons
 	FeatureSandboxSetuid
 	FeatureSandboxNamespace
+	FeatureSandboxAndroidUntrustedApp
 	FeatureFaultInjection
 	FeatureLeakChecking
 	FeatureNetworkInjection

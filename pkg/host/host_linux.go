@@ -325,6 +325,7 @@ func init() {
 	checkFeature[FeatureComparisons] = checkComparisons
 	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
 	checkFeature[FeatureSandboxNamespace] = checkSandboxNamespace
+	checkFeature[FeatureSandboxAndroidUntrustedApp] = checkSandboxAndroidUntrustedApp
 	checkFeature[FeatureFaultInjection] = checkFaultInjection
 	setupFeature[FeatureFaultInjection] = setupFaultInjection
 	checkFeature[FeatureLeakChecking] = checkLeakChecking
@@ -561,6 +562,13 @@ func kmemleakIgnore(report []byte) bool {
 
 func checkSandboxNamespace() string {
 	if err := osutil.IsAccessible("/proc/self/ns/user"); err != nil {
+		return err.Error()
+	}
+	return ""
+}
+
+func checkSandboxAndroidUntrustedApp() string {
+	if err := osutil.IsAccessible("/sys/fs/selinux/policy"); err != nil {
 		return err.Error()
 	}
 	return ""

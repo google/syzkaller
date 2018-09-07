@@ -17,7 +17,7 @@ var (
 	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
 	flagSignal   = flag.Bool("cover", false, "collect feedback signals (coverage)")
-	flagSandbox  = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
+	flagSandbox  = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android_untrusted_app)")
 	flagDebug    = flag.Bool("debug", false, "debug output from executor")
 	flagTimeout  = flag.Duration("timeout", 0, "execution timeout")
 )
@@ -39,8 +39,10 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 		c.Flags |= ipc.FlagSandboxSetuid
 	case "namespace":
 		c.Flags |= ipc.FlagSandboxNamespace
+	case "android_untrusted_app":
+		c.Flags |= ipc.FlagSandboxAndroidUntrustedApp
 	default:
-		return nil, nil, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
+		return nil, nil, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace/android_untrusted_app")
 	}
 
 	sysTarget := targets.Get(target.OS, target.Arch)

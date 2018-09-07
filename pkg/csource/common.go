@@ -19,9 +19,10 @@ import (
 const (
 	linux = "linux"
 
-	sandboxNone      = "none"
-	sandboxSetuid    = "setuid"
-	sandboxNamespace = "namespace"
+	sandboxNone                = "none"
+	sandboxSetuid              = "setuid"
+	sandboxNamespace           = "namespace"
+	sandboxAndroidUntrustedApp = "android_untrusted_app"
 )
 
 func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, opts Options) ([]byte, error) {
@@ -64,29 +65,30 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
 	bitmasks, csums := prog.RequiredFeatures(p)
 	enabled := map[string]bool{
-		"GOOS_" + p.Target.OS:           true,
-		"GOARCH_" + p.Target.Arch:       true,
-		"SYZ_USE_BITMASKS":              bitmasks,
-		"SYZ_USE_CHECKSUMS":             csums,
-		"SYZ_SANDBOX_NONE":              opts.Sandbox == sandboxNone,
-		"SYZ_SANDBOX_SETUID":            opts.Sandbox == sandboxSetuid,
-		"SYZ_SANDBOX_NAMESPACE":         opts.Sandbox == sandboxNamespace,
-		"SYZ_THREADED":                  opts.Threaded,
-		"SYZ_COLLIDE":                   opts.Collide,
-		"SYZ_REPEAT":                    opts.Repeat,
-		"SYZ_REPEAT_TIMES":              opts.RepeatTimes > 1,
-		"SYZ_PROCS":                     opts.Procs > 1,
-		"SYZ_FAULT_INJECTION":           opts.Fault,
-		"SYZ_TUN_ENABLE":                opts.EnableTun,
-		"SYZ_ENABLE_CGROUPS":            opts.EnableCgroups,
-		"SYZ_ENABLE_NETDEV":             opts.EnableNetdev,
-		"SYZ_RESET_NET_NAMESPACE":       opts.ResetNet,
-		"SYZ_USE_TMP_DIR":               opts.UseTmpDir,
-		"SYZ_HANDLE_SEGV":               opts.HandleSegv,
-		"SYZ_REPRO":                     opts.Repro,
-		"SYZ_TRACE":                     opts.Trace,
-		"SYZ_EXECUTOR_USES_SHMEM":       sysTarget.ExecutorUsesShmem,
-		"SYZ_EXECUTOR_USES_FORK_SERVER": sysTarget.ExecutorUsesForkServer,
+		"GOOS_" + p.Target.OS:               true,
+		"GOARCH_" + p.Target.Arch:           true,
+		"SYZ_USE_BITMASKS":                  bitmasks,
+		"SYZ_USE_CHECKSUMS":                 csums,
+		"SYZ_SANDBOX_NONE":                  opts.Sandbox == sandboxNone,
+		"SYZ_SANDBOX_SETUID":                opts.Sandbox == sandboxSetuid,
+		"SYZ_SANDBOX_NAMESPACE":             opts.Sandbox == sandboxNamespace,
+		"SYZ_SANDBOX_ANDROID_UNTRUSTED_APP": opts.Sandbox == sandboxAndroidUntrustedApp,
+		"SYZ_THREADED":                      opts.Threaded,
+		"SYZ_COLLIDE":                       opts.Collide,
+		"SYZ_REPEAT":                        opts.Repeat,
+		"SYZ_REPEAT_TIMES":                  opts.RepeatTimes > 1,
+		"SYZ_PROCS":                         opts.Procs > 1,
+		"SYZ_FAULT_INJECTION":               opts.Fault,
+		"SYZ_TUN_ENABLE":                    opts.EnableTun,
+		"SYZ_ENABLE_CGROUPS":                opts.EnableCgroups,
+		"SYZ_ENABLE_NETDEV":                 opts.EnableNetdev,
+		"SYZ_RESET_NET_NAMESPACE":           opts.ResetNet,
+		"SYZ_USE_TMP_DIR":                   opts.UseTmpDir,
+		"SYZ_HANDLE_SEGV":                   opts.HandleSegv,
+		"SYZ_REPRO":                         opts.Repro,
+		"SYZ_TRACE":                         opts.Trace,
+		"SYZ_EXECUTOR_USES_SHMEM":           sysTarget.ExecutorUsesShmem,
+		"SYZ_EXECUTOR_USES_FORK_SERVER":     sysTarget.ExecutorUsesForkServer,
 	}
 	for def, ok := range enabled {
 		if ok {

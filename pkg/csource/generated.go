@@ -393,6 +393,7 @@ void child()
 #if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#define do_sandbox_android_untrusted_app() 0
 #endif
 
 #elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
@@ -411,6 +412,7 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#define do_sandbox_android_untrusted_app() 0
 #endif
 
 #if GOOS_openbsd
@@ -682,6 +684,7 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#define do_sandbox_android_untrusted_app() 0
 #endif
 #define CAST(f) ({void* p = (void*)f; p; })
 
@@ -1177,7 +1180,7 @@ static long syz_open_pts(long a0, long a1)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 #include <fcntl.h>
 #include <sched.h>
 #include <sys/stat.h>
@@ -2980,7 +2983,7 @@ static void setup_binfmt_misc()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 #include <errno.h>
 #include <sys/mount.h>
 
@@ -2994,9 +2997,7 @@ static void setup_common()
 	setup_binfmt_misc();
 #endif
 }
-#endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
 #include <sched.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -3249,6 +3250,124 @@ static int do_sandbox_namespace(void)
 	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
 		    CLONE_NEWUSER | CLONE_NEWPID, 0);
 	return wait_for_loop(pid);
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#include <fcntl.h>
+#include <grp.h>
+#include <sys/xattr.h>
+
+#define AID_NET_BT_ADMIN 3001
+#define AID_NET_BT 3002
+#define AID_INET 3003
+#define AID_EVERYBODY 9997
+#define AID_APP 10000
+
+#define UNTRUSTED_APP_UID AID_APP + 999
+#define UNTRUSTED_APP_GID AID_APP + 999
+
+const char* SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
+const char* SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
+const char* SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
+const char* SELINUX_XATTR_NAME = "security.selinux";
+
+gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
+size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
+static int getcon(char* context, size_t context_size)
+{
+	int fd = open(SELINUX_CONTEXT_FILE, O_RDONLY);
+
+	if (fd < 0)
+		fail("getcon: Couldn't open %s", SELINUX_CONTEXT_FILE);
+
+	ssize_t nread = read(fd, context, context_size);
+
+	close(fd);
+
+	if (nread < 0)
+		fail("getcon: Failed to read from %s", SELINUX_CONTEXT_FILE);
+	if (context[nread - 1] == '\n')
+		context[nread - 1] = '\0';
+
+	return 0;
+}
+static int setcon(const char* context)
+{
+	char new_context[512];
+	int fd = open(SELINUX_CONTEXT_FILE, O_WRONLY);
+
+	if (fd < 0)
+		fail("setcon: Could not open %s", SELINUX_CONTEXT_FILE);
+
+	ssize_t bytes_written = write(fd, context, strlen(context));
+	close(fd);
+
+	if (bytes_written != (ssize_t)strlen(context))
+		fail("setcon: Could not write entire context.  Wrote %zi, expected %zu", bytes_written, strlen(context));
+	if (getcon(new_context, sizeof(new_context) != 0))
+		fail("setcon: Could not read context");
+
+	if (strcmp(context, new_context))
+		fail("setcon: Failed to change to %s, context is %s", context, new_context);
+
+	return 0;
+}
+static int getfilecon(const char* path, char* context, size_t context_size)
+{
+	if (getxattr(path, SELINUX_XATTR_NAME, context, context_size) != 0)
+		fail("getfilecon: getxattr failed");
+
+	return 0;
+}
+static int setfilecon(const char* path, const char* context)
+{
+	char new_context[512];
+	int retval = setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0);
+
+	if (retval != 0)
+		fail("setfilecon: setxattr failed");
+
+	retval = getfilecon(path, new_context, sizeof(new_context));
+
+	if (retval != 0)
+		fail("setfilecon: getfilecon failed");
+
+	if (strcmp(context, new_context))
+		fail("setfilecon: could not set context to %s, currently %s", context, new_context);
+
+	return 0;
+}
+
+static int do_sandbox_android_untrusted_app(void)
+{
+	setup_common();
+	sandbox_common();
+
+	if (setgroups(UNTRUSTED_APP_NUM_GROUPS, UNTRUSTED_APP_GROUPS) != 0)
+		fail("setgroups failed");
+
+	if (setresgid(UNTRUSTED_APP_GID, UNTRUSTED_APP_GID, UNTRUSTED_APP_GID) != 0)
+		fail("setresgid failed");
+
+	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
+		fail("setresuid failed");
+
+	if (setfilecon(".", SELINUX_LABEL_APP_DATA_FILE) != 0)
+		fail("setfilecon failed");
+
+	if (setcon(SELINUX_CONTEXT_UNTRUSTED_APP) != 0)
+		fail("setcon failed");
+
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+	initialize_tun();
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices();
+#endif
+
+	loop();
+	doexit(1);
 }
 #endif
 
@@ -3598,6 +3717,7 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#define do_sandbox_android_untrusted_app() 0
 #endif
 
 #elif GOOS_windows
@@ -3714,6 +3834,7 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#define do_sandbox_android_untrusted_app() 0
 #endif
 
 #elif GOOS_test
@@ -3769,6 +3890,7 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#define do_sandbox_android_untrusted_app() 0
 #endif
 
 #else
@@ -3990,7 +4112,7 @@ static void loop(void)
 
 [[RESULTS]]
 
-#if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 #if SYZ_THREADED
 void execute_call(int call)
 #elif SYZ_REPEAT
