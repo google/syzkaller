@@ -17,8 +17,8 @@
 #   ./create-gce-image.sh /dir/with/user/space/system /path/to/bzImage
 #
 # SYZ_VM_TYPE env var controls type of target test machine. Supported values:
-# - qemu (default, uses /dev/loop)
-# - gce (uses /dev/nbd0)
+# - qemu (default)
+# - gce
 #   Needs nbd support in kernel and qemu-utils (qemu-nbd) installed.
 #
 # If SYZ_SYSCTL_FILE env var is set and points to a file,
@@ -70,21 +70,33 @@ else
 	exit 1
 fi
 
+# qemu-nbd is broken on Debian with:
+#	Calling ioctl() to re-read partition table.
+#	Re-reading the partition table failed.: Invalid argument
+#	The kernel still uses the old table. The new table will be used at the
+#	next reboot or after you run partprobe(8) or kpartx(8).
+# losetup is broken on Ubuntu with some other error.
+# Try to figure out what will work.
+BLOCK_DEVICE="loop"
+if [ "$(uname -a | grep Ubuntu)" != "" ]; then
+	BLOCK_DEVICE="nbd"
+fi
+
 # Clean up after previous unsuccessful run.
 sudo umount disk.mnt || true
-if [ "$SYZ_VM_TYPE" == "qemu" ]; then
+if [ "$BLOCK_DEVICE" == "loop" ]; then
 	:
-elif [ "$SYZ_VM_TYPE" == "gce" ]; then
+elif [ "$BLOCK_DEVICE" == "nbd" ]; then
 	sudo modprobe nbd
 	sudo qemu-nbd -d /dev/nbd0 || true
 fi
 rm -rf disk.mnt disk.raw || true
 
 fallocate -l 2G disk.raw
-if [ "$SYZ_VM_TYPE" == "qemu" ]; then
+if [ "$BLOCK_DEVICE" == "loop" ]; then
 	DISKDEV="$(sudo losetup -f --show -P disk.raw)"
 	CLEANUP="sudo losetup -d $DISKDEV; $CLEANUP"
-elif [ "$SYZ_VM_TYPE" == "gce" ]; then
+elif [ "$BLOCK_DEVICE" == "nbd" ]; then
 	DISKDEV="/dev/nbd0"
 	sudo qemu-nbd -c $DISKDEV --format=raw disk.raw
 	CLEANUP="sudo qemu-nbd -d $DISKDEV; $CLEANUP"
