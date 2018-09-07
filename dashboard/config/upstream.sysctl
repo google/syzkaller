@@ -15,3 +15,5 @@ kernel.softlockup_all_cpu_backtrace = 1
 # This is to restrict effects of recursive exponential mounts, for details see
 # "mnt: Add a per mount namespace limit on the number of mounts" commit.
 fs.mount-max = 100
+# Dumping all tasks to console can take too long.
+vm.oom_dump_tasks = 0
