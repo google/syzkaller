@@ -41,7 +41,11 @@ Main page.
 		</tr>
 		{{range $mgr := $.Managers}}
 			<tr>
-				<td><a href="{{$mgr.Link}}">{{$mgr.Namespace}}/{{$mgr.Name}}</a></td>
+				<td>
+					{{if $mgr.Link}}<a href="{{$mgr.Link}}">{{end}}
+						{{$mgr.Namespace}}/{{$mgr.Name}}
+					{{if $mgr.Link}}</a>{{end}}
+				</td>
 				<td class="stat {{if $mgr.LastActiveBad}}bad{{end}}">{{formatLateness $.Now $mgr.LastActive}}</td>
 				{{if $mgr.CurrentBuild}}
 					<td class="stat" title="{{$mgr.CurrentBuild.KernelAlias}}/{{$mgr.CurrentBuild.KernelCommit}} (syzkaller {{$mgr.CurrentBuild.SyzkallerCommit}})">{{formatLateness $.Now $mgr.CurrentBuild.Time}}</td>
