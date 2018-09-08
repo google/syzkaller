@@ -34,6 +34,10 @@ syspatch
 pkg_add -iv bash git go
 
 echo 'set tty com0' > boot.conf
+echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
+
+mkdir /syzkaller
+echo '/dev/sd1a /syzkaller ffs rw,noauto 1 0' >> /etc/fstab
 EOF
 
 cat >etc/installurl <<EOF
@@ -44,14 +48,16 @@ cat >etc/rc.local <<EOF
   set -x
 
   echo "starting syz-ci"
+  fsck -y /dev/sd1a
+  mount /syzkaller
 )
 EOF
 chmod +x install.site
-tar -zcvf site${RELNO}.tgz install.site etc/{installurl,rc.local}
+tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/{installurl,rc.local}
 
 # Autoinstall script.
 cat >auto_install.conf <<EOF
-System hostname = buildlet.syzkaller
+System hostname = ci-openbsd.syzkaller
 Which network interface = vio0
 IPv4 address for vio0 = dhcp
 IPv6 address for vio0 = none
@@ -126,7 +132,7 @@ proc login {} {
     send "root\n"
 
     expect "# "
-    send "halt -p\n"
+    send "cat /etc/ssh/ssh_host_*_key.pub\nhalt -p\n"
 
     expect eof
 }
@@ -153,8 +159,11 @@ echo "Archiving disk.raw... (this may take a while)"
 i="openbsd-${ARCH}-gce.tar.gz"
 tar -Szcf "$i" disk.raw
 
-echo "Done. Uploading GCE image $i"
+cat <<EOF
+Done.
 
-gsutil cp -a public-read "$i" gs://openbsd-syzbot/
-# Presumes the default project is where the images should be created.
-gcloud compute images create openbsd-${RELNO}-${ARCH} --source-uri gs://openbsd-syzbot/"$i"
+To create GCE image run the following commands:
+
+gsutil cp -a public-read "$i" gs://syzkaller/
+gcloud compute images create ci-openbsd-root --source-uri gs://syzkaller/"$i"
+EOF
