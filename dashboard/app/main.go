@@ -159,19 +159,22 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	var errorLog []byte
 	var managers []*uiManager
 	var jobs []*uiJob
-	if accessLevel(c, r) == AccessAdmin && r.FormValue("fixed") == "" {
+	if r.FormValue("fixed") == "" {
 		var err error
-		errorLog, err = fetchErrorLogs(c)
+		accessLevel := accessLevel(c, r)
+		managers, err = loadManagers(c, accessLevel)
 		if err != nil {
 			return err
 		}
-		managers, err = loadManagers(c)
-		if err != nil {
-			return err
-		}
-		jobs, err = loadRecentJobs(c)
-		if err != nil {
-			return err
+		if accessLevel == AccessAdmin {
+			errorLog, err = fetchErrorLogs(c)
+			if err != nil {
+				return err
+			}
+			jobs, err = loadRecentJobs(c)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	bugNamespaces, err := fetchBugs(c, r)
@@ -669,12 +672,23 @@ func makeUIBuild(build *Build) *uiBuild {
 	}
 }
 
-func loadManagers(c context.Context) ([]*uiManager, error) {
+func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, error) {
 	now := timeNow(c)
 	date := timeDate(now)
 	managers, managerKeys, err := loadAllManagers(c)
 	if err != nil {
 		return nil, err
+	}
+	for i := 0; i < len(managers); i++ {
+		if accessLevel >= config.Namespaces[managers[i].Namespace].AccessLevel {
+			continue
+		}
+		last := len(managers) - 1
+		managers[i] = managers[last]
+		managers = managers[:last]
+		managerKeys[i] = managerKeys[last]
+		managerKeys = managerKeys[:last]
+		i--
 	}
 	var buildKeys []*datastore.Key
 	var statsKeys []*datastore.Key
@@ -711,10 +725,14 @@ func loadManagers(c context.Context) ([]*uiManager, error) {
 	var results []*uiManager
 	for i, mgr := range managers {
 		stats := fullStats[i]
+		link := mgr.Link
+		if accessLevel < AccessUser {
+			link = ""
+		}
 		results = append(results, &uiManager{
 			Namespace:          mgr.Namespace,
 			Name:               mgr.Name,
-			Link:               mgr.Link,
+			Link:               link,
 			CurrentBuild:       uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
 			FailedBuildBugLink: bugLink(mgr.FailedBuildBug),
 			LastActive:         mgr.LastAlive,
