@@ -1,4 +1,4 @@
-TITLE: INFO: rcu detected stall in free_percpu
+TITLE: INFO: rcu detected stall in bpf_map_free_deferred
 
 isob2 login: [  709.689951] INFO: rcu_sched detected stalls on CPUs/tasks:
 [  709.695737] 	(detected by 0, t=125002 jiffies, g=6134, c=6133, q=11)

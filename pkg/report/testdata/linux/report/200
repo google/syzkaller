@@ -1,4 +1,4 @@
-TITLE: general protection fault in ip6t_do_table
+TITLE: general protection fault in corrupted
 CORRUPTED: Y
 
 [   73.452724] FAULT_INJECTION: forcing a failure.
