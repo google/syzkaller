@@ -25,3 +25,10 @@ ci-openbsd# newfs -m 0 /dev/rsd1a
 ci-openbsd# mount /syzkaller
 ci-openbsd# chown syzkaller:syzkaller /syzkaller
 ```
+
+Persistent disk structure:
+
+```
+/syzkaller
+    /src - https://github.com/openbsd/src.git
+```
