@@ -504,6 +504,103 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 	return false, ""
 }
 
+func linuxStallFrameExtractor(frames []string) (string, string) {
+	// During rcu stalls and cpu lockups kernel loops in some part of code,
+	// usually across several functions. When the stall is detected, traceback
+	// points to a random stack within the looping code. We generally take
+	// the top function in the stack (with few exceptions) as the bug identity.
+	// As the result stalls with the same root would produce multiple reports
+	// in different functions, which is bad.
+	// Instead we identify a representative function deeper in the stack.
+	// For most syscalls it can be the syscall entry function (e.g. SyS_timer_create).
+	// However, for highly discriminated functions syscalls like ioctl/read/write/connect
+	// we take the previous function (e.g. for connect the one that points to exact
+	// protocol, or for ioctl the one that is related to the device).
+	prev := frames[0]
+	for _, frame := range frames {
+		if matchesAny([]byte(frame), linuxStallAnchorFrames) {
+			for _, prefix := range []string{
+				"__x64_",
+				"SYSC_",
+				"SyS_",
+				"compat_SYSC_",
+				"compat_SyS_",
+			} {
+				prev = strings.TrimPrefix(prev, prefix)
+			}
+			return prev, ""
+		}
+		prev = frame
+	}
+	return "", "did not find any anchor frame"
+}
+
+var linuxStallAnchorFrames = []*regexp.Regexp{
+	// Various generic functions that dispatch work.
+	// We also include some of their callers, so that if some names change
+	// we don't skip whole stacks and proceed parsing the next one.
+	compile("process_one_work"),  // workqueue callback
+	compile("do_syscall_"),       // syscall entry
+	compile("do_fast_syscall_"),  // syscall entry
+	compile("netif_receive_skb"), // net receive entry point
+	compile("do_softirq"),
+	compile("call_timer_fn"),
+	compile("_run_timers"),
+	compile("run_timer_softirq"),
+	compile("run_ksoftirqd"),
+	compile("smpboot_thread_fn"),
+	compile("kthread"),
+	compile("start_secondary"),
+	compile("cpu_startup_entry"),
+	compile("ret_from_fork"),
+	// Important discriminated syscalls (file_operations callbacks, etc):
+	compile("vfs_write"),
+	compile("vfs_read"),
+	compile("vfs_iter_read"),
+	compile("vfs_iter_write"),
+	compile("do_iter_read"),
+	compile("do_iter_write"),
+	compile("vfs_ioctl"),
+	compile("blkdev_driver_ioctl"),
+	compile("blkdev_ioctl"),
+	compile("^call_read_iter"),
+	compile("^call_write_iter"),
+	compile("do_iter_readv_writev"),
+	compile("^call_mmap"),
+	compile("mmap_region"),
+	compile("do_mmap"),
+	compile("do_dentry_open"),
+	compile("vfs_open"),
+	// Socket operations:
+	compile("^sock_sendmsg"),
+	compile("^sock_recvmsg"),
+	compile("^sock_release"),
+	compile("^__sock_release"),
+	compile("__sys_setsockopt"),
+	compile("kernel_setsockopt"),
+	compile("sock_common_setsockopt"),
+	compile("__sys_listen"),
+	compile("kernel_listen"),
+	compile("sk_common_release"),
+	compile("^sock_mmap"),
+	compile("__sys_accept"),
+	compile("kernel_accept"),
+	compile("^sock_do_ioctl"),
+	compile("^sock_ioctl"),
+	compile("^compat_sock_ioctl"),
+	compile("^(compat_)?(SYSC|SyS|__sys|___sys|__do_sys|__se_sys|__x64_sys)_socketpair"),
+	compile("^(compat_)?(SYSC|SyS|__sys|___sys|__do_sys|__se_sys|__x64_sys)_connect"),
+	// Page fault entry points:
+	compile("__do_fault"),
+	compile("handle_mm_fault"),
+	compile("do_page_fault"),
+	compile("^page_fault$"),
+	// exit_to_usermode_loop callbacks:
+	compile("__fput"),
+	compile("task_work_run"),
+	compile("exit_to_usermode"),
+}
+
 var (
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	stackFrameRe     = regexp.MustCompile(`^ *(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
@@ -697,6 +794,7 @@ var linuxOopses = []*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
+					extractor: linuxStallFrameExtractor,
 				},
 			},
 			{
@@ -963,18 +1061,8 @@ var linuxOopses = []*oops{
 						compile("apic_timer_interrupt"),
 						parseStackTrace,
 					},
-					skip: []string{"apic_timer_interrupt", "rcu"},
-				},
-			},
-			{
-				title: linuxRcuStall,
-				fmt:   "INFO: rcu detected stall in %[1]v",
-				stack: &stackFmt{
-					parts: []*regexp.Regexp{
-						linuxRipFrame,
-						parseStackTrace,
-					},
-					skip: []string{"apic_timer_interrupt", "rcu"},
+					skip:      []string{"apic_timer_interrupt", "rcu"},
+					extractor: linuxStallFrameExtractor,
 				},
 			},
 			{

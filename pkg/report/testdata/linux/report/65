@@ -1,4 +1,4 @@
-TITLE: BUG: soft lockup in smp_call_function_many
+TITLE: BUG: soft lockup in jump_label_update_timeout
 
 [  247.938942] watchdog: BUG: soft lockup - CPU#0 stuck for 134s! [kworker/0:2:1400]
 [  247.946595] Modules linked in:
@@ -22,86 +22,18 @@ TITLE: BUG: soft lockup in smp_call_function_many
 [  248.078408] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
 [  248.084262] CR2: 0000000020335ffc CR3: 00000001d0869000 CR4: 00000000001426f0
 [  248.091506] Call Trace:
-[  248.094075]  ? add_nops+0x90/0x90
-[  248.097504]  ? generic_exec_single+0x5b0/0x5b0
-[  248.102062]  ? __mutex_lock+0x16f/0x1a80
-[  248.106093]  ? arch_jump_label_transform+0x1b/0x40
-[  248.110995]  ? print_usage_bug+0x3f0/0x3f0
-[  248.115213]  ? _find_next_bit+0xee/0x120
-[  248.119250]  ? add_nops+0x90/0x90
-[  248.122676]  ? find_next_bit+0x27/0x30
 [  248.126547]  smp_call_function_many+0x773/0x930
-[  248.131192]  ? smp_call_function_many+0x773/0x930
-[  248.136013]  ? add_nops+0x90/0x90
-[  248.139449]  ? smp_call_function_single_async+0x2d0/0x2d0
-[  248.144960]  ? mark_held_locks+0xb2/0x100
-[  248.149082]  ? text_poke+0x336/0x530
-[  248.152772]  ? trace_hardirqs_on_caller+0x421/0x5c0
-[  248.157763]  ? apic_has_pending_timer+0x80/0x2a0
-[  248.162488]  ? trace_hardirqs_on+0xd/0x10
-[  248.166606]  ? add_nops+0x90/0x90
-[  248.170033]  ? apic_has_pending_timer+0x80/0x2a0
 [  248.174760]  on_each_cpu+0x3d/0x1b0
-[  248.178359]  ? apic_has_pending_timer+0x7f/0x2a0
 [  248.183088]  text_poke_bp+0xe4/0x170
-[  248.186774]  ? __mutex_unlock_slowpath+0xe9/0xac0
-[  248.191590]  ? poke_int3_handler+0x90/0x90
-[  248.195800]  ? wait_for_completion+0x7b0/0x7b0
-[  248.200361]  ? apic_has_pending_timer+0x7f/0x2a0
 [  248.205094]  __jump_label_transform.isra.0+0x6a5/0x8a0
-[  248.210352]  ? bug_at+0x20/0x20
-[  248.213606]  ? check_noncircular+0x20/0x20
-[  248.217814]  ? perf_trace_lock_acquire+0xe3/0x980
-[  248.222633]  ? modules_open+0xa0/0xa0
 [  248.226421]  arch_jump_label_transform+0x2f/0x40
 [  248.231152]  __jump_label_update+0x207/0x2d0
-[  248.235539]  ? static_key_count+0x110/0x110
-[  248.239838]  ? atomic_dec_and_mutex_lock+0x112/0x150
-[  248.244917]  ? mutex_spin_on_owner+0xb50/0xb50
 [  248.249480]  jump_label_update+0x22c/0x2b0
 [  248.253695]  static_key_slow_dec_cpuslocked+0x176/0x1d0
-[  248.259034]  ? static_key_slow_inc+0x3c0/0x3c0
-[  248.263596]  ? rcu_read_lock_sched_held+0x108/0x120
 [  248.268594]  jump_label_update_timeout+0x1f/0x30
 [  248.273326]  process_one_work+0xbfd/0x1be0
-[  248.277556]  ? pwq_dec_nr_in_flight+0x450/0x450
-[  248.282197]  ? finish_task_switch+0x1d3/0x740
-[  248.286664]  ? finish_task_switch+0x1aa/0x740
-[  248.291159]  ? perf_trace_lock_acquire+0xe3/0x980
-[  248.295987]  ? perf_trace_lock+0x900/0x900
-[  248.300191]  ? __sched_text_start+0x8/0x8
-[  248.304316]  ? lock_downgrade+0x980/0x980
-[  248.308440]  ? __wake_up_common_lock+0x190/0x310
-[  248.313189]  ? find_held_lock+0x39/0x1d0
-[  248.317242]  ? lock_acquire+0x1d5/0x580
-[  248.321189]  ? worker_thread+0x4a3/0x1990
-[  248.325321]  ? lock_release+0xda0/0xda0
-[  248.329271]  ? worker_pool_assign_id+0x1b0/0x1b0
-[  248.334004]  ? do_raw_spin_trylock+0x190/0x190
 [  248.338580]  worker_thread+0x223/0x1990
-[  248.342560]  ? process_one_work+0x1be0/0x1be0
-[  248.347034]  ? _raw_spin_unlock_irq+0x27/0x70
-[  248.351505]  ? trace_hardirqs_on_caller+0x421/0x5c0
-[  248.356494]  ? trace_hardirqs_on+0xd/0x10
-[  248.360617]  ? finish_task_switch+0x1d3/0x740
-[  248.365083]  ? finish_task_switch+0x1aa/0x740
-[  248.369558]  ? copy_overflow+0x20/0x20
-[  248.373437]  ? __schedule+0x8f3/0x2060
-[  248.377296]  ? check_noncircular+0x20/0x20
-[  248.381527]  ? find_held_lock+0x39/0x1d0
-[  248.385573]  ? find_held_lock+0x39/0x1d0
-[  248.389625]  ? lock_downgrade+0x980/0x980
-[  248.393751]  ? default_wake_function+0x30/0x50
-[  248.398320]  ? __schedule+0x2060/0x2060
-[  248.402263]  ? do_wait_intr+0x3e0/0x3e0
-[  248.406215]  ? do_raw_spin_trylock+0x190/0x190
-[  248.410772]  ? _raw_spin_unlock_irqrestore+0x31/0xba
-[  248.415852]  ? trace_hardirqs_on_caller+0x421/0x5c0
-[  248.420842]  ? trace_hardirqs_on+0xd/0x10
-[  248.424963]  ? __kthread_parkme+0x175/0x240
 [  248.429263]  kthread+0x37a/0x440
-[  248.432602]  ? process_one_work+0x1be0/0x1be0
-[  248.437067]  ? kthread_stop+0x7b0/0x7b0
 [  248.441018]  ret_from_fork+0x24/0x30
 [  248.444727] Code: 00 00 00 fc ff df 44 89 bd 50 ff ff ff 48 c1 e8 03 4c 01 e8 41 83 e7 01 c6 00 f8 74 4e 49 89 c7 49 83 c4 18 e8 4e 25 0b 00 f3 90 <4c> 89 e2 41 c6 07 04 48 c1 ea 03 42 0f b6 14 2a 84 d2 74 09 80 
 [  248.463942] Kernel panic - not syncing: softlockup: hung tasks
@@ -111,33 +43,11 @@ TITLE: BUG: soft lockup in smp_call_function_many
 [  248.492919] Call Trace:
 [  248.495472]  <IRQ>
 [  248.497597]  dump_stack+0x194/0x257
-[  248.501202]  ? arch_local_irq_restore+0x53/0x53
-[  248.505843]  ? vprintk_default+0x28/0x30
-[  248.509878]  ? vprintk_func+0x5e/0xc0
-[  248.513650]  ? vsnprintf+0x1ed/0x1900
 [  248.517432]  panic+0x1e4/0x41c
-[  248.520597]  ? refcount_error_report+0x214/0x214
-[  248.525340]  ? watchdog_timer_fn+0x303/0x320
 [  248.529731]  watchdog_timer_fn+0x314/0x320
 [  248.533947]  __hrtimer_run_queues+0x349/0xe10
-[  248.538418]  ? lock_downgrade+0x980/0x980
-[  248.542540]  ? watchdog+0x30/0x30
-[  248.545971]  ? hrtimer_cancel+0x40/0x40
-[  248.549931]  ? pvclock_read_flags+0x160/0x160
-[  248.554417]  ? kvm_clock_get_cycles+0x25/0x30
-[  248.558883]  ? ktime_get_update_offsets_now+0x34a/0x520
-[  248.564229]  ? do_timer+0x50/0x50
-[  248.567661]  ? native_apic_msr_write+0x5c/0x80
-[  248.572213]  ? do_raw_spin_trylock+0x190/0x190
-[  248.576767]  ? lapic_next_event+0x54/0x80
-[  248.580891]  ? clockevents_program_event+0x108/0x2e0
 [  248.585978]  hrtimer_interrupt+0x1d4/0x5f0
 [  248.590213]  smp_apic_timer_interrupt+0x14a/0x700
-[  248.595032]  ? smp_call_function_single_interrupt+0x640/0x640
-[  248.600889]  ? _raw_spin_lock+0x32/0x40
-[  248.604847]  ? handle_edge_irq+0x2b4/0x7c0
-[  248.609054]  ? task_prio+0x40/0x40
-[  248.612583]  ? trace_hardirqs_off_thunk+0x1a/0x1c
 [  248.617409]  apic_timer_interrupt+0x9d/0xb0
 [  248.621700]  </IRQ>
 [  248.623909] RIP: 0010:smp_call_function_single+0x364/0x560
@@ -147,87 +57,18 @@ TITLE: BUG: soft lockup in smp_call_function_many
 [  248.651662] RBP: ffff8801d2ac7050 R08: 1ffff1003a558dff R09: 0000000000000000
 [  248.658903] R10: ffff8801d2ac7078 R11: 0000000000000000 R12: ffff8801d2ac6ff8
 [  248.666144] R13: dffffc0000000000 R14: 0000000000000000 R15: ffffed003a558df4
-[  248.673405]  ? smp_call_function_single+0x362/0x560
-[  248.678409]  ? add_nops+0x90/0x90
-[  248.681839]  ? generic_exec_single+0x5b0/0x5b0
-[  248.686393]  ? __mutex_lock+0x16f/0x1a80
-[  248.690427]  ? arch_jump_label_transform+0x1b/0x40
-[  248.695329]  ? print_usage_bug+0x3f0/0x3f0
-[  248.699548]  ? _find_next_bit+0xee/0x120
-[  248.703586]  ? add_nops+0x90/0x90
-[  248.707013]  ? find_next_bit+0x27/0x30
 [  248.710884]  smp_call_function_many+0x773/0x930
-[  248.715539]  ? smp_call_function_many+0x773/0x930
-[  248.720362]  ? add_nops+0x90/0x90
-[  248.723796]  ? smp_call_function_single_async+0x2d0/0x2d0
-[  248.729309]  ? mark_held_locks+0xb2/0x100
-[  248.733431]  ? text_poke+0x336/0x530
-[  248.737120]  ? trace_hardirqs_on_caller+0x421/0x5c0
-[  248.742109]  ? apic_has_pending_timer+0x80/0x2a0
-[  248.746838]  ? trace_hardirqs_on+0xd/0x10
-[  248.750957]  ? add_nops+0x90/0x90
-[  248.754383]  ? apic_has_pending_timer+0x80/0x2a0
 [  248.759110]  on_each_cpu+0x3d/0x1b0
-[  248.762710]  ? apic_has_pending_timer+0x7f/0x2a0
 [  248.767443]  text_poke_bp+0xe4/0x170
-[  248.771131]  ? __mutex_unlock_slowpath+0xe9/0xac0
-[  248.775946]  ? poke_int3_handler+0x90/0x90
-[  248.780158]  ? wait_for_completion+0x7b0/0x7b0
-[  248.784721]  ? apic_has_pending_timer+0x7f/0x2a0
 [  248.789452]  __jump_label_transform.isra.0+0x6a5/0x8a0
-[  248.794707]  ? bug_at+0x20/0x20
-[  248.797964]  ? check_noncircular+0x20/0x20
-[  248.802170]  ? perf_trace_lock_acquire+0xe3/0x980
-[  248.806990]  ? modules_open+0xa0/0xa0
 [  248.810776]  arch_jump_label_transform+0x2f/0x40
 [  248.815507]  __jump_label_update+0x207/0x2d0
-[  248.819895]  ? static_key_count+0x110/0x110
-[  248.824192]  ? atomic_dec_and_mutex_lock+0x112/0x150
-[  248.829269]  ? mutex_spin_on_owner+0xb50/0xb50
 [  248.833832]  jump_label_update+0x22c/0x2b0
 [  248.838048]  static_key_slow_dec_cpuslocked+0x176/0x1d0
-[  248.843387]  ? static_key_slow_inc+0x3c0/0x3c0
-[  248.847951]  ? rcu_read_lock_sched_held+0x108/0x120
 [  248.853695]  jump_label_update_timeout+0x1f/0x30
 [  248.858424]  process_one_work+0xbfd/0x1be0
-[  248.862653]  ? pwq_dec_nr_in_flight+0x450/0x450
-[  248.867292]  ? finish_task_switch+0x1d3/0x740
-[  248.871756]  ? finish_task_switch+0x1aa/0x740
-[  248.876251]  ? perf_trace_lock_acquire+0xe3/0x980
-[  248.881080]  ? perf_trace_lock+0x900/0x900
-[  248.885287]  ? __sched_text_start+0x8/0x8
-[  248.889411]  ? lock_downgrade+0x980/0x980
-[  248.893533]  ? __wake_up_common_lock+0x190/0x310
-[  248.898281]  ? find_held_lock+0x39/0x1d0
-[  248.902335]  ? lock_acquire+0x1d5/0x580
-[  248.906283]  ? worker_thread+0x4a3/0x1990
-[  248.910414]  ? lock_release+0xda0/0xda0
-[  248.914363]  ? worker_pool_assign_id+0x1b0/0x1b0
-[  248.919094]  ? do_raw_spin_trylock+0x190/0x190
 [  248.923671]  worker_thread+0x223/0x1990
-[  248.927650]  ? process_one_work+0x1be0/0x1be0
-[  248.932122]  ? _raw_spin_unlock_irq+0x27/0x70
-[  248.936593]  ? trace_hardirqs_on_caller+0x421/0x5c0
-[  248.941582]  ? trace_hardirqs_on+0xd/0x10
-[  248.945708]  ? finish_task_switch+0x1d3/0x740
-[  248.950177]  ? finish_task_switch+0x1aa/0x740
-[  248.954652]  ? copy_overflow+0x20/0x20
-[  248.958530]  ? __schedule+0x8f3/0x2060
-[  248.962386]  ? check_noncircular+0x20/0x20
-[  248.966615]  ? find_held_lock+0x39/0x1d0
-[  248.970661]  ? find_held_lock+0x39/0x1d0
-[  248.974716]  ? lock_downgrade+0x980/0x980
-[  248.978841]  ? default_wake_function+0x30/0x50
-[  248.983411]  ? __schedule+0x2060/0x2060
-[  248.987355]  ? do_wait_intr+0x3e0/0x3e0
-[  248.991308]  ? do_raw_spin_trylock+0x190/0x190
-[  248.995865]  ? _raw_spin_unlock_irqrestore+0x31/0xba
-[  249.000944]  ? trace_hardirqs_on_caller+0x421/0x5c0
-[  249.005933]  ? trace_hardirqs_on+0xd/0x10
-[  249.010055]  ? __kthread_parkme+0x175/0x240
 [  249.014357]  kthread+0x37a/0x440
-[  249.017695]  ? process_one_work+0x1be0/0x1be0
-[  249.022163]  ? kthread_stop+0x7b0/0x7b0
 [  249.026113]  ret_from_fork+0x24/0x30
 [  249.030488] Dumping ftrace buffer:
 [  249.034111]    (ftrace buffer empty)

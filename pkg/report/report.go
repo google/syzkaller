@@ -234,7 +234,12 @@ type stackFmt struct {
 	parts2 []*regexp.Regexp
 	// Skip these functions in stack traces (matched as substring).
 	skip []string
+	// Custom frame extractor (optional).
+	// Accepts set of all frames, returns guilty frame and corruption reason.
+	extractor frameExtractor
 }
+
+type frameExtractor func(frames []string) (frame string, corrupted string)
 
 var parseStackTrace *regexp.Regexp
 
@@ -367,24 +372,30 @@ func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (str
 	if len(skip) != 0 {
 		skipRe = regexp.MustCompile(strings.Join(skip, "|"))
 	}
-	frame, corrupted := extractStackFrameImpl(params, output, skipRe, stack.parts)
+	extractor := stack.extractor
+	if extractor == nil {
+		extractor = func(frames []string) (string, string) {
+			return frames[0], ""
+		}
+	}
+	frame, corrupted := extractStackFrameImpl(params, output, skipRe, stack.parts, extractor)
 	if frame != "" || len(stack.parts2) == 0 {
 		return frame, corrupted
 	}
-	return extractStackFrameImpl(params, output, skipRe, stack.parts2)
+	return extractStackFrameImpl(params, output, skipRe, stack.parts2, extractor)
 }
 
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
-	parts []*regexp.Regexp) (string, string) {
-	corrupted := ""
+	parts []*regexp.Regexp, extractor frameExtractor) (string, string) {
 	s := bufio.NewScanner(bytes.NewReader(output))
+	var frames []string
 nextPart:
 	for _, part := range parts {
 		if part == parseStackTrace {
 			for s.Scan() {
 				ln := bytes.Trim(s.Bytes(), "\r")
-				if corrupted == "" && matchesAny(ln, params.corruptedLines) {
-					corrupted = "corrupted line in report (1)"
+				if matchesAny(ln, params.corruptedLines) {
+					break nextPart
 				}
 				if matchesAny(ln, params.stackStartRes) {
 					continue nextPart
@@ -401,14 +412,14 @@ nextPart:
 				}
 				frame := ln[match[2]:match[3]]
 				if skipRe == nil || !skipRe.Match(frame) {
-					return string(frame), corrupted
+					frames = append(frames, string(frame))
 				}
 			}
 		} else {
 			for s.Scan() {
 				ln := bytes.Trim(s.Bytes(), "\r")
-				if corrupted == "" && matchesAny(ln, params.corruptedLines) {
-					corrupted = "corrupted line in report (2)"
+				if matchesAny(ln, params.corruptedLines) {
+					break nextPart
 				}
 				match := part.FindSubmatchIndex(ln)
 				if match == nil {
@@ -417,14 +428,17 @@ nextPart:
 				if len(match) == 4 && match[2] != -1 {
 					frame := ln[match[2]:match[3]]
 					if skipRe == nil || !skipRe.Match(frame) {
-						return string(frame), corrupted
+						frames = append(frames, string(frame))
 					}
 				}
 				break
 			}
 		}
 	}
-	return "", corrupted
+	if len(frames) == 0 {
+		return "", "extracted no frames"
+	}
+	return extractor(frames)
 }
 
 func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignores []*regexp.Regexp) *Report {
