@@ -57,7 +57,7 @@ tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/{installur
 
 # Autoinstall script.
 cat >auto_install.conf <<EOF
-System hostname = ci-openbsd.syzkaller
+System hostname = ci-openbsd
 Which network interface = vio0
 IPv4 address for vio0 = dhcp
 IPv6 address for vio0 = none
