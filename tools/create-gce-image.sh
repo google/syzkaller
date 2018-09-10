@@ -164,7 +164,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_msdos
 	insmod ext2
 	set root='(hd0,1)'
-	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 $CMDLINE
+	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 $CMDLINE
 }
 EOF
 sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $DISKDEV
