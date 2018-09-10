@@ -2965,6 +2965,9 @@ static void setup_cgroups()
 	if (chmod("/syzcgroup/net", 0777)) {
 		debug("chmod(/syzcgroup/net) failed: %d\n", errno);
 	}
+	if (!write_file("/proc/self/oom_score_adj", "-1000")) {
+		debug("write(oom_score_adj) failed: %d\n", errno);
+	}
 }
 static void setup_binfmt_misc()
 {
@@ -3457,30 +3460,49 @@ static void setup_loop()
 #if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
 	int pid = getpid();
 	char cgroupdir[64];
-	char procs_file[128];
+	char file[128];
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/unified/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
 	}
-	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir);
-	if (!write_file(procs_file, "%d", pid)) {
-		debug("write(%s) failed: %d\n", procs_file, errno);
+	snprintf(file, sizeof(file), "%s/pids.max", cgroupdir);
+	if (!write_file(file, "32")) {
+		debug("write(%s) failed: %d\n", file, errno);
+	}
+	snprintf(file, sizeof(file), "%s/memory.low", cgroupdir);
+	if (!write_file(file, "%d", 198 << 20)) {
+		debug("write(%s) failed: %d\n", file, errno);
+	}
+	snprintf(file, sizeof(file), "%s/memory.high", cgroupdir);
+	if (!write_file(file, "%d", 199 << 20)) {
+		debug("write(%s) failed: %d\n", file, errno);
+	}
+	snprintf(file, sizeof(file), "%s/memory.max", cgroupdir);
+	if (!write_file(file, "%d", 200 << 20)) {
+		debug("write(%s) failed: %d\n", file, errno);
+	}
+	if (!write_file("/proc/self/oom_score_adj", "-1000")) {
+		debug("write(oom_score_adj) failed: %d\n", errno);
+	}
+	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
+	if (!write_file(file, "%d", pid)) {
+		debug("write(%s) failed: %d\n", file, errno);
 	}
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
 	}
-	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir);
-	if (!write_file(procs_file, "%d", pid)) {
-		debug("write(%s) failed: %d\n", procs_file, errno);
+	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
+	if (!write_file(file, "%d", pid)) {
+		debug("write(%s) failed: %d\n", file, errno);
 	}
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
 	}
-	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir);
-	if (!write_file(procs_file, "%d", pid)) {
-		debug("write(%s) failed: %d\n", procs_file, errno);
+	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
+	if (!write_file(file, "%d", pid)) {
+		debug("write(%s) failed: %d\n", file, errno);
 	}
 #endif
 #if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
