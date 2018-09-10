@@ -94,7 +94,7 @@ bash
 		fullSrc := filepath.Join(kernelDir, filepath.FromSlash(src))
 		fullDst := filepath.Join(outputDir, filepath.FromSlash(dst))
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return fmt.Errorf("faied to copy %v: %v", src, err)
+			return fmt.Errorf("failed to copy %v: %v", src, err)
 		}
 	}
 	return nil
