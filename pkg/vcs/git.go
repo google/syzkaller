@@ -20,15 +20,11 @@ import (
 )
 
 type git struct {
-	os  string
-	vm  string
 	dir string
 }
 
-func newGit(os, vm, dir string) *git {
+func newGit(dir string) *git {
 	return &git{
-		os:  os,
-		vm:  vm,
 		dir: dir,
 	}
 }
