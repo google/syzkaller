@@ -231,6 +231,13 @@ func (c *Ctx) checkURLContents(url string, want []byte) {
 	}
 }
 
+func (c *Ctx) pollEmailBug() string {
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 1)
+	msg := <-c.emailSink
+	return msg.Sender
+}
+
 type apiClient struct {
 	*Ctx
 	*dashapi.Dashboard

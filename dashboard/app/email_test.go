@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/pkg/email"
 )
@@ -471,4 +472,62 @@ func TestEmailUndup(t *testing.T) {
 	c.client2.ReportCrash(crash2)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
+}
+
+func TestEmailCrossReportingDup(t *testing.T) {
+	// TODO:
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	tests := []struct {
+		bug    int
+		dup    int
+		result bool
+	}{
+		{0, 0, true},
+		{0, 1, false},
+		{0, 2, false},
+		{1, 0, false},
+		{1, 1, true},
+		{1, 2, true},
+		{2, 0, false},
+		{2, 1, false},
+		{2, 2, true},
+	}
+	for i, test := range tests {
+		t.Logf("duping %v->%v, expect %v", test.bug, test.dup, test.result)
+		c.advanceTime(24 * time.Hour) // to not hit email limit per day
+		crash1 := testCrash(build, 1)
+		crash1.Title = fmt.Sprintf("bug_%v", i)
+		c.client2.ReportCrash(crash1)
+		bugSender := c.pollEmailBug()
+		for j := 0; j < test.bug; j++ {
+			c.incomingEmail(bugSender, "#syz upstream")
+			bugSender = c.pollEmailBug()
+		}
+
+		crash2 := testCrash(build, 2)
+		crash2.Title = fmt.Sprintf("dup_%v", i)
+		c.client2.ReportCrash(crash2)
+		dupSender := c.pollEmailBug()
+		for j := 0; j < test.dup; j++ {
+			c.incomingEmail(dupSender, "#syz upstream")
+			dupSender = c.pollEmailBug()
+		}
+
+		c.incomingEmail(bugSender, "#syz dup: "+crash2.Title)
+		if test.result {
+			c.expectEQ(len(c.emailSink), 0)
+		} else {
+			c.expectEQ(len(c.emailSink), 1)
+			msg := <-c.emailSink
+			if !strings.Contains(msg.Body, "> #syz dup:") ||
+				!strings.Contains(msg.Body, "Can't dup bug to a bug in different reporting") {
+				c.t.Fatalf("bad reply body:\n%v", msg.Body)
+			}
+		}
+	}
 }

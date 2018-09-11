@@ -155,8 +155,8 @@ in [moderation](https://syzkaller.appspot.com/#upstream-moderation2) section
 and mailed to
 [syzkaller-upstream-moderation](https://groups.google.com/forum/#!forum/syzkaller-upstream-moderation)
 mailing list. Staged bugs accept all commands supported for reported bugs
-(`fix`, `dup`, `invalid`) with a restriction that reported and staged bugs
-can't be `dup`-ed onto each other in any direction. Additionally, staged bugs
+(`fix`, `dup`, `invalid`) with a restriction that bugs reported upstream
+can't be `dup`-ed onto bugs in moderation queue. Additionally, staged bugs
 accept upstream command:
 ```
 #syz upstream

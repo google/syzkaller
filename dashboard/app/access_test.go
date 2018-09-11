@@ -40,6 +40,9 @@ func TestAccessConfig(t *testing.T) {
 
 // TestAccess checks that all UIs respect access levels.
 func TestAccess(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	c := NewCtx(t)
 	defer c.Close()
 

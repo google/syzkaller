@@ -90,6 +90,15 @@ var testConfig = &GlobalConfig{
 						MailMaintainers:    true,
 					},
 				},
+				{
+					Name:       "reporting3",
+					DailyLimit: 3,
+					Config: &EmailConfig{
+						Email:              "bugs@syzkaller.com",
+						DefaultMaintainers: []string{"default@maintainers.com"},
+						MailMaintainers:    true,
+					},
+				},
 			},
 		},
 		// Namespaces for access level testing.
