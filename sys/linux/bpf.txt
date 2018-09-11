@@ -5,12 +5,16 @@
 # net.core.bpf_jit_enable  = { 0, 1, 2 }
 # net.core.bpf_jit_harden  = { 0, 1, 2 }
 
-include <linux/bpf.h>
+include <uapi/linux/bpf.h>
+include <uapi/linux/btf.h>
 
 resource fd_bpf_map[fd]: BPF_PSEUDO_MAP_FD
 resource fd_bpf_prog[fd]
+resource fd_rawtp[fd_perf_base]
+resource fd_btf[fd]
 resource bpf_prog_id[int32]: 0, -1
 resource bpf_map_id[int32]: 0, -1
+resource bpf_btf_id[int32]: 0, -1
 
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
@@ -31,8 +35,12 @@ bpf$BPF_PROG_GET_FD_BY_ID(cmd const[BPF_PROG_GET_FD_BY_ID], arg ptr[in, bpf_prog
 bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_get_fd_by_id_arg], size len[arg]) fd_bpf_map
 bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_prog_info_arg], size len[arg])
 bpf$BPF_GET_MAP_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_map_info_arg], size len[arg])
+bpf$BPF_GET_BTF_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_btf_info_arg], size len[arg])
 bpf$BPF_PROG_QUERY(cmd const[BPF_PROG_QUERY], arg ptr[in, bpf_prog_query], size len[arg])
-bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd
+bpf$BPF_RAW_TRACEPOINT_OPEN(cmd const[BPF_RAW_TRACEPOINT_OPEN], arg ptr[in, bpf_raw_tracepoint], size len[arg]) fd_rawtp
+bpf$BPF_BTF_LOAD(cmd const[BPF_BTF_LOAD], arg ptr[in, bpf_btf_load], size len[arg]) fd_btf
+bpf$BPF_BTF_GET_FD_BY_ID(cmd const[BPF_BTF_GET_FD_BY_ID], arg ptr[in, bpf_btf_id], size len[arg]) fd_btf
+bpf$BPF_TASK_FD_QUERY(cmd const[BPF_TASK_FD_QUERY], arg ptr[inout, bpf_task_fd_query], size len[arg])
 
 bpf_map_create_arg {
 	type		flags[bpf_map_type, int32]
@@ -331,6 +339,18 @@ bpf_map_info {
 	name		array[int8, BPF_OBJ_NAME_LEN]
 } [align_8]
 
+bpf_get_btf_info_arg {
+	btf	fd_btf
+	len	len[info, int32]
+	info	ptr64[inout, bpf_btf_info]
+}
+
+bpf_btf_info {
+	btf		ptr64[out, array[int8]]
+	btf_size	bytesize[btf, int32]
+	id		bpf_btf_id[opt]
+} [align_8]
+
 bpf_prog_query {
 	target_fd	fd_cgroup
 	attach_type	flags[bpf_prog_query_attach_type, int32]
@@ -344,6 +364,57 @@ bpf_raw_tracepoint {
 	name	ptr64[in, string]
 	prog_fd	fd_bpf_prog
 } [align_8]
+
+bpf_btf_load {
+	btf		ptr64[in, bpf_btf_program]
+	btf_log_buf	ptr64[out, array[int8]]
+	btf_size	bytesize[btf, int32]
+	btf_log_size	bytesize[btf_log_buf, int32]
+	btf_log_level	bool32
+} [align_8]
+
+bpf_btf_program {
+	header	btf_header
+	strings	bpf_btf_strings
+} [packed]
+
+btf_header {
+	magic		const[BTF_MAGIC, int16]
+	version		const[BTF_VERSION, int8]
+	flags		const[0, int8]
+	hdr_len		const[0x18, int32]
+	type_off	const[0, int32]
+	type_len	bytesize[types, int32]
+	str_off		bytesize[parent, int32]
+# TODO: should be bytesize[bpf_btf_program.strings]
+	str_len		int32
+	types		bpf_btf_types
+}
+
+bpf_btf_types {
+# This consists of some metas and some types (see btf_check_all_metas and btf_check_all_types).
+	data	array[int8]
+} [align_4]
+
+bpf_btf_strings {
+	z0	const[0, int8]
+	data	array[int8]
+	z1	const[0, int8]
+} [packed]
+
+bpf_task_fd_query {
+# TODO: part of fields are input here and part are output. We can't express this yet (#245).
+	pid		pid
+	fd		fd_perf_base
+	flags		const[0, int32]
+	buf_len		bytesize[buf, int32]
+	buf		ptr64[in, string]
+# These are output fields:
+	prog_id		bpf_prog_id[opt]
+	fd_type		const[0, int32]
+	probe_offset	const[0, int64]
+	probe_addr	const[0, int64]
+}
 
 bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH, BPF_MAP_TYPE_LPM_TRIE, BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_DEVMAP, BPF_MAP_TYPE_SOCKMAP, BPF_MAP_TYPE_CPUMAP
 bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST

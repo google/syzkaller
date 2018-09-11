@@ -4,7 +4,8 @@
 include <linux/perf_event.h>
 include <linux/hw_breakpoint.h>
 
-resource fd_perf[fd]
+resource fd_perf_base[fd]
+resource fd_perf[fd_perf_base]
 
 perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr[0:16], group fd_perf[opt], flags flags[perf_flags]) fd_perf
 perf_event_open$cgroup(attr ptr[in, perf_event_attr], fd fd_cgroup, cpu intptr[0:16], group fd_perf[opt], flags flags[perf_flags_cgroup]) fd_perf
