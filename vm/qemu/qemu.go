@@ -24,7 +24,7 @@ const (
 )
 
 func init() {
-	vmimpl.Register("qemu", ctor)
+	vmimpl.Register("qemu", ctor, true)
 }
 
 type Config struct {

@@ -50,7 +50,24 @@ type BootErrorer interface {
 	BootError() (string, []byte)
 }
 
+// AllowsOvercommit returns if the instance type allows overcommit of instances
+// (i.e. creation of instances out-of-thin-air). Overcommit is used during image
+// and patch testing in syz-ci when it just asks for more than specified in config
+// instances. Generally virtual machines (qemu, gce) support overcommit,
+// while physical machines (adb, isolated) do not. Strictly saying, we should
+// never use overcommit and use only what's specified in config, because we
+// override resource limits specified in config (e.g. can OOM). But it works and
+// makes lots of things much simpler.
+func AllowsOvercommit(typ string) bool {
+	return vmimpl.Types[typ].Overcommit
+}
+
+// Create creates a VM pool that can be used to create individual VMs.
 func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
+	typ, ok := vmimpl.Types[cfg.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown instance type '%v'", cfg.Type)
+	}
 	env := &vmimpl.Env{
 		Name:    cfg.Name,
 		OS:      cfg.TargetOS,
@@ -62,7 +79,7 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		Debug:   debug,
 		Config:  cfg.VM,
 	}
-	impl, err := vmimpl.Create(cfg.Type, env)
+	impl, err := typ.Ctor(env)
 	if err != nil {
 		return nil, err
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/vm"
 )
 
 type JobProcessor struct {
@@ -152,13 +153,7 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 			return job.resp
 		}
 	}
-	// TODO(dvyukov): this will only work for qemu/gce,
-	// because e.g. adb requires unique device IDs and we can't use what
-	// manager already uses. For qemu/gce this is also bad, because we
-	// override resource limits specified in config (e.g. can OOM), but works.
-	switch typ := mgr.managercfg.Type; typ {
-	case "gce", "qemu":
-	default:
+	if typ := mgr.managercfg.Type; !vm.AllowsOvercommit(typ) {
 		job.resp.Error = []byte(fmt.Sprintf("testing is not yet supported for %v machine type.", typ))
 		jp.Errorf("%s", job.resp.Error)
 		return job.resp

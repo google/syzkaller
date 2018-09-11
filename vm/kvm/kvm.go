@@ -25,7 +25,7 @@ const (
 )
 
 func init() {
-	vmimpl.Register("kvm", ctor)
+	vmimpl.Register("kvm", ctor, true)
 }
 
 type Config struct {

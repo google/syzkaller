@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/vm"
 )
 
 // This is especially slightly longer than syzkaller rebuild period.
@@ -347,11 +348,8 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 		return fmt.Errorf("failed to create manager config: %v", err)
 	}
 	defer os.RemoveAll(mgrcfg.Workdir)
-	switch typ := mgrcfg.Type; typ {
-	case "gce", "qemu", "gvisor":
-	default:
-		// Other types don't support creating machines out of thin air.
-		return nil
+	if !vm.AllowsOvercommit(mgrcfg.Type) {
+		return nil // No support for creating machines out of thin air.
 	}
 	env, err := instance.NewEnv(mgrcfg)
 	if err != nil {

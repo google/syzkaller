@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("vmm", ctor)
+	vmimpl.Register("vmm", ctor, true)
 }
 
 type Config struct {
