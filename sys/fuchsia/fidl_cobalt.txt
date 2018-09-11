@@ -6,35 +6,9 @@
 include <fuchsia/cobalt/c/fidl.h>
 fuchsia_cobalt_ReleaseStage = fuchsia_cobalt_ReleaseStage_GA, fuchsia_cobalt_ReleaseStage_DOGFOOD, fuchsia_cobalt_ReleaseStage_FISHFOOD, fuchsia_cobalt_ReleaseStage_DEBUG
 
-fuchsia_cobalt_ObservationValueInLine {
-	nameInLine	fidl_string
-	valueInLine	fuchsia_cobalt_ValueInLine
-	encoding_id	int32
-} [packed]
-
-fuchsia_cobalt_ObservationValueOutOfLine {
-	nameOutOfLine	fidl_aligned[stringnoz]
-} [packed]
-
-fuchsia_cobalt_ObservationValueHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_BucketDistributionEntryInLine {
-	index	int32
-	count	int64
-} [packed]
-
-fuchsia_cobalt_BucketDistributionEntryOutOfLine {
-	void	void
-} [packed]
-
-fuchsia_cobalt_BucketDistributionEntryHandles {
-	void	void
-} [packed]
-
 fuchsia_cobalt_ProjectProfileInLine {
 	configInLine	fuchsia_mem_BufferInLine
+	release_stage	flags[fuchsia_cobalt_ReleaseStage, int32]
 } [packed]
 
 fuchsia_cobalt_ProjectProfileOutOfLine {
@@ -42,19 +16,6 @@ fuchsia_cobalt_ProjectProfileOutOfLine {
 } [packed]
 
 fuchsia_cobalt_ProjectProfileHandles {
-	config	fuchsia_mem_BufferHandles
-} [packed]
-
-fuchsia_cobalt_ProjectProfile2InLine {
-	configInLine	fuchsia_mem_BufferInLine
-	release_stage	flags[fuchsia_cobalt_ReleaseStage, int32]
-} [packed]
-
-fuchsia_cobalt_ProjectProfile2OutOfLine {
-	configOutOfLine	fuchsia_mem_BufferOutOfLine
-} [packed]
-
-fuchsia_cobalt_ProjectProfile2Handles {
 	config	fuchsia_mem_BufferHandles
 } [packed]
 
@@ -85,245 +46,21 @@ fuchsia_cobalt_HistogramBucketHandles {
 } [packed]
 
 fuchsia_cobalt_ValueInLine [
-	string_valueInLine		fidl_union_member[fuchsia_cobalt_ValueTagstring_value, fidl_string]
-	int_value			fidl_union_member[fuchsia_cobalt_ValueTagint_value, int64]
-	double_value			fidl_union_member[fuchsia_cobalt_ValueTagdouble_value, int64]
-	index_value			fidl_union_member[fuchsia_cobalt_ValueTagindex_value, int32]
-	int_bucket_distributionInLine	fidl_union_member[fuchsia_cobalt_ValueTagint_bucket_distribution, fidl_vector]
+	string_valueInLine	fidl_union_member[fuchsia_cobalt_ValueTagstring_value, fidl_string]
+	int_value		fidl_union_member[fuchsia_cobalt_ValueTagint_value, int64]
+	double_value		fidl_union_member[fuchsia_cobalt_ValueTagdouble_value, int64]
+	index_value		fidl_union_member[fuchsia_cobalt_ValueTagindex_value, int32]
 ]
-
-fuchsia_cobalt_ValueOutOfLine [
-	string_valueOutOfLine			fidl_aligned[stringnoz]
-	int_bucket_distributionOutOfLine	parallel_array[fuchsia_cobalt_BucketDistributionEntryInLine, fuchsia_cobalt_BucketDistributionEntryOutOfLine]
-] [varlen]
-
-fuchsia_cobalt_ValueHandles [
-	int_bucket_distribution	array[fuchsia_cobalt_BucketDistributionEntryHandles]
-] [varlen]
-
-fuchsia_cobalt_EncoderFactoryGetEncoderForProjectRequest {
-	hdr			fidl_message_header[1]
-	profileInLine		fuchsia_cobalt_ProjectProfileInLine
-	encoder			flags[fidl_handle_presence, int32]
-	profileOutOfLine	fuchsia_cobalt_ProjectProfileOutOfLine
-} [packed]
-
-fuchsia_cobalt_EncoderFactoryGetEncoderForProjectRequestHandles {
-	profile	fuchsia_cobalt_ProjectProfileHandles
-	encoder	zx_chan_fuchsia_cobalt_Encoder_server
-} [packed]
-
-fuchsia_cobalt_EncoderFactoryGetEncoderForProjectResponseHandles {
-	void	void
-} [packed]
-
-resource zx_chan_fuchsia_cobalt_EncoderFactory_client[zx_chan]
-resource zx_chan_fuchsia_cobalt_EncoderFactory_server[zx_chan]
-
-zx_channel_create$fuchsia_cobalt_EncoderFactory(options const[0], out0 ptr[out, zx_chan_fuchsia_cobalt_EncoderFactory_client], out1 ptr[out, zx_chan_fuchsia_cobalt_EncoderFactory_server])
-fdio_service_connect$fuchsia_cobalt_EncoderFactory(path ptr[in, string["/svc/fuchsia.cobalt.EncoderFactory"]], handle zx_chan_fuchsia_cobalt_EncoderFactory_server)
-zx_channel_call$fuchsia_cobalt_EncoderFactoryGetEncoderForProject(handle zx_chan_fuchsia_cobalt_EncoderFactory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderFactoryGetEncoderForProjectRequest, fuchsia_cobalt_EncoderFactoryGetEncoderForProjectRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderFactoryGetEncoderForProjectResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-
-fuchsia_cobalt_EncoderAddStringObservationRequest {
-	hdr			fidl_message_header[1]
-	metric_id		int32
-	encoding_id		int32
-	observationInLine	fidl_string
-	observationOutOfLine	fidl_aligned[stringnoz]
-} [packed]
-
-fuchsia_cobalt_EncoderAddStringObservationRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddStringObservationResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddIntObservationRequest {
-	hdr		fidl_message_header[4]
-	metric_id	int32
-	encoding_id	int32
-	observation	int64
-} [packed]
-
-fuchsia_cobalt_EncoderAddIntObservationRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddIntObservationResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddDoubleObservationRequest {
-	hdr		fidl_message_header[5]
-	metric_id	int32
-	encoding_id	int32
-	observation	int64
-} [packed]
-
-fuchsia_cobalt_EncoderAddDoubleObservationRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddDoubleObservationResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddIndexObservationRequest {
-	hdr		fidl_message_header[2]
-	metric_id	int32
-	encoding_id	int32
-	index		int32
-} [packed]
-
-fuchsia_cobalt_EncoderAddIndexObservationRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddIndexObservationResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddObservationRequest {
-	hdr			fidl_message_header[8]
-	metric_id		int32
-	encoding_id		int32
-	observationInLine	fuchsia_cobalt_ValueInLine
-	observationOutOfLine	fuchsia_cobalt_ValueOutOfLine
-} [packed]
-
-fuchsia_cobalt_EncoderAddObservationRequestHandles {
-	observation	fuchsia_cobalt_ValueHandles
-} [packed]
-
-fuchsia_cobalt_EncoderAddObservationResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddIntBucketDistributionRequest {
-	hdr			fidl_message_header[7]
-	metric_id		int32
-	encoding_id		int32
-	distributionInLine	fidl_vector
-	distributionOutOfLine	parallel_array[fuchsia_cobalt_BucketDistributionEntryInLine, fuchsia_cobalt_BucketDistributionEntryOutOfLine]
-} [packed]
-
-fuchsia_cobalt_EncoderAddIntBucketDistributionRequestHandles {
-	distribution	array[fuchsia_cobalt_BucketDistributionEntryHandles]
-} [packed]
-
-fuchsia_cobalt_EncoderAddIntBucketDistributionResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderAddMultipartObservationRequest {
-	hdr			fidl_message_header[6]
-	metric_id		int32
-	observationInLine	fidl_vector
-	observationOutOfLine	parallel_array[fuchsia_cobalt_ObservationValueInLine, fuchsia_cobalt_ObservationValueOutOfLine]
-} [packed]
-
-fuchsia_cobalt_EncoderAddMultipartObservationRequestHandles {
-	observation	array[fuchsia_cobalt_ObservationValueHandles]
-} [packed]
-
-fuchsia_cobalt_EncoderAddMultipartObservationResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderStartTimerRequest {
-	hdr			fidl_message_header[9]
-	metric_id		int32
-	encoding_id		int32
-	timer_idInLine		fidl_string
-	timestamp		int64
-	timeout_s		int32
-	timer_idOutOfLine	fidl_aligned[stringnoz]
-} [packed]
-
-fuchsia_cobalt_EncoderStartTimerRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderStartTimerResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderEndTimerRequest {
-	hdr			fidl_message_header[10]
-	timer_idInLine		fidl_string
-	timestamp		int64
-	timeout_s		int32
-	timer_idOutOfLine	fidl_aligned[stringnoz]
-} [packed]
-
-fuchsia_cobalt_EncoderEndTimerRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderEndTimerResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderEndTimerMultiPartRequest {
-	hdr			fidl_message_header[11]
-	timer_idInLine		fidl_string
-	timestamp		int64
-	part_nameInLine		fidl_string
-	observationInLine	fidl_vector
-	timeout_s		int32
-	timer_idOutOfLine	fidl_aligned[stringnoz]
-	part_nameOutOfLine	fidl_aligned[stringnoz]
-	observationOutOfLine	parallel_array[fuchsia_cobalt_ObservationValueInLine, fuchsia_cobalt_ObservationValueOutOfLine]
-} [packed]
-
-fuchsia_cobalt_EncoderEndTimerMultiPartRequestHandles {
-	observation	array[fuchsia_cobalt_ObservationValueHandles]
-} [packed]
-
-fuchsia_cobalt_EncoderEndTimerMultiPartResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderSendObservationsRequest {
-	hdr	fidl_message_header[3]
-} [packed]
-
-fuchsia_cobalt_EncoderSendObservationsRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_EncoderSendObservationsResponseHandles {
-	void	void
-} [packed]
-
-resource zx_chan_fuchsia_cobalt_Encoder_client[zx_chan]
-resource zx_chan_fuchsia_cobalt_Encoder_server[zx_chan]
-
-zx_channel_create$fuchsia_cobalt_Encoder(options const[0], out0 ptr[out, zx_chan_fuchsia_cobalt_Encoder_client], out1 ptr[out, zx_chan_fuchsia_cobalt_Encoder_server])
-fdio_service_connect$fuchsia_cobalt_Encoder(path ptr[in, string["/svc/"]], handle zx_chan_fuchsia_cobalt_Encoder_server)
-zx_channel_call$fuchsia_cobalt_EncoderAddStringObservation(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderAddStringObservationRequest, fuchsia_cobalt_EncoderAddStringObservationRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderAddStringObservationResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderAddIntObservation(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderAddIntObservationRequest, fuchsia_cobalt_EncoderAddIntObservationRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderAddIntObservationResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderAddDoubleObservation(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderAddDoubleObservationRequest, fuchsia_cobalt_EncoderAddDoubleObservationRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderAddDoubleObservationResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderAddIndexObservation(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderAddIndexObservationRequest, fuchsia_cobalt_EncoderAddIndexObservationRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderAddIndexObservationResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderAddObservation(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderAddObservationRequest, fuchsia_cobalt_EncoderAddObservationRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderAddObservationResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderAddIntBucketDistribution(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderAddIntBucketDistributionRequest, fuchsia_cobalt_EncoderAddIntBucketDistributionRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderAddIntBucketDistributionResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderAddMultipartObservation(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderAddMultipartObservationRequest, fuchsia_cobalt_EncoderAddMultipartObservationRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderAddMultipartObservationResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderStartTimer(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderStartTimerRequest, fuchsia_cobalt_EncoderStartTimerRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderStartTimerResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderEndTimer(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderEndTimerRequest, fuchsia_cobalt_EncoderEndTimerRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderEndTimerResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderEndTimerMultiPart(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderEndTimerMultiPartRequest, fuchsia_cobalt_EncoderEndTimerMultiPartRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderEndTimerMultiPartResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_EncoderSendObservations(handle zx_chan_fuchsia_cobalt_Encoder_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_EncoderSendObservationsRequest, fuchsia_cobalt_EncoderSendObservationsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_EncoderSendObservationsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerRequest {
 	hdr			fidl_message_header[1]
-	profileInLine		fuchsia_cobalt_ProjectProfile2InLine
+	profileInLine		fuchsia_cobalt_ProjectProfileInLine
 	logger			flags[fidl_handle_presence, int32]
-	profileOutOfLine	fuchsia_cobalt_ProjectProfile2OutOfLine
+	profileOutOfLine	fuchsia_cobalt_ProjectProfileOutOfLine
 } [packed]
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerRequestHandles {
-	profile	fuchsia_cobalt_ProjectProfile2Handles
+	profile	fuchsia_cobalt_ProjectProfileHandles
 	logger	zx_chan_fuchsia_cobalt_Logger_server
 } [packed]
 
@@ -333,13 +70,13 @@ fuchsia_cobalt_LoggerFactoryCreateLoggerResponseHandles {
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerExtRequest {
 	hdr			fidl_message_header[2]
-	profileInLine		fuchsia_cobalt_ProjectProfile2InLine
+	profileInLine		fuchsia_cobalt_ProjectProfileInLine
 	logger			flags[fidl_handle_presence, int32]
-	profileOutOfLine	fuchsia_cobalt_ProjectProfile2OutOfLine
+	profileOutOfLine	fuchsia_cobalt_ProjectProfileOutOfLine
 } [packed]
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerExtRequestHandles {
-	profile	fuchsia_cobalt_ProjectProfile2Handles
+	profile	fuchsia_cobalt_ProjectProfileHandles
 	logger	zx_chan_fuchsia_cobalt_LoggerExt_server
 } [packed]
 
@@ -349,13 +86,13 @@ fuchsia_cobalt_LoggerFactoryCreateLoggerExtResponseHandles {
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleRequest {
 	hdr			fidl_message_header[3]
-	profileInLine		fuchsia_cobalt_ProjectProfile2InLine
+	profileInLine		fuchsia_cobalt_ProjectProfileInLine
 	logger			flags[fidl_handle_presence, int32]
-	profileOutOfLine	fuchsia_cobalt_ProjectProfile2OutOfLine
+	profileOutOfLine	fuchsia_cobalt_ProjectProfileOutOfLine
 } [packed]
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleRequestHandles {
-	profile	fuchsia_cobalt_ProjectProfile2Handles
+	profile	fuchsia_cobalt_ProjectProfileHandles
 	logger	zx_chan_fuchsia_cobalt_LoggerSimple_server
 } [packed]
 
@@ -581,28 +318,12 @@ fuchsia_cobalt_LoggerSimpleLogIntHistogramResponseHandles {
 	void	void
 } [packed]
 
-fuchsia_cobalt_LoggerSimpleLogCustomEventRequest {
-	hdr			fidl_message_header[101]
-	metric_id		int32
-	json_stringInLine	fidl_string
-	json_stringOutOfLine	fidl_aligned[stringnoz]
-} [packed]
-
-fuchsia_cobalt_LoggerSimpleLogCustomEventRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_cobalt_LoggerSimpleLogCustomEventResponseHandles {
-	void	void
-} [packed]
-
 resource zx_chan_fuchsia_cobalt_LoggerSimple_client[zx_chan]
 resource zx_chan_fuchsia_cobalt_LoggerSimple_server[zx_chan]
 
 zx_channel_create$fuchsia_cobalt_LoggerSimple(options const[0], out0 ptr[out, zx_chan_fuchsia_cobalt_LoggerSimple_client], out1 ptr[out, zx_chan_fuchsia_cobalt_LoggerSimple_server])
 fdio_service_connect$fuchsia_cobalt_LoggerSimple(path ptr[in, string["/svc/"]], handle zx_chan_fuchsia_cobalt_LoggerSimple_server)
 zx_channel_call$fuchsia_cobalt_LoggerSimpleLogIntHistogram(handle zx_chan_fuchsia_cobalt_LoggerSimple_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerSimpleLogIntHistogramRequest, fuchsia_cobalt_LoggerSimpleLogIntHistogramRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerSimpleLogIntHistogramResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_cobalt_LoggerSimpleLogCustomEvent(handle zx_chan_fuchsia_cobalt_LoggerSimple_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerSimpleLogCustomEventRequest, fuchsia_cobalt_LoggerSimpleLogCustomEventRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerSimpleLogCustomEventResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_ControllerRequestSendSoonRequest {
 	hdr	fidl_message_header[1]
