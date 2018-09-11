@@ -16,8 +16,8 @@ type akaros struct {
 
 func newAkaros(vm, dir string) *akaros {
 	return &akaros{
-		git:      newGit("", vm, dir),
-		dropbear: newGit("", vm, filepath.Join(dir, "dropbear")),
+		git:      newGit(dir),
+		dropbear: newGit(filepath.Join(dir, "dropbear")),
 	}
 }
 

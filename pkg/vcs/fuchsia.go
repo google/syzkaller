@@ -22,7 +22,7 @@ func newFuchsia(vm, dir string) *fuchsia {
 	return &fuchsia{
 		vm:     vm,
 		dir:    dir,
-		zircon: newGit("fuchsia", vm, filepath.Join(dir, "zircon")),
+		zircon: newGit(filepath.Join(dir, "zircon")),
 	}
 }
 

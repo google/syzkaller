@@ -76,17 +76,19 @@ const (
 func NewRepo(os, vm, dir string) (Repo, error) {
 	switch os {
 	case "linux":
-		return newGit(os, vm, dir), nil
+		return newGit(dir), nil
 	case "akaros":
 		return newAkaros(vm, dir), nil
 	case "fuchsia":
 		return newFuchsia(vm, dir), nil
+	case "openbsd":
+		return newOpenBSD(vm, dir), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }
 
 func NewSyzkallerRepo(dir string) Repo {
-	return newGit("syzkaller", "", dir)
+	return newGit(dir)
 }
 
 func Patch(dir string, patch []byte) error {
