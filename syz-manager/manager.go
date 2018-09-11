@@ -1094,9 +1094,6 @@ func (mgr *Manager) collectUsedFiles() {
 	if vmlinux := filepath.Join(cfg.KernelObj, mgr.sysTarget.KernelObject); osutil.IsExist(vmlinux) {
 		addUsedFile(vmlinux)
 	}
-	if zircon := filepath.Join(cfg.KernelObj, "zircon.elf"); osutil.IsExist(zircon) {
-		addUsedFile(zircon)
-	}
 	if cfg.Image != "9p" {
 		addUsedFile(cfg.Image)
 	}

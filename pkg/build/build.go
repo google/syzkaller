@@ -23,7 +23,8 @@ import (
 //  - kernel: kernel for injected boot
 //  - initrd: initrd for injected boot
 //  - kernel.config: actual kernel config used during build
-//  - obj/: directory with kernel object files (e.g. vmlinux for linux)
+//  - obj/: directory with kernel object files (this should match KernelObject
+//    specified in sys/targets, e.g. vmlinux for linux)
 func Image(targetOS, targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
 	builder, err := getBuilder(targetOS, targetArch, vmType)
