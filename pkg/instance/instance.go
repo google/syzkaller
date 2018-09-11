@@ -93,7 +93,7 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string) error {
 	if keyFile := filepath.Join(imageDir, "key"); osutil.IsExist(keyFile) {
 		cfg.SSHKey = keyFile
 	}
-	if cfg.Type == "qemu" {
+	if cfg.Type == "qemu" || cfg.Type == "vmm" {
 		kernel := filepath.Join(imageDir, "kernel")
 		if !osutil.IsExist(kernel) {
 			kernel = ""
@@ -103,19 +103,19 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string) error {
 			initrd = ""
 		}
 		if kernel != "" || initrd != "" {
-			qemu := make(map[string]interface{})
-			if err := json.Unmarshal(cfg.VM, &qemu); err != nil {
-				return fmt.Errorf("failed to parse qemu config: %v", err)
+			vmConfig := make(map[string]interface{})
+			if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
+				return fmt.Errorf("failed to parse VM config: %v", err)
 			}
 			if kernel != "" {
-				qemu["kernel"] = kernel
+				vmConfig["kernel"] = kernel
 			}
 			if initrd != "" {
-				qemu["initrd"] = initrd
+				vmConfig["initrd"] = initrd
 			}
-			vmCfg, err := json.Marshal(qemu)
+			vmCfg, err := json.Marshal(vmConfig)
 			if err != nil {
-				return fmt.Errorf("failed to serialize qemu config: %v", err)
+				return fmt.Errorf("failed to serialize VM config: %v", err)
 			}
 			cfg.VM = vmCfg
 		}
