@@ -16,11 +16,20 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-var zirconLibs = []string{
-	"fuchsia-mem",
-	"fuchsia-cobalt",
-	"fuchsia-process",
-	"fuchsia-io",
+var layerToLibs = map[string][]string{
+	"zircon": {
+		"fuchsia-mem",
+		"fuchsia-cobalt",
+		"fuchsia-process",
+		"fuchsia-io",
+	},
+	"garnet": {
+		"fuchsia.devicesettings",
+		"fuchsia.mediacodec",
+		"fuchsia.timezone",
+		"fuchsia.power",
+		"fuchsia.scpi",
+	},
 }
 
 func main() {
@@ -49,34 +58,35 @@ func main() {
 
 	var newFiles []string
 
-	for _, lib := range zirconLibs {
-		jsonPath := filepath.Join(
+	for layer := range layerToLibs {
+		jsonPathBase := filepath.Join(
 			sourceDir,
 			"out",
 			arch,
-			"fidling/gen/zircon/public/fidl",
-			lib,
-			fmt.Sprintf("%s.fidl.json", lib),
+			"fidling/gen",
+			layer,
+			"public/fidl",
 		)
 
-		if !osutil.IsExist(jsonPath) {
-			failf("cannot find %s", jsonPath)
+		for _, lib := range layerToLibs[layer] {
+			jsonPath := filepath.Join(
+				jsonPathBase,
+				lib,
+				fmt.Sprintf("%s.fidl.json", lib),
+			)
+
+			txtPathBase := lib
+			txtPathBase = strings.Replace(txtPathBase, "fuchsia.", "fidl_", 1)
+			txtPathBase = strings.Replace(txtPathBase, "fuchsia-", "fidl_", 1)
+
+			txtPath := fidlgen(
+				fidlgenPath,
+				jsonPath,
+				txtPathBase,
+			)
+
+			newFiles = append(newFiles, txtPath)
 		}
-
-		txtPath := strings.Replace(lib, "fuchsia-", "fidl_", 1)
-		_, err := osutil.RunCmd(time.Minute, "",
-			fidlgenPath,
-			"-generators", "syzkaller",
-			"-json", jsonPath,
-			"-output-base", txtPath,
-			"-include-base", txtPath,
-		)
-
-		if err != nil {
-			failf("fidlgen failed: %v", err)
-		}
-
-		newFiles = append(newFiles, fmt.Sprintf("%s.txt", txtPath))
 	}
 
 	var errorPos ast.Pos
@@ -109,6 +119,26 @@ func main() {
 			failf("%v", err)
 		}
 	}
+}
+
+func fidlgen(fidlgenPath string, jsonPath string, txtPathBase string) string {
+	if !osutil.IsExist(jsonPath) {
+		failf("cannot find %s", jsonPath)
+	}
+
+	_, err := osutil.RunCmd(time.Minute, "",
+		fidlgenPath,
+		"-generators", "syzkaller",
+		"-json", jsonPath,
+		"-output-base", txtPathBase,
+		"-include-base", txtPathBase,
+	)
+
+	if err != nil {
+		failf("fidlgen failed: %v", err)
+	}
+
+	return fmt.Sprintf("%s.txt", txtPathBase)
 }
 
 func failf(msg string, args ...interface{}) {
