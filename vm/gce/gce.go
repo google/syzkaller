@@ -32,7 +32,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("gce", ctor)
+	vmimpl.Register("gce", ctor, true)
 }
 
 type Config struct {

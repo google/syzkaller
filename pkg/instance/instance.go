@@ -31,10 +31,8 @@ type Env struct {
 }
 
 func NewEnv(cfg *mgrconfig.Config) (*Env, error) {
-	switch cfg.Type {
-	case "gce", "qemu", "gvisor":
-	default:
-		return nil, fmt.Errorf("test instances can only work with qemu/gce")
+	if !vm.AllowsOvercommit(cfg.Type) {
+		return nil, fmt.Errorf("test instances are not supported for %v VMs", cfg.Type)
 	}
 	if cfg.Workdir == "" {
 		return nil, fmt.Errorf("workdir path is empty")

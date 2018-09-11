@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("adb", ctor)
+	vmimpl.Register("adb", ctor, false)
 }
 
 type Config struct {

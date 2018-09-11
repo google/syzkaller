@@ -81,29 +81,28 @@ func (err BootError) BootError() (string, []byte) {
 	return err.Title, err.Output
 }
 
-// Create creates a VM type that can be used to create individual VMs.
-func Create(typ string, env *Env) (Pool, error) {
-	ctor := ctors[typ]
-	if ctor == nil {
-		return nil, fmt.Errorf("unknown instance type '%v'", typ)
+// Register registers a new VM type within the package.
+func Register(typ string, ctor ctorFunc, allowsOvercommit bool) {
+	Types[typ] = Type{
+		Ctor:       ctor,
+		Overcommit: allowsOvercommit,
 	}
-	return ctor(env)
 }
 
-// Register registers a new VM type within the package.
-func Register(typ string, ctor ctorFunc) {
-	ctors[typ] = ctor
+type Type struct {
+	Ctor       ctorFunc
+	Overcommit bool
 }
+
+type ctorFunc func(env *Env) (Pool, error)
 
 var (
 	// Close to interrupt all pending operations in all VMs.
 	Shutdown   = make(chan struct{})
 	ErrTimeout = errors.New("timeout")
 
-	ctors = make(map[string]ctorFunc)
+	Types = make(map[string]Type)
 )
-
-type ctorFunc func(env *Env) (Pool, error)
 
 func Multiplex(cmd *exec.Cmd, merger *OutputMerger, console io.Closer, timeout time.Duration,
 	stop, closed <-chan bool, debug bool) (<-chan []byte, <-chan error, error) {

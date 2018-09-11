@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	vmimpl.Register("isolated", ctor)
+	vmimpl.Register("isolated", ctor, false)
 }
 
 type Config struct {
