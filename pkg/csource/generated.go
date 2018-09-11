@@ -3552,6 +3552,9 @@ static void setup_test()
 	if (symlink(cgroupdir, "./cgroup.net")) {
 		debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir, errno);
 	}
+	if (!write_file("/proc/self/oom_score_adj", "0")) {
+		debug("write(oom_score_adj) failed: %d\n", errno);
+	}
 #endif
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 	flush_tun();
