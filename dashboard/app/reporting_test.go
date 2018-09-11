@@ -355,7 +355,6 @@ func TestReportingDupCrossReporting(t *testing.T) {
 	cmds := []*dashapi.BugUpdate{
 		{ID: rep1.ID, DupOf: rep1.ID},
 		{ID: rep1.ID, DupOf: rep2.ID},
-		{ID: rep1.ID, DupOf: rep3.ID},
 		{ID: rep2.ID, DupOf: rep1.ID},
 		{ID: rep2.ID, DupOf: rep2.ID},
 		{ID: rep2.ID, DupOf: rep3.ID},
@@ -369,6 +368,15 @@ func TestReportingDupCrossReporting(t *testing.T) {
 		reply, _ := c.client.ReportingUpdate(cmd)
 		c.expectEQ(reply.OK, false)
 	}
+	// Special case of cross-reporting duping:
+	cmd := &dashapi.BugUpdate{
+		Status: dashapi.BugStatusDup,
+		ID:     rep1.ID,
+		DupOf:  rep3.ID,
+	}
+	t.Logf("duping %v -> %v", cmd.ID, cmd.DupOf)
+	reply, _ := c.client.ReportingUpdate(cmd)
+	c.expectTrue(reply.OK)
 }
 
 func TestReportingFilter(t *testing.T) {

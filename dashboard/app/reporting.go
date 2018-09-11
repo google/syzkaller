@@ -357,51 +357,11 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 	now := timeNow(c)
 	dupHash := ""
 	if cmd.Status == dashapi.BugStatusDup {
-		bugReporting, _ := bugReportingByID(bug, cmd.ID)
-		dup, dupKey, err := findBugByReportingID(c, cmd.DupOf)
-		if err != nil {
-			// Email reporting passes bug title in cmd.DupOf, try to find bug by title.
-			dup, dupKey, err = findDupByTitle(c, bug.Namespace, cmd.DupOf)
-			if err != nil {
-				return false, "can't find the dup bug", err
-			}
-			dupReporting := bugReportingByName(dup, bugReporting.Name)
-			if dupReporting == nil {
-				return false, "can't find the dup bug",
-					fmt.Errorf("dup does not have reporting %q", bugReporting.Name)
-			}
-			cmd.DupOf = dupReporting.ID
+		dupHash1, ok, reason, err := findDupBug(c, cmd, bug, bugKey)
+		if !ok || err != nil {
+			return ok, reason, err
 		}
-		dupReporting, _ := bugReportingByID(dup, cmd.DupOf)
-		if bugReporting == nil || dupReporting == nil {
-			return false, internalError, fmt.Errorf("can't find bug reporting")
-		}
-		if bugKey.StringID() == dupKey.StringID() {
-			if bugReporting.Name == dupReporting.Name {
-				return false, "Can't dup bug to itself.", nil
-			}
-			return false, fmt.Sprintf("Can't dup bug to itself in different reporting (%v->%v).\n"+
-				"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
-				bugReporting.Name, dupReporting.Name), nil
-		}
-		if bug.Namespace != dup.Namespace {
-			return false, fmt.Sprintf("Duplicate bug corresponds to a different kernel (%v->%v).\n"+
-				"Please dup syzbot bugs only onto syzbot bugs for the same kernel.",
-				bug.Namespace, dup.Namespace), nil
-		}
-		if bugReporting.Name != dupReporting.Name {
-			return false, fmt.Sprintf("Can't dup bug to a bug in different reporting (%v->%v)."+
-				"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
-				bugReporting.Name, dupReporting.Name), nil
-		}
-		dupCanon, err := canonicalBug(c, dup)
-		if err != nil {
-			return false, internalError, fmt.Errorf("failed to get canonical bug for dup: %v", err)
-		}
-		if !dupReporting.Closed.IsZero() && dupCanon.Status == BugStatusOpen {
-			return false, "Dup bug is already upstreamed.", nil
-		}
-		dupHash = bugKeyHash(dup.Namespace, dup.Title, dup.Seq)
+		dupHash = dupHash1
 	}
 
 	ok, reply := false, ""
@@ -421,6 +381,91 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 		return false, internalError, err
 	}
 	return ok, reply, nil
+}
+
+func findDupBug(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey *datastore.Key) (
+	string, bool, string, error) {
+	bugReporting, _ := bugReportingByID(bug, cmd.ID)
+	dup, dupKey, err := findBugByReportingID(c, cmd.DupOf)
+	if err != nil {
+		// Email reporting passes bug title in cmd.DupOf, try to find bug by title.
+		dup, dupKey, err = findDupByTitle(c, bug.Namespace, cmd.DupOf)
+		if err != nil {
+			return "", false, "can't find the dup bug", err
+		}
+		dupReporting := lastReportedReporting(dup)
+		if dupReporting == nil {
+			return "", false, "can't find the dup bug",
+				fmt.Errorf("dup does not have reporting %q", bugReporting.Name)
+		}
+		cmd.DupOf = dupReporting.ID
+	}
+	dupReporting, _ := bugReportingByID(dup, cmd.DupOf)
+	if bugReporting == nil || dupReporting == nil {
+		return "", false, internalError, fmt.Errorf("can't find bug reporting")
+	}
+	if bugKey.StringID() == dupKey.StringID() {
+		if bugReporting.Name == dupReporting.Name {
+			return "", false, "Can't dup bug to itself.", nil
+		}
+		return "", false, fmt.Sprintf("Can't dup bug to itself in different reporting (%v->%v).\n"+
+			"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
+			bugReporting.Name, dupReporting.Name), nil
+	}
+	if bug.Namespace != dup.Namespace {
+		return "", false, fmt.Sprintf("Duplicate bug corresponds to a different kernel (%v->%v).\n"+
+			"Please dup syzbot bugs only onto syzbot bugs for the same kernel.",
+			bug.Namespace, dup.Namespace), nil
+	}
+	if !allowCrossReportingDup(c, bug, dup, bugReporting, dupReporting) {
+		return "", false, fmt.Sprintf("Can't dup bug to a bug in different reporting (%v->%v)."+
+			"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
+			bugReporting.Name, dupReporting.Name), nil
+	}
+	dupCanon, err := canonicalBug(c, dup)
+	if err != nil {
+		return "", false, internalError, fmt.Errorf("failed to get canonical bug for dup: %v", err)
+	}
+	if !dupReporting.Closed.IsZero() && dupCanon.Status == BugStatusOpen {
+		return "", false, "Dup bug is already upstreamed.", nil
+	}
+	dupHash := bugKeyHash(dup.Namespace, dup.Title, dup.Seq)
+	return dupHash, true, "", nil
+}
+
+func allowCrossReportingDup(c context.Context, bug, dup *Bug,
+	bugReporting, dupReporting *BugReporting) bool {
+	bugIdx := getReportingIdx(c, bug, bugReporting)
+	dupIdx := getReportingIdx(c, dup, dupReporting)
+	if bugIdx < 0 || dupIdx < 0 {
+		return false
+	}
+	if bugIdx == dupIdx {
+		return true
+	}
+	// We generally allow duping only within the same reporting.
+	// But there is one exception: we also allow duping from last but one
+	// reporting to the last one (which is stable, final destination)
+	// provided that these two reportings have the same access level and type.
+	// The rest of the combinations can lead to surprising states and
+	// information hiding, so we don't allow them.
+	cfg := config.Namespaces[bug.Namespace]
+	bugConfig := &cfg.Reporting[bugIdx]
+	dupConfig := &cfg.Reporting[dupIdx]
+	lastIdx := len(cfg.Reporting) - 1
+	return bugIdx == lastIdx-1 && dupIdx == lastIdx &&
+		bugConfig.AccessLevel == dupConfig.AccessLevel &&
+		bugConfig.Config.Type() == dupConfig.Config.Type()
+}
+
+func getReportingIdx(c context.Context, bug *Bug, bugReporting *BugReporting) int {
+	for i := range bug.Reporting {
+		if bug.Reporting[i].Name == bugReporting.Name {
+			return i
+		}
+	}
+	log.Errorf(c, "failed to find bug reporting by name: %q/%q", bug.Title, bugReporting.Name)
+	return -1
 }
 
 func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
@@ -628,6 +673,15 @@ func bugReportingByID(bug *Bug, id string) (*BugReporting, bool) {
 func bugReportingByName(bug *Bug, name string) *BugReporting {
 	for i := range bug.Reporting {
 		if bug.Reporting[i].Name == name {
+			return &bug.Reporting[i]
+		}
+	}
+	return nil
+}
+
+func lastReportedReporting(bug *Bug) *BugReporting {
+	for i := len(bug.Reporting) - 1; i >= 0; i-- {
+		if !bug.Reporting[i].Reported.IsZero() {
 			return &bug.Reporting[i]
 		}
 	}
