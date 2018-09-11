@@ -6,7 +6,7 @@ In addition, the host must be running `-current`.
 Variables used throughout the instructions:
 
 - `$KERNEL` - Custom built kernel, see [Compile Kernel](#compile-kernel).
-              Defaults to `/sys/arch/amd64/compile/GENERIC/obj/bsd` if the
+              Defaults to `/sys/arch/amd64/compile/SYZKALLER/obj/bsd` if the
               instructions are honored.
 - `$SSHKEY` - Public SSH key ***without a passphrase*** used to connect to the
               VMs, it's advised to use a dedicated key.
@@ -39,11 +39,15 @@ A `GENERIC` kernel must be compiled with
 option enabled:
 
 ```sh
-$ cd /sys
-$ echo 'pseudo-device kcov 1' >arch/amd64/conf/KCOV
-$ echo 'include "arch/amd64/conf/KCOV" >>arch/amd64/conf/GENERIC
-$ make -C arch/amd64/compile/GENERIC config
-$ make -C arch/amd64/compile/GENERIC
+$ cd /sys/arch/amd64
+$ cat <<EOF >conf/SYZKALLER
+include "arch/amd64/conf/GENERIC"
+pseudo-device kcov 1
+EOF
+$ cp -R compile/GENERIC compile/SYZKALLER
+$ make -C compile/SYZKALLER obj
+$ make -C compile/SYZKALLER config
+$ make -C compile/SYZKALLER
 ```
 
 ## Create VM
@@ -103,7 +107,7 @@ $ cat openbsd.cfg
   "target": "openbsd/amd64",
   "http": ":10000",
   "workdir": "$HOME/go/src/github.com/google/syzkaller/workdir",
-  "kernel_obj": "/sys/arch/amd64/compile/GENERIC/obj",
+  "kernel_obj": "/sys/arch/amd64/compile/SYZKALLER/obj",
   "kernel_src": "/",
   "syzkaller": "$HOME/go/src/github.com/google/syzkaller",
   "image": "$VMDIR/syzkaller.img",
