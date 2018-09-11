@@ -278,7 +278,7 @@ var oses = map[string]osCommon{
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
-		KernelObject:           "vmlinux",
+		KernelObject:           "zircon.elf",
 	},
 	"windows": {
 		SyscallNumbers:         false,
@@ -292,7 +292,7 @@ var oses = map[string]osCommon{
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: true,
-		KernelObject:           "vmlinux",
+		KernelObject:           "akaros-kernel-64b",
 	},
 }
 
