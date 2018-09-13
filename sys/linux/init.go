@@ -19,6 +19,8 @@ func InitTarget(target *prog.Target) {
 		SYSLOG_ACTION_SIZE_UNREAD: target.ConstMap["SYSLOG_ACTION_SIZE_UNREAD"],
 		FIFREEZE:                  target.ConstMap["FIFREEZE"],
 		FITHAW:                    target.ConstMap["FITHAW"],
+		EXT4_IOC_SHUTDOWN:         target.ConstMap["EXT4_IOC_SHUTDOWN"],
+		EXT4_IOC_MIGRATE:          target.ConstMap["EXT4_IOC_MIGRATE"],
 		PTRACE_TRACEME:            target.ConstMap["PTRACE_TRACEME"],
 		CLOCK_REALTIME:            target.ConstMap["CLOCK_REALTIME"],
 		ARCH_SET_FS:               target.ConstMap["ARCH_SET_FS"],
@@ -91,6 +93,8 @@ type arch struct {
 	SYSLOG_ACTION_SIZE_UNREAD uint64
 	FIFREEZE                  uint64
 	FITHAW                    uint64
+	EXT4_IOC_SHUTDOWN         uint64
+	EXT4_IOC_MIGRATE          uint64
 	PTRACE_TRACEME            uint64
 	CLOCK_REALTIME            uint64
 	ARCH_SET_FS               uint64
@@ -115,8 +119,14 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		// Freeze kills machine. Though, it is an interesting functions,
 		// so we need to test it somehow.
 		// TODO: not required if executor drops privileges.
+		// Fortunately, the value does not conflict with any other ioctl commands for now.
 		if uint64(uint32(cmd.Val)) == arch.FIFREEZE {
 			cmd.Val = arch.FITHAW
+		}
+		// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
+		// Fortunately, the value does not conflict with any other ioctl commands for now.
+		if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_SHUTDOWN {
+			cmd.Val = arch.EXT4_IOC_MIGRATE
 		}
 	case "ptrace":
 		req := c.Args[0].(*prog.ConstArg)
