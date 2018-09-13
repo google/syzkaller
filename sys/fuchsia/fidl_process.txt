@@ -28,7 +28,7 @@ fuchsia_process_NameInfoOutOfLine {
 } [packed]
 
 fuchsia_process_NameInfoHandles {
-	directory	zx_chan
+	directory	zx_chan_fuchsia_io_Directory_client
 } [packed]
 
 fuchsia_process_LaunchInfoInLine {
@@ -153,7 +153,7 @@ fuchsia_process_ResolverResolveRequestHandles {
 
 fuchsia_process_ResolverResolveResponseHandles {
 	executable	zx_vmo
-	ldsvc		zx_chan
+	ldsvc		zx_chan_fuchsia_ldsvc_Loader_client
 } [packed]
 
 resource zx_chan_fuchsia_process_Resolver_client[zx_chan]
