@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -61,7 +62,7 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 	if _, err := vcs.NewSyzkallerRepo(cfg.Syzkaller).CheckoutCommit(repo, commit); err != nil {
 		return fmt.Errorf("failed to checkout syzkaller repo: %v", err)
 	}
-	cmd := osutil.Command("make", "target")
+	cmd := osutil.Command(MakeBin, "target")
 	cmd.Dir = cfg.Syzkaller
 	cmd.Env = append([]string{}, os.Environ()...)
 	cmd.Env = append(cmd.Env,
@@ -397,3 +398,10 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded,
 		procs, repeatCount, threaded, collide,
 		faultCall, faultNth, progFile)
 }
+
+var MakeBin = func() string {
+	if runtime.GOOS == "openbsd" {
+		return "gmake"
+	}
+	return "make"
+}()

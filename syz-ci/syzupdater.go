@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -218,13 +219,13 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 			}
 		}
 	}
-	cmd := osutil.Command("make", "generate")
+	cmd := osutil.Command(instance.MakeBin, "generate")
 	cmd.Dir = upd.syzkallerDir
 	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("build failed: %v", err)
 	}
-	cmd = osutil.Command("make", "host", "ci")
+	cmd = osutil.Command(instance.MakeBin, "host", "ci")
 	cmd.Dir = upd.syzkallerDir
 	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
@@ -232,7 +233,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	}
 	for target := range upd.targets {
 		parts := strings.Split(target, "/")
-		cmd = osutil.Command("make", "target")
+		cmd = osutil.Command(instance.MakeBin, "target")
 		cmd.Dir = upd.syzkallerDir
 		cmd.Env = append([]string{}, os.Environ()...)
 		cmd.Env = append(cmd.Env,
