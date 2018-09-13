@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in
@@ -29,9 +29,8 @@ fi
 mkdir -p etc
 cat >install.site <<EOF
 #!/bin/sh
-set -x
 syspatch
-pkg_add -iv bash git go
+pkg_add -iv bash git gmake go && echo pkg_add OK
 
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
@@ -43,6 +42,7 @@ EOF
 cat >etc/installurl <<EOF
 https://${MIRROR}/pub/OpenBSD
 EOF
+
 cat >etc/rc.local <<EOF
 (
   set -x
@@ -53,7 +53,22 @@ cat >etc/rc.local <<EOF
 )
 EOF
 chmod +x install.site
-tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/{installurl,rc.local}
+
+cat >etc/rc.conf.local <<EOF
+vmd_flags=
+EOF
+
+cat >etc/vm.conf <<EOF
+vm "syzkaller" {
+  disable
+  disk "/syzkaller/syzkaller.img"
+  local interface
+  owner syzkaller
+  allow instance { boot, disk, memory }
+}
+EOF
+
+tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/*
 
 # Autoinstall script.
 cat >auto_install.conf <<EOF
@@ -77,7 +92,7 @@ Which disk = sd0
 Use (W)hole disk or (E)dit the MBR = whole
 Use (A)uto layout, (E)dit auto layout, or create (C)ustom layout = auto
 URL to autopartitioning template for disklabel = file://disklabel.template
-Set name(s) = +* -bsd.rd* -x* -game* done
+Set name(s) = +* -x* -game* done
 Directory does not contain SHA256.sig. Continue without verification = yes
 EOF
 
@@ -103,7 +118,7 @@ rm -f disk.raw
 qemu-img create -f raw disk.raw 10G
 
 # Run the installer to create the disk image.
-expect <<EOF
+expect 2>&1 <<EOF | tee install_log
 set timeout 1800
 
 spawn qemu-system-x86_64 -nographic -smp 2 \
@@ -155,6 +170,9 @@ expect {
 }
 EOF
 
+grep 'pkg_add OK' install_log > /dev/null \
+    || { echo Package installation failed. Inspect install_log. 2>&1 ; exit 1; }
+
 # Create Compute Engine disk image.
 echo "Archiving disk.raw... (this may take a while)"
 i="openbsd-${ARCH}-gce.tar.gz"
@@ -166,5 +184,7 @@ Done.
 To create GCE image run the following commands:
 
 gsutil cp -a public-read "$i" gs://syzkaller/
-gcloud compute images create ci-openbsd-root --source-uri gs://syzkaller/"$i"
+gcloud compute images create ci-openbsd-root --source-uri gs://syzkaller/"$i" \\
+    --licenses "https://www.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx"
+
 EOF
