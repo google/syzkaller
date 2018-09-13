@@ -14,10 +14,11 @@ ioctl$EXT4_IOC_MOVE_EXT(fd fd, cmd const[EXT4_IOC_MOVE_EXT], arg ptr[in, move_ex
 ioctl$EXT4_IOC_RESIZE_FS(fd fd, cmd const[EXT4_IOC_RESIZE_FS], arg ptr[in, int64])
 ioctl$EXT4_IOC_SWAP_BOOT(fd fd, cmd const[EXT4_IOC_SWAP_BOOT])
 ioctl$EXT4_IOC_PRECACHE_EXTENTS(fd fd, cmd const[EXT4_IOC_PRECACHE_EXTENTS])
-ioctl$EXT4_IOC_SHUTDOWN(fd fd, cmd const[EXT4_IOC_SHUTDOWN], arg ptr[in, flags[ext4_shutdown_flags, int64]])
 
 ext4_inode_flags = EXT4_SECRM_FL, EXT4_UNRM_FL, EXT4_COMPR_FL, EXT4_SYNC_FL, EXT4_IMMUTABLE_FL, EXT4_APPEND_FL, EXT4_NODUMP_FL, EXT4_NOATIME_FL, EXT4_PROJINHERIT_FL, EXT4_EOFBLOCKS_FL, EXT4_JOURNAL_DATA_FL, EXT4_NOTAIL_FL, EXT4_DIRSYNC_FL, EXT4_TOPDIR_FL, EXT4_EXTENTS_FL
-ext4_shutdown_flags = EXT4_GOING_FLAGS_DEFAULT, EXT4_GOING_FLAGS_LOGFLUSH, EXT4_GOING_FLAGS_NOLOGFLUSH
+
+# Don't enable shutdown, EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
+_ = EXT4_IOC_SHUTDOWN
 
 ext4_new_group_input {
 	group		int32
