@@ -1,0 +1,42 @@
+TITLE: KMSAN: uninit-value in vti6_ioctl
+
+syzkaller login: [   44.865333] ==================================================================
+[   44.872739] BUG: KMSAN: uninit-value in strlcpy+0x68/0x1c0
+[   44.878347] CPU: 1 PID: 4514 Comm: syz-executor022 Not tainted 4.16.0+ #87
+[   44.885339] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   44.894694] Call Trace:
+[   44.897273]  dump_stack+0x185/0x1d0
+[   44.900894]  ? strlcpy+0x68/0x1c0
+[   44.904330]  kmsan_report+0x142/0x240
+[   44.908119]  __msan_warning_32+0x6c/0xb0
+[   44.912173]  strlcpy+0x68/0x1c0
+[   44.915436]  vti6_ioctl+0x1cea/0x3410
+[   44.919230]  ? vti6_tnl_xmit+0x2070/0x2070
+[   44.923444]  dev_ifsioc+0x8a8/0x10c0
+[   44.927139]  ? _cond_resched+0x3c/0xd0
+[   44.931008]  dev_ioctl+0xc3e/0x1cf0
+[   44.934625]  ? kmsan_set_origin+0x9e/0x160
+[   44.938865]  sock_ioctl+0x744/0xca0
+[   44.942647]  ? sock_poll+0x370/0x370
+[   44.946373]  do_vfs_ioctl+0xaf0/0x2440
+[   44.950299]  ? __msan_metadata_ptr_for_load_4+0x10/0x20
+[   44.955672]  ? __fget_light+0x1f5/0x710
+[   44.959657]  ? __msan_metadata_ptr_for_load_8+0x10/0x20
+[   44.965033]  SYSC_ioctl+0x1d2/0x260
+[   44.968659]  SyS_ioctl+0x54/0x80
+[   44.972030]  do_syscall_64+0x309/0x430
+[   44.975910]  ? ioctl_file_clone+0x4f0/0x4f0
+[   44.980218]  entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+[   44.985389] RIP: 0033:0x43fe59
+[   44.988556] RSP: 002b:00007ffeb63ff5b8 EFLAGS: 00000286 ORIG_RAX: 0000000000000010
+[   44.996253] RAX: ffffffffffffffda RBX: 00000000004002c8 RCX: 000000000043fe59
+[   45.003592] RDX: 0000000020000000 RSI: 08000000000089f1 RDI: 0000000000000003
+[   45.010853] RBP: 00000000006ca018 R08: 00000000004002c8 R09: 00000000004002c8
+[   45.018121] R10: 00000000004002c8 R11: 0000000000000286 R12: 0000000000401780
+[   45.025377] R13: 0000000000401810 R14: 0000000000000000 R15: 0000000000000000
+[   45.032627] 
+[   45.034232] Local variable description: ----p1@vti6_ioctl
+[   45.039742] Variable was created at:
+[   45.043440]  vti6_ioctl+0xc1/0x3410
+[   45.047060]  dev_ifsioc+0x8a8/0x10c0
+[   45.050756] ==================================================================

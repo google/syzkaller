@@ -1,0 +1,39 @@
+TITLE: KMSAN: kernel-infoleak in copy_siginfo_to_user
+
+[   42.870355] ==================================================================
+[   42.877778] BUG: KMSAN: kernel-infoleak in copy_siginfo_to_user+0xf0/0x150
+[   42.884792] CPU: 0 PID: 4543 Comm: syz-executor869 Not tainted 4.18.0-rc4+ #23
+[   42.892143] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   42.901488] Call Trace:
+[   42.904076]  dump_stack+0x185/0x1e0
+[   42.907694]  kmsan_report+0x195/0x2c0
+[   42.911480]  kmsan_internal_check_memory+0x10e/0x210
+[   42.916571]  kmsan_copy_to_user+0x83/0xe0
+[   42.920708]  copy_siginfo_to_user+0xf0/0x150
+[   42.925103]  ptrace_request+0x232d/0x2790
+[   42.929251]  ? __msan_metadata_ptr_for_store_1+0x13/0x20
+[   42.934690]  ? wait_task_inactive+0x821/0x9e0
+[   42.939173]  arch_ptrace+0xbcc/0x12c0
+[   42.942959]  ? ptrace_check_attach+0x182/0x5e0
+[   42.947526]  __se_sys_ptrace+0x2f0/0x850
+[   42.951575]  __x64_sys_ptrace+0x11e/0x170
+[   42.955709]  ? ptrace_regset+0x840/0x840
+[   42.959757]  do_syscall_64+0x15b/0x230
+[   42.963636]  entry_SYSCALL_64_after_hwframe+0x63/0xe7
+[   42.968807] RIP: 0033:0x4401b9
+[   42.971971] Code: 18 89 d0 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 fb 13 fc ff c3 66 2e 0f 1f 84 00 00 00 00 
+[   42.991161] RSP: 002b:00007ffcd9ce9e68 EFLAGS: 00000286 ORIG_RAX: 0000000000000065
+[   42.998853] RAX: ffffffffffffffda RBX: 00000000ffffffff RCX: 00000000004401b9
+[   43.006124] RDX: 0000000020000004 RSI: 0000000000000001 RDI: 0000000000004209
+[   43.013388] RBP: 00000000006ca018 R08: 00000000004002c8 R09: 00000000004002c8
+[   43.020642] R10: 0000000020000100 R11: 0000000000000286 R12: 0000000000401a40
+[   43.027898] R13: 0000000000401ad0 R14: 0000000000000000 R15: 0000000000000000
+[   43.035162] 
+[   43.036779] Local variable description: ----kiov@ptrace_request
+[   43.042818] Variable was created at:
+[   43.046520]  ptrace_request+0x1bf/0x2790
+[   43.050571]  arch_ptrace+0xbcc/0x12c0
+[   43.054344] 
+[   43.055950] Bytes 0-15 of 128 are uninitialized
+[   43.060594] Memory access starts at ffff880193b8fca8
+[   43.065675] ==================================================================
