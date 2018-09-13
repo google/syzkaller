@@ -20,8 +20,11 @@ var layerToLibs = map[string][]string{
 	"zircon": {
 		"fuchsia-mem",
 		"fuchsia-cobalt",
+		"fuchsia-ldsvc",
 		"fuchsia-process",
 		"fuchsia-io",
+		"fuchsia-net",
+		"fuchsia-net-stack",
 	},
 	"garnet": {
 		"fuchsia.devicesettings",
