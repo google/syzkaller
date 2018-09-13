@@ -3272,9 +3272,9 @@ const char* SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768
 const char* SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
 const char* SELINUX_XATTR_NAME = "security.selinux";
 
-gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
-size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
-static int getcon(char* context, size_t context_size)
+const gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
+const size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
+static void syz_getcon(char* context, size_t context_size)
 {
 	int fd = open(SELINUX_CONTEXT_FILE, O_RDONLY);
 
@@ -3285,14 +3285,12 @@ static int getcon(char* context, size_t context_size)
 
 	close(fd);
 
-	if (nread < 0)
+	if (nread <= 0)
 		fail("getcon: Failed to read from %s", SELINUX_CONTEXT_FILE);
 	if (context[nread - 1] == '\n')
 		context[nread - 1] = '\0';
-
-	return 0;
 }
-static int setcon(const char* context)
+static void syz_setcon(const char* context)
 {
 	char new_context[512];
 	int fd = open(SELINUX_CONTEXT_FILE, O_WRONLY);
@@ -3305,38 +3303,32 @@ static int setcon(const char* context)
 
 	if (bytes_written != (ssize_t)strlen(context))
 		fail("setcon: Could not write entire context.  Wrote %zi, expected %zu", bytes_written, strlen(context));
-	if (getcon(new_context, sizeof(new_context) != 0))
-		fail("setcon: Could not read context");
+	syz_getcon(new_context, sizeof(new_context));
 
-	if (strcmp(context, new_context))
+	if (strcmp(context, new_context) != 0)
 		fail("setcon: Failed to change to %s, context is %s", context, new_context);
-
-	return 0;
 }
-static int getfilecon(const char* path, char* context, size_t context_size)
+static int syz_getfilecon(const char* path, char* context, size_t context_size)
 {
-	if (getxattr(path, SELINUX_XATTR_NAME, context, context_size) != 0)
+	int length = getxattr(path, SELINUX_XATTR_NAME, context, context_size);
+
+	if (length == -1)
 		fail("getfilecon: getxattr failed");
 
-	return 0;
+	return length;
 }
-static int setfilecon(const char* path, const char* context)
+static void syz_setfilecon(const char* path, const char* context)
 {
 	char new_context[512];
-	int retval = setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0);
 
-	if (retval != 0)
+	if (setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0) != 0)
 		fail("setfilecon: setxattr failed");
 
-	retval = getfilecon(path, new_context, sizeof(new_context));
-
-	if (retval != 0)
+	if (syz_getfilecon(path, new_context, sizeof(new_context)) != 0)
 		fail("setfilecon: getfilecon failed");
 
-	if (strcmp(context, new_context))
+	if (strcmp(context, new_context) != 0)
 		fail("setfilecon: could not set context to %s, currently %s", context, new_context);
-
-	return 0;
 }
 
 static int do_sandbox_android_untrusted_app(void)
@@ -3353,11 +3345,8 @@ static int do_sandbox_android_untrusted_app(void)
 	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
 		fail("setresuid failed");
 
-	if (setfilecon(".", SELINUX_LABEL_APP_DATA_FILE) != 0)
-		fail("setfilecon failed");
-
-	if (setcon(SELINUX_CONTEXT_UNTRUSTED_APP) != 0)
-		fail("setcon failed");
+	syz_setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
+	syz_setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 	initialize_tun();
