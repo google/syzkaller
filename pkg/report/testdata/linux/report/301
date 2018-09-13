@@ -1,0 +1,41 @@
+TITLE: KMSAN: kernel-infoleak in copy_siginfo_to_user
+
+[   47.389823] ==================================================================
+[   47.397223] BUG: KMSAN: kernel-infoleak in _copy_to_user+0x15d/0x1f0
+[   47.403731] CPU: 0 PID: 4398 Comm: syz-executor001 Not tainted 4.19.0-rc3+ #45
+[   47.411088] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   47.420459] Call Trace:
+[   47.423083]  dump_stack+0x14b/0x190
+[   47.426745]  kmsan_report+0x183/0x2b0
+[   47.430573]  kmsan_internal_check_memory+0xfe/0x1f0
+[   47.435592]  kmsan_copy_to_user+0x73/0xb0
+[   47.439764]  _copy_to_user+0x15d/0x1f0
+[   47.443663]  copy_siginfo_to_user+0x81/0x130
+[   47.448101]  ptrace_request+0x2278/0x2680
+[   47.452257]  ? __msan_poison_alloca+0x173/0x1f0
+[   47.456956]  ? _raw_spin_lock_irqsave+0x41/0xe0
+[   47.461649]  ? wait_task_inactive+0x397/0x990
+[   47.466185]  ? kmsan_set_origin_inline+0x6b/0x120
+[   47.471039]  arch_ptrace+0xbdd/0x11a0
+[   47.474841]  ? ptrace_check_attach+0x182/0x5b0
+[   47.479446]  __se_sys_ptrace+0x2a2/0x7e0
+[   47.483558]  __x64_sys_ptrace+0x56/0x70
+[   47.487534]  do_syscall_64+0xb8/0x100
+[   47.491343]  entry_SYSCALL_64_after_hwframe+0x63/0xe7
+[   47.496534] RIP: 0033:0x440df9
+[   47.499746] Code: e8 cc ab 02 00 48 83 c4 18 c3 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 bb 0a fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[   47.518655] RSP: 002b:00007ffe8af43578 EFLAGS: 00000286 ORIG_RAX: 0000000000000065
+[   47.526385] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 0000000000440df9
+[   47.533646] RDX: 0000000020000004 RSI: 0000000000000001 RDI: 0000000000004209
+[   47.540912] RBP: 0000000000000000 R08: 00000000004002c8 R09: 00000000004002c8
+[   47.548187] R10: 0000000020000100 R11: 0000000000000286 R12: 000000000000b922
+[   47.555446] R13: 0000000000401dd0 R14: 0000000000000000 R15: 0000000000000000
+[   47.562727] 
+[   47.564347] Local variable description: ----kiov@ptrace_request
+[   47.570385] Variable was created at:
+[   47.574130]  ptrace_request+0x19f/0x2680
+[   47.578185]  arch_ptrace+0xbdd/0x11a0
+[   47.581987] 
+[   47.583623] Bytes 0-15 of 128 are uninitialized
+[   47.588292] Memory access starts at ffff8801b751fca0
+[   47.593393] ==================================================================

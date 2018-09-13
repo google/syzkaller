@@ -1,0 +1,56 @@
+TITLE: KMSAN: uninit-value in tipc_nl_node_get_link
+
+syzkaller login: [   41.195107] ==================================================================
+[   41.202507] BUG: KMSAN: uninit-value in strcmp+0xf7/0x160
+[   41.208024] CPU: 1 PID: 4527 Comm: syz-executor655 Not tainted 4.16.0+ #87
+[   41.215027] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   41.224359] Call Trace:
+[   41.226931]  dump_stack+0x185/0x1d0
+[   41.230537]  ? strcmp+0xf7/0x160
+[   41.233887]  kmsan_report+0x142/0x240
+[   41.237673]  __msan_warning_32+0x6c/0xb0
+[   41.241720]  strcmp+0xf7/0x160
+[   41.244903]  tipc_nl_node_get_link+0x220/0x6f0
+[   41.249462]  ? kmsan_set_origin+0x9e/0x160
+[   41.253680]  ? tipc_node_find_by_name+0x630/0x630
+[   41.258514]  genl_rcv_msg+0x1686/0x1810
+[   41.262477]  netlink_rcv_skb+0x378/0x600
+[   41.266518]  ? genl_unbind+0x350/0x350
+[   41.270383]  genl_rcv+0x63/0x80
+[   41.273639]  netlink_unicast+0x166b/0x1740
+[   41.277852]  ? genl_pernet_exit+0xa0/0xa0
+[   41.281988]  netlink_sendmsg+0x1048/0x1310
+[   41.286206]  ? netlink_getsockopt+0xc80/0xc80
+[   41.290701]  ___sys_sendmsg+0xec0/0x1310
+[   41.294741]  ? do_huge_pmd_anonymous_page+0x19d5/0x2520
+[   41.300086]  ? __fdget+0x4e/0x60
+[   41.303431]  ? __fget_light+0x56/0x710
+[   41.307294]  ? __fdget+0x4e/0x60
+[   41.310641]  ? __msan_metadata_ptr_for_load_1+0x10/0x20
+[   41.315983]  ? __fget_light+0x6b9/0x710
+[   41.319949]  SYSC_sendmsg+0x2a3/0x3d0
+[   41.323731]  SyS_sendmsg+0x54/0x80
+[   41.327250]  do_syscall_64+0x309/0x430
+[   41.331116]  ? ___sys_sendmsg+0x1310/0x1310
+[   41.335417]  entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+[   41.340584] RIP: 0033:0x445589
+[   41.343758] RSP: 002b:00007fb7ee66cdb8 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[   41.351441] RAX: ffffffffffffffda RBX: 00000000006dac24 RCX: 0000000000445589
+[   41.358692] RDX: 0000000000000000 RSI: 0000000020023000 RDI: 0000000000000003
+[   41.365942] RBP: 00000000006dac20 R08: 0000000000000000 R09: 0000000000000000
+[   41.373191] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[   41.380439] R13: 00007fffa2bf3f3f R14: 00007fb7ee66d9c0 R15: 0000000000000001
+[   41.387717] 
+[   41.389320] Uninit was created at:
+[   41.392842]  kmsan_internal_poison_shadow+0xb8/0x1b0
+[   41.397923]  kmsan_kmalloc+0x94/0x100
+[   41.401726]  kmsan_slab_alloc+0x11/0x20
+[   41.405680]  __kmalloc_node_track_caller+0xaed/0x11c0
+[   41.410851]  __alloc_skb+0x2cf/0x9f0
+[   41.414566]  netlink_sendmsg+0x9a6/0x1310
+[   41.418703]  ___sys_sendmsg+0xec0/0x1310
+[   41.422744]  SYSC_sendmsg+0x2a3/0x3d0
+[   41.426521]  SyS_sendmsg+0x54/0x80
+[   41.430048]  do_syscall_64+0x309/0x430
+[   41.433923]  entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+[   41.439088] ==================================================================

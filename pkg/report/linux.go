@@ -630,6 +630,8 @@ var linuxStackParams = &stackParams{
 		"__sanitizer",
 		"__asan",
 		"kasan",
+		"__msan",
+		"kmsan",
 		"check_memory_region",
 		"print_address_description",
 		"panic",
@@ -667,6 +669,7 @@ var linuxStackParams = &stackParams{
 		"memset",
 		"strcmp",
 		"strcpy",
+		"strlcpy",
 		"strlen",
 		"copy_to_user",
 		"copy_from_user",
@@ -743,8 +746,15 @@ var linuxOopses = []*oops{
 				corrupted: true,
 			},
 			{
-				title: compile("BUG: KMSAN: (.*)"),
-				fmt:   "KMSAN: %[1]v",
+				title:  compile("BUG: KMSAN:"),
+				report: compile("BUG: KMSAN: ([a-z\\-]+) in {{FUNC}}"),
+				fmt:    "KMSAN: %[1]v in %[3]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title: compile("BUG: unable to handle kernel paging request"),

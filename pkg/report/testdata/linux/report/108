@@ -1,7 +1,7 @@
-TITLE: KMSAN: use of uninitialized memory in packet_set_ring
+TITLE: KMSAN: uninit-value in packet_set_ring
 
 [  208.131930] ==================================================================
-[  208.139343] BUG: KMSAN: use of uninitialized memory in packet_set_ring+0x11b8/0x2ff0
+[  208.139343] BUG: KMSAN: uninit-value in packet_set_ring+0x11b8/0x2ff0
 [  208.147224] CPU: 0 PID: 12442 Comm: syz-executor0 Tainted: G    B           4.13.0+ #12
 [  208.155359] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
 [  208.164705] Call Trace:

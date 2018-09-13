@@ -1,0 +1,34 @@
+TITLE: KMSAN: uninit-value in __dev_mc_add
+
+syzkaller login: [   30.164779] ==================================================================
+[   30.172283] BUG: KMSAN: uninit-value in memcmp+0x119/0x180
+[   30.177916] CPU: 0 PID: 3 Comm: kworker/0:0 Not tainted 4.16.0+ #82
+[   30.184318] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   30.193686] Workqueue: ipv6_addrconf addrconf_dad_work
+[   30.198962] Call Trace:
+[   30.201561]  dump_stack+0x185/0x1d0
+[   30.205216]  ? memcmp+0x119/0x180
+[   30.208673]  kmsan_report+0x142/0x240
+[   30.212484]  __msan_warning_32+0x6c/0xb0
+[   30.216549]  memcmp+0x119/0x180
+[   30.219845]  __dev_mc_add+0x1c2/0x8e0
+[   30.223658]  ? ndisc_mc_map+0x59f/0x8c0
+[   30.227634]  dev_mc_add+0x6d/0x80
+[   30.231092]  igmp6_group_added+0x2db/0xa00
+[   30.235338]  ipv6_dev_mc_inc+0xe9e/0x1130
+[   30.239495]  addrconf_dad_work+0x427/0x2150
+[   30.243823]  ? ipv6_get_saddr_eval+0x1130/0x1130
+[   30.248585]  ? ipv6_get_saddr_eval+0x1130/0x1130
+[   30.253348]  process_one_work+0x12c6/0x1f60
+[   30.257685]  worker_thread+0x113c/0x24f0
+[   30.261763]  ? process_one_work+0x1f60/0x1f60
+[   30.266254]  kthread+0x539/0x720
+[   30.269616]  ? process_one_work+0x1f60/0x1f60
+[   30.274097]  ? kthread_blkcg+0xf0/0xf0
+[   30.277976]  ret_from_fork+0x35/0x40
+[   30.281670] 
+[   30.283279] Local variable description: ----buf@igmp6_group_added
+[   30.289491] Variable was created at:
+[   30.293192]  igmp6_group_added+0x4a/0xa00
+[   30.297338]  ipv6_dev_mc_inc+0xe9e/0x1130
+[   30.301465] ==================================================================

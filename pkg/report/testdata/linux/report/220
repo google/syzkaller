@@ -1,7 +1,7 @@
-TITLE: KMSAN: use of uninitialized memory in show_trace_log_lvl
+TITLE: KMSAN: uninit-value in show_trace_log_lvl
 
 [   46.514273] ==================================================================
-[   46.521639] BUG: KMSAN: use of uninitialized memory in show_trace_log_lvl+0xda4/0x1030
+[   46.521639] BUG: KMSAN: uninit-value in show_trace_log_lvl+0xda4/0x1030
 [   46.529696] CPU: 1 PID: 4975 Comm: syz-executor1 Not tainted 4.16.0-rc4+ #60
 [   46.536872] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
 [   46.546219] Call Trace:

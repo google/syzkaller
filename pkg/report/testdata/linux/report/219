@@ -1,7 +1,7 @@
-TITLE: KMSAN: use of uninitialized memory in rt6_mtu_change_route
+TITLE: KMSAN: uninit-value in rt6_mtu_change_route
 
 [   69.998746] ==================================================================
-[   70.006190] BUG: KMSAN: use of uninitialized memory in rt6_mtu_change_route+0x4d8/0xa70
+[   70.006190] BUG: KMSAN: uninit-value in rt6_mtu_change_route+0x4d8/0xa70
 [   70.014351] CPU: 0 PID: 8319 Comm: syz-executor7 Not tainted 4.16.0-rc4+ #63
 [   70.021546] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
 [   70.030902] Call Trace:
