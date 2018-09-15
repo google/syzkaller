@@ -30,16 +30,16 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	}
 
 	for src, dst := range map[string]string{
-		"obj/bsd":     "kernel",
-		"obj/bsd.gdb": "obj/bsd.gdb",
+		filepath.Join(compileDir, "obj/bsd"):     "kernel",
+		filepath.Join(compileDir, "obj/bsd.gdb"): "obj/bsd.gdb",
+		filepath.Join(userspaceDir, "image"):     "image",
+		filepath.Join(userspaceDir, "key"):       "key",
 	} {
-		fullSrc := filepath.Join(compileDir, src)
 		fullDst := filepath.Join(outputDir, dst)
-		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
-			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
+		if err := osutil.CopyFile(src, fullDst); err != nil {
+			return fmt.Errorf("failed to copy %v -> %v: %v", src, fullDst, err)
 		}
 	}
-
 	return nil
 }
 
