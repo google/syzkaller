@@ -146,6 +146,7 @@ func (inst *instance) Boot() error {
 		"-b", inst.cfg.Kernel,
 		"-d", inst.image,
 		"-m", mem,
+		"-L", // add a local network interface
 	}
 	if _, err := inst.vmctl(startArgs...); err != nil {
 		return err
