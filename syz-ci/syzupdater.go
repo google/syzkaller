@@ -60,10 +60,12 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	}
 
 	gopath := filepath.Join(wd, "gopath")
-	os.Setenv("GOROOT", cfg.Goroot)
 	os.Unsetenv("GOPATH")
-	os.Setenv("PATH", filepath.Join(cfg.Goroot, "bin")+
-		string(filepath.ListSeparator)+os.Getenv("PATH"))
+	if cfg.Goroot != "" {
+		os.Setenv("GOROOT", cfg.Goroot)
+		os.Setenv("PATH", filepath.Join(cfg.Goroot, "bin")+
+			string(filepath.ListSeparator)+os.Getenv("PATH"))
+	}
 	syzkallerDir := filepath.Join(gopath, "src", "github.com", "google", "syzkaller")
 	osutil.MkdirAll(syzkallerDir)
 
