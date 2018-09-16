@@ -302,6 +302,9 @@ func init() {
 			initTarget(target, OS, arch)
 		}
 	}
+	for _, target := range List["test"] {
+		target.CCompiler = List[runtime.GOOS][runtime.GOARCH].CCompiler
+	}
 }
 
 func initTarget(target *Target, OS, arch string) {
@@ -315,7 +318,7 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	target.DataOffset = 512 << 20
 	target.NumPages = (16 << 20) / target.PageSize
-	if OS == runtime.GOOS && arch == runtime.GOARCH {
+	if OS == "linux" && arch == runtime.GOARCH {
 		// Don't use cross-compiler for native compilation, there are cases when this does not work:
 		// https://github.com/google/syzkaller/pull/619
 		// https://github.com/google/syzkaller/issues/387
