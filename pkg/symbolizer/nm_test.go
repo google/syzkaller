@@ -4,10 +4,15 @@
 package symbolizer
 
 import (
+	"runtime"
 	"testing"
 )
 
 func TestSymbols(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		// On openbsd it fails because nm does not have -S flag.
+		t.Skipf("broken on %v", runtime.GOOS)
+	}
 	symbols, err := ReadSymbols("testdata/nm.test.out")
 	if err != nil {
 		t.Fatalf("failed to read symbols: %v", err)
