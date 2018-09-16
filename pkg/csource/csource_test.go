@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,10 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
+	switch runtime.GOOS {
+	case "openbsd":
+		t.Skipf("broken on %v", runtime.GOOS)
+	}
 	t.Parallel()
 	for _, target := range prog.AllTargets() {
 		switch target.OS {
