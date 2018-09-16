@@ -30,7 +30,7 @@ mkdir -p etc
 cat >install.site <<EOF
 #!/bin/sh
 syspatch
-pkg_add -iv bash git gmake go && echo pkg_add OK
+pkg_add -iv bash git gmake go llvm nano wget && echo pkg_add OK
 
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
@@ -55,6 +55,9 @@ EOF
 chmod +x install.site
 
 cat >etc/rc.conf.local <<EOF
+slaacd_flags=NO
+smtpd_flags=NO
+sndiod_flags=NO
 vmd_flags=
 EOF
 
