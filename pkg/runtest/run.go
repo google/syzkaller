@@ -312,6 +312,8 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 		cfg.Flags |= ipc.FlagSandboxNamespace
 	case "setuid":
 		cfg.Flags |= ipc.FlagSandboxSetuid
+	case "android_untrusted_app":
+		cfg.Flags |= ipc.FlagSandboxAndroidUntrustedApp
 	}
 	if threaded {
 		opts.Flags |= ipc.FlagThreaded | ipc.FlagCollide

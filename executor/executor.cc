@@ -101,6 +101,7 @@ enum sandbox_type {
 	sandbox_none,
 	sandbox_setuid,
 	sandbox_namespace,
+	sandbox_android_untrusted_app
 };
 
 bool flag_debug;
@@ -369,6 +370,9 @@ int main(int argc, char** argv)
 	case sandbox_namespace:
 		status = do_sandbox_namespace();
 		break;
+	case sandbox_android_untrusted_app:
+		status = do_sandbox_android_untrusted_app();
+		break;
 	default:
 		fail("unknown sandbox type");
 	}
@@ -415,6 +419,7 @@ void setup_control_pipes()
 
 void parse_env_flags(uint64 flags)
 {
+	// Note: Values correspond to ordering in pkg/ipc/ipc.go, e.g. FlagSandboxNamespace
 	flag_debug = flags & (1 << 0);
 	flag_cover = flags & (1 << 1);
 	flag_sandbox = sandbox_none;
@@ -422,9 +427,11 @@ void parse_env_flags(uint64 flags)
 		flag_sandbox = sandbox_setuid;
 	else if (flags & (1 << 3))
 		flag_sandbox = sandbox_namespace;
-	flag_enable_tun = flags & (1 << 4);
-	flag_enable_net_dev = flags & (1 << 5);
-	flag_enable_fault_injection = flags & (1 << 6);
+	else if (flags & (1 << 4))
+		flag_sandbox = sandbox_android_untrusted_app;
+	flag_enable_tun = flags & (1 << 5);
+	flag_enable_net_dev = flags & (1 << 6);
+	flag_enable_fault_injection = flags & (1 << 7);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER

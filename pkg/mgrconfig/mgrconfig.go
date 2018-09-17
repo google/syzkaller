@@ -62,6 +62,7 @@ type Config struct {
 	// "namespace": create a new namespace for fuzzer using CLONE_NEWNS/CLONE_NEWNET/CLONE_NEWPID/etc,
 	//	requires building kernel with CONFIG_NAMESPACES, CONFIG_UTS_NS, CONFIG_USER_NS,
 	//	CONFIG_PID_NS and CONFIG_NET_NS.
+	// "android_untrusted_app": (Android) Emulate permissions of an untrusted app
 	Sandbox string `json:"sandbox"`
 
 	// Use KCOV coverage (default: true).
@@ -176,9 +177,9 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("bad config param procs: '%v', want [1, 32]", cfg.Procs)
 	}
 	switch cfg.Sandbox {
-	case "none", "setuid", "namespace":
+	case "none", "setuid", "namespace", "android_untrusted_app":
 	default:
-		return fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
+		return fmt.Errorf("config param sandbox must contain one of none/setuid/namespace/android_untrusted_app")
 	}
 	if err := checkSSHParams(cfg); err != nil {
 		return err

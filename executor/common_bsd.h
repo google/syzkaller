@@ -17,6 +17,7 @@ static int do_sandbox_none(void)
 #if SYZ_EXECUTOR
 #define do_sandbox_setuid() 0
 #define do_sandbox_namespace() 0
+#define do_sandbox_android_untrusted_app() 0
 #endif
 
 #if GOOS_openbsd
