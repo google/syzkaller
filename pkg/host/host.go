@@ -47,6 +47,7 @@ const (
 	FeatureComparisons
 	FeatureSandboxSetuid
 	FeatureSandboxNamespace
+	FeatureSandboxAndroidUntrustedApp
 	FeatureFaultInjection
 	FeatureLeakChecking
 	FeatureNetworkInjection
@@ -74,14 +75,15 @@ func unconditionallyEnabled() string { return "" }
 func Check(target *prog.Target) (*Features, error) {
 	const unsupported = "support is not implemented in syzkaller"
 	res := &Features{
-		FeatureCoverage:         {Name: "code coverage", Reason: unsupported},
-		FeatureComparisons:      {Name: "comparison tracing", Reason: unsupported},
-		FeatureSandboxSetuid:    {Name: "setuid sandbox", Reason: unsupported},
-		FeatureSandboxNamespace: {Name: "namespace sandbox", Reason: unsupported},
-		FeatureFaultInjection:   {Name: "fault injection", Reason: unsupported},
-		FeatureLeakChecking:     {Name: "leak checking", Reason: unsupported},
-		FeatureNetworkInjection: {Name: "net packed injection", Reason: unsupported},
-		FeatureNetworkDevices:   {Name: "net device setup", Reason: unsupported},
+		FeatureCoverage:                   {Name: "code coverage", Reason: unsupported},
+		FeatureComparisons:                {Name: "comparison tracing", Reason: unsupported},
+		FeatureSandboxSetuid:              {Name: "setuid sandbox", Reason: unsupported},
+		FeatureSandboxNamespace:           {Name: "namespace sandbox", Reason: unsupported},
+		FeatureSandboxAndroidUntrustedApp: {Name: "Android sandbox", Reason: unsupported},
+		FeatureFaultInjection:             {Name: "fault injection", Reason: unsupported},
+		FeatureLeakChecking:               {Name: "leak checking", Reason: unsupported},
+		FeatureNetworkInjection:           {Name: "net packed injection", Reason: unsupported},
+		FeatureNetworkDevices:             {Name: "net device setup", Reason: unsupported},
 	}
 	if target.OS == "akaros" || target.OS == "test" {
 		return res, nil

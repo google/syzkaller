@@ -136,6 +136,10 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 		args.ipcConfig.Flags&ipc.FlagSandboxNamespace != 0 {
 		return nil, fmt.Errorf("sandbox=namespace is not supported (%v)", feat.Reason)
 	}
+	if feat := features[host.FeatureSandboxAndroidUntrustedApp]; !feat.Enabled &&
+		args.ipcConfig.Flags&ipc.FlagSandboxAndroidUntrustedApp != 0 {
+		return nil, fmt.Errorf("sandbox=android_untrusted_app is not supported (%v)", feat.Reason)
+	}
 	if err := checkSimpleProgram(args); err != nil {
 		return nil, err
 	}

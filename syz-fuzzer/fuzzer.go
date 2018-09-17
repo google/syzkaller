@@ -121,6 +121,8 @@ func main() {
 		sandbox = "setuid"
 	} else if config.Flags&ipc.FlagSandboxNamespace != 0 {
 		sandbox = "namespace"
+	} else if config.Flags&ipc.FlagSandboxAndroidUntrustedApp != 0 {
+		sandbox = "android_untrusted_app"
 	}
 
 	shutdown := make(chan struct{})

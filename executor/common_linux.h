@@ -545,7 +545,7 @@ static long syz_open_pts(long a0, long a1)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 #include <fcntl.h>
 #include <sched.h>
 #include <sys/stat.h>
@@ -1438,7 +1438,7 @@ static void setup_binfmt_misc()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 #include <errno.h>
 #include <sys/mount.h>
 
@@ -1452,9 +1452,7 @@ static void setup_common()
 	setup_binfmt_misc();
 #endif
 }
-#endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
 #include <sched.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -1735,6 +1733,143 @@ static int do_sandbox_namespace(void)
 	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
 		    CLONE_NEWUSER | CLONE_NEWPID, 0);
 	return wait_for_loop(pid);
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#include <fcntl.h> // open(2)
+#include <grp.h> // setgroups
+#include <sys/xattr.h> // setxattr, getxattr
+
+#define AID_NET_BT_ADMIN 3001
+#define AID_NET_BT 3002
+#define AID_INET 3003
+#define AID_EVERYBODY 9997
+#define AID_APP 10000
+
+#define UNTRUSTED_APP_UID AID_APP + 999
+#define UNTRUSTED_APP_GID AID_APP + 999
+
+const char* SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
+const char* SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
+const char* SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
+const char* SELINUX_XATTR_NAME = "security.selinux";
+
+const gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
+const size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
+
+// Similar to libselinux getcon(3), but:
+// - No library dependency
+// - No dynamic memory allocation
+// - Uses fail() instead of returning an error code
+static void syz_getcon(char* context, size_t context_size)
+{
+	int fd = open(SELINUX_CONTEXT_FILE, O_RDONLY);
+
+	if (fd < 0)
+		fail("getcon: Couldn't open %s", SELINUX_CONTEXT_FILE);
+
+	ssize_t nread = read(fd, context, context_size);
+
+	close(fd);
+
+	if (nread <= 0)
+		fail("getcon: Failed to read from %s", SELINUX_CONTEXT_FILE);
+
+	// The contents of the context file MAY end with a newline
+	// and MAY not have a null terminator.  Handle this here.
+	if (context[nread - 1] == '\n')
+		context[nread - 1] = '\0';
+}
+
+// Similar to libselinux setcon(3), but:
+// - No library dependency
+// - No dynamic memory allocation
+// - Uses fail() instead of returning an error code
+static void syz_setcon(const char* context)
+{
+	char new_context[512];
+
+	// Attempt to write the new context
+	int fd = open(SELINUX_CONTEXT_FILE, O_WRONLY);
+
+	if (fd < 0)
+		fail("setcon: Could not open %s", SELINUX_CONTEXT_FILE);
+
+	ssize_t bytes_written = write(fd, context, strlen(context));
+
+	// N.B.: We cannot reuse this file descriptor, since the target SELinux context
+	//       may not be able to read from it.
+	close(fd);
+
+	if (bytes_written != (ssize_t)strlen(context))
+		fail("setcon: Could not write entire context.  Wrote %zi, expected %zu", bytes_written, strlen(context));
+
+	// Validate the transition by checking the context
+	syz_getcon(new_context, sizeof(new_context));
+
+	if (strcmp(context, new_context) != 0)
+		fail("setcon: Failed to change to %s, context is %s", context, new_context);
+}
+
+// Similar to libselinux getfilecon(3), but:
+// - No library dependency
+// - No dynamic memory allocation
+// - Uses fail() instead of returning an error code
+static int syz_getfilecon(const char* path, char* context, size_t context_size)
+{
+	int length = getxattr(path, SELINUX_XATTR_NAME, context, context_size);
+
+	if (length == -1)
+		fail("getfilecon: getxattr failed");
+
+	return length;
+}
+
+// Similar to libselinux setfilecon(3), but:
+// - No library dependency
+// - No dynamic memory allocation
+// - Uses fail() instead of returning an error code
+static void syz_setfilecon(const char* path, const char* context)
+{
+	char new_context[512];
+
+	if (setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0) != 0)
+		fail("setfilecon: setxattr failed");
+
+	if (syz_getfilecon(path, new_context, sizeof(new_context)) != 0)
+		fail("setfilecon: getfilecon failed");
+
+	if (strcmp(context, new_context) != 0)
+		fail("setfilecon: could not set context to %s, currently %s", context, new_context);
+}
+
+static int do_sandbox_android_untrusted_app(void)
+{
+	setup_common();
+	sandbox_common();
+
+	if (setgroups(UNTRUSTED_APP_NUM_GROUPS, UNTRUSTED_APP_GROUPS) != 0)
+		fail("setgroups failed");
+
+	if (setresgid(UNTRUSTED_APP_GID, UNTRUSTED_APP_GID, UNTRUSTED_APP_GID) != 0)
+		fail("setresgid failed");
+
+	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
+		fail("setresuid failed");
+
+	syz_setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
+	syz_setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
+
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+	initialize_tun();
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices();
+#endif
+
+	loop();
+	doexit(1);
 }
 #endif
 
