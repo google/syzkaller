@@ -390,12 +390,6 @@ void child()
 }
 #endif
 
-#if SYZ_EXECUTOR
-#define do_sandbox_setuid() 0
-#define do_sandbox_namespace() 0
-#define do_sandbox_android_untrusted_app() 0
-#endif
-
 #elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
 
 #include <unistd.h>
@@ -407,12 +401,6 @@ static int do_sandbox_none(void)
 	loop();
 	return 0;
 }
-#endif
-
-#if SYZ_EXECUTOR
-#define do_sandbox_setuid() 0
-#define do_sandbox_namespace() 0
-#define do_sandbox_android_untrusted_app() 0
 #endif
 
 #if GOOS_openbsd
@@ -679,12 +667,6 @@ static int do_sandbox_none(void)
 	loop();
 	return 0;
 }
-#endif
-
-#if SYZ_EXECUTOR
-#define do_sandbox_setuid() 0
-#define do_sandbox_namespace() 0
-#define do_sandbox_android_untrusted_app() 0
 #endif
 #define CAST(f) ({void* p = (void*)f; p; })
 
@@ -3100,6 +3082,7 @@ static int do_sandbox_none(void)
 #include <sched.h>
 #include <sys/prctl.h>
 
+#define SYZ_HAVE_SANDBOX_SETUID 1
 static int do_sandbox_setuid(void)
 {
 	if (unshare(CLONE_NEWPID)) {
@@ -3242,6 +3225,7 @@ static int namespace_sandbox_proc(void* arg)
 	doexit(1);
 }
 
+#define SYZ_HAVE_SANDBOX_NAMESPACE 1
 static int do_sandbox_namespace(void)
 {
 	int pid;
@@ -3334,6 +3318,7 @@ static void syz_setfilecon(const char* path, const char* context)
 		fail("setfilecon: could not set context to %s, currently %s", context, new_context);
 }
 
+#define SYZ_HAVE_SANDBOX_ANDROID_UNTRUSTED_APP 1
 static int do_sandbox_android_untrusted_app(void)
 {
 	setup_common();
@@ -3728,12 +3713,6 @@ static int do_sandbox_none(void)
 }
 #endif
 
-#if SYZ_EXECUTOR
-#define do_sandbox_setuid() 0
-#define do_sandbox_namespace() 0
-#define do_sandbox_android_untrusted_app() 0
-#endif
-
 #elif GOOS_windows
 
 #include <windows.h>
@@ -3845,12 +3824,6 @@ static int do_sandbox_none(void)
 }
 #endif
 
-#if SYZ_EXECUTOR
-#define do_sandbox_setuid() 0
-#define do_sandbox_namespace() 0
-#define do_sandbox_android_untrusted_app() 0
-#endif
-
 #elif GOOS_test
 
 #include <stdlib.h>
@@ -3899,12 +3872,6 @@ static int do_sandbox_none(void)
 	loop();
 	doexit(0);
 }
-#endif
-
-#if SYZ_EXECUTOR
-#define do_sandbox_setuid() 0
-#define do_sandbox_namespace() 0
-#define do_sandbox_android_untrusted_app() 0
 #endif
 
 #else

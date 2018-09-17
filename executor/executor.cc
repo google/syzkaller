@@ -364,15 +364,21 @@ int main(int argc, char** argv)
 	case sandbox_none:
 		status = do_sandbox_none();
 		break;
+#if SYZ_HAVE_SANDBOX_SETUID
 	case sandbox_setuid:
 		status = do_sandbox_setuid();
 		break;
+#endif
+#if SYZ_HAVE_SANDBOX_NAMESPACE
 	case sandbox_namespace:
 		status = do_sandbox_namespace();
 		break;
+#endif
+#if SYZ_HAVE_SANDBOX_ANDROID_UNTRUSTED_APP
 	case sandbox_android_untrusted_app:
 		status = do_sandbox_android_untrusted_app();
 		break;
+#endif
 	default:
 		fail("unknown sandbox type");
 	}
