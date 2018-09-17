@@ -63,15 +63,15 @@ const int kRetryStatus = 69;
 const int kErrorStatus = 68;
 
 // Logical error (e.g. invalid input program), use as an assert() alternative.
-NORETURN PRINTF void fail(const char* msg, ...);
+static NORETURN PRINTF void fail(const char* msg, ...);
 // Kernel error (e.g. wrong syscall return value).
-NORETURN PRINTF void error(const char* msg, ...);
+static NORETURN PRINTF void error(const char* msg, ...);
 // Just exit (e.g. due to temporal ENOMEM error).
-NORETURN PRINTF void exitf(const char* msg, ...);
+static NORETURN PRINTF void exitf(const char* msg, ...);
 // Print debug output, does not add \n at the end of msg as opposed to the previous functions.
-PRINTF void debug(const char* msg, ...);
-void debug_dump_data(const char* data, int length);
-NORETURN void doexit(int status);
+static PRINTF void debug(const char* msg, ...);
+static void debug_dump_data(const char* data, int length);
+static NORETURN void doexit(int status);
 
 static void receive_execute();
 static void reply_execute(int status);
@@ -89,8 +89,8 @@ static void reply_handshake();
 const int kMaxOutput = 16 << 20;
 const int kInFd = 3;
 const int kOutFd = 4;
-uint32* output_data;
-uint32* output_pos;
+static uint32* output_data;
+static uint32* output_pos;
 static uint32* write_output(uint32 v);
 static void write_completed(uint32 completed);
 static uint32 hash(uint32 a);
@@ -104,26 +104,25 @@ enum sandbox_type {
 	sandbox_android_untrusted_app
 };
 
-bool flag_debug;
-bool flag_cover;
-bool flag_sandbox_privs;
-sandbox_type flag_sandbox;
-bool flag_enable_tun;
-bool flag_enable_net_dev;
-bool flag_enable_fault_injection;
+static bool flag_debug;
+static bool flag_cover;
+static sandbox_type flag_sandbox;
+static bool flag_enable_tun;
+static bool flag_enable_net_dev;
+static bool flag_enable_fault_injection;
 
-bool flag_collect_cover;
-bool flag_dedup_cover;
-bool flag_threaded;
-bool flag_collide;
+static bool flag_collect_cover;
+static bool flag_dedup_cover;
+static bool flag_threaded;
+static bool flag_collide;
 
 // If true, then executor should write the comparisons data to fuzzer.
-bool flag_collect_comps;
+static bool flag_collect_comps;
 
 // Inject fault into flag_fault_nth-th operation in flag_fault_call-th syscall.
-bool flag_inject_fault;
-int flag_fault_call;
-int flag_fault_nth;
+static bool flag_inject_fault;
+static int flag_fault_call;
+static int flag_fault_nth;
 
 #define SYZ_EXECUTOR 1
 #include "common.h"
@@ -148,20 +147,20 @@ const uint64 binary_format_stroct = 4;
 
 const uint64 no_copyout = -1;
 
-int running;
-uint32 completed;
-bool collide;
-bool is_kernel_64_bit = true;
+static int running;
+static uint32 completed;
+static bool collide;
+static bool is_kernel_64_bit = true;
 
 ALIGNED(64 << 10)
-char input_data[kMaxInput];
+static char input_data[kMaxInput];
 
 // Checksum kinds.
-const uint64 arg_csum_inet = 0;
+static const uint64 arg_csum_inet = 0;
 
 // Checksum chunk kinds.
-const uint64 arg_csum_chunk_data = 0;
-const uint64 arg_csum_chunk_const = 1;
+static const uint64 arg_csum_chunk_data = 0;
+static const uint64 arg_csum_chunk_const = 1;
 
 typedef long(SYSCALLAPI* syscall_t)(long, long, long, long, long, long, long, long, long);
 
@@ -205,7 +204,7 @@ struct res_t {
 	uint64 val;
 };
 
-res_t results[kMaxCommands];
+static res_t results[kMaxCommands];
 
 const uint64 kInMagic = 0xbadc0ffeebadface;
 const uint32 kOutMagic = 0xbadf00d;
