@@ -197,11 +197,12 @@ tidy:
 gometalinter:
 	env CGO_ENABLED=1 gometalinter.v2 ./...
 
-arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host arch_netbsd_amd64_host \
+arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host \
+	arch_netbsd_amd64_host arch_openbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
 	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
-	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_windows_amd64_target \
-	arch_test
+	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_openbsd_amd64_target \
+	arch_windows_amd64_target arch_test
 
 arch_darwin_amd64_host:
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
@@ -241,6 +242,12 @@ arch_netbsd_amd64_host:
 
 arch_netbsd_amd64_target:
 	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
+
+arch_openbsd_amd64_host:
+	env HOSTOS=openbsd HOSTARCH=amd64 $(MAKE) host
+
+arch_openbsd_amd64_target:
+	env TARGETOS=openbsd TARGETARCH=amd64 $(MAKE) target
 
 arch_windows_amd64_target:
 	env GOOG=windows GOARCH=amd64 $(GO) install ./syz-fuzzer
