@@ -106,8 +106,8 @@ func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, arch st
 
 	var d templateData
 	for f, covered := range fileSet(coveredFrames, uncoveredFrames) {
-		remain := strings.TrimPrefix(f, prefix)
-		if kernelSrc != "" {
+		remain := filepath.Clean(strings.TrimPrefix(f, prefix))
+		if kernelSrc != "" && !strings.HasPrefix(remain, kernelSrc) {
 			f = filepath.Join(kernelSrc, remain)
 		}
 		lines, err := parseFile(f)
