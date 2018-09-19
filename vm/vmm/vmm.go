@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -37,19 +38,17 @@ type Pool struct {
 
 type instance struct {
 	cfg      *Config
-	index    int
 	image    string
 	debug    bool
 	os       string
-	workdir  string
 	sshkey   string
 	sshuser  string
 	sshhost  string
 	sshport  int
 	merger   *vmimpl.OutputMerger
 	vmName   string
-	stop     chan bool
-	diagnose chan string
+	vmm      *exec.Cmd
+	consolew io.WriteCloser
 }
 
 var ipRegex = regexp.MustCompile(`bound to (([0-9]+\.){3}3)`)
@@ -100,21 +99,22 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
-	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
-	inst := &instance{
-		cfg:      pool.cfg,
-		index:    index,
-		image:    image,
-		debug:    pool.env.Debug,
-		os:       pool.env.OS,
-		workdir:  workdir,
-		sshkey:   pool.env.SSHKey,
-		sshuser:  pool.env.SSHUser,
-		sshport:  22,
-		vmName:   name,
-		stop:     make(chan bool),
-		diagnose: make(chan string),
+	var tee io.Writer
+	if pool.env.Debug {
+		tee = os.Stdout
 	}
+	inst := &instance{
+		cfg:     pool.cfg,
+		image:   image,
+		debug:   pool.env.Debug,
+		os:      pool.env.OS,
+		sshkey:  pool.env.SSHKey,
+		sshuser: pool.env.SSHUser,
+		sshport: 22,
+		vmName:  fmt.Sprintf("%v-%v", pool.env.Name, index),
+		merger:  vmimpl.NewOutputMerger(tee),
+	}
+
 	inst.vmctl("stop", inst.vmName, "-f", "-w") // in case it's still running from the previous run
 	closeInst := inst
 	defer func() {
@@ -132,30 +132,46 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 }
 
 func (inst *instance) Boot() error {
-	mem := fmt.Sprintf("%vM", inst.cfg.Mem)
+	outr, outw, err := osutil.LongPipe()
+	if err != nil {
+		return err
+	}
+	inr, inw, err := osutil.LongPipe()
+	if err != nil {
+		outr.Close()
+		outw.Close()
+		return err
+	}
 	startArgs := []string{
 		"start", inst.vmName,
 		"-b", inst.cfg.Kernel,
 		"-d", inst.image,
-		"-m", mem,
+		"-m", fmt.Sprintf("%vM", inst.cfg.Mem),
 		"-L", // add a local network interface
+		"-c", // connect to the console
 	}
 	if inst.cfg.Template != "" {
 		startArgs = append(startArgs, "-t", inst.cfg.Template)
 	}
-	if _, err := inst.vmctl(startArgs...); err != nil {
-		return err
-	}
-
-	var tee io.Writer
 	if inst.debug {
-		tee = os.Stdout
+		log.Logf(0, "running command: vmctl %#v", startArgs)
 	}
-	inst.merger = vmimpl.NewOutputMerger(tee)
-
-	if err := inst.console(); err != nil {
+	cmd := osutil.Command("vmctl", startArgs...)
+	cmd.Stdin = inr
+	cmd.Stdout = outw
+	cmd.Stderr = outw
+	if err := cmd.Start(); err != nil {
+		outr.Close()
+		outw.Close()
+		inr.Close()
+		inw.Close()
 		return err
 	}
+	inst.vmm = cmd
+	inst.consolew = inw
+	outw.Close()
+	inr.Close()
+	inst.merger.Add("console", outr)
 
 	var bootOutput []byte
 	bootOutputStop := make(chan bool)
@@ -202,6 +218,14 @@ func (inst *instance) Boot() error {
 
 func (inst *instance) Close() {
 	inst.vmctl("stop", inst.vmName, "-f")
+	if inst.consolew != nil {
+		inst.consolew.Close()
+	}
+	if inst.vmm != nil {
+		inst.vmm.Process.Kill()
+		inst.vmm.Wait()
+	}
+	inst.merger.Wait()
 }
 
 func (inst *instance) Forward(port int) (string, error) {
@@ -264,93 +288,31 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(vmimpl.ErrTimeout)
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()
-			inst.stop <- true
-			inst.merger.Wait()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
 				err = nil
 			}
-
 			signal(err)
 			return
 		}
 		cmd.Process.Kill()
-		inst.stop <- true
-		inst.merger.Wait()
 		cmd.Wait()
 	}()
 	return inst.merger.Output, errc, nil
 }
 
 func (inst *instance) Diagnose() bool {
-	commands := []string{"", "trace", "show registers"}
-	for _, c := range commands {
-		select {
-		case inst.diagnose <- c:
-		case <-time.After(5 * time.Second):
-		}
+	// TODO(dvyukov): this does not work because console asks for login:
+	//	OpenBSD/amd64 (syzkaller.my.domain) (tty00)
+	//	login: trace
+	//	Password:
+	//	Login incorrect
+	for _, c := range []string{"\n", "trace\n", "show registers\n"} {
+		inst.consolew.Write([]byte(c))
+		time.Sleep(1 * time.Second)
 	}
 	return true
-}
-
-func (inst *instance) console() error {
-	outr, outw, err := osutil.LongPipe()
-	if err != nil {
-		return err
-	}
-	inr, inw, err := osutil.LongPipe()
-	if err != nil {
-		outr.Close()
-		outw.Close()
-		return err
-	}
-
-	cmd := osutil.Command("vmctl", "console", inst.vmName)
-	cmd.Stdin = inr
-	cmd.Stdout = outw
-	cmd.Stderr = outw
-	if err := cmd.Start(); err != nil {
-		outr.Close()
-		outw.Close()
-		inr.Close()
-		inw.Close()
-		return err
-	}
-	outw.Close()
-	inr.Close()
-	inst.merger.Add("console", outr)
-
-	go func() {
-		stopDiagnose := make(chan bool)
-		go func() {
-			for {
-				select {
-				case s := <-inst.diagnose:
-					inw.Write([]byte(s + "\n"))
-					time.Sleep(1 * time.Second)
-				case <-stopDiagnose:
-					return
-				}
-			}
-		}()
-
-		stopProcess := make(chan bool)
-		go func() {
-			select {
-			case <-inst.stop:
-				cmd.Process.Kill()
-			case <-stopProcess:
-			}
-		}()
-
-		_, err = cmd.Process.Wait()
-		inw.Close()
-		stopDiagnose <- true
-		stopProcess <- true
-	}()
-
-	return nil
 }
 
 // Run the given vmctl(8) command and wait for it to finish.
