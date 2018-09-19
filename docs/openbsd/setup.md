@@ -118,7 +118,8 @@ $ cat openbsd.cfg
   "vm": {
     "count": 4,
     "mem": 512,
-    "kernel": "$KERNEL"
+    "kernel": "$KERNEL",
+    "template": "syzkaller"
   }
 }
 $ ./bin/syz-manager -config openbsd.cfg
