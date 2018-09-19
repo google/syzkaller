@@ -183,13 +183,13 @@ func (inst *instance) Boot() error {
 	select {
 	case ip := <-ipch:
 		inst.sshhost = ip
-	case <-time.After(1 * time.Minute):
+	case <-time.After(10 * time.Minute):
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.BootError{Title: "no IP found", Output: bootOutput}
 	}
 
-	if err := vmimpl.WaitForSSH(inst.debug, 2*time.Minute, inst.sshhost,
+	if err := vmimpl.WaitForSSH(inst.debug, 20*time.Minute, inst.sshhost,
 		inst.sshkey, inst.sshuser, inst.os, inst.sshport); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
@@ -220,7 +220,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	if inst.debug {
 		log.Logf(0, "running command: scp %#v", args)
 	}
-	_, err := osutil.RunCmd(3*time.Minute, "", "scp", args...)
+	_, err := osutil.RunCmd(10*time.Minute, "", "scp", args...)
 	if err != nil {
 		return "", err
 	}
@@ -288,7 +288,7 @@ func (inst *instance) Diagnose() bool {
 	for _, c := range commands {
 		select {
 		case inst.diagnose <- c:
-		case <-time.After(2 * time.Second):
+		case <-time.After(5 * time.Second):
 		}
 	}
 	return true
@@ -353,7 +353,7 @@ func (inst *instance) vmctl(args ...string) (string, error) {
 	if inst.debug {
 		log.Logf(0, "running command: vmctl %#v", args)
 	}
-	out, err := osutil.RunCmd(10*time.Second, "", "vmctl", args...)
+	out, err := osutil.RunCmd(time.Minute, "", "vmctl", args...)
 	if err != nil {
 		if inst.debug {
 			log.Logf(0, "vmctl failed: %v", err)
