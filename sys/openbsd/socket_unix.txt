@@ -71,7 +71,7 @@ cmsghdr_un_rights {
 cmsghdr_un_cred {
 	len	len[parent, intptr]
 	level	const[SOL_SOCKET, int32]
-	# XXX type	const[LINUX_SCM_CREDENTIALS, int32]
+# XXX type	const[LINUX_SCM_CREDENTIALS, int32]
 	type	const[0, int32]
 	pid	pid
 	uid	uid
