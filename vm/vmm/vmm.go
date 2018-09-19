@@ -25,7 +25,6 @@ func init() {
 
 type Config struct {
 	Count    int    `json:"count"`    // number of VMs to use
-	CPU      int    `json:"cpu"`      // number of VM CPUs
 	Mem      int    `json:"mem"`      // amount of VM memory in MBs
 	Kernel   string `json:"kernel"`   // kernel to boot
 	Template string `json:"template"` // vm template
@@ -58,7 +57,6 @@ var ipRegex = regexp.MustCompile(`bound to (([0-9]+\.){3}3)`)
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
 		Count: 1,
-		CPU:   1,
 		Mem:   512,
 	}
 
@@ -75,9 +73,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Debug {
 		cfg.Count = 1
 	}
-	if cfg.CPU > 1 {
-		return nil, fmt.Errorf("invalid config param cpu: %v, want 1", cfg.CPU)
-	}
 	if cfg.Mem < 128 || cfg.Mem > 1048576 {
 		return nil, fmt.Errorf("invalid config param mem: %v, want [128-1048576]", cfg.Mem)
 	}
@@ -86,9 +81,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	if !osutil.IsExist(cfg.Kernel) {
 		return nil, fmt.Errorf("kernel '%v' does not exist", cfg.Kernel)
-	}
-	if cfg.Template == "" {
-		return nil, fmt.Errorf("missing config param template")
 	}
 	pool := &Pool{
 		cfg: cfg,
@@ -142,11 +134,13 @@ func (inst *instance) Boot() error {
 	mem := fmt.Sprintf("%vM", inst.cfg.Mem)
 	startArgs := []string{
 		"start", inst.vmName,
-		"-t", inst.cfg.Template,
 		"-b", inst.cfg.Kernel,
 		"-d", inst.image,
 		"-m", mem,
 		"-L", // add a local network interface
+	}
+	if inst.cfg.Template != "" {
+		startArgs = append(startArgs, "-t", inst.cfg.Template)
 	}
 	if _, err := inst.vmctl(startArgs...); err != nil {
 		return err
