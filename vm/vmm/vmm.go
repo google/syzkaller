@@ -115,6 +115,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		stop:     make(chan bool),
 		diagnose: make(chan string),
 	}
+	inst.vmctl("stop", inst.vmName, "-f", "-w") // in case it's still running from the previous run
 	closeInst := inst
 	defer func() {
 		if closeInst != nil {
