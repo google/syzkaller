@@ -196,6 +196,7 @@ func (inst *instance) Boot() error {
 		return vmimpl.BootError{Title: err.Error(), Output: bootOutput}
 	}
 	bootOutputStop <- true
+	<-bootOutputStop
 	return nil
 }
 
