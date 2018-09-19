@@ -65,7 +65,7 @@ const int kErrorStatus = 68;
 // Logical error (e.g. invalid input program), use as an assert() alternative.
 static NORETURN PRINTF void fail(const char* msg, ...);
 // Kernel error (e.g. wrong syscall return value).
-static NORETURN PRINTF void error(const char* msg, ...);
+NORETURN PRINTF void error(const char* msg, ...);
 // Just exit (e.g. due to temporal ENOMEM error).
 static NORETURN PRINTF void exitf(const char* msg, ...);
 // Print debug output, does not add \n at the end of msg as opposed to the previous functions.
@@ -147,9 +147,9 @@ const uint64 binary_format_stroct = 4;
 const uint64 no_copyout = -1;
 
 static int running;
-static uint32 completed;
 static bool collide;
-static bool is_kernel_64_bit = true;
+uint32 completed;
+bool is_kernel_64_bit = true;
 
 ALIGNED(64 << 10)
 static char input_data[kMaxInput];
