@@ -180,6 +180,7 @@ format_sys: bin/syz-fmt
 	bin/syz-fmt sys/akaros
 	bin/syz-fmt sys/freebsd
 	bin/syz-fmt sys/netbsd
+	bin/syz-fmt sys/openbsd
 	bin/syz-fmt sys/linux
 	bin/syz-fmt sys/fuchsia
 	bin/syz-fmt sys/windows
