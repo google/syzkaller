@@ -100,7 +100,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
-	name := fmt.Sprintf("syzkaller-%v-%v", pool.env.Name, index)
+	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
 	inst := &instance{
 		cfg:      pool.cfg,
 		index:    index,
