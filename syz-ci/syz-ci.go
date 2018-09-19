@@ -56,6 +56,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"sync"
 
@@ -116,6 +119,8 @@ func main() {
 	shutdownPending := make(chan struct{})
 	osutil.HandleInterrupts(shutdownPending)
 
+	serveHTTP(cfg)
+
 	updater := NewSyzUpdater(cfg)
 	updater.UpdateOnStart(shutdownPending)
 	updatePending := make(chan struct{})
@@ -165,6 +170,18 @@ func main() {
 	case <-updatePending:
 		updater.UpdateAndRestart()
 	}
+}
+
+func serveHTTP(cfg *Config) {
+	ln, err := net.Listen("tcp4", cfg.HTTP)
+	if err != nil {
+		log.Fatalf("failed to listen on %v: %v", cfg.HTTP, err)
+	}
+	log.Logf(0, "serving http on http://%v", ln.Addr())
+	go func() {
+		err := http.Serve(ln, nil)
+		log.Fatalf("failed to serve http: %v", err)
+	}()
 }
 
 func loadConfig(filename string) (*Config, error) {
