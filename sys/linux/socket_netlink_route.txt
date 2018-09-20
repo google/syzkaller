@@ -451,7 +451,7 @@ rtm_ipv6_policy [
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
 # TODO: describe RTA_ENCAP
 	RTA_ENCAP	nlattr[RTA_ENCAP, nl_generic_attr]
-	RTA_EXPIRES	nlattr[RTA_MARK, int32]
+	RTA_EXPIRES	nlattr[RTA_EXPIRES, int32]
 	RTA_UID		nlattr[RTA_UID, uid]
 	RTA_MARK	nlattr[RTA_MARK, int32]
 ] [varlen]
