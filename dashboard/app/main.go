@@ -46,6 +46,7 @@ type uiManager struct {
 	Namespace          string
 	Name               string
 	Link               string
+	CoverLink          string
 	CurrentBuild       *uiBuild
 	FailedBuildBugLink string
 	LastActive         time.Time
@@ -81,7 +82,6 @@ type uiBugPage struct {
 type uiBugNamespace struct {
 	Name       string
 	Caption    string
-	CoverLink  string
 	FixedLink  string
 	FixedCount int
 	Groups     []*uiBugGroup
@@ -457,7 +457,6 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	uiNamespace := &uiBugNamespace{
 		Name:       ns,
 		Caption:    cfg.DisplayTitle,
-		CoverLink:  cfg.CoverLink,
 		FixedCount: fixedCount,
 		FixedLink:  fixedLink,
 		Groups:     uiGroups,
@@ -742,6 +741,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, err
 			Namespace:          mgr.Namespace,
 			Name:               mgr.Name,
 			Link:               link,
+			CoverLink:          config.CoverPath + mgr.Name + ".html",
 			CurrentBuild:       uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
 			FailedBuildBugLink: bugLink(mgr.FailedBuildBug),
 			LastActive:         mgr.LastAlive,
