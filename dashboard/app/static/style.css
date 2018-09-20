@@ -80,8 +80,8 @@ table td, table th {
 .list_table .tag {
 	font-family: monospace;
 	font-size: 8pt;
-	width: 200pt;
-	max-width: 200pt;
+	width: 40pt;
+	max-width: 40pt;
 }
 
 .list_table .opts {

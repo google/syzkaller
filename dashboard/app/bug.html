@@ -47,21 +47,25 @@ Page with details about a single bug.
 			<th><a onclick="return sortTable(this, 'Report', reproSort)" href="#">Report</a></th>
 			<th><a onclick="return sortTable(this, 'Syz repro', reproSort)" href="#">Syz repro</a></th>
 			<th><a onclick="return sortTable(this, 'C repro', textSort)" href="#">C repro</a></th>
+			{{if $.HasMaintainers}}
 			<th><a onclick="return sortTable(this, 'Maintainers', textSort)" href="#">Maintainers</a></th>
+			{{end}}
 		</tr>
 		{{range $c := $.Crashes}}
 			<tr>
 				<td class="manager">{{$c.Manager}}</td>
 				<td class="time">{{formatTime $c.Time}}</td>
 				<td class="kernel" title="{{$c.KernelAlias}}">{{$c.KernelAlias}}</td>
-				<td class="tag">{{$c.KernelCommit}}</td>
-				<td class="tag">{{$c.SyzkallerCommit}}</td>
+				<td class="tag" title="{{$c.KernelCommit}}">{{formatShortHash $c.KernelCommit}}</td>
+				<td class="tag" title="{{$c.SyzkallerCommit}}">{{formatShortHash $c.SyzkallerCommit}}</td>
 				<td class="config">{{if $c.KernelConfigLink}}<a href="{{$c.KernelConfigLink}}">.config</a>{{end}}</td>
 				<td class="repro">{{if $c.LogLink}}<a href="{{$c.LogLink}}">log</a>{{end}}</td>
 				<td class="repro">{{if $c.ReportLink}}<a href="{{$c.ReportLink}}">report</a>{{end}}</td>
 				<td class="repro">{{if $c.ReproSyzLink}}<a href="{{$c.ReproSyzLink}}">syz</a>{{end}}</td>
 				<td class="repro">{{if $c.ReproCLink}}<a href="{{$c.ReproCLink}}">C</a>{{end}}</td>
+				{{if $.HasMaintainers}}
 				<td class="maintainers" title="{{$c.Maintainers}}">{{$c.Maintainers}}</td>
+				{{end}}
 			</tr>
 		{{end}}
 	</table>

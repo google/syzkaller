@@ -67,14 +67,15 @@ type uiBuild struct {
 }
 
 type uiBugPage struct {
-	Header       *uiHeader
-	Now          time.Time
-	Bug          *uiBug
-	DupOf        *uiBugGroup
-	Dups         *uiBugGroup
-	Similar      *uiBugGroup
-	SampleReport []byte
-	Crashes      []*uiCrash
+	Header         *uiHeader
+	Now            time.Time
+	Bug            *uiBug
+	DupOf          *uiBugGroup
+	Dups           *uiBugGroup
+	Similar        *uiBugGroup
+	SampleReport   []byte
+	HasMaintainers bool
+	Crashes        []*uiCrash
 }
 
 type uiBugNamespace struct {
@@ -248,15 +249,23 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	hasMaintainers := false
+	for _, crash := range crashes {
+		if len(crash.Maintainers) != 0 {
+			hasMaintainers = true
+			break
+		}
+	}
 	data := &uiBugPage{
-		Header:       commonHeader(c, r),
-		Now:          timeNow(c),
-		Bug:          uiBug,
-		DupOf:        dupOf,
-		Dups:         dups,
-		Similar:      similar,
-		SampleReport: sampleReport,
-		Crashes:      crashes,
+		Header:         commonHeader(c, r),
+		Now:            timeNow(c),
+		Bug:            uiBug,
+		DupOf:          dupOf,
+		Dups:           dups,
+		Similar:        similar,
+		SampleReport:   sampleReport,
+		HasMaintainers: hasMaintainers,
+		Crashes:        crashes,
 	}
 	return serveTemplate(w, "bug.html", data)
 }
@@ -646,7 +655,7 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 		ui := &uiCrash{
 			Manager:      crash.Manager,
 			Time:         crash.Time,
-			Maintainers:  fmt.Sprintf("%q", crash.Maintainers),
+			Maintainers:  strings.Join(crash.Maintainers, ", "),
 			LogLink:      textLink(textCrashLog, crash.Log),
 			ReportLink:   textLink(textCrashReport, crash.Report),
 			ReproSyzLink: textLink(textReproSyz, crash.ReproSyz),
