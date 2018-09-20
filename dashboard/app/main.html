@@ -59,7 +59,15 @@ Main page.
 					<td></td>
 				{{end}}
 				<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>
-				<td class="stat">{{formatStat $mgr.MaxCover}}</td>
+				<td class="stat">
+					{{if $mgr.CoverLink}}
+						<a href="{{$mgr.CoverLink}}" target="_blank">
+					{{end}}
+					{{formatStat $mgr.MaxCover}}
+					{{if $mgr.CoverLink}}
+						</a>
+					{{end}}
+				</td>
 				<td class="stat">{{formatStat $mgr.TotalCrashes}}</td>
 				<td class="stat">{{formatStat $mgr.TotalExecs}}</td>
 				<td class="stat">{{if $mgr.FailedBuildBugLink}}<a href="{{$mgr.FailedBuildBugLink}}" class="bad">bug</a>{{end}}</td>
@@ -121,9 +129,6 @@ Main page.
 		<br>
 		<a class="plain" href="#{{$ns.Name}}"><h2 id="{{$ns.Name}}">{{$ns.Caption}}</h2></a>
 		{{if $ns.FixedLink}}
-			{{if $ns.CoverLink}}
-				<a href="{{$ns.CoverLink}}" target="_blank">source coverage</a> |
-			{{end}}
 			<a href="{{$ns.FixedLink}}">fixed bugs ({{$ns.FixedCount}})</a>
 		{{end}}
 		{{range $group := $ns.Groups}}

@@ -23,6 +23,10 @@ type GlobalConfig struct {
 	AuthDomain string
 	// Google Analytics Tracking ID.
 	AnalyticsTrackingID string
+	// URL prefix of source coverage reports.
+	// Dashboard will append manager_name.html to that prefix.
+	// syz-ci can upload these reports to GCS.
+	CoverPath string
 	// Global API clients that work across namespaces (e.g. external reporting).
 	Clients map[string]string
 	// List of emails blacklisted from issuing test requests.
@@ -43,9 +47,6 @@ type Config struct {
 	AccessLevel AccessLevel
 	// Name used in UI.
 	DisplayTitle string
-	// URL of a source coverage report for this namespace
-	// (uploading/updating the report is out of scope of the system for now).
-	CoverLink string
 	// Per-namespace clients that act only on a particular namespace.
 	Clients map[string]string
 	// A unique key for hashing, can be anything.
