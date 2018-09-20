@@ -107,6 +107,19 @@ func (client *Client) FileWriter(gcsFile string) (io.WriteCloser, error) {
 	return w, nil
 }
 
+// Publish lets any user read gcsFile.
+func (client *Client) Publish(gcsFile string) error {
+	bucket, filename, err := split(gcsFile)
+	if err != nil {
+		return err
+	}
+	obj := client.client.Bucket(bucket).Object(filename)
+	return obj.ACL().Set(client.ctx, storage.AllUsers, storage.RoleReader)
+}
+
+// Where things get published.
+const PublicPrefix = "https://storage.googleapis.com/"
+
 func split(file string) (bucket, filename string, err error) {
 	pos := strings.IndexByte(file, '/')
 	if pos == -1 {

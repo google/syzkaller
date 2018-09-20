@@ -5,7 +5,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
@@ -152,7 +155,7 @@ var kernelBuildSem = make(chan struct{}, 1)
 func (mgr *Manager) loop() {
 	lastCommit := ""
 	nextBuildTime := time.Now()
-	var managerRestartTime time.Time
+	var managerRestartTime, coverUploadTime time.Time
 	latestInfo := mgr.checkLatest()
 	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 {
 		// If we have a reasonably fresh build,
@@ -204,6 +207,12 @@ loop:
 			}
 			nextBuildTime = time.Now().Add(rebuildAfter)
 		}
+		if !coverUploadTime.IsZero() && time.Now().After(coverUploadTime) {
+			coverUploadTime = time.Time{}
+			if err := mgr.uploadCoverReport(); err != nil {
+				mgr.Errorf("failed to upload cover report: %v", err)
+			}
+		}
 
 		select {
 		case <-mgr.stop:
@@ -214,6 +223,9 @@ loop:
 		if latestInfo != nil && (latestInfo.Time != managerRestartTime || mgr.cmd == nil) {
 			managerRestartTime = latestInfo.Time
 			mgr.restartManager()
+			if mgr.cmd != nil && mgr.managercfg.Cover && mgr.cfg.CoverUploadPath != "" {
+				coverUploadTime = time.Now().Add(6 * time.Hour)
+			}
 		}
 
 		select {
@@ -579,6 +591,32 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixComm
 		}
 	}
 	return present, fixCommits, nil
+}
+
+func (mgr *Manager) uploadCoverReport() error {
+	GCS, err := gcs.NewClient()
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %v", err)
+	}
+	defer GCS.Close()
+	resp, err := http.Get(fmt.Sprintf("http://%v/cover", mgr.managercfg.HTTP))
+	if err != nil {
+		return fmt.Errorf("failed to get report: %v", err)
+	}
+	defer resp.Body.Close()
+	gcsPath := filepath.Join(mgr.cfg.CoverUploadPath, mgr.name+".html")
+	gcsWriter, err := GCS.FileWriter(gcsPath)
+	if err != nil {
+		return fmt.Errorf("failed to create GCS writer: %v", err)
+	}
+	if _, err := io.Copy(gcsWriter, resp.Body); err != nil {
+		gcsWriter.Close()
+		return fmt.Errorf("failed to copy report: %v", err)
+	}
+	if err := gcsWriter.Close(); err != nil {
+		return fmt.Errorf("failed to close gcs writer: %v", err)
+	}
+	return GCS.Publish(gcsPath)
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.
