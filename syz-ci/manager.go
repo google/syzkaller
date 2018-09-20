@@ -174,37 +174,8 @@ func (mgr *Manager) loop() {
 loop:
 	for {
 		if time.Since(nextBuildTime) >= 0 {
-			rebuildAfter := buildRetryPeriod
-			commit, err := mgr.repo.Poll(mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
-			if err != nil {
-				mgr.Errorf("failed to poll: %v", err)
-			} else {
-				log.Logf(0, "%v: poll: %v", mgr.name, commit.Hash)
-				if commit.Hash != lastCommit &&
-					(latestInfo == nil ||
-						commit.Hash != latestInfo.KernelCommit ||
-						mgr.compilerID != latestInfo.CompilerID ||
-						mgr.configTag != latestInfo.KernelConfigTag) {
-					lastCommit = commit.Hash
-					select {
-					case kernelBuildSem <- struct{}{}:
-						log.Logf(0, "%v: building kernel...", mgr.name)
-						if err := mgr.build(commit); err != nil {
-							log.Logf(0, "%v: %v", mgr.name, err)
-						} else {
-							log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
-							rebuildAfter = kernelRebuildPeriod
-							latestInfo = mgr.checkLatest()
-							if latestInfo == nil {
-								mgr.Errorf("failed to read build info after build")
-							}
-						}
-						<-kernelBuildSem
-					case <-mgr.stop:
-						break loop
-					}
-				}
-			}
+			var rebuildAfter time.Duration
+			lastCommit, latestInfo, rebuildAfter = mgr.pollAndBuild(lastCommit, latestInfo)
 			nextBuildTime = time.Now().Add(rebuildAfter)
 		}
 		if !coverUploadTime.IsZero() && time.Now().After(coverUploadTime) {
@@ -240,6 +211,41 @@ loop:
 		mgr.cmd = nil
 	}
 	log.Logf(0, "%v: stopped", mgr.name)
+}
+
+func (mgr *Manager) pollAndBuild(lastCommit string, latestInfo *BuildInfo) (
+	string, *BuildInfo, time.Duration) {
+	rebuildAfter := buildRetryPeriod
+	commit, err := mgr.repo.Poll(mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
+	if err != nil {
+		mgr.Errorf("failed to poll: %v", err)
+	} else {
+		log.Logf(0, "%v: poll: %v", mgr.name, commit.Hash)
+		if commit.Hash != lastCommit &&
+			(latestInfo == nil ||
+				commit.Hash != latestInfo.KernelCommit ||
+				mgr.compilerID != latestInfo.CompilerID ||
+				mgr.configTag != latestInfo.KernelConfigTag) {
+			lastCommit = commit.Hash
+			select {
+			case kernelBuildSem <- struct{}{}:
+				log.Logf(0, "%v: building kernel...", mgr.name)
+				if err := mgr.build(commit); err != nil {
+					log.Logf(0, "%v: %v", mgr.name, err)
+				} else {
+					log.Logf(0, "%v: build successful, [re]starting manager", mgr.name)
+					rebuildAfter = kernelRebuildPeriod
+					latestInfo = mgr.checkLatest()
+					if latestInfo == nil {
+						mgr.Errorf("failed to read build info after build")
+					}
+				}
+				<-kernelBuildSem
+			case <-mgr.stop:
+			}
+		}
+	}
+	return lastCommit, latestInfo, rebuildAfter
 }
 
 // BuildInfo characterizes a kernel build.
