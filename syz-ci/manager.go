@@ -115,7 +115,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	}
 	managercfg.Name = cfg.Name + "-" + mgrcfg.Name
 	managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
-	if managercfg.HTTP == "" && cfg.ManagerPort != 0 {
+	if managercfg.HTTP == "" {
 		managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
 		cfg.ManagerPort++
 	}
@@ -599,7 +599,11 @@ func (mgr *Manager) uploadCoverReport() error {
 		return fmt.Errorf("failed to create GCS client: %v", err)
 	}
 	defer GCS.Close()
-	resp, err := http.Get(fmt.Sprintf("http://%v/cover", mgr.managercfg.HTTP))
+	addr := mgr.managercfg.HTTP
+	if addr != "" && addr[0] == ':' {
+		addr = "127.0.0.1" + addr // in case addr is ":port"
+	}
+	resp, err := http.Get(fmt.Sprintf("http://%v/cover", addr))
 	if err != nil {
 		return fmt.Errorf("failed to get report: %v", err)
 	}

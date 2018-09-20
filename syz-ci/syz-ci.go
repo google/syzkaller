@@ -201,6 +201,7 @@ func loadConfig(filename string) (*Config, error) {
 	cfg := &Config{
 		SyzkallerRepo:   "https://github.com/google/syzkaller.git",
 		SyzkallerBranch: "master",
+		ManagerPort:     10000,
 		Goroot:          os.Getenv("GOROOT"),
 	}
 	if err := config.LoadFile(filename, cfg); err != nil {
