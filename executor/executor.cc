@@ -70,6 +70,7 @@ NORETURN PRINTF void error(const char* msg, ...);
 static NORETURN PRINTF void exitf(const char* msg, ...);
 // Print debug output, does not add \n at the end of msg as opposed to the previous functions.
 static PRINTF void debug(const char* msg, ...);
+void debug_dump_data(const char* data, int length);
 static NORETURN void doexit(int status);
 
 static void receive_execute();
@@ -1310,4 +1311,16 @@ void debug(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fflush(stderr);
+}
+
+void debug_dump_data(const char* data, int length)
+{
+	if (!flag_debug)
+		return;
+	for (int i = 0; i < length; i++) {
+		debug("%02x ", data[i] & 0xff);
+		if (i % 16 == 15)
+			debug("\n");
+	}
+	debug("\n");
 }

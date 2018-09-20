@@ -13,18 +13,6 @@ struct cover_t;
 static void cover_reset(cover_t* cov);
 #endif
 
-static void debug_dump_data(const char* data, int length)
-{
-	if (!flag_debug)
-		return;
-	for (int i = 0; i < length; i++) {
-		debug("%02x ", data[i] & 0xff);
-		if (i % 16 == 15)
-			debug("\n");
-	}
-	debug("\n");
-}
-
 #if SYZ_EXECUTOR || SYZ_THREADED
 #include <linux/futex.h>
 #include <pthread.h>
