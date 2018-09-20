@@ -1,6 +1,6 @@
 cron:
 - url: /email_poll
   schedule: every 1 minutes
-- url: /_ah/datastore_admin/backup.create?name=backup&filesystem=gs&gs_bucket_name=syzkaller&kind=Bug&kind=Build&kind=Crash&kind=CrashLog&kind=CrashReport&kind=Error&kind=Job&kind=KernelConfig&kind=Manager&kind=ManagerStats&kind=Patch&kind=ReportingState&kind=ReproC&kind=ReproSyz
+- url: /_ah/datastore_admin/backup.create?name=backup&filesystem=gs&gs_bucket_name=syzkaller-backups&kind=Bug&kind=Build&kind=Crash&kind=CrashLog&kind=CrashReport&kind=Error&kind=Job&kind=KernelConfig&kind=Manager&kind=ManagerStats&kind=Patch&kind=ReportingState&kind=ReproC&kind=ReproSyz
   schedule: every monday 00:00
   target: ah-builtin-python-bundle
