@@ -54,6 +54,7 @@ cat >etc/rc.local <<EOF
   echo "starting syz-ci"
   fsck -y /dev/sd1a
   mount /syzkaller
+  mkdir -p /syzkaller/ramdisk
   mount -t mfs -o-s=10G /dev/sd0b /syzkaller/ramdisk
   chown syzkaller:syzkaller /syzkaller/ramdisk
 )
