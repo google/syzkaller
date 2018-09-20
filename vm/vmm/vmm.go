@@ -115,7 +115,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		merger:  vmimpl.NewOutputMerger(tee),
 	}
 
-	inst.vmctl("stop", inst.vmName, "-f", "-w") // in case it's still running from the previous run
+	// Stop the instance from the previous run in case it's still running.
+	// This is racy even with -w flag, start periodically fails with:
+	// vmctl: start vm command failed: Operation already in progress
+	// So also sleep for a bit.
+	inst.vmctl("stop", inst.vmName, "-f", "-w")
+	time.Sleep(3 * time.Second)
+
 	closeInst := inst
 	defer func() {
 		if closeInst != nil {
@@ -199,6 +205,10 @@ func (inst *instance) Boot() error {
 	select {
 	case ip := <-ipch:
 		inst.sshhost = ip
+	case <-inst.merger.Err:
+		bootOutputStop <- true
+		<-bootOutputStop
+		return vmimpl.BootError{Title: "vmm exited", Output: bootOutput}
 	case <-time.After(10 * time.Minute):
 		bootOutputStop <- true
 		<-bootOutputStop
@@ -303,11 +313,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() bool {
-	// TODO(dvyukov): this does not work because console asks for login:
-	//	OpenBSD/amd64 (syzkaller.my.domain) (tty00)
-	//	login: trace
-	//	Password:
-	//	Login incorrect
+	// Note: this only works if kernel actually paniced and kernel shows panic console.
+	// If kernel just hanged, we've lost connection or detected some non-panic error,
+	// console still shows normal login prompt.
 	for _, c := range []string{"\n", "trace\n", "show registers\n"} {
 		inst.consolew.Write([]byte(c))
 		time.Sleep(1 * time.Second)
