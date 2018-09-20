@@ -150,6 +150,14 @@ func formatStat(v int64) string {
 	return fmt.Sprint(v)
 }
 
+func formatShortHash(v string) string {
+	const hashLen = 8
+	if len(v) <= hashLen {
+		return v
+	}
+	return v[:hashLen]
+}
+
 var (
 	templates = template.Must(template.New("").Funcs(templateFuncs).ParseGlob("*.html"))
 
@@ -160,5 +168,6 @@ var (
 		"formatLateness":   formatLateness,
 		"formatReproLevel": formatReproLevel,
 		"formatStat":       formatStat,
+		"formatShortHash":  formatShortHash,
 	}
 )
