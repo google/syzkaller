@@ -301,6 +301,8 @@ func (inst *instance) console() error {
 	}
 	inr, inw, err := osutil.LongPipe()
 	if err != nil {
+		outr.Close()
+		outw.Close()
 		return err
 	}
 
@@ -309,6 +311,10 @@ func (inst *instance) console() error {
 	cmd.Stdout = outw
 	cmd.Stderr = outw
 	if err := cmd.Start(); err != nil {
+		outr.Close()
+		outw.Close()
+		inr.Close()
+		inw.Close()
 		return err
 	}
 	outw.Close()
@@ -340,7 +346,6 @@ func (inst *instance) console() error {
 
 		_, err = cmd.Process.Wait()
 		inw.Close()
-		outr.Close()
 		stopDiagnose <- true
 		stopProcess <- true
 	}()
