@@ -18,7 +18,7 @@ type Symbol struct {
 
 // ReadSymbols returns list of text symbols in the binary bin.
 func ReadSymbols(bin string) (map[string][]Symbol, error) {
-	cmd := osutil.Command("nm", "-nS", bin)
+	cmd := osutil.Command("nm", "-Ptx", bin)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -32,32 +32,39 @@ func ReadSymbols(bin string) (map[string][]Symbol, error) {
 	s := bufio.NewScanner(stdout)
 	text := [][]byte{[]byte(" t "), []byte(" T ")}
 	for s.Scan() {
-		// A line looks as: "ffffffff8104db90 0000000000000059 t snb_uncore_msr_enable_box"
+		// A line looks as: "snb_uncore_msr_enable_box t ffffffff8104db90 0000000000000059"
 		ln := s.Bytes()
 		if !bytes.Contains(ln, text[0]) && !bytes.Contains(ln, text[1]) {
 			continue
 		}
+
 		sp1 := bytes.IndexByte(ln, ' ')
 		if sp1 == -1 {
 			continue
 		}
-		sp2 := bytes.IndexByte(ln[sp1+1:], ' ')
-		if sp2 == -1 {
+		if !bytes.HasPrefix(ln[sp1:], text[0]) && !bytes.HasPrefix(ln[sp1:], text[1]) {
 			continue
 		}
-		sp2 += sp1 + 1
-		if !bytes.HasPrefix(ln[sp2:], text[0]) && !bytes.HasPrefix(ln[sp2:], text[1]) {
+
+		sp2 := sp1 + len(text[0])
+		sp3 := bytes.IndexByte(ln[sp2:], ' ')
+		if sp3 == -1 {
 			continue
 		}
-		addr, err := strconv.ParseUint(string(ln[:sp1]), 16, 64)
+		sp3 += sp2
+
+		addr, err := strconv.ParseUint(string(ln[sp2:sp3]), 16, 64)
 		if err != nil {
 			continue
 		}
-		size, err := strconv.ParseUint(string(ln[sp1+1:sp2]), 16, 64)
-		if err != nil {
+
+		size, err := strconv.ParseUint(string(ln[sp3+1:]), 16, 64)
+		if err != nil || size == 0 {
 			continue
 		}
-		name := string(ln[sp2+len(text[0]):])
+
+		name := string(ln[:sp1])
+
 		// Note: sizes reported by kernel do not match nm.
 		// Kernel probably subtracts address of this symbol from address of the next symbol.
 		// We could do the same, but for now we just round up size to 16.

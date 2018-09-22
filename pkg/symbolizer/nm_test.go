@@ -4,15 +4,10 @@
 package symbolizer
 
 import (
-	"runtime"
 	"testing"
 )
 
 func TestSymbols(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		// On openbsd it fails because nm does not have -S flag.
-		t.Skipf("broken on %v", runtime.GOOS)
-	}
 	symbols, err := ReadSymbols("testdata/nm.test.out")
 	if err != nil {
 		t.Fatalf("failed to read symbols: %v", err)
@@ -37,17 +32,31 @@ func TestSymbols(t *testing.T) {
 		if len(s) != 2 {
 			t.Fatalf("got %v foobar symbols, want 2", len(s))
 		}
-		if s[0].Addr != 0x4004ed {
-			t.Fatalf("bad foobar[0] address: 0x%x", s[0].Addr)
+		want := []Symbol{
+			{
+				Addr: 0x4004fa,
+				Size: 0x10,
+			},
+			{
+				Addr: 0x4004ed,
+				Size: 0x10,
+			},
 		}
-		if s[0].Size != 0x10 {
-			t.Fatalf("bad foobar[0] size: 0x%x", s[0].Size)
+		if !symcmp(want[0], s[0]) && !symcmp(want[0], s[1]) {
+			t.Fatalf("foobar symbol %+v not found", want[0])
 		}
-		if s[1].Addr != 0x4004fa {
-			t.Fatalf("bad foobar[1] address: 0x%x", s[1].Addr)
-		}
-		if s[1].Size != 0x10 {
-			t.Fatalf("bad foobar[1] size: 0x%x", s[1].Size)
+		if !symcmp(want[1], s[0]) && !symcmp(want[1], s[1]) {
+			t.Fatalf("foobar symbol %+v not found", want[1])
 		}
 	}
+}
+
+func symcmp(want Symbol, got Symbol) bool {
+	if want.Addr != got.Addr {
+		return false
+	}
+	if want.Size != got.Size {
+		return false
+	}
+	return true
 }
