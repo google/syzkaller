@@ -1,0 +1,21 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resource fd_smack_current[fd]
+
+# TODO: what exactly is this smack entry? Do we need to pass some known strings?
+type smack_entry string
+
+openat$smack_task_current(fd const[AT_FDCWD], file ptr[in, string["/proc/self/attr/current"]], flags const[O_RDWR], mode const[0]) fd_smack_current
+openat$smack_thread_current(fd const[AT_FDCWD], file ptr[in, string["/proc/thread-self/attr/current"]], flags const[O_RDWR], mode const[0]) fd_smack_current
+write$smack_current(fd fd_smack_current, data ptr[in, smack_entry], len len[data])
+
+setxattr$security_smack_entry(path ptr[in, filename], name ptr[in, string[smack_xattr_entry]], val ptr[in, smack_entry], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_smack_entry(path ptr[in, filename], name ptr[in, string[smack_xattr_entry]], val ptr[in, smack_entry], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_smack_entry(fd fd, name ptr[in, string[smack_xattr_entry]], val ptr[in, smack_entry], size len[val], flags flags[setxattr_flags])
+
+smack_xattr_entry = "security.SMACK64", "security.SMACK64IPIN", "security.SMACK64IPOUT", "security.SMACK64EXEC", "security.SMACK64MMAP"
+
+setxattr$security_smack_transmute(path ptr[in, filename], name ptr[in, string["security.SMACK64TRANSMUTE"]], val ptr[in, stringnoz["TRUE"]], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_smack_transmute(path ptr[in, filename], name ptr[in, string["security.SMACK64TRANSMUTE"]], val ptr[in, stringnoz["TRUE"]], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_smack_transmute(fd fd, name ptr[in, string["security.SMACK64TRANSMUTE"]], val ptr[in, stringnoz["TRUE"]], size len[val], flags flags[setxattr_flags])
