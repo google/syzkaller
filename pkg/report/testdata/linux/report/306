@@ -1,0 +1,343 @@
+TITLE: KASAN: global-out-of-bounds Read in __aa_lookupn_ns
+
+[  218.522865] ==================================================================
+[  218.530431] BUG: KASAN: global-out-of-bounds in memcmp+0xe3/0x160
+[  218.536676] Read of size 1 at addr ffffffff88000008 by task syz-executor3/8786
+[  218.536684] 
+[  218.536703] CPU: 0 PID: 8786 Comm: syz-executor3 Not tainted 4.19.0-rc5+ #251
+[  218.536716] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  218.536726] Call Trace:
+[  218.552992]  dump_stack+0x1c4/0x2b4
+22:45:44 executing program 5:
+openat$kvm(0xffffffffffffff9c, &(0x7f0000000200)='/dev/kvm\x00', 0x0, 0x0)
+mbind(&(0x7f0000000000/0x3000)=nil, 0x3000, 0x0, &(0x7f0000000000), 0x45, 0x2)
+
+[  218.553024]  ? dump_stack_print_info.cold.2+0x52/0x52
+[  218.553042]  ? printk+0xa7/0xcf
+[  218.553060]  ? kmsg_dump_rewind_nolock+0xe4/0xe4
+[  218.553085]  print_address_description.cold.8+0x58/0x1ff
+[  218.587295]  kasan_report.cold.9+0x242/0x309
+[  218.591735]  ? memcmp+0xe3/0x160
+[  218.595130]  __asan_report_load1_noabort+0x14/0x20
+[  218.595147]  memcmp+0xe3/0x160
+[  218.595165]  strnstr+0x4b/0x70
+[  218.595182]  ? __switch_to_asm+0x34/0x70
+[  218.595201]  ? __switch_to_asm+0x34/0x70
+[  218.610567]  __aa_lookupn_ns+0xc1/0x570
+[  218.610592]  ? aa_find_ns+0x30/0x30
+22:45:44 executing program 5:
+openat$kvm(0xffffffffffffff9c, &(0x7f0000000200)='/dev/kvm\x00', 0x0, 0x0)
+mbind(&(0x7f0000000000/0x3000)=nil, 0x3000, 0x0, &(0x7f0000000000), 0x45, 0x2)
+
+[  218.610610]  ? lock_acquire+0x1ed/0x520
+[  218.610630]  ? __aa_lookupn_ns+0x570/0x570
+[  218.630476]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  218.636035]  ? check_preemption_disabled+0x48/0x200
+[  218.641066]  ? kasan_check_read+0x11/0x20
+[  218.645234]  ? rcu_dynticks_curr_cpu_in_eqs+0x9f/0x160
+[  218.650531]  ? rcu_bh_qs+0xc0/0xc0
+[  218.654089]  ? print_usage_bug+0xc0/0xc0
+[  218.658159]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  218.658193]  ? __switch_to_asm+0x34/0x70
+[  218.658223]  aa_lookupn_ns+0x88/0x1e0
+22:45:44 executing program 5:
+ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
+mbind(&(0x7f0000000000/0x3000)=nil, 0x3000, 0x0, &(0x7f0000000000), 0x45, 0x2)
+
+[  218.658255]  aa_fqlookupn_profile+0x1b9/0x1010
+[  218.671655]  ? preempt_notifier_register+0x200/0x200
+[  218.671671]  ? __switch_to_asm+0x34/0x70
+[  218.671704]  ? __switch_to_asm+0x34/0x70
+[  218.671734]  ? aa_lookup_profile+0x30/0x30
+[  218.671748]  ? __lock_acquire+0x7ec/0x4ec0
+[  218.671762]  ? __switch_to_asm+0x34/0x70
+[  218.671801]  ? __switch_to_asm+0x40/0x70
+[  218.706168]  ? __switch_to_asm+0x34/0x70
+[  218.710239]  ? __switch_to_asm+0x40/0x70
+[  218.714335]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  218.719883]  ? refcount_inc_not_zero_checked+0x1e5/0x2f0
+[  218.725354]  ? refcount_add_not_zero_checked+0x330/0x330
+[  218.725390]  ? mark_held_locks+0x130/0x130
+[  218.725408]  ? __sched_text_start+0x8/0x8
+[  218.725422]  ? check_preemption_disabled+0x48/0x200
+[  218.725439]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  218.725456]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  218.725477]  fqlookupn_profile+0x80/0xc0
+[  218.739295]  aa_label_strn_parse+0xa3a/0x1230
+[  218.739322]  ? aa_label_printk+0x850/0x850
+[  218.739339]  ? __lock_acquire+0x7ec/0x4ec0
+[  218.739359]  ? lockdep_hardirqs_on+0x421/0x5c0
+[  218.776994]  ? preempt_schedule+0x4d/0x60
+[  218.777050]  ? preempt_schedule_common+0x1f/0xd0
+[  218.777071]  ? graph_lock+0x170/0x170
+[  218.777103]  ? __lock_acquire+0x7ec/0x4ec0
+[  218.786013]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  218.786033]  ? refcount_inc_not_zero_checked+0x1e5/0x2f0
+[  218.786053]  ? refcount_add_not_zero_checked+0x330/0x330
+[  218.786072]  ? graph_lock+0x170/0x170
+[  218.799212] FAULT_INJECTION: forcing a failure.
+[  218.799212] name failslab, interval 1, probability 0, space 0, times 0
+[  218.799627]  ? find_held_lock+0x36/0x1c0
+[  218.829537]  aa_label_parse+0x42/0x50
+[  218.833352]  aa_change_profile+0x513/0x3510
+[  218.837694]  ? lock_acquire+0x1ed/0x520
+[  218.841685]  ? aa_change_hat+0x1a20/0x1a20
+[  218.845940]  ? is_bpf_text_address+0xd3/0x170
+[  218.850456]  ? __mutex_lock+0x85e/0x1700
+[  218.854533]  ? proc_pid_attr_write+0x28a/0x540
+[  218.859134]  ? mutex_trylock+0x2b0/0x2b0
+[  218.863206]  ? save_stack+0xa9/0xd0
+[  218.866841]  ? save_stack+0x43/0xd0
+[  218.870482]  ? kasan_kmalloc+0xc7/0xe0
+[  218.874380]  ? __kmalloc_track_caller+0x14a/0x750
+[  218.879230]  ? memdup_user+0x2c/0xa0
+[  218.882950]  ? proc_pid_attr_write+0x198/0x540
+[  218.887539]  ? graph_lock+0x170/0x170
+[  218.891376]  ? __x64_sys_write+0x73/0xb0
+[  218.895465]  ? graph_lock+0x170/0x170
+[  218.899282]  ? mark_held_locks+0x130/0x130
+[  218.903549]  apparmor_setprocattr+0xaa4/0x1150
+[  218.908149]  ? apparmor_task_kill+0xcb0/0xcb0
+[  218.912662]  ? lock_downgrade+0x900/0x900
+[  218.916831]  ? arch_local_save_flags+0x40/0x40
+[  218.921456]  security_setprocattr+0x66/0xc0
+[  218.925796]  proc_pid_attr_write+0x301/0x540
+[  218.930222]  __vfs_write+0x119/0x9f0
+[  218.933947]  ? check_preemption_disabled+0x48/0x200
+[  218.938968]  ? proc_loginuid_write+0x4f0/0x4f0
+[  218.943572]  ? kernel_read+0x120/0x120
+[  218.947478]  ? __lock_is_held+0xb5/0x140
+[  218.951563]  ? rcu_read_lock_sched_held+0x108/0x120
+[  218.956615]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  218.962159]  ? __sb_start_write+0x1b2/0x370
+[  218.966513]  vfs_write+0x1fc/0x560
+[  218.970071]  ksys_write+0x101/0x260
+[  218.973729]  ? __ia32_sys_read+0xb0/0xb0
+[  218.977806]  ? __bpf_trace_preemptirq_template+0x30/0x30
+[  218.983307]  __x64_sys_write+0x73/0xb0
+[  218.987730]  do_syscall_64+0x1b9/0x820
+[  218.991645]  ? entry_SYSCALL_64_after_hwframe+0x3e/0xbe
+[  218.997046]  ? syscall_return_slowpath+0x5e0/0x5e0
+[  219.002018]  ? trace_hardirqs_on_caller+0x310/0x310
+[  219.007048]  ? prepare_exit_to_usermode+0x3b0/0x3b0
+[  219.012082]  ? recalc_sigpending_tsk+0x180/0x180
+[  219.016840]  ? kasan_check_write+0x14/0x20
+[  219.021093]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  219.025952]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  219.031145] RIP: 0033:0x457679
+[  219.034344] Code: 1d b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 eb b3 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  219.053245] RSP: 002b:00007f6077a06c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  219.060958] RAX: ffffffffffffffda RBX: 00007f6077a076d4 RCX: 0000000000457679
+[  219.068221] RDX: 0000000000000009 RSI: 0000000020000040 RDI: 0000000000000005
+[  219.075488] RBP: 000000000072bf00 R08: 0000000000000000 R09: 0000000000000000
+[  219.082756] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  219.090027] R13: 00000000004d8f38 R14: 00000000004c55ed R15: 0000000000000000
+[  219.097520] 
+[  219.099172] The buggy address belongs to the variable:
+[  219.104456]  __start_rodata+0x8/0x1000
+[  219.108332] 
+[  219.109956] Memory state around the buggy address:
+[  219.114905]  ffffffff87ffff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  219.122295]  ffffffff87ffff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  219.129655] >ffffffff88000000: 00 fa fa fa fa fa fa fa 00 01 fa fa fa fa fa fa
+[  219.137014]                       ^
+[  219.140638]  ffffffff88000080: 00 00 00 07 fa fa fa fa 00 04 fa fa fa fa fa fa
+[  219.148006]  ffffffff88000100: 05 fa fa fa fa fa fa fa 00 00 00 00 05 fa fa fa
+[  219.155361] ==================================================================
+[  219.162715] Disabling lock debugging due to kernel taint
+[  219.182288] CPU: 1 PID: 8817 Comm: syz-executor4 Tainted: G    B             4.19.0-rc5+ #251
+[  219.190974] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  219.200339] Call Trace:
+[  219.202937]  dump_stack+0x1c4/0x2b4
+[  219.206575]  ? dump_stack_print_info.cold.2+0x52/0x52
+[  219.211804]  ? kernel_text_address+0x79/0xf0
+[  219.216225]  should_fail.cold.4+0xa/0x17
+[  219.220296]  ? fault_create_debugfs_attr+0x1f0/0x1f0
+[  219.225410]  ? graph_lock+0x170/0x170
+[  219.229220]  ? graph_lock+0x170/0x170
+[  219.230918] Kernel panic - not syncing: panic_on_warn set ...
+[  219.230918] 
+[  219.233040]  ? lock_acquire+0x1ed/0x520
+[  219.244359]  ? find_held_lock+0x36/0x1c0
+[  219.248423]  ? __lock_is_held+0xb5/0x140
+[  219.252496]  ? ___might_sleep+0x1ed/0x300
+[  219.256651]  ? arch_local_save_flags+0x40/0x40
+[  219.261238]  ? do_raw_spin_unlock+0xa7/0x2f0
+[  219.265663]  __should_failslab+0x124/0x180
+[  219.269960]  should_failslab+0x9/0x14
+[  219.273765]  kmem_cache_alloc+0x2be/0x730
+[  219.277921]  ? __vma_adjust+0x1810/0x1810
+[  219.282072]  vm_area_alloc+0x7a/0x1d0
+[  219.285889]  ? arch_release_thread_stack+0x10/0x10
+[  219.290838]  mmap_region+0x9d4/0x1cd0
+[  219.294641]  ? mpx_unmapped_area_check+0xd8/0x108
+[  219.299490]  ? __x64_sys_brk+0x7d0/0x7d0
+[  219.303552]  ? arch_get_unmapped_area+0x750/0x750
+[  219.308394]  ? graph_lock+0x170/0x170
+[  219.312195]  ? graph_lock+0x170/0x170
+[  219.316012]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.321568]  ? unuse_pde+0x40/0x80
+[  219.325111]  ? proc_reg_get_unmapped_area+0x308/0x450
+[  219.330307]  ? proc_reg_poll+0x3a0/0x3a0
+[  219.334372]  ? lock_acquire+0x1ed/0x520
+[  219.338369]  ? __sanitizer_cov_trace_cmp8+0x18/0x20
+[  219.343403]  ? cap_mmap_addr+0x52/0x130
+[  219.347392]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.352930]  ? security_mmap_addr+0x80/0xa0
+[  219.357251]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  219.362792]  ? get_unmapped_area+0x292/0x3b0
+[  219.367198]  do_mmap+0xa10/0x1220
+[  219.370655]  ? mmap_region+0x1cd0/0x1cd0
+[  219.374711]  ? vm_mmap_pgoff+0x1b5/0x2c0
+[  219.378768]  ? down_read_killable+0x1f0/0x1f0
+[  219.383286]  ? security_mmap_file+0x174/0x1b0
+[  219.387794]  vm_mmap_pgoff+0x213/0x2c0
+[  219.391689]  ? vma_is_stack_for_current+0xd0/0xd0
+[  219.396534]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.402071]  ? check_preemption_disabled+0x48/0x200
+[  219.407121]  ksys_mmap_pgoff+0x4da/0x660
+[  219.411185]  ? do_syscall_64+0x9a/0x820
+[  219.415175]  ? find_mergeable_anon_vma+0xd0/0xd0
+[  219.419934]  ? trace_hardirqs_on+0xbd/0x310
+[  219.424259]  ? __ia32_sys_read+0xb0/0xb0
+[  219.428348]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  219.433886]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  219.439255]  ? __bpf_trace_preemptirq_template+0x30/0x30
+[  219.444709]  __x64_sys_mmap+0xe9/0x1b0
+[  219.448601]  do_syscall_64+0x1b9/0x820
+[  219.452493]  ? entry_SYSCALL_64_after_hwframe+0x3e/0xbe
+[  219.457864]  ? syscall_return_slowpath+0x5e0/0x5e0
+[  219.462810]  ? trace_hardirqs_on_caller+0x310/0x310
+[  219.467829]  ? prepare_exit_to_usermode+0x3b0/0x3b0
+[  219.472861]  ? recalc_sigpending_tsk+0x180/0x180
+[  219.477614]  ? kasan_check_write+0x14/0x20
+[  219.481855]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  219.486706]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  219.491890] RIP: 0033:0x457679
+[  219.495086] Code: 1d b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 eb b3 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  219.513987] RSP: 002b:00007f530204ec78 EFLAGS: 00000246 ORIG_RAX: 0000000000000009
+[  219.521709] RAX: ffffffffffffffda RBX: 00007f530204f6d4 RCX: 0000000000457679
+[  219.528972] RDX: 0000000000000000 RSI: 0000000000003000 RDI: 0000000020000000
+[  219.536245] RBP: 000000000072bf00 R08: 0000000000000003 R09: 0000000000000000
+[  219.543511] R10: 0000000000010012 R11: 0000000000000246 R12: 0000000000000006
+[  219.550780] R13: 00000000004d3d60 R14: 00000000004c294b R15: 0000000000000002
+[  219.558066] CPU: 0 PID: 8786 Comm: syz-executor3 Tainted: G    B             4.19.0-rc5+ #251
+[  219.566735] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  219.576090] Call Trace:
+[  219.578678]  dump_stack+0x1c4/0x2b4
+[  219.582317]  ? dump_stack_print_info.cold.2+0x52/0x52
+[  219.587519]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  219.592304]  panic+0x238/0x4e7
+[  219.595502]  ? add_taint.cold.5+0x16/0x16
+[  219.599659]  ? preempt_schedule+0x4d/0x60
+[  219.603817]  ? ___preempt_schedule+0x16/0x18
+[  219.608249]  ? trace_hardirqs_on+0xb4/0x310
+[  219.612589]  kasan_end_report+0x47/0x4f
+[  219.616565]  kasan_report.cold.9+0x76/0x309
+[  219.620891]  ? memcmp+0xe3/0x160
+[  219.624265]  __asan_report_load1_noabort+0x14/0x20
+[  219.629205]  memcmp+0xe3/0x160
+[  219.632416]  strnstr+0x4b/0x70
+[  219.635611]  ? __switch_to_asm+0x34/0x70
+[  219.639672]  ? __switch_to_asm+0x34/0x70
+[  219.643751]  __aa_lookupn_ns+0xc1/0x570
+[  219.647736]  ? aa_find_ns+0x30/0x30
+[  219.651366]  ? lock_acquire+0x1ed/0x520
+[  219.655343]  ? __aa_lookupn_ns+0x570/0x570
+[  219.659578]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.665113]  ? check_preemption_disabled+0x48/0x200
+[  219.670144]  ? kasan_check_read+0x11/0x20
+[  219.674303]  ? rcu_dynticks_curr_cpu_in_eqs+0x9f/0x160
+[  219.679579]  ? rcu_bh_qs+0xc0/0xc0
+[  219.683133]  ? print_usage_bug+0xc0/0xc0
+[  219.687193]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.692740]  ? __switch_to_asm+0x34/0x70
+[  219.696816]  aa_lookupn_ns+0x88/0x1e0
+[  219.700623]  aa_fqlookupn_profile+0x1b9/0x1010
+[  219.705212]  ? preempt_notifier_register+0x200/0x200
+[  219.710311]  ? __switch_to_asm+0x34/0x70
+[  219.714376]  ? __switch_to_asm+0x34/0x70
+[  219.718454]  ? aa_lookup_profile+0x30/0x30
+[  219.722698]  ? __lock_acquire+0x7ec/0x4ec0
+[  219.726934]  ? __switch_to_asm+0x34/0x70
+[  219.730994]  ? __switch_to_asm+0x40/0x70
+[  219.735072]  ? __switch_to_asm+0x34/0x70
+[  219.739133]  ? __switch_to_asm+0x40/0x70
+[  219.743197]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.748736]  ? refcount_inc_not_zero_checked+0x1e5/0x2f0
+[  219.754193]  ? refcount_add_not_zero_checked+0x330/0x330
+[  219.759647]  ? mark_held_locks+0x130/0x130
+[  219.763894]  ? __sched_text_start+0x8/0x8
+[  219.768040]  ? check_preemption_disabled+0x48/0x200
+[  219.773058]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.778622]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  219.784169]  fqlookupn_profile+0x80/0xc0
+[  219.788238]  aa_label_strn_parse+0xa3a/0x1230
+[  219.792738]  ? aa_label_printk+0x850/0x850
+[  219.796976]  ? __lock_acquire+0x7ec/0x4ec0
+[  219.801230]  ? lockdep_hardirqs_on+0x421/0x5c0
+[  219.805830]  ? preempt_schedule+0x4d/0x60
+[  219.809989]  ? preempt_schedule_common+0x1f/0xd0
+[  219.814762]  ? graph_lock+0x170/0x170
+[  219.818584]  ? __lock_acquire+0x7ec/0x4ec0
+[  219.822815]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.828354]  ? refcount_inc_not_zero_checked+0x1e5/0x2f0
+[  219.833861]  ? refcount_add_not_zero_checked+0x330/0x330
+[  219.839336]  ? graph_lock+0x170/0x170
+[  219.843144]  ? find_held_lock+0x36/0x1c0
+[  219.847214]  aa_label_parse+0x42/0x50
+[  219.851029]  aa_change_profile+0x513/0x3510
+[  219.855358]  ? lock_acquire+0x1ed/0x520
+[  219.859344]  ? aa_change_hat+0x1a20/0x1a20
+[  219.863656]  ? is_bpf_text_address+0xd3/0x170
+[  219.868175]  ? __mutex_lock+0x85e/0x1700
+[  219.872234]  ? proc_pid_attr_write+0x28a/0x540
+[  219.876799]  ? mutex_trylock+0x2b0/0x2b0
+[  219.880847]  ? save_stack+0xa9/0xd0
+[  219.884456]  ? save_stack+0x43/0xd0
+[  219.888058]  ? kasan_kmalloc+0xc7/0xe0
+[  219.891924]  ? __kmalloc_track_caller+0x14a/0x750
+[  219.896745]  ? memdup_user+0x2c/0xa0
+[  219.900438]  ? proc_pid_attr_write+0x198/0x540
+[  219.905008]  ? graph_lock+0x170/0x170
+[  219.908792]  ? __x64_sys_write+0x73/0xb0
+[  219.912837]  ? graph_lock+0x170/0x170
+[  219.916623]  ? mark_held_locks+0x130/0x130
+[  219.920856]  apparmor_setprocattr+0xaa4/0x1150
+[  219.925425]  ? apparmor_task_kill+0xcb0/0xcb0
+[  219.929901]  ? lock_downgrade+0x900/0x900
+[  219.934034]  ? arch_local_save_flags+0x40/0x40
+[  219.938630]  security_setprocattr+0x66/0xc0
+[  219.942933]  proc_pid_attr_write+0x301/0x540
+[  219.947325]  __vfs_write+0x119/0x9f0
+[  219.951037]  ? check_preemption_disabled+0x48/0x200
+[  219.956043]  ? proc_loginuid_write+0x4f0/0x4f0
+[  219.960606]  ? kernel_read+0x120/0x120
+[  219.964478]  ? __lock_is_held+0xb5/0x140
+[  219.968541]  ? rcu_read_lock_sched_held+0x108/0x120
+[  219.973542]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  219.979061]  ? __sb_start_write+0x1b2/0x370
+[  219.983397]  vfs_write+0x1fc/0x560
+[  219.986946]  ksys_write+0x101/0x260
+[  219.990582]  ? __ia32_sys_read+0xb0/0xb0
+[  219.994627]  ? __bpf_trace_preemptirq_template+0x30/0x30
+[  220.000068]  __x64_sys_write+0x73/0xb0
+[  220.003942]  do_syscall_64+0x1b9/0x820
+[  220.007816]  ? entry_SYSCALL_64_after_hwframe+0x3e/0xbe
+[  220.013191]  ? syscall_return_slowpath+0x5e0/0x5e0
+[  220.018138]  ? trace_hardirqs_on_caller+0x310/0x310
+[  220.023136]  ? prepare_exit_to_usermode+0x3b0/0x3b0
+[  220.028137]  ? recalc_sigpending_tsk+0x180/0x180
+[  220.032873]  ? kasan_check_write+0x14/0x20
+[  220.037116]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  220.041946]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  220.047116] RIP: 0033:0x457679
+[  220.050294] Code: 1d b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 eb b3 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  220.069178] RSP: 002b:00007f6077a06c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  220.076867] RAX: ffffffffffffffda RBX: 00007f6077a076d4 RCX: 0000000000457679
+[  220.084117] RDX: 0000000000000009 RSI: 0000000020000040 RDI: 0000000000000005
+[  220.091370] RBP: 000000000072bf00 R08: 0000000000000000 R09: 0000000000000000
+[  220.098623] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  220.105875] R13: 00000000004d8f38 R14: 00000000004c55ed R15: 0000000000000000
+[  220.114010] Kernel Offset: disabled
+[  220.117635] Rebooting in 86400 seconds..
