@@ -1928,7 +1928,6 @@ retry:
 		}
 		int i;
 		for (i = 0;; i++) {
-			debug("unlink(%s)\n", filename);
 			if (unlink(filename) == 0)
 				break;
 			if (errno == EPERM) {
@@ -1956,7 +1955,6 @@ retry:
 	closedir(dp);
 	int i;
 	for (i = 0;; i++) {
-		debug("rmdir(%s)\n", dir);
 		if (rmdir(dir) == 0)
 			break;
 		if (i < 100) {
