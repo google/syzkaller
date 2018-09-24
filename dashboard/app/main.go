@@ -504,11 +504,15 @@ func loadSimilarBugs(c context.Context, r *http.Request, bug *Bug, state *Report
 	managers := make(map[string][]string)
 	var results []*uiBug
 	accessLevel := accessLevel(c, r)
+	domain := config.Namespaces[bug.Namespace].SimilarityDomain
 	for _, similar := range similar {
 		if accessLevel < similar.sanitizeAccess(accessLevel) {
 			continue
 		}
 		if similar.Namespace == bug.Namespace && similar.Seq == bug.Seq {
+			continue
+		}
+		if config.Namespaces[similar.Namespace].SimilarityDomain != domain {
 			continue
 		}
 		if managers[similar.Namespace] == nil {

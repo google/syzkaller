@@ -47,6 +47,9 @@ type Config struct {
 	AccessLevel AccessLevel
 	// Name used in UI.
 	DisplayTitle string
+	// Unique string that allows to show "similar bugs" across different namespaces.
+	// Similar bugs are shown only across namespaces with the same value of SimilarityDomain.
+	SimilarityDomain string
 	// Per-namespace clients that act only on a particular namespace.
 	Clients map[string]string
 	// A unique key for hashing, can be anything.
@@ -196,6 +199,9 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 	namespaces[ns] = true
 	if cfg.DisplayTitle == "" {
 		cfg.DisplayTitle = ns
+	}
+	if cfg.SimilarityDomain == "" {
+		cfg.SimilarityDomain = ns
 	}
 	checkClients(clientNames, cfg.Clients)
 	for name, mgr := range cfg.Managers {
