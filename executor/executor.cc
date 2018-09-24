@@ -68,10 +68,17 @@ static NORETURN PRINTF void fail(const char* msg, ...);
 NORETURN PRINTF void error(const char* msg, ...);
 // Just exit (e.g. due to temporal ENOMEM error).
 static NORETURN PRINTF void exitf(const char* msg, ...);
+static NORETURN void doexit(int status);
+
 // Print debug output, does not add \n at the end of msg as opposed to the previous functions.
 static PRINTF void debug(const char* msg, ...);
 void debug_dump_data(const char* data, int length);
-static NORETURN void doexit(int status);
+
+#if 0
+#define debug_verbose(...) debug(__VA_ARGS__)
+#else
+#define debug_verbose(...) (void)0
+#endif
 
 static void receive_execute();
 static void reply_execute(int status);
@@ -103,6 +110,8 @@ enum sandbox_type {
 	sandbox_namespace,
 	sandbox_android_untrusted_app
 };
+
+uint64 start_time_ms = 0;
 
 static bool flag_debug;
 static bool flag_cover;
@@ -319,6 +328,8 @@ int main(int argc, char** argv)
 	if (argc == 2 && strcmp(argv[1], "test") == 0)
 		return run_tests();
 
+	start_time_ms = current_time_ms();
+
 	os_init(argc, argv, (void*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE);
 
 #if SYZ_EXECUTOR_USES_SHMEM
@@ -484,10 +495,10 @@ void receive_execute()
 	flag_fault_nth = req.fault_nth;
 	if (!flag_threaded)
 		flag_collide = false;
-	debug("exec opts: pid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu\n",
-	      procid, flag_threaded, flag_collide, flag_collect_cover, flag_collect_comps,
-	      flag_dedup_cover, flag_inject_fault, flag_fault_call, flag_fault_nth,
-	      req.prog_size);
+	debug("[%llums] exec opts: procid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu\n",
+	      current_time_ms() - start_time_ms, procid, flag_threaded, flag_collide,
+	      flag_collect_cover, flag_collect_comps, flag_dedup_cover, flag_inject_fault,
+	      flag_fault_call, flag_fault_nth, req.prog_size);
 	if (SYZ_EXECUTOR_USES_SHMEM) {
 		if (req.prog_size)
 			fail("need_prog: no program");
@@ -580,7 +591,7 @@ retry:
 				break;
 			}
 			case arg_csum: {
-				debug("checksum found at %p\n", addr);
+				debug_verbose("checksum found at %p\n", addr);
 				uint64 size = read_input(&input_pos);
 				char* csum_addr = addr;
 				uint64 csum_kind = read_input(&input_pos);
@@ -588,7 +599,7 @@ retry:
 				case arg_csum_inet: {
 					if (size != 2)
 						fail("inet checksum must be 2 bytes, not %llu", size);
-					debug("calculating checksum for %p\n", csum_addr);
+					debug_verbose("calculating checksum for %p\n", csum_addr);
 					struct csum_inet csum;
 					csum_inet_init(&csum);
 					uint64 chunks_num = read_input(&input_pos);
@@ -599,7 +610,8 @@ retry:
 						uint64 chunk_size = read_input(&input_pos);
 						switch (chunk_kind) {
 						case arg_csum_chunk_data:
-							debug("#%lld: data chunk, addr: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
+							debug_verbose("#%lld: data chunk, addr: %llx, size: %llu\n",
+								      chunk, chunk_value, chunk_size);
 							NONFAILING(csum_inet_update(&csum, (const uint8*)chunk_value, chunk_size));
 							break;
 						case arg_csum_chunk_const:
@@ -607,7 +619,8 @@ retry:
 								fail("bad checksum const chunk size %lld\n", chunk_size);
 							}
 							// Here we assume that const values come to us big endian.
-							debug("#%lld: const chunk, value: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
+							debug_verbose("#%lld: const chunk, value: %llx, size: %llu\n",
+								      chunk, chunk_value, chunk_size);
 							csum_inet_update(&csum, (const uint8*)&chunk_value, chunk_size);
 							break;
 						default:
@@ -615,7 +628,7 @@ retry:
 						}
 					}
 					uint16 csum_value = csum_inet_digest(&csum);
-					debug("writing inet checksum %hx to %p\n", csum_value, csum_addr);
+					debug_verbose("writing inet checksum %hx to %p\n", csum_value, csum_addr);
 					copyin(csum_addr, csum_value, 2, binary_format_native, 0, 0);
 					break;
 				}
@@ -731,7 +744,6 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 	if (i == kMaxThreads)
 		exitf("out of threads");
 	thread_t* th = &threads[i];
-	debug("scheduling call %d [%s] on thread %d\n", call_index, syscalls[call_num].name, th->id);
 	if (event_isset(&th->ready) || !event_isset(&th->done) || th->executing)
 		fail("bad thread state in schedule: ready=%d done=%d executing=%d",
 		     event_isset(&th->ready), event_isset(&th->done), th->executing);
@@ -795,7 +807,6 @@ void write_coverage_signal(thread_t* th, uint32* signal_count_pos, uint32* cover
 
 void handle_completion(thread_t* th)
 {
-	debug("completion of call %d [%s] on thread %d\n", th->call_index, syscalls[th->call_num].name, th->id);
 	if (event_isset(&th->ready) || !event_isset(&th->done) || !th->executing)
 		fail("bad thread state in completion: ready=%d done=%d executing=%d",
 		     event_isset(&th->ready), event_isset(&th->done), th->executing);
@@ -831,7 +842,7 @@ void copyout_call_results(thread_t* th)
 				results[index].executed = true;
 				results[index].val = val;
 			}
-			debug("copyout 0x%llx from %p\n", val, addr);
+			debug_verbose("copyout 0x%llx from %p\n", val, addr);
 			break;
 		}
 		default:
@@ -885,9 +896,9 @@ void write_call_output(thread_t* th, bool finished)
 		else
 			write_coverage_signal<uint32>(th, signal_count_pos, cover_count_pos);
 	}
-	debug("out #%u: index=%u num=%u errno=%d finished=%d blocked=%d sig=%u cover=%u comps=%u\n",
-	      completed, th->call_index, th->call_num, reserrno, finished, blocked,
-	      *signal_count_pos, *cover_count_pos, *comps_count_pos);
+	debug_verbose("out #%u: index=%u num=%u errno=%d finished=%d blocked=%d sig=%u cover=%u comps=%u\n",
+		      completed, th->call_index, th->call_num, reserrno, finished, blocked,
+		      *signal_count_pos, *cover_count_pos, *comps_count_pos);
 	completed++;
 	write_completed(completed);
 #else
@@ -904,8 +915,8 @@ void write_call_output(thread_t* th, bool finished)
 	reply.comps_size = 0;
 	if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
 		fail("control pipe call write failed");
-	debug("out: index=%u num=%u errno=%d finished=%d blocked=%d\n",
-	      th->call_index, th->call_num, reserrno, finished, blocked);
+	debug_verbose("out: index=%u num=%u errno=%d finished=%d blocked=%d\n",
+		      th->call_index, th->call_num, reserrno, finished, blocked);
 #endif
 }
 
@@ -939,7 +950,8 @@ void* worker_thread(void* arg)
 void execute_call(thread_t* th)
 {
 	const call_t* call = &syscalls[th->call_num];
-	debug("#%d: %s(", th->id, call->name);
+	debug("#%d [%llums] -> %s(",
+	      th->id, current_time_ms() - start_time_ms, call->name);
 	for (int i = 0; i < th->num_args; i++) {
 		if (i != 0)
 			debug(", ");
@@ -951,7 +963,6 @@ void execute_call(thread_t* th)
 	if (flag_inject_fault && th->call_index == flag_fault_call) {
 		if (collide)
 			fail("both collide and fault injection are enabled");
-		debug("injecting fault into %d-th operation\n", flag_fault_nth);
 		fail_fd = inject_fault(flag_fault_nth);
 	}
 
@@ -964,7 +975,6 @@ void execute_call(thread_t* th)
 		th->reserrno = EINVAL; // our syz syscalls may misbehave
 	if (flag_cover) {
 		cover_collect(&th->cov);
-		debug("#%d: read cover size = %u\n", th->id, th->cov.size);
 		if (th->cov.size >= kCoverSize)
 			fail("#%d: too much cover %u", th->id, th->cov.size);
 	}
@@ -972,13 +982,15 @@ void execute_call(thread_t* th)
 
 	if (flag_inject_fault && th->call_index == flag_fault_call) {
 		th->fault_injected = fault_injected(fail_fd);
-		debug("fault injected: %d\n", th->fault_injected);
 	}
 
-	if (th->res == -1)
-		debug("#%d: %s = errno(%d)\n", th->id, call->name, th->reserrno);
-	else
-		debug("#%d: %s = 0x%lx\n", th->id, call->name, th->res);
+	debug("#%d [%llums] <- %s=0x%lx errno=%d ",
+	      th->id, current_time_ms() - start_time_ms, call->name, th->res, th->reserrno);
+	if (flag_cover)
+		debug("cover=%u ", th->cov.size);
+	if (flag_inject_fault && th->call_index == flag_fault_call)
+		debug("fault=%d ", th->fault_injected);
+	debug("\n");
 }
 
 #if SYZ_EXECUTOR_USES_SHMEM

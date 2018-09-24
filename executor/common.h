@@ -546,7 +546,6 @@ static void loop(void)
 			close(kOutPipeFd);
 #endif
 			execute_one();
-			debug("worker exiting\n");
 #if SYZ_HAVE_RESET_TEST
 			reset_test();
 #endif
@@ -596,7 +595,7 @@ static void loop(void)
 			if (current_time_ms() - start < 5 * 1000)
 				continue;
 #endif
-			debug("killing\n");
+			debug("killing hanging pid %d\n", pid);
 			kill_and_wait(pid, &status);
 			break;
 		}
