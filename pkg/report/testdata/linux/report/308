@@ -1,0 +1,150 @@
+TITLE: general protection fault in __aa_lookupn_ns
+
+[  234.220213] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[  234.245620] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[  234.251890] CPU: 0 PID: 10175 Comm: syz-executor1 Not tainted 4.19.0-rc5+ #251
+[  234.259274] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+22:45:50 executing program 5:
+clone(0x2102001ffc, 0x0, 0xfffffffffffffffe, &(0x7f00000000c0), 0xffffffffffffffff)
+r0 = getpid()
+sched_setscheduler(r0, 0x5, &(0x7f0000000200))
+futex(&(0x7f00000001c0)=0x100000000000000, 0xc, 0x0, &(0x7f0000000040), &(0x7f0000004000), 0x0)
+ioctl$TIOCLINUX3(0xffffffffffffffff, 0x541c, &(0x7f0000000100))
+ioctl$UI_BEGIN_FF_ERASE(0xffffffffffffffff, 0xc00c55ca, &(0x7f0000000080))
+ioctl$UI_END_FF_ERASE(0xffffffffffffffff, 0x400c55cb, &(0x7f0000000300)={0x0, 0x1})
+
+[  234.268662] RIP: 0010:memcmp+0x28/0x160
+[  234.272658] Code: 00 00 48 85 d2 0f 84 0a 01 00 00 48 b8 00 00 00 00 00 fc ff df 55 48 89 f9 48 89 e5 48 c1 e9 03 41 54 53 48 89 fb 48 83 ec 18 <0f> b6 04 01 48 89 f9 83 e1 07 38 c8 7f 08 84 c0 0f 85 98 00 00 00
+[  234.291571] RSP: 0018:ffff88019a51ef98 EFLAGS: 00010292
+[  234.296960] RAX: dffffc0000000000 RBX: 1ffff100334a3e4f RCX: 03fffe20066947c9
+[  234.302554] kobject: 'loop5' (00000000d5f15f89): kobject_uevent_env
+[  234.304236] RDX: 0000000000000002 RSI: ffffffff883f7980 RDI: 1ffff100334a3e4f
+[  234.304247] RBP: ffff88019a51efc0 R08: ffff8801b9432640 R09: ffffed003b5a4732
+[  234.304256] R10: ffffed003b5a4732 R11: ffff8801dad23993 R12: 0000000000000002
+[  234.304267] R13: ffffffff883f7980 R14: 1fff7901cd9c319f R15: dffffc0000000000
+[  234.304284] FS:  00007f3dde3f8700(0000) GS:ffff8801dac00000(0000) knlGS:0000000000000000
+[  234.310800] kobject: 'loop5' (00000000d5f15f89): fill_kobj_path: path = '/devices/virtual/block/loop5'
+[  234.317944] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  234.317955] CR2: 0000000000413720 CR3: 00000001bcd8e000 CR4: 00000000001406f0
+22:45:50 executing program 3:
+r0 = socket$inet(0x2, 0x4000000000000001, 0x0)
+socketpair$unix(0x1, 0x5, 0x0, &(0x7f0000000280)={0xffffffffffffffff, <r1=>0xffffffffffffffff})
+clone(0x2102001ffc, 0x0, 0xfffffffffffffffe, &(0x7f0000000100), 0xffffffffffffffff)
+ioctl$BLKSECTGET(r1, 0x1267, &(0x7f0000000000))
+sched_setscheduler(0x0, 0x5, &(0x7f0000000200))
+getsockopt$ARPT_SO_GET_ENTRIES(r0, 0x0, 0x61, &(0x7f0000000180)={'filter\x00', 0x4, "39fe0cf1"}, &(0x7f00000000c0)=0x28)
+
+[  234.317967] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  234.317977] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  234.317982] Call Trace:
+[  234.318005]  ? _raw_spin_unlock_irq+0x27/0x80
+[  234.318022]  strnstr+0x4b/0x70
+[  234.382961] kobject: 'loop3' (00000000a906aecd): kobject_uevent_env
+[  234.385162]  __aa_lookupn_ns+0xc1/0x570
+[  234.385197]  ? compat_start_thread+0x80/0x80
+[  234.387895] kobject: 'loop3' (00000000a906aecd): fill_kobj_path: path = '/devices/virtual/block/loop3'
+[  234.392265]  ? aa_find_ns+0x30/0x30
+[  234.392323]  ? lock_acquire+0x1ed/0x520
+[  234.392343]  ? __aa_lookupn_ns+0x570/0x570
+[  234.412577] kobject: 'loop4' (00000000324e1a6e): kobject_uevent_env
+[  234.419700]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  234.419716]  ? check_preemption_disabled+0x48/0x200
+[  234.419734]  ? kasan_check_read+0x11/0x20
+[  234.419757]  ? rcu_dynticks_curr_cpu_in_eqs+0x9f/0x160
+[  234.438733] kobject: 'loop4' (00000000324e1a6e): fill_kobj_path: path = '/devices/virtual/block/loop4'
+[  234.443494]  ? __switch_to_asm+0x34/0x70
+[  234.443512]  ? rcu_bh_qs+0xc0/0xc0
+[  234.443534]  ? print_usage_bug+0xc0/0xc0
+[  234.479004]  ? __switch_to_asm+0x34/0x70
+[  234.483070]  ? __switch_to_asm+0x40/0x70
+[  234.487144]  aa_lookupn_ns+0x88/0x1e0
+[  234.490954]  aa_fqlookupn_profile+0x1b9/0x1010
+[  234.495549]  ? aa_lookup_profile+0x30/0x30
+[  234.499275] kobject: 'loop5' (00000000d5f15f89): kobject_uevent_env
+[  234.499836]  ? __lock_acquire+0x7ec/0x4ec0
+[  234.499861]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  234.499883]  ? refcount_inc_not_zero_checked+0x1e5/0x2f0
+[  234.508993] kobject: 'loop5' (00000000d5f15f89): fill_kobj_path: path = '/devices/virtual/block/loop5'
+[  234.510517]  ? refcount_add_not_zero_checked+0x330/0x330
+[  234.510534]  ? mark_held_locks+0x130/0x130
+[  234.510575]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  234.546123]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  234.551653]  fqlookupn_profile+0x80/0xc0
+[  234.555728]  aa_label_strn_parse+0xa3a/0x1230
+[  234.560226]  ? aa_label_printk+0x850/0x850
+[  234.564447]  ? zap_class+0x640/0x640
+[  234.568165]  ? __might_sleep+0x95/0x190
+[  234.572125]  ? graph_lock+0x170/0x170
+[  234.575923]  ? __lock_acquire+0x7ec/0x4ec0
+[  234.580153]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  234.585691]  ? refcount_inc_not_zero_checked+0x1e5/0x2f0
+[  234.591127]  ? refcount_add_not_zero_checked+0x330/0x330
+[  234.596565]  ? graph_lock+0x170/0x170
+[  234.600358]  ? find_held_lock+0x36/0x1c0
+[  234.604409]  aa_label_parse+0x42/0x50
+[  234.608195]  aa_change_profile+0x513/0x3510
+[  234.612517]  ? lock_acquire+0x1ed/0x520
+[  234.616509]  ? aa_change_hat+0x1a20/0x1a20
+[  234.620750]  ? is_bpf_text_address+0xd3/0x170
+[  234.625236]  ? __mutex_lock+0x85e/0x1700
+[  234.629291]  ? debug_smp_processor_id+0x1c/0x20
+[  234.633980]  ? perf_trace_lock+0x14d/0x7a0
+[  234.638224]  ? proc_pid_attr_write+0x28a/0x540
+[  234.642798]  ? mutex_trylock+0x2b0/0x2b0
+[  234.646843]  ? save_stack+0xa9/0xd0
+[  234.650464]  ? save_stack+0x43/0xd0
+[  234.654088]  ? kasan_kmalloc+0xc7/0xe0
+[  234.657958]  ? __kmalloc_track_caller+0x14a/0x750
+[  234.662787]  ? memdup_user+0x2c/0xa0
+[  234.666486]  ? proc_pid_attr_write+0x198/0x540
+[  234.671050]  ? graph_lock+0x170/0x170
+[  234.674838]  ? __x64_sys_write+0x73/0xb0
+[  234.678883]  ? graph_lock+0x170/0x170
+[  234.682667]  ? mark_held_locks+0x130/0x130
+[  234.686905]  apparmor_setprocattr+0xaa4/0x1150
+[  234.691492]  ? apparmor_task_kill+0xcb0/0xcb0
+[  234.695972]  ? lock_downgrade+0x900/0x900
+[  234.700106]  ? arch_local_save_flags+0x40/0x40
+[  234.704686]  security_setprocattr+0x66/0xc0
+[  234.708994]  proc_pid_attr_write+0x301/0x540
+[  234.713390]  __vfs_write+0x119/0x9f0
+[  234.717092]  ? check_preemption_disabled+0x48/0x200
+[  234.722091]  ? proc_loginuid_write+0x4f0/0x4f0
+[  234.726659]  ? kernel_read+0x120/0x120
+[  234.730541]  ? __lock_is_held+0xb5/0x140
+[  234.734597]  ? rcu_read_lock_sched_held+0x108/0x120
+[  234.739604]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  234.745137]  ? __sb_start_write+0x1b2/0x370
+[  234.749448]  vfs_write+0x1fc/0x560
+[  234.753002]  ksys_write+0x101/0x260
+[  234.756631]  ? __ia32_sys_read+0xb0/0xb0
+[  234.760687]  ? __bpf_trace_preemptirq_template+0x30/0x30
+[  234.766134]  __x64_sys_write+0x73/0xb0
+[  234.770007]  do_syscall_64+0x1b9/0x820
+[  234.773880]  ? entry_SYSCALL_64_after_hwframe+0x3e/0xbe
+[  234.779228]  ? syscall_return_slowpath+0x5e0/0x5e0
+[  234.784155]  ? trace_hardirqs_on_caller+0x310/0x310
+[  234.789167]  ? prepare_exit_to_usermode+0x3b0/0x3b0
+[  234.794202]  ? recalc_sigpending_tsk+0x180/0x180
+[  234.798958]  ? kasan_check_write+0x14/0x20
+[  234.803189]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  234.808025]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  234.813215] RIP: 0033:0x457679
+[  234.816413] Code: 1d b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 eb b3 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  234.835326] RSP: 002b:00007f3dde3f7c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  234.843043] RAX: ffffffffffffffda RBX: 00007f3dde3f86d4 RCX: 0000000000457679
+[  234.850327] RDX: 0000000000000009 RSI: 0000000020000040 RDI: 0000000000000003
+[  234.857591] RBP: 000000000072bf00 R08: 0000000000000000 R09: 0000000000000000
+[  234.864851] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  234.872119] R13: 00000000004d8f38 R14: 00000000004c55ed R15: 0000000000000000
+[  234.879409] Modules linked in:
+[  234.886076] ---[ end trace 1246d7b16c2c67d7 ]---
+[  234.891053] RIP: 0010:memcmp+0x28/0x160
+[  234.895200] Code: 00 00 48 85 d2 0f 84 0a 01 00 00 48 b8 00 00 00 00 00 fc ff df 55 48 89 f9 48 89 e5 48 c1 e9 03 41 54 53 48 89 fb 48 83 ec 18 <0f> b6 04 01 48 89 f9 83 e1 07 38 c8 7f 08 84 c0 0f 85 98 00 00 00
+[  234.914432] RSP: 0018:ffff88019a51ef98 EFLAGS: 00010292
+[  234.921713] RAX: dffffc0000000000 RBX: 1ffff100334a3e4f RCX: 03fffe20066947c9
+[  234.930241] RDX: 0000000000000002 RSI: ffffffff883f7980 RDI: 1ffff100334a3e4f
+[  234.938244] RBP: ffff88019a51efc0 R08: ffff8801b9432640 R09: ffffed003b5a4732
+[  234.945594] R10: ffffed003b5a4732 R11: ffff8801dad23993 R12: 0000000000000002
+[  234.952867] R13: ffffffff883f7980 R14: 1fff7901cd9c319f R15: dffffc0000000000
+[  234.960188] FS:  00007f3dde3f8700(0000) GS:ffff8801dac00000(0000) knlGS:0000000000000000

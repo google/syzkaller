@@ -671,6 +671,8 @@ var linuxStackParams = &stackParams{
 		"strcpy",
 		"strlcpy",
 		"strlen",
+		"strnstr",
+		"strnlen",
 		"copy_to_user",
 		"copy_from_user",
 		"put_user",
