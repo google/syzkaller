@@ -5,7 +5,10 @@ include <linux/xattr.h>
 include <linux/uuid.h>
 include <uapi/linux/posix_acl_xattr.h>
 include <uapi/linux/posix_acl.h>
+include <uapi/linux/capability.h>
+include <security/integrity/integrity.h>
 include <fs/overlayfs/overlayfs.h>
+include <uapi/linux/hash_info.h>
 
 setxattr(path ptr[in, filename], name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
 lsetxattr(path ptr[in, filename], name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
@@ -34,7 +37,7 @@ setxattr_flags = XATTR_CREATE, XATTR_REPLACE
 
 xattr_prefix = "system.", "trusted.", "security.", "user.", "btrfs.", "osx.", "os2."
 
-xattr_names = "system.posix_acl_access", "system.posix_acl_default", "system.advise", "system.sockprotoname", "com.apple.FinderInfo", "com.apple.system.Security", "user.syz", "trusted.syz", "security.evm", "security.ima", "security.apparmor", "security.capability", "trusted.overlay.opaque", "trusted.overlay.redirect", "trusted.overlay.origin", "trusted.overlay.impure", "trusted.overlay.nlink", "trusted.overlay.upper", "trusted.overlay.metacopy"
+xattr_names = "system.posix_acl_access", "system.posix_acl_default", "system.advise", "system.sockprotoname", "com.apple.FinderInfo", "com.apple.system.Security", "user.syz", "trusted.syz", "security.apparmor", "trusted.overlay.opaque", "trusted.overlay.redirect", "trusted.overlay.origin", "trusted.overlay.impure", "trusted.overlay.nlink", "trusted.overlay.upper", "trusted.overlay.metacopy"
 
 setxattr$system_posix_acl(path ptr[in, filename], name ptr[in, string[xattr_posix_acl_names]], val ptr[in, xattr_system_posix_acl_access], size len[val], flags flags[setxattr_flags])
 lsetxattr$system_posix_acl(path ptr[in, filename], name ptr[in, string[xattr_posix_acl_names]], val ptr[in, xattr_system_posix_acl_access], size len[val], flags flags[setxattr_flags])
@@ -63,6 +66,85 @@ type posix_acl_xattr_entry[TAG, ID] {
 }
 
 posix_acl_perm = ACL_READ, ACL_WRITE, ACL_EXECUTE
+
+setxattr$security_capability(path ptr[in, filename], name ptr[in, string["security.capability"]], val ptr[in, vfs_cap_data_u], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_capability(path ptr[in, filename], name ptr[in, string["security.capability"]], val ptr[in, vfs_cap_data_u], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_capability(fd fd, name ptr[in, string["security.capability"]], val ptr[in, vfs_cap_data_u], size len[val], flags flags[setxattr_flags])
+
+vfs_cap_data_u [
+	v1	vfs_cap_data_v1
+	v2	vfs_cap_data
+	v3	vfs_ns_cap_data
+] [varlen]
+
+vfs_cap_data_v1 {
+	magic_etc	const[VFS_CAP_REVISION_1, int32]
+	data		array[vfs_cap_elem, VFS_CAP_U32_1]
+}
+
+vfs_cap_data {
+	magic_etc	const[VFS_CAP_REVISION_2, int32]
+	data		array[vfs_cap_elem, VFS_CAP_U32_2]
+}
+
+vfs_ns_cap_data {
+	magic_etc	const[VFS_CAP_REVISION_3, int32]
+	data		array[vfs_cap_elem, VFS_CAP_U32_3]
+	rootid		uid
+}
+
+vfs_cap_elem {
+	permitted	int32
+	inheritable	int32
+}
+
+setxattr$security_evm(path ptr[in, filename], name ptr[in, string["security.evm"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_evm(path ptr[in, filename], name ptr[in, string["security.evm"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_evm(fd fd, name ptr[in, string["security.evm"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+
+setxattr$security_ima(path ptr[in, filename], name ptr[in, string["security.ima"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+lsetxattr$security_ima(path ptr[in, filename], name ptr[in, string["security.ima"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+fsetxattr$security_ima(fd fd, name ptr[in, string["security.ima"]], val ptr[in, evm_ima_xattr], size len[val], flags flags[setxattr_flags])
+
+evm_ima_xattr [
+	v1	evm_ima_xattr_data
+	v2	signature_v2_hdr
+	md5	evm_ima_xattr_digest_md5
+	sha1	evm_ima_xattr_digest_sha1
+	ng	evm_ima_xattr_digest_ng
+] [varlen]
+
+evm_ima_xattr_data {
+	type	const[EVM_XATTR_HMAC, int8]
+	digest	array[int8, 0:SHA1_DIGEST_SIZE]
+}
+
+signature_v2_hdr {
+	type		flags[evm_xattr_type, int8]
+	version		int8[0:3]
+	hash_algo	int8[0:HASH_ALGO__LAST]
+	keyid		int32be
+	sig_size	bytesize[sig, int16be]
+	sig		array[int8]
+}
+
+evm_xattr_type = EVM_IMA_XATTR_DIGSIG, EVM_XATTR_PORTABLE_DIGSIG
+
+evm_ima_xattr_digest_md5 {
+	type	const[IMA_XATTR_DIGEST, int8]
+	digest	array[int8, 16]
+}
+
+evm_ima_xattr_digest_sha1 {
+	type	const[IMA_XATTR_DIGEST, int8]
+	digest	array[int8, 20]
+}
+
+evm_ima_xattr_digest_ng {
+	type	const[IMA_XATTR_DIGEST_NG, int8]
+	algo	int8[0:HASH_ALGO__LAST]
+	digest	array[int8, 0:SHA1_DIGEST_SIZE]
+}
 
 setxattr$trusted_overlay_origin(path ptr[in, filename], name ptr[in, string["trusted.overlay.origin"]], val ptr[in, string["y"]], size len[val], flags flags[setxattr_flags])
 lsetxattr$trusted_overlay_origin(path ptr[in, filename], name ptr[in, string["trusted.overlay.origin"]], val ptr[in, string["y"]], size len[val], flags flags[setxattr_flags])
