@@ -86,8 +86,9 @@ fs_image_segment {
 }
 
 type fs_options[ELEMS] {
-	elems	array[fs_opt_elem[ELEMS]]
-	null	const[0, int8]
+	elems		array[fs_opt_elem[ELEMS]]
+	security	array[fs_opt_elem[fs_options_security]]
+	null		const[0, int8]
 } [packed]
 
 type fs_opt_elem[ELEMS] {
@@ -111,6 +112,22 @@ type fs_opt_codepage[NAME] fs_opt[NAME, stringnoz[codepages_names]]
 type fs_opt_cp_num[NAME] fs_opt[NAME, stringnoz[codepage_nums]]
 
 fs_opt_digits_suffix = '-', 'x', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'k', 'm', 'g', 't', 'p', 'e'
+
+fs_options_security [
+# SELinux options:
+	context			fs_opt["context", stringnoz[selinux_user_context]]
+	fscontext		fs_opt["fscontext", stringnoz[selinux_user_context]]
+	rootcontext		fs_opt["rootcontext", stringnoz[selinux_user_context]]
+	defcontext		fs_opt["defcontext", stringnoz[selinux_user_context]]
+	seclabel		stringnoz["seclabel"]
+
+# Smack options:
+	smackfsdef		fs_opt_str["smackfsdef"]
+	smackfsfloor		fs_opt_str["smackfsfloor"]
+	smackfshat		fs_opt_str["smackfshat"]
+	smackfsroot		fs_opt_str["smackfsroot"]
+	smackfstransmute	fs_opt_str["smackfstransmute"]
+] [varlen]
 
 msdos_options [
 	fat	fat_options
