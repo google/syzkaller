@@ -9,7 +9,7 @@ umount2(path ptr[in, filename], flags flags[umount_flags])
 mount$bpf(src const[0], dst ptr[in, filename], type ptr[in, string["bpf"]], flags flags[mount_flags], opts ptr[in, fs_options[bpf_options]])
 mount$overlay(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, fs_options[overlay_options]])
 
-filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6", "exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs", "cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs", "proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf", "ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660", "coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs", "bpf", "cgroup", "cgroup2", "cpuset", "mqueue", "aufs", "selinuxfs", "dax"
+filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6", "exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs", "cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs", "proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf", "ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660", "coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs", "bpf", "cgroup", "cgroup2", "cpuset", "mqueue", "aufs", "selinuxfs", "dax", "erofs"
 
 blockdev_filename [
 	filename	filename
@@ -77,6 +77,8 @@ syz_mount_image$cifs(fs ptr[in, string["cifs"]], dir ptr[in, filename], size int
 
 syz_mount_image$ceph(fs ptr[in, string["ceph"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
 
+syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[erofs_options]])
+
 fs_image_segment {
 	data	ptr[in, array[int8]]
 	size	len[data, intptr]
@@ -84,8 +86,9 @@ fs_image_segment {
 }
 
 type fs_options[ELEMS] {
-	elems	array[fs_opt_elem[ELEMS]]
-	null	const[0, int8]
+	elems		array[fs_opt_elem[ELEMS]]
+	security	array[fs_opt_elem[fs_options_security]]
+	null		const[0, int8]
 } [packed]
 
 type fs_opt_elem[ELEMS] {
@@ -109,6 +112,22 @@ type fs_opt_codepage[NAME] fs_opt[NAME, stringnoz[codepages_names]]
 type fs_opt_cp_num[NAME] fs_opt[NAME, stringnoz[codepage_nums]]
 
 fs_opt_digits_suffix = '-', 'x', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'k', 'm', 'g', 't', 'p', 'e'
+
+fs_options_security [
+# SELinux options:
+	context			fs_opt["context", stringnoz[selinux_user_context]]
+	fscontext		fs_opt["fscontext", stringnoz[selinux_user_context]]
+	rootcontext		fs_opt["rootcontext", stringnoz[selinux_user_context]]
+	defcontext		fs_opt["defcontext", stringnoz[selinux_user_context]]
+	seclabel		stringnoz["seclabel"]
+
+# Smack options:
+	smackfsdef		fs_opt_str["smackfsdef"]
+	smackfsfloor		fs_opt_str["smackfsfloor"]
+	smackfshat		fs_opt_str["smackfshat"]
+	smackfsroot		fs_opt_str["smackfsroot"]
+	smackfstransmute	fs_opt_str["smackfstransmute"]
+] [varlen]
 
 msdos_options [
 	fat	fat_options
@@ -607,6 +626,14 @@ overlay_options [
 	xino_auto		stringnoz["xino=auto"]
 	metacopy_on		stringnoz["metacopy=on"]
 	metacopy_off		stringnoz["metacopy=off"]
+] [varlen]
+
+erofs_options [
+	user_xattr	stringnoz["user_xattr"]
+	nouser_xattr	stringnoz["nouser_xattr"]
+	acl		stringnoz["acl"]
+	noacl		stringnoz["noacl"]
+	fault_injection	fs_opt_hex["fault_injection", int32]
 ] [varlen]
 
 codepage_nums = "1250", "1251", "1255", "437", "737", "775", "850", "852", "855", "857", "860", "861", "862", "863", "864", "865", "866", "869", "874", "932", "936", "949", "950"

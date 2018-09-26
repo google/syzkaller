@@ -23,6 +23,7 @@ For other OS kernels check: [Akaros](docs/akaros/README.md), [FreeBSD](docs/free
 
 ## External Articles
 
+ - [Research work based on syzkaller](docs/research.md)
  - From [HardenedLinux](https://github.com/hardenedlinux) project:
    - [Kernel QA with syzkaller and qemu](https://github.com/hardenedlinux/Debian-GNU-Linux-Profiles/blob/master/docs/harbian_qa/fuzz_testing/syzkaller_general.md) (tutorial on how to setup syzkaller with qemu)
    - [Syzkaller crash DEMO](https://github.com/hardenedlinux/Debian-GNU-Linux-Profiles/blob/master/docs/harbian_qa/fuzz_testing/syzkaller_crash_demo.md) (tutorial on how to extend syzkaller with new syscalls)
@@ -34,6 +35,7 @@ For other OS kernels check: [Akaros](docs/akaros/README.md), [FreeBSD](docs/free
  - [Debugging a kernel crash found by syzkaller](http://vegardno.blogspot.de/2016/08/sync-debug.html) (by Quentin Casasnovas)
  - [Linux Plumbers 2016 talk slides](https://docs.google.com/presentation/d/1iAuTvzt_xvDzS2misXwlYko_VDvpvCmDevMOq2rXIcA/edit?usp=sharing)
  - [syzkaller: the next gen kernel fuzzer](https://www.slideshare.net/DmitryVyukov/syzkaller-the-next-gen-kernel-fuzzer) (basics of operations, tutorial on how to run syzkaller and how to extend it to fuzz new drivers)
+ - [syzbot and the tale of thousand kernel bugs](https://events.linuxfoundation.org/wp-content/uploads/2017/11/Syzbot-and-the-Tale-of-Thousand-Kernel-Bugs-Dmitry-Vyukov-Google.pdf) [[video](https://www.youtube.com/watch?v=qrBVXxZDVQY)]
 
 ## Disclaimer
 
