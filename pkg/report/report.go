@@ -43,8 +43,10 @@ type Report struct {
 	Corrupted bool
 	// CorruptedReason contains reason why the report is marked as corrupted.
 	CorruptedReason string
-	// Maintainers is list of maintainer emails.
+	// Maintainers is list of maintainer emails (filled in by Symbolize).
 	Maintainers []string
+	// guiltyFile is the source file that we think is to blame for the crash  (filled in by Symbolize).
+	guiltyFile string
 }
 
 // NewReporter creates reporter for the specified OS/Type.
@@ -187,17 +189,6 @@ func sanitizeTitle(title string) string {
 		prev = ch
 	}
 	return strings.TrimSpace(string(res))
-}
-
-type guilter interface {
-	extractGuiltyFile([]byte) string
-}
-
-func (wrap reporterWrapper) extractGuiltyFile(report []byte) string {
-	if g, ok := wrap.Reporter.(guilter); ok {
-		return g.extractGuiltyFile(report)
-	}
-	panic("not implemented")
 }
 
 type oops struct {
