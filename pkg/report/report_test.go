@@ -220,8 +220,26 @@ func testGuiltyFile(t *testing.T, reporter Reporter, fn string) {
 	}
 	file := string(data[len(prefix) : len(prefix)+nlnl])
 	report := data[len(prefix)+nlnl:]
-	if guilty := reporter.(guilter).extractGuiltyFile(report); guilty != file {
-		t.Fatalf("got guilty %q, want %q", guilty, file)
+	rep := reporter.Parse(report)
+	if rep == nil {
+		t.Fatalf("did not find crash in the input")
+	}
+	// Parse doesn't generally run on already symbolized output,
+	// but here we run it on symbolized output because we can't symbolize in tests.
+	// The problem is with duplicated lines due to inlined frames,
+	// Parse can strip such report after first title line because it thinks
+	// that the duplicated title line is beginning on another report.
+	// In such case we restore whole report, but still keep StartPos that
+	// Parse produces at least in some cases.
+	if !bytes.HasSuffix(report, rep.Report) {
+		rep.Report = report
+		rep.StartPos = 0
+	}
+	if err := reporter.Symbolize(rep); err != nil {
+		t.Fatalf("failed to symbolize report: %v", err)
+	}
+	if rep.guiltyFile != file {
+		t.Fatalf("got guilty %q, want %q", rep.guiltyFile, file)
 	}
 }
 

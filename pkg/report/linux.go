@@ -27,7 +27,7 @@ type linux struct {
 	consoleOutputRe       *regexp.Regexp
 	questionableRe        *regexp.Regexp
 	guiltyFileBlacklist   []*regexp.Regexp
-	reportStartIgnores    [][]byte
+	reportStartIgnores    []*regexp.Regexp
 	infoMessagesWithStack [][]byte
 	eoi                   []byte
 }
@@ -82,10 +82,10 @@ func ctorLinux(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter,
 		regexp.MustCompile(`^fs/proc/generic.c`),
 	}
 	// These pattern do _not_ start a new report, i.e. can be in a middle of another report.
-	ctx.reportStartIgnores = [][]byte{
-		[]byte("invalid opcode: 0000"),
-		[]byte("Kernel panic - not syncing: panic_on_warn set"),
-		[]byte("unregister_netdevice: waiting for"),
+	ctx.reportStartIgnores = []*regexp.Regexp{
+		compile(`invalid opcode: 0000`),
+		compile(`Kernel panic - not syncing: panic_on_warn set`),
+		compile(`unregister_netdevice: waiting for`),
 	}
 	// These pattern math kernel reports which are not bugs in itself but contain stack traces.
 	// If we see them in the middle of another report, we know that the report is potentially corrupted.
@@ -200,14 +200,7 @@ func (ctx *linux) parseOutput(output []byte) (
 				startPos = pos
 				break
 			} else if secondReportPos == 0 {
-				ignored := false
-				for _, ignore := range ctx.reportStartIgnores {
-					if bytes.Contains(line, ignore) {
-						ignored = true
-						break
-					}
-				}
-				if !ignored {
+				if !matchesAny(line, ctx.reportStartIgnores) {
 					secondReportPos = pos
 				}
 			}
@@ -274,20 +267,22 @@ func (ctx *linux) parseOutput(output []byte) (
 }
 
 func (ctx *linux) Symbolize(rep *Report) error {
-	if ctx.vmlinux == "" {
-		return nil
-	}
-	symbolized, err := ctx.symbolize(rep.Report)
-	if err != nil {
-		return err
-	}
-	rep.Report = symbolized
-	guiltyFile := ctx.extractGuiltyFile(rep.Report)
-	if guiltyFile != "" {
-		rep.Maintainers, err = ctx.getMaintainers(guiltyFile)
+	if ctx.vmlinux != "" {
+		symbolized, err := ctx.symbolize(rep.Report)
 		if err != nil {
 			return err
 		}
+		rep.Report = symbolized
+	}
+	// We still do this even if we did not symbolize,
+	// because tests pass in already symbolized input.
+	rep.guiltyFile = ctx.extractGuiltyFile(rep)
+	if rep.guiltyFile != "" {
+		maintainers, err := ctx.getMaintainers(rep.guiltyFile)
+		if err != nil {
+			return err
+		}
+		rep.Maintainers = maintainers
 	}
 	return nil
 }
@@ -381,7 +376,8 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	return symbolized
 }
 
-func (ctx *linux) extractGuiltyFile(report []byte) string {
+func (ctx *linux) extractGuiltyFile(rep *Report) string {
+	report := rep.Report[rep.StartPos:]
 	if linuxRcuStall.Match(report) {
 		// Special case for rcu stalls.
 		// There are too many frames that we want to skip before actual guilty frames,
@@ -412,6 +408,9 @@ nextFile:
 }
 
 func (ctx *linux) getMaintainers(file string) ([]string, error) {
+	if ctx.kernelSrc == "" {
+		return nil, nil
+	}
 	mtrs, err := ctx.getMaintainersImpl(file, false)
 	if err != nil {
 		return nil, err
