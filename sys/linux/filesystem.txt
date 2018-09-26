@@ -102,6 +102,11 @@ type fs_opt[NAME, TYPE] {
 	val	TYPE
 } [packed]
 
+type fs_opt_nodelim[NAME, TYPE] {
+	name	stringnoz[NAME]
+	val	TYPE
+} [packed]
+
 type fs_opt_str[NAME] fs_opt[NAME, stringnoz]
 type fs_opt_dec[NAME, VAL] fs_opt[NAME, fmt[dec, VAL]]
 type fs_opt_hex[NAME, VAL] fs_opt[NAME, fmt[hex, VAL]]
@@ -127,7 +132,56 @@ fs_options_security [
 	smackfshat		fs_opt_str["smackfshat"]
 	smackfsroot		fs_opt_str["smackfsroot"]
 	smackfstransmute	fs_opt_str["smackfstransmute"]
+
+# IMA options:
+	measure			stringnoz["measure"]
+	dont_measure		stringnoz["dont_measure"]
+	appraise		stringnoz["appraise"]
+	dont_appraise		stringnoz["dont_appraise"]
+	audit			stringnoz["audit"]
+	hash			stringnoz["hash"]
+	dont_hash		stringnoz["dont_hash"]
+	permit_directio		stringnoz["permit_directio"]
+	obj_user		fs_opt_str["obj_user"]
+	obj_role		fs_opt_str["obj_role"]
+	obj_type		fs_opt_str["obj_type"]
+	subj_user		fs_opt_str["subj_user"]
+	subj_role		fs_opt_str["subj_role"]
+	subj_type		fs_opt_str["subj_type"]
+	func			fs_opt["func", stringnoz[ima_funcs]]
+	mask			fs_opt["mask", stringnoz[ima_masks]]
+	fsmagic			fs_opt_hex["fsmagic", intptr]
+	fsname			fs_opt_str["fsname"]
+	fsuuid			fs_opt["fsuuid", uuid_str]
+	uid_eq			fs_opt_dec["uid", uid]
+	euid_eq			fs_opt_dec["euid", uid]
+	fowner_eq		fs_opt_dec["fowner", uid]
+	uid_gt			fs_opt_nodelim["uid>", fmt[dec, uid]]
+	euid_gt			fs_opt_nodelim["euid>", fmt[dec, uid]]
+	fowner_gt		fs_opt_nodelim["fowner>", fmt[dec, uid]]
+	uid_lt			fs_opt_nodelim["uid<", fmt[dec, uid]]
+	euid_lt			fs_opt_nodelim["euid<", fmt[dec, uid]]
+	fowner_lt		fs_opt_nodelim["fowner<", fmt[dec, uid]]
+	appraise_type		stringnoz["appraise_type=imasig"]
+	pcr			fs_opt_dec["pcr", int64[0:64]]
 ] [varlen]
+
+uuid_str {
+	p0	array[flags[hex_chars, int8], 8]
+	d0	const['-', int8]
+	p1	array[flags[hex_chars, int8], 4]
+	d1	const['-', int8]
+	p2	array[flags[hex_chars, int8], 4]
+	d2	const['-', int8]
+	p3	array[flags[hex_chars, int8], 4]
+	d3	const['-', int8]
+	p4	array[flags[hex_chars, int8], 8]
+}
+
+hex_chars = '0', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+
+ima_funcs = "FILE_CHECK", "PATH_CHECK", "MODULE_CHECK", "FIRMWARE_CHECK", "FILE_MMAP", "MMAP_CHECK", "BPRM_CHECK", "CREDS_CHECK", "KEXEC_KERNEL_CHECK", "KEXEC_INITRAMFS_CHECK", "POLICY_CHECK"
+ima_masks = "MAY_EXEC", "MAY_WRITE", "MAY_READ", "MAY_APPEND", "^MAY_EXEC", "^MAY_WRITE", "^MAY_READ", "^MAY_APPEND"
 
 msdos_options [
 	fat	fat_options
