@@ -32,7 +32,7 @@ keyctl$read(code const[KEYCTL_READ], key key, payload buffer[out], len len[paylo
 keyctl$chown(code const[KEYCTL_CHOWN], key key, uid uid, gid gid)
 # perm is a mask of KEY_POS_VIEW, etc consants, but they cover almost whole int32.
 keyctl$setperm(code const[KEYCTL_SETPERM], key key, perm flags[key_perm])
-keyctl$instantiate(code const[KEYCTL_INSTANTIATE], key key, payload buffer[in, opt], paylen len[payload], keyring keyring[opt])
+keyctl$instantiate(code const[KEYCTL_INSTANTIATE], key key, payload ptr[in, key_instantiate_payload, opt], paylen len[payload], keyring keyring[opt])
 keyctl$negate(code const[KEYCTL_NEGATE], key key, timeout intptr, keyring keyring)
 keyctl$set_reqkey_keyring(code const[KEYCTL_SET_REQKEY_KEYRING], reqkey flags[reqkey_keyring])
 keyctl$set_timeout(code const[KEYCTL_SET_TIMEOUT], key key, timeout int32)
@@ -53,11 +53,9 @@ key_type = "asymmetric", "big_key", "blacklist", "ceph", "cifs.idmap", "cifs.spn
 
 # "syzP\x00"
 key_desc {
-	name0	const[115, int8]
-	name1	const[121, int8]
-	name2	const[122, int8]
-	name3	proc[32, 4, int8]
-	name4	const[0, int8]
+	prefix	stringnoz["syz"]
+	id	proc[' ', 4, int8]
+	z	const[0, int8]
 }
 
 keyctl_dh_params {
@@ -72,3 +70,47 @@ keyctl_kdf_params {
 	otherinfolen	len[otherinfo, int32]
 	__spare		array[const[0, int32], 8]
 }
+
+key_instantiate_payload [
+	encrypted_new		key_encrypted_new
+	encrypted_load		key_encrypted_load
+	encrypted_update	key_encrypted_update
+] [varlen]
+
+key_encrypted_new {
+	cmd		stringnoz["new "]
+	format		stringnoz[key_encrypted_format]
+	sp0		const[' ', int8]
+	key_type	stringnoz[key_encrypted_key_type]
+	key_desc	stringnoz
+	sp1		const[' ', int8]
+	datalen		fmt[dec, int64]
+	z		const[0, int8]
+} [packed]
+
+key_encrypted_load {
+	cmd		stringnoz["load "]
+	format		stringnoz[key_encrypted_format]
+	sp0		const[' ', int8]
+	key_type	stringnoz[key_encrypted_key_type]
+	key_desc	stringnoz
+	sp1		const[' ', int8]
+	datalen		fmt[dec, int64]
+	sp2		const[' ', int8]
+# TODO: this is something complex: hex-encoded iv of particular length, followed by delim?
+# followed by something-hex-encoded of some particular length, followed by something more?
+	iv_data		array[flags[hex_chars, int8]]
+	z		const[0, int8]
+} [packed]
+
+key_encrypted_update {
+	cmd		stringnoz["update "]
+	format		stringnoz[key_encrypted_format]
+	sp0		const[' ', int8]
+	key_type	stringnoz[key_encrypted_key_type]
+	key_desc	stringnoz
+	z		const[0, int8]
+} [packed]
+
+key_encrypted_format = "ecryptfs", "default"
+key_encrypted_key_type = "trusted:", "user:"
