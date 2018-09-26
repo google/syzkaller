@@ -34,6 +34,7 @@ pkg_add -I bash git gmake go llvm nano wget && echo pkg_add OK
 
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
+echo 'pass in on egress proto tcp from any to any port 80 rdr-to 127.0.0.1 port 8080' >> /etc/pf.conf
 
 mkdir /syzkaller
 echo '/dev/sd1a /syzkaller ffs rw,noauto 1 0' >> /etc/fstab
@@ -49,7 +50,7 @@ EOF
 
 cat >etc/rc.local <<EOF
 (
-  set -x
+  set -eux
 
   echo "starting syz-ci"
   fsck -y /dev/sd1a
@@ -57,6 +58,14 @@ cat >etc/rc.local <<EOF
   mkdir -p /syzkaller/ramdisk
   mount -t mfs -o-s=10G /dev/sd0b /syzkaller/ramdisk
   chown syzkaller:syzkaller /syzkaller/ramdisk
+  su -l syzkaller <<EOF2
+    cd /syzkaller
+    set -eux
+    test -x syz-ci || (
+         go get github.com/google/syzkaller/syz-ci &&
+         go build github.com/google/syzkaller/syz-ci)
+    ./syz-ci -config /etc/config-openbsd.ci 2>&1 | tee syz-ci.log &
+EOF2
 )
 EOF
 chmod +x install.site
@@ -77,6 +86,8 @@ vm "syzkaller" {
   allow instance { boot, disk, memory }
 }
 EOF
+
+cp config-openbsd.ci etc/ || echo "No syz-ci config."
 
 tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/*
 
@@ -133,7 +144,7 @@ set timeout 1800
 
 spawn qemu-system-x86_64 -nographic -smp 2 \
   -drive if=virtio,file=disk.raw,format=raw -cdrom "${ISO_PATCHED}" \
-  -net nic,model=virtio -net user -boot once=d
+  -net nic,model=virtio -net user -boot once=d -m 4000 -enable-kvm
 
 expect timeout { exit 1 } "boot>"
 send "\n"
