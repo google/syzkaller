@@ -40,7 +40,7 @@ mkdir /syzkaller
 echo '/dev/sd1a /syzkaller ffs rw,noauto 1 0' >> /etc/fstab
 
 rm -rf /usr/{src,ports}
-ln -s /syzkaller/src /usr/src
+ln -s /syzkaller/managers/main/kernel /usr/src
 ln -s /syzkaller/ports /usr/ports
 EOF
 
