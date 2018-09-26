@@ -64,7 +64,7 @@ cat >etc/rc.local <<EOF
     test -x syz-ci || (
          go get github.com/google/syzkaller/syz-ci &&
          go build github.com/google/syzkaller/syz-ci)
-    ./syz-ci -config /etc/config-openbsd.ci 2>&1 | tee syz-ci.log &
+    ./syz-ci -config ./config-openbsd.ci 2>&1 | tee syz-ci.log &
 EOF2
 )
 EOF
@@ -80,14 +80,12 @@ EOF
 cat >etc/vm.conf <<EOF
 vm "syzkaller" {
   disable
-  disk "/syzkaller/syzkaller.img"
+  disk "/syzkaller/userspace/image"
   local interface
   owner syzkaller
   allow instance { boot, disk, memory }
 }
 EOF
-
-cp config-openbsd.ci etc/ || echo "No syz-ci config."
 
 tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/*
 
