@@ -3,22 +3,22 @@ ZX_CHANNEL_MAX_MSG_BYTES = 65536
 fuchsia_mediacodec_AudioBitrateMode_CBR = 1
 fuchsia_mediacodec_AudioBitrateMode_UNSPECIFIED = 0
 fuchsia_mediacodec_AudioBitrateMode_VBR = 2
-fuchsia_mediacodec_AudioCompressedFormatTagaac = 0
-fuchsia_mediacodec_AudioFormatTagcompressed = 0
-fuchsia_mediacodec_AudioFormatTaguncompressed = 1
+# fuchsia_mediacodec_AudioCompressedFormatTagaac is not set
+# fuchsia_mediacodec_AudioFormatTagcompressed is not set
+# fuchsia_mediacodec_AudioFormatTaguncompressed is not set
 fuchsia_mediacodec_AudioPcmMode_ALAW = 1
 fuchsia_mediacodec_AudioPcmMode_LINEAR = 0
 fuchsia_mediacodec_AudioPcmMode_MULAW = 2
-fuchsia_mediacodec_AudioUncompressedFormatTagpcm = 0
-fuchsia_mediacodec_CodecBufferDataTagvmo = 0
-fuchsia_mediacodec_DomainFormatTagaudio = 0
-fuchsia_mediacodec_DomainFormatTagvideo = 1
-fuchsia_mediacodec_ValueTagbool_value = 0
-fuchsia_mediacodec_ValueTagbytes_value = 4
-fuchsia_mediacodec_ValueTagint64_value = 2
-fuchsia_mediacodec_ValueTagstring_value = 3
-fuchsia_mediacodec_ValueTaguint64_value = 1
-fuchsia_mediacodec_VideoCompressedFormatTagtemp_field_todo_remove = 0
-fuchsia_mediacodec_VideoFormatTagcompressed = 0
-fuchsia_mediacodec_VideoFormatTaguncompressed = 1
-fuchsia_mediacodec_VideoUncompressedFormatSpecificDetailsTagtemp_field_todo_remove = 0
+# fuchsia_mediacodec_AudioUncompressedFormatTagpcm is not set
+# fuchsia_mediacodec_CodecBufferDataTagvmo is not set
+# fuchsia_mediacodec_DomainFormatTagaudio is not set
+# fuchsia_mediacodec_DomainFormatTagvideo is not set
+# fuchsia_mediacodec_ValueTagbool_value is not set
+# fuchsia_mediacodec_ValueTagbytes_value is not set
+# fuchsia_mediacodec_ValueTagint64_value is not set
+# fuchsia_mediacodec_ValueTagstring_value is not set
+# fuchsia_mediacodec_ValueTaguint64_value is not set
+# fuchsia_mediacodec_VideoCompressedFormatTagtemp_field_todo_remove is not set
+# fuchsia_mediacodec_VideoFormatTagcompressed is not set
+# fuchsia_mediacodec_VideoFormatTaguncompressed is not set
+# fuchsia_mediacodec_VideoUncompressedFormatSpecificDetailsTagtemp_field_todo_remove is not set
