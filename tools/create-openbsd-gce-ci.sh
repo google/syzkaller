@@ -35,13 +35,10 @@ pkg_add -I bash git gmake go llvm nano wget && echo pkg_add OK
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
 echo 'pass in on egress proto tcp from any to any port 80 rdr-to 127.0.0.1 port 8080' >> /etc/pf.conf
+echo 'permit keepenv nopass syzkaller as root' > /etc/doas.conf
 
 mkdir /syzkaller
 echo '/dev/sd1a /syzkaller ffs rw,noauto 1 0' >> /etc/fstab
-
-rm -rf /usr/{src,ports}
-ln -s /syzkaller/managers/main/kernel /usr/src
-ln -s /syzkaller/ports /usr/ports
 EOF
 
 cat >etc/installurl <<EOF
