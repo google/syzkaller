@@ -80,7 +80,7 @@ EOF
 cat >etc/vm.conf <<EOF
 vm "syzkaller" {
   disable
-  disk "/syzkaller/userspace/image"
+  disk "/dev/null"
   local interface
   owner syzkaller
   allow instance { boot, disk, memory }
