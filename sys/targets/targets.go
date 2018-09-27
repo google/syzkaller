@@ -200,10 +200,10 @@ var List = map[string]map[string]*Target{
 				"-lfdio",
 				"-lzircon",
 				"-ldriver",
-				"--sysroot", os.ExpandEnv("${SOURCEDIR}/out/build-zircon/build-x64/sysroot"),
+				"--sysroot", os.ExpandEnv("${SOURCEDIR}/out/x64/sdk/exported/zircon_sysroot/arch/x64/sysroot"),
+				"-I", os.ExpandEnv("${SOURCEDIR}/zircon/system/ulib/fdio/include"),
+				"-I", os.ExpandEnv("${SOURCEDIR}/zircon/system/ulib/ddk/include"),
 				"-L", os.ExpandEnv("${SOURCEDIR}/out/x64/x64-shared"),
-				"-L", os.ExpandEnv("${SOURCEDIR}/out/x64/sdks/zircon_sysroot/arch/x64/sysroot/lib"),
-				"-L", os.ExpandEnv("${SOURCEDIR}/out/build-zircon/build-x64/system/ulib/driver"),
 			},
 		},
 		"arm64": {
