@@ -156,6 +156,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 		rep.Report = append(rep.Report, prefix...)
 		rep.Report = append(rep.Report, '\n')
 	}
+	rep.reportPrefixLen = len(rep.Report)
 	rep.Report = append(rep.Report, report...)
 	if !rep.Corrupted {
 		rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
@@ -377,7 +378,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 }
 
 func (ctx *linux) extractGuiltyFile(rep *Report) string {
-	report := rep.Report[rep.StartPos:]
+	report := rep.Report[rep.reportPrefixLen:]
 	if linuxRcuStall.Match(report) {
 		// Special case for rcu stalls.
 		// There are too many frames that we want to skip before actual guilty frames,

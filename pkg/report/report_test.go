@@ -302,3 +302,13 @@ func TestReplace(t *testing.T) {
 		})
 	}
 }
+
+func TestFuzz(t *testing.T) {
+	for _, data := range []string{
+		"kernel panicType 'help' for a list of commands",
+		"0000000000000000000\n\n\n\n\n\nBooting the kernel.",
+		"ZIRCON KERNEL PANICHalted",
+	} {
+		Fuzz([]byte(data))
+	}
+}
