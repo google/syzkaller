@@ -31,7 +31,6 @@ cat >install.site <<EOF
 #!/bin/sh
 syspatch
 pkg_add -I bash git gmake go llvm nano wget && echo pkg_add OK
-vmctl create /dummy.img -s 1G -f qcow2
 
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
@@ -78,7 +77,7 @@ EOF
 cat >etc/vm.conf <<EOF
 vm "syzkaller" {
   disable
-  disk "/dummy.img"
+  disk "/dev/null"
   local interface
   owner syzkaller
   allow instance { boot, disk, memory }
