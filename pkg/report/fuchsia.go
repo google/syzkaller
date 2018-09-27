@@ -63,7 +63,9 @@ func (ctx *fuchsia) Parse(output []byte) *Report {
 		return nil
 	}
 	rep.Output = output
-	rep.Report = ctx.shortenReport(rep.Report)
+	if report := ctx.shortenReport(rep.Report); len(report) != 0 {
+		rep.Report = report
+	}
 	return rep
 }
 

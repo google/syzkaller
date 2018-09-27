@@ -47,6 +47,8 @@ type Report struct {
 	Maintainers []string
 	// guiltyFile is the source file that we think is to blame for the crash  (filled in by Symbolize).
 	guiltyFile string
+	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
+	reportPrefixLen int
 }
 
 // NewReporter creates reporter for the specified OS/Type.
@@ -71,7 +73,7 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &reporterWrapper{rep, supps}, nil
+	return &reporterWrapper{rep, supps, typ}, nil
 }
 
 var ctors = map[string]fn{
@@ -102,6 +104,7 @@ func compileRegexps(list []string) ([]*regexp.Regexp, error) {
 type reporterWrapper struct {
 	Reporter
 	suppressions []*regexp.Regexp
+	typ          string
 }
 
 func (wrap *reporterWrapper) Parse(output []byte) *Report {
@@ -450,6 +453,7 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 			if match != -1 {
 				oops = oops1
 				rep.StartPos = pos
+				rep.EndPos = next
 				break
 			}
 		}
