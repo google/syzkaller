@@ -2457,6 +2457,7 @@ static bool write_file(const char* file, const char* what, ...)
 
 #if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
 #include <errno.h>
+#include <linux/if.h>
 #include <linux/net.h>
 #include <netinet/in.h>
 #include <string.h>
@@ -2769,8 +2770,35 @@ static void reset_arptables()
 	close(fd);
 }
 
-#include <linux/if.h>
-#include <linux/netfilter_bridge/ebtables.h>
+#define NF_BR_NUMHOOKS 6
+#define EBT_TABLE_MAXNAMELEN 32
+#define EBT_CHAIN_MAXNAMELEN 32
+#define EBT_BASE_CTL 128
+#define EBT_SO_SET_ENTRIES (EBT_BASE_CTL)
+#define EBT_SO_GET_INFO (EBT_BASE_CTL)
+#define EBT_SO_GET_ENTRIES (EBT_SO_GET_INFO + 1)
+#define EBT_SO_GET_INIT_INFO (EBT_SO_GET_ENTRIES + 1)
+#define EBT_SO_GET_INIT_ENTRIES (EBT_SO_GET_INIT_INFO + 1)
+
+struct ebt_replace {
+	char name[EBT_TABLE_MAXNAMELEN];
+	unsigned int valid_hooks;
+	unsigned int nentries;
+	unsigned int entries_size;
+	struct ebt_entries* hook_entry[NF_BR_NUMHOOKS];
+	unsigned int num_counters;
+	struct ebt_counter* counters;
+	char* entries;
+};
+
+struct ebt_entries {
+	unsigned int distinguisher;
+	char name[EBT_CHAIN_MAXNAMELEN];
+	unsigned int counter_offset;
+	int policy;
+	unsigned int nentries;
+	char data[0] __attribute__((aligned(__alignof__(struct ebt_replace))));
+};
 
 struct ebt_table_desc {
 	const char* name;
