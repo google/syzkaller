@@ -35,13 +35,10 @@ pkg_add -I bash git gmake go llvm nano wget && echo pkg_add OK
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
 echo 'pass in on egress proto tcp from any to any port 80 rdr-to 127.0.0.1 port 8080' >> /etc/pf.conf
+echo 'permit keepenv nopass syzkaller as root' > /etc/doas.conf
 
 mkdir /syzkaller
 echo '/dev/sd1a /syzkaller ffs rw,noauto 1 0' >> /etc/fstab
-
-rm -rf /usr/{src,ports}
-ln -s /syzkaller/src /usr/src
-ln -s /syzkaller/ports /usr/ports
 EOF
 
 cat >etc/installurl <<EOF
@@ -64,7 +61,7 @@ cat >etc/rc.local <<EOF
     test -x syz-ci || (
          go get github.com/google/syzkaller/syz-ci &&
          go build github.com/google/syzkaller/syz-ci)
-    ./syz-ci -config /etc/config-openbsd.ci 2>&1 | tee syz-ci.log &
+    ./syz-ci -config ./config-openbsd.ci 2>&1 | tee syz-ci.log &
 EOF2
 )
 EOF
@@ -80,14 +77,12 @@ EOF
 cat >etc/vm.conf <<EOF
 vm "syzkaller" {
   disable
-  disk "/syzkaller/syzkaller.img"
+  disk "/dev/null"
   local interface
   owner syzkaller
   allow instance { boot, disk, memory }
 }
 EOF
-
-cp config-openbsd.ci etc/ || echo "No syz-ci config."
 
 tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/*
 
