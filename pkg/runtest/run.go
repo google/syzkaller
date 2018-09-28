@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -307,14 +308,11 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	if sysTarget.ExecutorUsesForkServer {
 		cfg.Flags |= ipc.FlagUseForkServer
 	}
-	switch sandbox {
-	case "namespace":
-		cfg.Flags |= ipc.FlagSandboxNamespace
-	case "setuid":
-		cfg.Flags |= ipc.FlagSandboxSetuid
-	case "android_untrusted_app":
-		cfg.Flags |= ipc.FlagSandboxAndroidUntrustedApp
+	sandboxFlags, err := ipcconfig.SandboxToFlags(sandbox)
+	if err != nil {
+		return nil, err
 	}
+	cfg.Flags |= sandboxFlags
 	if threaded {
 		opts.Flags |= ipc.FlagThreaded | ipc.FlagCollide
 	}

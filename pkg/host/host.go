@@ -65,7 +65,7 @@ type Features [numFeatures]Feature
 
 var checkFeature [numFeatures]func() string
 var setupFeature [numFeatures]func() error
-var callbFeature [numFeatures]func()
+var callbFeature [numFeatures]func(leakFrames [][]byte)
 
 func unconditionallyEnabled() string { return "" }
 
@@ -104,11 +104,11 @@ func Check(target *prog.Target) (*Features, error) {
 
 // Setup enables and does any one-time setup for the requested features on the host.
 // Note: this can be called multiple times and must be idempotent.
-func Setup(target *prog.Target, features *Features) (func(), error) {
+func Setup(target *prog.Target, features *Features) (func(leakFrames [][]byte), error) {
 	if target.OS == "akaros" || target.OS == "test" {
 		return nil, nil
 	}
-	var callback func()
+	var callback func([][]byte)
 	for n, setup := range setupFeature {
 		if setup == nil || !features[n].Enabled {
 			continue
@@ -117,15 +117,15 @@ func Setup(target *prog.Target, features *Features) (func(), error) {
 			return nil, err
 		}
 		cb := callbFeature[n]
-		if cb != nil {
-			prev := callback
-			callback = func() {
-				cb()
-				if prev != nil {
-					prev()
-				}
+		if cb == nil {
+			continue
+		}
+		prev := callback
+		callback = func(leakFrames [][]byte) {
+			cb(leakFrames)
+			if prev != nil {
+				prev(leakFrames)
 			}
-
 		}
 	}
 	return callback, nil
