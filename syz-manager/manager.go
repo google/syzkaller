@@ -605,7 +605,8 @@ func (mgr *Manager) emailCrash(crash *Crash) {
 }
 
 func (mgr *Manager) saveCrash(crash *Crash) bool {
-	if strings.HasPrefix(crash.Title, report.MemoryLeakPrefix) {
+	isMemoryLeak := strings.HasPrefix(crash.Title, report.MemoryLeakPrefix)
+	if isMemoryLeak {
 		frame := crash.Title[len(report.MemoryLeakPrefix):]
 		mgr.mu.Lock()
 		mgr.memoryLeakFrames[frame] = true
@@ -634,6 +635,9 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	mgr.mu.Unlock()
 
 	if mgr.dash != nil {
+		if isMemoryLeak {
+			return true
+		}
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.Title,
@@ -714,6 +718,9 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 	}
 	if mgr.dash == nil {
 		return mgr.needLocalRepro(crash)
+	}
+	if strings.HasPrefix(crash.Title, report.MemoryLeakPrefix) {
+		return true
 	}
 	cid := &dashapi.CrashID{
 		BuildID:   mgr.cfg.Tag,
