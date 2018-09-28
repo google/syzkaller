@@ -116,15 +116,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}
-	sandbox := "none"
-	if config.Flags&ipc.FlagSandboxSetuid != 0 {
-		sandbox = "setuid"
-	} else if config.Flags&ipc.FlagSandboxNamespace != 0 {
-		sandbox = "namespace"
-	} else if config.Flags&ipc.FlagSandboxAndroidUntrustedApp != 0 {
-		sandbox = "android_untrusted_app"
-	}
-
+	sandbox := ipcconfig.FlagsToSandbox(config.Flags)
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
 	go func() {
@@ -191,6 +183,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("BUG: %v", err)
 	}
+	var gateCallback func()
+	if periodicCallback != nil {
+		gateCallback = func() { periodicCallback(r.MemoryLeakFrames) }
+	}
 	if r.CheckResult.Features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
@@ -213,7 +209,7 @@ func main() {
 		outputType:               outputType,
 		config:                   config,
 		execOpts:                 execOpts,
-		gate:                     ipc.NewGate(2**flagProcs, periodicCallback),
+		gate:                     ipc.NewGate(2**flagProcs, gateCallback),
 		workQueue:                newWorkQueue(*flagProcs, needPoll),
 		needPoll:                 needPoll,
 		manager:                  manager,

@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -70,15 +71,16 @@ type Manager struct {
 	phase           int
 	enabledSyscalls []int
 
-	candidates     []rpctype.RPCCandidate // untriaged inputs from corpus and hub
-	disabledHashes map[string]struct{}
-	corpus         map[string]rpctype.RPCInput
-	corpusCover    cover.Cover
-	corpusSignal   signal.Signal
-	maxSignal      signal.Signal
-	prios          [][]float32
-	newRepros      [][]byte
-	lastMinCorpus  int
+	candidates       []rpctype.RPCCandidate // untriaged inputs from corpus and hub
+	disabledHashes   map[string]struct{}
+	corpus           map[string]rpctype.RPCInput
+	corpusCover      cover.Cover
+	corpusSignal     signal.Signal
+	maxSignal        signal.Signal
+	prios            [][]float32
+	newRepros        [][]byte
+	lastMinCorpus    int
+	memoryLeakFrames map[string]bool
 
 	fuzzers        map[string]*Fuzzer
 	needMoreRepros chan chan bool
@@ -171,26 +173,27 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 	}
 
 	mgr := &Manager{
-		cfg:             cfg,
-		vmPool:          vmPool,
-		target:          target,
-		sysTarget:       sysTarget,
-		reporter:        reporter,
-		crashdir:        crashdir,
-		startTime:       time.Now(),
-		stats:           new(Stats),
-		fuzzerStats:     make(map[string]uint64),
-		crashTypes:      make(map[string]bool),
-		enabledSyscalls: enabledSyscalls,
-		corpus:          make(map[string]rpctype.RPCInput),
-		disabledHashes:  make(map[string]struct{}),
-		fuzzers:         make(map[string]*Fuzzer),
-		fresh:           true,
-		vmStop:          make(chan bool),
-		hubReproQueue:   make(chan *Crash, 10),
-		needMoreRepros:  make(chan chan bool),
-		reproRequest:    make(chan chan map[string]bool),
-		usedFiles:       make(map[string]time.Time),
+		cfg:              cfg,
+		vmPool:           vmPool,
+		target:           target,
+		sysTarget:        sysTarget,
+		reporter:         reporter,
+		crashdir:         crashdir,
+		startTime:        time.Now(),
+		stats:            new(Stats),
+		fuzzerStats:      make(map[string]uint64),
+		crashTypes:       make(map[string]bool),
+		enabledSyscalls:  enabledSyscalls,
+		corpus:           make(map[string]rpctype.RPCInput),
+		disabledHashes:   make(map[string]struct{}),
+		memoryLeakFrames: make(map[string]bool),
+		fuzzers:          make(map[string]*Fuzzer),
+		fresh:            true,
+		vmStop:           make(chan bool),
+		hubReproQueue:    make(chan *Crash, 10),
+		needMoreRepros:   make(chan chan bool),
+		reproRequest:     make(chan chan map[string]bool),
+		usedFiles:        make(map[string]time.Time),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -602,6 +605,12 @@ func (mgr *Manager) emailCrash(crash *Crash) {
 }
 
 func (mgr *Manager) saveCrash(crash *Crash) bool {
+	if strings.HasPrefix(crash.Title, report.MemoryLeakPrefix) {
+		frame := crash.Title[len(report.MemoryLeakPrefix):]
+		mgr.mu.Lock()
+		mgr.memoryLeakFrames[frame] = true
+		mgr.mu.Unlock()
+	}
 	if crash.Suppressed {
 		log.Logf(0, "vm-%v: suppressed crash %v", crash.vmIndex, crash.Title)
 		mgr.stats.crashSuppressed.inc()
@@ -909,6 +918,10 @@ func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error
 	f.inputs = make([]rpctype.RPCInput, 0, len(mgr.corpus))
 	for _, inp := range mgr.corpus {
 		f.inputs = append(f.inputs, inp)
+	}
+	r.MemoryLeakFrames = make([][]byte, 0, len(mgr.memoryLeakFrames))
+	for frame := range mgr.memoryLeakFrames {
+		r.MemoryLeakFrames = append(r.MemoryLeakFrames, []byte(frame))
 	}
 	r.EnabledCalls = mgr.enabledSyscalls
 	r.CheckResult = mgr.checkResult

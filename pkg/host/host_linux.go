@@ -469,7 +469,7 @@ func setupLeakChecking() error {
 	return nil
 }
 
-func callbackLeakChecking() {
+func callbackLeakChecking(leakFrames [][]byte) {
 	start := time.Now()
 	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
 	if err != nil {
@@ -506,11 +506,15 @@ func callbackLeakChecking() {
 		if _, err := syscall.Write(fd, []byte("scan")); err != nil {
 			panic(err)
 		}
+		if _, err := syscall.Seek(fd, 0, 0); err != nil {
+			panic(err)
+		}
 		n, err := syscall.Read(fd, buf)
 		if err != nil {
 			panic(err)
 		}
 		nleaks := 0
+	nextLeak:
 		for buf = buf[:n]; len(buf) != 0; {
 			end := bytes.Index(buf[1:], []byte("unreferenced object"))
 			if end != -1 {
@@ -520,44 +524,24 @@ func callbackLeakChecking() {
 			}
 			report := buf[:end]
 			buf = buf[end:]
-			if kmemleakIgnore(report) {
-				continue
+			for _, frame := range leakFrames {
+				if bytes.Contains(report, frame) {
+					continue nextLeak
+				}
 			}
 			// BUG in output should be recognized by manager.
 			fmt.Printf("BUG: memory leak\n%s\n", report)
 			nleaks++
 		}
 		if nleaks != 0 {
+			// If we exit right away, dying executors will dump lots of garbage to console.
+			time.Sleep(time.Hour)
 			os.Exit(1)
 		}
 	}
 	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
 		panic(err)
 	}
-}
-
-func kmemleakIgnore(report []byte) bool {
-	// kmemleak has a bunch of false positives (at least what looks like
-	// false positives at first glance). So we are conservative with what we report.
-	// First, we filter out any allocations that don't come from executor processes.
-	// Second, we ignore a bunch of functions entirely.
-	// Ideally, someone should debug/fix all these cases and remove ignores.
-	if !bytes.Contains(report, []byte(`comm "syz-executor`)) {
-		return true
-	}
-	for _, ignore := range []string{
-		" copy_process",
-		" do_execveat_common",
-		" __ext4_",
-		" get_empty_filp",
-		" do_filp_open",
-		" new_inode",
-	} {
-		if bytes.Contains(report, []byte(ignore)) {
-			return true
-		}
-	}
-	return false
 }
 
 func checkSandboxNamespace() string {
