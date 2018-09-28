@@ -124,7 +124,7 @@ set timeout 1800
 
 spawn qemu-system-x86_64 -nographic -smp 2 \
   -drive if=virtio,file=worker_disk.raw,format=raw -cdrom "${ISO_PATCHED}" \
-  -net nic,model=virtio -net user -boot once=d
+  -net nic,model=virtio -net user -boot once=d -m 4000 -enable-kvm
 
 expect timeout { exit 1 } "boot>"
 send "\n"
