@@ -46,7 +46,7 @@ The description of the syntax can be found [here](syscall_descriptions_syntax.md
 
 If the subsystem is present in the mainline kernel, run `make extract TARGETOS=linux SOURCEDIR=$KSRC`
 with `$KSRC` set to the location of a kernel source tree. This will generate const files.
-Not, that this will overwrite `.config` file you have in `$KSRC`.
+Note, that this will overwrite `.config` file you have in `$KSRC`.
 
 If the subsystem is not present in the mainline kernel, then you need to manually run `syz-extract` binary:
 ```
