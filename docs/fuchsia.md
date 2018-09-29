@@ -48,13 +48,9 @@ Run `syz-manager` with a config along the lines of:
 
 ## How to generate syscall description for FIDL
 
-Use `generate_fidl` target to automatically generate syscall descriptions for all the supported FIDL files.
+Syscall descriptions for FIDL are automatically generated as part of `make extract` as described above.
 
-```bash
-make generate_fidl TARGETARCH=amd64 SOURCEDIR=/path/to/fuchsia/checkout
-```
-
-To manually generate syscall description for a given `.fidl` file, use the following instruction.
+However, if you wish to manually generate syscall descriptions for a given `.fidl` file, do the following.
 
 FIDL files should first be compiled into FIDL intermediate representation (JSON) files using `fidlc`:
 
