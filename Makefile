@@ -146,11 +146,20 @@ db:
 upgrade:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
+# `extract` extracts const files from various kernel sources, and may only
+# re-generate parts of files.
 extract: bin/syz-extract
+ifeq ($(TARGETOS),fuchsia)
+	$(MAKE) generate_fidl TARGETARCH=amd64
+	$(MAKE) generate_fidl TARGETARCH=arm64
+else
+endif
 	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR) $(FILES)
 bin/syz-extract:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./sys/syz-extract
 
+# `generate` does *not* depend on any kernel sources, and generates everything
+# in one pass, for all arches. It can be run on a bare syzkaller checkout.
 generate: generate_go generate_sys
 	$(MAKE) format
 
@@ -161,8 +170,11 @@ generate_sys: bin/syz-sysgen
 	bin/syz-sysgen
 
 generate_fidl:
-	$(GO) generate ./sys/fuchsia
+ifeq ($(TARGETOS),fuchsia)
+	$(HOSTGO) generate ./sys/fuchsia
 	$(MAKE) format_sys
+else
+endif
 
 bin/syz-sysgen:
 	$(GO) build $(GOHOSTFLAGS) -o $@ ./sys/syz-sysgen
@@ -186,7 +198,7 @@ format_sys: bin/syz-fmt
 	bin/syz-fmt sys/windows
 
 bin/syz-fmt:
-	$(GO) build $(GOHOSTFLAGS) -o $@ ./tools/syz-fmt
+	$(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./tools/syz-fmt
 
 tidy:
 	# A single check is enabled for now. But it's always fixable and proved to be useful.

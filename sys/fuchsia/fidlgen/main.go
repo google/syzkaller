@@ -52,7 +52,7 @@ func main() {
 		sourceDir,
 		"out",
 		arch,
-		fmt.Sprintf("host_%s", arch),
+		"host_x64",
 		"fidlgen",
 	)
 	if !osutil.IsExist(fidlgenPath) {
