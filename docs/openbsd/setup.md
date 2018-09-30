@@ -8,10 +8,10 @@ Variables used throughout the instructions:
 - `$KERNEL` - Custom built kernel, see [Compile Kernel](#compile-kernel).
               Defaults to `/sys/arch/amd64/compile/SYZKALLER/obj/bsd` if the
               instructions are honored.
-- `$SSHKEY` - Public SSH key ***without a passphrase*** used to connect to the
-              VMs, it's advised to use a dedicated key.
+- `$SSHKEY` - SSH key ***without a passphrase*** used to connect to the VMs,
+              it's advised to use a dedicated key.
 - `$USER`   - The name of the user intended to run syzkaller.
-- `$VMDIR`  - Directory containing VM disk images.
+- `$VMIMG`  - VM disk image.
 - `$VMID`   - The numeric ID of last started VM.
 
 ## Install syzkaller
@@ -25,10 +25,8 @@ Variables used throughout the instructions:
 2. Clone repository:
 
    ```sh
-   $ mkdir -p ~/go/src/github.com/google
-   $ cd ~/go/src/github.com/google
-   $ git clone git@github.com:google/syzkaller.git
-   $ cd syzkaller
+   $ go get github.com/google/syzkaller
+   $ cd ~/go/src/github.com/google/syzkaller
    $ gmake all
    ```
 
@@ -36,7 +34,7 @@ Variables used throughout the instructions:
 
 A `GENERIC` kernel must be compiled with
 [kcov(4)](https://man.openbsd.org/kcov.4)
-option enabled:
+enabled:
 
 ```sh
 $ cd /sys/arch/amd64
@@ -60,7 +58,7 @@ $ make -C compile/SYZKALLER
    $ cat /etc/vm.conf
    vm "syzkaller" {
      disable
-     disk "${VMDIR}/syzkaller.img"
+     disk "/dev/null"
      local interface
      owner $USER
      allow instance { boot, disk, memory }
@@ -70,13 +68,13 @@ $ make -C compile/SYZKALLER
 2. Create disk image:
 
    ```sh
-   $ vmctl create "${VMDIR}/syzkaller.img" -s 4G
+   $ vmctl create "$VMIMG" -s 4G
    ```
 
 3. Install VM:
 
    ```sh
-   $ vmctl start syzkaller-1 -c -t syzkaller -b /bsd.rd -d "${VMDIR}/syzkaller.img"
+   $ vmctl start syzkaller-1 -c -t syzkaller -b /bsd.rd -d "$VMIMG"
    ```
 
    Answers to questions that deviates from the defaults:
@@ -91,9 +89,9 @@ $ make -C compile/SYZKALLER
 
    ```sh
    $ vmctl stop syzkaller-1 -w
-   $ vmctl start syzkaller
-   $ ssh "root@100.64.${VMID}.3" 'cat >~/.ssh/authorized_keys' <$SSHKEY
-   $ vmctl stop syzkaller -w
+   $ vmctl start syzkaller-1 -c -t syzkaller -d "$VMIMG"
+   $ ssh "root@100.64.${VMID}.3" 'cat >~/.ssh/authorized_keys' <$SSHKEY.pub
+   $ vmctl stop syzkaller-1 -w
    ```
 
 ## Configure and run syzkaller
@@ -110,8 +108,8 @@ $ cat openbsd.cfg
   "kernel_obj": "/sys/arch/amd64/compile/SYZKALLER/obj",
   "kernel_src": "/",
   "syzkaller": "$HOME/go/src/github.com/google/syzkaller",
-  "image": "$VMDIR/syzkaller.img",
-  "sshkey": "$SSKEY",
+  "image": "$VMIMG",
+  "sshkey": "$SSHKEY",
   "sandbox": "none",
   "procs": 2,
   "type": "vmm",
