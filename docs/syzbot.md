@@ -214,6 +214,11 @@ We've experimented with application of custom patches in the past and it lead
 to unrecoverable mess. If you want `syzbot` to pick up patches sooner,
 ask tree maintainers for priority handling.
 
+However, syzbot kernel config always includes `CONFIG_DEBUG_AID_FOR_SYZBOT=y` setting,
+which is not normally present in kernel. What was used for particularly elusive bugs in the past
+is temporary merging some additional debugging code into `linux-next` under this config setting
+(e.g. more debug checks and/or debug output) and waiting for new crash reports from syzbot. 
+
 ## Kernel configs
 
 Kernel configs, sysctls and command line arguments that `syzbot` uses are available in [/dashboard/config](/dashboard/config).
