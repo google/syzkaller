@@ -68,7 +68,7 @@ $ make -C compile/SYZKALLER
 2. Create disk image:
 
    ```sh
-   $ vmctl create "$VMIMG" -s 4G
+   $ vmctl create "qcow2:$VMIMG" -s 4G
    ```
 
 3. Install VM:
