@@ -94,18 +94,13 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	image := filepath.Join(workdir, "disk.img")
-	if err := osutil.CopyFile(pool.env.Image, image); err != nil {
-		return nil, err
-	}
-
 	var tee io.Writer
 	if pool.env.Debug {
 		tee = os.Stdout
 	}
 	inst := &instance{
 		cfg:     pool.cfg,
-		image:   image,
+		image:   filepath.Join(workdir, "disk.qcow2"),
 		debug:   pool.env.Debug,
 		os:      pool.env.OS,
 		sshkey:  pool.env.SSHKey,
@@ -121,6 +116,14 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	// So also sleep for a bit.
 	inst.vmctl("stop", inst.vmName, "-f", "-w")
 	time.Sleep(3 * time.Second)
+
+	createArgs := []string{
+		"create", inst.image,
+		"-b", pool.env.Image,
+	}
+	if _, err := inst.vmctl(createArgs...); err != nil {
+		return nil, err
+	}
 
 	closeInst := inst
 	defer func() {
