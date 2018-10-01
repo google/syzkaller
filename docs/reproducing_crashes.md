@@ -3,7 +3,7 @@
 The process of creating reproducer programs for syzkaller bugs is automated, however it's not perfect, so syzkaller provides a few tools for executing and reproducing programs manually.
 
 Crash logs created in manager `workdir/crashes` dir contain programs executed just before a crash. In parallel execution mode (when `procs` parameter in manager config is set to value larger than 1), program that caused the crash does not necessary immediately precedes it; the guilty program can be somewhere before.
-The are two tools that can help you identify and minimize the program that causes a crash: `tools/syz-execprog` and `tools/syz-prog2c`.
+There are two tools that can help you identify and minimize the program that causes a crash: `tools/syz-execprog` and `tools/syz-prog2c`.
 
 `tools/syz-execprog` executes a single syzkaller program or a set of programs in various modes (once or loop indefinitely; in threaded/collide mode (see below), with or without coverage collection). You can start by running all programs in the crash log in a loop to check that at least one of them indeed crashes kernel: `./syz-execprog -executor=./syz-executor -repeat=0 -procs=16 -cover=0 crash-log`. Then try to identify the single program that causes the crash, you can test programs with `./syz-execprog -executor=./syz-executor -repeat=0 -procs=16 -cover=0 file-with-a-single-program`.
 
