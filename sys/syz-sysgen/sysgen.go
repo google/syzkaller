@@ -60,6 +60,9 @@ func main() {
 
 	var oses []OSData
 	for OS, archs := range targets.List {
+		if OS == "android" {
+			continue
+		}
 		top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), nil)
 		if top == nil {
 			os.Exit(1)
