@@ -126,7 +126,7 @@ sudo chroot stretch /bin/bash -c "cd ~/trinity-1.5 ; ./configure.sh ; make -j16 
 To install perf (not required to run syzkaller):
 ``` bash
 cp -r $KERNEL stretch/tmp/
-sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind7-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
+sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
 sudo chroot stretch /bin/bash -c "cd /tmp/linux/tools/perf/; make"
 sudo chroot stretch /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
 rm -r stretch/tmp/linux
@@ -136,7 +136,7 @@ rm -r stretch/tmp/linux
 
 Install `QEMU`:
 ``` bash
-sudo apt-get install kvm qemu-kvm
+sudo apt-get install qemu-system-x86
 ```
 
 Make sure the kernel boots and `sshd` starts:
