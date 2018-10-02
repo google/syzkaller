@@ -294,38 +294,55 @@ func managersToRepos(c context.Context, ns string, managers []string) []string {
 	return repos
 }
 
+func foreachBug(c context.Context, fn func(bug *Bug) error) error {
+	const batchSize = 1000
+	for offset := 0; ; offset += batchSize {
+		var bugs []*Bug
+		_, err := datastore.NewQuery("Bug").
+			Offset(offset).
+			Limit(batchSize).
+			GetAll(c, &bugs)
+		if err != nil {
+			return fmt.Errorf("foreachBug: failed to query bugs: %v", err)
+		}
+		for _, bug := range bugs {
+			if err := fn(bug); err != nil {
+				return err
+			}
+		}
+		if len(bugs) < batchSize {
+			return nil
+		}
+	}
+}
+
 // reportingPollClosed is called by backends to get list of closed bugs.
 func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
-	var bugs []*Bug
-	_, err := datastore.NewQuery("Bug").
-		GetAll(c, &bugs)
-	if err != nil {
-		log.Errorf(c, "%v", err)
-		return nil, nil
-	}
-	bugMap := make(map[string]*Bug)
-	for _, bug := range bugs {
-		for i := range bug.Reporting {
-			bugMap[bug.Reporting[i].ID] = bug
-		}
+	idMap := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		idMap[id] = true
 	}
 	var closed []string
-	for _, id := range ids {
-		bug := bugMap[id]
-		if bug == nil {
-			continue
+	err := foreachBug(c, func(bug *Bug) error {
+		for i := range bug.Reporting {
+			bugReporting := &bug.Reporting[i]
+			if !idMap[bugReporting.ID] {
+				continue
+			}
+			var err error
+			bug, err = canonicalBug(c, bug)
+			if err != nil {
+				log.Errorf(c, "%v", err)
+				break
+			}
+			if bug.Status >= BugStatusFixed || !bugReporting.Closed.IsZero() {
+				closed = append(closed, bugReporting.ID)
+			}
+			break
 		}
-		bugReporting, _ := bugReportingByID(bug, id)
-		bug, err = canonicalBug(c, bug)
-		if err != nil {
-			log.Errorf(c, "%v", err)
-			continue
-		}
-		if bug.Status >= BugStatusFixed || !bugReporting.Closed.IsZero() {
-			closed = append(closed, id)
-		}
-	}
-	return closed, nil
+		return nil
+	})
+	return closed, err
 }
 
 // incomingCommand is entry point to bug status updates.
