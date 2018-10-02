@@ -45,11 +45,24 @@ fuchsia_cobalt_HistogramBucketHandles {
 	void	void
 } [packed]
 
+fuchsia_cobalt_ExperimentInLine {
+	experiment_id	int64
+	arm_id		int32
+} [packed]
+
+fuchsia_cobalt_ExperimentOutOfLine {
+	void	void
+} [packed]
+
+fuchsia_cobalt_ExperimentHandles {
+	void	void
+} [packed]
+
 fuchsia_cobalt_ValueInLine [
-	string_valueInLine	fidl_union_member[fuchsia_cobalt_ValueTagstring_value, fidl_string]
-	int_value		fidl_union_member[fuchsia_cobalt_ValueTagint_value, int64]
-	double_value		fidl_union_member[fuchsia_cobalt_ValueTagdouble_value, int64]
-	index_value		fidl_union_member[fuchsia_cobalt_ValueTagindex_value, int32]
+	string_valueInLine	fidl_union_member[fuchsia_cobalt_ValueTag_string_value, fidl_string]
+	int_value		fidl_union_member[fuchsia_cobalt_ValueTag_int_value, int64]
+	double_value		fidl_union_member[fuchsia_cobalt_ValueTag_double_value, int64]
+	index_value		fidl_union_member[fuchsia_cobalt_ValueTag_index_value, int32]
 ]
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerRequest {
@@ -591,6 +604,27 @@ zx_channel_call$fuchsia_cobalt_LoggerSimpleLogString(handle zx_chan_fuchsia_coba
 zx_channel_call$fuchsia_cobalt_LoggerSimpleStartTimer(handle zx_chan_fuchsia_cobalt_LoggerSimple_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerSimpleStartTimerRequest, fuchsia_cobalt_LoggerSimpleStartTimerRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerSimpleStartTimerResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_cobalt_LoggerSimpleEndTimer(handle zx_chan_fuchsia_cobalt_LoggerSimple_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerSimpleEndTimerRequest, fuchsia_cobalt_LoggerSimpleEndTimerRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerSimpleEndTimerResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_cobalt_LoggerSimpleLogIntHistogram(handle zx_chan_fuchsia_cobalt_LoggerSimple_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerSimpleLogIntHistogramRequest, fuchsia_cobalt_LoggerSimpleLogIntHistogramRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerSimpleLogIntHistogramResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+
+fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest {
+	hdr			fidl_message_header[1]
+	experimentsInLine	fidl_vector
+	experimentsOutOfLine	parallel_array[fuchsia_cobalt_ExperimentInLine, fuchsia_cobalt_ExperimentOutOfLine]
+} [packed]
+
+fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequestHandles {
+	experiments	array[fuchsia_cobalt_ExperimentHandles]
+} [packed]
+
+fuchsia_cobalt_SystemDataUpdaterSetExperimentStateResponseHandles {
+	void	void
+} [packed]
+
+resource zx_chan_fuchsia_cobalt_SystemDataUpdater_client[zx_chan]
+resource zx_chan_fuchsia_cobalt_SystemDataUpdater_server[zx_chan]
+
+zx_channel_create$fuchsia_cobalt_SystemDataUpdater(options const[0], out0 ptr[out, zx_chan_fuchsia_cobalt_SystemDataUpdater_client], out1 ptr[out, zx_chan_fuchsia_cobalt_SystemDataUpdater_server])
+fdio_service_connect$fuchsia_cobalt_SystemDataUpdater(path ptr[in, string["/svc/fuchsia.cobalt.SystemDataUpdater"]], handle zx_chan_fuchsia_cobalt_SystemDataUpdater_server)
+zx_channel_call$fuchsia_cobalt_SystemDataUpdaterSetExperimentState(handle zx_chan_fuchsia_cobalt_SystemDataUpdater_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest, fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetExperimentStateResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_ControllerRequestSendSoonRequest {
 	hdr	fidl_message_header[1]

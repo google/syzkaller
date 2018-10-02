@@ -50,8 +50,8 @@ fuchsia_net_stack_ErrorHandles {
 } [packed]
 
 fuchsia_net_stack_ForwardingDestinationInLine [
-	device_id	fidl_union_member[fuchsia_net_stack_ForwardingDestinationTagdeviceId, int64]
-	next_hopInLine	fidl_union_member[fuchsia_net_stack_ForwardingDestinationTagnextHop, fuchsia_net_IpAddressInLine]
+	device_id	fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_deviceId, int64]
+	next_hopInLine	fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_nextHop, fuchsia_net_IpAddressInLine]
 ]
 
 fuchsia_net_stack_StackListInterfacesRequest {
