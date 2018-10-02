@@ -70,8 +70,8 @@ fuchsia_net_AddrInfoHandles {
 } [packed]
 
 fuchsia_net_IpAddressInLine [
-	ipv4InLine	fidl_union_member[fuchsia_net_IpAddressTagipv4, fuchsia_net_IPv4AddressInLine]
-	ipv6InLine	fidl_union_member[fuchsia_net_IpAddressTagipv6, fuchsia_net_IPv6AddressInLine]
+	ipv4InLine	fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_IPv4AddressInLine]
+	ipv6InLine	fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_IPv6AddressInLine]
 ]
 
 fuchsia_net_ConnectivityOnNetworkReachableEventHandles {
