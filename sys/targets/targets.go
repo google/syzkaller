@@ -163,6 +163,16 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "powerpc",
 		},
 	},
+	"android": {
+		"arm64": {
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			CrossCFlags:      []string{"-static"},
+			CCompilerPrefix:  "aarch64-linux-gnu-",
+			KernelArch:       "arm64",
+			KernelHeaderArch: "arm64",
+		},
+	},
 	"freebsd": {
 		"amd64": {
 			PtrSize:     8,

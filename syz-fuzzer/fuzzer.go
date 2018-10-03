@@ -107,6 +107,12 @@ func main() {
 	outputType := parseOutputType(*flagOutput)
 	log.Logf(0, "fuzzer started")
 
+	// There are no sys/ definitions for "android", use the Linux
+	// definitions by default.
+	if *flagOS == "android" {
+		*flagOS = "linux"
+	}
+
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		log.Fatalf("%v", err)
