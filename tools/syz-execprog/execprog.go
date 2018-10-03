@@ -45,6 +45,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// There are no sys/ definitions for "android", use the Linux
+	// definitions by default.
+	if *flagOS == "android" {
+		*flagOS = "linux"
+	}
+
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		log.Fatalf("%v", err)
