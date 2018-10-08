@@ -302,8 +302,12 @@ func init() {
 			initTarget(target, OS, arch)
 		}
 	}
+	goos := runtime.GOOS
+	if goos == "android" {
+		goos = "linux"
+	}
 	for _, target := range List["test"] {
-		target.CCompiler = List[runtime.GOOS][runtime.GOARCH].CCompiler
+		target.CCompiler = List[goos][runtime.GOARCH].CCompiler
 	}
 }
 
