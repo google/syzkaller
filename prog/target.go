@@ -72,6 +72,9 @@ func RegisterTarget(target *Target, initArch func(target *Target)) {
 }
 
 func GetTarget(OS, arch string) (*Target, error) {
+	if OS == "android" {
+		OS = "linux"
+	}
 	key := OS + "/" + arch
 	target := targets[key]
 	if target == nil {
