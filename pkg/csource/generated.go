@@ -514,9 +514,9 @@ static void* ex_handler(void* arg)
 				debug("zx_thread_write_state failed: %d\n", status);
 			}
 		}
-		status = zx_task_resume(thread, ZX_RESUME_EXCEPTION);
+		status = zx_task_resume_from_exception(thread, port, 0);
 		if (status != ZX_OK) {
-			debug("zx_task_resume failed: %d\n", status);
+			debug("zx_task_resume_from_exception failed: %d\n", status);
 		}
 		zx_handle_close(thread);
 	}
