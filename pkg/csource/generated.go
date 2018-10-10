@@ -2978,9 +2978,6 @@ static void setup_cgroups()
 	if (chmod("/syzcgroup/net", 0777)) {
 		debug("chmod(/syzcgroup/net) failed: %d\n", errno);
 	}
-	if (!write_file("/proc/self/oom_score_adj", "-1000")) {
-		debug("write(oom_score_adj) failed: %d\n", errno);
-	}
 }
 static void setup_binfmt_misc()
 {
@@ -3035,9 +3032,9 @@ static void sandbox_common()
 #endif
 
 	struct rlimit rlim;
-	rlim.rlim_cur = rlim.rlim_max = 160 << 20;
+	rlim.rlim_cur = rlim.rlim_max = 200 << 20;
 	setrlimit(RLIMIT_AS, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
+	rlim.rlim_cur = rlim.rlim_max = 32 << 20;
 	setrlimit(RLIMIT_MEMLOCK, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 136 << 20;
 	setrlimit(RLIMIT_FSIZE, &rlim);
@@ -3589,19 +3586,16 @@ static void setup_loop()
 		debug("write(%s) failed: %d\n", file, errno);
 	}
 	snprintf(file, sizeof(file), "%s/memory.low", cgroupdir);
-	if (!write_file(file, "%d", 198 << 20)) {
+	if (!write_file(file, "%d", 298 << 20)) {
 		debug("write(%s) failed: %d\n", file, errno);
 	}
 	snprintf(file, sizeof(file), "%s/memory.high", cgroupdir);
-	if (!write_file(file, "%d", 199 << 20)) {
+	if (!write_file(file, "%d", 299 << 20)) {
 		debug("write(%s) failed: %d\n", file, errno);
 	}
 	snprintf(file, sizeof(file), "%s/memory.max", cgroupdir);
-	if (!write_file(file, "%d", 200 << 20)) {
+	if (!write_file(file, "%d", 300 << 20)) {
 		debug("write(%s) failed: %d\n", file, errno);
-	}
-	if (!write_file("/proc/self/oom_score_adj", "-1000")) {
-		debug("write(oom_score_adj) failed: %d\n", errno);
 	}
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
 	if (!write_file(file, "%d", pid)) {
@@ -3671,7 +3665,7 @@ static void setup_test()
 	if (symlink(cgroupdir, "./cgroup.net")) {
 		debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir, errno);
 	}
-	if (!write_file("/proc/self/oom_score_adj", "0")) {
+	if (!write_file("/proc/self/oom_score_adj", "1000")) {
 		debug("write(oom_score_adj) failed: %d\n", errno);
 	}
 #endif

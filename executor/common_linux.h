@@ -1448,10 +1448,6 @@ static void setup_cgroups()
 	if (chmod("/syzcgroup/net", 0777)) {
 		debug("chmod(/syzcgroup/net) failed: %d\n", errno);
 	}
-	// We are going to setup memory limits and we want the test process to be killed.
-	if (!write_file("/proc/self/oom_score_adj", "-1000")) {
-		debug("write(oom_score_adj) failed: %d\n", errno);
-	}
 }
 
 // TODO(dvyukov): this should be under a separate define for separate minimization,
@@ -1509,9 +1505,9 @@ static void sandbox_common()
 #endif
 
 	struct rlimit rlim;
-	rlim.rlim_cur = rlim.rlim_max = 160 << 20;
+	rlim.rlim_cur = rlim.rlim_max = 200 << 20;
 	setrlimit(RLIMIT_AS, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
+	rlim.rlim_cur = rlim.rlim_max = 32 << 20;
 	setrlimit(RLIMIT_MEMLOCK, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 136 << 20;
 	setrlimit(RLIMIT_FSIZE, &rlim);
@@ -2149,22 +2145,25 @@ static void setup_loop()
 	// Restrict memory consumption.
 	// We have some syscalls that inherently consume lots of memory,
 	// e.g. mounting some filesystem images requires at least 128MB
-	// image in memory. We restrict RLIMIT_AS to 160MB. Here we gradually
+	// image in memory. We restrict RLIMIT_AS to 200MB. Here we gradually
 	// increase low/high/max limits to make things more interesting.
+	// Also this takes into account KASAN quarantine size.
+	// If the limit is lower than KASAN quarantine size, then it can happen
+	// so that we kill the process, but all of its memory is in quarantine
+	// and is still accounted against memcg. As the result memcg won't
+	// allow to allocate any memory in the parent and in the new test process.
+	// The current limit of 300MB supports up to 9.6GB RAM (quarantine is 1/32).
 	snprintf(file, sizeof(file), "%s/memory.low", cgroupdir);
-	if (!write_file(file, "%d", 198 << 20)) {
+	if (!write_file(file, "%d", 298 << 20)) {
 		debug("write(%s) failed: %d\n", file, errno);
 	}
 	snprintf(file, sizeof(file), "%s/memory.high", cgroupdir);
-	if (!write_file(file, "%d", 199 << 20)) {
+	if (!write_file(file, "%d", 299 << 20)) {
 		debug("write(%s) failed: %d\n", file, errno);
 	}
 	snprintf(file, sizeof(file), "%s/memory.max", cgroupdir);
-	if (!write_file(file, "%d", 200 << 20)) {
+	if (!write_file(file, "%d", 300 << 20)) {
 		debug("write(%s) failed: %d\n", file, errno);
-	}
-	if (!write_file("/proc/self/oom_score_adj", "-1000")) {
-		debug("write(oom_score_adj) failed: %d\n", errno);
 	}
 	// Setup some v1 groups to make things more interesting.
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
@@ -2235,8 +2234,8 @@ static void setup_test()
 	if (symlink(cgroupdir, "./cgroup.net")) {
 		debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir, errno);
 	}
-	// Reset oom_score_adj since it's inherited from parent.
-	if (!write_file("/proc/self/oom_score_adj", "0")) {
+	// It's the leaf test process we want to be always killed first.
+	if (!write_file("/proc/self/oom_score_adj", "1000")) {
 		debug("write(oom_score_adj) failed: %d\n", errno);
 	}
 #endif
