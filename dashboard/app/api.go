@@ -245,17 +245,21 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byt
 	if err != nil {
 		return nil, err
 	}
-	if len(req.Commits) != 0 || len(req.FixCommits) != 0 {
-		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits, req.FixCommits); err != nil {
+	if isNewBuild {
+		err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) {
+			mgr.CurrentBuild = req.ID
+			mgr.FailedBuildBug = ""
+		})
+		if err != nil {
 			return nil, err
 		}
 	}
-	if isNewBuild {
-		if err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) {
-			mgr.CurrentBuild = req.ID
-			mgr.FailedBuildBug = ""
-		}); err != nil {
-			return nil, err
+	if len(req.Commits) != 0 || len(req.FixCommits) != 0 {
+		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits, req.FixCommits); err != nil {
+			// We've already uploaded the build successfully and manager can use it.
+			// Moreover, addCommitsToBugs scans all bugs and can take long time.
+			// So just log the error.
+			log.Errorf(c, "failed to add commits to bugs: %v", err)
 		}
 	}
 	return nil, nil
@@ -340,22 +344,31 @@ func addCommitsToBugs(c context.Context, ns, manager string,
 	if err != nil {
 		return err
 	}
+	// Fetching all bugs in a namespace can be slow, and there is no way to filter only Open/Dup statuses.
+	// So we run a separate query for each status, this both avoids fetching unnecessary data
+	// and splits a long query into two (two smaller queries have lower chances of trigerring
+	// timeouts that one huge).
+	for _, status := range []int{BugStatusOpen, BugStatusDup} {
+		err := addCommitsToBugsInStatus(c, status, ns, manager, managers,
+			fixCommits, presentCommits, bugFixedBy)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string, managers []string,
+	fixCommits []dashapi.FixCommit, presentCommits map[string]bool, bugFixedBy map[string][]string) error {
 	var bugs []*Bug
-	_, err = datastore.NewQuery("Bug").
+	_, err := datastore.NewQuery("Bug").
 		Filter("Namespace=", ns).
+		Filter("Status=", status).
 		GetAll(c, &bugs)
 	if err != nil {
 		return fmt.Errorf("failed to query bugs: %v", err)
 	}
-nextBug:
 	for _, bug := range bugs {
-		switch bug.Status {
-		case BugStatusOpen, BugStatusDup:
-		case BugStatusFixed, BugStatusInvalid:
-			continue nextBug
-		default:
-			return fmt.Errorf("addCommitsToBugs: unknown bug status %v", bug.Status)
-		}
 		var fixCommits []string
 		for i := range bug.Reporting {
 			fixCommits = append(fixCommits, bugFixedBy[bug.Reporting[i].ID]...)
