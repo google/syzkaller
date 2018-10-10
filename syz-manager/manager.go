@@ -734,11 +734,16 @@ func (mgr *Manager) needRepro(crash *Crash) bool {
 	return needRepro
 }
 
-func (mgr *Manager) saveFailedRepro(desc string, stats *repro.Stats) {
+func (mgr *Manager) saveFailedRepro(title string, stats *repro.Stats) {
+	if strings.HasPrefix(title, report.MemoryLeakPrefix) {
+		// Don't send failed leak repro attempts to dashboard
+		// as we did not send the crash itself.
+		return
+	}
 	if mgr.dash != nil {
 		cid := &dashapi.CrashID{
 			BuildID: mgr.cfg.Tag,
-			Title:   desc,
+			Title:   title,
 		}
 		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
 			log.Logf(0, "failed to report failed repro to dashboard: %v", err)
@@ -746,7 +751,7 @@ func (mgr *Manager) saveFailedRepro(desc string, stats *repro.Stats) {
 			return
 		}
 	}
-	dir := filepath.Join(mgr.crashdir, hash.String([]byte(desc)))
+	dir := filepath.Join(mgr.crashdir, hash.String([]byte(title)))
 	osutil.MkdirAll(dir)
 	for i := 0; i < maxReproAttempts; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
