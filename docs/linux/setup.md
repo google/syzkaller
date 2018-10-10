@@ -66,16 +66,14 @@ For some details on fuzzing the kernel on an Android device check out [this page
 
 ### Syzkaller
 
-The syzkaller tools are written in [Go](https://golang.org), so a Go compiler (>= 1.8) is needed
-to build them.
+`syzkaller` is written in [Go](https://golang.org), a `Go 1.9+` toolchain is required for build.
 
 Go distribution can be downloaded from https://golang.org/dl/.
-Unpack Go into a directory, say, `$HOME/go`.
-Then, set `GOROOT=$HOME/go` env var.
-Then, add Go binaries to `PATH`, `PATH=$HOME/go/bin:$PATH`.
-Then, set `GOPATH` env var to some empty dir, say `GOPATH=$HOME/gopath`.
+Unpack Go into a directory, say, `$HOME/goroot`.
+Then, add Go binaries to `PATH`, `PATH=$HOME/goroot/bin:$HOME/go/bin:$PATH`.
 Then, run `go get -u -d github.com/google/syzkaller/...` to checkout syzkaller sources.
-Then, `cd $GOPATH/src/github.com/google/syzkaller` and
-build with `make`, which generates compiled binaries in the `bin/` folder.
+Then, `cd $HOME/go/src/github.com/google/syzkaller` and build with `make`,
+which generates compiled binaries in the `bin/` dir.
+See [Go Getting Started](https://golang.org/doc/install) for details.
 Note: if you want to do cross-OS/arch testing, you need to specify `TARGETOS`,
 `TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](/Makefile) for details.
