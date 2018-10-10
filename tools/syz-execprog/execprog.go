@@ -59,6 +59,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	if *flagOutput {
+		for _, feat := range features {
+			log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
+		}
+	}
 	if _, err = host.Setup(target, features); err != nil {
 		log.Fatalf("%v", err)
 	}
