@@ -437,8 +437,16 @@ func checkLeakChecking() string {
 	if reason := checkDebugFS(); reason != "" {
 		return reason
 	}
-	if err := osutil.IsAccessible("/sys/kernel/debug/kmemleak"); err != nil {
+	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
+	if err != nil {
 		return "CONFIG_DEBUG_KMEMLEAK is not enabled"
+	}
+	defer syscall.Close(fd)
+	if _, err := syscall.Write(fd, []byte("scan=off")); err != nil {
+		if err == syscall.EBUSY {
+			return "KMEMLEAK disabled: increase CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE or unset CONFIG_DEBUG_KMEMLEAK_DEFAULT_OFF"
+		}
+		return fmt.Sprintf("/sys/kernel/debug/kmemleak write failed: %v", err)
 	}
 	return ""
 }
@@ -449,12 +457,6 @@ func setupLeakChecking() error {
 		return fmt.Errorf("failed to open /sys/kernel/debug/kmemleak: %v", err)
 	}
 	defer syscall.Close(fd)
-	if _, err := syscall.Write(fd, []byte("scan=off")); err != nil {
-		// kmemleak returns EBUSY when kmemleak is already turned off.
-		if err != syscall.EBUSY {
-			return fmt.Errorf("write(kmemleak, scan=off) failed: %v", err)
-		}
-	}
 	// Flush boot leaks.
 	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
 		return fmt.Errorf("write(kmemleak, scan) failed: %v", err)
