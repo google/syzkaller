@@ -4,6 +4,8 @@
 package report
 
 import (
+	"bufio"
+	"bytes"
 	"regexp"
 )
 
@@ -27,11 +29,33 @@ func (ctx *openbsd) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *openbsd) Parse(output []byte) *Report {
-	return simpleLineParser(output, openbsdOopses, nil, ctx.ignores)
+	stripped := bytes.Replace(output, []byte{'\r'}, nil, -1)
+	rep := simpleLineParser(stripped, openbsdOopses, nil, ctx.ignores)
+	if rep == nil {
+		return nil
+	}
+	rep.Output = output
+	if report := ctx.shortenReport(rep.Report); len(report) != 0 {
+		rep.Report = report
+	}
+	return rep
 }
 
 func (ctx *openbsd) Symbolize(rep *Report) error {
 	return nil
+}
+
+func (ctx *openbsd) shortenReport(report []byte) []byte {
+	out := new(bytes.Buffer)
+	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
+		line := s.Bytes()
+		out.Write(line)
+		// Kernel splits lines at 79 column.
+		if len(line) != 79 {
+			out.WriteByte('\n')
+		}
+	}
+	return out.Bytes()
 }
 
 var openbsdOopses = []*oops{
