@@ -1,5 +1,9 @@
 # Found bugs
 
+Most latest bugs are reported by [syzbot](/docs/syzbot.md) to
+[syzkaller-openbsd-bugs](https://groups.google.com/forum/#!forum/syzkaller-openbsd-bugs)
+mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#openbsd).
+
 Newer bugs comes first.
 
 - [poll: execution of address `0x0` caused by console redirection](https://marc.info/?l=openbsd-cvs&m=153552269821957&w=2)
