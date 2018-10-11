@@ -26,11 +26,13 @@ if [[ ! -f "${ISO}" ]]; then
 fi
 
 # Create custom siteXX.tgz set.
-mkdir -p etc
+rm -fr etc && mkdir -p etc
 cat >install.site <<EOF
 #!/bin/sh
 syspatch
-pkg_add -I bash git gmake go llvm nano wget && echo pkg_add OK
+PKGS="bash git gmake go llvm nano wget"
+PKG_PATH=https://${MIRROR}/pub/OpenBSD/${DOWNLOAD_VERSION}/packages/${ARCH}/ pkg_add -I \$PKGS
+PKG_PATH= pkg_info -I \$PKGS && echo pkg_add OK
 
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config

@@ -26,7 +26,7 @@ if [[ ! -f "${ISO}" ]]; then
 fi
 
 # Create custom siteXX.tgz set.
-mkdir -p etc
+rm -fr etc && mkdir -p etc
 cat >install.site <<'EOF'
 #!/bin/sh
 echo 'set tty com0' > boot.conf
@@ -45,13 +45,6 @@ cat >etc/installurl <<EOF
 https://${MIRROR}/pub/OpenBSD
 EOF
 
-cat >etc/rc.local <<EOF
-(
-  set -x
-
-  echo "starting syz-manager"
-)
-EOF
 chmod +x install.site
 
 cat >etc/rc.conf.local <<EOF
@@ -115,15 +108,15 @@ growisofs -M "${ISO_PATCHED}" -l -R -graft-points \
   /etc/random.seed=random.seed
 
 # Initialize disk image.
-rm -f worker_disk.raw
-qemu-img create -f raw worker_disk.raw 1G
+rm -f worker_disk.qcow2
+qemu-img create -f qcow2 worker_disk.qcow2 1G
 
 # Run the installer to create the disk image.
 expect 2>&1 <<EOF | tee install_log
 set timeout 1800
 
 spawn qemu-system-x86_64 -nographic -smp 2 \
-  -drive if=virtio,file=worker_disk.raw,format=raw -cdrom "${ISO_PATCHED}" \
+  -drive if=virtio,file=worker_disk.qcow2,format=qcow2 -cdrom "${ISO_PATCHED}" \
   -net nic,model=virtio -net user -boot once=d -m 4000 -enable-kvm
 
 expect timeout { exit 1 } "boot>"
@@ -171,11 +164,6 @@ expect {
 }
 EOF
 
-# Create Compute Engine disk image.
-echo "Archiving worker_disk.raw... (this may take a while)"
-i="openbsd-${ARCH}-${RELNO}-vmm.tar.gz"
-tar -zcf "$i" worker_disk.raw
-
 cat <<EOF
-Done: $i
+Done: worker_disk.qcow2
 EOF
