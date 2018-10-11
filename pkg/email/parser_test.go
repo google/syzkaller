@@ -574,4 +574,36 @@ d
 		Command:     "dup:",
 		CommandArgs: "BUG: unable to handle kernel NULL pointer dereference in corrupted",
 	}},
+
+	{`Sender: syzkaller-bugs@googlegroups.com
+To: syzbot <syzbot+6dd701dc797b23b8c761@syzkaller.appspotmail.com>
+From: bar@foo.com
+
+#syz dup:
+BUG: unable to handle kernel NULL pointer dereference in corrupted
+`, Email{
+		From: "<bar@foo.com>",
+		Cc:   []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Body: `#syz dup:
+BUG: unable to handle kernel NULL pointer dereference in corrupted
+`,
+		Command:     "dup:",
+		CommandArgs: "BUG: unable to handle kernel NULL pointer dereference in corrupted",
+	}},
+
+	{`Sender: syzkaller-bugs@googlegroups.com
+To: syzbot <syzbot+6dd701dc797b23b8c761@syzkaller.appspotmail.com>
+From: bar@foo.com
+
+#syz fix:
+When freeing a lockf struct that already is part of a linked list, make sure to
+`, Email{
+		From: "<bar@foo.com>",
+		Cc:   []string{"bar@foo.com", "syzbot@syzkaller.appspotmail.com"},
+		Body: `#syz fix:
+When freeing a lockf struct that already is part of a linked list, make sure to
+`,
+		Command:     "fix:",
+		CommandArgs: "When freeing a lockf struct that already is part of a linked list, make sure to",
+	}},
 }

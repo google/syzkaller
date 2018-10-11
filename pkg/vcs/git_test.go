@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestGitParseCommit(t *testing.T) {
@@ -124,8 +126,8 @@ func TestGitExtractFixTags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(commits, extractFixTagsOutput) {
-		t.Fatalf("got : %+v\twant: %+v", commits, extractFixTagsOutput)
+	if diff := cmp.Diff(extractFixTagsOutput, commits); diff != "" {
+		t.Fatal(diff)
 	}
 }
 
@@ -136,6 +138,7 @@ var extractFixTagsOutput = []FixCommit{
 	{"8e4090902540da8c6e8f", "executor: remove dead code"},
 	{"a640a0fc325c29c3efcb", "executor: remove dead code"},
 	{"8e4090902540da8c6e8fa640a0fc325c29c3efcb", "pkg/csource: fix string escaping bug"},
+	{"6dd701dc797b23b8c761", "When freeing a lockf struct that already is part of a linked list, make sure to"},
 }
 
 var extractFixTagsInput = `
@@ -163,4 +166,14 @@ Date:   Fri Dec 22 11:59:09 2017 +0100
     pkg/csource: fix string escaping bug
     
     Reported-and-tested-by: syzbot+8e4090902540da8c6e8fa640a0fc325c29c3efcb@my.mail.com
+
+commit 47546510aa98d3fbff3291a5dc3cefe712e70394
+Author: anton <openbsd@openbsd.org>
+Date:   Sat Oct 6 21:12:23 2018 +0000
+
+    When freeing a lockf struct that already is part of a linked list, make sure to
+    update the next pointer for the preceding lock. Prevents a double free panic.
+    
+    ok millert@
+    Reported-by: syzbot+6dd701dc797b23b8c761@my.mail.com
 `
