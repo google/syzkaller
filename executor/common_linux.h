@@ -1867,7 +1867,7 @@ static void syz_setfilecon(const char* path, const char* context)
 	if (setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0) != 0)
 		fail("setfilecon: setxattr failed");
 
-	if (syz_getfilecon(path, new_context, sizeof(new_context)) != 0)
+	if (syz_getfilecon(path, new_context, sizeof(new_context)) <= 0)
 		fail("setfilecon: getfilecon failed");
 
 	if (strcmp(context, new_context) != 0)
@@ -1879,6 +1879,9 @@ static int do_sandbox_android_untrusted_app(void)
 {
 	setup_common();
 	sandbox_common();
+
+	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
+		fail("chmod failed");
 
 	if (setgroups(UNTRUSTED_APP_NUM_GROUPS, UNTRUSTED_APP_GROUPS) != 0)
 		fail("setgroups failed");

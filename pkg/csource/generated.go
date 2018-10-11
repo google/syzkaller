@@ -136,14 +136,18 @@ static uint64 current_time_ms(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
+#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP || SYZ_USE_TMP_DIR
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 static void use_temporary_dir(void)
 {
+#if SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+	char tmpdir_template[] = "/data/data/syzkaller/syzkaller.XXXXXX";
+#else
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
+#endif
 	char* tmpdir = mkdtemp(tmpdir_template);
 	if (!tmpdir)
 		fail("failed to mkdtemp");
@@ -3336,7 +3340,7 @@ static void syz_setfilecon(const char* path, const char* context)
 	if (setxattr(path, SELINUX_XATTR_NAME, context, strlen(context) + 1, 0) != 0)
 		fail("setfilecon: setxattr failed");
 
-	if (syz_getfilecon(path, new_context, sizeof(new_context)) != 0)
+	if (syz_getfilecon(path, new_context, sizeof(new_context)) <= 0)
 		fail("setfilecon: getfilecon failed");
 
 	if (strcmp(context, new_context) != 0)
@@ -3348,6 +3352,9 @@ static int do_sandbox_android_untrusted_app(void)
 {
 	setup_common();
 	sandbox_common();
+
+	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
+		fail("chmod failed");
 
 	if (setgroups(UNTRUSTED_APP_NUM_GROUPS, UNTRUSTED_APP_GROUPS) != 0)
 		fail("setgroups failed");
@@ -4147,7 +4154,7 @@ int main(void)
 	for (procid = 0; procid < [[PROCS]]; procid++) {
 		if (fork() == 0) {
 #endif
-#if SYZ_USE_TMP_DIR
+#if SYZ_USE_TMP_DIR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 			use_temporary_dir();
 #endif
 			[[SANDBOX_FUNC]]
