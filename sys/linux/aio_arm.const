@@ -12,6 +12,6 @@ IOCB_FLAG_RESFD = 1
 __NR_io_cancel = 247
 __NR_io_destroy = 244
 __NR_io_getevents = 245
-# __NR_io_pgetevents is not set
+__NR_io_pgetevents = 399
 __NR_io_setup = 243
 __NR_io_submit = 246

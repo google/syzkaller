@@ -6200,6 +6200,7 @@ const call_t syscalls[] = {
     {"io_cancel", 247},
     {"io_destroy", 244},
     {"io_getevents", 245},
+    {"io_pgetevents", 399},
     {"io_setup", 243},
     {"io_submit", 246},
     {"ioctl", 54},
