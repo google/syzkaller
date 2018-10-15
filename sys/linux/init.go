@@ -21,6 +21,8 @@ func InitTarget(target *prog.Target) {
 		FITHAW:                    target.ConstMap["FITHAW"],
 		EXT4_IOC_SHUTDOWN:         target.ConstMap["EXT4_IOC_SHUTDOWN"],
 		EXT4_IOC_MIGRATE:          target.ConstMap["EXT4_IOC_MIGRATE"],
+		FAN_OPEN_PERM:             target.ConstMap["FAN_OPEN_PERM"],
+		FAN_ACCESS_PERM:           target.ConstMap["FAN_ACCESS_PERM"],
 		PTRACE_TRACEME:            target.ConstMap["PTRACE_TRACEME"],
 		CLOCK_REALTIME:            target.ConstMap["CLOCK_REALTIME"],
 		ARCH_SET_FS:               target.ConstMap["ARCH_SET_FS"],
@@ -95,6 +97,8 @@ type arch struct {
 	FITHAW                    uint64
 	EXT4_IOC_SHUTDOWN         uint64
 	EXT4_IOC_MIGRATE          uint64
+	FAN_OPEN_PERM             uint64
+	FAN_ACCESS_PERM           uint64
 	PTRACE_TRACEME            uint64
 	CLOCK_REALTIME            uint64
 	ARCH_SET_FS               uint64
@@ -128,11 +132,18 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_SHUTDOWN {
 			cmd.Val = arch.EXT4_IOC_MIGRATE
 		}
+	case "fanotify_mark":
+		// FAN_OPEN_PERM and FAN_ACCESS_PERM require the program to reply to open requests.
+		// If that does not happen, the program will hang in an unkillable state forever.
+		// See the following bug for details:
+		// https://groups.google.com/d/msg/syzkaller-bugs/pD-vbqJu6U0/kGH30p3lBgAJ
+		mask := c.Args[2].(*prog.ConstArg)
+		mask.Val &^= arch.FAN_OPEN_PERM | arch.FAN_ACCESS_PERM
 	case "ptrace":
 		req := c.Args[0].(*prog.ConstArg)
 		// PTRACE_TRACEME leads to unkillable processes, see:
 		// https://groups.google.com/forum/#!topic/syzkaller/uGzwvhlCXAw
-		if req.Val == arch.PTRACE_TRACEME {
+		if uint64(uint32(req.Val)) == arch.PTRACE_TRACEME {
 			req.Val = ^uint64(0)
 		}
 	case "arch_prctl":
