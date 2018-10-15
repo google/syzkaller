@@ -104,7 +104,7 @@ fi
 echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk $DISKDEV
 PARTDEV=$DISKDEV"p1"
 until [ -e $PARTDEV ]; do sleep 1; done
-sudo -E mkfs.ext4 -O ^resize_inode,has_journal,ext_attr,extents,huge_file,flex_bg,dir_nlink,sparse_super $PARTDEV
+sudo -E mkfs.ext4 -O ^resize_inode,^has_journal,ext_attr,extents,huge_file,flex_bg,dir_nlink,sparse_super $PARTDEV
 mkdir -p disk.mnt
 CLEANUP="rm -rf disk.mnt; $CLEANUP"
 sudo mount $PARTDEV disk.mnt
