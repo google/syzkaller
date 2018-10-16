@@ -88,7 +88,7 @@ type CallInfo struct {
 	Flags  CallFlags
 	Signal []uint32 // feedback signal, filled if FlagSignal is set
 	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
-	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
+	// if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
 	Comps prog.CompMap // per-call comparison operands
 	Errno int          // call errno (0 if the call was successful)
 }

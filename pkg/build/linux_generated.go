@@ -117,4 +117,3 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 EOF
 sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $DISKDEV
 `
-
