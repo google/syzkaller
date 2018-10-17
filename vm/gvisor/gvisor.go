@@ -190,6 +190,7 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 		"-watchdog-action=panic",
 		"-panic-signal=12",
 		"-network=none",
+		"-debug",
 	}
 	if inst.cfg.RunscArgs != "" {
 		args = append(args, strings.Split(inst.cfg.RunscArgs, " ")...)
