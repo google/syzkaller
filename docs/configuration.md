@@ -40,4 +40,6 @@ following keys in its top-level object:
      - `cpu`: Number of CPUs to simulate in the VM (*not currently used*).
      - `mem`: Amount of memory (in MiB) for the VM; this is passed as the `-m` option to `qemu-system-x86_64`.
 
-See also [config.go](/pkg/mgrconfig/mgrconfig.go) for all config parameters.
+See also:
+ - [config.go](/pkg/mgrconfig/mgrconfig.go) for all config parameters;
+ - [qemu.go](/vm/qemu/qemu.go) for all vm parameters.
