@@ -78,6 +78,12 @@ CONFIG_KASAN=y
 CONFIG_KASAN_INLINE=y
 ```
 
+You may also need the following for a recent linux image:
+```
+CONFIG_CONFIGFS_FS=y
+CONFIG_SECURITYFS=y
+```
+
 You might also want to enable some other kernel configs as described [here](kernel_configs.md).
 
 Since enabling these options results in more sub options being available, we need to regenerate config. Run this and press enter each time when prompted for some config value to leave it as default:
