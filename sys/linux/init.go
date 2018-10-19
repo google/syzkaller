@@ -14,22 +14,24 @@ func InitTarget(target *prog.Target) {
 	arch := &arch{
 		unix:                      targets.MakeUnixSanitizer(target),
 		clockGettimeSyscall:       target.SyscallMap["clock_gettime"],
-		SYSLOG_ACTION_CONSOLE_OFF: target.ConstMap["SYSLOG_ACTION_CONSOLE_OFF"],
-		SYSLOG_ACTION_CONSOLE_ON:  target.ConstMap["SYSLOG_ACTION_CONSOLE_ON"],
-		SYSLOG_ACTION_SIZE_UNREAD: target.ConstMap["SYSLOG_ACTION_SIZE_UNREAD"],
-		FIFREEZE:                  target.ConstMap["FIFREEZE"],
-		FITHAW:                    target.ConstMap["FITHAW"],
-		EXT4_IOC_SHUTDOWN:         target.ConstMap["EXT4_IOC_SHUTDOWN"],
-		EXT4_IOC_MIGRATE:          target.ConstMap["EXT4_IOC_MIGRATE"],
-		FAN_OPEN_PERM:             target.ConstMap["FAN_OPEN_PERM"],
-		FAN_ACCESS_PERM:           target.ConstMap["FAN_ACCESS_PERM"],
-		PTRACE_TRACEME:            target.ConstMap["PTRACE_TRACEME"],
-		CLOCK_REALTIME:            target.ConstMap["CLOCK_REALTIME"],
-		ARCH_SET_FS:               target.ConstMap["ARCH_SET_FS"],
-		ARCH_SET_GS:               target.ConstMap["ARCH_SET_GS"],
-		AF_NFC:                    target.ConstMap["AF_NFC"],
-		AF_LLC:                    target.ConstMap["AF_LLC"],
-		AF_BLUETOOTH:              target.ConstMap["AF_BLUETOOTH"],
+		MREMAP_MAYMOVE:            target.GetConst("MREMAP_MAYMOVE"),
+		MREMAP_FIXED:              target.GetConst("MREMAP_FIXED"),
+		SYSLOG_ACTION_CONSOLE_OFF: target.GetConst("SYSLOG_ACTION_CONSOLE_OFF"),
+		SYSLOG_ACTION_CONSOLE_ON:  target.GetConst("SYSLOG_ACTION_CONSOLE_ON"),
+		SYSLOG_ACTION_SIZE_UNREAD: target.GetConst("SYSLOG_ACTION_SIZE_UNREAD"),
+		FIFREEZE:                  target.GetConst("FIFREEZE"),
+		FITHAW:                    target.GetConst("FITHAW"),
+		EXT4_IOC_SHUTDOWN:         target.GetConst("EXT4_IOC_SHUTDOWN"),
+		EXT4_IOC_MIGRATE:          target.GetConst("EXT4_IOC_MIGRATE"),
+		FAN_OPEN_PERM:             target.GetConst("FAN_OPEN_PERM"),
+		FAN_ACCESS_PERM:           target.GetConst("FAN_ACCESS_PERM"),
+		PTRACE_TRACEME:            target.GetConst("PTRACE_TRACEME"),
+		CLOCK_REALTIME:            target.GetConst("CLOCK_REALTIME"),
+		ARCH_SET_FS:               target.GetConst("ARCH_SET_FS"),
+		ARCH_SET_GS:               target.GetConst("ARCH_SET_GS"),
+		AF_NFC:                    target.GetConst("AF_NFC"),
+		AF_LLC:                    target.GetConst("AF_LLC"),
+		AF_BLUETOOTH:              target.GetConst("AF_BLUETOOTH"),
 	}
 
 	target.MakeMmap = targets.MakePosixMmap(target)
@@ -70,10 +72,10 @@ func InitTarget(target *prog.Target) {
 	}
 
 	if target.Arch == runtime.GOARCH {
-		KCOV_INIT_TRACE = uintptr(target.ConstMap["KCOV_INIT_TRACE"])
-		KCOV_ENABLE = uintptr(target.ConstMap["KCOV_ENABLE"])
-		KCOV_DISABLE = uintptr(target.ConstMap["KCOV_DISABLE"])
-		KCOV_TRACE_CMP = uintptr(target.ConstMap["KCOV_TRACE_CMP"])
+		KCOV_INIT_TRACE = uintptr(target.GetConst("KCOV_INIT_TRACE"))
+		KCOV_ENABLE = uintptr(target.GetConst("KCOV_ENABLE"))
+		KCOV_DISABLE = uintptr(target.GetConst("KCOV_DISABLE"))
+		KCOV_TRACE_CMP = uintptr(target.GetConst("KCOV_TRACE_CMP"))
 	}
 }
 
@@ -90,6 +92,8 @@ type arch struct {
 
 	clockGettimeSyscall *prog.Syscall
 
+	MREMAP_MAYMOVE            uint64
+	MREMAP_FIXED              uint64
 	SYSLOG_ACTION_CONSOLE_OFF uint64
 	SYSLOG_ACTION_CONSOLE_ON  uint64
 	SYSLOG_ACTION_SIZE_UNREAD uint64
@@ -111,6 +115,12 @@ type arch struct {
 func (arch *arch) sanitizeCall(c *prog.Call) {
 	arch.unix.SanitizeCall(c)
 	switch c.Meta.CallName {
+	case "mremap":
+		// Add MREMAP_FIXED flag, otherwise it produces non-deterministic results.
+		flags := c.Args[3].(*prog.ConstArg)
+		if flags.Val&arch.MREMAP_MAYMOVE != 0 {
+			flags.Val |= arch.MREMAP_FIXED
+		}
 	case "syslog":
 		cmd := c.Args[0].(*prog.ConstArg)
 		cmd.Val = uint64(uint32(cmd.Val))

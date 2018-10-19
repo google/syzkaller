@@ -10,7 +10,9 @@ import (
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
-		unix: targets.MakeUnixSanitizer(target),
+		unix:    targets.MakeUnixSanitizer(target),
+		S_IFMT:  target.GetConst("S_IFMT"),
+		S_IFCHR: target.GetConst("S_IFCHR"),
 	}
 
 	target.MakeMmap = targets.MakePosixMmap(target)
@@ -18,7 +20,9 @@ func InitTarget(target *prog.Target) {
 }
 
 type arch struct {
-	unix *targets.UnixSanitizer
+	unix    *targets.UnixSanitizer
+	S_IFMT  uint64
+	S_IFCHR uint64
 }
 
 func (arch *arch) SanitizeCall(c *prog.Call) {
@@ -31,9 +35,9 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 		fallthrough
 	case "mknod":
 		mode := c.Args[pos].(*prog.ConstArg)
-		if mode.Val&arch.unix.S_IFMT == arch.unix.S_IFMT {
-			mode.Val &^= arch.unix.S_IFMT
-			mode.Val |= arch.unix.S_IFCHR
+		if mode.Val&arch.S_IFMT == arch.S_IFMT {
+			mode.Val &^= arch.S_IFMT
+			mode.Val |= arch.S_IFCHR
 		}
 	default:
 		arch.unix.SanitizeCall(c)

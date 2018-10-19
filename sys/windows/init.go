@@ -10,9 +10,9 @@ import (
 func InitTarget(target *prog.Target) {
 	arch := &arch{
 		virtualAllocSyscall:    target.SyscallMap["VirtualAlloc"],
-		MEM_COMMIT:             target.ConstMap["MEM_COMMIT"],
-		MEM_RESERVE:            target.ConstMap["MEM_RESERVE"],
-		PAGE_EXECUTE_READWRITE: target.ConstMap["PAGE_EXECUTE_READWRITE"],
+		MEM_COMMIT:             target.GetConst("MEM_COMMIT"),
+		MEM_RESERVE:            target.GetConst("MEM_RESERVE"),
+		PAGE_EXECUTE_READWRITE: target.GetConst("PAGE_EXECUTE_READWRITE"),
 	}
 
 	target.MakeMmap = arch.makeMmap
