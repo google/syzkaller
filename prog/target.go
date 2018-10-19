@@ -169,6 +169,17 @@ func (target *Target) initTarget() {
 	initAnyTypes(target)
 }
 
+func (target *Target) GetConst(name string) uint64 {
+	if target.ConstMap == nil {
+		panic("GetConst can only be used during target initialization")
+	}
+	v, ok := target.ConstMap[name]
+	if !ok {
+		panic(fmt.Sprintf("const %v is not defined for %v/%v", name, target.OS, target.Arch))
+	}
+	return v
+}
+
 type Gen struct {
 	r *randGen
 	s *state

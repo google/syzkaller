@@ -9,20 +9,21 @@ import (
 )
 
 type arch struct {
-	unix *targets.UnixSanitizer
+	MAP_FIXED uint64
 }
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
-		unix: targets.MakeUnixSanitizer(target),
+		MAP_FIXED: target.GetConst("MAP_FIXED"),
 	}
 	target.MakeMmap = targets.MakePosixMmap(target)
 	target.SanitizeCall = arch.sanitizeCall
 }
 
 func (arch *arch) sanitizeCall(c *prog.Call) {
-	arch.unix.SanitizeCall(c)
 	switch c.Meta.CallName {
+	case "mmap":
+		c.Args[3].(*prog.ConstArg).Val |= arch.MAP_FIXED
 	case "provision":
 		if pid, ok := c.Args[0].(*prog.ConstArg); ok && uint32(pid.Val) == ^uint32(0) {
 			// pid -1 causes some debugging splat on console.
