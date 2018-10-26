@@ -87,6 +87,10 @@ vm "syzkaller" {
 }
 EOF
 
+cat >etc/sysctl.conf <<EOF
+hw.smt=1
+EOF
+
 tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/*
 
 # Autoinstall script.
