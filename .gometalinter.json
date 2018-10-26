@@ -37,7 +37,7 @@
 		"lll"
 	],
 	"exclude": [
-		"(sys/(akaros|freebsd|fuchsia|linux|netbsd|test|windows)/init.*|sys/targets/common.go).* don't use ALL_CAPS in Go names",
+		"(sys/.*/init.*|sys/targets/common.go).* don't use ALL_CAPS in Go names",
 		"exported .* should have comment",
 		"comment on .* should be of the form",
 		"declaration of \"err\" shadows",
