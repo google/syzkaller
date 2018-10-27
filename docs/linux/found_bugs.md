@@ -4,6 +4,8 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [KASAN: use-after-free Read in raw_cmd_done](https://groups.google.com/d/msg/syzkaller/wylZT5uD_xw/dTiar3qVBgAJ)
+* [KMSAN: uninit-value in selinux_socket_bind, selinux_socket_connect_helper](https://groups.google.com/d/msg/syzkaller/elP9WpfcVbY/JHhEmU4BBwAJ)
 * [UBSAN: Undefined behaviour in drivers/block/floppy.c](https://groups.google.com/d/msg/syzkaller/eB8DFhbjLyI/4lSR84IiBQAJ)
 * [net: BUG still has locks held in unix_stream_splice_read](https://groups.google.com/d/msg/syzkaller/q_BUZHm-Nug/Y0o4RfDJBQAJ)
 * [general protection fault in sockfs_setattr](https://groups.google.com/d/msg/syzkaller/y4V_gr5sjsE/GRA81a6EAQAJ) [CVE-2018-12232](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-12232)
