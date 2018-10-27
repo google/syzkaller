@@ -1,5 +1,6 @@
 # Research work based on syzkaller
 
+* [ALEXKIDD-FUZZER: Kernel Fuzzing Guided by Symbolic Information](https://www.cerias.purdue.edu/assets/symposium/2018-posters/829-D1B.pdf)
 * [DIFUZE: Interface Aware Fuzzing for Kernel Drivers](https://acmccs.github.io/papers/p2123-corinaA.pdf)
 * [MoonShine: Optimizing OS Fuzzer Seed Selection with Trace Distillation](http://www.cs.columbia.edu/~suman/docs/moonshine.pdf)
 * [RAZZER: Finding Kernel Race Bugs through Fuzzing](https://lifeasageek.github.io/papers/jeong:razzer.pdf)
