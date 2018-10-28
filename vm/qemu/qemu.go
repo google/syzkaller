@@ -67,6 +67,7 @@ type archConfig struct {
 	Qemu      string
 	QemuArgs  string
 	TargetDir string
+	NicModel  string
 	CmdLine   []string
 	// Weird mode for akaros.
 	// Currently akaros does not have support for building Go binaries.
@@ -79,6 +80,10 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-x86_64",
 		QemuArgs:  "-enable-kvm -cpu host,migratable=off",
 		TargetDir: "/",
+		// e1000e fails on recent Debian distros with:
+		// Initialization of device e1000e failed: failed to find romfile "efi-e1000e.rom
+		// But other arches don't use e1000e, e.g. arm64 uses virtio by default.
+		NicModel: ",model=e1000",
 		CmdLine: append(linuxCmdline,
 			"kvm-intel.nested=1",
 			"kvm-intel.unrestricted_guest=1",
@@ -97,6 +102,7 @@ var archConfigs = map[string]*archConfig{
 	"linux/386": {
 		Qemu:      "qemu-system-i386",
 		TargetDir: "/",
+		NicModel:  ",model=e1000",
 		CmdLine:   linuxCmdline,
 	},
 	"linux/arm64": {
@@ -119,16 +125,19 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-x86_64",
 		TargetDir: "/",
 		QemuArgs:  "-enable-kvm",
+		NicModel:  ",model=e1000",
 	},
 	"netbsd/amd64": {
 		Qemu:      "qemu-system-x86_64",
 		TargetDir: "/",
 		QemuArgs:  "-enable-kvm",
+		NicModel:  ",model=e1000",
 	},
 	"fuchsia/amd64": {
 		Qemu:      "qemu-system-x86_64",
 		QemuArgs:  "-enable-kvm -machine q35 -cpu host,migratable=off",
 		TargetDir: "/tmp",
+		NicModel:  ",model=e1000",
 		CmdLine: []string{
 			"kernel.serial=legacy",
 			"kernel.halt-on-panic=true",
@@ -138,6 +147,7 @@ var archConfigs = map[string]*archConfig{
 		Qemu:       "qemu-system-x86_64",
 		QemuArgs:   "-enable-kvm -cpu host,migratable=off",
 		TargetDir:  "/",
+		NicModel:   ",model=e1000",
 		HostFuzzer: true,
 	},
 }
@@ -297,9 +307,7 @@ func (inst *instance) Boot() error {
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-smp", strconv.Itoa(inst.cfg.CPU),
-		// e1000e fails on recent Debian distros with:
-		// Initialization of device e1000e failed: failed to find romfile "efi-e1000e.rom
-		"-net", "nic,model=e1000",
+		"-net", "nic" + inst.archConfig.NicModel,
 		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port),
 		"-display", "none",
 		"-serial", "stdio",
