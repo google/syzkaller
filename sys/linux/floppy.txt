@@ -9,7 +9,7 @@ include <uapi/linux/fd.h>
 
 resource fd_floppy[fd]
 
-syz_open_dev$FLOPPY(dev ptr[in, string["/dev/fd#"]], id intptr, flags flags[open_flags]) fd_floppy
+syz_open_dev$floppy(dev ptr[in, string["/dev/fd#"]], id intptr, flags flags[open_flags]) fd_floppy
 
 ioctl$FLOPPY_FDEJECT(fd fd_floppy, cmd const[FDEJECT])
 ioctl$FLOPPY_FDCLRPRM(fd fd_floppy, cmd const[FDCLRPRM])
