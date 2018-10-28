@@ -10,7 +10,7 @@
 
 set -eu -o pipefail
 
-readonly MIRROR="${MIRROR:-cloudflare.cdn.openbsd.org}"
+readonly MIRROR="${MIRROR:-cdn.openbsd.org}"
 readonly VERSION="${VERSION:-6.4}"
 readonly DOWNLOAD_VERSION="${DOWNLOAD_VERSION:-snapshots}"
 readonly RELNO="${2:-${VERSION/./}}"
@@ -32,7 +32,8 @@ cat >install.site <<EOF
 syspatch
 PKGS="bash git gmake go llvm nano wget"
 PKG_PATH=https://${MIRROR}/pub/OpenBSD/${DOWNLOAD_VERSION}/packages/${ARCH}/ pkg_add -I \$PKGS
-PKG_PATH= pkg_info -I \$PKGS && echo pkg_add OK
+PKG_PATH=http://firmware.openbsd.org/firmware/snapshots/ pkg_add vmm-firmware
+PKG_PATH= pkg_info -I \$PKGS vmm-firmware && echo pkg_add OK
 
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
@@ -84,6 +85,10 @@ vm "syzkaller" {
   owner syzkaller
   allow instance { boot, disk, memory }
 }
+EOF
+
+cat >etc/sysctl.conf <<EOF
+hw.smt=1
 EOF
 
 tar --owner=root --group=root -zcvf site${RELNO}.tgz install.site etc/*
