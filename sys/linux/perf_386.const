@@ -68,4 +68,6 @@ PERF_TYPE_RAW = 4
 PERF_TYPE_SOFTWARE = 1
 PERF_TYPE_TRACEPOINT = 2
 __NR_ioctl = 54
+__NR_mmap = 192
+__NR_mmap2 = 192
 __NR_perf_event_open = 336

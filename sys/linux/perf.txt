@@ -7,8 +7,10 @@ include <linux/hw_breakpoint.h>
 resource fd_perf_base[fd]
 resource fd_perf[fd_perf_base]
 
-perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr[0:16], group fd_perf[opt], flags flags[perf_flags]) fd_perf
-perf_event_open$cgroup(attr ptr[in, perf_event_attr], fd fd_cgroup, cpu intptr[0:16], group fd_perf[opt], flags flags[perf_flags_cgroup]) fd_perf
+perf_event_open(attr ptr[in, perf_event_attr], pid pid[opt], cpu intptr[-1:16], group fd_perf[opt], flags flags[perf_flags]) fd_perf
+perf_event_open$cgroup(attr ptr[in, perf_event_attr], fd fd_cgroup, cpu intptr[-1:16], group fd_perf[opt], flags flags[perf_flags_cgroup]) fd_perf
+
+mmap$perf(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_perf, offset fileoff)
 
 ioctl$PERF_EVENT_IOC_ENABLE(fd fd_perf, cmd const[PERF_EVENT_IOC_ENABLE], flags intptr)
 ioctl$PERF_EVENT_IOC_DISABLE(fd fd_perf, cmd const[PERF_EVENT_IOC_DISABLE], flags intptr)
@@ -31,6 +33,7 @@ perf_sample_type = PERF_SAMPLE_IP, PERF_SAMPLE_TID, PERF_SAMPLE_TIME, PERF_SAMPL
 perf_read_format = PERF_FORMAT_TOTAL_TIME_ENABLED, PERF_FORMAT_TOTAL_TIME_RUNNING, PERF_FORMAT_ID, PERF_FORMAT_GROUP
 perf_branch_sample_type = PERF_SAMPLE_BRANCH_USER, PERF_SAMPLE_BRANCH_KERNEL, PERF_SAMPLE_BRANCH_HV, PERF_SAMPLE_BRANCH_ANY, PERF_SAMPLE_BRANCH_ANY_CALL, PERF_SAMPLE_BRANCH_ANY_RETURN, PERF_SAMPLE_BRANCH_IND_CALL, PERF_SAMPLE_BRANCH_ABORT_TX, PERF_SAMPLE_BRANCH_IN_TX, PERF_SAMPLE_BRANCH_NO_TX, PERF_SAMPLE_BRANCH_COND, PERF_SAMPLE_BRANCH_CALL_STACK, PERF_SAMPLE_BRANCH_IND_JUMP, PERF_SAMPLE_BRANCH_CALL, PERF_SAMPLE_BRANCH_NO_FLAGS, PERF_SAMPLE_BRANCH_NO_CYCLES, PERF_SAMPLE_BRANCH_TYPE_SAVE, PERF_SAMPLE_BRANCH_MAX
 perf_bp_lens = 1, 2, 4, 8
+_ = __NR_mmap2
 
 perf_event_attr {
 	type				flags[perf_event_type, int32]
