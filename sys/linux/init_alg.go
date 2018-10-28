@@ -172,6 +172,7 @@ var allAlgs = map[int][]algDesc{
 		{"lrw", []int{ALG_CIPHER}},
 		{"ecb", []int{ALG_CIPHER}},
 		{"kw", []int{ALG_CIPHER}},
+		{"ofb", []int{ALG_CIPHER}},
 		{"cts", []int{ALG_BLKCIPHER}},
 		{"fpu", []int{ALG_BLKCIPHER}},
 		{"xts", []int{ALG_BLKCIPHER}},
