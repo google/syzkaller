@@ -58,9 +58,7 @@ If the subsystem is supported on several architectures, then run `syz-extract` f
 `$LINUX` should point to kernel source checkout, which is configured for the corresponding arch (i.e. you need to run `make someconfig && make` there first).
 If the kernel was built into a separate directory (with `make O=...`) then also set `$LINUXBLD` to the location of the build directory.
 
-Then, run `make generate` which will update generated code.
-
-Rebuild syzkaller (`make clean all`) to force use of the new system call definitions.
+Then, run `make generate` and `make` which will update generated code and rebuild binaries.
 
 Optionally, adjust the `enable_syscalls` configuration value for syzkaller to specifically target the new system calls.
 
