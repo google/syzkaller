@@ -27,11 +27,12 @@ func InitTarget(target *prog.Target) {
 		FAN_ACCESS_PERM:           target.GetConst("FAN_ACCESS_PERM"),
 		PTRACE_TRACEME:            target.GetConst("PTRACE_TRACEME"),
 		CLOCK_REALTIME:            target.GetConst("CLOCK_REALTIME"),
-		ARCH_SET_FS:               target.GetConst("ARCH_SET_FS"),
-		ARCH_SET_GS:               target.GetConst("ARCH_SET_GS"),
 		AF_NFC:                    target.GetConst("AF_NFC"),
 		AF_LLC:                    target.GetConst("AF_LLC"),
 		AF_BLUETOOTH:              target.GetConst("AF_BLUETOOTH"),
+		// These are not present on all arches.
+		ARCH_SET_FS: target.ConstMap["ARCH_SET_FS"],
+		ARCH_SET_GS: target.ConstMap["ARCH_SET_GS"],
 	}
 
 	target.MakeMmap = targets.MakePosixMmap(target)

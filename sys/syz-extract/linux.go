@@ -43,6 +43,22 @@ func (*linux) prepare(sourcedir string, build bool, arches []string) error {
 }
 
 func (*linux) prepareArch(arch *Arch) error {
+	// Kernel misses these headers on all arches.
+	// So we create empty stubs in buildDir/syzkaller and add -IbuildDir/syzkaller
+	// as the last flag so it won't override real kernel headers.
+	for _, hdr := range []string{
+		"asm/a.out.h",
+		"asm/prctl.h",
+		"asm/mce.h",
+	} {
+		fullPath := filepath.Join(arch.buildDir, "syzkaller", hdr)
+		if err := osutil.MkdirAll(filepath.Dir(fullPath)); err != nil {
+			return err
+		}
+		if err := osutil.WriteFile(fullPath, nil); err != nil {
+			return nil
+		}
+	}
 	if !arch.build {
 		return nil
 	}
@@ -100,6 +116,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + sourceDir + "/include/uapi",
 		"-I" + buildDir + "/include/generated/uapi",
 		"-I" + sourceDir,
+		"-I" + buildDir + "/syzkaller",
 		"-include", sourceDir + "/include/linux/kconfig.h",
 	}
 	args = append(args, arch.target.CFlags...)
