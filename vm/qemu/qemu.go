@@ -77,7 +77,7 @@ type archConfig struct {
 var archConfigs = map[string]*archConfig{
 	"linux/amd64": {
 		Qemu:      "qemu-system-x86_64",
-		QemuArgs:  "-enable-kvm",
+		QemuArgs:  "-enable-kvm -cpu host,migratable=off",
 		TargetDir: "/",
 		CmdLine: append(linuxCmdline,
 			"kvm-intel.nested=1",
@@ -127,7 +127,7 @@ var archConfigs = map[string]*archConfig{
 	},
 	"fuchsia/amd64": {
 		Qemu:      "qemu-system-x86_64",
-		QemuArgs:  "-enable-kvm -machine q35 -cpu host",
+		QemuArgs:  "-enable-kvm -machine q35 -cpu host,migratable=off",
 		TargetDir: "/tmp",
 		CmdLine: []string{
 			"kernel.serial=legacy",
@@ -136,7 +136,7 @@ var archConfigs = map[string]*archConfig{
 	},
 	"akaros/amd64": {
 		Qemu:       "qemu-system-x86_64",
-		QemuArgs:   "-enable-kvm -cpu host",
+		QemuArgs:   "-enable-kvm -cpu host,migratable=off",
 		TargetDir:  "/",
 		HostFuzzer: true,
 	},
