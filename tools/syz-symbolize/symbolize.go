@@ -52,6 +52,7 @@ func main() {
 	}
 	fmt.Printf("TITLE: %v\n", rep.Title)
 	fmt.Printf("CORRUPTED: %v (%v)\n", rep.Corrupted, rep.CorruptedReason)
+	fmt.Printf("MAINTAINERS: %v\n", rep.Maintainers)
 	fmt.Printf("\n")
 	os.Stdout.Write(rep.Report)
 }

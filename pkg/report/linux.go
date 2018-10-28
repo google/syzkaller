@@ -271,11 +271,9 @@ func (ctx *linux) parseOutput(output []byte) (
 
 func (ctx *linux) Symbolize(rep *Report) error {
 	if ctx.vmlinux != "" {
-		symbolized, err := ctx.symbolize(rep.Report)
-		if err != nil {
+		if err := ctx.symbolize(rep); err != nil {
 			return err
 		}
-		rep.Report = symbolized
 	}
 	// We still do this even if we did not symbolize,
 	// because tests pass in already symbolized input.
@@ -290,19 +288,25 @@ func (ctx *linux) Symbolize(rep *Report) error {
 	return nil
 }
 
-func (ctx *linux) symbolize(text []byte) ([]byte, error) {
+func (ctx *linux) symbolize(rep *Report) error {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
 	strip := ctx.stripPrefix(symb)
 	var symbolized []byte
-	s := bufio.NewScanner(bytes.NewReader(text))
+	s := bufio.NewScanner(bytes.NewReader(rep.Report))
+	prefix := rep.reportPrefixLen
 	for s.Scan() {
 		line := append([]byte{}, s.Bytes()...)
 		line = append(line, '\n')
-		line = symbolizeLine(symb.Symbolize, ctx.symbols, ctx.vmlinux, strip, line)
-		symbolized = append(symbolized, line...)
+		newLine := symbolizeLine(symb.Symbolize, ctx.symbols, ctx.vmlinux, strip, line)
+		if prefix > len(symbolized) {
+			prefix += len(newLine) - len(line)
+		}
+		symbolized = append(symbolized, newLine...)
 	}
-	return symbolized, nil
+	rep.Report = symbolized
+	rep.reportPrefixLen = prefix
+	return nil
 }
 
 func (ctx *linux) stripPrefix(symb *symbolizer.Symbolizer) string {
