@@ -16,7 +16,7 @@ include <uapi/linux/netfilter_ipv6/ip6t_HL.h>
 
 setsockopt$IP6T_SO_SET_REPLACE(fd sock_in6, level const[SOL_IPV6], opt const[IP6T_SO_SET_REPLACE], val ptr[in, ip6t_replace], len len[val])
 setsockopt$IP6T_SO_SET_ADD_COUNTERS(fd sock_in6, level const[SOL_IPV6], opt const[IP6T_SO_SET_ADD_COUNTERS], val ptr[in, ipt_counters_info], len len[val])
-getsockopt$IP6T_SO_GET_INFO(fd sock_in6, level const[SOL_IPV6], opt const[IPT_SO_GET_INFO], val ptr[in, ipt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$IP6T_SO_GET_INFO(fd sock_in6, level const[SOL_IPV6], opt const[IP6T_SO_GET_INFO], val ptr[in, ipt_getinfo], len ptr[in, len[val, int32]])
 getsockopt$IP6T_SO_GET_ENTRIES(fd sock_in6, level const[SOL_IPV6], opt const[IP6T_SO_GET_ENTRIES], val ptr[in, ipt_get_entries], len ptr[in, len[val, int32]])
 getsockopt$IP6T_SO_GET_REVISION_MATCH(fd sock_in6, level const[SOL_IPV6], opt const[IP6T_SO_GET_REVISION_MATCH], val ptr[in, xt_get_revision], len ptr[in, len[val, int32]])
 getsockopt$IP6T_SO_GET_REVISION_TARGET(fd sock_in6, level const[SOL_IPV6], opt const[IP6T_SO_GET_REVISION_TARGET], val ptr[in, xt_get_revision], len ptr[in, len[val, int32]])
