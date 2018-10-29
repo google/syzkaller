@@ -289,7 +289,9 @@ test:
 	env CGO_ENABLED=1 $(GO) test -short ./...
 
 test_race:
-	env CGO_ENABLED=1 $(GO) test -short -race -bench=.* -benchtime=.2s ./...
+	$(GO) test -race; if test $$? -ne 2; then \
+	env CGO_ENABLED=1 $(GO) test -short -race -bench=.* -benchtime=.2s ./... ;\
+	fi
 
 clean:
 	rm -rf ./bin/
