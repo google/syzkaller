@@ -12755,6 +12755,7 @@ const call_t syscalls[] = {
     {"lstat", 40},
     {"madvise", 75},
     {"mincore", 78},
+    {"minherit", 250},
     {"mkdir", 136},
     {"mkdirat", 318},
     {"mknod", 14},

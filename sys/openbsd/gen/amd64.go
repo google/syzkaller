@@ -913,12 +913,17 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 75, Name: "madvise", CallName: "madvise", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "madvise_flags", FldName: "advice", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 3, 4, 6}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "madvise_flags", FldName: "advice", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6}},
 	}},
 	{NR: 78, Name: "mincore", CallName: "mincore", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "addr"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "vec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+	}},
+	{NR: 250, Name: "minherit", CallName: "minherit", Args: []Type{
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "inherit_flags", FldName: "inherit", TypeSize: 8}}, Vals: []uint64{2, 1, 0, 3}},
 	}},
 	{NR: 136, Name: "mkdir", CallName: "mkdir", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -956,7 +961,7 @@ var syscalls_amd64 = []*Syscall{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 0}, BitMask: true},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{4096, 4096, 16, 2, 1}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 16, 4096, 16384, 8192, 2048}, BitMask: true},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
@@ -1581,12 +1586,17 @@ var consts_amd64 = []ConstValue{
 	{Name: "MADV_NORMAL"},
 	{Name: "MADV_RANDOM", Value: 1},
 	{Name: "MADV_SEQUENTIAL", Value: 2},
+	{Name: "MADV_SPACEAVAIL", Value: 5},
 	{Name: "MADV_WILLNEED", Value: 3},
-	{Name: "MAP_ANON", Value: 4096},
 	{Name: "MAP_ANONYMOUS", Value: 4096},
 	{Name: "MAP_FIXED", Value: 16},
+	{Name: "MAP_INHERIT_COPY", Value: 1},
+	{Name: "MAP_INHERIT_NONE", Value: 2},
+	{Name: "MAP_INHERIT_SHARE"},
+	{Name: "MAP_INHERIT_ZERO", Value: 3},
 	{Name: "MAP_PRIVATE", Value: 2},
 	{Name: "MAP_SHARED", Value: 1},
+	{Name: "MAP_STACK", Value: 16384},
 	{Name: "MCL_CURRENT", Value: 1},
 	{Name: "MCL_FUTURE", Value: 2},
 	{Name: "MIFF_REGISTER", Value: 1},
@@ -1755,6 +1765,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_lstat", Value: 40},
 	{Name: "SYS_madvise", Value: 75},
 	{Name: "SYS_mincore", Value: 78},
+	{Name: "SYS_minherit", Value: 250},
 	{Name: "SYS_mkdir", Value: 136},
 	{Name: "SYS_mkdirat", Value: 318},
 	{Name: "SYS_mknod", Value: 14},
@@ -1878,6 +1889,8 @@ var consts_amd64 = []ConstValue{
 	{Name: "WCONTINUED", Value: 8},
 	{Name: "WNOHANG", Value: 1},
 	{Name: "WUNTRACED", Value: 2},
+	{Name: "__MAP_NOFAULT", Value: 8192},
+	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "b7a0cb1d6df43d07bd4ab11d2c4b1a2e1c046ac1"
+const revision_amd64 = "df30b58093a18d87ed6803bfe65ec9af86f721a3"
