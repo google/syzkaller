@@ -22,6 +22,7 @@ ioctl$KVM_GET_SUPPORTED_CPUID(fd fd_kvm, cmd const[KVM_GET_SUPPORTED_CPUID], arg
 ioctl$KVM_GET_EMULATED_CPUID(fd fd_kvmvm, cmd const[KVM_GET_EMULATED_CPUID], arg buffer[out])
 ioctl$KVM_X86_GET_MCE_CAP_SUPPORTED(fd fd_kvmvm, cmd const[KVM_X86_GET_MCE_CAP_SUPPORTED], arg buffer[out])
 
+ioctl$KVM_GET_API_VERSION(fd fd_kvm, cmd const[KVM_GET_API_VERSION], type const[0])
 ioctl$KVM_CREATE_VCPU(fd fd_kvmvm, cmd const[KVM_CREATE_VCPU], id intptr[0:2]) fd_kvmcpu
 ioctl$KVM_CHECK_EXTENSION_VM(fd fd_kvmvm, cmd const[KVM_CHECK_EXTENSION], arg intptr)
 ioctl$KVM_GET_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_GET_DIRTY_LOG], arg ptr[in, kvm_dirty_log])
