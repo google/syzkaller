@@ -168,6 +168,14 @@ bpf_insn_alu {
 bpf_alu_insn = BPF_ALU, BPF_ALU64
 bpf_alu_op = BPF_ADD0, BPF_SUB0, BPF_MUL0, BPF_DIV0, BPF_OR0, BPF_AND0, BPF_LSH0, BPF_RSH0, BPF_NEG0, BPF_MOD0, BPF_XOR0, BPF_MOV0, BPF_ARSH0, BPF_END0
 
+# currently used for trace2syz
+_ = BPF_LD, BPF_LDX, BPF_ST, BPF_STX, BPF_ALU, BPF_JMP, BPF_RET, BPF_MISC
+_ = BPF_W, BPF_H, BPF_B, BPF_IMM, BPF_ABS, BPF_IND, BPF_MEM, BPF_LEN, BPF_MSH
+_ = BPF_ADD, BPF_SUB, BPF_MUL, BPF_DIV, BPF_OR, BPF_AND, BPF_LSH, BPF_RSH, BPF_NEG, BPF_MOD, BPF_XOR, BPF_JA, BPF_JEQ, BPF_JGT, BPF_JGE, BPF_JSET, BPF_K, BPF_X
+_ = BPF_ALU64, BPF_DW, BPF_XADD, BPF_MOV, BPF_ARSH
+_ = BPF_END, BPF_TO_LE, BPF_TO_BE, BPF_FROM_LE, BPF_FROM_BE
+_ = BPF_JNE, BPF_JLT, BPF_JLE, BPF_JSGT, BPF_JSGE, BPF_JSLT, BPF_JSLE, BPF_CALL, BPF_EXIT
+
 define BPF_ADD0	BPF_ADD >> 4
 define BPF_SUB0	BPF_SUB >> 4
 define BPF_MUL0	BPF_MUL >> 4
@@ -257,7 +265,9 @@ define bpf_insn_load_imm_dw	BPF_LD | BPF_DW | BPF_IMM
 # Slightly prune state space, these values frequently must be 0.
 bpf_insn_offsets = 0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 80, 128, 256, -1, -2, -4, -8, -12, -16, -32, -64
 bpf_insn_immediates = 0, 1, 4, 8, 16, -1, -4, -16
-bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_REG_6, BPF_REG_7, BPF_REG_8, BPF_REG_9, BPF_REG_10
+bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_REG_6, BPF_REG_7, BPF_REG_8, BPF_REG_9, BPF_REG_10, __MAX_BPF_REG
+
+define MAX_BPF_REG	__MAX_BPF_REG
 
 # TODO: these filenames must be on bpf filesystem
 bpf_obj_pin_map {
