@@ -165,6 +165,13 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		if uint64(uint32(cmd.Val)) == arch.ARCH_SET_FS {
 			cmd.Val = arch.ARCH_SET_GS
 		}
+	case "init_module":
+		// Kernel tries to vmalloc whatever we pass as size and it's not accounted against memcg.
+		// As the result it can lead to massive OOM kills of everything running on the machine.
+		// Strictly saying, the same applies to finit_module with a sparse file too,
+		// but there is no simple way to handle that.
+		sz := c.Args[1].(*prog.ConstArg)
+		sz.Val %= 1 << 20
 	case "syz_init_net_socket":
 		// Don't let it mess with arbitrary sockets in init namespace.
 		family := c.Args[0].(*prog.ConstArg)
