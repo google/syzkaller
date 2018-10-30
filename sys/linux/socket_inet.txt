@@ -6,6 +6,7 @@ include <linux/ipv6.h>
 include <linux/route.h>
 include <uapi/linux/if_arp.h>
 include <uapi/linux/netfilter_ipv6/ip6_tables.h>
+include <uapi/linux/wireless.h>
 
 # IP sockets
 
@@ -174,6 +175,9 @@ ioctl$sock_inet_SIOCSIFPFLAGS(fd sock, cmd const[SIOCSIFPFLAGS], arg ptr[inout, 
 ioctl$sock_inet_SIOCSIFFLAGS(fd sock, cmd const[SIOCSIFFLAGS], arg ptr[inout, ifreq_t[flags[ifru_flags, int16]]])
 
 rt_flags = RTF_UP, RTF_GATEWAY, RTF_HOST, RTF_REINSTATE, RTF_DYNAMIC, RTF_MODIFIED, RTF_MTU, RTF_WINDOW, RTF_IRTT, RTF_REJECT
+
+# TODO: add descriptions
+_ = SIOCSIWNWID, SIOCGIWNWID, SIOCSIWFREQ, SIOCGIWFREQ, SIOCSIWMODE, SIOCGIWMODE, SIOCSIWSENS, SIOCGIWSENS
 
 rtentry_in {
 	rt_pad1		int64
