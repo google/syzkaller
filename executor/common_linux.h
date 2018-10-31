@@ -868,9 +868,9 @@ error:
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#if defined(__x86_64__)
+#if GOARCH_amd64
 #include "common_kvm_amd64.h"
-#elif defined(__aarch64__)
+#elif GOARCH_arm64
 #include "common_kvm_arm64.h"
 #else
 static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7)
