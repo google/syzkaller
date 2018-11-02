@@ -5,7 +5,6 @@ package prog
 
 import (
 	"fmt"
-	"path/filepath"
 )
 
 var debug = false // enabled in tests
@@ -172,16 +171,6 @@ func (arg *DataArg) validate(ctx *validCtx) error {
 		if typ.TypeSize != 0 && arg.Size() != typ.TypeSize {
 			return fmt.Errorf("string arg '%v' has size %v, which should be %v",
 				typ.Name(), arg.Size(), typ.TypeSize)
-		}
-	case BufferFilename:
-		file := string(arg.data)
-		for len(file) != 0 && file[len(file)-1] == 0 {
-			file = file[:len(file)-1]
-		}
-		file = filepath.Clean(file)
-		if len(file) > 0 && file[0] == '/' ||
-			len(file) > 1 && file[0] == '.' && file[1] == '.' {
-			return fmt.Errorf("sandbox escaping file name %q", string(arg.data))
 		}
 	}
 	return nil
