@@ -5,7 +5,6 @@ package prog
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -229,18 +228,10 @@ func TestEscapingPaths(t *testing.T) {
 		"./file":    false,
 		"./file/..": false,
 	}
-	target, err := GetTarget("test", "64")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for path, escaping := range paths {
-		text := fmt.Sprintf("mutate5(&(0x7f0000000000)=\"%s\", 0x0)", hex.EncodeToString([]byte(path)))
-		_, err := target.Deserialize([]byte(text))
-		if !escaping && err != nil {
-			t.Errorf("path %q is detected as escaping (%v)", path, err)
-		}
-		if escaping && (err == nil || !strings.Contains(err.Error(), "sandbox escaping file")) {
-			t.Errorf("path %q is not detected as escaping (%v)", path, err)
+	for path, want := range paths {
+		got := escapingFilename(path)
+		if got != want {
+			t.Errorf("path %q: got %v, want %v", path, got, want)
 		}
 	}
 }

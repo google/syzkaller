@@ -157,6 +157,9 @@ func (r *randGen) filename(s *state, typ *BufferType) string {
 	if len(fn) != 0 && fn[len(fn)-1] == 0 {
 		panic(fmt.Sprintf("zero-terminated filename: %q", fn))
 	}
+	if escapingFilename(fn) {
+		panic(fmt.Sprintf("sandbox escaping file name %q", fn))
+	}
 	if !typ.Varlen() {
 		size := typ.Size()
 		if uint64(len(fn)) < size {
@@ -167,6 +170,12 @@ func (r *randGen) filename(s *state, typ *BufferType) string {
 		fn += "\x00"
 	}
 	return fn
+}
+
+func escapingFilename(file string) bool {
+	file = filepath.Clean(file)
+	return len(file) >= 1 && file[0] == '/' ||
+		len(file) >= 2 && file[0] == '.' && file[1] == '.'
 }
 
 var specialFiles = []string{"", "."}
