@@ -296,7 +296,7 @@ test_race:
 clean:
 	rm -rf ./bin/
 
-# For a tupical Ubuntu/Debian distribution.
+# For a typical Ubuntu/Debian distribution.
 # We use "|| true" for apt-get install because packages are all different on different distros,
 # and we want to install at least gometalinter on Travis CI.
 install_prerequisites:
