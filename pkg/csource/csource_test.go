@@ -25,7 +25,9 @@ func TestGenerate(t *testing.T) {
 		}
 		target := target
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
-			if runtime.GOOS == "openbsd" && target.OS != "openbsd" {
+			// OpenBSD tests don't run except on itself
+			// and nothing else runs on OpenBSD.
+			if (runtime.GOOS == "openbsd") != (target.OS == "openbsd") {
 				t.Skip("broken")
 			}
 			if target.OS == "linux" && target.Arch == "arm" {
