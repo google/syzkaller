@@ -27,7 +27,9 @@ const (
 
 func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, opts Options) ([]byte, error) {
 	defines := defineList(p, mmapProg, opts)
-	cmd := osutil.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
+	target := mmapProg.Target
+	sysTarget := targets.Get(target.OS, target.Arch)
+	cmd := osutil.Command(sysTarget.CPreprocessor, "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
 	for _, def := range defines {
 		cmd.Args = append(cmd.Args, "-D"+def)
 	}

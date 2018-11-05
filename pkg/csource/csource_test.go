@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -24,6 +25,9 @@ func TestGenerate(t *testing.T) {
 		}
 		target := target
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
+			if runtime.GOOS == "openbsd" && target.OS != "openbsd" {
+				t.Skip("broken")
+			}
 			if target.OS == "linux" && target.Arch == "arm" {
 				// This currently fails (at least with my arm-linux-gnueabihf-gcc-4.8) with:
 				// Assembler messages:

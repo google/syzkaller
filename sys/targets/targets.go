@@ -25,6 +25,7 @@ type Target struct {
 	CrossCFlags      []string
 	CCompilerPrefix  string
 	CCompiler        string
+	CPreprocessor    string
 	KernelArch       string
 	KernelHeaderArch string
 	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
@@ -185,6 +186,8 @@ var List = map[string]map[string]*Target{
 			PageSize:    4 << 10,
 			CFlags:      []string{"-m64"},
 			CCompiler:   "c++",
+			// GNU CPP is installed from gcc package.
+			CPreprocessor: "/usr/local/bin/ecpp",
 			CrossCFlags: []string{"-m64", "-static", "-lutil"},
 		},
 	},
@@ -331,6 +334,9 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	if target.CCompiler == "" {
 		target.CCompiler = target.CCompilerPrefix + "gcc"
+	}
+	if target.CPreprocessor == "" {
+		target.CPreprocessor = "cpp"
 	}
 }
 
