@@ -413,12 +413,8 @@ static int do_sandbox_none(void)
 
 #if SYZ_EXECUTOR || __NR_syz_open_pts
 
-#if defined(__OpenBSD__)
 #include <termios.h>
 #include <util.h>
-#else
-#include <pty.h>
-#endif
 
 static uintptr_t syz_open_pts(void)
 {
