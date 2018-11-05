@@ -182,13 +182,13 @@ var List = map[string]map[string]*Target{
 	},
 	"openbsd": {
 		"amd64": {
-			PtrSize:     8,
-			PageSize:    4 << 10,
-			CFlags:      []string{"-m64"},
-			CCompiler:   "c++",
+			PtrSize:   8,
+			PageSize:  4 << 10,
+			CFlags:    []string{"-m64"},
+			CCompiler: "c++",
 			// GNU CPP is installed from gcc package.
-			CPreprocessor: "/usr/local/bin/ecpp",
-			CrossCFlags: []string{"-m64", "-static", "-lutil"},
+			CPreprocessor: "ecpp",
+			CrossCFlags:   []string{"-m64", "-static", "-lutil"},
 		},
 	},
 	"fuchsia": {
