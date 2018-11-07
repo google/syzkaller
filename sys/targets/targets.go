@@ -25,7 +25,6 @@ type Target struct {
 	CrossCFlags      []string
 	CCompilerPrefix  string
 	CCompiler        string
-	CPP              string
 	KernelArch       string
 	KernelHeaderArch string
 	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
@@ -46,6 +45,8 @@ type osCommon struct {
 	ExeExtension string
 	// Name of the kernel object file.
 	KernelObject string
+	// Name of cpp(1) executable.
+	CPP string
 }
 
 func Get(OS, arch string) *Target {
@@ -187,7 +188,6 @@ var List = map[string]map[string]*Target{
 			CFlags:      []string{"-m64"},
 			CCompiler:   "c++",
 			CrossCFlags: []string{"-m64", "-static", "-lutil"},
-			CPP:         "ecpp",
 		},
 	},
 	"fuchsia": {
@@ -254,6 +254,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
+		CPP:			"cpp",
 	},
 	"freebsd": {
 		SyscallNumbers:         true,
@@ -261,6 +262,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
+		CPP:			"cpp",
 	},
 	"netbsd": {
 		SyscallNumbers:         true,
@@ -268,6 +270,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
+		CPP:			"cpp",
 	},
 	"openbsd": {
 		SyscallNumbers:         true,
@@ -275,12 +278,14 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "bsd.gdb",
+		CPP:           		"ecpp",
 	},
 	"fuchsia": {
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		KernelObject:           "zircon.elf",
+		CPP:			"cpp",
 	},
 	"windows": {
 		SyscallNumbers:         false,
@@ -288,6 +293,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: false,
 		ExeExtension:           ".exe",
 		KernelObject:           "vmlinux",
+		CPP:			"cpp",
 	},
 	"akaros": {
 		SyscallNumbers:         true,
@@ -295,6 +301,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "akaros-kernel-64b",
+		CPP:			"cpp",
 	},
 }
 
@@ -333,9 +340,6 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	if target.CCompiler == "" {
 		target.CCompiler = target.CCompilerPrefix + "gcc"
-	}
-	if target.CPP == "" {
-		target.CPP = "cpp"
 	}
 }
 
