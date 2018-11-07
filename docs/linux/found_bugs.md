@@ -4,6 +4,7 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [WARNING in pkt setup dev](https://groups.google.com/d/msg/syzkaller/jQsAxlSpvCU/xFab0v1wBAAJ)
 * [UBSAN: Undefined behaviour in drivers/net/ppp/ppp_generic.c](https://groups.google.com/d/msg/syzkaller/xwZC0Njopck/FiU9Z-rRAgAJ)
 * [KASAN: use-after-free Read in raw_cmd_done](https://groups.google.com/d/msg/syzkaller/wylZT5uD_xw/dTiar3qVBgAJ)
 * [KMSAN: uninit-value in selinux_socket_bind, selinux_socket_connect_helper](https://groups.google.com/d/msg/syzkaller/elP9WpfcVbY/JHhEmU4BBwAJ)
