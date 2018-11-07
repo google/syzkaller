@@ -30,7 +30,7 @@ rm -fr etc && mkdir -p etc
 cat >install.site <<EOF
 #!/bin/sh
 syspatch
-PKGS="bash git gmake go llvm nano wget"
+PKGS="bash gcc git gmake go llvm nano wget"
 PKG_PATH=https://${MIRROR}/pub/OpenBSD/${DOWNLOAD_VERSION}/packages/${ARCH}/ pkg_add -I \$PKGS
 PKG_PATH=http://firmware.openbsd.org/firmware/snapshots/ pkg_add vmm-firmware
 PKG_PATH= pkg_info -I \$PKGS vmm-firmware && echo pkg_add OK
