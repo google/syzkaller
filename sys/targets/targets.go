@@ -254,7 +254,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
-		CPP:			"cpp",
+		CPP:                    "cpp",
 	},
 	"freebsd": {
 		SyscallNumbers:         true,
@@ -262,7 +262,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
-		CPP:			"cpp",
+		CPP:                    "cpp",
 	},
 	"netbsd": {
 		SyscallNumbers:         true,
@@ -270,7 +270,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
-		CPP:			"cpp",
+		CPP:                    "cpp",
 	},
 	"openbsd": {
 		SyscallNumbers:         true,
@@ -278,14 +278,14 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "bsd.gdb",
-		CPP:           		"ecpp",
+		CPP:                    "ecpp",
 	},
 	"fuchsia": {
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		KernelObject:           "zircon.elf",
-		CPP:			"cpp",
+		CPP:                    "cpp",
 	},
 	"windows": {
 		SyscallNumbers:         false,
@@ -293,7 +293,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: false,
 		ExeExtension:           ".exe",
 		KernelObject:           "vmlinux",
-		CPP:			"cpp",
+		CPP:                    "cpp",
 	},
 	"akaros": {
 		SyscallNumbers:         true,
@@ -301,7 +301,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "akaros-kernel-64b",
-		CPP:			"cpp",
+		CPP:                    "cpp",
 	},
 }
 
