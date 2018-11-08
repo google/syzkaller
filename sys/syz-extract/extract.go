@@ -63,6 +63,7 @@ var extractors = map[string]Extractor{
 	"android": new(linux),
 	"fuchsia": new(fuchsia),
 	"windows": new(windows),
+	"trusty":  new(trusty),
 }
 
 func main() {

@@ -243,6 +243,13 @@ var List = map[string]map[string]*Target{
 			},
 		},
 	},
+	"trusty": {
+		"arm": {
+			PtrSize:           4,
+			PageSize:          4 << 10,
+			NeedSyscallDefine: dontNeedSyscallDefine,
+		},
+	},
 }
 
 var oses = map[string]osCommon{
@@ -293,6 +300,10 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "akaros-kernel-64b",
+	},
+	"trusty": {
+		SyscallNumbers: true,
+		SyscallPrefix:  "__NR_",
 	},
 }
 

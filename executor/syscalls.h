@@ -13033,6 +13033,40 @@ const call_t syscalls[] = {
 
 #endif
 
+#if GOOS_trusty
+
+#if GOARCH_arm
+const call_t syscalls[] = {
+    {"accept", 18},
+    {"brk", 2},
+    {"close", 19},
+    {"connect", 17},
+    {"exit_etc", 3},
+    {"finish_dma", 11},
+    {"get_msg", 32},
+    {"gettime", 7},
+    {"handle_set_create", 21},
+    {"handle_set_ctrl", 22},
+    {"ioctl", 5},
+    {"mmap", 8},
+    {"munmap", 9},
+    {"nanosleep", 6},
+    {"port_create", 16},
+    {"prepare_dma", 10},
+    {"put_msg", 34},
+    {"read", 4},
+    {"read_msg", 33},
+    {"send_msg", 35},
+    {"set_cookie", 20},
+    {"wait", 24},
+    {"wait_any", 25},
+    {"write", 1},
+
+};
+#endif
+
+#endif
+
 #if GOOS_windows
 
 #if GOARCH_amd64

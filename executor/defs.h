@@ -185,6 +185,21 @@
 
 #endif
 
+#if GOOS_trusty
+#define GOOS "trusty"
+
+#if GOARCH_arm
+#define GOARCH "arm"
+#define SYZ_REVISION "e310afc1c6f271074c53522dc18d6a86e8f2553f"
+#define SYZ_EXECUTOR_USES_FORK_SERVER 0
+#define SYZ_EXECUTOR_USES_SHMEM 0
+#define SYZ_PAGE_SIZE 4096
+#define SYZ_NUM_PAGES 4096
+#define SYZ_DATA_OFFSET 536870912
+#endif
+
+#endif
+
 #if GOOS_windows
 #define GOOS "windows"
 
