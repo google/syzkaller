@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # https://android.googlesource.com/trusty/lk/trusty/+/master/lib/trusty/include/syscall_table.h
+# https://source.android.com/security/trusty/trusty-ref
 
 include <user/trusty_syscalls.h>
 
