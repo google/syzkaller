@@ -1,5 +1,8 @@
 # Research work based on syzkaller
 
+* [Charm: Facilitating Dynamic Analysis of Device Drivers of Mobile Systems](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-talebi.pdf)
+([video](https://www.usenix.org/conference/usenixsecurity18/presentation/talebi),
+[slides](https://www.usenix.org/sites/default/files/conference/protected-files/security18_slides_talebi.pdf))
 * [ALEXKIDD-FUZZER: Kernel Fuzzing Guided by Symbolic Information](https://www.cerias.purdue.edu/assets/symposium/2018-posters/829-D1B.pdf)
 * [DIFUZE: Interface Aware Fuzzing for Kernel Drivers](https://acmccs.github.io/papers/p2123-corinaA.pdf)
 * [MoonShine: Optimizing OS Fuzzer Seed Selection with Trace Distillation](http://www.cs.columbia.edu/~suman/docs/moonshine.pdf)
