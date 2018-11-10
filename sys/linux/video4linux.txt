@@ -4,7 +4,6 @@
 # Constants for this descriptions were generated on the following tree:
 # https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
 
-include <stdio.h>
 include <linux/ioctl.h>
 include <linux/time.h>
 include <linux/types.h>
