@@ -22,6 +22,21 @@ resource v4l2_std_id[int64]
 syz_open_dev$video(dev ptr[in, string["/dev/video#"]], id intptr, flags flags[open_flags]) fd_video
 syz_open_dev$video4linux(dev ptr[in, string["/dev/v4l-subdev#"]], id intptr, flags flags[open_flags]) fd_video
 
+# Special support for CONFIG_VIDEO_VIMC/VIM2M/VIVID/VICODEC.
+# Here we assume that all of them are enabled and the following arguments are passed on command line:
+# vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2
+openat$vimc0(fd const[AT_FDCWD], file ptr[in, string["/dev/video0"]], flags const[O_RDWR], mode const[0]) fd_video
+openat$vimc1(fd const[AT_FDCWD], file ptr[in, string["/dev/video1"]], flags const[O_RDWR], mode const[0]) fd_video
+openat$vimc2(fd const[AT_FDCWD], file ptr[in, string["/dev/video2"]], flags const[O_RDWR], mode const[0]) fd_video
+syz_open_dev$vivid(dev ptr[in, string["/dev/video#"]], id proc[3, 4], flags const[O_RDWR]) fd_video
+openat$vim2m(fd const[AT_FDCWD], file ptr[in, string["/dev/video35"]], flags const[O_RDWR], mode const[0]) fd_video
+openat$vicodec0(fd const[AT_FDCWD], file ptr[in, string["/dev/video36"]], flags const[O_RDWR], mode const[0]) fd_video
+openat$vicodec1(fd const[AT_FDCWD], file ptr[in, string["/dev/video37"]], flags const[O_RDWR], mode const[0]) fd_video
+syz_open_dev$swradio(dev ptr[in, string["/dev/swradio#"]], id proc[0, 2], flags const[O_RDWR]) fd
+syz_open_dev$radio(dev ptr[in, string["/dev/radio#"]], id proc[0, 4], flags const[O_RDWR]) fd
+syz_open_dev$vbi(dev ptr[in, string["/dev/vbi#"]], id proc[0, 4], flags const[O_RDWR]) fd
+syz_open_dev$cec(dev ptr[in, string["/dev/cec#"]], id proc[0, 4], flags const[O_RDWR]) fd
+
 ioctl$VIDIOC_QUERYCAP(fd fd_video, cmd const[VIDIOC_QUERYCAP], arg ptr[out, v4l2_capability])
 ioctl$VIDIOC_RESERVED(fd fd_video, cmd const[VIDIOC_RESERVED], arg const[0])
 ioctl$VIDIOC_ENUM_FMT(fd fd_video, cmd const[VIDIOC_ENUM_FMT], arg ptr[inout, v4l2_fmtdesc])
