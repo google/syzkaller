@@ -507,6 +507,9 @@ openat$sequencer2(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer2"]], f
 openat$dsp(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp"]], flags flags[open_flags], mode const[0]) fd
 openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
+openat$dlm_control(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-control"]], flags flags[open_flags], mode const[0]) fd
+openat$dlm_monitor(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-monitor"]], flags flags[open_flags], mode const[0]) fd
+openat$dlm_plock(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm_plock"]], flags flags[open_flags], mode const[0]) fd
 
 pipefd {
 	rfd	fd
