@@ -17,7 +17,8 @@
 		"sys/netbsd/gen",
 		"sys/openbsd/gen",
 		"sys/windows/gen",
-		"sys/test/gen"
+		"sys/test/gen",
+		"sys/trusty/gen"
 	],
 	"enable": [
 		"gofmt",
