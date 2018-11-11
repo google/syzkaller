@@ -57,7 +57,7 @@ static void execute_command(bool panic, const char* format, ...)
 #else
 // Needed when compiling on Linux.
 #include <pty.h>
-#endif  // defined(__OpenBSD__)
+#endif // defined(__OpenBSD__)
 
 static uintptr_t syz_open_pts(void)
 {
@@ -72,13 +72,13 @@ static uintptr_t syz_open_pts(void)
 	return slave;
 }
 
-#endif  // SYZ_EXECUTOR || __NR_syz_open_pts
+#endif // SYZ_EXECUTOR || __NR_syz_open_pts
 
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 
 #include <fcntl.h>
-#include <sys/types.h>
 #include <net/if_tun.h>
+#include <sys/types.h>
 
 static int tunfd = -1;
 
@@ -97,15 +97,15 @@ static void initialize_tun(void)
 #if SYZ_EXECUTOR
 	if (!flag_enable_tun)
 		return;
-#endif  // SYZ_EXECUTOR
+#endif // SYZ_EXECUTOR
 	tunfd = open(TUN_DEVICE, O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
-	        fail("tun: can't open %s\n", TUN_DEVICE);
+		fail("tun: can't open %s\n", TUN_DEVICE);
 #else
 		printf("tun: can't open %s: errno=%d\n", TUN_DEVICE, errno);
 		return;
-#endif  // SYZ_EXECUTOR
+#endif // SYZ_EXECUTOR
 	}
 	// Remap tun onto higher fd number to hide it from fuzzer and to keep
 	// fd numbers stable regardless of whether tun is opened or not (also see kMaxFd).
@@ -119,66 +119,23 @@ static void initialize_tun(void)
 	execute_command(1, "ifconfig %s inet6 %s", TUN_IFACE, LOCAL_IPV6);
 }
 
-#endif  // SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#endif // SYZ_EXECUTOR || SYZ_TUN_ENABLE
 
 #if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_TUN_ENABLE
 #include <stdbool.h>
 #include <sys/uio.h>
 
-#define MAX_FRAGS 4
-struct vnet_fragmentation {
-	uint32 full;
-	uint32 count;
-	uint32 frags[MAX_FRAGS];
-};
-
-static long syz_emit_ethernet(long a0, long a1, long a2)
+static long syz_emit_ethernet(long a0, long a1)
 {
-	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet], frags ptr[in, vnet_fragmentation, opt])
-	// vnet_fragmentation {
-	// 	full	int32[0:1]
-	// 	count	int32[1:4]
-	// 	frags	array[int32[0:4096], 4]
-	// }
+	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
-	uint32 length = a0;
-	char* data = (char*)a1;
+	size_t length = a0;
+	const char* data = (char*)a1;
 	debug_dump_data(data, length);
 
-	struct vnet_fragmentation* frags = (struct vnet_fragmentation*)a2;
-	struct iovec vecs[MAX_FRAGS + 1];
-	uint32 nfrags = 0;
-	if (frags == NULL) {
-		vecs[nfrags].iov_base = data;
-		vecs[nfrags].iov_len = length;
-		nfrags++;
-	} else {
-		bool full = true;
-		uint32 i, count = 0;
-		NONFAILING(full = frags->full);
-		NONFAILING(count = frags->count);
-		if (count > MAX_FRAGS)
-			count = MAX_FRAGS;
-		for (i = 0; i < count && length != 0; i++) {
-			uint32 size = 0;
-			NONFAILING(size = frags->frags[i]);
-			if (size > length)
-				size = length;
-			vecs[nfrags].iov_base = data;
-			vecs[nfrags].iov_len = size;
-			nfrags++;
-			data += size;
-			length -= size;
-		}
-		if (length != 0 && (full || nfrags == 0)) {
-			vecs[nfrags].iov_base = data;
-			vecs[nfrags].iov_len = length;
-			nfrags++;
-		}
-	}
-	return writev(tunfd, vecs, nfrags);
+	return write(tunfd, data, length);
 }
 #endif
 
@@ -207,14 +164,14 @@ struct tcp_resources {
 	uint32 ack;
 };
 
+#include <net/ethertypes.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <net/ethertypes.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
-#include <netinet/if_ether.h>
 
 static long syz_extract_tcp_res(long a0, long a1, long a2)
 {
@@ -278,6 +235,6 @@ static int do_sandbox_none(void)
 	loop();
 	return 0;
 }
-#endif  // SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+#endif // SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 
-#endif  // GOOS_openbsd
+#endif // GOOS_openbsd
