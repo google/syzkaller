@@ -19,7 +19,7 @@ Variables used throughout the instructions:
 1. Install dependencies:
 
    ```sh
-   # pkg_add bash git gmake go
+   # pkg_add git gmake go
    ```
 
 2. Clone repository:
