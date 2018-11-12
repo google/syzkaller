@@ -1,0 +1,23 @@
+
+reorder_kernel: kernel relinking fail
+OpenBSD/amd64 (syzkaller.my.domain) (tty00)
+
+login:
+
+OpenBSD/amd64 (syzkaller.my.domain) (tty00)
+
+Warning: Permanently added '100.65.68.3' (ECDSA) to the list of known hosts.
+login: trace
+Password:
+Login incorrect
+2018/11/12 04:01:30 fuzzer started
+2018/11/12 04:01:33 dialing manager at 100.65.68.2:24886
+2018/11/12 04:01:33 syscalls: 1
+2018/11/12 04:01:33 code coverage: enabled
+2018/11/12 04:01:33 comparison tracing: support is not implemented in syzkaller2018/11/12 04:01:33 setuid sandbox: support is not implemented in syzkaller
+2018/11/12 04:01:33 namespace sandbox: support is not implemented in syzkaller
+2018/11/12 04:01:33 Android sandbox: support is not implemented in syzkaller
+2018/11/12 04:01:33 fault injection: support is not implemented in syzkaller
+2018/11/12 04:01:33 leak checking: support is not implemented in syzkaller
+2018/11/12 04:01:33 net packed injection: support is not implemented in syzkaller
+2018/11/12 04:01:33 net device setup: support is not implemented in syzkaller
