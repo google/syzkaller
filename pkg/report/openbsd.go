@@ -97,7 +97,7 @@ var openbsdOopses = []*oops{
 		[]byte("kernel:"),
 		[]oopsFormat{},
 		[]*regexp.Regexp{
-			compile("kernel relinking failed"),
+			compile("reorder_kernel"),
 		},
 	},
 }
