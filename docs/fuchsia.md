@@ -29,7 +29,7 @@ Run `syz-manager` with a config along the lines of:
 	"workdir": "/workdir.fuchsia",
 	"kernel_obj": "/fuchsia/out/build-zircon/build-x64",
 	"syzkaller": "/syzkaller",
-	"image": "/fuchsia/out/x64/images/fvm.blk",
+	"image": "/fuchsia/out/x64/out/build/images/fvm.blk",
 	"sshkey": "/fuchsia/out/x64/ssh-keys/id_ed25519",
 	"reproduce": false,
 	"cover": false,
