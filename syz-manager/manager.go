@@ -77,7 +77,6 @@ type Manager struct {
 	corpusCover      cover.Cover
 	corpusSignal     signal.Signal
 	maxSignal        signal.Signal
-	prios            [][]float32
 	newRepros        [][]byte
 	lastMinCorpus    int
 	memoryLeakFrames map[string]bool

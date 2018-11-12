@@ -280,7 +280,6 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	mgr.minimizeCorpus()
 	call := r.FormValue("call")
 	idx := -1
 	for i, c := range mgr.target.Syscalls {
@@ -294,8 +293,19 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var corpus []*prog.Prog
+	for _, inp := range mgr.corpus {
+		p, err := mgr.target.Deserialize(inp.Prog)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
+			return
+		}
+		corpus = append(corpus, p)
+	}
+	prios := mgr.target.CalculatePriorities(corpus)
+
 	data := &UIPrioData{Call: call}
-	for i, p := range mgr.prios[idx] {
+	for i, p := range prios[idx] {
 		data.Prios = append(data.Prios, UIPrio{mgr.target.Syscalls[i].Name, p})
 	}
 	sort.Sort(UIPrioArray(data.Prios))
