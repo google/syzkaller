@@ -319,7 +319,14 @@ func (inst *instance) Diagnose() bool {
 	// Note: this only works if kernel actually paniced and kernel shows panic console.
 	// If kernel just hanged, we've lost connection or detected some non-panic error,
 	// console still shows normal login prompt.
-	for _, c := range []string{"\n", "trace\n", "show registers\n"} {
+	commands := []string{
+		"\n",
+		"set $lines = 0\n", // disable pagination
+		"show panic",
+		"trace\n",
+		"show registers\n",
+	}
+	for _, c := range commands {
 		inst.consolew.Write([]byte(c))
 		time.Sleep(1 * time.Second)
 	}
