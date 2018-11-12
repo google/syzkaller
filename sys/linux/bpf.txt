@@ -121,11 +121,12 @@ bpf_insn [
 	exit	bpf_insn_exit
 	initr0	bpf_insn_init_r0
 	map	bpf_insn_map
-]
+] [varlen]
 
 bpf_insn_generic {
 	code	int8
-	regs	int8
+	dst	int8:4
+	src	int8:4
 	off	int16
 	imm	int32
 }
