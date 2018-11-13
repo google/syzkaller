@@ -320,14 +320,14 @@ func (inst *instance) Diagnose() bool {
 	// If kernel just hanged, we've lost connection or detected some non-panic error,
 	// console still shows normal login prompt.
 	commands := []string{
-		"\n",
-		"set $lines = 0\n", // disable pagination
+		"",
+		"set $lines = 0", // disable pagination
 		"show panic",
-		"trace\n",
-		"show registers\n",
+		"trace",
+		"show registers",
 	}
 	for _, c := range commands {
-		inst.consolew.Write([]byte(c))
+		inst.consolew.Write([]byte(c + "\n"))
 		time.Sleep(1 * time.Second)
 	}
 	return true
