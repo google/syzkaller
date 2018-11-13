@@ -105,7 +105,7 @@ static int event_timedwait(event_t* ev, uint64 timeout_ms)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 	loop();
 	doexit(0);

@@ -234,7 +234,7 @@ static long syz_future_time(long when)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 	loop();
 	return 0;

@@ -132,6 +132,7 @@ static bool flag_collect_comps;
 static bool flag_inject_fault;
 static int flag_fault_call;
 static int flag_fault_nth;
+static uint64 flag_pid;
 
 #define SYZ_EXECUTOR 1
 #include "common.h"
@@ -372,7 +373,7 @@ int main(int argc, char** argv)
 	int status = 0;
 	switch (flag_sandbox) {
 	case sandbox_none:
-		status = do_sandbox_none();
+		status = do_sandbox_none(flag_pid);
 		break;
 #if SYZ_HAVE_SANDBOX_SETUID
 	case sandbox_setuid:
@@ -493,6 +494,7 @@ void receive_execute()
 	flag_collide = req.exec_flags & (1 << 5);
 	flag_fault_call = req.fault_call;
 	flag_fault_nth = req.fault_nth;
+	flag_pid = req.pid;
 	if (!flag_threaded)
 		flag_collide = false;
 	debug("[%llums] exec opts: procid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu\n",

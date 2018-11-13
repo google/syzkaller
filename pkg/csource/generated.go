@@ -369,7 +369,7 @@ static long syz_execute_func(long text)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 	loop();
 	doexit(0);
@@ -411,6 +411,15 @@ static void vsnprintf_check(char* str, size_t size, const char* format, va_list 
 		fail("vsnprintf failed");
 	if ((size_t)rv >= size)
 		fail("vsnprintf: string '%s...' doesn't fit into buffer", str);
+}
+
+static void snprintf_check(char* str, size_t size, const char* format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf_check(str, size, format, args);
+	va_end(args);
 }
 
 #define COMMAND_MAX_LEN 128
@@ -469,25 +478,33 @@ static uintptr_t syz_open_pts(void)
 
 static int tunfd = -1;
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
+#define MAX_TUN 4
+#define TUN_IFACE "tap%d"
+#define TUN_DEVICE "/dev/tap%d"
 
-#define TUN_IFACE "tap0"
-#define TUN_DEVICE "/dev/tap0"
+#define LOCAL_IPV4 "172.20.%d.170"
+#define LOCAL_IPV6 "fe80::%02hxaa"
 
-#define LOCAL_IPV4 "172.20.20.170"
-#define LOCAL_IPV6 "fe80::aa"
-
-static void initialize_tun(void)
+static void initialize_tun(int tun_id)
 {
 #if SYZ_EXECUTOR
 	if (!flag_enable_tun)
 		return;
 #endif
-	tunfd = open(TUN_DEVICE, O_RDWR | O_NONBLOCK);
+
+	if (tun_id < 0 || tun_id >= MAX_TUN) {
+		fail("tun_id out of range %d\n", tun_id);
+	}
+
+	char tun_device[sizeof(TUN_DEVICE)];
+	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
+
+	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
-		fail("tun: can't open %s\n", TUN_DEVICE);
+		fail("tun: can't open %s\n", tun_device);
 #else
-		printf("tun: can't open %s: errno=%d\n", TUN_DEVICE, errno);
+		printf("tun: can't open %s: errno=%d\n", tun_device, errno);
 		return;
 #endif
 	}
@@ -497,8 +514,16 @@ static void initialize_tun(void)
 	close(tunfd);
 	tunfd = kTunFd;
 
-	execute_command(1, "ifconfig %s inet %s", TUN_IFACE, LOCAL_IPV4);
-	execute_command(1, "ifconfig %s inet6 %s", TUN_IFACE, LOCAL_IPV6);
+	char tun_iface[sizeof(TUN_IFACE)];
+	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
+
+	char local_ipv4[sizeof(LOCAL_IPV4)];
+	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
+	execute_command(1, "ifconfig %s inet %s", tun_iface, local_ipv4);
+
+	char local_ipv6[sizeof(LOCAL_IPV6)];
+	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, tun_id);
+	execute_command(1, "ifconfig %s inet6 %s", tun_iface, local_ipv6);
 }
 
 #endif
@@ -606,10 +631,10 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
-	initialize_tun();
+	initialize_tun(pid);
 #endif
 	loop();
 	return 0;
@@ -849,7 +874,7 @@ static long syz_future_time(long when)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 	loop();
 	return 0;
@@ -3264,7 +3289,7 @@ int wait_for_loop(int pid)
 #include <sched.h>
 #include <sys/types.h>
 
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 	if (unshare(CLONE_NEWPID)) {
 		debug("unshare(CLONE_NEWPID): %d\n", errno);
@@ -3916,7 +3941,7 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 	loop();
 	doexit(0);
@@ -4027,7 +4052,7 @@ static int event_timedwait(event_t* ev, uint64 timeout_ms)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 	loop();
 	doexit(0);
@@ -4077,7 +4102,7 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 	loop();
 	doexit(0);

@@ -20,6 +20,15 @@ static void vsnprintf_check(char* str, size_t size, const char* format, va_list 
 		fail("vsnprintf: string '%s...' doesn't fit into buffer", str);
 }
 
+static void snprintf_check(char* str, size_t size, const char* format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf_check(str, size, format, args);
+	va_end(args);
+}
+
 #define COMMAND_MAX_LEN 128
 #define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
 #define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
@@ -86,24 +95,36 @@ static int tunfd = -1;
 // Rest of the packet (if any) will be silently truncated which is fine.
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
 
-#define TUN_IFACE "tap0"
-#define TUN_DEVICE "/dev/tap0"
+// Maximum number of tun devices in the default install.
+#define MAX_TUN 4
 
-#define LOCAL_IPV4 "172.20.20.170"
-#define LOCAL_IPV6 "fe80::aa"
+// All patterns are non-expanding given values < MAX_TUN.
+#define TUN_IFACE "tap%d"
+#define TUN_DEVICE "/dev/tap%d"
 
-static void initialize_tun(void)
+#define LOCAL_IPV4 "172.20.%d.170"
+#define LOCAL_IPV6 "fe80::%02hxaa"
+
+static void initialize_tun(int tun_id)
 {
 #if SYZ_EXECUTOR
 	if (!flag_enable_tun)
 		return;
 #endif // SYZ_EXECUTOR
-	tunfd = open(TUN_DEVICE, O_RDWR | O_NONBLOCK);
+
+	if (tun_id < 0 || tun_id >= MAX_TUN) {
+		fail("tun_id out of range %d\n", tun_id);
+	}
+
+	char tun_device[sizeof(TUN_DEVICE)];
+	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
+
+	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
-		fail("tun: can't open %s\n", TUN_DEVICE);
+		fail("tun: can't open %s\n", tun_device);
 #else
-		printf("tun: can't open %s: errno=%d\n", TUN_DEVICE, errno);
+		printf("tun: can't open %s: errno=%d\n", tun_device, errno);
 		return;
 #endif // SYZ_EXECUTOR
 	}
@@ -115,8 +136,16 @@ static void initialize_tun(void)
 	close(tunfd);
 	tunfd = kTunFd;
 
-	execute_command(1, "ifconfig %s inet %s", TUN_IFACE, LOCAL_IPV4);
-	execute_command(1, "ifconfig %s inet6 %s", TUN_IFACE, LOCAL_IPV6);
+	char tun_iface[sizeof(TUN_IFACE)];
+	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
+
+	char local_ipv4[sizeof(LOCAL_IPV4)];
+	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
+	execute_command(1, "ifconfig %s inet %s", tun_iface, local_ipv4);
+
+	char local_ipv6[sizeof(LOCAL_IPV6)];
+	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, tun_id);
+	execute_command(1, "ifconfig %s inet6 %s", tun_iface, local_ipv6);
 }
 
 #endif // SYZ_EXECUTOR || SYZ_TUN_ENABLE
@@ -227,10 +256,10 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(void)
+static int do_sandbox_none(uint64 pid)
 {
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
-	initialize_tun();
+	initialize_tun(pid);
 #endif
 	loop();
 	return 0;
