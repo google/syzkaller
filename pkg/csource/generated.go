@@ -569,15 +569,14 @@ struct tcp_resources {
 	uint32 seq;
 	uint32 ack;
 };
-
 #include <net/ethertypes.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
+#include <netinet/if_ether.h>
 
 static long syz_extract_tcp_res(long a0, long a1, long a2)
 {
