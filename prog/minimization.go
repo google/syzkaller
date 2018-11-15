@@ -121,10 +121,19 @@ func (typ *UnionType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool 
 }
 
 func (typ *PtrType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
-	// TODO: try to remove optional ptrs
 	a := arg.(*PointerArg)
 	if a.Res == nil {
 		return false
+	}
+	if !ctx.triedPaths[path+"->"] {
+		removeArg(a.Res)
+		replaceArg(a, MakeSpecialPointerArg(a.Type(), 0))
+		ctx.target.assignSizesCall(ctx.call)
+		if ctx.pred(ctx.p, ctx.callIndex0) {
+			*ctx.p0 = ctx.p
+		}
+		ctx.triedPaths[path+"->"] = true
+		return true
 	}
 	return ctx.do(a.Res, path)
 }
