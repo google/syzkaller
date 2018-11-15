@@ -1,0 +1,671 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/types.h>
+include <linux/byteorder/generic.h>
+
+include <uapi/linux/usb/ch9.h>
+include <uapi/linux/usb/ch11.h>
+include <uapi/linux/hid.h>
+include <linux/hid.h>
+include <uapi/linux/usb/cdc.h>
+
+resource fd_usb[fd]
+
+syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb
+syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
+syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data buffer[in])
+syz_usb_disconnect(fd fd_usb)
+
+usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# USB device, configuration, interface and endpoint descriptors.
+
+# TODO: support more than one configuration.
+# bDeviceClass, bDeviceSubClass, bDeviceProtocol, idVendor, idProduct
+# and bcdDevice are patched by Go code, see sys/linux/init_vusb.go.
+usb_device_descriptor {
+	bLength			const[USB_DT_DEVICE_SIZE, int8]
+	bDescriptorType		const[USB_DT_DEVICE, int8]
+
+	bcdUSB			int16
+	bDeviceClass		const[0, int8]
+	bDeviceSubClass		const[0, int8]
+	bDeviceProtocol		const[0, int8]
+	bMaxPacketSize0		int8
+	idVendor		const[0, int16]
+	idProduct		const[0, int16]
+	bcdDevice		const[0, int16]
+	iManufacturer		int8
+	iProduct		int8
+	iSerialNumber		int8
+	bNumConfigurations	len[configs, int8]
+
+	configs			array[usb_config_descriptor, 1]
+} [packed]
+
+# TODO: support more than one interface.
+usb_config_descriptor {
+	bLength			const[USB_DT_CONFIG_SIZE, int8]
+	bDescriptorType		const[USB_DT_CONFIG, int8]
+
+	wTotalLength		len[parent, int16]
+	bNumInterfaces		len[interfaces, int8]
+	bConfigurationValue	int8
+	iConfiguration		int8
+	bmAttributes		flags[usb_config_attributes, int8]
+	bMaxPower		int8
+
+	interfaces		array[usb_interface_descriptor, 1]
+} [packed]
+
+usb_config_attributes = USB_CONFIG_ATT_ONE, USB_CONFIG_ATT_SELFPOWER, USB_CONFIG_ATT_WAKEUP, USB_CONFIG_ATT_BATTERY
+
+# bInterfaceClass, bInterfaceSubClass and bInterfaceProtocol
+# are patched by Go code, see sys/linux/init_vusb.go.
+usb_interface_descriptor {
+	bLength			const[USB_DT_INTERFACE_SIZE, int8]
+	bDescriptorType		const[USB_DT_INTERFACE, int8]
+
+	bInterfaceNumber	const[0, int8]
+	bAlternateSetting	int8
+	bNumEndpoints		len[endpoints, int8]
+	bInterfaceClass		const[0, int8]
+	bInterfaceSubClass	const[0, int8]
+	bInterfaceProtocol	const[0, int8]
+	iInterface		int8
+
+	extra			array[usb_interface_extra_descriptor, 0:2]
+
+	endpoints		array[usb_endpoint_descriptor, 0:16]
+} [packed]
+
+usb_endpoint_descriptor {
+	bLength			const[USB_DT_ENDPOINT_SIZE, int8]
+	bDescriptorType		const[USB_DT_ENDPOINT, int8]
+
+	bEndpointAddress	int8
+	bmAttributes		flags[usb_endpoint_attributes, int8]
+	wMaxPacketSize		int16
+	bInterval		int8
+	bRefresh		int8
+	bSynchAddress		int8
+
+	extra			array[usb_endpoint_extra_descriptor, 0:2]
+} [packed]
+
+usb_endpoint_attributes = USB_ENDPOINT_XFER_CONTROL, USB_ENDPOINT_XFER_ISOC, USB_ENDPOINT_XFER_BULK, USB_ENDPOINT_XFER_INT, USB_ENDPOINT_INTR_PERIODIC, USB_ENDPOINT_INTR_NOTIFICATION, USB_ENDPOINT_SYNC_NONE, USB_ENDPOINT_SYNC_ASYNC, USB_ENDPOINT_SYNC_ADAPTIVE, USB_ENDPOINT_SYNC_SYNC, USB_ENDPOINT_USAGE_DATA, USB_ENDPOINT_USAGE_FEEDBACK, USB_ENDPOINT_USAGE_FEEDBACK
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# USB descriptors requested by the kernel before the SET_CONFIGURATION request.
+
+# TODO: consider unifying with vusb_descriptors in case this struct significantly grows.
+vusb_connect_descriptors {
+	qual_len	len[qual, int32]
+	qual		ptr[in, usb_qualifier_descriptor]
+	bos_len		len[bos, int32]
+	bos		ptr[in, usb_bos_descriptor]
+	strs_len	len[strs, int32]
+	strs		array[vusb_connect_string_descriptor]
+} [packed]
+
+vusb_connect_string_descriptor {
+	len	len[str, int32]
+	str	ptr[in, usb_string_descriptor]
+} [packed]
+
+usb_string_descriptor {
+	bLength		len[parent, int8]
+	bDescriptorType	const[USB_DT_STRING, int8]
+
+	lang_id		flags[usb_lang_ids, int16]
+	data		array[int8]
+} [packed]
+
+usb_lang_ids = 0x436, 0x41c, 0x401, 0x801, 0xc01, 0x1001, 0x1401, 0x1801, 0x1c01, 0x2001, 0x2401, 0x2801, 0x2c01, 0x3001, 0x3401, 0x3801, 0x3c01, 0x4001, 0x42b, 0x44d, 0x42c, 0x82c, 0x42d, 0x423, 0x445, 0x402, 0x455, 0x403, 0x404, 0x804, 0xc04, 0x1004, 0x1404, 0x41a, 0x405, 0x406, 0x413, 0x813, 0x409, 0x809, 0xc09, 0x1009, 0x1409, 0x1809, 0x1c09, 0x2009, 0x2409, 0x2809, 0x2c09, 0x3009, 0x3409, 0x425, 0x438, 0x429, 0x40b, 0x40c, 0x80c, 0xc0c, 0x100c, 0x140c, 0x180c, 0x437, 0x407, 0x807, 0xc07, 0x1007, 0x1407, 0x408, 0x447, 0x40d, 0x439, 0x40e, 0x40f, 0x421, 0x410, 0x810, 0x411, 0x44b, 0x860, 0x43f, 0x457, 0x412, 0x812, 0x426, 0x427, 0x827, 0x42f, 0x43e, 0x83e, 0x44c, 0x458, 0x44e, 0x861, 0x414, 0x814, 0x448, 0x415, 0x416, 0x816, 0x446, 0x418, 0x419, 0x44f, 0xc1a, 0x81a, 0x459, 0x41b, 0x424, 0x40a, 0x80a, 0xc0a, 0x100a, 0x140a, 0x180a, 0x1c0a, 0x200a, 0x240a, 0x280a, 0x2c0a, 0x300a, 0x340a, 0x380a, 0x3c0a, 0x400a, 0x440a, 0x480a, 0x4c0a, 0x500a, 0x430, 0x441, 0x41d, 0x81d, 0x449, 0x444, 0x44a, 0x41e, 0x41f, 0x422, 0x420, 0x820, 0x443, 0x843, 0x42a, 0x4ff, 0xf0ff, 0xf4ff, 0xf8ff, 0xfcff
+
+usb_qualifier_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_DEVICE_QUALIFIER, int8]
+
+	bcdUSB			int16
+	bDeviceClass		int8
+	bDeviceSubClass		int8
+	bDeviceProtocol		int8
+	bMaxPacketSize0		int8
+	bNumConfigurations	int8
+	bRESERVED		const[0, int8]
+} [packed]
+
+usb_bos_descriptor {
+	bLength		const[USB_DT_BOS_SIZE, int8]
+	bDescriptorType	const[USB_DT_BOS, int8]
+
+	wTotalLength	len[parent, int16]
+	bNumDeviceCaps	len[caps, int8]
+
+	caps		array[usb_dev_cap, 0:6]
+} [packed]
+
+usb_dev_cap [
+	generic		usb_generic_cap_descriptor
+	wireless	usb_wireless_cap_descriptor
+	ext_cap		usb_ext_cap_descriptor
+	ss_cap		usb_ss_cap_descriptor
+	ss_container_id	usb_ss_container_id_descriptor
+	ssp_cap		usb_ssp_cap_descriptor
+	ptm_cap		usb_ptm_cap_descriptor
+] [varlen]
+
+usb_generic_cap_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_DEVICE_CAPABILITY, int8]
+	bDevCapabilityType	flags[usb_capability_types, int8]
+
+	data			array[int8]
+} [packed]
+
+usb_capability_types = USB_CAP_TYPE_WIRELESS_USB, USB_CAP_TYPE_EXT, USB_SS_CAP_TYPE, USB_SSP_CAP_TYPE, CONTAINER_ID_TYPE, USB_PTM_CAP_TYPE
+
+usb_wireless_cap_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_DEVICE_CAPABILITY, int8]
+	bDevCapabilityType	const[USB_CAP_TYPE_WIRELESS_USB, int8]
+
+	bmAttributes		flags[usb_wireless_cap_attributes, int8]
+	wPHYRates		flags[usb_wireless_cap_phyrates, int16]
+	bmTFITXPowerInfo	int8
+	bmFFITXPowerInfo	int8
+	bmBandGroup		int16
+	bReserved		int8
+} [packed]
+
+usb_wireless_cap_attributes = USB_WIRELESS_P2P_DRD, USB_WIRELESS_BEACON_MASK, USB_WIRELESS_BEACON_SELF, USB_WIRELESS_BEACON_DIRECTED, USB_WIRELESS_BEACON_NONE
+
+usb_wireless_cap_phyrates = USB_WIRELESS_PHY_53, USB_WIRELESS_PHY_80, USB_WIRELESS_PHY_107, USB_WIRELESS_PHY_160, USB_WIRELESS_PHY_200, USB_WIRELESS_PHY_320, USB_WIRELESS_PHY_400, USB_WIRELESS_PHY_480
+
+usb_ext_cap_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_DEVICE_CAPABILITY, int8]
+	bDevCapabilityType	const[USB_CAP_TYPE_EXT, int8]
+
+	bmAttributes1		flags[usb_ext_cap_attributes, int32:8]
+	bmAttributes2		int32:4
+	bmAttributes3		int32:4
+	bmAttributes4		int32:16
+} [packed]
+
+usb_ext_cap_attributes = USB_LPM_SUPPORT, USB_BESL_SUPPORT, USB_BESL_BASELINE_VALID, USB_BESL_DEEP_VALID
+
+usb_ss_cap_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_DEVICE_CAPABILITY, int8]
+	bDevCapabilityType	const[USB_SS_CAP_TYPE, int8]
+
+	bmAttributes		flags[usb_ss_cap_attributes, int8]
+	wSpeedSupported		flags[usb_ss_cap_speed, int16]
+	bFunctionalitySupport	int8
+	bU1devExitLat		int8
+	bU2DevExitLat		int16
+} [packed]
+
+usb_ss_cap_attributes = USB_LTM_SUPPORT
+
+usb_ss_cap_speed = USB_LOW_SPEED_OPERATION, USB_FULL_SPEED_OPERATION, USB_HIGH_SPEED_OPERATION, USB_5GBPS_OPERATION
+
+usb_ss_container_id_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_DEVICE_CAPABILITY, int8]
+	bDevCapabilityType	const[CONTAINER_ID_TYPE, int8]
+
+	bReserved		int8
+	ContainerID		array[int8, 16]
+} [packed]
+
+usb_ssp_cap_descriptor {
+	bLength				len[parent, int8]
+	bDescriptorType			const[USB_DT_DEVICE_CAPABILITY, int8]
+	bDevCapabilityType		const[USB_SSP_CAP_TYPE, int8]
+
+	bReserved			int8
+	bmAttributesSublinkSpeeds	len[bmSublinkSpeedAttr, int32:5]
+	bmAttributesSpeedIDs		int32:27
+	wFunctionalitySupport		flags[usb_ssp_cap_funcs, int16]
+	wReserved			int16
+	bmSublinkSpeedAttr		array[flags[usb_ssp_cap_sublink_speeds, int32], 0:6]
+} [packed]
+
+usb_ssp_cap_funcs = USB_SSP_MIN_SUBLINK_SPEED_ATTRIBUTE_ID, USB_SSP_MIN_RX_LANE_COUNT, USB_SSP_MIN_TX_LANE_COUNT
+
+usb_ssp_cap_sublink_speeds = USB_SSP_SUBLINK_SPEED_SSID, USB_SSP_SUBLINK_SPEED_LSE, USB_SSP_SUBLINK_SPEED_ST, USB_SSP_SUBLINK_SPEED_RSVD, USB_SSP_SUBLINK_SPEED_LP, USB_SSP_SUBLINK_SPEED_LSM
+
+usb_ptm_cap_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_DEVICE_CAPABILITY, int8]
+	bDevCapabilityType	const[USB_PTM_CAP_TYPE, int8]
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Extra USB descriptors that come after an interface or an endpoint descriptor.
+
+# CHECK: usbhid_parse (iface)
+# CHECK: cdc_parse_cdc_header (iface)
+
+# TODO: uas_find_endpoints (endpoint)
+# TODO: rpipe_epc_find (endpoint)
+# TODO: uvc_parse_streaming (iface)
+# TODO: uvc_parse_control (iface)
+# TODO: hso_get_mux_ports (iface)
+# TODO: blan_mdlm_bind (iface)
+# TODO: gtco_probe (iface)
+# TODO: dlfb_parse_vendor_descriptor (iface)
+
+# TODO: https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/usb/audio.h
+# TODO: search for snd_usb_find_csint_desc()
+
+usb_interface_extra_descriptor [
+	generic	usb_generic_descriptor
+	hid_hid	hid_descriptor_hid
+	usb_cdc	usb_cdc_header
+] [varlen]
+
+usb_endpoint_extra_descriptor [
+	generic	usb_generic_descriptor
+] [varlen]
+
+usb_generic_descriptor {
+	bLength		len[parent, int8]
+	bDescriptorType	flags[usb_descriptor_types, int8]
+
+	data		array[int8]
+} [packed]
+
+usb_descriptor_types = USB_DT_DEVICE, USB_DT_CONFIG, USB_DT_STRING, USB_DT_INTERFACE, USB_DT_ENDPOINT, USB_DT_DEVICE_QUALIFIER, USB_DT_OTHER_SPEED_CONFIG, USB_DT_INTERFACE_POWER, USB_DT_OTG, USB_DT_DEBUG, USB_DT_INTERFACE_ASSOCIATION, USB_DT_SECURITY, USB_DT_KEY, USB_DT_ENCRYPTION_TYPE, USB_DT_BOS, USB_DT_DEVICE_CAPABILITY, USB_DT_WIRELESS_ENDPOINT_COMP, USB_DT_WIRE_ADAPTER, USB_DT_RPIPE, USB_DT_CS_RADIO_CONTROL, USB_DT_PIPE_USAGE, USB_DT_SS_ENDPOINT_COMP, USB_DT_SSP_ISOC_ENDPOINT_COMP, HID_DT_HID, HID_DT_REPORT, HID_DT_PHYSICAL
+
+hid_descriptor_hid {
+	bLength		len[parent, int8]
+	bDescriptorType	const[HID_DT_HID, int8]
+
+	bcdHID		int16
+	bCountryCode	int8
+	bNumDescriptors	len[class_desc, int8]
+
+	class_desc	array[hid_class_descriptor, 0:6]
+} [packed]
+
+hid_class_descriptor {
+	bDescriptorType		flags[hid_descriptor_types, int8]
+	wDescriptorLength	int16[0:HID_MAX_DESCRIPTOR_SIZE]
+} [packed]
+
+hid_descriptor_types = HID_DT_HID, HID_DT_REPORT, HID_DT_PHYSICAL
+
+usb_cdc_header {
+	items	array[usb_cdc_header_item, 0:16]
+} [packed]
+
+usb_cdc_header_item [
+	generic			usb_cdc_generic
+	header			usb_cdc_header_desc
+	call_mgmt		usb_cdc_call_mgmt_descriptor
+	acm			usb_cdc_acm_descriptor
+	union			usb_cdc_union_desc
+	country_functional	usb_cdc_country_functional_desc
+	network_terminal	usb_cdc_network_terminal_desc
+	ether			usb_cdc_ether_desc
+	dmm			usb_cdc_dmm_desc
+	mdlm			usb_cdc_mdlm_desc
+	mdlm_detail		usb_cdc_mdlm_detail_desc
+	obex			usb_cdc_obex_desc
+	ncm			usb_cdc_ncm_desc
+	mbim			usb_cdc_mbim_desc
+	mbim_extended		usb_cdc_mbim_extended_desc
+] [varlen]
+
+usb_cdc_generic {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	flags[usb_cdc_types, int8]
+
+	data			array[int8]
+} [packed]
+
+usb_cdc_types = USB_CDC_HEADER_TYPE, USB_CDC_CALL_MANAGEMENT_TYPE, USB_CDC_ACM_TYPE, USB_CDC_UNION_TYPE, USB_CDC_COUNTRY_TYPE, USB_CDC_NETWORK_TERMINAL_TYPE, USB_CDC_ETHERNET_TYPE, USB_CDC_WHCM_TYPE, USB_CDC_MDLM_TYPE, USB_CDC_MDLM_DETAIL_TYPE, USB_CDC_DMM_TYPE, USB_CDC_OBEX_TYPE, USB_CDC_NCM_TYPE, USB_CDC_MBIM_TYPE, USB_CDC_MBIM_EXTENDED_TYPE
+
+usb_cdc_header_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_HEADER_TYPE, int8]
+
+	bcdCDC			int16
+} [packed]
+
+usb_cdc_call_mgmt_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_CALL_MANAGEMENT_TYPE, int8]
+
+	bmCapabilities		flags[usb_cdc_call_mgmt_caps, int8]
+} [packed]
+
+usb_cdc_call_mgmt_caps = USB_CDC_CALL_MGMT_CAP_CALL_MGMT, USB_CDC_CALL_MGMT_CAP_DATA_INTF
+
+usb_cdc_acm_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_ACM_TYPE, int8]
+
+	bmCapabilities		flags[usb_cdc_acm_caps, int8]
+} [packed]
+
+usb_cdc_acm_caps = USB_CDC_COMM_FEATURE, USB_CDC_CAP_LINE, USB_CDC_CAP_BRK, USB_CDC_CAP_NOTIFY
+
+usb_cdc_union_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_UNION_TYPE, int8]
+
+	bMasterInterface0	int8
+	bSlaveInterface0	int8
+	slave_interfaces	array[int8, 0:6]
+} [packed]
+
+usb_cdc_country_functional_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_COUNTRY_TYPE, int8]
+
+	iCountryCodeRelDate	int8
+	wCountyCode0		int16
+	country_codes		array[int16, 0:6]
+} [packed]
+
+usb_cdc_network_terminal_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_NETWORK_TERMINAL_TYPE, int8]
+
+	bEntityId		int8
+	iName			int8
+	bChannelIndex		int8
+	bPhysicalInterface	int8
+} [packed]
+
+usb_cdc_ether_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_ETHERNET_TYPE, int8]
+
+	iMACAddress		int8
+	bmEthernetStatistics	int32
+	wMaxSegmentSize		int16
+	wNumberMCFilters	int16
+	bNumberPowerFilters	int8
+} [packed]
+
+usb_cdc_dmm_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_DMM_TYPE, int8]
+
+	bcdVersion		int16
+	wMaxCommand		int16
+} [packed]
+
+usb_cdc_mdlm_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_MDLM_TYPE, int8]
+
+	bcdVersion		int16
+	bGUID			array[int8, 16]
+} [packed]
+
+usb_cdc_mdlm_detail_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_MDLM_DETAIL_TYPE, int8]
+
+	bGuidDescriptorType	int8
+	bDetailData		array[int8]
+} [packed]
+
+usb_cdc_obex_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_OBEX_TYPE, int8]
+
+	bcdVersion		int16
+} [packed]
+
+usb_cdc_ncm_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_NCM_TYPE, int8]
+
+	bcdNcmVersion		int16
+	bmNetworkCapabilities	int8
+} [packed]
+
+usb_cdc_mbim_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_MBIM_TYPE, int8]
+
+	bcdMBIMVersion		int16
+	wMaxControlMessage	int16
+	bNumberFilters		int8
+	bMaxFilterSize		int8
+	wMaxSegmentSize		int16
+	bmNetworkCapabilities	int8
+} [packed]
+
+usb_cdc_mbim_extended_desc {
+	bLength				len[parent, int8]
+	bDescriptorType			const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType		const[USB_CDC_MBIM_EXTENDED_TYPE, int8]
+
+	bcdMBIMExtendedVersion		int16
+	bMaxOutstandingCommandMessages	int8
+	wMTU				int16
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# USB descriptors requested after the SET_CONFIGURATION request.
+
+# TODO: define recusively to generate proper structures.
+
+hid_descriptor_report {
+	items	array[hid_report_item]
+} [packed]
+
+hid_report_item_short_012 {
+	bSize	len[data, int8:2]
+	bType	flags[hid_report_item_types, int8:2]
+	bTag	flags[hid_report_item_tags, int8:4]
+	data	array[int8, 0:2]
+} [packed]
+
+hid_report_item_short_4 {
+	bSize	const[3, int8:2]
+	bType	flags[hid_report_item_types, int8:2]
+	bTag	flags[hid_report_item_tags, int8:4]
+	data	array[int8, 4]
+} [packed]
+
+hid_report_item_short [
+	item_012	hid_report_item_short_012
+	item_4		hid_report_item_short_4
+] [varlen]
+
+hid_report_item_long {
+	bSize		int8:2
+	bType		int8:2
+	bTag		const[HID_ITEM_TAG_LONG, int8:4]
+	bDataSize	len[data, int8]
+	bLongItemTag	flags[hid_report_item_tags, int8]
+	data		array[int8, 0:255]
+} [packed]
+
+hid_report_item [
+	short	hid_report_item_short
+	long	hid_report_item_long
+] [varlen]
+
+hid_report_item_types = HID_ITEM_TYPE_MAIN, HID_ITEM_TYPE_GLOBAL, HID_ITEM_TYPE_LOCAL, HID_ITEM_TYPE_RESERVED
+
+hid_report_item_tags = HID_ITEM_TAG_LONG, HID_MAIN_ITEM_TAG_INPUT, HID_MAIN_ITEM_TAG_OUTPUT, HID_MAIN_ITEM_TAG_FEATURE, HID_MAIN_ITEM_TAG_BEGIN_COLLECTION, HID_MAIN_ITEM_TAG_END_COLLECTION, HID_GLOBAL_ITEM_TAG_USAGE_PAGE, HID_GLOBAL_ITEM_TAG_LOGICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_LOGICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_UNIT_EXPONENT, HID_GLOBAL_ITEM_TAG_UNIT, HID_GLOBAL_ITEM_TAG_REPORT_SIZE, HID_GLOBAL_ITEM_TAG_REPORT_ID, HID_GLOBAL_ITEM_TAG_REPORT_COUNT, HID_GLOBAL_ITEM_TAG_PUSH, HID_GLOBAL_ITEM_TAG_POP, HID_LOCAL_ITEM_TAG_USAGE, HID_LOCAL_ITEM_TAG_USAGE_MINIMUM, HID_LOCAL_ITEM_TAG_USAGE_MAXIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_INDEX, HID_LOCAL_ITEM_TAG_DESIGNATOR_MINIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_MAXIMUM, HID_LOCAL_ITEM_TAG_STRING_INDEX, HID_LOCAL_ITEM_TAG_STRING_MINIMUM, HID_LOCAL_ITEM_TAG_STRING_MAXIMUM, HID_LOCAL_ITEM_TAG_DELIMITER
+
+usb_hub_descriptor_hs {
+	bDescLength		len[parent, int8]
+	bDescriptorType		const[USB_DT_HUB, int8]
+
+	bNbrPorts		int8
+	wHubCharacteristics	flags[usb_hub_characteristics, int16]
+	bPwrOn2PwrGood		int8
+	bHubContrCurrent	int8
+
+	DeviceRemovable		array[int8, USB_HUB_PORTS_BITS]
+	PortPwrCtrlMask		array[int8, USB_HUB_PORTS_BITS]
+} [packed]
+
+usb_hub_descriptor_ss {
+	bDescLength		len[parent, int8]
+	bDescriptorType		const[USB_DT_SS_HUB, int8]
+
+	bNbrPorts		int8
+	wHubCharacteristics	flags[usb_hub_characteristics, int16]
+	bPwrOn2PwrGood		int8
+	bHubContrCurrent	int8
+
+	bHubHdrDecLat		int8
+	wHubDelay		int16
+	DeviceRemovable		int16
+} [packed]
+
+define USB_HUB_PORTS_BITS	((USB_MAXCHILDREN + 1 + 7) / 8)
+
+usb_hub_characteristics = HUB_CHAR_LPSM, HUB_CHAR_COMMON_LPSM, HUB_CHAR_INDV_PORT_LPSM, HUB_CHAR_NO_LPSM, HUB_CHAR_COMPOUND, HUB_CHAR_OCPM, HUB_CHAR_COMMON_OCPM, HUB_CHAR_INDV_PORT_OCPM, HUB_CHAR_NO_OCPM, HUB_CHAR_TTTT, HUB_CHAR_PORTIND
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Replies to USB control requests requested after the SET_CONFIGURATION request.
+
+usb_port_status {
+	wPortStatus	flags[usb_port_status_flags, int16]
+	wPortChange	flags[usb_port_change_flags, int16]
+	dwExtPortStatus	array[flags[usb_ext_port_status_flags, int32], 0:1]
+} [packed]
+
+usb_port_status_flags = USB_PORT_STAT_CONNECTION, USB_PORT_STAT_ENABLE, USB_PORT_STAT_SUSPEND, USB_PORT_STAT_OVERCURRENT, USB_PORT_STAT_RESET, USB_PORT_STAT_L1, USB_PORT_STAT_POWER, USB_PORT_STAT_LOW_SPEED, USB_PORT_STAT_HIGH_SPEED, USB_PORT_STAT_TEST, USB_PORT_STAT_INDICATOR, USB_PORT_STAT_LINK_STATE, USB_SS_PORT_STAT_POWER, USB_SS_PORT_STAT_SPEED, USB_PORT_STAT_SPEED_5GBPS, USB_SS_PORT_LS_U0, USB_SS_PORT_LS_U1, USB_SS_PORT_LS_U2, USB_SS_PORT_LS_U3, USB_SS_PORT_LS_SS_DISABLED, USB_SS_PORT_LS_RX_DETECT, USB_SS_PORT_LS_SS_INACTIVE, USB_SS_PORT_LS_POLLING, USB_SS_PORT_LS_RECOVERY, USB_SS_PORT_LS_HOT_RESET, USB_SS_PORT_LS_COMP_MOD, USB_SS_PORT_LS_LOOPBACK
+
+usb_port_change_flags = USB_PORT_STAT_C_CONNECTION, USB_PORT_STAT_C_ENABLE, USB_PORT_STAT_C_SUSPEND, USB_PORT_STAT_C_OVERCURRENT, USB_PORT_STAT_C_RESET, USB_PORT_STAT_C_L1, USB_PORT_STAT_C_BH_RESET, USB_PORT_STAT_C_LINK_STATE, USB_PORT_STAT_C_CONFIG_ERROR
+
+usb_ext_port_status_flags = USB_EXT_PORT_STAT_RX_SPEED_ID, USB_EXT_PORT_STAT_TX_SPEED_ID, USB_EXT_PORT_STAT_RX_LANES, USB_EXT_PORT_STAT_TX_LANES
+
+usb_hub_status {
+	wHubStatus	flags[usb_hub_status_flags, int16]
+	wHubChange	flags[usb_hub_change_flags, int16]
+} [packed]
+
+usb_hub_status_flags = HUB_STATUS_LOCAL_POWER, HUB_STATUS_OVERCURRENT
+
+usb_hub_change_flags = HUB_CHANGE_LOCAL_POWER, HUB_CHANGE_OVERCURRENT
+
+usb_cdc_ncm_ntb_parameters {
+	wLength			int16
+	bmNtbFormatsSupported	int16
+	dwNtbInMaxSize		int32
+	wNdpInDivisor		int16
+	wNdpInPayloadRemainder	int16
+	wNdpInAlignment		int16
+	wPadding1		int16
+	dwNtbOutMaxSize		int32
+	wNdpOutDivisor		int16
+	wNdpOutPayloadRemainder	int16
+	wNdpOutAlignment	int16
+	wNtbOutMaxDatagrams	int16
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+vusb_descriptors {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+	string		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+	hid_report	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
+	bos		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_BOS, usb_bos_descriptor]]
+	hub_hs		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_HUB, usb_hub_descriptor_hs]]
+	hub_ss		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_SS_HUB, usb_hub_descriptor_ss]]
+} [packed]
+
+vusb_descriptor_generic {
+	req_type	flags[usb_request_types, int8]
+	desc_type	flags[usb_descriptor_types, int8]
+	len		bytesize[data, int32]
+	data		usb_generic_descriptor
+} [packed]
+
+usb_request_types = USB_TYPE_STANDARD, USB_TYPE_CLASS, USB_TYPE_VENDOR
+
+type vusb_descriptor_t[CLASS, REQ, DATA] {
+	type	const[CLASS, int8]
+	req	const[REQ, int8]
+	len	bytesize[data, int32]
+	data	DATA
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+vusb_responses {
+	len			len[parent, int32]
+	generic			ptr[in, vusb_response_generic]
+	set_interface		ptr[in, vusb_reponse_t[USB_TYPE_STANDARD, USB_REQ_SET_INTERFACE, void]]
+	get_interface		ptr[in, vusb_reponse_t[USB_TYPE_CLASS, USB_REQ_GET_INTERFACE, int8]]
+	set_configuration	ptr[in, vusb_reponse_t[USB_TYPE_STANDARD, USB_REQ_SET_CONFIGURATION, void]]
+	get_configuration	ptr[in, vusb_reponse_t[USB_TYPE_CLASS, USB_REQ_GET_CONFIGURATION, int8]]
+	get_status_hub		ptr[in, vusb_reponse_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
+	get_status_port		ptr[in, vusb_reponse_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
+	aiptek_get_report	ptr[in, vusb_reponse_t[USB_TYPE_VENDOR, 0x1, array[int8, 3]]]
+	aiptek_set_report	ptr[in, vusb_reponse_t[USB_TYPE_VENDOR, 0x9, array[int8, 3]]]
+	cdc_get_ntb_parameters	ptr[in, vusb_reponse_t[USB_TYPE_CLASS, USB_CDC_GET_NTB_PARAMETERS, usb_cdc_ncm_ntb_parameters]]
+} [packed]
+
+vusb_response_generic {
+	type	flags[usb_request_types, int8]
+	req	flags[usb_requests, int8]
+	len	bytesize[data, int32]
+	data	array[int8]
+} [packed]
+
+usb_requests = USB_REQ_GET_STATUS, USB_REQ_CLEAR_FEATURE, USB_REQ_SET_FEATURE, USB_REQ_SET_ADDRESS, USB_REQ_GET_DESCRIPTOR, USB_REQ_SET_DESCRIPTOR, USB_REQ_GET_CONFIGURATION, USB_REQ_SET_CONFIGURATION, USB_REQ_GET_INTERFACE, USB_REQ_SET_INTERFACE, USB_REQ_SYNCH_FRAME, USB_REQ_SET_SEL, USB_REQ_SET_ISOCH_DELAY, USB_REQ_SET_ENCRYPTION, USB_REQ_GET_ENCRYPTION, USB_REQ_RPIPE_ABORT, USB_REQ_SET_HANDSHAKE, USB_REQ_RPIPE_RESET, USB_REQ_GET_HANDSHAKE, USB_REQ_SET_CONNECTION, USB_REQ_SET_SECURITY_DATA, USB_REQ_GET_SECURITY_DATA, USB_REQ_SET_WUSB_DATA, USB_REQ_LOOPBACK_DATA_WRITE, USB_REQ_LOOPBACK_DATA_READ, USB_REQ_SET_INTERFACE_DS, USB_REQ_GET_PARTNER_PDO, USB_REQ_GET_BATTERY_STATUS, USB_REQ_SET_PDO, USB_REQ_GET_VDM, USB_REQ_SEND_VDM
+
+type vusb_reponse_t[CLASS, REQ, DATA] {
+	type	const[CLASS, int8]
+	req	const[REQ, int8]
+	len	bytesize[data, int32]
+	data	DATA
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
