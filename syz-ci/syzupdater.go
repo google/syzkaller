@@ -256,10 +256,10 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
 	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
-		return fmt.Errorf("filed to write tag file: %v", err)
+		return fmt.Errorf("failed to write tag file: %v", err)
 	}
 	if err := osutil.CopyFiles(upd.syzkallerDir, upd.latestDir, upd.syzFiles); err != nil {
-		return fmt.Errorf("filed to copy syzkaller: %v", err)
+		return fmt.Errorf("failed to copy syzkaller: %v", err)
 	}
 	return nil
 }
