@@ -21,10 +21,9 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 		return fmt.Errorf("unsupported fuchsia arch %v", targetArch)
 	}
 	arch := sysTarget.KernelHeaderArch
-	// TODO check if set-layer required?
 	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "clean-build", arch,
-		"--packages", "garnet/packages/products/sshd", "--args",
-		"'extra_authorized_keys_file=\"//.ssh/authorized_keys\"'"); err != nil {
+		"--packages", "garnet/packages/products/sshd",
+		"--args=extra_authorized_keys_file=\"//.ssh/authorized_keys\""); err != nil {
 		return err
 	}
 	for src, dst := range map[string]string{
