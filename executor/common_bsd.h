@@ -5,14 +5,54 @@
 
 #include <unistd.h>
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
-static void loop();
-static int do_sandbox_none(void)
+#include <stdarg.h>
+#include <stdbool.h>
+#include <string.h>
+
+static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
-	loop();
-	return 0;
+	int rv;
+
+	rv = vsnprintf(str, size, format, args);
+	if (rv < 0)
+		fail("vsnprintf failed");
+	if ((size_t)rv >= size)
+		fail("vsnprintf: string '%s...' doesn't fit into buffer", str);
 }
-#endif
+
+static void snprintf_check(char* str, size_t size, const char* format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf_check(str, size, format, args);
+	va_end(args);
+}
+
+#define COMMAND_MAX_LEN 128
+#define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
+#define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
+
+static void execute_command(bool panic, const char* format, ...)
+{
+	va_list args;
+	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
+	int rv;
+
+	va_start(args, format);
+	// Executor process does not have any env, including PATH.
+	// On some distributions, system/shell adds a minimal PATH, on some it does not.
+	// Set own standard PATH to make it work across distributions.
+	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
+	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
+	va_end(args);
+	rv = system(command);
+	if (rv) {
+		if (panic)
+			fail("command '%s' failed: %d", &command[0], rv);
+		debug("command '%s': %d\n", &command[0], rv);
+	}
+}
 
 #if GOOS_openbsd
 
@@ -26,7 +66,7 @@ static int do_sandbox_none(void)
 #else
 // Needed when compiling on Linux.
 #include <pty.h>
-#endif
+#endif // defined(__OpenBSD__)
 
 static uintptr_t syz_open_pts(void)
 {
@@ -41,6 +81,191 @@ static uintptr_t syz_open_pts(void)
 	return slave;
 }
 
+#endif // SYZ_EXECUTOR || __NR_syz_open_pts
+
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+
+#include <fcntl.h>
+#include <net/if_tun.h>
+#include <sys/types.h>
+
+static int tunfd = -1;
+
+// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
+// Rest of the packet (if any) will be silently truncated which is fine.
+#define SYZ_TUN_MAX_PACKET_SIZE 1000
+
+// Maximum number of tun devices in the default install.
+#define MAX_TUN 4
+
+// All patterns are non-expanding given values < MAX_TUN.
+#define TUN_IFACE "tap%d"
+#define TUN_DEVICE "/dev/tap%d"
+
+#define LOCAL_IPV4 "172.20.%d.170"
+#define LOCAL_IPV6 "fe80::%02hxaa"
+
+static void initialize_tun(int tun_id)
+{
+#if SYZ_EXECUTOR
+	if (!flag_enable_tun)
+		return;
+#endif // SYZ_EXECUTOR
+
+	if (tun_id < 0 || tun_id >= MAX_TUN) {
+		fail("tun_id out of range %d\n", tun_id);
+	}
+
+	char tun_device[sizeof(TUN_DEVICE)];
+	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
+
+	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
+	if (tunfd == -1) {
+#if SYZ_EXECUTOR
+		fail("tun: can't open %s\n", tun_device);
+#else
+		printf("tun: can't open %s: errno=%d\n", tun_device, errno);
+		return;
+#endif // SYZ_EXECUTOR
+	}
+	// Remap tun onto higher fd number to hide it from fuzzer and to keep
+	// fd numbers stable regardless of whether tun is opened or not (also see kMaxFd).
+	const int kTunFd = 240;
+	if (dup2(tunfd, kTunFd) < 0)
+		fail("dup2(tunfd, kTunFd) failed");
+	close(tunfd);
+	tunfd = kTunFd;
+
+	char tun_iface[sizeof(TUN_IFACE)];
+	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
+
+	char local_ipv4[sizeof(LOCAL_IPV4)];
+	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
+	execute_command(1, "ifconfig %s inet %s", tun_iface, local_ipv4);
+
+	char local_ipv6[sizeof(LOCAL_IPV6)];
+	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, tun_id);
+	execute_command(1, "ifconfig %s inet6 %s", tun_iface, local_ipv6);
+}
+
+#endif // SYZ_EXECUTOR || SYZ_TUN_ENABLE
+
+#if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_TUN_ENABLE
+#include <stdbool.h>
+#include <sys/uio.h>
+
+static long syz_emit_ethernet(long a0, long a1)
+{
+	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
+	if (tunfd < 0)
+		return (uintptr_t)-1;
+
+	size_t length = a0;
+	const char* data = (char*)a1;
+	debug_dump_data(data, length);
+
+	return write(tunfd, data, length);
+}
 #endif
 
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
+#include <errno.h>
+
+static int read_tun(char* data, int size)
+{
+	if (tunfd < 0)
+		return -1;
+
+	int rv = read(tunfd, data, size);
+	if (rv < 0) {
+		if (errno == EAGAIN)
+			return -1;
+		fail("tun: read failed with %d", rv);
+	}
+	return rv;
+}
 #endif
+
+#if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_TUN_ENABLE
+
+struct tcp_resources {
+	uint32 seq;
+	uint32 ack;
+};
+
+#include <net/ethertypes.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/tcp.h>
+
+// Include order matters, empty line prevent re-sorting.
+#include <netinet/if_ether.h>
+
+static long syz_extract_tcp_res(long a0, long a1, long a2)
+{
+	// syz_extract_tcp_res(res ptr[out, tcp_resources], seq_inc int32, ack_inc int32)
+
+	if (tunfd < 0)
+		return (uintptr_t)-1;
+
+	char data[SYZ_TUN_MAX_PACKET_SIZE];
+	int rv = read_tun(&data[0], sizeof(data));
+	if (rv == -1)
+		return (uintptr_t)-1;
+	size_t length = rv;
+	debug_dump_data(data, length);
+
+	struct tcphdr* tcphdr;
+
+	if (length < sizeof(struct ether_header))
+		return (uintptr_t)-1;
+	struct ether_header* ethhdr = (struct ether_header*)&data[0];
+
+	if (ethhdr->ether_type == htons(ETHERTYPE_IP)) {
+		if (length < sizeof(struct ether_header) + sizeof(struct ip))
+			return (uintptr_t)-1;
+		struct ip* iphdr = (struct ip*)&data[sizeof(struct ether_header)];
+		if (iphdr->ip_p != IPPROTO_TCP)
+			return (uintptr_t)-1;
+		if (length < sizeof(struct ether_header) + iphdr->ip_hl * 4 + sizeof(struct tcphdr))
+			return (uintptr_t)-1;
+		tcphdr = (struct tcphdr*)&data[sizeof(struct ether_header) + iphdr->ip_hl * 4];
+	} else {
+		if (length < sizeof(struct ether_header) + sizeof(struct ip6_hdr))
+			return (uintptr_t)-1;
+		struct ip6_hdr* ipv6hdr = (struct ip6_hdr*)&data[sizeof(struct ether_header)];
+		// TODO: parse and skip extension headers.
+		if (ipv6hdr->ip6_nxt != IPPROTO_TCP)
+			return (uintptr_t)-1;
+		if (length < sizeof(struct ether_header) + sizeof(struct ip6_hdr) + sizeof(struct tcphdr))
+			return (uintptr_t)-1;
+		tcphdr = (struct tcphdr*)&data[sizeof(struct ether_header) + sizeof(struct ip6_hdr)];
+	}
+
+	struct tcp_resources* res = (struct tcp_resources*)a0;
+	NONFAILING(res->seq = htonl((ntohl(tcphdr->th_seq) + (uint32)a1)));
+	NONFAILING(res->ack = htonl((ntohl(tcphdr->th_ack) + (uint32)a2)));
+
+	debug("extracted seq: %08x\n", res->seq);
+	debug("extracted ack: %08x\n", res->ack);
+
+	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+static void loop();
+static int do_sandbox_none(void)
+{
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+	initialize_tun(procid);
+#endif
+	loop();
+	return 0;
+}
+#endif // SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+
+#endif // GOOS_openbsd

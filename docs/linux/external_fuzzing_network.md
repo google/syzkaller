@@ -23,7 +23,7 @@ Since many network protocols require checksum fields to be embedded into packets
 There's a `csum` type, which right now supports two different kinds of checksumming:
 [the Internet checksum](https://tools.ietf.org/html/rfc1071): `csum[parent, inet, int16be]`,
 and TCP-like pseudo header checksum: `csum[tcp_packet, pseudo, IPPROTO_TCP, int16be]`.
-The checksums are computed and embedded right before emitting a packet though the virtual interface.
+The checksums are computed and embedded right before emitting a packet through the virtual interface.
 There's also a nice feature: when syzkaller generates a C reproducer, it generates code to compute checksums in runtime as well.
 
 By using `syz_emit_ethernet` and `syz_extract_tcp_res` the following syzkaller program is able to establish a TCP connection over IPv4:
