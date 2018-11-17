@@ -258,10 +258,10 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
-	initialize_tun(pid);
+	initialize_tun(procid);
 #endif
 	loop();
 	return 0;

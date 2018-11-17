@@ -1553,7 +1553,7 @@ int wait_for_loop(int pid)
 #include <sched.h>
 #include <sys/types.h>
 
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 	// CLONE_NEWPID takes effect for the first child of the current process,
 	// so we do it before fork to make the loop "init" process of the namespace.

@@ -369,7 +369,7 @@ static long syz_execute_func(long text)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 	loop();
 	doexit(0);
@@ -631,10 +631,10 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
-	initialize_tun(pid);
+	initialize_tun(procid);
 #endif
 	loop();
 	return 0;
@@ -874,7 +874,7 @@ static long syz_future_time(long when)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 	loop();
 	return 0;
@@ -3289,7 +3289,7 @@ int wait_for_loop(int pid)
 #include <sched.h>
 #include <sys/types.h>
 
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 	if (unshare(CLONE_NEWPID)) {
 		debug("unshare(CLONE_NEWPID): %d\n", errno);
@@ -3941,7 +3941,7 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 	loop();
 	doexit(0);
@@ -4052,7 +4052,7 @@ static int event_timedwait(event_t* ev, uint64 timeout_ms)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 	loop();
 	doexit(0);
@@ -4102,7 +4102,7 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
-static int do_sandbox_none(uint64 pid)
+static int do_sandbox_none(void)
 {
 	loop();
 	doexit(0);
