@@ -110,10 +110,16 @@ target:
 
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
+ifeq ($(BUILDOS),$(NATIVEBUILDOS))
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
 	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor.cc \
 		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O2 $(ADDCFLAGS) $(CFLAGS) \
 		-DGOOS_$(TARGETOS)=1 -DGOARCH_$(TARGETARCH)=1  -DGIT_REVISION=\"$(REV)\"
+else
+	$(info ************************************************************************************)
+	$(info Building executor for ${TARGETOS} is not supported on ${BUILDOS}. Executor will not be built.)
+	$(info ************************************************************************************)
+endif
 
 manager:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
@@ -268,7 +274,7 @@ arch_openbsd_amd64_target:
 
 arch_windows_amd64_target:
 	env GOOG=windows GOARCH=amd64 $(GO) install ./syz-fuzzer
-	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
+	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) target
 
 arch_test:
 	env TARGETOS=test TARGETARCH=64 $(MAKE) executor

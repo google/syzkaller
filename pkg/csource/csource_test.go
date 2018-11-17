@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestGenerate(t *testing.T) {
@@ -23,11 +24,10 @@ func TestGenerate(t *testing.T) {
 	}
 	t.Parallel()
 	for _, target := range prog.AllTargets() {
-		switch target.OS {
-		case "netbsd", "windows":
+		target := target
+		if runtime.GOOS != targets.Get(target.OS, target.Arch).BuildOS {
 			continue
 		}
-		target := target
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
 			if target.OS == "linux" && target.Arch == "arm" {
 				// This currently fails (at least with my arm-linux-gnueabihf-gcc-4.8) with:
