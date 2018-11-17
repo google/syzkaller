@@ -569,6 +569,7 @@ struct tcp_resources {
 	uint32 seq;
 	uint32 ack;
 };
+
 #include <net/ethertypes.h>
 #include <net/if.h>
 #include <net/if_arp.h>

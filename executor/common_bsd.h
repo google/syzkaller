@@ -193,8 +193,6 @@ struct tcp_resources {
 	uint32 ack;
 };
 
-// clang-format off
-// Include order matters below.
 #include <net/ethertypes.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -202,8 +200,9 @@ struct tcp_resources {
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
+
+// Include order matters, empty line prevent re-sorting.
 #include <netinet/if_ether.h>
-// clang-format on
 
 static long syz_extract_tcp_res(long a0, long a1, long a2)
 {
