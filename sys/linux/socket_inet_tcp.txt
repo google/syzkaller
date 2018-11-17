@@ -53,8 +53,7 @@ getsockopt$inet_tcp_TCP_ZEROCOPY_RECEIVE(fd sock_tcp, level const[IPPROTO_TCP], 
 getsockopt$inet6_tcp_TCP_ZEROCOPY_RECEIVE(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_ZEROCOPY_RECEIVE], optval ptr[in, tcp_zerocopy_receive], optlen ptr[inout, len[optval, int32]])
 
 tcp_zerocopy_receive {
-# TODO: this is 8-byte pointer that must be page-aligned, need vma64.
-	address		vma
+	address		vma64
 	length		len[address, int32]
 	recv_skip_hint	const[0, int32]
 }
