@@ -45,6 +45,8 @@ type osCommon struct {
 	ExeExtension string
 	// Name of the kernel object file.
 	KernelObject string
+	// Name of cpp(1) executable.
+	CPP string
 }
 
 func Get(OS, arch string) *Target {
@@ -259,6 +261,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
+		CPP:                    "cpp",
 	},
 	"freebsd": {
 		SyscallNumbers:         true,
@@ -266,6 +269,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
+		CPP:                    "cpp",
 	},
 	"netbsd": {
 		SyscallNumbers:         true,
@@ -273,6 +277,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
+		CPP:                    "cpp",
 	},
 	"openbsd": {
 		SyscallNumbers:         true,
@@ -280,12 +285,14 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "bsd.gdb",
+		CPP:                    "ecpp",
 	},
 	"fuchsia": {
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		KernelObject:           "zircon.elf",
+		CPP:                    "cpp",
 	},
 	"windows": {
 		SyscallNumbers:         false,
@@ -293,6 +300,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: false,
 		ExeExtension:           ".exe",
 		KernelObject:           "vmlinux",
+		CPP:                    "cpp",
 	},
 	"akaros": {
 		SyscallNumbers:         true,
@@ -300,6 +308,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "akaros-kernel-64b",
+		CPP:                    "cpp",
 	},
 	"trusty": {
 		SyscallNumbers: true,
