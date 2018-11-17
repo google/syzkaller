@@ -9,4 +9,5 @@ nf-conntrack-irc.ports=20000
 nf-conntrack-sane.ports=20000
 vivid.n_devs=16
 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2
+spec_store_bypass_disable=prctl
 nopcid
