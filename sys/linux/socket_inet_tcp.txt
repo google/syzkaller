@@ -35,9 +35,9 @@ socketpair$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto cons
 
 # Generic TCP socket options
 
-tcp_option_types_int = TCP_NODELAY, TCP_MAXSEG, TCP_CORK, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT, TCP_SYNCNT, TCP_LINGER2, TCP_DEFER_ACCEPT, TCP_WINDOW_CLAMP, TCP_QUICKACK, TCP_THIN_LINEAR_TIMEOUTS, TCP_THIN_DUPACK, TCP_USER_TIMEOUT, TCP_REPAIR, TCP_REPAIR_QUEUE, TCP_QUEUE_SEQ, TCP_FASTOPEN, TCP_FASTOPEN_CONNECT, TCP_FASTOPEN_NO_COOKIE, TCP_TIMESTAMP, TCP_NOTSENT_LOWAT, TCP_SAVE_SYN, TCP_INQ
+tcp_option_types_int = TCP_NODELAY, TCP_MAXSEG, TCP_CORK, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT, TCP_SYNCNT, TCP_LINGER2, TCP_DEFER_ACCEPT, TCP_WINDOW_CLAMP, TCP_QUICKACK, TCP_THIN_LINEAR_TIMEOUTS, TCP_THIN_DUPACK, TCP_USER_TIMEOUT, TCP_FASTOPEN, TCP_FASTOPEN_CONNECT, TCP_FASTOPEN_NO_COOKIE, TCP_TIMESTAMP, TCP_NOTSENT_LOWAT, TCP_SAVE_SYN, TCP_INQ
 
-tcp_option_types_buf = TCP_INFO, TCP_CONGESTION, TCP_ULP, TCP_MD5SIG, TCP_REPAIR_OPTIONS, TCP_CC_INFO, TCP_SAVED_SYN, TCP_REPAIR_WINDOW, TCP_FASTOPEN_KEY
+tcp_option_types_buf = TCP_INFO, TCP_CONGESTION, TCP_ULP, TCP_MD5SIG, TCP_CC_INFO, TCP_SAVED_SYN, TCP_FASTOPEN_KEY
 
 getsockopt$inet_tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet_tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[in, int32], optlen len[optval])
@@ -71,6 +71,19 @@ setsockopt$inet6_tcp_TCP_ULP(fd sock_tcp6, level const[IPPROTO_TCP], optname con
 
 setsockopt$inet_tcp_TCP_MD5SIG(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_MD5SIG], optval ptr[in, tcp_md5sig], optlen len[optval])
 setsockopt$inet6_tcp_TCP_MD5SIG(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_MD5SIG], optval ptr[in, tcp_md5sig], optlen len[optval])
+
+setsockopt$inet_tcp_TCP_REPAIR(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_REPAIR], optval ptr[in, flags[tcp_repair_modes, int32]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_REPAIR(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_REPAIR], optval ptr[in, flags[tcp_repair_modes, int32]], optlen len[optval])
+
+tcp_repair_modes = TCP_REPAIR_ON, TCP_REPAIR_OFF, TCP_REPAIR_OFF_NO_WP
+
+setsockopt$inet_tcp_TCP_REPAIR_QUEUE(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_REPAIR_QUEUE], optval ptr[in, flags[tcp_repair_queue_modes, int32]], optlen len[optval])
+setsockopt$inet6_tcp_TCP_REPAIR_QUEUE(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_REPAIR_QUEUE], optval ptr[in, flags[tcp_repair_queue_modes, int32]], optlen len[optval])
+
+tcp_repair_queue_modes = TCP_NO_QUEUE, TCP_RECV_QUEUE, TCP_SEND_QUEUE
+
+setsockopt$inet_tcp_TCP_QUEUE_SEQ(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_QUEUE_SEQ], optval ptr[in, int32], optlen len[optval])
+setsockopt$inet6_tcp_TCP_QUEUE_SEQ(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_QUEUE_SEQ], optval ptr[in, int32], optlen len[optval])
 
 setsockopt$inet_tcp_TCP_REPAIR_OPTIONS(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_REPAIR_OPTIONS], optval ptr[in, array[tcp_repair_opt]], optlen len[optval])
 setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_REPAIR_OPTIONS], optval ptr[in, array[tcp_repair_opt]], optlen len[optval])
@@ -113,11 +126,32 @@ tcp_md5sig {
 	tcpm_key	array[int8, TCP_MD5SIG_MAXKEYLEN]
 }
 
-tcp_repair_opt_codes = TCPOPT_MSS, TCPOPT_WINDOW, TCPOPT_SACK_PERM, TCPOPT_TIMESTAMP
+tcp_repair_opt [
+	mss		tcp_repair_opt_mss
+	window		tcp_repair_opt_window
+	sack_perm	tcp_repair_opt_sack_perm
+	timestamp	tcp_repair_opt_timestamp
+]
 
-tcp_repair_opt {
-	opt_code	flags[tcp_repair_opt_codes, int32]
+tcp_repair_opt_mss {
+	opt_code	const[TCPOPT_MSS, int32]
 	opt_val		int32
+}
+
+tcp_repair_opt_window {
+	opt_code	const[TCPOPT_WINDOW, int32]
+	snd_wscale	int16
+	rcv_wscale	int16
+}
+
+tcp_repair_opt_sack_perm {
+	opt_code	const[TCPOPT_SACK_PERM, int32]
+	opt_val		const[0, int32]
+}
+
+tcp_repair_opt_timestamp {
+	opt_code	const[TCPOPT_TIMESTAMP, int32]
+	opt_val		const[0, int32]
 }
 
 tls_crypto_info {
