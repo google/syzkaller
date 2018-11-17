@@ -29,6 +29,8 @@ func main() {
 		Val  string
 	}
 	vars := []Var{
+		{"BUILDOS", runtime.GOOS},
+		{"NATIVEBUILDOS", target.BuildOS},
 		{"HOSTOS", hostOS},
 		{"HOSTARCH", hostArch},
 		{"TARGETOS", targetOS},

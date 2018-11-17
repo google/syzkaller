@@ -4,6 +4,7 @@
 package targets
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -32,6 +33,10 @@ type Target struct {
 }
 
 type osCommon struct {
+	// What OS can build native binaries for this OS.
+	// If not set, defaults to itself (i.e. native build).
+	// Later we can extend this to be a list, but so far we don't have more than one OS.
+	BuildOS string
 	// Does the OS use syscall numbers (e.g. Linux) or has interface based on functions (e.g. fuchsia).
 	SyscallNumbers bool
 	// E.g. "__NR_" or "SYS_".
@@ -288,6 +293,7 @@ var oses = map[string]osCommon{
 		CPP:                    "ecpp",
 	},
 	"fuchsia": {
+		BuildOS:                "linux",
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
@@ -303,6 +309,7 @@ var oses = map[string]osCommon{
 		CPP:                    "cpp",
 	},
 	"akaros": {
+		BuildOS:                "linux",
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      false,
@@ -353,6 +360,17 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	if target.CCompiler == "" {
 		target.CCompiler = target.CCompilerPrefix + "gcc"
+	}
+	if target.BuildOS == "" {
+		target.BuildOS = OS
+	}
+	if OS == "test" {
+		target.BuildOS = "linux"
+	}
+	if runtime.GOOS != target.BuildOS {
+		// Spoil native binaries if they are not usable, so that nobody tries to use them later.
+		target.CCompiler = fmt.Sprintf("cant-build-%v-on-%v", target.OS, runtime.GOOS)
+		target.CPP = target.CCompiler
 	}
 }
 
