@@ -76,9 +76,30 @@ prctl$PR_MCE_KILL_GET(option const[PR_MCE_KILL_GET])
 prctl_mce_kill_mode = PR_MCE_KILL_CLEAR, PR_MCE_KILL_SET
 prctl_mce_kill_submode = PR_MCE_KILL_LATE, PR_MCE_KILL_EARLY, PR_MCE_KILL_DEFAULT
 
-prctl$setmm(option1 const[PR_SET_MM], option2 flags[prctl_mm_option], val vma)
+prctl$PR_SET_MM(option const[PR_SET_MM], opt flags[prctl_mm_option], arg vma)
+prctl$PR_SET_MM_EXE_FILE(option const[PR_SET_MM], opt const[PR_SET_MM_EXE_FILE], arg fd)
+prctl$PR_SET_MM_AUXV(option const[PR_SET_MM], opt const[PR_SET_MM_AUXV], arg ptr[in, array[int8]], len bytesize[arg])
+prctl$PR_SET_MM_MAP(option const[PR_SET_MM], opt const[PR_SET_MM_MAP], arg ptr[in, prctl_mm_map], len bytesize[arg])
+prctl$PR_SET_MM_MAP_SIZE(option const[PR_SET_MM], opt const[PR_SET_MM_MAP_SIZE], arg ptr[out, int32])
 
-prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA, PR_SET_MM_END_DATA, PR_SET_MM_START_STACK, PR_SET_MM_START_BRK, PR_SET_MM_BRK
+prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA, PR_SET_MM_END_DATA, PR_SET_MM_START_STACK, PR_SET_MM_START_BRK, PR_SET_MM_BRK, PR_SET_MM_ARG_START, PR_SET_MM_ARG_END, PR_SET_MM_ENV_START, PR_SET_MM_ENV_END
+
+prctl_mm_map {
+	start_code	vma64
+	end_code	vma64
+	start_data	vma64
+	end_data	vma64
+	start_brk	vma64
+	brk		vma64
+	start_stack	vma64
+	arg_start	vma64
+	arg_end		vma64
+	env_start	vma64
+	env_end		vma64
+	auxv		ptr[in, array[int8]]
+	auxv_size	bytesize[auxv, int32]
+	exe_fd		fd
+}
 
 prctl$PR_SET_PTRACER(option const[PR_SET_PTRACER], pid pid)
 
