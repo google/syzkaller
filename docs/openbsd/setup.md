@@ -22,6 +22,12 @@ Variables used throughout the instructions:
    # pkg_add git gmake go
    ```
 
+   In order for reproducers to work, GCC from ports is also required:
+
+   ```sh
+   # pkg_add gcc
+   ```
+
 2. Clone repository:
 
    ```sh
