@@ -68,6 +68,13 @@ foo$len_templ(a ptr[in, len_templ1[int8, int16]])
 foo$len_var0(a ptr[in, array[string]], b len[a])
 foo$len_var1(a ptr[in, array[string]], b ptr[in, len[a, int32]])
 
+# Pointer type.
+
+foo$ptr(a ptr[in, int64])
+foo$ptr64(a ptr64[in, int64])
+foo$vma(a vma)
+foo$vma64(a vma64)
+
 # Void type.
 
 void0 {

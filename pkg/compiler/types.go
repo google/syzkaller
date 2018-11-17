@@ -288,7 +288,7 @@ var typeFileoff = &typeDesc{
 }
 
 var typeVMA = &typeDesc{
-	Names:       []string{"vma"},
+	Names:       []string{"vma", "vma64"},
 	CanBeArgRet: canBeArg,
 	OptArgs:     1,
 	Args:        []namedArg{{Name: "size range", Type: typeArgSizeRange}},
@@ -298,6 +298,9 @@ var typeVMA = &typeDesc{
 			begin, end = args[0].Value, args[0].Value2
 		}
 		base.TypeSize = comp.ptrSize
+		if t.Ident == "vma64" {
+			base.TypeSize = 8
+		}
 		return &prog.VmaType{
 			TypeCommon: base.TypeCommon,
 			RangeBegin: begin,
