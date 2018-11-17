@@ -313,6 +313,7 @@ var oses = map[string]osCommon{
 	"trusty": {
 		SyscallNumbers: true,
 		SyscallPrefix:  "__NR_",
+		CPP:            "cpp",
 	},
 }
 
@@ -328,6 +329,7 @@ func init() {
 	}
 	for _, target := range List["test"] {
 		target.CCompiler = List[goos][runtime.GOARCH].CCompiler
+		target.CPP = List[goos][runtime.GOARCH].CPP
 	}
 }
 
