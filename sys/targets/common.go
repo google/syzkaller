@@ -14,17 +14,25 @@ func MakePosixMmap(target *prog.Target) func(addr, size uint64) *prog.Call {
 	flags := target.GetConst("MAP_ANONYMOUS") | target.GetConst("MAP_PRIVATE") | target.GetConst("MAP_FIXED")
 	const invalidFD = ^uint64(0)
 	return func(addr, size uint64) *prog.Call {
+		args := []prog.Arg{
+			prog.MakeVmaPointerArg(meta.Args[0], addr, size),
+			prog.MakeConstArg(meta.Args[1], size),
+			prog.MakeConstArg(meta.Args[2], prot),
+			prog.MakeConstArg(meta.Args[3], flags),
+			prog.MakeResultArg(meta.Args[4], nil, invalidFD),
+		}
+		i := len(args)
+		// Some targets have a padding argument between fd and offset.
+		if len(meta.Args) > 6 {
+			args = append(args, prog.MakeConstArg(meta.Args[i], 0))
+			i++
+		}
+		args = append(args, prog.MakeConstArg(meta.Args[i], 0))
+
 		return &prog.Call{
 			Meta: meta,
-			Args: []prog.Arg{
-				prog.MakeVmaPointerArg(meta.Args[0], addr, size),
-				prog.MakeConstArg(meta.Args[1], size),
-				prog.MakeConstArg(meta.Args[2], prot),
-				prog.MakeConstArg(meta.Args[3], flags),
-				prog.MakeResultArg(meta.Args[4], nil, invalidFD),
-				prog.MakeConstArg(meta.Args[5], 0),
-			},
-			Ret: prog.MakeReturnArg(meta.Ret),
+			Args: args,
+			Ret:  prog.MakeReturnArg(meta.Ret),
 		}
 	}
 }
