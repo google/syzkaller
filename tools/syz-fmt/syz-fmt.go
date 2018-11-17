@@ -13,14 +13,22 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "usage: syz-fmt files... or dirs...\n")
+		fmt.Fprintf(os.Stderr, "usage: syz-fmt files... or dirs... or all\n")
 		os.Exit(1)
 	}
-	for _, arg := range os.Args[1:] {
+	args := os.Args[1:]
+	if len(args) == 1 && args[0] == "all" {
+		args = nil
+		for os := range targets.List {
+			args = append(args, filepath.Join("sys", os))
+		}
+	}
+	for _, arg := range args {
 		st, err := os.Stat(arg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to stat %v: %v\n", arg, err)

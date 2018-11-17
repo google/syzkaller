@@ -199,14 +199,7 @@ format_cpp:
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
 
 format_sys: bin/syz-fmt
-	bin/syz-fmt sys/test
-	bin/syz-fmt sys/akaros
-	bin/syz-fmt sys/freebsd
-	bin/syz-fmt sys/netbsd
-	bin/syz-fmt sys/openbsd
-	bin/syz-fmt sys/linux
-	bin/syz-fmt sys/fuchsia
-	bin/syz-fmt sys/windows
+	bin/syz-fmt all
 
 bin/syz-fmt:
 	$(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./tools/syz-fmt
