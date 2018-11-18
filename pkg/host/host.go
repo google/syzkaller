@@ -82,7 +82,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureSandboxAndroidUntrustedApp: {Name: "Android sandbox", Reason: unsupported},
 		FeatureFaultInjection:             {Name: "fault injection", Reason: unsupported},
 		FeatureLeakChecking:               {Name: "leak checking", Reason: unsupported},
-		FeatureNetworkInjection:           {Name: "net packed injection", Reason: unsupported},
+		FeatureNetworkInjection:           {Name: "net packet injection", Reason: unsupported},
 		FeatureNetworkDevices:             {Name: "net device setup", Reason: unsupported},
 	}
 	if target.OS == "akaros" || target.OS == "test" {
