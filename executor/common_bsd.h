@@ -156,7 +156,7 @@ static void initialize_tun(int tun_id)
 
 static long syz_emit_ethernet(long a0, long a1)
 {
-	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
+	// syz_emit_ethernet(len len[packet], packet ptr[in, array[int8]])
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
