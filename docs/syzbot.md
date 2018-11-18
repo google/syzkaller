@@ -124,11 +124,20 @@ Exact compilers used by `syzbot` can be found here:
 A qemu-suitable Debian/wheezy image can be found [here](https://storage.googleapis.com/syzkaller/wheezy.img) (1GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key).
 A reference `qemu` command line to run it is as follows:
 ```
-qemu-system-x86_64 -hda wheezy.img -net user,hostfwd=tcp::10022-:22 \
-    -net nic -nographic -enable-kvm -m 2G -smp 4 -cpu host \
-    -kernel arch/x86/boot/bzImage \
+qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
+    -net nic -net user,hostfwd=tcp::10022-:22 \
+    -kernel arch/x86/boot/bzImage -nographic \
+    -device virtio-scsi-pci,id=scsi \
+    -device scsi-hd,bus=scsi.0,drive=d0 \
+    -drive file=wheezy.img,format=raw,if=none,id=d0 \
     -append "root=/dev/sda console=ttyS0 earlyprintk=serial rodata=n \
-      oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1"
+      oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 \      
+      security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
+      nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
+      nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
+      nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
+      vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
+      spec_store_bypass_disable=prctl nopcid"
 ```
 And then you can ssh into it using:
 ```
