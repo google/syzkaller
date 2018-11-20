@@ -138,6 +138,7 @@ var extractFixTagsOutput = []FixCommit{
 	{"8e4090902540da8c6e8f", "executor: remove dead code"},
 	{"a640a0fc325c29c3efcb", "executor: remove dead code"},
 	{"8e4090902540da8c6e8fa640a0fc325c29c3efcb", "pkg/csource: fix string escaping bug"},
+	{"4234987263748623784623758235", "pkg/csource: fix string escaping bug"},
 	{"6dd701dc797b23b8c761", "When freeing a lockf struct that already is part of a linked list, make sure to"},
 }
 
@@ -166,6 +167,7 @@ Date:   Fri Dec 22 11:59:09 2017 +0100
     pkg/csource: fix string escaping bug
     
     Reported-and-tested-by: syzbot+8e4090902540da8c6e8fa640a0fc325c29c3efcb@my.mail.com
+    Tested-by: syzbot+4234987263748623784623758235@my.mail.com
 
 commit 47546510aa98d3fbff3291a5dc3cefe712e70394
 Author: anton <openbsd@openbsd.org>
