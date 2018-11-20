@@ -373,16 +373,16 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 	comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
 }
 
-func CollectUnused(desc *ast.Description, target *targets.Target) ([]ast.Node, error) {
-	comp := createCompiler(desc, target, nil)
+func CollectUnused(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) ([]ast.Node, error) {
+	comp := createCompiler(desc, target, eh)
 	comp.typecheck()
 	if comp.errors > 0 {
-		return nil, errors.New("typecheck failed. See log for details.")
+		return nil, errors.New("typecheck failed.")
 	}
 
 	nodes := comp.collectUnused()
 	if comp.errors > 0 {
-		return nil, errors.New("collectUnused failed. See log for details.")
+		return nil, errors.New("collectUnused failed.")
 	}
 	return nodes, nil
 }
