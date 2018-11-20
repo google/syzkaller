@@ -6,7 +6,9 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
-- [flock: double free](https://marc.info/?l=openbsd-cvs&m=153886035406317&w=2)
+- [ioctl: use-after-free in `wsmux_do_ioctl()`](https://marc.info/?l=openbsd-cvs&m=154269457228677&w=2)
+
+- [flock: double free](https://marc.info/?l=openbsd-cvs&m=154070100731996&w=2)
 
 - [poll: execution of address `0x0` caused by console redirection](https://marc.info/?l=openbsd-cvs&m=153552269821957&w=2)
 
