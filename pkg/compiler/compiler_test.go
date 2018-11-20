@@ -281,7 +281,7 @@ func TestCollectUnused(t *testing.T) {
 			t.Errorf("Test %d: want %d nodes, got %d", i, len(input.names), len(nodes))
 		}
 
-		names := make([]string, len(nodes), len(nodes))
+		names := make([]string, len(nodes))
 		for i := range nodes {
 			_, _, names[i] = nodes[i].Info()
 		}

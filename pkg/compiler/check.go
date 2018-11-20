@@ -377,12 +377,12 @@ func CollectUnused(desc *ast.Description, target *targets.Target, eh ast.ErrorHa
 	comp := createCompiler(desc, target, eh)
 	comp.typecheck()
 	if comp.errors > 0 {
-		return nil, errors.New("typecheck failed.")
+		return nil, errors.New("typecheck failed")
 	}
 
 	nodes := comp.collectUnused()
 	if comp.errors > 0 {
-		return nil, errors.New("collectUnused failed.")
+		return nil, errors.New("collectUnused failed")
 	}
 	return nodes, nil
 }
