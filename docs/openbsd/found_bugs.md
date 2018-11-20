@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
+- [ioctl: reject inappropriate commands in `wsmux_do_ioctl()`](https://marc.info/?l=openbsd-cvs&m=154507410803526&w=2)
+
 - [getsockopt: errorneous switch fall through in `rip_usrreq()` affecting many socket related syscalls](https://marc.info/?l=openbsd-cvs&m=154383186000797&w=2)
 
 - [shutdown: integer overflow in `unp_internalize()`](https://marc.info/?l=openbsd-cvs&m=154282004307882&w=2) [ERRATA-64-006](https://ftp.openbsd.org/pub/OpenBSD/patches/6.4/common/006_uipc.patch.sig)
