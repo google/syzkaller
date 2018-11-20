@@ -23,7 +23,7 @@ rest of the type-options are type-specific:
 
 ```
 "const": integer constant, type-options:
-	value, underlying type (one if "intN", "intptr")
+	value, underlying type (one of "intN", "intptr")
 "intN"/"intptr": an integer without a particular meaning, type-options:
 	optional range of values (e.g. "5:10", or "100:200")
 "flags": a set of flags, type-options:
