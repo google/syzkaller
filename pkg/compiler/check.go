@@ -373,7 +373,10 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 }
 
 func CollectUnused(desc *ast.Description, target *targets.Target) []ast.Node {
-	comp := createCompiler(desc, target, nil)
+	eh := func(pos ast.Pos, msg string) {
+		panic(fmt.Sprintf("could not collect unused nodes. %v: %v", pos, msg))
+	}
+	comp := createCompiler(desc, target, eh)
 	comp.typecheck()
 	return comp.collectUnused()
 }
