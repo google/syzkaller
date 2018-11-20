@@ -97,6 +97,17 @@ $ make -C compile/SYZKALLER
    $ vmctl stop syzkaller-1 -w
    $ vmctl start syzkaller-1 -c -t syzkaller -d "$VMIMG"
    $ ssh "root@100.64.${VMID}.3" 'cat >~/.ssh/authorized_keys' <$SSHKEY.pub
+   ```
+
+5. Optionally, library ASLR can be disabled in order to improve boot time:
+
+   ```sh
+   $ echo library_aslr=NO | ssh "root@100.64.${VMID}.3" 'cat >/etc/rc.conf.local'
+   ```
+
+6. Finally, stop the VM:
+
+   ```sh
    $ vmctl stop syzkaller-1 -w
    ```
 
