@@ -87,7 +87,6 @@ $ make -C compile/SYZKALLER
 
    ```
    Password for root account? ******
-   Which speed should com0 use? 115200
    Allow root ssh login? yes
    ```
 
