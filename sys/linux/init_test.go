@@ -47,12 +47,12 @@ func TestSanitize(t *testing.T) {
 			`ptrace(0x1, 0x0)`,
 		},
 		{
-			`arch_prctl(0xf00000001002, 0x0)`,
-			`arch_prctl(0x1001, 0x0)`,
+			`arch_prctl$ARCH_SET_GS(0xf00000001002, 0x0)`,
+			`arch_prctl$ARCH_SET_GS(0x1001, 0x0)`,
 		},
 		{
-			`arch_prctl(0x1003, 0x0)`,
-			`arch_prctl(0x1003, 0x0)`,
+			`arch_prctl$ARCH_SET_GS(0x1003, 0x0)`,
+			`arch_prctl$ARCH_SET_GS(0x1003, 0x0)`,
 		},
 		{
 			`ioctl(0x0, 0x200000c0045877, 0x0)`,
