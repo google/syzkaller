@@ -21,8 +21,9 @@ crashes create a new bug).
 ## Communication with syzbot
 
 If you fix a bug reported by `syzbot`, please add the provided `Reported-by`
-tag to the commit. You can also communicate with `syzbot` by replying to its
-emails. The commands are:
+tag to the commit (`Reported-and-tested-by` and `Tested-by` tags with the
+`syzbot+HASH` address are recognized as well). You can also communicate with
+`syzbot` by replying to its emails. The commands are:
 
 - to attach a fixing commit to the bug (if you forgot to add `Reported-by` tag):
 ```
