@@ -103,7 +103,13 @@ func main() {
 	}
 
 	unused := make(map[ast.Node]bool)
-	for _, n := range compiler.CollectUnused(desc, target) {
+
+	nodes, err := compiler.CollectUnused(desc, target)
+	if err != nil {
+		failf("collect unused nodes failed: %v", err)
+	}
+
+	for _, n := range nodes {
 		unused[n] = true
 	}
 

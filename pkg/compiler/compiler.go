@@ -44,6 +44,9 @@ type Prog struct {
 }
 
 func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) *compiler {
+	if eh == nil {
+		eh = ast.LoggingHandler
+	}
 	comp := &compiler{
 		desc:         desc,
 		target:       target,
@@ -73,9 +76,6 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 
 // Compile compiles sys description.
 func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Target, eh ast.ErrorHandler) *Prog {
-	if eh == nil {
-		eh = ast.LoggingHandler
-	}
 	comp := createCompiler(desc.Clone(), target, eh)
 	comp.typecheck()
 	// The subsequent, more complex, checks expect basic validity of the tree,

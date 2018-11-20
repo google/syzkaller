@@ -6,6 +6,7 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -372,13 +373,18 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 	comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
 }
 
-func CollectUnused(desc *ast.Description, target *targets.Target) []ast.Node {
-	eh := func(pos ast.Pos, msg string) {
-		panic(fmt.Sprintf("could not collect unused nodes. %v: %v", pos, msg))
-	}
-	comp := createCompiler(desc, target, eh)
+func CollectUnused(desc *ast.Description, target *targets.Target) ([]ast.Node, error) {
+	comp := createCompiler(desc, target, nil)
 	comp.typecheck()
-	return comp.collectUnused()
+	if comp.errors > 0 {
+		return nil, errors.New("typecheck failed. See log for details.")
+	}
+
+	nodes := comp.collectUnused()
+	if comp.errors > 0 {
+		return nil, errors.New("collectUnused failed. See log for details.")
+	}
+	return nodes, nil
 }
 
 func (comp *compiler) collectUnused() []ast.Node {
