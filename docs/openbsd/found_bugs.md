@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
+- [switch(4): many affected syscalls due to mbuf corruption](https://marc.info/?l=openbsd-cvs&m=154600758019977&w=2)
+
 - [setsockopt: integer overflow in `ip_pcbopts()`](https://marc.info/?l=openbsd-cvs&m=154531248603735&w=2) [ERRATA-64-010](https://ftp.openbsd.org/pub/OpenBSD/patches/6.4/common/010_pcbopts.patch.sig)
 
 - [recv: unexpected mbuf queue growth while sleeping](https://marc.info/?l=openbsd-cvs&m=154506523901003&w=2) [ERRATA-64-009](https://ftp.openbsd.org/pub/OpenBSD/patches/6.4/common/009_recvwait.patch.sig)
