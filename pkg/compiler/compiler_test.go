@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -204,4 +206,91 @@ s2 {
 	}
 	got := p.StructDescs[0].Desc
 	t.Logf("got: %#v", got)
+}
+
+func TestCollectUnusedError(t *testing.T) {
+	t.Parallel()
+	const input = `
+		s0 {
+			f0 fidl_string
+		}
+        `
+	nopErrorHandler := func(pos ast.Pos, msg string) {}
+	desc := ast.Parse([]byte(input), "input", nopErrorHandler)
+	if desc == nil {
+		t.Fatal("failed to parse")
+	}
+
+	_, err := CollectUnused(desc, targets.List["test"]["64"], nopErrorHandler)
+	if err == nil {
+		t.Fatal("CollectUnused should have failed but didn't")
+	}
+}
+
+func TestCollectUnused(t *testing.T) {
+	t.Parallel()
+	inputs := []struct {
+		text  string
+		names []string
+	}{
+		{
+			text: `
+				s0 {
+					f0 string
+				}
+			`,
+			names: []string{"s0"},
+		},
+		{
+			text: `
+				foo$0(a ptr[in, s0])
+				s0 {
+					f0	int8
+					f1	int16
+				}
+			`,
+			names: []string{},
+		},
+		{
+			text: `
+				s0 {
+					f0	int8
+					f1	int16
+				}
+				s1 {
+					f2      int32
+				}
+				foo$0(a ptr[in, s0])
+			`,
+			names: []string{"s1"},
+		},
+	}
+
+	for i, input := range inputs {
+		desc := ast.Parse([]byte(input.text), "input", nil)
+		if desc == nil {
+			t.Fatalf("Test %d: failed to parse", i)
+		}
+
+		nodes, err := CollectUnused(desc, targets.List["test"]["64"], nil)
+		if err != nil {
+			t.Fatalf("Test %d: CollectUnused failed: %v", i, err)
+		}
+
+		if len(input.names) != len(nodes) {
+			t.Errorf("Test %d: want %d nodes, got %d", i, len(input.names), len(nodes))
+		}
+
+		names := make([]string, len(nodes))
+		for i := range nodes {
+			_, _, names[i] = nodes[i].Info()
+		}
+
+		sort.Strings(names)
+		sort.Strings(input.names)
+
+		if !reflect.DeepEqual(names, input.names) {
+			t.Errorf("Test %d: Unused nodes differ. Want %v, Got %v", i, input.names, names)
+		}
+	}
 }
