@@ -29,23 +29,6 @@ fuchsia_net_SubnetHandles {
 	void	void
 } [packed]
 
-fuchsia_net_MacAddressHandles {
-	void	void
-} [packed]
-
-fuchsia_net_StringInLine {
-	valInLine	array[int8, 256]
-	len_		int32
-} [packed]
-
-fuchsia_net_StringOutOfLine {
-	void	void
-} [packed]
-
-fuchsia_net_StringHandles {
-	void	void
-} [packed]
-
 fuchsia_net_AddrInfoHintsInLine {
 	flags_		int32
 	family		int32
@@ -102,25 +85,20 @@ fuchsia_net_LegacySocketProviderOpenSocketResponseHandles {
 
 fuchsia_net_LegacySocketProviderGetAddrInfoRequest {
 	hdr			fidl_message_header[2]
-	nodeInLine		fuchsia_net_StringInLine
-	serviceInLine		fuchsia_net_StringInLine
+	nodeInLine		fidl_string
+	serviceInLine		fidl_string
 	hintsInLine		fuchsia_net_AddrInfoHintsInLine
-	nodeOutOfLine		fuchsia_net_StringOutOfLine
-	serviceOutOfLine	fuchsia_net_StringOutOfLine
+	nodeOutOfLine		fidl_aligned[stringnoz]
+	serviceOutOfLine	fidl_aligned[stringnoz]
 	hintsOutOfLine		fuchsia_net_AddrInfoHintsOutOfLine
 } [packed]
 
 fuchsia_net_LegacySocketProviderGetAddrInfoRequestHandles {
-	node	fuchsia_net_StringHandles
-	service	fuchsia_net_StringHandles
 	hints	fuchsia_net_AddrInfoHintsHandles
 } [packed]
 
 fuchsia_net_LegacySocketProviderGetAddrInfoResponseHandles {
-	ai0	fuchsia_net_AddrInfoHandles
-	ai1	fuchsia_net_AddrInfoHandles
-	ai2	fuchsia_net_AddrInfoHandles
-	ai3	fuchsia_net_AddrInfoHandles
+	resHandles	array[fuchsia_net_AddrInfoHandles, 4]
 } [packed]
 
 resource zx_chan_fuchsia_net_LegacySocketProvider_client[zx_chan]

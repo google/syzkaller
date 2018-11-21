@@ -69,6 +69,7 @@ fuchsia_mediacodec_CodecPacketHeaderHandles {
 
 fuchsia_mediacodec_CodecPacketInLine {
 	headerInLine		fuchsia_mediacodec_CodecPacketHeaderInLine
+	buffer_index		int32
 	stream_lifetime_ordinal	int64
 	start_offset		int32
 	valid_length_bytes	int32
@@ -128,6 +129,11 @@ fuchsia_mediacodec_VideoUncompressedFormatInLine {
 	tertiary_start_offset		int32
 	primary_pixel_stride		int32
 	secondary_pixel_stride		int32
+	primary_display_width_pixels	int32
+	primary_display_height_pixels	int32
+	has_pixel_aspect_ratio		int8
+	pixel_aspect_ratio_width	int32
+	pixel_aspect_ratio_height	int32
 	special_formatsInLine		fuchsia_mediacodec_VideoUncompressedFormatSpecificDetailsInLine
 } [packed]
 
