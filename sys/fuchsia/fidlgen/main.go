@@ -25,6 +25,7 @@ var layerToLibs = map[string][]string{
 		"fuchsia-io",
 		"fuchsia-net",
 		"fuchsia-net-stack",
+		"zircon-ethernet",
 	},
 	"garnet": {
 		"fuchsia.devicesettings",
