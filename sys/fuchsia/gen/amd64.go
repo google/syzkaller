@@ -71,6 +71,8 @@ var resources_amd64 = []*ResourceDesc{
 	{Name: "zx_chan_fuchsia_timezone_TimezoneWatcher_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_timezone_TimezoneWatcher_server"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_timezone_Timezone_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_timezone_Timezone_client"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_timezone_Timezone_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_timezone_Timezone_server"}, Values: []uint64{0}},
+	{Name: "zx_chan_zircon_ethernet_Device_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_zircon_ethernet_Device_client"}, Values: []uint64{0}},
+	{Name: "zx_chan_zircon_ethernet_Device_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_zircon_ethernet_Device_server"}, Values: []uint64{0}},
 	{Name: "zx_debug_log", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_debug_log"}, Values: []uint64{0}},
 	{Name: "zx_event", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_event"}, Values: []uint64{0}},
 	{Name: "zx_fifo", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_fifo"}, Values: []uint64{0}},
@@ -1120,6 +1122,16 @@ var structDescs_amd64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
 	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackAddEthernetInterfaceRequest, fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_net_stack_StackAddEthernetInterfaceRequest, fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
 	{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackAddForwardingEntryRequest, fuchsia_net_stack_StackAddForwardingEntryRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackAddForwardingEntryResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_net_stack_StackAddForwardingEntryRequest, fuchsia_net_stack_StackAddForwardingEntryRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackAddForwardingEntryResponseHandles]", TypeSize: 48}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackAddForwardingEntryRequest"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackAddForwardingEntryRequestHandles"}}},
@@ -1135,6 +1147,16 @@ var structDescs_amd64 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackAddInterfaceAddressRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackAddInterfaceAddressResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackDelEthernetInterfaceRequest, fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_net_stack_StackDelEthernetInterfaceRequest, fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
@@ -1310,6 +1332,156 @@ var structDescs_amd64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
 	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastAddMacRequest, zircon_ethernet_DeviceConfigMulticastAddMacRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastAddMacResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastAddMacRequest, zircon_ethernet_DeviceConfigMulticastAddMacRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastAddMacResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastAddMacRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastAddMacRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastAddMacResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastDeleteMacRequest, zircon_ethernet_DeviceConfigMulticastDeleteMacRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastDeleteMacResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastDeleteMacRequest, zircon_ethernet_DeviceConfigMulticastDeleteMacRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastDeleteMacResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastDeleteMacRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastDeleteMacRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastDeleteMacResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest, zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest, zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastTestFilterRequest, zircon_ethernet_DeviceConfigMulticastTestFilterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastTestFilterResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastTestFilterRequest, zircon_ethernet_DeviceConfigMulticastTestFilterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastTestFilterResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastTestFilterRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastTestFilterRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastTestFilterResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceDumpRegistersRequest, zircon_ethernet_DeviceDumpRegistersRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceDumpRegistersResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceDumpRegistersRequest, zircon_ethernet_DeviceDumpRegistersRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceDumpRegistersResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceDumpRegistersRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceDumpRegistersRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceDumpRegistersResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceGetFifosRequest, zircon_ethernet_DeviceGetFifosRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetFifosResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceGetFifosRequest, zircon_ethernet_DeviceGetFifosRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetFifosResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetFifosRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetFifosRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetFifosResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceGetInfoRequest, zircon_ethernet_DeviceGetInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetInfoResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceGetInfoRequest, zircon_ethernet_DeviceGetInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetInfoResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetInfoRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetInfoRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetInfoResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceGetStatusRequest, zircon_ethernet_DeviceGetStatusRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetStatusResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceGetStatusRequest, zircon_ethernet_DeviceGetStatusRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetStatusResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetStatusRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetStatusRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceGetStatusResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceListenStartRequest, zircon_ethernet_DeviceListenStartRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceListenStartResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceListenStartRequest, zircon_ethernet_DeviceListenStartRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceListenStartResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceListenStartRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceListenStartRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceListenStartResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceListenStopRequest, zircon_ethernet_DeviceListenStopRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceListenStopResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceListenStopRequest, zircon_ethernet_DeviceListenStopRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceListenStopResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceListenStopRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceListenStopRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceListenStopResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceSetClientNameRequest, zircon_ethernet_DeviceSetClientNameRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetClientNameResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceSetClientNameRequest, zircon_ethernet_DeviceSetClientNameRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetClientNameResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetClientNameRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetClientNameRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetClientNameResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceSetIOBufferRequest, zircon_ethernet_DeviceSetIOBufferRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetIOBufferResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceSetIOBufferRequest, zircon_ethernet_DeviceSetIOBufferRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetIOBufferResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetIOBufferRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetIOBufferRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetIOBufferResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceSetPromiscuousModeRequest, zircon_ethernet_DeviceSetPromiscuousModeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetPromiscuousModeResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceSetPromiscuousModeRequest, zircon_ethernet_DeviceSetPromiscuousModeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetPromiscuousModeResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetPromiscuousModeRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetPromiscuousModeRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceSetPromiscuousModeResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceStartRequest, zircon_ethernet_DeviceStartRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceStartResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceStartRequest, zircon_ethernet_DeviceStartRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceStartResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceStartRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceStartRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceStartResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceStopRequest, zircon_ethernet_DeviceStopRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceStopResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[zircon_ethernet_DeviceStopRequest, zircon_ethernet_DeviceStopRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceStopResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceStopRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceStopRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zircon_ethernet_DeviceStopResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
 	{Key: StructKey{Name: "fidl_message_header[100]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[100]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
@@ -1345,6 +1517,12 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 13},
+	}}},
+	{Key: StructKey{Name: "fidl_message_header[14]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[14]", TypeSize: 16}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 14},
 	}}},
 	{Key: StructKey{Name: "fidl_message_header[15]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[15]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
@@ -1705,7 +1883,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}},
 		&UnionType{Key: StructKey{Name: "fuchsia_mediacodec_AudioFormatInLine"}, FldName: "data"},
 	}}},
-	{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_DomainFormatTag_video, fuchsia_mediacodec_VideoFormatInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_mediacodec_DomainFormatTag_video, fuchsia_mediacodec_VideoFormatInLine]", TypeSize: 68}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_DomainFormatTag_video, fuchsia_mediacodec_VideoFormatInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_mediacodec_DomainFormatTag_video, fuchsia_mediacodec_VideoFormatInLine]", TypeSize: 84}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 1},
 		&UnionType{Key: StructKey{Name: "fuchsia_mediacodec_VideoFormatInLine"}, FldName: "data"},
 	}}},
@@ -1742,10 +1920,10 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}},
 		&UnionType{Key: StructKey{Name: "fuchsia_mediacodec_VideoCompressedFormatInLine"}, FldName: "data"},
 	}}},
-	{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_VideoFormatTag_uncompressed, fuchsia_mediacodec_VideoUncompressedFormatInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_mediacodec_VideoFormatTag_uncompressed, fuchsia_mediacodec_VideoUncompressedFormatInLine]", TypeSize: 64}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_VideoFormatTag_uncompressed, fuchsia_mediacodec_VideoUncompressedFormatInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_mediacodec_VideoFormatTag_uncompressed, fuchsia_mediacodec_VideoUncompressedFormatInLine]", TypeSize: 80}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 1},
 		&StructType{Key: StructKey{Name: "fuchsia_mediacodec_VideoUncompressedFormatInLine"}, FldName: "data"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_VideoUncompressedFormatSpecificDetailsTag_temp_field_todo_remove, int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_mediacodec_VideoUncompressedFormatSpecificDetailsTag_temp_field_todo_remove, int32]", TypeSize: 8}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}},
@@ -3185,7 +3363,7 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_mediacodec_CodecFormatDetailsHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecFormatDetailsHandles", ArgDir: 1}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pass_through_parameters", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "fuchsia_mediacodec_ParameterHandles", Dir: 1}}},
 	}}},
-	{Key: StructKey{Name: "fuchsia_mediacodec_CodecFormatDetailsInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecFormatDetailsInLine", TypeSize: 124}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_mediacodec_CodecFormatDetailsInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecFormatDetailsInLine", TypeSize: 140}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "format_details_version_ordinal", TypeSize: 8}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "mime_typeInLine"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "codec_oob_bytesInLine"},
@@ -3238,8 +3416,9 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_mediacodec_CodecPacketHeaderOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecPacketHeaderOutOfLine"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_mediacodec_CodecPacketInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecPacketInLine", TypeSize: 39}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_mediacodec_CodecPacketInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecPacketInLine", TypeSize: 43}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_mediacodec_CodecPacketHeaderInLine"}, FldName: "headerInLine"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "buffer_index", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "stream_lifetime_ordinal", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "start_offset", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "valid_length_bytes", TypeSize: 4}}},
@@ -3284,7 +3463,7 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_mediacodec_CodecQueueInputFormatDetailsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecQueueInputFormatDetailsRequestHandles"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_mediacodec_CodecFormatDetailsHandles"}, FldName: "format_details"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_mediacodec_CodecQueueInputPacketRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecQueueInputPacketRequest", TypeSize: 55}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_mediacodec_CodecQueueInputPacketRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CodecQueueInputPacketRequest", TypeSize: 59}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[16]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_mediacodec_CodecPacketInLine"}, FldName: "packetInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_mediacodec_CodecPacketOutOfLine"}, FldName: "packetOutOfLine"},
@@ -3328,7 +3507,7 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_mediacodec_CreateDecoder_ParamsHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CreateDecoder_ParamsHandles"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_mediacodec_CodecFormatDetailsHandles"}, FldName: "input_details"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_mediacodec_CreateDecoder_ParamsInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CreateDecoder_ParamsInLine", TypeSize: 131}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_mediacodec_CreateDecoder_ParamsInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CreateDecoder_ParamsInLine", TypeSize: 147}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_mediacodec_CodecFormatDetailsInLine"}, FldName: "input_detailsInLine"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "promise_separate_access_units_on_input", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "require_can_stream_bytes_input", TypeSize: 1}}},
@@ -3341,7 +3520,7 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_mediacodec_CreateDecoder_ParamsOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_CreateDecoder_ParamsOutOfLine", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_mediacodec_CodecFormatDetailsOutOfLine"}, FldName: "input_detailsOutOfLine"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_mediacodec_DomainFormatInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_DomainFormatInLine", TypeSize: 68}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_mediacodec_DomainFormatInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_DomainFormatInLine", TypeSize: 84}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_DomainFormatTag_audio, fuchsia_mediacodec_AudioFormatInLine]"}, FldName: "audioInLine"},
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_DomainFormatTag_video, fuchsia_mediacodec_VideoFormatInLine]"}, FldName: "videoInLine"},
 	}}},
@@ -3376,11 +3555,11 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_mediacodec_VideoCompressedFormatInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_VideoCompressedFormatInLine", TypeSize: 8}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_VideoCompressedFormatTag_temp_field_todo_remove, int32]"}, FldName: "temp_field_todo_remove"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_mediacodec_VideoFormatInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_VideoFormatInLine", TypeSize: 64}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_mediacodec_VideoFormatInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_VideoFormatInLine", TypeSize: 80}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_VideoFormatTag_compressed, fuchsia_mediacodec_VideoCompressedFormatInLine]"}, FldName: "compressedInLine"},
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_mediacodec_VideoFormatTag_uncompressed, fuchsia_mediacodec_VideoUncompressedFormatInLine]"}, FldName: "uncompressedInLine"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_mediacodec_VideoUncompressedFormatInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_VideoUncompressedFormatInLine", TypeSize: 58}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_mediacodec_VideoUncompressedFormatInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_VideoUncompressedFormatInLine", TypeSize: 75}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fourcc", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "primary_width_pixels", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "primary_height_pixels", TypeSize: 4}}},
@@ -3395,6 +3574,11 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "tertiary_start_offset", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "primary_pixel_stride", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "secondary_pixel_stride", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "primary_display_width_pixels", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "primary_display_height_pixels", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "has_pixel_aspect_ratio", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pixel_aspect_ratio_width", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pixel_aspect_ratio_height", TypeSize: 4}}},
 		&UnionType{Key: StructKey{Name: "fuchsia_mediacodec_VideoUncompressedFormatSpecificDetailsInLine"}, FldName: "special_formatsInLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_mediacodec_VideoUncompressedFormatSpecificDetailsInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mediacodec_VideoUncompressedFormatSpecificDetailsInLine", TypeSize: 8}, Fields: []Type{
@@ -3441,25 +3625,20 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_IPv4AddressInLine]"}, FldName: "ipv4InLine"},
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_IPv6AddressInLine]"}, FldName: "ipv6InLine"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_LegacySocketProviderGetAddrInfoRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_LegacySocketProviderGetAddrInfoRequest", TypeSize: 552}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_net_LegacySocketProviderGetAddrInfoRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_LegacySocketProviderGetAddrInfoRequest", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[2]"}, FldName: "hdr"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_StringInLine"}, FldName: "nodeInLine"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_StringInLine"}, FldName: "serviceInLine"},
+		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "nodeInLine"},
+		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "serviceInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsInLine"}, FldName: "hintsInLine"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_StringOutOfLine"}, FldName: "nodeOutOfLine"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_StringOutOfLine"}, FldName: "serviceOutOfLine"},
+		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "nodeOutOfLine"},
+		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "serviceOutOfLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsOutOfLine"}, FldName: "hintsOutOfLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_LegacySocketProviderGetAddrInfoRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_LegacySocketProviderGetAddrInfoRequestHandles"}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_StringHandles"}, FldName: "node"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_StringHandles"}, FldName: "service"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsHandles"}, FldName: "hints"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_LegacySocketProviderGetAddrInfoResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_LegacySocketProviderGetAddrInfoResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHandles", Dir: 1}, FldName: "ai0"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHandles", Dir: 1}, FldName: "ai1"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHandles", Dir: 1}, FldName: "ai2"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHandles", Dir: 1}, FldName: "ai3"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "resHandles", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHandles", Dir: 1}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_LegacySocketProviderOpenSocketRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_LegacySocketProviderOpenSocketRequest", TypeSize: 28}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[1]"}, FldName: "hdr"},
@@ -3472,19 +3651,6 @@ var structDescs_amd64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_LegacySocketProviderOpenSocketResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_LegacySocketProviderOpenSocketResponseHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "s", TypeSize: 4, ArgDir: 1}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_MacAddressHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_MacAddressHandles", ArgDir: 1}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_StringHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_StringHandles"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_StringInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_StringInLine", TypeSize: 260}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "valInLine", TypeSize: 256}, Kind: 1, RangeBegin: 256, RangeEnd: 256},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "len_", TypeSize: 4}}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_StringOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_StringOutOfLine"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_SubnetHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_SubnetHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3537,11 +3703,23 @@ var structDescs_amd64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_InterfaceInfoHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_InterfaceInfoHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_MacAddressHandles", Dir: 1}, FldName: "mac"},
+		&StructType{Key: StructKey{Name: "zircon_ethernet_MacAddressHandles", Dir: 1}, FldName: "mac"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addresses", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressHandles", Dir: 1}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_InterfaceStatusChangeHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_InterfaceStatusChangeHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddEthernetInterfaceRequest", IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[1]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "topological_pathInLine"},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "device", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
+		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "topological_pathOutOfLine"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles", TypeSize: 4}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "device", TypeSize: 4}},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles", ArgDir: 1}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackAddForwardingEntryRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddForwardingEntryRequest", TypeSize: 61}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[513]"}, FldName: "hdr"},
@@ -3564,6 +3742,16 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressHandles"}, FldName: "addr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackAddInterfaceAddressResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddInterfaceAddressResponseHandles", ArgDir: 1}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelEthernetInterfaceRequest", TypeSize: 24}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[2]"}, FldName: "hdr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles", ArgDir: 1}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDelForwardingEntryRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelForwardingEntryRequest", TypeSize: 37}, Fields: []Type{
@@ -3950,6 +4138,169 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "err_code", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cr2", TypeSize: 8, ArgDir: 1}}},
 	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastAddMacRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastAddMacRequest", TypeSize: 22}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[11]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "zircon_ethernet_MacAddressInLine"}, FldName: "addrInLine"},
+		&StructType{Key: StructKey{Name: "zircon_ethernet_MacAddressOutOfLine"}, FldName: "addrOutOfLine"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastAddMacRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastAddMacRequestHandles"}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "zircon_ethernet_MacAddressHandles"}, FldName: "addr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastAddMacResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastAddMacResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastDeleteMacRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastDeleteMacRequest", TypeSize: 22}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[12]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "zircon_ethernet_MacAddressInLine"}, FldName: "addrInLine"},
+		&StructType{Key: StructKey{Name: "zircon_ethernet_MacAddressOutOfLine"}, FldName: "addrOutOfLine"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastDeleteMacRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastDeleteMacRequestHandles"}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "zircon_ethernet_MacAddressHandles"}, FldName: "addr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastDeleteMacResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastDeleteMacResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest", TypeSize: 17}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[13]"}, FldName: "hdr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "enabled", TypeSize: 1}}},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastTestFilterRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastTestFilterRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[14]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastTestFilterRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastTestFilterRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceConfigMulticastTestFilterResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceConfigMulticastTestFilterResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceDumpRegistersRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceDumpRegistersRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[15]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceDumpRegistersRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceDumpRegistersRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceDumpRegistersResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceDumpRegistersResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetFifosRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetFifosRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[2]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetFifosRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetFifosRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetFifosResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetFifosResponseHandles", TypeSize: 8, ArgDir: 1}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "zircon_ethernet_FifosHandles", Dir: 1}, FldName: "info"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetInfoRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetInfoRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[1]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetInfoRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetInfoRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetInfoResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetInfoResponseHandles", ArgDir: 1}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "zircon_ethernet_InfoHandles", Dir: 1}, FldName: "info"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetStatusRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetStatusRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[9]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetStatusRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetStatusRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceGetStatusResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceGetStatusResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceListenStartRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceListenStartRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[6]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceListenStartRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceListenStartRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceListenStartResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceListenStartResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceListenStopRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceListenStopRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[7]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceListenStopRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceListenStopRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceListenStopResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceListenStopResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetClientNameRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetClientNameRequest", IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[8]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "nameInLine"},
+		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "nameOutOfLine"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetClientNameRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetClientNameRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetClientNameResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetClientNameResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetIOBufferRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetIOBufferRequest", TypeSize: 20}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[3]"}, FldName: "hdr"},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "h", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetIOBufferRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetIOBufferRequestHandles", TypeSize: 4}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "h", TypeSize: 4}},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetIOBufferResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetIOBufferResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetPromiscuousModeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetPromiscuousModeRequest", TypeSize: 17}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[10]"}, FldName: "hdr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "enabled", TypeSize: 1}}},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetPromiscuousModeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetPromiscuousModeRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceSetPromiscuousModeResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceSetPromiscuousModeResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceStartRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceStartRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[4]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceStartRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceStartRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceStartResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceStartResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceStopRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceStopRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[5]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceStopRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceStopRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_DeviceStopResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_DeviceStopResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_FifosHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_FifosHandles", TypeSize: 8, ArgDir: 1}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_fifo", FldName: "rx", TypeSize: 4, ArgDir: 1}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_fifo", FldName: "tx", TypeSize: 4, ArgDir: 1}},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_InfoHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_InfoHandles", ArgDir: 1}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "zircon_ethernet_MacAddressHandles", Dir: 1}, FldName: "mac"},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_MacAddressHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_MacAddressHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_MacAddressHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_MacAddressHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_MacAddressInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_MacAddressInLine", TypeSize: 6}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "octetsInLine", TypeSize: 6}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
+	}}},
+	{Key: StructKey{Name: "zircon_ethernet_MacAddressOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zircon_ethernet_MacAddressOutOfLine"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
 	{Key: StructKey{Name: "zx_channel_call_args"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_channel_call_args", TypeSize: 48}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4}}}},
@@ -4259,6 +4610,10 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "fdio_service_connect$fuchsia_timezone_TimezoneWatcher", CallName: "fdio_service_connect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 6}, Kind: 2, Values: []string{"/svc/\x00"}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_timezone_TimezoneWatcher_server", FldName: "handle", TypeSize: 4}},
+	}},
+	{Name: "fdio_service_connect$zircon_ethernet_Device", CallName: "fdio_service_connect", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 6}, Kind: 2, Values: []string{"/svc/\x00"}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_server", FldName: "handle", TypeSize: 4}},
 	}},
 	{Name: "fstat", CallName: "fstat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -5277,6 +5632,14 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
+	{Name: "zx_channel_call$fuchsia_net_stack_StackAddEthernetInterface", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Stack_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackAddEthernetInterfaceRequest, fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
 	{Name: "zx_channel_call$fuchsia_net_stack_StackAddForwardingEntry", CallName: "zx_channel_call", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Stack_client", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
@@ -5290,6 +5653,14 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackAddInterfaceAddressRequest, fuchsia_net_stack_StackAddInterfaceAddressRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackAddInterfaceAddressResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_net_stack_StackDelEthernetInterface", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Stack_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackDelEthernetInterfaceRequest, fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -5426,6 +5797,126 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_timezone_TimezoneSetTimezoneRequest, fuchsia_timezone_TimezoneSetTimezoneRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_timezone_TimezoneSetTimezoneResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceConfigMulticastAddMac", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastAddMacRequest, zircon_ethernet_DeviceConfigMulticastAddMacRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastAddMacResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceConfigMulticastDeleteMac", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastDeleteMacRequest, zircon_ethernet_DeviceConfigMulticastDeleteMacRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastDeleteMacResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceConfigMulticastSetPromiscuousMode", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest, zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastSetPromiscuousModeResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceConfigMulticastTestFilter", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceConfigMulticastTestFilterRequest, zircon_ethernet_DeviceConfigMulticastTestFilterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceConfigMulticastTestFilterResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceDumpRegisters", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceDumpRegistersRequest, zircon_ethernet_DeviceDumpRegistersRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceDumpRegistersResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceGetFifos", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceGetFifosRequest, zircon_ethernet_DeviceGetFifosRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetFifosResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceGetInfo", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceGetInfoRequest, zircon_ethernet_DeviceGetInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetInfoResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceGetStatus", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceGetStatusRequest, zircon_ethernet_DeviceGetStatusRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceGetStatusResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceListenStart", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceListenStartRequest, zircon_ethernet_DeviceListenStartRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceListenStartResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceListenStop", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceListenStopRequest, zircon_ethernet_DeviceListenStopRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceListenStopResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceSetClientName", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceSetClientNameRequest, zircon_ethernet_DeviceSetClientNameRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetClientNameResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceSetIOBuffer", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceSetIOBufferRequest, zircon_ethernet_DeviceSetIOBufferRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetIOBufferResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceSetPromiscuousMode", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceSetPromiscuousModeRequest, zircon_ethernet_DeviceSetPromiscuousModeRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceSetPromiscuousModeResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceStart", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceStartRequest, zircon_ethernet_DeviceStartRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceStartResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$zircon_ethernet_DeviceStop", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[zircon_ethernet_DeviceStopRequest, zircon_ethernet_DeviceStopRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], zircon_ethernet_DeviceStopResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -5568,6 +6059,11 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_timezone_TimezoneWatcher_client", TypeSize: 4, ArgDir: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out1", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_timezone_TimezoneWatcher_server", TypeSize: 4, ArgDir: 1}}},
+	}},
+	{Name: "zx_channel_create$zircon_ethernet_Device", CallName: "zx_channel_create", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_client", TypeSize: 4, ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out1", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_zircon_ethernet_Device_server", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{Name: "zx_channel_read", CallName: "zx_channel_read", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", FldName: "handle", TypeSize: 4}},
@@ -6789,4 +7285,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "10918eaa4696a9df4961ecf0e72042e805e814f6"
+const revision_amd64 = "e041d30459ccafba3164bdcadc41bd573fff973e"
