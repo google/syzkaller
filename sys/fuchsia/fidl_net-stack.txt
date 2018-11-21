@@ -20,7 +20,7 @@ fuchsia_net_stack_InterfaceAddressHandles {
 } [packed]
 
 fuchsia_net_stack_InterfaceInfoHandles {
-	mac		fuchsia_net_MacAddressHandles
+	mac		zircon_ethernet_MacAddressHandles
 	addresses	array[fuchsia_net_stack_InterfaceAddressHandles]
 } [packed]
 
@@ -53,6 +53,34 @@ fuchsia_net_stack_ForwardingDestinationInLine [
 	device_id	fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_deviceId, int64]
 	next_hopInLine	fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_nextHop, fuchsia_net_IpAddressInLine]
 ]
+
+fuchsia_net_stack_StackAddEthernetInterfaceRequest {
+	hdr				fidl_message_header[1]
+	topological_pathInLine		fidl_string
+	device				flags[fidl_handle_presence, int32]
+	topological_pathOutOfLine	fidl_aligned[stringnoz]
+} [packed]
+
+fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles {
+	device	zx_chan_zircon_ethernet_Device_client
+} [packed]
+
+fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles {
+	err	fuchsia_net_stack_ErrorHandles
+} [packed]
+
+fuchsia_net_stack_StackDelEthernetInterfaceRequest {
+	hdr	fidl_message_header[2]
+	id	int64
+} [packed]
+
+fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles {
+	err	fuchsia_net_stack_ErrorHandles
+} [packed]
 
 fuchsia_net_stack_StackListInterfacesRequest {
 	hdr	fidl_message_header[256]
@@ -188,6 +216,8 @@ resource zx_chan_fuchsia_net_stack_Stack_server[zx_chan]
 
 zx_channel_create$fuchsia_net_stack_Stack(options const[0], out0 ptr[out, zx_chan_fuchsia_net_stack_Stack_client], out1 ptr[out, zx_chan_fuchsia_net_stack_Stack_server])
 fdio_service_connect$fuchsia_net_stack_Stack(path ptr[in, string["/svc/fuchsia.net.stack.Stack"]], handle zx_chan_fuchsia_net_stack_Stack_server)
+zx_channel_call$fuchsia_net_stack_StackAddEthernetInterface(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackAddEthernetInterfaceRequest, fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_net_stack_StackDelEthernetInterface(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackDelEthernetInterfaceRequest, fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_stack_StackListInterfaces(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackListInterfacesRequest, fuchsia_net_stack_StackListInterfacesRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackListInterfacesResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_stack_StackGetInterfaceInfo(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackGetInterfaceInfoRequest, fuchsia_net_stack_StackGetInterfaceInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackGetInterfaceInfoResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_stack_StackEnableInterface(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackEnableInterfaceRequest, fuchsia_net_stack_StackEnableInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackEnableInterfaceResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
