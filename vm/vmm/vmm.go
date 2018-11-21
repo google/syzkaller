@@ -325,6 +325,8 @@ func (inst *instance) Diagnose() bool {
 		"show panic",
 		"trace",
 		"show registers",
+		"show proc",
+		"ps",
 	}
 	for _, c := range commands {
 		inst.consolew.Write([]byte(c + "\n"))
