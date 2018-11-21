@@ -124,6 +124,6 @@ type RunTestDoneArgs struct {
 	Name   string
 	ID     int
 	Output []byte
-	Info   [][]ipc.CallInfo
+	Info   []*ipc.ProgInfo
 	Error  string
 }
