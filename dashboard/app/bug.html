@@ -56,7 +56,8 @@ Page with details about a single bug.
 				<td class="manager">{{$c.Manager}}</td>
 				<td class="time">{{formatTime $c.Time}}</td>
 				<td class="kernel" title="{{$c.KernelAlias}}">{{$c.KernelAlias}}</td>
-				<td class="tag" title="{{$c.KernelCommit}}">{{formatShortHash $c.KernelCommit}}</td>
+				<td class="tag" title="{{$c.KernelCommit}}
+{{formatTime $c.KernelCommitDate}}">{{formatShortHash $c.KernelCommit}}</td>
 				<td class="tag" title="{{$c.SyzkallerCommit}}">{{formatShortHash $c.SyzkallerCommit}}</td>
 				<td class="config">{{if $c.KernelConfigLink}}<a href="{{$c.KernelConfigLink}}">.config</a>{{end}}</td>
 				<td class="repro">{{if $c.LogLink}}<a href="{{$c.LogLink}}">log</a>{{end}}</td>
