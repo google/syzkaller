@@ -9,6 +9,13 @@ fx set x64 --packages garnet/packages/products/sshd
 fx full-build
 ```
 
+You need to build fuchsia for both arm64 and amd64:
+
+```
+fx set arm64 --packages garnet/packages/products/sshd
+fx full-build
+```
+
 To update descriptions run:
 ```
 make extract TARGETOS=fuchsia SOURCEDIR=/path/to/fuchsia/checkout
