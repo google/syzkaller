@@ -179,9 +179,9 @@ long syz_mmap(size_t addr, size_t size)
 	if (status != ZX_OK)
 		return status;
 	uintptr_t mapped_addr;
-	status = zx_vmar_map(root, addr - info.base, vmo, 0, size,
-			     ZX_VM_FLAG_SPECIFIC_OVERWRITE | ZX_VM_FLAG_PERM_READ |
-				 ZX_VM_FLAG_PERM_WRITE | ZX_VM_FLAG_PERM_EXECUTE,
+	status = zx_vmar_map(root, ZX_VM_FLAG_SPECIFIC_OVERWRITE | ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE | ZX_VM_FLAG_PERM_EXECUTE,
+			     addr - info.base, vmo, 0, size,
+
 			     &mapped_addr);
 	return status;
 }
