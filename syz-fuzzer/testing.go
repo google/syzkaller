@@ -237,16 +237,16 @@ func checkSimpleProgram(args *checkArgs) error {
 	if failed {
 		return fmt.Errorf("program failed:\n%s", output)
 	}
-	if len(info) == 0 {
+	if len(info.Calls) == 0 {
 		return fmt.Errorf("no calls executed:\n%s", output)
 	}
-	if info[0].Errno != 0 {
-		return fmt.Errorf("simple call failed: %+v\n%s", info[0], output)
+	if info.Calls[0].Errno != 0 {
+		return fmt.Errorf("simple call failed: %+v\n%s", info.Calls[0], output)
 	}
-	if args.ipcConfig.Flags&ipc.FlagSignal != 0 && len(info[0].Signal) < 2 {
+	if args.ipcConfig.Flags&ipc.FlagSignal != 0 && len(info.Calls[0].Signal) < 2 {
 		return fmt.Errorf("got no coverage:\n%s", output)
 	}
-	if len(info[0].Signal) < 1 {
+	if len(info.Calls[0].Signal) < 1 {
 		return fmt.Errorf("got no fallback coverage:\n%s", output)
 	}
 	return nil
