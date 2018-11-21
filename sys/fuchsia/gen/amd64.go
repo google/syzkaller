@@ -6955,9 +6955,9 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_vmar_allocate", CallName: "zx_vmar_allocate", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", FldName: "parent_handle", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmar_allocate_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{8, 16, 64, 128, 256, 512}, BitMask: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "offset", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 8}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmar_allocate_flags", FldName: "map_flags", TypeSize: 8}}, Vals: []uint64{8, 16, 64, 128, 256, 512}, BitMask: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", TypeSize: 4, ArgDir: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "child_addr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
@@ -6966,18 +6966,18 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_vmar_map", CallName: "zx_vmar_map", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", FldName: "handle", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmar_map_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{16, 32, 1, 2, 4, 1024}, BitMask: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "vmar_offset", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "vmo", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "vmo_offset", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmar_map_flags", FldName: "map_flags", TypeSize: 8}}, Vals: []uint64{16, 32, 1, 2, 4, 1024}, BitMask: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mapped_addr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
 	{Name: "zx_vmar_protect", CallName: "zx_vmar_protect", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", FldName: "handle", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmar_protect_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1, 2, 4}, BitMask: true},
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmar_protect_flags", FldName: "prot_flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4}, BitMask: true},
 	}},
 	{Name: "zx_vmar_unmap", CallName: "zx_vmar_unmap", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", FldName: "handle", TypeSize: 4}},
@@ -7285,4 +7285,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "e041d30459ccafba3164bdcadc41bd573fff973e"
+const revision_amd64 = "dd1c90b2481bcb2c9dfb4a2b84b671cb2bf0d196"
