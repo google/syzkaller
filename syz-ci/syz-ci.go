@@ -82,7 +82,7 @@ type Config struct {
 	HubKey          string `json:"hub_key"`          // Optional.
 	Goroot          string `json:"goroot"`           // Go 1.8+ toolchain dir.
 	SyzkallerRepo   string `json:"syzkaller_repo"`
-	SyzkallerBranch string `json:"syzkaller_branch"`
+	SyzkallerBranch string `json:"syzkaller_branch"` // Defaults to "master".
 	// Dir with additional syscall descriptions (.txt and .const files).
 	SyzkallerDescriptions string `json:"syzkaller_descriptions"`
 	// GCS path to upload coverage reports from managers (optional).
@@ -99,7 +99,7 @@ type ManagerConfig struct {
 	Repo            string `json:"repo"`
 	// Short name of the repo (e.g. "linux-next"), used only for reporting.
 	RepoAlias    string `json:"repo_alias"`
-	Branch       string `json:"branch"`
+	Branch       string `json:"branch"` // Defaults to "master".
 	Compiler     string `json:"compiler"`
 	Userspace    string `json:"userspace"`
 	KernelConfig string `json:"kernel_config"`
@@ -219,6 +219,9 @@ func loadConfig(filename string) (*Config, error) {
 	for i, mgr := range cfg.Managers {
 		if mgr.Name == "" {
 			return nil, fmt.Errorf("param 'managers[%v].name' is empty", i)
+		}
+		if mgr.Branch == "" {
+			mgr.Branch = "master"
 		}
 		mgrcfg := new(mgrconfig.Config)
 		if err := config.LoadData(mgr.ManagerConfig, mgrcfg); err != nil {
