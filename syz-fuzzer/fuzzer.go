@@ -384,10 +384,10 @@ func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
 	return fuzzer.corpusSignal.Diff(sign)
 }
 
-func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info []ipc.CallInfo) (calls []int) {
+func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int) {
 	fuzzer.signalMu.RLock()
 	defer fuzzer.signalMu.RUnlock()
-	for i, inf := range info {
+	for i, inf := range info.Calls {
 		diff := fuzzer.maxSignal.DiffRaw(inf.Signal, signalPrio(p.Target, p.Calls[i], &inf))
 		if diff.Empty() {
 			continue

@@ -148,7 +148,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 		log.Logf(0, "result: failed=%v hanged=%v err=%v\n\n%s",
 			failed, hanged, err, output)
 	}
-	if len(info) != 0 {
+	if len(info.Calls) != 0 {
 		ctx.printCallResults(info)
 		if *flagHints {
 			ctx.printHints(entry.P, info)
@@ -173,8 +173,8 @@ func (ctx *Context) logProgram(pid int, p *prog.Prog, callOpts *ipc.ExecOpts) {
 	ctx.logMu.Unlock()
 }
 
-func (ctx *Context) printCallResults(info []ipc.CallInfo) {
-	for i, inf := range info {
+func (ctx *Context) printCallResults(info *ipc.ProgInfo) {
+	for i, inf := range info.Calls {
 		if inf.Flags&ipc.CallExecuted == 0 {
 			continue
 		}
@@ -193,13 +193,13 @@ func (ctx *Context) printCallResults(info []ipc.CallInfo) {
 	}
 }
 
-func (ctx *Context) printHints(p *prog.Prog, info []ipc.CallInfo) {
+func (ctx *Context) printHints(p *prog.Prog, info *ipc.ProgInfo) {
 	ncomps, ncandidates := 0, 0
 	for i := range p.Calls {
 		if *flagOutput {
 			fmt.Printf("call %v:\n", i)
 		}
-		comps := info[i].Comps
+		comps := info.Calls[i].Comps
 		for v, args := range comps {
 			ncomps += len(args)
 			if *flagOutput {
@@ -220,8 +220,8 @@ func (ctx *Context) printHints(p *prog.Prog, info []ipc.CallInfo) {
 	log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
 }
 
-func (ctx *Context) dumpCoverage(coverFile string, info []ipc.CallInfo) {
-	for i, inf := range info {
+func (ctx *Context) dumpCoverage(coverFile string, info *ipc.ProgInfo) {
+	for i, inf := range info.Calls {
 		log.Logf(0, "call #%v: signal %v, coverage %v", i, len(inf.Signal), len(inf.Cover))
 		if len(inf.Cover) == 0 {
 			continue

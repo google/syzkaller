@@ -41,10 +41,10 @@ type RunRequest struct {
 
 	Done   chan struct{}
 	Output []byte
-	Info   [][]ipc.CallInfo
+	Info   []*ipc.ProgInfo
 	Err    error
 
-	results []ipc.CallInfo
+	results *ipc.ProgInfo
 	name    string
 	broken  string
 	skip    string
@@ -208,7 +208,7 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 	return nil
 }
 
-func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, []ipc.CallInfo, error) {
+func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, *ipc.ProgInfo, error) {
 	data, err := ioutil.ReadFile(filepath.Join(ctx.Dir, filename))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to read %v: %v", filename, err)
@@ -242,28 +242,28 @@ func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, []i
 		"EACCES":  13,
 		"EINVAL":  22,
 	}
-	info := make([]ipc.CallInfo, len(p.Calls))
+	info := &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(p.Calls))}
 	for i, call := range p.Calls {
-		info[i].Flags |= ipc.CallExecuted | ipc.CallFinished
+		info.Calls[i].Flags |= ipc.CallExecuted | ipc.CallFinished
 		switch call.Comment {
 		case "blocked":
-			info[i].Flags |= ipc.CallBlocked
+			info.Calls[i].Flags |= ipc.CallBlocked
 		case "unfinished":
-			info[i].Flags &^= ipc.CallFinished
+			info.Calls[i].Flags &^= ipc.CallFinished
 		default:
 			res, ok := errnos[call.Comment]
 			if !ok {
 				return nil, nil, nil, fmt.Errorf("%v: unknown comment %q",
 					filename, call.Comment)
 			}
-			info[i].Errno = res
+			info.Calls[i].Errno = res
 		}
 	}
 	return p, requires, info, nil
 }
 
 func (ctx *Context) produceTest(progs chan *RunRequest, req *RunRequest, name string,
-	properties, requires map[string]bool, results []ipc.CallInfo) {
+	properties, requires map[string]bool, results *ipc.ProgInfo) {
 	req.name = name
 	req.results = results
 	if match(properties, requires) {
@@ -386,8 +386,8 @@ func checkResult(req *RunRequest) error {
 	}
 	calls := make(map[string]bool)
 	for run, info := range req.Info {
-		for i, inf := range info {
-			want := req.results[i]
+		for i, inf := range info.Calls {
+			want := req.results.Calls[i]
 			for flag, what := range map[ipc.CallFlags]string{
 				ipc.CallExecuted: "executed",
 				ipc.CallBlocked:  "blocked",
@@ -433,13 +433,13 @@ func checkResult(req *RunRequest) error {
 	return nil
 }
 
-func parseBinOutput(req *RunRequest) ([][]ipc.CallInfo, error) {
-	var infos [][]ipc.CallInfo
+func parseBinOutput(req *RunRequest) ([]*ipc.ProgInfo, error) {
+	var infos []*ipc.ProgInfo
 	s := bufio.NewScanner(bytes.NewReader(req.Output))
 	re := regexp.MustCompile("^### call=([0-9]+) errno=([0-9]+)$")
 	for s.Scan() {
 		if s.Text() == "### start" {
-			infos = append(infos, make([]ipc.CallInfo, len(req.P.Calls)))
+			infos = append(infos, &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(req.P.Calls))})
 		}
 		match := re.FindSubmatch(s.Bytes())
 		if match == nil {
@@ -459,18 +459,18 @@ func parseBinOutput(req *RunRequest) ([][]ipc.CallInfo, error) {
 				string(match[2]), s.Text())
 		}
 		info := infos[len(infos)-1]
-		if call >= uint64(len(info)) {
+		if call >= uint64(len(info.Calls)) {
 			return nil, fmt.Errorf("bad call index %v", call)
 		}
-		if info[call].Flags != 0 {
+		if info.Calls[call].Flags != 0 {
 			return nil, fmt.Errorf("double result for call %v", call)
 		}
-		info[call].Flags |= ipc.CallExecuted | ipc.CallFinished
-		info[call].Errno = int(errno)
+		info.Calls[call].Flags |= ipc.CallExecuted | ipc.CallFinished
+		info.Calls[call].Errno = int(errno)
 	}
 	for _, info := range infos {
-		for i := range info {
-			info[i].Flags |= ipc.CallExecuted
+		for i := range info.Calls {
+			info.Calls[i].Flags |= ipc.CallExecuted
 		}
 	}
 	return infos, nil
@@ -509,10 +509,10 @@ func RunTest(req *RunRequest, executor string) {
 			req.Err = fmt.Errorf("run %v: hanged", run)
 			return
 		}
-		for i := range info {
+		for i := range info.Calls {
 			// Detach them because they point into the output shmem region.
-			info[i].Signal = append([]uint32{}, info[i].Signal...)
-			info[i].Cover = append([]uint32{}, info[i].Cover...)
+			info.Calls[i].Signal = append([]uint32{}, info.Calls[i].Signal...)
+			info.Calls[i].Cover = append([]uint32{}, info.Calls[i].Cover...)
 		}
 		req.Info = append(req.Info, info)
 	}

@@ -122,8 +122,8 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	notexecuted := 0
 	for i := 0; i < signalRuns; i++ {
 		info := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
-		if len(info) == 0 || len(info[item.call].Signal) == 0 ||
-			item.info.Errno == 0 && info[item.call].Errno != 0 {
+		if len(info.Calls) == 0 || len(info.Calls[item.call].Signal) == 0 ||
+			item.info.Errno == 0 && info.Calls[item.call].Errno != 0 {
 			// The call was not executed or failed.
 			notexecuted++
 			if notexecuted > signalRuns/2+1 {
@@ -131,7 +131,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 			}
 			continue
 		}
-		inf := info[item.call]
+		inf := info.Calls[item.call]
 		thisSignal := signal.FromRaw(inf.Signal, signalPrio(item.p.Target, call, &inf))
 		newSignal = newSignal.Intersection(thisSignal)
 		// Without !minimized check manager starts losing some considerable amount
@@ -146,10 +146,10 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 			func(p1 *prog.Prog, call1 int) bool {
 				for i := 0; i < minimizeAttempts; i++ {
 					info := proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
-					if len(info) == 0 || len(info[call1].Signal) == 0 {
+					if len(info.Calls) == 0 || len(info.Calls[call1].Signal) == 0 {
 						continue // The call was not executed.
 					}
-					inf := info[call1]
+					inf := info.Calls[call1]
 					if item.info.Errno == 0 && inf.Errno != 0 {
 						// Don't minimize calls from successful to unsuccessful.
 						// Successful calls are much more valuable.
@@ -207,7 +207,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 		opts.FaultCall = call
 		opts.FaultNth = nth
 		info := proc.executeRaw(&opts, p, StatSmash)
-		if info != nil && len(info) > call && info[call].Flags&ipc.CallFaultInjected == 0 {
+		if info != nil && len(info.Calls) > call && info.Calls[call].Flags&ipc.CallFaultInjected == 0 {
 			break
 		}
 	}
@@ -224,16 +224,16 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	// Then mutate the initial program for every match between
 	// a syscall argument and a comparison operand.
 	// Execute each of such mutants to check if it gives new coverage.
-	p.MutateWithHints(call, info[call].Comps, func(p *prog.Prog) {
+	p.MutateWithHints(call, info.Calls[call].Comps, func(p *prog.Prog) {
 		log.Logf(1, "#%v: executing comparison hint", proc.pid)
 		proc.execute(proc.execOpts, p, ProgNormal, StatHint)
 	})
 }
 
-func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) []ipc.CallInfo {
+func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
 	info := proc.executeRaw(execOpts, p, stat)
 	for _, callIndex := range proc.fuzzer.checkNewSignal(p, info) {
-		info := info[callIndex]
+		info := info.Calls[callIndex]
 		// info.Signal points to the output shmem region, detach it before queueing.
 		info.Signal = append([]uint32{}, info.Signal...)
 		// None of the caller use Cover, so just nil it instead of detaching.
@@ -249,7 +249,7 @@ func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes,
 	return info
 }
 
-func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) []ipc.CallInfo {
+func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {
 	if opts.Flags&ipc.FlagDedupCover == 0 {
 		log.Fatalf("dedup cover is not enabled")
 	}

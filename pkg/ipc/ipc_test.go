@@ -103,11 +103,11 @@ func TestExecute(t *testing.T) {
 			if failed {
 				t.Fatalf("program failed:\n%s", output)
 			}
-			if len(info) == 0 {
+			if len(info.Calls) == 0 {
 				t.Fatalf("no calls executed:\n%s", output)
 			}
-			if info[0].Errno != 0 {
-				t.Fatalf("simple call failed: %v\n%s", info[0].Errno, output)
+			if info.Calls[0].Errno != 0 {
+				t.Fatalf("simple call failed: %v\n%s", info.Calls[0].Errno, output)
 			}
 			if len(output) != 0 {
 				t.Fatalf("output on empty program")
@@ -152,12 +152,12 @@ func TestParallel(t *testing.T) {
 				err = fmt.Errorf("program failed:\n%s", output)
 				return
 			}
-			if len(info) == 0 {
+			if len(info.Calls) == 0 {
 				err = fmt.Errorf("no calls executed:\n%s", output)
 				return
 			}
-			if info[0].Errno != 0 {
-				err = fmt.Errorf("simple call failed: %v\n%s", info[0].Errno, output)
+			if info.Calls[0].Errno != 0 {
+				err = fmt.Errorf("simple call failed: %v\n%s", info.Calls[0].Errno, output)
 				return
 			}
 			if len(output) != 0 {

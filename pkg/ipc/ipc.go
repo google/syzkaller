@@ -93,6 +93,11 @@ type CallInfo struct {
 	Errno int          // call errno (0 if the call was successful)
 }
 
+type ProgInfo struct {
+	Calls []CallInfo
+	// TODO: remote coverage would go here.
+}
+
 type Env struct {
 	in  []byte
 	out []byte
@@ -215,7 +220,7 @@ var rateLimit = time.NewTicker(1 * time.Second)
 // failed: true if executor has detected a kernel bug
 // hanged: program hanged and was killed
 // err0: failed to start process, or executor has detected a logical error
-func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
+func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, failed, hanged bool, err0 error) {
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)
 	if err != nil {
@@ -267,9 +272,9 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 // addFallbackSignal computes simple fallback signal in cases we don't have real coverage signal.
 // We use syscall number or-ed with returned errno value as signal.
 // At least this gives us all combinations of syscall+errno.
-func addFallbackSignal(p *prog.Prog, info []CallInfo) {
-	callInfos := make([]prog.CallInfo, len(info))
-	for i, inf := range info {
+func addFallbackSignal(p *prog.Prog, info *ProgInfo) {
+	callInfos := make([]prog.CallInfo, len(info.Calls))
+	for i, inf := range info.Calls {
 		if inf.Flags&CallExecuted != 0 {
 			callInfos[i].Flags |= prog.CallExecuted
 		}
@@ -283,30 +288,30 @@ func addFallbackSignal(p *prog.Prog, info []CallInfo) {
 	}
 	p.FallbackSignal(callInfos)
 	for i, inf := range callInfos {
-		info[i].Signal = inf.Signal
+		info.Calls[i].Signal = inf.Signal
 	}
 }
 
-func (env *Env) parseOutput(p *prog.Prog) ([]CallInfo, error) {
+func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 	out := env.out
 	ncmd, ok := readUint32(&out)
 	if !ok {
 		return nil, fmt.Errorf("failed to read number of calls")
 	}
-	info := make([]CallInfo, len(p.Calls))
+	info := &ProgInfo{Calls: make([]CallInfo, len(p.Calls))}
 	for i := uint32(0); i < ncmd; i++ {
 		if len(out) < int(unsafe.Sizeof(callReply{})) {
 			return nil, fmt.Errorf("failed to read call %v reply", i)
 		}
 		reply := *(*callReply)(unsafe.Pointer(&out[0]))
 		out = out[unsafe.Sizeof(callReply{}):]
-		if int(reply.index) >= len(info) {
-			return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info))
+		if int(reply.index) >= len(info.Calls) {
+			return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
 		}
 		if num := p.Calls[reply.index].Meta.ID; int(reply.num) != num {
 			return nil, fmt.Errorf("wrong call %v num %v/%v", i, reply.num, num)
 		}
-		inf := &info[reply.index]
+		inf := &info.Calls[reply.index]
 		if inf.Flags != 0 || inf.Signal != nil {
 			return nil, fmt.Errorf("duplicate reply for call %v/%v/%v", i, reply.index, reply.num)
 		}
