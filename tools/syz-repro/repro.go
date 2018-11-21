@@ -28,7 +28,7 @@ var (
 func main() {
 	os.Args = append(append([]string{}, os.Args[0], "-v=10"), os.Args[1:]...)
 	flag.Parse()
-	if len(flag.Args()) != 1 || flagConfig == nil {
+	if len(flag.Args()) != 1 || *flagConfig == "" {
 		log.Fatalf("usage: syz-repro -config=manager.cfg execution.log")
 	}
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
