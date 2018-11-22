@@ -122,7 +122,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	notexecuted := 0
 	for i := 0; i < signalRuns; i++ {
 		info := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
-		if len(info.Calls) == 0 || len(info.Calls[item.call].Signal) == 0 ||
+		if info == nil || len(info.Calls) == 0 || len(info.Calls[item.call].Signal) == 0 ||
 			item.info.Errno == 0 && info.Calls[item.call].Errno != 0 {
 			// The call was not executed or failed.
 			notexecuted++
@@ -146,7 +146,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 			func(p1 *prog.Prog, call1 int) bool {
 				for i := 0; i < minimizeAttempts; i++ {
 					info := proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
-					if len(info.Calls) == 0 || len(info.Calls[call1].Signal) == 0 {
+					if info == nil || len(info.Calls) == 0 || len(info.Calls[call1].Signal) == 0 {
 						continue // The call was not executed.
 					}
 					inf := info.Calls[call1]
