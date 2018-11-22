@@ -367,7 +367,9 @@ func fetchBugs(c context.Context, r *http.Request) ([]*uiBugNamespace, error) {
 		}
 		res = append(res, uiNamespace)
 	}
-	sort.Sort(uiBugNamespaceSorter(res))
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Caption < res[j].Caption
+	})
 	return res, nil
 }
 
@@ -423,7 +425,15 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	}
 	var uiGroups []*uiBugGroup
 	for index, bugs := range groups {
-		sort.Sort(uiBugSorter(bugs))
+		sort.Slice(bugs, func(i, j int) bool {
+			if bugs[i].Namespace != bugs[j].Namespace {
+				return bugs[i].Namespace < bugs[j].Namespace
+			}
+			if bugs[i].ClosedTime != bugs[j].ClosedTime {
+				return bugs[i].ClosedTime.After(bugs[j].ClosedTime)
+			}
+			return bugs[i].ReportedTime.After(bugs[j].ReportedTime)
+		})
 		caption, fragment, showPatch, showPatched := "", "", false, false
 		switch index {
 		case -1:
@@ -450,7 +460,9 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 			Bugs:        bugs,
 		})
 	}
-	sort.Sort(uiBugGroupSorter(uiGroups))
+	sort.Slice(uiGroups, func(i, j int) bool {
+		return uiGroups[i].ShowIndex > uiGroups[j].ShowIndex
+	})
 	fixedLink := ""
 	if !onlyFixed {
 		fixedLink = fmt.Sprintf("?fixed=%v", ns)
@@ -761,7 +773,12 @@ func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, err
 			TotalExecs:         stats.TotalExecs,
 		})
 	}
-	sort.Sort(uiManagerSorter(results))
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].Namespace != results[j].Namespace {
+			return results[i].Namespace < results[j].Namespace
+		}
+		return results[i].Name < results[j].Name
+	})
 	return results, nil
 }
 
@@ -855,40 +872,3 @@ func bugLink(id string) string {
 	}
 	return "/bug?id=" + id
 }
-
-type uiManagerSorter []*uiManager
-
-func (a uiManagerSorter) Len() int      { return len(a) }
-func (a uiManagerSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a uiManagerSorter) Less(i, j int) bool {
-	if a[i].Namespace != a[j].Namespace {
-		return a[i].Namespace < a[j].Namespace
-	}
-	return a[i].Name < a[j].Name
-}
-
-type uiBugSorter []*uiBug
-
-func (a uiBugSorter) Len() int      { return len(a) }
-func (a uiBugSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a uiBugSorter) Less(i, j int) bool {
-	if a[i].Namespace != a[j].Namespace {
-		return a[i].Namespace < a[j].Namespace
-	}
-	if a[i].ClosedTime != a[j].ClosedTime {
-		return a[i].ClosedTime.After(a[j].ClosedTime)
-	}
-	return a[i].ReportedTime.After(a[j].ReportedTime)
-}
-
-type uiBugGroupSorter []*uiBugGroup
-
-func (a uiBugGroupSorter) Len() int           { return len(a) }
-func (a uiBugGroupSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a uiBugGroupSorter) Less(i, j int) bool { return a[i].ShowIndex > a[j].ShowIndex }
-
-type uiBugNamespaceSorter []*uiBugNamespace
-
-func (a uiBugNamespaceSorter) Len() int           { return len(a) }
-func (a uiBugNamespaceSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a uiBugNamespaceSorter) Less(i, j int) bool { return a[i].Caption < a[j].Caption }
