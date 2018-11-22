@@ -6,7 +6,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"net"
@@ -21,12 +20,11 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
-
-const dateFormat = "Jan 02 2006 15:04:05 MST"
 
 func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/", mgr.httpSummary)
@@ -38,6 +36,7 @@ func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
 	http.HandleFunc("/rawcover", mgr.httpRawCover)
+	http.HandleFunc("/input", mgr.httpInput)
 	// Browsers like to request this, without special handler this goes to / handler.
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
@@ -83,8 +82,9 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 			Cover:  len(cc.cov),
 		})
 	}
-	sort.Sort(UICallTypeArray(data.Calls))
-
+	sort.Slice(data.Calls, func(i, j int) bool {
+		return data.Calls[i].Name < data.Calls[j].Name
+	})
 	if err := syscallsTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err),
 			http.StatusInternalServerError)
@@ -104,7 +104,7 @@ func (mgr *Manager) collectStats() []UIStat {
 	stats := []UIStat{
 		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
 		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
-		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))},
+		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus)), Link: "/corpus"},
 		{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))},
 		{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"},
 		{Name: "signal", Value: fmt.Sprint(mgr.corpusSignal.Len())},
@@ -124,7 +124,9 @@ func (mgr *Manager) collectStats() []UIStat {
 
 	intStats := convertStats(mgr.stats.all(), secs)
 	intStats = append(intStats, convertStats(mgr.fuzzerStats, secs)...)
-	sort.Sort(UIStatArray(intStats))
+	sort.Slice(intStats, func(i, j int) bool {
+		return intStats[i].Name < intStats[j].Name
+	})
 	stats = append(stats, intStats...)
 	return stats
 }
@@ -164,7 +166,7 @@ func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
 
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
 	crashID := r.FormValue("id")
-	crash := readCrash(mgr.cfg.Workdir, crashID, nil, true)
+	crash := readCrash(mgr.cfg.Workdir, crashID, nil, mgr.startTime, true)
 	if crash == nil {
 		http.Error(w, fmt.Sprintf("failed to read crash info"), http.StatusInternalServerError)
 		return
@@ -179,10 +181,11 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	var data []UIInput
-	call := r.FormValue("call")
+	data := UICorpus{
+		Call: r.FormValue("call"),
+	}
 	for sig, inp := range mgr.corpus {
-		if call != inp.Call {
+		if data.Call != "" && data.Call != inp.Call {
 			continue
 		}
 		p, err := mgr.target.Deserialize(inp.Prog)
@@ -190,14 +193,19 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 			return
 		}
-		data = append(data, UIInput{
-			Short: p.String(),
-			Full:  string(inp.Prog),
-			Cover: len(inp.Cover),
+		data.Inputs = append(data.Inputs, &UIInput{
 			Sig:   sig,
+			Short: p.String(),
+			Cover: len(inp.Cover),
 		})
 	}
-	sort.Sort(UIInputArray(data))
+	sort.Slice(data.Inputs, func(i, j int) bool {
+		a, b := data.Inputs[i], data.Inputs[j]
+		if a.Cover != b.Cover {
+			return a.Cover > b.Cover
+		}
+		return a.Short < b.Short
+	})
 
 	if err := corpusTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
@@ -308,7 +316,9 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	for i, p := range prios[idx] {
 		data.Prios = append(data.Prios, UIPrio{mgr.target.Syscalls[i].Name, p})
 	}
-	sort.Sort(UIPrioArray(data.Prios))
+	sort.Slice(data.Prios, func(i, j int) bool {
+		return data.Prios[i].Prio > data.Prios[j].Prio
+	})
 
 	if err := prioTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
@@ -331,6 +341,18 @@ func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	io.Copy(w, f)
+}
+
+func (mgr *Manager) httpInput(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	inp, ok := mgr.corpus[r.FormValue("sig")]
+	if !ok {
+		http.Error(w, "can't find the input", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write(inp.Prog)
 }
 
 func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
@@ -413,16 +435,18 @@ func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
 	}
 	var crashTypes []*UICrashType
 	for _, dir := range dirs {
-		crash := readCrash(workdir, dir, repros, false)
+		crash := readCrash(workdir, dir, repros, mgr.startTime, false)
 		if crash != nil {
 			crashTypes = append(crashTypes, crash)
 		}
 	}
-	sort.Sort(UICrashTypeArray(crashTypes))
+	sort.Slice(crashTypes, func(i, j int) bool {
+		return strings.ToLower(crashTypes[i].Description) < strings.ToLower(crashTypes[j].Description)
+	})
 	return crashTypes, nil
 }
 
-func readCrash(workdir, dir string, repros map[string]bool, full bool) *UICrashType {
+func readCrash(workdir, dir string, repros map[string]bool, start time.Time, full bool) *UICrashType {
 	if len(dir) != 40 {
 		return nil
 	}
@@ -478,7 +502,7 @@ func readCrash(workdir, dir string, repros map[string]bool, full bool) *UICrashT
 			crash.Log = filepath.Join("crashes", dir, "log"+index)
 			if stat, err := os.Stat(filepath.Join(workdir, crash.Log)); err == nil {
 				crash.Time = stat.ModTime()
-				crash.TimeStr = crash.Time.Format(dateFormat)
+				crash.Active = crash.Time.After(start)
 			}
 			tag, _ := ioutil.ReadFile(filepath.Join(crashdir, dir, "tag"+index))
 			crash.Tag = string(tag)
@@ -487,13 +511,16 @@ func readCrash(workdir, dir string, repros map[string]bool, full bool) *UICrashT
 				crash.Report = reportFile
 			}
 		}
-		sort.Sort(UICrashArray(crashes))
+		sort.Slice(crashes, func(i, j int) bool {
+			return crashes[i].Time.After(crashes[j].Time)
+		})
 	}
 
 	triaged := reproStatus(hasRepro, hasCRepro, repros[desc], reproAttempts >= maxReproAttempts)
 	return &UICrashType{
 		Description: desc,
-		LastTime:    modTime.Format(dateFormat),
+		LastTime:    modTime,
+		Active:      modTime.After(start),
 		ID:          dir,
 		Count:       len(crashes),
 		Triaged:     triaged,
@@ -537,7 +564,8 @@ type UISyscallsData struct {
 
 type UICrashType struct {
 	Description string
-	LastTime    string
+	LastTime    time.Time
+	Active      bool
 	ID          string
 	Count       int
 	Triaged     string
@@ -545,12 +573,12 @@ type UICrashType struct {
 }
 
 type UICrash struct {
-	Index   int
-	Time    time.Time
-	TimeStr string
-	Log     string
-	Report  string
-	Tag     string
+	Index  int
+	Time   time.Time
+	Active bool
+	Log    string
+	Report string
+	Tag    string
 }
 
 type UIStat struct {
@@ -565,84 +593,57 @@ type UICallType struct {
 	Cover  int
 }
 
-type UIInput struct {
-	Short string
-	Full  string
-	Calls int
-	Cover int
-	Sig   string
+type UICorpus struct {
+	Call   string
+	Inputs []*UIInput
 }
 
-type UICallTypeArray []UICallType
+type UIInput struct {
+	Sig   string
+	Short string
+	Cover int
+}
 
-func (a UICallTypeArray) Len() int           { return len(a) }
-func (a UICallTypeArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a UICallTypeArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type UIInputArray []UIInput
-
-func (a UIInputArray) Len() int           { return len(a) }
-func (a UIInputArray) Less(i, j int) bool { return a[i].Cover > a[j].Cover }
-func (a UIInputArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type UIStatArray []UIStat
-
-func (a UIStatArray) Len() int           { return len(a) }
-func (a UIStatArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a UIStatArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type UICrashTypeArray []*UICrashType
-
-func (a UICrashTypeArray) Len() int           { return len(a) }
-func (a UICrashTypeArray) Less(i, j int) bool { return a[i].Description < a[j].Description }
-func (a UICrashTypeArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type UICrashArray []*UICrash
-
-func (a UICrashArray) Len() int           { return len(a) }
-func (a UICrashArray) Less(i, j int) bool { return a[i].Time.After(a[j].Time) }
-func (a UICrashArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
+var summaryTemplate = html.CreatePage(`
 <!doctype html>
 <html>
 <head>
 	<title>{{.Name }} syzkaller</title>
-	{{STYLE}}
+	{{HEAD}}
 </head>
 <body>
 <b>{{.Name }} syzkaller</b>
 <br>
-<br>
 
-<table>
+<table class="list_table">
 	<caption>Stats:</caption>
 	{{range $s := $.Stats}}
 	<tr>
-		<td>{{$s.Name}}</td>
-		{{if $s.Link}}
-			<td><a href="{{$s.Link}}">{{$s.Value}}</a></td>
-		{{else}}
-			<td>{{$s.Value}}</td>
-		{{end}}
+		<td class="stat_name">{{$s.Name}}</td>
+		<td class="stat_value">
+			{{if $s.Link}}
+				<a href="{{$s.Link}}">{{$s.Value}}</a>
+			{{else}}
+				{{$s.Value}}
+			{{end}}
+		</td>
 	</tr>
 	{{end}}
 </table>
-<br>
 
-<table>
+<table class="list_table">
 	<caption>Crashes:</caption>
 	<tr>
-		<th>Description</th>
-		<th>Count</th>
-		<th>Last Time</th>
-		<th>Report</th>
+		<th><a onclick="return sortTable(this, 'Description', textSort)" href="#">Description</a></th>
+		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
+		<th><a onclick="return sortTable(this, 'Last Time', textSort, true)" href="#">Last Time</a></th>
+		<th><a onclick="return sortTable(this, 'Report', textSort)" href="#">Report</a></th>
 	</tr>
 	{{range $c := $.Crashes}}
 	<tr>
-		<td><a href="/crash?id={{$c.ID}}">{{$c.Description}}</a></td>
-		<td>{{$c.Count}}</td>
-		<td>{{$c.LastTime}}</td>
+		<td class="title"><a href="/crash?id={{$c.ID}}">{{$c.Description}}</a></td>
+		<td class="stat {{if not $c.Active}}inactive{{end}}">{{$c.Count}}</td>
+		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.LastTime}}</td>
 		<td>
 			{{if $c.Triaged}}
 				<a href="/report?id={{$c.ID}}">{{$c.Triaged}}</a>
@@ -651,11 +652,10 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 	</tr>
 	{{end}}
 </table>
-<br>
 
 <b>Log:</b>
 <br>
-<textarea id="log_textarea" readonly rows="20">
+<textarea id="log_textarea" readonly rows="20" wrap=off>
 {{.Log}}
 </textarea>
 <script>
@@ -663,44 +663,52 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 	textarea.scrollTop = textarea.scrollHeight;
 </script>
 </body></html>
-`)))
+`)
 
-var syscallsTemplate = template.Must(template.New("").Parse(addStyle(`
+var syscallsTemplate = html.CreatePage(`
 <!doctype html>
 <html>
 <head>
 	<title>{{.Name }} syzkaller</title>
-	{{STYLE}}
+	{{HEAD}}
 </head>
 <body>
-<b>Per-call coverage:</b>
-<br>
-{{range $c := $.Calls}}
-	{{$c.Name}}
-		<a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a>
-		<a href='/cover?call={{$c.Name}}'>cover:{{$c.Cover}}</a>
-		<a href='/prio?call={{$c.Name}}'>prio</a> <br>
-{{end}}
-</body></html>
-`)))
 
-var crashTemplate = template.Must(template.New("").Parse(addStyle(`
+<table class="list_table">
+	<caption>Per-syscall coverage:</caption>
+	<tr>
+		<th><a onclick="return sortTable(this, 'Syscall', textSort)" href="#">Syscall</a></th>
+		<th><a onclick="return sortTable(this, 'Inputs', numSort)" href="#">Inputs</a></th>
+		<th><a onclick="return sortTable(this, 'Coverage', numSort)" href="#">Coverage</a></th>
+		<th>Prio</th>
+	</tr>
+	{{range $c := $.Calls}}
+	<tr>
+		<td>{{$c.Name}}</td>
+		<td><a href='/corpus?call={{$c.Name}}'>{{$c.Inputs}}</a></td>
+		<td><a href='/cover?call={{$c.Name}}'>{{$c.Cover}}</a></td>
+		<td><a href='/prio?call={{$c.Name}}'>prio</a></td>
+	</tr>
+	{{end}}
+</table>
+</body></html>
+`)
+
+var crashTemplate = html.CreatePage(`
 <!doctype html>
 <html>
 <head>
 	<title>{{.Description}}</title>
-	{{STYLE}}
+	{{HEAD}}
 </head>
 <body>
 <b>{{.Description}}</b>
-<br><br>
 
 {{if .Triaged}}
 Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 {{end}}
-<br><br>
 
-<table>
+<table class="list_table">
 	<tr>
 		<th>#</th>
 		<th>Log</th>
@@ -712,34 +720,43 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 	<tr>
 		<td>{{$c.Index}}</td>
 		<td><a href="/file?name={{$c.Log}}">log</a></td>
-		{{if $c.Report}}
-			<td><a href="/file?name={{$c.Report}}">report</a></td>
-		{{else}}
-			<td></td>
-		{{end}}
-		<td>{{$c.TimeStr}}</td>
-		<td>{{$c.Tag}}</td>
+		<td>
+			{{if $c.Report}}
+				<a href="/file?name={{$c.Report}}">report</a></td>
+			{{end}}
+		</td>
+		<td class="time {{if not $c.Active}}inactive{{end}}">{{formatTime $c.Time}}</td>
+		<td class="tag {{if not $c.Active}}inactive{{end}}" title="{{$c.Tag}}">{{formatShortHash $c.Tag}}</td>
 	</tr>
 	{{end}}
 </table>
 </body></html>
-`)))
+`)
 
-var corpusTemplate = template.Must(template.New("").Parse(addStyle(`
+var corpusTemplate = html.CreatePage(`
 <!doctype html>
 <html>
 <head>
 	<title>syzkaller corpus</title>
-	{{STYLE}}
+	{{HEAD}}
 </head>
 <body>
-{{range $c := $}}
-	<span title="{{$c.Full}}">{{$c.Short}}</span>
-		<a href='/cover?input={{$c.Sig}}'>cover:{{$c.Cover}}</a>
-		<br>
-{{end}}
+
+<table class="list_table">
+	<caption>Corpus{{if $.Call}} for {{$.Call}}{{end}}:</caption>
+	<tr>
+		<th>Coverage</th>
+		<th>Program</th>
+	</tr>
+	{{range $inp := $.Inputs}}
+	<tr>
+		<td><a href='/cover?input={{$inp.Sig}}'>{{$inp.Cover}}</a></td>
+		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Short}}</a></td>
+	</tr>
+	{{end}}
+</table>
 </body></html>
-`)))
+`)
 
 type UIPrioData struct {
 	Call  string
@@ -751,26 +768,29 @@ type UIPrio struct {
 	Prio float32
 }
 
-type UIPrioArray []UIPrio
-
-func (a UIPrioArray) Len() int           { return len(a) }
-func (a UIPrioArray) Less(i, j int) bool { return a[i].Prio > a[j].Prio }
-func (a UIPrioArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-var prioTemplate = template.Must(template.New("").Parse(addStyle(`
+var prioTemplate = html.CreatePage(`
 <!doctype html>
 <html>
 <head>
 	<title>syzkaller priorities</title>
-	{{STYLE}}
+	{{HEAD}}
 </head>
 <body>
-Priorities for {{$.Call}} <br> <br>
-{{range $p := $.Prios}}
-	{{printf "%.4f\t%s" $p.Prio $p.Call}} <br>
-{{end}}
+<table class="list_table">
+	<caption>Priorities for {{$.Call}}:</caption>
+	<tr>
+		<th><a onclick="return sortTable(this, 'Prio', floatSort)" href="#">Prio</a></th>
+		<th><a onclick="return sortTable(this, 'Call', textSort)" href="#">Call</a></th>
+	</tr>
+	{{range $p := $.Prios}}
+	<tr>
+		<td>{{printf "%.4f" $p.Prio}}</td>
+		<td><a href='/prio?call={{$p.Call}}'>{{$p.Call}}</a></td>
+	</tr>
+	{{end}}
+</table>
 </body></html>
-`)))
+`)
 
 type UIFallbackCoverData struct {
 	Calls []UIFallbackCall
@@ -782,15 +802,15 @@ type UIFallbackCall struct {
 	Errnos     []int
 }
 
-var fallbackCoverTemplate = template.Must(template.New("").Parse(addStyle(`
+var fallbackCoverTemplate = html.CreatePage(`
 <!doctype html>
 <html>
 <head>
 	<title>syzkaller coverage</title>
-	{{STYLE}}
+	{{HEAD}}
 </head>
 <body>
-<table>
+<table class="list_table">
 	<tr>
 		<th>Call</th>
 		<th>Successful</th>
@@ -805,31 +825,4 @@ var fallbackCoverTemplate = template.Must(template.New("").Parse(addStyle(`
 	{{end}}
 </table>
 </body></html>
-`)))
-
-func addStyle(html string) string {
-	return strings.Replace(html, "{{STYLE}}", htmlStyle, -1)
-}
-
-const htmlStyle = `
-	<style type="text/css" media="screen">
-		table {
-			border-collapse:collapse;
-			border:1px solid;
-		}
-		table caption {
-			font-weight: bold;
-		}
-		table td {
-			border:1px solid;
-			padding: 3px;
-		}
-		table th {
-			border:1px solid;
-			padding: 3px;
-		}
-		textarea {
-			width:100%;
-		}
-	</style>
-`
+`)

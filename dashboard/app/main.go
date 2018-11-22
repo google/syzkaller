@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -570,7 +571,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 				default:
 					status = fmt.Sprintf("unknown (%v)", bug.Status)
 				}
-				status = fmt.Sprintf("%v on %v", status, formatTime(bug.Closed))
+				status = fmt.Sprintf("%v on %v", status, html.FormatTime(bug.Closed))
 				break
 			}
 		}

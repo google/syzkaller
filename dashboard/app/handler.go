@@ -5,12 +5,9 @@ package dash
 
 import (
 	"bytes"
-	"fmt"
-	"html/template"
 	"net/http"
-	"time"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
@@ -90,84 +87,4 @@ func commonHeader(c context.Context, r *http.Request) *uiHeader {
 	return h
 }
 
-func formatTime(t time.Time) string {
-	if t.IsZero() {
-		return ""
-	}
-	return t.Format("2006/01/02 15:04")
-}
-
-func formatClock(t time.Time) string {
-	if t.IsZero() {
-		return ""
-	}
-	return t.Format("15:04")
-}
-
-func formatDuration(d time.Duration) string {
-	if d == 0 {
-		return ""
-	}
-	days := int(d / (24 * time.Hour))
-	hours := int(d / time.Hour % 24)
-	mins := int(d / time.Minute % 60)
-	if days >= 10 {
-		return fmt.Sprintf("%vd", days)
-	} else if days != 0 {
-		return fmt.Sprintf("%vd%02vh", days, hours)
-	} else if hours != 0 {
-		return fmt.Sprintf("%vh%02vm", hours, mins)
-	}
-	return fmt.Sprintf("%vm", mins)
-}
-
-func formatLateness(now, t time.Time) string {
-	if t.IsZero() {
-		return "never"
-	}
-	d := now.Sub(t)
-	if d < 5*time.Minute {
-		return "now"
-	}
-	return formatDuration(d)
-}
-
-func formatReproLevel(l dashapi.ReproLevel) string {
-	switch l {
-	case ReproLevelSyz:
-		return "syz"
-	case ReproLevelC:
-		return "C"
-	default:
-		return ""
-	}
-}
-
-func formatStat(v int64) string {
-	if v == 0 {
-		return ""
-	}
-	return fmt.Sprint(v)
-}
-
-func formatShortHash(v string) string {
-	const hashLen = 8
-	if len(v) <= hashLen {
-		return v
-	}
-	return v[:hashLen]
-}
-
-var (
-	templates = template.Must(template.New("").Funcs(templateFuncs).ParseGlob("*.html"))
-
-	templateFuncs = template.FuncMap{
-		"formatTime":       formatTime,
-		"formatClock":      formatClock,
-		"formatDuration":   formatDuration,
-		"formatLateness":   formatLateness,
-		"formatReproLevel": formatReproLevel,
-		"formatStat":       formatStat,
-		"formatShortHash":  formatShortHash,
-	}
-)
+var templates = html.CreateGlob("*.html")
