@@ -1,0 +1,50 @@
+TITLE: PANIC: double fault in kvm_async_pf_task_wait
+
+[ 4031.436692] PANIC: double fault, error_code: 0x0
+[ 4031.439937] CPU: 1 PID: 1227 Comm: kworker/1:1 Not tainted 4.16.0-rc1+ #12
+[ 4031.440632] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-2.fc27 04/01/2014
+[ 4031.441475] Workqueue: events netstamp_clear
+[ 4031.441897] RIP: 0010:kvm_async_pf_task_wait+0x19d/0x250
+[ 4031.442411] RSP: 0000:ffffc90000f5fbc0 EFLAGS: 00000202
+[ 4031.442916] RAX: ffff880136048000 RBX: ffffc90000f5fbe0 RCX: 0000000000000006
+[ 4031.443601] RDX: 0000000000000006 RSI: ffff880136048a40 RDI: ffff880136048000
+[ 4031.444285] RBP: ffffc90000f5fc90 R08: 000005212156f5cf R09: 0000000000000000
+[ 4031.444966] R10: 0000000000000000 R11: 0000000000000000 R12: ffffc90000f5fbf0
+[ 4031.445650] R13: 0000000000002e88 R14: ffffffff82ad6360 R15: 0000000000000000
+[ 4031.446335] FS:  0000000000000000(0000) GS:ffff88013a800000(0000) knlGS:0000000000000000
+[ 4031.447104] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 4031.447659] CR2: 0000000000006001 CR3: 0000000002212006 CR4: 00000000001606e0
+[ 4031.448354] Call Trace:
+[ 4031.448602]  ? kvm_clock_read+0x1f/0x30
+[ 4031.448985]  ? prepare_to_swait+0x1d/0x70
+[ 4031.449384]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[ 4031.449845]  ? do_async_page_fault+0x67/0x90
+[ 4031.450283]  do_async_page_fault+0x67/0x90
+[ 4031.450684]  async_page_fault+0x25/0x50
+[ 4031.451067] RIP: 0010:text_poke+0x60/0x250
+[ 4031.451528] RSP: 0000:ffffc90000f5fd78 EFLAGS: 00010286
+[ 4031.452082] RAX: ffffea0000000000 RBX: ffffea000005f200 RCX: ffffffff817c88e9
+[ 4031.452843] RDX: 0000000000000001 RSI: ffffc90000f5fdbf RDI: ffffffff817c88e4
+[ 4031.453568] RBP: ffffffff817c88e4 R08: 0000000000000000 R09: 0000000000000001
+[ 4031.454283] R10: ffffc90000f5fdf0 R11: 104eab8665f42bc7 R12: 0000000000000001
+[ 4031.455010] R13: ffffc90000f5fdbf R14: ffffffff817c98e4 R15: 0000000000000000
+[ 4031.455719]  ? dev_gro_receive+0x3f4/0x6f0
+[ 4031.456123]  ? netif_receive_skb_internal+0x24/0x380
+[ 4031.456641]  ? netif_receive_skb_internal+0x29/0x380
+[ 4031.457202]  ? netif_receive_skb_internal+0x24/0x380
+[ 4031.457743]  ? text_poke+0x28/0x250
+[ 4031.458084]  ? netif_receive_skb_internal+0x24/0x380
+[ 4031.458567]  ? netif_receive_skb_internal+0x25/0x380
+[ 4031.459046]  text_poke_bp+0x55/0xe0
+[ 4031.459393]  arch_jump_label_transform+0x90/0xf0
+[ 4031.459842]  __jump_label_update+0x63/0x70
+[ 4031.460243]  static_key_enable_cpuslocked+0x54/0x80
+[ 4031.460713]  static_key_enable+0x16/0x20
+[ 4031.461096]  process_one_work+0x266/0x6d0
+[ 4031.461506]  worker_thread+0x3a/0x390
+[ 4031.462328]  ? process_one_work+0x6d0/0x6d0
+[ 4031.463299]  kthread+0x121/0x140
+[ 4031.464122]  ? kthread_create_worker_on_cpu+0x70/0x70
+[ 4031.465070]  ret_from_fork+0x3a/0x50
+[ 4031.465859] Code: 89 58 08 4c 89 f7 49 89 9d 20 35 ad 82 48 89 95 58 ff ff ff 4c 8d 63 10 e8 61 e4 8d 00 eb 22 e8 7a d7 0b 00 fb 66 0f 1f 44 00 00 <e8> be 64 8d 00 fa 66 0f 1f 44 00 00 e8 12 a0 0b 00 e8 cd 7a 0e 
+[ 4031.468817] Kernel panic - not syncing: Machine halted.

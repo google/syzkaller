@@ -1207,6 +1207,21 @@ var linuxOopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	{
+		[]byte("PANIC: double fault"),
+		[]oopsFormat{
+			{
+				title: compile("PANIC: double fault"),
+				fmt:   "PANIC: double fault in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+					},
+				},
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("kernel BUG"),
 		[]oopsFormat{
 			{
@@ -1256,9 +1271,13 @@ var linuxOopses = []*oops{
 		[]byte("divide error:"),
 		[]oopsFormat{
 			{
-				title:  compile("divide error: "),
-				report: compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:(?:{{PC}} +{{PC}} +)?{{FUNC}}"),
-				fmt:    "divide error in %[1]v",
+				title: compile("divide error: "),
+				fmt:   "divide error in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+					},
+				},
 			},
 		},
 		[]*regexp.Regexp{},
@@ -1267,9 +1286,13 @@ var linuxOopses = []*oops{
 		[]byte("invalid opcode:"),
 		[]oopsFormat{
 			{
-				title:  compile("invalid opcode: "),
-				report: compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
-				fmt:    "invalid opcode in %[1]v",
+				title: compile("invalid opcode: "),
+				fmt:   "invalid opcode in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+					},
+				},
 			},
 		},
 		[]*regexp.Regexp{},
