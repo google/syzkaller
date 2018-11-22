@@ -148,7 +148,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 		log.Logf(0, "result: failed=%v hanged=%v err=%v\n\n%s",
 			failed, hanged, err, output)
 	}
-	if len(info.Calls) != 0 {
+	if info == nil || len(info.Calls) != 0 {
 		ctx.printCallResults(info)
 		if *flagHints {
 			ctx.printHints(entry.P, info)
