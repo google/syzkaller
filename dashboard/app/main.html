@@ -24,59 +24,7 @@ Main page.
 	<br><br>
 	{{end}}
 
-	{{if $.Managers}}
-	<table class="list_table">
-		<caption id="managers"><a class="plain" href="#managers">Managers:</a></caption>
-		<tr>
-			<th>Name</th>
-			<th>Active</th>
-			<th>Uptime</th>
-			<th>Build</th>
-			<th>Kernel</th>
-			<th>Syzkaller</th>
-			<th>Corpus</th>
-			<th>Coverage</th>
-			<th>Crashes</th>
-			<th>Execs</th>
-			<th>Failed Build</th>
-		</tr>
-		{{range $mgr := $.Managers}}
-			<tr>
-				<td>
-					{{if $mgr.Link}}<a href="{{$mgr.Link}}">{{end}}
-						{{$mgr.Namespace}}/{{$mgr.Name}}
-					{{if $mgr.Link}}</a>{{end}}
-				</td>
-				<td class="stat {{if $mgr.LastActiveBad}}bad{{end}}">{{formatLateness $.Now $mgr.LastActive}}</td>
-				<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
-				{{if $mgr.CurrentBuild}}
-					<td class="stat">{{formatLateness $.Now $mgr.CurrentBuild.Time}}</td>
-					<td class="stat" title="{{$mgr.CurrentBuild.KernelAlias}} {{$mgr.CurrentBuild.KernelCommit}}
-{{formatTime $mgr.CurrentBuild.KernelCommitDate}}">{{formatShortHash $mgr.CurrentBuild.KernelCommit}}</td>
-					<td class="stat" title="{{$mgr.CurrentBuild.SyzkallerCommit}}">{{formatShortHash $mgr.CurrentBuild.SyzkallerCommit}}</td>
-				{{else}}
-					<td></td>
-					<td></td>
-					<td></td>
-				{{end}}
-				<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>
-				<td class="stat">
-					{{if $mgr.CoverLink}}
-						<a href="{{$mgr.CoverLink}}" target="_blank">
-					{{end}}
-					{{formatStat $mgr.MaxCover}}
-					{{if $mgr.CoverLink}}
-						</a>
-					{{end}}
-				</td>
-				<td class="stat">{{formatStat $mgr.TotalCrashes}}</td>
-				<td class="stat">{{formatStat $mgr.TotalExecs}}</td>
-				<td class="stat">{{if $mgr.FailedBuildBugLink}}<a href="{{$mgr.FailedBuildBugLink}}" class="bad">bug</a>{{end}}</td>
-			</tr>
-		{{end}}
-	</table>
-	<br><br>
-	{{end}}
+	{{template "manager_list" $.Managers}}
 
 	{{if $.Jobs}}
 	<table class="list_table">
@@ -132,6 +80,7 @@ Main page.
 		{{if $ns.FixedLink}}
 			<a href="{{$ns.FixedLink}}">fixed bugs ({{$ns.FixedCount}})</a>
 		{{end}}
+		{{template "manager_list" $ns.Managers}}
 		{{range $group := $ns.Groups}}
 			{{template "bug_list" $group}}
 		{{end}}
