@@ -175,7 +175,7 @@ generate: generate_go generate_sys
 	$(MAKE) format
 
 generate_go: bin/syz-sysgen format_cpp
-	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/build
+	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/build ./pkg/html
 
 generate_sys: bin/syz-sysgen
 	bin/syz-sysgen

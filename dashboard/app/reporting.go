@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -97,7 +98,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 	if !bugReporting.Reported.IsZero() && bugReporting.ReproLevel >= bug.ReproLevel {
 		status = fmt.Sprintf("%v: reported%v on %v",
 			reporting.DisplayTitle, reproStr(bugReporting.ReproLevel),
-			formatTime(bugReporting.Reported))
+			html.FormatTime(bugReporting.Reported))
 		reporting, bugReporting = nil, nil
 		return
 	}
@@ -149,7 +150,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 	status = fmt.Sprintf("%v: ready to report", reporting.DisplayTitle)
 	if !bugReporting.Reported.IsZero() {
 		status += fmt.Sprintf(" (reported%v on %v)",
-			reproStr(bugReporting.ReproLevel), formatTime(bugReporting.Reported))
+			reproStr(bugReporting.ReproLevel), html.FormatTime(bugReporting.Reported))
 	}
 	return
 }
