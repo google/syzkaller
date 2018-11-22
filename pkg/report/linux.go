@@ -464,16 +464,19 @@ func (ctx *linux) extractFiles(report []byte) []string {
 }
 
 func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (bool, string) {
-	// Check if the report contains stack trace.
-	if !format.noStackTrace && !bytes.Contains(report, []byte("Call Trace")) &&
-		!bytes.Contains(report, []byte("backtrace")) {
-		return true, "no stack trace in report"
-	}
 	// Check for common title corruptions.
 	for _, re := range linuxCorruptedTitles {
 		if re.MatchString(title) {
 			return true, "title matches corrupted regexp"
 		}
+	}
+	// Check if the report contains stack trace.
+	if !format.noStackTrace && !bytes.Contains(report, []byte("Call Trace")) &&
+		!bytes.Contains(report, []byte("backtrace")) {
+		return true, "no stack trace in report"
+	}
+	if format.noStackTrace {
+		return false, ""
 	}
 	// When a report contains 'Call Trace', 'backtrace', 'Allocated' or 'Freed' keywords,
 	// it must also contain at least a single stack frame after each of them.
@@ -621,8 +624,10 @@ var linuxCorruptedTitles = []*regexp.Regexp{
 
 var linuxStackKeywords = []*regexp.Regexp{
 	regexp.MustCompile(`Call Trace`),
-	regexp.MustCompile(`Allocated`),
-	regexp.MustCompile(`Freed`),
+	regexp.MustCompile(`Allocated:`),
+	regexp.MustCompile(`Allocated by task [0-9]+:`),
+	regexp.MustCompile(`Freed:`),
+	regexp.MustCompile(`Freed by task [0-9]+:`),
 	// Match 'backtrace:', but exclude 'stack backtrace:'
 	regexp.MustCompile(`[^k] backtrace:`),
 }
