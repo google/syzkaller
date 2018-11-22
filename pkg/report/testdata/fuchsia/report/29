@@ -1,0 +1,19 @@
+TITLE: panic: runtime error: slice bounds out of range
+
+[00086.522] 04724.07088> panic: runtime error: slice bounds out of range
+[00086.522] 04724.07088> 
+[00086.522] 04724.07088> goroutine 21 [running]:
+[00086.522] 04724.07088> syscall/zx/fidl.(*Binding).dispatch(0x1000e0176280, 0x543ec9bc0200, 0x0, 0x0)
+[00086.522] 04724.07088> syscall/zx/fidl/bindings.go:152 +0x6c2
+[00086.522] 04724.07088> syscall/zx/fidl.(*Binding).Init.func1(0x1000e004c000, 0x100000000000, 0x1000e00e80f0, 0x0)
+[00086.522] 04724.07088> syscall/zx/fidl/bindings.go:94 +0x100
+[00086.522] 04724.07088> syscall/zx/dispatch.(*Dispatcher).dispatch(0x1000e004c000, 0x13, 0x1000e0200340, 0x1000e00e80f0)
+[00086.522] 04724.07088> syscall/zx/dispatch/dispatcher.go:171 +0xa5
+[00086.522] 04724.07088> syscall/zx/dispatch.(*Dispatcher).Serve(0x1000e004c000)
+[00086.522] 04724.07088> syscall/zx/dispatch/dispatcher.go:222 +0x10e
+[00086.522] 04724.07088> syscall/zx/fidl.Serve()
+[00086.522] 04724.07088> syscall/zx/fidl/bindings.go:30 +0x2f
+[00086.522] 04724.07088> created by app/context.(*Context).Serve
+[00086.522] 04724.07088> netstack/src/app/context/context.go:108 +0x49
+[00086.550] 07279.07291> [ERROR:garnet/bin/mdns/service/mdns_interface_transceiver.cc(179)] Failed to recvfrom, errno 5
+[00086.557] 07885.07911> [ERROR:garnet/bin/sshd-host/sshd-host.cc(92)] The netstack died. Terminating.
