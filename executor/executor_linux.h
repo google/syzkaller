@@ -11,13 +11,30 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+const unsigned long KCOV_TRACE_PC = 0;
+const unsigned long KCOV_TRACE_CMP = 1;
+
+template <int N>
+struct kcov_remote_arg {
+	unsigned trace_mode;
+	unsigned area_size;
+	unsigned num_handles;
+	__u64 common_handle;
+	__u64 handles[N];
+};
+
 #define KCOV_INIT_TRACE32 _IOR('c', 1, uint32)
 #define KCOV_INIT_TRACE64 _IOR('c', 1, uint64)
 #define KCOV_ENABLE _IO('c', 100)
 #define KCOV_DISABLE _IO('c', 101)
+#define KCOV_REMOTE_ENABLE _IOW('c', 102, struct kcov_remote_arg<0>)
 
-const unsigned long KCOV_TRACE_PC = 0;
-const unsigned long KCOV_TRACE_CMP = 1;
+#define KCOV_REMOTE_HANDLE_USB 0x4242000000000000ull
+
+static inline __u64 kcov_remote_handle_usb(int bus)
+{
+	return KCOV_REMOTE_HANDLE_USB + (__u64)bus;
+}
 
 static bool detect_kernel_bitness();
 
@@ -38,7 +55,7 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 	return syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5]);
 }
 
-static void cover_open(cover_t* cov)
+static void cover_open(cover_t* cov, bool extra)
 {
 	int fd = open("/sys/kernel/debug/kcov", O_RDWR);
 	if (fd == -1)
@@ -47,9 +64,10 @@ static void cover_open(cover_t* cov)
 		fail("filed to dup2(%d, %d) cover fd", fd, cov->fd);
 	close(fd);
 	const int kcov_init_trace = is_kernel_64_bit ? KCOV_INIT_TRACE64 : KCOV_INIT_TRACE32;
-	if (ioctl(cov->fd, kcov_init_trace, kCoverSize))
+	const int cover_size = extra ? kExtraCoverSize : kCoverSize;
+	if (ioctl(cov->fd, kcov_init_trace, cover_size))
 		fail("cover init trace write failed");
-	size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
+	size_t mmap_alloc_size = cover_size * (is_kernel_64_bit ? 8 : 4);
 	cov->data = (char*)mmap(NULL, mmap_alloc_size,
 				PROT_READ | PROT_WRITE, MAP_SHARED, cov->fd, 0);
 	if (cov->data == MAP_FAILED)
@@ -57,15 +75,28 @@ static void cover_open(cover_t* cov)
 	cov->data_end = cov->data + mmap_alloc_size;
 }
 
-static void cover_enable(cover_t* cov, bool collect_comps)
+static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 {
 	int kcov_mode = collect_comps ? KCOV_TRACE_CMP : KCOV_TRACE_PC;
-	// This should be fatal,
+	// The KCOV_ENABLE call should be fatal,
 	// but in practice ioctl fails with assorted errors (9, 14, 25),
 	// so we use exitf.
-	if (ioctl(cov->fd, KCOV_ENABLE, kcov_mode))
-		exitf("cover enable write trace failed, mode=%d", kcov_mode);
-	current_cover = cov;
+	if (!extra) {
+		if (ioctl(cov->fd, KCOV_ENABLE, kcov_mode))
+			exitf("cover enable write trace failed, mode=%d", kcov_mode);
+		current_cover = cov;
+		return;
+	}
+	struct kcov_remote_arg<1> arg;
+	memset(&arg, 0, sizeof(arg));
+	arg.trace_mode = kcov_mode;
+	// Coverage buffer size of remote threads.
+	arg.area_size = kExtraCoverSize * (is_kernel_64_bit ? 8 : 4);
+	arg.num_handles = 1;
+	arg.handles[0] = kcov_remote_handle_usb(procid);
+	arg.common_handle = procid + 1;
+	if (ioctl(cov->fd, KCOV_REMOTE_ENABLE, &arg))
+		exitf("cover enable write trace failed");
 }
 
 static void cover_reset(cover_t* cov)
