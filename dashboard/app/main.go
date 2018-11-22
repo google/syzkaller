@@ -44,6 +44,7 @@ type uiMain struct {
 }
 
 type uiManager struct {
+	Now                time.Time
 	Namespace          string
 	Name               string
 	Link               string
@@ -86,6 +87,7 @@ type uiBugNamespace struct {
 	Caption    string
 	FixedLink  string
 	FixedCount int
+	Managers   []*uiManager
 	Groups     []*uiBugGroup
 }
 
@@ -162,9 +164,9 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	var errorLog []byte
 	var managers []*uiManager
 	var jobs []*uiJob
+	accessLevel := accessLevel(c, r)
 	if r.FormValue("fixed") == "" {
 		var err error
-		accessLevel := accessLevel(c, r)
 		managers, err = loadManagers(c, accessLevel)
 		if err != nil {
 			return err
@@ -184,13 +186,22 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
+	for _, ns := range bugNamespaces {
+		for _, mgr := range managers {
+			if ns.Name == mgr.Namespace {
+				ns.Managers = append(ns.Managers, mgr)
+			}
+		}
+	}
 	data := &uiMain{
 		Header:        commonHeader(c, r),
 		Now:           timeNow(c),
 		Log:           errorLog,
-		Managers:      managers,
 		Jobs:          jobs,
 		BugNamespaces: bugNamespaces,
+	}
+	if accessLevel == AccessAdmin {
+		data.Managers = managers
 	}
 	return serveTemplate(w, "main.html", data)
 }
@@ -757,6 +768,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, err
 			link = ""
 		}
 		results = append(results, &uiManager{
+			Now:                timeNow(c),
 			Namespace:          mgr.Namespace,
 			Name:               mgr.Name,
 			Link:               link,
