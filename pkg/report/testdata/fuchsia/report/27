@@ -1,0 +1,23 @@
+TITLE: panic: not implemented
+
+[00058.247] 05208.08054> panic: not implemented
+[00058.247] 05208.08054> 
+[00058.247] 05208.08054> goroutine 36 [running]:
+[00058.247] 05208.08054> main.(*stackImpl).DelInterfaceAddress(0x1238ec144030, 0x46, 0x76262c7500000001, 0x0, 0x0, 0x40, 0x77c86c695a80, 0x1238ec056100)
+[00058.247] 05208.08054> netstack/src/netstack/fuchsia_net_stack.go:314 +0x3b
+[00058.247] 05208.08054> fidl/fuchsia/net/stack.(*StackStub).Dispatch(0x1238ec008490, 0x105, 0x1238ec1ba010, 0x1c, 0xfff0, 0x1238ec034200, 0x0, 0x40, 0x2c, 0x0, ...)
+[00058.247] 05208.08054> netstack/src/fidl/fuchsia/net/stack/impl.go:1053 +0xab6
+[00058.247] 05208.08054> syscall/zx/fidl.(*Binding).dispatch(0x1238ec030100, 0x77c86c694200, 0x0, 0x0)
+[00058.247] 05208.08054> syscall/zx/fidl/bindings.go:152 +0x3e5
+[00058.247] 05208.08054> syscall/zx/fidl.(*Binding).Init.func1(0x1238ec052000, 0x123800000000, 0x1238ec068270, 0x0)
+[00058.247] 05208.08054> syscall/zx/fidl/bindings.go:94 +0x100
+[00058.247] 05208.08054> syscall/zx/dispatch.(*Dispatcher).dispatch(0x1238ec052000, 0x10, 0x1238ec3656a0, 0x1238ec068270)
+[00058.247] 05208.08054> syscall/zx/dispatch/dispatcher.go:171 +0xa5
+[00058.247] 05208.08054> syscall/zx/dispatch.(*Dispatcher).Serve(0x1238ec052000)
+[00058.247] 05208.08054> syscall/zx/dispatch/dispatcher.go:222 +0x10e
+[00058.247] 05208.08054> syscall/zx/fidl.Serve()
+[00058.247] 05208.08054> syscall/zx/fidl/bindings.go:30 +0x2f
+[00058.247] 05208.08054> created by app/context.(*Context).Serve
+[00058.247] 05208.08054> netstack/src/app/context/context.go:108 +0x49
+[00058.278] 07899.07911> [ERROR:garnet/bin/mdns/service/mdns_interface_transceiver.cc(179)] Failed to recvfrom, errno 5
+[00058.280] 06892.06916> [ERROR:garnet/bin/sshd-host/sshd-host.cc(92)] The netstack died. Terminating.
