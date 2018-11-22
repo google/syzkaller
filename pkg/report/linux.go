@@ -551,6 +551,8 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("process_one_work"),  // workqueue callback
 	compile("do_syscall_"),       // syscall entry
 	compile("do_fast_syscall_"),  // syscall entry
+	compile("sysenter_dispatch"), // syscall entry
+	compile("tracesys_phase2"),   // syscall entry
 	compile("netif_receive_skb"), // net receive entry point
 	compile("do_softirq"),
 	compile("call_timer_fn"),
