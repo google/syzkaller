@@ -15,7 +15,9 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -95,7 +97,7 @@ type CallInfo struct {
 
 type ProgInfo struct {
 	Calls []CallInfo
-	// TODO: remote coverage would go here.
+	Extra CallInfo // stores Signal and Cover collected from background threads
 }
 
 type Env struct {
@@ -125,6 +127,8 @@ const (
 	compSizeMask  = 6
 	compSize8     = 6
 	compConstMask = 1
+
+	extraReplyIndex = 0xffffffff // uint32(-1)
 )
 
 func SandboxToFlags(sandbox string) (EnvFlags, error) {
@@ -325,24 +329,31 @@ func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 		return nil, fmt.Errorf("failed to read number of calls")
 	}
 	info := &ProgInfo{Calls: make([]CallInfo, len(p.Calls))}
+	extraParts := make([]CallInfo, 0)
 	for i := uint32(0); i < ncmd; i++ {
 		if len(out) < int(unsafe.Sizeof(callReply{})) {
 			return nil, fmt.Errorf("failed to read call %v reply", i)
 		}
 		reply := *(*callReply)(unsafe.Pointer(&out[0]))
 		out = out[unsafe.Sizeof(callReply{}):]
-		if int(reply.index) >= len(info.Calls) {
-			return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
+		var inf *CallInfo
+		if reply.index != extraReplyIndex {
+			if int(reply.index) >= len(info.Calls) {
+				return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
+			}
+			if num := p.Calls[reply.index].Meta.ID; int(reply.num) != num {
+				return nil, fmt.Errorf("wrong call %v num %v/%v", i, reply.num, num)
+			}
+			inf = &info.Calls[reply.index]
+			if inf.Flags != 0 || inf.Signal != nil {
+				return nil, fmt.Errorf("duplicate reply for call %v/%v/%v", i, reply.index, reply.num)
+			}
+			inf.Errno = int(reply.errno)
+			inf.Flags = CallFlags(reply.flags)
+		} else {
+			extraParts = append(extraParts, CallInfo{})
+			inf = &extraParts[len(extraParts)-1]
 		}
-		if num := p.Calls[reply.index].Meta.ID; int(reply.num) != num {
-			return nil, fmt.Errorf("wrong call %v num %v/%v", i, reply.num, num)
-		}
-		inf := &info.Calls[reply.index]
-		if inf.Flags != 0 || inf.Signal != nil {
-			return nil, fmt.Errorf("duplicate reply for call %v/%v/%v", i, reply.index, reply.num)
-		}
-		inf.Errno = int(reply.errno)
-		inf.Flags = CallFlags(reply.flags)
 		if inf.Signal, ok = readUint32Array(&out, reply.signalSize); !ok {
 			return nil, fmt.Errorf("call %v/%v/%v: signal overflow: %v/%v",
 				i, reply.index, reply.num, reply.signalSize, len(out))
@@ -357,7 +368,29 @@ func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 		}
 		inf.Comps = comps
 	}
+	if len(extraParts) == 0 {
+		return info, nil
+	}
+	info.Extra = convertExtra(extraParts)
 	return info, nil
+}
+
+func convertExtra(extraParts []CallInfo) CallInfo {
+	var extra CallInfo
+	extraCover := make(cover.Cover)
+	extraSignal := make(signal.Signal)
+	for _, part := range extraParts {
+		extraCover.Merge(part.Cover)
+		extraSignal.Merge(signal.FromRaw(part.Signal, 0))
+	}
+	extra.Cover = extraCover.Serialize()
+	extra.Signal = make([]uint32, len(extraSignal))
+	i := 0
+	for s := range extraSignal {
+		extra.Signal[i] = uint32(s)
+		i++
+	}
+	return extra
 }
 
 func readComps(outp *[]byte, compsSize uint32) (prog.CompMap, error) {

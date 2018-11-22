@@ -519,11 +519,13 @@ func RunTest(req *RunRequest, executor string) {
 			req.Err = fmt.Errorf("run %v: hanged", run)
 			return
 		}
+		// Detach Signal and Cover because they point into the output shmem region.
 		for i := range info.Calls {
-			// Detach them because they point into the output shmem region.
 			info.Calls[i].Signal = append([]uint32{}, info.Calls[i].Signal...)
 			info.Calls[i].Cover = append([]uint32{}, info.Calls[i].Cover...)
 		}
+		info.Extra.Signal = append([]uint32{}, info.Extra.Signal...)
+		info.Extra.Cover = append([]uint32{}, info.Extra.Cover...)
 		req.Info = append(req.Info, info)
 	}
 }

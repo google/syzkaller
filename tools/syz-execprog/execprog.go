@@ -148,7 +148,7 @@ func (ctx *Context) execute(pid int, env *ipc.Env, entry *prog.LogEntry) {
 		log.Logf(0, "result: failed=%v hanged=%v err=%v\n\n%s",
 			failed, hanged, err, output)
 	}
-	if info != nil && len(info.Calls) != 0 {
+	if info != nil {
 		ctx.printCallResults(info)
 		if *flagHints {
 			ctx.printHints(entry.P, info)
@@ -220,21 +220,27 @@ func (ctx *Context) printHints(p *prog.Prog, info *ipc.ProgInfo) {
 	log.Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
 }
 
+func (ctx *Context) dumpCallCoverage(coverFile string, info *ipc.CallInfo) {
+	if len(info.Cover) == 0 {
+		return
+	}
+	buf := new(bytes.Buffer)
+	for _, pc := range info.Cover {
+		fmt.Fprintf(buf, "0x%x\n", cover.RestorePC(pc, 0xffffffff))
+	}
+	err := osutil.WriteFile(coverFile, buf.Bytes())
+	if err != nil {
+		log.Fatalf("failed to write coverage file: %v", err)
+	}
+}
+
 func (ctx *Context) dumpCoverage(coverFile string, info *ipc.ProgInfo) {
 	for i, inf := range info.Calls {
 		log.Logf(0, "call #%v: signal %v, coverage %v", i, len(inf.Signal), len(inf.Cover))
-		if len(inf.Cover) == 0 {
-			continue
-		}
-		buf := new(bytes.Buffer)
-		for _, pc := range inf.Cover {
-			fmt.Fprintf(buf, "0x%x\n", cover.RestorePC(pc, 0xffffffff))
-		}
-		err := osutil.WriteFile(fmt.Sprintf("%v.%v", coverFile, i), buf.Bytes())
-		if err != nil {
-			log.Fatalf("failed to write coverage file: %v", err)
-		}
+		ctx.dumpCallCoverage(fmt.Sprintf("%v.%v", coverFile, i), &inf)
 	}
+	log.Logf(0, "extra: signal %v, coverage %v", len(info.Extra.Signal), len(info.Extra.Cover))
+	ctx.dumpCallCoverage(fmt.Sprintf("%v.extra", coverFile), &info.Extra)
 }
 
 func (ctx *Context) getProgramIndex() int {

@@ -54,7 +54,7 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 
 #if GOOS_freebsd || GOOS_openbsd
 
-static void cover_open(cover_t* cov)
+static void cover_open(cover_t* cov, bool extra)
 {
 	int fd = open("/dev/kcov", O_RDWR);
 	if (fd == -1)
@@ -85,7 +85,7 @@ static void cover_open(cover_t* cov)
 	cov->data_end = cov->data + mmap_alloc_size;
 }
 
-static void cover_enable(cover_t* cov, bool collect_comps)
+static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 {
 	int kcov_mode = collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
 #if GOOS_freebsd
