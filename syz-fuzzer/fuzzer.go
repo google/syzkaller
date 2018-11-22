@@ -384,30 +384,40 @@ func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
 	return fuzzer.corpusSignal.Diff(sign)
 }
 
-func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int) {
+func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int, extra bool) {
 	fuzzer.signalMu.RLock()
 	defer fuzzer.signalMu.RUnlock()
 	for i, inf := range info.Calls {
-		diff := fuzzer.maxSignal.DiffRaw(inf.Signal, signalPrio(p.Target, p.Calls[i], &inf))
-		if diff.Empty() {
-			continue
+		if fuzzer.checkNewCallSignal(p, &inf, i) {
+			calls = append(calls, i)
 		}
-		calls = append(calls, i)
-		fuzzer.signalMu.RUnlock()
-		fuzzer.signalMu.Lock()
-		fuzzer.maxSignal.Merge(diff)
-		fuzzer.newSignal.Merge(diff)
-		fuzzer.signalMu.Unlock()
-		fuzzer.signalMu.RLock()
 	}
+	extra = fuzzer.checkNewCallSignal(p, &info.Extra, -1)
 	return
 }
 
-func signalPrio(target *prog.Target, c *prog.Call, ci *ipc.CallInfo) (prio uint8) {
-	if ci.Errno == 0 {
+func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call int) bool {
+	diff := fuzzer.maxSignal.DiffRaw(info.Signal, signalPrio(p, info, call))
+	if diff.Empty() {
+		return false
+	}
+	fuzzer.signalMu.RUnlock()
+	fuzzer.signalMu.Lock()
+	fuzzer.maxSignal.Merge(diff)
+	fuzzer.newSignal.Merge(diff)
+	fuzzer.signalMu.Unlock()
+	fuzzer.signalMu.RLock()
+	return true
+}
+
+func signalPrio(p *prog.Prog, info *ipc.CallInfo, call int) (prio uint8) {
+	if call == -1 {
+		return 0
+	}
+	if info.Errno == 0 {
 		prio |= 1 << 1
 	}
-	if !target.CallContainsAny(c) {
+	if !p.Target.CallContainsAny(p.Calls[call]) {
 		prio |= 1 << 0
 	}
 	return
