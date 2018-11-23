@@ -132,8 +132,8 @@ table td, table th {
 }
 
 .list_table .stat_value {
-	width: 100pt;
-	max-width: 100pt;
+	width: 120pt;
+	max-width: 120pt;
 	font-family: monospace;
 }
 
