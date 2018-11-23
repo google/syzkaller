@@ -28,14 +28,28 @@ CONFIG_KALLSYMS=y
 CONFIG_KALLSYMS_ALL=y
 ```
 
-For `namespace` sandbox:
+For better sandboxing:
 ```
 CONFIG_NAMESPACES=y
-CONFIG_USER_NS=y
 CONFIG_UTS_NS=y
 CONFIG_IPC_NS=y
 CONFIG_PID_NS=y
 CONFIG_NET_NS=y
+CONFIG_CGROUP_PIDS=y
+CONFIG_MEMCG=y
+```
+
+For `namespace` sandbox:
+```
+CONFIG_USER_NS=y
+```
+
+For running in VMs `make kvmconfig` is generally required.
+
+Debian images produced by [tools/create-image.sh](/tools/create-image.sh) also require:
+```
+CONFIG_CONFIGFS_FS=y
+CONFIG_SECURITYFS=y
 ```
 
 It is recommended to disable the following config (and required if your kernel doesn't have commits [arm64: setup: introduce kaslr_offset()](https://github.com/torvalds/linux/commit/7ede8665f27cde7da69e8b2fbeaa1ed0664879c5)
