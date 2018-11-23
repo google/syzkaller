@@ -24,7 +24,6 @@ const strace_en_comment int = 245
 const strace_en_main int = 179
 
 //line straceLex.rl:22
-
 type Stracelexer struct {
 	result      *Syscall
 	data        []byte
@@ -7157,7 +7156,6 @@ func (lex *Stracelexer) Lex(out *StraceSymType) int {
 	}
 
 //line straceLex.rl:118
-
 	return tok
 }
 
