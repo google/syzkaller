@@ -53,10 +53,8 @@ func (lex *Stracelexer) Lex(out *StraceSymType) int {
             digit{2}.':'.digit{2}.':'.digit{2}.'.'.digit+;
         datetime = date.datetimeSep.time;
         unfinished = '<unfinished ...>' | ',  <unfinished ...>';
-        or = 'or';
-        keyword = 'sizeof' | 'struct';
         ipv4 = digit{1,3}.'\.'.digit{1,3}.'\.'.digit{1,3}.'\.'.digit{1,3};
-        identifier = (([A-Za-z':'].[0-9a-z'_'\*\.\-':']*) - keyword - or) | ipv4;
+        identifier = ([A-Za-z':'].[0-9a-z'_'\*\.\-':']*) | ipv4;
         resumed = '<... '.identifier+.' resumed>'
                     | '<... '.identifier+.' resumed> ,'
                     | '<... resuming'.' '.identifier.' '.identifier.' '.'...>';
@@ -80,9 +78,7 @@ func (lex *Stracelexer) Lex(out *StraceSymType) int {
             identifier => {out.data = string(lex.data[lex.ts:lex.te]); tok = IDENTIFIER;fbreak;};
             unfinished => {tok = UNFINISHED; fbreak;};
             resumed => {tok = RESUMED; fbreak;};
-            keyword => {tok = KEYWORD; fbreak;};
             mac => {out.data = string(lex.data[lex.ts : lex.te]); tok = MAC; fbreak;};
-            or => {tok = OR; fbreak;};
             '=' => {tok = EQUALS;fbreak;};
             '==' => {tok = LEQUAL; fbreak;};
             '(' => {tok = LPAREN;fbreak;};

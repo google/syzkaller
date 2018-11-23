@@ -61,7 +61,7 @@ func TestParseLoopBasic(t *testing.T) {
 		`open([USR1 IO], NULL, {tv_sec=5, tv_nsec=0}, 8 <unfinished ...>
 		<... rt_sigtimedwait resumed> )   = 10 (SIGUSR1)
 		fstat() = 0`,
-		`open(0, SNDCTL_TMR_START or TCSETS, {c_cc[VMIN]=1, c_cc[VTIME]=0} <unfinished ...>
+		`open(0, SNDCTL_TMR_START, {c_cc[VMIN]=1, c_cc[VTIME]=0} <unfinished ...>
 		<... open resumed> , FLAG|FLAG) = -1 FLAG (sdfjfjfjf)
 		fstat() = 0`,
 		`open(-ENODEV) = 0
@@ -168,7 +168,6 @@ func TestParseExprType(t *testing.T) {
 	}
 	tests := []irTest{
 		{`open(MAKEDEV(1)) = 0`},
-		{`open(TCSETS or TCGETS) = 0`},
 	}
 	for _, test := range tests {
 		tree := ParseLoop(test.test)
@@ -211,7 +210,6 @@ func TestEvalFlags(t *testing.T) {
 		{test: `open([BUS]) = 0`, expectedEval: target.ConstMap["SIGBUS"]},
 		{test: `open(R_OK) = 0`, expectedEval: target.ConstMap["R_OK"]},
 		{test: `open(SNDCTL_TMR_START) = 0`, expectedEval: target.ConstMap["SNDCTL_TMR_START"]},
-		{test: `open(MS_KERNMOUNT) = 0`, expectedEval: 0},
 	}
 	for i, test := range tests {
 		tree := ParseLoop(test.test)
