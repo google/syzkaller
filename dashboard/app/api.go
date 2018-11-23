@@ -399,7 +399,7 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []str
 		return nil
 	}
 	now := timeNow(c)
-	bugKey := datastore.NewKey(c, "Bug", bugKeyHash(bug.Namespace, bug.Title, bug.Seq), 0, nil)
+	bugKey := bug.key(c)
 	tx := func(c context.Context) error {
 		bug := new(Bug)
 		if err := datastore.Get(c, bugKey, bug); err != nil {
@@ -508,7 +508,7 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 		return nil, err
 	}
 	if err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) {
-		mgr.FailedBuildBug = bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
+		mgr.FailedBuildBug = bug.keyHash()
 	}); err != nil {
 		return nil, err
 	}
@@ -659,21 +659,17 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *datasto
 }
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
-	if bug.NumCrashes <= maxCrashes || (bug.NumCrashes-1)%10 != 0 {
+	const purgeEvery = 10
+	if bug.NumCrashes <= 2*maxCrashes || (bug.NumCrashes-1)%purgeEvery != 0 {
 		return
 	}
 	var crashes []*Crash
 	keys, err := datastore.NewQuery("Crash").
 		Ancestor(bugKey).
-		Filter("ReproC=", 0).
-		Filter("ReproSyz=", 0).
 		Filter("Reported=", time.Time{}).
 		GetAll(c, &crashes)
 	if err != nil {
 		log.Errorf(c, "failed to fetch purge crashes: %v", err)
-		return
-	}
-	if len(keys) <= maxCrashes {
 		return
 	}
 	keyMap := make(map[*Crash]*datastore.Key)
@@ -684,27 +680,26 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 	sort.Slice(crashes, func(i, j int) bool {
 		return crashes[i].Time.After(crashes[j].Time)
 	})
-	// Find latest crash on each manager.
-	latestOnManager := make(map[string]*Crash)
-	for _, crash := range crashes {
-		if latestOnManager[crash.Manager] == nil {
-			latestOnManager[crash.Manager] = crash
-		}
-	}
-	// Oldest first but move latest crash on each manager to the end (preserve them).
-	sort.Slice(crashes, func(i, j int) bool {
-		latesti := latestOnManager[crashes[i].Manager] == crashes[i]
-		latestj := latestOnManager[crashes[j].Manager] == crashes[j]
-		if latesti != latestj {
-			return latestj
-		}
-		return crashes[i].Time.Before(crashes[j].Time)
-	})
-	crashes = crashes[:len(crashes)-maxCrashes]
 	var toDelete []*datastore.Key
+	latestOnManager := make(map[string]bool)
+	deleted, reproCount, noreproCount := 0, 0, 0
 	for _, crash := range crashes {
-		if crash.ReproSyz != 0 || crash.ReproC != 0 || !crash.Reported.IsZero() {
-			log.Errorf(c, "purging reproducer?")
+		if !crash.Reported.IsZero() {
+			log.Errorf(c, "purging reported crash?")
+			continue
+		}
+		// Preserve latest crash on each manager.
+		if !latestOnManager[crash.Manager] {
+			latestOnManager[crash.Manager] = true
+			continue
+		}
+		// Preserve maxCrashes latest crashes with repro and without repro.
+		count := &noreproCount
+		if crash.ReproSyz != 0 || crash.ReproC != 0 {
+			count = &reproCount
+		}
+		if *count < maxCrashes {
+			*count++
 			continue
 		}
 		toDelete = append(toDelete, keyMap[crash])
@@ -714,12 +709,25 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 		if crash.Report != 0 {
 			toDelete = append(toDelete, datastore.NewKey(c, textCrashReport, "", crash.Report, nil))
 		}
+		if crash.ReproSyz != 0 {
+			toDelete = append(toDelete, datastore.NewKey(c, textReproSyz, "", crash.ReproSyz, nil))
+		}
+		if crash.ReproC != 0 {
+			toDelete = append(toDelete, datastore.NewKey(c, textReproC, "", crash.ReproC, nil))
+		}
+		deleted++
+		if deleted == 2*purgeEvery {
+			break
+		}
+	}
+	if len(toDelete) == 0 {
+		return
 	}
 	if err := datastore.DeleteMulti(c, toDelete); err != nil {
 		log.Errorf(c, "failed to delete old crashes: %v", err)
 		return
 	}
-	log.Infof(c, "deleted %v crashes for bug %q", len(crashes), bug.Title)
+	log.Infof(c, "deleted %v crashes for bug %q", deleted, bug.Title)
 }
 
 func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {

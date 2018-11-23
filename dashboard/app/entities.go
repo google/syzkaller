@@ -336,10 +336,18 @@ func canonicalBug(c context.Context, bug *Bug) (*Bug, error) {
 		bugKey := datastore.NewKey(c, "Bug", bug.DupOf, 0, nil)
 		if err := datastore.Get(c, bugKey, canon); err != nil {
 			return nil, fmt.Errorf("failed to get dup bug %q for %q: %v",
-				bug.DupOf, bugKeyHash(bug.Namespace, bug.Title, bug.Seq), err)
+				bug.DupOf, bug.keyHash(), err)
 		}
 		bug = canon
 	}
+}
+
+func (bug *Bug) key(c context.Context) *datastore.Key {
+	return datastore.NewKey(c, "Bug", bug.keyHash(), 0, nil)
+}
+
+func (bug *Bug) keyHash() string {
+	return bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
 }
 
 func bugKeyHash(ns, title string, seq int64) string {

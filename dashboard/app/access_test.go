@@ -80,7 +80,7 @@ func TestAccess(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		bugID := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
+		bugID := bug.keyHash()
 		entities = append(entities, []entity{
 			{
 				level: level,

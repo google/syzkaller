@@ -447,7 +447,7 @@ func findDupBug(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey *dat
 	if !dupReporting.Closed.IsZero() && dupCanon.Status == BugStatusOpen {
 		return "", false, "Dup bug is already upstreamed.", nil
 	}
-	dupHash := bugKeyHash(dup.Namespace, dup.Title, dup.Seq)
+	dupHash := dup.keyHash()
 	return dupHash, true, "", nil
 }
 
@@ -723,7 +723,7 @@ func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) (
 }
 
 func findCrashForBug(c context.Context, bug *Bug) (*Crash, *datastore.Key, error) {
-	bugKey := datastore.NewKey(c, "Bug", bugKeyHash(bug.Namespace, bug.Title, bug.Seq), 0, nil)
+	bugKey := bug.key(c)
 	crashes, keys, err := queryCrashesForBug(c, bugKey, 1)
 	if err != nil {
 		return nil, nil, err
