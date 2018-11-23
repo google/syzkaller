@@ -418,7 +418,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 			continue
 		}
 		uiBug := createUIBug(c, bug, state, managers)
-		bugMap[bugKeyHash(bug.Namespace, bug.Title, bug.Seq)] = uiBug
+		bugMap[bug.keyHash()] = uiBug
 		id := uiBug.ReportingIndex
 		if bug.Status == BugStatusFixed {
 			id = -1
@@ -491,7 +491,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 
 func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (
 	*uiBugGroup, error) {
-	bugHash := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
+	bugHash := bug.keyHash()
 	var dups []*Bug
 	_, err := datastore.NewQuery("Bug").
 		Filter("Status=", BugStatusDup).
@@ -603,7 +603,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	if err != nil {
 		log.Errorf(c, "failed to generate credit email: %v", err)
 	}
-	id := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
+	id := bug.keyHash()
 	uiBug := &uiBug{
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
@@ -662,10 +662,9 @@ func updateBugBadness(c context.Context, bug *uiBug) {
 }
 
 func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) {
-	bugHash := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
-	bugKey := datastore.NewKey(c, "Bug", bugHash, 0, nil)
+	bugKey := bug.key(c)
 	// We can have more than maxCrashes crashes, if we have lots of reproducers.
-	crashes, _, err := queryCrashesForBug(c, bugKey, maxCrashes+200)
+	crashes, _, err := queryCrashesForBug(c, bugKey, 2*maxCrashes+200)
 	if err != nil || len(crashes) == 0 {
 		return nil, nil, err
 	}

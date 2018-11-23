@@ -7,6 +7,7 @@ package dash
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -284,4 +285,88 @@ func TestApp(t *testing.T) {
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: dashapi.ReproLevelC,
 	})
+}
+
+// Test purging of old crashes for bugs with lots of crashes.
+func TestPurgeOldCrashes(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	// First, send 3 crashes that are reported. These need to be preserved regardless.
+	crash := testCrash(build, 1)
+	crash.ReproOpts = []byte("no repro")
+	c.client.ReportCrash(crash)
+	rep := c.client.pollBug()
+
+	crash.ReproSyz = []byte("getpid()")
+	crash.ReproOpts = []byte("syz repro")
+	c.client.ReportCrash(crash)
+	c.client.pollBug()
+
+	crash.ReproC = []byte("int main() {}")
+	crash.ReproOpts = []byte("C repro")
+	c.client.ReportCrash(crash)
+	c.client.pollBug()
+
+	// Now report lots of bugs with/without repros. Some of the older ones should be purged.
+	const totalReported = 3 * maxCrashes
+	for i := 0; i < totalReported; i++ {
+		c.advanceTime(2 * time.Hour) // This ensures that crashes are saved.
+		crash.ReproSyz = nil
+		crash.ReproC = nil
+		crash.ReproOpts = []byte(fmt.Sprintf("%v", i))
+		c.client.ReportCrash(crash)
+
+		crash.ReproSyz = []byte("syz repro")
+		crash.ReproC = []byte("C repro")
+		crash.ReproOpts = []byte(fmt.Sprintf("%v", i))
+		c.client.ReportCrash(crash)
+	}
+	bug, _, _ := c.loadBug(rep.ID)
+	crashes, _, err := queryCrashesForBug(c.ctx, bug.key(c.ctx), 10*totalReported)
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	// First, count how many crashes of different types we have.
+	// We should get all 3 reported crashes + some with repros and some without repros.
+	reported, norepro, repro := 0, 0, 0
+	for _, crash := range crashes {
+		if !crash.Reported.IsZero() {
+			reported++
+		} else if crash.ReproSyz == 0 {
+			norepro++
+		} else {
+			repro++
+		}
+	}
+	c.t.Logf("got reported=%v, norepro=%v, repro=%v, maxCrashes=%v",
+		reported, norepro, repro, maxCrashes)
+	if reported != 3 ||
+		norepro < maxCrashes || norepro > maxCrashes+10 ||
+		repro < maxCrashes || repro > maxCrashes+10 {
+		c.t.Fatalf("bad purged crashes")
+	}
+	// Then, check that latest crashes were preserved.
+	for _, crash := range crashes {
+		if !crash.Reported.IsZero() {
+			continue
+		}
+		idx, err := strconv.Atoi(string(crash.ReproOpts))
+		if err != nil {
+			c.t.Fatal(err)
+		}
+		count := norepro
+		if crash.ReproSyz != 0 {
+			count = repro
+		}
+		if idx < totalReported-count {
+			c.t.Errorf("preserved bad crash repro=%v: %v", crash.ReproC != 0, idx)
+		}
+	}
 }
