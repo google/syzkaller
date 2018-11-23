@@ -112,6 +112,10 @@ func (target *Target) assignSizesArray(args []Arg) {
 	}
 }
 
+func (target *Target) AssignSizesCall(c *Call) {
+	target.assignSizesCall(c)
+}
+
 func (target *Target) assignSizesCall(c *Call) {
 	target.assignSizesArray(c.Args)
 }
