@@ -28,10 +28,6 @@ func EvalCalls(target *prog.Target, call *Call) uint64 {
 		return makedev(target, call)
 	case "KERNEL_VERSION":
 		return kernelVersion(target, call)
-	case "_IOC":
-		return ioc(target, call)
-	case "_IO":
-		return io(target, call)
 	case "QCMD":
 		return qcmd(target, call)
 	default:
@@ -119,23 +115,6 @@ func kernelVersion(target *prog.Target, call *Call) uint64 {
 	a2 := call.Args[1].(Expression)
 	a3 := call.Args[2].(Expression)
 	return (a1.Eval(target) << 16) + (a2.Eval(target) << 8) + a3.Eval(target)
-}
-
-func ioc(target *prog.Target, call *Call) uint64 {
-	checkInnerCall(call.CallName, 4, len(call.Args))
-	dir := call.Args[0].(Expression).Eval(target) << target.ConstMap["_IOC_DIRSHIFT"]
-	typ := call.Args[1].(Expression).Eval(target) << target.ConstMap["_IOC_TYPESHIFT"]
-	nr := call.Args[2].(Expression).Eval(target) << target.ConstMap["_IOC_NRSHIFT"]
-	sz := call.Args[3].(Expression).Eval(target) << target.ConstMap["_IOC_SIZESHIFT"]
-	return dir | typ | nr | sz
-}
-
-func io(target *prog.Target, call *Call) uint64 {
-	checkInnerCall(call.CallName, 3, len(call.Args))
-	dir := target.ConstMap["_IOC_NONE"] << target.ConstMap["_IOC_DIRSHIFT"]
-	typ := call.Args[1].(Expression).Eval(target) << target.ConstMap["_IOC_TYPESHIFT"]
-	nr := call.Args[2].(Expression).Eval(target) << target.ConstMap["_IOC_NRSHIFT"]
-	return dir | typ | nr
 }
 
 func qcmd(target *prog.Target, call *Call) uint64 {

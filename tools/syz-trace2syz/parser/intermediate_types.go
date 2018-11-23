@@ -334,9 +334,6 @@ func (f *flagType) eval(target *prog.Target) uint64 {
 	if val, ok := target.ConstMap[flag]; ok {
 		return val
 	}
-	if _, ok := config.Ignore[flag]; ok {
-		return 0
-	}
 	log.Fatalf("Failed to eval flag: %s", flag)
 	return 0
 }

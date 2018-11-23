@@ -32,20 +32,4 @@ var (
 		"IP_ORIGDSTADDR": "IP_RECVORIGDSTADDR",
 		"SCHED_OTHER":    "SCHED_NORMAL",
 	}
-
-	// The following constants are returned during system call execution or are ignored by the kernel entirely
-	Ignore = map[string]bool{
-		// Returned
-		"MSG_CTRUNC":           true,
-		"MSG_FIN":              true,
-		"MSG_EOF":              true,
-		"MSG_SYN":              true,
-		"MSG_RST":              true,
-		"MSG_SENDPAGE_NOTLAST": true,
-		"MSG_NO_SHARED_FRAGS":  true,
-		"MSG_CMSG_COMPAT":      true,
-		// Ignored
-		"MS_KERNMOUNT": true,
-		"MS_ACTIVE":    true,
-	}
 )
