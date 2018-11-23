@@ -1,0 +1,181 @@
+// Copyright 2018 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package proggen
+
+import (
+	"strings"
+
+	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
+)
+
+func genIpv4Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) prog.Arg {
+	if syzType.Dir() == prog.DirOut {
+		return prog.DefaultArg(syzType)
+	}
+	var ip uint64
+	switch a := irType.(type) {
+	case parser.Expression:
+		ip = a.Eval(ctx.Target)
+	default:
+		log.Fatalf("Failed to parse ip4addr. Expected Expression irtype got: %#v", a)
+	}
+	for _, field := range syzType.Fields {
+		if !strings.Contains(field.FieldName(), "rand") {
+			continue
+		}
+		switch field.(type) {
+		case *prog.IntType:
+			return prog.MakeUnionArg(syzType, prog.MakeConstArg(field, ip))
+		default:
+			log.Fatalf("Rand field isn't int type. Instead is %s", field.Name())
+		}
+	}
+	log.Logf(4, "Generating default arg for ip address")
+	return prog.DefaultArg(syzType)
+}
+
+func genIpv6Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) prog.Arg {
+	if syzType.Dir() == prog.DirOut {
+		return prog.DefaultArg(syzType)
+	}
+	var ip6 uint64
+	var optType prog.Type
+
+	field2Opt := make(map[string]prog.Type)
+	for _, field := range syzType.Fields {
+		field2Opt[field.FieldName()] = field
+	}
+
+	switch a := irType.(type) {
+	case parser.Expression:
+		ip6 = a.Eval(ctx.Target)
+	}
+	switch ip6 {
+	case 0:
+		optType = field2Opt["empty"]
+	case 1:
+		optType = field2Opt["local"]
+	case 0x7f000001:
+		optType = field2Opt["local"]
+	default:
+		log.Logf(1, "Assigning ip6 address: %d to 0.0.0.0", ip6)
+		optType = field2Opt["empty"]
+	}
+	return prog.MakeUnionArg(syzType, prog.DefaultArg(optType))
+}
+
+func genBpfInstructions(syzType *prog.UnionType, irType parser.IrType, ctx *Context) prog.Arg {
+	field2Opt := make(map[string]prog.Type)
+	for _, field := range syzType.Fields {
+		field2Opt[field.FieldName()] = field
+	}
+	optType := field2Opt["raw"]
+	return prog.MakeUnionArg(syzType, genArgs(optType, irType, ctx))
+}
+
+func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
+	var idx = 0
+	field2Opt := make(map[string]int)
+	for i, field := range syzType.Fields {
+		field2Opt[field.FieldName()] = i
+	}
+	// We currently look at the first argument of the system call
+	// To determine which option of the union we select.
+	call := ctx.CurrentStraceCall
+	var straceArg parser.IrType
+	switch call.CallName {
+	// May need to handle special cases.
+	case "recvfrom", "sendto":
+		straceArg = call.Args[4]
+	default:
+		if len(call.Args) >= 2 {
+			straceArg = call.Args[1]
+		} else {
+			log.Fatalf("Unable identify union for sockaddr_storage for call: %s",
+				call.CallName)
+		}
+	}
+	switch strType := straceArg.(type) {
+	case *parser.GroupType:
+		socketFamily, ok := strType.Elems[0].(parser.Expression)
+		if !ok {
+			log.Fatalf("Failed to identify socket family when generating sockaddr stroage union. "+
+				"Expected Expression got: %#v", strType.Elems[0])
+		}
+		switch socketFamily.Eval(ctx.Target) {
+		case ctx.Target.ConstMap["AF_INET6"]:
+			idx = field2Opt["in6"]
+		case ctx.Target.ConstMap["AF_INET"]:
+			idx = field2Opt["in"]
+		case ctx.Target.ConstMap["AF_UNIX"]:
+			idx = field2Opt["un"]
+		case ctx.Target.ConstMap["AF_UNSPEC"]:
+			idx = field2Opt["nl"]
+		case ctx.Target.ConstMap["AF_NETLINK"]:
+			idx = field2Opt["nl"]
+		case ctx.Target.ConstMap["AF_NFC"]:
+			idx = field2Opt["nfc"]
+		case ctx.Target.ConstMap["AF_PACKET"]:
+			idx = field2Opt["ll"]
+		}
+
+	default:
+		log.Fatalf("Failed to parse Sockaddr Stroage Union Type. Strace Type: %#v", strType)
+	}
+	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[idx], straceType, ctx))
+}
+
+func genSockaddrNetlink(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
+	var idx = 2
+	field2Opt := make(map[string]int)
+	for i, field := range syzType.Fields {
+		field2Opt[field.FieldName()] = i
+	}
+	switch a := ctx.CurrentStraceArg.(type) {
+	case *parser.GroupType:
+		if len(a.Elems) > 2 {
+			switch b := a.Elems[1].(type) {
+			case parser.Expression:
+				pid := b.Eval(ctx.Target)
+				if pid > 0 {
+					// User
+					idx = field2Opt["proc"]
+				} else if pid == 0 {
+					// Kernel
+					idx = field2Opt["kern"]
+				} else {
+					// Unspec
+					idx = field2Opt["unspec"]
+				}
+			default:
+				log.Fatalf("Parsing netlink addr struct and expect expression for first arg: %#v", a)
+			}
+		}
+	}
+	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[idx], straceType, ctx))
+}
+
+func genIfrIfru(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
+	idx := 0
+	switch ctx.CurrentStraceArg.(type) {
+	case parser.Expression:
+		idx = 2
+	default:
+		idx = 0
+	}
+	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[idx], straceType, ctx))
+}
+
+func genIfconf(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
+	idx := 0
+	switch ctx.CurrentStraceArg.(type) {
+	case *parser.GroupType:
+		idx = 1
+	default:
+		idx = 0
+	}
+	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[idx], straceType, ctx))
+}
