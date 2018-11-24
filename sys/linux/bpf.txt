@@ -102,8 +102,8 @@ bpf_licenses = "GPL", "syzkaller"
 bpf_kern_version = 0x40f00, 0x41000, 0x41100
 
 bpf_instructions [
-	framed	bpf_framed_program
 	raw	array[bpf_insn]
+	framed	bpf_framed_program
 ] [varlen]
 
 bpf_framed_program {
