@@ -46,22 +46,8 @@ func (m *memoryTracker) addAllocation(call *prog.Call, size uint64, arg prog.Arg
 	m.allocations[call] = append(m.allocations[call], alloc)
 }
 
-func (m *memoryTracker) fillOutMemory(prog *prog.Prog) (err error) {
-	pageSize := prog.Target.PageSize
-	var offset uint64
-	if offset, err = m.fillOutPtrArgs(prog); err != nil {
-		return
-	}
-
-	if offset%pageSize > 0 {
-		offset = (offset/pageSize + 1) * pageSize
-	}
-	return nil
-}
-
-func (m *memoryTracker) fillOutPtrArgs(p *prog.Prog) (uint64, error) {
+func (m *memoryTracker) fillOutPtrArgs(p *prog.Prog) error {
 	offset := uint64(0)
-	pageSize := p.Target.PageSize
 	for _, call := range p.Calls {
 		if _, ok := m.allocations[call]; !ok {
 			continue
@@ -74,7 +60,7 @@ func (m *memoryTracker) fillOutPtrArgs(p *prog.Prog) (uint64, error) {
 				offset += a.numBytes
 				i++
 				if arg.Address >= memAllocMaxMem {
-					return 0, fmt.Errorf("Unable to allocate space to store arg: %#v"+
+					return fmt.Errorf("Unable to allocate space to store arg: %#v"+
 						"in Call: %v. Required memory is larger than what we allow."+
 						"Offending address: %d. Skipping program generation for this prog...\n",
 						arg, call, arg.Address)
@@ -85,9 +71,5 @@ func (m *memoryTracker) fillOutPtrArgs(p *prog.Prog) (uint64, error) {
 		}
 	}
 
-	if offset%pageSize > 0 {
-		offset = (offset/pageSize + 1) * pageSize
-	}
-
-	return offset, nil
+	return nil
 }

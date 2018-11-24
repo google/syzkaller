@@ -92,7 +92,7 @@ func newContext(target *prog.Target, selector *CallSelector) (ctx *Context) {
 // FillOutMemory determines how much memory to allocate for arguments in a program
 // And generates an mmap c to do the allocation.This mmap is prepended to prog.Calls
 func (ctx *Context) FillOutMemory() error {
-	return ctx.Tracker.fillOutMemory(ctx.Prog)
+	return ctx.Tracker.fillOutPtrArgs(ctx.Prog)
 }
 
 // GenSyzProg converts a trace to one of our programs
