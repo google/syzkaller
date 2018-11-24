@@ -33,8 +33,8 @@ type Instance interface {
 	// Copy copies a hostSrc file into VM and returns file name in VM.
 	Copy(hostSrc string) (string, error)
 
-	// Forward setups forwarding from within VM to host port port
-	// and returns address to use in VM.
+	// Forward sets up forwarding from within VM to the given tcp
+	// port on the host and returns the address to use in VM.
 	Forward(port int) (string, error)
 
 	// Run runs cmd inside of the VM (think of ssh cmd).

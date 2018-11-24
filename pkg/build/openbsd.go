@@ -28,11 +28,11 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	if err := ctx.make(compileDir, "all"); err != nil {
 		return err
 	}
-	for _, s := range []struct { dir, src, dst string } {
-		{compileDir, "obj/bsd",     "kernel"},
+	for _, s := range []struct{ dir, src, dst string }{
+		{compileDir, "obj/bsd", "kernel"},
 		{compileDir, "obj/bsd.gdb", "obj/bsd.gdb"},
-		{userspaceDir, "image",     "image"},
-		{userspaceDir, "key",       "key"},
+		{userspaceDir, "image", "image"},
+		{userspaceDir, "key", "key"},
 	} {
 		fullSrc := filepath.Join(s.dir, s.src)
 		fullDst := filepath.Join(outputDir, s.dst)
