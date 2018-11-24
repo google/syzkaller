@@ -139,10 +139,6 @@ func genCall(ctx *Context) *prog.Call {
 	}
 	syzCall.Ret = prog.MakeReturnArg(ctx.CurrentSyzCall.Meta.Ret)
 
-	if call := parseMemoryCall(ctx); call != nil {
-		ctx.Target.SanitizeCall(call)
-		return call
-	}
 	for i := range syzCall.Meta.Args {
 		var strArg parser.IrType
 		if i < len(straceCall.Args) {
