@@ -67,15 +67,6 @@ func genIpv6Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) pr
 	return prog.MakeUnionArg(syzType, prog.DefaultArg(optType))
 }
 
-func genBpfInstructions(syzType *prog.UnionType, irType parser.IrType, ctx *Context) prog.Arg {
-	field2Opt := make(map[string]prog.Type)
-	for _, field := range syzType.Fields {
-		field2Opt[field.FieldName()] = field
-	}
-	optType := field2Opt["raw"]
-	return prog.MakeUnionArg(syzType, genArgs(optType, irType, ctx))
-}
-
 func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
 	var idx = 0
 	field2Opt := make(map[string]int)
