@@ -274,8 +274,6 @@ func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context
 		return genSockaddrNetlink(syzType, straceType, ctx)
 	case "ifr_ifru":
 		return genIfrIfru(syzType, straceType, ctx)
-	case "ifconf":
-		return genIfconf(syzType, straceType, ctx)
 	}
 	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[0], straceType, ctx))
 }

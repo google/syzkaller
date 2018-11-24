@@ -208,7 +208,6 @@ func TestEvalFlags(t *testing.T) {
 		{test: `open(AT_FDCWD) = 0`, expectedEval: target.ConstMap["AT_FDCWD"]},
 		{test: `open([BUS ALRM]) = 0`, expectedEval: target.ConstMap["SIGBUS"] | target.ConstMap["SIGALRM"]},
 		{test: `open([BUS]) = 0`, expectedEval: target.ConstMap["SIGBUS"]},
-		{test: `open(R_OK) = 0`, expectedEval: target.ConstMap["R_OK"]},
 		{test: `open(SNDCTL_TMR_START) = 0`, expectedEval: target.ConstMap["SNDCTL_TMR_START"]},
 	}
 	for i, test := range tests {

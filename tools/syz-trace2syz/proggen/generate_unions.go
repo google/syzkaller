@@ -159,14 +159,3 @@ func genIfrIfru(syzType *prog.UnionType, straceType parser.IrType, ctx *Context)
 	}
 	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[idx], straceType, ctx))
 }
-
-func genIfconf(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
-	idx := 0
-	switch ctx.CurrentStraceArg.(type) {
-	case *parser.GroupType:
-		idx = 1
-	default:
-		idx = 0
-	}
-	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[idx], straceType, ctx))
-}
