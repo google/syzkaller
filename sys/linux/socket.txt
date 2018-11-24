@@ -342,8 +342,8 @@ te1_settings {
 }
 
 ifconf [
-	buf	ifconf_buf
 	req	ifconf_req
+	buf	ifconf_buf
 ]
 
 ifconf_buf {
