@@ -259,7 +259,7 @@ func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context
 		return prog.DefaultArg(syzType)
 	}
 	log.Logf(4, "Generating union arg: %s %#v", syzType.TypeName, straceType)
-	// Unions are super annoying because they often need to be handled case by case
+	// Unions are super annoying because they sometimes need to be handled case by case
 	// We might need to lookinto a matching algorithm to identify the union type that most closely
 	// matches our strace type
 
@@ -276,8 +276,6 @@ func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context
 		return genIfrIfru(syzType, straceType, ctx)
 	case "ifconf":
 		return genIfconf(syzType, straceType, ctx)
-	case "bpf_instructions":
-		return genBpfInstructions(syzType, straceType, ctx)
 	}
 	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[0], straceType, ctx))
 }
