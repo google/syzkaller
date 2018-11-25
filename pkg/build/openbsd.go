@@ -15,7 +15,7 @@ import (
 )
 
 type openbsd struct{
-	kernelInImage bool
+	useGCE bool
 
 }
 
@@ -44,7 +44,7 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
-	if ctx.kernelInImage {
+	if ctx.useGCE {
 		return CopyKernelToImage(outputDir)
 	}
 	return nil
@@ -55,10 +55,15 @@ func (ctx openbsd) clean(kernelDir string) error {
 }
 
 func (ctx openbsd) configure(confDir, compileDir, kernelName string) error {
-	conf := []byte(`
-include "arch/amd64/conf/GENERIC"
+	baseConfig := "GENERIC"
+	if ctx.useGCE {
+		// GCE supports multiple CPUs.
+		baseConfig = "GENERIC.MP"
+	}
+	conf := []byte(fmt.Sprintf(`
+include "arch/amd64/conf/%v"
 pseudo-device kcov 1
-`)
+`, baseConfig))
 	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), conf); err != nil {
 		return err
 	}
