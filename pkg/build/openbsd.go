@@ -14,9 +14,8 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-type openbsd struct{
+type openbsd struct {
 	useGCE bool
-
 }
 
 func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,

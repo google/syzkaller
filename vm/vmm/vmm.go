@@ -127,7 +127,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 	if err := inst.Boot(); err != nil {
 		// Cleans up if Boot fails.
-                inst.Close()
+		inst.Close()
 		return nil, err
 	}
 
