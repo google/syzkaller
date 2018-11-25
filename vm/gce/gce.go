@@ -100,7 +100,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.GCEImage == "" {
 		cfg.GCEImage = env.Name
 		gcsImage := filepath.Join(cfg.GCSPath, env.Name+"-image.tar.gz")
-		log.Logf(0, "uploading image to %v...", gcsImage)
+		log.Logf(0, "uploading image %v to %v...", env.Image, gcsImage)
 		if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
 			return nil, err
 		}
