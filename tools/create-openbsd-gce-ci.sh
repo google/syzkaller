@@ -29,11 +29,9 @@ fi
 rm -fr etc && mkdir -p etc
 cat >install.site <<EOF
 #!/bin/sh
-syspatch
 PKGS="bash gcc git gmake go llvm nano wget"
 PKG_PATH=https://${MIRROR}/pub/OpenBSD/${DOWNLOAD_VERSION}/packages/${ARCH}/ pkg_add -I \$PKGS
-PKG_PATH=http://firmware.openbsd.org/firmware/snapshots/ pkg_add vmm-firmware
-PKG_PATH= pkg_info -I \$PKGS vmm-firmware && echo pkg_add OK
+PKG_PATH= pkg_info -I \$PKGS && echo pkg_add OK
 
 echo 'set tty com0' > boot.conf
 echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
@@ -55,9 +53,6 @@ cat >etc/rc.local <<EOF
   echo "starting syz-ci"
   fsck -y /dev/sd1a
   mount /syzkaller
-  mkdir -p /syzkaller/ramdisk
-  mount -t mfs -o-s=10G /dev/sd0b /syzkaller/ramdisk
-  chown syzkaller:syzkaller /syzkaller/ramdisk
   su -l syzkaller <<EOF2
     cd /syzkaller
     set -eux
@@ -74,17 +69,6 @@ cat >etc/rc.conf.local <<EOF
 slaacd_flags=NO
 smtpd_flags=NO
 sndiod_flags=NO
-vmd_flags=
-EOF
-
-cat >etc/vm.conf <<EOF
-vm "syzkaller" {
-  disable
-  disk "/dev/null"
-  local interface
-  owner syzkaller
-  allow instance { boot, disk, memory }
-}
 EOF
 
 cat >etc/sysctl.conf <<EOF
@@ -207,7 +191,6 @@ Done.
 To create GCE image run the following commands:
 
 gsutil cp -a public-read "$i" gs://syzkaller/
-gcloud compute images create ci-openbsd-root --source-uri gs://syzkaller/"$i" \\
-    --licenses "https://www.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx"
+gcloud compute images create ci-openbsd-root --source-uri gs://syzkaller/"$i"
 
 EOF
