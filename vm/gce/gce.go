@@ -436,8 +436,8 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 		Mode:     0640,
 		Size:     localStat.Size(),
 		ModTime:  time.Now(),
-		Uname: "syzkaller",
-		Gname: "syzkaller",
+		Uname:    "syzkaller",
+		Gname:    "syzkaller",
 	}
 	setGNUFormat(tarHeader)
 	if err := tarWriter.WriteHeader(tarHeader); err != nil {
