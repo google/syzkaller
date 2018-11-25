@@ -10,10 +10,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-type openbsd struct{}
+type openbsd struct{
+	kernelInImage bool
+
+}
 
 func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
@@ -39,6 +43,9 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
+	}
+	if ctx.kernelInImage {
+		return CopyKernelToImage(outputDir)
 	}
 	return nil
 }
@@ -76,5 +83,25 @@ pseudo-device kcov 1
 func (ctx openbsd) make(kernelDir string, args ...string) error {
 	args = append([]string{"-j", strconv.Itoa(runtime.NumCPU())}, args...)
 	_, err := osutil.RunCmd(10*time.Minute, kernelDir, "make", args...)
+	return err
+}
+
+// The easiest way to make an openbsd image that boots the given
+// kernel on GCE is to simply overwrite it inside the disk image.
+// Ideally a user space tool capable of understanding FFS should
+// implement this directly, but vnd(4) device would do in a pinch.
+// Assumes that the outputDir contains the appropriately named files.
+func CopyKernelToImage(outputDir string) error {
+	script := `
+doas /sbin/vnconfig vnd0 image
+doas mount /dev/vnd0a /altroot
+doas cp kernel /altroot/bsd
+doas umount /altroot
+doas vnconfig -u vnd0
+`
+	debugOut, err := osutil.RunCmd(10*time.Minute, outputDir, "/bin/sh", "-c", script)
+	if err != nil {
+		log.Logf(0, "Error copying kernel into image %v\n%v\n", outputDir, debugOut)
+	}
 	return err
 }
