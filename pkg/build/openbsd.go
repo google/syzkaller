@@ -14,7 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-type openbsd struct {}
+type openbsd struct{}
 
 func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
