@@ -436,15 +436,10 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 		Mode:     0640,
 		Size:     localStat.Size(),
 		ModTime:  time.Now(),
-		// This is hacky but we actually need these large uids.
-		// GCE understands only the old GNU tar format and
-		// there is no direct way to force tar package to use GNU format.
-		// But these large numbers force tar to switch to GNU format.
-		Uid:   100000000,
-		Gid:   100000000,
 		Uname: "syzkaller",
 		Gname: "syzkaller",
 	}
+	setGNUFormat(tarHeader)
 	if err := tarWriter.WriteHeader(tarHeader); err != nil {
 		return fmt.Errorf("failed to write image tar header: %v", err)
 	}
