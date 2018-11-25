@@ -14,9 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-type openbsd struct {
-	useGCE bool
-}
+type openbsd struct {}
 
 func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
@@ -24,7 +22,8 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", kernelDir, targetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/%v", kernelDir, targetArch, kernelName)
 
-	if err := ctx.configure(confDir, compileDir, kernelName); err != nil {
+	useGCE := vmType == "gce"
+	if err := ctx.configure(confDir, compileDir, kernelName, useGCE); err != nil {
 		return err
 	}
 
@@ -43,7 +42,7 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
-	if ctx.useGCE {
+	if useGCE {
 		return CopyKernelToImage(outputDir)
 	}
 	return nil
@@ -53,9 +52,9 @@ func (ctx openbsd) clean(kernelDir string) error {
 	return ctx.make(kernelDir, "", "clean")
 }
 
-func (ctx openbsd) configure(confDir, compileDir, kernelName string) error {
+func (ctx openbsd) configure(confDir, compileDir, kernelName string, useGCE bool) error {
 	baseConfig := "GENERIC"
-	if ctx.useGCE {
+	if useGCE {
 		// GCE supports multiple CPUs.
 		baseConfig = "GENERIC.MP"
 	}
