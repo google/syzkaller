@@ -92,7 +92,11 @@ func (ctx openbsd) make(kernelDir string, args ...string) error {
 // implement this directly, but vnd(4) device would do in a pinch.
 // Assumes that the outputDir contains the appropriately named files.
 func CopyKernelToImage(outputDir string) error {
-	script := `
+	script := `set -eux
+# Cleanup in case something failed before.
+doas umount /altroot || true
+doas vnconfig -u vnd0 || true
+
 doas /sbin/vnconfig vnd0 image
 doas mount /dev/vnd0a /altroot
 doas cp kernel /altroot/bsd
