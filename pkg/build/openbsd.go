@@ -56,7 +56,9 @@ func (ctx openbsd) configure(confDir, compileDir, kernelName string, useGCE bool
 	baseConfig := "GENERIC"
 	if useGCE {
 		// GCE supports multiple CPUs.
-		baseConfig = "GENERIC.MP"
+		// TODO(gnezdo): Switch to GENERIC.mp once kernel crash is solved.
+		// http://openbsd-archive.7691.n7.nabble.com/option-kcov-GENERIC-MP-gt-silent-crash-tc355807.html
+		baseConfig = "GENERIC"
 	}
 	conf := []byte(fmt.Sprintf(`
 include "arch/amd64/conf/%v"
