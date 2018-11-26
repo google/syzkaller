@@ -4,7 +4,6 @@
 package prog
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 )
@@ -21,7 +20,7 @@ func TestNotEscaping(t *testing.T) {
 	for i := 0; i < bound; i++ {
 		fn := r.filenameImpl(s)
 		if escapingFilename(fn) {
-			t.Errorf(fmt.Sprintf("sandbox escaping file name %q", fn))
+			t.Errorf("sandbox escaping file name %q", fn)
 		}
 	}
 }
