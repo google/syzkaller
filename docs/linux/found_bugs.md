@@ -4,6 +4,7 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [UBSAN: Undefined behaviour in drivers/input/mousedev.c](https://groups.google.com/d/msg/syzkaller/8A-G6SaGOHQ/vsR3aWLKAwAJ)
 * [UBSAN: Undefined behaviour in mm/page_alloc.c](https://groups.google.com/d/msg/syzkaller/STYtgfG49IQ/5g0L0b77BAAJ)
 * [WARNING in pkt setup dev](https://groups.google.com/d/msg/syzkaller/jQsAxlSpvCU/xFab0v1wBAAJ)
 * [UBSAN: Undefined behaviour in drivers/net/ppp/ppp_generic.c](https://groups.google.com/d/msg/syzkaller/xwZC0Njopck/FiU9Z-rRAgAJ)
