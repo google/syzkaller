@@ -67,13 +67,7 @@ type Context struct {
 	CurrentStraceArg  parser.IrType
 	Target            *prog.Target
 	Tracker           *memoryTracker
-	CallToCover       map[*prog.Call][]uint64
 	CallSelector      *CallSelector
-	// DependsOn field maps a call to all upstream dependencies
-	// It is used to track dependencies which cannot be captured by resultArg such as VMAs mmap -> mlock -> mremap
-	// Values of this map are all the calls which are the dependencies of the corresponding key
-	// We encode the values in a map because the map[*prog.Call]int maps the call to its index in prog.Calls
-	DependsOn map[*prog.Call]map[*prog.Call]int
 }
 
 func newContext(target *prog.Target, selector *CallSelector) (ctx *Context) {
@@ -84,8 +78,6 @@ func newContext(target *prog.Target, selector *CallSelector) (ctx *Context) {
 	ctx.CurrentStraceArg = nil
 	ctx.Target = target
 	ctx.CallSelector = selector
-	ctx.CallToCover = make(map[*prog.Call][]uint64)
-	ctx.DependsOn = make(map[*prog.Call]map[*prog.Call]int)
 	return
 }
 
@@ -119,8 +111,6 @@ func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector
 		if call = genCall(ctx); call == nil {
 			continue
 		}
-
-		ctx.CallToCover[call] = sCall.Cover
 		ctx.Target.AssignSizesCall(call)
 		syzProg.Calls = append(syzProg.Calls, call)
 	}

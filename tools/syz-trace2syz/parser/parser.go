@@ -6,7 +6,6 @@ package parser
 import (
 	"bufio"
 	"io/ioutil"
-	"strconv"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -14,34 +13,11 @@ import (
 
 const (
 	maxBufferSize = 64 * 1024 * 1024                    // maxBufferSize is maximum size for buffer
-	coverDelim    = ","                                 // Delimiter to split coverage in trace e.g. Cover:0x734,0x735
-	coverID       = "Cover:"                            // CoverID indicates line in the trace is the coverage
 	sysrestart    = "ERESTART"                          // SYSRESTART corresponds to the error code of ERESTART.
 	signalPlus    = "+++"                               // SignalPlus marks +++
 	signalMinus   = "---"                               // SignalPlus marks ---
 	noSuchProcess = "<ptrace(SYSCALL):No such process>" // No such process error. Nothing worth parsing
 )
-
-func parseCoverage(line string) []uint64 {
-	line = line[1 : len(line)-1] // Remove quotes
-	ips := strings.Split(strings.Split(line, coverID)[1], coverDelim)
-	coverSet := make(map[uint64]bool)
-	cover := make([]uint64, 0)
-	for _, ins := range ips {
-		if strings.TrimSpace(ins) == "" {
-			continue
-		}
-		ip, err := strconv.ParseUint(strings.TrimSpace(ins), 0, 64)
-		if err != nil {
-			log.Fatalf("failed parsing instruction: %s", ins)
-		}
-		if _, ok := coverSet[ip]; !ok {
-			coverSet[ip] = true
-			cover = append(cover, ip)
-		}
-	}
-	return cover
-}
 
 func parseSyscall(scanner *bufio.Scanner) (int, *Syscall) {
 	lex := newStraceLexer(scanner.Bytes())
@@ -61,8 +37,6 @@ func shouldSkip(line string) bool {
 func ParseLoop(data string) (tree *TraceTree) {
 	tree = NewTraceTree()
 	// Creating the process tree
-	var lastCall *Syscall
-
 	buf := make([]byte, maxBufferSize)
 	scanner := bufio.NewScanner(strings.NewReader(data))
 	scanner.Buffer(buf, maxBufferSize)
@@ -70,12 +44,6 @@ func ParseLoop(data string) (tree *TraceTree) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if shouldSkip(line) {
-			continue
-		}
-		if strings.Contains(line, coverID) {
-			cover := parseCoverage(line)
-			log.Logf(4, "Cover: %d", len(cover))
-			lastCall.Cover = cover
 			continue
 		}
 		log.Logf(4, "Scanning call: %s", line)
@@ -86,7 +54,7 @@ func ParseLoop(data string) (tree *TraceTree) {
 		if call == nil {
 			log.Fatalf("Failed to parse line: %s", line)
 		}
-		lastCall = tree.add(call)
+		tree.add(call)
 	}
 	if len(tree.Ptree) == 0 {
 		return nil

@@ -27,7 +27,7 @@ func NewTraceTree() (tree *TraceTree) {
 	return
 }
 
-func (tree *TraceTree) add(call *Syscall) *Syscall {
+func (tree *TraceTree) add(call *Syscall) {
 	if tree.RootPid < 0 {
 		tree.RootPid = call.Pid
 	}
@@ -41,7 +41,6 @@ func (tree *TraceTree) add(call *Syscall) *Syscall {
 	if c.CallName == "clone" && !c.Paused {
 		tree.Ptree[c.Pid] = append(tree.Ptree[c.Pid], c.Ret)
 	}
-	return c
 }
 
 // Trace is just a list of system calls
@@ -75,7 +74,6 @@ type Syscall struct {
 	Args     []IrType
 	Pid      int64
 	Ret      int64
-	Cover    []uint64
 	Paused   bool
 	Resumed  bool
 }
