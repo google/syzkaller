@@ -177,23 +177,6 @@ func TestParseLoop1Grandchild(t *testing.T) {
 	}
 }
 
-func TestParseExprType(t *testing.T) {
-	type irTest struct {
-		test string
-	}
-	tests := []irTest{
-		{`open(0x2) = 0`},
-	}
-	for _, test := range tests {
-		tree := ParseLoop(test.test)
-		call := tree.TraceMap[tree.RootPid].Calls[0]
-		_, ok := call.Args[0].(Constant)
-		if !ok {
-			t.Fatalf("Expected Constant. Got: %#v", call.Args[0])
-		}
-	}
-}
-
 func TestParseGroupType(t *testing.T) {
 	type irTest struct {
 		test string
