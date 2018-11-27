@@ -54,7 +54,7 @@ type BootErrorer interface {
 // (i.e. creation of instances out-of-thin-air). Overcommit is used during image
 // and patch testing in syz-ci when it just asks for more than specified in config
 // instances. Generally virtual machines (qemu, gce) support overcommit,
-// while physical machines (adb, isolated) do not. Strictly saying, we should
+// while physical machines (adb, isolated) do not. Strictly speaking, we should
 // never use overcommit and use only what's specified in config, because we
 // override resource limits specified in config (e.g. can OOM). But it works and
 // makes lots of things much simpler.

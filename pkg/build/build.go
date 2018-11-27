@@ -71,7 +71,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		return fuchsia{}, nil
 	case targetOS == "akaros" && targetArch == "amd64" && vmType == "qemu":
 		return akaros{}, nil
-	case targetOS == "openbsd" && targetArch == "amd64" && vmType == "vmm":
+	case targetOS == "openbsd" && targetArch == "amd64" && (vmType == "gce" || vmType == "vmm"):
 		return openbsd{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)

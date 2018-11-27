@@ -125,18 +125,12 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
-	closeInst := inst
-	defer func() {
-		if closeInst != nil {
-			closeInst.Close()
-		}
-	}()
-
 	if err := inst.Boot(); err != nil {
+		// Cleans up if Boot fails.
+		inst.Close()
 		return nil, err
 	}
 
-	closeInst = nil
 	return inst, nil
 }
 
