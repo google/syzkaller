@@ -158,7 +158,7 @@ func (r *randGen) filename(s *state, typ *BufferType) string {
 		panic(fmt.Sprintf("zero-terminated filename: %q", fn))
 	}
 	if escapingFilename(fn) {
-		panic(fmt.Sprintf("sandbox escaping file name %q", fn))
+		panic(fmt.Sprintf("sandbox escaping file name %q, s.files are %v", fn, s.files))
 	}
 	if !typ.Varlen() {
 		size := typ.Size()
