@@ -12,9 +12,6 @@ import (
 )
 
 func genIpv4Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) prog.Arg {
-	if syzType.Dir() == prog.DirOut {
-		return prog.DefaultArg(syzType)
-	}
 	var ip uint64
 	switch a := irType.(type) {
 	case parser.Constant:

@@ -259,6 +259,9 @@ func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context
 		return prog.DefaultArg(syzType)
 	}
 	log.Logf(4, "Generating union arg: %s %#v", syzType.TypeName, straceType)
+	if syzType.Dir() == prog.DirOut {
+		return prog.DefaultArg(syzType)
+	}
 	// Unions are super annoying because they sometimes need to be handled case by case
 	// We might need to lookinto a matching algorithm to identify the union type that most closely
 	// matches our strace type
