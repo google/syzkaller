@@ -266,8 +266,6 @@ func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context
 	switch syzType.TypeName {
 	case "ipv4_addr":
 		return genIpv4Addr(syzType, straceType, ctx)
-	case "ipv6_addr":
-		return genIpv6Addr(syzType, straceType, ctx)
 	case "sockaddr_storage":
 		return genSockaddrStorage(syzType, straceType, ctx)
 	case "sockaddr_nl":

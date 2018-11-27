@@ -37,36 +37,6 @@ func genIpv4Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) pr
 	return prog.DefaultArg(syzType)
 }
 
-func genIpv6Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) prog.Arg {
-	if syzType.Dir() == prog.DirOut {
-		return prog.DefaultArg(syzType)
-	}
-	var ip6 uint64
-	var optType prog.Type
-
-	field2Opt := make(map[string]prog.Type)
-	for _, field := range syzType.Fields {
-		field2Opt[field.FieldName()] = field
-	}
-
-	switch a := irType.(type) {
-	case parser.Constant:
-		ip6 = a.Val()
-	}
-	switch ip6 {
-	case 0:
-		optType = field2Opt["empty"]
-	case 1:
-		optType = field2Opt["local"]
-	case 0x7f000001:
-		optType = field2Opt["local"]
-	default:
-		log.Logf(1, "Assigning ip6 address: %d to 0.0.0.0", ip6)
-		optType = field2Opt["empty"]
-	}
-	return prog.MakeUnionArg(syzType, prog.DefaultArg(optType))
-}
-
 func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
 	var idx = 0
 	field2Opt := make(map[string]int)
