@@ -6,27 +6,8 @@ package parser
 import (
 	"testing"
 
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
-
-var (
-	OS   = "linux"
-	Arch = "amd64"
-)
-
-func initializeTarget(os, arch string) *prog.Target {
-	target, err := prog.GetTarget(os, arch)
-	if err != nil {
-		log.Fatalf("Failed to load target: %s", err)
-	}
-	target.ConstMap = make(map[string]uint64)
-	for _, c := range target.Consts {
-		target.ConstMap[c.Name] = c.Value
-	}
-	return target
-}
 
 func TestParseLoopBasic(t *testing.T) {
 
@@ -56,23 +37,21 @@ func TestParseLoopBasic(t *testing.T) {
 		<... open resumed>) = -1 FLAG (sdfjfjfjf)
 		fstat() = 0`,
 		`open(1,  <unfinished ...>
-		<... open resumed> , FLAG|FLAG) = -1 FLAG (sdfjfjfjf)
+		<... open resumed> , 0x1|0x2) = -1 FLAG (sdfjfjfjf)
 		fstat() = 0`,
-		`open([USR1 IO], NULL, {tv_sec=5, tv_nsec=0}, 8 <unfinished ...>
+		`open([0x1, 0x2], NULL, {tv_sec=5, tv_nsec=0}, 8 <unfinished ...>
 		<... rt_sigtimedwait resumed> )   = 10 (SIGUSR1)
 		fstat() = 0`,
-		`open(0, SNDCTL_TMR_START, {c_cc[VMIN]=1, c_cc[VTIME]=0} <unfinished ...>
-		<... open resumed> , FLAG|FLAG) = -1 FLAG (sdfjfjfjf)
+		`open(0, 536892418, {c_cc[VMIN]=1, c_cc[VTIME]=0} <unfinished ...>
+		<... open resumed> , 0x1|0x2) = -1 FLAG (sdfjfjfjf)
 		fstat() = 0`,
-		`open(-ENODEV) = 0
+		`open(-19) = 0
 		 fstat() = 0`,
 		`open(1 + 2) = 0
 		 fstat() = 0`,
 		`open(3 - 1) = 0
 		 fstat() = 0`,
-		`open(FS_IOC_FSSETXATTR, 0x20000000) = -1 EBADF (Bad file descriptor)
-		 fstat() = 0`,
-		`open() = 0 (IOPRIO_PRIO_VALUE(IOPRIO_CLASS_NONE, 4))
+		`open(1075599392, 0x20000000) = -1 EBADF (Bad file descriptor)
 		 fstat() = 0`,
 		`open() = -1 EIO (Input/output error)
 		 fstat() = 0`,
@@ -83,7 +62,7 @@ func TestParseLoopBasic(t *testing.T) {
 	for _, test := range tests {
 		tree := ParseLoop(test)
 		if tree.RootPid != -1 {
-			t.Fatalf("Incorrect Root Pid: %d\n", tree.RootPid)
+			t.Fatalf("Incorrect Root Pid: %d", tree.RootPid)
 		}
 
 		calls := tree.TraceMap[tree.RootPid].Calls
@@ -91,7 +70,43 @@ func TestParseLoopBasic(t *testing.T) {
 			t.Fatalf("Expect 2 calls. Got %d instead", len(calls))
 		}
 		if calls[0].CallName != "open" || calls[1].CallName != "fstat" {
-			t.Fatalf("call list should be open->fstat. Got %s->%s\n", calls[0].CallName, calls[1].CallName)
+			t.Fatalf("call list should be open->fstat. Got %s->%s", calls[0].CallName, calls[1].CallName)
+		}
+	}
+}
+
+func TestEvaluateExpressions(t *testing.T) {
+	type ExprTest struct {
+		line         string
+		expectedEval uint64
+	}
+	tests := []ExprTest{
+		{"open(0x1) = 0", 1},
+		{"open(1) = 0", 1},
+		{"open(0x1|0x2) = 0", 3},
+		{"open(0x1|2) = 0", 3},
+		{"open(1 << 5) = 0", 32},
+		{"open(1 << 5|1) = 0", 33},
+		{"open(1 & 0) = 0", 0},
+		{"open(1 + 2) = 0", 3},
+		{"open(1-2) = 0", ^uint64(0)},
+		{"open(4 >> 1) = 0", 2},
+	}
+	for i, test := range tests {
+		tree := ParseLoop(test.line)
+		if tree.RootPid != -1 {
+			t.Fatalf("Failed test: %d. Incorrect Root Pid: %d", i, tree.RootPid)
+		}
+		calls := tree.TraceMap[tree.RootPid].Calls
+		if len(calls) != 1 {
+			t.Fatalf("Failed test: %d. Expected 1 call. Got %d instead", i, len(calls))
+		}
+		arg, ok := calls[0].Args[0].(Constant)
+		if !ok {
+			t.Fatalf("First argument expected to be constant. Got: %s", arg.String())
+		}
+		if arg.Val() != test.expectedEval {
+			t.Fatalf("Expected %v != %v", test.expectedEval, arg.Val())
 		}
 	}
 }
@@ -102,7 +117,7 @@ func TestParseLoopPid(t *testing.T) {
 
 	tree := ParseLoop(data)
 	if tree.RootPid != 1 {
-		t.Fatalf("Incorrect Root Pid: %d\n", tree.RootPid)
+		t.Fatalf("Incorrect Root Pid: %d", tree.RootPid)
 	}
 
 	calls := tree.TraceMap[tree.RootPid].Calls
@@ -110,7 +125,7 @@ func TestParseLoopPid(t *testing.T) {
 		t.Fatalf("Expect 2 calls. Got %d instead", len(calls))
 	}
 	if calls[0].CallName != "open" || calls[1].CallName != "fstat" {
-		t.Fatalf("call list should be open->fstat. Got %s->%s\n", calls[0].CallName, calls[1].CallName)
+		t.Fatalf("call list should be open->fstat. Got %s->%s", calls[0].CallName, calls[1].CallName)
 	}
 }
 
@@ -121,13 +136,13 @@ func TestParseLoop1Child(t *testing.T) {
 
 	tree := ParseLoop(data1Child)
 	if len(tree.Ptree) != 2 {
-		t.Fatalf("Incorrect Root Pid. Expected: 2, Got %d\n", tree.RootPid)
+		t.Fatalf("Incorrect Root Pid. Expected: 2, Got %d", tree.RootPid)
 	}
 	if tree.Ptree[tree.RootPid][0] != 2 {
-		t.Fatalf("Expected child to have pid: 2. Got %d\n", tree.Ptree[tree.RootPid][0])
+		t.Fatalf("Expected child to have pid: 2. Got %d", tree.Ptree[tree.RootPid][0])
 	} else {
 		if len(tree.TraceMap[2].Calls) != 1 {
-			t.Fatalf("Child trace should have only 1 call. Got %d\n", len(tree.TraceMap[2].Calls))
+			t.Fatalf("Child trace should have only 1 call. Got %d", len(tree.TraceMap[2].Calls))
 		}
 	}
 }
@@ -140,10 +155,10 @@ func TestParseLoop2Childs(t *testing.T) {
                     3 open() = 3`
 	tree := ParseLoop(data2Childs)
 	if len(tree.Ptree) != 3 {
-		t.Fatalf("Incorrect Root Pid. Expected: 3, Got %d\n", tree.RootPid)
+		t.Fatalf("Incorrect Root Pid. Expected: 3, Got %d", tree.RootPid)
 	}
 	if len(tree.Ptree[tree.RootPid]) != 2 {
-		t.Fatalf("Expected Pid 1 to have 2 children: Got %d\n", len(tree.Ptree[tree.RootPid]))
+		t.Fatalf("Expected Pid 1 to have 2 children: Got %d", len(tree.Ptree[tree.RootPid]))
 	}
 }
 
@@ -154,10 +169,10 @@ func TestParseLoop1Grandchild(t *testing.T) {
 						3 open() = 4`
 	tree := ParseLoop(data1Grandchild)
 	if len(tree.Ptree[tree.RootPid]) != 1 {
-		t.Fatalf("Expect RootPid to have 1 child. Got %d\n", tree.RootPid)
+		t.Fatalf("Expect RootPid to have 1 child. Got %d", tree.RootPid)
 	}
 	if len(tree.Ptree[2]) != 1 {
-		t.Fatalf("Incorrect Root Pid. Expected: 3, Got %d\n", tree.RootPid)
+		t.Fatalf("Incorrect Root Pid. Expected: 3, Got %d", tree.RootPid)
 
 	}
 }
@@ -167,14 +182,14 @@ func TestParseExprType(t *testing.T) {
 		test string
 	}
 	tests := []irTest{
-		{`open(MAKEDEV(1)) = 0`},
+		{`open(0x2) = 0`},
 	}
 	for _, test := range tests {
 		tree := ParseLoop(test.test)
 		call := tree.TraceMap[tree.RootPid].Calls[0]
-		_, ok := call.Args[0].(Expression)
+		_, ok := call.Args[0].(Constant)
 		if !ok {
-			t.Fatalf("Expected Expression type. Got: %#v", call.Args[0])
+			t.Fatalf("Expected Constant. Got: %#v", call.Args[0])
 		}
 	}
 }
@@ -186,7 +201,6 @@ func TestParseGroupType(t *testing.T) {
 	tests := []irTest{
 		{`open({1, 2, 3}) = 0`},
 		{`open([1, 2, 3]) = 0`},
-		{`open([1 2]) = 0`},
 	}
 	for _, test := range tests {
 		tree := ParseLoop(test.test)
@@ -194,35 +208,6 @@ func TestParseGroupType(t *testing.T) {
 		_, ok := call.Args[0].(*GroupType)
 		if !ok {
 			t.Fatalf("Expected Group type. Got: %#v", call.Args[0])
-		}
-	}
-}
-
-func TestEvalFlags(t *testing.T) {
-	target := initializeTarget(OS, Arch)
-	type desc struct {
-		test         string
-		expectedEval uint64
-	}
-	tests := []desc{
-		{test: `open(AT_FDCWD) = 0`, expectedEval: target.ConstMap["AT_FDCWD"]},
-		{test: `open([BUS ALRM]) = 0`, expectedEval: target.ConstMap["SIGBUS"] | target.ConstMap["SIGALRM"]},
-		{test: `open([BUS]) = 0`, expectedEval: target.ConstMap["SIGBUS"]},
-		{test: `open(SNDCTL_TMR_START) = 0`, expectedEval: target.ConstMap["SNDCTL_TMR_START"]},
-	}
-	for i, test := range tests {
-		tree := ParseLoop(test.test)
-		call := tree.TraceMap[tree.RootPid].Calls[0]
-		var expr Expression
-		switch a := call.Args[0].(type) {
-		case *GroupType:
-			expr = a.Elems[0].(Expression)
-		case Expression:
-			expr = a
-		}
-		flagEval := expr.Eval(target)
-		if test.expectedEval != flagEval {
-			t.Fatalf("Incorrect Flag Evaluation for Test %d. Expected %v != %v", i, test.expectedEval, flagEval)
 		}
 	}
 }

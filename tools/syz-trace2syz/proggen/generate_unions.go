@@ -17,8 +17,8 @@ func genIpv4Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) pr
 	}
 	var ip uint64
 	switch a := irType.(type) {
-	case parser.Expression:
-		ip = a.Eval(ctx.Target)
+	case parser.Constant:
+		ip = a.Val()
 	default:
 		log.Fatalf("Failed to parse ip4addr. Expected Expression irtype got: %#v", a)
 	}
@@ -50,8 +50,8 @@ func genIpv6Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) pr
 	}
 
 	switch a := irType.(type) {
-	case parser.Expression:
-		ip6 = a.Eval(ctx.Target)
+	case parser.Constant:
+		ip6 = a.Val()
 	}
 	switch ip6 {
 	case 0:
@@ -91,12 +91,12 @@ func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *
 	}
 	switch strType := straceArg.(type) {
 	case *parser.GroupType:
-		socketFamily, ok := strType.Elems[0].(parser.Expression)
+		socketFamily, ok := strType.Elems[0].(parser.Constant)
 		if !ok {
 			log.Fatalf("Failed to identify socket family when generating sockaddr stroage union. "+
 				"Expected Expression got: %#v", strType.Elems[0])
 		}
-		switch socketFamily.Eval(ctx.Target) {
+		switch socketFamily.Val() {
 		case ctx.Target.ConstMap["AF_INET6"]:
 			idx = field2Opt["in6"]
 		case ctx.Target.ConstMap["AF_INET"]:
@@ -129,8 +129,8 @@ func genSockaddrNetlink(syzType *prog.UnionType, straceType parser.IrType, ctx *
 	case *parser.GroupType:
 		if len(a.Elems) > 2 {
 			switch b := a.Elems[1].(type) {
-			case parser.Expression:
-				pid := b.Eval(ctx.Target)
+			case parser.Constant:
+				pid := b.Val()
 				if pid > 0 {
 					// User
 					idx = field2Opt["proc"]
@@ -152,7 +152,7 @@ func genSockaddrNetlink(syzType *prog.UnionType, straceType parser.IrType, ctx *
 func genIfrIfru(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
 	idx := 0
 	switch ctx.CurrentStraceArg.(type) {
-	case parser.Expression:
+	case parser.Constant:
 		idx = 2
 	default:
 		idx = 0

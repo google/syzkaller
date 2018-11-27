@@ -19,12 +19,11 @@ type StraceSymType struct {
 	val_double       float64
 	val_ret_type     int64
 	val_uint         uint64
-	val_call         *Call
+	val_constant     Constant
 	val_identifiers  []*BufferType
 	val_buf_type     *BufferType
 	val_group_type   *GroupType
 	val_pointer_type *PointerType
-	val_flag_type    *flagType
 	val_type         IrType
 	val_types        []IrType
 	val_syscall      *Syscall
@@ -133,133 +132,117 @@ var StraceExca = [...]int{
 
 const StracePrivate = 57344
 
-const StraceLast = 417
+const StraceLast = 331
 
 var StraceAct = [...]int{
 
-	28, 8, 100, 7, 40, 116, 120, 13, 12, 33,
-	42, 43, 46, 49, 47, 48, 119, 44, 45, 25,
-	50, 51, 53, 52, 62, 60, 61, 38, 95, 71,
-	37, 40, 98, 97, 66, 67, 70, 35, 69, 74,
-	75, 76, 77, 78, 91, 73, 72, 41, 56, 117,
-	79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
-	89, 135, 53, 126, 31, 106, 57, 38, 56, 131,
-	132, 40, 96, 37, 122, 123, 118, 41, 50, 109,
-	114, 124, 125, 133, 2, 37, 121, 22, 37, 21,
-	4, 105, 143, 107, 36, 74, 68, 38, 5, 127,
-	110, 40, 39, 99, 55, 31, 115, 113, 37, 90,
-	29, 30, 92, 93, 130, 94, 3, 49, 134, 130,
-	130, 54, 128, 49, 50, 27, 138, 128, 128, 112,
-	50, 51, 26, 129, 130, 136, 130, 130, 129, 129,
-	130, 130, 128, 138, 128, 128, 138, 138, 128, 128,
-	139, 63, 140, 129, 11, 129, 129, 126, 31, 129,
-	129, 64, 65, 131, 132, 1, 126, 31, 122, 123,
-	32, 10, 131, 132, 24, 124, 125, 122, 123, 23,
-	121, 22, 9, 21, 124, 125, 142, 58, 0, 121,
-	22, 0, 21, 127, 59, 141, 0, 126, 31, 0,
-	0, 0, 127, 131, 132, 0, 126, 31, 122, 123,
-	0, 0, 131, 132, 0, 124, 125, 122, 123, 0,
-	121, 22, 0, 21, 124, 125, 137, 0, 0, 121,
-	22, 0, 21, 127, 0, 0, 15, 0, 16, 31,
-	17, 0, 127, 18, 29, 30, 42, 43, 0, 49,
-	19, 48, 0, 44, 45, 14, 50, 51, 0, 27,
-	0, 0, 22, 108, 21, 15, 26, 16, 31, 17,
-	0, 20, 18, 29, 30, 0, 0, 0, 15, 19,
-	16, 31, 17, 0, 14, 18, 29, 30, 27, 0,
-	0, 22, 19, 21, 0, 26, 0, 14, 0, 34,
-	20, 27, 102, 103, 22, 111, 21, 0, 26, 0,
-	0, 6, 15, 20, 16, 31, 17, 104, 0, 18,
-	29, 30, 55, 31, 0, 0, 19, 0, 29, 30,
-	0, 14, 0, 0, 0, 27, 0, 0, 22, 54,
-	21, 0, 26, 27, 0, 0, 22, 20, 21, 0,
-	26, 42, 43, 46, 49, 47, 48, 0, 44, 45,
-	0, 50, 51, 42, 43, 0, 49, 47, 48, 0,
-	44, 45, 0, 50, 51, 43, 0, 49, 0, 48,
-	0, 44, 45, 0, 50, 51, 49, 0, 48, 0,
-	44, 45, 49, 50, 51, 0, 44, 45, 0, 50,
-	51, 102, 103, 0, 101, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 104,
+	12, 8, 98, 80, 13, 36, 35, 33, 36, 94,
+	97, 35, 78, 77, 72, 44, 32, 58, 57, 45,
+	2, 56, 55, 30, 54, 33, 4, 95, 33, 35,
+	52, 53, 35, 34, 59, 60, 61, 62, 63, 92,
+	112, 110, 64, 65, 66, 67, 68, 69, 70, 104,
+	107, 45, 3, 32, 96, 108, 109, 5, 32, 31,
+	100, 101, 73, 85, 42, 47, 91, 102, 103, 74,
+	41, 75, 99, 22, 86, 21, 59, 42, 120, 79,
+	15, 88, 16, 93, 17, 105, 48, 18, 23, 24,
+	23, 24, 106, 49, 19, 90, 111, 106, 106, 14,
+	115, 46, 71, 26, 1, 26, 22, 113, 21, 27,
+	25, 106, 25, 106, 106, 20, 115, 106, 106, 115,
+	115, 116, 11, 117, 104, 107, 82, 83, 10, 89,
+	108, 109, 7, 104, 107, 100, 101, 9, 28, 108,
+	109, 84, 102, 103, 100, 101, 0, 99, 22, 0,
+	21, 102, 103, 119, 50, 51, 99, 22, 0, 21,
+	105, 0, 118, 0, 104, 107, 0, 0, 0, 105,
+	108, 109, 0, 104, 107, 100, 101, 0, 0, 108,
+	109, 0, 102, 103, 100, 101, 0, 99, 22, 0,
+	21, 102, 103, 114, 41, 0, 99, 22, 0, 21,
+	105, 42, 43, 15, 0, 16, 0, 17, 0, 105,
+	18, 23, 24, 37, 38, 0, 41, 19, 0, 0,
+	39, 40, 14, 42, 43, 0, 26, 0, 0, 22,
+	87, 21, 15, 25, 16, 0, 17, 0, 20, 18,
+	23, 24, 0, 0, 0, 15, 19, 16, 0, 17,
+	0, 14, 18, 23, 24, 26, 0, 0, 22, 19,
+	21, 0, 25, 0, 14, 0, 29, 20, 26, 0,
+	0, 22, 0, 21, 0, 25, 37, 38, 6, 41,
+	20, 23, 24, 39, 40, 0, 42, 43, 0, 0,
+	0, 0, 46, 0, 76, 0, 26, 0, 38, 22,
+	41, 21, 0, 25, 39, 40, 41, 42, 43, 0,
+	39, 40, 0, 42, 43, 82, 83, 0, 81, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	84,
 }
 var StracePact = [...]int{
 
-	78, -1000, 64, 274, 78, 261, 2, 59, 61, -1000,
-	-1000, -1000, -1000, 334, 316, -1000, 34, -1000, -1000, 181,
-	-1000, 308, 308, 144, 149, -1000, 98, 98, -1000, -1000,
-	-1000, 62, -1000, 1, -6, 10, 9, 308, 308, 308,
-	308, 308, 98, 98, 98, 98, 98, 98, 98, 98,
-	98, 98, -1000, -1000, 98, 14, 308, 102, -1000, 8,
-	79, 84, -1000, -1000, -1000, -1000, -7, -1000, 308, -1000,
-	-3, -4, 88, 389, 61, -36, 31, -1000, -9, 357,
-	366, 103, 103, 346, 229, 372, 51, -1000, 97, 56,
-	32, 308, -1000, 232, -1000, -1000, 44, 290, 117, -1000,
-	73, -1000, -1000, -1000, 94, -1000, -31, -36, -1000, -1000,
-	42, -1000, -1000, 200, 49, -1000, 308, 27, 200, 191,
-	-1000, -1000, -1000, -1000, -1000, -1000, 14, -1000, -1000, -1000,
-	-1000, -1000, -1000, 200, -36, 200, 160, -1000, -1000, 151,
-	57, -1000, -1000, -1000,
+	14, -1000, 23, 241, 14, 228, -12, 24, -8, -1000,
+	-1000, -1000, -1000, 196, 269, -1000, 33, -1000, -1000, 80,
+	-1000, 76, 76, -1000, -1000, 78, 78, -1000, -13, -14,
+	-18, -19, 76, 76, 76, 76, 76, 78, 78, 78,
+	78, 78, 78, 78, -1000, -1000, 78, 95, -1000, -22,
+	29, 40, 259, -1000, -1000, -23, -24, 64, 303, -8,
+	-34, -11, -1000, -29, 280, 286, 174, 174, 37, -1000,
+	50, 30, 76, -1000, 199, -1000, -1000, 114, 83, -1000,
+	32, -1000, -1000, -1000, 71, -27, -34, -1000, 20, -1000,
+	-1000, 167, 7, -1000, 76, 6, 167, 158, -1000, -1000,
+	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
+	167, -34, 167, 127, -1000, -1000, 118, 43, -1000, -1000,
+	-1000,
 }
 var StracePgo = [...]int{
 
-	0, 165, 2, 182, 8, 0, 19, 6, 16, 1,
-	7, 179, 174, 171, 154, 3,
+	0, 104, 3, 137, 0, 4, 2, 10, 1, 128,
+	122, 132,
 }
 var StraceR1 = [...]int{
 
 	0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 8, 8, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 7, 2, 2, 2,
-	15, 15, 15, 9, 9, 9, 9, 9, 9, 10,
-	10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-	10, 10, 10, 10, 10, 12, 12, 12, 12, 11,
-	11, 6, 6, 14, 14, 14, 4, 4, 4, 13,
-	13, 13, 13, 13, 13, 3, 3, 3, 3, 5,
+	1, 1, 1, 7, 7, 6, 6, 6, 6, 6,
+	6, 6, 6, 6, 6, 6, 2, 2, 2, 11,
+	11, 11, 8, 8, 8, 8, 8, 8, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+	10, 10, 10, 4, 4, 4, 9, 9, 9, 9,
+	9, 9, 3, 3, 3, 3,
 }
 var StraceR2 = [...]int{
 
 	0, 4, 5, 6, 5, 5, 8, 9, 6, 6,
 	10, 9, 2, 1, 2, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 2,
-	0, 1, 3, 1, 1, 1, 1, 1, 2, 1,
-	1, 1, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 2, 2, 1, 1, 2, 2, 1,
-	2, 4, 4, 2, 4, 1, 3, 3, 4, 2,
-	3, 3, 3, 3, 6, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 2, 0,
+	1, 3, 1, 1, 1, 1, 1, 2, 1, 1,
+	3, 3, 3, 3, 3, 3, 3, 3, 2, 2,
+	2, 4, 1, 3, 3, 4, 2, 3, 3, 3,
+	3, 6, 1, 1, 1, 1,
 }
 var StraceChk = [...]int{
 
-	-1000, -1, 6, 38, 12, 34, 37, -15, -9, -3,
-	-13, -14, -4, -10, 23, 4, 6, 8, 11, 18,
-	39, 32, 30, -11, -12, -6, 34, 27, -5, 12,
-	13, 7, -1, -15, 38, 35, 35, 29, 36, 41,
-	40, 16, 17, 18, 24, 25, 19, 21, 22, 20,
-	27, 28, -4, -10, 23, 6, 34, 32, 6, 13,
-	-15, -15, -5, 7, 12, 13, -10, -10, 34, 37,
-	35, 35, 36, 36, -9, -9, -9, -9, -9, -10,
-	-10, -10, -10, -10, -10, -10, -10, -10, -10, -15,
-	7, 36, 33, 29, 31, 35, -15, 36, 36, 15,
-	-2, 15, 12, 13, 27, 35, 33, -9, 31, 35,
-	-2, 15, 12, 34, 7, 12, 36, 7, 34, -8,
-	-7, 29, 17, 18, 24, 25, 6, 42, -4, -6,
-	-5, 12, 13, 34, -9, 34, -8, 35, -7, -8,
-	-8, 35, 35, 35,
+	-1000, -1, 6, 38, 12, 34, 37, -11, -8, -3,
+	-9, -10, -4, -5, 23, 4, 6, 8, 11, 18,
+	39, 32, 30, 12, 13, 34, 27, -1, -11, 38,
+	35, 35, 29, 36, 41, 40, 16, 17, 18, 24,
+	25, 20, 27, 28, -4, -5, 23, 32, 6, 13,
+	-11, -11, -5, -5, 37, 35, 35, 36, 36, -8,
+	-8, -8, -8, -8, -5, -5, -5, -5, -5, -5,
+	-5, 7, 36, 33, 29, 31, 35, 36, 36, 15,
+	-2, 15, 12, 13, 27, 33, -8, 31, -2, 15,
+	12, 34, 7, 12, 36, 7, 34, -7, -6, 29,
+	17, 18, 24, 25, 6, 42, -4, 7, 12, 13,
+	34, -8, 34, -7, 35, -6, -7, -7, 35, 35,
+	35,
 }
 var StraceDef = [...]int{
 
-	0, -2, 0, 30, 0, 30, 0, 0, 31, 33,
-	34, 35, 36, 37, 0, 75, 76, 77, 78, 0,
-	65, 30, 30, 39, 40, 41, 0, 0, 59, 55,
-	56, 79, 12, 0, 0, 0, 0, 0, 69, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 38, 53, 0, 0, 30, 0, 63, 0,
-	0, 0, 60, 79, 57, 58, 0, 54, 30, 1,
-	0, 0, 0, 0, 32, 72, 70, 71, 73, 42,
-	43, 44, 45, 46, 47, 48, 50, 51, 52, 0,
-	0, 0, 66, 0, 67, 49, 0, 0, 0, 2,
-	4, 5, 27, 28, 0, 61, 0, 64, 68, 62,
-	8, 9, 3, 0, 0, 29, 0, 0, 0, 0,
-	13, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-	24, 25, 26, 0, 74, 0, 0, 6, 14, 0,
-	0, 11, 7, 10,
+	0, -2, 0, 29, 0, 29, 0, 0, 30, 32,
+	33, 34, 35, 36, 0, 62, 63, 64, 65, 0,
+	52, 29, 29, 38, 39, 0, 0, 12, 0, 0,
+	0, 0, 0, 56, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 37, 48, 0, 0, 50, 0,
+	0, 0, 0, 49, 1, 0, 0, 0, 0, 31,
+	59, 57, 58, 60, 40, 41, 42, 43, 45, 46,
+	47, 0, 0, 53, 0, 54, 44, 0, 0, 2,
+	4, 5, 26, 27, 0, 0, 51, 55, 8, 9,
+	3, 0, 0, 28, 0, 0, 0, 0, 13, 15,
+	16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+	0, 61, 0, 0, 6, 14, 0, 0, 11, 7,
+	10,
 }
 var StraceTok1 = [...]int{
 
@@ -616,84 +599,84 @@ Stracedefault:
 
 	case 1:
 		StraceDollar = StraceS[Stracept-4 : Stracept+1]
-//line strace.y:69
+//line strace.y:65
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, StraceDollar[1].data, StraceDollar[3].val_types, int64(-1), true, false)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 2:
 		StraceDollar = StraceS[Stracept-5 : Stracept+1]
-//line strace.y:72
+//line strace.y:68
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, "tmp", nil, -1, true, true)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 3:
 		StraceDollar = StraceS[Stracept-6 : Stracept+1]
-//line strace.y:77
+//line strace.y:73
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, StraceDollar[1].data, nil, int64(StraceDollar[6].val_int), false, false)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 4:
 		StraceDollar = StraceS[Stracept-5 : Stracept+1]
-//line strace.y:82
+//line strace.y:78
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, "tmp", StraceDollar[2].val_types, StraceDollar[5].val_ret_type, false, true)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 5:
 		StraceDollar = StraceS[Stracept-5 : Stracept+1]
-//line strace.y:84
+//line strace.y:80
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, "tmp", StraceDollar[2].val_types, -1, false, true)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 6:
 		StraceDollar = StraceS[Stracept-8 : Stracept+1]
-//line strace.y:86
+//line strace.y:82
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, "tmp", StraceDollar[2].val_types, StraceDollar[5].val_ret_type, false, true)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 7:
 		StraceDollar = StraceS[Stracept-9 : Stracept+1]
-//line strace.y:89
+//line strace.y:85
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, "tmp", StraceDollar[2].val_types, StraceDollar[5].val_ret_type, false, true)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 8:
 		StraceDollar = StraceS[Stracept-6 : Stracept+1]
-//line strace.y:91
+//line strace.y:87
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, StraceDollar[1].data, StraceDollar[3].val_types, StraceDollar[6].val_ret_type, false, false)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 9:
 		StraceDollar = StraceS[Stracept-6 : Stracept+1]
-//line strace.y:94
+//line strace.y:90
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, StraceDollar[1].data, StraceDollar[3].val_types, -1, false, false)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 10:
 		StraceDollar = StraceS[Stracept-10 : Stracept+1]
-//line strace.y:97
+//line strace.y:93
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, StraceDollar[1].data, StraceDollar[3].val_types, StraceDollar[6].val_ret_type, false, false)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 11:
 		StraceDollar = StraceS[Stracept-9 : Stracept+1]
-//line strace.y:100
+//line strace.y:96
 		{
 			StraceVAL.val_syscall = NewSyscall(-1, StraceDollar[1].data, StraceDollar[3].val_types, StraceDollar[6].val_ret_type, false, false)
 			Stracelex.(*Stracelexer).result = StraceVAL.val_syscall
 		}
 	case 12:
 		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:103
+//line strace.y:99
 		{
 			call := StraceDollar[2].val_syscall
 			call.Pid = StraceDollar[1].val_int
@@ -701,412 +684,322 @@ Stracedefault:
 		}
 	case 13:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:106
+//line strace.y:102
 		{
 			StraceVAL.val_type = nil
 		}
 	case 14:
 		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:107
+//line strace.y:103
 		{
 			StraceVAL.val_type = nil
 		}
 	case 15:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:110
+//line strace.y:106
 		{
 			StraceVAL.val_type = nil
 		}
 	case 16:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:111
+//line strace.y:107
 		{
 			StraceVAL.val_type = nil
 		}
 	case 17:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:112
+//line strace.y:108
 		{
 			StraceVAL.val_type = nil
 		}
 	case 18:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:113
+//line strace.y:109
 		{
 			StraceVAL.val_type = nil
 		}
 	case 19:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:114
+//line strace.y:110
 		{
 			StraceVAL.val_type = nil
 		}
 	case 20:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:115
+//line strace.y:111
 		{
 			StraceVAL.val_type = nil
 		}
 	case 21:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:116
+//line strace.y:112
 		{
 			StraceVAL.val_type = nil
 		}
 	case 22:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:117
+//line strace.y:113
 		{
 			StraceVAL.val_type = nil
 		}
 	case 23:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:118
+//line strace.y:114
 		{
 			StraceVAL.val_type = nil
 		}
 	case 24:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:119
+//line strace.y:115
 		{
 			StraceVAL.val_type = nil
 		}
 	case 25:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:120
+//line strace.y:116
 		{
 			StraceVAL.val_type = nil
 		}
 	case 26:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:121
-		{
-			StraceVAL.val_type = nil
-		}
-	case 27:
-		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:125
+//line strace.y:120
 		{
 			StraceVAL.val_ret_type = StraceDollar[1].val_int
 		}
-	case 28:
+	case 27:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:126
+//line strace.y:121
 		{
 			StraceVAL.val_ret_type = int64(StraceDollar[1].val_uint)
 		}
-	case 29:
+	case 28:
 		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:127
+//line strace.y:122
 		{
 			StraceVAL.val_ret_type = -1 * StraceDollar[2].val_int
 		}
-	case 30:
+	case 29:
 		StraceDollar = StraceS[Stracept-0 : Stracept+1]
-//line strace.y:129
+//line strace.y:124
 		{
 			StraceVAL.val_types = make([]IrType, 0)
 		}
-	case 31:
+	case 30:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:130
+//line strace.y:125
 		{
 			StraceVAL.val_types = []IrType{StraceDollar[1].val_type}
 		}
-	case 32:
+	case 31:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:131
+//line strace.y:126
 		{
 			StraceDollar[1].val_types = append(StraceDollar[1].val_types, StraceDollar[3].val_type)
 			StraceVAL.val_types = StraceDollar[1].val_types
 		}
-	case 33:
+	case 32:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:135
+//line strace.y:130
 		{
 			StraceVAL.val_type = StraceDollar[1].val_buf_type
 		}
-	case 34:
+	case 33:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:136
+//line strace.y:131
 		{
 			StraceVAL.val_type = StraceDollar[1].val_type
 		}
-	case 35:
+	case 34:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:137
+//line strace.y:132
 		{
 			StraceVAL.val_type = StraceDollar[1].val_pointer_type
 		}
-	case 36:
+	case 35:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:138
+//line strace.y:133
 		{
 			StraceVAL.val_type = StraceDollar[1].val_group_type
 		}
-	case 37:
+	case 36:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:139
+//line strace.y:134
 		{
-			StraceVAL.val_type = StraceDollar[1].val_type
+			StraceVAL.val_type = StraceDollar[1].val_constant
 		}
-	case 38:
+	case 37:
 		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:140
+//line strace.y:135
 		{
 			StraceVAL.val_type = StraceDollar[2].val_group_type
 		}
+	case 38:
+		StraceDollar = StraceS[Stracept-1 : Stracept+1]
+//line strace.y:139
+		{
+			StraceVAL.val_constant = Constant(StraceDollar[1].val_int)
+		}
 	case 39:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:144
+//line strace.y:140
 		{
-			StraceVAL.val_type = StraceDollar[1].val_type
+			StraceVAL.val_constant = Constant(StraceDollar[1].val_uint)
 		}
 	case 40:
-		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:145
+		StraceDollar = StraceS[Stracept-3 : Stracept+1]
+//line strace.y:141
 		{
-			StraceVAL.val_type = StraceDollar[1].val_type
+			StraceVAL.val_constant = StraceDollar[1].val_constant | StraceDollar[3].val_constant
 		}
 	case 41:
-		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:146
+		StraceDollar = StraceS[Stracept-3 : Stracept+1]
+//line strace.y:142
 		{
-			StraceVAL.val_type = StraceDollar[1].val_call
+			StraceVAL.val_constant = StraceDollar[1].val_constant & StraceDollar[3].val_constant
 		}
 	case 42:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:147
+//line strace.y:143
 		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, orOp)
+			StraceVAL.val_constant = StraceDollar[1].val_constant << StraceDollar[3].val_constant
 		}
 	case 43:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:148
+//line strace.y:144
 		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, andOp)
+			StraceVAL.val_constant = StraceDollar[1].val_constant >> StraceDollar[3].val_constant
 		}
 	case 44:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:149
+//line strace.y:145
 		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, lshiftOp)
+			StraceVAL.val_constant = StraceDollar[2].val_constant
 		}
 	case 45:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:150
+//line strace.y:146
 		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, rshiftOp)
+			StraceVAL.val_constant = StraceDollar[1].val_constant * StraceDollar[3].val_constant
 		}
 	case 46:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:151
+//line strace.y:147
 		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, lorOp)
+			StraceVAL.val_constant = StraceDollar[1].val_constant - StraceDollar[3].val_constant
 		}
 	case 47:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:152
+//line strace.y:148
 		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, landOp)
+			StraceVAL.val_constant = StraceDollar[1].val_constant + StraceDollar[3].val_constant
 		}
 	case 48:
-		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:153
+		StraceDollar = StraceS[Stracept-2 : Stracept+1]
+//line strace.y:149
 		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, lequalOp)
+			StraceVAL.val_constant = ^StraceDollar[2].val_constant
 		}
 	case 49:
-		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:154
+		StraceDollar = StraceS[Stracept-2 : Stracept+1]
+//line strace.y:150
 		{
-			StraceVAL.val_type = StraceDollar[2].val_type
+			StraceVAL.val_constant = Constant(-int64(StraceDollar[2].val_constant))
 		}
 	case 50:
-		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:155
-		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, timesOp)
-		}
-	case 51:
-		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:156
-		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, minusOp)
-		}
-	case 52:
-		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:157
-		{
-			StraceVAL.val_type = newBinop(StraceDollar[1].val_type, StraceDollar[3].val_type, plusOp)
-		}
-	case 53:
 		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:158
-		{
-			StraceVAL.val_type = newUnop(StraceDollar[2].val_type, onescompOp)
-		}
-	case 54:
-		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:159
-		{
-			StraceVAL.val_type = newUnop(StraceDollar[2].val_type, negOp)
-		}
-	case 55:
-		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:162
-		{
-			i := make(Ints, 1)
-			i[0] = StraceDollar[1].val_int
-			StraceVAL.val_type = i
-		}
-	case 56:
-		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:163
-		{
-			i := make(Ints, 1)
-			i[0] = int64(StraceDollar[1].val_uint)
-			StraceVAL.val_type = i
-		}
-	case 57:
-		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:164
-		{
-			StraceVAL.val_type = append(StraceDollar[1].val_type.(Ints), StraceDollar[2].val_int)
-		}
-	case 58:
-		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:165
-		{
-			StraceVAL.val_type = append(StraceDollar[1].val_type.(Ints), int64(StraceDollar[2].val_uint))
-		}
-	case 59:
-		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:168
-		{
-			f := make(Flags, 1)
-			f[0] = StraceDollar[1].val_flag_type
-			StraceVAL.val_type = f
-		}
-	case 60:
-		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:169
-		{
-			StraceVAL.val_type = append(StraceDollar[1].val_type.(Flags), StraceDollar[2].val_flag_type)
-		}
-	case 61:
-		StraceDollar = StraceS[Stracept-4 : Stracept+1]
-//line strace.y:172
-		{
-			StraceVAL.val_call = newCallType(StraceDollar[1].data, StraceDollar[3].val_types)
-		}
-	case 62:
-		StraceDollar = StraceS[Stracept-4 : Stracept+1]
-//line strace.y:173
-		{
-			StraceVAL.val_call = newCallType(StraceDollar[1].data, StraceDollar[3].val_types)
-		}
-	case 63:
-		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:176
+//line strace.y:153
 		{
 			StraceVAL.val_pointer_type = nullPointer()
 		}
-	case 64:
+	case 51:
 		StraceDollar = StraceS[Stracept-4 : Stracept+1]
-//line strace.y:177
+//line strace.y:154
 		{
 			StraceVAL.val_pointer_type = NewPointerType(StraceDollar[2].val_uint, StraceDollar[4].val_type)
 		}
-	case 65:
+	case 52:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:178
+//line strace.y:155
 		{
 			StraceVAL.val_pointer_type = nullPointer()
 		}
-	case 66:
+	case 53:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:181
+//line strace.y:158
 		{
 			StraceVAL.val_group_type = newGroupType(StraceDollar[2].val_types)
 		}
-	case 67:
+	case 54:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:182
+//line strace.y:159
 		{
 			StraceVAL.val_group_type = newGroupType(StraceDollar[2].val_types)
 		}
-	case 68:
+	case 55:
 		StraceDollar = StraceS[Stracept-4 : Stracept+1]
-//line strace.y:183
+//line strace.y:160
 		{
 			StraceVAL.val_group_type = newGroupType(StraceDollar[2].val_types)
 		}
-	case 69:
+	case 56:
 		StraceDollar = StraceS[Stracept-2 : Stracept+1]
-//line strace.y:186
+//line strace.y:163
 		{
 			StraceVAL.val_type = nil
 		}
-	case 70:
+	case 57:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:187
+//line strace.y:164
 		{
 			StraceVAL.val_type = StraceDollar[3].val_type
 		}
-	case 71:
+	case 58:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:188
+//line strace.y:165
 		{
 			StraceVAL.val_type = StraceDollar[3].val_type
 		}
-	case 72:
+	case 59:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:189
+//line strace.y:166
 		{
 			StraceVAL.val_type = StraceDollar[3].val_type
 		}
-	case 73:
+	case 60:
 		StraceDollar = StraceS[Stracept-3 : Stracept+1]
-//line strace.y:190
+//line strace.y:167
 		{
 			StraceVAL.val_type = StraceDollar[1].val_type
 		}
-	case 74:
+	case 61:
 		StraceDollar = StraceS[Stracept-6 : Stracept+1]
-//line strace.y:191
+//line strace.y:168
 		{
 			StraceVAL.val_type = StraceDollar[6].val_type
 		}
-	case 75:
+	case 62:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:194
+//line strace.y:171
 		{
 			StraceVAL.val_buf_type = newBufferType(StraceDollar[1].data)
 		}
-	case 76:
+	case 63:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:195
+//line strace.y:172
 		{
 			StraceVAL.val_buf_type = newBufferType(StraceDollar[1].data)
 		}
-	case 77:
+	case 64:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:196
+//line strace.y:173
 		{
 			StraceVAL.val_buf_type = newBufferType(StraceDollar[1].data)
 		}
-	case 78:
+	case 65:
 		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:197
+//line strace.y:174
 		{
 			StraceVAL.val_buf_type = newBufferType(StraceDollar[1].data)
-		}
-	case 79:
-		StraceDollar = StraceS[Stracept-1 : Stracept+1]
-//line strace.y:201
-		{
-			StraceVAL.val_flag_type = newFlagType(StraceDollar[1].data)
 		}
 	}
 	goto Stracestack /* stack new state and value */

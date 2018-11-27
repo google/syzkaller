@@ -80,7 +80,6 @@ func (lex *Stracelexer) Lex(out *StraceSymType) int {
             resumed => {tok = RESUMED; fbreak;};
             mac => {out.data = string(lex.data[lex.ts : lex.te]); tok = MAC; fbreak;};
             '=' => {tok = EQUALS;fbreak;};
-            '==' => {tok = LEQUAL; fbreak;};
             '(' => {tok = LPAREN;fbreak;};
             '=@' => {tok = EQUALAT; fbreak;};
             ')' => {tok = RPAREN;fbreak;};
@@ -98,8 +97,6 @@ func (lex *Stracelexer) Lex(out *StraceSymType) int {
             '>>' => {tok = RSHIFT; fbreak;};
             '->' => {tok = ARROW; fbreak;};
             '=>' => {tok = ARROW; fbreak;};
-            "||" => {tok = LOR;fbreak;};
-            "&&" => {tok = LAND;fbreak;};
             ',' => {tok = COMMA;fbreak;};
             '-' => {tok = MINUS; fbreak;};
             '+' => {tok = PLUS; fbreak;};

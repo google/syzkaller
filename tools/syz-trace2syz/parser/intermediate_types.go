@@ -6,27 +6,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/tools/syz-trace2syz/config"
-)
-
-type operation int
-
-const (
-	orOp       = iota // OR = |
-	andOp             // AND = &
-	xorOp             // XOR = ^
-	lshiftOp          // LSHIFT = <<
-	rshiftOp          // RSHIFT = >>
-	onescompOp        // ONESCOMP = ~
-	timesOp           // TIMES = *
-	landOp            // LAND = &&
-	lorOp             // LOR = ||
-	lequalOp          // LEQUAL = ==
-	negOp             // MINUS -x
-	plusOp            // A + B
-	minusOp           // A - B
 )
 
 // TraceTree struct contains intermediate representation of trace
@@ -128,32 +107,6 @@ func (s *Syscall) String() string {
 	return buf.String()
 }
 
-// Call Represents arguments that are expanded by strace into calls
-// E.g. inet_addr("127.0.0.1")
-type Call struct {
-	CallName string
-	Args     []IrType
-}
-
-func newCallType(name string, args []IrType) *Call {
-	return &Call{CallName: name, Args: args}
-}
-
-// String implements IrType String()
-func (c *Call) String() string {
-	buf := new(bytes.Buffer)
-	buf.WriteString("Name: " + c.CallName + "\n")
-	for _, arg := range c.Args {
-		buf.WriteString(fmt.Sprintf("Arg: #%v\n", arg))
-	}
-	return buf.String()
-}
-
-// Eval implements Expression's Eval()
-func (c *Call) Eval(target *prog.Target) uint64 {
-	return EvalCalls(target, c)
-}
-
 // GroupType contains arrays and structs
 type GroupType struct {
 	Elems []IrType
@@ -176,80 +129,16 @@ func (a *GroupType) String() string {
 	return buf.String()
 }
 
-// Expression represents Ints, Flags, Arithmetic expressions
-type Expression interface {
-	IrType
-	Eval(*prog.Target) uint64
+// Constant represents all evaluated expressions produced by strace
+// Constant types are evaluated at parse time
+type Constant uint64
+
+func (c Constant) String() string {
+	return fmt.Sprintf("%#v", c)
 }
 
-type binOp struct {
-	leftOp  Expression
-	op      operation
-	rightOp Expression
-}
-
-func newBinop(leftOperand, rightOperand IrType, Op operation) *binOp {
-	return &binOp{leftOp: leftOperand.(Expression), rightOp: rightOperand.(Expression), op: Op}
-}
-
-// Eval implements Expression's Eval()
-func (b *binOp) Eval(target *prog.Target) uint64 {
-	op1Eval := b.leftOp.Eval(target)
-	op2Eval := b.rightOp.Eval(target)
-	switch b.op {
-	case andOp:
-		return op1Eval & op2Eval
-	case orOp:
-		return op1Eval | op2Eval
-	case xorOp:
-		return op1Eval ^ op2Eval
-	case lshiftOp:
-		return op1Eval << op2Eval
-	case rshiftOp:
-		return op1Eval >> op2Eval
-	case timesOp:
-		return op1Eval * op2Eval
-	case minusOp:
-		return op1Eval - op2Eval
-	case plusOp:
-		return op1Eval + op2Eval
-	default:
-		log.Fatalf("Unable to handle op: %d", b.op)
-		return 0
-	}
-}
-
-// String implements IrType String()
-func (b *binOp) String() string {
-	return fmt.Sprintf("op1: %s op2: %s, operand: %v\n", b.leftOp.String(), b.rightOp.String(), b.op)
-}
-
-type unOp struct {
-	op      operation
-	operand Expression
-}
-
-func newUnop(operand IrType, op operation) *unOp {
-	return &unOp{op: op, operand: operand.(Expression)}
-}
-
-// Eval implements Expression's Eval()
-func (u *unOp) Eval(target *prog.Target) uint64 {
-	opEval := u.operand.Eval(target)
-	switch u.op {
-	case onescompOp:
-		return ^opEval
-	case negOp:
-		return -opEval
-	default:
-		log.Fatalf("Unsupported Unop Op: %d", u.op)
-	}
-	return 0
-}
-
-// String implements IrType String()
-func (u *unOp) String() string {
-	return fmt.Sprintf("op1: %v operand: %v\n", u.operand, u.op)
+func (c Constant) Val() uint64 {
+	return uint64(c)
 }
 
 // BufferType contains strings
@@ -264,82 +153,6 @@ func newBufferType(val string) *BufferType {
 // String implements IrType String()
 func (b *BufferType) String() string {
 	return fmt.Sprintf("Buffer: %s with length: %d\n", b.Val, len(b.Val))
-}
-
-// Flags contains set of flagTypes. Most of the time will contain just 1 element
-type Flags []*flagType
-
-// Ints Contains set of intTypes. Most of the time will contain just 1 element
-type Ints []int64
-
-// NewIntsType - Constructor
-func NewIntsType(vals []int64) Ints {
-	var ints []int64
-	ints = append(ints, vals...)
-	return ints
-}
-
-// Eval implements Expression's Eval()
-func (f Flags) Eval(target *prog.Target) uint64 {
-	var val uint64
-	for _, v := range f {
-		val |= v.eval(target)
-	}
-	return val
-}
-
-// String implements IrType String()
-func (f Flags) String() string {
-	s := ""
-	for _, v := range f {
-		s += " " + v.string()
-	}
-	return s[1:]
-}
-
-// Eval implements Expression's Eval()
-func (i Ints) Eval(target *prog.Target) uint64 {
-	if len(i) > 1 {
-		// We need to handle this case by case. We allow more than one elemnt
-		// just to properly parse the traces
-		log.Fatalf("Cannot evaluate Ints with more than one element")
-	}
-	if len(i) == 1 {
-		return uint64(i[0])
-	}
-	return 0
-}
-
-// String implements IrType String()
-func (i Ints) String() string {
-	if len(i) == 1 {
-		return fmt.Sprintf("%d", i[0])
-	}
-	return ""
-}
-
-type flagType struct {
-	Val string
-}
-
-func newFlagType(val string) (typ *flagType) {
-	return &flagType{Val: val}
-}
-
-func (f *flagType) eval(target *prog.Target) uint64 {
-	flag := f.string()
-	if trueFlag, ok := config.Consts[flag]; ok {
-		flag = trueFlag
-	}
-	if val, ok := target.ConstMap[flag]; ok {
-		return val
-	}
-	log.Fatalf("Failed to eval flag: %s", flag)
-	return 0
-}
-
-func (f *flagType) string() string {
-	return f.Val
 }
 
 // PointerType holds pointers from strace e.g. NULL, 0x7f24234234, &2342342={...}

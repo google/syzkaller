@@ -76,18 +76,18 @@ func matchCall(ctx *Context, meta *prog.Syscall, call *parser.Syscall, discrimin
 		switch t := typ.(type) {
 		case *prog.ConstType:
 			// Consts must match precisely.
-			expr, ok := arg.(parser.Expression)
-			if !ok || expr.Eval(ctx.Target) != t.Val {
+			constant, ok := arg.(parser.Constant)
+			if !ok || constant.Val() != t.Val {
 				return -1
 			}
 			score += 10
 		case *prog.FlagsType:
 			// Flags may or may not match, but matched flags increase score.
-			expr, ok := arg.(parser.Expression)
+			constant, ok := arg.(parser.Constant)
 			if !ok {
 				return -1
 			}
-			val := expr.Eval(ctx.Target)
+			val := constant.Val()
 			for _, v := range t.Vals {
 				if v == val {
 					score++

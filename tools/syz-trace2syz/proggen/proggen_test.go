@@ -47,7 +47,7 @@ func parseSingleTrace(t *testing.T, data string) *Context {
 }
 
 func TestParseTraceBasic(t *testing.T) {
-	test := `open("file", O_CREAT|O_RDWR) = 3
+	test := `open("file", 66) = 3
 			 write(3, "somedata", 8) = 8`
 	ctx := parseSingleTrace(t, test)
 	p := ctx.Prog
@@ -85,8 +85,8 @@ func TestParseTraceInnerResource(t *testing.T) {
 }
 
 func TestNegativeResource(t *testing.T) {
-	test := `socket(AF_CAN, SOCK_RAW, CAN_RAW) = 3
- 			  getsockopt(-1, SOL_SCTP, SCTP_RESET_STREAMS, 0x200005c0, [14]) = -1 EBADF (Bad file descriptor)`
+	test := `socket(29, 3, 1) = 3
+ 			  getsockopt(-1, 132, 119, 0x200005c0, [14]) = -1 EBADF (Bad file descriptor)`
 
 	p := parseSingleTrace(t, test).Prog
 	expectedSeq := "socket$can_raw-getsockopt$inet_sctp6_SCTP_RESET_STREAMS"
@@ -105,7 +105,7 @@ func TestNegativeResource(t *testing.T) {
 
 func TestDistinguishResourceTypes(t *testing.T) {
 	test := `inotify_init() = 2
-			 open("tmp", O_RDONLY|O_CLOEXEC) = 3
+			 open("tmp", 66) = 3
 			 inotify_add_watch(3, "\x2e", 0xfff) = 3
 	 		 write(3, "temp", 5) = 5
 			 inotify_rm_watch(2, 3) = 0`
@@ -137,10 +137,10 @@ func TestDistinguishResourceTypes(t *testing.T) {
 }
 
 func TestSocketLevel(t *testing.T) {
-	test := `socket(AF_UNIX, SOCK_STREAM, 0) = 3
-			 socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0) = 3
-			 socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0) = 3
-			 socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0) = 3`
+	test := `socket(1, 1, 0) = 3
+			 socket(1, 1 | 2048, 0) = 3
+			 socket(1, 1 | 524288, 0) = 3
+			 socket(1, 1 | 524288, 0) = 3`
 	expectedSeq := "socket$unix-socket$unix-socket$unix-socket$unix"
 	p := parseSingleTrace(t, test).Prog
 	if p.String() != expectedSeq {
@@ -158,33 +158,24 @@ func TestIdentifySockaddrStorage(t *testing.T) {
 	}
 	tests := []identifyStorageTest{
 		{
-			`open("temp", O_WRONLY) = 3
-			  connect(3, {sa_family=AF_INET, sin_port=htons(37957), sin_addr=inet_addr("0.0.0.0")}, 16) = -1`,
+			`open("temp", 1) = 3
+			  connect(3, {sa_family=2, sin_port=37957, sin_addr=0x0}, 16) = -1`,
 			"open-connect",
 			1,
 			1,
 			"sockaddr_in",
 		},
 		{
-			`open("temp", O_WRONLY) = 3
-			  connect(6, {sa_family=AF_INET6, sin6_port=htons(8888), inet_pton(AF_INET6, "::1", &sin6_addr),` +
-				`sin6_flowinfo=htonl(42), sin6_scope_id=0}, 128) = 0`,
-			"open-connect",
-			1,
-			1,
-			"sockaddr_in6",
-		},
-		{
-			`open("temp", O_WRONLY) = 3
-			  connect(3, {sa_family=AF_UNIX, sun_path="temp"}, 110) = -1`,
+			`open("temp", 1) = 3
+			  connect(3, {sa_family=1, sun_path="temp"}, 110) = -1`,
 			"open-connect",
 			1,
 			1,
 			"sockaddr_un",
 		},
 		{
-			`open("temp", O_WRONLY) = 3
-			  bind(5, {sa_family=AF_NETLINK, nl_pid=0, nl_groups=00000000}, 12)  = -1`,
+			`open("temp", 1) = 3
+			  bind(5, {sa_family=16, nl_pid=0, nl_groups=00000000}, 12)  = -1`,
 			"open-bind",
 			1,
 			1,
@@ -228,8 +219,8 @@ func TestIdentifyIfru(t *testing.T) {
 	}
 	tests := []testIfru{
 		{
-			`socket(AF_PACKET, SOCK_RAW, 768)  = 3
-			 ioctl(3, SIOCGIFHWADDR, {ifr_name="\x6c\x6f", ifr_hwaddr=00:00:00:00:00:00}) = 0`,
+			`socket(17, 3, 768)  = 3
+			 ioctl(3, 35111, {ifr_name="\x6c\x6f", ifr_hwaddr=00:00:00:00:00:00}) = 0`,
 			"socket$packet-ioctl$sock_ifreq",
 		},
 	}
@@ -249,40 +240,40 @@ func TestParseVariants(t *testing.T) {
 	}
 	tests := []variantTest{
 		{
-			`socket(AF_UNIX, SOCK_STREAM, 0) = 3
-			  connect(3, {sa_family=AF_UNIX, sun_path="temp"}, 110) = -1 ENOENT (Bad file descriptor)`,
+			`socket(1, 1, 0) = 3
+			  connect(3, {sa_family=1, sun_path="temp"}, 110) = -1 ENOENT (Bad file descriptor)`,
 			"socket$unix-connect$unix",
 		},
 		{
-			`socket(AF_UNIX, SOCK_STREAM, 0) = 3`,
+			`socket(1, 1, 0) = 3`,
 			"socket$unix",
 		},
 		{
-			`socket(AF_INET, SOCK_STREAM, IPPROTO_IP) = 5
-			  ioctl(5, FIONBIO, [1]) = 0`,
+			`socket(2, 1, 0) = 5
+			  ioctl(5, 21537, [1]) = 0`,
 			"socket$inet_tcp-ioctl$int_in",
 		},
 		{
-			`socket(AF_INET, SOCK_STREAM, IPPROTO_IP) = 3
-			  setsockopt(3, SOL_SOCKET, SO_REUSEADDR, [1], 4) = 0`,
+			`socket(2, 1, 0) = 3
+			  setsockopt(3, 1, 2, [1], 4) = 0`,
 			"socket$inet_tcp-setsockopt$sock_int",
 		},
 		{
-			`9795  socket(AF_PACKET, SOCK_RAW, 768)  = 3
-			  9795  ioctl(3, SIOCGIFINDEX, {ifr_name="\x6c\x6f", }) = 0`,
+			`9795  socket(17, 3, 768)  = 3
+			  9795  ioctl(3, 35123, {ifr_name="\x6c\x6f", }) = 0`,
 			"socket$packet-ioctl$ifreq_SIOCGIFINDEX_team",
 		},
 		{
-			`open("temp", O_WRONLY) = 3
-			  connect(3, {sa_family=AF_INET, sin_port=htons(37957), sin_addr=inet_addr("0.0.0.0")}, 16) = -1`,
+			`open("temp", 1) = 3
+			  connect(3, {sa_family=2, sin_port=17812, sin_addr=0x0}, 16) = -1`,
 			"open-connect",
 		},
 		{
-			`ioprio_get(IOPRIO_WHO_PROCESS, 0) = 4`,
+			`ioprio_get(1, 0) = 4`,
 			"ioprio_get$pid",
 		},
 		{
-			`socket(AF_PACKET, SOCK_DGRAM, htons(ETH_P_ALL)) = 3`,
+			`socket(17, 2, 768) = 3`,
 			"socket$packet",
 		},
 	}
@@ -303,14 +294,14 @@ func TestParseIPv4(t *testing.T) {
 	}
 	tests := []ip4test{
 		{
-			`socket(AF_INET, SOCK_STREAM, IPPROTO_IP) = 3
-			  connect(3, {sa_family=AF_INET, sin_port=htons(37957), sin_addr=inet_addr("0.0.0.0")}, 16) = 0`,
+			`socket(2, 1, 0) = 3
+			  connect(3, {sa_family=2, sin_port=17812, sin_addr=0x0}, 16) = 0`,
 			"socket$inet_tcp-connect$inet",
 			0,
 		},
 		{
-			`socket(AF_INET, SOCK_STREAM, IPPROTO_IP) = 3
-			  connect(3, {sa_family=AF_INET, sin_port=htons(37957), sin_addr=inet_addr("127.0.0.1")}, 16) = 0`,
+			`socket(2, 1, 0) = 3
+			  connect(3, {sa_family=2, sin_port=17812, sin_addr=0x7f000001}, 16) = 0`,
 			"socket$inet_tcp-connect$inet",
 			0x7f000001,
 		},
@@ -342,50 +333,5 @@ func TestParseIPv4(t *testing.T) {
 			t.Fatalf("Failed test: %d. Expected %s != %s", i, test.expectedSeq, p.String())
 		}
 		testIpv4(test.ip4, p.Calls[1].Args[1], t)
-	}
-}
-
-func TestParseIPv6(t *testing.T) {
-	type ip6test struct {
-		test        string
-		expectedSeq string
-		ip6         string
-	}
-	tests := []ip6test{
-		{
-			`socket(AF_INET6, SOCK_DGRAM, IPPROTO_IP) = 3
-			  bind(3, {sa_family=AF_INET6, sin6_port=htons(8), inet_pton(AF_INET6, "::", &sin6_addr),` +
-				`sin6_flowinfo=htonl(22), sin6_scope_id=2049}, 128) = 0`,
-			"socket$inet6_udp-bind$inet6",
-			"empty",
-		},
-		{
-			`socket(AF_INET6, SOCK_DGRAM, IPPROTO_IP) = 3
-			  bind(3, {sa_family=AF_INET6, sin6_port=htons(8), inet_pton(AF_INET6, "::1", &sin6_addr),` +
-				`sin6_flowinfo=htonl(22), sin6_scope_id=2049}, 128) = 0`,
-			"socket$inet6_udp-bind$inet6",
-			"local",
-		},
-	}
-	testIP6 := func(expectedIp string, a prog.Arg, testId int) {
-		sockaddr, ok := a.(*prog.PointerArg).Res.(*prog.GroupArg)
-		if !ok {
-			t.Fatalf("Failed test %d. %s is not Pointer->GroupArg", testId, a.Type().Name())
-		}
-		// Use index 3 instead of 2 since inet_pton and sin6_flowinfo's positions are swapped
-		ipv6Addr, ok := sockaddr.Inner[3].(*prog.UnionArg)
-		if !ok {
-			t.Fatalf("Failed test %d. Inner arg is not union type %s", testId, sockaddr.Inner[3].Type().Name())
-		}
-		if ipv6Addr.Option.Type().FieldName() != expectedIp {
-			t.Fatalf("Failed test: %d. Expected Ip %s != %s", testId, expectedIp, ipv6Addr.Option.Type().FieldName())
-		}
-	}
-	for i, test := range tests {
-		p := parseSingleTrace(t, test.test).Prog
-		if p.String() != test.expectedSeq {
-			t.Fatalf("Failed test: %d. Expected %s != %s", i, test.expectedSeq, p.String())
-		}
-		testIP6(test.ip6, p.Calls[1].Args[1], i)
 	}
 }

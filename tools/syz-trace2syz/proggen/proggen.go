@@ -154,7 +154,7 @@ func genCall(ctx *Context) *prog.Call {
 
 func genResult(syzType prog.Type, straceRet int64, ctx *Context) {
 	if straceRet > 0 {
-		straceExpr := parser.NewIntsType([]int64{straceRet})
+		straceExpr := parser.Constant(uint64(straceRet))
 		switch syzType.(type) {
 		case *prog.ResourceType:
 			log.Logf(2, "Call: %s returned a resource type with val: %s",
@@ -216,7 +216,7 @@ func genArray(syzType *prog.ArrayType, traceType parser.IrType, ctx *Context) pr
 		for i := 0; i < len(a.Elems); i++ {
 			args = append(args, genArgs(syzType.Type, a.Elems[i], ctx))
 		}
-	case *parser.PointerType, parser.Expression, *parser.BufferType:
+	case *parser.PointerType, parser.Constant, *parser.BufferType:
 		return prog.DefaultArg(syzType)
 	default:
 		log.Fatalf("Error parsing Array: %s with Wrong Type: %#v", syzType.FldName, traceType)
@@ -245,7 +245,7 @@ func genStruct(syzType *prog.StructType, traceType parser.IrType, ctx *Context) 
 			}
 			j++
 		}
-	case parser.Expression, *parser.BufferType:
+	case parser.Constant, *parser.BufferType:
 		return prog.DefaultArg(syzType)
 	default:
 		log.Fatalf("Unsupported Strace Type: %#v to Struct Type", a)
@@ -305,8 +305,8 @@ func genBuffer(syzType *prog.BufferType, traceType parser.IrType, ctx *Context) 
 	switch a := traceType.(type) {
 	case *parser.BufferType:
 		bufVal = []byte(a.Val)
-	case parser.Expression:
-		val := a.Eval(ctx.Target)
+	case parser.Constant:
+		val := a.Val()
 		bArr := make([]byte, 8)
 		binary.LittleEndian.PutUint64(bArr, val)
 		bufVal = bArr
@@ -345,7 +345,7 @@ func genPtr(syzType *prog.PtrType, traceType parser.IrType, ctx *Context) prog.A
 		res := genArgs(syzType.Type, a.Res, ctx)
 		return addr(ctx, syzType, res.Size(), res)
 
-	case parser.Expression:
+	case parser.Constant:
 		// Likely have a type of the form bind(3, 0xfffffffff, [3]);
 		res := prog.DefaultArg(syzType.Type)
 		return addr(ctx, syzType, res.Size(), res)
@@ -360,16 +360,8 @@ func genConst(syzType prog.Type, traceType parser.IrType, ctx *Context) prog.Arg
 		return prog.DefaultArg(syzType)
 	}
 	switch a := traceType.(type) {
-	case parser.Expression:
-		switch b := a.(type) {
-		case parser.Ints:
-			if len(b) >= 2 {
-				// May get here through select. E.g. select(2, [6, 7], ..) since Expression can
-				// be Ints. However, creating fd set is hard and we let default arg through
-				return prog.DefaultArg(syzType)
-			}
-		}
-		return prog.MakeConstArg(syzType, a.Eval(ctx.Target))
+	case parser.Constant:
+		return prog.MakeConstArg(syzType, a.Val())
 	case *parser.GroupType:
 		// Sometimes strace represents a pointer to int as [0] which gets parsed
 		// as Array([0], len=1). A good example is ioctl(3, FIONBIO, [1]). We may also have an union int type that
@@ -403,8 +395,8 @@ func genResource(syzType *prog.ResourceType, traceType parser.IrType, ctx *Conte
 		return res
 	}
 	switch a := traceType.(type) {
-	case parser.Expression:
-		val := a.Eval(ctx.Target)
+	case parser.Constant:
+		val := a.Val()
 		if arg := ctx.ReturnCache.get(syzType, traceType); arg != nil {
 			res := prog.MakeResultArg(syzType, arg.(*prog.ResultArg), syzType.Default())
 			return res
@@ -439,8 +431,8 @@ func parseProc(syzType *prog.ProcType, traceType parser.IrType, ctx *Context) pr
 		return prog.DefaultArg(syzType)
 	}
 	switch a := traceType.(type) {
-	case parser.Expression:
-		val := a.Eval(ctx.Target)
+	case parser.Constant:
+		val := a.Val()
 		if val >= syzType.ValuesPerProc {
 			return prog.MakeConstArg(syzType, syzType.ValuesPerProc-1)
 		}
@@ -493,8 +485,8 @@ func shouldSkip(ctx *Context) bool {
 	case "write":
 		// We skip all writes to stdout and stderr because they can corrupt our crash summary
 		switch a := syscall.Args[0].(type) {
-		case parser.Expression:
-			val := a.Eval(ctx.Target)
+		case parser.Constant:
+			val := a.Val()
 			if val == 1 || val == 2 {
 				return true
 			}

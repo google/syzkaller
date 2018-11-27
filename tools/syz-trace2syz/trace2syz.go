@@ -68,7 +68,7 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 	} else if *flagDir != "" {
 		names = getTraceFiles(*flagDir)
 	} else {
-		log.Fatalf("Flag or FlagDir required")
+		log.Fatalf("-file or -dir must be specified")
 	}
 
 	deserializeDir := *flagDeserialize
@@ -123,7 +123,7 @@ func getTraceFiles(dir string) []string {
 	var names []string
 	infos, err := ioutil.ReadDir(dir)
 	if err != nil {
-		log.Fatalf("Failed to read dir: %s", err)
+		log.Fatalf("%s", err)
 
 	}
 	for _, info := range infos {

@@ -49,6 +49,14 @@ func parseSyscall(scanner *bufio.Scanner) (int, *Syscall) {
 	return ret, lex.result
 }
 
+func shouldSkip(line string) bool {
+	restart := strings.Contains(line, sysrestart)
+	signalPlus := strings.Contains(line, signalPlus)
+	signalMinus := strings.Contains(line, signalMinus)
+	noProcess := strings.Contains(line, noSuchProcess)
+	return restart || signalPlus || signalMinus || noProcess
+}
+
 // ParseLoop parses each line of a strace file in a loop
 func ParseLoop(data string) (tree *TraceTree) {
 	tree = NewTraceTree()
@@ -61,12 +69,7 @@ func ParseLoop(data string) (tree *TraceTree) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		restart := strings.Contains(line, sysrestart)
-		signalPlus := strings.Contains(line, signalPlus)
-		signalMinus := strings.Contains(line, signalMinus)
-		noProcess := strings.Contains(line, noSuchProcess)
-		shouldSkip := restart || signalPlus || signalMinus || noProcess
-		if shouldSkip {
+		if shouldSkip(line) {
 			continue
 		}
 		if strings.Contains(line, coverID) {
