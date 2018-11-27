@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -21,24 +22,28 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", kernelDir, targetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/%v", kernelDir, targetArch, kernelName)
 
-	if err := ctx.configure(confDir, compileDir, kernelName); err != nil {
+	useGCE := vmType == "gce"
+	if err := ctx.configure(confDir, compileDir, kernelName, useGCE); err != nil {
 		return err
 	}
 
 	if err := ctx.make(compileDir, "all"); err != nil {
 		return err
 	}
-
-	for src, dst := range map[string]string{
-		filepath.Join(compileDir, "obj/bsd"):     "kernel",
-		filepath.Join(compileDir, "obj/bsd.gdb"): "obj/bsd.gdb",
-		filepath.Join(userspaceDir, "image"):     "image",
-		filepath.Join(userspaceDir, "key"):       "key",
+	for _, s := range []struct{ dir, src, dst string }{
+		{compileDir, "obj/bsd", "kernel"},
+		{compileDir, "obj/bsd.gdb", "obj/bsd.gdb"},
+		{userspaceDir, "image", "image"},
+		{userspaceDir, "key", "key"},
 	} {
-		fullDst := filepath.Join(outputDir, dst)
-		if err := osutil.CopyFile(src, fullDst); err != nil {
-			return fmt.Errorf("failed to copy %v -> %v: %v", src, fullDst, err)
+		fullSrc := filepath.Join(s.dir, s.src)
+		fullDst := filepath.Join(outputDir, s.dst)
+		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
+			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
+	}
+	if useGCE {
+		return CopyKernelToImage(outputDir)
 	}
 	return nil
 }
@@ -47,11 +52,18 @@ func (ctx openbsd) clean(kernelDir string) error {
 	return ctx.make(kernelDir, "", "clean")
 }
 
-func (ctx openbsd) configure(confDir, compileDir, kernelName string) error {
-	conf := []byte(`
-include "arch/amd64/conf/GENERIC"
+func (ctx openbsd) configure(confDir, compileDir, kernelName string, useGCE bool) error {
+	baseConfig := "GENERIC"
+	if useGCE {
+		// GCE supports multiple CPUs.
+		// TODO(gnezdo): Switch to GENERIC.MP once kernel crash is solved.
+		// http://openbsd-archive.7691.n7.nabble.com/option-kcov-GENERIC-MP-gt-silent-crash-tc355807.html
+		baseConfig = "GENERIC"
+	}
+	conf := []byte(fmt.Sprintf(`
+include "arch/amd64/conf/%v"
 pseudo-device kcov 1
-`)
+`, baseConfig))
 	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), conf); err != nil {
 		return err
 	}
@@ -76,5 +88,29 @@ pseudo-device kcov 1
 func (ctx openbsd) make(kernelDir string, args ...string) error {
 	args = append([]string{"-j", strconv.Itoa(runtime.NumCPU())}, args...)
 	_, err := osutil.RunCmd(10*time.Minute, kernelDir, "make", args...)
+	return err
+}
+
+// The easiest way to make an openbsd image that boots the given
+// kernel on GCE is to simply overwrite it inside the disk image.
+// Ideally a user space tool capable of understanding FFS should
+// implement this directly, but vnd(4) device would do in a pinch.
+// Assumes that the outputDir contains the appropriately named files.
+func CopyKernelToImage(outputDir string) error {
+	script := `set -eux
+# Cleanup in case something failed before.
+doas umount /altroot || true
+doas vnconfig -u vnd0 || true
+
+doas /sbin/vnconfig vnd0 image
+doas mount /dev/vnd0a /altroot
+doas cp kernel /altroot/bsd
+doas umount /altroot
+doas vnconfig -u vnd0
+`
+	debugOut, err := osutil.RunCmd(10*time.Minute, outputDir, "/bin/sh", "-c", script)
+	if err != nil {
+		log.Logf(0, "Error copying kernel into image %v\n%v\n", outputDir, debugOut)
+	}
 	return err
 }
