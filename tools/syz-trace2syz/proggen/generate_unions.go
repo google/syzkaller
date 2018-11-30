@@ -4,35 +4,10 @@
 package proggen
 
 import (
-	"strings"
-
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
-
-func genIpv4Addr(syzType *prog.UnionType, irType parser.IrType, ctx *Context) prog.Arg {
-	var ip uint64
-	switch a := irType.(type) {
-	case parser.Constant:
-		ip = a.Val()
-	default:
-		log.Fatalf("Failed to parse ip4addr. Expected Expression irtype got: %#v", a)
-	}
-	for _, field := range syzType.Fields {
-		if !strings.Contains(field.FieldName(), "rand") {
-			continue
-		}
-		switch field.(type) {
-		case *prog.IntType:
-			return prog.MakeUnionArg(syzType, prog.MakeConstArg(field, ip))
-		default:
-			log.Fatalf("Rand field isn't int type. Instead is %s", field.Name())
-		}
-	}
-	log.Logf(4, "Generating default arg for ip address")
-	return prog.DefaultArg(syzType)
-}
 
 func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
 	var idx = 0

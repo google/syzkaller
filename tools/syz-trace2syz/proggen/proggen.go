@@ -257,8 +257,6 @@ func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context
 	// matches our strace type
 
 	switch syzType.TypeName {
-	case "ipv4_addr":
-		return genIpv4Addr(syzType, straceType, ctx)
 	case "sockaddr_storage":
 		return genSockaddrStorage(syzType, straceType, ctx)
 	case "sockaddr_nl":
@@ -463,7 +461,6 @@ func reorderStructFields(syzType *prog.StructType, traceType *parser.GroupType, 
 		field2 := traceType.Elems[2]
 		traceType.Elems[2] = traceType.Elems[3]
 		traceType.Elems[3] = field2
-		// TODO: Add more cases for BPF structs
 	}
 }
 
