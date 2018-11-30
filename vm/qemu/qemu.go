@@ -313,7 +313,9 @@ func (inst *instance) Boot() error {
 		"-serial", "stdio",
 		"-no-reboot",
 	}
-	args = append(args, strings.Split(inst.cfg.QemuArgs, " ")...)
+	if inst.cfg.QemuArgs != "" {
+		args = append(args, strings.Split(inst.cfg.QemuArgs, " ")...)
+	}
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
