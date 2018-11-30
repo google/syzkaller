@@ -10,11 +10,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#if !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__OpenBSD__)
-// This is just so that "make executor TARGETOS=freebsd/netbsd" works on linux.
-#define __syscall syscall
-#endif
-
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
 #if GOOS_openbsd
