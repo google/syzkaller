@@ -181,7 +181,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 128]", cfg.Count)
 	}
 	if env.Debug && cfg.Count > 1 {
-		log.Logf(0, "Limiting number of VMs from %v to 1 in debug mode", cfg.Count)
+		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
 		cfg.Count = 1
 	}
 	if _, err := exec.LookPath(cfg.Qemu); err != nil {
