@@ -18,10 +18,6 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
-	switch runtime.GOOS {
-	case "openbsd":
-		t.Skipf("broken on %v", runtime.GOOS)
-	}
 	t.Parallel()
 	for _, target := range prog.AllTargets() {
 		target := target

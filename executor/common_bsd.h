@@ -11,6 +11,50 @@
 
 #if GOOS_openbsd
 
+#define __syscall syscall
+
+#if SYZ_EXECUTOR || __NR_syz_open_pts
+
+#include <termios.h>
+#include <util.h>
+
+static uintptr_t syz_open_pts(void)
+{
+	int master, slave;
+
+	if (openpty(&master, &slave, NULL, NULL, NULL) == -1)
+		return -1;
+	// Move the master fd up in order to reduce the chances of the fuzzer
+	// generating a call to close(2) with the same fd.
+	if (dup2(master, master + 100) != -1)
+		close(master);
+	return slave;
+}
+
+#endif // SYZ_EXECUTOR || __NR_syz_open_pts
+
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+
+#include <fcntl.h>
+#include <net/if_tun.h>
+#include <sys/types.h>
+
+static int tunfd = -1;
+
+// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
+// Rest of the packet (if any) will be silently truncated which is fine.
+#define SYZ_TUN_MAX_PACKET_SIZE 1000
+
+// Maximum number of tun devices in the default install.
+#define MAX_TUN 4
+
+// All patterns are non-expanding given values < MAX_TUN.
+#define TUN_IFACE "tap%d"
+#define TUN_DEVICE "/dev/tap%d"
+
+#define LOCAL_IPV4 "172.20.%d.170"
+#define LOCAL_IPV6 "fe80::%02hxaa"
+
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
@@ -55,55 +99,6 @@ static void execute_command(bool panic, const char* format, ...)
 		debug("command '%s': %d\n", &command[0], rv);
 	}
 }
-
-#define __syscall syscall
-
-#if SYZ_EXECUTOR || __NR_syz_open_pts
-
-#if defined(__OpenBSD__)
-#include <termios.h>
-#include <util.h>
-#else
-// Needed when compiling on Linux.
-#include <pty.h>
-#endif // defined(__OpenBSD__)
-
-static uintptr_t syz_open_pts(void)
-{
-	int master, slave;
-
-	if (openpty(&master, &slave, NULL, NULL, NULL) == -1)
-		return -1;
-	// Move the master fd up in order to reduce the chances of the fuzzer
-	// generating a call to close(2) with the same fd.
-	if (dup2(master, master + 100) != -1)
-		close(master);
-	return slave;
-}
-
-#endif // SYZ_EXECUTOR || __NR_syz_open_pts
-
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
-
-#include <fcntl.h>
-#include <net/if_tun.h>
-#include <sys/types.h>
-
-static int tunfd = -1;
-
-// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
-// Rest of the packet (if any) will be silently truncated which is fine.
-#define SYZ_TUN_MAX_PACKET_SIZE 1000
-
-// Maximum number of tun devices in the default install.
-#define MAX_TUN 4
-
-// All patterns are non-expanding given values < MAX_TUN.
-#define TUN_IFACE "tap%d"
-#define TUN_DEVICE "/dev/tap%d"
-
-#define LOCAL_IPV4 "172.20.%d.170"
-#define LOCAL_IPV6 "fe80::%02hxaa"
 
 static void initialize_tun(int tun_id)
 {
