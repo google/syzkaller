@@ -63,7 +63,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		}
 	}
 	if env.Debug && len(cfg.Targets) > 1 {
-		fmt.Errorf("limiting number of targets from %v to 1 in debug mode", len(cfg.Targets))
+		log.Logf(0, "limiting number of targets from %v to 1 in debug mode", len(cfg.Targets))
 		cfg.Targets = cfg.Targets[:1]
 	}
 	pool := &Pool{
