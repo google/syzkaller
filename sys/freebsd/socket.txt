@@ -8,6 +8,7 @@ include <sys/socket.h>
 include <sys/sockio.h>
 include <netinet/in.h>
 include <linux/linux.h>
+include <compat/linux/linux_file.h>
 include <compat/linux/linux_socket.h>
 
 resource sock[fd]
