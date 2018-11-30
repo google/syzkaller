@@ -1,0 +1,18 @@
+TITLE: panic: error mapping run data: error mapping runData: cannot allocate memory
+SUPPRESSED: Y
+
+panic: error mapping run data: error mapping runData: cannot allocate memory
+
+goroutine 354 [running, locked to thread]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/kvm.(*machine).newVCPU(0xc4201b6400, 0xc420135c80)
+        pkg/sentry/platform/kvm/machine.go:152 +0x2c0
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/kvm.(*machine).Get(0xc4201b6400, 0xc69020)
+        pkg/sentry/platform/kvm/machine.go:319 +0x3f2
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/kvm.(*context).Switch(0xc4209e2060, 0xc753e0, 0xc42015a480, 0xc7af20, 0xc4209f2000, 0xffffffff, 0x0, 0x0, 0x0, 0x0)
+        pkg/sentry/platform/kvm/context.go:41 +0x5b
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc4209f4000, 0xc69020, 0x0)
+        pkg/sentry/kernel/task_run.go:207 +0x17d
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc4209f4000, 0x2d)
+        pkg/sentry/kernel/task_run.go:95 +0x174
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+        pkg/sentry/kernel/task_start.go:251 +0x100

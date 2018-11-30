@@ -24,6 +24,7 @@ func ctorGvisor(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter
 		"panic: ptrace set regs failed: no such process",   // OOM kill
 		"panic: failed to start executor binary",
 		"panic: executor failed: pthread_create failed",
+		"panic: error mapping run data: error mapping runData: cannot allocate memory",
 		"ERROR: ThreadSanitizer", // Go race failing due to OOM.
 		"FATAL: ThreadSanitizer",
 	}
