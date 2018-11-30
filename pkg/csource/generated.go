@@ -428,6 +428,10 @@ static uintptr_t syz_open_pts(void)
 
 #endif
 
+#endif
+
+#if GOOS_freebsd || GOOS_openbsd
+
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 
 #include <fcntl.h>
@@ -500,6 +504,12 @@ static void initialize_tun(int tun_id)
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
 
 	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
+#if GOOS_freebsd
+	if ((tunfd < 0) && (errno == ENOENT)) {
+		execute_command(0, "kldload -q if_tap");
+		tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
+	}
+#endif
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
 		fail("tun: can't open %s\n", tun_device);
@@ -570,7 +580,11 @@ struct tcp_resources {
 	uint32 ack;
 };
 
+#if GOOS_freebsd
+#include <net/ethernet.h>
+#else
 #include <net/ethertypes.h>
+#endif
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -634,7 +648,7 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 static void loop();
 static int do_sandbox_none(void)
 {
-#if GOOS_openbsd && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if (GOOS_freebsd || GOOS_openbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
 	loop();
