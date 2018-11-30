@@ -408,6 +408,41 @@ void child()
 
 #if GOOS_openbsd
 
+#define __syscall syscall
+
+#if SYZ_EXECUTOR || __NR_syz_open_pts
+
+#include <termios.h>
+#include <util.h>
+
+static uintptr_t syz_open_pts(void)
+{
+	int master, slave;
+
+	if (openpty(&master, &slave, NULL, NULL, NULL) == -1)
+		return -1;
+	if (dup2(master, master + 100) != -1)
+		close(master);
+	return slave;
+}
+
+#endif
+
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+
+#include <fcntl.h>
+#include <net/if_tun.h>
+#include <sys/types.h>
+
+static int tunfd = -1;
+#define SYZ_TUN_MAX_PACKET_SIZE 1000
+#define MAX_TUN 4
+#define TUN_IFACE "tap%d"
+#define TUN_DEVICE "/dev/tap%d"
+
+#define LOCAL_IPV4 "172.20.%d.170"
+#define LOCAL_IPV6 "fe80::%02hxaa"
+
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
@@ -449,45 +484,6 @@ static void execute_command(bool panic, const char* format, ...)
 		debug("command '%s': %d\n", &command[0], rv);
 	}
 }
-
-#define __syscall syscall
-
-#if SYZ_EXECUTOR || __NR_syz_open_pts
-
-#if defined(__OpenBSD__)
-#include <termios.h>
-#include <util.h>
-#else
-#include <pty.h>
-#endif
-
-static uintptr_t syz_open_pts(void)
-{
-	int master, slave;
-
-	if (openpty(&master, &slave, NULL, NULL, NULL) == -1)
-		return -1;
-	if (dup2(master, master + 100) != -1)
-		close(master);
-	return slave;
-}
-
-#endif
-
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
-
-#include <fcntl.h>
-#include <net/if_tun.h>
-#include <sys/types.h>
-
-static int tunfd = -1;
-#define SYZ_TUN_MAX_PACKET_SIZE 1000
-#define MAX_TUN 4
-#define TUN_IFACE "tap%d"
-#define TUN_DEVICE "/dev/tap%d"
-
-#define LOCAL_IPV4 "172.20.%d.170"
-#define LOCAL_IPV6 "fe80::%02hxaa"
 
 static void initialize_tun(int tun_id)
 {
