@@ -74,7 +74,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Count < 1 || cfg.Count > 1000 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
 	}
-	if env.Debug {
+	if env.Debug && cfg.Count > 1 {
+		log.Logf(0, "limiting number of VMs from %v to 1 in debug mode", cfg.Count)
 		cfg.Count = 1
 	}
 	if cfg.MachineType == "" {
