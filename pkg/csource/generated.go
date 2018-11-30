@@ -406,6 +406,8 @@ void child()
 #include <stdbool.h>
 #include <string.h>
 
+#if GOOS_openbsd
+
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
@@ -447,8 +449,6 @@ static void execute_command(bool panic, const char* format, ...)
 		debug("command '%s': %d\n", &command[0], rv);
 	}
 }
-
-#if GOOS_openbsd
 
 #define __syscall syscall
 
@@ -632,19 +632,18 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 	return 0;
 }
 #endif
+#endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
 static int do_sandbox_none(void)
 {
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_TUN_ENABLE
 	initialize_tun(procid);
 #endif
 	loop();
 	return 0;
 }
-#endif
-
 #endif
 
 #elif GOOS_fuchsia
