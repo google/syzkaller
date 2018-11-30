@@ -261,7 +261,7 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 static void loop();
 static int do_sandbox_none(void)
 {
-#if SYZ_TUN_ENABLE
+#if GOOS_openbsd && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
 	loop();
