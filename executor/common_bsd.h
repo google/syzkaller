@@ -11,7 +11,6 @@
 
 #if GOOS_openbsd
 
-
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
