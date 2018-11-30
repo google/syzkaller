@@ -2082,7 +2082,9 @@ var consts_amd64 = []ConstValue{
 	{Name: "LINUX_RLIMIT_STACK", Value: 3},
 	{Name: "LINUX_SCM_CREDENTIALS", Value: 2},
 	{Name: "LINUX_SCM_RIGHTS", Value: 1},
+	{Name: "LINUX_SOCK_CLOEXEC", Value: 524288},
 	{Name: "LINUX_SOCK_DGRAM", Value: 2},
+	{Name: "LINUX_SOCK_NONBLOCK", Value: 2048},
 	{Name: "LINUX_SOCK_RAW", Value: 3},
 	{Name: "LINUX_SOCK_RDM", Value: 4},
 	{Name: "LINUX_SOCK_SEQPACKET", Value: 5},
@@ -2412,4 +2414,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "b8fc36a63d4105cc2a16b4671864f7a5adddadaa"
+const revision_amd64 = "fe257e9b1cf5311f7b1627e649739577c6308e26"
