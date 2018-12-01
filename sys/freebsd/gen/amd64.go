@@ -31,6 +31,7 @@ var resources_amd64 = []*ResourceDesc{
 	{Name: "sock_udp", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_in", "sock_udp"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_udp6", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_in6", "sock_udp6"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_unix", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_unix"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "tcp_seq_num", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"tcp_seq_num"}, Values: []uint64{1094861636}},
 	{Name: "uid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"uid"}, Values: []uint64{0, 18446744073709551615}},
 }
 
@@ -528,6 +529,10 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "tcp_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "f0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "f1", TypeSize: 4, ArgDir: 1}},
+	}}},
+	{Key: StructKey{Name: "tcp_resources", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_resources", TypeSize: 8, ArgDir: 1}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "tcp_seq_num", FldName: "seq", TypeSize: 4, ArgDir: 1}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "tcp_seq_num", FldName: "ack", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "timespec"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "timespec", TypeSize: 16}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "sec", TypeSize: 8}}},
@@ -1876,8 +1881,22 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{NR: 36, Name: "sync", CallName: "sync"},
+	{Name: "syz_emit_ethernet", CallName: "syz_emit_ethernet", Args: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "packet"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "packet", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+	}},
 	{Name: "syz_execute_func", CallName: "syz_execute_func", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
+	}},
+	{Name: "syz_extract_tcp_res", CallName: "syz_extract_tcp_res", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "res", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tcp_resources", Dir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq_inc", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ack_inc", TypeSize: 4}}},
+	}},
+	{Name: "syz_extract_tcp_res$synack", CallName: "syz_extract_tcp_res", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "res", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tcp_resources", Dir: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "seq_inc", TypeSize: 8}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ack_inc", TypeSize: 8}}},
 	}},
 	{NR: 479, Name: "truncate", CallName: "truncate", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -2414,4 +2433,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "fe257e9b1cf5311f7b1627e649739577c6308e26"
+const revision_amd64 = "4929654e4c6f12c8222436a5269c97497bd7efee"
