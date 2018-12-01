@@ -223,7 +223,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	con.Stdout = conWpipe
 	con.Stderr = conWpipe
 	conw, err := con.StdinPipe()
-	if err != nil { // SSH would close connection on stdin EOF
+	if err != nil {
 		conRpipe.Close()
 		conWpipe.Close()
 		return nil, nil, err
