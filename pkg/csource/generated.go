@@ -405,6 +405,7 @@ void child()
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/syscall.h>
 
 #if GOOS_openbsd
 
