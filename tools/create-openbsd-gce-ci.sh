@@ -48,11 +48,13 @@ EOF
 
 cat >etc/rc.local <<EOF
 (
-  set -eux
   /usr/local/bin/curl -H "Metadata-Flavor: Google" \
      "http://metadata.google.internal/computeMetadata/v1/instance/hostname" \
-     > /etc/myname.gce && mv /etc/myname{.gce,}
-  hostname \$(cat /etc/myname)
+     > /etc/myname.gce \
+  && echo >> /etc/myname.gce \
+  && mv /etc/myname{.gce,} \
+  && hostname \$(cat /etc/myname)
+  set -eux
 
   echo "starting syz-ci"
   fsck -y /dev/sd1a
