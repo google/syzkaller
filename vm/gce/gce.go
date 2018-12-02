@@ -49,16 +49,17 @@ type Pool struct {
 }
 
 type instance struct {
-	env     *vmimpl.Env
-	cfg     *Config
-	GCE     *gce.Context
-	debug   bool
-	name    string
-	ip      string
-	gceKey  string // per-instance private ssh key associated with the instance
-	sshKey  string // ssh key
-	sshUser string
-	closed  chan bool
+	env      *vmimpl.Env
+	cfg      *Config
+	GCE      *gce.Context
+	debug    bool
+	name     string
+	ip       string
+	gceKey   string // per-instance private ssh key associated with the instance
+	sshKey   string // ssh key
+	sshUser  string
+	closed   chan bool
+	consolew io.WriteCloser
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
@@ -189,6 +190,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 func (inst *instance) Close() {
 	close(inst.closed)
 	inst.GCE.DeleteInstance(inst.name, false)
+	if inst.consolew != nil {
+		inst.consolew.Close()
+	}
 }
 
 func (inst *instance) Forward(port int) (string, error) {
@@ -218,11 +222,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	con.Env = []string{}
 	con.Stdout = conWpipe
 	con.Stderr = conWpipe
-	if _, err := con.StdinPipe(); err != nil { // SSH would close connection on stdin EOF
+	conw, err := con.StdinPipe()
+	if err != nil {
 		conRpipe.Close()
 		conWpipe.Close()
 		return nil, nil, err
 	}
+	inst.consolew = conw
 	if err := con.Start(); err != nil {
 		conRpipe.Close()
 		conWpipe.Close()
@@ -358,6 +364,9 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 }
 
 func (inst *instance) Diagnose() bool {
+	if inst.env.OS == "openbsd" {
+		return vmimpl.DiagnoseOpenBSD(inst.consolew)
+	}
 	return false
 }
 

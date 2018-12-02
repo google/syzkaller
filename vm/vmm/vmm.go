@@ -311,23 +311,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() bool {
-	// Note: this only works if kernel actually paniced and kernel shows panic console.
-	// If kernel just hanged, we've lost connection or detected some non-panic error,
-	// console still shows normal login prompt.
-	commands := []string{
-		"",
-		"set $lines = 0", // disable pagination
-		"show panic",
-		"trace",
-		"show registers",
-		"show proc",
-		"ps",
-	}
-	for _, c := range commands {
-		inst.consolew.Write([]byte(c + "\n"))
-		time.Sleep(1 * time.Second)
-	}
-	return true
+	return vmimpl.DiagnoseOpenBSD(inst.consolew)
 }
 
 // Run the given vmctl(8) command and wait for it to finish.
