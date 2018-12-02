@@ -14,7 +14,6 @@ include <net/ax25.h>
 resource sock_ax25[sock]
 
 socket$ax25(domain const[AF_AX25], type flags[ax25_socket_types], proto flags[ax25_protocols]) sock_ax25
-socketpair$ax25(domain const[AF_AX25], type flags[ax25_socket_types], proto flags[ax25_protocols], fds ptr[out, ax25_pair])
 bind$ax25(fd sock_ax25, addr ptr[in, sockaddr_ax25], addrlen len[addr])
 connect$ax25(fd sock_ax25, addr ptr[in, sockaddr_ax25], addrlen len[addr])
 accept$ax25(fd sock_ax25, peer ptr[out, sockaddr_ax25, opt], peerlen ptr[inout, len[peer, int32]]) sock_ax25
@@ -27,11 +26,6 @@ getpeername$ax25(fd sock_ax25, peer ptr[out, sockaddr_ax25], peerlen ptr[inout, 
 
 ax25_socket_types = SOCK_DGRAM, SOCK_SEQPACKET, SOCK_RAW
 ax25_protocols = AX25_P_ROSE, AX25_P_VJCOMP, AX25_P_VJUNCOMP, AX25_P_SEGMENT, AX25_P_TEXNET, AX25_P_LQ, AX25_P_ATALK, AX25_P_ATALK_ARP, AX25_P_IP, AX25_P_ARP, AX25_P_FLEXNET, AX25_P_NETROM, AX25_P_TEXT
-
-ax25_pair {
-	fd0	sock_ax25
-	fd1	sock_ax25
-}
 
 ax25_address {
 	ax25_call	array[int8, 7]

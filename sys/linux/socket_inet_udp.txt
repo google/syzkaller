@@ -9,27 +9,13 @@ include <uapi/linux/sockios.h>
 
 resource sock_udp[sock_in]
 
-udp_pair {
-	f0	sock_udp
-	f1	sock_udp
-}
-
 socket$inet_udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0]) sock_udp
 socket$inet_udplite(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE]) sock_udp
-socketpair$inet_udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp_pair])
-socketpair$inet_udplite(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE], fds ptr[out, udp_pair])
 
 resource sock_udp6[sock_in6]
 
-udp6_pair {
-	f0	sock_udp6
-	f1	sock_udp6
-}
-
 socket$inet6_udp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0]) sock_udp6
 socket$inet6_udplite(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE]) sock_udp6
-socketpair$inet6_udp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp6_pair])
-socketpair$inet6_udplite(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_UDPLITE], fds ptr[out, udp6_pair])
 
 # Generic UDP socket options
 
