@@ -176,6 +176,9 @@ var List = map[string]map[string]*Target{
 			PageSize:    4 << 10,
 			CFlags:      []string{"-m64"},
 			CrossCFlags: []string{"-m64", "-static"},
+			NeedSyscallDefine: func(uint64) bool {
+				return false
+			},
 		},
 	},
 	"netbsd": {
@@ -193,6 +196,9 @@ var List = map[string]map[string]*Target{
 			CFlags:      []string{"-m64"},
 			CCompiler:   "c++",
 			CrossCFlags: []string{"-m64", "-static", "-lutil"},
+			NeedSyscallDefine: func(uint64) bool {
+				return false
+			},
 		},
 	},
 	"fuchsia": {
