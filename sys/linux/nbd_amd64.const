@@ -35,5 +35,4 @@ NBD_SOCK_FD = 1
 SOCK_STREAM = 1
 __NR_ioctl = 16
 __NR_sendmsg = 46
-__NR_socketpair = 53
 __NR_write = 1
