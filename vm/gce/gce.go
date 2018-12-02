@@ -228,6 +228,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		conWpipe.Close()
 		return nil, nil, err
 	}
+	if inst.consolew != nil {
+		inst.consolew.Close()
+	}
 	inst.consolew = conw
 	if err := con.Start(); err != nil {
 		conRpipe.Close()
