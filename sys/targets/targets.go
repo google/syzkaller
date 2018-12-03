@@ -280,7 +280,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
-		CPP:                    "cpp",
+		CPP:                    "g++",
 	},
 	"netbsd": {
 		SyscallNumbers:         true,
