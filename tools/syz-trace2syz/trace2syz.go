@@ -153,6 +153,7 @@ func pack(progs []*prog.Prog) {
 	corpusDb := "corpus.db"
 	os.Remove(corpusDb)
 	syzDb, err := db.Open(corpusDb)
+
 	if err != nil {
 		log.Fatalf("failed to open database file: %v", err)
 	}

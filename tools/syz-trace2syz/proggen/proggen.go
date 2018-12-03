@@ -59,7 +59,6 @@ type resourceDescription struct {
 }
 
 // Context stores metadata related to a syzkaller program
-
 type Context struct {
 	ReturnCache       returnCache
 	Prog              *prog.Prog
@@ -163,6 +162,16 @@ func genArgs(syzType prog.Type, traceArg parser.IrType, ctx *Context) prog.Arg {
 	ctx.CurrentStraceArg = traceArg
 	log.Logf(3, "parsing arg of syz type: %s, ir type: %#v", syzType.Name(), traceArg)
 
+	if syzType.Dir() == prog.DirOut {
+		switch syzType.(type) {
+		case *prog.PtrType, *prog.StructType, *prog.ResourceType, *prog.BufferType:
+			// Resource Types need special care. Pointers, Structs can have resource fields e.g. pipe, socketpair
+			// Buffer may need special care in out direction
+		default:
+			return prog.DefaultArg(syzType)
+		}
+	}
+
 	switch a := syzType.(type) {
 	case *prog.IntType, *prog.ConstType, *prog.FlagsType, *prog.CsumType:
 		return genConst(a, traceArg, ctx)
@@ -190,7 +199,7 @@ func genArgs(syzType prog.Type, traceArg parser.IrType, ctx *Context) prog.Arg {
 	return nil
 }
 
-func genVma(syzType *prog.VmaType, traceType parser.IrType, ctx *Context) prog.Arg {
+func genVma(syzType *prog.VmaType, _ parser.IrType, ctx *Context) prog.Arg {
 	var npages uint64 = 1
 	if syzType.RangeBegin != 0 || syzType.RangeEnd != 0 {
 		npages = syzType.RangeEnd
@@ -207,10 +216,8 @@ func genArray(syzType *prog.ArrayType, traceType parser.IrType, ctx *Context) pr
 		for i := 0; i < len(a.Elems); i++ {
 			args = append(args, genArgs(syzType.Type, a.Elems[i], ctx))
 		}
-	case *parser.PointerType, parser.Constant, *parser.BufferType:
-		return prog.DefaultArg(syzType)
 	default:
-		log.Fatalf("error parsing array: %s with wrong type: %#v", syzType.FldName, traceType)
+		log.Fatalf("unsupported type for array: %#v", traceType)
 	}
 	return prog.MakeGroupArg(syzType, args)
 }
@@ -250,12 +257,10 @@ func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context
 		return prog.DefaultArg(syzType)
 	}
 	log.Logf(4, "generating union arg: %s %#v", syzType.TypeName, straceType)
-	if syzType.Dir() == prog.DirOut {
-		return prog.DefaultArg(syzType)
-	}
+
 	// Unions are super annoying because they sometimes need to be handled case by case
 	// We might need to lookinto a matching algorithm to identify the union type that most closely
-	// matches our strace type
+	// matches our strace type.
 
 	switch syzType.TypeName {
 	case "sockaddr_storage":
@@ -300,11 +305,6 @@ func genBuffer(syzType *prog.BufferType, traceType parser.IrType, ctx *Context) 
 		bArr := make([]byte, 8)
 		binary.LittleEndian.PutUint64(bArr, val)
 		bufVal = bArr
-	case *parser.PointerType:
-		val := a.Address
-		bArr := make([]byte, 8)
-		binary.LittleEndian.PutUint64(bArr, val)
-		bufVal = bArr
 	case *parser.GroupType:
 		return prog.DefaultArg(syzType)
 	default:
@@ -322,20 +322,10 @@ func genBuffer(syzType *prog.BufferType, traceType parser.IrType, ctx *Context) 
 
 func genPtr(syzType *prog.PtrType, traceType parser.IrType, ctx *Context) prog.Arg {
 	switch a := traceType.(type) {
-	case *parser.PointerType:
-		if a.IsNull() {
+	case parser.Constant:
+		if a.Val() == 0 {
 			return prog.MakeSpecialPointerArg(syzType, 0)
 		}
-		if a.Res == nil {
-			// sometimes strace will return an empty pointer
-			// We just generate the default arg
-			res := prog.DefaultArg(syzType.Type)
-			return addr(ctx, syzType, res.Size(), res)
-		}
-		res := genArgs(syzType.Type, a.Res, ctx)
-		return addr(ctx, syzType, res.Size(), res)
-
-	case parser.Constant:
 		// Likely have a type of the form bind(3, 0xfffffffff, [3]);
 		res := prog.DefaultArg(syzType.Type)
 		return addr(ctx, syzType, res.Size(), res)
@@ -346,9 +336,6 @@ func genPtr(syzType *prog.PtrType, traceType parser.IrType, ctx *Context) prog.A
 }
 
 func genConst(syzType prog.Type, traceType parser.IrType, ctx *Context) prog.Arg {
-	if syzType.Dir() == prog.DirOut {
-		return prog.DefaultArg(syzType)
-	}
 	switch a := traceType.(type) {
 	case parser.Constant:
 		return prog.MakeConstArg(syzType, a.Val())
@@ -364,13 +351,8 @@ func genConst(syzType prog.Type, traceType parser.IrType, ctx *Context) prog.Arg
 		}
 		return genConst(syzType, a.Elems[0], ctx)
 	case *parser.BufferType:
-		// The call almost certainly an error or missing fields
+		// The call almost certainly returned an errno
 		return prog.DefaultArg(syzType)
-		// E.g. ltp_bind01 two arguments are empty and
-	case *parser.PointerType:
-		// This can be triggered by the following:
-		// 2435  connect(3, {sa_family=0x2f ,..., 16)
-		return prog.MakeConstArg(syzType, a.Address)
 	default:
 		log.Fatalf("unsupported type for const: %#v", traceType)
 	}
@@ -391,14 +373,8 @@ func genResource(syzType *prog.ResourceType, traceType parser.IrType, ctx *Conte
 			res := prog.MakeResultArg(syzType, arg.(*prog.ResultArg), syzType.Default())
 			return res
 		}
-		// May get a resource type like ifindex which is returned by ioctl$SIOCGIFINDEX
-		// but strace converts the value to a call type like if_nametoindex which is hard to evaluate
-		// for now we just use the value "as-is". We may try to find the type in the result cache which most closely
-		// matches our resource type
 		res := prog.MakeResultArg(syzType, nil, val)
 		return res
-	case *parser.PointerType:
-		return prog.MakeResultArg(syzType, nil, 0)
 	case *parser.GroupType:
 		if len(a.Elems) == 1 {
 			// For example: 5028  ioctl(3, SIOCSPGRP, [0])          = 0
@@ -417,9 +393,6 @@ func genResource(syzType *prog.ResourceType, traceType parser.IrType, ctx *Conte
 }
 
 func parseProc(syzType *prog.ProcType, traceType parser.IrType, ctx *Context) prog.Arg {
-	if syzType.Dir() == prog.DirOut {
-		return prog.DefaultArg(syzType)
-	}
 	switch a := traceType.(type) {
 	case parser.Constant:
 		val := a.Val()

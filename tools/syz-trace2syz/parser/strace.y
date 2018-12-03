@@ -19,7 +19,6 @@ package parser
     val_identifiers []*BufferType
     val_buf_type *BufferType
     val_group_type *GroupType
-    val_pointer_type *PointerType
     val_type IrType
     val_types []IrType
     val_syscall *Syscall
@@ -34,7 +33,6 @@ package parser
 %type <val_group_type> group_type
 %type <val_constant> constant
 %type <val_type> parenthetical, parentheticals, type, field_type
-%type <val_pointer_type> pointer_type
 %type <val_types> types
 %type <val_syscall> syscall
 
@@ -115,7 +113,6 @@ parenthetical:
     | INT {$$ = nil}
     | UINT {$$ = nil}
 
-
 ret_type:
     INT {$$ = $1}
     | UINT {$$ = int64($1)}
@@ -125,19 +122,17 @@ types: {$$ = make([]IrType, 0)}
     | type {$$ = []IrType{$1}}
     | types COMMA type {$1 = append($1, $3); $$ = $1;}
 
-
 type:
     buf_type {$$ = $1}
     | field_type {$$ = $1}
-    | pointer_type {$$ = $1}
     | group_type {$$ = $1}
     | constant {$$ = $1}
     | ONESCOMP group_type {$$ = $2}
 
-
 constant:
     INT {$$ = Constant($1)}
     | UINT {$$ = Constant($1)}
+    | NULL {$$ = Constant(uint64(0))}
     | constant OR constant {$$ = $1 | $3}
     | constant AND constant {$$ = $1 & $3}
     | constant LSHIFT constant {$$ = $1 << $3}
@@ -148,11 +143,6 @@ constant:
     | constant PLUS constant {$$ = $1 + $3}
     | ONESCOMP constant {$$ = ^$2}
     | MINUS constant {$$ = Constant(-int64($2))}
-    
-pointer_type:
-    AND IDENTIFIER {$$ = nullPointer()}
-    | AND UINT EQUALS type {$$ = NewPointerType($2, $4)}
-    | NULL {$$ = nullPointer()}
 
 group_type:
     LBRACKET_SQUARE types RBRACKET_SQUARE {$$ = newGroupType($2)}

@@ -6,7 +6,6 @@ package proggen
 import (
 	"fmt"
 
-	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -16,11 +15,10 @@ const (
 
 type allocation struct {
 	numBytes uint64
-	arg      prog.Arg
+	arg      *prog.PointerArg
 }
 
 // TODO: Replace memory tracker with memAlloc in prog package.
-// Ask Dmitry the best way we should export that object
 type memoryTracker struct {
 	allocations map[*prog.Call][]*allocation
 }
@@ -31,15 +29,11 @@ func newTracker() *memoryTracker {
 	}
 }
 
-func (m *memoryTracker) addAllocation(call *prog.Call, size uint64, arg prog.Arg) {
-	switch arg.(type) {
-	case *prog.PointerArg:
-	default:
-		log.Fatalf("adding allocation for non pointer")
-	}
+func (m *memoryTracker) addAllocation(call *prog.Call, size uint64, arg *prog.PointerArg) {
 	alloc := new(allocation)
 	alloc.arg = arg
 	alloc.numBytes = size
+
 	if _, ok := m.allocations[call]; !ok {
 		m.allocations[call] = make([]*allocation, 0)
 	}
@@ -52,24 +46,17 @@ func (m *memoryTracker) fillOutPtrArgs(p *prog.Prog) error {
 		if _, ok := m.allocations[call]; !ok {
 			continue
 		}
-		i := 0
 		for _, a := range m.allocations[call] {
-			switch arg := a.arg.(type) {
-			case *prog.PointerArg:
-				arg.Address = offset
-				offset += a.numBytes
-				i++
-				if arg.Address >= memAllocMaxMem {
-					return fmt.Errorf("unable to allocate space to store arg: %#v"+
-						"in Call: %v. Required memory is larger than what we allow."+
-						"Offending address: %d. Skipping program generation for this prog...\n",
-						arg, call, arg.Address)
-				}
-			default:
-				log.Fatalf("memory allocation doesn't correspond to pointer arg: %#v", a.arg)
+			a.arg.Address = offset
+			offset += a.numBytes
+
+			if a.arg.Address >= memAllocMaxMem {
+				return fmt.Errorf("unable to allocate space to store arg: %#v"+
+					"in Call: %v. Required memory is larger than what we allow."+
+					"Offending address: %d. Skipping program generation for this prog...\n",
+					a.arg, call, a.arg.Address)
 			}
 		}
 	}
-
 	return nil
 }

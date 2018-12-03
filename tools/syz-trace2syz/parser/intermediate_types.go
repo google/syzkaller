@@ -31,6 +31,7 @@ func (tree *TraceTree) add(call *Syscall) {
 	if tree.RootPid < 0 {
 		tree.RootPid = call.Pid
 	}
+
 	if !call.Resumed {
 		if tree.TraceMap[call.Pid] == nil {
 			tree.TraceMap[call.Pid] = new(Trace)
@@ -151,32 +152,4 @@ func newBufferType(val string) *BufferType {
 // String implements IrType String()
 func (b *BufferType) String() string {
 	return fmt.Sprintf("Buffer: %s with length: %d\n", b.Val, len(b.Val))
-}
-
-// PointerType holds pointers from strace e.g. NULL, 0x7f24234234, &2342342={...}
-type PointerType struct {
-	Address uint64
-	Res     IrType
-}
-
-// NewPointerType - Constructor
-func NewPointerType(addr uint64, res IrType) *PointerType {
-	return &PointerType{Res: res, Address: addr}
-}
-
-func nullPointer() (typ *PointerType) {
-	return &PointerType{Res: newBufferType(""), Address: 0}
-}
-
-// IsNull checks if pointer is null
-func (p *PointerType) IsNull() bool {
-	return p.Address == 0
-}
-
-// String implements IrType String()
-func (p *PointerType) String() string {
-	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "Address: %d\n", p.Address)
-	fmt.Fprintf(buf, "Res: %s\n", p.Res.String())
-	return buf.String()
 }
