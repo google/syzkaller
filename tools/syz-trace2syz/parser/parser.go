@@ -46,13 +46,10 @@ func ParseLoop(data string) (tree *TraceTree) {
 		if shouldSkip(line) {
 			continue
 		}
-		log.Logf(4, "Scanning call: %s", line)
+		log.Logf(4, "scanning call: %s", line)
 		ret, call := parseSyscall(scanner)
-		if ret != 0 {
-			log.Fatalf("Error parsing line: %s", line)
-		}
-		if call == nil {
-			log.Fatalf("Failed to parse line: %s", line)
+		if call == nil || ret != 0 {
+			log.Fatalf("failed to parse line: %s", line)
 		}
 		tree.add(call)
 	}

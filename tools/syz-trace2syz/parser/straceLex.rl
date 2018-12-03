@@ -125,7 +125,7 @@ func ParseString(s string) string{
 	strippedStr = strings.Replace(strippedStr, `"`, "", -1)
 
 	if decoded, err = hex.DecodeString(strippedStr); err != nil {
-		log.Logf(2, "Failed to decode string: %s, with error: %s", s, err.Error())
+		log.Logf(2, "failed to decode string: %s, with error: %s", s, err.Error())
 		decoded = []byte(strippedStr)
 	}
 	decoded = append(decoded, '\x00')

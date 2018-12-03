@@ -67,7 +67,7 @@ func TestParseLoopBasic(t *testing.T) {
 
 		calls := tree.TraceMap[tree.RootPid].Calls
 		if len(calls) != 2 {
-			t.Fatalf("Expect 2 calls. Got %d instead", len(calls))
+			t.Fatalf("expected 2 calls. Got %d instead", len(calls))
 		}
 		if calls[0].CallName != "open" || calls[1].CallName != "fstat" {
 			t.Fatalf("call list should be open->fstat. Got %s->%s", calls[0].CallName, calls[1].CallName)
@@ -95,18 +95,18 @@ func TestEvaluateExpressions(t *testing.T) {
 	for i, test := range tests {
 		tree := ParseLoop(test.line)
 		if tree.RootPid != -1 {
-			t.Fatalf("Failed test: %d. Incorrect Root Pid: %d", i, tree.RootPid)
+			t.Fatalf("failed test: %d. Incorrect Root Pid: %d", i, tree.RootPid)
 		}
 		calls := tree.TraceMap[tree.RootPid].Calls
 		if len(calls) != 1 {
-			t.Fatalf("Failed test: %d. Expected 1 call. Got %d instead", i, len(calls))
+			t.Fatalf("failed test: %d. Expected 1 call. Got %d instead", i, len(calls))
 		}
 		arg, ok := calls[0].Args[0].(Constant)
 		if !ok {
-			t.Fatalf("First argument expected to be constant. Got: %s", arg.String())
+			t.Fatalf("first argument expected to be constant. Got: %s", arg.String())
 		}
 		if arg.Val() != test.expectedEval {
-			t.Fatalf("Expected %v != %v", test.expectedEval, arg.Val())
+			t.Fatalf("expected %v != %v", test.expectedEval, arg.Val())
 		}
 	}
 }

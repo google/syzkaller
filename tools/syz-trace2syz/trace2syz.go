@@ -43,14 +43,14 @@ func main() {
 	flag.Parse()
 	target := initializeTarget(goos, arch)
 	progs := parseTraces(target)
-	log.Logf(0, "Successfully converted traces. Generating corpus.db")
+	log.Logf(0, "successfully converted traces; generating corpus.db")
 	pack(progs)
 }
 
 func initializeTarget(os, arch string) *prog.Target {
 	target, err := prog.GetTarget(os, arch)
 	if err != nil {
-		log.Fatalf("Failed to load target: %s", err)
+		log.Fatalf("failed to load target: %s", err)
 	}
 	target.ConstMap = make(map[string]uint64)
 	for _, c := range target.Consts {
@@ -74,12 +74,12 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 	deserializeDir := *flagDeserialize
 
 	totalFiles := len(names)
-	log.Logf(0, "Parsing %d traces", totalFiles)
+	log.Logf(0, "parsing %d traces", totalFiles)
 	for i, file := range names {
-		log.Logf(1, "Parsing File %d/%d: %s", i+1, totalFiles, filepath.Base(names[i]))
+		log.Logf(1, "parsing File %d/%d: %s", i+1, totalFiles, filepath.Base(names[i]))
 		tree := parser.Parse(file)
 		if tree == nil {
-			log.Logf(1, "File: %s is empty", filepath.Base(file))
+			log.Logf(1, "file: %s is empty", filepath.Base(file))
 			continue
 		}
 		ctxs := parseTree(tree, tree.RootPid, target)
@@ -87,14 +87,14 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 			ctx.Prog.Target = ctx.Target
 			err := ctx.FillOutMemory()
 			if err != nil {
-				log.Logf(1, "Failed to fill out memory. Error: %s", err)
+				log.Logf(1, "failed to fill out memory %s", err)
 				continue
 			}
 			if err := ctx.Prog.Validate(); err != nil {
-				log.Fatalf("Error validating program: %s", err)
+				log.Fatalf("error validating program: %s", err)
 			}
 			if progIsTooLarge(ctx.Prog) {
-				log.Logf(1, "Prog is too large")
+				log.Logf(1, "prog is too large")
 				continue
 			}
 			ret = append(ret, ctx.Prog)
@@ -136,7 +136,7 @@ func getTraceFiles(dir string) []string {
 // parseTree groups system calls in the trace by process id.
 // The tree preserves process hierarchy i.e. parent->[]child
 func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target) []*proggen.Context {
-	log.Logf(2, "Parsing trace: %s", tree.Filename)
+	log.Logf(2, "parsing trace: %s", tree.Filename)
 	var ctxs []*proggen.Context
 	ctx := proggen.GenSyzProg(tree.TraceMap[pid], target, callSelector)
 
@@ -154,7 +154,7 @@ func pack(progs []*prog.Prog) {
 	os.Remove(corpusDb)
 	syzDb, err := db.Open(corpusDb)
 	if err != nil {
-		log.Fatalf("Failed to open database file: %v", err)
+		log.Fatalf("failed to open database file: %v", err)
 	}
 	syzDb.BumpVersion(currentDBVersion)
 	for i, prog := range progs {
@@ -168,5 +168,5 @@ func pack(progs []*prog.Prog) {
 	if err := syzDb.Flush(); err != nil {
 		log.Fatalf("failed to save database file: %v", err)
 	}
-	log.Logf(0, "Finished!")
+	log.Logf(0, "finished!")
 }

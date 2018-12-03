@@ -35,7 +35,7 @@ func (m *memoryTracker) addAllocation(call *prog.Call, size uint64, arg prog.Arg
 	switch arg.(type) {
 	case *prog.PointerArg:
 	default:
-		log.Fatalf("Adding allocation for non pointer")
+		log.Fatalf("adding allocation for non pointer")
 	}
 	alloc := new(allocation)
 	alloc.arg = arg
@@ -60,13 +60,13 @@ func (m *memoryTracker) fillOutPtrArgs(p *prog.Prog) error {
 				offset += a.numBytes
 				i++
 				if arg.Address >= memAllocMaxMem {
-					return fmt.Errorf("Unable to allocate space to store arg: %#v"+
+					return fmt.Errorf("unable to allocate space to store arg: %#v"+
 						"in Call: %v. Required memory is larger than what we allow."+
 						"Offending address: %d. Skipping program generation for this prog...\n",
 						arg, call, arg.Address)
 				}
 			default:
-				log.Fatalf("Pointer Arg Failed")
+				log.Fatalf("memory allocation doesn't correspond to pointer arg: %#v", a.arg)
 			}
 		}
 	}

@@ -27,7 +27,7 @@ func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *
 		if len(call.Args) >= 2 {
 			straceArg = call.Args[1]
 		} else {
-			log.Fatalf("Unable identify union for sockaddr_storage for call: %s",
+			log.Fatalf("unable identify union for sockaddr_storage for call: %s",
 				call.CallName)
 		}
 	}
@@ -35,8 +35,8 @@ func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *
 	case *parser.GroupType:
 		socketFamily, ok := strType.Elems[0].(parser.Constant)
 		if !ok {
-			log.Fatalf("Failed to identify socket family when generating sockaddr stroage union. "+
-				"Expected Expression got: %#v", strType.Elems[0])
+			log.Fatalf("failed to identify socket family when generating sockaddr stroage union. "+
+				"expected constant got: %#v", strType.Elems[0])
 		}
 		switch socketFamily.Val() {
 		case ctx.Target.ConstMap["AF_INET6"]:
@@ -56,7 +56,7 @@ func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *
 		}
 
 	default:
-		log.Fatalf("Failed to parse Sockaddr Stroage Union Type. Strace Type: %#v", strType)
+		log.Fatalf("unable to parse sockaddr_storage. Unsupported type: %#v", strType)
 	}
 	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[idx], straceType, ctx))
 }
@@ -84,7 +84,7 @@ func genSockaddrNetlink(syzType *prog.UnionType, straceType parser.IrType, ctx *
 					idx = field2Opt["unspec"]
 				}
 			default:
-				log.Fatalf("Parsing netlink addr struct and expect expression for first arg: %#v", a)
+				log.Fatalf("unable to parse netlink addr struct. Unsupported type: %#v", a)
 			}
 		}
 	}

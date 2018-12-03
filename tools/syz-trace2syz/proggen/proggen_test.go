@@ -22,7 +22,7 @@ var (
 func initializeTarget(os, arch string) *prog.Target {
 	target, err := prog.GetTarget(os, arch)
 	if err != nil {
-		log.Fatalf("Failed to load target: %s", err)
+		log.Fatalf("%s", err)
 	}
 	target.ConstMap = make(map[string]uint64)
 	for _, c := range target.Consts {
@@ -41,7 +41,7 @@ func parseSingleTrace(t *testing.T, data string) *Context {
 	ctx = GenSyzProg(traceTree.TraceMap[traceTree.RootPid], target, selector)
 	ctx.FillOutMemory()
 	if err := ctx.Prog.Validate(); err != nil {
-		t.Fatalf("Failed to parse trace: %s", err.Error())
+		t.Fatalf("failed to parse trace: %s", err.Error())
 	}
 	return ctx
 }
@@ -53,15 +53,15 @@ func TestParseTraceBasic(t *testing.T) {
 	p := ctx.Prog
 	expectedSeq := "open-write"
 	if p.String() != expectedSeq {
-		t.Fatalf("Expected: %s != %s", expectedSeq, p.String())
+		t.Fatalf("expected: %s != %s", expectedSeq, p.String())
 	}
 	switch a := p.Calls[1].Args[0].(type) {
 	case *prog.ResultArg:
 		if a.Res != p.Calls[0].Ret {
-			t.Fatalf("First argument of write should equal result of open.")
+			t.Fatalf("first argument of write should equal result of open.")
 		}
 	default:
-		t.Fatalf("Expected result arg. Got: %s\n", a.Type().Name())
+		t.Fatalf("expected result arg, got: %s\n", a.Type().Name())
 	}
 }
 
@@ -77,10 +77,10 @@ func TestParseTraceInnerResource(t *testing.T) {
 	case *prog.ResultArg:
 		pipeSecondFd := p.Calls[0].Args[0].(*prog.PointerArg).Res.(*prog.GroupArg).Inner[1]
 		if a.Res != pipeSecondFd {
-			t.Fatalf("First argument of write must match second fd from pipe")
+			t.Fatalf("first argument of write must match second fd from pipe")
 		}
 	default:
-		t.Fatalf("Expected result arg. Got: %s\n", a.Type().Name())
+		t.Fatalf("expected result arg, got: %s\n", a.Type().Name())
 	}
 }
 
@@ -91,15 +91,15 @@ func TestNegativeResource(t *testing.T) {
 	p := parseSingleTrace(t, test).Prog
 	expectedSeq := "socket$can_raw-getsockopt$inet_sctp6_SCTP_RESET_STREAMS"
 	if p.String() != expectedSeq {
-		t.Fatalf("Expected: %s != %s", expectedSeq, p.String())
+		t.Fatalf("expected: %s != %s", expectedSeq, p.String())
 	}
 	switch a := p.Calls[1].Args[0].(type) {
 	case *prog.ResultArg:
 		if a.Val != ^uint64(0) {
-			t.Fatalf("Expected resource type to be negative. Got: %d", a.Val)
+			t.Fatalf("expected resource type to be negative, got: %d", a.Val)
 		}
 	default:
-		t.Fatalf("Expected result arg. Got: %s\n", a.Type().Name())
+		t.Fatalf("expected result arg, got: %s\n", a.Type().Name())
 	}
 }
 
@@ -119,16 +119,16 @@ func TestDistinguishResourceTypes(t *testing.T) {
 	switch a := write.Args[0].Type().(type) {
 	case *prog.ResourceType:
 		if a.TypeName != "fd" {
-			t.Fatalf("Expected first argument of write to have type fd. Got: %s", a.TypeName)
+			t.Fatalf("expected first argument of write to have type fd, got: %s", a.TypeName)
 		}
 	default:
-		t.Fatalf("First argument of write is not resource type. Is: %s", a.Name())
+		t.Fatalf("first argument of write is not resource type: %s", a.Name())
 	}
 	switch a := inotifyRmWatch.Args[1].(type) {
 	case *prog.ResultArg:
 		b := a.Type().(*prog.ResourceType)
 		if b.TypeName != "inotifydesc" {
-			t.Fatalf("Expected second argument of inotify_rm_watch to have type inoitfydesc. Got: %s", b.TypeName)
+			t.Fatalf("expected second argument of inotify_rm_watch to have type inoitfydesc, got: %s", b.TypeName)
 		}
 		if a.Res != p.Calls[2].Ret {
 			t.Fatalf("inotify_rm_watch's second argument should match the result of inotify_add_watch.")
@@ -191,11 +191,11 @@ func TestIdentifySockaddrStorage(t *testing.T) {
 		)
 		storagePtr = arg.(*prog.PointerArg)
 		if storageArg, ok = storagePtr.Res.(*prog.UnionArg); !ok {
-			t.Fatalf("Second argument not union. Type: %s", storagePtr.Res.Type().Name())
+			t.Fatalf("second argument not union: %s", storagePtr.Res.Type().Name())
 		}
 		fieldName := storageArg.Option.Type().Name()
 		if fieldName != field {
-			return fmt.Errorf("Incorrect storage type. Expected %s != %s", field, fieldName)
+			return fmt.Errorf("incorrect storage type, expected %s != %s", field, fieldName)
 		}
 		return nil
 	}
@@ -203,11 +203,11 @@ func TestIdentifySockaddrStorage(t *testing.T) {
 	for i, test := range tests {
 		p := parseSingleTrace(t, test.test).Prog
 		if p.String() != test.expectedSeq {
-			t.Fatalf("Failed subtest: %d, Expected: %s != %s", i, test.expectedSeq, p.String())
+			t.Fatalf("failed btest: %d, expected: %s != %s", i, test.expectedSeq, p.String())
 		}
 		err := validator(p.Calls[test.callIdx].Args[test.argIdx], test.fieldName)
 		if err != nil {
-			t.Fatalf("Failed to infer sockaddr union for test: %d with err: %s", i, err)
+			t.Fatalf("failed subtest: %d with err: %s", i, err)
 		}
 	}
 }
@@ -228,7 +228,7 @@ func TestIdentifyIfru(t *testing.T) {
 	for i, test := range tests {
 		p := parseSingleTrace(t, test.test).Prog
 		if p.String() != test.expectedSeq {
-			t.Fatalf("Failed test: %d. Expected %s != %s", i, test.expectedSeq, p.String())
+			t.Fatalf("failed subtest: %d, expected %s != %s", i, test.expectedSeq, p.String())
 		}
 	}
 }
@@ -281,7 +281,7 @@ func TestParseVariants(t *testing.T) {
 	for i, test := range tests {
 		p := parseSingleTrace(t, test.test).Prog
 		if p.String() != test.expectedSeq {
-			t.Fatalf("Failed test: %d. Expected %s != %s", i, test.expectedSeq, p.String())
+			t.Fatalf("failed subtest: %d, expected %s != %s", i, test.expectedSeq, p.String())
 		}
 	}
 }
@@ -313,24 +313,24 @@ func TestParseIPv4(t *testing.T) {
 		}
 		ipv4Addr, ok := sockaddr.Inner[2].(*prog.UnionArg)
 		if !ok {
-			t.Fatalf("Expected 3rd argument to be unionArg. Got %s", sockaddr.Inner[2].Type().Name())
+			t.Fatalf("expected 3rd argument to be unionArg, got %s", sockaddr.Inner[2].Type().Name())
 		}
 		optName := ipv4Addr.Option.Type().FieldName()
 		if !strings.Contains(optName, "rand") {
-			t.Fatalf("Expected ip option to be random opt. Got: %s", optName)
+			t.Fatalf("expected ip option to be random opt, got: %s", optName)
 		}
 		ip, ok := ipv4Addr.Option.(*prog.ConstArg)
 		if !ok {
 			t.Fatalf("ipv4Addr option is not IntType")
 		}
 		if ip.Val != expectedIp {
-			t.Fatalf("Parsed != Expected, %d != %d", ip.Val, expectedIp)
+			t.Fatalf("parsed != expected, %d != %d", ip.Val, expectedIp)
 		}
 	}
 	for i, test := range tests {
 		p := parseSingleTrace(t, test.test).Prog
 		if p.String() != test.expectedSeq {
-			t.Fatalf("Failed test: %d. Expected %s != %s", i, test.expectedSeq, p.String())
+			t.Fatalf("failed subtest: %d, expected %s != %s", i, test.expectedSeq, p.String())
 		}
 		testIpv4(test.ip4, p.Calls[1].Args[1], t)
 	}

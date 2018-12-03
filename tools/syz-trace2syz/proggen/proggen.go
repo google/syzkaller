@@ -22,15 +22,15 @@ func newRCache() returnCache {
 func (r *returnCache) buildKey(syzType prog.Type) string {
 	switch a := syzType.(type) {
 	case *prog.ResourceType:
-		return "ResourceType-" + a.Desc.Kind[0]
+		return a.Desc.Kind[0]
 	default:
-		log.Fatalf("Caching non resource type")
+		log.Fatalf("caching non resource type")
 	}
 	return ""
 }
 
 func (r *returnCache) cache(syzType prog.Type, traceType parser.IrType, arg prog.Arg) {
-	log.Logf(2, "Caching resource type: %s, val: %s", r.buildKey(syzType), traceType.String())
+	log.Logf(2, "caching resource: %s, val: %s", r.buildKey(syzType), traceType.String())
 	resDesc := resourceDescription{
 		Type: r.buildKey(syzType),
 		Val:  traceType.String(),
@@ -39,14 +39,14 @@ func (r *returnCache) cache(syzType prog.Type, traceType parser.IrType, arg prog
 }
 
 func (r *returnCache) get(syzType prog.Type, traceType parser.IrType) prog.Arg {
-	log.Logf(2, "Fetching resource type: %s, val: %s", r.buildKey(syzType), traceType.String())
+	log.Logf(2, "fetching resource: %s, val: %s", r.buildKey(syzType), traceType.String())
 	resDesc := resourceDescription{
 		Type: r.buildKey(syzType),
 		Val:  traceType.String(),
 	}
 	if arg, ok := (*r)[resDesc]; ok {
 		if arg != nil {
-			log.Logf(2, "Cache hit for resource type: %s, val: %s", r.buildKey(syzType), traceType.String())
+			log.Logf(2, "cache hit for resource type: %s, val: %s", r.buildKey(syzType), traceType.String())
 			return arg
 		}
 	}
@@ -106,7 +106,7 @@ func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector
 		ctx.CurrentStraceCall = sCall
 
 		if shouldSkip(ctx) {
-			log.Logf(2, "Skipping call: %s", ctx.CurrentStraceCall.CallName)
+			log.Logf(2, "skipping call: %s", ctx.CurrentStraceCall.CallName)
 			continue
 		}
 		if call = genCall(ctx); call == nil {
@@ -125,7 +125,7 @@ func genCall(ctx *Context) *prog.Call {
 	syzCall.Meta = ctx.CallSelector.Select(ctx, straceCall)
 	ctx.CurrentSyzCall = syzCall
 	if ctx.CurrentSyzCall.Meta == nil {
-		log.Logf(2, "Call: %s has no matching description. Skipping", ctx.CurrentStraceCall.CallName)
+		log.Logf(2, "skipping call: %s which has no matching description", ctx.CurrentStraceCall.CallName)
 		return nil
 	}
 	syzCall.Ret = prog.MakeReturnArg(ctx.CurrentSyzCall.Meta.Ret)
@@ -148,7 +148,7 @@ func genResult(syzType prog.Type, straceRet int64, ctx *Context) {
 		straceExpr := parser.Constant(uint64(straceRet))
 		switch syzType.(type) {
 		case *prog.ResourceType:
-			log.Logf(2, "Call: %s returned a resource type with val: %s",
+			log.Logf(2, "call: %s returned a resource type with val: %s",
 				ctx.CurrentStraceCall.CallName, straceExpr.String())
 			ctx.ReturnCache.cache(syzType, straceExpr, ctx.CurrentSyzCall.Ret)
 		}
@@ -157,11 +157,11 @@ func genResult(syzType prog.Type, straceRet int64, ctx *Context) {
 
 func genArgs(syzType prog.Type, traceArg parser.IrType, ctx *Context) prog.Arg {
 	if traceArg == nil {
-		log.Logf(3, "Parsing syzType: %s, traceArg is nil. Generating default arg...", syzType.Name())
+		log.Logf(3, "parsing syzType: %s, traceArg is nil. generating default arg...", syzType.Name())
 		return prog.DefaultArg(syzType)
 	}
 	ctx.CurrentStraceArg = traceArg
-	log.Logf(3, "Parsing Arg of syz type: %s, ir type: %#v", syzType.Name(), traceArg)
+	log.Logf(3, "parsing arg of syz type: %s, ir type: %#v", syzType.Name(), traceArg)
 
 	switch a := syzType.(type) {
 	case *prog.IntType, *prog.ConstType, *prog.FlagsType, *prog.CsumType:
@@ -185,7 +185,7 @@ func genArgs(syzType prog.Type, traceArg parser.IrType, ctx *Context) prog.Arg {
 	case *prog.VmaType:
 		return genVma(a, traceArg, ctx)
 	default:
-		log.Fatalf("Unsupported  Type: %v", syzType)
+		log.Fatalf("unsupported type: %#v", syzType)
 	}
 	return nil
 }
@@ -210,7 +210,7 @@ func genArray(syzType *prog.ArrayType, traceType parser.IrType, ctx *Context) pr
 	case *parser.PointerType, parser.Constant, *parser.BufferType:
 		return prog.DefaultArg(syzType)
 	default:
-		log.Fatalf("Error parsing Array: %s with Wrong Type: %#v", syzType.FldName, traceType)
+		log.Fatalf("error parsing array: %s with wrong type: %#v", syzType.FldName, traceType)
 	}
 	return prog.MakeGroupArg(syzType, args)
 }
@@ -239,17 +239,17 @@ func genStruct(syzType *prog.StructType, traceType parser.IrType, ctx *Context) 
 	case parser.Constant, *parser.BufferType:
 		return prog.DefaultArg(syzType)
 	default:
-		log.Fatalf("Unsupported Strace Type: %#v to Struct Type", a)
+		log.Fatalf("unsupported type for struct: %#v", a)
 	}
 	return prog.MakeGroupArg(syzType, args)
 }
 
 func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
 	if straceType == nil {
-		log.Logf(1, "Generating union arg. StraceType is nil")
+		log.Logf(1, "generating union arg. straceType is nil")
 		return prog.DefaultArg(syzType)
 	}
-	log.Logf(4, "Generating union arg: %s %#v", syzType.TypeName, straceType)
+	log.Logf(4, "generating union arg: %s %#v", syzType.TypeName, straceType)
 	if syzType.Dir() == prog.DirOut {
 		return prog.DefaultArg(syzType)
 	}
@@ -308,7 +308,7 @@ func genBuffer(syzType *prog.BufferType, traceType parser.IrType, ctx *Context) 
 	case *parser.GroupType:
 		return prog.DefaultArg(syzType)
 	default:
-		log.Fatalf("Cannot parse type %#v for Buffer Type", traceType)
+		log.Fatalf("unsupported type for buffer: %#v", traceType)
 	}
 	if !syzType.Varlen() {
 		size := syzType.Size()
@@ -359,7 +359,7 @@ func genConst(syzType prog.Type, traceType parser.IrType, ctx *Context) prog.Arg
 		// sigev_value={sival_int=-2123636944, sival_ptr=0x7ffd816bdf30}
 		// For now we choose the first option
 		if len(a.Elems) == 0 {
-			log.Logf(2, "Parsing const type. Got array type with len 0")
+			log.Logf(2, "parsing const type, got array type with len 0")
 			return prog.DefaultArg(syzType)
 		}
 		return genConst(syzType, a.Elems[0], ctx)
@@ -372,14 +372,14 @@ func genConst(syzType prog.Type, traceType parser.IrType, ctx *Context) prog.Arg
 		// 2435  connect(3, {sa_family=0x2f ,..., 16)
 		return prog.MakeConstArg(syzType, a.Address)
 	default:
-		log.Fatalf("Cannot convert Strace Type: %#v to Const Type", traceType)
+		log.Fatalf("unsupported type for const: %#v", traceType)
 	}
 	return nil
 }
 
 func genResource(syzType *prog.ResourceType, traceType parser.IrType, ctx *Context) prog.Arg {
 	if syzType.Dir() == prog.DirOut {
-		log.Logf(2, "Resource returned by call argument: %s", traceType.String())
+		log.Logf(2, "resource returned by call argument: %s", traceType.String())
 		res := prog.MakeResultArg(syzType, nil, syzType.Default())
 		ctx.ReturnCache.cache(syzType, traceType, res)
 		return res
@@ -409,9 +409,9 @@ func genResource(syzType *prog.ResourceType, traceType parser.IrType, ctx *Conte
 			ctx.ReturnCache.cache(syzType, a.Elems[0], res)
 			return res
 		}
-		log.Fatalf("Generating resource type from GroupType with %d elements", len(a.Elems))
+		log.Fatalf("generating resource type from GroupType with %d elements", len(a.Elems))
 	default:
-		log.Fatalf("Resource Type only supports Expression")
+		log.Fatalf("unsupported type for resource: %#v", traceType)
 	}
 	return nil
 }
@@ -433,7 +433,7 @@ func parseProc(syzType *prog.ProcType, traceType parser.IrType, ctx *Context) pr
 		// bind(3, {sa_family=AF_INET, sa_data="\xac"}, 3) = -1 EINVAL(Invalid argument)
 		return prog.DefaultArg(syzType)
 	default:
-		log.Fatalf("Unsupported Type for Proc: %#v", traceType)
+		log.Fatalf("unsupported type for proc: %#v", traceType)
 	}
 	return nil
 }
@@ -455,7 +455,7 @@ func reorderStructFields(syzType *prog.StructType, traceType *parser.GroupType, 
 
 	switch syzType.TypeName {
 	case "sockaddr_in6":
-		log.Logf(5, "Reordering in6. Num Elems: %d", len(traceType.Elems))
+		log.Logf(5, "reordering in6. trace struct has %d elems", len(traceType.Elems))
 		if len(traceType.Elems) < 4 {
 			return
 		}
