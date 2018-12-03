@@ -5,11 +5,12 @@ package proggen
 
 import (
 	"encoding/binary"
+	"math/rand"
+
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/tools/syz-trace2syz/config"
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
-	"math/rand"
 )
 
 type returnCache map[resourceDescription]prog.Arg
