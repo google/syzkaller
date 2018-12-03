@@ -11,17 +11,23 @@ Some guildelines to follow:
 
 - Commit messages should follow the following template:
 ```
-package: one-line description
+dir/path: one-line description
 <empty line>
 Extended multi-line description that includes
 the problem you are solving and how it is solved.
 ```
-`package` is the package/tool this commit changes
-(look at examples in the [commit history](https://github.com/google/syzkaller/commits/master))
-- The pull request text is mostly irrelevant
-- Run `make presubmit` and ensure that it passes before sending a PR. It may require some additional packages to be installed (try `sudo make install_prerequisites`)
-- Rebase your pull request onto the master branch before submitting
-- If you're asked to add some fixes to your pull requested, please squash the new commits with the old ones
+`dir/path` is a relative path to the main dir this commit changes
+(look at examples in the [commit history](https://github.com/google/syzkaller/commits/master)). Please pay attention to punctuation. In particular:
+- `one-line description` does *not* start with a Capital letter.
+- there is *no dot* at the end of `one-line description`.
+- `Extended multi-line description` is full English sentenses with Capital letters and dots.
+
+Also:
+- If you commit fixes an issue, please include `Fixes #NNN` line into commit message (where `NNN` is issue number). This will auto-close the issue. If you need to mention an issue without closing it, add `Update #NNN`.
+- The pull request text is mostly irrelevant.
+- Run `make presubmit` and ensure that it passes before sending a PR. It may require some additional packages to be installed (try `sudo make install_prerequisites`).
+- Rebase your pull request onto the master branch before submitting.
+- If you're asked to add some fixes to your pull requested, please squash the new commits with the old ones.
 
 ## What to work on
 
