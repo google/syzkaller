@@ -211,7 +211,13 @@ tidy:
 	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
 gometalinter:
+ifeq ($(TRAVIS),)
 	env CGO_ENABLED=1 gometalinter.v2 ./...
+else
+	# GOMAXPROCS/GOGC settings help to reduce memory usage,
+	# otherwise this gets OOM-killed on travis.
+	env CGO_ENABLED=1 GOMAXPROCS=1 GOGC=50 gometalinter.v2 ./...
+endif
 
 arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host \
 	arch_netbsd_amd64_host arch_openbsd_amd64_host \
