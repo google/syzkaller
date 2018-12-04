@@ -93,4 +93,3 @@ __NR_sendmmsg = 349
 __NR_sendmsg = 341
 __NR_setsockopt = 339
 __NR_socket = 326
-__NR_socketpair = 333

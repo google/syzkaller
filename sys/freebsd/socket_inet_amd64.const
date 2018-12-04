@@ -39,4 +39,3 @@ SYS_recvfrom = 29
 SYS_sendto = 133
 SYS_setsockopt = 105
 SYS_socket = 97
-SYS_socketpair = 135

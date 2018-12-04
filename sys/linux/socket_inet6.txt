@@ -13,11 +13,6 @@ include <uapi/linux/netfilter_ipv6/ip6_tables.h>
 
 resource sock_in6[sock]
 
-sock_in6_pair {
-	f0	sock_in6
-	f1	sock_in6
-}
-
 sockaddr_in6 {
 	family	const[AF_INET6, int16]
 	port	sock_port
@@ -31,7 +26,6 @@ sockaddr_storage_in6 {
 } [size[SOCKADDR_STORAGE_SIZE], align_ptr]
 
 socket$inet6(domain const[AF_INET6], type flags[socket_type], proto int8) sock_in6
-socketpair$inet6(domain const[AF_INET6], type flags[socket_type], proto int8, fds ptr[out, sock_in6_pair])
 accept$inet6(fd sock_in6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_in6
 accept4$inet6(fd sock_in6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_in6
 bind$inet6(fd sock_in6, addr ptr[in, sockaddr_in6], addrlen len[addr])

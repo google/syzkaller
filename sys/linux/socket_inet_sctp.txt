@@ -8,25 +8,13 @@ include <asm/ioctls.h>
 
 resource sock_sctp[sock_in]
 
-sctp_pair {
-	f0	sock_sctp
-	f1	sock_sctp
-}
-
 socket$inet_sctp(domain const[AF_INET], type flags[sctp_socket_type], proto const[IPPROTO_SCTP]) sock_sctp
-socketpair$inet_sctp(domain const[AF_INET], type flags[sctp_socket_type], proto const[IPPROTO_SCTP], fds ptr[out, sctp_pair])
 
 sctp_socket_type = SOCK_STREAM, SOCK_SEQPACKET
 
 resource sock_sctp6[sock_in6]
 
-sctp6_pair {
-	f0	sock_sctp6
-	f1	sock_sctp6
-}
-
 socket$inet6_sctp(domain const[AF_INET6], type flags[sctp_socket_type], proto const[IPPROTO_SCTP]) sock_sctp6
-socketpair$inet6_sctp(domain const[AF_INET6], type flags[sctp_socket_type], proto const[IPPROTO_SCTP], fds ptr[out, sctp6_pair])
 
 # TODO: separate for ip & ipv6
 sendmsg$inet_sctp(fd sock_sctp, msg ptr[in, msghdr_sctp], f flags[send_flags])

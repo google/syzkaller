@@ -7,23 +7,11 @@ include <linux/dccp.h>
 
 resource sock_dccp[sock_in]
 
-dccp_pair {
-	f0	sock_dccp
-	f1	sock_dccp
-}
-
 socket$inet_dccp(domain const[AF_INET], type const[SOCK_DCCP], proto const[0]) sock_dccp
-socketpair$inet_dccp(domain const[AF_INET], type const[SOCK_DCCP], proto const[0], fds ptr[out, dccp_pair])
 
 resource sock_dccp6[sock_in6]
 
-dccp6_pair {
-	f0	sock_dccp6
-	f1	sock_dccp6
-}
-
 socket$inet6_dccp(domain const[AF_INET6], type const[SOCK_DCCP], proto const[0]) sock_dccp6
-socketpair$inet6_dccp(domain const[AF_INET6], type const[SOCK_DCCP], proto const[0], fds ptr[out, dccp6_pair])
 
 # Generic DCCP socket options
 

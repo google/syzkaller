@@ -12,7 +12,6 @@ SOCK_STREAM = 1
 SYS_getsockopt = 118
 SYS_setsockopt = 105
 SYS_socket = 97
-SYS_socketpair = 135
 TCP_CONGESTION = 64
 TCP_FASTOPEN = 1025
 TCP_INFO = 32
