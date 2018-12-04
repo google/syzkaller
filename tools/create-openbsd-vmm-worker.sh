@@ -42,6 +42,7 @@ touch root/.hushlogin home/syzkaller/.hushlogin
 EOF
 
 cat >etc/sysctl.conf <<EOF
+ddb.max_line=0
 hw.smt=1
 EOF
 
