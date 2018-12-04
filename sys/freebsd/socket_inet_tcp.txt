@@ -48,3 +48,11 @@ tcp_function_set {
 }
 
 tcp_function_set_names = "freebsd", "rack", "bbr"
+
+setsockopt$inet_tcp_TCP_FASTOPEN(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN], optval ptr[in, tcp_fastopen], optlen len[optval])
+setsockopt$inet6_tcp_TCP_FASTOPEN(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN], optval ptr[in, tcp_fastopen], optlen len[optval])
+
+tcp_fastopen {
+	enable	int32
+	psk	array[int8, TCP_FASTOPEN_PSK_LEN]
+}

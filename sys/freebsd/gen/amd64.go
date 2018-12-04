@@ -508,6 +508,10 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pad1", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pad2", TypeSize: 4, ArgDir: 1}}},
 	}}},
+	{Key: StructKey{Name: "tcp_fastopen"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_fastopen", TypeSize: 20}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "enable", TypeSize: 4}}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "psk", TypeSize: 16}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
+	}}},
 	{Key: StructKey{Name: "tcp_function_set"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_function_set", TypeSize: 36}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "function_set_name", TypeSize: 32}, Kind: 2, SubKind: "tcp_function_set_names", Values: []string{"freebsd\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rack\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bbr\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pcbcnt", TypeSize: 4}}},
@@ -1536,6 +1540,13 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "tcp_congestion_control_alg_names", Values: []string{"cdg\x00", "chd\x00", "cubic\x00", "dctcp\x00", "hd\x00", "htcp\x00", "newreno\x00", "vegas\x00"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 8}}, Buf: "optval"},
 	}},
+	{NR: 105, Name: "setsockopt$inet6_tcp_TCP_FASTOPEN", CallName: "setsockopt", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 6},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "optname", TypeSize: 8}}, Val: 1025},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tcp_fastopen"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 8}}, Buf: "optval"},
+	}},
 	{NR: 105, Name: "setsockopt$inet6_tcp_TCP_FUNCTION_BLK", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 6},
@@ -1646,6 +1657,13 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 6},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "optname", TypeSize: 8}}, Val: 64},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "tcp_congestion_control_alg_names", Values: []string{"cdg\x00", "chd\x00", "cubic\x00", "dctcp\x00", "hd\x00", "htcp\x00", "newreno\x00", "vegas\x00"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 8}}, Buf: "optval"},
+	}},
+	{NR: 105, Name: "setsockopt$inet_tcp_TCP_FASTOPEN", CallName: "setsockopt", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 6},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "optname", TypeSize: 8}}, Val: 1025},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tcp_fastopen"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 8}}, Buf: "optval"},
 	}},
 	{NR: 105, Name: "setsockopt$inet_tcp_TCP_FUNCTION_BLK", CallName: "setsockopt", Args: []Type{
@@ -2415,6 +2433,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "TCP_CONGESTION", Value: 64},
 	{Name: "TCP_DELACK", Value: 72},
 	{Name: "TCP_FASTOPEN", Value: 1025},
+	{Name: "TCP_FASTOPEN_PSK_LEN", Value: 16},
 	{Name: "TCP_FUNCTION_BLK", Value: 8192},
 	{Name: "TCP_FUNCTION_NAME_LEN_MAX", Value: 32},
 	{Name: "TCP_INFO", Value: 32},
@@ -2446,4 +2465,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "f46e0ed816cb8f7ed1466524517e6c7ce07bb089"
+const revision_amd64 = "b002874fa6625d0210f2708e91ece47d21ba1a64"
