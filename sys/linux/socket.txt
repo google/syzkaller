@@ -18,7 +18,7 @@ type sock_port int16be[20000:20004]
 # TODO: describe socketcall syscall
 
 socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
-socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])
+socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, sock_pair])
 bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 accept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]]) sock
@@ -46,6 +46,11 @@ shutdown_flags = SHUT_RD, SHUT_WR
 send_flags = MSG_CONFIRM, MSG_DONTROUTE, MSG_DONTWAIT, MSG_EOR, MSG_MORE, MSG_NOSIGNAL, MSG_OOB, MSG_PROBE, MSG_BATCH, MSG_FASTOPEN, MSG_ZEROCOPY
 recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MSG_TRUNC, MSG_WAITALL, MSG_WAITFORONE
 cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, SOL_IP, SOL_TCP, SOL_UDP, SOL_IPV6, SOL_ICMPV6, SOL_SCTP, SOL_UDPLITE, SOL_RAW, SOL_IPX, SOL_AX25, SOL_ATALK, SOL_NETROM, SOL_ROSE, SOL_DECNET, SOL_PACKET, SOL_ATM, SOL_AAL, SOL_IRDA, SOL_NETBEUI, SOL_LLC, SOL_DCCP, SOL_NETLINK, SOL_TIPC, SOL_RXRPC, SOL_PPPOL2TP, SOL_BLUETOOTH, SOL_PNPIPE, SOL_RDS, SOL_IUCV, SOL_CAIF, SOL_ALG, SOL_NFC, SOL_KCM
+
+sock_pair {
+	fd0	sock
+	fd1	sock
+}
 
 # This sockaddr type corresponds to the struct sockaddr and is 16 bytes or less.
 # TODO: add AF_APPLETALK, AF_ATMPVC, AF_X25, AF_ROSE, AF_DECnet, AF_ATMSVC, AF_IRDA, AF_IB, AF_TIPC, AF_IUCV, AF_RXRPC, AF_ISDN, AF_PHONET, AF_IEEE802154, AF_CAIF, AF_QIPCRTR
