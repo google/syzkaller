@@ -13,86 +13,9 @@ import (
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
-type returnCache map[resourceDescription]prog.Arg
-
-func newRCache() returnCache {
-	return make(map[resourceDescription]prog.Arg)
-}
-
-func (r *returnCache) buildKey(syzType prog.Type) string {
-	switch a := syzType.(type) {
-	case *prog.ResourceType:
-		return a.Desc.Kind[0]
-	default:
-		log.Fatalf("caching non resource type")
-	}
-	return ""
-}
-
-func (r *returnCache) cache(syzType prog.Type, traceType parser.IrType, arg prog.Arg) {
-	log.Logf(2, "caching resource: %s, val: %s", r.buildKey(syzType), traceType.String())
-	resDesc := resourceDescription{
-		Type: r.buildKey(syzType),
-		Val:  traceType.String(),
-	}
-	(*r)[resDesc] = arg
-}
-
-func (r *returnCache) get(syzType prog.Type, traceType parser.IrType) prog.Arg {
-	log.Logf(2, "fetching resource: %s, val: %s", r.buildKey(syzType), traceType.String())
-	resDesc := resourceDescription{
-		Type: r.buildKey(syzType),
-		Val:  traceType.String(),
-	}
-	if arg, ok := (*r)[resDesc]; ok {
-		if arg != nil {
-			log.Logf(2, "cache hit for resource type: %s, val: %s", r.buildKey(syzType), traceType.String())
-			return arg
-		}
-	}
-	return nil
-}
-
-type resourceDescription struct {
-	Type string
-	Val  string
-}
-
-// Context stores metadata related to a syzkaller program
-type Context struct {
-	ReturnCache       returnCache
-	Prog              *prog.Prog
-	CurrentStraceCall *parser.Syscall
-	CurrentSyzCall    *prog.Call
-	CurrentStraceArg  parser.IrType
-	Target            *prog.Target
-	Tracker           *memoryTracker
-	CallSelector      *CallSelector
-}
-
-func newContext(target *prog.Target, selector *CallSelector) (ctx *Context) {
-	ctx = &Context{}
-	ctx.ReturnCache = newRCache()
-	ctx.CurrentStraceCall = nil
-	ctx.Tracker = newTracker()
-	ctx.CurrentStraceArg = nil
-	ctx.Target = target
-	ctx.CallSelector = selector
-	return
-}
-
-// FillOutMemory determines how much memory to allocate for arguments in a program
-// And generates an mmap c to do the allocation.This mmap is prepended to prog.Calls
-func (ctx *Context) FillOutMemory() error {
-	return ctx.Tracker.fillOutPtrArgs(ctx.Prog)
-}
-
 // GenSyzProg converts a trace to one of our programs
 func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector) *Context {
-	syzProg := new(prog.Prog)
-	syzProg.Target = target
 	ctx := newContext(target, selector)
-	ctx.Prog = syzProg
 	var call *prog.Call
 	for _, sCall := range trace.Calls {
 		if sCall.Paused {
@@ -112,7 +35,7 @@ func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector
 			continue
 		}
 		ctx.Target.AssignSizesCall(call)
-		syzProg.Calls = append(syzProg.Calls, call)
+		ctx.Prog.Calls = append(ctx.Prog.Calls, call)
 	}
 	return ctx
 }
@@ -120,14 +43,14 @@ func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector
 func genCall(ctx *Context) *prog.Call {
 	log.Logf(3, "parsing call: %s", ctx.CurrentStraceCall.CallName)
 	straceCall := ctx.CurrentStraceCall
-	syzCall := new(prog.Call)
-	syzCall.Meta = ctx.CallSelector.Select(ctx, straceCall)
-	ctx.CurrentSyzCall = syzCall
+	ctx.CurrentSyzCall = new(prog.Call)
+	ctx.CurrentSyzCall.Meta = ctx.CallSelector.Select(ctx, straceCall)
+	syzCall := ctx.CurrentSyzCall
 	if ctx.CurrentSyzCall.Meta == nil {
 		log.Logf(2, "skipping call: %s which has no matching description", ctx.CurrentStraceCall.CallName)
 		return nil
 	}
-	syzCall.Ret = prog.MakeReturnArg(ctx.CurrentSyzCall.Meta.Ret)
+	syzCall.Ret = prog.MakeReturnArg(syzCall.Meta.Ret)
 
 	for i := range syzCall.Meta.Args {
 		var strArg parser.IrType
