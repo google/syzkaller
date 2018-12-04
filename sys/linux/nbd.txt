@@ -48,7 +48,7 @@ nbd_attr_policy [
 nbd_server_flags = NBD_FLAG_HAS_FLAGS, NBD_FLAG_READ_ONLY, NBD_FLAG_SEND_FLUSH, NBD_FLAG_SEND_FUA, NBD_FLAG_SEND_TRIM, NBD_FLAG_CAN_MULTI_CONN
 nbd_client_flags = NBD_CFLAG_DESTROY_ON_DISCONNECT, NBD_CFLAG_DISCONNECT_ON_CLOSE
 
-socketpair$nbd(domain const[AF_INET], type const[SOCK_STREAM], proto const[0], fds ptr[out, nbd_sock_pair])
+socketpair$nbd(domain const[AF_UNIX], type const[SOCK_STREAM], proto const[0], fds ptr[out, nbd_sock_pair])
 
 nbd_sock_pair {
 	client	sock_nbd_client

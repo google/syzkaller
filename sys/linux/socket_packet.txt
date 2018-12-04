@@ -16,7 +16,6 @@ define ETH_P_ALL_BE	htons(ETH_P_ALL)
 resource sock_packet[sock]
 
 socket$packet(domain const[AF_PACKET], type flags[packet_socket_type], proto const[ETH_P_ALL_BE]) sock_packet
-socketpair$packet(domain const[AF_PACKET], type flags[packet_socket_type], proto const[ETH_P_ALL_BE], fds ptr[out, packet_pair])
 bind$packet(fd sock_packet, addr ptr[in, sockaddr_ll], addrlen len[addr])
 connect$packet(fd sock_packet, addr ptr[in, sockaddr_ll], addrlen len[addr])
 accept$packet(fd sock_packet, peer ptr[out, sockaddr_ll, opt], peerlen ptr[inout, len[peer, int32]]) sock_packet
@@ -29,11 +28,6 @@ getpeername$packet(fd sock_packet, peer ptr[out, sockaddr_ll], peerlen ptr[inout
 
 packet_socket_type = SOCK_RAW, SOCK_DGRAM
 packet_protocols = ETH_P_802_3, ETH_P_AX25, ETH_P_ALL, ETH_P_802_2, ETH_P_SNAP, ETH_P_DDCMP, ETH_P_WAN_PPP, ETH_P_PPP_MP, ETH_P_LOCALTALK, ETH_P_CAN, ETH_P_CANFD, ETH_P_PPPTALK, ETH_P_TR_802_2, ETH_P_MOBITEX, ETH_P_CONTROL, ETH_P_IRDA, ETH_P_ECONET, ETH_P_HDLC, ETH_P_ARCNET, ETH_P_DSA, ETH_P_TRAILER, ETH_P_PHONET, ETH_P_IEEE802154, ETH_P_CAIF, ETH_P_XDSA
-
-packet_pair {
-	fd0	sock_packet
-	fd1	sock_packet
-}
 
 sockaddr_ll {
 	sll_family	const[AF_PACKET, int16]

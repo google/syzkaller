@@ -6,4 +6,3 @@ LINUX_AF_INET6 = 10
 LINUX_SOCK_DGRAM = 2
 SOCK_DGRAM = 2
 SYS_socket = 97
-SYS_socketpair = 135

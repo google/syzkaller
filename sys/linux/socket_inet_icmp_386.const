@@ -8,4 +8,3 @@ SOCK_DGRAM = 2
 SOCK_RAW = 3
 __NR_setsockopt = 366
 __NR_socket = 359
-__NR_socketpair = 360

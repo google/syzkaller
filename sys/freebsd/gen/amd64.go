@@ -104,14 +104,6 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "gsr_group"},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "gsr_source"},
 	}}},
-	{Key: StructKey{Name: "icmp6_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp6_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp6", FldName: "f1", TypeSize: 4, ArgDir: 1}},
-	}}},
-	{Key: StructKey{Name: "icmp_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp", FldName: "f0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp", FldName: "f1", TypeSize: 4, ArgDir: 1}},
-	}}},
 	{Key: StructKey{Name: "in6_pktinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "in6_pktinfo", TypeSize: 20}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "ipi6_addr"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "ipi6_ifindex", TypeSize: 4}},
@@ -421,14 +413,6 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "sigset"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sigset", TypeSize: 8}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask", TypeSize: 8}}},
 	}}},
-	{Key: StructKey{Name: "sock_in6_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sock_in6_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "f1", TypeSize: 4, ArgDir: 1}},
-	}}},
-	{Key: StructKey{Name: "sock_in_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sock_in_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "f0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "f1", TypeSize: 4, ArgDir: 1}},
-	}}},
 	{Key: StructKey{Name: "sockaddr_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2}}, Val: 2},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
@@ -524,14 +508,6 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pad1", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pad2", TypeSize: 4, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "tcp6_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp6_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "f1", TypeSize: 4, ArgDir: 1}},
-	}}},
-	{Key: StructKey{Name: "tcp_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "f0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "f1", TypeSize: 4, ArgDir: 1}},
-	}}},
 	{Key: StructKey{Name: "tcp_resources", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_resources", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "tcp_seq_num", FldName: "seq", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "tcp_seq_num", FldName: "ack", TypeSize: 4, ArgDir: 1}},
@@ -565,14 +541,6 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4, ArgDir: 1}},
-	}}},
-	{Key: StructKey{Name: "udp6_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "udp6_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp6", FldName: "f1", TypeSize: 4, ArgDir: 1}},
-	}}},
-	{Key: StructKey{Name: "udp_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "udp_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp", FldName: "f0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp", FldName: "f1", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "unix_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "unix_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd0", TypeSize: 4, ArgDir: 1}},
@@ -1841,66 +1809,6 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "proto", TypeSize: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "pipefd", Dir: 1}}},
 	}},
-	{NR: 135, Name: "socketpair$inet", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 2},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{1, 2, 3, 4, 5, 536870912, 268435456}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "proto", TypeSize: 1}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sock_in_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet6", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 28},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{1, 2, 3, 4, 5, 536870912, 268435456}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "proto", TypeSize: 1}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sock_in6_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet6_icmp", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 28},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 58},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "icmp6_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet6_icmp_raw", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 28},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 58},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "icmp6_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet6_tcp", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 28},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 1},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tcp6_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet6_udp", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 28},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "udp6_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet_icmp", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 1},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "icmp_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet_icmp_raw", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 1},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "icmp_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet_tcp", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 1},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tcp_pair", Dir: 1}}},
-	}},
-	{NR: 135, Name: "socketpair$inet_udp", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "udp_pair", Dir: 1}}},
-	}},
 	{NR: 135, Name: "socketpair$unix", CallName: "socketpair", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 1},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{1, 2, 5}},
@@ -2476,4 +2384,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "a3944f6fbcf482566af6a7a77f6663b51b659575"
+const revision_amd64 = "14c28af7b40c606be84ee475c6e8a7f63d052890"

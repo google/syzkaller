@@ -10,4 +10,3 @@ LINUX_SOCK_RAW = 3
 SOCK_DGRAM = 2
 SOCK_RAW = 3
 SYS_socket = 97
-SYS_socketpair = 135

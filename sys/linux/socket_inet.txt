@@ -12,11 +12,6 @@ include <uapi/linux/wireless.h>
 
 resource sock_in[sock]
 
-sock_in_pair {
-	f0	sock_in
-	f1	sock_in
-}
-
 sockaddr_in {
 	family	const[AF_INET, int16]
 	port	sock_port
@@ -29,7 +24,6 @@ sockaddr_storage_in {
 } [size[SOCKADDR_STORAGE_SIZE], align_ptr]
 
 socket$inet(domain const[AF_INET], type flags[socket_type], proto int8) sock_in
-socketpair$inet(domain const[AF_INET], type flags[socket_type], proto int8, fds ptr[out, sock_in_pair])
 accept$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]]) sock_in
 accept4$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_in
 bind$inet(fd sock_in, addr ptr[in, sockaddr_in], addrlen len[addr])

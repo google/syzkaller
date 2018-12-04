@@ -76,4 +76,3 @@ __NR_recvfrom = 207
 __NR_sendto = 206
 __NR_setsockopt = 208
 __NR_socket = 198
-__NR_socketpair = 199
