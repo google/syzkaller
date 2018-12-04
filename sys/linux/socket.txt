@@ -70,6 +70,7 @@ sockaddr [
 	nfc		sockaddr_nfc
 	vsock		sockaddr_vm
 	xdp		sockaddr_xdp
+	tipc		sockaddr_tipc
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
 ] [size[SOCKADDR_SIZE]]
@@ -100,6 +101,7 @@ sockaddr_storage [
 	nfc_llcp	sockaddr_nfc_llcp
 	vsock		sockaddr_vm
 	xdp		sockaddr_xdp
+	tipc		sockaddr_tipc
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_storage_generic
 ] [size[SOCKADDR_STORAGE_SIZE]]
