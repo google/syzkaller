@@ -166,7 +166,10 @@ func genStruct(syzType *prog.StructType, traceType parser.IrType, ctx *Context) 
 			}
 			j++
 		}
-	case parser.Constant, *parser.BufferType:
+	case *parser.BufferType:
+		// We could have a case like the following:
+		// ioctl(3, 35111, {ifr_name="\x6c\x6f", ifr_hwaddr=00:00:00:00:00:00}) = 0
+		// if_hwaddr gets parsed as a BufferType but our syscall descriptions have it as a struct type
 		return prog.DefaultArg(syzType)
 	default:
 		log.Fatalf("unsupported type for struct: %#v", a)
@@ -228,8 +231,6 @@ func genBuffer(syzType *prog.BufferType, traceType parser.IrType, ctx *Context) 
 		bArr := make([]byte, 8)
 		binary.LittleEndian.PutUint64(bArr, val)
 		bufVal = bArr
-	case *parser.GroupType:
-		return prog.DefaultArg(syzType)
 	default:
 		log.Fatalf("unsupported type for buffer: %#v", traceType)
 	}
@@ -302,8 +303,7 @@ func genResource(syzType *prog.ResourceType, traceType parser.IrType, ctx *Conte
 		if len(a.Elems) == 1 {
 			// For example: 5028  ioctl(3, SIOCSPGRP, [0])          = 0
 			// last argument is a pointer to a resource. Strace will output a pointer to
-			// a number x as [x]. When we parse we cannot distinguish this case from a pointer to a pointer.
-			// It only matters if the value is resource AFAWCT
+			// a number x as [x].
 			res := prog.MakeResultArg(syzType, nil, syzType.Default())
 			ctx.ReturnCache.cache(syzType, a.Elems[0], res)
 			return res
