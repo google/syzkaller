@@ -7,8 +7,6 @@ include <sys/types.h>
 include <sys/socket.h>
 include <netinet/in.h>
 include <netinet/tcp.h>
-include <linux/linux.h>
-include <compat/linux/linux_socket.h>
 
 resource sock_tcp[sock_in]
 
@@ -20,9 +18,9 @@ socket$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]
 
 # Generic TCP socket options
 
-tcp_option_types_int = TCP_NODELAY, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_FASTOPEN
+tcp_option_types_int = TCP_NODELAY, TCP_MAXSEG, TCP_NOPUSH, TCP_NOOPT, TCP_MD5SIG, TCP_LOG, TCP_DELACK, TCP_KEEPINIT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT, TCP_PCAP_OUT, TCP_PCAP_IN
 
-tcp_option_types_buf = TCP_INFO, TCP_CONGESTION
+tcp_option_types_buf = TCP_INFO, TCP_LOGBUF, TCP_LOGID, TCP_LOGDUMP, TCP_LOGDUMPID, TCP_CONGESTION, TCP_CCALGOOPT, TCP_FASTOPEN, TCP_FUNCTION_BLK
 
 getsockopt$inet_tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet_tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[in, int32], optlen len[optval])
@@ -39,4 +37,22 @@ setsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[t
 setsockopt$inet_tcp_TCP_CONGESTION(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
 setsockopt$inet6_tcp_TCP_CONGESTION(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_CONGESTION], optval ptr[in, string[tcp_congestion_control_alg_names]], optlen len[optval])
 
-tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois"
+tcp_congestion_control_alg_names = "cdg", "chd", "cubic", "dctcp", "hd", "htcp", "newreno", "vegas"
+
+setsockopt$inet_tcp_TCP_FUNCTION_BLK(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FUNCTION_BLK], optval ptr[in, tcp_function_set], optlen len[optval])
+setsockopt$inet6_tcp_TCP_FUNCTION_BLK(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FUNCTION_BLK], optval ptr[in, tcp_function_set], optlen len[optval])
+
+tcp_function_set {
+	function_set_name	string[tcp_function_set_names, TCP_FUNCTION_NAME_LEN_MAX]
+	pcbcnt			int32
+}
+
+tcp_function_set_names = "freebsd", "rack", "bbr"
+
+setsockopt$inet_tcp_TCP_FASTOPEN(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN], optval ptr[in, tcp_fastopen], optlen len[optval])
+setsockopt$inet6_tcp_TCP_FASTOPEN(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN], optval ptr[in, tcp_fastopen], optlen len[optval])
+
+tcp_fastopen {
+	enable	int32
+	psk	array[int8, TCP_FASTOPEN_PSK_LEN]
+}
