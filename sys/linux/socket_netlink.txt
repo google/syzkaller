@@ -87,7 +87,7 @@ type netlink_msg_t[TYPE, PAYLOAD, ATTRS] {
 	pid	netlink_port_id
 	payload	PAYLOAD
 	attrs	array[ATTRS]
-} [align_4]
+} [packed, align_4]
 
 type netlink_msg[TYPE, PAYLOAD, ATTRS] netlink_msg_t[const[TYPE, int16], PAYLOAD, ATTRS]
 
