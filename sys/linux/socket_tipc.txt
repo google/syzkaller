@@ -61,7 +61,7 @@ sockaddr_tipc [
 type sockaddr_tipc_t[TYP, DATA] {
 	family		const[AF_TIPC, int16]
 	addrtype	const[TYP, int8]
-	scope		int8
+	scope		flags[tipc_scope, int8]
 	addr		DATA
 }
 
@@ -110,6 +110,6 @@ tipc_sioc_nodeid_req {
 tipc_group_req {
 	type		int32[TIPC_SERVICE_TYPE0:TIPC_SERVICE_TYPE3]
 	instance	tipc_instance
-	scope		int32[0:TIPC_NODE_SCOPE]
+	scope		flags[tipc_scope, int32]
 	flags		const[0, int32]
 }
