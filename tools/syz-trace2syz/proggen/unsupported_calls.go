@@ -37,5 +37,10 @@ var (
 		"rt_sigsuspend":   true,
 		// Require function pointers which are not recovered by strace
 		"rt_sigaction": true,
+		// These 2 are issued by glibc for every process/thread start.
+		// Normal programs don't use them and it's unlikely we build
+		// something interesting with them (e.g. we won't get real robust list in memory).
+		"set_robust_list": true,
+		"set_tid_address": true,
 	}
 )
