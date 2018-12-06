@@ -20,6 +20,14 @@ type Call struct {
 	Comment string
 }
 
+func (p *Prog) Finalize() error {
+	for _, c := range p.Calls {
+		p.Target.assignSizesCall(c)
+		p.Target.SanitizeCall(c)
+	}
+	return p.validate()
+}
+
 type Arg interface {
 	Type() Type
 	Size() uint64

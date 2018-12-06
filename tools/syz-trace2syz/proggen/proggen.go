@@ -33,7 +33,6 @@ func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector
 		if call == nil {
 			continue
 		}
-		ctx.Target.AssignSizesCall(call)
 		ctx.Prog.Calls = append(ctx.Prog.Calls, call)
 	}
 	return ctx
@@ -60,7 +59,6 @@ func genCall(ctx *Context) *prog.Call {
 		syzCall.Args = append(syzCall.Args, res)
 	}
 	genResult(syzCall.Meta.Ret, straceCall.Ret, ctx)
-	ctx.Target.SanitizeCall(syzCall)
 	return syzCall
 }
 
