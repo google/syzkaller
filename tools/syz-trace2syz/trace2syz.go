@@ -85,7 +85,7 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 				log.Logf(1, "failed to fill out memory: %v, skipping this prog", err)
 				continue
 			}
-			if err := ctx.Prog.Validate(); err != nil {
+			if err := ctx.Prog.Finalize(); err != nil {
 				log.Fatalf("error validating program: %s", err)
 			}
 			if progIsTooLarge(ctx.Prog) {

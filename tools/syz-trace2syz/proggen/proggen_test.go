@@ -40,7 +40,7 @@ func parseSingleTrace(t *testing.T, data string) *Context {
 	traceTree = parser.ParseLoop(data)
 	ctx = GenSyzProg(traceTree.TraceMap[traceTree.RootPid], target, selector)
 	ctx.FillOutMemory()
-	if err := ctx.Prog.Validate(); err != nil {
+	if err := ctx.Prog.Finalize(); err != nil {
 		t.Fatalf("failed to parse trace: %s", err.Error())
 	}
 	return ctx
