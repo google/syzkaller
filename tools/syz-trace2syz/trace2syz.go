@@ -81,9 +81,8 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 		ctxs := parseTree(tree, tree.RootPid, target)
 		for i, ctx := range ctxs {
 			ctx.Prog.Target = ctx.Target
-			err := ctx.FillOutMemory()
-			if err != nil {
-				log.Logf(1, "failed to fill out memory %s", err)
+			if err := ctx.FillOutMemory(); err != nil {
+				log.Logf(1, "failed to fill out memory: %v, skipping this prog", err)
 				continue
 			}
 			if err := ctx.Prog.Validate(); err != nil {

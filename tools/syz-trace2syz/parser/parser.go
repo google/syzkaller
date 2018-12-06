@@ -11,14 +11,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 )
 
-const (
-	maxBufferSize = 64 * 1024 * 1024                    // maxBufferSize is maximum size for buffer
-	sysrestart    = "ERESTART"                          // SYSRESTART corresponds to the error code of ERESTART.
-	signalPlus    = "+++"                               // SignalPlus marks +++
-	signalMinus   = "---"                               // SignalPlus marks ---
-	noSuchProcess = "<ptrace(SYSCALL):No such process>" // No such process error. Nothing worth parsing
-)
-
 func parseSyscall(scanner *bufio.Scanner) (int, *Syscall) {
 	lex := newStraceLexer(scanner.Bytes())
 	ret := StraceParse(lex)
@@ -26,17 +18,17 @@ func parseSyscall(scanner *bufio.Scanner) (int, *Syscall) {
 }
 
 func shouldSkip(line string) bool {
-	restart := strings.Contains(line, sysrestart)
-	signalPlus := strings.Contains(line, signalPlus)
-	signalMinus := strings.Contains(line, signalMinus)
-	noProcess := strings.Contains(line, noSuchProcess)
-	return restart || signalPlus || signalMinus || noProcess
+	return strings.Contains(line, "ERESTART") ||
+		strings.Contains(line, "+++") ||
+		strings.Contains(line, "---") ||
+		strings.Contains(line, "<ptrace(SYSCALL):No such process>")
 }
 
 // ParseLoop parses each line of a strace file in a loop
-func ParseLoop(data string) (tree *TraceTree) {
-	tree = NewTraceTree()
+func ParseLoop(data string) *TraceTree {
+	tree := NewTraceTree()
 	// Creating the process tree
+	const maxBufferSize = 64 * 1024 * 1024 // maxBufferSize is maximum size for buffer
 	buf := make([]byte, maxBufferSize)
 	scanner := bufio.NewScanner(strings.NewReader(data))
 	scanner.Buffer(buf, maxBufferSize)
@@ -53,10 +45,10 @@ func ParseLoop(data string) (tree *TraceTree) {
 		}
 		tree.add(call)
 	}
-	if len(tree.Ptree) == 0 {
+	if len(tree.TraceMap) == 0 {
 		return nil
 	}
-	return
+	return tree
 }
 
 // Parse parses a trace of system calls and returns an intermediate representation

@@ -12,10 +12,9 @@ import (
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
-// GenSyzProg converts a trace to one of our programs
+// GenSyzProg converts a trace to one of our programs.
 func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector) *Context {
 	ctx := newContext(target, selector)
-	var call *prog.Call
 	for _, sCall := range trace.Calls {
 		if sCall.Paused {
 			// Probably a case where the call was killed by a signal like the following
@@ -30,7 +29,8 @@ func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector
 			log.Logf(2, "skipping call: %s", ctx.CurrentStraceCall.CallName)
 			continue
 		}
-		if call = genCall(ctx); call == nil {
+		call := genCall(ctx)
+		if call == nil {
 			continue
 		}
 		ctx.Target.AssignSizesCall(call)
@@ -145,7 +145,7 @@ func genArray(syzType *prog.ArrayType, traceType parser.IrType, ctx *Context) pr
 }
 
 func genStruct(syzType *prog.StructType, traceType parser.IrType, ctx *Context) prog.Arg {
-	args := make([]prog.Arg, 0)
+	var args []prog.Arg
 	switch a := traceType.(type) {
 	case *parser.GroupType:
 		j := 0
