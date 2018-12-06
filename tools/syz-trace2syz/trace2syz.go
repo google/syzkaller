@@ -11,14 +11,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/db"
-	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -34,9 +31,8 @@ var (
 )
 
 const (
-	goos             = "linux" // Target OS
-	arch             = "amd64" // Target architecture
-	currentDBVersion = 3       // Marked as minimized
+	goos = "linux" // Target OS
+	arch = "amd64" // Target architecture
 )
 
 func main() {
@@ -150,24 +146,12 @@ func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target) []*progge
 }
 
 func pack(progs []*prog.Prog) {
-	corpusDb := "corpus.db"
-	os.Remove(corpusDb)
-	syzDb, err := db.Open(corpusDb)
-
-	if err != nil {
-		log.Fatalf("failed to open database file: %v", err)
+	var records []db.Record
+	for _, prog := range progs {
+		records = append(records, db.Record{Val: prog.Serialize()})
 	}
-	syzDb.BumpVersion(currentDBVersion)
-	for i, prog := range progs {
-		data := prog.Serialize()
-		key := hash.String(data)
-		if _, ok := syzDb.Records[key]; ok {
-			key += fmt.Sprint(i)
-		}
-		syzDb.Save(key, data, 0)
-	}
-	if err := syzDb.Flush(); err != nil {
-		log.Fatalf("failed to save database file: %v", err)
+	if err := db.Create("corpus.db", 0, records); err != nil {
+		log.Fatalf("%v", err)
 	}
 	log.Logf(0, "finished!")
 }
