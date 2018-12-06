@@ -23,6 +23,10 @@ type validCtx struct {
 	uses   map[Arg]Arg
 }
 
+func (p *Prog) Validate() error {
+	return p.validate()
+}
+
 func (p *Prog) validate() error {
 	ctx := &validCtx{
 		target: p.Target,

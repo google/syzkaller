@@ -67,6 +67,10 @@ type Type interface {
 	minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 }
 
+func DefaultArg(t Type) Arg {
+	return t.makeDefaultArg()
+}
+
 func IsPad(t Type) bool {
 	if ct, ok := t.(*ConstType); ok && ct.IsPad {
 		return true

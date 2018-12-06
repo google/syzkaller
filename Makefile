@@ -86,7 +86,7 @@ endif
 .PHONY: all host target \
 	manager runtest fuzzer executor \
 	ci hub \
-	execprog mutate prog2c stress repro upgrade db \
+	execprog mutate prog2c trace2syz stress repro upgrade db \
 	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
@@ -157,6 +157,9 @@ db:
 upgrade:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
+trace2syz:
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-trace2syz github.com/google/syzkaller/tools/syz-trace2syz
+
 # `extract` extracts const files from various kernel sources, and may only
 # re-generate parts of files.
 extract: bin/syz-extract
@@ -186,6 +189,10 @@ ifeq ($(TARGETOS),fuchsia)
 	$(MAKE) format_sys
 else
 endif
+
+generate_trace2syz:
+	(cd tools/syz-trace2syz/parser; ragel -Z -G2 -o lex.go straceLex.rl)
+	(cd tools/syz-trace2syz/parser; goyacc -o strace.go -p Strace -v="" strace.y)
 
 bin/syz-sysgen:
 	$(GO) build $(GOHOSTFLAGS) -o $@ ./sys/syz-sysgen
@@ -317,6 +324,8 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-aarch64-linux-gnu || true
 	sudo apt-get install -y -q g++-powerpc64le-linux-gnu || true
 	sudo apt-get install -y -q g++-arm-linux-gnueabihf || true
+	sudo apt-get install -y -q ragel
+	go get -u golang.org/x/tools/cmd/goyacc
 	go get -u gopkg.in/alecthomas/gometalinter.v2
 	gometalinter.v2 --install
 
