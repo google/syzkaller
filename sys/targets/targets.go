@@ -196,7 +196,29 @@ var List = map[string]map[string]*Target{
 			CFlags:      []string{"-m64"},
 			CCompiler:   "c++",
 			CrossCFlags: []string{"-m64", "-static", "-lutil"},
-			NeedSyscallDefine: func(uint64) bool {
+			NeedSyscallDefine: func(nr uint64) bool {
+				switch nr {
+				case 8: // SYS___tfork
+					return true
+				case 94: // SYS___thrsleep
+					return true
+				case 198: // SYS___syscall
+					return true
+				case 295: // SYS___semctl
+					return true
+				case 301: // SYS___thrwakeup
+					return true
+				case 302: // SYS___threxit
+					return true
+				case 303: // SYS___thrsigdivert
+					return true
+				case 304: // SYS___getcwd
+					return true
+				case 329: // SYS___set_tcb
+					return true
+				case 330: // SYS___get_tcb
+					return true
+				}
 				return false
 			},
 		},
