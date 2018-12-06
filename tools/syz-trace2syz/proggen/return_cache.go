@@ -26,6 +26,7 @@ func (r returnCache) cache(syzType prog.Type, traceType parser.IrType, arg prog.
 }
 
 func (r returnCache) get(syzType prog.Type, traceType parser.IrType) prog.Arg {
-	log.Logf(2, "fetching resource: %s, val: %s", returnCacheKey(syzType, traceType))
-	return r[returnCacheKey(syzType, traceType)]
+	result := r[returnCacheKey(syzType, traceType)]
+	log.Logf(2, "fetching resource: %s, val: %s", returnCacheKey(syzType, traceType), result)
+	return result
 }
