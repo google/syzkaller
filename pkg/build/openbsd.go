@@ -22,13 +22,21 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", kernelDir, targetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/%v", kernelDir, targetArch, kernelName)
 
-	useGCE := vmType == "gce"
-	if err := ctx.configure(confDir, compileDir, kernelName, useGCE); err != nil {
+	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), config); err != nil {
 		return err
 	}
 
-	if err := ctx.make(compileDir, "all"); err != nil {
+	if err := osutil.MkdirAll(compileDir); err != nil {
 		return err
+	}
+	makefile := []byte(".include \"../Makefile.inc\"\n")
+	if err := osutil.WriteFile(filepath.Join(compileDir, "Makefile"), makefile); err != nil {
+		return err
+	}
+	for _, tgt := range []string{"obj", "config", "all"} {
+		if err := ctx.make(compileDir, tgt); err != nil {
+			return err
+		}
 	}
 	for _, s := range []struct{ dir, src, dst string }{
 		{compileDir, "obj/bsd", "kernel"},
@@ -42,7 +50,7 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
-	if useGCE {
+	if vmType == "gce" {
 		return CopyKernelToImage(outputDir)
 	}
 	return nil
@@ -50,39 +58,6 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 
 func (ctx openbsd) clean(kernelDir string) error {
 	return ctx.make(kernelDir, "", "clean")
-}
-
-func (ctx openbsd) configure(confDir, compileDir, kernelName string, useGCE bool) error {
-	baseConfig := "GENERIC"
-	if useGCE {
-		// GCE supports multiple CPUs.
-		// TODO(gnezdo): Switch to GENERIC.MP once kernel crash is solved.
-		// http://openbsd-archive.7691.n7.nabble.com/option-kcov-GENERIC-MP-gt-silent-crash-tc355807.html
-		baseConfig = "GENERIC"
-	}
-	conf := []byte(fmt.Sprintf(`
-include "arch/amd64/conf/%v"
-pseudo-device kcov 1
-`, baseConfig))
-	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), conf); err != nil {
-		return err
-	}
-
-	if err := osutil.MkdirAll(compileDir); err != nil {
-		return err
-	}
-	makefile := []byte(".include \"../Makefile.inc\"\n")
-	if err := osutil.WriteFile(filepath.Join(compileDir, "Makefile"), makefile); err != nil {
-		return err
-	}
-	if err := ctx.make(compileDir, "obj"); err != nil {
-		return err
-	}
-	if err := ctx.make(compileDir, "config"); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (ctx openbsd) make(kernelDir string, args ...string) error {
