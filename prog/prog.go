@@ -364,7 +364,7 @@ func removeArg(arg0 Arg) {
 			delete(uses, a)
 		}
 		for arg1 := range a.uses {
-			arg2 := arg1.Type().makeDefaultArg().(*ResultArg)
+			arg2 := arg1.Type().DefaultArg().(*ResultArg)
 			replaceResultArg(arg1, arg2)
 		}
 	})
