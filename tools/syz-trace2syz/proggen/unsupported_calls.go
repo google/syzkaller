@@ -1,12 +1,12 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package config
+package proggen
 
 var (
-	// ShouldSkip lists system calls that we should skip when parsing
-	// Some of these are unsupported or not worth executing
-	ShouldSkip = map[string]bool{
+	// unsupportedCalls lists system calls that we should skip when parsing.
+	// Some of these are unsupported or not worth executing.
+	unsupportedCalls = map[string]bool{
 		// While we have system call descriptions for execve it is not worth adding
 		// the ones in traces. Every trace has an execve at the beginning which means
 		// all the system calls afterwards will not execute
