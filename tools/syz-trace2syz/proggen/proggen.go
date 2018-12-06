@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/tools/syz-trace2syz/config"
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
@@ -363,7 +362,7 @@ func reorderStructFields(syzType *prog.StructType, traceType *parser.GroupType, 
 
 func shouldSkip(ctx *Context) bool {
 	syscall := ctx.CurrentStraceCall
-	if config.ShouldSkip[syscall.CallName] {
+	if unsupportedCalls[syscall.CallName] {
 		return true
 	}
 	switch syscall.CallName {
