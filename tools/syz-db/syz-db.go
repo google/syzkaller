@@ -60,14 +60,7 @@ func pack(dir, file string, target *prog.Target, version uint64) {
 	if err != nil {
 		failf("failed to read dir: %v", err)
 	}
-	os.Remove(file)
-	db, err := db.Open(file)
-	if err != nil {
-		failf("failed to open database file: %v", err)
-	}
-	if err := db.BumpVersion(version); err != nil {
-		failf("failed to bump database version: %v", err)
-	}
+	var records []db.Record
 	for _, file := range files {
 		data, err := ioutil.ReadFile(filepath.Join(dir, file.Name()))
 		if err != nil {
@@ -93,10 +86,13 @@ func pack(dir, file string, target *prog.Target, version uint64) {
 			fmt.Fprintf(os.Stderr, "fixing hash %v -> %v\n", key, sig)
 			key = sig
 		}
-		db.Save(key, data, seq)
+		records = append(records, db.Record{
+			Val: data,
+			Seq: seq,
+		})
 	}
-	if err := db.Flush(); err != nil {
-		failf("failed to save database file: %v", err)
+	if err := db.Create(file, version, records); err != nil {
+		failf("%v", err)
 	}
 }
 

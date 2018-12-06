@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 )
@@ -262,4 +263,23 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 		fr.Close()
 	}
 	return
+}
+
+// Create creates a new database in the specified file with the specified records.
+func Create(filename string, version uint64, records []Record) error {
+	os.Remove(filename)
+	db, err := Open(filename)
+	if err != nil {
+		return fmt.Errorf("failed to open database file: %v", err)
+	}
+	if err := db.BumpVersion(version); err != nil {
+		return fmt.Errorf("failed to bump database version: %v", err)
+	}
+	for _, rec := range records {
+		db.Save(hash.String(rec.Val), rec.Val, rec.Seq)
+	}
+	if err := db.Flush(); err != nil {
+		return fmt.Errorf("failed to save database file: %v", err)
+	}
+	return nil
 }
