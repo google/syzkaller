@@ -23,7 +23,7 @@ func TestDefault(t *testing.T) {
 	target, _, _ := initTest(t)
 	for _, meta := range target.Syscalls {
 		ForeachType(meta, func(typ Type) {
-			arg := typ.makeDefaultArg()
+			arg := typ.DefaultArg()
 			if !isDefault(arg) {
 				t.Errorf("default arg is not default: %s\ntype: %#v\narg: %#v",
 					typ, typ, arg)

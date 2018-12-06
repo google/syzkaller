@@ -250,7 +250,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 			c.Comment = strings.TrimSpace(p.s[p.i+1:])
 		}
 		for i := len(c.Args); i < len(meta.Args); i++ {
-			c.Args = append(c.Args, meta.Args[i].makeDefaultArg())
+			c.Args = append(c.Args, meta.Args[i].DefaultArg())
 		}
 		if len(c.Args) != len(meta.Args) {
 			return nil, fmt.Errorf("wrong call arg count: %v, want %v", len(c.Args), len(meta.Args))
@@ -292,7 +292,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]*ResultArg) 
 	}
 	if arg == nil {
 		if typ != nil {
-			arg = typ.makeDefaultArg()
+			arg = typ.DefaultArg()
 		} else if r != "" {
 			return nil, fmt.Errorf("named nil argument")
 		}
@@ -349,7 +349,7 @@ func (target *Target) parseArgInt(typ Type, p *parser) (Arg, error) {
 		return MakeSpecialPointerArg(typ, index), nil
 	default:
 		eatExcessive(p, true)
-		return typ.makeDefaultArg(), nil
+		return typ.DefaultArg(), nil
 	}
 }
 
@@ -376,7 +376,7 @@ func (target *Target) parseArgRes(typ Type, p *parser, vars map[string]*ResultAr
 	}
 	v := vars[id]
 	if v == nil {
-		return typ.makeDefaultArg(), nil
+		return typ.DefaultArg(), nil
 	}
 	arg := MakeResultArg(typ, v, 0)
 	arg.OpDiv = div
@@ -392,7 +392,7 @@ func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]*ResultA
 	case *VmaType:
 	default:
 		eatExcessive(p, true)
-		return typ.makeDefaultArg(), nil
+		return typ.DefaultArg(), nil
 	}
 	p.Parse('&')
 	addr, vmaSize, err := target.parseAddr(p)
@@ -419,7 +419,7 @@ func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]*ResultA
 		return MakeVmaPointerArg(typ, addr, vmaSize), nil
 	}
 	if inner == nil {
-		inner = typ1.makeDefaultArg()
+		inner = typ1.DefaultArg()
 	}
 	return MakePointerArg(typ, addr, inner), nil
 }
@@ -427,7 +427,7 @@ func (target *Target) parseArgAddr(typ Type, p *parser, vars map[string]*ResultA
 func (target *Target) parseArgString(typ Type, p *parser) (Arg, error) {
 	if _, ok := typ.(*BufferType); !ok {
 		eatExcessive(p, true)
-		return typ.makeDefaultArg(), nil
+		return typ.DefaultArg(), nil
 	}
 	data, err := deserializeData(p)
 	if err != nil {
@@ -463,7 +463,7 @@ func (target *Target) parseArgStruct(typ Type, p *parser, vars map[string]*Resul
 	if !ok {
 		eatExcessive(p, false)
 		p.Parse('}')
-		return typ.makeDefaultArg(), nil
+		return typ.DefaultArg(), nil
 	}
 	var inner []Arg
 	for i := 0; p.Char() != '}'; i++ {
@@ -487,7 +487,7 @@ func (target *Target) parseArgStruct(typ Type, p *parser, vars map[string]*Resul
 	}
 	p.Parse('}')
 	for len(inner) < len(t1.Fields) {
-		inner = append(inner, t1.Fields[len(inner)].makeDefaultArg())
+		inner = append(inner, t1.Fields[len(inner)].DefaultArg())
 	}
 	return MakeGroupArg(typ, inner), nil
 }
@@ -498,7 +498,7 @@ func (target *Target) parseArgArray(typ Type, p *parser, vars map[string]*Result
 	if !ok {
 		eatExcessive(p, false)
 		p.Parse(']')
-		return typ.makeDefaultArg(), nil
+		return typ.DefaultArg(), nil
 	}
 	var inner []Arg
 	for i := 0; p.Char() != ']'; i++ {
@@ -514,7 +514,7 @@ func (target *Target) parseArgArray(typ Type, p *parser, vars map[string]*Result
 	p.Parse(']')
 	if t1.Kind == ArrayRangeLen && t1.RangeBegin == t1.RangeEnd {
 		for uint64(len(inner)) < t1.RangeBegin {
-			inner = append(inner, t1.Type.makeDefaultArg())
+			inner = append(inner, t1.Type.DefaultArg())
 		}
 		inner = inner[:t1.RangeBegin]
 	}
@@ -525,7 +525,7 @@ func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]*Result
 	t1, ok := typ.(*UnionType)
 	if !ok {
 		eatExcessive(p, true)
-		return typ.makeDefaultArg(), nil
+		return typ.DefaultArg(), nil
 	}
 	p.Parse('@')
 	name := p.Ident()
@@ -538,7 +538,7 @@ func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]*Result
 	}
 	if optType == nil {
 		eatExcessive(p, true)
-		return typ.makeDefaultArg(), nil
+		return typ.DefaultArg(), nil
 	}
 	var opt Arg
 	if p.Char() == '=' {
@@ -549,7 +549,7 @@ func (target *Target) parseArgUnion(typ Type, p *parser, vars map[string]*Result
 			return nil, err
 		}
 	} else {
-		opt = optType.makeDefaultArg()
+		opt = optType.DefaultArg()
 	}
 	return MakeUnionArg(typ, opt), nil
 }

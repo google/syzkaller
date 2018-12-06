@@ -79,7 +79,7 @@ func genResult(syzType prog.Type, straceRet int64, ctx *Context) {
 func genArgs(syzType prog.Type, traceArg parser.IrType, ctx *Context) prog.Arg {
 	if traceArg == nil {
 		log.Logf(3, "parsing syzType: %s, traceArg is nil. generating default arg...", syzType.Name())
-		return prog.DefaultArg(syzType)
+		return syzType.DefaultArg()
 	}
 	ctx.CurrentStraceArg = traceArg
 	log.Logf(3, "parsing arg of syz type: %s, ir type: %#v", syzType.Name(), traceArg)
@@ -90,7 +90,7 @@ func genArgs(syzType prog.Type, traceArg parser.IrType, ctx *Context) prog.Arg {
 			// Resource Types need special care. Pointers, Structs can have resource fields e.g. pipe, socketpair
 			// Buffer may need special care in out direction
 		default:
-			return prog.DefaultArg(syzType)
+			return syzType.DefaultArg()
 		}
 	}
 
@@ -98,7 +98,7 @@ func genArgs(syzType prog.Type, traceArg parser.IrType, ctx *Context) prog.Arg {
 	case *prog.IntType, *prog.ConstType, *prog.FlagsType, *prog.CsumType:
 		return genConst(a, traceArg, ctx)
 	case *prog.LenType:
-		return prog.DefaultArg(syzType)
+		return syzType.DefaultArg()
 	case *prog.ProcType:
 		return parseProc(a, traceArg, ctx)
 	case *prog.ResourceType:
@@ -152,14 +152,14 @@ func genStruct(syzType *prog.StructType, traceType parser.IrType, ctx *Context) 
 		reorderStructFields(syzType, a, ctx)
 		for i := range syzType.Fields {
 			if prog.IsPad(syzType.Fields[i]) {
-				args = append(args, prog.DefaultArg(syzType.Fields[i]))
+				args = append(args, syzType.Fields[i].DefaultArg())
 				continue
 			}
 			// If the last n fields of a struct are zero or NULL, strace will occasionally omit those values
 			// this creates a mismatch in the number of elements in the ir type and in
 			// our descriptions. We generate default values for omitted fields
 			if j >= len(a.Elems) {
-				args = append(args, prog.DefaultArg(syzType.Fields[i]))
+				args = append(args, syzType.Fields[i].DefaultArg())
 			} else {
 				args = append(args, genArgs(syzType.Fields[i], a.Elems[j], ctx))
 			}
@@ -169,7 +169,7 @@ func genStruct(syzType *prog.StructType, traceType parser.IrType, ctx *Context) 
 		// We could have a case like the following:
 		// ioctl(3, 35111, {ifr_name="\x6c\x6f", ifr_hwaddr=00:00:00:00:00:00}) = 0
 		// if_hwaddr gets parsed as a BufferType but our syscall descriptions have it as a struct type
-		return prog.DefaultArg(syzType)
+		return syzType.DefaultArg()
 	default:
 		log.Fatalf("unsupported type for struct: %#v", a)
 	}
@@ -179,7 +179,7 @@ func genStruct(syzType *prog.StructType, traceType parser.IrType, ctx *Context) 
 func genUnionArg(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
 	if straceType == nil {
 		log.Logf(1, "generating union arg. straceType is nil")
-		return prog.DefaultArg(syzType)
+		return syzType.DefaultArg()
 	}
 	log.Logf(4, "generating union arg: %s %#v", syzType.TypeName, straceType)
 
@@ -250,7 +250,7 @@ func genPtr(syzType *prog.PtrType, traceType parser.IrType, ctx *Context) prog.A
 			return prog.MakeSpecialPointerArg(syzType, 0)
 		}
 		// Likely have a type of the form bind(3, 0xfffffffff, [3]);
-		res := prog.DefaultArg(syzType.Type)
+		res := syzType.Type.DefaultArg()
 		return addr(ctx, syzType, res.Size(), res)
 	default:
 		res := genArgs(syzType.Type, a, ctx)
@@ -270,12 +270,12 @@ func genConst(syzType prog.Type, traceType parser.IrType, ctx *Context) prog.Arg
 		// For now we choose the first option
 		if len(a.Elems) == 0 {
 			log.Logf(2, "parsing const type, got array type with len 0")
-			return prog.DefaultArg(syzType)
+			return syzType.DefaultArg()
 		}
 		return genConst(syzType, a.Elems[0], ctx)
 	case *parser.BufferType:
 		// The call almost certainly returned an errno
-		return prog.DefaultArg(syzType)
+		return syzType.DefaultArg()
 	default:
 		log.Fatalf("unsupported type for const: %#v", traceType)
 	}
@@ -326,7 +326,7 @@ func parseProc(syzType *prog.ProcType, traceType parser.IrType, ctx *Context) pr
 		// Again probably an error case
 		// Something like the following will trigger this
 		// bind(3, {sa_family=AF_INET, sa_data="\xac"}, 3) = -1 EINVAL(Invalid argument)
-		return prog.DefaultArg(syzType)
+		return syzType.DefaultArg()
 	default:
 		log.Fatalf("unsupported type for proc: %#v", traceType)
 	}
