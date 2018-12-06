@@ -135,8 +135,11 @@ func TestParseLoop1Child(t *testing.T) {
                    2 read() = 16`
 
 	tree := ParseLoop(data1Child)
-	if len(tree.Ptree) != 2 {
+	if len(tree.TraceMap) != 2 {
 		t.Fatalf("Incorrect Root Pid. Expected: 2, Got %d", tree.RootPid)
+	}
+	if tree.RootPid != 1 {
+		t.Fatalf("Incorrect Root Pid. Expected: 1, Got %d", tree.RootPid)
 	}
 	if tree.Ptree[tree.RootPid][0] != 2 {
 		t.Fatalf("Expected child to have pid: 2. Got %d", tree.Ptree[tree.RootPid][0])
@@ -154,7 +157,7 @@ func TestParseLoop2Childs(t *testing.T) {
                     1 clone() = 3
                     3 open() = 3`
 	tree := ParseLoop(data2Childs)
-	if len(tree.Ptree) != 3 {
+	if len(tree.TraceMap) != 3 {
 		t.Fatalf("Incorrect Root Pid. Expected: 3, Got %d", tree.RootPid)
 	}
 	if len(tree.Ptree[tree.RootPid]) != 2 {

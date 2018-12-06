@@ -10,7 +10,6 @@ import (
 )
 
 func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *Context) prog.Arg {
-	var idx = 0
 	field2Opt := make(map[string]int)
 	for i, field := range syzType.Fields {
 		field2Opt[field.FieldName()] = i
@@ -31,6 +30,7 @@ func genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType, ctx *
 				call.CallName)
 		}
 	}
+	idx := 0
 	switch strType := straceArg.(type) {
 	case *parser.GroupType:
 		socketFamily, ok := strType.Elems[0].(parser.Constant)
@@ -96,8 +96,6 @@ func genIfrIfru(syzType *prog.UnionType, straceType parser.IrType, ctx *Context)
 	switch ctx.CurrentStraceArg.(type) {
 	case parser.Constant:
 		idx = 2
-	default:
-		idx = 0
 	}
 	return prog.MakeUnionArg(syzType, genArgs(syzType.Fields[idx], straceType, ctx))
 }

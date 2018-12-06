@@ -17,21 +17,19 @@ type Context struct {
 	CallSelector      *CallSelector
 }
 
-func newContext(target *prog.Target, selector *CallSelector) (ctx *Context) {
-	ctx = &Context{}
-	ctx.ReturnCache = newRCache()
-	ctx.CurrentStraceCall = nil
-	ctx.Tracker = newTracker()
-	ctx.CurrentStraceArg = nil
-	ctx.Target = target
-	ctx.CallSelector = selector
-	ctx.Prog = new(prog.Prog)
-	ctx.Prog.Target = target
-	return
+func newContext(target *prog.Target, selector *CallSelector) *Context {
+	return &Context{
+		ReturnCache:  newRCache(),
+		Tracker:      newTracker(),
+		Target:       target,
+		CallSelector: selector,
+		Prog: &prog.Prog{
+			Target: target,
+		},
+	}
 }
 
-// FillOutMemory determines how much memory to allocate for arguments in a program
-// And generates an mmap c to do the allocation.This mmap is prepended to prog.Calls
+// FillOutMemory assigns addresses to pointer arguments.
 func (ctx *Context) FillOutMemory() error {
 	return ctx.Tracker.fillOutPtrArgs(ctx.Prog)
 }

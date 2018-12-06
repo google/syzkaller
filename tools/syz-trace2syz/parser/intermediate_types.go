@@ -8,8 +8,8 @@ import (
 	"fmt"
 )
 
-// TraceTree struct contains intermediate representation of trace
-// If a trace is multiprocess it constructs a trace for each type
+// TraceTree struct contains intermediate representation of trace.
+// If a trace is multiprocess it constructs a trace for each type.
 type TraceTree struct {
 	TraceMap map[int64]*Trace
 	Ptree    map[int64][]int64
@@ -17,26 +17,20 @@ type TraceTree struct {
 	Filename string
 }
 
-// NewTraceTree initializes a TraceTree
-func NewTraceTree() (tree *TraceTree) {
-	tree = &TraceTree{
+// NewTraceTree initializes a TraceTree.
+func NewTraceTree() *TraceTree {
+	return &TraceTree{
 		TraceMap: make(map[int64]*Trace),
 		Ptree:    make(map[int64][]int64),
-		RootPid:  -1,
 	}
-	return
 }
 
 func (tree *TraceTree) add(call *Syscall) {
-	if tree.RootPid < 0 {
+	if tree.RootPid == 0 {
 		tree.RootPid = call.Pid
 	}
-
-	if !call.Resumed {
-		if tree.TraceMap[call.Pid] == nil {
-			tree.TraceMap[call.Pid] = new(Trace)
-			tree.Ptree[call.Pid] = make([]int64, 0)
-		}
+	if tree.TraceMap[call.Pid] == nil {
+		tree.TraceMap[call.Pid] = new(Trace)
 	}
 	c := tree.TraceMap[call.Pid].add(call)
 	if c.CallName == "clone" && !c.Paused {
@@ -49,18 +43,16 @@ type Trace struct {
 	Calls []*Syscall
 }
 
-func (trace *Trace) add(call *Syscall) (ret *Syscall) {
+func (trace *Trace) add(call *Syscall) *Syscall {
 	if !call.Resumed {
 		trace.Calls = append(trace.Calls, call)
-		ret = call
-		return
+		return call
 	}
 	lastCall := trace.Calls[len(trace.Calls)-1]
 	lastCall.Args = append(lastCall.Args, call.Args...)
 	lastCall.Paused = false
 	lastCall.Ret = call.Ret
-	ret = lastCall
-	return
+	return lastCall
 }
 
 // IrType is the intermediate representation of the strace output
@@ -91,18 +83,13 @@ func NewSyscall(pid int64, name string, args []IrType, ret int64, paused, resume
 	}
 }
 
-// String
 func (s *Syscall) String() string {
 	buf := new(bytes.Buffer)
-
-	fmt.Fprintf(buf, "Pid: -%v-", s.Pid)
-	fmt.Fprintf(buf, "Name: -%v-", s.CallName)
+	fmt.Fprintf(buf, "Pid: -%v-Name: -%v-", s.Pid, s.CallName)
 	for _, typ := range s.Args {
-		buf.WriteString("-")
-		buf.WriteString(typ.String())
-		buf.WriteString("-")
+		fmt.Fprintf(buf, "-%v-", typ)
 	}
-	buf.WriteString(fmt.Sprintf("-Ret: %d\n", s.Ret))
+	fmt.Fprintf(buf, "-Ret: %d\n", s.Ret)
 	return buf.String()
 }
 
@@ -151,5 +138,5 @@ func newBufferType(val string) *BufferType {
 
 // String implements IrType String()
 func (b *BufferType) String() string {
-	return fmt.Sprintf("Buffer: %s with length: %d\n", b.Val, len(b.Val))
+	return fmt.Sprintf("Buffer: %v with length: %v\n", b.Val, len(b.Val))
 }
