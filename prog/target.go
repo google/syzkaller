@@ -236,3 +236,42 @@ func (g *Gen) MutateArg(arg0 Arg) (calls []*Call) {
 	}
 	return calls
 }
+
+type ProgGen struct {
+	target *Target
+	ma     *memAlloc
+	p      *Prog
+}
+
+func MakeProgGen(target *Target) *ProgGen {
+	return &ProgGen{
+		target: target,
+		ma:     newMemAlloc(target.NumPages * target.PageSize),
+		p: &Prog{
+			Target: target,
+		},
+	}
+}
+
+func (pg *ProgGen) Append(c *Call) error {
+	pg.target.assignSizesCall(c)
+	pg.target.SanitizeCall(c)
+	pg.p.Calls = append(pg.p.Calls, c)
+	return nil
+}
+
+func (pg *ProgGen) Allocate(size uint64) uint64 {
+	return pg.ma.alloc(nil, size)
+}
+
+func (pg *ProgGen) Finalize() (*Prog, error) {
+	if err := pg.p.validate(); err != nil {
+		return nil, err
+	}
+	if _, err := pg.p.SerializeForExec(make([]byte, ExecBufferSize)); err != nil {
+		return nil, err
+	}
+	p := pg.p
+	pg.p = nil
+	return p, nil
+}
