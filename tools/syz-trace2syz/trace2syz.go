@@ -20,7 +20,6 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
-	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 	"github.com/google/syzkaller/tools/syz-trace2syz/proggen"
 )
 
@@ -28,7 +27,6 @@ var (
 	flagFile        = flag.String("file", "", "file to parse")
 	flagDir         = flag.String("dir", "", "directory to parse")
 	flagDeserialize = flag.String("deserialize", "", "(Optional) directory to store deserialized programs")
-	callSelector    = proggen.NewCallSelector()
 )
 
 const (
@@ -74,45 +72,18 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 	log.Logf(0, "parsing %v traces", totalFiles)
 	for i, file := range names {
 		log.Logf(1, "parsing file %v/%v: %v", i+1, totalFiles, filepath.Base(names[i]))
-		tree := parser.Parse(file)
-		if tree == nil {
-			log.Logf(1, "file: %s is empty", filepath.Base(file))
-			continue
-		}
-		ctxs := parseTree(tree, tree.RootPid, target)
-		for i, ctx := range ctxs {
-			ctx.Prog.Target = ctx.Target
-			if err := ctx.FillOutMemory(); err != nil {
-				log.Logf(1, "failed to fill out memory: %v, skipping this prog", err)
-				continue
-			}
-			if err := ctx.Prog.Finalize(); err != nil {
-				log.Fatalf("error validating program: %v", err)
-			}
-			if progIsTooLarge(ctx.Prog) {
-				log.Logf(1, "prog is too large")
-				continue
-			}
-			ret = append(ret, ctx.Prog)
-			if deserializeDir == "" {
-				continue
-			}
-			progName := filepath.Join(deserializeDir, filepath.Base(file)+strconv.Itoa(i))
-			if err := osutil.WriteFile(progName, ctx.Prog.Serialize()); err != nil {
-				log.Fatalf("failed to output file: %v", err)
+		progs := proggen.ParseFile(file, target)
+		ret = append(ret, progs...)
+		if deserializeDir != "" {
+			for i, p := range progs {
+				progName := filepath.Join(deserializeDir, filepath.Base(file)+strconv.Itoa(i))
+				if err := osutil.WriteFile(progName, p.Serialize()); err != nil {
+					log.Fatalf("failed to output file: %v", err)
+				}
 			}
 		}
-
 	}
 	return ret
-}
-
-func progIsTooLarge(p *prog.Prog) bool {
-	buff := make([]byte, prog.ExecBufferSize)
-	if _, err := p.SerializeForExec(buff); err != nil {
-		return true
-	}
-	return false
 }
 
 func getTraceFiles(dir string) []string {
@@ -127,22 +98,6 @@ func getTraceFiles(dir string) []string {
 		names = append(names, name)
 	}
 	return names
-}
-
-// parseTree groups system calls in the trace by process id.
-// The tree preserves process hierarchy i.e. parent->[]child
-func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target) []*proggen.Context {
-	log.Logf(2, "parsing trace pid %v", pid)
-	var ctxs []*proggen.Context
-	ctx := proggen.GenSyzProg(tree.TraceMap[pid], target, callSelector)
-
-	ctxs = append(ctxs, ctx)
-	for _, childPid := range tree.Ptree[pid] {
-		if tree.TraceMap[childPid] != nil {
-			ctxs = append(ctxs, parseTree(tree, childPid, target)...)
-		}
-	}
-	return ctxs
 }
 
 func pack(progs []*prog.Prog) {

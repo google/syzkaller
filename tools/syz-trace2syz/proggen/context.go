@@ -17,22 +17,17 @@ type Context struct {
 	CurrentStraceArg  parser.IrType
 	Target            *prog.Target
 	Tracker           *memoryTracker
-	CallSelector      *CallSelector
+	callSelector      *callSelector
 }
 
-func newContext(target *prog.Target, selector *CallSelector) *Context {
+func newContext(target *prog.Target) *Context {
 	return &Context{
 		ReturnCache:  newRCache(),
 		Tracker:      newTracker(),
 		Target:       target,
-		CallSelector: selector,
+		callSelector: newCallSelector(),
 		Prog: &prog.Prog{
 			Target: target,
 		},
 	}
-}
-
-// FillOutMemory assigns addresses to pointer arguments.
-func (ctx *Context) FillOutMemory() error {
-	return ctx.Tracker.fillOutPtrArgs(ctx.Prog)
 }
