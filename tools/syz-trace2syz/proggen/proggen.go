@@ -70,20 +70,15 @@ func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 		if call == nil {
 			continue
 		}
-		ctx.Prog.Calls = append(ctx.Prog.Calls, call)
+		if err := ctx.pg.Append(call); err != nil {
+			log.Fatalf("%v", err)
+		}
 	}
-	if err := ctx.Tracker.fillOutPtrArgs(ctx.Prog); err != nil {
-		log.Logf(1, "failed to fill out memory: %v, skipping this prog", err)
-		return nil
-	}
-	if err := ctx.Prog.Finalize(); err != nil {
+	p, err := ctx.pg.Finalize()
+	if err != nil {
 		log.Fatalf("error validating program: %v", err)
 	}
-	if _, err := ctx.Prog.SerializeForExec(make([]byte, prog.ExecBufferSize)); err != nil {
-		log.Logf(1, "prog is too large")
-		return nil
-	}
-	return ctx.Prog
+	return p
 }
 
 func genCall(ctx *Context) *prog.Call {
@@ -172,9 +167,7 @@ func genVma(syzType *prog.VmaType, _ parser.IrType, ctx *Context) prog.Arg {
 	if syzType.RangeBegin != 0 || syzType.RangeEnd != 0 {
 		npages = syzType.RangeEnd
 	}
-	arg := prog.MakeVmaPointerArg(syzType, 0, npages)
-	ctx.Tracker.addAllocation(ctx.CurrentSyzCall, ctx.Target.PageSize, arg)
-	return arg
+	return prog.MakeVmaPointerArg(syzType, ctx.pg.Allocate(ctx.Target.PageSize), npages)
 }
 
 func genArray(syzType *prog.ArrayType, traceType parser.IrType, ctx *Context) prog.Arg {
@@ -380,9 +373,7 @@ func parseProc(syzType *prog.ProcType, traceType parser.IrType, ctx *Context) pr
 }
 
 func addr(ctx *Context, syzType prog.Type, size uint64, data prog.Arg) prog.Arg {
-	arg := prog.MakePointerArg(syzType, uint64(0), data)
-	ctx.Tracker.addAllocation(ctx.CurrentSyzCall, size, arg)
-	return arg
+	return prog.MakePointerArg(syzType, ctx.pg.Allocate(size), data)
 }
 
 func reorderStructFields(syzType *prog.StructType, traceType *parser.GroupType, ctx *Context) {

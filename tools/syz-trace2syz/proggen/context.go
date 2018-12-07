@@ -10,24 +10,20 @@ import (
 
 // Context stores metadata related to a syzkaller program
 type Context struct {
+	pg                *prog.ProgGen
 	ReturnCache       returnCache
-	Prog              *prog.Prog
 	CurrentStraceCall *parser.Syscall
 	CurrentSyzCall    *prog.Call
 	CurrentStraceArg  parser.IrType
 	Target            *prog.Target
-	Tracker           *memoryTracker
 	callSelector      *callSelector
 }
 
 func newContext(target *prog.Target) *Context {
 	return &Context{
+		pg:           prog.MakeProgGen(target),
 		ReturnCache:  newRCache(),
-		Tracker:      newTracker(),
 		Target:       target,
 		callSelector: newCallSelector(),
-		Prog: &prog.Prog{
-			Target: target,
-		},
 	}
 }
