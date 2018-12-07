@@ -14,7 +14,7 @@ import (
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
-var (
+const (
 	OS   = "linux"
 	Arch = "amd64"
 )
@@ -32,13 +32,10 @@ func initializeTarget(os, arch string) *prog.Target {
 }
 
 func parseSingleTrace(t *testing.T, data string) *Context {
-	var traceTree *parser.TraceTree
-	var ctx *Context
-
 	target := initializeTarget(OS, Arch)
 	selector := NewCallSelector()
-	traceTree = parser.ParseLoop([]byte(data))
-	ctx = GenSyzProg(traceTree.TraceMap[traceTree.RootPid], target, selector)
+	traceTree := parser.ParseLoop([]byte(data))
+	ctx := GenSyzProg(traceTree.TraceMap[traceTree.RootPid], target, selector)
 	ctx.FillOutMemory()
 	if err := ctx.Prog.Finalize(); err != nil {
 		t.Fatalf("failed to parse trace: %s", err.Error())
@@ -184,13 +181,9 @@ func TestIdentifySockaddrStorage(t *testing.T) {
 	}
 
 	validator := func(arg prog.Arg, field string) error {
-		var (
-			storageArg *prog.UnionArg
-			storagePtr *prog.PointerArg
-			ok         bool
-		)
-		storagePtr = arg.(*prog.PointerArg)
-		if storageArg, ok = storagePtr.Res.(*prog.UnionArg); !ok {
+		storagePtr := arg.(*prog.PointerArg)
+		storageArg, ok := storagePtr.Res.(*prog.UnionArg)
+		if !ok {
 			t.Fatalf("second argument not union: %s", storagePtr.Res.Type().Name())
 		}
 		fieldName := storageArg.Option.Type().Name()
