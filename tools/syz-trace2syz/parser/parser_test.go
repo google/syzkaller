@@ -10,7 +10,6 @@ import (
 )
 
 func TestParseLoopBasic(t *testing.T) {
-
 	tests := []string{
 		`open() = 3
 		fstat() = 0`,
@@ -60,7 +59,7 @@ func TestParseLoopBasic(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tree := ParseLoop(test)
+		tree := ParseLoop([]byte(test))
 		if tree.RootPid != -1 {
 			t.Fatalf("Incorrect Root Pid: %d", tree.RootPid)
 		}
@@ -93,7 +92,7 @@ func TestEvaluateExpressions(t *testing.T) {
 		{"open(4 >> 1) = 0", 2},
 	}
 	for i, test := range tests {
-		tree := ParseLoop(test.line)
+		tree := ParseLoop([]byte(test.line))
 		if tree.RootPid != -1 {
 			t.Fatalf("failed test: %d. Incorrect Root Pid: %d", i, tree.RootPid)
 		}
@@ -115,7 +114,7 @@ func TestParseLoopPid(t *testing.T) {
 	data := `1  open() = 3
 			 1  fstat() = 0`
 
-	tree := ParseLoop(data)
+	tree := ParseLoop([]byte(data))
 	if tree.RootPid != 1 {
 		t.Fatalf("Incorrect Root Pid: %d", tree.RootPid)
 	}
@@ -134,7 +133,7 @@ func TestParseLoop1Child(t *testing.T) {
 				   1 clone() = 2
                    2 read() = 16`
 
-	tree := ParseLoop(data1Child)
+	tree := ParseLoop([]byte(data1Child))
 	if len(tree.TraceMap) != 2 {
 		t.Fatalf("Incorrect Root Pid. Expected: 2, Got %d", tree.RootPid)
 	}
@@ -156,7 +155,7 @@ func TestParseLoop2Childs(t *testing.T) {
                     2 read() = 16
                     1 clone() = 3
                     3 open() = 3`
-	tree := ParseLoop(data2Childs)
+	tree := ParseLoop([]byte(data2Childs))
 	if len(tree.TraceMap) != 3 {
 		t.Fatalf("Incorrect Root Pid. Expected: 3, Got %d", tree.RootPid)
 	}
@@ -170,7 +169,7 @@ func TestParseLoop1Grandchild(t *testing.T) {
 						1 clone() = 2
 						2 clone() = 3
 						3 open() = 4`
-	tree := ParseLoop(data1Grandchild)
+	tree := ParseLoop([]byte(data1Grandchild))
 	if len(tree.Ptree[tree.RootPid]) != 1 {
 		t.Fatalf("Expect RootPid to have 1 child. Got %d", tree.RootPid)
 	}
@@ -189,7 +188,7 @@ func TestParseGroupType(t *testing.T) {
 		{`open([1, 2, 3]) = 0`},
 	}
 	for _, test := range tests {
-		tree := ParseLoop(test.test)
+		tree := ParseLoop([]byte(test.test))
 		call := tree.TraceMap[tree.RootPid].Calls[0]
 		_, ok := call.Args[0].(*GroupType)
 		if !ok {

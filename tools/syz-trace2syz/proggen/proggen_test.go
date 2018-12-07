@@ -37,7 +37,7 @@ func parseSingleTrace(t *testing.T, data string) *Context {
 
 	target := initializeTarget(OS, Arch)
 	selector := NewCallSelector()
-	traceTree = parser.ParseLoop(data)
+	traceTree = parser.ParseLoop([]byte(data))
 	ctx = GenSyzProg(traceTree.TraceMap[traceTree.RootPid], target, selector)
 	ctx.FillOutMemory()
 	if err := ctx.Prog.Finalize(); err != nil {
