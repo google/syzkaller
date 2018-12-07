@@ -121,14 +121,15 @@ func (ctx *context) genCall() *prog.Call {
 }
 
 func (ctx *context) genResult(syzType prog.Type, straceRet int64) {
-	if straceRet > 0 {
-		straceExpr := parser.Constant(uint64(straceRet))
-		switch syzType.(type) {
-		case *prog.ResourceType:
-			log.Logf(2, "call: %s returned a resource type with val: %s",
-				ctx.currentStraceCall.CallName, straceExpr.String())
-			ctx.returnCache.cache(syzType, straceExpr, ctx.currentSyzCall.Ret)
-		}
+	if straceRet <= 0 {
+		return
+	}
+	straceExpr := parser.Constant(uint64(straceRet))
+	switch syzType.(type) {
+	case *prog.ResourceType:
+		log.Logf(2, "call: %s returned a resource type with val: %s",
+			ctx.currentStraceCall.CallName, straceExpr.String())
+		ctx.returnCache.cache(syzType, straceExpr, ctx.currentSyzCall.Ret)
 	}
 }
 
