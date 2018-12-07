@@ -16,8 +16,6 @@ include <sys/resource.h>
 include <time.h>
 include <signal.h>
 include <sys/wait.h>
-include <linux/linux.h>
-include <compat/linux/linux_event.h>
 
 syz_execute_func(text ptr[in, text[target]])
 
@@ -190,12 +188,6 @@ flock {
 linger {
 	onoff	int32
 	linger	int32
-}
-
-ucred {
-	pid	pid
-	uid	uid
-	gid	gid
 }
 
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLINIGNEOF
