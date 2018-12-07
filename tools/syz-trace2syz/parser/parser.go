@@ -55,9 +55,5 @@ func Parse(filename string) *TraceTree {
 	if err != nil {
 		log.Fatalf("error reading file: %s", err.Error())
 	}
-	tree := ParseLoop(data)
-	if tree != nil {
-		tree.Filename = filename
-	}
-	return tree
+	return ParseLoop(data)
 }

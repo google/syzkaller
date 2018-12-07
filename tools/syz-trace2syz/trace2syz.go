@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
@@ -70,9 +71,9 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 	deserializeDir := *flagDeserialize
 
 	totalFiles := len(names)
-	log.Logf(0, "parsing %d traces", totalFiles)
+	log.Logf(0, "parsing %v traces", totalFiles)
 	for i, file := range names {
-		log.Logf(1, "parsing File %d/%d: %s", i+1, totalFiles, filepath.Base(names[i]))
+		log.Logf(1, "parsing file %v/%v: %v", i+1, totalFiles, filepath.Base(names[i]))
 		tree := parser.Parse(file)
 		if tree == nil {
 			log.Logf(1, "file: %s is empty", filepath.Base(file))
@@ -86,7 +87,7 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 				continue
 			}
 			if err := ctx.Prog.Finalize(); err != nil {
-				log.Fatalf("error validating program: %s", err)
+				log.Fatalf("error validating program: %v", err)
 			}
 			if progIsTooLarge(ctx.Prog) {
 				log.Logf(1, "prog is too large")
@@ -97,7 +98,7 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 				continue
 			}
 			progName := filepath.Join(deserializeDir, filepath.Base(file)+strconv.Itoa(i))
-			if err := ioutil.WriteFile(progName, ctx.Prog.Serialize(), 0640); err != nil {
+			if err := osutil.WriteFile(progName, ctx.Prog.Serialize()); err != nil {
 				log.Fatalf("failed to output file: %v", err)
 			}
 		}
@@ -131,7 +132,7 @@ func getTraceFiles(dir string) []string {
 // parseTree groups system calls in the trace by process id.
 // The tree preserves process hierarchy i.e. parent->[]child
 func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target) []*proggen.Context {
-	log.Logf(2, "parsing trace: %s", tree.Filename)
+	log.Logf(2, "parsing trace pid %v", pid)
 	var ctxs []*proggen.Context
 	ctx := proggen.GenSyzProg(tree.TraceMap[pid], target, callSelector)
 
