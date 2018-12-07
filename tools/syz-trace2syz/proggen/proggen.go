@@ -167,7 +167,7 @@ func genVma(syzType *prog.VmaType, _ parser.IrType, ctx *Context) prog.Arg {
 	if syzType.RangeBegin != 0 || syzType.RangeEnd != 0 {
 		npages = syzType.RangeEnd
 	}
-	return prog.MakeVmaPointerArg(syzType, ctx.pg.Allocate(ctx.Target.PageSize), npages)
+	return prog.MakeVmaPointerArg(syzType, ctx.pg.AllocateVMA(npages), npages)
 }
 
 func genArray(syzType *prog.ArrayType, traceType parser.IrType, ctx *Context) prog.Arg {
