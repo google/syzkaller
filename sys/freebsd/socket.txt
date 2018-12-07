@@ -8,8 +8,6 @@ include <sys/socket.h>
 include <sys/sockio.h>
 include <netinet/in.h>
 include <linux/linux.h>
-include <compat/linux/linux_file.h>
-include <compat/linux/linux_socket.h>
 
 resource sock[fd]
 type sock_port proc[20000, 4, int16be]
@@ -28,7 +26,7 @@ getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[add
 getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
 
 sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
-recvmsg(fd sock, msg ptr[in, recv_msghdr], f flags[recv_flags])
+recvmsg(fd sock, msg ptr[inout, recv_msghdr], f flags[recv_flags])
 
 listen(fd sock, backlog int32)
 shutdown(fd sock, how flags[shutdown_flags])
@@ -36,13 +34,14 @@ shutdown(fd sock, how flags[shutdown_flags])
 getsockopt(fd sock, level int32, optname int32, optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt(fd sock, level int32, optname int32, optval buffer[in], optlen len[optval])
 
-socket_domain = AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_AX25, AF_APPLETALK
+socket_domain = AF_UNIX, AF_INET, AF_APPLETALK, AF_IPX, AF_INET6
 socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
 accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
 shutdown_flags = SHUT_RD, SHUT_WR
-send_flags = MSG_CONFIRM, MSG_DONTROUTE, MSG_DONTWAIT, MSG_EOR, MSG_NOSIGNAL, MSG_OOB
-recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MSG_TRUNC, MSG_WAITALL, MSG_WAITFORONE
-cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, SOL_IP, SOL_TCP, LINUX_SOL_UDP, SOL_IPV6, SOL_IPX, SOL_AX25
+send_flags = MSG_OOB, MSG_DONTROUTE, MSG_EOR, MSG_DONTWAIT, MSG_EOF, MSG_NOSIGNAL
+recv_flags = MSG_OOB, MSG_PEEK, MSG_WAITALL, MSG_DONTWAIT, MSG_CMSG_CLOEXEC
+
+cmsg_levels = SOL_SOCKET, IPPROTO_IP, IPPROTO_IPV6, IPPROTO_ICMP, IPPROTO_ICMPV6, IPPROTO_SCTP, IPPROTO_TCP, IPPROTO_UDP, IPPROTO_UDPLITE
 
 # This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
 sockaddr_storage [
@@ -58,7 +57,7 @@ send_msghdr {
 	msg_iovlen	len[msg_iov, intptr]
 	msg_control	ptr[in, array[cmsghdr]]
 	msg_controllen	bytesize[msg_control, intptr]
-	msg_flags	flags[send_flags, int32]
+	msg_flags	int32
 }
 
 recv_msghdr {
@@ -78,17 +77,22 @@ cmsghdr {
 	data		array[int8]
 } [align_ptr]
 
+accept_filter {
+	af_name	string[accept_filter_names, 16]
+	af_arg	array[int8, 240]
+}
+
+accept_filter_names = "accf_data", "accf_dns", "accf_http"
+
 # Socket options
 
 getsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
 getsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[in, linger], optlen len[optval])
-getsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen ptr[inout, len[optval, int32]])
-setsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[in, ucred], optlen len[optval])
 getsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
-getsockopt$SO_PEERCRED(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen len[optval])
-
-sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, LINUX_SO_TIMESTAMP, SO_TYPE, SO_REUSEPORT, SO_OOBINLINE, SO_NO_CHECK, SO_PASSCRED
+getsockopt$sock_accept_filter(fd sock, level const[SOL_SOCKET], optname const[SO_ACCEPTFILTER], optval ptr[out, accept_filter], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_accept_filter(fd sock, level const[SOL_SOCKET], optname const[SO_ACCEPTFILTER], optval ptr[in, accept_filter], optlen len[optval])
+sockopt_opt_sock_int = SO_DEBUG, SO_ACCEPTCONN, SO_REUSEADDR, SO_KEEPALIVE, SO_DONTROUTE, SO_BROADCAST, SO_USELOOPBACK, SO_OOBINLINE, SO_REUSEPORT, SO_TIMESTAMP, SO_NOSIGPIPE, SO_BINTIME, SO_NO_OFFLOAD, SO_NO_DDP, SO_REUSEPORT_LB, SO_SNDBUF, SO_RCVBUF, SO_SNDLOWAT, SO_RCVLOWAT, SO_ERROR, SO_TYPE, SO_LISTENQLIMIT, SO_LISTENQLEN, SO_LISTENINCQLEN, SO_SETFIB, SO_USER_COOKIE, SO_PROTOCOL, SO_PROTOTYPE, SO_TS_CLOCK, SO_MAX_PACING_RATE, SO_DOMAIN
 sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
