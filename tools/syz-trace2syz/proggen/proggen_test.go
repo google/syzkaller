@@ -33,7 +33,10 @@ func initializeTarget(os, arch string) *prog.Target {
 
 func parseSingleTrace(t *testing.T, data string) *prog.Prog {
 	target := initializeTarget(OS, Arch)
-	traceTree := parser.ParseLoop([]byte(data))
+	traceTree, err := parser.ParseData([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
 	p := genProg(traceTree.TraceMap[traceTree.RootPid], target)
 	if p == nil {
 		t.Fatalf("failed to parse trace")

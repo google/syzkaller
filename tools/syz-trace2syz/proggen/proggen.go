@@ -5,6 +5,7 @@ package proggen
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 
@@ -13,22 +14,25 @@ import (
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
-func ParseFile(filename string, target *prog.Target) []*prog.Prog {
+func ParseFile(filename string, target *prog.Target) ([]*prog.Prog, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Fatalf("error reading file: %v", err)
+		return nil, fmt.Errorf("error reading file: %v", err)
 	}
 	return ParseData(data, target)
 }
 
-func ParseData(data []byte, target *prog.Target) []*prog.Prog {
-	tree := parser.ParseLoop(data)
+func ParseData(data []byte, target *prog.Target) ([]*prog.Prog, error) {
+	tree, err := parser.ParseData(data)
+	if err != nil {
+		return nil, err
+	}
 	if tree == nil {
-		return nil
+		return nil, nil
 	}
 	var progs []*prog.Prog
 	parseTree(tree, tree.RootPid, target, &progs)
-	return progs
+	return progs, nil
 }
 
 // parseTree groups system calls in the trace by process id.
