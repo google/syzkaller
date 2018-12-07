@@ -72,7 +72,10 @@ func parseTraces(target *prog.Target) []*prog.Prog {
 	log.Logf(0, "parsing %v traces", totalFiles)
 	for i, file := range names {
 		log.Logf(1, "parsing file %v/%v: %v", i+1, totalFiles, filepath.Base(names[i]))
-		progs := proggen.ParseFile(file, target)
+		progs, err := proggen.ParseFile(file, target)
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
 		ret = append(ret, progs...)
 		if deserializeDir != "" {
 			for i, p := range progs {

@@ -6,6 +6,7 @@ package parser
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -25,7 +26,7 @@ func shouldSkip(line string) bool {
 }
 
 // ParseLoop parses each line of a strace file in a loop.
-func ParseLoop(data []byte) *TraceTree {
+func ParseData(data []byte) (*TraceTree, error) {
 	tree := NewTraceTree()
 	// Creating the process tree
 	scanner := bufio.NewScanner(bytes.NewReader(data))
@@ -38,12 +39,15 @@ func ParseLoop(data []byte) *TraceTree {
 		log.Logf(4, "scanning call: %s", line)
 		ret, call := parseSyscall(scanner)
 		if call == nil || ret != 0 {
-			log.Fatalf("failed to parse line: %s", line)
+			return nil, fmt.Errorf("failed to parse line: %v", line)
 		}
 		tree.add(call)
 	}
-	if scanner.Err() != nil || len(tree.TraceMap) == 0 {
-		return nil
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
-	return tree
+	if len(tree.TraceMap) == 0 {
+		return nil, nil
+	}
+	return tree, nil
 }

@@ -59,7 +59,10 @@ func TestParseLoopBasic(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tree := ParseLoop([]byte(test))
+		tree, err := ParseData([]byte(test))
+		if err != nil {
+			t.Fatal(err)
+		}
 		if tree.RootPid != -1 {
 			t.Fatalf("Incorrect Root Pid: %d", tree.RootPid)
 		}
@@ -92,7 +95,10 @@ func TestEvaluateExpressions(t *testing.T) {
 		{"open(4 >> 1) = 0", 2},
 	}
 	for i, test := range tests {
-		tree := ParseLoop([]byte(test.line))
+		tree, err := ParseData([]byte(test.line))
+		if err != nil {
+			t.Fatal(err)
+		}
 		if tree.RootPid != -1 {
 			t.Fatalf("failed test: %d. Incorrect Root Pid: %d", i, tree.RootPid)
 		}
@@ -114,7 +120,10 @@ func TestParseLoopPid(t *testing.T) {
 	data := `1  open() = 3
 			 1  fstat() = 0`
 
-	tree := ParseLoop([]byte(data))
+	tree, err := ParseData([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if tree.RootPid != 1 {
 		t.Fatalf("Incorrect Root Pid: %d", tree.RootPid)
 	}
@@ -133,7 +142,10 @@ func TestParseLoop1Child(t *testing.T) {
 				   1 clone() = 2
                    2 read() = 16`
 
-	tree := ParseLoop([]byte(data1Child))
+	tree, err := ParseData([]byte(data1Child))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(tree.TraceMap) != 2 {
 		t.Fatalf("Incorrect Root Pid. Expected: 2, Got %d", tree.RootPid)
 	}
@@ -155,7 +167,10 @@ func TestParseLoop2Childs(t *testing.T) {
                     2 read() = 16
                     1 clone() = 3
                     3 open() = 3`
-	tree := ParseLoop([]byte(data2Childs))
+	tree, err := ParseData([]byte(data2Childs))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(tree.TraceMap) != 3 {
 		t.Fatalf("Incorrect Root Pid. Expected: 3, Got %d", tree.RootPid)
 	}
@@ -169,7 +184,10 @@ func TestParseLoop1Grandchild(t *testing.T) {
 						1 clone() = 2
 						2 clone() = 3
 						3 open() = 4`
-	tree := ParseLoop([]byte(data1Grandchild))
+	tree, err := ParseData([]byte(data1Grandchild))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(tree.Ptree[tree.RootPid]) != 1 {
 		t.Fatalf("Expect RootPid to have 1 child. Got %d", tree.RootPid)
 	}
@@ -188,7 +206,10 @@ func TestParseGroupType(t *testing.T) {
 		{`open([1, 2, 3]) = 0`},
 	}
 	for _, test := range tests {
-		tree := ParseLoop([]byte(test.test))
+		tree, err := ParseData([]byte(test.test))
+		if err != nil {
+			t.Fatal(err)
+		}
 		call := tree.TraceMap[tree.RootPid].Calls[0]
 		_, ok := call.Args[0].(*GroupType)
 		if !ok {
