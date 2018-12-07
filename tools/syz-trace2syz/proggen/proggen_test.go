@@ -62,6 +62,16 @@ func TestParseTraceBasic(t *testing.T) {
 	}
 }
 
+func TestParseVMA(t *testing.T) {
+	test := `pipe({0x0, 0x1}) = 0
+		 shmget(0x0, 0x1, 0x2, 0x3) = 0`
+	p := parseSingleTrace(t, test)
+	expectedSeq := "pipe-shmget"
+	if p.String() != expectedSeq {
+		t.Fatalf("expected: %s != %s", expectedSeq, p.String())
+	}
+}
+
 func TestParseTraceInnerResource(t *testing.T) {
 	test := `pipe([5,6]) = 0
 			 write(6, "\xff\xff\xfe\xff", 4) = 4`

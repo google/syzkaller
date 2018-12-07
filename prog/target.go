@@ -264,6 +264,12 @@ func (pg *ProgGen) Allocate(size uint64) uint64 {
 	return pg.ma.alloc(nil, size)
 }
 
+func (pg *ProgGen) AllocateVMA(npages uint64) uint64 {
+	psize := pg.target.PageSize
+	addr := pg.ma.alloc(nil, (npages+1)*psize)
+	return (addr + psize - 1) & ^(psize - 1)
+}
+
 func (pg *ProgGen) Finalize() (*Prog, error) {
 	if err := pg.p.validate(); err != nil {
 		return nil, err
