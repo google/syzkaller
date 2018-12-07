@@ -57,7 +57,6 @@ type context struct {
 	returnCache       returnCache
 	currentStraceCall *parser.Syscall
 	currentSyzCall    *prog.Call
-	currentStraceArg  parser.IrType
 }
 
 // genProg converts a trace to one of our programs.
@@ -138,7 +137,6 @@ func (ctx *context) genArgs(syzType prog.Type, traceArg parser.IrType) prog.Arg 
 		log.Logf(3, "parsing syzType: %s, traceArg is nil. generating default arg...", syzType.Name())
 		return syzType.DefaultArg()
 	}
-	ctx.currentStraceArg = traceArg
 	log.Logf(3, "parsing arg of syz type: %s, ir type: %#v", syzType.Name(), traceArg)
 
 	if syzType.Dir() == prog.DirOut {

@@ -67,7 +67,7 @@ func (ctx *context) genSockaddrNetlink(syzType *prog.UnionType, straceType parse
 	for i, field := range syzType.Fields {
 		field2Opt[field.FieldName()] = i
 	}
-	switch a := ctx.currentStraceArg.(type) {
+	switch a := straceType.(type) {
 	case *parser.GroupType:
 		if len(a.Elems) > 2 {
 			switch b := a.Elems[1].(type) {
@@ -93,7 +93,7 @@ func (ctx *context) genSockaddrNetlink(syzType *prog.UnionType, straceType parse
 
 func (ctx *context) genIfrIfru(syzType *prog.UnionType, straceType parser.IrType) prog.Arg {
 	idx := 0
-	switch ctx.currentStraceArg.(type) {
+	switch straceType.(type) {
 	case parser.Constant:
 		idx = 2
 	}
