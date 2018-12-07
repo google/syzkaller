@@ -14,7 +14,6 @@ type TraceTree struct {
 	TraceMap map[int64]*Trace
 	Ptree    map[int64][]int64
 	RootPid  int64
-	Filename string
 }
 
 // NewTraceTree initializes a TraceTree.
