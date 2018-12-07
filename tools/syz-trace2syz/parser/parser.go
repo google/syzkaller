@@ -6,7 +6,6 @@ package parser
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -47,13 +46,4 @@ func ParseLoop(data []byte) *TraceTree {
 		return nil
 	}
 	return tree
-}
-
-// Parse parses a trace of system calls and returns an intermediate representation
-func Parse(filename string) *TraceTree {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		log.Fatalf("error reading file: %s", err.Error())
-	}
-	return ParseLoop(data)
 }

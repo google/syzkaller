@@ -31,23 +31,20 @@ func initializeTarget(os, arch string) *prog.Target {
 	return target
 }
 
-func parseSingleTrace(t *testing.T, data string) *Context {
+func parseSingleTrace(t *testing.T, data string) *prog.Prog {
 	target := initializeTarget(OS, Arch)
-	selector := NewCallSelector()
 	traceTree := parser.ParseLoop([]byte(data))
-	ctx := GenSyzProg(traceTree.TraceMap[traceTree.RootPid], target, selector)
-	ctx.FillOutMemory()
-	if err := ctx.Prog.Finalize(); err != nil {
-		t.Fatalf("failed to parse trace: %s", err.Error())
+	p := genProg(traceTree.TraceMap[traceTree.RootPid], target)
+	if p == nil {
+		t.Fatalf("failed to parse trace")
 	}
-	return ctx
+	return p
 }
 
 func TestParseTraceBasic(t *testing.T) {
 	test := `open("file", 66) = 3
 			 write(3, "somedata", 8) = 8`
-	ctx := parseSingleTrace(t, test)
-	p := ctx.Prog
+	p := parseSingleTrace(t, test)
 	expectedSeq := "open-write"
 	if p.String() != expectedSeq {
 		t.Fatalf("expected: %s != %s", expectedSeq, p.String())
@@ -65,7 +62,7 @@ func TestParseTraceBasic(t *testing.T) {
 func TestParseTraceInnerResource(t *testing.T) {
 	test := `pipe([5,6]) = 0
 			 write(6, "\xff\xff\xfe\xff", 4) = 4`
-	p := parseSingleTrace(t, test).Prog
+	p := parseSingleTrace(t, test)
 	expectedSeq := "pipe-write"
 	if p.String() != expectedSeq {
 		t.Fatalf("Expected: %s != %s", expectedSeq, p.String())
@@ -85,7 +82,7 @@ func TestNegativeResource(t *testing.T) {
 	test := `socket(29, 3, 1) = 3
  			  getsockopt(-1, 132, 119, 0x200005c0, [14]) = -1 EBADF (Bad file descriptor)`
 
-	p := parseSingleTrace(t, test).Prog
+	p := parseSingleTrace(t, test)
 	expectedSeq := "socket$can_raw-getsockopt$inet_sctp6_SCTP_RESET_STREAMS"
 	if p.String() != expectedSeq {
 		t.Fatalf("expected: %s != %s", expectedSeq, p.String())
@@ -107,7 +104,7 @@ func TestDistinguishResourceTypes(t *testing.T) {
 	 		 write(3, "temp", 5) = 5
 			 inotify_rm_watch(2, 3) = 0`
 	expectedSeq := "inotify_init-open-inotify_add_watch-write-inotify_rm_watch"
-	p := parseSingleTrace(t, test).Prog
+	p := parseSingleTrace(t, test)
 	if p.String() != expectedSeq {
 		t.Fatalf("Expected: %s != %s", expectedSeq, p.String())
 	}
@@ -139,7 +136,7 @@ func TestSocketLevel(t *testing.T) {
 			 socket(1, 1 | 524288, 0) = 3
 			 socket(1, 1 | 524288, 0) = 3`
 	expectedSeq := "socket$unix-socket$unix-socket$unix-socket$unix"
-	p := parseSingleTrace(t, test).Prog
+	p := parseSingleTrace(t, test)
 	if p.String() != expectedSeq {
 		t.Fatalf("Expected: %s != %s", expectedSeq, p.String())
 	}
@@ -194,7 +191,7 @@ func TestIdentifySockaddrStorage(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		p := parseSingleTrace(t, test.test).Prog
+		p := parseSingleTrace(t, test.test)
 		if p.String() != test.expectedSeq {
 			t.Fatalf("failed btest: %d, expected: %s != %s", i, test.expectedSeq, p.String())
 		}
@@ -219,7 +216,7 @@ func TestIdentifyIfru(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		p := parseSingleTrace(t, test.test).Prog
+		p := parseSingleTrace(t, test.test)
 		if p.String() != test.expectedSeq {
 			t.Fatalf("failed subtest: %d, expected %s != %s", i, test.expectedSeq, p.String())
 		}
@@ -272,7 +269,7 @@ func TestParseVariants(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		p := parseSingleTrace(t, test.test).Prog
+		p := parseSingleTrace(t, test.test)
 		if p.String() != test.expectedSeq {
 			t.Fatalf("failed subtest: %d, expected %s != %s", i, test.expectedSeq, p.String())
 		}
@@ -321,7 +318,7 @@ func TestParseIPv4(t *testing.T) {
 		}
 	}
 	for i, test := range tests {
-		p := parseSingleTrace(t, test.test).Prog
+		p := parseSingleTrace(t, test.test)
 		if p.String() != test.expectedSeq {
 			t.Fatalf("failed subtest: %d, expected %s != %s", i, test.expectedSeq, p.String())
 		}

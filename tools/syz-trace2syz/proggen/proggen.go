@@ -5,6 +5,7 @@ package proggen
 
 import (
 	"encoding/binary"
+	"io/ioutil"
 	"math/rand"
 
 	"github.com/google/syzkaller/pkg/log"
@@ -12,9 +13,41 @@ import (
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
-// GenSyzProg converts a trace to one of our programs.
-func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector) *Context {
-	ctx := newContext(target, selector)
+func ParseFile(filename string, target *prog.Target) []*prog.Prog {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("error reading file: %v", err)
+	}
+	return ParseData(data, target)
+}
+
+func ParseData(data []byte, target *prog.Target) []*prog.Prog {
+	tree := parser.ParseLoop(data)
+	if tree == nil {
+		return nil
+	}
+	var progs []*prog.Prog
+	parseTree(tree, tree.RootPid, target, &progs)
+	return progs
+}
+
+// parseTree groups system calls in the trace by process id.
+// The tree preserves process hierarchy i.e. parent->[]child
+func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target, progs *[]*prog.Prog) {
+	log.Logf(2, "parsing trace pid %v", pid)
+	if p := genProg(tree.TraceMap[pid], target); p != nil {
+		*progs = append(*progs, p)
+	}
+	for _, childPid := range tree.Ptree[pid] {
+		if tree.TraceMap[childPid] != nil {
+			parseTree(tree, childPid, target, progs)
+		}
+	}
+}
+
+// genProg converts a trace to one of our programs.
+func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
+	ctx := newContext(target)
 	for _, sCall := range trace.Calls {
 		if sCall.Paused {
 			// Probably a case where the call was killed by a signal like the following
@@ -35,14 +68,25 @@ func GenSyzProg(trace *parser.Trace, target *prog.Target, selector *CallSelector
 		}
 		ctx.Prog.Calls = append(ctx.Prog.Calls, call)
 	}
-	return ctx
+	if err := ctx.Tracker.fillOutPtrArgs(ctx.Prog); err != nil {
+		log.Logf(1, "failed to fill out memory: %v, skipping this prog", err)
+		return nil
+	}
+	if err := ctx.Prog.Finalize(); err != nil {
+		log.Fatalf("error validating program: %v", err)
+	}
+	if _, err := ctx.Prog.SerializeForExec(make([]byte, prog.ExecBufferSize)); err != nil {
+		log.Logf(1, "prog is too large")
+		return nil
+	}
+	return ctx.Prog
 }
 
 func genCall(ctx *Context) *prog.Call {
 	log.Logf(3, "parsing call: %s", ctx.CurrentStraceCall.CallName)
 	straceCall := ctx.CurrentStraceCall
 	ctx.CurrentSyzCall = new(prog.Call)
-	ctx.CurrentSyzCall.Meta = ctx.CallSelector.Select(ctx, straceCall)
+	ctx.CurrentSyzCall.Meta = ctx.callSelector.Select(ctx, straceCall)
 	syzCall := ctx.CurrentSyzCall
 	if ctx.CurrentSyzCall.Meta == nil {
 		log.Logf(2, "skipping call: %s which has no matching description", ctx.CurrentStraceCall.CallName)

@@ -24,16 +24,16 @@ var discriminatorArgs = map[string][]int{
 	"getsockname": {0},
 }
 
-type CallSelector struct {
+type callSelector struct {
 	callCache map[string][]*prog.Syscall
 }
 
-func NewCallSelector() *CallSelector {
-	return &CallSelector{callCache: make(map[string][]*prog.Syscall)}
+func newCallSelector() *callSelector {
+	return &callSelector{callCache: make(map[string][]*prog.Syscall)}
 }
 
 // Select returns the best matching descrimination for this syscall.
-func (cs *CallSelector) Select(ctx *Context, call *parser.Syscall) *prog.Syscall {
+func (cs *callSelector) Select(ctx *Context, call *parser.Syscall) *prog.Syscall {
 	match := ctx.Target.SyscallMap[call.CallName]
 	discriminators := discriminatorArgs[call.CallName]
 	if len(discriminators) == 0 {
@@ -49,7 +49,7 @@ func (cs *CallSelector) Select(ctx *Context, call *parser.Syscall) *prog.Syscall
 }
 
 // callSet returns all syscalls with the given name.
-func (cs *CallSelector) callSet(ctx *Context, callName string) []*prog.Syscall {
+func (cs *callSelector) callSet(ctx *Context, callName string) []*prog.Syscall {
 	calls, ok := cs.callCache[callName]
 	if ok {
 		return calls
