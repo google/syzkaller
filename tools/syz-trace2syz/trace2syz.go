@@ -115,12 +115,12 @@ func progIsTooLarge(p *prog.Prog) bool {
 }
 
 func getTraceFiles(dir string) []string {
-	var names []string
 	infos, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatalf("%s", err)
 
 	}
+	var names []string
 	for _, info := range infos {
 		name := filepath.Join(dir, info.Name())
 		names = append(names, name)

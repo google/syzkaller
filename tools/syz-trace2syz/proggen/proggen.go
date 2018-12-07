@@ -120,7 +120,7 @@ func genArgs(syzType prog.Type, traceArg parser.IrType, ctx *Context) prog.Arg {
 }
 
 func genVma(syzType *prog.VmaType, _ parser.IrType, ctx *Context) prog.Arg {
-	var npages uint64 = 1
+	npages := uint64(1)
 	if syzType.RangeBegin != 0 || syzType.RangeEnd != 0 {
 		npages = syzType.RangeEnd
 	}
