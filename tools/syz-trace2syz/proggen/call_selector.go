@@ -25,23 +25,29 @@ var discriminatorArgs = map[string][]int{
 }
 
 type callSelector struct {
-	callCache map[string][]*prog.Syscall
+	target      *prog.Target
+	returnCache returnCache
+	callCache   map[string][]*prog.Syscall
 }
 
-func newCallSelector() *callSelector {
-	return &callSelector{callCache: make(map[string][]*prog.Syscall)}
+func newCallSelector(target *prog.Target, returnCache returnCache) *callSelector {
+	return &callSelector{
+		target:      target,
+		returnCache: returnCache,
+		callCache:   make(map[string][]*prog.Syscall),
+	}
 }
 
 // Select returns the best matching descrimination for this syscall.
-func (cs *callSelector) Select(ctx *Context, call *parser.Syscall) *prog.Syscall {
-	match := ctx.Target.SyscallMap[call.CallName]
+func (cs *callSelector) Select(call *parser.Syscall) *prog.Syscall {
+	match := cs.target.SyscallMap[call.CallName]
 	discriminators := discriminatorArgs[call.CallName]
 	if len(discriminators) == 0 {
 		return match
 	}
 	score := 0
-	for _, meta := range cs.callSet(ctx, call.CallName) {
-		if score1 := matchCall(ctx, meta, call, discriminators); score1 > score {
+	for _, meta := range cs.callSet(call.CallName) {
+		if score1 := cs.matchCall(meta, call, discriminators); score1 > score {
 			match, score = meta, score1
 		}
 	}
@@ -49,12 +55,12 @@ func (cs *callSelector) Select(ctx *Context, call *parser.Syscall) *prog.Syscall
 }
 
 // callSet returns all syscalls with the given name.
-func (cs *callSelector) callSet(ctx *Context, callName string) []*prog.Syscall {
+func (cs *callSelector) callSet(callName string) []*prog.Syscall {
 	calls, ok := cs.callCache[callName]
 	if ok {
 		return calls
 	}
-	for _, call := range ctx.Target.Syscalls {
+	for _, call := range cs.target.Syscalls {
 		if call.CallName == callName {
 			calls = append(calls, call)
 		}
@@ -65,7 +71,7 @@ func (cs *callSelector) callSet(ctx *Context, callName string) []*prog.Syscall {
 
 // matchCall returns match score between meta and call.
 // Higher score means better match, -1 if they are not matching at all.
-func matchCall(ctx *Context, meta *prog.Syscall, call *parser.Syscall, discriminators []int) int {
+func (cs *callSelector) matchCall(meta *prog.Syscall, call *parser.Syscall, discriminators []int) int {
 	score := 0
 	for _, i := range discriminators {
 		if i >= len(meta.Args) || i >= len(call.Args) {
@@ -97,7 +103,7 @@ func matchCall(ctx *Context, meta *prog.Syscall, call *parser.Syscall, discrimin
 		case *prog.ResourceType:
 			// Resources must match one of subtypes,
 			// the more precise match, the higher the score.
-			retArg := ctx.ReturnCache.get(t, arg)
+			retArg := cs.returnCache.get(t, arg)
 			if retArg == nil {
 				return -1
 			}
