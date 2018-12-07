@@ -5,6 +5,7 @@ package parser
 
 import (
 	"bufio"
+	"bytes"
 	"io/ioutil"
 	"strings"
 
@@ -24,15 +25,12 @@ func shouldSkip(line string) bool {
 		strings.Contains(line, "<ptrace(SYSCALL):No such process>")
 }
 
-// ParseLoop parses each line of a strace file in a loop
-func ParseLoop(data string) *TraceTree {
+// ParseLoop parses each line of a strace file in a loop.
+func ParseLoop(data []byte) *TraceTree {
 	tree := NewTraceTree()
 	// Creating the process tree
-	const maxBufferSize = 64 * 1024 * 1024 // maxBufferSize is maximum size for buffer
-	buf := make([]byte, maxBufferSize)
-	scanner := bufio.NewScanner(strings.NewReader(data))
-	scanner.Buffer(buf, maxBufferSize)
-
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	scanner.Buffer(nil, 64<<20)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if shouldSkip(line) {
@@ -45,7 +43,7 @@ func ParseLoop(data string) *TraceTree {
 		}
 		tree.add(call)
 	}
-	if len(tree.TraceMap) == 0 {
+	if scanner.Err() != nil || len(tree.TraceMap) == 0 {
 		return nil
 	}
 	return tree
@@ -57,7 +55,7 @@ func Parse(filename string) *TraceTree {
 	if err != nil {
 		log.Fatalf("error reading file: %s", err.Error())
 	}
-	tree := ParseLoop(string(data))
+	tree := ParseLoop(data)
 	if tree != nil {
 		tree.Filename = filename
 	}
