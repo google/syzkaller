@@ -60,12 +60,11 @@ func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 			// 2179  --- SIGUSR1 {si_signo=SIGUSR1, si_code=SI_USER, si_pid=2180, si_uid=0} ---
 			continue
 		}
-		ctx.CurrentStraceCall = sCall
-
-		if shouldSkip(ctx) {
-			log.Logf(2, "skipping call: %s", ctx.CurrentStraceCall.CallName)
+		if shouldSkip(sCall) {
+			log.Logf(2, "skipping call: %s", sCall.CallName)
 			continue
 		}
+		ctx.CurrentStraceCall = sCall
 		call := genCall(ctx)
 		if call == nil {
 			continue
@@ -397,21 +396,17 @@ func reorderStructFields(syzType *prog.StructType, traceType *parser.GroupType, 
 	}
 }
 
-func shouldSkip(ctx *Context) bool {
-	syscall := ctx.CurrentStraceCall
-	if unsupportedCalls[syscall.CallName] {
-		return true
-	}
-	switch syscall.CallName {
+func shouldSkip(c *parser.Syscall) bool {
+	switch c.CallName {
 	case "write":
-		// We skip all writes to stdout and stderr because they can corrupt our crash summary
-		switch a := syscall.Args[0].(type) {
+		// We skip all writes to stdout and stderr because they can corrupt our crash summary.
+		// Also there will be nothing on stdin, so any reads will hang.
+		switch a := c.Args[0].(type) {
 		case parser.Constant:
-			val := a.Val()
-			if val == 1 || val == 2 {
+			if a.Val() <= 2 {
 				return true
 			}
 		}
 	}
-	return false
+	return unsupportedCalls[c.CallName]
 }
