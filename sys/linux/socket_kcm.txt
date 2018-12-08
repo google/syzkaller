@@ -11,7 +11,7 @@ socket$kcm(domain const[AF_KCM], type flags[kcm_socket_type], proto const[KCMPRO
 setsockopt$kcm_KCM_RECV_DISABLE(fd sock_kcm, level const[SOL_KCM], opt const[KCM_RECV_DISABLE], val ptr[in, int32], len len[val])
 getsockopt$kcm_KCM_RECV_DISABLE(fd sock_kcm, level const[SOL_KCM], opt const[KCM_RECV_DISABLE], val ptr[out, int32], len len[val])
 sendmsg$kcm(fd sock_kcm, msg ptr[in, send_msghdr], f flags[send_flags])
-recvmsg$kcm(fd sock_kcm, msg ptr[in, recv_msghdr], f flags[recv_flags])
+recvmsg$kcm(fd sock_kcm, msg ptr[inout, recv_msghdr], f flags[recv_flags])
 
 ioctl$sock_kcm_SIOCKCMATTACH(fd sock_kcm, cmd const[SIOCKCMATTACH], arg ptr[in, kcm_attach])
 ioctl$sock_kcm_SIOCKCMUNATTACH(fd sock_kcm, cmd const[SIOCKCMUNATTACH], arg ptr[in, kcm_unattach])

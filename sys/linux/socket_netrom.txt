@@ -14,7 +14,7 @@ accept$netrom(fd sock_netrom, peer ptr[out, sockaddr_netrom, opt], peerlen ptr[i
 accept4$netrom(fd sock_netrom, peer ptr[out, sockaddr_netrom, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_netrom
 listen$netrom(fd sock_netrom, backlog int32)
 sendmsg$netrom(fd sock_netrom, msg ptr[in, msghdr_netrom], f flags[send_flags])
-recvmsg$netrom(fd sock_netrom, msg ptr[in, msghdr_netrom], f flags[recv_flags])
+recvmsg$netrom(fd sock_netrom, msg ptr[inout, msghdr_netrom], f flags[recv_flags])
 getsockname$netrom(fd sock_netrom, addr ptr[out, sockaddr_netrom], addrlen ptr[inout, len[addr, int32]])
 getpeername$netrom(fd sock_netrom, peer ptr[out, sockaddr_netrom], peerlen ptr[inout, len[peer, int32]])
 
