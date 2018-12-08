@@ -6,23 +6,46 @@ package report
 import (
 	"bufio"
 	"bytes"
+	"fmt"
+	"path/filepath"
 	"regexp"
+	"strconv"
+	"strings"
 
+	"github.com/google/syzkaller/pkg/symbolizer"
 	"github.com/google/syzkaller/sys/targets"
 )
 
 type openbsd struct {
-	kernelSrc string
-	kernelObj string
-	ignores   []*regexp.Regexp
+	kernelSrc    string
+	kernelObj    string
+	kernelObject string
+	symbols      map[string][]symbolizer.Symbol
+	ignores      []*regexp.Regexp
 }
+
+var (
+	openbsdSymbolizeRe = regexp.MustCompile(` at ([A-Za-z0-9_]+)\+0x([0-9a-f]+)`)
+)
 
 func ctorOpenbsd(target *targets.Target, kernelSrc, kernelObj string,
 	ignores []*regexp.Regexp) (Reporter, []string, error) {
+	var symbols map[string][]symbolizer.Symbol
+	kernelObject := ""
+	if kernelObj != "" {
+		kernelObject = filepath.Join(kernelObj, target.KernelObject)
+		var err error
+		symbols, err = symbolizer.ReadSymbols(kernelObject)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 	ctx := &openbsd{
-		kernelSrc: kernelSrc,
-		kernelObj: kernelObj,
-		ignores:   ignores,
+		kernelSrc:    kernelSrc,
+		kernelObj:    kernelObj,
+		kernelObject: kernelObject,
+		symbols:      symbols,
+		ignores:      ignores,
 	}
 	return ctx, nil, nil
 }
@@ -45,7 +68,63 @@ func (ctx *openbsd) Parse(output []byte) *Report {
 }
 
 func (ctx *openbsd) Symbolize(rep *Report) error {
+	symb := symbolizer.NewSymbolizer()
+	defer symb.Close()
+	var symbolized []byte
+	s := bufio.NewScanner(bytes.NewReader(rep.Report))
+	prefix := rep.reportPrefixLen
+	for s.Scan() {
+		line := append([]byte{}, s.Bytes()...)
+		line = append(line, '\n')
+		newLine := ctx.symbolizeLine(symb.Symbolize, line)
+		if prefix > len(symbolized) {
+			prefix += len(newLine) - len(line)
+		}
+		symbolized = append(symbolized, newLine...)
+	}
+	rep.Report = symbolized
+	rep.reportPrefixLen = prefix
 	return nil
+}
+
+func (ctx *openbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),
+	line []byte) []byte {
+	match := openbsdSymbolizeRe.FindSubmatchIndex(line)
+	if match == nil {
+		return line
+	}
+	fn := line[match[2]:match[3]]
+	off, err := strconv.ParseUint(string(line[match[4]:match[5]]), 16, 64)
+	if err != nil {
+		return line
+	}
+
+	symb := ctx.symbols[string(fn)]
+	if len(symb) == 0 {
+		return line
+	}
+	fnStart := (0xffffffff << 32) | symb[0].Addr
+
+	frames, err := symbFunc(ctx.kernelObject, fnStart+off)
+	if err != nil || len(frames) == 0 {
+		return line
+	}
+	var symbolized []byte
+	for _, frame := range frames {
+		file := frame.File
+		file = strings.TrimPrefix(file, ctx.kernelSrc)
+		file = strings.TrimPrefix(file, "/")
+		info := fmt.Sprintf(" %v:%v", file, frame.Line)
+		modified := append([]byte{}, line...)
+		modified = replace(modified, match[5], match[5], []byte(info))
+		if frame.Inline {
+			end := match[5] + len(info)
+			modified = replace(modified, end, end, []byte(" [inline]"))
+			modified = replace(modified, match[5], match[5], []byte(" "+frame.Func))
+		}
+		symbolized = append(symbolized, modified...)
+	}
+	return symbolized
 }
 
 func (ctx *openbsd) shortenReport(report []byte) []byte {
