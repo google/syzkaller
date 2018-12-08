@@ -25,6 +25,47 @@ var structDescs_32_shmem = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "compare_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "compare_data", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "align0"}, FldName: "align0"},
+		&StructType{Key: StructKey{Name: "syz_bf_struct0"}, FldName: "bf0"},
+		&StructType{Key: StructKey{Name: "syz_bf_struct1"}, FldName: "bf1"},
+		&StructType{Key: StructKey{Name: "syz_bf_struct2"}, FldName: "bf2"},
+		&StructType{Key: StructKey{Name: "syz_bf_struct3"}, FldName: "bf3"},
+	}}},
+	{Key: StructKey{Name: "syz_bf_struct0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct0", TypeSize: 32}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_bf_flags", FldName: "f0", TypeSize: 2}, BitfieldLen: 10}, Vals: []uint64{0, 1, 2}, BitMask: true},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f1", TypeSize: 8}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f2", TypeSize: 2}, BitfieldLen: 5, BitfieldMdl: true}, Val: 66},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f3", TypeSize: 2}, BitfieldOff: 5, BitfieldLen: 6}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f4", TypeSize: 4}, BitfieldLen: 15}, Val: 66},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f5", TypeSize: 2}, BitfieldLen: 11}, Buf: "parent"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f6", TypeSize: 2}, ArgFormat: 1, BitfieldLen: 11}, Buf: "parent"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f7", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "syz_bf_struct1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct1", TypeSize: 8}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "syz_bf_struct1_internal"}, FldName: "f0"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "syz_bf_struct1_internal"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct1_internal", TypeSize: 4}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f0", TypeSize: 4}, BitfieldLen: 10, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f1", TypeSize: 4}, BitfieldOff: 10, BitfieldLen: 10, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f2", TypeSize: 4}, BitfieldOff: 20, BitfieldLen: 10}},
+	}}},
+	{Key: StructKey{Name: "syz_bf_struct2"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct2", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f0", TypeSize: 8}, BitfieldLen: 4, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f1", TypeSize: 8}, BitfieldOff: 4, BitfieldLen: 8, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f2", TypeSize: 8}, BitfieldOff: 12, BitfieldLen: 12, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f3", TypeSize: 8}, BitfieldOff: 24, BitfieldLen: 20, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f4", TypeSize: 8}, BitfieldOff: 44, BitfieldLen: 16}},
+	}}},
+	{Key: StructKey{Name: "syz_bf_struct3"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct3", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f0", TypeSize: 8}, ArgFormat: 1, BitfieldLen: 4, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f1", TypeSize: 8}, ArgFormat: 1, BitfieldOff: 4, BitfieldLen: 8, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f2", TypeSize: 8}, ArgFormat: 1, BitfieldOff: 12, BitfieldLen: 12, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f3", TypeSize: 8}, ArgFormat: 1, BitfieldOff: 24, BitfieldLen: 20, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f4", TypeSize: 8}, ArgFormat: 1, BitfieldOff: 44, BitfieldLen: 16}},
 	}}},
 }
 
@@ -54,4 +95,4 @@ var consts_32_shmem = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32_shmem = "ae161a1d8e44b101412b6f8d8fdde3a6ce553e55"
+const revision_32_shmem = "136d60e9280b55ca8a1f24fed877e2f0ae72e348"

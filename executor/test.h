@@ -8,7 +8,7 @@
 static int test_copyin()
 {
 	static uint16 buf[3];
-	STORE_BY_BITMASK(uint16, &buf[1], 0x1234, 0, 0);
+	STORE_BY_BITMASK(uint16, , &buf[1], 0x1234, 0, 16);
 	unsigned char x[sizeof(buf)];
 	memcpy(x, buf, sizeof(x));
 	if (x[0] != 0 || x[1] != 0 ||
@@ -18,7 +18,7 @@ static int test_copyin()
 		       x[0], x[1], x[2], x[3], x[4], x[5]);
 		return 1;
 	}
-	STORE_BY_BITMASK(uint16, &buf[1], 0x555a, 5, 4);
+	STORE_BY_BITMASK(uint16, , &buf[1], 0x555a, 5, 4);
 	memcpy(x, buf, sizeof(x));
 	if (x[0] != 0 || x[1] != 0 ||
 	    x[2] != 0x54 || x[3] != 0x13 ||

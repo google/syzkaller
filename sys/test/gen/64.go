@@ -14,7 +14,7 @@ var resources_64 = []*ResourceDesc{
 	{Name: "anyres32", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"anyres32"}, Values: []uint64{0}},
 	{Name: "anyres64", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, Kind: []string{"anyres64"}, Values: []uint64{0}},
 	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 999}},
-	{Name: "r_any", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", TypeSize: 4}, ArgFormat: 1}}, Kind: []string{"r_any"}, Values: []uint64{0}},
+	{Name: "r_any", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"r_any"}, Values: []uint64{0}},
 	{Name: "syz_missing_const_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_missing_const_res"}, Values: []uint64{0}},
 	{Name: "syz_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_res"}, Values: []uint64{65535}},
 	{Name: "unsupported", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"unsupported"}, Values: []uint64{0}},
@@ -67,6 +67,10 @@ var structDescs_64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "compare_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "compare_data", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "align0"}, FldName: "align0"},
+		&StructType{Key: StructKey{Name: "syz_bf_struct0"}, FldName: "bf0"},
+		&StructType{Key: StructKey{Name: "syz_bf_struct1"}, FldName: "bf1"},
+		&StructType{Key: StructKey{Name: "syz_bf_struct2"}, FldName: "bf2"},
+		&StructType{Key: StructKey{Name: "syz_bf_struct3"}, FldName: "bf3"},
 	}}},
 	{Key: StructKey{Name: "excessive_fields"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "excessive_fields", TypeSize: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
@@ -244,6 +248,20 @@ var structDescs_64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f0", TypeSize: 4}, BitfieldLen: 10, BitfieldMdl: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f1", TypeSize: 4}, BitfieldOff: 10, BitfieldLen: 10, BitfieldMdl: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f2", TypeSize: 4}, BitfieldOff: 20, BitfieldLen: 10}},
+	}}},
+	{Key: StructKey{Name: "syz_bf_struct2"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct2", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f0", TypeSize: 8}, BitfieldLen: 4, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f1", TypeSize: 8}, BitfieldOff: 4, BitfieldLen: 8, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f2", TypeSize: 8}, BitfieldOff: 12, BitfieldLen: 12, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f3", TypeSize: 8}, BitfieldOff: 24, BitfieldLen: 20, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f4", TypeSize: 8}, BitfieldOff: 44, BitfieldLen: 16}},
+	}}},
+	{Key: StructKey{Name: "syz_bf_struct3"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct3", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f0", TypeSize: 8}, ArgFormat: 1, BitfieldLen: 4, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f1", TypeSize: 8}, ArgFormat: 1, BitfieldOff: 4, BitfieldLen: 8, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f2", TypeSize: 8}, ArgFormat: 1, BitfieldOff: 12, BitfieldLen: 12, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f3", TypeSize: 8}, ArgFormat: 1, BitfieldOff: 24, BitfieldLen: 20, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64be", FldName: "f4", TypeSize: 8}, ArgFormat: 1, BitfieldOff: 44, BitfieldLen: 16}},
 	}}},
 	{Key: StructKey{Name: "syz_csum_encode"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_csum_encode", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f0", TypeSize: 2}}},
@@ -540,7 +558,7 @@ var syscalls_64 = []*Syscall{
 	}},
 	{Name: "foo$fmt0", CallName: "foo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 20}, ArgFormat: 2}, Kind: 2, RangeBegin: 1, RangeEnd: 10}},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "r_any", FldName: "ret", TypeSize: 4, ArgDir: 1}, ArgFormat: 1}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "r_any", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "foo$fmt1", CallName: "foo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "flags_any", TypeSize: 18}, ArgFormat: 3}, Vals: []uint64{0, 1, 2}, BitMask: true}},
 	}},
@@ -911,4 +929,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "6ffded136a7c445ee912402759cc9f71c3add37a"
+const revision_64 = "82736d421a5d52db6df0775561f1e59cc6cb9014"

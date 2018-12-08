@@ -1,7 +1,7 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-resource r_any[int32be]
+resource r_any[int32]
 
 foo$fmt0(a ptr[in, fmt[dec, int32[1:10]]]) r_any
 foo$fmt1(a ptr[in, fmt[hex, flags[flags_any]]])

@@ -7,6 +7,10 @@ syz_compare(want ptr[in, string], want_len len[want], got ptr[in, compare_data],
 
 compare_data [
 	align0	align0
+	bf0	syz_bf_struct0
+	bf1	syz_bf_struct1
+	bf2	syz_bf_struct2
+	bf3	syz_bf_struct3
 ] [varlen]
 
 align0 {

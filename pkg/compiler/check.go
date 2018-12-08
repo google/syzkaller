@@ -751,7 +751,8 @@ func (comp *compiler) checkTypeBasic(t *ast.Type, desc *typeDesc, flags checkFla
 		comp.error(t.Pos, "%v can't be type alias target", t.Ident)
 		return
 	}
-	if flags&checkIsResourceBase != 0 && !desc.ResourceBase {
+	if flags&checkIsResourceBase != 0 &&
+		(desc.CanBeResourceBase == nil || !desc.CanBeResourceBase(comp, t)) {
 		comp.error(t.Pos, "%v can't be resource base (int types can)", t.Ident)
 		return
 	}
