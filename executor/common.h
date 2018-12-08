@@ -325,19 +325,10 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_USE_BITMASKS
-#define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
-
-#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, (bf_len)) << (bf_off))
-
-#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
-	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
-		*(type*)(addr) = (type)(val);                                     \
-	} else {                                                                  \
-		type new_val = *(type*)(addr);                                    \
-		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
-		new_val |= ((type)(val)&BITMASK_LEN(type, (bf_len))) << (bf_off); \
-		*(type*)(addr) = new_val;                                         \
-	}
+#define BITMASK(bf_off, bf_len) (((1ull << (bf_len)) - 1) << (bf_off))
+#define STORE_BY_BITMASK(type, htobe, addr, val, bf_off, bf_len)                        \
+	*(type*)(addr) = htobe((htobe(*(type*)(addr)) & ~BITMASK((bf_off), (bf_len))) | \
+			       (((type)(val) << (bf_off)) & BITMASK((bf_off), (bf_len))))
 #endif
 
 #if SYZ_EXECUTOR || SYZ_USE_CHECKSUMS

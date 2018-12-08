@@ -229,7 +229,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("sring format in syscall argument")
 			}
-			fmt.Fprintf(w, "%v", ctx.constArgToStr(arg))
+			fmt.Fprintf(w, "%v", ctx.constArgToStr(arg, true))
 		case prog.ExecArgResult:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("sring format in syscall argument")
@@ -282,13 +282,17 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 	switch arg := copyin.Arg.(type) {
 	case prog.ExecArgConst:
 		if arg.BitfieldOffset == 0 && arg.BitfieldLength == 0 {
-			ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.constArgToStr(arg), arg.Format)
+			ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.constArgToStr(arg, true), arg.Format)
 		} else {
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("bitfield+string format")
 			}
-			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v, 0x%x, %v, %v, %v));\n",
-				arg.Size*8, copyin.Addr, ctx.constArgToStr(arg),
+			htobe := ""
+			if arg.Format == prog.FormatBigEndian {
+				htobe = fmt.Sprintf("htobe%v", arg.Size*8)
+			}
+			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v, %v, 0x%x, %v, %v, %v));\n",
+				arg.Size*8, htobe, copyin.Addr, ctx.constArgToStr(arg, false),
 				arg.BitfieldOffset, arg.BitfieldLength)
 		}
 	case prog.ExecArgResult:
@@ -363,7 +367,7 @@ func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool
 	}
 }
 
-func (ctx *context) constArgToStr(arg prog.ExecArgConst) string {
+func (ctx *context) constArgToStr(arg prog.ExecArgConst, handleBigEndian bool) string {
 	mask := (uint64(1) << (arg.Size * 8)) - 1
 	v := arg.Value & mask
 	val := fmt.Sprintf("%v", v)
@@ -375,7 +379,7 @@ func (ctx *context) constArgToStr(arg prog.ExecArgConst) string {
 	if ctx.opts.Procs > 1 && arg.PidStride != 0 {
 		val += fmt.Sprintf(" + procid*%v", arg.PidStride)
 	}
-	if arg.Format == prog.FormatBigEndian {
+	if handleBigEndian && arg.Format == prog.FormatBigEndian {
 		val = fmt.Sprintf("htobe%v(%v)", arg.Size*8, val)
 	}
 	return val

@@ -18,11 +18,12 @@ type typeDesc struct {
 	CantBeOpt    bool       // can't be marked as opt?
 	NeedBase     bool       // needs base type when used as field?
 	AllowColon   bool       // allow colon (int8:2) on fields?
-	ResourceBase bool       // can be resource base type?
 	OptArgs      int        // number of optional arguments in Args array
 	Args         []namedArg // type arguments
 	// CanBeArgRet returns if this type can be syscall argument/return (false if nil).
 	CanBeArgRet func(comp *compiler, t *ast.Type) (bool, bool)
+	// CanBeResourceBase returns if this type can be a resource base type (false if nil.
+	CanBeResourceBase func(comp *compiler, t *ast.Type) bool
 	// Check does custom verification of the type (optional, consts are not patched yet).
 	Check func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon)
 	// CheckConsts does custom verification of the type (optional, consts are patched).
@@ -67,9 +68,16 @@ var typeInt = &typeDesc{
 	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	AllowColon:   true,
-	ResourceBase: true,
 	OptArgs:      1,
 	Args:         []namedArg{{Name: "range", Type: typeArgIntRange}},
+	CanBeResourceBase: func(comp *compiler, t *ast.Type) bool {
+		// Big-endian resources can always be converted to non-big-endian,
+		// since we will always revert bytes during copyout and during copyin,
+		// so the result is the same as not reverting at all.
+		// Big-endian resources are also not implemented and don't have tests.
+		_, be := comp.parseIntType(t.Ident)
+		return !be
+	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		typeArgBase.Type.Check(comp, t)
 	},
@@ -653,8 +661,10 @@ var typeArgType = &typeArg{}
 
 var typeResource = &typeDesc{
 	// No Names, but getTypeDesc knows how to match it.
-	CanBeArgRet:  canBeArgRet,
-	ResourceBase: true,
+	CanBeArgRet: canBeArgRet,
+	CanBeResourceBase: func(comp *compiler, t *ast.Type) bool {
+		return true
+	},
 	// Gen is assigned below to avoid initialization loop.
 }
 

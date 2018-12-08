@@ -65,6 +65,7 @@ resource r2[r0]: 2
 resource r3[int32:1]		###  unexpected ':', only struct fields can be bitfields
 resource r4[int32[opt]]		### resource base can't be marked as opt
 resource r5[non_existent]	### unknown type non_existent
+resource r6[int64be]		### int64be can't be resource base (int types can)
 resource r9["foo"]		### unexpected string "foo", expect type
 
 foo$7(a r0, a1 r2[opt])

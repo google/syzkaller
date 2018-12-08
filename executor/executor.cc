@@ -295,6 +295,7 @@ static uint64 read_input(uint64** input_posp, bool peek = false);
 static uint64 read_arg(uint64** input_posp);
 static uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf, uint64* bf_off_p, uint64* bf_len_p);
 static uint64 read_result(uint64** input_posp);
+static uint64 swap(uint64 v, uint64 size, uint64 bf);
 static void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len);
 static bool copyout(char* addr, uint64 size, uint64* res);
 static void setup_control_pipes();
@@ -1026,24 +1027,37 @@ static bool dedup(uint32 sig)
 }
 #endif
 
+template <typename T>
+void copyin_int(char* addr, uint64 val, uint64 bf, uint64 bf_off, uint64 bf_len)
+{
+	if (bf_off == 0 && bf_len == 0) {
+		*(T*)addr = swap(val, sizeof(T), bf);
+		return;
+	}
+	T x = swap(*(T*)addr, sizeof(T), bf);
+	x = (x & ~BITMASK(bf_off, bf_len)) | ((val << bf_off) & BITMASK(bf_off, bf_len));
+	*(T*)addr = swap(x, sizeof(T), bf);
+}
+
 void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len)
 {
-	if (bf != binary_format_native && (bf_off != 0 || bf_len != 0))
+	if (bf != binary_format_native && bf != binary_format_bigendian && (bf_off != 0 || bf_len != 0))
 		fail("bitmask for string format %llu/%llu", bf_off, bf_len);
 	switch (bf) {
 	case binary_format_native:
+	case binary_format_bigendian:
 		NONFAILING(switch (size) {
 			case 1:
-				STORE_BY_BITMASK(uint8, addr, val, bf_off, bf_len);
+				copyin_int<uint8>(addr, val, bf, bf_off, bf_len);
 				break;
 			case 2:
-				STORE_BY_BITMASK(uint16, addr, val, bf_off, bf_len);
+				copyin_int<uint16>(addr, val, bf, bf_off, bf_len);
 				break;
 			case 4:
-				STORE_BY_BITMASK(uint32, addr, val, bf_off, bf_len);
+				copyin_int<uint32>(addr, val, bf, bf_off, bf_len);
 				break;
 			case 8:
-				STORE_BY_BITMASK(uint64, addr, val, bf_off, bf_len);
+				copyin_int<uint64>(addr, val, bf, bf_off, bf_len);
 				break;
 			default:
 				fail("copyin: bad argument size %llu", size);
@@ -1099,11 +1113,11 @@ uint64 read_arg(uint64** input_posp)
 	case arg_const: {
 		uint64 size, bf, bf_off, bf_len;
 		uint64 val = read_const_arg(input_posp, &size, &bf, &bf_off, &bf_len);
-		if (bf != binary_format_native)
+		if (bf != binary_format_native && bf != binary_format_bigendian)
 			fail("bad argument binary format %llu", bf);
 		if (bf_off != 0 || bf_len != 0)
 			fail("bad argument bitfield %llu/%llu", bf_off, bf_len);
-		return val;
+		return swap(val, size, bf);
 	}
 	case arg_result: {
 		uint64 meta = read_input(input_posp);
@@ -1117,6 +1131,24 @@ uint64 read_arg(uint64** input_posp)
 	}
 }
 
+uint64 swap(uint64 v, uint64 size, uint64 bf)
+{
+	if (bf == binary_format_native)
+		return v;
+	if (bf != binary_format_bigendian)
+		fail("bad binary format in swap: %llu", bf);
+	switch (size) {
+	case 2:
+		return htobe16(v);
+	case 4:
+		return htobe32(v);
+	case 8:
+		return htobe64(v);
+	default:
+		fail("bad big-endian int size %llu", size);
+	}
+}
+
 uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_p, uint64* bf_off_p, uint64* bf_len_p)
 {
 	uint64 meta = read_input(input_posp);
@@ -1127,22 +1159,6 @@ uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_p, uint64*
 	*bf_len_p = (meta >> 24) & 0xff;
 	uint64 pid_stride = meta >> 32;
 	val += pid_stride * procid;
-	if (bf == binary_format_bigendian) {
-		bf = binary_format_native;
-		switch (*size_p) {
-		case 2:
-			val = htobe16(val);
-			break;
-		case 4:
-			val = htobe32(val);
-			break;
-		case 8:
-			val = htobe64(val);
-			break;
-		default:
-			fail("bad big-endian int size %llu", *size_p);
-		}
-	}
 	*bf_p = bf;
 	return val;
 }

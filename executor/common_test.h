@@ -40,7 +40,10 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 		return -1;
 	}
 	if (memcmp((void*)want, (void*)got, want_len)) {
-		debug("syz_compare: data differs\n");
+		debug("syz_compare: data differs, want:\n");
+		debug_dump_data((char*)want, want_len);
+		debug("got:\n");
+		debug_dump_data((char*)got, got_len);
 		errno = EINVAL;
 		return -1;
 	}

@@ -511,6 +511,22 @@ syz_bf_struct1 {
 	f1	int8
 }
 
+syz_bf_struct2 {
+	f0	int64:4
+	f1	int64:8
+	f2	int64:12
+	f3	int64:20
+	f4	int64:16
+}
+
+syz_bf_struct3 {
+	f0	int64be:4
+	f1	int64be:8
+	f2	int64be:12
+	f3	int64be:20
+	f4	int64be:16
+}
+
 test$bf0(a0 ptr[in, syz_bf_struct0])
 test$bf1(a0 ptr[in, syz_bf_struct1])
 
