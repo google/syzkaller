@@ -350,7 +350,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_iovlen", TypeSize: 8, ArgDir: 2}}, Buf: "msg_iov"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "msg_control", TypeSize: 8, ArgDir: 2}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_controllen", TypeSize: 8, ArgDir: 2}}, Buf: "msg_control"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "msg_flags", TypeSize: 4, ArgDir: 2}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "msg_flags", TypeSize: 4, ArgDir: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "rlimit"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rlimit", TypeSize: 16}, Fields: []Type{
@@ -400,7 +400,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_iovlen", TypeSize: 8}}, Buf: "msg_iov"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "msg_controllen", TypeSize: 8}}, BitSize: 8, Buf: "msg_control"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "msg_flags", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "msg_flags", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "shmid_ds"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "shmid_ds", TypeSize: 112}, Fields: []Type{
@@ -2406,4 +2406,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "f71f0054afcc787e14a5077d417bbf12680393f7"
+const revision_amd64 = "22112dfc79f66bcb8c6e3f8f1cf5f7e0d005927f"
