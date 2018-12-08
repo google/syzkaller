@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/ianlancetaylor/demangle"
 )
 
@@ -38,12 +39,13 @@ var (
 	}
 )
 
-func ctorFuchsia(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorFuchsia(target *targets.Target, kernelSrc, kernelObj string,
+	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &fuchsia{
 		ignores: ignores,
 	}
 	if kernelObj != "" {
-		ctx.obj = filepath.Join(kernelObj, "zircon.elf")
+		ctx.obj = filepath.Join(kernelObj, target.KernelObject)
 	}
 	suppressions := []string{
 		"fatal exception: process /tmp/syz-fuzzer", // OOM presumably

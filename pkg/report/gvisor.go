@@ -6,13 +6,16 @@ package report
 import (
 	"bytes"
 	"regexp"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type gvisor struct {
 	ignores []*regexp.Regexp
 }
 
-func ctorGvisor(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorGvisor(target *targets.Target, kernelSrc, kernelObj string,
+	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &gvisor{
 		ignores: ignores,
 	}
