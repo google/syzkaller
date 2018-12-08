@@ -1,4 +1,12 @@
-# Windows support
+# Windows
+
+`Windows` support is very raw and preliminary (read, non-working).
+
+There is a more complete
+[closed-source Windows port](https://www.slideshare.net/AnthonyLAOUHINETSUEI/wsl-reloaded)
+done by [Fritz](https://twitter.com/anarcheuz) and [zer0mem](https://twitter.com/zer0mem).
+The port has found 6 bugs including
+[CVE-2018-8441](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8441).
 
 To update descriptions run (assumes `cl` cross-compiler is in PATH):
 ```
