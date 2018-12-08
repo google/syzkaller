@@ -237,14 +237,14 @@ func (g *Gen) MutateArg(arg0 Arg) (calls []*Call) {
 	return calls
 }
 
-type ProgGen struct {
+type Builder struct {
 	target *Target
 	ma     *memAlloc
 	p      *Prog
 }
 
-func MakeProgGen(target *Target) *ProgGen {
-	return &ProgGen{
+func MakeProgGen(target *Target) *Builder {
+	return &Builder{
 		target: target,
 		ma:     newMemAlloc(target.NumPages * target.PageSize),
 		p: &Prog{
@@ -253,24 +253,24 @@ func MakeProgGen(target *Target) *ProgGen {
 	}
 }
 
-func (pg *ProgGen) Append(c *Call) error {
+func (pg *Builder) Append(c *Call) error {
 	pg.target.assignSizesCall(c)
 	pg.target.SanitizeCall(c)
 	pg.p.Calls = append(pg.p.Calls, c)
 	return nil
 }
 
-func (pg *ProgGen) Allocate(size uint64) uint64 {
+func (pg *Builder) Allocate(size uint64) uint64 {
 	return pg.ma.alloc(nil, size)
 }
 
-func (pg *ProgGen) AllocateVMA(npages uint64) uint64 {
+func (pg *Builder) AllocateVMA(npages uint64) uint64 {
 	psize := pg.target.PageSize
 	addr := pg.ma.alloc(nil, (npages+1)*psize)
 	return (addr + psize - 1) & ^(psize - 1)
 }
 
-func (pg *ProgGen) Finalize() (*Prog, error) {
+func (pg *Builder) Finalize() (*Prog, error) {
 	if err := pg.p.validate(); err != nil {
 		return nil, err
 	}
