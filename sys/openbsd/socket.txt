@@ -24,7 +24,7 @@ getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[add
 getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
 
 sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
-recvmsg(fd sock, msg ptr[in, recv_msghdr], f flags[recv_flags])
+recvmsg(fd sock, msg ptr[inout, recv_msghdr], f flags[recv_flags])
 
 listen(fd sock, backlog int32)
 shutdown(fd sock, how flags[shutdown_flags])
@@ -54,7 +54,7 @@ send_msghdr {
 	msg_iovlen	len[msg_iov, intptr]
 	msg_control	ptr[in, array[cmsghdr]]
 	msg_controllen	bytesize[msg_control, intptr]
-	msg_flags	flags[send_flags, int32]
+	msg_flags	const[0, int32]
 }
 
 recv_msghdr {
@@ -64,7 +64,7 @@ recv_msghdr {
 	msg_iovlen	len[msg_iov, intptr]
 	msg_control	buffer[out]
 	msg_controllen	len[msg_control, intptr]
-	msg_flags	int32
+	msg_flags	const[0, int32]
 }
 
 cmsghdr {
