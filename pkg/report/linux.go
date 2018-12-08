@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type linux struct {
@@ -32,11 +33,11 @@ type linux struct {
 	eoi                   []byte
 }
 
-func ctorLinux(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
-	vmlinux := ""
+func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	var symbols map[string][]symbolizer.Symbol
+	vmlinux := ""
 	if kernelObj != "" {
-		vmlinux = filepath.Join(kernelObj, "vmlinux")
+		vmlinux = filepath.Join(kernelObj, target.KernelObject)
 		var err error
 		symbols, err = symbolizer.ReadSymbols(vmlinux)
 		if err != nil {

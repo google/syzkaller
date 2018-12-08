@@ -6,6 +6,8 @@ package report
 import (
 	"bytes"
 	"regexp"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type freebsd struct {
@@ -14,7 +16,8 @@ type freebsd struct {
 	ignores   []*regexp.Regexp
 }
 
-func ctorFreebsd(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorFreebsd(target *targets.Target, kernelSrc, kernelObj string,
+	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &freebsd{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,

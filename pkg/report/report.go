@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Reporter interface {
@@ -65,7 +66,11 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	rep, suppressions, err := ctor(cfg.KernelSrc, cfg.KernelObj, ignores)
+	target := targets.Get(cfg.TargetOS, cfg.TargetArch)
+	if target == nil && typ != "gvisor" {
+		return nil, fmt.Errorf("unknown target %v/%v", cfg.TargetOS, cfg.TargetArch)
+	}
+	rep, suppressions, err := ctor(target, cfg.KernelSrc, cfg.KernelObj, ignores)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +92,7 @@ var ctors = map[string]fn{
 	"windows": ctorStub,
 }
 
-type fn func(string, string, []*regexp.Regexp) (Reporter, []string, error)
+type fn func(*targets.Target, string, string, []*regexp.Regexp) (Reporter, []string, error)
 
 func compileRegexps(list []string) ([]*regexp.Regexp, error) {
 	compiled := make([]*regexp.Regexp, len(list))

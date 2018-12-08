@@ -5,6 +5,8 @@ package report
 
 import (
 	"regexp"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type netbsd struct {
@@ -13,7 +15,8 @@ type netbsd struct {
 	ignores   []*regexp.Regexp
 }
 
-func ctorNetbsd(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorNetbsd(target *targets.Target, kernelSrc, kernelObj string,
+	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &netbsd{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,

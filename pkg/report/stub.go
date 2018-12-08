@@ -5,6 +5,8 @@ package report
 
 import (
 	"regexp"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type stub struct {
@@ -13,7 +15,8 @@ type stub struct {
 	ignores   []*regexp.Regexp
 }
 
-func ctorStub(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorStub(target *targets.Target, kernelSrc, kernelObj string,
+	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &stub{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,
