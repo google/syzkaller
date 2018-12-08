@@ -1,7 +1,7 @@
 # How to set up syzkaller
 
 Generic setup instructions for fuzzing Linux kernel are outlined [here](linux/setup.md).
-For other OS kernels check: [Akaros](/docs/akaros/README.md), [FreeBSD](/docs/freebsd.md), [Fuchsia](/docs/fuchsia.md), [NetBSD](/docs/netbsd.md), [Windows](/docs/windows/README.md).
+For other OS kernels check: [Akaros](/docs/akaros/README.md), [FreeBSD](/docs/freebsd.md), [Fuchsia](/docs/fuchsia.md), [NetBSD](/docs/netbsd.md), [OpenBSD](/docs/openbsd/setup.md), [Windows](/docs/windows/README.md).
 
 After following these instructions you should be able to run `syz-manager`, see it executing programs and be able to access statistics exposed at `http://127.0.0.1:56741`:
 
