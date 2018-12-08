@@ -61,12 +61,12 @@ type context struct {
 
 // genProg converts a trace to one of our programs.
 func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
-	returnCache := newRCache()
+	retCache := newRCache()
 	ctx := &context{
 		builder:      prog.MakeProgGen(target),
 		target:       target,
-		callSelector: newCallSelector(target, returnCache),
-		returnCache:  returnCache,
+		callSelector: newCallSelector(target, retCache),
+		returnCache:  retCache,
 	}
 	for _, sCall := range trace.Calls {
 		if sCall.Paused {
