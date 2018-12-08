@@ -51,7 +51,7 @@ func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target, progs *[]
 
 // Context stores metadata related to a syzkaller program
 type context struct {
-	pg                *prog.ProgGen
+	builder           *prog.Builder
 	target            *prog.Target
 	callSelector      *callSelector
 	returnCache       returnCache
@@ -63,7 +63,7 @@ type context struct {
 func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 	returnCache := newRCache()
 	ctx := &context{
-		pg:           prog.MakeProgGen(target),
+		builder:      prog.MakeProgGen(target),
 		target:       target,
 		callSelector: newCallSelector(target, returnCache),
 		returnCache:  returnCache,
@@ -85,11 +85,11 @@ func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 		if call == nil {
 			continue
 		}
-		if err := ctx.pg.Append(call); err != nil {
+		if err := ctx.builder.Append(call); err != nil {
 			log.Fatalf("%v", err)
 		}
 	}
-	p, err := ctx.pg.Finalize()
+	p, err := ctx.builder.Finalize()
 	if err != nil {
 		log.Fatalf("error validating program: %v", err)
 	}
@@ -182,7 +182,7 @@ func (ctx *context) genVma(syzType *prog.VmaType, _ parser.IrType) prog.Arg {
 	if syzType.RangeBegin != 0 || syzType.RangeEnd != 0 {
 		npages = syzType.RangeEnd
 	}
-	return prog.MakeVmaPointerArg(syzType, ctx.pg.AllocateVMA(npages), npages)
+	return prog.MakeVmaPointerArg(syzType, ctx.builder.AllocateVMA(npages), npages)
 }
 
 func (ctx *context) genArray(syzType *prog.ArrayType, traceType parser.IrType) prog.Arg {
@@ -388,7 +388,7 @@ func (ctx *context) parseProc(syzType *prog.ProcType, traceType parser.IrType) p
 }
 
 func (ctx *context) addr(syzType prog.Type, size uint64, data prog.Arg) prog.Arg {
-	return prog.MakePointerArg(syzType, ctx.pg.Allocate(size), data)
+	return prog.MakePointerArg(syzType, ctx.builder.Allocate(size), data)
 }
 
 func (ctx *context) reorderStructFields(syzType *prog.StructType, traceType *parser.GroupType) {
