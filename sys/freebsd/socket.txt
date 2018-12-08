@@ -57,7 +57,7 @@ send_msghdr {
 	msg_iovlen	len[msg_iov, intptr]
 	msg_control	ptr[in, array[cmsghdr]]
 	msg_controllen	bytesize[msg_control, intptr]
-	msg_flags	int32
+	msg_flags	const[0, int32]
 }
 
 recv_msghdr {
@@ -67,7 +67,7 @@ recv_msghdr {
 	msg_iovlen	len[msg_iov, intptr]
 	msg_control	buffer[out]
 	msg_controllen	len[msg_control, intptr]
-	msg_flags	int32
+	msg_flags	const[0, int32]
 }
 
 cmsghdr {
