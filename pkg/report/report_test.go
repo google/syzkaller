@@ -255,7 +255,8 @@ func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Report
 			t.Fatal(err)
 		}
 		cfg := &mgrconfig.Config{
-			TargetOS: os,
+			TargetOS:   os,
+			TargetArch: "amd64",
 		}
 		reporter, err := NewReporter(cfg)
 		if err != nil {

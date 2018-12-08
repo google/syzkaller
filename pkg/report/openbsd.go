@@ -7,6 +7,8 @@ import (
 	"bufio"
 	"bytes"
 	"regexp"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type openbsd struct {
@@ -15,7 +17,8 @@ type openbsd struct {
 	ignores   []*regexp.Regexp
 }
 
-func ctorOpenbsd(kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorOpenbsd(target *targets.Target, kernelSrc, kernelObj string,
+	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &openbsd{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,

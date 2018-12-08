@@ -49,7 +49,8 @@ var fuzzReporters = func() []Reporter {
 			continue
 		}
 		cfg := &mgrconfig.Config{
-			TargetOS: os,
+			TargetOS:   os,
+			TargetArch: "amd64",
 		}
 		reporter, err := NewReporter(cfg)
 		if err != nil {
