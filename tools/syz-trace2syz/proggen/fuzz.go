@@ -5,10 +5,10 @@ package proggen
 
 import (
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
+	_ "github.com/google/syzkaller/sys/linux/gen" // pull in the target
 )
 
-var target = func() *prog.Target {
+var linuxTarget = func() *prog.Target {
 	target, err := prog.GetTarget("linux", "amd64")
 	if err != nil {
 		panic(err)
@@ -21,7 +21,7 @@ var target = func() *prog.Target {
 }()
 
 func Fuzz(data []byte) int {
-	progs, err := ParseData(data, target)
+	progs, err := ParseData(data, linuxTarget)
 	if err != nil {
 		return 0
 	}
