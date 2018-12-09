@@ -39,11 +39,11 @@ func TestSanitize(t *testing.T) {
 			`ptrace(0xffffffffffffffff, 0x0)`,
 		},
 		{
-			`ptrace$peek(0x0)`,
+			`ptrace$peek(0x0, 0x0, &(0x7f0000000000))`,
 			`ptrace$peek(0xffffffffffffffff, 0x0, &(0x7f0000000000))`,
 		},
 		{
-			`ptrace(0x1)`,
+			`ptrace(0x1, 0x0)`,
 			`ptrace(0x1, 0x0)`,
 		},
 		{
