@@ -393,7 +393,8 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	defer mgr.mu.Unlock()
 
 	initCoverOnce.Do(func() {
-		initCoverError = initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject, mgr.cfg.TargetArch)
+		initCoverError = initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject,
+			mgr.cfg.KernelSrc, mgr.cfg.TargetArch)
 	})
 	if initCoverError != nil {
 		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
@@ -407,7 +408,7 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	pcs := make([]uint64, 0, len(cov))
 	for pc := range cov {
 		fullPC := cover.RestorePC(pc, initCoverVMOffset)
-		prevPC := previousInstructionPC(mgr.cfg.TargetVMArch, fullPC)
+		prevPC := cover.PreviousInstructionPC(mgr.cfg.TargetVMArch, fullPC)
 		pcs = append(pcs, prevPC)
 	}
 	sort.Slice(pcs, func(i, j int) bool {
