@@ -15,7 +15,7 @@ type sock_port proc[20000, 4, int16be]
 # TODO: describe socketcall syscall
 
 socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
-socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])
+socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, sock_pair])
 bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 accept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]]) sock
@@ -41,6 +41,11 @@ shutdown_flags = SHUT_RD, SHUT_WR, SHUT_RDWR
 send_flags = MSG_OOB, MSG_PEEK, MSG_DONTROUTE, MSG_EOR, MSG_NOSIGNAL
 recv_flags = MSG_CMSG_CLOEXEC, MSG_OOB, MSG_PEEK, MSG_WAITALL
 cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, LINUX_SOL_IP, LINUX_SOL_TCP, LINUX_SOL_UDP, LINUX_SOL_IPV6, LINUX_SOL_IPX, LINUX_SOL_AX25
+
+sock_pair {
+	fd0	sock
+	fd1	sock
+}
 
 # This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
 sockaddr_storage [
