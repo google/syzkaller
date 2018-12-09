@@ -35,11 +35,11 @@ func TestSerializeData(t *testing.T) {
 		}
 		buf := new(bytes.Buffer)
 		serializeData(buf, data)
-		p := newParser(buf.Bytes())
+		p := newParser(nil, buf.Bytes())
 		if !p.Scan() {
 			t.Fatalf("parser does not scan")
 		}
-		data1, err := deserializeData(p)
+		data1, err := p.deserializeData()
 		if err != nil {
 			t.Fatalf("failed to deserialize %q -> %s: %v", data, buf.Bytes(), err)
 		}
