@@ -20,7 +20,7 @@
 
 #if GOARCH_amd64
 #define GOARCH "amd64"
-#define SYZ_REVISION "22112dfc79f66bcb8c6e3f8f1cf5f7e0d005927f"
+#define SYZ_REVISION "d990a6df2ded440a9df7303f0bfb0cddcc0d448f"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
