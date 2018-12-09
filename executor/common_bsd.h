@@ -267,10 +267,42 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 #endif
 #endif // GOOS_freebsd || GOOS_openbsd
 
+#if SYZ_EXECUTOR || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NONE
+
+#include <sys/resource.h>
+#include <unistd.h>
+
+static void sandbox_common()
+{
+	if (setsid() == -1)
+		fail("setsid failed");
+
+	// Some minimal sandboxing.
+	struct rlimit rlim;
+#ifndef GOOS_openbsd
+	// Documented bug in OpenBSD.
+	// This causes frequent random aborts on netbsd. Reason unknown.
+	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
+	setrlimit(RLIMIT_AS, &rlim);
+#endif
+	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
+	setrlimit(RLIMIT_MEMLOCK, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	setrlimit(RLIMIT_FSIZE, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	setrlimit(RLIMIT_STACK, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 0;
+	setrlimit(RLIMIT_CORE, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 256; // see kMaxFd
+	setrlimit(RLIMIT_NOFILE, &rlim);
+}
+#endif //  SYZ_EXECUTOR || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NONE
+
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
 static int do_sandbox_none(void)
 {
+	sandbox_common();
 #if (GOOS_freebsd || GOOS_openbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
@@ -285,30 +317,7 @@ static int do_sandbox_none(void)
 #include <sys/wait.h>
 #include <unistd.h>
 
-static void sandbox_common()
-{
-	if (setsid() == -1)
-		fail("setsid failed");
-
-	struct rlimit rlim;
-#ifndef GOOS_openbsd
-	// Documented bug in OpenBSD.
-	rlim.rlim_cur = rlim.rlim_max = 200 << 20;
-	setrlimit(RLIMIT_AS, &rlim);
-#endif
-	rlim.rlim_cur = rlim.rlim_max = 32 << 20;
-	setrlimit(RLIMIT_MEMLOCK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 136 << 20;
-	setrlimit(RLIMIT_FSIZE, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
-	setrlimit(RLIMIT_STACK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 0;
-	setrlimit(RLIMIT_CORE, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 256; // see kMaxFd
-	setrlimit(RLIMIT_NOFILE, &rlim);
-}
-
-int wait_for_loop(int pid)
+static int wait_for_loop(int pid)
 {
 	if (pid < 0)
 		fail("sandbox fork failed");
