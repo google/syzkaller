@@ -14,6 +14,16 @@
 # Date  : 2018/12/08
 # Lab   : Ubuntu 18.04 x86_64 (4.19.6)
 
+# references
+# https://github.com/google/syzkaller/blob/master/docs/linux/setup.md
+# https://www.kernel.org/doc/html/latest/admin-guide/README.html
+# https://github.com/google/syzkaller/blob/master/docs/linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md
+# https://github.com/google/syzkaller/blob/master/tools/create-image.sh
+# https://github.com/google/syzkaller/blob/master/tools/demo_setup.sh
+# https://github.com/torvalds/linux/blob/master/scripts/kconfig/merge_config.sh
+# https://github.com/google/syzkaller/blob/master/dashboard/config/kmsan_from_kasan_config.sh
+# https://gist.githubusercontent.com/dvyukov/5f378399ff1a1302d9725f21142ef0d9/raw/9c854e95aaf6e65b7b312d436d310f74af6067ec/gistfile1.txt
+
 export INIT_DIR=`pwd`
 export KERNEL_RELEASE_URL="https://www.kernel.org/releases.json"
 export KERNEL_RELEASE_VERSION=$(curl -s $KERNEL_RELEASE_URL | grep -A2 "latest_stable" | sed ':a;N;$!ba;s/\n//g' | grep -oP '\d.\d+.\d')
@@ -45,8 +55,8 @@ function install_dependencies {
 
 function check_gcc_coverage {
     echo "[*] check if gcc has coverage feature"
-    OPT_COVERAGE=$(MANWIDTH=160 man gcc | grep '      \-\-coverage')
-    if [[ "$OPT_COVERAGE" == *"--coverage"* ]]; then
+    OPT_COVERAGE=$(MANWIDTH=160 man gcc | grep '      \-fsanitize-coverage')
+    if [[ "$OPT_COVERAGE" == *"-fsanitize-coverage"* ]]; then
 	echo "[*] gcc is with coverage support"
     else
 	echo "[-] gcc is not with coverage support"
@@ -231,7 +241,6 @@ function config_syzkaller {
     cd "$INIT_DIR" && tar xvf "$INIT_DIR/$GOLANG_FILE" && mkdir "$GOPATH"
     go get -u -d github.com/google/syzkaller/...
     cd "$GOPATH/src/github.com/google/syzkaller/" && make
-    # mkdir "$INIT_DIR/syzkaller_workdir"
 
     cat > "$INIT_DIR/syzkaller.cfg" << EOF
 {
@@ -262,11 +271,4 @@ patch_linux_kernel
 build_linux_kernel
 build_img
 print_ssh_cmd
-# boot_img
 config_syzkaller
-
-# references
-# https://github.com/google/syzkaller/blob/master/docs/linux/setup.md
-# https://www.kernel.org/doc/html/latest/admin-guide/README.html
-# https://github.com/google/syzkaller/blob/master/docs/linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md
-# https://github.com/google/syzkaller/blob/master/tools/create-image.sh
