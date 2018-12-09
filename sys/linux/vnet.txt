@@ -333,7 +333,7 @@ ipv4_addr [
 	multicast2	const[0xe0000002, int32be]
 # 255.255.255.255
 	broadcast	const[0xffffffff, int32be]
-]
+] [size[4]]
 
 type ipv4_addr_mask flags[ipv4_addr_mask_vals, int32be]
 ipv4_addr_mask_vals = 0, 0xff000000, 0xffffff00, 0xffffffff, 0xff
@@ -525,7 +525,7 @@ ipv6_addr [
 	ipv4		ipv6_addr_ipv4
 	mcast1		ipv6_addr_multicast1
 	mcast2		ipv6_addr_multicast2
-]
+] [size[16]]
 
 type ipv6_addr_mask array[flags[ipv4_addr_mask_vals, int32be], 4]
 
@@ -699,6 +699,7 @@ ipv4_payload [
 	dccp	dccp_packet
 	igmp	igmp_packet
 	gre	gre_packet
+	tipc	tipc_packet
 ] [varlen]
 
 ipv6_payload [
@@ -707,6 +708,7 @@ ipv6_payload [
 	icmpv6	icmpv6_packet
 	dccp	dccp_packet
 	gre	gre_packet
+	tipc	tipc_packet
 ] [varlen]
 
 ################################################################################
@@ -1349,3 +1351,135 @@ mpls_payload [
 	ipv6	ipv6_packet
 	llc	llc_packet
 ] [varlen]
+
+################################################################################
+###################################### TIPC ####################################
+################################################################################
+
+# http://tipc.sourceforge.net/protocol.html
+# http://tipc.sourceforge.net/protocol.html#anchor50
+
+include <uapi/linux/tipc.h>
+include <net/tipc/msg.h>
+
+tipc_packet [
+	payload_conn		tipc_payload_msg[tipc_payload_hdr6[TIPC_CONN_MSG]]
+	payload_mcast		tipc_payload_msg[tipc_payload_hdr11[TIPC_MCAST_MSG]]
+	payload_named		tipc_payload_msg[tipc_payload_hdr10[TIPC_NAMED_MSG]]
+	payload_direct		tipc_payload_msg[tipc_payload_hdr8[TIPC_DIRECT_MSG]]
+	name_distributor	tipc_name_distributor_msg
+] [varlen]
+
+type tipc_payload_msg[HDR] {
+	hdr	tipc_payload_hdr[HDR]
+	data	array[const[0, int8]]
+}
+
+type tipc_payload_hdr[HDR] {
+	hdr	HDR
+}
+
+type tipc_payload_hdr6[TYP] {
+# w0
+	message_size		bytesize[tipc_payload_msg, int32be:17]
+	y			const[0, int32be:1]
+	s			int32be:1
+	d			int32be:1
+	n			int32be:1
+	hsize			bytesize4[tipc_payload_hdr, int32be:4]
+	user			flags[tipc_importance, int32be:4]
+	ver			const[TIPC_VERSION, int32be:3]
+# w1
+	broadcast_acknowledge	int32be:16
+	res			const[0, int32be:3]
+	lcs			flags[tipc_scope, int32be:2]
+	reroute			int32be:4
+	error			flags[tipc_error, int32be:4]
+	mtype			const[TYP, int32be:3]
+# w2
+	link_sequence		int32be:16
+	link_acknowledge	int32be:16
+# w3
+	previous_node		int32be[0:4]
+# w4
+	originating_port	int32be[20000:20004]
+# w5
+	destination_port	int32be[20000:20004]
+} [size[24]]
+
+type tipc_payload_hdr8[TYP] {
+	hdr6			tipc_payload_hdr6[TYP]
+# w6
+	originating_node	int32be[0:4]
+# w7
+	destination_node	int32be[0:4]
+} [size[32]]
+
+type tipc_payload_hdr10[TYP] {
+	hdr8		tipc_payload_hdr8[TYP]
+# w8
+	name_type	int32be[0:4]
+# w9
+	name_instance	int32be[0:4]
+} [size[40]]
+
+type tipc_payload_hdr11[TYP] {
+	hdr10			tipc_payload_hdr10[TYP]
+# w10
+	name_sequence_upper	int32be[0:4]
+} [size[44]]
+
+tipc_name_distributor_msg {
+	hdr	tipc_name_distributor_hdr
+	data	array[tipc_name_publication]
+}
+
+tipc_name_distributor_hdr {
+# w0
+	message_size		bytesize[tipc_name_distributor_msg, int32be:17]
+	y			const[0, int32be:1]
+	s			const[0, int32be:1]
+	d			const[0, int32be:1]
+	n			int32be:1
+	hsize			bytesize4[parent, int32be:4]
+	user			const[NAME_DISTRIBUTOR, int32be:4]
+	ver			const[TIPC_VERSION, int32be:3]
+# w1
+	broadcast_acknowledge	int32be:16
+	res			const[0, int32be:13]
+	mtype			int32be:3[0:1]
+# w2
+	link_sequence		int32be:16
+	link_acknowledge	int32be:16
+# w3
+	previous_node		int32be[0:4]
+# w4
+	originating_port	int32be[20000:20004]
+# w5
+	destination_port	int32be[20000:20004]
+# w6
+	originating_node	int32be[0:4]
+# w7
+	destination_node	int32be[0:4]
+# w8
+	res1			const[0, int32be]
+# w9
+	res2			const[0, int32be:23]
+	m			int32be:1
+	item_size		const[7, int32be:8]
+}
+
+tipc_name_publication {
+	type		int32be
+	lower_bound	int32be
+	upper_bound	int32be
+	reference	int32be
+	key		int32be
+	node		int32be
+	scope		int32be:4
+	res		int32be:28
+} [size[28]]
+
+tipc_importance = TIPC_LOW_IMPORTANCE, TIPC_MEDIUM_IMPORTANCE, TIPC_HIGH_IMPORTANCE, TIPC_CRITICAL_IMPORTANCE
+tipc_error = TIPC_OK, TIPC_ERR_NO_NAME, TIPC_ERR_NO_PORT, TIPC_ERR_NO_NODE, TIPC_ERR_OVERLOAD, TIPC_CONN_SHUTDOWN
+tipc_scope = TIPC_CFG_SRV, TIPC_ZONE_SCOPE, TIPC_CLUSTER_SCOPE, TIPC_NODE_SCOPE
