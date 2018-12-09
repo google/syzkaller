@@ -40,7 +40,7 @@ func main() {
 		if err != nil {
 			fatalf("failed to read program: %v", err)
 		}
-		p, err := target.Deserialize(data)
+		p, err := target.Deserialize(data, prog.NonStrict)
 		if err != nil {
 			fatalf("failed to deserialize program: %v", err)
 		}

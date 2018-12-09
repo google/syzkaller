@@ -37,7 +37,7 @@ func TestDefaultCallArgs(t *testing.T) {
 	for _, meta := range target.SyscallMap {
 		// Ensure that we can restore all arguments of all calls.
 		prog := fmt.Sprintf("%v()", meta.Name)
-		p, err := target.Deserialize([]byte(prog))
+		p, err := target.Deserialize([]byte(prog), Strict)
 		if err != nil {
 			t.Fatalf("failed to restore default args in prog %q: %v", prog, err)
 		}
@@ -52,7 +52,7 @@ func TestSerialize(t *testing.T) {
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 10, nil)
 		data := p.Serialize()
-		p1, err := target.Deserialize(data)
+		p1, err := target.Deserialize(data, Strict)
 		if err != nil {
 			t.Fatalf("failed to deserialize program: %v\n%s", err, data)
 		}
@@ -154,7 +154,7 @@ func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 20, nil)
 		testCrossArchProg(t, p, crossTargets)
-		p, err := target.Deserialize(p.Serialize())
+		p, err := target.Deserialize(p.Serialize(), Strict)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -171,7 +171,7 @@ func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
 func testCrossArchProg(t *testing.T, p *Prog, crossTargets []*Target) {
 	serialized := p.Serialize()
 	for _, crossTarget := range crossTargets {
-		_, err := crossTarget.Deserialize(serialized)
+		_, err := crossTarget.Deserialize(serialized, Strict)
 		if err == nil || strings.Contains(err.Error(), "unknown syscall") {
 			continue
 		}
@@ -358,7 +358,7 @@ fallback$0()
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			p, err := target.Deserialize([]byte(test.prog))
+			p, err := target.Deserialize([]byte(test.prog), Strict)
 			if err != nil {
 				t.Fatal(err)
 			}

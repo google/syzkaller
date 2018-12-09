@@ -154,7 +154,7 @@ func TestAssignSize(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		p, err := target.Deserialize([]byte(test.unsizedProg))
+		p, err := target.Deserialize([]byte(test.unsizedProg), Strict)
 		if err != nil {
 			t.Fatalf("failed to deserialize prog %v: %v", i, err)
 		}

@@ -188,7 +188,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		if data.Call != "" && data.Call != inp.Call {
 			continue
 		}
-		p, err := mgr.target.Deserialize(inp.Prog)
+		p, err := mgr.target.Deserialize(inp.Prog, prog.Strict)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 			return
@@ -303,7 +303,7 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 
 	var corpus []*prog.Prog
 	for _, inp := range mgr.corpus {
-		p, err := mgr.target.Deserialize(inp.Prog)
+		p, err := mgr.target.Deserialize(inp.Prog, prog.Strict)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 			return

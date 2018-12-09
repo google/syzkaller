@@ -90,7 +90,7 @@ func convertTestReq(target *prog.Target, req *rpctype.RunTestPollRes) *runtest.R
 		test.Bin = bin
 	}
 	if len(req.Prog) != 0 {
-		p, err := target.Deserialize(req.Prog)
+		p, err := target.Deserialize(req.Prog, prog.Strict)
 		if err != nil {
 			test.Err = err
 			return test

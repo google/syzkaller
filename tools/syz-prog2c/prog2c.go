@@ -34,6 +34,7 @@ var (
 	flagResetNet   = flag.Bool("resetnet", false, "reset net namespace after each test")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
 	flagTrace      = flag.Bool("trace", false, "trace syscall results")
+	flagStrict     = flag.Bool("strict", false, "parse input program in strict mode")
 )
 
 func main() {
@@ -52,7 +53,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to read prog file: %v\n", err)
 		os.Exit(1)
 	}
-	p, err := target.Deserialize(data)
+	mode := prog.NonStrict
+	if *flagStrict {
+		mode = prog.Strict
+	}
+	p, err := target.Deserialize(data, mode)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 		os.Exit(1)

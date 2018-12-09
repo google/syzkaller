@@ -55,7 +55,7 @@ func (target *Target) ParseLog(data []byte) []*LogEntry {
 			continue
 		}
 		tmp := append(cur, line...)
-		p, err := target.Deserialize(tmp)
+		p, err := target.Deserialize(tmp, NonStrict)
 		if err != nil {
 			continue
 		}

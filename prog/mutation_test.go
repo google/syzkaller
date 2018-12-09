@@ -44,7 +44,7 @@ func TestMutateRandom(t *testing.T) {
 				if bytes.Equal(data, data1) {
 					continue
 				}
-				if _, err := target.Deserialize(data1); err != nil {
+				if _, err := target.Deserialize(data1, Strict); err != nil {
 					t.Fatalf("Deserialize failed after Mutate: %v\n%s", err, data1)
 				}
 				continue next
@@ -155,11 +155,11 @@ mutate8(0xffffffffffffffff)
 		test := test
 		t.Run(fmt.Sprint(ti), func(t *testing.T) {
 			t.Parallel()
-			p, err := target.Deserialize([]byte(test[0]))
+			p, err := target.Deserialize([]byte(test[0]), Strict)
 			if err != nil {
 				t.Fatalf("failed to deserialize original program: %v", err)
 			}
-			goal, err := target.Deserialize([]byte(test[1]))
+			goal, err := target.Deserialize([]byte(test[1]), Strict)
 			if err != nil {
 				t.Fatalf("failed to deserialize goal program: %v", err)
 			}

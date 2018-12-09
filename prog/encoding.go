@@ -179,25 +179,51 @@ func (a *ResultArg) serialize(ctx *serializer) {
 	}
 }
 
-func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
-	prog = &Prog{
-		Target: target,
+type DeserializeMode int
+
+const (
+	Strict    DeserializeMode = iota
+	NonStrict DeserializeMode = iota
+)
+
+func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, error) {
+	p := newParser(target, data, mode == Strict)
+	prog, err := p.parseProg()
+	if err != nil {
+		return nil, err
 	}
-	p := newParser(target, data)
-	comment := ""
+	if err := p.Err(); err != nil {
+		return nil, err
+	}
+	// This validation is done even in non-debug mode because deserialization
+	// procedure does not catch all bugs (e.g. mismatched types).
+	// And we can receive bad programs from corpus and hub.
+	if err := prog.validate(); err != nil {
+		return nil, err
+	}
+	for _, c := range prog.Calls {
+		target.SanitizeCall(c)
+	}
+	return prog, nil
+}
+
+func (p *parser) parseProg() (*Prog, error) {
+	prog := &Prog{
+		Target: p.target,
+	}
 	for p.Scan() {
 		if p.EOF() {
-			if comment != "" {
-				prog.Comments = append(prog.Comments, comment)
-				comment = ""
+			if p.comment != "" {
+				prog.Comments = append(prog.Comments, p.comment)
+				p.comment = ""
 			}
 			continue
 		}
 		if p.Char() == '#' {
-			if comment != "" {
-				prog.Comments = append(prog.Comments, comment)
+			if p.comment != "" {
+				prog.Comments = append(prog.Comments, p.comment)
 			}
-			comment = strings.TrimSpace(p.s[p.i+1:])
+			p.comment = strings.TrimSpace(p.s[p.i+1:])
 			continue
 		}
 		name := p.Ident()
@@ -208,19 +234,22 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 			name = p.Ident()
 
 		}
-		meta := target.SyscallMap[name]
+		meta := p.target.SyscallMap[name]
 		if meta == nil {
 			return nil, fmt.Errorf("unknown syscall %v", name)
 		}
 		c := &Call{
 			Meta:    meta,
 			Ret:     MakeReturnArg(meta.Ret),
-			Comment: comment,
+			Comment: p.comment,
 		}
 		prog.Calls = append(prog.Calls, c)
 		p.Parse('(')
 		for i := 0; p.Char() != ')'; i++ {
 			if i >= len(meta.Args) {
+				if p.strict {
+					return nil, fmt.Errorf("excessive syscall arguments (line #%v)", p.l)
+				}
 				p.eatExcessive(false)
 				break
 			}
@@ -257,24 +286,12 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 		if r != "" && c.Ret != nil {
 			p.vars[r] = c.Ret
 		}
-		comment = ""
+		p.comment = ""
 	}
-	if comment != "" {
-		prog.Comments = append(prog.Comments, comment)
+	if p.comment != "" {
+		prog.Comments = append(prog.Comments, p.comment)
 	}
-	if err := p.Err(); err != nil {
-		return nil, err
-	}
-	// This validation is done even in non-debug mode because deserialization
-	// procedure does not catch all bugs (e.g. mismatched types).
-	// And we can receive bad programs from corpus and hub.
-	if err := prog.validate(); err != nil {
-		return nil, err
-	}
-	for _, c := range prog.Calls {
-		target.SanitizeCall(c)
-	}
-	return
+	return prog, nil
 }
 
 func (p *parser) parseArg(typ Type) (Arg, error) {
@@ -775,8 +792,10 @@ func (p *parser) deserializeData() ([]byte, error) {
 }
 
 type parser struct {
-	target *Target
-	vars   map[string]*ResultArg
+	target  *Target
+	strict  bool
+	vars    map[string]*ResultArg
+	comment string
 
 	r *bufio.Scanner
 	s string
@@ -785,9 +804,10 @@ type parser struct {
 	e error
 }
 
-func newParser(target *Target, data []byte) *parser {
+func newParser(target *Target, data []byte, strict bool) *parser {
 	p := &parser{
 		target: target,
+		strict: strict,
 		vars:   make(map[string]*ResultArg),
 		r:      bufio.NewScanner(bytes.NewReader(data)),
 	}

@@ -213,7 +213,7 @@ func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, *ip
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to read %v: %v", filename, err)
 	}
-	p, err := ctx.Target.Deserialize(data)
+	p, err := ctx.Target.Deserialize(data, prog.Strict)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to deserialize %v: %v", filename, err)
 	}
