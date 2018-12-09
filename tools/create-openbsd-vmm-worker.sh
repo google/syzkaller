@@ -52,12 +52,15 @@ EOF
 
 cat >etc/rc.local <<EOF
 (
-  /usr/local/bin/curl -H "Metadata-Flavor: Google" \
-     "http://metadata.google.internal/computeMetadata/v1/instance/hostname" \
-     > /etc/myname.gce \
+  nc metadata.google.internal 80 <<EOF2 | tail -n1 > /etc/myname.gce \
   && echo >> /etc/myname.gce \
   && mv /etc/myname{.gce,} \
   && hostname \$(cat /etc/myname)
+GET /computeMetadata/v1/instance/hostname HTTP/1.0
+Host: metadata.google.internal
+Metadata-Flavor: Google
+
+EOF2
 )
 EOF
 
