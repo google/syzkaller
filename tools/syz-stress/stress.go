@@ -136,7 +136,7 @@ func readCorpus(target *prog.Target) []*prog.Prog {
 	}
 	var progs []*prog.Prog
 	for _, rec := range db.Records {
-		p, err := target.Deserialize(rec.Val)
+		p, err := target.Deserialize(rec.Val, prog.NonStrict)
 		if err != nil {
 			log.Fatalf("failed to deserialize corpus program: %v", err)
 		}

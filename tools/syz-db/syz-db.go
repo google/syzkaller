@@ -76,7 +76,7 @@ func pack(dir, file string, target *prog.Target, version uint64) {
 		}
 		if sig := hash.String(data); key != sig {
 			if target != nil {
-				p, err := target.Deserialize(data)
+				p, err := target.Deserialize(data, prog.NonStrict)
 				if err != nil {
 					failf("failed to deserialize %v: %v", file.Name(), err)
 				}

@@ -35,7 +35,7 @@ func TestSerializeData(t *testing.T) {
 		}
 		buf := new(bytes.Buffer)
 		serializeData(buf, data)
-		p := newParser(nil, buf.Bytes())
+		p := newParser(nil, buf.Bytes(), true)
 		if !p.Scan() {
 			t.Fatalf("parser does not scan")
 		}
@@ -128,9 +128,10 @@ func TestCallSetRandom(t *testing.T) {
 func TestDeserialize(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
 	tests := []struct {
-		input  string
-		output string
-		err    *regexp.Regexp
+		input     string
+		output    string
+		err       *regexp.Regexp
+		strictErr *regexp.Regexp
 	}{
 		{
 			input: `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
@@ -146,19 +147,24 @@ func TestDeserialize(t *testing.T) {
 			input: `test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
 		},
 		{
-			input: `test$excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
+			input:     `test$excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
+			strictErr: regexp.MustCompile("excessive syscall arguments"),
 		},
 		{
-			input: `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
+			input:     `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
+			strictErr: regexp.MustCompile("excessive syscall arguments"),
 		},
 		{
-			input: `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
+			input:     `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
+			strictErr: regexp.MustCompile("excessive syscall arguments"),
 		},
 		{
-			input: `test$excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
+			input:     `test$excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
+			strictErr: regexp.MustCompile("excessive syscall arguments"),
 		},
 		{
-			input: `test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
+			input:     `test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
+			strictErr: regexp.MustCompile("excessive syscall arguments"),
 		},
 		{
 			input:  `test$excessive_fields1(0x0)`,
@@ -177,8 +183,9 @@ func TestDeserialize(t *testing.T) {
 			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `test$excessive_args2([0x0], 0x0)`,
-			output: `test$excessive_args2(0x0)`,
+			input:     `test$excessive_args2([0x0], 0x0)`,
+			output:    `test$excessive_args2(0x0)`,
+			strictErr: regexp.MustCompile("excessive syscall arguments"),
 		},
 		{
 			input:  `test$excessive_args2(@foo)`,
@@ -201,8 +208,9 @@ func TestDeserialize(t *testing.T) {
 			output: `test$type_confusion1(&(0x7f0000000000))`,
 		},
 		{
-			input:  `test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
-			output: `test$type_confusion1(&(0x7f0000000000))`,
+			input:     `test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
+			output:    `test$type_confusion1(&(0x7f0000000000))`,
+			strictErr: regexp.MustCompile("excessive syscall arguments"),
 		},
 		{
 			input:  `test$excessive_fields1(&(0x7f0000000000)=0x0)`,
@@ -231,29 +239,44 @@ func TestDeserialize(t *testing.T) {
 	}
 	buf := make([]byte, ExecBufferSize)
 	for _, test := range tests {
-		p, err := target.Deserialize([]byte(test.input))
-		if err != nil {
-			if test.err == nil {
-				t.Fatalf("deserialization failed with\n%s\ndata:\n%s\n", err, test.input)
+		if test.err != nil && test.strictErr == nil {
+			test.strictErr = test.err
+		}
+		if test.err != nil && test.output != "" {
+			t.Errorf("both err and output are set")
+			continue
+		}
+		for _, mode := range []DeserializeMode{NonStrict, Strict} {
+			p, err := target.Deserialize([]byte(test.input), mode)
+			wantErr := test.err
+			if mode == Strict {
+				wantErr = test.strictErr
 			}
-			if !test.err.MatchString(err.Error()) {
-				t.Fatalf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s",
-					err, test.err, test.input)
+			if err != nil {
+				if wantErr == nil {
+					t.Errorf("deserialization failed with\n%s\ndata:\n%s\n",
+						err, test.input)
+					continue
+				}
+				if !wantErr.MatchString(err.Error()) {
+					t.Errorf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s",
+						err, wantErr, test.input)
+					continue
+				}
+			} else {
+				if wantErr != nil {
+					t.Errorf("deserialization should have failed with:\n%s\ndata:\n%s\n",
+						wantErr, test.input)
+					continue
+				}
+				output := strings.TrimSpace(string(p.Serialize()))
+				if test.output != "" && test.output != output {
+					t.Errorf("wrong serialized data:\n%s\nexpect:\n%s\n",
+						output, test.output)
+					continue
+				}
+				p.SerializeForExec(buf)
 			}
-			if test.output != "" {
-				t.Fatalf("both err and output are set")
-			}
-		} else {
-			if test.err != nil {
-				t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n",
-					test.err, test.input)
-			}
-			output := strings.TrimSpace(string(p.Serialize()))
-			if test.output != "" && test.output != output {
-				t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n",
-					output, test.output)
-			}
-			p.SerializeForExec(buf)
 		}
 	}
 }
@@ -271,7 +294,7 @@ func TestSerializeDeserialize(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		p, err := target.Deserialize([]byte(test[0]))
+		p, err := target.Deserialize([]byte(test[0]), Strict)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -322,7 +345,7 @@ func testSerializeDeserialize(t *testing.T, p0 *Prog, data0, data1 []byte) (bool
 		t.Fatal(err)
 	}
 	serialized := p0.Serialize()
-	p1, err := p0.Target.Deserialize(serialized)
+	p1, err := p0.Target.Deserialize(serialized, Strict)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +374,7 @@ serialize0()	#  comment5
 
 serialize0()
 #comment7
-`))
+`), Strict)
 	if err != nil {
 		t.Fatal(err)
 	}

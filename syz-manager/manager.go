@@ -484,7 +484,7 @@ func (mgr *Manager) loadCorpus() {
 	}
 	deleted := 0
 	for key, rec := range mgr.corpusDB.Records {
-		p, err := mgr.target.Deserialize(rec.Val)
+		p, err := mgr.target.Deserialize(rec.Val, prog.NonStrict)
 		if err != nil {
 			if deleted < 10 {
 				log.Logf(0, "deleting broken program: %v\n%s", err, rec.Val)
@@ -988,7 +988,7 @@ func (mgr *Manager) NewInput(a *rpctype.NewInputArgs, r *int) error {
 		log.Fatalf("fuzzer %v is not connected", a.Name)
 	}
 
-	if _, err := mgr.target.Deserialize(a.RPCInput.Prog); err != nil {
+	if _, err := mgr.target.Deserialize(a.RPCInput.Prog, prog.Strict); err != nil {
 		// This should not happen, but we see such cases episodically, reason unknown.
 		log.Logf(0, "failed to deserialize program from fuzzer: %v\n%s", err, a.RPCInput.Prog)
 		return nil

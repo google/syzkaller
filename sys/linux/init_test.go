@@ -139,7 +139,7 @@ exit_group(0x1)
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			p, err := target.Deserialize([]byte(test.input))
+			p, err := target.Deserialize([]byte(test.input), prog.Strict)
 			if err != nil {
 				t.Fatal(err)
 			}

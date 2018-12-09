@@ -122,7 +122,7 @@ func TestMinimize(t *testing.T) {
 	}
 	target, _, _ := initTest(t)
 	for ti, test := range tests {
-		p, err := target.Deserialize([]byte(test.orig))
+		p, err := target.Deserialize([]byte(test.orig), Strict)
 		if err != nil {
 			t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
 		}

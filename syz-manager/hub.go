@@ -162,7 +162,7 @@ func (hc *HubConnector) processProgs(progs [][]byte) int {
 	dropped := 0
 	candidates := make([][]byte, 0, len(progs))
 	for _, inp := range progs {
-		if _, err := hc.target.Deserialize(inp); err != nil {
+		if _, err := hc.target.Deserialize(inp, prog.NonStrict); err != nil {
 			dropped++
 			continue
 		}
@@ -175,7 +175,7 @@ func (hc *HubConnector) processProgs(progs [][]byte) int {
 func (hc *HubConnector) processRepros(repros [][]byte) int {
 	dropped := 0
 	for _, repro := range repros {
-		if _, err := hc.target.Deserialize(repro); err != nil {
+		if _, err := hc.target.Deserialize(repro, prog.NonStrict); err != nil {
 			dropped++
 			continue
 		}

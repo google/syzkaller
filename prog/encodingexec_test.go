@@ -433,7 +433,7 @@ func TestSerializeForExec(t *testing.T) {
 	for i, test := range tests {
 		i, test := i, test
 		t.Run(fmt.Sprintf("%v:%v", i, test.prog), func(t *testing.T) {
-			p, err := target.Deserialize([]byte(test.prog))
+			p, err := target.Deserialize([]byte(test.prog), Strict)
 			if err != nil {
 				t.Fatalf("failed to deserialize prog %v: %v", i, err)
 			}

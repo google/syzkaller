@@ -297,7 +297,7 @@ func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
 		fuzzer.addInputFromAnotherFuzzer(inp)
 	}
 	for _, candidate := range r.Candidates {
-		p, err := fuzzer.target.Deserialize(candidate.Prog)
+		p, err := fuzzer.target.Deserialize(candidate.Prog, prog.NonStrict)
 		if err != nil {
 			log.Fatalf("failed to parse program from manager: %v", err)
 		}
@@ -327,7 +327,7 @@ func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.RPCInput) {
 }
 
 func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
-	p, err := fuzzer.target.Deserialize(inp.Prog)
+	p, err := fuzzer.target.Deserialize(inp.Prog, prog.Strict)
 	if err != nil {
 		log.Fatalf("failed to deserialize prog from another fuzzer: %v", err)
 	}
