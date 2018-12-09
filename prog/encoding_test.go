@@ -137,8 +137,9 @@ func TestDeserialize(t *testing.T) {
 			input: `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
 		},
 		{
-			input:  `test$struct(&(0x7f0000000000)=0x0)`,
-			output: `test$struct(&(0x7f0000000000))`,
+			input:     `test$struct(&(0x7f0000000000)=0x0)`,
+			output:    `test$struct(&(0x7f0000000000))`,
+			strictErr: regexp.MustCompile("wrong int arg"),
 		},
 		{
 			input: `test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
@@ -164,57 +165,65 @@ func TestDeserialize(t *testing.T) {
 		},
 		{
 			input:     `test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
-			strictErr: regexp.MustCompile("excessive syscall arguments"),
+			strictErr: regexp.MustCompile("excessive struct excessive_fields fields"),
 		},
 		{
 			input:  `test$excessive_fields1(0x0)`,
 			output: `test$excessive_fields1(0x0)`,
 		},
 		{
-			input:  `test$excessive_fields1(r0)`,
-			output: `test$excessive_fields1(&(0x7f0000000000))`,
+			input:     `test$excessive_fields1(r0)`,
+			output:    `test$excessive_fields1(&(0x7f0000000000))`,
+			strictErr: regexp.MustCompile("undeclared variable r0"),
 		},
 		{
-			input:  `test$excessive_args2(r1)`,
-			output: `test$excessive_args2(0x0)`,
+			input:     `test$excessive_args2(r1)`,
+			output:    `test$excessive_args2(0x0)`,
+			strictErr: regexp.MustCompile("undeclared variable r1"),
 		},
 		{
-			input:  `test$excessive_args2({0x0, 0x1})`,
-			output: `test$excessive_args2(0x0)`,
+			input:     `test$excessive_args2({0x0, 0x1})`,
+			output:    `test$excessive_args2(0x0)`,
+			strictErr: regexp.MustCompile("wrong struct arg"),
 		},
 		{
 			input:     `test$excessive_args2([0x0], 0x0)`,
 			output:    `test$excessive_args2(0x0)`,
-			strictErr: regexp.MustCompile("excessive syscall arguments"),
+			strictErr: regexp.MustCompile("wrong array arg"),
 		},
 		{
-			input:  `test$excessive_args2(@foo)`,
-			output: `test$excessive_args2(0x0)`,
+			input:     `test$excessive_args2(@foo)`,
+			output:    `test$excessive_args2(0x0)`,
+			strictErr: regexp.MustCompile("wrong union arg"),
 		},
 		{
-			input:  `test$excessive_args2('foo')`,
-			output: `test$excessive_args2(0x0)`,
+			input:     `test$excessive_args2('foo')`,
+			output:    `test$excessive_args2(0x0)`,
+			strictErr: regexp.MustCompile("wrong string arg"),
 		},
 		{
-			input:  `test$excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
-			output: `test$excessive_args2(0x0)`,
+			input:     `test$excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
+			output:    `test$excessive_args2(0x0)`,
+			strictErr: regexp.MustCompile("wrong addr arg"),
 		},
 		{
 			input:  `test$excessive_args2(nil)`,
 			output: `test$excessive_args2(0x0)`,
 		},
 		{
-			input:  `test$type_confusion1(&(0x7f0000000000)=@unknown)`,
-			output: `test$type_confusion1(&(0x7f0000000000))`,
+			input:     `test$type_confusion1(&(0x7f0000000000)=@unknown)`,
+			output:    `test$type_confusion1(&(0x7f0000000000))`,
+			strictErr: regexp.MustCompile("wrong union option"),
 		},
 		{
 			input:     `test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
 			output:    `test$type_confusion1(&(0x7f0000000000))`,
-			strictErr: regexp.MustCompile("excessive syscall arguments"),
+			strictErr: regexp.MustCompile("wrong union option"),
 		},
 		{
-			input:  `test$excessive_fields1(&(0x7f0000000000)=0x0)`,
-			output: `test$excessive_fields1(&(0x7f0000000000))`,
+			input:     `test$excessive_fields1(&(0x7f0000000000)=0x0)`,
+			output:    `test$excessive_fields1(&(0x7f0000000000))`,
+			strictErr: regexp.MustCompile("wrong int arg"),
 		},
 		{
 			input:  `test$excessive_fields1(0x0)`,
@@ -345,7 +354,7 @@ func testSerializeDeserialize(t *testing.T, p0 *Prog, data0, data1 []byte) (bool
 		t.Fatal(err)
 	}
 	serialized := p0.Serialize()
-	p1, err := p0.Target.Deserialize(serialized, Strict)
+	p1, err := p0.Target.Deserialize(serialized, NonStrict)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,15 +373,15 @@ func TestDeserializeComments(t *testing.T) {
 	p, err := target.Deserialize([]byte(`
 # comment1
 # comment2
-serialize0()
-serialize0()
+serialize0(0x0)
+serialize0(0x0)
 # comment3
-serialize0()
+serialize0(0x0)
 # comment4
-serialize0()	#  comment5
+serialize0(0x0)	#  comment5
 #comment6
 
-serialize0()
+serialize0(0x0)
 #comment7
 `), Strict)
 	if err != nil {

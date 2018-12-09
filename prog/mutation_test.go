@@ -44,7 +44,7 @@ func TestMutateRandom(t *testing.T) {
 				if bytes.Equal(data, data1) {
 					continue
 				}
-				if _, err := target.Deserialize(data1, Strict); err != nil {
+				if _, err := target.Deserialize(data1, NonStrict); err != nil {
 					t.Fatalf("Deserialize failed after Mutate: %v\n%s", err, data1)
 				}
 				continue next

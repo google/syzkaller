@@ -189,10 +189,10 @@ const (
 func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, error) {
 	p := newParser(target, data, mode == Strict)
 	prog, err := p.parseProg()
-	if err != nil {
+	if err := p.Err(); err != nil {
 		return nil, err
 	}
-	if err := p.Err(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 	// This validation is done even in non-debug mode because deserialization
@@ -247,10 +247,7 @@ func (p *parser) parseProg() (*Prog, error) {
 		p.Parse('(')
 		for i := 0; p.Char() != ')'; i++ {
 			if i >= len(meta.Args) {
-				if p.strict {
-					return nil, fmt.Errorf("excessive syscall arguments (line #%v)", p.l)
-				}
-				p.eatExcessive(false)
+				p.eatExcessive(false, "excessive syscall arguments")
 				break
 			}
 			typ := meta.Args[i]
@@ -278,6 +275,7 @@ func (p *parser) parseProg() (*Prog, error) {
 			c.Comment = strings.TrimSpace(p.s[p.i+1:])
 		}
 		for i := len(c.Args); i < len(meta.Args); i++ {
+			p.strictFailf("missing syscall args")
 			c.Args = append(c.Args, meta.Args[i].DefaultArg())
 		}
 		if len(c.Args) != len(meta.Args) {
@@ -342,7 +340,6 @@ func (p *parser) parseArgImpl(typ Type) (Arg, error) {
 		p.Parse('i')
 		p.Parse('l')
 		return nil, nil
-
 	default:
 		return nil, fmt.Errorf("failed to parse argument at %v (line #%v/%v: %v)",
 			int(p.Char()), p.l, p.i, p.s)
@@ -364,7 +361,7 @@ func (p *parser) parseArgInt(typ Type) (Arg, error) {
 		index := -v % uint64(len(p.target.SpecialPointers))
 		return MakeSpecialPointerArg(typ, index), nil
 	default:
-		p.eatExcessive(true)
+		p.eatExcessive(true, "wrong int arg")
 		return typ.DefaultArg(), nil
 	}
 }
@@ -392,6 +389,7 @@ func (p *parser) parseArgRes(typ Type) (Arg, error) {
 	}
 	v := p.vars[id]
 	if v == nil {
+		p.strictFailf("undeclared variable %v", id)
 		return typ.DefaultArg(), nil
 	}
 	arg := MakeResultArg(typ, v, 0)
@@ -407,7 +405,7 @@ func (p *parser) parseArgAddr(typ Type) (Arg, error) {
 		typ1 = t1.Type
 	case *VmaType:
 	default:
-		p.eatExcessive(true)
+		p.eatExcessive(true, "wrong addr arg")
 		return typ.DefaultArg(), nil
 	}
 	p.Parse('&')
@@ -442,7 +440,7 @@ func (p *parser) parseArgAddr(typ Type) (Arg, error) {
 
 func (p *parser) parseArgString(typ Type) (Arg, error) {
 	if _, ok := typ.(*BufferType); !ok {
-		p.eatExcessive(true)
+		p.eatExcessive(true, "wrong string arg")
 		return typ.DefaultArg(), nil
 	}
 	data, err := p.deserializeData()
@@ -477,14 +475,14 @@ func (p *parser) parseArgStruct(typ Type) (Arg, error) {
 	p.Parse('{')
 	t1, ok := typ.(*StructType)
 	if !ok {
-		p.eatExcessive(false)
+		p.eatExcessive(false, "wrong struct arg")
 		p.Parse('}')
 		return typ.DefaultArg(), nil
 	}
 	var inner []Arg
 	for i := 0; p.Char() != '}'; i++ {
 		if i >= len(t1.Fields) {
-			p.eatExcessive(false)
+			p.eatExcessive(false, "excessive struct %v fields", typ.Name())
 			break
 		}
 		fld := t1.Fields[i]
@@ -503,7 +501,11 @@ func (p *parser) parseArgStruct(typ Type) (Arg, error) {
 	}
 	p.Parse('}')
 	for len(inner) < len(t1.Fields) {
-		inner = append(inner, t1.Fields[len(inner)].DefaultArg())
+		fld := t1.Fields[len(inner)]
+		if !IsPad(fld) {
+			p.strictFailf("missing struct %v fields %v/%v", typ.Name(), len(inner), len(t1.Fields))
+		}
+		inner = append(inner, fld.DefaultArg())
 	}
 	return MakeGroupArg(typ, inner), nil
 }
@@ -512,7 +514,7 @@ func (p *parser) parseArgArray(typ Type) (Arg, error) {
 	p.Parse('[')
 	t1, ok := typ.(*ArrayType)
 	if !ok {
-		p.eatExcessive(false)
+		p.eatExcessive(false, "wrong array arg")
 		p.Parse(']')
 		return typ.DefaultArg(), nil
 	}
@@ -530,6 +532,7 @@ func (p *parser) parseArgArray(typ Type) (Arg, error) {
 	p.Parse(']')
 	if t1.Kind == ArrayRangeLen && t1.RangeBegin == t1.RangeEnd {
 		for uint64(len(inner)) < t1.RangeBegin {
+			p.strictFailf("missing array elements")
 			inner = append(inner, t1.Type.DefaultArg())
 		}
 		inner = inner[:t1.RangeBegin]
@@ -540,7 +543,7 @@ func (p *parser) parseArgArray(typ Type) (Arg, error) {
 func (p *parser) parseArgUnion(typ Type) (Arg, error) {
 	t1, ok := typ.(*UnionType)
 	if !ok {
-		p.eatExcessive(true)
+		p.eatExcessive(true, "wrong union arg")
 		return typ.DefaultArg(), nil
 	}
 	p.Parse('@')
@@ -553,7 +556,7 @@ func (p *parser) parseArgUnion(typ Type) (Arg, error) {
 		}
 	}
 	if optType == nil {
-		p.eatExcessive(true)
+		p.eatExcessive(true, "wrong union option")
 		return typ.DefaultArg(), nil
 	}
 	var opt Arg
@@ -571,7 +574,10 @@ func (p *parser) parseArgUnion(typ Type) (Arg, error) {
 }
 
 // Eats excessive call arguments and struct fields to recover after description changes.
-func (p *parser) eatExcessive(stopAtComma bool) {
+func (p *parser) eatExcessive(stopAtComma bool, what string, args ...interface{}) {
+	if p.strict {
+		p.failf(what, args...)
+	}
 	paren, brack, brace := 0, 0, 0
 	for !p.EOF() && p.e == nil {
 		ch := p.Char()
@@ -906,7 +912,15 @@ func (p *parser) Ident() string {
 }
 
 func (p *parser) failf(msg string, args ...interface{}) {
-	p.e = fmt.Errorf("%v\nline #%v: %v", fmt.Sprintf(msg, args...), p.l, p.s)
+	if p.e == nil {
+		p.e = fmt.Errorf("%v\nline #%v:%v: %v", fmt.Sprintf(msg, args...), p.l, p.i, p.s)
+	}
+}
+
+func (p *parser) strictFailf(msg string, args ...interface{}) {
+	if p.strict {
+		p.failf(msg, args...)
+	}
 }
 
 // CallSet returns a set of all calls in the program.
