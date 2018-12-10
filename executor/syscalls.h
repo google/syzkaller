@@ -13542,6 +13542,7 @@ const call_t syscalls[] = {
     {"test$array0", 0},
     {"test$array1", 0},
     {"test$array2", 0},
+    {"test$auto0", 0},
     {"test$bf0", 0},
     {"test$bf1", 0},
     {"test$csum_encode", 0},

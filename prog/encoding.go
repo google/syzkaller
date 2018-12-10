@@ -201,6 +201,9 @@ func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, err
 	if err := prog.validate(); err != nil {
 		return nil, err
 	}
+	if p.autos != nil {
+		p.fixupAutos(prog)
+	}
 	for _, c := range prog.Calls {
 		target.SanitizeCall(c)
 	}
@@ -340,9 +343,15 @@ func (p *parser) parseArgImpl(typ Type) (Arg, error) {
 		p.Parse('i')
 		p.Parse('l')
 		return nil, nil
+	case 'A':
+		p.Parse('A')
+		p.Parse('U')
+		p.Parse('T')
+		p.Parse('O')
+		return p.parseAuto(typ)
 	default:
-		return nil, fmt.Errorf("failed to parse argument at %v (line #%v/%v: %v)",
-			int(p.Char()), p.l, p.i, p.s)
+		return nil, fmt.Errorf("failed to parse argument at '%c' (line #%v/%v: %v)",
+			p.Char(), p.l, p.i, p.s)
 	}
 }
 
@@ -363,6 +372,15 @@ func (p *parser) parseArgInt(typ Type) (Arg, error) {
 	default:
 		p.eatExcessive(true, "wrong int arg")
 		return typ.DefaultArg(), nil
+	}
+}
+
+func (p *parser) parseAuto(typ Type) (Arg, error) {
+	switch typ.(type) {
+	case *ConstType, *LenType, *CsumType:
+		return p.auto(MakeConstArg(typ, 0)), nil
+	default:
+		return nil, fmt.Errorf("wrong type %T for AUTO", typ)
 	}
 }
 
@@ -409,9 +427,23 @@ func (p *parser) parseArgAddr(typ Type) (Arg, error) {
 		return typ.DefaultArg(), nil
 	}
 	p.Parse('&')
-	addr, vmaSize, err := p.parseAddr()
-	if err != nil {
-		return nil, err
+	auto := false
+	var addr, vmaSize uint64
+	if p.Char() == 'A' {
+		p.Parse('A')
+		p.Parse('U')
+		p.Parse('T')
+		p.Parse('O')
+		if typ1 == nil {
+			return nil, fmt.Errorf("vma type can't be AUTO")
+		}
+		auto = true
+	} else {
+		var err error
+		addr, vmaSize, err = p.parseAddr()
+		if err != nil {
+			return nil, err
+		}
 	}
 	var inner Arg
 	if p.Char() == '=' {
@@ -424,6 +456,7 @@ func (p *parser) parseArgAddr(typ Type) (Arg, error) {
 			typ = p.target.makeAnyPtrType(typ.Size(), typ.FieldName())
 			typ1 = p.target.any.array
 		}
+		var err error
 		inner, err = p.parseArg(typ1)
 		if err != nil {
 			return nil, err
@@ -435,7 +468,11 @@ func (p *parser) parseArgAddr(typ Type) (Arg, error) {
 	if inner == nil {
 		inner = typ1.DefaultArg()
 	}
-	return MakePointerArg(typ, addr, inner), nil
+	arg := MakePointerArg(typ, addr, inner)
+	if auto {
+		p.auto(arg)
+	}
+	return arg, nil
 }
 
 func (p *parser) parseArgString(typ Type) (Arg, error) {
@@ -801,6 +838,7 @@ type parser struct {
 	target  *Target
 	strict  bool
 	vars    map[string]*ResultArg
+	autos   map[Arg]bool
 	comment string
 
 	r *bufio.Scanner
@@ -819,6 +857,41 @@ func newParser(target *Target, data []byte, strict bool) *parser {
 	}
 	p.r.Buffer(nil, maxLineLen)
 	return p
+}
+
+func (p *parser) auto(arg Arg) Arg {
+	if p.autos == nil {
+		p.autos = make(map[Arg]bool)
+	}
+	p.autos[arg] = true
+	return arg
+}
+
+func (p *parser) fixupAutos(prog *Prog) {
+	s := analyze(nil, prog, nil)
+	for _, c := range prog.Calls {
+		p.target.assignSizesArray(c.Args, p.autos)
+		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+			if !p.autos[arg] {
+				return
+			}
+			delete(p.autos, arg)
+			switch typ := arg.Type().(type) {
+			case *ConstType:
+				arg.(*ConstArg).Val = typ.Val
+				_ = s
+			case *PtrType:
+				a := arg.(*PointerArg)
+				a.Address = s.ma.alloc(nil, a.Res.Size())
+			default:
+				panic(fmt.Sprintf("unsupported auto type %T", typ))
+
+			}
+		})
+	}
+	if len(p.autos) != 0 {
+		panic(fmt.Sprintf("leftoever autos: %+v", p.autos))
+	}
 }
 
 func (p *parser) Scan() bool {
