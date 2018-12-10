@@ -21,25 +21,6 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 
 	if (mmap(data, data_size, prot, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data)
 		fail("mmap of data segment failed");
-
-	// Some minimal sandboxing.
-	// TODO: this should go into common_bsd.h because csource needs this too.
-	struct rlimit rlim;
-#if GOOS_netbsd
-	// This causes frequent random aborts on netbsd. Reason unknown.
-	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
-	setrlimit(RLIMIT_AS, &rlim);
-#endif
-	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
-	setrlimit(RLIMIT_MEMLOCK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
-	setrlimit(RLIMIT_FSIZE, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
-	setrlimit(RLIMIT_STACK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 0;
-	setrlimit(RLIMIT_CORE, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 256; // see kMaxFd
-	setrlimit(RLIMIT_NOFILE, &rlim);
 }
 
 static long execute_syscall(const call_t* c, long a[kMaxArgs])

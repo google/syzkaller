@@ -14,4 +14,5 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 func init() {
 	checkFeature[FeatureCoverage] = unconditionallyEnabled
 	checkFeature[FeatureNetworkInjection] = unconditionallyEnabled
+	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
 }
