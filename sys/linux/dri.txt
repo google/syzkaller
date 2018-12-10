@@ -139,10 +139,10 @@ drm_client {
 	auth	int32
 	pid	pid
 # pid is declared is long
-	pid_pad	int32
+	pid_pad	const[0, int32]
 	uid	uid
 # uid is declared is long
-	uid_pad	int32
+	uid_pad	const[0, int32]
 	magic	intptr
 	iocs	intptr
 }

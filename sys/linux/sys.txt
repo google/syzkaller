@@ -523,8 +523,8 @@ stat {
 	mnsec	int32
 	ctime	int32
 	cnsec	int32
-	pad1	int32
-	pad2	int32
+	pad1	const[0, int32]
+	pad2	const[0, int32]
 }
 
 statx {
@@ -743,9 +743,9 @@ siginfo {
 	signo	signalno
 	errno	int32
 	code	int32
-	pad3	int32
-# actual size is 128 bytes
-}
+} [size[SIGINFO_SIZE]]
+
+define SIGINFO_SIZE	sizeof(struct siginfo)
 
 timex {
 	stuff0	intptr

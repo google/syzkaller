@@ -421,7 +421,7 @@ v4l2_querymenu_union [
 ]
 
 v4l2_edid {
-	pad		int32
+	pad		const[0, int32]
 	start_block	int32
 	blocks		int32
 	reserved	array[const[0, int32], 5]
@@ -730,14 +730,14 @@ v4l2_decoder_cmd_start {
 
 v4l2_enum_dv_timings {
 	index		int32
-	pad		int32
+	pad		const[0, int32]
 	reserved	array[const[0, int32], 2]
 	timings		v4l2_dv_timings
 }
 
 v4l2_dv_timings_cap {
 	type		flags[v4l2_dv_timings_type, int32]
-	pad		int32
+	pad		const[0, int32]
 	reserved	array[const[0, int32], 2]
 	u		v4l2_dv_timings_cap_u
 }
@@ -827,7 +827,7 @@ v4l2_output {
 
 v4l2_subdev_format {
 	which		flags[v4l2_subdev_format_whence, int32]
-	pad		int32
+	pad		const[0, int32]
 	format		v4l2_mbus_framefmt
 	reserved	array[const[0, int32], 8]
 }
@@ -844,13 +844,13 @@ v4l2_mbus_framefmt {
 }
 
 v4l2_subdev_frame_interval {
-	pad		int32
+	pad		const[0, int32]
 	interval	v4l2_fract
 	reserved	array[const[0, int32], 9]
 }
 
 v4l2_subdev_mbus_code_enum {
-	pad		int32
+	pad		const[0, int32]
 	index		int32
 	code		flags[media_bus_fmt, int32]
 	which		flags[v4l2_subdev_format_whence, int32]
@@ -859,7 +859,7 @@ v4l2_subdev_mbus_code_enum {
 
 v4l2_subdev_frame_size_enum {
 	index		int32
-	pad		int32
+	pad		const[0, int32]
 	code		flags[media_bus_fmt, int32]
 	min_width	int32
 	max_width	int32
@@ -871,7 +871,7 @@ v4l2_subdev_frame_size_enum {
 
 v4l2_subdev_frame_interval_enum {
 	index		int32
-	pad		int32
+	pad		const[0, int32]
 	code		flags[media_bus_fmt, int32]
 	width		int32
 	height		int32
@@ -882,14 +882,14 @@ v4l2_subdev_frame_interval_enum {
 
 v4l2_subdev_crop {
 	which		flags[v4l2_subdev_format_whence, int32]
-	pad		int32
+	pad		const[0, int32]
 	rect		v4l2_rect
 	reserved	array[const[0, int32], 8]
 }
 
 v4l2_subdev_selection {
 	which		flags[v4l2_subdev_format_whence, int32]
-	pad		int32
+	pad		const[0, int32]
 	target		flags[v4l2_selection_target, int32]
 	flags		flags[v4l2_selection_flags, int32]
 	r		v4l2_rect

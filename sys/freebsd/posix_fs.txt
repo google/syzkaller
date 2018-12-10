@@ -62,8 +62,8 @@ stat {
 	mnsec	int32
 	ctime	int32
 	cnsec	int32
-	pad1	int32
-	pad2	int32
+	pad1	const[0, int32]
+	pad2	const[0, int32]
 }
 
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC

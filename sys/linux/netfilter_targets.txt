@@ -282,7 +282,7 @@ xt_set_info_v0 {
 	flags	array[int32, IPSET_DIM_MAX]
 	dim	int8
 	flags2	int8
-	pad	int16
+	pad	const[0, int16]
 }
 
 xt_set_info {

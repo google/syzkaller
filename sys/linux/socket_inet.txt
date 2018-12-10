@@ -16,8 +16,7 @@ sockaddr_in {
 	family	const[AF_INET, int16]
 	port	sock_port
 	addr	ipv4_addr
-	pad	array[const[0, int8], 8]
-}
+} [size[16]]
 
 sockaddr_storage_in {
 	addr	sockaddr_in
@@ -174,14 +173,14 @@ rt_flags = RTF_UP, RTF_GATEWAY, RTF_HOST, RTF_REINSTATE, RTF_DYNAMIC, RTF_MODIFI
 _ = SIOCSIWNWID, SIOCGIWNWID, SIOCSIWFREQ, SIOCGIWFREQ, SIOCSIWMODE, SIOCGIWMODE, SIOCSIWSENS, SIOCGIWSENS
 
 rtentry_in {
-	rt_pad1		int64
+	rt_pad1		const[0, int64]
 	rt_dst		sockaddr_in
 	rt_gateway	sockaddr_in
 	rt_genmask	sockaddr_in
 	rt_flags	flags[rt_flags, int16]
-	rt_pad2		int16
-	rt_pad3		int64
-	rt_pad4		intptr
+	rt_pad2		const[0, int16]
+	rt_pad3		const[0, int64]
+	rt_pad4		const[0, intptr]
 	rt_metric	int16
 	rt_dev		ptr[in, devname, opt]
 	rt_mtu		int64

@@ -380,7 +380,7 @@ brctl_arg_get {
 brctl_arg_add_del {
 	cmd	const[BRCTL_ADD_BRIDGE, int64]
 	devname	ptr[in, devname]
-	pad	int64
+	pad	const[0, int64]
 }
 
 brctl_arg_generic {
@@ -652,7 +652,7 @@ ethtool_flow_union [
 ]
 
 ethtool_flow_ext {
-	padding		array[int8, 2]
+	padding		const[0, int16]
 	h_dest		mac_addr
 	vlan_etype	int16be
 	vlan_tci	int16be
