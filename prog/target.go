@@ -212,7 +212,7 @@ func (g *Gen) GenerateSpecialArg(typ Type, pcalls *[]*Call) Arg {
 func (g *Gen) generateArg(typ Type, pcalls *[]*Call, ignoreSpecial bool) Arg {
 	arg, calls := g.r.generateArgImpl(g.s, typ, ignoreSpecial)
 	*pcalls = append(*pcalls, calls...)
-	g.r.target.assignSizesArray([]Arg{arg})
+	g.r.target.assignSizesArray([]Arg{arg}, nil)
 	return arg
 }
 

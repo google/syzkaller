@@ -703,3 +703,13 @@ unsupported$1(a unsupported) unsupported
 fallback$0() fd
 fallback$1(a fd)
 seccomp()
+
+# AUTO
+
+test$auto0(a const[0x42], b ptr[in, auto_struct0], c len[b], d int32)
+
+auto_struct0 {
+	f0	len[parent, int32]
+	f1	const[0x43, int32]
+	f2	int32
+}

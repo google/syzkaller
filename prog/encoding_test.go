@@ -245,6 +245,14 @@ func TestDeserialize(t *testing.T) {
 			input:  `test$excessive_fields1(0xfffffffffffffffc)`,
 			output: `test$excessive_fields1(0xffffffffffffffff)`,
 		},
+		{
+			input:  `test$auto0(AUTO, &AUTO={AUTO, AUTO, 0x1}, AUTO, 0x0)`,
+			output: `test$auto0(0x42, &(0x7f0000000040)={0xc, 0x43, 0x1}, 0xc, 0x0)`,
+		},
+		{
+			input: `test$auto0(AUTO, &AUTO={AUTO, AUTO, AUTO}, AUTO, 0x0)`,
+			err:   regexp.MustCompile(`wrong type \*prog\.IntType for AUTO`),
+		},
 	}
 	buf := make([]byte, ExecBufferSize)
 	for _, test := range tests {

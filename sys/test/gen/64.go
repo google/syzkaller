@@ -65,6 +65,11 @@ var structDescs_64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "i8", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "i32", TypeSize: 4}}},
 	}}},
+	{Key: StructKey{Name: "auto_struct0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "auto_struct0", TypeSize: 12}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f0", TypeSize: 4}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f1", TypeSize: 4}}, Val: 67},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f2", TypeSize: 4}}},
+	}}},
 	{Key: StructKey{Name: "compare_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "compare_data", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "align0"}, FldName: "align0"},
 		&StructType{Key: StructKey{Name: "syz_bf_struct0"}, FldName: "bf0"},
@@ -660,6 +665,12 @@ var syscalls_64 = []*Syscall{
 	{Name: "test$array2", CallName: "test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_array_blob"}}},
 	}},
+	{Name: "test$auto0", CallName: "test", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a", TypeSize: 8}}, Val: 66},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "b", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "auto_struct0"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "c", TypeSize: 8}}, Buf: "b"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "d", TypeSize: 4}}},
+	}},
 	{Name: "test$bf0", CallName: "test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_bf_struct0"}}},
 	}},
@@ -929,4 +940,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "82736d421a5d52db6df0775561f1e59cc6cb9014"
+const revision_64 = "ece48c7de48771745acdea340f4c52c47e058e65"

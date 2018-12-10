@@ -3,8 +3,8 @@
 # It also requires root, so will fail with setuid.
 # requires: -sandbox=namespace -sandbox=setuid
 
-r0 = openat(0xffffffffffffff9c, &(0x7f0000000000)='./file0\x00', 0x26e1, 0x0)
-ioctl$FS_IOC_FSSETXATTR(r0, 0x40086602, &(0x7f0000000100)={0x17e})
-mkdirat(0xffffffffffffff9c, &(0x7f0000000200)='./file1\x00', 0x1ff)
-r1 = openat(0xffffffffffffff9c, &(0x7f0000000300)='./file1\x00', 0x0, 0x0)
-ioctl$FS_IOC_FSSETXATTR(r1, 0x40086602, &(0x7f0000000100)={0x17e})
+r0 = openat(0xffffffffffffff9c, &AUTO='./file0\x00', 0x26e1, 0x0)
+ioctl$FS_IOC_FSSETXATTR(r0, 0x40086602, &AUTO={0x17e, 0x0, 0x0, 0x0, 0x0, 0x0})
+mkdirat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x1ff)
+r1 = openat(0xffffffffffffff9c, &AUTO='./file1\x00', 0x0, 0x0)
+ioctl$FS_IOC_FSSETXATTR(r1, 0x40086602, &AUTO={0x17e, 0x0, 0x0, 0x0, 0x0, 0x0})

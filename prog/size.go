@@ -33,7 +33,7 @@ func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
 	}
 }
 
-func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
+func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg, autos map[Arg]bool) {
 	// Create a map from field names to args.
 	argsMap := make(map[string]Arg)
 	for _, arg := range args {
@@ -44,54 +44,58 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 	}
 
 	// Fill in size arguments.
+nextArg:
 	for _, arg := range args {
 		if arg = InnerArg(arg); arg == nil {
 			continue // Pointer to optional len field, no need to fill in value.
 		}
-		if typ, ok := arg.Type().(*LenType); ok {
-			a := arg.(*ConstArg)
-
-			buf, ok := argsMap[typ.Buf]
-			if ok {
-				a.Val = target.generateSize(InnerArg(buf), typ)
-				continue
-			}
-
-			if typ.Buf == "parent" {
-				a.Val = parentsMap[arg].Size()
-				if typ.BitSize != 0 {
-					a.Val = a.Val * 8 / typ.BitSize
-				}
-				continue
-			}
-
-			sizeAssigned := false
-			for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
-				parentName := parent.Type().Name()
-				if pos := strings.IndexByte(parentName, '['); pos != -1 {
-					// For template parents, strip arguments.
-					parentName = parentName[:pos]
-				}
-				if typ.Buf == parentName {
-					a.Val = parent.Size()
-					if typ.BitSize != 0 {
-						a.Val = a.Val * 8 / typ.BitSize
-					}
-					sizeAssigned = true
-					break
-				}
-			}
-			if sizeAssigned {
-				continue
-			}
-
-			panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v",
-				typ.FieldName(), typ.Buf, argsMap))
+		typ, ok := arg.Type().(*LenType)
+		if !ok {
+			continue
 		}
+		if autos != nil {
+			if !autos[arg] {
+				continue
+			}
+			delete(autos, arg)
+		}
+		a := arg.(*ConstArg)
+
+		buf, ok := argsMap[typ.Buf]
+		if ok {
+			a.Val = target.generateSize(InnerArg(buf), typ)
+			continue
+		}
+
+		if typ.Buf == "parent" {
+			a.Val = parentsMap[arg].Size()
+			if typ.BitSize != 0 {
+				a.Val = a.Val * 8 / typ.BitSize
+			}
+			continue
+		}
+
+		for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
+			parentName := parent.Type().Name()
+			if pos := strings.IndexByte(parentName, '['); pos != -1 {
+				// For template parents, strip arguments.
+				parentName = parentName[:pos]
+			}
+			if typ.Buf != parentName {
+				continue
+			}
+			a.Val = parent.Size()
+			if typ.BitSize != 0 {
+				a.Val = a.Val * 8 / typ.BitSize
+			}
+			continue nextArg
+		}
+		panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v",
+			typ.FieldName(), typ.Buf, argsMap))
 	}
 }
 
-func (target *Target) assignSizesArray(args []Arg) {
+func (target *Target) assignSizesArray(args []Arg, autos map[Arg]bool) {
 	parentsMap := make(map[Arg]Arg)
 	for _, arg := range args {
 		ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
@@ -102,18 +106,18 @@ func (target *Target) assignSizesArray(args []Arg) {
 			}
 		})
 	}
-	target.assignSizes(args, parentsMap)
+	target.assignSizes(args, parentsMap, autos)
 	for _, arg := range args {
 		ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
 			if _, ok := arg.Type().(*StructType); ok {
-				target.assignSizes(arg.(*GroupArg).Inner, parentsMap)
+				target.assignSizes(arg.(*GroupArg).Inner, parentsMap, autos)
 			}
 		})
 	}
 }
 
 func (target *Target) assignSizesCall(c *Call) {
-	target.assignSizesArray(c.Args)
+	target.assignSizesArray(c.Args, nil)
 }
 
 func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
