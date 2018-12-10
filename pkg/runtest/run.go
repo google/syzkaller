@@ -208,11 +208,20 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 }
 
 func (ctx *Context) parseProg(filename string) (*prog.Prog, map[string]bool, *ipc.ProgInfo, error) {
-	data, err := ioutil.ReadFile(filepath.Join(ctx.Dir, filename))
+	return parseProg(ctx.Target, ctx.Dir, filename)
+}
+
+func TestParseProg(target *prog.Target, dir, filename string) error {
+	_, _, _, err := parseProg(target, dir, filename)
+	return err
+}
+
+func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[string]bool, *ipc.ProgInfo, error) {
+	data, err := ioutil.ReadFile(filepath.Join(dir, filename))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to read %v: %v", filename, err)
 	}
-	p, err := ctx.Target.Deserialize(data, prog.Strict)
+	p, err := target.Deserialize(data, prog.Strict)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to deserialize %v: %v", filename, err)
 	}
