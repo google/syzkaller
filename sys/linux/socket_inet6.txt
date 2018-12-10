@@ -125,7 +125,7 @@ in6_flowlabel_req {
 	flr_flags	flags[flr_flags, int16]
 	flr_expires	int16
 	flr_linger	int16
-	__flr_pad	int32
+	__flr_pad	const[0, int32]
 }
 
 flr_actions = IPV6_FL_A_GET, IPV6_FL_A_PUT, IPV6_FL_A_RENEW

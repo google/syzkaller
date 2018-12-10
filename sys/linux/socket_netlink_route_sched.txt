@@ -63,8 +63,8 @@ tcm_handle {
 
 type tcamsg[FAMILY] {
 	family		const[FAMILY, int8]
-	tca__pad1	int8
-	tca__pad2	int16
+	tca__pad1	const[0, int8]
+	tca__pad2	const[0, int16]
 }
 
 qdisc_policy [
@@ -293,7 +293,7 @@ tc_cbq_fopt {
 
 tc_cbs_qopt {
 	offload		int8
-	_pad		array[int8, 3]
+	_pad		array[const[0, int8], 3]
 	hicredit	int32
 	locredit	int32
 	idleslope	int32
@@ -316,7 +316,7 @@ tc_gred_sopt {
 	def_DP	int32[0:16]
 	grio	int8[0:1]
 	flags	int8[0:8]
-	pad1	int16
+	pad1	const[0, int16]
 }
 
 tc_gred_qopt {
@@ -664,7 +664,7 @@ tc_rsvp_pinfo {
 	protocol	flags[ipv4_types, int8]
 	tunnelid	int8
 	tunnelhdr	int8
-	pad		int8
+	pad		const[0, int8]
 }
 
 tc_u32_sel {
@@ -999,7 +999,7 @@ type tcf_ematch_hdr[KIND, PAYLOAD] {
 	matchid	int16
 	kind	const[KIND, int16]
 	flags	int16
-	pad	int16
+	pad	const[0, int16]
 	payload	PAYLOAD
 } [align_4]
 
