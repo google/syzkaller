@@ -116,7 +116,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}
-	sandbox := ipcconfig.FlagsToSandbox(config.Flags)
+	sandbox := ipc.FlagsToSandbox(config.Flags)
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
 	go func() {

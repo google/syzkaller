@@ -127,6 +127,32 @@ const (
 	compConstMask = 1
 )
 
+func SandboxToFlags(sandbox string) (EnvFlags, error) {
+	switch sandbox {
+	case "none":
+		return 0, nil
+	case "setuid":
+		return FlagSandboxSetuid, nil
+	case "namespace":
+		return FlagSandboxNamespace, nil
+	case "android_untrusted_app":
+		return FlagSandboxAndroidUntrustedApp, nil
+	default:
+		return 0, fmt.Errorf("sandbox must contain one of none/setuid/namespace/android_untrusted_app")
+	}
+}
+
+func FlagsToSandbox(flags EnvFlags) string {
+	if flags&FlagSandboxSetuid != 0 {
+		return "setuid"
+	} else if flags&FlagSandboxNamespace != 0 {
+		return "namespace"
+	} else if flags&FlagSandboxAndroidUntrustedApp != 0 {
+		return "android_untrusted_app"
+	}
+	return "none"
+}
+
 func MakeEnv(config *Config, pid int) (*Env, error) {
 	var inf, outf *os.File
 	var inmem, outmem []byte

@@ -26,7 +26,6 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
-	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -308,7 +307,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	if sysTarget.ExecutorUsesForkServer {
 		cfg.Flags |= ipc.FlagUseForkServer
 	}
-	sandboxFlags, err := ipcconfig.SandboxToFlags(sandbox)
+	sandboxFlags, err := ipc.SandboxToFlags(sandbox)
 	if err != nil {
 		return nil, err
 	}
