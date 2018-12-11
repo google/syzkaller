@@ -95,7 +95,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == linux {
 		return nil
 	}
-	if opts.EnableTun {
+	if opts.EnableTun && !(OS == "openbsd" || OS == "freebsd") {
 		return fmt.Errorf("EnableTun is not supported on %v", OS)
 	}
 	if opts.EnableCgroups {
@@ -107,7 +107,9 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.ResetNet {
 		return fmt.Errorf("ResetNet is not supported on %v", OS)
 	}
-	if opts.Sandbox == sandboxNamespace || opts.Sandbox == sandboxSetuid || opts.Sandbox == sandboxAndroidUntrustedApp {
+	if opts.Sandbox == sandboxNamespace ||
+		(opts.Sandbox == sandboxSetuid && !(OS == "openbsd" || OS == "freebsd")) ||
+		opts.Sandbox == sandboxAndroidUntrustedApp {
 		return fmt.Errorf("Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}
 	if opts.Fault {
