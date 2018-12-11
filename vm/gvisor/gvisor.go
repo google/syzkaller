@@ -190,7 +190,7 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 	args := []string{
 		"-root", inst.rootDir,
 		"-watchdog-action=panic",
-		"-panic-signal=12",
+		"-trace-signal=12",
 		"-network=none",
 		"-debug",
 	}
