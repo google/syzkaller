@@ -215,6 +215,9 @@ func (target *Target) BuildChoiceTable(prios [][]float32, enabled map[*Syscall]b
 	for c := range enabled {
 		enabledCalls = append(enabledCalls, c)
 	}
+	if len(enabledCalls) == 0 {
+		panic(fmt.Sprintf("empty enabledCalls, len(target.Syscalls)=%v", len(target.Syscalls)))
+	}
 	run := make([][]int, len(target.Syscalls))
 	for i := range run {
 		if !enabled[target.Syscalls[i]] {
