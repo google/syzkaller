@@ -430,21 +430,23 @@ func (ctx *context) hoistIncludes(result []byte) []byte {
 		includes[string(match)] = true
 	}
 	result = includeRe.ReplaceAll(result, nil)
-	// Linux headers are broken, so we have to move all linux includes to the bottom.
-	var sorted, sortedLinux []string
+	// Certain linux and bsd headers are broken and go to the bottom.
+	var sorted, sortedBottom []string
 	for include := range includes {
 		if strings.Contains(include, "<linux/") {
-			sortedLinux = append(sortedLinux, include)
+			sortedBottom = append(sortedBottom, include)
+		} else if strings.Contains(include, "<netinet/if_ether.h>") {
+			sortedBottom = append(sortedBottom, include)
 		} else {
 			sorted = append(sorted, include)
 		}
 	}
 	sort.Strings(sorted)
-	sort.Strings(sortedLinux)
+	sort.Strings(sortedBottom)
 	newResult := append([]byte{}, result[:includesStart]...)
 	newResult = append(newResult, strings.Join(sorted, "")...)
 	newResult = append(newResult, '\n')
-	newResult = append(newResult, strings.Join(sortedLinux, "")...)
+	newResult = append(newResult, strings.Join(sortedBottom, "")...)
 	newResult = append(newResult, result[includesStart:]...)
 	return newResult
 }

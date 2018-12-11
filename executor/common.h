@@ -40,7 +40,8 @@ NORETURN void doexit(int status)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS || \
-    __NR_syz_mount_image || __NR_syz_read_part_table
+    __NR_syz_mount_image || __NR_syz_read_part_table ||              \
+    (GOOS_openbsd || GOOS_freebsd) && SYZ_TUN_ENABLE
 unsigned long long procid;
 #endif
 

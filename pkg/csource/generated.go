@@ -34,7 +34,8 @@ NORETURN void doexit(int status)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS || \
-    __NR_syz_mount_image || __NR_syz_read_part_table
+    __NR_syz_mount_image || __NR_syz_read_part_table ||              \
+    (GOOS_openbsd || GOOS_freebsd) && SYZ_TUN_ENABLE
 unsigned long long procid;
 #endif
 
@@ -664,7 +665,9 @@ static void sandbox_common()
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+
 static void loop();
+
 static int do_sandbox_none(void)
 {
 	sandbox_common();
@@ -681,6 +684,8 @@ static int do_sandbox_none(void)
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+static void loop();
 
 static int wait_for_loop(int pid)
 {
