@@ -211,7 +211,8 @@ struct tcp_resources {
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 
-// Include order matters, empty line prevent re-sorting.
+// Include order matters, empty line prevent re-sorting. See a workaround in
+// pkg/csource hoistIncludes.
 #include <netinet/if_ether.h>
 
 static long syz_extract_tcp_res(long a0, long a1, long a2)
@@ -299,7 +300,9 @@ static void sandbox_common()
 #endif //  SYZ_EXECUTOR || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NONE
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
+
 static void loop();
+
 static int do_sandbox_none(void)
 {
 	sandbox_common();
@@ -316,6 +319,8 @@ static int do_sandbox_none(void)
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+static void loop();
 
 static int wait_for_loop(int pid)
 {
