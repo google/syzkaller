@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/resource.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -422,6 +423,11 @@ int main(int argc, char** argv)
 
 void setup_control_pipes()
 {
+	// Makes sure the file descriptor limit is sufficient.
+	struct rlimit rlim;
+	rlim.rlim_cur = rlim.rlim_max = kMaxFd;
+	setrlimit(RLIMIT_NOFILE, &rlim);
+
 	if (dup2(0, kInPipeFd) < 0)
 		fail("dup2(0, kInPipeFd) failed");
 	if (dup2(1, kOutPipeFd) < 0)
