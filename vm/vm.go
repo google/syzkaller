@@ -276,6 +276,8 @@ func (mon *monitor) waitForOutput() {
 			mon.output = append(mon.output, out...)
 		case <-timer.C:
 			return
+		case <-Shutdown:
+			return
 		}
 	}
 }
