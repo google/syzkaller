@@ -312,7 +312,6 @@ func (inst *instance) guestProxy() (*os.File, error) {
 	guestSock := os.NewFile(uintptr(socks[1]), "guest unix proxy")
 	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%v", inst.port))
 	if err != nil {
-		conn.Close()
 		hostSock.Close()
 		guestSock.Close()
 		return nil, err
