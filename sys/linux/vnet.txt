@@ -1359,6 +1359,11 @@ mpls_payload [
 # http://tipc.sourceforge.net/protocol.html
 # http://tipc.sourceforge.net/protocol.html#anchor50
 
+# TODO: describe more TIPC packets, the current description is far from being complete.
+# But first we need to ensure that syzkaller manages to enable TIPC receiving,
+# because currently it always crashes kernel earlier.
+# Also, do we need to nest TIPC packets in UDP for UDP media?
+
 include <uapi/linux/tipc.h>
 include <net/tipc/msg.h>
 
