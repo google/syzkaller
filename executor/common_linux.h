@@ -1658,7 +1658,8 @@ static int namespace_sandbox_proc(void* arg)
 	// We setup tun here as it needs to be in the test net namespace,
 	// which in turn needs to be in the test user namespace.
 	// However, IFF_NAPI_FRAGS will fail as we are not root already.
-	// There does not seem to be a call sequence that would satisfy all of that.
+	// TODO: we should create tun in the init net namespace and use setns
+	// to move it to the target namespace.
 	initialize_tun();
 #endif
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
