@@ -48,7 +48,7 @@ so that there is agreement on high level approach and no duplication of work bet
 cd $GOPATH/src/github.com/google/syzkaller
 git remote add my-origin https://github.com/YOUR_GITHUB_USERNAME/syzkaller.git
 git fetch my-origin
-git checkout -b my-branch master
+git checkout -b my-branch my-origin/master
 ```
 
 This adds git origin `my-origin` with your repository and checks out new branch `my-branch` based on `master` branch.
