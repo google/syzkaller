@@ -82,8 +82,11 @@ func CompilerIdentity(compiler string) (string, error) {
 	if compiler == "" {
 		return "", nil
 	}
+
+	bazel := strings.HasSuffix(compiler, "bazel")
+
 	arg := "--version"
-	if strings.HasSuffix(compiler, "bazel") {
+	if bazel {
 		arg = ""
 	}
 	output, err := osutil.RunCmd(time.Minute, "", compiler, arg)
@@ -91,9 +94,19 @@ func CompilerIdentity(compiler string) (string, error) {
 		return "", err
 	}
 	for _, line := range strings.Split(string(output), "\n") {
-		if strings.Contains(line, "Extracting Bazel") {
-			continue
+		if bazel {
+			// Strip extracting and log lines...
+			if strings.Contains(line, "Extracting Bazel") {
+				continue
+			}
+			if strings.HasPrefix(line, "INFO: ") {
+				continue
+			}
+			if strings.HasPrefix(line, "WARNING: ") {
+				continue
+			}
 		}
+
 		return strings.TrimSpace(line), nil
 	}
 	return "", fmt.Errorf("no output from compiler --version")
