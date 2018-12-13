@@ -22,6 +22,7 @@ func ctorGvisor(target *targets.Target, kernelSrc, kernelObj string,
 	suppressions := []string{
 		"fatal error: runtime: out of memory",
 		"fatal error: runtime: cannot allocate memory",
+		"fatal error: newosproc",
 		"panic: ptrace sysemu failed: no such process",       // OOM kill
 		`panic: ptrace set fpregs.* failed: no such process`, // OOM kill
 		`panic: ptrace set regs.* failed: no such process`,   // OOM kill
