@@ -22,9 +22,9 @@ func ctorGvisor(target *targets.Target, kernelSrc, kernelObj string,
 	suppressions := []string{
 		"fatal error: runtime: out of memory",
 		"fatal error: runtime: cannot allocate memory",
-		"panic: ptrace sysemu failed: no such process",               // OOM kill
-		`panic: ptrace set fpregs \(&{.*}\) failed: no such process`, // OOM kill
-		`panic: ptrace set regs \(&{.*}\) failed: no such process`,   // OOM kill
+		"panic: ptrace sysemu failed: no such process",            // OOM kill
+		`panic: ptrace set fpregs \(.*\) failed: no such process`, // OOM kill
+		`panic: ptrace set regs \(.*\) failed: no such process`,   // OOM kill
 		"panic: failed to start executor binary",
 		"panic: executor failed: pthread_create failed",
 		"panic: error mapping run data: error mapping runData: cannot allocate memory",
