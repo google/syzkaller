@@ -101,7 +101,7 @@ $ make -C compile/SYZKALLER
 5. Optionally, library ASLR can be disabled in order to improve boot time:
 
    ```sh
-   $ echo library_aslr=NO | ssh "root@100.64.${VMID}.3" 'cat >/etc/rc.conf.local'
+   $ ssh "root@100.64.${VMID}.3" 'echo library_aslr=NO >>/etc/rc.conf.local'
    ```
 
 6. Finally, stop the VM:
