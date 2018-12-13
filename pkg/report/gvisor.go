@@ -25,6 +25,7 @@ func ctorGvisor(target *targets.Target, kernelSrc, kernelObj string,
 		"panic: ptrace sysemu failed: no such process",       // OOM kill
 		`panic: ptrace set fpregs.* failed: no such process`, // OOM kill
 		`panic: ptrace set regs.* failed: no such process`,   // OOM kill
+		"panic: error initializing first thread: resource temporarily unavailable",
 		"panic: failed to start executor binary",
 		"panic: executor failed: pthread_create failed",
 		"panic: error mapping run data: error mapping runData: cannot allocate memory",
