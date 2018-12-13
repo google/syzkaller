@@ -1,0 +1,6 @@
+TITLE: FATAL ERROR: error waiting on pid X: error waiting on pid X in sandbox NAME failed: EOF
+
+realtimeBaseRef:1544699224504125426 realtimeFrequency:2299799213}
+W1213 11:07:04.977281   44558 x:0] FATAL ERROR: error waiting on pid 16: error waiting on PID 16 in sandbox "ci-gvisor-kvm-direct-overlay-host-race-0": urpc method "containerManager.WaitPID" failed: EOF
+error waiting on pid 16: error waiting on PID 16 in sandbox "ci-gvisor-kvm-direct-overlay-host-race-0": urpc method "containerManager.WaitPID" failed: EOF
+W1213 11:07:04.984229   32293 x:0] Wait RPC to container "ci-gvisor-kvm-direct-overlay-host-race-0" failed: urpc method "containerManager.Wait" failed: EOF. Will try waiting on the sandbox process instead.

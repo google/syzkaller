@@ -84,6 +84,14 @@ var gvisorTitleReplacement = []replacement{
 		regexp.MustCompile(`container ".*"`),
 		"container NAME",
 	},
+	{
+		regexp.MustCompile(`sandbox ".*"`),
+		"sandbox NAME",
+	},
+	{
+		regexp.MustCompile(`(pid|PID) [0-9]+`),
+		"pid X",
+	},
 }
 
 var gvisorOopses = []*oops{
