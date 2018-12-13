@@ -23,9 +23,9 @@ func ctorGvisor(target *targets.Target, kernelSrc, kernelObj string,
 		"fatal error: runtime: out of memory",
 		"fatal error: runtime: cannot allocate memory",
 		"fatal error: newosproc",
-		"panic: ptrace sysemu failed: no such process",       // OOM kill
-		`panic: ptrace set fpregs.* failed: no such process`, // OOM kill
-		`panic: ptrace set regs.* failed: no such process`,   // OOM kill
+		"panic: ptrace sysemu failed: no such process",           // OOM kill
+		`panic: ptrace (s|g)et fpregs.* failed: no such process`, // OOM kill
+		`panic: ptrace (s|g)et regs.* failed: no such process`,   // OOM kill
 		"panic: error initializing first thread: resource temporarily unavailable",
 		"panic: failed to start executor binary",
 		"panic: executor failed: pthread_create failed",

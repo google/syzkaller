@@ -1,0 +1,16 @@
+TITLE: panic: ptrace get fpregs failed: no such process
+SUPPRESSED: Y
+
+panic: ptrace get fpregs failed: no such process
+
+goroutine 568 [running]:
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*subprocess).switchToApp(0xc0004b4540, 0xc000676840, 0xd12c20, 0xc000702900, 0xc000cd5e00)
+        pkg/sentry/platform/ptrace/subprocess.go:517 +0x719
+gvisor.googlesource.com/gvisor/pkg/sentry/platform/ptrace.(*context).Switch(0xc000676840, 0xd09240, 0xc0004b4540, 0xd12c20, 0xc000702900, 0x7fd3ffffffff, 0x0, 0x0, 0x0, 0x0)
+        pkg/sentry/platform/ptrace/ptrace.go:102 +0x74
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*runApp).execute(0x0, 0xc0007fe000, 0xcfca00, 0x0)
+        pkg/sentry/kernel/task_run.go:209 +0x348
+gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).run(0xc0007fe000, 0x5f)
+        pkg/sentry/kernel/task_run.go:95 +0x163
+created by gvisor.googlesource.com/gvisor/pkg/sentry/kernel.(*Task).Start
+        pkg/sentry/kernel/task_start.go:279 +0xfe
