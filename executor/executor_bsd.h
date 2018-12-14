@@ -21,6 +21,11 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 
 	if (mmap(data, data_size, prot, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data)
 		fail("mmap of data segment failed");
+
+	// Makes sure the file descriptor limit is sufficient to map control pipes.
+	struct rlimit rlim;
+	rlim.rlim_cur = rlim.rlim_max = kMaxFd;
+	setrlimit(RLIMIT_NOFILE, &rlim);
 }
 
 static long execute_syscall(const call_t* c, long a[kMaxArgs])
