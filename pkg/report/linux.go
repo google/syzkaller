@@ -362,7 +362,13 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 			funcStart = s.Addr
 		}
 	}
-	frames, err := symbFunc(vmlinux, funcStart+off-1)
+	pc := funcStart + off
+	if !bytes.HasPrefix(line, []byte("IP:")) && !bytes.HasPrefix(line, []byte("RIP:")) {
+		// Usually we have return PCs, so we need to look at the previous instruction.
+		// But RIP lines contain the exact faulting PC.
+		pc--
+	}
+	frames, err := symbFunc(vmlinux, pc)
 	if err != nil || len(frames) == 0 {
 		return line
 	}

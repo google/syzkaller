@@ -81,7 +81,7 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 		},
 		{
 			"RIP: 0010:[<ffffffff8188c0e6>]  [<ffffffff8188c0e6>]  foo+0x101/0x185\n",
-			"RIP: 0010:[<ffffffff8188c0e6>]  [<ffffffff8188c0e6>]  foo+0x101/0x185 foo.c:555\n",
+			"RIP: 0010:[<ffffffff8188c0e6>]  [<ffffffff8188c0e6>]  foo+0x101/0x185 foo.c:550\n",
 		},
 		// Strip "./" file prefix.
 		{
@@ -159,6 +159,13 @@ func TestLinuxSymbolizeLine(t *testing.T) {
 				{
 					File: "/linux/foo.c",
 					Line: 555,
+				},
+			}, nil
+		case 0x1000101:
+			return []symbolizer.Frame{
+				{
+					File: "/linux/foo.c",
+					Line: 550,
 				},
 			}, nil
 		case 0x1000110:
