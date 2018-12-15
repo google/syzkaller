@@ -35,6 +35,8 @@ const (
 	execArgResult
 	execArgData
 	execArgCsum
+
+	execArgDataReadable = uint64(1 << 63)
 )
 
 const (
@@ -255,8 +257,15 @@ func (w *execContext) writeArg(arg Arg) {
 		w.writeConstArg(a.Size(), w.target.PhysicalAddr(a), 0, 0, 0, FormatNative)
 	case *DataArg:
 		data := a.Data()
+		if len(data) == 0 {
+			return
+		}
 		w.write(execArgData)
-		w.write(uint64(len(data)))
+		flags := uint64(len(data))
+		if isReadableDataType(a.Type().(*BufferType)) {
+			flags |= execArgDataReadable
+		}
+		w.write(flags)
 		padded := len(data)
 		if pad := 8 - len(data)%8; pad != 8 {
 			padded += pad

@@ -102,19 +102,20 @@ func (a *PointerArg) serialize(ctx *serializer) {
 }
 
 func (a *DataArg) serialize(ctx *serializer) {
-	if a.Type().Dir() == DirOut {
+	typ := a.Type().(*BufferType)
+	if typ.Dir() == DirOut {
 		ctx.printf("\"\"/%v", a.Size())
 		return
 	}
 	data := a.Data()
-	if !a.Type().Varlen() {
+	if !typ.Varlen() {
 		// Statically typed data will be padded with 0s during
 		// deserialization, so we can strip them here for readability.
 		for len(data) >= 2 && data[len(data)-1] == 0 && data[len(data)-2] == 0 {
 			data = data[:len(data)-1]
 		}
 	}
-	serializeData(ctx.buf, data)
+	serializeData(ctx.buf, data, isReadableDataType(typ))
 }
 
 func (a *GroupArg) serialize(ctx *serializer) {
@@ -726,28 +727,31 @@ func (p *parser) parseAddr() (uint64, uint64, error) {
 	return addr, vmaSize, nil
 }
 
-func serializeData(buf *bytes.Buffer, data []byte) {
-	readable := true
-	for _, v := range data {
-		if v >= 0x20 && v < 0x7f {
-			continue
-		}
-		switch v {
-		case 0, '\a', '\b', '\f', '\n', '\r', '\t', '\v':
-			continue
-		}
-		readable = false
-		break
-	}
-	if !readable || len(data) == 0 {
+func serializeData(buf *bytes.Buffer, data []byte, readable bool) {
+	if !readable && !isReadableData(data) {
 		fmt.Fprintf(buf, "\"%v\"", hex.EncodeToString(data))
 		return
 	}
 	buf.WriteByte('\'')
+	encodeData(buf, data, true)
+	buf.WriteByte('\'')
+}
+
+func EncodeData(buf *bytes.Buffer, data []byte, readable bool) {
+	if !readable && isReadableData(data) {
+		readable = true
+	}
+	encodeData(buf, data, readable)
+}
+
+func encodeData(buf *bytes.Buffer, data []byte, readable bool) {
 	for _, v := range data {
+		if !readable {
+			lo, hi := byteToHex(v)
+			buf.Write([]byte{'\\', 'x', hi, lo})
+			continue
+		}
 		switch v {
-		case 0:
-			buf.Write([]byte{'\\', 'x', '0', '0'})
 		case '\a':
 			buf.Write([]byte{'\\', 'a'})
 		case '\b':
@@ -764,13 +768,40 @@ func serializeData(buf *bytes.Buffer, data []byte) {
 			buf.Write([]byte{'\\', 'v'})
 		case '\'':
 			buf.Write([]byte{'\\', '\''})
+		case '"':
+			buf.Write([]byte{'\\', '"'})
 		case '\\':
 			buf.Write([]byte{'\\', '\\'})
 		default:
-			buf.WriteByte(v)
+			if isPrintable(v) {
+				buf.WriteByte(v)
+			} else {
+				lo, hi := byteToHex(v)
+				buf.Write([]byte{'\\', 'x', hi, lo})
+			}
 		}
 	}
-	buf.WriteByte('\'')
+}
+
+func isReadableDataType(typ *BufferType) bool {
+	return typ.Kind == BufferString || typ.Kind == BufferFilename
+}
+
+func isReadableData(data []byte) bool {
+	if len(data) == 0 {
+		return false
+	}
+	for _, v := range data {
+		if isPrintable(v) {
+			continue
+		}
+		switch v {
+		case 0, '\a', '\b', '\f', '\n', '\r', '\t', '\v':
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func (p *parser) deserializeData() ([]byte, error) {
@@ -802,11 +833,7 @@ func (p *parser) deserializeData() ([]byte, error) {
 			case 'x':
 				hi := p.consume()
 				lo := p.consume()
-				if lo != '0' || hi != '0' {
-					return nil, fmt.Errorf(
-						"invalid \\x%c%c escape sequence in data arg", hi, lo)
-				}
-				data = append(data, 0)
+				data = append(data, hexToByte(lo, hi))
 			case 'a':
 				data = append(data, '\a')
 			case 'b':
@@ -823,6 +850,8 @@ func (p *parser) deserializeData() ([]byte, error) {
 				data = append(data, '\v')
 			case '\'':
 				data = append(data, '\'')
+			case '"':
+				data = append(data, '"')
 			case '\\':
 				data = append(data, '\\')
 			default:
@@ -832,6 +861,38 @@ func (p *parser) deserializeData() ([]byte, error) {
 		p.Parse('\'')
 	}
 	return data, nil
+}
+
+func isPrintable(v byte) bool {
+	return v >= 0x20 && v < 0x7f
+}
+
+func byteToHex(v byte) (lo, hi byte) {
+	return toHexChar(v & 0xf), toHexChar(v >> 4)
+}
+
+func hexToByte(lo, hi byte) byte {
+	return fromHexChar(hi)<<4 + fromHexChar(lo)
+}
+
+func toHexChar(v byte) byte {
+	if v >= 16 {
+		panic("bad hex char")
+	}
+	if v < 10 {
+		return '0' + v
+	}
+	return 'a' + v - 10
+}
+
+func fromHexChar(v byte) byte {
+	if v >= '0' && v <= '9' {
+		return v - '0'
+	}
+	if v >= 'a' && v <= 'f' {
+		return v - 'a' + 10
+	}
+	panic("bad hex char")
 }
 
 type parser struct {

@@ -52,7 +52,8 @@ type ExecArgResult struct {
 }
 
 type ExecArgData struct {
-	Data []byte
+	Data     []byte
+	Readable bool
 }
 
 type ExecArgCsum struct {
@@ -161,8 +162,12 @@ func (dec *execDecoder) readArg() ExecArg {
 		dec.vars[arg.Index] = arg.Default
 		return arg
 	case execArgData:
+		flags := dec.read()
+		size := flags & ^execArgDataReadable
+		readable := flags&execArgDataReadable != 0
 		return ExecArgData{
-			Data: dec.readBlob(dec.read()),
+			Data:     dec.readBlob(size),
+			Readable: readable,
 		}
 	case execArgCsum:
 		size := dec.read()
