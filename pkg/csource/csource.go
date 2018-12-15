@@ -299,7 +299,7 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 		ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.resultArgToStr(arg), arg.Format)
 	case prog.ExecArgData:
 		fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n",
-			copyin.Addr, toCString(arg.Data), len(arg.Data))
+			copyin.Addr, toCString(arg.Data, arg.Readable), len(arg.Data))
 	case prog.ExecArgCsum:
 		switch arg.Kind {
 		case prog.ExecArgCsumInet:
@@ -464,59 +464,11 @@ func (ctx *context) removeEmptyLines(result []byte) []byte {
 	}
 }
 
-func toCString(data []byte) []byte {
+func toCString(data []byte, readable bool) []byte {
 	if len(data) == 0 {
-		return nil
-	}
-	readable := true
-	for i, v := range data {
-		// Allow 0 only as last byte.
-		if !isReadable(v) && (i != len(data)-1 || v != 0) {
-			readable = false
-			break
-		}
-	}
-	if !readable {
-		buf := new(bytes.Buffer)
-		for _, v := range data {
-			buf.Write([]byte{'\\', 'x', toHex(v >> 4), toHex(v << 4 >> 4)})
-		}
-		return buf.Bytes()
-	}
-	if data[len(data)-1] == 0 {
-		// Don't serialize last 0, C strings are 0-terminated anyway.
-		data = data[:len(data)-1]
+		panic("empty data arg")
 	}
 	buf := new(bytes.Buffer)
-	for _, v := range data {
-		switch v {
-		case '\t':
-			buf.Write([]byte{'\\', 't'})
-		case '\r':
-			buf.Write([]byte{'\\', 'r'})
-		case '\n':
-			buf.Write([]byte{'\\', 'n'})
-		case '\\':
-			buf.Write([]byte{'\\', '\\'})
-		case '"':
-			buf.Write([]byte{'\\', '"'})
-		default:
-			if v < 0x20 || v >= 0x7f {
-				panic("unexpected char during data serialization")
-			}
-			buf.WriteByte(v)
-		}
-	}
+	prog.EncodeData(buf, data, readable)
 	return buf.Bytes()
-}
-
-func isReadable(v byte) bool {
-	return v >= 0x20 && v < 0x7f || v == '\t' || v == '\r' || v == '\n'
-}
-
-func toHex(v byte) byte {
-	if v < 10 {
-		return '0' + v
-	}
-	return 'a' + v - 10
 }

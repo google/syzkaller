@@ -3,7 +3,7 @@
 
 syz_mmap(addr vma, len len[addr])
 syz_errno(v int32)
-syz_compare(want ptr[in, string], want_len len[want], got ptr[in, compare_data], got_len len[got])
+syz_compare(want ptr[in, string], want_len bytesize[want], got ptr[in, compare_data], got_len bytesize[got])
 
 compare_data [
 	align0	align0
@@ -11,6 +11,9 @@ compare_data [
 	bf1	syz_bf_struct1
 	bf2	syz_bf_struct2
 	bf3	syz_bf_struct3
+	str	string
+	blob	array[int8]
+	arr16be	array[int16be]
 ] [varlen]
 
 align0 {

@@ -585,6 +585,7 @@ retry:
 			}
 			case arg_data: {
 				uint64 size = read_input(&input_pos);
+				size &= ~(1ull << 63); // readable flag
 				NONFAILING(memcpy(addr, input_pos, size));
 				// Read out the data.
 				for (uint64 i = 0; i < (size + 7) / 8; i++)

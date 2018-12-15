@@ -28,23 +28,25 @@ func setToArray(s map[string]struct{}) []string {
 func TestSerializeData(t *testing.T) {
 	t.Parallel()
 	r := rand.New(rand.NewSource(0))
-	for i := 0; i < 1e4; i++ {
-		data := make([]byte, r.Intn(4))
-		for i := range data {
-			data[i] = byte(r.Intn(256))
-		}
-		buf := new(bytes.Buffer)
-		serializeData(buf, data)
-		p := newParser(nil, buf.Bytes(), true)
-		if !p.Scan() {
-			t.Fatalf("parser does not scan")
-		}
-		data1, err := p.deserializeData()
-		if err != nil {
-			t.Fatalf("failed to deserialize %q -> %s: %v", data, buf.Bytes(), err)
-		}
-		if !bytes.Equal(data, data1) {
-			t.Fatalf("corrupted data %q -> %s -> %q", data, buf.Bytes(), data1)
+	for _, readable := range []bool{false, true} {
+		for i := 0; i < 1e3; i++ {
+			data := make([]byte, r.Intn(4))
+			for i := range data {
+				data[i] = byte(r.Intn(256))
+			}
+			buf := new(bytes.Buffer)
+			serializeData(buf, data, readable)
+			p := newParser(nil, buf.Bytes(), true)
+			if !p.Scan() {
+				t.Fatalf("parser does not scan")
+			}
+			data1, err := p.deserializeData()
+			if err != nil {
+				t.Fatalf("failed to deserialize %q -> %s: %v", data, buf.Bytes(), err)
+			}
+			if !bytes.Equal(data, data1) {
+				t.Fatalf("corrupted data %q -> %s -> %q", data, buf.Bytes(), data1)
+			}
 		}
 	}
 }
@@ -252,6 +254,18 @@ func TestDeserialize(t *testing.T) {
 		{
 			input: `test$auto0(AUTO, &AUTO={AUTO, AUTO, AUTO}, AUTO, 0x0)`,
 			err:   regexp.MustCompile(`wrong type \*prog\.IntType for AUTO`),
+		},
+		{
+			input:  `test$str0(&AUTO="303100090a0d7022273a")`,
+			output: `test$str0(&(0x7f0000000040)='01\x00\t\n\rp\"\':')`,
+		},
+		{
+			input:  `test$blob0(&AUTO="303100090a0d7022273a")`,
+			output: `test$blob0(&(0x7f0000000040)='01\x00\t\n\rp\"\':')`,
+		},
+		{
+			input:  `test$blob0(&AUTO="3031000a0d7022273a01")`,
+			output: `test$blob0(&(0x7f0000000040)="3031000a0d7022273a01")`,
 		},
 	}
 	buf := make([]byte, ExecBufferSize)
