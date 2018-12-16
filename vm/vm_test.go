@@ -107,11 +107,16 @@ var tests = []*Test{
 		Body: func(outc chan []byte, errc chan error) {
 			errc <- nil
 		},
+	},
+	{
+		Name: "#875-diagnose-bugs-2",
+		Body: func(outc chan []byte, errc chan error) {
+			errc <- nil
+		},
 		Report: &report.Report{
-			Title: "BUG: DIAGNOSE",
-			// TODO: this is wrong.
-			Report: []byte(
-				"BUG: DIAGNOSE\n",
+			Title: lostConnectionCrash,
+			Output: []byte(
+				"DIAGNOSE\n",
 			),
 		},
 	},
@@ -148,10 +153,9 @@ var tests = []*Test{
 		},
 		Report: &report.Report{
 			Title: "BUG: bad",
-			// TODO: this is wrong.
 			Report: []byte(
-				"DIAGNOSE\n" +
-					"BUG: bad\n",
+				"BUG: bad\n" +
+					"DIAGNOSE\n",
 			),
 		},
 	},
@@ -297,5 +301,8 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	}
 	if !bytes.Equal(test.Report.Report, rep.Report) {
 		t.Fatalf("want report:\n%s\n\ngot report:\n%s\n", test.Report.Report, rep.Report)
+	}
+	if test.Report.Output != nil && !bytes.Equal(test.Report.Output, rep.Output) {
+		t.Fatalf("want output:\n%s\n\ngot output:\n%s\n", test.Report.Output, rep.Output)
 	}
 }
