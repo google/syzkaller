@@ -6,7 +6,6 @@
 package instance
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -201,24 +200,23 @@ func (inst *inst) test() error {
 		}
 		if bootErr, ok := err.(vm.BootErrorer); ok {
 			testErr.Title, testErr.Output = bootErr.BootError()
-			// This linux-ism avoids detecting any crash during boot as "unexpected kernel reboot".
-			output := testErr.Output
-			if pos := bytes.Index(output, []byte("Booting the kernel.")); pos != -1 {
-				output = output[pos+1:]
+			rep := inst.reporter.Parse(testErr.Output)
+			if rep != nil && rep.Title == report.UnexpectedKernelReboot {
+				// Avoid detecting any boot crash as "unexpected kernel reboot".
+				rep = inst.reporter.Parse(testErr.Output[rep.EndPos:])
 			}
-			testErr.Report = inst.reporter.Parse(output)
-			if testErr.Report != nil {
-				testErr.Title = testErr.Report.Title
-			} else {
-				testErr.Report = &report.Report{
+			if rep == nil {
+				rep = &report.Report{
 					Title:  testErr.Title,
 					Output: testErr.Output,
 				}
 			}
-			if err := inst.reporter.Symbolize(testErr.Report); err != nil {
+			if err := inst.reporter.Symbolize(rep); err != nil {
 				// TODO(dvyukov): send such errors to dashboard.
 				log.Logf(0, "failed to symbolize report: %v", err)
 			}
+			testErr.Report = rep
+			testErr.Title = rep.Title
 		}
 		return testErr
 	}

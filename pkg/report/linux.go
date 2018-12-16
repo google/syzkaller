@@ -1328,7 +1328,7 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				title:        compile("Booting the kernel."),
-				fmt:          "unexpected kernel reboot",
+				fmt:          UnexpectedKernelReboot,
 				noStackTrace: true,
 			},
 		},
