@@ -81,6 +81,8 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 	return &reporterWrapper{rep, supps, typ}, nil
 }
 
+const UnexpectedKernelReboot = "unexpected kernel reboot"
+
 var ctors = map[string]fn{
 	"akaros":  ctorAkaros,
 	"linux":   ctorLinux,
