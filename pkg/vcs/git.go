@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -87,11 +88,18 @@ func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
 			return nil, err
 		}
 	}
-	_, err := runSandboxed(dir, "git", "fetch", repo)
-	if err != nil {
+	if err := git.fetchRemote(repo); err != nil {
 		return nil, err
 	}
 	return git.SwitchCommit(commit)
+}
+
+func (git *git) fetchRemote(repo string) error {
+	repoHash := hash.String([]byte(repo))
+	// Ignore error as we can double add the same remote and that will fail.
+	runSandboxed(git.dir, "git", "remote", "add", repoHash, repo)
+	_, err := runSandboxed(git.dir, "git", "fetch", repoHash)
+	return err
 }
 
 func (git *git) SwitchCommit(commit string) (*Commit, error) {
