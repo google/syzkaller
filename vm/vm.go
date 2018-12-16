@@ -230,10 +230,13 @@ type monitor struct {
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
+	crashed := defaultError != "" || !mon.canExit
+	if crashed {
+		mon.inst.Diagnose()
+	}
 	// Give it some time to finish writing the error message.
-	mon.inst.Diagnose()
 	mon.waitForOutput()
-	if bytes.Contains(mon.output, []byte(fuzzerPreemptedStr)) {
+	if bytes.Contains(mon.output, []byte("SYZ-FUZZER: PREEMPTED")) {
 		return nil
 	}
 	if !mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
@@ -249,6 +252,9 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 			Suppressed: report.IsSuppressed(mon.reporter, mon.output),
 		}
 		return rep
+	}
+	if !crashed && mon.inst.Diagnose() {
+		mon.waitForOutput()
 	}
 	rep := mon.reporter.Parse(mon.output[mon.matchPos:])
 	if rep == nil {
