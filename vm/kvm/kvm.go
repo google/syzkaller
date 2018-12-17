@@ -241,7 +241,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if err := osutil.WriteExecFile(tmpFile, []byte(command)); err != nil {
 		return nil, nil, err
 	}
-	if err := os.Rename(tmpFile, cmdFile); err != nil {
+	if err := osutil.Rename(tmpFile, cmdFile); err != nil {
 		return nil, nil, err
 	}
 

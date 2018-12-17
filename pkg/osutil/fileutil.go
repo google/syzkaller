@@ -40,6 +40,16 @@ func CopyFile(oldFile, newFile string) error {
 	return os.Rename(tmpFile, newFile)
 }
 
+// Rename is similar to os.Rename but handles cross-device renaming (by copying).
+func Rename(oldFile, newFile string) error {
+	err := os.Rename(oldFile, newFile)
+	if err != nil {
+		// Can't use syscall.EXDEV because this is used in appengine app.
+		return CopyFile(oldFile, newFile)
+	}
+	return err
+}
+
 // WriteTempFile writes data to a temp file and returns its name.
 func WriteTempFile(data []byte) (string, error) {
 	// Note: pkg/report knows about "syzkaller" prefix as it appears in crashes as process name.

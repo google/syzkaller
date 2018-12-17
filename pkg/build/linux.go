@@ -71,7 +71,7 @@ func (linux) buildKernel(kernelDir, outputDir, compiler string, config []byte) e
 	}
 	vmlinux := filepath.Join(kernelDir, "vmlinux")
 	outputVmlinux := filepath.Join(outputDir, "obj", "vmlinux")
-	if err := os.Rename(vmlinux, outputVmlinux); err != nil {
+	if err := osutil.Rename(vmlinux, outputVmlinux); err != nil {
 		return fmt.Errorf("failed to rename vmlinux: %v", err)
 	}
 	return nil
