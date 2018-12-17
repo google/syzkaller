@@ -237,6 +237,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 		return nil, err
 	}
 
+	kernelRepo := kernelRepoInfo(build)
 	rep := &dashapi.BugReport{
 		Namespace:         bug.Namespace,
 		Config:            reportingConfig,
@@ -248,13 +249,13 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 		LogLink:           externalLink(c, textCrashLog, crash.Log),
 		Report:            report,
 		ReportLink:        externalLink(c, textCrashReport, crash.Report),
-		Maintainers:       crash.Maintainers,
+		Maintainers:       append(crash.Maintainers, kernelRepo.CC...),
 		OS:                build.OS,
 		Arch:              build.Arch,
 		VMArch:            build.VMArch,
 		CompilerID:        build.CompilerID,
 		KernelRepo:        build.KernelRepo,
-		KernelRepoAlias:   kernelRepoInfo(build).Alias,
+		KernelRepoAlias:   kernelRepo.Alias,
 		KernelBranch:      build.KernelBranch,
 		KernelCommit:      build.KernelCommit,
 		KernelCommitTitle: build.KernelCommitTitle,

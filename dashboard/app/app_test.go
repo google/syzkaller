@@ -160,6 +160,7 @@ var testConfig = &GlobalConfig{
 	KernelRepos: map[string]KernelRepo{
 		"repo10/branch10": {
 			Alias: "repo10alias",
+			CC:    []string{"maintainers@repo10.org", "bugs@repo10.org"},
 		},
 	},
 }
