@@ -64,6 +64,9 @@ type buildEnv struct {
 }
 
 func Run(cfg *Config) (*vcs.Commit, error) {
+	if err := checkConfig(cfg); err != nil {
+		return nil, err
+	}
 	repo, err := vcs.NewRepo(cfg.Manager.TargetOS, cfg.Manager.Type, cfg.Manager.KernelSrc)
 	if err != nil {
 		return nil, err
@@ -337,7 +340,24 @@ func (env *env) saveDebugFile(hash string, idx int, data []byte) {
 	if env.cfg.DebugDir == "" || len(data) == 0 {
 		return
 	}
+	osutil.MkdirAll(env.cfg.DebugDir)
 	osutil.WriteFile(filepath.Join(env.cfg.DebugDir, fmt.Sprintf("%v.%v", hash, idx)), data)
+}
+
+func checkConfig(cfg *Config) error {
+	if !osutil.IsExist(cfg.BinDir) {
+		return fmt.Errorf("bin dir %v does not exist", cfg.BinDir)
+	}
+	if cfg.Kernel.Userspace != "" && !osutil.IsExist(cfg.Kernel.Userspace) {
+		return fmt.Errorf("userspace dir %v does not exist", cfg.Kernel.Userspace)
+	}
+	if cfg.Kernel.Sysctl != "" && !osutil.IsExist(cfg.Kernel.Sysctl) {
+		return fmt.Errorf("sysctl file %v does not exist", cfg.Kernel.Sysctl)
+	}
+	if cfg.Kernel.Cmdline != "" && !osutil.IsExist(cfg.Kernel.Cmdline) {
+		return fmt.Errorf("cmdline file %v does not exist", cfg.Kernel.Cmdline)
+	}
+	return nil
 }
 
 func (env *env) log(msg string, args ...interface{}) {
