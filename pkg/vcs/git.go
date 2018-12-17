@@ -50,7 +50,7 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 			return nil, err
 		}
 	}
-	if _, err := runSandboxed(dir, "git", "fetch", "--no-tags"); err != nil {
+	if _, err := runSandboxed(dir, "git", "fetch"); err != nil {
 		// Something else is wrong, re-clone.
 		if err := git.clone(repo, branch); err != nil {
 			return nil, err
