@@ -399,12 +399,12 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 		switch err := res.(type) {
 		case *instance.TestError:
 			if rep := err.Report; rep != nil {
-				rep.Report = append([]byte(rep.Title), rep.Report...)
+				what := "test"
 				if err.Boot {
-					rep.Title = fmt.Sprintf("%v boot error", mgr.mgrcfg.RepoAlias)
-				} else {
-					rep.Title = fmt.Sprintf("%v test error", mgr.mgrcfg.RepoAlias)
+					what = "boot"
 				}
+				rep.Title = fmt.Sprintf("%v %v error: %v",
+					mgr.mgrcfg.RepoAlias, what, rep.Title)
 				if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
 					mgr.Errorf("failed to report image error: %v", err)
 				}
