@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -67,7 +68,7 @@ func processFile(file string, mode os.FileMode) {
 		return
 	}
 	fmt.Printf("reformatting %v\n", file)
-	if err := os.Rename(file, file+"~"); err != nil {
+	if err := osutil.Rename(file, file+"~"); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

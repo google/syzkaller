@@ -56,7 +56,7 @@ func (ctx *fuchsia) initRepo() error {
 	if _, err := runSandboxed(tmpDir, "bash", "-c", cmd); err != nil {
 		return err
 	}
-	return os.Rename(filepath.Join(tmpDir, "fuchsia"), ctx.dir)
+	return osutil.Rename(filepath.Join(tmpDir, "fuchsia"), ctx.dir)
 }
 
 func (ctx *fuchsia) CheckoutBranch(repo, branch string) (*Commit, error) {

@@ -18,6 +18,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 var (
@@ -190,7 +192,7 @@ func display(graphs []*Graph) {
 	}
 	outf.Close()
 	name := outf.Name() + ".html"
-	if err := os.Rename(outf.Name(), name); err != nil {
+	if err := osutil.Rename(outf.Name(), name); err != nil {
 		failf("failed to rename file: %v", err)
 	}
 	if err := exec.Command("xdg-open", name).Start(); err != nil {

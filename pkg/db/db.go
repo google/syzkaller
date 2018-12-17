@@ -118,7 +118,7 @@ func (db *DB) compact() error {
 		return err
 	}
 	f.Close()
-	if err := os.Rename(f.Name(), db.filename); err != nil {
+	if err := osutil.Rename(f.Name(), db.filename); err != nil {
 		return err
 	}
 	db.uncompacted = len(db.Records)

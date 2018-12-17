@@ -52,7 +52,7 @@ func (ctx akaros) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 		return err
 	}
 	targetKey := filepath.Join(kernelDir, "kern", "kfs", ".ssh", "authorized_keys")
-	if err := os.Rename(sshkeyPub, targetKey); err != nil {
+	if err := osutil.Rename(sshkeyPub, targetKey); err != nil {
 		return err
 	}
 	const init = `#!/bin/bash

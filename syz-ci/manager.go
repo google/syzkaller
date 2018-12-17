@@ -331,7 +331,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	if err := os.RemoveAll(mgr.latestDir); err != nil {
 		return fmt.Errorf("failed to remove latest dir: %v", err)
 	}
-	return os.Rename(tmpDir, mgr.latestDir)
+	return osutil.Rename(tmpDir, mgr.latestDir)
 }
 
 func (mgr *Manager) restartManager() {
