@@ -236,7 +236,7 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 	}
 	// Give it some time to finish writing the error message.
 	mon.waitForOutput()
-	if bytes.Contains(mon.output, []byte("SYZ-FUZZER: PREEMPTED")) {
+	if bytes.Contains(mon.output, []byte(fuzzerPreemptedStr)) {
 		return nil
 	}
 	if !mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
