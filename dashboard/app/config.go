@@ -6,6 +6,7 @@ package dash
 import (
 	"encoding/json"
 	"fmt"
+	"net/mail"
 	"regexp"
 	"time"
 
@@ -118,6 +119,8 @@ type KernelRepo struct {
 	// ReportingPriority says if we need to prefer to report crashes in this
 	// repo over crashes in repos with lower value. Must be in [0-9] range.
 	ReportingPriority int
+	// Additional CC list to add to all bugs reported on this repo.
+	CC []string
 }
 
 var (
@@ -181,6 +184,11 @@ func installConfig(cfg *GlobalConfig) {
 		}
 		if prio := info.ReportingPriority; prio < 0 || prio > 9 {
 			panic(fmt.Sprintf("bad kernel repo reporting priority %v for %q", prio, repo))
+		}
+		for _, email := range info.CC {
+			if _, err := mail.ParseAddress(email); err != nil {
+				panic(fmt.Sprintf("bad email address %q: %v", email, err))
+			}
 		}
 	}
 	config = cfg

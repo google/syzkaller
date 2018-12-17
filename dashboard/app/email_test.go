@@ -117,6 +117,10 @@ For more options, visit https://groups.google.com/d/optout.
 	c.incomingEmail(sender0, body0)
 
 	// Now report syz reproducer and check updated email.
+	build2 := testBuild(10)
+	build2.KernelCommitTitle = "a really long title, longer than 80 chars, really long-long-long-long-long-long title"
+	c.client2.UploadBuild(build2)
+	crash.BuildID = build2.ID
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("getpid()")
 	syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
@@ -148,14 +152,14 @@ For more options, visit https://groups.google.com/d/optout.
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<1234>"})
 		body := fmt.Sprintf(`syzbot has found a reproducer for the following crash on:
 
-HEAD commit:    111111111111 kernel_commit_title1
-git tree:       repo1 branch1
+HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
+git tree:       repo10alias
 console output: %[3]v
 kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
-compiler:       compiler1
+compiler:       compiler10
 syz repro:      %[2]v
-CC:             [bar@foo.com foo@bar.com]
+CC:             [bar@foo.com foo@bar.com maintainers@repo10.org bugs@repo10.org]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -167,7 +171,7 @@ report1
 		}
 		c.checkURLContents(reproSyzLink, syzRepro)
 		c.checkURLContents(crashLogLink, crash.Log)
-		c.checkURLContents(kernelConfigLink, build.KernelConfig)
+		c.checkURLContents(kernelConfigLink, build2.KernelConfig)
 	}
 
 	// Now upstream the bug and check that it reaches the next reporting.
@@ -192,20 +196,21 @@ report1
 		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
-		c.expectEQ(msg.To, []string{"bar@foo.com", "bugs@syzkaller.com",
-			"default@maintainers.com", "foo@bar.com"})
+		c.expectEQ(msg.To, []string{
+			"bar@foo.com", "bugs@repo10.org", "bugs@syzkaller.com",
+			"default@maintainers.com", "foo@bar.com", "maintainers@repo10.org"})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
 		body := fmt.Sprintf(`Hello,
 
 syzbot found the following crash on:
 
-HEAD commit:    111111111111 kernel_commit_title1
-git tree:       repo1 branch1
+HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
+git tree:       repo10alias
 console output: %[3]v
 kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
-compiler:       compiler1
+compiler:       compiler10
 syz repro:      %[2]v
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -228,7 +233,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 		}
 		c.checkURLContents(reproSyzLink, syzRepro)
 		c.checkURLContents(crashLogLink, crash.Log)
-		c.checkURLContents(kernelConfigLink, build.KernelConfig)
+		c.checkURLContents(kernelConfigLink, build2.KernelConfig)
 	}
 
 	// Model that somebody adds more emails to CC list.
@@ -247,10 +252,6 @@ Content-Type: text/plain
 	c.expectOK(c.POST("/_ah/mail/", incoming3))
 
 	// Now upload a C reproducer.
-	build2 := testBuild(10)
-	build2.KernelCommitTitle = "a really long title, longer than 80 chars, really long-long-long-long-long-long title"
-	c.client2.UploadBuild(build2)
-	crash.BuildID = build2.ID
 	crash.ReproC = []byte("int main() {}")
 	crash.Maintainers = []string{"\"qux\" <qux@qux.com>"}
 	c.client2.ReportCrash(crash)
@@ -270,8 +271,10 @@ Content-Type: text/plain
 		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
-		c.expectEQ(msg.To, []string{"another@another.com", "bar@foo.com", "bugs@syzkaller.com",
-			"default@maintainers.com", "foo@bar.com", "new@new.com", "qux@qux.com"})
+		c.expectEQ(msg.To, []string{
+			"another@another.com", "bar@foo.com", "bugs@repo10.org",
+			"bugs@syzkaller.com", "default@maintainers.com", "foo@bar.com",
+			"maintainers@repo10.org", "new@new.com", "qux@qux.com"})
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
 		body := fmt.Sprintf(`syzbot has found a reproducer for the following crash on:
