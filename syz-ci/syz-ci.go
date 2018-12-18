@@ -60,6 +60,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -108,6 +109,7 @@ type ManagerConfig struct {
 	// File with sysctl values (e.g. output of sysctl -a, optional).
 	KernelSysctl  string          `json:"kernel_sysctl"`
 	ManagerConfig json.RawMessage `json:"manager_config"`
+	managercfg    *mgrconfig.Config
 }
 
 func main() {
@@ -223,9 +225,16 @@ func loadConfig(filename string) (*Config, error) {
 		if mgr.Branch == "" {
 			mgr.Branch = "master"
 		}
-		mgrcfg := new(mgrconfig.Config)
-		if err := config.LoadData(mgr.ManagerConfig, mgrcfg); err != nil {
+		managercfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
+		if err != nil {
 			return nil, fmt.Errorf("manager %v: %v", mgr.Name, err)
+		}
+		mgr.managercfg = managercfg
+		managercfg.Name = cfg.Name + "-" + mgr.Name
+		managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
+		if managercfg.HTTP == "" {
+			managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
+			cfg.ManagerPort++
 		}
 	}
 	return cfg, nil
