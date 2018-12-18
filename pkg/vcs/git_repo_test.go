@@ -15,6 +15,11 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
+func init() {
+	// Disable sandboxing entirely because we create test repos without sandboxing.
+	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
+}
+
 func TestGitRepo(t *testing.T) {
 	baseDir, err := ioutil.TempDir("", "syz-git-test")
 	if err != nil {
