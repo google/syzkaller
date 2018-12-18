@@ -33,7 +33,7 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	if err := osutil.WriteFile(filepath.Join(compileDir, "Makefile"), makefile); err != nil {
 		return err
 	}
-	for _, tgt := range []string{"obj", "config", "all"} {
+	for _, tgt := range []string{"clean", "obj", "config", "all"} {
 		if err := ctx.make(compileDir, tgt); err != nil {
 			return err
 		}
@@ -57,7 +57,11 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 }
 
 func (ctx openbsd) clean(kernelDir string) error {
-	return ctx.make(kernelDir, "", "clean")
+	// Building clean is fast enough and incremental builds in face of
+	// changing config files don't work. Instead of optimizing for the
+	// case where humans have to think, let's bludgeon it with a
+	// machine.
+	return nil
 }
 
 func (ctx openbsd) make(kernelDir string, args ...string) error {
