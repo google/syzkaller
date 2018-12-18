@@ -4,6 +4,7 @@
 include <uapi/linux/fiemap.h>
 include <uapi/linux/fs.h>
 include <uapi/linux/fsmap.h>
+include <uapi/linux/fsverity.h>
 include <linux/falloc.h>
 
 ioctl$FIBMAP(fd fd, cmd const[FIBMAP], arg ptr[in, int32])
@@ -27,6 +28,8 @@ ioctl$FS_IOC_SET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_SET_ENCRYPTION_POLICY
 ioctl$FS_IOC_GET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_POLICY], arg ptr[out, array[int8, 16]])
 ioctl$FS_IOC_GET_ENCRYPTION_PWSALT(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_PWSALT], arg ptr[out, fscrypt_policy])
 ioctl$FS_IOC_GETFSMAP(fd fd, cmd const[FS_IOC_GETFSMAP], arg ptr[in, fsmap_head])
+ioctl$FS_IOC_ENABLE_VERITY(fd fd, cmd const[FS_IOC_ENABLE_VERITY])
+ioctl$FS_IOC_MEASURE_VERITY(fd fd, cmd const[FS_IOC_MEASURE_VERITY], arg ptr[inout, fsverity_digest])
 
 fscrypt_policy {
 	version			const[0, int8]
@@ -47,6 +50,14 @@ type fscrypt_policy_mode_t[CONTENTS, FILENAMES] {
 }
 
 fs_policy_flags = FS_POLICY_FLAGS_PAD_4, FS_POLICY_FLAGS_PAD_8, FS_POLICY_FLAGS_PAD_16
+
+fsverity_digest_algorithm_flags = FS_VERITY_ALG_SHA256, FS_VERITY_ALG_SHA512, FS_VERITY_ALG_CRC32C
+
+fsverity_digest {
+	digest_algorithm	flags[fsverity_digest_algorithm_flags, int16]
+	digest_size		len[digest, int16]
+	digest			array[int8]
+}
 
 space_resv {
 	l_type		const[0, int16]
