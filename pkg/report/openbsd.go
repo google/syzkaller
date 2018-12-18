@@ -165,6 +165,10 @@ var openbsdOopses = []*oops{
 		[]byte("panic"),
 		[]oopsFormat{
 			{
+				title: compile("panic: kernel diagnostic assertion (.+) failed: file \".*/([^\"]+)"),
+				fmt:   "assert %[1]v failed in %[2]v",
+			},
+			{
 				title: compile("panic: pool_do_put: ([^:]+): double pool_put"),
 				fmt:   "pool: double put: %[1]v",
 			},
