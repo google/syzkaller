@@ -258,7 +258,10 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 	}
 	cmd = osutil.Command("go", "test", "-short", "./...")
 	cmd.Dir = upd.syzkallerDir
-	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
+	cmd.Env = append([]string{
+		"GOPATH=" + upd.gopathDir,
+		"SYZ_DISABLE_SANDBOXING=yes",
+	}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return osutil.PrependContext("testing failed: %v", err)
 	}
