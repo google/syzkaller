@@ -1,0 +1,115 @@
+TITLE: assert "pg->wire_count == 1" failed in vfs_biomem.c
+
+panic: kernel diagnostic assertion "pg->wire_count == 1" failed: file "/syzkaller/managers/main/kernel/sys/kern/vfs_biomem.c", line 329
+Stopped at      db_enter+0xa:   popq    %rbp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+* 96384  33390      0         0x2          0    0  syz-executor1
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+__assert(ffffffff81a7b7d4,ffff800014a93ec0,ffffffff81ee1498,ffffff0006401600) a
+t __assert+0x24
+buf_free_pages(ffff800011a67000) at buf_free_pages+0x167
+buf_dealloc_mem(ffffff0006401e00) at buf_dealloc_mem+0xb6
+buf_put(ffffff0006401600) at buf_put+0x11f
+brelse(2) at brelse+0x19f
+vinvalbuf(0,ffffff002bc25790,ffffff002bc257a8,0,ffff80000066d800,11) at vinvalb
+uf+0x2e2
+ffs_truncate(ffffff002a4cc140,ffffff002a4cc078,ffffff002bc251f0,ffffff002bc2579
+0) at ffs_truncate+0xc6b
+ufs_rmdir(ffffff002a4cc140) at ufs_rmdir+0x277
+VOP_RMDIR(0,ffffff002a4cc078,8) at VOP_RMDIR+0x6a
+dounlinkat(ffff800014a94430,ffff8000ffffc4b8,ffff800014a16c78,890) at dounlinka
+t+0xf5
+syscall(0) at syscall+0x3e4
+Xsyscall(6,89,7f7fffff4120,89,1b44905c80,7f7fffff45f0) at Xsyscall+0x128
+end of kernel
+end trace frame: 0x7f7fffff4560, count: 1
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.
+ddb>
+ddb> set $lines = 0
+ddb> show panic
+kernel diagnostic assertion "pg->wire_count == 1" failed: file "/syzkaller/managers/main/kernel/sys/kern/vfs_biomem.c", line 329
+ddb> trace
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+__assert(ffffffff81a7b7d4,ffff800014a93ec0,ffffffff81ee1498,ffffff0006401600) at __assert+0x24
+buf_free_pages(ffff800011a67000) at buf_free_pages+0x167
+buf_dealloc_mem(ffffff0006401e00) at buf_dealloc_mem+0xb6
+buf_put(ffffff0006401600) at buf_put+0x11f
+brelse(2) at brelse+0x19f
+vinvalbuf(0,ffffff002bc25790,ffffff002bc257a8,0,ffff80000066d800,11) at vinvalbuf+0x2e2
+ffs_truncate(ffffff002a4cc140,ffffff002a4cc078,ffffff002bc251f0,ffffff002bc25790) at ffs_truncate+0xc6b
+ufs_rmdir(ffffff002a4cc140) at ufs_rmdir+0x277
+VOP_RMDIR(0,ffffff002a4cc078,8) at VOP_RMDIR+0x6a
+dounlinkat(ffff800014a94430,ffff8000ffffc4b8,ffff800014a16c78,890) at dounlinkat+0xf5
+syscall(0) at syscall+0x3e4
+Xsyscall(6,89,7f7fffff4120,89,1b44905c80,7f7fffff45f0) at Xsyscall+0x128
+end of kernel
+end trace frame: 0x7f7fffff4560, count: -14
+ddb> show registers
+rdi               0xffffffff81e39300    kprintf_mutex
+rsi                              0x5
+rbp               0xffff800014a93e20
+rbx               0xffff800014a93ec0
+rdx                            0x3fd
+rcx                                0
+rax                                0
+r8                0xffff800014a93df0
+r9                0x8080808080808080
+r10               0xfba5c39a8da27df7
+r11               0xffffffff81782140    x86_bus_space_io_read_1
+r12                     0x3000000008
+r13               0xffff800014a93e30
+r14                            0x100
+r15               0xffffffff81bdee3a    cmd0646_9_tim_udma+0x1e959
+rip               0xffffffff8180489a    db_enter+0xa
+cs                               0x8
+rflags                         0x246
+rsp               0xffff800014a93e20
+ss                              0x10
+db_enter+0xa:   popq    %rbp
+ddb> show proc
+PROC (syz-executor1) pid=96384 stat=onproc
+    flags process=2<EXEC> proc=0
+    pri=17, usrpri=50, nice=20
+    forw=0xffffffffffffffff, list=0xffff8000ffffc260,0xffff8000ffffc018
+    process=0xffff800014a16c78 user=0xffff800014a8f000, vmspace=0xffffff003f12b210
+    estcpu=1, cpticks=2, pctcpu=0.0
+    user=0, sys=2, intr=0
+ddb> ps
+   PID     TID   PPID    UID  S       FLAGS  WAIT          COMMAND
+*33390   96384  47875      0  7         0x2                syz-executor1
+ 85080  436068      1      0  3    0x100083  ttyin         getty
+ 30245  323245      0      0  3     0x14200  bored         sosplice
+ 47875  369970  32354      0  3        0x82  thrsleep      syz-fuzzer
+ 47875   77220  32354      0  3   0x4000082  nanosleep     syz-fuzzer
+ 47875  482507  32354      0  3   0x4000082  thrsleep      syz-fuzzer
+ 47875  433241  32354      0  3   0x4000082  thrsleep      syz-fuzzer
+ 47875  335916  32354      0  3   0x4000082  thrsleep      syz-fuzzer
+ 47875  348891  32354      0  3   0x4000082  thrsleep      syz-fuzzer
+ 47875  242030  32354      0  3   0x4000002  biowait       syz-fuzzer
+ 47875  232330  32354      0  3   0x4000082  thrsleep      syz-fuzzer
+ 32354  458845  95616      0  3    0x10008a  pause         ksh
+ 95616  383040  30526      0  3        0x92  select        sshd
+ 30526   27164      1      0  3        0x80  select        sshd
+ 83523  442162  89593     73  3    0x100010  ffs_fsync     syslogd
+ 89593   92741      1      0  3    0x100082  netio         syslogd
+ 56172  522358      1     77  3    0x100090  poll          dhclient
+ 99907  120540      1      0  3        0x80  poll          dhclient
+ 90869  146685      0      0  3     0x14200  pgzero        zerothread
+ 77478  110648      0      0  3     0x14200  aiodoned      aiodoned
+ 34550  176553      0      0  3     0x14200  syncer        update
+ 35956  197650      0      0  3     0x14200  cleaner       cleaner
+ 18857  488539      0      0  3     0x14200  reaper        reaper
+ 63309  330054      0      0  3     0x14200  pgdaemon      pagedaemon
+ 15062  406257      0      0  3     0x14200  bored         crynlk
+ 10524  297456      0      0  3     0x14200  bored         crypto
+ 48948  175157      0      0  3  0x40014200  acpi0         acpi0
+ 23276    4812      0      0  3     0x14200  bored         softnet
+ 57663   61073      0      0  3     0x14200  bored         systqmp
+ 66065  347853      0      0  3     0x14200  bored         systq
+ 83022  308144      0      0  3  0x40014200  bored         softclock
+ 63171  372030      0      0  3  0x40014200                idle0
+     1   28015      0      0  3        0x82  wait          init
+     0       0     -1      0  3     0x10200  scheduler     swapper
