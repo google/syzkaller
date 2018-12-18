@@ -107,27 +107,14 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	if syzkallerCommit == "" {
 		log.Fatalf("no tag in syzkaller/current/tag")
 	}
-
-	// Prepare manager config skeleton (other fields are filled in writeConfig).
-	managercfg, err := mgrconfig.LoadPartialData(mgrcfg.ManagerConfig)
-	if err != nil {
-		log.Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
-	}
-	managercfg.Name = cfg.Name + "-" + mgrcfg.Name
-	managercfg.Syzkaller = filepath.FromSlash("syzkaller/current")
-	if managercfg.HTTP == "" {
-		managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
-		cfg.ManagerPort++
-	}
-
 	kernelDir := filepath.Join(dir, "kernel")
-	repo, err := vcs.NewRepo(managercfg.TargetOS, managercfg.Type, kernelDir)
+	repo, err := vcs.NewRepo(mgrcfg.managercfg.TargetOS, mgrcfg.managercfg.Type, kernelDir)
 	if err != nil {
 		log.Fatalf("failed to create repo for %v: %v", mgrcfg.Name, err)
 	}
 
 	mgr := &Manager{
-		name:            managercfg.Name,
+		name:            mgrcfg.managercfg.Name,
 		workDir:         filepath.Join(dir, "workdir"),
 		kernelDir:       kernelDir,
 		currentDir:      filepath.Join(dir, "current"),
@@ -139,7 +126,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 		cfg:             cfg,
 		repo:            repo,
 		mgrcfg:          mgrcfg,
-		managercfg:      managercfg,
+		managercfg:      mgrcfg.managercfg,
 		dash:            dash,
 		stop:            stop,
 	}

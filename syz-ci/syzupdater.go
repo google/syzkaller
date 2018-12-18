@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
 )
@@ -31,17 +31,20 @@ const (
 // Additionally it updates and restarts the current executable as necessary.
 // Current executable is always built on the same revision as the rest of syzkaller binaries.
 type SyzUpdater struct {
-	repo         vcs.Repo
-	exe          string
-	repoAddress  string
-	branch       string
-	descriptions string
-	gopathDir    string
-	syzkallerDir string
-	latestDir    string
-	currentDir   string
-	syzFiles     map[string]bool
-	targets      map[string]bool
+	repo          vcs.Repo
+	exe           string
+	repoAddress   string
+	branch        string
+	descriptions  string
+	gopathDir     string
+	syzkallerDir  string
+	latestDir     string
+	currentDir    string
+	syzFiles      map[string]bool
+	targets       map[string]bool
+	dashboardAddr string
+	compilerID    string
+	mgrcfg        *ManagerConfig
 }
 
 func NewSyzUpdater(cfg *Config) *SyzUpdater {
@@ -77,10 +80,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	}
 	targets := make(map[string]bool)
 	for _, mgr := range cfg.Managers {
-		mgrcfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
-		if err != nil {
-			log.Fatalf("failed to load manager %v config: %v", mgr.Name, err)
-		}
+		mgrcfg := mgr.managercfg
 		os, vmarch, arch := mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.TargetArch
 		targets[os+"/"+vmarch+"/"+arch] = true
 		files[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
@@ -91,18 +91,25 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	for f := range files {
 		syzFiles[f] = true
 	}
+	compilerID, err := osutil.RunCmd(time.Minute, "", "go", "version")
+	if err != nil {
+		log.Fatalf("%v", exe)
+	}
 	return &SyzUpdater{
-		repo:         vcs.NewSyzkallerRepo(syzkallerDir),
-		exe:          exe,
-		repoAddress:  cfg.SyzkallerRepo,
-		branch:       cfg.SyzkallerBranch,
-		descriptions: cfg.SyzkallerDescriptions,
-		gopathDir:    gopath,
-		syzkallerDir: syzkallerDir,
-		latestDir:    filepath.Join("syzkaller", "latest"),
-		currentDir:   filepath.Join("syzkaller", "current"),
-		syzFiles:     syzFiles,
-		targets:      targets,
+		repo:          vcs.NewSyzkallerRepo(syzkallerDir),
+		exe:           exe,
+		repoAddress:   cfg.SyzkallerRepo,
+		branch:        cfg.SyzkallerBranch,
+		descriptions:  cfg.SyzkallerDescriptions,
+		gopathDir:     gopath,
+		syzkallerDir:  syzkallerDir,
+		latestDir:     filepath.Join("syzkaller", "latest"),
+		currentDir:    filepath.Join("syzkaller", "current"),
+		syzFiles:      syzFiles,
+		targets:       targets,
+		dashboardAddr: cfg.DashboardAddr,
+		compilerID:    strings.TrimSpace(string(compilerID)),
+		mgrcfg:        cfg.Managers[0],
 	}
 }
 
@@ -202,6 +209,7 @@ func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 		lastCommit = commit.Hash
 		if err := upd.build(commit); err != nil {
 			log.Logf(0, "syzkaller: %v", err)
+			upd.uploadBuildError(commit, err)
 		}
 	}
 	return lastCommit
@@ -220,18 +228,18 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 				return err
 			}
 		}
+		cmd := osutil.Command(instance.MakeBin, "generate")
+		cmd.Dir = upd.syzkallerDir
+		cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
+		if _, err := osutil.Run(time.Hour, cmd); err != nil {
+			return osutil.PrependContext("generate failed", err)
+		}
 	}
-	cmd := osutil.Command(instance.MakeBin, "generate")
+	cmd := osutil.Command(instance.MakeBin, "host", "ci")
 	cmd.Dir = upd.syzkallerDir
 	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return fmt.Errorf("build failed: %v", err)
-	}
-	cmd = osutil.Command(instance.MakeBin, "host", "ci")
-	cmd.Dir = upd.syzkallerDir
-	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
-	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return fmt.Errorf("build failed: %v", err)
+		return osutil.PrependContext("make host failed", err)
 	}
 	for target := range upd.targets {
 		parts := strings.Split(target, "/")
@@ -245,14 +253,14 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 			"TARGETARCH="+parts[2],
 		)
 		if _, err := osutil.Run(time.Hour, cmd); err != nil {
-			return fmt.Errorf("build failed: %v", err)
+			return osutil.PrependContext("make target failed", err)
 		}
 	}
 	cmd = osutil.Command("go", "test", "-short", "./...")
 	cmd.Dir = upd.syzkallerDir
 	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return fmt.Errorf("tests failed: %v", err)
+		return osutil.PrependContext("testing failed: %v", err)
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
 	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
@@ -262,6 +270,48 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 		return fmt.Errorf("failed to copy syzkaller: %v", err)
 	}
 	return nil
+}
+
+func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
+	// Build errors can't be uploaded using global client
+	// as it is not associated with any namespace.
+	// So we use the first manager client for this.
+	if upd.dashboardAddr == "" || upd.mgrcfg.DashboardClient == "" {
+		return
+	}
+	dash := dashapi.New(upd.dashboardAddr, upd.mgrcfg.DashboardClient, upd.mgrcfg.DashboardKey)
+	var title string
+	var output []byte
+	if verbose, ok := buildErr.(*osutil.VerboseError); ok {
+		title = verbose.Title
+		output = verbose.Output
+	} else {
+		title = buildErr.Error()
+	}
+	title = "syzkaller: " + title
+	managercfg := upd.mgrcfg.managercfg
+	req := &dashapi.BuildErrorReq{
+		Build: dashapi.Build{
+			Manager:           managercfg.Name,
+			ID:                commit.Hash,
+			OS:                managercfg.TargetOS,
+			Arch:              managercfg.TargetArch,
+			VMArch:            managercfg.TargetVMArch,
+			SyzkallerCommit:   commit.Hash,
+			CompilerID:        upd.compilerID,
+			KernelRepo:        upd.repoAddress,
+			KernelBranch:      upd.branch,
+			KernelCommit:      commit.Hash,
+			KernelCommitTitle: commit.Title,
+			KernelCommitDate:  commit.Date,
+		},
+		Crash: dashapi.Crash{
+			Title: title,
+			Log:   output,
+		},
+	}
+	// TODO: log ReportBuildError error to dashboard.
+	dash.ReportBuildError(req)
 }
 
 // checkLatest returns tag of the latest build,
