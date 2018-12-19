@@ -65,6 +65,7 @@ EOF2
   su -l syzkaller <<EOF2
     cd /syzkaller
     set -eux
+    ulimit -d 8000000
     test -x syz-ci || (
          go get github.com/google/syzkaller/syz-ci &&
          go build github.com/google/syzkaller/syz-ci)
