@@ -74,7 +74,7 @@ func (ctx *fuchsia) Parse(output []byte) *Report {
 func (ctx *fuchsia) shortenReport(report []byte) []byte {
 	out := new(bytes.Buffer)
 	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
-		line := s.Bytes()
+		line := zirconLinePrefix.ReplaceAll(s.Bytes(), nil)
 		if matchesAny(line, zirconUnrelated) {
 			continue
 		}
@@ -92,7 +92,7 @@ func (ctx *fuchsia) symbolize(output []byte) []byte {
 	defer symb.Close()
 	out := new(bytes.Buffer)
 	for s := bufio.NewScanner(bytes.NewReader(output)); s.Scan(); {
-		line := zirconLinePrefix.ReplaceAll(s.Bytes(), nil)
+		line := s.Bytes()
 		if bytes.Contains(line, zirconAssertFailed) && len(line) == 127 {
 			// This is super hacky: but zircon splits the most important information in long assert lines
 			// (and they are always long) into several lines in irreversible way. Try to restore full line.
@@ -324,7 +324,7 @@ var zirconOopses = []*oops{
 		[]oopsFormat{
 			{
 				title:        compile("panic: .*"),
-				report:       compile("panic: (.*)(?:.*\\n)+?goroutine"),
+				report:       compile("panic: (.*)(?:.*\\n)+?.* goroutine"),
 				fmt:          "panic: %[1]v",
 				noStackTrace: true,
 			},
