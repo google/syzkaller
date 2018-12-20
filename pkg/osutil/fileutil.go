@@ -45,7 +45,8 @@ func Rename(oldFile, newFile string) error {
 	err := os.Rename(oldFile, newFile)
 	if err != nil {
 		// Can't use syscall.EXDEV because this is used in appengine app.
-		return CopyFile(oldFile, newFile)
+		err = CopyFile(oldFile, newFile)
+		os.Remove(oldFile)
 	}
 	return err
 }
