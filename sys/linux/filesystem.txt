@@ -1,6 +1,7 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <uapi/linux/mount.h>
 include <linux/fs.h>
 
 mount(src ptr[in, blockdev_filename], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data ptr[in, string, opt])
