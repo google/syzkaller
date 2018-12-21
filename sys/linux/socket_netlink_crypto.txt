@@ -22,6 +22,7 @@ netlink_msg_crypto [
 	upd	netlink_msg[CRYPTO_MSG_UPDATEALG, crypto_user_alg, netlink_crypto_attrs]
 	get	netlink_msg[CRYPTO_MSG_GETALG, crypto_user_alg, netlink_crypto_attrs]
 	delrng	netlink_msg[CRYPTO_MSG_DELRNG, void, void]
+	getstat	netlink_msg[CRYPTO_MSG_GETSTAT, crypto_user_alg, void]
 ] [varlen]
 
 type netlink_crypto_attrs nlattr[CRYPTOCFGA_PRIORITY_VAL, int32]
