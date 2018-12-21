@@ -512,12 +512,12 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.merger.Output, errc, nil
 }
 
-func (inst *instance) Diagnose() bool {
+func (inst *instance) Diagnose() ([]byte, bool) {
 	select {
 	case inst.diagnose <- true:
 	default:
 	}
-	return false
+	return nil, false
 }
 
 // nolint: lll

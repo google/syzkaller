@@ -31,9 +31,10 @@ func (pool *testPool) Create(workdir string, index int) (vmimpl.Instance, error)
 }
 
 type testInstance struct {
-	outc        chan []byte
-	errc        chan error
-	diagnoseBug bool
+	outc           chan []byte
+	errc           chan error
+	diagnoseBug    bool
+	diagnoseNoWait bool
 }
 
 func (inst *testInstance) Copy(hostSrc string) (string, error) {
@@ -49,13 +50,20 @@ func (inst *testInstance) Run(timeout time.Duration, stop <-chan bool, command s
 	return inst.outc, inst.errc, nil
 }
 
-func (inst *testInstance) Diagnose() bool {
+func (inst *testInstance) Diagnose() ([]byte, bool) {
+	var diag []byte
 	if inst.diagnoseBug {
-		inst.outc <- []byte("BUG: DIAGNOSE\n")
+		diag = []byte("BUG: DIAGNOSE\n")
 	} else {
-		inst.outc <- []byte("DIAGNOSE\n")
+		diag = []byte("DIAGNOSE\n")
 	}
-	return true
+
+	if inst.diagnoseNoWait {
+		return diag, false
+	}
+
+	inst.outc <- diag
+	return nil, true
 }
 
 func (inst *testInstance) Close() {
@@ -74,11 +82,12 @@ func init() {
 }
 
 type Test struct {
-	Name        string
-	CanExit     bool // if the program is allowed to exit normally
-	DiagnoseBug bool // Diagnose produces output that is detected as kernel crash
-	Body        func(outc chan []byte, errc chan error)
-	Report      *report.Report
+	Name           string
+	CanExit        bool // if the program is allowed to exit normally
+	DiagnoseBug    bool // Diagnose produces output that is detected as kernel crash
+	DiagnoseNoWait bool // Diagnose returns output directly rather than to console
+	Body           func(outc chan []byte, errc chan error)
+	Report         *report.Report
 }
 
 var tests = []*Test{
@@ -117,6 +126,19 @@ var tests = []*Test{
 			Title: lostConnectionCrash,
 			Output: []byte(
 				"DIAGNOSE\n",
+			),
+		},
+	},
+	{
+		Name: "diagnose-no-wait",
+		Body: func(outc chan []byte, errc chan error) {
+			errc <- nil
+		},
+		DiagnoseNoWait: true,
+		Report: &report.Report{
+			Title: lostConnectionCrash,
+			Output: []byte(
+				"DIAGNOSIS:\nDIAGNOSE\n",
 			),
 		},
 	},
@@ -280,6 +302,7 @@ func testMonitorExecution(t *testing.T, test *Test) {
 	}
 	testInst := inst.impl.(*testInstance)
 	testInst.diagnoseBug = test.DiagnoseBug
+	testInst.diagnoseNoWait = test.DiagnoseNoWait
 	done := make(chan bool)
 	go func() {
 		test.Body(testInst.outc, testInst.errc)
