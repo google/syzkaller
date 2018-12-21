@@ -327,9 +327,9 @@ func (inst *instance) guestProxy() (*os.File, error) {
 	return guestSock, nil
 }
 
-func (inst *instance) Diagnose() bool {
+func (inst *instance) Diagnose() ([]byte, bool) {
 	osutil.Run(time.Minute, inst.runscCmd("debug", "-signal=12", inst.name))
-	return true
+	return nil, true
 }
 
 func init() {

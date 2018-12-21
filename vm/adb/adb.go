@@ -405,6 +405,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return vmimpl.Multiplex(adb, merger, tty, timeout, stop, inst.closed, inst.debug)
 }
 
-func (inst *instance) Diagnose() bool {
-	return false
+func (inst *instance) Diagnose() ([]byte, bool) {
+	return nil, false
 }

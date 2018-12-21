@@ -43,10 +43,13 @@ type Instance interface {
 	// Command is terminated after timeout. Send on the stop chan can be used to terminate it earlier.
 	Run(timeout time.Duration, stop <-chan bool, command string) (outc <-chan []byte, errc <-chan error, err error)
 
-	// Diagnose forces VM to dump additional debugging info
-	// (e.g. sending some sys-rq's or SIGABORT'ing a Go program).
-	// Returns true if it did anything.
-	Diagnose() bool
+	// Diagnose retrieves additional debugging info from the VM (e.g. by
+	// sending some sys-rq's or SIGABORT'ing a Go program).
+	//
+	// Optionally returns (some or all) of the info directly. If wait ==
+	// true, the caller must wait for the VM to output info directly to its
+	// log.
+	Diagnose() (diagnosis []byte, wait bool)
 
 	// Close stops and destroys the VM.
 	Close()
