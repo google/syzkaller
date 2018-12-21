@@ -15,9 +15,11 @@ include <uapi/linux/lwtunnel.h>
 include <uapi/linux/neighbour.h>
 include <uapi/linux/fib_rules.h>
 include <uapi/linux/if_tunnel.h>
+include <uapi/linux/net_namespace.h>
 include <uapi/linux/veth.h>
 
 resource sock_nl_route[sock_netlink]
+type netns_id int32[0:4]
 
 socket$nl_route(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_ROUTE]) sock_nl_route
 
@@ -78,6 +80,9 @@ netlink_msg_route [
 	bridge_getlink		netlink_msg[RTM_GETLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
 	bridge_setlink		netlink_msg[RTM_SETLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
 	bridge_dellink		netlink_msg[RTM_DELLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
+
+	RTM_NEWNSID		netlink_msg[RTM_NEWNSID, rtgenmsg[AF_UNSPEC], rtnl_net_policy]
+	RTM_GETNSID		netlink_msg[RTM_GETNSID, rtgenmsg[AF_UNSPEC], rtnl_net_policy]
 ] [varlen]
 
 type rtgenmsg[FAMILY] {
@@ -171,14 +176,12 @@ ifla_policy [
 	IFLA_PHYS_PORT_ID	nlattr[IFLA_PHYS_PORT_ID, array[int8, 0:MAX_PHYS_ITEM_ID_LEN]]
 	IFLA_CARRIER_CHANGES	nlattr[IFLA_CARRIER_CHANGES, int32]
 	IFLA_PHYS_SWITCH_ID	nlattr[IFLA_PHYS_SWITCH_ID, array[int8, 0:MAX_PHYS_ITEM_ID_LEN]]
-# TODO: this is some net namespace id.
-	IFLA_LINK_NETNSID	nlattr[IFLA_LINK_NETNSID, int32]
+	IFLA_LINK_NETNSID	nlattr[IFLA_LINK_NETNSID, netns_id]
 	IFLA_PROTO_DOWN		nlattr[IFLA_PROTO_DOWN, int8]
 	IFLA_XDP		nlattr[IFLA_XDP, array[ifla_xdp_policy]]
 	IFLA_EVENT		nlattr[IFLA_EVENT, int32]
 	IFLA_GROUP		nlattr[IFLA_GROUP, int32]
-# TODO: probably also some net namespace id.
-	IFLA_IF_NETNSID		nlattr[IFLA_IF_NETNSID, int32]
+	IFLA_IF_NETNSID		nlattr[IFLA_IF_NETNSID, netns_id]
 ] [varlen]
 
 type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {
@@ -606,6 +609,12 @@ rtnl_link_ifmap {
 	dma		int8
 	port		int8
 }
+
+rtnl_net_policy [
+	NETNSA_NSID	nlattr[NETNSA_NSID, netns_id]
+	NETNSA_PID	nlattr[NETNSA_PID, pid]
+	NETNSA_FD	nlattr[NETNSA_FD, fd_namespace]
+] [varlen]
 
 rtnl_af = AF_INET, AF_INET6, AF_BRIDGE, AF_MPLS
 net_device_flags = IFF_UP, IFF_BROADCAST, IFF_DEBUG, IFF_LOOPBACK, IFF_POINTOPOINT, IFF_NOTRAILERS, IFF_RUNNING, IFF_NOARP, IFF_PROMISC, IFF_ALLMULTI, IFF_MASTER, IFF_SLAVE, IFF_MULTICAST, IFF_PORTSEL, IFF_AUTOMEDIA, IFF_DYNAMIC, IFF_LOWER_UP, IFF_DORMANT, IFF_ECHO
