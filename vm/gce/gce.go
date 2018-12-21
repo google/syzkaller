@@ -366,11 +366,11 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 	}
 }
 
-func (inst *instance) Diagnose() bool {
+func (inst *instance) Diagnose() ([]byte, bool) {
 	if inst.env.OS == "openbsd" {
-		return vmimpl.DiagnoseOpenBSD(inst.consolew)
+		return nil, vmimpl.DiagnoseOpenBSD(inst.consolew)
 	}
-	return false
+	return nil, false
 }
 
 func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {

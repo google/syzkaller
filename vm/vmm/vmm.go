@@ -310,8 +310,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.merger.Output, errc, nil
 }
 
-func (inst *instance) Diagnose() bool {
-	return vmimpl.DiagnoseOpenBSD(inst.consolew)
+func (inst *instance) Diagnose() ([]byte, bool) {
+	return nil, vmimpl.DiagnoseOpenBSD(inst.consolew)
 }
 
 // Run the given vmctl(8) command and wait for it to finish.

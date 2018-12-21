@@ -126,7 +126,7 @@ func (inst *Instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return inst.impl.Run(timeout, stop, command)
 }
 
-func (inst *Instance) Diagnose() bool {
+func (inst *Instance) Diagnose() ([]byte, bool) {
 	return inst.impl.Diagnose()
 }
 
@@ -204,7 +204,12 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			if time.Since(lastExecuteTime) < noOutputTimeout {
 				break
 			}
-			if inst.Diagnose() {
+			diag, wait := inst.Diagnose()
+			if len(diag) > 0 {
+				mon.output = append(mon.output, "DIAGNOSIS:\n"...)
+				mon.output = append(mon.output, diag...)
+			}
+			if wait {
 				mon.waitForOutput()
 			}
 			rep := &report.Report{
@@ -232,7 +237,12 @@ type monitor struct {
 func (mon *monitor) extractError(defaultError string) *report.Report {
 	crashed := defaultError != "" || !mon.canExit
 	if crashed {
-		mon.inst.Diagnose()
+		// N.B. we always wait below for other errors.
+		diag, _ := mon.inst.Diagnose()
+		if len(diag) > 0 {
+			mon.output = append(mon.output, "DIAGNOSIS:\n"...)
+			mon.output = append(mon.output, diag...)
+		}
 	}
 	// Give it some time to finish writing the error message.
 	mon.waitForOutput()
@@ -253,8 +263,15 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 		}
 		return rep
 	}
-	if !crashed && mon.inst.Diagnose() {
-		mon.waitForOutput()
+	if !crashed {
+		diag, wait := mon.inst.Diagnose()
+		if len(diag) > 0 {
+			mon.output = append(mon.output, "DIAGNOSIS:\n"...)
+			mon.output = append(mon.output, diag...)
+		}
+		if wait {
+			mon.waitForOutput()
+		}
 	}
 	rep := mon.reporter.Parse(mon.output[mon.matchPos:])
 	if rep == nil {
