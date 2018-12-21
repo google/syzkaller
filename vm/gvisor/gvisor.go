@@ -190,7 +190,6 @@ func (inst *instance) runscCmd(add ...string) *exec.Cmd {
 	args := []string{
 		"-root", inst.rootDir,
 		"-watchdog-action=panic",
-		"-trace-signal=12",
 		"-network=none",
 		"-debug",
 	}
@@ -328,8 +327,11 @@ func (inst *instance) guestProxy() (*os.File, error) {
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	osutil.Run(time.Minute, inst.runscCmd("debug", "-signal=12", inst.name))
-	return nil, true
+	b, err := osutil.Run(time.Minute, inst.runscCmd("debug", "-stacks", inst.name))
+	if err != nil {
+		b = append(b, []byte(fmt.Sprintf("\n\nError collecting stacks: %v", err))...)
+	}
+	return b, false
 }
 
 func init() {
