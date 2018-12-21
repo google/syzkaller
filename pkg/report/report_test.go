@@ -144,21 +144,7 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	}
 	if title != test.Title || corrupted != test.Corrupted || suppressed != test.Suppressed {
 		if *flagUpdate && test.StartLine == "" && test.EndLine == "" {
-			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "TITLE: %v\n", title)
-			if corrupted {
-				fmt.Fprintf(buf, "CORRUPTED: Y\n")
-			}
-			if suppressed {
-				fmt.Fprintf(buf, "SUPPRESSED: Y\n")
-			}
-			fmt.Fprintf(buf, "\n%s", test.Log)
-			if test.HasReport {
-				fmt.Fprintf(buf, "REPORT:\n%s", test.Report)
-			}
-			if err := ioutil.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
-				t.Logf("failed to update test file: %v", err)
-			}
+			updateReportTest(t, test, title, corrupted, suppressed)
 		}
 		t.Fatalf("want:\nTITLE: %s\nCORRUPTED: %v\nSUPPRESSED: %v\n"+
 			"got:\nTITLE: %s\nCORRUPTED: %v (%v)\nSUPPRESSED: %v\n",
@@ -210,6 +196,24 @@ func checkReport(t *testing.T, rep *Report, test *ParseTest) {
 				rep.StartPos, rep.EndPos, startPos, endPos,
 				string(test.Log[rep.StartPos:rep.EndPos]))
 		}
+	}
+}
+
+func updateReportTest(t *testing.T, test *ParseTest, title string, corrupted, suppressed bool) {
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, "TITLE: %v\n", title)
+	if corrupted {
+		fmt.Fprintf(buf, "CORRUPTED: Y\n")
+	}
+	if suppressed {
+		fmt.Fprintf(buf, "SUPPRESSED: Y\n")
+	}
+	fmt.Fprintf(buf, "\n%s", test.Log)
+	if test.HasReport {
+		fmt.Fprintf(buf, "REPORT:\n%s", test.Report)
+	}
+	if err := ioutil.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
+		t.Logf("failed to update test file: %v", err)
 	}
 }
 
