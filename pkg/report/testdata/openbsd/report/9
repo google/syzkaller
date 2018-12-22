@@ -1,0 +1,24 @@
+TITLE: assert "next != NULL && next->start <= entry->end" failed in uvm_fault.c
+
+panic: kernel diagnostic assertion "next != NULL && next->start <= entry->end" failed: file "/syzkaller/managers/main/kernel/sys/uvm/uvm_fault.c", line 1354
+Stopped at      db_enter+0xa:   popq    %rbp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+*474751  97424      0           0  0x4000000    0  syz-executor0
+db_enter() at db_enter+0xa
+panic() at panic+0x147
+__assert(ffffffff81012464,ffff80002117db50,20006000,20011000) at __assert+0x24
+uvm_fault_unwire_locked(20000000,20011000,0) at uvm_fault_unwire_locked+0x1f9
+uvm_fault_unwire(10000,ffffff006076b000,10000) at uvm_fault_unwire+0x3b
+physio(ffff80002117de48,ffffff006d1a8d80,ffffff006d1a8d80,ffff80002117de48,ffff
+80002117dd18) at physio+0x2ba
+spec_read(0) at spec_read+0x9d
+VOP_READ(ffff80002117de48,ffffff006d1a8d80,ffffff0068cdfda8,0) at VOP_READ+0x5e
+vn_read(ffffff0068cdfda8,ffff8000ffffc710,fffffe73) at vn_read+0x130
+dofilereadv(ffff8000ffffc710,ffff80002117def0,fffffe73,ffff80002117df08,c283a1f
+6428) at dofilereadv+0x14f
+sys_read(ffff80002117df90,ffff8000ffffc710,ffff80002105f330) at sys_read+0x6e
+syscall(0) at syscall+0x3e4
+Xsyscall(6,0,ffffffffffffffb7,0,3,c25b6dec010) at Xsyscall+0x128
+end of kernel
+end trace frame: 0xc283a1f64b0, count: 2
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
