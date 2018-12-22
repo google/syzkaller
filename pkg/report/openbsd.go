@@ -152,16 +152,6 @@ var openbsdOopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	{
-		[]byte("uvm_fault"),
-		[]oopsFormat{
-			{
-				title: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)"),
-				fmt:   "uvm_fault: %[1]v",
-			},
-		},
-		[]*regexp.Regexp{},
-	},
-	{
 		[]byte("panic"),
 		[]oopsFormat{
 			{
@@ -175,6 +165,16 @@ var openbsdOopses = []*oops{
 			{
 				title: compile("panic: pool_do_get: ([^:]+) free list modified"),
 				fmt:   "pool: free list modified: %[1]v",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
+		[]byte("uvm_fault"),
+		[]oopsFormat{
+			{
+				title: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)"),
+				fmt:   "uvm_fault: %[1]v",
 			},
 		},
 		[]*regexp.Regexp{},
