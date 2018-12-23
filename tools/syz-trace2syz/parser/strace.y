@@ -42,22 +42,21 @@ package parser
 %token UNFINISHED RESUMED
 %token SIGNAL_PLUS SIGNAL_MINUS NULL EQUALAT COLON FORWARDSLASH
 
-%nonassoc NOTYPE
-%nonassoc FLAG
+%nonassoc LOWEST
 %nonassoc NOFLAG
-
+%nonassoc LBRACKET_SQUARE
 
 %left OR
 %left AND
 %left LSHIFT RSHIFT
 %left PLUS
+%left MINUS
 %left TIMES
-%left MINUS ONESCOMP
+%right NEG ONESCOMP
 %left COLON
 %left ARROW
 %left EQUALS
 %left EQUALAT
-
 %%
 syscall:
     IDENTIFIER LPAREN types UNFINISHED %prec NOFLAG { $$ = NewSyscall(-1, $1, $3, int64(-1), true, false);
@@ -65,12 +64,12 @@ syscall:
     | RESUMED UNFINISHED RPAREN EQUALS QUESTION %prec NOFLAG
         {
             $$ = NewSyscall(-1, "tmp", nil, -1, true, true);
-            Stracelex.(*Stracelexer).result = $$;
+            Stracelex.(*Stracelexer).result = $$
         }
     | IDENTIFIER LPAREN RESUMED RPAREN EQUALS INT %prec NOFLAG
         {
             $$ = NewSyscall(-1, $1, nil, int64($6), false, false);
-            Stracelex.(*Stracelexer).result = $$;
+            Stracelex.(*Stracelexer).result = $$
         }
 
     | RESUMED types RPAREN EQUALS ret_type %prec NOFLAG { $$ = NewSyscall(-1, "tmp", $2, $5, false, true);
@@ -84,21 +83,21 @@ syscall:
                                                             Stracelex.(*Stracelexer).result = $$ }
     | IDENTIFIER LPAREN types RPAREN EQUALS ret_type %prec NOFLAG{
                                                         $$ = NewSyscall(-1, $1, $3, $6, false, false);
-                                                        Stracelex.(*Stracelexer).result = $$;}
+                                                        Stracelex.(*Stracelexer).result = $$}
     | IDENTIFIER LPAREN types RPAREN EQUALS QUESTION %prec NOFLAG {
                                                             $$ = NewSyscall(-1, $1, $3, -1, false, false);
-                                                            Stracelex.(*Stracelexer).result = $$;}
+                                                            Stracelex.(*Stracelexer).result = $$}
     | IDENTIFIER LPAREN types RPAREN EQUALS ret_type FLAG LPAREN parentheticals RPAREN {
                                                               $$ = NewSyscall(-1, $1, $3, $6, false, false);
-                                                              Stracelex.(*Stracelexer).result = $$;}
+                                                              Stracelex.(*Stracelexer).result = $$}
     | IDENTIFIER LPAREN types RPAREN EQUALS ret_type LPAREN parentheticals RPAREN {
                                                                   $$ = NewSyscall(-1, $1, $3, $6, false, false);
-                                                                  Stracelex.(*Stracelexer).result = $$;}
+                                                                  Stracelex.(*Stracelexer).result = $$}
     | INT syscall {call := $2; call.Pid = $1; Stracelex.(*Stracelexer).result = call}
 
 parentheticals:
-    parenthetical {$$ = nil;}
-    | parentheticals parenthetical {$$ = nil;}
+    parenthetical {$$ = nil}
+    | parentheticals parenthetical {$$ = nil}
 
 parenthetical:
     COMMA {$$=nil}
@@ -118,15 +117,16 @@ ret_type:
     | UINT {$$ = int64($1)}
     | MINUS INT {$$ = -1 * $2}
 
-types: {$$ = make([]IrType, 0)}
-    | type {$$ = []IrType{$1}}
-    | types COMMA type {$1 = append($1, $3); $$ = $1;}
+types:
+      {$$ = []IrType{}}
+    | types COMMA type {$1 = append($1, $3); $$ = $1}
+    | types type {$1 = append($1, $2); $$ = $1}
 
 type:
     buf_type {$$ = $1}
     | field_type {$$ = $1}
     | group_type {$$ = $1}
-    | constant {$$ = $1}
+    | constant %prec LOWEST {$$ = $1}
     | ONESCOMP group_type {$$ = $2}
 
 constant:
@@ -142,7 +142,7 @@ constant:
     | constant MINUS constant {$$ = $1 - $3}
     | constant PLUS constant {$$ = $1 + $3}
     | ONESCOMP constant {$$ = ^$2}
-    | MINUS constant {$$ = Constant(-int64($2))}
+    | MINUS constant %prec NEG {$$ = Constant(-int64($2))}
 
 group_type:
     LBRACKET_SQUARE types RBRACKET_SQUARE {$$ = newGroupType($2)}
@@ -150,8 +150,7 @@ group_type:
     | LBRACKET types COMMA RBRACKET {$$ = newGroupType($2)}
 
 field_type:
-    type EQUALS %prec NOTYPE {$$ = nil}
-    | type COLON type {$$ = $3}
+    type COLON type {$$ = $3}
     | type EQUALAT type {$$ = $3}
     | type EQUALS type {$$ = $3}
     | type ARROW type {$$ = $1}
@@ -159,7 +158,7 @@ field_type:
 
 buf_type:
     STRING_LITERAL {$$ = newBufferType($1)}
-    | IDENTIFIER {$$ = newBufferType($1)}
+    | IDENTIFIER %prec LOWEST {$$ = newBufferType($1)}
     | DATETIME {$$ = newBufferType($1)}
     | MAC {$$ = newBufferType($1)}
 
