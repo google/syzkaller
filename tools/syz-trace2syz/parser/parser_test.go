@@ -204,6 +204,7 @@ func TestParseGroupType(t *testing.T) {
 	tests := []irTest{
 		{`open({1, 2, 3}) = 0`},
 		{`open([1, 2, 3]) = 0`},
+		{`open([1 2 3]) = 0`},
 	}
 	for _, test := range tests {
 		tree, err := ParseData([]byte(test.test))
