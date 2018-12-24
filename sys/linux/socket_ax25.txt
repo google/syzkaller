@@ -108,6 +108,7 @@ setsockopt$ax25_SO_BINDTODEVICE(fd sock_ax25, level const[SOL_AX25], optname con
 ax25_devname [
 	rose	ax25_devname_rose
 	netrom	ax25_devname_netrom
+	bpq0	string["bpq0", IFNAMSIZ]
 ]
 
 ax25_devname_rose {

@@ -79,6 +79,7 @@ sockaddr [
 sockaddr_storage [
 	un		sockaddr_un
 	in		sockaddr_in
+	x25		sockaddr_x25
 	ax25		full_sockaddr_ax25
 	ipx		sockaddr_ipx
 	in6		sockaddr_in6
@@ -274,7 +275,9 @@ define IFREQ_SIZE	sizeof(struct ifreq)
 # between fuzzer and manager and produce lots of "no output" crashes
 # (actually, this is not true now since all testing is done in a separate
 # network namespace, but we still don't mess with eth0).
-devnames = "", "lo", "tunl0", "gre0", "gretap0", "ip_vti0", "ip6_vti0", "sit0", "ip6tnl0", "ip6gre0", "ip6gretap0", "bond0", "dummy0", "eql", "ifb0", "ipddp0", "yam0", "bcsf0", "bcsh0", "teql0", "nr0", "rose0", "irlan0", "erspan0", "bpq0", "vlan0", "bridge0", "vcan0", "team0", "syz_tun", "veth0", "veth1", "veth0_to_bridge", "veth1_to_bridge", "veth0_to_bond", "veth1_to_bond", "veth0_to_team", "veth1_to_team", "bridge_slave_0", "bridge_slave_1", "bond_slave_0", "bond_slave_1", "team_slave_0", "team_slave_1", "syzkaller0", "syzkaller1"
+# Note: lapb0, bpq0 and hwsim0 are only present in init namespace.
+# Note: for roseN and nrN we should use proc type, but for simplicity we currently use N=0.
+devnames = "", "lo", "tunl0", "gre0", "gretap0", "ip_vti0", "ip6_vti0", "sit0", "ip6tnl0", "ip6gre0", "ip6gretap0", "bond0", "dummy0", "eql", "ifb0", "ipddp0", "yam0", "bcsf0", "bcsh0", "teql0", "nr0", "rose0", "irlan0", "erspan0", "bpq0", "vlan0", "bridge0", "vcan0", "team0", "syz_tun", "veth0", "veth1", "veth0_to_bridge", "veth1_to_bridge", "veth0_to_bond", "veth1_to_bond", "veth0_to_team", "veth1_to_team", "bridge_slave_0", "bridge_slave_1", "bond_slave_0", "bond_slave_1", "team_slave_0", "team_slave_1", "syzkaller0", "syzkaller1", "lapb0", "hwsim0", "rose0", "nr0"
 
 type devname string[devnames, IFNAMSIZ]
 
