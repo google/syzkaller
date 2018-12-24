@@ -83,7 +83,6 @@ ioctl$sock_bt_bnep_BNEPGETCONNLIST(fd sock_bt_bnep, cmd const[BNEPGETCONNLIST], 
 ioctl$sock_bt_bnep_BNEPGETCONNINFO(fd sock_bt_bnep, cmd const[BNEPGETCONNINFO], arg ptr[in, bnep_conninfo])
 ioctl$sock_bt_bnep_BNEPGETSUPPFEAT(fd sock_bt_bnep, cmd const[BNEPGETSUPPFEAT], arg ptr[in, int32])
 
-ioctl$sock_bt(fd sock_bt, cmd flags[bt_ioctl], arg buffer[inout])
 setsockopt$bt_BT_SECURITY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SECURITY], arg ptr[in, bt_security], arglen len[arg])
 getsockopt$bt_BT_SECURITY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SECURITY], arg ptr[out, bt_security], arglen len[arg])
 setsockopt$bt_BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, int32], arglen len[arg])
@@ -260,7 +259,6 @@ bnep_connlist_req {
 bt_chi_chan = HCI_CHANNEL_RAW, HCI_CHANNEL_USER, HCI_CHANNEL_MONITOR, HCI_CHANNEL_CONTROL
 bt_hci_ioctl = HCIDEVUP, HCIDEVDOWN, HCIDEVRESET, HCIDEVRESTAT, HCIGETDEVLIST, HCIGETDEVINFO, HCIGETCONNLIST, HCIGETCONNINFO, HCIGETAUTHINFO, HCISETRAW, HCISETSCAN, HCISETAUTH, HCISETENCRYPT, HCISETPTYPE, HCISETLINKPOL, HCISETLINKMODE, HCISETACLMTU, HCISETSCOMTU, HCIBLOCKADDR, HCIUNBLOCKADDR, HCIINQUIRY
 bt_hci_sockopt = HCI_DATA_DIR, HCI_TIME_STAMP, HCI_FILTER
-bt_ioctl = TIOCOUTQ, TIOCINQ, SIOCGSTAMP, SIOCGSTAMPNS
 bt_l2cap_type = SOCK_SEQPACKET, SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
 bt_l2cap_lm = L2CAP_LM_MASTER, L2CAP_LM_AUTH, L2CAP_LM_ENCRYPT, L2CAP_LM_TRUSTED, L2CAP_LM_RELIABLE, L2CAP_LM_SECURE, L2CAP_LM_FIPS
 bt_rfcomm_type = SOCK_STREAM, SOCK_RAW

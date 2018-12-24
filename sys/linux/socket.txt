@@ -79,7 +79,7 @@ sockaddr [
 sockaddr_storage [
 	un		sockaddr_un
 	in		sockaddr_in
-	ax25		sockaddr_ax25
+	ax25		full_sockaddr_ax25
 	ipx		sockaddr_ipx
 	in6		sockaddr_in6
 	nl		sockaddr_nl
@@ -197,7 +197,7 @@ sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFT
 
 # http://lxr.free-electrons.com/source/include/uapi/asm-generic/sockios.h
 
-# TODO: add SIOCADDRT, SIOCDELRT, SIOCRTMSG, SIOCDRARP, SIOCGRARP, SIOCSRARP, SIOCGIFVLAN, SIOCSIFVLAN, SIOCGSTAMP, SIOCGSTAMPNS
+# TODO: add SIOCADDRT, SIOCDELRT, SIOCRTMSG, SIOCDRARP, SIOCGRARP, SIOCSRARP, SIOCGIFVLAN, SIOCSIFVLAN
 
 ioctl$sock_SIOCETHTOOL(fd sock, cmd const[SIOCETHTOOL], arg ptr[inout, ifreq_t[ptr[inout, ethtool_cmd_u]]])
 
@@ -239,6 +239,11 @@ ioctl$sock_SIOCSPGRP(fd sock, cmd const[SIOCSPGRP], arg ptr[in, pid])
 
 ioctl$sock_FIOGETOWN(fd sock, cmd const[FIOGETOWN], arg ptr[out, pid])
 ioctl$sock_SIOCGPGRP(fd sock, cmd const[SIOCGPGRP], arg ptr[out, pid])
+
+ioctl$sock_TIOCOUTQ(fd sock, cmd const[TIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_TIOCINQ(fd sock, cmd const[TIOCINQ], arg ptr[out, int32])
+ioctl$SIOCGSTAMP(fd sock, cmd const[SIOCGSTAMP], arg ptr[out, timeval])
+ioctl$SIOCGSTAMPNS(fd sock, cmd const[SIOCGSTAMPNS], arg ptr[out, timespec])
 
 resource ifindex[int32]
 

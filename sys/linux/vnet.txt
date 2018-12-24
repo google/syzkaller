@@ -316,6 +316,13 @@ type ipv4_addr_t[LAST] {
 	a3	LAST
 } [packed]
 
+ipv4_addr_initdev {
+	a0	const[0xac, int8]
+	a1	const[0x1e, int8]
+	a2	int8[0:1]
+	a3	proc[1, 1, int8]
+}
+
 ipv4_addr [
 # random
 	rand_addr	int32be
@@ -325,6 +332,7 @@ ipv4_addr [
 	local		ipv4_addr_t[const[170, int8]]
 	remote		ipv4_addr_t[const[187, int8]]
 	dev		ipv4_addr_t[netdev_addr_id]
+	initdev		ipv4_addr_initdev
 # 127.0.0.1
 	loopback	const[0x7f000001, int32be]
 # 224.0.0.1
@@ -490,6 +498,14 @@ type ipv6_addr_t[LAST] {
 	a3	LAST
 } [packed]
 
+ipv6_addr_initdev {
+	a0	const[0xfe, int8]
+	a1	const[0x88, int8]
+	a2	array[const[0x0, int8], 12]
+	a3	int8[0:1]
+	a4	proc[1, 1, int8]
+}
+
 ipv6_addr_loopback {
 	a0	const[0, int64be]
 	a1	const[1, int64be]
@@ -521,6 +537,7 @@ ipv6_addr [
 	local		ipv6_addr_t[const[0xaa, int8]]
 	remote		ipv6_addr_t[const[0xbb, int8]]
 	dev		ipv6_addr_t[netdev_addr_id]
+	initdev		ipv6_addr_initdev
 	loopback	ipv6_addr_loopback
 	ipv4		ipv6_addr_ipv4
 	mcast1		ipv6_addr_multicast1

@@ -33,8 +33,8 @@ NORETURN void doexit(int status)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS || \
-    __NR_syz_mount_image || __NR_syz_read_part_table ||              \
+#if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS ||         \
+    SYZ_ENABLE_NETDEV || __NR_syz_mount_image || __NR_syz_read_part_table || \
     (GOOS_openbsd || GOOS_freebsd) && SYZ_TUN_ENABLE
 unsigned long long procid;
 #endif
@@ -1223,6 +1223,20 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
+}
+static void initialize_netdevices_init(void)
+{
+#if SYZ_EXECUTOR
+	if (!flag_enable_net_dev)
+		return;
+#endif
+	execute_command(0, "ip link set dev nr%d address bb:bb:bb:bb:bb:00:%02hx", procid, procid);
+	execute_command(0, "ip -4 addr add 172.30.00.%d/24 dev nr%d", procid + 1, procid);
+	execute_command(0, "ip -6 addr add fe88::00:%02hx/120 dev nr%d", procid + 1, procid);
+	execute_command(0, "ip link set dev nr%d up", procid);
+	execute_command(0, "ip link set dev rose%d address bb:bb:bb:01:%02hx", procid, procid);
+	execute_command(0, "ip -4 addr add 172.30.01.%d/24 dev rose%d", procid + 1, procid);
+	execute_command(0, "ip -6 addr add fe88::01:%02hx/120 dev rose%d", procid + 1, procid);
 }
 #endif
 
@@ -3380,6 +3394,9 @@ static int do_sandbox_none(void)
 
 	setup_common();
 	sandbox_common();
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices_init();
+#endif
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
@@ -3411,6 +3428,9 @@ static int do_sandbox_setuid(void)
 
 	setup_common();
 	sandbox_common();
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices_init();
+#endif
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
@@ -3453,6 +3473,10 @@ static int namespace_sandbox_proc(void* arg)
 		fail("write of /proc/self/uid_map failed");
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
+
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices_init();
+#endif
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
