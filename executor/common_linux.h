@@ -299,6 +299,28 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
 }
+
+// Same as initialize_netdevices, but called in init net namespace.
+static void initialize_netdevices_init(void)
+{
+#if SYZ_EXECUTOR
+	if (!flag_enable_net_dev)
+		return;
+#endif
+	// Note: syscall descriptions know these addresses.
+	// NETROM device, address 7 bytes (AX25_ADDR_LEN), see net/netrom/{af_netrom,nr_dev}.c
+	execute_command(0, "ip link set dev nr%d address bb:bb:bb:bb:bb:00:%02hx", procid, procid);
+	execute_command(0, "ip -4 addr add 172.30.00.%d/24 dev nr%d", procid + 1, procid);
+	execute_command(0, "ip -6 addr add fe88::00:%02hx/120 dev nr%d", procid + 1, procid);
+	execute_command(0, "ip link set dev nr%d up", procid);
+	// ROSE device, address 5 bytes (ROSE_ADDR_LEN), see net/rose/{af_rose,rose_dev}.c
+	execute_command(0, "ip link set dev rose%d address bb:bb:bb:01:%02hx", procid, procid);
+	execute_command(0, "ip -4 addr add 172.30.01.%d/24 dev rose%d", procid + 1, procid);
+	execute_command(0, "ip -6 addr add fe88::01:%02hx/120 dev rose%d", procid + 1, procid);
+	// We don't up because it crashes kernel:
+	// https://groups.google.com/d/msg/syzkaller/v-4B3zoBC-4/02SCKEzJBwAJ
+	// execute_command(0, "ip link set dev rose%d up", procid);
+}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
@@ -1570,6 +1592,9 @@ static int do_sandbox_none(void)
 
 	setup_common();
 	sandbox_common();
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices_init();
+#endif
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
@@ -1601,6 +1626,9 @@ static int do_sandbox_setuid(void)
 
 	setup_common();
 	sandbox_common();
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices_init();
+#endif
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
@@ -1650,6 +1678,9 @@ static int namespace_sandbox_proc(void* arg)
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	initialize_netdevices_init();
+#endif
 	// CLONE_NEWNET must always happen before tun setup,
 	// because we want the tun device in the test namespace.
 	if (unshare(CLONE_NEWNET))
