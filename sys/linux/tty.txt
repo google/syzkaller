@@ -5,6 +5,7 @@ include <asm/ioctls.h>
 include <uapi/linux/kd.h>
 include <uapi/linux/vt.h>
 include <uapi/linux/fcntl.h>
+include <uapi/linux/tty.h>
 
 resource fd_tty[fd]
 
@@ -41,7 +42,7 @@ ioctl$TIOCGSID(fd fd_tty, cmd const[TIOCGSID], arg ptr[out, pid])
 ioctl$TIOCEXCL(fd fd_tty, cmd const[TIOCEXCL])
 ioctl$TIOCNXCL(fd fd_tty, cmd const[TIOCNXCL])
 ioctl$TIOCGETD(fd fd_tty, cmd const[TIOCGETD], arg ptr[out, int32])
-ioctl$TIOCSETD(fd fd_tty, cmd const[TIOCSETD], arg ptr[in, int32])
+ioctl$TIOCSETD(fd fd_tty, cmd const[TIOCSETD], arg ptr[in, int32[N_TTY:N_NULL]])
 ioctl$TIOCPKT(fd fd_tty, cmd const[TIOCPKT], arg ptr[in, int32])
 ioctl$TIOCMGET(fd fd_tty, cmd const[TIOCMGET], arg ptr[out, int32])
 ioctl$TIOCMSET(fd fd_tty, cmd const[TIOCMSET], arg ptr[in, int32])
@@ -112,7 +113,7 @@ termios {
 	oflag	int32
 	cflag	int32
 	lflag	int32
-	line	int8
+	line	int8[N_TTY:N_NULL]
 	cc0	int8
 	cc1	int8
 	cc2	int8
@@ -127,7 +128,7 @@ termio {
 	oflag	int16
 	cflag	int16
 	lflag	int16
-	line	int8
+	line	int8[N_TTY:N_NULL]
 	cc0	int8
 	cc1	int8
 	cc2	int8

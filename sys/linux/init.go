@@ -30,6 +30,7 @@ func InitTarget(target *prog.Target) {
 		AF_NFC:                    target.GetConst("AF_NFC"),
 		AF_LLC:                    target.GetConst("AF_LLC"),
 		AF_BLUETOOTH:              target.GetConst("AF_BLUETOOTH"),
+		AF_X25:                    target.GetConst("AF_X25"),
 		AF_AX25:                   target.GetConst("AF_AX25"),
 		AF_NETROM:                 target.GetConst("AF_NETROM"),
 		AF_ROSE:                   target.GetConst("AF_ROSE"),
@@ -114,6 +115,7 @@ type arch struct {
 	AF_NFC                    uint64
 	AF_LLC                    uint64
 	AF_BLUETOOTH              uint64
+	AF_X25                    uint64
 	AF_AX25                   uint64
 	AF_NETROM                 uint64
 	AF_ROSE                   uint64
@@ -183,7 +185,7 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		family := c.Args[0].(*prog.ConstArg)
 		switch uint64(uint32(family.Val)) {
 		case arch.AF_NFC, arch.AF_LLC, arch.AF_BLUETOOTH,
-			arch.AF_AX25, arch.AF_NETROM, arch.AF_ROSE:
+			arch.AF_X25, arch.AF_AX25, arch.AF_NETROM, arch.AF_ROSE:
 		default:
 			family.Val = ^uint64(0)
 		}
