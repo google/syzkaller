@@ -1,0 +1,17 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_GENERIC/drop monitor support.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/net_dropmon.h>
+
+resource genl_net_dm_family_id[int16]
+type msghdr_nl_net_dm[CMD] msghdr_netlink[netlink_msg_t[genl_net_dm_family_id, genlmsghdr_t[CMD], void]]
+
+syz_genetlink_get_family_id$net_dm(name ptr[in, string["NET_DM"]]) genl_net_dm_family_id
+
+sendmsg$NET_DM_CMD_START(fd sock_nl_generic, msg ptr[in, msghdr_nl_net_dm[NET_DM_CMD_START]], f flags[send_flags])
+sendmsg$NET_DM_CMD_STOP(fd sock_nl_generic, msg ptr[in, msghdr_nl_net_dm[NET_DM_CMD_STOP]], f flags[send_flags])
