@@ -145,9 +145,13 @@ mlock2(addr vma, size len[addr], flags flags[mlock_flags])
 munlock(addr vma, size len[addr])
 mlockall(flags flags[mlockall_flags])
 munlockall()
-memfd_create(name ptr[in, string], flags flags[memfd_flags]) fd
 kcmp(pid1 pid, pid2 pid, type flags[kcmp_flags], fd1 fd, fd2 fd)
 kcmp$KCMP_EPOLL_TFD(pid1 pid, pid2 pid, type const[KCMP_EPOLL_TFD], fd1 fd, idx2 ptr[in, kcmp_epoll_slot])
+
+resource fd_memfd[fd]
+memfd_create(name ptr[in, string], flags flags[memfd_flags]) fd_memfd
+memfd_flags = MFD_CLOEXEC, MFD_ALLOW_SEALING, MFD_HUGETLB
+_ = MFD_HUGE_SHIFT, MFD_HUGE_MASK, MFD_HUGE_64KB, MFD_HUGE_512KB, MFD_HUGE_1MB, MFD_HUGE_2MB, MFD_HUGE_8MB, MFD_HUGE_16MB
 
 resource pkey[int32]: -1
 pkey_alloc(flags const[0], val flags[pkey_flags]) pkey
@@ -849,8 +853,6 @@ mmap_flags = MAP_SHARED, MAP_PRIVATE, MAP_32BIT, MAP_ANONYMOUS, MAP_DENYWRITE, M
 mremap_flags = MREMAP_MAYMOVE, MREMAP_FIXED
 mbind_mode = MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE, MPOL_PREFERRED, MPOL_F_STATIC_NODES, MPOL_F_RELATIVE_NODES
 mbind_flags = MPOL_MF_STRICT, MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
-memfd_flags = MFD_CLOEXEC, MFD_ALLOW_SEALING, MFD_HUGETLB
-_ = MFD_HUGE_SHIFT, MFD_HUGE_MASK, MFD_HUGE_64KB, MFD_HUGE_512KB, MFD_HUGE_1MB, MFD_HUGE_2MB, MFD_HUGE_8MB, MFD_HUGE_16MB
 pipe_flags = O_NONBLOCK, O_CLOEXEC, O_DIRECT
 mlock_flags = MLOCK_ONFAULT
 mlockall_flags = MCL_CURRENT, MCL_FUTURE, MCL_ONFAULT
