@@ -177,7 +177,7 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
-	rep := inst.MonitorExecution(outc, errc, mgr.reporter, true)
+	rep := inst.MonitorExecution(outc, errc, mgr.reporter, vm.ExitNormal)
 	return rep, nil
 }
 

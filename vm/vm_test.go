@@ -83,7 +83,7 @@ func init() {
 
 type Test struct {
 	Name           string
-	CanExit        bool // if the program is allowed to exit normally
+	Exit           ExitCondition
 	DiagnoseBug    bool // Diagnose produces output that is detected as kernel crash
 	DiagnoseNoWait bool // Diagnose returns output directly rather than to console
 	Body           func(outc chan []byte, errc chan error)
@@ -92,8 +92,8 @@ type Test struct {
 
 var tests = []*Test{
 	{
-		Name:    "program-exits-normally",
-		CanExit: true,
+		Name: "program-exits-normally",
+		Exit: ExitNormal,
 		Body: func(outc chan []byte, errc chan error) {
 			time.Sleep(time.Second)
 			errc <- nil
@@ -111,7 +111,7 @@ var tests = []*Test{
 	},
 	{
 		Name:        "#875-diagnose-bugs",
-		CanExit:     true,
+		Exit:        ExitNormal,
 		DiagnoseBug: true,
 		Body: func(outc chan []byte, errc chan error) {
 			errc <- nil
@@ -166,8 +166,8 @@ var tests = []*Test{
 		},
 	},
 	{
-		Name:    "program-exits-but-kernel-crashes-afterwards",
-		CanExit: true,
+		Name: "program-exits-but-kernel-crashes-afterwards",
+		Exit: ExitNormal,
 		Body: func(outc chan []byte, errc chan error) {
 			errc <- nil
 			time.Sleep(time.Second)
@@ -183,8 +183,18 @@ var tests = []*Test{
 	},
 	{
 		Name: "timeout",
+		Exit: ExitTimeout,
 		Body: func(outc chan []byte, errc chan error) {
 			errc <- vmimpl.ErrTimeout
+		},
+	},
+	{
+		Name: "bad-timeout",
+		Body: func(outc chan []byte, errc chan error) {
+			errc <- vmimpl.ErrTimeout
+		},
+		Report: &report.Report{
+			Title: timeoutCrash,
 		},
 	},
 	{
@@ -194,6 +204,13 @@ var tests = []*Test{
 		},
 		Report: &report.Report{
 			Title: lostConnectionCrash,
+		},
+	},
+	{
+		Name: "program-crashes-expected",
+		Exit: ExitError,
+		Body: func(outc chan []byte, errc chan error) {
+			errc <- fmt.Errorf("error")
 		},
 	},
 	{
@@ -217,8 +234,8 @@ var tests = []*Test{
 		},
 	},
 	{
-		Name:    "no-no-output-1",
-		CanExit: true,
+		Name: "no-no-output-1",
+		Exit: ExitNormal,
 		Body: func(outc chan []byte, errc chan error) {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
@@ -228,8 +245,8 @@ var tests = []*Test{
 		},
 	},
 	{
-		Name:    "no-no-output-2",
-		CanExit: true,
+		Name: "no-no-output-2",
+		Exit: ExitNormal,
 		Body: func(outc chan []byte, errc chan error) {
 			for i := 0; i < 5; i++ {
 				time.Sleep(time.Second)
@@ -239,8 +256,8 @@ var tests = []*Test{
 		},
 	},
 	{
-		Name:    "outc-closed",
-		CanExit: true,
+		Name: "outc-closed",
+		Exit: ExitTimeout,
 		Body: func(outc chan []byte, errc chan error) {
 			close(outc)
 			time.Sleep(time.Second)
@@ -248,8 +265,8 @@ var tests = []*Test{
 		},
 	},
 	{
-		Name:    "lots-of-output",
-		CanExit: true,
+		Name: "lots-of-output",
+		Exit: ExitTimeout,
 		Body: func(outc chan []byte, errc chan error) {
 			for i := 0; i < 100; i++ {
 				outc <- []byte("something\n")
@@ -308,7 +325,7 @@ func testMonitorExecution(t *testing.T, test *Test) {
 		test.Body(testInst.outc, testInst.errc)
 		done <- true
 	}()
-	rep := inst.MonitorExecution(outc, errc, reporter, test.CanExit)
+	rep := inst.MonitorExecution(outc, errc, reporter, test.Exit)
 	<-done
 	if test.Report != nil && rep == nil {
 		t.Fatalf("got no report")

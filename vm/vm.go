@@ -135,19 +135,30 @@ func (inst *Instance) Close() {
 	os.RemoveAll(inst.workdir)
 }
 
+type ExitCondition int
+
+const (
+	// The program is allowed to exit after timeout.
+	ExitTimeout = ExitCondition(1 << iota)
+	// The program is allowed to exit with no errors.
+	ExitNormal
+	// The program is allowed to exit with errors.
+	ExitError
+)
+
 // MonitorExecution monitors execution of a program running inside of a VM.
 // It detects kernel oopses in output, lost connections, hangs, etc.
 // outc/errc is what vm.Instance.Run returns, reporter parses kernel output for oopses.
-// If canExit is false and the program exits, it is treated as an error.
+// Exit says which exit modes should be considered as errors/OK.
 // Returns a non-symbolized crash report, or nil if no error happens.
 func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
-	reporter report.Reporter, canExit bool) (rep *report.Report) {
+	reporter report.Reporter, exit ExitCondition) (rep *report.Report) {
 	mon := &monitor{
 		inst:     inst,
 		outc:     outc,
 		errc:     errc,
 		reporter: reporter,
-		canExit:  canExit,
+		exit:     exit,
 	}
 	lastExecuteTime := time.Now()
 	ticker := time.NewTicker(tickerPeriod)
@@ -159,13 +170,24 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			case nil:
 				// The program has exited without errors,
 				// but wait for kernel output in case there is some delayed oops.
-				return mon.extractError("")
+				crash := ""
+				if mon.exit&ExitNormal == 0 {
+					crash = lostConnectionCrash
+				}
+				return mon.extractError(crash)
 			case ErrTimeout:
+				if mon.exit&ExitTimeout == 0 {
+					return mon.extractError(timeoutCrash)
+				}
 				return nil
 			default:
 				// Note: connection lost can race with a kernel oops message.
 				// In such case we want to return the kernel oops.
-				return mon.extractError(lostConnectionCrash)
+				crash := ""
+				if mon.exit&ExitError == 0 {
+					crash = lostConnectionCrash
+				}
+				return mon.extractError(crash)
 			}
 		case out, ok := <-outc:
 			if !ok {
@@ -229,14 +251,13 @@ type monitor struct {
 	outc     <-chan []byte
 	errc     <-chan error
 	reporter report.Reporter
-	canExit  bool
+	exit     ExitCondition
 	output   []byte
 	matchPos int
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
-	crashed := defaultError != "" || !mon.canExit
-	if crashed {
+	if defaultError != "" {
 		// N.B. we always wait below for other errors.
 		diag, _ := mon.inst.Diagnose()
 		if len(diag) > 0 {
@@ -251,10 +272,7 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 	}
 	if !mon.reporter.ContainsCrash(mon.output[mon.matchPos:]) {
 		if defaultError == "" {
-			if mon.canExit {
-				return nil
-			}
-			defaultError = lostConnectionCrash
+			return nil
 		}
 		rep := &report.Report{
 			Title:      defaultError,
@@ -263,7 +281,7 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 		}
 		return rep
 	}
-	if !crashed {
+	if defaultError == "" {
 		diag, wait := mon.inst.Diagnose()
 		if len(diag) > 0 {
 			mon.output = append(mon.output, "DIAGNOSIS:\n"...)
@@ -314,6 +332,7 @@ const (
 
 	lostConnectionCrash  = "lost connection to test machine"
 	noOutputCrash        = "no output from test machine"
+	timeoutCrash         = "timed out"
 	executingProgramStr1 = "executing program"  // syz-fuzzer output
 	executingProgramStr2 = "executed programs:" // syz-execprog output
 	fuzzerPreemptedStr   = "SYZ-FUZZER: PREEMPTED"

@@ -265,11 +265,11 @@ func (inst *inst) testInstance() error {
 
 	cmd := FuzzerCmd(fuzzerBin, executorBin, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
 		inst.cfg.Sandbox, 0, 0, false, false, true, false)
-	outc, errc, err := inst.vm.Run(5*time.Minute, nil, cmd)
+	outc, errc, err := inst.vm.Run(10*time.Minute, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
 	}
-	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, true)
+	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, vm.ExitNormal)
 	if rep != nil {
 		if err := inst.reporter.Symbolize(rep); err != nil {
 			// TODO(dvyukov): send such errors to dashboard.
@@ -350,7 +350,8 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
 	}
-	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter, true)
+	rep := inst.vm.MonitorExecution(outc, errc, inst.reporter,
+		vm.ExitTimeout|vm.ExitNormal|vm.ExitError)
 	if rep == nil {
 		return nil
 	}
