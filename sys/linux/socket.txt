@@ -103,6 +103,7 @@ sockaddr_storage [
 	vsock		sockaddr_vm
 	xdp		sockaddr_xdp
 	tipc		sockaddr_tipc
+	caif		sockaddr_caif
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_storage_generic
 ] [size[SOCKADDR_STORAGE_SIZE]]

@@ -1,0 +1,51 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <uapi/linux/caif/caif_socket.h>
+
+resource sock_caif[sock]
+
+socket$caif_seqpacket(domain const[AF_CAIF], type const[SOCK_SEQPACKET], proto int32[CAIFPROTO_AT:CAIFPROTO_DEBUG]) sock_caif
+socket$caif_stream(domain const[AF_CAIF], type const[SOCK_STREAM], proto int32[CAIFPROTO_AT:CAIFPROTO_DEBUG]) sock_caif
+connect$caif(fd sock_caif, addr ptr[in, sockaddr_caif], addrlen len[addr])
+setsockopt$CAIFSO_LINK_SELECT(fd sock_caif, level const[SOL_CAIF], opt const[CAIFSO_LINK_SELECT], arg ptr[in, int32], arglen len[arg])
+setsockopt$CAIFSO_REQ_PARAM(fd sock_caif, level const[SOL_CAIF], opt const[CAIFSO_REQ_PARAM], arg ptr[in, array[int8, 0:256]], arglen len[arg])
+
+sockaddr_caif [
+	at	sockaddr_caif_at
+	util	sockaddr_caif_util
+	dgm	sockaddr_caif_dgm
+	rfm	sockaddr_caif_rfm
+	dbg	sockaddr_caif_dbg
+]
+
+sockaddr_caif_at {
+	family	const[AF_CAIF, int16]
+	type	const[CAIF_ATTYPE_PLAIN, int8]
+}
+
+sockaddr_caif_util {
+	family	const[AF_CAIF, int16]
+# TODO: what is caif service?
+	service	array[int8, 16]
+}
+
+sockaddr_caif_dgm {
+	family		const[AF_CAIF, int16]
+	connection_id	int32
+	nsapi		int8
+}
+
+sockaddr_caif_rfm {
+	family		const[AF_CAIF, int16]
+	connection_id	int32
+	volume		array[int8, 16]
+}
+
+sockaddr_caif_dbg {
+	family	const[AF_CAIF, int16]
+	type	int8
+	service	int8
+}
