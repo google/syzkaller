@@ -20,13 +20,13 @@ type RPCServer struct {
 	s  *rpc.Server
 }
 
-func NewRPCServer(addr string, receiver interface{}) (*RPCServer, error) {
+func NewRPCServer(addr, name string, receiver interface{}) (*RPCServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on %v: %v", addr, err)
 	}
 	s := rpc.NewServer()
-	if err := s.Register(receiver); err != nil {
+	if err := s.RegisterName(name, receiver); err != nil {
 		return nil, err
 	}
 	serv := &RPCServer{

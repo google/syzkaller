@@ -261,7 +261,7 @@ func splitTarget(target string) (string, string, string, error) {
 	return os, vmarch, arch, nil
 }
 
-func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) (map[int]bool, error) {
+func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]int, error) {
 	syscalls := make(map[int]bool)
 	if len(enabled) != 0 {
 		for _, c := range enabled {
@@ -296,7 +296,11 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) (map[
 	if len(syscalls) == 0 {
 		return nil, fmt.Errorf("all syscalls are disabled by disable_syscalls in config")
 	}
-	return syscalls, nil
+	var arr []int
+	for id := range syscalls {
+		arr = append(arr, id)
+	}
+	return arr, nil
 }
 
 func matchSyscall(name, pattern string) bool {

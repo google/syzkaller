@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -101,14 +102,17 @@ func (mgr *Manager) collectStats() []UIStat {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
+	rawStats := mgr.stats.all()
 	stats := []UIStat{
 		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
 		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
 		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus)), Link: "/corpus"},
 		{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))},
-		{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"},
-		{Name: "signal", Value: fmt.Sprint(mgr.corpusSignal.Len())},
+		{Name: "cover", Value: fmt.Sprint(rawStats["cover"]), Link: "/cover"},
+		{Name: "signal", Value: fmt.Sprint(rawStats["signal"])},
 	}
+	delete(rawStats, "cover")
+	delete(rawStats, "signal")
 	if mgr.checkResult != nil {
 		stats = append(stats, UIStat{
 			Name:  "syscalls",
@@ -121,9 +125,7 @@ func (mgr *Manager) collectStats() []UIStat {
 	if !mgr.firstConnect.IsZero() {
 		secs = uint64(time.Since(mgr.firstConnect))/1e9 + 1
 	}
-
-	intStats := convertStats(mgr.stats.all(), secs)
-	intStats = append(intStats, convertStats(mgr.fuzzerStats, secs)...)
+	intStats := convertStats(rawStats, secs)
 	sort.Slice(intStats, func(i, j int) bool {
 		return intStats[i].Name < intStats[j].Name
 	})
@@ -254,8 +256,12 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpCoverFallback(w http.ResponseWriter, r *http.Request) {
+	var maxSignal signal.Signal
+	for _, inp := range mgr.corpus {
+		maxSignal.Merge(inp.Signal.Deserialize())
+	}
 	calls := make(map[int][]int)
-	for s := range mgr.maxSignal {
+	for s := range maxSignal {
 		id, errno := prog.DecodeFallbackSignal(uint32(s))
 		calls[id] = append(calls[id], errno)
 	}
