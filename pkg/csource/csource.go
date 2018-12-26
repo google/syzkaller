@@ -405,8 +405,8 @@ func (ctx *context) postProcess(result []byte) []byte {
 		result = regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`).ReplaceAll(result, []byte("$1;\n"))
 	}
 	result = bytes.Replace(result, []byte("NORETURN"), nil, -1)
-	result = bytes.Replace(result, []byte("PRINTF"), nil, -1)
 	result = bytes.Replace(result, []byte("doexit("), []byte("exit("), -1)
+	result = regexp.MustCompile(`PRINTF\(.*?\)`).ReplaceAll(result, nil)
 	result = regexp.MustCompile(`\t*debug\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
 	result = regexp.MustCompile(`\t*debug_dump_data\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
 	result = regexp.MustCompile(`\t*exitf\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
