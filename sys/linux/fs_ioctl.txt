@@ -28,7 +28,7 @@ ioctl$FS_IOC_SET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_SET_ENCRYPTION_POLICY
 ioctl$FS_IOC_GET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_POLICY], arg ptr[out, array[int8, 16]])
 ioctl$FS_IOC_GET_ENCRYPTION_PWSALT(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_PWSALT], arg ptr[out, fscrypt_policy])
 ioctl$FS_IOC_GETFSMAP(fd fd, cmd const[FS_IOC_GETFSMAP], arg ptr[in, fsmap_head])
-ioctl$FS_IOC_ENABLE_VERITY(fd fd, cmd const[FS_IOC_ENABLE_VERITY])
+ioctl$FS_IOC_ENABLE_VERITY(fd fd, cmd const[FS_IOC_ENABLE_VERITY], arg const[0])
 ioctl$FS_IOC_MEASURE_VERITY(fd fd, cmd const[FS_IOC_MEASURE_VERITY], arg ptr[inout, fsverity_digest])
 
 fscrypt_policy {
