@@ -662,7 +662,7 @@ retry:
 		uint64 args[kMaxArgs] = {};
 		for (uint64 i = 0; i < num_args; i++)
 			args[i] = read_arg(&input_pos);
-		for (uint64 i = num_args; i < 6; i++)
+		for (uint64 i = num_args; i < kMaxArgs; i++)
 			args[i] = 0;
 		thread_t* th = schedule_call(call_index++, call_num, colliding, copyout_index,
 					     num_args, args, input_pos);
