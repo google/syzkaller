@@ -37,6 +37,11 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 
 #if GOOS_freebsd
 
+// TODO(mptre): once kcov is merged to FreeBSD[1], just include sys/kcov.h for
+// both FreeBSD and OpenBSD.
+//
+// [1] https://reviews.freebsd.org/D14599
+
 #define KIOENABLE _IOW('c', 2, int) // Enable coverage recording
 #define KIODISABLE _IO('c', 3) // Disable coverage recording
 #define KIOSETBUFSIZE _IOW('c', 4, unsigned int) // Set the buffer size
@@ -47,9 +52,7 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 
 #elif GOOS_openbsd
 
-#define KIOSETBUFSIZE _IOW('K', 1, unsigned long)
-#define KIOENABLE _IO('K', 2)
-#define KIODISABLE _IO('K', 3)
+#include <sys/kcov.h>
 
 #endif
 
