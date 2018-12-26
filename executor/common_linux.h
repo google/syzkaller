@@ -89,7 +89,7 @@ static void vsnprintf_check(char* str, size_t size, const char* format, va_list 
 #define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
 #define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
 
-static void execute_command(bool panic, const char* format, ...)
+static PRINTF(2, 3) void execute_command(bool panic, const char* format, ...)
 {
 	va_list args;
 	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
@@ -251,8 +251,32 @@ static void initialize_netdevices(void)
 	if (!flag_enable_net_dev)
 		return;
 #endif
-	unsigned i;
-	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "team"};
+	// TODO: add the following devices:
+	// - vlan
+	// - vxlan
+	// - macvlan
+	// - ipvlan
+	// - macsec
+	// - ipip
+	// - lowpan
+	// - ipoib
+	// - geneve
+	// - vrf
+	// - rmnet
+	// - openvswitch
+	// Naive attempts to add devices of these types fail with various errors.
+	// Also init namespace contains the following devices (which presumably can't be
+	// created in non-init namespace), can we use them somehow?
+	// - ifb0/1
+	// - wpan0/1
+	// - hwsim0
+	// - teql0
+	// - eql
+	char netdevsim[16];
+	sprintf(netdevsim, "netdevsim%d", (int)procid);
+	const char* devtypes[] = {"ip6gretap", "ip6erspan", "bridge", "vcan",
+				  "bond", "team", "dummy", "nlmon", "caif", "batadv"};
+	const char* devmasters[] = {"bridge", "bond", "team"};
 	// If you extend this array, also update netdev_addr_id in vnet.txt.
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
 				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
@@ -260,11 +284,17 @@ static void initialize_netdevices(void)
 				  "erspan0", "bond0", "veth0", "veth1", "team0",
 				  "veth0_to_bridge", "veth1_to_bridge",
 				  "veth0_to_bond", "veth1_to_bond",
-				  "veth0_to_team", "veth1_to_team"};
-	const char* devmasters[] = {"bridge", "bond", "team"};
-
+				  "veth0_to_team", "veth1_to_team",
+				  "veth0_to_hsr", "veth1_to_hsr", "hsr0",
+				  "ip6erspan0", "dummy0", "nlmon0", "vxcan1",
+				  "caif0", "batadv0", netdevsim};
+	unsigned i;
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
+	// Note: adding device vxcan0 fails.
+	execute_command(0, "ip link add dev vxcan1 type vxcan");
+	// Note: netdevsim devices can't have the same name even in different namespaces.
+	execute_command(0, "ip link add dev %s type netdevsim", netdevsim);
 	// This adds connected veth0 and veth1 devices.
 	execute_command(0, "ip link add type veth");
 
@@ -277,13 +307,17 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link add name %s_slave_1 type veth peer name veth1_to_%s", devmasters[i], devmasters[i]);
 		execute_command(0, "ip link set %s_slave_0 master %s0", devmasters[i], devmasters[i]);
 		execute_command(0, "ip link set %s_slave_1 master %s0", devmasters[i], devmasters[i]);
-		execute_command(0, "ip link set veth0_to_%s up", devmasters[i]);
-		execute_command(0, "ip link set veth1_to_%s up", devmasters[i]);
 	}
 	// bond/team_slave_* will set up automatically when set their master.
 	// But bridge_slave_* need to set up manually.
 	execute_command(0, "ip link set bridge_slave_0 up");
 	execute_command(0, "ip link set bridge_slave_1 up");
+	// Setup hsr device (slightly different from what we do for devmasters).
+	execute_command(0, "ip link add name hsr_slave_0 type veth peer name veth0_to_hsr");
+	execute_command(0, "ip link add name hsr_slave_1 type veth peer name veth1_to_hsr");
+	execute_command(0, "ip link add dev hsr0 type hsr slave1 hsr_slave_0 slave2 hsr_slave_1");
+	execute_command(0, "ip link set hsr_slave_0 up");
+	execute_command(0, "ip link set hsr_slave_1 up");
 
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
 		char addr[32];
@@ -295,6 +329,7 @@ static void initialize_netdevices(void)
 		snprintf_check(addr, sizeof(addr), DEV_IPV6, i + 10);
 		execute_command(0, "ip -6 addr add %s/120 dev %s", addr, devnames[i]);
 		snprintf_check(addr, sizeof(addr), DEV_MAC, i + 10);
+		// TODO: double-check sizes of addresses, some devices want 4/5/7/16-byte addresses.
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
@@ -307,19 +342,20 @@ static void initialize_netdevices_init(void)
 	if (!flag_enable_net_dev)
 		return;
 #endif
+	int pid = procid;
 	// Note: syscall descriptions know these addresses.
 	// NETROM device, address 7 bytes (AX25_ADDR_LEN), see net/netrom/{af_netrom,nr_dev}.c
-	execute_command(0, "ip link set dev nr%d address bb:bb:bb:bb:bb:00:%02hx", procid, procid);
-	execute_command(0, "ip -4 addr add 172.30.00.%d/24 dev nr%d", procid + 1, procid);
-	execute_command(0, "ip -6 addr add fe88::00:%02hx/120 dev nr%d", procid + 1, procid);
-	execute_command(0, "ip link set dev nr%d up", procid);
+	execute_command(0, "ip link set dev nr%d address bb:bb:bb:bb:bb:00:%02hx", pid, pid);
+	execute_command(0, "ip -4 addr add 172.30.00.%d/24 dev nr%d", pid + 1, pid);
+	execute_command(0, "ip -6 addr add fe88::00:%02hx/120 dev nr%d", pid + 1, pid);
+	execute_command(0, "ip link set dev nr%d up", pid);
 	// ROSE device, address 5 bytes (ROSE_ADDR_LEN), see net/rose/{af_rose,rose_dev}.c
-	execute_command(0, "ip link set dev rose%d address bb:bb:bb:01:%02hx", procid, procid);
-	execute_command(0, "ip -4 addr add 172.30.01.%d/24 dev rose%d", procid + 1, procid);
-	execute_command(0, "ip -6 addr add fe88::01:%02hx/120 dev rose%d", procid + 1, procid);
+	execute_command(0, "ip link set dev rose%d address bb:bb:bb:01:%02hx", pid, pid);
+	execute_command(0, "ip -4 addr add 172.30.01.%d/24 dev rose%d", pid + 1, pid);
+	execute_command(0, "ip -6 addr add fe88::01:%02hx/120 dev rose%d", pid + 1, pid);
 	// We don't up because it crashes kernel:
 	// https://groups.google.com/d/msg/syzkaller/v-4B3zoBC-4/02SCKEzJBwAJ
-	// execute_command(0, "ip link set dev rose%d up", procid);
+	// execute_command(0, "ip link set dev rose%d up", pid);
 }
 #endif
 

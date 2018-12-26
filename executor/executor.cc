@@ -21,13 +21,13 @@
 #define SYSCALLAPI
 #define NORETURN __attribute__((noreturn))
 #define ALIGNED(N) __attribute__((aligned(N)))
-#define PRINTF __attribute__((format(printf, 1, 2)))
+#define PRINTF(fmt, args) __attribute__((format(printf, fmt, args)))
 #else
 // Assuming windows/cl.
 #define SYSCALLAPI WINAPI
 #define NORETURN __declspec(noreturn)
 #define ALIGNED(N) __declspec(align(N))
-#define PRINTF
+#define PRINTF(fmt, args)
 #endif
 
 #ifndef GIT_REVISION
@@ -63,15 +63,15 @@ const int kRetryStatus = 69;
 const int kErrorStatus = 68;
 
 // Logical error (e.g. invalid input program), use as an assert() alternative.
-static NORETURN PRINTF void fail(const char* msg, ...);
+static NORETURN PRINTF(1, 2) void fail(const char* msg, ...);
 // Kernel error (e.g. wrong syscall return value).
-NORETURN PRINTF void error(const char* msg, ...);
+NORETURN PRINTF(1, 2) void error(const char* msg, ...);
 // Just exit (e.g. due to temporal ENOMEM error).
-static NORETURN PRINTF void exitf(const char* msg, ...);
+static NORETURN PRINTF(1, 2) void exitf(const char* msg, ...);
 static NORETURN void doexit(int status);
 
 // Print debug output, does not add \n at the end of msg as opposed to the previous functions.
-static PRINTF void debug(const char* msg, ...);
+static PRINTF(1, 2) void debug(const char* msg, ...);
 void debug_dump_data(const char* data, int length);
 
 #if 0

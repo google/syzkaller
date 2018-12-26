@@ -1050,7 +1050,7 @@ static void vsnprintf_check(char* str, size_t size, const char* format, va_list 
 #define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
 #define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
 
-static void execute_command(bool panic, const char* format, ...)
+static PRINTF(2, 3) void execute_command(bool panic, const char* format, ...)
 {
 	va_list args;
 	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
@@ -1188,30 +1188,40 @@ static void initialize_netdevices(void)
 	if (!flag_enable_net_dev)
 		return;
 #endif
-	unsigned i;
-	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "team"};
+	char netdevsim[16];
+	sprintf(netdevsim, "netdevsim%d", (int)procid);
+	const char* devtypes[] = {"ip6gretap", "ip6erspan", "bridge", "vcan",
+				  "bond", "team", "dummy", "nlmon", "caif", "batadv"};
+	const char* devmasters[] = {"bridge", "bond", "team"};
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
 				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
 				  "ip6tnl0", "ip6gre0", "ip6gretap0",
 				  "erspan0", "bond0", "veth0", "veth1", "team0",
 				  "veth0_to_bridge", "veth1_to_bridge",
 				  "veth0_to_bond", "veth1_to_bond",
-				  "veth0_to_team", "veth1_to_team"};
-	const char* devmasters[] = {"bridge", "bond", "team"};
-
+				  "veth0_to_team", "veth1_to_team",
+				  "veth0_to_hsr", "veth1_to_hsr", "hsr0",
+				  "ip6erspan0", "dummy0", "nlmon0", "vxcan1",
+				  "caif0", "batadv0", netdevsim};
+	unsigned i;
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
+	execute_command(0, "ip link add dev vxcan1 type vxcan");
+	execute_command(0, "ip link add dev %s type netdevsim", netdevsim);
 	execute_command(0, "ip link add type veth");
 	for (i = 0; i < sizeof(devmasters) / (sizeof(devmasters[0])); i++) {
 		execute_command(0, "ip link add name %s_slave_0 type veth peer name veth0_to_%s", devmasters[i], devmasters[i]);
 		execute_command(0, "ip link add name %s_slave_1 type veth peer name veth1_to_%s", devmasters[i], devmasters[i]);
 		execute_command(0, "ip link set %s_slave_0 master %s0", devmasters[i], devmasters[i]);
 		execute_command(0, "ip link set %s_slave_1 master %s0", devmasters[i], devmasters[i]);
-		execute_command(0, "ip link set veth0_to_%s up", devmasters[i]);
-		execute_command(0, "ip link set veth1_to_%s up", devmasters[i]);
 	}
 	execute_command(0, "ip link set bridge_slave_0 up");
 	execute_command(0, "ip link set bridge_slave_1 up");
+	execute_command(0, "ip link add name hsr_slave_0 type veth peer name veth0_to_hsr");
+	execute_command(0, "ip link add name hsr_slave_1 type veth peer name veth1_to_hsr");
+	execute_command(0, "ip link add dev hsr0 type hsr slave1 hsr_slave_0 slave2 hsr_slave_1");
+	execute_command(0, "ip link set hsr_slave_0 up");
+	execute_command(0, "ip link set hsr_slave_1 up");
 
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
 		char addr[32];
@@ -1230,13 +1240,14 @@ static void initialize_netdevices_init(void)
 	if (!flag_enable_net_dev)
 		return;
 #endif
-	execute_command(0, "ip link set dev nr%d address bb:bb:bb:bb:bb:00:%02hx", procid, procid);
-	execute_command(0, "ip -4 addr add 172.30.00.%d/24 dev nr%d", procid + 1, procid);
-	execute_command(0, "ip -6 addr add fe88::00:%02hx/120 dev nr%d", procid + 1, procid);
-	execute_command(0, "ip link set dev nr%d up", procid);
-	execute_command(0, "ip link set dev rose%d address bb:bb:bb:01:%02hx", procid, procid);
-	execute_command(0, "ip -4 addr add 172.30.01.%d/24 dev rose%d", procid + 1, procid);
-	execute_command(0, "ip -6 addr add fe88::01:%02hx/120 dev rose%d", procid + 1, procid);
+	int pid = procid;
+	execute_command(0, "ip link set dev nr%d address bb:bb:bb:bb:bb:00:%02hx", pid, pid);
+	execute_command(0, "ip -4 addr add 172.30.00.%d/24 dev nr%d", pid + 1, pid);
+	execute_command(0, "ip -6 addr add fe88::00:%02hx/120 dev nr%d", pid + 1, pid);
+	execute_command(0, "ip link set dev nr%d up", pid);
+	execute_command(0, "ip link set dev rose%d address bb:bb:bb:01:%02hx", pid, pid);
+	execute_command(0, "ip -4 addr add 172.30.01.%d/24 dev rose%d", pid + 1, pid);
+	execute_command(0, "ip -6 addr add fe88::01:%02hx/120 dev rose%d", pid + 1, pid);
 }
 #endif
 
