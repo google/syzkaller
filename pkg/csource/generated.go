@@ -2728,7 +2728,8 @@ static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long 
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION || SYZ_SANDBOX_NAMESPACE || SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION || SYZ_ENABLE_CGROUPS || SYZ_SANDBOX_NONE || \
+    SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -3364,6 +3365,25 @@ static void sandbox_common()
 	}
 	if (unshare(CLONE_SYSVSEM)) {
 		debug("unshare(CLONE_SYSVSEM): %d\n", errno);
+	}
+	typedef struct {
+		const char* name;
+		const char* value;
+	} sysctl_t;
+	static const sysctl_t sysctls[] = {
+	    {"/proc/sys/kernel/shmmax", "16777216"},
+	    {"/proc/sys/kernel/shmall", "536870912"},
+	    {"/proc/sys/kernel/shmmni", "1024"},
+	    {"/proc/sys/kernel/msgmax", "8192"},
+	    {"/proc/sys/kernel/msgmni", "1024"},
+	    {"/proc/sys/kernel/msgmnb", "1024"},
+	    {"/proc/sys/kernel/sem", "1024 1048576 500 1024"},
+	};
+	unsigned i;
+	for (i = 0; i < sizeof(sysctls) / sizeof(sysctls[0]); i++) {
+		if (!write_file(sysctls[i].name, sysctls[i].value)) {
+			debug("failed to set sysctl %s=%s\n", sysctls[i].name, sysctls[i].value);
+		}
 	}
 }
 

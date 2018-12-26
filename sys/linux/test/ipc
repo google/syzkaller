@@ -1,0 +1,5 @@
+# Large sem sets must be prohibited in the main ipc namespace.
+
+semget$private(0x0, 0x4000, 0x0)	# EINVAL
+unshare(0x8000000)
+semget$private(0x0, 0x4000, 0x0)
