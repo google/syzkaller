@@ -4077,6 +4077,34 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_compare_int
+#include <errno.h>
+#include <stdarg.h>
+static long syz_compare_int(long n, ...)
+{
+	va_list args;
+	va_start(args, n);
+	long v0 = va_arg(args, long);
+	long v1 = va_arg(args, long);
+	long v2 = va_arg(args, long);
+	long v3 = va_arg(args, long);
+	va_end(args);
+	if (n < 2 || n > 4)
+		return errno = E2BIG, -1;
+	if (n <= 2 && v2 != 0)
+		return errno = EFAULT, -1;
+	if (n <= 3 && v3 != 0)
+		return errno = EFAULT, -1;
+	if (v0 != v1)
+		return errno = EINVAL, -1;
+	if (n > 2 && v0 != v2)
+		return errno = EINVAL, -1;
+	if (n > 3 && v0 != v3)
+		return errno = EINVAL, -1;
+	return 0;
+}
+#endif
+
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 static void loop();
 static int do_sandbox_none(void)
@@ -4237,6 +4265,34 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 		errno = EINVAL;
 		return -1;
 	}
+	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_compare_int
+#include <errno.h>
+#include <stdarg.h>
+static long syz_compare_int(long n, ...)
+{
+	va_list args;
+	va_start(args, n);
+	long v0 = va_arg(args, long);
+	long v1 = va_arg(args, long);
+	long v2 = va_arg(args, long);
+	long v3 = va_arg(args, long);
+	va_end(args);
+	if (n < 2 || n > 4)
+		return errno = E2BIG, -1;
+	if (n <= 2 && v2 != 0)
+		return errno = EFAULT, -1;
+	if (n <= 3 && v3 != 0)
+		return errno = EFAULT, -1;
+	if (v0 != v1)
+		return errno = EINVAL, -1;
+	if (n > 2 && v0 != v2)
+		return errno = EINVAL, -1;
+	if (n > 3 && v0 != v3)
+		return errno = EINVAL, -1;
 	return 0;
 }
 #endif

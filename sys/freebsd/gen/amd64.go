@@ -729,11 +729,11 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_dupfd", FldName: "cmd", TypeSize: 8}}, Vals: []uint64{0, 17}, BitMask: true},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "arg", TypeSize: 4}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 92, Name: "fcntl$getflags", CallName: "fcntl", Args: []Type{
+	{NR: 92, Name: "fcntl$getflags", CallName: "fcntl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_getflags", FldName: "cmd", TypeSize: 8}}, Vals: []uint64{1, 3}},
 	}},
-	{NR: 92, Name: "fcntl$getown", CallName: "fcntl", Args: []Type{
+	{NR: 92, Name: "fcntl$getown", CallName: "fcntl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 5},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -1102,7 +1102,7 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
-	{NR: 511, Name: "msgctl$IPC_RMID", CallName: "msgctl", Args: []Type{
+	{NR: 511, Name: "msgctl$IPC_RMID", CallName: "msgctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_msq", FldName: "msqid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}},
 	}},
@@ -1316,7 +1316,7 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
-	{NR: 510, Name: "semctl$IPC_RMID", CallName: "semctl", Args: []Type{
+	{NR: 510, Name: "semctl$IPC_RMID", CallName: "semctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "semnum", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}},
@@ -1737,7 +1737,7 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
-	{NR: 512, Name: "shmctl$IPC_RMID", CallName: "shmctl", Args: []Type{
+	{NR: 512, Name: "shmctl$IPC_RMID", CallName: "shmctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}},
 	}},
@@ -1756,7 +1756,7 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 14},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
-	{NR: 512, Name: "shmctl$SHM_LOCK", CallName: "shmctl", Args: []Type{
+	{NR: 512, Name: "shmctl$SHM_LOCK", CallName: "shmctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 11},
 	}},
@@ -1765,7 +1765,7 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 13},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
-	{NR: 512, Name: "shmctl$SHM_UNLOCK", CallName: "shmctl", Args: []Type{
+	{NR: 512, Name: "shmctl$SHM_UNLOCK", CallName: "shmctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 12},
 	}},
@@ -2410,4 +2410,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "a2e13b0f6d7d5dbce4abfd304a9e7a187eb4224e"
+const revision_amd64 = "0ac8cd38f3246ddd0a2f5431819157405b8c3624"

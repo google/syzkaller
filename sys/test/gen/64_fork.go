@@ -79,6 +79,24 @@ var syscalls_64_fork = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "got", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "compare_data"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "got_len", TypeSize: 8}}, BitSize: 8, Buf: "got"},
 	}},
+	{Name: "syz_compare_int$2", CallName: "syz_compare_int", MissingArgs: 2, Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "n", TypeSize: 8}}, Val: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v0", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v1", TypeSize: 8}}},
+	}},
+	{Name: "syz_compare_int$3", CallName: "syz_compare_int", MissingArgs: 1, Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "n", TypeSize: 8}}, Val: 3},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v0", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v1", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v2", TypeSize: 8}}},
+	}},
+	{Name: "syz_compare_int$4", CallName: "syz_compare_int", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "n", TypeSize: 8}}, Val: 4},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v0", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v1", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v2", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "v3", TypeSize: 8}}},
+	}},
 	{Name: "syz_errno", CallName: "syz_errno", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "v", TypeSize: 4}}},
 	}},
@@ -97,4 +115,4 @@ var consts_64_fork = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64_fork = "8c3363b9502e6df103438d98f573e2ef70ab34f2"
+const revision_64_fork = "ca36699a1e8e19e01f848fa7815278bea91ef165"

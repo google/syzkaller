@@ -245,6 +245,12 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 			panic(fmt.Sprintf("unknown arg type: %+v", arg))
 		}
 	}
+	for i := 0; i < call.Meta.MissingArgs; i++ {
+		if native || len(call.Args) != 0 {
+			fmt.Fprintf(w, ", ")
+		}
+		fmt.Fprintf(w, "0")
+	}
 	fmt.Fprintf(w, ");\n")
 	if trace {
 		cast := ""

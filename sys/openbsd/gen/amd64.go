@@ -552,11 +552,11 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_dupfd", FldName: "cmd", TypeSize: 8}}, Vals: []uint64{0, 10}, BitMask: true},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "arg", TypeSize: 4}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 92, Name: "fcntl$getflags", CallName: "fcntl", Args: []Type{
+	{NR: 92, Name: "fcntl$getflags", CallName: "fcntl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_getflags", FldName: "cmd", TypeSize: 8}}, Vals: []uint64{1, 3}},
 	}},
-	{NR: 92, Name: "fcntl$getown", CallName: "fcntl", Args: []Type{
+	{NR: 92, Name: "fcntl$getown", CallName: "fcntl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 5},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -711,19 +711,19 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{NR: 24, Name: "getuid", CallName: "getuid", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 54, Name: "ioctl$TIOCCBRK", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCCBRK", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900730},
 	}},
-	{NR: 54, Name: "ioctl$TIOCCDTR", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCCDTR", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900728},
 	}},
-	{NR: 54, Name: "ioctl$TIOCCHKVERAUTH", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCCHKVERAUTH", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900638},
 	}},
-	{NR: 54, Name: "ioctl$TIOCCLRVERAUTH", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCCLRVERAUTH", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900637},
 	}},
@@ -732,11 +732,11 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147775586},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 	}},
-	{NR: 54, Name: "ioctl$TIOCDRAIN", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCDRAIN", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900702},
 	}},
-	{NR: 54, Name: "ioctl$TIOCEXCL", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCEXCL", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900621},
 	}},
@@ -790,11 +790,11 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147775597},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 	}},
-	{NR: 54, Name: "ioctl$TIOCNOTTY", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCNOTTY", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900721},
 	}},
-	{NR: 54, Name: "ioctl$TIOCNXCL", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCNXCL", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900622},
 	}},
@@ -803,15 +803,15 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074033779},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 	}},
-	{NR: 54, Name: "ioctl$TIOCSBRK", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCSBRK", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900731},
 	}},
-	{NR: 54, Name: "ioctl$TIOCSCTTY", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCSCTTY", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900705},
 	}},
-	{NR: 54, Name: "ioctl$TIOCSDTR", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCSDTR", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900729},
 	}},
@@ -850,7 +850,7 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074033783},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
-	{NR: 54, Name: "ioctl$TIOCSTART", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCSTART", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900718},
 	}},
@@ -859,7 +859,7 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900709},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
-	{NR: 54, Name: "ioctl$TIOCSTOP", CallName: "ioctl", Args: []Type{
+	{NR: 54, Name: "ioctl$TIOCSTOP", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536900719},
 	}},
@@ -972,7 +972,7 @@ var syscalls_amd64 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 0}, BitMask: true},
 	}},
-	{NR: 297, Name: "msgctl$IPC_RMID", CallName: "msgctl", Args: []Type{
+	{NR: 297, Name: "msgctl$IPC_RMID", CallName: "msgctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_msq", FldName: "msqid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}},
 	}},
@@ -1172,7 +1172,7 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 7},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
-	{NR: 295, Name: "semctl$IPC_RMID", CallName: "semctl", Args: []Type{
+	{NR: 295, Name: "semctl$IPC_RMID", CallName: "semctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "semnum", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}},
@@ -1363,7 +1363,7 @@ var syscalls_amd64 = []*Syscall{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shmat_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{8192, 4096}, BitMask: true},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "shmaddr", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
-	{NR: 296, Name: "shmctl$IPC_RMID", CallName: "shmctl", Args: []Type{
+	{NR: 296, Name: "shmctl$IPC_RMID", CallName: "shmctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}},
 	}},
@@ -1377,11 +1377,11 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
-	{NR: 296, Name: "shmctl$SHM_LOCK", CallName: "shmctl", Args: []Type{
+	{NR: 296, Name: "shmctl$SHM_LOCK", CallName: "shmctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3},
 	}},
-	{NR: 296, Name: "shmctl$SHM_UNLOCK", CallName: "shmctl", Args: []Type{
+	{NR: 296, Name: "shmctl$SHM_UNLOCK", CallName: "shmctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 4},
 	}},
@@ -1896,4 +1896,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "ea9d720726fb2c8bf7bed9d5c405e627d5ce3467"
+const revision_amd64 = "2d0d3f664f6bd0c06c5403484fa99bb7d54d240c"

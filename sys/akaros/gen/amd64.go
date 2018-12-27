@@ -113,25 +113,25 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "arg", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "must_use_low", TypeSize: 8}}, Kind: 2, RangeEnd: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 107, Name: "fcntl$F_GETFD", CallName: "fcntl", Args: []Type{
+	{NR: 107, Name: "fcntl$F_GETFD", CallName: "fcntl", MissingArgs: 2, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1},
 	}},
-	{NR: 107, Name: "fcntl$F_GETFL", CallName: "fcntl", Args: []Type{
+	{NR: 107, Name: "fcntl$F_GETFL", CallName: "fcntl", MissingArgs: 2, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3},
 	}},
-	{NR: 107, Name: "fcntl$F_SETFD", CallName: "fcntl", Args: []Type{
+	{NR: 107, Name: "fcntl$F_SETFD", CallName: "fcntl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1}, BitMask: true},
 	}},
-	{NR: 107, Name: "fcntl$F_SETFL", CallName: "fcntl", Args: []Type{
+	{NR: 107, Name: "fcntl$F_SETFL", CallName: "fcntl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 4},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_status", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1024, 2048, 524288, 1048576, 32768}, BitMask: true},
 	}},
-	{NR: 107, Name: "fcntl$F_SYNC", CallName: "fcntl", Args: []Type{
+	{NR: 107, Name: "fcntl$F_SYNC", CallName: "fcntl", MissingArgs: 2, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 101},
 	}},
@@ -1328,10 +1328,10 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "nr_more_gpcs", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "gpcis", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "vmm_gpcore_init"}}},
 	}},
-	{NR: 40, Name: "vmm_ctl$VMM_CTL_GET_EXITS", CallName: "vmm_ctl", Args: []Type{
+	{NR: 40, Name: "vmm_ctl$VMM_CTL_GET_EXITS", CallName: "vmm_ctl", MissingArgs: 1, Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1},
 	}},
-	{NR: 40, Name: "vmm_ctl$VMM_CTL_GET_FLAGS", CallName: "vmm_ctl", Args: []Type{
+	{NR: 40, Name: "vmm_ctl$VMM_CTL_GET_FLAGS", CallName: "vmm_ctl", MissingArgs: 1, Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3},
 	}},
 	{NR: 40, Name: "vmm_ctl$VMM_CTL_SET_EXITS", CallName: "vmm_ctl", Args: []Type{
@@ -1529,4 +1529,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "f9824f5b26bc0ee36bc1e6debd6e8a8d6eee33ab"
+const revision_amd64 = "1b67f82f23d2ba92433b4f6bc3458ce1478d960c"
