@@ -52,6 +52,9 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 
 #elif GOOS_openbsd
 
+// TODO(mptre): temporary defined until trace-cmp is fully supported
+#define KCOV_MODE_TRACE_CMP 2
+
 #include <sys/kcov.h>
 
 #endif
@@ -88,14 +91,9 @@ static void cover_open(cover_t* cov)
 
 static void cover_enable(cover_t* cov, bool collect_comps)
 {
-#if GOOS_freebsd
 	int kcov_mode = flag_collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
 	if (ioctl(cov->fd, KIOENABLE, &kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
-#elif GOOS_openbsd
-	if (ioctl(cov->fd, KIOENABLE))
-		exitf("cover enable write trace failed");
-#endif
 }
 
 static void cover_reset(cover_t* cov)
