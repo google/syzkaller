@@ -589,6 +589,9 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	}
 	c.cmd = cmd
 	wp.Close()
+	// Note: we explicitly close inwp before calling handshake even though we defer it above.
+	// If we don't do it and executor exits before writing handshake reply,
+	// reading from inrp will hang since we hold another end of the pipe open.
 	inwp.Close()
 
 	if c.config.Flags&FlagUseForkServer != 0 {
@@ -615,7 +618,7 @@ func (c *command) close() {
 	}
 }
 
-// handshake sends handshakeReq and waits for handshakeReply (sandbox setup can take significant time).
+// handshake sends handshakeReq and waits for handshakeReply.
 func (c *command) handshake() error {
 	req := &handshakeReq{
 		magic: inMagic,
@@ -641,6 +644,7 @@ func (c *command) handshake() error {
 		}
 		read <- nil
 	}()
+	// Sandbox setup can take significant time.
 	timeout := time.NewTimer(time.Minute)
 	select {
 	case err := <-read:
