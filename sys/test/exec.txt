@@ -4,6 +4,9 @@
 syz_mmap(addr vma, len len[addr])
 syz_errno(v int32)
 syz_compare(want ptr[in, string], want_len bytesize[want], got ptr[in, compare_data], got_len bytesize[got])
+syz_compare_int$2(n const[2], v0 intptr, v1 intptr)
+syz_compare_int$3(n const[3], v0 intptr, v1 intptr, v2 intptr)
+syz_compare_int$4(n const[4], v0 intptr, v1 intptr, v2 intptr, v3 intptr)
 
 compare_data [
 	align0	align0

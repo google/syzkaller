@@ -47,9 +47,17 @@ func (comp *compiler) genResource(n *ast.Resource) *prog.ResourceDesc {
 
 func (comp *compiler) genSyscalls() []*prog.Syscall {
 	var calls []*prog.Syscall
+	callArgs := make(map[string]int)
+	for _, decl := range comp.desc.Nodes {
+		if n, ok := decl.(*ast.Call); ok {
+			if callArgs[n.CallName] < len(n.Args) {
+				callArgs[n.CallName] = len(n.Args)
+			}
+		}
+	}
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Call); ok && n.NR != ^uint64(0) {
-			calls = append(calls, comp.genSyscall(n))
+			calls = append(calls, comp.genSyscall(n, callArgs[n.CallName]))
 		}
 	}
 	sort.Slice(calls, func(i, j int) bool {
@@ -58,17 +66,18 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 	return calls
 }
 
-func (comp *compiler) genSyscall(n *ast.Call) *prog.Syscall {
+func (comp *compiler) genSyscall(n *ast.Call, maxArgs int) *prog.Syscall {
 	var ret prog.Type
 	if n.Ret != nil {
 		ret = comp.genType(n.Ret, "ret", prog.DirOut, true)
 	}
 	return &prog.Syscall{
-		Name:     n.Name.Name,
-		CallName: n.CallName,
-		NR:       n.NR,
-		Args:     comp.genFieldArray(n.Args, prog.DirIn, true),
-		Ret:      ret,
+		Name:        n.Name.Name,
+		CallName:    n.CallName,
+		NR:          n.NR,
+		MissingArgs: maxArgs - len(n.Args),
+		Args:        comp.genFieldArray(n.Args, prog.DirIn, true),
+		Ret:         ret,
 	}
 }
 

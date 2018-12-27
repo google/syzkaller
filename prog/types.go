@@ -8,12 +8,13 @@ import (
 )
 
 type Syscall struct {
-	ID       int
-	NR       uint64 // kernel syscall number
-	Name     string
-	CallName string
-	Args     []Type
-	Ret      Type
+	ID          int
+	NR          uint64 // kernel syscall number
+	Name        string
+	CallName    string
+	MissingArgs int // number of trailing args that should be zero-filled
+	Args        []Type
+	Ret         Type
 }
 
 type Dir int

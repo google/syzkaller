@@ -244,10 +244,12 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		"":        0,
 		"EPERM":   1,
 		"ENOENT":  2,
+		"E2BIG":   7,
 		"ENOEXEC": 8,
 		"EBADF":   9,
 		"ENOMEM":  12,
 		"EACCES":  13,
+		"EFAULT":  14,
 		"EINVAL":  22,
 	}
 	info := &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(p.Calls))}
