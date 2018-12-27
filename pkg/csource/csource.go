@@ -209,17 +209,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	if haveCopyout || trace {
 		fmt.Fprintf(w, "res = ")
 	}
-	if native {
-		fmt.Fprintf(w, "syscall(%v%v", ctx.sysTarget.SyscallPrefix, callName)
-	} else if strings.HasPrefix(callName, "syz_") {
-		fmt.Fprintf(w, "%v(", callName)
-	} else {
-		args := strings.Repeat(",long", len(call.Args))
-		if args != "" {
-			args = args[1:]
-		}
-		fmt.Fprintf(w, "((long(*)(%v))CAST(%v))(", args, callName)
-	}
+	ctx.emitCallName(w, call, native)
 	for ai, arg := range call.Args {
 		if native || ai > 0 {
 			fmt.Fprintf(w, ", ")
@@ -260,6 +250,21 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 			cast = "(long)(int)"
 		}
 		fmt.Fprintf(w, "\tprintf(\"### call=%v errno=%%u\\n\", %vres == -1 ? errno : 0);\n", ci, cast)
+	}
+}
+
+func (ctx *context) emitCallName(w *bytes.Buffer, call prog.ExecCall, native bool) {
+	callName := call.Meta.CallName
+	if native {
+		fmt.Fprintf(w, "syscall(%v%v", ctx.sysTarget.SyscallPrefix, callName)
+	} else if strings.HasPrefix(callName, "syz_") {
+		fmt.Fprintf(w, "%v(", callName)
+	} else {
+		args := strings.Repeat(",long", len(call.Args))
+		if args != "" {
+			args = args[1:]
+		}
+		fmt.Fprintf(w, "((long(*)(%v))CAST(%v))(", args, callName)
 	}
 }
 
