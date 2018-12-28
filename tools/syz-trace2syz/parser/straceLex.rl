@@ -67,9 +67,8 @@ func (lex *Stracelexer) Lex(out *StraceSymType) int {
         *|;
 
         main := |*
-            [0-9]* => {out.val_int, _ = strconv.ParseInt(string(lex.data[lex.ts : lex.te]), 10, 64); tok = INT;fbreak;};
+            [0-9]* => {out.val_int, _ = strconv.ParseInt(string(lex.data[lex.ts : lex.te]), 0, 64); tok = INT;fbreak;};
             digit . '.' . digit* => {out.val_double, _ = strconv.ParseFloat(string(lex.data[lex.ts : lex.te]), 64); tok= DOUBLE; fbreak;};
-            [0].[0-7]* => {out.val_int, _ = strconv.ParseInt(string(lex.data[lex.ts : lex.te]), 8, 64); tok = INT; fbreak;};
             '0x'xdigit+ => {out.val_uint, _ = strconv.ParseUint(string(lex.data[lex.ts:lex.te]), 0, 64); tok = UINT;fbreak;};
             string.['.']* => {out.data = ParseString(string(lex.data[lex.ts+1:lex.te-1])); tok = STRING_LITERAL;fbreak;};
             nullptr => {tok = NULL; fbreak;};
