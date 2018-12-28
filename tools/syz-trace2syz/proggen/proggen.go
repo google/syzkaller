@@ -287,9 +287,9 @@ func (ctx *context) genBuffer(syzType *prog.BufferType, traceType parser.IrType)
 	default:
 		log.Fatalf("unsupported type for buffer: %#v", traceType)
 	}
-	// strace always drops the null byte for strings but we only need to add it back for filenames
+	// strace always drops the null byte for buffer types but we only need to add it back for filenames and strings
 	switch syzType.Kind {
-	case prog.BufferFilename:
+	case prog.BufferFilename, prog.BufferString:
 		bufVal = append(bufVal, '\x00')
 	}
 	if !syzType.Varlen() {
