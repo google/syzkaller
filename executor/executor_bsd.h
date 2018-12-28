@@ -42,9 +42,9 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 //
 // [1] https://reviews.freebsd.org/D14599
 
-#define KIOENABLE _IOW('c', 2, int) // Enable coverage recording
+#define KIOENABLE _IOWINT('c', 2) // Enable coverage recording
 #define KIODISABLE _IO('c', 3) // Disable coverage recording
-#define KIOSETBUFSIZE _IOW('c', 4, unsigned int) // Set the buffer size
+#define KIOSETBUFSIZE _IOWINT('c', 4) // Set the buffer size
 
 #define KCOV_MODE_NONE -1
 #define KCOV_MODE_TRACE_PC 0
@@ -71,7 +71,7 @@ static void cover_open(cover_t* cov)
 	close(fd);
 
 #if GOOS_freebsd
-	if (ioctl(cov->fd, KIOSETBUFSIZE, &kCoverSize))
+	if (ioctl(cov->fd, KIOSETBUFSIZE, kCoverSize))
 		fail("ioctl init trace write failed");
 #elif GOOS_openbsd
 	unsigned long cover_size = kCoverSize;
@@ -92,8 +92,13 @@ static void cover_open(cover_t* cov)
 static void cover_enable(cover_t* cov, bool collect_comps)
 {
 	int kcov_mode = flag_collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
+#if GOOS_freebsd
+	if (ioctl(cov->fd, KIOENABLE, kcov_mode))
+		exitf("cover enable write trace failed, mode=%d", kcov_mode);
+#elif GOOS_openbsd
 	if (ioctl(cov->fd, KIOENABLE, &kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
+#endif
 }
 
 static void cover_reset(cover_t* cov)
