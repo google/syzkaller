@@ -153,7 +153,7 @@ ifla_policy [
 	IFLA_MAP		nlattr[IFLA_MAP, rtnl_link_ifmap]
 	IFLA_MTU		nlattr[IFLA_MAP, int32]
 	IFLA_LINK		nlattr[IFLA_LINK, int32]
-	IFLA_MASTER		nlattr[IFLA_MASTER, int32]
+	IFLA_MASTER		nlattr[IFLA_MASTER, ifindex]
 	IFLA_CARRIER		nlattr[IFLA_CARRIER, int8]
 	IFLA_TXQLEN		nlattr[IFLA_TXQLEN, int32]
 	IFLA_WEIGHT		nlattr[IFLA_WEIGHT, int32]
@@ -161,8 +161,7 @@ ifla_policy [
 	IFLA_LINKMODE		nlattr[IFLA_LINKMODE, int8]
 	IFLA_LINKINFO		nlattr[IFLA_LINKINFO, ifla_info_policy]
 	IFLA_NET_NS_PID		nlattr[IFLA_NET_NS_PID, pid]
-# TODO: this must be some 'nsfd' fd.
-	IFLA_NET_NS_FD		nlattr[IFLA_NET_NS_FD, fd]
+	IFLA_NET_NS_FD		nlattr[IFLA_NET_NS_FD, fd_namespace]
 	IFLA_IFALIAS		nlattr[IFLA_IFALIAS, devname]
 	IFLA_IFALIASn		nlattr[IFLA_IFALIAS, void]
 	IFLA_VFINFO_LIST	nlattr[IFLA_VFINFO_LIST, array[nlattr[IFLA_VF_INFO, array[ifla_vf_policy]]]]
@@ -341,7 +340,7 @@ veth_policy [
 	VETH_INFO_PEER	nlattr[VETH_INFO_PEER, ifinfomsg[AF_UNSPEC]]
 ] [varlen]
 
-vit_common_policy [
+vti_common_policy [
 	IFLA_VTI_LINK	nlattr[IFLA_VTI_LINK, ifindex]
 	IFLA_VTI_IKEY	nlattr[IFLA_VTI_IKEY, int32]
 	IFLA_VTI_OKEY	nlattr[IFLA_VTI_OKEY, int32]
@@ -351,13 +350,13 @@ vit_common_policy [
 vti_policy [
 	IFLA_VTI_LOCAL		nlattr[IFLA_VTI_LOCAL, ipv4_addr]
 	IFLA_VTI_REMOTE		nlattr[IFLA_VTI_REMOTE, ipv4_addr]
-	vit_common_policy	array[vit_common_policy]
+	vti_common_policy	array[vti_common_policy]
 ] [varlen]
 
 ip6vti_policy [
 	IFLA_VTI_LOCAL		nlattr[IFLA_VTI_LOCAL, ipv6_addr]
 	IFLA_VTI_REMOTE		nlattr[IFLA_VTI_REMOTE, ipv6_addr]
-	vit_common_policy	array[vit_common_policy]
+	vti_common_policy	array[vti_common_policy]
 ] [varlen]
 
 tunl_policy [
@@ -629,7 +628,7 @@ lwtunnel_encap_types = LWTUNNEL_ENCAP_NONE, LWTUNNEL_ENCAP_MPLS, LWTUNNEL_ENCAP_
 rt_table_types = RT_TABLE_UNSPEC, RT_TABLE_COMPAT, RT_TABLE_DEFAULT, RT_TABLE_MAIN, RT_TABLE_LOCAL
 ndm_state = NUD_INCOMPLETE, NUD_REACHABLE, NUD_STALE, NUD_DELAY, NUD_PROBE, NUD_FAILED, NUD_NOARP, NUD_PERMANENT, NUD_NONE
 ndm_flags = NTF_USE, NTF_SELF, NTF_MASTER, NTF_PROXY, NTF_EXT_LEARNED, NTF_OFFLOADED, NTF_ROUTER
-ifa_prefixlen = 0, 1, 8, 16, 24, 31, 32, 56, 63, 64, 128
+ifa_prefixlen = 0, 1, 8, 16, 24, 31, 32, 56, 63, 64, 120, 128
 rtm_addr_len = 0, 16, 20, 32, 128
 filter_mask = IFLA_STATS_UNSPEC, IFLA_STATS_LINK_64, IFLA_STATS_LINK_XSTATS, IFLA_STATS_LINK_XSTATS_SLAVE, IFLA_STATS_LINK_OFFLOAD_XSTATS, IFLA_STATS_AF_SPEC
 tunnel_encap_types = TUNNEL_ENCAP_NONE, TUNNEL_ENCAP_FOU, TUNNEL_ENCAP_GUE, TUNNEL_ENCAP_MPLS
