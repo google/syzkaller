@@ -127,6 +127,5 @@ func ParseString(s string) string{
 		log.Logf(2, "failed to decode string: %s, with error: %s", s, err.Error())
 		decoded = []byte(strippedStr)
 	}
-	decoded = append(decoded, '\x00')
 	return string(decoded)
 }

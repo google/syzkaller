@@ -24,14 +24,14 @@ open("file", 66) = 3
 write(3, "somedata", 8) = 8
 `, `
 r0 = open(&(0x7f0000000000)='file\x00', 0x42, 0x0)
-write(r0, &(0x7f0000000040)='somedata\x00', 0x9)
+write(r0, &(0x7f0000000040)='somedata', 0x8)
 `,
 		}, {`
 pipe([5,6]) = 0
 write(6, "\xff\xff\xfe\xff", 4) = 4
 `, `
 pipe(&(0x7f0000000000)={0xffffffffffffffff, <r0=>0xffffffffffffffff})
-write(r0, &(0x7f0000000040)="fffffeff00", 0x5)
+write(r0, &(0x7f0000000040)="fffffeff", 0x4)
 `,
 		}, {`
 pipe({0x0, 0x1}) = 0
@@ -51,13 +51,13 @@ getsockopt$inet_sctp6_SCTP_RESET_STREAMS(0xffffffffffffffff, 0x84, 0x77, &(0x7f0
 inotify_init() = 2
 open("tmp", 66) = 3
 inotify_add_watch(3, "\x2e", 0xfff) = 3
-write(3, "temp", 5) = 5
+write(3, "temp", 4) = 4
 inotify_rm_watch(2, 3) = 0
 `, `
 r0 = inotify_init()
 r1 = open(&(0x7f0000000000)='tmp\x00', 0x42, 0x0)
 r2 = inotify_add_watch(r1, &(0x7f0000000040)='.\x00', 0xfff)
-write(r1, &(0x7f0000000080)='temp\x00', 0x5)
+write(r1, &(0x7f0000000080)='temp', 0x4)
 inotify_rm_watch(r0, r2)
 `,
 		}, {`
