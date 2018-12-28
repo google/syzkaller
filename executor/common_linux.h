@@ -69,62 +69,261 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION || SYZ_ENABLE_CGROUPS || SYZ_SANDBOX_NONE || \
+    SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
-static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
+static bool write_file(const char* file, const char* what, ...)
 {
-	int rv;
-
-	rv = vsnprintf(str, size, format, args);
-	if (rv < 0)
-		fail("tun: snprintf failed");
-	if ((size_t)rv >= size)
-		fail("tun: string '%s...' doesn't fit into buffer", str);
-}
-
-#define COMMAND_MAX_LEN 128
-#define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
-#define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
-
-static PRINTF(2, 3) void execute_command(bool panic, const char* format, ...)
-{
+	char buf[1024];
 	va_list args;
-	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
-	int rv;
-
-	va_start(args, format);
-	// Executor process does not have any env, including PATH.
-	// On some distributions, system/shell adds a minimal PATH, on some it does not.
-	// Set own standard PATH to make it work across distributions.
-	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
-	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
+	va_start(args, what);
+	vsnprintf(buf, sizeof(buf), what, args);
 	va_end(args);
-	rv = system(command);
-	if (rv) {
-		if (panic)
-			fail("command '%s' failed: %d", &command[0], rv);
-		debug("command '%s': %d\n", &command[0], rv);
+	buf[sizeof(buf) - 1] = 0;
+	int len = strlen(buf);
+
+	int fd = open(file, O_WRONLY | O_CLOEXEC);
+	if (fd == -1)
+		return false;
+	if (write(fd, buf, len) != len) {
+		int err = errno;
+		close(fd);
+		debug("write(%s) failed: %d\n", file, err);
+		errno = err;
+		return false;
 	}
+	close(fd);
+	return true;
 }
+#endif
+
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#include <linux/if.h>
+#include <linux/if_addr.h>
+#include <linux/if_link.h>
+#include <linux/in6.h>
+#include <linux/neighbour.h>
+#include <linux/net.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+#include <linux/veth.h>
+
+static struct {
+	char* pos;
+	int nesting;
+	struct nlattr* nested[8];
+	char buf[1024];
+} nlmsg;
+
+static void netlink_init(int typ, int flags, const void* data, int size)
+{
+	memset(&nlmsg, 0, sizeof(nlmsg));
+	struct nlmsghdr* hdr = (struct nlmsghdr*)nlmsg.buf;
+	hdr->nlmsg_type = typ;
+	hdr->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK | flags;
+	memcpy(hdr + 1, data, size);
+	nlmsg.pos = (char*)(hdr + 1) + NLMSG_ALIGN(size);
+}
+
+static void netlink_attr(int typ, const void* data, int size)
+{
+	struct nlattr* attr = (struct nlattr*)nlmsg.pos;
+	attr->nla_len = sizeof(*attr) + size;
+	attr->nla_type = typ;
+	memcpy(attr + 1, data, size);
+	nlmsg.pos += NLMSG_ALIGN(attr->nla_len);
+}
+
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+static void netlink_nest(int typ)
+{
+	struct nlattr* attr = (struct nlattr*)nlmsg.pos;
+	attr->nla_type = typ;
+	nlmsg.pos += sizeof(*attr);
+	nlmsg.nested[nlmsg.nesting++] = attr;
+}
+
+static void netlink_done(void)
+{
+	struct nlattr* attr = nlmsg.nested[--nlmsg.nesting];
+	attr->nla_len = nlmsg.pos - (char*)attr;
+}
+#endif
+
+static int netlink_send(int sock)
+{
+	if (nlmsg.pos > nlmsg.buf + sizeof(nlmsg.buf) || nlmsg.nesting)
+		fail("nlmsg overflow/bad nesting");
+	struct nlmsghdr* hdr = (struct nlmsghdr*)nlmsg.buf;
+	hdr->nlmsg_len = nlmsg.pos - nlmsg.buf;
+	struct sockaddr_nl addr;
+	memset(&addr, 0, sizeof(addr));
+	addr.nl_family = AF_NETLINK;
+	unsigned n = sendto(sock, nlmsg.buf, hdr->nlmsg_len, 0, (struct sockaddr*)&addr, sizeof(addr));
+	if (n != hdr->nlmsg_len)
+		fail("short netlink write: %d/%d", n, hdr->nlmsg_len);
+	n = recv(sock, nlmsg.buf, sizeof(nlmsg.buf), 0);
+	if (n < sizeof(struct nlmsghdr) + sizeof(struct nlmsgerr))
+		fail("short netlink read: %d", n);
+	if (hdr->nlmsg_type != NLMSG_ERROR)
+		fail("short netlink ack: %d", hdr->nlmsg_type);
+	return -((struct nlmsgerr*)(hdr + 1))->error;
+}
+
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+static void netlink_add_device_impl(const char* type, const char* name)
+{
+	struct ifinfomsg hdr;
+	memset(&hdr, 0, sizeof(hdr));
+	netlink_init(RTM_NEWLINK, NLM_F_EXCL | NLM_F_CREATE, &hdr, sizeof(hdr));
+	if (name)
+		netlink_attr(IFLA_IFNAME, name, strlen(name));
+	netlink_nest(IFLA_LINKINFO);
+	netlink_attr(IFLA_INFO_KIND, type, strlen(type));
+}
+
+static void netlink_add_device(int sock, const char* type, const char* name)
+{
+	netlink_add_device_impl(type, name);
+	netlink_done();
+	int err = netlink_send(sock);
+	debug("netlink: adding device %s type %s: %s\n", name, type, strerror(err));
+	(void)err;
+}
+
+static void netlink_add_veth(int sock, const char* name, const char* peer)
+{
+	netlink_add_device_impl("veth", name);
+	netlink_nest(IFLA_INFO_DATA);
+	netlink_nest(VETH_INFO_PEER);
+	nlmsg.pos += sizeof(struct ifinfomsg);
+	netlink_attr(IFLA_IFNAME, peer, strlen(peer));
+	netlink_done();
+	netlink_done();
+	netlink_done();
+	int err = netlink_send(sock);
+	debug("netlink: adding device %s type veth peer %s: %s\n", name, peer, strerror(err));
+	(void)err;
+}
+
+static void netlink_add_hsr(int sock, const char* name, const char* slave1, const char* slave2)
+{
+	netlink_add_device_impl("hsr", name);
+	netlink_nest(IFLA_INFO_DATA);
+	int ifindex1 = if_nametoindex(slave1);
+	netlink_attr(IFLA_HSR_SLAVE1, &ifindex1, sizeof(ifindex1));
+	int ifindex2 = if_nametoindex(slave2);
+	netlink_attr(IFLA_HSR_SLAVE2, &ifindex2, sizeof(ifindex2));
+	netlink_done();
+	netlink_done();
+	int err = netlink_send(sock);
+	debug("netlink: adding device %s type hsr slave1 %s slave2 %s: %s\n",
+	      name, slave1, slave2, strerror(err));
+	(void)err;
+}
+#endif
+
+static void netlink_device_change(int sock, const char* name, bool up,
+				  const char* master, const void* mac, int macsize)
+{
+	struct ifinfomsg hdr;
+	memset(&hdr, 0, sizeof(hdr));
+	if (up)
+		hdr.ifi_flags = hdr.ifi_change = IFF_UP;
+	netlink_init(RTM_NEWLINK, 0, &hdr, sizeof(hdr));
+	netlink_attr(IFLA_IFNAME, name, strlen(name));
+	if (master) {
+		int ifindex = if_nametoindex(master);
+		netlink_attr(IFLA_MASTER, &ifindex, sizeof(ifindex));
+	}
+	if (macsize)
+		netlink_attr(IFLA_ADDRESS, mac, macsize);
+	int err = netlink_send(sock);
+	debug("netlink: device %s up master %s: %s\n", name, master, strerror(err));
+	(void)err;
+}
+
+static int netlink_add_addr(int sock, const char* dev, const void* addr, int addrsize)
+{
+	struct ifaddrmsg hdr;
+	memset(&hdr, 0, sizeof(hdr));
+	hdr.ifa_family = addrsize == 4 ? AF_INET : AF_INET6;
+	hdr.ifa_prefixlen = addrsize == 4 ? 24 : 120;
+	hdr.ifa_scope = RT_SCOPE_UNIVERSE;
+	hdr.ifa_index = if_nametoindex(dev);
+	netlink_init(RTM_NEWADDR, NLM_F_CREATE | NLM_F_REPLACE, &hdr, sizeof(hdr));
+	netlink_attr(IFA_LOCAL, addr, addrsize);
+	netlink_attr(IFA_ADDRESS, addr, addrsize);
+	return netlink_send(sock);
+}
+
+static void netlink_add_addr4(int sock, const char* dev, const char* addr)
+{
+	struct in_addr in_addr;
+	inet_pton(AF_INET, addr, &in_addr);
+	int err = netlink_add_addr(sock, dev, &in_addr, sizeof(in_addr));
+	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(err));
+	(void)err;
+}
+
+static void netlink_add_addr6(int sock, const char* dev, const char* addr)
+{
+	struct in6_addr in6_addr;
+	inet_pton(AF_INET6, addr, &in6_addr);
+	int err = netlink_add_addr(sock, dev, &in6_addr, sizeof(in6_addr));
+	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(err));
+	(void)err;
+}
+
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+static void netlink_add_neigh(int sock, const char* name,
+			      const void* addr, int addrsize, const void* mac, int macsize)
+{
+	struct ndmsg hdr;
+	memset(&hdr, 0, sizeof(hdr));
+	hdr.ndm_family = addrsize == 4 ? AF_INET : AF_INET6;
+	hdr.ndm_ifindex = if_nametoindex(name);
+	hdr.ndm_state = NUD_PERMANENT;
+	netlink_init(RTM_NEWNEIGH, NLM_F_EXCL | NLM_F_CREATE, &hdr, sizeof(hdr));
+	netlink_attr(NDA_DST, addr, addrsize);
+	netlink_attr(NDA_LLADDR, mac, macsize);
+	int err = netlink_send(sock);
+	debug("netlink: add neigh %s addr %d lladdr %d: %s\n",
+	      name, addrsize, macsize, strerror(err));
+	(void)err;
+}
+#endif
 #endif
 
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <linux/if.h>
-#include <linux/if_ether.h>
-#include <linux/if_tun.h>
-#include <linux/ip.h>
-#include <linux/tcp.h>
 #include <net/if_arp.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+
+#include <linux/if.h>
+#include <linux/if_ether.h>
+#include <linux/if_tun.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
 
 static int tunfd = -1;
 static int tun_frags_enabled;
@@ -135,8 +334,8 @@ static int tun_frags_enabled;
 
 #define TUN_IFACE "syz_tun"
 
-#define LOCAL_MAC "aa:aa:aa:aa:aa:aa"
-#define REMOTE_MAC "aa:aa:aa:aa:aa:bb"
+#define LOCAL_MAC 0xaaaaaaaaaaaa
+#define REMOTE_MAC 0xaaaaaaaaaabb
 
 #define LOCAL_IPV4 "172.20.20.170"
 #define REMOTE_IPV4 "172.20.20.187"
@@ -160,7 +359,7 @@ static void initialize_tun(void)
 	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
 #if SYZ_EXECUTOR
-		fail("tun: can't open /dev/net/tun\n");
+		fail("tun: can't open /dev/net/tun");
 #else
 		printf("tun: can't open /dev/net/tun: please enable CONFIG_TUN=y\n");
 		printf("otherwise fuzzing or reproducing might not work as intended\n");
@@ -194,22 +393,31 @@ static void initialize_tun(void)
 
 	// Disable IPv6 DAD, otherwise the address remains unusable until DAD completes.
 	// Don't panic because this is an optional config.
-	execute_command(0, "sysctl -w net.ipv6.conf.%s.accept_dad=0", TUN_IFACE);
-
+	char sysctl[64];
+	sprintf(sysctl, "/proc/sys/net/ipv6/conf/%s/accept_dad", TUN_IFACE);
+	write_file(sysctl, "0");
 	// Disable IPv6 router solicitation to prevent IPv6 spam.
 	// Don't panic because this is an optional config.
-	execute_command(0, "sysctl -w net.ipv6.conf.%s.router_solicitations=0", TUN_IFACE);
+	sprintf(sysctl, "/proc/sys/net/ipv6/conf/%s/router_solicitations", TUN_IFACE);
+	write_file(sysctl, "0");
 	// There seems to be no way to disable IPv6 MTD to prevent more IPv6 spam.
 
-	execute_command(1, "ip link set dev %s address %s", TUN_IFACE, LOCAL_MAC);
-	execute_command(1, "ip addr add %s/24 dev %s", LOCAL_IPV4, TUN_IFACE);
-	execute_command(1, "ip neigh add %s lladdr %s dev %s nud permanent",
-			REMOTE_IPV4, REMOTE_MAC, TUN_IFACE);
-	// Don't panic because ipv6 may be not enabled in kernel.
-	execute_command(0, "ip -6 addr add %s/120 dev %s", LOCAL_IPV6, TUN_IFACE);
-	execute_command(0, "ip -6 neigh add %s lladdr %s dev %s nud permanent",
-			REMOTE_IPV6, REMOTE_MAC, TUN_IFACE);
-	execute_command(1, "ip link set dev %s up", TUN_IFACE);
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (sock == -1)
+		fail("socket(AF_NETLINK) failed");
+
+	netlink_add_addr4(sock, TUN_IFACE, LOCAL_IPV4);
+	netlink_add_addr6(sock, TUN_IFACE, LOCAL_IPV6);
+	uint64 macaddr = REMOTE_MAC;
+	struct in_addr in_addr;
+	inet_pton(AF_INET, REMOTE_IPV4, &in_addr);
+	netlink_add_neigh(sock, TUN_IFACE, &in_addr, sizeof(in_addr), &macaddr, ETH_ALEN);
+	struct in6_addr in6_addr;
+	inet_pton(AF_INET6, REMOTE_IPV6, &in6_addr);
+	netlink_add_neigh(sock, TUN_IFACE, &in6_addr, sizeof(in6_addr), &macaddr, ETH_ALEN);
+	macaddr = LOCAL_MAC;
+	netlink_device_change(sock, TUN_IFACE, true, 0, &macaddr, ETH_ALEN);
+	close(sock);
 }
 #endif
 
@@ -232,16 +440,7 @@ static void initialize_tun(void)
 // Addresses are chosen to be in the same subnet as tun addresses.
 #define DEV_IPV4 "172.20.20.%d"
 #define DEV_IPV6 "fe80::%02hx"
-#define DEV_MAC "aa:aa:aa:aa:aa:%02hx"
-
-static void snprintf_check(char* str, size_t size, const char* format, ...)
-{
-	va_list args;
-
-	va_start(args, format);
-	vsnprintf_check(str, size, format, args);
-	va_end(args);
-}
+#define DEV_MAC 0x00aaaaaaaaaa
 
 // We test in a separate namespace, which does not have any network devices initially (even lo).
 // Create/up as many as we can.
@@ -274,65 +473,115 @@ static void initialize_netdevices(void)
 	// - eql
 	char netdevsim[16];
 	sprintf(netdevsim, "netdevsim%d", (int)procid);
-	const char* devtypes[] = {"ip6gretap", "ip6erspan", "bridge", "vcan",
-				  "bond", "team", "dummy", "nlmon", "caif", "batadv"};
+	struct {
+		const char* type;
+		const char* dev;
+	} devtypes[] = {
+	    // Note: ip6erspan device can't be added if ip6gretap exists in the same namespace.
+	    {"ip6gretap", "ip6gretap0"},
+	    {"bridge", "bridge0"},
+	    {"vcan", "vcan0"},
+	    {"bond", "bond0"},
+	    {"team", "team0"},
+	    {"dummy", "dummy0"},
+	    {"nlmon", "nlmon0"},
+	    {"caif", "caif0"},
+	    {"batadv", "batadv0"},
+	    // Note: adding device vxcan0 fails.
+	    {"vxcan", "vxcan1"},
+	    // Note: netdevsim devices can't have the same name even in different namespaces.
+	    {"netdevsim", netdevsim},
+	    // This adds connected veth0 and veth1 devices.
+	    {"veth", 0},
+	};
 	const char* devmasters[] = {"bridge", "bond", "team"};
 	// If you extend this array, also update netdev_addr_id in vnet.txt.
-	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
-				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
-				  "ip6tnl0", "ip6gre0", "ip6gretap0",
-				  "erspan0", "bond0", "veth0", "veth1", "team0",
-				  "veth0_to_bridge", "veth1_to_bridge",
-				  "veth0_to_bond", "veth1_to_bond",
-				  "veth0_to_team", "veth1_to_team",
-				  "veth0_to_hsr", "veth1_to_hsr", "hsr0",
-				  "ip6erspan0", "dummy0", "nlmon0", "vxcan1",
-				  "caif0", "batadv0", netdevsim};
+	struct {
+		const char* name;
+		int macsize;
+		bool noipv6;
+	} devices[] = {
+	    {"lo", ETH_ALEN},
+	    {"sit0", 0},
+	    {"bridge0", ETH_ALEN},
+	    {"vcan0", 0, true},
+	    {"tunl0", 0},
+	    {"gre0", 0},
+	    {"gretap0", ETH_ALEN},
+	    {"ip_vti0", 0},
+	    {"ip6_vti0", 0},
+	    {"ip6tnl0", 0},
+	    {"ip6gre0", 0},
+	    {"ip6gretap0", ETH_ALEN},
+	    {"erspan0", ETH_ALEN},
+	    {"bond0", ETH_ALEN},
+	    {"veth0", ETH_ALEN},
+	    {"veth1", ETH_ALEN},
+	    {"team0", ETH_ALEN},
+	    {"veth0_to_bridge", ETH_ALEN},
+	    {"veth1_to_bridge", ETH_ALEN},
+	    {"veth0_to_bond", ETH_ALEN},
+	    {"veth1_to_bond", ETH_ALEN},
+	    {"veth0_to_team", ETH_ALEN},
+	    {"veth1_to_team", ETH_ALEN},
+	    {"veth0_to_hsr", ETH_ALEN},
+	    {"veth1_to_hsr", ETH_ALEN},
+	    {"hsr0", 0},
+	    {"dummy0", ETH_ALEN},
+	    {"nlmon0", 0},
+	    {"vxcan1", 0, true},
+	    {"caif0", ETH_ALEN}, // TODO: up'ing caif fails with ENODEV
+	    {"batadv0", ETH_ALEN},
+	    {netdevsim, ETH_ALEN},
+	};
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (sock == -1)
+		fail("socket(AF_NETLINK) failed");
 	unsigned i;
-	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
-		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
-	// Note: adding device vxcan0 fails.
-	execute_command(0, "ip link add dev vxcan1 type vxcan");
-	// Note: netdevsim devices can't have the same name even in different namespaces.
-	execute_command(0, "ip link add dev %s type netdevsim", netdevsim);
-	// This adds connected veth0 and veth1 devices.
-	execute_command(0, "ip link add type veth");
-
+	for (i = 0; i < sizeof(devtypes) / sizeof(devtypes[0]); i++)
+		netlink_add_device(sock, devtypes[i].type, devtypes[i].dev);
 	// This creates connected bridge/bond/team_slave devices of type veth,
 	// and makes them slaves of bridge/bond/team devices, respectively.
 	// Note: slave devices don't need MAC/IP addresses, only master devices.
 	//       veth0_to_* is not slave devices, which still need ip addresses.
 	for (i = 0; i < sizeof(devmasters) / (sizeof(devmasters[0])); i++) {
-		execute_command(0, "ip link add name %s_slave_0 type veth peer name veth0_to_%s", devmasters[i], devmasters[i]);
-		execute_command(0, "ip link add name %s_slave_1 type veth peer name veth1_to_%s", devmasters[i], devmasters[i]);
-		execute_command(0, "ip link set %s_slave_0 master %s0", devmasters[i], devmasters[i]);
-		execute_command(0, "ip link set %s_slave_1 master %s0", devmasters[i], devmasters[i]);
+		char master[32], slave0[32], veth0[32], slave1[32], veth1[32];
+		sprintf(slave0, "%s_slave_0", devmasters[i]);
+		sprintf(veth0, "veth0_to_%s", devmasters[i]);
+		netlink_add_veth(sock, slave0, veth0);
+		sprintf(slave1, "%s_slave_1", devmasters[i]);
+		sprintf(veth1, "veth1_to_%s", devmasters[i]);
+		netlink_add_veth(sock, slave1, veth1);
+		sprintf(master, "%s0", devmasters[i]);
+		netlink_device_change(sock, slave0, false, master, 0, 0);
+		netlink_device_change(sock, slave1, false, master, 0, 0);
 	}
 	// bond/team_slave_* will set up automatically when set their master.
 	// But bridge_slave_* need to set up manually.
-	execute_command(0, "ip link set bridge_slave_0 up");
-	execute_command(0, "ip link set bridge_slave_1 up");
-	// Setup hsr device (slightly different from what we do for devmasters).
-	execute_command(0, "ip link add name hsr_slave_0 type veth peer name veth0_to_hsr");
-	execute_command(0, "ip link add name hsr_slave_1 type veth peer name veth1_to_hsr");
-	execute_command(0, "ip link add dev hsr0 type hsr slave1 hsr_slave_0 slave2 hsr_slave_1");
-	execute_command(0, "ip link set hsr_slave_0 up");
-	execute_command(0, "ip link set hsr_slave_1 up");
+	netlink_device_change(sock, "bridge_slave_0", true, 0, 0, 0);
+	netlink_device_change(sock, "bridge_slave_1", true, 0, 0, 0);
 
-	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
-		char addr[32];
+	// Setup hsr device (slightly different from what we do for devmasters).
+	netlink_add_veth(sock, "hsr_slave_0", "veth0_to_hsr");
+	netlink_add_veth(sock, "hsr_slave_1", "veth1_to_hsr");
+	netlink_add_hsr(sock, "hsr0", "hsr_slave_0", "hsr_slave_1");
+	netlink_device_change(sock, "hsr_slave_0", true, 0, 0, 0);
+	netlink_device_change(sock, "hsr_slave_1", true, 0, 0, 0);
+
+	for (i = 0; i < sizeof(devices) / (sizeof(devices[0])); i++) {
 		// Assign some unique address to devices. Some devices won't up without this.
-		// Devices that don't need these addresses will simply ignore them.
 		// Shift addresses by 10 because 0 subnet address can mean special things.
-		snprintf_check(addr, sizeof(addr), DEV_IPV4, i + 10);
-		execute_command(0, "ip -4 addr add %s/24 dev %s", addr, devnames[i]);
-		snprintf_check(addr, sizeof(addr), DEV_IPV6, i + 10);
-		execute_command(0, "ip -6 addr add %s/120 dev %s", addr, devnames[i]);
-		snprintf_check(addr, sizeof(addr), DEV_MAC, i + 10);
-		// TODO: double-check sizes of addresses, some devices want 4/5/7/16-byte addresses.
-		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
-		execute_command(0, "ip link set dev %s up", devnames[i]);
+		char addr[32];
+		sprintf(addr, DEV_IPV4, i + 10);
+		netlink_add_addr4(sock, devices[i].name, addr);
+		if (!devices[i].noipv6) {
+			sprintf(addr, DEV_IPV6, i + 10);
+			netlink_add_addr6(sock, devices[i].name, addr);
+		}
+		uint64 macaddr = DEV_MAC + ((i + 10ull) << 40);
+		netlink_device_change(sock, devices[i].name, true, 0, &macaddr, devices[i].macsize);
 	}
+	close(sock);
 }
 
 // Same as initialize_netdevices, but called in init net namespace.
@@ -342,20 +591,39 @@ static void initialize_netdevices_init(void)
 	if (!flag_enable_net_dev)
 		return;
 #endif
-	int pid = procid;
-	// Note: syscall descriptions know these addresses.
-	// NETROM device, address 7 bytes (AX25_ADDR_LEN), see net/netrom/{af_netrom,nr_dev}.c
-	execute_command(0, "ip link set dev nr%d address bb:bb:bb:bb:bb:00:%02hx", pid, pid);
-	execute_command(0, "ip -4 addr add 172.30.00.%d/24 dev nr%d", pid + 1, pid);
-	execute_command(0, "ip -6 addr add fe88::00:%02hx/120 dev nr%d", pid + 1, pid);
-	execute_command(0, "ip link set dev nr%d up", pid);
-	// ROSE device, address 5 bytes (ROSE_ADDR_LEN), see net/rose/{af_rose,rose_dev}.c
-	execute_command(0, "ip link set dev rose%d address bb:bb:bb:01:%02hx", pid, pid);
-	execute_command(0, "ip -4 addr add 172.30.01.%d/24 dev rose%d", pid + 1, pid);
-	execute_command(0, "ip -6 addr add fe88::01:%02hx/120 dev rose%d", pid + 1, pid);
-	// We don't up because it crashes kernel:
-	// https://groups.google.com/d/msg/syzkaller/v-4B3zoBC-4/02SCKEzJBwAJ
-	// execute_command(0, "ip link set dev rose%d up", pid);
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (sock == -1)
+		fail("socket(AF_NETLINK) failed");
+	struct {
+		const char* type;
+		int macsize;
+		bool noipv6;
+		bool noup;
+	} devtypes[] = {
+	    // NETROM device, see net/netrom/{af_netrom,nr_dev}.c
+	    {"nr", 7, true},
+	    // ROSE device, see net/rose/{af_rose,rose_dev}.c
+	    // We don't up it yet because it crashes kernel right away:
+	    // https://groups.google.com/d/msg/syzkaller/v-4B3zoBC-4/02SCKEzJBwAJ
+	    {"rose", 5, true, true},
+	};
+	unsigned i;
+	for (i = 0; i < sizeof(devtypes) / sizeof(devtypes[0]); i++) {
+		char dev[32], addr[32];
+		sprintf(dev, "%s%d", devtypes[i].type, (int)procid);
+		// Note: syscall descriptions know these addresses.
+		sprintf(addr, "172.30.%d.%d", i, (int)procid + 1);
+		netlink_add_addr4(sock, dev, addr);
+		if (!devtypes[i].noipv6) {
+			sprintf(addr, "fe88::%02hx:%02hx", i, (int)procid + 1);
+			netlink_add_addr6(sock, dev, addr);
+		}
+		int macsize = devtypes[i].macsize;
+		uint64 macaddr = 0xbbbbbb + ((unsigned long long)i << (8 * (macsize - 2))) +
+				 (procid << (8 * (macsize - 1)));
+		netlink_device_change(sock, dev, !devtypes[i].noup, 0, &macaddr, macsize);
+	}
+	close(sock);
 }
 #endif
 
@@ -936,41 +1204,6 @@ static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long 
 	return 0;
 }
 #endif
-#endif
-
-#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION || SYZ_ENABLE_CGROUPS || SYZ_SANDBOX_NONE || \
-    SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
-#include <errno.h>
-#include <fcntl.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-static bool write_file(const char* file, const char* what, ...)
-{
-	char buf[1024];
-	va_list args;
-	va_start(args, what);
-	vsnprintf(buf, sizeof(buf), what, args);
-	va_end(args);
-	buf[sizeof(buf) - 1] = 0;
-	int len = strlen(buf);
-
-	int fd = open(file, O_WRONLY | O_CLOEXEC);
-	if (fd == -1)
-		return false;
-	if (write(fd, buf, len) != len) {
-		int err = errno;
-		close(fd);
-		debug("write(%s) failed: %d\n", file, err);
-		errno = err;
-		return false;
-	}
-	close(fd);
-	return true;
-}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
@@ -1981,6 +2214,8 @@ static int do_sandbox_android_untrusted_app(void)
 	initialize_tun();
 #endif
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+	// Note: sandbox_android_untrusted_app does not unshare net namespace.
+	initialize_netdevices_init();
 	initialize_netdevices();
 #endif
 
