@@ -93,6 +93,8 @@ func TestEvaluateExpressions(t *testing.T) {
 		{"open(1 + 2) = 0", 3},
 		{"open(1-2) = 0", ^uint64(0)},
 		{"open(4 >> 1) = 0", 2},
+		{"open(0700) = 0", 448},
+		{"open(0) = 0", 0},
 	}
 	for i, test := range tests {
 		tree, err := ParseData([]byte(test.line))
