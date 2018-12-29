@@ -3757,6 +3757,7 @@ const call_t syscalls[] = {
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"write$uinput_user_dev", 4},
+    {"write$vhci", 4},
     {"write$vnet", 4},
     {"writev", 146},
 
@@ -6237,6 +6238,7 @@ const call_t syscalls[] = {
     {"write$sndseq", 1},
     {"write$tun", 1},
     {"write$uinput_user_dev", 1},
+    {"write$vhci", 1},
     {"write$vnet", 1},
     {"writev", 20},
 
@@ -8667,6 +8669,7 @@ const call_t syscalls[] = {
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"write$uinput_user_dev", 4},
+    {"write$vhci", 4},
     {"write$vnet", 4},
     {"writev", 146},
 
@@ -11069,6 +11072,7 @@ const call_t syscalls[] = {
     {"write$sndseq", 64},
     {"write$tun", 64},
     {"write$uinput_user_dev", 64},
+    {"write$vhci", 64},
     {"write$vnet", 64},
     {"writev", 66},
 
@@ -13358,6 +13362,7 @@ const call_t syscalls[] = {
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"write$uinput_user_dev", 4},
+    {"write$vhci", 4},
     {"write$vnet", 4},
     {"writev", 146},
 
