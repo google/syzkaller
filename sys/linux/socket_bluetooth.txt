@@ -85,9 +85,9 @@ ioctl$sock_bt_bnep_BNEPGETSUPPFEAT(fd sock_bt_bnep, cmd const[BNEPGETSUPPFEAT], 
 
 setsockopt$bt_BT_SECURITY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SECURITY], arg ptr[in, bt_security], arglen len[arg])
 getsockopt$bt_BT_SECURITY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SECURITY], arg ptr[out, bt_security], arglen len[arg])
-setsockopt$bt_BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, int32], arglen len[arg])
-getsockopt$bt_BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, int32], arglen ptr[in, len[arg, intptr]])
-setsockopt$bt_BT_VOICE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_VOICE], arg ptr[in, int16], arglen len[arg])
+setsockopt$bt_BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, bool32], arglen len[arg])
+getsockopt$bt_BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, bool32], arglen ptr[in, len[arg, intptr]])
+setsockopt$bt_BT_VOICE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_VOICE], arg ptr[in, flags[bt_voice_settings, int16]], arglen len[arg])
 getsockopt$bt_BT_VOICE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_VOICE], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
 setsockopt$bt_BT_FLUSHABLE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_FLUSHABLE], arg ptr[in, int32], arglen len[arg])
 getsockopt$bt_BT_FLUSHABLE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_FLUSHABLE], arg ptr[in, int32], arglen ptr[in, len[arg, intptr]])
@@ -99,6 +99,8 @@ setsockopt$bt_BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SND
 getsockopt$bt_BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SNDMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
 setsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen len[arg])
 getsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
+
+bt_voice_settings = BT_VOICE_TRANSPARENT, BT_VOICE_CVSD_16BIT
 
 sockaddr_hci {
 	fam	const[AF_BLUETOOTH, int16]
@@ -177,17 +179,23 @@ hidp_connadd_req {
 	ctrlsk	sock
 	intrsk	sock
 	parser	int16
-	rdsize	int16
-	rddata	buffer[in]
+	rdsize	len[rddata, int16]
+	rddata	ptr[in, array[int8]]
 	country	int8
 	subclas	int8
 	vendor	int16
 	product	int16
 	version	int16
-	flags	int32
+	flags	flags[hidp_connadd_flags, int32]
 	idleto	int32
-	name	array[int8]
+	name	string[hidp_connadd_names, 128]
 }
+
+hidp_connadd_names = "syz0", "syz1"
+hidp_connadd_flags = HIDP_VIRTUAL_CABLE_UNPLUG_BIT, HIDP_BOOT_PROTOCOL_MODE_BIT
+
+define HIDP_VIRTUAL_CABLE_UNPLUG_BIT	1<<HIDP_VIRTUAL_CABLE_UNPLUG
+define HIDP_BOOT_PROTOCOL_MODE_BIT	1<<HIDP_BOOT_PROTOCOL_MODE
 
 hidp_conndel_req {
 	addr	bdaddr
