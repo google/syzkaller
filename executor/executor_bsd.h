@@ -79,7 +79,13 @@ static void cover_open(cover_t* cov)
 		fail("ioctl init trace write failed");
 #endif
 
+#if GOOS_freebsd
+	// FreeBSD only supports kcov on 64-bit platforms and always uses
+	// entries of type uint64_t.
+	size_t mmap_alloc_size = kCoverSize * sizeof(uint64_t);
+#else
 	size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
+#endif
 	char* mmap_ptr = (char*)mmap(NULL, mmap_alloc_size,
 				     PROT_READ | PROT_WRITE,
 				     MAP_SHARED, cov->fd, 0);
