@@ -964,6 +964,7 @@ static bool write_file(const char* file, const char* what, ...)
 	if (write(fd, buf, len) != len) {
 		int err = errno;
 		close(fd);
+		debug("write(%s) failed: %d\n", file, err);
 		errno = err;
 		return false;
 	}
@@ -1483,18 +1484,14 @@ static void setup_cgroups()
 	if (chmod("/syzcgroup/unified", 0777)) {
 		debug("chmod(/syzcgroup/unified) failed: %d\n", errno);
 	}
-	if (!write_file("/syzcgroup/unified/cgroup.subtree_control", "+cpu +memory +io +pids +rdma")) {
-		debug("write(cgroup.subtree_control) failed: %d\n", errno);
-	}
+	write_file("/syzcgroup/unified/cgroup.subtree_control", "+cpu +memory +io +pids +rdma");
 	if (mkdir("/syzcgroup/cpu", 0777)) {
 		debug("mkdir(/syzcgroup/cpu) failed: %d\n", errno);
 	}
 	if (mount("none", "/syzcgroup/cpu", "cgroup", 0, "cpuset,cpuacct,perf_event,hugetlb")) {
 		debug("mount(cgroup cpu) failed: %d\n", errno);
 	}
-	if (!write_file("/syzcgroup/cpu/cgroup.clone_children", "1")) {
-		debug("write(/syzcgroup/cpu/cgroup.clone_children) failed: %d\n", errno);
-	}
+	write_file("/syzcgroup/cpu/cgroup.clone_children", "1");
 	if (chmod("/syzcgroup/cpu", 0777)) {
 		debug("chmod(/syzcgroup/cpu) failed: %d\n", errno);
 	}
@@ -1516,12 +1513,8 @@ static void setup_binfmt_misc()
 	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0)) {
 		debug("mount(binfmt_misc) failed: %d\n", errno);
 	}
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:")) {
-		debug("write(/proc/sys/fs/binfmt_misc/register, syz0) failed: %d\n", errno);
-	}
-	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC")) {
-		debug("write(/proc/sys/fs/binfmt_misc/register, syz1) failed: %d\n", errno);
-	}
+	write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:\x01::./file0:");
+	write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC");
 }
 #endif
 
@@ -1612,11 +1605,8 @@ static void sandbox_common()
 	    {"/proc/sys/kernel/sem", "1024 1048576 500 1024"},
 	};
 	unsigned i;
-	for (i = 0; i < sizeof(sysctls) / sizeof(sysctls[0]); i++) {
-		if (!write_file(sysctls[i].name, sysctls[i].value)) {
-			debug("failed to set sysctl %s=%s\n", sysctls[i].name, sysctls[i].value);
-		}
-	}
+	for (i = 0; i < sizeof(sysctls) / sizeof(sysctls[0]); i++)
+		write_file(sysctls[i].name, sysctls[i].value);
 }
 
 int wait_for_loop(int pid)
@@ -2234,9 +2224,7 @@ static void setup_loop()
 	// We have up to 16 threads + main process + loop.
 	// 32 pids should be enough for everyone.
 	snprintf(file, sizeof(file), "%s/pids.max", cgroupdir);
-	if (!write_file(file, "32")) {
-		debug("write(%s) failed: %d\n", file, errno);
-	}
+	write_file(file, "32");
 	// Restrict memory consumption.
 	// We have some syscalls that inherently consume lots of memory,
 	// e.g. mounting some filesystem images requires at least 128MB
@@ -2249,38 +2237,26 @@ static void setup_loop()
 	// allow to allocate any memory in the parent and in the new test process.
 	// The current limit of 300MB supports up to 9.6GB RAM (quarantine is 1/32).
 	snprintf(file, sizeof(file), "%s/memory.low", cgroupdir);
-	if (!write_file(file, "%d", 298 << 20)) {
-		debug("write(%s) failed: %d\n", file, errno);
-	}
+	write_file(file, "%d", 298 << 20);
 	snprintf(file, sizeof(file), "%s/memory.high", cgroupdir);
-	if (!write_file(file, "%d", 299 << 20)) {
-		debug("write(%s) failed: %d\n", file, errno);
-	}
+	write_file(file, "%d", 299 << 20);
 	snprintf(file, sizeof(file), "%s/memory.max", cgroupdir);
-	if (!write_file(file, "%d", 300 << 20)) {
-		debug("write(%s) failed: %d\n", file, errno);
-	}
+	write_file(file, "%d", 300 << 20);
 	// Setup some v1 groups to make things more interesting.
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	if (!write_file(file, "%d", pid)) {
-		debug("write(%s) failed: %d\n", file, errno);
-	}
+	write_file(file, "%d", pid);
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
 	}
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	if (!write_file(file, "%d", pid)) {
-		debug("write(%s) failed: %d\n", file, errno);
-	}
+	write_file(file, "%d", pid);
 	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
 	if (mkdir(cgroupdir, 0777)) {
 		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
 	}
 	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	if (!write_file(file, "%d", pid)) {
-		debug("write(%s) failed: %d\n", file, errno);
-	}
+	write_file(file, "%d", pid);
 #endif
 #if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
 	checkpoint_net_namespace();
@@ -2330,9 +2306,7 @@ static void setup_test()
 		debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir, errno);
 	}
 	// It's the leaf test process we want to be always killed first.
-	if (!write_file("/proc/self/oom_score_adj", "1000")) {
-		debug("write(oom_score_adj) failed: %d\n", errno);
-	}
+	write_file("/proc/self/oom_score_adj", "1000");
 #endif
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 	// Read all remaining packets from tun to better
