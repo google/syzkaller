@@ -91,7 +91,7 @@ static void cover_open(cover_t* cov)
 
 static void cover_enable(cover_t* cov, bool collect_comps)
 {
-	int kcov_mode = flag_collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
+	int kcov_mode = collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
 #if GOOS_freebsd
 	if (ioctl(cov->fd, KIOENABLE, kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
