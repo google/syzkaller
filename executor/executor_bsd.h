@@ -93,9 +93,11 @@ static void cover_enable(cover_t* cov, bool collect_comps)
 {
 	int kcov_mode = collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
 #if GOOS_freebsd
+	// FreeBSD uses an int as the third argument.
 	if (ioctl(cov->fd, KIOENABLE, kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
 #elif GOOS_openbsd
+	// OpenBSD uses an pointer to an int as the third argument.
 	if (ioctl(cov->fd, KIOENABLE, &kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
 #endif
