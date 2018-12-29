@@ -86,13 +86,12 @@ static void cover_open(cover_t* cov)
 #else
 	size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
 #endif
-	char* mmap_ptr = (char*)mmap(NULL, mmap_alloc_size,
-				     PROT_READ | PROT_WRITE,
-				     MAP_SHARED, cov->fd, 0);
-	if (mmap_ptr == NULL)
+	void* mmap_ptr = mmap(NULL, mmap_alloc_size, PROT_READ | PROT_WRITE,
+			      MAP_SHARED, cov->fd, 0);
+	if (mmap_ptr == MAP_FAILED)
 		fail("cover mmap failed");
-	cov->data = mmap_ptr;
-	cov->data_end = mmap_ptr + mmap_alloc_size;
+	cov->data = (char*)mmap_ptr;
+	cov->data_end = cov->data + mmap_alloc_size;
 }
 
 static void cover_enable(cover_t* cov, bool collect_comps)
