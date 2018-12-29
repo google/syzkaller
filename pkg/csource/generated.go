@@ -1073,7 +1073,6 @@ static bool write_file(const char* file, const char* what, ...)
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include <linux/if.h>
 #include <linux/if_addr.h>
 #include <linux/if_link.h>
 #include <linux/in6.h>
@@ -1274,13 +1273,13 @@ static void netlink_add_neigh(int sock, const char* name,
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <net/if.h>
 #include <net/if_arp.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include <linux/if.h>
 #include <linux/if_ether.h>
 #include <linux/if_tun.h>
 #include <linux/ip.h>
@@ -1372,17 +1371,18 @@ static void initialize_tun(void)
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <linux/if.h>
-#include <linux/if_ether.h>
-#include <linux/if_tun.h>
-#include <linux/ip.h>
-#include <linux/tcp.h>
+#include <net/if.h>
 #include <net/if_arp.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
+
+#include <linux/if_ether.h>
+#include <linux/if_tun.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
 #define DEV_IPV4 "172.20.20.%d"
 #define DEV_IPV6 "fe80::%02hx"
 #define DEV_MAC 0x00aaaaaaaaaa
@@ -3016,11 +3016,12 @@ static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long 
 
 #if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
 #include <errno.h>
-#include <linux/if.h>
-#include <linux/net.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/socket.h>
+
+#include <linux/net.h>
 #define XT_TABLE_SIZE 1536
 #define XT_MAX_ENTRIES 10
 
