@@ -71,6 +71,7 @@ sockaddr [
 	vsock		sockaddr_vm
 	xdp		sockaddr_xdp
 	tipc		sockaddr_tipc
+	isdn		sockaddr_mISDN
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
 ] [size[SOCKADDR_SIZE]]
@@ -104,6 +105,7 @@ sockaddr_storage [
 	xdp		sockaddr_xdp
 	tipc		sockaddr_tipc
 	caif		sockaddr_caif
+	isdn		sockaddr_mISDN
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_storage_generic
 ] [size[SOCKADDR_STORAGE_SIZE]]
