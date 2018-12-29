@@ -71,7 +71,8 @@ static void cover_open(cover_t* cov)
 	close(fd);
 
 #if GOOS_freebsd
-	if (ioctl(cov->fd, KIOSETBUFSIZE, kCoverSize))
+	// On FreeBSD provide the size in bytes, not in number of entries.
+	if (ioctl(cov->fd, KIOSETBUFSIZE, kCoverSize * sizeof(uint64_t)))
 		fail("ioctl init trace write failed");
 #elif GOOS_openbsd
 	unsigned long cover_size = kCoverSize;
