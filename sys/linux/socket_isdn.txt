@@ -126,3 +126,17 @@ capi_manufacturer_cmd {
 
 openat$proc_capi20(fd const[AT_FDCWD], file ptr[in, string["/proc/capi/capi20"]], flags flags[open_flags], mode const[0]) fd
 openat$proc_capi20ncci(fd const[AT_FDCWD], file ptr[in, string["/proc/capi/capi20ncci"]], flags flags[open_flags], mode const[0]) fd
+
+resource fd_misdntimer[fd]
+
+openat$misdntimer(fd const[AT_FDCWD], file ptr[in, string["/dev/mISDNtimer"]], flags flags[open_flags], mode const[0]) fd_misdntimer
+ioctl$IMADDTIMER(fd fd_misdntimer, cmd const[IMADDTIMER], arg ptr[in, flags[misdntimer_timeouts, int32]])
+ioctl$IMDELTIMER(fd fd_misdntimer, cmd const[IMDELTIMER], arg ptr[in, flags[misdntimer_id, int32]])
+
+# IMADDTIMER accepts timeout in arg and returns timer id in the same location,
+# we don't have a way to describe overlapping in/out args.
+# This is like the only known so far such case in kernel interfaces, yikes!
+# Timer id's seems to be allocated densely from 1 per opened device,
+# so we just use 0, 1, 2, 3 as id's.
+misdntimer_id = 0, 1, 2, 3
+misdntimer_timeouts = 0, 20, 50, 1000000, -1
