@@ -87,8 +87,13 @@ func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*r
 	// These pattern do _not_ start a new report, i.e. can be in a middle of another report.
 	ctx.reportStartIgnores = []*regexp.Regexp{
 		compile(`invalid opcode: 0000`),
-		compile(`Kernel panic - not syncing: panic_on_warn set`),
+		compile(`Kernel panic - not syncing`),
 		compile(`unregister_netdevice: waiting for`),
+		// Double fault can happen during handling of paging faults
+		// if memory is badly corrupted. Also it usually happens
+		// synchronously, which means that maybe the report is not corrupted.
+		// But of course it can come from another CPU as well.
+		compile(`PANIC: double fault`),
 	}
 	// These pattern math kernel reports which are not bugs in itself but contain stack traces.
 	// If we see them in the middle of another report, we know that the report is potentially corrupted.

@@ -1,0 +1,55 @@
+TITLE: PANIC: double fault in __udp6_lib_lookup
+CORRUPTED: Y
+
+[ 1017.993148] PANIC: double fault, error_code: 0x0
+[ 1017.997929] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 4.20.0+ #137
+[ 1018.004216] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1018.013568] RIP: 0010:__udp6_lib_lookup+0x22/0x3e0
+[ 1018.018469] Code: 41 29 d5 e9 1c fd ff ff 55 48 89 e5 41 57 41 89 d7 41 56 49 89 ce 41 55 41 54 45 89 c4 53 48 89 fb 66 41 c1 c4 08 48 83 ec 28 <48> 89 7d d0 48 89 75 c8 44 89 4d c4 e8 1d 05 77 fe 44 8b ab 78 06
+[ 1018.037441] RSP: 0018:ffff888216f8bfd8 EFLAGS: 00010296
+[ 1018.042772] RAX: ffff8881d8505470 RBX: ffff8881d92f8200 RCX: ffff8881d8505450
+[ 1018.050013] RDX: 0000000000000000 RSI: ffff8881d8505460 RDI: ffff8881d92f8200
+[ 1018.057256] RBP: ffff888216f8c028 R08: 00000000000061ec R09: 0000000000000004
+[ 1018.064510] R10: 0000000000000000 R11: ffff8881d8505448 R12: 000000000000ec61
+[ 1018.071752] R13: 0000000000000000 R14: ffff8881d8505450 R15: 0000000000000000
+[ 1018.078998] FS:  0000000000000000(0000) GS:ffff888218300000(0000) knlGS:0000000000000000
+[ 1018.087248] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1018.093117] CR2: ffff888216f8bfc8 CR3: 00000002080a2000 CR4: 00000000001426e0
+[ 1018.100362] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 1018.107603] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 1018.114845] Call Trace:
+[ 1018.117397] Kernel panic - not syncing: Machine halted.
+[ 1018.122732] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 4.20.0+ #137
+[ 1018.129030] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1018.138360] Call Trace:
+[ 1018.140945]  <#DF>
+[ 1018.143073]  dump_stack+0xaa/0xd8
+[ 1018.146501]  panic+0x154/0x339
+[ 1018.149666]  ? get_cpu_entry_area+0xc/0x30
+[ 1018.153870]  df_debug+0x28/0x2a
+[ 1018.157123]  do_double_fault+0xb5/0x120
+[ 1018.161068]  double_fault+0x1e/0x30
+[ 1018.164682] RIP: 0010:__udp6_lib_lookup+0x22/0x3e0
+[ 1018.169582] Code: 41 29 d5 e9 1c fd ff ff 55 48 89 e5 41 57 41 89 d7 41 56 49 89 ce 41 55 41 54 45 89 c4 53 48 89 fb 66 41 c1 c4 08 48 83 ec 28 <48> 89 7d d0 48 89 75 c8 44 89 4d c4 e8 1d 05 77 fe 44 8b ab 78 06
+[ 1018.188455] RSP: 0018:ffff888216f8bfd8 EFLAGS: 00010296
+[ 1018.193793] RAX: ffff8881d8505470 RBX: ffff8881d92f8200 RCX: ffff8881d8505450
+[ 1018.201036] RDX: 0000000000000000 RSI: ffff8881d8505460 RDI: ffff8881d92f8200
+[ 1018.208278] RBP: ffff888216f8c028 R08: 00000000000061ec R09: 0000000000000004
+[ 1018.215518] R10: 0000000000000000 R11: ffff8SeaBIOS (version 1.8.2-20181112_143635-google)
+Total RAM Size = 0x00000001e0000000 = 7680 MiB
+CPUs found: 2     Max CPUs supported: 2
+found virtio-scsi at 0:3
+virtio-scsi vendor='Google' product='PersistentDisk' rev='1' type=0 removable=0
+virtio-scsi blksize=512 sectors=4194304 = 2048 MiB
+drive 0x000f2a70: PCHS=0/0/0 translation=lba LCHS=520/128/63 s=4194304
+Booting from Hard Disk 0...
+early console in extract_kernel
+input_data: 0x00000000034982e9
+input_len: 0x00000000014e8997
+output: 0x0000000001000000
+output_len: 0x00000000039369f8
+kernel_total_size: 0x0000000003826000
+trampoline_32bit: 0x000000000009d000
+
+Decompressing Linux... Parsing ELF... done.
+Booting the kernel.
