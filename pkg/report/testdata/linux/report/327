@@ -1,0 +1,22 @@
+TITLE: PANIC: double fault in corrupted
+CORRUPTED: Y
+
+[  812.717699] PANIC: double fault, error_code: 0x0
+[  812.722477] CSeaBIOS (version 1.8.2-20181112_143635-google)
+Total RAM Size = 0x00000001e0000000 = 7680 MiB
+CPUs found: 2     Max CPUs supported: 2
+found virtio-scsi at 0:3
+virtio-scsi vendor='Google' product='PersistentDisk' rev='1' type=0 removable=0
+virtio-scsi blksize=512 sectors=4194304 = 2048 MiB
+drive 0x000f2a70: PCHS=0/0/0 translation=lba LCHS=520/128/63 s=4194304
+Booting from Hard Disk 0...
+early console in extract_kernel
+input_data: 0x000000000348e2e9
+input_len: 0x00000000014f61d2
+output: 0x0000000001000000
+output_len: 0x000000000393a9f8
+kernel_total_size: 0x0000000003826000
+trampoline_32bit: 0x000000000009d000
+
+Decompressing Linux... Parsing ELF... done.
+Booting the kernel.
