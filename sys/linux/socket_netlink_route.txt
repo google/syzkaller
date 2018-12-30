@@ -599,10 +599,91 @@ devconf_mpls_policy [
 	IGNORE_ROUTES_WITH_LINKDOWN	nlattr[NETCONFA_IGNORE_ROUTES_WITH_LINKDOWN, int32]
 ] [varlen]
 
-# TODO: implement these
-type ifla_vf_policy nl_generic_attr
-type ifla_port_policy nl_generic_attr
-type ifla_xdp_policy nl_generic_attr
+ifla_vf_policy [
+	IFLA_VF_MAC		nlattr[IFLA_VF_MAC, ifla_vf_mac]
+	IFLA_VF_VLAN		nlattr[IFLA_VF_VLAN, ifla_vf_vlan]
+	IFLA_VF_VLAN_LIST	nlattr[IFLA_VF_VLAN_LIST, array[nlattr[IFLA_VF_VLAN_INFO, ifla_vf_vlan_info]]]
+	IFLA_VF_TX_RATE		nlattr[IFLA_VF_TX_RATE, ifla_vf_tx_rate]
+	IFLA_VF_SPOOFCHK	nlattr[IFLA_VF_SPOOFCHK, ifla_vf_spoofchk]
+	IFLA_VF_RATE		nlattr[IFLA_VF_RATE, ifla_vf_rate]
+	IFLA_VF_LINK_STATE	nlattr[IFLA_VF_LINK_STATE, ifla_vf_link_state]
+	IFLA_VF_RSS_QUERY_EN	nlattr[IFLA_VF_RSS_QUERY_EN, ifla_vf_rss_query_en]
+	IFLA_VF_TRUST		nlattr[IFLA_VF_TRUST, ifla_vf_trust]
+	IFLA_VF_IB_NODE_GUID	nlattr[IFLA_VF_IB_NODE_GUID, ifla_vf_guid]
+	IFLA_VF_IB_PORT_GUID	nlattr[IFLA_VF_IB_PORT_GUID, ifla_vf_guid]
+] [varlen]
+
+ifla_vf_mac {
+	vf	int32
+	mac	mac_addr
+	pad	array[const[0, int8], 26]
+}
+
+ifla_vf_vlan {
+	vf	int32
+	vlan	int32[0:4095]
+	qos	int32
+}
+
+ifla_vf_tx_rate {
+	vf	int32
+	rate	int32
+}
+
+ifla_vf_rate {
+	vf		int32
+	min_tx_rate	int32
+	max_tx_rate	int32
+}
+
+ifla_vf_spoofchk {
+	vf	int32
+	setting	int32
+}
+
+ifla_vf_guid {
+	vf	int32
+	guid	int64
+}
+
+ifla_vf_link_state {
+	vf		int32
+	link_state	int32
+}
+
+ifla_vf_rss_query_en {
+	vf	int32
+	setting	int32
+}
+
+ifla_vf_trust {
+	vf	int32
+	setting	int32
+}
+
+ifla_vf_vlan_info {
+	vf		int32
+	vlan		int32[0:4095]
+	qos		int32
+	vlan_proto	flags[ifla_vf_vlan_proto, int16be]
+}
+
+ifla_vf_vlan_proto = ETH_P_8021Q, ETH_P_8021AD
+
+ifla_port_policy [
+	IFLA_PORT_VF		nlattr[IFLA_PORT_VF, int32]
+	IFLA_PORT_PROFILE	nlattr[IFLA_PORT_PROFILE, string]
+	IFLA_PORT_INSTANCE_UUID	nlattr[IFLA_PORT_INSTANCE_UUID, uuid_t]
+	IFLA_PORT_HOST_UUID	nlattr[IFLA_PORT_HOST_UUID, uuid_t]
+	IFLA_PORT_REQUEST	nlattr[IFLA_PORT_REQUEST, int8]
+] [varlen]
+
+ifla_xdp_policy [
+	IFLA_XDP_FD	nlattr[IFLA_XDP_FD, bpf_prog]
+	IFLA_XDP_FLAGS	nlattr[IFLA_XDP_FLAGS, flags[ifla_xdp_flags, int32]]
+] [varlen]
+
+ifla_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST, XDP_FLAGS_SKB_MODE, XDP_FLAGS_DRV_MODE, XDP_FLAGS_HW_MODE
 
 rtnl_link_ifmap {
 	mem_start	int64
