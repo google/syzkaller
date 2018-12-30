@@ -1,0 +1,44 @@
+TITLE: kernel panic: corrupted stack end in wb_workfn
+
+[  281.244340] Kernel panic - not syncing: corrupted stack end detected inside scheduler
+[  281.245754] CPU: 2 PID: 6265 Comm: kworker/u12:4 Not tainted 4.20.0-rc7+ #6
+[  281.246887] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  281.248240] Workqueue: writeback wb_workfn (flush-8:0)
+[  281.248992] Call Trace:
+[  281.249364]  dump_stack+0x1d4/0x2b5
+[  281.252261]  panic+0x25e/0x49c
+[  281.255403]  __schedule+0x1be8/0x21d0
+[  281.263754]  preempt_schedule_common+0x35/0xe0
+[  281.264425]  preempt_schedule+0x23/0x30
+[  281.265010]  ___preempt_schedule+0x16/0x18
+[  281.265635]  _raw_spin_unlock_irqrestore+0xbf/0xe0
+[  281.266357]  __remove_mapping+0x77b/0x17e0
+[  281.291388]  shrink_page_list+0x5232/0xa6b0
+[  281.414732]  shrink_inactive_list+0x997/0x1ab0
+[  281.419009]  shrink_node_memcg+0x9de/0x16a0
+[  281.424799]  shrink_node+0x3af/0x1530
+[  281.433316]  do_try_to_free_pages+0x3bc/0x1170
+[  281.435723]  try_to_free_pages+0x43c/0x9e0
+[  281.442644]  __alloc_pages_slowpath+0xa4c/0x2c10
+[  281.459197]  __alloc_pages_nodemask+0xa6c/0xe10
+[  281.466504]  alloc_pages_current+0xb6/0x1e0
+[  281.467326]  __page_cache_alloc+0x332/0x560
+[  281.471049]  pagecache_get_page+0x2af/0xdd0
+[  281.487360]  __getblk_gfp+0x36e/0xd50
+[  281.497989]  ext4_read_block_bitmap_nowait+0x2ed/0x1e10
+[  281.509111]  ext4_read_block_bitmap+0x23/0x80
+[  281.509934]  ext4_mb_mark_diskspace_used+0x180/0x10a0
+[  281.512755]  ext4_mb_new_blocks+0xeb7/0x4260
+[  281.540189]  ext4_ext_map_blocks+0x2776/0x5b00
+[  281.556040]  ext4_map_blocks+0xcaa/0x1860
+[  281.559967]  ext4_writepages+0x1e4c/0x3a20
+[  281.575738]  do_writepages+0xfc/0x170
+[  281.578546]  __writeback_single_inode+0x1cd/0x12e0
+[  281.592498]  writeback_sb_inodes+0x6c7/0x1040
+[  281.598601]  __writeback_inodes_wb+0x1a3/0x310
+[  281.600816]  wb_writeback+0x92c/0xe10
+[  281.618064]  wb_workfn+0xdf3/0x1600
+[  281.635970]  process_one_work+0xcf3/0x1be0
+[  281.662614]  worker_thread+0x17d/0x12f0
+[  281.680989]  kthread+0x354/0x430
+[  281.682529]  ret_from_fork+0x3a/0x50

@@ -1,0 +1,55 @@
+TITLE: kernel panic: corrupted stack end in wb_workfn
+
+[  186.195516] Kernel panic - not syncing: corrupted stack end detected inside scheduler
+[  186.203830] CPU: 0 PID: 21 Comm: kworker/u4:1 Not tainted 4.20.0+ #176
+[  186.210506] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  186.219874] Workqueue: writeback wb_workfn (flush-8:0)
+[  186.225160] Call Trace:
+[  186.227755]  dump_stack+0x1d3/0x2c6
+[  186.236621]  panic+0x2ad/0x55f
+[  186.263843]  __schedule+0x1ec6/0x1ed0
+[  186.311367]  preempt_schedule_irq+0x87/0x110
+[  186.315792]  retint_kernel+0x1b/0x2d
+[  186.319510] RIP: 0010:lock_is_held_type+0x18b/0x210
+[  186.324533] Code: ff df 41 c7 84 24 7c 08 00 00 00 00 00 00 48 89 fa 48 c1 ea 03 80 3c 02 00 75 63 48 83 3d 9c 09 0f 08 00 74 30 48 89 df 57 9d <0f> 1f 44 00 00 48 83 c4 08 44 89 e8 5b 41 5c 41 5d 5d c3 48 83 c4
+[  186.343461] RSP: 0018:ffff8880a95dbe10 EFLAGS: 00000286 ORIG_RAX: ffffffffffffff13
+[  186.351185] RAX: dffffc0000000000 RBX: 0000000000000286 RCX: 0000000000000000
+[  186.358478] RDX: 1ffffffff12e495e RSI: 0000000000000000 RDI: 0000000000000286
+[  186.365783] RBP: ffff8880a95dbe30 R08: ffff8880a95d0580 R09: ffffed1015cc5b8f
+[  186.373065] R10: ffffed1015cc5b8f R11: ffff8880ae62dc7b R12: ffff8880a95d0580
+[  186.380334] R13: 0000000000000001 R14: 0000000000000000 R15: ffffffffffffffff
+[  186.387658]  rcu_read_lock_held+0xa9/0xc0
+[  186.391823]  list_lru_count_one+0x31a/0x450
+[  186.414265]  super_cache_count+0x1b9/0x2e0
+[  186.418521]  do_shrink_slab+0x1b1/0xd30
+[  186.457922]  shrink_slab+0x389/0x8c0
+[  186.477028]  shrink_node+0x647/0x17f0
+[  186.529384]  do_try_to_free_pages+0x3df/0x12a0
+[  186.545944]  try_to_free_pages+0x4d0/0xb90
+[  186.591142]  __alloc_pages_slowpath+0xa5a/0x2db0
+[  186.663340]  __alloc_pages_nodemask+0xa89/0xde0
+[  186.702734]  alloc_pages_current+0x10c/0x210
+[  186.707168]  __page_cache_alloc+0x38c/0x5b0
+[  186.724259]  pagecache_get_page+0x396/0xf00
+[  186.805773]  __getblk_gfp+0x3aa/0xd50
+[  186.869886]  __breadahead+0x8c/0x160
+[  186.878296]  __ext4_get_inode_loc+0xdc4/0x1330
+[  186.891401]  ext4_reserve_inode_write+0xfa/0x260
+[  186.896182]  ext4_mark_inode_dirty+0x19c/0xb20
+[  186.993752]  __ext4_ext_dirty+0x1f5/0x260
+[  187.013327]  ext4_ext_insert_extent+0x118d/0x45a0
+[  187.047743]  ext4_ext_map_blocks+0x32fc/0x6180
+[  187.111537]  ext4_map_blocks+0x8f7/0x1b60
+[  187.134851]  ext4_writepages+0x2564/0x4170
+[  187.213830]  do_writepages+0x9a/0x1a0
+[  187.226388]  __writeback_single_inode+0x20a/0x1660
+[  187.291026]  writeback_sb_inodes+0x71f/0x1210
+[  187.326427]  __writeback_inodes_wb+0x1b9/0x340
+[  187.339862]  wb_writeback+0xa73/0xfc0
+[  187.442931]  wb_workfn+0xee9/0x1790
+[  187.539003]  process_one_work+0xc90/0x1c40
+[  187.654956]  worker_thread+0x17f/0x1390
+[  187.741419]  kthread+0x35a/0x440
+[  187.748617]  ret_from_fork+0x3a/0x50
+[  187.753622] Kernel Offset: disabled
+[  187.757359] Rebooting in 86400 seconds..

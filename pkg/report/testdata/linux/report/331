@@ -1,0 +1,40 @@
+TITLE: kernel panic: corrupted stack end in wb_workfn
+
+[  839.617079] Kernel panic - not syncing: corrupted stack end detected inside scheduler
+[  839.619019] CPU: 0 PID: 7895 Comm: kworker/u12:6 Not tainted 4.20.0+ #11
+[  839.620030] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  839.621165] Workqueue: writeback wb_workfn (flush-8:0)
+[  839.621888] Call Trace:
+[  839.622253]  dump_stack+0x1d3/0x2c6
+[  839.623492]  panic+0x2ad/0x55f
+[  839.627987]  __schedule+0x1ec6/0x1ed0
+[  839.633474]  schedule+0xef/0x370
+[  839.636799]  schedule_timeout+0x140/0x260
+[  839.638901]  schedule_timeout_uninterruptible+0x75/0x90
+[  839.639786]  __alloc_pages_slowpath+0x14c9/0x2db0
+[  839.653639]  __alloc_pages_nodemask+0xa89/0xde0
+[  839.658370]  alloc_pages_current+0x10c/0x210
+[  839.659154]  __page_cache_alloc+0x38c/0x5b0
+[  839.662126]  pagecache_get_page+0x396/0xf00
+[  839.670212]  ext4_mb_load_buddy_gfp+0xa80/0x1e70
+[  839.685979]  ext4_mb_find_by_goal+0x2fa/0x1040
+[  839.690920]  ext4_mb_regular_allocator+0x282/0x1590
+[  839.695735]  ext4_mb_new_blocks+0x1de3/0x4840
+[  839.723338]  ext4_ext_map_blocks+0x2eef/0x6180
+[  839.733924]  ext4_map_blocks+0x8f7/0x1b60
+[  839.737730]  ext4_writepages+0x2564/0x4170
+[  839.749193]  do_writepages+0x9a/0x1a0
+[  839.751229]  __writeback_single_inode+0x20a/0x1660
+[  839.765951]  writeback_sb_inodes+0x71f/0x1210
+[  839.771338]  __writeback_inodes_wb+0x1b9/0x340
+[  839.773483]  wb_writeback+0xa73/0xfc0
+[  839.784905]  wb_workfn+0xd65/0x1790
+[  839.802711]  process_one_work+0xc90/0x1c40
+[  839.825054]  worker_thread+0x17f/0x1390
+[  839.838890]  kthread+0x35a/0x440
+[  839.840051]  ret_from_fork+0x3a/0x50
+[  839.841422] Dumping ftrace buffer:
+[  839.842800]    (ftrace buffer empty)
+[  839.843307] Kernel Offset: disabled
+[  839.843804] Rebooting in 86400 seconds..
+

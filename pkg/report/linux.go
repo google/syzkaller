@@ -1213,6 +1213,19 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
+				title:  compile("Kernel panic - not syncing: corrupted stack end"),
+				report: compile("Kernel panic - not syncing: corrupted stack end detected inside scheduler"),
+				fmt:    "kernel panic: corrupted stack end in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip:      []string{"schedule", "retint_kernel"},
+					extractor: linuxStallFrameExtractor,
+				},
+			},
+			{
 				title: compile("Kernel panic - not syncing: Attempted to kill init!"),
 				fmt:   "kernel panic: Attempted to kill init!",
 			},
