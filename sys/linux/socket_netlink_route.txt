@@ -17,6 +17,7 @@ include <uapi/linux/fib_rules.h>
 include <uapi/linux/if_tunnel.h>
 include <uapi/linux/net_namespace.h>
 include <uapi/linux/veth.h>
+include <uapi/linux/can/gw.h>
 
 resource sock_nl_route[sock_netlink]
 type netns_id int32[0:4]
@@ -83,6 +84,9 @@ netlink_msg_route [
 
 	RTM_NEWNSID		netlink_msg[RTM_NEWNSID, rtgenmsg[AF_UNSPEC], rtnl_net_policy]
 	RTM_GETNSID		netlink_msg[RTM_GETNSID, rtgenmsg[AF_UNSPEC], rtnl_net_policy]
+
+	can_newroute		netlink_msg[RTM_NEWROUTE, rtcanmsg, cgw_policy]
+	can_delroute		netlink_msg[RTM_DELROUTE, rtcanmsg, cgw_policy]
 ] [varlen]
 
 type rtgenmsg[FAMILY] {
@@ -614,6 +618,55 @@ rtnl_net_policy [
 	NETNSA_PID	nlattr[NETNSA_PID, pid]
 	NETNSA_FD	nlattr[NETNSA_FD, fd_namespace]
 ] [varlen]
+
+rtcanmsg {
+	can_family	const[AF_CAN, int8]
+	gwtype		const[CGW_TYPE_CAN_CAN, int8]
+	flags		flags[rtcanmsg_flags, int16]
+}
+
+rtcanmsg_flags = CGW_FLAGS_CAN_ECHO, CGW_FLAGS_CAN_SRC_TSTAMP, CGW_FLAGS_CAN_IIF_TX_OK
+
+cgw_policy [
+	CGW_MOD_AND	nlattr[CGW_MOD_AND, cgw_frame_mod]
+	CGW_MOD_OR	nlattr[CGW_MOD_OR, cgw_frame_mod]
+	CGW_MOD_XOR	nlattr[CGW_MOD_XOR, cgw_frame_mod]
+	CGW_MOD_SET	nlattr[CGW_MOD_SET, cgw_frame_mod]
+	CGW_CS_XOR	nlattr[CGW_CS_XOR, cgw_csum_xor]
+	CGW_CS_CRC8	nlattr[CGW_CS_CRC8, cgw_csum_crc8]
+	CGW_SRC_IF	nlattr[CGW_SRC_IF, ifindex_vcan]
+	CGW_DST_IF	nlattr[CGW_DST_IF, ifindex_vcan]
+	CGW_FILTER	nlattr[CGW_FILTER, can_filter]
+	CGW_LIM_HOPS	nlattr[CGW_LIM_HOPS, int8]
+	CGW_MOD_UID	nlattr[CGW_MOD_UID, uid]
+] [varlen]
+
+cgw_frame_mod {
+	cf	can_frame
+	modtype	flags[cgw_frame_modtype, int8]
+} [packed]
+
+cgw_frame_modtype = CGW_MOD_ID, CGW_MOD_DLC, CGW_MOD_DATA
+
+cgw_csum_xor {
+	from_idx	int8[-9:8]
+	to_idx		int8[-9:8]
+	result_idx	int8[-9:8]
+	init_xor_val	int8
+} [packed]
+
+cgw_csum_crc8 {
+	from_idx	int8[0:127]
+	to_idx		int8[0:127]
+	result_idx	int8[0:127]
+	init_crc_val	int8
+	final_xor_val	int8
+	crctab		array[int8, 256]
+	profile		flags[cgw_csum_crc8_profile, int8]
+	profile_data	array[int8, 20]
+} [packed]
+
+cgw_csum_crc8_profile = CGW_CRC8PRF_UNSPEC, CGW_CRC8PRF_1U8, CGW_CRC8PRF_16U8, CGW_CRC8PRF_SFFID_XOR
 
 rtnl_af = AF_INET, AF_INET6, AF_BRIDGE, AF_MPLS
 net_device_flags = IFF_UP, IFF_BROADCAST, IFF_DEBUG, IFF_LOOPBACK, IFF_POINTOPOINT, IFF_NOTRAILERS, IFF_RUNNING, IFF_NOARP, IFF_PROMISC, IFF_ALLMULTI, IFF_MASTER, IFF_SLAVE, IFF_MULTICAST, IFF_PORTSEL, IFF_AUTOMEDIA, IFF_DYNAMIC, IFF_LOWER_UP, IFF_DORMANT, IFF_ECHO
