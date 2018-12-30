@@ -106,6 +106,7 @@ sockaddr_storage [
 	tipc		sockaddr_tipc
 	caif		sockaddr_caif
 	isdn		sockaddr_mISDN
+	rxrpc		sockaddr_rxrpc
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_storage_generic
 ] [size[SOCKADDR_STORAGE_SIZE]]
