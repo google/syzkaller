@@ -1,0 +1,113 @@
+TITLE: kernel panic: stack is corrupted in br_dev_xmit
+
+[  254.788396] bridge0: received packet on gretap0 with own address as source address (addr:aa:aa:aa:aa:aa:0c, vlan:0)
+[  254.800034] Kernel panic - not syncing: stack-protector: Kernel stack is corrupted in: br_dev_xmit+0x12ec/0x1550
+[  254.800034] 
+[  254.811975] CPU: 1 PID: 21341 Comm: syz-executor0 Not tainted 4.16.0+ #294
+[  254.818978] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  254.828322] Call Trace:
+[  254.830892]  <IRQ>
+[  254.833100]  dump_stack+0x1a7/0x27d
+[  254.845262]  panic+0x1f8/0x42c
+[  254.874451]  __stack_chk_fail+0x22/0x30
+[  254.878417]  br_dev_xmit+0x12ec/0x1550
+[  254.919010]  dev_hard_start_xmit+0x24e/0xac0
+[  254.934421] sctp: [Deprecated]: syz-executor4 (pid 21370) Use of int in maxseg socket option.
+[  254.934421] Use struct sctp_assoc_value instead
+[  254.980126]  __dev_queue_xmit+0x26cf/0x2fd0
+[  255.014107] sctp: [Deprecated]: syz-executor4 (pid 21373) Use of int in maxseg socket option.
+[  255.014107] Use struct sctp_assoc_value instead
+[  255.053307] kernel msg: ebtables bug: please report to author: Valid hook without chain
+[  255.072107] kernel msg: ebtables bug: please report to author: EBT_ENTRY_OR_ENTRIES shouldn't be set in distinguisher
+[  255.122065] kernel msg: ebtables bug: please report to author: Valid hook without chain
+[  255.125754]  dev_queue_xmit+0x17/0x20
+[  255.125774]  ip_finish_output2+0xf4d/0x1550
+[  255.156703] sctp: [Deprecated]: syz-executor4 (pid 21390) Use of int in maxseg socket option.
+[  255.156703] Use struct sctp_assoc_value instead
+[  255.158201]  ip_finish_output+0x864/0xd60
+[  255.175664] kernel msg: ebtables bug: please report to author: EBT_ENTRY_OR_ENTRIES shouldn't be set in distinguisher
+[  255.180547]  ip_mc_output+0x271/0x1350
+[  255.286554]  ip_local_out+0x95/0x160
+[  255.290313]  iptunnel_xmit+0x556/0x810
+[  255.294200]  ip_tunnel_xmit+0x16fc/0x3550
+[  255.327878]  __gre_xmit+0x546/0x8b0
+[  255.331484]  gre_tap_xmit+0x2b7/0x510
+[  255.339313]  dev_hard_start_xmit+0x24e/0xac0
+[  255.388324]  sch_direct_xmit+0x40d/0x1140
+[  255.406209]  __qdisc_run+0x676/0x19b0
+[  255.435916]  __dev_queue_xmit+0xb8b/0x2fd0
+[  255.517563]  dev_queue_xmit+0x17/0x20
+[  255.525282]  br_dev_queue_push_xmit+0x196/0x5a0
+[  255.533785]  br_forward_finish+0xc8/0x530
+[  255.559302]  __br_forward+0x533/0xc80
+[  255.583930]  deliver_clone+0x63/0xc0
+[  255.587624]  br_flood+0x612/0x770
+[  255.598888]  br_dev_xmit+0xa68/0x1550
+[  255.643297]  dev_hard_start_xmit+0x24e/0xac0
+[  255.691004]  __dev_queue_xmit+0x26cf/0x2fd0
+[  255.803518]  dev_queue_xmit+0x17/0x20
+[  255.811240]  ip_finish_output2+0xf4d/0x1550
+[  255.840707]  ip_finish_output+0x864/0xd60
+[  255.875583]  ip_mc_output+0x271/0x1350
+[  255.931605]  ip_local_out+0x95/0x160
+[  255.935291]  iptunnel_xmit+0x556/0x810
+[  255.939156]  ip_tunnel_xmit+0x16fc/0x3550
+[  255.982190]  __gre_xmit+0x546/0x8b0
+[  255.985794]  erspan_xmit+0x779/0x22b0
+[  256.011824]  dev_hard_start_xmit+0x24e/0xac0
+[  256.067671]  sch_direct_xmit+0x40d/0x1140
+[  256.085543]  __qdisc_run+0x676/0x19b0
+[  256.115185]  __dev_queue_xmit+0xb8b/0x2fd0
+[  256.343177]  dev_queue_xmit+0x17/0x20
+[  256.350892]  br_dev_queue_push_xmit+0x196/0x5a0
+[  256.359665]  br_nf_dev_queue_xmit+0x2f1/0x1690
+[  256.395673]  br_nf_post_routing+0xc56/0x1570
+[  256.439088]  nf_hook_slow+0xba/0x1a0
+[  256.442776]  br_forward_finish+0x34a/0x530
+[  256.460132]  br_nf_hook_thresh+0x406/0x560
+[  256.485897]  br_nf_forward_finish+0x313/0x670
+[  256.495182]  br_nf_forward_ip+0xcee/0x1ae0
+[  256.575146]  nf_hook_slow+0xba/0x1a0
+[  256.578835]  __br_forward+0x49c/0xc80
+[  256.603388]  deliver_clone+0x63/0xc0
+[  256.607076]  br_flood+0x5c6/0x770
+[  256.622791]  br_handle_frame_finish+0x5e3/0x15e0
+[  256.668972]  br_nf_hook_thresh+0x406/0x560
+[  256.686593]  br_nf_pre_routing_finish+0x87b/0x18e0
+[  256.730755]  br_nf_pre_routing+0xdbd/0x14b0
+[  256.765565]  nf_hook_slow+0xba/0x1a0
+[  256.769251]  br_handle_frame+0xb5b/0x1740
+[  256.825444]  __netif_receive_skb_core+0x984/0x3480
+[  256.916166]  __netif_receive_skb+0x2c/0x1b0
+[  256.924931]  process_backlog+0x203/0x740
+[  256.933172]  net_rx_action+0x788/0x1910
+[  257.039896]  __do_softirq+0x2d7/0xb85
+[  257.096312]  do_softirq_own_stack+0x2a/0x40
+[  257.100602]  </IRQ>
+[  257.102813]  do_softirq.part.19+0x14d/0x190
+[  257.111577]  __local_bh_enable_ip+0x1ee/0x230
+[  257.116048]  ip_finish_output2+0x962/0x1550
+[  257.144200]  ip_finish_output+0x864/0xd60
+[  257.179070]  ip_output+0x1d2/0x860
+[  257.199540]  ip_local_out+0x95/0x160
+[  257.203227]  ip_send_skb+0x3c/0xc0
+[  257.206741]  ip_push_pending_frames+0x64/0x80
+[  257.211210]  raw_sendmsg+0x1d4d/0x26b0
+[  257.272778]  inet_sendmsg+0x11f/0x5e0
+[  257.292972]  sock_sendmsg+0xca/0x110
+[  257.296658]  __sys_sendto+0x365/0x5a0
+[  257.335276]  SyS_sendto+0x40/0x60
+[  257.342650]  do_syscall_64+0x281/0x940
+[  257.384559]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  257.389723] RIP: 0033:0x4552d9
+[  257.392885] RSP: 002b:00007f4d152e6c68 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+[  257.400562] RAX: ffffffffffffffda RBX: 00007f4d152e76d4 RCX: 00000000004552d9
+[  257.407802] RDX: 0000000000000000 RSI: 0000000020000040 RDI: 0000000000000013
+[  257.415046] RBP: 000000000072bea0 R08: 0000000020000080 R09: 0000000000000010
+[  257.422288] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  257.429530] R13: 00000000000004f2 R14: 00000000006fa750 R15: 0000000000000000
+[  257.437463] Dumping ftrace buffer:
+[  257.441182]    (ftrace buffer empty)
+[  257.444864] Kernel Offset: disabled
+[  257.448463] Rebooting in 86400 seconds..
+

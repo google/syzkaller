@@ -1187,6 +1187,26 @@ var linuxOopses = []*oops{
 	{
 		[]byte("Kernel panic"),
 		[]oopsFormat{
+			// Note: for stack corruption reports kernel may fail
+			// to print function symbol name and/or unwind stack.
+			{
+				title:        compile("Kernel panic - not syncing: stack-protector:"),
+				report:       compile("Kernel panic - not syncing: stack-protector: Kernel stack is corrupted in: {{FUNC}}"),
+				fmt:          "kernel panic: stack is corrupted in %[1]v",
+				noStackTrace: true,
+			},
+			{
+				title:  compile("Kernel panic - not syncing: stack-protector:"),
+				report: compile("Kernel panic - not syncing: stack-protector: Kernel stack is corrupted in: [a-f0-9]+"),
+				fmt:    "kernel panic: stack is corrupted in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"stack_chk"},
+				},
+			},
 			{
 				title: compile("Kernel panic - not syncing: Attempted to kill init!"),
 				fmt:   "kernel panic: Attempted to kill init!",
