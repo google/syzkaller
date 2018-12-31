@@ -106,7 +106,7 @@ mutate1()
 		{`
 mutate4(&(0x7f0000000000)="11223344", 0x4)
 `, `
-mutate4(&(0x7f0000000000)="112244", 0x3)
+mutate4(&(0x7f0000000000)="113344", 0x3)
 `},
 		// Mutate data (insert byte and update size).
 		// TODO: this is not working, because Mutate constantly tends
