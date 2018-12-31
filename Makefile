@@ -302,8 +302,14 @@ presubmit:
 presubmit_parallel: test test_race arch check_links
 
 test:
+ifeq ("$(TRAVIS)$(shell go version | grep 1.9)", "")
 	# Executor tests use cgo.
 	env CGO_ENABLED=1 $(GO) test -short ./...
+else
+	# Collect coverage report for codecov.io when running on travis (uploaded in .travis.yml).
+	# Note: Go 1.9 does not support -coverprofile when testing multiple packages.
+	env CGO_ENABLED=1 $(GO) test -short -coverprofile=coverage.txt ./...
+endif
 
 test_race:
 	$(GO) test -race; if test $$? -ne 2; then \
