@@ -24,6 +24,9 @@ script:
   - make install_prerequisites
   - make presubmit
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
 # If the build fails because some code in not formatted, it's nice to see the diffs after formatting.
 after_failure:
   - git diff --name-only
