@@ -25,7 +25,7 @@ var (
 	reportGenerator   *cover.ReportGenerator
 )
 
-func initCover(kernelObj, kernelObjName, kernelSrc, arch string) error {
+func initCover(kernelObj, kernelObjName, kernelSrc, arch, OS string) error {
 	if kernelObj == "" {
 		return fmt.Errorf("kernel_obj is not specified")
 	}
@@ -35,15 +35,15 @@ func initCover(kernelObj, kernelObjName, kernelSrc, arch string) error {
 	if err != nil {
 		return err
 	}
-	initCoverVMOffset, err = getVMOffset(vmlinux)
+	initCoverVMOffset, err = getVMOffset(vmlinux, OS)
 	return err
 }
 
-func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, arch string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, arch, OS string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("no coverage data available")
 	}
-	initCoverOnce.Do(func() { initCoverError = initCover(kernelObj, kernelObjName, kernelSrc, arch) })
+	initCoverOnce.Do(func() { initCoverError = initCover(kernelObj, kernelObjName, kernelSrc, arch, OS) })
 	if initCoverError != nil {
 		return initCoverError
 	}
@@ -54,7 +54,10 @@ func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, arch st
 	return reportGenerator.Do(w, pcs)
 }
 
-func getVMOffset(vmlinux string) (uint32, error) {
+func getVMOffset(vmlinux, OS string) (uint32, error) {
+	if OS == "freebsd" {
+		return 0xffffffff, nil
+	}
 	out, err := osutil.RunCmd(time.Hour, "", "readelf", "-SW", vmlinux)
 	if err != nil {
 		return 0, err
