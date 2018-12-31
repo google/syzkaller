@@ -1,0 +1,38 @@
+TITLE: WARNING: locking bug in corrupted
+CORRUPTED: Y
+
+[  336.564505] FAULT_INJECTION: forcing a failure.
+[  336.564505] name failslab, interval 1, probability 0, space 0, times 0
+[  336.578590] CPU: 0 PID: 13847 Comm: syz-executor3 Not tainted 4.20.0+ #1
+[  336.580236] ------------[ cut here ]------------
+[  336.585429] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  336.590173] downgrading a read lock
+[  336.590271] WARNING: CPU: 1 PID: 13845 at kernel/locking/lockdep.c:3553 lock_downgrade+0x4d2/0x910
+[  336.599526] Call Trace:
+[  336.603137] Kernel panic - not syncing: panic_on_warn set ...
+[  336.612244]  dump_stack+0x1db/0x2d0
+[  336.633577]  should_fail.cold+0xa/0x15
+[  336.659923]  __should_failslab+0x121/0x190
+[  336.664157]  should_failslab+0x9/0x14
+[  336.667956]  __kmalloc+0x71/0x740
+[  336.676549]  __tty_buffer_request_room+0x2bf/0x7e0
+[  336.698234]  tty_insert_flip_string_fixed_flag+0x93/0x1f0
+[  336.703770]  pty_write+0x133/0x200
+[  336.707319]  tty_send_xchar+0x28c/0x390
+[  336.730525]  n_tty_ioctl_helper+0x192/0x3b0
+[  336.734851]  n_tty_ioctl+0x59/0x360
+[  336.742550]  tty_ioctl+0xb53/0x16c0
+[  336.791102]  do_vfs_ioctl+0x107b/0x17d0
+[  336.840461]  ksys_ioctl+0xab/0xd0
+[  336.866478]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  336.843912]  __x64_sys_ioctl+0x73/0xb0
+[  336.847797]  do_syscall_64+0x1a3/0x800
+[  336.871662] RIP: 0033:0x457ec9
+[  336.874858] Code: 6d b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 3b b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  336.893753] RSP: 002b:00007f75b4313c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  336.901468] RAX: ffffffffffffffda RBX: 00007f75b4313c90 RCX: 0000000000457ec9
+[  336.908733] RDX: 0000000000000003 RSI: 000000000000540a RDI: 0000000000000003
+[  336.915998] RBP: 000000000073bf00 R08: 0000000000000000 R09: 0000000000000000
+[  336.923260] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f75b43146d4
+[  336.930521] R13: 00000000004c1eb5 R14: 00000000004d4168 R15: 0000000000000004
+[  336.937822] CPU: 1 PID: 13845 Comm: blkid Not tainted 4.20.0+ #1

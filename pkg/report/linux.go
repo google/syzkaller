@@ -714,8 +714,8 @@ var linuxStackParams = &stackParams{
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
-		compile(`^ should_fail(\.[a-z]+\.[0-9]+)?\+0x`),
-		compile(`^ should_failslab(\.[a-z]+\.[0-9]+)?\+0x`),
+		// Note: the actual symbol can have all kinds of weird suffixes like ".isra.7", ".cold" or ".isra.56.cold.74".
+		compile(`^ should_fail(slab)?(\.[a-z0-9.]+)?\+0x`),
 	},
 }
 
