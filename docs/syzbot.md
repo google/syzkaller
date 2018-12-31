@@ -119,6 +119,7 @@ Exact compilers used by `syzbot` can be found here:
 - [gcc 7.1.1 20170620](https://storage.googleapis.com/syzkaller/gcc-7.tar.gz) (245MB)
 - [gcc 8.0.1 20180301](https://storage.googleapis.com/syzkaller/gcc-8.0.1-20180301.tar.gz) (286MB)
 - [gcc 8.0.1 20180412](https://storage.googleapis.com/syzkaller/gcc-8.0.1-20180412.tar.gz) (33MB)
+- [gcc 9.0.0 20181231](https://storage.googleapis.com/syzkaller/gcc-9.0.0-20181231.tar.gz) (30MB)
 - [clang 7.0.0 (trunk 329060)](https://storage.googleapis.com/syzkaller/clang-kmsan-329060.tar.gz) (44MB)
 - [clang 7.0.0 (trunk 334104)](https://storage.googleapis.com/syzkaller/clang-kmsan-334104.tar.gz) (44MB)
 - [clang 8.0.0 (trunk 343298)](https://storage.googleapis.com/syzkaller/clang-kmsan-343298.tar.gz) (45MB)
