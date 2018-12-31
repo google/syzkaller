@@ -13,13 +13,9 @@ func TestResourceCtors(t *testing.T) {
 		t.Skip("too slow")
 	}
 	testEachTarget(t, func(t *testing.T, target *Target) {
-		for _, c := range target.Syscalls {
-			for _, res := range target.inputResources(c) {
-				if len(target.calcResourceCtors(res.Kind, true)) == 0 {
-					t.Errorf("call %v requires input resource %v,"+
-						" but there are no calls that can create this resource",
-						c.Name, res.Name)
-				}
+		for _, res := range target.Resources {
+			if len(target.calcResourceCtors(res.Kind, true)) == 0 {
+				t.Errorf("resource %v can't be created", res.Name)
 			}
 		}
 	})
