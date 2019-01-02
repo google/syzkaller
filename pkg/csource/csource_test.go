@@ -61,6 +61,9 @@ func TestGenerate(t *testing.T) {
 
 func testTarget(t *testing.T, target *prog.Target, full bool) {
 	seed := int64(time.Now().UnixNano())
+	if os.Getenv("TRAVIS") != "" {
+		seed = 0 // required for deterministic coverage reports
+	}
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
 	p := target.Generate(rs, 10, nil)

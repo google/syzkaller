@@ -5,6 +5,7 @@ package repro
 
 import (
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -18,6 +19,9 @@ func initTest(t *testing.T) (*rand.Rand, int) {
 		iters = 100
 	}
 	seed := int64(time.Now().UnixNano())
+	if os.Getenv("TRAVIS") != "" {
+		seed = 0 // required for deterministic coverage reports
+	}
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
 	return rand.New(rs), iters
