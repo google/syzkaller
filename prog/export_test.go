@@ -6,6 +6,7 @@ package prog
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 )
@@ -32,6 +33,9 @@ func initTargetTest(t *testing.T, os, arch string) *Target {
 
 func randSource(t *testing.T) rand.Source {
 	seed := int64(time.Now().UnixNano())
+	if os.Getenv("TRAVIS") != "" {
+		seed = 0 // required for deterministic coverage reports
+	}
 	t.Logf("seed=%v", seed)
 	return rand.NewSource(seed)
 }

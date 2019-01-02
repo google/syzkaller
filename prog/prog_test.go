@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestGeneration(t *testing.T) {
@@ -144,9 +143,7 @@ func TestCrossTarget(t *testing.T) {
 }
 
 func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
-	seed := int64(time.Now().UnixNano())
-	t.Logf("seed=%v", seed)
-	rs := rand.NewSource(seed)
+	rs := randSource(t)
 	iters := 100
 	if testing.Short() {
 		iters /= 10

@@ -38,6 +38,9 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, EnvFlags) {
 		iters = 10
 	}
 	seed := int64(time.Now().UnixNano())
+	if os.Getenv("TRAVIS") != "" {
+		seed = 0 // required for deterministic coverage reports
+	}
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
 	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
