@@ -212,6 +212,8 @@ ifla_info_policy [
 	veth		ifla_info_policy_t["veth", IFLA_INFO_DATA, veth_policy]
 	vti		ifla_info_policy_t["vti", IFLA_INFO_DATA, array[vti_policy]]
 	ip6vti		ifla_info_policy_t["ip6vti", IFLA_INFO_DATA, array[ip6vti_policy]]
+# TODO: this should be a net device fd. How does one even obtain these?
+	ppp		ifla_info_policy_t["ppp", IFLA_INFO_DATA, nlattr[IFLA_PPP_DEV_FD, fd]]
 ] [varlen]
 
 bond_policy [
