@@ -209,6 +209,9 @@ func shrinkExpand(v uint64, compMap CompMap) []uint64 {
 				// Replace size least significant bits of v with
 				// corresponding bits of newV. Leave the rest of v as it was.
 				replacer := (v &^ mask) | newV
+				if replacer == v {
+					continue
+				}
 				// TODO(dvyukov): should we try replacing with arg+/-1?
 				// This could trigger some off-by-ones.
 				if replacers == nil {
