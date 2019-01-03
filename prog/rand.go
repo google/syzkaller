@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ifuzz"
@@ -188,11 +189,7 @@ func (r *randGen) filenameImpl(s *state) string {
 		// Generate a new name.
 		dir := "."
 		if r.oneOf(2) && len(s.files) != 0 {
-			files := make([]string, 0, len(s.files))
-			for f := range s.files {
-				files = append(files, f)
-			}
-			dir = files[r.Intn(len(files))]
+			dir = r.randFromMap(s.files)
 			if len(dir) > 0 && dir[len(dir)-1] == 0 {
 				dir = dir[:len(dir)-1]
 			}
@@ -207,10 +204,15 @@ func (r *randGen) filenameImpl(s *state) string {
 			}
 		}
 	}
-	files := make([]string, 0, len(s.files))
-	for f := range s.files {
+	return r.randFromMap(s.files)
+}
+
+func (r *randGen) randFromMap(m map[string]bool) string {
+	files := make([]string, 0, len(m))
+	for f := range m {
 		files = append(files, f)
 	}
+	sort.Strings(files)
 	return files[r.Intn(len(files))]
 }
 
@@ -221,11 +223,7 @@ func (r *randGen) randString(s *state, t *BufferType) []byte {
 	if len(s.strings) != 0 && r.bin() {
 		// Return an existing string.
 		// TODO(dvyukov): make s.strings indexed by string SubKind.
-		strings := make([]string, 0, len(s.strings))
-		for s := range s.strings {
-			strings = append(strings, s)
-		}
-		return []byte(strings[r.Intn(len(strings))])
+		return []byte(r.randFromMap(s.strings))
 	}
 	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
 		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
@@ -275,6 +273,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 				all = append(all, kind1)
 			}
 		}
+		sort.Strings(all)
 		kind = all[r.Intn(len(all))]
 	}
 	// Find calls that produce the necessary resources.
@@ -585,8 +584,16 @@ func (a *ResourceType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 	switch {
 	case r.nOutOf(1000, 1011):
 		// Get an existing resource.
+		alltypes := make([][]*ResultArg, 0, len(s.resources))
+		for _, res1 := range s.resources {
+			alltypes = append(alltypes, res1)
+		}
+		sort.Slice(alltypes, func(i, j int) bool {
+			return alltypes[i][0].Type().Name() < alltypes[j][0].Type().Name()
+		})
 		var allres []*ResultArg
-		for name1, res1 := range s.resources {
+		for _, res1 := range alltypes {
+			name1 := res1[0].Type().Name()
 			if r.target.isCompatibleResource(a.Desc.Name, name1) ||
 				r.oneOf(20) && r.target.isCompatibleResource(a.Desc.Kind[0], name1) {
 				allres = append(allres, res1...)
