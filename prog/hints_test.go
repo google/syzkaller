@@ -36,7 +36,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 		{
 			"One replacer test",
 			0xdeadbeef,
-			CompMap{0xdeadbeef: uint64Set{0xcafebabe: true}},
+			CompMap{0xdeadbeef: uint64Set{0xdeadbeef: true, 0xcafebabe: true}},
 			[]uint64{0xcafebabe},
 		},
 		// Test for cases when there's multiple comparisons (op1, op2), (op1, op3), ...
@@ -57,7 +57,6 @@ func TestHintsCheckConstArg(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
-			t.Parallel()
 			var res []uint64
 			constArg := &ConstArg{ArgCommon{nil}, test.in}
 			checkConstArg(constArg, test.comps, func() {
@@ -79,7 +78,11 @@ func TestHintsCheckDataArg(t *testing.T) {
 		{
 			"One replacer test",
 			"\xef\xbe\xad\xde",
-			CompMap{0xdeadbeef: uint64Set{0xcafebabe: true}},
+			CompMap{
+				0xdeadbeef: uint64Set{0xcafebabe: true, 0xdeadbeef: true},
+				0xbeef:     uint64Set{0xbeef: true},
+				0xef:       uint64Set{0xef: true},
+			},
 			map[string]bool{
 				"\xbe\xba\xfe\xca": true,
 			},
@@ -190,7 +193,6 @@ func TestHintsCheckDataArg(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
-			t.Parallel()
 			res := make(map[string]bool)
 			// Whatever type here. It's just needed to pass the
 			// dataArg.Type().Dir() == DirIn check.
@@ -272,16 +274,16 @@ func TestHintsShrinkExpand(t *testing.T) {
 			"Shrink 64 test",
 			0x1234567890abcdef,
 			CompMap{
-				0xef:               uint64Set{0xab: true},
+				0xef:               uint64Set{0xab: true, 0xef: true},
 				0xcdef:             uint64Set{0xcdcd: true},
 				0x90abcdef:         uint64Set{0xefefefef: true},
 				0x1234567890abcdef: uint64Set{0x0101010101010101: true},
 			},
 			[]uint64{
+				0x0101010101010101,
 				0x1234567890abcdab,
 				0x1234567890abcdcd,
 				0x12345678efefefef,
-				0x0101010101010101,
 			},
 		},
 		{
@@ -367,7 +369,6 @@ func TestHintsShrinkExpand(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
-			t.Parallel()
 			res := shrinkExpand(test.in, test.comps)
 			if !reflect.DeepEqual(res, test.res) {
 				t.Fatalf("\ngot : %v\nwant: %v", res, test.res)
