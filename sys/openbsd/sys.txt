@@ -108,6 +108,9 @@ wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[
 pledge(promises ptr[in, string], execpromises ptr[in, string])
 unveil(path ptr[in, filename], permissions ptr[in, string[unveil_permissions]])
 
+openat$null(fd const[AT_FDCWD], file ptr[in, string["/dev/null"]], flags flags[open_flags], mode const[0]) fd
+openat$zero(fd const[AT_FDCWD], file ptr[in, string["/dev/zero"]], flags flags[open_flags], mode const[0]) fd
+
 pollfd {
 	fd	fd
 	events	flags[pollfd_events, int16]
