@@ -14349,6 +14349,7 @@ const call_t syscalls[] = {
     {"open$dir", 5},
     {"openat", 321},
     {"openat$null", 321},
+    {"openat$tty", 321},
     {"openat$zero", 321},
     {"pipe", 263},
     {"pipe2", 101},

@@ -9,6 +9,7 @@ include <fcntl.h>
 resource fd_tty[fd]
 
 syz_open_pts() fd_tty
+openat$tty(fd const[AT_FDCWD], file ptr[in, string["/dev/tty"]], flags flags[open_flags], mode const[0]) fd_tty
 
 ioctl$TIOCSETD(fd fd_tty, cmd const[TIOCSETD], arg ptr[in, int32])
 ioctl$TIOCGETD(fd fd_tty, cmd const[TIOCGETD], arg ptr[out, int32])
