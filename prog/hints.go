@@ -22,9 +22,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"sort"
 )
-
-type uint64Set map[uint64]bool
 
 // Example: for comparisons {(op1, op2), (op1, op3), (op1, op4), (op2, op1)}
 // this map will store the following:
@@ -32,17 +31,17 @@ type uint64Set map[uint64]bool
 //		op1: {map[op2]: true, map[op3]: true, map[op4]: true},
 //		op2: {map[op1]: true}
 // }.
-type CompMap map[uint64]uint64Set
+type CompMap map[uint64]map[uint64]bool
 
 const (
 	maxDataLength = 100
 )
 
-var specialIntsSet uint64Set
+var specialIntsSet map[uint64]bool
 
 func (m CompMap) AddComp(arg1, arg2 uint64) {
 	if _, ok := m[arg1]; !ok {
-		m[arg1] = make(uint64Set)
+		m[arg1] = make(map[uint64]bool)
 	}
 	m[arg1][arg2] = true
 }
@@ -106,7 +105,9 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 
 func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
 	original := arg.Val
-	for replacer := range shrinkExpand(original, compMap) {
+	// Note: because shrinkExpand returns a map, order of programs is non-deterministic.
+	// This can affect test coverage reports.
+	for _, replacer := range shrinkExpand(original, compMap) {
 		arg.Val = replacer
 		exec()
 	}
@@ -124,7 +125,7 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 		original := make([]byte, 8)
 		copy(original, data[i:])
 		val := binary.LittleEndian.Uint64(original)
-		for replacer := range shrinkExpand(val, compMap) {
+		for _, replacer := range shrinkExpand(val, compMap) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(data[i:], bytes)
 			exec()
@@ -163,7 +164,8 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 // As with shrink we ignore cases when the other operand is wider.
 // Note that executor sign extends all the comparison operands to int64.
 // ======================================================================
-func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
+func shrinkExpand(v uint64, compMap CompMap) []uint64 {
+	var replacers map[uint64]bool
 	for _, iwidth := range []int{8, 4, 2, 1, -4, -2, -1} {
 		var width int
 		var size, mutant uint64
@@ -210,17 +212,27 @@ func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
 				// TODO(dvyukov): should we try replacing with arg+/-1?
 				// This could trigger some off-by-ones.
 				if replacers == nil {
-					replacers = make(uint64Set)
+					replacers = make(map[uint64]bool)
 				}
 				replacers[replacer] = true
 			}
 		}
 	}
-	return
+	if replacers == nil {
+		return nil
+	}
+	res := make([]uint64, 0, len(replacers))
+	for v := range replacers {
+		res = append(res, v)
+	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i] < res[j]
+	})
+	return res
 }
 
 func init() {
-	specialIntsSet = make(uint64Set)
+	specialIntsSet = make(map[uint64]bool)
 	for _, v := range specialInts {
 		specialIntsSet[v] = true
 	}
