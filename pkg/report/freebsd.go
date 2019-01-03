@@ -43,14 +43,12 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 			next = len(output)
 		}
 		for _, oops1 := range freebsdOopses {
-			match := matchOops(output[pos:next], oops1, ctx.ignores)
-			if match == -1 {
+			if !matchOops(output[pos:next], oops1, ctx.ignores) {
 				continue
 			}
 			if oops == nil {
 				oops = oops1
 				rep.StartPos = pos
-				rep.Title = string(output[pos+match : next])
 			}
 			rep.EndPos = next
 		}

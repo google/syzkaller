@@ -261,29 +261,27 @@ func containsCrash(output []byte, oopses []*oops, ignores []*regexp.Regexp) bool
 			next = len(output)
 		}
 		for _, oops := range oopses {
-			match := matchOops(output[pos:next], oops, ignores)
-			if match == -1 {
-				continue
+			if matchOops(output[pos:next], oops, ignores) {
+				return true
 			}
-			return true
 		}
 		pos = next + 1
 	}
 	return false
 }
 
-func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
+func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) bool {
 	match := bytes.Index(line, oops.header)
 	if match == -1 {
-		return -1
+		return false
 	}
 	if matchesAny(line, oops.suppressions) {
-		return -1
+		return false
 	}
 	if matchesAny(line, ignores) {
-		return -1
+		return false
 	}
-	return match
+	return true
 }
 
 func extractDescription(output []byte, oops *oops, params *stackParams) (
@@ -329,7 +327,7 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 		desc = fmt.Sprintf(f.fmt, args...)
 		format = f
 	}
-	if len(desc) == 0 {
+	if desc == "" {
 		// If we are here and matchedTitle is set, it means that we've matched
 		// a title of an oops but not full report regexp or stack trace,
 		// which means the report was corrupted.
@@ -456,8 +454,7 @@ func simpleLineParser(output []byte, oopses []*oops, params *stackParams, ignore
 		}
 		line := output[pos:next]
 		for _, oops1 := range oopses {
-			match := matchOops(line, oops1, ignores)
-			if match != -1 {
+			if matchOops(line, oops1, ignores) {
 				oops = oops1
 				rep.StartPos = pos
 				rep.EndPos = next

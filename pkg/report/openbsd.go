@@ -55,7 +55,11 @@ func (ctx *openbsd) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *openbsd) Parse(output []byte) *Report {
-	stripped := bytes.Replace(output, []byte{'\r'}, nil, -1)
+	stripped := bytes.Replace(output, []byte{'\r', '\n'}, []byte{'\n'}, -1)
+	stripped = bytes.Replace(stripped, []byte{'\n', '\r'}, []byte{'\n'}, -1)
+	for len(stripped) != 0 && stripped[0] == '\r' {
+		stripped = stripped[1:]
+	}
 	rep := simpleLineParser(stripped, openbsdOopses, nil, ctx.ignores)
 	if rep == nil {
 		return nil
