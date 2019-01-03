@@ -1,0 +1,88 @@
+TITLE: KASAN: slab-out-of-bounds Write in kmalloc_oob_right
+
+[   35.046212][ T5851] ==================================================================
+[   35.047479][ T5851] BUG: KASAN: slab-out-of-bounds in memcpy+0xac/0xc3 [test_kasan]
+[   35.048773][ T5851] Write of size 1 at addr ffff88806acbf2bb by task insmod/5851
+[   35.049896][ T5851] 
+[   35.050252][ T5851] CPU: 0 PID: 5851 Comm: insmod Not tainted 4.20.0-next-20190102 #4
+[   35.051419][ T5851] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[   35.052773][ T5851] Call Trace:
+[   35.053287][ T5851]  dump_stack+0x1db/0x2d0
+[   35.053968][ T5851]  ? dump_stack_print_info.cold+0x20/0x20
+[   35.054853][ T5851]  ? kmalloc_oob_right+0xac/0xc3 [test_kasan]
+[   35.054853][    C3]  kfree+0x16/0x3cd
+[   35.055746][ T5851]  print_address_description.cold+0x7c/0x20d
+[   35.056627][ T5851]  ? kmalloc_oob_right+0xac/0xc3 [test_kasan]
+[   35.057512][ T5851]  ? kmalloc_oob_right+0xac/0xc3 [test_kasan]
+[   35.058410][ T5851]  kasan_report.cold+0x1b/0x40
+[   35.059116][ T5851]  ? kmalloc_oob_right+0xac/0xc3 [test_kasan]
+[   35.060033][ T5851]  __asan_report_store1_noabort+0x17/0x20
+[   35.060901][ T5851]  kmalloc_oob_right+0xac/0xc3 [test_kasan]
+[   35.061789][ T5851]  ? kasan_strings+0x153/0x153 [test_kasan]
+[   35.062674][ T5851]  kmalloc_tests_init+0x16/0x3cd [test_kasan]
+[   35.063560][ T5851]  do_one_initcall+0x129/0x937
+[   35.064258][ T5851]  ? do_init_module+0x98/0x770
+[   35.072650][ T5851]  do_init_module+0x25c/0x770
+[   35.073329][ T5851]  ? __x64_sys_delete_module+0x6f0/0x6f0
+[   35.074162][ T5851]  load_module+0x62e3/0x8340
+[   35.074863][ T5851]  ? module_frob_arch_sections+0x20/0x20
+[   35.086303][ T5851]  __do_sys_init_module+0x2db/0x390
+[   35.087046][ T5851]  ? __do_sys_init_module+0x2db/0x390
+[   35.090971][ T5851]  __x64_sys_init_module+0x6e/0xb0
+[   35.091714][ T5851]  do_syscall_64+0x1a3/0x800
+[   35.092371][ T5851]  ? syscall_return_slowpath+0x5f0/0x5f0
+[   35.094809][ T5851]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   35.095644][ T5851] RIP: 0033:0x7f805ddcc9da
+[   35.096273][ T5851] Code: 48 8b 0d 61 84 2a 00 31 d2 48 29 c2 64 89 11 48 83 c8 ff eb ea 90 90 90 90 90 90 90 90 90 90 90 49 89 ca b8 af 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d 2e 84 2a 00 31 d2 48 29 c2 64
+[   35.099007][ T5851] RSP: 002b:00007ffce0017658 EFLAGS: 00000202 ORIG_RAX: 00000000000000af
+[   35.100239][ T5851] RAX: ffffffffffffffda RBX: 000055a7c3b254b0 RCX: 00007f805ddcc9da
+[   35.101361][ T5851] RDX: 00007f805e08bf88 RSI: 0000000000062c58 RDI: 00007f805e444000
+[   35.102516][ T5851] RBP: 000055a7c3b240b0 R08: 0000000000000003 R09: 0000000000000000
+[   35.103626][ T5851] R10: 00007f805ddc8d0a R11: 0000000000000202 R12: 00007f805e08bf88
+[   35.104773][ T5851] R13: 000055a7c3b24090 R14: 0000000000000000 R15: 0000000000000000
+[   35.105894][ T5851] 
+[   35.106231][ T5851] Allocated by task 5851:
+[   35.106880][ T5851]  save_stack+0x45/0xd0
+[   35.107469][ T5851]  kasan_kmalloc+0xcf/0xe0
+[   35.108095][ T5851]  kmem_cache_alloc_trace+0x151/0x760
+[   35.108851][ T5851]  kmalloc_oob_right+0x5a/0xc3 [test_kasan]
+[   35.109688][ T5851]  kmalloc_tests_init+0x16/0x3cd [test_kasan]
+[   35.110544][ T5851]  do_one_initcall+0x129/0x937
+[   35.111217][ T5851]  do_init_module+0x25c/0x770
+[   35.111876][ T5851]  load_module+0x62e3/0x8340
+[   35.112526][ T5851]  __do_sys_init_module+0x2db/0x390
+[   35.113262][ T5851]  __x64_sys_init_module+0x6e/0xb0
+[   35.113992][ T5851]  do_syscall_64+0x1a3/0x800
+[   35.114645][ T5851]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   35.115485][ T5851] 
+[   35.115816][ T5851] Freed by task 5584:
+[   35.116379][ T5851]  save_stack+0x45/0xd0
+[   35.116966][ T5851]  __kasan_slab_free+0x102/0x150
+[   35.117668][ T5851]  kasan_slab_free+0xe/0x10
+[   35.118302][ T5851]  kfree+0xcf/0x230
+[   35.118843][ T5851]  load_elf_binary+0x5e9/0x53c0
+[   35.119524][ T5851]  search_binary_handler+0x17f/0x570
+[   35.120269][ T5851]  __do_execve_file.isra.0+0x14f3/0x2700
+[   35.121059][ T5851]  __x64_sys_execve+0x8f/0xc0
+[   35.121728][ T5851]  do_syscall_64+0x1a3/0x800
+[   35.122380][ T5851]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   35.123200][ T5851] 
+[   35.123535][ T5851] The buggy address belongs to the object at ffff88806acbf240
+[   35.123535][ T5851]  which belongs to the cache kmalloc-128 of size 128
+[   35.125515][ T5851] The buggy address is located 123 bytes inside of
+[   35.125515][ T5851]  128-byte region [ffff88806acbf240, ffff88806acbf2c0)
+[   35.127390][ T5851] The buggy address belongs to the page:
+[   35.128179][ T5851] page:ffffea0001ab2fc0 count:1 mapcount:0 mapping:ffff88806c000640 index:0xffff88806acbf0c0
+[   35.129588][ T5851] flags: 0x1fffc0000000200(slab)
+[   35.130293][ T5851] raw: 01fffc0000000200 ffffea00018975c8 ffffea0001a89c88 ffff88806c000640
+[   35.131493][ T5851] raw: ffff88806acbf0c0 ffff88806acbf000 0000000100000012 0000000000000000
+[   35.132685][ T5851] page dumped because: kasan: bad access detected
+[   35.133576][ T5851] 
+[   35.133914][ T5851] Memory state around the buggy address:
+[   35.134718][ T5851]  ffff88806acbf180: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   35.135851][ T5851]  ffff88806acbf200: fc fc fc fc fc fc fc fc 00 00 00 00 00 00 00 00
+[   35.136977][ T5851] >ffff88806acbf280: 00 00 00 00 00 00 00 03 fc fc fc fc fc fc fc fc
+[   35.138145][ T5851]                                         ^
+[   35.138974][ T5851]  ffff88806acbf300: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   35.140093][ T5851]  ffff88806acbf380: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+[   35.141210][ T5851] ==================================================================

@@ -332,6 +332,11 @@ func TestFuzz(t *testing.T) {
 		"kernel panicType 'help' for a list of commands",
 		"0000000000000000000\n\n\n\n\n\nBooting the kernel.",
 		"ZIRCON KERNEL PANICHalted",
+		"BUG:Disabling lock debugging due to kernel taint",
+		"[0.0] WARNING: ? 0+0x0/0",
+		"BUG: login: [0.0] ",
+		"cleaned vnod\re",
+		"kernel\r:",
 	} {
 		Fuzz([]byte(data))
 	}

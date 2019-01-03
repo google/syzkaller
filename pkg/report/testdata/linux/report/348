@@ -1,0 +1,89 @@
+# Test that we don't preserve large prefix for CPU context.
+TITLE: WARNING in xfrm_state_fini
+
+[  602.265237][    C1] FAULT_INJECTION: forcing a failure.
+[  602.265237][    C1] name failslab, interval 1, probability 0, space 0, times 0
+[  602.267142][    C1] CPU: 1 PID: 27130 Comm: syz-executor2 Not tainted 4.20.0-next-20190102+ #5
+[  602.268396][    C1] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  602.269685][    C1] Call Trace:
+[  602.270155][    C1]  dump_stack+0x1db/0x2d0
+[  602.272981][    C1]  should_fail.cold+0xa/0x14
+[  602.277933][    C1]  __should_failslab+0x121/0x190
+[  602.278628][    C1]  should_failslab+0x9/0x14
+[  602.279253][    C1]  kmem_cache_alloc_trace+0x2d1/0x760
+[  602.281722][    C1]  netdevice_event+0x353/0x1100
+[  602.290969][    C1]  notifier_call_chain+0x179/0x380
+[  602.294716][    C1]  raw_notifier_call_chain+0x2e/0x40
+[  602.295450][    C1]  call_netdevice_notifiers_info+0x3f/0x90
+[  602.345149][    C1]  __x64_sys_ioctl+0x73/0xb0
+[  602.345810][    C1]  do_syscall_64+0x1a3/0x800
+[  602.349549][    C1]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  602.350379][    C1] RIP: 0033:0x4576a9
+[  602.350938][    C1] Code: 4d b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 1b b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  602.353693][    C1] RSP: 002b:00007f6d6741ec88 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  602.354896][    C1] RAX: ffffffffffffffda RBX: 000000000071bfa0 RCX: 00000000004576a9
+[  602.356022][    C1] RDX: 0000000020000240 RSI: 0000000000008990 RDI: 0000000000000003
+[  602.357119][    C1] RBP: 00007f6d6741eca0 R08: 0000000000000000 R09: 0000000000000000
+[  602.358176][    C1] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f6d6741f6d4
+[  602.359249][    C1] R13: 00000000004aa309 R14: 00000000006e90f0 R15: 0000000000000004
+[  560.713151][    C1] WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+[  560.714556][    C1] Kernel panic - not syncing: panic_on_warn set ...
+[  560.715572][    C1] CPU: 2 PID: 1194 Comm: kworker/u12:4 Not tainted 4.20.0-next-20190102+ #5
+[  560.716935][    C1] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  560.718554][    C1] Workqueue: netns cleanup_net
+[  560.719399][    C1] Call Trace:
+[  560.719962][    C1]  dump_stack+0x1db/0x2d0
+[  560.731421][    C1]  do_invalid_op+0x37/0x50
+[  560.732696][    C1]  invalid_op+0x14/0x20
+[  560.733271][    C1] RIP: 0010:xfrm_state_fini+0x440/0x5c0
+[  560.736699][    C1] RSP: 0018:ffff888068c37718 EFLAGS: 00010293
+[  560.737543][    C1] RAX: ffff888068c28300 RBX: ffff88805fec4340 RCX: 0000000000000000
+[  560.738638][    C1] RDX: 0000000000000000 RSI: ffffffff86c36c50 RDI: 1ffff1100d186ee9
+[  560.739795][    C1] RBP: ffff888068c37810 R08: 0000000000000007 R09: ffff888068c28bf0
+[  560.740936][    C1] R10: ffff888068c28300 R11: 0000000000000000 R12: 1ffff1100d186ee5
+[  560.742054][    C1] R13: ffff888068c377e8 R14: ffff88805fec5e40 R15: ffff88801f9cb0e0
+[  560.747522][    C1]  xfrm_net_exit+0x25/0x70
+[  560.748148][    C1]  ops_exit_list.isra.0+0xb0/0x160
+[  560.748885][    C1]  cleanup_net+0x51d/0xb10
+[  560.753239][    C1]  process_one_work+0xd0c/0x1ce0
+[  560.765456][    C1]  worker_thread+0x143/0x14a0
+[  560.777603][    C1]  kthread+0x357/0x430
+[  560.779733][    C1]  ret_from_fork+0x3a/0x50
+[  560.780962][    C1] Dumping ftrace buffer:
+[  560.781955][    C1]    (ftrace buffer empty)
+[  560.782576][    C1] Kernel Offset: disabled
+[  560.783204][    C1] Rebooting in 86400 seconds..
+
+REPORT:
+RAX: ffffffffffffffda RBX: 000000000071bfa0 RCX: 00000000004576a9
+RDX: 0000000020000240 RSI: 0000000000008990 RDI: 0000000000000003
+RBP: 00007f6d6741eca0 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00007f6d6741f6d4
+R13: 00000000004aa309 R14: 00000000006e90f0 R15: 0000000000000004
+WARNING: CPU: 2 PID: 1194 at net/xfrm/xfrm_state.c:2381 xfrm_state_fini+0x440/0x5c0
+Kernel panic - not syncing: panic_on_warn set ...
+CPU: 2 PID: 1194 Comm: kworker/u12:4 Not tainted 4.20.0-next-20190102+ #5
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+Workqueue: netns cleanup_net
+Call Trace:
+ dump_stack+0x1db/0x2d0
+ do_invalid_op+0x37/0x50
+ invalid_op+0x14/0x20
+RIP: 0010:xfrm_state_fini+0x440/0x5c0
+RSP: 0018:ffff888068c37718 EFLAGS: 00010293
+RAX: ffff888068c28300 RBX: ffff88805fec4340 RCX: 0000000000000000
+RDX: 0000000000000000 RSI: ffffffff86c36c50 RDI: 1ffff1100d186ee9
+RBP: ffff888068c37810 R08: 0000000000000007 R09: ffff888068c28bf0
+R10: ffff888068c28300 R11: 0000000000000000 R12: 1ffff1100d186ee5
+R13: ffff888068c377e8 R14: ffff88805fec5e40 R15: ffff88801f9cb0e0
+ xfrm_net_exit+0x25/0x70
+ ops_exit_list.isra.0+0xb0/0x160
+ cleanup_net+0x51d/0xb10
+ process_one_work+0xd0c/0x1ce0
+ worker_thread+0x143/0x14a0
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

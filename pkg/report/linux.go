@@ -27,6 +27,7 @@ type linux struct {
 	ignores               []*regexp.Regexp
 	consoleOutputRe       *regexp.Regexp
 	questionableRe        *regexp.Regexp
+	taskContext           *regexp.Regexp
 	guiltyFileBlacklist   []*regexp.Regexp
 	reportStartIgnores    []*regexp.Regexp
 	infoMessagesWithStack [][]byte
@@ -51,8 +52,9 @@ func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*r
 		symbols:   symbols,
 		ignores:   ignores,
 	}
-	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\] `)
-	ctx.questionableRe = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
+	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
+	ctx.questionableRe = regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
+	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
 	ctx.eoi = []byte("<EOI>")
 	ctx.guiltyFileBlacklist = []*regexp.Regexp{
 		regexp.MustCompile(`.*\.h`),
@@ -126,42 +128,31 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *linux) Parse(output []byte) *Report {
-	oops, startPos, endPos, logReport, consoleReport, consoleReportReliable,
-		logReportPrefix, consoleReportPrefix := ctx.parseOutput(output)
+	oops, startPos, context := ctx.findFirstOops(output)
 	if oops == nil {
 		return nil
 	}
 	rep := &Report{
 		Output:   output,
 		StartPos: startPos,
-		EndPos:   endPos,
 	}
-	var report []byte
-	var reportPrefix [][]byte
-	// Try extracting report from console output only.
-	title, corrupted, format := extractDescription(consoleReportReliable, oops, linuxStackParams)
-	if title != "" {
-		report = consoleReport
-		reportPrefix = consoleReportPrefix
-	} else {
-		// Failure. Try extracting report from the whole log.
-		report = logReport
-		reportPrefix = logReportPrefix
+	endPos, reportEnd, report, prefix := ctx.findReport(output, oops, startPos, context)
+	rep.EndPos = endPos
+	title, corrupted, format := extractDescription(report[:reportEnd], oops, linuxStackParams)
+	if title == "" {
+		prefix = nil
+		report = output[rep.StartPos:rep.EndPos]
 		title, corrupted, format = extractDescription(report, oops, linuxStackParams)
 		if title == "" {
-			panic(fmt.Sprintf("non matching oops for %q in:\n%s\n\nconsole:\n%s\n"+
-				"output [range:%v-%v]:\n%s\n",
-				oops.header, report, consoleReportReliable,
-				rep.StartPos, rep.StartPos+len(report), output))
+			panic(fmt.Sprintf("non matching oops for %q context=%q in:\n%s\n",
+				oops.header, context, report))
 		}
 	}
 	rep.Title = title
 	rep.Corrupted = corrupted != ""
 	rep.CorruptedReason = corrupted
-	// Prepend 5 lines preceding start of the report,
-	// they can contain additional info related to the report.
-	for _, prefix := range reportPrefix {
-		rep.Report = append(rep.Report, prefix...)
+	for _, line := range prefix {
+		rep.Report = append(rep.Report, line...)
 		rep.Report = append(rep.Report, '\n')
 	}
 	rep.reportPrefixLen = len(rep.Report)
@@ -172,18 +163,9 @@ func (ctx *linux) Parse(output []byte) *Report {
 	return rep
 }
 
-// Yes, it is complex, but all state and logic are tightly coupled. It's unclear how to simplify it.
-// nolint: gocyclo
-func (ctx *linux) parseOutput(output []byte) (
-	oops *oops, startPos, endPos int,
-	logReport, consoleReport, consoleReportReliable []byte,
-	logReportPrefix, consoleReportPrefix [][]byte) {
-	firstReportEnd := 0
-	secondReportPos := 0
-	textLines := 0
-	skipText := false
-	for pos := 0; pos < len(output); {
-		next := bytes.IndexByte(output[pos:], '\n')
+func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, context string) {
+	for pos, next := 0, 0; pos < len(output); pos = next + 1 {
+		next = bytes.IndexByte(output[pos:], '\n')
 		if next != -1 {
 			next += pos
 		} else {
@@ -191,9 +173,57 @@ func (ctx *linux) parseOutput(output []byte) (
 		}
 		line := output[pos:next]
 		for _, oops1 := range linuxOopses {
-			match := matchOops(line, oops1, ctx.ignores)
-			if match == -1 {
-				if oops != nil && secondReportPos == 0 {
+			if matchOops(line, oops1, ctx.ignores) {
+				oops = oops1
+				startPos = pos
+				context = ctx.extractContext(line)
+
+				//stripped, questionable := ctx.stripLinePrefix(line, context1)
+
+				return
+			}
+		}
+	}
+	return
+}
+
+// Yes, it is complex, but all state and logic are tightly coupled. It's unclear how to simplify it.
+// nolint: gocyclo
+func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context string) (
+	endPos, reportEnd int, report []byte, prefix [][]byte) {
+	// Prepend 5 lines preceding start of the report,
+	// they can contain additional info related to the report.
+	maxPrefix := 5
+	if ctx.taskContext.MatchString(context) {
+		// If we have CONFIG_PRINTK_CALLER, we collect more b/c it comes from the same task.
+		maxPrefix = 50
+	}
+	secondReportPos := 0
+	textLines := 0
+	skipText := false
+	for pos, next := 0, 0; pos < len(output); pos = next + 1 {
+		next = bytes.IndexByte(output[pos:], '\n')
+		if next != -1 {
+			next += pos
+		} else {
+			next = len(output)
+		}
+		line := output[pos:next]
+		context1 := ctx.extractContext(line)
+		stripped, questionable := ctx.stripLinePrefix(line, context1)
+		if pos < startPos {
+			if context1 == context && len(stripped) != 0 && !questionable {
+				prefix = append(prefix, append([]byte{}, stripped...))
+				if len(prefix) > maxPrefix {
+					prefix = prefix[1:]
+				}
+			}
+			continue
+		}
+		oopsLine := pos == startPos
+		for _, oops1 := range linuxOopses {
+			if !matchOops(line, oops1, ctx.ignores) {
+				if !oopsLine && secondReportPos == 0 {
 					for _, pattern := range ctx.infoMessagesWithStack {
 						if bytes.Contains(line, pattern) {
 							secondReportPos = pos
@@ -204,75 +234,66 @@ func (ctx *linux) parseOutput(output []byte) (
 				continue
 			}
 			endPos = next
-			if oops == nil {
-				oops = oops1
-				startPos = pos
-				break
-			} else if secondReportPos == 0 {
+			if !oopsLine && secondReportPos == 0 {
 				if !matchesAny(line, ctx.reportStartIgnores) {
 					secondReportPos = pos
 				}
 			}
 		}
-		if oops == nil {
-			logReportPrefix = append(logReportPrefix, append([]byte{}, line...))
-			if len(logReportPrefix) > 5 {
-				logReportPrefix = logReportPrefix[1:]
-			}
+		if !oopsLine && (context1 != context || questionable) {
+			continue
 		}
-		if ctx.consoleOutputRe.Match(line) &&
-			(!ctx.questionableRe.Match(line) || bytes.Contains(line, ctx.eoi)) {
-			lineStart := bytes.Index(line, []byte("] ")) + pos + 2
-			lineEnd := next
-			if lineEnd != 0 && output[lineEnd-1] == '\r' {
-				lineEnd--
-			}
-			if oops == nil {
-				consoleReportPrefix = append(consoleReportPrefix,
-					append([]byte{}, output[lineStart:lineEnd]...))
-				if len(consoleReportPrefix) > 5 {
-					consoleReportPrefix = consoleReportPrefix[1:]
-				}
-			} else {
-				textLines++
-				ln := output[lineStart:lineEnd]
-				skipLine := skipText
-				if bytes.Contains(ln, []byte("Disabling lock debugging due to kernel taint")) {
-					skipLine = true
-				} else if textLines > 25 &&
-					bytes.Contains(ln, []byte("Kernel panic - not syncing")) {
-					// If panic_on_warn set, then we frequently have 2 stacks:
-					// one for the actual report (or maybe even more than one),
-					// and then one for panic caused by panic_on_warn. This makes
-					// reports unnecessary long and the panic (current) stack
-					// is always present in the actual report. So we strip the
-					// panic message. However, we check that we have enough lines
-					// before the panic, because sometimes we have, for example,
-					// a single WARNING line without a stack and then the panic
-					// with the stack.
-					skipText = true
-					skipLine = true
-				}
-				if !skipLine {
-					consoleReport = append(consoleReport, ln...)
-					consoleReport = append(consoleReport, '\n')
-					if secondReportPos == 0 {
-						firstReportEnd = len(consoleReport)
-					}
-				}
-			}
+		textLines++
+		skipLine := skipText
+		if bytes.Contains(line, []byte("Disabling lock debugging due to kernel taint")) {
+			skipLine = true
+		} else if textLines > 25 &&
+			bytes.Contains(line, []byte("Kernel panic - not syncing")) {
+			// If panic_on_warn set, then we frequently have 2 stacks:
+			// one for the actual report (or maybe even more than one),
+			// and then one for panic caused by panic_on_warn. This makes
+			// reports unnecessary long and the panic (current) stack
+			// is always present in the actual report. So we strip the
+			// panic message. However, we check that we have enough lines
+			// before the panic, because sometimes we have, for example,
+			// a single WARNING line without a stack and then the panic
+			// with the stack.
+			skipText = true
+			skipLine = true
 		}
-		pos = next + 1
+		if !oopsLine && skipLine {
+			continue
+		}
+		report = append(report, stripped...)
+		report = append(report, '\n')
+		if secondReportPos == 0 {
+			reportEnd = len(report)
+		}
 	}
-	if oops == nil {
-		return
-	}
-	if secondReportPos == 0 {
-		secondReportPos = len(output)
-	}
-	logReport = output[startPos:secondReportPos]
-	consoleReportReliable = consoleReport[:firstReportEnd]
 	return
+}
+
+func (ctx *linux) stripLinePrefix(line []byte, context string) ([]byte, bool) {
+	if last := len(line) - 1; last >= 0 && line[last] == '\r' {
+		line = line[:last]
+	}
+	if context == "" {
+		return line, false
+	}
+	questionable := ctx.questionableRe.Match(line) && !bytes.Contains(line, ctx.eoi)
+	start := bytes.Index(line, []byte("] ")) + 2
+	return line[start:], questionable
+}
+
+func (ctx *linux) extractContext(line []byte) string {
+	match := ctx.consoleOutputRe.FindSubmatchIndex(line)
+	if match == nil {
+		return ""
+	}
+	if match[2] == -1 {
+		return "console"
+	}
+	return string(line[match[2]:match[3]])
 }
 
 func (ctx *linux) Symbolize(rep *Report) error {
