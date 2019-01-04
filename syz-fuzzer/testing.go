@@ -101,6 +101,7 @@ func convertTestReq(target *prog.Target, req *rpctype.RunTestPollRes) *runtest.R
 }
 
 func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
+	log.Logf(0, "checking machine...")
 	// Machine checking can be very slow on some machines (qemu without kvm, KMEMLEAK linux, etc),
 	// so print periodic heartbeats for vm.MonitorExecution so that it does not decide that we are dead.
 	done := make(chan bool)
@@ -254,6 +255,7 @@ func checkSimpleProgram(args *checkArgs) error {
 
 func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
 	enabled []int, disabled []rpctype.SyscallReason, err error) {
+	log.Logf(0, "building call list...")
 	calls := make(map[*prog.Syscall]bool)
 	if len(enabledCalls) != 0 {
 		for _, n := range enabledCalls {
