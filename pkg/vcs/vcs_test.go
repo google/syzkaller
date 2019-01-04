@@ -61,6 +61,7 @@ func TestCheckCommitHash(t *testing.T) {
 		"ff12bea91c22bba93d3ffc3034d813d686bc7eeb": true, // 40
 		"eae05cb0aaeae05cb0aa":                     true, // 20
 		"449dd6984d0eaabb":                         true, // 16
+		"a4983672f9ca4c":                           true, // 14
 		"449dd6984d0e":                             true, // 12
 		"eae05cb0aa":                               true, // 10
 		"eae05cb0":                                 true, // 8

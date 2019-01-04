@@ -141,7 +141,7 @@ func CheckCommitHash(hash string) bool {
 		return false
 	}
 	ln := len(hash)
-	return ln == 8 || ln == 10 || ln == 12 || ln == 16 || ln == 20 || ln == 40
+	return ln == 8 || ln == 10 || ln == 12 || ln == 14 || ln == 16 || ln == 20 || ln == 40
 }
 
 func runSandboxed(dir, command string, args ...string) ([]byte, error) {
