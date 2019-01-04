@@ -98,7 +98,7 @@ func (git *git) fetchRemote(repo string) error {
 	repoHash := hash.String([]byte(repo))
 	// Ignore error as we can double add the same remote and that will fail.
 	runSandboxed(git.dir, "git", "remote", "add", repoHash, repo)
-	_, err := runSandboxed(git.dir, "git", "fetch", repoHash)
+	_, err := runSandboxed(git.dir, "git", "fetch", "-t", repoHash)
 	return err
 }
 
