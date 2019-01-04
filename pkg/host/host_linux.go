@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -17,12 +18,14 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/linux"
 )
 
-func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
+func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
+	log.Logf(2, "checking support for %v", c.Name)
 	if strings.HasPrefix(c.CallName, "syz_") {
 		return isSupportedSyzkall(sandbox, c)
 	}
@@ -52,23 +55,39 @@ func isSupported(c *prog.Syscall, sandbox string) (bool, string) {
 	// Kallsyms seems to be the most reliable and fast. That's what we use first.
 	// If kallsyms is not present, we fallback to execution of syscalls.
 	kallsymsOnce.Do(func() {
-		kallsyms, _ = ioutil.ReadFile("/proc/kallsyms")
+		kallsyms, _ := ioutil.ReadFile("/proc/kallsyms")
+		if len(kallsyms) == 0 {
+			return
+		}
+		var re *regexp.Regexp
+		switch target.Arch {
+		case "386", "amd64":
+			re = regexp.MustCompile(` T (sys|ksys|__ia32|__x64)_([^\n]+)\n`)
+		case "arm64":
+			re = regexp.MustCompile(` T (sys|ksys|__arm64)_([^\n]+)\n`)
+		default:
+			panic("unsupported arch for kallsyms parsing")
+		}
+		matches := re.FindAllSubmatch(kallsyms, -1)
+		for _, m := range matches {
+			name := string(m[2])
+			log.Logf(2, "found in kallsyms: %v", name)
+			kallsymsSyscallSet[name] = true
+		}
 	})
-	if !testFallback && len(kallsyms) != 0 {
-		return isSupportedKallsyms(c)
+	if !testFallback && len(kallsymsSyscallSet) != 0 {
+		r, v := isSupportedKallsyms(c)
+		return r, v
 	}
 	return isSupportedTrial(c)
 }
 
 func isSupportedKallsyms(c *prog.Syscall) (bool, string) {
 	name := c.CallName
-	if newname := kallsymsMap[name]; newname != "" {
+	if newname := kallsymsRenameMap[name]; newname != "" {
 		name = newname
 	}
-	if !bytes.Contains(kallsyms, []byte(" T sys_"+name+"\n")) &&
-		!bytes.Contains(kallsyms, []byte(" T ksys_"+name+"\n")) &&
-		!bytes.Contains(kallsyms, []byte(" T __ia32_sys_"+name+"\n")) &&
-		!bytes.Contains(kallsyms, []byte(" T __x64_sys_"+name+"\n")) {
+	if !kallsymsSyscallSet[name] {
 		return false, fmt.Sprintf("sys_%v is not present in /proc/kallsyms", name)
 	}
 	return true, ""
@@ -114,9 +133,9 @@ func init() {
 // umount2 is renamed to umount in arch/x86/entry/syscalls/syscall_64.tbl.
 // Where umount is renamed to oldumount is unclear.
 var (
-	kallsyms     []byte
-	kallsymsOnce sync.Once
-	kallsymsMap  = map[string]string{
+	kallsymsOnce       sync.Once
+	kallsymsSyscallSet = make(map[string]bool)
+	kallsymsRenameMap  = map[string]string{
 		"umount":  "oldumount",
 		"umount2": "umount",
 	}

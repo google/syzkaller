@@ -4,6 +4,7 @@
 package host
 
 import (
+	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -11,6 +12,7 @@ import (
 // For unsupported syscalls it also returns reason as to why it is unsupported.
 func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 	map[*prog.Syscall]bool, map[*prog.Syscall]string, error) {
+	log.Logf(1, "detecting supported syscalls")
 	supported := make(map[*prog.Syscall]bool)
 	unsupported := make(map[*prog.Syscall]string)
 	// Akaros does not have own host and parasitizes on some other OS.
@@ -26,7 +28,7 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 		case "syz_execute_func":
 			ok = true
 		default:
-			ok, reason = isSupported(c, sandbox)
+			ok, reason = isSupported(c, target, sandbox)
 		}
 		if ok {
 			supported[c] = true
