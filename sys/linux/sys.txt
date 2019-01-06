@@ -53,6 +53,7 @@ include <linux/membarrier.h>
 include <uapi/linux/kcov.h>
 include <uapi/linux/membarrier.h>
 include <uapi/linux/capability.h>
+include <uapi/linux/suspend_ioctls.h>
 
 resource fd[int32]: -1, AT_FDCWD
 resource fd_dir[fd]
@@ -472,7 +473,6 @@ syz_open_dev$media(dev ptr[in, string["/dev/media#"]], id intptr, flags flags[op
 openat$null(fd const[AT_FDCWD], file ptr[in, string["/dev/null"]], flags flags[open_flags], mode const[0]) fd
 openat$zero(fd const[AT_FDCWD], file ptr[in, string["/dev/zero"]], flags flags[open_flags], mode const[0]) fd
 openat$full(fd const[AT_FDCWD], file ptr[in, string["/dev/full"]], flags flags[open_flags], mode const[0]) fd
-openat$snapshot(fd const[AT_FDCWD], file ptr[in, string["/dev/snapshot"]], flags flags[open_flags], mode const[0]) fd
 openat$vga_arbiter(fd const[AT_FDCWD], file ptr[in, string["/dev/vga_arbiter"]], flags flags[open_flags], mode const[0]) fd
 openat$rtc(fd const[AT_FDCWD], file ptr[in, string["/dev/rtc0"]], flags flags[open_flags], mode const[0]) fd
 openat$rfkill(fd const[AT_FDCWD], file ptr[in, string["/dev/rfkill"]], flags flags[open_flags], mode const[0]) fd
@@ -502,6 +502,9 @@ openat$vfio(fd const[AT_FDCWD], file ptr[in, string["/dev/vfio/vfio"]], flags fl
 openat$btrfs_control(fd const[AT_FDCWD], file ptr[in, string["/dev/btrfs-control"]], flags flags[open_flags], mode const[0]) fd
 openat$ubi_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/ubi_ctrl"]], flags flags[open_flags], mode const[0]) fd
 openat$cachefiles(fd const[AT_FDCWD], file ptr[in, string["/dev/cachefiles"]], flags flags[open_flags], mode const[0]) fd
+
+openat$snapshot(fd const[AT_FDCWD], file ptr[in, string["/dev/snapshot"]], flags flags[open_flags], mode const[0]) fd
+_ = SNAPSHOT_FREEZE, SNAPSHOT_UNFREEZE
 
 pipefd {
 	rfd	fd
