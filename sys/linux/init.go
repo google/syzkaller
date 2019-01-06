@@ -21,6 +21,8 @@ func InitTarget(target *prog.Target) {
 		SYSLOG_ACTION_SIZE_UNREAD: target.GetConst("SYSLOG_ACTION_SIZE_UNREAD"),
 		FIFREEZE:                  target.GetConst("FIFREEZE"),
 		FITHAW:                    target.GetConst("FITHAW"),
+		SNAPSHOT_FREEZE:           target.GetConst("SNAPSHOT_FREEZE"),
+		SNAPSHOT_UNFREEZE:         target.GetConst("SNAPSHOT_UNFREEZE"),
 		EXT4_IOC_SHUTDOWN:         target.GetConst("EXT4_IOC_SHUTDOWN"),
 		EXT4_IOC_MIGRATE:          target.GetConst("EXT4_IOC_MIGRATE"),
 		FAN_OPEN_PERM:             target.GetConst("FAN_OPEN_PERM"),
@@ -104,6 +106,8 @@ type arch struct {
 	SYSLOG_ACTION_SIZE_UNREAD uint64
 	FIFREEZE                  uint64
 	FITHAW                    uint64
+	SNAPSHOT_FREEZE           uint64
+	SNAPSHOT_UNFREEZE         uint64
 	EXT4_IOC_SHUTDOWN         uint64
 	EXT4_IOC_MIGRATE          uint64
 	FAN_OPEN_PERM             uint64
@@ -145,6 +149,10 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		// Fortunately, the value does not conflict with any other ioctl commands for now.
 		if uint64(uint32(cmd.Val)) == arch.FIFREEZE {
 			cmd.Val = arch.FITHAW
+		}
+		// SNAPSHOT_FREEZE freezes all processes and leaves the machine dead.
+		if uint64(uint32(cmd.Val)) == arch.SNAPSHOT_FREEZE {
+			cmd.Val = arch.SNAPSHOT_UNFREEZE
 		}
 		// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
 		// Fortunately, the value does not conflict with any other ioctl commands for now.
