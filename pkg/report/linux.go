@@ -266,7 +266,7 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 		}
 		report = append(report, stripped...)
 		report = append(report, '\n')
-		if secondReportPos == 0 {
+		if secondReportPos == 0 || context != "" && context != "console" {
 			reportEnd = len(report)
 		}
 	}
