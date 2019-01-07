@@ -247,8 +247,8 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// void f(u32 dw) {
 			//		u8 b = (u8) dw
 			//		i16 w = (i16) dw
-			//		if (a == 0xab) {...}
-			//		if (b == 0xcdcd) {...}
+			//		if (b == 0xab) {...}
+			//		if (w == 0xcdcd) {...}
 			//		if (dw == 0xefefefef) {...}
 			//  }; f(0x12345678);
 			"Shrink 32 test",
@@ -266,8 +266,8 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		u8 b = (u8) qw
 			//		u16 w = (u16) qw
 			//		u32 dw = (u32) qw
-			//		if (a == 0xab) {...}
-			//		if (b == 0xcdcd) {...}
+			//		if (b == 0xab) {...}
+			//		if (w == 0xcdcd) {...}
 			//		if (dw == 0xefefefef) {...}
 			//		if (qw == 0x0101010101010101) {...}
 			//  }; f(0x1234567890abcdef);
