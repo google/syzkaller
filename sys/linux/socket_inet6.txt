@@ -16,7 +16,7 @@ resource sock_in6[sock]
 sockaddr_in6 {
 	family	const[AF_INET6, int16]
 	port	sock_port
-	flow	int32
+	flow	int32be
 	addr	ipv6_addr
 	scope	int32
 }
