@@ -532,6 +532,7 @@ ipv6_addr_multicast2 {
 } [packed]
 
 ipv6_addr [
+	rand_addr	array[int8, 16]
 	empty		ipv6_addr_empty
 # These correspond to LOCAL_IPV6/REMOTE_IPV6/DEV_IPV6 in executor/common_linux.h
 	local		ipv6_addr_t[const[0xaa, int8]]
