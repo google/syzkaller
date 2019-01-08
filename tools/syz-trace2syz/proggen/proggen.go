@@ -333,8 +333,28 @@ func (ctx *context) genConst(syzType prog.Type, traceType parser.IrType) prog.Ar
 		}
 		return ctx.genConst(syzType, a.Elems[0])
 	case *parser.BufferType:
-		// The call almost certainly returned an errno
-		return syzType.DefaultArg()
+		// strace decodes some arguments as hex strings because those values are network ordered
+		// e.g. sin_port or sin_addr fields of sockaddr_in.
+		// network order is big endian byte order so if the len of byte array is 1, 2, 4, or 8 then
+		// it is a good chance that we are decoding one of those fields. If it isn't, then most likely
+		// we have an error i.e. a sockaddr_un struct passed to a connect call with an inet file descriptor
+		var val uint64
+		switch len(a.Val) {
+		case 8:
+			val = uint64(binary.BigEndian.Uint64([]byte(a.Val)))
+		case 4:
+			// int
+			val = uint64(binary.BigEndian.Uint32([]byte(a.Val)))
+		case 2:
+			// short
+			val = uint64(binary.BigEndian.Uint16([]byte(a.Val)))
+		case 1:
+			val = uint64(a.Val[0])
+		default:
+			// The call almost certainly returned an errno
+			return syzType.DefaultArg()
+		}
+		return prog.MakeConstArg(syzType, val)
 	default:
 		log.Fatalf("unsupported type for const: %#v", traceType)
 	}
