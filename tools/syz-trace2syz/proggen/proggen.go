@@ -339,19 +339,24 @@ func (ctx *context) genConst(syzType prog.Type, traceType parser.IrType) prog.Ar
 		// it is a good chance that we are decoding one of those fields. If it isn't, then most likely
 		// we have an error i.e. a sockaddr_un struct passed to a connect call with an inet file descriptor
 		var val uint64
+		toUint64 := binary.LittleEndian.Uint64
+		toUint32 := binary.LittleEndian.Uint32
+		toUint16 := binary.LittleEndian.Uint16
+		if syzType.Format() == prog.FormatBigEndian {
+			toUint64 = binary.BigEndian.Uint64
+			toUint32 = binary.BigEndian.Uint32
+			toUint16 = binary.BigEndian.Uint16
+		}
 		switch len(a.Val) {
 		case 8:
-			val = uint64(binary.BigEndian.Uint64([]byte(a.Val)))
+			val = toUint64([]byte(a.Val))
 		case 4:
-			// int
-			val = uint64(binary.BigEndian.Uint32([]byte(a.Val)))
+			val = uint64(toUint32([]byte(a.Val)))
 		case 2:
-			// short
-			val = uint64(binary.BigEndian.Uint16([]byte(a.Val)))
+			val = uint64(toUint16([]byte(a.Val)))
 		case 1:
 			val = uint64(a.Val[0])
 		default:
-			// The call almost certainly returned an errno
 			return syzType.DefaultArg()
 		}
 		return prog.MakeConstArg(syzType, val)
