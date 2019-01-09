@@ -15,6 +15,9 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 #if GOOS_openbsd
 	// W^X not allowed by default on OpenBSD.
 	int prot = PROT_READ | PROT_WRITE;
+#elif GOOS_netbsd
+	// W^X not allowed by default on NetBSD (PaX MPROTECT).
+	int prot = PROT_READ | PROT_WRITE | PROT_MPROTECT(PROT_EXEC);
 #else
 	int prot = PROT_READ | PROT_WRITE | PROT_EXEC;
 #endif
