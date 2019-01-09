@@ -4,6 +4,7 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [general protection fault in spk_ttyio_ldisc_close](https://groups.google.com/d/msg/syzkaller/4VJ9u48qxyc/IrT0N35uDAAJ)
 * [rtnetlink: give a user socket to get_target_net()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f428fe4a04cc339166c8bbd489789760de3a0cee) [CVE-2018-14646](https://nvd.nist.gov/vuln/detail/CVE-2018-14646)
 * [tipc: NULL deref in tipc_net_finalize](https://groups.google.com/d/msg/syzkaller/qhg9Gg9cFuY/I-HrdjEICAAJ)
 * [Kernel crash at i2cdev_ioctl_rdwr in drivers/i2c/i2c-dev.c](https://groups.google.com/d/msg/syzkaller/YuPOpeuGIKU/oXnZkgmqBgAJ)
