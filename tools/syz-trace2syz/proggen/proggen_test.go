@@ -193,8 +193,9 @@ connect$inet(r0, &(0x7f0000000000)={0x2, 0x1f90}, 0x10)
 `,
 		}, {`
 connect(-1, {sa_family=0xa, sin6_port="\x30\x39",` +
+			`sin6_flowinfo="\x07\x5b\xcd\x7a",` +
 			`sin6_addr="\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01",` +
-			` sin6_flowinfo="\x07\x5b\xcd\x7a", sin6_scope_id=4207869677}, 28) = -1
+			`sin6_scope_id=4207869677}, 28) = -1
 `, `
 connect(0xffffffffffffffff, &(0x7f0000000000)=` +
 			`@in6={0xa, 0x3039, 0x75bcd7a, @rand_addr="00000000000000000000000000000001",` +
@@ -202,8 +203,9 @@ connect(0xffffffffffffffff, &(0x7f0000000000)=` +
 `,
 		}, {`
 connect(-1, {sa_family=0xa, sin6_port="\x30\x39",` +
+			` sin6_flowinfo="\x07\x5b\xcd\x7a",` +
 			` sin6_addr="\x00\x12\x00\x34\x00\x56\x00\x78\x00\x90\x00\xab\x00\xcd\x00\xef",` +
-			` sin6_flowinfo="\x07\x5b\xcd\x7a", sin6_scope_id=4207869677}, 28) = -1
+			` sin6_scope_id=4207869677}, 28) = -1
 `, `
 connect(0xffffffffffffffff, &(0x7f0000000000)=` +
 			`@in6={0xa, 0x3039, 0x75bcd7a, @rand_addr="0012003400560078009000ab00cd00ef",` +
