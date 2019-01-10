@@ -137,11 +137,7 @@ func CheckBranch(branch string) bool {
 }
 
 func CheckCommitHash(hash string) bool {
-	if !gitHashRe.MatchString(hash) {
-		return false
-	}
-	ln := len(hash)
-	return ln == 8 || ln == 10 || ln == 12 || ln == 14 || ln == 16 || ln == 20 || ln == 40
+	return gitHashRe.MatchString(hash)
 }
 
 func runSandboxed(dir, command string, args ...string) ([]byte, error) {
@@ -157,7 +153,7 @@ var (
 	// nolint: lll
 	gitRepoRe    = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\.git(/)?$`)
 	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
-	gitHashRe    = regexp.MustCompile("^[a-f0-9]+$")
+	gitHashRe    = regexp.MustCompile("^[a-f0-9]{8,40}$")
 	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:\.([0-9]+))?$`)
 	ccRes        = []*regexp.Regexp{
 		regexp.MustCompile(`^Reviewed\-.*: (.*)$`),
