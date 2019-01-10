@@ -203,7 +203,6 @@ func (ctx *context) genStruct(syzType *prog.StructType, traceType parser.IrType)
 	switch a := traceType.(type) {
 	case *parser.GroupType:
 		j := 0
-		ctx.reorderStructFields(syzType, a)
 		for i := range syzType.Fields {
 			if prog.IsPad(syzType.Fields[i]) {
 				args = append(args, syzType.Fields[i].DefaultArg())
@@ -419,27 +418,6 @@ func (ctx *context) parseProc(syzType *prog.ProcType, traceType parser.IrType) p
 
 func (ctx *context) addr(syzType prog.Type, size uint64, data prog.Arg) prog.Arg {
 	return prog.MakePointerArg(syzType, ctx.builder.Allocate(size), data)
-}
-
-func (ctx *context) reorderStructFields(syzType *prog.StructType, traceType *parser.GroupType) {
-	// Sometimes strace reports struct fields out of order compared to our descriptions
-	// Example: 5704  bind(3, {sa_family=AF_INET6,
-	//				sin6_port=htons(8888),
-	//				inet_pton(AF_INET6, "::", &sin6_addr),
-	//				sin6_flowinfo=htonl(2206138368),
-	//				sin6_scope_id=2049825634}, 128) = 0
-	//	The flow_info and pton fields are switched in our description
-
-	switch syzType.TypeName {
-	case "sockaddr_in6":
-		log.Logf(5, "reordering in6. trace struct has %d elems", len(traceType.Elems))
-		if len(traceType.Elems) < 4 {
-			return
-		}
-		field2 := traceType.Elems[2]
-		traceType.Elems[2] = traceType.Elems[3]
-		traceType.Elems[3] = field2
-	}
 }
 
 func shouldSkip(c *parser.Syscall) bool {
