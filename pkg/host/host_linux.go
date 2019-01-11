@@ -65,6 +65,8 @@ func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, st
 			re = regexp.MustCompile(` T (__ia32_|__x64_)?sys_([^\n]+)\n`)
 		case "arm64":
 			re = regexp.MustCompile(` T (__arm64_)?sys_([^\n]+)\n`)
+		case "ppc64le":
+			re = regexp.MustCompile(` T ()?sys_([^\n]+)\n`)
 		default:
 			panic("unsupported arch for kallsyms parsing")
 		}
