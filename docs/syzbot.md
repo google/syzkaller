@@ -110,6 +110,9 @@ fact that you have slightly different setup than `syzbot`. `syzbot` has obtained
 the provided crash report on the provided reproducer on a freshly-booted
 machine, so the reproducer worked for it somehow.
 
+Note: if the report contains `userspace arch: i386`,
+then the program needs to be built with `-m32` flag. 
+
 `syzbot` uses GCE VMs for testing, but *usually* it is not important.
 
 If the reproducer exits quickly, try to run it several times, or in a loop.
