@@ -119,6 +119,7 @@ var archConfigs = map[string]*archConfig{
 	"linux/ppc64le": {
 		Qemu:      "qemu-system-ppc64",
 		TargetDir: "/",
+		QemuArgs:  "-enable-kvm",
 		CmdLine:   linuxCmdline,
 	},
 	"freebsd/amd64": {
