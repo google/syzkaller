@@ -1,127 +1,155 @@
 # NetBSD
 
-## How to run syzkaller on NetBSD using qemu
+Instructions to set up syzkaller for a Linux Host and an amd64 NetBSD kernel. 
+
+## Installing and building Syzkaller on Linux Host
+	
+1. Install all the dependencies for Syzkaller (Go distribution can be downloaded from https://golang.org/dl/)
+
+2. Clone the Syzkaller Repository
+	```sh
+	$ go get -u -d github.com/google/syzkaller/.. 
+	$ cd ~/go/src/github.com/google/syzkaller
+	```
+
+3. Compile Syzkaller for NetBSD
+	```sh
+	$ make TARGETOS=netbsd
+	```
+
+The above steps should have built the Syzkaller binaries (Except the syz-executor
+binary) for NetBSD. 
+
+You can see the compiled binaries in `bin/netbsd_amd64`.
 
 
-1. Steps to set up NetBSD on qemu: 
-	* To create a .img file where the OS is stored: ( Here 30G indicates the size of .img file as 30gb. Anything above 10gb is fine)
-```  qemu-img create -f raw NetBSD.img 30G
-```
-	* To install the .iso file in the .img: (Here NetBSD-7.0.2-amd64.iso is the iso file and NetBSD.img is the img file created in the first step)
-```
-	 qemu-system-x86_64 -hda NetBSD.img -cdrom NetBSD-7.0.2-amd64.iso 
-```
-	* To boot up every time to the .img file:  (Have to be in the same directory as the .img file)
-```
-	 qemu-system-x86_64 -hda NetBSD.img -redir tcp:10022::22
-```
-Here the -redir flag is redirecting the 10022 on host to 22 port on guest.
+## Setting up a NetBSD VM with qemu 
 
-2. So far the process is tested only on linux/amd64 host. To build Go binaries do:
-```
-make TARGETOS=netbsd
-```
+Please follow the tutorial given [here](https://wiki.qemu.org/Hosts/BSD#NetBSD) to
+setup a basic NetBSD VM with qemu.
 
-3. To build C `syz-executor` binary, copy `executor/*` files to a NetBSD machine and build there with:
-```
-gcc executor/executor_NetBSD.cc -o syz-executor -O1 -lpthread -DGOOS=\"netbsd\" -DGIT_REVISION=\"CURRENT_GIT_REVISION\"
-```
+After installing and running the NetBSD VM on qemu please follow the steps below to
+configure ssh.
 
-"scp host@ip:/directory-of-source /directory-of-destination" command can be used to copy the files from the host to the guest.
+1. Create a ssh-keypair on the host and save it as `netbsdkey`.
+	```sh
+	$ ssh-keygen -t rsa
+	```
 
-4. Then, copy out the binary back to host into `bin/netbsd_amd64` dir.(Inside the syzkaller directory)
+2. Append the following lines to `/etc/rc.conf` on the guest.
+	```
+	sshd=YES
+	ifconfig_wm0="inet 10.0.2.15 netmask 255.255.255.0"
+	```
+	
+3. Append this to `/etc/ssh/sshd_config` on the guest.
+	```
+	Port 22
+	ListenAddress 10.0.2.15
+	PermitRootLogin without-password
+	```
 
-Building/running on a NetBSD host should work as well, but currently our `Makefile` does not work there, so you will need to do its work manually.
+4. Copy your public key to `/root/.ssh/authorized_keys` on the guest and `reboot` the
+   VM.
+ 
+5. After reboot make sure that the ssh is working properly. Replace the port with what
+   you have configured. 
+	```sh
+	$ ssh -i path/to/netbsdkey -p 10022 root@127.0.0.1
+	```
 
-(Anita steps are optional if the NetBSD OS is  up and running, which it already is..)
+If the last command returns a proper shell it means the VM has been configured.
 
-5. Then, you need a NetBSD image with root ssh access with a key. General instructions can be found here [qemu instructions](https://wiki.qemu.org/Hosts/BSD).
 
-6. To prepare the image, use `anita`. (You need the python module `pexpect` installed, for using Anita)
-```
-git clone https://github.com/utkarsh009/anita
-python anita/anita --workdir anitatemp install http://nycdn.netbsd.org/pub/NetBSD-daily/netbsd-8/201710221410Z/amd64/
-```
-NOTE: You can choose your own release tree from here: http://ftp.netbsd.org/pub/NetBSD/
-URL for a daily build might not exist in future and new release trees keep coming out.
+## Compiling the executor binary
 
-7. Then spin up an instance from the image generated inside `./anitatemp` directory
-```
-qemu-system-x86_64 -m 1024 -drive file=anitatemp/wd0.img,format=raw,media=disk -netdev user,id=mynet0,host=10.0.2.10,hostfwd=tcp:127.0.0.1:10022-:22 -device e1000,netdev=mynet0 -nographic
-```
+Syzkaller doesn't support compiling the executor binary on a linux host hence you have
+to copy the required files to the NetBSD guest and compile them separately.
 
-8. Then create an ssh-keypair without a password and save it by the name, say, `netbsdkey`
+1. Copy the content of the `executor/` folder to the NetBSD guest. (You can use the
+   scp command for the same) 
 
-(This is done in the host OS until specified otherwise)
-```
-ssh-keygen -t rsa
-```
+2. Compile the executor binary with the following command on the guest. (replace
+   GIT_VERSION_HERE with the output of `git rev-parse HEAD` in the host)
+	```sh
+	$ gcc executor.cc -o syz-executor -O1 -lpthread -DGOOS_netbsd=1 -DGOARCH_amd64=1 -DGIT_REVISION=\"GIT_VERSION_HERE\"
+	```
 
-(This is done in the Guest OS until specified otherwise)
+3. Copy the `syz-executor` file back to `bin/netbsd_amd64` on the linux host.
 
-9. Then append the following to `/etc/rc.conf`
-```
-sshd=YES
-ifconfig_wm0="inet 10.0.2.15 netmask 255.255.255.0"
-```
 
-10. Append this to `/etc/ssh/sshd_config`
-```
-Port 22
-ListenAddress 10.0.2.15
-```
+## Compiling a NetBSD kernel (Optional)
 
-11. Then add your pubkey to `/root/.ssh/authorized_keys` and `reboot` the VM.
+You can compile a kernel with KASAN to increase the chances of finding bugs.
 
-(Switch to host)
+1. Make a copy of the config file
+	```sh
+	$ cp sys/arch/amd64/conf/GENERIC sys/arch/amd64/conf/SYZKALLER 
+	```
 
-12. When you see the login prompt, open up another terminal on host and issue the following command
-```
-ssh -i netbsdkey -p 10022 root@127.0.0.1
-```
+2. Uncomment the following lines in `sys/arch/amd64/conf/SYZKALLER` to enable KASAN
+	```
+	#makeoptions 	KASAN=1		# Kernel Address Sanitizer
+	#options 	KASAN
+	#no options	SVS
+	```
 
-If all of the above worked, `poweroff` the VM and create `netbsd.cfg` config file with the following contents (alter paths as necessary):
-```
-{
-	"name": "netbsd",
-	"target": "netbsd/amd64",
-	"http": ":10000",
-	"workdir": "work",
-	"syzkaller": "$GOPATH/src/github.com/google/syzkaller",
-	"image": "anitatemp/wd0.img",
-	"sshkey": "/path/to/netbsdkey",
-	"sandbox": "none",
-	"procs": 2,
-	"type": "qemu",
-	"vm": {
-		"qemu": "qemu-system-x86_64",
-		"count": 2,
-		"cpu": 2,
-		"mem": 2048
+4. Compile the kernel with KASAN
+	```sh
+	$ ./build.sh -m amd64 -j4 tools
+	$ ./build.sh -m amd64 -j4 kernel=SYZKALLER
+
+	```
+
+4. Compiled kernel image should be found in `sys/arch/amd64/compile/SYZKALLER` and
+   should have the name `netbsd`. You need to copy it to the installed VM and reboot
+   the VM.
+
+## Running Syzkaller
+
+1. If all of the above worked, `poweroff` the VM and create `netbsd.cfg` config file with the following contents (alter paths as necessary):
+	```
+	{
+		"name": "netbsd",
+		"target": "netbsd/amd64",
+		"http": ":10000",
+		"workdir": "work",
+		"syzkaller": "$GOPATH/src/github.com/google/syzkaller",
+		"image": "path/to/netbsd.img",
+		"sshkey": "/path/to/netbsdkey",
+		"sandbox": "none",
+		"procs": 2,
+		"cover": false,
+		"type": "qemu",
+		"vm": {
+			"qemu": "qemu-system-x86_64",
+			"count": 2,
+			"cpu": 2,
+			"mem": 2048
+		}
 	}
-}
-```
+	```
+
 (Above directories have to be specified to the exact locations and the ssh keys must be in a separate directory with chmod 700 permissions set to that directory and chmod 600 permissions to the files in both the guest and the host.)
 
 
-13. Then, start `syz-manager` with: (Inside the syzkaller folder where the netbsd.cfg file also exists)
-```
-bin/syz-manager -config netbsd.cfg
-```
-Also, append ```PermitRootLogin without-password``` to .ssh/sshd_config in guest.
+2. Then, start `syz-manager` with: (Inside the syzkaller folder where the netbsd.cfg file also exists)
+	```sh
+	$ bin/syz-manager -config netbsd.cfg
+	```
 
-It should start printing output along the lines of:
-```
-booting test machines...
-wait for the connection from test machine...
-machine check: 253 calls enabled, kcov=true, kleakcheck=false, faultinjection=false, comps=false
-executed 3622, cover 1219, crashes 0, repro 0
-executed 7921, cover 1239, crashes 0, repro 0
-executed 32807, cover 1244, crashes 0, repro 0
-executed 35803, cover 1248, crashes 0, repro 0
-```
+(You can add a `-debug` flag to the above command to view the log if any issues arise.)
 
-14. If something does not work, add `-debug` flag to `syz-manager`.
+3. Once syzkaller has started executing, it should start printing output along the lines of:
+	```
+	booting test machines...
+	wait for the connection from test machine...
+	machine check: 253 calls enabled, kcov=true, kleakcheck=false, faultinjection=false, comps=false
+	executed 3622, cover 1219, crashes 0, repro 0
+	executed 7921, cover 1239, crashes 0, repro 0
+	executed 32807, cover 1244, crashes 0, repro 0
+	executed 35803, cover 1248, crashes 0, repro 0
+	```
 
 ## Missing things
 
@@ -133,6 +161,5 @@ executed 35803, cover 1248, crashes 0, repro 0
 - `pkg/host` needs to be taught how to detect supported syscalls/devices.
 - `pkg/report`/`pkg/symbolizer` need to be taught how to extract/symbolize kernel crash reports.
 - We need to learn how to build/use debug version of kernel.
-- KASAN for NetBSD would be useful.
 - On Linux we have emission of exernal networking/USB traffic into kernel using tun/gadgetfs. Implementing these for NetBSD could uncover a number of high-profile bugs.
 - Last but not least, we need to support NetBSD in `syz-ci` command (including building kernel/image continuously from git).
