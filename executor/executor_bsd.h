@@ -40,18 +40,8 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 
 #if GOOS_freebsd
 
-// TODO(mptre): once kcov is merged to FreeBSD[1], just include sys/kcov.h for
-// both FreeBSD and OpenBSD.
-//
-// [1] https://reviews.freebsd.org/D14599
-
-#define KIOENABLE _IOWINT('c', 2) // Enable coverage recording
-#define KIODISABLE _IO('c', 3) // Disable coverage recording
-#define KIOSETBUFSIZE _IOWINT('c', 4) // Set the buffer size
-
-#define KCOV_MODE_NONE -1
-#define KCOV_MODE_TRACE_PC 0
-#define KCOV_MODE_TRACE_CMP 1
+// KCOV support was added in https://svnweb.freebsd.org/changeset/base/342962
+#include <sys/kcov.h>
 
 #elif GOOS_openbsd
 
@@ -74,8 +64,7 @@ static void cover_open(cover_t* cov)
 	close(fd);
 
 #if GOOS_freebsd
-	// On FreeBSD provide the size in bytes, not in number of entries.
-	if (ioctl(cov->fd, KIOSETBUFSIZE, kCoverSize * sizeof(uint64_t)))
+	if (ioctl(cov->fd, KIOSETBUFSIZE, kCoverSize))
 		fail("ioctl init trace write failed");
 #elif GOOS_openbsd
 	unsigned long cover_size = kCoverSize;
@@ -84,9 +73,7 @@ static void cover_open(cover_t* cov)
 #endif
 
 #if GOOS_freebsd
-	// FreeBSD only supports kcov on 64-bit platforms and always uses
-	// entries of type uint64_t.
-	size_t mmap_alloc_size = kCoverSize * sizeof(uint64_t);
+	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 #else
 	size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
 #endif
