@@ -18,9 +18,17 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#if defined(__FreeBSD__)
+#include <sys/kcov.h>
+#define KCOV_PATH "/dev/kcov"
+#else
 #define KCOV_INIT_TRACE _IOR('c', 1, unsigned long)
 #define KCOV_ENABLE _IO('c', 100)
 #define KCOV_DISABLE _IO('c', 101)
+#define KCOV_ENTRY_SIZE sizeof(unsigned long)
+#define KCOV_PATH "/sys/kernel/debug/kcov"
+#define KCOV_TRACE_PC 0
+#endif
 #define COVER_SIZE (16 << 20)
 
 int main(int argc, char** argv, char** envp)
@@ -30,12 +38,16 @@ int main(int argc, char** argv, char** envp)
 
 	if (argc == 1)
 		fprintf(stderr, "usage: kcovtrace program [args...]\n"), exit(1);
-	fd = open("/sys/kernel/debug/kcov", O_RDWR);
+	fd = open(KCOV_PATH, O_RDWR);
 	if (fd == -1)
 		perror("open"), exit(1);
+#if defined(__FreeBSD__)
+	if (ioctl(fd, KIOSETBUFSIZE, COVER_SIZE))
+#else
 	if (ioctl(fd, KCOV_INIT_TRACE, COVER_SIZE))
+#endif
 		perror("ioctl"), exit(1);
-	cover = (unsigned long*)mmap(NULL, COVER_SIZE * sizeof(unsigned long),
+	cover = (unsigned long*)mmap(NULL, COVER_SIZE * KCOV_ENTRY_SIZE,
 				     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if ((void*)cover == MAP_FAILED)
 		perror("mmap"), exit(1);
@@ -43,19 +55,27 @@ int main(int argc, char** argv, char** envp)
 	if (pid < 0)
 		perror("fork"), exit(1);
 	if (pid == 0) {
-		if (ioctl(fd, KCOV_ENABLE, 0))
+#if defined(__FreeBSD__)
+		if (ioctl(fd, KIOENABLE, KCOV_MODE_TRACE_PC))
+#else
+		if (ioctl(fd, KCOV_ENABLE, KCOV_TRACE_PC))
+#endif
 			perror("ioctl"), exit(1);
 		__atomic_store_n(&cover[0], 0, __ATOMIC_RELAXED);
 		execve(argv[1], argv + 1, envp);
 		perror("execve");
 		exit(1);
 	}
+#if defined(__FreeBSD__)
+	while (waitpid(-1, &status, 0) != pid) {
+#else
 	while (waitpid(-1, &status, __WALL) != pid) {
+#endif
 	}
 	n = __atomic_load_n(&cover[0], __ATOMIC_RELAXED);
 	for (i = 0; i < n; i++)
 		printf("0x%lx\n", cover[i + 1]);
-	if (munmap(cover, COVER_SIZE * sizeof(unsigned long)))
+	if (munmap(cover, COVER_SIZE * KCOV_ENTRY_SIZE))
 		perror("munmap"), exit(1);
 	if (close(fd))
 		perror("close"), exit(1);
