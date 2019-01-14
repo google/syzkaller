@@ -5,6 +5,7 @@
 
 #include <unistd.h>
 
+#include <pwd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
@@ -347,13 +348,17 @@ static int do_sandbox_setuid(void)
 	initialize_tun(procid);
 #endif
 
-	const int nobody = 65534;
+	char pwbuf[1024];
+	struct passwd *pw, pwres;
+	if (getpwnam_r("nobody", &pwres, pwbuf, sizeof(pwbuf), &pw) != 0 || !pw)
+		fail("getpwnam_r(\"nobody\") failed");
+
 	if (setgroups(0, NULL))
 		fail("failed to setgroups");
-	if (setresgid(nobody, nobody, nobody))
-		fail("failed to setresgid");
-	if (setresuid(nobody, nobody, nobody))
-		fail("failed to setresuid");
+	if (setgid(pw->pw_gid))
+		fail("failed to setgid");
+	if (setuid(pw->pw_uid))
+		fail("failed to setuid");
 
 	loop();
 	doexit(1);
