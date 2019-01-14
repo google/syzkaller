@@ -312,8 +312,8 @@ else
 endif
 
 test_race:
-	env CGO_ENABLED=1 $(GO) $(GO) test -race; if test $$? -ne 2; then \
-	env CGO_ENABLED=1 $(GO) test -short -race -bench=.* -benchtime=.2s ./... ;\
+	env CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
+	env CGO_ENABLED=1 $(GO) test -race -short -bench=.* -benchtime=.2s ./... ;\
 	fi
 
 clean:
