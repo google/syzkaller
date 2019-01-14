@@ -647,7 +647,7 @@ static void sandbox_common()
 	if (setsid() == -1)
 		fail("setsid failed");
 	struct rlimit rlim;
-#ifndef GOOS_openbsd
+#ifdef GOOS_freebsd
 	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
 	setrlimit(RLIMIT_AS, &rlim);
 #endif
