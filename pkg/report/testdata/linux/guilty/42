@@ -1,0 +1,25 @@
+FILE: drivers/trusty/trusty.c
+
+trusty: app-mgmt-test-srv2: 146: Channel wait failed: 0(4)
+trusty: panic (caller 0xffffffffe000fbb8): ASSERT FAILED at (trusty/kernel/lib/trusty/ipc.c:472): !list_in_list(&chan->node)
+trusty: HALT: (reason = 9)
+trusty crashed[  388.879777] ------------[ cut here ]------------
+WARNING: CPU: 0 PID: 36 at drivers/trusty/trusty.c:215 trusty_std_call32+0x220/0x240 drivers/trusty/trusty.c:215
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 0 PID: 36 Comm: kworker/0:1 Not tainted 4.9.22-622951-geb1249894645c-dirty #15
+Hardware name: linux,dummy-virt (DT)
+Workqueue: trusty-nop-wq nop_work_func
+Call trace:
+[<ffff200008091958>] dump_backtrace+0x0/0x440 arch/arm64/kernel/traps.c:69
+[<ffff200008091db8>] show_stack+0x20/0x30 arch/arm64/kernel/traps.c:219
+[<ffff20000893a0a8>] __dump_stack lib/dump_stack.c:15 [inline]
+[<ffff20000893a0a8>] dump_stack+0x100/0x150 lib/dump_stack.c:51
+[<ffff20000832d678>] panic+0x208/0x3e0 kernel/panic.c:179
+[<ffff20000811acb8>] __warn+0x280/0x2f0 kernel/panic.c:542
+[<ffff200008939138>] report_bug+0x1a8/0x270 lib/bug.c:170
+[<ffff200008092174>] bug_handler.part.2+0x3c/0xf8 arch/arm64/kernel/traps.c:682
+[<ffff200008092278>] bug_handler+0x48/0x68 arch/arm64/kernel/traps.c:679
+[<ffff200008085c3c>] call_break_hook arch/arm64/kernel/debug-monitors.c:300 [inline]
+[<ffff200008085c3c>] brk_handler+0x1e4/0x2e0 arch/arm64/kernel/debug-monitors.c:316
+[<ffff200008081a78>] do_debug_exception+0xd0/0x230 arch/arm64/mm/fault.c:665

@@ -85,6 +85,7 @@ func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*r
 		regexp.MustCompile(`^net/core/sock.c`),
 		regexp.MustCompile(`^net/core/skbuff.c`),
 		regexp.MustCompile(`^fs/proc/generic.c`),
+		regexp.MustCompile(`^trusty/`), // Trusty sources are not in linux kernel tree.
 	}
 	// These pattern do _not_ start a new report, i.e. can be in a middle of another report.
 	ctx.reportStartIgnores = []*regexp.Regexp{
@@ -1403,6 +1404,18 @@ var linuxOopses = []*oops{
 			{
 				title:        compile("unregister_netdevice: waiting for (?:.*) to become free"),
 				fmt:          "unregister_netdevice: waiting for DEV to become free",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
+		[]byte("trusty: panic"),
+		[]oopsFormat{
+			{
+				title:        compile("trusty: panic.* ASSERT FAILED"),
+				report:       compile("trusty: panic \\(.*?\\):(?: DEBUG)? ASSERT FAILED at \\(.*?\\): (.*)"),
+				fmt:          "trusty: ASSERT FAILED: %[1]v",
 				noStackTrace: true,
 			},
 		},
