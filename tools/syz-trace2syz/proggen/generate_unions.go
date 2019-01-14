@@ -14,24 +14,8 @@ func (ctx *context) genSockaddrStorage(syzType *prog.UnionType, straceType parse
 	for i, field := range syzType.Fields {
 		field2Opt[field.FieldName()] = i
 	}
-	// We currently look at the first argument of the system call
-	// To determine which option of the union we select.
-	call := ctx.currentStraceCall
-	var straceArg parser.IrType
-	switch call.CallName {
-	// May need to handle special cases.
-	case "recvfrom", "sendto":
-		straceArg = call.Args[4]
-	default:
-		if len(call.Args) >= 2 {
-			straceArg = call.Args[1]
-		} else {
-			log.Fatalf("unable identify union for sockaddr_storage for call: %s",
-				call.CallName)
-		}
-	}
 	idx := 0
-	switch strType := straceArg.(type) {
+	switch strType := straceType.(type) {
 	case *parser.GroupType:
 		socketFamily, ok := strType.Elems[0].(parser.Constant)
 		if !ok {
