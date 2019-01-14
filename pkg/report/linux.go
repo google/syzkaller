@@ -248,7 +248,8 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 		if bytes.Contains(line, []byte("Disabling lock debugging due to kernel taint")) {
 			skipLine = true
 		} else if textLines > 25 &&
-			bytes.Contains(line, []byte("Kernel panic - not syncing")) {
+			(bytes.Contains(line, []byte("Kernel panic - not syncing")) ||
+				bytes.Contains(line, []byte("WARNING: possible circular locking dependency detected"))) {
 			// If panic_on_warn set, then we frequently have 2 stacks:
 			// one for the actual report (or maybe even more than one),
 			// and then one for panic caused by panic_on_warn. This makes
@@ -258,6 +259,9 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 			// before the panic, because sometimes we have, for example,
 			// a single WARNING line without a stack and then the panic
 			// with the stack.
+			// Oops messages frequently induce possible deadlock reports
+			// because oops reporting introduces unexpected locking chains.
+			// So if we have enough of the actual oops, strip the deadlock message.
 			skipText = true
 			skipLine = true
 		}
