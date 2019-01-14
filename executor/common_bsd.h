@@ -280,9 +280,11 @@ static void sandbox_common()
 
 	// Some minimal sandboxing.
 	struct rlimit rlim;
-#ifndef GOOS_openbsd
+#ifdef GOOS_freebsd
 	// Documented bug in OpenBSD.
-	// This causes frequent random aborts on netbsd. Reason unknown.
+	// This causes frequent random aborts. Reason unknown.
+
+	// This also causes ENOMEM on NetBSD during early init.
 	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
 	setrlimit(RLIMIT_AS, &rlim);
 #endif
