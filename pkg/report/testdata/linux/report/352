@@ -1,0 +1,368 @@
+TITLE: kernel BUG at mm/page_alloc.c:LINE!
+
+[ 1191.669874][ T1043] ------------[ cut here ]------------
+[ 1191.678706][ T1043] kernel BUG at mm/page_alloc.c:3112!
+[ 1191.684081][ T1043] invalid opcode: 0000 [#1] PREEMPT SMP KASAN
+[ 1191.690145][ T1043] CPU: 0 PID: 1043 Comm: kcompactd0 Not tainted 5.0.0-rc1-next-20190111 #10
+[ 1191.698804][ T1043] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1191.708865][ T1043] RIP: 0010:__isolate_free_page+0x4a8/0x680
+[ 1191.714748][ T1043] Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+[ 1191.734348][ T1043] RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+[ 1191.740404][ T1043] RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+[ 1191.748369][ T1043] RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+[ 1191.756335][ T1043] RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+[ 1191.764298][ T1043] R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+[ 1191.772263][ T1043] R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+[ 1191.780235][ T1043] FS:  0000000000000000(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+[ 1191.789157][ T1043] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1191.795733][ T1043] CR2: 0000000000438ca0 CR3: 0000000009871000 CR4: 00000000001426f0
+[ 1191.803701][ T1043] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 1191.811681][ T1043] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[ 1191.819679][ T1043] Call Trace:
+[ 1191.822969][ T1043]  ? lock_release+0xc40/0xc40
+[ 1191.827656][ T1043]  ? rwlock_bug.part.0+0x90/0x90
+[ 1191.832591][ T1043]  ? zone_watermark_ok+0x1b0/0x1b0
+[ 1191.837704][ T1043]  ? trace_hardirqs_on+0xbd/0x310
+[ 1191.842731][ T1043]  ? kasan_check_read+0x11/0x20
+[ 1191.847585][ T1043]  compaction_alloc+0xd05/0x2970
+[ 1191.852570][ T1043]  ? isolate_freepages_block+0x1110/0x1110
+[ 1191.858386][ T1043]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[ 1191.864623][ T1043]  ? kernel_poison_pages+0x17f/0x2c0
+[ 1191.869925][ T1043]  ? mark_free_pages+0x3c0/0x3c0
+[ 1191.874877][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1191.881124][ T1043]  ? PageHuge+0x178/0x2a0
+[ 1191.885448][ T1043]  ? hugetlb_vm_op_pagesize+0x130/0x130
+[ 1191.890989][ T1043]  ? __put_page+0x127/0x190
+[ 1191.895495][ T1043]  ? arch_local_save_flags+0x50/0x50
+[ 1191.900775][ T1043]  ? kasan_check_write+0x14/0x20
+[ 1191.905711][ T1043]  migrate_pages+0x48e/0x2cc0
+[ 1191.910396][ T1043]  ? kcompactd_cpu_online+0x1d0/0x1d0
+[ 1191.915758][ T1043]  ? isolate_freepages_block+0x1110/0x1110
+[ 1191.922057][ T1043]  ? buffer_migrate_page_norefs+0x40/0x40
+[ 1191.927856][ T1043]  ? lru_cache_add_file+0x20/0x20
+[ 1191.932888][ T1043]  ? mark_held_locks+0x100/0x100
+[ 1191.937823][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1191.944160][ T1043]  ? check_preemption_disabled+0x48/0x290
+[ 1191.949895][ T1043]  ? debug_smp_processor_id+0x1c/0x20
+[ 1191.955261][ T1043]  ? perf_trace_lock+0x12f/0x750
+[ 1191.960190][ T1043]  ? perf_trace_lock_acquire+0x138/0x7d0
+[ 1191.965815][ T1043]  ? remove_mapping+0x2f0/0x2f0
+[ 1191.970674][ T1043]  ? putback_movable_pages+0x9cc/0xdd0
+[ 1191.976155][ T1043]  ? lock_acquire+0x1db/0x570
+[ 1191.980832][ T1043]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[ 1191.986629][ T1043]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[ 1191.992440][ T1043]  ? pageblock_skip_persistent+0x1e6/0x340
+[ 1191.998248][ T1043]  ? compact_zone+0x189c/0x3e90
+[ 1192.003097][ T1043]  ? trace_event_raw_event_mm_compaction_suitable_template+0x3c0/0x3c0
+[ 1192.011330][ T1043]  ? do_raw_spin_trylock+0x270/0x270
+[ 1192.016618][ T1043]  compact_zone+0x2207/0x3e90
+[ 1192.021346][ T1043]  ? compaction_suitable+0x560/0x560
+[ 1192.026625][ T1043]  ? __free_page_list+0x1260/0x1260
+[ 1192.031816][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.038050][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.044287][ T1043]  ? check_preemption_disabled+0x48/0x290
+[ 1192.050034][ T1043]  ? rcu_lockdep_current_cpu_online+0x1aa/0x220
+[ 1192.056287][ T1043]  ? rcu_pm_notify+0xd0/0xd0
+[ 1192.060900][ T1043]  ? rcu_read_lock_sched_held+0x110/0x130
+[ 1192.066611][ T1043]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[ 1192.072850][ T1043]  ? isolate_migratepages_range+0x280/0x280
+[ 1192.078735][ T1043]  ? defer_compaction+0x4d0/0x4d0
+[ 1192.083749][ T1043]  ? rcu_pm_notify+0xd0/0xd0
+[ 1192.088343][ T1043]  kcompactd_do_work+0x6de/0x1200
+[ 1192.093369][ T1043]  ? psi_memstall_enter+0x211/0x2b0
+[ 1192.098572][ T1043]  ? sysfs_compact_node+0x100/0x100
+[ 1192.103774][ T1043]  ? trace_hardirqs_on+0xbd/0x310
+[ 1192.108794][ T1043]  ? kasan_check_read+0x11/0x20
+[ 1192.113641][ T1043]  ? trace_hardirqs_off_caller+0x300/0x300
+[ 1192.119455][ T1043]  ? _raw_spin_unlock_irq+0x5e/0x90
+[ 1192.124648][ T1043]  ? psi_memstall_enter+0x242/0x2b0
+[ 1192.129838][ T1043]  ? rcu_pm_notify+0xd0/0xd0
+[ 1192.134432][ T1043]  ? psi_memstall_tick+0x230/0x230
+[ 1192.139559][ T1043]  ? __might_sleep+0x95/0x190
+[ 1192.144235][ T1043]  kcompactd+0x251/0x970
+[ 1192.148481][ T1043]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[ 1192.154286][ T1043]  ? kcompactd_do_work+0x1200/0x1200
+[ 1192.159563][ T1043]  ? trace_hardirqs_on+0xbd/0x310
+[ 1192.164584][ T1043]  ? __kthread_parkme+0xc3/0x1b0
+[ 1192.169515][ T1043]  ? finish_wait+0x490/0x490
+[ 1192.174103][ T1043]  ? schedule+0x108/0x350
+[ 1192.178436][ T1043]  ? _raw_spin_unlock_irqrestore+0xa4/0xe0
+[ 1192.184236][ T1043]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[ 1192.190472][ T1043]  ? __kthread_parkme+0xfb/0x1b0
+[ 1192.195409][ T1043]  kthread+0x357/0x430
+[ 1192.199478][ T1043]  ? kcompactd_do_work+0x1200/0x1200
+[ 1192.204753][ T1043]  ? kthread_stop+0x920/0x920
+[ 1192.209435][ T1043]  ret_from_fork+0x3a/0x50
+[ 1192.213854][ T1043] Modules linked in:
+[ 1192.217749][ T1043] 
+[ 1192.217756][ T1043] ======================================================
+[ 1192.217762][ T1043] WARNING: possible circular locking dependency detected
+[ 1192.217767][ T1043] 5.0.0-rc1-next-20190111 #10 Not tainted
+[ 1192.217773][ T1043] ------------------------------------------------------
+[ 1192.217778][ T1043] kcompactd0/1043 is trying to acquire lock:
+[ 1192.217782][ T1043] 00000000a0848583 (console_owner){-.-.}, at: console_unlock+0x4ac/0x1040
+[ 1192.217799][ T1043] 
+[ 1192.217803][ T1043] but task is already holding lock:
+[ 1192.217807][ T1043] 00000000c8e67de2 (&(&zone->lock)->rlock){..-.}, at: compaction_alloc+0x6f3/0x2970
+[ 1192.217824][ T1043] 
+[ 1192.217829][ T1043] which lock already depends on the new lock.
+[ 1192.217832][ T1043] 
+[ 1192.217835][ T1043] 
+[ 1192.217841][ T1043] the existing dependency chain (in reverse order) is:
+[ 1192.217843][ T1043] 
+[ 1192.217846][ T1043] -> #3 (&(&zone->lock)->rlock){..-.}:
+[ 1192.217863][ T1043]        _raw_spin_lock_irqsave+0x95/0xcd
+[ 1192.217868][ T1043]        get_page_from_freelist+0xf6c/0x4870
+[ 1192.217873][ T1043]        __alloc_pages_nodemask+0x4fd/0xdc0
+[ 1192.217878][ T1043]        alloc_pages_current+0x107/0x210
+[ 1192.217882][ T1043]        depot_save_stack+0x3da/0x460
+[ 1192.217886][ T1043]        save_stack+0xa9/0xd0
+[ 1192.217891][ T1043]        __kasan_kmalloc.constprop.0+0xcf/0xe0
+[ 1192.217896][ T1043]        kasan_slab_alloc+0xf/0x20
+[ 1192.217900][ T1043]        __kmalloc+0x145/0x740
+[ 1192.217905][ T1043]        __tty_buffer_request_room+0x2bf/0x7e0
+[ 1192.217911][ T1043]        tty_insert_flip_string_fixed_flag+0x93/0x1f0
+[ 1192.217915][ T1043]        pty_write+0x133/0x200
+[ 1192.217919][ T1043]        tty_put_char+0x137/0x160
+[ 1192.217924][ T1043]        __process_echoes+0x5c8/0xa40
+[ 1192.217929][ T1043]        n_tty_receive_buf_common+0xc2c/0x2f30
+[ 1192.217934][ T1043]        n_tty_receive_buf2+0x34/0x40
+[ 1192.217938][ T1043]        tty_ldisc_receive_buf+0xaf/0x1c0
+[ 1192.217944][ T1043]        tty_port_default_receive_buf+0x114/0x190
+[ 1192.217948][ T1043]        flush_to_ldisc+0x3b2/0x590
+[ 1192.217953][ T1043]        process_one_work+0xd0c/0x1ce0
+[ 1192.217957][ T1043]        worker_thread+0x143/0x14a0
+[ 1192.217961][ T1043]        kthread+0x357/0x430
+[ 1192.217966][ T1043]        ret_from_fork+0x3a/0x50
+[ 1192.217969][ T1043] 
+[ 1192.217971][ T1043] -> #2 (&(&port->lock)->rlock){-.-.}:
+[ 1192.218000][ T1043]        _raw_spin_lock_irqsave+0x95/0xcd
+[ 1192.218005][ T1043]        tty_port_tty_get+0x22/0x80
+[ 1192.218010][ T1043]        tty_port_default_wakeup+0x16/0x40
+[ 1192.218015][ T1043]        tty_port_tty_wakeup+0x5d/0x70
+[ 1192.218019][ T1043]        uart_write_wakeup+0x46/0x70
+[ 1192.218024][ T1043]        serial8250_tx_chars+0x4a4/0xb20
+[ 1192.218029][ T1043]        serial8250_handle_irq.part.0+0x1be/0x2e0
+[ 1192.218034][ T1043]        serial8250_default_handle_irq+0xc5/0x150
+[ 1192.218039][ T1043]        serial8250_interrupt+0xfb/0x1a0
+[ 1192.218044][ T1043]        __handle_irq_event_percpu+0x1c6/0xb10
+[ 1192.218049][ T1043]        handle_irq_event_percpu+0xa0/0x1d0
+[ 1192.218054][ T1043]        handle_irq_event+0xa7/0x134
+[ 1192.218058][ T1043]        handle_edge_irq+0x232/0x8a0
+[ 1192.218063][ T1043]        handle_irq+0x252/0x3d8
+[ 1192.218067][ T1043]        do_IRQ+0x99/0x1d0
+[ 1192.218071][ T1043]        ret_from_intr+0x0/0x1e
+[ 1192.218076][ T1043]        native_safe_halt+0x2/0x10
+[ 1192.218080][ T1043]        arch_cpu_idle+0x10/0x20
+[ 1192.218085][ T1043]        default_idle_call+0x36/0x90
+[ 1192.218089][ T1043]        do_idle+0x386/0x5d0
+[ 1192.218093][ T1043]        cpu_startup_entry+0x1b/0x20
+[ 1192.218098][ T1043]        start_secondary+0x435/0x620
+[ 1192.218103][ T1043]        secondary_startup_64+0xa4/0xb0
+[ 1192.218105][ T1043] 
+[ 1192.218108][ T1043] -> #1 (&port_lock_key){-.-.}:
+[ 1192.218125][ T1043]        _raw_spin_lock_irqsave+0x95/0xcd
+[ 1192.218130][ T1043]        serial8250_console_write+0x253/0xab0
+[ 1192.218135][ T1043]        univ8250_console_write+0x5f/0x70
+[ 1192.218139][ T1043]        console_unlock+0xc9a/0x1040
+[ 1192.218144][ T1043]        vprintk_emit+0x370/0x960
+[ 1192.218148][ T1043]        vprintk_default+0x28/0x30
+[ 1192.218153][ T1043]        vprintk_func+0x7e/0x189
+[ 1192.218157][ T1043]        printk+0xba/0xed
+[ 1192.218162][ T1043]        register_console+0x74d/0xb50
+[ 1192.218166][ T1043]        univ8250_console_init+0x3e/0x4b
+[ 1192.218171][ T1043]        console_init+0x6b7/0x9fe
+[ 1192.218175][ T1043]        start_kernel+0x5df/0x8bd
+[ 1192.218180][ T1043]        x86_64_start_reservations+0x29/0x2b
+[ 1192.218185][ T1043]        x86_64_start_kernel+0x77/0x7b
+[ 1192.218190][ T1043]        secondary_startup_64+0xa4/0xb0
+[ 1192.218193][ T1043] 
+[ 1192.218195][ T1043] -> #0 (console_owner){-.-.}:
+[ 1192.218211][ T1043]        lock_acquire+0x1db/0x570
+[ 1192.218216][ T1043]        console_unlock+0x516/0x1040
+[ 1192.218220][ T1043]        vprintk_emit+0x370/0x960
+[ 1192.218225][ T1043]        vprintk_default+0x28/0x30
+[ 1192.218229][ T1043]        vprintk_func+0x7e/0x189
+[ 1192.218233][ T1043]        printk+0xba/0xed
+[ 1192.218238][ T1043]        report_bug.cold+0x11/0x5e
+[ 1192.218242][ T1043]        do_error_trap+0x11b/0x200
+[ 1192.218246][ T1043]        do_invalid_op+0x37/0x50
+[ 1192.218251][ T1043]        invalid_op+0x14/0x20
+[ 1192.218255][ T1043]        __isolate_free_page+0x4a8/0x680
+[ 1192.218260][ T1043]        compaction_alloc+0xd05/0x2970
+[ 1192.218265][ T1043]        migrate_pages+0x48e/0x2cc0
+[ 1192.218269][ T1043]        compact_zone+0x2207/0x3e90
+[ 1192.218274][ T1043]        kcompactd_do_work+0x6de/0x1200
+[ 1192.218278][ T1043]        kcompactd+0x251/0x970
+[ 1192.218282][ T1043]        kthread+0x357/0x430
+[ 1192.218287][ T1043]        ret_from_fork+0x3a/0x50
+[ 1192.218289][ T1043] 
+[ 1192.218294][ T1043] other info that might help us debug this:
+[ 1192.218297][ T1043] 
+[ 1192.218301][ T1043] Chain exists of:
+[ 1192.218303][ T1043]   console_owner --> &(&port->lock)->rlock --> &(&zone->lock)->rlock
+[ 1192.218325][ T1043] 
+[ 1192.218329][ T1043]  Possible unsafe locking scenario:
+[ 1192.218332][ T1043] 
+[ 1192.218337][ T1043]        CPU0                    CPU1
+[ 1192.218341][ T1043]        ----                    ----
+[ 1192.218344][ T1043]   lock(&(&zone->lock)->rlock);
+[ 1192.218355][ T1043]                                lock(&(&port->lock)->rlock);
+[ 1192.218366][ T1043]                                lock(&(&zone->lock)->rlock);
+[ 1192.218376][ T1043]   lock(console_owner);
+[ 1192.218384][ T1043] 
+[ 1192.218388][ T1043]  *** DEADLOCK ***
+[ 1192.218391][ T1043] 
+[ 1192.218395][ T1043] 2 locks held by kcompactd0/1043:
+[ 1192.218398][ T1043]  #0: 00000000c8e67de2 (&(&zone->lock)->rlock){..-.}, at: compaction_alloc+0x6f3/0x2970
+[ 1192.218418][ T1043]  #1: 0000000001912981 (console_lock){+.+.}, at: vprintk_emit+0x351/0x960
+[ 1192.218437][ T1043] 
+[ 1192.218441][ T1043] stack backtrace:
+[ 1192.218448][ T1043] CPU: 0 PID: 1043 Comm: kcompactd0 Not tainted 5.0.0-rc1-next-20190111 #10
+[ 1192.218455][ T1043] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1192.218459][ T1043] Call Trace:
+[ 1192.218463][ T1043]  dump_stack+0x1db/0x2d0
+[ 1192.218468][ T1043]  ? dump_stack_print_info.cold+0x20/0x20
+[ 1192.218473][ T1043]  ? print_stack_trace+0x77/0xb0
+[ 1192.218477][ T1043]  ? vprintk_func+0x86/0x189
+[ 1192.218483][ T1043]  print_circular_bug.isra.0.cold+0x1cc/0x28f
+[ 1192.218487][ T1043]  __lock_acquire+0x2fed/0x4a10
+[ 1192.218492][ T1043]  ? mark_held_locks+0x100/0x100
+[ 1192.218498][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.218503][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.218508][ T1043]  ? check_preemption_disabled+0x48/0x290
+[ 1192.218514][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.218519][ T1043]  ? check_preemption_disabled+0x48/0x290
+[ 1192.218523][ T1043]  ? console_unlock+0x4f1/0x1040
+[ 1192.218528][ T1043]  lock_acquire+0x1db/0x570
+[ 1192.218532][ T1043]  ? console_unlock+0x4ac/0x1040
+[ 1192.218537][ T1043]  ? lock_release+0xc40/0xc40
+[ 1192.218542][ T1043]  ? do_raw_spin_trylock+0x270/0x270
+[ 1192.218546][ T1043]  console_unlock+0x516/0x1040
+[ 1192.218551][ T1043]  ? console_unlock+0x4ac/0x1040
+[ 1192.218555][ T1043]  ? devkmsg_read+0xa30/0xa30
+[ 1192.218560][ T1043]  ? _raw_spin_unlock_irqrestore+0xa4/0xe0
+[ 1192.218565][ T1043]  ? vprintk_emit+0x351/0x960
+[ 1192.218570][ T1043]  ? __down_trylock_console_sem+0x148/0x210
+[ 1192.218575][ T1043]  vprintk_emit+0x370/0x960
+[ 1192.218579][ T1043]  ? wake_up_klogd+0x180/0x180
+[ 1192.218584][ T1043]  ? __check_object_size+0xa3/0x790
+[ 1192.218588][ T1043]  ? usercopy_warn+0x110/0x110
+[ 1192.218593][ T1043]  vprintk_default+0x28/0x30
+[ 1192.218597][ T1043]  vprintk_func+0x7e/0x189
+[ 1192.218601][ T1043]  printk+0xba/0xed
+[ 1192.218606][ T1043]  ? kmsg_dump_rewind_nolock+0xe4/0xe4
+[ 1192.218611][ T1043]  ? is_valid_bugaddr+0xa8/0xf0
+[ 1192.218616][ T1043]  ? ist_end_non_atomic+0x10/0x10
+[ 1192.218621][ T1043]  ? rcu_dynticks_curr_cpu_in_eqs+0xa2/0x170
+[ 1192.218626][ T1043]  ? trace_stack_print+0x23f/0x2d0
+[ 1192.218630][ T1043]  ? rcu_softirq_qs+0x20/0x20
+[ 1192.218635][ T1043]  ? report_bug.cold+0x5/0x5e
+[ 1192.218639][ T1043]  ? report_bug+0x1cc/0x2b0
+[ 1192.218644][ T1043]  ? __isolate_free_page+0x4a8/0x680
+[ 1192.218648][ T1043]  report_bug.cold+0x11/0x5e
+[ 1192.218653][ T1043]  do_error_trap+0x11b/0x200
+[ 1192.218657][ T1043]  do_invalid_op+0x37/0x50
+[ 1192.218662][ T1043]  ? __isolate_free_page+0x4a8/0x680
+[ 1192.218666][ T1043]  invalid_op+0x14/0x20
+[ 1192.218671][ T1043] RIP: 0010:__isolate_free_page+0x4a8/0x680
+[ 1192.218685][ T1043] Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+[ 1192.218690][ T1043] RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+[ 1192.218699][ T1043] RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+[ 1192.218706][ T1043] RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+[ 1192.218712][ T1043] RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+[ 1192.218719][ T1043] R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+[ 1192.218725][ T1043] R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+[ 1192.218730][ T1043]  ? do_raw_spin_lock+0x156/0x360
+[ 1192.218735][ T1043]  ? lock_release+0xc40/0xc40
+[ 1192.218739][ T1043]  ? rwlock_bug.part.0+0x90/0x90
+[ 1192.218744][ T1043]  ? zone_watermark_ok+0x1b0/0x1b0
+[ 1192.218749][ T1043]  ? trace_hardirqs_on+0xbd/0x310
+[ 1192.218753][ T1043]  ? kasan_check_read+0x11/0x20
+[ 1192.218758][ T1043]  compaction_alloc+0xd05/0x2970
+[ 1192.218763][ T1043]  ? isolate_freepages_block+0x1110/0x1110
+[ 1192.218769][ T1043]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[ 1192.218773][ T1043]  ? kernel_poison_pages+0x17f/0x2c0
+[ 1192.218778][ T1043]  ? mark_free_pages+0x3c0/0x3c0
+[ 1192.218783][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.218788][ T1043]  ? PageHuge+0x178/0x2a0
+[ 1192.218793][ T1043]  ? hugetlb_vm_op_pagesize+0x130/0x130
+[ 1192.218797][ T1043]  ? __put_page+0x127/0x190
+[ 1192.218802][ T1043]  ? arch_local_save_flags+0x50/0x50
+[ 1192.218807][ T1043]  ? kasan_check_write+0x14/0x20
+[ 1192.218811][ T1043]  migrate_pages+0x48e/0x2cc0
+[ 1192.218816][ T1043]  ? kcompactd_cpu_online+0x1d0/0x1d0
+[ 1192.218821][ T1043]  ? isolate_freepages_block+0x1110/0x1110
+[ 1192.218826][ T1043]  ? buffer_migrate_page_norefs+0x40/0x40
+[ 1192.218831][ T1043]  ? lru_cache_add_file+0x20/0x20
+[ 1192.218835][ T1043]  ? mark_held_locks+0x100/0x100
+[ 1192.218841][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.218846][ T1043]  ? check_preemption_disabled+0x48/0x290
+[ 1192.218851][ T1043]  ? debug_smp_processor_id+0x1c/0x20
+[ 1192.218855][ T1043]  ? perf_trace_lock+0x12f/0x750
+[ 1192.218860][ T1043]  ? perf_trace_lock_acquire+0x138/0x7d0
+[ 1192.218865][ T1043]  ? remove_mapping+0x2f0/0x2f0
+[ 1192.218870][ T1043]  ? putback_movable_pages+0x9cc/0xdd0
+[ 1192.218875][ T1043]  ? lock_acquire+0x1db/0x570
+[ 1192.218880][ T1043]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[ 1192.218885][ T1043]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[ 1192.218890][ T1043]  ? pageblock_skip_persistent+0x1e6/0x340
+[ 1192.218895][ T1043]  ? compact_zone+0x189c/0x3e90
+[ 1192.218901][ T1043]  ? trace_event_raw_event_mm_compaction_suitable_template+0x3c0/0x3c0
+[ 1192.218906][ T1043]  ? do_raw_spin_trylock+0x270/0x270
+[ 1192.218911][ T1043]  compact_zone+0x2207/0x3e90
+[ 1192.218915][ T1043]  ? compaction_suitable+0x560/0x560
+[ 1192.218920][ T1043]  ? __free_page_list+0x1260/0x1260
+[ 1192.218926][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.218931][ T1043]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 1192.218936][ T1043] Lost 33 message(s)!
+[ 1193.396500][ T1043] ---[ end trace b088aebfc4c7ea50 ]---
+[ 1193.401959][ T1043] RIP: 0010:__isolate_free_page+0x4a8/0x680
+[ 1193.407858][ T1043] Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+[ 1193.427450][ T1043] RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+[ 1193.433504][ T1043] RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+[ 1193.441463][ T1043] RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+[ 1193.449423][ T1043] RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+[ 1193.457397][ T1043] R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+[ 1193.465359][ T1043] R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+[ 1193.473356][ T1043] FS:  0000000000000000(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+[ 1193.482289][ T1043] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1193.488862][ T1043] CR2: 0000000000438ca0 CR3: 0000000009871000 CR4: 00000000001426f0
+[ 1193.496827][ T1043] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 1193.504803][ T1043] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[ 1193.512761][ T1043] Kernel panic - not syncing: Fatal exception
+[ 1194.695500][ T1043] Shutting down cpus with NMI
+[ 1194.701326][ T1043] Kernel Offset: disabled
+[ 1194.705651][ T1043] Rebooting in 86400 seconds..
+
+
+REPORT:
+------------[ cut here ]------------
+kernel BUG at mm/page_alloc.c:3112!
+invalid opcode: 0000 [#1] PREEMPT SMP KASAN
+CPU: 0 PID: 1043 Comm: kcompactd0 Not tainted 5.0.0-rc1-next-20190111 #10
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+RIP: 0010:__isolate_free_page+0x4a8/0x680
+Code: 4c 39 e3 77 c0 0f b6 8d 74 ff ff ff b8 01 00 00 00 48 d3 e0 e9 11 fd ff ff 48 c7 c6 a0 63 52 88 4c 89 e7 e8 6a 14 10 00 0f 0b <0f> 0b 48 c7 c6 c0 64 52 88 4c 89 e7 e8 57 14 10 00 0f 0b 48 89 cf
+RSP: 0000:ffff8880a78e6f58 EFLAGS: 00010007
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff88812fffc7e0
+RDX: 1ffff11025fff8fc RSI: 0000000000000007 RDI: ffff88812fffc7b0
+RBP: ffff8880a78e7018 R08: ffff8880a78ce000 R09: ffffed1014f1cdf2
+R10: ffffed1014f1cdf1 R11: 0000000000000003 R12: ffff88812fffc7b0
+R13: 1ffff11014f1cdf2 R14: ffff88812fffc7b0 R15: ffff8880a78e6ff0
+FS:  0000000000000000(0000) GS:ffff8880ae600000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000438ca0 CR3: 0000000009871000 CR4: 00000000001426f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+Call Trace:
+ compaction_alloc+0xd05/0x2970
+ migrate_pages+0x48e/0x2cc0
+ compact_zone+0x2207/0x3e90
+ kcompactd_do_work+0x6de/0x1200
+ kcompactd+0x251/0x970
+ kthread+0x357/0x430
+ ret_from_fork+0x3a/0x50
+Modules linked in:
+
+======================================================
