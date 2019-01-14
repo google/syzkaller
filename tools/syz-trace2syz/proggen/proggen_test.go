@@ -211,6 +211,15 @@ connect(0xffffffffffffffff, &(0x7f0000000000)=` +
 			`@in6={0xa, 0x3039, 0x75bcd7a, @rand_addr="0012003400560078009000ab00cd00ef",` +
 			` 0xfacefeed}, 0x80)
 `,
+		}, {`
+socket(0xa, 0x2, 0) = 3
+sendto(3, "", 0, 0, {sa_family=0xa, sin6_port="\x4e\x24", sin6_flowinfo="\x00\x00\x00\x00",` +
+			` sin6_addr="\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",` +
+			` sin6_scope_id=0}, 28) = -1
+`, `
+r0 = socket$inet6_udp(0xa, 0x2, 0x0)
+sendto$inet6(r0, &(0x7f0000000000), 0x0, 0x0, &(0x7f0000000040)={0xa, 0x4e24}, 0x1c)
+`,
 		},
 	}
 	target, err := prog.GetTarget("linux", "amd64")
