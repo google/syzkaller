@@ -1414,8 +1414,19 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				title:        compile("trusty: panic.* ASSERT FAILED"),
-				report:       compile("trusty: panic \\(.*?\\):(?: DEBUG)? ASSERT FAILED at \\(.*?\\): (.*)"),
+				report:       compile("trusty: panic \\(.*?\\):(?: DEBUG)? ASSERT FAILED at \\(.*?\\): (.+)"),
 				fmt:          "trusty: ASSERT FAILED: %[1]v",
+				noStackTrace: true,
+			},
+			{
+				title:     compile("trusty: panic.* ASSERT FAILED.*: *(.*)"),
+				fmt:       "trusty: ASSERT FAILED: %[1]v",
+				corrupted: true,
+			},
+			{
+				title:        compile("trusty: panic"),
+				report:       compile("trusty: panic \\(.*?\\): (.+)"),
+				fmt:          "trusty: panic: %[1]v",
 				noStackTrace: true,
 			},
 		},
