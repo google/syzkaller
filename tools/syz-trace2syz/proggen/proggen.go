@@ -53,7 +53,7 @@ func parseTree(tree *parser.TraceTree, pid int64, target *prog.Target, progs *[]
 type context struct {
 	builder           *prog.Builder
 	target            *prog.Target
-	callSelector      *callSelector
+	selectors         []callSelector
 	returnCache       returnCache
 	currentStraceCall *parser.Syscall
 	currentSyzCall    *prog.Call
@@ -63,10 +63,10 @@ type context struct {
 func genProg(trace *parser.Trace, target *prog.Target) *prog.Prog {
 	retCache := newRCache()
 	ctx := &context{
-		builder:      prog.MakeProgGen(target),
-		target:       target,
-		callSelector: newCallSelector(target, retCache),
-		returnCache:  retCache,
+		builder:     prog.MakeProgGen(target),
+		target:      target,
+		selectors:   newSelectors(target, retCache),
+		returnCache: retCache,
 	}
 	for _, sCall := range trace.Calls {
 		if sCall.Paused {
@@ -100,7 +100,7 @@ func (ctx *context) genCall() *prog.Call {
 	log.Logf(3, "parsing call: %s", ctx.currentStraceCall.CallName)
 	straceCall := ctx.currentStraceCall
 	ctx.currentSyzCall = new(prog.Call)
-	ctx.currentSyzCall.Meta = ctx.callSelector.Select(straceCall)
+	ctx.currentSyzCall.Meta = ctx.Select(straceCall)
 	syzCall := ctx.currentSyzCall
 	if ctx.currentSyzCall.Meta == nil {
 		log.Logf(2, "skipping call: %s which has no matching description", ctx.currentStraceCall.CallName)
@@ -118,6 +118,15 @@ func (ctx *context) genCall() *prog.Call {
 	}
 	ctx.genResult(syzCall.Meta.Ret, straceCall.Ret)
 	return syzCall
+}
+
+func (ctx *context) Select(syscall *parser.Syscall) *prog.Syscall {
+	for _, selector := range ctx.selectors {
+		if variant := selector.Select(syscall); variant != nil {
+			return variant
+		}
+	}
+	return ctx.target.SyscallMap[syscall.CallName]
 }
 
 func (ctx *context) genResult(syzType prog.Type, straceRet int64) {
