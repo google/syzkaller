@@ -1,0 +1,46 @@
+TITLE: trusty: panic: failed(-5) to start app 6
+
+[ 1108.135767] trusty: pte_t *arm64_mmu_get_page_table(vaddr_t, uint, pte_t *)[ 1108.143812] trusty: :274: failed to allocate page table
+[ 1108.144338] trusty: pte_t *arm64_mmu_get_page_table(vaddr_t, uint, pte_t *):274: failed to allocate page table
+[ 1108.144824] trusty: failed(-5) to allocate data segment(0xe000) 2 for app 6[ 1108.158428] trusty: 
+[ 1108.158828] trusty: failed(-5) to load address map for trusty_app_6_50a0686a-48b7-4089
+[ 1108.159262] trusty: panic (caller 0xffffffffe0002314): failed(-5) to start app 6
+[ 1108.159680] trusty: HALT: (reason = 9)
+[ 1108.188624] trusty crashed[ 1108.190819] ------------[ cut here ]------------
+[ 1108.192590] WARNING: CPU: 0 PID: 1610 at drivers/trusty/trusty.c:215 trusty_std_call32+0x220/0x240
+[ 1108.193306] Kernel panic - not syncing: panic_on_warn set ...
+[ 1108.193306] 
+[ 1108.194357] CPU: 0 PID: 1610 Comm: kworker/0:2 Not tainted 4.9.22-622951-geb1249894645c-dirty #15
+[ 1108.194834] Hardware name: linux,dummy-virt (DT)
+[ 1108.195581] Workqueue: trusty-nop-wq nop_work_func
+[ 1108.196310] Call trace:
+[ 1108.196728] [<ffff200008091958>] dump_backtrace+0x0/0x440
+[ 1108.197185] [<ffff200008091db8>] show_stack+0x20/0x30
+[ 1108.197595] [<ffff20000893a0a8>] dump_stack+0x100/0x150
+[ 1108.198005] [<ffff20000832d678>] panic+0x208/0x3e0
+[ 1108.198397] [<ffff20000811acb8>] __warn+0x280/0x2f0
+[ 1108.198788] [<ffff200008939138>] report_bug+0x1a8/0x270
+[ 1108.199198] [<ffff200008092174>] bug_handler.part.2+0x3c/0xf8
+[ 1108.199619] [<ffff200008092278>] bug_handler+0x48/0x68
+[ 1108.200006] [<ffff200008085c3c>] brk_handler+0x1e4/0x2e0
+[ 1108.200401] [<ffff200008081a78>] do_debug_exception+0xd0/0x230
+[ 1108.200888] Exception stack(0xffff8000714577f0 to 0xffff800071457920)
+[ 1108.201409] 77e0:                                   00000000fffffff5 0001000000000000
+[ 1108.201928] 7800: ffff800071457a30 ffff2000093a2ed0 0000000080000145 000000000000003d
+[ 1108.202427] 7820: 1ffff0000e28af5c ffff200009c8a180 ffff8000729835a0 ffff200009c8a140
+[ 1108.202922] 7840: 0000000041b58ab3 ffff200009e881a8 ffff2000080819a8 0000000000000000
+[ 1108.203422] 7860: 1ffff0000e28af5c ffff200009c8a180 ffff8000729835a0 0000000000000000
+[ 1108.203940] 7880: ffff8000725bb4cc 0000000000000000 0000000000000000 000000000e4b7699
+[ 1108.204463] 78a0: 0000000000000000 0000000000000000 ffff800071457a30 ffff800071457a30
+[ 1108.204965] 78c0: ffff8000714579f0 00000000ffffffc8 ffff800071457910 ffff20000832e7f0
+[ 1108.205436] 78e0: ffff10000e28af2a ffff200009c8a140 ffff800071457a30 ffff800071457a30
+[ 1108.205895] 7900: 000000000000000e ffff8000725bad00 0000000000000000 1ffff0000e4b7699
+[ 1108.206412] [<ffff200008083658>] el1_dbg+0x18/0x74
+[ 1108.206786] [<ffff2000093a2fc8>] nop_work_func+0xd8/0x180
+[ 1108.207180] [<ffff20000816143c>] process_one_work+0x75c/0x11a0
+[ 1108.207575] [<ffff200008162274>] worker_thread+0x3f4/0x1080
+[ 1108.207953] [<ffff200008172f58>] kthread+0x258/0x2b8
+[ 1108.208318] [<ffff200008083e80>] ret_from_fork+0x10/0x50
+[ 1108.210081] Kernel Offset: disabled
+[ 1108.210387] Memory Limit: none
+

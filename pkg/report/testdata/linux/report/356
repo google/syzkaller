@@ -1,0 +1,46 @@
+TITLE: trusty: ASSERT FAILED:
+CORRUPTED: Y
+
+[  330.928744] trusty: trusty_app 6: brk:  start 0x0000e5e0 end 0x0000f5e0
+[  330.929109] trusty: trusty_app 6: entry 0x00008640
+[  331.000757] trusty: app-mgmt-test-srv2: 146: Channel wait failed: 0(4)
+[  331.001241] trusty: panic (caller [  331.008787] trusty: 0xffffffffe000fbb8): ASSERT FAILED at (trusty/kernel/lib/trusty/ipc.c:472): 
+[  331.026926] trusty: !list_in_list(&chan->node)
+[  331.027345] trusty: HALT: (reason = 9)
+[  331.027868] trusty crashed[  331.041781] ------------[ cut here ]------------
+[  331.043399] WARNING: CPU: 0 PID: 1609 at drivers/trusty/trusty.c:215 trusty_std_call32+0x220/0x240
+[  331.044110] Kernel panic - not syncing: panic_on_warn set ...
+[  331.044110] 
+[  331.045164] CPU: 0 PID: 1609 Comm: kworker/0:2 Not tainted 4.9.22-622951-geb1249894645c-dirty #15
+[  331.045624] Hardware name: linux,dummy-virt (DT)
+[  331.046352] Workqueue: trusty-nop-wq nop_work_func
+[  331.047053] Call trace:
+[  331.047471] [<ffff200008091958>] dump_backtrace+0x0/0x440
+[  331.047909] [<ffff200008091db8>] show_stack+0x20/0x30
+[  331.048293] [<ffff20000893a0a8>] dump_stack+0x100/0x150
+[  331.048689] [<ffff20000832d678>] panic+0x208/0x3e0
+[  331.049058] [<ffff20000811acb8>] __warn+0x280/0x2f0
+[  331.049429] [<ffff200008939138>] report_bug+0x1a8/0x270
+[  331.049817] [<ffff200008092174>] bug_handler.part.2+0x3c/0xf8
+[  331.050218] [<ffff200008092278>] bug_handler+0x48/0x68
+[  331.050590] [<ffff200008085c3c>] brk_handler+0x1e4/0x2e0
+[  331.050968] [<ffff200008081a78>] do_debug_exception+0xd0/0x230
+[  331.051450] Exception stack(0xffff80006ebfb7f0 to 0xffff80006ebfb920)
+[  331.051952] b7e0:                                   00000000fffffff5 0001000000000000
+[  331.052438] b800: ffff80006ebfba30 ffff2000093a2ed0 0000000080000145 000000000000003d
+[  331.052924] b820: 1ffff0000dd7f75c ffff200009c8a180 ffff800072d875a0 ffff200009c8a140
+[  331.053391] b840: 0000000041b58ab3 ffff200009e881a8 ffff2000080819a8 0000000000000000
+[  331.053859] b860: 1ffff0000dd7f75c ffff200009c8a180 ffff800072d875a0 0000000000000000
+[  331.054328] b880: ffff80006ebfb930 0000000000000000 ffff200000000000 000000000a165b94
+[  331.054792] b8a0: 0000000000000000 0000000000000000 ffff80006ebfba30 ffff80006ebfba30
+[  331.055258] b8c0: ffff80006ebfb9f0 00000000ffffffc8 ffff80006ebfb910 ffff20000832e7f0
+[  331.055722] b8e0: ffff10000dd7f72a ffff200009c8a140 ffff80006ebfba30 ffff80006ebfba30
+[  331.056190] b900: 000000000000000e ffff80007267da00 0000000000000000 1ffff0000e4cfc39
+[  331.056757] [<ffff200008083658>] el1_dbg+0x18/0x74
+[  331.057134] [<ffff2000093a2fc8>] nop_work_func+0xd8/0x180
+[  331.057528] [<ffff20000816143c>] process_one_work+0x75c/0x11a0
+[  331.057928] [<ffff200008162274>] worker_thread+0x3f4/0x1080
+[  331.058310] [<ffff200008172f58>] kthread+0x258/0x2b8
+[  331.058678] [<ffff200008083e80>] ret_from_fork+0x10/0x50
+[  331.060069] Kernel Offset: disabled
+[  331.060381] Memory Limit: none
