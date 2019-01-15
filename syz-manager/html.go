@@ -5,6 +5,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,10 +26,12 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys"
 )
 
 func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/", mgr.httpSummary)
+	http.HandleFunc("/config", mgr.httpConfig)
 	http.HandleFunc("/syscalls", mgr.httpSyscalls)
 	http.HandleFunc("/corpus", mgr.httpCorpus)
 	http.HandleFunc("/crash", mgr.httpCrash)
@@ -72,6 +75,16 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
+	data, err := json.MarshalIndent(mgr.cfg, "", "\t")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to decode json: %v", err),
+			http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "%v", string(data))
+}
+
 func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	data := &UISyscallsData{
 		Name: mgr.cfg.Name,
@@ -103,7 +116,13 @@ func (mgr *Manager) collectStats() []UIStat {
 	defer mgr.mu.Unlock()
 
 	rawStats := mgr.stats.all()
+	head := strings.Replace(sys.GitRevision, "+", "", -1)
+	if head == "" {
+		head = "master"
+	}
 	stats := []UIStat{
+		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: "https://github.com/google/syzkaller/commits/" + head},
+		{Name: "config", Value: "config", Link: "/config"},
 		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
 		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
 		{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus)), Link: "/corpus"},
