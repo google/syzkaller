@@ -30,7 +30,7 @@ $ scp bin/linux_amd64/syz-execprog bin/linux_amd64/syz-executor program test@mac
 
 5. Run the program on the test machine:
 ``` bash
-$ ./syz-execprog -cover=0 -repeat=0 -procs=16 program
+$ ./syz-execprog -repeat=0 -procs=8 program
 ```
 
 Several useful `syz-execprog` flags:
@@ -51,6 +51,8 @@ If you pass `-threaded=0 -collide=0`, programs will be executed as a simple sing
 
 If you are replaying a reproducer program that contains a header along the following lines:
 ```
-#{Threaded:true Collide:true Repeat:true Procs:8 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}
+#{Threaded:true Collide:true Repeat:true Procs:8 Sandbox:namespace
+  Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true
+  HandleSegv:true WaitRepeat:true Debug:false Repro:false}
 ```
 then you need to adjust `syz-execprog` flags based on the values in the header. Namely, `Threaded`/`Collide`/`Procs`/`Sandbox` directly relate to `-threaded`/`-collide`/`-procs`/`-sandbox` flags. If `Repeat` is set to `true`, add `-repeat=0` flag to `syz-execprog`.
