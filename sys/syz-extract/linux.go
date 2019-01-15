@@ -123,6 +123,11 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 	for _, incdir := range info.Incdirs {
 		args = append(args, "-I"+sourceDir+"/"+incdir)
 	}
+	if arch.includeDirs != "" {
+		for _, dir := range strings.Split(arch.includeDirs, ",") {
+			args = append(args, "-I"+dir)
+		}
+	}
 	const addSource = `
 #include <asm/unistd.h>
 unsigned long phys_base;

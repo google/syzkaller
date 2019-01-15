@@ -52,6 +52,11 @@ func (*openbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 	for _, incdir := range info.Incdirs {
 		args = append(args, "-I"+filepath.Join(arch.sourceDir, incdir))
 	}
+	if arch.includeDirs != "" {
+		for _, dir := range strings.Split(arch.includeDirs, ",") {
+			args = append(args, "-I"+dir)
+		}
+	}
 	// Syscall consts on openbsd have weird prefixes sometimes,
 	// try to extract consts with these prefixes as well.
 	compatNames := make(map[string][]string)
