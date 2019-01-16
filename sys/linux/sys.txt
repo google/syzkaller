@@ -959,6 +959,9 @@ _ = ADJ_OFFSET, ADJ_FREQUENCY, ADJ_MAXERROR, ADJ_ESTERROR, ADJ_STATUS, ADJ_TIMEC
 # misc
 _ = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE, KCOV_TRACE_PC, KCOV_TRACE_CMP, FIFREEZE, FAN_OPEN_PERM, FAN_ACCESS_PERM, PTRACE_TRACEME, __NR_mmap2
 
+# Hardcode KCOV_REMOTE_ENABLE value for amd64 until new kcov patches reach mainline.
+define KCOV_REMOTE_ENABLE	1075340134
+
 # Not yet implemented syscalls
 #define __NR_umask 95
 #define __NR_vhangup 153

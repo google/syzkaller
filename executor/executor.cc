@@ -120,6 +120,7 @@ static sandbox_type flag_sandbox;
 static bool flag_enable_tun;
 static bool flag_enable_net_dev;
 static bool flag_enable_fault_injection;
+static bool flag_extra_cover;
 
 static bool flag_collect_cover;
 static bool flag_dedup_cover;
@@ -373,8 +374,10 @@ int main(int argc, char** argv)
 			cover_open(&threads[i].cov, false);
 		}
 		cover_open(&extra_cov, true);
-		// Don't enable comps because we don't use them in the fuzzer yet.
-		cover_enable(&extra_cov, false, true);
+		if (flag_extra_cover) {
+			// Don't enable comps because we don't use them in the fuzzer yet.
+			cover_enable(&extra_cov, false, true);
+		}
 	}
 
 	int status = 0;
@@ -456,6 +459,7 @@ void parse_env_flags(uint64 flags)
 	flag_enable_tun = flags & (1 << 5);
 	flag_enable_net_dev = flags & (1 << 6);
 	flag_enable_fault_injection = flags & (1 << 7);
+	flag_extra_cover = flags & (1 << 8);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER
@@ -567,7 +571,8 @@ retry:
 	if (flag_cover && !colliding) {
 		if (!flag_threaded)
 			cover_enable(&threads[0].cov, flag_collect_comps, false);
-		cover_reset(&extra_cov);
+		if (flag_extra_cover)
+			cover_reset(&extra_cov);
 	}
 
 	int call_index = 0;
@@ -938,7 +943,7 @@ void write_call_output(thread_t* th, bool finished)
 void write_extra_output()
 {
 #if SYZ_EXECUTOR_USES_SHMEM
-	if (!flag_cover || flag_collect_comps)
+	if (!flag_cover || !flag_extra_cover || flag_collect_comps)
 		return;
 	cover_collect(&extra_cov);
 	if (!extra_cov.size)
