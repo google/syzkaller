@@ -64,50 +64,49 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "cmsghdr_sctp_dstaddrv4"}, FldName: "dstaddrv4"},
 		&StructType{Key: StructKey{Name: "cmsghdr_sctp_dstaddrv6"}, FldName: "dstaddrv6"},
 	}}},
-	{Key: StructKey{Name: "cmsghdr_sctp_authinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_authinfo", TypeSize: 24}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "parent"},
+	{Key: StructKey{Name: "cmsghdr_sctp_authinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_authinfo", TypeSize: 16}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 8},
 		&StructType{Key: StructKey{Name: "sctp_authinfo"}, FldName: "msg"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
-	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "cmsghdr_sctp_dstaddrv4"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_dstaddrv4", TypeSize: 24}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "cmsghdr_sctp_dstaddrv4"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_dstaddrv4", TypeSize: 16}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 9},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "msg"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "cmsghdr_sctp_dstaddrv6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_dstaddrv6", TypeSize: 32}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "parent"},
+	}}},
+	{Key: StructKey{Name: "cmsghdr_sctp_dstaddrv6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_dstaddrv6", TypeSize: 28}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 10},
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "msg"},
-	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "cmsghdr_sctp_init"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_init", TypeSize: 24}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "parent"},
+	}}},
+	{Key: StructKey{Name: "cmsghdr_sctp_init"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_init", TypeSize: 20}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 1},
 		&StructType{Key: StructKey{Name: "sctp_initmsg"}, FldName: "msg"},
-	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "cmsghdr_sctp_prinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_prinfo", TypeSize: 24}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "parent"},
+	}}},
+	{Key: StructKey{Name: "cmsghdr_sctp_prinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_prinfo", TypeSize: 20}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 7},
 		&StructType{Key: StructKey{Name: "sctp_prinfo"}, FldName: "msg"},
-	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "cmsghdr_sctp_sndinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_sndinfo", TypeSize: 32}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "parent"},
+	}}},
+	{Key: StructKey{Name: "cmsghdr_sctp_sndinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_sndinfo", TypeSize: 28}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 4},
 		&StructType{Key: StructKey{Name: "sctp_sndinfo"}, FldName: "msg"},
-	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "cmsghdr_sctp_sndrcv"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_sndrcv", TypeSize: 48}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "parent"},
+	}}},
+	{Key: StructKey{Name: "cmsghdr_sctp_sndrcv"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp_sndrcv", TypeSize: 44}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 2},
 		&StructType{Key: StructKey{Name: "sctp_sndrcvinfo"}, FldName: "msg"},
-	}, AlignAttr: 8}},
+	}}},
 	{Key: StructKey{Name: "cmsghdr_un"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_un", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "cmsghdr_un_rights"}, FldName: "rights"},
 		&StructType{Key: StructKey{Name: "cmsghdr_un_cred"}, FldName: "cred"},
@@ -414,16 +413,16 @@ var structDescs_amd64 = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msgbuf_type", FldName: "typ", TypeSize: 8, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 3}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 1, IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "msghdr_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_sctp", TypeSize: 56}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
+	{Key: StructKey{Name: "msghdr_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_sctp", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_name", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_namelen", TypeSize: 4}}, Buf: "msg_name"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 8}}, Buf: "vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 8, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_sctp"}}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 8}}, BitSize: 8, Buf: "ctrl"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1, 4, 8, 128, 256, 131072}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_iov", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_iovlen", TypeSize: 4}}, Buf: "msg_iov"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 8, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_sctp"}}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "msg_controllen", TypeSize: 4}}, BitSize: 8, Buf: "msg_control"},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "msg_flags", TypeSize: 4}}, Vals: []uint64{1, 4, 8, 128, 256, 131072}, BitMask: true},
 	}}},
 	{Key: StructKey{Name: "msghdr_un"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_un", TypeSize: 56}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
@@ -610,15 +609,15 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sctp_sender_dry_event", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sctp_stream_reset_event", TypeSize: 1, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "sctp_getaddresses"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_getaddresses", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_getaddresses_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_getaddresses_in", TypeSize: 16}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "sget_assoc_id", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 	}}},
-	{Key: StructKey{Name: "sctp_getaddresses", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_getaddresses", TypeSize: 16, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_getaddresses_out", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_getaddresses_out", TypeSize: 16, ArgDir: 2}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "sget_assoc_id", TypeSize: 4, ArgDir: 2}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp", Dir: 1}}}},
 	}}},
 	{Key: StructKey{Name: "sctp_hmacalgo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_hmacalgo", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "shmac_num_idents", TypeSize: 4}}, Buf: "shmac_idents"},
@@ -640,7 +639,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sinit_max_attempts", TypeSize: 2, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sinit_max_init_timeo", TypeSize: 2, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "sctp_paddrinfo", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrinfo", TypeSize: 160, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_paddrinfo", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrinfo", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_storage_sctp", Dir: 2}, FldName: "spinfo_address"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "spinfo_assoc_id", TypeSize: 4, ArgDir: 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "spinfo_state", TypeSize: 4, ArgDir: 2}}},
@@ -648,8 +647,8 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "spinfo_srtt", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "spinfo_rto", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "spinfo_mtu", TypeSize: 4, ArgDir: 2}}},
-	}}},
-	{Key: StructKey{Name: "sctp_paddrparams"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrparams", TypeSize: 160}, Fields: []Type{
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "sctp_paddrparams"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrparams", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_storage_sctp"}, FldName: "spp_address"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "spp_assoc_id", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "spp_hbinterval", TypeSize: 4}}},
@@ -658,9 +657,8 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "spp_ipv6_flowlabel", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "spp_pathmaxrxt", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "spp_dscp", TypeSize: 1}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "sctp_paddrparams", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrparams", TypeSize: 160, ArgDir: 2}, Fields: []Type{
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "sctp_paddrparams", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrparams", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_storage_sctp", Dir: 2}, FldName: "spp_address"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "spp_assoc_id", TypeSize: 4, ArgDir: 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "spp_hbinterval", TypeSize: 4, ArgDir: 2}}},
@@ -669,29 +667,26 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "spp_ipv6_flowlabel", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "spp_pathmaxrxt", TypeSize: 2, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "spp_dscp", TypeSize: 1, ArgDir: 2}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "sctp_paddrthlds"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrthlds", TypeSize: 152}, Fields: []Type{
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "sctp_paddrthlds"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrthlds", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_storage_sctp"}, FldName: "spt_address"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "spt_assoc_id", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "spt_pathmaxrxt", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "spt_pathpfthld", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "spt_pathcpthld", TypeSize: 2}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "sctp_paddrthlds", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrthlds", TypeSize: 152, ArgDir: 2}, Fields: []Type{
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "sctp_paddrthlds", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_paddrthlds", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_storage_sctp", Dir: 2}, FldName: "spt_address"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "spt_assoc_id", TypeSize: 4, ArgDir: 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "spt_pathmaxrxt", TypeSize: 2, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "spt_pathpfthld", TypeSize: 2, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "spt_pathcpthld", TypeSize: 2, ArgDir: 2}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "sctp_prim"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_prim", TypeSize: 140}, Fields: []Type{
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "sctp_prim"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_prim", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_storage_sctp"}, FldName: "ssp_addr"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "ssp_assoc_id", TypeSize: 4}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "sctp_prim", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_prim", TypeSize: 140, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_prim", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_prim", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_storage_sctp", Dir: 2}, FldName: "ssp_addr"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "ssp_assoc_id", TypeSize: 4, ArgDir: 2}},
 	}, AlignAttr: 4}},
@@ -785,7 +780,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sinfo_cumtsn", TypeSize: 4, ArgDir: 2}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "sinfo_assoc_id", TypeSize: 4, ArgDir: 2}},
 	}}},
-	{Key: StructKey{Name: "sctp_status", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_status", TypeSize: 184, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_status", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_status", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "sstat_assoc_id", TypeSize: 4, ArgDir: 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sstat_state", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sstat_rwnd", TypeSize: 4, ArgDir: 2}}},
@@ -885,6 +880,10 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sockaddr_in"}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_in6"}, FldName: "in6"},
 	}}},
+	{Key: StructKey{Name: "sockaddr_sctp", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_sctp", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "sockaddr_in", Dir: 1}, FldName: "in"},
+		&StructType{Key: StructKey{Name: "sockaddr_in6", Dir: 1}, FldName: "in6"},
+	}}},
 	{Key: StructKey{Name: "sockaddr_storage"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_un"}, FldName: "un"},
 		&StructType{Key: StructKey{Name: "sockaddr_in"}, FldName: "in"},
@@ -913,11 +912,11 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 96, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 8, ArgDir: 2}}}, Kind: 1, RangeBegin: 12, RangeEnd: 12},
 	}}},
-	{Key: StructKey{Name: "sockaddr_storage_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_sctp", TypeSize: 136}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_storage_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_sctp", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in"}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "in6"},
 	}}},
-	{Key: StructKey{Name: "sockaddr_storage_sctp", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_sctp", TypeSize: 136, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_storage_sctp", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_sctp", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in", Dir: 2}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6", Dir: 2}, FldName: "in6"},
 	}}},
@@ -1467,14 +1466,14 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 8}}, Val: 32772},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses_out", Dir: 2}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{NR: 118, Name: "getsockopt$inet6_sctp_SCTP_GET_PEER_ADDRESSES", CallName: "getsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 8}}, Val: 32771},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses_out", Dir: 2}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{NR: 118, Name: "getsockopt$inet6_sctp_SCTP_GET_PEER_ADDR_INFO", CallName: "getsockopt", Args: []Type{
@@ -1838,14 +1837,14 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 8}}, Val: 32772},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses_out", Dir: 2}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{NR: 118, Name: "getsockopt$inet_sctp_SCTP_GET_PEER_ADDRESSES", CallName: "getsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 8}}, Val: 32771},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses_out", Dir: 2}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{NR: 118, Name: "getsockopt$inet_sctp_SCTP_GET_PEER_ADDR_INFO", CallName: "getsockopt", Args: []Type{
@@ -2665,14 +2664,14 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 8}}, Val: 32769},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses_in"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{NR: 105, Name: "setsockopt$inet6_sctp_SCTP_BINDX_REM_ADDR", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 8}}, Val: 32770},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses_in"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{NR: 105, Name: "setsockopt$inet6_sctp_SCTP_CONNECT_X", CallName: "setsockopt", Args: []Type{
@@ -3085,14 +3084,14 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 8}}, Val: 32769},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses_in"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{NR: 105, Name: "setsockopt$inet_sctp_SCTP_BINDX_REM_ADDR", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 8}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 8}}, Val: 32770},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sctp_getaddresses_in"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{NR: 105, Name: "setsockopt$inet_sctp_SCTP_CONNECT_X", CallName: "setsockopt", Args: []Type{
@@ -4181,4 +4180,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "e0218c6a312f7456fb6fdfdf4faf672fbc4a375f"
+const revision_amd64 = "87222f38848c14df07a6a0304da0b1915e3396bb"

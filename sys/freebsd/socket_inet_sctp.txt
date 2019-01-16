@@ -19,13 +19,13 @@ sendmsg$inet_sctp(fd sock_sctp, msg ptr[in, msghdr_sctp], f flags[send_flags])
 sendmsg$inet6_sctp(fd sock_sctp6, msg ptr[in, msghdr_sctp], f flags[send_flags])
 
 msghdr_sctp {
-	msg_name		ptr[in, sockaddr_sctp]
-	msg_namelen		len[addr, int32]
-	msg_iov			ptr[in, array[iovec_in]]
-	msg_iovlen		len[vec, int32]
-	msg_control		ptr[in, array[cmsghdr_sctp], opt]
-	msg_controllen	bytesize[ctrl, int32]
-	msg_flags		flags[send_flags, int32]
+	msg_name	ptr[in, sockaddr_sctp]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, int32]
+	msg_control	ptr[in, array[cmsghdr_sctp], opt]
+	msg_controllen	bytesize[msg_control, int32]
+	msg_flags	flags[send_flags, int32]
 }
 
 cmsghdr_sctp [
@@ -39,31 +39,31 @@ cmsghdr_sctp [
 ] [varlen]
 
 cmsghdr_sctp_init {
-	len		len[parent, int32]
+	len	len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_INIT, int32]
-	msg		sctp_initmsg
+	msg	sctp_initmsg
 }
 
 cmsghdr_sctp_sndrcv {
-	len		len[parent, int32]
+	len	len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_SNDRCV, int32]
-	msg		sctp_sndrcvinfo
+	msg	sctp_sndrcvinfo
 }
 
 cmsghdr_sctp_sndinfo {
-	len		len[parent, int32]
+	len	len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_SNDINFO, int32]
-	msg		sctp_sndinfo
+	msg	sctp_sndinfo
 }
 
 cmsghdr_sctp_prinfo {
-	len		len[parent, int32]
+	len	len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_PRINFO, int32]
-	msg		sctp_prinfo
+	msg	sctp_prinfo
 }
 
 sctp_prinfo {
@@ -75,7 +75,7 @@ cmsghdr_sctp_authinfo {
 	len	len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_AUTHINFO, int32]
-	msg		sctp_authinfo
+	msg	sctp_authinfo
 }
 
 sctp_authinfo {
@@ -83,17 +83,17 @@ sctp_authinfo {
 }
 
 cmsghdr_sctp_dstaddrv4 {
-	len		len[parent, int32]
+	len	len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_DSTADDRV4, int32]
-	msg		ipv4_addr
+	msg	ipv4_addr
 }
 
 cmsghdr_sctp_dstaddrv6 {
-	len		len[parent, int32]
+	len	len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_DSTADDRV6, int32]
-	msg		ipv6_addr
+	msg	ipv6_addr
 }
 
 # Specific SCTP socket options
@@ -376,7 +376,7 @@ sctp_paddrparams {
 	spp_ipv6_flowlabel	int32
 	spp_pathmaxrxt		int16
 	spp_dscp		int8
-}
+} [packed, align_4]
 
 sctp_spp_flags = SPP_HB_ENABLE, SPP_HB_DISABLE, SPP_HB_DEMAND, SPP_PMTUD_ENABLE, SPP_PMTUD_DISABLE, SPP_HB_TIME_IS_ZERO, SPP_IPV6_FLOWLABEL, SPP_DSCP
 
@@ -440,7 +440,7 @@ sctp_paddrinfo {
 	spinfo_srtt	int32
 	spinfo_rto	int32
 	spinfo_mtu	int32
-}
+} [packed, align_4]
 
 sctp_sack_info {
 	sack_assoc_id	assoc_id
@@ -494,7 +494,7 @@ sctp_paddrthlds {
 	spt_pathmaxrxt	int16
 	spt_pathpfthld	int16
 	spt_pathcpthld	int16
-}
+} [packed, align_4]
 
 sctp_sndinfo {
 	snd_sid		int16
