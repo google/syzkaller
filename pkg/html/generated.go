@@ -1,5 +1,4 @@
 package html
-
 const style = `
 #topbar {
 	padding: 5px 10px;

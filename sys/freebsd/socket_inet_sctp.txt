@@ -19,13 +19,13 @@ sendmsg$inet_sctp(fd sock_sctp, msg ptr[in, msghdr_sctp], f flags[send_flags])
 sendmsg$inet6_sctp(fd sock_sctp6, msg ptr[in, msghdr_sctp], f flags[send_flags])
 
 msghdr_sctp {
-	addr	ptr[in, sockaddr_sctp]
-	addrlen	len[addr, int32]
-	vec	ptr[in, array[iovec_in]]
-	vlen	len[vec, intptr]
-	ctrl	ptr[in, array[cmsghdr_sctp], opt]
-	ctrllen	bytesize[ctrl, intptr]
-	f	flags[send_flags, int32]
+	msg_name		ptr[in, sockaddr_sctp]
+	msg_namelen		len[addr, int32]
+	msg_iov			ptr[in, array[iovec_in]]
+	msg_iovlen		len[vec, int32]
+	msg_control		ptr[in, array[cmsghdr_sctp], opt]
+	msg_controllen	bytesize[ctrl, int32]
+	msg_flags		flags[send_flags, int32]
 }
 
 cmsghdr_sctp [
@@ -39,32 +39,32 @@ cmsghdr_sctp [
 ] [varlen]
 
 cmsghdr_sctp_init {
-	len	len[parent, intptr]
+	len		len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_INIT, int32]
-	msg	sctp_initmsg
-} [align_ptr]
+	msg		sctp_initmsg
+}
 
 cmsghdr_sctp_sndrcv {
-	len	len[parent, intptr]
+	len		len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_SNDRCV, int32]
-	msg	sctp_sndrcvinfo
-} [align_ptr]
+	msg		sctp_sndrcvinfo
+}
 
 cmsghdr_sctp_sndinfo {
-	len	len[parent, intptr]
+	len		len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_SNDINFO, int32]
-	msg	sctp_sndinfo
-} [align_ptr]
+	msg		sctp_sndinfo
+}
 
 cmsghdr_sctp_prinfo {
-	len	len[parent, intptr]
+	len		len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_PRINFO, int32]
-	msg	sctp_prinfo
-} [align_ptr]
+	msg		sctp_prinfo
+}
 
 sctp_prinfo {
 	pr_policy	flags[sctp_pr_policies, int16]
@@ -72,29 +72,29 @@ sctp_prinfo {
 }
 
 cmsghdr_sctp_authinfo {
-	len	len[parent, intptr]
+	len	len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_AUTHINFO, int32]
-	msg	sctp_authinfo
-} [align_ptr]
+	msg		sctp_authinfo
+}
 
 sctp_authinfo {
 	auth_keynumber	int16
 }
 
 cmsghdr_sctp_dstaddrv4 {
-	len	len[parent, intptr]
+	len		len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_DSTADDRV4, int32]
-	msg	ipv4_addr
-} [align_ptr]
+	msg		ipv4_addr
+}
 
 cmsghdr_sctp_dstaddrv6 {
-	len	len[parent, intptr]
+	len		len[parent, int32]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_DSTADDRV6, int32]
-	msg	ipv6_addr
-} [align_ptr]
+	msg		ipv6_addr
+}
 
 # Specific SCTP socket options
 
@@ -310,17 +310,17 @@ setsockopt$inet6_sctp_SCTP_RESET_ASSOC(fd sock_sctp6, level const[IPPROTO_SCTP],
 setsockopt$inet_sctp_SCTP_ADD_STREAMS(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_ADD_STREAMS], val ptr[in, sctp_add_streams], len len[val])
 setsockopt$inet6_sctp_SCTP_ADD_STREAMS(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_ADD_STREAMS], val ptr[in, sctp_add_streams], len len[val])
 
-setsockopt$inet_sctp_SCTP_BINDX_ADD_ADDR(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_ADD_ADDR], val ptr[in, sctp_getaddresses], len ptr[inout, len[val, int32]])
-setsockopt$inet6_sctp_SCTP_BINDX_ADD_ADDR(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_ADD_ADDR], val ptr[in, sctp_getaddresses], len ptr[inout, len[val, int32]])
+setsockopt$inet_sctp_SCTP_BINDX_ADD_ADDR(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_ADD_ADDR], val ptr[in, sctp_getaddresses_in], len ptr[inout, len[val, int32]])
+setsockopt$inet6_sctp_SCTP_BINDX_ADD_ADDR(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_ADD_ADDR], val ptr[in, sctp_getaddresses_in], len ptr[inout, len[val, int32]])
 
-setsockopt$inet_sctp_SCTP_BINDX_REM_ADDR(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_REM_ADDR], val ptr[in, sctp_getaddresses], len ptr[inout, len[val, int32]])
-setsockopt$inet6_sctp_SCTP_BINDX_REM_ADDR(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_REM_ADDR], val ptr[in, sctp_getaddresses], len ptr[inout, len[val, int32]])
+setsockopt$inet_sctp_SCTP_BINDX_REM_ADDR(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_REM_ADDR], val ptr[in, sctp_getaddresses_in], len ptr[inout, len[val, int32]])
+setsockopt$inet6_sctp_SCTP_BINDX_REM_ADDR(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_BINDX_REM_ADDR], val ptr[in, sctp_getaddresses_in], len ptr[inout, len[val, int32]])
 
-getsockopt$inet_sctp_SCTP_GET_PEER_ADDRESSES(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_GET_PEER_ADDRESSES], val ptr[inout, sctp_getaddresses], len ptr[inout, len[val, int32]])
-getsockopt$inet6_sctp_SCTP_GET_PEER_ADDRESSES(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_GET_PEER_ADDRESSES], val ptr[inout, sctp_getaddresses], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp_SCTP_GET_PEER_ADDRESSES(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_GET_PEER_ADDRESSES], val ptr[inout, sctp_getaddresses_out], len ptr[inout, len[val, int32]])
+getsockopt$inet6_sctp_SCTP_GET_PEER_ADDRESSES(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_GET_PEER_ADDRESSES], val ptr[inout, sctp_getaddresses_out], len ptr[inout, len[val, int32]])
 
-getsockopt$inet_sctp_SCTP_GET_LOCAL_ADDRESSES(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_GET_LOCAL_ADDRESSES], val ptr[inout, sctp_getaddresses], len ptr[inout, len[val, int32]])
-getsockopt$inet6_sctp_SCTP_GET_LOCAL_ADDRESSES(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_GET_LOCAL_ADDRESSES], val ptr[inout, sctp_getaddresses], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp_SCTP_GET_LOCAL_ADDRESSES(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_GET_LOCAL_ADDRESSES], val ptr[inout, sctp_getaddresses_out], len ptr[inout, len[val, int32]])
+getsockopt$inet6_sctp_SCTP_GET_LOCAL_ADDRESSES(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_GET_LOCAL_ADDRESSES], val ptr[inout, sctp_getaddresses_out], len ptr[inout, len[val, int32]])
 
 setsockopt$inet_sctp_SCTP_CONNECT_X(fd sock_sctp, level const[IPPROTO_SCTP], opt const[SCTP_CONNECT_X], val ptr[in, sctp_connectx], len ptr[inout, len[val, int32]])
 setsockopt$inet6_sctp_SCTP_CONNECT_X(fd sock_sctp6, level const[IPPROTO_SCTP], opt const[SCTP_CONNECT_X], val ptr[in, sctp_connectx], len ptr[inout, len[val, int32]])
@@ -353,10 +353,15 @@ sctp_prim {
 	ssp_assoc_id	assoc_id
 } [packed, align_4]
 
+sockaddr_sctp [
+	in	sockaddr_in
+	in6	sockaddr_in6
+] [varlen]
+
 sockaddr_storage_sctp [
 	in	sockaddr_storage_in
 	in6	sockaddr_storage_in6
-]
+] [varlen]
 
 sctp_setadaptation {
 	ssb_adaptation_ind	int32
@@ -499,14 +504,14 @@ sctp_sndinfo {
 	snd_assoc_id	assoc_id
 }
 
-sockaddr_sctp [
-	in	sockaddr_in
-	in6	sockaddr_in6
-] [varlen]
-
-sctp_getaddresses {
+sctp_getaddresses_in {
 	sget_assoc_id	assoc_id
 	addr		ptr[in, array[sockaddr_sctp]]
+}
+
+sctp_getaddresses_out {
+	sget_assoc_id	assoc_id
+	addr		ptr[out, array[sockaddr_sctp]]
 }
 
 sctp_connectx {
