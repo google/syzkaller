@@ -34,6 +34,7 @@ const (
 	FlagEnableTun                                       // initialize and use tun in executor
 	FlagEnableNetDev                                    // setup a bunch of various network devices for testing
 	FlagEnableFault                                     // enable fault injection support
+	FlagExtraCover                                      // collect extra coverage
 	// Executor does not know about these:
 	FlagUseShmem      // use shared memory instead of pipes for communication
 	FlagUseForkServer // use extended protocol with handshake

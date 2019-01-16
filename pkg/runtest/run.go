@@ -330,6 +330,9 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 		cfg.Flags |= ipc.FlagSignal
 		opts.Flags |= ipc.FlagCollectCover
 	}
+	if ctx.Features[host.FeatureExtraCoverage].Enabled {
+		cfg.Flags |= ipc.FlagExtraCover
+	}
 	if ctx.Features[host.FeatureNetworkInjection].Enabled {
 		cfg.Flags |= ipc.FlagEnableTun
 	}
