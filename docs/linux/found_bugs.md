@@ -4,6 +4,7 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [UBSAN: Undefined behaviour in fs/f2fs/extent_cache.c](https://groups.google.com/d/msg/syzkaller/oAhUsPAO4RI/rivMjuUOCgAJ)
 * [UBSAN: Undefined behaviour in drivers/input/misc/uinput.c](https://groups.google.com/d/msg/syzkaller/i64-4xzd-Cs/wJRiNri8CQAJ)
 * [general protection fault in spk_ttyio_ldisc_close](https://groups.google.com/d/msg/syzkaller/4VJ9u48qxyc/IrT0N35uDAAJ)
 * [rtnetlink: give a user socket to get_target_net()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f428fe4a04cc339166c8bbd489789760de3a0cee) [CVE-2018-14646](https://nvd.nist.gov/vuln/detail/CVE-2018-14646)
