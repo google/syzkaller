@@ -187,6 +187,9 @@ func main() {
 	if periodicCallback != nil {
 		gateCallback = func() { periodicCallback(r.MemoryLeakFrames) }
 	}
+	if r.CheckResult.Features[host.FeatureExtraCoverage].Enabled {
+		config.Flags |= ipc.FlagExtraCover
+	}
 	if r.CheckResult.Features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}

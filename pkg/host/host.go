@@ -47,6 +47,7 @@ var testFallback = false
 const (
 	FeatureCoverage = iota
 	FeatureComparisons
+	FeatureExtraCoverage
 	FeatureSandboxSetuid
 	FeatureSandboxNamespace
 	FeatureSandboxAndroidUntrustedApp
@@ -79,6 +80,7 @@ func Check(target *prog.Target) (*Features, error) {
 	res := &Features{
 		FeatureCoverage:                   {Name: "code coverage", Reason: unsupported},
 		FeatureComparisons:                {Name: "comparison tracing", Reason: unsupported},
+		FeatureExtraCoverage:              {Name: "extra coverage", Reason: unsupported},
 		FeatureSandboxSetuid:              {Name: "setuid sandbox", Reason: unsupported},
 		FeatureSandboxNamespace:           {Name: "namespace sandbox", Reason: unsupported},
 		FeatureSandboxAndroidUntrustedApp: {Name: "Android sandbox", Reason: unsupported},

@@ -288,6 +288,9 @@ func createConfig(target *prog.Target, entries []*prog.LogEntry, features *host.
 		}
 		execOpts.Flags |= ipc.FlagCollectComps
 	}
+	if features[host.FeatureExtraCoverage].Enabled {
+		config.Flags |= ipc.FlagExtraCover
+	}
 	if *flagFaultCall >= 0 {
 		config.Flags |= ipc.FlagEnableFault
 		execOpts.Flags |= ipc.FlagInjectFault
