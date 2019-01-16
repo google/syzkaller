@@ -78,11 +78,11 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 func (mgr *Manager) httpConfig(w http.ResponseWriter, r *http.Request) {
 	data, err := json.MarshalIndent(mgr.cfg, "", "\t")
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to decode json: %v", err),
+		http.Error(w, fmt.Sprintf("failed to encode json: %v", err),
 			http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "%v", string(data))
+	w.Write(data)
 }
 
 func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +121,7 @@ func (mgr *Manager) collectStats() []UIStat {
 		head = "master"
 	}
 	stats := []UIStat{
-		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: "https://github.com/google/syzkaller/commits/" + head},
+		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: "https://github.com/google/syzkaller/commit/" + head},
 		{Name: "config", Value: "config", Link: "/config"},
 		{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)},
 		{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)},
