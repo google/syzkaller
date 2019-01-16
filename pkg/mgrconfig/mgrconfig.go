@@ -25,31 +25,31 @@ type Config struct {
 	// TCP address to serve HTTP stats page (e.g. "localhost:50000").
 	HTTP string `json:"http"`
 	// TCP address to serve RPC for fuzzer processes (optional).
-	RPC     string `json:"rpc"`
+	RPC     string `json:"rpc,omitempty"`
 	Workdir string `json:"workdir"`
 	// Directory with kernel object files.
 	KernelObj string `json:"kernel_obj"`
 	// Kernel source directory (if not set defaults to KernelObj).
-	KernelSrc string `json:"kernel_src"`
+	KernelSrc string `json:"kernel_src,omitempty"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
-	Tag string `json:"tag"`
+	Tag string `json:"tag,omitempty"`
 	// Linux image for VMs.
-	Image string `json:"image"`
+	Image string `json:"image,omitempty"`
 	// SSH key for the image (may be empty for some VM types).
-	SSHKey string `json:"sshkey"`
+	SSHKey string `json:"sshkey,omitempty"`
 	// SSH user ("root" by default).
-	SSHUser string `json:"ssh_user"`
+	SSHUser string `json:"ssh_user,omitempty"`
 
-	HubClient string `json:"hub_client"`
-	HubAddr   string `json:"hub_addr"`
-	HubKey    string `json:"hub_key"`
+	HubClient string `json:"hub_client,omitempty"`
+	HubAddr   string `json:"hub_addr,omitempty"`
+	HubKey    string `json:"hub_key,omitempty"`
 
 	// syz-manager will send crash emails to this list of emails using mailx (optional).
-	EmailAddrs []string `json:"email_addrs"`
+	EmailAddrs []string `json:"email_addrs,omitempty"`
 
-	DashboardClient string `json:"dashboard_client"`
-	DashboardAddr   string `json:"dashboard_addr"`
-	DashboardKey    string `json:"dashboard_key"`
+	DashboardClient string `json:"dashboard_client,omitempty"`
+	DashboardAddr   string `json:"dashboard_addr,omitempty"`
+	DashboardKey    string `json:"dashboard_key,omitempty"`
 
 	// Path to syzkaller checkout (syz-manager will look for binaries in bin subdir).
 	Syzkaller string `json:"syzkaller"`
@@ -70,14 +70,14 @@ type Config struct {
 	// Reproduce, localize and minimize crashers (default: true).
 	Reproduce bool `json:"reproduce"`
 
-	EnabledSyscalls  []string `json:"enable_syscalls"`
-	DisabledSyscalls []string `json:"disable_syscalls"`
+	EnabledSyscalls  []string `json:"enable_syscalls,omitempty"`
+	DisabledSyscalls []string `json:"disable_syscalls,omitempty"`
 	// Don't save reports matching these regexps, but reboot VM after them,
 	// matched against whole report output.
-	Suppressions []string `json:"suppressions"`
+	Suppressions []string `json:"suppressions,omitempty"`
 	// Completely ignore reports matching these regexps (don't save nor reboot),
 	// must match the first line of crash message.
-	Ignores []string `json:"ignores"`
+	Ignores []string `json:"ignores,omitempty"`
 
 	// VM type (qemu, gce, android, isolated, etc).
 	Type string `json:"type"`
