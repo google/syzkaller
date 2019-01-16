@@ -64,6 +64,7 @@ func checkUnknownFieldsRec(data []byte, prefix string, typ reflect.Type) error {
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
 		tag := field.Tag.Get("json")
+		tag = strings.TrimSuffix(tag, ",omitempty")
 		if tag == "-" {
 			continue
 		}
