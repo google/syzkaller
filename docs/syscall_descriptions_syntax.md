@@ -118,8 +118,6 @@ Attributes are:
 "size": the struct is padded up to the specified size
 ```
 
-attribute
-
 ## Unions
 
 Unions are described as:
@@ -127,12 +125,16 @@ Unions are described as:
 ```
 unionname "[" "\n"
 	(fieldname type "\n")+
-"]"
+"]" ("[" attribute* "]")?
 ```
 
-Unions can have a trailing "varlen" attribute (specified in square brackets after the union),
-which means that union length is not maximum of all option lengths,
-but rather length of a particular chosen option.
+Unions can have attributes specified in square brackets after the union.
+Attributes are:
+
+```
+"varlen": union size is not maximum of all option but rather length of a particular chosen option
+"size": the union is padded up to the specified size
+```
 
 ## Resources
 
