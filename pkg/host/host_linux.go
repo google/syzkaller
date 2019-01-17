@@ -431,7 +431,7 @@ func checkCoverageFeature(feature int) (reason string) {
 		}
 	case FeatureExtraCoverage:
 		arg := KcovRemoteArg{
-			TraceMode:    uint32(linux.KCOV_TRACE_CMP),
+			TraceMode:    uint32(linux.KCOV_TRACE_PC),
 			AreaSize:     uint32(coverSize * unsafe.Sizeof(uintptr(0))),
 			NumHandles:   0,
 			CommonHandle: 0,
