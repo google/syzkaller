@@ -58,7 +58,6 @@ const int kOutPipeFd = kMaxFd - 2; // remapped from stdout
 const int kCoverFd = kOutPipeFd - kMaxThreads;
 const int kMaxArgs = 9;
 const int kCoverSize = 256 << 10;
-const int kExtraCoverSize = 256 << 10;
 const int kFailStatus = 67;
 const int kRetryStatus = 69;
 const int kErrorStatus = 68;
