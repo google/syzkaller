@@ -132,7 +132,7 @@ Unions can have attributes specified in square brackets after the union.
 Attributes are:
 
 ```
-"varlen": union size union size is not maximum of all option ,but rather length of a particular chosen option
+"varlen": union size is not maximum of all option ,but rather length of a particular chosen option
 "size": the union is padded up to the specified size
 ```
 
