@@ -24,7 +24,6 @@ int main()
 	PRINT(kvm_asm32_paged);
 	PRINT(kvm_asm32_vm86);
 	PRINT(kvm_asm32_paged_vm86);
-	PRINT(kvm_asm64_vm86);
 	PRINT(kvm_asm64_enable_long);
 	PRINT(kvm_asm64_init_vm);
 	PRINT(kvm_asm64_vm_exit);

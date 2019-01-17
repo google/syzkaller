@@ -50,18 +50,6 @@ kvm_asm32_paged_vm86:
 kvm_asm32_paged_vm86_end:
 	nop
 
-.global kvm_asm64_vm86, kvm_asm64_vm86_end
-kvm_asm64_vm86:
-.code32
-	mov %cr0, %eax
-	or $0x80000000, %eax
-	mov %eax, %cr0
-	mov $SEL_TSS32, %ax
-	ltr %ax
-	ljmp $SEL_TSS32_VM86, $0
-kvm_asm64_vm86_end:
-	nop
-
 .global kvm_asm16_cpl3, kvm_asm16_cpl3_end
 kvm_asm16_cpl3:
 .code16
