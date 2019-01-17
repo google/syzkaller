@@ -244,7 +244,16 @@ syz_open_dev$usb(&(0x7f0000000000)='/dev/bus/usb/001/001\x00', 0xb, 0x0)
 openat(0xffffffffffffff9c, "\x2f\x64\x65\x76\x2f\x7a\x65\x72\x6f", 0x31, 0) = 3
 `, `
 openat$zero(0xffffffffffffff9c, &(0x7f0000000000)='/dev/zero\x00', 0x31, 0x0)
-`},
+`}, {`
+socket(0xa, 0x1, 0) = 3
+setsockopt(3, 0x29, 0x2a, {gr_interface=0, gr_group={sa_family=0xa, sin6_port="\x00\x00", sin6_flowinfo=` +
+			`"\x00\x00\x00\x00", sin6_addr="\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01",` +
+			` sin6_scope_id=0}}, 136) = 0
+`, `
+r0 = socket$inet6_tcp(0xa, 0x1, 0x0)
+setsockopt$inet6_MCAST_JOIN_GROUP(r0, 0x29, 0x2a, ` +
+			`&(0x7f0000000000)={0x0, {{0xa, 0x0, 0x0, @rand_addr="ff020000000000000000000000000001"}}}, 0x88)`,
+		},
 	}
 	target, err := prog.GetTarget("linux", "amd64")
 	if err != nil {
