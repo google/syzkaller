@@ -212,6 +212,9 @@ func (ctx *context) genStruct(syzType *prog.StructType, traceType parser.IrType)
 	switch a := traceType.(type) {
 	case *parser.GroupType:
 		j := 0
+		if ret, recursed := ctx.recurseStructs(syzType, a); recursed {
+			return ret
+		}
 		for i := range syzType.Fields {
 			if prog.IsPad(syzType.Fields[i]) {
 				args = append(args, syzType.Fields[i].DefaultArg())
@@ -236,6 +239,45 @@ func (ctx *context) genStruct(syzType *prog.StructType, traceType parser.IrType)
 		log.Fatalf("unsupported type for struct: %#v", a)
 	}
 	return prog.MakeGroupArg(syzType, args)
+}
+
+// recurseStructs handles cases where syzType corresponds to struct descriptions like
+// sockaddr_storage_in6 {
+//        addr    sockaddr_in6
+// } [size[SOCKADDR_STORAGE_SIZE], align_ptr]
+// which need to be recursively generated. It returns true if we needed to recurse
+// along with the generated argument and false otherwise.
+func (ctx *context) recurseStructs(syzType *prog.StructType, traceType *parser.GroupType) (prog.Arg, bool) {
+	// only consider structs with one non-padded field
+	numFields := 0
+	for _, field := range syzType.Fields {
+		if prog.IsPad(field) {
+			continue
+		}
+		numFields++
+	}
+	if numFields != 1 {
+		return nil, false
+	}
+	// the strace group type needs to have more one field (a mismatch)
+	if len(traceType.Elems) == 1 {
+		return nil, false
+	}
+	// first field needs to be a struct
+	switch t := syzType.Fields[0].(type) {
+	case *prog.StructType:
+		var args []prog.Arg
+		// first element and traceType should have the same number of elements
+		if len(t.Fields) != len(traceType.Elems) {
+			return nil, false
+		}
+		args = append(args, ctx.genStruct(t, traceType))
+		for _, field := range syzType.Fields[1:] {
+			args = append(args, field.DefaultArg())
+		}
+		return prog.MakeGroupArg(syzType, args), true
+	}
+	return nil, false
 }
 
 func (ctx *context) genUnionArg(syzType *prog.UnionType, straceType parser.IrType) prog.Arg {
