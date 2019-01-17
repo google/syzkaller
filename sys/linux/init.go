@@ -83,6 +83,7 @@ func InitTarget(target *prog.Target) {
 		KCOV_ENABLE = uintptr(target.GetConst("KCOV_ENABLE"))
 		KCOV_REMOTE_ENABLE = uintptr(target.GetConst("KCOV_REMOTE_ENABLE"))
 		KCOV_DISABLE = uintptr(target.GetConst("KCOV_DISABLE"))
+		KCOV_TRACE_PC = uintptr(target.GetConst("KCOV_TRACE_PC"))
 		KCOV_TRACE_CMP = uintptr(target.GetConst("KCOV_TRACE_CMP"))
 	}
 }
@@ -93,6 +94,7 @@ var (
 	KCOV_ENABLE        uintptr
 	KCOV_REMOTE_ENABLE uintptr
 	KCOV_DISABLE       uintptr
+	KCOV_TRACE_PC      uintptr
 	KCOV_TRACE_CMP     uintptr
 )
 

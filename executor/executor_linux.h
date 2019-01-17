@@ -93,7 +93,7 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 	// Coverage buffer size of remote threads.
 	arg.area_size = kExtraCoverSize * (is_kernel_64_bit ? 8 : 4);
 	arg.num_handles = 1;
-	arg.handles[0] = kcov_remote_handle_usb(procid);
+	arg.handles[0] = kcov_remote_handle_usb(procid + 1);
 	arg.common_handle = procid + 1;
 	if (ioctl(cov->fd, KCOV_REMOTE_ENABLE, &arg))
 		exitf("cover enable write trace failed");
