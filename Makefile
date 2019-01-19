@@ -113,8 +113,7 @@ executor:
 ifeq ($(BUILDOS),$(NATIVEBUILDOS))
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
 	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor.cc \
-		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O2 $(ADDCFLAGS) $(CFLAGS) \
-		-DGOOS_$(TARGETOS)=1 -DGOARCH_$(TARGETARCH)=1  -DGIT_REVISION=\"$(REV)\"
+		$(ADDCFLAGS) $(CFLAGS) -DGOOS_$(TARGETOS)=1 -DGOARCH_$(TARGETARCH)=1  -DGIT_REVISION=\"$(REV)\"
 else
 	$(info ************************************************************************************)
 	$(info Building executor for ${TARGETOS} is not supported on ${BUILDOS}. Executor will not be built.)

@@ -39,7 +39,7 @@ func build(target *prog.Target, src []byte, file string) (string, error) {
 	}
 
 	flags := []string{
-		"-Wall", "-Werror", "-O1", "-o", bin, "-pthread",
+		"-o", bin,
 		"-DGOOS_" + target.OS + "=1",
 		"-DGOARCH_" + target.Arch + "=1",
 	}
