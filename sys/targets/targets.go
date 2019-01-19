@@ -424,13 +424,13 @@ func checkOptionalFlags(target *Target) {
 		if !optionalCFlags[flag] {
 			continue
 		}
-		flags[flag] = new(bool)
-		flag, res := flag, flags[flag]
+		res := new(bool)
+		flags[flag] = res
 		wg.Add(1)
-		go func() {
+		go func(flag string) {
 			defer wg.Done()
 			*res = checkFlagSupported(target, flag)
-		}()
+		}(flag)
 	}
 	wg.Wait()
 	for i := 0; i < len(target.CrossCFlags); i++ {
