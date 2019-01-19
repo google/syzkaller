@@ -12,6 +12,7 @@
 
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
+	(void)kExtraCoverSize;
 	if (syz_mmap((size_t)data, data_size) != ZX_OK)
 		fail("mmap of data segment failed");
 }
