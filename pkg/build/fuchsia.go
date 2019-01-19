@@ -14,6 +14,9 @@ import (
 
 type fuchsia struct{}
 
+// PLEASE NOTE: changes to this function should also be reflected in
+// docs/fuchsia.md, so that manual testing instructions are always up-to-date.
+
 func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
 	sysTarget := targets.Get("fuchsia", targetArch)
@@ -28,7 +31,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	}
 	for src, dst := range map[string]string{
 		"out/" + arch + "/obj/build/images/fvm.blk": "image",
-		".ssh/pkey":                                 "key",
+		".ssh/pkey":                                 "sshkey",
 		"out/build-zircon/build-" + arch + "/zircon.elf":    "obj/zircon.elf",
 		"out/build-zircon/build-" + arch + "/multiboot.bin": "kernel",
 		"out/" + arch + "/fuchsia.zbi":                      "initrd",

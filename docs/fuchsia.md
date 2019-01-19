@@ -12,7 +12,7 @@ fx full-build
 You need to build fuchsia for both arm64 and amd64:
 
 ```
-fx set arm64 --packages garnet/packages/products/sshd
+fx set arm64 --args 'extra_authorized_keys_file="//.ssh/authorized_keys"' --packages garnet/packages/products/sshd --product garnet/products/default.gni
 fx full-build
 ```
 
@@ -39,8 +39,8 @@ Run `syz-manager` with a config along the lines of:
 	"workdir": "/workdir.fuchsia",
 	"kernel_obj": "/fuchsia/out/build-zircon/build-x64",
 	"syzkaller": "/syzkaller",
-	"image": "/fuchsia/out/x64/out/build/images/fvm.blk",
-	"sshkey": "/fuchsia/out/x64/ssh-keys/id_ed25519",
+	"image": "/fuchsia/out/x64/obj/build/images/fvm.blk",
+	"sshkey": ".ssh/pkey",
 	"reproduce": false,
 	"cover": false,
 	"procs": 8,
@@ -49,8 +49,9 @@ Run `syz-manager` with a config along the lines of:
 		"count": 10,
 		"cpu": 4,
 		"mem": 2048,
-		"kernel": "/fuchsia/out/build-zircon/build-x64/zircon.bin",
-		"initrd": "/fuchsia/out/x64/bootdata-blob.bin"
+                "obj/zircon.elf": "out/build-zircon/build-x64/zircon.elf"
+		"kernel": "/fuchsia/out/build-zircon/build-x64/multiboot.bin",
+		"initrd": "/fuchsia/out/x64/fuchsia.zbi"
 	}
 }
 ```
