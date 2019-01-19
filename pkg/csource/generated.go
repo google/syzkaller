@@ -975,6 +975,7 @@ static int do_sandbox_none(void)
 #include <unistd.h>
 
 #if SYZ_EXECUTOR
+const int kExtraCoverSize = 256 << 10;
 struct cover_t;
 static void cover_reset(cover_t* cov);
 #endif
