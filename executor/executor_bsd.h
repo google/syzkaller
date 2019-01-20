@@ -38,21 +38,11 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 	return __syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
 }
 
-#if GOOS_freebsd
-
-// KCOV support was added in https://svnweb.freebsd.org/changeset/base/342962
-#include <sys/kcov.h>
-
-#elif GOOS_openbsd
-
-// TODO(mptre): temporary defined until trace-cmp is fully supported
-#define KCOV_MODE_TRACE_CMP 2
-
-#include <sys/kcov.h>
-
-#endif
-
 #if GOOS_freebsd || GOOS_openbsd
+
+// KCOV support was added to FreeBSD in https://svnweb.freebsd.org/changeset/base/342962
+
+#include <sys/kcov.h>
 
 static void cover_open(cover_t* cov, bool extra)
 {
