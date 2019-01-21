@@ -916,11 +916,6 @@ var syscalls_amd64 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "madvise_flags", FldName: "advice", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6}},
 	}},
-	{NR: 78, Name: "mincore", CallName: "mincore", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "addr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "vec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
-	}},
 	{NR: 250, Name: "minherit", CallName: "minherit", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
@@ -1767,7 +1762,6 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_lseek", Value: 199},
 	{Name: "SYS_lstat", Value: 40},
 	{Name: "SYS_madvise", Value: 75},
-	{Name: "SYS_mincore", Value: 78},
 	{Name: "SYS_minherit", Value: 250},
 	{Name: "SYS_mkdir", Value: 136},
 	{Name: "SYS_mkdirat", Value: 318},
@@ -1896,4 +1890,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "2d0d3f664f6bd0c06c5403484fa99bb7d54d240c"
+const revision_amd64 = "1fb3c14be5aef9eaeff451056b396f2846fa99a2"

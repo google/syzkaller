@@ -26,8 +26,6 @@ lstat(file ptr[in, filename], statbuf ptr[out, stat])
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
 
-mincore(addr vma, size len[addr], vec buffer[out])
-
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
 fcntl$setflags(fd fd, cmd const[F_SETFD], flags flags[fcntl_flags])

@@ -90,7 +90,6 @@ SYS_lchown = 254
 SYS_link = 9
 SYS_linkat = 317
 SYS_lstat = 40
-SYS_mincore = 78
 SYS_mkdir = 136
 SYS_mkdirat = 318
 SYS_mknod = 14
