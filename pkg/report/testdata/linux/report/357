@@ -1,0 +1,165 @@
+TITLE: KASAN: use-after-free Read in icmp_send
+
+[  237.893047] ==================================================================
+[  237.900729] BUG: KASAN: use-after-free in do_raw_spin_trylock+0x82/0x270
+[  237.907585] Read of size 4 at addr ffff88808f6d6f7c by task syz-executor3/12575
+[  237.915121] 
+[  237.916762] CPU: 0 PID: 12575 Comm: syz-executor3 Not tainted 5.0.0-rc2+ #14
+[  237.923960] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  237.933319] Call Trace:
+[  237.935988]  dump_stack+0x1db/0x2d0
+[  237.939644]  ? dump_stack_print_info.cold+0x20/0x20
+[  237.944763]  ? ipv4_neigh_lookup+0x9a0/0x9a0
+[  237.949193]  ? rt_cache_valid+0xc0/0x250
+[  237.953299]  ? do_raw_spin_trylock+0x82/0x270
+[  237.957843]  print_address_description.cold+0x7c/0x20d
+[  237.963138]  ? do_raw_spin_trylock+0x82/0x270
+[  237.967635]  ? do_raw_spin_trylock+0x82/0x270
+[  237.972163]  kasan_report.cold+0x1b/0x40
+[  237.976248]  ? do_raw_spin_trylock+0x82/0x270
+[  237.980817]  check_memory_region+0x123/0x190
+[  237.985242]  kasan_check_read+0x11/0x20
+[  237.989243]  do_raw_spin_trylock+0x82/0x270
+[  237.989868] protocol 88fb is buggy, dev hsr_slave_0
+[  237.993600]  ? do_raw_spin_lock+0x360/0x360
+[  237.998682] protocol 88fb is buggy, dev hsr_slave_1
+[  238.002944]  ? do_raw_spin_trylock+0x270/0x270
+[  238.002967]  ? _raw_spin_unlock+0x2d/0x50
+[  238.003040]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  238.003059]  _raw_spin_trylock+0x1c/0x80
+[  238.026482]  icmp_send+0x582/0x1bc0
+[  238.030131]  ? icmp_route_lookup.constprop.0+0x18e0/0x18e0
+[  238.035785]  ? add_lock_to_list.isra.0+0x450/0x450
+[  238.040741]  ? mark_held_locks+0xb1/0x100
+[  238.044899]  ? find_held_lock+0x35/0x120
+[  238.048982]  ? ip_route_input_noref+0x16b/0x280
+[  238.053661]  ? find_held_lock+0x35/0x120
+[  238.057738]  ? ip_route_input_noref+0x16b/0x280
+[  238.062424]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  238.067981]  ? lock_downgrade+0x910/0x910
+[  238.072137]  ? kasan_check_read+0x11/0x20
+[  238.076420]  ? rcu_dynticks_curr_cpu_in_eqs+0xa2/0x170
+[  238.081728]  ip_options_compile+0xdbe/0x1dd0
+[  238.086133]  ? ip_options_compile+0xdbe/0x1dd0
+[  238.090732]  ? ip_forward+0x20d0/0x20d0
+[  238.094739]  ip_rcv_finish_core.isra.0+0x7f6/0x1ee0
+[  238.099782]  ? ip_sublist_rcv_finish+0x390/0x390
+[  238.099795]  ? ip_rcv+0x3f8/0x620
+[  238.099821]  ? lock_downgrade+0x910/0x910
+[  238.099837]  ? kasan_check_read+0x11/0x20
+[  238.099853]  ? rcu_dynticks_curr_cpu_in_eqs+0xa2/0x170
+[  238.099871]  ? rcu_read_unlock_special+0x380/0x380
+[  238.099891]  ip_rcv_finish+0xc3/0x2f0
+[  238.099904]  ip_rcv+0xed/0x620
+[  238.099931]  ? ip_local_deliver+0x740/0x740
+[  238.099990]  ? pvclock_read_flags+0x160/0x160
+[  238.100008]  ? ip_rcv_finish_core.isra.0+0x1ee0/0x1ee0
+[  238.100019]  ? lock_downgrade+0x910/0x910
+[  238.130684]  ? kasan_check_read+0x11/0x20
+[  238.156244]  ? ip_local_deliver+0x740/0x740
+[  238.160673]  __netif_receive_skb_one_core+0x160/0x210
+[  238.165892]  ? __netif_receive_skb_core+0x3750/0x3750
+[  238.171104]  ? rcu_dynticks_curr_cpu_in_eqs+0xa2/0x170
+[  238.176380]  ? rcu_softirq_qs+0x20/0x20
+[  238.176400]  __netif_receive_skb+0x2c/0x1c0
+[  238.176417]  netif_receive_skb_internal+0x11e/0x690
+[  238.176445]  ? dev_cpu_dead+0xb60/0xb60
+[  238.193874]  ? eth_type_trans+0x2e4/0x710
+[  238.198033]  ? eth_gro_receive+0x890/0x890
+[  238.202290]  napi_gro_frags+0xd07/0xfe0
+[  238.202327]  ? napi_gro_receive+0x9b0/0x9b0
+[  238.202346]  ? eth_get_headlen+0x17a/0x200
+[  238.202361]  ? eth_type_trans+0x710/0x710
+[  238.219091]  ? tun_get_user+0x2e99/0x4150
+[  238.223257]  tun_get_user+0x2ec2/0x4150
+[  238.227249]  ? kasan_check_read+0x11/0x20
+[  238.231418]  ? rcu_dynticks_curr_cpu_in_eqs+0xa2/0x170
+[  238.236725]  ? tun_build_skb.isra.0+0x1770/0x1770
+[  238.241588]  ? lock_downgrade+0x910/0x910
+[  238.245757]  ? rcu_dynticks_curr_cpu_in_eqs+0xa2/0x170
+[  238.248548] dccp_close: ABORT with 1 bytes unread
+[  238.251043]  ? rcu_read_unlock_special+0x380/0x380
+[  238.251071]  ? tun_get+0x22e/0x380
+[  238.251087]  ? tun_chr_close+0x180/0x180
+[  238.251103]  ? debug_lockdep_rcu_enabled+0x71/0xa0
+[  238.251189]  ? common_file_perm+0x231/0x800
+[  238.251211]  tun_chr_write_iter+0xbd/0x160
+[  238.251276]  do_iter_readv_writev+0x902/0xbc0
+[  238.273623]  ? vfs_dedupe_file_range+0x780/0x780
+[  238.273644]  ? apparmor_file_permission+0x25/0x30
+[  238.273663]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  238.319317]  ? rw_verify_area+0x118/0x360
+[  238.323482]  do_iter_write+0x184/0x610
+[  238.327443]  ? dup_iter+0x260/0x260
+[  238.331083]  ? find_held_lock+0x35/0x120
+[  238.335170]  vfs_writev+0x1ee/0x370
+[  238.338814]  ? vfs_iter_write+0xb0/0xb0
+[  238.342835]  ? trace_hardirqs_off_caller+0x300/0x300
+[  238.347974]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  238.353573]  ? __fdget_pos+0xdc/0x1f0
+[  238.357382]  ? __fdget_raw+0x20/0x20
+[  238.361110]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  238.366696]  ? put_timespec64+0x115/0x1b0
+[  238.370864]  do_writev+0x11a/0x300
+[  238.374412]  ? vfs_writev+0x370/0x370
+[  238.378228]  ? trace_hardirqs_off_caller+0x300/0x300
+[  238.383393]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  238.388254]  __x64_sys_writev+0x75/0xb0
+[  238.392259]  do_syscall_64+0x1a3/0x800
+[  238.396174]  ? syscall_return_slowpath+0x5f0/0x5f0
+[  238.401120]  ? prepare_exit_to_usermode+0x232/0x3b0
+[  238.401144]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  238.401171]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  238.401185] RIP: 0033:0x457f51
+[  238.401200] Code: 75 14 b8 14 00 00 00 0f 05 48 3d 01 f0 ff ff 0f 83 a4 b8 fb ff c3 48 83 ec 08 e8 1a 2d 00 00 48 89 04 24 b8 14 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 63 2d 00 00 48 89 d0 48 83 c4 08 48 3d 01
+[  238.401212] RSP: 002b:00007fd9f71a3ba0 EFLAGS: 00000293 ORIG_RAX: 0000000000000014
+[  238.411059] RAX: ffffffffffffffda RBX: 0000000020000036 RCX: 0000000000457f51
+[  238.411067] RDX: 0000000000000002 RSI: 00007fd9f71a3bf0 RDI: 00000000000000f0
+[  238.411076] RBP: 0000000020000000 R08: 00000000000000f0 R09: 0000000000000000
+[  238.411084] R10: 0000000000000000 R11: 0000000000000293 R12: 00007fd9f71a46d4
+[  238.411092] R13: 00000000004c6606 R14: 00000000004db860 R15: 00000000ffffffff
+[  238.411114] 
+[  238.411122] Allocated by task 12578:
+[  238.411138]  save_stack+0x45/0xd0
+[  238.411152]  __kasan_kmalloc.constprop.0+0xcf/0xe0
+[  238.411165]  kasan_slab_alloc+0xf/0x20
+[  238.411177]  kmem_cache_alloc+0x12d/0x710
+[  238.411244]  getname_flags+0xd6/0x5b0
+[  238.411258]  user_path_at_empty+0x2f/0x50
+[  238.468002]  ksys_chdir+0xaf/0x220
+[  238.468015]  __x64_sys_chdir+0x31/0x40
+[  238.468031]  do_syscall_64+0x1a3/0x800
+[  238.468048]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  238.468052] 
+[  238.468060] Freed by task 12578:
+[  238.468074]  save_stack+0x45/0xd0
+[  238.468087]  __kasan_slab_free+0x102/0x150
+[  238.468103]  kasan_slab_free+0xe/0x10
+[  238.545129]  kmem_cache_free+0x86/0x260
+[  238.549106]  putname+0xef/0x130
+[  238.552392]  filename_lookup+0x359/0x530
+[  238.556457]  user_path_at_empty+0x43/0x50
+[  238.556470]  ksys_chdir+0xaf/0x220
+[  238.556483]  __x64_sys_chdir+0x31/0x40
+[  238.556498]  do_syscall_64+0x1a3/0x800
+[  238.556516]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  238.556520] 
+[  238.556532] The buggy address belongs to the object at ffff88808f6d6a80
+[  238.556532]  which belongs to the cache names_cache of size 4096
+[  238.556545] The buggy address is located 1276 bytes inside of
+[  238.556545]  4096-byte region [ffff88808f6d6a80, ffff88808f6d7a80)
+[  238.556553] The buggy address belongs to the page:
+[  238.608466] page:ffffea00023db580 count:1 mapcount:0 mapping:ffff8880aa16adc0 index:0x0 compound_mapcount: 0
+[  238.618446] flags: 0x1fffc0000010200(slab|head)
+[  238.623133] raw: 01fffc0000010200 ffffea00025da308 ffffea00023db408 ffff8880aa16adc0
+[  238.631030] raw: 0000000000000000 ffff88808f6d6a80 0000000100000001 0000000000000000
+[  238.638904] page dumped because: kasan: bad access detected
+[  238.644614] 
+[  238.646229] Memory state around the buggy address:
+[  238.651157]  ffff88808f6d6e00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  238.658524]  ffff88808f6d6e80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  238.665889] >ffff88808f6d6f00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  238.673261]                                                                 ^
+[  238.681051]  ffff88808f6d6f80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  238.688415]  ffff88808f6d7000: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  238.695776] ==================================================================
