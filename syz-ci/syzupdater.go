@@ -280,6 +280,7 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 	// as it is not associated with any namespace.
 	// So we use the first manager client for this.
 	if upd.dashboardAddr == "" || upd.mgrcfg.DashboardClient == "" {
+		log.Logf(0, "not uploading build error: no dashboard")
 		return
 	}
 	dash := dashapi.New(upd.dashboardAddr, upd.mgrcfg.DashboardClient, upd.mgrcfg.DashboardKey)
@@ -313,8 +314,10 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 			Log:   output,
 		},
 	}
-	// TODO: log ReportBuildError error to dashboard.
-	dash.ReportBuildError(req)
+	if err := dash.ReportBuildError(req); err != nil {
+		// TODO: log ReportBuildError error to dashboard.
+		log.Logf(0, "failed to report build error: %v", err)
+	}
 }
 
 // checkLatest returns tag of the latest build,
