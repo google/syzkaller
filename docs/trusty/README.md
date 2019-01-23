@@ -89,7 +89,7 @@ set -eux
 # Mount debugfs for KCOV.
 echo "debugfs /sys/kernel/debug debugfs defaults 0 0" >> $1/etc/fstab
 # Generate and install ssh key.
-rm key key.pub
+rm -f key key.pub
 ssh-keygen -f key -t rsa -N ""
 mkdir -p $1/root/.ssh
 cp key.pub $1/root/.ssh/authorized_keys
