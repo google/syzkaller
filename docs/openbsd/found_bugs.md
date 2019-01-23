@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
+- [unveil: NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=154818960525456&w=2)
+
 - [fcntl: use-after-free in `lf_findoverlap()`](https://marc.info/?l=openbsd-cvs&m=154809417426357&w=2)
 
 - [setsockopt: incorrect mbuf padding](https://marc.info/?l=openbsd-cvs&m=154784437622409&w=2)
