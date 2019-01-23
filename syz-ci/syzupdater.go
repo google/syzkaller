@@ -93,7 +93,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	}
 	compilerID, err := osutil.RunCmd(time.Minute, "", "go", "version")
 	if err != nil {
-		log.Fatalf("%v", exe)
+		log.Fatalf("%v", err)
 	}
 	return &SyzUpdater{
 		repo:          vcs.NewSyzkallerRepo(syzkallerDir),
