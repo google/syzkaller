@@ -30,8 +30,7 @@ ioctl$PPPIOCSPASS(fd fd_ppp, cmd const[PPPIOCSPASS], arg ptr[in, sock_fprog])
 ioctl$PPPIOCSACTIVE(fd fd_ppp, cmd const[PPPIOCSACTIVE], arg ptr[in, sock_fprog])
 ioctl$PPPIOCSMRRU(fd fd_ppp, cmd const[PPPIOCSMRRU], arg ptr[in, int32])
 
-# TODO: these ioctl's are also defined for sock_pppox.
-# We need multiple inheritance here (#322).
+# NEED: these ioctl's are also defined for sock_pppox. We need multiple inheritance here (#322).
 ioctl$PPPIOCSMRU1(fd fd_ppp, cmd const[PPPIOCSMRU], arg ptr[in, int32])
 ioctl$PPPIOCSFLAGS1(fd fd_ppp, cmd const[PPPIOCSFLAGS], arg ptr[in, flags[ppp_flags, int32]])
 ioctl$PPPIOCGFLAGS1(fd fd_ppp, cmd const[PPPIOCGFLAGS], arg ptr[out, int32])

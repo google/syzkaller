@@ -267,7 +267,7 @@ type trusty_authorization_elem_t[TAG, DATA] {
 } [packed]
 
 trusty_authorization_bytes {
-# TODO: these are length/offset in trusty_authorization_set.indirect_data.
+# NEED: these are length/offset in trusty_authorization_set.indirect_data.
 	data_length	int32
 	offset		int32
 } [packed]

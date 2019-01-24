@@ -10,4 +10,4 @@ zx_cache_flush(addr ptr[out, intptr], size int64, flags flags[cache_flush_flags]
 zx_interrupt_create(src_obj const[0], src_num const[0], options const[ZX_INTERRUPT_VIRTUAL], interrupt ptr[out, zx_interrupt])
 zx_interrupt_ack(interrupt zx_interrupt)
 zx_interrupt_destroy(interrupt zx_interrupt)
-# TODO fill out remaining interrupt syscalls
+# TODO: fill out remaining interrupt syscalls

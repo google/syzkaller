@@ -29,5 +29,5 @@ udmabuf_create_item {
 	size	flags[udmabuf_offset_size, int64]
 }
 
-# TODO: this should be a page-aligned integer
+# NEED: this should be a page-aligned integer
 udmabuf_offset_size = 0, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x1000000, 0x100000000, 0xfffff000, 0x1000000000000, 0xfffffffffffff000, 0xfffffffff0000000
