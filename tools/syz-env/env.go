@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -40,6 +41,12 @@ func main() {
 		{"ADDCFLAGS", strings.Join(target.CrossCFlags, " ")},
 		{"NCORES", strconv.Itoa(runtime.NumCPU())},
 		{"EXE", target.ExeExtension},
+		{"NATIVEBUILDOS", target.BuildOS},
+	}
+	if targetOS != runtime.GOOS {
+		if _, err := exec.LookPath(target.CCompiler); err != nil {
+			vars = append(vars, Var{"NO_CROSS_COMPILER", "yes"})
+		}
 	}
 	for _, v := range vars {
 		fmt.Printf("export %v=%v\\n", v.Name, v.Val)
