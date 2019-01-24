@@ -63,12 +63,18 @@ func (*linux) prepareArch(arch *Arch) error {
 		return nil
 	}
 	target := arch.target
+	var cflags []string
+	for _, flag := range target.CrossCFlags {
+		if !strings.HasPrefix(flag, "-W") {
+			cflags = append(cflags, flag)
+		}
+	}
 	kernelDir := arch.sourceDir
 	buildDir := arch.buildDir
 	makeArgs := []string{
 		"ARCH=" + target.KernelArch,
 		"CROSS_COMPILE=" + target.CCompilerPrefix,
-		"CFLAGS=" + strings.Join(target.CrossCFlags, " "),
+		"CFLAGS=" + strings.Join(cflags, " "),
 		"O=" + buildDir,
 		"-j", fmt.Sprint(runtime.NumCPU()),
 	}
