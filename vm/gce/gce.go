@@ -169,7 +169,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		if outputErr != nil {
 			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))
 		}
-		return nil, vmimpl.BootError{Title: err.Error(), Output: output}
+		return nil, vmimpl.MakeBootError(err, output)
 	}
 	ok = true
 	inst := &instance{
