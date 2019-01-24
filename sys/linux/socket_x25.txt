@@ -58,11 +58,12 @@ x25_route_struct {
 }
 
 x25_subscrip_struct {
-# TODO: the size is 200-sizeof(unsigned long), so 192 is wrong for compat.
-	device			string[devnames, 192]
+	device			string[devnames, X25_SUBSCRIP_DEVICE_SIZE]
 	global_facil_mask	intptr
 	extended		int32
 }
+
+define X25_SUBSCRIP_DEVICE_SIZE	200 - sizeof(long)
 
 x25_facilities {
 	winsize_in	int32[1:127]
