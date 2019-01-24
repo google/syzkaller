@@ -83,6 +83,8 @@ func NewRepo(os, vm, dir string) (Repo, error) {
 		return newFuchsia(vm, dir), nil
 	case "openbsd":
 		return newOpenBSD(vm, dir), nil
+	case "netbsd":
+		return newNetBSD(vm, dir), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }
