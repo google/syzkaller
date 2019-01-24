@@ -174,6 +174,16 @@ var openbsdOopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	{
+		[]byte("lock order reversal:"),
+		[]oopsFormat{
+			{
+				title: compile("lock order reversal:\\n+.*1st {{ADDR}} ([^\\ ]+).*\\n.*2nd {{ADDR}} ([^\\ ]+)"),
+				fmt:   "witness: reversal: %[1]v %[2]v",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("uvm_fault"),
 		[]oopsFormat{
 			{
