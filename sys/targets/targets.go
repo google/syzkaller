@@ -185,9 +185,9 @@ var List = map[string]map[string]*Target{
 			PageSize: 4 << 10,
 			CFlags:   []string{"-m64"},
 			CrossCFlags: []string{"-m64", "-static",
-				"--sysroot", os.ExpandEnv("${SOURCEDIR}../dest/"),
+				"--sysroot", os.ExpandEnv("${SOURCEDIR}/../dest/"),
 			},
-			CCompiler: os.ExpandEnv("${SOURCEDIR}../tools/bin/x86_64--netbsd-g++"),
+			CCompiler: os.ExpandEnv("${SOURCEDIR}/../tools/bin/x86_64--netbsd-g++"),
 		},
 	},
 	"openbsd": {
