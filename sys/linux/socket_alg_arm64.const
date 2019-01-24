@@ -34,6 +34,7 @@ SOL_ALG = 279
 __NR_accept = 202
 __NR_accept4 = 242
 __NR_bind = 200
+__NR_read = 63
 __NR_sendmmsg = 269
 __NR_sendmsg = 211
 __NR_setsockopt = 208

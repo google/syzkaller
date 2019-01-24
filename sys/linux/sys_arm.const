@@ -679,7 +679,7 @@ __NR_madvise = 220
 __NR_mbind = 319
 __NR_membarrier = 389
 __NR_memfd_create = 385
-# __NR_migrate_pages is not set
+__NR_migrate_pages = 400
 __NR_mincore = 219
 __NR_mkdir = 39
 __NR_mkdirat = 323
