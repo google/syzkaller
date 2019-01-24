@@ -91,7 +91,7 @@ ebt_entry_matches {
 	sourcemsk	mac_addr_mask
 	destmac		mac_addr
 	destmsk		mac_addr_mask
-# TODO: this asks for an offset type (field offset).
+# NEED: this asks for an offset type (field offset).
 	watchers_offset	bytesize[parent, int32]
 	target_offset	bytesize[ebt_entry_watchers, int32]
 	next_offset	bytesize[ebt_entry, int32]
@@ -199,7 +199,7 @@ ebt_802_3_info {
 ebt_802_3_flags = EBT_802_3_SAP, EBT_802_3_TYPE, EBT_802_3
 
 ebt_among_info {
-# TODO: these 2 fields are offsets of dst and src
+# NEED: these 2 fields are offsets of dst and src
 # dst and src can also be not present in the struct, in which case ofs are 0
 	wh_dst_ofs	int32
 	wh_src_ofs	int32

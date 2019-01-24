@@ -125,7 +125,7 @@ eventfd2(initval int32, flags flags[eventfd_flags]) fd_event
 read$eventfd(fd fd_event, val ptr[out, int64], len len[val])
 write$eventfd(fd fd_event, val ptr[in, int64], len len[val])
 
-# TODO: offset must be page-aligned. Or does the syscall even accept offset in pages?
+# NEED: offset must be page-aligned. Or does the syscall even accept offset in pages?
 mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff)
 munmap(addr vma, len len[addr])
 mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma)
@@ -630,7 +630,7 @@ sigevent_u [
 define SIGEVENT_SIZE	sizeof(struct sigevent)
 
 sigevent_thread {
-# TODO: this is function pointer and pthread_attr_t (?)
+# NEED: this is function pointer and pthread_attr_t (?)
 	func	buffer[in]
 	attr	buffer[in]
 }

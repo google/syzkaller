@@ -76,7 +76,7 @@ ioctl$KVM_INTERRUPT(fd fd_kvmcpu, cmd const[KVM_INTERRUPT], arg ptr[in, int32])
 ioctl$KVM_GET_MSRS(fd fd_kvmcpu, cmd const[KVM_GET_MSRS], arg ptr[out, kvm_msrs])
 ioctl$KVM_SET_MSRS(fd fd_kvmcpu, cmd const[KVM_SET_MSRS], arg ptr[in, kvm_msrs])
 ioctl$KVM_SET_CPUID(fd fd_kvmcpu, cmd const[KVM_SET_CPUID], arg ptr[in, kvm_cpuid])
-# TODO: we should be able to read kvm_cpuid2 with KVM_GET_CPUID2, alter few bits and then call KVM_SET_CPUID2 with that object.
+# NEED: we should be able to read kvm_cpuid2 with KVM_GET_CPUID2, alter few bits and then call KVM_SET_CPUID2 with that object.
 ioctl$KVM_GET_CPUID2(fd fd_kvmcpu, cmd const[KVM_GET_CPUID2], arg ptr[out, kvm_cpuid2])
 ioctl$KVM_SET_CPUID2(fd fd_kvmcpu, cmd const[KVM_SET_CPUID2], arg ptr[in, kvm_cpuid2])
 ioctl$KVM_SET_SIGNAL_MASK(fd fd_kvmcpu, cmd const[KVM_SET_SIGNAL_MASK], arg ptr[in, kvm_signal_mask])
@@ -621,7 +621,7 @@ kvm_sregs {
 	idt	kvm_dtable
 	cr0	flags[kvm_x86_cr0, int64]
 	cr2	const[0, int64]
-#TODO: this should point to page table
+# TODO: this should point to page table
 	cr3	flags[kvm_guest_addrs, int64]
 	cr4	flags[kvm_x86_cr4, int64]
 	cr8	int64[0:15]

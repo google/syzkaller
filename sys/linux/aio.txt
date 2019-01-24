@@ -9,8 +9,7 @@ io_setup(n int32, ctx ptr[out, io_ctx])
 io_destroy(ctx io_ctx)
 io_getevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec, opt])
 io_pgetevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec, opt], usig ptr[in, sigset_size, opt])
-# TODO: kernel identifies requets by address, so pointers passed to io_submit
-# need to be forwarded to io_cancel somehow.
+# NEED: kernel identifies requets by address, so pointers passed to io_submit need to be forwarded to io_cancel somehow.
 io_submit(ctx io_ctx, nr len[iocbpp], iocbpp ptr[in, array[ptr[in, iocb]]])
 io_cancel(ctx io_ctx, iocb ptr[in, iocb], res ptr[out, io_event])
 

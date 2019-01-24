@@ -300,7 +300,7 @@ tc_cbs_qopt {
 	sendslope	int32
 }
 
-# TODO: limit >= qth_max >= qth_min
+# NEED: limit >= qth_max >= qth_min
 tc_red_qopt {
 	limit		int32
 	qth_min		int32
@@ -558,7 +558,7 @@ f_bpf_options [
 	TCA_BPF_ACT		nlattr[TCA_BPF_ACT, tca_actions]
 	TCA_BPF_POLICE		nlattr[TCA_BPF_POLICE, tca_polices]
 	TCA_BPF_CLASSID		nlattr[TCA_BPF_CLASSID, tcm_handle]
-# TODO: TCA_BPF_OPS should equal to TCA_BPF_OPS_LEN * sizeof(struct sock_filter)
+# NEED: TCA_BPF_OPS should equal to TCA_BPF_OPS_LEN * sizeof(struct sock_filter)
 	TCA_BPF_OPS_LEN		nlattr[TCA_BPF_OPS_LEN, int16[0:10]]
 	TCA_BPF_OPS		nlattr[TCA_BPF_OPS, array[sock_filter]]
 	TCA_BPF_FD		nlattr[TCA_BPF_FD, fd]
@@ -679,7 +679,7 @@ tc_u32_sel {
 	keys		array[tc_u32_key, 0:128]
 }
 
-# TODO: (mark.val & mark.mask) should equal to mark.val
+# NEED: (mark.val & mark.mask) should equal to mark.val
 tc_u32_mark {
 	val	int32
 	mask	int32
@@ -747,7 +747,7 @@ tca_ife_meta_policy [
 	IFE_META_TCINDEX	nlattr[IFE_META_TCINDEX, optional[int16]]
 ] [varlen]
 
-#TODO: add TCA_IPT_TARG support
+# TODO: add TCA_IPT_TARG support
 m_ipt_options [
 	TCA_IPT_TABLE	nlattr[TCA_IPT_TABLE, string[ipt_tables, IFNAMSIZ]]
 	TCA_IPT_HOOK	nlattr[TCA_IPT_HOOK, flags[nf_inet_hooks, int32]]
@@ -1015,9 +1015,8 @@ tcf_em_cmp {
 
 tcf_em_nbyte {
 	off	int32
-	len	int16:12[0:10]
+	len	bytesize[payload, int16:12]
 	layer	flags[tcf_layers, int8:4]
-# TODO: The payload data len should be equal to tcf_em_nbyte.len
 	payload	array[int8, 0:10]
 } [align_4]
 
@@ -1072,7 +1071,7 @@ tc_estimator {
 
 stab_policy [
 	TCA_STAB_BASE	nlattr[TCA_STAB_BASE, tc_sizespec]
-# TODO: stab data should be tc_sizespec.tsize * sizeof(__u16)
+# NEED: stab data should be tc_sizespec.tsize * sizeof(__u16)
 	TCA_STAB_DATA	nlattr[TCA_STAB_DATA, array[int16, 0:10]]
 ] [varlen]
 

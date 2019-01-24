@@ -263,7 +263,7 @@ bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_
 
 define MAX_BPF_REG	__MAX_BPF_REG
 
-# TODO: these filenames must be on bpf filesystem
+# NEED: these filenames must be on bpf filesystem, can we do it somehow?
 bpf_obj_pin_map {
 	path	ptr64[in, filename]
 	fd	fd_bpf_map
@@ -390,7 +390,7 @@ btf_header {
 	type_off	const[0, int32]
 	type_len	bytesize[types, int32]
 	str_off		bytesize[parent, int32]
-# TODO: should be bytesize[bpf_btf_program.strings]
+# NEED: should be bytesize[bpf_btf_program.strings]
 	str_len		int32
 	types		bpf_btf_types
 }
@@ -407,7 +407,7 @@ bpf_btf_strings {
 } [packed]
 
 bpf_task_fd_query {
-# TODO: part of fields are input here and part are output. We can't express this yet (#245).
+# NEED: part of fields are input here and part are output. We can't express this yet (#245).
 	pid		pid
 	fd		fd_perf_base
 	flags		const[0, int32]

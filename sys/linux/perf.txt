@@ -43,7 +43,7 @@ _ = PERF_COUNT_SW_CPU_CLOCK, PERF_COUNT_SW_TASK_CLOCK, PERF_COUNT_SW_PAGE_FAULTS
 perf_event_attr {
 	type				flags[perf_event_type, int32]
 	size				len[parent, int32]
-#TODO: config can contain lots of various flags depending on type.
+# TODO: config can contain lots of various flags depending on type.
 # this is a hacky way to generate something reasonable.
 	config0				int8
 	config1				int8
