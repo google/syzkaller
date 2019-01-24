@@ -13,7 +13,7 @@ ioctl$TIPC_IOC_CONNECT(fd fd_trusty, cmd const[TIPC_IOC_CONNECT], arg ptr[in, st
 write$trusty(fd fd_trusty, msg ptr[in, array[int8]], len len[msg])
 
 # TODO: describe interface for the rest of ports.
-trusty_ports = "com.android.trusty.gatekeeper", "com.android.trusty.keymaster", "com.android.trusty.keymaster.secure", "com.android.trusty.avb", "com.android.trusty.storage.proxy", "com.android.trusty.hwrng", "com.android.trusty.storage.client.td", "com.android.trusty.storage.client.tdea", "com.android.trusty.storage.client.tp", "com.android.trusty.storage.proxy", "com.android.trusty.hwkey", "com.android.trusty.appmgmt.srv2.start"
+trusty_ports = "com.android.trusty.gatekeeper", "com.android.trusty.keymaster", "com.android.trusty.keymaster.secure", "com.android.trusty.avb", "com.android.trusty.storage.proxy", "com.android.trusty.storage.client.td", "com.android.trusty.storage.client.tdea", "com.android.trusty.storage.client.tp", "com.android.trusty.hwkey", "com.android.trusty.hwrng", "com.android.trusty.appmgmt.srv2.start"
 
 trusty_open_flags = O_RDWR, O_RDWR_NONBLOCK
 
@@ -352,3 +352,115 @@ define TRUSTY_AVB_WRITE_PERMANENT_ATTRIBUTES	4 << TRUSTY_AVB_REQ_SHIFT
 define TRUSTY_AVB_READ_LOCK_STATE	5 << TRUSTY_AVB_REQ_SHIFT
 define TRUSTY_AVB_WRITE_LOCK_STATE	6 << TRUSTY_AVB_REQ_SHIFT
 define TRUSTY_AVB_LOCK_BOOT_STATE	7 << TRUSTY_AVB_REQ_SHIFT
+
+### storage ###
+
+resource fd_trusty_storage[fd_trusty]
+
+openat$trusty_storage(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_storage
+ioctl$TIPC_IOC_CONNECT_storage(fd fd_trusty_storage, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string[trusty_storage_ports]])
+write$trusty_storage(fd fd_trusty_storage, msg ptr[in, trusty_storage], len len[msg])
+
+trusty_storage_ports = "com.android.trusty.storage.proxy", "com.android.trusty.storage.client.td", "com.android.trusty.storage.client.tdea", "com.android.trusty.storage.client.tp"
+
+trusty_storage [
+	delete		trusty_storage_msg[TRUSTY_STORAGE_FILE_DELETE, trusty_storage_file_delete_req]
+	open		trusty_storage_msg[TRUSTY_STORAGE_FILE_OPEN, trusty_storage_file_open_req]
+	close		trusty_storage_msg[TRUSTY_STORAGE_FILE_CLOSE, trusty_storage_file_close_req]
+	read		trusty_storage_msg[TRUSTY_STORAGE_FILE_READ, trusty_storage_file_read_req]
+	write		trusty_storage_msg[TRUSTY_STORAGE_FILE_WRITE, trusty_storage_file_write_req]
+	get_size	trusty_storage_msg[TRUSTY_STORAGE_FILE_GET_SIZE, trusty_storage_file_get_size_req]
+	set_size	trusty_storage_msg[TRUSTY_STORAGE_FILE_SET_SIZE, trusty_storage_file_set_size_req]
+	rpmb		trusty_storage_msg[TRUSTY_STORAGE_RPMB_SEND, trusty_storage_rpmb_send_req]
+	end_trans	trusty_storage_msg[TRUSTY_STORAGE_END_TRANSACTION, void]
+	move		trusty_storage_msg[TRUSTY_STORAGE_FILE_MOVE, trusty_storage_file_move_req]
+	list		trusty_storage_msg[TRUSTY_STORAGE_FILE_LIST, trusty_storage_file_list_req]
+] [varlen]
+
+type trusty_storage_msg[CMD, PAYLOAD] {
+	cmd		const[CMD, int32]
+	op_id		int32[0:4]
+	flags		int32[0:7]
+	size		bytesize[parent, int32]
+# TODO: this is only output, right?
+	result		const[0, int32]
+	__reserved	const[0, int32]
+	payload		PAYLOAD
+}
+
+define TRUSTY_STORAGE_FILE_DELETE	1 << 1
+define TRUSTY_STORAGE_FILE_OPEN	2 << 1
+define TRUSTY_STORAGE_FILE_CLOSE	3 << 1
+define TRUSTY_STORAGE_FILE_READ	4 << 1
+define TRUSTY_STORAGE_FILE_WRITE	5 << 1
+define TRUSTY_STORAGE_FILE_GET_SIZE	6 << 1
+define TRUSTY_STORAGE_FILE_SET_SIZE	7 << 1
+define TRUSTY_STORAGE_RPMB_SEND	8 << 1
+define TRUSTY_STORAGE_END_TRANSACTION	9 << 1
+define TRUSTY_STORAGE_FILE_MOVE	10 << 1
+define TRUSTY_STORAGE_FILE_LIST	11 << 1
+
+# Server returns handles in responses to requests, we don't parse them, so we just use int32 for now.
+type trusty_storage_handle int32[0:4]
+
+trusty_storage_file_delete_req {
+	flags	const[0, int32]
+	name	stringnoz
+}
+
+trusty_storage_file_move_req {
+	flags		int32[0:7]
+	handle		trusty_storage_handle
+	old_name_len	bytesize[old_new_name, int32]
+	old_new_name	stringnoz
+	new_new_name	stringnoz
+} [packed]
+
+trusty_storage_file_open_req {
+	flags	int32[0:7]
+	name	stringnoz
+}
+
+trusty_storage_file_close_req {
+	handle	trusty_storage_handle
+}
+
+trusty_storage_file_read_req {
+	handle	trusty_storage_handle
+	size	int32
+	offset	int64
+}
+
+trusty_storage_file_write_req {
+	offset		int64
+	handle		trusty_storage_handle
+	__reserved	const[0, int32]
+	data		array[int8]
+}
+
+trusty_storage_file_list_req {
+	max_count	int8
+	flags		int8[0:7]
+	name		stringnoz
+}
+
+trusty_storage_file_get_size_req {
+	handle	trusty_storage_handle
+}
+
+trusty_storage_file_set_size_req {
+	size	int64
+	handle	trusty_storage_handle
+}
+
+trusty_storage_rpmb_send_req {
+	reliable_write_size	bytesize[reliable_write, int32]
+	write_size		bytesize[write, int32]
+	read_size		flags[trusty_storage_rpmb_read_size, int32]
+	__reserved		const[0, int32]
+	reliable_write		array[array[const[0, int8], 512]]
+	write			array[array[const[0, int8], 512]]
+} [packed]
+
+# NEED: this should be a 512-aligned int in range [0:4096]
+trusty_storage_rpmb_read_size = 0, 512, 1024, 1536, 1536, 2048, 2560, 3072, 3584, 4096
