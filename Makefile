@@ -110,14 +110,20 @@ target:
 
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
-ifeq ($(BUILDOS),$(NATIVEBUILDOS))
-	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
-	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor.cc \
-		$(ADDCFLAGS) $(CFLAGS) -DGOOS_$(TARGETOS)=1 -DGOARCH_$(TARGETARCH)=1  -DGIT_REVISION=\"$(REV)\"
-else
+ifneq ("$(BUILDOS)", "$(NATIVEBUILDOS)")
 	$(info ************************************************************************************)
 	$(info Building executor for ${TARGETOS} is not supported on ${BUILDOS}. Executor will not be built.)
 	$(info ************************************************************************************)
+else
+ifneq ("$(NO_CROSS_COMPILER)", "")
+	$(info ************************************************************************************)
+	$(info Native cross-compiler $(CC) is missing. Executor will not be built.)
+	$(info ************************************************************************************)
+else
+	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
+	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor.cc \
+		$(ADDCFLAGS) $(CFLAGS) -DGOOS_$(TARGETOS)=1 -DGOARCH_$(TARGETARCH)=1  -DGIT_REVISION=\"$(REV)\"
+endif
 endif
 
 manager:
