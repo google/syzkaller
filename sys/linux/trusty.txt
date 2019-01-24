@@ -464,3 +464,28 @@ trusty_storage_rpmb_send_req {
 
 # NEED: this should be a 512-aligned int in range [0:4096]
 trusty_storage_rpmb_read_size = 0, 512, 1024, 1536, 1536, 2048, 2560, 3072, 3584, 4096
+
+### hwkey ###
+
+resource fd_trusty_hwkey[fd_trusty]
+
+openat$trusty_hwkey(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_hwkey
+ioctl$TIPC_IOC_CONNECT_hwkey(fd fd_trusty_hwkey, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string["com.android.trusty.hwkey"]])
+write$trusty_hwkey(fd fd_trusty_hwkey, msg ptr[in, trusty_hwkey], len len[msg])
+
+trusty_hwkey [
+	get	trusty_hwkey_msg[TRUSTY_HWKEY_GET_KEYSLOT, stringnoz]
+	derive	trusty_hwkey_msg[TRUSTY_HWKEY_DERIVE, stringnoz]
+] [varlen]
+
+type trusty_hwkey_msg[CMD, PAYLOAD] {
+	cmd	const[CMD, int32]
+	op_id	int32[0:4]
+	status	const[0, int32]
+	arg1	const[0, int32]
+	arg2	const[0, int32]
+	payload	PAYLOAD
+}
+
+define TRUSTY_HWKEY_GET_KEYSLOT	0 << 1
+define TRUSTY_HWKEY_DERIVE	1 << 1
