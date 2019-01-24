@@ -1,0 +1,137 @@
+TITLE: witness: reversal: vmmaplk inode
+
+lock order reversal:
+
+ 1st 0xfffffd806e935890 vmmaplk (&map->lock) @ /syzkaller/managers/setuid/kernel/sys/uvm/uvm_fault.c:1442
+ 2nd 0xfffffd806e099f88 inode (&ip->i_lock) @ /syzkaller/managers/setuid/kernel/sys/ufs/ufs/ufs_vnops.c:1547
+lock order "&ip->i_lock"(rrwlock) -> "&map->lock"(rwlock) first seen at:
+#0  witness_checkorder+0x6d8
+#1  _rw_enter+0xbf
+#2  vm_map_lock_ln+0x14e
+#3  uvm_map+0x2e2
+#4  km_alloc+0x19a
+#5  pool_multi_alloc_ni+0xe4
+#6  pool_p_alloc+0x70
+#7  pool_do_get+0x127
+#8  pool_get+0x104
+#9  ufsdirhash_build+0x40b
+#10 ufs_lookup+0x2a5
+#11 VOP_LOOKUP+0x63
+#12 vfs_lookup+0x552
+#13 namei+0x4af
+#14 start_init+0xd6
+lock order "&map->lock"(rwlock) -> "&ip->i_lock"(rrwlock) first seen at:
+#0  witness_checkorder+0x6d8
+#1  _rw_enter+0xbf
+#2  _rrw_enter+0x5c
+#3  VOP_LOCK+0x55
+#4  vn_lock+0x6e
+#5  uvn_io+0x2ca
+#6  uvn_get+0x206
+#7  uvm_fault+0x12c1
+#8  uvm_fault_wire+0x70
+#9  uvm_map_pageable_wire+0x2fd
+#10 sys_mlockall+0x69
+#11 syscall+0x5a0
+#12 Xsyscall+0x128
+Stopped at      db_enter+0x18:  addq    $0x8,%rsp
+ddb{0}>
+ddb{0}> set $lines = 0
+ddb{0}> show panic
+the kernel did not panic
+ddb{0}> trace
+db_enter() at db_enter+0x18 sys/arch/amd64/amd64/db_interface.c:399
+witness_checkorder(b5da8cc35ab41cea,81,fffffd806e099f78,fffffd806e099f78,0) at witness_checkorder+0x12f9 witness_debugger sys/kern/subr_witness.c:2543 [inline]
+witness_checkorder(b5da8cc35ab41cea,81,fffffd806e099f78,fffffd806e099f78,0) at witness_checkorder+0x12f9 sys/kern/subr_witness.c:1089
+_rw_enter(ebda27bb31aa4399,60b,fffffd806e099f78,ffffffff81edebdf) at _rw_enter+0xbf
+_rrw_enter(2827d08820b1e9c4,fffffd80756c6a30,ffffffff8139fd50,2) at _rrw_enter+0x5c sys/kern/kern_rwlock.c:410
+VOP_LOCK(b823d02293b9e9e1,fffffd80756c6a30) at VOP_LOCK+0x55 sys/kern/vfs_vops.c:598
+vn_lock(d1f4570df7fa50fa,14000) at vn_lock+0x6e sys/kern/vfs_vnops.c:549
+uvn_io(ba1cb8f0c5ee453f,0,0,fffffd8075796680,13000) at uvn_io+0x2ca sys/uvm/uvm_vnode.c:1188
+uvn_get(7570962fe8b74304,ffffffff8146c190,fffffd8075796680,fffffd806cc70888,13000,1) at uvn_get+0x206 sys/uvm/uvm_vnode.c:1048
+uvm_fault(ba1cb8f0c51ab169,5d8ba000,fffffffffffed000,1) at uvm_fault+0x12c1 sys/uvm/uvm_fault.c:1023
+uvm_fault_wire(219420299e345254,1,5d8ba000,fffffd806cc70888) at uvm_fault_wire+0x70 sys/uvm/uvm_fault.c:1293
+uvm_map_pageable_wire(b823d02293902c76,3,ffff800020b92018,282ba43a8,2,10f0) at uvm_map_pageable_wire+0x2fd sys/uvm/uvm_map.c:2258
+sys_mlockall(3650635b765b320d,10,ffff800020b92018) at sys_mlockall+0x69 sys/uvm/uvm_mmap.c:801
+syscall(8beef4fc0e942d79) at syscall+0x5a0 mi_syscall sys/sys/syscall_mi.h:99 [inline]
+syscall(8beef4fc0e942d79) at syscall+0x5a0 sys/arch/amd64/amd64/trap.c:583
+Xsyscall(6,0,ffffffffffffffa2,0,1,5db5c010) at Xsyscall+0x128
+end of kernel
+end trace frame: 0x282ba4430, count: -14
+ddb{0}> show registers
+rdi                              0x3
+rsi                          0x3ffff    acpi_pdirpa+0x2be67
+rbp               0xffff800020c9b2e0
+rbx                              0x3
+rdx                          0x40000    acpi_pdirpa+0x2be68
+rcx               0xffff800002b4b000
+rax               0xffff800001d46b40
+r8                0xffffffff817c727f    witness_checkorder+0x12cf
+r9                               0x5
+r10               0x74110b038f7e5c4d
+r11               0x120fdf641c3890cb
+r12               0xfffffd80025cdc30
+r13               0xffffffff81ebbd52    cmd0646_9_tim_udma+0xc96d
+r14               0xffffffff82279bc0    w_lodata+0x4f5d0
+r15               0xffffffff82280440    w_lodata+0x55e50
+rip               0xffffffff81107618    db_enter+0x18
+cs                               0x8
+rflags                         0x246
+rsp               0xffff800020c9b2d0
+ss                              0x10
+db_enter+0x18:  addq    $0x8,%rsp
+ddb{0}> show proc
+PROC (syz-executor1) pid=129417 stat=onproc
+    flags process=10<SUGID> proc=4000000<THREAD>
+    pri=86, usrpri=86, nice=20
+    forw=0xffffffffffffffff, list=0xffff800020b93788,0xffff800020b93540
+    process=0xffff800020b94010 user=0xffff800020c96000, vmspace=0xfffffd806e935878
+    estcpu=36, cpticks=5, pctcpu=0.0
+    user=0, sys=5, intr=0
+ddb{0}> ps
+   PID     TID   PPID    UID  S       FLAGS  WAIT          COMMAND
+ 72370  178759  17276  32767  2        0x10                syz-executor1
+*72370  129417  17276  32767  7   0x4000010                syz-executor1
+   752  395112  96881  32767  2        0x10                syz-executor0
+   752  152296  96881  32767  3   0x4000090  fsleep        syz-executor0
+   752   14773  96881  32767  2   0x4000010                syz-executor0
+ 96881  336067  20148  32767  7       0x490                syz-executor0
+ 20148  334634  72267      0  3        0x82  wait          syz-executor0
+ 17276  309778  43652  32767  2       0x490                syz-executor1
+ 43652  305154  72267      0  3        0x82  wait          syz-executor1
+ 92093  145993      0      0  3     0x14200  bored         sosplice
+ 72267  228578  31430      0  3        0x82  thrsleep      syz-fuzzer
+ 72267  337013  31430      0  3   0x4000082  thrsleep      syz-fuzzer
+ 72267   87403  31430      0  3   0x4000082  thrsleep      syz-fuzzer
+ 72267  272478  31430      0  3   0x4000082  thrsleep      syz-fuzzer
+ 72267   20363  31430      0  3   0x4000082  thrsleep      syz-fuzzer
+ 72267  309940  31430      0  3   0x4000082  thrsleep      syz-fuzzer
+ 72267   25591  31430      0  3   0x4000082  thrsleep      syz-fuzzer
+ 72267   61614  31430      0  3   0x4000082  thrsleep      syz-fuzzer
+ 72267  160374  31430      0  3   0x4000082  kqread        syz-fuzzer
+ 72267  489040  31430      0  3   0x4000082  thrsleep      syz-fuzzer
+ 31430  362210   9246      0  3    0x10008a  pause         ksh
+  9246  459456  84434      0  3        0x92  select        sshd
+ 31294  387798      1      0  3    0x100083  ttyin         getty
+ 84434  393125      1      0  3        0x80  select        sshd
+ 43823  206159  66475     73  2    0x100090                syslogd
+ 66475  409492      1      0  3    0x100082  netio         syslogd
+ 63079   42670      1     77  3    0x100090  poll          dhclient
+ 15872  402366      1      0  3        0x80  poll          dhclient
+  9499  229582      0      0  2     0x14200                zerothread
+ 11607  235270      0      0  3     0x14200  aiodoned      aiodoned
+ 40068  177318      0      0  3     0x14200  syncer        update
+ 59421  276399      0      0  3     0x14200  cleaner       cleaner
+ 47738  184422      0      0  3     0x14200  reaper        reaper
+ 91585  387344      0      0  3     0x14200  pgdaemon      pagedaemon
+ 42240  344072      0      0  3     0x14200  bored         crynlk
+ 39002  318055      0      0  3     0x14200  bored         crypto
+ 80683  280469      0      0  3  0x40014200  acpi0         acpi0
+ 62201   72766      0      0  3  0x40014200                idle1
+ 64242  416449      0      0  3     0x14200  bored         softnet
+ 24067  479944      0      0  3     0x14200  bored         systqmp
+ 57787  290917      0      0  3     0x14200  bored         systq
+ 47561   91019      0      0  3  0x40014200  bored         softclock
+ 64069   48514      0      0  3  0x40014200                idle0
+     1   97641      0      0  3        0x82  wait          init
+     0       0     -1      0  3     0x10200  scheduler     swapper
