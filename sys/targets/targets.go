@@ -181,10 +181,13 @@ var List = map[string]map[string]*Target{
 	},
 	"netbsd": {
 		"amd64": {
-			PtrSize:     8,
-			PageSize:    4 << 10,
-			CFlags:      []string{"-m64"},
-			CrossCFlags: []string{"-m64", "-static"},
+			PtrSize:  8,
+			PageSize: 4 << 10,
+			CFlags:   []string{"-m64"},
+			CrossCFlags: []string{"-m64", "-static",
+				"--sysroot", os.ExpandEnv("${SOURCEDIR}/../dest/"),
+			},
+			CCompiler: os.ExpandEnv("${SOURCEDIR}/../tools/bin/x86_64--netbsd-g++"),
 		},
 	},
 	"openbsd": {
@@ -303,6 +306,7 @@ var oses = map[string]osCommon{
 		CPP:                    "g++",
 	},
 	"netbsd": {
+		BuildOS:                "linux",
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
