@@ -11,6 +11,7 @@ resource fd_trusty[fd]
 openat$trusty(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty
 ioctl$TIPC_IOC_CONNECT(fd fd_trusty, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string[trusty_ports]])
 write$trusty(fd fd_trusty, msg ptr[in, array[int8]], len len[msg])
+read$trusty(fd fd_trusty, msg ptr[out, array[int8]], len len[msg])
 
 # TODO: describe interface for the rest of ports.
 trusty_ports = "com.android.trusty.gatekeeper", "com.android.trusty.keymaster", "com.android.trusty.keymaster.secure", "com.android.trusty.avb", "com.android.trusty.storage.proxy", "com.android.trusty.storage.client.td", "com.android.trusty.storage.client.tdea", "com.android.trusty.storage.client.tp", "com.android.trusty.hwkey", "com.android.trusty.hwrng", "com.android.trusty.appmgmt.srv2.start"
@@ -489,3 +490,11 @@ type trusty_hwkey_msg[CMD, PAYLOAD] {
 
 define TRUSTY_HWKEY_GET_KEYSLOT	0 << 1
 define TRUSTY_HWKEY_DERIVE	1 << 1
+
+### hwrng ###
+
+resource fd_trusty_hwrng[fd_trusty]
+
+openat$trusty_hwrng(fd const[AT_FDCWD], file ptr[in, string["/dev/trusty-ipc-dev0"]], flags flags[trusty_open_flags], mode const[0]) fd_trusty_hwrng
+ioctl$TIPC_IOC_CONNECT_hwrng(fd fd_trusty_hwrng, cmd const[TIPC_IOC_CONNECT], arg ptr[in, string["com.android.trusty.hwrng"]])
+write$trusty_hwrng(fd fd_trusty_hwrng, msg ptr[in, int32], len len[msg])
