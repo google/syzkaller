@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 // Pool represents a set of test machines (VMs, physical devices, etc) of particular type.
@@ -74,6 +75,15 @@ type Env struct {
 type BootError struct {
 	Title  string
 	Output []byte
+}
+
+func MakeBootError(err error, output []byte) error {
+	switch err1 := err.(type) {
+	case *osutil.VerboseError:
+		return BootError{err1.Title, append(err1.Output, output...)}
+	default:
+		return BootError{err.Error(), output}
+	}
 }
 
 func (err BootError) Error() string {

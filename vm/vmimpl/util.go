@@ -42,7 +42,7 @@ func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS str
 			return nil
 		}
 		if time.Since(startTime) > timeout {
-			return fmt.Errorf("can't ssh into the instance: %v", err)
+			return &osutil.VerboseError{"can't ssh into the instance", []byte(err.Error())}
 		}
 	}
 }

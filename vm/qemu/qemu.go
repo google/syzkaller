@@ -392,7 +392,7 @@ func (inst *instance) Boot() error {
 		inst.sshkey, inst.sshuser, inst.os, inst.port); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
-		return vmimpl.BootError{Title: err.Error(), Output: bootOutput}
+		return vmimpl.MakeBootError(err, bootOutput)
 	}
 	bootOutputStop <- true
 	return nil
