@@ -292,9 +292,8 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 		output, info, failed, hanged, err := proc.env.Exec(opts, p)
 		if failed {
 			// BUG in output should be recognized by manager.
-			log.Logf(0, "BUG: executor-detected bug:\n%s", output)
-			// Don't return any cover so that the input is not added to corpus.
-			return nil
+			// Exit immediately so that the input is not added to corpus.
+			log.Fatalf("BUG: executor-detected bug\nproc %v\n%s", proc.pid, output)
 		}
 		if err != nil {
 			if try > 10 {
