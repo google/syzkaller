@@ -736,9 +736,6 @@ ipv6_payload [
 # http://www.iana.org/assignments/tcp-parameters/tcp-parameters.xhtml
 
 include <net/tcp.h>
-include <net/mptcp.h>
-include <net/mptcp_v4.h>
-include <net/mptcp_v6.h>
 include <uapi/linux/tcp.h>
 
 tcp_option [

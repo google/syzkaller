@@ -83,10 +83,16 @@ func (*linux) prepareArch(arch *Arch) error {
 		return fmt.Errorf("make defconfig failed: %v\n%s", err, out)
 	}
 	// Without CONFIG_NETFILTER kernel does not build.
-	out, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
+	_, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
 		"s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g", ".config")
 	if err != nil {
-		return fmt.Errorf("sed .config failed: %v\n%s", err, out)
+		return fmt.Errorf("sed .config failed: %v", err)
+	}
+	// include/net/mptcp.h is the only header in kernel that guards some of the consts with own config
+	_, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
+		"s@# CONFIG_MPTCP is not set@CONFIG_MPTCP=y@g", ".config")
+	if err != nil {
+		return fmt.Errorf("sed .config failed: %v", err)
 	}
 	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
 	if err != nil {

@@ -1,8 +1,11 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# Constants for this descriptions were generated on the following tree:
-# https://github.com/multipath-tcp/mptcp_net-next
+# TCP Extensions for Multipath Operation with Multiple Addresses
+# https://tools.ietf.org/html/rfc6824
+# This is not upstream yes, constants for this descriptions were generated on the following tree:
+# https://github.com/multipath-tcp/mptcp_net-next.git
+# Once this is upstream we need to move this to vnet.txt
 
 include <net/tcp.h>
 include <net/mptcp.h>

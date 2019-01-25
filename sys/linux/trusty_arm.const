@@ -71,4 +71,5 @@ TRUSTY_STORAGE_FILE_WRITE = 10
 TRUSTY_STORAGE_RPMB_SEND = 16
 __NR_ioctl = 54
 __NR_openat = 322
+__NR_read = 3
 __NR_write = 4
