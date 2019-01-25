@@ -311,7 +311,7 @@ var oses = map[string]osCommon{
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
-		KernelObject:           "vmlinux",
+		KernelObject:           "netbsd.gdb",
 		CPP:                    "cpp",
 	},
 	"openbsd": {
