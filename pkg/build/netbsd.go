@@ -35,12 +35,14 @@ no options SVS
 	}
 
 	// Build tools before building kernel
-	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch, "-U", "-j"+strconv.Itoa(runtime.NumCPU()), "tools"); err != nil {
+	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
+		"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "tools"); err != nil {
 		return err
 	}
 
 	// Build kernel
-	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch, "-U", "-j"+strconv.Itoa(runtime.NumCPU()), "kernel="+kernelName); err != nil {
+	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
+		"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "kernel="+kernelName); err != nil {
 		return err
 	}
 
