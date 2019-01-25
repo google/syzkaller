@@ -250,6 +250,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 			// This was generated on:
 			// https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
 			"video4linux.txt": true,
+			"mptcp.txt":       true,
 		}
 		for _, f := range matches {
 			f = filepath.Base(f)

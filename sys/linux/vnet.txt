@@ -736,6 +736,9 @@ ipv6_payload [
 # http://www.iana.org/assignments/tcp-parameters/tcp-parameters.xhtml
 
 include <net/tcp.h>
+include <net/mptcp.h>
+include <net/mptcp_v4.h>
+include <net/mptcp_v6.h>
 include <uapi/linux/tcp.h>
 
 tcp_option [
@@ -751,6 +754,7 @@ tcp_option [
 	fastopen	tcp_fastopen_option
 	exp_fastopen	tcp_exp_fastopen_option
 	exp_smc		tcp_exp_smc_option
+	mptcp		tcp_mptcp_option
 ] [varlen]
 
 tcp_option_types = TCPOPT_NOP, TCPOPT_EOL, TCPOPT_MSS, TCPOPT_WINDOW, TCPOPT_SACK_PERM, TCPOPT_SACK, TCPOPT_TIMESTAMP, TCPOPT_MD5SIG, TCPOPT_FASTOPEN, TCPOPT_EXP
