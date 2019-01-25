@@ -73,6 +73,8 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		return akaros{}, nil
 	case targetOS == "openbsd" && targetArch == "amd64" && (vmType == "gce" || vmType == "vmm"):
 		return openbsd{}, nil
+	case targetOS == "netbsd" && targetArch == "amd64" && vmType == "qemu":
+		return netbsd{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
 	}
