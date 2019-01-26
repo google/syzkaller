@@ -98,7 +98,7 @@ func (ctx *openbsd) Symbolize(rep *Report) error {
 
 func (ctx *openbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),
 	line []byte) []byte {
-	var match []int = nil
+	var match []int
 	for _, re := range openbsdSymbolizeRe {
 		match = re.FindSubmatchIndex(line)
 		if match != nil {
