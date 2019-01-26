@@ -25,7 +25,12 @@ type openbsd struct {
 }
 
 var (
-	openbsdSymbolizeRe = regexp.MustCompile(` at ([A-Za-z0-9_]+)\+0x([0-9a-f]+)`)
+	openbsdSymbolizeRe = []*regexp.Regexp{
+		// stack
+		regexp.MustCompile(` at ([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
+		// witness
+		regexp.MustCompile(`#[0-9]+ +([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
+	}
 )
 
 func ctorOpenbsd(target *targets.Target, kernelSrc, kernelObj string,
@@ -93,7 +98,13 @@ func (ctx *openbsd) Symbolize(rep *Report) error {
 
 func (ctx *openbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),
 	line []byte) []byte {
-	match := openbsdSymbolizeRe.FindSubmatchIndex(line)
+	var match []int
+	for _, re := range openbsdSymbolizeRe {
+		match = re.FindSubmatchIndex(line)
+		if match != nil {
+			break
+		}
+	}
 	if match == nil {
 		return line
 	}

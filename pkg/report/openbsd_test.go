@@ -31,6 +31,15 @@ func TestOpenbsdSymbolizeLine(t *testing.T) {
 			"foo(ffffffff,ffffffff) at foo+0x1e",
 			"foo(ffffffff,ffffffff) at foo+0x1e",
 		},
+		// Witness symbolization.
+		{
+			"#4  closef+0xaf\n",
+			"#4  closef+0xaf kern_descrip.c:1241\n",
+		},
+		{
+			"#10 closef+0xaf\n",
+			"#10 closef+0xaf kern_descrip.c:1241\n",
+		},
 	}
 	symbols := map[string][]symbolizer.Symbol{
 		"closef": {
