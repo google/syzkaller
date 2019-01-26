@@ -21,6 +21,9 @@ func DiagnoseOpenBSD(w io.Writer) bool {
 		"show registers",
 		"show proc",
 		"ps",
+		"show all locks",
+		"show malloc",
+		"show all pools",
 	}
 	for _, c := range commands {
 		w.Write([]byte(c + "\n"))
