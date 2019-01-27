@@ -1,0 +1,16 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/inotify.h>
+
+resource fd_inotify[fd]
+resource inotifydesc[int32]
+
+inotify_init() fd_inotify
+inotify_init1(flags flags[inotify_flags]) fd_inotify
+inotify_add_watch(fd fd_inotify, file ptr[in, filename], mask flags[inotify_mask]) inotifydesc
+inotify_rm_watch(fd fd_inotify, wd inotifydesc)
+ioctl$INOTIFY_IOC_SETNEXTWD(fd fd_inotify, cmd const[INOTIFY_IOC_SETNEXTWD], arg intptr)
+
+inotify_flags = IN_NONBLOCK, IN_CLOEXEC
+inotify_mask = IN_ACCESS, IN_ATTRIB, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE, IN_CREATE, IN_DELETE, IN_DELETE_SELF, IN_MODIFY, IN_MOVE_SELF, IN_MOVED_FROM, IN_MOVED_TO, IN_OPEN, IN_DONT_FOLLOW, IN_EXCL_UNLINK, IN_MASK_ADD, IN_ONESHOT, IN_ONLYDIR, IN_MASK_CREATE, IN_ISDIR

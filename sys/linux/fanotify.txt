@@ -1,0 +1,16 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fcntl.h>
+include <linux/fanotify.h>
+
+resource fd_fanotify[fd]
+
+fanotify_init(flags flags[fanotify_flags], events flags[fanotify_events]) fd_fanotify
+fanotify_mark(fd fd_fanotify, flags flags[fanotify_mark], mask flags[fanotify_mask], fddir fd_dir, path ptr[in, filename])
+
+fanotify_flags = FAN_CLASS_PRE_CONTENT, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_CLOEXEC, FAN_NONBLOCK, FAN_UNLIMITED_QUEUE, FAN_UNLIMITED_MARKS, FAN_ENABLE_AUDIT
+fanotify_events = O_RDONLY, O_WRONLY, O_RDWR, O_LARGEFILE, O_CLOEXEC, O_APPEND, O_DSYNC, O_NOATIME, O_NONBLOCK, O_SYNC
+fanotify_mark = FAN_MARK_ADD, FAN_MARK_REMOVE, FAN_MARK_FLUSH, FAN_MARK_DONT_FOLLOW, FAN_MARK_ONLYDIR, FAN_MARK_MOUNT, FAN_MARK_IGNORED_MASK, FAN_MARK_IGNORED_SURV_MODIFY
+fanotify_mask = FAN_ACCESS, FAN_MODIFY, FAN_CLOSE_WRITE, FAN_CLOSE_NOWRITE, FAN_OPEN, FAN_OPEN_EXEC, FAN_ONDIR, FAN_EVENT_ON_CHILD
+_ = FAN_OPEN_PERM, FAN_ACCESS_PERM, FAN_OPEN_EXEC_PERM

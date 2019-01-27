@@ -5,8 +5,6 @@
 
 include <linux/socket.h>
 include <linux/ptrace.h>
-include <linux/fanotify.h>
-include <linux/inotify.h>
 include <linux/resource.h>
 include <linux/stat.h>
 include <linux/mman.h>
@@ -275,17 +273,6 @@ personality(persona flags[personality_flags])
 #getppid() pid
 #getsid(pid pid) pid
 #setsid() pid
-
-resource fd_inotify[fd]
-resource fd_fanotify[fd]
-resource inotifydesc[int32]
-inotify_init() fd_inotify
-inotify_init1(flags flags[inotify_flags]) fd_inotify
-inotify_add_watch(fd fd_inotify, file ptr[in, filename], mask flags[inotify_mask]) inotifydesc
-inotify_rm_watch(fd fd_inotify, wd inotifydesc)
-fanotify_init(flags flags[fanotify_flags], events flags[fanotify_events]) fd_fanotify
-fanotify_mark(fd fd_fanotify, flags flags[fanotify_mark], mask flags[fanotify_mask], fddir fd_dir, path ptr[in, filename])
-ioctl$INOTIFY_IOC_SETNEXTWD(fd fd_inotify, cmd const[INOTIFY_IOC_SETNEXTWD], arg intptr)
 
 link(old ptr[in, filename], new ptr[in, filename])
 linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
@@ -893,12 +880,6 @@ mq_open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_NONBLOCK, O_CREAT, O_EXCL, O_CREAT
 finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
 delete_module_flags = O_NONBLOCK, O_TRUNC
 kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390, KEXEC_ARCH_SH, KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE, KEXEC_ARCH_DEFAULT
-inotify_flags = IN_NONBLOCK, IN_CLOEXEC
-inotify_mask = IN_ACCESS, IN_ATTRIB, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE, IN_CREATE, IN_DELETE, IN_DELETE_SELF, IN_MODIFY, IN_MOVE_SELF, IN_MOVED_FROM, IN_MOVED_TO, IN_OPEN, IN_DONT_FOLLOW, IN_EXCL_UNLINK, IN_MASK_ADD, IN_ONESHOT, IN_ONLYDIR, IN_MASK_CREATE, IN_ISDIR
-fanotify_flags = FAN_CLASS_PRE_CONTENT, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_CLOEXEC, FAN_NONBLOCK, FAN_UNLIMITED_QUEUE, FAN_UNLIMITED_MARKS, FAN_ENABLE_AUDIT
-fanotify_events = O_RDONLY, O_WRONLY, O_RDWR, O_LARGEFILE, O_CLOEXEC, O_APPEND, O_DSYNC, O_NOATIME, O_NONBLOCK, O_SYNC
-fanotify_mark = FAN_MARK_ADD, FAN_MARK_REMOVE, FAN_MARK_FLUSH, FAN_MARK_DONT_FOLLOW, FAN_MARK_ONLYDIR, FAN_MARK_MOUNT, FAN_MARK_IGNORED_MASK, FAN_MARK_IGNORED_SURV_MODIFY
-fanotify_mask = FAN_ACCESS, FAN_MODIFY, FAN_CLOSE_WRITE, FAN_CLOSE_NOWRITE, FAN_OPEN, FAN_ONDIR, FAN_EVENT_ON_CHILD
 faccessat_flags = 0x100, 0x200, 0x400, 0x800, 0x1000
 futex_op = FUTEX_WAIT, FUTEX_WAIT_BITSET, FUTEX_WAKE, FUTEX_REQUEUE, FUTEX_CMP_REQUEUE, FUTEX_WAIT_PRIVATE, FUTEX_WAKE_PRIVATE, FUTEX_WAIT_REQUEUE_PI_PRIVATE, FUTEX_CMP_REQUEUE_PI_PRIVATE
 sync_file_flags = SYNC_FILE_RANGE_WAIT_BEFORE, SYNC_FILE_RANGE_WRITE, SYNC_FILE_RANGE_WAIT_AFTER
@@ -957,7 +938,7 @@ _ = STA_PLL, STA_PPSFREQ, STA_PPSTIME, STA_FLL, STA_INS, STA_DEL, STA_UNSYNC, ST
 _ = ADJ_OFFSET, ADJ_FREQUENCY, ADJ_MAXERROR, ADJ_ESTERROR, ADJ_STATUS, ADJ_TIMECONST, ADJ_TAI, ADJ_SETOFFSET, ADJ_MICRO, ADJ_NANO, ADJ_TICK, ADJ_OFFSET_SINGLESHOT
 
 # misc
-_ = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE, KCOV_TRACE_PC, KCOV_TRACE_CMP, FIFREEZE, FAN_OPEN_PERM, FAN_ACCESS_PERM, PTRACE_TRACEME, __NR_mmap2
+_ = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE, KCOV_TRACE_PC, KCOV_TRACE_CMP, FIFREEZE, PTRACE_TRACEME, __NR_mmap2
 
 # Hardcode KCOV_REMOTE_ENABLE value for amd64 until new kcov patches reach mainline.
 define KCOV_REMOTE_ENABLE	1075340134
