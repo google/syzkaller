@@ -195,6 +195,20 @@ var openbsdOopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	{
+		[]byte("witness:"),
+		[]oopsFormat{
+			{
+				title: compile("witness: thread {{ADDR}} exiting with the following locks held:"),
+				fmt:   "witness: thread exiting with locks held",
+			},
+			{
+				title: compile("(witness: .*)"),
+				fmt:   "%[1]v",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("uvm_fault"),
 		[]oopsFormat{
 			{

@@ -1,0 +1,102 @@
+TITLE: witness: thread exiting with locks held
+
+witness: thread 0xffff800020bba4c8 exiting with the following locks held:
+exclusive rrwlock inode r = 0 (0xfffffd806747bc48) locked @ /syzkaller/managers/setuid/kernel/sys/ufs/ufs/ufs_vnops.c:1547
+panic: Thread 0xffff800020b92720 cannot exit while holding sleeplocks
+
+Stopped at      db_enter+0x18:  addq    $0x8,%rsp
+    TID    PID    UID     PRFLAGS     PFLAGS  CPU  COMMAND
+ 333692  13365     73    0x100010          0    1K syslogd
+*482899     71      0     0x14000      0x200    0  reaper
+db_enter() at db_enter+0x18 sys/arch/amd64/amd64/db_interface.c:399
+panic() at panic+0x16c sys/kern/subr_prf.c:208
+witness_thread_exit(11493cd476f78d7c) at witness_thread_exit+0x244 sys/kern/subr_witness.c:1377
+reaper(0) at reaper+0x14f sys/kern/kern_exit.c:412
+end trace frame: 0x0, count: 11
+https://www.openbsd.org/ddb.html describes the minimum info required in bug
+reports.  Insufficient info makes it difficult to find and fix bugs.
+ddb{0}>
+ddb{0}> set $lines = 0
+ddb{0}> show panic
+Thread 0xffff800020b92720 cannot exit while holding sleeplocks
+
+ddb{0}> trace
+db_enter() at db_enter+0x18 sys/arch/amd64/amd64/db_interface.c:399
+panic() at panic+0x16c sys/kern/subr_prf.c:208
+witness_thread_exit(11493cd476f78d7c) at witness_thread_exit+0x244 sys/kern/subr_witness.c:1377
+reaper(0) at reaper+0x14f sys/kern/kern_exit.c:412
+end trace frame: 0x0, count: -4
+ddb{0}> show registers
+rdi                                0
+rsi                              0x1
+rbp               0xffff800020b67ad0
+rbx               0xffff800020b67b70
+rdx               0xffffffff81ec577a    cmd0646_9_tim_udma+0x16395
+rcx                                0
+rax                                0
+r8                0xffffffff81788154    kprintf+0x174
+r9                               0x1
+r10               0x6f534a22035bc4ca
+r11               0x6db44f275a450c3a
+r12                     0x3000000008
+r13               0xffff800020b67ae0
+r14                            0x100
+r15                              0x1
+rip               0xffffffff81107618    db_enter+0x18
+cs                               0x8
+rflags                         0x246
+rsp               0xffff800020b67ac0
+ss                              0x10
+db_enter+0x18:  addq    $0x8,%rsp
+ddb{0}> show proc
+PROC (reaper) pid=482899 stat=onproc
+    flags process=14000<NOZOMBIE,SYSTEM> proc=200<SYSTEM>
+    pri=4, usrpri=51, nice=20
+    forw=0xffffffffffffffff, list=0xffff800020b20e10,0xffff800020b21c30
+    process=0xffff800020b5b070 user=0xffff800020b62000, vmspace=0xffffffff822fc8c0
+    estcpu=1, cpticks=3, pctcpu=0.15
+    user=0, sys=3, intr=0
+ddb{0}> ps
+   PID     TID   PPID    UID  S       FLAGS  WAIT          COMMAND
+ 95915  250426   7524  32767  2       0x490                syz-executor1
+  7524  125781  33554      0  3        0x82  wait          syz-executor1
+ 81310  477266  28796  32767  2       0x490                syz-executor0
+ 28796  145672  33554      0  3        0x82  wait          syz-executor0
+ 53135  361876      0      0  3     0x14200  bored         sosplice
+ 33554  404063  25047      0  3        0x82  thrsleep      syz-fuzzer
+ 33554   88446  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554  460070  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554  345337  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554  149986  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554   42230  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554   60955  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554   38186  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554  513288  25047      0  3   0x4000082  kqread        syz-fuzzer
+ 33554  493206  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554  517119  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 33554  347325  25047      0  3   0x4000082  thrsleep      syz-fuzzer
+ 25047  172199  97313      0  3    0x10008a  pause         ksh
+ 97313  470341  49628      0  3        0x92  select        sshd
+ 26148  337889      1      0  3    0x100083  ttyin         getty
+ 49628  220902      1      0  3        0x80  select        sshd
+ 13365  333692   4722     73  7    0x100010                syslogd
+  4722  364223      1      0  3    0x100082  netio         syslogd
+  8296  330563      1     77  3    0x100090  poll          dhclient
+ 95260  270278      1      0  3        0x80  poll          dhclient
+ 89557   94184      0      0  3     0x14200  pgzero        zerothread
+ 64715   61906      0      0  3     0x14200  aiodoned      aiodoned
+ 25392  229747      0      0  3     0x14200  syncer        update
+ 63748   85883      0      0  3     0x14200  cleaner       cleaner
+*   71  482899      0      0  7     0x14200                reaper
+ 56311  139753      0      0  3     0x14200  pgdaemon      pagedaemon
+ 83328  272899      0      0  3     0x14200  bored         crynlk
+  2399  230600      0      0  3     0x14200  bored         crypto
+ 36220  506735      0      0  3  0x40014200  acpi0         acpi0
+   717  437876      0      0  3  0x40014200                idle1
+ 87882  394549      0      0  3     0x14200  bored         softnet
+ 92791  451998      0      0  3     0x14200  bored         systqmp
+ 43113   79354      0      0  3     0x14200  bored         systq
+ 30693  248390      0      0  2  0x40014200                softclock
+ 29249  207353      0      0  3  0x40014200                idle0
+     1  427078      0      0  3        0x82  wait          init
+     0       0     -1      0  3     0x10200  scheduler     swapper
