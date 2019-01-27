@@ -27,6 +27,7 @@ func InitTarget(target *prog.Target) {
 		EXT4_IOC_MIGRATE:          target.GetConst("EXT4_IOC_MIGRATE"),
 		FAN_OPEN_PERM:             target.GetConst("FAN_OPEN_PERM"),
 		FAN_ACCESS_PERM:           target.GetConst("FAN_ACCESS_PERM"),
+		FAN_OPEN_EXEC_PERM:        target.GetConst("FAN_OPEN_EXEC_PERM"),
 		PTRACE_TRACEME:            target.GetConst("PTRACE_TRACEME"),
 		CLOCK_REALTIME:            target.GetConst("CLOCK_REALTIME"),
 		AF_NFC:                    target.GetConst("AF_NFC"),
@@ -116,6 +117,7 @@ type arch struct {
 	EXT4_IOC_MIGRATE          uint64
 	FAN_OPEN_PERM             uint64
 	FAN_ACCESS_PERM           uint64
+	FAN_OPEN_EXEC_PERM        uint64
 	PTRACE_TRACEME            uint64
 	CLOCK_REALTIME            uint64
 	ARCH_SET_FS               uint64
@@ -164,12 +166,12 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 			cmd.Val = arch.EXT4_IOC_MIGRATE
 		}
 	case "fanotify_mark":
-		// FAN_OPEN_PERM and FAN_ACCESS_PERM require the program to reply to open requests.
+		// FAN_*_PERM require the program to reply to open requests.
 		// If that does not happen, the program will hang in an unkillable state forever.
 		// See the following bug for details:
 		// https://groups.google.com/d/msg/syzkaller-bugs/pD-vbqJu6U0/kGH30p3lBgAJ
 		mask := c.Args[2].(*prog.ConstArg)
-		mask.Val &^= arch.FAN_OPEN_PERM | arch.FAN_ACCESS_PERM
+		mask.Val &^= arch.FAN_OPEN_PERM | arch.FAN_ACCESS_PERM | arch.FAN_OPEN_EXEC_PERM
 	case "ptrace":
 		req := c.Args[0].(*prog.ConstArg)
 		// PTRACE_TRACEME leads to unkillable processes, see:
