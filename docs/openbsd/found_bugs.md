@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
+- [ioctl: out of bounds access in `wsmux_do_ioctl()`](https://marc.info/?l=openbsd-cvs&m=154859038916770&w=2)
+
 - [unveil: NULL pointer dereference](https://marc.info/?l=openbsd-cvs&m=154818960525456&w=2)
 
 - [fcntl: use-after-free in `lf_findoverlap()`](https://marc.info/?l=openbsd-cvs&m=154809417426357&w=2)
