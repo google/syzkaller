@@ -733,7 +733,7 @@ func serializeData(buf *bytes.Buffer, data []byte, readable bool) {
 		return
 	}
 	buf.WriteByte('\'')
-	encodeData(buf, data, true)
+	encodeData(buf, data, true, false)
 	buf.WriteByte('\'')
 }
 
@@ -741,10 +741,10 @@ func EncodeData(buf *bytes.Buffer, data []byte, readable bool) {
 	if !readable && isReadableData(data) {
 		readable = true
 	}
-	encodeData(buf, data, readable)
+	encodeData(buf, data, readable, true)
 }
 
-func encodeData(buf *bytes.Buffer, data []byte, readable bool) {
+func encodeData(buf *bytes.Buffer, data []byte, readable, cstr bool) {
 	for _, v := range data {
 		if !readable {
 			lo, hi := byteToHex(v)
@@ -776,8 +776,18 @@ func encodeData(buf *bytes.Buffer, data []byte, readable bool) {
 			if isPrintable(v) {
 				buf.WriteByte(v)
 			} else {
-				lo, hi := byteToHex(v)
-				buf.Write([]byte{'\\', 'x', hi, lo})
+				if cstr {
+					// We would like to use hex encoding with \x,
+					// but C's \x is hard to use: it can contain _any_ number of hex digits
+					// (not just 2 or 4), so later non-hex encoded chars will glue to \x.
+					c0 := (v>>6)&0x7 + '0'
+					c1 := (v>>3)&0x7 + '0'
+					c2 := (v>>0)&0x7 + '0'
+					buf.Write([]byte{'\\', c0, c1, c2})
+				} else {
+					lo, hi := byteToHex(v)
+					buf.Write([]byte{'\\', 'x', hi, lo})
+				}
 			}
 		}
 	}
