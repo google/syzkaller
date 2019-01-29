@@ -157,6 +157,36 @@ func TestErrors2(t *testing.T) {
 	}
 }
 
+func TestWarnings(t *testing.T) {
+	t.Parallel()
+	consts := map[string]uint64{
+		"SYS_foo": 1,
+	}
+	for _, arch := range []string{"32_shmem", "64"} {
+		target := targets.List["test"][arch]
+		t.Run(arch, func(t *testing.T) {
+			t.Parallel()
+			em := ast.NewErrorMatcher(t, filepath.Join("testdata", "warnings.txt"))
+			desc := ast.Parse(em.Data, "warnings.txt", em.ErrorHandler)
+			if desc == nil {
+				em.DumpErrors(t)
+				t.Fatalf("parsing failed")
+			}
+			info := ExtractConsts(desc, target, em.ErrorHandler)
+			if info == nil {
+				em.DumpErrors(t)
+				t.Fatalf("const extraction failed")
+			}
+			p := Compile(desc, consts, target, em.ErrorHandler)
+			if p == nil {
+				em.DumpErrors(t)
+				t.Fatalf("compilation failed")
+			}
+			em.Check(t)
+		})
+	}
+}
+
 func TestFuzz(t *testing.T) {
 	t.Parallel()
 	inputs := []string{

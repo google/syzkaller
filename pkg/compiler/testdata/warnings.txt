@@ -1,0 +1,21 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+foo$suspicious_len(a len[b], b ptr[in, array[string]])	### len target b refer to an array with variable-size elements (do you mean bytesize?)
+foo$suspicious_len2(a ptr[in, suspicious_len_struct], b ptr[in, suspicious_len_struct])
+foo$suspicious_len3(a ptr[in, suspicious_len_template[string]], b ptr[in, suspicious_len_template[stringnoz]])
+
+suspicious_len_struct {
+	a	len[b, int32]			### len target b refer to an array with variable-size elements (do you mean bytesize?)
+	b	ptr[in, array[string]]
+}
+
+type suspicious_len_template[T] {
+	a	len[b, int32]			### len target b refer to an array with variable-size elements (do you mean bytesize?)
+	b	ptr[in, array[T]]
+}
+
+bar()						### unsupported syscall: bar due to missing const SYS_bar
+bar$1()
+foo(a const[NO_SUCH_CONST], b r0)		### unsupported syscall: foo due to missing const NO_SUCH_CONST
+resource r0[int32]: NO_EITHER			### unsupported resource: r0 due to missing const NO_EITHER
