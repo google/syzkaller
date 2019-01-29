@@ -285,18 +285,20 @@ func (comp *compiler) checkAttributeValues() {
 }
 
 func (comp *compiler) checkLenTargets() {
+	warned := make(map[string]bool)
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.Call:
 			for _, arg := range n.Args {
-				comp.checkLenType(arg.Type, arg.Name.Name, n.Args, nil, make(map[string]bool), true)
+				checked := make(map[string]bool)
+				comp.checkLenType(arg.Type, arg.Name.Name, n.Args, nil, checked, warned, true)
 			}
 		}
 	}
 }
 
 func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field,
-	parents []*ast.Struct, checked map[string]bool, isArg bool) {
+	parents []string, checked, warned map[string]bool, isArg bool) {
 	desc := comp.getTypeDesc(t)
 	if desc == typeStruct {
 		s := comp.structs[t.Ident]
@@ -305,27 +307,34 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 			return
 		}
 		checked[s.Name.Name] = true
-		parents = append(parents, s)
+		parentName := s.Name.Name
+		if pos := strings.IndexByte(parentName, '['); pos != -1 {
+			// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
+			parentName = parentName[:pos]
+		}
+		parents = append(parents, parentName)
 		if !s.IsUnion {
 			fields = s.Fields
 		}
 		for _, fld := range s.Fields {
-			comp.checkLenType(fld.Type, fld.Name.Name, fields, parents, checked, false)
+			comp.checkLenType(fld.Type, fld.Name.Name, fields, parents, checked, warned, false)
 		}
+		warned[parentName] = true
 		return
 	}
 	_, args, _ := comp.getArgsBase(t, "", prog.DirIn, isArg)
 	for i, arg := range args {
 		argDesc := desc.Args[i]
 		if argDesc.Type == typeArgLenTarget {
-			comp.checkLenTarget(t, name, arg.Ident, fields, parents)
+			comp.checkLenTarget(t, name, arg.Ident, fields, parents, warned)
 		} else if argDesc.Type == typeArgType {
-			comp.checkLenType(arg, name, fields, parents, checked, argDesc.IsArg)
+			comp.checkLenType(arg, name, fields, parents, checked, warned, argDesc.IsArg)
 		}
 	}
 }
 
-func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []*ast.Field, parents []*ast.Struct) {
+func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []*ast.Field,
+	parents []string, warned map[string]bool) {
 	if target == name {
 		comp.error(t.Pos, "%v target %v refer to itself", t.Ident, target)
 		return
@@ -354,19 +363,18 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 				desc, args, _ = comp.getArgsBase(inner, "", prog.DirIn, false)
 			}
 			if desc == typeArray && comp.isVarlen(args[0]) {
-				comp.warning(t.Pos, "len target %v refer to an array with"+
-					" variable-size elements (do you mean bytesize?)", target)
+				// We can reach the same struct multiple times starting from different
+				// syscall arguments. Warn only once.
+				if len(parents) == 0 || !warned[parents[len(parents)-1]] {
+					comp.warning(t.Pos, "len target %v refer to an array with"+
+						" variable-size elements (do you mean bytesize?)", target)
+				}
 			}
 		}
 		return
 	}
 	for _, parent := range parents {
-		parentName := parent.Name.Name
-		if pos := strings.IndexByte(parentName, '['); pos != -1 {
-			// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
-			parentName = parentName[:pos]
-		}
-		if target == parentName {
+		if target == parent {
 			return
 		}
 	}
