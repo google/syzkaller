@@ -45,6 +45,12 @@ keyctl$invalidate(code const[KEYCTL_INVALIDATE], key key)
 keyctl$get_persistent(code const[KEYCTL_GET_PERSISTENT], uid uid, keyring keyring)
 keyctl$dh_compute(code const[KEYCTL_DH_COMPUTE], params ptr[in, keyctl_dh_params], buffer buffer[out], buflen len[buffer], kdf ptr[in, keyctl_kdf_params, opt])
 keyctl$restrict_keyring(code const[KEYCTL_RESTRICT_KEYRING], keyring keyring, type ptr[in, string[key_type], opt], restriction ptr[in, string, opt])
+keyctl$KEYCTL_PKEY_QUERY(code const[KEYCTL_PKEY_QUERY], key key, arg3 const[0], info ptr[in, string], query ptr[out, array[int8, KEYCTL_PKEY_QUERY_SIZE]])
+keyctl$KEYCTL_PKEY_ENCRYPT(code const[KEYCTL_PKEY_ENCRYPT], params ptr[in, keyctl_pkey_params], info ptr[in, keyctl_pkey_info, opt], inout ptr[in, array[int8]], output ptr[out, array[int8]])
+keyctl$KEYCTL_PKEY_DECRYPT(code const[KEYCTL_PKEY_DECRYPT], params ptr[in, keyctl_pkey_params], info ptr[in, keyctl_pkey_info, opt], inout ptr[in, array[int8]], output ptr[out, array[int8]])
+keyctl$KEYCTL_PKEY_SIGN(code const[KEYCTL_PKEY_SIGN], params ptr[in, keyctl_pkey_params], info ptr[in, keyctl_pkey_info, opt], inout ptr[in, array[int8]], output ptr[out, array[int8]])
+keyctl$KEYCTL_PKEY_VERIFY(code const[KEYCTL_PKEY_VERIFY], params ptr[in, keyctl_pkey_params], info ptr[in, keyctl_pkey_info, opt], inout ptr[in, array[int8]], output ptr[in, array[int8]])
+keyctl$KEYCTL_RESTRICT_KEYRING(code const[KEYCTL_RESTRICT_KEYRING], key key, type ptr[in, string[key_type], opt], restriction ptr[in, key_restriction, opt])
 
 reqkey_keyring = KEY_REQKEY_DEFL_NO_CHANGE, KEY_REQKEY_DEFL_DEFAULT, KEY_REQKEY_DEFL_THREAD_KEYRING, KEY_REQKEY_DEFL_PROCESS_KEYRING, KEY_REQKEY_DEFL_SESSION_KEYRING, KEY_REQKEY_DEFL_USER_KEYRING, KEY_REQKEY_DEFL_USER_SESSION_KEYRING, KEY_REQKEY_DEFL_GROUP_KEYRING, KEY_REQKEY_DEFL_REQUESTOR_KEYRING
 key_perm = KEY_POS_VIEW, KEY_POS_READ, KEY_POS_WRITE, KEY_POS_SEARCH, KEY_POS_LINK, KEY_POS_SETATTR, KEY_USR_VIEW, KEY_USR_READ, KEY_USR_WRITE, KEY_USR_SEARCH, KEY_USR_LINK, KEY_USR_SETATTR, KEY_GRP_VIEW, KEY_GRP_READ, KEY_GRP_WRITE, KEY_GRP_SEARCH, KEY_GRP_LINK, KEY_GRP_SETATTR, KEY_OTH_VIEW, KEY_OTH_READ, KEY_OTH_WRITE, KEY_OTH_SEARCH, KEY_OTH_LINK, KEY_OTH_SETATTR, KEY_PERM_UNDEF
@@ -112,5 +118,43 @@ key_encrypted_update {
 	z		const[0, int8]
 } [packed]
 
+keyctl_pkey_params {
+	key_id	key
+# NEED: this is len of syscall input/output arguments. We don't have naming scheme to reference syscall arguments.
+# Need e.g. "len[syscall.input]", or some abbreviation like ".input" or "$.input".
+	in_len	int32
+	out_len	int32
+	__spare	array[const[0, int32], 7]
+}
+
+keyctl_pkey_info {
+	enc		stringnoz["enc="]
+	env_val		stringnoz[keyctl_pkey_info_enc]
+	hash		stringnoz[" hash="]
+	hash_val	alg_hash_name
+} [packed]
+
 key_encrypted_format = "ecryptfs", "default"
 key_encrypted_key_type = "trusted:", "user:"
+keyctl_pkey_info_enc = "raw", "pkcs1", "oaep"
+
+key_restriction [
+	builtin		string["builtin_trusted"]
+	secondary	string["builtin_and_secondary_trusted"]
+	keyring		key_restriction_keyring
+	chain		key_restriction_keyring_chain
+] [varlen]
+
+key_restriction_keyring {
+	keyring	stringnoz["key_or_keyring:"]
+	serial	fmt[hex, key]
+	z	const[0, int8]
+} [packed]
+
+key_restriction_keyring_chain {
+	keyring	stringnoz["key_or_keyring:"]
+	serial	fmt[hex, key]
+	chain	string[":chain"]
+} [packed]
+
+define KEYCTL_PKEY_QUERY_SIZE	sizeof(struct keyctl_pkey_query)
