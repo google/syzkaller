@@ -425,7 +425,7 @@ static void loop(void)
 	}
 #endif
 #if SYZ_TRACE
-	printf("### start\n");
+	fprintf(stderr, "### start\n");
 #endif
 	int i, call, thread;
 #if SYZ_COLLIDE
