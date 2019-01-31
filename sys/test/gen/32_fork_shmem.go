@@ -103,6 +103,9 @@ var syscalls_32_fork_shmem = []*Syscall{
 	{Name: "syz_execute_func", CallName: "syz_execute_func", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
 	}},
+	{Name: "syz_exit", CallName: "syz_exit", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "status", TypeSize: 4}}},
+	}},
 	{Name: "syz_mmap", CallName: "syz_mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
@@ -116,4 +119,4 @@ var consts_32_fork_shmem = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32_fork_shmem = "3a7d4753ed1b5bb6a280ba2dddd2d21f1fede51e"
+const revision_32_fork_shmem = "002e760d34d155bf4b1506dd1876d07e80626bca"

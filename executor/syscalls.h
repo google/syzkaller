@@ -14497,6 +14497,7 @@ const call_t syscalls[] = {
     {"syz_compare_int$4", 0, (syscall_t)syz_compare_int},
     {"syz_errno", 0, (syscall_t)syz_errno},
     {"syz_execute_func", 0, (syscall_t)syz_execute_func},
+    {"syz_exit", 0, (syscall_t)syz_exit},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };
@@ -14510,6 +14511,7 @@ const call_t syscalls[] = {
     {"syz_compare_int$4", 0, (syscall_t)syz_compare_int},
     {"syz_errno", 0, (syscall_t)syz_errno},
     {"syz_execute_func", 0, (syscall_t)syz_execute_func},
+    {"syz_exit", 0, (syscall_t)syz_exit},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };
@@ -14545,6 +14547,7 @@ const call_t syscalls[] = {
     {"syz_compare_int$4", 0, (syscall_t)syz_compare_int},
     {"syz_errno", 0, (syscall_t)syz_errno},
     {"syz_execute_func", 0, (syscall_t)syz_execute_func},
+    {"syz_exit", 0, (syscall_t)syz_exit},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
     {"test", 0},
     {"test$align0", 0},
@@ -14648,6 +14651,7 @@ const call_t syscalls[] = {
     {"syz_compare_int$4", 0, (syscall_t)syz_compare_int},
     {"syz_errno", 0, (syscall_t)syz_errno},
     {"syz_execute_func", 0, (syscall_t)syz_execute_func},
+    {"syz_exit", 0, (syscall_t)syz_exit},
     {"syz_mmap", 0, (syscall_t)syz_mmap},
 
 };

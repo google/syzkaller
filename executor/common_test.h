@@ -27,6 +27,15 @@ static long syz_errno(long v)
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_exit
+// syz_exit(status int32)
+static long syz_exit(long status)
+{
+	_exit(status);
+	return 0;
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_compare
 #include <errno.h>
 #include <string.h>

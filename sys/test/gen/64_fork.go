@@ -103,6 +103,9 @@ var syscalls_64_fork = []*Syscall{
 	{Name: "syz_execute_func", CallName: "syz_execute_func", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
 	}},
+	{Name: "syz_exit", CallName: "syz_exit", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "status", TypeSize: 4}}},
+	}},
 	{Name: "syz_mmap", CallName: "syz_mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
@@ -115,4 +118,4 @@ var consts_64_fork = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64_fork = "ca36699a1e8e19e01f848fa7815278bea91ef165"
+const revision_64_fork = "dffeac0922d7804bbc534a7a20c77b30232ebc4d"

@@ -260,6 +260,8 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 			info.Calls[i].Flags |= ipc.CallBlocked
 		case "unfinished":
 			info.Calls[i].Flags &^= ipc.CallFinished
+		case "unexecuted":
+			info.Calls[i].Flags &^= ipc.CallExecuted | ipc.CallFinished
 		default:
 			res, ok := errnos[call.Comment]
 			if !ok {
@@ -394,8 +396,8 @@ func checkResult(req *RunRequest) error {
 		}
 	}
 	if req.Repeat != len(req.Info) {
-		return fmt.Errorf("should repeat %v times, but repeated %v",
-			req.Repeat, len(req.Info))
+		return fmt.Errorf("should repeat %v times, but repeated %v\n%s",
+			req.Repeat, len(req.Info), req.Output)
 	}
 	calls := make(map[string]bool)
 	for run, info := range req.Info {
@@ -422,7 +424,7 @@ func checkResult(req *RunRequest) error {
 				return fmt.Errorf("run %v: wrong call %v result %v, want %v",
 					run, i, inf.Errno, want.Errno)
 			}
-			if isC {
+			if isC || inf.Flags&ipc.CallExecuted == 0 {
 				continue
 			}
 			if req.Cfg.Flags&ipc.FlagSignal != 0 {
@@ -481,11 +483,6 @@ func parseBinOutput(req *RunRequest) ([]*ipc.ProgInfo, error) {
 		info.Calls[call].Flags |= ipc.CallExecuted | ipc.CallFinished
 		info.Calls[call].Errno = int(errno)
 	}
-	for _, info := range infos {
-		for i := range info.Calls {
-			info.Calls[i].Flags |= ipc.CallExecuted
-		}
-	}
 	return infos, nil
 }
 
@@ -498,6 +495,12 @@ func RunTest(req *RunRequest, executor string) {
 		}
 		defer os.RemoveAll(tmpDir)
 		req.Output, req.Err = osutil.RunCmd(20*time.Second, tmpDir, req.Bin)
+		if verr, ok := req.Err.(*osutil.VerboseError); ok {
+			// The process can legitimately do something like exit_group(1).
+			// So we ignore the error and rely on the rest of the checks (e.g. syscall return values).
+			req.Err = nil
+			req.Output = verr.Output
+		}
 		return
 	}
 	req.Cfg.Executor = executor
@@ -518,6 +521,7 @@ func RunTest(req *RunRequest, executor string) {
 			req.Err = fmt.Errorf("run %v: failed", run)
 			return
 		}
+
 		if hanged {
 			req.Err = fmt.Errorf("run %v: hanged", run)
 			return
