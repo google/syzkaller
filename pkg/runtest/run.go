@@ -511,17 +511,12 @@ func RunTest(req *RunRequest, executor string) {
 	}
 	defer env.Close()
 	for run := 0; run < req.Repeat; run++ {
-		output, info, failed, hanged, err := env.Exec(req.Opts, req.P)
+		output, info, hanged, err := env.Exec(req.Opts, req.P)
 		req.Output = append(req.Output, output...)
 		if err != nil {
 			req.Err = fmt.Errorf("run %v: failed to run: %v", run, err)
 			return
 		}
-		if failed {
-			req.Err = fmt.Errorf("run %v: failed", run)
-			return
-		}
-
 		if hanged {
 			req.Err = fmt.Errorf("run %v: hanged", run)
 			return

@@ -7,7 +7,7 @@
 // - includes are hoisted to the top and deduplicated
 // - comments and empty lines are stripped
 // - NORETURN/PRINTF/debug are removed
-// - exitf/failf/fail are replaced with exit
+// - exitf/fail are replaced with exit
 // - uintN types are replaced with uintN_t
 // - [[FOO]] placeholders are replaced by actual values
 
@@ -614,8 +614,6 @@ static void loop(void)
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
 			fail("child failed");
-		if (status == kErrorStatus)
-			error("child errored");
 		reply_execute(0);
 #endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR

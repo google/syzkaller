@@ -104,8 +104,8 @@ func (arch *UnixSanitizer) SanitizeCall(c *prog.Call) {
 		}
 	case "exit", "exit_group":
 		code := c.Args[0].(*prog.ConstArg)
-		// These codes are reserved by executor.
-		if code.Val%128 == 67 || code.Val%128 == 68 {
+		// This code is reserved by executor.
+		if code.Val%128 == 67 {
 			code.Val = 1
 		}
 	}

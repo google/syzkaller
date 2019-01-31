@@ -60,12 +60,9 @@ const int kMaxArgs = 9;
 const int kCoverSize = 256 << 10;
 const int kFailStatus = 67;
 const int kRetryStatus = 69;
-const int kErrorStatus = 68;
 
 // Logical error (e.g. invalid input program), use as an assert() alternative.
 static NORETURN PRINTF(1, 2) void fail(const char* msg, ...);
-// Kernel error (e.g. wrong syscall return value).
-NORETURN PRINTF(1, 2) void error(const char* msg, ...);
 // Just exit (e.g. due to temporal ENOMEM error).
 static NORETURN PRINTF(1, 2) void exitf(const char* msg, ...);
 static NORETURN void doexit(int status);
@@ -404,7 +401,7 @@ int main(int argc, char** argv)
 	}
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 	// Other statuses happen when fuzzer processes manages to kill loop.
-	if (status != kFailStatus && status != kErrorStatus)
+	if (status != kFailStatus)
 		status = kRetryStatus;
 	// If an external sandbox process wraps executor, the out pipe will be closed
 	// before the sandbox process exits this will make ipc package kill the sandbox.
@@ -415,8 +412,6 @@ int main(int argc, char** argv)
 	errno = 0;
 	if (status == kFailStatus)
 		fail("loop failed");
-	if (status == kErrorStatus)
-		error("loop errored");
 	// Loop can be killed by a test process with e.g.:
 	// ptrace(PTRACE_SEIZE, 1, 0, 0x100040)
 	// This is unfortunate, but I don't have a better solution than ignoring it for now.
@@ -1351,16 +1346,6 @@ void fail(const char* msg, ...)
 	// ENOMEM/EAGAIN is frequent cause of failures in fuzzing context,
 	// so handle it here as non-fatal error.
 	doexit((e == ENOMEM || e == EAGAIN) ? kRetryStatus : kFailStatus);
-}
-
-void error(const char* msg, ...)
-{
-	va_list args;
-	va_start(args, msg);
-	vfprintf(stderr, msg, args);
-	va_end(args);
-	fprintf(stderr, "\n");
-	doexit(kErrorStatus);
 }
 
 void exitf(const char* msg, ...)

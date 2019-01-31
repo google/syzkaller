@@ -121,7 +121,6 @@ const (
 	outputSize = 16 << 20
 
 	statusFail  = 67
-	statusError = 68
 	statusRetry = 69
 
 	// Comparison types masks taken from KCOV headers.
@@ -248,10 +247,9 @@ var rateLimit = time.NewTicker(1 * time.Second)
 // Exec starts executor binary to execute program p and returns information about the execution:
 // output: process output
 // info: per-call info
-// failed: true if executor has detected a kernel bug
 // hanged: program hanged and was killed
-// err0: failed to start process, or executor has detected a logical error
-func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, failed, hanged bool, err0 error) {
+// err0: failed to start the process or bug in executor itself
+func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)
 	if err != nil {
@@ -282,7 +280,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 		}
 	}
 	var restart bool
-	output, failed, hanged, restart, err0 = env.cmd.exec(opts, progData)
+	output, hanged, restart, err0 = env.cmd.exec(opts, progData)
 	if err0 != nil {
 		env.cmd.close()
 		env.cmd = nil
@@ -717,8 +715,7 @@ func (c *command) wait() error {
 	return err
 }
 
-func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, hanged,
-	restart bool, err0 error) {
+func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged, restart bool, err0 error) {
 	req := &executeReq{
 		magic:     inMagic,
 		envFlags:  uint64(c.config.Flags),
@@ -812,9 +809,6 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 	switch exitStatus {
 	case statusFail:
 		err0 = ExecutorFailure(fmt.Sprintf("executor %v: failed: %s", c.pid, output))
-	case statusError:
-		err0 = fmt.Errorf("executor %v: detected kernel bug", c.pid)
-		failed = true
 	case statusRetry:
 		// This is a temporal error (ENOMEM) or an unfortunate
 		// program that messes with testing setup (e.g. kills executor

@@ -228,15 +228,12 @@ func checkSimpleProgram(args *checkArgs) error {
 	}
 	defer env.Close()
 	p := args.target.GenerateSimpleProg()
-	output, info, failed, hanged, err := env.Exec(args.ipcExecOpts, p)
+	output, info, hanged, err := env.Exec(args.ipcExecOpts, p)
 	if err != nil {
 		return fmt.Errorf("program execution failed: %v\n%s", err, output)
 	}
 	if hanged {
 		return fmt.Errorf("program hanged:\n%s", output)
-	}
-	if failed {
-		return fmt.Errorf("program failed:\n%s", output)
 	}
 	if len(info.Calls) == 0 {
 		return fmt.Errorf("no calls executed:\n%s", output)

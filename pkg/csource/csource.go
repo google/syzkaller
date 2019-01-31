@@ -422,7 +422,6 @@ func (ctx *context) postProcess(result []byte) []byte {
 	result = regexp.MustCompile(`\t*debug_dump_data\((.*\n)*?.*\);\n`).ReplaceAll(result, nil)
 	result = regexp.MustCompile(`\t*exitf\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
 	result = regexp.MustCompile(`\t*fail\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
-	result = regexp.MustCompile(`\t*error\((.*\n)*?.*\);\n`).ReplaceAll(result, []byte("\texit(1);\n"))
 
 	result = ctx.hoistIncludes(result)
 	result = ctx.removeEmptyLines(result)

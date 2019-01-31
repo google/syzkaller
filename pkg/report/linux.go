@@ -944,11 +944,6 @@ var linuxOopses = []*oops{
 				noStackTrace: true,
 			},
 			{
-				title:        compile("BUG: executor-detected bug"),
-				fmt:          "BUG: executor-detected bug",
-				noStackTrace: true,
-			},
-			{
 				title: compile("BUG: memory leak"),
 				fmt:   MemoryLeakPrefix + "%[1]v",
 				stack: &stackFmt{
