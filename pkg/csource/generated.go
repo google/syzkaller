@@ -226,9 +226,19 @@ static void thread_start(void* (*fn)(void*), void* arg)
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setstacksize(&attr, 128 << 10);
-	if (pthread_create(&th, &attr, fn, arg))
-		exitf("pthread_create failed");
-	pthread_attr_destroy(&attr);
+	int i;
+	for (i = 0; i < 100; i++) {
+		if (pthread_create(&th, &attr, fn, arg) == 0) {
+			pthread_attr_destroy(&attr);
+			return;
+		}
+		if (errno == EAGAIN) {
+			usleep(50);
+			continue;
+		}
+		break;
+	}
+	exitf("pthread_create failed");
 }
 
 #endif
