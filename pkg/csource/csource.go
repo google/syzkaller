@@ -102,7 +102,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 			fmt.Fprintf(buf, "\tif (write(1, \"executing program\\n\", sizeof(\"executing program\\n\") - 1)) {}\n")
 		}
 		if opts.Trace {
-			fmt.Fprintf(buf, "\tprintf(\"### start\\n\");\n")
+			fmt.Fprintf(buf, "\tfprintf(stderr, \"### start\\n\");\n")
 		}
 		for _, c := range calls {
 			fmt.Fprintf(buf, "%s", c)
@@ -249,7 +249,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 			// So instead of long -1 we can get 0x00000000ffffffff. Sign extend it to long.
 			cast = "(long)(int)"
 		}
-		fmt.Fprintf(w, "\tprintf(\"### call=%v errno=%%u\\n\", %vres == -1 ? errno : 0);\n", ci, cast)
+		fmt.Fprintf(w, "\tfprintf(stderr, \"### call=%v errno=%%u\\n\", %vres == -1 ? errno : 0);\n", ci, cast)
 	}
 }
 
