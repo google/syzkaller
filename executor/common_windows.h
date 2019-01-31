@@ -108,6 +108,6 @@ static void loop();
 static int do_sandbox_none(void)
 {
 	loop();
-	doexit(0);
+	return 0;
 }
 #endif

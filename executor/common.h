@@ -398,8 +398,6 @@ static long syz_execute_func(long text)
 #include "common_test.h"
 #elif GOOS_windows
 #include "common_windows.h"
-#elif GOOS_test
-#include "common_test.h"
 #else
 #error "unknown OS"
 #endif
