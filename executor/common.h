@@ -241,9 +241,22 @@ static void thread_start(void* (*fn)(void*), void* arg)
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setstacksize(&attr, 128 << 10);
-	if (pthread_create(&th, &attr, fn, arg))
-		exitf("pthread_create failed");
-	pthread_attr_destroy(&attr);
+	int i;
+	// Clone can fail spuriously with EAGAIN if there is a concurrent execve in progress.
+	// (see linux kernel commit 498052bba55ec). But it can also be a true limit imposed by cgroups.
+	// In one case we want to retry infinitely, in another -- fail immidiately...
+	for (i = 0; i < 100; i++) {
+		if (pthread_create(&th, &attr, fn, arg) == 0) {
+			pthread_attr_destroy(&attr);
+			return;
+		}
+		if (errno == EAGAIN) {
+			usleep(50);
+			continue;
+		}
+		break;
+	}
+	exitf("pthread_create failed");
 }
 
 #endif
