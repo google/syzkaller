@@ -96,15 +96,12 @@ func TestExecute(t *testing.T) {
 			opts := &ExecOpts{
 				Flags: flag,
 			}
-			output, info, failed, hanged, err := env.Exec(opts, p)
+			output, info, hanged, err := env.Exec(opts, p)
 			if err != nil {
 				t.Fatalf("failed to run executor: %v", err)
 			}
 			if hanged {
 				t.Fatalf("program hanged:\n%s", output)
-			}
-			if failed {
-				t.Fatalf("program failed:\n%s", output)
 			}
 			if len(info.Calls) == 0 {
 				t.Fatalf("no calls executed:\n%s", output)
@@ -142,17 +139,13 @@ func TestParallel(t *testing.T) {
 			}()
 			p := target.GenerateSimpleProg()
 			opts := &ExecOpts{}
-			output, info, failed, hanged, err := env.Exec(opts, p)
+			output, info, hanged, err := env.Exec(opts, p)
 			if err != nil {
 				err = fmt.Errorf("failed to run executor: %v", err)
 				return
 			}
 			if hanged {
 				err = fmt.Errorf("program hanged:\n%s", output)
-				return
-			}
-			if failed {
-				err = fmt.Errorf("program failed:\n%s", output)
 				return
 			}
 			if len(info.Calls) == 0 {

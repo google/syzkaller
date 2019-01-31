@@ -4666,8 +4666,6 @@ static void loop(void)
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
 			fail("child failed");
-		if (status == kErrorStatus)
-			error("child errored");
 		reply_execute(0);
 #endif
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
