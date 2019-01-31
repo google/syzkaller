@@ -824,7 +824,10 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 		hanged = false
 		restart = true
 	default:
-		err0 = fmt.Errorf("executor %v: exit status %d", c.pid, exitStatus)
+		// Consider this as no error.
+		// Without fork server executor can legitimately exit (program contains exit_group),
+		// with fork server the top process can exit with a special status if it wants special handling.
+		restart = true
 	}
 	return
 }

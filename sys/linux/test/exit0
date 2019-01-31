@@ -1,0 +1,3 @@
+getpid()
+exit_group(0x0)	# unexecuted
+getpid()	# unexecuted
