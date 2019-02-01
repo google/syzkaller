@@ -25,7 +25,7 @@ The first step is extraction of values of symbolic constants from Linux sources 
 `syz-extract` generates a small C program that includes kernel headers referenced by `include` directives,
 defines macros as specified by `define` directives and prints values of symbolic constants.
 Results are stored in `.const` files, one per arch.
-For example, [sys/linux/tty.txt](/sys/linux/tty.txt) is translated into [sys/linux/tty_amd64.const](/sys/linux/tty_amd64.const).
+For example, [sys/linux/dev_ptmx.txt](/sys/linux/dev_ptmx.txt) is translated into [sys/linux/dev_ptmx_amd64.const](/sys/linux/dev_ptmx_amd64.const).
 
 The second step is generation of Go code for syzkaller.
 This step uses syscall descriptions and the const files generated during the first step.
