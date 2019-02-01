@@ -3,7 +3,7 @@
 [Trusty](https://source.android.com/security/trusty) is a set of software
 components supporting a Trusted Execution Environment (TEE) on mobile devices.
 
-This is work-in-progress, see #933.
+This is work-in-progress, see #933. For now we only support testing `Trusty` via actual application ports.
 
 # Building kernel with Trusty IPC support
 
@@ -108,4 +108,51 @@ $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/qemu-build/aarch64-softmm
 SSH into the VM:
 ```
 ssh -i $BUILDROOT/key -p 10022 -o IdentitiesOnly=yes root@localhost
+```
+
+# Running syzkaller
+
+Build and run `syzkaller` as:
+```
+cd $SYZKALLER
+make TARGETARCH=arm64
+cd $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/atf/qemu/debug
+$SYZKALLER/bin/syz-manager -config trusty.cfg
+```
+
+using config along the lines of (substitute actual values for `$KERNEL`, `$SYZKALLER`, `$BUILDROOT` and `$TRUSTY`):
+```
+{
+	"name": "trusty",
+	"target": "linux/arm64",
+	"http": ":10000",
+	"workdir": "/workdir",
+	"kernel_obj": "$KERNEL",
+	"syzkaller": "$SYZKALLER",
+	"image": "$BUILDROOT/output/images/rootfs.ext4",
+	"sshkey": "$BUILDROOT/key",
+	"cover": false,
+	"procs": 4,
+	"type": "qemu",
+	"vm": {
+		"count": 4,
+		"cpu": 1,
+		"mem": 1024,
+		"qemu": "$TRUSTY/build-root/build-qemu-generic-arm64-test-debug/qemu-build/aarch64-softmmu/qemu-system-aarch64",
+		"qemu_args": "-machine virt,secure=on,virtualization=on -cpu cortex-a57 -bios $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/atf/qemu/debug/bl1.bin -d unimp -semihosting-config enable,target=native -no-acpi -dtb $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/atf/qemu/debug/qemu-comb.dtb",
+		"cmdline": "androidboot.hardware=qemu_trusty console=ttyAMA0,38400 root=/dev/vda",
+		"kernel": "$KERNEL/arch/arm64/boot/Image"
+	},
+	"enable_syscalls": [
+		"openat$trusty*",
+		"write$trusty*",
+		"read",
+		"ioctl$TIPC_IOC_CONNECT*",
+		"ppoll",
+		"dup3",
+		"tkill",
+		"gettid",		
+		"close"
+	]
+}
 ```
