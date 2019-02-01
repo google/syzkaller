@@ -1,0 +1,27 @@
+TITLE: page fault in vmem_alloc
+
+login: uvm_fault(0xfffffe807be892f8, 0x0, 1) -> e
+fatal page fault in supervisor mode
+trap type 6 code 0 rip 0xffffffff809774b3 cs 0x8 rflags 0x246 cr2 0x36 ilevel 0 rsp 0xffff800044ab3c50
+curlwp 0xfffffe807c62b040 pid 27514.2 lowest kstack 0xffff800044ab12c0
+panic: trap
+cpu0: Begin traceback...
+vpanic() at netbsd:vpanic+0x15d
+snprintf() at netbsd:snprintf
+trap() at netbsd:trap+0xa00
+--- trap (number 6) ---
+vmem_alloc() at netbsd:vmem_alloc+0x3e
+uvm_km_kmem_alloc() at netbsd:uvm_km_kmem_alloc+0x46
+kmem_intr_alloc() at netbsd:kmem_intr_alloc+0x6d
+ufs_readdir() at netbsd:ufs_readdir+0xdd
+VOP_READDIR() at netbsd:VOP_READDIR+0x5c
+vn_readdir() at netbsd:vn_readdir+0xd8
+sys___getdents30() at netbsd:sys___getdents30+0x75
+sys___syscall() at netbsd:sys___syscall+0x71
+syscall() at netbsd:syscall+0x1ec
+--- syscall (number 198) ---
+75e993c3f4aa:
+cpu0: End traceback...
+
+dumping to dev 19,1 (offset=0, size=0): not possible
+rebooting...

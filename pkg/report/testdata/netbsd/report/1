@@ -1,0 +1,25 @@
+TITLE: assert failed: pmap->pm_obj[i].uo_npages == 0
+
+panic: kernel diagnostic assertion "pmap->pm_obj[i].uo_npages == 0" failed: file "/extra/netbsd-src/sys/arch/x86/x86/pmap.c", line 2368 
+cpu0: Begin traceback...
+vpanic() at netbsd:vpanic+0x140
+ch_voltag_convert_in() at netbsd:ch_voltag_convert_in
+pmap_destroy() at netbsd:pmap_destroy+0x265
+pmap_pp_remove() at netbsd:pmap_pp_remove+0x27a
+uvm_anon_dispose() at netbsd:uvm_anon_dispose+0x11f
+uvm_anon_freelst() at netbsd:uvm_anon_freelst+0x35
+amap_wipeout() at netbsd:amap_wipeout+0x133
+uvm_unmap_detach() at netbsd:uvm_unmap_detach+0x44
+uvmspace_free() at netbsd:uvmspace_free+0xf4
+exit1() at netbsd:exit1+0x1a0
+sys_exit() at netbsd:sys_exit+0x3d
+syscall() at netbsd:syscall+0x1d8
+--- syscall (number 1) ---
+7ae76591c2ba:
+cpu0: End traceback...
+
+dumping to dev 0,1 (offset=8, size=524157):
+dump 115 114 113 112 111 110 109 108 107 106 105 104 103 102 101 100 99 98 97 96 95 94 93 92 91 90 89 88 87 86 85 84 83 82 81 80 79 78 77 76 75 74 73 72 71 70 69 68 67 66 65 64 63 62 61 60 59 58 57 56 55 54 53 52 51 50 49 48 47 46 45 44 43 42 41 40 39 38 37 36 35 34 33 32 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 succeeded
+
+
+rebooting...

@@ -1,0 +1,43 @@
+TITLE: page fault in shm_delete_mapping
+
+uvm_fault(0xffffe4007e04a180, 0x0, 1) -> e
+fatal page fault in supervisor mode
+trap type 6 code 0 rip 0xffffffff809bfb5e cs 0x8 rflags 0x10282 cr2 0 ilevel 0 rsp 0xffffe40043f6fdb0
+curlwp 0xffffe40075d40960 pid 2741.3 lowest kstack 0xffffe40043f6c2c0
+panic: trap
+cpu2: Begin traceback...
+vpanic() at netbsd:vpanic+0x140
+snprintf() at netbsd:snprintf
+trap() at netbsd:trap+0xc4c
+--- trap (number 6) ---
+shm_delete_mapping() at netbsd:shm_delete_mapping+0x46
+sys_shmat() at netbsd:sys_shmat+0x25c
+sys___syscall() at netbsd:sys___syscall+0x58
+syscall() at netbsd:syscall+0x1d8
+--- syscall (number 198) ---
+765edba3f45a:
+cpu2: End traceback...
+
+dumping to dev 0,1 (offset=8, size=524157):
+dump 113 112 111 110 109 Skipping crash dump on recursive panic
+panic: wddump: polled command has been queued
+cpu2: Begin traceback...
+vpanic() at netbsd:vpanic+0x140
+snprintf() at netbsd:snprintf
+wddump() at netbsd:wddump+0x295
+dumpsys_seg() at netbsd:dumpsys_seg+0xf3
+dump_seg_iter() at netbsd:dump_seg_iter+0xd2
+dodumpsys() at netbsd:dodumpsys+0x24b
+dumpsys() at netbsd:dumpsys+0x1d
+vpanic() at netbsd:vpanic+0x149
+snprintf() at netbsd:snprintf
+trap() at netbsd:trap+0xc4c
+--- trap (number 6) ---
+shm_delete_mapping() at netbsd:shm_delete_mapping+0x46
+sys_shmat() at netbsd:sys_shmat+0x25c
+sys___syscall() at netbsd:sys___syscall+0x58
+syscall() at netbsd:syscall+0x1d8
+--- syscall (number 198) ---
+765edba3f45a:
+cpu2: End traceback...
+rebooting...
