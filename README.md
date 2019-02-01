@@ -23,7 +23,7 @@ For other OS kernels check:
 [Darwin/XNU](docs/darwin/README.md),
 [FreeBSD](docs/freebsd.md),
 [Fuchsia](docs/fuchsia.md),
-[NetBSD](docs/netbsd.md),
+[NetBSD](docs/netbsd/README.md),
 [OpenBSD](docs/openbsd/setup.md),
 [Windows](docs/windows/README.md),
 [gVisor](docs/gvisor.md).
