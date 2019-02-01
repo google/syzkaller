@@ -218,6 +218,7 @@ static int fault_injected(int fail_fd)
 
 #if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED
+#include <errno.h>
 #include <pthread.h>
 
 static void thread_start(void* (*fn)(void*), void* arg)
