@@ -4,6 +4,8 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [bpf: BPF_PROG_TEST_RUN leads to unkillable process](https://groups.google.com/d/msg/syzkaller/EmqpzlOL164/loUGe070FwAJ)
+* [timer_settime leads to unkillable process](https://groups.google.com/d/msg/syzkaller/Q6t7TCcN630/ep3J4BT1FwAJ)
 * [UBSAN: Undefined behaviour in drivers/scsi/sr_ioctl.c](https://groups.google.com/d/msg/syzkaller/lfupcWLvlmI/ts9ut9LyEwAJ)
 * [KASAN: use-after-free Read in ata_scsi_mode_select_xlat](https://groups.google.com/d/msg/syzkaller/PSlmJbCdKF0/tasiCXl4AgAJ)
 * [UBSAN: Undefined behaviour in fs/f2fs/extent_cache.c](https://groups.google.com/d/msg/syzkaller/oAhUsPAO4RI/rivMjuUOCgAJ)
