@@ -1,4 +1,5 @@
 security=selinux
+lsm=yama,safesetid,integrity,selinux,tomoyo
 ima_policy=tcb
 workqueue.watchdog_thresh=140
 kvm-intel.nested=1
