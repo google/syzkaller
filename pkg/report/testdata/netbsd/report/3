@@ -1,0 +1,23 @@
+TITLE: page fault in callout_halt
+
+login: fatal protection fault in supervisor mode
+trap type 4 code 0 rip 0xffffffff8095a148 cs 0x8 rflags 0x286 cr2 0x7 ilevel 0x8 rsp 0xffff800044b07df0
+curlwp 0xfffffe807a6ed500 pid 1223.2 lowest kstack 0xffff800044b052c0
+panic: trap
+cpu0: Begin traceback...
+vpanic() at netbsd:vpanic+0x15d
+snprintf() at netbsd:snprintf
+trap() at netbsd:trap+0xa00
+--- trap (number 4) ---
+callout_halt() at netbsd:callout_halt+0x1b
+timer_settime() at netbsd:timer_settime+0x26
+dosetitimer() at netbsd:dosetitimer+0x204
+sys___setitimer50() at netbsd:sys___setitimer50+0xaa
+sys___syscall() at netbsd:sys___syscall+0x71
+syscall() at netbsd:syscall+0x1ec
+--- syscall (number 198) ---
+736f9e23f4aa:
+cpu0: End traceback...
+
+dumping to dev 19,1 (offset=0, size=0): not possible
+rebooting...

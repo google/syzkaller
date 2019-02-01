@@ -26,13 +26,54 @@ func ctorNetbsd(target *targets.Target, kernelSrc, kernelObj string,
 }
 
 func (ctx *netbsd) ContainsCrash(output []byte) bool {
-	return false
+	return containsCrash(output, netbsdOopses, ctx.ignores)
 }
 
 func (ctx *netbsd) Parse(output []byte) *Report {
-	return nil
+	return simpleLineParser(output, netbsdOopses, nil, ctx.ignores)
 }
 
 func (ctx *netbsd) Symbolize(rep *Report) error {
 	return nil
+}
+
+// nolint: lll
+var netbsdOopses = []*oops{
+	{
+		[]byte("fault in supervisor mode"),
+		[]oopsFormat{
+			{
+				title:  compile("fatal (?:page|protection) fault in supervisor mode"),
+				report: compile(`fatal (?:page|protection) fault in supervisor mode(?:.*\n)+?--- trap.*?\n(.*?)\(`),
+				fmt:    "page fault in %[1]v",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
+		[]byte("panic: "),
+		[]oopsFormat{
+			{
+				title:  compile("panic: kernel diagnostic assertion"),
+				report: compile(`panic: kernel diagnostic assertion "(.*?)"`),
+				fmt:    "assert failed: %[1]v",
+			},
+			{
+				title:  compile("panic: lock error"),
+				report: compile(`panic: lock error:(?:.*\n)+?.*?Begin traceback.*?\n(?:.*(?:panic|printf|lockdebug|abort|mutex).*\n)*(.*?)\(`),
+				fmt:    "lock error in %[1]v",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
+		[]byte("kASan:"),
+		[]oopsFormat{
+			{
+				title: compile("kASan:"),
+				fmt:   "kASan bug",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
 }

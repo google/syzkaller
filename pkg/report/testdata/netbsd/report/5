@@ -1,0 +1,27 @@
+TITLE: lock error in key_attach_wrapper
+
+login: Mutex error: mutex_vector_enter,552: locking against myself
+
+lock address : 0xfffffe807fbf8780
+current cpu  :                  0
+current lwp  : 0xfffffe807aefd4c0
+owner field  : 0xfffffe807aefd4c0 wait/spin:                0/0
+
+panic: lock error: Mutex: mutex_vector_enter,552: locking against myself: lock 0xfffffe807fbf8780 cpu 0 lwp 0xfffffe807aefd4c0
+cpu0: Begin traceback...
+vpanic() at netbsd:vpanic+0x15d
+snprintf() at netbsd:snprintf
+lockdebug_abort() at netbsd:lockdebug_abort+0x6e
+mutex_vector_enter() at netbsd:mutex_vector_enter+0x2c2
+key_attach_wrapper() at netbsd:key_attach_wrapper+0x6d
+socreate() at netbsd:socreate+0x167
+makesocket() at netbsd:makesocket+0x35
+sys_socketpair() at netbsd:sys_socketpair+0xb1
+sys___syscall() at netbsd:sys___syscall+0x71
+syscall() at netbsd:syscall+0x1ec
+--- syscall (number 198) ---
+72415443f4aa:
+cpu0: End traceback...
+
+dumping to dev 19,1 (offset=0, size=0): not possible
+rebooting...
