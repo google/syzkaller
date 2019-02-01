@@ -95,9 +95,9 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	if serv.checkResult != nil {
 		return nil
 	}
+	serv.mgr.machineChecked(a)
 	a.DisabledCalls = nil
 	serv.checkResult = a
-	serv.mgr.machineChecked(a)
 	return nil
 }
 
