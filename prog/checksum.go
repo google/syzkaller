@@ -105,6 +105,9 @@ func calcChecksumsCall(c *Call) (map[Arg]CsumInfo, map[Arg]struct{}) {
 			info = composePseudoCsumIPv6(csummedArg, ipSrcAddr, ipDstAddr, protocol)
 		}
 		csumMap[arg] = info
+		csumUses[csummedArg] = struct{}{}
+		csumUses[ipSrcAddr] = struct{}{}
+		csumUses[ipDstAddr] = struct{}{}
 	}
 
 	return csumMap, csumUses
