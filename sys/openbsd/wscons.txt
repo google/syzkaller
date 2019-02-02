@@ -52,6 +52,22 @@ ioctl$WSMUXIO_INJECTEVENT(fd fd_wsdisplay, cmd const[WSMUXIO_INJECTEVENT], arg p
 ioctl$WSMUXIO_LIST_DEVICES(fd fd_wsdisplay, cmd const[WSMUXIO_LIST_DEVICES], arg ptr[in, wsmux_device_list])
 ioctl$WSMUXIO_REMOVE_DEVICE(fd fd_wsdisplay, cmd const[WSMUXIO_REMOVE_DEVICE], arg ptr[in, wsmux_device])
 
+resource fd_wskbd[fd]
+
+openat$wskbd(fd const[AT_FDCWD], file ptr[in, string["/dev/wskbd0"]], flags flags[open_flags], mode const[0]) fd_wskbd
+
+resource fd_wsmouse[fd]
+
+openat$wsmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse0"]], flags flags[open_flags], mode const[0]) fd_wsmouse
+
+ioctl$WSMOUSEIO_GETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_GETPARAMS], arg ptr[out, wsmouse_parameters])
+ioctl$WSMOUSEIO_SETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_SETPARAMS], arg ptr[in, wsmouse_parameters])
+
+resource fd_wsmux[fd]
+
+openat$wsmuxkbd(fd const[AT_FDCWD], file ptr[in, string["/dev/wskbd"]], flags flags[open_flags], mode const[0]) fd_wsmux
+openat$wsmuxmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse"]], flags flags[open_flags], mode const[0]) fd_wsmux
+
 wsmux_device {
 	type	flags[wsmux_device_flags, int32]
 	idx	int32
@@ -119,6 +135,16 @@ wsdisplay_screentype {
 	fontheight	int32
 }
 
+wsmouse_param {
+	key	flags[wsmousecfg_flags, int32]
+	value	int32
+}
+
+wsmouse_parameters {
+	params	ptr[in, array[wsmouse_param]]
+	nparams	len[params, int32]
+}
+
 vt_stat {
 	v_active	int16
 	v_signal	int16
@@ -170,5 +196,7 @@ wsdisplay_font_order_flags = WSDISPLAY_FONTORDER_KNOWN, WSDISPLAY_FONTORDER_L2R,
 wsdisplay_svideo_flags = WSDISPLAYIO_VIDEO_OFF, WSDISPLAYIO_VIDEO_ON
 
 wsdisplay_burner_flags = WSDISPLAY_BURN_VBLANK, WSDISPLAY_BURN_KBD, WSDISPLAY_BURN_MOUSE, WSDISPLAY_BURN_OUTPUT
+
+wsmousecfg_flags = WSMOUSECFG_DX_SCALE, WSMOUSECFG_DY_SCALE, WSMOUSECFG_PRESSURE_LO, WSMOUSECFG_PRESSURE_HI, WSMOUSECFG_TRKMAXDIST, WSMOUSECFG_SWAPXY, WSMOUSECFG_X_INV, WSMOUSECFG_Y_INV, WSMOUSECFG_DX_MAX, WSMOUSECFG_DY_MAX, WSMOUSECFG_X_HYSTERESIS, WSMOUSECFG_Y_HYSTERESIS, WSMOUSECFG_DECELERATION, WSMOUSECFG_STRONG_HYSTERESIS, WSMOUSECFG_SMOOTHING, WSMOUSECFG_SOFTBUTTONS, WSMOUSECFG_SOFTMBTN, WSMOUSECFG_TOPBUTTONS, WSMOUSECFG_TWOFINGERSCROLL, WSMOUSECFG_EDGESCROLL, WSMOUSECFG_HORIZSCROLL, WSMOUSECFG_SWAPSIDES, WSMOUSECFG_DISABLE, WSMOUSECFG_TAPPING, WSMOUSECFG_LEFT_EDGE, WSMOUSECFG_RIGHT_EDGE, WSMOUSECFG_TOP_EDGE, WSMOUSECFG_BOTTOM_EDGE, WSMOUSECFG_CENTERWIDTH, WSMOUSECFG_HORIZSCROLLDIST, WSMOUSECFG_VERTSCROLLDIST, WSMOUSECFG_F2WIDTH, WSMOUSECFG_F2PRESSURE, WSMOUSECFG_TAP_MAXTIME, WSMOUSECFG_TAP_CLICKTIME, WSMOUSECFG_TAP_LOCKTIME, WSMOUSECFG_LOG_INPUT, WSMOUSECFG_LOG_EVENTS
 
 wsmux_device_flags = WSMUX_MOUSE, WSMUX_KBD, WSMUX_MUX
