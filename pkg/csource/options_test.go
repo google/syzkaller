@@ -31,86 +31,91 @@ func TestParseOptionsCanned(t *testing.T) {
 		"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,
 		"netdev":true,"resetnet":true,
 		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: {
-			Threaded:      true,
-			Collide:       true,
-			Repeat:        true,
-			Procs:         10,
-			Sandbox:       "namespace",
-			Fault:         true,
-			FaultCall:     1,
-			FaultNth:      2,
-			EnableTun:     true,
-			UseTmpDir:     true,
-			EnableCgroups: true,
-			EnableNetdev:  true,
-			ResetNet:      true,
-			HandleSegv:    true,
-			Repro:         true,
+			Threaded:         true,
+			Collide:          true,
+			Repeat:           true,
+			Procs:            10,
+			Sandbox:          "namespace",
+			Fault:            true,
+			FaultCall:        1,
+			FaultNth:         2,
+			EnableTun:        true,
+			EnableNetDev:     true,
+			EnableNetReset:   true,
+			EnableCgroups:    true,
+			EnableBinfmtMisc: false,
+			UseTmpDir:        true,
+			HandleSegv:       true,
+			Repro:            true,
 		},
 		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"android_untrusted_app",
 		"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,
 		"netdev":true,"resetnet":true,
 		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: {
-			Threaded:      true,
-			Collide:       true,
-			Repeat:        true,
-			Procs:         10,
-			Sandbox:       "android_untrusted_app",
-			Fault:         true,
-			FaultCall:     1,
-			FaultNth:      2,
-			EnableTun:     true,
-			UseTmpDir:     true,
-			EnableCgroups: true,
-			EnableNetdev:  true,
-			ResetNet:      true,
-			HandleSegv:    true,
-			Repro:         true,
+			Threaded:         true,
+			Collide:          true,
+			Repeat:           true,
+			Procs:            10,
+			Sandbox:          "android_untrusted_app",
+			Fault:            true,
+			FaultCall:        1,
+			FaultNth:         2,
+			EnableTun:        true,
+			EnableNetDev:     true,
+			EnableNetReset:   true,
+			EnableCgroups:    true,
+			EnableBinfmtMisc: false,
+			UseTmpDir:        true,
+			HandleSegv:       true,
+			Repro:            true,
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
-			Threaded:      true,
-			Collide:       true,
-			Repeat:        true,
-			Procs:         1,
-			Sandbox:       "none",
-			Fault:         false,
-			FaultCall:     -1,
-			FaultNth:      0,
-			EnableTun:     true,
-			UseTmpDir:     true,
-			EnableCgroups: false,
-			HandleSegv:    true,
-			Repro:         false,
+			Threaded:         true,
+			Collide:          true,
+			Repeat:           true,
+			Procs:            1,
+			Sandbox:          "none",
+			Fault:            false,
+			FaultCall:        -1,
+			FaultNth:         0,
+			EnableTun:        true,
+			EnableCgroups:    false,
+			EnableBinfmtMisc: false,
+			UseTmpDir:        true,
+			HandleSegv:       true,
+			Repro:            false,
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox: Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
-			Threaded:      true,
-			Collide:       true,
-			Repeat:        true,
-			Procs:         1,
-			Sandbox:       "",
-			Fault:         false,
-			FaultCall:     -1,
-			FaultNth:      0,
-			EnableTun:     true,
-			UseTmpDir:     true,
-			EnableCgroups: false,
-			HandleSegv:    true,
-			Repro:         false,
+			Threaded:         true,
+			Collide:          true,
+			Repeat:           true,
+			Procs:            1,
+			Sandbox:          "",
+			Fault:            false,
+			FaultCall:        -1,
+			FaultNth:         0,
+			EnableTun:        true,
+			EnableCgroups:    false,
+			EnableBinfmtMisc: false,
+			UseTmpDir:        true,
+			HandleSegv:       true,
+			Repro:            false,
 		},
 		"{Threaded:false Collide:true Repeat:true Procs:1 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true EnableCgroups:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": {
-			Threaded:      false,
-			Collide:       true,
-			Repeat:        true,
-			Procs:         1,
-			Sandbox:       "namespace",
-			Fault:         false,
-			FaultCall:     -1,
-			FaultNth:      0,
-			EnableTun:     true,
-			UseTmpDir:     true,
-			EnableCgroups: true,
-			HandleSegv:    true,
-			Repro:         false,
+			Threaded:         false,
+			Collide:          true,
+			Repeat:           true,
+			Procs:            1,
+			Sandbox:          "namespace",
+			Fault:            false,
+			FaultCall:        -1,
+			FaultNth:         0,
+			EnableTun:        true,
+			EnableCgroups:    true,
+			EnableBinfmtMisc: false,
+			UseTmpDir:        true,
+			HandleSegv:       true,
+			Repro:            false,
 		},
 	}
 	for data, want := range canned {
@@ -193,4 +198,50 @@ func enumerateField(OS string, opt Options, field int) []Options {
 		}
 	}
 	return checked
+}
+
+func TestParseFeaturesFlags(t *testing.T) {
+	tests := []struct {
+		Enable   string
+		Disable  string
+		Default  bool
+		Features map[string]bool
+	}{
+		{"none", "none", true, map[string]bool{
+			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true,
+		}},
+		{"none", "none", false, map[string]bool{
+			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false,
+		}},
+		{"all", "none", true, map[string]bool{
+			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true,
+		}},
+		{"", "none", true, map[string]bool{
+			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false,
+		}},
+		{"none", "all", true, map[string]bool{
+			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false,
+		}},
+		{"none", "", true, map[string]bool{
+			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true,
+		}},
+		{"tun,net_dev", "none", true, map[string]bool{
+			"tun": true, "net_dev": true, "net_reset": false, "cgroups": false, "binfmt_misc": false,
+		}},
+		{"none", "cgroups,net_dev", true, map[string]bool{
+			"tun": true, "net_dev": false, "net_reset": true, "cgroups": false, "binfmt_misc": true,
+		}},
+	}
+	for i, test := range tests {
+		features, err := ParseFeaturesFlags(test.Enable, test.Disable, test.Default)
+		if err != nil {
+			t.Fatalf("failed to parse features flags: %v", err)
+		}
+		for name, feature := range features {
+			if feature.Enabled != test.Features[name] {
+				t.Fatalf("test #%v: invalid value for feature flag %s: got %v, want %v",
+					i, name, feature.Enabled, test.Features[name])
+			}
+		}
+	}
 }

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
@@ -32,29 +33,37 @@ var (
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
 	flagOutput    = flag.Bool("output", false, "write programs and results to stdout")
+	flagHints     = flag.Bool("hints", false, "do a hints-generation run")
 	flagFaultCall = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
 	flagFaultNth  = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
-	flagHints     = flag.Bool("hints", false, "do a hints-generation run")
+	flagEnable    = flag.String("enable", "none", "enable only listed additional features")
+	flagDisable   = flag.String("disable", "none", "enable all additional features except listed")
 )
 
 func main() {
-	flag.Parse()
-	if len(flag.Args()) == 0 {
+	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: execprog [flags] file-with-programs+\n")
 		flag.PrintDefaults()
+		csource.PrintAvailableFeaturesFlags()
+	}
+	flag.Parse()
+	if len(flag.Args()) == 0 {
+		flag.Usage()
 		os.Exit(1)
+	}
+	featuresFlags, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, true)
+	if err != nil {
+		log.Fatalf("%v", err)
 	}
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-
 	entries := loadPrograms(target, flag.Args())
 	if len(entries) == 0 {
 		return
 	}
-
 	features, err := host.Check(target)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -67,7 +76,7 @@ func main() {
 	if _, err = host.Setup(target, features); err != nil {
 		log.Fatalf("%v", err)
 	}
-	config, execOpts := createConfig(target, entries, features)
+	config, execOpts := createConfig(target, entries, features, featuresFlags)
 
 	ctx := &Context{
 		entries:  entries,
@@ -264,7 +273,8 @@ func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
 	return entries
 }
 
-func createConfig(target *prog.Target, entries []*prog.LogEntry, features *host.Features) (
+func createConfig(target *prog.Target, entries []*prog.LogEntry,
+	features *host.Features, featuresFlags csource.Features) (
 	*ipc.Config, *ipc.ExecOpts) {
 	config, execOpts, err := ipcconfig.Default(target)
 	if err != nil {
@@ -299,11 +309,20 @@ func createConfig(target *prog.Target, entries []*prog.LogEntry, features *host.
 			handled[call.Meta.CallName] = true
 		}
 	}
-	if features[host.FeatureNetworkInjection].Enabled {
+	if featuresFlags["tun"].Enabled && features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
-	if features[host.FeatureNetworkDevices].Enabled {
+	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetworkDevices].Enabled {
 		config.Flags |= ipc.FlagEnableNetDev
+	}
+	if featuresFlags["net_reset"].Enabled {
+		config.Flags |= ipc.FlagEnableNetReset
+	}
+	if featuresFlags["cgroups"].Enabled {
+		config.Flags |= ipc.FlagEnableCgroups
+	}
+	if featuresFlags["binfmt_misc"].Enabled {
+		config.Flags |= ipc.FlagEnableBinfmtMisc
 	}
 	return config, execOpts
 }
