@@ -70,7 +70,7 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION || SYZ_ENABLE_CGROUPS || SYZ_SANDBOX_NONE || \
+#if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_TUN_ENABLE || SYZ_FAULT_INJECTION || SYZ_SANDBOX_NONE || \
     SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 #include <errno.h>
 #include <fcntl.h>
@@ -1677,6 +1677,8 @@ static void reset_ebtables()
 static void checkpoint_net_namespace(void)
 {
 #if SYZ_EXECUTOR
+	if (!flag_enable_net_reset)
+		return;
 	if (flag_sandbox == sandbox_setuid)
 		return;
 #endif
@@ -1689,6 +1691,8 @@ static void checkpoint_net_namespace(void)
 static void reset_net_namespace(void)
 {
 #if SYZ_EXECUTOR
+	if (!flag_enable_net_reset)
+		return;
 	if (flag_sandbox == sandbox_setuid)
 		return;
 #endif
@@ -1699,7 +1703,7 @@ static void reset_net_namespace(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || (SYZ_ENABLE_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP))
 #include <fcntl.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
@@ -1707,6 +1711,10 @@ static void reset_net_namespace(void)
 
 static void setup_cgroups()
 {
+#if SYZ_EXECUTOR
+	if (!flag_enable_cgroups)
+		return;
+#endif
 	if (mkdir("/syzcgroup", 0777)) {
 		debug("mkdir(/syzcgroup) failed: %d\n", errno);
 	}
@@ -1741,10 +1749,122 @@ static void setup_cgroups()
 	}
 }
 
-// TODO(dvyukov): this should be under a separate define for separate minimization,
-// but for now we bundle this with cgroups.
+#if SYZ_EXECUTOR || SYZ_REPEAT
+static void setup_cgroups_loop()
+{
+#if SYZ_EXECUTOR
+	if (!flag_enable_cgroups)
+		return;
+#endif
+	int pid = getpid();
+	char file[128];
+	char cgroupdir[64];
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/unified/syz%llu", procid);
+	if (mkdir(cgroupdir, 0777)) {
+		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
+	}
+	// Restrict number of pids per test process to prevent fork bombs.
+	// We have up to 16 threads + main process + loop.
+	// 32 pids should be enough for everyone.
+	snprintf(file, sizeof(file), "%s/pids.max", cgroupdir);
+	write_file(file, "32");
+	// Restrict memory consumption.
+	// We have some syscalls that inherently consume lots of memory,
+	// e.g. mounting some filesystem images requires at least 128MB
+	// image in memory. We restrict RLIMIT_AS to 200MB. Here we gradually
+	// increase low/high/max limits to make things more interesting.
+	// Also this takes into account KASAN quarantine size.
+	// If the limit is lower than KASAN quarantine size, then it can happen
+	// so that we kill the process, but all of its memory is in quarantine
+	// and is still accounted against memcg. As the result memcg won't
+	// allow to allocate any memory in the parent and in the new test process.
+	// The current limit of 300MB supports up to 9.6GB RAM (quarantine is 1/32).
+	snprintf(file, sizeof(file), "%s/memory.low", cgroupdir);
+	write_file(file, "%d", 298 << 20);
+	snprintf(file, sizeof(file), "%s/memory.high", cgroupdir);
+	write_file(file, "%d", 299 << 20);
+	snprintf(file, sizeof(file), "%s/memory.max", cgroupdir);
+	write_file(file, "%d", 300 << 20);
+	// Setup some v1 groups to make things more interesting.
+	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
+	write_file(file, "%d", pid);
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
+	if (mkdir(cgroupdir, 0777)) {
+		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
+	}
+	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
+	write_file(file, "%d", pid);
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
+	if (mkdir(cgroupdir, 0777)) {
+		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
+	}
+	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
+	write_file(file, "%d", pid);
+}
+
+static void setup_cgroups_test()
+{
+#if SYZ_EXECUTOR
+	if (!flag_enable_cgroups)
+		return;
+#endif
+	char cgroupdir[64];
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/unified/syz%llu", procid);
+	if (symlink(cgroupdir, "./cgroup")) {
+		debug("symlink(%s, ./cgroup) failed: %d\n", cgroupdir, errno);
+	}
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
+	if (symlink(cgroupdir, "./cgroup.cpu")) {
+		debug("symlink(%s, ./cgroup.cpu) failed: %d\n", cgroupdir, errno);
+	}
+	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
+	if (symlink(cgroupdir, "./cgroup.net")) {
+		debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir, errno);
+	}
+}
+#endif
+
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NAMESPACE
+void initialize_cgroups()
+{
+#if SYZ_EXECUTOR
+	if (!flag_enable_cgroups)
+		return;
+#endif
+	if (mkdir("./syz-tmp/newroot/syzcgroup", 0700))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/syzcgroup/unified", 0700))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/syzcgroup/cpu", 0700))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/syzcgroup/net", 0700))
+		fail("mkdir failed");
+	unsigned bind_mount_flags = MS_BIND | MS_REC | MS_PRIVATE;
+	if (mount("/syzcgroup/unified", "./syz-tmp/newroot/syzcgroup/unified", NULL, bind_mount_flags, NULL)) {
+		debug("mount(cgroup2, MS_BIND) failed: %d\n", errno);
+	}
+	if (mount("/syzcgroup/cpu", "./syz-tmp/newroot/syzcgroup/cpu", NULL, bind_mount_flags, NULL)) {
+		debug("mount(cgroup/cpu, MS_BIND) failed: %d\n", errno);
+	}
+	if (mount("/syzcgroup/net", "./syz-tmp/newroot/syzcgroup/net", NULL, bind_mount_flags, NULL)) {
+		debug("mount(cgroup/net, MS_BIND) failed: %d\n", errno);
+	}
+}
+#endif
+#endif
+
+#if SYZ_EXECUTOR || (SYZ_ENABLE_BINFMT_MISC && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP))
+#include <fcntl.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 static void setup_binfmt_misc()
 {
+#if SYZ_EXECUTOR
+	if (!flag_enable_binfmt_misc)
+		return;
+#endif
 	if (mount(0, "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, 0)) {
 		debug("mount(binfmt_misc) failed: %d\n", errno);
 	}
@@ -1764,6 +1884,8 @@ static void setup_common()
 	}
 #if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
 	setup_cgroups();
+#endif
+#if SYZ_EXECUTOR || SYZ_ENABLE_BINFMT_MISC
 	setup_binfmt_misc();
 #endif
 }
@@ -2017,23 +2139,7 @@ static int namespace_sandbox_proc(void* arg)
 	if (mount("/sys", "./syz-tmp/newroot/sys", 0, bind_mount_flags, NULL))
 		fail("mount(sysfs) failed");
 #if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
-	if (mkdir("./syz-tmp/newroot/syzcgroup", 0700))
-		fail("mkdir failed");
-	if (mkdir("./syz-tmp/newroot/syzcgroup/unified", 0700))
-		fail("mkdir failed");
-	if (mkdir("./syz-tmp/newroot/syzcgroup/cpu", 0700))
-		fail("mkdir failed");
-	if (mkdir("./syz-tmp/newroot/syzcgroup/net", 0700))
-		fail("mkdir failed");
-	if (mount("/syzcgroup/unified", "./syz-tmp/newroot/syzcgroup/unified", NULL, bind_mount_flags, NULL)) {
-		debug("mount(cgroup2, MS_BIND) failed: %d\n", errno);
-	}
-	if (mount("/syzcgroup/cpu", "./syz-tmp/newroot/syzcgroup/cpu", NULL, bind_mount_flags, NULL)) {
-		debug("mount(cgroup/cpu, MS_BIND) failed: %d\n", errno);
-	}
-	if (mount("/syzcgroup/net", "./syz-tmp/newroot/syzcgroup/net", NULL, bind_mount_flags, NULL)) {
-		debug("mount(cgroup/net, MS_BIND) failed: %d\n", errno);
-	}
+	initialize_cgroups();
 #endif
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");
@@ -2354,15 +2460,18 @@ retry:
 
 static int inject_fault(int nth)
 {
+#if SYZ_EXECUTOR
+	if (!flag_enable_fault_injection)
+		return 0;
+#endif
 	int fd;
-	char buf[16];
-
 	fd = open("/proc/thread-self/fail-nth", O_RDWR);
 	// We treat errors here as temporal/non-critical because we see
 	// occasional ENOENT/EACCES errors returned. It seems that fuzzer
 	// somehow gets its hands to it.
 	if (fd == -1)
 		exitf("failed to open /proc/thread-self/fail-nth");
+	char buf[16];
 	sprintf(buf, "%d", nth + 1);
 	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
 		exitf("failed to write /proc/thread-self/fail-nth");
@@ -2373,6 +2482,8 @@ static int inject_fault(int nth)
 #if SYZ_EXECUTOR
 static int fault_injected(int fail_fd)
 {
+	if (!flag_enable_fault_injection)
+		return 0;
 	char buf[16];
 	int n = read(fail_fd, buf, sizeof(buf) - 1);
 	if (n <= 0)
@@ -2455,50 +2566,7 @@ static void kill_and_wait(int pid, int* status)
 static void setup_loop()
 {
 #if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
-	int pid = getpid();
-	char cgroupdir[64];
-	char file[128];
-	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/unified/syz%llu", procid);
-	if (mkdir(cgroupdir, 0777)) {
-		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
-	}
-	// Restrict number of pids per test process to prevent fork bombs.
-	// We have up to 16 threads + main process + loop.
-	// 32 pids should be enough for everyone.
-	snprintf(file, sizeof(file), "%s/pids.max", cgroupdir);
-	write_file(file, "32");
-	// Restrict memory consumption.
-	// We have some syscalls that inherently consume lots of memory,
-	// e.g. mounting some filesystem images requires at least 128MB
-	// image in memory. We restrict RLIMIT_AS to 200MB. Here we gradually
-	// increase low/high/max limits to make things more interesting.
-	// Also this takes into account KASAN quarantine size.
-	// If the limit is lower than KASAN quarantine size, then it can happen
-	// so that we kill the process, but all of its memory is in quarantine
-	// and is still accounted against memcg. As the result memcg won't
-	// allow to allocate any memory in the parent and in the new test process.
-	// The current limit of 300MB supports up to 9.6GB RAM (quarantine is 1/32).
-	snprintf(file, sizeof(file), "%s/memory.low", cgroupdir);
-	write_file(file, "%d", 298 << 20);
-	snprintf(file, sizeof(file), "%s/memory.high", cgroupdir);
-	write_file(file, "%d", 299 << 20);
-	snprintf(file, sizeof(file), "%s/memory.max", cgroupdir);
-	write_file(file, "%d", 300 << 20);
-	// Setup some v1 groups to make things more interesting.
-	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	write_file(file, "%d", pid);
-	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
-	if (mkdir(cgroupdir, 0777)) {
-		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
-	}
-	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	write_file(file, "%d", pid);
-	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
-	if (mkdir(cgroupdir, 0777)) {
-		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
-	}
-	snprintf(file, sizeof(file), "%s/cgroup.procs", cgroupdir);
-	write_file(file, "%d", pid);
+	setup_cgroups_loop();
 #endif
 #if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
 	checkpoint_net_namespace();
@@ -2534,22 +2602,10 @@ static void setup_test()
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	setpgrp();
 #if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
-	char cgroupdir[64];
-	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/unified/syz%llu", procid);
-	if (symlink(cgroupdir, "./cgroup")) {
-		debug("symlink(%s, ./cgroup) failed: %d\n", cgroupdir, errno);
-	}
-	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/cpu/syz%llu", procid);
-	if (symlink(cgroupdir, "./cgroup.cpu")) {
-		debug("symlink(%s, ./cgroup.cpu) failed: %d\n", cgroupdir, errno);
-	}
-	snprintf(cgroupdir, sizeof(cgroupdir), "/syzcgroup/net/syz%llu", procid);
-	if (symlink(cgroupdir, "./cgroup.net")) {
-		debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir, errno);
-	}
+	setup_cgroups_test();
+#endif
 	// It's the leaf test process we want to be always killed first.
 	write_file("/proc/self/oom_score_adj", "1000");
-#endif
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 	// Read all remaining packets from tun to better
 	// isolate consequently executing programs.

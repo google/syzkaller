@@ -112,10 +112,13 @@ uint64 start_time_ms = 0;
 static bool flag_debug;
 static bool flag_cover;
 static sandbox_type flag_sandbox;
+static bool flag_extra_cover;
+static bool flag_enable_fault_injection;
 static bool flag_enable_tun;
 static bool flag_enable_net_dev;
-static bool flag_enable_fault_injection;
-static bool flag_extra_cover;
+static bool flag_enable_net_reset;
+static bool flag_enable_cgroups;
+static bool flag_enable_binfmt_misc;
 
 static bool flag_collect_cover;
 static bool flag_dedup_cover;
@@ -444,10 +447,13 @@ void parse_env_flags(uint64 flags)
 		flag_sandbox = sandbox_namespace;
 	else if (flags & (1 << 4))
 		flag_sandbox = sandbox_android_untrusted_app;
-	flag_enable_tun = flags & (1 << 5);
-	flag_enable_net_dev = flags & (1 << 6);
-	flag_enable_fault_injection = flags & (1 << 7);
-	flag_extra_cover = flags & (1 << 8);
+	flag_extra_cover = flags & (1 << 5);
+	flag_enable_fault_injection = flags & (1 << 6);
+	flag_enable_tun = flags & (1 << 7);
+	flag_enable_net_dev = flags & (1 << 8);
+	flag_enable_net_reset = flags & (1 << 9);
+	flag_enable_cgroups = flags & (1 << 10);
+	flag_enable_binfmt_misc = flags & (1 << 11);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER

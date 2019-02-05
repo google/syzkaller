@@ -777,7 +777,7 @@ var progSimplifies = []Simplify{
 		}
 		opts.Repeat = false
 		opts.EnableCgroups = false
-		opts.ResetNet = false
+		opts.EnableNetReset = false
 		opts.Procs = 1
 		return true
 	},
@@ -804,9 +804,10 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		}
 		opts.Sandbox = ""
 		opts.EnableTun = false
+		opts.EnableNetDev = false
+		opts.EnableNetReset = false
 		opts.EnableCgroups = false
-		opts.EnableNetdev = false
-		opts.ResetNet = false
+		opts.EnableBinfmtMisc = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -817,6 +818,20 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		return true
 	},
 	func(opts *csource.Options) bool {
+		if !opts.EnableNetDev {
+			return false
+		}
+		opts.EnableNetDev = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.EnableNetReset {
+			return false
+		}
+		opts.EnableNetReset = false
+		return true
+	},
+	func(opts *csource.Options) bool {
 		if !opts.EnableCgroups {
 			return false
 		}
@@ -824,17 +839,10 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.EnableNetdev {
+		if !opts.EnableBinfmtMisc {
 			return false
 		}
-		opts.EnableNetdev = false
-		return true
-	},
-	func(opts *csource.Options) bool {
-		if !opts.ResetNet {
-			return false
-		}
-		opts.ResetNet = false
+		opts.EnableBinfmtMisc = false
 		return true
 	},
 	func(opts *csource.Options) bool {

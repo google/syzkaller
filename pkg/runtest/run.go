@@ -349,6 +349,8 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	if ctx.Features[host.FeatureNetworkDevices].Enabled {
 		cfg.Flags |= ipc.FlagEnableNetDev
 	}
+	cfg.Flags |= ipc.FlagEnableNetReset
+	cfg.Flags |= ipc.FlagEnableCgroups
 	req := &RunRequest{
 		P:      p,
 		Cfg:    cfg,
@@ -376,7 +378,7 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 			opts.EnableTun = true
 		}
 		if ctx.Features[host.FeatureNetworkDevices].Enabled {
-			opts.EnableNetdev = true
+			opts.EnableNetDev = true
 		}
 	}
 	src, err := csource.Write(p, opts)

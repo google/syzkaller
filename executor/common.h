@@ -223,6 +223,7 @@ static int inject_fault(int nth)
 	return 0;
 }
 #endif
+
 #if SYZ_EXECUTOR
 static int fault_injected(int fail_fd)
 {

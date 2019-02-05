@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 )
@@ -27,12 +29,14 @@ type Options struct {
 	FaultNth  int  `json:"fault_nth,omitempty"`
 
 	// These options allow for a more fine-tuned control over the generated C code.
-	EnableTun     bool `json:"tun,omitempty"`
-	UseTmpDir     bool `json:"tmpdir,omitempty"`
-	EnableCgroups bool `json:"cgroups,omitempty"`
-	EnableNetdev  bool `json:"netdev,omitempty"`
-	ResetNet      bool `json:"resetnet,omitempty"`
-	HandleSegv    bool `json:"segv,omitempty"`
+	EnableTun        bool `json:"tun,omitempty"`
+	EnableNetDev     bool `json:"netdev,omitempty"`
+	EnableNetReset   bool `json:"resetnet,omitempty"`
+	EnableCgroups    bool `json:"cgroups,omitempty"`
+	EnableBinfmtMisc bool `json:"binfmt_misc,omitempty"`
+
+	UseTmpDir  bool `json:"tmpdir,omitempty"`
+	HandleSegv bool `json:"segv,omitempty"`
 
 	// Generate code for use with repro package to prints log messages,
 	// which allows to detect hangs.
@@ -58,8 +62,8 @@ func (opts Options) Check(OS string) error {
 			// This does not affect generated code.
 			return errors.New("Procs>1 without Repeat")
 		}
-		if opts.ResetNet {
-			return errors.New("ResetNet without Repeat")
+		if opts.EnableNetReset {
+			return errors.New("EnableNetReset without Repeat")
 		}
 		if opts.RepeatTimes > 1 {
 			return errors.New("RepeatTimes without Repeat")
@@ -69,11 +73,14 @@ func (opts Options) Check(OS string) error {
 		if opts.EnableTun {
 			return errors.New("EnableTun without sandbox")
 		}
+		if opts.EnableNetDev {
+			return errors.New("EnableNetDev without sandbox")
+		}
 		if opts.EnableCgroups {
 			return errors.New("EnableCgroups without sandbox")
 		}
-		if opts.EnableNetdev {
-			return errors.New("EnableNetdev without sandbox")
+		if opts.EnableBinfmtMisc {
+			return errors.New("EnableBinfmtMisc without sandbox")
 		}
 	}
 	if opts.Sandbox == sandboxNamespace && !opts.UseTmpDir {
@@ -82,11 +89,11 @@ func (opts Options) Check(OS string) error {
 		// which will fail if procs>1 and on second run of the program.
 		return errors.New("Sandbox=namespace without UseTmpDir")
 	}
+	if opts.EnableNetReset && (opts.Sandbox == "" || opts.Sandbox == sandboxSetuid) {
+		return errors.New("EnableNetReset without sandbox")
+	}
 	if opts.EnableCgroups && !opts.UseTmpDir {
 		return errors.New("EnableCgroups without UseTmpDir")
-	}
-	if opts.ResetNet && (opts.Sandbox == "" || opts.Sandbox == sandboxSetuid) {
-		return errors.New("ResetNet without sandbox")
 	}
 	return opts.checkLinuxOnly(OS)
 }
@@ -98,14 +105,17 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.EnableTun && !(OS == "openbsd" || OS == "freebsd") {
 		return fmt.Errorf("EnableTun is not supported on %v", OS)
 	}
+	if opts.EnableNetDev {
+		return fmt.Errorf("EnableNetDev is not supported on %v", OS)
+	}
+	if opts.EnableNetReset {
+		return fmt.Errorf("EnableNetReset is not supported on %v", OS)
+	}
 	if opts.EnableCgroups {
 		return fmt.Errorf("EnableCgroups is not supported on %v", OS)
 	}
-	if opts.EnableNetdev {
-		return fmt.Errorf("EnableNetdev is not supported on %v", OS)
-	}
-	if opts.ResetNet {
-		return fmt.Errorf("ResetNet is not supported on %v", OS)
+	if opts.EnableBinfmtMisc {
+		return fmt.Errorf("EnableBinfmtMisc is not supported on %v", OS)
 	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == "openbsd" || OS == "freebsd")) ||
@@ -120,27 +130,29 @@ func (opts Options) checkLinuxOnly(OS string) error {
 
 func DefaultOpts(cfg *mgrconfig.Config) Options {
 	opts := Options{
-		Threaded:      true,
-		Collide:       true,
-		Repeat:        true,
-		Procs:         cfg.Procs,
-		Sandbox:       cfg.Sandbox,
-		EnableTun:     true,
-		EnableCgroups: true,
-		EnableNetdev:  true,
-		ResetNet:      true,
-		UseTmpDir:     true,
-		HandleSegv:    true,
-		Repro:         true,
+		Threaded:         true,
+		Collide:          true,
+		Repeat:           true,
+		Procs:            cfg.Procs,
+		Sandbox:          cfg.Sandbox,
+		EnableTun:        true,
+		EnableNetDev:     true,
+		EnableNetReset:   true,
+		EnableCgroups:    true,
+		EnableBinfmtMisc: true,
+		UseTmpDir:        true,
+		HandleSegv:       true,
+		Repro:            true,
 	}
 	if cfg.TargetOS != linux {
 		opts.EnableTun = false
+		opts.EnableNetDev = false
+		opts.EnableNetReset = false
 		opts.EnableCgroups = false
-		opts.EnableNetdev = false
-		opts.ResetNet = false
+		opts.EnableBinfmtMisc = false
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
-		opts.ResetNet = false
+		opts.EnableNetReset = false
 	}
 	if err := opts.Check(cfg.TargetOS); err != nil {
 		panic(fmt.Sprintf("DefaultOpts created bad opts: %v", err))
@@ -197,4 +209,67 @@ func DeserializeOptions(data []byte) (Options, error) {
 		return opts, nil
 	}
 	return opts, err
+}
+
+type Feature struct {
+	Description string
+	Enabled     bool
+}
+
+type Features map[string]Feature
+
+func defaultFeatures(value bool) Features {
+	return map[string]Feature{
+		"tun":         {"setup and use /dev/tun for packet injection", value},
+		"net_dev":     {"setup more network devices for testing", value},
+		"net_reset":   {"reset network namespace between programs", value},
+		"cgroups":     {"setup cgroups for testing", value},
+		"binfmt_misc": {"setup binfmt_misc for testing", value},
+	}
+}
+
+func ParseFeaturesFlags(enable string, disable string, defaultValue bool) (Features, error) {
+	if enable == "none" && disable == "none" {
+		return defaultFeatures(defaultValue), nil
+	}
+	if enable != "none" && disable != "none" {
+		return nil, fmt.Errorf("can't use -enable and -disable flags at the same time")
+	}
+	if enable == "all" || disable == "" {
+		return defaultFeatures(true), nil
+	}
+	if disable == "all" || enable == "" {
+		return defaultFeatures(false), nil
+	}
+	var items []string
+	var features Features
+	if enable != "none" {
+		items = strings.Split(enable, ",")
+		features = defaultFeatures(false)
+	} else {
+		items = strings.Split(disable, ",")
+		features = defaultFeatures(true)
+	}
+	for _, item := range items {
+		if _, ok := features[item]; !ok {
+			return nil, fmt.Errorf("unknown feature specified: %s", item)
+		}
+		feature := features[item]
+		feature.Enabled = (enable != "none")
+		features[item] = feature
+	}
+	return features, nil
+}
+
+func PrintAvailableFeaturesFlags() {
+	fmt.Printf("Available features for -enable and -disable:\n")
+	features := defaultFeatures(false)
+	var names []string
+	for name := range features {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		fmt.Printf("  %s - %s\n", name, features[name].Description)
+	}
 }

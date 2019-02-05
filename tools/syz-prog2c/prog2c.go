@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"runtime"
 
@@ -27,21 +28,27 @@ var (
 	flagProg       = flag.String("prog", "", "file with program to convert (required)")
 	flagFaultCall  = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
 	flagFaultNth   = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
-	flagEnableTun  = flag.Bool("tun", false, "set up TUN/TAP interface")
-	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
-	flagCgroups    = flag.Bool("cgroups", false, "enable cgroups support")
-	flagNetdev     = flag.Bool("netdev", false, "setup various net devices")
-	flagResetNet   = flag.Bool("resetnet", false, "reset net namespace after each test")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
+	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
 	flagTrace      = flag.Bool("trace", false, "trace syscall results")
 	flagStrict     = flag.Bool("strict", false, "parse input program in strict mode")
+	flagEnable     = flag.String("enable", "none", "enable only listed additional features")
+	flagDisable    = flag.String("disable", "none", "enable all additional features except listed")
 )
 
 func main() {
+	flag.Usage = func() {
+		flag.PrintDefaults()
+		csource.PrintAvailableFeaturesFlags()
+	}
 	flag.Parse()
 	if *flagProg == "" {
-		flag.PrintDefaults()
+		flag.Usage()
 		os.Exit(1)
+	}
+	features, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, false)
+	if err != nil {
+		log.Fatalf("%v", err)
 	}
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
@@ -63,23 +70,24 @@ func main() {
 		os.Exit(1)
 	}
 	opts := csource.Options{
-		Threaded:      *flagThreaded,
-		Collide:       *flagCollide,
-		Repeat:        *flagRepeat != 1,
-		RepeatTimes:   *flagRepeat,
-		Procs:         *flagProcs,
-		Sandbox:       *flagSandbox,
-		Fault:         *flagFaultCall >= 0,
-		FaultCall:     *flagFaultCall,
-		FaultNth:      *flagFaultNth,
-		EnableTun:     *flagEnableTun,
-		UseTmpDir:     *flagUseTmpDir,
-		EnableCgroups: *flagCgroups,
-		EnableNetdev:  *flagNetdev,
-		ResetNet:      *flagResetNet,
-		HandleSegv:    *flagHandleSegv,
-		Repro:         false,
-		Trace:         *flagTrace,
+		Threaded:         *flagThreaded,
+		Collide:          *flagCollide,
+		Repeat:           *flagRepeat != 1,
+		RepeatTimes:      *flagRepeat,
+		Procs:            *flagProcs,
+		Sandbox:          *flagSandbox,
+		Fault:            *flagFaultCall >= 0,
+		FaultCall:        *flagFaultCall,
+		FaultNth:         *flagFaultNth,
+		EnableTun:        features["tun"].Enabled,
+		EnableNetDev:     features["net_dev"].Enabled,
+		EnableNetReset:   features["net_reset"].Enabled,
+		EnableCgroups:    features["cgroups"].Enabled,
+		EnableBinfmtMisc: features["binfmt_misc"].Enabled,
+		UseTmpDir:        *flagUseTmpDir,
+		HandleSegv:       *flagHandleSegv,
+		Repro:            false,
+		Trace:            *flagTrace,
 	}
 	src, err := csource.Write(p, opts)
 	if err != nil {
