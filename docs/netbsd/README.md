@@ -2,6 +2,25 @@
 
 Instructions to set up syzkaller for a Linux Host and an amd64 NetBSD kernel. 
 
+## Setup the NetBSD sources
+
+1. Get the NetBSD kernel source (preferably HEAD).
+	```sh
+	$ git clone https://github.com/NetBSD/src.git
+	```
+
+2. Build the tools
+	```sh
+	$ cd src
+	$ ./build.sh -m amd64 -U -T ../tools tools
+	```
+
+3. Build the Distribution (This might take a while)
+	```sh
+	$ cd src
+	$ ./build.sh -m amd64 -U -T ../tools -D ../dest distribution 
+	```	
+
 ## Installing and building Syzkaller on Linux Host
 	
 1. Install all the dependencies for Syzkaller (Go distribution can be downloaded from https://golang.org/dl/)
@@ -12,9 +31,9 @@ Instructions to set up syzkaller for a Linux Host and an amd64 NetBSD kernel.
 	$ cd ~/go/src/github.com/google/syzkaller
 	```
 
-3. Compile Syzkaller for NetBSD
+3. Compile Syzkaller for NetBSD 
 	```sh
-	$ make TARGETOS=netbsd
+	$ make TARGETOS=netbsd SOURCEDIR=path/to/netbsd/src
 	```
 
 The above steps should have built the Syzkaller binaries (Except the syz-executor
@@ -49,10 +68,15 @@ configure ssh.
 	PermitRootLogin without-password
 	```
 
-4. Copy your public key to `/root/.ssh/authorized_keys` on the guest and `reboot` the
+4. Now you should be able to ssh into the netbsd VM.
+	```sh
+	$ ssh -p 10022 root@127.0.0.1
+	```
+
+5. Copy your public key to `/root/.ssh/authorized_keys` on the guest and `reboot` the
    VM.
  
-5. After reboot make sure that the ssh is working properly. Replace the port with what
+6. After reboot make sure that the ssh is working properly. Replace the port with what
    you have configured. 
 	```sh
 	$ ssh -i path/to/netbsdkey -p 10022 root@127.0.0.1
@@ -94,10 +118,10 @@ You can compile a kernel with KASAN to increase the chances of finding bugs.
 	#no options	SVS
 	```
 
-4. Compile the kernel with KASAN
+4. Compile the kernel with KASAN (Assuming you have followed the inital steps to
+   build tools)
 	```sh
-	$ ./build.sh -m amd64 -j4 tools
-	$ ./build.sh -m amd64 -j4 kernel=SYZKALLER
+	$ ./build.sh -m amd64 -U -T ../tools -j4 kernel=SYZKALLER
 
 	```
 
