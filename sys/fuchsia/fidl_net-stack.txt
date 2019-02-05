@@ -8,7 +8,6 @@ include <fuchsia/net/stack/c/fidl.h>
 fuchsia_net_stack_InterfaceAddressInLine {
 	ip_addressInLine	fuchsia_net_IpAddressInLine
 	prefix_len		int8
-	peer_addressInLine	fuchsia_net_IpAddressInLine
 } [packed]
 
 fuchsia_net_stack_InterfaceAddressOutOfLine {
@@ -20,7 +19,11 @@ fuchsia_net_stack_InterfaceAddressHandles {
 } [packed]
 
 fuchsia_net_stack_InterfaceInfoHandles {
-	mac		zircon_ethernet_MacAddressHandles
+	properties	fuchsia_net_stack_InterfacePropertiesHandles
+} [packed]
+
+fuchsia_net_stack_InterfacePropertiesHandles {
+	mac		fuchsia_hardware_ethernet_MacAddressHandles
 	addresses	array[fuchsia_net_stack_InterfaceAddressHandles]
 } [packed]
 
@@ -55,14 +58,14 @@ fuchsia_net_stack_ForwardingDestinationInLine [
 ]
 
 fuchsia_net_stack_StackAddEthernetInterfaceRequest {
-	hdr				fidl_message_header[1]
+	hdr				fidl_message_header[523329667]
 	topological_pathInLine		fidl_string
 	device				flags[fidl_handle_presence, int32]
 	topological_pathOutOfLine	fidl_aligned[stringnoz]
 } [packed]
 
 fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles {
-	device	zx_chan_zircon_ethernet_Device_client
+	device	zx_chan_fuchsia_hardware_ethernet_Device_client
 } [packed]
 
 fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles {
@@ -70,7 +73,7 @@ fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackDelEthernetInterfaceRequest {
-	hdr	fidl_message_header[2]
+	hdr	fidl_message_header[164294732]
 	id	int64
 } [packed]
 
@@ -83,7 +86,7 @@ fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackListInterfacesRequest {
-	hdr	fidl_message_header[256]
+	hdr	fidl_message_header[1110617141]
 } [packed]
 
 fuchsia_net_stack_StackListInterfacesRequestHandles {
@@ -95,7 +98,7 @@ fuchsia_net_stack_StackListInterfacesResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackGetInterfaceInfoRequest {
-	hdr	fidl_message_header[257]
+	hdr	fidl_message_header[1475819982]
 	id	int64
 } [packed]
 
@@ -109,7 +112,7 @@ fuchsia_net_stack_StackGetInterfaceInfoResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackEnableInterfaceRequest {
-	hdr	fidl_message_header[258]
+	hdr	fidl_message_header[338651837]
 	id	int64
 } [packed]
 
@@ -122,7 +125,7 @@ fuchsia_net_stack_StackEnableInterfaceResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackDisableInterfaceRequest {
-	hdr	fidl_message_header[259]
+	hdr	fidl_message_header[420106991]
 	id	int64
 } [packed]
 
@@ -135,7 +138,7 @@ fuchsia_net_stack_StackDisableInterfaceResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackAddInterfaceAddressRequest {
-	hdr		fidl_message_header[260]
+	hdr		fidl_message_header[503331302]
 	id		int64
 	addrInLine	fuchsia_net_stack_InterfaceAddressInLine
 	addrOutOfLine	fuchsia_net_stack_InterfaceAddressOutOfLine
@@ -150,7 +153,7 @@ fuchsia_net_stack_StackAddInterfaceAddressResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackDelInterfaceAddressRequest {
-	hdr		fidl_message_header[261]
+	hdr		fidl_message_header[1221457197]
 	id		int64
 	addrInLine	fuchsia_net_IpAddressInLine
 } [packed]
@@ -164,7 +167,7 @@ fuchsia_net_stack_StackDelInterfaceAddressResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackGetForwardingTableRequest {
-	hdr	fidl_message_header[512]
+	hdr	fidl_message_header[1689435905]
 } [packed]
 
 fuchsia_net_stack_StackGetForwardingTableRequestHandles {
@@ -176,7 +179,7 @@ fuchsia_net_stack_StackGetForwardingTableResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackAddForwardingEntryRequest {
-	hdr		fidl_message_header[513]
+	hdr		fidl_message_header[707225626]
 	entryInLine	fuchsia_net_stack_ForwardingEntryInLine
 	entryOutOfLine	fuchsia_net_stack_ForwardingEntryOutOfLine
 } [packed]
@@ -190,7 +193,7 @@ fuchsia_net_stack_StackAddForwardingEntryResponseHandles {
 } [packed]
 
 fuchsia_net_stack_StackDelForwardingEntryRequest {
-	hdr		fidl_message_header[514]
+	hdr		fidl_message_header[456510177]
 	subnetInLine	fuchsia_net_SubnetInLine
 	subnetOutOfLine	fuchsia_net_SubnetOutOfLine
 } [packed]

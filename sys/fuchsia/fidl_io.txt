@@ -62,7 +62,7 @@ fuchsia_io_NodeInfoHandles [
 ] [varlen]
 
 fuchsia_io_NodeCloneRequest {
-	hdr	fidl_message_header[2147483649]
+	hdr	fidl_message_header[402549324]
 	flags_	int32
 	object	flags[fidl_handle_presence, int32]
 } [packed]
@@ -72,7 +72,7 @@ fuchsia_io_NodeCloneRequestHandles {
 } [packed]
 
 fuchsia_io_NodeCloseRequest {
-	hdr	fidl_message_header[2147483650]
+	hdr	fidl_message_header[1387878023]
 } [packed]
 
 fuchsia_io_NodeCloseRequestHandles {
@@ -84,7 +84,7 @@ fuchsia_io_NodeCloseResponseHandles {
 } [packed]
 
 fuchsia_io_NodeDescribeRequest {
-	hdr	fidl_message_header[2147483654]
+	hdr	fidl_message_header[526573406]
 } [packed]
 
 fuchsia_io_NodeDescribeRequestHandles {
@@ -100,7 +100,7 @@ fuchsia_io_NodeOnOpenEventHandles {
 } [packed]
 
 fuchsia_io_NodeSyncRequest {
-	hdr	fidl_message_header[2164260865]
+	hdr	fidl_message_header[1648508842]
 } [packed]
 
 fuchsia_io_NodeSyncRequestHandles {
@@ -112,7 +112,7 @@ fuchsia_io_NodeSyncResponseHandles {
 } [packed]
 
 fuchsia_io_NodeGetAttrRequest {
-	hdr	fidl_message_header[2164260866]
+	hdr	fidl_message_header[1166403528]
 } [packed]
 
 fuchsia_io_NodeGetAttrRequestHandles {
@@ -124,7 +124,7 @@ fuchsia_io_NodeGetAttrResponseHandles {
 } [packed]
 
 fuchsia_io_NodeSetAttrRequest {
-	hdr			fidl_message_header[2164260867]
+	hdr			fidl_message_header[198530458]
 	flags_			int32
 	attributesInLine	fuchsia_io_NodeAttributesInLine
 	attributesOutOfLine	fuchsia_io_NodeAttributesOutOfLine
@@ -139,7 +139,7 @@ fuchsia_io_NodeSetAttrResponseHandles {
 } [packed]
 
 fuchsia_io_NodeIoctlRequest {
-	hdr			fidl_message_header[2164260868]
+	hdr			fidl_message_header[905161895]
 	opcode			int32
 	max_out			int64
 	handlesInLine		fidl_vector
@@ -171,7 +171,7 @@ zx_channel_call$fuchsia_io_NodeSetAttr(handle zx_chan_fuchsia_io_Node_client, op
 zx_channel_call$fuchsia_io_NodeIoctl(handle zx_chan_fuchsia_io_Node_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_NodeIoctlRequest, fuchsia_io_NodeIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeIoctlResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_io_FileCloneRequest {
-	hdr	fidl_message_header[2147483649]
+	hdr	fidl_message_header[402549324]
 	flags_	int32
 	object	flags[fidl_handle_presence, int32]
 } [packed]
@@ -181,7 +181,7 @@ fuchsia_io_FileCloneRequestHandles {
 } [packed]
 
 fuchsia_io_FileCloseRequest {
-	hdr	fidl_message_header[2147483650]
+	hdr	fidl_message_header[1387878023]
 } [packed]
 
 fuchsia_io_FileCloseRequestHandles {
@@ -193,7 +193,7 @@ fuchsia_io_FileCloseResponseHandles {
 } [packed]
 
 fuchsia_io_FileDescribeRequest {
-	hdr	fidl_message_header[2147483654]
+	hdr	fidl_message_header[526573406]
 } [packed]
 
 fuchsia_io_FileDescribeRequestHandles {
@@ -209,7 +209,7 @@ fuchsia_io_FileOnOpenEventHandles {
 } [packed]
 
 fuchsia_io_FileSyncRequest {
-	hdr	fidl_message_header[2164260865]
+	hdr	fidl_message_header[1648508842]
 } [packed]
 
 fuchsia_io_FileSyncRequestHandles {
@@ -221,7 +221,7 @@ fuchsia_io_FileSyncResponseHandles {
 } [packed]
 
 fuchsia_io_FileGetAttrRequest {
-	hdr	fidl_message_header[2164260866]
+	hdr	fidl_message_header[1166403528]
 } [packed]
 
 fuchsia_io_FileGetAttrRequestHandles {
@@ -233,7 +233,7 @@ fuchsia_io_FileGetAttrResponseHandles {
 } [packed]
 
 fuchsia_io_FileSetAttrRequest {
-	hdr			fidl_message_header[2164260867]
+	hdr			fidl_message_header[198530458]
 	flags_			int32
 	attributesInLine	fuchsia_io_NodeAttributesInLine
 	attributesOutOfLine	fuchsia_io_NodeAttributesOutOfLine
@@ -248,7 +248,7 @@ fuchsia_io_FileSetAttrResponseHandles {
 } [packed]
 
 fuchsia_io_FileIoctlRequest {
-	hdr			fidl_message_header[2164260868]
+	hdr			fidl_message_header[905161895]
 	opcode			int32
 	max_out			int64
 	handlesInLine		fidl_vector
@@ -266,7 +266,7 @@ fuchsia_io_FileIoctlResponseHandles {
 } [packed]
 
 fuchsia_io_FileReadRequest {
-	hdr	fidl_message_header[2181038081]
+	hdr	fidl_message_header[636961156]
 	count	int64
 } [packed]
 
@@ -279,7 +279,7 @@ fuchsia_io_FileReadResponseHandles {
 } [packed]
 
 fuchsia_io_FileReadAtRequest {
-	hdr	fidl_message_header[2181038082]
+	hdr	fidl_message_header[2087865796]
 	count	int64
 	offset	int64
 } [packed]
@@ -293,7 +293,7 @@ fuchsia_io_FileReadAtResponseHandles {
 } [packed]
 
 fuchsia_io_FileWriteRequest {
-	hdr		fidl_message_header[2181038083]
+	hdr		fidl_message_header[85125024]
 	dataInLine	fidl_vector
 	dataOutOfLine	array[int8]
 } [packed]
@@ -307,7 +307,7 @@ fuchsia_io_FileWriteResponseHandles {
 } [packed]
 
 fuchsia_io_FileWriteAtRequest {
-	hdr		fidl_message_header[2181038084]
+	hdr		fidl_message_header[1045766885]
 	dataInLine	fidl_vector
 	offset		int64
 	dataOutOfLine	array[int8]
@@ -322,7 +322,7 @@ fuchsia_io_FileWriteAtResponseHandles {
 } [packed]
 
 fuchsia_io_FileSeekRequest {
-	hdr	fidl_message_header[2181038085]
+	hdr	fidl_message_header[2016048965]
 	offset	int64
 	start	flags[fuchsia_io_SeekOrigin, int32]
 } [packed]
@@ -336,7 +336,7 @@ fuchsia_io_FileSeekResponseHandles {
 } [packed]
 
 fuchsia_io_FileTruncateRequest {
-	hdr	fidl_message_header[2181038086]
+	hdr	fidl_message_header[1118517818]
 	length	int64
 } [packed]
 
@@ -349,7 +349,7 @@ fuchsia_io_FileTruncateResponseHandles {
 } [packed]
 
 fuchsia_io_FileGetFlagsRequest {
-	hdr	fidl_message_header[2181038087]
+	hdr	fidl_message_header[1679205366]
 } [packed]
 
 fuchsia_io_FileGetFlagsRequestHandles {
@@ -361,7 +361,7 @@ fuchsia_io_FileGetFlagsResponseHandles {
 } [packed]
 
 fuchsia_io_FileSetFlagsRequest {
-	hdr	fidl_message_header[2181038088]
+	hdr	fidl_message_header[1059310710]
 	flags_	int32
 } [packed]
 
@@ -373,17 +373,17 @@ fuchsia_io_FileSetFlagsResponseHandles {
 	void	void
 } [packed]
 
-fuchsia_io_FileGetVmoRequest {
-	hdr	fidl_message_header[2181038089]
+fuchsia_io_FileGetBufferRequest {
+	hdr	fidl_message_header[1958938995]
 	flags_	int32
 } [packed]
 
-fuchsia_io_FileGetVmoRequestHandles {
+fuchsia_io_FileGetBufferRequestHandles {
 	void	void
 } [packed]
 
-fuchsia_io_FileGetVmoResponseHandles {
-	vmo	zx_vmo
+fuchsia_io_FileGetBufferResponseHandles {
+	buffer_	fuchsia_mem_BufferHandles
 } [packed]
 
 resource zx_chan_fuchsia_io_File_client[zx_chan]
@@ -407,10 +407,10 @@ zx_channel_call$fuchsia_io_FileSeek(handle zx_chan_fuchsia_io_File_client, optio
 zx_channel_call$fuchsia_io_FileTruncate(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileTruncateRequest, fuchsia_io_FileTruncateRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileTruncateResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_io_FileGetFlags(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetFlagsRequest, fuchsia_io_FileGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileGetFlagsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_io_FileSetFlags(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileSetFlagsRequest, fuchsia_io_FileSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileSetFlagsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_io_FileGetVmo(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetVmoRequest, fuchsia_io_FileGetVmoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileGetVmoResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_io_FileGetBuffer(handle zx_chan_fuchsia_io_File_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_FileGetBufferRequest, fuchsia_io_FileGetBufferRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileGetBufferResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_io_DirectoryWatcherOnEventRequest {
-	hdr		fidl_message_header[2214592513]
+	hdr		fidl_message_header[546032797]
 	eventsInLine	fidl_vector
 	eventsOutOfLine	array[int8]
 } [packed]
@@ -427,7 +427,7 @@ fdio_service_connect$fuchsia_io_DirectoryWatcher(path ptr[in, string["/svc/"]], 
 zx_channel_write$fuchsia_io_DirectoryWatcherOnEvent(handle zx_chan_fuchsia_io_DirectoryWatcher_client, options const[0], bytes ptr[in, fuchsia_io_DirectoryWatcherOnEventRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_io_DirectoryWatcherOnEventRequestHandles], num_handles bytesize[handles])
 
 fuchsia_io_DirectoryCloneRequest {
-	hdr	fidl_message_header[2147483649]
+	hdr	fidl_message_header[402549324]
 	flags_	int32
 	object	flags[fidl_handle_presence, int32]
 } [packed]
@@ -437,7 +437,7 @@ fuchsia_io_DirectoryCloneRequestHandles {
 } [packed]
 
 fuchsia_io_DirectoryCloseRequest {
-	hdr	fidl_message_header[2147483650]
+	hdr	fidl_message_header[1387878023]
 } [packed]
 
 fuchsia_io_DirectoryCloseRequestHandles {
@@ -449,7 +449,7 @@ fuchsia_io_DirectoryCloseResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryDescribeRequest {
-	hdr	fidl_message_header[2147483654]
+	hdr	fidl_message_header[526573406]
 } [packed]
 
 fuchsia_io_DirectoryDescribeRequestHandles {
@@ -465,7 +465,7 @@ fuchsia_io_DirectoryOnOpenEventHandles {
 } [packed]
 
 fuchsia_io_DirectorySyncRequest {
-	hdr	fidl_message_header[2164260865]
+	hdr	fidl_message_header[1648508842]
 } [packed]
 
 fuchsia_io_DirectorySyncRequestHandles {
@@ -477,7 +477,7 @@ fuchsia_io_DirectorySyncResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryGetAttrRequest {
-	hdr	fidl_message_header[2164260866]
+	hdr	fidl_message_header[1166403528]
 } [packed]
 
 fuchsia_io_DirectoryGetAttrRequestHandles {
@@ -489,7 +489,7 @@ fuchsia_io_DirectoryGetAttrResponseHandles {
 } [packed]
 
 fuchsia_io_DirectorySetAttrRequest {
-	hdr			fidl_message_header[2164260867]
+	hdr			fidl_message_header[198530458]
 	flags_			int32
 	attributesInLine	fuchsia_io_NodeAttributesInLine
 	attributesOutOfLine	fuchsia_io_NodeAttributesOutOfLine
@@ -504,7 +504,7 @@ fuchsia_io_DirectorySetAttrResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryIoctlRequest {
-	hdr			fidl_message_header[2164260868]
+	hdr			fidl_message_header[905161895]
 	opcode			int32
 	max_out			int64
 	handlesInLine		fidl_vector
@@ -522,7 +522,7 @@ fuchsia_io_DirectoryIoctlResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryOpenRequest {
-	hdr		fidl_message_header[2197815297]
+	hdr		fidl_message_header[2011483371]
 	flags_		int32
 	mode		int32
 	pathInLine	fidl_string
@@ -535,7 +535,7 @@ fuchsia_io_DirectoryOpenRequestHandles {
 } [packed]
 
 fuchsia_io_DirectoryUnlinkRequest {
-	hdr		fidl_message_header[2197815298]
+	hdr		fidl_message_header[750443289]
 	pathInLine	fidl_string
 	pathOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -549,7 +549,7 @@ fuchsia_io_DirectoryUnlinkResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryReadDirentsRequest {
-	hdr		fidl_message_header[2197815299]
+	hdr		fidl_message_header[782580781]
 	max_bytes	int64
 } [packed]
 
@@ -562,7 +562,7 @@ fuchsia_io_DirectoryReadDirentsResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryRewindRequest {
-	hdr	fidl_message_header[2197815300]
+	hdr	fidl_message_header[1886584199]
 } [packed]
 
 fuchsia_io_DirectoryRewindRequestHandles {
@@ -574,7 +574,7 @@ fuchsia_io_DirectoryRewindResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryGetTokenRequest {
-	hdr	fidl_message_header[2197815301]
+	hdr	fidl_message_header[840416493]
 } [packed]
 
 fuchsia_io_DirectoryGetTokenRequestHandles {
@@ -586,7 +586,7 @@ fuchsia_io_DirectoryGetTokenResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryRenameRequest {
-	hdr			fidl_message_header[2197815302]
+	hdr			fidl_message_header[1251258540]
 	srcInLine		fidl_string
 	dst_parent_token	flags[fidl_handle_presence, int32]
 	dstInLine		fidl_string
@@ -603,7 +603,7 @@ fuchsia_io_DirectoryRenameResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryLinkRequest {
-	hdr			fidl_message_header[2197815303]
+	hdr			fidl_message_header[462052964]
 	srcInLine		fidl_string
 	dst_parent_token	flags[fidl_handle_presence, int32]
 	dstInLine		fidl_string
@@ -620,7 +620,7 @@ fuchsia_io_DirectoryLinkResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryWatchRequest {
-	hdr	fidl_message_header[2197815304]
+	hdr	fidl_message_header[1522700084]
 	mask	int32
 	options	int32
 	watcher	flags[fidl_handle_presence, int32]
@@ -657,7 +657,7 @@ zx_channel_call$fuchsia_io_DirectoryLink(handle zx_chan_fuchsia_io_Directory_cli
 zx_channel_call$fuchsia_io_DirectoryWatch(handle zx_chan_fuchsia_io_Directory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_io_DirectoryWatchRequest, fuchsia_io_DirectoryWatchRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryWatchResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_io_DirectoryAdminCloneRequest {
-	hdr	fidl_message_header[2147483649]
+	hdr	fidl_message_header[402549324]
 	flags_	int32
 	object	flags[fidl_handle_presence, int32]
 } [packed]
@@ -667,7 +667,7 @@ fuchsia_io_DirectoryAdminCloneRequestHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminCloseRequest {
-	hdr	fidl_message_header[2147483650]
+	hdr	fidl_message_header[1387878023]
 } [packed]
 
 fuchsia_io_DirectoryAdminCloseRequestHandles {
@@ -679,7 +679,7 @@ fuchsia_io_DirectoryAdminCloseResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminDescribeRequest {
-	hdr	fidl_message_header[2147483654]
+	hdr	fidl_message_header[526573406]
 } [packed]
 
 fuchsia_io_DirectoryAdminDescribeRequestHandles {
@@ -695,7 +695,7 @@ fuchsia_io_DirectoryAdminOnOpenEventHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminSyncRequest {
-	hdr	fidl_message_header[2164260865]
+	hdr	fidl_message_header[1648508842]
 } [packed]
 
 fuchsia_io_DirectoryAdminSyncRequestHandles {
@@ -707,7 +707,7 @@ fuchsia_io_DirectoryAdminSyncResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminGetAttrRequest {
-	hdr	fidl_message_header[2164260866]
+	hdr	fidl_message_header[1166403528]
 } [packed]
 
 fuchsia_io_DirectoryAdminGetAttrRequestHandles {
@@ -719,7 +719,7 @@ fuchsia_io_DirectoryAdminGetAttrResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminSetAttrRequest {
-	hdr			fidl_message_header[2164260867]
+	hdr			fidl_message_header[198530458]
 	flags_			int32
 	attributesInLine	fuchsia_io_NodeAttributesInLine
 	attributesOutOfLine	fuchsia_io_NodeAttributesOutOfLine
@@ -734,7 +734,7 @@ fuchsia_io_DirectoryAdminSetAttrResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminIoctlRequest {
-	hdr			fidl_message_header[2164260868]
+	hdr			fidl_message_header[905161895]
 	opcode			int32
 	max_out			int64
 	handlesInLine		fidl_vector
@@ -752,7 +752,7 @@ fuchsia_io_DirectoryAdminIoctlResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminOpenRequest {
-	hdr		fidl_message_header[2197815297]
+	hdr		fidl_message_header[2011483371]
 	flags_		int32
 	mode		int32
 	pathInLine	fidl_string
@@ -765,7 +765,7 @@ fuchsia_io_DirectoryAdminOpenRequestHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminUnlinkRequest {
-	hdr		fidl_message_header[2197815298]
+	hdr		fidl_message_header[750443289]
 	pathInLine	fidl_string
 	pathOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -779,7 +779,7 @@ fuchsia_io_DirectoryAdminUnlinkResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminReadDirentsRequest {
-	hdr		fidl_message_header[2197815299]
+	hdr		fidl_message_header[782580781]
 	max_bytes	int64
 } [packed]
 
@@ -792,7 +792,7 @@ fuchsia_io_DirectoryAdminReadDirentsResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminRewindRequest {
-	hdr	fidl_message_header[2197815300]
+	hdr	fidl_message_header[1886584199]
 } [packed]
 
 fuchsia_io_DirectoryAdminRewindRequestHandles {
@@ -804,7 +804,7 @@ fuchsia_io_DirectoryAdminRewindResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminGetTokenRequest {
-	hdr	fidl_message_header[2197815301]
+	hdr	fidl_message_header[840416493]
 } [packed]
 
 fuchsia_io_DirectoryAdminGetTokenRequestHandles {
@@ -816,7 +816,7 @@ fuchsia_io_DirectoryAdminGetTokenResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminRenameRequest {
-	hdr			fidl_message_header[2197815302]
+	hdr			fidl_message_header[1251258540]
 	srcInLine		fidl_string
 	dst_parent_token	flags[fidl_handle_presence, int32]
 	dstInLine		fidl_string
@@ -833,7 +833,7 @@ fuchsia_io_DirectoryAdminRenameResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminLinkRequest {
-	hdr			fidl_message_header[2197815303]
+	hdr			fidl_message_header[462052964]
 	srcInLine		fidl_string
 	dst_parent_token	flags[fidl_handle_presence, int32]
 	dstInLine		fidl_string
@@ -850,7 +850,7 @@ fuchsia_io_DirectoryAdminLinkResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminWatchRequest {
-	hdr	fidl_message_header[2197815304]
+	hdr	fidl_message_header[1522700084]
 	mask	int32
 	options	int32
 	watcher	flags[fidl_handle_presence, int32]
@@ -865,7 +865,7 @@ fuchsia_io_DirectoryAdminWatchResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminMountRequest {
-	hdr	fidl_message_header[2231369729]
+	hdr	fidl_message_header[2120159974]
 	remote	flags[fidl_handle_presence, int32]
 } [packed]
 
@@ -878,7 +878,7 @@ fuchsia_io_DirectoryAdminMountResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminMountAndCreateRequest {
-	hdr		fidl_message_header[2231369730]
+	hdr		fidl_message_header[841348753]
 	remote		flags[fidl_handle_presence, int32]
 	nameInLine	fidl_string
 	flags_		int32
@@ -894,7 +894,7 @@ fuchsia_io_DirectoryAdminMountAndCreateResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminUnmountRequest {
-	hdr	fidl_message_header[2231369731]
+	hdr	fidl_message_header[620898132]
 } [packed]
 
 fuchsia_io_DirectoryAdminUnmountRequestHandles {
@@ -906,7 +906,7 @@ fuchsia_io_DirectoryAdminUnmountResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminUnmountNodeRequest {
-	hdr	fidl_message_header[2231369732]
+	hdr	fidl_message_header[383400103]
 } [packed]
 
 fuchsia_io_DirectoryAdminUnmountNodeRequestHandles {
@@ -918,7 +918,7 @@ fuchsia_io_DirectoryAdminUnmountNodeResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminQueryFilesystemRequest {
-	hdr	fidl_message_header[2231369733]
+	hdr	fidl_message_header[1713999250]
 } [packed]
 
 fuchsia_io_DirectoryAdminQueryFilesystemRequestHandles {
@@ -930,7 +930,7 @@ fuchsia_io_DirectoryAdminQueryFilesystemResponseHandles {
 } [packed]
 
 fuchsia_io_DirectoryAdminGetDevicePathRequest {
-	hdr	fidl_message_header[2231369734]
+	hdr	fidl_message_header[787943096]
 } [packed]
 
 fuchsia_io_DirectoryAdminGetDevicePathRequestHandles {

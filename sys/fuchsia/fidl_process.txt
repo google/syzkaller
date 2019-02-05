@@ -62,7 +62,7 @@ fuchsia_process_CreateWithoutStartingResultHandles {
 } [packed]
 
 fuchsia_process_LauncherLaunchRequest {
-	hdr		fidl_message_header[1]
+	hdr		fidl_message_header[646466973]
 	infoInLine	fuchsia_process_LaunchInfoInLine
 	infoOutOfLine	fuchsia_process_LaunchInfoOutOfLine
 } [packed]
@@ -76,7 +76,7 @@ fuchsia_process_LauncherLaunchResponseHandles {
 } [packed]
 
 fuchsia_process_LauncherCreateWithoutStartingRequest {
-	hdr		fidl_message_header[2]
+	hdr		fidl_message_header[1339014161]
 	infoInLine	fuchsia_process_LaunchInfoInLine
 	infoOutOfLine	fuchsia_process_LaunchInfoOutOfLine
 } [packed]
@@ -90,7 +90,7 @@ fuchsia_process_LauncherCreateWithoutStartingResponseHandles {
 } [packed]
 
 fuchsia_process_LauncherAddArgsRequest {
-	hdr		fidl_message_header[10]
+	hdr		fidl_message_header[343996832]
 	argsInLine	fidl_vector
 	argsOutOfLine	parallel_array[fidl_string, fidl_aligned[stringnoz]]
 } [packed]
@@ -100,7 +100,7 @@ fuchsia_process_LauncherAddArgsRequestHandles {
 } [packed]
 
 fuchsia_process_LauncherAddEnvironsRequest {
-	hdr			fidl_message_header[11]
+	hdr			fidl_message_header[1220947097]
 	environInLine		fidl_vector
 	environOutOfLine	parallel_array[fidl_string, fidl_aligned[stringnoz]]
 } [packed]
@@ -110,7 +110,7 @@ fuchsia_process_LauncherAddEnvironsRequestHandles {
 } [packed]
 
 fuchsia_process_LauncherAddNamesRequest {
-	hdr		fidl_message_header[12]
+	hdr		fidl_message_header[1409085196]
 	namesInLine	fidl_vector
 	namesOutOfLine	parallel_array[fuchsia_process_NameInfoInLine, fuchsia_process_NameInfoOutOfLine]
 } [packed]
@@ -120,7 +120,7 @@ fuchsia_process_LauncherAddNamesRequestHandles {
 } [packed]
 
 fuchsia_process_LauncherAddHandlesRequest {
-	hdr			fidl_message_header[13]
+	hdr			fidl_message_header[1557565451]
 	handlesInLine		fidl_vector
 	handlesOutOfLine	parallel_array[fuchsia_process_HandleInfoInLine, fuchsia_process_HandleInfoOutOfLine]
 } [packed]
@@ -142,7 +142,7 @@ zx_channel_write$fuchsia_process_LauncherAddNames(handle zx_chan_fuchsia_process
 zx_channel_write$fuchsia_process_LauncherAddHandles(handle zx_chan_fuchsia_process_Launcher_client, options const[0], bytes ptr[in, fuchsia_process_LauncherAddHandlesRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_process_LauncherAddHandlesRequestHandles], num_handles bytesize[handles])
 
 fuchsia_process_ResolverResolveRequest {
-	hdr		fidl_message_header[1]
+	hdr		fidl_message_header[546835073]
 	nameInLine	fidl_string
 	nameOutOfLine	fidl_aligned[stringnoz]
 } [packed]

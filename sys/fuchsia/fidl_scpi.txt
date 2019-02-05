@@ -14,7 +14,7 @@ fuchsia_scpi_SystemStatusHandles {
 } [packed]
 
 fuchsia_scpi_SystemControllerGetDvfsInfoRequest {
-	hdr		fidl_message_header[1]
+	hdr		fidl_message_header[1206135815]
 	power_domain	int32
 } [packed]
 
@@ -27,7 +27,7 @@ fuchsia_scpi_SystemControllerGetDvfsInfoResponseHandles {
 } [packed]
 
 fuchsia_scpi_SystemControllerGetSystemStatusRequest {
-	hdr	fidl_message_header[2]
+	hdr	fidl_message_header[1847022830]
 } [packed]
 
 fuchsia_scpi_SystemControllerGetSystemStatusRequestHandles {
