@@ -31,10 +31,13 @@ const (
 	FlagSandboxSetuid                                   // impersonate nobody user
 	FlagSandboxNamespace                                // use namespaces for sandboxing
 	FlagSandboxAndroidUntrustedApp                      // use Android sandboxing for the untrusted_app domain
-	FlagEnableTun                                       // initialize and use tun in executor
-	FlagEnableNetDev                                    // setup a bunch of various network devices for testing
-	FlagEnableFault                                     // enable fault injection support
 	FlagExtraCover                                      // collect extra coverage
+	FlagEnableFault                                     // enable fault injection support
+	FlagEnableTun                                       // setup and use /dev/tun for packet injection
+	FlagEnableNetDev                                    // setup more network devices for testing
+	FlagEnableNetReset                                  // reset network namespace between programs
+	FlagEnableCgroups                                   // setup cgroups for testing
+	FlagEnableBinfmtMisc                                // setup binfmt_misc for testing
 	// Executor does not know about these:
 	FlagUseShmem      // use shared memory instead of pipes for communication
 	FlagUseForkServer // use extended protocol with handshake

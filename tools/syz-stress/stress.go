@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
@@ -32,7 +33,9 @@ var (
 	flagProcs    = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes")
 	flagLogProg  = flag.Bool("logprog", false, "print programs before execution")
 	flagGenerate = flag.Bool("generate", true, "generate new programs, otherwise only mutate corpus")
-	flagEnable   = flag.String("enable", "", "comma-separated list of enabled syscalls")
+	flagSyscalls = flag.String("syscalls", "", "comma-separated list of enabled syscalls")
+	flagEnable   = flag.String("enable", "none", "enable only listed additional features")
+	flagDisable  = flag.String("disable", "none", "enable all additional features except listed")
 
 	statExec uint64
 	gate     *ipc.Gate
@@ -41,7 +44,15 @@ var (
 const programLength = 30
 
 func main() {
+	flag.Usage = func() {
+		flag.PrintDefaults()
+		csource.PrintAvailableFeaturesFlags()
+	}
 	flag.Parse()
+	featuresFlags, err := csource.ParseFeaturesFlags(*flagEnable, *flagDisable, true)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -60,7 +71,7 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	calls := buildCallList(target, strings.Split(*flagEnable, ","))
+	calls := buildCallList(target, strings.Split(*flagSyscalls, ","))
 	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, calls)
 
@@ -68,11 +79,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if features[host.FeatureNetworkInjection].Enabled {
+	if featuresFlags["tun"].Enabled && features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
-	if features[host.FeatureNetworkDevices].Enabled {
+	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetworkDevices].Enabled {
 		config.Flags |= ipc.FlagEnableNetDev
+	}
+	if featuresFlags["net_reset"].Enabled {
+		config.Flags |= ipc.FlagEnableNetReset
+	}
+	if featuresFlags["cgroups"].Enabled {
+		config.Flags |= ipc.FlagEnableCgroups
+	}
+	if featuresFlags["binfmt_misc"].Enabled {
+		config.Flags |= ipc.FlagEnableBinfmtMisc
 	}
 	gate = ipc.NewGate(2**flagProcs, nil)
 	for pid := 0; pid < *flagProcs; pid++ {

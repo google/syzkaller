@@ -98,7 +98,7 @@ parallel).
 A syzkaller program can be converted to an almost equivalent C source using `syz-prog2c` utility. `syz-prog2c` has lots of flags in common with [syz-execprog](https://github.com/google/syzkaller/blob/master/docs/executing_syzkaller_programs.md), e.g. `-threaded`/`-collide` which control if the syscalls are executed sequentially or in parallel. An example invocation:
 
 ```
-syz-prog2c -prog repro.syz.txt -threaded -collide -repeat -procs=8 -sandbox=namespace -tun -tmpdir -waitrepeat
+syz-prog2c -prog repro.syz.txt -enable=all -threaded -collide -repeat -procs=8 -sandbox=namespace -segv -tmpdir -waitrepeat
 ```
 
 However, note that if `syzbot` did not provide a C reproducer, it wasn't able to trigger the bug using the C program (though, it can be just because the bug is triggered by a subtle race condition).
