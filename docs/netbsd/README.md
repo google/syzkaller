@@ -36,8 +36,7 @@ Instructions to set up syzkaller for a Linux Host and an amd64 NetBSD kernel.
 	$ make TARGETOS=netbsd SOURCEDIR=path/to/netbsd/src
 	```
 
-The above steps should have built the Syzkaller binaries (Except the syz-executor
-binary) for NetBSD. 
+The above steps should have built the Syzkaller binaries for NetBSD. 
 
 You can see the compiled binaries in `bin/netbsd_amd64`.
 
@@ -83,23 +82,6 @@ configure ssh.
 	```
 
 If the last command returns a proper shell it means the VM has been configured.
-
-
-## Compiling the executor binary
-
-Syzkaller doesn't support compiling the executor binary on a linux host hence you have
-to copy the required files to the NetBSD guest and compile them separately.
-
-1. Copy the content of the `executor/` folder to the NetBSD guest. (You can use the
-   scp command for the same) 
-
-2. Compile the executor binary with the following command on the guest. (replace
-   GIT_VERSION_HERE with the output of `git rev-parse HEAD` in the host)
-	```sh
-	$ gcc executor.cc -o syz-executor -O1 -lpthread -DGOOS_netbsd=1 -DGOARCH_amd64=1 -DGIT_REVISION=\"GIT_VERSION_HERE\"
-	```
-
-3. Copy the `syz-executor` file back to `bin/netbsd_amd64` on the linux host.
 
 
 ## Compiling a NetBSD kernel (Optional)
