@@ -2,13 +2,3 @@
 ZX_CHANNEL_MAX_MSG_BYTES = 65536
 fuchsia_net_IpAddressTag_ipv4 = 0
 fuchsia_net_IpAddressTag_ipv6 = 1
-fuchsia_net_SocketDomain_inet = 2
-fuchsia_net_SocketDomain_inet6 = 10
-fuchsia_net_SocketProtocol_icmp = 1
-fuchsia_net_SocketProtocol_icmpv6 = 58
-fuchsia_net_SocketProtocol_ip = 0
-fuchsia_net_SocketProtocol_ipv6 = 41
-fuchsia_net_SocketProtocol_tcp = 6
-fuchsia_net_SocketProtocol_udp = 17
-fuchsia_net_SocketType_dgram = 2
-fuchsia_net_SocketType_stream = 1

@@ -6,7 +6,7 @@
 include <fuchsia/ldsvc/c/fidl.h>
 
 fuchsia_ldsvc_LoaderDoneRequest {
-	hdr	fidl_message_header[1]
+	hdr	fidl_message_header[1343632858]
 } [packed]
 
 fuchsia_ldsvc_LoaderDoneRequestHandles {
@@ -14,7 +14,7 @@ fuchsia_ldsvc_LoaderDoneRequestHandles {
 } [packed]
 
 fuchsia_ldsvc_LoaderLoadObjectRequest {
-	hdr			fidl_message_header[2]
+	hdr			fidl_message_header[416505440]
 	object_nameInLine	fidl_string
 	object_nameOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -28,7 +28,7 @@ fuchsia_ldsvc_LoaderLoadObjectResponseHandles {
 } [packed]
 
 fuchsia_ldsvc_LoaderLoadScriptInterpreterRequest {
-	hdr				fidl_message_header[3]
+	hdr				fidl_message_header[852262734]
 	interpreter_nameInLine		fidl_string
 	interpreter_nameOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -42,7 +42,7 @@ fuchsia_ldsvc_LoaderLoadScriptInterpreterResponseHandles {
 } [packed]
 
 fuchsia_ldsvc_LoaderConfigRequest {
-	hdr		fidl_message_header[4]
+	hdr		fidl_message_header[450803597]
 	configInLine	fidl_string
 	configOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -56,7 +56,7 @@ fuchsia_ldsvc_LoaderConfigResponseHandles {
 } [packed]
 
 fuchsia_ldsvc_LoaderCloneRequest {
-	hdr	fidl_message_header[5]
+	hdr	fidl_message_header[946011321]
 	loader	flags[fidl_handle_presence, int32]
 } [packed]
 
@@ -69,7 +69,7 @@ fuchsia_ldsvc_LoaderCloneResponseHandles {
 } [packed]
 
 fuchsia_ldsvc_LoaderDebugPublishDataSinkRequest {
-	hdr			fidl_message_header[7]
+	hdr			fidl_message_header[1332017729]
 	data_sinkInLine		fidl_string
 	data			flags[fidl_handle_presence, int32]
 	data_sinkOutOfLine	fidl_aligned[stringnoz]
@@ -84,7 +84,7 @@ fuchsia_ldsvc_LoaderDebugPublishDataSinkResponseHandles {
 } [packed]
 
 fuchsia_ldsvc_LoaderDebugLoadConfigRequest {
-	hdr			fidl_message_header[8]
+	hdr			fidl_message_header[1915582394]
 	config_nameInLine	fidl_string
 	config_nameOutOfLine	fidl_aligned[stringnoz]
 } [packed]

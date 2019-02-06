@@ -27,7 +27,7 @@ fuchsia_power_BatteryStatusHandles {
 } [packed]
 
 fuchsia_power_PowerManagerGetBatteryStatusRequest {
-	hdr	fidl_message_header[1]
+	hdr	fidl_message_header[1245959964]
 } [packed]
 
 fuchsia_power_PowerManagerGetBatteryStatusRequestHandles {
@@ -39,7 +39,7 @@ fuchsia_power_PowerManagerGetBatteryStatusResponseHandles {
 } [packed]
 
 fuchsia_power_PowerManagerWatchRequest {
-	hdr	fidl_message_header[2]
+	hdr	fidl_message_header[1083615561]
 	watcher	flags[fidl_handle_presence, int32]
 } [packed]
 
@@ -56,7 +56,7 @@ zx_channel_call$fuchsia_power_PowerManagerGetBatteryStatus(handle zx_chan_fuchsi
 zx_channel_write$fuchsia_power_PowerManagerWatch(handle zx_chan_fuchsia_power_PowerManager_client, options const[0], bytes ptr[in, fuchsia_power_PowerManagerWatchRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_power_PowerManagerWatchRequestHandles], num_handles bytesize[handles])
 
 fuchsia_power_PowerManagerWatcherOnChangeBatteryStatusRequest {
-	hdr			fidl_message_header[1]
+	hdr			fidl_message_header[1282068360]
 	battery_statusInLine	fuchsia_power_BatteryStatusInLine
 	battery_statusOutOfLine	fuchsia_power_BatteryStatusOutOfLine
 } [packed]
