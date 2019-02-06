@@ -25,11 +25,10 @@ var layerToLibs = map[string][]string{
 		"fuchsia-io",
 		"fuchsia-net",
 		"fuchsia-net-stack",
-		"zircon-ethernet",
+		"fuchsia-hardware-ethernet",
 	},
 	"garnet": {
 		"fuchsia.devicesettings",
-		"fuchsia.mediacodec",
 		"fuchsia.timezone",
 		"fuchsia.power",
 		"fuchsia.scpi",

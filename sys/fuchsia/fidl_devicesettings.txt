@@ -7,7 +7,7 @@ include <fuchsia/devicesettings/c/fidl.h>
 fuchsia_devicesettings_ValueType = fuchsia_devicesettings_ValueType_number, fuchsia_devicesettings_ValueType_text
 
 fuchsia_devicesettings_DeviceSettingsManagerGetIntegerRequest {
-	hdr		fidl_message_header[1]
+	hdr		fidl_message_header[1556999609]
 	keyInLine	fidl_string
 	keyOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -21,7 +21,7 @@ fuchsia_devicesettings_DeviceSettingsManagerGetIntegerResponseHandles {
 } [packed]
 
 fuchsia_devicesettings_DeviceSettingsManagerGetStringRequest {
-	hdr		fidl_message_header[2]
+	hdr		fidl_message_header[1273992648]
 	keyInLine	fidl_string
 	keyOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -35,7 +35,7 @@ fuchsia_devicesettings_DeviceSettingsManagerGetStringResponseHandles {
 } [packed]
 
 fuchsia_devicesettings_DeviceSettingsManagerSetIntegerRequest {
-	hdr		fidl_message_header[3]
+	hdr		fidl_message_header[959124463]
 	keyInLine	fidl_string
 	val		int64
 	keyOutOfLine	fidl_aligned[stringnoz]
@@ -50,7 +50,7 @@ fuchsia_devicesettings_DeviceSettingsManagerSetIntegerResponseHandles {
 } [packed]
 
 fuchsia_devicesettings_DeviceSettingsManagerSetStringRequest {
-	hdr		fidl_message_header[4]
+	hdr		fidl_message_header[569579958]
 	keyInLine	fidl_string
 	valInLine	fidl_string
 	keyOutOfLine	fidl_aligned[stringnoz]
@@ -66,7 +66,7 @@ fuchsia_devicesettings_DeviceSettingsManagerSetStringResponseHandles {
 } [packed]
 
 fuchsia_devicesettings_DeviceSettingsManagerWatchRequest {
-	hdr		fidl_message_header[5]
+	hdr		fidl_message_header[975255377]
 	keyInLine	fidl_string
 	watcher		flags[fidl_handle_presence, int32]
 	keyOutOfLine	fidl_aligned[stringnoz]
@@ -92,7 +92,7 @@ zx_channel_call$fuchsia_devicesettings_DeviceSettingsManagerSetString(handle zx_
 zx_channel_call$fuchsia_devicesettings_DeviceSettingsManagerWatch(handle zx_chan_fuchsia_devicesettings_DeviceSettingsManager_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_devicesettings_DeviceSettingsManagerWatchRequest, fuchsia_devicesettings_DeviceSettingsManagerWatchRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_devicesettings_DeviceSettingsManagerWatchResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_devicesettings_DeviceSettingsWatcherOnChangeSettingsRequest {
-	hdr	fidl_message_header[1]
+	hdr	fidl_message_header[616225214]
 	type_	flags[fuchsia_devicesettings_ValueType, int8]
 } [packed]
 
