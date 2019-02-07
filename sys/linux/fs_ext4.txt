@@ -11,14 +11,13 @@ ioctl$EXT4_IOC_GROUP_ADD(fd fd, cmd const[EXT4_IOC_GROUP_ADD], arg ptr[in, ext4_
 ioctl$EXT4_IOC_MIGRATE(fd fd, cmd const[EXT4_IOC_MIGRATE])
 ioctl$EXT4_IOC_ALLOC_DA_BLKS(fd fd, cmd const[EXT4_IOC_ALLOC_DA_BLKS])
 ioctl$EXT4_IOC_MOVE_EXT(fd fd, cmd const[EXT4_IOC_MOVE_EXT], arg ptr[in, move_extent])
-ioctl$EXT4_IOC_RESIZE_FS(fd fd, cmd const[EXT4_IOC_RESIZE_FS], arg ptr[in, int64])
 ioctl$EXT4_IOC_SWAP_BOOT(fd fd, cmd const[EXT4_IOC_SWAP_BOOT])
 ioctl$EXT4_IOC_PRECACHE_EXTENTS(fd fd, cmd const[EXT4_IOC_PRECACHE_EXTENTS])
 
 ext4_inode_flags = EXT4_SECRM_FL, EXT4_UNRM_FL, EXT4_COMPR_FL, EXT4_SYNC_FL, EXT4_IMMUTABLE_FL, EXT4_APPEND_FL, EXT4_NODUMP_FL, EXT4_NOATIME_FL, EXT4_PROJINHERIT_FL, EXT4_EOFBLOCKS_FL, EXT4_JOURNAL_DATA_FL, EXT4_NOTAIL_FL, EXT4_DIRSYNC_FL, EXT4_TOPDIR_FL, EXT4_EXTENTS_FL
 
-# Don't enable shutdown, EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
-_ = EXT4_IOC_SHUTDOWN
+# See comments in init.go.
+_ = EXT4_IOC_SHUTDOWN, EXT4_IOC_RESIZE_FS
 
 ext4_new_group_input {
 	group		int32
