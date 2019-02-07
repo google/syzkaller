@@ -24,6 +24,7 @@ func InitTarget(target *prog.Target) {
 		SNAPSHOT_FREEZE:           target.GetConst("SNAPSHOT_FREEZE"),
 		SNAPSHOT_UNFREEZE:         target.GetConst("SNAPSHOT_UNFREEZE"),
 		EXT4_IOC_SHUTDOWN:         target.GetConst("EXT4_IOC_SHUTDOWN"),
+		EXT4_IOC_RESIZE_FS:        target.GetConst("EXT4_IOC_RESIZE_FS"),
 		EXT4_IOC_MIGRATE:          target.GetConst("EXT4_IOC_MIGRATE"),
 		FAN_OPEN_PERM:             target.GetConst("FAN_OPEN_PERM"),
 		FAN_ACCESS_PERM:           target.GetConst("FAN_ACCESS_PERM"),
@@ -114,6 +115,7 @@ type arch struct {
 	SNAPSHOT_FREEZE           uint64
 	SNAPSHOT_UNFREEZE         uint64
 	EXT4_IOC_SHUTDOWN         uint64
+	EXT4_IOC_RESIZE_FS        uint64
 	EXT4_IOC_MIGRATE          uint64
 	FAN_OPEN_PERM             uint64
 	FAN_ACCESS_PERM           uint64
@@ -163,6 +165,13 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
 		// Fortunately, the value does not conflict with any other ioctl commands for now.
 		if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_SHUTDOWN {
+			cmd.Val = arch.EXT4_IOC_MIGRATE
+		}
+		// EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
+		// and then creation of new temp dirs for tests will fail.
+		// TODO: not necessary for sandbox=namespace as it tests in a tmpfs
+		// and/or if we mount tmpfs for sandbox=none (#971).
+		if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_RESIZE_FS {
 			cmd.Val = arch.EXT4_IOC_MIGRATE
 		}
 	case "fanotify_mark":
