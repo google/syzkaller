@@ -1,0 +1,8 @@
+# This makes syz-executor non-executable.
+# Does not work with repeat because on the second iteration the executor is still non-executable.
+# setuid does not have permissions to set extended acl.
+# FS_IOC_FSSETXATTR fails with EOPNOTSUPP, but it still changes the attrs.
+# requires: -repeat -sandbox=setuid
+
+r0 = syz_open_procfs(0x0, &AUTO='exe\x00')
+fsetxattr$system_posix_acl(r0, &AUTO='system.posix_acl_access\x00', &AUTO={{AUTO}, {0x1, 0x2, AUTO}, [{AUTO, 0x0, 0x0}, {0x2, 0x4, 0x0}], {AUTO, 0x0, AUTO}, [], {0x10, 0x2, AUTO}, {AUTO, 0x0, AUTO}}, 0x34, 0x0)	# EOPNOTSUPP

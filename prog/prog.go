@@ -166,6 +166,13 @@ func (arg *DataArg) Data() []byte {
 	return arg.data
 }
 
+func (arg *DataArg) SetData(data []byte) {
+	if arg.Type().Dir() == DirOut {
+		panic("setting data of output data arg")
+	}
+	arg.data = append([]byte{}, data...)
+}
+
 // Used for StructType and ArrayType.
 // Logical group of args (struct or array).
 type GroupArg struct {
