@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,7 +31,34 @@ func RemoveAll(dir string) error {
 		fn := []byte(name + "\x00")
 		syscall.Syscall(syscall.SYS_UMOUNT2, uintptr(unsafe.Pointer(&fn[0])), syscall.MNT_FORCE, 0)
 	}
-	return os.RemoveAll(dir)
+	if err := os.RemoveAll(dir); err != nil {
+		removeImmutable(dir)
+		return os.RemoveAll(dir)
+	}
+	return nil
+}
+
+func removeImmutable(fname string) error {
+	// Reset FS_XFLAG_IMMUTABLE/FS_XFLAG_APPEND.
+	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(fd)
+	flags := 0
+	var cmd uint64 // FS_IOC_SETFLAGS
+	switch runtime.GOARCH {
+	case "386", "arm":
+		cmd = 1074030082
+	case "amd64", "arm64":
+		cmd = 1074292226
+	case "ppc64le":
+		cmd = 2148034050
+	default:
+		panic("unknown arch")
+	}
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), uintptr(cmd), uintptr(unsafe.Pointer(&flags)))
+	return errno
 }
 
 func Sandbox(cmd *exec.Cmd, user, net bool) error {
