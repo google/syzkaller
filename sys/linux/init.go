@@ -4,6 +4,7 @@
 package linux
 
 import (
+	"bytes"
 	"runtime"
 
 	"github.com/google/syzkaller/prog"
@@ -150,30 +151,7 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 			cmd.Val = arch.SYSLOG_ACTION_SIZE_UNREAD
 		}
 	case "ioctl":
-		cmd := c.Args[1].(*prog.ConstArg)
-		// Freeze kills machine. Though, it is an interesting functions,
-		// so we need to test it somehow.
-		// TODO: not required if executor drops privileges.
-		// Fortunately, the value does not conflict with any other ioctl commands for now.
-		if uint64(uint32(cmd.Val)) == arch.FIFREEZE {
-			cmd.Val = arch.FITHAW
-		}
-		// SNAPSHOT_FREEZE freezes all processes and leaves the machine dead.
-		if uint64(uint32(cmd.Val)) == arch.SNAPSHOT_FREEZE {
-			cmd.Val = arch.SNAPSHOT_UNFREEZE
-		}
-		// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
-		// Fortunately, the value does not conflict with any other ioctl commands for now.
-		if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_SHUTDOWN {
-			cmd.Val = arch.EXT4_IOC_MIGRATE
-		}
-		// EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
-		// and then creation of new temp dirs for tests will fail.
-		// TODO: not necessary for sandbox=namespace as it tests in a tmpfs
-		// and/or if we mount tmpfs for sandbox=none (#971).
-		if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_RESIZE_FS {
-			cmd.Val = arch.EXT4_IOC_MIGRATE
-		}
+		arch.sanitizeIoctl(c)
 	case "fanotify_mark":
 		// FAN_*_PERM require the program to reply to open requests.
 		// If that does not happen, the program will hang in an unkillable state forever.
@@ -212,11 +190,60 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		default:
 			family.Val = ^uint64(0)
 		}
+	case "syz_open_procfs":
+		arch.sanitizeSyzOpenProcfs(c)
 	}
 
 	switch c.Meta.Name {
 	case "setsockopt$EBT_SO_SET_ENTRIES":
 		arch.sanitizeEbtables(c)
+	}
+}
+
+func (arch *arch) sanitizeIoctl(c *prog.Call) {
+	cmd := c.Args[1].(*prog.ConstArg)
+	// Freeze kills machine. Though, it is an interesting functions,
+	// so we need to test it somehow.
+	// TODO: not required if executor drops privileges.
+	// Fortunately, the value does not conflict with any other ioctl commands for now.
+	if uint64(uint32(cmd.Val)) == arch.FIFREEZE {
+		cmd.Val = arch.FITHAW
+	}
+	// SNAPSHOT_FREEZE freezes all processes and leaves the machine dead.
+	if uint64(uint32(cmd.Val)) == arch.SNAPSHOT_FREEZE {
+		cmd.Val = arch.SNAPSHOT_UNFREEZE
+	}
+	// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
+	// Fortunately, the value does not conflict with any other ioctl commands for now.
+	if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_SHUTDOWN {
+		cmd.Val = arch.EXT4_IOC_MIGRATE
+	}
+	// EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
+	// and then creation of new temp dirs for tests will fail.
+	// TODO: not necessary for sandbox=namespace as it tests in a tmpfs
+	// and/or if we mount tmpfs for sandbox=none (#971).
+	if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_RESIZE_FS {
+		cmd.Val = arch.EXT4_IOC_MIGRATE
+	}
+}
+
+func (arch *arch) sanitizeSyzOpenProcfs(c *prog.Call) {
+	// If fuzzer manages to open /proc/self/exe, it does some nasty things with it:
+	//  - mark as non-executable
+	//  - set some extended acl's that prevent execution
+	//  - mark as immutable, etc
+	// As the result we fail to start executor again and recreate the VM.
+	// Don't let it open /proc/self/exe.
+	ptr := c.Args[1].(*prog.PointerArg)
+	if ptr.Res != nil {
+		arg := ptr.Res.(*prog.DataArg)
+		file := arg.Data()
+		for len(file) != 0 && (file[0] == '/' || file[0] == '.') {
+			file = file[1:]
+		}
+		if bytes.HasPrefix(file, []byte("exe")) {
+			arg.SetData([]byte("net\x00"))
+		}
 	}
 }
 

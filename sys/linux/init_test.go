@@ -136,6 +136,22 @@ exit_group(0x1)
 exit_group(0x1)
 `,
 		},
+		{
+			`
+syz_open_procfs(0x0, &(0x7f0000000000)='io')
+syz_open_procfs(0x0, &(0x7f0000000000)='exe')
+syz_open_procfs(0x0, &(0x7f0000000000)='exe\x00')
+syz_open_procfs(0x0, &(0x7f0000000000)='/exe')
+syz_open_procfs(0x0, &(0x7f0000000000)='./exe\x00')
+`,
+			`
+syz_open_procfs(0x0, &(0x7f0000000000)='io')
+syz_open_procfs(0x0, &(0x7f0000000000)='net\x00')
+syz_open_procfs(0x0, &(0x7f0000000000)='net\x00')
+syz_open_procfs(0x0, &(0x7f0000000000)='net\x00')
+syz_open_procfs(0x0, &(0x7f0000000000)='net\x00')
+			`,
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {

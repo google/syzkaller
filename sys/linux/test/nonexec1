@@ -1,0 +1,7 @@
+# This makes syz-executor non-executable.
+# sandbox=namespace does not have permissions for FS_IOC_FSSETXATTR.
+# requires: -repeat -sandbox=namespace -sandbox=setuid
+
+r0 = syz_open_procfs(0x0, &AUTO='exe\x00')
+fsetxattr$system_posix_acl(r0, &AUTO='system.posix_acl_access\x00', &AUTO={{AUTO}, {0x1, 0x2, AUTO}, [{AUTO, 0x0, 0x0}, {0x2, 0x4, 0x0}], {AUTO, 0x0, AUTO}, [], {0x10, 0x2, AUTO}, {AUTO, 0x0, AUTO}}, 0x34, 0x0)	# EOPNOTSUPP
+ioctl$FS_IOC_FSSETXATTR(r0, 0x40086602, &AUTO={0x17e, 0x0, 0x0, 0x0, 0x0, 0x0})		# ENOTTY
