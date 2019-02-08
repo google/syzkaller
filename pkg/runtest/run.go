@@ -159,32 +159,32 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 					name += "/thr"
 				}
 				properties["threaded"] = threaded
-				for _, cov := range cover {
-					if sandbox == "" {
-						break // executor does not support empty sandbox
-					}
-					name := name
-					if cov {
-						name += "/cover"
-					}
-					properties["cover"] = cov
-					properties["C"] = false
-					properties["executor"] = true
-					req, err := ctx.createSyzTest(p, sandbox, threaded, cov)
-					if err != nil {
-						return err
-					}
-					ctx.produceTest(progs, req, name, properties, requires, results)
-				}
 				for _, times := range []int{1, 3} {
-					name := name
-					properties["C"] = true
-					properties["executor"] = false
 					properties["repeat"] = times > 1
 					properties["norepeat"] = times <= 1
 					if times > 1 {
 						name += "/repeat"
 					}
+					for _, cov := range cover {
+						if sandbox == "" {
+							break // executor does not support empty sandbox
+						}
+						name := name
+						if cov {
+							name += "/cover"
+						}
+						properties["cover"] = cov
+						properties["C"] = false
+						properties["executor"] = true
+						req, err := ctx.createSyzTest(p, sandbox, threaded, cov, times)
+						if err != nil {
+							return err
+						}
+						ctx.produceTest(progs, req, name, properties, requires, results)
+					}
+					name := name
+					properties["C"] = true
+					properties["executor"] = false
 					name += " C"
 					if !sysTarget.ExecutorUsesForkServer && times > 1 {
 						// Non-fork loop implementation does not support repetition.
@@ -241,16 +241,18 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		}
 	}
 	errnos := map[string]int{
-		"":        0,
-		"EPERM":   1,
-		"ENOENT":  2,
-		"E2BIG":   7,
-		"ENOEXEC": 8,
-		"EBADF":   9,
-		"ENOMEM":  12,
-		"EACCES":  13,
-		"EFAULT":  14,
-		"EINVAL":  22,
+		"":           0,
+		"EPERM":      1,
+		"ENOENT":     2,
+		"E2BIG":      7,
+		"ENOEXEC":    8,
+		"EBADF":      9,
+		"ENOMEM":     12,
+		"EACCES":     13,
+		"EFAULT":     14,
+		"EINVAL":     22,
+		"ENOTTY":     25,
+		"EOPNOTSUPP": 95,
 	}
 	info := &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(p.Calls))}
 	for i, call := range p.Calls {
@@ -310,7 +312,7 @@ func match(props map[string]bool, requires map[string]bool) bool {
 	return true
 }
 
-func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool) (*RunRequest, error) {
+func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bool, times int) (*RunRequest, error) {
 	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
 	cfg := new(ipc.Config)
 	opts := new(ipc.ExecOpts)
@@ -345,7 +347,7 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 		P:      p,
 		Cfg:    cfg,
 		Opts:   opts,
-		Repeat: 3,
+		Repeat: times,
 	}
 	return req, nil
 }
@@ -504,13 +506,26 @@ func RunTest(req *RunRequest, executor string) {
 		return
 	}
 	req.Cfg.Executor = executor
-	env, err := ipc.MakeEnv(req.Cfg, 0)
-	if err != nil {
-		req.Err = fmt.Errorf("failed to create ipc env: %v", err)
-		return
-	}
-	defer env.Close()
+	var env *ipc.Env
+	defer func() {
+		if env != nil {
+			env.Close()
+		}
+	}()
 	for run := 0; run < req.Repeat; run++ {
+		if run%2 == 0 {
+			// Recreate Env every few iterations, this allows to cover more paths.
+			if env != nil {
+				env.Close()
+				env = nil
+			}
+			var err error
+			env, err = ipc.MakeEnv(req.Cfg, 0)
+			if err != nil {
+				req.Err = fmt.Errorf("failed to create ipc env: %v", err)
+				return
+			}
+		}
 		output, info, hanged, err := env.Exec(req.Opts, req.P)
 		req.Output = append(req.Output, output...)
 		if err != nil {
