@@ -43,6 +43,7 @@ EOF
 
 cat >etc/sysctl.conf <<EOF
 ddb.max_line=0
+ddb.max_width=0
 hw.smt=1
 EOF
 

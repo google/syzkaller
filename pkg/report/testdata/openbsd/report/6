@@ -7,10 +7,8 @@ TITLE: pool: double put: lockfpl
 panic() at panic+0x147
 pool_do_put(ffffff001692bd18,ffffffff81ec0850) at pool_do_put+0x2e2
 pool_put(ffffff0016933440,ffff80000e3793e8) at pool_put+0x37
-lf_advlock(40,ffffff001dc251c8,2,ffff80000e3793e8,ffffffff81df26c0,200000040) a
-t lf_advlock+0x270
-VOP_ADVLOCK(ffffff0015a96da8,ffff80000e2a3080,3,ffffff001f7ca350,3) at VOP_ADVL
-OCK+0x67
+lf_advlock(40,ffffff001dc251c8,2,ffff80000e3793e8,ffffffff81df26c0,200000040) at lf_advlock+0x270
+VOP_ADVLOCK(ffffff0015a96da8,ffff80000e2a3080,3,ffffff001f7ca350,3) at VOP_ADVLOCK+0x67
 closef(ffff80000e2a3080,ffffff001f7ca350) at closef+0xaf
 fdfree(ffff80000e27c008) at fdfree+0x98
 exit1(ffff80000e3795c0,ffff80000e2a3080,ffff80000e27c008) at exit1+0x226
@@ -26,10 +24,8 @@ TITLE: pool: double put: lockfpl
 panic() at panic+0x147
 pool_do_put(ffffff001692bd18,ffffffff81ec0850) at pool_do_put+0x2e2
 pool_put(ffffff0016933440,ffff80000e3793e8) at pool_put+0x37
-lf_advlock(40,ffffff001dc251c8,2,ffff80000e3793e8,ffffffff81df26c0,200000040) a
-t lf_advlock+0x270
-VOP_ADVLOCK(ffffff0015a96da8,ffff80000e2a3080,3,ffffff001f7ca350,3) at VOP_ADVL
-OCK+0x67
+lf_advlock(40,ffffff001dc251c8,2,ffff80000e3793e8,ffffffff81df26c0,200000040) at lf_advlock+0x270
+VOP_ADVLOCK(ffffff0015a96da8,ffff80000e2a3080,3,ffffff001f7ca350,3) at VOP_ADVLOCK+0x67
 closef(ffff80000e2a3080,ffffff001f7ca350) at closef+0xaf
 fdfree(ffff80000e27c008) at fdfree+0x98
 exit1(ffff80000e3795c0,ffff80000e2a3080,ffff80000e27c008) at exit1+0x226
