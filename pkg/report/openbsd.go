@@ -70,9 +70,6 @@ func (ctx *openbsd) Parse(output []byte) *Report {
 		return nil
 	}
 	rep.Output = output
-	if report := ctx.shortenReport(rep.Report); len(report) != 0 {
-		rep.Report = report
-	}
 	return rep
 }
 
@@ -140,19 +137,6 @@ func (ctx *openbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbol
 		symbolized = append(symbolized, modified...)
 	}
 	return symbolized
-}
-
-func (ctx *openbsd) shortenReport(report []byte) []byte {
-	out := new(bytes.Buffer)
-	for s := bufio.NewScanner(bytes.NewReader(report)); s.Scan(); {
-		line := s.Bytes()
-		out.Write(line)
-		// Kernel splits lines at 79 column.
-		if len(line) != 79 {
-			out.WriteByte('\n')
-		}
-	}
-	return out.Bytes()
 }
 
 var openbsdOopses = []*oops{
