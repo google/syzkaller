@@ -15,7 +15,8 @@ import (
 func DiagnoseOpenBSD(w io.Writer) bool {
 	commands := []string{
 		"",
-		"set $lines = 0", // disable pagination
+		"set $lines = 0",    // disable pagination
+		"set $maxwidth = 0", // disable line continuation
 		"show panic",
 		"trace",
 		"show registers",
