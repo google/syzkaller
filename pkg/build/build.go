@@ -120,8 +120,16 @@ func extractRootCause(err error) error {
 	if !ok {
 		return err
 	}
+	cause := extractCauseInner(verr.Output)
+	if cause != nil {
+		verr.Title = string(cause)
+	}
+	return KernelBuildError{verr}
+}
+
+func extractCauseInner(s []byte) []byte {
 	var cause []byte
-	for _, line := range bytes.Split(verr.Output, []byte{'\n'}) {
+	for _, line := range bytes.Split(s, []byte{'\n'}) {
 		for _, pattern := range buildFailureCauses {
 			if pattern.weak && cause != nil {
 				continue
@@ -132,10 +140,7 @@ func extractRootCause(err error) error {
 			}
 		}
 	}
-	if cause != nil {
-		verr.Title = string(cause)
-	}
-	return KernelBuildError{verr}
+	return cause
 }
 
 type buildFailureCause struct {
