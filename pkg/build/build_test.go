@@ -53,7 +53,7 @@ int kcov_cold = 1;
 		},
 	} {
 		got := extractCauseInner([]byte(s.e))
-		if bytes.Compare([]byte(s.expect), got) != 0 {
+		if !bytes.Equal([]byte(s.expect), got) {
 			t.Errorf("Expected %s, got %s", s.expect, got)
 		}
 	}
