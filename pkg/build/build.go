@@ -5,6 +5,7 @@
 package build
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -112,4 +113,40 @@ func CompilerIdentity(compiler string) (string, error) {
 		return strings.TrimSpace(line), nil
 	}
 	return "", fmt.Errorf("no output from compiler --version")
+}
+
+func extractRootCause(err error) error {
+	verr, ok := err.(*osutil.VerboseError)
+	if !ok {
+		return err
+	}
+	var cause []byte
+	for _, line := range bytes.Split(verr.Output, []byte{'\n'}) {
+		for _, pattern := range buildFailureCauses {
+			if pattern.weak && cause != nil {
+				continue
+			}
+			if bytes.Contains(line, pattern.pattern) {
+				cause = line
+				break
+			}
+		}
+	}
+	if cause != nil {
+		verr.Title = string(cause)
+	}
+	return KernelBuildError{verr}
+}
+
+type buildFailureCause struct {
+	pattern []byte
+	weak    bool
+}
+
+var buildFailureCauses = [...]buildFailureCause{
+	{pattern: []byte(": error: ")},
+	{pattern: []byte(": fatal error: ")},
+	{pattern: []byte(": undefined reference to")},
+	{weak: true, pattern: []byte(": final link failed: ")},
+	{weak: true, pattern: []byte("collect2: error: ")},
 }
