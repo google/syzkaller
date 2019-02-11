@@ -1274,6 +1274,71 @@ icmpv6_ni_packet {
 	data	array[int8]
 } [packed]
 
+icmpv6_ndisc_option_types = ND_OPT_SOURCE_LL_ADDR, ND_OPT_TARGET_LL_ADDR, ND_OPT_PREFIX_INFO, ND_OPT_REDIRECT_HDR, ND_OPT_MTU, ND_OPT_NONCE, ND_OPT_ROUTE_INFO, ND_OPT_RDNSS, ND_OPT_DNSSL, ND_OPT_6CO
+
+# https://tools.ietf.org/html/rfc4861#section-4.6
+icmpv6_ndisc_option {
+	option_type	flags[icmpv6_ndisc_option_types, int8]
+	length		bytesize8[parent, int8]
+# TODO: define the option formats
+	data		array[int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.1
+icmpv6_ndisc_router_solicit_packet {
+	type	const[NDISC_ROUTER_SOLICITATION, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	unused	array[const[0, int8], 4]
+	options	array[icmpv6_ndisc_option]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.2
+icmpv6_ndisc_router_advert_packet {
+	type		const[NDISC_ROUTER_ADVERTISEMENT, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	cur_hop_limit	int8
+# TODO: Implement bitflags for the router advert flags
+	router_flags	int8
+	router_lifetime	int16
+	reachable_time	int32
+	retrans_time	int32
+	options		array[icmpv6_ndisc_option]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.3
+icmpv6_ndisc_neigh_solicit_packet {
+	type		const[NDISC_NEIGHBOUR_SOLICITATION, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	target_addr	ipv6_addr
+	options		array[icmpv6_ndisc_option]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.4
+icmpv6_ndisc_neigh_advert_packet {
+	type		const[NDISC_NEIGHBOUR_ADVERTISEMENT, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+# TODO: Implement bitflags for the neighbor advert flags
+	neighbor_flags	int8
+	unused		array[const[0, int8], 3]
+	target_addr	ipv6_addr
+	options		array[icmpv6_ndisc_option]
+} [packed]
+
+# https://tools.ietf.org/html/rfc4861#section-4.5
+icmpv6_ndisc_redir_packet {
+	type		const[NDISC_REDIRECT, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	unused		array[const[0, int8], 4]
+	target_addr	ipv6_addr
+	dst_addr	ipv6_addr
+	options		array[icmpv6_ndisc_option]
+} [packed]
+
 icmpv6_packet [
 	dest_unreach	icmpv6_dest_unreach_packet
 	pkt_toobig	icmpv6_pkt_toobig_packet
@@ -1283,6 +1348,11 @@ icmpv6_packet [
 	echo_reply	icmpv6_echo_reply_packet
 	mld		icmpv6_mld_packet
 	ni		icmpv6_ni_packet
+	ndisc_rs	icmpv6_ndisc_router_solicit_packet
+	ndisc_ra	icmpv6_ndisc_router_advert_packet
+	ndisc_na	icmpv6_ndisc_neigh_advert_packet
+	ndisc_ns	icmpv6_ndisc_neigh_solicit_packet
+	ndisc_redir	icmpv6_ndisc_redir_packet
 # TODO: ICMPV6_MLD2_REPORT
 # TODO: ICMPV6_DHAAD_REQUEST, ICMPV6_DHAAD_REPLY, ICMPV6_MOBILE_PREFIX_SOL, ICMPV6_MOBILE_PREFIX_ADV (with ipv6 ext headers)
 ] [varlen]
