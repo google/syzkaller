@@ -31,13 +31,13 @@ func TestCheckRepoAddress(t *testing.T) {
 		"https://anonscm.debian.org/git/kernel/linux.git":                       true,
 		"git://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                       true,
 		"http://host.xz:123/path/to/repo.git/":                                  true,
-		"":           false,
-		"foobar":     false,
-		"linux-next": false,
-		"foo://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":    false,
-		"git://kernel/ubuntu.git":                            false,
-		"git://kernel.com/ubuntu":                            false,
-		"gitgit://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git": false,
+		"":                                                                      false,
+		"foobar":                                                                false,
+		"linux-next":                                                            false,
+		"foo://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                       false,
+		"git://kernel/ubuntu.git":                                               false,
+		"git://kernel.com/ubuntu":                                               false,
+		"gitgit://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                    false,
 	})
 }
 
