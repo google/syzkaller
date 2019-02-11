@@ -1,6 +1,6 @@
 # Setup: Ubuntu host, QEMU vm, x86-64 kernel
 
-These are the instructions on how to fuzz the x86-64 kernel in a QEMU with Ubuntu 14.04 on the host machine and Debian Wheezy in the QEMU instances.
+These are the instructions on how to fuzz the x86-64 kernel in a QEMU with Ubuntu 14.04 on the host machine and Debian Stretch in the QEMU instances.
 
 ## GCC
 
@@ -120,7 +120,7 @@ They should obviously be executed before packing the `.img` file.
 
 To install other packages (not required to run syzkaller):
 ``` bash
-sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y curl tar time strace gcc make sysbench git vim screen usbutils"
+sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y make sysbench git vim tmux usbutils"
 ```
 
 To install Trinity (not required to run syzkaller):
