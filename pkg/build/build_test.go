@@ -4,6 +4,7 @@
 package build
 
 import (
+	"bytes"
 	"os/exec"
 	"strings"
 	"testing"
@@ -32,5 +33,28 @@ func TestCompilerIdentity(t *testing.T) {
 			// so just print it for manual inspection.
 			t.Logf("id: '%v'", id)
 		})
+	}
+}
+
+func TestExtractRootCause(t *testing.T) {
+	for _, s := range []struct{ e, expect string }{
+		{`
+cc -g -Werror db_break.c
+sys/dev/kcov.c:93:6: error: use of undeclared identifier 'kcov_cold123'; did you mean 'kcov_cold'?
+        if (kcov_cold123)
+            ^~~~~~~~~~~~
+            kcov_cold
+sys/dev/kcov.c:65:5: note: 'kcov_cold' declared here
+int kcov_cold = 1;
+    ^
+1 error generated.
+`,
+			"sys/dev/kcov.c:93:6: error: use of undeclared identifier 'kcov_cold123'; did you mean 'kcov_cold'?",
+		},
+	} {
+		got := extractCauseInner([]byte(s.e))
+		if !bytes.Equal([]byte(s.expect), got) {
+			t.Errorf("Expected %s, got %s", s.expect, got)
+		}
 	}
 }

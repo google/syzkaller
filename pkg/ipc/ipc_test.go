@@ -127,8 +127,9 @@ func TestParallel(t *testing.T) {
 	const P = 10
 	errs := make(chan error, P)
 	for p := 0; p < P; p++ {
+		p := p
 		go func() {
-			env, err := MakeEnv(cfg, 0)
+			env, err := MakeEnv(cfg, p)
 			if err != nil {
 				errs <- fmt.Errorf("failed to create env: %v", err)
 				return

@@ -29,7 +29,7 @@ fi
 rm -fr etc && mkdir -p etc
 cat >install.site <<EOF
 #!/bin/sh
-PKGS="bash gcc git gmake go llvm nano wget"
+PKGS="bash gcc%8 git gmake go llvm nano wget"
 PKG_PATH=https://${MIRROR}/pub/OpenBSD/${DOWNLOAD_VERSION}/packages/${ARCH}/ pkg_add -I \$PKGS
 PKG_PATH= pkg_info -I \$PKGS && echo pkg_add OK
 

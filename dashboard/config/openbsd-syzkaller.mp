@@ -4,4 +4,5 @@ pseudo-device kcov 1
 
 option LOCKF_DIAGNOSTIC
 option WITNESS
+option WITNESS_LOCKTRACE
 option WITNESS_WATCH

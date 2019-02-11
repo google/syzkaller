@@ -190,14 +190,15 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 	env.bin[0] = osutil.Abs(env.bin[0]) // we are going to chdir
 	// Append pid to binary name.
 	// E.g. if binary is 'syz-executor' and pid=15,
-	// we create a link from 'syz-executor15' to 'syz-executor' and use 'syz-executor15' as binary.
+	// we create a link from 'syz-executor.15' to 'syz-executor' and use 'syz-executor.15' as binary.
 	// This allows to easily identify program that lead to a crash in the log.
-	// Log contains pid in "executing program 15" and crashes usually contain "Comm: syz-executor15".
+	// Log contains pid in "executing program 15" and crashes usually contain "Comm: syz-executor.15".
 	base := filepath.Base(env.bin[0])
-	pidStr := fmt.Sprint(pid)
-	if len(base)+len(pidStr) >= 16 {
-		// TASK_COMM_LEN is currently set to 16
-		base = base[:15-len(pidStr)]
+	pidStr := fmt.Sprintf(".%v", pid)
+	const maxLen = 16 // TASK_COMM_LEN is currently set to 16
+	if len(base)+len(pidStr) >= maxLen {
+		// Remove beginning of file name, in tests temp files have unique numbers at the end.
+		base = base[len(base)+len(pidStr)-maxLen+1:]
 	}
 	binCopy := filepath.Join(filepath.Dir(env.bin[0]), base+pidStr)
 	if err := os.Link(env.bin[0], binCopy); err == nil {
@@ -514,8 +515,7 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File, outmem []byte) (
-	*command, error) {
+func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File, outmem []byte) (*command, error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
