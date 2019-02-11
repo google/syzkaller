@@ -467,26 +467,29 @@ func checkFaultInjection() string {
 		return reason
 	}
 	if err := osutil.IsAccessible("/sys/kernel/debug/failslab/ignore-gfp-wait"); err != nil {
-		return "CONFIG_FAULT_INJECTION_DEBUG_FS is not enabled"
+		return "CONFIG_FAULT_INJECTION_DEBUG_FS or CONFIG_FAILSLAB are not enabled"
 	}
 	return ""
 }
 
 func setupFaultInjection() error {
+	// Note: these files are also hardcoded in pkg/csource/csource.go.
 	if err := osutil.WriteFile("/sys/kernel/debug/failslab/ignore-gfp-wait", []byte("N")); err != nil {
 		return fmt.Errorf("failed to write /failslab/ignore-gfp-wait: %v", err)
 	}
+	// These are enabled by separate configs (e.g. CONFIG_FAIL_FUTEX)
+	// and we did not check all of them in checkFaultInjection, so we ignore errors.
 	if err := osutil.WriteFile("/sys/kernel/debug/fail_futex/ignore-private", []byte("N")); err != nil {
-		return fmt.Errorf("failed to write /fail_futex/ignore-private: %v", err)
+		log.Logf(0, "failed to write /sys/kernel/debug/fail_futex/ignore-private: %v", err)
 	}
 	if err := osutil.WriteFile("/sys/kernel/debug/fail_page_alloc/ignore-gfp-highmem", []byte("N")); err != nil {
-		return fmt.Errorf("failed to write /fail_page_alloc/ignore-gfp-highmem: %v", err)
+		log.Logf(0, "failed to write /sys/kernel/debug/fail_page_alloc/ignore-gfp-highmem: %v", err)
 	}
 	if err := osutil.WriteFile("/sys/kernel/debug/fail_page_alloc/ignore-gfp-wait", []byte("N")); err != nil {
-		return fmt.Errorf("failed to write /fail_page_alloc/ignore-gfp-wait: %v", err)
+		log.Logf(0, "failed to write /sys/kernel/debug/fail_page_alloc/ignore-gfp-wait: %v", err)
 	}
 	if err := osutil.WriteFile("/sys/kernel/debug/fail_page_alloc/min-order", []byte("0")); err != nil {
-		return fmt.Errorf("failed to write /fail_page_alloc/min-order: %v", err)
+		log.Logf(0, "failed to write /sys/kernel/debug/fail_page_alloc/min-order: %v", err)
 	}
 	return nil
 }
