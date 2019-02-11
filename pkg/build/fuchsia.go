@@ -28,7 +28,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	}
 	for src, dst := range map[string]string{
 		"out/" + arch + "/obj/build/images/fvm.blk": "image",
-		".ssh/pkey":                                 "key",
+		".ssh/pkey": "key",
 		"out/build-zircon/build-" + arch + "/zircon.elf":    "obj/zircon.elf",
 		"out/build-zircon/build-" + arch + "/multiboot.bin": "kernel",
 		"out/" + arch + "/fuchsia.zbi":                      "initrd",
