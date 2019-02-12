@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/ipc/ipcconfig"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -30,6 +32,7 @@ var (
 	flagProcs    = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes")
 	flagLogProg  = flag.Bool("logprog", false, "print programs before execution")
 	flagGenerate = flag.Bool("generate", true, "generate new programs, otherwise only mutate corpus")
+	flagEnable   = flag.String("enable", "", "comma-separated list of enabled syscalls")
 
 	statExec uint64
 	gate     *ipc.Gate
@@ -57,7 +60,7 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	calls := buildCallList(target)
+	calls := buildCallList(target, strings.Split(*flagEnable, ","))
 	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, calls)
 
@@ -145,7 +148,7 @@ func readCorpus(target *prog.Target) []*prog.Prog {
 	return progs
 }
 
-func buildCallList(target *prog.Target) map[*prog.Syscall]bool {
+func buildCallList(target *prog.Target, enabled []string) map[*prog.Syscall]bool {
 	if *flagOS != runtime.GOOS {
 		// This is currently used on akaros, where syz-stress runs on host.
 		calls := make(map[*prog.Syscall]bool)
@@ -156,10 +159,26 @@ func buildCallList(target *prog.Target) map[*prog.Syscall]bool {
 	}
 	calls, disabled, err := host.DetectSupportedSyscalls(target, "none")
 	if err != nil {
-		log.Logf(0, "failed to detect host supported syscalls: %v", err)
-		calls = make(map[*prog.Syscall]bool)
-		for _, c := range target.Syscalls {
-			calls[c] = true
+		log.Fatalf("failed to detect host supported syscalls: %v", err)
+	}
+	if len(enabled) != 0 {
+		syscallsIDs, err := mgrconfig.ParseEnabledSyscalls(target, enabled, nil)
+		if err != nil {
+			log.Fatalf("failed to parse enabled syscalls: %v", err)
+		}
+		enabledSyscalls := make(map[*prog.Syscall]bool)
+		for _, id := range syscallsIDs {
+			enabledSyscalls[target.Syscalls[id]] = true
+		}
+		for c := range calls {
+			if !enabledSyscalls[c] {
+				delete(calls, c)
+			}
+		}
+		for c := range disabled {
+			if !enabledSyscalls[c] {
+				delete(disabled, c)
+			}
 		}
 	}
 	for c, reason := range disabled {
