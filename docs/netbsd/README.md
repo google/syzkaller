@@ -6,10 +6,12 @@ Instructions to set up syzkaller for a Linux Host and an amd64 NetBSD kernel.
 
 1. Get the NetBSD kernel source (preferably HEAD).
 	```sh
+	$ mdkir $HOME/netbsd
+	$ cd $HOME/netbsd
 	$ git clone https://github.com/NetBSD/src.git
 	```
 
-2. Build the tools
+2. Build the tools (You will have the toolchain in $HOME/netbsd/tools)
 	```sh
 	$ cd src
 	$ ./build.sh -m amd64 -U -T ../tools tools
@@ -17,9 +19,10 @@ Instructions to set up syzkaller for a Linux Host and an amd64 NetBSD kernel.
 
 3. Build the Distribution (This might take a while)
 	```sh
-	$ cd src
 	$ ./build.sh -m amd64 -U -T ../tools -D ../dest distribution 
 	```	
+
+At this point you should have a NetBSD distribution at `$HOME/netbsd/dest`.
 
 ## Installing and building Syzkaller on Linux Host
 	
@@ -31,9 +34,9 @@ Instructions to set up syzkaller for a Linux Host and an amd64 NetBSD kernel.
 	$ cd ~/go/src/github.com/google/syzkaller
 	```
 
-3. Compile Syzkaller for NetBSD 
+3. Compile Syzkaller for NetBSD  
 	```sh
-	$ make TARGETOS=netbsd SOURCEDIR=path/to/netbsd/src
+	$ make TARGETOS=netbsd SOURCEDIR=$HOME/netbsd/src
 	```
 
 The above steps should have built the Syzkaller binaries for NetBSD. 
@@ -54,9 +57,10 @@ configure ssh.
 	$ ssh-keygen -t rsa
 	```
 
-2. Append the following lines to `/etc/rc.conf` on the guest.
+2. Append the following lines to `/etc/rc.conf` on the guest. (use `vi` editor)
 	```
 	sshd=YES
+	dhcpcd=YES
 	ifconfig_wm0="inet 10.0.2.15 netmask 255.255.255.0"
 	```
 	
@@ -64,6 +68,7 @@ configure ssh.
 	```
 	Port 22
 	ListenAddress 10.0.2.15
+	PermitRootLogin yes
 	PermitRootLogin without-password
 	```
 
@@ -72,8 +77,8 @@ configure ssh.
 	$ ssh -p 10022 root@127.0.0.1
 	```
 
-5. Copy your public key to `/root/.ssh/authorized_keys` on the guest and `reboot` the
-   VM.
+5. Copy and paste your public key to `/root/.ssh/authorized_keys` on the guest 
+   and `reboot` the VM.
  
 6. After reboot make sure that the ssh is working properly. Replace the port with what
    you have configured. 
@@ -90,6 +95,7 @@ You can compile a kernel with KASAN to increase the chances of finding bugs.
 
 1. Make a copy of the config file
 	```sh
+	$ cd $HOME/netbsd/src
 	$ cp sys/arch/amd64/conf/GENERIC sys/arch/amd64/conf/SYZKALLER 
 	```
 
@@ -100,16 +106,17 @@ You can compile a kernel with KASAN to increase the chances of finding bugs.
 	#no options	SVS
 	```
 
-4. Compile the kernel with KASAN (Assuming you have followed the inital steps to
+3. Compile the kernel with KASAN (Assuming you have followed the inital steps to
    build tools)
 	```sh
+	$ cd $HOME/netbsd/src
 	$ ./build.sh -m amd64 -U -T ../tools -j4 kernel=SYZKALLER
 
 	```
 
-4. Compiled kernel image should be found in `sys/arch/amd64/compile/SYZKALLER` and
-   should have the name `netbsd`. You need to copy it to the installed VM and reboot
-   the VM.
+4. At this point you should have the new compiled kernel image which can be found in 
+   `$HOME/netbsd/src/sys/arch/amd64/compile/SYZKALLER` and should have the name 
+   `netbsd`. You need to copy it to the installed VM and reboot the VM.
 
 ## Running Syzkaller
 
