@@ -1,0 +1,24 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Hafnium is a hypervisor.
+# See https://hafnium.googlesource.com/hafnium and docs/hafnium/README.md
+
+include <uapi/linux/socket.h>
+include <linux/socket.h>
+include <linux/net.h>
+
+define AF_HF	AF_ECONET
+
+resource sock_hf[sock]
+
+socket$hf(domain const[AF_HF], type const[SOCK_DGRAM], proto const[0]) sock_hf
+connect$hf(fd sock_hf, addr ptr[in, sockaddr_hf], addrlen len[addr])
+sendmsg$hf(fd sock_hf, msg ptr[in, send_msghdr], f flags[send_flags])
+recvmsg$hf(fd sock_hf, msg ptr[inout, recv_msghdr], f flags[recv_flags])
+
+sockaddr_hf {
+	family	const[AF_HF, int16]
+	vm_id	proc[1, 2, int32]
+	port	int64
+}
