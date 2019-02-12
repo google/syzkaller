@@ -54,7 +54,7 @@ configure ssh.
 
 1. Create a ssh-keypair on the host and save it as `netbsdkey`.
 	```sh
-	$ ssh-keygen -t rsa
+	$ ssh-keygen -f netbsdkey -t rsa -N ""
 	```
 
 2. Append the following lines to `/etc/rc.conf` on the guest. (use `vi` editor)
