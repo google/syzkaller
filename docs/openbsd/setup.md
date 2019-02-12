@@ -1,46 +1,43 @@
-# Setup
+Setup
+=====
 
-Instructions for running OpenBSD host, OpenBSD vm, amd64 kernel.
-In addition, the host must be running `-current`.
+Instructions for running OpenBSD host, OpenBSD vm, amd64 kernel. In addition, the host must be running `-current`.
 
 Variables used throughout the instructions:
 
-- `$KERNEL` - Custom built kernel, see [Compile Kernel](#compile-kernel).
-              Defaults to `/sys/arch/amd64/compile/SYZKALLER/obj/bsd` if the
-              instructions are honored.
-- `$SSHKEY` - SSH key ***without a passphrase*** used to connect to the VMs,
-              it's advised to use a dedicated key.
-- `$USER`   - The name of the user intended to run syzkaller.
-- `$VMIMG`  - VM disk image.
-- `$VMID`   - The numeric ID of last started VM.
+-	`$KERNEL` - Custom built kernel, see [Compile Kernel](#compile-kernel). Defaults to `/sys/arch/amd64/compile/SYZKALLER/obj/bsd` if the instructions are honored.
+-	`$SSHKEY` - SSH key ***without a passphrase*** used to connect to the VMs, it's advised to use a dedicated key.
+-	`$USER` - The name of the user intended to run syzkaller.
+-	`$VMIMG` - VM disk image.
+-	`$VMID` - The numeric ID of last started VM.
 
-## Install syzkaller
+Install syzkaller
+-----------------
 
-1. Install dependencies:
+1.	Install dependencies:
 
-   ```sh
-   # pkg_add git gmake go
-   ```
+	```sh
+	# pkg_add git gmake go
+	```
 
-   In order for reproducers to work, GCC from ports is also required:
+In order for reproducers to work, GCC from ports is also required:
 
-   ```sh
+```sh
    # pkg_add gcc
-   ```
+```
 
-2. Clone repository:
+1.	Clone repository:
 
-   ```sh
-   $ go get github.com/google/syzkaller
-   $ cd ~/go/src/github.com/google/syzkaller
-   $ gmake all
-   ```
+	```sh
+	$ go get github.com/google/syzkaller
+	$ cd ~/go/src/github.com/google/syzkaller
+	$ gmake all
+	```
 
-## Compile Kernel
+Compile Kernel
+--------------
 
-A `GENERIC` kernel must be compiled with
-[kcov(4)](https://man.openbsd.org/kcov.4)
-enabled:
+A `GENERIC` kernel must be compiled with [kcov(4)](https://man.openbsd.org/kcov.4) enabled:
 
 ```sh
 $ cd /sys/arch/amd64
@@ -54,63 +51,63 @@ $ make -C compile/SYZKALLER config
 $ make -C compile/SYZKALLER
 ```
 
-## Create VM
+Create VM
+---------
 
-1. [vmd(8)](https://man.openbsd.org/vmd.8)
-   must be configured to allow non-root users to create VMs since it removes the
-   need to run syzkaller as root:
+1.	[vmd(8)](https://man.openbsd.org/vmd.8) must be configured to allow non-root users to create VMs since it removes the need to run syzkaller as root:
 
-   ```sh
-   $ cat /etc/vm.conf
-   vm "syzkaller" {
-     disable
-     disk "/dev/null"
-     local interface
-     owner $USER
-     allow instance { boot, disk, memory }
-   }
-   ```
+	```sh
+	$ cat /etc/vm.conf
+	vm "syzkaller" {
+	 disable
+	 disk "/dev/null"
+	 local interface
+	 owner $USER
+	 allow instance { boot, disk, memory }
+	}
+	```
 
-2. Create disk image:
+2.	Create disk image:
 
-   ```sh
-   $ vmctl create "qcow2:$VMIMG" -s 4G
-   ```
+	```sh
+	$ vmctl create "qcow2:$VMIMG" -s 4G
+	```
 
-3. Install VM:
+3.	Install VM:
 
-   ```sh
-   $ vmctl start syzkaller-1 -c -t syzkaller -b /bsd.rd -d "$VMIMG"
-   ```
+	```sh
+	$ vmctl start syzkaller-1 -c -t syzkaller -b /bsd.rd -d "$VMIMG"
+	```
 
-   Answers to questions that deviates from the defaults:
+Answers to questions that deviates from the defaults:
 
-   ```
+```
    Password for root account? ******
    Allow root ssh login? yes
-   ```
+```
 
-4. Restart the newly created VM and copy the SSH-key:
+1.	Restart the newly created VM and copy the SSH-key:
 
-   ```sh
-   $ vmctl stop syzkaller-1 -w
-   $ vmctl start syzkaller-1 -c -t syzkaller -d "$VMIMG"
-   $ ssh "root@100.64.${VMID}.3" 'cat >~/.ssh/authorized_keys' <$SSHKEY.pub
-   ```
+	```sh
+	$ vmctl stop syzkaller-1 -w
+	$ vmctl start syzkaller-1 -c -t syzkaller -d "$VMIMG"
+	$ ssh "root@100.64.${VMID}.3" 'cat >~/.ssh/authorized_keys' <$SSHKEY.pub
+	```
 
-5. Optionally, library ASLR can be disabled in order to improve boot time:
+2.	Optionally, library ASLR can be disabled in order to improve boot time:
 
-   ```sh
-   $ ssh "root@100.64.${VMID}.3" 'echo library_aslr=NO >>/etc/rc.conf.local'
-   ```
+	```sh
+	$ ssh "root@100.64.${VMID}.3" 'echo library_aslr=NO >>/etc/rc.conf.local'
+	```
 
-6. Finally, stop the VM:
+3.	Finally, stop the VM:
 
-   ```sh
-   $ vmctl stop syzkaller-1 -w
-   ```
+	```sh
+	$ vmctl stop syzkaller-1 -w
+	```
 
-## Configure and run syzkaller
+Configure and run syzkaller
+---------------------------
 
 ```sh
 $ pwd

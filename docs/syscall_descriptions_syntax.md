@@ -1,4 +1,5 @@
-# Syscall descriptions syntax
+Syscall descriptions syntax
+===========================
 
 Pseudo-formal grammar of syscall description:
 
@@ -77,10 +78,10 @@ or for string flags as:
 flagname = "\"" literal "\"" ["," "\"" literal "\""]*
 ```
 
-## Ints
+Ints
+----
 
-`int8`, `int16`, `int32` and `int64` denote an integer of the corresponding size.
-`intptr` denotes a pointer-sized integer, i.e. C `long` type.
+`int8`, `int16`, `int32` and `int64` denote an integer of the corresponding size. `intptr` denotes a pointer-sized integer, i.e. C `long` type.
 
 By appending `be` suffix (e.g. `int16be`) integers become big-endian.
 
@@ -99,7 +100,8 @@ example_struct {
 }
 ```
 
-## Structs
+Structs
+-------
 
 Structs are described as:
 
@@ -109,8 +111,7 @@ structname "{" "\n"
 "}" ("[" attribute* "]")?
 ```
 
-Structs can have attributes specified in square brackets after the struct.
-Attributes are:
+Structs can have attributes specified in square brackets after the struct. Attributes are:
 
 ```
 "packed": the struct does not have paddings and has default alignment 1
@@ -118,7 +119,8 @@ Attributes are:
 "size": the struct is padded up to the specified size
 ```
 
-## Unions
+Unions
+------
 
 Unions are described as:
 
@@ -128,15 +130,15 @@ unionname "[" "\n"
 "]" ("[" attribute* "]")?
 ```
 
-Unions can have attributes specified in square brackets after the union.
-Attributes are:
+Unions can have attributes specified in square brackets after the union. Attributes are:
 
 ```
 "varlen": union size is not maximum of all option but rather length of a particular chosen option
 "size": the union is padded up to the specified size
 ```
 
-## Resources
+Resources
+---------
 
 Resources represent values that need to be passed from output of one syscall to input of another syscall. For example, `close` syscall requires an input value (fd) previously returned by `open` or `pipe` syscall. To achieve this, `fd` is declared as a resource. Resources are described as:
 
@@ -156,10 +158,10 @@ accept(fd sock, ...) sock
 listen(fd sock, backlog int32)
 ```
 
-## Type Aliases
+Type Aliases
+------------
 
-Complex types that are often repeated can be given short type aliases using the
-following syntax:
+Complex types that are often repeated can be given short type aliases using the following syntax:
 
 ```
 type identifier underlying_type
@@ -172,13 +174,10 @@ type signalno int32[0:65]
 type net_port proc[20000, 4, int16be]
 ```
 
-Then, type alias can be used instead of the underlying type in any contexts.
-Underlying type needs to be described as if it's a struct field, that is,
-with the base type if it's required. However, type alias can be used as syscall
-arguments as well. Underlying types are currently restricted to integer types,
-`ptr`, `ptr64`, `const`, `flags` and `proc` types.
+Then, type alias can be used instead of the underlying type in any contexts. Underlying type needs to be described as if it's a struct field, that is, with the base type if it's required. However, type alias can be used as syscall arguments as well. Underlying types are currently restricted to integer types, `ptr`, `ptr64`, `const`, `flags` and `proc` types.
 
 There are some builtin type aliases:
+
 ```
 type bool8	int8[0:1]
 type bool16	int16[0:1]
@@ -189,9 +188,11 @@ type boolptr	intptr[0:1]
 type filename string[filename]
 ```
 
-## Type Templates
+Type Templates
+--------------
 
 Type templates can be declared as follows:
+
 ```
 type buffer[DIR] ptr[DIR, array[int8]]
 type fileoff[BASE] BASE
@@ -203,11 +204,13 @@ type nlattr[TYPE, PAYLOAD] {
 ```
 
 and later used as follows:
+
 ```
 syscall(a buffer[in], b fileoff[int64], c ptr[in, nlattr[FOO, int32]])
 ```
 
 There is builtin type template `optional` defined as:
+
 ```
 type optional[T] [
 	val	T
@@ -215,7 +218,8 @@ type optional[T] [
 ] [varlen]
 ```
 
-## Length
+Length
+------
 
 You can specify length of a particular field in struct or a named argument by using `len`, `bytesize` and `bitsize` types, for example:
 
@@ -232,8 +236,7 @@ If `len`'s argument is a pointer (or a `buffer`), then the length of the pointee
 
 To denote the length of a field in N-byte words use `bytesizeN`, possible values for N are 1, 2, 4 and 8.
 
-To denote the length of the parent struct, you can use `len[parent, int8]`.
-To denote the length of the higher level parent when structs are embedded into one another, you can specify the type name of the particular parent:
+To denote the length of the parent struct, you can use `len[parent, int8]`. To denote the length of the higher level parent when structs are embedded into one another, you can specify the type name of the particular parent:
 
 ```
 struct s1 {
@@ -247,21 +250,17 @@ struct s2 {
 
 ```
 
-## Proc
+Proc
+----
 
-The `proc` type can be used to denote per process integers.
-The idea is to have a separate range of values for each executor, so they don't interfere.
+The `proc` type can be used to denote per process integers. The idea is to have a separate range of values for each executor, so they don't interfere.
 
-The simplest example is a port number.
-The `proc[20000, 4, int16be]` type means that we want to generate an `int16be`
-integer starting from `20000` and assign `4` values for each process.
-As a result the executor number `n` will get values in the `[20000 + n * 4, 20000 + (n + 1) * 4)` range.
+The simplest example is a port number. The `proc[20000, 4, int16be]` type means that we want to generate an `int16be` integer starting from `20000` and assign `4` values for each process. As a result the executor number `n` will get values in the `[20000 + n * 4, 20000 + (n + 1) * 4)` range.
 
-## Integer Constants
+Integer Constants
+-----------------
 
-Integer constants can be specified as decimal literals, as `0x`-prefixed
-hex literals, as `'`-surrounded char literals, or as symbolic constants
-extracted from kernel headers or defined by `define` directives. For example:
+Integer constants can be specified as decimal literals, as `0x`-prefixed hex literals, as `'`-surrounded char literals, or as symbolic constants extracted from kernel headers or defined by `define` directives. For example:
 
 ```
 foo(a const[10], b const[-10])
@@ -272,8 +271,7 @@ foo(a ptr[in, array[int8, MY_PATH_MAX]])
 define MY_PATH_MAX	PATH_MAX + 2
 ```
 
-## Misc
+Misc
+----
 
-Description files also contain `include` directives that refer to Linux kernel header files,
-`incdir` directives that refer to custom Linux kernel header directories 
-and `define` directives that define symbolic constant values.
+Description files also contain `include` directives that refer to Linux kernel header files, `incdir` directives that refer to custom Linux kernel header directories and `define` directives that define symbolic constant values.

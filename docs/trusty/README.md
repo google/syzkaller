@@ -1,11 +1,12 @@
-# Trusty support
+Trusty support
+==============
 
-[Trusty](https://source.android.com/security/trusty) is a set of software
-components supporting a Trusted Execution Environment (TEE) on mobile devices.
+[Trusty](https://source.android.com/security/trusty) is a set of software components supporting a Trusted Execution Environment (TEE) on mobile devices.
 
 This is work-in-progress, see #933. For now we only support testing `Trusty` via actual application ports.
 
-# Building kernel with Trusty IPC support
+Building kernel with Trusty IPC support
+=======================================
 
 ```
 git remote add android https://android.googlesource.com/kernel/common
@@ -45,7 +46,8 @@ CONFIG_BOOTPARAM_HUNG_TASK_PANIC=y
 CONFIG_WQ_WATCHDOG=y
 ```
 
-# Building Trusty
+Building Trusty
+===============
 
 ```
 mkdir trusty; cd trusty
@@ -59,7 +61,8 @@ trusty/vendor/google/aosp/scripts/build.py qemu-generic-arm64-test-debug
 KERNEL_DIR=$KERNEL build-root/build-qemu-generic-arm64-test-debug/run-qemu
 ```
 
-# Building arm64 image
+Building arm64 image
+====================
 
 ```
 git clone git://git.buildroot.net/buildroot
@@ -95,24 +98,29 @@ mkdir -p $1/root/.ssh
 cp key.pub $1/root/.ssh/authorized_keys
 ```
 
-# Testing build
+Testing build
+=============
 
 TODO: where does the firmware come from?
 
 Boot in qemu:
+
 ```
 cd $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/atf/qemu/debug
 $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/qemu-build/aarch64-softmmu/qemu-system-aarch64 -m 1024 -smp 1 -net nic -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 -display none -serial stdio -no-reboot -machine virt,secure=on,virtualization=on -cpu cortex-a57 -bios $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/atf/qemu/debug/bl1.bin -d unimp -semihosting-config enable,target=native -no-acpi -dtb $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/atf/qemu/debug/qemu-comb.dtb -hda $BUILDROOT/output/images/rootfs.ext4 -snapshot -kernel $KERNEL/arch/arm64/boot/Image -append "androidboot.hardware=qemu_trusty earlyprintk=serial console=ttyAMA0,38400 root=/dev/vda"
 ```
 
 SSH into the VM:
+
 ```
 ssh -i $BUILDROOT/key -p 10022 -o IdentitiesOnly=yes root@localhost
 ```
 
-# Running syzkaller
+Running syzkaller
+=================
 
 Build and run `syzkaller` as:
+
 ```
 cd $SYZKALLER
 make TARGETARCH=arm64
@@ -120,7 +128,8 @@ cd $TRUSTY/build-root/build-qemu-generic-arm64-test-debug/atf/qemu/debug
 $SYZKALLER/bin/syz-manager -config trusty.cfg
 ```
 
-using config along the lines of (substitute actual values for `$KERNEL`, `$SYZKALLER`, `$BUILDROOT` and `$TRUSTY`):
+using config along the lines of (substitute actual values for `$KERNEL`, `$SYZKALLER`, `$BUILDROOT` and `$TRUSTY`\):
+
 ```
 {
 	"name": "trusty",

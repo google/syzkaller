@@ -1,70 +1,69 @@
-# syzbot
+syzbot
+======
 
-`syzbot` system continuously fuzzes main Linux kernel branches and automatically
-reports found bugs to kernel mailing lists.
-[syzbot dashboard](https://syzkaller.appspot.com) shows current statuses of
-bugs. All `syzbot`-reported bugs are also CCed to
-[syzkaller-bugs mailing list](https://groups.google.com/forum/#!forum/syzkaller-bugs).
-Direct all questions to `syzkaller@googlegroups.com`.
+`syzbot` system continuously fuzzes main Linux kernel branches and automatically reports found bugs to kernel mailing lists. [syzbot dashboard](https://syzkaller.appspot.com) shows current statuses of bugs. All `syzbot`-reported bugs are also CCed to [syzkaller-bugs mailing list](https://groups.google.com/forum/#!forum/syzkaller-bugs). Direct all questions to `syzkaller@googlegroups.com`.
 
-## Bug status tracking
+Bug status tracking
+-------------------
 
-`syzbot` needs to know when a bug is fixed in order to (1) verify that it is
-in fact fixed and (2) be able to report other similarly-looking crashes
-(while a bug is considered open all similarly-looking crashes are merged into
-the existing bug). To understand when a bug is fixed `syzbot` needs to know
-what commit fixes the bug; once `syzbot` knows the commit it will track when
-the commit reaches all kernel builds on all tracked branches. Only when the
-commit reaches all builds, the bug is considered closed (new similarly-looking
-crashes create a new bug).
+`syzbot` needs to know when a bug is fixed in order to (1) verify that it is in fact fixed and (2) be able to report other similarly-looking crashes (while a bug is considered open all similarly-looking crashes are merged into the existing bug). To understand when a bug is fixed `syzbot` needs to know what commit fixes the bug; once `syzbot` knows the commit it will track when the commit reaches all kernel builds on all tracked branches. Only when the commit reaches all builds, the bug is considered closed (new similarly-looking crashes create a new bug).
 
-## Communication with syzbot
+Communication with syzbot
+-------------------------
 
-If you fix a bug reported by `syzbot`, please add the provided `Reported-by`
-tag to the commit (`Reported-and-tested-by` and `Tested-by` tags with the
-`syzbot+HASH` address are recognized as well). You can also communicate with
-`syzbot` by replying to its emails. The commands are:
+If you fix a bug reported by `syzbot`, please add the provided `Reported-by` tag to the commit (`Reported-and-tested-by` and `Tested-by` tags with the `syzbot+HASH` address are recognized as well). You can also communicate with `syzbot` by replying to its emails. The commands are:
 
-- to attach a fixing commit to the bug (if you forgot to add `Reported-by` tag):
-```
-#syz fix: exact-commit-title
-````
-It's enough that the commit is merged into any tree or you are reasonably sure
-about its final title, in particular, you don't need to wait for the commit to
-be merged into upstream tree. `syzbot` only needs to know the title by which
-it will appear in tested trees. In case of an error or a title change, you can
-override the commit simply by sending another `#syz fix` command.
-- to mark the bug as a duplicate of another `syzbot` bug:
-```
-#syz dup: exact-subject-of-another-report
-```
-- to undo a previous dup command and turn it into an independent bug again:
-```
-#syz undup
-```
-- to mark the bug as a one-off invalid report (e.g. induced by a previous memory corruption):
-```
-#syz invalid
-```
-**Note**: if the crash happens again, it will cause creation of a new bug report.
+-	to attach a fixing commit to the bug (if you forgot to add `Reported-by` tag):
 
-**Note**: all commands must start from beginning of the line.
+	```
+	#syz fix: exact-commit-title
+	````
+	It's enough that the commit is merged into any tree or you are reasonably sure
+	about its final title, in particular, you don't need to wait for the commit to
+	be merged into upstream tree. `syzbot` only needs to know the title by which
+	it will appear in tested trees. In case of an error or a title change, you can
+	override the commit simply by sending another `#syz fix` command.
+	- to mark the bug as a duplicate of another `syzbot` bug:
+	```
 
-**Note**: please keep `syzkaller-bugs@googlegroups.com` mailing list in CC.
-It serves as a history of what happened with each bug report.
+	#syz dup: exact-subject-of-another-report
 
-## Testing patches
+	```
+	- to undo a previous dup command and turn it into an independent bug again:
+	```
 
-`syzbot` can test patches for bugs *with reproducers*. This can be used for
-testing of fix patches, or just for debugging (i.e. adding additional checks to
-code and testing with them), or to check if the bug still happens. To test on
-a particular git tree and branch reply with:
-```
+	#syz undup
+
+	```
+	- to mark the bug as a one-off invalid report (e.g. induced by a previous memory corruption):
+	```
+
+	#syz invalid
+
+	```
+	**Note**: if the crash happens again, it will cause creation of a new bug report.
+
+	**Note**: all commands must start from beginning of the line.
+
+	**Note**: please keep `syzkaller-bugs@googlegroups.com` mailing list in CC.
+	It serves as a history of what happened with each bug report.
+
+	## Testing patches
+
+	`syzbot` can test patches for bugs *with reproducers*. This can be used for
+	testing of fix patches, or just for debugging (i.e. adding additional checks to
+	code and testing with them), or to check if the bug still happens. To test on
+	a particular git tree and branch reply with:
+	```
+
 #syz test: git://repo/address.git branch
+
 ```
 or alternatively, to test on exact commit reply with:
 ```
+
 #syz test: git://repo/address.git commit-hash
+
 ```
 If you also provide a patch with the email, `syzbot` will apply it on top of the
 tree before testing. The patch can be provided either inline in email text or as
@@ -98,7 +97,9 @@ parallel).
 A syzkaller program can be converted to an almost equivalent C source using `syz-prog2c` utility. `syz-prog2c` has lots of flags in common with [syz-execprog](https://github.com/google/syzkaller/blob/master/docs/executing_syzkaller_programs.md), e.g. `-threaded`/`-collide` which control if the syscalls are executed sequentially or in parallel. An example invocation:
 
 ```
+
 syz-prog2c -prog repro.syz.txt -threaded -collide -repeat -procs=8 -sandbox=namespace -tun -tmpdir -waitrepeat
+
 ```
 
 However, note that if `syzbot` did not provide a C reproducer, it wasn't able to trigger the bug using the C program (though, it can be just because the bug is triggered by a subtle race condition).
@@ -130,24 +131,31 @@ Exact compilers used by `syzbot` can be found here:
 A qemu-suitable Debian/wheezy image can be found [here](https://storage.googleapis.com/syzkaller/wheezy.img) (1GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key)
 (do `chmod 0600` on it). A reference `qemu` command line to run it is as follows:
 ```
-qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
-    -net nic -net user,hostfwd=tcp::10022-:22 \
-    -kernel arch/x86/boot/bzImage -nographic \
-    -device virtio-scsi-pci,id=scsi \
-    -device scsi-hd,bus=scsi.0,drive=d0 \
-    -drive file=wheezy.img,format=raw,if=none,id=d0 \
-    -append "root=/dev/sda console=ttyS0 earlyprintk=serial rodata=n \
-      oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 \      
-      security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
-      nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
-      nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
-      nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
-      vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
-      spec_store_bypass_disable=prctl nopcid"
+
+qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host 
+
+```
+-net nic -net user,hostfwd=tcp::10022-:22 \
+-kernel arch/x86/boot/bzImage -nographic \
+-device virtio-scsi-pci,id=scsi \
+-device scsi-hd,bus=scsi.0,drive=d0 \
+-drive file=wheezy.img,format=raw,if=none,id=d0 \
+-append "root=/dev/sda console=ttyS0 earlyprintk=serial rodata=n \
+  oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 \      
+  security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
+  nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
+  nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
+  nf-conntrack-sane.ports=20000 vivid.n_devs=16 \
+  vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2 \
+  spec_store_bypass_disable=prctl nopcid"
+```
+
 ```
 And then you can ssh into it using:
 ```
+
 ssh -p 10022 -i wheezy.id_rsa root@localhost
+
 ```
 
 ## No reproducer at all?
@@ -174,7 +182,9 @@ mailing list. Staged bugs accept all commands supported for reported bugs
 can't be `dup`-ed onto bugs in moderation queue. Additionally, staged bugs
 accept upstream command:
 ```
+
 #syz upstream
+
 ```
 which sends the bug to kernel mailing lists.
 
@@ -198,46 +208,33 @@ requests for `KMSAN` bugs need to go to `KMSAN` tree
 A standard way for triggering the test with `KMSAN` tree is to send an
 email to `syzbot+HASH` address containing the following line:
 ```
-#syz test: https://github.com/google/kmsan.git master
-```
-and attach/inline your test patch in the same email.
 
-Report explanation. The first call trace points to the `use` of the uninit value
-(which is usually a branching or copying it to userspace). Then there are 0 or
-more "Uninit was stored to memory at:" stacks which denote how the unint value
-travelled through memory. Finally there is a "Uninit was created at:"
-section which points either to a heap allocation or a stack variable which
-is the original source of uninitialized-ness.
+#syz test: https://github.com/google/kmsan.git master \`\`\` and attach/inline your test patch in the same email.
 
-## No custom patches
+Report explanation. The first call trace points to the `use` of the uninit value (which is usually a branching or copying it to userspace). Then there are 0 or more "Uninit was stored to memory at:" stacks which denote how the unint value travelled through memory. Finally there is a "Uninit was created at:" section which points either to a heap allocation or a stack variable which is the original source of uninitialized-ness.
 
-While `syzbot` can test patches that fix bugs, it does not support applying
-custom patches during fuzzing. It always tests vanilla unmodified git trees.
-There are several reasons for this:
+No custom patches
+-----------------
 
-- custom patches may not apply tomorrow
-- custom patches may not apply to all of the tested git trees
-- it's hard to communicate exact state of the code with bug reports (not just hash anymore)
-- line numbers won't match in reports (which always brings suspecion as to the quality of reports)
-- custom patches can also introduce bugs, and even if they don't a developer may (rightfully)
-  question validity of and may not want to spend time on reports obtained
-  with a number of out-of-tree patches
-- order of patch application generatelly matters, and at some point patches
-  need to be removed, there is nobody to manage this
+While `syzbot` can test patches that fix bugs, it does not support applying custom patches during fuzzing. It always tests vanilla unmodified git trees. There are several reasons for this:
 
-We've experimented with application of custom patches in the past and it lead
-to unrecoverable mess. If you want `syzbot` to pick up patches sooner,
-ask tree maintainers for priority handling.
+-	custom patches may not apply tomorrow
+-	custom patches may not apply to all of the tested git trees
+-	it's hard to communicate exact state of the code with bug reports (not just hash anymore)
+-	line numbers won't match in reports (which always brings suspecion as to the quality of reports)
+-	custom patches can also introduce bugs, and even if they don't a developer may (rightfully) question validity of and may not want to spend time on reports obtained with a number of out-of-tree patches
+-	order of patch application generatelly matters, and at some point patches need to be removed, there is nobody to manage this
 
-However, syzbot kernel config always includes `CONFIG_DEBUG_AID_FOR_SYZBOT=y` setting,
-which is not normally present in kernel. What was used for particularly elusive bugs in the past
-is temporary merging some additional debugging code into `linux-next` under this config setting
-(e.g. more debug checks and/or debug output) and waiting for new crash reports from syzbot. 
+We've experimented with application of custom patches in the past and it lead to unrecoverable mess. If you want `syzbot` to pick up patches sooner, ask tree maintainers for priority handling.
 
-## Kernel configs
+However, syzbot kernel config always includes `CONFIG_DEBUG_AID_FOR_SYZBOT=y` setting, which is not normally present in kernel. What was used for particularly elusive bugs in the past is temporary merging some additional debugging code into `linux-next` under this config setting (e.g. more debug checks and/or debug output) and waiting for new crash reports from syzbot.
+
+Kernel configs
+--------------
 
 Kernel configs, sysctls and command line arguments that `syzbot` uses are available in [/dashboard/config](/dashboard/config).
 
-## Is syzbot code available?
+Is syzbot code available?
+-------------------------
 
 Yes, it is [here](https://github.com/google/syzkaller/tree/master/dashboard/app).

@@ -1,7 +1,7 @@
-# How to set up syzkaller
+How to set up syzkaller
+=======================
 
-Generic setup instructions for fuzzing Linux kernel are outlined [here](linux/setup.md).
-For other OS kernels check: [Akaros](/docs/akaros/README.md), [FreeBSD](/docs/freebsd.md), [Fuchsia](/docs/fuchsia.md), [NetBSD](/docs/netbsd/README.md), [OpenBSD](/docs/openbsd/setup.md), [Windows](/docs/windows/README.md).
+Generic setup instructions for fuzzing Linux kernel are outlined [here](linux/setup.md). For other OS kernels check: [Akaros](/docs/akaros/README.md), [FreeBSD](/docs/freebsd.md), [Fuchsia](/docs/fuchsia.md), [NetBSD](/docs/netbsd/README.md), [OpenBSD](/docs/openbsd/setup.md), [Windows](/docs/windows/README.md).
 
 After following these instructions you should be able to run `syz-manager`, see it executing programs and be able to access statistics exposed at `http://127.0.0.1:56741`:
 
@@ -20,9 +20,7 @@ $ ./bin/syz-manager -config=my.cfg
 2017/06/14 16:40:35 executed 15504, cover 132403, crashes 0, repro 0
 ```
 
-At this point it's important to ensure that syzkaller is able to collect code coverage of the executed programs
-(unless you specified `"cover": false` in the config or coverage is not yet supported for the kernel you're fuzzing).
-The `cover` counter on the web page should be non zero.
+At this point it's important to ensure that syzkaller is able to collect code coverage of the executed programs (unless you specified `"cover": false` in the config or coverage is not yet supported for the kernel you're fuzzing). The `cover` counter on the web page should be non zero.
 
 More information on the configuration file format is available [here](configuration.md).
 

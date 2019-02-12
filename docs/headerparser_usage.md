@@ -1,23 +1,26 @@
-## Headerparser
+Headerparser
+------------
 
 headerparser is a tool that assists in writing device system call descriptions for syzkaller.
 
-In order to make syzkaller smarter when it comes to fuzzing a device node, you can provide it with
-information about the ioctl argument struct types it expects.
+In order to make syzkaller smarter when it comes to fuzzing a device node, you can provide it with information about the ioctl argument struct types it expects.
 
-However, in certain cases the number of argument struct types might be high, increasing the amount of manual
-effort that goes into writing the description files for the struct types.
+However, in certain cases the number of argument struct types might be high, increasing the amount of manual effort that goes into writing the description files for the struct types.
 
 In order to ease the effort of writing ioctl argument type description files, headerlib does a best-effort job at generating them for you. You will still need to manually select the appropriate syzkaller data type from the list of types [here](https://github.com/google/syzkaller/blob/master/docs/syscall_descriptions_syntax.md).
 
-## Dependencies
+Dependencies
+------------
+
 Headerlib uses pycparser. You can install pycparser using pip.
 
 ```shell
 $ pip install pycparser
 ```
 
-## Using headerparser
+Using headerparser
+------------------
+
 ```shell
 $ python headerparser.py --filenames=./test_headers/th_b.h
 B {
@@ -33,7 +36,9 @@ struct_containing_union {
 
 You can copy paste the content underneath the `Structure Metadata` over to your syzkaller device description.
 
-## Something breaks
+Something breaks
+----------------
+
 Let us try parsing `test_headers/th_a.h` header file to generate argument structs.
 
 ```shell

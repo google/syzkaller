@@ -1,7 +1,7 @@
-# Connecting several managers via Hub
+Connecting several managers via Hub
+===================================
 
-`syz-hub` program can be used to connect several `syz-manager`'s together and
-allow them to exchange programs.
+`syz-hub` program can be used to connect several `syz-manager`'s together and allow them to exchange programs.
 
 Build `syz-hub` with `make hub`. Then create a config file along the lines of:
 
@@ -18,8 +18,7 @@ Build `syz-hub` with `make hub`. Then create a config file along the lines of:
 }
 ```
 
-And start it with `bin/syz-hub -config hub.cfg`. Then add the following
-additional parameters to `syz-manager` config files of each manager:
+And start it with `bin/syz-hub -config hub.cfg`. Then add the following additional parameters to `syz-manager` config files of each manager:
 
 ```
 	"name": "manager1",
@@ -28,6 +27,4 @@ additional parameters to `syz-manager` config files of each manager:
 	"hub_key": "6sCFsJVfyFQVhWVKJpKhHcHxpCH0gAxL",
 ```
 
-And start managers. Once they triage local corpus, they will connect to the hub
-and start exchanging inputs. Both hub and manager web pages will show how many
-inputs they send/receive from the hub.
+And start managers. Once they triage local corpus, they will connect to the hub and start exchanging inputs. Both hub and manager web pages will show how many inputs they send/receive from the hub.

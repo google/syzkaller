@@ -1,14 +1,12 @@
-# Windows
+Windows
+=======
 
 `Windows` support is very raw and preliminary (read, non-working).
 
-There is a more complete
-[closed-source Windows port](https://www.slideshare.net/AnthonyLAOUHINETSUEI/wsl-reloaded)
-done by [Fritz](https://twitter.com/anarcheuz) and [zer0mem](https://twitter.com/zer0mem).
-The port has found 6 bugs including
-[CVE-2018-8441](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8441).
+There is a more complete [closed-source Windows port](https://www.slideshare.net/AnthonyLAOUHINETSUEI/wsl-reloaded) done by [Fritz](https://twitter.com/anarcheuz) and [zer0mem](https://twitter.com/zer0mem). The port has found 6 bugs including [CVE-2018-8441](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8441).
 
 To update descriptions run (assumes `cl` cross-compiler is in PATH):
+
 ```
 syz-extract -os=windows
 syz-sysgen
@@ -17,6 +15,7 @@ syz-sysgen
 `sys/windows/windows.txt` was auto-extracted from windows headers with `tools/syz-declextract`.
 
 To build binaries:
+
 ```
 make fuzzer execprog stress TARGETOS=windows
 REV=git rev-parse HEAD
@@ -31,26 +30,25 @@ cl executor\executor_windows.cc /EHsc -o bin\windows_amd64\syz-executor.exe \
 ```
 
 To run `syz-stress`:
+
 ```
 bin\windows_amd64\syz-stress.exe -executor c:\full\path\to\bin\windows_amd64\syz-executor.exe
 ```
 
-Windows is supported by only `gce` VMs at the moment.
-To use `gce`, create a Windows GCE VM, inside of the machine:
+Windows is supported by only `gce` VMs at the moment. To use `gce`, create a Windows GCE VM, inside of the machine:
 
- - Enable serial console debugging (see [this](https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/boot-parameters-to-enable-debugging) for details):
-```
-bcdedit /debug on
-bcdedit /dbgsettings serial debugport:1 baudrate:115200 /noumex
-```
+-	Enable serial console debugging (see [this](https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/boot-parameters-to-enable-debugging) for details):
 
- - Disable automatic restart in `sysdm.cpl -> Advanced -> Startup and Recovery`
+	```
+	bcdedit /debug on
+	bcdedit /dbgsettings serial debugport:1 baudrate:115200 /noumex
+	```
 
- - Setup sshd with key auth, [these](https://winscp.net/eng/docs/guide_windows_openssh_server) instructions worked for me.
-   Preferably use non-admin user. Save private ssh key.
+-	Disable automatic restart in `sysdm.cpl -> Advanced -> Startup and Recovery`
 
-Then shutdown the machine, stop the instance and create an image from the disk.
-Then start `syz-manager` with config similar to the following one:
+-	Setup sshd with key auth, [these](https://winscp.net/eng/docs/guide_windows_openssh_server) instructions worked for me. Preferably use non-admin user. Save private ssh key.
+
+Then shutdown the machine, stop the instance and create an image from the disk. Then start `syz-manager` with config similar to the following one:
 
 ```
 {

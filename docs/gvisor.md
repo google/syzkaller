@@ -1,10 +1,9 @@
-# gVisor
+gVisor
+======
 
-[gVisor](https://github.com/google/gvisor) is a user-space kernel, written in
-Go, that implements a substantial portion of the Linux system surface.
+[gVisor](https://github.com/google/gvisor) is a user-space kernel, written in Go, that implements a substantial portion of the Linux system surface.
 
-`gVisor` uses `linux` OS, but the special `gvisor` VM type. There is nothing
-special regarding `gVisor` besides that. Here is an example manager config:
+`gVisor` uses `linux` OS, but the special `gvisor` VM type. There is nothing special regarding `gVisor` besides that. Here is an example manager config:
 
 ```
 {
@@ -24,58 +23,55 @@ special regarding `gVisor` besides that. Here is an example manager config:
 }
 ```
 
-## Reproducing crashes
+Reproducing crashes
+-------------------
 
 `syz-execprog` can be used inside gVisor to (hopefully) reproduce crashes.
 
 To run a single program inside a minimal gVisor sandbox, do the following.
 
-1. Build all of the syzkaller tools:
+1.	Build all of the syzkaller tools:
 
-```bash
-$ cd $SYZKALLER_DIR
-$ make
-```
+	```bash
+	$ cd $SYZKALLER_DIR
+	$ make
+	```
 
-2. Build runsc:
+2.	Build runsc:
 
-```bash
-$ cd $GVISOR_DIR
-$ bazel build //runsc
-```
+	```bash
+	$ cd $GVISOR_DIR
+	$ bazel build //runsc
+	```
 
-3. Create a `bundle/` directory with a config like the one below. Be sure to
-   update the paths to the `linux_amd64` directory and input log/program file.
+3.	Create a `bundle/` directory with a config like the one below. Be sure to update the paths to the `linux_amd64` directory and input log/program file.
 
-```bash
-$ mkdir bundle
-$ $EDITOR bundle/config.json
-```
+	```bash
+	$ mkdir bundle
+	$ $EDITOR bundle/config.json
+	```
 
-4. Run gVisor:
+4.	Run gVisor:
 
-```bash
-$ sudo bazel-bin/runsc/linux_amd64_pure_stripped/runsc \
-    -platform=ptrace \
-    -file-access=shared \
-    -network=host \
-    run \
-    -bundle /PATH/TO/bundle/ \
-    syzkaller
-```
+	```bash
+	$ sudo bazel-bin/runsc/linux_amd64_pure_stripped/runsc \
+	-platform=ptrace \
+	-file-access=shared \
+	-network=host \
+	run \
+	-bundle /PATH/TO/bundle/ \
+	syzkaller
+	```
 
-5. Remove container:
+5.	Remove container:
 
-```bash
-$ sudo bazel-bin/runsc/linux_amd64_pure_stripped/runsc delete -force syzkaller
-```
+	```bash
+	$ sudo bazel-bin/runsc/linux_amd64_pure_stripped/runsc delete -force syzkaller
+	```
 
-Note that you'll want to adjust the `runsc` args to match the config in which
-the crash was discovered. You may also want to add `-debug -strace` for more
-debugging information.
+Note that you'll want to adjust the `runsc` args to match the config in which the crash was discovered. You may also want to add `-debug -strace` for more debugging information.
 
-You can also adjust the args to `syz-execprog` in `config.json`. e.g., add
-`-repeat` to repeat the program.
+You can also adjust the args to `syz-execprog` in `config.json`. e.g., add `-repeat` to repeat the program.
 
 ### config.json
 
