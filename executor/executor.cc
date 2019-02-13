@@ -863,12 +863,11 @@ void copyout_call_results(thread_t* th)
 void write_call_output(thread_t* th, bool finished)
 {
 	uint32 reserrno = 999;
-	uint32 call_flags = call_flag_executed;
 	const bool blocked = th != last_scheduled;
+	uint32 call_flags = call_flag_executed | (blocked ? call_flag_blocked : 0);
 	if (finished) {
 		reserrno = th->res != -1 ? 0 : th->reserrno;
 		call_flags |= call_flag_finished |
-			      (blocked ? call_flag_blocked : 0) |
 			      (th->fault_injected ? call_flag_fault_injected : 0);
 	}
 #if SYZ_EXECUTOR_USES_SHMEM
