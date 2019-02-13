@@ -56,6 +56,7 @@ type Context struct {
 	EnabledCalls map[string]map[*prog.Syscall]bool
 	Requests     chan *RunRequest
 	LogFunc      func(text string)
+	Verbose      bool
 }
 
 func (ctx *Context) log(msg string, args ...interface{}) {
@@ -77,12 +78,15 @@ func (ctx *Context) Run() error {
 			os.Remove(req.Bin)
 		}
 		result := ""
+		verbose := false
 		if req.broken != "" {
 			broken++
 			result = fmt.Sprintf("BROKEN (%v)", req.broken)
+			verbose = true
 		} else if req.skip != "" {
 			skip++
 			result = fmt.Sprintf("SKIP (%v)", req.skip)
+			verbose = true
 		} else {
 			if req.Err == nil {
 				req.Err = checkResult(req)
@@ -100,7 +104,9 @@ func (ctx *Context) Run() error {
 				result = "OK"
 			}
 		}
-		ctx.log("%-38v: %v", req.name, result)
+		if !verbose || ctx.Verbose {
+			ctx.log("%-38v: %v", req.name, result)
+		}
 	}
 	if err := <-errc; err != nil {
 		return err
