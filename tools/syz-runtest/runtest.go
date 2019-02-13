@@ -122,6 +122,7 @@ func main() {
 		EnabledCalls: enabledCalls,
 		Requests:     mgr.requests,
 		LogFunc:      func(text string) { fmt.Println(text) },
+		Verbose:      false,
 	}
 	err = ctx.Run()
 	close(vm.Shutdown)

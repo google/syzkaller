@@ -73,6 +73,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 			t.Helper()
 			t.Logf(text)
 		},
+		Verbose: true,
 	}
 	if err := ctx.Run(); err != nil {
 		t.Fatal(err)
