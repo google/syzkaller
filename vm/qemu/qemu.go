@@ -85,6 +85,8 @@ var archConfigs = map[string]*archConfig{
 		// But other arches don't use e1000e, e.g. arm64 uses virtio by default.
 		NicModel: ",model=e1000",
 		CmdLine: append(linuxCmdline,
+			"root=/dev/sda",
+			"console=ttyS0",
 			"kvm-intel.nested=1",
 			"kvm-intel.unrestricted_guest=1",
 			"kvm-intel.vmm_exclusive=1",
@@ -103,18 +105,27 @@ var archConfigs = map[string]*archConfig{
 		Qemu:      "qemu-system-i386",
 		TargetDir: "/",
 		NicModel:  ",model=e1000",
-		CmdLine:   linuxCmdline,
+		CmdLine: append(linuxCmdline,
+			"root=/dev/sda",
+			"console=ttyS0",
+		),
 	},
 	"linux/arm64": {
 		Qemu:      "qemu-system-aarch64",
-		QemuArgs:  "-machine virt -cpu cortex-a57",
+		QemuArgs:  "-machine virt,virtualization=on -cpu cortex-a57",
 		TargetDir: "/",
-		CmdLine:   linuxCmdline,
+		CmdLine: append(linuxCmdline,
+			"root=/dev/vda",
+			"console=ttyAMA0",
+		),
 	},
 	"linux/arm": {
 		Qemu:      "qemu-system-arm",
 		TargetDir: "/",
-		CmdLine:   linuxCmdline,
+		CmdLine: append(linuxCmdline,
+			"root=/dev/vda",
+			"console=ttyAMA0",
+		),
 	},
 	"linux/ppc64le": {
 		Qemu:      "qemu-system-ppc64",
@@ -154,7 +165,6 @@ var archConfigs = map[string]*archConfig{
 }
 
 var linuxCmdline = []string{
-	"console=ttyS0",
 	"earlyprintk=serial",
 	"oops=panic",
 	"nmi_watchdog=panic",
@@ -343,8 +353,6 @@ func (inst *instance) Boot() error {
 				"rootflags=trans=virtio,version=9p2000.L,cache=loose",
 				"init="+filepath.Join(inst.workdir, "init.sh"),
 			)
-		} else {
-			cmdline = append(cmdline, "root=/dev/sda")
 		}
 		cmdline = append(cmdline, inst.cfg.Cmdline)
 		args = append(args,
