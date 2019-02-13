@@ -159,9 +159,15 @@ func TestReFixed(t *testing.T) {
 	builderPollResp, _ := c.client.BuilderPoll(build1.Manager)
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
+	c.advanceTime(time.Hour)
 	rep := c.client.pollBug()
 
+	bug, _, _ := c.loadBug(rep.ID)
+	c.expectEQ(bug.LastActivity, c.mockedTime)
+	c.expectEQ(bug.FixTime, time.Time{})
+
 	// Specify fixing commit for the bug.
+	c.advanceTime(time.Hour)
 	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
@@ -169,12 +175,45 @@ func TestReFixed(t *testing.T) {
 	})
 	c.expectEQ(reply.OK, true)
 
+	bug, _, _ = c.loadBug(rep.ID)
+	c.expectEQ(bug.LastActivity, c.mockedTime)
+	c.expectEQ(bug.FixTime, c.mockedTime)
+
+	c.advanceTime(time.Hour)
 	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
 		FixCommits: []string{"the right one"},
 	})
 	c.expectEQ(reply.OK, true)
+
+	bug, _, _ = c.loadBug(rep.ID)
+	c.expectEQ(bug.LastActivity, c.mockedTime)
+	c.expectEQ(bug.FixTime, c.mockedTime)
+
+	// No updates, just check that LastActivity time is updated, FixTime preserved.
+	fixTime := c.mockedTime
+	c.advanceTime(time.Hour)
+	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     rep.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	c.expectEQ(reply.OK, true)
+	bug, _, _ = c.loadBug(rep.ID)
+	c.expectEQ(bug.LastActivity, c.mockedTime)
+	c.expectEQ(bug.FixTime, fixTime)
+
+	// Send the same fixing commit, check that LastActivity time is updated, FixTime preserved.
+	c.advanceTime(time.Hour)
+	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:         rep.ID,
+		Status:     dashapi.BugStatusOpen,
+		FixCommits: []string{"the right one"},
+	})
+	c.expectEQ(reply.OK, true)
+	bug, _, _ = c.loadBug(rep.ID)
+	c.expectEQ(bug.LastActivity, c.mockedTime)
+	c.expectEQ(bug.FixTime, fixTime)
 
 	builderPollResp, _ = c.client.BuilderPoll(build1.Manager)
 	c.expectEQ(len(builderPollResp.PendingCommits), 1)

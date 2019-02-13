@@ -512,6 +512,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		sort.Strings(cmd.FixCommits)
 		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
 			bug.Commits = cmd.FixCommits
+			bug.FixTime = now
 			bug.PatchedOn = nil
 		}
 	}
@@ -546,6 +547,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	if bug.Status != BugStatusDup {
 		bug.DupOf = ""
 	}
+	bug.LastActivity = now
 	if _, err := datastore.Put(c, bugKey, bug); err != nil {
 		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
 	}
