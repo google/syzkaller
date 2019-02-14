@@ -20,7 +20,13 @@ func init() {
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
 }
 
+const (
+	userEmail           = `test@syzkaller.com`
+	extractFixTagsEmail = `"syzbot" <syzbot@my.mail.com>`
+)
+
 func TestGitRepo(t *testing.T) {
+	t.Parallel()
 	baseDir, err := ioutil.TempDir("", "syz-git-test")
 	if err != nil {
 		t.Fatal(err)
@@ -108,6 +114,170 @@ func TestGitRepo(t *testing.T) {
 	}
 }
 
+func TestMetadata(t *testing.T) {
+	t.Parallel()
+	repoDir, err := ioutil.TempDir("", "syz-git-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(repoDir)
+	repo := makeTestRepo(t, repoDir)
+	for i, test := range metadataTests {
+		repo.commitChange(test.description)
+		com, err := repo.repo.HeadCommit()
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkCommit(t, i, test, com, false)
+	}
+	commits, err := repo.repo.ExtractFixTagsFromCommits("HEAD", extractFixTagsEmail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(metadataTests) != len(commits) {
+		t.Fatalf("want %v commits, got %v", len(metadataTests), len(commits))
+	}
+	for i, test := range metadataTests {
+		checkCommit(t, i, test, commits[len(commits)-i-1], true)
+		for _, title := range []string{test.title, test.title2} {
+			if title == "" {
+				continue
+			}
+			com, err := repo.repo.GetCommitByTitle(title)
+			if err != nil {
+				t.Error(err)
+			} else if com == nil {
+				t.Errorf("no commits found by title %q", title)
+			} else if com.Title != title {
+				t.Errorf("wrong commit %q found by title %q", com.Title, title)
+			}
+		}
+	}
+}
+
+func checkCommit(t *testing.T, idx int, test testCommit, com *Commit, checkTags bool) {
+	if !checkTags {
+		return
+	}
+	if test.title != com.Title {
+		t.Errorf("#%v: want title %q, got %q", idx, test.title, com.Title)
+	}
+	if test.author != com.Author {
+		t.Errorf("#%v: want author %q, got %q", idx, test.author, com.Author)
+	}
+	if diff := cmp.Diff(test.cc, com.CC); diff != "" {
+		t.Logf("%#v", com.CC)
+		t.Error(diff)
+	}
+	if diff := cmp.Diff(test.tags, com.Tags); checkTags && diff != "" {
+		t.Error(diff)
+	}
+}
+
+type testCommit struct {
+	description string
+	title       string
+	title2      string
+	author      string
+	cc          []string
+	tags        []string
+}
+
+// nolint: lll
+var metadataTests = []testCommit{
+	{
+		description: `dashboard/app: bump max repros per bug to 10
+
+Reported-by: syzbot+8e4090902540da8c6e8f@my.mail.com
+`,
+		title:  "dashboard/app: bump max repros per bug to 10",
+		author: userEmail,
+		cc:     []string{userEmail},
+		tags:   []string{"8e4090902540da8c6e8f"},
+	},
+	{
+		description: `executor: remove dead code
+
+Reported-by: syzbot+8e4090902540da8c6e8f@my.mail.com
+Reported-by: syzbot <syzbot+a640a0fc325c29c3efcb@my.mail.com>
+`,
+		title:  "executor: remove dead code",
+		author: userEmail,
+		cc:     []string{userEmail},
+		tags:   []string{"8e4090902540da8c6e8f", "a640a0fc325c29c3efcb"},
+	},
+	{
+		description: `pkg/csource: fix string escaping bug
+
+Reported-and-tested-by: syzbot+8e4090902540da8c6e8fa640a0fc325c29c3efcb@my.mail.com
+Tested-by: syzbot+4234987263748623784623758235@my.mail.com
+`,
+		title:  "pkg/csource: fix string escaping bug",
+		author: userEmail,
+		cc:     []string{"syzbot+4234987263748623784623758235@my.mail.com", "syzbot+8e4090902540da8c6e8fa640a0fc325c29c3efcb@my.mail.com", userEmail},
+		tags:   []string{"8e4090902540da8c6e8fa640a0fc325c29c3efcb", "4234987263748623784623758235"},
+	},
+	{
+		description: `When freeing a lockf struct that already is part of a linked list, make sure to update the next pointer for the preceding lock. Prevents a double free panic.
+
+ok millert@
+Reported-by: syzbot+6dd701dc797b23b8c761@my.mail.com
+`,
+		title:  "When freeing a lockf struct that already is part of a linked list, make sure to update the next pointer for the preceding lock. Prevents a double free panic.",
+		author: userEmail,
+		cc:     []string{userEmail},
+		tags:   []string{"6dd701dc797b23b8c761"},
+	},
+	{
+		description: `ipmr: properly check rhltable_init() return value
+
+commit 8fb472c09b9d ("ipmr: improve hash scalability")
+added a call to rhltable_init() without checking its return value.
+ 
+This problem was then later copied to IPv6 and factorized in commit
+0bbbf0e7d0e7 ("ipmr, ip6mr: Unite creation of new mr_table")
+ 
+Fixes: 8fb472c09b9d ("ipmr: improve hash scalability")
+Fixes: 0bbbf0e7d0e7 ("ipmr, ip6mr: Unite creation of new mr_table")
+Reported-by: syzbot+6dd701dc797b23b8c761@my.mail.com
+`,
+		title:  "ipmr: properly check rhltable_init() return value",
+		title2: "net-backports: ipmr: properly check rhltable_init() return value",
+		author: userEmail,
+		cc:     []string{userEmail},
+		tags:   []string{"6dd701dc797b23b8c761"},
+	},
+	{
+		description: `f2fs: sanity check for total valid node blocks
+
+Reported-by: syzbot+bf9253040425feb155ad@my.mail.com
+Reported-by: syzbot+bf9253040425feb155ad@my.mail.com
+`,
+		title:  "f2fs: sanity check for total valid node blocks",
+		author: userEmail,
+		cc:     []string{userEmail},
+		tags:   []string{"bf9253040425feb155ad"},
+	},
+	{
+		description: `USB: fix usbmon BUG trigger
+
+Automated tests triggered this by opening usbmon and accessing the
+mmap while simultaneously resizing the buffers. This bug was with
+us since 2006, because typically applications only size the buffers
+once and thus avoid racing. Reported by Kirill A. Shutemov.
+
+Reported-by: <syzbot+f9831b881b3e849829fc@my.mail.com>
+Signed-off-by: Pete Zaitcev <zaitcev@redhat.com>
+Cc: stable <stable@vger.kernel.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+`,
+		title:  "USB: fix usbmon BUG trigger",
+		author: userEmail,
+		cc:     []string{userEmail},
+		tags:   []string{"f9831b881b3e849829fc"},
+	},
+}
+
 func createTestRepo(t *testing.T, baseDir, name string) *testRepo {
 	repo := makeTestRepo(t, filepath.Join(baseDir, name))
 	repo.git("checkout", "-b", "master")
@@ -127,6 +297,7 @@ type testRepo struct {
 	dir     string
 	name    string
 	commits map[string]map[string]*Commit
+	repo    *git
 }
 
 func makeTestRepo(t *testing.T, dir string) *testRepo {
@@ -138,8 +309,11 @@ func makeTestRepo(t *testing.T, dir string) *testRepo {
 		dir:     dir,
 		name:    filepath.Base(dir),
 		commits: make(map[string]map[string]*Commit),
+		repo:    newGit(dir),
 	}
 	repo.git("init")
+	repo.git("config", "--add", "user.email", userEmail)
+	repo.git("config", "--add", "user.name", "Test Syzkaller")
 	return repo
 }
 
@@ -160,9 +334,13 @@ func (repo *testRepo) commitFileChange(branch, change string) {
 	if repo.commits[branch] == nil {
 		repo.commits[branch] = make(map[string]*Commit)
 	}
-	com, err := newGit(repo.dir).HeadCommit()
+	com, err := repo.repo.HeadCommit()
 	if err != nil {
 		repo.t.Fatal(err)
 	}
 	repo.commits[branch][change] = com
+}
+
+func (repo *testRepo) commitChange(description string) {
+	repo.git("commit", "--allow-empty", "-m", description)
 }

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -20,9 +21,15 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
+const (
+	commitPollPeriod = time.Hour
+)
+
 type JobProcessor struct {
+	cfg             *Config
 	name            string
 	managers        []*Manager
+	knownCommits    map[string]bool
 	stop            chan struct{}
 	dash            *dashapi.Dashboard
 	syzkallerRepo   string
@@ -31,28 +38,37 @@ type JobProcessor struct {
 
 func newJobProcessor(cfg *Config, managers []*Manager, stop chan struct{}) *JobProcessor {
 	jp := &JobProcessor{
+		cfg:             cfg,
 		name:            fmt.Sprintf("%v-job", cfg.Name),
 		managers:        managers,
+		knownCommits:    make(map[string]bool),
 		stop:            stop,
 		syzkallerRepo:   cfg.SyzkallerRepo,
 		syzkallerBranch: cfg.SyzkallerBranch,
 	}
-	if cfg.DashboardAddr != "" && cfg.DashboardClient != "" {
+	if cfg.EnableJobs {
+		if cfg.DashboardAddr == "" || cfg.DashboardClient == "" {
+			panic("enabled_jobs is set but no dashboard info")
+		}
 		jp.dash = dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
 	}
 	return jp
 }
 
 func (jp *JobProcessor) loop() {
-	if jp.dash == nil {
-		return
-	}
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
+	var lastCommitPoll time.Time
 	for {
 		select {
 		case <-ticker.C:
-			jp.poll()
+			if jp.cfg.EnableJobs {
+				jp.pollJobs()
+			}
+			if time.Since(lastCommitPoll) > commitPollPeriod {
+				jp.pollCommits()
+				lastCommitPoll = time.Now()
+			}
 		case <-jp.stop:
 			log.Logf(0, "job loop stopped")
 			return
@@ -60,7 +76,115 @@ func (jp *JobProcessor) loop() {
 	}
 }
 
-func (jp *JobProcessor) poll() {
+func (jp *JobProcessor) pollCommits() {
+	for _, mgr := range jp.managers {
+		if !mgr.mgrcfg.PollCommits {
+			continue
+		}
+		if err := jp.pollManagerCommits(mgr); err != nil {
+			jp.Errorf("failed to poll commits on %v: %v", mgr.name, err)
+		}
+	}
+}
+
+func brokenRepo(url string) bool {
+	// TODO(dvyukov): mmots contains weird squashed commits titled "linux-next" or "origin",
+	// which contain hundreds of other commits. This makes fix attribution totally broken.
+	return strings.Contains(url, "git.cmpxchg.org/linux-mmots")
+}
+
+func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
+	resp, err := mgr.dash.CommitPoll()
+	if err != nil {
+		return err
+	}
+	log.Logf(0, "polling commits for %v: repos %v, commits %v", mgr.name, len(resp.Repos), len(resp.Commits))
+	if len(resp.Repos) == 0 {
+		return fmt.Errorf("no repos")
+	}
+	commits := make(map[string]*vcs.Commit)
+	for i, repo := range resp.Repos {
+		if brokenRepo(repo.URL) {
+			continue
+		}
+		commits1, err := jp.pollRepo(mgr, repo.URL, repo.Branch, resp.ReportEmail)
+		if err != nil {
+			jp.Errorf("failed to poll %v %v: %v", repo.URL, repo.Branch, err)
+			continue
+		}
+		log.Logf(1, "got %v commits from %v/%v repo", len(commits1), repo.URL, repo.Branch)
+		for _, com := range commits1 {
+			// Only the "main" repo is the source of true hashes.
+			if i != 0 {
+				com.Hash = ""
+			}
+			// Not overwrite existing commits, in particular commit from the main repo with hash.
+			if _, ok := commits[com.Title]; !ok && !jp.knownCommits[com.Title] && len(commits) < 100 {
+				commits[com.Title] = com
+				jp.knownCommits[com.Title] = true
+			}
+		}
+		if i == 0 && len(resp.Commits) != 0 {
+			commits1, err := jp.getCommitInfo(mgr, repo.URL, repo.Branch, resp.Commits)
+			if err != nil {
+				jp.Errorf("failed to poll %v %v: %v", repo.URL, repo.Branch, err)
+				continue
+			}
+			log.Logf(1, "got %v commit infos from %v/%v repo", len(commits1), repo.URL, repo.Branch)
+			for _, com := range commits1 {
+				// GetCommitByTitle does not accept ReportEmail and does not return tags,
+				// so don't replace the existing commit.
+				if _, ok := commits[com.Title]; !ok {
+					commits[com.Title] = com
+				}
+			}
+		}
+	}
+	results := make([]dashapi.Commit, 0, len(commits))
+	for _, com := range commits {
+		results = append(results, dashapi.Commit{
+			Hash:   com.Hash,
+			Title:  com.Title,
+			Author: com.Author,
+			BugIDs: com.Tags,
+			Date:   com.Date,
+		})
+	}
+	return mgr.dash.UploadCommits(results)
+}
+
+func (jp *JobProcessor) pollRepo(mgr *Manager, URL, branch, reportEmail string) ([]*vcs.Commit, error) {
+	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS, "kernel"))
+	repo, err := vcs.NewRepo(mgr.managercfg.TargetOS, mgr.managercfg.Type, dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kernel repo: %v", err)
+	}
+	if _, err = repo.CheckoutBranch(URL, branch); err != nil {
+		return nil, fmt.Errorf("failed to checkout kernel repo %v/%v: %v", URL, branch, err)
+	}
+	return repo.ExtractFixTagsFromCommits("HEAD", reportEmail)
+}
+
+func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits []string) ([]*vcs.Commit, error) {
+	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS, "kernel"))
+	repo, err := vcs.NewRepo(mgr.managercfg.TargetOS, mgr.managercfg.Type, dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kernel repo: %v", err)
+	}
+	if _, err = repo.CheckoutBranch(URL, branch); err != nil {
+		return nil, fmt.Errorf("failed to checkout kernel repo %v/%v: %v", URL, branch, err)
+	}
+	results, missing, err := repo.GetCommitsByTitles(commits)
+	if err != nil {
+		return nil, err
+	}
+	for _, title := range missing {
+		log.Logf(0, "did not find commit %q", title)
+	}
+	return results, nil
+}
+
+func (jp *JobProcessor) pollJobs() {
 	var names []string
 	for _, mgr := range jp.managers {
 		names = append(names, mgr.name)

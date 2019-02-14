@@ -74,6 +74,7 @@ type Bug struct {
 	NumRepro       int64
 	ReproLevel     dashapi.ReproLevel
 	HasReport      bool
+	NeedCommitInfo bool
 	FirstTime      time.Time
 	LastTime       time.Time
 	LastSavedCrash time.Time
@@ -82,9 +83,16 @@ type Bug struct {
 	LastActivity   time.Time // last time we observed any activity related to the bug
 	Closed         time.Time
 	Reporting      []BugReporting
-	Commits        []string
-	HappenedOn     []string `datastore:",noindex"` // list of managers
-	PatchedOn      []string `datastore:",noindex"` // list of managers
+	Commits        []string     // titles of fixing commmits
+	CommitInfo     []CommitInfo // git hashes of fixing commits (parallel array to Commits)
+	HappenedOn     []string     `datastore:",noindex"` // list of managers
+	PatchedOn      []string     `datastore:",noindex"` // list of managers
+}
+
+type CommitInfo struct {
+	Hash   string
+	Author string
+	Date   time.Time
 }
 
 type BugReporting struct {
@@ -362,18 +370,35 @@ func bugReportingHash(bugHash, reporting string) string {
 	return hash.String([]byte(fmt.Sprintf("%v-%v", bugHash, reporting)))[:hashLen]
 }
 
-func kernelRepoInfo(build *Build) KernelRepo {
-	return kernelRepoInfoRaw(build.KernelRepo, build.KernelBranch)
+func (bug *Bug) updateCommits(commits []string, now time.Time) {
+	bug.Commits = commits
+	bug.CommitInfo = nil
+	bug.NeedCommitInfo = true
+	bug.FixTime = now
+	bug.PatchedOn = nil
 }
 
-func kernelRepoInfoRaw(repo, branch string) KernelRepo {
-	repoID := repo
-	if branch != "" {
-		repoID += "/" + branch
+func (bug *Bug) getCommitInfo(i int) CommitInfo {
+	if i < len(bug.CommitInfo) {
+		return bug.CommitInfo[i]
 	}
-	info := config.KernelRepos[repoID]
+	return CommitInfo{}
+}
+
+func kernelRepoInfo(build *Build) KernelRepo {
+	return kernelRepoInfoRaw(build.Namespace, build.KernelRepo, build.KernelBranch)
+}
+
+func kernelRepoInfoRaw(ns, url, branch string) KernelRepo {
+	var info KernelRepo
+	for _, repo := range config.Namespaces[ns].Repos {
+		if repo.URL == url && repo.Branch == branch {
+			info = repo
+			break
+		}
+	}
 	if info.Alias == "" {
-		info.Alias = repo
+		info.Alias = url
 		if branch != "" {
 			info.Alias += " " + branch
 		}

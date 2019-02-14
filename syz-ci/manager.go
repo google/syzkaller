@@ -545,7 +545,7 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 // pollCommits asks dashboard what commits it is interested in (i.e. fixes for
 // open bugs) and returns subset of these commits that are present in a build
 // on commit buildCommit.
-func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixCommit, error) {
+func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.Commit, error) {
 	resp, err := mgr.dash.BuilderPoll(mgr.name)
 	if err != nil || len(resp.PendingCommits) == 0 && resp.ReportEmail == "" {
 		return nil, nil, err
@@ -566,19 +566,18 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixComm
 			}
 		}
 	}
-	var fixCommits []dashapi.FixCommit
+	var fixCommits []dashapi.Commit
 	if resp.ReportEmail != "" {
-		// TODO(dvyukov): mmots contains weird squashed commits titled "linux-next" or "origin",
-		// which contain hundreds of other commits. This makes fix attribution totally broken.
-		if mgr.mgrcfg.Repo != "git://git.cmpxchg.org/linux-mmots.git" {
+		if !brokenRepo(mgr.mgrcfg.Repo) {
 			commits, err := mgr.repo.ExtractFixTagsFromCommits(buildCommit, resp.ReportEmail)
 			if err != nil {
 				return nil, nil, err
 			}
 			for _, com := range commits {
-				fixCommits = append(fixCommits, dashapi.FixCommit{
-					Title: com.Title,
-					BugID: com.Tag,
+				fixCommits = append(fixCommits, dashapi.Commit{
+					Title:  com.Title,
+					BugIDs: com.Tags,
+					Date:   com.Date,
 				})
 			}
 		}

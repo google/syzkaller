@@ -46,6 +46,8 @@ var apiNamespaceHandlers = map[string]APINamespaceHandler{
 	"report_failed_repro": apiReportFailedRepro,
 	"need_repro":          apiNeedRepro,
 	"manager_stats":       apiManagerStats,
+	"commit_poll":         apiCommitPoll,
+	"upload_commits":      apiUploadCommits,
 }
 
 type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
@@ -201,18 +203,151 @@ loop:
 		commits = append(commits, com)
 	}
 	sort.Strings(commits)
-	reportEmail := ""
+	resp := &dashapi.BuilderPollResp{
+		PendingCommits: commits,
+		ReportEmail:    reportEmail(c, ns),
+	}
+	return resp, nil
+}
+
+func reportEmail(c context.Context, ns string) string {
 	for _, reporting := range config.Namespaces[ns].Reporting {
 		if _, ok := reporting.Config.(*EmailConfig); ok {
-			reportEmail = ownEmail(c)
+			return ownEmail(c)
+		}
+	}
+	return ""
+}
+
+func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+	resp := &dashapi.CommitPollResp{
+		ReportEmail: reportEmail(c, ns),
+	}
+	for _, repo := range config.Namespaces[ns].Repos {
+		resp.Repos = append(resp.Repos, dashapi.Repo{
+			URL:    repo.URL,
+			Branch: repo.Branch,
+		})
+	}
+	var bugs []*Bug
+	_, err := datastore.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("NeedCommitInfo=", true).
+		Project("Commits").
+		Limit(100).
+		GetAll(c, &bugs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query bugs: %v", err)
+	}
+	commits := make(map[string]bool)
+	for _, bug := range bugs {
+		for _, com := range bug.Commits {
+			commits[com] = true
+		}
+	}
+	for com := range commits {
+		resp.Commits = append(resp.Commits, com)
+	}
+	return resp, nil
+}
+
+func apiUploadCommits(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.CommitPollResultReq)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	// This adds fixing commits to bugs.
+	err := addCommitsToBugs(c, ns, "", nil, req.Commits)
+	if err != nil {
+		return nil, err
+	}
+	// Now add commit info to commits.
+	for _, com := range req.Commits {
+		if com.Hash == "" {
+			continue
+		}
+		if err := addCommitInfo(c, ns, com); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
+func addCommitInfo(c context.Context, ns string, com dashapi.Commit) error {
+	var bugs []*Bug
+	keys, err := datastore.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("Commits=", com.Title).
+		GetAll(c, &bugs)
+	if err != nil {
+		return fmt.Errorf("failed to query bugs: %v", err)
+	}
+	for i, bug := range bugs {
+		if err := addCommitInfoToBug(c, bug, keys[i], com); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *datastore.Key, com dashapi.Commit) error {
+	if needUpdate, err := addCommitInfoToBugImpl(c, bug, com); err != nil {
+		return err
+	} else if !needUpdate {
+		return nil
+	}
+	tx := func(c context.Context) error {
+		bug := new(Bug)
+		if err := datastore.Get(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to get bug %v: %v", bugKey.StringID(), err)
+		}
+		if needUpdate, err := addCommitInfoToBugImpl(c, bug, com); err != nil {
+			return err
+		} else if !needUpdate {
+			return nil
+		}
+		if _, err := datastore.Put(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to put bug: %v", err)
+		}
+		return nil
+	}
+	return datastore.RunInTransaction(c, tx, nil)
+}
+
+func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bool, error) {
+	ci := -1
+	for i, title := range bug.Commits {
+		if title == com.Title {
+			ci = i
 			break
 		}
 	}
-	resp := &dashapi.BuilderPollResp{
-		PendingCommits: commits,
-		ReportEmail:    reportEmail,
+	if ci < 0 {
+		return false, nil
 	}
-	return resp, nil
+	for len(bug.CommitInfo) < len(bug.Commits) {
+		bug.CommitInfo = append(bug.CommitInfo, CommitInfo{})
+	}
+	hash0 := bug.CommitInfo[ci].Hash
+	date0 := bug.CommitInfo[ci].Date
+	author0 := bug.CommitInfo[ci].Author
+	needCommitInfo0 := bug.NeedCommitInfo
+
+	bug.CommitInfo[ci].Hash = com.Hash
+	bug.CommitInfo[ci].Date = com.Date
+	bug.CommitInfo[ci].Author = com.Author
+	bug.NeedCommitInfo = false
+	for i := range bug.CommitInfo {
+		if bug.CommitInfo[i].Hash == "" {
+			bug.NeedCommitInfo = true
+			break
+		}
+	}
+	changed := hash0 != bug.CommitInfo[ci].Hash ||
+		date0 != bug.CommitInfo[ci].Date ||
+		author0 != bug.CommitInfo[ci].Author ||
+		needCommitInfo0 != bug.NeedCommitInfo
+	return changed, nil
 }
 
 func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
@@ -255,6 +390,11 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byt
 		}
 	}
 	if len(req.Commits) != 0 || len(req.FixCommits) != 0 {
+		for i := range req.FixCommits {
+			// Reset hashes just to make sure,
+			// the build does not necessary come from the master repo, so we must not remember hashes.
+			req.FixCommits[i].Hash = ""
+		}
 		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits, req.FixCommits); err != nil {
 			// We've already uploaded the build successfully and manager can use it.
 			// Moreover, addCommitsToBugs scans all bugs and can take long time.
@@ -329,8 +469,7 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 	return build, true, nil
 }
 
-func addCommitsToBugs(c context.Context, ns, manager string,
-	titles []string, fixCommits []dashapi.FixCommit) error {
+func addCommitsToBugs(c context.Context, ns, manager string, titles []string, fixCommits []dashapi.Commit) error {
 	presentCommits := make(map[string]bool)
 	bugFixedBy := make(map[string][]string)
 	for _, com := range titles {
@@ -338,7 +477,9 @@ func addCommitsToBugs(c context.Context, ns, manager string,
 	}
 	for _, com := range fixCommits {
 		presentCommits[com.Title] = true
-		bugFixedBy[com.BugID] = append(bugFixedBy[com.BugID], com.Title)
+		for _, bugID := range com.BugIDs {
+			bugFixedBy[bugID] = append(bugFixedBy[bugID], com.Title)
+		}
 	}
 	managers, err := managerList(c, ns)
 	if err != nil {
@@ -347,10 +488,9 @@ func addCommitsToBugs(c context.Context, ns, manager string,
 	// Fetching all bugs in a namespace can be slow, and there is no way to filter only Open/Dup statuses.
 	// So we run a separate query for each status, this both avoids fetching unnecessary data
 	// and splits a long query into two (two smaller queries have lower chances of trigerring
-	// timeouts that one huge).
+	// timeouts than one huge).
 	for _, status := range []int{BugStatusOpen, BugStatusDup} {
-		err := addCommitsToBugsInStatus(c, status, ns, manager, managers,
-			fixCommits, presentCommits, bugFixedBy)
+		err := addCommitsToBugsInStatus(c, status, ns, manager, managers, presentCommits, bugFixedBy)
 		if err != nil {
 			return err
 		}
@@ -359,7 +499,7 @@ func addCommitsToBugs(c context.Context, ns, manager string,
 }
 
 func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string, managers []string,
-	fixCommits []dashapi.FixCommit, presentCommits map[string]bool, bugFixedBy map[string][]string) error {
+	presentCommits map[string]bool, bugFixedBy map[string][]string) error {
 	var bugs []*Bug
 	_, err := datastore.NewQuery("Bug").
 		Filter("Namespace=", ns).
@@ -409,22 +549,22 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []str
 			return nil
 		}
 		if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
-			bug.Commits = fixCommits
-			bug.FixTime = now
-			bug.PatchedOn = nil
+			bug.updateCommits(fixCommits, now)
 		}
-		bug.PatchedOn = append(bug.PatchedOn, manager)
-		if bug.Status == BugStatusOpen {
-			fixed := true
-			for _, mgr := range managers {
-				if !stringInList(bug.PatchedOn, mgr) {
-					fixed = false
-					break
+		if manager != "" {
+			bug.PatchedOn = append(bug.PatchedOn, manager)
+			if bug.Status == BugStatusOpen {
+				fixed := true
+				for _, mgr := range managers {
+					if !stringInList(bug.PatchedOn, mgr) {
+						fixed = false
+						break
+					}
 				}
-			}
-			if fixed {
-				bug.Status = BugStatusFixed
-				bug.Closed = now
+				if fixed {
+					bug.Status = BugStatusFixed
+					bug.Closed = now
+				}
 			}
 		}
 		if _, err := datastore.Put(c, bugKey, bug); err != nil {
@@ -433,6 +573,25 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []str
 		return nil
 	}
 	return datastore.RunInTransaction(c, tx, nil)
+}
+
+func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommits []string,
+	presentCommits map[string]bool, dolog bool) bool {
+	if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
+		if dolog {
+			log.Infof(c, "bug %q is fixed with %q", bug.Title, fixCommits)
+		}
+		return true
+	}
+	if len(bug.Commits) == 0 || manager == "" || stringInList(bug.PatchedOn, manager) {
+		return false
+	}
+	for _, com := range bug.Commits {
+		if !presentCommits[com] {
+			return false
+		}
+	}
+	return true
 }
 
 func managerList(c context.Context, ns string) ([]string, error) {
@@ -454,25 +613,6 @@ func managerList(c context.Context, ns string) ([]string, error) {
 		managers = append(managers, build.Manager)
 	}
 	return managers, nil
-}
-
-func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommits []string,
-	presentCommits map[string]bool, dolog bool) bool {
-	if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
-		if dolog {
-			log.Infof(c, "bug %q is fixed with %q", bug.Title, fixCommits)
-		}
-		return true
-	}
-	if len(bug.Commits) == 0 || stringInList(bug.PatchedOn, manager) {
-		return false
-	}
-	for _, com := range bug.Commits {
-		if !presentCommits[com] {
-			return false
-		}
-	}
-	return true
 }
 
 func stringInList(list []string, str string) bool {

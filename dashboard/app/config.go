@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/vcs"
 )
 
 // There are multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
@@ -38,8 +39,6 @@ type GlobalConfig struct {
 	// Each namespace has own reporting config, own API clients
 	// and bugs are not merged across namespaces.
 	Namespaces map[string]*Config
-	// Maps full repository address/branch to description of this repo.
-	KernelRepos map[string]KernelRepo
 }
 
 // Per-namespace config.
@@ -70,6 +69,11 @@ type Config struct {
 	TransformCrash func(build *Build, crash *dashapi.Crash) bool
 	// NeedRepro hook can be used to prevent reproduction of some bugs.
 	NeedRepro func(bug *Bug) bool
+	// List of kernel repositories for this namespace.
+	// The first repo considered the "main" repo (e.g. fixing commit info is shown against this repo).
+	// Other repos are secondary repos, they may be tested or not.
+	// If not tested they are used to poll for fixing commits.
+	Repos []KernelRepo
 }
 
 // ConfigManager describes a single syz-manager instance.
@@ -114,6 +118,8 @@ type ReportingType interface {
 }
 
 type KernelRepo struct {
+	URL    string
+	Branch string
 	// Alias is a short, readable name of a kernel repository.
 	Alias string
 	// ReportingPriority says if we need to prefer to report crashes in this
@@ -164,7 +170,14 @@ func installConfig(cfg *GlobalConfig) {
 	if config != nil {
 		panic("another config is already installed")
 	}
-	// Validate the global cfg.
+	checkConfig(cfg)
+	config = cfg
+	initEmailReporting()
+	initHTTPHandlers()
+	initAPIHandlers()
+}
+
+func checkConfig(cfg *GlobalConfig) {
 	if len(cfg.Namespaces) == 0 {
 		panic("no namespaces found")
 	}
@@ -178,23 +191,6 @@ func installConfig(cfg *GlobalConfig) {
 	for ns, cfg := range cfg.Namespaces {
 		checkNamespace(ns, cfg, namespaces, clientNames)
 	}
-	for repo, info := range cfg.KernelRepos {
-		if info.Alias == "" {
-			panic(fmt.Sprintf("empty kernel repo alias for %q", repo))
-		}
-		if prio := info.ReportingPriority; prio < 0 || prio > 9 {
-			panic(fmt.Sprintf("bad kernel repo reporting priority %v for %q", prio, repo))
-		}
-		for _, email := range info.CC {
-			if _, err := mail.ParseAddress(email); err != nil {
-				panic(fmt.Sprintf("bad email address %q: %v", email, err))
-			}
-		}
-	}
-	config = cfg
-	initEmailReporting()
-	initHTTPHandlers()
-	initAPIHandlers()
 }
 
 func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]bool) {
@@ -231,6 +227,36 @@ func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]b
 			return true
 		}
 	}
+	checkKernelRepos(ns, cfg)
+	checkNamespaceReporting(ns, cfg)
+}
+
+func checkKernelRepos(ns string, cfg *Config) {
+	if len(cfg.Repos) == 0 {
+		panic(fmt.Sprintf("no repos in namespace %q", ns))
+	}
+	for _, repo := range cfg.Repos {
+		if !vcs.CheckRepoAddress(repo.URL) {
+			panic(fmt.Sprintf("%v: bad repo URL %q", ns, repo.URL))
+		}
+		if !vcs.CheckBranch(repo.Branch) {
+			panic(fmt.Sprintf("%v: bad repo branch %q", ns, repo.Branch))
+		}
+		if repo.Alias == "" {
+			panic(fmt.Sprintf("%v: empty repo alias for %q", ns, repo.Alias))
+		}
+		if prio := repo.ReportingPriority; prio < 0 || prio > 9 {
+			panic(fmt.Sprintf("%v: bad kernel repo reporting priority %v for %q", ns, prio, repo.Alias))
+		}
+		for _, email := range repo.CC {
+			if _, err := mail.ParseAddress(email); err != nil {
+				panic(fmt.Sprintf("bad email address %q: %v", email, err))
+			}
+		}
+	}
+}
+
+func checkNamespaceReporting(ns string, cfg *Config) {
 	checkConfigAccessLevel(&cfg.AccessLevel, cfg.AccessLevel, fmt.Sprintf("namespace %q", ns))
 	parentAccessLevel := cfg.AccessLevel
 	reportingNames := make(map[string]bool)
