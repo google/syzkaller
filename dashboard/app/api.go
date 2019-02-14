@@ -410,6 +410,7 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []str
 		}
 		if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
 			bug.Commits = fixCommits
+			bug.FixTime = now
 			bug.PatchedOn = nil
 		}
 		bug.PatchedOn = append(bug.PatchedOn, manager)
@@ -481,15 +482,6 @@ func stringInList(list []string, str string) bool {
 		}
 	}
 	return false
-}
-
-func stringsInList(list, str []string) bool {
-	for _, s := range str {
-		if !stringInList(list, s) {
-			return false
-		}
-	}
-	return true
 }
 
 func apiReportBuildError(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {

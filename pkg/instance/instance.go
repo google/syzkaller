@@ -264,7 +264,7 @@ func (inst *inst) testInstance() error {
 	}
 
 	cmd := FuzzerCmd(fuzzerBin, executorBin, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
-		inst.cfg.Sandbox, 0, 0, false, false, true, false)
+		inst.cfg.Sandbox, 0, 0, inst.cfg.Cover, false, true, false)
 	outc, errc, err := inst.vm.Run(10*time.Minute, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)

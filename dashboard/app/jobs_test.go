@@ -85,6 +85,7 @@ func TestJob(t *testing.T) {
 	pollResp, _ := c.client2.JobPoll([]string{build.Manager})
 	c.expectEQ(pollResp.ID, "")
 
+	// This submits actual test request.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
 		EmailOptCC([]string{"somebody@else.com"}))

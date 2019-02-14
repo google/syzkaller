@@ -40,33 +40,33 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 		return fmt.Sprintf("can't find the associated bug (do you have %v in To/CC?)", myEmail)
 	}
 	bugReporting, _ := bugReportingByID(bug, bugID)
-	reply, err := addTestJob(c, bug, bugKey, bugReporting, user, extID, link, patch, repo, branch, jobCC)
+	now := timeNow(c)
+	reply, err := addTestJob(c, bug, bugKey, bugReporting, user, extID, link, patch, repo, branch, jobCC, now)
 	if err != nil {
 		log.Errorf(c, "test request failed: %v", err)
 		if reply == "" {
 			reply = internalError
 		}
 	}
-	// Update bug CC list in any case.
-	if !stringsInList(strings.Split(bugReporting.CC, "|"), jobCC) {
-		tx := func(c context.Context) error {
-			bug := new(Bug)
-			if err := datastore.Get(c, bugKey, bug); err != nil {
-				return err
-			}
-			bugReporting = bugReportingByName(bug, bugReporting.Name)
-			bugCC := strings.Split(bugReporting.CC, "|")
-			merged := email.MergeEmailLists(bugCC, jobCC)
-			bugReporting.CC = strings.Join(merged, "|")
-			if _, err := datastore.Put(c, bugKey, bug); err != nil {
-				return fmt.Errorf("failed to put bug: %v", err)
-			}
-			return nil
+	// Update bug CC and last activity time.
+	tx := func(c context.Context) error {
+		bug := new(Bug)
+		if err := datastore.Get(c, bugKey, bug); err != nil {
+			return err
 		}
-		if err := datastore.RunInTransaction(c, tx, nil); err != nil {
-			// We've already stored the job, so just log the error.
-			log.Errorf(c, "failed to update bug: %v", err)
+		bug.LastActivity = now
+		bugReporting = bugReportingByName(bug, bugReporting.Name)
+		bugCC := strings.Split(bugReporting.CC, "|")
+		merged := email.MergeEmailLists(bugCC, jobCC)
+		bugReporting.CC = strings.Join(merged, "|")
+		if _, err := datastore.Put(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to put bug: %v", err)
 		}
+		return nil
+	}
+	if err := datastore.RunInTransaction(c, tx, nil); err != nil {
+		// We've already stored the job, so just log the error.
+		log.Errorf(c, "failed to update bug: %v", err)
 	}
 	if link != "" {
 		reply = "" // don't send duplicate error reply
@@ -75,7 +75,7 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 }
 
 func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting *BugReporting,
-	user, extID, link, patch, repo, branch string, jobCC []string) (string, error) {
+	user, extID, link, patch, repo, branch string, jobCC []string, now time.Time) (string, error) {
 	crash, crashKey, err := findCrashForBug(c, bug)
 	if err != nil {
 		return "", err
@@ -103,7 +103,7 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 	}
 
 	job := &Job{
-		Created:      timeNow(c),
+		Created:      now,
 		User:         user,
 		CC:           jobCC,
 		Reporting:    bugReporting.Name,
