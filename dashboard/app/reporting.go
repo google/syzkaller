@@ -511,9 +511,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	if len(cmd.FixCommits) != 0 && (bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
 		sort.Strings(cmd.FixCommits)
 		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
-			bug.Commits = cmd.FixCommits
-			bug.FixTime = now
-			bug.PatchedOn = nil
+			bug.updateCommits(cmd.FixCommits, now)
 		}
 	}
 	if cmd.CrashID != 0 {

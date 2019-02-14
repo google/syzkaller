@@ -37,6 +37,20 @@ var testConfig = &GlobalConfig{
 			Clients: map[string]string{
 				client1: key1,
 			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org",
+					Branch: "branch10",
+					Alias:  "repo10alias",
+					CC:     []string{"maintainers@repo10.org", "bugs@repo10.org"},
+				},
+				{
+					URL:    "git://github.com/google/syzkaller",
+					Branch: "master",
+					Alias:  "repo10alias",
+					CC:     []string{"maintainers@repo10.org", "bugs@repo10.org"},
+				},
+			},
 			Reporting: []Reporting{
 				{
 					Name:       "reporting1",
@@ -66,6 +80,14 @@ var testConfig = &GlobalConfig{
 			Key:         "test2keytest2keytest2key",
 			Clients: map[string]string{
 				client2: key2,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org",
+					Branch: "branch10",
+					Alias:  "repo10alias",
+					CC:     []string{"maintainers@repo10.org", "bugs@repo10.org"},
+				},
 			},
 			Managers: map[string]ConfigManager{
 				"restricted-manager": {
@@ -109,6 +131,13 @@ var testConfig = &GlobalConfig{
 			Clients: map[string]string{
 				clientAdmin: keyAdmin,
 			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/access-admin.git",
+					Branch: "access-admin",
+					Alias:  "access-admin",
+				},
+			},
 			Reporting: []Reporting{
 				{
 					Name:   "access-admin-reporting1",
@@ -125,6 +154,13 @@ var testConfig = &GlobalConfig{
 			Key:         "userkeyuserkeyuserkey",
 			Clients: map[string]string{
 				clientUser: keyUser,
+			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/access-user.git",
+					Branch: "access-user",
+					Alias:  "access-user",
+				},
 			},
 			Reporting: []Reporting{
 				{
@@ -144,6 +180,13 @@ var testConfig = &GlobalConfig{
 			Clients: map[string]string{
 				clientPublic: keyPublic,
 			},
+			Repos: []KernelRepo{
+				{
+					URL:    "git://syzkaller.org/access-public.git",
+					Branch: "access-public",
+					Alias:  "access-public",
+				},
+			},
 			Reporting: []Reporting{
 				{
 					AccessLevel: AccessUser,
@@ -155,12 +198,6 @@ var testConfig = &GlobalConfig{
 					Config: &TestConfig{Index: 2},
 				},
 			},
-		},
-	},
-	KernelRepos: map[string]KernelRepo{
-		"repo10/branch10": {
-			Alias: "repo10alias",
-			CC:    []string{"maintainers@repo10.org", "bugs@repo10.org"},
 		},
 	},
 }

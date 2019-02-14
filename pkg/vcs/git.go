@@ -148,10 +148,10 @@ func (git *git) getCommit(commit string) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	return gitParseCommit(output)
+	return gitParseCommit(output, nil, nil)
 }
 
-func gitParseCommit(output []byte) (*Commit, error) {
+func gitParseCommit(output, user, domain []byte) (*Commit, error) {
 	lines := bytes.Split(output, []byte{'\n'})
 	if len(lines) < 4 || len(lines[0]) != 40 {
 		return nil, fmt.Errorf("unexpected git log output: %q", output)
@@ -163,7 +163,29 @@ func gitParseCommit(output []byte) (*Commit, error) {
 	}
 	cc := make(map[string]bool)
 	cc[strings.ToLower(string(lines[2]))] = true
+	var tags []string
 	for _, line := range lines[4:] {
+		if user != nil {
+			userPos := bytes.Index(line, user)
+			if userPos != -1 {
+				domainPos := bytes.Index(line[userPos+len(user)+1:], domain)
+				if domainPos != -1 {
+					startPos := userPos + len(user)
+					endPos := userPos + len(user) + domainPos + 1
+					tag := string(line[startPos:endPos])
+					present := false
+					for _, tag1 := range tags {
+						if tag1 == tag {
+							present = true
+							break
+						}
+					}
+					if !present {
+						tags = append(tags, tag)
+					}
+				}
+			}
+		}
 		for _, re := range ccRes {
 			matches := re.FindSubmatchIndex(line)
 			if matches == nil {
@@ -187,9 +209,47 @@ func gitParseCommit(output []byte) (*Commit, error) {
 		Title:  string(lines[1]),
 		Author: string(lines[2]),
 		CC:     sortedCC,
+		Tags:   tags,
 		Date:   date,
 	}
 	return com, nil
+}
+
+func (git *git) GetCommitByTitle(title string) (*Commit, error) {
+	commits, _, err := git.GetCommitsByTitles([]string{title})
+	if err != nil || len(commits) == 0 {
+		return nil, err
+	}
+	return commits[0], nil
+}
+
+func (git *git) GetCommitsByTitles(titles []string) ([]*Commit, []string, error) {
+	var greps []string
+	m := make(map[string]string)
+	for _, title := range titles {
+		canonical := CanonicalizeCommit(title)
+		greps = append(greps, canonical)
+		m[canonical] = title
+	}
+	since := time.Now().Add(-time.Hour * 24 * 365 * 2).Format("01-02-2006")
+	commits, err := git.fetchCommits(since, "HEAD", "", "", greps, true)
+	if err != nil {
+		return nil, nil, err
+	}
+	var results []*Commit
+	for _, com := range commits {
+		canonical := CanonicalizeCommit(com.Title)
+		if orig := m[canonical]; orig != "" {
+			delete(m, canonical)
+			results = append(results, com)
+			com.Title = orig
+		}
+	}
+	var missing []string
+	for _, orig := range m {
+		missing = append(missing, orig)
+	}
+	return results, missing, nil
 }
 
 func (git *git) ListRecentCommits(baseCommit string) ([]string, error) {
@@ -197,16 +257,34 @@ func (git *git) ListRecentCommits(baseCommit string) ([]string, error) {
 	// Somewhat inefficient to collect whole output in a slice
 	// and then convert to string, but should be bearable.
 	output, err := runSandboxed(git.dir, "git", "log",
-		"--pretty=format:%s", "--no-merges", "-n", "200000", baseCommit)
+		"--pretty=format:%s", "-n", "200000", baseCommit)
 	if err != nil {
 		return nil, err
 	}
 	return strings.Split(string(output), "\n"), nil
 }
 
-func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit, error) {
+func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
+	user, domain, err := splitEmail(email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse email %q: %v", email, err)
+	}
+	grep := user + "+.*" + domain
 	since := time.Now().Add(-time.Hour * 24 * 365).Format("01-02-2006")
-	cmd := exec.Command("git", "log", "--no-merges", "--since", since, baseCommit)
+	return git.fetchCommits(since, baseCommit, user, domain, []string{grep}, false)
+}
+
+func (git *git) fetchCommits(since, base, user, domain string, greps []string, fixedStrings bool) ([]*Commit, error) {
+	const commitSeparator = "---===syzkaller-commit-separator===---"
+	args := []string{"log", "--since", since, "--format=%H%n%s%n%ae%n%ad%n%b%n" + commitSeparator}
+	if fixedStrings {
+		args = append(args, "--fixed-strings")
+	}
+	for _, grep := range greps {
+		args = append(args, "--grep", grep)
+	}
+	args = append(args, base)
+	cmd := exec.Command("git", args...)
 	cmd.Dir = git.dir
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -217,52 +295,33 @@ func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit
 	}
 	defer cmd.Wait()
 	defer cmd.Process.Kill()
-	return gitExtractFixTags(stdout, email)
-}
-
-func gitExtractFixTags(r io.Reader, email string) ([]FixCommit, error) {
-	user, domain, err := splitEmail(email)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse email %q: %v", email, err)
-	}
 	var (
-		s           = bufio.NewScanner(r)
-		commits     []FixCommit
-		commitTitle = ""
-		commitStart = []byte("commit ")
-		bodyPrefix  = []byte("    ")
-		userBytes   = []byte(user + "+")
-		domainBytes = []byte(domain)
+		s           = bufio.NewScanner(stdout)
+		buf         = new(bytes.Buffer)
+		separator   = []byte(commitSeparator)
+		commits     []*Commit
+		userBytes   []byte
+		domainBytes []byte
 	)
+	if user != "" {
+		userBytes = []byte(user + "+")
+		domainBytes = []byte(domain)
+	}
 	for s.Scan() {
 		ln := s.Bytes()
-		if bytes.HasPrefix(ln, commitStart) {
-			commitTitle = ""
+		if !bytes.Equal(ln, separator) {
+			buf.Write(ln)
+			buf.WriteByte('\n')
 			continue
 		}
-		if !bytes.HasPrefix(ln, bodyPrefix) {
-			continue
+		com, err := gitParseCommit(buf.Bytes(), userBytes, domainBytes)
+		if err != nil {
+			return nil, err
 		}
-		ln = ln[len(bodyPrefix):]
-		if len(ln) == 0 {
-			continue
+		if user == "" || len(com.Tags) != 0 {
+			commits = append(commits, com)
 		}
-		if commitTitle == "" {
-			commitTitle = string(ln)
-			continue
-		}
-		userPos := bytes.Index(ln, userBytes)
-		if userPos == -1 {
-			continue
-		}
-		domainPos := bytes.Index(ln[userPos+len(userBytes)+1:], domainBytes)
-		if domainPos == -1 {
-			continue
-		}
-		startPos := userPos + len(userBytes)
-		endPos := userPos + len(userBytes) + domainPos + 1
-		tag := string(ln[startPos:endPos])
-		commits = append(commits, FixCommit{tag, commitTitle})
+		buf.Reset()
 	}
 	return commits, s.Err()
 }

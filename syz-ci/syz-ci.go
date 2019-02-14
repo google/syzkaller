@@ -108,6 +108,7 @@ type ManagerConfig struct {
 	KernelCmdline string `json:"kernel_cmdline"`
 	// File with sysctl values (e.g. output of sysctl -a, optional).
 	KernelSysctl  string          `json:"kernel_sysctl"`
+	PollCommits   bool            `json:"poll_commits"`
 	ManagerConfig json.RawMessage `json:"manager_config"`
 	managercfg    *mgrconfig.Config
 }
@@ -158,14 +159,13 @@ func main() {
 			mgr.loop()
 		}()
 	}
-	if cfg.EnableJobs {
-		jp := newJobProcessor(cfg, managers, stop)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			jp.loop()
-		}()
-	}
+
+	jp := newJobProcessor(cfg, managers, stop)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		jp.loop()
+	}()
 
 	// For testing. Racy. Use with care.
 	http.HandleFunc("/upload_cover", func(w http.ResponseWriter, r *http.Request) {
@@ -218,6 +218,9 @@ func loadConfig(filename string) (*Config, error) {
 	if len(cfg.Managers) == 0 {
 		return nil, fmt.Errorf("no managers specified")
 	}
+	if cfg.EnableJobs && (cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
+		return nil, fmt.Errorf("enabled_jobs is set but no dashboard info")
+	}
 	for i, mgr := range cfg.Managers {
 		if mgr.Name == "" {
 			return nil, fmt.Errorf("param 'managers[%v].name' is empty", i)
@@ -228,6 +231,9 @@ func loadConfig(filename string) (*Config, error) {
 		managercfg, err := mgrconfig.LoadPartialData(mgr.ManagerConfig)
 		if err != nil {
 			return nil, fmt.Errorf("manager %v: %v", mgr.Name, err)
+		}
+		if mgr.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
+			return nil, fmt.Errorf("manager %v: commit_poll is set but no dashboard info", mgr.Name)
 		}
 		mgr.managercfg = managercfg
 		managercfg.Name = cfg.Name + "-" + mgr.Name

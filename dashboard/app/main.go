@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
+	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -62,12 +63,21 @@ type uiManager struct {
 }
 
 type uiBuild struct {
-	Time             time.Time
-	SyzkallerCommit  string
-	KernelAlias      string
-	KernelCommit     string
-	KernelCommitDate time.Time
-	KernelConfigLink string
+	Time                time.Time
+	SyzkallerCommit     string
+	SyzkallerCommitLink string
+	KernelAlias         string
+	KernelCommit        string
+	KernelCommitLink    string
+	KernelCommitDate    time.Time
+	KernelConfigLink    string
+}
+
+type uiCommit struct {
+	Hash  string
+	Title string
+	Link  string
+	Date  time.Time
 }
 
 type uiBugPage struct {
@@ -119,7 +129,7 @@ type uiBug struct {
 	Link           string
 	ExternalLink   string
 	CreditEmail    string
-	Commits        string
+	Commits        []uiCommit
 	PatchedOn      []string
 	MissingOn      []string
 	NumManagers    int
@@ -165,6 +175,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	var managers []*uiManager
 	var jobs []*uiJob
 	accessLevel := accessLevel(c, r)
+
 	if r.FormValue("fixed") == "" {
 		var err error
 		managers, err = loadManagers(c, accessLevel)
@@ -422,7 +433,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 		id := uiBug.ReportingIndex
 		if bug.Status == BugStatusFixed {
 			id = -1
-		} else if uiBug.Commits != "" {
+		} else if len(uiBug.Commits) != 0 {
 			id = -2
 		}
 		groups[id] = append(groups[id], uiBug)
@@ -622,9 +633,14 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	}
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
-		uiBug.Commits = bug.Commits[0]
-		if len(bug.Commits) > 1 {
-			uiBug.Commits = fmt.Sprintf("%q", bug.Commits)
+		for i, com := range bug.Commits {
+			cfg := config.Namespaces[bug.Namespace]
+			info := bug.getCommitInfo(i)
+			uiBug.Commits = append(uiBug.Commits, uiCommit{
+				Hash:  info.Hash,
+				Title: com,
+				Link:  vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
+			})
 		}
 		for _, mgr := range managers {
 			found := false
@@ -700,12 +716,14 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 
 func makeUIBuild(build *Build) *uiBuild {
 	return &uiBuild{
-		Time:             build.Time,
-		SyzkallerCommit:  build.SyzkallerCommit,
-		KernelAlias:      kernelRepoInfo(build).Alias,
-		KernelCommit:     build.KernelCommit,
-		KernelCommitDate: build.KernelCommitDate,
-		KernelConfigLink: textLink(textKernelConfig, build.KernelConfig),
+		Time:                build.Time,
+		SyzkallerCommit:     build.SyzkallerCommit,
+		SyzkallerCommitLink: vcs.LogLink(vcs.SyzkallerRepo, build.SyzkallerCommit),
+		KernelAlias:         kernelRepoInfo(build).Alias,
+		KernelCommit:        build.KernelCommit,
+		KernelCommitLink:    vcs.LogLink(build.KernelRepo, build.KernelCommit),
+		KernelCommitDate:    build.KernelCommitDate,
+		KernelConfigLink:    textLink(textKernelConfig, build.KernelConfig),
 	}
 }
 
@@ -813,7 +831,7 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 			Namespace:       job.Namespace,
 			Manager:         job.Manager,
 			BugTitle:        job.BugTitle,
-			KernelAlias:     kernelRepoInfoRaw(job.KernelRepo, job.KernelBranch).Alias,
+			KernelAlias:     kernelRepoInfoRaw(job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
 			PatchLink:       textLink(textPatch, job.Patch),
 			Attempts:        job.Attempts,
 			Started:         job.Started,

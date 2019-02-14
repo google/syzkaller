@@ -5,11 +5,8 @@ package vcs
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 	"time"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestGitParseCommit(t *testing.T) {
@@ -48,7 +45,7 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 		},
 	}
 	for input, com := range tests {
-		res, err := gitParseCommit([]byte(input))
+		res, err := gitParseCommit([]byte(input), nil, nil)
 		if err != nil && com != nil {
 			t.Fatalf("want %+v, got error: %v", com, err)
 		}
@@ -120,62 +117,3 @@ v1.
 		t.Fatalf("got bad tags\ngot:  %+v\nwant: %+v", got, want)
 	}
 }
-
-func TestGitExtractFixTags(t *testing.T) {
-	commits, err := gitExtractFixTags(strings.NewReader(extractFixTagsInput), extractFixTagsEmail)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(extractFixTagsOutput, commits); diff != "" {
-		t.Fatal(diff)
-	}
-}
-
-const extractFixTagsEmail = "\"syzbot\" <syzbot@my.mail.com>"
-
-var extractFixTagsOutput = []FixCommit{
-	{"8e4090902540da8c6e8f", "dashboard/app: bump max repros per bug to 10"},
-	{"8e4090902540da8c6e8f", "executor: remove dead code"},
-	{"a640a0fc325c29c3efcb", "executor: remove dead code"},
-	{"8e4090902540da8c6e8fa640a0fc325c29c3efcb", "pkg/csource: fix string escaping bug"},
-	{"4234987263748623784623758235", "pkg/csource: fix string escaping bug"},
-	{"6dd701dc797b23b8c761", "When freeing a lockf struct that already is part of a linked list, make sure to"},
-}
-
-var extractFixTagsInput = `
-commit 73aba437a774237b1130837b856f3b40b3ec3bf0 (HEAD -> master, origin/master)
-Author: me <foo@bar.com>
-Date:   Fri Dec 22 19:59:56 2017 +0100
-
-    dashboard/app: bump max repros per bug to 10
-    
-    Reported-by: syzbot+8e4090902540da8c6e8f@my.mail.com
-
-commit 26cd53f078db858a6ccca338e13e7f4d1d291c22
-Author: me <foo@bar.com>
-Date:   Fri Dec 22 13:42:27 2017 +0100
-
-    executor: remove dead code
-    
-    Reported-by: syzbot+8e4090902540da8c6e8f@my.mail.com
-    Reported-by: syzbot <syzbot+a640a0fc325c29c3efcb@my.mail.com>
-
-commit 7b62abdb0abadbaf7b3f3a23ab4d78485fbf9059
-Author: Dmitry Vyukov <dvyukov@google.com>
-Date:   Fri Dec 22 11:59:09 2017 +0100
-
-    pkg/csource: fix string escaping bug
-    
-    Reported-and-tested-by: syzbot+8e4090902540da8c6e8fa640a0fc325c29c3efcb@my.mail.com
-    Tested-by: syzbot+4234987263748623784623758235@my.mail.com
-
-commit 47546510aa98d3fbff3291a5dc3cefe712e70394
-Author: anton <openbsd@openbsd.org>
-Date:   Sat Oct 6 21:12:23 2018 +0000
-
-    When freeing a lockf struct that already is part of a linked list, make sure to
-    update the next pointer for the preceding lock. Prevents a double free panic.
-    
-    ok millert@
-    Reported-by: syzbot+6dd701dc797b23b8c761@my.mail.com
-`

@@ -75,11 +75,19 @@ func (ctx *fuchsia) HeadCommit() (*Commit, error) {
 	return nil, fmt.Errorf("not implemented for fuchsia")
 }
 
+func (ctx *fuchsia) GetCommitByTitle(title string) (*Commit, error) {
+	return ctx.zircon.GetCommitByTitle(title)
+}
+
+func (ctx *fuchsia) GetCommitsByTitles(titles []string) ([]*Commit, []string, error) {
+	return ctx.zircon.GetCommitsByTitles(titles)
+}
+
 func (ctx *fuchsia) ListRecentCommits(baseCommit string) ([]string, error) {
 	return ctx.zircon.ListRecentCommits(baseCommit)
 }
 
-func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit, error) {
+func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	return ctx.zircon.ExtractFixTagsFromCommits(baseCommit, email)
 }
 
