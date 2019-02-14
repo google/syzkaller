@@ -253,7 +253,7 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 			"tlk_device.txt": true,
 			// This was generated on:
 			// https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
-			"video4linux.txt": true,
+			"dev_video4linux.txt": true,
 		}
 		for _, f := range matches {
 			f = filepath.Base(f)

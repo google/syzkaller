@@ -78,6 +78,8 @@ type Bug struct {
 	LastTime       time.Time
 	LastSavedCrash time.Time
 	LastReproTime  time.Time
+	FixTime        time.Time // when we become aware of the fixing commit
+	LastActivity   time.Time // last time we observed any activity related to the bug
 	Closed         time.Time
 	Reporting      []BugReporting
 	Commits        []string

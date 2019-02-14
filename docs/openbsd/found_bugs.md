@@ -6,6 +6,12 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
+- [recvmsg: double free of mbuf](https://marc.info/?l=openbsd-cvs&m=154931648202074&w=2)
+
+- [semop: use-after-free](https://marc.info/?l=openbsd-cvs&m=154926389815162&w=2)
+
+- [kernel: missing lock acquisition during page fault](https://marc.info/?l=openbsd-cvs&m=154917205425885&w=2)
+
 - [ioctl: use-after-free in `wsmux_do_ioctl()`](https://marc.info/?l=openbsd-cvs&m=154900458511494&w=2)
 
 - [ioctl: out of bounds access in `wsmux_do_ioctl()`](https://marc.info/?l=openbsd-cvs&m=154859038916770&w=2)
