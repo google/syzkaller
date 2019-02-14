@@ -161,11 +161,6 @@ func (dash *Dashboard) ReportBuildError(req *BuildErrorReq) error {
 	return dash.Query("report_build_error", req, nil)
 }
 
-type CommitPollReq struct {
-	Managers []string
-}
-
-
 // Crash describes a single kernel crash (potentially with repro).
 type Crash struct {
 	BuildID     string // refers to Build.ID
