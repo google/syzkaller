@@ -8,10 +8,67 @@ set -eux
 
 # Create a minimal Debian distribution in a directory.
 RELEASE=stretch
-DIR=stretch
+DIR=chroot
+FEATURE=minimal
+ADD_PACKAGE=""
+TRINITY=false
+PERF=false
+
+display_help() {
+    echo "Usage: $0 [option...] " >&2
+    echo
+    echo "   -d, --distribution         Set on which debian distribution to create"
+    echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
+    echo "   -p, --add-perf             Add perf support with this option enabled"
+    echo "   -t, --add-trinity          Add trinity support with this option enabled"
+    echo
+}
+
+while true; do
+    if [ $# -eq 0 ];then
+	echo $#
+	break
+    fi
+    case "$1" in
+        -h | --help)
+            display_help
+            exit 0
+            ;;
+        -d | --distribution)
+	    RELEASE=$2
+            shift 2
+            ;;
+        -f | --feature)
+	    FEATURE=$2
+            shift 2
+            ;;
+        -t | --add-trinity)
+            #echo "Add trinity Support"
+	    TRINITY=true
+            shift 1
+            ;;
+        -p | --add-perf)
+            #echo "Add perf Support"
+	    PERF=true
+            shift 1
+            ;;
+        -*)
+            echo "Error: Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)  # No more options
+            break
+            ;;
+    esac
+done
+
+if [ $FEATURE = "full" ]; then
+    ADD_PACKAGE="make sysbench git vim tmux usbutils"
+fi
+
 sudo rm -rf $DIR
 mkdir -p $DIR
-sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default $RELEASE $DIR
+sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default $ADD_PACKAGE $RELEASE $DIR
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' $DIR/etc/passwd
@@ -37,6 +94,19 @@ echo "syzkaller" | sudo tee $DIR/etc/hostname
 ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
 sudo mkdir -p $DIR/root/.ssh/
 cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
+
+if [ "$TRINITY" = true ];then
+    sudo chroot stretch /bin/bash -c "mkdir -p ~; cd ~/; wget https://github.com/kernelslacker/trinity/archive/v1.5.tar.gz -O trinity-1.5.tar.gz; tar -xf trinity-1.5.tar.gz"
+    sudo chroot stretch /bin/bash -c "cd ~/trinity-1.5 ; ./configure.sh ; make -j16 ; make install"
+fi
+
+if [ "$PERF" = true ];then
+    cp -r $KERNEL stretch/tmp/
+    sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
+    sudo chroot stretch /bin/bash -c "cd /tmp/linux/tools/perf/; make"
+    sudo chroot stretch /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
+    rm -r stretch/tmp/linux
+fi
 
 # Build a disk image
 dd if=/dev/zero of=$RELEASE.img bs=1M seek=2047 count=1
