@@ -11,7 +11,6 @@ RELEASE=stretch
 DIR=chroot
 FEATURE=minimal
 ADD_PACKAGE=""
-TRINITY=false
 PERF=false
 
 display_help() {
@@ -19,8 +18,7 @@ display_help() {
     echo
     echo "   -d, --distribution         Set on which debian distribution to create"
     echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
-    echo "   -p, --add-perf             Add perf support with this option enabled"
-    echo "   -t, --add-trinity          Add trinity support with this option enabled"
+    echo "   -p, --add-perf             Add perf support with this option enabled. Please set envrionment variable \$KERNEL at first"
     echo
 }
 
@@ -42,13 +40,7 @@ while true; do
 	    FEATURE=$2
             shift 2
             ;;
-        -t | --add-trinity)
-            #echo "Add trinity Support"
-	    TRINITY=true
-            shift 1
-            ;;
         -p | --add-perf)
-            #echo "Add perf Support"
 	    PERF=true
             shift 1
             ;;
@@ -95,17 +87,12 @@ ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
 sudo mkdir -p $DIR/root/.ssh/
 cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
 
-if [ "$TRINITY" = true ];then
-    sudo chroot stretch /bin/bash -c "mkdir -p ~; cd ~/; wget https://github.com/kernelslacker/trinity/archive/v1.5.tar.gz -O trinity-1.5.tar.gz; tar -xf trinity-1.5.tar.gz"
-    sudo chroot stretch /bin/bash -c "cd ~/trinity-1.5 ; ./configure.sh ; make -j16 ; make install"
-fi
-
-if [ "$PERF" = true ];then
-    cp -r $KERNEL stretch/tmp/
-    sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
-    sudo chroot stretch /bin/bash -c "cd /tmp/linux/tools/perf/; make"
-    sudo chroot stretch /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
-    rm -r stretch/tmp/linux
+if [ "$PERF" = true ]; then
+    cp -r $KERNEL $DIR/tmp/
+    sudo chroot $DIR /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
+    sudo chroot $DIR /bin/bash -c "cd /tmp/linux/tools/perf/; make"
+    sudo chroot $DIR /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
+    rm -r $DIR/tmp/linux
 fi
 
 # Build a disk image
