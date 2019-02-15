@@ -8,10 +8,59 @@ set -eux
 
 # Create a minimal Debian distribution in a directory.
 RELEASE=stretch
-DIR=stretch
+DIR=chroot
+FEATURE=minimal
+ADD_PACKAGE=""
+PERF=false
+
+display_help() {
+    echo "Usage: $0 [option...] " >&2
+    echo
+    echo "   -d, --distribution         Set on which debian distribution to create"
+    echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
+    echo "   -p, --add-perf             Add perf support with this option enabled. Please set envrionment variable \$KERNEL at first"
+    echo
+}
+
+while true; do
+    if [ $# -eq 0 ];then
+	echo $#
+	break
+    fi
+    case "$1" in
+        -h | --help)
+            display_help
+            exit 0
+            ;;
+        -d | --distribution)
+	    RELEASE=$2
+            shift 2
+            ;;
+        -f | --feature)
+	    FEATURE=$2
+            shift 2
+            ;;
+        -p | --add-perf)
+	    PERF=true
+            shift 1
+            ;;
+        -*)
+            echo "Error: Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)  # No more options
+            break
+            ;;
+    esac
+done
+
+if [ $FEATURE = "full" ]; then
+    ADD_PACKAGE="make sysbench git vim tmux usbutils"
+fi
+
 sudo rm -rf $DIR
 mkdir -p $DIR
-sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default $RELEASE $DIR
+sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default $ADD_PACKAGE $RELEASE $DIR
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' $DIR/etc/passwd
@@ -37,6 +86,14 @@ echo "syzkaller" | sudo tee $DIR/etc/hostname
 ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
 sudo mkdir -p $DIR/root/.ssh/
 cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
+
+if [ "$PERF" = true ]; then
+    cp -r $KERNEL $DIR/tmp/
+    sudo chroot $DIR /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
+    sudo chroot $DIR /bin/bash -c "cd /tmp/linux/tools/perf/; make"
+    sudo chroot $DIR /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
+    rm -r $DIR/tmp/linux
+fi
 
 # Build a disk image
 dd if=/dev/zero of=$RELEASE.img bs=1M seek=2047 count=1
