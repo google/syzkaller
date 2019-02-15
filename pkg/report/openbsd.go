@@ -165,6 +165,10 @@ var openbsdOopses = []*oops{
 				title: compile("panic: pool_do_get: ([^:]+) free list modified"),
 				fmt:   "pool: free list modified: %[1]v",
 			},
+			{
+				title: compile("panic: timeout_add: to_ticks \\(.+\\) < 0"),
+				fmt:   "panic: timeout_add: to_ticks < 0",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
