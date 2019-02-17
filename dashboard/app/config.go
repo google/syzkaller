@@ -161,7 +161,7 @@ var config *GlobalConfig
 
 func init() {
 	// Prevents gometalinter from considering everything as dead code.
-	if false {
+	if false && isAppEngineTest {
 		installConfig(nil)
 	}
 }
