@@ -107,21 +107,23 @@ func (jp *JobProcessor) pollManagerCommits(mgr *Manager) error {
 		if brokenRepo(repo.URL) {
 			continue
 		}
-		commits1, err := jp.pollRepo(mgr, repo.URL, repo.Branch, resp.ReportEmail)
-		if err != nil {
-			jp.Errorf("failed to poll %v %v: %v", repo.URL, repo.Branch, err)
-			continue
-		}
-		log.Logf(1, "got %v commits from %v/%v repo", len(commits1), repo.URL, repo.Branch)
-		for _, com := range commits1 {
-			// Only the "main" repo is the source of true hashes.
-			if i != 0 {
-				com.Hash = ""
+		if resp.ReportEmail != "" {
+			commits1, err := jp.pollRepo(mgr, repo.URL, repo.Branch, resp.ReportEmail)
+			if err != nil {
+				jp.Errorf("failed to poll %v %v: %v", repo.URL, repo.Branch, err)
+				continue
 			}
-			// Not overwrite existing commits, in particular commit from the main repo with hash.
-			if _, ok := commits[com.Title]; !ok && !jp.knownCommits[com.Title] && len(commits) < 100 {
-				commits[com.Title] = com
-				jp.knownCommits[com.Title] = true
+			log.Logf(1, "got %v commits from %v/%v repo", len(commits1), repo.URL, repo.Branch)
+			for _, com := range commits1 {
+				// Only the "main" repo is the source of true hashes.
+				if i != 0 {
+					com.Hash = ""
+				}
+				// Not overwrite existing commits, in particular commit from the main repo with hash.
+				if _, ok := commits[com.Title]; !ok && !jp.knownCommits[com.Title] && len(commits) < 100 {
+					commits[com.Title] = com
+					jp.knownCommits[com.Title] = true
+				}
 			}
 		}
 		if i == 0 && len(resp.Commits) != 0 {
