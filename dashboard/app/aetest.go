@@ -5,4 +5,6 @@
 
 package dash
 
+// isAppEngineTest is meant to be used in prod config to either
+// load the config or just check its correctness.
 const isAppEngineTest = true
