@@ -68,12 +68,15 @@ type Build struct {
 	KernelCommitDate  time.Time
 	KernelConfig      []byte
 	Commits           []string // see BuilderPoll
-	FixCommits        []FixCommit
+	FixCommits        []Commit
 }
 
-type FixCommit struct {
-	Title string
-	BugID string
+type Commit struct {
+	Hash   string
+	Title  string
+	Author string
+	BugIDs []string // ID's extracted from Reported-by tags
+	Date   time.Time
 }
 
 func (dash *Dashboard) UploadBuild(build *Build) error {
@@ -159,6 +162,34 @@ type BuildErrorReq struct {
 
 func (dash *Dashboard) ReportBuildError(req *BuildErrorReq) error {
 	return dash.Query("report_build_error", req, nil)
+}
+
+type CommitPollResp struct {
+	ReportEmail string
+	Repos       []Repo
+	Commits     []string
+}
+
+type CommitPollResultReq struct {
+	Commits []Commit
+}
+
+type Repo struct {
+	URL    string
+	Branch string
+}
+
+func (dash *Dashboard) CommitPoll() (*CommitPollResp, error) {
+	resp := new(CommitPollResp)
+	err := dash.Query("commit_poll", nil, resp)
+	return resp, err
+}
+
+func (dash *Dashboard) UploadCommits(commits []Commit) error {
+	if len(commits) == 0 {
+		return nil
+	}
+	return dash.Query("upload_commits", &CommitPollResultReq{commits}, nil)
 }
 
 // Crash describes a single kernel crash (potentially with repro).

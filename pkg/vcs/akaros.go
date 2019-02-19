@@ -10,7 +10,7 @@ import (
 )
 
 type akaros struct {
-	git      *git
+	*git
 	dropbear *git
 }
 
@@ -28,27 +28,7 @@ func (ctx *akaros) Poll(repo, branch string) (*Commit, error) {
 	return ctx.git.Poll(repo, branch)
 }
 
-func (ctx *akaros) CheckoutBranch(repo, branch string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for akaros")
-}
-
-func (ctx *akaros) CheckoutCommit(repo, commit string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for akaros")
-}
-
-func (ctx *akaros) SwitchCommit(commit string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for akaros")
-}
-
-func (ctx *akaros) HeadCommit() (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for akaros")
-}
-
-func (ctx *akaros) ListRecentCommits(baseCommit string) ([]string, error) {
-	return ctx.git.ListRecentCommits(baseCommit)
-}
-
-func (ctx *akaros) ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit, error) {
+func (ctx *akaros) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	return ctx.git.ExtractFixTagsFromCommits(baseCommit, email)
 }
 

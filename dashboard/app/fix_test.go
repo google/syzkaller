@@ -418,7 +418,10 @@ func TestFixedWithCommitTags(t *testing.T) {
 	rep := c.client.pollBug()
 
 	// Upload build with 2 fixing commits for this bug.
-	build1.FixCommits = []dashapi.FixCommit{{"fix commit 1", rep.ID}, {"fix commit 2", rep.ID}}
+	build1.FixCommits = []dashapi.Commit{
+		{Title: "fix commit 1", BugIDs: []string{rep.ID}},
+		{Title: "fix commit 2", BugIDs: []string{rep.ID}},
+	}
 	c.client.UploadBuild(build1)
 
 	// Now the commits must be associated with the bug and the second
@@ -472,7 +475,9 @@ func TestFixedDup(t *testing.T) {
 	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 
 	// Upload build that fixes rep2.
-	build.FixCommits = []dashapi.FixCommit{{"fix commit 1", rep2.ID}}
+	build.FixCommits = []dashapi.Commit{
+		{Title: "fix commit 1", BugIDs: []string{rep2.ID}},
+	}
 	c.client.UploadBuild(build)
 
 	// This must fix rep1.
@@ -505,15 +510,10 @@ func TestFixedDup2(t *testing.T) {
 	c.client.updateBug(rep2.ID, dashapi.BugStatusDup, rep1.ID)
 
 	// Upload build that fixes rep2.
-	build1.FixCommits = []dashapi.FixCommit{{"fix commit 1", rep2.ID}}
+	build1.FixCommits = []dashapi.Commit{
+		{Title: "fix commit 1", BugIDs: []string{rep2.ID}},
+	}
 	c.client.UploadBuild(build1)
-
-	/*
-		dbBug1, _, _ := c.loadBug(rep1.ID)
-		t.Logf("BUG1: status=%v, commits: %+v, patched: %+v", dbBug1.Status, dbBug1.Commits, dbBug1.PatchedOn)
-		dbBug2, _, _ := c.loadBug(rep2.ID)
-		t.Logf("BUG2: status=%v, commits: %+v, patched: %+v", dbBug2.Status, dbBug2.Commits, dbBug2.PatchedOn)
-	*/
 
 	// Now undup the bugs. They are still unfixed as only 1 manager uploaded the commit.
 	c.client.updateBug(rep2.ID, dashapi.BugStatusOpen, "")
@@ -557,7 +557,10 @@ func TestFixedDup3(t *testing.T) {
 
 	// Upload builds that fix rep1 and rep2 with different commits.
 	// This must fix rep1 eventually and we must not livelock in such scenario.
-	build1.FixCommits = []dashapi.FixCommit{{"fix commit 1", rep1.ID}, {"fix commit 2", rep2.ID}}
+	build1.FixCommits = []dashapi.Commit{
+		{Title: "fix commit 1", BugIDs: []string{rep1.ID}},
+		{Title: "fix commit 2", BugIDs: []string{rep2.ID}},
+	}
 	build2.FixCommits = build1.FixCommits
 	c.client.UploadBuild(build1)
 	c.client.UploadBuild(build2)

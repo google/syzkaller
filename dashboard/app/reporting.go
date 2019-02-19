@@ -126,11 +126,6 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		reporting, bugReporting = nil, nil
 		return
 	}
-	if reporting.Config.NeedMaintainers() && len(crash.Maintainers) == 0 {
-		status = fmt.Sprintf("%v: no maintainers", reporting.DisplayTitle)
-		reporting, bugReporting = nil, nil
-		return
-	}
 
 	// Limit number of reports sent per day,
 	// but don't limit sending repros to already reported bugs.
@@ -511,9 +506,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	if len(cmd.FixCommits) != 0 && (bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
 		sort.Strings(cmd.FixCommits)
 		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
-			bug.Commits = cmd.FixCommits
-			bug.FixTime = now
-			bug.PatchedOn = nil
+			bug.updateCommits(cmd.FixCommits, now)
 		}
 	}
 	if cmd.CrashID != 0 {

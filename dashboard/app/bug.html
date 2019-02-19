@@ -18,12 +18,12 @@ Page with details about a single bug.
 	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
 	Reported-by: {{.Bug.CreditEmail}}<br>
 	{{if .Bug.Commits}}
-		Commits: {{.Bug.Commits}}<br>
+		Fix commit: {{template "fix_commits" .Bug.Commits}}<br>
 		{{if .Bug.ClosedTime.IsZero}}
 			Patched on: {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
 		{{end}}
 	{{end}}
-	First: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
+	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
 
 	{{template "bug_list" .DupOf}}
 	{{template "bug_list" .Dups}}
@@ -57,8 +57,8 @@ Page with details about a single bug.
 				<td class="time">{{formatTime $c.Time}}</td>
 				<td class="kernel" title="{{$c.KernelAlias}}">{{$c.KernelAlias}}</td>
 				<td class="tag" title="{{$c.KernelCommit}}
-{{formatTime $c.KernelCommitDate}}">{{formatShortHash $c.KernelCommit}}</td>
-				<td class="tag" title="{{$c.SyzkallerCommit}}">{{formatShortHash $c.SyzkallerCommit}}</td>
+{{formatTime $c.KernelCommitDate}}">{{link $c.KernelCommitLink (formatShortHash $c.KernelCommit)}}</td>
+				<td class="tag">{{link $c.SyzkallerCommitLink (formatShortHash $c.SyzkallerCommit)}}</td>
 				<td class="config">{{if $c.KernelConfigLink}}<a href="{{$c.KernelConfigLink}}">.config</a>{{end}}</td>
 				<td class="repro">{{if $c.LogLink}}<a href="{{$c.LogLink}}">log</a>{{end}}</td>
 				<td class="repro">{{if $c.ReportLink}}<a href="{{$c.ReportLink}}">report</a>{{end}}</td>

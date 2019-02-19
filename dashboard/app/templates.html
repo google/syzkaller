@@ -82,10 +82,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</td>
 			{{if $.ShowPatch}}
 				<td class="stat">{{formatLateness $.Now $b.ClosedTime}}</td>
-				<td class="title" title="{{$b.Commits}}">{{$b.Commits}}</td>
+				<td class="commit_list">{{template "fix_commits" $b.Commits}}</td>
 			{{end}}
 			{{if $.ShowPatched}}
-				<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{$b.NumManagers}}{{end}}</td>
+				<td class="patched" {{if $b.Commits}}title="{{with $com := index $b.Commits 0}}{{$com.Title}}{{end}}"{{end}}>{{len $b.PatchedOn}}/{{$b.NumManagers}}</td>
 			{{end}}
 			{{if $.ShowStatus}}
 				<td class="status">
@@ -130,11 +130,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			</td>
 			<td class="stat {{if $mgr.LastActiveBad}}bad{{end}}">{{formatLateness $mgr.Now $mgr.LastActive}}</td>
 			<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
-			{{if $mgr.CurrentBuild}}
-				<td class="stat">{{formatLateness $mgr.Now $mgr.CurrentBuild.Time}}</td>
-				<td class="stat" title="{{$mgr.CurrentBuild.KernelAlias}} {{$mgr.CurrentBuild.KernelCommit}}
-{{formatTime $mgr.CurrentBuild.KernelCommitDate}}">{{formatShortHash $mgr.CurrentBuild.KernelCommit}}</td>
-				<td class="stat" title="{{$mgr.CurrentBuild.SyzkallerCommit}}">{{formatShortHash $mgr.CurrentBuild.SyzkallerCommit}}</td>
+			{{with $build := $mgr.CurrentBuild}}
+				<td class="stat">{{formatLateness $mgr.Now $build.Time}}</td>
+				<td class="stat" title="{{$build.KernelAlias}} {{$build.KernelCommit}}
+{{formatTime $build.KernelCommitDate}}">{{link $build.KernelCommitLink (formatShortHash $mgr.CurrentBuild.KernelCommit)}}</td>
+				<td class="stat">{{link $mgr.CurrentBuild.SyzkallerCommitLink (formatShortHash $mgr.CurrentBuild.SyzkallerCommit)}}</td>
 			{{else}}
 				<td></td>
 				<td></td>
@@ -156,5 +156,17 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</tr>
 	{{end}}
 </table>
+{{end}}
+{{end}}
+
+{{/* List of fixing commits, invoked with []*uiCommit */}}
+{{define "fix_commits"}}
+{{range $com := .}}
+	<span class="mono">
+		{{if $com.Hash}}
+			{{formatShortHash $com.Hash}} 
+		{{end}}
+		{{link $com.Link $com.Title}}
+	</span>
 {{end}}
 {{end}}

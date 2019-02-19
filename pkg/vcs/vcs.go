@@ -33,13 +33,22 @@ type Repo interface {
 	// HeadCommit returns info about the HEAD commit of the current branch of git repository.
 	HeadCommit() (*Commit, error)
 
+	// GetCommitByTitle finds commit info by the title.
+	// Remote is not fetched, the commit needs to be reachable from the current repo state
+	// (e.g. do CheckoutBranch before). If the commit is not found, nil is returned.
+	GetCommitByTitle(title string) (*Commit, error)
+
+	// GetCommitsByTitles is a batch version of GetCommitByTitle.
+	// Returns list of commits and titles of commits that are not found.
+	GetCommitsByTitles(titles []string) ([]*Commit, []string, error)
+
 	// ListRecentCommits returns list of recent commit titles starting from baseCommit.
 	ListRecentCommits(baseCommit string) ([]string, error)
 
 	// ExtractFixTagsFromCommits extracts fixing tags for bugs from git log.
 	// Given email = "user@domain.com", it searches for tags of the form "user+tag@domain.com"
-	// and return pairs {tag, commit title}.
-	ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit, error)
+	// and returns commits with these tags.
+	ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error)
 
 	// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
 	PreviousReleaseTags(commit string) ([]string, error)
@@ -57,12 +66,8 @@ type Commit struct {
 	Title  string
 	Author string
 	CC     []string
+	Tags   []string
 	Date   time.Time
-}
-
-type FixCommit struct {
-	Tag   string
-	Title string
 }
 
 type BisectResult int
@@ -153,7 +158,7 @@ func runSandboxed(dir, command string, args ...string) ([]byte, error) {
 
 var (
 	// nolint: lll
-	gitRepoRe    = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\.git(/)?$`)
+	gitRepoRe    = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?(/[a-zA-Z0-9-_./]+)?(/)?$`)
 	gitBranchRe  = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
 	gitHashRe    = regexp.MustCompile("^[a-f0-9]{8,40}$")
 	releaseTagRe = regexp.MustCompile(`^v([0-9]+).([0-9]+)(?:\.([0-9]+))?$`)
@@ -188,4 +193,64 @@ var commitPrefixes = []string{
 	"BACKPORT:",
 	"FROMGIT:",
 	"net-backports:",
+}
+
+const SyzkallerRepo = "https://github.com/google/syzkaller"
+
+func CommitLink(url, hash string) string {
+	return link(url, hash, 0)
+}
+
+func TreeLink(url, hash string) string {
+	return link(url, hash, 1)
+}
+
+func LogLink(url, hash string) string {
+	return link(url, hash, 2)
+}
+
+func link(url, hash string, typ int) string {
+	if url == "" || hash == "" {
+		return ""
+	}
+	switch url {
+	case "https://fuchsia.googlesource.com":
+		// We collect hashes from zircon repo.
+		return link(url+"/zircon", hash, typ)
+	}
+	if strings.HasPrefix(url, "https://github.com/") {
+		url = strings.TrimSuffix(url, ".git")
+		switch typ {
+		case 1:
+			return url + "/tree/" + hash
+		case 2:
+			return url + "/commits/" + hash
+		default:
+			return url + "/commit/" + hash
+		}
+	}
+	if strings.HasPrefix(url, "https://git.kernel.org/pub/scm/") ||
+		strings.HasPrefix(url, "git://git.kernel.org/pub/scm/") {
+		url = strings.TrimPrefix(url, "git")
+		url = strings.TrimPrefix(url, "https")
+		switch typ {
+		case 1:
+			return "https" + url + "/tree/?id=" + hash
+		case 2:
+			return "https" + url + "/log/?id=" + hash
+		default:
+			return "https" + url + "/commit/?id=" + hash
+		}
+	}
+	if strings.HasPrefix(url, "https://") && strings.Contains(url, ".googlesource.com") {
+		switch typ {
+		case 1:
+			return url + "/+/" + hash + "/"
+		case 2:
+			return url + "/+log/" + hash
+		default:
+			return url + "/+/" + hash + "^!"
+		}
+	}
+	return ""
 }

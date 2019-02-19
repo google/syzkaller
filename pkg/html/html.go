@@ -32,6 +32,7 @@ func CreateGlob(glob string) *template.Template {
 }
 
 var funcs = template.FuncMap{
+	"link":             link,
 	"formatTime":       FormatTime,
 	"formatClock":      formatClock,
 	"formatDuration":   formatDuration,
@@ -39,6 +40,14 @@ var funcs = template.FuncMap{
 	"formatReproLevel": formatReproLevel,
 	"formatStat":       formatStat,
 	"formatShortHash":  formatShortHash,
+}
+
+func link(url, text string) template.HTML {
+	text = template.HTMLEscapeString(text)
+	if url != "" {
+		text = fmt.Sprintf(`<a href="%v">%v</a>`, url, text)
+	}
+	return template.HTML(text)
 }
 
 func FormatTime(t time.Time) string {

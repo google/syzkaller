@@ -77,6 +77,11 @@ table td, table th {
 	max-width: 350pt;
 }
 
+.list_table .commit_list {
+	width: 500pt;
+	max-width: 500pt;
+}
+
 .list_table .tag {
 	font-family: monospace;
 	font-size: 8pt;
@@ -101,8 +106,8 @@ table td, table th {
 }
 
 .list_table .kernel {
-	width: 60pt;
-	max-width: 60pt;
+	width: 80pt;
+	max-width: 80pt;
 }
 
 .list_table .maintainers {
@@ -149,5 +154,9 @@ table td, table th {
 
 textarea {
 	width:100%;
+	font-family: monospace;
+}
+
+.mono {
 	font-family: monospace;
 }

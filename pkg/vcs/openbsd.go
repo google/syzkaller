@@ -9,7 +9,7 @@ import (
 )
 
 type openbsd struct {
-	git *git
+	*git
 }
 
 func newOpenBSD(vm, dir string) *openbsd {
@@ -18,31 +18,7 @@ func newOpenBSD(vm, dir string) *openbsd {
 	}
 }
 
-func (ctx *openbsd) Poll(repo, branch string) (*Commit, error) {
-	return ctx.git.Poll(repo, branch)
-}
-
-func (ctx *openbsd) CheckoutBranch(repo, branch string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for openbsd")
-}
-
-func (ctx *openbsd) CheckoutCommit(repo, commit string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for openbsd")
-}
-
-func (ctx *openbsd) SwitchCommit(commit string) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for openbsd")
-}
-
-func (ctx *openbsd) HeadCommit() (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for openbsd")
-}
-
-func (ctx *openbsd) ListRecentCommits(baseCommit string) ([]string, error) {
-	return ctx.git.ListRecentCommits(baseCommit)
-}
-
-func (ctx *openbsd) ExtractFixTagsFromCommits(baseCommit, email string) ([]FixCommit, error) {
+func (ctx *openbsd) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	return ctx.git.ExtractFixTagsFromCommits(baseCommit, email)
 }
 

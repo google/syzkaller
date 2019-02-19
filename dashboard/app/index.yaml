@@ -22,6 +22,12 @@ indexes:
   - name: Seq
     direction: desc
 
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: NeedCommitInfo
+  - name: Commits
+
 - kind: Build
   properties:
   - name: Namespace

@@ -118,6 +118,8 @@ For more options, visit https://groups.google.com/d/optout.
 
 	// Now report syz reproducer and check updated email.
 	build2 := testBuild(10)
+	build2.KernelRepo = testConfig.Namespaces["test2"].Repos[0].URL
+	build2.KernelBranch = testConfig.Namespaces["test2"].Repos[0].Branch
 	build2.KernelCommitTitle = "a really long title, longer than 80 chars, really long-long-long-long-long-long title"
 	c.client2.UploadBuild(build2)
 	crash.BuildID = build2.ID
