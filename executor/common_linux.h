@@ -440,7 +440,7 @@ static void initialize_tun(void)
 
 // Addresses are chosen to be in the same subnet as tun addresses.
 #define DEV_IPV4 "172.20.20.%d"
-#define DEV_IPV6 "fe80::%02hx"
+#define DEV_IPV6 "fe80::%02x"
 #define DEV_MAC 0x00aaaaaaaaaa
 
 // We test in a separate namespace, which does not have any network devices initially (even lo).
@@ -616,7 +616,7 @@ static void initialize_netdevices_init(void)
 		sprintf(addr, "172.30.%d.%d", i, (int)procid + 1);
 		netlink_add_addr4(sock, dev, addr);
 		if (!devtypes[i].noipv6) {
-			sprintf(addr, "fe88::%02hx:%02hx", i, (int)procid + 1);
+			sprintf(addr, "fe88::%02x:%02x", i, (int)procid + 1);
 			netlink_add_addr6(sock, dev, addr);
 		}
 		int macsize = devtypes[i].macsize;
