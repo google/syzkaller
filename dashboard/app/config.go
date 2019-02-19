@@ -111,8 +111,6 @@ type Reporting struct {
 type ReportingType interface {
 	// Type returns a unique string that identifies this reporting type (e.g. "email").
 	Type() string
-	// NeedMaintainers says if this reporting requires non-empty maintainers list.
-	NeedMaintainers() bool
 	// Validate validates the current object, this is called only during init.
 	Validate() error
 }
