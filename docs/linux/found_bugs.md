@@ -283,7 +283,6 @@ _newer first_
 * [net/sctp: use-after-free in __sctp_connect](https://groups.google.com/forum/#!topic/syzkaller/W0swoIe25Eg)
 * [fs: WARNING in locks_unlink_lock_ctx (not holding proper lock)](https://groups.google.com/d/msg/syzkaller/9DFicr6njUw/aaX3dVtNBQAJ)
 * [kernel BUG in dio_get_page](https://groups.google.com/d/msg/syzkaller/rCCyOHJHflI/Ik7IhXWzBAAJ)
-* [bpf related use-after-free](http://seclists.org/oss-sec/2016/q2/332) CVE-2016-4794
 * [drm: GPF in drm_getcap](https://groups.google.com/d/msg/syzkaller/dxVHCovRzhg/7QPBBqi4BwAJ)
 * [fs: GPF in bd_mount](https://groups.google.com/d/msg/syzkaller/Z7OCclqCuq0/--YUa8QrBgAJ)
 * [tty, fbcon: use-after-free in fbcon_invert_region](https://groups.google.com/d/msg/syzkaller/1DU69JpJwJg/n-6V4Wr5BQAJ)
