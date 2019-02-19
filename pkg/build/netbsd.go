@@ -107,7 +107,7 @@ func CopyKernelToDisk(outputDir string) error {
 	}
 	defer inst.Close()
 	// Copy the kernel into the disk image and replace it
-	kernel, err := inst.Copy(filepath.Join(outputDir,"netbsd"))
+	kernel, err := inst.Copy(filepath.Join(outputDir, "netbsd"))
 	if err != nil {
 		return fmt.Errorf("Error Copying the kernel %v: %v", kernel, err)
 	}
