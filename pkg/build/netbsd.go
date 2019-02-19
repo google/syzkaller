@@ -78,9 +78,7 @@ func (ctx netbsd) clean(kernelDir string) error {
 func CopyKernelToDisk(outputDir string) error {
 	temp := []byte(`
 {
-	"qemu": "qemu-system-x86_64",
 	"cpu": 1,
-	"count": 1,
 	"mem": 1024
 }	`)
 	VMconfig := (*json.RawMessage)(&temp)
@@ -91,29 +89,30 @@ func CopyKernelToDisk(outputDir string) error {
 		SSHKey:       filepath.Join(outputDir, "key"),
 		SSHUser:      "root",
 		TargetOS:     "netbsd",
+		TargetArch:   "amd64",
 		TargetVMArch: "amd64",
 		Type:         "qemu",
 		VM:           *VMconfig,
 	}
 	// Create a VM pool
-	pool, err := vm.Create(cfg, true)
+	pool, err := vm.Create(cfg, false)
 	if err != nil {
-		return fmt.Errorf("Failed to create a VM Pool : %v", err)
+		return fmt.Errorf("failed to create a VM Pool : %v", err)
 	}
 	// Create a VM instance (We need only one)
 	inst, err := pool.Create(0)
 	if err != nil {
-		return fmt.Errorf("Failed to create the VM Instance : %v", err)
+		return fmt.Errorf("failed to create the VM Instance : %v", err)
 	}
 	defer inst.Close()
 	// Copy the kernel into the disk image and replace it
 	kernel, err := inst.Copy(filepath.Join(outputDir, "netbsd"))
 	if err != nil {
-		return fmt.Errorf("Error Copying the kernel %v: %v", kernel, err)
+		return fmt.Errorf("error Copying the kernel %v: %v", kernel, err)
 	}
 	outc, errc, err := inst.Run(time.Minute, nil, "sync")
 	if err != nil {
-		return fmt.Errorf("Error syncing the kernel %v : %v", outc, errc)
+		return fmt.Errorf("error syncing the kernel %v : %v", outc, errc)
 	}
-	return err
+	return nil
 }
