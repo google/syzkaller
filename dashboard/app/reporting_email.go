@@ -66,10 +66,6 @@ func (cfg *EmailConfig) Type() string {
 	return emailType
 }
 
-func (cfg *EmailConfig) NeedMaintainers() bool {
-	return cfg.MailMaintainers && len(cfg.DefaultMaintainers) == 0
-}
-
 func (cfg *EmailConfig) Validate() error {
 	if _, err := mail.ParseAddress(cfg.Email); err != nil {
 		return fmt.Errorf("bad email address %q: %v", cfg.Email, err)
@@ -81,6 +77,9 @@ func (cfg *EmailConfig) Validate() error {
 	}
 	if cfg.Moderation && cfg.MailMaintainers {
 		return fmt.Errorf("both Moderation and MailMaintainers set")
+	}
+	if cfg.MailMaintainers && len(cfg.DefaultMaintainers) == 0 {
+		return fmt.Errorf("MailMaintainers is set but no DefaultMaintainers")
 	}
 	return nil
 }

@@ -126,11 +126,6 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		reporting, bugReporting = nil, nil
 		return
 	}
-	if reporting.Config.NeedMaintainers() && len(crash.Maintainers) == 0 {
-		status = fmt.Sprintf("%v: no maintainers", reporting.DisplayTitle)
-		reporting, bugReporting = nil, nil
-		return
-	}
 
 	// Limit number of reports sent per day,
 	// but don't limit sending repros to already reported bugs.

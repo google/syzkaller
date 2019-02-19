@@ -223,10 +223,6 @@ func (cfg *TestConfig) Type() string {
 	return "test"
 }
 
-func (cfg *TestConfig) NeedMaintainers() bool {
-	return false
-}
-
 func (cfg *TestConfig) Validate() error {
 	return nil
 }
