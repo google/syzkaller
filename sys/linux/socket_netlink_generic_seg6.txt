@@ -1,0 +1,28 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_GENERIC/seg6 support.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/seg6_genl.h>
+
+resource genl_seg6_family_id[int16]
+type msghdr_nl_seg6[CMD] msghdr_netlink[netlink_msg_t[genl_seg6_family_id, genlmsghdr_t[CMD], seg6_genl_policy]]
+
+syz_genetlink_get_family_id$SEG6(name ptr[in, string["SEG6"]]) genl_seg6_family_id
+
+sendmsg$SEG6_CMD_SETHMAC(fd sock_nl_generic, msg ptr[in, msghdr_nl_seg6[SEG6_CMD_SETHMAC]], f flags[send_flags])
+sendmsg$SEG6_CMD_DUMPHMAC(fd sock_nl_generic, msg ptr[in, msghdr_nl_seg6[SEG6_CMD_DUMPHMAC]], f flags[send_flags])
+sendmsg$SEG6_CMD_SET_TUNSRC(fd sock_nl_generic, msg ptr[in, msghdr_nl_seg6[SEG6_CMD_SET_TUNSRC]], f flags[send_flags])
+sendmsg$SEG6_CMD_GET_TUNSRC(fd sock_nl_generic, msg ptr[in, msghdr_nl_seg6[SEG6_CMD_GET_TUNSRC]], f flags[send_flags])
+
+seg6_genl_policy [
+	SEG6_ATTR_DST		nlattr[SEG6_ATTR_DST, ipv6_addr]
+	SEG6_ATTR_DSTLEN	nlattr[SEG6_ATTR_DSTLEN, int32]
+	SEG6_ATTR_HMACKEYID	nlattr[SEG6_ATTR_HMACKEYID, int32]
+	SEG6_ATTR_SECRET	nlattr[SEG6_ATTR_SECRET, array[int32, 0:SEG6_ATTR_SECRETLEN]]
+	SEG6_ATTR_SECRETLEN	nlattr[SEG6_ATTR_SECRETLEN, int8[0:SEG6_ATTR_SECRETLEN]]
+	SEG6_ATTR_ALGID		nlattr[SEG6_ATTR_ALGID, int8]
+] [varlen]
