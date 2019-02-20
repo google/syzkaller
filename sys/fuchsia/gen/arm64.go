@@ -4400,9 +4400,6 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_power_PowerManagerWatcherOnChangeBatteryStatusRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_power_PowerManagerWatcherOnChangeBatteryStatusRequestHandles"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_power_BatteryStatusHandles"}, FldName: "battery_status"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_process_CreateWithoutStartingResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_CreateWithoutStartingResultHandles", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_process_ProcessStartDataHandles", Dir: 1}, FldName: "data"},
-	}}},
 	{Key: StructKey{Name: "fuchsia_process_HandleInfoHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_HandleInfoHandles", TypeSize: 4}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
 	}}},
@@ -4425,13 +4422,10 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_process_LaunchInfoOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LaunchInfoOutOfLine", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "nameOutOfLine"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_process_LaunchResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LaunchResultHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "process", TypeSize: 4, ArgDir: 1}},
-	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherAddArgsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherAddArgsRequest", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[343996832]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "argsInLine"},
-		&StructType{Key: StructKey{Name: "parallel_array[fidl_string, fidl_aligned[stringnoz]]"}, FldName: "argsOutOfLine"},
+		&StructType{Key: StructKey{Name: "parallel_array[fidl_vector, array[int8]]"}, FldName: "argsOutOfLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherAddArgsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherAddArgsRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -4439,7 +4433,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_process_LauncherAddEnvironsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherAddEnvironsRequest", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[1220947097]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "environInLine"},
-		&StructType{Key: StructKey{Name: "parallel_array[fidl_string, fidl_aligned[stringnoz]]"}, FldName: "environOutOfLine"},
+		&StructType{Key: StructKey{Name: "parallel_array[fidl_vector, array[int8]]"}, FldName: "environOutOfLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherAddEnvironsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherAddEnvironsRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -4469,7 +4463,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_process_LaunchInfoHandles"}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherCreateWithoutStartingResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherCreateWithoutStartingResponseHandles", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_process_CreateWithoutStartingResultHandles", Dir: 1}, FldName: "result"},
+		&StructType{Key: StructKey{Name: "fuchsia_process_ProcessStartDataHandles", Dir: 1}, FldName: "data"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherLaunchRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherLaunchRequest", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[646466973]"}, FldName: "hdr"},
@@ -4480,7 +4474,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_process_LaunchInfoHandles"}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherLaunchResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherLaunchResponseHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_process_LaunchResultHandles", Dir: 1}, FldName: "result"},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "process", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_NameInfoHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_NameInfoHandles", TypeSize: 4}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Directory_client", FldName: "directory", TypeSize: 4}},
@@ -4602,9 +4596,9 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "timeval"}, FldName: "interv"},
 		&StructType{Key: StructKey{Name: "timeval"}, FldName: "value"},
 	}}},
-	{Key: StructKey{Name: "parallel_array[fidl_string, fidl_aligned[stringnoz]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "parallel_array[fidl_string, fidl_aligned[stringnoz]]", IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fidl_string"}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "b", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}}},
+	{Key: StructKey{Name: "parallel_array[fidl_vector, array[int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "parallel_array[fidl_vector, array[int8]]", IsVarlen: true}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fidl_vector"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "b", IsVarlen: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "parallel_array[fuchsia_cobalt_CobaltEventInLine, fuchsia_cobalt_CobaltEventOutOfLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "parallel_array[fuchsia_cobalt_CobaltEventInLine, fuchsia_cobalt_CobaltEventOutOfLine]", IsVarlen: true}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fuchsia_cobalt_CobaltEventInLine"}}},
@@ -7555,4 +7549,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_arm64 = "8be0f9990181eaecd327c539812d46d285db84cd"
+const revision_arm64 = "6bfd73c3be80297b5e5295deeb2b1cdc93cda43b"
