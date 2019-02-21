@@ -62,14 +62,24 @@ func main() {
 	var newFiles []string
 
 	for layer := range layerToLibs {
-		jsonPathBase := filepath.Join(
-			sourceDir,
-			"out",
-			arch,
-			"fidling/gen",
-			layer,
-			"public/fidl",
-		)
+		var jsonPathBase string
+		if layer == "garnet" {
+			jsonPathBase = filepath.Join(
+				sourceDir,
+				"out",
+				arch,
+				"fidling/gen/sdk/fidl",
+			)
+		} else {
+			jsonPathBase = filepath.Join(
+				sourceDir,
+				"out",
+				arch,
+				"fidling/gen",
+				layer,
+				"public/fidl",
+			)
+		}
 
 		for _, lib := range layerToLibs[layer] {
 			jsonPath := filepath.Join(
