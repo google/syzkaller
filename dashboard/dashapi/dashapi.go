@@ -262,6 +262,7 @@ type BugReport struct {
 	JobID             string
 	ExtID             string // arbitrary reporting ID forwarded from BugUpdate.ExtID
 	First             bool   // Set for first report for this bug.
+	Moderation        bool
 	Title             string
 	Maintainers       []string
 	CC                []string // additional CC emails
@@ -297,15 +298,17 @@ type BugReport struct {
 }
 
 type BugUpdate struct {
-	ID         string
-	ExtID      string
-	Link       string
-	Status     BugStatus
-	ReproLevel ReproLevel
-	DupOf      string
-	FixCommits []string // Titles of commits that fix this bug.
-	CC         []string // Additional emails to add to CC list in future emails.
-	CrashID    int64
+	ID           string
+	ExtID        string
+	Link         string
+	Status       BugStatus
+	ReproLevel   ReproLevel
+	DupOf        string
+	OnHold       bool     // If set for open bugs, don't upstream this bug.
+	Notification bool     // Reply to a notification.
+	FixCommits   []string // Titles of commits that fix this bug.
+	CC           []string // Additional emails to add to CC list in future emails.
+	CrashID      int64
 }
 
 type BugUpdateReply struct {
@@ -325,6 +328,31 @@ type PollBugsResponse struct {
 	Reports []*BugReport
 }
 
+type BugNotification struct {
+	Type        BugNotif
+	Namespace   string
+	Config      []byte
+	ID          string
+	ExtID       string // arbitrary reporting ID forwarded from BugUpdate.ExtID
+	Title       string
+	Text        string   // meaning depends on Type
+	CC          []string // additional CC emails
+	Maintainers []string
+	// Public is what we want all involved people to see (e.g. if we notify about a wrong commit title,
+	// people need to see it and provide the right title). Not public is what we want to send only
+	// to a minimal set of recipients (our mailing list) (e.g. notification about an obsoleted bug
+	// is mostly "for the record").
+	Public bool
+}
+
+type PollNotificationsRequest struct {
+	Type string
+}
+
+type PollNotificationsResponse struct {
+	Notifications []*BugNotification
+}
+
 type PollClosedRequest struct {
 	IDs []string
 }
@@ -339,6 +367,17 @@ func (dash *Dashboard) ReportingPollBugs(typ string) (*PollBugsResponse, error) 
 	}
 	resp := new(PollBugsResponse)
 	if err := dash.Query("reporting_poll_bugs", req, resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (dash *Dashboard) ReportingPollNotifications(typ string) (*PollNotificationsResponse, error) {
+	req := &PollNotificationsRequest{
+		Type: typ,
+	}
+	resp := new(PollNotificationsResponse)
+	if err := dash.Query("reporting_poll_notifs", req, resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
@@ -384,6 +423,7 @@ func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
 
 type (
 	BugStatus  int
+	BugNotif   int
 	ReproLevel int
 )
 
@@ -393,6 +433,17 @@ const (
 	BugStatusInvalid
 	BugStatusDup
 	BugStatusUpdate // aux info update (i.e. ExtID/Link/CC)
+)
+
+const (
+	// Upstream bug into next reporting.
+	// If the action succeeds, reporting sends BugStatusUpstream update.
+	BugNotifUpstream BugNotif = iota
+	// Bug needs to be closed as obsoleted.
+	// If the action succeeds, reporting sends BugStatusInvalid update.
+	BugNotifObsoleted
+	// Bug fixing commit can't be discovered (wrong commit title).
+	BugNotifBadCommit
 )
 
 const (

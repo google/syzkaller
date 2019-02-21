@@ -46,6 +46,7 @@ func TestReportBug(t *testing.T) {
 		Config:            []byte(`{"Index":1}`),
 		ID:                rep.ID,
 		First:             true,
+		Moderation:        true,
 		Title:             "title1",
 		Maintainers:       []string{"bar@foo.com", "foo@bar.com"},
 		CompilerID:        "compiler1",
@@ -122,6 +123,7 @@ func TestReportBug(t *testing.T) {
 	}
 	want.ID = rep2.ID
 	want.First = true
+	want.Moderation = false
 	want.Config = []byte(`{"Index":2}`)
 	want.NumCrashes = 3
 	if diff := cmp.Diff(want, rep2); diff != "" {
@@ -194,6 +196,7 @@ func TestInvalidBug(t *testing.T) {
 		Config:            []byte(`{"Index":1}`),
 		ID:                rep.ID,
 		First:             true,
+		Moderation:        true,
 		Title:             "title1 (2)",
 		CompilerID:        "compiler1",
 		KernelRepo:        "repo1",
@@ -387,7 +390,7 @@ func TestReportingFilter(t *testing.T) {
 	c.client.UploadBuild(build)
 
 	crash1 := testCrash(build, 1)
-	crash1.Title = "skip without repro 1"
+	crash1.Title = "skip with repro 1"
 	c.client.ReportCrash(crash1)
 
 	// This does not skip first reporting, because it does not have repro.
@@ -410,7 +413,7 @@ func TestReportingFilter(t *testing.T) {
 
 	// Now report a bug that must go to the second reporting right away.
 	crash2 := testCrash(build, 2)
-	crash2.Title = "skip without repro 2"
+	crash2.Title = "skip with repro 2"
 	crash2.ReproSyz = []byte("getpid()")
 	c.client.ReportCrash(crash2)
 
