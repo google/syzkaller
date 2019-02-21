@@ -60,7 +60,7 @@ no options SVS
 		}
 	}
 
-	if vmType == "gce" {
+	if vmType == "qemu" || vmType == "gce" {
 		return CopyKernelToDisk(outputDir)
 	}
 	return nil
@@ -78,7 +78,7 @@ func (ctx netbsd) clean(kernelDir string) error {
 func CopyKernelToDisk(outputDir string) error {
 	temp := []byte(`
 {
-	"cpu": 1,
+	"snapshot": false,
 	"mem": 1024
 }	`)
 	VMconfig := (*json.RawMessage)(&temp)
@@ -106,13 +106,18 @@ func CopyKernelToDisk(outputDir string) error {
 	}
 	defer inst.Close()
 	// Copy the kernel into the disk image and replace it
+	// This makes use of the fact that the file is copied by default to /
 	kernel, err := inst.Copy(filepath.Join(outputDir, "netbsd"))
 	if err != nil {
 		return fmt.Errorf("error Copying the kernel %v: %v", kernel, err)
 	}
-	outc, errc, err := inst.Run(time.Minute, nil, "sync")
+	// Run poweroff so that the copied image is stored properly
+	// Due to some reason poweroff command isn't recognized over ssh
+	// hence we use /sbin/poweroff. 
+	outc, errc, err := inst.Run(time.Minute, nil, "/sbin/poweroff")
 	if err != nil {
-		return fmt.Errorf("error syncing the kernel %v : %v", outc, errc)
+		return fmt.Errorf("error powering off the instance %v : %v", outc, errc)
 	}
+	time.Sleep(1 * time.Minute)
 	return nil
 }
