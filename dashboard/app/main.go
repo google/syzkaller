@@ -598,6 +598,9 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 				switch bug.Status {
 				case BugStatusInvalid:
 					status = "closed as invalid"
+					if bugReporting.Auto {
+						status = "auto-" + status
+					}
 				case BugStatusFixed:
 					status = "fixed"
 				case BugStatusDup:

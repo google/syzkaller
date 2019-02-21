@@ -102,7 +102,9 @@ type BugReporting struct {
 	Link       string
 	CC         string // additional emails added to CC list (|-delimited list)
 	CrashID    int64  // crash that we've last reported in this reporting
+	Auto       bool   // was it auto-upstreamed/obsoleted?
 	ReproLevel dashapi.ReproLevel
+	OnHold     time.Time // if set, the bug must not be upstreamed
 	Reported   time.Time
 	Closed     time.Time
 }

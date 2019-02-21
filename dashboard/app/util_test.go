@@ -231,11 +231,12 @@ func (c *Ctx) checkURLContents(url string, want []byte) {
 	}
 }
 
-func (c *Ctx) pollEmailBug() string {
+func (c *Ctx) pollEmailBug() *aemail.Message {
 	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 1)
-	msg := <-c.emailSink
-	return msg.Sender
+	if len(c.emailSink) == 0 {
+		c.t.Fatalf("\n%v: got no emails", caller(0))
+	}
+	return <-c.emailSink
 }
 
 type apiClient struct {
@@ -300,6 +301,18 @@ func (client *apiClient) pollBugs(expect int) []*dashapi.BugReport {
 
 func (client *apiClient) pollBug() *dashapi.BugReport {
 	return client.pollBugs(1)[0]
+}
+
+func (client *apiClient) pollNotifs(expect int) []*dashapi.BugNotification {
+	resp, _ := client.ReportingPollNotifications("test")
+	if len(resp.Notifications) != expect {
+		client.t.Fatalf("\n%v: want %v notifs, got %v", caller(0), expect, len(resp.Notifications))
+	}
+	return resp.Notifications
+}
+
+func (client *apiClient) pollNotif() *dashapi.BugNotification {
+	return client.pollNotifs(1)[0]
 }
 
 func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup string) {

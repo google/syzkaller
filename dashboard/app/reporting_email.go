@@ -57,7 +57,6 @@ var mailingLists map[string]bool
 
 type EmailConfig struct {
 	Email              string
-	Moderation         bool
 	MailMaintainers    bool
 	DefaultMaintainers []string
 }
@@ -75,9 +74,6 @@ func (cfg *EmailConfig) Validate() error {
 			return fmt.Errorf("bad email address %q: %v", email, err)
 		}
 	}
-	if cfg.Moderation && cfg.MailMaintainers {
-		return fmt.Errorf("both Moderation and MailMaintainers set")
-	}
 	if cfg.MailMaintainers && len(cfg.DefaultMaintainers) == 0 {
 		return fmt.Errorf("MailMaintainers is set but no DefaultMaintainers")
 	}
@@ -87,13 +83,18 @@ func (cfg *EmailConfig) Validate() error {
 // handleEmailPoll is called by cron and sends emails for new bugs, if any.
 func handleEmailPoll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	if err := emailPollBugs(c); err != nil {
-		log.Errorf(c, "bug poll failed: %v", err)
+	if err := emailPollJobs(c); err != nil {
+		log.Errorf(c, "job poll failed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := emailPollJobs(c); err != nil {
-		log.Errorf(c, "job poll failed: %v", err)
+	if err := emailPollNotifications(c); err != nil {
+		log.Errorf(c, "notif poll failed: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := emailPollBugs(c); err != nil {
+		log.Errorf(c, "bug poll failed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -103,33 +104,98 @@ func handleEmailPoll(w http.ResponseWriter, r *http.Request) {
 func emailPollBugs(c context.Context) error {
 	reports := reportingPollBugs(c, emailType)
 	for _, rep := range reports {
-		cfg := new(EmailConfig)
-		if err := json.Unmarshal(rep.Config, cfg); err != nil {
-			log.Errorf(c, "failed to unmarshal email config: %v", err)
-			continue
+		if err := emailSendBugReport(c, rep); err != nil {
+			log.Errorf(c, "%v", err)
 		}
-		if cfg.MailMaintainers {
-			rep.CC = email.MergeEmailLists(rep.CC, rep.Maintainers, cfg.DefaultMaintainers)
+	}
+	return nil
+}
+
+func emailSendBugReport(c context.Context, rep *dashapi.BugReport) error {
+	cfg := new(EmailConfig)
+	if err := json.Unmarshal(rep.Config, cfg); err != nil {
+		return fmt.Errorf("failed to unmarshal email config: %v", err)
+	}
+	if cfg.MailMaintainers {
+		rep.CC = email.MergeEmailLists(rep.CC, rep.Maintainers, cfg.DefaultMaintainers)
+	}
+	if err := emailReport(c, rep, "mail_bug.txt"); err != nil {
+		return fmt.Errorf("failed to report bug: %v", err)
+	}
+	cmd := &dashapi.BugUpdate{
+		ID:         rep.ID,
+		Status:     dashapi.BugStatusOpen,
+		ReproLevel: dashapi.ReproLevelNone,
+		CrashID:    rep.CrashID,
+	}
+	if len(rep.ReproC) != 0 {
+		cmd.ReproLevel = dashapi.ReproLevelC
+	} else if len(rep.ReproSyz) != 0 {
+		cmd.ReproLevel = dashapi.ReproLevelSyz
+	}
+	ok, reason, err := incomingCommand(c, cmd)
+	if !ok || err != nil {
+		return fmt.Errorf("failed to update reported bug: ok=%v reason=%v err=%v", ok, reason, err)
+	}
+	return nil
+}
+
+func emailPollNotifications(c context.Context) error {
+	notifs := reportingPollNotifications(c, emailType)
+	for _, notif := range notifs {
+		if err := emailSendBugNotif(c, notif); err != nil {
+			log.Errorf(c, "%v", err)
 		}
-		if err := emailReport(c, rep, "mail_bug.txt"); err != nil {
-			log.Errorf(c, "failed to report bug: %v", err)
-			continue
-		}
-		cmd := &dashapi.BugUpdate{
-			ID:         rep.ID,
-			Status:     dashapi.BugStatusOpen,
-			ReproLevel: dashapi.ReproLevelNone,
-			CrashID:    rep.CrashID,
-		}
-		if len(rep.ReproC) != 0 {
-			cmd.ReproLevel = dashapi.ReproLevelC
-		} else if len(rep.ReproSyz) != 0 {
-			cmd.ReproLevel = dashapi.ReproLevelSyz
-		}
-		ok, reason, err := incomingCommand(c, cmd)
-		if !ok || err != nil {
-			log.Errorf(c, "failed to update reported bug: ok=%v reason=%v err=%v", ok, reason, err)
-		}
+	}
+	return nil
+}
+
+func emailSendBugNotif(c context.Context, notif *dashapi.BugNotification) error {
+	status, body := dashapi.BugStatusOpen, ""
+	switch notif.Type {
+	case dashapi.BugNotifUpstream:
+		body = "Sending this report upstream."
+		status = dashapi.BugStatusUpstream
+	case dashapi.BugNotifBadCommit:
+		days := int(notifyAboutBadCommitPeriod / time.Hour / 24)
+		body = fmt.Sprintf("This bug is marked as fixed by commit:\n%v\n"+
+			"But I can't find it in any tested tree for more than %v days.\n"+
+			"Is it a correct commit? Please update it by replying:\n"+
+			"#syz fix: exact-commit-title\n"+
+			"Until then the bug is still considered open and\n"+
+			"new crashes with the same signature are ignored.\n",
+			notif.Text, days)
+	case dashapi.BugNotifObsoleted:
+		body = "Auto-closing this bug as obsolete.\n" +
+			"Crashes did not happen for a while, no reproducer and no activity."
+		status = dashapi.BugStatusInvalid
+	default:
+		return fmt.Errorf("bad notification type %v", notif.Type)
+	}
+	cfg := new(EmailConfig)
+	if err := json.Unmarshal(notif.Config, cfg); err != nil {
+		return fmt.Errorf("failed to unmarshal email config: %v", err)
+	}
+	to := email.MergeEmailLists([]string{cfg.Email}, notif.CC)
+	if cfg.MailMaintainers && notif.Public {
+		to = email.MergeEmailLists(to, notif.Maintainers, cfg.DefaultMaintainers)
+	}
+	from, err := email.AddAddrContext(fromAddr(c), notif.ID)
+	if err != nil {
+		return err
+	}
+	log.Infof(c, "sending notif %v for %q to %q: %v", notif.Type, notif.Title, to, body)
+	if err := sendMailText(c, notif.Title, from, to, notif.ExtID, nil, body); err != nil {
+		return err
+	}
+	cmd := &dashapi.BugUpdate{
+		ID:           notif.ID,
+		Status:       status,
+		Notification: true,
+	}
+	ok, reason, err := incomingCommand(c, cmd)
+	if !ok || err != nil {
+		return fmt.Errorf("notif update failed: ok=%v reason=%v err=%v", ok, reason, err)
 	}
 	return nil
 }
@@ -206,7 +272,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		First:             rep.First,
 		Link:              link,
 		CreditEmail:       creditEmail,
-		Moderation:        cfg.Moderation,
+		Moderation:        rep.Moderation,
 		Maintainers:       rep.Maintainers,
 		CompilerID:        rep.CompilerID,
 		KernelRepo:        rep.KernelRepoAlias,
@@ -416,11 +482,16 @@ func sendMailTemplate(c context.Context, subject, from string, to []string, repl
 	if err := mailTemplates.ExecuteTemplate(body, template, data); err != nil {
 		return fmt.Errorf("failed to execute %v template: %v", template, err)
 	}
+	return sendMailText(c, subject, from, to, replyTo, attachments, body.String())
+}
+
+func sendMailText(c context.Context, subject, from string, to []string, replyTo string,
+	attachments []aemail.Attachment, body string) error {
 	msg := &aemail.Message{
 		Sender:      from,
 		To:          to,
 		Subject:     subject,
-		Body:        body.String(),
+		Body:        body,
 		Attachments: attachments,
 	}
 	if replyTo != "" {
