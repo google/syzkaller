@@ -125,7 +125,7 @@ func main() {
 	}
 	sysTarget := targets.Get(cfg.TargetOS, cfg.TargetArch)
 	if sysTarget == nil {
-		log.Fatalf("unsupported OS/arch: %v/%v", cfg.TargetOS, cfg.TargetArch)
+		log.Fatalf("unsupported OS / arch: %v/%v", cfg.TargetOS, cfg.TargetArch)
 	}
 	syscalls, err := mgrconfig.ParseEnabledSyscalls(target, cfg.EnabledSyscalls, cfg.DisabledSyscalls)
 	if err != nil {
