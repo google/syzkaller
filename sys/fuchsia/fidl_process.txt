@@ -46,19 +46,11 @@ fuchsia_process_LaunchInfoHandles {
 	job		zx_job
 } [packed]
 
-fuchsia_process_LaunchResultHandles {
-	process	zx_process
-} [packed]
-
 fuchsia_process_ProcessStartDataHandles {
 	process		zx_process
 	root_vmar	zx_vmar
 	thread		zx_thread
 	bootstrap	zx_chan
-} [packed]
-
-fuchsia_process_CreateWithoutStartingResultHandles {
-	data	fuchsia_process_ProcessStartDataHandles
 } [packed]
 
 fuchsia_process_LauncherLaunchRequest {
@@ -72,7 +64,7 @@ fuchsia_process_LauncherLaunchRequestHandles {
 } [packed]
 
 fuchsia_process_LauncherLaunchResponseHandles {
-	result	fuchsia_process_LaunchResultHandles
+	process	zx_process
 } [packed]
 
 fuchsia_process_LauncherCreateWithoutStartingRequest {
@@ -86,13 +78,13 @@ fuchsia_process_LauncherCreateWithoutStartingRequestHandles {
 } [packed]
 
 fuchsia_process_LauncherCreateWithoutStartingResponseHandles {
-	result	fuchsia_process_CreateWithoutStartingResultHandles
+	data	fuchsia_process_ProcessStartDataHandles
 } [packed]
 
 fuchsia_process_LauncherAddArgsRequest {
 	hdr		fidl_message_header[343996832]
 	argsInLine	fidl_vector
-	argsOutOfLine	parallel_array[fidl_string, fidl_aligned[stringnoz]]
+	argsOutOfLine	parallel_array[fidl_vector, array[int8]]
 } [packed]
 
 fuchsia_process_LauncherAddArgsRequestHandles {
@@ -102,7 +94,7 @@ fuchsia_process_LauncherAddArgsRequestHandles {
 fuchsia_process_LauncherAddEnvironsRequest {
 	hdr			fidl_message_header[1220947097]
 	environInLine		fidl_vector
-	environOutOfLine	parallel_array[fidl_string, fidl_aligned[stringnoz]]
+	environOutOfLine	parallel_array[fidl_vector, array[int8]]
 } [packed]
 
 fuchsia_process_LauncherAddEnvironsRequestHandles {
