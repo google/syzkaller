@@ -4,8 +4,11 @@
 package prog
 
 import (
+	"math/rand"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestNormalizePrio(t *testing.T) {
@@ -24,5 +27,35 @@ func TestNormalizePrio(t *testing.T) {
 	if !reflect.DeepEqual(prios, want) {
 		t.Logf("got:  %+v", prios)
 		t.Errorf("want: %+v", want)
+	}
+}
+
+// TestPrioChoice tests that we select all syscalls with equal probability.
+func TestPrioChoice(t *testing.T) {
+	t.Parallel()
+	target := &Target{
+		Syscalls: []*Syscall{
+			{ID: 0},
+			{ID: 1},
+			{ID: 2},
+			{ID: 3},
+		},
+	}
+	prios := [][]float32{
+		{1, 1, 1, 1},
+		{1, 1, 1, 1},
+		{1, 1, 1, 1},
+		{1, 1, 1, 1},
+	}
+	ct := target.BuildChoiceTable(prios, nil)
+	r := rand.New(rand.NewSource(0))
+	var res [4]int
+	for i := 0; i < 10000; i++ {
+		res[ct.Choose(r, 0)]++
+	}
+	// If this fails too frequently we can do some ranges, but for now it's just hardcoded.
+	want := [4]int{2552, 2459, 2491, 2498}
+	if diff := cmp.Diff(res, want); diff != "" {
+		t.Fatal(diff)
 	}
 }
