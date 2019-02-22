@@ -60,11 +60,7 @@ no options SVS
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
-
-	if vmType == "qemu" || vmType == "gce" {
-		return CopyKernelToDisk(outputDir)
-	}
-	return nil
+	return CopyKernelToDisk(targetArch, outputDir)
 }
 
 func (ctx netbsd) clean(kernelDir string) error {
@@ -75,57 +71,60 @@ func (ctx netbsd) clean(kernelDir string) error {
 	return nil
 }
 
-// Copy the compiled kernel to the qemu disk image using ssh
-func CopyKernelToDisk(outputDir string) error {
-	temp := []byte(`
+// Copy the compiled kernel to the qemu disk image using ssh.
+func CopyKernelToDisk(targetArch, outputDir string) error {
+	vmConfig := `
 {
 	"snapshot": false,
 	"mem": 1024
-}	`)
-	VMconfig := (*json.RawMessage)(&temp)
-	// Create config for booting the disk image
+}`
+	// Create config for booting the disk image.
 	cfg := &mgrconfig.Config{
 		Workdir:      outputDir,
 		Image:        filepath.Join(outputDir, "image"),
 		SSHKey:       filepath.Join(outputDir, "key"),
 		SSHUser:      "root",
 		TargetOS:     "netbsd",
-		TargetArch:   "amd64",
-		TargetVMArch: "amd64",
+		TargetArch:   targetArch,
+		TargetVMArch: targetArch,
 		Type:         "qemu",
-		VM:           *VMconfig,
+		VM:           json.RawMessage([]byte(vmConfig)),
 	}
-	// Create a VM pool
+	// Create a VM pool.
 	pool, err := vm.Create(cfg, false)
 	if err != nil {
-		return fmt.Errorf("failed to create a VM Pool : %v", err)
+		return fmt.Errorf("failed to create a VM Pool: %v", err)
 	}
-	// Create a new reporter instance
+	// Create a new reporter instance.
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to create a Reporter : %v", err)
+		return fmt.Errorf("failed to create a Reporter: %v", err)
 	}
-	// Create a VM instance (We need only one)
+	// Create a VM instance (we need only one).
 	inst, err := pool.Create(0)
 	if err != nil {
-		return fmt.Errorf("failed to create the VM Instance : %v", err)
+		return fmt.Errorf("failed to create the VM Instance: %v", err)
 	}
 	defer inst.Close()
 	// Copy the kernel into the disk image and replace it
-	// This makes use of the fact that the file is copied by default to /
 	kernel, err := inst.Copy(filepath.Join(outputDir, "netbsd"))
 	if err != nil {
-		return fmt.Errorf("error Copying the kernel %v: %v", kernel, err)
+		return fmt.Errorf("error copying the kernel: %v", err)
 	}
-	// Run sync so that the copied image is stored properly
-	outc, errc, err := inst.Run(time.Minute, nil, "sync")
+	if kernel != "/netbsd" {
+		return fmt.Errorf("kernel is copied into wrong location: %v", kernel)
+	}
+	// Run sync so that the copied image is stored properly.
+	// /var/db/entropy-file prevents a non-fatal warning during boot.
+	// /fastboot file prevents disk check on start.
+	outc, errc, err := inst.Run(time.Minute, nil, "touch /fastboot; echo syzkaller > /var/db/entropy-file; sync")
 	if err != nil {
 		return fmt.Errorf("error syncing the instance %v", err)
 	}
-	// Make sure that the command has executed properly
+	// Make sure that the command has executed properly.
 	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitNormal)
 	if rep != nil {
-		return fmt.Errorf("error executng poweroff : %v", rep.Title)
+		return fmt.Errorf("error executing sync: %v", rep.Title)
 	}
 	return nil
 }
