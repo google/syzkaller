@@ -117,16 +117,15 @@ func CopyKernelToDisk(outputDir string) error {
 	if err != nil {
 		return fmt.Errorf("error Copying the kernel %v: %v", kernel, err)
 	}
-	// Run poweroff so that the copied image is stored properly
-	// Due to some reason poweroff command isn't recognized over ssh
-	// hence we use /sbin/poweroff.
-	outc, errc, err := inst.Run(time.Minute, nil, "/sbin/poweroff")
+	// Run sync so that the copied image is stored properly
+	outc, errc, err := inst.Run(time.Minute, nil, "sync")
 	if err != nil {
-		return fmt.Errorf("error powering off the instance %v : %v", outc, errc)
+		return fmt.Errorf("error syncing the instance %v", err)
 	}
+	// Make sure that the command has executed properly
 	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitNormal)
 	if rep != nil {
-		return fmt.Errorf("error executng poweroff : %v", rep)
+		return fmt.Errorf("error executng poweroff : %v", rep.Title)
 	}
 	return nil
 }
