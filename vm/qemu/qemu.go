@@ -37,7 +37,7 @@ type Config struct {
 	ImageDevice string `json:"image_device"` // qemu image device (hda by default)
 	CPU         int    `json:"cpu"`          // number of VM CPUs
 	Mem         int    `json:"mem"`          // amount of VM memory in MBs
-	Snapshot    bool   `json:"snapshot"`     // For building kernels without -snopshot (for pkg/build)
+	Snapshot    bool   `json:"snapshot"`     // For building kernels without -snapshot (for pkg/build)
 }
 
 type Pool struct {
@@ -182,11 +182,11 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	archConfig := archConfigs[env.OS+"/"+env.Arch]
 	cfg := &Config{
 		Count:       1,
-		CPU:	     1,
+		CPU:         1,
 		ImageDevice: "hda",
 		Qemu:        archConfig.Qemu,
 		QemuArgs:    archConfig.QemuArgs,
-		Snapshot:	 true,
+		Snapshot:    true,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse qemu vm config: %v", err)
@@ -213,7 +213,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 			return nil, fmt.Errorf("image file '%v' does not exist", env.Image)
 		}
 	}
-	if cfg.CPU > 1024 {
+	if cfg.CPU <= 0 || cfg.CPU > 1024 {
 		return nil, fmt.Errorf("bad qemu cpu: %v, want [1-1024]", cfg.CPU)
 	}
 	if cfg.Mem < 128 || cfg.Mem > 1048576 {
@@ -340,6 +340,9 @@ func (inst *instance) Boot() error {
 		args = append(args,
 			"-"+inst.cfg.ImageDevice, inst.image,
 		)
+		if inst.cfg.Snapshot {
+			args = append(args, "-snapshot")
+		}
 	}
 	if inst.cfg.Initrd != "" {
 		args = append(args,
@@ -361,9 +364,6 @@ func (inst *instance) Boot() error {
 			"-kernel", inst.cfg.Kernel,
 			"-append", strings.Join(cmdline, " "),
 		)
-	}
-	if inst.cfg.Snapshot {
-		args = append(args, "-snapshot", )
 	}
 	if inst.debug {
 		log.Logf(0, "running command: %v %#v", inst.cfg.Qemu, args)

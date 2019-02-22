@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -99,6 +100,11 @@ func CopyKernelToDisk(outputDir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create a VM Pool : %v", err)
 	}
+	// Create a new reporter instance
+	reporter, err := report.NewReporter(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create a Reporter : %v", err)
+	}
 	// Create a VM instance (We need only one)
 	inst, err := pool.Create(0)
 	if err != nil {
@@ -113,11 +119,14 @@ func CopyKernelToDisk(outputDir string) error {
 	}
 	// Run poweroff so that the copied image is stored properly
 	// Due to some reason poweroff command isn't recognized over ssh
-	// hence we use /sbin/poweroff. 
+	// hence we use /sbin/poweroff.
 	outc, errc, err := inst.Run(time.Minute, nil, "/sbin/poweroff")
 	if err != nil {
 		return fmt.Errorf("error powering off the instance %v : %v", outc, errc)
 	}
-	time.Sleep(1 * time.Minute)
+	rep := inst.MonitorExecution(outc, errc, reporter, vm.ExitNormal)
+	if rep != nil {
+		return fmt.Errorf("error executng poweroff : %v", rep)
+	}
 	return nil
 }
