@@ -1,0 +1,18 @@
+TITLE: ASan bug
+
+login: [ 161.8124298] kASan: Unauthorized Access In 0xffffffff80a5449c: Addr 0xffffc9000495f6f4 [4 bytes, read]
+[ 161.8223936] #0 0xffffffff80a5449c in in6_print <netbsd>
+[ 161.8223936] #1 0xffffffff80a54b21 in sin6_print <netbsd>
+[ 161.8324951] #2 0xffffffff80f23b2f in sockaddr_checklen <netbsd>
+[ 161.8324951] #3 0xffffffff80f23bd0 in sockaddr_alloc <netbsd>
+[ 161.8324951] #4 0xffffffff80f23d35 in sockaddr_dup <netbsd>
+[ 161.8424679] #5 0xffffffff81035d9a in rtcache_setdst <netbsd>
+[ 161.8424679] #6 0xffffffff81036197 in rtcache_lookup2 <netbsd>
+[ 161.8525790] #7 0xffffffff80a5526b in in6_selectroute <netbsd>
+[ 161.8525790] #8 0xffffffff80a556d5 in in6_selectsrc <netbsd>
+[ 161.8525790] #9 0xffffffff80a7e004 in rip6_output <netbsd>
+[ 161.8625254] #10 0xffffffff80a7ea57 in rip6_send_wrapper <netbsd>
+[ 161.8625254] #11 0xffffffff80f34284 in sosend <netbsd>
+[ 161.8625254] #12 0xffffffff80f3ed39 in do_sys_sendmsg_so <netbsd>
+[ 161.8728803] #13 0xffffffff80f3f172 in do_sys_sendmsg <netbsd>
+[ 161.8728803] #14 0xffffffff80f3f3e7 in sys_sendmsg <netbsd>

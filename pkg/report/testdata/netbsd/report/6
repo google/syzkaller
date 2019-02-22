@@ -1,0 +1,17 @@
+TITLE: ASan bug
+
+login: [  97.7755351] kASan: Unauthorized Access In 0xffffffff80a5449c: Addr 0xffffc480049666bc [4 bytes, read]
+[  97.7755351] #0 0xffffffff80a5449c in in6_print <netbsd>
+[  97.7856191] #1 0xffffffff80a54b21 in sin6_print <netbsd>
+[  97.7856191] #2 0xffffffff80f23b2f in sockaddr_checklen <netbsd>
+[  97.7955816] #3 0xffffffff80f23bd0 in sockaddr_alloc <netbsd>
+[  97.7955816] #4 0xffffffff80f23d35 in sockaddr_dup <netbsd>
+[  97.7955816] #5 0xffffffff81035d9a in rtcache_setdst <netbsd>
+[  97.8056417] #6 0xffffffff81036197 in rtcache_lookup2 <netbsd>
+[  97.8056417] #7 0xffffffff80a5526b in in6_selectroute <netbsd>
+[  97.8056417] #8 0xffffffff80a556d5 in in6_selectsrc <netbsd>
+[  97.8159029] #9 0xffffffff80a7cf93 in rip6_connect_wrapper <netbsd>
+[  97.8159029] #10 0xffffffff80f3e2eb in do_sys_connect <netbsd>
+[  97.8257126] #11 0xffffffff80f3e513 in sys_connect <netbsd>
+[  97.8257126] #12 0xffffffff80e92599 in sys___syscall <netbsd>
+[  97.8257126] #13 0xffffffff80263338 in syscall <netbsd>
