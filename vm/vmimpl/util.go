@@ -41,6 +41,9 @@ func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS str
 		if err == nil {
 			return nil
 		}
+		if debug {
+			log.Logf(0, "ssh failed: %v", err)
+		}
 		if time.Since(startTime) > timeout {
 			return &osutil.VerboseError{Title: "can't ssh into the instance", Output: []byte(err.Error())}
 		}
@@ -58,7 +61,6 @@ func SCPArgs(debug bool, sshKey string, port int) []string {
 func sshArgs(debug bool, sshKey, portArg string, port int) []string {
 	args := []string{
 		portArg, fmt.Sprint(port),
-		"-i", sshKey,
 		"-F", "/dev/null",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "BatchMode=yes",
