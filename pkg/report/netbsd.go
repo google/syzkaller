@@ -67,11 +67,11 @@ var netbsdOopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	{
-		[]byte("kASan:"),
+		[]byte("ASan:"),
 		[]oopsFormat{
 			{
-				title: compile("kASan:"),
-				fmt:   "kASan bug",
+				title: compile("ASan:"),
+				fmt:   "ASan bug",
 			},
 		},
 		[]*regexp.Regexp{},
