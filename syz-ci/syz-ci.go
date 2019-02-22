@@ -69,7 +69,10 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-var flagConfig = flag.String("config", "", "config file")
+var (
+	flagConfig     = flag.String("config", "", "config file")
+	flagAutoUpdate = flag.Bool("autoupdate", true, "auto-update the binary")
+)
 
 type Config struct {
 	Name string `json:"name"`
@@ -126,13 +129,17 @@ func main() {
 
 	serveHTTP(cfg)
 
-	updater := NewSyzUpdater(cfg)
-	updater.UpdateOnStart(shutdownPending)
 	updatePending := make(chan struct{})
-	go func() {
-		updater.WaitForUpdate()
-		close(updatePending)
-	}()
+	var autoUpdate func()
+	if *flagAutoUpdate {
+		updater := NewSyzUpdater(cfg)
+		updater.UpdateOnStart(shutdownPending)
+		go func() {
+			updater.WaitForUpdate()
+			autoUpdate = updater.UpdateAndRestart
+			close(updatePending)
+		}()
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -183,7 +190,7 @@ func main() {
 	select {
 	case <-shutdownPending:
 	case <-updatePending:
-		updater.UpdateAndRestart()
+		autoUpdate()
 	}
 }
 
