@@ -37,6 +37,7 @@ type Config struct {
 	ImageDevice string `json:"image_device"` // qemu image device (hda by default)
 	CPU         int    `json:"cpu"`          // number of VM CPUs
 	Mem         int    `json:"mem"`          // amount of VM memory in MBs
+	Snapshot    bool   `json:"snapshot"`     // For building kernels without -snapshot (for pkg/build)
 }
 
 type Pool struct {
@@ -181,9 +182,11 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	archConfig := archConfigs[env.OS+"/"+env.Arch]
 	cfg := &Config{
 		Count:       1,
+		CPU:         1,
 		ImageDevice: "hda",
 		Qemu:        archConfig.Qemu,
 		QemuArgs:    archConfig.QemuArgs,
+		Snapshot:    true,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse qemu vm config: %v", err)
@@ -336,8 +339,10 @@ func (inst *instance) Boot() error {
 	} else if inst.image != "" {
 		args = append(args,
 			"-"+inst.cfg.ImageDevice, inst.image,
-			"-snapshot",
 		)
+		if inst.cfg.Snapshot {
+			args = append(args, "-snapshot")
+		}
 	}
 	if inst.cfg.Initrd != "" {
 		args = append(args,
