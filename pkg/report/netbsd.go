@@ -77,11 +77,11 @@ var netbsdOopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	{
-		[]byte("KUBSan:"),
+		[]byte("UBSan:"),
 		[]oopsFormat{
 			{
-				title: compile("KUBSan:"),
-				fmt:   "KUBSan: Undefined behavior",
+				title: compile("UBSan:"),
+				fmt:   "UBSan: Undefined behavior",
 			},
 		},
 		[]*regexp.Regexp{},
