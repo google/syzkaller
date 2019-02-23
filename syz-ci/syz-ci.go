@@ -154,9 +154,17 @@ func main() {
 		wg.Done()
 	}()
 
-	managers := make([]*Manager, len(cfg.Managers))
-	for i, mgrcfg := range cfg.Managers {
-		managers[i] = createManager(cfg, mgrcfg, stop)
+	var managers []*Manager
+	for _, mgrcfg := range cfg.Managers {
+		mgr, err := createManager(cfg, mgrcfg, stop)
+		if err != nil {
+			log.Logf(0, "failed to create manager %v: %v", mgrcfg.Name, err)
+			continue
+		}
+		managers = append(managers, mgr)
+	}
+	if len(managers) == 0 {
+		log.Fatalf("failed to create all managers")
 	}
 	for _, mgr := range managers {
 		mgr := mgr

@@ -78,7 +78,7 @@ type Manager struct {
 	stop            chan struct{}
 }
 
-func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
+func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) (*Manager, error) {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
 	if err := osutil.MkdirAll(dir); err != nil {
 		log.Fatal(err)
@@ -95,12 +95,12 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	// Assume compiler and config don't change underneath us.
 	compilerID, err := build.CompilerIdentity(mgrcfg.Compiler)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	var configData []byte
 	if mgrcfg.KernelConfig != "" {
 		if configData, err = ioutil.ReadFile(mgrcfg.KernelConfig); err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 	syzkallerCommit, _ := readTag(filepath.FromSlash("syzkaller/current/tag"))
@@ -131,7 +131,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 		stop:            stop,
 	}
 	os.RemoveAll(mgr.currentDir)
-	return mgr
+	return mgr, nil
 }
 
 // Gates kernel builds.
