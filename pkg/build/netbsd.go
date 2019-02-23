@@ -119,7 +119,7 @@ func CopyKernelToDisk(targetArch, vmType, outputDir, kernel string) error {
 			// GCE exposes boot disk as sd0a.
 			`sed -i 's#wd0#sd0#g' /etc/fstab`,
 			// GCE provides vioif0 interface.
-			`echo '\!dhcpcd vioif0' > /etc/ifconfig.vioif0`,
+			`echo '!dhcpcd vioif0' > /etc/ifconfig.vioif0`,
 			`echo 'mtu 1460' >> /etc/ifconfig.vioif0`,
 		}...)
 	}
