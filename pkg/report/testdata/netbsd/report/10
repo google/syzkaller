@@ -1,0 +1,3 @@
+TITLE: KUBSan: Undefined behavior
+
+[    3.379785] KUBSan: Undefined behavior in /usr/src/sys/dev/usb/xhci.c:413:2, member access within misaligned address 0xffffe4013a4b4008 for type 'const struct xhci_softc' which requires 16 byte alignment
