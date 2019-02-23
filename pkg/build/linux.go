@@ -113,7 +113,7 @@ func (linux) createImage(vmType, kernelDir, outputDir, userspaceDir, cmdlineFile
 	return nil
 }
 
-func (linux) clean(kernelDir string) error {
+func (linux) clean(kernelDir, targetArch string) error {
 	cpu := strconv.Itoa(runtime.NumCPU())
 	cmd := osutil.Command("make", "distclean", "-j", cpu)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {

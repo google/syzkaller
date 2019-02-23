@@ -56,7 +56,7 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	return nil
 }
 
-func (ctx openbsd) clean(kernelDir string) error {
+func (ctx openbsd) clean(kernelDir, targetArch string) error {
 	// Building clean is fast enough and incremental builds in face of
 	// changing config files don't work. Instead of optimizing for the
 	// case where humans have to think, let's bludgeon it with a

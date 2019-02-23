@@ -49,7 +49,7 @@ func Clean(targetOS, targetArch, vmType, kernelDir string) error {
 	if err != nil {
 		return err
 	}
-	return builder.clean(kernelDir)
+	return builder.clean(kernelDir, targetArch)
 }
 
 type KernelBuildError struct {
@@ -59,7 +59,7 @@ type KernelBuildError struct {
 type builder interface {
 	build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 		cmdlineFile, sysctlFile string, config []byte) error
-	clean(kernelDir string) error
+	clean(kernelDir, targetArch string) error
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
