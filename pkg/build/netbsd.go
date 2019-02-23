@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -48,31 +49,28 @@ no options SVS
 		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "kernel="+kernelName); err != nil {
 		return extractRootCause(err)
 	}
-	for _, s := range []struct{ dir, obj string }{
-		{compileDir, "netbsd"},
-		{compileDir, "netbsd.gdb"},
-		{userspaceDir, "image"},
-		{userspaceDir, "key"},
+	for _, s := range []struct{ dir, src, dst string }{
+		{compileDir, "netbsd.gdb", "obj/netbsd.gdb"},
+		{userspaceDir, "image", "image"},
+		{userspaceDir, "key", "key"},
 	} {
-		fullSrc := filepath.Join(s.dir, s.obj)
-		fullDst := filepath.Join(outputDir, s.obj)
+		fullSrc := filepath.Join(s.dir, s.src)
+		fullDst := filepath.Join(outputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
-	return CopyKernelToDisk(targetArch, outputDir)
+	return CopyKernelToDisk(targetArch, vmType, outputDir, filepath.Join(compileDir, "netbsd"))
 }
 
-func (ctx netbsd) clean(kernelDir string) error {
-	// Building clean is fast enough and incremental builds in face of
-	// changing config files don't work. Instead of optimizing for the
-	// case where humans have to think, let's bludgeon it with a
-	// machine.
-	return nil
+func (ctx netbsd) clean(kernelDir, targetArch string) error {
+	_, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
+		"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "cleandir")
+	return err
 }
 
 // Copy the compiled kernel to the qemu disk image using ssh.
-func CopyKernelToDisk(targetArch, outputDir string) error {
+func CopyKernelToDisk(targetArch, vmType, outputDir, kernel string) error {
 	vmConfig := `
 {
 	"snapshot": false,
@@ -107,17 +105,21 @@ func CopyKernelToDisk(targetArch, outputDir string) error {
 	}
 	defer inst.Close()
 	// Copy the kernel into the disk image and replace it
-	kernel, err := inst.Copy(filepath.Join(outputDir, "netbsd"))
+	kernel, err = inst.Copy(kernel)
 	if err != nil {
 		return fmt.Errorf("error copying the kernel: %v", err)
 	}
 	if kernel != "/netbsd" {
 		return fmt.Errorf("kernel is copied into wrong location: %v", kernel)
 	}
-	// Run sync so that the copied image is stored properly.
-	// /var/db/entropy-file prevents a non-fatal warning during boot.
-	// /fastboot file prevents disk check on start.
-	outc, errc, err := inst.Run(time.Minute, nil, "touch /fastboot; echo syzkaller > /var/db/entropy-file; sync")
+	commands := []string{"touch /fastboot"} // /fastboot file prevents disk check on start.
+	if vmType == "gce" {
+		// We expect boot disk to be wd0a for the qemu (that's how qemu exposes -hda disk).
+		// GCE exposes boot disk as sd0a.
+		commands = append(commands, "sed -i 's#wd0#sd0#g' /etc/fstab")
+	}
+	commands = append(commands, "sync") // Run sync so that the copied image is stored properly.
+	outc, errc, err := inst.Run(time.Minute, nil, strings.Join(commands, ";"))
 	if err != nil {
 		return fmt.Errorf("error syncing the instance %v", err)
 	}

@@ -35,7 +35,7 @@ func (gvisor gvisor) build(targetArch, vmType, kernelDir, outputDir, compiler, u
 	return nil
 }
 
-func (gvisor) clean(kernelDir string) error {
+func (gvisor) clean(kernelDir, targetArch string) error {
 	// Let's assume that bazel always properly handles build without cleaning (until proven otherwise).
 	return nil
 }

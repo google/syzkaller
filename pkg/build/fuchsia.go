@@ -42,7 +42,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	return nil
 }
 
-func (fu fuchsia) clean(kernelDir string) error {
+func (fu fuchsia) clean(kernelDir, targetArch string) error {
 	// We always do clean build because incremental build is frequently broken.
 	// So no need to clean separately.
 	return nil
