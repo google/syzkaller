@@ -114,9 +114,14 @@ func CopyKernelToDisk(targetArch, vmType, outputDir, kernel string) error {
 	}
 	commands := []string{"touch /fastboot"} // /fastboot file prevents disk check on start.
 	if vmType == "gce" {
-		// We expect boot disk to be wd0a for the qemu (that's how qemu exposes -hda disk).
-		// GCE exposes boot disk as sd0a.
-		commands = append(commands, "sed -i 's#wd0#sd0#g' /etc/fstab")
+		commands = append(commands, []string{
+			// We expect boot disk to be wd0a for the qemu (that's how qemu exposes -hda disk).
+			// GCE exposes boot disk as sd0a.
+			`sed -i 's#wd0#sd0#g' /etc/fstab`,
+			// GCE provides vioif0 interface.
+			`echo '\!dhcpcd vioif0' > /etc/ifconfig.vioif0`,
+			`echo 'mtu 1460' >> /etc/ifconfig.vioif0`,
+		}...)
 	}
 	commands = append(commands, "sync") // Run sync so that the copied image is stored properly.
 	outc, errc, err := inst.Run(time.Minute, nil, strings.Join(commands, ";"))
