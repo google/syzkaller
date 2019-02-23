@@ -76,4 +76,14 @@ var netbsdOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
+	{
+		[]byte("KUBSan:"),
+		[]oopsFormat{
+			{
+				title: compile("KUBSan:"),
+				fmt:   "KUBSan: Undefined behavior",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
 }

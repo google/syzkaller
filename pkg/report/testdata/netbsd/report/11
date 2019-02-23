@@ -1,0 +1,3 @@
+TITLE: KUBSan: Undefined behavior
+
+[    3.389788] KUBSan: Undefined behavior in /usr/src/sys/dev/ic/ahcisata_core.c:558:16, left shift of 1 by 31 places cannot be represented in type 'int'

@@ -1,0 +1,3 @@
+TITLE: KUBSan: Undefined behavior
+
+[    6.580814] KUBSan: Undefined behavior in /usr/src/sys/arch/amd64/amd64/kobj_machdep.c:118:10, store to misaligned address 0xffffffff855d1239 for type 'Elf64_Addr' which requires 8 byte alignment
