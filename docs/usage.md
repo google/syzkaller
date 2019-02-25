@@ -17,7 +17,7 @@ Once syzkaller detected a kernel crash in one of the VMs, it will automatically 
 By default it will use 4 VMs to reproduce the crash and then minimize the program that caused it.
 This may stop the fuzzing, since all of the VMs might be busy reproducing detected crashes.
 
-The process of reproducing one crash may take from a few minutes up to an hour depending on whether the crash is easily reproducible or reproducible at all.
+The process of reproducing one crash may take from a few minutes up to an hour depending on whether the crash is easily reproducible or non-reproducible at all.
 Since this process is not perfect, there's a way to try to manually reproduce the crash, as described [here](reproducing_crashes.md).
 
 If a reproducer is successfully found, it can be generated in one of the two forms: syzkaller program or C program.
