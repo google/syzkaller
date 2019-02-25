@@ -49,7 +49,7 @@ func Clean(targetOS, targetArch, vmType, kernelDir string) error {
 	if err != nil {
 		return err
 	}
-	return builder.clean(kernelDir)
+	return builder.clean(kernelDir, targetArch)
 }
 
 type KernelBuildError struct {
@@ -59,7 +59,7 @@ type KernelBuildError struct {
 type builder interface {
 	build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 		cmdlineFile, sysctlFile string, config []byte) error
-	clean(kernelDir string) error
+	clean(kernelDir, targetArch string) error
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
@@ -74,7 +74,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		return akaros{}, nil
 	case targetOS == "openbsd" && targetArch == "amd64" && (vmType == "gce" || vmType == "vmm"):
 		return openbsd{}, nil
-	case targetOS == "netbsd" && targetArch == "amd64" && vmType == "qemu":
+	case targetOS == "netbsd" && targetArch == "amd64" && (vmType == "qemu" || vmType == "gce"):
 		return netbsd{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)

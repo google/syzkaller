@@ -26,10 +26,13 @@ import (
 //  - incomingCommand is called by backends to update bug statuses.
 
 const (
-	maxMailLogLen    = 1 << 20
-	maxMailReportLen = 64 << 10
-	maxInlineError   = 16 << 10
-	internalError    = "internal error"
+	maxMailLogLen              = 1 << 20
+	maxMailReportLen           = 64 << 10
+	maxInlineError             = 16 << 10
+	notifyResendPeriod         = 14 * 24 * time.Hour
+	notifyAboutBadCommitPeriod = 90 * 24 * time.Hour
+	autoObsoletePeriod         = 180 * 24 * time.Hour
+	internalError              = "internal error"
 	// This is embedded as first line of syzkaller reproducer files.
 	syzReproPrefix = "# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"
 )
@@ -62,9 +65,6 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 			continue
 		}
 		reports = append(reports, rep)
-		if len(reports) > 50 {
-			break // temp measure during the jam
-		}
 	}
 	return reports
 }
@@ -74,7 +74,7 @@ func handleReportBug(c context.Context, typ string, state *ReportingState, bug *
 	if err != nil || reporting == nil {
 		return nil, err
 	}
-	rep, err := createBugReport(c, bug, crash, crashKey, bugReporting, reporting.Config)
+	rep, err := createBugReport(c, bug, crash, crashKey, bugReporting, reporting)
 	if err != nil {
 		return nil, err
 	}
@@ -150,6 +150,113 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 	return
 }
 
+func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNotification {
+	var bugs []*Bug
+	_, err := datastore.NewQuery("Bug").
+		Filter("Status<", BugStatusFixed).
+		GetAll(c, &bugs)
+	if err != nil {
+		log.Errorf(c, "%v", err)
+		return nil
+	}
+	log.Infof(c, "fetched %v bugs", len(bugs))
+	var notifs []*dashapi.BugNotification
+	for _, bug := range bugs {
+		notif, err := handleReportNotif(c, typ, bug)
+		if err != nil {
+			log.Errorf(c, "%v: failed to create bug notif %v: %v", bug.Namespace, bug.Title, err)
+			continue
+		}
+		if notif == nil {
+			continue
+		}
+		notifs = append(notifs, notif)
+		if len(notifs) >= 10 {
+			break // don't send too many at once just in case
+		}
+	}
+	return notifs
+}
+
+func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNotification, error) {
+	reporting, bugReporting, _, _, err := currentReporting(c, bug)
+	if err != nil || reporting == nil {
+		return nil, nil
+	}
+	if typ != "" && typ != reporting.Config.Type() {
+		return nil, nil
+	}
+	if bug.Status != BugStatusOpen || bugReporting.Reported.IsZero() {
+		return nil, nil
+	}
+
+	if reporting.moderation &&
+		reporting.Embargo != 0 &&
+		len(bug.Commits) == 0 &&
+		bugReporting.OnHold.IsZero() &&
+		timeSince(c, bugReporting.Reported) > reporting.Embargo {
+		log.Infof(c, "%v: upstreaming (embargo): %v", bug.Namespace, bug.Title)
+		return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
+	}
+	if reporting.moderation &&
+		len(bug.Commits) == 0 &&
+		bugReporting.OnHold.IsZero() &&
+		reporting.Filter(bug) == FilterSkip {
+		log.Infof(c, "%v: upstreaming (skip): %v", bug.Namespace, bug.Title)
+		return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
+	}
+	if len(bug.Commits) == 0 &&
+		bug.ReproLevel == ReproLevelNone &&
+		timeSince(c, bug.LastActivity) > notifyResendPeriod &&
+		timeSince(c, bug.LastTime) > autoObsoletePeriod {
+		log.Infof(c, "%v: obsoleting: %v", bug.Namespace, bug.Title)
+		return createNotification(c, dashapi.BugNotifObsoleted, false, "", bug, reporting, bugReporting)
+	}
+	if len(bug.Commits) > 0 &&
+		len(bug.PatchedOn) == 0 &&
+		timeSince(c, bug.LastActivity) > notifyResendPeriod &&
+		timeSince(c, bug.FixTime) > notifyAboutBadCommitPeriod {
+		log.Infof(c, "%v: bad fix commit: %v", bug.Namespace, bug.Title)
+		commits := strings.Join(bug.Commits, "\n")
+		return createNotification(c, dashapi.BugNotifBadCommit, true, commits, bug, reporting, bugReporting)
+	}
+	return nil, nil
+}
+
+func createNotification(c context.Context, typ dashapi.BugNotif, public bool, text string, bug *Bug,
+	reporting *Reporting, bugReporting *BugReporting) (*dashapi.BugNotification, error) {
+	reportingConfig, err := json.Marshal(reporting.Config)
+	if err != nil {
+		return nil, err
+	}
+	crash, _, err := findCrashForBug(c, bug)
+	if err != nil {
+		return nil, fmt.Errorf("no crashes for bug")
+	}
+	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
+	if err != nil {
+		return nil, err
+	}
+	kernelRepo := kernelRepoInfo(build)
+	notif := &dashapi.BugNotification{
+		Type:      typ,
+		Namespace: bug.Namespace,
+		Config:    reportingConfig,
+		ID:        bugReporting.ID,
+		ExtID:     bugReporting.ExtID,
+		Title:     bug.displayTitle(),
+		Text:      text,
+		Public:    public,
+	}
+	if public {
+		notif.Maintainers = append(crash.Maintainers, kernelRepo.CC...)
+	}
+	if (public || reporting.moderation) && bugReporting.CC != "" {
+		notif.CC = strings.Split(bugReporting.CC, "|")
+	}
+	return notif, nil
+}
+
 func currentReporting(c context.Context, bug *Bug) (*Reporting, *BugReporting, int, string, error) {
 	for i := range bug.Reporting {
 		bugReporting := &bug.Reporting[i]
@@ -187,8 +294,8 @@ func reproStr(level dashapi.ReproLevel) string {
 }
 
 func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datastore.Key,
-	bugReporting *BugReporting, config interface{}) (*dashapi.BugReport, error) {
-	reportingConfig, err := json.Marshal(config)
+	bugReporting *BugReporting, reporting *Reporting) (*dashapi.BugReport, error) {
+	reportingConfig, err := json.Marshal(reporting.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -239,6 +346,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 		ID:                bugReporting.ID,
 		ExtID:             bugReporting.ExtID,
 		First:             bugReporting.Reported.IsZero(),
+		Moderation:        reporting.moderation,
 		Title:             bug.displayTitle(),
 		Log:               crashLog,
 		LogLink:           externalLink(c, textCrashLog, crash.Log),
@@ -540,6 +648,9 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	if bug.Status != BugStatusDup {
 		bug.DupOf = ""
 	}
+	if cmd.Status != dashapi.BugStatusOpen || !cmd.OnHold {
+		bugReporting.OnHold = time.Time{}
+	}
 	bug.LastActivity = now
 	if _, err := datastore.Put(c, bugKey, bug); err != nil {
 		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
@@ -560,6 +671,9 @@ func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate
 		if bugReporting.Reported.IsZero() {
 			bugReporting.Reported = now
 			stateEnt.Sent++ // sending repro does not count against the quota
+		}
+		if bugReporting.OnHold.IsZero() && cmd.OnHold {
+			bugReporting.OnHold = now
 		}
 		// Close all previous reporting if they are not closed yet
 		// (can happen due to Status == ReportingDisabled).
@@ -588,10 +702,12 @@ func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate
 		bug.Status = BugStatusOpen
 		bug.Closed = time.Time{}
 		bugReporting.Closed = now
+		bugReporting.Auto = cmd.Notification
 	case dashapi.BugStatusInvalid:
-		bugReporting.Closed = now
 		bug.Closed = now
 		bug.Status = BugStatusInvalid
+		bugReporting.Closed = now
+		bugReporting.Auto = cmd.Notification
 	case dashapi.BugStatusDup:
 		bug.Status = BugStatusDup
 		bug.Closed = now

@@ -1,0 +1,269 @@
+// Copyright 2019 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+// +build aetest
+
+package dash
+
+import (
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/google/syzkaller/dashboard/dashapi"
+)
+
+func TestEmailNotifUpstreamEmbargo(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.client2.ReportCrash(crash)
+	report := c.pollEmailBug()
+	c.expectEQ(report.To, []string{"test@syzkaller.com"})
+
+	// Upstreaming happens after 14 days, so no emails yet.
+	c.advanceTime(13 * 24 * time.Hour)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// Now we should get notification about upstreaming and upstream report:
+	c.advanceTime(2 * 24 * time.Hour)
+	notifUpstream := c.pollEmailBug()
+	upstreamReport := c.pollEmailBug()
+	c.expectEQ(notifUpstream.Sender, report.Sender)
+	c.expectEQ(notifUpstream.Body, "Sending this report upstream.")
+	if upstreamReport.Sender == report.Sender {
+		t.Fatalf("upstream report from the same sender")
+	}
+	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
+}
+
+func TestEmailNotifUpstreamSkip(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Title = "skip with repro 1"
+	c.client2.ReportCrash(crash)
+	report := c.pollEmailBug()
+	c.expectEQ(report.To, []string{"test@syzkaller.com"})
+
+	// No emails yet.
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// Now upload repro and it should be auto-upstreamed.
+	crash.ReproOpts = []byte("repro opts")
+	crash.ReproSyz = []byte("getpid()")
+	c.client2.ReportCrash(crash)
+	notifUpstream := c.pollEmailBug()
+	upstreamReport := c.pollEmailBug()
+	c.expectEQ(notifUpstream.Sender, report.Sender)
+	c.expectEQ(notifUpstream.Body, "Sending this report upstream.")
+	if upstreamReport.Sender == report.Sender {
+		t.Fatalf("upstream report from the same sender")
+	}
+	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
+}
+
+func TestEmailNotifBadFix(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	c.client2.ReportCrash(crash)
+	report := c.pollEmailBug()
+	c.expectEQ(report.To, []string{"test@syzkaller.com"})
+
+	c.incomingEmail(report.Sender, "#syz fix: some: commit title")
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// Notification about bad fixing commit should be send after 90 days.
+	c.advanceTime(50 * 24 * time.Hour)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+	c.advanceTime(35 * 24 * time.Hour)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+	c.advanceTime(10 * 24 * time.Hour)
+	notif := c.pollEmailBug()
+	if !strings.Contains(notif.Body, "This bug is marked as fixed by commit:\nsome: commit title\n") {
+		t.Fatalf("bad notification text: %q", notif.Body)
+	}
+	// No notifications for another 14 days, then another one.
+	c.advanceTime(13 * 24 * time.Hour)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+	c.advanceTime(2 * 24 * time.Hour)
+	notif = c.pollEmailBug()
+	if !strings.Contains(notif.Body, "This bug is marked as fixed by commit:\nsome: commit title\n") {
+		t.Fatalf("bad notification text: %q", notif.Body)
+	}
+}
+
+func TestEmailNotifObsoleted(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.Maintainers = []string{"maintainer@syzkaller.com"}
+	c.client2.ReportCrash(crash)
+	report := c.pollEmailBug()
+	// Need to upstream so that it's not auto-upstreamed before obsoleted.
+	c.incomingEmail(report.Sender, "#syz upstream")
+	report = c.pollEmailBug()
+	// Add more people to bug CC.
+	c.incomingEmail(report.Sender, "wow", EmailOptCC([]string{"somebody@else.com"}))
+
+	// Bug is open, new crashes don't create new bug.
+	c.client2.ReportCrash(crash)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// Not yet.
+	c.advanceTime(179 * 24 * time.Hour)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// Now!
+	c.advanceTime(2 * 24 * time.Hour)
+	notif := c.pollEmailBug()
+	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
+		t.Fatalf("bad notification text: %q", notif.Body)
+	}
+	c.expectEQ(notif.To, []string{"bugs@syzkaller.com", "default@sender.com", "somebody@else.com"})
+
+	// New crash must create new bug.
+	c.client2.ReportCrash(crash)
+	report = c.pollEmailBug()
+	c.expectEQ(report.Subject, "title1 (2)")
+	// Now the same, but for the last reporting (must have smaller CC list).
+	c.incomingEmail(report.Sender, "#syz upstream")
+	report = c.pollEmailBug()
+	c.incomingEmail(report.Sender, "#syz upstream")
+	report = c.pollEmailBug()
+
+	c.advanceTime(181 * 24 * time.Hour)
+	notif = c.pollEmailBug()
+	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
+		t.Fatalf("bad notification text: %q", notif.Body)
+	}
+	c.expectEQ(notif.To, []string{"bugs@syzkaller.com"})
+}
+
+func TestEmailNotifNotObsoleted(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+
+	// Crashes with repro are not auto-obsoleted.
+	crash1 := testCrash(build, 1)
+	crash1.ReproSyz = []byte("repro")
+	c.client2.ReportCrash(crash1)
+	report1 := c.pollEmailBug()
+	c.incomingEmail(report1.Sender, "#syz upstream")
+	report1 = c.pollEmailBug()
+
+	// This crash will get another crash later.
+	crash2 := testCrash(build, 2)
+	c.client2.ReportCrash(crash2)
+	report2 := c.pollEmailBug()
+	c.incomingEmail(report2.Sender, "#syz upstream")
+	report2 = c.pollEmailBug()
+
+	// This crash will get some activity later.
+	crash3 := testCrash(build, 3)
+	c.client2.ReportCrash(crash3)
+	report3 := c.pollEmailBug()
+	c.incomingEmail(report3.Sender, "#syz upstream")
+	report3 = c.pollEmailBug()
+
+	// This will be obsoleted (just to check that we have timings right).
+	c.advanceTime(24 * time.Hour)
+	crash4 := testCrash(build, 4)
+	c.client2.ReportCrash(crash4)
+	report4 := c.pollEmailBug()
+	c.incomingEmail(report4.Sender, "#syz upstream")
+	report4 = c.pollEmailBug()
+
+	c.advanceTime(179 * 24 * time.Hour)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	c.client2.ReportCrash(crash2)
+	c.incomingEmail(report3.Sender, "I am looking at it")
+
+	c.advanceTime(5 * 24 * time.Hour)
+	// Only crash 4 is obsoleted.
+	notif := c.pollEmailBug()
+	c.expectEQ(notif.Sender, report4.Sender)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// Crash 3 also obsoleted after some time.
+	c.advanceTime(20 * 24 * time.Hour)
+	notif = c.pollEmailBug()
+	c.expectEQ(notif.Sender, report3.Sender)
+}
+
+func TestExtNotifUpstreamEmbargo(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build1 := testBuild(1)
+	c.client.UploadBuild(build1)
+
+	crash1 := testCrash(build1, 1)
+	c.client.ReportCrash(crash1)
+	rep := c.client.pollBug()
+
+	// Specify fixing commit for the bug.
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     rep.ID,
+		Status: dashapi.BugStatusOpen,
+	})
+	c.expectEQ(reply.OK, true)
+	c.client.pollNotifs(0)
+	c.advanceTime(20 * 24 * time.Hour)
+	notif := c.client.pollNotifs(1)[0]
+	c.expectEQ(notif.ID, rep.ID)
+	c.expectEQ(notif.Type, dashapi.BugNotifUpstream)
+}
+
+func TestExtNotifUpstreamOnHold(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build1 := testBuild(1)
+	c.client.UploadBuild(build1)
+
+	crash1 := testCrash(build1, 1)
+	c.client.ReportCrash(crash1)
+	rep := c.client.pollBug()
+
+	// Specify fixing commit for the bug.
+	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
+		ID:     rep.ID,
+		Status: dashapi.BugStatusOpen,
+		OnHold: true,
+	})
+	c.expectEQ(reply.OK, true)
+	c.advanceTime(20 * 24 * time.Hour)
+	c.client.pollNotifs(0)
+}

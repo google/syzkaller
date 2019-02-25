@@ -214,6 +214,7 @@ kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler10
 syz repro:      %[2]v
+CC:             [bar@foo.com foo@bar.com maintainers@repo10.org bugs@repo10.org]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -289,6 +290,7 @@ dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler10
 syz repro:      %[3]v
 C reproducer:   %[2]v
+CC:             [qux@qux.com maintainers@repo10.org bugs@repo10.org]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -508,19 +510,19 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		crash1 := testCrash(build, 1)
 		crash1.Title = fmt.Sprintf("bug_%v", i)
 		c.client2.ReportCrash(crash1)
-		bugSender := c.pollEmailBug()
+		bugSender := c.pollEmailBug().Sender
 		for j := 0; j < test.bug; j++ {
 			c.incomingEmail(bugSender, "#syz upstream")
-			bugSender = c.pollEmailBug()
+			bugSender = c.pollEmailBug().Sender
 		}
 
 		crash2 := testCrash(build, 2)
 		crash2.Title = fmt.Sprintf("dup_%v", i)
 		c.client2.ReportCrash(crash2)
-		dupSender := c.pollEmailBug()
+		dupSender := c.pollEmailBug().Sender
 		for j := 0; j < test.dup; j++ {
 			c.incomingEmail(dupSender, "#syz upstream")
-			dupSender = c.pollEmailBug()
+			dupSender = c.pollEmailBug().Sender
 		}
 
 		c.incomingEmail(bugSender, "#syz dup: "+crash2.Title)

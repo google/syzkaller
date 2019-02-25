@@ -1,0 +1,3 @@
+TITLE: UBSan: Undefined behavior
+
+[     1.000003] UBSan: Undefined Behavior in /media/k4iz3n/event1/kWork/src/sys/external/bsd/acpica/dist/events/evgpeinit.c:362:5, store to misaligned address 0xffffffff85b09a03 for type 'UINT32' which requires 4 byte alignment

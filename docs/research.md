@@ -10,3 +10,5 @@
 * [SemFuzz: Semantics-based Automatic Generation of Proof-of-Concept Exploits](https://www.informatics.indiana.edu/xw7/papers/p2139-you.pdf)
 * [Towards Automating Exploit Generation for Arbitrary Types of Kernel Vulnerabilities](https://i.blackhat.com/us-18/Thu-August-9/us-18-Wu-Towards-Automating-Exploit-Generation-For-Arbitrary-Types-of-Kernel-Vulnerabilities-wp.pdf)
 * [Synthesis of Linux Kernel Fuzzing Tools Based on Syscall](http://dpi-proceedings.com/index.php/dtcse/article/download/14990/14503)
+* [Drill the Apple Core: Up & Down](https://i.blackhat.com/eu-18/Wed-Dec-5/eu-18-Juwei_Lin-Drill-The-Apple-Core.pdf)
+* [WSL Reloaded](https://www.slideshare.net/AnthonyLAOUHINETSUEI/wsl-reloaded)

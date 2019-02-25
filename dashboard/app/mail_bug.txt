@@ -9,11 +9,11 @@ git tree:       {{.KernelRepo}}
 {{if .LogLink}}console output: {{.LogLink}}
 {{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
 {{end}}dashboard link: {{.Link}}
-compiler:       {{.CompilerID}}
-{{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
+{{if .CompilerID}}compiler:       {{.CompilerID}}
+{{end}}{{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
 {{end}}{{if .ReproSyzLink}}syz repro:      {{.ReproSyzLink}}
 {{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
-{{end}}{{if .Moderation}}CC:             {{.Maintainers}}
+{{end}}{{if and .Moderation .Maintainers}}CC:             {{.Maintainers}}
 {{end}}{{if and (not .ReproCLink) (not .ReproSyzLink)}}
 Unfortunately, I don't have any reproducer for this crash yet.
 {{end}}

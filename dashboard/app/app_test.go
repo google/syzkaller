@@ -55,15 +55,10 @@ var testConfig = &GlobalConfig{
 				{
 					Name:       "reporting1",
 					DailyLimit: 3,
+					Embargo:    14 * 24 * time.Hour,
+					Filter:     skipWithRepro,
 					Config: &TestConfig{
 						Index: 1,
-					},
-					Filter: func(bug *Bug) FilterResult {
-						if strings.HasPrefix(bug.Title, "skip without repro") &&
-							bug.ReproLevel != dashapi.ReproLevelNone {
-							return FilterSkip
-						}
-						return FilterReport
 					},
 				},
 				{
@@ -99,9 +94,10 @@ var testConfig = &GlobalConfig{
 				{
 					Name:       "reporting1",
 					DailyLimit: 5,
+					Embargo:    14 * 24 * time.Hour,
+					Filter:     skipWithRepro,
 					Config: &EmailConfig{
-						Email:      "test@syzkaller.com",
-						Moderation: true,
+						Email: "test@syzkaller.com",
 					},
 				},
 				{
@@ -214,6 +210,14 @@ const (
 	clientPublic = "client-public"
 	keyPublic    = "clientpublickeyclientpublickey"
 )
+
+func skipWithRepro(bug *Bug) FilterResult {
+	if strings.HasPrefix(bug.Title, "skip with repro") &&
+		bug.ReproLevel != dashapi.ReproLevelNone {
+		return FilterSkip
+	}
+	return FilterReport
+}
 
 type TestConfig struct {
 	Index int

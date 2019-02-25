@@ -1,0 +1,3 @@
+TITLE: UBSan: Undefined behavior
+
+[     1.000003] UBSan: Undefined Behavior in /media/k4iz3n/event1/kWork/src/sys/external/bsd/acpica/dist/resources/rsaddr.c:331:22, member access within misaligned address 0xffffe9b9e6b42f62 for type 'union AML_RESOURCE' which requires 4 byte alignment

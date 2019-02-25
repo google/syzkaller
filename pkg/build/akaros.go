@@ -100,7 +100,7 @@ bash
 	return nil
 }
 
-func (ctx akaros) clean(kernelDir string) error {
+func (ctx akaros) clean(kernelDir, targetArch string) error {
 	// Note: this does not clean toolchain and elfutils.
 	return ctx.make(kernelDir, "", "realclean")
 }

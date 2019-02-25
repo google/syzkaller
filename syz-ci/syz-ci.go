@@ -69,7 +69,10 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-var flagConfig = flag.String("config", "", "config file")
+var (
+	flagConfig     = flag.String("config", "", "config file")
+	flagAutoUpdate = flag.Bool("autoupdate", true, "auto-update the binary")
+)
 
 type Config struct {
 	Name string `json:"name"`
@@ -126,13 +129,17 @@ func main() {
 
 	serveHTTP(cfg)
 
-	updater := NewSyzUpdater(cfg)
-	updater.UpdateOnStart(shutdownPending)
 	updatePending := make(chan struct{})
-	go func() {
-		updater.WaitForUpdate()
-		close(updatePending)
-	}()
+	var autoUpdate func()
+	if *flagAutoUpdate {
+		updater := NewSyzUpdater(cfg)
+		updater.UpdateOnStart(shutdownPending)
+		go func() {
+			updater.WaitForUpdate()
+			autoUpdate = updater.UpdateAndRestart
+			close(updatePending)
+		}()
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -147,9 +154,17 @@ func main() {
 		wg.Done()
 	}()
 
-	managers := make([]*Manager, len(cfg.Managers))
-	for i, mgrcfg := range cfg.Managers {
-		managers[i] = createManager(cfg, mgrcfg, stop)
+	var managers []*Manager
+	for _, mgrcfg := range cfg.Managers {
+		mgr, err := createManager(cfg, mgrcfg, stop)
+		if err != nil {
+			log.Logf(0, "failed to create manager %v: %v", mgrcfg.Name, err)
+			continue
+		}
+		managers = append(managers, mgr)
+	}
+	if len(managers) == 0 {
+		log.Fatalf("failed to create all managers")
 	}
 	for _, mgr := range managers {
 		mgr := mgr
@@ -183,7 +198,7 @@ func main() {
 	select {
 	case <-shutdownPending:
 	case <-updatePending:
-		updater.UpdateAndRestart()
+		autoUpdate()
 	}
 }
 

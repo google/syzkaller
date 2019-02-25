@@ -37,6 +37,18 @@ func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (i
 	return resp, nil
 }
 
+func apiReportingPollNotifications(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.PollNotificationsRequest)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	notifs := reportingPollNotifications(c, req.Type)
+	resp := &dashapi.PollNotificationsResponse{
+		Notifications: notifs,
+	}
+	return resp, nil
+}
+
 func apiReportingPollClosed(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.PollClosedRequest)
 	if err := json.Unmarshal(payload, req); err != nil {

@@ -6,6 +6,12 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
+- [wsmux(4): wrong lock flags](https://marc.info/?l=openbsd-cvs&m=155068528608010&w=2)
+
+- [ioctl: negative input accepted in `spkrioctl()`](https://marc.info/?l=openbsd-cvs&m=155064605025992&w=2)
+
+- [wsmux(4): missing locking](https://marc.info/?l=openbsd-cvs&m=155051156715959&w=2)
+
 - [recvmsg: double free of mbuf](https://marc.info/?l=openbsd-cvs&m=154931648202074&w=2)
 
 - [semop: use-after-free](https://marc.info/?l=openbsd-cvs&m=154926389815162&w=2)

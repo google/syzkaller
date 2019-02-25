@@ -102,10 +102,15 @@ type Reporting struct {
 	Filter ReportingFilter
 	// How many new bugs report per day.
 	DailyLimit int
+	// Upstream reports into next reporting after this period.
+	Embargo time.Duration
 	// Type of reporting and its configuration.
 	// The app has one built-in type, EmailConfig, which reports bugs by email.
 	// And ExternalConfig which can be used to attach any external reporting system (e.g. Bugzilla).
 	Config ReportingType
+
+	// Set for all but last reporting stages.
+	moderation bool
 }
 
 type ReportingType interface {
@@ -269,6 +274,10 @@ func checkNamespaceReporting(ns string, cfg *Config) {
 		}
 		if reporting.DisplayTitle == "" {
 			reporting.DisplayTitle = reporting.Name
+		}
+		reporting.moderation = ri < len(cfg.Reporting)-1
+		if !reporting.moderation && reporting.Embargo != 0 {
+			panic(fmt.Sprintf("embargo in the last reporting %v", reporting.Name))
 		}
 		checkConfigAccessLevel(&reporting.AccessLevel, parentAccessLevel,
 			fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
