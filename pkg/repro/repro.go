@@ -142,6 +142,12 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 		wg.Wait()
 		close(ctx.instances)
 	}()
+	defer func() {
+		close(ctx.bootRequests)
+		for inst := range ctx.instances {
+			inst.Close()
+		}
+	}()
 
 	res, err := ctx.repro(entries, crashStart)
 	if err != nil {
@@ -165,11 +171,6 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 		ctx.reproLog(3, "final repro crashed as (corrupted=%v):\n%s",
 			ctx.report.Corrupted, ctx.report.Report)
 		res.Report = ctx.report
-	}
-
-	close(ctx.bootRequests)
-	for inst := range ctx.instances {
-		inst.Close()
 	}
 	return res, ctx.stats, nil
 }
