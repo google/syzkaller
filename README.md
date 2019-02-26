@@ -21,12 +21,12 @@ Most of the documentation at this moment is related to the Linux kernel.
 For other OS kernels check:
 [Akaros](docs/akaros/README.md),
 [Darwin/XNU](docs/darwin/README.md),
-[FreeBSD](docs/freebsd.md),
-[Fuchsia](docs/fuchsia.md),
+[FreeBSD](docs/freebsd/README.md),
+[Fuchsia](docs/fuchsia/README.md),
 [NetBSD](docs/netbsd/README.md),
 [OpenBSD](docs/openbsd/setup.md),
 [Windows](docs/windows/README.md),
-[gVisor](docs/gvisor.md).
+[gVisor](docs/gvisor/README.md).
 
 - [How to install syzkaller](docs/setup.md)
 - [How to use syzkaller](docs/usage.md)
