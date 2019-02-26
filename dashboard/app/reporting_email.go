@@ -51,6 +51,14 @@ const (
 	replySubjectPrefix = "Re: "
 	commitHashLen      = 12
 	commitTitleLen     = 47 // so that whole line fits into 78 chars
+
+	replyNoBugID = "I see the command but can't find the corresponding bug.\n" +
+		"Please resend the email to %[1]v address\n" +
+		"that is the sender of the bug report (also present in the Reported-by tag)."
+	replyBadBugID = "I see the command but can't find the corresponding bug.\n" +
+		"The email is sent to  %[1]v address\n" +
+		"but the HASH does not correspond to any known bug.\n" +
+		"Please double check the address."
 )
 
 var mailingLists map[string]bool
@@ -417,7 +425,12 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 			log.Infof(c, "no bug ID (%q)", msg.Subject)
 		} else {
 			log.Errorf(c, "no bug ID (%q)", msg.Subject)
-			if err := replyTo(c, msg, "Can't find the corresponding bug.", nil); err != nil {
+			from, err := email.AddAddrContext(ownEmail(c), "HASH")
+			if err != nil {
+				log.Errorf(c, "failed to format sender email address: %v", err)
+				from = "ERROR"
+			}
+			if err := replyTo(c, msg, fmt.Sprintf(replyNoBugID, from), nil); err != nil {
 				log.Errorf(c, "failed to send reply: %v", err)
 			}
 		}
@@ -426,7 +439,12 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 	bug, _, err := findBugByReportingID(c, msg.BugID)
 	if err != nil {
 		log.Errorf(c, "can't find bug: %v", err)
-		if err := replyTo(c, msg, "Can't find the corresponding bug.", nil); err != nil {
+		from, err := email.AddAddrContext(ownEmail(c), "HASH")
+		if err != nil {
+			log.Errorf(c, "failed to format sender email address: %v", err)
+			from = "ERROR"
+		}
+		if err := replyTo(c, msg, fmt.Sprintf(replyBadBugID, from), nil); err != nil {
 			log.Errorf(c, "failed to send reply: %v", err)
 		}
 		return nil, nil, nil
