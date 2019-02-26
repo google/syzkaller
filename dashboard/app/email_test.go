@@ -538,3 +538,36 @@ func TestEmailCrossReportingDup(t *testing.T) {
 		}
 	}
 }
+
+func TestEmailErrors(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// No reply for email without bug hash and no commands.
+	c.incomingEmail("syzbot@testapp.appspotmail.com", "Investment Proposal")
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// If email contains a command we need to reply.
+	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid")
+	reply := c.pollEmailBug()
+	c.expectEQ(reply.To, []string{"<default@sender.com>"})
+	c.expectEQ(reply.Body, `> #syz invalid
+
+I see the command but can't find the corresponding bug.
+Please resend the email to syzbot+HASH@testapp.appspotmail.com address
+that is the sender of the bug report (also present in the Reported-by tag).
+
+`)
+
+	c.incomingEmail("syzbot+123@testapp.appspotmail.com", "#syz invalid")
+	reply = c.pollEmailBug()
+	c.expectEQ(reply.Body, `> #syz invalid
+
+I see the command but can't find the corresponding bug.
+The email is sent to  syzbot+HASH@testapp.appspotmail.com address
+but the HASH does not correspond to any known bug.
+Please double check the address.
+
+`)
+}
