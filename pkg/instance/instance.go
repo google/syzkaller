@@ -399,7 +399,7 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded,
 }
 
 var MakeBin = func() string {
-	if runtime.GOOS == "openbsd" {
+	if runtime.GOOS == "freebsd" || runtime.GOOS == "openbsd" {
 		return "gmake"
 	}
 	return "make"
