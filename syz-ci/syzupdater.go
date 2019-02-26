@@ -116,17 +116,24 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 // UpdateOnStart does 3 things:
 //  - ensures that the current executable is fresh
 //  - ensures that we have a working syzkaller build in current
-func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
+func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 	os.RemoveAll(upd.currentDir)
 	exeTag, exeMod := readTag(upd.exe + ".tag")
 	latestTag := upd.checkLatest()
-	if exeTag == latestTag && time.Since(exeMod) < time.Minute {
-		// Have a freash up-to-date build, probably just restarted.
-		log.Logf(0, "current executable is up-to-date (%v)", exeTag)
-		if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
-			log.Fatal(err)
+	if latestTag != "" {
+		uptodate := exeTag == latestTag && time.Since(exeMod) < time.Minute
+		if uptodate || !autoupdate {
+			if uptodate {
+				// Have a fresh up-to-date build, probably just restarted.
+				log.Logf(0, "current executable is up-to-date (%v)", latestTag)
+			} else {
+				log.Logf(0, "autoupdate is turned off, using latest build %v", latestTag)
+			}
+			if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
+				log.Fatal(err)
+			}
+			return
 		}
-		return
 	}
 	if exeTag == "" {
 		log.Logf(0, "current executable is bootstrap")
@@ -147,7 +154,7 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 			if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
 				log.Fatal(err)
 			}
-			if exeTag != latestTag {
+			if autoupdate && exeTag != latestTag {
 				upd.UpdateAndRestart()
 			}
 			return

@@ -130,13 +130,11 @@ func main() {
 	serveHTTP(cfg)
 
 	updatePending := make(chan struct{})
-	var autoUpdate func()
+	updater := NewSyzUpdater(cfg)
+	updater.UpdateOnStart(*flagAutoUpdate, shutdownPending)
 	if *flagAutoUpdate {
-		updater := NewSyzUpdater(cfg)
-		updater.UpdateOnStart(shutdownPending)
 		go func() {
 			updater.WaitForUpdate()
-			autoUpdate = updater.UpdateAndRestart
 			close(updatePending)
 		}()
 	}
@@ -198,7 +196,7 @@ func main() {
 	select {
 	case <-shutdownPending:
 	case <-updatePending:
-		autoUpdate()
+		updater.UpdateAndRestart()
 	}
 }
 
