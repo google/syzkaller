@@ -12,8 +12,9 @@
 
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
-	if (syz_mmap((size_t)data, data_size) != ZX_OK)
-		fail("mmap of data segment failed");
+	zx_status_t status = syz_mmap((size_t)data, data_size);
+	if (status != ZX_OK)
+		fail("mmap of data segment failed with: %d", status);
 }
 
 static long execute_syscall(const call_t* c, long a[kMaxArgs])
