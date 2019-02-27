@@ -17,6 +17,7 @@ type netbsd struct {
 
 func ctorNetbsd(target *targets.Target, kernelSrc, kernelObj string,
 	ignores []*regexp.Regexp) (Reporter, []string, error) {
+	ignores = append(ignores, regexp.MustCompile("event_init: unable to initialize")) // postfix output
 	ctx := &netbsd{
 		kernelSrc: kernelSrc,
 		kernelObj: kernelObj,
