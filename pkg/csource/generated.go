@@ -913,7 +913,7 @@ long syz_mmap(size_t addr, size_t size)
 	zx_handle_t vmo;
 	status = zx_vmo_create(size, 0, &vmo);
 	if (status != ZX_OK) {
-		debug("zx_vmo_create failed with: %d", status);
+		debug("zx_vmo_create failed with: %d\n", status);
 		return status;
 	}
 	status = zx_vmo_replace_as_executable(vmo, ZX_HANDLE_INVALID, &vmo);
