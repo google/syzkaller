@@ -912,12 +912,16 @@ long syz_mmap(size_t addr, size_t size)
 		fail("zx_object_get_info(ZX_INFO_VMAR) failed: %d", status);
 	zx_handle_t vmo;
 	status = zx_vmo_create(size, 0, &vmo);
+	if (status != ZX_OK) {
+		debug("zx_vmo_create failed with: %d", status);
+		return status;
+	}
+	status = zx_vmo_replace_as_executable(vmo, ZX_HANDLE_INVALID, &vmo);
 	if (status != ZX_OK)
 		return status;
 	uintptr_t mapped_addr;
 	status = zx_vmar_map(root, ZX_VM_FLAG_SPECIFIC_OVERWRITE | ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE | ZX_VM_FLAG_PERM_EXECUTE,
 			     addr - info.base, vmo, 0, size,
-
 			     &mapped_addr);
 	return status;
 }
