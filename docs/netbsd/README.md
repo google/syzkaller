@@ -164,15 +164,44 @@ You can compile a kernel with KASAN to increase the chances of finding bugs.
 	executed 35803, cover 1248, crashes 0, repro 0
 	```
 
+## syzbot
+
+[syzbot](/docs/syzbot.md) tests NetBSD and reports bugs to
+[syzkaller-netbsd-bugs](https://groups.google.com/forum/#!forum/syzkaller-netbsd-bugs) mailing list
+(also can be seen on [dashboard](https://syzkaller.appspot.com#netbsd)).
+
+The image `syzbot` uses can be downloaded from
+[here](https://storage.googleapis.com/syzkaller/netbsd-image.raw) (2GB) and root
+ssh key from [here](https://storage.googleapis.com/syzkaller/netbsd-image.key).
+
+The image can be used with qemu as follows:
+```
+qemu-system-x86_64 -m 1024 -smp 2 -nographic -enable-kvm \
+	-netdev user,id=mynet0,hostfwd=tcp:127.0.0.1:10022-:22 \
+	-device e1000,netdev=mynet0 -hda netbsd-image.raw
+```
+
+And then you can ssh/scp into the VM using:
+```
+ssh -i netbsd-image.key -p 10022 -o IdentitiesOnly=yes root@localhost
+scp -i netbsd-image.key -P 10022 -o IdentitiesOnly=yes FILE root@localhost:/root/
+```
+
+Note: the image contains a stock kernel, so if you are reproducing a bug
+most likely you want to update kernel as the first step:
+```
+scp -i netbsd-image.key -P 10022 -o IdentitiesOnly=yes \
+	src/sys/arch/amd64/compile/obj/GENERIC_SYZKALLER/netbsd root@localhost:/netbsd
+ssh -i netbsd-image.key -p 10022 -o IdentitiesOnly=yes root@localhost /sbin/reboot
+```
+
 ## Missing things
 
 - Automating the configuation changes (like appending to config files), generating the json config file on the fly (with customizable values to the keys using command line parameters) and calling syz-manager with `anita` using just a single command.
 - Coverage. `executor/executor_netbsd.cc` uses a very primitive fallback for coverage. We need KCOV for NetBSD. It will also help to assess what's covered and what's missing.
 - System call descriptions. `sys/netbsd/*.txt` is a dirty copy from `sys/linux/*.txt` with everything that does not compile dropped. We need to go through syscalls and verify/fix/extend them, including devices/ioctls/etc.
 - Currently only `amd64` arch is supported. Supporting `386` would be useful, because it should cover compat paths. Also, we could do testing of the linux-compatibility subsystem.
-- `pkg/csource` needs to be taught how to generate/build C reproducers.
 - `pkg/host` needs to be taught how to detect supported syscalls/devices.
 - `pkg/report`/`pkg/symbolizer` need to be taught how to extract/symbolize kernel crash reports.
 - We need to learn how to build/use debug version of kernel.
 - On Linux we have emission of exernal networking/USB traffic into kernel using tun/gadgetfs. Implementing these for NetBSD could uncover a number of high-profile bugs.
-- Last but not least, we need to support NetBSD in `syz-ci` command (including building kernel/image continuously from git).
