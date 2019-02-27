@@ -1,0 +1,2 @@
+
+login: Jan  1 00:00:00 localhost postfix/pickup[596]: panic: event_init: unable to initialize
