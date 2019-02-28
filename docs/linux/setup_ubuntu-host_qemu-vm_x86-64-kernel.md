@@ -111,32 +111,36 @@ Install debootstrap:
 sudo apt-get install debootstrap
 ```
 
-Use [this script](https://github.com/google/syzkaller/blob/master/tools/create-image.sh) to create a minimal Debian-stretch Linux image.
-The result should be `$IMAGE/stretch.img` disk image.
+Create a Debian-stretch Linux image:
+```
+cd $IMAGE/
+wget https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh -O create-image.sh
+chown +x create-image.sh
+./create-image.sh
+```
+
+By default, this script will create a minimal Debian-stretch Linux image. The result should be `$IMAGE/stretch.img` disk image.
+
+If you would like to generate wheezy debian image, instead of stretch, just add one option of the script
+``` bash
+./create-image.sh --distribution=wheezy
+```
 
 Sometimes it's useful to have some additional packages and tools available in the VM even though they are not required to run syzkaller.
 The instructions to install some useful tools are below.
-They should obviously be executed before packing the `.img` file.
 
-To install other packages (not required to run syzkaller):
+To install other packages, like `make sysbench git vim tmux usbutils` (not required to run syzkaller):
 ``` bash
-sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y make sysbench git vim tmux usbutils"
-```
-
-To install Trinity (not required to run syzkaller):
-``` bash
-sudo chroot stretch /bin/bash -c "mkdir -p ~; cd ~/; wget https://github.com/kernelslacker/trinity/archive/v1.5.tar.gz -O trinity-1.5.tar.gz; tar -xf trinity-1.5.tar.gz"
-sudo chroot stretch /bin/bash -c "cd ~/trinity-1.5 ; ./configure.sh ; make -j16 ; make install"
+./create-image.sh --feature=full
 ```
 
 To install perf (not required to run syzkaller):
 ``` bash
-cp -r $KERNEL stretch/tmp/
-sudo chroot stretch /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
-sudo chroot stretch /bin/bash -c "cd /tmp/linux/tools/perf/; make"
-sudo chroot stretch /bin/bash -c "cp /tmp/linux/tools/perf/perf /usr/bin/"
-rm -r stretch/tmp/linux
+./create-image.sh --add-perf
 ```
+Note: remember to set `$KERNEL` before installing perf
+
+For additional options of `create-image.sh`, please refer to `./create-image.sh -h`
 
 ## QEMU
 
