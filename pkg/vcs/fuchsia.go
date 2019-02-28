@@ -51,8 +51,8 @@ func (ctx *fuchsia) initRepo() error {
 	if err := osutil.SandboxChown(tmpDir); err != nil {
 		return err
 	}
-	cmd := "curl -s 'https://fuchsia.googlesource.com/scripts/+/master/bootstrap?format=TEXT' |" +
-		"base64 --decode | bash -s garnet"
+	cmd := "curl -s 'https://fuchsia.googlesource.com/fuchsia/+/master/scripts/bootstrap?format=TEXT' |" +
+		"base64 --decode | bash"
 	if _, err := runSandboxed(tmpDir, "bash", "-c", cmd); err != nil {
 		return err
 	}
