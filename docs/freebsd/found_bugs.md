@@ -10,6 +10,7 @@ Newer bugs come first
 - [Limit the user-controllable amount of memory the kernel allocates via IPPROTO_SCTP level socket options.](https://reviews.freebsd.org/rS343089)
 - [Fix getsockopt() for IP_OPTIONS/IP_RETOPTS.](https://reviews.freebsd.org/rS342879)
 - [Avoid overfow in vtruncbuf()](https://reviews.freebsd.org/rS342857)
+- [Limit option_len for the TCP_CCALGOOPT.](https://reviews.freebsd.org/rS341335)
 - [Correct vm_fault_copy_entry() handling of backing file truncation after the file mapping was wired.](https://reviews.freebsd.org/rS338999)
 - [In vm_fault_copy_entry(), we should not assert that entry is charged if the dst_object is not of swap type.](https://reviews.freebsd.org/rS338998)
 - [Handle a guest executing a vm instruction by trapping and raising an undefined instruction exception.](https://reviews.freebsd.org/rS338957)
