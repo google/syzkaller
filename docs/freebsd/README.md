@@ -22,7 +22,7 @@ Checking out the sources can be done by
 ```
 go get -u -d github.com/google/syzkaller/...
 ```
-and building the source is done by
+and building the binaries is done by
 ```
 cd go/src/github.com/google/syzkaller/
 gmake
