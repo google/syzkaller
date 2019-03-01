@@ -27,6 +27,8 @@ def filter_link((doc, link)):
 		return False
 	if link.startswith('#'):
 		return False
+	if link.startswith('mailto'):
+		return False
 	return True
 
 links = filter(filter_link, links)
