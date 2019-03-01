@@ -2,7 +2,35 @@
 
 ## How to run syzkaller on FreeBSD using qemu
 
-So far the process is tested only on linux/amd64 host. To build Go binaries do:
+So far the process is only tested on amd64 based hosts.
+The host can be running FreeBSD or Linux.
+
+### Setting up a FreeBSD host
+
+Since some tools (`syz-prog2c`, for example) use `clang-format`, you should
+do a buildworld/installworld with having the entry
+```
+WITH_CLANG_EXTRAS="YES"
+```
+in `/etc/src/conf`.
+
+The required dependencies can be installed by
+```
+sudo pkg install bash gcc git gmake go
+```
+Checking out the sources can be done by
+```
+go get -u -d github.com/google/syzkaller/...
+```
+and building the binaries is done by
+```
+cd go/src/github.com/google/syzkaller/
+gmake
+```
+
+### Setting up a Linux host
+
+To build Go binaries do:
 ```
 make manager fuzzer execprog TARGETOS=freebsd
 ```
@@ -13,6 +41,8 @@ c++ executor/executor_freebsd.cc -o syz-executor -O1 -lpthread -DGOOS=\"freebsd\
 Then, copy out the binary back to host into `bin/freebsd_amd64` dir.
 
 Building/running on a FreeBSD host should work as well, but currently our `Makefile` does not work there, so you will need to do its work manually.
+
+### Setting up the FreeBSD VM
 
 Then, you need a FreeBSD image with root ssh access with a key. General instructions can be found here [qemu instructions](https://wiki.qemu.org/Hosts/BSD). I used `FreeBSD-11.0-RELEASE-amd64.qcow2` image, and it required a freashly built `qemu-system-x86_64` (networking did not work in the system-provided one). After booting add the following to `/boot/loader.conf`:
 ```
