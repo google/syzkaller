@@ -7,8 +7,11 @@
 set -eux
 
 # Create a minimal Debian distribution in a directory.
-RELEASE=stretch
+ADDITIONAL_PACKAGE="make sysbench git vim tmux usbutils"
 DIR=chroot
+
+# Variables affected by options
+RELEASE=stretch
 FEATURE=minimal
 ADD_PACKAGE=""
 PERF=false
@@ -18,6 +21,7 @@ display_help() {
     echo
     echo "   -d, --distribution         Set on which debian distribution to create"
     echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
+    echo "   -h, --help                 Display help message"
     echo "   -p, --add-perf             Add perf support with this option enabled. Please set envrionment variable \$KERNEL at first"
     echo
 }
@@ -55,7 +59,7 @@ while true; do
 done
 
 if [ $FEATURE = "full" ]; then
-    ADD_PACKAGE="make sysbench git vim tmux usbutils"
+    ADD_PACKAGE=$ADDITIONAL_PACKAGE
 fi
 
 sudo rm -rf $DIR
