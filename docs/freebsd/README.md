@@ -2,7 +2,7 @@
 
 ## How to run syzkaller on FreeBSD using qemu
 
-So far the process is only tested am amd64 based hosts.
+So far the process is only tested on amd64 based hosts.
 The host can be running FreeBSD or Linux.
 
 ### Setting up a FreeBSD host
@@ -26,7 +26,6 @@ and building the binaries is done by
 ```
 cd go/src/github.com/google/syzkaller/
 gmake
-gmake generate
 ```
 
 ### Setting up a Linux host
