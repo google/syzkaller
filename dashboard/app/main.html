@@ -32,8 +32,7 @@ Main page.
 		<tr>
 			<th>Bug</th>
 			<th>Created</th>
-			<th>Started</th>
-			<th>Finished</th>
+			<th>Duration</th>
 			<th>User</th>
 			<th>Patch</th>
 			<th>Repo</th>
@@ -43,31 +42,39 @@ Main page.
 		{{range $job := $.Jobs}}
 			<tr>
 				<td class="title"><a href="{{$job.BugLink}}">{{$job.BugTitle}}</a></td>
-				<td class="time">{{if $job.ExternalLink}}<a href="{{$job.ExternalLink}}">{{formatTime $job.Created}}</a>{{else}}{{formatTime $job.Created}}{{end}}</td>
-				<td class="time">{{formatTime $job.Started}}{{if gt $job.Attempts 1}} ({{$job.Attempts}}){{end}}</td>
-				<td class="time">{{formatTime $job.Finished}}</td>
-				<td>{{$job.User}}</td>
-				<td><a href="{{$job.PatchLink}}">patch</a></td>
+				<td class="time">{{link $job.ExternalLink (formatTime $job.Created)}}</td>
+				<td class="time" title="started: {{formatTime $job.Started}}&#013;finished: {{formatTime $job.Finished}}">
+					{{formatDuration $job.Duration}}{{if gt $job.Attempts 1}} ({{$job.Attempts}}){{end}}
+				</td>
+				<td>
+					{{if eq $job.Type 0}}
+						{{$job.User}}
+					{{else if eq $job.Type 1}}
+						bisect
+					{{else if eq $job.Type 2}}
+						bisect fix
+					{{end}}
+				</td>
+				<td>{{optlink $job.PatchLink "patch"}}</td>
 				<td class="kernel" title="{{$job.KernelAlias}}">{{$job.KernelAlias}}</td>
 				<td title="{{$job.Namespace}}/{{$job.Reporting}}">{{$job.Manager}}</td>
-				{{if $job.ErrorLink}}
-					<td class="result"><a href="{{$job.ErrorLink}}">error</a></td>
-				{{else if $job.CrashTitle}}
-					<td class="result" title="{{$job.CrashTitle}}">
-						{{if $job.CrashReportLink}}
-							<a href="{{$job.CrashReportLink}}">report</a>
-						{{end}}
-						{{if $job.CrashLogLink}}
-							 <a href="{{$job.CrashLogLink}}">log</a>
-						{{end}}
-					</td>
-				{{else if formatTime $job.Finished}}
-					<td class="result">OK</td>
-				{{else if formatTime $job.Started}}
-					<td class="result">running</td>
-				{{else}}
-					<td class="result">pending</td>
-				{{end}}
+				<td class="result">
+					{{if $job.ErrorLink}}
+						{{link $job.ErrorLink "error"}}
+					{{else if $job.LogLink}}
+						{{link $job.LogLink "log"}}
+						({{if $job.Commit}}1{{else}}{{len $job.Commits}}{{end}})
+					{{else if $job.CrashTitle}}
+						{{optlink $job.CrashReportLink "report"}}
+						{{optlink $job.CrashLogLink "log"}}
+					{{else if formatTime $job.Finished}}
+						OK
+					{{else if formatTime $job.Started}}
+						running
+					{{else}}
+						pending
+					{{end}}
+				</td>
 			</tr>
 		{{end}}
 	</table>

@@ -1,0 +1,25 @@
+{{if .BisectCause.Commit}}syzbot has bisected this bug to:
+
+commit {{.BisectCause.Commit.Hash}}
+Author: {{.BisectCause.Commit.AuthorName}} <{{.BisectCause.Commit.Author}}>
+Date:   {{formatKernelTime .BisectCause.Commit.Date}}
+
+    {{.BisectCause.Commit.Title}}
+{{else if .BisectCause.Commits}}Bisection is inconclusive: the first bad commit could be any of:
+{{range $com := .BisectCause.Commits}}
+{{formatShortHash $com.Hash}} {{$com.Title}}{{end}}
+{{else}}Bisection is inconclusive: the bug happens on the oldest tested release.
+{{end}}
+bisection log:  {{.BisectCause.LogLink}}
+start commit:   {{formatShortHash .KernelCommit}} {{formatCommitTableTitle .KernelCommitTitle}}
+git tree:       {{.KernelRepoAlias}}
+{{if .BisectCause.CrashReportLink}}final crash:    {{.BisectCause.CrashReportLink}}
+{{end}}{{if .BisectCause.CrashLogLink}}console output: {{.BisectCause.CrashLogLink}}
+{{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
+{{end}}dashboard link: {{.Link}}
+{{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
+{{end}}{{if .ReproSyzLink}}syz repro:      {{.ReproSyzLink}}
+{{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
+{{end}}{{if .BisectCause.Commit}}
+Reported-by: {{.CreditEmail}}
+Fixes: {{formatShortHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}"){{end}}

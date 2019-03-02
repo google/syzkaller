@@ -28,6 +28,13 @@ indexes:
   - name: NeedCommitInfo
   - name: Commits
 
+- kind: Bug
+  properties:
+  - name: BisectCause
+  - name: ReproLevel
+  - name: FirstTime
+    direction: desc
+
 - kind: Build
   properties:
   - name: Namespace
@@ -96,3 +103,10 @@ indexes:
   properties:
   - name: Reported
   - name: Finished
+
+- kind: Job
+  ancestor: yes
+  properties:
+  - name: Type
+  - name: Finished
+    direction: desc

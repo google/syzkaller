@@ -45,13 +45,18 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{if .}}
 {{if .Bugs}}
 <table class="list_table">
-	<caption id="{{$.Fragment}}"><a class="plain" href="#{{$.Fragment}}">{{$.Caption}}:</a></caption>
+	{{if $.Fragment}}
+		<caption id="{{$.Fragment}}"><a class="plain" href="#{{$.Fragment}}">{{$.Caption}}:</a></caption>
+	{{else}}
+		<caption>{{$.Caption}}:</caption>
+	{{end}}
 	<tr>
 		{{if $.ShowNamespace}}
 			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
 		{{end}}
 		<th><a onclick="return sortTable(this, 'Title', textSort)" href="#">Title</a></th>
 		<th><a onclick="return sortTable(this, 'Repro', reproSort)" href="#">Repro</a></th>
+		<th><a onclick="return sortTable(this, 'Bisected', yesSort)" href="#">Bisected</a></th>
 		<th><a onclick="return sortTable(this, 'Count', numSort)" href="#">Count</a></th>
 		<th><a onclick="return sortTable(this, 'Last', timeSort)" href="#">Last</a></th>
 		<th><a onclick="return sortTable(this, 'Reported', timeSort)" href="#">Reported</a></th>
@@ -71,6 +76,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
 			<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
 			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
+			<td class="stat">{{if $b.BisectCause}}yes{{end}}</td>
 			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
 			<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
 			<td class="stat">
@@ -107,7 +113,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "manager_list"}}
 {{if .}}
 <table class="list_table">
-	<caption id="managers"><a class="plain" href="#managers">Managers:</a></caption>
+	<caption id="{{(index . 0).Namespace}}-managers"><a class="plain" href="#{{(index . 0).Namespace}}-managers">Instances:</a></caption>
 	<tr>
 		<th>Name</th>
 		<th>Active</th>

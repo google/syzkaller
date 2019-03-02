@@ -93,8 +93,9 @@ type Config struct {
 	// GCS path to upload coverage reports from managers (optional).
 	CoverUploadPath string `json:"cover_upload_path"`
 	// Enable patch testing jobs.
-	EnableJobs bool             `json:"enable_jobs"`
-	Managers   []*ManagerConfig `json:"managers"`
+	EnableJobs   bool             `json:"enable_jobs"`
+	BisectBinDir string           `json:"bisect_bin_dir"`
+	Managers     []*ManagerConfig `json:"managers"`
 }
 
 type ManagerConfig struct {
@@ -243,6 +244,9 @@ func loadConfig(filename string) (*Config, error) {
 	}
 	if cfg.EnableJobs && (cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
 		return nil, fmt.Errorf("enabled_jobs is set but no dashboard info")
+	}
+	if cfg.EnableJobs && cfg.BisectBinDir == "" {
+		return nil, fmt.Errorf("enabled_jobs is set but no bisect_bin_dir")
 	}
 	for i, mgr := range cfg.Managers {
 		if mgr.Name == "" {

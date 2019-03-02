@@ -76,16 +76,19 @@ type uiBuild struct {
 }
 
 type uiCommit struct {
-	Hash  string
-	Title string
-	Link  string
-	Date  time.Time
+	Hash   string
+	Title  string
+	Link   string
+	Author string
+	CC     []string
+	Date   time.Time
 }
 
 type uiBugPage struct {
 	Header         *uiHeader
 	Now            time.Time
 	Bug            *uiBug
+	BisectCause    *uiJob
 	DupOf          *uiBugGroup
 	Dups           *uiBugGroup
 	Similar        *uiBugGroup
@@ -121,6 +124,7 @@ type uiBug struct {
 	Title          string
 	NumCrashes     int64
 	NumCrashesBad  bool
+	BisectCause    bool
 	FirstTime      time.Time
 	LastTime       time.Time
 	ReportedTime   time.Time
@@ -131,7 +135,7 @@ type uiBug struct {
 	Link           string
 	ExternalLink   string
 	CreditEmail    string
-	Commits        []uiCommit
+	Commits        []*uiCommit
 	PatchedOn      []string
 	MissingOn      []string
 	NumManagers    int
@@ -149,6 +153,7 @@ type uiCrash struct {
 }
 
 type uiJob struct {
+	Type            JobType
 	Created         time.Time
 	BugLink         string
 	ExternalLink    string
@@ -164,10 +169,15 @@ type uiJob struct {
 	Attempts        int
 	Started         time.Time
 	Finished        time.Time
+	Duration        time.Duration
 	CrashTitle      string
 	CrashLogLink    string
 	CrashReportLink string
+	LogLink         string
 	ErrorLink       string
+	Commit          *uiCommit   // for conclusive bisection
+	Commits         []*uiCommit // for inconclusive bisection
+	Crash           *uiCrash
 	Reported        bool
 }
 
@@ -275,6 +285,23 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	var bisectCause *uiJob
+	if bug.BisectCause > BisectPending {
+		job, _, jobKey, _, err := loadBisectJob(c, bug)
+		if err != nil {
+			return err
+		}
+		crash := new(Crash)
+		crashKey := datastore.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
+		if err := datastore.Get(c, crashKey, crash); err != nil {
+			return fmt.Errorf("failed to get crash: %v", err)
+		}
+		build, err := loadBuild(c, bug.Namespace, crash.BuildID)
+		if err != nil {
+			return err
+		}
+		bisectCause = makeUIJob(job, jobKey, crash, build)
+	}
 	hasMaintainers := false
 	for _, crash := range crashes {
 		if len(crash.Maintainers) != 0 {
@@ -286,6 +313,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Header:         commonHeader(c, r),
 		Now:            timeNow(c),
 		Bug:            uiBug,
+		BisectCause:    bisectCause,
 		DupOf:          dupOf,
 		Dups:           dups,
 		Similar:        similar,
@@ -625,6 +653,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	uiBug := &uiBug{
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
+		BisectCause:    bug.BisectCause > BisectPending,
 		NumCrashes:     bug.NumCrashes,
 		FirstTime:      bug.FirstTime,
 		LastTime:       bug.LastTime,
@@ -643,7 +672,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		for i, com := range bug.Commits {
 			cfg := config.Namespaces[bug.Namespace]
 			info := bug.getCommitInfo(i)
-			uiBug.Commits = append(uiBug.Commits, uiCommit{
+			uiBug.Commits = append(uiBug.Commits, &uiCommit{
 				Hash:  info.Hash,
 				Title: com,
 				Link:  vcs.CommitLink(cfg.Repos[0].URL, info.Hash),
@@ -671,6 +700,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 
 func mergeUIBug(c context.Context, bug *uiBug, dup *Bug) {
 	bug.NumCrashes += dup.NumCrashes
+	bug.BisectCause = bug.BisectCause || dup.BisectCause > BisectPending
 	if bug.LastTime.Before(dup.LastTime) {
 		bug.LastTime = dup.LastTime
 	}
@@ -702,23 +732,29 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 			}
 			builds[crash.BuildID] = build
 		}
-		ui := &uiCrash{
-			Manager:      crash.Manager,
-			Time:         crash.Time,
-			Maintainers:  strings.Join(crash.Maintainers, ", "),
-			LogLink:      textLink(textCrashLog, crash.Log),
-			ReportLink:   textLink(textCrashReport, crash.Report),
-			ReproSyzLink: textLink(textReproSyz, crash.ReproSyz),
-			ReproCLink:   textLink(textReproC, crash.ReproC),
-			uiBuild:      makeUIBuild(build),
-		}
-		results = append(results, ui)
+		results = append(results, makeUICrash(crash, build))
 	}
 	sampleReport, _, err := getText(c, textCrashReport, crashes[0].Report)
 	if err != nil {
 		return nil, nil, err
 	}
 	return results, sampleReport, nil
+}
+
+func makeUICrash(crash *Crash, build *Build) *uiCrash {
+	ui := &uiCrash{
+		Manager:      crash.Manager,
+		Time:         crash.Time,
+		Maintainers:  strings.Join(crash.Maintainers, ", "),
+		LogLink:      textLink(textCrashLog, crash.Log),
+		ReportLink:   textLink(textCrashReport, crash.Report),
+		ReproSyzLink: textLink(textReproSyz, crash.ReproSyz),
+		ReproCLink:   textLink(textReproC, crash.ReproC),
+	}
+	if build != nil {
+		ui.uiBuild = makeUIBuild(build)
+	}
+	return ui
 }
 
 func makeUIBuild(build *Build) *uiBuild {
@@ -822,35 +858,60 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	var jobs []*Job
 	keys, err := datastore.NewQuery("Job").
 		Order("-Created").
-		Limit(20).
+		Limit(40).
 		GetAll(c, &jobs)
 	if err != nil {
 		return nil, err
 	}
 	var results []*uiJob
 	for i, job := range jobs {
-		ui := &uiJob{
-			Created:         job.Created,
-			BugLink:         bugLink(keys[i].Parent().StringID()),
-			ExternalLink:    job.Link,
-			User:            job.User,
-			Reporting:       job.Reporting,
-			Namespace:       job.Namespace,
-			Manager:         job.Manager,
-			BugTitle:        job.BugTitle,
-			KernelAlias:     kernelRepoInfoRaw(job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
-			PatchLink:       textLink(textPatch, job.Patch),
-			Attempts:        job.Attempts,
-			Started:         job.Started,
-			Finished:        job.Finished,
-			CrashTitle:      job.CrashTitle,
-			CrashLogLink:    textLink(textCrashLog, job.CrashLog),
-			CrashReportLink: textLink(textCrashReport, job.CrashReport),
-			ErrorLink:       textLink(textError, job.Error),
-		}
-		results = append(results, ui)
+		results = append(results, makeUIJob(job, keys[i], nil, nil))
 	}
 	return results, nil
+}
+
+func makeUIJob(job *Job, jobKey *datastore.Key, crash *Crash, build *Build) *uiJob {
+	ui := &uiJob{
+		Type:            job.Type,
+		Created:         job.Created,
+		BugLink:         bugLink(jobKey.Parent().StringID()),
+		ExternalLink:    job.Link,
+		User:            job.User,
+		Reporting:       job.Reporting,
+		Namespace:       job.Namespace,
+		Manager:         job.Manager,
+		BugTitle:        job.BugTitle,
+		KernelAlias:     kernelRepoInfoRaw(job.Namespace, job.KernelRepo, job.KernelBranch).Alias,
+		PatchLink:       textLink(textPatch, job.Patch),
+		Attempts:        job.Attempts,
+		Started:         job.Started,
+		Finished:        job.Finished,
+		CrashTitle:      job.CrashTitle,
+		CrashLogLink:    textLink(textCrashLog, job.CrashLog),
+		CrashReportLink: textLink(textCrashReport, job.CrashReport),
+		LogLink:         textLink(textLog, job.Log),
+		ErrorLink:       textLink(textError, job.Error),
+	}
+	if !job.Finished.IsZero() {
+		ui.Duration = job.Finished.Sub(job.Started)
+	}
+	for _, com := range job.Commits {
+		ui.Commits = append(ui.Commits, &uiCommit{
+			Hash:   com.Hash,
+			Title:  com.Title,
+			Author: fmt.Sprintf("%v <%v>", com.AuthorName, com.Author),
+			CC:     strings.Split(com.CC, "|"),
+			Date:   com.Date,
+		})
+	}
+	if len(ui.Commits) == 1 {
+		ui.Commit = ui.Commits[0]
+		ui.Commits = nil
+	}
+	if crash != nil {
+		ui.Crash = makeUICrash(crash, build)
+	}
+	return ui
 }
 
 func fetchErrorLogs(c context.Context) ([]byte, error) {
