@@ -73,6 +73,8 @@ type Bug struct {
 	NumCrashes     int64
 	NumRepro       int64
 	ReproLevel     dashapi.ReproLevel
+	BisectCause    BisectStatus
+	BisectFix      BisectStatus
 	HasReport      bool
 	NeedCommitInfo bool
 	FirstTime      time.Time
@@ -90,9 +92,12 @@ type Bug struct {
 }
 
 type Commit struct {
-	Hash   string
-	Author string
-	Date   time.Time
+	Hash       string
+	Title      string
+	Author     string
+	AuthorName string
+	CC         string `datastore:",noindex"` // (|-delimited list)
+	Date       time.Time
 }
 
 type BugReporting struct {
@@ -139,14 +144,14 @@ type ReportingStateEntry struct {
 	Date int // YYYYMMDD
 }
 
-// Job represent a single patch testing job for syz-ci.
-// Later we may want to extend this to other types of jobs (hense the generic name):
+// Job represent a single patch testing or bisection job for syz-ci.
+// Later we may want to extend this to other types of jobs:
 //   - test of a committed fix
 //   - reproduce crash
 //   - test that crash still happens on HEAD
-//   - crash bisect
 // Job has Bug as parent entity.
 type Job struct {
+	Type      JobType
 	Created   time.Time
 	User      string
 	CC        []string
@@ -171,11 +176,21 @@ type Job struct {
 	CrashTitle  string // if empty, we did not hit crash during testing
 	CrashLog    int64  // reference to CrashLog text entity
 	CrashReport int64  // reference to CrashReport text entity
+	Commits     []Commit
 	BuildID     string
+	Log         int64 // reference to Log text entity
 	Error       int64 // reference to Error text entity, if set job failed
 
 	Reported bool // have we reported result back to user?
 }
+
+type JobType int
+
+const (
+	JobTestPatch JobType = iota
+	JobBisectCause
+	JobBisectFix
+)
 
 // Text holds text blobs (crash logs, reports, reproducers, etc).
 type Text struct {
@@ -216,6 +231,15 @@ const (
 	BuildNormal BuildType = iota
 	BuildFailed
 	BuildJob
+)
+
+type BisectStatus int
+
+const (
+	BisectNot BisectStatus = iota
+	BisectPending
+	BisectError
+	BisectYes
 )
 
 // updateManager does transactional compare-and-swap on the manager and its current stats.

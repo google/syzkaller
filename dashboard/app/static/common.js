@@ -41,6 +41,7 @@ function isSorted(values) {
 function textSort(v) { return v.toLowerCase(); }
 function numSort(v) { return -parseInt(v); }
 function floatSort(v) { return -parseFloat(v); }
+function yesSort(v) { return v == "yes" ? 0 : 1; }
 function reproSort(v) { return v == "C" ? 0 : v == "syz" ? 1 : 2; }
 function patchedSort(v) { return v == "" ? -1 : parseInt(v); }
 

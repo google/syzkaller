@@ -4,7 +4,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/bisect"
 	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/log"
@@ -58,7 +61,7 @@ func newJobProcessor(cfg *Config, managers []*Manager, stop, shutdownPending cha
 }
 
 func (jp *JobProcessor) loop() {
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	var lastCommitPoll time.Time
 	for {
@@ -228,8 +231,8 @@ func (jp *JobProcessor) processJob(job *Job) {
 	defer func() { <-kernelBuildSem }()
 
 	req := job.req
-	log.Logf(0, "starting job %v for manager %v on %v/%v",
-		req.ID, req.Manager, req.KernelRepo, req.KernelBranch)
+	log.Logf(0, "starting job %v type %v for manager %v on %v/%v",
+		req.ID, req.Type, req.Manager, req.KernelRepo, req.KernelBranch)
 	resp := jp.process(job)
 	log.Logf(0, "done job %v: commit %v, crash %q, error: %s",
 		resp.ID, resp.Build.KernelCommit, resp.CrashTitle, resp.Error)
@@ -256,28 +259,52 @@ type Job struct {
 
 func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	req, mgr := job.req, job.mgr
-	build := dashapi.Build{
-		Manager:         mgr.name,
-		ID:              req.ID,
-		OS:              mgr.managercfg.TargetOS,
-		Arch:            mgr.managercfg.TargetArch,
-		VMArch:          mgr.managercfg.TargetVMArch,
-		CompilerID:      mgr.compilerID,
-		KernelRepo:      req.KernelRepo,
-		KernelBranch:    req.KernelBranch,
-		KernelCommit:    "[unknown]",
-		SyzkallerCommit: "[unknown]",
+
+	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS))
+	mgrcfg := new(mgrconfig.Config)
+	*mgrcfg = *mgr.managercfg
+	mgrcfg.Workdir = filepath.Join(dir, "workdir")
+	mgrcfg.KernelSrc = filepath.Join(dir, "kernel")
+	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
+	os.RemoveAll(mgrcfg.Workdir)
+	defer os.RemoveAll(mgrcfg.Workdir)
+
+	resp := &dashapi.JobDoneReq{
+		ID: req.ID,
+		Build: dashapi.Build{
+			Manager:         mgr.name,
+			ID:              req.ID,
+			OS:              mgr.managercfg.TargetOS,
+			Arch:            mgr.managercfg.TargetArch,
+			VMArch:          mgr.managercfg.TargetVMArch,
+			KernelCommit:    "[unknown]",
+			SyzkallerCommit: req.SyzkallerCommit,
+		},
 	}
-	job.resp = &dashapi.JobDoneReq{
-		ID:    req.ID,
-		Build: build,
+	job.resp = resp
+	switch req.Type {
+	case dashapi.JobTestPatch:
+		mgrcfg.Name += "-test-job"
+		resp.Build.CompilerID = mgr.compilerID
+		resp.Build.KernelRepo = req.KernelRepo
+		resp.Build.KernelBranch = req.KernelBranch
+	case dashapi.JobBisectCause, dashapi.JobBisectFix:
+		mgrcfg.Name += "-bisect-job"
+		resp.Build.KernelRepo = mgr.mgrcfg.Repo
+		resp.Build.KernelBranch = mgr.mgrcfg.Branch
+	default:
+		err := fmt.Errorf("bad job type %v", req.Type)
+		job.resp.Error = []byte(err.Error())
+		jp.Errorf("%s", err)
+		return job.resp
 	}
+
 	required := []struct {
 		name string
 		ok   bool
 	}{
-		{"kernel repository", req.KernelRepo != ""},
-		{"kernel branch", req.KernelBranch != ""},
+		{"kernel repository", req.KernelRepo != "" || req.Type != dashapi.JobTestPatch},
+		{"kernel branch", req.KernelBranch != "" || req.Type != dashapi.JobTestPatch},
 		{"kernel config", len(req.KernelConfig) != 0},
 		{"syzkaller commit", req.SyzkallerCommit != ""},
 		{"reproducer options", len(req.ReproOpts) != 0},
@@ -295,40 +322,98 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		jp.Errorf("%s", job.resp.Error)
 		return job.resp
 	}
-	if err := jp.test(job); err != nil {
+
+	var err error
+	switch req.Type {
+	case dashapi.JobTestPatch:
+		mgrcfg.Name += "-test-job"
+		err = jp.testPatch(job, mgrcfg)
+	case dashapi.JobBisectCause, dashapi.JobBisectFix:
+		mgrcfg.Name += "-bisect-job"
+		err = jp.bisect(job, mgrcfg)
+	}
+	if err != nil {
 		job.resp.Error = []byte(err.Error())
 	}
 	return job.resp
 }
 
-func (jp *JobProcessor) test(job *Job) error {
+func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	req, resp, mgr := job.req, job.resp, job.mgr
 
-	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS))
-	kernelDir := filepath.Join(dir, "kernel")
+	trace := new(bytes.Buffer)
+	cfg := &bisect.Config{
+		Trace:  io.MultiWriter(trace, log.VerboseWriter(3)),
+		Fix:    req.Type == dashapi.JobBisectFix,
+		BinDir: jp.cfg.BisectBinDir,
+		Kernel: bisect.KernelConfig{
+			Repo:      mgr.mgrcfg.Repo,
+			Branch:    mgr.mgrcfg.Branch,
+			Commit:    req.KernelCommit,
+			Cmdline:   mgr.mgrcfg.KernelCmdline,
+			Sysctl:    mgr.mgrcfg.KernelSysctl,
+			Config:    req.KernelConfig,
+			Userspace: mgr.mgrcfg.Userspace,
+		},
+		Syzkaller: bisect.SyzkallerConfig{
+			Repo:   jp.syzkallerRepo,
+			Commit: req.SyzkallerCommit,
+		},
+		Repro: bisect.ReproConfig{
+			Opts: req.ReproOpts,
+			Syz:  req.ReproSyz,
+			C:    req.ReproC,
+		},
+		Manager: *mgrcfg,
+	}
 
-	mgrcfg := new(mgrconfig.Config)
-	*mgrcfg = *mgr.managercfg
-	mgrcfg.Name += "-job"
-	mgrcfg.Workdir = filepath.Join(dir, "workdir")
-	mgrcfg.KernelSrc = kernelDir
-	mgrcfg.Syzkaller = filepath.Join(dir, "gopath", "src", "github.com", "google", "syzkaller")
+	commits, rep, err := bisect.Run(cfg)
+	resp.Log = trace.Bytes()
+	if err != nil {
+		return err
+	}
+	for _, com := range commits {
+		resp.Commits = append(resp.Commits, dashapi.Commit{
+			Hash:       com.Hash,
+			Title:      com.Title,
+			Author:     com.Author,
+			AuthorName: com.AuthorName,
+			CC:         com.CC,
+			Date:       com.Date,
+		})
+	}
+	if len(commits) == 1 {
+		com := commits[0]
+		resp.Build.KernelCommit = com.Hash
+		resp.Build.KernelCommitTitle = com.Title
+		resp.Build.KernelCommitDate = com.Date
+		resp.Build.KernelConfig = req.KernelConfig
+	}
+	if rep != nil {
+		resp.CrashTitle = rep.Title
+		resp.CrashReport = rep.Report
+		resp.CrashLog = rep.Output
+		if len(resp.Commits) != 0 {
+			resp.Commits[0].CC = append(resp.Commits[0].CC, rep.Maintainers...)
+		}
+	}
+	return nil
+}
 
-	os.RemoveAll(mgrcfg.Workdir)
-	defer os.RemoveAll(mgrcfg.Workdir)
+func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
+	req, resp, mgr := job.req, job.resp, job.mgr
 
 	env, err := instance.NewEnv(mgrcfg)
 	if err != nil {
 		return err
 	}
 	log.Logf(0, "job: building syzkaller on %v...", req.SyzkallerCommit)
-	resp.Build.SyzkallerCommit = req.SyzkallerCommit
 	if err := env.BuildSyzkaller(jp.syzkallerRepo, req.SyzkallerCommit); err != nil {
 		return err
 	}
 
 	log.Logf(0, "job: fetching kernel...")
-	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, kernelDir)
+	repo, err := vcs.NewRepo(mgrcfg.TargetOS, mgrcfg.Type, mgrcfg.KernelSrc)
 	if err != nil {
 		return fmt.Errorf("failed to create kernel repo: %v", err)
 	}
@@ -351,11 +436,11 @@ func (jp *JobProcessor) test(job *Job) error {
 	resp.Build.KernelCommitTitle = kernelCommit.Title
 	resp.Build.KernelCommitDate = kernelCommit.Date
 
-	if err := build.Clean(mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.Type, kernelDir); err != nil {
+	if err := build.Clean(mgrcfg.TargetOS, mgrcfg.TargetVMArch, mgrcfg.Type, mgrcfg.KernelSrc); err != nil {
 		return fmt.Errorf("kernel clean failed: %v", err)
 	}
 	if len(req.Patch) != 0 {
-		if err := vcs.Patch(kernelDir, req.Patch); err != nil {
+		if err := vcs.Patch(mgrcfg.KernelSrc, req.Patch); err != nil {
 			return err
 		}
 	}

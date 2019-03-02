@@ -122,10 +122,7 @@ func emailSendBugReport(c context.Context, rep *dashapi.BugReport) error {
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
 		return fmt.Errorf("failed to unmarshal email config: %v", err)
 	}
-	if cfg.MailMaintainers {
-		rep.CC = email.MergeEmailLists(rep.CC, rep.Maintainers, cfg.DefaultMaintainers)
-	}
-	if err := emailReport(c, rep, "mail_bug.txt"); err != nil {
+	if err := emailReport(c, rep); err != nil {
 		return fmt.Errorf("failed to report bug: %v", err)
 	}
 	cmd := &dashapi.BugUpdate{
@@ -212,7 +209,7 @@ func emailPollJobs(c context.Context) error {
 		return err
 	}
 	for _, job := range jobs {
-		if err := emailReport(c, job, "mail_test_result.txt"); err != nil {
+		if err := emailReport(c, job); err != nil {
 			log.Errorf(c, "failed to report job: %v", err)
 			continue
 		}
@@ -224,16 +221,33 @@ func emailPollJobs(c context.Context) error {
 	return nil
 }
 
-func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error {
+func emailReport(c context.Context, rep *dashapi.BugReport) error {
+	templ, public := "", false
+	switch rep.Type {
+	case dashapi.ReportNew, dashapi.ReportRepro:
+		templ = "mail_bug.txt"
+		public = true
+	case dashapi.ReportTestPatch:
+		templ = "mail_test_result.txt"
+	case dashapi.ReportBisectCause, dashapi.ReportBisectFix:
+		templ = "mail_bisect_result.txt"
+		public = true
+	default:
+		return fmt.Errorf("unknown report type %v", rep.Type)
+	}
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
 		return fmt.Errorf("failed to unmarshal email config: %v", err)
 	}
 	to := email.MergeEmailLists([]string{cfg.Email}, rep.CC)
+	if cfg.MailMaintainers && public {
+		to = email.MergeEmailLists(to, rep.Maintainers, cfg.DefaultMaintainers)
+	}
 	from, err := email.AddAddrContext(fromAddr(c), rep.ID)
 	if err != nil {
 		return err
 	}
+
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
 	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, nil, templ, rep)
 }
@@ -492,6 +506,21 @@ func ownEmails(c context.Context) []string {
 		ownEmail(c),
 		fmt.Sprintf("bot@%v.appspotmail.com", appengine.AppID(c)),
 	}
+}
+
+func sanitizeCC(c context.Context, cc []string) []string {
+	var res []string
+	for _, addr := range cc {
+		mail, err := mail.ParseAddress(addr)
+		if err != nil {
+			continue
+		}
+		if email.CanonicalEmail(mail.Address) == ownEmail(c) {
+			continue
+		}
+		res = append(res, mail.Address)
+	}
+	return res
 }
 
 func externalLink(c context.Context, tag string, id int64) string {

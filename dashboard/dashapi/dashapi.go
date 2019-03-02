@@ -72,11 +72,13 @@ type Build struct {
 }
 
 type Commit struct {
-	Hash   string
-	Title  string
-	Author string
-	BugIDs []string // ID's extracted from Reported-by tags
-	Date   time.Time
+	Hash       string
+	Title      string
+	Author     string
+	AuthorName string
+	CC         []string
+	BugIDs     []string // ID's extracted from Reported-by tags
+	Date       time.Time
 }
 
 func (dash *Dashboard) UploadBuild(build *Build) error {
@@ -124,9 +126,11 @@ type JobPollReq struct {
 
 type JobPollResp struct {
 	ID              string
+	Type            JobType
 	Manager         string
 	KernelRepo      string
 	KernelBranch    string
+	KernelCommit    string
 	KernelConfig    []byte
 	SyzkallerCommit string
 	Patch           []byte
@@ -139,10 +143,26 @@ type JobDoneReq struct {
 	ID          string
 	Build       Build
 	Error       []byte
+	Log         []byte // bisection log
 	CrashTitle  string
 	CrashLog    []byte
 	CrashReport []byte
+	// Bisection results:
+	// If there is 0 commits:
+	//  - still happens on HEAD for fix bisection
+	//  - already happened on the oldest release
+	// If there is 1 commits: bisection result (cause or fix).
+	// If there are more than 1: suspected commits due to skips (broken build/boot).
+	Commits []Commit
 }
+
+type JobType int
+
+const (
+	JobTestPatch JobType = iota
+	JobBisectCause
+	JobBisectFix
+)
 
 func (dash *Dashboard) JobPoll(managers []string) (*JobPollResp, error) {
 	req := &JobPollReq{Managers: managers}
@@ -299,6 +319,16 @@ type BugReport struct {
 	ErrorLink      string
 	ErrorTruncated bool // full Error text is too large and was truncated
 	PatchLink      string
+	BisectCause    *BisectResult
+	BisectFix      *BisectResult
+}
+
+type BisectResult struct {
+	Commit          *Commit   // for conclusive bisection
+	Commits         []*Commit // for inconclusive bisection
+	LogLink         string
+	CrashLogLink    string
+	CrashReportLink string
 }
 
 type BugUpdate struct {
@@ -458,9 +488,11 @@ const (
 )
 
 const (
-	ReportNew       ReportType = iota // First report for this bug in the reporting stage.
-	ReportRepro                       // Found repro for an already reported bug.
-	ReportTestPatch                   // Patch testing result.
+	ReportNew         ReportType = iota // First report for this bug in the reporting stage.
+	ReportRepro                         // Found repro for an already reported bug.
+	ReportTestPatch                     // Patch testing result.
+	ReportBisectCause                   // Cause bisection result for an already reported bug.
+	ReportBisectFix                     // Fix bisection result for an already reported bug.
 )
 
 func (dash *Dashboard) Query(method string, req, reply interface{}) error {

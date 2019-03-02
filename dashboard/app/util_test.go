@@ -337,6 +337,18 @@ func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup s
 	client.expectTrue(reply.OK)
 }
 
+func (client *apiClient) pollAndFailBisectJob(build *dashapi.Build) {
+	resp, err := client.JobPoll([]string{build.Manager})
+	client.expectOK(err)
+	client.expectNE(resp.ID, "")
+	client.expectEQ(resp.Type, dashapi.JobBisectCause)
+	done := &dashapi.JobDoneReq{
+		ID:    resp.ID,
+		Error: []byte("pollAndFailBisectJob"),
+	}
+	client.expectOK(client.JobDone(done))
+}
+
 type (
 	EmailOptMessageID int
 	EmailOptFrom      string
