@@ -17,9 +17,26 @@ git tree:       {{.KernelRepoAlias}}
 {{end}}{{if and (not .ReproCLink) (not .ReproSyzLink)}}
 Unfortunately, I don't have any reproducer for this crash yet.
 {{end}}
-IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: {{.CreditEmail}}
+{{if .BisectCause}}{{if .BisectCause.Commit}}The bug was bisected to:
 
+commit {{.BisectCause.Commit.Hash}}
+Author: {{.BisectCause.Commit.AuthorName}} <{{.BisectCause.Commit.Author}}>
+Date:   {{formatKernelTime .BisectCause.Commit.Date}}
+
+    {{.BisectCause.Commit.Title}}
+{{else if .BisectCause.Commits}}Bisection is inconclusive: the first bad commit could be any of:
+{{range $com := .BisectCause.Commits}}
+{{formatShortHash $com.Hash}} {{$com.Title}}{{end}}
+{{else}}Bisection is inconclusive: the bug happens on the oldest tested release.
+{{end}}
+bisection log:  {{.BisectCause.LogLink}}
+{{if .BisectCause.CrashReportLink}}final crash:    {{.BisectCause.CrashReportLink}}
+{{end}}{{if .BisectCause.CrashLogLink}}console output: {{.BisectCause.CrashLogLink}}
+{{end}}
+{{end}}IMPORTANT: if you fix the bug, please add the following tag to the commit:
+Reported-by: {{.CreditEmail}}
+{{if .BisectCause}}{{if .BisectCause.Commit}}Fixes: {{formatShortHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
+{{end}}{{end}}
 {{printf "%s" .Report}}
 {{if .First}}
 ---

@@ -69,7 +69,8 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 	return reports
 }
 
-func handleReportBug(c context.Context, typ string, state *ReportingState, bug *Bug) (*dashapi.BugReport, error) {
+func handleReportBug(c context.Context, typ string, state *ReportingState, bug *Bug) (
+	*dashapi.BugReport, error) {
 	reporting, bugReporting, crash, crashKey, _, _, _, err := needReport(c, typ, state, bug)
 	if err != nil || reporting == nil {
 		return nil, err
@@ -299,6 +300,14 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if err != nil {
 		return nil, err
 	}
+	var job *Job
+	if bug.BisectCause == BisectYes {
+		// If we have bisection results, report the crash/repro used for bisection.
+		job, crash, _, crashKey, err = loadBisectJob(c, bug)
+		if err != nil {
+			return nil, err
+		}
+	}
 	crashLog, _, err := getText(c, textCrashLog, crash.Log)
 	if err != nil {
 		return nil, err
@@ -388,7 +397,35 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if bugReporting.CC != "" {
 		rep.CC = strings.Split(bugReporting.CC, "|")
 	}
+	if bug.BisectCause == BisectYes {
+		rep.BisectCause = bisectFromJob(c, rep, job)
+	}
 	return rep, nil
+}
+
+func loadBisectJob(c context.Context, bug *Bug) (*Job, *Crash, *datastore.Key, *datastore.Key, error) {
+	bugKey := bug.key(c)
+	var jobs []*Job
+	keys, err := datastore.NewQuery("Job").
+		Ancestor(bugKey).
+		Filter("Type=", JobBisectCause).
+		Filter("Finished>", time.Time{}).
+		Order("-Finished").
+		Limit(1).
+		GetAll(c, &jobs)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to query jobs: %v", err)
+	}
+	if len(jobs) == 0 {
+		return nil, nil, nil, nil, fmt.Errorf("can't find bisect cause job for bug")
+	}
+	job := jobs[0]
+	crash := new(Crash)
+	crashKey := datastore.NewKey(c, "Crash", "", job.CrashID, bugKey)
+	if err := datastore.Get(c, crashKey, crash); err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to get crash: %v", err)
+	}
+	return job, crash, keys[0], crashKey, nil
 }
 
 func managersToRepos(c context.Context, ns string, managers []string) []string {
