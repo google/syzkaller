@@ -123,7 +123,7 @@ By default, this script will create a minimal Debian-stretch Linux image. The re
 
 If you would like to generate wheezy debian image, instead of stretch, just add one option of the script
 ``` bash
-./create-image.sh --distribution=wheezy
+./create-image.sh --distribution wheezy
 ```
 
 Sometimes it's useful to have some additional packages and tools available in the VM even though they are not required to run syzkaller.
@@ -131,7 +131,7 @@ The instructions to install some useful tools are below.
 
 To install other packages, like `make sysbench git vim tmux usbutils` (not required to run syzkaller):
 ``` bash
-./create-image.sh --feature=full
+./create-image.sh --feature full
 ```
 
 To install perf (not required to run syzkaller):
