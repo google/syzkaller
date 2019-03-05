@@ -51,7 +51,7 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 		}
 	}
 	if vmType == "gce" {
-		return CopyFilesToImage(
+		return ctx.copyFilesToImage(
 			filepath.Join(userspaceDir, "overlay"), outputDir)
 	}
 	return nil
@@ -71,7 +71,7 @@ func (ctx openbsd) make(kernelDir string, args ...string) error {
 	return err
 }
 
-// CopyFilesToImage populates the filesystem image in outputDir with
+// copyFilesToImage populates the filesystem image in outputDir with
 // run-specific files. The kernel is copied as /bsd and if overlayDir
 // exists, its contents are copied into corresponding files in the
 // image.
@@ -79,7 +79,7 @@ func (ctx openbsd) make(kernelDir string, args ...string) error {
 // Ideally a user space tool capable of understanding FFS should
 // interpret FFS inside the image file, but vnd(4) device would do in
 // a pinch.
-func CopyFilesToImage(overlayDir, outputDir string) error {
+func (ctx openbsd) copyFilesToImage(overlayDir, outputDir string) error {
 	script := fmt.Sprintf(`set -eux
 OVERLAY="%s"
 # Cleanup in case something failed before.

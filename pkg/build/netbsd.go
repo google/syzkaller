@@ -60,7 +60,7 @@ no options SVS
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
-	return CopyKernelToDisk(targetArch, vmType, outputDir, filepath.Join(compileDir, "netbsd"))
+	return ctx.copyKernelToDisk(targetArch, vmType, outputDir, filepath.Join(compileDir, "netbsd"))
 }
 
 func (ctx netbsd) clean(kernelDir, targetArch string) error {
@@ -70,7 +70,7 @@ func (ctx netbsd) clean(kernelDir, targetArch string) error {
 }
 
 // Copy the compiled kernel to the qemu disk image using ssh.
-func CopyKernelToDisk(targetArch, vmType, outputDir, kernel string) error {
+func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string) error {
 	vmConfig := `
 {
 	"snapshot": false,
