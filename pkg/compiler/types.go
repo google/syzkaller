@@ -702,7 +702,7 @@ func init() {
 		canBeArg := true
 		for _, fld := range s.Fields {
 			desc := comp.getTypeDesc(fld.Type)
-			if desc == nil || desc.CanBeArgRet == nil {
+			if desc == nil || desc == typeStruct || desc.CanBeArgRet == nil {
 				return false, false
 			}
 			canBeArg1, _ := desc.CanBeArgRet(comp, fld.Type)

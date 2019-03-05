@@ -194,8 +194,11 @@ func TestFuzz(t *testing.T) {
 		"da[",
 		"define\x98define(define\x98define\x98define\x98define\x98define)define\tdefin",
 		"resource g[g]",
+		`t[
+l	t
+]`,
 	}
-	consts := map[string]uint64{"A": 1, "B": 2, "C": 3, "SYS_C": 4}
+	consts := map[string]uint64{"A": 1, "B": 2, "C": 3, "SYS_A": 4, "SYS_B": 5, "SYS_C": 6}
 	eh := func(pos ast.Pos, msg string) {
 		t.Logf("%v: %v", pos, msg)
 	}
