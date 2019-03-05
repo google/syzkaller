@@ -51,7 +51,8 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 		}
 	}
 	if vmType == "gce" {
-		return CopyKernelToImage(outputDir)
+		return CopyFilesToImage(
+			filepath.Join(userspaceDir, "overlay"), outputDir)
 	}
 	return nil
 }
@@ -70,13 +71,17 @@ func (ctx openbsd) make(kernelDir string, args ...string) error {
 	return err
 }
 
-// The easiest way to make an openbsd image that boots the given
-// kernel on GCE is to simply overwrite it inside the disk image.
+// CopyFilesToImage populates the filesystem image in outputDir with
+// run-specific files. The kernel is copied as /bsd and if overlayDir
+// exists, its contents are copied into corresponding files in the
+// image.
+//
 // Ideally a user space tool capable of understanding FFS should
-// implement this directly, but vnd(4) device would do in a pinch.
-// Assumes that the outputDir contains the appropriately named files.
-func CopyKernelToImage(outputDir string) error {
-	script := `set -eux
+// interpret FFS inside the image file, but vnd(4) device would do in
+// a pinch.
+func CopyFilesToImage(overlayDir, outputDir string) error {
+	script := fmt.Sprintf(`set -eux
+OVERLAY="%s"
 # Cleanup in case something failed before.
 doas umount /altroot || true
 doas vnconfig -u vnd0 || true
@@ -84,9 +89,10 @@ doas vnconfig -u vnd0 || true
 doas /sbin/vnconfig vnd0 image
 doas mount /dev/vnd0a /altroot
 doas cp kernel /altroot/bsd
+test -d "$OVERLAY" && doas cp -Rf "$OVERLAY"/. /altroot
 doas umount /altroot
 doas vnconfig -u vnd0
-`
+`, overlayDir)
 	debugOut, err := osutil.RunCmd(10*time.Minute, outputDir, "/bin/sh", "-c", script)
 	if err != nil {
 		log.Logf(0, "Error copying kernel into image %v\n%v\n", outputDir, debugOut)
