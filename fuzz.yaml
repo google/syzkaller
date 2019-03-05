@@ -7,3 +7,4 @@ targets:
       function: Fuzz
       package: github.com/google/syzkaller/pkg/report
       checkout: github.com/google/syzkaller
+      build_tags: syz_target
