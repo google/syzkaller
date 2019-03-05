@@ -1,0 +1,9 @@
+base: ubuntu:16.04
+targets:
+  - name: report
+    language: go
+    version: "1.11"
+    harness:
+      function: Fuzz
+      package: github.com/google/syzkaller/pkg/report
+      checkout: github.com/google/syzkaller
