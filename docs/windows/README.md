@@ -8,6 +8,8 @@ done by [Fritz](https://twitter.com/anarcheuz) and [zer0mem](https://twitter.com
 The port has found 6 bugs including
 [CVE-2018-8441](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8441).
 
+Also, BSoDs in WSL: [1](https://twitter.com/yoavalon/status/1102563655743406082), [2](https://twitter.com/NetanelBenSimon/status/1102563950221316096).
+
 To update descriptions run (assumes `cl` cross-compiler is in PATH):
 ```
 syz-extract -os=windows
