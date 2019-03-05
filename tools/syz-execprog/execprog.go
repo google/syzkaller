@@ -303,6 +303,12 @@ func createConfig(target *prog.Target, entries []*prog.LogEntry,
 		execOpts.FaultCall = *flagFaultCall
 		execOpts.FaultNth = *flagFaultNth
 	}
+	for _, entry := range entries {
+		if entry.Fault {
+			config.Flags |= ipc.FlagEnableFault
+			break
+		}
+	}
 	handled := make(map[string]bool)
 	for _, entry := range entries {
 		for _, call := range entry.P.Calls {
