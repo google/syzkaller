@@ -7,7 +7,6 @@
 set -eux
 
 # Create a minimal Debian distribution in a directory.
-ADDITIONAL_PACKAGE="make sysbench git vim tmux usbutils"
 DIR=chroot
 
 # Variables affected by options
@@ -59,12 +58,12 @@ while true; do
 done
 
 if [ $FEATURE = "full" ]; then
-    ADD_PACKAGE=$ADDITIONAL_PACKAGE
+    ADD_PACKAGE=",make,sysbench,git,vim,tmux,usbutils"
 fi
 
 sudo rm -rf $DIR
 mkdir -p $DIR
-sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default $ADD_PACKAGE $RELEASE $DIR
+sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default"$ADD_PACKAGE" $RELEASE $DIR
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' $DIR/etc/passwd
