@@ -197,6 +197,8 @@ func TestFuzz(t *testing.T) {
 		`t[
 l	t
 ]`,
+		`t()D[0]
+type D[e]l`,
 	}
 	consts := map[string]uint64{"A": 1, "B": 2, "C": 3, "SYS_A": 4, "SYS_B": 5, "SYS_C": 6}
 	eh := func(pos ast.Pos, msg string) {
