@@ -870,8 +870,9 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 	t.Pos = pos0
 
 	// Remove base type if it's not needed in this context.
+	// If desc is nil, will return an error later when we typecheck the result.
 	desc := comp.getTypeDesc(t)
-	if flags&checkIsArg != 0 && desc.NeedBase {
+	if desc != nil && flags&checkIsArg != 0 && desc.NeedBase {
 		baseTypePos := len(t.Args) - 1
 		if t.Args[baseTypePos].Ident == "opt" {
 			baseTypePos--
