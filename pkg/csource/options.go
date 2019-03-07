@@ -102,7 +102,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == linux {
 		return nil
 	}
-	if opts.EnableTun && !(OS == "openbsd" || OS == "freebsd") {
+	if opts.EnableTun && !(OS == openbsd || OS == freebsd) {
 		return fmt.Errorf("EnableTun is not supported on %v", OS)
 	}
 	if opts.EnableNetDev {
@@ -118,7 +118,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 		return fmt.Errorf("EnableBinfmtMisc is not supported on %v", OS)
 	}
 	if opts.Sandbox == sandboxNamespace ||
-		(opts.Sandbox == sandboxSetuid && !(OS == "openbsd" || OS == "freebsd")) ||
+		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd)) ||
 		opts.Sandbox == sandboxAndroidUntrustedApp {
 		return fmt.Errorf("Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}

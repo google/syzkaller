@@ -445,19 +445,24 @@ func (ctx *context) hoistIncludes(result []byte) []byte {
 	}
 	result = includeRe.ReplaceAll(result, nil)
 	// Certain linux and bsd headers are broken and go to the bottom.
-	var sorted, sortedBottom []string
+	var sorted, sortedBottom, sortedTop []string
 	for include := range includes {
 		if strings.Contains(include, "<linux/") {
 			sortedBottom = append(sortedBottom, include)
 		} else if strings.Contains(include, "<netinet/if_ether.h>") {
 			sortedBottom = append(sortedBottom, include)
+		} else if ctx.target.OS == freebsd && strings.Contains(include, "<sys/types.h>") {
+			sortedTop = append(sortedTop, include)
 		} else {
 			sorted = append(sorted, include)
 		}
 	}
+	sort.Strings(sortedTop)
 	sort.Strings(sorted)
 	sort.Strings(sortedBottom)
 	newResult := append([]byte{}, result[:includesStart]...)
+	newResult = append(newResult, strings.Join(sortedTop, "")...)
+	newResult = append(newResult, '\n')
 	newResult = append(newResult, strings.Join(sorted, "")...)
 	newResult = append(newResult, '\n')
 	newResult = append(newResult, strings.Join(sortedBottom, "")...)
