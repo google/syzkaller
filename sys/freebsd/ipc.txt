@@ -13,7 +13,7 @@ resource ipc[int32]: 0, 0xffffffffffffffff
 
 # TODO: describe ipc syscall
 
-define SYS_semctl	510
+define SYS___semctl	510
 
 resource ipc_msq[ipc]
 msgget(key proc[2039379027, 4], flags flags[msgget_flags]) ipc_msq
@@ -29,19 +29,19 @@ resource ipc_sem[ipc]
 semget(key proc[2039359027, 4], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
 semget$private(key const[IPC_PRIVATE], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
 semop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops])
-semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg buffer[out])
-semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, semid_ds])
-semctl$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID])
-semctl$IPC_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[IPC_INFO], buf buffer[out])
-semctl$SEM_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_INFO], arg buffer[out])
-semctl$SEM_STAT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT], arg buffer[out])
-semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg buffer[out])
-semctl$GETNCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETNCNT], arg buffer[out])
-semctl$GETPID(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETPID], arg buffer[out])
-semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL], arg buffer[out])
-semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT], arg buffer[out])
-semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, array[int16]])
-semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, int32])
+__semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg buffer[out])
+__semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, semid_ds])
+__semctl$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID])
+__semctl$IPC_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[IPC_INFO], buf buffer[out])
+__semctl$SEM_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_INFO], arg buffer[out])
+__semctl$SEM_STAT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT], arg buffer[out])
+__semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg buffer[out])
+__semctl$GETNCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETNCNT], arg buffer[out])
+__semctl$GETPID(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETPID], arg buffer[out])
+__semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL], arg buffer[out])
+__semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT], arg buffer[out])
+__semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, array[int16]])
+__semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, int32])
 
 resource ipc_shm[ipc]
 resource shmaddr[intptr]: 0

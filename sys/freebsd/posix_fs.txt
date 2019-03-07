@@ -28,7 +28,11 @@ lseek(fd fd, offset fileoff, whence flags[seek_whence])
 dup(oldfd fd) fd
 dup2(oldfd fd, newfd fd) fd
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
+freebsd10_pipe(pipefd ptr[out, pipefd])
 fstat(fd fd, statbuf ptr[out, stat])
+freebsd11_stat(file ptr[in, filename], statbuf ptr[out, freebsd11_stat])
+freebsd11_fstat(fd fd, statbuf ptr[out, freebsd11_stat])
+freebsd11_lstat(file ptr[in, filename], statbuf ptr[out, freebsd11_stat])
 
 pipefd {
 	rfd	fd
@@ -45,25 +49,54 @@ iovec_out {
 	len	len[addr, intptr]
 }
 
-stat {
-	dev	int16
+freebsd11_stat {
+	dev	int32
 	ino	int32
 	mode	int16
 	nlink	int16
 	uid	uid
 	gid	gid
-	rdev	int16
-	size	int32
+	rdev	int32
+	atime	int64
+	ansec	int64
+	mtime	int64
+	mnsec	int64
+	ctime	int64
+	cnsec	int64
+	size	int64
+	blocks	int64
 	blksize	int32
-	blocks	int32
-	atime	int32
-	ansec	int32
-	mtime	int32
-	mnsec	int32
-	ctime	int32
-	cnsec	int32
-	pad1	const[0, int32]
-	pad2	const[0, int32]
+	flags	int32
+	gen	int32
+	__spare	const[0, int32]
+	btime	int64
+	bnsec	int64
+}
+
+stat {
+	dev	int64
+	ino	int64
+	nlink	int64
+	mode	int16
+	__pad0	const[0, int16]
+	uid	uid
+	gid	gid
+	__pad1	const[0, int32]
+	rdev	int64
+	atime	int64
+	ansec	int64
+	mtime	int64
+	mnsec	int64
+	ctime	int64
+	cnsec	int64
+	btime	int64
+	bnsec	int64
+	size	int64
+	blocks	int64
+	blksize	int32
+	flags	int32
+	gen	int64
+	__spare	array[int64, 10]
 }
 
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC

@@ -19,12 +19,7 @@ include <sys/wait.h>
 
 syz_execute_func(text ptr[in, text[target]])
 
-pipe(pipefd ptr[out, pipefd])
-
 sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count int64)
-
-stat(file ptr[in, filename], statbuf ptr[out, stat])
-lstat(file ptr[in, filename], statbuf ptr[out, stat])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset], size len[sigmask])
@@ -40,9 +35,9 @@ fcntl$lock(fd fd, cmd flags[fcntl_lock], lock ptr[in, flock])
 fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
 fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
 
-mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
-mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
-mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int32)
+mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int64)
+freebsd11_mknod(file ptr[in, filename], mod flags[mknod_mode], dev int32)
+freebsd11_mknodat(dirfd fd_dir, file ptr[in, filename], mod flags[mknod_mode], dev int32)
 chmod(file ptr[in, filename], mode flags[open_mode])
 fchmod(fd fd, mode flags[open_mode])
 fchmodat(dirfd fd_dir, file ptr[in, filename], mode flags[open_mode])
@@ -95,9 +90,9 @@ flock(fd fd, op flags[flock_op])
 fsync(fd fd)
 fdatasync(fd fd)
 sync()
-getdents(fd fd_dir, ent buffer[out], count len[ent])
+freebsd11_getdents(fd fd_dir, ent buffer[out], count len[ent])
 chroot(dir ptr[in, filename])
-getcwd(buf buffer[out], size len[buf])
+__getcwd(buf buffer[out], size len[buf])
 chdir(dir ptr[in, filename])
 fchdir(fd fd)
 
