@@ -17,7 +17,9 @@ import (
 )
 
 const (
-	linux = "linux"
+	linux   = "linux"
+	freebsd = "freebsd"
+	openbsd = "openbsd"
 
 	sandboxNone                = "none"
 	sandboxSetuid              = "setuid"
