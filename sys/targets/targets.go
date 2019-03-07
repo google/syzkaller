@@ -383,6 +383,13 @@ func init() {
 	for _, target := range List["test"] {
 		target.CCompiler = List[goos][runtime.GOARCH].CCompiler
 		target.CPP = List[goos][runtime.GOARCH].CPP
+		target.BuildOS = goos
+		if runtime.GOOS == "freebsd" && runtime.GOARCH == "amd64" && target.PtrSize == 4 {
+			// -m32 alone does not work on freebsd with gcc.
+			// TODO(dvyukov): consider switching to clang on freebsd instead.
+			target.CFlags = append(target.CFlags, "-B/usr/lib32")
+			target.CrossCFlags = append(target.CrossCFlags, "-B/usr/lib32")
+		}
 	}
 }
 
@@ -409,9 +416,6 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	if target.BuildOS == "" {
 		target.BuildOS = OS
-	}
-	if OS == "test" {
-		target.BuildOS = "linux"
 	}
 	if runtime.GOOS != target.BuildOS {
 		// Spoil native binaries if they are not usable, so that nobody tries to use them later.

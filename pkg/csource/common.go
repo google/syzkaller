@@ -8,6 +8,7 @@ package csource
 import (
 	"bytes"
 	"fmt"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -70,6 +71,7 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 	enabled := map[string]bool{
 		"GOOS_" + p.Target.OS:               true,
 		"GOARCH_" + p.Target.Arch:           true,
+		"HOSTGOOS_" + runtime.GOOS:          true,
 		"SYZ_USE_BITMASKS":                  bitmasks,
 		"SYZ_USE_CHECKSUMS":                 csums,
 		"SYZ_SANDBOX_NONE":                  opts.Sandbox == sandboxNone,
