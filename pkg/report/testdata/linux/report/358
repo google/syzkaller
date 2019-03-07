@@ -1,0 +1,63 @@
+TITLE: general protection fault in run_timer_softirq
+
+[  155.297335] kasan: CONFIG_KASAN_INLINE enabled
+[  155.302006] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[  155.309477] general protection fault: 0000 [#1] SMP KASAN PTI
+[  155.315360] Dumping ftrace buffer:
+[  155.318902]    (ftrace buffer empty)
+[  155.322610] Modules linked in:
+[  155.325807] CPU: 0 PID: 1995 Comm: syz-executor0 Not tainted 4.14.58+ #4
+[  155.332640] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  155.341996] task: ffff8801d93eb1c0 task.stack: ffff8801a9130000
+[  155.348063] RIP: 0010:__x86_indirect_thunk_rax+0x10/0x20
+[  155.353507] RSP: 0018:ffff8801dba07588 EFLAGS: 00010006
+[  155.357075] kobject: 'loop2' (ffff8801d51b4ba8): kobject_uevent_env
+[  155.357118] kobject: 'loop2' (ffff8801d51b4ba8): fill_kobj_path: path = '/devices/virtual/block/loop2'
+[  155.374705] RAX: dead4ead00000000 RBX: ffff8801dba07798 RCX: 0000000000000000
+[  155.382046] RDX: 0000000000000100 RSI: ffffffff83efce00 RDI: 00000000ffffffff
+[  155.389334] RBP: ffff8801dba077c0 R08: ffff8801d93ebae0 R09: ffffffff84cf2d70
+[  155.396677] R10: 5287b05a848dd2a0 R11: ffff8801d93eb1c0 R12: 1ffff1003b740eb7
+[  155.403948] R13: 0000000000000102 R14: ffffe8ffffc00698 R15: ffff8801dba07758
+[  155.411231] FS:  0000000000000000(0000) GS:ffff8801dba00000(0063) knlGS:0000000009af7900
+[  155.419482] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033
+[  155.421051] kobject: 'loop6' (ffff8801d530d508): kobject_uevent_env
+[  155.421092] kobject: 'loop6' (ffff8801d530d508): fill_kobj_path: path = '/devices/virtual/block/loop6'
+[  155.441186] CR2: 00007f690778b518 CR3: 00000001a9138004 CR4: 00000000001606b0
+[  155.448458] DR0: 0000000020000000 DR1: 0000000020000000 DR2: 0000000000000000
+[  155.455823] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[  155.463091] Call Trace:
+[  155.465665]  <IRQ>
+[  155.505535]  run_timer_softirq+0x53d/0xe70
+[  155.580512]  __do_softirq+0x305/0xba7
+[  155.631559]  irq_exit+0x1ac/0x1d0
+[  155.634999]  smp_apic_timer_interrupt+0x29a/0x870
+[  155.673251]  apic_timer_interrupt+0x8e/0xa0
+[  155.677556]  </IRQ>
+[  155.679789] RIP: 0010:copy_page_range+0xb82/0x20f0
+[  155.684702] RSP: 0018:ffff8801a9136be8 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff10
+[  155.692390] RAX: 1ffff100352d59c3 RBX: 0000000000000000 RCX: 80000001bc820007
+[  155.699639] RDX: 0000000000000000 RSI: 00000000f71c2000 RDI: ffff8801d75ed740
+[  155.706888] RBP: ffff8801a91370d8 R08: ffffea0006f20800 R09: 0000000000005458
+[  155.714143] R10: 030475d58c7bc5dd R11: ffff8801d93eb1c0 R12: ffff8801a9137070
+[  155.721480] R13: dffffc0000000000 R14: ffff8801a91370b0 R15: ffffea0006f20800
+[  155.820312]  copy_mm+0xedc/0x1700
+[  155.849419]  copy_process.part.42+0x1d42/0x4ed0
+[  155.997079]  _do_fork+0x200/0x1120
+[  156.046204]  SyS_clone+0x3c/0x50
+[  156.053860]  do_fast_syscall_32+0x3c1/0xcb0
+[  156.082164]  entry_SYSENTER_compat+0x84/0x96
+[  156.086559] RIP: 0023:0xf7f29c99
+[  156.089907] RSP: 002b:000000000845fe60 EFLAGS: 00000282 ORIG_RAX: 0000000000000078
+[  156.097601] RAX: ffffffffffffffda RBX: 0000000001200011 RCX: 0000000000000000
+[  156.104859] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000009af7968
+[  156.112111] RBP: 000000000845feb8 R08: 0000000000000000 R09: 0000000000000000
+[  156.119365] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  156.126614] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  156.133870] Code: 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 e8 07 00 00 00 f3 90 0f ae e8 eb f9 48 89 04 24 <c3> 0f 1f 44 00 00 66 2e 0f 1f 84 00 00 00 00 00 e8 07 00 00 00 
+[  156.152999] RIP: __x86_indirect_thunk_rax+0x10/0x20 RSP: ffff8801dba07588
+[  156.159908] ---[ end trace b789612e6cf4cd28 ]---
+[  156.164641] Kernel panic - not syncing: Fatal exception in interrupt
+[  156.171617] Dumping ftrace buffer:
+[  156.175141]    (ftrace buffer empty)
+[  156.179547] Kernel Offset: disabled
+[  156.183165] Rebooting in 86400 seconds..

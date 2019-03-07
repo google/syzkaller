@@ -1,0 +1,75 @@
+TITLE: general protection fault in ipv6_rcv
+
+[  639.214515] kasan: CONFIG_KASAN_INLINE enabled
+[  639.219296] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[  639.226717] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[  639.232950] CPU: 0 PID: 3769 Comm: syz-executor.0 Not tainted 5.0.0+ #109
+[  639.239852] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  639.249220] RIP: 0010:__x86_indirect_thunk_rax+0x10/0x20
+[  639.254681] Code: c4 ff 48 8d 0c ca e9 bd 42 c4 ff bb f2 ff ff ff 45 30 ff e9 63 47 c4 ff 90 90 e8 07 00 00 00 f3 90 0f ae e8 eb f9 48 89 04 24 <c3> 0f 1f 44 00 00 66 2e 0f 1f 84 00 00 00 00 00 e8 07 00 00 00 f3
+[  639.273577] RSP: 0018:ffff8880ae807b70 EFLAGS: 00010246
+[  639.278946] RAX: 31699217e0650000 RBX: ffff88808a0b00b6 RCX: ffffffff8607edbe
+[  639.286195] RDX: 1ffff1101141601b RSI: ffffffff8607edc8 RDI: ffff8880879cc580
+[  639.293450] RBP: ffff8880ae807ba8 R08: ffff888063942440 R09: 0000000000000003
+[  639.300742] R10: ffffed1015d05bcf R11: ffff8880ae82de7b R12: ffff8880879cc580
+[  639.307991] R13: 0000000000000000 R14: ffff8880879cc5d8 R15: 0000000000000000
+[  639.315269] FS:  00007f8b34dd9700(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[  639.323483] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  639.329345] CR2: 0000001b33a25000 CR3: 0000000008871000 CR4: 00000000001406f0
+[  639.336597] Call Trace:
+[  639.339165]  <IRQ>
+[  639.345438]  ipv6_rcv+0x10e/0x420
+[  639.383411]  __netif_receive_skb_one_core+0x115/0x1a0
+[  639.408343]  __netif_receive_skb+0x2c/0x1c0
+[  639.412700]  process_backlog+0x206/0x750
+[  639.425443]  net_rx_action+0x4fa/0x1070
+[  639.443389]  __do_softirq+0x266/0x95a
+[  639.458235]  irq_exit+0x180/0x1d0
+[  639.461738]  smp_apic_timer_interrupt+0x14a/0x570
+[  639.466581]  apic_timer_interrupt+0xf/0x20
+[  639.470824]  </IRQ>
+[  639.473046] RIP: 0010:__sanitizer_cov_trace_pc+0x1/0x50
+[  639.478433] Code: 08 41 bc f4 ff ff ff e8 21 9d ea ff 48 c7 05 62 76 e6 08 00 00 00 00 e9 c8 e9 ff ff 90 90 90 90 90 90 90 90 90 90 90 90 90 55 <48> 89 e5 48 8b 75 08 65 48 8b 04 25 40 ee 01 00 65 8b 15 48 37 92
+[  639.497337] RSP: 0018:ffff88806b6476f8 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  639.505046] RAX: 0000000000000000 RBX: 00007f8b36d31000 RCX: ffffffff8199f565
+[  639.512293] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000007
+[  639.519563] RBP: ffff88806b647868 R08: ffff888063942440 R09: fffff9400042e0d7
+[  639.526828] R10: fffff9400042e0d6 R11: ffffea00021706b3 R12: ffffea00021706c0
+[  639.534102] R13: ffffea00021706c0 R14: ffffea00021706c8 R15: dffffc0000000000
+[  639.574136]  unmap_single_vma+0x19d/0x300
+[  639.578275]  unmap_vmas+0x115/0x250
+[  639.595615]  exit_mmap+0x2c2/0x530
+[  639.626913]  mmput+0x15f/0x4c0
+[  639.630118]  do_exit+0x838/0x2fd0
+[  639.659126]  do_group_exit+0x135/0x370
+[  639.663033]  get_signal+0x399/0x1d50
+[  639.666771]  do_signal+0x87/0x1940
+[  639.678308] kobject: 'loop2' (00000000d31c8e68): kobject_uevent_env
+[  639.687367] kobject: 'loop2' (00000000d31c8e68): fill_kobj_path: path = '/devices/virtual/block/loop2'
+[  639.720950]  exit_to_usermode_loop+0x244/0x2c0
+[  639.725532]  do_syscall_64+0x52d/0x610
+[  639.729421]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  639.734597] RIP: 0033:0x457f29
+[  639.737791] Code: Bad RIP value.
+[  639.741144] RSP: 002b:00007f8b34dd8cf8 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+[  639.748844] RAX: 0000000000000001 RBX: 000000000073bf08 RCX: 0000000000457f29
+[  639.756100] RDX: 00000000004cc740 RSI: 0000000000000081 RDI: 000000000073bf0c
+[  639.763357] RBP: 000000000073bf00 R08: 0000000000000009 R09: 0000000000000000
+[  639.770611] R10: ffffffffffffffff R11: 0000000000000246 R12: 000000000073bf0c
+[  639.777863] R13: 00007ffe2096bcff R14: 00007f8b34dd99c0 R15: 000000000073bf0c
+[  639.785117] Modules linked in:
+[  639.788352] ---[ end trace 441ef57e90cace2d ]---
+[  639.793119] RIP: 0010:__x86_indirect_thunk_rax+0x10/0x20
+[  639.798585] Code: c4 ff 48 8d 0c ca e9 bd 42 c4 ff bb f2 ff ff ff 45 30 ff e9 63 47 c4 ff 90 90 e8 07 00 00 00 f3 90 0f ae e8 eb f9 48 89 04 24 <c3> 0f 1f 44 00 00 66 2e 0f 1f 84 00 00 00 00 00 e8 07 00 00 00 f3
+[  639.817531] RSP: 0018:ffff8880ae807b70 EFLAGS: 00010246
+[  639.822880] RAX: 31699217e0650000 RBX: ffff88808a0b00b6 RCX: ffffffff8607edbe
+[  639.830172] RDX: 1ffff1101141601b RSI: ffffffff8607edc8 RDI: ffff8880879cc580
+[  639.837450] RBP: ffff8880ae807ba8 R08: ffff888063942440 R09: 0000000000000003
+[  639.844744] R10: ffffed1015d05bcf R11: ffff8880ae82de7b R12: ffff8880879cc580
+[  639.852052] R13: 0000000000000000 R14: ffff8880879cc5d8 R15: 0000000000000000
+[  639.859353] FS:  00007f8b34dd9700(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[  639.867604] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  639.873476] CR2: 0000000000457eff CR3: 0000000008871000 CR4: 00000000001406f0
+[  639.880757] Kernel panic - not syncing: Fatal exception in interrupt
+[  639.887953] Kernel Offset: disabled
+[  639.891577] Rebooting in 86400 seconds..

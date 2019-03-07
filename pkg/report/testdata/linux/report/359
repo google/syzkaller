@@ -1,0 +1,53 @@
+TITLE: general protection fault in run_timer_softirq
+
+[  159.840224] kasan: CONFIG_KASAN_INLINE enabled
+[  159.844860] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[  159.852222] general protection fault: 0000 [#1] SMP KASAN PTI
+[  159.858101] Dumping ftrace buffer:
+[  159.861632]    (ftrace buffer empty)
+[  159.865335] Modules linked in:
+[  159.868509] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 4.14.58+ #5
+[  159.874977] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  159.884338] task: ffff8801da246340 task.stack: ffff8801da250000
+[  159.890404] RIP: 0010:__x86_indirect_thunk_rax+0x10/0x20
+[  159.896095] RSP: 0018:ffff8801db907588 EFLAGS: 00010006
+[  159.902235] RAX: dead4ead00000000 RBX: ffff8801db907798 RCX: 0000000000000000
+[  159.909509] RDX: 0000000000000100 RSI: ffffffff83efce00 RDI: 00000000ffffffff
+[  159.916759] RBP: ffff8801db9077c0 R08: 0000000000000008 R09: 00000000000006ac
+[  159.924277] R10: 8de94dadc5057952 R11: ffff8801da246340 R12: 1ffff1003b720eb7
+[  159.931525] R13: 0000000000000101 R14: ffffe8ffffc00bd8 R15: ffff8801db907758
+[  159.938802] FS:  0000000000000000(0000) GS:ffff8801db900000(0000) knlGS:0000000000000000
+[  159.947029] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  159.952900] CR2: 00000000f5f4510c CR3: 0000000003e22001 CR4: 00000000001606a0
+[  159.960971] DR0: 0000000020000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  159.968222] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[  159.975472] Call Trace:
+[  159.978039]  <IRQ>
+[  160.022603]  run_timer_softirq+0x53d/0xe70
+[  160.084997]  __do_softirq+0x305/0xba7
+[  160.141596]  irq_exit+0x1ac/0x1d0
+[  160.145032]  smp_apic_timer_interrupt+0x29a/0x870
+[  160.183704]  apic_timer_interrupt+0x8e/0xa0
+[  160.188001]  </IRQ>
+[  160.190222] RIP: 0010:native_safe_halt+0x6/0x10
+[  160.194863] RSP: 0018:ffff8801da257c38 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff10
+[  160.202544] RAX: 0000000000000007 RBX: 1ffff1003b44af8a RCX: 0000000000000000
+[  160.210224] RDX: 0000000000000000 RSI: 0000000000000001 RDI: ffff8801da246b94
+[  160.218164] RBP: ffff8801da257c38 R08: 0000000000000000 R09: 0000000000000000
+[  160.225409] R10: 0000000000000000 R11: 0000000000000000 R12: 1ffff1003b44af96
+[  160.232768] R13: ffff8801da257d70 R14: ffffffff8430c908 R15: 0000000000000000
+[  160.244173]  default_idle+0x118/0x610
+[  160.260483]  arch_cpu_idle+0x15/0x20
+[  160.264177]  default_idle_call+0x4a/0x60
+[  160.268215]  do_idle+0x240/0x2d0
+[  160.271558]  cpu_startup_entry+0x109/0x120
+[  160.279476]  start_secondary+0x3dd/0x4f0
+[  160.288253]  secondary_startup_64+0xa5/0xb0
+[  160.292547] Code: 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 e8 07 00 00 00 f3 90 0f ae e8 eb f9 48 89 04 24 <c3> 0f 1f 44 00 00 66 2e 0f 1f 84 00 00 00 00 00 e8 07 00 00 00 
+[  160.312598] RIP: __x86_indirect_thunk_rax+0x10/0x20 RSP: ffff8801db907588
+[  160.319501] ---[ end trace c81ff5cb5a158d30 ]---
+[  160.324231] Kernel panic - not syncing: Fatal exception in interrupt
+[  160.330764] Dumping ftrace buffer:
+[  160.334286]    (ftrace buffer empty)
+[  160.338569] Kernel Offset: disabled
+[  160.342194] Rebooting in 86400 seconds..
