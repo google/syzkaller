@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -420,6 +421,11 @@ func checkResult(req *RunRequest) error {
 			} {
 				if isC && flag == ipc.CallBlocked {
 					// C code does not detect when a call was blocked.
+					continue
+				}
+				if runtime.GOOS == "freebsd" && flag == ipc.CallBlocked {
+					// Blocking detection is flaky on freebsd.
+					// TODO(dvyukov): try to increase the timeout in executor to make it non-flaky.
 					continue
 				}
 				if (inf.Flags^want.Flags)&flag != 0 {

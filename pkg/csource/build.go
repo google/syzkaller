@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
@@ -42,6 +43,7 @@ func build(target *prog.Target, src []byte, file string) (string, error) {
 		"-o", bin,
 		"-DGOOS_" + target.OS + "=1",
 		"-DGOARCH_" + target.Arch + "=1",
+		"-DHOSTGOOS_" + runtime.GOOS + "=1",
 	}
 	if file == "" {
 		flags = append(flags, "-x", "c", "-")

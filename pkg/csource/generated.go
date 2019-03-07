@@ -9,7 +9,7 @@ var commonHeader = `
 #define _GNU_SOURCE
 #endif
 
-#if GOOS_freebsd
+#if GOOS_freebsd || GOOS_test && HOSTGOOS_freebsd
 #include <sys/endian.h>
 #else
 #include <endian.h>

@@ -15,7 +15,7 @@
 #define _GNU_SOURCE
 #endif
 
-#if GOOS_freebsd
+#if GOOS_freebsd || GOOS_test && HOSTGOOS_freebsd
 #include <sys/endian.h> // for htobe*.
 #else
 #include <endian.h> // for htobe*.
