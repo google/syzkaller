@@ -474,7 +474,7 @@ func (ctx *linux) getMaintainersImpl(file string, blame bool) ([]string, error) 
 	if blame {
 		args = append(args, "--git-blame")
 	}
-	args = append(args, file)
+	args = append(args, "-f", file)
 	output, err := osutil.RunCmd(time.Minute, ctx.kernelSrc, filepath.FromSlash("scripts/get_maintainer.pl"), args...)
 	if err != nil {
 		return nil, err
@@ -741,6 +741,7 @@ var linuxStackParams = &stackParams{
 		"list_replace",
 		"list_move",
 		"list_splice",
+		"_indirect_thunk_", // retpolines
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
