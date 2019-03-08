@@ -76,6 +76,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		{"akaros", "amd64", []string{"qemu"}, akaros{}},
 		{"openbsd", "amd64", []string{"gce", "vmm"}, openbsd{}},
 		{"netbsd", "amd64", []string{"gce", "qemu"}, netbsd{}},
+		{"freebsd", "amd64", []string{"gce", "qemu"}, freebsd{}},
 	}
 	for _, s := range supported {
 		if targetOS == s.OS && targetArch == s.arch {
