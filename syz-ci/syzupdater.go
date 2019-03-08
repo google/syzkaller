@@ -290,7 +290,7 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 		log.Logf(0, "not uploading build error: no dashboard")
 		return
 	}
-	dash := dashapi.New(upd.dashboardAddr, upd.mgrcfg.DashboardClient, upd.mgrcfg.DashboardKey)
+	dash := dashapi.New(upd.mgrcfg.DashboardClient, upd.dashboardAddr, upd.mgrcfg.DashboardKey)
 	var title string
 	var output []byte
 	if verbose, ok := buildErr.(*osutil.VerboseError); ok {
