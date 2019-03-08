@@ -63,22 +63,30 @@ type builder interface {
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
-	switch {
-	case targetOS == "linux" && targetArch == "amd64" && vmType == "gvisor":
-		return gvisor{}, nil
-	case targetOS == "linux" && targetArch == "amd64" && (vmType == "qemu" || vmType == "gce"):
-		return linux{}, nil
-	case targetOS == "fuchsia" && (targetArch == "amd64" || targetArch == "arm64") && vmType == "qemu":
-		return fuchsia{}, nil
-	case targetOS == "akaros" && targetArch == "amd64" && vmType == "qemu":
-		return akaros{}, nil
-	case targetOS == "openbsd" && targetArch == "amd64" && (vmType == "gce" || vmType == "vmm"):
-		return openbsd{}, nil
-	case targetOS == "netbsd" && targetArch == "amd64" && (vmType == "qemu" || vmType == "gce"):
-		return netbsd{}, nil
-	default:
-		return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
+	var supported = []struct {
+		OS   string
+		arch string
+		vms  []string
+		b    builder
+	}{
+		{"linux", "amd64", []string{"gvisor"}, gvisor{}},
+		{"linux", "amd64", []string{"gce", "qemu"}, linux{}},
+		{"fuchsia", "amd64", []string{"gce"}, fuchsia{}},
+		{"fuchsia", "arm64", []string{"gce"}, fuchsia{}},
+		{"akaros", "amd64", []string{"qemu"}, akaros{}},
+		{"openbsd", "amd64", []string{"gce", "vmm"}, openbsd{}},
+		{"netbsd", "amd64", []string{"gce", "qemu"}, netbsd{}},
 	}
+	for _, s := range supported {
+		if targetOS == s.OS && targetArch == s.arch {
+			for _, vm := range s.vms {
+				if vmType == vm {
+					return s.b, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
 }
 
 func CompilerIdentity(compiler string) (string, error) {
