@@ -72,8 +72,8 @@ var netbsdOopses = []*oops{
 		[]oopsFormat{
 			{
 				title:  compile("ASan: Unauthorized Access"),
-				report: compile(`ASan: Unauthorized Access .*\[.*,(.*),(?:.*\n)+?.*? sys_(.*)\<`),
-				fmt:    "ASan: Unauthorized Access in %[2]v syscall",
+				report: compile(`ASan: Unauthorized Access (?:.*\n)+?.*in (.*)\<`),
+				fmt:    "ASan: Unauthorized Access in %[1]v",
 			},
 		},
 		[]*regexp.Regexp{},

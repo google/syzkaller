@@ -1,0 +1,16 @@
+TITLE: ASan: Unauthorized Access in vioscsi_scsipi_request
+
+[ 862.8030257] ASan: Unauthorized Access In 0xffffffff816aebfd: Addr 0xffffb700132eb8d0 [4 bytes, read, RedZone]
+[ 862.8231132] #0 0xffffffff816aebfd in vioscsi_scsipi_request <netbsd>
+[ 862.8231132] #1 0xffffffff80288c6b in scsipi_adapter_request <netbsd>
+[ 862.8371616] #2 0xffffffff80288e62 in scsipi_run_queue <netbsd>
+[ 862.8438316] #3 0xffffffff80289b15 in scsipi_execute_xs <netbsd>
+[ 862.8438316] #4 0xffffffff802a1816 in sd_diskstart <netbsd>
+[ 862.8569884] #5 0xffffffff810b4266 in dk_start <netbsd>
+[ 862.8632306] #6 0xffffffff810a97e0 in spec_strategy <netbsd>
+[ 862.8632306] #7 0xffffffff810956bf in VOP_STRATEGY <netbsd>
+[ 862.8759511] #8 0xffffffff810519bd in bwrite <netbsd>
+[ 862.8759511] #9 0xffffffff80e6d506 in ffs_update <netbsd>
+[ 862.8878322] #10 0xffffffff80ef272d in ufs_mkdir <netbsd>
+[ 862.8941193] #11 0xffffffff810943a5 in VOP_MKDIR <netbsd>
+[ 862.8941193] #12 0xffffffff8106e4f4 in do_sys_mkdirat.constprop.5 <netbsd>
