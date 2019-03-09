@@ -8,13 +8,19 @@ set -eux
 
 # Create a minimal Debian distribution in a directory.
 DIR=chroot
+PREINSTALL_PKGS=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default
+
+# If ADD_PACKAGE is not defined as an external environment variable, use our default packages
+if [ -z ${ADD_PACKAGE+x} ]; then
+    ADD_PACKAGE="make,sysbench,git,vim,tmux,usbutils"
+fi
 
 # Variables affected by options
 RELEASE=stretch
 FEATURE=minimal
-ADD_PACKAGE=""
 PERF=false
 
+# Display help function
 display_help() {
     echo "Usage: $0 [option...] " >&2
     echo
@@ -57,13 +63,20 @@ while true; do
     esac
 done
 
+# Double check KERNEL when PERF is enabled
+if [ $PERF = "true" ] && [ -z ${KERNEL+x} ]; then
+    echo "Please set KERNEL environment variable when PERF is enabled"
+    exit 1
+fi
+
+# If full feature is chosen, install more packages
 if [ $FEATURE = "full" ]; then
-    ADD_PACKAGE=",make,sysbench,git,vim,tmux,usbutils"
+    PREINSTALL_PKGS=$PREINSTALL_PKGS","$ADD_PACKAGE
 fi
 
 sudo rm -rf $DIR
 mkdir -p $DIR
-sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default"$ADD_PACKAGE" $RELEASE $DIR
+sudo debootstrap --include=$PREINSTALL_PKGS $RELEASE $DIR
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' $DIR/etc/passwd
@@ -90,7 +103,8 @@ ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
 sudo mkdir -p $DIR/root/.ssh/
 cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
 
-if [ "$PERF" = true ]; then
+# Add perf support
+if [ $PERF = "true" ]; then
     cp -r $KERNEL $DIR/tmp/
     sudo chroot $DIR /bin/bash -c "apt-get update; apt-get install -y flex bison python-dev libelf-dev libunwind8-dev libaudit-dev libslang2-dev libperl-dev binutils-dev liblzma-dev libnuma-dev"
     sudo chroot $DIR /bin/bash -c "cd /tmp/linux/tools/perf/; make"
