@@ -1,0 +1,19 @@
+TITLE: panic: mtx_lock() of destroyed mutex at sys/kern/sys_socket.c:LINE
+
+login: panic: mtx_lock() of destroyed mutex @ /mnt/go/src/github.com/google/syzkaller/bin/managers/freebsd/kernel/sys/kern/sys_socket.c:316
+cpuid = 0
+time = 1552095166
+KDB: stack backtrace:
+db_trace_self_wrapper() at db_trace_self_wrapper+0x47/frame 0xfffffe004b9db650
+vpanic() at vpanic+0x1e0/frame 0xfffffe004b9db6b0
+panic() at panic+0x43/frame 0xfffffe004b9db710
+__mtx_lock_flags() at __mtx_lock_flags+0x1e2/frame 0xfffffe004b9db770
+soo_stat() at soo_stat+0x13b/frame 0xfffffe004b9db7b0
+kern_fstat() at kern_fstat+0xe9/frame 0xfffffe004b9db800
+freebsd11_fstat() at freebsd11_fstat+0x2b/frame 0xfffffe004b9db980
+amd64_syscall() at amd64_syscall+0x436/frame 0xfffffe004b9dbab0
+fast_syscall_common() at fast_syscall_common+0x101/frame 0xfffffe004b9dbab0
+--- syscall (198, FreeBSD ELF64, nosys), rip = 0x412f5a, rsp = 0x7fffdffdcf38, rbp = 0x2 ---
+KDB: enter: panic
+[ thread pid 820 tid 100190 ]
+Stopped at      kdb_enter+0x6a: movq    $0,kdb_why
