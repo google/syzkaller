@@ -102,6 +102,11 @@ var freebsdOopses = []*oops{
 				title: compile("panic: ffs_write: type {{ADDR}} [0-9]+ \\([0-9]+,[0-9]+\\)"),
 				fmt:   "panic: ffs_write: type ADDR X (Y,Z)",
 			},
+			{
+				title: compile("panic: ([a-zA-Z]+[a-zA-Z0-9_]*\\(\\)) of destroyed (mutex|rmlock|rwlock|sx) @ " +
+					"/.*/(sys/.*:[0-9]+)"),
+				fmt: "panic: %[1]v of destroyed %[2]v at %[3]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
