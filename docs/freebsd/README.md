@@ -1,32 +1,32 @@
 # FreeBSD
 
-## How to run syzkaller on FreeBSD using qemu
+This page contains instructions to set up syzkaller to run on a FreeBSD or Linux host and fuzz an amd64 FreeBSD kernel running in a virtual machine.
 
-So far the process is only tested on amd64 based hosts.
-The host can be running FreeBSD or Linux.
+Currently, syzkaller can fuzz FreeBSD running under QEMU or GCE (Google Compute Engine).  Regardless of the mode of operation, some common steps must be followed.
+
+## Setting up a host
+
+`syz-manager` is the component of syzkaller that manages target VMs.  It runs on a host system and automatically creates, runs and destroys VMs which share a user-specified image file.
 
 ### Setting up a FreeBSD host
 
-Since some tools (`syz-prog2c`, for example) use `clang-format`, you should
-do a buildworld/installworld with having the entry
-```
-WITH_CLANG_EXTRAS="YES"
-```
-in `/etc/src/conf`.
+To build syzkaller out of the box, a recent version of FreeBSD 13.0-CURRENT must be used for the host.  Older versions of FreeBSD can be used but will require manual tweaking.
 
-The required dependencies can be installed by
+The required dependencies can be installed by running:
+```console
+$ sudo pkg install bash gcc git gmake go llvm
 ```
-sudo pkg install bash gcc git gmake go
+To checkout the syzkaller sources, run:
+```console
+$ go get -u -d github.com/google/syzkaller/...
 ```
-Checking out the sources can be done by
+and the binaries can be built by running:
+```console
+$ cd go/src/github.com/google/syzkaller/
+$ gmake
 ```
-go get -u -d github.com/google/syzkaller/...
-```
-and building the binaries is done by
-```
-cd go/src/github.com/google/syzkaller/
-gmake
-```
+
+Once this completes, a `syz-manager` executable should be available under `bin/`.
 
 ### Setting up a Linux host
 
@@ -40,46 +40,59 @@ c++ executor/executor_freebsd.cc -o syz-executor -O1 -lpthread -DGOOS=\"freebsd\
 ```
 Then, copy out the binary back to host into `bin/freebsd_amd64` dir.
 
-Building/running on a FreeBSD host should work as well, but currently our `Makefile` does not work there, so you will need to do its work manually.
+## Setting up the FreeBSD VM
 
-### Setting up the FreeBSD VM
+It is easiest to start with a [snapshot image](http://ftp.freebsd.org/pub/FreeBSD/snapshots/VM-IMAGES/13.0-CURRENT/amd64/Latest/) of FreeBSD.  Fetch a QCOW2 disk image for QEMU or a raw image for GCE.
 
-Then, you need a FreeBSD image with root ssh access with a key. General instructions can be found here [qemu instructions](https://wiki.qemu.org/Hosts/BSD). I used `FreeBSD-11.0-RELEASE-amd64.qcow2` image, and it required a freashly built `qemu-system-x86_64` (networking did not work in the system-provided one). After booting add the following to `/boot/loader.conf`:
+To enable KCOV on FreeBSD, a custom kernel must be compiled.  It is easiest to do this in the VM itself.  Use QEMU to start a VM using the downloaded image:
+
+```console
+$ qemu-system-x86_64 -hda $IMAGEFILE -nographic -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 -net nic,model=e1000
 ```
+When the boot loader menu is printed, escape to the loader prompt and enter the commands `set console="comconsole"` and `boot`.  Once you reach a login prompt, log in as root and add a couple of configuration parameters to `/boot/loader.conf`:
+
+```console
+# cat <<__EOF__ >>/boot/loader.conf
 autoboot_delay="-1"
 console="comconsole"
+__EOF__
 ```
-and the following to `/etc/rc.conf`:
+Fetch a copy of the FreeBSD kernel sources and place them in `/usr/src`.  For instance, to get a copy of the current development sources, run:
+
+```console
+# pkg install git
+# git clone --depth=1 --branch=master https://github.com/freebsd/freebsd /usr/src
 ```
-sshd_enable="YES"
-ifconfig_em0="inet 10.0.0.1 netmask 255.255.255.0"
+To create a custom kernel configuration file for syzkaller and build a new kernel, run:
+
+```console
+# cd /usr/src/sys/amd64/conf
+# cat <<__EOF__ > SYZKALLER
+include "./GENERIC"
+
+ident	SYZKALLER
+
+options 	COVERAGE
+options 	KCOV
+__EOF__
+# cd /usr/src
+# make -j $(sysctl -n hw.ncpu) KERNCONF=SYZKALLER buildkernel
+# make KERNCONF=SYZKALLER installkernel
+# shutdown -r now
 ```
-Here is `/etc/ssh/sshd_config` that I used:
-```
-Port 22
-AddressFamily any
-ListenAddress 0.0.0.0
-ListenAddress ::
-Protocol 2
-HostKey /etc/ssh/ssh_host_rsa_key
-SyslogFacility AUTH
-LogLevel INFO
-AuthenticationMethods publickey password
-PermitRootLogin yes
-PubkeyAuthentication yes
-AuthorizedKeysFile .ssh/authorized_keys .ssh/authorized_keys2
-PasswordAuthentication yes
-PermitEmptyPasswords yes
-Subsystem sftp /usr/libexec/sftp-server
+When the VM is restarted, verify that `uname -i` prints `SYZKALLER` to confirm that your newly built kernel is running.
+
+Then, to permit remote access to the VM, you must configure DHCP and enable `sshd`:
+
+```console
+# sysrc sshd_enable=YES
+# sysrc ifconfig_DEFAULT=DHCP
 ```
 
-Check that you can run the VM with:
-```
-qemu-system-x86_64 -m 2048 -hda FreeBSD-11.0-RELEASE-amd64.qcow2 -enable-kvm -netdev user,id=mynet0,host=10.0.2.10,hostfwd=tcp::10022-:22 -device e1000,netdev=mynet0 -nographic
-```
-and ssh into it with a key.
+If you plan to run the syscall executor as root, ensure that root SSH logins are permitted by adding `PermitRootLogin without-password` to `/etc/ssh/sshd_config`.  Otherwise, create a new user with `adduser`.  Install an ssh key for the user and verify that you can SSH into the VM from the host.
 
-If all of the above worked, create `freebsd.cfg` config file with the following contents (alter paths as necessary):
+If all of the above worked, create a `freebsd.cfg` configuration file with the following contents (alter paths as necessary):
+
 ```
 {
 	"name": "freebsd",
@@ -87,23 +100,36 @@ If all of the above worked, create `freebsd.cfg` config file with the following 
 	"http": ":10000",
 	"workdir": "/workdir",
 	"syzkaller": "/gopath/src/github.com/google/syzkaller",
-	"image": "/FreeBSD-11.1-RELEASE-amd64.qcow2",
+	"image": "/FreeBSD-13.0-CURRENT-amd64.qcow2",
 	"sshkey": "/freebsd_id_rsa",
 	"sandbox": "none",
 	"procs": 8,
+}
+```
+If running the fuzzer under QEMU, add:
+
+```
 	"type": "qemu",
 	"vm": {
-		"qemu": "/qemu/build/x86_64-softmmu/qemu-system-x86_64",
 		"count": 10,
 		"cpu": 4,
 		"mem": 2048
 	}
-}
+```
+For GCE, add the following instead (alter the storage bucket path as necessary):
+
+```
+	"type": "gce",
+	"vm": {
+		"count": 10,
+		"instance_type": "n1-standard-4",
+		"gcs_path": "syzkaller"
+	}
 ```
 
 Then, start `syz-manager` with:
-```
-bin/syz-manager -config freebsd.cfg
+```console
+$ bin/syz-manager -config freebsd.cfg
 ```
 It should start printing output along the lines of:
 ```
@@ -115,17 +141,15 @@ executed 7921, cover 1239, crashes 0, repro 0
 executed 32807, cover 1244, crashes 0, repro 0
 executed 35803, cover 1248, crashes 0, repro 0
 ```
-If something does not work, add `-debug` flag to `syz-manager`.
+If something does not work, try adding the `-debug` flag to `syz-manager`.
 
 ## Missing things
 
-- Coverage. `executor/executor_freebsd.cc` uses a very primitive fallback for coverage. We need KCOV for FreeBSD. It will also help to assess what's covered and what's missing.
 - System call descriptions. `sys/freebsd/*.txt` is a dirty copy from `sys/linux/*.txt` with everything that does not compile dropped. We need to go through syscalls and verify/fix/extend them, including devices/ioctls/etc.
-- Currently only `amd64` arch is supported. Supporting `386` would be useful, because it should cover compat paths. Also, we could do testing of the linux-compatibility subsystem.
+- Currently only the `amd64` arch is supported.  It would be useful to support a 32-bit executor in order to cover 32-bit compatibility syscalls.
+- We should support fuzzing the Linux compatibility subsystem.
 - `pkg/csource` needs to be taught how to generate/build C reproducers.
 - `pkg/host` needs to be taught how to detect supported syscalls/devices.
 - `pkg/report`/`pkg/symbolizer` need to be taught how to extract/symbolize kernel crash reports.
-- We need to learn how to build/use debug version of kernel.
 - KASAN for FreeBSD would be useful.
 - On Linux we have emission of exernal networking/USB traffic into kernel using tun/gadgetfs. Implementing these for FreeBSD could uncover a number of high-profile bugs.
-- Last but not least, we need to support FreeBSD in `syz-ci` command (including building kernel/image continuously from git).
