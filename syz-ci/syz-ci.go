@@ -180,7 +180,7 @@ func main() {
 		}()
 	}
 
-	jp := newJobProcessor(cfg, managers, stop)
+	jp := newJobProcessor(cfg, managers, stop, shutdownPending)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

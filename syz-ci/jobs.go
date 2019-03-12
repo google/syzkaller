@@ -31,18 +31,20 @@ type JobProcessor struct {
 	managers        []*Manager
 	knownCommits    map[string]bool
 	stop            chan struct{}
+	shutdownPending chan struct{}
 	dash            *dashapi.Dashboard
 	syzkallerRepo   string
 	syzkallerBranch string
 }
 
-func newJobProcessor(cfg *Config, managers []*Manager, stop chan struct{}) *JobProcessor {
+func newJobProcessor(cfg *Config, managers []*Manager, stop, shutdownPending chan struct{}) *JobProcessor {
 	jp := &JobProcessor{
 		cfg:             cfg,
 		name:            fmt.Sprintf("%v-job", cfg.Name),
 		managers:        managers,
 		knownCommits:    make(map[string]bool),
 		stop:            stop,
+		shutdownPending: shutdownPending,
 		syzkallerRepo:   cfg.SyzkallerRepo,
 		syzkallerBranch: cfg.SyzkallerBranch,
 	}
@@ -231,6 +233,15 @@ func (jp *JobProcessor) processJob(job *Job) {
 	resp := jp.process(job)
 	log.Logf(0, "done job %v: commit %v, crash %q, error: %s",
 		resp.ID, resp.Build.KernelCommit, resp.CrashTitle, resp.Error)
+	select {
+	case <-jp.shutdownPending:
+		if len(resp.Error) != 0 {
+			// Ctrl+C can kill a child process which will cause an error.
+			log.Logf(0, "ignoring error: shutdown pending")
+			return
+		}
+	default:
+	}
 	if err := jp.dash.JobDone(resp); err != nil {
 		jp.Errorf("failed to mark job as done: %v", err)
 		return
