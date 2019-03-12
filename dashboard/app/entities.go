@@ -388,6 +388,19 @@ func (bug *Bug) getCommitInfo(i int) Commit {
 	return Commit{}
 }
 
+func markCrashReported(c context.Context, crashID int64, bugKey *datastore.Key, now time.Time) error {
+	crash := new(Crash)
+	crashKey := datastore.NewKey(c, "Crash", "", crashID, bugKey)
+	if err := datastore.Get(c, crashKey, crash); err != nil {
+		return fmt.Errorf("failed to get reported crash %v: %v", crashID, err)
+	}
+	crash.Reported = now
+	if _, err := datastore.Put(c, crashKey, crash); err != nil {
+		return fmt.Errorf("failed to put reported crash %v: %v", crashID, err)
+	}
+	return nil
+}
+
 func kernelRepoInfo(build *Build) KernelRepo {
 	return kernelRepoInfoRaw(build.Namespace, build.KernelRepo, build.KernelBranch)
 }
