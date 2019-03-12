@@ -327,7 +327,7 @@ func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bo
 		return false, nil
 	}
 	for len(bug.CommitInfo) < len(bug.Commits) {
-		bug.CommitInfo = append(bug.CommitInfo, CommitInfo{})
+		bug.CommitInfo = append(bug.CommitInfo, Commit{})
 	}
 	hash0 := bug.CommitInfo[ci].Hash
 	date0 := bug.CommitInfo[ci].Date
