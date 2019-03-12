@@ -230,76 +230,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		return fmt.Errorf("failed to unmarshal email config: %v", err)
 	}
 	to := email.MergeEmailLists([]string{cfg.Email}, rep.CC)
-	// Build error output and failing VM boot log can be way too long to inline.
-	if len(rep.Error) > maxInlineError {
-		rep.Error = rep.Error[len(rep.Error)-maxInlineError:]
-	} else {
-		rep.ErrorLink = ""
-	}
 	from, err := email.AddAddrContext(fromAddr(c), rep.ID)
 	if err != nil {
 		return err
 	}
-	creditEmail, err := email.AddAddrContext(ownEmail(c), rep.ID)
-	if err != nil {
-		return err
-	}
-	userspaceArch := ""
-	if rep.Arch == "386" {
-		userspaceArch = "i386"
-	}
-	link := fmt.Sprintf("%v/bug?extid=%v", appURL(c), rep.ID)
-	// Data passed to the template.
-	type BugReportData struct {
-		First             bool
-		Link              string
-		CreditEmail       string
-		Moderation        bool
-		Maintainers       []string
-		CompilerID        string
-		KernelRepo        string
-		KernelCommit      string
-		KernelCommitTitle string
-		KernelCommitDate  time.Time
-		UserSpaceArch     string
-		CrashTitle        string
-		Report            []byte
-		Error             []byte
-		ErrorLink         string
-		LogLink           string
-		KernelConfigLink  string
-		ReproSyzLink      string
-		ReproCLink        string
-		NumCrashes        int64
-		HappenedOn        []string
-		PatchLink         string
-	}
-	data := &BugReportData{
-		First:             rep.First,
-		Link:              link,
-		CreditEmail:       creditEmail,
-		Moderation:        rep.Moderation,
-		Maintainers:       rep.Maintainers,
-		CompilerID:        rep.CompilerID,
-		KernelRepo:        rep.KernelRepoAlias,
-		KernelCommit:      rep.KernelCommit,
-		KernelCommitTitle: rep.KernelCommitTitle,
-		KernelCommitDate:  rep.KernelCommitDate,
-		UserSpaceArch:     userspaceArch,
-		CrashTitle:        rep.CrashTitle,
-		Report:            rep.Report,
-		Error:             rep.Error,
-		ErrorLink:         rep.ErrorLink,
-		LogLink:           rep.LogLink,
-		KernelConfigLink:  rep.KernelConfigLink,
-		ReproSyzLink:      rep.ReproSyzLink,
-		ReproCLink:        rep.ReproCLink,
-		NumCrashes:        rep.NumCrashes,
-		HappenedOn:        rep.HappenedOn,
-		PatchLink:         rep.PatchLink,
-	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
-	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, nil, templ, data)
+	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, nil, templ, rep)
 }
 
 // handleIncomingMail is the entry point for incoming emails.

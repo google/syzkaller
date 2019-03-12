@@ -6,6 +6,7 @@
 package dash
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -39,12 +40,18 @@ func TestReportBug(t *testing.T) {
 	c.expectNE(rep.ID, "")
 	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
+		Type:              dashapi.ReportNew,
 		Namespace:         "test1",
 		Config:            []byte(`{"Index":1}`),
 		ID:                rep.ID,
+		OS:                "linux",
+		Arch:              "amd64",
+		VMArch:            "amd64",
 		First:             true,
 		Moderation:        true,
 		Title:             "title1",
+		Link:              fmt.Sprintf("https://testapp.appspot.com/bug?extid=%v", rep.ID),
+		CreditEmail:       fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep.ID),
 		Maintainers:       []string{"bar@foo.com", "foo@bar.com"},
 		CompilerID:        "compiler1",
 		KernelRepo:        "repo1",
@@ -71,6 +78,7 @@ func TestReportBug(t *testing.T) {
 	// Now add syz repro and check that we get another bug report.
 	crash1.ReproOpts = []byte("some opts")
 	crash1.ReproSyz = []byte("getpid()")
+	want.Type = dashapi.ReportRepro
 	want.First = false
 	want.ReproSyz = []byte(syzReproPrefix + "#some opts\ngetpid()")
 	c.client.ReportCrash(crash1)
@@ -111,7 +119,10 @@ func TestReportBug(t *testing.T) {
 	rep2 := c.client.pollBug()
 	c.expectNE(rep2.ID, "")
 	c.expectNE(rep2.ID, rep.ID)
+	want.Type = dashapi.ReportNew
 	want.ID = rep2.ID
+	want.Link = fmt.Sprintf("https://testapp.appspot.com/bug?extid=%v", rep2.ID)
+	want.CreditEmail = fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep2.ID)
 	want.First = true
 	want.Moderation = false
 	want.Config = []byte(`{"Index":2}`)
@@ -178,12 +189,18 @@ func TestInvalidBug(t *testing.T) {
 	c.expectNE(rep.ID, "")
 	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
+		Type:              dashapi.ReportNew,
 		Namespace:         "test1",
 		Config:            []byte(`{"Index":1}`),
 		ID:                rep.ID,
+		OS:                "linux",
+		Arch:              "amd64",
+		VMArch:            "amd64",
 		First:             true,
 		Moderation:        true,
 		Title:             "title1 (2)",
+		Link:              fmt.Sprintf("https://testapp.appspot.com/bug?extid=%v", rep.ID),
+		CreditEmail:       fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep.ID),
 		CompilerID:        "compiler1",
 		KernelRepo:        "repo1",
 		KernelRepoAlias:   "repo1 branch1",

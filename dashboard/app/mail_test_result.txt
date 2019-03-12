@@ -8,7 +8,7 @@ syzbot has tested the proposed patch but the reproducer still triggered crash:
 syzbot tried to test the proposed patch but build/boot failed:
 
 {{printf "%s" .Error}}
-{{if .ErrorLink}}
+{{if .ErrorTruncated}}
 Error text is too large and was truncated, full error text is at:
 {{.ErrorLink}}
 {{end}}
@@ -20,7 +20,7 @@ Reported-and-tested-by: {{.CreditEmail}}
 Tested on:
 
 commit:         {{formatShortHash .KernelCommit}} {{formatCommitTableTitle .KernelCommitTitle}}
-git tree:       {{.KernelRepo}}
+git tree:       {{.KernelRepoAlias}}
 {{if .LogLink}}console output: {{.LogLink}}
 {{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
 {{end}}compiler:       {{.CompilerID}}
