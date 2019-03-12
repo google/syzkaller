@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
@@ -96,8 +97,14 @@ func (c *Ctx) expectForbidden(err error) {
 }
 
 func (c *Ctx) expectEQ(got, want interface{}) {
-	if !reflect.DeepEqual(got, want) {
-		c.t.Fatalf("\n%v: got %#v, want %#v", caller(0), got, want)
+	if diff := cmp.Diff(got, want); diff != "" {
+		c.t.Fatalf("\n%v: %v", caller(0), diff)
+	}
+}
+
+func (c *Ctx) expectNE(got, want interface{}) {
+	if reflect.DeepEqual(got, want) {
+		c.t.Fatalf("\n%v: equal: %#v", caller(0), got)
 	}
 }
 
@@ -124,6 +131,7 @@ func (c *Ctx) Close() {
 		for _, key := range keys {
 			c.expectOK(c.GET(fmt.Sprintf("/bug?id=%v", key.StringID())))
 		}
+		// No pending emails (tests need to consume them).
 		c.expectOK(c.GET("/email_poll"))
 		for len(c.emailSink) != 0 {
 			c.t.Errorf("ERROR: leftover email: %v", (<-c.emailSink).Body)

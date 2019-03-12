@@ -36,9 +36,7 @@ func TestEmailNotifUpstreamEmbargo(t *testing.T) {
 	upstreamReport := c.pollEmailBug()
 	c.expectEQ(notifUpstream.Sender, report.Sender)
 	c.expectEQ(notifUpstream.Body, "Sending this report upstream.")
-	if upstreamReport.Sender == report.Sender {
-		t.Fatalf("upstream report from the same sender")
-	}
+	c.expectNE(upstreamReport.Sender, report.Sender)
 	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
 }
 
@@ -67,9 +65,7 @@ func TestEmailNotifUpstreamSkip(t *testing.T) {
 	upstreamReport := c.pollEmailBug()
 	c.expectEQ(notifUpstream.Sender, report.Sender)
 	c.expectEQ(notifUpstream.Body, "Sending this report upstream.")
-	if upstreamReport.Sender == report.Sender {
-		t.Fatalf("upstream report from the same sender")
-	}
+	c.expectNE(upstreamReport.Sender, report.Sender)
 	c.expectEQ(upstreamReport.To, []string{"bugs@syzkaller.com", "default@maintainers.com"})
 }
 

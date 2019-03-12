@@ -28,15 +28,11 @@ func TestEmailReport(t *testing.T) {
 	// Report the crash over email and check all fields.
 	var sender0, extBugID0, body0 string
 	{
-		c.expectOK(c.GET("/email_poll"))
-		c.expectEQ(len(c.emailSink), 1)
-		msg := <-c.emailSink
+		msg := c.pollEmailBug()
 		sender0 = msg.Sender
 		body0 = msg.Body
 		sender, extBugID, err := email.RemoveAddrContext(msg.Sender)
-		if err != nil {
-			t.Fatalf("failed to remove sender context: %v", err)
-		}
+		c.expectOK(err)
 		extBugID0 = extBugID
 		_, dbCrash, dbBuild := c.loadBug(extBugID0)
 		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
@@ -129,14 +125,10 @@ For more options, visit https://groups.google.com/d/optout.
 	c.client2.ReportCrash(crash)
 
 	{
-		c.expectOK(c.GET("/email_poll"))
-		c.expectEQ(len(c.emailSink), 1)
-		msg := <-c.emailSink
+		msg := c.pollEmailBug()
 		c.expectEQ(msg.Sender, sender0)
 		sender, _, err := email.RemoveAddrContext(msg.Sender)
-		if err != nil {
-			t.Fatalf("failed to remove sender context: %v", err)
-		}
+		c.expectOK(err)
 		_, dbCrash, dbBuild := c.loadBug(extBugID0)
 		reproSyzLink := externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
 		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
@@ -181,17 +173,11 @@ report1
 
 	sender1, extBugID1 := "", ""
 	{
-		c.expectOK(c.GET("/email_poll"))
-		c.expectEQ(len(c.emailSink), 1)
-		msg := <-c.emailSink
+		msg := c.pollEmailBug()
 		sender1 = msg.Sender
-		if sender1 == sender0 {
-			t.Fatalf("same ID in different reporting")
-		}
+		c.expectNE(sender1, sender0)
 		sender, extBugID, err := email.RemoveAddrContext(msg.Sender)
-		if err != nil {
-			t.Fatalf("failed to remove sender context: %v", err)
-		}
+		c.expectOK(err)
 		extBugID1 = extBugID
 		_, dbCrash, dbBuild := c.loadBug(extBugID1)
 		reproSyzLink := externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
@@ -260,14 +246,10 @@ Content-Type: text/plain
 	c.client2.ReportCrash(crash)
 
 	{
-		c.expectOK(c.GET("/email_poll"))
-		c.expectEQ(len(c.emailSink), 1)
-		msg := <-c.emailSink
+		msg := c.pollEmailBug()
 		c.expectEQ(msg.Sender, sender1)
 		sender, _, err := email.RemoveAddrContext(msg.Sender)
-		if err != nil {
-			t.Fatalf("failed to remove sender context: %v", err)
-		}
+		c.expectOK(err)
 		_, dbCrash, dbBuild := c.loadBug(extBugID1)
 		reproCLink := externalLink(c.ctx, textReproC, dbCrash.ReproC)
 		reproSyzLink := externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
@@ -321,9 +303,7 @@ Content-Type: text/plain
 	c.expectOK(c.POST("/_ah/mail/", incoming4))
 
 	{
-		c.expectOK(c.GET("/email_poll"))
-		c.expectEQ(len(c.emailSink), 1)
-		msg := <-c.emailSink
+		msg := c.pollEmailBug()
 		c.expectEQ(msg.To, []string{"<foo@bar.com>"})
 		c.expectEQ(msg.Subject, "Re: title1")
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<abcdef>"})
@@ -358,13 +338,9 @@ unknown command "bad-command"
 	// New crash must produce new bug in the first reporting.
 	c.client2.ReportCrash(crash)
 	{
-		c.expectOK(c.GET("/email_poll"))
-		c.expectEQ(len(c.emailSink), 1)
-		msg := <-c.emailSink
+		msg := c.pollEmailBug()
 		c.expectEQ(msg.Subject, crash.Title+" (2)")
-		if msg.Sender == sender0 {
-			t.Fatalf("same reporting ID for new bug")
-		}
+		c.expectNE(msg.Sender, sender0)
 	}
 }
 
@@ -379,9 +355,7 @@ func TestEmailNoMaintainers(t *testing.T) {
 	crash := testCrash(build, 1)
 	c.client2.ReportCrash(crash)
 
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 1)
-	sender := (<-c.emailSink).Sender
+	sender := c.pollEmailBug().Sender
 
 	incoming1 := fmt.Sprintf(`Sender: syzkaller@googlegroups.com
 Date: Tue, 15 Aug 2017 14:59:00 -0700
@@ -437,9 +411,7 @@ func TestEmailDup(t *testing.T) {
 	// New crash must produce new bug in the first reporting.
 	c.client2.ReportCrash(crash2)
 	{
-		c.expectOK(c.GET("/email_poll"))
-		c.expectEQ(len(c.emailSink), 1)
-		msg := <-c.emailSink
+		msg := c.pollEmailBug()
 		c.expectEQ(msg.Subject, crash2.Title+" (2)")
 	}
 }
