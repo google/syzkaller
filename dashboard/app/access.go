@@ -72,6 +72,8 @@ func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (
 		return nil, checkAccessLevel(c, r, AccessAdmin)
 	case textPatch:
 		return nil, checkJobTextAccess(c, r, "Patch", id)
+	case textLog:
+		return nil, checkJobTextAccess(c, r, "Log", id)
 	case textError:
 		return nil, checkJobTextAccess(c, r, "Error", id)
 	case textKernelConfig:
