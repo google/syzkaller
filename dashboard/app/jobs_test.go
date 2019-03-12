@@ -119,7 +119,7 @@ func TestJob(t *testing.T) {
 	c.client2.JobDone(jobDoneReq)
 
 	{
-		dbJob, dbBuild := c.loadJob(pollResp.ID)
+		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		logLink := externalLink(c.ctx, textCrashLog, dbJob.CrashLog)
@@ -160,7 +160,7 @@ patch:          %[1]v
 	}
 	c.client2.JobDone(jobDoneReq)
 	{
-		dbJob, dbBuild := c.loadJob(pollResp.ID)
+		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := c.pollEmailBug()
@@ -195,7 +195,7 @@ patch:          %[1]v
 	}
 	c.client2.JobDone(jobDoneReq)
 	{
-		dbJob, dbBuild := c.loadJob(pollResp.ID)
+		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
 		errorLink := externalLink(c.ctx, textError, dbJob.Error)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
@@ -234,7 +234,7 @@ patch:          %[3]v
 	}
 	c.client2.JobDone(jobDoneReq)
 	{
-		dbJob, dbBuild := c.loadJob(pollResp.ID)
+		dbJob, dbBuild, _ := c.loadJob(pollResp.ID)
 		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := c.pollEmailBug()
@@ -291,7 +291,7 @@ func TestJobWithoutPatch(t *testing.T) {
 	}
 	c.client2.JobDone(jobDoneReq)
 	{
-		_, dbBuild := c.loadJob(pollResp.ID)
+		_, dbBuild, _ := c.loadJob(pollResp.ID)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := c.pollEmailBug()
 		c.expectEQ(len(msg.Attachments), 0)
