@@ -293,7 +293,7 @@ func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Insta
 		return nil, err
 	}
 
-	if err := inst.Boot(); err != nil {
+	if err := inst.boot(); err != nil {
 		return nil, err
 	}
 
@@ -317,7 +317,7 @@ func (inst *instance) Close() {
 	}
 }
 
-func (inst *instance) Boot() error {
+func (inst *instance) boot() error {
 	inst.port = vmimpl.UnusedTCPPort()
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
