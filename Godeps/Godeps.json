@@ -68,31 +68,38 @@
 		},
 		{
 			"ImportPath": "github.com/google/go-cmp/cmp",
-			"Rev": "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
+			"Comment": "v0.2.0-34-g6f77996",
+			"Rev": "6f77996f0c42f7b84e5a2b252227263f93432e9b"
 		},
 		{
 			"ImportPath": "github.com/google/go-cmp/cmp/cmpopts",
-			"Rev": "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
+			"Comment": "v0.2.0-34-g6f77996",
+			"Rev": "6f77996f0c42f7b84e5a2b252227263f93432e9b"
 		},
 		{
 			"ImportPath": "github.com/google/go-cmp/cmp/internal/diff",
-			"Rev": "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
+			"Comment": "v0.2.0-34-g6f77996",
+			"Rev": "6f77996f0c42f7b84e5a2b252227263f93432e9b"
 		},
 		{
 			"ImportPath": "github.com/google/go-cmp/cmp/internal/function",
-			"Rev": "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
+			"Comment": "v0.2.0-34-g6f77996",
+			"Rev": "6f77996f0c42f7b84e5a2b252227263f93432e9b"
 		},
 		{
 			"ImportPath": "github.com/google/go-cmp/cmp/internal/testprotos",
-			"Rev": "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
+			"Comment": "v0.2.0-34-g6f77996",
+			"Rev": "6f77996f0c42f7b84e5a2b252227263f93432e9b"
 		},
 		{
 			"ImportPath": "github.com/google/go-cmp/cmp/internal/teststructs",
-			"Rev": "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
+			"Comment": "v0.2.0-34-g6f77996",
+			"Rev": "6f77996f0c42f7b84e5a2b252227263f93432e9b"
 		},
 		{
 			"ImportPath": "github.com/google/go-cmp/cmp/internal/value",
-			"Rev": "8099a9787ce5dc5984ed879a3bda47dc730a8e97"
+			"Comment": "v0.2.0-34-g6f77996",
+			"Rev": "6f77996f0c42f7b84e5a2b252227263f93432e9b"
 		},
 		{
 			"ImportPath": "github.com/googleapis/gax-go",
