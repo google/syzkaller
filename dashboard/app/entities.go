@@ -190,6 +190,7 @@ const (
 	textReproC       = "ReproC"
 	textKernelConfig = "KernelConfig"
 	textPatch        = "Patch"
+	textLog          = "Log"
 	textError        = "Error"
 )
 
