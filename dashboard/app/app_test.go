@@ -235,6 +235,9 @@ func testBuild(id int) *dashapi.Build {
 	return &dashapi.Build{
 		Manager:           fmt.Sprintf("manager%v", id),
 		ID:                fmt.Sprintf("build%v", id),
+		OS:                "linux",
+		Arch:              "amd64",
+		VMArch:            "amd64",
 		SyzkallerCommit:   fmt.Sprintf("syzkaller_commit%v", id),
 		CompilerID:        fmt.Sprintf("compiler%v", id),
 		KernelRepo:        fmt.Sprintf("repo%v", id),

@@ -111,6 +111,7 @@ For more options, visit https://groups.google.com/d/optout.
 
 	// Now report syz reproducer and check updated email.
 	build2 := testBuild(10)
+	build2.Arch = "386"
 	build2.KernelRepo = testConfig.Namespaces["test2"].Repos[0].URL
 	build2.KernelBranch = testConfig.Namespaces["test2"].Repos[0].Branch
 	build2.KernelCommitTitle = "a really long title, longer than 80 chars, really long-long-long-long-long-long title"
@@ -149,6 +150,7 @@ console output: %[3]v
 kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler10
+userspace arch: i386
 syz repro:      %[2]v
 CC:             [bar@foo.com foo@bar.com maintainers@repo10.org bugs@repo10.org]
 
@@ -193,6 +195,7 @@ console output: %[3]v
 kernel config:  %[4]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler10
+userspace arch: i386
 syz repro:      %[2]v
 CC:             [bar@foo.com foo@bar.com maintainers@repo10.org bugs@repo10.org]
 
@@ -261,6 +264,7 @@ console output: %[4]v
 kernel config:  %[5]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler10
+userspace arch: i386
 syz repro:      %[3]v
 C reproducer:   %[2]v
 CC:             [qux@qux.com maintainers@repo10.org bugs@repo10.org]

@@ -354,10 +354,6 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if err != nil {
 		return nil, err
 	}
-	patch, _, err := getText(c, textPatch, job.Patch)
-	if err != nil {
-		return nil, err
-	}
 	build, err := loadBuild(c, job.Namespace, job.BuildID)
 	if err != nil {
 		return nil, err
@@ -374,13 +370,20 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if bugReporting == nil {
 		return nil, fmt.Errorf("job bug has no reporting %q", job.Reporting)
 	}
+	creditEmail, err := email.AddAddrContext(ownEmail(c), bugReporting.ID)
+	if err != nil {
+		return nil, err
+	}
 	rep := &dashapi.BugReport{
+		Type:              dashapi.ReportTestPatch,
 		Namespace:         job.Namespace,
 		Config:            reportingConfig,
 		ID:                bugReporting.ID,
 		JobID:             extJobID(jobKey),
 		ExtID:             job.ExtID,
 		Title:             bug.displayTitle(),
+		Link:              fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
+		CreditEmail:       creditEmail,
 		CC:                job.CC,
 		Log:               crashLog,
 		LogLink:           externalLink(c, textCrashLog, job.CrashLog),
@@ -389,6 +392,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 		OS:                build.OS,
 		Arch:              build.Arch,
 		VMArch:            build.VMArch,
+		UserSpaceArch:     kernelArch(build.Arch),
 		CompilerID:        build.CompilerID,
 		KernelRepo:        build.KernelRepo,
 		KernelRepoAlias:   kernelRepoInfo(build).Alias,
@@ -401,8 +405,12 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 		CrashTitle:        job.CrashTitle,
 		Error:             jobError,
 		ErrorLink:         externalLink(c, textError, job.Error),
-		Patch:             patch,
 		PatchLink:         externalLink(c, textPatch, job.Patch),
+	}
+	// Build error output and failing VM boot log can be way too long to inline.
+	if len(rep.Error) > maxInlineError {
+		rep.Error = rep.Error[len(rep.Error)-maxInlineError:]
+		rep.ErrorTruncated = true
 	}
 	return rep, nil
 }

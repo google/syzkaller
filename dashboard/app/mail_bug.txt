@@ -5,7 +5,7 @@ Hello,
 syzbot {{if .First}}found{{else}}has found a reproducer for{{end}} the following crash on:
 
 HEAD commit:    {{formatShortHash .KernelCommit}} {{formatCommitTableTitle .KernelCommitTitle}}
-git tree:       {{.KernelRepo}}
+git tree:       {{.KernelRepoAlias}}
 {{if .LogLink}}console output: {{.LogLink}}
 {{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
 {{end}}dashboard link: {{.Link}}

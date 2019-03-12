@@ -256,19 +256,23 @@ func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
 // BugReport describes a single bug.
 // Used by dashboard external reporting.
 type BugReport struct {
+	Type              ReportType
 	Namespace         string
 	Config            []byte
 	ID                string
 	JobID             string
 	ExtID             string // arbitrary reporting ID forwarded from BugUpdate.ExtID
-	First             bool   // Set for first report for this bug.
+	First             bool   // Set for first report for this bug (Type == ReportNew).
 	Moderation        bool
 	Title             string
+	Link              string // link to the bug on dashboard
+	CreditEmail       string // email for the Reported-by tag
 	Maintainers       []string
 	CC                []string // additional CC emails
 	OS                string
 	Arch              string
 	VMArch            string
+	UserSpaceArch     string // user-space arch as kernel developers know it (rather than Go names)
 	CompilerID        string
 	KernelRepo        string
 	KernelRepoAlias   string
@@ -290,11 +294,11 @@ type BugReport struct {
 	NumCrashes        int64
 	HappenedOn        []string // list of kernel repo aliases
 
-	CrashTitle string // job execution crash title
-	Error      []byte // job execution error
-	ErrorLink  string
-	Patch      []byte // testing job patch
-	PatchLink  string
+	CrashTitle     string // job execution crash title
+	Error          []byte // job execution error
+	ErrorLink      string
+	ErrorTruncated bool // full Error text is too large and was truncated
+	PatchLink      string
 }
 
 type BugUpdate struct {
@@ -425,6 +429,7 @@ type (
 	BugStatus  int
 	BugNotif   int
 	ReproLevel int
+	ReportType int
 )
 
 const (
@@ -450,6 +455,12 @@ const (
 	ReproLevelNone ReproLevel = iota
 	ReproLevelSyz
 	ReproLevelC
+)
+
+const (
+	ReportNew       ReportType = iota // First report for this bug in the reporting stage.
+	ReportRepro                       // Found repro for an already reported bug.
+	ReportTestPatch                   // Patch testing result.
 )
 
 func (dash *Dashboard) Query(method string, req, reply interface{}) error {
