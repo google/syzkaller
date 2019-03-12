@@ -213,7 +213,7 @@ func (c *Ctx) loadBug(extID string) (*Bug, *Crash, *Build) {
 	return bug, crash, build
 }
 
-func (c *Ctx) loadJob(extID string) (*Job, *Build) {
+func (c *Ctx) loadJob(extID string) (*Job, *Build, *Crash) {
 	jobKey, err := jobID2Key(c.ctx, extID)
 	if err != nil {
 		c.t.Fatalf("failed to create job key: %v", err)
@@ -226,7 +226,12 @@ func (c *Ctx) loadJob(extID string) (*Job, *Build) {
 	if err != nil {
 		c.t.Fatalf("failed to load build: %v", err)
 	}
-	return job, build
+	crash := new(Crash)
+	crashKey := datastore.NewKey(c.ctx, "Crash", "", job.CrashID, jobKey.Parent())
+	if err := datastore.Get(c.ctx, crashKey, crash); err != nil {
+		c.t.Fatalf("failed to load crash for job: %v", err)
+	}
+	return job, build, crash
 }
 
 func (c *Ctx) checkURLContents(url string, want []byte) {
