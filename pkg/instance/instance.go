@@ -69,6 +69,11 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 		"TARGETOS="+cfg.TargetOS,
 		"TARGETVMARCH="+cfg.TargetVMArch,
 		"TARGETARCH="+cfg.TargetArch,
+		// Since we can be building very old revisions for bisection here,
+		// make the build as permissive as possible.
+		// Newer compilers tend to produce more warnings also kernel headers may be broken, e.g.:
+		// ebtables.h:197:19: error: invalid conversion from ‘void*’ to ‘ebt_entry_target*’
+		"CFLAGS=-fpermissive -w",
 	)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("syzkaller build failed: %v", err)
