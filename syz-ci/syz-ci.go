@@ -129,6 +129,13 @@ func main() {
 
 	serveHTTP(cfg)
 
+	os.Unsetenv("GOPATH")
+	if cfg.Goroot != "" {
+		os.Setenv("GOROOT", cfg.Goroot)
+		os.Setenv("PATH", filepath.Join(cfg.Goroot, "bin")+
+			string(filepath.ListSeparator)+os.Getenv("PATH"))
+	}
+
 	updatePending := make(chan struct{})
 	updater := NewSyzUpdater(cfg)
 	updater.UpdateOnStart(*flagAutoUpdate, shutdownPending)
