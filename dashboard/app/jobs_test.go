@@ -128,7 +128,7 @@ func TestJob(t *testing.T) {
 		c.expectEQ(msg.To, to)
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
-		body := fmt.Sprintf(`Hello,
+		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot has tested the proposed patch but the reproducer still triggered crash:
 test crash title
@@ -137,17 +137,14 @@ test crash report
 
 Tested on:
 
-commit:         111111111111 kernel_commit_title1
+commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
 console output: %[3]v
 kernel config:  %[2]v
 compiler:       compiler1
 patch:          %[1]v
 
-`, patchLink, kernelConfigLink, logLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+`, patchLink, kernelConfigLink, logLink))
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 		c.checkURLContents(logLink, jobDoneReq.CrashLog)
@@ -168,7 +165,7 @@ patch:          %[1]v
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := c.pollEmailBug()
 		c.expectEQ(len(msg.Attachments), 0)
-		body := fmt.Sprintf(`Hello,
+		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot tried to test the proposed patch but build/boot failed:
 
@@ -177,16 +174,13 @@ failed to apply patch
 
 Tested on:
 
-commit:         111111111111 kernel_commit_title1
+commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
 kernel config:  %[2]v
 compiler:       compiler1
 patch:          %[1]v
 
-`, patchLink, kernelConfigLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+`, patchLink, kernelConfigLink))
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
@@ -208,7 +202,7 @@ patch:          %[1]v
 		msg := c.pollEmailBug()
 		c.expectEQ(len(msg.Attachments), 0)
 		truncatedError := string(jobDoneReq.Error[len(jobDoneReq.Error)-maxInlineError:])
-		body := fmt.Sprintf(`Hello,
+		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot tried to test the proposed patch but build/boot failed:
 
@@ -220,16 +214,13 @@ Error text is too large and was truncated, full error text is at:
 
 Tested on:
 
-commit:         111111111111 kernel_commit_title1
+commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
 kernel config:  %[4]v
 compiler:       compiler1
 patch:          %[3]v
 
-`, truncatedError, errorLink, patchLink, kernelConfigLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+`, truncatedError, errorLink, patchLink, kernelConfigLink))
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(errorLink, jobDoneReq.Error)
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
@@ -248,7 +239,7 @@ patch:          %[3]v
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := c.pollEmailBug()
 		c.expectEQ(len(msg.Attachments), 0)
-		body := fmt.Sprintf(`Hello,
+		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
 
@@ -256,17 +247,14 @@ Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 
 Tested on:
 
-commit:         111111111111 kernel_commit_title1
+commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
 kernel config:  %[3]v
 compiler:       compiler1
 patch:          %[2]v
 
 Note: testing is done by a robot and is best-effort only.
-`, extBugID, patchLink, kernelConfigLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+`, extBugID, patchLink, kernelConfigLink))
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
@@ -307,7 +295,7 @@ func TestJobWithoutPatch(t *testing.T) {
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := c.pollEmailBug()
 		c.expectEQ(len(msg.Attachments), 0)
-		body := fmt.Sprintf(`Hello,
+		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
 
@@ -315,16 +303,13 @@ Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 
 Tested on:
 
-commit:         5e6a2eea5e6a kernel_commit_title2
+commit:         5e6a2eea kernel_commit_title2
 git tree:       git://mygit.com/git.git
 kernel config:  %[2]v
 compiler:       compiler2
 
 Note: testing is done by a robot and is best-effort only.
-`, extBugID, kernelConfigLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+`, extBugID, kernelConfigLink))
 		c.checkURLContents(kernelConfigLink, testBuild.KernelConfig)
 	}
 

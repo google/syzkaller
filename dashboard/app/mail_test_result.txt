@@ -19,7 +19,7 @@ Reported-and-tested-by: {{.CreditEmail}}
 {{end}}
 Tested on:
 
-commit:         {{.KernelCommit}} {{.KernelCommitTitle}}
+commit:         {{formatShortHash .KernelCommit}} {{formatCommitTableTitle .KernelCommitTitle}}
 git tree:       {{.KernelRepo}}
 {{if .LogLink}}console output: {{.LogLink}}
 {{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}

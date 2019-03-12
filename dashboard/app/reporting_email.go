@@ -13,11 +13,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
@@ -49,8 +49,6 @@ const (
 	// entry pending for review. The prefix makes Patchwork
 	// treat it as a comment for a previous patch.
 	replySubjectPrefix = "Re: "
-	commitHashLen      = 12
-	commitTitleLen     = 47 // so that whole line fits into 78 chars
 
 	replyNoBugID = "I see the command but can't find the corresponding bug.\n" +
 		"Please resend the email to %[1]v address\n" +
@@ -262,7 +260,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		KernelRepo        string
 		KernelCommit      string
 		KernelCommitTitle string
-		KernelCommitDate  string
+		KernelCommitDate  time.Time
 		UserSpaceArch     string
 		CrashTitle        string
 		Report            []byte
@@ -286,7 +284,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		KernelRepo:        rep.KernelRepoAlias,
 		KernelCommit:      rep.KernelCommit,
 		KernelCommitTitle: rep.KernelCommitTitle,
-		KernelCommitDate:  formatKernelTime(rep.KernelCommitDate),
+		KernelCommitDate:  rep.KernelCommitDate,
 		UserSpaceArch:     userspaceArch,
 		CrashTitle:        rep.CrashTitle,
 		Report:            rep.Report,
@@ -299,12 +297,6 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		NumCrashes:        rep.NumCrashes,
 		HappenedOn:        rep.HappenedOn,
 		PatchLink:         rep.PatchLink,
-	}
-	if len(data.KernelCommit) > commitHashLen {
-		data.KernelCommit = data.KernelCommit[:commitHashLen]
-	}
-	if len(data.KernelCommitTitle) > commitTitleLen {
-		data.KernelCommitTitle = data.KernelCommitTitle[:commitTitleLen-2] + ".."
 	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
 	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, nil, templ, data)
@@ -577,23 +569,4 @@ func appURL(c context.Context) string {
 	return fmt.Sprintf("https://%v.appspot.com", appengine.AppID(c))
 }
 
-func formatKernelTime(t time.Time) string {
-	if t.IsZero() {
-		return ""
-	}
-	// This is how dates appear in git log.
-	return t.Format("Mon Jan 2 15:04:05 2006 -0700")
-}
-
-func formatStringList(list []string) string {
-	return strings.Join(list, ", ")
-}
-
-var (
-	mailTemplates = template.Must(template.New("").Funcs(mailFuncs).ParseGlob("mail_*.txt"))
-
-	mailFuncs = template.FuncMap{
-		"formatTime": formatKernelTime,
-		"formatList": formatStringList,
-	}
-)
+var mailTemplates = html.CreateTextGlob("mail_*.txt")
