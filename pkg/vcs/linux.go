@@ -71,19 +71,43 @@ func (ctx *linux) getMaintainers(hash string, blame bool) []string {
 }
 
 func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
+	return ctx.previousReleaseTags(commit, false)
+}
+
+func (ctx *linux) previousReleaseTags(commit string, self bool) ([]string, error) {
+	var tags []string
+	if self {
+		output, err := runSandboxed(ctx.dir, "git", "tag", "--points-at", commit, "--merged", commit, "v*.*")
+		if err != nil {
+			return nil, err
+		}
+		tags, err = gitParseReleaseTags(output)
+		if err != nil {
+			return nil, err
+		}
+	}
 	output, err := runSandboxed(ctx.dir, "git", "tag", "--no-contains", commit, "--merged", commit, "v*.*")
 	if err != nil {
 		return nil, err
 	}
-	tags, err := gitParseReleaseTags(output)
+	tags1, err := gitParseReleaseTags(output)
 	if err != nil {
 		return nil, err
 	}
+	tags = append(tags, tags1...)
 	for i, tag := range tags {
-		if tag == "v3.8" {
+		if tag == "v4.0" {
+			// Initially we tried to stop at 3.8 because:
 			// v3.8 does not work with modern perl, and as we go further in history
 			// make stops to work, then binutils, glibc, etc. So we stop at v3.8.
 			// Up to that point we only need an ancient gcc.
+			//
+			// But kernels don't boot starting from 4.0 and back.
+			// That was fixed by 99124e4db5b7b70daeaaf1d88a6a8078a0004c6e,
+			// and it can be cherry-picked into 3.14..4.0 but it conflicts for 3.13 and older.
+			//
+			// But starting from 4.0 our user-space binaries start crashing with assorted errors
+			// which suggests process memory corruption by kernel. So for now we stop at 4.1.
 			tags = tags[:i]
 			break
 		}
@@ -125,7 +149,7 @@ func gitReleaseTagToInt(tag string) uint64 {
 }
 
 func (ctx *linux) EnvForCommit(commit string, kernelConfig []byte) (*BisectEnv, error) {
-	tagList, err := ctx.PreviousReleaseTags(commit)
+	tagList, err := ctx.previousReleaseTags(commit, true)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +159,13 @@ func (ctx *linux) EnvForCommit(commit string, kernelConfig []byte) (*BisectEnv, 
 	}
 	env := &BisectEnv{
 		Compiler:     "gcc-" + linuxCompilerVersion(tags),
-		KernelConfig: kernelConfig,
+		KernelConfig: linuxDisableConfigs(kernelConfig, tags),
+	}
+	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.
+	if !tags["v4.1"] {
+		if _, err := runSandboxed(ctx.dir, "git", "cherry-pick", "--no-commit", "99124e4db5b7b70daeaaf1d88a6a8078a0004c6e"); err != nil {
+			return nil, err
+		}
 	}
 	return env, nil
 }
@@ -146,9 +176,39 @@ func linuxCompilerVersion(tags map[string]bool) string {
 		return "8.1.0"
 	case tags["v4.11"]:
 		return "7.3.0"
-	case tags["v3.19"]:
-		return "5.5.0"
 	default:
-		return "4.9.4"
+		return "5.5.0"
 	}
+}
+
+func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
+	prereq := map[string]string{
+		// Kernel is boot broken before 4.15 due to double-free in vudc_probe:
+		// https://lkml.org/lkml/2018/9/7/648
+		// Fixed by e28fd56ad5273be67d0fae5bedc7e1680e729952.
+		"CONFIG_USBIP_VUDC": "v4.15",
+		// Setup of network devices is broken before v4.12 with a "WARNING in hsr_get_node".
+		// Fixed by 675c8da049fd6556eb2d6cdd745fe812752f07a8.
+		"CONFIG_HSR": "v4.12",
+		// Setup of network devices is broken before v4.12 with a "WARNING: ODEBUG bug in __sk_destruct"
+		// coming from smc_release.
+		"CONFIG_SMC": "v4.12",
+		// Kernel is boot broken before 4.10 with a lockdep warning in vhci_hcd_probe.
+		"CONFIG_USBIP_VHCI_HCD": "v4.10",
+		"CONFIG_BT_HCIVHCI":     "v4.10",
+		// Setup of network devices is broken before v4.7 with a deadlock involving team.
+		"CONFIG_NET_TEAM": "v4.7",
+		// Setup of network devices is broken before v4.5 with a warning in batadv_tvlv_container_remove.
+		"CONFIG_BATMAN_ADV": "v4.5",
+		// First, we disable coverage in pkg/bisect because it fails machine testing starting from 4.7.
+		// Second, at 6689da155bdcd17abfe4d3a8b1e245d9ed4b5f2c CONFIG_KCOV selects CONFIG_GCC_PLUGIN_SANCOV
+		// (why?), which is build broken for hundreds of revisions.
+		"CONFIG_KCOV": "disable-always",
+	}
+	for cfg, tag := range prereq {
+		if !tags[tag] {
+			config = bytes.Replace(config, []byte(cfg+"=y"), []byte("# "+cfg+" is not set"), -1)
+		}
+	}
+	return config
 }
