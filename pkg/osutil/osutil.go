@@ -59,7 +59,7 @@ func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
 		if <-timedout {
 			text = fmt.Sprintf("timedout %q", cmd.Args)
 		}
-		return nil, &VerboseError{
+		return output.Bytes(), &VerboseError{
 			Title:  text,
 			Output: output.Bytes(),
 		}
