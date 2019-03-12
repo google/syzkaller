@@ -29,9 +29,11 @@ func initHTTPHandlers() {
 	http.Handle("/text", handlerWrapper(handleText))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
+	http.Handle("/x/report.txt", handlerWrapper(handleTextX(textCrashReport)))
 	http.Handle("/x/repro.syz", handlerWrapper(handleTextX(textReproSyz)))
 	http.Handle("/x/repro.c", handlerWrapper(handleTextX(textReproC)))
 	http.Handle("/x/patch.diff", handlerWrapper(handleTextX(textPatch)))
+	http.Handle("/x/bisect.txt", handlerWrapper(handleTextX(textLog)))
 	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
 }
 
@@ -361,6 +363,8 @@ func textFilename(tag string) string {
 		return "repro.c"
 	case textPatch:
 		return "patch.diff"
+	case textLog:
+		return "bisect.txt"
 	case textError:
 		return "error.txt"
 	default:

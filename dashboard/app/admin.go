@@ -39,6 +39,7 @@ func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) er
 		{textReproSyz, ""},
 		{textKernelConfig, ""},
 		{"Job", ""},
+		{textLog, ""},
 		{textError, ""},
 		{textCrashLog, ""},
 		{textCrashReport, ""},
