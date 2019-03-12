@@ -73,13 +73,9 @@ func TestAccess(t *testing.T) {
 	// noteBugAccessLevel collects all entities associated with the extID bug.
 	noteBugAccessLevel := func(extID string, level AccessLevel) {
 		bug, _, err := findBugByReportingID(c.ctx, extID)
-		if err != nil {
-			t.Fatal(err)
-		}
+		c.expectOK(err)
 		crash, _, err := findCrashForBug(c.ctx, bug)
-		if err != nil {
-			t.Fatal(err)
-		}
+		c.expectOK(err)
 		bugID := bug.keyHash()
 		entities = append(entities, []entity{
 			{
@@ -147,9 +143,7 @@ func TestAccess(t *testing.T) {
 	// noteBuildccessLevel collects all entities associated with the kernel build buildID.
 	noteBuildccessLevel := func(ns, buildID string) {
 		build, err := loadBuild(c.ctx, ns, buildID)
-		if err != nil {
-			t.Fatal(err)
-		}
+		c.expectOK(err)
 		entities = append(entities, entity{
 			level: config.Namespaces[ns].AccessLevel,
 			ref:   build.ID,

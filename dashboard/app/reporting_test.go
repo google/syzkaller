@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
@@ -37,9 +36,7 @@ func TestReportBug(t *testing.T) {
 	resp, _ = c.client.ReportingPollBugs("test")
 	c.expectEQ(len(resp.Reports), 1)
 	rep := resp.Reports[0]
-	if rep.ID == "" {
-		t.Fatalf("empty report ID")
-	}
+	c.expectNE(rep.ID, "")
 	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
 		Namespace:         "test1",
@@ -66,9 +63,7 @@ func TestReportBug(t *testing.T) {
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1 branch1"},
 	}
-	if diff := cmp.Diff(want, rep); diff != "" {
-		t.Fatal(diff)
-	}
+	c.expectEQ(want, rep)
 
 	// Since we did not update bug status yet, should get the same report again.
 	c.expectEQ(c.client.pollBug(), want)
@@ -80,18 +75,14 @@ func TestReportBug(t *testing.T) {
 	want.ReproSyz = []byte(syzReproPrefix + "#some opts\ngetpid()")
 	c.client.ReportCrash(crash1)
 	rep1 := c.client.pollBug()
-	if want.CrashID == rep1.CrashID {
-		t.Fatal("get the same CrashID for new crash")
-	}
+	c.expectNE(want.CrashID, rep1.CrashID)
 	_, dbCrash, _ = c.loadBug(rep.ID)
 	want.CrashID = rep1.CrashID
 	want.NumCrashes = 2
 	want.ReproSyzLink = externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
 	want.LogLink = externalLink(c.ctx, textCrashLog, dbCrash.Log)
 	want.ReportLink = externalLink(c.ctx, textCrashReport, dbCrash.Report)
-	if diff := cmp.Diff(want, rep1); diff != "" {
-		t.Fatal(diff)
-	}
+	c.expectEQ(want, rep1)
 
 	reply, _ := c.client.ReportingUpdate(&dashapi.BugUpdate{
 		ID:         rep.ID,
@@ -118,17 +109,14 @@ func TestReportBug(t *testing.T) {
 
 	// Check that we get the report in the second reporting.
 	rep2 := c.client.pollBug()
-	if rep2.ID == "" || rep2.ID == rep.ID {
-		t.Fatalf("bad report ID: %q", rep2.ID)
-	}
+	c.expectNE(rep2.ID, "")
+	c.expectNE(rep2.ID, rep.ID)
 	want.ID = rep2.ID
 	want.First = true
 	want.Moderation = false
 	want.Config = []byte(`{"Index":2}`)
 	want.NumCrashes = 3
-	if diff := cmp.Diff(want, rep2); diff != "" {
-		t.Fatal(diff)
-	}
+	c.expectEQ(want, rep2)
 
 	// Check that that we can't upstream the bug in the final reporting.
 	reply, _ = c.client.ReportingUpdate(&dashapi.BugUpdate{
@@ -187,9 +175,7 @@ func TestInvalidBug(t *testing.T) {
 
 	// Now it should be reported again.
 	rep = c.client.pollBug()
-	if rep.ID == "" {
-		t.Fatalf("empty report ID")
-	}
+	c.expectNE(rep.ID, "")
 	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
 		Namespace:         "test1",
@@ -217,9 +203,7 @@ func TestInvalidBug(t *testing.T) {
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1 branch1"},
 	}
-	if diff := cmp.Diff(want, rep); diff != "" {
-		t.Fatal(diff)
-	}
+	c.expectEQ(want, rep)
 	c.client.ReportFailedRepro(testCrashID(crash1))
 }
 

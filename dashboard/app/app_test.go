@@ -368,9 +368,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 	}
 	bug, _, _ := c.loadBug(rep.ID)
 	crashes, _, err := queryCrashesForBug(c.ctx, bug.key(c.ctx), 10*totalReported)
-	if err != nil {
-		c.t.Fatal(err)
-	}
+	c.expectOK(err)
 	// First, count how many crashes of different types we have.
 	// We should get all 3 reported crashes + some with repros and some without repros.
 	reported, norepro, repro := 0, 0, 0
@@ -396,9 +394,7 @@ func TestPurgeOldCrashes(t *testing.T) {
 			continue
 		}
 		idx, err := strconv.Atoi(string(crash.ReproOpts))
-		if err != nil {
-			c.t.Fatal(err)
-		}
+		c.expectOK(err)
 		count := norepro
 		if crash.ReproSyz != 0 {
 			count = repro
