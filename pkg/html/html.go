@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"html/template"
 	"strings"
+	texttemplate "text/template"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -24,22 +25,30 @@ import (
 func CreatePage(page string) *template.Template {
 	const headTempl = `<style type="text/css" media="screen">%v</style><script>%v</script>`
 	page = strings.Replace(page, "{{HEAD}}", fmt.Sprintf(headTempl, style, js), 1)
-	return template.Must(template.New("").Funcs(funcs).Parse(page))
+	return template.Must(template.New("").Funcs(Funcs).Parse(page))
 }
 
 func CreateGlob(glob string) *template.Template {
-	return template.Must(template.New("").Funcs(funcs).ParseGlob(glob))
+	return template.Must(template.New("").Funcs(Funcs).ParseGlob(glob))
 }
 
-var funcs = template.FuncMap{
-	"link":             link,
-	"formatTime":       FormatTime,
-	"formatClock":      formatClock,
-	"formatDuration":   formatDuration,
-	"formatLateness":   formatLateness,
-	"formatReproLevel": formatReproLevel,
-	"formatStat":       formatStat,
-	"formatShortHash":  formatShortHash,
+func CreateTextGlob(glob string) *texttemplate.Template {
+	return texttemplate.Must(texttemplate.New("").Funcs(texttemplate.FuncMap(Funcs)).ParseGlob(glob))
+}
+
+var Funcs = template.FuncMap{
+	"link":                   link,
+	"optlink":                optlink,
+	"formatTime":             FormatTime,
+	"formatKernelTime":       formatKernelTime,
+	"formatClock":            formatClock,
+	"formatDuration":         formatDuration,
+	"formatLateness":         formatLateness,
+	"formatReproLevel":       formatReproLevel,
+	"formatStat":             formatStat,
+	"formatShortHash":        formatShortHash,
+	"formatCommitTableTitle": formatCommitTableTitle,
+	"formatList":             formatStringList,
 }
 
 func link(url, text string) template.HTML {
@@ -50,11 +59,26 @@ func link(url, text string) template.HTML {
 	return template.HTML(text)
 }
 
+func optlink(url, text string) template.HTML {
+	if url == "" {
+		return template.HTML("")
+	}
+	return link(url, text)
+}
+
 func FormatTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
 	return t.Format("2006/01/02 15:04")
+}
+
+func formatKernelTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	// This is how dates appear in git log.
+	return t.Format("Mon Jan 2 15:04:05 2006 -0700")
 }
 
 func formatClock(t time.Time) string {
@@ -116,4 +140,18 @@ func formatShortHash(v string) string {
 		return v
 	}
 	return v[:hashLen]
+}
+
+func formatCommitTableTitle(v string) string {
+	// This function is very specific to how we format tables in text emails.
+	// Truncate commit title so that whole line fits into 78 chars.
+	const commitTitleLen = 51
+	if len(v) <= commitTitleLen {
+		return v
+	}
+	return v[:commitTitleLen-2] + ".."
+}
+
+func formatStringList(list []string) string {
+	return strings.Join(list, ", ")
 }
