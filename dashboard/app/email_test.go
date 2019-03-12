@@ -42,11 +42,11 @@ func TestEmailReport(t *testing.T) {
 		c.expectEQ(msg.To, []string{to})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
-		body := fmt.Sprintf(`Hello,
+		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot found the following crash on:
 
-HEAD commit:    111111111111 kernel_commit_title1
+HEAD commit:    11111111 kernel_commit_title1
 git tree:       repo1 branch1
 console output: %[2]v
 kernel config:  %[3]v
@@ -68,10 +68,7 @@ syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this bug report. See:
 https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.`,
-			extBugID0, crashLogLink, kernelConfigLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+			extBugID0, crashLogLink, kernelConfigLink))
 		c.checkURLContents(crashLogLink, crash.Log)
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
@@ -144,9 +141,9 @@ For more options, visit https://groups.google.com/d/optout.
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<1234>"})
-		body := fmt.Sprintf(`syzbot has found a reproducer for the following crash on:
+		c.expectEQ(msg.Body, fmt.Sprintf(`syzbot has found a reproducer for the following crash on:
 
-HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
+HEAD commit:    10101010 a really long title, longer than 80 chars, really..
 git tree:       repo10alias
 console output: %[3]v
 kernel config:  %[4]v
@@ -159,10 +156,7 @@ IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 
 report1
-`, extBugID0, reproSyzLink, crashLogLink, kernelConfigLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+`, extBugID0, reproSyzLink, crashLogLink, kernelConfigLink))
 		c.checkURLContents(reproSyzLink, syzRepro)
 		c.checkURLContents(crashLogLink, crash.Log)
 		c.checkURLContents(kernelConfigLink, build2.KernelConfig)
@@ -189,11 +183,11 @@ report1
 			"default@maintainers.com", "foo@bar.com", "maintainers@repo10.org"})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
-		body := fmt.Sprintf(`Hello,
+		c.expectEQ(msg.Body, fmt.Sprintf(`Hello,
 
 syzbot found the following crash on:
 
-HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
+HEAD commit:    10101010 a really long title, longer than 80 chars, really..
 git tree:       repo10alias
 console output: %[3]v
 kernel config:  %[4]v
@@ -216,10 +210,7 @@ syzbot will keep track of this bug report. See:
 https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.
 syzbot can test patches for this bug, for details see:
 https://goo.gl/tpsmEJ#testing-patches`,
-			extBugID1, reproSyzLink, crashLogLink, kernelConfigLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+			extBugID1, reproSyzLink, crashLogLink, kernelConfigLink))
 		c.checkURLContents(reproSyzLink, syzRepro)
 		c.checkURLContents(crashLogLink, crash.Log)
 		c.checkURLContents(kernelConfigLink, build2.KernelConfig)
@@ -262,9 +253,9 @@ Content-Type: text/plain
 			"maintainers@repo10.org", "new@new.com", "qux@qux.com"})
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 0)
-		body := fmt.Sprintf(`syzbot has found a reproducer for the following crash on:
+		c.expectEQ(msg.Body, fmt.Sprintf(`syzbot has found a reproducer for the following crash on:
 
-HEAD commit:    101010101010 a really long title, longer than 80 chars, re..
+HEAD commit:    10101010 a really long title, longer than 80 chars, really..
 git tree:       repo10alias
 console output: %[4]v
 kernel config:  %[5]v
@@ -278,10 +269,7 @@ IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 
 report1
-`, extBugID1, reproCLink, reproSyzLink, crashLogLink, kernelConfigLink)
-		if msg.Body != body {
-			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
-		}
+`, extBugID1, reproCLink, reproSyzLink, crashLogLink, kernelConfigLink))
 		c.checkURLContents(reproCLink, crash.ReproC)
 		c.checkURLContents(reproSyzLink, syzRepro)
 		c.checkURLContents(crashLogLink, crash.Log)
