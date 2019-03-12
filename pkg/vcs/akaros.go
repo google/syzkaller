@@ -4,8 +4,6 @@
 package vcs
 
 import (
-	"fmt"
-	"io"
 	"path/filepath"
 )
 
@@ -16,8 +14,8 @@ type akaros struct {
 
 func newAkaros(vm, dir string) *akaros {
 	return &akaros{
-		git:      newGit(dir),
-		dropbear: newGit(filepath.Join(dir, "dropbear")),
+		git:      newGit(dir, nil),
+		dropbear: newGit(filepath.Join(dir, "dropbear"), nil),
 	}
 }
 
@@ -26,16 +24,4 @@ func (ctx *akaros) Poll(repo, branch string) (*Commit, error) {
 		return nil, err
 	}
 	return ctx.git.Poll(repo, branch)
-}
-
-func (ctx *akaros) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
-	return ctx.git.ExtractFixTagsFromCommits(baseCommit, email)
-}
-
-func (ctx *akaros) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for akaros")
-}
-
-func (ctx *akaros) PreviousReleaseTags(commit string) ([]string, error) {
-	return nil, fmt.Errorf("not implemented for akaros")
 }

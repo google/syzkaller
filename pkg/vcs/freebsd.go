@@ -14,7 +14,7 @@ type freebsd struct {
 
 func newFreeBSD(vm, dir string) *freebsd {
 	return &freebsd{
-		git: newGit(dir),
+		git: newGit(dir, nil),
 	}
 }
 

@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestGitParseCommit(t *testing.T) {
@@ -14,6 +16,7 @@ func TestGitParseCommit(t *testing.T) {
 		`2075b16e32c26e4031b9fd3cbe26c54676a8fcb5
 rbtree: include rcu.h
 foobar@foobar.de
+Foo Bar
 Fri May 11 16:02:14 2018 -0700
 Since commit c1adf20052d8 ("Introduce rb_replace_node_rcu()")
 rbtree_augmented.h uses RCU related data structures but does not include
@@ -30,14 +33,18 @@ Reported-and-Tested-by: Name-name <name@name.com>
 Tested-by: Must be correct <mustbe@correct.com>
 Signed-off-by: Linux Master <linux@linux-foundation.org>
 `: {
-			Hash:   "2075b16e32c26e4031b9fd3cbe26c54676a8fcb5",
-			Title:  "rbtree: include rcu.h",
-			Author: "foobar@foobar.de",
+			Hash:       "2075b16e32c26e4031b9fd3cbe26c54676a8fcb5",
+			Title:      "rbtree: include rcu.h",
+			Author:     "foobar@foobar.de",
+			AuthorName: "Foo Bar",
 			CC: []string{
 				"and@me.com",
+				"another@email.de",
 				"foobar@foobar.de",
+				"linux@linux-foundation.org",
 				"mustbe@correct.com",
 				"name@name.com",
+				"somewhere@email.com",
 				"subsystem@reviewer.com",
 				"yetanother@email.org",
 			},
@@ -45,7 +52,7 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 		},
 	}
 	for input, com := range tests {
-		res, err := gitParseCommit([]byte(input), nil, nil)
+		res, err := gitParseCommit([]byte(input), nil, nil, nil)
 		if err != nil && com != nil {
 			t.Fatalf("want %+v, got error: %v", com, err)
 		}
@@ -64,8 +71,8 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 		if com.Author != res.Author {
 			t.Fatalf("want author %q, got %q", com.Author, res.Author)
 		}
-		if !reflect.DeepEqual(com.CC, res.CC) {
-			t.Fatalf("want CC %q, got %q", com.CC, res.CC)
+		if diff := cmp.Diff(com.CC, res.CC); diff != "" {
+			t.Fatalf("bad CC: %v", diff)
 		}
 		if !com.Date.Equal(res.Date) {
 			t.Fatalf("want date %v, got %v", com.Date, res.Date)

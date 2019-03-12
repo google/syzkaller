@@ -3,29 +3,12 @@
 
 package vcs
 
-import (
-	"fmt"
-	"io"
-)
-
 type netbsd struct {
 	*git
 }
 
 func newNetBSD(vm, dir string) *netbsd {
 	return &netbsd{
-		git: newGit(dir),
+		git: newGit(dir, nil),
 	}
-}
-
-func (ctx *netbsd) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
-	return ctx.git.ExtractFixTagsFromCommits(baseCommit, email)
-}
-
-func (ctx *netbsd) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for netbsd")
-}
-
-func (ctx *netbsd) PreviousReleaseTags(commit string) ([]string, error) {
-	return nil, fmt.Errorf("not implemented for netbsd")
 }

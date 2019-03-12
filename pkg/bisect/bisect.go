@@ -136,7 +136,7 @@ func (env *env) bisect() (*vcs.Commit, error) {
 	if good == "" {
 		return nil, nil // still not fixed
 	}
-	return env.repo.Bisect(bad, good, cfg.Trace, func() (vcs.BisectResult, error) {
+	commits, err := env.repo.(vcs.Bisecter).Bisect(bad, good, cfg.Trace, func() (vcs.BisectResult, error) {
 		res, err := env.test()
 		if cfg.Fix {
 			if res == vcs.BisectBad {
@@ -147,6 +147,13 @@ func (env *env) bisect() (*vcs.Commit, error) {
 		}
 		return res, err
 	})
+	if err != nil {
+		return nil, err
+	}
+	if len(commits) == 1 {
+		return commits[0], nil
+	}
+	return nil, nil
 }
 
 func (env *env) commitRange() (*vcs.Commit, string, string, error) {
@@ -173,7 +180,7 @@ func (env *env) commitRangeForFix() (*vcs.Commit, string, string, error) {
 
 func (env *env) commitRangeForBug() (*vcs.Commit, string, string, error) {
 	cfg := env.cfg
-	tags, err := env.repo.PreviousReleaseTags(cfg.Kernel.Commit)
+	tags, err := env.repo.(vcs.Bisecter).PreviousReleaseTags(cfg.Kernel.Commit)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -312,7 +319,7 @@ func (env *env) processResults(current *vcs.Commit, results []error) (bad, good 
 // Note: linux-specific.
 func (env *env) buildEnvForCommit(commit string) (*buildEnv, error) {
 	cfg := env.cfg
-	tags, err := env.repo.PreviousReleaseTags(commit)
+	tags, err := env.repo.(vcs.Bisecter).PreviousReleaseTags(commit)
 	if err != nil {
 		return nil, err
 	}
