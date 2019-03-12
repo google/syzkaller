@@ -338,9 +338,18 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if err != nil {
 		return nil, err
 	}
+	creditEmail, err := email.AddAddrContext(ownEmail(c), bugReporting.ID)
+	if err != nil {
+		return nil, err
+	}
+	typ := dashapi.ReportNew
+	if !bugReporting.Reported.IsZero() {
+		typ = dashapi.ReportRepro
+	}
 
 	kernelRepo := kernelRepoInfo(build)
 	rep := &dashapi.BugReport{
+		Type:              typ,
 		Namespace:         bug.Namespace,
 		Config:            reportingConfig,
 		ID:                bugReporting.ID,
@@ -348,6 +357,8 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 		First:             bugReporting.Reported.IsZero(),
 		Moderation:        reporting.moderation,
 		Title:             bug.displayTitle(),
+		Link:              fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
+		CreditEmail:       creditEmail,
 		Log:               crashLog,
 		LogLink:           externalLink(c, textCrashLog, crash.Log),
 		Report:            report,
@@ -356,6 +367,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 		OS:                build.OS,
 		Arch:              build.Arch,
 		VMArch:            build.VMArch,
+		UserSpaceArch:     kernelArch(build.Arch),
 		CompilerID:        build.CompilerID,
 		KernelRepo:        build.KernelRepo,
 		KernelRepoAlias:   kernelRepo.Alias,
@@ -911,4 +923,17 @@ func (a bugReportSorter) Less(i, j int) bool {
 		return a[i].NumCrashes > a[j].NumCrashes
 	}
 	return a[i].FirstTime.Before(a[j].FirstTime)
+}
+
+// kernelArch returns arch as kernel developers know it (rather than Go names).
+// Currently Linux-specific.
+func kernelArch(arch string) string {
+	switch arch {
+	case "386":
+		return "i386"
+	case "amd64":
+		return "" // this is kinda the default, so we don't notify about it
+	default:
+		return arch
+	}
 }
