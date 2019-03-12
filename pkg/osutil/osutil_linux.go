@@ -62,6 +62,10 @@ func removeImmutable(fname string) error {
 }
 
 func Sandbox(cmd *exec.Cmd, user, net bool) error {
+	enabled, uid, gid, err := initSandbox()
+	if err != nil || !enabled {
+		return err
+	}
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = new(syscall.SysProcAttr)
 	}
@@ -70,15 +74,9 @@ func Sandbox(cmd *exec.Cmd, user, net bool) error {
 			syscall.CLONE_NEWNS | syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID
 	}
 	if user {
-		enabled, uid, gid, err := initSandbox()
-		if err != nil {
-			return err
-		}
-		if enabled {
-			cmd.SysProcAttr.Credential = &syscall.Credential{
-				Uid: uid,
-				Gid: gid,
-			}
+		cmd.SysProcAttr.Credential = &syscall.Credential{
+			Uid: uid,
+			Gid: gid,
 		}
 	}
 	return nil
