@@ -22,7 +22,7 @@ func newFuchsia(vm, dir string) *fuchsia {
 	return &fuchsia{
 		vm:     vm,
 		dir:    dir,
-		zircon: newGit(filepath.Join(dir, "zircon")),
+		zircon: newGit(filepath.Join(dir, "zircon"), nil),
 	}
 }
 
@@ -91,10 +91,7 @@ func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Comm
 	return ctx.zircon.ExtractFixTagsFromCommits(baseCommit, email)
 }
 
-func (ctx *fuchsia) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for fuchsia")
-}
-
-func (ctx *fuchsia) PreviousReleaseTags(commit string) ([]string, error) {
-	return nil, fmt.Errorf("not implemented for fuchsia")
+func (ctx *fuchsia) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, interface{}, error)) (
+	*Commit, interface{}, error) {
+	return nil, nil, fmt.Errorf("not implemented for fuchsia")
 }

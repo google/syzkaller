@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ func init() {
 
 const (
 	userEmail           = `test@syzkaller.com`
+	userName            = `Test Syzkaller`
 	extractFixTagsEmail = `"syzbot" <syzbot@my.mail.com>`
 )
 
@@ -34,7 +36,7 @@ func TestGitRepo(t *testing.T) {
 	defer os.RemoveAll(baseDir)
 	repo1 := createTestRepo(t, baseDir, "repo1")
 	repo2 := createTestRepo(t, baseDir, "repo2")
-	repo := newGit(filepath.Join(baseDir, "repo"))
+	repo := newGit(filepath.Join(baseDir, "repo"), nil)
 	{
 		com, err := repo.Poll(repo1.dir, "master")
 		if err != nil {
@@ -165,6 +167,9 @@ func checkCommit(t *testing.T, idx int, test testCommit, com *Commit, checkTags 
 	if test.author != com.Author {
 		t.Errorf("#%v: want author %q, got %q", idx, test.author, com.Author)
 	}
+	if userName != com.AuthorName {
+		t.Errorf("#%v: want author name %q, got %q", idx, userName, com.Author)
+	}
 	if diff := cmp.Diff(test.cc, com.CC); diff != "" {
 		t.Logf("%#v", com.CC)
 		t.Error(diff)
@@ -273,9 +278,140 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 `,
 		title:  "USB: fix usbmon BUG trigger",
 		author: userEmail,
-		cc:     []string{userEmail},
+		cc:     []string{"gregkh@linuxfoundation.org", userEmail, "zaitcev@redhat.com"},
 		tags:   []string{"f9831b881b3e849829fc"},
 	},
+}
+
+func TestBisect(t *testing.T) {
+	t.Parallel()
+	repoDir, err := ioutil.TempDir("", "syz-git-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(repoDir)
+	repo := makeTestRepo(t, repoDir)
+	var commits []string
+	for i := 0; i < 5; i++ {
+		repo.commitChange(fmt.Sprintf("commit %v", i))
+		com, err := repo.repo.HeadCommit()
+		if err != nil {
+			t.Fatal(err)
+		}
+		commits = append(commits, com.Hash)
+		t.Logf("%v %v", com.Hash, com.Title)
+	}
+	type Test struct {
+		pred   func() (BisectResult, error)
+		result []string
+	}
+	tests := []Test{
+		{
+			// All are bad.
+			func() (BisectResult, error) {
+				return BisectBad, nil
+			},
+			[]string{commits[1]},
+		},
+		{
+			// All are good.
+			func() (BisectResult, error) {
+				return BisectGood, nil
+			},
+			[]string{commits[4]},
+		},
+		{
+			// All are skipped.
+			func() (BisectResult, error) {
+				return BisectSkip, nil
+			},
+			[]string{commits[1], commits[2], commits[3], commits[4]},
+		},
+		{
+			// Some are skipped.
+			func() (BisectResult, error) {
+				current, err := repo.repo.HeadCommit()
+				if err != nil {
+					t.Fatal(err)
+				}
+				switch current.Hash {
+				case commits[1]:
+					return BisectSkip, nil
+				case commits[2]:
+					return BisectSkip, nil
+				case commits[3]:
+					return BisectGood, nil
+				default:
+					return 0, fmt.Errorf("unknown commit %v", current.Hash)
+				}
+			},
+			[]string{commits[4]},
+		},
+		{
+			// Some are skipped.
+			func() (BisectResult, error) {
+				current, err := repo.repo.HeadCommit()
+				if err != nil {
+					t.Fatal(err)
+				}
+				switch current.Hash {
+				case commits[1]:
+					return BisectGood, nil
+				case commits[2]:
+					return BisectSkip, nil
+				case commits[3]:
+					return BisectBad, nil
+				default:
+					return 0, fmt.Errorf("unknown commit %v", current.Hash)
+				}
+			},
+			[]string{commits[2], commits[3]},
+		},
+		{
+			// Some are skipped.
+			func() (BisectResult, error) {
+				current, err := repo.repo.HeadCommit()
+				if err != nil {
+					t.Fatal(err)
+				}
+				switch current.Hash {
+				case commits[1]:
+					return BisectSkip, nil
+				case commits[2]:
+					return BisectSkip, nil
+				case commits[3]:
+					return BisectGood, nil
+				default:
+					return 0, fmt.Errorf("unknown commit %v", current.Hash)
+				}
+			},
+			[]string{commits[4]},
+		},
+	}
+	for i, test := range tests {
+		t.Logf("TEST %v", i)
+		result, err := repo.repo.Bisect(commits[4], commits[0], (*testWriter)(t), test.pred)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, com := range result {
+			got = append(got, com.Hash)
+		}
+		sort.Strings(got) // git result order is non-deterministic (wat)
+		sort.Strings(test.result)
+		if diff := cmp.Diff(test.result, got); diff != "" {
+			t.Logf("result: %+v", got)
+			t.Fatal(diff)
+		}
+	}
+}
+
+type testWriter testing.T
+
+func (t *testWriter) Write(data []byte) (int, error) {
+	(*testing.T)(t).Log(string(data))
+	return len(data), nil
 }
 
 func createTestRepo(t *testing.T, baseDir, name string) *testRepo {
@@ -304,16 +440,19 @@ func makeTestRepo(t *testing.T, dir string) *testRepo {
 	if err := osutil.MkdirAll(dir); err != nil {
 		t.Fatal(err)
 	}
+	ignoreCC := map[string]bool{
+		"stable@vger.kernel.org": true,
+	}
 	repo := &testRepo{
 		t:       t,
 		dir:     dir,
 		name:    filepath.Base(dir),
 		commits: make(map[string]map[string]*Commit),
-		repo:    newGit(dir),
+		repo:    newGit(dir, ignoreCC),
 	}
 	repo.git("init")
 	repo.git("config", "--add", "user.email", userEmail)
-	repo.git("config", "--add", "user.name", "Test Syzkaller")
+	repo.git("config", "--add", "user.name", userName)
 	return repo
 }
 

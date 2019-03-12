@@ -49,25 +49,32 @@ type Repo interface {
 	// Given email = "user@domain.com", it searches for tags of the form "user+tag@domain.com"
 	// and returns commits with these tags.
 	ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error)
+}
 
-	// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
-	PreviousReleaseTags(commit string) ([]string, error)
-
+// Bisecter may be optionally implemented by Repo.
+type Bisecter interface {
 	// Bisect bisects good..bad commit range against the provided predicate (wrapper around git bisect).
 	// The predicate should return an error only if there is no way to proceed
 	// (it will abort the process), if possible it should prefer to return BisectSkip.
 	// Progress of the process is streamed to the provided trace.
-	// Returns the first commit on which the predicate returns BisectBad.
-	Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error)
+	// Returns the first commit on which the predicate returns BisectBad,
+	// or multiple commits if bisection is inconclusive due to BisectSkip.
+	Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error)
+
+	// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
+	PreviousReleaseTags(commit string) ([]string, error)
+
+	EnvForCommit(commit string, kernelConfig []byte) (*BisectEnv, error)
 }
 
 type Commit struct {
-	Hash   string
-	Title  string
-	Author string
-	CC     []string
-	Tags   []string
-	Date   time.Time
+	Hash       string
+	Title      string
+	Author     string
+	AuthorName string
+	CC         []string
+	Tags       []string
+	Date       time.Time
 }
 
 type BisectResult int
@@ -78,10 +85,15 @@ const (
 	BisectSkip
 )
 
+type BisectEnv struct {
+	Compiler     string
+	KernelConfig []byte
+}
+
 func NewRepo(os, vm, dir string) (Repo, error) {
 	switch os {
 	case "linux":
-		return newGit(dir), nil
+		return newLinux(dir), nil
 	case "akaros":
 		return newAkaros(vm, dir), nil
 	case "fuchsia":
@@ -97,7 +109,7 @@ func NewRepo(os, vm, dir string) (Repo, error) {
 }
 
 func NewSyzkallerRepo(dir string) Repo {
-	return newGit(dir)
+	return newGit(dir, nil)
 }
 
 func Patch(dir string, patch []byte) error {
@@ -171,6 +183,8 @@ var (
 		regexp.MustCompile(`^[A-Za-z-]+\-and\-[Aa]cked\-.*: (.*)$`),
 		regexp.MustCompile(`^Tested\-.*: (.*)$`),
 		regexp.MustCompile(`^[A-Za-z-]+\-and\-[Tt]ested\-.*: (.*)$`),
+		regexp.MustCompile(`^Signed-off-by: (.*)$`),
+		regexp.MustCompile(`^C[Cc]: (.*)$`),
 	}
 )
 
