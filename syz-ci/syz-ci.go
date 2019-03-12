@@ -71,7 +71,8 @@ import (
 
 var (
 	flagConfig     = flag.String("config", "", "config file")
-	flagAutoUpdate = flag.Bool("autoupdate", true, "auto-update the binary")
+	flagAutoUpdate = flag.Bool("autoupdate", true, "auto-update the binary (for testing)")
+	flagManagers   = flag.Bool("managers", true, "start managers (for testing)")
 )
 
 type Config struct {
@@ -171,13 +172,15 @@ func main() {
 	if len(managers) == 0 {
 		log.Fatalf("failed to create all managers")
 	}
-	for _, mgr := range managers {
-		mgr := mgr
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			mgr.loop()
-		}()
+	if *flagManagers {
+		for _, mgr := range managers {
+			mgr := mgr
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				mgr.loop()
+			}()
+		}
 	}
 
 	jp := newJobProcessor(cfg, managers, stop, shutdownPending)
