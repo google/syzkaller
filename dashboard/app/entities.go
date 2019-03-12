@@ -83,13 +83,13 @@ type Bug struct {
 	LastActivity   time.Time // last time we observed any activity related to the bug
 	Closed         time.Time
 	Reporting      []BugReporting
-	Commits        []string     // titles of fixing commmits
-	CommitInfo     []CommitInfo // git hashes of fixing commits (parallel array to Commits)
-	HappenedOn     []string     `datastore:",noindex"` // list of managers
-	PatchedOn      []string     `datastore:",noindex"` // list of managers
+	Commits        []string // titles of fixing commmits
+	CommitInfo     []Commit // additional info for commits (for historical reasons parallel array to Commits)
+	HappenedOn     []string `datastore:",noindex"` // list of managers
+	PatchedOn      []string `datastore:",noindex"` // list of managers
 }
 
-type CommitInfo struct {
+type Commit struct {
 	Hash   string
 	Author string
 	Date   time.Time
@@ -100,11 +100,11 @@ type BugReporting struct {
 	ID         string // unique ID per BUG/BugReporting used in commucation with external systems
 	ExtID      string // arbitrary reporting ID that is passed back in dashapi.BugReport
 	Link       string
-	CC         string // additional emails added to CC list (|-delimited list)
-	CrashID    int64  // crash that we've last reported in this reporting
-	Auto       bool   // was it auto-upstreamed/obsoleted?
-	ReproLevel dashapi.ReproLevel
-	OnHold     time.Time // if set, the bug must not be upstreamed
+	CC         string             // additional emails added to CC list (|-delimited list)
+	CrashID    int64              // crash that we've last reported in this reporting
+	Auto       bool               // was it auto-upstreamed/obsoleted?
+	ReproLevel dashapi.ReproLevel // may be less then bug.ReproLevel if repro arrived but we didn't report it yet
+	OnHold     time.Time          // if set, the bug must not be upstreamed
 	Reported   time.Time
 	Closed     time.Time
 }
@@ -380,11 +380,11 @@ func (bug *Bug) updateCommits(commits []string, now time.Time) {
 	bug.PatchedOn = nil
 }
 
-func (bug *Bug) getCommitInfo(i int) CommitInfo {
+func (bug *Bug) getCommitInfo(i int) Commit {
 	if i < len(bug.CommitInfo) {
 		return bug.CommitInfo[i]
 	}
-	return CommitInfo{}
+	return Commit{}
 }
 
 func kernelRepoInfo(build *Build) KernelRepo {
