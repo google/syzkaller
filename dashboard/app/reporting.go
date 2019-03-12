@@ -619,16 +619,8 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	}
 	if cmd.CrashID != 0 {
 		// Rememeber that we've reported this crash.
-		crash := new(Crash)
-		crashKey := datastore.NewKey(c, "Crash", "", cmd.CrashID, bugKey)
-		if err := datastore.Get(c, crashKey, crash); err != nil {
-			return false, internalError, fmt.Errorf("failed to get reported crash %v: %v",
-				cmd.CrashID, err)
-		}
-		crash.Reported = now
-		if _, err := datastore.Put(c, crashKey, crash); err != nil {
-			return false, internalError, fmt.Errorf("failed to put reported crash %v: %v",
-				cmd.CrashID, err)
+		if err := markCrashReported(c, cmd.CrashID, bugKey, now); err != nil {
+			return false, internalError, err
 		}
 		bugReporting.CrashID = cmd.CrashID
 	}

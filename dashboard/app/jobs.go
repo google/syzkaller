@@ -149,7 +149,7 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 		if _, err := datastore.Put(c, jobKey, job); err != nil {
 			return fmt.Errorf("failed to put job: %v", err)
 		}
-		return nil
+		return markCrashReported(c, job.CrashID, bugKey, now)
 	}
 	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true, Attempts: 30})
 	if patchID != 0 && deletePatch || err != nil {
