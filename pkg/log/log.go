@@ -100,3 +100,10 @@ func Fatal(err error) {
 func Fatalf(msg string, args ...interface{}) {
 	golog.Fatalf(msg, args...)
 }
+
+type VerboseWriter int
+
+func (w VerboseWriter) Write(data []byte) (int, error) {
+	Logf(int(w), "%s", data)
+	return len(data), nil
+}
