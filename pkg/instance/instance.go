@@ -341,6 +341,7 @@ func (inst *inst) testRepro() error {
 	if err != nil {
 		return err
 	}
+	defer os.Remove(bin)
 	vmBin, err := inst.vm.Copy(bin)
 	if err != nil {
 		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
