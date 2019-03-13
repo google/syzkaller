@@ -55,8 +55,9 @@ options 	KCOV
 	script := fmt.Sprintf(`
 set -eux
 md=$(sudo mdconfig -a -t vnode image)
+partn=$(gpart show /dev/${md} | awk '/freebsd-ufs/{print $3}' | head -n 1)
 tmpdir=$(mktemp -d)
-sudo mount /dev/${md}p3 $tmpdir
+sudo mount /dev/${md}p${partn} $tmpdir
 
 sudo MAKEOBJDIRPREFIX=%s make -C %s installkernel KERNCONF=SYZKALLER DESTDIR=$tmpdir
 
