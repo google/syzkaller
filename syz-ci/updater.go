@@ -264,7 +264,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 		"SYZ_DISABLE_SANDBOXING=yes",
 	}, os.Environ()...)
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return osutil.PrependContext("testing failed: %v", err)
+		return osutil.PrependContext("testing failed", err)
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
 	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
