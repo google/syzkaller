@@ -35,8 +35,7 @@ func newGit(dir string, ignoreCC map[string]bool) *git {
 
 func (git *git) Poll(repo, branch string) (*Commit, error) {
 	dir := git.dir
-	runSandboxed(dir, "git", "bisect", "reset")
-	runSandboxed(dir, "git", "reset", "--hard")
+	git.reset()
 	origin, err := runSandboxed(dir, "git", "remote", "get-url", "origin")
 	if err != nil || strings.TrimSpace(string(origin)) != repo {
 		// The repo is here, but it has wrong origin (e.g. repo in config has changed), re-clone.
@@ -67,7 +66,7 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 
 func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 	dir := git.dir
-	runSandboxed(dir, "git", "bisect", "reset")
+	git.reset()
 	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
 		if err := git.initRepo(err); err != nil {
 			return nil, err
@@ -85,7 +84,7 @@ func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
 
 func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
 	dir := git.dir
-	runSandboxed(dir, "git", "bisect", "reset")
+	git.reset()
 	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
 		if err := git.initRepo(err); err != nil {
 			return nil, err
@@ -107,6 +106,7 @@ func (git *git) fetchRemote(repo string) error {
 
 func (git *git) SwitchCommit(commit string) (*Commit, error) {
 	dir := git.dir
+	runSandboxed(dir, "git", "reset", "--hard")
 	if _, err := runSandboxed(dir, "git", "checkout", commit); err != nil {
 		return nil, err
 	}
@@ -124,6 +124,13 @@ func (git *git) clone(repo, branch string) error {
 		return err
 	}
 	return nil
+}
+
+func (git *git) reset() {
+	// This function tries to reset git repo state to a known clean state.
+	runSandboxed(git.dir, "git", "reset", "--hard")
+	runSandboxed(git.dir, "git", "bisect", "reset")
+	runSandboxed(git.dir, "git", "reset", "--hard")
 }
 
 func (git *git) initRepo(reason error) error {
@@ -356,8 +363,7 @@ func splitEmail(email string) (user, domain string, err error) {
 
 func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
 	dir := git.dir
-	runSandboxed(dir, "git", "bisect", "reset")
-	runSandboxed(dir, "git", "reset", "--hard")
+	git.reset()
 	firstBad, err := git.getCommit(bad)
 	if err != nil {
 		return nil, err
@@ -366,7 +372,7 @@ func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectRes
 	if err != nil {
 		return nil, err
 	}
-	defer runSandboxed(dir, "git", "bisect", "reset")
+	defer git.reset()
 	fmt.Fprintf(trace, "# git bisect start %v %v\n%s", bad, good, output)
 	current, err := git.HeadCommit()
 	if err != nil {
@@ -379,6 +385,8 @@ func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectRes
 	}
 	for {
 		res, err := pred()
+		// Linux EnvForCommit may cherry-pick some fixes, reset these before the next step.
+		runSandboxed(dir, "git", "reset", "--hard")
 		if err != nil {
 			return nil, err
 		}
