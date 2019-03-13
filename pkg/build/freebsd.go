@@ -33,8 +33,8 @@ options 	KCOV
 		return err
 	}
 
-	objDir := filepath.Join(outputDir, "obj")
-	if err := ctx.make(kernelDir, objDir, "kernel-toolchain"); err != nil {
+	objDir := filepath.Join(kernelDir, "obj")
+	if err := ctx.make(kernelDir, objDir, "kernel-toolchain", "-DNO_CLEAN"); err != nil {
 		return err
 	}
 	if err := ctx.make(kernelDir, objDir, "buildkernel", "KERNCONF=SYZKALLER"); err != nil {
@@ -58,11 +58,11 @@ md=$(sudo mdconfig -a -t vnode image)
 tmpdir=$(mktemp -d)
 sudo mount /dev/${md}p3 $tmpdir
 
-sudo MAKEOBJDIRPREFIX=$(pwd)/obj make -C %s installkernel KERNCONF=SYZKALLER DESTDIR=$tmpdir
+sudo MAKEOBJDIRPREFIX=%s make -C %s installkernel KERNCONF=SYZKALLER DESTDIR=$tmpdir
 
 sudo umount $tmpdir
 sudo mdconfig -d -u ${md#md}
-`, kernelDir)
+`, objDir, kernelDir)
 
 	if debugOut, err := osutil.RunCmd(10*time.Minute, outputDir, "/bin/sh", "-c", script); err != nil {
 		return fmt.Errorf("error copying kernel: %v\n%v", err, debugOut)
@@ -71,8 +71,8 @@ sudo mdconfig -d -u ${md#md}
 }
 
 func (ctx freebsd) clean(kernelDir, targetArch string) error {
-	// Builds are non-incremental for now, so we don't need to do anything here.
-	return nil
+	objDir := filepath.Join(kernelDir, "obj")
+	return ctx.make(kernelDir, objDir, "cleanworld")
 }
 
 func (ctx freebsd) make(kernelDir string, objDir string, makeArgs ...string) error {
