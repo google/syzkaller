@@ -41,15 +41,15 @@ S_IWUSR = 128
 S_IXGRP = 8
 S_IXOTH = 1
 S_IXUSR = 64
-# __NR_msgctl is not set
-# __NR_msgget is not set
-# __NR_msgrcv is not set
-# __NR_msgsnd is not set
-# __NR_semctl is not set
-# __NR_semget is not set
+__NR_msgctl = 402
+__NR_msgget = 399
+__NR_msgrcv = 401
+__NR_msgsnd = 400
+__NR_semctl = 394
+__NR_semget = 393
 # __NR_semop is not set
-# __NR_semtimedop is not set
-# __NR_shmat is not set
-# __NR_shmctl is not set
-# __NR_shmdt is not set
-# __NR_shmget is not set
+__NR_semtimedop = 392
+__NR_shmat = 397
+__NR_shmctl = 396
+__NR_shmdt = 398
+__NR_shmget = 395

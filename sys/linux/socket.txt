@@ -175,8 +175,8 @@ setsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED
 getsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_timeval(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
 setsockopt$sock_attach_bpf(fd sock, level const[SOL_SOCKET], optname const[SO_ATTACH_BPF], optval ptr[in, fd_bpf_prog], optlen len[optval])
-setsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname const[SO_TIMESTAMPING], optval ptr[in, flags[sockopt_so_timestamping, int32]], optlen len[optval])
-getsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname const[SO_TIMESTAMPING], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname const[SO_TIMESTAMPING_OLD], optval ptr[in, flags[sockopt_so_timestamping, int32]], optlen len[optval])
+getsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname const[SO_TIMESTAMPING_OLD], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$SO_ATTACH_FILTER(fd sock, level const[SOL_SOCKET], optname const[SO_ATTACH_FILTER], optval ptr[in, sock_fprog], optlen len[optval])
 setsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[in, devname], optlen len[optval])
 getsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[out, devname], optlen len[optval])
@@ -189,8 +189,8 @@ linger {
 }
 
 sockopt_opt_sock_void = SO_DETACH_FILTER, SO_MARK
-sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TYPE, SO_REUSEPORT, SO_OOBINLINE, SO_NO_CHECK, SO_PASSCRED, SO_TIMESTAMPNS, SO_LOCK_FILTER, SO_PASSSEC, SO_RXQ_OVFL, SO_WIFI_STATUS, SO_NOFCS, SO_SELECT_ERR_QUEUE, SO_BUSY_POLL, SO_MAX_PACING_RATE, SO_ZEROCOPY
-sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
+sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP_OLD, SO_TYPE, SO_REUSEPORT, SO_OOBINLINE, SO_NO_CHECK, SO_PASSCRED, SO_TIMESTAMPNS_OLD, SO_LOCK_FILTER, SO_PASSSEC, SO_RXQ_OVFL, SO_WIFI_STATUS, SO_NOFCS, SO_SELECT_ERR_QUEUE, SO_BUSY_POLL, SO_MAX_PACING_RATE, SO_ZEROCOPY
+sockopt_opt_sock_timeval = SO_RCVTIMEO_OLD, SO_SNDTIMEO_OLD
 sockopt_opt_sock_buf = SO_PEERNAME, SO_PEERSEC, SO_GET_FILTER, SO_MEMINFO, SO_PEERGROUPS, SO_TXTIME
 sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFTWARE, SOF_TIMESTAMPING_RX_HARDWARE, SOF_TIMESTAMPING_RX_SOFTWARE, SOF_TIMESTAMPING_SOFTWARE, SOF_TIMESTAMPING_SYS_HARDWARE, SOF_TIMESTAMPING_RAW_HARDWARE, SOF_TIMESTAMPING_OPT_ID, SOF_TIMESTAMPING_TX_SCHED, SOF_TIMESTAMPING_TX_ACK, SOF_TIMESTAMPING_OPT_CMSG, SOF_TIMESTAMPING_OPT_TSONLY
 
