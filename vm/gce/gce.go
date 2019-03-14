@@ -164,7 +164,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	log.Logf(0, "wait instance to boot: %v (%v)", name, ip)
 	if err := vmimpl.WaitForSSH(pool.env.Debug, 5*time.Minute, ip,
-		sshKey, sshUser, pool.env.OS, 22); err != nil {
+		sshKey, sshUser, pool.env.OS, 22, nil); err != nil {
 		output, outputErr := pool.getSerialPortOutput(name, gceKey)
 		if outputErr != nil {
 			output = []byte(fmt.Sprintf("failed to get boot output: %v", outputErr))

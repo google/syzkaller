@@ -22,7 +22,7 @@ func SleepInterruptible(d time.Duration) bool {
 	}
 }
 
-func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS string, port int) error {
+func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS string, port int, stop chan error) error {
 	pwd := "pwd"
 	if OS == "windows" {
 		pwd = "dir"
@@ -30,7 +30,11 @@ func WaitForSSH(debug bool, timeout time.Duration, addr, sshKey, sshUser, OS str
 	startTime := time.Now()
 	SleepInterruptible(5 * time.Second)
 	for {
-		if !SleepInterruptible(5 * time.Second) {
+		select {
+		case <-time.After(5 * time.Second):
+		case err := <-stop:
+			return err
+		case <-Shutdown:
 			return fmt.Errorf("shutdown in progress")
 		}
 		args := append(SSHArgs(debug, sshKey, port), sshUser+"@"+addr, pwd)
