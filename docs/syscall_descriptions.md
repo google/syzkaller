@@ -101,6 +101,10 @@ and is pure text processing.
 Note: _all_ generated files (`*.const`, `*.go`, `*.h`) are checked-in with the
 `*.txt` changes in the same commit.
 
+Note: `make extract` extracts constants for all architectures which requires
+installed cross-compilers. If you get errors about missing compilers/libraries,
+try `sudo make install_prerequisites` or install equivalent package for your distro.
+
 If you want to fuzz the new subsystem that you described locally, you may find
 the `enable_syscalls` configuration parameter useful to specifically target
 the new system calls.
