@@ -219,11 +219,11 @@ func TestEscapingPaths(t *testing.T) {
 		"file/../../file":        true,
 		"../file":                true,
 		"./file/../../file/file": true,
-		"":          false,
-		".":         false,
-		"file":      false,
-		"./file":    false,
-		"./file/..": false,
+		"":                       false,
+		".":                      false,
+		"file":                   false,
+		"./file":                 false,
+		"./file/..":              false,
 	}
 	for path, want := range paths {
 		got := escapingFilename(path)

@@ -15,37 +15,14 @@ These were tested on an NXP Pico-Pi-IMX7D following the instructions [here](http
 
 If feasible, recompile and reinstall the Linux kernel with any debugging options available on your board.
 
-## Install Go
-
-Install Go as follows:
-``` bash
-wget https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz
-tar -xf go1.9.2.linux-amd64.tar.gz
-export PATH=`pwd`/go/bin:$PATH
-mkdir gopath
-export GOPATH=`pwd`/gopath
-```
-
-## Build syzkaller code
-
-### Initialize a working directory and set up environment variables
-
-Create a working directory. Also make sure GOROOT, GOPATH are defined and exported as instructed earlier.
-
-``` bash
-go get -u -d github.com/google/syzkaller/...
-cd gopath/src/github.com/google/syzkaller/
-mkdir workdir 
-```
-
-### Build syzkaller executables
+## Build syzkaller executables
 
 Run make. 
 ```
 make TARGETOS=linux TARGETARCH=arm
 ```
 
-### Create a manager configuration file
+## Create a manager configuration file
 
 Create a manager config myboard.cfg, replacing the environment
 variables `$GOPATH`, `$KERNEL` (path to kernel build dir for the ARM32 board), and `$DEVICES` (the device ID for your board as reported by adb devices) with their actual values. Change any other flags as needed for your ARM board.
