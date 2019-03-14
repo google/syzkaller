@@ -1,10 +1,7 @@
 # Setup: Linux or Mac OS host, Android device, arm64 kernel
 
 Prerequisites:
- - go1.8+ toolchain (can be downloaded from [here](https://golang.org/dl/))
  - Android Serial Cable or [Suzy-Q](https://chromium.googlesource.com/chromiumos/platform/ec/+/master/docs/case_closed_debugging.md) device to capture console output is preferable but optional. syzkaller can work with normal USB cable as well, but that can be somewhat unreliable and turn lots of crashes into "lost connection to test machine" crashes with no additional info.
-
- - Build syzkaller
 
 In case you have old Android `/dev/ion` driver:
 

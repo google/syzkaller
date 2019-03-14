@@ -66,7 +66,7 @@ For some details on fuzzing the kernel on an Android device check out [this page
 
 ### Syzkaller
 
-`syzkaller` is written in [Go](https://golang.org), a `Go 1.9+` toolchain is required for build.
+`syzkaller` is written in [Go](https://golang.org), a `Go 1.11+` toolchain is required for build.
 
 Go distribution can be downloaded from https://golang.org/dl/.
 Unpack Go into a directory, say, `$HOME/goroot`.

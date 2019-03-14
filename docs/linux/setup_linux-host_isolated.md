@@ -53,27 +53,7 @@ Host *
 Before fuzzing, connect to the machine and keep the connection open so all scp
 and ssh usage will reuse it.
 
-## Go
-
-Install Go 1.8.1:
-``` bash
-wget https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
-tar -xf go1.8.1.linux-amd64.tar.gz
-mv go goroot
-export GOROOT=`pwd`/goroot
-export PATH=$PATH:$GOROOT/bin
-mkdir gopath
-export GOPATH=`pwd`/gopath
-```
-
 ## Syzkaller
-
-Get and build syzkaller:
-``` bash
-go get -u -d github.com/google/syzkaller/...
-cd gopath/src/github.com/google/syzkaller/
-make
-```
 
 Use the following config:
 ```

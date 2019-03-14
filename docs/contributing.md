@@ -46,6 +46,33 @@ Unassigned issues from the [bug tracker](https://github.com/google/syzkaller/iss
 If you want to work on something non-trivial, please briefly describe it on the [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller) mailing list first,
 so that there is agreement on high level approach and no duplication of work between contributors.
 
+## Go
+
+`syzkaller` is written in [Go](https://golang.org), and a `Go 1.11` or `Go 1.12`
+toolchain is required for build. The toolchain can be installed with:
+
+```
+go get golang.org/dl/go1.12
+go1.12 download
+# Default download path is here.
+~/sdk/go1.12/bin/go version
+export GOROOT=$HOME/sdk/go1.12
+export PATH=$HOME/sdk/go1.12/bin:$PATH
+```
+
+Then get and build `syzkaller`:
+
+``` bash
+go get -u -d github.com/google/syzkaller/...
+cd $HOME?/go/src/github.com/google/syzkaller/
+make
+```
+
+Note: older versions of Go toolchain formatted code in a slightly
+[different way](https://github.com/golang/go/issues/25161).
+So if you are seeing unrelated code formatting diffs after running `make generate`
+or `make format`, you may be using Go 1.10 or older. In such case update to Go 1.11+.
+
 ## How to create a pull request
 
 - First, you need an own git fork of syzkaller repository. Nagivate to [github.com/google/syzkaller](https://github.com/google/syzkaller) and press `Fork` button in the top-right corner of the page. This will create `https://github.com/YOUR_GITHUB_USERNAME/syzkaller` repository.
@@ -64,20 +91,6 @@ This adds git origin `my-origin` with your repository and checks out new branch 
 - Change/add files as necessary.
 - Commit changes locally. For this you need to run `git add` for all changed files, e.g. `git add sys/linux/sys.txt`. You can run `git status` to see what files were changed/created. When all files are added (`git status` shows no files in `Changes not staged for commit` section and no relevant files in `Untracked files` section), run `git commit` and enter commit description in your editor.
 - Run tests locally (`make install_prerequisites` followed by `make presubmit`).
-- *Important* If you've run `go fmt` and you're seeing the presubmit fail on
-  `check_diff`, then you may need to use an older version of go to format your
-  code. (Version 1.11 in particular introduced a breaking change, see
-  [here](https://github.com/golang/go/issues/25161) and
-  [here](https://github.com/golang/go/issues/26228) for details). A
-  simple way to do this is:
-
-```
-go get golang.org/dl/go1.10
-go1.10 download
-# Default download path is here.
-~/sdk/go1.10/bin/go fmt [target files]
-```
-
 - Push the commit to your fork on github with `git push my-origin my-branch`.
 - Nagivate to [github.com/google/syzkaller](https://github.com/google/syzkaller) and you should see green `Compare & pull request` button, press it. Then press `Create pull request`. Now your pull request should show up on [pull requests page](https://github.com/google/syzkaller/pulls).
 - If you don't see `Create pull request` button for any reason, you can create pull request manually. For that nagivate to [pull requests page](https://github.com/google/syzkaller/pulls), press `New pull request`, then `compare across forks` and choose `google/syzkaller`/`master` as base and `YOUR_GITHUB_USERNAME/syzkaller`/`my-branch` as compare and press `Create pull request`.

@@ -196,28 +196,7 @@ To kill the running QEMU instance:
 kill $(cat vm.pid)
 ```
 
-## Go
-
-Install Go 1.8.1:
-``` bash
-wget https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
-tar -xf go1.8.1.linux-amd64.tar.gz
-mv go goroot
-export GOROOT=`pwd`/goroot
-export PATH=$GOROOT/bin:$PATH
-mkdir gopath
-export GOPATH=`pwd`/gopath
-```
-
 ## syzkaller
-
-Get and build syzkaller:
-``` bash
-go get -u -d github.com/google/syzkaller/...
-cd gopath/src/github.com/google/syzkaller/
-mkdir workdir
-make
-```
 
 Create a manager config like the following, replacing the environment
 variables `$GOPATH`, `$KERNEL` and `$IMAGE` with their actual values.
@@ -243,6 +222,7 @@ variables `$GOPATH`, `$KERNEL` and `$IMAGE` with their actual values.
 
 Run syzkaller manager:
 ``` bash
+mkdir workdir
 ./bin/syz-manager -config=my.cfg
 ```
 

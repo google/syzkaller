@@ -86,8 +86,8 @@ bash
 		return fmt.Errorf("failed to write image file: %v", err)
 	}
 	for src, dst := range map[string]string{
-		".config": "kernel.config",
-		"key":     "key",
+		".config":                    "kernel.config",
+		"key":                        "key",
 		"obj/kern/akaros-kernel":     "kernel",
 		"obj/kern/akaros-kernel-64b": "obj/akaros-kernel-64b",
 	} {

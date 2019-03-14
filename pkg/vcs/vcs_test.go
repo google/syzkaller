@@ -33,12 +33,12 @@ func TestCheckRepoAddress(t *testing.T) {
 		"http://host.xz:123/path/to/repo.git/":                                  true,
 		"https://chromium.googlesource.com/chromiumos/third_party/kernel":       true,
 		"https://fuchsia.googlesource.com":                                      true,
-		"":           false,
-		"foobar":     false,
-		"linux-next": false,
-		"foo://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":    false,
-		"git://kernel/ubuntu.git":                            false,
-		"gitgit://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git": false,
+		"":                                                                      false,
+		"foobar":                                                                false,
+		"linux-next":                                                            false,
+		"foo://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                       false,
+		"git://kernel/ubuntu.git":                                               false,
+		"gitgit://kernel.ubuntu.com/ubuntu/ubuntu-zesty.git":                    false,
 	})
 }
 
