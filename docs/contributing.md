@@ -4,8 +4,10 @@
 
 If you want to contribute to the project, feel free to send a pull request.
 
-Before sending a pull request you need to [sign Google CLA](https://cla.developers.google.com/) (if you don't a bot will ask you to do that)
-and add yourself to [AUTHORS](/AUTHORS)/[CONTRIBUTORS](/CONTRIBUTORS) files (in case this is your first pull request to syzkaller).
+Before sending a pull request you need to [sign Google CLA](https://cla.developers.google.com/)
+(if you don't a bot will ask you to do that) and add yourself to
+[AUTHORS](/AUTHORS)/[CONTRIBUTORS](/CONTRIBUTORS) files (in case this is your
+first pull request to syzkaller).
 
 Some guildelines to follow:
 
@@ -17,15 +19,21 @@ Extended multi-line description that includes
 the problem you are solving and how it is solved.
 ```
 `dir/path` is a relative path to the main dir this commit changes
-(look at examples in the [commit history](https://github.com/google/syzkaller/commits/master)). Please pay attention to punctuation. In particular:
+(look at examples in the [commit history](https://github.com/google/syzkaller/commits/master)).\
+Please pay attention to punctuation. In particular:
 - `one-line description` does *not* start with a Capital letter.
 - there is *no dot* at the end of `one-line description`.
 - `Extended multi-line description` is full English sentenses with Capital letters and dots.
 
 Also:
-- If you commit fixes an issue, please include `Fixes #NNN` line into commit message (where `NNN` is issue number). This will auto-close the issue. If you need to mention an issue without closing it, add `Update #NNN`.
+- If you commit fixes an issue, please include `Fixes #NNN` line into commit message
+(where `NNN` is issue number). This will auto-close the issue. If you need to mention
+an issue without closing it, add `Update #NNN`.
 - The pull request text is mostly irrelevant.
 - Run `make presubmit` and ensure that it passes before sending a PR. It may require some additional packages to be installed (try `sudo make install_prerequisites`).
+- _All_ generated files (`*.const`, `*.go`, `*.h`) are checked-in with the
+`*.txt` changes in the same commit. Namely, `make generate` must not produce
+_any_ diff in the tree.
 - Rebase your pull request onto the master branch before submitting.
 - If you're asked to add some fixes to your pull requested, please squash the new commits with the old ones.
 
