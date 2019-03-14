@@ -248,9 +248,13 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 		manualFiles := map[string]bool{
 			// Not upstream, generated on https://github.com/multipath-tcp/mptcp_net-next
 			"mptcp.txt": true,
+			// This was added to linux-next, then we generated consts and then dropped from linux-next.
+			// So for now we can't regenereate this, but it should be resubmitted later
+			// so we don't remove the descriptions entirely.
+			"fsverity.txt": true,
 		}
 		androidFiles := map[string]bool{
-			"tlk_device.txt": true,
+			"dev_tlk_device.txt": true,
 			// This was generated on:
 			// https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
 			"dev_video4linux.txt": true,

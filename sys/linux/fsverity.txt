@@ -1,0 +1,16 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fs.h>
+include <uapi/linux/fsverity.h>
+
+ioctl$FS_IOC_ENABLE_VERITY(fd fd, cmd const[FS_IOC_ENABLE_VERITY])
+ioctl$FS_IOC_MEASURE_VERITY(fd fd, cmd const[FS_IOC_MEASURE_VERITY], arg ptr[inout, fsverity_digest])
+
+fsverity_digest_algorithm_flags = FS_VERITY_ALG_SHA256, FS_VERITY_ALG_SHA512, FS_VERITY_ALG_CRC32C
+
+fsverity_digest {
+	digest_algorithm	flags[fsverity_digest_algorithm_flags, int16]
+	digest_size		len[digest, int16]
+	digest			array[int8]
+}
