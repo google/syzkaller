@@ -42,8 +42,9 @@ type Instance struct {
 }
 
 var (
-	Shutdown   = vmimpl.Shutdown
-	ErrTimeout = vmimpl.ErrTimeout
+	Shutdown               = vmimpl.Shutdown
+	ErrTimeout             = vmimpl.ErrTimeout
+	_          BootErrorer = vmimpl.BootError{}
 )
 
 type BootErrorer interface {

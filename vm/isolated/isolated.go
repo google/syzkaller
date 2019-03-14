@@ -200,7 +200,7 @@ func (inst *instance) repair() error {
 
 func (inst *instance) waitForSSH(timeout time.Duration) error {
 	return vmimpl.WaitForSSH(inst.debug, timeout, inst.targetAddr, inst.sshKey, inst.sshUser,
-		inst.os, inst.targetPort)
+		inst.os, inst.targetPort, nil)
 }
 
 func (inst *instance) waitForReboot(timeout int) error {

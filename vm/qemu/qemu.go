@@ -170,7 +170,7 @@ var linuxCmdline = []string{
 	"oops=panic",
 	"nmi_watchdog=panic",
 	"panic_on_warn=1",
-	"panic=86400",
+	"panic=1",
 	"ftrace_dump_on_oops=orig_cpu",
 	"rodata=n",
 	"vsyscall=native",
@@ -402,7 +402,7 @@ func (inst *instance) boot() error {
 		}
 	}()
 	if err := vmimpl.WaitForSSH(inst.debug, 10*time.Minute, "localhost",
-		inst.sshkey, inst.sshuser, inst.os, inst.port); err != nil {
+		inst.sshkey, inst.sshuser, inst.os, inst.port, inst.merger.Err); err != nil {
 		bootOutputStop <- true
 		<-bootOutputStop
 		return vmimpl.MakeBootError(err, bootOutput)
