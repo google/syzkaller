@@ -248,16 +248,20 @@ func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, string, 
 		if prefix == "" {
 			prefix = frame.File
 		} else {
-			i := 0
-			for ; i < len(prefix) && i < len(frame.File); i++ {
-				if prefix[i] != frame.File[i] {
+			// On FreeBSD, don't consider files which are present
+			// in the objDir directory.
+			if rg.OS != "freebsd" || (len(frame.File) > 0 && frame.File[0] == '/') {
+				i := 0
+				for ; i < len(prefix) && i < len(frame.File); i++ {
+					if prefix[i] != frame.File[i] {
+						break
+					}
+				}
+				if (prefix == "") {
 					break
 				}
+				prefix = prefix[:i]
 			}
-			if (prefix == "") {
-				break
-			}
-			prefix = prefix[:i]
 		}
 
 	}
