@@ -96,7 +96,10 @@ func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncover
 	var d templateData
 	for f, covered := range fileSet(covered, uncovered) {
 		remain := filepath.Clean(strings.TrimPrefix(f, prefix))
-		if rg.srcDir != "" && !strings.HasPrefix(remain, rg.srcDir) {
+		// On FreeBSD, some files are in the kernel build directory.
+		if rg.OS == "freebsd" && f[0] != '/' {
+			f = filepath.Join(rg.objDir, remain)
+		} else if rg.srcDir != "" && !strings.HasPrefix(remain, rg.srcDir) {
 			f = filepath.Join(rg.srcDir, remain)
 		}
 		lines, err := parseFile(f)
