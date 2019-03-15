@@ -208,7 +208,12 @@ var openbsdOopses = []*oops{
 	},
 	{
 		[]byte("kernel:"),
-		[]oopsFormat{},
+		[]oopsFormat{
+			{
+				title: compile("kernel: page fault trap, code=0.*\\nStopped at[ ]+([^\\+]+)"),
+				fmt:   "uvm_fault: %[1]v",
+			},
+		},
 		[]*regexp.Regexp{
 			compile("reorder_kernel"),
 		},
