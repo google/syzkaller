@@ -988,12 +988,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 					FirstTime:  now,
 					LastTime:   now,
 				}
-				for _, rep := range config.Namespaces[ns].Reporting {
-					bug.Reporting = append(bug.Reporting, BugReporting{
-						Name: rep.Name,
-						ID:   bugReportingHash(bugHash, rep.Name),
-					})
-				}
+				createBugReporting(bug, config.Namespaces[ns])
 				if bugKey, err = datastore.Put(c, bugKey, bug); err != nil {
 					return fmt.Errorf("failed to put new bug: %v", err)
 				}
@@ -1016,6 +1011,16 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 		return nil, nil, err
 	}
 	return bug, bugKey, nil
+}
+
+func createBugReporting(bug *Bug, cfg *Config) {
+	for len(bug.Reporting) < len(cfg.Reporting) {
+		rep := &cfg.Reporting[len(bug.Reporting)]
+		bug.Reporting = append(bug.Reporting, BugReporting{
+			Name: rep.Name,
+			ID:   bugReportingHash(bug.keyHash(), rep.Name),
+		})
+	}
 }
 
 func isActiveBug(c context.Context, bug *Bug) (bool, error) {

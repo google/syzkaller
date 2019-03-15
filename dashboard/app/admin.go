@@ -80,8 +80,6 @@ func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) er
 	return nil
 }
 
-var _ = dropNamespace // prevent warnings about dead code
-
 func dropNamespaceReportingState(c context.Context, w http.ResponseWriter, ns string, dryRun bool) error {
 	tx := func(c context.Context) error {
 		state, err := loadReportingState(c)
@@ -121,3 +119,70 @@ func dropEntities(c context.Context, keys []*datastore.Key, dryRun bool) error {
 	}
 	return nil
 }
+
+// updateBugReporting adds missing reporting stages to bugs in a single namespace.
+// Use with care. There is no undo.
+// This can be used to migrate datastore to a new config with more reporting stages.
+// This functionality is intentionally not connected to any handler.
+// Before invoking it is recommended to stop all connected instances just in case.
+func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	if accessLevel(c, r) != AccessAdmin {
+		return fmt.Errorf("admin only")
+	}
+	ns := r.FormValue("ns")
+	if ns == "" {
+		return fmt.Errorf("no ns parameter")
+	}
+	var bugs []*Bug
+	keys, err := datastore.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		GetAll(c, &bugs)
+	if err != nil {
+		return err
+	}
+	log.Warningf(c, "fetched %v bugs for namespce %v", len(bugs), ns)
+	cfg := config.Namespaces[ns]
+	var batchKeys []*datastore.Key
+	const batchSize = 20
+	for i, bug := range bugs {
+		if len(bug.Reporting) >= len(cfg.Reporting) {
+			continue
+		}
+		batchKeys = append(batchKeys, keys[i])
+		if len(batchKeys) == batchSize {
+			if err := updateBugReportingBatch(c, cfg, batchKeys); err != nil {
+				return err
+			}
+			batchKeys = nil
+		}
+	}
+	if len(batchKeys) != 0 {
+		if err := updateBugReportingBatch(c, cfg, batchKeys); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func updateBugReportingBatch(c context.Context, cfg *Config, keys []*datastore.Key) error {
+	tx := func(c context.Context) error {
+		bugs := make([]*Bug, len(keys))
+		if err := datastore.GetMulti(c, keys, bugs); err != nil {
+			return err
+		}
+		for _, bug := range bugs {
+			createBugReporting(bug, cfg)
+		}
+		_, err := datastore.PutMulti(c, keys, bugs)
+		return err
+	}
+	err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true})
+	log.Warningf(c, "updated %v bugs: %v", len(keys), err)
+	return err
+}
+
+// Prevent warnings about dead code.
+var (
+	_ = dropNamespace
+	_ = updateBugReporting
+)
