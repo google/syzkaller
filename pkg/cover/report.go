@@ -239,8 +239,10 @@ func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, string, 
 				}
 			}
 			prefix = prefix[:i]
+			if prefix == "" {
+				break
+			}
 		}
-
 	}
 	return frames, prefix, nil
 }
