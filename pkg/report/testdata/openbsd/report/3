@@ -1,4 +1,4 @@
-TITLE: kernel: page fault trap, code=0
+TITLE: uvm_fault: vn_writechk
 
 login:
 kernel: page fault trap, code=0
