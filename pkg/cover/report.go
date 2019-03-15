@@ -55,13 +55,14 @@ func MakeReportGenerator(vmlinux, srcDir, arch string) (*ReportGenerator, error)
 }
 
 func (rg *ReportGenerator) Do(w io.Writer, pcs []uint64) error {
+	var prefix string
 	if len(pcs) == 0 {
 		return fmt.Errorf("no coverage data available")
 	}
 	for i, pc := range pcs {
 		pcs[i] = PreviousInstructionPC(rg.arch, pc)
 	}
-	covered, _, err := rg.symbolize(pcs)
+	covered, prefix1, err := rg.symbolize(pcs)
 	if err != nil {
 		return err
 	}
@@ -69,9 +70,20 @@ func (rg *ReportGenerator) Do(w io.Writer, pcs []uint64) error {
 		return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", rg.vmlinux)
 	}
 	uncoveredPCs := rg.uncoveredPcsInFuncs(pcs)
-	uncovered, prefix, err := rg.symbolize(uncoveredPCs)
+	uncovered, prefix2, err := rg.symbolize(uncoveredPCs)
 	if err != nil {
 		return err
+	}
+	if len(uncoveredPCs) == 0 {
+		prefix = prefix1
+	} else {
+		i := 0
+		for ; i < len(prefix1) && i < len(prefix2); i++ {
+			if prefix1[i] != prefix2[i] {
+				break
+			}
+		}
+		prefix = prefix1[:i]
 	}
 	return rg.generate(w, prefix, covered, uncovered)
 }
