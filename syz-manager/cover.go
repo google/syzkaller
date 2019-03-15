@@ -31,7 +31,7 @@ func initCover(kernelObj, kernelObjName, kernelSrc, arch, OS string) error {
 	}
 	vmlinux := filepath.Join(kernelObj, kernelObjName)
 	var err error
-	reportGenerator, err = cover.MakeReportGenerator(vmlinux, kernelSrc, arch)
+	reportGenerator, err = cover.MakeReportGenerator(vmlinux, kernelObj, kernelSrc, arch, OS)
 	if err != nil {
 		return err
 	}

@@ -61,7 +61,7 @@ func main() {
 		failf("%v", err)
 	}
 	kernelObj := filepath.Join(*flagKernelObj, target.KernelObject)
-	rg, err := cover.MakeReportGenerator(kernelObj, *flagKernelSrc, *flagArch)
+	rg, err := cover.MakeReportGenerator(kernelObj, *flagKernelObj, *flagKernelSrc, *flagArch, *flagOS)
 	if err != nil {
 		failf("%v", err)
 	}

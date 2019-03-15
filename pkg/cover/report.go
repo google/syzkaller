@@ -22,8 +22,10 @@ import (
 
 type ReportGenerator struct {
 	vmlinux  string
+	objDir   string
 	srcDir   string
 	arch     string
+	OS       string
 	symbols  []symbol
 	coverPCs []uint64
 }
@@ -39,11 +41,13 @@ type coverage struct {
 	covered bool
 }
 
-func MakeReportGenerator(vmlinux, srcDir, arch string) (*ReportGenerator, error) {
+func MakeReportGenerator(vmlinux, objDir, srcDir, arch, OS string) (*ReportGenerator, error) {
 	rg := &ReportGenerator{
 		vmlinux: vmlinux,
+		objDir:  objDir,
 		srcDir:  srcDir,
 		arch:    arch,
+		OS:      OS,
 	}
 	if err := rg.readSymbols(); err != nil {
 		return nil, err
