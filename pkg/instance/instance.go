@@ -6,6 +6,7 @@
 package instance
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -208,7 +209,11 @@ func (inst *inst) test() error {
 			rep := inst.reporter.Parse(testErr.Output)
 			if rep != nil && rep.Title == report.UnexpectedKernelReboot {
 				// Avoid detecting any boot crash as "unexpected kernel reboot".
-				rep = inst.reporter.Parse(testErr.Output[rep.EndPos:])
+				output := testErr.Output[rep.EndPos:]
+				if pos := bytes.IndexByte(testErr.Output[rep.StartPos:], '\n'); pos != -1 {
+					output = testErr.Output[rep.StartPos+pos:]
+				}
+				rep = inst.reporter.Parse(output)
 			}
 			if rep == nil {
 				rep = &report.Report{
