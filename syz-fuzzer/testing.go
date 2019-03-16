@@ -34,11 +34,11 @@ func testImage(hostAddr string, args *checkArgs) {
 	log.Logf(0, "connecting to host at %v", hostAddr)
 	conn, err := rpctype.Dial(hostAddr)
 	if err != nil {
-		log.Fatalf("failed to connect: %v", err)
+		log.Fatalf("BUG: failed to connect to host: %v", err)
 	}
 	conn.Close()
 	if _, err := checkMachine(args); err != nil {
-		log.Fatalf("%v", err)
+		log.Fatalf("BUG: %v", err)
 	}
 }
 
