@@ -97,7 +97,7 @@ func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncover
 	for f, covered := range fileSet(covered, uncovered) {
 		remain := filepath.Clean(strings.TrimPrefix(f, prefix))
 		// On FreeBSD, some files are in the kernel build directory.
-		if rg.OS == "freebsd" && f[0] != '/' {
+		if rg.OS == "freebsd" && strings.HasPrefix(f, "./") {
 			f = filepath.Join(rg.objDir, remain)
 		} else if rg.srcDir != "" && !strings.HasPrefix(remain, rg.srcDir) {
 			f = filepath.Join(rg.srcDir, remain)
@@ -253,7 +253,7 @@ func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, string, 
 		} else {
 			// On FreeBSD, don't consider files which are present
 			// in the objDir directory.
-			if rg.OS != "freebsd" || (len(frame.File) > 0 && frame.File[0] == '/') {
+			if rg.OS != "freebsd" || !strings.HasPrefix(frame.File, "./") {
 				i := 0
 				for ; i < len(prefix) && i < len(frame.File); i++ {
 					if prefix[i] != frame.File[i] {
