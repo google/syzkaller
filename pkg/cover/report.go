@@ -96,7 +96,7 @@ func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncover
 	var d templateData
 	for f, covered := range fileSet(covered, uncovered) {
 		// On FreeBSD, some files are in the kernel build directory.
-		// These files either start with "./" or contain "/./".
+		// The filenames either start with "./" or contain "/./".
 		if rg.OS == "freebsd" {
 			f = f[strings.LastIndex(f, "/./")+1:]
 		}
