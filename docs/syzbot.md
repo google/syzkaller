@@ -82,6 +82,50 @@ to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 
 Note: see [below](#kmsan-bugs) for testing `KMSAN` bugs.
 
+## Bisection
+
+`syzbot` bisects bugs with reproducers to find commit that introduced the bug.
+`syzbot` starts with the commit on which the bug was discovered, ensures that it
+can reproduce the bug and then goes back release-by-release to find the first
+release where kernel does not crash. Once such release is found, `syzbot` starts
+bisection on that range. `syzbot` has limitation of how far back in time it can
+go (currently `v4.1`), going back in time is [very hard](/pkg/vcs/linux.go)
+because of incompatible compiler/linker/asm/perl/make/libc/etc, kernel
+build/boot breakages and large amounts of bugs.
+
+The predicate for bisection is binary (crash/doesn't crash), `syzbot` does not
+look at the exact crash and does not try to differentiate them. This is
+intentional because lots of bugs can manifest in different ways (sometimes 50+
+different ways). For each revision `syzbot` repeats testing 10 times and
+a single crash marks revision as bad (lots of bugs are due to races and are
+hard to trigger).
+
+During bisection `syzbot` uses different compilers depending on kernel revision
+(a single compiler can't build all revisions). These compilers are available
+[here](https://storage.googleapis.com/syzkaller/bisect_bin.tar.gz).
+Exact compiler used to test a particular revision is specified in the bisection
+log.
+
+Bisection is best-effort and may not find the right commit for multiple reasons,
+including:
+
+- hard to reproduce bugs that trigger with very low probability
+- bug being introduced before the tool that reliably detects it (LOCKDEP, KASAN,
+  FAULT_INJECTION, WARNING, etc);\
+  such bugs may be bisection to the addition/improvement of the tool
+- kernel build/boot errors that force skipping revisions
+- some kernel configs are [disabled](/pkg/vcs/linux.go) as bisection goes back
+  in time because they build/boot break release tags;\
+  bugs in these subsystems may be bisected to release tags
+- reproducers triggering multiple kernel bugs at once
+- unrelated kernel bugs that break even simple programs
+
+A single incorrect decision during bisection leads to an incorrect result,
+so please treat the results with understanding. You may consult the provided
+`bisection log` to see how/why `syzbot` has arrived to a particular commit.
+Suggestions and patches that improve bisection quality for common cases are
+[welcome](https://github.com/google/syzkaller/issues/1051).
+
 ## syzkaller reproducers
 
 `syzbot` aims at providing stand-alone C reproducers for all reported bugs.
