@@ -98,7 +98,7 @@ func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncover
 		// On FreeBSD, some files are in the kernel build directory.
 		// These files either start with "./" or contain "/./".
 		if rg.OS == "freebsd" {
-			f = f[strings.LastIndex(f, "/./") + 1:]
+			f = f[strings.LastIndex(f, "/./")+1:]
 		}
 		remain := filepath.Clean(strings.TrimPrefix(f, prefix))
 		if rg.OS == "freebsd" && strings.HasPrefix(f, "./") {
