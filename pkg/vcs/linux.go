@@ -30,46 +30,6 @@ func newLinux(dir string) *linux {
 	}
 }
 
-func (ctx *linux) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
-	commits, err := ctx.git.Bisect(bad, good, trace, pred)
-	if len(commits) == 1 {
-		ctx.addMaintainers(commits[0])
-	}
-	return commits, err
-}
-
-func (ctx *linux) addMaintainers(com *Commit) {
-	if len(com.CC) > 3 {
-		return
-	}
-	list := ctx.getMaintainers(com.Hash, false)
-	if len(list) < 3 {
-		list = ctx.getMaintainers(com.Hash, true)
-	}
-	com.CC = email.MergeEmailLists(com.CC, list)
-}
-
-func (ctx *linux) getMaintainers(hash string, blame bool) []string {
-	args := "git show " + hash + " | " +
-		filepath.FromSlash("scripts/get_maintainer.pl") + " --no-n --no-rolestats"
-	if blame {
-		args += " --git-blame"
-	}
-	output, err := osutil.RunCmd(time.Minute, ctx.git.dir, "bash", "-c", args)
-	if err != nil {
-		return nil
-	}
-	var list []string
-	for _, line := range strings.Split(string(output), "\n") {
-		addr, err := mail.ParseAddress(line)
-		if err != nil {
-			continue
-		}
-		list = append(list, strings.ToLower(addr.Address))
-	}
-	return list
-}
-
 func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 	return ctx.previousReleaseTags(commit, false)
 }
@@ -163,7 +123,9 @@ func (ctx *linux) EnvForCommit(commit string, kernelConfig []byte) (*BisectEnv, 
 	}
 	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.
 	if !tags["v4.1"] {
-		if _, err := runSandboxed(ctx.dir, "git", "cherry-pick", "--no-commit", "99124e4db5b7b70daeaaf1d88a6a8078a0004c6e"); err != nil {
+		_, err := runSandboxed(ctx.dir, "git", "cherry-pick",
+			"--no-commit", "99124e4db5b7b70daeaaf1d88a6a8078a0004c6e")
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -211,4 +173,44 @@ func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
 		}
 	}
 	return config
+}
+
+func (ctx *linux) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
+	commits, err := ctx.git.Bisect(bad, good, trace, pred)
+	if len(commits) == 1 {
+		ctx.addMaintainers(commits[0])
+	}
+	return commits, err
+}
+
+func (ctx *linux) addMaintainers(com *Commit) {
+	if len(com.CC) > 3 {
+		return
+	}
+	list := ctx.getMaintainers(com.Hash, false)
+	if len(list) < 3 {
+		list = ctx.getMaintainers(com.Hash, true)
+	}
+	com.CC = email.MergeEmailLists(com.CC, list)
+}
+
+func (ctx *linux) getMaintainers(hash string, blame bool) []string {
+	args := "git show " + hash + " | " +
+		filepath.FromSlash("scripts/get_maintainer.pl") + " --no-n --no-rolestats"
+	if blame {
+		args += " --git-blame"
+	}
+	output, err := osutil.RunCmd(time.Minute, ctx.git.dir, "bash", "-c", args)
+	if err != nil {
+		return nil
+	}
+	var list []string
+	for _, line := range strings.Split(string(output), "\n") {
+		addr, err := mail.ParseAddress(line)
+		if err != nil {
+			continue
+		}
+		list = append(list, strings.ToLower(addr.Address))
+	}
+	return list
 }
