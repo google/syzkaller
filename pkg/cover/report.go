@@ -95,8 +95,12 @@ func (rg *ReportGenerator) Do(w io.Writer, pcs []uint64) error {
 func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncovered []symbolizer.Frame) error {
 	var d templateData
 	for f, covered := range fileSet(covered, uncovered) {
-		remain := filepath.Clean(strings.TrimPrefix(f, prefix))
 		// On FreeBSD, some files are in the kernel build directory.
+		// These files either start with "./" or contain "/./".
+		if rg.OS == "freebsd" {
+			f = f[strings.LastIndex(f, "/./") + 1:]
+		}
+		remain := filepath.Clean(strings.TrimPrefix(f, prefix))
 		if rg.OS == "freebsd" && strings.HasPrefix(f, "./") {
 			f = filepath.Join(rg.objDir, remain)
 		} else if rg.srcDir != "" && !strings.HasPrefix(remain, rg.srcDir) {
@@ -236,7 +240,7 @@ func (rg *ReportGenerator) uncoveredPcsInFuncs(pcs []uint64) []uint64 {
 }
 
 func isInObjDir(name string) bool {
-	return strings.HasPrefix(name, "./")
+	return strings.HasPrefix(name, "./") || strings.Contains(name, "/./")
 }
 
 func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, string, error) {
