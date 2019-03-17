@@ -235,6 +235,10 @@ func (rg *ReportGenerator) uncoveredPcsInFuncs(pcs []uint64) []uint64 {
 	return uncoveredPCs
 }
 
+func isInObjDir(name string) bool {
+	return strings.HasPrefix(name, "./")
+}
+
 func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, string, error) {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
@@ -253,7 +257,7 @@ func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, string, 
 		} else {
 			// On FreeBSD, don't consider files which are present
 			// in the objDir directory.
-			if rg.OS != "freebsd" || !strings.HasPrefix(frame.File, "./") {
+			if rg.OS != "freebsd" || !isInObjDir(frame.File) {
 				i := 0
 				for ; i < len(prefix) && i < len(frame.File); i++ {
 					if prefix[i] != frame.File[i] {
