@@ -221,7 +221,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	}
 
 	// Crash 4 is bisected in reporting with MailMaintainers.
-	// It also skipped second reporting beacuse of the title.
+	// It also skipped second reporting because of the title.
 	c.incomingEmail(msg4.Sender, "#syz upstream")
 	msg4 = c.pollEmailBug()
 	c.expectEQ(msg4.To, []string{
