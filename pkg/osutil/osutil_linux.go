@@ -139,6 +139,12 @@ func setPdeathsig(cmd *exec.Cmd) {
 		cmd.SysProcAttr = new(syscall.SysProcAttr)
 	}
 	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
+	// We will kill the whole process group.
+	cmd.SysProcAttr.Setpgid = true
+}
+
+func killPgroup(cmd *exec.Cmd) {
+	syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 }
 
 func prolongPipe(r, w *os.File) {

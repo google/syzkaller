@@ -19,3 +19,6 @@ func SandboxChown(file string) error {
 
 func setPdeathsig(cmd *exec.Cmd) {
 }
+
+func killPgroup(cmd *exec.Cmd) {
+}
