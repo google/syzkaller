@@ -13,32 +13,33 @@ import (
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
-		unix:                      targets.MakeUnixSanitizer(target),
-		clockGettimeSyscall:       target.SyscallMap["clock_gettime"],
-		MREMAP_MAYMOVE:            target.GetConst("MREMAP_MAYMOVE"),
-		MREMAP_FIXED:              target.GetConst("MREMAP_FIXED"),
-		SYSLOG_ACTION_CONSOLE_OFF: target.GetConst("SYSLOG_ACTION_CONSOLE_OFF"),
-		SYSLOG_ACTION_CONSOLE_ON:  target.GetConst("SYSLOG_ACTION_CONSOLE_ON"),
-		SYSLOG_ACTION_SIZE_UNREAD: target.GetConst("SYSLOG_ACTION_SIZE_UNREAD"),
-		FIFREEZE:                  target.GetConst("FIFREEZE"),
-		FITHAW:                    target.GetConst("FITHAW"),
-		SNAPSHOT_FREEZE:           target.GetConst("SNAPSHOT_FREEZE"),
-		SNAPSHOT_UNFREEZE:         target.GetConst("SNAPSHOT_UNFREEZE"),
-		EXT4_IOC_SHUTDOWN:         target.GetConst("EXT4_IOC_SHUTDOWN"),
-		EXT4_IOC_RESIZE_FS:        target.GetConst("EXT4_IOC_RESIZE_FS"),
-		EXT4_IOC_MIGRATE:          target.GetConst("EXT4_IOC_MIGRATE"),
-		FAN_OPEN_PERM:             target.GetConst("FAN_OPEN_PERM"),
-		FAN_ACCESS_PERM:           target.GetConst("FAN_ACCESS_PERM"),
-		FAN_OPEN_EXEC_PERM:        target.GetConst("FAN_OPEN_EXEC_PERM"),
-		PTRACE_TRACEME:            target.GetConst("PTRACE_TRACEME"),
-		CLOCK_REALTIME:            target.GetConst("CLOCK_REALTIME"),
-		AF_NFC:                    target.GetConst("AF_NFC"),
-		AF_LLC:                    target.GetConst("AF_LLC"),
-		AF_BLUETOOTH:              target.GetConst("AF_BLUETOOTH"),
-		AF_X25:                    target.GetConst("AF_X25"),
-		AF_AX25:                   target.GetConst("AF_AX25"),
-		AF_NETROM:                 target.GetConst("AF_NETROM"),
-		AF_ROSE:                   target.GetConst("AF_ROSE"),
+		unix:                        targets.MakeUnixSanitizer(target),
+		clockGettimeSyscall:         target.SyscallMap["clock_gettime"],
+		MREMAP_MAYMOVE:              target.GetConst("MREMAP_MAYMOVE"),
+		MREMAP_FIXED:                target.GetConst("MREMAP_FIXED"),
+		SYSLOG_ACTION_CONSOLE_OFF:   target.GetConst("SYSLOG_ACTION_CONSOLE_OFF"),
+		SYSLOG_ACTION_CONSOLE_ON:    target.GetConst("SYSLOG_ACTION_CONSOLE_ON"),
+		SYSLOG_ACTION_CONSOLE_LEVEL: target.GetConst("SYSLOG_ACTION_CONSOLE_LEVEL"),
+		SYSLOG_ACTION_SIZE_UNREAD:   target.GetConst("SYSLOG_ACTION_SIZE_UNREAD"),
+		FIFREEZE:                    target.GetConst("FIFREEZE"),
+		FITHAW:                      target.GetConst("FITHAW"),
+		SNAPSHOT_FREEZE:             target.GetConst("SNAPSHOT_FREEZE"),
+		SNAPSHOT_UNFREEZE:           target.GetConst("SNAPSHOT_UNFREEZE"),
+		EXT4_IOC_SHUTDOWN:           target.GetConst("EXT4_IOC_SHUTDOWN"),
+		EXT4_IOC_RESIZE_FS:          target.GetConst("EXT4_IOC_RESIZE_FS"),
+		EXT4_IOC_MIGRATE:            target.GetConst("EXT4_IOC_MIGRATE"),
+		FAN_OPEN_PERM:               target.GetConst("FAN_OPEN_PERM"),
+		FAN_ACCESS_PERM:             target.GetConst("FAN_ACCESS_PERM"),
+		FAN_OPEN_EXEC_PERM:          target.GetConst("FAN_OPEN_EXEC_PERM"),
+		PTRACE_TRACEME:              target.GetConst("PTRACE_TRACEME"),
+		CLOCK_REALTIME:              target.GetConst("CLOCK_REALTIME"),
+		AF_NFC:                      target.GetConst("AF_NFC"),
+		AF_LLC:                      target.GetConst("AF_LLC"),
+		AF_BLUETOOTH:                target.GetConst("AF_BLUETOOTH"),
+		AF_X25:                      target.GetConst("AF_X25"),
+		AF_AX25:                     target.GetConst("AF_AX25"),
+		AF_NETROM:                   target.GetConst("AF_NETROM"),
+		AF_ROSE:                     target.GetConst("AF_ROSE"),
 		// These are not present on all arches.
 		ARCH_SET_FS: target.ConstMap["ARCH_SET_FS"],
 		ARCH_SET_GS: target.ConstMap["ARCH_SET_GS"],
@@ -106,32 +107,33 @@ type arch struct {
 
 	clockGettimeSyscall *prog.Syscall
 
-	MREMAP_MAYMOVE            uint64
-	MREMAP_FIXED              uint64
-	SYSLOG_ACTION_CONSOLE_OFF uint64
-	SYSLOG_ACTION_CONSOLE_ON  uint64
-	SYSLOG_ACTION_SIZE_UNREAD uint64
-	FIFREEZE                  uint64
-	FITHAW                    uint64
-	SNAPSHOT_FREEZE           uint64
-	SNAPSHOT_UNFREEZE         uint64
-	EXT4_IOC_SHUTDOWN         uint64
-	EXT4_IOC_RESIZE_FS        uint64
-	EXT4_IOC_MIGRATE          uint64
-	FAN_OPEN_PERM             uint64
-	FAN_ACCESS_PERM           uint64
-	FAN_OPEN_EXEC_PERM        uint64
-	PTRACE_TRACEME            uint64
-	CLOCK_REALTIME            uint64
-	ARCH_SET_FS               uint64
-	ARCH_SET_GS               uint64
-	AF_NFC                    uint64
-	AF_LLC                    uint64
-	AF_BLUETOOTH              uint64
-	AF_X25                    uint64
-	AF_AX25                   uint64
-	AF_NETROM                 uint64
-	AF_ROSE                   uint64
+	MREMAP_MAYMOVE              uint64
+	MREMAP_FIXED                uint64
+	SYSLOG_ACTION_CONSOLE_OFF   uint64
+	SYSLOG_ACTION_CONSOLE_ON    uint64
+	SYSLOG_ACTION_CONSOLE_LEVEL uint64
+	SYSLOG_ACTION_SIZE_UNREAD   uint64
+	FIFREEZE                    uint64
+	FITHAW                      uint64
+	SNAPSHOT_FREEZE             uint64
+	SNAPSHOT_UNFREEZE           uint64
+	EXT4_IOC_SHUTDOWN           uint64
+	EXT4_IOC_RESIZE_FS          uint64
+	EXT4_IOC_MIGRATE            uint64
+	FAN_OPEN_PERM               uint64
+	FAN_ACCESS_PERM             uint64
+	FAN_OPEN_EXEC_PERM          uint64
+	PTRACE_TRACEME              uint64
+	CLOCK_REALTIME              uint64
+	ARCH_SET_FS                 uint64
+	ARCH_SET_GS                 uint64
+	AF_NFC                      uint64
+	AF_LLC                      uint64
+	AF_BLUETOOTH                uint64
+	AF_X25                      uint64
+	AF_AX25                     uint64
+	AF_NETROM                   uint64
+	AF_ROSE                     uint64
 }
 
 func (arch *arch) sanitizeCall(c *prog.Call) {
@@ -147,7 +149,9 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		cmd := c.Args[0].(*prog.ConstArg)
 		cmd.Val = uint64(uint32(cmd.Val))
 		// These disable console output, but we need it.
-		if cmd.Val == arch.SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == arch.SYSLOG_ACTION_CONSOLE_ON {
+		if cmd.Val == arch.SYSLOG_ACTION_CONSOLE_OFF ||
+			cmd.Val == arch.SYSLOG_ACTION_CONSOLE_ON ||
+			cmd.Val == arch.SYSLOG_ACTION_CONSOLE_LEVEL {
 			cmd.Val = arch.SYSLOG_ACTION_SIZE_UNREAD
 		}
 	case "ioctl":
