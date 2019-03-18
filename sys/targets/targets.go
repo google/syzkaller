@@ -302,7 +302,7 @@ var oses = map[string]osCommon{
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
-		KernelObject:           "kernel.debug",
+		KernelObject:           "kernel.full",
 		CPP:                    "g++",
 	},
 	"netbsd": {
