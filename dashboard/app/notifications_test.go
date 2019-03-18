@@ -158,7 +158,7 @@ func TestEmailNotifObsoleted(t *testing.T) {
 	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
 		t.Fatalf("bad notification text: %q", notif.Body)
 	}
-	c.expectEQ(notif.To, []string{"bugs@syzkaller.com"})
+	c.expectEQ(notif.To, []string{"bugs2@syzkaller.com"})
 }
 
 func TestEmailNotifNotObsoleted(t *testing.T) {

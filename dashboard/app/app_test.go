@@ -103,6 +103,7 @@ var testConfig = &GlobalConfig{
 				{
 					Name:       "reporting2",
 					DailyLimit: 3,
+					Filter:     skipWithRepro2,
 					Config: &EmailConfig{
 						Email:              "bugs@syzkaller.com",
 						DefaultMaintainers: []string{"default@maintainers.com"},
@@ -113,8 +114,8 @@ var testConfig = &GlobalConfig{
 					Name:       "reporting3",
 					DailyLimit: 3,
 					Config: &EmailConfig{
-						Email:              "bugs@syzkaller.com",
-						DefaultMaintainers: []string{"default@maintainers.com"},
+						Email:              "bugs2@syzkaller.com",
+						DefaultMaintainers: []string{"default2@maintainers.com"},
 						MailMaintainers:    true,
 					},
 				},
@@ -213,6 +214,14 @@ const (
 
 func skipWithRepro(bug *Bug) FilterResult {
 	if strings.HasPrefix(bug.Title, "skip with repro") &&
+		bug.ReproLevel != dashapi.ReproLevelNone {
+		return FilterSkip
+	}
+	return FilterReport
+}
+
+func skipWithRepro2(bug *Bug) FilterResult {
+	if strings.HasPrefix(bug.Title, "skip reporting2 with repro") &&
 		bug.ReproLevel != dashapi.ReproLevelNone {
 		return FilterSkip
 	}

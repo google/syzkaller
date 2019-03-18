@@ -42,6 +42,7 @@ func TestBisectCause(t *testing.T) {
 	// This does not have C repro, so will be bisected after the previous ones.
 	c.advanceTime(time.Hour)
 	crash4 := testCrashWithRepro(build, 4)
+	crash4.Title = "skip reporting2 with repro"
 	crash4.ReproC = nil
 	c.client2.ReportCrash(crash4)
 	msg4 := c.client2.pollEmailBug()
@@ -220,8 +221,13 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	}
 
 	// Crash 4 is bisected in reporting with MailMaintainers.
+	// It also skipped second reporting beacuse of the title.
 	c.incomingEmail(msg4.Sender, "#syz upstream")
 	msg4 = c.pollEmailBug()
+	c.expectEQ(msg4.To, []string{
+		"bugs2@syzkaller.com",
+		"default2@maintainers.com",
+	})
 	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
 
 	// Bisection succeeded.
@@ -258,8 +264,8 @@ https://goo.gl/tpsmEJ#testing-patches`,
 		c.expectEQ(msg.Subject, crash4.Title)
 		c.expectEQ(msg.To, []string{
 			"author@kernel.org",
-			"bugs@syzkaller.com",
-			"default@maintainers.com",
+			"bugs2@syzkaller.com",
+			"default2@maintainers.com",
 			"reviewer1@kernel.org",
 			"reviewer2@kernel.org",
 		})
