@@ -18,7 +18,8 @@ type freebsd struct{}
 
 func (ctx freebsd) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
-	confFile := fmt.Sprintf("%v/sys/%v/conf/SYZKALLER", kernelDir, targetArch)
+	confDir := fmt.Sprintf("%v/sys/%v/conf/", kernelDir, targetArch)
+	confFile := "SYZKALLER"
 
 	if config == nil {
 		config = []byte(`
@@ -29,21 +30,23 @@ options 	COVERAGE
 options 	KCOV
 `)
 	}
-	if err := osutil.WriteFile(confFile, config); err != nil {
+	if err := osutil.WriteFile(filepath.Join(confDir, confFile), config); err != nil {
 		return err
 	}
 
-	objDir := filepath.Join(kernelDir, "obj")
-	if err := ctx.make(kernelDir, objDir, "kernel-toolchain", "-DNO_CLEAN"); err != nil {
+	objPrefix := filepath.Join(kernelDir, "obj")
+	if err := ctx.make(kernelDir, objPrefix, "kernel-toolchain", "-DNO_CLEAN"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, objDir, "buildkernel", "KERNCONF=SYZKALLER"); err != nil {
+	if err := ctx.make(kernelDir, objPrefix, "buildkernel", fmt.Sprintf("KERNCONF=%v", confFile)); err != nil {
 		return err
 	}
 
+	kernelObjDir := filepath.Join(objPrefix, kernelDir, fmt.Sprintf("%v.%v", targetArch, targetArch), "sys", confFile)
 	for _, s := range []struct{ dir, src, dst string }{
 		{userspaceDir, "image", "image"},
 		{userspaceDir, "key", "key"},
+		{kernelObjDir, "kernel.full", "obj/kernel.full"},
 	} {
 		fullSrc := filepath.Join(s.dir, s.src)
 		fullDst := filepath.Join(outputDir, s.dst)
@@ -59,11 +62,11 @@ partn=$(gpart show /dev/${md} | awk '/freebsd-ufs/{print $3}' | head -n 1)
 tmpdir=$(mktemp -d)
 sudo mount /dev/${md}p${partn} $tmpdir
 
-sudo MAKEOBJDIRPREFIX=%s make -C %s installkernel KERNCONF=SYZKALLER DESTDIR=$tmpdir
+sudo MAKEOBJDIRPREFIX=%s make -C %s installkernel KERNCONF=%s DESTDIR=$tmpdir
 
 sudo umount $tmpdir
 sudo mdconfig -d -u ${md#md}
-`, objDir, kernelDir)
+`, objPrefix, kernelDir, confFile)
 
 	if debugOut, err := osutil.RunCmd(10*time.Minute, outputDir, "/bin/sh", "-c", script); err != nil {
 		return fmt.Errorf("error copying kernel: %v\n%v", err, debugOut)
@@ -72,13 +75,13 @@ sudo mdconfig -d -u ${md#md}
 }
 
 func (ctx freebsd) clean(kernelDir, targetArch string) error {
-	objDir := filepath.Join(kernelDir, "obj")
-	return ctx.make(kernelDir, objDir, "cleanworld")
+	objPrefix := filepath.Join(kernelDir, "obj")
+	return ctx.make(kernelDir, objPrefix, "cleanworld")
 }
 
-func (ctx freebsd) make(kernelDir string, objDir string, makeArgs ...string) error {
+func (ctx freebsd) make(kernelDir string, objPrefix string, makeArgs ...string) error {
 	args := append([]string{
-		fmt.Sprintf("MAKEOBJDIRPREFIX=%v", objDir),
+		fmt.Sprintf("MAKEOBJDIRPREFIX=%v", objPrefix),
 		"make",
 		"-C", kernelDir,
 		"-j", strconv.Itoa(runtime.NumCPU()),
