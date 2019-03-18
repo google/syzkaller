@@ -23,6 +23,10 @@ pipe(pipefd ptr[out, pipefd])
 stat(file ptr[in, filename], statbuf ptr[out, stat])
 lstat(file ptr[in, filename], statbuf ptr[out, stat])
 
+chflags(file ptr[in, filename], flags flags[chflags_flags])
+fchflags(fd fd, flags flags[chflags_flags])
+chflagsat(dirfd fd_dir, file ptr[in, filename], flags flags[chflags_flags], atflags flags[chflagsat_flags])
+
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
 
@@ -189,6 +193,8 @@ ucred {
 	gid	gid
 }
 
+chflags_flags = UF_NODUMP, UF_IMMUTABLE, UF_APPEND, SF_ARCHIVED, SF_IMMUTABLE, SF_APPEND
+chflagsat_flags = AT_SYMLINK_NOFOLLOW
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
 mknod_mode = S_IFMT, S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 at_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW
