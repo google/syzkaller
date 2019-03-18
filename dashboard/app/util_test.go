@@ -358,7 +358,7 @@ type (
 func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
 	id := 0
 	from := "default@sender.com"
-	cc := []string{"test@syzkaller.com", "bugs@syzkaller.com"}
+	cc := []string{"test@syzkaller.com", "bugs@syzkaller.com", "bugs2@syzkaller.com"}
 	for _, o := range opts {
 		switch opt := o.(type) {
 		case EmailOptMessageID:

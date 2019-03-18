@@ -133,7 +133,8 @@ For more options, visit https://groups.google.com/d/optout.
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
 		to := []string{
-			"bugs@syzkaller.com",
+			"bugs2@syzkaller.com",
+			"bugs@syzkaller.com", // This is from incomingEmail.
 			"default@sender.com", // This is from incomingEmail.
 			"foo@bar.com",
 			config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email,
@@ -446,7 +447,6 @@ func TestEmailUndup(t *testing.T) {
 }
 
 func TestEmailCrossReportingDup(t *testing.T) {
-	// TODO:
 	c := NewCtx(t)
 	defer c.Close()
 
@@ -491,7 +491,10 @@ func TestEmailCrossReportingDup(t *testing.T) {
 
 		c.incomingEmail(bugSender, "#syz dup: "+crash2.Title)
 		if test.result {
-			c.expectEQ(len(c.emailSink), 0)
+			if len(c.emailSink) != 0 {
+				msg := <-c.emailSink
+				t.Fatalf("unexpected reply: %s\n%s\n", msg.Subject, msg.Body)
+			}
 		} else {
 			c.expectEQ(len(c.emailSink), 1)
 			msg := <-c.emailSink
