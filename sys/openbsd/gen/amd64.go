@@ -564,6 +564,16 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 12, Name: "chdir", CallName: "chdir", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
+	{NR: 34, Name: "chflags", CallName: "chflags", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 65536, 131072, 262144}, BitMask: true},
+	}},
+	{NR: 107, Name: "chflagsat", CallName: "chflagsat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dirfd", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 65536, 131072, 262144}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflagsat_flags", FldName: "atflags", TypeSize: 8}}, Vals: []uint64{2}, BitMask: true},
+	}},
 	{NR: 15, Name: "chmod", CallName: "chmod", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}, BitMask: true},
@@ -631,6 +641,10 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{NR: 13, Name: "fchdir", CallName: "fchdir", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+	}},
+	{NR: 35, Name: "fchflags", CallName: "fchflags", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 65536, 131072, 262144}, BitMask: true},
 	}},
 	{NR: 124, Name: "fchmod", CallName: "fchmod", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -2045,6 +2059,9 @@ var consts_amd64 = []ConstValue{
 	{Name: "SEM_UNDO", Value: 4096},
 	{Name: "SETALL", Value: 9},
 	{Name: "SETVAL", Value: 8},
+	{Name: "SF_APPEND", Value: 262144},
+	{Name: "SF_ARCHIVED", Value: 65536},
+	{Name: "SF_IMMUTABLE", Value: 131072},
 	{Name: "SHM_LOCK", Value: 3},
 	{Name: "SHM_RDONLY", Value: 4096},
 	{Name: "SHM_RND", Value: 8192},
@@ -2081,6 +2098,8 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_accept", Value: 30},
 	{Name: "SYS_bind", Value: 104},
 	{Name: "SYS_chdir", Value: 12},
+	{Name: "SYS_chflags", Value: 34},
+	{Name: "SYS_chflagsat", Value: 107},
 	{Name: "SYS_chmod", Value: 15},
 	{Name: "SYS_chown", Value: 16},
 	{Name: "SYS_chroot", Value: 61},
@@ -2094,6 +2113,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_execve", Value: 59},
 	{Name: "SYS_faccessat", Value: 313},
 	{Name: "SYS_fchdir", Value: 13},
+	{Name: "SYS_fchflags", Value: 35},
 	{Name: "SYS_fchmod", Value: 124},
 	{Name: "SYS_fchmodat", Value: 314},
 	{Name: "SYS_fchown", Value: 123},
@@ -2249,6 +2269,9 @@ var consts_amd64 = []ConstValue{
 	{Name: "TIOCSTOP", Value: 536900719},
 	{Name: "TIOCSTSTAMP", Value: 2148037722},
 	{Name: "TIOCSWINSZ", Value: 2148037735},
+	{Name: "UF_APPEND", Value: 4},
+	{Name: "UF_IMMUTABLE", Value: 2},
+	{Name: "UF_NODUMP", Value: 1},
 	{Name: "VT_ACKACQ", Value: 2},
 	{Name: "VT_ACTIVATE", Value: 536901125},
 	{Name: "VT_AUTO"},
@@ -2355,4 +2378,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "9323c36f6354363bbc8628c16d604d46362805d5"
+const revision_amd64 = "c733e73f8e86521a832739688afba80475b07ef0"
