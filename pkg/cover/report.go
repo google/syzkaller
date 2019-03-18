@@ -107,32 +107,47 @@ func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncover
 			f = filepath.Join(rg.srcDir, remain)
 		}
 		lines, err := parseFile(f)
-		if err != nil {
-			return err
-		}
-		coverage := 0
 		var buf bytes.Buffer
-		for i, ln := range lines {
-			if len(covered) > 0 && covered[0].line == i+1 {
-				if covered[0].covered {
-					buf.Write([]byte("<span id='covered'>"))
-					buf.Write(ln)
-					buf.Write([]byte("</span> /*covered*/\n"))
-					coverage++
-				} else {
-					buf.Write([]byte("<span id='uncovered'>"))
-					buf.Write(ln)
-					buf.Write([]byte("</span>\n"))
+		var coverage int
+		var mode string
+		if err != nil {
+			if rg.OS == "freebsd" {
+				for i := range covered {
+					if covered[i].covered {
+						coverage++
+					}
 				}
-				covered = covered[1:]
-			} else {
-				buf.Write(ln)
 				buf.Write([]byte{'\n'})
+				mode = "disabled"
+			} else {
+				return err
 			}
+		} else {
+			coverage = 0
+			for i, ln := range lines {
+				if len(covered) > 0 && covered[0].line == i+1 {
+					if covered[0].covered {
+						buf.Write([]byte("<span id='covered'>"))
+						buf.Write(ln)
+						buf.Write([]byte("</span> /*covered*/\n"))
+						coverage++
+					} else {
+						buf.Write([]byte("<span id='uncovered'>"))
+						buf.Write(ln)
+						buf.Write([]byte("</span>\n"))
+					}
+					covered = covered[1:]
+				} else {
+					buf.Write(ln)
+					buf.Write([]byte{'\n'})
+				}
+			}
+			mode = ""
 		}
 		f = filepath.Clean(remain)
 		d.Files = append(d.Files, &templateFile{
 			ID:       hash.String([]byte(f)),
+			Mode:     mode,
 			Name:     f,
 			Body:     template.HTML(buf.String()),
 			Coverage: coverage,
@@ -383,6 +398,7 @@ type templateData struct {
 
 type templateFile struct {
 	ID       string
+	Mode     string
 	Name     string
 	Body     template.HTML
 	Coverage int
@@ -448,7 +464,7 @@ var coverTemplate = template.Must(template.New("").Parse(`
 			<div id="nav">
 				<select id="files">
 				{{range $f := .Files}}
-				<option value="{{$f.ID}}">{{$f.Name}} ({{$f.Coverage}})</option>
+				<option value="{{$f.ID}}" {{$f.Mode}}>{{$f.Name}} ({{$f.Coverage}})</option>
 				{{end}}
 				</select>
 			</div>
