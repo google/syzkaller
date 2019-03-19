@@ -1,0 +1,37 @@
+TITLE: Fatal trap 12: page fault in inp_freemoptions
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address = 0x18
+fault code  = supervisor read data  , page not present
+instruction pointer = 0x20:0xffffffff812beb87
+stack pointer         = 0x28:0xfffffe0016abb8c0
+frame pointer         = 0x28:0xfffffe0016abb900
+code segment  = base 0x0, limit 0xfffff, type 0x1b
+   = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags = interrupt enabled, resume, IOPL = 0
+current process  = 0 (softirq_0)
+trap number  = 12
+panic: page fault
+cpuid = 0
+time = 1552661135
+KDB: stack backtrace:
+db_trace_self_wrapper() at db_trace_self_wrapper+0x47/frame 0xfffffe0016abb520
+vpanic() at vpanic+0x1e0/frame 0xfffffe0016abb580
+panic() at panic+0x43/frame 0xfffffe0016abb5e0
+trap_fatal() at trap_fatal+0x4c6/frame 0xfffffe0016abb660
+trap_pfault() at trap_pfault+0x9f/frame 0xfffffe0016abb6d0
+trap() at trap+0x44d/frame 0xfffffe0016abb7f0
+calltrap() at calltrap+0x8/frame 0xfffffe0016abb7f0
+--- trap 0xc, rip = 0xffffffff812beb87, rsp = 0xfffffe0016abb8c0, rbp = 0xfffffe0016abb900 ---
+inp_freemoptions() at inp_freemoptions+0x177/frame 0xfffffe0016abb900
+in_pcbfree_deferred() at in_pcbfree_deferred+0x224/frame 0xfffffe0016abb960
+epoch_call_task() at epoch_call_task+0x262/frame 0xfffffe0016abb9c0
+gtaskqueue_run_locked() at gtaskqueue_run_locked+0x13e/frame 0xfffffe0016abba20
+gtaskqueue_thread_loop() at gtaskqueue_thread_loop+0xdd/frame 0xfffffe0016abba60
+fork_exit() at fork_exit+0xb0/frame 0xfffffe0016abbab0
+fork_trampoline() at fork_trampoline+0xe/frame 0xfffffe0016abbab0
+--- trap 0, rip = 0, rsp = 0, rbp = 0 ---
+KDB: enter: panic
+[ thread pid 0 tid 100012 ]
+Stopped at      kdb_enter+0x6a: movq    $0,kdb_why
