@@ -92,6 +92,14 @@ var freebsdOopses = []*oops{
 					"\\+{{ADDR}}\\r?\\n)*#[0-9]+ {{ADDR}} at {{FUNC}}{{ADDR}}"),
 				fmt: "Fatal trap %[1]v in %[2]v",
 			},
+			{
+				title: compile("(Fatal trap [0-9]+:.*) while in (?:user|kernel) mode\\r?\\n(?:.*\\n)+?" +
+					"KDB: stack backtrace:\\r?\\n" +
+					"(?:[a-zA-Z0-9_]+\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\r?\\n)*" +
+					"--- trap 0x[0-9a-fA-F]+.* ---\\r?\\n" +
+					"([a-zA-Z0-9_]+)\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\r?\\n"),
+				fmt: "%[1]v in %[2]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
