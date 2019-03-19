@@ -20,6 +20,7 @@ func InitTarget(target *prog.Target) {
 		SYSLOG_ACTION_CONSOLE_OFF:   target.GetConst("SYSLOG_ACTION_CONSOLE_OFF"),
 		SYSLOG_ACTION_CONSOLE_ON:    target.GetConst("SYSLOG_ACTION_CONSOLE_ON"),
 		SYSLOG_ACTION_CONSOLE_LEVEL: target.GetConst("SYSLOG_ACTION_CONSOLE_LEVEL"),
+		SYSLOG_ACTION_CLEAR:         target.GetConst("SYSLOG_ACTION_CLEAR"),
 		SYSLOG_ACTION_SIZE_UNREAD:   target.GetConst("SYSLOG_ACTION_SIZE_UNREAD"),
 		FIFREEZE:                    target.GetConst("FIFREEZE"),
 		FITHAW:                      target.GetConst("FITHAW"),
@@ -112,6 +113,7 @@ type arch struct {
 	SYSLOG_ACTION_CONSOLE_OFF   uint64
 	SYSLOG_ACTION_CONSOLE_ON    uint64
 	SYSLOG_ACTION_CONSOLE_LEVEL uint64
+	SYSLOG_ACTION_CLEAR         uint64
 	SYSLOG_ACTION_SIZE_UNREAD   uint64
 	FIFREEZE                    uint64
 	FITHAW                      uint64
@@ -151,7 +153,8 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		// These disable console output, but we need it.
 		if cmd.Val == arch.SYSLOG_ACTION_CONSOLE_OFF ||
 			cmd.Val == arch.SYSLOG_ACTION_CONSOLE_ON ||
-			cmd.Val == arch.SYSLOG_ACTION_CONSOLE_LEVEL {
+			cmd.Val == arch.SYSLOG_ACTION_CONSOLE_LEVEL ||
+			cmd.Val == arch.SYSLOG_ACTION_CLEAR {
 			cmd.Val = arch.SYSLOG_ACTION_SIZE_UNREAD
 		}
 	case "ioctl":
