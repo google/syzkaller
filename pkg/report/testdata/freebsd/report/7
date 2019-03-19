@@ -1,0 +1,37 @@
+TITLE: Fatal trap 12: page fault in vm_page_unhold_pages
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 0; apic id = 00
+fault virtual address = 0x30
+fault code  = supervisor read data  , page not present
+instruction pointer = 0x20:0xffffffff8156d61a
+stack pointer         = 0x28:0xfffffe001facc7a0
+frame pointer         = 0x28:0xfffffe001facc7e0
+code segment  = base 0x0, limit 0xfffff, type 0x1b
+   = DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags = interrupt enabled, resume, IOPL = 0
+current process  = 2213 (syz-executor.0)
+trap number  = 12
+panic: page fault
+cpuid = 0
+time = 4
+KDB: stack backtrace:
+db_trace_self_wrapper() at db_trace_self_wrapper+0x47/frame 0xfffffe001facc400
+vpanic() at vpanic+0x1e0/frame 0xfffffe001facc460
+panic() at panic+0x43/frame 0xfffffe001facc4c0
+trap_fatal() at trap_fatal+0x4c6/frame 0xfffffe001facc540
+trap_pfault() at trap_pfault+0x9f/frame 0xfffffe001facc5b0
+trap() at trap+0x44d/frame 0xfffffe001facc6d0
+calltrap() at calltrap+0x8/frame 0xfffffe001facc6d0
+--- trap 0xc, rip = 0xffffffff8156d61a, rsp = 0xfffffe001facc7a0, rbp = 0xfffffe001facc7e0 ---
+vm_page_unhold_pages() at vm_page_unhold_pages+0x5a/frame 0xfffffe001facc7e0
+pipe_write() at pipe_write+0x16d8/frame 0xfffffe001facc8b0
+dofilewrite() at dofilewrite+0xfd/frame 0xfffffe001facc910
+kern_writev() at kern_writev+0x66/frame 0xfffffe001facc950
+sys_writev() at sys_writev+0x50/frame 0xfffffe001facc980
+amd64_syscall() at amd64_syscall+0x436/frame 0xfffffe001faccab0
+fast_syscall_common() at fast_syscall_common+0x101/frame 0xfffffe001faccab0
+--- syscall (198, FreeBSD ELF64, nosys), rip = 0x412e5a, rsp = 0x7fffdfffdf38, rbp = 0x3 ---
+KDB: enter: panic
+[ thread pid 2213 tid 100330 ]
+Stopped at      kdb_enter+0x6a: movq    $0,kdb_why
