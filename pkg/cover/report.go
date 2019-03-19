@@ -108,7 +108,7 @@ func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncover
 		}
 		lines, err := parseFile(f)
 		var buf bytes.Buffer
-		var coverage int
+		var coverage = 0
 		var mode string
 		if err != nil {
 			if rg.OS == "freebsd" {
@@ -123,7 +123,6 @@ func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncover
 				return err
 			}
 		} else {
-			coverage = 0
 			for i, ln := range lines {
 				if len(covered) > 0 && covered[0].line == i+1 {
 					if covered[0].covered {
