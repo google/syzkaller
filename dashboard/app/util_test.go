@@ -302,6 +302,7 @@ func (client *apiClient) pollBugs(expect int) []*dashapi.BugReport {
 		}
 		reply, _ := client.ReportingUpdate(&dashapi.BugUpdate{
 			ID:         rep.ID,
+			JobID:      rep.JobID,
 			Status:     dashapi.BugStatusOpen,
 			ReproLevel: reproLevel,
 			CrashID:    rep.CrashID,

@@ -500,3 +500,45 @@ https://goo.gl/tpsmEJ#testing-patches`,
 			bisectLogLink, bisectCrashReportLink, bisectCrashLogLink))
 	}
 }
+
+func TestBisectCauseExternal(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.client.ReportCrash(crash)
+	rep := c.client.pollBug()
+
+	pollResp, err := c.client.JobPoll([]string{build.Manager})
+	c.expectOK(err)
+	jobID := pollResp.ID
+	done := &dashapi.JobDoneReq{
+		ID:    jobID,
+		Build: *build,
+		Log:   []byte("bisect log"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:       "111111111111111111111111",
+				Title:      "kernel: break build",
+				Author:     "hacker@kernel.org",
+				AuthorName: "Hacker Kernelov",
+				CC:         []string{"reviewer1@kernel.org", "reviewer2@kernel.org"},
+				Date:       time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	done.Build.ID = jobID
+	c.expectOK(c.client2.JobDone(done))
+
+	resp, _ := c.client.ReportingPollBugs("test")
+	c.expectEQ(len(resp.Reports), 1)
+	// Still reported because we did not ack.
+	bisect := c.client.pollBug()
+	// pollBug acks, must not be reported after that.
+	c.client.pollBugs(0)
+
+	c.expectEQ(bisect.Type, dashapi.ReportBisectCause)
+	c.expectEQ(bisect.Title, rep.Title)
+}
