@@ -332,7 +332,8 @@ type BisectResult struct {
 }
 
 type BugUpdate struct {
-	ID           string
+	ID           string // copied from BugReport
+	JobID        string // copied from BugReport
 	ExtID        string
 	Link         string
 	Status       BugStatus

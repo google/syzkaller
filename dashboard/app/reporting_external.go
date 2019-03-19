@@ -34,6 +34,11 @@ func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (i
 	resp := &dashapi.PollBugsResponse{
 		Reports: reports,
 	}
+	jobs, err := pollCompletedJobs(c, req.Type)
+	if err != nil {
+		log.Errorf(c, "failed to poll jobs: %v", err)
+	}
+	resp.Reports = append(resp.Reports, jobs...)
 	return resp, nil
 }
 
@@ -69,6 +74,18 @@ func apiReportingUpdate(c context.Context, r *http.Request, payload []byte) (int
 	req := new(dashapi.BugUpdate)
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	if req.JobID != "" {
+		resp := &dashapi.BugUpdateReply{
+			OK:    true,
+			Error: false,
+		}
+		if err := jobReported(c, req.JobID); err != nil {
+			log.Errorf(c, "failed to mark job reported: %v", err)
+			resp.Text = err.Error()
+			resp.Error = true
+		}
+		return resp, nil
 	}
 	ok, reason, err := incomingCommand(c, req)
 	return &dashapi.BugUpdateReply{
