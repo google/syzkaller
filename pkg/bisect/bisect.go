@@ -147,7 +147,7 @@ func (env *env) bisect() ([]*vcs.Commit, *report.Report, error) {
 	if err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
 		return nil, nil, err
 	}
-	if _, err := env.repo.SwitchCommit(cfg.Kernel.Commit); err != nil {
+	if _, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit); err != nil {
 		return nil, nil, err
 	}
 	res, _, rep0, err := env.test()
