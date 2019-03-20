@@ -25,7 +25,7 @@ func TestBisectCause(t *testing.T) {
 	c.client2.pollEmailBug()
 
 	// No repro - no bisection.
-	pollResp, _ := c.client2.JobPoll([]string{build.Manager})
+	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
 	// Now upload 4 crashes with repros.
@@ -55,7 +55,7 @@ func TestBisectCause(t *testing.T) {
 	c.client2.ReportCrash(crash5)
 	c.client2.pollEmailBug()
 
-	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
+	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
 	c.expectEQ(pollResp.Manager, build.Manager)
@@ -66,7 +66,8 @@ func TestBisectCause(t *testing.T) {
 	c.expectEQ(pollResp.ReproC, []byte("int main() { return 3; }"))
 
 	// Since we did not reply, we should get the same response.
-	pollResp2, _ := c.client2.JobPoll([]string{build.Manager})
+	c.advanceTime(5 * 24 * time.Hour)
+	pollResp2 := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp, pollResp2)
 
 	// Bisection failed with an error.
@@ -78,7 +79,7 @@ func TestBisectCause(t *testing.T) {
 	c.expectOK(c.client2.JobDone(done))
 
 	// Now we should get bisect for crash 2.
-	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
+	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, pollResp2.ID)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 2"))
 
@@ -228,7 +229,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 		"bugs2@syzkaller.com",
 		"default2@maintainers.com",
 	})
-	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
+	pollResp = c.client2.pollJobs(build.Manager)
 
 	// Bisection succeeded.
 	jobID = pollResp.ID
@@ -272,7 +273,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	}
 
 	// No more bisection jobs.
-	pollResp, _ = c.client2.JobPoll([]string{build.Manager})
+	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 }
 
@@ -286,8 +287,7 @@ func TestBisectCauseInconclusive(t *testing.T) {
 	c.client2.ReportCrash(crash)
 	msg := c.client2.pollEmailBug()
 
-	pollResp, err := c.client2.JobPoll([]string{build.Manager})
-	c.expectOK(err)
+	pollResp := c.client2.pollJobs(build.Manager)
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:    jobID,
@@ -405,8 +405,7 @@ func TestBisectCauseAncient(t *testing.T) {
 	c.client2.ReportCrash(crash)
 	msg := c.client2.pollEmailBug()
 
-	pollResp, err := c.client2.JobPoll([]string{build.Manager})
-	c.expectOK(err)
+	pollResp := c.client2.pollJobs(build.Manager)
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:          jobID,
@@ -511,8 +510,7 @@ func TestBisectCauseExternal(t *testing.T) {
 	c.client.ReportCrash(crash)
 	rep := c.client.pollBug()
 
-	pollResp, err := c.client.JobPoll([]string{build.Manager})
-	c.expectOK(err)
+	pollResp := c.client.pollJobs(build.Manager)
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:    jobID,

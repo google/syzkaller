@@ -188,13 +188,17 @@ func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash
 }
 
 // pollPendingJobs returns the next job to execute for the provided list of managers.
-func pollPendingJobs(c context.Context, managers []string) (*dashapi.JobPollResp, error) {
-	mgrs := make(map[string]bool)
-	for _, mgr := range managers {
-		mgrs[mgr] = true
+func pollPendingJobs(c context.Context, testMgrs, bisectMgrs []string) (*dashapi.JobPollResp, error) {
+	testManagers := make(map[string]bool)
+	for _, mgr := range testMgrs {
+		testManagers[mgr] = true
+	}
+	bisectManagers := make(map[string]bool)
+	for _, mgr := range bisectMgrs {
+		bisectManagers[mgr] = true
 	}
 retry:
-	job, jobKey, err := getNextJob(c, mgrs)
+	job, jobKey, err := getNextJob(c, testManagers, bisectManagers)
 	if job == nil || err != nil {
 		return nil, err
 	}
@@ -208,23 +212,22 @@ retry:
 	return resp, nil
 }
 
-func getNextJob(c context.Context, managers map[string]bool) (*Job, *datastore.Key, error) {
-	job, jobKey, err := loadPendingJob(c, managers)
+func getNextJob(c context.Context, testManagers, bisectManagers map[string]bool) (*Job, *datastore.Key, error) {
+	job, jobKey, err := loadPendingJob(c, testManagers, bisectManagers)
 	if job != nil || err != nil {
 		return job, jobKey, err
 	}
-	// TODO: this is temporal for gradual bisection rollout.
-	if !appengine.IsDevAppServer() && !managers["ci-gimme-bisect"] {
+	if len(bisectManagers) == 0 {
 		return nil, nil, nil
 	}
 	// We need both C and syz repros, but the crazy datastore query restrictions
 	// do not allow to use ReproLevel>ReproLevelNone in the query.  So we do 2 separate queries.
 	// C repros tend to be of higher reliability so maybe it's not bad.
-	job, jobKey, err = createBisectJob(c, managers, ReproLevelC)
+	job, jobKey, err = createBisectJob(c, bisectManagers, ReproLevelC)
 	if job != nil || err != nil {
 		return job, jobKey, err
 	}
-	return createBisectJob(c, managers, ReproLevelSyz)
+	return createBisectJob(c, bisectManagers, ReproLevelSyz)
 }
 
 func createBisectJob(c context.Context, managers map[string]bool, reproLevel dashapi.ReproLevel) (
@@ -703,7 +706,7 @@ func jobReported(c context.Context, jobID string) error {
 	return datastore.RunInTransaction(c, tx, nil)
 }
 
-func loadPendingJob(c context.Context, managers map[string]bool) (*Job, *datastore.Key, error) {
+func loadPendingJob(c context.Context, testManagers, bisectManagers map[string]bool) (*Job, *datastore.Key, error) {
 	var jobs []*Job
 	keys, err := datastore.NewQuery("Job").
 		Filter("Finished=", time.Time{}).
@@ -714,12 +717,13 @@ func loadPendingJob(c context.Context, managers map[string]bool) (*Job, *datasto
 		return nil, nil, fmt.Errorf("failed to query jobs: %v", err)
 	}
 	for i, job := range jobs {
-		if !managers[job.Manager] {
-			continue
-		}
-		if !appengine.IsDevAppServer() && (job.Type == JobBisectCause || job.Type == JobBisectFix) {
-			// TODO: this is temporal for gradual bisection rollout.
-			if !managers["ci-gimme-bisect"] {
+		switch job.Type {
+		case JobTestPatch:
+			if !testManagers[job.Manager] {
+				continue
+			}
+		case JobBisectCause, JobBisectFix:
+			if !bisectManagers[job.Manager] {
 				continue
 			}
 			// Don't retry bisection jobs too often.
@@ -730,6 +734,8 @@ func loadPendingJob(c context.Context, managers map[string]bool) (*Job, *datasto
 				timeSince(c, job.Started) < bisectRepeat {
 				continue
 			}
+		default:
+			return nil, nil, fmt.Errorf("bad job type %v", job.Type)
 		}
 		return job, keys[i], nil
 	}
