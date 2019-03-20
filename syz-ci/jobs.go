@@ -66,7 +66,7 @@ func (jp *JobProcessor) loop() {
 	var lastCommitPoll time.Time
 loop:
 	for {
-		// Check jp.stop separately first, otherwise if stop signal arrives during a job exection,
+		// Check jp.stop separately first, otherwise if stop signal arrives during a job execution,
 		// we can grab the next one with 50% probability.
 		select {
 		case <-jp.stop:
