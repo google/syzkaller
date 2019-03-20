@@ -12,16 +12,16 @@ import (
 )
 
 type fuchsia struct {
-	vm     string
-	dir    string
-	zircon *git
+	vm   string
+	dir  string
+	repo *git
 }
 
 func newFuchsia(vm, dir string) *fuchsia {
 	return &fuchsia{
-		vm:     vm,
-		dir:    dir,
-		zircon: newGit(filepath.Join(dir, "zircon"), nil),
+		vm:   vm,
+		dir:  dir,
+		repo: newGit(dir, nil),
 	}
 }
 
@@ -35,7 +35,7 @@ func (ctx *fuchsia) Poll(repo, branch string) (*Commit, error) {
 			return nil, err
 		}
 	}
-	return ctx.zircon.HeadCommit()
+	return ctx.repo.HeadCommit()
 }
 
 func (ctx *fuchsia) initRepo() error {
@@ -75,17 +75,17 @@ func (ctx *fuchsia) HeadCommit() (*Commit, error) {
 }
 
 func (ctx *fuchsia) GetCommitByTitle(title string) (*Commit, error) {
-	return ctx.zircon.GetCommitByTitle(title)
+	return ctx.repo.GetCommitByTitle(title)
 }
 
 func (ctx *fuchsia) GetCommitsByTitles(titles []string) ([]*Commit, []string, error) {
-	return ctx.zircon.GetCommitsByTitles(titles)
+	return ctx.repo.GetCommitsByTitles(titles)
 }
 
 func (ctx *fuchsia) ListRecentCommits(baseCommit string) ([]string, error) {
-	return ctx.zircon.ListRecentCommits(baseCommit)
+	return ctx.repo.ListRecentCommits(baseCommit)
 }
 
 func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
-	return ctx.zircon.ExtractFixTagsFromCommits(baseCommit, email)
+	return ctx.repo.ExtractFixTagsFromCommits(baseCommit, email)
 }
