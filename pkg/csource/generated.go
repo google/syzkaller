@@ -743,7 +743,7 @@ static int do_sandbox_setuid(void)
 #elif GOOS_fuchsia
 
 #include <fcntl.h>
-#include <lib/fdio/util.h>
+#include <lib/fdio/directory.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdlib.h>
