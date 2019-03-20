@@ -37,7 +37,7 @@ func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 func (ctx *linux) previousReleaseTags(commit string, self bool) ([]string, error) {
 	var tags []string
 	if self {
-		output, err := runSandboxed(ctx.dir, "git", "tag", "--points-at", commit, "--merged", commit, "v*.*")
+		output, err := ctx.git.git("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
 		if err != nil {
 			return nil, err
 		}
@@ -46,7 +46,7 @@ func (ctx *linux) previousReleaseTags(commit string, self bool) ([]string, error
 			return nil, err
 		}
 	}
-	output, err := runSandboxed(ctx.dir, "git", "tag", "--no-contains", commit, "--merged", commit, "v*.*")
+	output, err := ctx.git.git("tag", "--no-contains", commit, "--merged", commit, "v*.*")
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +123,7 @@ func (ctx *linux) EnvForCommit(commit string, kernelConfig []byte) (*BisectEnv, 
 	}
 	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.
 	if !tags["v4.1"] {
-		_, err := runSandboxed(ctx.dir, "git", "cherry-pick",
-			"--no-commit", "99124e4db5b7b70daeaaf1d88a6a8078a0004c6e")
+		_, err := ctx.git.git("cherry-pick", "--no-commit", "99124e4db5b7b70daeaaf1d88a6a8078a0004c6e")
 		if err != nil {
 			return nil, err
 		}
