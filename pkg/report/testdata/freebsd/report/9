@@ -1,0 +1,20 @@
+TITLE: panic: sctp: no chunks on the queues
+
+panic: No chunks on the queues for sid 5.
+cpuid = 0
+time = 382
+KDB: stack backtrace:
+db_trace_self_wrapper() at db_trace_self_wrapper+0x47/frame 0xfffffe0016ad96f0
+vpanic() at vpanic+0x1e0/frame 0xfffffe0016ad9750
+panic() at panic+0x43/frame 0xfffffe0016ad97b0
+sctp_free_assoc() at sctp_free_assoc+0x32b3/frame 0xfffffe0016ad9850
+sctp_timeout_handler() at sctp_timeout_handler+0x167f/frame 0xfffffe0016ad98e0
+softclock_call_cc() at softclock_call_cc+0x1dd/frame 0xfffffe0016ad99b0
+softclock() at softclock+0xa3/frame 0xfffffe0016ad99f0
+ithread_loop() at ithread_loop+0x2f2/frame 0xfffffe0016ad9a60
+fork_exit() at fork_exit+0xb0/frame 0xfffffe0016ad9ab0
+fork_trampoline() at fork_trampoline+0xe/frame 0xfffffe0016ad9ab0
+--- trap 0, rip = 0, rsp = 0, rbp = 0 ---
+KDB: enter: panic
+[ thread pid 12 tid 100018 ]
+Stopped at      kdb_enter+0x6a: movq    $0,kdb_why
