@@ -115,6 +115,10 @@ var freebsdOopses = []*oops{
 					"/.*/(sys/.*:[0-9]+)"),
 				fmt: "panic: %[1]v of destroyed %[2]v at %[3]v",
 			},
+			{
+				title: compile("panic: No chunks on the queues for sid [0-9]+\\.\\r?\\n"),
+				fmt:   "panic: sctp: no chunks on the queues",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
