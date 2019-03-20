@@ -64,9 +64,22 @@ func (jp *JobProcessor) loop() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	var lastCommitPoll time.Time
+loop:
 	for {
+		// Check jp.stop separately first, otherwise if stop signal arrives during a job exection,
+		// we can grab the next one with 50% probability.
+		select {
+		case <-jp.stop:
+			break loop
+		default:
+		}
 		select {
 		case <-ticker.C:
+			if len(kernelBuildSem) != 0 {
+				// If normal kernel build is in progress (usually on start), don't query jobs.
+				// Otherwise we claim a job, but can't start it for a while.
+				continue loop
+			}
 			if jp.cfg.EnableJobs {
 				jp.pollJobs()
 			}
@@ -75,10 +88,10 @@ func (jp *JobProcessor) loop() {
 				lastCommitPoll = time.Now()
 			}
 		case <-jp.stop:
-			log.Logf(0, "job loop stopped")
-			return
+			break loop
 		}
 	}
+	log.Logf(0, "job loop stopped")
 }
 
 func (jp *JobProcessor) pollCommits() {
