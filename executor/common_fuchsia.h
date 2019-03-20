@@ -4,7 +4,7 @@
 // This file is shared between executor and csource package.
 
 #include <fcntl.h>
-#include <lib/fdio/util.h>
+#include <lib/fdio/directory.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdlib.h>
