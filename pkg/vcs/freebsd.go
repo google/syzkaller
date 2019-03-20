@@ -3,11 +3,6 @@
 
 package vcs
 
-import (
-	"fmt"
-	"io"
-)
-
 type freebsd struct {
 	*git
 }
@@ -16,16 +11,4 @@ func newFreeBSD(vm, dir string) *freebsd {
 	return &freebsd{
 		git: newGit(dir, nil),
 	}
-}
-
-func (ctx *freebsd) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
-	return ctx.git.ExtractFixTagsFromCommits(baseCommit, email)
-}
-
-func (ctx *freebsd) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) (*Commit, error) {
-	return nil, fmt.Errorf("not implemented for freebsd")
-}
-
-func (ctx *freebsd) PreviousReleaseTags(commit string) ([]string, error) {
-	return nil, fmt.Errorf("not implemented for freebsd")
 }
