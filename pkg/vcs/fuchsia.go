@@ -5,7 +5,6 @@ package vcs
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -89,9 +88,4 @@ func (ctx *fuchsia) ListRecentCommits(baseCommit string) ([]string, error) {
 
 func (ctx *fuchsia) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, error) {
 	return ctx.zircon.ExtractFixTagsFromCommits(baseCommit, email)
-}
-
-func (ctx *fuchsia) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, interface{}, error)) (
-	*Commit, interface{}, error) {
-	return nil, nil, fmt.Errorf("not implemented for fuchsia")
 }
