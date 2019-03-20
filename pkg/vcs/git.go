@@ -34,9 +34,8 @@ func newGit(dir string, ignoreCC map[string]bool) *git {
 }
 
 func (git *git) Poll(repo, branch string) (*Commit, error) {
-	dir := git.dir
 	git.reset()
-	origin, err := runSandboxed(dir, "git", "remote", "get-url", "origin")
+	origin, err := git.git("remote", "get-url", "origin")
 	if err != nil || strings.TrimSpace(string(origin)) != repo {
 		// The repo is here, but it has wrong origin (e.g. repo in config has changed), re-clone.
 		if err := git.clone(repo, branch); err != nil {
@@ -46,46 +45,44 @@ func (git *git) Poll(repo, branch string) (*Commit, error) {
 	// Use origin/branch for the case the branch was force-pushed,
 	// in such case branch is not the same is origin/branch and we will
 	// stuck with the local version forever (git checkout won't fail).
-	if _, err := runSandboxed(dir, "git", "checkout", "origin/"+branch); err != nil {
+	if _, err := git.git("checkout", "origin/"+branch); err != nil {
 		// No such branch (e.g. branch in config has changed), re-clone.
 		if err := git.clone(repo, branch); err != nil {
 			return nil, err
 		}
 	}
-	if _, err := runSandboxed(dir, "git", "fetch"); err != nil {
+	if _, err := git.git("fetch"); err != nil {
 		// Something else is wrong, re-clone.
 		if err := git.clone(repo, branch); err != nil {
 			return nil, err
 		}
 	}
-	if _, err := runSandboxed(dir, "git", "checkout", "origin/"+branch); err != nil {
+	if _, err := git.git("checkout", "origin/"+branch); err != nil {
 		return nil, err
 	}
 	return git.HeadCommit()
 }
 
 func (git *git) CheckoutBranch(repo, branch string) (*Commit, error) {
-	dir := git.dir
 	git.reset()
-	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
+	if _, err := git.git("reset", "--hard"); err != nil {
 		if err := git.initRepo(err); err != nil {
 			return nil, err
 		}
 	}
-	_, err := runSandboxed(dir, "git", "fetch", repo, branch)
+	_, err := git.git("fetch", repo, branch)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := runSandboxed(dir, "git", "checkout", "FETCH_HEAD"); err != nil {
+	if _, err := git.git("checkout", "FETCH_HEAD"); err != nil {
 		return nil, err
 	}
 	return git.HeadCommit()
 }
 
 func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
-	dir := git.dir
 	git.reset()
-	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
+	if _, err := git.git("reset", "--hard"); err != nil {
 		if err := git.initRepo(err); err != nil {
 			return nil, err
 		}
@@ -99,15 +96,14 @@ func (git *git) CheckoutCommit(repo, commit string) (*Commit, error) {
 func (git *git) fetchRemote(repo string) error {
 	repoHash := hash.String([]byte(repo))
 	// Ignore error as we can double add the same remote and that will fail.
-	runSandboxed(git.dir, "git", "remote", "add", repoHash, repo)
-	_, err := runSandboxed(git.dir, "git", "fetch", "-t", repoHash)
+	git.git("remote", "add", repoHash, repo)
+	_, err := git.git("fetch", "--tags", repoHash)
 	return err
 }
 
 func (git *git) SwitchCommit(commit string) (*Commit, error) {
-	dir := git.dir
-	runSandboxed(dir, "git", "reset", "--hard")
-	if _, err := runSandboxed(dir, "git", "checkout", commit); err != nil {
+	git.git("reset", "--hard")
+	if _, err := git.git("checkout", commit); err != nil {
 		return nil, err
 	}
 	return git.HeadCommit()
@@ -117,10 +113,10 @@ func (git *git) clone(repo, branch string) error {
 	if err := git.initRepo(nil); err != nil {
 		return err
 	}
-	if _, err := runSandboxed(git.dir, "git", "remote", "add", "origin", repo); err != nil {
+	if _, err := git.git("remote", "add", "origin", repo); err != nil {
 		return err
 	}
-	if _, err := runSandboxed(git.dir, "git", "fetch", "origin", branch); err != nil {
+	if _, err := git.git("fetch", "origin", branch); err != nil {
 		return err
 	}
 	return nil
@@ -128,9 +124,9 @@ func (git *git) clone(repo, branch string) error {
 
 func (git *git) reset() {
 	// This function tries to reset git repo state to a known clean state.
-	runSandboxed(git.dir, "git", "reset", "--hard")
-	runSandboxed(git.dir, "git", "bisect", "reset")
-	runSandboxed(git.dir, "git", "reset", "--hard")
+	git.git("reset", "--hard")
+	git.git("bisect", "reset")
+	git.git("reset", "--hard")
 }
 
 func (git *git) initRepo(reason error) error {
@@ -146,7 +142,7 @@ func (git *git) initRepo(reason error) error {
 	if err := osutil.SandboxChown(git.dir); err != nil {
 		return err
 	}
-	if _, err := runSandboxed(git.dir, "git", "init"); err != nil {
+	if _, err := git.git("init"); err != nil {
 		return err
 	}
 	return nil
@@ -157,7 +153,7 @@ func (git *git) HeadCommit() (*Commit, error) {
 }
 
 func (git *git) getCommit(commit string) (*Commit, error) {
-	output, err := runSandboxed(git.dir, "git", "log", "--format=%H%n%s%n%ae%n%an%n%ad%n%b", "-n", "1", commit)
+	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%b", "-n", "1", commit)
 	if err != nil {
 		return nil, err
 	}
@@ -274,8 +270,7 @@ func (git *git) ListRecentCommits(baseCommit string) ([]string, error) {
 	// On upstream kernel this produces ~11MB of output.
 	// Somewhat inefficient to collect whole output in a slice
 	// and then convert to string, but should be bearable.
-	output, err := runSandboxed(git.dir, "git", "log",
-		"--pretty=format:%s", "-n", "200000", baseCommit)
+	output, err := git.git("log", "--pretty=format:%s", "-n", "200000", baseCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -304,6 +299,9 @@ func (git *git) fetchCommits(since, base, user, domain string, greps []string, f
 	args = append(args, base)
 	cmd := exec.Command("git", args...)
 	cmd.Dir = git.dir
+	if err := osutil.Sandbox(cmd, true, false); err != nil {
+		return nil, err
+	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -344,6 +342,10 @@ func (git *git) fetchCommits(since, base, user, domain string, greps []string, f
 	return commits, s.Err()
 }
 
+func (git *git) git(args ...string) ([]byte, error) {
+	return runSandboxed(git.dir, "git", args...)
+}
+
 func splitEmail(email string) (user, domain string, err error) {
 	addr, err := mail.ParseAddress(email)
 	if err != nil {
@@ -362,13 +364,12 @@ func splitEmail(email string) (user, domain string, err error) {
 }
 
 func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectResult, error)) ([]*Commit, error) {
-	dir := git.dir
 	git.reset()
 	firstBad, err := git.getCommit(bad)
 	if err != nil {
 		return nil, err
 	}
-	output, err := runSandboxed(dir, "git", "bisect", "start", bad, good)
+	output, err := git.git("bisect", "start", bad, good)
 	if err != nil {
 		return nil, err
 	}
@@ -386,14 +387,14 @@ func (git *git) Bisect(bad, good string, trace io.Writer, pred func() (BisectRes
 	for {
 		res, err := pred()
 		// Linux EnvForCommit may cherry-pick some fixes, reset these before the next step.
-		runSandboxed(dir, "git", "reset", "--hard")
+		git.git("reset", "--hard")
 		if err != nil {
 			return nil, err
 		}
 		if res == BisectBad {
 			firstBad = current
 		}
-		output, err = runSandboxed(dir, "git", "bisect", bisectTerms[res])
+		output, err = git.git("bisect", bisectTerms[res])
 		fmt.Fprintf(trace, "# git bisect %v %v\n%s", bisectTerms[res], current.Hash, output)
 		if err != nil {
 			if bytes.Contains(output, []byte("There are only 'skip'ped commits left to test")) {
