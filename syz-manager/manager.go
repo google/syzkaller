@@ -1047,7 +1047,7 @@ func (mgr *Manager) dashboardReporter() {
 		mgr.mu.Unlock()
 
 		if err := mgr.dash.UploadManagerStats(req); err != nil {
-			log.Logf(0, "faield to upload dashboard stats: %v", err)
+			log.Logf(0, "failed to upload dashboard stats: %v", err)
 			continue
 		}
 		mgr.mu.Lock()
