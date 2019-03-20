@@ -112,8 +112,10 @@ type ManagerConfig struct {
 	// File with kernel cmdline values (optional).
 	KernelCmdline string `json:"kernel_cmdline"`
 	// File with sysctl values (e.g. output of sysctl -a, optional).
-	KernelSysctl  string          `json:"kernel_sysctl"`
-	PollCommits   bool            `json:"poll_commits"`
+	KernelSysctl string `json:"kernel_sysctl"`
+	PollCommits  bool   `json:"poll_commits"`
+	Bisect       bool   `json:"bisect"`
+
 	ManagerConfig json.RawMessage `json:"manager_config"`
 	managercfg    *mgrconfig.Config
 }

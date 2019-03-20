@@ -121,7 +121,8 @@ func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
 //     ID must match JobPollResp.ID.
 
 type JobPollReq struct {
-	Managers []string
+	PatchTestManagers []string
+	BisectManagers    []string
 }
 
 type JobPollResp struct {
@@ -164,8 +165,7 @@ const (
 	JobBisectFix
 )
 
-func (dash *Dashboard) JobPoll(managers []string) (*JobPollResp, error) {
-	req := &JobPollReq{Managers: managers}
+func (dash *Dashboard) JobPoll(req *JobPollReq) (*JobPollResp, error) {
 	resp := new(JobPollResp)
 	err := dash.Query("job_poll", req, resp)
 	return resp, err

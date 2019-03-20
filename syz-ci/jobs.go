@@ -192,11 +192,17 @@ func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits 
 }
 
 func (jp *JobProcessor) pollJobs() {
-	var names []string
+	var patchTestManagers, bisectManagers []string
 	for _, mgr := range jp.managers {
-		names = append(names, mgr.name)
+		patchTestManagers = append(patchTestManagers, mgr.name)
+		if mgr.mgrcfg.Bisect {
+			bisectManagers = append(bisectManagers, mgr.name)
+		}
 	}
-	req, err := jp.dash.JobPoll(names)
+	req, err := jp.dash.JobPoll(&dashapi.JobPollReq{
+		PatchTestManagers: patchTestManagers,
+		BisectManagers:    bisectManagers,
+	})
 	if err != nil {
 		jp.Errorf("failed to poll jobs: %v", err)
 		return
