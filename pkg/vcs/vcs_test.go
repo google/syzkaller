@@ -126,7 +126,7 @@ func TestCommitLink(t *testing.T) {
 		{
 			"https://fuchsia.googlesource.com",
 			"13ee3dc5e4c46bf127977ad28645c47442ec517d",
-			"https://fuchsia.googlesource.com/zircon/+/13ee3dc5e4c46bf127977ad28645c47442ec517d^!",
+			"https://fuchsia.googlesource.com/fuchsia/+/13ee3dc5e4c46bf127977ad28645c47442ec517d^!",
 		},
 		{
 			"git://git.cmpxchg.org/linux-mmots.git",
