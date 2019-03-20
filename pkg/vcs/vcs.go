@@ -231,8 +231,8 @@ func link(url, hash string, typ int) string {
 	}
 	switch url {
 	case "https://fuchsia.googlesource.com":
-		// We collect hashes from zircon repo.
-		return link(url+"/zircon", hash, typ)
+		// We collect hashes from the fuchsia repo.
+		return link(url+"/fuchsia", hash, typ)
 	}
 	if strings.HasPrefix(url, "https://github.com/") {
 		url = strings.TrimSuffix(url, ".git")

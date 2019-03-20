@@ -1,7 +1,7 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# See https://fuchsia.googlesource.com/zircon/+/master/docs/fidl/wire-format/index.md
+# See https://fuchsia.googlesource.com/fuchsia/+/master/docs/development/languages/fidl/reference/wire-format/README.md
 
 include <zircon/fidl.h>
 
