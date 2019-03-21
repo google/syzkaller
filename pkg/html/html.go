@@ -144,7 +144,8 @@ func formatShortHash(v string) string {
 }
 
 func formatTagHash(v string) string {
-	// Note: Fixes/References commit tags should include 12-char hash. Don't change this const.
+	// Note: Fixes/References commit tags should include 12-char hash
+	// (see Documentation/process/submitting-patches.rst). Don't change this const.
 	const hashLen = 12
 	if len(v) <= hashLen {
 		return v
