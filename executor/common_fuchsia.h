@@ -220,7 +220,7 @@ static long syz_job_default(void)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_future_time
-static long syz_future_time(long when)
+static long syz_future_time(volatile long when)
 {
 	zx_time_t delta_ms;
 	switch (when) {

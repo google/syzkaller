@@ -67,9 +67,16 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
 	p := target.Generate(rs, 10, nil)
-	p.Calls = append(p.Calls, target.GenerateAllSyzProg(rs).Calls...)
+	// Turns out that fully minimized program can trigger new interesting warnings,
+	// e.g. about NULL arguments for functions that require non-NULL arguments in syz_ functions.
+	// We could append both AllSyzProg as-is and a minimized version of it,
+	// but this makes the NULL argument warnings go away (they showed up in ".constprop" versions).
+	// Testing 2 programs takes too long since we have lots of options permutations and OS/arch.
+	// So we use the as-is in short tests and minimized version in full tests.
+	syzProg := target.GenerateAllSyzProg(rs)
 	var opts []Options
 	if !full || testing.Short() {
+		p.Calls = append(p.Calls, syzProg.Calls...)
 		opts = allOptionsSingle(target.OS)
 		// This is the main configuration used by executor,
 		// so we want to test it as well.
@@ -83,6 +90,10 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 			UseTmpDir: true,
 		})
 	} else {
+		minimized, _ := prog.Minimize(syzProg, -1, false, func(p *prog.Prog, call int) bool {
+			return len(p.Calls) == len(syzProg.Calls)
+		})
+		p.Calls = append(p.Calls, minimized.Calls...)
 		opts = allOptionsPermutations(target.OS)
 	}
 	for opti, opts := range opts {

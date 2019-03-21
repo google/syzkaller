@@ -10,7 +10,7 @@
 #include <sys/mman.h>
 
 // syz_mmap(addr vma, len len[addr])
-static long syz_mmap(long a0, long a1)
+static long syz_mmap(volatile long a0, volatile long a1)
 {
 	return (long)mmap((void*)a0, a1, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
 }
@@ -20,7 +20,7 @@ static long syz_mmap(long a0, long a1)
 #include <errno.h>
 
 // syz_errno(v int32)
-static long syz_errno(long v)
+static long syz_errno(volatile long v)
 {
 	errno = v;
 	return v == 0 ? 0 : -1;
@@ -29,7 +29,7 @@ static long syz_errno(long v)
 
 #if SYZ_EXECUTOR || __NR_syz_exit
 // syz_exit(status int32)
-static long syz_exit(long status)
+static long syz_exit(volatile long status)
 {
 	_exit(status);
 	return 0;
@@ -41,7 +41,7 @@ static long syz_exit(long status)
 #include <string.h>
 
 // syz_compare(want ptr[in, string], want_len len[want], got ptr[in, compare_data], got_len len[got])
-static long syz_compare(long want, long want_len, long got, long got_len)
+static long syz_compare(volatile long want, volatile long want_len, volatile long got, volatile long got_len)
 {
 	if (want_len != got_len) {
 		debug("syz_compare: want_len=%lu got_len=%lu\n", want_len, got_len);
@@ -65,7 +65,7 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 #include <stdarg.h>
 
 // syz_compare_int$4(n const[2], v0 intptr, v1 intptr, v2 intptr, v3 intptr)
-static long syz_compare_int(long n, ...)
+static long syz_compare_int(volatile long n, ...)
 {
 	va_list args;
 	va_start(args, n);

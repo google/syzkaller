@@ -362,7 +362,7 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_execute_func
-static long syz_execute_func(long text)
+static long syz_execute_func(volatile long text)
 {
 	((void (*)(void))(text))();
 	return 0;
@@ -548,7 +548,7 @@ static void initialize_tun(int tun_id)
 #include <stdbool.h>
 #include <sys/uio.h>
 
-static long syz_emit_ethernet(long a0, long a1)
+static long syz_emit_ethernet(volatile long a0, volatile long a1)
 {
 	if (tunfd < 0)
 		return (uintptr_t)-1;
@@ -599,7 +599,7 @@ struct tcp_resources {
 #include <netinet/tcp.h>
 #include <netinet/if_ether.h>
 
-static long syz_extract_tcp_res(long a0, long a1, long a2)
+static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile long a2)
 {
 
 	if (tunfd < 0)
@@ -957,7 +957,7 @@ static long syz_job_default(void)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_future_time
-static long syz_future_time(long when)
+static long syz_future_time(volatile long when)
 {
 	zx_time_t delta_ms;
 	switch (when) {
@@ -1579,7 +1579,7 @@ struct vnet_fragmentation {
 	uint32 frags[MAX_FRAGS];
 };
 
-static long syz_emit_ethernet(long a0, long a1, long a2)
+static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long a2)
 {
 	if (tunfd < 0)
 		return (uintptr_t)-1;
@@ -1657,7 +1657,7 @@ struct tcp_resources {
 	uint32 ack;
 };
 
-static long syz_extract_tcp_res(long a0, long a1, long a2)
+static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile long a2)
 {
 
 	if (tunfd < 0)
@@ -1713,7 +1713,7 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static long syz_open_dev(long a0, long a1, long a2)
+static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 {
 	if (a0 == 0xc || a0 == 0xb) {
 		char buf[128];
@@ -1739,7 +1739,7 @@ static long syz_open_dev(long a0, long a1, long a2)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static long syz_open_procfs(long a0, long a1)
+static long syz_open_procfs(volatile long a0, volatile long a1)
 {
 
 	char buf[128];
@@ -1764,7 +1764,7 @@ static long syz_open_procfs(long a0, long a1)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static long syz_open_pts(long a0, long a1)
+static long syz_open_pts(volatile long a0, volatile long a1)
 {
 	int ptyno = 0;
 	if (ioctl(a0, TIOCGPTN, &ptyno))
@@ -1784,7 +1784,7 @@ static long syz_open_pts(long a0, long a1)
 #include <unistd.h>
 
 const int kInitNetNsFd = 239;
-static long syz_init_net_socket(long domain, long type, long proto)
+static long syz_init_net_socket(volatile long domain, volatile long type, volatile long proto)
 {
 	int netns = open("/proc/self/ns/net", O_RDONLY);
 	if (netns == -1)
@@ -1800,7 +1800,7 @@ static long syz_init_net_socket(long domain, long type, long proto)
 	return sock;
 }
 #else
-static long syz_init_net_socket(long domain, long type, long proto)
+static long syz_init_net_socket(volatile long domain, volatile long type, volatile long proto)
 {
 	return syscall(__NR_socket, domain, type, proto);
 }
@@ -1814,7 +1814,7 @@ static long syz_init_net_socket(long domain, long type, long proto)
 #include <sys/socket.h>
 #include <sys/types.h>
 
-static long syz_genetlink_get_family_id(long name)
+static long syz_genetlink_get_family_id(volatile long name)
 {
 	char buf[512] = {0};
 	struct nlmsghdr* hdr = (struct nlmsghdr*)buf;
@@ -1892,7 +1892,7 @@ struct fs_image_segment {
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_read_part_table
-static long syz_read_part_table(unsigned long size, unsigned long nsegs, long segments)
+static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
 {
 	char loopname[64], linkname[64];
 	int loopfd, err = 0, res = -1;
@@ -1983,7 +1983,7 @@ error:
 #if SYZ_EXECUTOR || __NR_syz_mount_image
 #include <string.h>
 #include <sys/mount.h>
-static long syz_mount_image(long fsarg, long dir, unsigned long size, unsigned long nsegs, long segments, long flags, long optsarg)
+static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg)
 {
 	char loopname[64], fs[32], opts[256];
 	int loopfd, err = 0, res = -1;
@@ -2411,7 +2411,7 @@ struct kvm_opt {
 #define KVM_SETUP_VIRT86 (1 << 4)
 #define KVM_SETUP_SMM (1 << 5)
 #define KVM_SETUP_VM (1 << 6)
-static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
+static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	const int vmfd = a0;
 	const int cpufd = a1;
@@ -2961,7 +2961,7 @@ struct kvm_opt {
 	uint64 typ;
 	uint64 val;
 };
-static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
+static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	const int vmfd = a0;
 	const int cpufd = a1;
@@ -3028,7 +3028,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 }
 
 #else
-static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7)
+static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	return 0;
 }
@@ -4341,7 +4341,7 @@ static void reset_test()
 
 #if SYZ_EXECUTOR || __NR_syz_mmap
 #include <sys/mman.h>
-static long syz_mmap(long a0, long a1)
+static long syz_mmap(volatile long a0, volatile long a1)
 {
 	return (long)mmap((void*)a0, a1, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0);
 }
@@ -4349,7 +4349,7 @@ static long syz_mmap(long a0, long a1)
 
 #if SYZ_EXECUTOR || __NR_syz_errno
 #include <errno.h>
-static long syz_errno(long v)
+static long syz_errno(volatile long v)
 {
 	errno = v;
 	return v == 0 ? 0 : -1;
@@ -4357,7 +4357,7 @@ static long syz_errno(long v)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_exit
-static long syz_exit(long status)
+static long syz_exit(volatile long status)
 {
 	_exit(status);
 	return 0;
@@ -4367,7 +4367,7 @@ static long syz_exit(long status)
 #if SYZ_EXECUTOR || __NR_syz_compare
 #include <errno.h>
 #include <string.h>
-static long syz_compare(long want, long want_len, long got, long got_len)
+static long syz_compare(volatile long want, volatile long want_len, volatile long got, volatile long got_len)
 {
 	if (want_len != got_len) {
 		debug("syz_compare: want_len=%lu got_len=%lu\n", want_len, got_len);
@@ -4389,7 +4389,7 @@ static long syz_compare(long want, long want_len, long got, long got_len)
 #if SYZ_EXECUTOR || __NR_syz_compare_int
 #include <errno.h>
 #include <stdarg.h>
-static long syz_compare_int(long n, ...)
+static long syz_compare_int(volatile long n, ...)
 {
 	va_list args;
 	va_start(args, n);
