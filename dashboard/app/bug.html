@@ -44,7 +44,7 @@ Page with details about a single bug.
 			({{link $bisect.LogLink "bisect log"}}):</b><br>
 			<br><span class="mono">
 			{{range $com := $bisect.Commits}}
-				&nbsp;&nbsp;{{formatShortHash $com.Hash}} {{$com.Title}}<br>
+				&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
 			{{end}}
 			</span><br>
 		{{end}}{{else}}

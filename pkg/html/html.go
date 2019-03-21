@@ -47,6 +47,7 @@ var Funcs = template.FuncMap{
 	"formatReproLevel":       formatReproLevel,
 	"formatStat":             formatStat,
 	"formatShortHash":        formatShortHash,
+	"formatTagHash":          formatTagHash,
 	"formatCommitTableTitle": formatCommitTableTitle,
 	"formatList":             formatStringList,
 }
@@ -136,6 +137,15 @@ func formatStat(v int64) string {
 
 func formatShortHash(v string) string {
 	const hashLen = 8
+	if len(v) <= hashLen {
+		return v
+	}
+	return v[:hashLen]
+}
+
+func formatTagHash(v string) string {
+	// Note: Fixes/References commit tags should include 12-char hash. Don't change this const.
+	const hashLen = 12
 	if len(v) <= hashLen {
 		return v
 	}
