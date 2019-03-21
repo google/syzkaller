@@ -8,6 +8,7 @@ bugs. All `syzbot`-reported bugs are also CCed to
 Direct all questions to `syzkaller@googlegroups.com`.
 
 <!-- These anchors are used in external links , don't touch, is there a better syntax for this? -->
+<div id="bug-status-tracking"/>
 <div id="status"/>
 
 ## Bug status tracking
@@ -21,7 +22,7 @@ the commit reaches all kernel builds on all tracked branches. Only when the
 commit reaches all builds, the bug is considered closed (new similarly-looking
 crashes create a new bug).
 
-## <div id="communication"/> Communication with syzbot
+## Communication with syzbot
 
 If you fix a bug reported by `syzbot`, please add the provided `Reported-by`
 tag to the commit (`Reported-and-tested-by` and `Tested-by` tags with the
@@ -56,6 +57,8 @@ override the commit simply by sending another `#syz fix` command.
 **Note**: please keep `syzkaller-bugs@googlegroups.com` mailing list in CC.
 It serves as a history of what happened with each bug report.
 
+<div id="testing-patches"/>
+
 ## Testing patches
 
 `syzbot` can test patches for bugs *with reproducers*. This can be used for
@@ -84,6 +87,8 @@ Note: you may send the request only to `syzbot` email address, as patches sent
 to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 
 Note: see [below](#kmsan-bugs) for testing `KMSAN` bugs.
+
+<div id="bisection"/>
 
 ## Bisection
 
@@ -128,6 +133,8 @@ so please treat the results with understanding. You may consult the provided
 `bisection log` to see how/why `syzbot` has arrived to a particular commit.
 Suggestions and patches that improve bisection quality for common cases are
 [welcome](https://github.com/google/syzkaller/issues/1051).
+
+<div id="bisection"/>
 
 ## syzkaller reproducers
 
