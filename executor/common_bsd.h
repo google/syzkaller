@@ -161,7 +161,7 @@ static void initialize_tun(int tun_id)
 #include <stdbool.h>
 #include <sys/uio.h>
 
-static long syz_emit_ethernet(long a0, long a1)
+static long syz_emit_ethernet(volatile long a0, volatile long a1)
 {
 	// syz_emit_ethernet(len len[packet], packet ptr[in, array[int8]])
 	if (tunfd < 0)
@@ -216,7 +216,7 @@ struct tcp_resources {
 // pkg/csource hoistIncludes.
 #include <netinet/if_ether.h>
 
-static long syz_extract_tcp_res(long a0, long a1, long a2)
+static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile long a2)
 {
 	// syz_extract_tcp_res(res ptr[out, tcp_resources], seq_inc int32, ack_inc int32)
 

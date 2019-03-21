@@ -660,7 +660,7 @@ struct vnet_fragmentation {
 	uint32 frags[MAX_FRAGS];
 };
 
-static long syz_emit_ethernet(long a0, long a1, long a2)
+static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long a2)
 {
 	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet], frags ptr[in, vnet_fragmentation, opt])
 	// vnet_fragmentation {
@@ -746,7 +746,7 @@ struct tcp_resources {
 	uint32 ack;
 };
 
-static long syz_extract_tcp_res(long a0, long a1, long a2)
+static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile long a2)
 {
 	// syz_extract_tcp_res(res ptr[out, tcp_resources], seq_inc int32, ack_inc int32)
 
@@ -804,7 +804,7 @@ static long syz_extract_tcp_res(long a0, long a1, long a2)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static long syz_open_dev(long a0, long a1, long a2)
+static long syz_open_dev(volatile long a0, volatile long a1, volatile long a2)
 {
 	if (a0 == 0xc || a0 == 0xb) {
 		// syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
@@ -833,7 +833,7 @@ static long syz_open_dev(long a0, long a1, long a2)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static long syz_open_procfs(long a0, long a1)
+static long syz_open_procfs(volatile long a0, volatile long a1)
 {
 	// syz_open_procfs(pid pid, file ptr[in, string[procfs_file]]) fd
 
@@ -859,7 +859,7 @@ static long syz_open_procfs(long a0, long a1)
 #include <sys/stat.h>
 #include <sys/types.h>
 
-static long syz_open_pts(long a0, long a1)
+static long syz_open_pts(volatile long a0, volatile long a1)
 {
 	// syz_openpts(fd fd[tty], flags flags[open_flags]) fd[tty]
 	int ptyno = 0;
@@ -882,7 +882,7 @@ static long syz_open_pts(long a0, long a1)
 const int kInitNetNsFd = 239; // see kMaxFd
 // syz_init_net_socket opens a socket in init net namespace.
 // Used for families that can only be created in init net namespace.
-static long syz_init_net_socket(long domain, long type, long proto)
+static long syz_init_net_socket(volatile long domain, volatile long type, volatile long proto)
 {
 	int netns = open("/proc/self/ns/net", O_RDONLY);
 	if (netns == -1)
@@ -898,7 +898,7 @@ static long syz_init_net_socket(long domain, long type, long proto)
 	return sock;
 }
 #else
-static long syz_init_net_socket(long domain, long type, long proto)
+static long syz_init_net_socket(volatile long domain, volatile long type, volatile long proto)
 {
 	return syscall(__NR_socket, domain, type, proto);
 }
@@ -912,7 +912,7 @@ static long syz_init_net_socket(long domain, long type, long proto)
 #include <sys/socket.h>
 #include <sys/types.h>
 
-static long syz_genetlink_get_family_id(long name)
+static long syz_genetlink_get_family_id(volatile long name)
 {
 	char buf[512] = {0};
 	struct nlmsghdr* hdr = (struct nlmsghdr*)buf;
@@ -991,7 +991,7 @@ struct fs_image_segment {
 
 #if SYZ_EXECUTOR || __NR_syz_read_part_table
 // syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
-static long syz_read_part_table(unsigned long size, unsigned long nsegs, long segments)
+static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
 {
 	char loopname[64], linkname[64];
 	int loopfd, err = 0, res = -1;
@@ -1091,7 +1091,7 @@ error:
 //	size	len[data, intptr]
 //	offset	intptr
 //}
-static long syz_mount_image(long fsarg, long dir, unsigned long size, unsigned long nsegs, long segments, long flags, long optsarg)
+static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments, volatile long flags, volatile long optsarg)
 {
 	char loopname[64], fs[32], opts[256];
 	int loopfd, err = 0, res = -1;
@@ -1200,7 +1200,7 @@ error:
 #elif GOARCH_arm64
 #include "common_kvm_arm64.h"
 #else
-static long syz_kvm_setup_cpu(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7)
+static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	return 0;
 }
