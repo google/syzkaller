@@ -37,6 +37,7 @@ func TestCompilerIdentity(t *testing.T) {
 }
 
 func TestExtractRootCause(t *testing.T) {
+	// nolint: lll
 	for _, s := range []struct{ e, expect string }{
 		{`
 cc -g -Werror db_break.c
@@ -50,6 +51,20 @@ int kcov_cold = 1;
 1 error generated.
 `,
 			"sys/dev/kcov.c:93:6: error: use of undeclared identifier 'kcov_cold123'; did you mean 'kcov_cold'?",
+		},
+		{`
+  CC       /tools/objtool/parse-options.o
+In file included from ./scripts/gcc-plugins/gcc-common.h:119:0,
+ from <stdin>:1:
+/gcc-5.5.0/bin/../lib/gcc/x86_64-unknown-linux-gnu/5.5.0/plugin/include/builtins.h:23:17: fatal error: mpc.h: No such file or directory
+compilation terminated.
+Cannot use CONFIG_GCC_PLUGINS: your gcc installation does not support plugins, perhaps the necessary headers are missing?
+scripts/Makefile.gcc-plugins:51: recipe for target 'gcc-plugins-check' failed
+make: *** [gcc-plugins-check] Error 1
+make: *** Waiting for unfinished jobs....
+  UPD     include/config/kernel.release
+`,
+			"/gcc-5.5.0/bin/../lib/gcc/x86_64-unknown-linux-gnu/5.5.0/plugin/include/builtins.h:23:17: fatal error: mpc.h: No such file or directory",
 		},
 	} {
 		got := extractCauseInner([]byte(s.e))
