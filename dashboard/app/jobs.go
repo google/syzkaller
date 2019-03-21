@@ -572,10 +572,6 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if err != nil {
 		return nil, err
 	}
-	kernelConfig, _, err := getText(c, textKernelConfig, build.KernelConfig)
-	if err != nil {
-		return nil, err
-	}
 	bugKey := jobKey.Parent()
 	crashKey := datastore.NewKey(c, "Crash", "", job.CrashID, bugKey)
 	crash := new(Crash)
@@ -590,10 +586,6 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if bugReporting == nil {
 		return nil, fmt.Errorf("job bug has no reporting %q", job.Reporting)
 	}
-	creditEmail, err := email.AddAddrContext(ownEmail(c), bugReporting.ID)
-	if err != nil {
-		return nil, err
-	}
 	var typ dashapi.ReportType
 	switch job.Type {
 	case JobTestPatch:
@@ -606,39 +598,21 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 		return nil, fmt.Errorf("unknown job type %v", job.Type)
 	}
 	rep := &dashapi.BugReport{
-		Type:              typ,
-		Namespace:         job.Namespace,
-		Config:            reportingConfig,
-		ID:                bugReporting.ID,
-		JobID:             extJobID(jobKey),
-		ExtID:             job.ExtID,
-		Title:             bug.displayTitle(),
-		Link:              fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
-		CreditEmail:       creditEmail,
-		CC:                job.CC,
-		Log:               crashLog,
-		LogLink:           externalLink(c, textCrashLog, job.CrashLog),
-		Report:            report,
-		ReportLink:        externalLink(c, textCrashReport, job.CrashReport),
-		OS:                build.OS,
-		Arch:              build.Arch,
-		VMArch:            build.VMArch,
-		UserSpaceArch:     kernelArch(build.Arch),
-		CompilerID:        build.CompilerID,
-		KernelRepo:        build.KernelRepo,
-		KernelRepoAlias:   kernelRepoInfo(build).Alias,
-		KernelBranch:      build.KernelBranch,
-		KernelCommit:      build.KernelCommit,
-		KernelCommitTitle: build.KernelCommitTitle,
-		KernelCommitDate:  build.KernelCommitDate,
-		KernelConfig:      kernelConfig,
-		KernelConfigLink:  externalLink(c, textKernelConfig, build.KernelConfig),
-		ReproCLink:        externalLink(c, textReproC, crash.ReproC),
-		ReproSyzLink:      externalLink(c, textReproSyz, crash.ReproSyz),
-		CrashTitle:        job.CrashTitle,
-		Error:             jobError,
-		ErrorLink:         externalLink(c, textError, job.Error),
-		PatchLink:         externalLink(c, textPatch, job.Patch),
+		Type:         typ,
+		Config:       reportingConfig,
+		JobID:        extJobID(jobKey),
+		ExtID:        job.ExtID,
+		CC:           job.CC,
+		Log:          crashLog,
+		LogLink:      externalLink(c, textCrashLog, job.CrashLog),
+		Report:       report,
+		ReportLink:   externalLink(c, textCrashReport, job.CrashReport),
+		ReproCLink:   externalLink(c, textReproC, crash.ReproC),
+		ReproSyzLink: externalLink(c, textReproSyz, crash.ReproSyz),
+		CrashTitle:   job.CrashTitle,
+		Error:        jobError,
+		ErrorLink:    externalLink(c, textError, job.Error),
+		PatchLink:    externalLink(c, textPatch, job.Patch),
 	}
 	if job.Type == JobBisectCause || job.Type == JobBisectFix {
 		kernelRepo := kernelRepoInfo(build)
@@ -658,6 +632,9 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if len(rep.Error) > maxInlineError {
 		rep.Error = rep.Error[len(rep.Error)-maxInlineError:]
 		rep.ErrorTruncated = true
+	}
+	if err := fillBugReport(c, rep, bug, bugReporting, build); err != nil {
+		return nil, err
 	}
 	return rep, nil
 }

@@ -330,3 +330,14 @@ func MergeEmailLists(lists ...[]string) []string {
 	}
 	return result
 }
+
+func RemoveFromEmailList(list []string, toRemove string) []string {
+	var result []string
+	toRemove = CanonicalEmail(toRemove)
+	for _, email := range list {
+		if CanonicalEmail(email) != toRemove {
+			result = append(result, email)
+		}
+	}
+	return result
+}

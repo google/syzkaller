@@ -74,8 +74,7 @@ func TestJob(t *testing.T) {
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
 		EmailOptFrom("\"foo\" <blAcklisteD@dOmain.COM>"))
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.ID, "")
 
@@ -83,15 +82,13 @@ func TestJob(t *testing.T) {
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
 		EmailOptCC([]string{"somebody@else.com"}))
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// A dup of the same request with the same Message-ID.
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
 		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
 		EmailOptCC([]string{"somebody@else.com"}))
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	pollResp = c.client2.pollJobs("foobar")
 	c.expectEQ(pollResp.ID, "")

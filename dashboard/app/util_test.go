@@ -252,6 +252,14 @@ func (c *Ctx) pollEmailBug() *aemail.Message {
 	return <-c.emailSink
 }
 
+func (c *Ctx) expectNoEmail() {
+	c.expectOK(c.GET("/email_poll"))
+	if len(c.emailSink) != 0 {
+		msg := <-c.emailSink
+		c.t.Fatalf("\n%v: got expected email: %v\n%s", caller(0), msg.Subject, msg.Body)
+	}
+}
+
 type apiClient struct {
 	*Ctx
 	*dashapi.Dashboard

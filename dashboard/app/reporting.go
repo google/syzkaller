@@ -343,14 +343,6 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if err != nil {
 		return nil, err
 	}
-	kernelConfig, _, err := getText(c, textKernelConfig, build.KernelConfig)
-	if err != nil {
-		return nil, err
-	}
-	creditEmail, err := email.AddAddrContext(ownEmail(c), bugReporting.ID)
-	if err != nil {
-		return nil, err
-	}
 	typ := dashapi.ReportNew
 	if !bugReporting.Reported.IsZero() {
 		typ = dashapi.ReportRepro
@@ -358,41 +350,23 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 
 	kernelRepo := kernelRepoInfo(build)
 	rep := &dashapi.BugReport{
-		Type:              typ,
-		Namespace:         bug.Namespace,
-		Config:            reportingConfig,
-		ID:                bugReporting.ID,
-		ExtID:             bugReporting.ExtID,
-		First:             bugReporting.Reported.IsZero(),
-		Moderation:        reporting.moderation,
-		Title:             bug.displayTitle(),
-		Link:              fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID),
-		CreditEmail:       creditEmail,
-		Log:               crashLog,
-		LogLink:           externalLink(c, textCrashLog, crash.Log),
-		Report:            report,
-		ReportLink:        externalLink(c, textCrashReport, crash.Report),
-		Maintainers:       append(crash.Maintainers, kernelRepo.CC...),
-		OS:                build.OS,
-		Arch:              build.Arch,
-		VMArch:            build.VMArch,
-		UserSpaceArch:     kernelArch(build.Arch),
-		CompilerID:        build.CompilerID,
-		KernelRepo:        build.KernelRepo,
-		KernelRepoAlias:   kernelRepo.Alias,
-		KernelBranch:      build.KernelBranch,
-		KernelCommit:      build.KernelCommit,
-		KernelCommitTitle: build.KernelCommitTitle,
-		KernelCommitDate:  build.KernelCommitDate,
-		KernelConfig:      kernelConfig,
-		KernelConfigLink:  externalLink(c, textKernelConfig, build.KernelConfig),
-		ReproC:            reproC,
-		ReproCLink:        externalLink(c, textReproC, crash.ReproC),
-		ReproSyz:          reproSyz,
-		ReproSyzLink:      externalLink(c, textReproSyz, crash.ReproSyz),
-		CrashID:           crashKey.IntID(),
-		NumCrashes:        bug.NumCrashes,
-		HappenedOn:        managersToRepos(c, bug.Namespace, bug.HappenedOn),
+		Type:         typ,
+		Config:       reportingConfig,
+		ExtID:        bugReporting.ExtID,
+		First:        bugReporting.Reported.IsZero(),
+		Moderation:   reporting.moderation,
+		Log:          crashLog,
+		LogLink:      externalLink(c, textCrashLog, crash.Log),
+		Report:       report,
+		ReportLink:   externalLink(c, textCrashReport, crash.Report),
+		Maintainers:  append(crash.Maintainers, kernelRepo.CC...),
+		ReproC:       reproC,
+		ReproCLink:   externalLink(c, textReproC, crash.ReproC),
+		ReproSyz:     reproSyz,
+		ReproSyzLink: externalLink(c, textReproSyz, crash.ReproSyz),
+		CrashID:      crashKey.IntID(),
+		NumCrashes:   bug.NumCrashes,
+		HappenedOn:   managersToRepos(c, bug.Namespace, bug.HappenedOn),
 	}
 	if bugReporting.CC != "" {
 		rep.CC = strings.Split(bugReporting.CC, "|")
@@ -400,7 +374,46 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if bug.BisectCause == BisectYes {
 		rep.BisectCause = bisectFromJob(c, rep, job)
 	}
+	if err := fillBugReport(c, rep, bug, bugReporting, build); err != nil {
+		return nil, err
+	}
 	return rep, nil
+}
+
+// fillBugReport fills common report fields for bug and job reports.
+func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugReporting *BugReporting,
+	build *Build) error {
+	kernelConfig, _, err := getText(c, textKernelConfig, build.KernelConfig)
+	if err != nil {
+		return err
+	}
+	creditEmail, err := email.AddAddrContext(ownEmail(c), bugReporting.ID)
+	if err != nil {
+		return err
+	}
+	rep.Namespace = bug.Namespace
+	rep.ID = bugReporting.ID
+	rep.Title = bug.displayTitle()
+	rep.Link = fmt.Sprintf("%v/bug?extid=%v", appURL(c), bugReporting.ID)
+	rep.CreditEmail = creditEmail
+	rep.OS = build.OS
+	rep.Arch = build.Arch
+	rep.VMArch = build.VMArch
+	rep.UserSpaceArch = kernelArch(build.Arch)
+	rep.CompilerID = build.CompilerID
+	rep.KernelRepo = build.KernelRepo
+	rep.KernelRepoAlias = kernelRepoInfo(build).Alias
+	rep.KernelBranch = build.KernelBranch
+	rep.KernelCommit = build.KernelCommit
+	rep.KernelCommitTitle = build.KernelCommitTitle
+	rep.KernelCommitDate = build.KernelCommitDate
+	rep.KernelConfig = kernelConfig
+	rep.KernelConfigLink = externalLink(c, textKernelConfig, build.KernelConfig)
+	for _, addr := range bug.UNCC {
+		rep.CC = email.RemoveFromEmailList(rep.CC, addr)
+		rep.Maintainers = email.RemoveFromEmailList(rep.Maintainers, addr)
+	}
+	return nil
 }
 
 func loadBisectJob(c context.Context, bug *Bug) (*Job, *Crash, *datastore.Key, *datastore.Key, error) {
@@ -679,7 +692,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	if bugReporting.Link == "" {
 		bugReporting.Link = cmd.Link
 	}
-	if len(cmd.CC) != 0 {
+	if len(cmd.CC) != 0 && cmd.Status != dashapi.BugStatusUnCC {
 		merged := email.MergeEmailLists(strings.Split(bugReporting.CC, "|"), cmd.CC)
 		bugReporting.CC = strings.Join(merged, "|")
 	}
@@ -755,6 +768,8 @@ func incomingCommandCmd(c context.Context, now time.Time, cmd *dashapi.BugUpdate
 		bug.DupOf = dupHash
 	case dashapi.BugStatusUpdate:
 		// Just update Link, Commits, etc below.
+	case dashapi.BugStatusUnCC:
+		bug.UNCC = email.MergeEmailLists(bug.UNCC, cmd.CC)
 	default:
 		return false, internalError, fmt.Errorf("unknown bug status %v", cmd.Status)
 	}
