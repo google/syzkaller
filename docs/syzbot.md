@@ -7,7 +7,7 @@ bugs. All `syzbot`-reported bugs are also CCed to
 [syzkaller-bugs mailing list](https://groups.google.com/forum/#!forum/syzkaller-bugs).
 Direct all questions to `syzkaller@googlegroups.com`.
 
-## Bug status tracking
+## Bug status tracking <div id="status"/>
 
 `syzbot` needs to know when a bug is fixed in order to (1) verify that it is
 in fact fixed and (2) be able to report other similarly-looking crashes
@@ -18,7 +18,7 @@ the commit reaches all kernel builds on all tracked branches. Only when the
 commit reaches all builds, the bug is considered closed (new similarly-looking
 crashes create a new bug).
 
-## Communication with syzbot
+## Communication with syzbot <div id="communication"/>
 
 If you fix a bug reported by `syzbot`, please add the provided `Reported-by`
 tag to the commit (`Reported-and-tested-by` and `Tested-by` tags with the
@@ -82,7 +82,7 @@ to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 
 Note: see [below](#kmsan-bugs) for testing `KMSAN` bugs.
 
-## Bisection
+## Bisection <div id="bisection"/>
 
 `syzbot` bisects bugs with reproducers to find commit that introduced the bug.
 `syzbot` starts with the commit on which the bug was discovered, ensures that it
