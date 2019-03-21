@@ -219,7 +219,9 @@ bin/syz-fmt:
 
 tidy:
 	# A single check is enabled for now. But it's always fixable and proved to be useful.
-	clang-tidy -quiet -header-filter=.* -checks=-*,misc-definitions-in-headers -warnings-as-errors=* executor/*.cc
+	clang-tidy -quiet -header-filter=.* -checks=-*,misc-definitions-in-headers -warnings-as-errors=* \
+		-extra-arg=-DGOOS_$(TARGETOS)=1 -extra-arg=-DGOARCH_$(TARGETARCH)=1 \
+		executor/*.cc
 	# Just check for compiler warnings.
 	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
