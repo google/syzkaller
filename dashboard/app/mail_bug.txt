@@ -35,7 +35,7 @@ bisection log:  {{.BisectCause.LogLink}}
 {{end}}
 {{end}}IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: {{.CreditEmail}}
-{{if .BisectCause}}{{if .BisectCause.Commit}}Fixes: {{formatShortHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
+{{if .BisectCause}}{{if .BisectCause.Commit}}Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
 {{end}}{{end}}
 {{printf "%s" .Report}}
 {{if .First}}

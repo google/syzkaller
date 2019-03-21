@@ -149,7 +149,7 @@ syz repro:      %[6]v
 C reproducer:   %[7]v
 
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
-Fixes: 36e65cb4 ("kernel: add a bug")
+Fixes: 36e65cb4a044 ("kernel: add a bug")
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 
 		syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
@@ -204,7 +204,7 @@ console output: %[8]v
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
-Fixes: 36e65cb4 ("kernel: add a bug")
+Fixes: 36e65cb4a044 ("kernel: add a bug")
 
 report2
 
