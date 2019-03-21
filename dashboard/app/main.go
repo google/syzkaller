@@ -737,6 +737,10 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 		}
 		results = append(results, makeUICrash(crash, build))
 	}
+	// most recent crashes should go first.
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Time.After(results[j].Time)
+	})
 	sampleReport, _, err := getText(c, textCrashReport, crashes[0].Report)
 	if err != nil {
 		return nil, nil, err

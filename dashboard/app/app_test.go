@@ -521,3 +521,39 @@ func compareBuilds(c *Ctx, dbBuild *Build, build *dashapi.Build) {
 	c.expectEQ(dbBuild.KernelCommit, build.KernelCommit)
 	c.expectEQ(dbBuild.SyzkallerCommit, build.SyzkallerCommit)
 }
+
+func TestCrashesAreSorted(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+
+	crash := testCrash(build, 1)
+	crash.ReproOpts = []byte("no repro")
+	c.client.ReportCrash(crash)
+	rep := c.client.pollBug()
+
+	c.advanceTime(-2 * time.Hour)
+	crash.ReproSyz = []byte("getpid()")
+	crash.ReproOpts = []byte("syz repro")
+	c.client.ReportCrash(crash)
+
+	c.advanceTime(3 * time.Hour)
+	crash.ReproC = []byte("int main() {}")
+	crash.ReproOpts = []byte("C repro")
+	c.client.ReportCrash(crash)
+
+	bug, _, _ := c.loadBug(rep.ID)
+	crashes, _, err := loadCrashesForBug(c.ctx, bug)
+	c.expectOK(err)
+
+	for i := 1; i < len(crashes); i++ {
+		if crashes[i].Time.After(crashes[i-1].Time) {
+			t.Errorf("crashes are not in decreasing order. %v should go before %v", crashes[i].Time, crashes[i-1].Time)
+		}
+	}
+}
