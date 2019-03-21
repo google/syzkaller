@@ -67,7 +67,7 @@ See https://goo.gl/tpsmEJ for more information about syzbot.
 syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this bug report. See:
-https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.`,
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.`,
 			extBugID0, crashLogLink, kernelConfigLink))
 		c.checkURLContents(crashLogLink, crash.Log)
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
@@ -211,7 +211,7 @@ See https://goo.gl/tpsmEJ for more information about syzbot.
 syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this bug report. See:
-https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 syzbot can test patches for this bug, for details see:
 https://goo.gl/tpsmEJ#testing-patches`,
 			extBugID1, reproSyzLink, crashLogLink, kernelConfigLink))

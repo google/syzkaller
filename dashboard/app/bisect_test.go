@@ -150,6 +150,8 @@ C reproducer:   %[7]v
 
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 Fixes: 36e65cb4a044 ("kernel: add a bug")
+
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 
 		syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
@@ -214,7 +216,8 @@ See https://goo.gl/tpsmEJ for more information about syzbot.
 syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this bug report. See:
-https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 syzbot can test patches for this bug, for details see:
 https://goo.gl/tpsmEJ#testing-patches`,
 			extBugID2, crashLogLink, kernelConfigLink, reproSyzLink, reproCLink,
@@ -344,6 +347,7 @@ dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 syz repro:      %[4]v
 C reproducer:   %[5]v
 
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 	}
 
@@ -388,7 +392,8 @@ See https://goo.gl/tpsmEJ for more information about syzbot.
 syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this bug report. See:
-https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 syzbot can test patches for this bug, for details see:
 https://goo.gl/tpsmEJ#testing-patches`,
 			extBugID2, crashLogLink, kernelConfigLink, reproSyzLink, reproCLink, bisectLogLink))
@@ -448,6 +453,7 @@ dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 syz repro:      %[6]v
 C reproducer:   %[7]v
 
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink,
 			kernelConfigLink, reproSyzLink, reproCLink))
 	}
@@ -492,7 +498,8 @@ See https://goo.gl/tpsmEJ for more information about syzbot.
 syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this bug report. See:
-https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 syzbot can test patches for this bug, for details see:
 https://goo.gl/tpsmEJ#testing-patches`,
 			extBugID2, crashLogLink, kernelConfigLink, reproSyzLink, reproCLink,
