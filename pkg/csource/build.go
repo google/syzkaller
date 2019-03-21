@@ -18,15 +18,23 @@ import (
 
 // Build builds a C program from source src and returns name of the resulting binary.
 func Build(target *prog.Target, src []byte) (string, error) {
-	return build(target, src, "")
+	return build(target, src, "", true)
+}
+
+// BuildNoWarn is the same as Build, but ignores all compilation warnings.
+// Should not be used in tests, but may be used e.g. when we are bisecting and potentially
+// using an old repro with newer compiler, or a compiler that we never seen before.
+// In these cases it's more important to build successfully.
+func BuildNoWarn(target *prog.Target, src []byte) (string, error) {
+	return build(target, src, "", false)
 }
 
 // BuildFile builds a C/C++ program from file src and returns name of the resulting binary.
 func BuildFile(target *prog.Target, src string) (string, error) {
-	return build(target, nil, src)
+	return build(target, nil, src, true)
 }
 
-func build(target *prog.Target, src []byte, file string) (string, error) {
+func build(target *prog.Target, src []byte, file string, warn bool) (string, error) {
 	sysTarget := targets.Get(target.OS, target.Arch)
 	compiler := sysTarget.CCompiler
 	if _, err := exec.LookPath(compiler); err != nil {
@@ -54,6 +62,9 @@ func build(target *prog.Target, src []byte, file string) (string, error) {
 	if sysTarget.PtrSize == 4 {
 		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
 		flags = append(flags, "-Wno-overflow")
+	}
+	if !warn {
+		flags = append(flags, "-fpermissive", "-w")
 	}
 	cmd := osutil.Command(compiler, flags...)
 	if file == "" {

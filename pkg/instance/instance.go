@@ -342,7 +342,7 @@ func (inst *inst) testRepro() error {
 	if err != nil {
 		return err
 	}
-	bin, err := csource.Build(target, inst.reproC)
+	bin, err := csource.BuildNoWarn(target, inst.reproC)
 	if err != nil {
 		return err
 	}
