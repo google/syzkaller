@@ -22,4 +22,6 @@ git tree:       {{.KernelRepoAlias}}
 {{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
 {{end}}{{if .BisectCause.Commit}}
 Reported-by: {{.CreditEmail}}
-Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}"){{end}}
+Fixes: {{formatTagHash .BisectCause.Commit.Hash}} ("{{.BisectCause.Commit.Title}}")
+{{end}}
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection

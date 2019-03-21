@@ -45,7 +45,8 @@ See https://goo.gl/tpsmEJ for more information about syzbot.
 syzbot engineers can be reached at syzkaller@googlegroups.com.
 
 syzbot will keep track of this bug report. See:
-https://goo.gl/tpsmEJ#bug-status-tracking for how to communicate with syzbot.{{if or .ReproCLink .ReproSyzLink}}
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.{{if .BisectCause}}
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection{{end}}{{if or .ReproCLink .ReproSyzLink}}
 syzbot can test patches for this bug, for details see:
 https://goo.gl/tpsmEJ#testing-patches
 {{- end -}}
