@@ -326,6 +326,9 @@ func incomingMail(c context.Context, r *http.Request) error {
 		}
 		cmd.Status = dashapi.BugStatusDup
 		cmd.DupOf = msg.CommandArgs
+	case "uncc", "uncc:":
+		cmd.Status = dashapi.BugStatusUnCC
+		cmd.CC = []string{email.CanonicalEmail(msg.From)}
 	default:
 		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.Command), nil)
 	}
@@ -336,7 +339,7 @@ func incomingMail(c context.Context, r *http.Request) error {
 	if !ok && reply != "" {
 		return replyTo(c, msg, reply, nil)
 	}
-	if !mailingListInCC && msg.Command != "" {
+	if !mailingListInCC && msg.Command != "" && cmd.Status != dashapi.BugStatusUnCC {
 		warnMailingListInCC(c, msg, mailingList)
 	}
 	return nil

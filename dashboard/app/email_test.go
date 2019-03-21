@@ -22,7 +22,7 @@ func TestEmailReport(t *testing.T) {
 	c.client2.UploadBuild(build)
 
 	crash := testCrash(build, 1)
-	crash.Maintainers = []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`}
+	crash.Maintainers = []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`, `idont@want.EMAILS`}
 	c.client2.ReportCrash(crash)
 
 	// Report the crash over email and check all fields.
@@ -52,7 +52,7 @@ console output: %[2]v
 kernel config:  %[3]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler1
-CC:             [bar@foo.com foo@bar.com]
+CC:             [bar@foo.com foo@bar.com idont@want.EMAILS]
 
 Unfortunately, I don't have any reproducer for this crash yet.
 
@@ -108,6 +108,14 @@ For more options, visit https://groups.google.com/d/optout.
 	// Emulate that somebody sends us our own email back without quoting.
 	// We used to extract "#syz fix: exact-commit-title" from it.
 	c.incomingEmail(sender0, body0)
+
+	c.incomingEmail(sender0, "I don't want emails", EmailOptFrom(`"idont" <idont@WANT.emails>`))
+	c.expectNoEmail()
+
+	// This person sends an email and is listed as a maintainer, but opt-out of emails.
+	// We should not send anything else to them for this bug. Also don't warn about no mailing list in CC.
+	c.incomingEmail(sender0, "#syz uncc", EmailOptFrom(`"IDONT" <Idont@want.emails>`), EmailOptCC(nil))
+	c.expectNoEmail()
 
 	// Now report syz reproducer and check updated email.
 	build2 := testBuild(10)
@@ -310,8 +318,7 @@ unknown command "bad-command"
 
 	// Now mark the bug as fixed.
 	c.incomingEmail(sender1, "#syz fix: some: commit title")
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Check that the commit is now passed to builders.
 	builderPollResp, _ := c.client2.BuilderPoll(build.Manager)
@@ -361,9 +368,6 @@ Content-Type: text/plain
 #syz upstream
 `, sender)
 	c.expectOK(c.POST("/_ah/mail/", incoming1))
-
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
 }
 
 // Basic dup scenario: mark one bug as dup of another.
@@ -383,23 +387,24 @@ func TestEmailDup(t *testing.T) {
 	c.client2.ReportCrash(crash2)
 
 	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 2)
-	msg1 := <-c.emailSink
-	msg2 := <-c.emailSink
+	msg1 := c.pollEmailBug()
+	msg2 := c.pollEmailBug()
 
 	// Dup crash2 to crash1.
 	c.incomingEmail(msg2.Sender, "#syz dup: BUG: slightly more elaborate title")
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Second crash happens again
 	crash2.ReproC = []byte("int main() {}")
 	c.client2.ReportCrash(crash2)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Now close the original bug, and check that new bugs for dup are now created.
 	c.incomingEmail(msg1.Sender, "#syz invalid")
+
+	// uncc command must not trugger error reply even for closed bug.
+	c.incomingEmail(msg1.Sender, "#syz uncc", EmailOptCC(nil))
+	c.expectNoEmail()
 
 	// New crash must produce new bug in the first reporting.
 	c.client2.ReportCrash(crash2)
@@ -425,25 +430,21 @@ func TestEmailUndup(t *testing.T) {
 	c.client2.ReportCrash(crash2)
 
 	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 2)
-	msg1 := <-c.emailSink
-	msg2 := <-c.emailSink
+	msg1 := c.pollEmailBug()
+	msg2 := c.pollEmailBug()
 
 	// Dup crash2 to crash1.
 	c.incomingEmail(msg2.Sender, "#syz dup: BUG: slightly more elaborate title")
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Undup crash2.
 	c.incomingEmail(msg2.Sender, "#syz undup")
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Now close the original bug, and check that new crashes for the dup does not create bugs.
 	c.incomingEmail(msg1.Sender, "#syz invalid")
 	c.client2.ReportCrash(crash2)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 }
 
 func TestEmailCrossReportingDup(t *testing.T) {
@@ -491,13 +492,9 @@ func TestEmailCrossReportingDup(t *testing.T) {
 
 		c.incomingEmail(bugSender, "#syz dup: "+crash2.Title)
 		if test.result {
-			if len(c.emailSink) != 0 {
-				msg := <-c.emailSink
-				t.Fatalf("unexpected reply: %s\n%s\n", msg.Subject, msg.Body)
-			}
+			c.expectNoEmail()
 		} else {
-			c.expectEQ(len(c.emailSink), 1)
-			msg := <-c.emailSink
+			msg := c.pollEmailBug()
 			if !strings.Contains(msg.Body, "> #syz dup:") ||
 				!strings.Contains(msg.Body, "Can't dup bug to a bug in different reporting") {
 				c.t.Fatalf("bad reply body:\n%v", msg.Body)
@@ -512,8 +509,7 @@ func TestEmailErrors(t *testing.T) {
 
 	// No reply for email without bug hash and no commands.
 	c.incomingEmail("syzbot@testapp.appspotmail.com", "Investment Proposal")
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// If email contains a command we need to reply.
 	c.incomingEmail("syzbot@testapp.appspotmail.com", "#syz invalid")

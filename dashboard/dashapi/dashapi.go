@@ -469,6 +469,7 @@ const (
 	BugStatusInvalid
 	BugStatusDup
 	BugStatusUpdate // aux info update (i.e. ExtID/Link/CC)
+	BugStatusUnCC   // don't CC sender on any future communication
 )
 
 const (

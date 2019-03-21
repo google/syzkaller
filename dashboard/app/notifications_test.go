@@ -27,8 +27,7 @@ func TestEmailNotifUpstreamEmbargo(t *testing.T) {
 
 	// Upstreaming happens after 14 days, so no emails yet.
 	c.advanceTime(13 * 24 * time.Hour)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Now we should get notification about upstreaming and upstream report:
 	c.advanceTime(2 * 24 * time.Hour)
@@ -54,8 +53,7 @@ func TestEmailNotifUpstreamSkip(t *testing.T) {
 	c.expectEQ(report.To, []string{"test@syzkaller.com"})
 
 	// No emails yet.
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Now upload repro and it should be auto-upstreamed.
 	crash.ReproOpts = []byte("repro opts")
@@ -82,16 +80,13 @@ func TestEmailNotifBadFix(t *testing.T) {
 	c.expectEQ(report.To, []string{"test@syzkaller.com"})
 
 	c.incomingEmail(report.Sender, "#syz fix: some: commit title")
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Notification about bad fixing commit should be send after 90 days.
 	c.advanceTime(50 * 24 * time.Hour)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 	c.advanceTime(35 * 24 * time.Hour)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 	c.advanceTime(10 * 24 * time.Hour)
 	notif := c.pollEmailBug()
 	if !strings.Contains(notif.Body, "This bug is marked as fixed by commit:\nsome: commit title\n") {
@@ -99,8 +94,7 @@ func TestEmailNotifBadFix(t *testing.T) {
 	}
 	// No notifications for another 14 days, then another one.
 	c.advanceTime(13 * 24 * time.Hour)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 	c.advanceTime(2 * 24 * time.Hour)
 	notif = c.pollEmailBug()
 	if !strings.Contains(notif.Body, "This bug is marked as fixed by commit:\nsome: commit title\n") {
@@ -127,13 +121,11 @@ func TestEmailNotifObsoleted(t *testing.T) {
 
 	// Bug is open, new crashes don't create new bug.
 	c.client2.ReportCrash(crash)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Not yet.
 	c.advanceTime(179 * 24 * time.Hour)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Now!
 	c.advanceTime(2 * 24 * time.Hour)
@@ -199,8 +191,7 @@ func TestEmailNotifNotObsoleted(t *testing.T) {
 	report4 = c.pollEmailBug()
 
 	c.advanceTime(179 * 24 * time.Hour)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	c.client2.ReportCrash(crash2)
 	c.incomingEmail(report3.Sender, "I am looking at it")
@@ -209,8 +200,7 @@ func TestEmailNotifNotObsoleted(t *testing.T) {
 	// Only crash 4 is obsoleted.
 	notif := c.pollEmailBug()
 	c.expectEQ(notif.Sender, report4.Sender)
-	c.expectOK(c.GET("/email_poll"))
-	c.expectEQ(len(c.emailSink), 0)
+	c.expectNoEmail()
 
 	// Crash 3 also obsoleted after some time.
 	c.advanceTime(20 * 24 * time.Hour)
