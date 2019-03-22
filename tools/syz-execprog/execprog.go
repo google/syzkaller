@@ -309,12 +309,6 @@ func createConfig(target *prog.Target, entries []*prog.LogEntry,
 			break
 		}
 	}
-	handled := make(map[string]bool)
-	for _, entry := range entries {
-		for _, call := range entry.P.Calls {
-			handled[call.Meta.CallName] = true
-		}
-	}
 	if featuresFlags["tun"].Enabled && features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
