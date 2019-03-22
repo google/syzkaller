@@ -79,7 +79,7 @@ func TestEmailNotifBadFix(t *testing.T) {
 	report := c.pollEmailBug()
 	c.expectEQ(report.To, []string{"test@syzkaller.com"})
 
-	c.incomingEmail(report.Sender, "#syz fix: some: commit title")
+	c.incomingEmail(report.Sender, "#syz fix some: commit title")
 	c.expectNoEmail()
 
 	// Notification about bad fixing commit should be send after 90 days.

@@ -267,9 +267,9 @@ func incomingMail(c context.Context, r *http.Request) error {
 	}
 	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
 		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
-	if msg.Command == "fix:" && msg.CommandArgs == "exact-commit-title" {
+	if msg.Command == email.CmdFix && msg.CommandArgs == "exact-commit-title" {
 		// Sometimes it happens that somebody sends us our own text back, ignore it.
-		msg.Command, msg.CommandArgs = "", ""
+		msg.Command, msg.CommandArgs = email.CmdNone, ""
 	}
 	bug, _, reporting := loadBugInfo(c, msg)
 	if bug == nil {
@@ -282,55 +282,39 @@ func incomingMail(c context.Context, r *http.Request) error {
 	fromMailingList := email.CanonicalEmail(msg.From) == mailingList
 	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
 	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
-	if msg.Command == "test:" {
-		args := strings.Split(msg.CommandArgs, " ")
-		if len(args) != 2 {
-			return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v",
-				len(args)), nil)
-		}
-		reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
-			msg.MessageID, msg.Link, msg.Patch, args[0], args[1], msg.Cc)
-		if reply != "" {
-			return replyTo(c, msg, reply, nil)
-		}
-		return nil
+	if msg.Command == email.CmdTest {
+		return handleTestCommand(c, msg)
 	}
-	if fromMailingList && msg.Command != "" {
+	if fromMailingList && msg.Command != email.CmdNone {
 		log.Infof(c, "duplicate email from mailing list, ignoring")
 		return nil
 	}
 	cmd := &dashapi.BugUpdate{
-		ID:    msg.BugID,
-		ExtID: msg.MessageID,
-		Link:  msg.Link,
-		CC:    msg.Cc,
+		Status: emailCmdToStatus[msg.Command],
+		ID:     msg.BugID,
+		ExtID:  msg.MessageID,
+		Link:   msg.Link,
+		CC:     msg.Cc,
 	}
 	switch msg.Command {
-	case "":
-		cmd.Status = dashapi.BugStatusUpdate
-	case "upstream":
-		cmd.Status = dashapi.BugStatusUpstream
-	case "invalid":
-		cmd.Status = dashapi.BugStatusInvalid
-	case "undup":
-		cmd.Status = dashapi.BugStatusOpen
-	case "fix:":
+	case email.CmdNone, email.CmdUpstream, email.CmdInvalid, email.CmdUnDup:
+	case email.CmdFix:
 		if msg.CommandArgs == "" {
 			return replyTo(c, msg, fmt.Sprintf("no commit title"), nil)
 		}
-		cmd.Status = dashapi.BugStatusOpen
 		cmd.FixCommits = []string{msg.CommandArgs}
-	case "dup:":
+	case email.CmdDup:
 		if msg.CommandArgs == "" {
 			return replyTo(c, msg, fmt.Sprintf("no dup title"), nil)
 		}
-		cmd.Status = dashapi.BugStatusDup
 		cmd.DupOf = msg.CommandArgs
-	case "uncc", "uncc:":
-		cmd.Status = dashapi.BugStatusUnCC
+	case email.CmdUnCC:
 		cmd.CC = []string{email.CanonicalEmail(msg.From)}
 	default:
-		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.Command), nil)
+		if msg.Command != email.CmdUnknown {
+			log.Errorf(c, "unknown email command %v %q", msg.Command, msg.CommandArgs)
+		}
+		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.CommandArgs), nil)
 	}
 	ok, reply, err := incomingCommand(c, cmd)
 	if err != nil {
@@ -339,8 +323,31 @@ func incomingMail(c context.Context, r *http.Request) error {
 	if !ok && reply != "" {
 		return replyTo(c, msg, reply, nil)
 	}
-	if !mailingListInCC && msg.Command != "" && cmd.Status != dashapi.BugStatusUnCC {
+	if !mailingListInCC && msg.Command != email.CmdNone && msg.Command != email.CmdUnCC {
 		warnMailingListInCC(c, msg, mailingList)
+	}
+	return nil
+}
+
+var emailCmdToStatus = map[email.Command]dashapi.BugStatus{
+	email.CmdNone:     dashapi.BugStatusUpdate,
+	email.CmdUpstream: dashapi.BugStatusUpstream,
+	email.CmdInvalid:  dashapi.BugStatusInvalid,
+	email.CmdUnDup:    dashapi.BugStatusOpen,
+	email.CmdFix:      dashapi.BugStatusOpen,
+	email.CmdDup:      dashapi.BugStatusDup,
+	email.CmdUnCC:     dashapi.BugStatusUnCC,
+}
+
+func handleTestCommand(c context.Context, msg *email.Email) error {
+	args := strings.Split(msg.CommandArgs, " ")
+	if len(args) != 2 {
+		return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)), nil)
+	}
+	reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
+		msg.MessageID, msg.Link, msg.Patch, args[0], args[1], msg.Cc)
+	if reply != "" {
+		return replyTo(c, msg, reply, nil)
 	}
 	return nil
 }
@@ -365,7 +372,7 @@ var nonCriticalBounceRe = regexp.MustCompile(`\*\* Address not found \*\*|550 #5
 
 func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *BugReporting, reporting *Reporting) {
 	if msg.BugID == "" {
-		if msg.Command == "" {
+		if msg.Command == email.CmdNone {
 			// This happens when people CC syzbot on unrelated emails.
 			log.Infof(c, "no bug ID (%q)", msg.Subject)
 		} else {
