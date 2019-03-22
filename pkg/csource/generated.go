@@ -1987,7 +1987,11 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 {
 	char loopname[64], fs[32], opts[256];
 	int loopfd, err = 0, res = -1;
+	unsigned int loopdevno;
 	unsigned long i;
+	char* dir2 = NULL;
+	char dirtemplate[] = "/tmp/template.XXXXXX";
+	dir = 0;
 	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 
 	if (nsegs > IMAGE_MAX_SEGMENTS)
@@ -2017,25 +2021,26 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
-	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
-	loopfd = open(loopname, O_RDWR);
-	if (loopfd == -1) {
-		err = errno;
-		goto error_close_memfd;
-	}
-	if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
-		if (errno != EBUSY) {
-			err = errno;
-			goto error_close_loop;
+
+	srand(procid + syscall(SYS_gettid));
+	loopdevno = (unsigned int)rand();
+
+	while (1) {
+		int fd;
+		fd = open("/dev/loop-control", O_RDONLY);
+		ioctl(fd, LOOP_CTL_ADD, loopdevno);
+		close(fd);
+		snprintf(loopname, sizeof(loopname), "/dev/loop%u", loopdevno);
+		loopfd = open(loopname, O_RDWR);
+		if (loopfd != -1) {
+			if (ioctl(loopfd, LOOP_SET_FD, memfd) == 0) {
+				break;
+			}
 		}
-		ioctl(loopfd, LOOP_CLR_FD, 0);
-		usleep(1000);
-		if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
-			err = errno;
-			goto error_close_loop;
-		}
+		close(loopfd);
+		loopdevno++;
 	}
-	mkdir((char*)dir, 0777);
+
 	memset(fs, 0, sizeof(fs));
 	NONFAILING(strncpy(fs, (char*)fsarg, sizeof(fs) - 1));
 	memset(opts, 0, sizeof(opts));
@@ -2048,18 +2053,17 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	} else if (strcmp(fs, "xfs") == 0) {
 		strcat(opts, ",nouuid");
 	}
-	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir, fs, (uint64)flags, opts);
+	dir2 = mkdtemp(dirtemplate);
+	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir2='%s' fs='%s' flags=%llu opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir2, fs, (uint64)flags, opts);
 #if SYZ_EXECUTOR
-	cover_reset(0);
 #endif
-	if (mount(loopname, (char*)dir, fs, flags, opts)) {
+	if (mount(loopname, dir2, fs, flags, opts)) {
 		err = errno;
 		goto error_clear_loop;
 	}
 	res = 0;
 error_clear_loop:
 	ioctl(loopfd, LOOP_CLR_FD, 0);
-error_close_loop:
 	close(loopfd);
 error_close_memfd:
 	close(memfd);
