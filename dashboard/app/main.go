@@ -47,30 +47,33 @@ type uiMain struct {
 }
 
 type uiManager struct {
-	Now                time.Time
-	Namespace          string
-	Name               string
-	Link               string
-	CoverLink          string
-	CurrentBuild       *uiBuild
-	FailedBuildBugLink string
-	LastActive         time.Time
-	LastActiveBad      bool
-	CurrentUpTime      time.Duration
-	MaxCorpus          int64
-	MaxCover           int64
-	TotalFuzzingTime   time.Duration
-	TotalCrashes       int64
-	TotalExecs         int64
+	Now                   time.Time
+	Namespace             string
+	Name                  string
+	Link                  string
+	CoverLink             string
+	CurrentBuild          *uiBuild
+	FailedBuildBugLink    string
+	FailedSyzBuildBugLink string
+	LastActive            time.Time
+	LastActiveBad         bool
+	CurrentUpTime         time.Duration
+	MaxCorpus             int64
+	MaxCover              int64
+	TotalFuzzingTime      time.Duration
+	TotalCrashes          int64
+	TotalExecs            int64
 }
 
 type uiBuild struct {
 	Time                time.Time
 	SyzkallerCommit     string
 	SyzkallerCommitLink string
+	SyzkallerCommitDate time.Time
 	KernelAlias         string
 	KernelCommit        string
 	KernelCommitLink    string
+	KernelCommitTitle   string
 	KernelCommitDate    time.Time
 	KernelConfigLink    string
 }
@@ -762,9 +765,11 @@ func makeUIBuild(build *Build) *uiBuild {
 		Time:                build.Time,
 		SyzkallerCommit:     build.SyzkallerCommit,
 		SyzkallerCommitLink: vcs.LogLink(vcs.SyzkallerRepo, build.SyzkallerCommit),
+		SyzkallerCommitDate: build.SyzkallerCommitDate,
 		KernelAlias:         kernelRepoInfo(build).Alias,
 		KernelCommit:        build.KernelCommit,
 		KernelCommitLink:    vcs.LogLink(build.KernelRepo, build.KernelCommit),
+		KernelCommitTitle:   build.KernelCommitTitle,
 		KernelCommitDate:    build.KernelCommitDate,
 		KernelConfigLink:    textLink(textKernelConfig, build.KernelConfig),
 	}
@@ -828,21 +833,22 @@ func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, err
 			link = ""
 		}
 		results = append(results, &uiManager{
-			Now:                timeNow(c),
-			Namespace:          mgr.Namespace,
-			Name:               mgr.Name,
-			Link:               link,
-			CoverLink:          config.CoverPath + mgr.Name + ".html",
-			CurrentBuild:       uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
-			FailedBuildBugLink: bugLink(mgr.FailedBuildBug),
-			LastActive:         mgr.LastAlive,
-			LastActiveBad:      now.Sub(mgr.LastAlive) > 6*time.Hour,
-			CurrentUpTime:      mgr.CurrentUpTime,
-			MaxCorpus:          stats.MaxCorpus,
-			MaxCover:           stats.MaxCover,
-			TotalFuzzingTime:   stats.TotalFuzzingTime,
-			TotalCrashes:       stats.TotalCrashes,
-			TotalExecs:         stats.TotalExecs,
+			Now:                   timeNow(c),
+			Namespace:             mgr.Namespace,
+			Name:                  mgr.Name,
+			Link:                  link,
+			CoverLink:             config.CoverPath + mgr.Name + ".html",
+			CurrentBuild:          uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
+			FailedBuildBugLink:    bugLink(mgr.FailedBuildBug),
+			FailedSyzBuildBugLink: bugLink(mgr.FailedSyzBuildBug),
+			LastActive:            mgr.LastAlive,
+			LastActiveBad:         now.Sub(mgr.LastAlive) > 6*time.Hour,
+			CurrentUpTime:         mgr.CurrentUpTime,
+			MaxCorpus:             stats.MaxCorpus,
+			MaxCover:              stats.MaxCover,
+			TotalFuzzingTime:      stats.TotalFuzzingTime,
+			TotalCrashes:          stats.TotalCrashes,
+			TotalExecs:            stats.TotalExecs,
 		})
 	}
 	sort.Slice(results, func(i, j int) bool {

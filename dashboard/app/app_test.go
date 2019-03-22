@@ -416,3 +416,108 @@ func TestPurgeOldCrashes(t *testing.T) {
 		}
 	}
 }
+
+func TestManagerFailedBuild(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Upload and check first build.
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+	checkManagerBuild(c, build, nil, nil)
+
+	// Upload and check second build.
+	build.ID = "id1"
+	build.KernelCommit = "kern1"
+	build.SyzkallerCommit = "syz1"
+	c.client.UploadBuild(build)
+	checkManagerBuild(c, build, nil, nil)
+
+	// Upload failed kernel build.
+	failedBuild := new(dashapi.Build)
+	*failedBuild = *build
+	failedBuild.ID = "id2"
+	failedBuild.KernelCommit = "kern2"
+	failedBuild.KernelCommitTitle = "failed build 1"
+	failedBuild.SyzkallerCommit = "syz2"
+	c.expectOK(c.client.ReportBuildError(&dashapi.BuildErrorReq{
+		Build: *failedBuild,
+		Crash: dashapi.Crash{
+			Title: "failed build 1",
+		},
+	}))
+	checkManagerBuild(c, build, failedBuild, nil)
+
+	// Now the old good build again, nothing should change.
+	c.client.UploadBuild(build)
+	checkManagerBuild(c, build, failedBuild, nil)
+
+	// New good kernel build, failed build must reset.
+	build.ID = "id3"
+	build.KernelCommit = "kern3"
+	c.client.UploadBuild(build)
+	checkManagerBuild(c, build, nil, nil)
+
+	// Now more complex scenario: OK -> failed kernel -> failed kernel+syzkaller -> failed syzkaller -> OK.
+	failedBuild.ID = "id4"
+	failedBuild.KernelCommit = "kern4"
+	failedBuild.KernelCommitTitle = "failed build 4"
+	failedBuild.SyzkallerCommit = "syz4"
+	c.expectOK(c.client.ReportBuildError(&dashapi.BuildErrorReq{
+		Build: *failedBuild,
+		Crash: dashapi.Crash{
+			Title: "failed build 4",
+		},
+	}))
+	checkManagerBuild(c, build, failedBuild, nil)
+
+	failedBuild2 := new(dashapi.Build)
+	*failedBuild2 = *failedBuild
+	failedBuild2.ID = "id5"
+	failedBuild2.KernelCommit = ""
+	failedBuild2.KernelCommitTitle = "failed build 5"
+	failedBuild2.SyzkallerCommit = "syz5"
+	c.expectOK(c.client.ReportBuildError(&dashapi.BuildErrorReq{
+		Build: *failedBuild2,
+		Crash: dashapi.Crash{
+			Title: "failed build 5",
+		},
+	}))
+	checkManagerBuild(c, build, failedBuild, failedBuild2)
+
+	build.ID = "id6"
+	build.KernelCommit = "kern6"
+	c.client.UploadBuild(build)
+	checkManagerBuild(c, build, nil, failedBuild2)
+
+	build.ID = "id7"
+	build.KernelCommit = "kern6"
+	build.SyzkallerCommit = "syz7"
+	c.client.UploadBuild(build)
+	checkManagerBuild(c, build, nil, nil)
+}
+
+func checkManagerBuild(c *Ctx, build, failedKernelBuild, failedSyzBuild *dashapi.Build) {
+	mgr, dbBuild := c.loadManager("test1", build.Manager)
+	c.expectEQ(mgr.CurrentBuild, build.ID)
+	compareBuilds(c, dbBuild, build)
+	checkBuildBug(c, mgr.FailedBuildBug, failedKernelBuild)
+	checkBuildBug(c, mgr.FailedSyzBuildBug, failedSyzBuild)
+}
+
+func checkBuildBug(c *Ctx, hash string, build *dashapi.Build) {
+	if build == nil {
+		c.expectEQ(hash, "")
+		return
+	}
+	c.expectNE(hash, "")
+	bug, _, dbBuild := c.loadBugByHash(hash)
+	c.expectEQ(bug.Title, build.KernelCommitTitle)
+	compareBuilds(c, dbBuild, build)
+}
+
+func compareBuilds(c *Ctx, dbBuild *Build, build *dashapi.Build) {
+	c.expectEQ(dbBuild.ID, build.ID)
+	c.expectEQ(dbBuild.KernelCommit, build.KernelCommit)
+	c.expectEQ(dbBuild.SyzkallerCommit, build.SyzkallerCommit)
+}

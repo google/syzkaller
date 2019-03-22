@@ -23,6 +23,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
@@ -60,22 +61,21 @@ func init() {
 //  - latest: latest known good kernel build
 //  - current: currently used kernel build
 type Manager struct {
-	name            string
-	workDir         string
-	kernelDir       string
-	currentDir      string
-	latestDir       string
-	compilerID      string
-	syzkallerCommit string
-	configTag       string
-	configData      []byte
-	cfg             *Config
-	repo            vcs.Repo
-	mgrcfg          *ManagerConfig
-	managercfg      *mgrconfig.Config
-	cmd             *ManagerCmd
-	dash            *dashapi.Dashboard
-	stop            chan struct{}
+	name       string
+	workDir    string
+	kernelDir  string
+	currentDir string
+	latestDir  string
+	compilerID string
+	configTag  string
+	configData []byte
+	cfg        *Config
+	repo       vcs.Repo
+	mgrcfg     *ManagerConfig
+	managercfg *mgrconfig.Config
+	cmd        *ManagerCmd
+	dash       *dashapi.Dashboard
+	stop       chan struct{}
 }
 
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) (*Manager, error) {
@@ -103,10 +103,6 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) (*Man
 			return nil, err
 		}
 	}
-	syzkallerCommit, _ := readTag(filepath.FromSlash("syzkaller/current/tag"))
-	if syzkallerCommit == "" {
-		log.Fatalf("no tag in syzkaller/current/tag")
-	}
 	kernelDir := filepath.Join(dir, "kernel")
 	repo, err := vcs.NewRepo(mgrcfg.managercfg.TargetOS, mgrcfg.managercfg.Type, kernelDir)
 	if err != nil {
@@ -114,21 +110,20 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) (*Man
 	}
 
 	mgr := &Manager{
-		name:            mgrcfg.managercfg.Name,
-		workDir:         filepath.Join(dir, "workdir"),
-		kernelDir:       kernelDir,
-		currentDir:      filepath.Join(dir, "current"),
-		latestDir:       filepath.Join(dir, "latest"),
-		compilerID:      compilerID,
-		syzkallerCommit: syzkallerCommit,
-		configTag:       hash.String(configData),
-		configData:      configData,
-		cfg:             cfg,
-		repo:            repo,
-		mgrcfg:          mgrcfg,
-		managercfg:      mgrcfg.managercfg,
-		dash:            dash,
-		stop:            stop,
+		name:       mgrcfg.managercfg.Name,
+		workDir:    filepath.Join(dir, "workdir"),
+		kernelDir:  kernelDir,
+		currentDir: filepath.Join(dir, "current"),
+		latestDir:  filepath.Join(dir, "latest"),
+		compilerID: compilerID,
+		configTag:  hash.String(configData),
+		configData: configData,
+		cfg:        cfg,
+		repo:       repo,
+		mgrcfg:     mgrcfg,
+		managercfg: mgrcfg.managercfg,
+		dash:       dash,
+		stop:       stop,
 	}
 	os.RemoveAll(mgr.currentDir)
 	return mgr, nil
@@ -522,22 +517,23 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 	// Also mix in build type, so that image error builds are not merged into normal builds.
 	var tagData []byte
 	tagData = append(tagData, info.Tag...)
-	tagData = append(tagData, mgr.syzkallerCommit...)
+	tagData = append(tagData, sys.GitRevisionBase...)
 	tagData = append(tagData, typ...)
 	build := &dashapi.Build{
-		Manager:           mgr.name,
-		ID:                hash.String(tagData),
-		OS:                mgr.managercfg.TargetOS,
-		Arch:              mgr.managercfg.TargetArch,
-		VMArch:            mgr.managercfg.TargetVMArch,
-		SyzkallerCommit:   mgr.syzkallerCommit,
-		CompilerID:        info.CompilerID,
-		KernelRepo:        info.KernelRepo,
-		KernelBranch:      info.KernelBranch,
-		KernelCommit:      info.KernelCommit,
-		KernelCommitTitle: info.KernelCommitTitle,
-		KernelCommitDate:  info.KernelCommitDate,
-		KernelConfig:      kernelConfig,
+		Manager:             mgr.name,
+		ID:                  hash.String(tagData),
+		OS:                  mgr.managercfg.TargetOS,
+		Arch:                mgr.managercfg.TargetArch,
+		VMArch:              mgr.managercfg.TargetVMArch,
+		SyzkallerCommit:     sys.GitRevisionBase,
+		SyzkallerCommitDate: sys.GitRevisionDate,
+		CompilerID:          info.CompilerID,
+		KernelRepo:          info.KernelRepo,
+		KernelBranch:        info.KernelBranch,
+		KernelCommit:        info.KernelCommit,
+		KernelCommitTitle:   info.KernelCommitTitle,
+		KernelCommitDate:    info.KernelCommitDate,
+		KernelConfig:        kernelConfig,
 	}
 	return build, nil
 }
