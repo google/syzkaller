@@ -836,7 +836,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, err
 			CurrentBuild:       uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
 			FailedBuildBugLink: bugLink(mgr.FailedBuildBug),
 			LastActive:         mgr.LastAlive,
-			LastActiveBad:      now.Sub(mgr.LastAlive) > 12*time.Hour,
+			LastActiveBad:      now.Sub(mgr.LastAlive) > 6*time.Hour,
 			CurrentUpTime:      mgr.CurrentUpTime,
 			MaxCorpus:          stats.MaxCorpus,
 			MaxCover:           stats.MaxCover,
