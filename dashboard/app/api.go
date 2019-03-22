@@ -382,9 +382,26 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byt
 		return nil, err
 	}
 	if isNewBuild {
-		err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) {
+		err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) error {
+			prevKernel, prevSyzkaller := "", ""
+			if mgr.CurrentBuild != "" {
+				prevBuild, err := loadBuild(c, ns, mgr.CurrentBuild)
+				if err != nil {
+					return err
+				}
+				prevKernel = prevBuild.KernelCommit
+				prevSyzkaller = prevBuild.SyzkallerCommit
+			}
+			log.Infof(c, "new build on %v: kernel %v->%v syzkaller %v->%v",
+				req.Manager, prevKernel, req.KernelCommit, prevSyzkaller, req.SyzkallerCommit)
 			mgr.CurrentBuild = req.ID
-			mgr.FailedBuildBug = ""
+			if req.KernelCommit != prevKernel {
+				mgr.FailedBuildBug = ""
+			}
+			if req.SyzkallerCommit != prevSyzkaller {
+				mgr.FailedSyzBuildBug = ""
+			}
+			return nil
 		})
 		if err != nil {
 			return nil, err
@@ -439,30 +456,31 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 	if len(req.CompilerID) > MaxStringLen {
 		return nil, false, fmt.Errorf("Build.CompilerID is too long (%v)", len(req.CompilerID))
 	}
-	if err := checkStrLen(req.KernelCommit, "Build.KernelCommit", MaxStringLen); err != nil {
-		return nil, false, err
+	if len(req.KernelCommit) > MaxStringLen {
+		return nil, false, fmt.Errorf("Build.KernelCommit is too long (%v)", len(req.KernelCommit))
 	}
 	configID, err := putText(c, ns, textKernelConfig, req.KernelConfig, true)
 	if err != nil {
 		return nil, false, err
 	}
 	build := &Build{
-		Namespace:         ns,
-		Manager:           req.Manager,
-		ID:                req.ID,
-		Type:              typ,
-		Time:              now,
-		OS:                req.OS,
-		Arch:              req.Arch,
-		VMArch:            req.VMArch,
-		SyzkallerCommit:   req.SyzkallerCommit,
-		CompilerID:        req.CompilerID,
-		KernelRepo:        req.KernelRepo,
-		KernelBranch:      req.KernelBranch,
-		KernelCommit:      req.KernelCommit,
-		KernelCommitTitle: req.KernelCommitTitle,
-		KernelCommitDate:  req.KernelCommitDate,
-		KernelConfig:      configID,
+		Namespace:           ns,
+		Manager:             req.Manager,
+		ID:                  req.ID,
+		Type:                typ,
+		Time:                now,
+		OS:                  req.OS,
+		Arch:                req.Arch,
+		VMArch:              req.VMArch,
+		SyzkallerCommit:     req.SyzkallerCommit,
+		SyzkallerCommitDate: req.SyzkallerCommitDate,
+		CompilerID:          req.CompilerID,
+		KernelRepo:          req.KernelRepo,
+		KernelBranch:        req.KernelBranch,
+		KernelCommit:        req.KernelCommit,
+		KernelCommitTitle:   req.KernelCommitTitle,
+		KernelCommitDate:    req.KernelCommitDate,
+		KernelConfig:        configID,
 	}
 	if _, err := db.Put(c, buildKey(c, ns, req.ID), build); err != nil {
 		return nil, false, err
@@ -640,8 +658,14 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request, payload 
 	if err != nil {
 		return nil, err
 	}
-	if err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) {
-		mgr.FailedBuildBug = bug.keyHash()
+	if err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) error {
+		log.Infof(c, "failed build on %v: kernel=%v", req.Build.Manager, req.Build.KernelCommit)
+		if req.Build.KernelCommit != "" {
+			mgr.FailedBuildBug = bug.keyHash()
+		} else {
+			mgr.FailedSyzBuildBug = bug.keyHash()
+		}
+		return nil
 	}); err != nil {
 		return nil, err
 	}
@@ -929,7 +953,7 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	now := timeNow(c)
-	err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) {
+	err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) error {
 		mgr.Link = req.Addr
 		mgr.LastAlive = now
 		mgr.CurrentUpTime = req.UpTime
@@ -942,6 +966,7 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 		stats.TotalFuzzingTime += req.FuzzingTime
 		stats.TotalCrashes += int64(req.Crashes)
 		stats.TotalExecs += int64(req.Execs)
+		return nil
 	})
 	return nil, err
 }

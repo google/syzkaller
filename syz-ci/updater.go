@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
+	"github.com/google/syzkaller/sys"
 )
 
 const (
@@ -44,7 +45,7 @@ type SyzUpdater struct {
 	targets       map[string]bool
 	dashboardAddr string
 	compilerID    string
-	mgrcfg        *ManagerConfig
+	cfg           *Config
 }
 
 func NewSyzUpdater(cfg *Config) *SyzUpdater {
@@ -103,7 +104,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		targets:       targets,
 		dashboardAddr: cfg.DashboardAddr,
 		compilerID:    strings.TrimSpace(string(compilerID)),
-		mgrcfg:        cfg.Managers[0],
+		cfg:           cfg,
 	}
 }
 
@@ -112,10 +113,13 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 //  - ensures that we have a working syzkaller build in current
 func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 	os.RemoveAll(upd.currentDir)
-	exeTag, exeMod := readTag(upd.exe + ".tag")
 	latestTag := upd.checkLatest()
 	if latestTag != "" {
-		uptodate := exeTag == latestTag && time.Since(exeMod) < time.Minute
+		var exeMod time.Time
+		if st, err := os.Stat(upd.exe); err == nil {
+			exeMod = st.ModTime()
+		}
+		uptodate := sys.GitRevisionBase == latestTag && time.Since(exeMod) < time.Minute
 		if uptodate || !autoupdate {
 			if uptodate {
 				// Have a fresh up-to-date build, probably just restarted.
@@ -129,15 +133,11 @@ func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 			return
 		}
 	}
-	if exeTag == "" {
-		log.Logf(0, "current executable is bootstrap")
-	} else {
-		log.Logf(0, "current executable is on %v", exeTag)
-		log.Logf(0, "latest syzkaller build is on %v", latestTag)
-	}
+	log.Logf(0, "current executable is on %v", sys.GitRevision)
+	log.Logf(0, "latest syzkaller build is on %v", latestTag)
 
 	// No syzkaller build or executable is stale.
-	lastCommit := exeTag
+	lastCommit := sys.GitRevisionBase
 	for {
 		lastCommit = upd.pollAndBuild(lastCommit)
 		latestTag := upd.checkLatest()
@@ -148,7 +148,7 @@ func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 			if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
 				log.Fatal(err)
 			}
-			if autoupdate && exeTag != latestTag {
+			if autoupdate && sys.GitRevisionBase != latestTag {
 				upd.UpdateAndRestart()
 			}
 			return
@@ -185,11 +185,7 @@ func (upd *SyzUpdater) WaitForUpdate() {
 func (upd *SyzUpdater) UpdateAndRestart() {
 	log.Logf(0, "restarting executable for update")
 	latestBin := filepath.Join(upd.latestDir, "bin", upd.exe)
-	latestTag := filepath.Join(upd.latestDir, "tag")
 	if err := osutil.CopyFile(latestBin, upd.exe); err != nil {
-		log.Fatal(err)
-	}
-	if err := osutil.CopyFile(latestTag, upd.exe+".tag"); err != nil {
 		log.Fatal(err)
 	}
 	if err := syscall.Exec(upd.exe, os.Args, os.Environ()); err != nil {
@@ -277,14 +273,6 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 }
 
 func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
-	// Build errors can't be uploaded using global client
-	// as it is not associated with any namespace.
-	// So we use the first manager client for this.
-	if upd.dashboardAddr == "" || upd.mgrcfg.DashboardClient == "" {
-		log.Logf(0, "not uploading build error: no dashboard")
-		return
-	}
-	dash := dashapi.New(upd.mgrcfg.DashboardClient, upd.dashboardAddr, upd.mgrcfg.DashboardKey)
 	var title string
 	var output []byte
 	if verbose, ok := buildErr.(*osutil.VerboseError); ok {
@@ -294,30 +282,35 @@ func (upd *SyzUpdater) uploadBuildError(commit *vcs.Commit, buildErr error) {
 		title = buildErr.Error()
 	}
 	title = "syzkaller: " + title
-	managercfg := upd.mgrcfg.managercfg
-	req := &dashapi.BuildErrorReq{
-		Build: dashapi.Build{
-			Manager:           managercfg.Name,
-			ID:                commit.Hash,
-			OS:                managercfg.TargetOS,
-			Arch:              managercfg.TargetArch,
-			VMArch:            managercfg.TargetVMArch,
-			SyzkallerCommit:   commit.Hash,
-			CompilerID:        upd.compilerID,
-			KernelRepo:        upd.repoAddress,
-			KernelBranch:      upd.branch,
-			KernelCommit:      commit.Hash,
-			KernelCommitTitle: commit.Title,
-			KernelCommitDate:  commit.Date,
-		},
-		Crash: dashapi.Crash{
-			Title: title,
-			Log:   output,
-		},
-	}
-	if err := dash.ReportBuildError(req); err != nil {
-		// TODO: log ReportBuildError error to dashboard.
-		log.Logf(0, "failed to report build error: %v", err)
+	for _, mgrcfg := range upd.cfg.Managers {
+		if upd.dashboardAddr == "" || mgrcfg.DashboardClient == "" {
+			log.Logf(0, "not uploading build error fr %v: no dashboard", mgrcfg.Name)
+			continue
+		}
+		dash := dashapi.New(mgrcfg.DashboardClient, upd.dashboardAddr, mgrcfg.DashboardKey)
+		managercfg := mgrcfg.managercfg
+		req := &dashapi.BuildErrorReq{
+			Build: dashapi.Build{
+				Manager:             managercfg.Name,
+				ID:                  commit.Hash,
+				OS:                  managercfg.TargetOS,
+				Arch:                managercfg.TargetArch,
+				VMArch:              managercfg.TargetVMArch,
+				SyzkallerCommit:     commit.Hash,
+				SyzkallerCommitDate: commit.Date,
+				CompilerID:          upd.compilerID,
+				KernelRepo:          upd.repoAddress,
+				KernelBranch:        upd.branch,
+			},
+			Crash: dashapi.Crash{
+				Title: title,
+				Log:   output,
+			},
+		}
+		if err := dash.ReportBuildError(req); err != nil {
+			// TODO: log ReportBuildError error to dashboard.
+			log.Logf(0, "failed to report build error for %v: %v", mgrcfg.Name, err)
+		}
 	}
 }
 
@@ -327,19 +320,6 @@ func (upd *SyzUpdater) checkLatest() string {
 	if !osutil.FilesExist(upd.latestDir, upd.syzFiles) {
 		return ""
 	}
-	tag, _ := readTag(filepath.Join(upd.latestDir, "tag"))
-	return tag
-}
-
-func readTag(file string) (tag string, mod time.Time) {
-	data, _ := ioutil.ReadFile(file)
-	tag = string(data)
-	if st, err := os.Stat(file); err == nil {
-		mod = st.ModTime()
-	}
-	if tag == "" || mod.IsZero() {
-		tag = ""
-		mod = time.Time{}
-	}
-	return
+	tag, _ := ioutil.ReadFile(filepath.Join(upd.latestDir, "tag"))
+	return string(tag)
 }

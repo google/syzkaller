@@ -40,6 +40,7 @@ var Funcs = template.FuncMap{
 	"link":                   link,
 	"optlink":                optlink,
 	"formatTime":             FormatTime,
+	"formatDate":             FormatDate,
 	"formatKernelTime":       formatKernelTime,
 	"formatClock":            formatClock,
 	"formatDuration":         formatDuration,
@@ -72,6 +73,13 @@ func FormatTime(t time.Time) string {
 		return ""
 	}
 	return t.Format("2006/01/02 15:04")
+}
+
+func FormatDate(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format("2006/01/02")
 }
 
 func formatKernelTime(t time.Time) string {

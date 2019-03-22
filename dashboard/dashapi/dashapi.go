@@ -54,21 +54,22 @@ func NewCustom(client, addr, key string, ctor RequestCtor, doer RequestDoer,
 
 // Build describes all aspects of a kernel build.
 type Build struct {
-	Manager           string
-	ID                string
-	OS                string
-	Arch              string
-	VMArch            string
-	SyzkallerCommit   string
-	CompilerID        string
-	KernelRepo        string
-	KernelBranch      string
-	KernelCommit      string
-	KernelCommitTitle string
-	KernelCommitDate  time.Time
-	KernelConfig      []byte
-	Commits           []string // see BuilderPoll
-	FixCommits        []Commit
+	Manager             string
+	ID                  string
+	OS                  string
+	Arch                string
+	VMArch              string
+	SyzkallerCommit     string
+	SyzkallerCommitDate time.Time
+	CompilerID          string
+	KernelRepo          string
+	KernelBranch        string
+	KernelCommit        string
+	KernelCommitTitle   string
+	KernelCommitDate    time.Time
+	KernelConfig        []byte
+	Commits             []string // see BuilderPoll
+	FixCommits          []Commit
 }
 
 type Commit struct {

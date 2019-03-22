@@ -31,7 +31,6 @@ package main
 //
 // Directory/file structure:
 // syz-ci			: current executable
-// syz-ci.tag			: tag of the current executable (syzkaller git hash)
 // syzkaller/
 //	latest/			: latest good syzkaller build
 //	current/		: syzkaller build currently in use

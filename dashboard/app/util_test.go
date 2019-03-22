@@ -115,8 +115,25 @@ func (c *Ctx) expectTrue(v bool) {
 }
 
 func caller(skip int) string {
-	_, file, line, _ := runtime.Caller(skip + 2)
-	return fmt.Sprintf("%v:%v", filepath.Base(file), line)
+	pcs := make([]uintptr, 10)
+	n := runtime.Callers(skip+3, pcs)
+	pcs = pcs[:n]
+	frames := runtime.CallersFrames(pcs)
+	stack := ""
+	for {
+		frame, more := frames.Next()
+		if strings.HasPrefix(frame.Function, "testing.") {
+			break
+		}
+		stack = fmt.Sprintf("%v:%v\n", filepath.Base(frame.File), frame.Line) + stack
+		if !more {
+			break
+		}
+	}
+	if stack != "" {
+		stack = stack[:len(stack)-1]
+	}
+	return stack
 }
 
 func (c *Ctx) Close() {
@@ -202,14 +219,22 @@ func (c *Ctx) loadBug(extID string) (*Bug, *Crash, *Build) {
 	if err != nil {
 		c.t.Fatalf("failed to load bug: %v", err)
 	}
+	return c.loadBugInfo(bug)
+}
+
+func (c *Ctx) loadBugByHash(hash string) (*Bug, *Crash, *Build) {
+	bug := new(Bug)
+	bugKey := db.NewKey(c.ctx, "Bug", hash, 0, nil)
+	c.expectOK(db.Get(c.ctx, bugKey, bug))
+	return c.loadBugInfo(bug)
+}
+
+func (c *Ctx) loadBugInfo(bug *Bug) (*Bug, *Crash, *Build) {
 	crash, _, err := findCrashForBug(c.ctx, bug)
 	if err != nil {
 		c.t.Fatalf("failed to load crash: %v", err)
 	}
-	build, err := loadBuild(c.ctx, bug.Namespace, crash.BuildID)
-	if err != nil {
-		c.t.Fatalf("failed to load build: %v", err)
-	}
+	build := c.loadBuild(bug.Namespace, crash.BuildID)
 	return bug, crash, build
 }
 
@@ -222,16 +247,26 @@ func (c *Ctx) loadJob(extID string) (*Job, *Build, *Crash) {
 	if err := db.Get(c.ctx, jobKey, job); err != nil {
 		c.t.Fatalf("failed to get job %v: %v", extID, err)
 	}
-	build, err := loadBuild(c.ctx, job.Namespace, job.BuildID)
-	if err != nil {
-		c.t.Fatalf("failed to load build: %v", err)
-	}
+	build := c.loadBuild(job.Namespace, job.BuildID)
 	crash := new(Crash)
 	crashKey := db.NewKey(c.ctx, "Crash", "", job.CrashID, jobKey.Parent())
 	if err := db.Get(c.ctx, crashKey, crash); err != nil {
 		c.t.Fatalf("failed to load crash for job: %v", err)
 	}
 	return job, build, crash
+}
+
+func (c *Ctx) loadBuild(ns, id string) *Build {
+	build, err := loadBuild(c.ctx, ns, id)
+	c.expectOK(err)
+	return build
+}
+
+func (c *Ctx) loadManager(ns, name string) (*Manager, *Build) {
+	mgr, err := loadManager(c.ctx, ns, name)
+	c.expectOK(err)
+	build := c.loadBuild(ns, mgr.CurrentBuild)
+	return mgr, build
 }
 
 func (c *Ctx) checkURLContents(url string, want []byte) {
@@ -256,7 +291,7 @@ func (c *Ctx) expectNoEmail() {
 	c.expectOK(c.GET("/email_poll"))
 	if len(c.emailSink) != 0 {
 		msg := <-c.emailSink
-		c.t.Fatalf("\n%v: got expected email: %v\n%s", caller(0), msg.Subject, msg.Body)
+		c.t.Fatalf("\n%v: got unexpected email: %v\n%s", caller(0), msg.Subject, msg.Body)
 	}
 }
 

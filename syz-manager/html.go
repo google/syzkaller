@@ -117,7 +117,7 @@ func (mgr *Manager) collectStats() []UIStat {
 	defer mgr.mu.Unlock()
 
 	rawStats := mgr.stats.all()
-	head := strings.Replace(sys.GitRevision, "+", "", -1)
+	head := sys.GitRevisionBase
 	stats := []UIStat{
 		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: vcs.LogLink(vcs.SyzkallerRepo, head)},
 		{Name: "config", Value: mgr.cfg.Name, Link: "/config"},
