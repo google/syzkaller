@@ -12,7 +12,7 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/hash"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/datastore"
 )
 
 // This file contains definitions of entities stored in datastore.
@@ -248,9 +248,9 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 	date := timeDate(timeNow(c))
 	tx := func(c context.Context) error {
 		mgr := new(Manager)
-		mgrKey := datastore.NewKey(c, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
-		if err := datastore.Get(c, mgrKey, mgr); err != nil {
-			if err != datastore.ErrNoSuchEntity {
+		mgrKey := db.NewKey(c, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
+		if err := db.Get(c, mgrKey, mgr); err != nil {
+			if err != db.ErrNoSuchEntity {
 				return fmt.Errorf("failed to get manager %v/%v: %v", ns, name, err)
 			}
 			mgr = &Manager{
@@ -259,9 +259,9 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 			}
 		}
 		stats := new(ManagerStats)
-		statsKey := datastore.NewKey(c, "ManagerStats", "", int64(date), mgrKey)
-		if err := datastore.Get(c, statsKey, stats); err != nil {
-			if err != datastore.ErrNoSuchEntity {
+		statsKey := db.NewKey(c, "ManagerStats", "", int64(date), mgrKey)
+		if err := db.Get(c, statsKey, stats); err != nil {
+			if err != db.ErrNoSuchEntity {
 				return fmt.Errorf("failed to get stats %v/%v/%v: %v", ns, name, date, err)
 			}
 			stats = &ManagerStats{
@@ -271,26 +271,26 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 
 		fn(mgr, stats)
 
-		if _, err := datastore.Put(c, mgrKey, mgr); err != nil {
+		if _, err := db.Put(c, mgrKey, mgr); err != nil {
 			return fmt.Errorf("failed to put manager: %v", err)
 		}
-		if _, err := datastore.Put(c, statsKey, stats); err != nil {
+		if _, err := db.Put(c, statsKey, stats); err != nil {
 			return fmt.Errorf("failed to put manager stats: %v", err)
 		}
 		return nil
 	}
-	return datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{Attempts: 10})
+	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10})
 }
 
-func loadAllManagers(c context.Context) ([]*Manager, []*datastore.Key, error) {
+func loadAllManagers(c context.Context) ([]*Manager, []*db.Key, error) {
 	var managers []*Manager
-	keys, err := datastore.NewQuery("Manager").
+	keys, err := db.NewQuery("Manager").
 		GetAll(c, &managers)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query managers: %v", err)
 	}
 	var result []*Manager
-	var resultKeys []*datastore.Key
+	var resultKeys []*db.Key
 
 	for i, mgr := range managers {
 		if config.Namespaces[mgr.Namespace].Managers[mgr.Name].Decommissioned {
@@ -302,18 +302,18 @@ func loadAllManagers(c context.Context) ([]*Manager, []*datastore.Key, error) {
 	return result, resultKeys, nil
 }
 
-func buildKey(c context.Context, ns, id string) *datastore.Key {
+func buildKey(c context.Context, ns, id string) *db.Key {
 	if ns == "" {
 		panic("requesting build key outside of namespace")
 	}
 	h := hash.String([]byte(fmt.Sprintf("%v-%v", ns, id)))
-	return datastore.NewKey(c, "Build", h, 0, nil)
+	return db.NewKey(c, "Build", h, 0, nil)
 }
 
 func loadBuild(c context.Context, ns, id string) (*Build, error) {
 	build := new(Build)
-	if err := datastore.Get(c, buildKey(c, ns, id), build); err != nil {
-		if err == datastore.ErrNoSuchEntity {
+	if err := db.Get(c, buildKey(c, ns, id), build); err != nil {
+		if err == db.ErrNoSuchEntity {
 			return nil, fmt.Errorf("unknown build %v/%v", ns, id)
 		}
 		return nil, fmt.Errorf("failed to get build %v/%v: %v", ns, id, err)
@@ -323,7 +323,7 @@ func loadBuild(c context.Context, ns, id string) (*Build, error) {
 
 func lastManagerBuild(c context.Context, ns, manager string) (*Build, error) {
 	var builds []*Build
-	_, err := datastore.NewQuery("Build").
+	_, err := db.NewQuery("Build").
 		Filter("Namespace=", ns).
 		Filter("Manager=", manager).
 		Filter("Type=", BuildNormal).
@@ -371,8 +371,8 @@ func canonicalBug(c context.Context, bug *Bug) (*Bug, error) {
 			return bug, nil
 		}
 		canon := new(Bug)
-		bugKey := datastore.NewKey(c, "Bug", bug.DupOf, 0, nil)
-		if err := datastore.Get(c, bugKey, canon); err != nil {
+		bugKey := db.NewKey(c, "Bug", bug.DupOf, 0, nil)
+		if err := db.Get(c, bugKey, canon); err != nil {
 			return nil, fmt.Errorf("failed to get dup bug %q for %q: %v",
 				bug.DupOf, bug.keyHash(), err)
 		}
@@ -380,8 +380,8 @@ func canonicalBug(c context.Context, bug *Bug) (*Bug, error) {
 	}
 }
 
-func (bug *Bug) key(c context.Context) *datastore.Key {
-	return datastore.NewKey(c, "Bug", bug.keyHash(), 0, nil)
+func (bug *Bug) key(c context.Context) *db.Key {
+	return db.NewKey(c, "Bug", bug.keyHash(), 0, nil)
 }
 
 func (bug *Bug) keyHash() string {
@@ -413,14 +413,14 @@ func (bug *Bug) getCommitInfo(i int) Commit {
 	return Commit{}
 }
 
-func markCrashReported(c context.Context, crashID int64, bugKey *datastore.Key, now time.Time) error {
+func markCrashReported(c context.Context, crashID int64, bugKey *db.Key, now time.Time) error {
 	crash := new(Crash)
-	crashKey := datastore.NewKey(c, "Crash", "", crashID, bugKey)
-	if err := datastore.Get(c, crashKey, crash); err != nil {
+	crashKey := db.NewKey(c, "Crash", "", crashID, bugKey)
+	if err := db.Get(c, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to get reported crash %v: %v", crashID, err)
 	}
 	crash.Reported = now
-	if _, err := datastore.Put(c, crashKey, crash); err != nil {
+	if _, err := db.Put(c, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put reported crash %v: %v", crashID, err)
 	}
 	return nil

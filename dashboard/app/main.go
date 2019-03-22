@@ -17,7 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
 
@@ -233,8 +233,8 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug := new(Bug)
 	if id := r.FormValue("id"); id != "" {
-		bugKey := datastore.NewKey(c, "Bug", id, 0, nil)
-		if err := datastore.Get(c, bugKey, bug); err != nil {
+		bugKey := db.NewKey(c, "Bug", id, 0, nil)
+		if err := db.Get(c, bugKey, bug); err != nil {
 			return err
 		}
 	} else if extID := r.FormValue("extid"); extID != "" {
@@ -261,7 +261,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	var dupOf *uiBugGroup
 	if bug.DupOf != "" {
 		dup := new(Bug)
-		if err := datastore.Get(c, datastore.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
+		if err := db.Get(c, db.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
 			return err
 		}
 		if accessLevel >= dup.sanitizeAccess(accessLevel) {
@@ -292,8 +292,8 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 		crash := new(Crash)
-		crashKey := datastore.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
-		if err := datastore.Get(c, crashKey, crash); err != nil {
+		crashKey := db.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
+		if err := db.Get(c, crashKey, crash); err != nil {
 			return fmt.Errorf("failed to get crash: %v", err)
 		}
 		build, err := loadBuild(c, bug.Namespace, crash.BuildID)
@@ -429,7 +429,7 @@ func fetchBugs(c context.Context, r *http.Request) ([]*uiBugNamespace, error) {
 
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	state *ReportingState, onlyFixed bool) (*uiBugNamespace, error) {
-	query := datastore.NewQuery("Bug").Filter("Namespace=", ns)
+	query := db.NewQuery("Bug").Filter("Namespace=", ns)
 	if onlyFixed {
 		query = query.Filter("Status=", BugStatusFixed)
 	}
@@ -536,7 +536,7 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 	*uiBugGroup, error) {
 	bugHash := bug.keyHash()
 	var dups []*Bug
-	_, err := datastore.NewQuery("Bug").
+	_, err := db.NewQuery("Bug").
 		Filter("Status=", BugStatusDup).
 		Filter("DupOf=", bugHash).
 		GetAll(c, &dups)
@@ -563,7 +563,7 @@ func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *Reporti
 
 func loadSimilarBugs(c context.Context, r *http.Request, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
 	var similar []*Bug
-	_, err := datastore.NewQuery("Bug").
+	_, err := db.NewQuery("Bug").
 		Filter("Title=", bug.Title).
 		GetAll(c, &similar)
 	if err != nil {
@@ -788,19 +788,19 @@ func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, err
 		managerKeys = managerKeys[:last]
 		i--
 	}
-	var buildKeys []*datastore.Key
-	var statsKeys []*datastore.Key
+	var buildKeys []*db.Key
+	var statsKeys []*db.Key
 	for i, mgr := range managers {
 		if mgr.CurrentBuild != "" {
 			buildKeys = append(buildKeys, buildKey(c, mgr.Namespace, mgr.CurrentBuild))
 		}
 		if timeDate(mgr.LastAlive) == date {
 			statsKeys = append(statsKeys,
-				datastore.NewKey(c, "ManagerStats", "", int64(date), managerKeys[i]))
+				db.NewKey(c, "ManagerStats", "", int64(date), managerKeys[i]))
 		}
 	}
 	builds := make([]*Build, len(buildKeys))
-	if err := datastore.GetMulti(c, buildKeys, builds); err != nil {
+	if err := db.GetMulti(c, buildKeys, builds); err != nil {
 		return nil, err
 	}
 	uiBuilds := make(map[string]*uiBuild)
@@ -808,7 +808,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, err
 		uiBuilds[build.Namespace+"|"+build.ID] = makeUIBuild(build)
 	}
 	stats := make([]*ManagerStats, len(statsKeys))
-	if err := datastore.GetMulti(c, statsKeys, stats); err != nil {
+	if err := db.GetMulti(c, statsKeys, stats); err != nil {
 		return nil, err
 	}
 	var fullStats []*ManagerStats
@@ -856,7 +856,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, err
 
 func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	var jobs []*Job
-	keys, err := datastore.NewQuery("Job").
+	keys, err := db.NewQuery("Job").
 		Order("-Created").
 		Limit(40).
 		GetAll(c, &jobs)
@@ -870,7 +870,7 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	return results, nil
 }
 
-func makeUIJob(job *Job, jobKey *datastore.Key, crash *Crash, build *Build) *uiJob {
+func makeUIJob(job *Job, jobKey *db.Key, crash *Crash, build *Build) *uiJob {
 	ui := &uiJob{
 		Type:            job.Type,
 		Created:         job.Created,
