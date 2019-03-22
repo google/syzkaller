@@ -275,7 +275,8 @@ func (env *env) test() (vcs.BisectResult, *vcs.Commit, *report.Report, error) {
 		return vcs.BisectSkip, current, nil, nil
 	}
 	testStart := time.Now()
-	results, err := env.inst.Test(10, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
+	const numTests = 10
+	results, err := env.inst.Test(numTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
 	env.testTime += time.Since(testStart)
 	if err != nil {
 		env.log("failed: %v", err)
@@ -285,6 +286,10 @@ func (env *env) test() (vcs.BisectResult, *vcs.Commit, *report.Report, error) {
 	res := vcs.BisectSkip
 	if bad != 0 {
 		res = vcs.BisectBad
+	} else if numTests-good-bad > numTests/3*2 {
+		// More than 2/3 of instances failed with infrastructure error,
+		// can't reliably tell that the commit is good.
+		res = vcs.BisectSkip
 	} else if good != 0 {
 		res = vcs.BisectGood
 	}
