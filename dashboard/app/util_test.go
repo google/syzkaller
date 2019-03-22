@@ -29,7 +29,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/aetest"
-	"google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/datastore"
 	aemail "google.golang.org/appengine/mail"
 	"google.golang.org/appengine/user"
 )
@@ -124,7 +124,7 @@ func (c *Ctx) Close() {
 		// Ensure that we can render main page and all bugs in the final test state.
 		c.expectOK(c.GET("/"))
 		var bugs []*Bug
-		keys, err := datastore.NewQuery("Bug").GetAll(c.ctx, &bugs)
+		keys, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
 		if err != nil {
 			c.t.Errorf("ERROR: failed to query bugs: %v", err)
 		}
@@ -219,7 +219,7 @@ func (c *Ctx) loadJob(extID string) (*Job, *Build, *Crash) {
 		c.t.Fatalf("failed to create job key: %v", err)
 	}
 	job := new(Job)
-	if err := datastore.Get(c.ctx, jobKey, job); err != nil {
+	if err := db.Get(c.ctx, jobKey, job); err != nil {
 		c.t.Fatalf("failed to get job %v: %v", extID, err)
 	}
 	build, err := loadBuild(c.ctx, job.Namespace, job.BuildID)
@@ -227,8 +227,8 @@ func (c *Ctx) loadJob(extID string) (*Job, *Build, *Crash) {
 		c.t.Fatalf("failed to load build: %v", err)
 	}
 	crash := new(Crash)
-	crashKey := datastore.NewKey(c.ctx, "Crash", "", job.CrashID, jobKey.Parent())
-	if err := datastore.Get(c.ctx, crashKey, crash); err != nil {
+	crashKey := db.NewKey(c.ctx, "Crash", "", job.CrashID, jobKey.Parent())
+	if err := db.Get(c.ctx, crashKey, crash); err != nil {
 		c.t.Fatalf("failed to load crash for job: %v", err)
 	}
 	return job, build, crash

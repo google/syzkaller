@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/user"
 )
@@ -101,7 +101,7 @@ func checkTextAccess(c context.Context, r *http.Request, tag string, id int64) (
 
 func checkCrashTextAccess(c context.Context, r *http.Request, field string, id int64) (*Crash, error) {
 	var crashes []*Crash
-	keys, err := datastore.NewQuery("Crash").
+	keys, err := db.NewQuery("Crash").
 		Filter(field+"=", id).
 		GetAll(c, &crashes)
 	if err != nil {
@@ -113,7 +113,7 @@ func checkCrashTextAccess(c context.Context, r *http.Request, field string, id i
 	}
 	crash := crashes[0]
 	bug := new(Bug)
-	if err := datastore.Get(c, keys[0].Parent(), bug); err != nil {
+	if err := db.Get(c, keys[0].Parent(), bug); err != nil {
 		return nil, fmt.Errorf("failed to get bug: %v", err)
 	}
 	bugLevel := bug.sanitizeAccess(accessLevel(c, r))
@@ -121,7 +121,7 @@ func checkCrashTextAccess(c context.Context, r *http.Request, field string, id i
 }
 
 func checkJobTextAccess(c context.Context, r *http.Request, field string, id int64) error {
-	keys, err := datastore.NewQuery("Job").
+	keys, err := db.NewQuery("Job").
 		Filter(field+"=", id).
 		KeysOnly().
 		GetAll(c, nil)
@@ -133,7 +133,7 @@ func checkJobTextAccess(c context.Context, r *http.Request, field string, id int
 			len(keys), field, id)
 	}
 	bug := new(Bug)
-	if err := datastore.Get(c, keys[0].Parent(), bug); err != nil {
+	if err := db.Get(c, keys[0].Parent(), bug); err != nil {
 		return fmt.Errorf("failed to get bug: %v", err)
 	}
 	bugLevel := bug.sanitizeAccess(accessLevel(c, r))

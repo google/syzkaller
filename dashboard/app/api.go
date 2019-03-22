@@ -21,7 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
 
@@ -176,7 +176,7 @@ func apiBuilderPoll(c context.Context, ns string, r *http.Request, payload []byt
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	var bugs []*Bug
-	_, err := datastore.NewQuery("Bug").
+	_, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("Status<", BugStatusFixed).
 		GetAll(c, &bugs)
@@ -231,7 +231,7 @@ func apiCommitPoll(c context.Context, ns string, r *http.Request, payload []byte
 		})
 	}
 	var bugs []*Bug
-	_, err := datastore.NewQuery("Bug").
+	_, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("NeedCommitInfo=", true).
 		Project("Commits").
@@ -276,7 +276,7 @@ func apiUploadCommits(c context.Context, ns string, r *http.Request, payload []b
 
 func addCommitInfo(c context.Context, ns string, com dashapi.Commit) error {
 	var bugs []*Bug
-	keys, err := datastore.NewQuery("Bug").
+	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("Commits=", com.Title).
 		GetAll(c, &bugs)
@@ -291,7 +291,7 @@ func addCommitInfo(c context.Context, ns string, com dashapi.Commit) error {
 	return nil
 }
 
-func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *datastore.Key, com dashapi.Commit) error {
+func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *db.Key, com dashapi.Commit) error {
 	if needUpdate, err := addCommitInfoToBugImpl(c, bug, com); err != nil {
 		return err
 	} else if !needUpdate {
@@ -299,7 +299,7 @@ func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *datastore.Key, com 
 	}
 	tx := func(c context.Context) error {
 		bug := new(Bug)
-		if err := datastore.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug %v: %v", bugKey.StringID(), err)
 		}
 		if needUpdate, err := addCommitInfoToBugImpl(c, bug, com); err != nil {
@@ -307,12 +307,12 @@ func addCommitInfoToBug(c context.Context, bug *Bug, bugKey *datastore.Key, com 
 		} else if !needUpdate {
 			return nil
 		}
-		if _, err := datastore.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)
 		}
 		return nil
 	}
-	return datastore.RunInTransaction(c, tx, nil)
+	return db.RunInTransaction(c, tx, nil)
 }
 
 func addCommitInfoToBugImpl(c context.Context, bug *Bug, com dashapi.Commit) (bool, error) {
@@ -464,7 +464,7 @@ func uploadBuild(c context.Context, now time.Time, ns string, req *dashapi.Build
 		KernelCommitDate:  req.KernelCommitDate,
 		KernelConfig:      configID,
 	}
-	if _, err := datastore.Put(c, buildKey(c, ns, req.ID), build); err != nil {
+	if _, err := db.Put(c, buildKey(c, ns, req.ID), build); err != nil {
 		return nil, false, err
 	}
 	return build, true, nil
@@ -502,7 +502,7 @@ func addCommitsToBugs(c context.Context, ns, manager string, titles []string, fi
 func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string, managers []string,
 	presentCommits map[string]bool, bugFixedBy map[string][]string) error {
 	var bugs []*Bug
-	_, err := datastore.NewQuery("Bug").
+	_, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("Status=", status).
 		GetAll(c, &bugs)
@@ -543,7 +543,7 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []str
 	bugKey := bug.key(c)
 	tx := func(c context.Context) error {
 		bug := new(Bug)
-		if err := datastore.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug %v: %v", bugKey.StringID(), err)
 		}
 		if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits, false) {
@@ -568,12 +568,12 @@ func addCommitsToBug(c context.Context, bug *Bug, manager string, managers []str
 				}
 			}
 		}
-		if _, err := datastore.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)
 		}
 		return nil
 	}
-	return datastore.RunInTransaction(c, tx, nil)
+	return db.RunInTransaction(c, tx, nil)
 }
 
 func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommits []string,
@@ -597,7 +597,7 @@ func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommit
 
 func managerList(c context.Context, ns string) ([]string, error) {
 	var builds []*Build
-	_, err := datastore.NewQuery("Build").
+	_, err := db.NewQuery("Build").
 		Filter("Namespace=", ns).
 		Project("Manager").
 		Distinct().
@@ -717,7 +717,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 
 	tx := func(c context.Context) error {
 		bug = new(Bug)
-		if err := datastore.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %v", err)
 		}
 		bug.NumCrashes++
@@ -738,12 +738,12 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 		if !stringInList(bug.HappenedOn, build.Manager) {
 			bug.HappenedOn = append(bug.HappenedOn, build.Manager)
 		}
-		if _, err = datastore.Put(c, bugKey, bug); err != nil {
+		if _, err = db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)
 		}
 		return nil
 	}
-	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true}); err != nil {
+	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true}); err != nil {
 		return nil, err
 	}
 	if save {
@@ -752,7 +752,7 @@ func reportCrash(c context.Context, build *Build, req *dashapi.Crash) (*Bug, err
 	return bug, nil
 }
 
-func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *datastore.Key, build *Build) error {
+func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *db.Key, build *Build) error {
 	// Reporting priority of this crash.
 	prio := int64(kernelRepoInfo(build).ReportingPriority) * 1e6
 	if len(req.ReproC) != 0 {
@@ -784,20 +784,20 @@ func saveCrash(c context.Context, ns string, req *dashapi.Crash, bugKey *datasto
 	if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC, false); err != nil {
 		return err
 	}
-	crashKey := datastore.NewIncompleteKey(c, "Crash", bugKey)
-	if _, err = datastore.Put(c, crashKey, crash); err != nil {
+	crashKey := db.NewIncompleteKey(c, "Crash", bugKey)
+	if _, err = db.Put(c, crashKey, crash); err != nil {
 		return fmt.Errorf("failed to put crash: %v", err)
 	}
 	return nil
 }
 
-func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
+func purgeOldCrashes(c context.Context, bug *Bug, bugKey *db.Key) {
 	const purgeEvery = 10
 	if bug.NumCrashes <= 2*maxCrashes || (bug.NumCrashes-1)%purgeEvery != 0 {
 		return
 	}
 	var crashes []*Crash
-	keys, err := datastore.NewQuery("Crash").
+	keys, err := db.NewQuery("Crash").
 		Ancestor(bugKey).
 		Filter("Reported=", time.Time{}).
 		GetAll(c, &crashes)
@@ -805,7 +805,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 		log.Errorf(c, "failed to fetch purge crashes: %v", err)
 		return
 	}
-	keyMap := make(map[*Crash]*datastore.Key)
+	keyMap := make(map[*Crash]*db.Key)
 	for i, crash := range crashes {
 		keyMap[crash] = keys[i]
 	}
@@ -813,7 +813,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 	sort.Slice(crashes, func(i, j int) bool {
 		return crashes[i].Time.After(crashes[j].Time)
 	})
-	var toDelete []*datastore.Key
+	var toDelete []*db.Key
 	latestOnManager := make(map[string]bool)
 	deleted, reproCount, noreproCount := 0, 0, 0
 	for _, crash := range crashes {
@@ -837,16 +837,16 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 		}
 		toDelete = append(toDelete, keyMap[crash])
 		if crash.Log != 0 {
-			toDelete = append(toDelete, datastore.NewKey(c, textCrashLog, "", crash.Log, nil))
+			toDelete = append(toDelete, db.NewKey(c, textCrashLog, "", crash.Log, nil))
 		}
 		if crash.Report != 0 {
-			toDelete = append(toDelete, datastore.NewKey(c, textCrashReport, "", crash.Report, nil))
+			toDelete = append(toDelete, db.NewKey(c, textCrashReport, "", crash.Report, nil))
 		}
 		if crash.ReproSyz != 0 {
-			toDelete = append(toDelete, datastore.NewKey(c, textReproSyz, "", crash.ReproSyz, nil))
+			toDelete = append(toDelete, db.NewKey(c, textReproSyz, "", crash.ReproSyz, nil))
 		}
 		if crash.ReproC != 0 {
-			toDelete = append(toDelete, datastore.NewKey(c, textReproC, "", crash.ReproC, nil))
+			toDelete = append(toDelete, db.NewKey(c, textReproC, "", crash.ReproC, nil))
 		}
 		deleted++
 		if deleted == 2*purgeEvery {
@@ -856,7 +856,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 	if len(toDelete) == 0 {
 		return
 	}
-	if err := datastore.DeleteMulti(c, toDelete); err != nil {
+	if err := db.DeleteMulti(c, toDelete); err != nil {
 		log.Errorf(c, "failed to delete old crashes: %v", err)
 		return
 	}
@@ -880,17 +880,17 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 	now := timeNow(c)
 	tx := func(c context.Context) error {
 		bug := new(Bug)
-		if err := datastore.Get(c, bugKey, bug); err != nil {
+		if err := db.Get(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug: %v", err)
 		}
 		bug.NumRepro++
 		bug.LastReproTime = now
-		if _, err := datastore.Put(c, bugKey, bug); err != nil {
+		if _, err := db.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)
 		}
 		return nil
 	}
-	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{
+	err = db.RunInTransaction(c, tx, &db.TransactionOptions{
 		XG:       true,
 		Attempts: 30,
 	})
@@ -946,9 +946,9 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 	return nil, err
 }
 
-func findBugForCrash(c context.Context, ns, title string) (*Bug, *datastore.Key, error) {
+func findBugForCrash(c context.Context, ns, title string) (*Bug, *db.Key, error) {
 	var bugs []*Bug
-	keys, err := datastore.NewQuery("Bug").
+	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		Filter("Title=", title).
 		Order("-Seq").
@@ -963,17 +963,17 @@ func findBugForCrash(c context.Context, ns, title string) (*Bug, *datastore.Key,
 	return bugs[0], keys[0], nil
 }
 
-func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, *datastore.Key, error) {
+func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, *db.Key, error) {
 	var bug *Bug
-	var bugKey *datastore.Key
+	var bugKey *db.Key
 	now := timeNow(c)
 	tx := func(c context.Context) error {
 		for seq := int64(0); ; seq++ {
 			bug = new(Bug)
 			bugHash := bugKeyHash(ns, req.Title, seq)
-			bugKey = datastore.NewKey(c, "Bug", bugHash, 0, nil)
-			if err := datastore.Get(c, bugKey, bug); err != nil {
-				if err != datastore.ErrNoSuchEntity {
+			bugKey = db.NewKey(c, "Bug", bugHash, 0, nil)
+			if err := db.Get(c, bugKey, bug); err != nil {
+				if err != db.ErrNoSuchEntity {
 					return fmt.Errorf("failed to get bug: %v", err)
 				}
 				bug = &Bug{
@@ -989,7 +989,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 					LastTime:   now,
 				}
 				createBugReporting(bug, config.Namespaces[ns])
-				if bugKey, err = datastore.Put(c, bugKey, bug); err != nil {
+				if bugKey, err = db.Put(c, bugKey, bug); err != nil {
 					return fmt.Errorf("failed to put new bug: %v", err)
 				}
 				return nil
@@ -1004,7 +1004,7 @@ func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, 
 			return nil
 		}
 	}
-	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{
+	if err := db.RunInTransaction(c, tx, &db.TransactionOptions{
 		XG:       true,
 		Attempts: 30,
 	}); err != nil {
@@ -1081,18 +1081,18 @@ func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64,
 		data = data[:len(data)/10*9]
 		b.Reset()
 	}
-	var key *datastore.Key
+	var key *db.Key
 	if dedup {
 		h := hash.Hash([]byte(ns), b.Bytes())
-		key = datastore.NewKey(c, tag, "", h.Truncate64(), nil)
+		key = db.NewKey(c, tag, "", h.Truncate64(), nil)
 	} else {
-		key = datastore.NewIncompleteKey(c, tag, nil)
+		key = db.NewIncompleteKey(c, tag, nil)
 	}
 	text := &Text{
 		Namespace: ns,
 		Text:      b.Bytes(),
 	}
-	key, err := datastore.Put(c, key, text)
+	key, err := db.Put(c, key, text)
 	if err != nil {
 		return 0, err
 	}
@@ -1104,7 +1104,7 @@ func getText(c context.Context, tag string, id int64) ([]byte, string, error) {
 		return nil, "", nil
 	}
 	text := new(Text)
-	if err := datastore.Get(c, datastore.NewKey(c, tag, "", id, nil), text); err != nil {
+	if err := db.Get(c, db.NewKey(c, tag, "", id, nil), text); err != nil {
 		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
 	}
 	d, err := gzip.NewReader(bytes.NewBuffer(text.Text))

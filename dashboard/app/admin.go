@@ -8,14 +8,14 @@ import (
 	"net/http"
 
 	"golang.org/x/net/context"
-	"google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
 
 // dropNamespace drops all entities related to a single namespace.
 // Use with care. There is no undo.
 // This functionality is intentionally not connected to any handler.
-// To use it, first make a backup of the datastore. Then, specify the target
+// To use it, first make a backup of the db. Then, specify the target
 // namespace in the ns variable, connect the function to a handler, invoke it
 // and double check the output. Finally, set dryRun to false and invoke again.
 func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -48,7 +48,7 @@ func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) er
 		{"Bug", "Crash"},
 	}
 	for _, entity := range entities {
-		keys, err := datastore.NewQuery(entity.name).
+		keys, err := db.NewQuery(entity.name).
 			Filter("Namespace=", ns).
 			KeysOnly().
 			GetAll(c, nil)
@@ -57,9 +57,9 @@ func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) er
 		}
 		fmt.Fprintf(w, "%v: %v\n", entity.name, len(keys))
 		if entity.child != "" {
-			var childKeys []*datastore.Key
+			var childKeys []*db.Key
 			for _, key := range keys {
-				keys1, err := datastore.NewQuery(entity.child).
+				keys1, err := db.NewQuery(entity.child).
 					Ancestor(key).
 					KeysOnly().
 					GetAll(c, nil)
@@ -100,10 +100,10 @@ func dropNamespaceReportingState(c context.Context, w http.ResponseWriter, ns st
 		fmt.Fprintf(w, "ReportingState: %v\n", len(state.Entries)-len(newState.Entries))
 		return nil
 	}
-	return datastore.RunInTransaction(c, tx, nil)
+	return db.RunInTransaction(c, tx, nil)
 }
 
-func dropEntities(c context.Context, keys []*datastore.Key, dryRun bool) error {
+func dropEntities(c context.Context, keys []*db.Key, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -112,7 +112,7 @@ func dropEntities(c context.Context, keys []*datastore.Key, dryRun bool) error {
 		if batch > len(keys) {
 			batch = len(keys)
 		}
-		if err := datastore.DeleteMulti(c, keys[:batch]); err != nil {
+		if err := db.DeleteMulti(c, keys[:batch]); err != nil {
 			return err
 		}
 		keys = keys[batch:]
@@ -134,7 +134,7 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 		return fmt.Errorf("no ns parameter")
 	}
 	var bugs []*Bug
-	keys, err := datastore.NewQuery("Bug").
+	keys, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
 		GetAll(c, &bugs)
 	if err != nil {
@@ -142,7 +142,7 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	log.Warningf(c, "fetched %v bugs for namespce %v", len(bugs), ns)
 	cfg := config.Namespaces[ns]
-	var batchKeys []*datastore.Key
+	var batchKeys []*db.Key
 	const batchSize = 20
 	for i, bug := range bugs {
 		if len(bug.Reporting) >= len(cfg.Reporting) {
@@ -164,19 +164,19 @@ func updateBugReporting(c context.Context, w http.ResponseWriter, r *http.Reques
 	return nil
 }
 
-func updateBugReportingBatch(c context.Context, cfg *Config, keys []*datastore.Key) error {
+func updateBugReportingBatch(c context.Context, cfg *Config, keys []*db.Key) error {
 	tx := func(c context.Context) error {
 		bugs := make([]*Bug, len(keys))
-		if err := datastore.GetMulti(c, keys, bugs); err != nil {
+		if err := db.GetMulti(c, keys, bugs); err != nil {
 			return err
 		}
 		for _, bug := range bugs {
 			createBugReporting(bug, cfg)
 		}
-		_, err := datastore.PutMulti(c, keys, bugs)
+		_, err := db.PutMulti(c, keys, bugs)
 		return err
 	}
-	err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true})
+	err := db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true})
 	log.Warningf(c, "updated %v bugs: %v", len(keys), err)
 	return err
 }

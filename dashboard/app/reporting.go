@@ -16,7 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine/datastore"
+	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
 
@@ -45,7 +45,7 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 		return nil
 	}
 	var bugs []*Bug
-	_, err = datastore.NewQuery("Bug").
+	_, err = db.NewQuery("Bug").
 		Filter("Status<", BugStatusFixed).
 		GetAll(c, &bugs)
 	if err != nil {
@@ -85,7 +85,7 @@ func handleReportBug(c context.Context, typ string, state *ReportingState, bug *
 
 func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) (
 	reporting *Reporting, bugReporting *BugReporting, crash *Crash,
-	crashKey *datastore.Key, reportingIdx int, status, link string, err error) {
+	crashKey *db.Key, reportingIdx int, status, link string, err error) {
 	reporting, bugReporting, reportingIdx, status, err = currentReporting(c, bug)
 	if err != nil || reporting == nil {
 		return
@@ -153,7 +153,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 
 func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNotification {
 	var bugs []*Bug
-	_, err := datastore.NewQuery("Bug").
+	_, err := db.NewQuery("Bug").
 		Filter("Status<", BugStatusFixed).
 		GetAll(c, &bugs)
 	if err != nil {
@@ -294,7 +294,7 @@ func reproStr(level dashapi.ReproLevel) string {
 	}
 }
 
-func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datastore.Key,
+func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key,
 	bugReporting *BugReporting, reporting *Reporting) (*dashapi.BugReport, error) {
 	reportingConfig, err := json.Marshal(reporting.Config)
 	if err != nil {
@@ -416,10 +416,10 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	return nil
 }
 
-func loadBisectJob(c context.Context, bug *Bug) (*Job, *Crash, *datastore.Key, *datastore.Key, error) {
+func loadBisectJob(c context.Context, bug *Bug) (*Job, *Crash, *db.Key, *db.Key, error) {
 	bugKey := bug.key(c)
 	var jobs []*Job
-	keys, err := datastore.NewQuery("Job").
+	keys, err := db.NewQuery("Job").
 		Ancestor(bugKey).
 		Filter("Type=", JobBisectCause).
 		Filter("Finished>", time.Time{}).
@@ -434,8 +434,8 @@ func loadBisectJob(c context.Context, bug *Bug) (*Job, *Crash, *datastore.Key, *
 	}
 	job := jobs[0]
 	crash := new(Crash)
-	crashKey := datastore.NewKey(c, "Crash", "", job.CrashID, bugKey)
-	if err := datastore.Get(c, crashKey, crash); err != nil {
+	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bugKey)
+	if err := db.Get(c, crashKey, crash); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("failed to get crash: %v", err)
 	}
 	return job, crash, keys[0], crashKey, nil
@@ -465,7 +465,7 @@ func foreachBug(c context.Context, fn func(bug *Bug) error) error {
 	const batchSize = 1000
 	for offset := 0; ; offset += batchSize {
 		var bugs []*Bug
-		_, err := datastore.NewQuery("Bug").
+		_, err := db.NewQuery("Bug").
 			Offset(offset).
 			Limit(batchSize).
 			GetAll(c, &bugs)
@@ -554,7 +554,7 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 		ok, reply, err = incomingCommandTx(c, now, cmd, bugKey, dupHash)
 		return err
 	}
-	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{
+	err = db.RunInTransaction(c, tx, &db.TransactionOptions{
 		XG: true,
 		// Default is 3 which fails sometimes.
 		// We don't want incoming bug updates to fail,
@@ -567,7 +567,7 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 	return ok, reply, nil
 }
 
-func findDupBug(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey *datastore.Key) (
+func findDupBug(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugKey *db.Key) (
 	string, bool, string, error) {
 	bugReporting, _ := bugReportingByID(bug, cmd.ID)
 	dup, dupKey, err := findBugByReportingID(c, cmd.DupOf)
@@ -653,9 +653,9 @@ func getReportingIdx(c context.Context, bug *Bug, bugReporting *BugReporting) in
 }
 
 func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
-	bugKey *datastore.Key, dupHash string) (bool, string, error) {
+	bugKey *db.Key, dupHash string) (bool, string, error) {
 	bug := new(Bug)
-	if err := datastore.Get(c, bugKey, bug); err != nil {
+	if err := db.Get(c, bugKey, bug); err != nil {
 		return false, internalError, fmt.Errorf("can't find the corresponding bug: %v", err)
 	}
 	bugReporting, final := bugReportingByID(bug, cmd.ID)
@@ -706,7 +706,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		bugReporting.OnHold = time.Time{}
 	}
 	bug.LastActivity = now
-	if _, err := datastore.Put(c, bugKey, bug); err != nil {
+	if _, err := db.Put(c, bugKey, bug); err != nil {
 		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
 	}
 	if err := saveReportingState(c, state); err != nil {
@@ -815,9 +815,9 @@ func checkBugStatus(c context.Context, cmd *dashapi.BugUpdate, bug *Bug, bugRepo
 	return true, "", nil
 }
 
-func findBugByReportingID(c context.Context, id string) (*Bug, *datastore.Key, error) {
+func findBugByReportingID(c context.Context, id string) (*Bug, *db.Key, error) {
 	var bugs []*Bug
-	keys, err := datastore.NewQuery("Bug").
+	keys, err := db.NewQuery("Bug").
 		Filter("Reporting.ID=", id).
 		Limit(2).
 		GetAll(c, &bugs)
@@ -833,15 +833,15 @@ func findBugByReportingID(c context.Context, id string) (*Bug, *datastore.Key, e
 	return bugs[0], keys[0], nil
 }
 
-func findDupByTitle(c context.Context, ns, title string) (*Bug, *datastore.Key, error) {
+func findDupByTitle(c context.Context, ns, title string) (*Bug, *db.Key, error) {
 	title, seq, err := splitDisplayTitle(title)
 	if err != nil {
 		return nil, nil, err
 	}
 	bugHash := bugKeyHash(ns, title, seq)
-	bugKey := datastore.NewKey(c, "Bug", bugHash, 0, nil)
+	bugKey := db.NewKey(c, "Bug", bugHash, 0, nil)
 	bug := new(Bug)
-	if err := datastore.Get(c, bugKey, bug); err != nil {
+	if err := db.Get(c, bugKey, bug); err != nil {
 		return nil, nil, fmt.Errorf("failed to get dup: %v", err)
 	}
 	return bug, bugKey, nil
@@ -874,10 +874,10 @@ func lastReportedReporting(bug *Bug) *BugReporting {
 	return nil
 }
 
-func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) (
-	[]*Crash, []*datastore.Key, error) {
+func queryCrashesForBug(c context.Context, bugKey *db.Key, limit int) (
+	[]*Crash, []*db.Key, error) {
 	var crashes []*Crash
-	keys, err := datastore.NewQuery("Crash").
+	keys, err := db.NewQuery("Crash").
 		Ancestor(bugKey).
 		Order("-ReportLen").
 		Order("-Reported").
@@ -890,7 +890,7 @@ func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) (
 	return crashes, keys, nil
 }
 
-func findCrashForBug(c context.Context, bug *Bug) (*Crash, *datastore.Key, error) {
+func findCrashForBug(c context.Context, bug *Bug) (*Crash, *db.Key, error) {
 	bugKey := bug.key(c)
 	crashes, keys, err := queryCrashesForBug(c, bugKey, 1)
 	if err != nil {
@@ -918,16 +918,16 @@ func findCrashForBug(c context.Context, bug *Bug) (*Crash, *datastore.Key, error
 
 func loadReportingState(c context.Context) (*ReportingState, error) {
 	state := new(ReportingState)
-	key := datastore.NewKey(c, "ReportingState", "", 1, nil)
-	if err := datastore.Get(c, key, state); err != nil && err != datastore.ErrNoSuchEntity {
+	key := db.NewKey(c, "ReportingState", "", 1, nil)
+	if err := db.Get(c, key, state); err != nil && err != db.ErrNoSuchEntity {
 		return nil, fmt.Errorf("failed to get reporting state: %v", err)
 	}
 	return state, nil
 }
 
 func saveReportingState(c context.Context, state *ReportingState) error {
-	key := datastore.NewKey(c, "ReportingState", "", 1, nil)
-	if _, err := datastore.Put(c, key, state); err != nil {
+	key := db.NewKey(c, "ReportingState", "", 1, nil)
+	if _, err := db.Put(c, key, state); err != nil {
 		return fmt.Errorf("failed to put reporting state: %v", err)
 	}
 	return nil
