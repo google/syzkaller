@@ -282,7 +282,7 @@ func TestJobWithoutPatch(t *testing.T) {
 	_, extBugID, err := email.RemoveAddrContext(sender)
 	c.expectOK(err)
 
-	c.incomingEmail(sender, "#syz test: git://mygit.com/git.git 5e6a2eea\n", EmailOptMessageID(1))
+	c.incomingEmail(sender, "#syz test git://mygit.com/git.git 5e6a2eea\n", EmailOptMessageID(1))
 	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	testBuild := testBuild(2)

@@ -434,7 +434,7 @@ func TestEmailUndup(t *testing.T) {
 	msg2 := c.pollEmailBug()
 
 	// Dup crash2 to crash1.
-	c.incomingEmail(msg2.Sender, "#syz dup: BUG: slightly more elaborate title")
+	c.incomingEmail(msg2.Sender, "#syz dup BUG: slightly more elaborate title")
 	c.expectNoEmail()
 
 	// Undup crash2.

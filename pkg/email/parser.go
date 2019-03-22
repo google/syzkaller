@@ -25,11 +25,27 @@ type Email struct {
 	Subject     string
 	From        string
 	Cc          []string
-	Body        string // text/plain part
-	Patch       string // attached patch, if any
-	Command     string // command to bot (#syz is stripped)
-	CommandArgs string // arguments for the command
+	Body        string  // text/plain part
+	Patch       string  // attached patch, if any
+	Command     Command // command to bot
+	CommandArgs string  // arguments for the command
 }
+
+type Command int
+
+const (
+	CmdUnknown Command = iota
+	CmdNone
+	CmdUpstream
+	CmdFix
+	CmdDup
+	CmdUnDup
+	CmdTest
+	CmdInvalid
+	CmdUnCC
+
+	cmdTest5
+)
 
 const commandPrefix = "#syz "
 
@@ -87,7 +103,8 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		return nil, err
 	}
 	bodyStr := string(body)
-	patch, cmd, cmdArgs := "", "", ""
+	cmd := CmdNone
+	patch, cmdArgs := "", ""
 	if !fromMe {
 		for _, a := range attachments {
 			_, patch, _ = ParsePatch(string(a))
@@ -176,9 +193,10 @@ func CanonicalEmail(email string) string {
 // extractCommand extracts command to syzbot from email body.
 // Commands are of the following form:
 // ^#syz cmd args...
-func extractCommand(body []byte) (cmd, args string) {
+func extractCommand(body []byte) (cmd Command, args string) {
 	cmdPos := bytes.Index(append([]byte{'\n'}, body...), []byte("\n"+commandPrefix))
 	if cmdPos == -1 {
+		cmd = CmdNone
 		return
 	}
 	cmdPos += len(commandPrefix)
@@ -195,18 +213,41 @@ func extractCommand(body []byte) (cmd, args string) {
 	if cmdEnd1 := bytes.IndexByte(body[cmdPos:], ' '); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
 		cmdEnd = cmdEnd1
 	}
-	cmd = string(body[cmdPos : cmdPos+cmdEnd])
+	switch string(body[cmdPos : cmdPos+cmdEnd]) {
+	default:
+		cmd = CmdUnknown
+	case "":
+		cmd = CmdNone
+	case "upstream":
+		cmd = CmdUpstream
+	case "fix", "fix:":
+		cmd = CmdFix
+	case "dup", "dup:":
+		cmd = CmdDup
+	case "undup":
+		cmd = CmdUnDup
+	case "test", "test:":
+		cmd = CmdTest
+	case "invalid":
+		cmd = CmdInvalid
+	case "uncc", "uncc:":
+		cmd = CmdUnCC
+	case "test_5_arg_cmd":
+		cmd = cmdTest5
+	}
 	// Some email clients split text emails at 80 columns are the transformation is irrevesible.
 	// We try hard to restore what was there before.
 	// For "test:" command we know that there must be 2 tokens without spaces.
 	// For "fix:"/"dup:" we need a whole non-empty line of text.
 	switch cmd {
-	case "test:":
+	case CmdTest:
 		args = extractArgsTokens(body[cmdPos+cmdEnd:], 2)
-	case "test_5_arg_cmd":
+	case cmdTest5:
 		args = extractArgsTokens(body[cmdPos+cmdEnd:], 5)
-	case "fix:", "dup:":
+	case CmdFix, CmdDup:
 		args = extractArgsLine(body[cmdPos+cmdEnd:])
+	case CmdUnknown:
+		args = extractArgsLine(body[cmdPos:])
 	}
 	return
 }
