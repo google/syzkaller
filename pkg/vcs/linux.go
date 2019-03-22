@@ -148,6 +148,11 @@ func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
 		// https://lkml.org/lkml/2018/9/7/648
 		// Fixed by e28fd56ad5273be67d0fae5bedc7e1680e729952.
 		"CONFIG_USBIP_VUDC": "v4.15",
+		// CONFIG_CAN causes:
+		// all runs: crashed: INFO: trying to register non-static key in can_notifier
+		// for v4.11..v4.12 and v4.12..v4.13 ranges.
+		// Fixed by 74b7b490886852582d986a33443c2ffa50970169.
+		"CONFIG_CAN": "v4.13",
 		// Setup of network devices is broken before v4.12 with a "WARNING in hsr_get_node".
 		// Fixed by 675c8da049fd6556eb2d6cdd745fe812752f07a8.
 		"CONFIG_HSR": "v4.12",
