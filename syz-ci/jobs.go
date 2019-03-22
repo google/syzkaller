@@ -296,7 +296,6 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 			OS:              mgr.managercfg.TargetOS,
 			Arch:            mgr.managercfg.TargetArch,
 			VMArch:          mgr.managercfg.TargetVMArch,
-			KernelCommit:    "[unknown]",
 			SyzkallerCommit: req.SyzkallerCommit,
 		},
 	}
@@ -307,10 +306,15 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		resp.Build.CompilerID = mgr.compilerID
 		resp.Build.KernelRepo = req.KernelRepo
 		resp.Build.KernelBranch = req.KernelBranch
+		resp.Build.KernelCommit = "[unknown]"
 	case dashapi.JobBisectCause, dashapi.JobBisectFix:
 		mgrcfg.Name += "-bisect-job"
 		resp.Build.KernelRepo = mgr.mgrcfg.Repo
 		resp.Build.KernelBranch = mgr.mgrcfg.Branch
+		resp.Build.KernelCommit = req.KernelCommit
+		resp.Build.KernelCommitTitle = req.KernelCommitTitle
+		resp.Build.KernelCommitDate = req.KernelCommitDate
+		resp.Build.KernelConfig = req.KernelConfig
 	default:
 		err := fmt.Errorf("bad job type %v", req.Type)
 		job.resp.Error = []byte(err.Error())
@@ -400,13 +404,6 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			CC:         com.CC,
 			Date:       com.Date,
 		})
-	}
-	if len(commits) == 1 {
-		com := commits[0]
-		resp.Build.KernelCommit = com.Hash
-		resp.Build.KernelCommitTitle = com.Title
-		resp.Build.KernelCommitDate = com.Date
-		resp.Build.KernelConfig = req.KernelConfig
 	}
 	if rep != nil {
 		resp.CrashTitle = rep.Title

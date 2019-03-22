@@ -394,17 +394,19 @@ func createJobResp(c context.Context, job *Job, jobKey *datastore.Key) (*dashapi
 		return nil, true, nil
 	}
 	resp := &dashapi.JobPollResp{
-		ID:              jobID,
-		Manager:         job.Manager,
-		KernelRepo:      job.KernelRepo,
-		KernelBranch:    job.KernelBranch,
-		KernelCommit:    build.KernelCommit,
-		KernelConfig:    kernelConfig,
-		SyzkallerCommit: build.SyzkallerCommit,
-		Patch:           patch,
-		ReproOpts:       crash.ReproOpts,
-		ReproSyz:        reproSyz,
-		ReproC:          reproC,
+		ID:                jobID,
+		Manager:           job.Manager,
+		KernelRepo:        job.KernelRepo,
+		KernelBranch:      job.KernelBranch,
+		KernelCommit:      build.KernelCommit,
+		KernelCommitTitle: build.KernelCommitTitle,
+		KernelCommitDate:  build.KernelCommitDate,
+		KernelConfig:      kernelConfig,
+		SyzkallerCommit:   build.SyzkallerCommit,
+		Patch:             patch,
+		ReproOpts:         crash.ReproOpts,
+		ReproSyz:          reproSyz,
+		ReproC:            reproC,
 	}
 	switch job.Type {
 	case JobTestPatch:

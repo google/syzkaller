@@ -126,18 +126,20 @@ type JobPollReq struct {
 }
 
 type JobPollResp struct {
-	ID              string
-	Type            JobType
-	Manager         string
-	KernelRepo      string
-	KernelBranch    string
-	KernelCommit    string
-	KernelConfig    []byte
-	SyzkallerCommit string
-	Patch           []byte
-	ReproOpts       []byte
-	ReproSyz        []byte
-	ReproC          []byte
+	ID                string
+	Type              JobType
+	Manager           string
+	KernelRepo        string
+	KernelBranch      string
+	KernelCommit      string
+	KernelCommitTitle string
+	KernelCommitDate  time.Time
+	KernelConfig      []byte
+	SyzkallerCommit   string
+	Patch             []byte
+	ReproOpts         []byte
+	ReproSyz          []byte
+	ReproC            []byte
 }
 
 type JobDoneReq struct {
