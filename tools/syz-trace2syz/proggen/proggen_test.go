@@ -253,6 +253,14 @@ setsockopt(3, 0x29, 0x2a, {gr_interface=0, gr_group={sa_family=0xa, sin6_port="\
 r0 = socket$inet6_tcp(0xa, 0x1, 0x0)
 setsockopt$inet6_MCAST_JOIN_GROUP(r0, 0x29, 0x2a, ` +
 			`&(0x7f0000000000)={0x0, {{0xa, 0x0, 0x0, @rand_addr="ff020000000000000000000000000001"}}}, 0x88)`,
+		}, {
+			`
+openat(-100, "\x2f\x64\x65\x76\x2f\x72\x74\x63\x30", 0) = 3
+ioctl(3, 0x4028700f, {enabled=0, pending=0, time={tm_sec=0, tm_min=0, tm_hour=0, tm_mday=0, tm_mon=65536,` +
+				`tm_year=20865, tm_wday=0, tm_yday=0, tm_isdst=0}}) = -1 EINVAL (Invalid argument)`,
+			`
+r0 = openat$rtc(0xffffffffffffff9c, &(0x7f0000000000)='/dev/rtc0\x00', 0x0, 0x0)
+ioctl$RTC_WKALM_SET(r0, 0x4028700f, &(0x7f0000000040)={0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x10000, 0x5181}})`,
 		},
 	}
 	target, err := prog.GetTarget("linux", "amd64")
