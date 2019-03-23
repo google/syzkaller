@@ -5,6 +5,7 @@ include <linux/rtc.h>
 
 resource fd_rtc[fd]
 
+openat$rtc(fd const[AT_FDCWD], file ptr[in, string["/dev/rtc0"]], flags flags[open_flags], mode const[0]) fd_rtc
 syz_open_dev$rtc(dev ptr[in, string["/dev/rtc#"]], id intptr, flags flags[open_flags]) fd_rtc
 
 ioctl$RTC_AIE_OFF(fd fd_rtc, cmd const[RTC_AIE_OFF])
