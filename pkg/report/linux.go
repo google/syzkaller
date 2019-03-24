@@ -723,6 +723,7 @@ var linuxStackParams = &stackParams{
 		"memcmp",
 		"memset",
 		"memchr",
+		"memmove",
 		"strcmp",
 		"strncmp",
 		"strcpy",
