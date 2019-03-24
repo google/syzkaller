@@ -7,6 +7,7 @@ package dash
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -546,4 +547,84 @@ func TestBisectCauseExternal(t *testing.T) {
 
 	c.expectEQ(bisect.Type, dashapi.ReportBisectCause)
 	c.expectEQ(bisect.Title, rep.Title)
+}
+
+func TestBisectCauseReproSyz(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	crash.ReproC = nil
+	c.client2.ReportCrash(crash)
+
+	pollResp := c.client2.pollJobs(build.Manager)
+	jobID := pollResp.ID
+	done := &dashapi.JobDoneReq{
+		ID:         jobID,
+		Build:      *build,
+		Log:        []byte("bisect log"),
+		CrashTitle: "bisect crash title",
+		CrashLog:   []byte("bisect crash log"),
+	}
+	done.Build.ID = jobID
+	c.expectOK(c.client2.JobDone(done))
+
+	crash.ReproC = []byte("int main")
+	c.client2.ReportCrash(crash)
+
+	msg := c.client2.pollEmailBug()
+	if !strings.Contains(msg.Body, "syzbot found the following crash") {
+		t.Fatalf("wrong email header:\n%v", msg.Body)
+	}
+	if !strings.Contains(msg.Body, "Bisection is inconclusive") {
+		t.Fatalf("report does not contain bisection results:\n%v", msg.Body)
+	}
+}
+
+func TestBisectCauseReproSyz2(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	crash.ReproC = nil
+	c.client2.ReportCrash(crash)
+
+	pollResp := c.client2.pollJobs(build.Manager)
+	jobID := pollResp.ID
+	done := &dashapi.JobDoneReq{
+		ID:         jobID,
+		Build:      *build,
+		Log:        []byte("bisect log"),
+		CrashTitle: "bisect crash title",
+		CrashLog:   []byte("bisect crash log"),
+	}
+	done.Build.ID = jobID
+	c.expectOK(c.client2.JobDone(done))
+
+	msg := c.client2.pollEmailBug()
+	if !strings.Contains(msg.Body, "syzbot found the following crash") {
+		t.Fatalf("wrong email header:\n%v", msg.Body)
+	}
+	if !strings.Contains(msg.Body, "Bisection is inconclusive") {
+		t.Fatalf("report does not contain bisection results:\n%v", msg.Body)
+	}
+
+	crash.ReproC = []byte("int main")
+	c.client2.ReportCrash(crash)
+
+	msg = c.client2.pollEmailBug()
+	if !strings.Contains(msg.Body, "syzbot has found a reproducer for the following crash") {
+		t.Fatalf("wrong email header:\n%v", msg.Body)
+	}
+	// Do we need bisection results in this email as well?
+	// We already mailed them, so we could not mail them here.
+	// But if we don't include bisection results, need to check that CC is correct
+	// (includes bisection CC).
+	if !strings.Contains(msg.Body, "Bisection is inconclusive") {
+		t.Fatalf("report still contains bisection results:\n%v", msg.Body)
+	}
 }

@@ -303,9 +303,15 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	var job *Job
 	if bug.BisectCause == BisectYes {
 		// If we have bisection results, report the crash/repro used for bisection.
-		job, crash, _, crashKey, err = loadBisectJob(c, bug)
+		job1, crash1, _, crashKey1, err := loadBisectJob(c, bug)
 		if err != nil {
 			return nil, err
+		}
+		job = job1
+		if crash1.ReproC != 0 || crash.ReproC == 0 {
+			// Don't override the crash in this case,
+			// otherwise we will always think that we haven't reported the C repro.
+			crash, crashKey = crash1, crashKey1
 		}
 	}
 	crashLog, _, err := getText(c, textCrashLog, crash.Log)
