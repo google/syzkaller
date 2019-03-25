@@ -130,6 +130,13 @@ table td, table th {
 	text-align: right;
 }
 
+.list_table .date {
+	width: 60pt;
+	max-width: 60pt;
+	font-family: monospace;
+	text-align: right;
+}
+
 .list_table .stat_name {
 	width: 150pt;
 	max-width: 150pt;
