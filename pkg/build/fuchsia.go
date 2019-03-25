@@ -21,9 +21,10 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 		return fmt.Errorf("unsupported fuchsia arch %v", targetArch)
 	}
 	arch := sysTarget.KernelHeaderArch
-	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "set", arch,
+	product := fmt.Sprintf("%s.%s", "core", arch)
+	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "set", product,
 		"--args", `extra_authorized_keys_file="//.ssh/authorized_keys"`,
-		"--board", "boards/x64.gni", "--product", "products/core.gni"); err != nil {
+		"--build-dir", "out/"+arch); err != nil {
 		return err
 	}
 	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "clean-build"); err != nil {
