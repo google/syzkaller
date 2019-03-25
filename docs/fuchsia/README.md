@@ -33,25 +33,25 @@ make TARGETOS=fuchsia TARGETARCH=amd64 SOURCEDIR=/path/to/fuchsia/checkout
 Run `syz-manager` with a config along the lines of:
 ```
 {
-	"name": "fuchsia",
-	"target": "fuchsia/amd64",
-	"http": ":12345",
-	"workdir": "/workdir.fuchsia",
-	"kernel_obj": "/fuchsia/out/build-zircon/build-x64",
-	"syzkaller": "/syzkaller",
-	"image": "/fuchsia/out/x64/out/build/images/fvm.blk",
-	"sshkey": "/fuchsia/out/x64/ssh-keys/id_ed25519",
-	"reproduce": false,
-	"cover": false,
-	"procs": 8,
-	"type": "qemu",
-	"vm": {
-		"count": 10,
-		"cpu": 4,
-		"mem": 2048,
-		"kernel": "/fuchsia/out/build-zircon/build-x64/zircon.bin",
-		"initrd": "/fuchsia/out/x64/bootdata-blob.bin"
-	}
+        "name": "fuchsia",
+        "target": "fuchsia/amd64",
+        "http": ":12345",
+        "workdir": "/workdir.fuchsia",
+        "kernel_obj": "/fuchsia/out/build-zircon/build-x64",
+        "syzkaller": "/syzkaller",
+        "image": "/fuchsia/out/default/obj/build/images/fvm.blk",
+        "sshkey": "/fuchsia/.ssh/pkey",
+        "reproduce": false,
+        "cover": false,
+        "procs": 8,
+        "type": "qemu",
+        "vm": {
+                "count": 10,
+                "cpu": 4,
+                "mem": 2048,
+                "kernel": "/fuchsia/out/build-zircon/multiboot.bin",
+                "initrd": "/fuchsia/out/default/fuchsia.zbi"
+        }
 }
 ```
 
