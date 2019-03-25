@@ -3,17 +3,18 @@
 For information about checking out and building Fuchsia see
 [Getting Started](https://fuchsia.googlesource.com/fuchsia/+/master/docs/getting_started.md)
 and [Soure Code](https://fuchsia.googlesource.com/fuchsia/+/master/docs/development/source_code/README.md).
-Image needs to be configured with sshd support:
-```
-fx set x64 --packages garnet/packages/products/sshd
-fx full-build
+```shell
+$ fx set core.x64 --build-dir "out/x64" \
+  --args extra_authorized_keys_file=\"//.ssh/authorized_keys\"
+$ fx full-build
 ```
 
 You need to build fuchsia for both arm64 and amd64:
 
-```
-fx set arm64 --packages garnet/packages/products/sshd
-fx full-build
+```shell
+$ fx set core.arm64 --build-dir "out/arm64" \
+  --args extra_authorized_keys_file=\"//.ssh/authorized_keys\"
+$ fx full-build
 ```
 
 Syscall descriptions live in the `sys/fuchsia` folder. To update a syscall, you need to modify the `.txt` file that contains it, make sure your new definition matches the one in zircon's [syscalls.abigen](https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/public/zircon/syscalls.abigen) file. **If the syscall was used in `executor/common_fuchsia.h`, you need to update the usages there as well**. FIDL definitions do not need manual updating because they are extracted automatically with the commands below.
@@ -33,25 +34,25 @@ make TARGETOS=fuchsia TARGETARCH=amd64 SOURCEDIR=/path/to/fuchsia/checkout
 Run `syz-manager` with a config along the lines of:
 ```
 {
-	"name": "fuchsia",
-	"target": "fuchsia/amd64",
-	"http": ":12345",
-	"workdir": "/workdir.fuchsia",
-	"kernel_obj": "/fuchsia/out/build-zircon/build-x64",
-	"syzkaller": "/syzkaller",
-	"image": "/fuchsia/out/x64/out/build/images/fvm.blk",
-	"sshkey": "/fuchsia/out/x64/ssh-keys/id_ed25519",
-	"reproduce": false,
-	"cover": false,
-	"procs": 8,
-	"type": "qemu",
-	"vm": {
-		"count": 10,
-		"cpu": 4,
-		"mem": 2048,
-		"kernel": "/fuchsia/out/build-zircon/build-x64/zircon.bin",
-		"initrd": "/fuchsia/out/x64/bootdata-blob.bin"
-	}
+        "name": "fuchsia",
+        "target": "fuchsia/amd64",
+        "http": ":12345",
+        "workdir": "/workdir.fuchsia",
+        "kernel_obj": "/fuchsia/out/build-zircon/build-x64",
+        "syzkaller": "/syzkaller",
+        "image": "/fuchsia/out/x64/obj/build/images/fvm.blk",
+        "sshkey": "/fuchsia/.ssh/pkey",
+        "reproduce": false,
+        "cover": false,
+        "procs": 8,
+        "type": "qemu",
+        "vm": {
+                "count": 10,
+                "cpu": 4,
+                "mem": 2048,
+                "kernel": "/fuchsia/out/build-zircon/multiboot.bin",
+                "initrd": "/fuchsia/out/x64/fuchsia.zbi"
+        }
 }
 ```
 
