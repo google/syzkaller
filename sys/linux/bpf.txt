@@ -344,7 +344,7 @@ bpf_prog_info {
 	nr_map_ids			int32
 	map_ids				int64
 	name				array[int8, BPF_OBJ_NAME_LEN]
-        ifindex				int32
+	ifindex				int32
 	gpl_compatible			int32:1
 	netns_dev			int64
 	netns_ino			int64
