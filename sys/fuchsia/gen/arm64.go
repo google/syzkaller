@@ -3878,6 +3878,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_io_PipeHandles", Dir: 1}, FldName: "pipe"},
 		&StructType{Key: StructKey{Name: "fuchsia_io_VmofileHandles", Dir: 1}, FldName: "vmofile"},
 		&StructType{Key: StructKey{Name: "fuchsia_io_DeviceHandles", Dir: 1}, FldName: "device"},
+		&StructType{Key: StructKey{Name: "fuchsia_io_TtyHandles", Dir: 1}, FldName: "tty"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeIoctlRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeIoctlRequest", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[905161895]"}, FldName: "hdr"},
@@ -3923,6 +3924,9 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_ServiceHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_ServiceHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_TtyHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_TtyHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_event", FldName: "event", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_VmofileHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_VmofileHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "vmo", TypeSize: 4, ArgDir: 1}},
@@ -7549,4 +7553,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_arm64 = "6bfd73c3be80297b5e5295deeb2b1cdc93cda43b"
+const revision_arm64 = "482a8647177a568228ca57dd3d0f4cde6dfb38bd"
