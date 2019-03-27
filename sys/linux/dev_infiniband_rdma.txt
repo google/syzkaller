@@ -1,12 +1,10 @@
-# TODO: This needs some fixups according to PR review:
-# https://github.com/google/syzkaller/pull/1053
-# In the meantime, add it as is.
-
-# Copyright 2015 syzkaller project authors. All rights reserved.
+# Copyright 2019 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found
 # in the LICENSE file.
 
-# Description of syscall arguments. See README.md for details.
+# TODO: This needs some fixups according to PR review:
+# https://github.com/google/syzkaller/pull/1053
+# In the meantime, add it as is.
 
 include <uapi/linux/fcntl.h>
 include <rdma/ib_verbs.h>
