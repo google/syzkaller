@@ -154,6 +154,7 @@ var (
 	kallsymsRenameMap  = map[string]string{
 		"umount":  "oldumount",
 		"umount2": "umount",
+		"stat":    "newstat",
 	}
 	trialMu         sync.Mutex
 	trialSupported  = make(map[uint64]bool)
