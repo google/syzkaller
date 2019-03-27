@@ -30,6 +30,10 @@ fuchsia_io_DeviceHandles {
 	event	zx_event
 } [packed]
 
+fuchsia_io_TtyHandles {
+	event	zx_event
+} [packed]
+
 fuchsia_io_NodeAttributesInLine {
 	mode			int32
 	id			int64
@@ -59,6 +63,7 @@ fuchsia_io_NodeInfoHandles [
 	pipe		fuchsia_io_PipeHandles
 	vmofile		fuchsia_io_VmofileHandles
 	device		fuchsia_io_DeviceHandles
+	tty		fuchsia_io_TtyHandles
 ] [varlen]
 
 fuchsia_io_NodeCloneRequest {
