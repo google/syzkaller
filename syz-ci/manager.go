@@ -435,7 +435,7 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.Name += "-test"
 	mgrcfg.Tag = info.KernelCommit
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
-	if err := instance.SetConfigImage(mgrcfg, imageDir); err != nil {
+	if err := instance.SetConfigImage(mgrcfg, imageDir, true); err != nil {
 		return nil, err
 	}
 	mgrcfg.KernelSrc = mgr.kernelDir
@@ -461,7 +461,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	}
 	mgrcfg.Tag = buildTag
 	mgrcfg.Workdir = mgr.workDir
-	if err := instance.SetConfigImage(mgrcfg, mgr.currentDir); err != nil {
+	if err := instance.SetConfigImage(mgrcfg, mgr.currentDir, false); err != nil {
 		return "", err
 	}
 	// Strictly saying this is somewhat racy as builder can concurrently
