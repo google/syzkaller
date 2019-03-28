@@ -10,13 +10,24 @@ set -eux
 CLEANUP=""
 trap 'eval " $CLEANUP"' EXIT
 
+IMG_ARCH="${3:-amd64}"
+
 if [ ! -e $1/sbin/init ]; then
-	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
+	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage [arch]"
 	exit 1
 fi
 
-if [ "$(basename $2)" != "bzImage" ]; then
-	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
+case "$IMG_ARCH" in
+	386|amd64)
+		KERNEL_IMAGE_BASENAME=bzImage
+		;;
+	ppc64le)
+		KERNEL_IMAGE_BASENAME=zImage.pseries
+		;;
+esac
+
+if [ "$(basename $2)" != "$KERNEL_IMAGE_BASENAME" ]; then
+	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage [arch]"
 	exit 1
 fi
 
@@ -53,8 +64,18 @@ elif [ "$BLOCK_DEVICE" == "nbd" ]; then
 	sudo qemu-nbd -c $DISKDEV --format=raw disk.raw
 	CLEANUP="sudo qemu-nbd -d $DISKDEV; $CLEANUP"
 fi
-echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk $DISKDEV
-PARTDEV=$DISKDEV"p1"
+
+case "$IMG_ARCH" in
+	386|amd64)
+		echo -en "o\nn\np\n1\n\n\na\nw\n" | sudo fdisk $DISKDEV
+		PARTDEV=$DISKDEV"p1"
+		;;
+	ppc64le)
+		echo -en "g\nn\n1\n2048\n16383\nt\n7\nn\n2\n\n\nw\n" | sudo fdisk $DISKDEV
+		PARTDEV=$DISKDEV"p2"
+		;;
+esac
+
 until [ -e $PARTDEV ]; do sleep 1; done
 sudo -E mkfs.ext4 -O ^resize_inode,^has_journal,ext_attr,extents,huge_file,flex_bg,dir_nlink,sparse_super $PARTDEV
 mkdir -p disk.mnt
@@ -99,7 +120,9 @@ if [ "$SYZ_CMDLINE_FILE" != "" ]; then
 	CMDLINE=$(awk '{printf("%s ", $0)}' $SYZ_CMDLINE_FILE)
 fi
 
-cat << EOF | sudo tee disk.mnt/boot/grub/grub.cfg
+case "$IMG_ARCH" in
+386|amd64)
+	cat << EOF | sudo tee disk.mnt/boot/grub/grub.cfg
 terminal_input console
 terminal_output console
 set timeout=0
@@ -115,5 +138,22 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 $CMDLINE
 }
 EOF
-sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $DISKDEV
+	sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy $DISKDEV
+	;;
+ppc64le)
+	cat << EOF | sudo tee disk.mnt/boot/grub/grub.cfg
+terminal_input console
+terminal_output console
+set timeout=0
+menuentry 'linux' --class gnu-linux --class gnu --class os {
+	insmod gzio
+	insmod part_gpt
+	insmod ext2
+	set root='(ieee1275/disk,gpt2)'
+	linux /vmlinuz root=/dev/sda2 console=ttyS0 earlyprintk=serial rodata=n oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 $CMDLINE
+}
+EOF
+	sudo grub-install --target=powerpc-ieee1275 --boot-directory=disk.mnt/boot $DISKDEV"p1"
+	;;
+esac
 `
