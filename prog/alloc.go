@@ -57,7 +57,7 @@ func (ma *memAlloc) alloc(r *randGen, size0 uint64) uint64 {
 	}
 	size := (size0 + memAllocGranule - 1) / memAllocGranule
 	end := ma.size - size
-	for start := uint64(0); start < end; start++ {
+	for start := uint64(0); start <= end; start++ {
 		empty := true
 		for i := uint64(0); i < size; i++ {
 			if ma.get(start + i) {

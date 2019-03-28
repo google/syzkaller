@@ -7,7 +7,11 @@ import (
 	"fmt"
 )
 
-var debug = false // enabled in tests
+var debug = false // enabled in tests and fuzzers
+
+func Debug() {
+	debug = true
+}
 
 func (p *Prog) debugValidate() {
 	if debug {
