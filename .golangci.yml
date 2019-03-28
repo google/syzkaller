@@ -1,0 +1,62 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+run:
+  deadline: 8m
+  skip-dirs:
+    - pkg/kd
+    - pkg/ifuzz/gen
+    - sys/akaros/gen
+    - sys/freebsd/gen
+    - sys/fuchsia/gen
+    - sys/linux/gen
+    - sys/netbsd/gen
+    - sys/openbsd/gen
+    - sys/windows/gen
+    - sys/test/gen
+    - sys/trusty/gen
+  skip-files:
+    - "tools/syz-trace2syz/parser/(lex.go|strace.go|straceLex.rl|yaccpar)"
+
+linters:
+  enable:
+    - lll
+    - gofmt
+    - golint
+    - structcheck
+    - megacheck
+    - unconvert
+    - deadcode
+    - goconst
+    - unused
+    - gosimple
+    - varcheck
+    - misspell
+    - gocyclo
+    - vet
+    - vetshadow
+    - megacheck
+    - govet
+  disable:
+    - ineffassign
+    - errcheck
+
+linters-settings:
+  lll:
+    line-length: 120
+  gocyclo:
+    min-complexity: 24
+  dupl:
+    threshold: 60
+
+issues:
+  exclude-use-default: false
+  exclude:
+    - "exported .* should have comment"
+    - "comment on .* should be of the form"
+    - "(sys/.*/init.*|sys/targets/common.go).* don't use ALL_CAPS in Go names"
+    - "declaration of \"err\" shadows"
+  exclude-rules:
+    - path: (pkg/csource/generated.go|pkg/report/linux.go|pkg/build/linux_generated.go)
+      linters:
+        - lll
