@@ -37,7 +37,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, EnvFlags) {
 	if testing.Short() {
 		iters = 10
 	}
-	seed := int64(time.Now().UnixNano())
+	seed := time.Now().UnixNano()
 	if os.Getenv("TRAVIS") != "" {
 		seed = 0 // required for deterministic coverage reports
 	}

@@ -336,7 +336,7 @@ func (inst *instance) Diagnose() ([]byte, bool) {
 
 func init() {
 	if os.Getenv("SYZ_GVISOR_PROXY") != "" {
-		fmt.Fprintf(os.Stderr, initStartMsg)
+		fmt.Fprint(os.Stderr, initStartMsg)
 		select {}
 	}
 }

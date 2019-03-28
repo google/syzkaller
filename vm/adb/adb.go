@@ -328,11 +328,10 @@ func (inst *instance) getBatteryLevel(numRetry int) (int, error) {
 			// sleep for 5 seconds before retrying
 			time.Sleep(5 * time.Second)
 			out, err = inst.adb("shell", "dumpsys battery | grep level:")
-		} else {
-			if err != nil {
-				return 0, err
-			}
 		}
+	}
+	if err != nil {
+		return 0, err
 	}
 	val := 0
 	for _, c := range out {
