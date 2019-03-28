@@ -24,6 +24,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	product := fmt.Sprintf("%s.%s", "core", arch)
 	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "set", product,
 		"--args", `extra_authorized_keys_file="//.ssh/authorized_keys"`,
+		"--with-base", "//bundles:tools",
 		"--build-dir", "out/"+arch); err != nil {
 		return err
 	}
