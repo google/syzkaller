@@ -12,6 +12,7 @@ func init() {
 
 var resources_amd64 = []*ResourceDesc{
 	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "fd_bpf", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_bpf"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_dir", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_dir"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_kqueue", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_kqueue"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_tty", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_tty"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -35,6 +36,30 @@ var resources_amd64 = []*ResourceDesc{
 }
 
 var structDescs_amd64 = []*KeyedStruct{
+	{Key: StructKey{Name: "bf_insns"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bf_insns", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "code", TypeSize: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "jt", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "jf", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "k", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "bpf_dltlist", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_dltlist", TypeSize: 16, ArgDir: 1}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "bfl_len", TypeSize: 4, ArgDir: 1}}, Buf: "bfl_list"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "bfl_list", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
+	}}},
+	{Key: StructKey{Name: "bpf_program"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_program", TypeSize: 16}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "bf_len", TypeSize: 4}}, Buf: "bf_insns"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "bf_insns", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "bf_insns"}}}},
+	}}},
+	{Key: StructKey{Name: "bpf_stat", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_stat", TypeSize: 8, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bs_recv", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bs_drop", TypeSize: 4, ArgDir: 1}}},
+	}}},
+	{Key: StructKey{Name: "bpf_version", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_version", TypeSize: 4, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "bv_major", TypeSize: 2, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "bv_minor", TypeSize: 2, ArgDir: 1}}},
+	}}},
 	{Key: StructKey{Name: "cmsghdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cmsg_len", TypeSize: 8}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "cmsg_levels", FldName: "cmsg_level", TypeSize: 4}}, Vals: []uint64{65535, 1}},
@@ -78,6 +103,36 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "ifr_ifru"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifr_ifru", IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "sockaddr_storage"}, FldName: "ifru_addr"},
+		&UnionType{Key: StructKey{Name: "sockaddr_storage"}, FldName: "ifru_dstaddr"},
+		&UnionType{Key: StructKey{Name: "sockaddr_storage"}, FldName: "ifru_broadaddr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "ifru_flags", TypeSize: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_metric", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ifru_vnetid", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ifru_media", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ifru_data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_index", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "ifr_ifru", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifr_ifru", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}, FldName: "ifru_addr"},
+		&UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}, FldName: "ifru_dstaddr"},
+		&UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}, FldName: "ifru_broadaddr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "ifru_flags", TypeSize: 2, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_metric", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ifru_vnetid", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ifru_media", TypeSize: 8, ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ifru_data", TypeSize: 8, ArgDir: 1}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_index", TypeSize: 4, ArgDir: 1}}},
+	}}},
+	{Key: StructKey{Name: "ifreq"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq", IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "ifr_name", TypeSize: 16}, Kind: 3},
+		&UnionType{Key: StructKey{Name: "ifr_ifru"}, FldName: "ifr_ifru"},
+	}}},
+	{Key: StructKey{Name: "ifreq", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "ifr_name", TypeSize: 16, ArgDir: 1}, Kind: 3},
+		&UnionType{Key: StructKey{Name: "ifr_ifru", Dir: 1}, FldName: "ifr_ifru"},
 	}}},
 	{Key: StructKey{Name: "iovec_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_in", TypeSize: 16}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
@@ -832,6 +887,123 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{NR: 24, Name: "getuid", CallName: "getuid", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 54, Name: "ioctl$BIOCFLUSH", CallName: "ioctl", MissingArgs: 1, Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536887912},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGBLEN", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074020966},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGDIRFILT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074020988},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGDLTLIST", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3222291067},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "bpf_dltlist", Dir: 1}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGETIF", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1075855979},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq", Dir: 1}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGFILDROP", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074020984},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGHDRCMPLT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074020980},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGRSIG", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074020979},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGRTIMEOUT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074807406},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "timeval", Dir: 1}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCGSTATS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074283119},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "bpf_stat", Dir: 1}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCIMMEDIATE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147762800},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCLOCK", CallName: "ioctl", MissingArgs: 1, Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536887926},
+	}},
+	{NR: 54, Name: "ioctl$BIOCPROMISC", CallName: "ioctl", MissingArgs: 1, Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536887913},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSBLEN", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3221504614},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSDIRFILT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147762813},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSDLT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147762810},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSETF", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2148549223},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "bpf_program"}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSETIF", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2149597804},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq"}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSETWF", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2148549239},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "bpf_program"}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSFILDROP", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147762809},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSHDRCMPLT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147762805},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSRSIG", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147762802},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCSRTIMEOUT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2148549229},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "timeval"}}},
+	}},
+	{NR: 54, Name: "ioctl$BIOCVERSION", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074020977},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "bpf_version", Dir: 1}}},
+	}},
 	{NR: 54, Name: "ioctl$KDDISABIO", CallName: "ioctl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsdisplay", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536890173},
@@ -1348,6 +1520,12 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 8, 512, 1024, 2048, 16, 32, 256, 65536, 128, 128, 128, 32768, 131072, 64}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}, BitMask: true},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 321, Name: "openat$bpf", CallName: "openat", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 9}, Kind: 2, Values: []string{"/dev/bpf\x00"}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 8, 512, 1024, 2048, 16, 32, 256, 65536, 128, 128, 128, 32768, 131072, 64}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 321, Name: "openat$null", CallName: "openat", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 10}, Kind: 2, Values: []string{"/dev/null\x00"}}},
@@ -1886,6 +2064,30 @@ var consts_amd64 = []ConstValue{
 	{Name: "AT_REMOVEDIR", Value: 8},
 	{Name: "AT_SYMLINK_FOLLOW", Value: 4},
 	{Name: "AT_SYMLINK_NOFOLLOW", Value: 2},
+	{Name: "BIOCFLUSH", Value: 536887912},
+	{Name: "BIOCGBLEN", Value: 1074020966},
+	{Name: "BIOCGDIRFILT", Value: 1074020988},
+	{Name: "BIOCGDLTLIST", Value: 3222291067},
+	{Name: "BIOCGETIF", Value: 1075855979},
+	{Name: "BIOCGFILDROP", Value: 1074020984},
+	{Name: "BIOCGHDRCMPLT", Value: 1074020980},
+	{Name: "BIOCGRSIG", Value: 1074020979},
+	{Name: "BIOCGRTIMEOUT", Value: 1074807406},
+	{Name: "BIOCGSTATS", Value: 1074283119},
+	{Name: "BIOCIMMEDIATE", Value: 2147762800},
+	{Name: "BIOCLOCK", Value: 536887926},
+	{Name: "BIOCPROMISC", Value: 536887913},
+	{Name: "BIOCSBLEN", Value: 3221504614},
+	{Name: "BIOCSDIRFILT", Value: 2147762813},
+	{Name: "BIOCSDLT", Value: 2147762810},
+	{Name: "BIOCSETF", Value: 2148549223},
+	{Name: "BIOCSETIF", Value: 2149597804},
+	{Name: "BIOCSETWF", Value: 2148549239},
+	{Name: "BIOCSFILDROP", Value: 2147762809},
+	{Name: "BIOCSHDRCMPLT", Value: 2147762805},
+	{Name: "BIOCSRSIG", Value: 2147762802},
+	{Name: "BIOCSRTIMEOUT", Value: 2148549229},
+	{Name: "BIOCVERSION", Value: 1074020977},
 	{Name: "CLOCK_MONOTONIC", Value: 3},
 	{Name: "CLOCK_PROCESS_CPUTIME_ID", Value: 2},
 	{Name: "CLOCK_REALTIME"},
@@ -1926,6 +2128,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "GETPID", Value: 4},
 	{Name: "GETVAL", Value: 5},
 	{Name: "GETZCNT", Value: 7},
+	{Name: "IFNAMSIZ", Value: 16},
 	{Name: "IPC_CREAT", Value: 512},
 	{Name: "IPC_EXCL", Value: 1024},
 	{Name: "IPC_NOWAIT", Value: 2048},
@@ -2378,4 +2581,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "c733e73f8e86521a832739688afba80475b07ef0"
+const revision_amd64 = "fed31a69d794e7ddd91acc058a2fb8e2ca8ea87a"
