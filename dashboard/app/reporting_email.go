@@ -263,7 +263,11 @@ func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 func incomingMail(c context.Context, r *http.Request) error {
 	msg, err := email.Parse(r.Body, ownEmails(c))
 	if err != nil {
-		return err
+		// Malformed emails constantly appear from spammers.
+		// But we have not seen errors parsing legit emails.
+		// These errors are annoying. Warn and ignore them.
+		log.Warningf(c, "failed to parse email: %v", err)
+		return nil
 	}
 	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
 		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
