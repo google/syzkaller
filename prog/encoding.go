@@ -108,14 +108,20 @@ func (a *DataArg) serialize(ctx *serializer) {
 		return
 	}
 	data := a.Data()
-	if !typ.Varlen() {
-		// Statically typed data will be padded with 0s during
-		// deserialization, so we can strip them here for readability.
-		for len(data) >= 2 && data[len(data)-1] == 0 && data[len(data)-2] == 0 {
-			data = data[:len(data)-1]
-		}
+	// Statically typed data will be padded with 0s during deserialization,
+	// so we can strip them here for readability always. For variable-size
+	// data we strip trailing 0s only if we strip enough of them.
+	sz := len(data)
+	for len(data) >= 2 && data[len(data)-1] == 0 && data[len(data)-2] == 0 {
+		data = data[:len(data)-1]
+	}
+	if typ.Varlen() && len(data)+8 >= sz {
+		data = data[:sz]
 	}
 	serializeData(ctx.buf, data, isReadableDataType(typ))
+	if typ.Varlen() && sz != len(data) {
+		ctx.printf("/%v", sz)
+	}
 }
 
 func (a *GroupArg) serialize(ctx *serializer) {
@@ -324,6 +330,9 @@ func (p *parser) parseArg(typ Type) (Arg, error) {
 }
 
 func (p *parser) parseArgImpl(typ Type) (Arg, error) {
+	if typ == nil && p.Char() != 'n' {
+		return nil, fmt.Errorf("non-nil argument for nil type")
+	}
 	switch p.Char() {
 	case '0':
 		return p.parseArgInt(typ)
@@ -464,6 +473,10 @@ func (p *parser) parseArgAddr(typ Type) (Arg, error) {
 		}
 	}
 	if typ1 == nil {
+		if addr%p.target.PageSize != 0 {
+			p.strictFailf("unaligned vma address 0x%x", addr)
+			addr &= ^(p.target.PageSize - 1)
+		}
 		return MakeVmaPointerArg(typ, addr, vmaSize), nil
 	}
 	if inner == nil {
@@ -492,6 +505,11 @@ func (p *parser) parseArgString(typ Type) (Arg, error) {
 		size, err = strconv.ParseUint(sizeStr, 0, 64)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse buffer size: %q", sizeStr)
+		}
+		maxMem := p.target.NumPages * p.target.PageSize
+		if size > maxMem {
+			p.strictFailf("too large string argument %v", size)
+			size = maxMem
 		}
 	}
 	if !typ.Varlen() {
@@ -613,9 +631,7 @@ func (p *parser) parseArgUnion(typ Type) (Arg, error) {
 
 // Eats excessive call arguments and struct fields to recover after description changes.
 func (p *parser) eatExcessive(stopAtComma bool, what string, args ...interface{}) {
-	if p.strict {
-		p.failf(what, args...)
-	}
+	p.strictFailf(what, args...)
 	paren, brack, brace := 0, 0, 0
 	for !p.EOF() && p.e == nil {
 		ch := p.Char()
@@ -843,7 +859,11 @@ func (p *parser) deserializeData() ([]byte, error) {
 			case 'x':
 				hi := p.consume()
 				lo := p.consume()
-				data = append(data, hexToByte(lo, hi))
+				v, ok := hexToByte(lo, hi)
+				if !ok {
+					return nil, fmt.Errorf("invalid hex \\x%v%v in data arg", hi, lo)
+				}
+				data = append(data, v)
 			case 'a':
 				data = append(data, '\a')
 			case 'b':
@@ -881,8 +901,10 @@ func byteToHex(v byte) (lo, hi byte) {
 	return toHexChar(v & 0xf), toHexChar(v >> 4)
 }
 
-func hexToByte(lo, hi byte) byte {
-	return fromHexChar(hi)<<4 + fromHexChar(lo)
+func hexToByte(lo, hi byte) (byte, bool) {
+	h, ok1 := fromHexChar(hi)
+	l, ok2 := fromHexChar(lo)
+	return h<<4 + l, ok1 && ok2
 }
 
 func toHexChar(v byte) byte {
@@ -895,14 +917,14 @@ func toHexChar(v byte) byte {
 	return 'a' + v - 10
 }
 
-func fromHexChar(v byte) byte {
+func fromHexChar(v byte) (byte, bool) {
 	if v >= '0' && v <= '9' {
-		return v - '0'
+		return v - '0', true
 	}
 	if v >= 'a' && v <= 'f' {
-		return v - 'a' + 10
+		return v - 'a' + 10, true
 	}
-	panic("bad hex char")
+	return 0, false
 }
 
 type parser struct {

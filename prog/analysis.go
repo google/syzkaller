@@ -60,7 +60,7 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 			case a.IsSpecial():
 			case a.VmaSize != 0:
 				s.va.noteAlloc(a.Address/s.target.PageSize, a.VmaSize/s.target.PageSize)
-			default:
+			case a.Res != nil:
 				s.ma.noteAlloc(a.Address, a.Res.Size())
 			}
 		}
