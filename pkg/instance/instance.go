@@ -90,42 +90,36 @@ func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile s
 		cmdlineFile, sysctlFile, kernelConfig); err != nil {
 		return err
 	}
-	return SetConfigImage(cfg, imageDir)
+	return SetConfigImage(cfg, imageDir, true)
 }
 
-func SetConfigImage(cfg *mgrconfig.Config, imageDir string) error {
+func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {
 	cfg.KernelObj = filepath.Join(imageDir, "obj")
 	cfg.Image = filepath.Join(imageDir, "image")
 	if keyFile := filepath.Join(imageDir, "key"); osutil.IsExist(keyFile) {
 		cfg.SSHKey = keyFile
 	}
+	vmConfig := make(map[string]interface{})
+	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
+		return fmt.Errorf("failed to parse VM config: %v", err)
+	}
 	if cfg.Type == "qemu" || cfg.Type == "vmm" {
-		kernel := filepath.Join(imageDir, "kernel")
-		if !osutil.IsExist(kernel) {
-			kernel = ""
+		if kernel := filepath.Join(imageDir, "kernel"); osutil.IsExist(kernel) {
+			vmConfig["kernel"] = kernel
 		}
-		initrd := filepath.Join(imageDir, "initrd")
-		if !osutil.IsExist(initrd) {
-			initrd = ""
-		}
-		if kernel != "" || initrd != "" {
-			vmConfig := make(map[string]interface{})
-			if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
-				return fmt.Errorf("failed to parse VM config: %v", err)
-			}
-			if kernel != "" {
-				vmConfig["kernel"] = kernel
-			}
-			if initrd != "" {
-				vmConfig["initrd"] = initrd
-			}
-			vmCfg, err := json.Marshal(vmConfig)
-			if err != nil {
-				return fmt.Errorf("failed to serialize VM config: %v", err)
-			}
-			cfg.VM = vmCfg
+		if initrd := filepath.Join(imageDir, "initrd"); osutil.IsExist(initrd) {
+			vmConfig["initrd"] = initrd
 		}
 	}
+	if cfg.Type == "gce" {
+		// Don't use preemptible VMs for image testing, patch testing and bisection.
+		vmConfig["preemptible"] = !reliable
+	}
+	vmCfg, err := json.Marshal(vmConfig)
+	if err != nil {
+		return fmt.Errorf("failed to serialize VM config: %v", err)
+	}
+	cfg.VM = vmCfg
 	return nil
 }
 

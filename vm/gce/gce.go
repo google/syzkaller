@@ -39,7 +39,8 @@ type Config struct {
 	Count       int    `json:"count"`        // number of VMs to use
 	MachineType string `json:"machine_type"` // GCE machine type (e.g. "n1-highcpu-2")
 	GCSPath     string `json:"gcs_path"`     // GCS path to upload image
-	GCEImage    string `json:"gce_image"`    // Pre-created GCE image to use
+	GCEImage    string `json:"gce_image"`    // pre-created GCE image to use
+	Preemptible bool   `json:"preemptible"`  // use preemptible VMs if available (defaults to true)
 }
 
 type Pool struct {
@@ -67,7 +68,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
 	cfg := &Config{
-		Count: 1,
+		Count:       1,
+		Preemptible: true,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse gce vm config: %v", err)
@@ -144,7 +146,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	log.Logf(0, "creating instance: %v", name)
-	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage, string(gceKeyPub))
+	ip, err := pool.GCE.CreateInstance(name, pool.cfg.MachineType, pool.cfg.GCEImage,
+		string(gceKeyPub), pool.cfg.Preemptible)
 	if err != nil {
 		return nil, err
 	}
