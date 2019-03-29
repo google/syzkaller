@@ -66,7 +66,7 @@ func (linux) buildKernel(kernelDir, outputDir, compiler string, config []byte) e
 	}
 	cmd.Dir = kernelDir
 	if _, err := osutil.Run(time.Hour, cmd); err != nil {
-		return extractRootCause(err)
+		return err
 	}
 	vmlinux := filepath.Join(kernelDir, "vmlinux")
 	outputVmlinux := filepath.Join(outputDir, "obj", "vmlinux")

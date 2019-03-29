@@ -66,6 +66,24 @@ make: *** Waiting for unfinished jobs....
 `,
 			"/gcc-5.5.0/bin/../lib/gcc/x86_64-unknown-linux-gnu/5.5.0/plugin/include/builtins.h:23:17: fatal error: mpc.h: No such file or directory",
 		},
+		{`
+Starting local Bazel server and connecting to it...
+Loading:
+Loading: 0 packages loaded
+Analyzing: target //runsc:runsc (1 packages loaded)
+Analyzing: target //runsc:runsc (5 packages loaded)
+Analyzing: target //runsc:runsc (15 packages loaded)
+Analyzing: target //runsc:runsc (92 packages loaded)
+Analyzing: target //runsc:runsc (99 packages loaded)
+Analyzing: target //runsc:runsc (115 packages loaded)
+ERROR: /syzkaller/managers/ptrace-direct-overlay-host/kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'
+ERROR: Analysis of target '//runsc:runsc' failed; build aborted: Analysis failed
+INFO: Elapsed time: 14.914s
+INFO: 0 processes.
+FAILED: Build did NOT complete successfully (189 packages loaded)
+`,
+			"ERROR: Analysis of target '//runsc:runsc' failed; build aborted: Analysis failed",
+		},
 	} {
 		got := extractCauseInner([]byte(s.e))
 		if !bytes.Equal([]byte(s.expect), got) {
