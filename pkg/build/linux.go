@@ -28,7 +28,8 @@ func (linux linux) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	if err := linux.buildKernel(kernelDir, outputDir, compiler, config); err != nil {
 		return err
 	}
-	if err := linux.createImage(vmType, kernelDir, outputDir, userspaceDir, cmdlineFile, sysctlFile); err != nil {
+	if err := linux.createImage(targetArch, vmType, kernelDir, outputDir, userspaceDir, cmdlineFile,
+		sysctlFile); err != nil {
 		return err
 	}
 	return nil
@@ -76,7 +77,7 @@ func (linux) buildKernel(kernelDir, outputDir, compiler string, config []byte) e
 	return nil
 }
 
-func (linux) createImage(vmType, kernelDir, outputDir, userspaceDir, cmdlineFile, sysctlFile string) error {
+func (linux) createImage(targetArch, vmType, kernelDir, outputDir, userspaceDir, cmdlineFile, sysctlFile string) error {
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -87,7 +88,7 @@ func (linux) createImage(vmType, kernelDir, outputDir, userspaceDir, cmdlineFile
 		return fmt.Errorf("failed to write script file: %v", err)
 	}
 	bzImage := filepath.Join(kernelDir, filepath.FromSlash("arch/x86/boot/bzImage"))
-	cmd := osutil.Command(scriptFile, userspaceDir, bzImage)
+	cmd := osutil.Command(scriptFile, userspaceDir, bzImage, targetArch)
 	cmd.Dir = tempDir
 	cmd.Env = append([]string{}, os.Environ()...)
 	cmd.Env = append(cmd.Env,
