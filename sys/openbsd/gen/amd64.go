@@ -104,17 +104,6 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifr_ifru"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifr_ifru", IsVarlen: true}, Fields: []Type{
-		&UnionType{Key: StructKey{Name: "sockaddr_storage"}, FldName: "ifru_addr"},
-		&UnionType{Key: StructKey{Name: "sockaddr_storage"}, FldName: "ifru_dstaddr"},
-		&UnionType{Key: StructKey{Name: "sockaddr_storage"}, FldName: "ifru_broadaddr"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "ifru_flags", TypeSize: 2}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_metric", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ifru_vnetid", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ifru_media", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ifru_data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_index", TypeSize: 4}}},
-	}}},
 	{Key: StructKey{Name: "ifr_ifru", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifr_ifru", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}, FldName: "ifru_addr"},
 		&UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}, FldName: "ifru_dstaddr"},
@@ -126,13 +115,15 @@ var structDescs_amd64 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ifru_data", TypeSize: 8, ArgDir: 1}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_index", TypeSize: 4, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "ifreq"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq", IsVarlen: true}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "ifr_name", TypeSize: 16}, Kind: 3},
-		&UnionType{Key: StructKey{Name: "ifr_ifru"}, FldName: "ifr_ifru"},
-	}}},
 	{Key: StructKey{Name: "ifreq", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "ifr_name", TypeSize: 16, ArgDir: 1}, Kind: 3},
 		&UnionType{Key: StructKey{Name: "ifr_ifru", Dir: 1}, FldName: "ifr_ifru"},
+	}}},
+	{Key: StructKey{Name: "ifreq_name"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_name", TypeSize: 32}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "ifr_name", TypeSize: 3}, Kind: 2, Values: []string{"tap"}, NoZ: true},
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "tapindex", TypeSize: 1}}, ValuesStart: 48, ValuesPerProc: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "z", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 27}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "iovec_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_in", TypeSize: 16}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
@@ -972,7 +963,7 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 54, Name: "ioctl$BIOCSETIF", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2149597804},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_name"}}},
 	}},
 	{NR: 54, Name: "ioctl$BIOCSETWF", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "fd", TypeSize: 4}},
@@ -2159,6 +2150,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "GETVAL", Value: 5},
 	{Name: "GETZCNT", Value: 7},
 	{Name: "IFNAMSIZ", Value: 16},
+	{Name: "IFREQ_SIZE", Value: 32},
 	{Name: "IPC_CREAT", Value: 512},
 	{Name: "IPC_EXCL", Value: 1024},
 	{Name: "IPC_NOWAIT", Value: 2048},
@@ -2611,4 +2603,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "90be3ee14a0e5373833cca67711a81b67f77813d"
+const revision_amd64 = "395c0a9b96ce31054c22d62cd7b0edfc612912e5"
