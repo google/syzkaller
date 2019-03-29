@@ -41,7 +41,8 @@ func Image(targetOS, targetArch, vmType, kernelDir, outputDir, compiler, userspa
 			return fmt.Errorf("failed to write config file: %v", err)
 		}
 	}
-	return builder.build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir, cmdlineFile, sysctlFile, config)
+	err = builder.build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir, cmdlineFile, sysctlFile, config)
+	return extractRootCause(err)
 }
 
 func Clean(targetOS, targetArch, vmType, kernelDir string) error {
@@ -125,6 +126,9 @@ func CompilerIdentity(compiler string) (string, error) {
 }
 
 func extractRootCause(err error) error {
+	if err == nil {
+		return nil
+	}
 	verr, ok := err.(*osutil.VerboseError)
 	if !ok {
 		return err
@@ -159,8 +163,10 @@ type buildFailureCause struct {
 
 var buildFailureCauses = [...]buildFailureCause{
 	{pattern: []byte(": error: ")},
+	{pattern: []byte("ERROR: ")},
 	{pattern: []byte(": fatal error: ")},
 	{pattern: []byte(": undefined reference to")},
 	{weak: true, pattern: []byte(": final link failed: ")},
 	{weak: true, pattern: []byte("collect2: error: ")},
+	{weak: true, pattern: []byte("FAILED: Build did NOT complete")},
 }

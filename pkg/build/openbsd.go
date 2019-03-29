@@ -35,7 +35,7 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	}
 	for _, tgt := range []string{"clean", "obj", "config", "all"} {
 		if err := ctx.make(compileDir, tgt); err != nil {
-			return extractRootCause(err)
+			return err
 		}
 	}
 	for _, s := range []struct{ dir, src, dst string }{

@@ -41,13 +41,13 @@ no options SVS
 	// Build tools before building kernel
 	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
 		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "tools"); err != nil {
-		return extractRootCause(err)
+		return err
 	}
 
 	// Build kernel
 	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
 		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "kernel="+kernelName); err != nil {
-		return extractRootCause(err)
+		return err
 	}
 	for _, s := range []struct{ dir, src, dst string }{
 		{compileDir, "netbsd.gdb", "obj/netbsd.gdb"},
