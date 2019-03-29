@@ -44,14 +44,18 @@ bpf$BPF_TASK_FD_QUERY(cmd const[BPF_TASK_FD_QUERY], arg ptr[inout, bpf_task_fd_q
 bpf$BPF_MAP_LOOKUP_AND_DELETE_ELEM(cmd const[BPF_MAP_LOOKUP_AND_DELETE_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 
 bpf_map_create_arg {
-	type		flags[bpf_map_type, int32]
-	ksize		int32
-	vsize		int32
-	max		int32
-	flags		flags[map_flags, int32]
-	inner		fd_bpf_map[opt]
-	node		int32
-	map_name	array[const[0, int8], BPF_OBJ_NAME_LEN]
+	type			flags[bpf_map_type, int32]
+	ksize			int32
+	vsize			int32
+	max			int32
+	flags			flags[map_flags, int32]
+	inner			fd_bpf_map[opt]
+	node			int32
+	map_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
+	map_ifindex		ifindex[opt]
+	btf_fd			fd_btf
+	btf_key_type_id		int32
+	btf_value_type_id	int32
 }
 
 bpf_map_get_fd_by_id_arg {
@@ -84,6 +88,9 @@ bpf_map_get_next_arg {
 	next	ptr64[out, array[int8]]
 }
 
+define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
+define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
+
 bpf_prog {
 	type			flags[bpf_prog_type, int32]
 	ninsn			bytesize8[insns, int32]
@@ -97,10 +104,29 @@ bpf_prog {
 	prog_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
 	prog_ifindex		ifindex[opt]
 	expected_attach_type	flags[bpf_attach_type, int32]
+	btf_fd			fd_btf
+	func_info_rec_size	const[BPF_FUNC_INFO_SIZE, int32]
+	func_info		ptr64[in, bpf_func_info]
+	func_info_cnt		len[func_info, int32]
+	line_info_rec_size	const[BPF_LINE_INFO_SIZE, int32]
+	line_info		ptr64[in, bpf_line_info]
+	line_info_cnt		len[line_info, int32]
 }
 
 bpf_licenses = "GPL", "syzkaller"
 bpf_kern_version = 0x40f00, 0x41000, 0x41100
+
+bpf_func_info {
+	insn_off	int32
+	type_id		int32
+}
+
+bpf_line_info {
+	insn_off	int32
+	file_name_off	int32
+	line_off	int32
+	line_col	int32
+}
 
 bpf_instructions [
 	raw	array[bpf_insn]
@@ -313,18 +339,38 @@ bpf_get_prog_info_arg {
 }
 
 bpf_prog_info {
-	type			int32
-	id			bpf_prog_id
-	tag			int64
-	jited_prog_len		int32
-	xlated_prog_len		int32
-	jited_prog_insns	int64
-	xlated_prog_insns	int64
-	load_time		int64
-	created_by_uid		int32
-	nr_map_ids		int32
-	map_ids			int64
-	name			array[int8, BPF_OBJ_NAME_LEN]
+	type				int32
+	id				bpf_prog_id
+	tag				int64
+	jited_prog_len			int32
+	xlated_prog_len			int32
+	jited_prog_insns		int64
+	xlated_prog_insns		int64
+	load_time			int64
+	created_by_uid			int32
+	nr_map_ids			int32
+	map_ids				int64
+	name				array[int8, BPF_OBJ_NAME_LEN]
+	ifindex				int32
+	gpl_compatible			int32:1
+	netns_dev			int64
+	netns_ino			int64
+	nr_jited_ksyms			int32
+	nr_jited_func_lens		int32
+	jited_ksyms			ptr64[in, int64]
+	jited_func_lens			int64
+	btf_id				int32
+	func_info_rec_size		int32
+	func_info			ptr64[in, bpf_func_info]
+	nr_func_info			int32
+	nr_line_info			int32
+	line_info			ptr64[in, bpf_line_info]
+	jited_line_info			ptr64[in, int64]
+	nr_jited_line_info		int32
+	line_info_rec_size		int32
+	jited_line_info_rec_size	int32
+	nr_prog_tags			int32
+	prog_tags			ptr64[in, int64]
 } [align_8]
 
 bpf_get_map_info_arg {
