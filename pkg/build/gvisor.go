@@ -15,6 +15,8 @@ type gvisor struct{}
 
 func (gvisor gvisor) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
+	// Bring down bazel daemon right away. We don't need it running and consuming memory.
+	defer osutil.RunCmd(10*time.Minute, kernelDir, compiler, "shutdown")
 	outBinary := ""
 	args := []string{"build", "--verbose_failures"}
 	if strings.Contains(" "+string(config)+" ", " -race ") {
@@ -31,7 +33,6 @@ func (gvisor gvisor) build(targetArch, vmType, kernelDir, outputDir, compiler, u
 	if err := osutil.CopyFile(outBinary, filepath.Join(outputDir, "image")); err != nil {
 		return err
 	}
-	osutil.RunCmd(10*time.Minute, kernelDir, compiler, "shutdown")
 	return nil
 }
 
