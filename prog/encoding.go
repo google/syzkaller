@@ -859,11 +859,11 @@ func (p *parser) deserializeData() ([]byte, error) {
 			case 'x':
 				hi := p.consume()
 				lo := p.consume()
-				v, ok := hexToByte(lo, hi)
+				b, ok := hexToByte(lo, hi)
 				if !ok {
 					return nil, fmt.Errorf("invalid hex \\x%v%v in data arg", hi, lo)
 				}
-				data = append(data, v)
+				data = append(data, b)
 			case 'a':
 				data = append(data, '\a')
 			case 'b':

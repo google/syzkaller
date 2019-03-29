@@ -164,9 +164,10 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 // Updates desc and returns set of unsupported syscalls and flags.
 func (comp *compiler) patchConsts(consts map[string]uint64) {
 	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
+		switch decl.(type) {
 		case *ast.IntFlags:
 			// Unsupported flag values are dropped.
+			n := decl.(*ast.IntFlags)
 			var values []*ast.Int
 			for _, v := range n.Values {
 				if comp.patchIntConst(&v.Value, &v.Ident, consts, nil) {
