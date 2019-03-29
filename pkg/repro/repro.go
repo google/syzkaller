@@ -548,6 +548,7 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 		ctx.cfg.TargetOS, ctx.cfg.TargetArch, opts.Sandbox, opts.Repeat,
 		opts.Threaded, opts.Collide, opts.Procs, -1, -1, vmProgFile)
 	ctx.reproLog(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
+	ctx.reproLog(3, "detailed listing:\n%s", pstr)
 	return ctx.testImpl(inst.Instance, command, duration)
 }
 
