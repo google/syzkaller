@@ -3,6 +3,7 @@
 
 include <sys/types.h>
 include <sys/time.h>
+include <sys/fcntl.h>
 include <sys/ioctl.h>
 include <net/bpf.h>
 include <net/if.h>
@@ -28,7 +29,7 @@ ioctl$BIOCSBLEN(fd fd_bpf, cmd const[BIOCSBLEN], arg ptr[in, int32])
 ioctl$BIOCSDIRFILT(fd fd_bpf, cmd const[BIOCSDIRFILT], arg ptr[in, int32])
 ioctl$BIOCSDLT(fd fd_bpf, cmd const[BIOCSDLT], arg ptr[in, int32])
 ioctl$BIOCSETF(fd fd_bpf, cmd const[BIOCSETF], arg ptr[in, bpf_program])
-ioctl$BIOCSETIF(fd fd_bpf, cmd const[BIOCSETIF], arg ptr[in, ifreq])
+ioctl$BIOCSETIF(fd fd_bpf, cmd const[BIOCSETIF], arg ptr[in, ifreq_name])
 ioctl$BIOCSETWF(fd fd_bpf, cmd const[BIOCSETWF], arg ptr[in, bpf_program])
 ioctl$BIOCSFILDROP(fd fd_bpf, cmd const[BIOCSFILDROP], arg ptr[in, int32])
 ioctl$BIOCSHDRCMPLT(fd fd_bpf, cmd const[BIOCSHDRCMPLT], arg ptr[in, int32])
@@ -67,6 +68,14 @@ ifreq {
 	ifr_name	string[filename, IFNAMSIZ]
 	ifr_ifru	ifr_ifru
 }
+
+ifreq_name {
+	ifr_name	stringnoz["tap"]
+	tapindex	proc['0', 1, int8]
+	z		const[0, int8]
+} [size[IFREQ_SIZE]]
+
+define IFREQ_SIZE	sizeof(struct ifreq)
 
 ifr_ifru [
 	ifru_addr	sockaddr_storage
