@@ -121,12 +121,24 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 	}
 	rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
 	rep.Suppressed = matchesAny(rep.Output, wrap.suppressions)
+	if bytes.Contains(rep.Output, gceConsoleHangup) {
+		rep.Corrupted = true
+	}
 	return rep
 }
 
 func IsSuppressed(reporter Reporter, output []byte) bool {
-	return matchesAny(output, reporter.(*reporterWrapper).suppressions)
+	return matchesAny(output, reporter.(*reporterWrapper).suppressions) ||
+		bytes.Contains(output, gceConsoleHangup)
 }
+
+// GCE console connection sometimes fails with this message.
+// The message frequently happens right after a kernel panic.
+// So if we see it in output where we recognized a crash, we mark the report as corrupted
+// because the crash message is usually truncated (maybe we don't even have the title line).
+// If we see it in no output/lost connection reports then we mark them as suppressed instead
+// because the crash itself may have been caused by the console connection error.
+var gceConsoleHangup = []byte("serialport: VM disconnected.")
 
 type replacement struct {
 	match       *regexp.Regexp
