@@ -293,10 +293,11 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	if err := build.Image(mgr.managercfg.TargetOS, mgr.managercfg.TargetVMArch, mgr.managercfg.Type,
 		mgr.kernelDir, tmpDir, mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace,
 		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, mgr.configData); err != nil {
-		if _, ok := err.(build.KernelBuildError); ok {
+		if buildErr, ok := err.(build.KernelBuildError); ok {
 			rep := &report.Report{
 				Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
-				Output: []byte(err.Error()),
+				Report: []byte(buildErr.Title),
+				Output: buildErr.Output,
 			}
 			if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
 				mgr.Errorf("failed to report image error: %v", err)
