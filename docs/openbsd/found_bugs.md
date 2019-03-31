@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#op
 
 Newer bugs comes first.
 
+- [sendto: lenient `rtm_hdrlen` validation](https://marc.info/?l=openbsd-cvs&m=155404645328879&w=2)
+
 - [wsmux(4): restrict the number of allowed devices](https://marc.info/?l=openbsd-cvs&m=155393308902921&w=2)
 
 - [rtable(4): out-of-bounds read in `rtable_satoplen()`](https://marc.info/?l=openbsd-cvs&m=155181289205879&w=2)
