@@ -10,6 +10,8 @@ foo$5(a int8['a':'z'])
 foo$6(a int8[-20:-10])
 foo$7(a int8[-20:20])
 foo$8(a ptr[in, strings])
+foo$9(a ptr[out, ptr[in, string]])
+foo$10(a ptr[out, buffer[in]])
 
 resource r0[intptr]
 

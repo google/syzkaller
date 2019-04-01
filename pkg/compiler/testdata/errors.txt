@@ -71,9 +71,9 @@ resource r9["foo"]		### unexpected string "foo", expect type
 foo$7(a r0, a1 r2[opt])
 foo$8(a fileoff[a, b, c])	### wrong number of arguments for type fileoff, expect no arguments
 foo$9(a buffer[inout])
-foo$10(a buffer[intout])	### unexpected value intout for direction argument of buffer type, expect [in out inout]
-foo$11(a buffer["in"])		### unexpected string "in" for direction argument of buffer type, expect [in out inout]
-foo$12(a buffer[10])		### unexpected int 10 for direction argument of buffer type, expect [in out inout]
+foo$10(a buffer[intout])	### unexpected value intout for direction argument of ptr type, expect [in out inout]
+foo$11(a buffer["in"])		### unexpected string "in" for direction argument of ptr type, expect [in out inout]
+foo$12(a buffer[10])		### unexpected int 10 for direction argument of ptr type, expect [in out inout]
 foo$13(a int32[2:3])
 foo$14(a int32[2:2])
 foo$16(a int32[3])

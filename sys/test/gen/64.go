@@ -493,7 +493,7 @@ var structDescs_64 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a3", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "syz_recur_2_0"}}},
 	}}},
 	{Key: StructKey{Name: "syz_regression0_struct", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_regression0_struct", TypeSize: 8, ArgDir: 2}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "f0", TypeSize: 8, ArgDir: 2}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "f0", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "syz_regression1_struct"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_regression1_struct", TypeSize: 4}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f0", TypeSize: 4}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
@@ -970,4 +970,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "f2ea17f08041673e28f3c64109373c828a27d585"
+const revision_64 = "7b63ffeeaca40cb4b5b8e33cc6c9ead27f7e7741"
