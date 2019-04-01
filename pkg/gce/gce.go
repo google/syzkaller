@@ -266,8 +266,9 @@ func (err resourcePoolExhaustedError) Error() string {
 }
 
 func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound bool) error {
+	time.Sleep(3 * time.Second)
 	for {
-		time.Sleep(2 * time.Second)
+		time.Sleep(3 * time.Second)
 		var op *compute.Operation
 		err := ctx.apiCall(func() (err error) {
 			switch typ {
