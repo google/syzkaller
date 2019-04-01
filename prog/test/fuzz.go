@@ -1,7 +1,7 @@
 // Copyright 2019 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package fuzz
+package test
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	_ "github.com/google/syzkaller/sys/test/gen" // import the target we use for fuzzing
 )
 
-func Deserialize(data []byte) int {
+func FuzzDeserialize(data []byte) int {
 	p0, err0 := fuzzTarget.Deserialize(data, prog.NonStrict)
 	p1, err1 := fuzzTarget.Deserialize(data, prog.Strict)
 	if p0 == nil {
@@ -56,7 +56,7 @@ func Deserialize(data []byte) int {
 	return 0
 }
 
-func ParseLog(data []byte) int {
+func FuzzParseLog(data []byte) int {
 	if len(fuzzTarget.ParseLog(data)) != 0 {
 		return 1
 	}
