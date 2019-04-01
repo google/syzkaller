@@ -1,7 +1,7 @@
 // Copyright 2019 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package fuzz
+package test
 
 import (
 	"testing"
@@ -24,7 +24,7 @@ mutate8()
 `,
 	} {
 		t.Logf("test #%v: %q", i, string(data))
-		Deserialize([]byte(data))
-		ParseLog([]byte(data))
+		FuzzDeserialize([]byte(data))
+		FuzzParseLog([]byte(data))
 	}
 }

@@ -18,13 +18,13 @@ targets:
       function: Fuzz
       package: github.com/google/syzkaller/tools/syz-trace2syz/proggen
       build_tags: syz_target syz_os_linux syz_arch_amd64
-  - name: prog.Deserialize
+  - name: prog-Deserialize
     harness:
-      function: Deserialize
-      package: github.com/google/syzkaller/prog/fuzz
+      function: FuzzDeserialize
+      package: github.com/google/syzkaller/prog/test
       build_tags: syz_target,syz_os_test,syz_arch_64
-  - name: prog.ParseLog
+  - name: prog-ParseLog
     harness:
-      function: ParseLog
-      package: github.com/google/syzkaller/prog/fuzz
+      function: FuzzParseLog
+      package: github.com/google/syzkaller/prog/test
       build_tags: syz_target,syz_os_test,syz_arch_64
