@@ -27,7 +27,10 @@ func (gvisor gvisor) build(targetArch, vmType, kernelDir, outputDir, compiler, u
 		outBinary = "bazel-bin/runsc/linux_amd64_pure_stripped/runsc"
 	}
 	outBinary = filepath.Join(kernelDir, filepath.FromSlash(outBinary))
-	if _, err := osutil.RunCmd(20*time.Minute, kernelDir, compiler, args...); err != nil {
+	// The 1 hour timeout is quite high. But we've seen false positives with 20 mins
+	// on the first build after bazel/deps update. Also other gvisor instances running
+	// on the same machine contribute to longer build times.
+	if _, err := osutil.RunCmd(60*time.Minute, kernelDir, compiler, args...); err != nil {
 		return err
 	}
 	if err := osutil.CopyFile(outBinary, filepath.Join(outputDir, "image")); err != nil {
