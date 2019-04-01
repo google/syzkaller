@@ -27,7 +27,7 @@ If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting
 ### C Compiler
 
 Syzkaller is a coverage-guided fuzzer and therefore it needs the kernel to be built with coverage support, which requires a recent GCC version.
-Coverage support was submitted to GCC in revision `231296`, released in GCC v6.0.
+Coverage support was submitted to GCC, released in GCC 6.1.0 or later.
 
 ### Linux Kernel
 
