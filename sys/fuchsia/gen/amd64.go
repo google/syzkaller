@@ -4589,11 +4589,11 @@ var structDescs_amd64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "iovec_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_in", TypeSize: 16}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 	}}},
 	{Key: StructKey{Name: "iovec_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_out", TypeSize: 16}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 	}}},
 	{Key: StructKey{Name: "itimerval"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "itimerval", TypeSize: 32}, Fields: []Type{
@@ -4984,7 +4984,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "get_root_resource", CallName: "get_root_resource", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_root_resource", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "getcwd", CallName: "getcwd", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "buf"},
 	}},
 	{Name: "getgid", CallName: "getgid", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -5064,18 +5064,18 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "read", CallName: "read", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 8}}, Buf: "buf"},
 	}},
 	{Name: "readlink", CallName: "readlink", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "siz", TypeSize: 8}}, Buf: "buf"},
 	}},
 	{Name: "readlinkat", CallName: "readlinkat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "siz", TypeSize: 8}}, Buf: "buf"},
 	}},
 	{Name: "readv", CallName: "readv", Args: []Type{
@@ -5159,7 +5159,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "write", CallName: "write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 8}}, Buf: "buf"},
 	}},
 	{Name: "writev", CallName: "writev", Args: []Type{
@@ -7241,7 +7241,7 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_vcpu_read_state", CallName: "zx_vcpu_read_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vcpu", FldName: "vcpu", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "buflen", TypeSize: 8}}, Buf: "buffer"},
 	}},
 	{Name: "zx_vcpu_resume", CallName: "zx_vcpu_resume", Args: []Type{
@@ -7251,7 +7251,7 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_vcpu_write_state", CallName: "zx_vcpu_write_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vcpu", FldName: "vcpu", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "buflen", TypeSize: 8}}, Buf: "buffer"},
 	}},
 	{Name: "zx_vmar_allocate", CallName: "zx_vmar_allocate", Args: []Type{
@@ -7553,4 +7553,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "53a9f9ccfb936496d3174c752169fd2d6c0b8fed"
+const revision_amd64 = "8a39145bebcae7aff1de7ff20c3914bdd32a70f9"

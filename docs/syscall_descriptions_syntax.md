@@ -8,7 +8,7 @@ arg = argname type
 argname = identifier
 type = typename [ "[" type-options "]" ]
 typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
-	   "buffer" | "string" | "strconst" | "filename" | "len" |
+	   "string" | "strconst" | "filename" | "len" |
 	   "bytesize" | "bytesizeN" | "bitsize" | "vma" | "proc"
 type-options = [type-opt ["," type-opt]]
 ```
@@ -33,8 +33,6 @@ rest of the type-options are type-specific:
 "ptr"/"ptr64": a pointer to an object, type-options:
 	type of the object; direction (in/out/inout)
 	ptr64 has size of 8 bytes regardless of target pointer size
-"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
-	direction (in/out/inout)
 "string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
 	either a string value in quotes for constant strings (e.g. "foo"),
 	or a reference to string flags (special value `filename` produces file names),
@@ -187,6 +185,8 @@ type bool64	int64[0:1]
 type boolptr	intptr[0:1]
 
 type filename string[filename]
+
+type buffer[DIR] ptr[DIR, array[int8]]
 ```
 
 ## Type Templates

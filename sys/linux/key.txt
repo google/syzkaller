@@ -15,13 +15,13 @@ resource keyring[key]: KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SP
 # key of type "user"
 resource user_key[key]
 
-add_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], payload buffer[in, opt], paylen len[payload], keyring keyring[opt]) key
+add_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], payload ptr[in, array[int8], opt], paylen len[payload], keyring keyring[opt]) key
 add_key$keyring(type ptr[in, string["keyring"]], desc ptr[in, key_desc], payload const[0], paylen const[0], keyring keyring[opt]) keyring
 add_key$user(type ptr[in, string["user"]], desc ptr[in, key_desc], payload buffer[in], paylen len[payload], keyring keyring[opt]) user_key
 request_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], callout ptr[in, string], keyring keyring[opt]) key
 keyctl$get_keyring_id(code const[KEYCTL_GET_KEYRING_ID], key key, create intptr)
 keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session ptr[in, key_desc, opt])
-keyctl$update(code const[KEYCTL_UPDATE], key key, payload buffer[in, opt], paylen len[payload])
+keyctl$update(code const[KEYCTL_UPDATE], key key, payload ptr[in, array[int8], opt], paylen len[payload])
 keyctl$revoke(code const[KEYCTL_REVOKE], key key)
 keyctl$describe(code const[KEYCTL_DESCRIBE], key key, desc buffer[out], len len[desc])
 keyctl$clear(code const[KEYCTL_CLEAR], keyring keyring)
@@ -72,7 +72,7 @@ keyctl_dh_params {
 
 keyctl_kdf_params {
 	hashname	ptr[in, alg_hash_name]
-	otherinfo	buffer[in, opt]
+	otherinfo	ptr[in, array[int8], opt]
 	otherinfolen	len[otherinfo, int32]
 	__spare		array[const[0, int32], 8]
 }
