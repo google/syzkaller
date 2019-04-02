@@ -46,7 +46,7 @@ TARGETGOARCH := $(TARGETVMARCH)
 
 ifeq ("$(TARGETOS)", "fuchsia")
 	# SOURCEDIR should point to fuchsia checkout.
-	GO = "$(SOURCEDIR)/scripts/devshell/go"
+	GO = "$(SOURCEDIR)/tools/devshell/contrib/go"
 endif
 
 GITREV=$(shell git rev-parse HEAD)
