@@ -364,7 +364,13 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 static long syz_execute_func(volatile long text)
 {
-	((void (*)(void))(text))();
+	volatile long p[8] = {0};
+	(void)p;
+#if GOARCH_amd64
+	asm volatile("" ::"r"(0l), "r"(1l), "r"(2l), "r"(3l), "r"(4l), "r"(5l), "r"(6l),
+		     "r"(7l), "r"(8l), "r"(9l), "r"(10l), "r"(11l), "r"(12l), "r"(13l));
+#endif
+	NONFAILING(((void (*)(void))(text))());
 	return 0;
 }
 #endif

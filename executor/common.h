@@ -383,7 +383,19 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 // syz_execute_func(text ptr[in, text[taget]])
 static long syz_execute_func(volatile long text)
 {
-	((void (*)(void))(text))();
+	// Here we just to random code which is inherently unsafe.
+	// But we only care about coverage in the output region.
+	// The following code tries to remove left-over pointers in registers
+	// from the reach of the random code, otherwise it's known to reach
+	// the output region somehow. The asm block is arch-independent except
+	// for the number of available registers.
+	volatile long p[8] = {0};
+	(void)p;
+#if GOARCH_amd64
+	asm volatile("" ::"r"(0l), "r"(1l), "r"(2l), "r"(3l), "r"(4l), "r"(5l), "r"(6l),
+		     "r"(7l), "r"(8l), "r"(9l), "r"(10l), "r"(11l), "r"(12l), "r"(13l));
+#endif
+	NONFAILING(((void (*)(void))(text))());
 	return 0;
 }
 #endif
