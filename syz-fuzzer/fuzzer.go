@@ -175,7 +175,7 @@ func main() {
 			log.Fatalf("%v", r.CheckResult.Error)
 		}
 	}
-	log.Logf(0, "syscalls: %v", len(r.CheckResult.EnabledCalls))
+	log.Logf(0, "syscalls: %v", len(r.CheckResult.EnabledCalls[sandbox]))
 	for _, feat := range r.CheckResult.Features {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
