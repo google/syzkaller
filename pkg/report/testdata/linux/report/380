@@ -1,0 +1,17 @@
+TITLE: WARNING in assert_slb_presence
+
+[   38.771258] WARNING: CPU: 1 PID: 4057 at arch/powerpc/mm/slb.c:79 assert_slb_presence+0x2c/0x70
+[   38.772382] Kernel panic - not syncing: panic_on_warn set ...
+[   38.773114] CPU: 1 PID: 4057 Comm: syz-executor.4 Not tainted 5.1.0-rc3-00035-g8ed86627f715 #7
+[   38.774151] Call Trace:
+[   38.774455] [c00000003ae5b800] [c00000000135c19c] dump_stack+0x128/0x1cc (unreliable)
+[   38.775425] [c00000003ae5b860] [c00000000016ab98] panic+0x1cc/0x534
+[   38.776168] [c00000003ae5b900] [c00000000016a9cc] panic+0x0/0x534
+[   38.776919] [c00000003ae5b9a0] [c00000000135a500] report_bug+0x150/0x270
+[   38.777744] [c00000003ae5ba40] [c0000000000392d4] program_check_exception+0x344/0x4f0
+[   38.778694] [c00000003ae5bac0] [c0000000000090a4] program_check_common+0x184/0x190
+[   38.779614] --- interrupt: 700 at assert_slb_presence+0x2c/0x70
+[   38.779614]     LR = slb_insert_entry+0x19c/0x2d0
+[   38.780881] [c00000003ae5bdc0] [0000000000000000]           (null) (unreliable)
+[   38.781783] [c00000003ae5bdf0] [c00000000009651c] do_slb_fault+0x10c/0x250
+[   38.782631] [c00000003ae5be20] [c0000000000088f8] data_access_slb_common+0x138/0x190
