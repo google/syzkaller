@@ -76,18 +76,37 @@ Analyzing: target //runsc:runsc (15 packages loaded)
 Analyzing: target //runsc:runsc (92 packages loaded)
 Analyzing: target //runsc:runsc (99 packages loaded)
 Analyzing: target //runsc:runsc (115 packages loaded)
-ERROR: /syzkaller/managers/ptrace-direct-overlay-host/kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'
+ERROR: /kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'
 ERROR: Analysis of target '//runsc:runsc' failed; build aborted: Analysis failed
 INFO: Elapsed time: 14.914s
 INFO: 0 processes.
 FAILED: Build did NOT complete successfully (189 packages loaded)
 `,
-			"ERROR: Analysis of target '//runsc:runsc' failed; build aborted: Analysis failed",
+			"ERROR: /kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'",
+		},
+		{`
+ld -T ld.script -X --warn-common -nopie -o bsd ${SYSTEM_HEAD} vers.o ${OBJS}
+ld: error: undefined symbol: __stack_smash_handler
+>>> referenced by bktr_card.c:0 (/kernel/sys/dev/pci/bktr/bktr_card.c:0)
+>>>               bktr_card.o:(probeCard)
+
+ld: error: undefined symbol: __stack_smash_handler
+>>> referenced by vnd.c:0 (/kernel/sys/dev/vnd.c:0)
+>>>               vnd.o:(vndencrypt)
+
+ld: error: undefined symbol: __stack_smash_handler
+>>> referenced by ihidev.c:0 (/kernel/sys/dev/i2c/ihidev.c:0)
+>>>               ihidev.o:(ihidev_attach)
+
+ld: error: too many errors emitted, stopping now (use -error-limit=0 to see all errors)
+*** Error 1 in /kernel/sys/arch/amd64/compile/SYZKALLER (Makefile:991 'bsd': @echo ld -T ld.script -X --warn-commo...)
+`,
+			"ld: error: undefined symbol: __stack_smash_handler",
 		},
 	} {
 		got := extractCauseInner([]byte(s.e))
 		if !bytes.Equal([]byte(s.expect), got) {
-			t.Errorf("Expected %s, got %s", s.expect, got)
+			t.Errorf("Expected:\n%s\ngot:\n%s", s.expect, got)
 		}
 	}
 }

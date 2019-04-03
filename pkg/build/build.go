@@ -149,7 +149,10 @@ func extractCauseInner(s []byte) []byte {
 			}
 			if bytes.Contains(line, pattern.pattern) {
 				cause = line
-				break
+				if pattern.weak {
+					break
+				}
+				return cause
 			}
 		}
 	}
