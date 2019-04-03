@@ -2378,14 +2378,33 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "size", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_alloc_presence", FldName: "data", TypeSize: 8}}, Vals: []uint64{0, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615, 18446744073709551615}},
 	}}},
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_elapsed_micros, int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_elapsed_micros, int64]", TypeSize: 16}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "data", TypeSize: 8}}},
+	}}},
 	{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_event_count, fuchsia_cobalt_CountEventInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_event_count, fuchsia_cobalt_CountEventInLine]", TypeSize: 20}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fuchsia_cobalt_CountEventInLine"}, FldName: "data"},
 	}}},
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_fps, int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_fps, int32]", TypeSize: 8}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "data", TypeSize: 4}}},
+	}}},
 	{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_int_histogram, fidl_vector]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_int_histogram, fidl_vector]", TypeSize: 24}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 5},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "data"},
+	}}},
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_memory_bytes_used, int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_memory_bytes_used, int64]", TypeSize: 16}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 3},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "data", TypeSize: 8}}},
+	}}},
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_string_event, fidl_string]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_string_event, fidl_string]", TypeSize: 24}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 4},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "data"},
 	}}},
 	{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_ValueTag_double_value, int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_cobalt_ValueTag_double_value, int64]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 2},
@@ -2406,13 +2425,13 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "data"},
 	}}},
-	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_IPv4AddressInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_IPv4AddressInLine]", TypeSize: 8}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_Ipv4AddressInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_Ipv4AddressInLine]", TypeSize: 8}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}},
-		&StructType{Key: StructKey{Name: "fuchsia_net_IPv4AddressInLine"}, FldName: "data"},
+		&StructType{Key: StructKey{Name: "fuchsia_net_Ipv4AddressInLine"}, FldName: "data"},
 	}}},
-	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_IPv6AddressInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_IPv6AddressInLine]", TypeSize: 20}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_Ipv6AddressInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_Ipv6AddressInLine]", TypeSize: 20}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 1},
-		&StructType{Key: StructKey{Name: "fuchsia_net_IPv6AddressInLine"}, FldName: "data"},
+		&StructType{Key: StructKey{Name: "fuchsia_net_Ipv6AddressInLine"}, FldName: "data"},
 	}}},
 	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_deviceId, int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_deviceId, int64]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}},
@@ -2493,6 +2512,10 @@ var structDescs_amd64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_EventPayloadInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_EventPayloadInLine", TypeSize: 24}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_event_count, fuchsia_cobalt_CountEventInLine]"}, FldName: "event_countInLine"},
+		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_elapsed_micros, int64]"}, FldName: "elapsed_micros"},
+		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_fps, int32]"}, FldName: "fps"},
+		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_memory_bytes_used, int64]"}, FldName: "memory_bytes_used"},
+		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_string_event, fidl_string]"}, FldName: "string_eventInLine"},
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_EventPayloadTag_int_histogram, fidl_vector]"}, FldName: "int_histogramInLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ExperimentHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ExperimentHandles"}, Fields: []Type{
@@ -4037,15 +4060,15 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_net_ConnectivityOnNetworkReachableEventHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_ConnectivityOnNetworkReachableEventHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_IPv4AddressInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_IPv4AddressInLine", TypeSize: 4}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_net_IpAddressInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_IpAddressInLine", TypeSize: 20}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_Ipv4AddressInLine]"}, FldName: "ipv4InLine"},
+		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_Ipv6AddressInLine]"}, FldName: "ipv6InLine"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_Ipv4AddressInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_Ipv4AddressInLine", TypeSize: 4}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addrInLine", TypeSize: 4}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_IPv6AddressInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_IPv6AddressInLine", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fuchsia_net_Ipv6AddressInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_Ipv6AddressInLine", TypeSize: 16}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addrInLine", TypeSize: 16}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_IpAddressInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_IpAddressInLine", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_IPv4AddressInLine]"}, FldName: "ipv4InLine"},
-		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_IPv6AddressInLine]"}, FldName: "ipv6InLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_SocketControlAcceptRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_SocketControlAcceptRequest", TypeSize: 18}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[796734679]"}, FldName: "hdr"},
@@ -6912,11 +6935,6 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_nanosleep", CallName: "zx_nanosleep", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 	}},
-	{Name: "zx_object_get_cookie", CallName: "zx_object_get_cookie", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "scope", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "cookie", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}},
-	}},
 	{Name: "zx_object_get_info$ZX_INFO_CPU_STATS", CallName: "zx_object_get_info", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_root_resource", FldName: "root_resource", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 16},
@@ -7042,11 +7060,6 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "property", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "value", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "value"},
-	}},
-	{Name: "zx_object_set_cookie", CallName: "zx_object_set_cookie", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "scope", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cookie", TypeSize: 8}}},
 	}},
 	{Name: "zx_object_set_profile", CallName: "zx_object_set_profile", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
@@ -7530,8 +7543,12 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_VM_FLAG_SPECIFIC_OVERWRITE", Value: 32},
 	{Name: "ZX_WAIT_ASYNC_ONCE"},
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
+	{Name: "fuchsia_cobalt_EventPayloadTag_elapsed_micros", Value: 1},
 	{Name: "fuchsia_cobalt_EventPayloadTag_event_count"},
-	{Name: "fuchsia_cobalt_EventPayloadTag_int_histogram", Value: 1},
+	{Name: "fuchsia_cobalt_EventPayloadTag_fps", Value: 2},
+	{Name: "fuchsia_cobalt_EventPayloadTag_int_histogram", Value: 5},
+	{Name: "fuchsia_cobalt_EventPayloadTag_memory_bytes_used", Value: 3},
+	{Name: "fuchsia_cobalt_EventPayloadTag_string_event", Value: 4},
 	{Name: "fuchsia_cobalt_ReleaseStage_DEBUG", Value: 99},
 	{Name: "fuchsia_cobalt_ReleaseStage_DOGFOOD", Value: 10},
 	{Name: "fuchsia_cobalt_ReleaseStage_FISHFOOD", Value: 20},
@@ -7553,4 +7570,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "8a39145bebcae7aff1de7ff20c3914bdd32a70f9"
+const revision_amd64 = "d6d650c4d4b7bf6dffb3ebb9e87b1519c0317583"

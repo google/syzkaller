@@ -5,11 +5,11 @@
 
 include <fuchsia/net/c/fidl.h>
 
-fuchsia_net_IPv4AddressInLine {
+fuchsia_net_Ipv4AddressInLine {
 	addrInLine	array[int8, 4]
 } [packed]
 
-fuchsia_net_IPv6AddressInLine {
+fuchsia_net_Ipv6AddressInLine {
 	addrInLine	array[int8, 16]
 } [packed]
 
@@ -50,8 +50,8 @@ fuchsia_net_AddrInfoHandles {
 } [packed]
 
 fuchsia_net_IpAddressInLine [
-	ipv4InLine	fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_IPv4AddressInLine]
-	ipv6InLine	fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_IPv6AddressInLine]
+	ipv4InLine	fidl_union_member[fuchsia_net_IpAddressTag_ipv4, fuchsia_net_Ipv4AddressInLine]
+	ipv6InLine	fidl_union_member[fuchsia_net_IpAddressTag_ipv6, fuchsia_net_Ipv6AddressInLine]
 ]
 
 fuchsia_net_ConnectivityOnNetworkReachableEventHandles {
@@ -106,30 +106,17 @@ fdio_service_connect$fuchsia_net_SocketProvider(path ptr[in, string["/svc/fuchsi
 zx_channel_call$fuchsia_net_SocketProviderSocket(handle zx_chan_fuchsia_net_SocketProvider_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketProviderSocketRequest, fuchsia_net_SocketProviderSocketRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketProviderSocketResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_SocketProviderGetAddrInfo(handle zx_chan_fuchsia_net_SocketProvider_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketProviderGetAddrInfoRequest, fuchsia_net_SocketProviderGetAddrInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketProviderGetAddrInfoResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
-fuchsia_net_SocketControlCloseRequest {
-	hdr	fidl_message_header[506040350]
+fuchsia_net_SocketControlBindRequest {
+	hdr		fidl_message_header[2092731140]
+	addrInLine	fidl_vector
+	addrOutOfLine	array[int8]
 } [packed]
 
-fuchsia_net_SocketControlCloseRequestHandles {
+fuchsia_net_SocketControlBindRequestHandles {
 	void	void
 } [packed]
 
-fuchsia_net_SocketControlCloseResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_net_SocketControlIoctlRequest {
-	hdr		fidl_message_header[1157859964]
-	req		int16
-	inInLine	fidl_vector
-	inOutOfLine	array[int8]
-} [packed]
-
-fuchsia_net_SocketControlIoctlRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_net_SocketControlIoctlResponseHandles {
+fuchsia_net_SocketControlBindResponseHandles {
 	void	void
 } [packed]
 
@@ -147,6 +134,19 @@ fuchsia_net_SocketControlConnectResponseHandles {
 	void	void
 } [packed]
 
+fuchsia_net_SocketControlListenRequest {
+	hdr	fidl_message_header[1117818704]
+	backlog	int16
+} [packed]
+
+fuchsia_net_SocketControlListenRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_net_SocketControlListenResponseHandles {
+	void	void
+} [packed]
+
 fuchsia_net_SocketControlAcceptRequest {
 	hdr	fidl_message_header[796734679]
 	flags_	int16
@@ -160,30 +160,15 @@ fuchsia_net_SocketControlAcceptResponseHandles {
 	void	void
 } [packed]
 
-fuchsia_net_SocketControlBindRequest {
-	hdr		fidl_message_header[2092731140]
-	addrInLine	fidl_vector
-	addrOutOfLine	array[int8]
+fuchsia_net_SocketControlCloseRequest {
+	hdr	fidl_message_header[506040350]
 } [packed]
 
-fuchsia_net_SocketControlBindRequestHandles {
+fuchsia_net_SocketControlCloseRequestHandles {
 	void	void
 } [packed]
 
-fuchsia_net_SocketControlBindResponseHandles {
-	void	void
-} [packed]
-
-fuchsia_net_SocketControlListenRequest {
-	hdr	fidl_message_header[1117818704]
-	backlog	int16
-} [packed]
-
-fuchsia_net_SocketControlListenRequestHandles {
-	void	void
-} [packed]
-
-fuchsia_net_SocketControlListenResponseHandles {
+fuchsia_net_SocketControlCloseResponseHandles {
 	void	void
 } [packed]
 
@@ -241,18 +226,33 @@ fuchsia_net_SocketControlGetSockOptResponseHandles {
 	void	void
 } [packed]
 
+fuchsia_net_SocketControlIoctlRequest {
+	hdr		fidl_message_header[1157859964]
+	req		int16
+	inInLine	fidl_vector
+	inOutOfLine	array[int8]
+} [packed]
+
+fuchsia_net_SocketControlIoctlRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_net_SocketControlIoctlResponseHandles {
+	void	void
+} [packed]
+
 resource zx_chan_fuchsia_net_SocketControl_client[zx_chan]
 resource zx_chan_fuchsia_net_SocketControl_server[zx_chan]
 
 zx_channel_create$fuchsia_net_SocketControl(options const[0], out0 ptr[out, zx_chan_fuchsia_net_SocketControl_client], out1 ptr[out, zx_chan_fuchsia_net_SocketControl_server])
 fdio_service_connect$fuchsia_net_SocketControl(path ptr[in, string["/svc/"]], handle zx_chan_fuchsia_net_SocketControl_server)
-zx_channel_call$fuchsia_net_SocketControlClose(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlCloseRequest, fuchsia_net_SocketControlCloseRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlCloseResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_net_SocketControlIoctl(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlIoctlRequest, fuchsia_net_SocketControlIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlIoctlResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_net_SocketControlConnect(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlConnectRequest, fuchsia_net_SocketControlConnectRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlConnectResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-zx_channel_call$fuchsia_net_SocketControlAccept(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlAcceptRequest, fuchsia_net_SocketControlAcceptRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlAcceptResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_SocketControlBind(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlBindRequest, fuchsia_net_SocketControlBindRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlBindResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_net_SocketControlConnect(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlConnectRequest, fuchsia_net_SocketControlConnectRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlConnectResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_SocketControlListen(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlListenRequest, fuchsia_net_SocketControlListenRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlListenResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_net_SocketControlAccept(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlAcceptRequest, fuchsia_net_SocketControlAcceptRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlAcceptResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_net_SocketControlClose(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlCloseRequest, fuchsia_net_SocketControlCloseRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlCloseResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_SocketControlGetSockName(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlGetSockNameRequest, fuchsia_net_SocketControlGetSockNameRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlGetSockNameResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_SocketControlGetPeerName(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlGetPeerNameRequest, fuchsia_net_SocketControlGetPeerNameRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlGetPeerNameResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_SocketControlSetSockOpt(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlSetSockOptRequest, fuchsia_net_SocketControlSetSockOptRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlSetSockOptResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_SocketControlGetSockOpt(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlGetSockOptRequest, fuchsia_net_SocketControlGetSockOptRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlGetSockOptResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_net_SocketControlIoctl(handle zx_chan_fuchsia_net_SocketControl_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketControlIoctlRequest, fuchsia_net_SocketControlIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketControlIoctlResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])

@@ -88,6 +88,10 @@ fuchsia_cobalt_ValueInLine [
 
 fuchsia_cobalt_EventPayloadInLine [
 	event_countInLine	fidl_union_member[fuchsia_cobalt_EventPayloadTag_event_count, fuchsia_cobalt_CountEventInLine]
+	elapsed_micros		fidl_union_member[fuchsia_cobalt_EventPayloadTag_elapsed_micros, int64]
+	fps			fidl_union_member[fuchsia_cobalt_EventPayloadTag_fps, int32]
+	memory_bytes_used	fidl_union_member[fuchsia_cobalt_EventPayloadTag_memory_bytes_used, int64]
+	string_eventInLine	fidl_union_member[fuchsia_cobalt_EventPayloadTag_string_event, fidl_string]
 	int_histogramInLine	fidl_union_member[fuchsia_cobalt_EventPayloadTag_int_histogram, fidl_vector]
 ]
 
