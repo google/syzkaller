@@ -268,8 +268,12 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 			// starting them too frequently leads to timeouts.
 			<-rateLimit.C
 		}
+		tmpDirPath := "./"
+		if p.Target.OS == "fuchsia" {
+			tmpDirPath = "/data/"
+		}
 		atomic.AddUint64(&env.StatRestarts, 1)
-		env.cmd, err0 = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out)
+		env.cmd, err0 = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
 		if err0 != nil {
 			return
 		}
@@ -518,8 +522,9 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File, outmem []byte) (*command, error) {
-	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
+func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File, outmem []byte,
+	tmpDirPath string) (*command, error) {
+	dir, err := ioutil.TempDir(tmpDirPath, "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}
