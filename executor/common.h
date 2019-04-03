@@ -379,6 +379,22 @@ static uint16 csum_inet_digest(struct csum_inet* csum)
 }
 #endif
 
+#if GOOS_akaros
+#include "common_akaros.h"
+#elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
+#include "common_bsd.h"
+#elif GOOS_fuchsia
+#include "common_fuchsia.h"
+#elif GOOS_linux
+#include "common_linux.h"
+#elif GOOS_test
+#include "common_test.h"
+#elif GOOS_windows
+#include "common_windows.h"
+#else
+#error "unknown OS"
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_execute_func
 // syz_execute_func(text ptr[in, text[taget]])
 static long syz_execute_func(volatile long text)
@@ -398,22 +414,6 @@ static long syz_execute_func(volatile long text)
 	NONFAILING(((void (*)(void))(text))());
 	return 0;
 }
-#endif
-
-#if GOOS_akaros
-#include "common_akaros.h"
-#elif GOOS_freebsd || GOOS_netbsd || GOOS_openbsd
-#include "common_bsd.h"
-#elif GOOS_fuchsia
-#include "common_fuchsia.h"
-#elif GOOS_linux
-#include "common_linux.h"
-#elif GOOS_test
-#include "common_test.h"
-#elif GOOS_windows
-#include "common_windows.h"
-#else
-#error "unknown OS"
 #endif
 
 #if SYZ_THREADED
