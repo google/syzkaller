@@ -969,10 +969,13 @@ static long syz_future_time(volatile long when)
 	switch (when) {
 	case 0:
 		delta_ms = 5;
+		break;
 	case 1:
 		delta_ms = 30;
+		break;
 	default:
 		delta_ms = 10000;
+		break;
 	}
 	zx_time_t now = zx_clock_get(ZX_CLOCK_MONOTONIC);
 	return now + delta_ms * 1000 * 1000;
