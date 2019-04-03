@@ -67,29 +67,35 @@ func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, st
 		if len(kallsyms) == 0 {
 			return
 		}
-		var re *regexp.Regexp
-		switch target.Arch {
-		case "386", "amd64":
-			re = regexp.MustCompile(` T (__ia32_|__x64_)?sys_([^\n]+)\n`)
-		case "arm64":
-			re = regexp.MustCompile(` T (__arm64_)?sys_([^\n]+)\n`)
-		case "ppc64le":
-			re = regexp.MustCompile(` T ()?sys_([^\n]+)\n`)
-		default:
-			panic("unsupported arch for kallsyms parsing")
-		}
-		matches := re.FindAllSubmatch(kallsyms, -1)
-		for _, m := range matches {
-			name := string(m[2])
-			log.Logf(2, "found in kallsyms: %v", name)
-			kallsymsSyscallSet[name] = true
-		}
+		kallsymsSyscallSet = parseKallsyms(kallsyms, target.Arch)
 	})
 	if !testFallback && len(kallsymsSyscallSet) != 0 {
 		r, v := isSupportedKallsyms(c)
 		return r, v
 	}
 	return isSupportedTrial(c)
+}
+
+func parseKallsyms(kallsyms []byte, arch string) map[string]bool {
+	set := make(map[string]bool)
+	var re *regexp.Regexp
+	switch arch {
+	case "386", "amd64":
+		re = regexp.MustCompile(` T (__ia32_|__x64_)?sys_([^\n]+)\n`)
+	case "arm64":
+		re = regexp.MustCompile(` T (__arm64_)?sys_([^\n]+)\n`)
+	case "ppc64le":
+		re = regexp.MustCompile(` T ()?sys_([^\n]+)\n`)
+	default:
+		panic("unsupported arch for kallsyms parsing")
+	}
+	matches := re.FindAllSubmatch(kallsyms, -1)
+	for _, m := range matches {
+		name := string(m[2])
+		log.Logf(2, "found in kallsyms: %v", name)
+		set[name] = true
+	}
+	return set
 }
 
 func isSupportedKallsyms(c *prog.Syscall) (bool, string) {
@@ -144,7 +150,7 @@ func init() {
 // Where umount is renamed to oldumount is unclear.
 var (
 	kallsymsOnce       sync.Once
-	kallsymsSyscallSet = make(map[string]bool)
+	kallsymsSyscallSet map[string]bool
 	kallsymsRenameMap  = map[string]string{
 		"umount":  "oldumount",
 		"umount2": "umount",
