@@ -156,7 +156,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-m32", "-D__ARM_EABI__"},
 			CrossCFlags:      []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6", "-static"},
-			CCompilerPrefix:  "arm-linux-gnueabihf-",
+			CCompilerPrefix:  "arm-linux-gnueabi-",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
 		},
