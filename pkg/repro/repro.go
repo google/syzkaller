@@ -809,6 +809,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.EnableNetReset = false
 		opts.EnableCgroups = false
 		opts.EnableBinfmtMisc = false
+		opts.EnableCloseFds = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -844,6 +845,15 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.EnableBinfmtMisc = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		// We don't want to remove close_fds() call when repeat is enabled,
+		// since that can lead to deadlocks, see executor/common_linux.h.
+		if !opts.EnableCloseFds || opts.Repeat {
+			return false
+		}
+		opts.EnableCloseFds = false
 		return true
 	},
 	func(opts *csource.Options) bool {

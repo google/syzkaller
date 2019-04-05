@@ -44,6 +44,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			EnableNetReset:   true,
 			EnableCgroups:    true,
 			EnableBinfmtMisc: false,
+			EnableCloseFds:   true,
 			UseTmpDir:        true,
 			HandleSegv:       true,
 			Repro:            true,
@@ -65,6 +66,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			EnableNetReset:   true,
 			EnableCgroups:    true,
 			EnableBinfmtMisc: false,
+			EnableCloseFds:   true,
 			UseTmpDir:        true,
 			HandleSegv:       true,
 			Repro:            true,
@@ -81,6 +83,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			EnableTun:        true,
 			EnableCgroups:    false,
 			EnableBinfmtMisc: false,
+			EnableCloseFds:   true,
 			UseTmpDir:        true,
 			HandleSegv:       true,
 			Repro:            false,
@@ -97,6 +100,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			EnableTun:        true,
 			EnableCgroups:    false,
 			EnableBinfmtMisc: false,
+			EnableCloseFds:   true,
 			UseTmpDir:        true,
 			HandleSegv:       true,
 			Repro:            false,
@@ -113,6 +117,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			EnableTun:        true,
 			EnableCgroups:    true,
 			EnableBinfmtMisc: false,
+			EnableCloseFds:   true,
 			UseTmpDir:        true,
 			HandleSegv:       true,
 			Repro:            false,
@@ -208,28 +213,31 @@ func TestParseFeaturesFlags(t *testing.T) {
 		Features map[string]bool
 	}{
 		{"none", "none", true, map[string]bool{
-			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true,
+			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true, "close_fds": true,
 		}},
 		{"none", "none", false, map[string]bool{
-			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false,
+			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false, "close_fds": false,
 		}},
 		{"all", "none", true, map[string]bool{
-			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true,
+			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true, "close_fds": true,
 		}},
 		{"", "none", true, map[string]bool{
-			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false,
+			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false, "close_fds": false,
 		}},
 		{"none", "all", true, map[string]bool{
-			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false,
+			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false, "close_fds": false,
 		}},
 		{"none", "", true, map[string]bool{
-			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true,
+			"tun": true, "net_dev": true, "net_reset": true, "cgroups": true, "binfmt_misc": true, "close_fds": true,
 		}},
 		{"tun,net_dev", "none", true, map[string]bool{
-			"tun": true, "net_dev": true, "net_reset": false, "cgroups": false, "binfmt_misc": false,
+			"tun": true, "net_dev": true, "net_reset": false, "cgroups": false, "binfmt_misc": false, "close_fds": false,
 		}},
 		{"none", "cgroups,net_dev", true, map[string]bool{
-			"tun": true, "net_dev": false, "net_reset": true, "cgroups": false, "binfmt_misc": true,
+			"tun": true, "net_dev": false, "net_reset": true, "cgroups": false, "binfmt_misc": true, "close_fds": true,
+		}},
+		{"close_fds", "none", true, map[string]bool{
+			"tun": false, "net_dev": false, "net_reset": false, "cgroups": false, "binfmt_misc": false, "close_fds": true,
 		}},
 	}
 	for i, test := range tests {

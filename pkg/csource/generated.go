@@ -4319,10 +4319,16 @@ static void setup_test()
 	flush_tun();
 #endif
 }
+#endif
 
-#define SYZ_HAVE_RESET_TEST 1
-static void reset_test()
+#if SYZ_EXECUTOR || SYZ_ENABLE_CLOSE_FDS
+#define SYZ_HAVE_CLOSE_FDS 1
+static void close_fds()
 {
+#if SYZ_EXECUTOR
+	if (!flag_enable_close_fds)
+		return;
+#endif
 	int fd;
 	for (fd = 3; fd < 30; fd++)
 		close(fd);
@@ -4614,6 +4620,9 @@ again:
 	}
 	for (i = 0; i < 100 && __atomic_load_n(&running, __ATOMIC_RELAXED); i++)
 		sleep_ms(1);
+#if SYZ_HAVE_CLOSE_FDS
+	close_fds();
+#endif
 #if SYZ_COLLIDE
 	if (!collide) {
 		collide = 1;
@@ -4698,8 +4707,8 @@ static void loop(void)
 			close(kOutPipeFd);
 #endif
 			execute_one();
-#if SYZ_HAVE_RESET_TEST
-			reset_test();
+#if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED
+			close_fds();
 #endif
 			doexit(0);
 #endif
@@ -4771,6 +4780,9 @@ void loop(void)
 #endif
 {
 	/*SYSCALLS*/
+#if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED && !SYZ_REPEAT
+	close_fds();
+#endif
 }
 #endif
 #if GOOS_akaros && SYZ_REPEAT
@@ -4800,6 +4812,10 @@ int main(void)
 			use_temporary_dir();
 #endif
 			/*SANDBOX_FUNC*/
+#if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED && !SYZ_REPEAT && !SYZ_SANDBOX_NONE && \
+    !SYZ_SANDBOX_SETUID && !SYZ_SANDBOX_NAMESPACE && !SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+			close_fds();
+#endif
 #if SYZ_PROCS
 		}
 	}

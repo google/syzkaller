@@ -84,6 +84,7 @@ func main() {
 		EnableNetReset:   features["net_reset"].Enabled,
 		EnableCgroups:    features["cgroups"].Enabled,
 		EnableBinfmtMisc: features["binfmt_misc"].Enabled,
+		EnableCloseFds:   features["close_fds"].Enabled,
 		UseTmpDir:        *flagUseTmpDir,
 		HandleSegv:       *flagHandleSegv,
 		Repro:            false,
