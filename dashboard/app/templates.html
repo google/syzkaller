@@ -27,6 +27,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 					<h1><a href="/">syzbot</a></h1>
 				</td>
 				<td class="search">
+					{{if .Admin}}
+						<a href="/admin">admin</a> |
+					{{end}}
 					{{if .LoginLink}}
 						<a href="{{.LoginLink}}">sign-in</a> |
 					{{end}}

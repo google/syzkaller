@@ -140,6 +140,7 @@ func (c *Ctx) Close() {
 	if !c.t.Failed() {
 		// Ensure that we can render main page and all bugs in the final test state.
 		c.expectOK(c.GET("/"))
+		c.expectOK(c.GET("/admin"))
 		var bugs []*Bug
 		keys, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
 		if err != nil {

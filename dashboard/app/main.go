@@ -27,6 +27,7 @@ func initHTTPHandlers() {
 	http.Handle("/", handlerWrapper(handleMain))
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))
+	http.Handle("/admin", handlerWrapper(handleAdmin))
 	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
 	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
 	http.Handle("/x/report.txt", handlerWrapper(handleTextX(textCrashReport)))
@@ -40,10 +41,14 @@ func initHTTPHandlers() {
 type uiMain struct {
 	Header        *uiHeader
 	Now           time.Time
-	Log           []byte
-	Managers      []*uiManager
-	Jobs          []*uiJob
 	BugNamespaces []*uiBugNamespace
+}
+
+type uiAdminPage struct {
+	Header   *uiHeader
+	Log      []byte
+	Managers []*uiManager
+	Jobs     []*uiJob
 }
 
 type uiManager struct {
@@ -186,26 +191,13 @@ type uiJob struct {
 
 // handleMain serves main page.
 func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	var errorLog []byte
-	var managers []*uiManager
-	var jobs []*uiJob
 	accessLevel := accessLevel(c, r)
-
+	var managers []*uiManager
 	if r.FormValue("fixed") == "" {
 		var err error
 		managers, err = loadManagers(c, accessLevel)
 		if err != nil {
 			return err
-		}
-		if accessLevel == AccessAdmin {
-			errorLog, err = fetchErrorLogs(c)
-			if err != nil {
-				return err
-			}
-			jobs, err = loadRecentJobs(c)
-			if err != nil {
-				return err
-			}
 		}
 	}
 	bugNamespaces, err := fetchBugs(c, r)
@@ -222,14 +214,35 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	data := &uiMain{
 		Header:        commonHeader(c, r),
 		Now:           timeNow(c),
-		Log:           errorLog,
-		Jobs:          jobs,
 		BugNamespaces: bugNamespaces,
 	}
-	if accessLevel == AccessAdmin {
-		data.Managers = managers
-	}
 	return serveTemplate(w, "main.html", data)
+}
+
+func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	accessLevel := accessLevel(c, r)
+	if accessLevel != AccessAdmin {
+		return ErrAccess
+	}
+	managers, err := loadManagers(c, accessLevel)
+	if err != nil {
+		return err
+	}
+	errorLog, err := fetchErrorLogs(c)
+	if err != nil {
+		return err
+	}
+	jobs, err := loadRecentJobs(c)
+	if err != nil {
+		return err
+	}
+	data := &uiAdminPage{
+		Header:   commonHeader(c, r),
+		Log:      errorLog,
+		Managers: managers,
+		Jobs:     jobs,
+	}
+	return serveTemplate(w, "admin.html", data)
 }
 
 // handleBug serves page about a single bug (which is passed in id argument).
