@@ -142,7 +142,7 @@ Resources represent values that need to be passed from output of one syscall to 
 "resource" identifier "[" underlying_type "]" [ ":" const ("," const)* ]
 ```
 
-`underlying_type` is either one of `int8`, `int16`, `int32`, `int64`, `intptr` or another resource (which models inheritance, for example, a socket is a subype of fd). The optional set of constants represent resource special values, for example, `0xffffffffffffffff` (-1) for "no fd", or `AT_FDCWD` for "the current dir". Special values are used once in a while as resource values. If no special values specified, special value of `0` is used. Resources can then be used as types, for example:
+`underlying_type` is either one of `int8`, `int16`, `int32`, `int64`, `intptr` or another resource (which models inheritance, for example, a socket is a subtype of fd). The optional set of constants represent resource special values, for example, `0xffffffffffffffff` (-1) for "no fd", or `AT_FDCWD` for "the current dir". Special values are used once in a while as resource values. If no special values specified, special value of `0` is used. Resources can then be used as types, for example:
 
 ```
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD, 1000000
