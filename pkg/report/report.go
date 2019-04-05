@@ -155,7 +155,7 @@ func replaceTable(replacements []replacement, str string) string {
 var dynamicTitleReplacement = []replacement{
 	{
 		// Executor PIDs are not interesting.
-		regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`),
+		regexp.MustCompile(`syz-executor\.?[0-9]+((/|:)[0-9]+)?`),
 		"syz-executor",
 	},
 	{
