@@ -25,7 +25,7 @@ handlers:
 - url: /(api)
   script: _go_app
   secure: always
-- url: /(email_poll)
+- url: /(admin|email_poll)
   script: _go_app
   login: admin
   secure: always

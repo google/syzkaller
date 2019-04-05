@@ -73,12 +73,14 @@ func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {
 }
 
 type uiHeader struct {
+	Admin               bool
 	LoginLink           string
 	AnalyticsTrackingID string
 }
 
 func commonHeader(c context.Context, r *http.Request) *uiHeader {
 	h := &uiHeader{
+		Admin:               accessLevel(c, r) == AccessAdmin,
 		AnalyticsTrackingID: config.AnalyticsTrackingID,
 	}
 	if user.Current(c) == nil {
