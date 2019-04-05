@@ -1,0 +1,33 @@
+TITLE: BUG: scheduling while atomic: syz-executor/ADDR
+
+[ 1181.712781] BUG: scheduling while atomic: syz-executor.4/21395/0x00000201
+[ 1181.719776] no locks held by syz-executor.4/21395.
+[ 1181.724731] Modules linked in:
+[ 1181.727989] Kernel panic - not syncing: scheduling while atomic
+[ 1181.727989] 
+[ 1181.735544] CPU: 0 PID: 21395 Comm: syz-executor.4 Not tainted 4.15.0+ #3
+[ 1181.742473] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1181.751828] Call Trace:
+[ 1181.754432]  [<ffffffff842799f2>] dump_stack+0x14d/0x20b
+[ 1181.759900]  [<ffffffff813a8694>] __panic+0x1c3/0x45d
+[ 1181.765112]  [<ffffffff813a89f9>] panic_saved_regs+0xcb/0xcb
+[ 1181.770937]  [<ffffffff813a892e>] ? __panic+0x45d/0x45d
+[ 1181.776324]  [<ffffffff8154e8d2>] ? vprintk_func+0x82/0xed
+[ 1181.781972]  [<ffffffff81442cdf>] __schedule_bug+0x10f/0x140
+[ 1181.787791]  [<ffffffff810010c8>] __schedule+0xd18/0x1d30
+[ 1181.793345]  [<ffffffff81aec0b3>] ? __fget_light+0xb3/0x530
+[ 1181.799108]  [<ffffffff81a7adc9>] ? fput+0x119/0x190
+[ 1181.804235]  [<ffffffff810003b0>] ? __startup_64+0x1c0/0x1c0
+[ 1181.810046]  [<ffffffff81a75380>] ? do_writev+0x1c0/0x290
+[ 1181.815591]  [<ffffffff8100216f>] schedule+0x8f/0x1b0
+[ 1181.820777]  [<ffffffff8101ac24>] exit_to_usermode_loop+0x164/0x360
+[ 1181.827185]  [<ffffffff8101cb4e>] do_syscall_64+0x56e/0x6d0
+[ 1181.832882]  [<ffffffff810172ec>] ? trace_hardirqs_off_thunk+0x1a/0x1c
+[ 1181.839537]  [<ffffffff84400086>] entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[ 1181.846538] RIP: 0033:0x458021
+[ 1181.849713] RSP: 002b:00007f4762c25ba0 EFLAGS: 00000293 ORIG_RAX: 0000000000000014
+[ 1181.857414] RAX: 0000000000000066 RBX: 0000000000000066 RCX: 0000000000458021
+[ 1181.864673] RDX: 0000000000000001 RSI: 00007f4762c25c00 RDI: 00000000000000f0
+[ 1181.871934] RBP: 000000000073bf00 R08: 0000000000000000 R09: 0000000000000000
+[ 1181.879191] R10: 00007f4762c269d0 R11: 0000000000000293 R12: 00007f4762c266d4
+[ 1181.886457] R13: 00000000004c6d9e R14: 00000000004ddd10 R15: 00000000ffffffff
