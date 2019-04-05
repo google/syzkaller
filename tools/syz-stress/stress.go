@@ -94,6 +94,9 @@ func main() {
 	if featuresFlags["binfmt_misc"].Enabled {
 		config.Flags |= ipc.FlagEnableBinfmtMisc
 	}
+	if featuresFlags["close_fds"].Enabled {
+		config.Flags |= ipc.FlagEnableCloseFds
+	}
 	gate = ipc.NewGate(2**flagProcs, nil)
 	for pid := 0; pid < *flagProcs; pid++ {
 		pid := pid

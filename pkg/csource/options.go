@@ -34,6 +34,7 @@ type Options struct {
 	EnableNetReset   bool `json:"resetnet,omitempty"`
 	EnableCgroups    bool `json:"cgroups,omitempty"`
 	EnableBinfmtMisc bool `json:"binfmt_misc,omitempty"`
+	EnableCloseFds   bool `json:"close_fds"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -117,6 +118,9 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.EnableBinfmtMisc {
 		return fmt.Errorf("EnableBinfmtMisc is not supported on %v", OS)
 	}
+	if opts.EnableCloseFds {
+		return fmt.Errorf("EnableCloseFds is not supported on %v", OS)
+	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd)) ||
 		opts.Sandbox == sandboxAndroidUntrustedApp {
@@ -140,6 +144,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		EnableNetReset:   true,
 		EnableCgroups:    true,
 		EnableBinfmtMisc: true,
+		EnableCloseFds:   true,
 		UseTmpDir:        true,
 		HandleSegv:       true,
 		Repro:            true,
@@ -150,6 +155,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.EnableNetReset = false
 		opts.EnableCgroups = false
 		opts.EnableBinfmtMisc = false
+		opts.EnableCloseFds = false
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.EnableNetReset = false
@@ -170,6 +176,9 @@ func (opts Options) Serialize() []byte {
 
 func DeserializeOptions(data []byte) (Options, error) {
 	var opts Options
+	// Before EnableCloseFds was added, close_fds() was always called,
+	// so default to true.
+	opts.EnableCloseFds = true
 	if err := json.Unmarshal(data, &opts); err == nil {
 		return opts, nil
 	}
@@ -225,6 +234,7 @@ func defaultFeatures(value bool) Features {
 		"net_reset":   {"reset network namespace between programs", value},
 		"cgroups":     {"setup cgroups for testing", value},
 		"binfmt_misc": {"setup binfmt_misc for testing", value},
+		"close_fds":   {"close fds after each program", value},
 	}
 }
 

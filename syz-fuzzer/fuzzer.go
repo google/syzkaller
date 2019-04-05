@@ -202,6 +202,7 @@ func main() {
 	config.Flags |= ipc.FlagEnableNetReset
 	config.Flags |= ipc.FlagEnableCgroups
 	config.Flags |= ipc.FlagEnableBinfmtMisc
+	config.Flags |= ipc.FlagEnableCloseFds
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, config.Executor)
