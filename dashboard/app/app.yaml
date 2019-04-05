@@ -19,12 +19,6 @@ handlers:
 - url: /static
   static_dir: static
   secure: always
-- url: /(|bug|text|x/.+)
-  script: _go_app
-  secure: always
-- url: /(api)
-  script: _go_app
-  secure: always
 - url: /(admin|email_poll)
   script: _go_app
   login: admin
@@ -32,3 +26,6 @@ handlers:
 - url: /_ah/(mail/.+|bounce)
   script: _go_app
   login: admin
+- url: /(|api|bug|text|x/.+|.*)
+  script: _go_app
+  secure: always

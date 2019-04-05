@@ -302,16 +302,18 @@ func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, sta
 	return db.RunInTransaction(c, tx, &db.TransactionOptions{Attempts: 10})
 }
 
-func loadAllManagers(c context.Context) ([]*Manager, []*db.Key, error) {
+func loadAllManagers(c context.Context, ns string) ([]*Manager, []*db.Key, error) {
 	var managers []*Manager
-	keys, err := db.NewQuery("Manager").
-		GetAll(c, &managers)
+	query := db.NewQuery("Manager")
+	if ns != "" {
+		query = query.Filter("Namespace=", ns)
+	}
+	keys, err := query.GetAll(c, &managers)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query managers: %v", err)
 	}
 	var result []*Manager
 	var resultKeys []*db.Key
-
 	for i, mgr := range managers {
 		if config.Namespaces[mgr.Namespace].Managers[mgr.Name].Decommissioned {
 			continue

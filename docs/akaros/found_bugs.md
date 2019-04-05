@@ -2,7 +2,7 @@
 
 Most latest bugs are reported by [syzbot](/docs/syzbot.md) to
 [akaros](https://groups.google.com/forum/#!searchin/akaros/syzbot)
-mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#akaros).
+mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/akaros).
 
 _newer first_
 

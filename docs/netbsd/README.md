@@ -168,7 +168,7 @@ You can compile a kernel with KASAN to increase the chances of finding bugs.
 
 [syzbot](/docs/syzbot.md) tests NetBSD and reports bugs to
 [syzkaller-netbsd-bugs](https://groups.google.com/forum/#!forum/syzkaller-netbsd-bugs) mailing list
-(also can be seen on [dashboard](https://syzkaller.appspot.com#netbsd)).
+(also can be seen on [dashboard](https://syzkaller.appspot.com/netbsd)).
 
 The image `syzbot` uses can be downloaded from
 [here](https://storage.googleapis.com/syzkaller/netbsd-image.raw) (2GB) and root

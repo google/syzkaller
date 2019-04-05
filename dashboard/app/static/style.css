@@ -35,6 +35,12 @@ table td, table th {
 	overflow: hidden;
 }
 
+.namespace {
+	font-weight: bold;
+	font-size: large;
+	color: #375EAB;
+}
+
 .position_table {
 	border: 0px;
 	margin: 0px;
@@ -59,7 +65,7 @@ table td, table th {
 	background: #F4F4F4;
 }
 
-.list_table tr:nth-child(2n+1) {
+.list_table tr:nth-child(2n) {
 	background: #F4F4F4;
 }
 

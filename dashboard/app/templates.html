@@ -6,6 +6,15 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{/* Common page head part, invoked with *uiHeader */}}
 {{define "head"}}
 	<link rel="stylesheet" href="/static/style.css"/>
+	{{if .Redirects}}
+		<script>
+			{{range $redir := .Redirects}}
+				if (window.location.hash == "{{$redir.From}}") {
+					window.location.href = "{{$redir.To}}";
+				}
+			{{end}}
+		</script>
+	{{end}}
 	<script src="/static/common.js"></script>
 	{{if .AnalyticsTrackingID}}
 		<script async src="https://www.googletagmanager.com/gtag/js?id={{.AnalyticsTrackingID}}"></script>
@@ -24,7 +33,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<table class="position_table">
 			<tr>
 				<td>
-					<h1><a href="/">syzbot</a></h1>
+					<h1><a href="/{{$.Namespace}}">syzbot</a></h1>
+					<select class="namespace" onchange="window.location.href = '/' + this.value + '{{.Subpage}}';">
+						{{range $ns := .Namespaces}}
+							<option value="{{$ns.Name}}" {{if eq $.Namespace $ns.Name}}selected="1"{{end}}>
+								{{$ns.Caption}}
+							</option>
+						{{end}}
+					</select>
 				</td>
 				<td class="search">
 					{{if .Admin}}
@@ -49,10 +65,14 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{if .Bugs}}
 <table class="list_table">
 	{{if $.Fragment}}
-		<caption id="{{$.Fragment}}"><a class="plain" href="#{{$.Fragment}}">{{$.Caption}}:</a></caption>
+		<caption id="{{$.Fragment}}"><a class="plain" href="#{{$.Fragment}}">
 	{{else}}
-		<caption>{{$.Caption}}:</caption>
+		<caption>
 	{{end}}
+	{{$.Caption}} ({{len $.Bugs}}):
+	{{if $.Fragment}}</a>{{end}}
+	</caption>
+	<thead>
 	<tr>
 		{{if $.ShowNamespace}}
 			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
@@ -74,6 +94,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<th><a onclick="return sortTable(this, 'Status', textSort)" href="#">Status</a></th>
 		{{end}}
 	</tr>
+	</thead>
+	<tbody>
 	{{range $b := .Bugs}}
 		<tr>
 			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
@@ -107,6 +129,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{end}}
 		</tr>
 	{{end}}
+	</tbody>
 </table>
 {{end}}
 {{end}}
@@ -116,7 +139,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "manager_list"}}
 {{if .}}
 <table class="list_table">
-	<caption id="{{(index . 0).Namespace}}-managers"><a class="plain" href="#{{(index . 0).Namespace}}-managers">Instances:</a></caption>
+	<caption id="managers"><a class="plain" href="managers">Instances:</a></caption>
+	<thead>
 	<tr>
 		<th>Name</th>
 		<th>Active</th>
@@ -143,6 +167,8 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th>Freshness</th>
 		<th>Status</th>
 	</tr>
+	</thead>
+	<tbody>
 	{{range $mgr := .}}
 		<tr>
 			<td>{{link $mgr.Link $mgr.Name}}</td>
@@ -181,6 +207,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{end}}
 		</tr>
 	{{end}}
+	</tbody>
 </table>
 {{end}}
 {{end}}

@@ -14,7 +14,7 @@ Page with details about a single bug.
 <body>
 	{{template "header" .Header}}
 
-	<b>[{{.Bug.Namespace}}] {{.Bug.Title}}</b><br>
+	<b>{{.Bug.Title}}</b><br>
 	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
 	Reported-by: {{.Bug.CreditEmail}}<br>
 	{{if .Bug.Commits}}
@@ -71,6 +71,7 @@ Page with details about a single bug.
 
 	<table class="list_table">
 		<caption>All crashes ({{.Bug.NumCrashes}}):</caption>
+		<thead>
 		<tr>
 			<th><a onclick="return sortTable(this, 'Manager', textSort)" href="#">Manager</a></th>
 			<th><a onclick="return sortTable(this, 'Time', textSort, true)" href="#">Time</a></th>
@@ -86,6 +87,8 @@ Page with details about a single bug.
 			<th><a onclick="return sortTable(this, 'Maintainers', textSort)" href="#">Maintainers</a></th>
 			{{end}}
 		</tr>
+		</thead>
+		<tbody>
 		{{range $c := $.Crashes}}
 			<tr>
 				<td class="manager">{{$c.Manager}}</td>
@@ -104,6 +107,7 @@ Page with details about a single bug.
 				{{end}}
 			</tr>
 		{{end}}
+		</tbody>
 	</table>
 </body>
 </html>

@@ -33,6 +33,8 @@ type GlobalConfig struct {
 	Clients map[string]string
 	// List of emails blacklisted from issuing test requests.
 	EmailBlacklist []string
+	// Namespace that is shown by default (no namespace selected yet).
+	DefaultNamespace string
 	// Per-namespace config.
 	// Namespaces are a mechanism to separate groups of different kernels.
 	// E.g. Debian 4.4 kernels and Ubuntu 4.9 kernels.
@@ -191,6 +193,9 @@ func checkConfig(cfg *GlobalConfig) {
 	clientNames := make(map[string]bool)
 	checkClients(clientNames, cfg.Clients)
 	checkConfigAccessLevel(&cfg.AccessLevel, AccessPublic, "global")
+	if cfg.Namespaces[cfg.DefaultNamespace] == nil {
+		panic(fmt.Sprintf("default namespace %q is not found", cfg.DefaultNamespace))
+	}
 	for ns, cfg := range cfg.Namespaces {
 		checkNamespace(ns, cfg, namespaces, clientNames)
 	}

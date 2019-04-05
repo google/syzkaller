@@ -14,17 +14,12 @@ Main page.
 <body>
 	{{template "header" .Header}}
 
-	{{range $ns := $.BugNamespaces}}
-		<br>
-		<a class="plain" href="#{{$ns.Name}}"><h2 id="{{$ns.Name}}">{{$ns.Caption}}</h2></a>
-		{{if $ns.FixedLink}}
-			<a href="{{$ns.FixedLink}}">fixed bugs ({{$ns.FixedCount}})</a>
-		{{end}}
-		{{template "manager_list" $ns.Managers}}
-		{{range $group := $ns.Groups}}
-			{{template "bug_list" $group}}
-		{{end}}
-		<br>
+	{{if $.FixedLink}}
+		<a href="{{$.FixedLink}}">fixed bugs ({{$.FixedCount}})</a>
+	{{end}}
+	{{template "manager_list" $.Managers}}
+	{{range $group := $.Groups}}
+		{{template "bug_list" $group}}
 	{{end}}
 </body>
 </html>
