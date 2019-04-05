@@ -196,6 +196,7 @@ func MakeEnv(config *Config, pid int) (*Env, error) {
 	// we create a link from 'syz-executor.15' to 'syz-executor' and use 'syz-executor.15' as binary.
 	// This allows to easily identify program that lead to a crash in the log.
 	// Log contains pid in "executing program 15" and crashes usually contain "Comm: syz-executor.15".
+	// Note: pkg/report knowns about this and converts "syz-executor.15" back to "syz-executor".
 	base := filepath.Base(env.bin[0])
 	pidStr := fmt.Sprintf(".%v", pid)
 	const maxLen = 16 // TASK_COMM_LEN is currently set to 16
