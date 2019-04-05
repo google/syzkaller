@@ -82,7 +82,7 @@ func parseKallsyms(kallsyms []byte, arch string) map[string]bool {
 	switch arch {
 	case "386", "amd64":
 		re = regexp.MustCompile(` T (__ia32_|__x64_)?sys_([^\n]+)\n`)
-	case "arm64":
+	case "arm", "arm64":
 		re = regexp.MustCompile(` T (__arm64_)?sys_([^\n]+)\n`)
 	case "ppc64le":
 		re = regexp.MustCompile(` T ()?sys_([^\n]+)\n`)

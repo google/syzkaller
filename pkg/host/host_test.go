@@ -94,6 +94,19 @@ c0000000011ed050 T __se_sys_accept4
 			`),
 			[]string{"bind", "listen", "accept4"},
 		},
+		{
+			"arm",
+			[]byte(`
+c037c67c T __se_sys_setfsuid
+c037c694 T __sys_setfsgid
+c037c790 T sys_setfsgid
+c037c790 T __se_sys_setfsgid
+c037c7a8 T sys_getpid
+c037c7d0 T sys_gettid
+c037c7f8 T sys_getppid
+			`),
+			[]string{"setfsgid", "getpid", "gettid", "getppid"},
+		},
 	}
 
 	for _, test := range tests {
