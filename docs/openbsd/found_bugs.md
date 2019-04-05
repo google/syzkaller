@@ -2,7 +2,7 @@
 
 Most latest bugs are reported by [syzbot](/docs/syzbot.md) to
 [syzkaller-openbsd-bugs](https://groups.google.com/forum/#!forum/syzkaller-openbsd-bugs)
-mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/#openbsd).
+mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/openbsd).
 
 Newer bugs comes first.
 

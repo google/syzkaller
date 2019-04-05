@@ -1,6 +1,6 @@
 # Found bugs
 
-Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs) and on the [dashboard](https://syzkaller.appspot.com/#upstream).
+Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs) and on the [dashboard](https://syzkaller.appspot.com/upstream).
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_

@@ -26,6 +26,7 @@ Main page.
 
 	<table class="list_table">
 		<caption id="jobs"><a class="plain" href="#jobs">Recent jobs:</a></caption>
+		<thead>
 		<tr>
 			<th>Bug</th>
 			<th>Created</th>
@@ -36,6 +37,8 @@ Main page.
 			<th>Manager</th>
 			<th>Result</th>
 		</tr>
+		</thead>
+		<tbody>
 		{{range $job := $.Jobs}}
 			<tr>
 				<td class="title"><a href="{{$job.BugLink}}">{{$job.BugTitle}}</a></td>
@@ -74,6 +77,7 @@ Main page.
 				</td>
 			</tr>
 		{{end}}
+		</tbody>
 	</table>
 	<br><br>
 </body>

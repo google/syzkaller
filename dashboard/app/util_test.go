@@ -139,7 +139,10 @@ func caller(skip int) string {
 func (c *Ctx) Close() {
 	if !c.t.Failed() {
 		// Ensure that we can render main page and all bugs in the final test state.
-		c.expectOK(c.GET("/"))
+		c.expectOK(c.GET("/test1"))
+		c.expectOK(c.GET("/test2"))
+		c.expectOK(c.GET("/test1/fixed"))
+		c.expectOK(c.GET("/test2/fixed"))
 		c.expectOK(c.GET("/admin"))
 		var bugs []*Bug
 		keys, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
@@ -201,14 +204,15 @@ func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) ([]byte,
 	http.DefaultServeMux.ServeHTTP(w, r)
 	c.t.Logf("REPLY: %v", w.Code)
 	if w.Code != http.StatusOK {
-		return nil, HttpError{w.Code, w.Body.String()}
+		return nil, HttpError{w.Code, w.Body.String(), w.HeaderMap}
 	}
 	return w.Body.Bytes(), nil
 }
 
 type HttpError struct {
-	Code int
-	Body string
+	Code    int
+	Body    string
+	Headers http.Header
 }
 
 func (err HttpError) Error() string {

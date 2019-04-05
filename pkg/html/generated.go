@@ -38,6 +38,12 @@ table td, table th {
 	overflow: hidden;
 }
 
+.namespace {
+	font-weight: bold;
+	font-size: large;
+	color: #375EAB;
+}
+
 .position_table {
 	border: 0px;
 	margin: 0px;

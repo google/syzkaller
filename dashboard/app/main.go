@@ -36,12 +36,25 @@ func initHTTPHandlers() {
 	http.Handle("/x/patch.diff", handlerWrapper(handleTextX(textPatch)))
 	http.Handle("/x/bisect.txt", handlerWrapper(handleTextX(textLog)))
 	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
+	for ns := range config.Namespaces {
+		http.Handle("/"+ns, handlerWrapper(handleMain))
+		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
+	}
 }
 
-type uiMain struct {
-	Header        *uiHeader
-	Now           time.Time
-	BugNamespaces []*uiBugNamespace
+type uiMainPage struct {
+	Header     *uiHeader
+	Now        time.Time
+	FixedLink  string
+	FixedCount int
+	Managers   []*uiManager
+	Groups     []*uiBugGroup
+}
+
+type uiFixedPage struct {
+	Header *uiHeader
+	Now    time.Time
+	Bugs   *uiBugGroup
 }
 
 type uiAdminPage struct {
@@ -103,15 +116,6 @@ type uiBugPage struct {
 	SampleReport   []byte
 	HasMaintainers bool
 	Crashes        []*uiCrash
-}
-
-type uiBugNamespace struct {
-	Name       string
-	Caption    string
-	FixedLink  string
-	FixedCount int
-	Managers   []*uiManager
-	Groups     []*uiBugGroup
 }
 
 type uiBugGroup struct {
@@ -191,32 +195,51 @@ type uiJob struct {
 
 // handleMain serves main page.
 func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	accessLevel := accessLevel(c, r)
-	var managers []*uiManager
-	if r.FormValue("fixed") == "" {
-		var err error
-		managers, err = loadManagers(c, accessLevel)
-		if err != nil {
-			return err
-		}
+	if ns := r.FormValue("fixed"); ns != "" {
+		http.Redirect(w, r, fmt.Sprintf("/%v/fixed", ns), http.StatusMovedPermanently)
+		return nil
 	}
-	bugNamespaces, err := fetchBugs(c, r)
+	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
 	}
-	for _, ns := range bugNamespaces {
-		for _, mgr := range managers {
-			if ns.Name == mgr.Namespace {
-				ns.Managers = append(ns.Managers, mgr)
-			}
-		}
+	accessLevel := accessLevel(c, r)
+	managers, err := loadManagers(c, accessLevel, hdr.Namespace)
+	if err != nil {
+		return err
 	}
-	data := &uiMain{
-		Header:        commonHeader(c, r),
-		Now:           timeNow(c),
-		BugNamespaces: bugNamespaces,
+	groups, fixedCount, err := fetchNamespaceBugs(c, accessLevel, hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	data := &uiMainPage{
+		Header:     hdr,
+		Now:        timeNow(c),
+		FixedCount: fixedCount,
+		FixedLink:  fmt.Sprintf("/%v/fixed", hdr.Namespace),
+		Groups:     groups,
+		Managers:   managers,
 	}
 	return serveTemplate(w, "main.html", data)
+}
+
+func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	accessLevel := accessLevel(c, r)
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	hdr.Subpage = "/fixed"
+	bugs, err := fetchFixedBugs(c, accessLevel, hdr.Namespace)
+	if err != nil {
+		return err
+	}
+	data := &uiFixedPage{
+		Header: hdr,
+		Now:    timeNow(c),
+		Bugs:   bugs,
+	}
+	return serveTemplate(w, "fixed.html", data)
 }
 
 func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -224,7 +247,11 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 	if accessLevel != AccessAdmin {
 		return ErrAccess
 	}
-	managers, err := loadManagers(c, accessLevel)
+	hdr, err := commonHeader(c, r, w, "")
+	if err != nil {
+		return err
+	}
+	managers, err := loadManagers(c, accessLevel, "")
 	if err != nil {
 		return err
 	}
@@ -237,7 +264,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 	data := &uiAdminPage{
-		Header:   commonHeader(c, r),
+		Header:   hdr,
 		Log:      errorLog,
 		Managers: managers,
 		Jobs:     jobs,
@@ -264,6 +291,10 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
+		return err
+	}
+	hdr, err := commonHeader(c, r, w, bug.Namespace)
+	if err != nil {
 		return err
 	}
 	state, err := loadReportingState(c)
@@ -326,7 +357,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		}
 	}
 	data := &uiBugPage{
-		Header:         commonHeader(c, r),
+		Header:         hdr,
 		Now:            timeNow(c),
 		Bug:            uiBug,
 		BisectCause:    bisectCause,
@@ -416,47 +447,21 @@ func textFilename(tag string) string {
 	}
 }
 
-func fetchBugs(c context.Context, r *http.Request) ([]*uiBugNamespace, error) {
+func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string) ([]*uiBugGroup, int, error) {
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		GetAll(c, &bugs)
+	if err != nil {
+		return nil, 0, err
+	}
 	state, err := loadReportingState(c)
 	if err != nil {
-		return nil, err
-	}
-	accessLevel := accessLevel(c, r)
-	onlyFixed := r.FormValue("fixed")
-	var res []*uiBugNamespace
-	for ns, cfg := range config.Namespaces {
-		if accessLevel < cfg.AccessLevel {
-			continue
-		}
-		if onlyFixed != "" && onlyFixed != ns {
-			continue
-		}
-		uiNamespace, err := fetchNamespaceBugs(c, accessLevel, ns, state, onlyFixed != "")
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, uiNamespace)
-	}
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Caption < res[j].Caption
-	})
-	return res, nil
-}
-
-func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
-	state *ReportingState, onlyFixed bool) (*uiBugNamespace, error) {
-	query := db.NewQuery("Bug").Filter("Namespace=", ns)
-	if onlyFixed {
-		query = query.Filter("Status=", BugStatusFixed)
-	}
-	var bugs []*Bug
-	_, err := query.GetAll(c, &bugs)
-	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	managers, err := managerList(c, ns)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	fixedCount := 0
 	groups := make(map[int][]*uiBug)
@@ -465,8 +470,9 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	for _, bug := range bugs {
 		if bug.Status == BugStatusFixed {
 			fixedCount++
+			continue
 		}
-		if bug.Status == BugStatusInvalid || bug.Status == BugStatusFixed != onlyFixed {
+		if bug.Status == BugStatusInvalid {
 			continue
 		}
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
@@ -479,10 +485,8 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 		uiBug := createUIBug(c, bug, state, managers)
 		bugMap[bug.keyHash()] = uiBug
 		id := uiBug.ReportingIndex
-		if bug.Status == BugStatusFixed {
+		if len(uiBug.Commits) != 0 {
 			id = -1
-		} else if len(uiBug.Commits) != 0 {
-			id = -2
 		}
 		groups[id] = append(groups[id], uiBug)
 	}
@@ -493,6 +497,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 		}
 		mergeUIBug(c, bug, dup)
 	}
+	cfg := config.Namespaces[ns]
 	var uiGroups []*uiBugGroup
 	for index, bugs := range groups {
 		sort.Slice(bugs, func(i, j int) bool {
@@ -504,27 +509,24 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 			}
 			return bugs[i].ReportedTime.After(bugs[j].ReportedTime)
 		})
-		caption, fragment, showPatch, showPatched := "", "", false, false
+		caption, fragment, showPatched := "", "", false
 		switch index {
 		case -1:
-			caption, showPatch, showPatched = "fixed", true, false
-		case -2:
-			caption, showPatch, showPatched = "fix pending", false, true
-			fragment = ns + "-pending"
-		case len(config.Namespaces[ns].Reporting) - 1:
-			caption, showPatch, showPatched = "open", false, false
-			fragment = ns + "-open"
+			caption, showPatched = "fix pending", true
+			fragment = "pending"
+		case len(cfg.Reporting) - 1:
+			caption, showPatched = "open", false
+			fragment = "open"
 		default:
-			reporting := &config.Namespaces[ns].Reporting[index]
-			caption, showPatch, showPatched = reporting.DisplayTitle, false, false
-			fragment = ns + "-" + reporting.Name
+			reporting := &cfg.Reporting[index]
+			caption, showPatched = reporting.DisplayTitle, false
+			fragment = reporting.Name
 		}
 		uiGroups = append(uiGroups, &uiBugGroup{
 			Now:         timeNow(c),
-			Caption:     fmt.Sprintf("%v (%v)", caption, len(bugs)),
+			Caption:     caption,
 			Fragment:    fragment,
 			Namespace:   ns,
-			ShowPatch:   showPatch,
 			ShowPatched: showPatched,
 			ShowIndex:   index,
 			Bugs:        bugs,
@@ -533,19 +535,42 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	sort.Slice(uiGroups, func(i, j int) bool {
 		return uiGroups[i].ShowIndex > uiGroups[j].ShowIndex
 	})
-	fixedLink := ""
-	if !onlyFixed {
-		fixedLink = fmt.Sprintf("?fixed=%v", ns)
+	return uiGroups, fixedCount, nil
+}
+
+func fetchFixedBugs(c context.Context, accessLevel AccessLevel, ns string) (*uiBugGroup, error) {
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("Status=", BugStatusFixed).
+		GetAll(c, &bugs)
+	if err != nil {
+		return nil, err
 	}
-	cfg := config.Namespaces[ns]
-	uiNamespace := &uiBugNamespace{
-		Name:       ns,
-		Caption:    cfg.DisplayTitle,
-		FixedCount: fixedCount,
-		FixedLink:  fixedLink,
-		Groups:     uiGroups,
+	state, err := loadReportingState(c)
+	if err != nil {
+		return nil, err
 	}
-	return uiNamespace, nil
+	managers, err := managerList(c, ns)
+	if err != nil {
+		return nil, err
+	}
+	res := &uiBugGroup{
+		Now:       timeNow(c),
+		Caption:   "fixed",
+		ShowPatch: true,
+		Namespace: ns,
+	}
+	for _, bug := range bugs {
+		if accessLevel < bug.sanitizeAccess(accessLevel) {
+			continue
+		}
+		res.Bugs = append(res.Bugs, createUIBug(c, bug, state, managers))
+	}
+	sort.Slice(res.Bugs, func(i, j int) bool {
+		return res.Bugs[i].ClosedTime.After(res.Bugs[j].ClosedTime)
+	})
+	return res, nil
 }
 
 func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (
@@ -788,10 +813,10 @@ func makeUIBuild(build *Build) *uiBuild {
 	}
 }
 
-func loadManagers(c context.Context, accessLevel AccessLevel) ([]*uiManager, error) {
+func loadManagers(c context.Context, accessLevel AccessLevel, ns string) ([]*uiManager, error) {
 	now := timeNow(c)
 	date := timeDate(now)
-	managers, managerKeys, err := loadAllManagers(c)
+	managers, managerKeys, err := loadAllManagers(c, ns)
 	if err != nil {
 		return nil, err
 	}
@@ -877,7 +902,7 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
 		Order("-Created").
-		Limit(40).
+		Limit(80).
 		GetAll(c, &jobs)
 	if err != nil {
 		return nil, err

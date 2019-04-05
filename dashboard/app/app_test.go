@@ -7,6 +7,7 @@ package dash
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"testing"
@@ -30,6 +31,7 @@ var testConfig = &GlobalConfig{
 	EmailBlacklist: []string{
 		"\"Bar\" <BlackListed@Domain.com>",
 	},
+	DefaultNamespace: "test1",
 	Namespaces: map[string]*Config{
 		"test1": {
 			AccessLevel: AccessAdmin,
@@ -288,7 +290,7 @@ func TestApp(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	c.expectOK(c.GET("/"))
+	c.expectOK(c.GET("/test1"))
 
 	apiClient1 := c.makeClient(client1, key1, false)
 	apiClient2 := c.makeClient(client2, key2, false)
@@ -335,6 +337,29 @@ func TestApp(t *testing.T) {
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: dashapi.ReproLevelC,
 	})
+}
+
+func TestRedirects(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	checkRedirect(c, AccessUser, "/", "/test1") // redirect to default namespace
+	checkRedirect(c, AccessAdmin, "/", "/admin")
+
+	_, err := c.httpRequest("GET", "/access-user", "", AccessPublic) // not accessible namespace
+	c.expectForbidden(err)
+
+	_, err = c.httpRequest("GET", "/access-user", "", AccessUser)
+	c.expectOK(err)
+}
+
+func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string) {
+	_, err := c.httpRequest("GET", from, "", accessLevel)
+	c.expectNE(err, nil)
+	httpErr, ok := err.(HttpError)
+	c.expectTrue(ok)
+	c.expectEQ(httpErr.Code, http.StatusMovedPermanently)
+	c.expectEQ(httpErr.Headers["Location"], []string{to})
 }
 
 // Test purging of old crashes for bugs with lots of crashes.

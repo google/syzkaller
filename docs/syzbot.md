@@ -220,7 +220,7 @@ existing IPC object) and there is long tail of other reasons.
 Bugs with reproducers are automatically reported to kernel mailing lists.
 Bugs without reproducers are first staged in moderation queue to filter out
 invalid, unactionable or duplicate reports. Staged bugs are shown on dashboard
-in [moderation](https://syzkaller.appspot.com/#upstream-moderation2) section
+in [moderation](https://syzkaller.appspot.com/upstream#moderation2) section
 and mailed to
 [syzkaller-upstream-moderation](https://groups.google.com/forum/#!forum/syzkaller-upstream-moderation)
 mailing list. Staged bugs accept all commands supported for reported bugs
