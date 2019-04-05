@@ -89,6 +89,7 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 		"SYZ_ENABLE_NETDEV":                 opts.EnableNetDev,
 		"SYZ_RESET_NET_NAMESPACE":           opts.EnableNetReset,
 		"SYZ_ENABLE_BINFMT_MISC":            opts.EnableBinfmtMisc,
+		"SYZ_ENABLE_CLOSE_FDS":              opts.EnableCloseFds,
 		"SYZ_USE_TMP_DIR":                   opts.UseTmpDir,
 		"SYZ_HANDLE_SEGV":                   opts.HandleSegv,
 		"SYZ_REPRO":                         opts.Repro,

@@ -324,5 +324,8 @@ func createConfig(target *prog.Target, entries []*prog.LogEntry,
 	if featuresFlags["binfmt_misc"].Enabled {
 		config.Flags |= ipc.FlagEnableBinfmtMisc
 	}
+	if featuresFlags["close_fds"].Enabled {
+		config.Flags |= ipc.FlagEnableCloseFds
+	}
 	return config, execOpts
 }
