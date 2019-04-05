@@ -1170,7 +1170,7 @@ var linuxOopses = []*oops{
 						parseStackTrace,
 					},
 					skip: []string{"sched", "_lock", "down", "completion", "kthread",
-						"wait", "synchronize"},
+						"wait", "synchronize", "context_switch"},
 				},
 			},
 			{
