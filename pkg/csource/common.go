@@ -50,7 +50,7 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	}
 
 	for from, to := range replacements {
-		src = bytes.Replace(src, []byte("[["+from+"]]"), []byte(to), -1)
+		src = bytes.Replace(src, []byte("/*"+from+"*/"), []byte(to), -1)
 	}
 
 	for from, to := range map[string]string{

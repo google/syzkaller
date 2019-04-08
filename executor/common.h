@@ -9,7 +9,7 @@
 // - NORETURN/PRINTF/debug are removed
 // - exitf/fail are replaced with exit
 // - uintN types are replaced with uintN_t
-// - [[FOO]] placeholders are replaced by actual values
+// - /*FOO*/ placeholders are replaced by actual values
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -457,7 +457,7 @@ static void loop(void)
 	int collide = 0;
 again:
 #endif
-	for (call = 0; call < [[NUM_CALLS]]; call++) {
+	for (call = 0; call < /*NUM_CALLS*/; call++) {
 		for (thread = 0; thread < (int)(sizeof(threads) / sizeof(threads[0])); thread++) {
 			struct thread_t* th = &threads[thread];
 			if (!th->created) {
@@ -527,7 +527,7 @@ static void loop(void)
 #endif
 	int iter;
 #if SYZ_REPEAT_TIMES
-	for (iter = 0; iter < [[REPEAT_TIMES]]; iter++) {
+	for (iter = 0; iter < /*REPEAT_TIMES*/; iter++) {
 #else
 	for (iter = 0;; iter++) {
 #endif
@@ -644,12 +644,10 @@ static void loop(void)
 #endif
 #endif
 
-// clang-format off
-// clang-format badly mishandles this part, moreover different versions mishandle it differently.
 #if !SYZ_EXECUTOR
-[[SYSCALL_DEFINES]]
+/*SYSCALL_DEFINES*/
 
-[[RESULTS]]
+/*RESULTS*/
 
 #if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 #if SYZ_THREADED
@@ -660,7 +658,7 @@ void execute_one(void)
 void loop(void)
 #endif
 {
-	[[SYSCALLS]]
+	/*SYSCALLS*/
 }
 #endif
 
@@ -670,7 +668,7 @@ void loop(void)
 
 int main(int argc, char** argv)
 {
-	[[MMAP_DATA]]
+	/*MMAP_DATA*/
 
 	program_name = argv[0];
 	if (argc == 2 && strcmp(argv[1], "child") == 0)
@@ -678,21 +676,20 @@ int main(int argc, char** argv)
 #else
 int main(void)
 {
-	[[MMAP_DATA]]
+	/*MMAP_DATA*/
 #endif
-		// clang-format on
 
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();
 #endif
 #if SYZ_PROCS
-	for (procid = 0; procid < [[PROCS]]; procid++) {
+	for (procid = 0; procid < /*PROCS*/; procid++) {
 		if (fork() == 0) {
 #endif
 #if SYZ_USE_TMP_DIR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 			use_temporary_dir();
 #endif
-			[[SANDBOX_FUNC]]
+			/*SANDBOX_FUNC*/
 #if SYZ_PROCS
 		}
 	}
