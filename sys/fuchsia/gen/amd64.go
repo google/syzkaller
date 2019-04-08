@@ -500,6 +500,16 @@ var structDescs_amd64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
 	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetChannelRequest, fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetChannelRequest, fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetChannelRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "wr_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "wr_handles"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Buf: "rd_bytes"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Buf: "rd_handles"},
+	}}},
 	{Key: StructKey{Name: "fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest, fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetExperimentStateResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest, fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetExperimentStateResponseHandles]", TypeSize: 48}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequestHandles"}}},
@@ -2350,6 +2360,12 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 930272946},
 	}}},
+	{Key: StructKey{Name: "fidl_message_header[938569873]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[938569873]", TypeSize: 16}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 938569873},
+	}}},
 	{Key: StructKey{Name: "fidl_message_header[946011321]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[946011321]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
@@ -3019,6 +3035,19 @@ var structDescs_amd64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ProjectProfileOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ProjectProfileOutOfLine"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_mem_BufferOutOfLine"}, FldName: "configOutOfLine"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetChannelRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_SystemDataUpdaterSetChannelRequest", IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[938569873]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "current_channelInLine"},
+		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "target_channelInLine"},
+		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "current_channelOutOfLine"},
+		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "target_channelOutOfLine"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fidl_message_header[1903807121]"}, FldName: "hdr"},
@@ -4706,6 +4735,10 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "zx_exception_header", Dir: 1}, FldName: "header"},
 		&UnionType{Key: StructKey{Name: "zx_exception_context", Dir: 1}, FldName: "context"},
 	}}},
+	{Key: StructKey{Name: "zx_info_bti", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_bti", TypeSize: 16, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "minimum_contiguity", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "aspace_size", TypeSize: 8, ArgDir: 1}}},
+	}}},
 	{Key: StructKey{Name: "zx_info_cpu_stats", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_cpu_stats", TypeSize: 120, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cpu_number", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4, ArgDir: 1}}},
@@ -4732,7 +4765,17 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "props", TypeSize: 4, ArgDir: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "zx_info_kmem_stats", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_kmem_stats", TypeSize: 64, ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "zx_info_handle_count", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_handle_count", TypeSize: 4, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "count", TypeSize: 4, ArgDir: 1}}},
+	}}},
+	{Key: StructKey{Name: "zx_info_job", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_job", TypeSize: 16, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "return_code", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exited", TypeSize: 1, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "kill_on_oom", TypeSize: 1, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "debugger_attached", TypeSize: 1, ArgDir: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 5}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "zx_info_kmem_stats", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_kmem_stats", TypeSize: 72, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "total_bytes", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "free_bytes", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "wired_bytes", TypeSize: 8, ArgDir: 1}}},
@@ -4740,6 +4783,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "free_heap_bytes", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "vmo_bytes", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mmu_overhead_bytes", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ipc_bytes", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "other_bytes", TypeSize: 8, ArgDir: 1}}},
 	}}},
 	{Key: StructKey{Name: "zx_info_maps", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_maps", TypeSize: 88, ArgDir: 1}, Fields: []Type{
@@ -4757,18 +4801,31 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "koid", FldName: "vmo_koid", TypeSize: 8, ArgDir: 1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "committed_pages", TypeSize: 8, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "zx_info_process", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_process", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "return_code", TypeSize: 4, ArgDir: 1}}},
+	{Key: StructKey{Name: "zx_info_process", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_process", TypeSize: 16, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "return_code", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "started", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exited", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "debugger_attached", TypeSize: 1, ArgDir: 1}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 5}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "zx_info_resource", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_resource", TypeSize: 24, ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "zx_info_process_handle_stats", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_process_handle_stats", TypeSize: 256, ArgDir: 1}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handle_count", TypeSize: 256, ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
+	}}},
+	{Key: StructKey{Name: "zx_info_resource", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_resource", TypeSize: 56, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "base", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 8, ArgDir: 1}}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "name", TypeSize: 32, ArgDir: 1}, Kind: 1, RangeBegin: 32, RangeEnd: 32},
+	}}},
+	{Key: StructKey{Name: "zx_info_socket", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_socket", TypeSize: 48, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4, ArgDir: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "low", TypeSize: 8, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "high", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "rx_buf_max", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "rx_buf_size", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "rx_buf_available", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "tx_buf_max", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "tx_buf_size", TypeSize: 8, ArgDir: 1}}},
 	}}},
 	{Key: StructKey{Name: "zx_info_task_stats", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_task_stats", TypeSize: 32, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "mem_mapped_bytes", TypeSize: 8, ArgDir: 1}}},
@@ -4787,7 +4844,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "base", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "zx_info_vmo", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_vmo", TypeSize: 104, ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "zx_info_vmo", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_vmo", TypeSize: 112, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "koid", FldName: "koid", TypeSize: 8, ArgDir: 1}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "name", TypeSize: 32, ArgDir: 1}, Kind: 1, RangeBegin: 32, RangeEnd: 32},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "size_bytes", TypeSize: 8, ArgDir: 1}}},
@@ -4799,6 +4856,8 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "committed_bytes", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "handle_rights", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "create_options", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cache_policy", TypeSize: 4, ArgDir: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "zx_policy_basic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_policy_basic", TypeSize: 8}, Fields: []Type{
@@ -5512,6 +5571,14 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_cobalt_LoggerStartTimerRequest, fuchsia_cobalt_LoggerStartTimerRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerStartTimerResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_cobalt_SystemDataUpdaterSetChannel", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_cobalt_SystemDataUpdater_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetChannelRequest, fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -6808,8 +6875,10 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_cprng_draw", CallName: "zx_cprng_draw", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "buffer"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
+	{Name: "zx_deadline_after", CallName: "zx_deadline_after", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ns", TypeSize: 8}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{Name: "zx_debuglog_create", CallName: "zx_debuglog_create", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_root_resource", FldName: "root_resource", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "log_create_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1073741824}, BitMask: true},
@@ -6845,31 +6914,33 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_fifo_read", CallName: "zx_fifo_read", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_fifo", FldName: "handle", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "buffer"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "num_entries_read", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
 	{Name: "zx_fifo_write", CallName: "zx_fifo_write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_fifo", FldName: "handle", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "buffer"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "num_entries_written", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
 	{Name: "zx_futex_requeue", CallName: "zx_futex_requeue", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "value_ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "wake_count", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "wake_count", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "current_value", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "requeue_ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "requeue_count", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "requeue_count", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "new_requeue_owner", TypeSize: 4}},
 	}},
 	{Name: "zx_futex_wait", CallName: "zx_futex_wait", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "value_ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "current_value", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "new_futext_owner", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 	}},
 	{Name: "zx_futex_wake", CallName: "zx_futex_wake", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "value_ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "wake_count", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "wake_count", TypeSize: 4}}},
 	}},
 	{Name: "zx_futex_wake_handle_close_thread_exit", CallName: "zx_futex_wake_handle_close_thread_exit", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "value_ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
@@ -6880,14 +6951,14 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_guest_create", CallName: "zx_guest_create", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_root_resource", FldName: "root_resource", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "physmem_vmo", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "guest", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_guest", TypeSize: 8, ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vmar", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{Name: "zx_guest_set_trap", CallName: "zx_guest_set_trap", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_guest", FldName: "guest", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "vaddr", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "len", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "port", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "key", TypeSize: 8}}},
 	}},
@@ -6935,6 +7006,14 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_nanosleep", CallName: "zx_nanosleep", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 	}},
+	{Name: "zx_object_get_info$ZX_INFO_BTI", CallName: "zx_object_get_info", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "resource_handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 20},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_bti", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
 	{Name: "zx_object_get_info$ZX_INFO_CPU_STATS", CallName: "zx_object_get_info", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_root_resource", FldName: "root_resource", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 16},
@@ -6951,11 +7030,27 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
+	{Name: "zx_object_get_info$ZX_INFO_HANDLE_COUNT", CallName: "zx_object_get_info", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 19},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_handle_count", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
 	{Name: "zx_object_get_info$ZX_INFO_HANDLE_VALID", CallName: "zx_object_get_info", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "buffer", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "buffer_size", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
+	{Name: "zx_object_get_info$ZX_INFO_JOB", CallName: "zx_object_get_info", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 24},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_job", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
@@ -6970,7 +7065,7 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_object_get_info$ZX_INFO_JOB_PROCESSES", CallName: "zx_object_get_info", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_job", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 9},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_thread", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "koid", TypeSize: 8, ArgDir: 1}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
@@ -6987,6 +7082,14 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 3},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_process", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
+	{Name: "zx_object_get_info$ZX_INFO_PROCESS_HANDLE_STATS", CallName: "zx_object_get_info", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 21},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_process_handle_stats", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
@@ -7023,10 +7126,26 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
+	{Name: "zx_object_get_info$ZX_INFO_SOCKET", CallName: "zx_object_get_info", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 22},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_socket", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
 	{Name: "zx_object_get_info$ZX_INFO_TASK_STATS", CallName: "zx_object_get_info", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 12},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_task_stats", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
+	{Name: "zx_object_get_info$ZX_INFO_THREAD", CallName: "zx_object_get_info", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 10},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_thread", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
@@ -7055,16 +7174,19 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
+	{Name: "zx_object_get_info$ZX_INFO_VMO", CallName: "zx_object_get_info", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "topic", TypeSize: 8}}, Val: 23},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_info_vmo", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "buffer_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "avail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
 	{Name: "zx_object_get_property", CallName: "zx_object_get_property", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "property", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "value", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "value"},
-	}},
-	{Name: "zx_object_set_profile", CallName: "zx_object_set_profile", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "profile", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
 	}},
 	{Name: "zx_object_set_property", CallName: "zx_object_set_property", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
@@ -7112,13 +7234,11 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_port_queue", CallName: "zx_port_queue", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_port", FldName: "handle", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "packet", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_port_packet"}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "size", TypeSize: 8}}},
 	}},
 	{Name: "zx_port_wait", CallName: "zx_port_wait", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_port", FldName: "handle", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "packet", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_port_packet", Dir: 1}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "size", TypeSize: 8}}},
 	}},
 	{Name: "zx_process_create", CallName: "zx_process_create", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_job", FldName: "job", TypeSize: 4}},
@@ -7129,7 +7249,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vmar_handle", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{Name: "zx_process_exit", CallName: "zx_process_exit", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ret_code", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ret_code", TypeSize: 8}}},
 	}},
 	{Name: "zx_process_read_memory", CallName: "zx_process_read_memory", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "process", TypeSize: 4}},
@@ -7166,6 +7286,10 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "handle", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "socket_to_share", TypeSize: 4}},
 	}},
+	{Name: "zx_socket_shutdown", CallName: "zx_socket_shutdown", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "handlez", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_shutdown_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{2, 1}, BitMask: true},
+	}},
 	{Name: "zx_socket_write", CallName: "zx_socket_write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "handle", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_write_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{4, 2, 1}, BitMask: true},
@@ -7185,6 +7309,16 @@ var syscalls_amd64 = []*Syscall{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "key", TypeSize: 8}}, ValuesStart: 1000, ValuesPerProc: 4},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "exception_port_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1}, BitMask: true},
 	}},
+	{Name: "zx_task_create_exception_channel", CallName: "zx_task_create_exception_channel", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_task", FldName: "task", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "exception_port_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", TypeSize: 4, ArgDir: 1}}},
+	}},
+	{Name: "zx_task_resume_from_exception", CallName: "zx_task_resume_from_exception", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_task", FldName: "task", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_port", FldName: "eport", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "task_resume_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{2}, BitMask: true},
+	}},
 	{Name: "zx_thread_create", CallName: "zx_thread_create", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "process", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
@@ -7198,14 +7332,12 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 2, RangeEnd: 9},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
 	{Name: "zx_thread_read_state$0", CallName: "zx_thread_read_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "kind", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 144, ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}, Kind: 1, RangeBegin: 18, RangeEnd: 18}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
 	{Name: "zx_thread_start", CallName: "zx_thread_start", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "handle", TypeSize: 4}},
@@ -7239,7 +7371,7 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_timer_set", CallName: "zx_timer_set", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_timer", FldName: "handle", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "slack", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "slack", TypeSize: 8}}},
 	}},
 	{Name: "zx_vcpu_create", CallName: "zx_vcpu_create", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_guest", FldName: "guest", TypeSize: 8}},
@@ -7259,7 +7391,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_vcpu_resume", CallName: "zx_vcpu_resume", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vcpu", FldName: "vcpu", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "port_packet", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "zx_port_packet", Dir: 1}}},
 	}},
 	{Name: "zx_vcpu_write_state", CallName: "zx_vcpu_write_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vcpu", FldName: "vcpu", TypeSize: 4}},
@@ -7306,7 +7438,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_vmo_clone", CallName: "zx_vmo_clone", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "handle", TypeSize: 4}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmo_clone_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmo_clone_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1, 2}, BitMask: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "offset", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "size", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", TypeSize: 4, ArgDir: 1}}},
@@ -7373,7 +7505,11 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "offset", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
+	}},
+	{Name: "zx_vmo_replace_as_executable", CallName: "zx_vmo_replace_as_executable", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "res", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{Name: "zx_vmo_set_cache_policy", CallName: "zx_vmo_set_cache_policy", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "handle", TypeSize: 4}},
@@ -7388,7 +7524,6 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "offset", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
 }
 
@@ -7459,27 +7594,35 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_CLOCK_UTC", Value: 1},
 	{Name: "ZX_EXCEPTION_PORT_DEBUGGER", Value: 1},
 	{Name: "ZX_HANDLE_INVALID"},
+	{Name: "ZX_INFO_BTI", Value: 20},
 	{Name: "ZX_INFO_CPU_STATS", Value: 16},
 	{Name: "ZX_INFO_HANDLE_BASIC", Value: 2},
+	{Name: "ZX_INFO_HANDLE_COUNT", Value: 19},
 	{Name: "ZX_INFO_HANDLE_VALID", Value: 1},
+	{Name: "ZX_INFO_JOB", Value: 24},
 	{Name: "ZX_INFO_JOB_CHILDREN", Value: 8},
 	{Name: "ZX_INFO_JOB_PROCESSES", Value: 9},
 	{Name: "ZX_INFO_KMEM_STATS", Value: 17},
 	{Name: "ZX_INFO_PROCESS", Value: 3},
+	{Name: "ZX_INFO_PROCESS_HANDLE_STATS", Value: 21},
 	{Name: "ZX_INFO_PROCESS_MAPS", Value: 13},
 	{Name: "ZX_INFO_PROCESS_THREADS", Value: 4},
 	{Name: "ZX_INFO_PROCESS_VMOS", Value: 14},
 	{Name: "ZX_INFO_RESOURCE", Value: 18},
+	{Name: "ZX_INFO_SOCKET", Value: 22},
 	{Name: "ZX_INFO_TASK_STATS", Value: 12},
+	{Name: "ZX_INFO_THREAD", Value: 10},
 	{Name: "ZX_INFO_THREAD_EXCEPTION_REPORT", Value: 11},
 	{Name: "ZX_INFO_THREAD_STATS", Value: 15},
 	{Name: "ZX_INFO_VMAR", Value: 7},
+	{Name: "ZX_INFO_VMO", Value: 23},
 	{Name: "ZX_INTERRUPT_VIRTUAL", Value: 16},
 	{Name: "ZX_JOB_POL_ABSOLUTE", Value: 1},
 	{Name: "ZX_JOB_POL_BASIC"},
 	{Name: "ZX_JOB_POL_RELATIVE"},
 	{Name: "ZX_LOG_FLAG_READABLE", Value: 1073741824},
 	{Name: "ZX_MAX_NAME_LEN", Value: 32},
+	{Name: "ZX_OBJ_TYPE_UPPER_BOUND", Value: 64},
 	{Name: "ZX_PKT_TYPE_USER"},
 	{Name: "ZX_POL_ACTION_ALLOW"},
 	{Name: "ZX_POL_ACTION_DENY", Value: 1},
@@ -7496,6 +7639,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_POL_NEW_VMO", Value: 4},
 	{Name: "ZX_POL_VMAR_WX", Value: 2},
 	{Name: "ZX_POL_WRONG_OBJECT", Value: 1},
+	{Name: "ZX_RESUME_TRY_NEXT", Value: 2},
 	{Name: "ZX_RIGHT_DESTROY", Value: 512},
 	{Name: "ZX_RIGHT_DUPLICATE", Value: 1},
 	{Name: "ZX_RIGHT_ENUMERATE", Value: 256},
@@ -7523,6 +7667,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_TIMER_SLACK_LATE", Value: 2},
 	{Name: "ZX_TIME_INFINITE", Value: 9223372036854775807},
 	{Name: "ZX_VMO_CLONE_COPY_ON_WRITE", Value: 1},
+	{Name: "ZX_VMO_CLONE_NON_RESIZEABLE", Value: 2},
 	{Name: "ZX_VMO_NON_RESIZABLE", Value: 1},
 	{Name: "ZX_VMO_OP_CACHE_CLEAN", Value: 8},
 	{Name: "ZX_VMO_OP_CACHE_CLEAN_INVALIDATE", Value: 9},
@@ -7570,4 +7715,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "d6d650c4d4b7bf6dffb3ebb9e87b1519c0317583"
+const revision_amd64 = "46822b1ef67dc6c2ddd23bb8b768fe16b2f89c95"
