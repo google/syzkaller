@@ -366,9 +366,10 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 
 	trace := new(bytes.Buffer)
 	cfg := &bisect.Config{
-		Trace:  io.MultiWriter(trace, log.VerboseWriter(3)),
-		Fix:    req.Type == dashapi.JobBisectFix,
-		BinDir: jp.cfg.BisectBinDir,
+		Trace:    io.MultiWriter(trace, log.VerboseWriter(3)),
+		DebugDir: osutil.Abs(filepath.Join("jobs", "debug", strings.Replace(req.ID, "|", "_", -1))),
+		Fix:      req.Type == dashapi.JobBisectFix,
+		BinDir:   jp.cfg.BisectBinDir,
 		Kernel: bisect.KernelConfig{
 			Repo:      mgr.mgrcfg.Repo,
 			Branch:    mgr.mgrcfg.Branch,
