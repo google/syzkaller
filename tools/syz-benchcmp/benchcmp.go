@@ -46,7 +46,7 @@ func main() {
 	}
 
 	graphs := []*Graph{
-		{Name: "coverage"},
+		{Name: "cover"},
 		{Name: "corpus"},
 		{Name: "exec total"},
 		{Name: "crash types"},
