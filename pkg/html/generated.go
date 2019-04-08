@@ -68,7 +68,7 @@ table td, table th {
 	background: #F4F4F4;
 }
 
-.list_table tr:nth-child(2n+1) {
+.list_table tr:nth-child(2n) {
 	background: #F4F4F4;
 }
 
@@ -182,7 +182,7 @@ const js = `
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 function sortTable(item, colName, conv, desc = false) {
-	table = item.parentNode.parentNode.parentNode;
+	table = item.parentNode.parentNode.parentNode.parentNode;
 	rows = table.rows;
 	col = findColumnByName(rows[0].getElementsByTagName("th"), colName);
 	values = [];
@@ -198,7 +198,7 @@ function sortTable(item, colName, conv, desc = false) {
 		return 1;
 	});
 	for (i = 0; i < values.length; i++)
-		table.appendChild(values[i][1]);
+		table.tBodies[0].appendChild(values[i][1]);
 	return false;
 }
 
