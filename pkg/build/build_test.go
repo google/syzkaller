@@ -103,6 +103,37 @@ ld: error: too many errors emitted, stopping now (use -error-limit=0 to see all 
 `,
 			"ld: error: undefined symbol: __stack_smash_handler",
 		},
+		{`
+make: execvp: /gcc-5.5.0/bin/gcc: Permission denied
+scripts/kconfig/conf  --silentoldconfig Kconfig
+arch/x86/Makefile:123: stack-protector enabled but compiler support broken
+arch/x86/Makefile:138: CONFIG_X86_X32 enabled but no binutils support
+Makefile:652: Cannot use CONFIG_CC_STACKPROTECTOR_REGULAR: -fstack-protector not supported by compiler
+make: execvp: /gcc-5.5.0/bin/gcc: Permission denied
+  SYSTBL  arch/x86/entry/syscalls/../../include/generated/asm/syscalls_32.h
+  SYSHDR  arch/x86/entry/syscalls/../../include/generated/uapi/asm/unistd_x32.h
+scripts/xen-hypercalls.sh: line 7: /gcc-5.5.0/bin/gcc: Permission denied
+  HOSTCC  scripts/mod/mk_elfconfig
+/bin/sh: 1: /gcc-5.5.0/bin/gcc: Permission denied
+scripts/Makefile.build:258: recipe for target 'scripts/mod/empty.o' failed
+make[2]: *** [scripts/mod/empty.o] Error 126
+make[2]: *** Waiting for unfinished jobs....
+  CC      scripts/mod/devicetable-offsets.s
+/bin/sh: 1: /gcc-5.5.0/bin/gcc: Permission denied
+scripts/Makefile.build:153: recipe for target 'scripts/mod/devicetable-offsets.s' failed
+make[2]: *** [scripts/mod/devicetable-offsets.s] Error 126
+  HOSTCC  scripts/selinux/mdp/mdp
+  HOSTCC  scripts/selinux/genheaders/genheaders
+scripts/Makefile.build:403: recipe for target 'scripts/mod' failed
+make[1]: *** [scripts/mod] Error 2
+make[1]: *** Waiting for unfinished jobs....
+  UPD     include/config/kernel.release
+Makefile:545: recipe for target 'scripts' failed
+make: *** [scripts] Error 2
+make: *** Waiting for unfinished jobs....
+  HOSTLD  arch/x86/tools/relocs
+`, "make: execvp: /gcc-5.5.0/bin/gcc: Permission denied",
+		},
 	} {
 		got := extractCauseInner([]byte(s.e))
 		if !bytes.Equal([]byte(s.expect), got) {
