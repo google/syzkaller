@@ -140,6 +140,9 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 		if strings.HasSuffix(file.Name(), "~") {
 			continue
 		}
+		if strings.HasSuffix(file.Name(), ".swp") {
+			continue
+		}
 		p, requires, results, err := ctx.parseProg(file.Name())
 		if err != nil {
 			return err
