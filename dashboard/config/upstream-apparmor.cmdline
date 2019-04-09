@@ -15,3 +15,4 @@ rose.rose_ndevs=16
 spec_store_bypass_disable=prctl
 numa=fake=2
 nopcid
+dummy_hcd.num=8
