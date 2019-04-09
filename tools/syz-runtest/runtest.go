@@ -284,6 +284,9 @@ func testParsing(target *prog.Target, dir string) error {
 		if strings.HasSuffix(file.Name(), "~") {
 			continue
 		}
+		if strings.HasSuffix(file.Name(), ".swp") {
+			continue
+		}
 		if err := runtest.TestParseProg(target, dir, file.Name()); err != nil {
 			return err
 		}
