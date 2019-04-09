@@ -1,4 +1,4 @@
-TITLE: INFO: rcu detected stall in ioctl
+TITLE: INFO: rcu detected stall in kvm_vm_compat_ioctl
 
 [  393.750282] INFO: rcu_sched self-detected stall on CPU
 [  393.755773] 	1: (104999 ticks this GP) idle=235/140000000000001/0 softirq=67058/67058 fqs=202 
@@ -15,55 +15,15 @@ TITLE: INFO: rcu detected stall in ioctl
 [  393.830211]  [<ffffffff8170d424>] dump_cpu_task+0x7e/0x83
 [  393.835736]  [<ffffffff8171694f>] rcu_dump_cpu_stacks+0x155/0x169
 [  393.841950]  [<ffffffff81717294>] rcu_check_callbacks.cold.75+0x61e/0xc77
-[  393.848861]  [<ffffffff814b0ff4>] ? __lock_is_held+0xa4/0xf0
 [  393.854649]  [<ffffffff81512ccf>] update_process_times+0x3f/0x70
 [  393.860782]  [<ffffffff8153c1ca>] tick_sched_handle.isra.16+0x5a/0x100
 [  393.867430]  [<ffffffff8153c87a>] tick_sched_timer+0x7a/0x130
 [  393.873296]  [<ffffffff81515e05>] __hrtimer_run_queues+0x3a5/0xc50
-[  393.879597]  [<ffffffff8153c800>] ? tick_sched_do_timer+0xa0/0xa0
-[  393.885818]  [<ffffffff81515a60>] ? retrigger_next_event+0x180/0x180
-[  393.892295]  [<ffffffff812d39f5>] ? kvm_clock_read+0x25/0x30
-[  393.898079]  [<ffffffff812d3a09>] ? kvm_clock_get_cycles+0x9/0x10
-[  393.904295]  [<ffffffff8152b39d>] ? ktime_get_update_offsets_now+0x2ad/0x350
 [  393.911466]  [<ffffffff8151702e>] hrtimer_interrupt+0x18e/0x400
 [  393.917506]  [<ffffffff812af344>] local_apic_timer_interrupt+0x74/0x90
 [  393.924153]  [<ffffffff81012fba>] smp_trace_apic_timer_interrupt+0x13a/0x4bd
 [  393.931325]  [<ffffffff81011d42>] smp_trace_apic_timer_interrupt_entry_after_kaiser_bti+0x20/0x2e
 [  393.940311]  <EOI>  [<ffffffff814f00eb>] ? debug_lockdep_rcu_enabled+0x3b/0x90
-[  393.947806]  [<ffffffff810837bc>] kvm_vm_ioctl_clear_memory_ondemand_state+0x43c/0x580
-[  393.955846]  [<ffffffff81083385>] ? kvm_vm_ioctl_clear_memory_ondemand_state+0x5/0x580
-[  393.963918]  [<ffffffff81085086>] kvm_vm_ioctl+0xb66/0x1700
-[  393.969623]  [<ffffffff81542530>] ? refill_pi_state_cache.part.8+0x200/0x200
-[  393.976805]  [<ffffffff81084520>] ? kvm_vm_ioctl_set_memory_ondemand_state+0x4b0/0x4b0
-[  393.984841]  [<ffffffff81541813>] ? drop_futex_key_refs.isra.11+0x63/0xf0
-[  393.991753]  [<ffffffff81543495>] ? futex_wait+0x335/0x600
-[  393.997376]  [<ffffffff810112b7>] ? _raw_spin_unlock_irqrestore+0x77/0x80
-[  394.004285]  [<ffffffff814b7014>] ? __lock_acquire+0x974/0x5350
-[  394.010340]  [<ffffffff813f3834>] ? try_to_wake_up+0x64/0x7c0
-[  394.016211]  [<ffffffff8191d021>] ? __fget+0x271/0x580
-[  394.021476]  [<ffffffff814ae8f4>] ? perf_trace_lock+0xb4/0x5c0
-[  394.027431]  [<ffffffff814ae840>] ? perf_trace_lock_acquire+0x6a0/0x6a0
-[  394.034195]  [<ffffffff814b0890>] ? check_noncircular+0x20/0x20
-[  394.040235]  [<ffffffff814f0127>] ? debug_lockdep_rcu_enabled+0x77/0x90
-[  394.046981]  [<ffffffff814b78af>] ? __lock_acquire+0x120f/0x5350
-[  394.053108]  [<ffffffff814b0890>] ? check_noncircular+0x20/0x20
-[  394.059147]  [<ffffffff814b0890>] ? check_noncircular+0x20/0x20
-[  394.065188]  [<ffffffff8191d021>] ? __fget+0x271/0x580
-[  394.070652]  [<ffffffff814b0ff4>] ? __lock_is_held+0xa4/0xf0
 [  394.076457]  [<ffffffff81085d5c>] kvm_vm_compat_ioctl+0x13c/0x250
-[  394.082674]  [<ffffffff81085c20>] ? kvm_vm_ioctl+0x1700/0x1700
-[  394.088649]  [<ffffffff8191d41c>] ? __fget_light+0xac/0x440
-[  394.094351]  [<ffffffff81ca97fe>] ? security_file_ioctl+0x8e/0xc0
-[  394.100565]  [<ffffffff81085c20>] ? kvm_vm_ioctl+0x1700/0x1700
 [  394.106616]  [<ffffffff819d8ee0>] compat_SyS_ioctl+0x650/0x2180
-[  394.112658]  [<ffffffff812d3a00>] ? kvm_clock_read+0x30/0x30
-[  394.118440]  [<ffffffff8151a1aa>] ? posix_ktime_get_ts+0x1a/0x20
-[  394.124672]  [<ffffffff819d8890>] ? compat_SyS_open_by_handle_at+0x30/0x30
-[  394.131671]  [<ffffffff817d3467>] ? __might_fault+0x97/0x1d0
-[  394.137452]  [<ffffffff8151a190>] ? posix_get_monotonic_raw+0x20/0x20
-[  394.144018]  [<ffffffff8151e681>] ? SyS_clock_gettime+0x141/0x230
-[  394.150324]  [<ffffffff81019719>] ? syscall_trace_enter_phase1+0x379/0x560
-[  394.157321]  [<ffffffff810193a0>] ? trace_event_raw_event_sys_enter_tiny+0x320/0x320
-[  394.165189]  [<ffffffff810171f8>] ? do_audit_syscall_entry+0xd8/0x240
-[  394.171752]  [<ffffffff81019abd>] ? syscall_trace_enter_phase2+0x1bd/0x9d0
 [  394.178750]  [<ffffffff830a99b0>] sysenter_dispatch+0xf/0x32

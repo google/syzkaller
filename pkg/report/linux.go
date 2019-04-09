@@ -637,8 +637,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("^sock_do_ioctl"),
 	compile("^sock_ioctl"),
 	compile("^compat_sock_ioctl"),
-	compile("^(compat_)?(SYSC|SyS|__sys|___sys|__do_sys|__se_sys|__x64_sys)_socketpair"),
-	compile("^(compat_)?(SYSC|SyS|__sys|___sys|__do_sys|__se_sys|__x64_sys)_connect"),
+	compile("^(compat_)?(SYSC|SyS|__sys|___sys|__do_sys|__se_sys|__x64_sys)_(socketpair|connect|ioctl)"),
 	// Page fault entry points:
 	compile("__do_fault"),
 	compile("handle_mm_fault"),
