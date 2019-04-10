@@ -31,7 +31,7 @@ func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
 		if err := fn(c, w, r); err != nil {
-			hdr, _ := commonHeader(c, r, w, "")
+			hdr := commonHeaderRaw(c, r)
 			data := &struct {
 				Header *uiHeader
 				Error  string
@@ -40,11 +40,11 @@ func handleContext(fn contextHandler) http.Handler {
 				Error:  err.Error(),
 			}
 			if err == ErrAccess {
-				w.WriteHeader(http.StatusForbidden)
-				err1 := templates.ExecuteTemplate(w, "forbidden.html", data)
-				if err1 != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
+				if hdr.LoginLink != "" {
+					http.Redirect(w, r, hdr.LoginLink, http.StatusTemporaryRedirect)
+					return
 				}
+				http.Error(w, "403 Forbidden", http.StatusForbidden)
 				return
 			}
 			if redir, ok := err.(ErrRedirect); ok {
@@ -109,6 +109,17 @@ type cookieData struct {
 	Namespace string `json:"namespace"`
 }
 
+func commonHeaderRaw(c context.Context, r *http.Request) *uiHeader {
+	h := &uiHeader{
+		Admin:               accessLevel(c, r) == AccessAdmin,
+		AnalyticsTrackingID: config.AnalyticsTrackingID,
+	}
+	if user.Current(c) == nil {
+		h.LoginLink, _ = user.LoginURL(c, r.URL.String())
+	}
+	return h
+}
+
 func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns string) (*uiHeader, error) {
 	accessLevel := accessLevel(c, r)
 	if ns == "" {
@@ -120,10 +131,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 			ns = ns[:pos]
 		}
 	}
-	h := &uiHeader{
-		Admin:               accessLevel == AccessAdmin,
-		AnalyticsTrackingID: config.AnalyticsTrackingID,
-	}
+	h := commonHeaderRaw(c, r)
 	const adminPage = "admin"
 	isAdminPage := r.URL.Path == "/"+adminPage
 	isBugPage := r.URL.Path == "/bug"
@@ -186,9 +194,6 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 		h.Namespace = ns
 		cookie.Namespace = ns
 		encodeCookie(w, cookie)
-	}
-	if user.Current(c) == nil {
-		h.LoginLink, _ = user.LoginURL(c, r.URL.String())
 	}
 	return h, nil
 }
