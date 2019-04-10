@@ -479,7 +479,7 @@ again:
 			if (collide && (call % 2) == 0)
 				break;
 #endif
-			event_timedwait(&th->done, 45);
+			event_timedwait(&th->done, /*CALL_TIMEOUT*/);
 			break;
 		}
 	}
@@ -619,6 +619,7 @@ static void loop(void)
 				executed_calls = now_executed;
 				last_executed = now;
 			}
+			// TODO: adjust timeout for progs with syz_usb_connect call.
 			if ((now - start < 5 * 1000) && (now - start < 3 * 1000 || now - last_executed < 1000))
 				continue;
 #else

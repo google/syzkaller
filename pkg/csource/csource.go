@@ -73,6 +73,18 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		replacements["SANDBOX_FUNC"] = replacements["SYSCALLS"]
 		replacements["SYSCALLS"] = "unused"
 	}
+	// Must match timeouts in executor/executor.cc.
+	specialCallTimeouts := map[string]int{
+		"syz_usb_connect":    2000,
+		"syz_usb_disconnect": 200,
+	}
+	timeoutExpr := "45"
+	for i, call := range p.Calls {
+		if timeout, ok := specialCallTimeouts[call.Meta.CallName]; ok {
+			timeoutExpr += fmt.Sprintf(" + (call == %d ? %d : 0)", i, timeout)
+		}
+	}
+	replacements["CALL_TIMEOUT"] = timeoutExpr
 	result, err := createCommonHeader(p, mmapProg, replacements, opts)
 	if err != nil {
 		return nil, err
