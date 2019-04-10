@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"google.golang.org/appengine/user"
 )
 
 func init() {
@@ -343,22 +344,28 @@ func TestRedirects(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	checkRedirect(c, AccessUser, "/", "/test1") // redirect to default namespace
-	checkRedirect(c, AccessAdmin, "/", "/admin")
+	checkRedirect(c, AccessUser, "/", "/test1", http.StatusMovedPermanently) // redirect to default namespace
+	checkRedirect(c, AccessAdmin, "/", "/admin", http.StatusMovedPermanently)
+	checkLoginRedirect(c, AccessPublic, "/access-user") // not accessible namespace
 
-	_, err := c.httpRequest("GET", "/access-user", "", AccessPublic) // not accessible namespace
-	c.expectForbidden(err)
-
-	_, err = c.httpRequest("GET", "/access-user", "", AccessUser)
+	_, err := c.httpRequest("GET", "/access-user", "", AccessUser)
 	c.expectOK(err)
 }
 
-func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string) {
+func checkLoginRedirect(c *Ctx, accessLevel AccessLevel, url string) {
+	to, err := user.LoginURL(c.ctx, url)
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	checkRedirect(c, accessLevel, url, to, http.StatusTemporaryRedirect)
+}
+
+func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int) {
 	_, err := c.httpRequest("GET", from, "", accessLevel)
 	c.expectNE(err, nil)
 	httpErr, ok := err.(HttpError)
 	c.expectTrue(ok)
-	c.expectEQ(httpErr.Code, http.StatusMovedPermanently)
+	c.expectEQ(httpErr.Code, status)
 	c.expectEQ(httpErr.Headers["Location"], []string{to})
 }
 

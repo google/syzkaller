@@ -8,10 +8,12 @@ package dash
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"strconv"
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"google.golang.org/appengine/user"
 )
 
 // TestAccessConfig checks that access level were properly assigned throughout the config.
@@ -306,6 +308,16 @@ func TestAccess(t *testing.T) {
 		reply, err := c.AuthGET(requestLevel, url)
 		if requestLevel >= pageLevel {
 			c.expectOK(err)
+		} else if requestLevel == AccessPublic {
+			loginURL, err1 := user.LoginURL(c.ctx, url)
+			if err1 != nil {
+				t.Fatal(err1)
+			}
+			c.expectNE(err, nil)
+			httpErr, ok := err.(HttpError)
+			c.expectTrue(ok)
+			c.expectEQ(httpErr.Code, http.StatusTemporaryRedirect)
+			c.expectEQ(httpErr.Headers["Location"], []string{loginURL})
 		} else {
 			c.expectForbidden(err)
 		}
