@@ -5224,7 +5224,7 @@ again:
 			if (collide && (call % 2) == 0)
 				break;
 #endif
-			event_timedwait(&th->done, 45);
+			event_timedwait(&th->done, /*CALL_TIMEOUT*/);
 			break;
 		}
 	}
