@@ -135,8 +135,9 @@ type KernelRepo struct {
 }
 
 var (
-	clientNameRe = regexp.MustCompile("^[a-zA-Z0-9-_]{4,100}$")
-	clientKeyRe  = regexp.MustCompile("^[a-zA-Z0-9]{16,128}$")
+	namespaceNameRe = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,32}$")
+	clientNameRe    = regexp.MustCompile("^[a-zA-Z0-9-_.]{4,100}$")
+	clientKeyRe     = regexp.MustCompile("^[a-zA-Z0-9]{16,128}$")
 )
 
 type (
@@ -202,8 +203,8 @@ func checkConfig(cfg *GlobalConfig) {
 }
 
 func checkNamespace(ns string, cfg *Config, namespaces, clientNames map[string]bool) {
-	if ns == "" {
-		panic("empty namespace name")
+	if !namespaceNameRe.MatchString(ns) {
+		panic(fmt.Sprintf("bad namespace name: %q", ns))
 	}
 	if namespaces[ns] {
 		panic(fmt.Sprintf("duplicate namespace %q", ns))
