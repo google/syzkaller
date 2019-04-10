@@ -60,6 +60,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sync"
 
 	"github.com/google/syzkaller/pkg/config"
@@ -249,9 +250,11 @@ func loadConfig(filename string) (*Config, error) {
 	if cfg.EnableJobs && cfg.BisectBinDir == "" {
 		return nil, fmt.Errorf("enabled_jobs is set but no bisect_bin_dir")
 	}
+	// Manager name must not contain dots because it is used as GCE image name prefix.
+	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{4,64}$")
 	for i, mgr := range cfg.Managers {
-		if mgr.Name == "" {
-			return nil, fmt.Errorf("param 'managers[%v].name' is empty", i)
+		if !managerNameRe.MatchString(mgr.Name) {
+			return nil, fmt.Errorf("param 'managers[%v].name' has bad value: %q", i, mgr.Name)
 		}
 		if mgr.Branch == "" {
 			mgr.Branch = "master"
