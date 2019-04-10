@@ -593,6 +593,7 @@ retry:
 		if (call_num == instr_eof)
 			break;
 		int call_extra_timeout = 0;
+		// Must match timeouts in pkg/csource/csource.go.
 		if (strcmp(syscalls[call_num].name, "syz_usb_connect") == 0) {
 			collect_extra_cover = true;
 			prog_extra_timeout = 2000;
