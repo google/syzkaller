@@ -798,6 +798,21 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/usb/ch9.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "common_usb.h"
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_open_dev
 #include <fcntl.h>
 #include <string.h>
