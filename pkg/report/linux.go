@@ -709,6 +709,7 @@ var linuxStackParams = &stackParams{
 		"raw_read_trylock",
 		"raw_write_lock",
 		"raw_write_trylock",
+		"down",
 		"down_read",
 		"down_write",
 		"down_read_trylock",
