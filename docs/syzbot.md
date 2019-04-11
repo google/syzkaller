@@ -86,7 +86,9 @@ After sending an email you should get a reply email with results within an hour.
 Note: you may send the request only to `syzbot` email address, as patches sent
 to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 
-Note: see [below](#kmsan-bugs) for testing `KMSAN` bugs.
+Note: see [below](#kmsan-bugs) for `KMSAN` bugs testing.
+
+Note: see [below](#usb-bugs) for `USB` bugs testing.
 
 <div id="bisection"/>
 
@@ -262,6 +264,20 @@ more "Uninit was stored to memory at:" stacks which denote how the unint value
 travelled through memory. Finally there is a "Uninit was created at:"
 section which points either to a heap allocation or a stack variable which
 is the original source of uninitialized-ness.
+
+## USB bugs
+
+syzkaller has an ability to perform fuzzing of the Linux kernel USB stack, see
+the details [here](/docs/linux/external_fuzzing_usb.md). This requires
+non-yet-upstreamed kernel changes and thus patch testing is only possible on
+the `usb-fuzzer` branch of the `https://github.com/google/kasan.git` tree.
+The standard way for triggering tests with the `usb-fuzzer` tree is to send an
+email to `syzbot+HASH` address containing the following line:
+```
+#syz test: https://github.com/google/kasan.git usb-fuzzer
+```
+and attach/inline your test patch in the same email.
+
 
 ## No custom patches
 
