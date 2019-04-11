@@ -50,17 +50,18 @@ func InitTarget(target *prog.Target) {
 	target.SanitizeCall = arch.sanitizeCall
 	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, old prog.Arg) (
 		prog.Arg, []*prog.Call){
-		"timespec":           arch.generateTimespec,
-		"timeval":            arch.generateTimespec,
-		"sockaddr_alg":       arch.generateSockaddrAlg,
-		"alg_name":           arch.generateAlgName,
-		"alg_aead_name":      arch.generateAlgAeadName,
-		"alg_hash_name":      arch.generateAlgHashName,
-		"alg_blkcipher_name": arch.generateAlgBlkcipherhName,
-		"ipt_replace":        arch.generateIptables,
-		"ip6t_replace":       arch.generateIptables,
-		"arpt_replace":       arch.generateArptables,
-		"ebt_replace":        arch.generateEbtables,
+		"timespec":              arch.generateTimespec,
+		"timeval":               arch.generateTimespec,
+		"sockaddr_alg":          arch.generateSockaddrAlg,
+		"alg_name":              arch.generateAlgName,
+		"alg_aead_name":         arch.generateAlgAeadName,
+		"alg_hash_name":         arch.generateAlgHashName,
+		"alg_blkcipher_name":    arch.generateAlgBlkcipherhName,
+		"ipt_replace":           arch.generateIptables,
+		"ip6t_replace":          arch.generateIptables,
+		"arpt_replace":          arch.generateArptables,
+		"ebt_replace":           arch.generateEbtables,
+		"usb_device_descriptor": arch.generateUsbDeviceDescriptor,
 	}
 	// TODO(dvyukov): get rid of this, this must be in descriptions.
 	target.StringDictionary = []string{

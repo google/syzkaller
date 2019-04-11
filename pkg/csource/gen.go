@@ -32,6 +32,7 @@ func main() {
 		"common_test.h",
 		"common_kvm_amd64.h",
 		"common_kvm_arm64.h",
+		"common_usb.h",
 		"kvm.h",
 		"kvm.S.h",
 	} {
