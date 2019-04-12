@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
@@ -48,7 +49,7 @@ func handleContext(fn contextHandler) http.Handler {
 				return
 			}
 			if redir, ok := err.(ErrRedirect); ok {
-				http.Redirect(w, r, redir.Error(), http.StatusMovedPermanently)
+				http.Redirect(w, r, redir.Error(), http.StatusFound)
 				return
 			}
 			if _, dontlog := err.(ErrDontLog); !dontlog {
@@ -220,8 +221,9 @@ func encodeCookie(w http.ResponseWriter, cd *cookieData) {
 		return
 	}
 	cookie := &http.Cookie{
-		Name:  cookieName,
-		Value: base64.StdEncoding.EncodeToString(data),
+		Name:    cookieName,
+		Value:   base64.StdEncoding.EncodeToString(data),
+		Expires: time.Now().Add(time.Hour * 24 * 365),
 	}
 	http.SetCookie(w, cookie)
 }

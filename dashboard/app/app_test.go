@@ -344,8 +344,8 @@ func TestRedirects(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
 
-	checkRedirect(c, AccessUser, "/", "/test1", http.StatusMovedPermanently) // redirect to default namespace
-	checkRedirect(c, AccessAdmin, "/", "/admin", http.StatusMovedPermanently)
+	checkRedirect(c, AccessUser, "/", "/test1", http.StatusFound) // redirect to default namespace
+	checkRedirect(c, AccessAdmin, "/", "/admin", http.StatusFound)
 	checkLoginRedirect(c, AccessPublic, "/access-user") // not accessible namespace
 
 	_, err := c.httpRequest("GET", "/access-user", "", AccessUser)
