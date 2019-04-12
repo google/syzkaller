@@ -6,6 +6,8 @@ include <uapi/linux/kd.h>
 include <uapi/linux/vt.h>
 include <uapi/linux/fcntl.h>
 include <uapi/linux/tty.h>
+include <uapi/linux/serial.h>
+include <uapi/linux/termios.h>
 
 resource fd_tty[fd]
 
@@ -31,7 +33,7 @@ ioctl$TCXONC(fd fd_tty, cmd const[TCXONC], arg intptr)
 ioctl$FIONREAD(fd fd_tty, cmd const[FIONREAD], arg ptr[out, int32])
 ioctl$TIOCOUTQ(fd fd_tty, cmd const[TIOCOUTQ], arg ptr[out, int32])
 ioctl$TCFLSH(fd fd_tty, cmd const[TCFLSH], arg intptr)
-ioctl$TIOCGPTPEER(fd fd_tty, cmd const[TIOCGPTPEER], arg intptr)
+ioctl$TIOCGPTPEER(fd fd_tty, cmd const[TIOCGPTPEER], arg intptr) fd_tty
 ioctl$TIOCSTI(fd fd_tty, cmd const[TIOCSTI], arg intptr)
 ioctl$TIOCCONS(fd fd_tty, cmd const[TIOCCONS])
 ioctl$TIOCSCTTY(fd fd_tty, cmd const[TIOCSCTTY], arg intptr)
@@ -107,6 +109,34 @@ ioctl$TIOCLINUX4(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[4, int8]])
 ioctl$TIOCLINUX5(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, loadlut])
 ioctl$TIOCLINUX6(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_shift_state])
 ioctl$TIOCLINUX7(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_report_mouse])
+ioctl$TIOCGSERIAL(fd fd_tty, cmd const[TIOCGSERIAL], arg ptr[out, serial_struct])
+ioctl$TIOCSSERIAL(fd fd_tty, cmd const[TIOCSSERIAL], arg ptr[in, serial_struct])
+ioctl$TCGETS2(fd fd_tty, cmd const[TCGETS2], arg ptr[out, termios2])
+ioctl$TCSETS2(fd fd_tty, cmd const[TCSETS2], arg ptr[in, termios2])
+ioctl$TIOCSERGETLSR(fd fd_tty, cmd const[TIOCSERGETLSR], arg ptr[out, int32])
+ioctl$TIOCGRS485(fd fd_tty, cmd const[TIOCGRS485], arg ptr[out, serial_rs485])
+ioctl$TIOCSRS485(fd fd_tty, cmd const[TIOCSRS485], arg ptr[in, serial_rs485])
+ioctl$TIOCGISO7816(fd fd_tty, cmd const[TIOCGISO7816], arg ptr[out, serial_iso7816])
+ioctl$TIOCSISO7816(fd fd_tty, cmd const[TIOCSISO7816], arg ptr[in, serial_iso7816])
+ioctl$TIOCSPTLCK(fd fd_tty, cmd const[TIOCSPTLCK], arg ptr[in, bool32])
+ioctl$TIOCGPTLCK(fd fd_tty, cmd const[TIOCGPTLCK], arg ptr[out, int32])
+ioctl$TIOCGPKT(fd fd_tty, cmd const[TIOCGPKT], arg ptr[out, int32])
+ioctl$TIOCSIG(fd fd_tty, cmd const[TIOCSIG], arg signalno)
+ioctl$TIOCVHANGUP(fd fd_tty, cmd const[TIOCVHANGUP], arg const[0])
+ioctl$TIOCGDEV(fd fd_tty, cmd const[TIOCGDEV], arg ptr[out, int32])
+ioctl$TCGETX(fd fd_tty, cmd const[TCGETX], arg ptr[out, termiox])
+ioctl$TCSETX(fd fd_tty, cmd const[TCSETX], arg ptr[in, termiox])
+ioctl$TCSETXF(fd fd_tty, cmd const[TCSETXF], arg ptr[in, termiox])
+ioctl$TCSETXW(fd fd_tty, cmd const[TCSETXW], arg ptr[in, termiox])
+ioctl$TIOCMIWAIT(fd fd_tty, cmd const[TIOCMIWAIT], arg const[0])
+ioctl$TIOCGICOUNT(fd fd_tty, cmd const[TIOCGICOUNT], arg const[0])
+
+termiox {
+	x_hflag	int16
+	x_cflag	int16
+	x_rflag	array[int16, NFF]
+	x_sflag	int16
+}
 
 termios {
 	iflag	int32
@@ -121,6 +151,17 @@ termios {
 	cc7_10	int32
 	cc11_14	int32
 	cc15_18	int32
+}
+
+termios2 {
+	c_iflag		int32
+	c_oflag		int32
+	c_cflag		int32
+	c_lflag		int32
+	c_line		int8
+	c_cc		array[int8, NCCS]
+	c_ispeed	int32
+	c_ospeed	int32
 }
 
 termio {
@@ -238,4 +279,41 @@ tiocl_shift_state {
 tiocl_report_mouse {
 	subcode	const[7, int8]
 	shift	int8
+}
+
+serial_struct {
+	type		int32
+	line		int32
+	port		int32
+	irq		int32
+	flags		int32
+	xmit_fifo_size	int32
+	custom_divisor	int32
+	baud_base	int32
+	close_delay	int32
+	io_type		int8
+	reserved_char	int8
+	hub6		int32
+	closing_wait	int16
+	closing_wait2	int16
+	iomem_base	ptr[out, array[int8]]
+	iomem_reg_shift	int16
+	port_high	int32
+	iomap_base	intptr
+}
+
+serial_rs485 {
+	flags			int32
+	delay_rts_before_send	int32
+	delay_rts_after_send	int32
+	padding			array[const[0, int32], 5]
+}
+
+serial_iso7816 {
+	flags		int32
+	tg		int32
+	sc_fi		int32
+	sc_di		int32
+	clk		int32
+	reserved	array[const[0, int32], 5]
 }
