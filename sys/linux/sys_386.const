@@ -658,6 +658,7 @@ __NR_open_by_handle_at = 342
 __NR_openat = 295
 __NR_pause = 29
 __NR_personality = 136
+__NR_pidfd_send_signal = 424
 __NR_pipe = 42
 __NR_pipe2 = 331
 __NR_pivot_root = 217
