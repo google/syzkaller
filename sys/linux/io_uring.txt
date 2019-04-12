@@ -1,0 +1,48 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# See http://kernel.dk/io_uring.pdf
+
+# TODO: we don't write anything to the actual uring.
+# NEED: we somehow need to write the mmap-ed range after the mmap. vring needs something similar.
+
+include <uapi/linux/io_uring.h>
+
+resource fd_io_uring[fd]
+
+io_uring_setup(entries int32[1:4096], params ptr[in, io_uring_params]) fd_io_uring
+io_uring_enter(fd fd_io_uring, to_submit int32, min_complete int32, flags flags[io_uring_enter_flags], sigmask ptr[in, sigset], size len[sigmask])
+io_uring_register$IORING_REGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_REGISTER_BUFFERS], arg ptr[in, array[iovec_out]], nr_args len[arg])
+io_uring_register$IORING_UNREGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_UNREGISTER_BUFFERS], arg const[0], nr_args const[0])
+io_uring_register$IORING_REGISTER_FILES(fd fd_io_uring, opcode const[IORING_REGISTER_FILES], arg ptr[in, array[fd]], nr_args len[arg])
+io_uring_register$IORING_UNREGISTER_FILES(fd fd_io_uring, opcode const[IORING_UNREGISTER_FILES], arg const[0], nr_args const[0])
+mmap$IORING_OFF_SQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQ_RING])
+mmap$IORING_OFF_CQ_RING(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_CQ_RING])
+mmap$IORING_OFF_SQES(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_io_uring, offset const[IORING_OFF_SQES])
+
+io_uring_setup_flags = IORING_SETUP_IOPOLL, IORING_SETUP_SQPOLL, IORING_SETUP_SQ_AFF
+io_uring_enter_flags = IORING_ENTER_GETEVENTS, IORING_ENTER_SQ_WAKEUP
+_ = __NR_mmap2
+
+io_uring_params {
+	sq_entries	const[0, int32]
+	cq_entries	const[0, int32]
+	flags		flags[io_uring_setup_flags, int32]
+	sq_thread_cpu	int32[0:3]
+	sq_thread_idle	int32[0:1000]
+	resv		array[const[0, int32], 5]
+	sq_off		io_sqring_offsets
+	cq_off		io_sqring_offsets
+}
+
+io_sqring_offsets {
+	head		const[0, int32]
+	tail		const[0, int32]
+	ring_mask	const[0, int32]
+	ring_entries	const[0, int32]
+	flags		const[0, int32]
+	dropped		const[0, int32]
+	array		const[0, int32]
+	resv1		const[0, int32]
+	resv2		const[0, int64]
+}
