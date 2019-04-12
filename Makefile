@@ -338,10 +338,10 @@ install_prerequisites:
 	uname -a
 	sudo apt-get update
 	sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev \
-		gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-powerpc64le-linux-gnu || true
+		gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-powerpc64le-linux-gnu || true
 	sudo apt-get install -y -q g++-aarch64-linux-gnu || true
 	sudo apt-get install -y -q g++-powerpc64le-linux-gnu || true
-	sudo apt-get install -y -q g++-arm-linux-gnueabihf || true
+	sudo apt-get install -y -q g++-arm-linux-gnueabi || true
 	sudo apt-get install -y -q ragel
 	go get -u golang.org/x/tools/cmd/goyacc
 	go get -u gopkg.in/alecthomas/gometalinter.v2
