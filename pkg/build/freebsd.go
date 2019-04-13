@@ -64,6 +64,8 @@ sudo mount /dev/${md}p${partn} $tmpdir
 
 sudo MAKEOBJDIRPREFIX=%s make -C %s installkernel KERNCONF=%s DESTDIR=$tmpdir
 
+echo 'pf_load="YES"' | sudo tee -a /boot/loader.conf
+
 sudo umount $tmpdir
 sudo mdconfig -d -u ${md#md}
 `, objPrefix, kernelDir, confFile)
