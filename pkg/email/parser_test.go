@@ -428,7 +428,9 @@ IHQpKSB7CiAJCXNwaW5fdW5sb2NrKCZrY292LT5sb2NrKTsKIAkJcmV0dXJuOwo=
 			Body: `body text
 >#syz test
 `,
-			Patch: `--- a/kernel/kcov.c
+			Patch: `diff --git a/kernel/kcov.c b/kernel/kcov.c
+index 85e5546cd791..949ea4574412 100644
+--- a/kernel/kcov.c
 +++ b/kernel/kcov.c
 @@ -127,7 +127,6 @@ void kcov_task_exit(struct task_struct *t)
  	kcov = t->kcov;
@@ -537,7 +539,9 @@ index 3d85747bd86e..a257b872a53d 100644
   error = vfs_statx(dfd, filename, flags, &stat, mask);
   if (error)
 `,
-			Patch: `--- a/fs/stat.c
+			Patch: `diff --git a/fs/stat.c b/fs/stat.c
+index 3d85747bd86e..a257b872a53d 100644
+--- a/fs/stat.c
 +++ b/fs/stat.c
 @@ -567,8 +567,6 @@ SYSCALL_DEFINE5(statx,
   return -EINVAL;
