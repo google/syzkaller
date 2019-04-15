@@ -64,7 +64,9 @@ index 74e0388cc88d..fc6f740d0277 100644
  	}
 `,
 		title: "net/tcp: fix foo()",
-		diff: `--- a/kernel/time/tick-sched.c
+		diff: `diff --git a/kernel/time/tick-sched.c b/kernel/time/tick-sched.c
+index 74e0388cc88d..fc6f740d0277 100644
+--- a/kernel/time/tick-sched.c
 +++ b/kernel/time/tick-sched.c
 @@ -725,6 +725,11 @@ static ktime_t tick_nohz_stop_sched_tick(struct tick_sched *ts,
  		 */
@@ -101,7 +103,9 @@ index acbe61c..160dc89 100644
  	irda_queue_t* queue;
 `,
 		title: "fix looking up invalid subclass: 4294967295",
-		diff: `--- a/net/irda/irqueue.c
+		diff: `diff --git a/net/irda/irqueue.c b/net/irda/irqueue.c
+index acbe61c..160dc89 100644
+--- a/net/irda/irqueue.c
 +++ b/net/irda/irqueue.c
 @@ -383,9 +383,6 @@ EXPORT_SYMBOL(hashbin_new);
   *    for deallocating this structure if it's complex. If not the user can
@@ -131,7 +135,9 @@ index acbe61c..160dc89 100644
 -#endif
  int hashbin_delete( hashbin_t* hashbin, FREE_FUNC free_func)`,
 		title: "net: fix looking up invalid subclass: 4294967295",
-		diff: `--- a/net/irda/irqueue.c
+		diff: `diff --git a/net/irda/irqueue.c b/net/irda/irqueue.c
+index acbe61c..160dc89 100644
+--- a/net/irda/irqueue.c
 +++ b/net/irda/irqueue.c
 @@ -383,9 +383,6 @@ EXPORT_SYMBOL(hashbin_new);
   *    for deallocating this structure if it's complex. If not the user can
@@ -212,7 +218,10 @@ index 36870b2..5484d77 100644
 -- 
 2.5.5`,
 		title: "crypto/sha512-mb: Correct initialization value for lane lens",
-		diff: `--- a/arch/x86/crypto/sha512-mb/sha512_mb_mgr_init_avx2.c
+		diff: `diff --git a/arch/x86/crypto/sha512-mb/sha512_mb_mgr_init_avx2.c ` +
+			`b/arch/x86/crypto/sha512-mb/sha512_mb_mgr_init_avx2.c
+index 36870b2..5484d77 100644
+--- a/arch/x86/crypto/sha512-mb/sha512_mb_mgr_init_avx2.c
 +++ b/arch/x86/crypto/sha512-mb/sha512_mb_mgr_init_avx2.c
 @@ -57,10 +57,10 @@ void sha512_mb_mgr_init_avx2(struct sha512_mb_mgr *state)
  {
@@ -300,7 +309,10 @@ index 0000000..a1a0499
 +package dash
 `,
 		title: "syz-dash: first version of dashboard app",
-		diff: `--- /dev/null
+		diff: `diff --git a/syz-dash/api.go b/syz-dash/api.go
+new file mode 100644
+index 0000000..a1a0499
+--- /dev/null
 +++ b/syz-dash/api.go
 @@ -0,0 +1,444 @@
 +package dash
@@ -339,7 +351,9 @@ index 6f319fb81718..76a8d5aeed4b 100644
 > Does this help?
 `,
 		title: "multi-file patch",
-		diff: `--- a/init/main.c
+		diff: `diff --git a/init/main.c b/init/main.c
+index 0ee9c6866ada..ed01296f7b23 100644
+--- a/init/main.c
 +++ b/init/main.c
 @@ -706,6 +706,8 @@ asmlinkage __visible void __init start_kernel(void)
                 efi_free_boot_services();
@@ -363,6 +377,107 @@ index 6f319fb81718..76a8d5aeed4b 100644
  }
  
  void kasan_disable_current(void)
+`,
+	},
+	{
+		text: `Subject: Re: WARNING in usb_submit_urb (4)
+
+#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git v5.1-rc3
+
+Index: usb-devel/drivers/usb/core/driver.c
+===================================================================
+--- usb-devel.orig/drivers/usb/core/driver.c
++++ usb-devel/drivers/usb/core/driver.c
+@@ -34,6 +34,9 @@
+ 
+ #include "usb.h"
+ 
++#undef dev_vdbg
++#define dev_vdbg dev_info
++
+ 
+ /*
+  * Adds a new dynamic USBdevice ID to this driver,
+Index: usb-devel/drivers/usb/core/hub.c
+===================================================================
+--- usb-devel.orig/drivers/usb/core/hub.c
++++ usb-devel/drivers/usb/core/hub.c
+@@ -36,6 +36,10 @@
+ #include "hub.h"
+ #include "otg_whitelist.h"
+ 
++#undef dev_dbg
++#define dev_dbg dev_info
++
++
+ #define USB_VENDOR_GENESYS_LOGIC		0x05e3
+ #define HUB_QUIRK_CHECK_PORT_AUTOSUSPEND	0x01
+ 
+@@ -1016,6 +1020,8 @@ static void hub_activate(struct usb_hub
+ 	bool need_debounce_delay = false;
+ 	unsigned delay;
+ 
++	dev_info(hub->intfdev, "%s type %d\n", __func__, type);
++
+ 	/* Continue a partial initialization */
+ 	if (type == HUB_INIT2 || type == HUB_INIT3) {
+ 		device_lock(&hdev->dev);
+@@ -1254,6 +1260,7 @@ static void hub_activate(struct usb_hub
+  init3:
+ 	hub->quiescing = 0;
+ 
++	dev_info(hub->intfdev, "Submitting status URB\n");
+ 	status = usb_submit_urb(hub->urb, GFP_NOIO);
+ 	if (status < 0)
+ 		dev_err(hub->intfdev, "activate --> %d\n", status);
+`,
+		title: "Re: WARNING in usb_submit_urb (4)",
+		diff: `Index: usb-devel/drivers/usb/core/driver.c
+===================================================================
+--- usb-devel.orig/drivers/usb/core/driver.c
++++ usb-devel/drivers/usb/core/driver.c
+@@ -34,6 +34,9 @@
+ 
+ #include "usb.h"
+ 
++#undef dev_vdbg
++#define dev_vdbg dev_info
++
+ 
+ /*
+  * Adds a new dynamic USBdevice ID to this driver,
+Index: usb-devel/drivers/usb/core/hub.c
+===================================================================
+--- usb-devel.orig/drivers/usb/core/hub.c
++++ usb-devel/drivers/usb/core/hub.c
+@@ -36,6 +36,10 @@
+ #include "hub.h"
+ #include "otg_whitelist.h"
+ 
++#undef dev_dbg
++#define dev_dbg dev_info
++
++
+ #define USB_VENDOR_GENESYS_LOGIC		0x05e3
+ #define HUB_QUIRK_CHECK_PORT_AUTOSUSPEND	0x01
+ 
+@@ -1016,6 +1020,8 @@ static void hub_activate(struct usb_hub
+ 	bool need_debounce_delay = false;
+ 	unsigned delay;
+ 
++	dev_info(hub->intfdev, "%s type %d\n", __func__, type);
++
+ 	/* Continue a partial initialization */
+ 	if (type == HUB_INIT2 || type == HUB_INIT3) {
+ 		device_lock(&hdev->dev);
+@@ -1254,6 +1260,7 @@ static void hub_activate(struct usb_hub
+  init3:
+ 	hub->quiescing = 0;
+ 
++	dev_info(hub->intfdev, "Submitting status URB\n");
+ 	status = usb_submit_urb(hub->urb, GFP_NOIO);
+ 	if (status < 0)
+ 		dev_err(hub->intfdev, "activate --> %d\n", status);
 `,
 	},
 }
