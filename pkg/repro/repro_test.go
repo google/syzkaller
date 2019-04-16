@@ -60,6 +60,10 @@ func TestBisect(t *testing.T) {
 			}
 			return guilty == numGuilty, nil
 		})
+		if numGuilty > 8 && len(progs) == 0 {
+			// Bisection has been aborted.
+			continue
+		}
 		if len(progs) != numGuilty {
 			t.Fatalf("bisect test failed: wrong number of guilty progs: got: %v, want: %v", len(progs), numGuilty)
 		}
