@@ -631,6 +631,12 @@ func (ctx *context) bisectProgs(progs []*prog.LogEntry, pred func([]*prog.LogEnt
 
 	guilty := [][]*prog.LogEntry{progs}
 again:
+	if len(guilty) > 8 {
+		// This is usually the case for flaky crashes. Continuing bisection at this
+		// point would just take a lot of time and likely produce no result.
+		ctx.reproLog(3, "bisect: too many guilty chunks, aborting")
+		return nil, nil
+	}
 	ctx.reproLog(3, "bisect: guilty chunks: %v", chunksToStr(guilty))
 	for i, chunk := range guilty {
 		if len(chunk) == 1 {
