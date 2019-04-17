@@ -38,7 +38,7 @@ Run `syz-manager` with a config along the lines of:
         "target": "fuchsia/amd64",
         "http": ":12345",
         "workdir": "/workdir.fuchsia",
-        "kernel_obj": "/fuchsia/out/build-zircon/build-x64",
+        "kernel_obj": "/fuchsia/out/x64.zircon/kernel-x64-gcc",
         "syzkaller": "/syzkaller",
         "image": "/fuchsia/out/x64/obj/build/images/fvm.blk",
         "sshkey": "/fuchsia/.ssh/pkey",
@@ -50,7 +50,7 @@ Run `syz-manager` with a config along the lines of:
                 "count": 10,
                 "cpu": 4,
                 "mem": 2048,
-                "kernel": "/fuchsia/out/build-zircon/multiboot.bin",
+                "kernel": "/fuchsia/out/x64.zircon/multiboot.bin",
                 "initrd": "/fuchsia/out/x64/fuchsia.zbi"
         }
 }
