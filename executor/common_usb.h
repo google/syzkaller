@@ -411,8 +411,6 @@ reply:
 	debug("syz_usb_control_io: reply length = %d\n", response.inner.length);
 	usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
 
-	sleep_ms(200);
-
 	return 0;
 }
 #endif

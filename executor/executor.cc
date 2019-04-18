@@ -572,15 +572,20 @@ retry:
 	}
 
 	int call_index = 0;
-	bool usb_prog = false;
+	bool collect_extra_cover = false;
+	int prog_extra_timeout = 0;
 	for (;;) {
 		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
 			break;
-		bool usb_call = false;
+		int call_extra_timeout = 0;
 		if (strcmp(syscalls[call_num].name, "syz_usb_connect") == 0) {
-			usb_prog = true;
-			usb_call = true;
+			collect_extra_cover = true;
+			prog_extra_timeout = 2000;
+			call_extra_timeout = 2000;
+		}
+		if (strcmp(syscalls[call_num].name, "syz_usb_disconnect") == 0) {
+			call_extra_timeout = 200;
 		}
 		if (call_num == instr_copyin) {
 			char* addr = (char*)read_input(&input_pos);
@@ -690,7 +695,9 @@ retry:
 		} else if (flag_threaded) {
 			// Wait for call completion.
 			// Note: sys knows about this 25ms timeout when it generates timespec/timeval values.
-			const uint64 timeout_ms = usb_call ? 2000 : (flag_debug ? 1000 : 45);
+			uint64 timeout_ms = 45 + call_extra_timeout;
+			if (flag_debug && timeout_ms < 1000)
+				timeout_ms = 1000;
 			if (event_timedwait(&th->done, timeout_ms))
 				handle_completion(th);
 			// Check if any of previous calls have completed.
@@ -718,8 +725,7 @@ retry:
 		uint64 wait_end = wait_start + wait;
 		if (wait_end < start + 800)
 			wait_end = start + 800;
-		if (usb_prog)
-			wait_end += 2000;
+		wait_end += prog_extra_timeout;
 		while (running > 0 && current_time_ms() <= wait_end) {
 			sleep_ms(1);
 			for (int i = 0; i < kMaxThreads; i++) {
@@ -746,7 +752,7 @@ retry:
 	close_fds();
 #endif
 
-	if (!colliding && !collide && usb_prog) {
+	if (!colliding && !collide && collect_extra_cover) {
 		sleep_ms(500);
 		write_extra_output();
 	}
