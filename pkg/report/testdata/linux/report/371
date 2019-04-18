@@ -1,0 +1,51 @@
+TITLE: KASAN: null-ptr-deref Read in zr364xx_vidioc_querycap
+
+[   62.911361] ==================================================================
+[   62.919256] BUG: KASAN: null-ptr-deref in read_word_at_a_time+0xe/0x20
+[   62.926132] Read of size 1 at addr 0000000000000000 by task v4l_id/5436
+[   62.932888]
+[   62.934550] CPU: 0 PID: 5436 Comm: v4l_id Not tainted 5.1.0-rc5-319617-gd34f951 #4
+[   62.942258] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   62.952867] Call Trace:
+[   62.955497]  dump_stack+0xe8/0x16e
+[   62.962534]  ? read_word_at_a_time+0xe/0x20
+[   62.968143]  ? read_word_at_a_time+0xe/0x20
+[   62.975118]  kasan_report.cold+0x5/0x3c
+[   62.979993]  ? read_word_at_a_time+0xe/0x20
+[   62.992999]  read_word_at_a_time+0xe/0x20
+[   63.007365]  strscpy+0x8a/0x280
+[   63.014348]  zr364xx_vidioc_querycap+0xb5/0x210
+[   63.020142]  v4l_querycap+0x12b/0x340
+[   63.024907]  __video_do_ioctl+0x5bb/0xb40
+[   63.029477]  ? copy_overflow+0x30/0x30
+[   63.033457]  ? save_stack+0x89/0xa0
+[   63.037112]  ? __kasan_slab_free+0x130/0x180
+[   63.041535]  video_usercopy+0x44e/0xef0
+[   63.045525]  ? copy_overflow+0x30/0x30
+[   63.049405]  ? v4l_enumstd+0x70/0x70
+[   63.053238]  ? _raw_spin_unlock_irqrestore+0x4b/0x60
+[   63.058399]  ? video_usercopy+0xef0/0xef0
+[   63.062602]  v4l2_ioctl+0x14e/0x1a0
+[   63.066223]  ? video_devdata+0xa0/0xa0
+[   63.070226]  do_vfs_ioctl+0xced/0x12f0
+[   63.074285]  ? ioctl_preallocate+0x200/0x200
+[   63.078698]  ? putname+0xe6/0x120
+[   63.082221]  ? rcu_read_lock_sched_held+0x10f/0x130
+[   63.087243]  ? putname+0xe6/0x120
+[   63.090693]  ? kmem_cache_free+0x259/0x2b0
+[   63.094971]  ? putname+0xe6/0x120
+[   63.098433]  ? do_sys_open+0x2ec/0x590
+[   63.102380]  ksys_ioctl+0xa0/0xc0
+[   63.105854]  __x64_sys_ioctl+0x74/0xb0
+[   63.110098]  ? lockdep_hardirqs_on+0x37e/0x580
+[   63.114693]  do_syscall_64+0xcf/0x4f0
+[   63.118510]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   63.123698] RIP: 0033:0x7f8a56309347
+[   63.127407] Code: 90 90 90 48 8b 05 f1 fa 2a 00 64 c7 00 26 00 00 00 48 c7 c0 ff ff ff ff c3 90 90 90 90 90 90 90 90 90 90 b8 10 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 8b 0d c1 fa 2a 00 31 d2 48 29 c2 64
+[   63.146589] RSP: 002b:00007fff6cdee908 EFLAGS: 00000202 ORIG_RAX: 0000000000000010
+[   63.154309] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 00007f8a56309347
+[   63.161649] RDX: 00007fff6cdee910 RSI: 0000000080685600 RDI: 0000000000000003
+[   63.169029] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[   63.176464] R10: 0000000000000000 R11: 0000000000000202 R12: 0000000000400884
+[   63.183777] R13: 00007fff6cdeea60 R14: 0000000000000000 R15: 0000000000000000
+[   63.191398] ==================================================================
