@@ -1,5 +1,6 @@
 # Research work based on syzkaller
 
+* [FastSyzkaller: Improving Fuzz Efficiency for Linux Kernel Fuzzing](https://iopscience.iop.org/article/10.1088/1742-6596/1176/2/022013)
 * [Charm: Facilitating Dynamic Analysis of Device Drivers of Mobile Systems](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-talebi.pdf)
 ([video](https://www.usenix.org/conference/usenixsecurity18/presentation/talebi),
 [slides](https://www.usenix.org/sites/default/files/conference/protected-files/security18_slides_talebi.pdf))
