@@ -11,6 +11,7 @@ zx_clock_get_new(clock_id int32, zx_time ptr[out, intptr])
 zx_clock_get_monotonic()
 zx_ticks_get()
 zx_ticks_per_second()
+zx_deadline_after(ns int64) zx_time
 
 # TODO: undocumented
 # zx_clock_adjust?

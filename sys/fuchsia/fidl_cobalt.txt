@@ -745,12 +745,29 @@ fuchsia_cobalt_SystemDataUpdaterSetExperimentStateResponseHandles {
 	void	void
 } [packed]
 
+fuchsia_cobalt_SystemDataUpdaterSetChannelRequest {
+	hdr				fidl_message_header[938569873]
+	current_channelInLine		fidl_string
+	target_channelInLine		fidl_string
+	current_channelOutOfLine	fidl_aligned[stringnoz]
+	target_channelOutOfLine		fidl_aligned[stringnoz]
+} [packed]
+
+fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles {
+	void	void
+} [packed]
+
 resource zx_chan_fuchsia_cobalt_SystemDataUpdater_client[zx_chan]
 resource zx_chan_fuchsia_cobalt_SystemDataUpdater_server[zx_chan]
 
 zx_channel_create$fuchsia_cobalt_SystemDataUpdater(options const[0], out0 ptr[out, zx_chan_fuchsia_cobalt_SystemDataUpdater_client], out1 ptr[out, zx_chan_fuchsia_cobalt_SystemDataUpdater_server])
 fdio_service_connect$fuchsia_cobalt_SystemDataUpdater(path ptr[in, string["/svc/fuchsia.cobalt.SystemDataUpdater"]], handle zx_chan_fuchsia_cobalt_SystemDataUpdater_server)
 zx_channel_call$fuchsia_cobalt_SystemDataUpdaterSetExperimentState(handle zx_chan_fuchsia_cobalt_SystemDataUpdater_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest, fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetExperimentStateResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_cobalt_SystemDataUpdaterSetChannel(handle zx_chan_fuchsia_cobalt_SystemDataUpdater_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetChannelRequest, fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_ControllerRequestSendSoonRequest {
 	hdr	fidl_message_header[148310311]

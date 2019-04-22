@@ -28,7 +28,7 @@ zx_system_get_num_cpus()
 zx_system_get_physmem()
 zx_system_get_version(version ptr[out, array[int8]], version_len len[version])
 
-zx_cprng_draw(buffer ptr[out, array[int8]], len len[buffer], actual ptr[out, intptr])
+zx_cprng_draw(buffer ptr[out, array[int8]], len len[buffer])
 zx_cprng_add_entropy(buffer ptr[in, array[int8]], len len[buffer])
 
 zx_vmar_unmap_handle_close_thread_exit(vmar_handle zx_vmar, addr vma, len len[addr], close_handle zx_handle)
