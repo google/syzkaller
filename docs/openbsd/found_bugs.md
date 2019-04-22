@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [vmm(4): `printf()` called from IPI-context](https://marc.info/?l=openbsd-cvs&m=155590526807190&w=2)
+
 - [bpf(4): negative input accepted in `bpfioctl()`](https://marc.info/?l=openbsd-cvs&m=155430843501793&w=2)
 
 - [sendto: lenient `rtm_hdrlen` validation](https://marc.info/?l=openbsd-cvs&m=155404645328879&w=2)
