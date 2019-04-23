@@ -5,7 +5,7 @@ run:
   deadline: 8m
   skip-dirs:
     - pkg/kd
-    - pkg/ifuzz/gen
+    - pkg/ifuzz/generated
     - sys/akaros/gen
     - sys/freebsd/gen
     - sys/fuchsia/gen
@@ -21,10 +21,10 @@ run:
 linters:
   enable:
     - lll
+    - vet
     - gofmt
     - golint
     - structcheck
-    - megacheck
     - unconvert
     - deadcode
     - goconst
@@ -33,13 +33,20 @@ linters:
     - varcheck
     - misspell
     - gocyclo
-    - vet
     - vetshadow
     - megacheck
+    - stylecheck
     - govet
   disable:
+    - typecheck
     - ineffassign
     - errcheck
+    - interfacer
+    - unparam
+    - nakedret
+    - prealloc
+    - scopelint
+    - gocritic
 
 linters-settings:
   lll:
@@ -48,15 +55,19 @@ linters-settings:
     min-complexity: 24
   dupl:
     threshold: 60
+  goconst:
+    min-len: 7
+    min-occurrences: 4
 
 issues:
   exclude-use-default: false
   exclude:
     - "exported .* should have comment"
     - "comment on .* should be of the form"
-    - "(sys/.*/init.*|sys/targets/common.go).* don't use ALL_CAPS in Go names"
     - "declaration of \"err\" shadows"
   exclude-rules:
     - path: (pkg/csource/generated.go|pkg/report/linux.go|pkg/build/linux_generated.go)
       linters:
         - lll
+    - path: (sys/.*/init.*|sys/targets/common.go)
+      text: "don't use ALL_CAPS in Go names"
