@@ -1,0 +1,65 @@
+TITLE: BUG: unable to handle kernel paging request in au0828_usb_disconnect
+
+[ 1087.420767] BUG: unable to handle kernel paging request at fffffffc45040758
+[ 1087.427881] #PF error: [normal kernel read fault]
+[ 1087.432742] PGD 1167e067 P4D 1167e067 PUD 0 
+[ 1087.437166] Oops: 0000 [#1] SMP KASAN PTI
+[ 1087.441311] CPU: 0 PID: 5 Comm: kworker/0:0 Not tainted 5.1.0-rc5-319617-gd34f951 #4
+[ 1087.449186] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1087.458536] Workqueue: usb_hub_wq hub_event
+[ 1087.462883] RIP: 0010:osq_lock+0xfd/0x5a0
+[ 1087.467029] Code: 48 63 e8 48 b8 00 00 00 00 00 fc ff df 48 8d 3c ed 60 c0 39 91 48 89 f9 48 c1 e9 03 80 3c 01 00 0f 85 2c 04 00 00 48 8d 53 08 <4c> 03 2c ed 60 c0 39 91 48 b8 00 00 00 00 00 fc ff df 48 89 d6 48
+[ 1087.485933] RSP: 0018:ffff8880a846f0e8 EFLAGS: 00010246
+[ 1087.491306] RAX: dffffc0000000000 RBX: ffff8880ad02dfc0 RCX: 1fffffff88a080eb
+[ 1087.504847] RDX: ffff8880ad02dfc8 RSI: 0000000000000004 RDI: fffffffc45040758
+[ 1087.512144] RBP: ffffffff967948df R08: 0000000000000000 R09: ffffed1012299b1e
+[ 1087.519421] R10: ffffed1012299b1d R11: ffff8880914cd8eb R12: ffff8880ad02dfd0
+[ 1087.526699] R13: 000000000002dfc0 R14: ffff8880a8443100 R15: ffff8880914cd8e8
+[ 1087.533984] FS:  0000000000000000(0000) GS:ffff8880ad000000(0000) knlGS:0000000000000000
+[ 1087.542228] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1087.548118] CR2: fffffffc45040758 CR3: 000000009f4ac000 CR4: 00000000001406f0
+[ 1087.555407] Call Trace:
+[ 1087.558042]  __mutex_lock+0x27d/0x12b0
+[ 1087.589001]  au0828_usb_disconnect+0xa3/0x130
+[ 1087.593539]  au0828_usb_probe.cold+0x121/0x7d8
+[ 1087.602931]  usb_probe_interface+0x31d/0x820
+[ 1087.612934]  really_probe+0x2da/0xb10
+[ 1087.616832]  driver_probe_device+0x21d/0x350
+[ 1087.621269]  __device_attach_driver+0x1d8/0x290
+[ 1087.631229]  bus_for_each_drv+0x163/0x1e0
+[ 1087.649497]  __device_attach+0x223/0x3a0
+[ 1087.662443]  bus_probe_device+0x1f1/0x2a0
+[ 1087.671867]  device_add+0xad2/0x16e0
+[ 1087.690261]  usb_set_configuration+0xdf7/0x1740
+[ 1087.695030]  generic_probe+0xa2/0xda
+[ 1087.698734]  usb_probe_device+0xc0/0x150
+[ 1087.706667]  really_probe+0x2da/0xb10
+[ 1087.710453]  driver_probe_device+0x21d/0x350
+[ 1087.714846]  __device_attach_driver+0x1d8/0x290
+[ 1087.724854]  bus_for_each_drv+0x163/0x1e0
+[ 1087.743263]  __device_attach+0x223/0x3a0
+[ 1087.756191]  bus_probe_device+0x1f1/0x2a0
+[ 1087.765529]  device_add+0xad2/0x16e0
+[ 1087.774285]  usb_new_device.cold+0x537/0xccf
+[ 1087.778689]  hub_event+0x1398/0x3b00
+[ 1087.791484]  process_one_work+0x90f/0x1580
+[ 1087.804379]  worker_thread+0x7b0/0xe20
+[ 1087.814792]  kthread+0x313/0x420
+[ 1087.822166]  ret_from_fork+0x3a/0x50
+[ 1087.825870] Modules linked in:
+[ 1087.829052] CR2: fffffffc45040758
+[ 1087.832495] ---[ end trace 41843cb8c360ab9e ]---
+[ 1087.837243] RIP: 0010:osq_lock+0xfd/0x5a0
+[ 1087.841383] Code: 48 63 e8 48 b8 00 00 00 00 00 fc ff df 48 8d 3c ed 60 c0 39 91 48 89 f9 48 c1 e9 03 80 3c 01 00 0f 85 2c 04 00 00 48 8d 53 08 <4c> 03 2c ed 60 c0 39 91 48 b8 00 00 00 00 00 fc ff df 48 89 d6 48
+[ 1087.860293] RSP: 0018:ffff8880a846f0e8 EFLAGS: 00010246
+[ 1087.865646] RAX: dffffc0000000000 RBX: ffff8880ad02dfc0 RCX: 1fffffff88a080eb
+[ 1087.872923] RDX: ffff8880ad02dfc8 RSI: 0000000000000004 RDI: fffffffc45040758
+[ 1087.880227] RBP: ffffffff967948df R08: 0000000000000000 R09: ffffed1012299b1e
+[ 1087.887602] R10: ffffed1012299b1d R11: ffff8880914cd8eb R12: ffff8880ad02dfd0
+[ 1087.894863] R13: 000000000002dfc0 R14: ffff8880a8443100 R15: ffff8880914cd8e8
+[ 1087.902138] FS:  0000000000000000(0000) GS:ffff8880ad000000(0000) knlGS:0000000000000000
+[ 1087.910382] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1087.916265] CR2: fffffffc45040758 CR3: 000000009f4ac000 CR4: 00000000001406f0
+[ 1087.923521] Kernel panic - not syncing: Fatal exception
+[ 1087.929653] Kernel Offset: disabled
+[ 1087.933286] Rebooting in 86400 seconds..
