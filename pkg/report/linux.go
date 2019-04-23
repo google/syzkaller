@@ -870,6 +870,7 @@ var linuxOopses = []*oops{
 				fmt:   "BUG: soft lockup in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
+						linuxRipFrame,
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
@@ -1134,6 +1135,11 @@ var linuxOopses = []*oops{
 				fmt:   "INFO: rcu detected stall in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
+						compile("apic_timer_interrupt"),
+						linuxRipFrame,
+						parseStackTrace,
+					},
+					parts2: []*regexp.Regexp{
 						compile("apic_timer_interrupt"),
 						parseStackTrace,
 					},
