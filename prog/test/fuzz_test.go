@@ -23,7 +23,7 @@ mutate7()
 mutate8()
 `,
 	} {
-		t.Logf("test #%v: %q", i, string(data))
+		t.Logf("test #%v: %q", i, data)
 		FuzzDeserialize([]byte(data))
 		FuzzParseLog([]byte(data))
 	}

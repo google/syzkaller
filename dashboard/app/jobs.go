@@ -174,8 +174,6 @@ func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash
 		return fmt.Sprintf("%q does not look like a valid git repo address.", repo)
 	case !vcs.CheckBranch(branch) && !vcs.CheckCommitHash(branch):
 		return fmt.Sprintf("%q does not look like a valid git branch or commit.", branch)
-	case crash.ReproC == 0 && crash.ReproSyz == 0:
-		return "This crash does not have a reproducer. I cannot test it."
 	case bug.Status == BugStatusFixed:
 		return "This bug is already marked as fixed. No point in testing."
 	case bug.Status == BugStatusInvalid:
