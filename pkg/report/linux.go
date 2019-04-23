@@ -720,6 +720,8 @@ var linuxStackParams = &stackParams{
 		"mutex_lock",
 		"mutex_trylock",
 		"mutex_unlock",
+		"osq_lock",
+		"osq_unlock",
 		"memcpy",
 		"memcmp",
 		"memset",
