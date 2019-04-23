@@ -430,7 +430,6 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			v == "NELEM_QUARTERMEM()",
 			v == "NELEM_EIGHTHMEM()",
 			v == "NELEM_HALFMEM()",
-			v == "NELEM_QUARTERMEM()",
 			v == "NELEM_MEM128()",
 			v == "NELEM_SCALAR()",
 			v == "NELEM_TUPLE1()",
