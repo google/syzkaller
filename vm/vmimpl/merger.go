@@ -73,7 +73,7 @@ func (merger *OutputMerger) AddDecoder(name string, r io.ReadCloser,
 					}
 					select {
 					case merger.Output <- append([]byte{}, out...):
-						r := copy(pending[:], pending[pos+1:])
+						r := copy(pending, pending[pos+1:])
 						pending = pending[:r]
 					default:
 					}

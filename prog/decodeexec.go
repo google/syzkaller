@@ -110,6 +110,9 @@ func (dec *execDecoder) parse() {
 				Addr:  dec.read(),
 				Size:  dec.read(),
 			})
+		case execInstrEOF:
+			dec.commitCall()
+			return
 		default:
 			dec.commitCall()
 			if instr >= uint64(len(dec.target.Syscalls)) {
@@ -127,9 +130,6 @@ func (dec *execDecoder) parse() {
 					return
 				}
 			}
-		case execInstrEOF:
-			dec.commitCall()
-			return
 		}
 	}
 }
