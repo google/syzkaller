@@ -265,13 +265,18 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 	defer func() { r.inCreateResource = false }()
 
 	kind := res.Desc.Name
-	if r.oneOf(1000) {
+	// We may have no resources, but still be in createResource due to ANYRES.
+	if len(r.target.resourceMap) != 0 && r.oneOf(1000) {
 		// Spoof resource subkind.
 		var all []string
 		for kind1 := range r.target.resourceMap {
 			if r.target.isCompatibleResource(res.Desc.Kind[0], kind1) {
 				all = append(all, kind1)
 			}
+		}
+		if len(all) == 0 {
+			panic(fmt.Sprintf("got no spoof resources for %v in %v/%v",
+				kind, r.target.OS, r.target.Arch))
 		}
 		sort.Strings(all)
 		kind = all[r.Intn(len(all))]
