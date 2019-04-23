@@ -1979,7 +1979,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		debug("syz_usb_connect: bRequestType: 0x%x, bRequest: 0x%x, wValue: 0x%x, wIndex: 0x%x, wLength: %d\n",
 		      event.ctrl.bRequestType, event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
 
-		bool response_found;
+		bool response_found = false;
 		char* response_data = NULL;
 		uint32 response_length = 0;
 		NONFAILING(response_found = lookup_connect_response(descs, &index, &event.ctrl, &response_data, &response_length, &done));
@@ -2126,7 +2126,7 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	debug("syz_usb_control_io: bRequestType: 0x%x, bRequest: 0x%x, wValue: 0x%x, wIndex: 0x%x, wLength: %d\n",
 	      event.ctrl.bRequestType, event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
 
-	bool response_found;
+	bool response_found = false;
 	char* response_data = NULL;
 	uint32 response_length = 0;
 	NONFAILING(response_found = lookup_control_io_response(descs, resps, &event.ctrl, &response_data, &response_length));
