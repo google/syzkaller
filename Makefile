@@ -239,6 +239,12 @@ else
 	env CGO_ENABLED=1 GOMAXPROCS=1 GOGC=50 gometalinter.v2 ./...
 endif
 
+lint:
+	# To install run:
+	# go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	# Currently it consumes too much memory to run on Travis (see #977).
+	golangci-lint run ./...
+
 arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host \
 	arch_netbsd_amd64_host arch_openbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
