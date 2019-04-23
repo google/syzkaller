@@ -160,12 +160,68 @@ struct vusb_connect_descriptors {
 	struct vusb_connect_string_descriptor strs[0];
 } __attribute__((packed));
 
+static bool lookup_connect_response(struct vusb_connect_descriptors* descs, struct usb_device_index* index,
+				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length, bool* done)
+{
+	uint8 str_idx;
+
+	switch (ctrl->bRequestType & USB_TYPE_MASK) {
+	case USB_TYPE_STANDARD:
+		switch (ctrl->bRequest) {
+		case USB_REQ_GET_DESCRIPTOR:
+			switch (ctrl->wValue >> 8) {
+			case USB_DT_DEVICE:
+				*response_data = (char*)index->dev;
+				*response_length = sizeof(*index->dev);
+				return true;
+			case USB_DT_CONFIG:
+				*response_data = (char*)index->config;
+				*response_length = index->config_length;
+				return true;
+			case USB_DT_STRING:
+				str_idx = (uint8)ctrl->wValue;
+				if (str_idx >= descs->strs_len)
+					return false;
+				*response_data = descs->strs[str_idx].str;
+				*response_length = descs->strs[str_idx].len;
+				return true;
+			case USB_DT_BOS:
+				*response_data = descs->bos;
+				*response_length = descs->bos_len;
+				return true;
+			case USB_DT_DEVICE_QUALIFIER:
+				*response_data = descs->qual;
+				*response_length = descs->qual_len;
+				return true;
+			default:
+				fail("syz_usb_connect: no response");
+				return false;
+			}
+			break;
+		case USB_REQ_SET_CONFIGURATION:
+			*response_length = 0;
+			*response_data = NULL;
+			*done = true;
+			return true;
+		default:
+			fail("syz_usb_connect: no response");
+			return false;
+		}
+		break;
+	default:
+		fail("syz_usb_connect: no response");
+		return false;
+	}
+
+	return false;
+}
+
 static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
 	int64_t speed = a0;
 	int64_t dev_len = a1;
 	char* dev = (char*)a2;
-	struct vusb_connect_descriptors* conn_descs = (struct vusb_connect_descriptors*)a3;
+	struct vusb_connect_descriptors* descs = (struct vusb_connect_descriptors*)a3;
 
 	debug("syz_usb_connect: dev: %p\n", dev);
 	if (!dev)
@@ -176,7 +232,8 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 
 	struct usb_device_index index;
 	memset(&index, 0, sizeof(index));
-	int rv = parse_usb_descriptor(dev, dev_len, &index);
+	int rv;
+	NONFAILING(rv = parse_usb_descriptor(dev, dev_len, &index));
 	if (!rv)
 		return -1;
 	debug("syz_usb_connect: parsed usb descriptor\n");
@@ -200,12 +257,6 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 
 	bool done = false;
 	while (!done) {
-		char* response_data = NULL;
-		uint32 response_length = 0;
-
-		unsigned ep;
-		uint8 str_idx;
-
 		struct usb_fuzzer_control_event event;
 		event.inner.type = 0;
 		event.inner.length = sizeof(event.ctrl);
@@ -218,66 +269,29 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		debug("syz_usb_connect: bRequestType: 0x%x, bRequest: 0x%x, wValue: 0x%x, wIndex: 0x%x, wLength: %d\n",
 		      event.ctrl.bRequestType, event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
 
-		switch (event.ctrl.bRequestType & USB_TYPE_MASK) {
-		case USB_TYPE_STANDARD:
-			switch (event.ctrl.bRequest) {
-			case USB_REQ_GET_DESCRIPTOR:
-				switch (event.ctrl.wValue >> 8) {
-				case USB_DT_DEVICE:
-					response_data = (char*)index.dev;
-					response_length = sizeof(*index.dev);
-					goto reply;
-				case USB_DT_CONFIG:
-					response_data = (char*)index.config;
-					response_length = index.config_length;
-					goto reply;
-				case USB_DT_STRING:
-					str_idx = (uint8)event.ctrl.wValue;
-					if (str_idx >= conn_descs->strs_len)
-						goto reply;
-					response_data = conn_descs->strs[str_idx].str;
-					response_length = conn_descs->strs[str_idx].len;
-					goto reply;
-				case USB_DT_BOS:
-					response_data = conn_descs->bos;
-					response_length = conn_descs->bos_len;
-					goto reply;
-				case USB_DT_DEVICE_QUALIFIER:
-					response_data = conn_descs->qual;
-					response_length = conn_descs->qual_len;
-					goto reply;
-				default:
-					fail("syz_usb_connect: no response");
-					continue;
-				}
-				break;
-			case USB_REQ_SET_CONFIGURATION:
-				rv = usb_fuzzer_vbus_draw(fd, index.config->bMaxPower);
+		bool response_found;
+		char* response_data = NULL;
+		uint32 response_length = 0;
+		NONFAILING(response_found = lookup_connect_response(descs, &index, &event.ctrl, &response_data, &response_length, &done));
+		if (!response_found)
+			return -1;
+
+		if (done) {
+			int rv = usb_fuzzer_vbus_draw(fd, index.config->bMaxPower);
+			if (rv < 0)
+				return -1;
+			rv = usb_fuzzer_configure(fd);
+			if (rv < 0)
+				return -1;
+			unsigned ep;
+			for (ep = 0; ep < index.eps_num; ep++) {
+				rv = usb_fuzzer_ep_enable(fd, index.eps[ep]);
 				if (rv < 0)
-					return -1;
-				rv = usb_fuzzer_configure(fd);
-				if (rv < 0)
-					return -1;
-				for (ep = 0; ep < index.eps_num; ep++) {
-					rv = usb_fuzzer_ep_enable(fd, index.eps[ep]);
-					if (rv < 0)
-						fail("syz_usb_connect: ep enable failed");
-				}
-				done = true;
-				goto reply;
-			default:
-				fail("syz_usb_connect: no response");
-				continue;
+					fail("syz_usb_connect: ep enable failed");
 			}
-			break;
-		default:
-			fail("syz_usb_connect: no response");
-			continue;
 		}
 
 		struct usb_fuzzer_ep_io_data response;
-
-	reply:
 		response.inner.ep = 0;
 		response.inner.flags = 0;
 		if (response_length > sizeof(response.data))
@@ -325,6 +339,65 @@ struct vusb_responses {
 	struct vusb_response* resps[0];
 } __attribute__((packed));
 
+static bool lookup_control_io_response(struct vusb_descriptors* descs, struct vusb_responses* resps,
+				       struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
+{
+	int descs_num = (descs->len - offsetof(struct vusb_descriptors, descs)) / sizeof(descs->descs[0]);
+	int resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
+
+	uint8 req = ctrl->bRequest;
+	uint8 req_type = ctrl->bRequestType & USB_TYPE_MASK;
+	uint8 desc_type = ctrl->wValue >> 8;
+
+	if (req == USB_REQ_GET_DESCRIPTOR) {
+		int i;
+
+		for (i = 0; i < descs_num; i++) {
+			struct vusb_descriptor* desc = descs->descs[i];
+			if (!desc)
+				continue;
+			if (desc->req_type == req_type && desc->desc_type == desc_type) {
+				*response_length = desc->len;
+				if (*response_length != 0)
+					*response_data = &desc->data[0];
+				else
+					*response_data = NULL;
+				return true;
+			}
+		}
+
+		if (descs->generic) {
+			*response_data = &descs->generic->data[0];
+			*response_length = descs->generic->len;
+			return true;
+		}
+	} else {
+		int i;
+
+		for (i = 0; i < resps_num; i++) {
+			struct vusb_response* resp = resps->resps[i];
+			if (!resp)
+				continue;
+			if (resp->type == req_type && resp->req == req) {
+				*response_length = resp->len;
+				if (*response_length != 0)
+					*response_data = &resp->data[0];
+				else
+					*response_data = NULL;
+				return true;
+			}
+		}
+
+		if (resps->generic) {
+			*response_data = &resps->generic->data[0];
+			*response_length = resps->generic->len;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static volatile long syz_usb_control_io(volatile long a0, volatile long a1, volatile long a2)
 {
 	int fd = a0;
@@ -343,62 +416,14 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	debug("syz_usb_control_io: bRequestType: 0x%x, bRequest: 0x%x, wValue: 0x%x, wIndex: 0x%x, wLength: %d\n",
 	      event.ctrl.bRequestType, event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
 
-	uint8 req = event.ctrl.bRequest;
-	uint8 req_type = event.ctrl.bRequestType & USB_TYPE_MASK;
-	uint8 desc_type = event.ctrl.wValue >> 8;
-
+	bool response_found;
 	char* response_data = NULL;
 	uint32 response_length = 0;
-
-	if (req == USB_REQ_GET_DESCRIPTOR) {
-		int i;
-		int descs_num = (descs->len - offsetof(struct vusb_descriptors, descs)) / sizeof(descs->descs[0]);
-
-		for (i = 0; i < descs_num; i++) {
-			struct vusb_descriptor* desc = descs->descs[i];
-			if (!desc)
-				continue;
-			if (desc->req_type == req_type && desc->desc_type == desc_type) {
-				response_length = desc->len;
-				if (response_length != 0)
-					response_data = &desc->data[0];
-				goto reply;
-			}
-		}
-
-		if (descs->generic) {
-			response_data = &descs->generic->data[0];
-			response_length = descs->generic->len;
-			goto reply;
-		}
-	} else {
-		int i;
-		int resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
-
-		for (i = 0; i < resps_num; i++) {
-			struct vusb_response* resp = resps->resps[i];
-			if (!resp)
-				continue;
-			if (resp->type == req_type && resp->req == req) {
-				response_length = resp->len;
-				if (response_length != 0)
-					response_data = &resp->data[0];
-				goto reply;
-			}
-		}
-
-		if (resps->generic) {
-			response_data = &resps->generic->data[0];
-			response_length = resps->generic->len;
-			goto reply;
-		}
-	}
-
-	return -1;
+	NONFAILING(response_found = lookup_control_io_response(descs, resps, &event.ctrl, &response_data, &response_length));
+	if (!response_found)
+		return -1;
 
 	struct usb_fuzzer_ep_io_data response;
-
-reply:
 	response.inner.ep = 0;
 	response.inner.flags = 0;
 	if (response_length > sizeof(response.data))
@@ -408,7 +433,7 @@ reply:
 		memcpy(&response.data[0], response_data, response_length);
 	if (event.ctrl.wLength < response.inner.length)
 		response.inner.length = event.ctrl.wLength;
-	debug("syz_usb_control_io: reply length = %d\n", response.inner.length);
+	debug("syz_usb_control_io: response length = %d\n", response.inner.length);
 	usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
 
 	return 0;
