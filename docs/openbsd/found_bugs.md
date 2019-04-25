@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [bpf(4): unsigned integer wrap around](https://marc.info/?l=openbsd-cvs&m=155621669009140&w=2)
+
 - [vmm(4): `printf()` called from IPI-context](https://marc.info/?l=openbsd-cvs&m=155590526807190&w=2)
 
 - [bpf(4): negative input accepted in `bpfioctl()`](https://marc.info/?l=openbsd-cvs&m=155430843501793&w=2)
