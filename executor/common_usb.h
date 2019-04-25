@@ -232,7 +232,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 
 	struct usb_device_index index;
 	memset(&index, 0, sizeof(index));
-	int rv;
+	int rv = false;
 	NONFAILING(rv = parse_usb_descriptor(dev, dev_len, &index));
 	if (!rv)
 		return -1;
