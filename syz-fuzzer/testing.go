@@ -160,11 +160,11 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 	}
 	for _, sandbox := range sandboxes {
 		enabledCalls, disabledCalls, err := buildCallList(args.target, args.enabledCalls, sandbox)
-		if err != nil {
-			return nil, err
-		}
 		res.EnabledCalls[sandbox] = enabledCalls
 		res.DisabledCalls[sandbox] = disabledCalls
+		if err != nil {
+			return res, err
+		}
 	}
 	if args.allSandboxes {
 		var enabled []int
@@ -291,11 +291,11 @@ func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (
 			delete(calls, c)
 		}
 	}
-	if len(calls) == 0 {
-		return nil, nil, fmt.Errorf("all system calls are disabled")
-	}
 	for c := range calls {
 		enabled = append(enabled, c.ID)
+	}
+	if len(calls) == 0 {
+		return enabled, disabled, fmt.Errorf("all system calls are disabled")
 	}
 	return enabled, disabled, nil
 }

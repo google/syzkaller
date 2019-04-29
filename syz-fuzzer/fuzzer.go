@@ -163,9 +163,10 @@ func main() {
 		checkArgs.allSandboxes = r.AllSandboxes
 		r.CheckResult, err = checkMachine(checkArgs)
 		if err != nil {
-			r.CheckResult = &rpctype.CheckArgs{
-				Error: err.Error(),
+			if r.CheckResult == nil {
+				r.CheckResult = new(rpctype.CheckArgs)
 			}
+			r.CheckResult.Error = err.Error()
 		}
 		r.CheckResult.Name = *flagName
 		if err := manager.Call("Manager.Check", r.CheckResult, nil); err != nil {
