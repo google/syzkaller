@@ -1048,7 +1048,8 @@ var linuxOopses = []*oops{
 			},
 			{
 				title: compile("WARNING: .* at {{SRC}} {{FUNC}}"),
-				fmt:   "WARNING in %[2]v",
+				fmt:   "WARNING in %[3]v",
+				stack: warningStackFmt(),
 			},
 			{
 				title:  compile("WARNING: possible circular locking dependency detected"),

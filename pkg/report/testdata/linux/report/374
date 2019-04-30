@@ -1,0 +1,104 @@
+TITLE: WARNING in line6_pcm_acquire
+
+[ 2337.297552][    C0] ------------[ cut here ]------------
+[ 2337.304396][    C0] do not call blocking ops when !TASK_RUNNING; state=1 set at [<000000008ed046ea>] do_nanosleep+0x10c/0x6a0
+[ 2337.316640][    C0] WARNING: CPU: 0 PID: 5915 at kernel/sched/core.c:6136 __might_sleep+0x13a/0x190
+[ 2337.326324][    C0] Kernel panic - not syncing: panic_on_warn set ...
+[ 2337.332958][    C0] CPU: 0 PID: 5915 Comm: syz-executor.5 Not tainted 5.1.0-rc3-319004-g43151d6 #6
+[ 2337.342667][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 2337.357271][    C0] Call Trace:
+[ 2337.360735][    C0]  <IRQ>
+[ 2337.363771][    C0]  dump_stack+0xe8/0x16e
+[ 2337.368902][    C0]  ? __might_sleep+0xa0/0x190
+[ 2337.373626][    C0]  panic+0x29d/0x5f2
+[ 2337.377625][    C0]  ? __warn_printk+0xf8/0xf8
+[ 2337.382249][    C0]  ? __might_sleep+0x13a/0x190
+[ 2337.387040][    C0]  ? __probe_kernel_read+0x171/0x1b0
+[ 2337.392322][    C0]  ? __warn.cold+0x5/0x48
+[ 2337.396669][    C0]  ? __warn+0xe9/0x1d0
+[ 2337.400746][    C0]  ? __might_sleep+0x13a/0x190
+[ 2337.405595][    C0]  __warn.cold+0x20/0x48
+[ 2337.409858][    C0]  ? __might_sleep+0x13a/0x190
+[ 2337.414632][    C0]  report_bug+0x262/0x2a0
+[ 2337.418982][    C0]  do_error_trap+0x130/0x1f0
+[ 2337.423589][    C0]  ? __might_sleep+0x13a/0x190
+[ 2337.428377][    C0]  do_invalid_op+0x37/0x40
+[ 2337.432808][    C0]  ? __might_sleep+0x13a/0x190
+[ 2337.437946][    C0]  invalid_op+0x14/0x20
+[ 2337.442119][    C0] RIP: 0010:__might_sleep+0x13a/0x190
+[ 2337.447705][    C0] Code: 65 48 8b 1c 25 00 ee 01 00 48 8d 7b 10 48 89 fe 48 c1 ee 03 80 3c 06 00 75 2b 48 8b 73 10 48 c7 c7 a0 6b 6b 8e e8 76 de f5 ff <0f> 0b e9 46 ff ff ff e8 aa fb 5a 00 e9 29 ff ff ff e8 a0 fb 5a 00
+[ 2337.471198][    C0] RSP: 0018:ffff8880ad007b48 EFLAGS: 00010286
+[ 2337.477317][    C0] RAX: 0000000000000000 RBX: ffff888098fe6200 RCX: 0000000000000000
+[ 2337.486690][    C0] RDX: 0000000000000100 RSI: ffffffff815b2342 RDI: ffffed1015a00f5b
+[ 2337.494848][    C0] RBP: ffffffff8e6c1420 R08: ffff888098fe6200 R09: 0000000000000000
+[ 2337.503010][    C0] R10: 0000000000000000 R11: 0000000000000000 R12: 000000000000038c
+[ 2337.510983][    C0] R13: 0000000000000000 R14: 0000000000000000 R15: ffffffff8c4dcf85
+[ 2337.519056][    C0]  ? line6_pcm_acquire+0x35/0x210
+[ 2337.524307][    C0]  ? vprintk_func+0x82/0x118
+[ 2337.529118][    C0]  ? __might_sleep+0x13a/0x190
+[ 2337.534003][    C0]  ? find_first_zero_bit+0x94/0xb0
+[ 2337.539151][    C0]  __mutex_lock+0xcd/0x12b0
+[ 2337.546808][    C0]  ? __lock_acquire+0x238b/0x37c0
+[ 2337.551878][    C0]  ? line6_pcm_acquire+0x35/0x210
+[ 2337.557168][    C0]  ? mutex_trylock+0x1b0/0x1b0
+[ 2337.562116][    C0]  ? find_held_lock+0x2d/0x110
+[ 2337.567061][    C0]  ? mark_held_locks+0xe0/0xe0
+[ 2337.572026][    C0]  ? do_raw_spin_lock+0x11f/0x290
+[ 2337.577071][    C0]  ? lock_downgrade+0x640/0x640
+[ 2337.581937][    C0]  ? line6_pcm_acquire+0x35/0x210
+[ 2337.587150][    C0]  line6_pcm_acquire+0x35/0x210
+[ 2337.592050][    C0]  call_timer_fn+0x161/0x5f0
+[ 2337.596689][    C0]  ? snd_toneport_source_info+0x160/0x160
+[ 2337.602436][    C0]  ? process_timeout+0x40/0x40
+[ 2337.607221][    C0]  ? _raw_spin_unlock_irq+0x29/0x40
+[ 2337.607726][T16467] usb 2-1: config index 0 descriptor too short (expected 9, got 0)
+[ 2337.612514][    C0]  ? snd_toneport_source_info+0x160/0x160
+[ 2337.612542][    C0]  run_timer_softirq+0x58b/0x1400
+[ 2337.612560][    C0]  ? add_timer+0x990/0x990
+[ 2337.612604][    C0]  ? native_apic_msr_write+0x27/0x30
+[ 2337.612626][    C0]  ? lapic_next_event+0x58/0x90
+[ 2337.620786][T16467] usb 2-1: can't read configurations, error -22
+[ 2337.627163][    C0]  __do_softirq+0x22a/0x8cd
+[ 2337.657948][    C0]  irq_exit+0x187/0x1b0
+[ 2337.662111][    C0]  smp_apic_timer_interrupt+0xfe/0x4a0
+[ 2337.667586][    C0]  apic_timer_interrupt+0xf/0x20
+[ 2337.672522][    C0]  </IRQ>
+[ 2337.675463][    C0] RIP: 0010:_raw_spin_unlock_irqrestore+0x50/0x60
+[ 2337.682758][    C0] Code: 53 f3 f6 c7 02 75 19 48 89 df 57 9d 0f 1f 44 00 00 e8 94 4a 73 f3 65 ff 0d 1d 6a fc 71 5b 5d c3 e8 c5 48 73 f3 48 89 df 57 9d <0f> 1f 44 00 00 eb e5 66 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 55
+[ 2337.702464][    C0] RSP: 0018:ffff888070c3fba8 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[ 2337.710893][    C0] RAX: 0000000000000007 RBX: 0000000000000246 RCX: 0000000000000000
+[ 2337.718892][    C0] RDX: 0000000000000000 RSI: 0000000000000006 RDI: 0000000000000246
+[ 2337.726895][    C0] RBP: ffff8880ad025ac0 R08: ffff888098fe6200 R09: 0000000000000000
+[ 2337.734898][    C0] R10: 0000000000000000 R11: 0000000000000000 R12: dffffc0000000000
+[ 2337.743059][    C0] R13: ffff8880ad025b40 R14: ffff8880ad025b40 R15: ffff8880ad025ac0
+[ 2337.751072][    C0]  hrtimer_start_range_ns+0x5b5/0xae0
+[ 2337.756653][    C0]  ? __hrtimer_get_remaining+0x1a0/0x1a0
+[ 2337.763812][    C0]  ? lock_downgrade+0x640/0x640
+[ 2337.769055][    C0]  ? rwlock_bug.part.0+0x90/0x90
+[ 2337.775940][    C0]  do_nanosleep+0x1a0/0x6a0
+[ 2337.780469][    C0]  ? schedule_timeout_idle+0x90/0x90
+[ 2337.785889][    C0]  ? debug_object_fixup+0x30/0x30
+[ 2337.791043][    C0]  ? memset+0x20/0x40
+[ 2337.795209][    C0]  hrtimer_nanosleep+0x25d/0x510
+[ 2337.797702][T16467] usb 2-1: new high-speed USB device number 103 using dummy_hcd
+[ 2337.802278][    C0]  ? nanosleep_copyout+0x110/0x110
+[ 2337.802295][    C0]  ? _copy_from_user+0xd2/0x140
+[ 2337.802309][    C0]  ? clock_was_set_work+0x30/0x30
+[ 2337.802324][    C0]  ? put_old_itimerspec32+0x1d0/0x1d0
+[ 2337.802336][    C0]  ? nsecs_to_jiffies+0x30/0x30
+[ 2337.802355][    C0]  __x64_sys_nanosleep+0x1a2/0x220
+[ 2337.843322][    C0]  ? hrtimer_nanosleep+0x510/0x510
+[ 2337.849688][    C0]  ? do_syscall_64+0x1f/0x4f0
+[ 2337.854500][    C0]  do_syscall_64+0xcf/0x4f0
+[ 2337.859019][    C0]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 2337.864982][    C0] RIP: 0033:0x486560
+[ 2337.868877][    C0] Code: 00 00 48 c7 c0 d4 ff ff ff 64 c7 00 16 00 00 00 31 c0 eb be 66 0f 1f 44 00 00 83 3d f1 01 5d 00 00 75 14 b8 23 00 00 00 0f 05 <48> 3d 01 f0 ff ff 0f 83 b4 e0 f8 ff c3 48 83 ec 08 e8 ea 53 fd ff
+[ 2337.888114][   T17] usb 1-1: USB disconnect, device number 41
+[ 2337.889533][    C0] RSP: 002b:00007fff3e4c4b98 EFLAGS: 00000246 ORIG_RAX: 0000000000000023
+[ 2337.889548][    C0] RAX: ffffffffffffffda RBX: 0000000000239e89 RCX: 0000000000486560
+[ 2337.889555][    C0] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 00007fff3e4c4ba0
+[ 2337.889562][    C0] RBP: 000000000000094b R08: 0000000000000001 R09: 0000000000a57940
+[ 2337.889570][    C0] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000001
+[ 2337.889577][    C0] R13: 00007fff3e4c4bf0 R14: 0000000000239e84 R15: 00007fff3e4c4c00
+[ 2337.896861][    C0] Kernel Offset: disabled
+[ 2337.949670][    C0] Rebooting in 86400 seconds..
