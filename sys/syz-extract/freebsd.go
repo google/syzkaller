@@ -40,6 +40,7 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 	args := []string{
 		"-fmessage-length=0",
 		"-nostdinc",
+		"-DGENOFFSET",
 		"-D_KERNEL",
 		"-D__BSD_VISIBLE=1",
 		"-I", filepath.Join(arch.sourceDir, "sys"),
