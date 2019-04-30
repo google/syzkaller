@@ -20,7 +20,7 @@ Newer bugs come first
 - [Disallow preemptive creation of wired superpage mappings.](https://reviews.freebsd.org/rS345382)
 - [vm_fault_copy_entry: accept invalid source pages.](https://reviews.freebsd.org/rS345324)
 - [Fix a bug in the SCTP stream schedulers.](https://reviews.freebsd.org/rS344872)
-- [Allocate an assocition id and register the stcb with holding the lock.](https://reviews.freebsd.org/rS344742)
+- [Allocate an association id and register the stcb with holding the lock.](https://reviews.freebsd.org/rS344742)
 - [Allow SCTP stream reconfiguration operations only in ESTABLISHED state.](https://reviews.freebsd.org/rS344724)
 - [Fix handling of the SCTP_STATUS socket option in early states.](https://reviews.freebsd.org/rS344723)
 - [Honor the memory limits provided when processing the SCTP_GET_LOCAL_ADDRESSES socket option.](https://reviews.freebsd.org/rS344708)
