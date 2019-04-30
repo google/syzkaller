@@ -2472,7 +2472,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{NR: 54, Name: "ioctl$DIOCRINADEFINE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_pf", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3293594699},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3293594701},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "pfioc_table"}}},
 	}},
 	{NR: 54, Name: "ioctl$DIOCRSETADDRS", CallName: "ioctl", Args: []Type{
@@ -4013,10 +4013,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "DIOCCHANGEALTQV1", Value: 3241165873},
 	{Name: "DIOCCHANGERULE", Value: 3420472346},
 	{Name: "DIOCCLRIFFLAG", Value: 3223864410},
-	{Name: "DIOCCLRRULECTRS", Value: 536888358},
-	{Name: "DIOCCLRSRCNODES", Value: 536888405},
 	{Name: "DIOCCLRSTATES", Value: 3235922962},
-	{Name: "DIOCCLRSTATUS", Value: 536888342},
 	{Name: "DIOCGETADDR", Value: 3295691830},
 	{Name: "DIOCGETADDRS", Value: 3295691829},
 	{Name: "DIOCGETALTQSV0", Value: 3238020143},
@@ -4040,11 +4037,9 @@ var consts_amd64 = []ConstValue{
 	{Name: "DIOCKILLSTATES", Value: 3235922985},
 	{Name: "DIOCNATLOOK", Value: 3226223639},
 	{Name: "DIOCOSFPADD", Value: 3230155855},
-	{Name: "DIOCOSFPFLUSH", Value: 536888398},
 	{Name: "DIOCOSFPGET", Value: 3230155856},
 	{Name: "DIOCRADDADDRS", Value: 3293594691},
 	{Name: "DIOCRADDTABLES", Value: 3293594685},
-	{Name: "DIOCRCLRADDRS", Value: 3293594690},
 	{Name: "DIOCRCLRASTATS", Value: 3293594696},
 	{Name: "DIOCRCLRTABLES", Value: 3293594684},
 	{Name: "DIOCRCLRTSTATS", Value: 3293594689},
@@ -4054,18 +4049,14 @@ var consts_amd64 = []ConstValue{
 	{Name: "DIOCRGETASTATS", Value: 3293594695},
 	{Name: "DIOCRGETTABLES", Value: 3293594687},
 	{Name: "DIOCRGETTSTATS", Value: 3293594688},
-	{Name: "DIOCRINADEFINE", Value: 3293594699},
+	{Name: "DIOCRINADEFINE", Value: 3293594701},
 	{Name: "DIOCRSETADDRS", Value: 3293594693},
 	{Name: "DIOCRSETTFLAGS", Value: 3293594698},
 	{Name: "DIOCRTSTADDRS", Value: 3293594697},
-	{Name: "DIOCSETDEBUG", Value: 3221505048},
-	{Name: "DIOCSETHOSTID", Value: 3221505110},
 	{Name: "DIOCSETIFFLAG", Value: 3223864409},
 	{Name: "DIOCSETLIMIT", Value: 3221767208},
 	{Name: "DIOCSETSTATUSIF", Value: 3222291476},
 	{Name: "DIOCSETTIMEOUT", Value: 3221767197},
-	{Name: "DIOCSTARTALTQ", Value: 536888362},
-	{Name: "DIOCSTOPALTQ", Value: 536888363},
 	{Name: "DIOCXBEGIN", Value: 3222291537},
 	{Name: "DIOCXCOMMIT", Value: 3222291538},
 	{Name: "DIOCXROLLBACK", Value: 3222291539},
@@ -4587,4 +4578,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "df0c7f110d9f80fc6efb916edd0244ecea6eeb9b"
+const revision_amd64 = "4b5db889742657ae7fe970feaa45dbf6b13e405b"
