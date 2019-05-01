@@ -1,4 +1,4 @@
-TITLE: integer divide fault in vmem_alloc
+TITLE: integer divide fault in callout_softclock
 
 [  31.6002559] fatal integer divide fault in supervisor mode
 [  31.6002559] trap type 8 code 0 rip 0xffffffff80ee4614 cs 0x8 rflags 0x10246 cr2 0x20000540 ilevel 0x8 rsp 0xffff98816dabfd40

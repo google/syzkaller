@@ -1,4 +1,4 @@
-TITLE: lock error in do_sys_accept 
+TITLE: lock error in do_sys_accept
 
 [ 157.5698093] panic: lock error: Mutex: mutex_vector_exit,761: assertion failed: MUTEX_OWNER(mtx->mtx_owner) == curthread: lock 0xffffc200130971c0 cpu 0 lwp 0xffffc20012ccd320
 [ 157.5924708] cpu0: Begin traceback...
