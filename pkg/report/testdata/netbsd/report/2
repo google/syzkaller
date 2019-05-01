@@ -1,4 +1,5 @@
 TITLE: page fault in callout_halt
+CORRUPTED: Y
 
 login: uvm_fault(0xfffffe807d0068b0, 0x0, 1) -> e
 fatal page fault in supervisor mode

@@ -44,9 +44,9 @@ var netbsdOopses = []*oops{
 		[]byte("fault in supervisor mode"),
 		[]oopsFormat{
 			{
-				title:  compile("fatal (?:page|protection) fault in supervisor mode"),
-				report: compile(`fatal (?:page|protection) fault in supervisor mode(?:.*\n)+?--- trap.*?\n(.*?)\(`),
-				fmt:    "page fault in %[1]v",
+				title:  compile("fatal (page|protection|integer divide) fault in supervisor mode"),
+				report: compile(`fatal (page|protection|integer divide) fault in supervisor mode(?:.*\n)+?.*trap.*?\n.*?\](.*?)\(`),
+				fmt:    "%[1]v fault in %[2]v",
 			},
 		},
 		[]*regexp.Regexp{},
@@ -61,7 +61,7 @@ var netbsdOopses = []*oops{
 			},
 			{
 				title:  compile("panic: lock error"),
-				report: compile(`panic: lock error:(?:.*\n)+?.*?Begin traceback.*?\n(?:.*(?:panic|printf|lockdebug|abort|mutex).*\n)*(.*?)\(`),
+				report: compile(`panic: lock error:(?:.*\n)+?.*?Begin traceback.*?\n(?:.*(?:panic|printf|lockdebug|abort|mutex).*\n)*.*?\](.*?)\(`),
 				fmt:    "lock error in %[1]v",
 			},
 		},
