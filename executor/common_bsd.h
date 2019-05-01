@@ -58,8 +58,12 @@ static int tunfd = -1;
 #define TUN_IFACE "tap%d"
 #define TUN_DEVICE "/dev/tap%d"
 
+#define LOCAL_MAC "aa:aa:aa:aa:aa:aa"
+#define REMOTE_MAC "aa:aa:aa:aa:aa:bb"
 #define LOCAL_IPV4 "172.20.%d.170"
+#define REMOTE_IPV4 "172.20.%d.187"
 #define LOCAL_IPV6 "fe80::%02hxaa"
+#define REMOTE_IPV6 "fe80::%02hxbb"
 
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
@@ -119,6 +123,7 @@ static void initialize_tun(int tun_id)
 
 	char tun_device[sizeof(TUN_DEVICE)];
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
+	execute_command(0, "ifconfig %s destroy", tun_device);
 
 	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
 #if GOOS_freebsd
@@ -146,13 +151,27 @@ static void initialize_tun(int tun_id)
 	char tun_iface[sizeof(TUN_IFACE)];
 	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
 
+	char local_mac[sizeof(LOCAL_MAC)];
+	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
+	execute_command(1, "ifconfig %s ether %s", tun_iface, local_mac);
+
 	char local_ipv4[sizeof(LOCAL_IPV4)];
 	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
-	execute_command(1, "ifconfig %s inet %s", tun_iface, local_ipv4);
+	execute_command(1, "ifconfig %s inet %s netmask 255.255.255.0", tun_iface, local_ipv4);
+
+	char remote_mac[sizeof(REMOTE_MAC)];
+	char remote_ipv4[sizeof(REMOTE_IPV4)];
+	snprintf_check(remote_mac, sizeof(remote_mac), REMOTE_MAC);
+	snprintf_check(remote_ipv4, sizeof(remote_ipv4), REMOTE_IPV4, tun_id);
+	execute_command(0, "arp -s %s %s", remote_ipv4, remote_mac);
 
 	char local_ipv6[sizeof(LOCAL_IPV6)];
 	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, tun_id);
 	execute_command(1, "ifconfig %s inet6 %s", tun_iface, local_ipv6);
+
+	char remote_ipv6[sizeof(REMOTE_IPV6)];
+	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, tun_id);
+	execute_command(0, "ndp -s %s%%%s %s", remote_ipv6, tun_iface, remote_mac);
 }
 
 #endif // SYZ_EXECUTOR || SYZ_TUN_ENABLE
