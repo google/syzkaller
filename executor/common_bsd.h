@@ -153,7 +153,11 @@ static void initialize_tun(int tun_id)
 
 	char local_mac[sizeof(LOCAL_MAC)];
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
+#if GOOS_openbsd
+	execute_command(1, "ifconfig %s lladdr %s", tun_iface, local_mac);
+#else
 	execute_command(1, "ifconfig %s ether %s", tun_iface, local_mac);
+#endif
 
 	char local_ipv4[sizeof(LOCAL_IPV4)];
 	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
