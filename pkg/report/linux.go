@@ -749,6 +749,20 @@ var linuxStackParams = &stackParams{
 		"list_move",
 		"list_splice",
 		"_indirect_thunk_", // retpolines
+		"string",
+		"pointer",
+		"snprintf",
+		"scnprintf",
+		"kasprintf",
+		"kvasprintf",
+		"printk",
+		"dev_info",
+		"dev_notice",
+		"dev_warn",
+		"dev_err",
+		"dev_alert",
+		"dev_crit",
+		"dev_emerg",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.

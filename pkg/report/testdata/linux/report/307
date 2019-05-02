@@ -1,4 +1,4 @@
-TITLE: KASAN: stack-out-of-bounds Read in string
+TITLE: KASAN: stack-out-of-bounds Read in do_ip_vs_set_ctl
 
 [   29.725847] ==================================================================
 [   29.733228] BUG: KASAN: stack-out-of-bounds in strnlen+0xc1/0xd0
