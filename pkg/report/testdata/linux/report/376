@@ -1,0 +1,132 @@
+TITLE: KASAN: slab-out-of-bounds Read in hdpvr_probe
+
+[  105.345542][ T5735] ==================================================================
+[  105.345545][ T5735] BUG: KASAN: slab-out-of-bounds in string+0x1f6/0x220
+[  105.345548][ T5735] Read of size 1 at addr ffff8880949e7340 by task kworker/1:5/5735
+[  105.345550][ T5735] 
+[  105.345553][ T5735] CPU: 1 PID: 5735 Comm: kworker/1:5 Not tainted 5.1.0-rc3-319004-g43151d6 #6
+[  105.345557][ T5735] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  105.345559][ T5735] Workqueue: usb_hub_wq hub_event
+[  105.345562][ T5735] Call Trace:
+[  105.345564][ T5735]  dump_stack+0xe8/0x16e
+[  105.345566][ T5735]  ? string+0x1f6/0x220
+[  105.345567][ T5735]  ? string+0x1f6/0x220
+[  105.345569][ T5735]  print_address_description+0x6c/0x236
+[  105.345571][ T5735]  ? string+0x1f6/0x220
+[  105.345573][ T5735]  ? string+0x1f6/0x220
+[  105.345574][ T5735]  kasan_report.cold+0x1a/0x3c
+[  105.345577][ T5735]  ? __sanitizer_cov_trace_const_cmp4+0x20/0x20
+[  105.345578][ T5735]  ? string+0x1f6/0x220
+[  105.345580][ T5735]  string+0x1f6/0x220
+[  105.345582][ T5735]  ? widen_string+0x2a0/0x2a0
+[  105.345583][ T5735]  vsnprintf+0xa14/0x16b0
+[  105.345585][ T5735]  ? pointer+0x910/0x910
+[  105.345587][ T5735]  vscnprintf+0x29/0x80
+[  105.345588][ T5735]  vprintk_store+0x45/0x4b0
+[  105.345590][ T5735]  vprintk_emit+0x210/0x5a0
+[  105.345592][ T5735]  ? slab_free_freelist_hook+0x5e/0x140
+[  105.345594][ T5735]  vprintk_func+0x7a/0x118
+[  105.345595][ T5735]  printk+0xbf/0xf2
+[  105.345597][ T5735]  ? kmsg_dump_rewind_nolock+0xde/0xde
+[  105.345599][ T5735]  ? refcount_inc_checked+0x1d/0x60
+[  105.345601][ T5735]  hdpvr_probe.cold+0x194/0x127d
+[  105.345603][ T5735]  usb_probe_interface+0x31d/0x820
+[  105.345605][ T5735]  ? usb_probe_device+0x150/0x150
+[  105.345607][ T5735]  really_probe+0x2da/0xb10
+[  105.345609][ T5735]  driver_probe_device+0x21d/0x350
+[  105.345611][ T5735]  __device_attach_driver+0x1d8/0x290
+[  105.345613][ T5735]  ? driver_allows_async_probing+0x160/0x160
+[  105.345615][ T5735]  bus_for_each_drv+0x163/0x1e0
+[  105.345617][ T5735]  ? bus_rescan_devices+0x30/0x30
+[  105.345619][ T5735]  ? _raw_spin_unlock_irqrestore+0x4b/0x60
+[  105.345621][ T5735]  ? lockdep_hardirqs_on+0x37e/0x580
+[  105.345623][ T5735]  __device_attach+0x223/0x3a0
+[  105.345625][ T5735]  ? device_bind_driver+0xe0/0xe0
+[  105.345627][ T5735]  ? kobject_uevent_env+0x295/0x13d0
+[  105.345629][ T5735]  bus_probe_device+0x1f1/0x2a0
+[  105.345631][ T5735]  ? blocking_notifier_call_chain+0x59/0xb0
+[  105.345633][ T5735]  device_add+0xad2/0x16e0
+[  105.345635][ T5735]  ? get_device_parent.isra.0+0x560/0x560
+[  105.345637][ T5735]  ? _raw_spin_unlock_irqrestore+0x4b/0x60
+[  105.345639][ T5735]  usb_set_configuration+0xdf7/0x1740
+[  105.345641][ T5735]  generic_probe+0xa2/0xda
+[  105.345643][ T5735]  usb_probe_device+0xc0/0x150
+[  105.345645][ T5735]  ? usb_suspend+0x5f0/0x5f0
+[  105.345646][ T5735]  really_probe+0x2da/0xb10
+[  105.345648][ T5735]  driver_probe_device+0x21d/0x350
+[  105.345650][ T5735]  __device_attach_driver+0x1d8/0x290
+[  105.345653][ T5735]  ? driver_allows_async_probing+0x160/0x160
+[  105.345654][ T5735]  bus_for_each_drv+0x163/0x1e0
+[  105.345656][ T5735]  ? bus_rescan_devices+0x30/0x30
+[  105.345658][ T5735]  ? _raw_spin_unlock_irqrestore+0x4b/0x60
+[  105.345660][ T5735]  ? lockdep_hardirqs_on+0x37e/0x580
+[  105.345662][ T5735]  __device_attach+0x223/0x3a0
+[  105.345664][ T5735]  ? device_bind_driver+0xe0/0xe0
+[  105.345666][ T5735]  ? kobject_uevent_env+0x295/0x13d0
+[  105.345668][ T5735]  bus_probe_device+0x1f1/0x2a0
+[  105.345670][ T5735]  ? blocking_notifier_call_chain+0x59/0xb0
+[  105.345672][ T5735]  device_add+0xad2/0x16e0
+[  105.345674][ T5735]  ? get_device_parent.isra.0+0x560/0x560
+[  105.345676][ T5735]  usb_new_device.cold+0x537/0xccf
+[  105.345678][ T5735]  hub_event+0x138e/0x3b00
+[  105.345679][ T5735]  ? hub_port_debounce+0x350/0x350
+[  105.345681][ T5735]  ? _raw_spin_unlock_irq+0x29/0x40
+[  105.345683][ T5735]  process_one_work+0x90f/0x1580
+[  105.345685][ T5735]  ? wq_pool_ids_show+0x300/0x300
+[  105.345687][ T5735]  ? do_raw_spin_lock+0x11f/0x290
+[  105.345689][ T5735]  worker_thread+0x7b0/0xe20
+[  105.345691][ T5735]  ? process_one_work+0x1580/0x1580
+[  105.345692][ T5735]  kthread+0x313/0x420
+[  105.345694][ T5735]  ? kthread_park+0x1a0/0x1a0
+[  105.345696][ T5735]  ret_from_fork+0x3a/0x50
+[  105.345697][ T5735] 
+[  105.345699][ T5735] Allocated by task 5735:
+[  105.345701][ T5735]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[  105.345703][ T5735]  hdpvr_probe+0x1d3/0xad0
+[  105.345705][ T5735]  usb_probe_interface+0x31d/0x820
+[  105.345706][ T5735]  really_probe+0x2da/0xb10
+[  105.345708][ T5735]  driver_probe_device+0x21d/0x350
+[  105.345710][ T5735]  __device_attach_driver+0x1d8/0x290
+[  105.345712][ T5735]  bus_for_each_drv+0x163/0x1e0
+[  105.345714][ T5735]  __device_attach+0x223/0x3a0
+[  105.345725][ T5735]  bus_probe_device+0x1f1/0x2a0
+[  105.345727][ T5735]  device_add+0xad2/0x16e0
+[  105.345729][ T5735]  usb_set_configuration+0xdf7/0x1740
+[  105.345730][ T5735]  generic_probe+0xa2/0xda
+[  105.345732][ T5735]  usb_probe_device+0xc0/0x150
+[  105.345734][ T5735]  really_probe+0x2da/0xb10
+[  105.345736][ T5735]  driver_probe_device+0x21d/0x350
+[  105.345738][ T5735]  __device_attach_driver+0x1d8/0x290
+[  105.345740][ T5735]  bus_for_each_drv+0x163/0x1e0
+[  105.345742][ T5735]  __device_attach+0x223/0x3a0
+[  105.345743][ T5735]  bus_probe_device+0x1f1/0x2a0
+[  105.345745][ T5735]  device_add+0xad2/0x16e0
+[  105.345747][ T5735]  usb_new_device.cold+0x537/0xccf
+[  105.345749][ T5735]  hub_event+0x138e/0x3b00
+[  105.345751][ T5735]  process_one_work+0x90f/0x1580
+[  105.345752][ T5735]  worker_thread+0x7b0/0xe20
+[  105.345754][ T5735]  kthread+0x313/0x420
+[  105.345756][ T5735]  ret_from_fork+0x3a/0x50
+[  105.345757][ T5735] 
+[  105.345758][ T5735] Freed by task 0:
+[  105.345760][ T5735] (stack is not available)
+[  105.345761][ T5735] 
+[  105.345764][ T5735] The buggy address belongs to the object at ffff8880949e7300
+[  105.345767][ T5735]  which belongs to the cache kmalloc-64 of size 64
+[  105.345770][ T5735] The buggy address is located 0 bytes to the right of
+[  105.345772][ T5735]  64-byte region [ffff8880949e7300, ffff8880949e7340)
+[  105.345775][ T5735] The buggy address belongs to the page:
+[  105.345778][ T5735] page:ffffea00025279c0 count:1 mapcount:0 mapping:ffff88812c3f5600 index:0x0
+[  105.345782][ T5735] flags: 0xfff00000000200(slab)
+[  105.345785][ T5735] raw: 00fff00000000200 dead000000000100 dead000000000200 ffff88812c3f5600
+[  105.345788][ T5735] raw: 0000000000000000 00000000802a002a 00000001ffffffff 0000000000000000
+[  105.345791][ T5735] page dumped because: kasan: bad access detected
+[  105.345792][ T5735] 
+[  105.345795][ T5735] Memory state around the buggy address:
+[  105.345798][ T5735]  ffff8880949e7200: fb fb fb fb fc fc fc fc fb fb fb fb fb fb fb fb
+[  105.345801][ T5735]  ffff8880949e7280: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  105.345804][ T5735] >ffff8880949e7300: 00 00 00 00 00 00 00 00 fc fc fc fc fb fb fb fb
+[  105.345806][ T5735]                                            ^
+[  105.345813][ T5735]  ffff8880949e7380: fb fb fb fb fc fc fc fc fb fb fb fb fb fb fb fb
+[  105.345816][ T5735]  ffff8880949e7400: fc fc fc fc fb fb fb fb fb fb fb fb fc fc fc fc
+[  105.345819][ T5735] ==================================================================
