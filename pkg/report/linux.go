@@ -946,8 +946,14 @@ var linuxOopses = []*oops{
 				noStackTrace: true,
 			},
 			{
-				title: compile("BUG: sleeping function called from invalid context (.*)"),
-				fmt:   "BUG: sleeping function called from invalid context %[1]v",
+				title: compile("BUG: sleeping function called from invalid context at (.*)"),
+				fmt:   "BUG: sleeping function called from invalid context in %[2]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible"),
