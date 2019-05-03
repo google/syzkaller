@@ -572,6 +572,7 @@ func linuxStallFrameExtractor(frames []string) (string, string) {
 				"SyS_",
 				"compat_SYSC_",
 				"compat_SyS_",
+				"__ia32_sys_",
 			} {
 				prev = strings.TrimPrefix(prev, prefix)
 			}
