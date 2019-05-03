@@ -4,55 +4,15 @@ These are the instructions on how to fuzz the x86-64 kernel in a QEMU with Ubunt
 
 ## GCC
 
-Since syzkaller requires coverage support in GCC, we need to use a recent GCC version. To checkout GCC 7.1.0 sources to `$GCC` dir:
+Get the latest compiler from [this](/docs/syzbot.md#crash-does-not-reproduce) list and unpack into `$GCC`.
+
+Now you should have GCC binaries in `$GCC/bin/`:
 ``` bash
-svn checkout svn://gcc.gnu.org/svn/gcc/trunk $GCC
-cd $GCC
-svn ls -v ^/tags | grep gcc_7_1_0_release
-svn up -r 247494
-```
-
-Unfortunately there's a typo in the source of `gcc_7_1_0_release`. Apply [this fix](https://patchwork.ozlabs.org/patch/757421/):
-``` c
-diff --git a/gcc/tree.h b/gcc/tree.h
-index 3bca90a..fdaa7af 100644
---- a/gcc/tree.h
-+++ b/gcc/tree.h
-@@ -897,8 +897,8 @@  extern void omp_clause_range_check_failed (const_tree, const char *, int,
- /* If this is true, we should insert a __cilk_detach call just before
-    this function call.  */
- #define EXPR_CILK_SPAWN(NODE) \
--  (tree_check2 (NODE, __FILE__, __LINE__, __FUNCTION__, \
--                CALL_EXPR, AGGR_INIT_EXPR)->base.u.bits.unsigned_flag)
-+  (TREE_CHECK2 (NODE, CALL_EXPR, \
-+                AGGR_INIT_EXPR)->base.u.bits.unsigned_flag)
- 
- /* In a RESULT_DECL, PARM_DECL and VAR_DECL, means that it is
-    passed by invisible reference (and the TREE_TYPE is a pointer to the true
-```
-
-Install GCC prerequisites:
-```
-sudo apt-get install flex bison libc6-dev libc6-dev-i386 linux-libc-dev linux-libc-dev:i386 libgmp3-dev libmpfr-dev libmpc-dev build-essential bc
-```
-
-Build GCC:
-``` bash
-mkdir build
-mkdir install
-cd build/
-../configure --enable-languages=c,c++ --disable-bootstrap --enable-checking=no --with-gnu-as --with-gnu-ld --with-ld=/usr/bin/ld.bfd --disable-multilib --prefix=$GCC/install/
-make -j64
-make install
-```
-
-Now you should have GCC binaries in `$GCC/install/bin/`:
-``` bash
-$ ls $GCC/install/bin/
-c++  gcc-ar      gcov-tool                x86_64-pc-linux-gnu-gcc-7.0.0
-cpp  gcc-nm      x86_64-pc-linux-gnu-c++  x86_64-pc-linux-gnu-gcc-ar
-g++  gcc-ranlib  x86_64-pc-linux-gnu-g++  x86_64-pc-linux-gnu-gcc-nm
-gcc  gcov        x86_64-pc-linux-gnu-gcc  x86_64-pc-linux-gnu-gcc-ranlib
+$ ls $GCC/bin/
+cpp     gcc-ranlib  x86_64-pc-linux-gnu-gcc        x86_64-pc-linux-gnu-gcc-ranlib
+gcc     gcov        x86_64-pc-linux-gnu-gcc-9.0.0
+gcc-ar  gcov-dump   x86_64-pc-linux-gnu-gcc-ar
+gcc-nm  gcov-tool   x86_64-pc-linux-gnu-gcc-nm
 ```
 
 ## Kernel
@@ -93,7 +53,7 @@ make oldconfig
 
 Build the kernel with previously built GCC:
 ```
-make CC="$GCC/install/bin/gcc" -j64
+make CC="$GCC/bin/gcc" -j64
 ```
 
 Now you should have `vmlinux` (kernel binary) and `bzImage` (packed kernel image):
