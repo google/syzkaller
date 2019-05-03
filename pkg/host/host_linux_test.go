@@ -52,9 +52,10 @@ func TestSupportedSyscalls(t *testing.T) {
 
 func TestKallsymsParse(t *testing.T) {
 	tests := []struct {
-		Arch     string
-		Kallsyms []byte
-		Syscalls []string
+		Arch              string
+		Kallsyms          []byte
+		ParsedSyscalls    []string
+		SupportedSyscalls []string
 	}{
 		{
 			"amd64",
@@ -70,6 +71,7 @@ ffffffff817ce080 T __x64_sys_accept4
 ffffffff817ce0a0 T __ia32_sys_accept4
 			`),
 			[]string{"bind", "listen", "accept4"},
+			[]string{"bind", "listen", "accept4"},
 		},
 		{
 			"arm64",
@@ -81,6 +83,7 @@ ffff000010a3dfd8 T __arm64_sys_listen
 ffff000010a3e000 T __sys_accept4
 ffff000010a3e1f0 T __arm64_sys_accept4
 			`),
+			[]string{"bind", "listen", "accept4"},
 			[]string{"bind", "listen", "accept4"},
 		},
 		{
@@ -97,6 +100,7 @@ c0000000011ed050 T sys_accept4
 c0000000011ed050 T __se_sys_accept4
 			`),
 			[]string{"bind", "listen", "accept4"},
+			[]string{"bind", "listen", "accept4"},
 		},
 		{
 			"arm",
@@ -110,18 +114,37 @@ c037c7d0 T sys_gettid
 c037c7f8 T sys_getppid
 			`),
 			[]string{"setfsgid", "getpid", "gettid", "getppid"},
+			[]string{"setfsgid", "getpid", "gettid", "getppid"},
+		},
+		// Test kallsymsRenameMap
+		{
+			"ppc64le",
+			[]byte(`
+c00000000037eb00 T sys_newstat
+			`),
+			[]string{"newstat"},
+			[]string{"stat"},
 		},
 	}
 
 	for _, test := range tests {
 		syscallSet := parseKallsyms(test.Kallsyms, test.Arch)
-		if len(syscallSet) != len(test.Syscalls) {
+		if len(syscallSet) != len(test.ParsedSyscalls) {
 			t.Fatalf("wrong number of parse syscalls, expected: %v, got: %v",
-				len(test.Syscalls), len(syscallSet))
+				len(test.ParsedSyscalls), len(syscallSet))
 		}
-		for _, syscall := range test.Syscalls {
+		for _, syscall := range test.ParsedSyscalls {
 			if _, ok := syscallSet[syscall]; !ok {
 				t.Fatalf("syscall %v not found in parsed syscall list", syscall)
+			}
+		}
+		for _, syscall := range test.SupportedSyscalls {
+			if newname := kallsymsRenameMap[syscall]; newname != "" {
+				syscall = newname
+			}
+
+			if _, ok := syscallSet[syscall]; !ok {
+				t.Fatalf("syscall %v not found in supported syscall list", syscall)
 			}
 		}
 	}
