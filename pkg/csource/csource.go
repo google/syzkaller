@@ -96,7 +96,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 	buf := new(bytes.Buffer)
 	if !opts.Threaded && !opts.Collide {
 		if hasVars || opts.Trace {
-			fmt.Fprintf(buf, "\tlong res = 0;\n")
+			fmt.Fprintf(buf, "\tintptr_t res = 0;\n")
 		}
 		if opts.Repro {
 			fmt.Fprintf(buf, "\tif (write(1, \"executing program\\n\", sizeof(\"executing program\\n\") - 1)) {}\n")
@@ -109,7 +109,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 		}
 	} else {
 		if hasVars || opts.Trace {
-			fmt.Fprintf(buf, "\tlong res;")
+			fmt.Fprintf(buf, "\tintptr_t res;")
 		}
 		fmt.Fprintf(buf, "\tswitch (call) {\n")
 		for i, c := range calls {
@@ -232,7 +232,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 			if native && ctx.target.PtrSize == 4 {
 				// syscall accepts args as ellipsis, resources are uint64
 				// and take 2 slots without the cast, which would be wrong.
-				val = "(long)" + val
+				val = "(intptr_t)" + val
 			}
 			fmt.Fprintf(w, "%v", val)
 		default:
@@ -249,9 +249,9 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 	if trace {
 		cast := ""
 		if !native && !strings.HasPrefix(callName, "syz_") {
-			// Potentially we casted a function returning int to a function returning long.
-			// So instead of long -1 we can get 0x00000000ffffffff. Sign extend it to long.
-			cast = "(long)(int)"
+			// Potentially we casted a function returning int to a function returning intptr_t.
+			// So instead of intptr_t -1 we can get 0x00000000ffffffff. Sign extend it to intptr_t.
+			cast = "(intptr_t)(int)"
 		}
 		fmt.Fprintf(w, "\tfprintf(stderr, \"### call=%v errno=%%u\\n\", %vres == -1 ? errno : 0);\n", ci, cast)
 	}
@@ -264,11 +264,11 @@ func (ctx *context) emitCallName(w *bytes.Buffer, call prog.ExecCall, native boo
 	} else if strings.HasPrefix(callName, "syz_") {
 		fmt.Fprintf(w, "%v(", callName)
 	} else {
-		args := strings.Repeat(",long", len(call.Args))
+		args := strings.Repeat(",intptr_t", len(call.Args))
 		if args != "" {
 			args = args[1:]
 		}
-		fmt.Fprintf(w, "((long(*)(%v))CAST(%v))(", args, callName)
+		fmt.Fprintf(w, "((intptr_t(*)(%v))CAST(%v))(", args, callName)
 	}
 }
 
@@ -355,7 +355,7 @@ func (ctx *context) copyinVal(w *bytes.Buffer, addr, size uint64, val string, bf
 func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool) {
 	if ctx.sysTarget.OS == "fuchsia" {
 		// On fuchsia we have real system calls that return ZX_OK on success,
-		// and libc calls that are casted to function returning long,
+		// and libc calls that are casted to function returning intptr_t,
 		// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
 		if strings.HasPrefix(call.Meta.CallName, "zx_") {
 			fmt.Fprintf(w, "\tif (res == ZX_OK)")

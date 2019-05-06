@@ -172,7 +172,7 @@ static const uint64 arg_csum_inet = 0;
 static const uint64 arg_csum_chunk_data = 0;
 static const uint64 arg_csum_chunk_const = 1;
 
-typedef long(SYSCALLAPI* syscall_t)(long, long, long, long, long, long, long, long, long);
+typedef intptr_t(SYSCALLAPI* syscall_t)(intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t, intptr_t);
 
 struct call_t {
 	const char* name;
@@ -199,8 +199,8 @@ struct thread_t {
 	int call_index;
 	int call_num;
 	int num_args;
-	long args[kMaxArgs];
-	long res;
+	intptr_t args[kMaxArgs];
+	intptr_t res;
 	uint32 reserrno;
 	bool fault_injected;
 	cover_t cov;
@@ -847,7 +847,7 @@ void handle_completion(thread_t* th)
 	if (event_isset(&th->ready) || !event_isset(&th->done) || !th->executing)
 		fail("bad thread state in completion: ready=%d done=%d executing=%d",
 		     event_isset(&th->ready), event_isset(&th->done), th->executing);
-	if (th->res != (long)-1)
+	if (th->res != (intptr_t)-1)
 		copyout_call_results(th);
 	if (!collide && !th->colliding) {
 		write_call_output(th, true);
