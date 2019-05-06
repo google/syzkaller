@@ -19,7 +19,7 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 	}
 }
 
-static long execute_syscall(const call_t* c, long a[kMaxArgs])
+static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 {
 	return syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
 }
