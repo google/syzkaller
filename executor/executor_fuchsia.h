@@ -17,9 +17,9 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 		fail("mmap of data segment failed with: %d", status);
 }
 
-static long execute_syscall(const call_t* c, long a[kMaxArgs])
+static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 {
-	long res = c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
+	intptr_t res = c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
 	if (strncmp(c->name, "zx_", 3) == 0) {
 		// Convert zircon error convention to the libc convention that executor expects.
 		// The following calls return arbitrary integers instead of error codes.
@@ -32,9 +32,9 @@ static long execute_syscall(const call_t* c, long a[kMaxArgs])
 		errno = (-res) & 0x7f;
 		return -1;
 	}
-	// We cast libc functions to signature returning long,
+	// We cast libc functions to signature returning intptr_t,
 	// as the result int -1 is returned as 0x00000000ffffffff rather than full -1.
 	if (res == 0xffffffff)
-		res = (long)-1;
+		res = (intptr_t)-1;
 	return res;
 }
