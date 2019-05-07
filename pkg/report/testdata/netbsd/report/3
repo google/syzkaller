@@ -1,23 +1,21 @@
-TITLE: page fault in callout_halt
+TITLE: page fault in do_sys_accept
 
-login: fatal protection fault in supervisor mode
-trap type 4 code 0 rip 0xffffffff8095a148 cs 0x8 rflags 0x286 cr2 0x7 ilevel 0x8 rsp 0xffff800044b07df0
-curlwp 0xfffffe807a6ed500 pid 1223.2 lowest kstack 0xffff800044b052c0
-panic: trap
-cpu0: Begin traceback...
-vpanic() at netbsd:vpanic+0x15d
-snprintf() at netbsd:snprintf
-trap() at netbsd:trap+0xa00
---- trap (number 4) ---
-callout_halt() at netbsd:callout_halt+0x1b
-timer_settime() at netbsd:timer_settime+0x26
-dosetitimer() at netbsd:dosetitimer+0x204
-sys___setitimer50() at netbsd:sys___setitimer50+0xaa
-sys___syscall() at netbsd:sys___syscall+0x71
-syscall() at netbsd:syscall+0x1ec
---- syscall (number 198) ---
-736f9e23f4aa:
-cpu0: End traceback...
+[ 401.9356239] fatal page fault in supervisor mode
+[ 401.9475401] trap type 6 code 0x2 rip 0xffffffff8022b8cc cs 0x8 rflags 0x10246 cr2 0 ilevel 0 rsp 0xffff9f816eefba88
+[ 401.9599592] curlwp 0xffff9f8012ee9500 pid 25040.2 lowest kstack 0xffff9f816eef42c0
+[ 401.9675001] panic: trap
+[ 401.9675001] cpu0: Begin traceback...
+[ 401.9756945] vpanic() at netbsd:vpanic+0x214
+[ 401.9857023] snprintf() at netbsd:snprintf
+[ 401.9957128] startlwp() at netbsd:startlwp
+[ 402.0057261] alltraps() at netbsd:alltraps+0xb2
+[ 402.0157399] do_sys_accept() at netbsd:do_sys_accept+0x2f4
+[ 402.0257549] sys_paccept() at netbsd:sys_paccept+0x11c
+[ 402.0357684] sys___syscall() at netbsd:sys___syscall+0xe2
+[ 402.0457858] syscall() at netbsd:syscall+0x348
+[ 402.0457858] --- syscall (number 198) ---
+[ 402.0588888] 7cdccb23f4aa:
+[ 402.0588888] cpu0: End traceback...
 
-dumping to dev 19,1 (offset=0, size=0): not possible
-rebooting...
+[ 402.0668525] dumping to dev 4,1 (offset=0, size=0): not possible
+[ 402.0668525] rebooting...
