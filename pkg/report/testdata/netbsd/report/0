@@ -1,43 +1,21 @@
 TITLE: page fault in shm_delete_mapping
 
-uvm_fault(0xffffe4007e04a180, 0x0, 1) -> e
-fatal page fault in supervisor mode
-trap type 6 code 0 rip 0xffffffff809bfb5e cs 0x8 rflags 0x10282 cr2 0 ilevel 0 rsp 0xffffe40043f6fdb0
-curlwp 0xffffe40075d40960 pid 2741.3 lowest kstack 0xffffe40043f6c2c0
-panic: trap
-cpu2: Begin traceback...
-vpanic() at netbsd:vpanic+0x140
-snprintf() at netbsd:snprintf
-trap() at netbsd:trap+0xc4c
---- trap (number 6) ---
-shm_delete_mapping() at netbsd:shm_delete_mapping+0x46
-sys_shmat() at netbsd:sys_shmat+0x25c
-sys___syscall() at netbsd:sys___syscall+0x58
-syscall() at netbsd:syscall+0x1d8
---- syscall (number 198) ---
-765edba3f45a:
-cpu2: End traceback...
+[  32.0706954] fatal page fault in supervisor mode
+[  32.0706954] trap type 6 code 0 rip 0xffffffff80ee1709 cs 0x8 rflags 0x10287 cr2 0xffff900000000000 ilevel 0 rsp 0xffffc4816eaf7c98
+[  32.0706954] curlwp 0xffffc48011fc61c0 pid 767.2 lowest kstack 0xffffc4816eaf02c0
+[  32.0706954] panic: trap
+[  32.0706954] cpu1: Begin traceback...
+[  32.0817608] vpanic() at netbsd:vpanic+0x214
+[  32.0817608] snprintf() at netbsd:snprintf
+[  32.0817608] startlwp() at netbsd:startlwp
+[  32.0928709] alltraps() at netbsd:alltraps+0xb2
+[  32.1039814] shm_delete_mapping() at netbsd:shm_delete_mapping+0x7f
+[  32.1150915] sys_shmat() at netbsd:sys_shmat+0x4b5
+[  32.1262011] sys___syscall() at netbsd:sys___syscall+0xe2
+[  32.1262011] syscall() at netbsd:syscall+0x30e
+[  32.1373117] --- syscall (number 198) ---
+[  32.1373117] 775e9043f4aa:
+[  32.1484219] cpu1: End traceback...
 
-dumping to dev 0,1 (offset=8, size=524157):
-dump 113 112 111 110 109 Skipping crash dump on recursive panic
-panic: wddump: polled command has been queued
-cpu2: Begin traceback...
-vpanic() at netbsd:vpanic+0x140
-snprintf() at netbsd:snprintf
-wddump() at netbsd:wddump+0x295
-dumpsys_seg() at netbsd:dumpsys_seg+0xf3
-dump_seg_iter() at netbsd:dump_seg_iter+0xd2
-dodumpsys() at netbsd:dodumpsys+0x24b
-dumpsys() at netbsd:dumpsys+0x1d
-vpanic() at netbsd:vpanic+0x149
-snprintf() at netbsd:snprintf
-trap() at netbsd:trap+0xc4c
---- trap (number 6) ---
-shm_delete_mapping() at netbsd:shm_delete_mapping+0x46
-sys_shmat() at netbsd:sys_shmat+0x25c
-sys___syscall() at netbsd:sys___syscall+0x58
-syscall() at netbsd:syscall+0x1d8
---- syscall (number 198) ---
-765edba3f45a:
-cpu2: End traceback...
-rebooting...
+[  32.1484219] dumping to dev 4,1 (offset=0, size=0): not possible
+[  32.1595325] rebooting...
