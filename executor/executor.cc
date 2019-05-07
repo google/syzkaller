@@ -1019,7 +1019,7 @@ void execute_call(thread_t* th)
 	for (int i = 0; i < th->num_args; i++) {
 		if (i != 0)
 			debug(", ");
-		debug("0x%lx", th->args[i]);
+		debug("0x%lx", (long)th->args[i]);
 	}
 	debug(")\n");
 
@@ -1049,7 +1049,7 @@ void execute_call(thread_t* th)
 	}
 
 	debug("#%d [%llums] <- %s=0x%lx errno=%d ",
-	      th->id, current_time_ms() - start_time_ms, call->name, th->res, th->reserrno);
+	      th->id, current_time_ms() - start_time_ms, call->name, (long)th->res, th->reserrno);
 	if (flag_cover)
 		debug("cover=%u ", th->cov.size);
 	if (flag_inject_fault && th->call_index == flag_fault_call)

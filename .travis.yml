@@ -15,6 +15,7 @@ before_install:
   - wget http://releases.llvm.org/6.0.1/clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
   - tar -xf ./clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz
   - sudo cp clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04/bin/clang-format /usr/local/bin/
+  #  - sudo apt-get install -y -q gcc-multilib g++-multilib
   - which clang-format
   - clang-format --version
 
