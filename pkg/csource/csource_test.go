@@ -27,12 +27,6 @@ func TestGenerate(t *testing.T) {
 			continue
 		}
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
-			if target.OS == "linux" && target.Arch == "arm" {
-				// This currently fails (at least with my arm-linux-gnueabihf-gcc-4.8) with:
-				// Assembler messages:
-				// Error: alignment too large: 15 assumed
-				t.Skip("broken")
-			}
 			if target.OS == "linux" && target.Arch == "386" {
 				// Currently fails on travis with:
 				// fatal error: asm/unistd.h: No such file or directory
