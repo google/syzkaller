@@ -764,6 +764,8 @@ var linuxStackParams = &stackParams{
 		"dev_alert",
 		"dev_crit",
 		"dev_emerg",
+		"program_check_exception",
+		"program_check_common",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -779,7 +781,9 @@ func warningStackFmt(skip ...string) *stackFmt {
 		// In newer kernels WARNING traps and actual stack starts after invalid_op frame,
 		// older kernels just print stack.
 		parts: []*regexp.Regexp{
-			linuxRipFrame,
+			// x86_64 warning stack starts with "RIP:" line,
+			// while powerpc64 starts with "--- interrupt:".
+			compile("(?:" + linuxRipFrame.String() + "|--- interrupt: [0-9]+ at {{FUNC}})"),
 			parseStackTrace,
 		},
 		parts2: []*regexp.Regexp{
