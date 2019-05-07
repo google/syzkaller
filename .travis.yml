@@ -8,6 +8,12 @@ go:
 before_install:
   - echo $PATH
   - export PATH=`echo $PATH | sed -e 's/:\/usr\/local\/clang-[0-9].[0-9].[0-9]\/bin//'`
+  # xenial packages are broken and do no allow to cross-compile for both 386 and arm.
+  # 386 requires gcc-multilib installed and arm requires gcc-arm-linux-gnueabi,
+  # but these packages are conflicting. This is a hacky way to install 386 headers.
+  - sudo dpkg --add-architecture i386
+  - sudo apt-get update
+  - sudo apt-get install -y -q linux-libc-dev:i386 lib32gcc-5-dev lib32stdc++-5-dev
   - wget http://security.ubuntu.com/ubuntu/pool/main/g/gcc-5/libstdc++6_5.4.0-6ubuntu1~16.04.10_amd64.deb
   - mkdir ./libc
   - dpkg-deb -x ./libstdc++6_5.4.0-6ubuntu1~16.04.10_amd64.deb ./libc

@@ -27,11 +27,6 @@ func TestGenerate(t *testing.T) {
 			continue
 		}
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
-			if target.OS == "linux" && target.Arch == "386" {
-				// Currently fails on travis with:
-				// fatal error: asm/unistd.h: No such file or directory
-				t.Skip("broken")
-			}
 			if target.OS == "linux" && target.Arch == "arm64" {
 				// Episodically fails on travis with:
 				// collect2: error: ld terminated with signal 11 [Segmentation fault]
