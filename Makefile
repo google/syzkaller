@@ -272,9 +272,7 @@ arch_linux_arm64_target:
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
 
 arch_linux_arm_target:
-	# executor build on arm fails with:
-	# Error: alignment too large: 15 assumed
-	env TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm $(MAKE) target
+	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
 
 arch_linux_ppc64le_target:
 	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
