@@ -262,11 +262,7 @@ arch_linux_amd64_target:
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
 
 arch_linux_386_target:
-	# executor build on 386 on travis fails with:
-	# fatal error: asm/errno.h: No such file or directory
-	# We install a bunch of additional packages in .travis.yml,
-	# but I can't guess the right one.
-	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
+	env TARGETOS=linux TARGETARCH=386 $(MAKE) target
 
 arch_linux_arm64_target:
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
