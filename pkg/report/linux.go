@@ -1236,7 +1236,8 @@ var linuxOopses = []*oops{
 						parseStackTrace,
 					},
 					skip: []string{"sched", "_lock", "down", "completion", "kthread",
-						"wait", "synchronize", "context_switch"},
+						"wait", "synchronize", "context_switch", "__switch_to",
+					},
 				},
 			},
 			{
