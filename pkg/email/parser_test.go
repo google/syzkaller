@@ -15,16 +15,16 @@ import (
 func TestExtractCommand(t *testing.T) {
 	for i, test := range extractCommandTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			cmd, args := extractCommand([]byte(test.body))
-			if cmd != test.cmd || !reflect.DeepEqual(args, test.args) {
-				t.Logf("expect: %v %q", test.cmd, test.args)
-				t.Logf("got   : %v %q", cmd, args)
+			cmd, str, args := extractCommand([]byte(test.body))
+			if cmd != test.cmd || str != test.str || !reflect.DeepEqual(args, test.args) {
+				t.Logf("expect: %v %q %q", test.cmd, test.str, test.args)
+				t.Logf("got   : %v %q %q", cmd, str, args)
 				t.Fail()
 			}
-			cmd, args = extractCommand([]byte(strings.Replace(test.body, "\n", "\r\n", -1)))
-			if cmd != test.cmd || !reflect.DeepEqual(args, test.args) {
-				t.Logf("expect: %v %q", test.cmd, test.args)
-				t.Logf("got   : %v %q", cmd, args)
+			cmd, str, args = extractCommand([]byte(strings.Replace(test.body, "\n", "\r\n", -1)))
+			if cmd != test.cmd || str != test.str || !reflect.DeepEqual(args, test.args) {
+				t.Logf("expect: %v %q %q", test.cmd, test.str, test.args)
+				t.Logf("got   : %v %q %q", cmd, str, args)
 				t.Fail()
 			}
 		})
@@ -139,6 +139,7 @@ func TestParse(t *testing.T) {
 var extractCommandTests = []struct {
 	body string
 	cmd  Command
+	str  string
 	args string
 }{
 	{
@@ -147,6 +148,7 @@ var extractCommandTests = []struct {
 line1
 #syz  fix:  bar baz 	`,
 		cmd:  CmdFix,
+		str:  "fix:",
 		args: "bar baz",
 	},
 	{
@@ -157,6 +159,7 @@ line1
 line 2
 `,
 		cmd: CmdFix,
+		str: "fix",
 		args: "bar  	 baz",
 	},
 	{
@@ -176,6 +179,7 @@ line 2
 locking/core
 `,
 		cmd:  CmdTest,
+		str:  "test:",
 		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
 	},
 	{
@@ -184,6 +188,7 @@ locking/core
 git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core
 `,
 		cmd:  CmdTest,
+		str:  "test",
 		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
 	},
 	{
@@ -194,6 +199,7 @@ locking/core
 locking/core
 `,
 		cmd:  CmdTest,
+		str:  "test:",
 		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
 	},
 	{
@@ -206,6 +212,7 @@ arg4
 arg5
 `,
 		cmd:  cmdTest5,
+		str:  "test_5_arg_cmd",
 		args: "arg1 arg2 arg3 arg4 arg5",
 	},
 	{
@@ -213,6 +220,7 @@ arg5
 #syz test_5_arg_cmd arg1
 arg2`,
 		cmd:  cmdTest5,
+		str:  "test_5_arg_cmd",
 		args: "arg1 arg2",
 	},
 	{
@@ -221,6 +229,7 @@ arg2`,
 arg2
 `,
 		cmd:  cmdTest5,
+		str:  "test_5_arg_cmd",
 		args: "arg1 arg2",
 	},
 	{
@@ -231,6 +240,7 @@ arg2
  
 `,
 		cmd:  cmdTest5,
+		str:  "test_5_arg_cmd",
 		args: "arg1 arg2",
 	},
 	{
@@ -241,6 +251,7 @@ arg4 arg5
  
 `,
 		cmd:  CmdFix,
+		str:  "fix:",
 		args: "arg1 arg2 arg3",
 	},
 	{
@@ -249,6 +260,7 @@ arg4 arg5
 arg4 arg5 
 `,
 		cmd:  CmdFix,
+		str:  "fix:",
 		args: "arg1 arg2 arg3",
 	},
 	{
@@ -257,6 +269,7 @@ arg4 arg5
 baz
 `,
 		cmd:  CmdDup,
+		str:  "dup:",
 		args: "title goes here",
 	},
 	{
@@ -266,6 +279,7 @@ title on the next line goes here
 but not this one
 `,
 		cmd:  CmdDup,
+		str:  "dup",
 		args: "title on the next line goes here",
 	},
 	{
@@ -273,8 +287,8 @@ but not this one
 #syz foo bar
 baz
 `,
-		cmd:  CmdUnknown,
-		args: "foo bar",
+		cmd: CmdUnknown,
+		str: "foo",
 	},
 }
 
@@ -321,6 +335,7 @@ To view this discussion on the web visit https://groups.google.com/d/msgid/syzka
 For more options, visit https://groups.google.com/d/optout.`,
 			Patch:       "",
 			Command:     CmdFix,
+			CommandStr:  "fix:",
 			CommandArgs: "arg1 arg2 arg3",
 		}},
 
@@ -366,6 +381,7 @@ second line
 last line`,
 			Patch:       "",
 			Command:     CmdInvalid,
+			CommandStr:  "invalid",
 			CommandArgs: "",
 		}},
 
@@ -389,9 +405,9 @@ last line
 second line
 last line
 #syz command`,
-			Patch:       "",
-			Command:     CmdUnknown,
-			CommandArgs: "command",
+			Patch:      "",
+			Command:    CmdUnknown,
+			CommandStr: "command",
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -554,6 +570,7 @@ index 3d85747bd86e..a257b872a53d 100644
   if (error)
 `,
 			Command:     CmdTest,
+			CommandStr:  "test",
 			CommandArgs: "commit 59372bbf3abd5b24a7f6f676a3968685c280f955",
 		}},
 
@@ -602,6 +619,7 @@ d
 #syz dup: BUG: unable to handle kernel NULL pointer dereference in corrupted
 `,
 		Command:     CmdDup,
+		CommandStr:  "dup:",
 		CommandArgs: "BUG: unable to handle kernel NULL pointer dereference in corrupted",
 	}},
 
@@ -618,6 +636,7 @@ BUG: unable to handle kernel NULL pointer dereference in corrupted
 BUG: unable to handle kernel NULL pointer dereference in corrupted
 `,
 		Command:     CmdDup,
+		CommandStr:  "dup:",
 		CommandArgs: "BUG: unable to handle kernel NULL pointer dereference in corrupted",
 	}},
 
@@ -634,6 +653,7 @@ When freeing a lockf struct that already is part of a linked list, make sure to
 When freeing a lockf struct that already is part of a linked list, make sure to
 `,
 		Command:     CmdFix,
+		CommandStr:  "fix:",
 		CommandArgs: "When freeing a lockf struct that already is part of a linked list, make sure to",
 	}},
 }

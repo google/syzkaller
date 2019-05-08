@@ -28,6 +28,7 @@ type Email struct {
 	Body        string  // text/plain part
 	Patch       string  // attached patch, if any
 	Command     Command // command to bot
+	CommandStr  string  // string representation of the command
 	CommandArgs string  // arguments for the command
 }
 
@@ -104,7 +105,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 	}
 	bodyStr := string(body)
 	cmd := CmdNone
-	patch, cmdArgs := "", ""
+	patch, cmdStr, cmdArgs := "", "", ""
 	if !fromMe {
 		for _, a := range attachments {
 			_, patch, _ = ParsePatch(string(a))
@@ -115,7 +116,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		if patch == "" {
 			_, patch, _ = ParsePatch(bodyStr)
 		}
-		cmd, cmdArgs = extractCommand(body)
+		cmd, cmdStr, cmdArgs = extractCommand(body)
 	}
 	link := ""
 	if match := groupsLinkRe.FindStringSubmatchIndex(bodyStr); match != nil {
@@ -131,6 +132,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		Body:        string(body),
 		Patch:       patch,
 		Command:     cmd,
+		CommandStr:  cmdStr,
 		CommandArgs: cmdArgs,
 	}
 	return email, nil
@@ -193,7 +195,7 @@ func CanonicalEmail(email string) string {
 // extractCommand extracts command to syzbot from email body.
 // Commands are of the following form:
 // ^#syz cmd args...
-func extractCommand(body []byte) (cmd Command, args string) {
+func extractCommand(body []byte) (cmd Command, str, args string) {
 	cmdPos := bytes.Index(append([]byte{'\n'}, body...), []byte("\n"+commandPrefix))
 	if cmdPos == -1 {
 		cmd = CmdNone
@@ -213,7 +215,8 @@ func extractCommand(body []byte) (cmd Command, args string) {
 	if cmdEnd1 := bytes.IndexByte(body[cmdPos:], ' '); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
 		cmdEnd = cmdEnd1
 	}
-	switch string(body[cmdPos : cmdPos+cmdEnd]) {
+	str = string(body[cmdPos : cmdPos+cmdEnd])
+	switch str {
 	default:
 		cmd = CmdUnknown
 	case "":
@@ -246,8 +249,6 @@ func extractCommand(body []byte) (cmd Command, args string) {
 		args = extractArgsTokens(body[cmdPos+cmdEnd:], 5)
 	case CmdFix, CmdDup:
 		args = extractArgsLine(body[cmdPos+cmdEnd:])
-	case CmdUnknown:
-		args = extractArgsLine(body[cmdPos:])
 	}
 	return
 }
