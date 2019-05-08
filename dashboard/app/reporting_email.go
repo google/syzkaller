@@ -316,9 +316,9 @@ func incomingMail(c context.Context, r *http.Request) error {
 		cmd.CC = []string{email.CanonicalEmail(msg.From)}
 	default:
 		if msg.Command != email.CmdUnknown {
-			log.Errorf(c, "unknown email command %v %q", msg.Command, msg.CommandArgs)
+			log.Errorf(c, "unknown email command %v %q", msg.Command, msg.CommandStr)
 		}
-		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.CommandArgs), nil)
+		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.CommandStr), nil)
 	}
 	ok, reply, err := incomingCommand(c, cmd)
 	if err != nil {
@@ -444,7 +444,7 @@ func warnMailingListInCC(c context.Context, msg *email.Email, mailingList string
 	reply := fmt.Sprintf("Your '%v' command is accepted, but please keep %v mailing list"+
 		" in CC next time. It serves as a history of what happened with each bug report."+
 		" Thank you.",
-		msg.Command, mailingList)
+		msg.CommandStr, mailingList)
 	if err := replyTo(c, msg, reply, nil); err != nil {
 		log.Errorf(c, "failed to send email reply: %v", err)
 	}

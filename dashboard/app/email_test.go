@@ -317,8 +317,13 @@ unknown command "bad-command"
 	}
 
 	// Now mark the bug as fixed.
-	c.incomingEmail(sender1, "#syz fix: some: commit title")
-	c.expectNoEmail()
+	c.incomingEmail(sender1, "#syz fix: some: commit title", EmailOptCC(nil))
+	reply := c.pollEmailBug().Body
+	c.expectEQ(reply, `> #syz fix: some: commit title
+
+Your 'fix:' command is accepted, but please keep bugs@syzkaller.com mailing list in CC next time. It serves as a history of what happened with each bug report. Thank you.
+
+`)
 
 	// Check that the commit is now passed to builders.
 	builderPollResp, _ := c.client2.BuilderPoll(build.Manager)
