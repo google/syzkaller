@@ -26,7 +26,7 @@ type linux struct {
 	symbols               map[string][]symbolizer.Symbol
 	ignores               []*regexp.Regexp
 	consoleOutputRe       *regexp.Regexp
-	questionableRe        *regexp.Regexp
+	questionableRes       []*regexp.Regexp
 	taskContext           *regexp.Regexp
 	cpuContext            *regexp.Regexp
 	guiltyFileBlacklist   []*regexp.Regexp
@@ -54,7 +54,10 @@ func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*r
 		ignores:   ignores,
 	}
 	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
-	ctx.questionableRe = regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
+	ctx.questionableRes = []*regexp.Regexp{
+		regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`),
+		regexp.MustCompile(`\(unreliable\)`), // powerpc
+	}
 	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
 	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
 	ctx.eoi = []byte("<EOI>")
@@ -290,9 +293,13 @@ func (ctx *linux) stripLinePrefix(line []byte, context string) ([]byte, bool) {
 	if context == "" {
 		return line, false
 	}
-	questionable := ctx.questionableRe.Match(line) && !bytes.Contains(line, ctx.eoi)
 	start := bytes.Index(line, []byte("] ")) + 2
-	return line[start:], questionable
+	for _, re := range ctx.questionableRes {
+		if re.Match(line) && !bytes.Contains(line, ctx.eoi) {
+			return line[start:], true
+		}
+	}
+	return line[start:], false
 }
 
 func (ctx *linux) extractContext(line []byte) string {
