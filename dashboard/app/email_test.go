@@ -319,6 +319,7 @@ unknown command "bad-command"
 	// Now mark the bug as fixed.
 	c.incomingEmail(sender1, "#syz fix: some: commit title", EmailOptCC(nil))
 	reply := c.pollEmailBug().Body
+	// nolint: lll
 	c.expectEQ(reply, `> #syz fix: some: commit title
 
 Your 'fix:' command is accepted, but please keep bugs@syzkaller.com mailing list in CC next time. It serves as a history of what happened with each bug report. Thank you.
