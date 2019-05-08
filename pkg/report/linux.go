@@ -508,6 +508,10 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (b
 			return true, "title matches corrupted regexp"
 		}
 	}
+	// If the report hasn't matched any of the oops titles, don't mark it as corrupted.
+	if format.title == nil {
+		return false, ""
+	}
 	// Check if the report contains stack trace.
 	if !format.noStackTrace && !bytes.Contains(report, []byte("Call Trace")) &&
 		!bytes.Contains(report, []byte("backtrace")) {
@@ -991,6 +995,21 @@ var linuxOopses = []*oops{
 						"pcpu_create", "strdup", "strndup", "memdup"},
 				},
 			},
+			{
+				title: compile("BUG: stack guard page was hit at"),
+				fmt:   "BUG: stack guard page was hit in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+					},
+				},
+				noStackTrace: true,
+			},
+			{
+				title:     compile(`BUG:[[:space:]]*(?:\n|$)`),
+				fmt:       "BUG: corrupted",
+				corrupted: true,
+			},
 		},
 		[]*regexp.Regexp{
 			// CONFIG_DEBUG_OBJECTS output.
@@ -1123,6 +1142,11 @@ var linuxOopses = []*oops{
 				fmt:          "WARNING: kernel stack regs has bad value",
 				noStackTrace: true,
 			},
+			{
+				title:     compile(`WARNING:[[:space:]]*(?:\n|$)`),
+				fmt:       "WARNING: corrupted",
+				corrupted: true,
+			},
 		},
 		[]*regexp.Regexp{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
@@ -1213,6 +1237,11 @@ var linuxOopses = []*oops{
 				// This gets captured for corrupted old-style KASAN reports.
 				title:     compile("INFO: (Freed|Allocated) in (.*)"),
 				fmt:       "INFO: %[1]v in %[2]v",
+				corrupted: true,
+			},
+			{
+				title:     compile(`INFO:[[:space:]]*(?:\n|$)`),
+				fmt:       "INFO: corrupted",
 				corrupted: true,
 			},
 		},
@@ -1356,6 +1385,16 @@ var linuxOopses = []*oops{
 			{
 				title: compile("kernel BUG at lib/list_debug.c"),
 				fmt:   "BUG: corrupted list in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
+			},
+			{
+				title: compile("kernel BUG at (.*)"),
+				fmt:   "kernel BUG at %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						compile("Call Trace:"),
