@@ -111,6 +111,7 @@ Use (A)uto layout, (E)dit auto layout, or create (C)ustom layout = auto
 URL to autopartitioning template for disklabel = file://disklabel.template
 Set name(s) = +* -x* -game* done
 Directory does not contain SHA256.sig. Continue without verification = yes
+Location of sets = cd0
 EOF
 
 # Disklabel template.
