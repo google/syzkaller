@@ -708,6 +708,7 @@ var linuxStackParams = &stackParams{
 		"lock_acquire",
 		"lock_release",
 		"register_lock_class",
+		"reacquire_held_locks",
 		"spin_lock",
 		"spin_trylock",
 		"spin_unlock",
@@ -1055,7 +1056,7 @@ var linuxOopses = []*oops{
 			{
 				title: compile("WARNING: .*kernel/locking/lockdep\\.c.*lock_"),
 				fmt:   "WARNING: locking bug in %[1]v",
-				stack: warningStackFmt(),
+				stack: warningStackFmt("lock_sock", "release_sock"),
 			},
 			{
 				title:        compile("WARNING: lock held when returning to user space"),
