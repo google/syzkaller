@@ -849,7 +849,7 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
-				title: compile("BUG: unable to handle kernel paging request"),
+				title: compile("BUG: (?:unable to handle kernel paging request|unable to handle page fault for address)"),
 				fmt:   "BUG: unable to handle kernel paging request in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
@@ -860,7 +860,7 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
-				title: compile("BUG: unable to handle kernel NULL pointer dereference"),
+				title: compile("BUG: (?:unable to handle kernel NULL pointer dereference|kernel NULL pointer dereference)"),
 				fmt:   "BUG: unable to handle kernel NULL pointer dereference in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
