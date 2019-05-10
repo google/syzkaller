@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/vm"
 )
@@ -471,12 +472,24 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %v", err)
 	}
-
 	log.Logf(0, "job: testing...")
 	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC)
 	if err != nil {
 		return err
 	}
+	rep, err := aggregateTestResults(results)
+	if err != nil {
+		return err
+	}
+	if rep != nil {
+		resp.CrashTitle = rep.Title
+		resp.CrashReport = rep.Report
+		resp.CrashLog = rep.Output
+	}
+	return nil
+}
+
+func aggregateTestResults(results []error) (*report.Report, error) {
 	// We can have transient errors and other errors of different types.
 	// We need to avoid reporting transient "failed to boot" or "failed to copy binary" errors.
 	// If any of the instances crash during testing, we report this with the highest priority.
@@ -500,19 +513,16 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 				testErr = fmt.Errorf("%v\n\n%s", err.Title, err.Output)
 			}
 		case *instance.CrashError:
-			resp.CrashTitle = err.Report.Title
-			resp.CrashReport = err.Report.Report
-			resp.CrashLog = err.Report.Output
-			return nil
+			return err.Report, nil
 		}
 	}
 	if anySuccess {
-		return nil
+		return nil, nil
 	}
 	if testErr != nil {
-		return testErr
+		return nil, testErr
 	}
-	return anyErr
+	return nil, anyErr
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.
