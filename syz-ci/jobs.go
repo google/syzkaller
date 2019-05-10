@@ -365,6 +365,11 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	req, resp, mgr := job.req, job.resp, job.mgr
 
+	// Hack: if the manager has only, say, 5 VMs, but bisect wants 10, try to override number of VMs to 10.
+	// OverrideVMCount is opportunistic and should do it only if it's safe.
+	if err := instance.OverrideVMCount(mgrcfg, bisect.NumTests); err != nil {
+		return err
+	}
 	trace := new(bytes.Buffer)
 	cfg := &bisect.Config{
 		Trace:    io.MultiWriter(trace, log.VerboseWriter(3)),
