@@ -123,6 +123,23 @@ func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error
 	return nil
 }
 
+func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
+	vmConfig := make(map[string]interface{})
+	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
+		return fmt.Errorf("failed to parse VM config: %v", err)
+	}
+	if vmConfig["count"] == "" || !vm.AllowsOvercommit(cfg.Type) {
+		return nil
+	}
+	vmConfig["count"] = fmt.Sprint(n)
+	vmCfg, err := json.Marshal(vmConfig)
+	if err != nil {
+		return fmt.Errorf("failed to serialize VM config: %v", err)
+	}
+	cfg.VM = vmCfg
+	return nil
+}
+
 type TestError struct {
 	Boot   bool // says if the error happened during booting or during instance testing
 	Title  string

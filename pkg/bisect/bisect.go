@@ -61,6 +61,8 @@ type env struct {
 	testTime  time.Duration
 }
 
+const NumTests = 10 // number of tests we do per commit
+
 // Run does the bisection and returns:
 //  - if bisection is conclusive, the single cause/fix commit
 //    - for cause bisection report is the crash on the cause commit
@@ -275,8 +277,7 @@ func (env *env) test() (vcs.BisectResult, *vcs.Commit, *report.Report, error) {
 		return vcs.BisectSkip, current, nil, nil
 	}
 	testStart := time.Now()
-	const numTests = 10
-	results, err := env.inst.Test(numTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
+	results, err := env.inst.Test(NumTests, cfg.Repro.Syz, cfg.Repro.Opts, cfg.Repro.C)
 	env.testTime += time.Since(testStart)
 	if err != nil {
 		env.log("failed: %v", err)
@@ -286,7 +287,7 @@ func (env *env) test() (vcs.BisectResult, *vcs.Commit, *report.Report, error) {
 	res := vcs.BisectSkip
 	if bad != 0 {
 		res = vcs.BisectBad
-	} else if numTests-good-bad > numTests/3*2 {
+	} else if NumTests-good-bad > NumTests/3*2 {
 		// More than 2/3 of instances failed with infrastructure error,
 		// can't reliably tell that the commit is good.
 		res = vcs.BisectSkip
