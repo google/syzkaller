@@ -27,6 +27,7 @@ define FOO `bar`
 define FOO `bar				### C expression is not terminated
 
 foo(x int32[1:2:3, opt])		### unexpected ':', expecting ']'
+foo2(x int32[1[2]:2])			### unexpected ':', expecting ']'
 
 s0 {
 	f0	string[""]

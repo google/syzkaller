@@ -17,7 +17,7 @@ type typeDesc struct {
 	CanBeTypedef bool       // can be type alias target?
 	CantBeOpt    bool       // can't be marked as opt?
 	NeedBase     bool       // needs base type when used as field?
-	AllowColon   bool       // allow colon (int8:2) on fields?
+	MaxColon     int        // max number of colons (int8:2) on fields
 	OptArgs      int        // number of optional arguments in Args array
 	Args         []namedArg // type arguments
 	// CanBeArgRet returns if this type can be syscall argument/return (false if nil).
@@ -38,10 +38,10 @@ type typeDesc struct {
 
 // typeArg describes a type argument.
 type typeArg struct {
-	Names      []string
-	Kind       int  // int/ident/string
-	MaxArgs    int  // maxiumum number of subargs
-	AllowColon bool // allow colon (2:3)?
+	Names    []string
+	Kind     int // int/ident/string
+	MaxArgs  int // maxiumum number of subargs
+	MaxColon int // max number of colons (2:3)
 	// Check does custom verification of the arg (optional).
 	Check       func(comp *compiler, t *ast.Type)
 	CheckConsts func(comp *compiler, t *ast.Type)
@@ -67,7 +67,7 @@ var typeInt = &typeDesc{
 	Names:        typeArgBase.Type.Names,
 	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
-	AllowColon:   true,
+	MaxColon:     1,
 	OptArgs:      1,
 	Args:         []namedArg{{Name: "range", Type: typeArgIntRange}},
 	CanBeResourceBase: func(comp *compiler, t *ast.Type) bool {
@@ -85,11 +85,19 @@ var typeInt = &typeDesc{
 		size, be := comp.parseIntType(t.Ident)
 		kind, rangeBegin, rangeEnd := prog.IntPlain, uint64(0), uint64(0)
 		if len(args) > 0 {
-			kind, rangeBegin, rangeEnd = prog.IntRange, args[0].Value, args[0].Value2
+			rangeArg := args[0]
+			kind, rangeBegin, rangeEnd = prog.IntRange, rangeArg.Value, rangeArg.Value
+			if len(rangeArg.Colon) != 0 {
+				rangeEnd = rangeArg.Colon[0].Value
+			}
+		}
+		var bitLen uint64
+		if len(t.Colon) != 0 {
+			bitLen = t.Colon[0].Value
 		}
 		base.TypeSize = size
 		return &prog.IntType{
-			IntTypeCommon: genIntCommon(base.TypeCommon, t.Value2, be),
+			IntTypeCommon: genIntCommon(base.TypeCommon, bitLen, be),
 			Kind:          kind,
 			RangeBegin:    rangeBegin,
 			RangeEnd:      rangeEnd,
@@ -139,7 +147,7 @@ var typeArray = &typeDesc{
 	OptArgs:      1,
 	Args:         []namedArg{{Name: "type", Type: typeArgType}, {Name: "size", Type: typeArgSizeRange}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
-		if len(args) > 1 && args[1].Value == 0 && args[1].Value2 == 0 {
+		if len(args) > 1 && args[1].Value == 0 && (len(args[1].Colon) == 0 || args[1].Colon[0].Value == 0) {
 			comp.error(args[1].Pos, "arrays of size 0 are not supported")
 		}
 	},
@@ -151,7 +159,7 @@ var typeArray = &typeDesc{
 			return true
 		}
 		if len(args) > 1 {
-			return args[1].Value != args[1].Value2
+			return len(args[1].Colon) != 0 && args[1].Value != args[1].Colon[0].Value
 		}
 		return true
 	},
@@ -162,7 +170,10 @@ var typeArray = &typeDesc{
 		elemType := comp.genType(args[0], "", base.ArgDir, false)
 		kind, begin, end := prog.ArrayRandLen, uint64(0), uint64(0)
 		if len(args) > 1 {
-			kind, begin, end = prog.ArrayRangeLen, args[1].Value, args[1].Value2
+			kind, begin, end = prog.ArrayRangeLen, args[1].Value, args[1].Value
+			if len(args[1].Colon) != 0 {
+				end = args[1].Colon[0].Value
+			}
 		}
 		if it, ok := elemType.(*prog.IntType); ok && it.Kind == prog.IntPlain && it.TypeSize == 1 {
 			// Special case: buffer is better mutated.
@@ -301,9 +312,12 @@ var typeVMA = &typeDesc{
 	OptArgs:     1,
 	Args:        []namedArg{{Name: "size range", Type: typeArgSizeRange}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		begin, end := uint64(0), uint64(0)
+		var begin, end uint64
 		if len(args) > 0 {
-			begin, end = args[0].Value, args[0].Value2
+			begin, end = args[0].Value, args[0].Value
+			if len(args[0].Colon) != 0 {
+				end = args[0].Colon[0].Value
+			}
 		}
 		base.TypeSize = comp.ptrSize
 		if t.Ident == "vma64" {
@@ -762,30 +776,31 @@ var typeArgInt = &typeArg{
 }
 
 var typeArgIntRange = &typeArg{
-	Kind:       kindInt,
-	AllowColon: true,
+	Kind:     kindInt,
+	MaxColon: 1,
 	CheckConsts: func(comp *compiler, t *ast.Type) {
-		if !t.HasColon {
-			t.Value2 = t.Value
-			t.Value2Fmt = t.ValueFmt
+		end := t.Value
+		if len(t.Colon) != 0 {
+			end = t.Colon[0].Value
 		}
-		if t.Value2-t.Value > 1<<64-1<<32 {
-			comp.error(t.Pos, "bad int range [%v:%v]", t.Value, t.Value2)
+		if end-t.Value > 1<<64-1<<32 {
+			comp.error(t.Pos, "bad int range [%v:%v]", t.Value, end)
 		}
 	},
 }
 
 // Size of array and vma's.
 var typeArgSizeRange = &typeArg{
-	Kind:       kindInt,
-	AllowColon: true,
+	Kind:     kindInt,
+	MaxColon: 1,
 	CheckConsts: func(comp *compiler, t *ast.Type) {
-		if !t.HasColon {
-			t.Value2 = t.Value
+		end := t.Value
+		if len(t.Colon) != 0 {
+			end = t.Colon[0].Value
 		}
 		const maxVal = 1e6
-		if t.Value > t.Value2 || t.Value > maxVal || t.Value2 > maxVal {
-			comp.error(t.Pos, "bad size range [%v:%v]", t.Value, t.Value2)
+		if t.Value > end || t.Value > maxVal || end > maxVal {
+			comp.error(t.Pos, "bad size range [%v:%v]", t.Value, end)
 		}
 	},
 }
@@ -794,25 +809,26 @@ var typeArgSizeRange = &typeArg{
 var typeArgBase = namedArg{
 	Name: "base type",
 	Type: &typeArg{
-		Names:      []string{"int8", "int16", "int32", "int64", "int16be", "int32be", "int64be", "intptr"},
-		AllowColon: true,
+		Names:    []string{"int8", "int16", "int32", "int64", "int16be", "int32be", "int64be", "intptr"},
+		MaxColon: 1,
 		Check: func(comp *compiler, t *ast.Type) {
-			if t.HasColon {
-				if t.Ident2 != "" {
-					comp.error(t.Pos2, "literal const bitfield sizes are not supported")
+			if len(t.Colon) != 0 {
+				col := t.Colon[0]
+				if col.Ident != "" {
+					comp.error(col.Pos, "literal const bitfield sizes are not supported")
 					return
 				}
-				if t.Value2 == 0 {
+				if col.Value == 0 {
 					// This was not supported historically
 					// and does not work the way C bitfields of size 0 work.
 					// We could allow this, but then we need to make
 					// this work the way C bitfields work.
-					comp.error(t.Pos2, "bitfields of size 0 are not supported")
+					comp.error(col.Pos, "bitfields of size 0 are not supported")
 				}
 				size, _ := comp.parseIntType(t.Ident)
-				if t.Value2 > size*8 {
-					comp.error(t.Pos2, "bitfield of size %v is too large for base type of size %v",
-						t.Value2, size*8)
+				if col.Value > size*8 {
+					comp.error(col.Pos, "bitfield of size %v is too large for base type of size %v",
+						col.Value, size*8)
 				}
 			}
 		},

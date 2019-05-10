@@ -176,13 +176,8 @@ func fmtType(t *Type) string {
 	default:
 		v = FormatInt(t.Value, t.ValueFmt)
 	}
-	if t.HasColon {
-		switch {
-		case t.Ident2 != "":
-			v += fmt.Sprintf(":%v", t.Ident2)
-		default:
-			v += fmt.Sprintf(":%v", FormatInt(t.Value2, t.Value2Fmt))
-		}
+	for _, c := range t.Colon {
+		v += ":" + fmtType(c)
 	}
 	v += fmtTypeList(t.Args)
 	return v
