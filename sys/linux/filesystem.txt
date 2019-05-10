@@ -11,9 +11,30 @@ umount2(path ptr[in, filename], flags flags[umount_flags])
 mount$bpf(src const[0], dst ptr[in, filename], type ptr[in, string["bpf"]], flags flags[mount_flags], opts ptr[in, fs_options[bpf_options]])
 mount$overlay(src const[0], dst ptr[in, filename], type ptr[in, string["overlay"]], flags flags[mount_flags], opts ptr[in, fs_options[overlay_options]])
 
-open_tree(dfd fd_dir[opt], filename ptr[in, filename], flags flags[open_tree_flags])
+resource fd_fscontext[fd]
+resource fd_open_tree[fd]
+
+fsopen(type ptr[in, string[filesystem]], flags flags[fsopen_flags]) fd_fscontext
+fspick(dfd fd_dir[opt], path ptr[in, filename], flags flags[fspick_flags]) fd_fscontext
+fsconfig$FSCONFIG_SET_FLAG(fd fd_fscontext, cmd const[FSCONFIG_SET_FLAG], key ptr[in, string[fsconfig_flag_params]], value const[0], aux const[0])
+fsconfig$FSCONFIG_SET_STRING(fd fd_fscontext, cmd const[FSCONFIG_SET_STRING], key ptr[in, string], value ptr[in, string], aux const[0])
+fsconfig$FSCONFIG_SET_BINARY(fd fd_fscontext, cmd const[FSCONFIG_SET_BINARY], key ptr[in, string], value ptr[in, array[int8]], aux bytesize[value])
+fsconfig$FSCONFIG_SET_PATH(fd fd_fscontext, cmd const[FSCONFIG_SET_PATH], key ptr[in, string], value ptr[in, filename], aux fd_dir[opt])
+fsconfig$FSCONFIG_SET_PATH_EMPTY(fd fd_fscontext, cmd const[FSCONFIG_SET_PATH_EMPTY], key ptr[in, string], value ptr[in, filename], aux fd_dir[opt])
+fsconfig$FSCONFIG_SET_FD(fd fd_fscontext, cmd const[FSCONFIG_SET_FD], key ptr[in, string], value const[0], aux fd)
+fsconfig$FSCONFIG_CMD_CREATE(fd fd_fscontext, cmd const[FSCONFIG_CMD_CREATE], key const[0], value const[0], aux const[0])
+fsconfig$FSCONFIG_CMD_RECONFIGURE(fd fd_fscontext, cmd const[FSCONFIG_CMD_RECONFIGURE], key const[0], value const[0], aux const[0])
+fsmount(fs_fd fd_fscontext, flags flags[fsmount_flags], attr_flags flags[fsmount_attr_flags]) fd_open_tree
+move_mount(from_dfd fd_dir[opt], from_pathname ptr[in, filename], to_dfd fd_dir[opt], to_pathname ptr[in, filename], flags flags[move_mount_flags])
+open_tree(dfd fd_dir[opt], filename ptr[in, filename], flags flags[open_tree_flags]) fd_open_tree
 
 open_tree_flags = AT_EMPTY_PATH, AT_NO_AUTOMOUNT, AT_RECURSIVE, AT_SYMLINK_NOFOLLOW, OPEN_TREE_CLONE, OPEN_TREE_CLOEXEC
+fsmount_flags = FSMOUNT_CLOEXEC
+fsopen_flags = FSOPEN_CLOEXEC
+fspick_flags = FSPICK_CLOEXEC
+fsmount_attr_flags = MOUNT_ATTR_RDONLY, MOUNT_ATTR_NOSUID, MOUNT_ATTR_NODEV, MOUNT_ATTR_NOEXEC, MOUNT_ATTR__ATIME, MOUNT_ATTR_NODIRATIME
+move_mount_flags = MOVE_MOUNT_F_SYMLINKS, MOVE_MOUNT_F_AUTOMOUNTS, MOVE_MOUNT_F_EMPTY_PATH, MOVE_MOUNT_T_SYMLINKS, MOVE_MOUNT_T_AUTOMOUNTS, MOVE_MOUNT_T_EMPTY_PATH
+fsconfig_flag_params = "dirsync", "lazytime", "mand", "posixacl", "ro", "sync", "async", "nolazytime", "nomand", "rw", "silent"
 
 filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6", "exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs", "cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs", "proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf", "ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660", "coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs", "bpf", "cgroup", "cgroup2", "cpuset", "mqueue", "aufs", "selinuxfs", "dax", "erofs"
 
