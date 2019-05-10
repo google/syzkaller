@@ -46,16 +46,10 @@ func TestTransitivelyEnabledCalls(t *testing.T) {
 				}
 			}
 		} else {
-			expectDisabled := 0
-			if target.OS == "linux" && (target.Arch == "arm" || target.Arch == "ppc64le") {
-				// mmap$IORING* are disabled because io_uring_setup is not implemented.
-				// Remove this once io_uring_setup has syscall number of these archs.
-				expectDisabled = 3
-			}
-			if len(enabled) != len(target.Syscalls)-expectDisabled {
+			if len(enabled) != len(target.Syscalls) {
 				t.Errorf("some calls are disabled: %v/%v", len(enabled), len(target.Syscalls))
 			}
-			if len(disabled) != expectDisabled {
+			if len(disabled) != 0 {
 				for c, reason := range disabled {
 					t.Errorf("disabled %v: %v", c.Name, reason)
 				}
