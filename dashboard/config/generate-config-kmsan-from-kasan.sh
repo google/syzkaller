@@ -5,7 +5,7 @@
 THISDIR=`cd $(dirname $0); pwd`
 KASAN_CONFIG=${THISDIR}/upstream-kasan.config
 KMSAN_CONFIG=${THISDIR}/upstream-kmsan.config
-KMSAN_ADD=${THISDIR}/kmsan-syzbot-bits.config
+KMSAN_ADD=${THISDIR}/bits-kmsan.config
 
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 [ -z "${SOURCEDIR}" ] && echo 'Please set $SOURCEDIR to point to the kernel tree!' && exit
