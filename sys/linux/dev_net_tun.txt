@@ -34,6 +34,8 @@ ioctl$TUNSETSTEERINGEBPF(fd fd_tun, cmd const[TUNSETSTEERINGEBPF], arg ptr[in, f
 ioctl$TUNSETFILTEREBPF(fd fd_tun, cmd const[TUNSETFILTEREBPF], arg ptr[in, fd_bpf_prog])
 ioctl$TUNSETVNETLE(fd fd_tun, cmd const[TUNSETVNETLE], arg ptr[in, bool32])
 ioctl$TUNSETVNETBE(fd fd_tun, cmd const[TUNSETVNETBE], arg ptr[in, bool32])
+ioctl$TUNSETCARRIER(fd fd_tun, cmd const[TUNSETCARRIER], arg ptr[in, bool32])
+ioctl$TUNGETDEVNETNS(fd fd_tun, cmd const[TUNGETDEVNETNS], arg const[0]) fd_namespace
 
 # There are 4 combinations of tun packets:
 # tun_pi can be present or missing (depending on !IFF_NO_PI),
