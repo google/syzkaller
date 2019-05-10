@@ -80,8 +80,8 @@ foo$sr0(a ptr[in, use_sr])
 # Len target tests.
 
 foo$100(a int32, b len[a])
-foo$101(a len[a])		### len target a refer to itself
-foo$102(a ptr[in, len[a, int8]])	### len target a refer to itself
+foo$101(a len[a])		### len target a refers to itself
+foo$102(a ptr[in, len[a, int8]])	### len target a refers to itself
 foo$103(a int32, b len[c])	### len target c does not exist
 foo$104(a len[parent])		### len target parent does not exist
 foo$105(a ptr[in, int32], b ptr[in, array[len[a, int32]]])
@@ -109,6 +109,15 @@ s6 {
 	f2	array[int8]
 } [size[10]]			### varlen struct s6 has size attribute
 
+s7 {
+	f1	int32
+	f2	u0
+}
+
+u0 [
+	f	len[f1, int32]	### len target f1 does not exist
+]
+
 u1 [
 	f1	ptr[in, array[int8]]
 	f2	len[f1, int32]	### len target f1 does not exist
@@ -124,7 +133,26 @@ u3 [
 
 foo$200(a ptr[in, s2])
 foo$201(a ptr[in, s1])
-foo$202(a u1)
+foo$202(a ptr[in, s7])
+foo$203(a u1)
+
+foo$204(a ptr[in, slen1])
+
+slen1 {
+	f0 len[parent, int32]
+	f1 len[parent:f0, int32]	### parent can't be part of path expressions
+	f2 len[slen21:a, int32]		### len target a does not exist
+	f3 len[f0:parent, int32]	### parent can't be part of path expressions
+	f4 len[slen2:f, int32]		### len path slen2 does not refer to a struct
+	f5 len[slen22:f, int32]		### len path slen22 does not refer to a struct
+	slen2 ptr[in, array[slen2]]
+	slen21 slen2
+	slen22 array[slen2]
+}
+
+slen2 {
+	f int32
+}
 
 # Resource ctor tests.
 
