@@ -190,9 +190,9 @@ type cmsghdr_unaligned[SOL, TYP, DATA] {
 
 # For __sock_cmsg_send
 cmsghdr_sock [
-	mark		cmsghdr_unaligned[SOL_SOCKET, SO_MARK, int32]
-	timestamping	cmsghdr_unaligned[SOL_SOCKET, SO_TIMESTAMPING_OLD, int32]
-	txtime		cmsghdr_unaligned[SOL_SOCKET, SCM_TXTIME, int64]
+	mark		cmsghdr_t[SOL_SOCKET, SO_MARK, int32]
+	timestamping	cmsghdr_t[SOL_SOCKET, SO_TIMESTAMPING_OLD, int32]
+	txtime		cmsghdr_t[SOL_SOCKET, SCM_TXTIME, int64]
 ] [varlen]
 
 # Socket options
