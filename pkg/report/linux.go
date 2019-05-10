@@ -178,9 +178,6 @@ func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, contex
 				oops = oops1
 				startPos = pos
 				context = ctx.extractContext(line)
-
-				//stripped, questionable := ctx.stripLinePrefix(line, context1)
-
 				return
 			}
 		}
