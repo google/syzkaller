@@ -28,6 +28,7 @@ type linux struct {
 	consoleOutputRe       *regexp.Regexp
 	questionableRe        *regexp.Regexp
 	taskContext           *regexp.Regexp
+	cpuContext            *regexp.Regexp
 	guiltyFileBlacklist   []*regexp.Regexp
 	reportStartIgnores    []*regexp.Regexp
 	infoMessagesWithStack [][]byte
@@ -55,6 +56,7 @@ func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*r
 	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
 	ctx.questionableRe = regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
 	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
+	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
 	ctx.eoi = []byte("<EOI>")
 	ctx.guiltyFileBlacklist = []*regexp.Regexp{
 		regexp.MustCompile(`.*\.h`),
@@ -198,7 +200,7 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 	}
 	secondReportPos := 0
 	textLines := 0
-	skipText := false
+	skipText, cpuTraceback := false, false
 	for pos, next := 0, 0; pos < len(output); pos = next + 1 {
 		next = bytes.IndexByte(output[pos:], '\n')
 		if next != -1 {
@@ -238,13 +240,19 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 				}
 			}
 		}
-		if !oopsLine && (context1 != context || questionable) {
+		if !oopsLine && (questionable ||
+			context1 != context && (!cpuTraceback || !ctx.cpuContext.MatchString(context1))) {
 			continue
 		}
 		textLines++
 		skipLine := skipText
 		if bytes.Contains(line, []byte("Disabling lock debugging due to kernel taint")) {
 			skipLine = true
+		} else if bytes.Contains(line, []byte("Sending NMI from CPU")) {
+			// If we are doing traceback of all CPUs, then we also need to preserve output
+			// from other CPUs regardless of what is the current context.
+			// Otherwise we will throw traceback away because it does not match the oops context.
+			cpuTraceback = true
 		} else if textLines > 25 &&
 			(bytes.Contains(line, []byte("Kernel panic - not syncing")) ||
 				bytes.Contains(line, []byte("WARNING: possible circular locking dependency detected"))) {
