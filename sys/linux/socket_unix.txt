@@ -58,22 +58,12 @@ msghdr_un {
 }
 
 cmsghdr_un [
-	rights	cmsghdr_un_rights
-	cred	cmsghdr_un_cred
+	rights	cmsghdr_t[SOL_SOCKET, SCM_RIGHTS, array[fd]]
+	cred	cmsghdr_t[SOL_SOCKET, SCM_CREDENTIALS, cmsg_un_cred]
 ] [varlen]
 
-cmsghdr_un_rights {
-	len	len[parent, intptr]
-	level	const[SOL_SOCKET, int32]
-	type	const[SCM_RIGHTS, int32]
-	fds	array[fd]
-} [align_ptr]
-
-cmsghdr_un_cred {
-	len	len[parent, intptr]
-	level	const[SOL_SOCKET, int32]
-	type	const[SCM_CREDENTIALS, int32]
+cmsg_un_cred {
 	pid	pid
 	uid	uid
 	gid	gid
-} [align_ptr]
+}

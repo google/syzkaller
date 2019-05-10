@@ -13,13 +13,8 @@ func TestResourceCtors(t *testing.T) {
 		t.Skip("too slow")
 	}
 	testEachTarget(t, func(t *testing.T, target *Target) {
+		expectFail := false
 		for _, res := range target.Resources {
-			// Remove this once io_uring_setup has syscall number of these archs.
-			expectFail := false
-			if res.Kind[len(res.Kind)-1] == "fd_io_uring" && target.OS == "linux" &&
-				(target.Arch == "arm" || target.Arch == "ppc64le") {
-				expectFail = true
-			}
 			if len(target.calcResourceCtors(res.Kind, true)) == 0 != expectFail {
 				t.Errorf("resource %v can't be created", res.Name)
 			}

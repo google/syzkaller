@@ -11,8 +11,8 @@ IORING_SETUP_SQPOLL = 2
 IORING_SETUP_SQ_AFF = 4
 IORING_UNREGISTER_BUFFERS = 1
 IORING_UNREGISTER_FILES = 3
-# __NR_io_uring_enter is not set
-# __NR_io_uring_register is not set
-# __NR_io_uring_setup is not set
+__NR_io_uring_enter = 426
+__NR_io_uring_register = 427
+__NR_io_uring_setup = 425
 __NR_mmap = 192
 __NR_mmap2 = 192
