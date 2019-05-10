@@ -11,6 +11,7 @@ include <linux/socket.h>
 include <uapi/linux/in.h>
 include <uapi/linux/ethtool.h>
 include <uapi/linux/if_ether.h>
+include <uapi/asm-generic/socket.h>
 
 resource sock[fd]
 type sock_port int16be[20000:20004]
@@ -134,9 +135,24 @@ send_msghdr {
 	msg_flags	const[0, int32]
 }
 
+msghdr_sock {
+	msg_name	ptr[in, sockaddr_storage, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[in, array[cmsghdr_sock], opt]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
 send_mmsghdr {
 	msg_hdr	send_msghdr
-	msg_len	int32
+	msg_len	const[0, int32]
+}
+
+mmsghdr_sock {
+	msg_hdr	msghdr_sock
+	msg_len	const[0, int32]
 }
 
 recv_msghdr {
@@ -160,6 +176,24 @@ cmsghdr {
 	cmsg_type	int32
 	data		array[int8]
 } [align_ptr]
+
+type cmsghdr_t[SOL, TYP, DATA] {
+	unaligned	cmsghdr_unaligned[SOL, TYP, DATA]
+} [align_ptr]
+
+type cmsghdr_unaligned[SOL, TYP, DATA] {
+	cmsg_len	len[parent, intptr]
+	cmsg_level	const[SOL, int32]
+	cmsg_type	const[TYP, int32]
+	data		DATA
+} [packed]
+
+# For __sock_cmsg_send
+cmsghdr_sock [
+	mark		cmsghdr_unaligned[SOL_SOCKET, SO_MARK, int32]
+	timestamping	cmsghdr_unaligned[SOL_SOCKET, SO_TIMESTAMPING_OLD, int32]
+	txtime		cmsghdr_unaligned[SOL_SOCKET, SCM_TXTIME, int64]
+] [varlen]
 
 # Socket options
 
@@ -249,6 +283,10 @@ ioctl$sock_TIOCOUTQ(fd sock, cmd const[TIOCOUTQ], arg ptr[out, int32])
 ioctl$sock_TIOCINQ(fd sock, cmd const[TIOCINQ], arg ptr[out, int32])
 ioctl$SIOCGSTAMP(fd sock, cmd const[SIOCGSTAMP], arg ptr[out, timeval])
 ioctl$SIOCGSTAMPNS(fd sock, cmd const[SIOCGSTAMPNS], arg ptr[out, timespec])
+
+# Socket sendmsg
+sendmsg$sock(fd sock, msg ptr[in, msghdr_sock], f flags[send_flags])
+sendmmsg$sock(fd sock, mmsg ptr[in, array[mmsghdr_sock]], vlen len[mmsg], f flags[send_flags])
 
 resource ifindex[int32]
 
