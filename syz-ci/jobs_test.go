@@ -90,6 +90,18 @@ func TestAggregateTestResults(t *testing.T) {
 			title: "",
 			err:   errors.New("infra error3"),
 		},
+		{
+			results: []error{
+				&instance.CrashError{Report: &report.Report{Title: "title1"}},
+				&instance.CrashError{Report: &report.Report{
+					Title:  "title2",
+					Report: []byte("report"),
+				}},
+				&instance.CrashError{Report: &report.Report{Title: "title3"}},
+			},
+			title: "title2",
+			err:   nil,
+		},
 	}
 	for i, test := range tests {
 		rep, err := aggregateTestResults(test.results)

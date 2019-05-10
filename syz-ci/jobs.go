@@ -497,6 +497,7 @@ func aggregateTestResults(results []error) (*report.Report, error) {
 	// If all instances failed to boot, then we report one of these errors.
 	anySuccess := false
 	var anyErr, testErr error
+	var rep *report.Report
 	for _, res := range results {
 		if res == nil {
 			anySuccess = true
@@ -513,8 +514,13 @@ func aggregateTestResults(results []error) (*report.Report, error) {
 				testErr = fmt.Errorf("%v\n\n%s", err.Title, err.Output)
 			}
 		case *instance.CrashError:
-			return err.Report, nil
+			if rep == nil || (len(rep.Report) == 0 && len(err.Report.Report) != 0) {
+				rep = err.Report
+			}
 		}
+	}
+	if rep != nil {
+		return rep, nil
 	}
 	if anySuccess {
 		return nil, nil
