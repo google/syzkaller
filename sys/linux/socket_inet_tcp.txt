@@ -82,10 +82,10 @@ setsockopt$inet6_tcp_TCP_REPAIR_WINDOW(fd sock_tcp6, level const[IPPROTO_TCP], o
 setsockopt$inet_tcp_TCP_FASTOPEN_KEY(fd sock_tcp, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN_KEY], optval ptr[in, array[int8, TCP_FASTOPEN_KEY_LENGTH]], optlen len[optval])
 setsockopt$inet6_tcp_TCP_FASTOPEN_KEY(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TCP_FASTOPEN_KEY], optval ptr[in, array[int8, TCP_FASTOPEN_KEY_LENGTH]], optlen len[optval])
 
-setsockopt$inet_tcp_TLS_TX(fd sock_tcp, level const[IPPROTO_TCP], optname const[TLS_TX], optval ptr[in, tls_crypto_info], optlen len[optval])
-setsockopt$inet6_tcp_TLS_TX(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TLS_TX], optval ptr[in, tls_crypto_info], optlen len[optval])
-setsockopt$inet_tcp_TLS_RX(fd sock_tcp, level const[IPPROTO_TCP], optname const[TLS_RX], optval ptr[in, tls_crypto_info], optlen len[optval])
-setsockopt$inet6_tcp_TLS_RX(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TLS_RX], optval ptr[in, tls_crypto_info], optlen len[optval])
+setsockopt$inet_tcp_TLS_TX(fd sock_tcp, level const[IPPROTO_TCP], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet6_tcp_TLS_TX(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TLS_TX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet_tcp_TLS_RX(fd sock_tcp, level const[IPPROTO_TCP], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
+setsockopt$inet6_tcp_TLS_RX(fd sock_tcp6, level const[IPPROTO_TCP], optname const[TLS_RX], optval ptr[in, tls_crypto_info_u], optlen len[optval])
 
 tcp_congestion_control_alg_names = "cubic", "reno", "bic", "cdg", "dctcp", "westwood", "highspeed", "hybla", "htcp", "vegas", "nv", "veno", "scalable", "lp", "yeah", "illinois", "dctcp-reno", "bbr"
 
@@ -140,9 +140,41 @@ tcp_repair_opt_timestamp {
 	opt_val		const[0, int32]
 }
 
-tls_crypto_info {
-	version		const[TLS_1_2_VERSION, int16]
-	cipher_type	const[TLS_CIPHER_AES_GCM_128, int16]
+type tls_crypto_info[TYP] {
+	version		flags[tls_crypto_version, int16]
+	cipher_type	const[TYP, int16]
+}
+
+tls_crypto_version = TLS_1_2_VERSION, TLS_1_3_VERSION
+
+tls_crypto_info_u [
+	gcm_128	tls12_crypto_info_aes_gcm_128
+	gcm_256	tls12_crypto_info_aes_gcm_256
+	ccm_128	tls12_crypto_info_aes_ccm_128
+] [varlen]
+
+tls12_crypto_info_aes_gcm_128 {
+	info	tls_crypto_info[TLS_CIPHER_AES_GCM_128]
+	iv	array[int8, TLS_CIPHER_AES_GCM_128_IV_SIZE]
+	key	array[int8, TLS_CIPHER_AES_GCM_128_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_AES_GCM_128_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_aes_gcm_256 {
+	info	tls_crypto_info[TLS_CIPHER_AES_GCM_256]
+	iv	array[int8, TLS_CIPHER_AES_GCM_256_IV_SIZE]
+	key	array[int8, TLS_CIPHER_AES_GCM_256_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_AES_GCM_256_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_AES_GCM_256_REC_SEQ_SIZE]
+}
+
+tls12_crypto_info_aes_ccm_128 {
+	info	tls_crypto_info[TLS_CIPHER_AES_CCM_128]
+	iv	array[int8, TLS_CIPHER_AES_CCM_128_IV_SIZE]
+	key	array[int8, TLS_CIPHER_AES_CCM_128_KEY_SIZE]
+	salt	array[int8, TLS_CIPHER_AES_CCM_128_SALT_SIZE]
+	rec_seq	array[int8, TLS_CIPHER_AES_CCM_128_REC_SEQ_SIZE]
 }
 
 # TCP ioctls
