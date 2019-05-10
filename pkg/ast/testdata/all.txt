@@ -22,11 +22,12 @@ str_flags4 = "string", 42		### unexpected int, expecting string
 
 call(foo ,int32 , bar int32)		### unexpected ',', expecting int, identifier, string
 call(foo int32:"bar")			### unexpected string, expecting int, identifier
+call(a int32, b len[a:"bar"])		### unexpected string, expecting int, identifier
 
 define FOO `bar`
 define FOO `bar				### C expression is not terminated
 
-foo(x int32[1:2:3, opt])		### unexpected ':', expecting ']'
+foo(x int32[1:2:3, opt])
 foo2(x int32[1[2]:2])			### unexpected ':', expecting ']'
 
 s0 {
