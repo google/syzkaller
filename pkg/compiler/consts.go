@@ -73,9 +73,11 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 							info := getConstInfo(infos, arg.Pos)
 							info.consts[arg.Ident] = true
 						}
-						if arg.Ident2 != "" {
-							info := getConstInfo(infos, arg.Pos2)
-							info.consts[arg.Ident2] = true
+						for _, col := range arg.Colon {
+							if col.Ident != "" {
+								info := getConstInfo(infos, col.Pos)
+								info.consts[col.Ident] = true
+							}
 						}
 					}
 				}
@@ -183,9 +185,9 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				for i, arg := range args {
 					if desc.Args[i].Type.Kind == kindInt {
 						comp.patchIntConst(&arg.Value, &arg.Ident, consts, &missing)
-						if arg.HasColon {
-							comp.patchIntConst(&arg.Value2,
-								&arg.Ident2, consts, &missing)
+						for _, col := range arg.Colon {
+							comp.patchIntConst(&col.Value,
+								&col.Ident, consts, &missing)
 						}
 					}
 				}

@@ -669,8 +669,8 @@ func (comp *compiler) checkStruct(ctx checkCtx, n *ast.Struct) {
 			comp.error(attr.Pos, "unexpected %v, expect attribute", unexpected)
 			return
 		}
-		if attr.HasColon {
-			comp.error(attr.Pos2, "unexpected ':'")
+		if len(attr.Colon) != 0 {
+			comp.error(attr.Colon[0].Pos, "unexpected ':'")
 			return
 		}
 	}
@@ -745,13 +745,13 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 }
 
 func (comp *compiler) checkTypeBasic(t *ast.Type, desc *typeDesc, flags checkFlags) {
-	if t.HasColon {
-		if !desc.AllowColon {
-			comp.error(t.Pos2, "unexpected ':'")
+	for i, col := range t.Colon {
+		if i >= desc.MaxColon {
+			comp.error(col.Pos, "unexpected ':'")
 			return
 		}
 		if flags&checkIsStruct == 0 {
-			comp.error(t.Pos2, "unexpected ':', only struct fields can be bitfields")
+			comp.error(col.Pos, "unexpected ':', only struct fields can be bitfields")
 			return
 		}
 	}
@@ -814,7 +814,7 @@ func (comp *compiler) checkTypeArgs(t *ast.Type, desc *typeDesc, flags checkFlag
 func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlags) {
 	typedefName := t.Ident
 	comp.usedTypedefs[typedefName] = true
-	if t.HasColon {
+	if len(t.Colon) != 0 {
 		comp.error(t.Pos, "type alias %v with ':'", t.Ident)
 		return
 	}
@@ -912,9 +912,12 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 		// Need more checks here. E.g. that CONST_ARG does not have subargs.
 		// And if CONST_ARG is a value, then use concreteArg.Value.
 		// Also need to error if CONST_ARG is a string.
-		if concreteArg := argMap[templArg.Ident2]; concreteArg != nil {
-			templArg.Ident2 = concreteArg.Ident
-			templArg.Pos2 = concreteArg.Pos
+		if len(templArg.Colon) != 0 {
+			col := templArg.Colon[0]
+			if concreteArg := argMap[col.Ident]; concreteArg != nil {
+				col.Ident = concreteArg.Ident
+				col.Pos = concreteArg.Pos
+			}
 		}
 	}))
 	return err0 == comp.errors
@@ -940,9 +943,11 @@ func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
 			return
 		}
 	}
-	if !desc.AllowColon && arg.HasColon {
-		comp.error(arg.Pos2, "unexpected ':'")
-		return
+	for i, col := range arg.Colon {
+		if i >= desc.MaxColon {
+			comp.error(col.Pos, "unexpected ':'")
+			return
+		}
 	}
 	if len(arg.Args) > desc.MaxArgs {
 		comp.error(arg.Pos, "%v argument has subargs", argDesc.Name)

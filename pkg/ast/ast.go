@@ -199,13 +199,10 @@ type Type struct {
 	Ident     string
 	String    string
 	HasString bool
-	// Part after COLON (for ranges and bitfields).
-	HasColon  bool
-	Pos2      Pos
-	Value2    uint64
-	Value2Fmt IntFmt
-	Ident2    string
-	Args      []*Type
+	// Parts after COLON (for ranges and bitfields).
+	Colon []*Type
+	// Sub-types in [].
+	Args []*Type
 }
 
 func (n *Type) Info() (Pos, string, string) {

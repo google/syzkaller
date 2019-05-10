@@ -242,7 +242,7 @@ func (comp *compiler) parseSizeAttr(attr *ast.Type) uint64 {
 		comp.error(sz.Pos, "unexpected %v, expect int", unexpected)
 		return sizeUnassigned
 	}
-	if sz.HasColon || len(sz.Args) != 0 {
+	if len(sz.Colon) != 0 || len(sz.Args) != 0 {
 		comp.error(sz.Pos, "size attribute has colon or args")
 		return sizeUnassigned
 	}
