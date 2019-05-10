@@ -217,10 +217,11 @@ type optional[T] [
 
 ## Length
 
-You can specify length of a particular field in struct or a named argument by using `len`, `bytesize` and `bitsize` types, for example:
+You can specify length of a particular field in struct or a named argument by
+using `len`, `bytesize` and `bitsize` types, for example:
 
 ```
-write(fd fd, buf buffer[in], count len[buf]) len[buf]
+write(fd fd, buf ptr[in, array[int8]], count len[buf])
 
 sock_fprog {
 	len	len[filter, int16]
@@ -228,23 +229,55 @@ sock_fprog {
 }
 ```
 
-If `len`'s argument is a pointer (or a `buffer`), then the length of the pointee argument is used.
+If `len`'s argument is a pointer, then the length of the pointee argument is used.
 
-To denote the length of a field in N-byte words use `bytesizeN`, possible values for N are 1, 2, 4 and 8.
+To denote the length of a field in N-byte words use `bytesizeN`, possible values
+for N are 1, 2, 4 and 8.
 
 To denote the length of the parent struct, you can use `len[parent, int8]`.
-To denote the length of the higher level parent when structs are embedded into one another, you can specify the type name of the particular parent:
+To denote the length of the higher level parent when structs are embedded into
+one another, you can specify the type name of the particular parent:
 
 ```
-struct s1 {
+s1 {
     f0      len[s2]  # length of s2
 }
 
-struct s2 {
+s2 {
     f0      s1
     f1      array[int32]
+    f2      len[parent, int32]
+}
+```
+
+`len` argument can also be a path expression which allows more complex
+addressing. Path expressions are similar to C field references, but also allow
+referencing parent and sibling elements. For example:
+
+```
+s1 {
+	a	ptr[in, s2]
+	b	ptr[in, s3]
+	c	array[int8]
 }
 
+s2 {
+	d	array[int8]
+}
+
+s3 {
+# This refers to the array c in the parent s1.
+	e	len[s1:c, int32]
+# This refers to the array d in the sibling s2.
+	f	len[s1:a:d, int32]
+# This refers to the array k in the child s4.
+	g	len[h:i, int32]
+	h	ptr[in, s4]
+}
+
+s4 {
+	i	array[int8]
+}
 ```
 
 ## Proc

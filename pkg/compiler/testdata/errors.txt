@@ -62,7 +62,7 @@ sf2 = "a", "b"
 sf2 = "c"			### string flags sf2 redeclared, previously declared at LOCATION
 
 resource r2[r0]: 2
-resource r3[int32:1]		###  unexpected ':', only struct fields can be bitfields
+resource r3[int32:1]		### unexpected ':', only struct fields can be bitfields
 resource r4[int32[opt]]		### resource base can't be marked as opt
 resource r5[non_existent]	### unknown type non_existent
 resource r6[int64be]		### int64be can't be resource base (int types can)
@@ -119,6 +119,9 @@ foo$61(a u6)			### u6 can't be syscall argument
 foo$62() u6			### u6 can't be syscall return
 foo$63(a int32[1[2]])		### range argument has subargs
 foo$64(a ptr[in, flags[f1[int32], int32]])	### flags argument has subargs
+foo$65(a int32, b len[1])	### unexpected int 1 for len target argument of len type, expect identifier
+foo$66(a int32, b len[a:1])	### unexpected int 1 after colon, expect identifier
+foo$67(x int32[1:2:3, opt])	### unexpected ':'
 
 opt {				### struct uses reserved name opt
 	f1	int32

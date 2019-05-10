@@ -285,6 +285,16 @@ func (comp *compiler) getArgsBase(t *ast.Type, field string, dir prog.Dir, isArg
 	return desc, args, base
 }
 
+func (comp *compiler) derefPointers(t *ast.Type) (*ast.Type, *typeDesc) {
+	for {
+		desc := comp.getTypeDesc(t)
+		if desc != typePtr {
+			return t, desc
+		}
+		t = t.Args[1]
+	}
+}
+
 func (comp *compiler) foreachType(n0 ast.Node,
 	cb func(*ast.Type, *typeDesc, []*ast.Type, prog.IntTypeCommon)) {
 	switch n := n0.(type) {

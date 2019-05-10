@@ -291,14 +291,29 @@ func (comp *compiler) checkLenTargets() {
 		case *ast.Call:
 			for _, arg := range n.Args {
 				checked := make(map[string]bool)
-				comp.checkLenType(arg.Type, arg.Name.Name, n.Args, nil, checked, warned, true)
+				parents := []parentDesc{{fields: n.Args}}
+				comp.checkLenType(arg.Type, arg.Type, arg.Name.Name, parents, checked, warned, true)
 			}
 		}
 	}
 }
 
-func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field,
-	parents []string, checked, warned map[string]bool, isArg bool) {
+type parentDesc struct {
+	name   string
+	fields []*ast.Field
+}
+
+func parentTargetName(s *ast.Struct) string {
+	parentName := s.Name.Name
+	if pos := strings.IndexByte(parentName, '['); pos != -1 {
+		// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
+		parentName = parentName[:pos]
+	}
+	return parentName
+}
+
+func (comp *compiler) checkLenType(t0, t *ast.Type, name string, parents []parentDesc,
+	checked, warned map[string]bool, isArg bool) {
 	desc := comp.getTypeDesc(t)
 	if desc == typeStruct {
 		s := comp.structs[t.Ident]
@@ -307,17 +322,14 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 			return
 		}
 		checked[s.Name.Name] = true
-		parentName := s.Name.Name
-		if pos := strings.IndexByte(parentName, '['); pos != -1 {
-			// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
-			parentName = parentName[:pos]
+		fields := s.Fields
+		if s.IsUnion {
+			fields = nil
 		}
-		parents = append(parents, parentName)
-		if !s.IsUnion {
-			fields = s.Fields
-		}
+		parentName := parentTargetName(s)
+		parents = append(parents, parentDesc{name: parentName, fields: fields})
 		for _, fld := range s.Fields {
-			comp.checkLenType(fld.Type, fld.Name.Name, fields, parents, checked, warned, false)
+			comp.checkLenType(fld.Type, fld.Type, fld.Name.Name, parents, checked, warned, false)
 		}
 		warned[parentName] = true
 		return
@@ -326,59 +338,80 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 	for i, arg := range args {
 		argDesc := desc.Args[i]
 		if argDesc.Type == typeArgLenTarget {
-			comp.checkLenTarget(t, name, arg.Ident, fields, parents, warned)
+			targets := append([]*ast.Type{arg}, arg.Colon...)
+			if len(targets) != 1 {
+				for _, target := range targets {
+					if target.Ident == "parent" {
+						comp.error(target.Pos, "parent can't be part of path expressions")
+						return
+					}
+				}
+			}
+			comp.checkLenTarget(t0, t, name, targets, parents, warned)
 		} else if argDesc.Type == typeArgType {
-			comp.checkLenType(arg, name, fields, parents, checked, warned, argDesc.IsArg)
+			comp.checkLenType(t0, arg, name, parents, checked, warned, argDesc.IsArg)
 		}
 	}
 }
 
-func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []*ast.Field,
-	parents []string, warned map[string]bool) {
-	if target == name {
-		comp.error(t.Pos, "%v target %v refer to itself", t.Ident, target)
+func (comp *compiler) checkLenTarget(t0, t *ast.Type, name string, targets []*ast.Type,
+	parents []parentDesc, warned map[string]bool) {
+	if len(targets) == 0 {
 		return
 	}
-	if target == "parent" {
-		if len(parents) == 0 {
-			comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
-		}
-		return
-	}
+	target := targets[0]
+	targets = targets[1:]
+	fields := parents[len(parents)-1].fields
 	for _, fld := range fields {
-		if target != fld.Name.Name {
+		if target.Ident != fld.Name.Name {
 			continue
 		}
-		if fld.Type == t {
-			comp.error(t.Pos, "%v target %v refer to itself", t.Ident, target)
+		if fld.Type == t0 {
+			comp.error(target.Pos, "%v target %v refers to itself", t.Ident, target.Ident)
+			return
 		}
-		if t.Ident == "len" {
-			inner := fld.Type
-			desc, args, _ := comp.getArgsBase(inner, "", prog.DirIn, false)
-			for desc == typePtr {
-				if desc != typePtr {
-					break
-				}
-				inner = args[1]
-				desc, args, _ = comp.getArgsBase(inner, "", prog.DirIn, false)
-			}
-			if desc == typeArray && comp.isVarlen(args[0]) {
-				// We can reach the same struct multiple times starting from different
-				// syscall arguments. Warn only once.
-				if len(parents) == 0 || !warned[parents[len(parents)-1]] {
-					comp.warning(t.Pos, "len target %v refer to an array with"+
-						" variable-size elements (do you mean bytesize?)", target)
+		if len(targets) == 0 {
+			if t.Ident == "len" {
+				typ, desc := comp.derefPointers(fld.Type)
+				if desc == typeArray && comp.isVarlen(typ.Args[0]) {
+					// We can reach the same struct multiple times starting from different
+					// syscall arguments. Warn only once.
+					if !warned[parents[len(parents)-1].name] {
+						comp.warning(target.Pos, "len target %v refer to an array with"+
+							" variable-size elements (do you mean bytesize?)",
+							target.Ident)
+					}
 				}
 			}
+			return
+		}
+		typ, desc := comp.derefPointers(fld.Type)
+		if desc != typeStruct {
+			comp.error(target.Pos, "%v path %v does not refer to a struct", t.Ident, target.Ident)
+			return
+		}
+		s := comp.structs[typ.Ident]
+		if s.IsUnion {
+			comp.error(target.Pos, "%v path %v does not refer to a struct", t.Ident, target.Ident)
+			return
+		}
+		parents = append(parents, parentDesc{name: parentTargetName(s), fields: s.Fields})
+		comp.checkLenTarget(t0, t, name, targets, parents, warned)
+		return
+	}
+	for pi := len(parents) - 1; pi >= 0; pi-- {
+		parent := parents[pi]
+		if parent.name == "" || parent.name != target.Ident && target.Ident != "parent" {
+			continue
+		}
+		if len(targets) != 0 {
+			parents1 := make([]parentDesc, pi+1)
+			copy(parents1, parents[:pi+1])
+			comp.checkLenTarget(t0, t, name, targets, parents1, warned)
 		}
 		return
 	}
-	for _, parent := range parents {
-		if target == parent {
-			return
-		}
-	}
-	comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
+	comp.error(target.Pos, "%v target %v does not exist", t.Ident, target.Ident)
 }
 
 func CollectUnused(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) ([]ast.Node, error) {
@@ -947,6 +980,12 @@ func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
 		if i >= desc.MaxColon {
 			comp.error(col.Pos, "unexpected ':'")
 			return
+		}
+		if desc.Kind == kindIdent {
+			if unexpected, expect, ok := checkTypeKind(col, kindIdent); !ok {
+				comp.error(arg.Pos, "unexpected %v after colon, expect %v", unexpected, expect)
+				return
+			}
 		}
 	}
 	if len(arg.Args) > desc.MaxArgs {

@@ -41,7 +41,7 @@ type typeArg struct {
 	Names    []string
 	Kind     int // int/ident/string
 	MaxArgs  int // maxiumum number of subargs
-	MaxColon int // max number of colons (2:3)
+	MaxColon int // max number of colons (2:3:4)
 	// Check does custom verification of the arg (optional).
 	Check       func(comp *compiler, t *ast.Type)
 	CheckConsts func(comp *compiler, t *ast.Type)
@@ -244,7 +244,8 @@ var typeConst = &typeDesc{
 }
 
 var typeArgLenTarget = &typeArg{
-	Kind: kindIdent,
+	Kind:     kindIdent,
+	MaxColon: 10,
 }
 
 var typeFlags = &typeDesc{
