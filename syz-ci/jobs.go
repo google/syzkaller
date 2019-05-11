@@ -469,13 +469,16 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 
 	log.Logf(0, "job: building kernel...")
-	if err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline,
-		mgr.mgrcfg.KernelSysctl, req.KernelConfig); err != nil {
+	kernelConfig, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline,
+		mgr.mgrcfg.KernelSysctl, req.KernelConfig)
+	if err != nil {
 		return err
 	}
-	resp.Build.KernelConfig, err = ioutil.ReadFile(filepath.Join(mgrcfg.KernelSrc, ".config"))
-	if err != nil {
-		return fmt.Errorf("failed to read config file: %v", err)
+	if kernelConfig != "" {
+		resp.Build.KernelConfig, err = ioutil.ReadFile(kernelConfig)
+		if err != nil {
+			return fmt.Errorf("failed to read config file: %v", err)
+		}
 	}
 	log.Logf(0, "job: testing...")
 	results, err := env.Test(3, req.ReproSyz, req.ReproOpts, req.ReproC)

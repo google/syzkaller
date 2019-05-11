@@ -82,15 +82,22 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 	return nil
 }
 
-func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) error {
+func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) (string, error) {
 	cfg := env.cfg
 	imageDir := filepath.Join(cfg.Workdir, "image")
 	if err := build.Image(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
 		cfg.KernelSrc, imageDir, compilerBin, userspaceDir,
 		cmdlineFile, sysctlFile, kernelConfig); err != nil {
-		return err
+		return "", err
 	}
-	return SetConfigImage(cfg, imageDir, true)
+	if err := SetConfigImage(cfg, imageDir, true); err != nil {
+		return "", err
+	}
+	kernelConfigFile := filepath.Join(imageDir, "kernel.config")
+	if !osutil.IsExist(kernelConfigFile) {
+		kernelConfigFile = ""
+	}
+	return kernelConfigFile, nil
 }
 
 func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {
