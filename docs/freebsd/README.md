@@ -2,7 +2,7 @@
 
 This page contains instructions to set up syzkaller to run on a FreeBSD or Linux host and fuzz an amd64 FreeBSD kernel running in a virtual machine.
 
-Currently, syzkaller can fuzz FreeBSD running under QEMU or GCE (Google Compute Engine).  Regardless of the mode of operation, some common steps must be followed.
+Currently, syzkaller can fuzz FreeBSD running under bhyve, QEMU or GCE (Google Compute Engine).  Regardless of the mode of operation, some common steps must be followed.
 
 ## Setting up a host
 
@@ -14,7 +14,11 @@ To build syzkaller out of the box, a recent version of FreeBSD 13.0-CURRENT must
 
 The required dependencies can be installed by running:
 ```console
-$ sudo pkg install bash gcc git gmake go llvm
+# pkg install bash gcc git gmake go llvm
+```
+When using bhyve as the VM backend, a DHCP server must also be installed:
+```console
+# pkg install dnsmasq
 ```
 To checkout the syzkaller sources, run:
 ```console
@@ -42,7 +46,7 @@ Then, copy out the binary back to host into `bin/freebsd_amd64` dir.
 
 ## Setting up the FreeBSD VM
 
-It is easiest to start with a [snapshot image](http://ftp.freebsd.org/pub/FreeBSD/snapshots/VM-IMAGES/13.0-CURRENT/amd64/Latest/) of FreeBSD.  Fetch a QCOW2 disk image for QEMU or a raw image for GCE.
+It is easiest to start with a [snapshot image](http://ftp.freebsd.org/pub/FreeBSD/snapshots/VM-IMAGES/13.0-CURRENT/amd64/Latest/) of FreeBSD.  Fetch a QCOW2 disk image for QEMU or a raw image for GCE or bhyve.
 
 To enable KCOV on FreeBSD, a custom kernel must be compiled.  It is easiest to do this in the VM itself.  Use QEMU to start a VM using the downloaded image:
 
@@ -89,7 +93,34 @@ Then, to permit remote access to the VM, you must configure DHCP and enable `ssh
 # sysrc ifconfig_DEFAULT=DHCP
 ```
 
-If you plan to run the syscall executor as root, ensure that root SSH logins are permitted by adding `PermitRootLogin without-password` to `/etc/ssh/sshd_config`.  Otherwise, create a new user with `adduser`.  Install an ssh key for the user and verify that you can SSH into the VM from the host.
+If you plan to run the syscall executor as root, ensure that root SSH logins are permitted by adding `PermitRootLogin without-password` to `/etc/ssh/sshd_config`.  Otherwise, create a new user with `adduser`.  Install an ssh key for the user and verify that you can SSH into the VM from the host.  Note that bhyve requires the use of the root user for the time being.
+
+### Running Under bhyve
+
+Some additional steps are required on the host in order to use bhyve.  First, ensure that the host system is at r346550 or later.  Second, since bhyve currently does not support disk image snapshots, ZFS must be used to provide equivalent functionality.  Create a ZFS data set and copy the VM image there.  The data set can also be used to store the syzkaller workdir.
+```console
+# zfs create data/syzkaller
+# cp FreeBSD-13.0-CURRENT-amd64.raw /data/syzkaller
+```
+Third, configure networking and DHCP for the VM instances:
+
+```console
+# ifconfig bridge create
+bridge0
+# ifconfig bridge0 inet 169.254.0.1
+# echo 'dhcp-range=169.254.0.2,169.254.0.254,255.255.255.0' > /usr/local/etc/dnsmasq.conf
+# echo 'interface=bridge0' >> /usr/local/etc/dnsmasq.conf
+# sysrc dnsmasq_enable=YES
+# service dnsmasq start
+# echo 'net.link.tap.up_on_open=1' >> /etc/sysctl.conf
+# sysctl net.link.tap.up_on_open=1
+```
+Finally, ensure that the bhyve kernel module is loaded:
+```console
+# kldload vmm
+```
+
+### Putting It All Together
 
 If all of the above worked, create a `freebsd.cfg` configuration file with the following contents (alter paths as necessary):
 
@@ -100,7 +131,6 @@ If all of the above worked, create a `freebsd.cfg` configuration file with the f
 	"http": ":10000",
 	"workdir": "/workdir",
 	"syzkaller": "/gopath/src/github.com/google/syzkaller",
-	"image": "/FreeBSD-13.0-CURRENT-amd64.qcow2",
 	"sshkey": "/freebsd_id_rsa",
 	"sandbox": "none",
 	"procs": 8,
@@ -109,6 +139,7 @@ If all of the above worked, create a `freebsd.cfg` configuration file with the f
 If running the fuzzer under QEMU, add:
 
 ```
+	"image": "/FreeBSD-13.0-CURRENT-amd64.qcow2",
 	"type": "qemu",
 	"vm": {
 		"count": 10,
@@ -119,11 +150,23 @@ If running the fuzzer under QEMU, add:
 For GCE, add the following instead (alter the storage bucket path as necessary):
 
 ```
+	"image": "/FreeBSD-13.0-CURRENT-amd64.raw",
 	"type": "gce",
 	"vm": {
 		"count": 10,
 		"instance_type": "n1-standard-4",
 		"gcs_path": "syzkaller"
+	}
+```
+For bhyve, we need to specify the VM image snapshot name and networking info:
+```
+	"image": "/data/syzkaller/FreeBSD-13.0-CURRENT-amd64.raw",
+	"type": "bhyve",
+	"vm": {
+		"count": 10,
+		"bridge": "bridge0",
+		"hostip": "169.254.0.1",
+		"dataset": "data/syzkaller"
 	}
 ```
 
