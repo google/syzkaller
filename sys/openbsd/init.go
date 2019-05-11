@@ -39,10 +39,19 @@ const (
 	kcovFdMinorMax = 248
 )
 
+// openbsd:src/sys/sys/types.h
+func devmajor(dev uint64) uint64 {
+	return (dev >> 8) & 0xff
+}
+
+// openbsd:src/sys/sys/types.h
+func devminor(dev uint64) uint64 {
+	return (dev & 0xff) | ((dev & 0xffff0000) >> 8)
+}
+
 func isKcovFd(dev uint64) bool {
-	// openbsd:src/sys/sys/types.h
-	major := (dev >> 8) & 0xff
-	minor := (dev & 0xff) | ((dev & 0xffff0000) >> 8)
+	major := devmajor(dev)
+	minor := devminor(dev)
 
 	return major == devFdMajor && minor >= kcovFdMinorMin && minor < kcovFdMinorMax
 }
@@ -68,6 +77,12 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 		// https://groups.google.com/d/msg/syzkaller/_IRWeAjVoy4/Akl2XMZTDAAJ
 		dev := c.Args[argStart+mknodDev].(*prog.ConstArg)
 		if isKcovFd(dev.Val) {
+			dev.Val = devNullDevT
+		}
+
+		// Prevent /dev/sd0c nodes from being created since the refer to
+		// the raw root disk.
+		if devmajor(dev.Val) == 4 && devminor(dev.Val) == 2 {
 			dev.Val = devNullDevT
 		}
 	default:
