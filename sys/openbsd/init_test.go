@@ -33,6 +33,11 @@ func TestSanitizeMknodCall(t *testing.T) {
 			`mknod(0x0, 0x0, 0x1600)`,
 			`mknod(0x0, 0x0, 0x1600)`,
 		},
+		{
+			// major=4, minor=2
+			`mknod(0x0, 0x0, 0x0402)`,
+			`mknod(0x0, 0x0, 0x202)`,
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
