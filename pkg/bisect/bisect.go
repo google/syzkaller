@@ -261,7 +261,7 @@ func (env *env) test() (vcs.BisectResult, *vcs.Commit, *report.Report, error) {
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return 0, nil, nil, fmt.Errorf("kernel clean failed: %v", err)
 	}
-	err = env.inst.BuildKernel(compiler, cfg.Kernel.Userspace,
+	_, err = env.inst.BuildKernel(compiler, cfg.Kernel.Userspace,
 		cfg.Kernel.Cmdline, cfg.Kernel.Sysctl, bisectEnv.KernelConfig)
 	env.buildTime += time.Since(buildStart)
 	if err != nil {
