@@ -58,7 +58,8 @@ func extract(info *compiler.ConstInfo, cc string, args []string, addSource strin
 		}
 		bin, out, err = compile(cc, args, data)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to run compiler: %v\n%v", err, string(out))
+			return nil, nil, fmt.Errorf("failed to run compiler: %v %v\n%v\n%v",
+				cc, args, err, string(out))
 		}
 	}
 	defer os.Remove(bin)
