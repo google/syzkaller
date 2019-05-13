@@ -15489,6 +15489,7 @@ const call_t syscalls[] = {
     {"test$length28", 0},
     {"test$length29", 0},
     {"test$length3", 0},
+    {"test$length30", 0},
     {"test$length4", 0},
     {"test$length5", 0},
     {"test$length6", 0},

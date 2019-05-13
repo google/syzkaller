@@ -430,6 +430,8 @@ test$length27(a0 ptr[in, explicitly_sized], a1 len[a0])
 test$length28(a0 ptr[in, explicitly_sized_union], a1 len[a0])
 test$length29(a ptr[in, static_filename])
 
+test$length30(a0 ptr[in, syz_length_int_struct], a1 bytesize[a0:f0])
+
 # Big endian
 
 test$end0(a0 ptr[in, syz_end_int_struct])

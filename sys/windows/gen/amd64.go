@@ -17,7 +17,7 @@ var resources_amd64 = []*ResourceDesc{
 
 var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "SECURITY_ATTRIBUTES"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "SECURITY_ATTRIBUTES", TypeSize: 24}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nLength", TypeSize: 4}}, Buf: "parent"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nLength", TypeSize: 4}}, Path: []string{"parent"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityDescriptor", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "SECURITY_DESCRIPTOR"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bInheritHandle", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
@@ -13138,7 +13138,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "VirtualAlloc", CallName: "VirtualAlloc", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "lpAddress", TypeSize: 8}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "dwSize", TypeSize: 8}}, Buf: "lpAddress"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "dwSize", TypeSize: 8}}, Path: []string{"lpAddress"}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "allocation_type", FldName: "flAllocationType", TypeSize: 8}}, Vals: []uint64{4096, 8192, 524288, 16777216, 536870912, 4194304, 1048576, 2097152}, BitMask: true},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "protect_flags", FldName: "flProtect", TypeSize: 8}}, Vals: []uint64{16, 32, 64, 128, 1, 2, 4, 8, 1073741824, 1073741824, 256, 512, 1024, 2147483648, 536870912}},
 	}},
@@ -14618,4 +14618,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WRITE_OWNER", Value: 524288},
 }
 
-const revision_amd64 = "7f58e6832b5d8674b8a77505e6eb0fa213781c23"
+const revision_amd64 = "034310d6ce04d3301452f8b1857417b6c9db4825"
