@@ -248,6 +248,7 @@ func (inst *instance) Close() {
 	if inst.bhyve != nil {
 		inst.bhyve.Process.Kill()
 		inst.bhyve.Wait()
+		osutil.RunCmd(time.Minute, "", "bhyvectl", fmt.Sprintf("--vm=%v", inst.vmName), "--destroy")
 		inst.bhyve = nil
 	}
 	if inst.snapshot != "" {
