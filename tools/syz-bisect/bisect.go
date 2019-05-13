@@ -1,6 +1,22 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// syz-bisect runs bisection to find cause/fix commit for a crash.
+//
+// The tool is originally created to test pkg/bisect logic,
+// the interface is not particularly handy to use.
+//
+// The tool requires a config file passed in -config flag, see Config type below for details,
+// and a directory with info about the crash passed in -crash flag).
+// If -fix flag is specified, it does fix bisection. Otherwise it does cause bisection.
+//
+// The crash dir should contain the following files:
+//  - repro.c: C reproducer for the crash (optional)
+//  - repro.syz: syzkaller reproducer for the crash
+//  - repro.opts: syzkaller reproducer options (e.g. {"procs":1,"sandbox":"none",...})
+//  - syzkaller.commit: hash of syzkaller commit which was used to trigger the crash
+//  - kernel.commit: hash of kernel commit on which the crash was triggered
+//  - kernel.config: kernel config file
 package main
 
 import (
@@ -24,15 +40,24 @@ var (
 )
 
 type Config struct {
-	BinDir        string          `json:"bin_dir"`
-	KernelRepo    string          `json:"kernel_repo"`
-	KernelBranch  string          `json:"kernel_branch"`
-	Compiler      string          `json:"compiler"`
-	Userspace     string          `json:"userspace"`
-	Sysctl        string          `json:"sysctl"`
-	Cmdline       string          `json:"cmdline"`
-	SyzkallerRepo string          `json:"syzkaller_repo"`
-	Manager       json.RawMessage `json:"manager"`
+	// BinDir must point to a dir that contains compilers required to build
+	// older versions of the kernel. For linux, it needs to include several
+	// gcc versions. A working archive can be downloaded from:
+	// https://storage.googleapis.com/syzkaller/bisect_bin.tar.gz
+	BinDir        string `json:"bin_dir"`
+	KernelRepo    string `json:"kernel_repo"`
+	KernelBranch  string `json:"kernel_branch"`
+	SyzkallerRepo string `json:"syzkaller_repo"`
+	// Directory with user-space system for building kernel images
+	// (for linux that's the input to tools/create-gce-image.sh).
+	Userspace string `json:"userspace"`
+	// Sysctl/cmdline files used to build the image which was used to crash the kernel, e.g. see:
+	// dashboard/config/upstream.sysctl
+	// dashboard/config/upstream-selinux.cmdline
+	Sysctl  string `json:"sysctl"`
+	Cmdline string `json:"cmdline"`
+	// Manager config that was used to obtain the crash.
+	Manager json.RawMessage `json:"manager"`
 }
 
 func main() {
