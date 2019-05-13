@@ -82,17 +82,17 @@ func (*linux) prepareArch(arch *Arch) error {
 	if err != nil {
 		return fmt.Errorf("make defconfig failed: %v\n%s", err, out)
 	}
-	// Without CONFIG_NETFILTER kernel does not build.
-	_, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
-		"s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g", ".config")
+	_, err = osutil.RunCmd(time.Minute, buildDir, filepath.Join(kernelDir, "scripts", "config"),
+		// powerpc arch is configured to be big-endian by default, but we want little-endian powerpc.
+		// Since all of our archs are little-endian for now, we just blindly switch it.
+		"-d", "CPU_BIG_ENDIAN", "-e", "CPU_LITTLE_ENDIAN",
+		// Without CONFIG_NETFILTER kernel does not build.
+		"-e", "NETFILTER",
+		// include/net/mptcp.h is the only header in kernel that guards some
+		// of the consts with own config, so we need to enable CONFIG_MPTCP.
+		"-e", "MPTCP")
 	if err != nil {
-		return fmt.Errorf("sed .config failed: %v", err)
-	}
-	// include/net/mptcp.h is the only header in kernel that guards some of the consts with own config
-	_, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
-		"s@# CONFIG_MPTCP is not set@CONFIG_MPTCP=y@g", ".config")
-	if err != nil {
-		return fmt.Errorf("sed .config failed: %v", err)
+		return err
 	}
 	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
 	if err != nil {

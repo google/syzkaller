@@ -161,9 +161,13 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "arm",
 		},
 		"ppc64le": {
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			CFlags:           []string{"-D__powerpc64__"},
+			PtrSize:  8,
+			PageSize: 4 << 10,
+			CFlags: []string{
+				"-D__powerpc64__",
+				"-D__LITTLE_ENDIAN__=1",
+				"-D__BYTE_ORDER__=__ORDER_LITTLE_ENDIAN__",
+			},
 			CrossCFlags:      []string{"-D__powerpc64__", "-static"},
 			CCompilerPrefix:  "powerpc64le-linux-gnu-",
 			KernelArch:       "powerpc",
