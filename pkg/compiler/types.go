@@ -220,9 +220,13 @@ var typeLen = &typeDesc{
 		case "bitsize":
 			bitSize = 1
 		}
+		path := []string{args[0].Ident}
+		for _, col := range args[0].Colon {
+			path = append(path, col.Ident)
+		}
 		return &prog.LenType{
 			IntTypeCommon: base,
-			Buf:           args[0].Ident,
+			Path:          path,
 			BitSize:       bitSize,
 		}
 	},
@@ -345,6 +349,9 @@ var typeCsum = &typeDesc{
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 2 && genCsumKind(args[1]) != prog.CsumPseudo {
 			comp.error(args[2].Pos, "only pseudo csum can have proto")
+		}
+		if len(args[0].Colon) != 0 {
+			comp.error(args[0].Colon[0].Pos, "path expressions are not implemented for csum")
 		}
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {

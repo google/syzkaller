@@ -61,13 +61,14 @@ nextArg:
 		}
 		a := arg.(*ConstArg)
 
-		buf, ok := argsMap[typ.Buf]
+		elem := typ.Path[0]
+		buf, ok := argsMap[elem]
 		if ok {
 			a.Val = target.generateSize(InnerArg(buf), typ)
 			continue
 		}
 
-		if typ.Buf == "parent" {
+		if elem == "parent" {
 			a.Val = parentsMap[arg].Size()
 			if typ.BitSize != 0 {
 				a.Val = a.Val * 8 / typ.BitSize
@@ -81,7 +82,7 @@ nextArg:
 				// For template parents, strip arguments.
 				parentName = parentName[:pos]
 			}
-			if typ.Buf != parentName {
+			if elem != parentName {
 				continue
 			}
 			a.Val = parent.Size()
@@ -91,7 +92,7 @@ nextArg:
 			continue nextArg
 		}
 		panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v",
-			typ.FieldName(), typ.Buf, argsMap))
+			typ.FieldName(), elem, argsMap))
 	}
 }
 
@@ -125,22 +126,25 @@ func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
 	elemSize := typ.BitSize / 8
 	if elemSize == 0 {
 		elemSize = 1
-		for _, field := range parent {
-			if typ.Buf != field.Type().FieldName() {
-				continue
-			}
-			if inner := InnerArg(field); inner != nil {
-				switch targetType := inner.Type().(type) {
-				case *VmaType:
-					return false
-				case *ArrayType:
-					if targetType.Type.Varlen() {
-						return false
-					}
-					elemSize = targetType.Type.Size()
+		if len(typ.Path) == 1 {
+			// TODO(dvyukov): implement path support for size mutation.
+			for _, field := range parent {
+				if typ.Path[0] != field.Type().FieldName() {
+					continue
 				}
+				if inner := InnerArg(field); inner != nil {
+					switch targetType := inner.Type().(type) {
+					case *VmaType:
+						return false
+					case *ArrayType:
+						if targetType.Type.Varlen() {
+							return false
+						}
+						elemSize = targetType.Type.Size()
+					}
+				}
+				break
 			}
-			break
 		}
 	}
 	if r.oneOf(100) {
