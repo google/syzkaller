@@ -82,7 +82,8 @@ func (env *Env) BuildSyzkaller(repo, commit string) error {
 	return nil
 }
 
-func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) (string, error) {
+func (env *Env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string,
+	kernelConfig []byte) (string, error) {
 	cfg := env.cfg
 	imageDir := filepath.Join(cfg.Workdir, "image")
 	if err := build.Image(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
