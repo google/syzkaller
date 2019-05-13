@@ -255,7 +255,7 @@ func (t *FlagsType) isDefaultArg(arg Arg) bool {
 type LenType struct {
 	IntTypeCommon
 	BitSize uint64 // want size in multiple of bits instead of array size
-	Buf     string
+	Path    []string
 }
 
 func (t *LenType) DefaultArg() Arg {
