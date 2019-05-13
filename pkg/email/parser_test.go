@@ -15,13 +15,13 @@ import (
 func TestExtractCommand(t *testing.T) {
 	for i, test := range extractCommandTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			cmd, str, args := extractCommand([]byte(test.body))
+			cmd, str, args := extractCommand(test.body)
 			if cmd != test.cmd || str != test.str || !reflect.DeepEqual(args, test.args) {
 				t.Logf("expect: %v %q %q", test.cmd, test.str, test.args)
 				t.Logf("got   : %v %q %q", cmd, str, args)
 				t.Fail()
 			}
-			cmd, str, args = extractCommand([]byte(strings.Replace(test.body, "\n", "\r\n", -1)))
+			cmd, str, args = extractCommand(strings.Replace(test.body, "\n", "\r\n", -1))
 			if cmd != test.cmd || str != test.str || !reflect.DeepEqual(args, test.args) {
 				t.Logf("expect: %v %q %q", test.cmd, test.str, test.args)
 				t.Logf("got   : %v %q %q", cmd, str, args)
@@ -656,4 +656,23 @@ When freeing a lockf struct that already is part of a linked list, make sure to
 		CommandStr:  "fix:",
 		CommandArgs: "When freeing a lockf struct that already is part of a linked list, make sure to",
 	}},
+
+	{`Date: Sun, 7 May 2017 19:54:00 -0700
+Message-ID: <123>
+Subject: #syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master
+From: bob@example.com
+To: syzbot <foo+4564456@bar.com>
+
+nothing to see here`,
+		Email{
+			BugID:       "4564456",
+			MessageID:   "<123>",
+			Subject:     "#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
+			From:        "<bob@example.com>",
+			Cc:          []string{"bob@example.com"},
+			Body:        `nothing to see here`,
+			Command:     CmdTest,
+			CommandStr:  "test:",
+			CommandArgs: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git master",
+		}},
 }

@@ -4,7 +4,6 @@
 package email
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -104,6 +103,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		return nil, err
 	}
 	bodyStr := string(body)
+	subject := msg.Header.Get("Subject")
 	cmd := CmdNone
 	patch, cmdStr, cmdArgs := "", "", ""
 	if !fromMe {
@@ -116,7 +116,7 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		if patch == "" {
 			_, patch, _ = ParsePatch(bodyStr)
 		}
-		cmd, cmdStr, cmdArgs = extractCommand(body)
+		cmd, cmdStr, cmdArgs = extractCommand(subject + "\n" + bodyStr)
 	}
 	link := ""
 	if match := groupsLinkRe.FindStringSubmatchIndex(bodyStr); match != nil {
@@ -126,10 +126,10 @@ func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 		BugID:       bugID,
 		MessageID:   msg.Header.Get("Message-ID"),
 		Link:        link,
-		Subject:     msg.Header.Get("Subject"),
+		Subject:     subject,
 		From:        from[0].String(),
 		Cc:          ccList,
-		Body:        string(body),
+		Body:        bodyStr,
 		Patch:       patch,
 		Command:     cmd,
 		CommandStr:  cmdStr,
@@ -195,8 +195,8 @@ func CanonicalEmail(email string) string {
 // extractCommand extracts command to syzbot from email body.
 // Commands are of the following form:
 // ^#syz cmd args...
-func extractCommand(body []byte) (cmd Command, str, args string) {
-	cmdPos := bytes.Index(append([]byte{'\n'}, body...), []byte("\n"+commandPrefix))
+func extractCommand(body string) (cmd Command, str, args string) {
+	cmdPos := strings.Index("\n"+body, "\n"+commandPrefix)
 	if cmdPos == -1 {
 		cmd = CmdNone
 		return
@@ -205,17 +205,17 @@ func extractCommand(body []byte) (cmd Command, str, args string) {
 	for cmdPos < len(body) && body[cmdPos] == ' ' {
 		cmdPos++
 	}
-	cmdEnd := bytes.IndexByte(body[cmdPos:], '\n')
+	cmdEnd := strings.IndexByte(body[cmdPos:], '\n')
 	if cmdEnd == -1 {
 		cmdEnd = len(body) - cmdPos
 	}
-	if cmdEnd1 := bytes.IndexByte(body[cmdPos:], '\r'); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
+	if cmdEnd1 := strings.IndexByte(body[cmdPos:], '\r'); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
 		cmdEnd = cmdEnd1
 	}
-	if cmdEnd1 := bytes.IndexByte(body[cmdPos:], ' '); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
+	if cmdEnd1 := strings.IndexByte(body[cmdPos:], ' '); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
 		cmdEnd = cmdEnd1
 	}
-	str = string(body[cmdPos : cmdPos+cmdEnd])
+	str = body[cmdPos : cmdPos+cmdEnd]
 	switch str {
 	default:
 		cmd = CmdUnknown
@@ -253,14 +253,14 @@ func extractCommand(body []byte) (cmd Command, str, args string) {
 	return
 }
 
-func extractArgsTokens(body []byte, num int) string {
+func extractArgsTokens(body string, num int) string {
 	var args []string
 	for pos := 0; len(args) < num && pos < len(body); {
-		lineEnd := bytes.IndexByte(body[pos:], '\n')
+		lineEnd := strings.IndexByte(body[pos:], '\n')
 		if lineEnd == -1 {
 			lineEnd = len(body) - pos
 		}
-		line := strings.TrimSpace(string(body[pos : pos+lineEnd]))
+		line := strings.TrimSpace(body[pos : pos+lineEnd])
 		for {
 			line1 := strings.Replace(line, "  ", " ", -1)
 			if line == line1 {
@@ -276,17 +276,17 @@ func extractArgsTokens(body []byte, num int) string {
 	return strings.TrimSpace(strings.Join(args, " "))
 }
 
-func extractArgsLine(body []byte) string {
+func extractArgsLine(body string) string {
 	pos := 0
 	for pos < len(body) && (body[pos] == ' ' || body[pos] == '\t' ||
 		body[pos] == '\n' || body[pos] == '\r') {
 		pos++
 	}
-	lineEnd := bytes.IndexByte(body[pos:], '\n')
+	lineEnd := strings.IndexByte(body[pos:], '\n')
 	if lineEnd == -1 {
 		lineEnd = len(body) - pos
 	}
-	return strings.TrimSpace(string(body[pos : pos+lineEnd]))
+	return strings.TrimSpace(body[pos : pos+lineEnd])
 }
 
 func parseBody(r io.Reader, headers mail.Header) ([]byte, [][]byte, error) {
