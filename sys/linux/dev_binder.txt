@@ -11,15 +11,20 @@ include <linux/fcntl.h>
 resource fd_binder[fd]
 resource binder_ptr[int64]: 0
 
+type binder_handle int32[0:4]
+type binder_cookie int64[0:4]
+
 syz_open_dev$binder(dev ptr[in, string["/dev/binder#"]], id proc[0, 1], flags flags[binder_open_flags]) fd_binder
 
 mmap$binder(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_binder, offset fileoff) binder_ptr
 
-ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], nthreads int32)
+ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], arg ptr[in, int32])
 ioctl$BINDER_SET_CONTEXT_MGR(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR], arg const[0])
+ioctl$BINDER_SET_CONTEXT_MGR_EXT(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR_EXT], arg ptr[in, flat_binder_object])
 ioctl$BINDER_THREAD_EXIT(fd fd_binder, cmd const[BINDER_THREAD_EXIT], arg const[0])
 ioctl$BINDER_GET_NODE_DEBUG_INFO(fd fd_binder, cmd const[BINDER_GET_NODE_DEBUG_INFO], arg ptr[inout, binder_node_debug_info])
 ioctl$BINDER_WRITE_READ(fd fd_binder, cmd const[BINDER_WRITE_READ], arg ptr[in, binder_write_read])
+ioctl$BINDER_GET_NODE_INFO_FOR_REF(fd fd_binder, cmd const[BINDER_GET_NODE_INFO_FOR_REF], arg ptr[in, binder_node_info_for_ref])
 
 binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2
@@ -29,6 +34,15 @@ binder_node_debug_info {
 	cookie		const[0, int64]
 	has_strong_ref	const[0, int32]
 	has_weak_ref	const[0, int32]
+}
+
+binder_node_info_for_ref {
+	handle		binder_handle
+	strong_count	const[0, int32]
+	weak_count	const[0, int32]
+	reserved1	const[0, int32]
+	reserved2	const[0, int32]
+	reserved3	const[0, int32]
 }
 
 binder_write_read {
@@ -81,10 +95,10 @@ binder_cmd_reply_sg {
 } [packed]
 
 binder_transaction_data {
-	handle		int32[0:4]
+	handle		binder_handle
 # there is a union of handle with binder_uintptr_t
 	pad		const[0, int32]
-	cookie		int64[0:4]
+	cookie		binder_cookie
 	code		const[0, int32]
 	flags		flags[binder_transaction_flags, int32]
 	sender_pid	const[0, int32]
@@ -97,6 +111,7 @@ binder_transaction_data {
 
 binder_transaction_data_sg {
 	trx		binder_transaction_data
+# NEED: buffers_size should be multiple of 8.
 	buffers_size	int64
 } [packed]
 
@@ -113,22 +128,28 @@ binder_object [
 	ptr	binder_buffer_object
 ] [varlen]
 
-flat_binder_object {
-	type	flags[binder_flat_types, int32]
+flat_binder_object [
+	binder		flat_binder_object_t[BINDER_TYPE_BINDER, binder_ptr]
+	weak_binder	flat_binder_object_t[BINDER_TYPE_WEAK_BINDER, binder_ptr]
+	handle		flat_binder_object_t[BINDER_TYPE_HANDLE, binder_handle]
+	weak_handle	flat_binder_object_t[BINDER_TYPE_WEAK_HANDLE, binder_handle]
+]
+
+type flat_binder_object_t[TYP, DATA] {
+	type	const[TYP, int32]
 	flags	flags[binder_flat_flags, int32]
-	binder	binder_ptr
-	cookie	int64[0:4]
+	binder	DATA
+	cookie	binder_cookie
 }
 
-binder_flat_types = BINDER_TYPE_BINDER, BINDER_TYPE_WEAK_BINDER, BINDER_TYPE_HANDLE, BINDER_TYPE_WEAK_HANDLE
-binder_flat_flags = 1, 10, FLAT_BINDER_FLAG_ACCEPTS_FDS
+binder_flat_flags = 1, 10, FLAT_BINDER_FLAG_ACCEPTS_FDS, FLAT_BINDER_FLAG_TXN_SECURITY_CTX
 
 binder_fd_object {
 	type	const[BINDER_TYPE_FD, int32]
 	pad	const[0, int32]
 	fd	fd
 	pad2	const[0, int32]
-	cookie	int64[0:4]
+	cookie	binder_cookie
 }
 
 binder_fd_array_object {
@@ -140,8 +161,8 @@ binder_fd_array_object {
 
 binder_buffer_object {
 	type		const[BINDER_TYPE_PTR, int32]
-	flags		int32[0:1]
-	buffer		ptr64[in, const[0, int8]]
+	flags		bool32
+	buffer		ptr64[in, array[int8]]
 	length		bytesize[buffer, int64]
 	parnt		int64[0:4]
 	parent_offset	int64[0:64]
@@ -175,13 +196,13 @@ binder_cmd_decrefs {
 binder_cmd_increfs_done {
 	cmd	const[BC_INCREFS_DONE, int32]
 	ptr	binder_ptr
-	cookie	int64[0:4]
+	cookie	binder_cookie
 } [packed]
 
 binder_cmd_acquire_done {
 	cmd	const[BC_ACQUIRE_DONE, int32]
 	ptr	binder_ptr
-	cookie	int64[0:4]
+	cookie	binder_cookie
 } [packed]
 
 binder_cmd_register_looper {
@@ -198,17 +219,17 @@ binder_cmd_exit_looper {
 
 binder_cmd_request_death {
 	cmd	const[BC_REQUEST_DEATH_NOTIFICATION, int32]
-	handle	int32[0:4]
-	cookie	int64[0:4]
+	handle	binder_handle
+	cookie	binder_cookie
 } [packed]
 
 binder_cmd_clear_death {
 	cmd	const[BC_CLEAR_DEATH_NOTIFICATION, int32]
-	handle	int32[0:4]
-	cookie	int64[0:4]
+	handle	binder_handle
+	cookie	binder_cookie
 } [packed]
 
 binder_cmd_dead_binder_done {
 	cmd	const[BC_DEAD_BINDER_DONE, int32]
-	cookie	int64[0:4]
+	cookie	binder_cookie
 } [packed]
