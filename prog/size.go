@@ -11,9 +11,11 @@ import (
 const (
 	// Special reference to the outer struct used in len targets.
 	ParentRef = "parent"
+	// Special reference directly to syscall arguments used in len targets.
+	SyscallRef = "syscall"
 )
 
-func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg, autos map[Arg]bool) {
+func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg, syscallArgs []Arg, autos map[Arg]bool) {
 	for _, arg := range args {
 		if arg = InnerArg(arg); arg == nil {
 			continue // Pointer to optional len field, no need to fill in value.
@@ -29,7 +31,11 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg, autos map[
 			delete(autos, arg)
 		}
 		a := arg.(*ConstArg)
-		target.assignSize(a, a, typ.Path, args, parentsMap)
+		if typ.Path[0] == SyscallRef {
+			target.assignSize(a, nil, typ.Path[1:], syscallArgs, parentsMap)
+		} else {
+			target.assignSize(a, a, typ.Path, args, parentsMap)
+		}
 	}
 }
 
@@ -53,9 +59,6 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 		if len(path) == 0 {
 			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
 		} else {
-			if path[0] == ParentRef {
-				buf = parentsMap[buf]
-			}
 			target.assignSize(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
 		}
 		return
@@ -119,11 +122,11 @@ func (target *Target) assignSizesArray(args []Arg, autos map[Arg]bool) {
 			}
 		})
 	}
-	target.assignSizes(args, parentsMap, autos)
+	target.assignSizes(args, parentsMap, args, autos)
 	for _, arg := range args {
 		ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
 			if _, ok := arg.Type().(*StructType); ok {
-				target.assignSizes(arg.(*GroupArg).Inner, parentsMap, autos)
+				target.assignSizes(arg.(*GroupArg).Inner, parentsMap, args, autos)
 			}
 		})
 	}

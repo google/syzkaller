@@ -252,7 +252,9 @@ s2 {
 
 `len` argument can also be a path expression which allows more complex
 addressing. Path expressions are similar to C field references, but also allow
-referencing parent and sibling elements. For example:
+referencing parent and sibling elements. A special reference `syscall` used
+in the beginning of the path allows to refer directly to the syscall arguments.
+For example:
 
 ```
 s1 {
@@ -271,13 +273,17 @@ s3 {
 # This refers to the array d in the sibling s2.
 	f	len[s1:a:d, int32]
 # This refers to the array k in the child s4.
-	g	len[h:i, int32]
-	h	ptr[in, s4]
+	g	len[i:j, int32]
+# This refers to syscall argument l.
+	h	len[syscall:l, int32]
+	i	ptr[in, s4]
 }
 
 s4 {
-	i	array[int8]
+	j	array[int8]
 }
+
+foo(k ptr[in, s1], l ptr[in, array[int8]])
 ```
 
 ## Proc
