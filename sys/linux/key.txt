@@ -120,10 +120,8 @@ key_encrypted_update {
 
 keyctl_pkey_params {
 	key_id	key
-# NEED: this is len of syscall input/output arguments. We don't have naming scheme to reference syscall arguments.
-# Need e.g. "len[syscall.input]", or some abbreviation like ".input" or "$.input".
-	in_len	int32
-	out_len	int32
+	in_len	bytesize[syscall:inout, int32]
+	out_len	bytesize[syscall:output, int32]
 	__spare	array[const[0, int32], 7]
 }
 

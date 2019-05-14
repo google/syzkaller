@@ -558,14 +558,17 @@ f_bpf_options [
 	TCA_BPF_ACT		nlattr[TCA_BPF_ACT, tca_actions]
 	TCA_BPF_POLICE		nlattr[TCA_BPF_POLICE, tca_polices]
 	TCA_BPF_CLASSID		nlattr[TCA_BPF_CLASSID, tcm_handle]
-# NEED: TCA_BPF_OPS should equal to TCA_BPF_OPS_LEN * sizeof(struct sock_filter)
-	TCA_BPF_OPS_LEN		nlattr[TCA_BPF_OPS_LEN, int16[0:10]]
-	TCA_BPF_OPS		nlattr[TCA_BPF_OPS, array[sock_filter]]
-	TCA_BPF_FD		nlattr[TCA_BPF_FD, fd]
+	TCA_BPF_OPS		tca_bpf_ops
+	TCA_BPF_FD		nlattr[TCA_BPF_FD, fd_bpf_prog]
 	TCA_BPF_NAME		nlattr[TCA_BPF_NAME, string[filename]]
 	TCA_BPF_FLAGS		nlattr[TCA_BPF_FLAGS, int32[0:1]]
 	TCA_BPF_FLAGS_GEN	nlattr[TCA_BPF_FLAGS_GEN, int32[0:8]]
 ] [varlen]
+
+tca_bpf_ops {
+	TCA_BPF_OPS_LEN	nlattr[TCA_BPF_OPS_LEN, len[tca_bpf_ops:TCA_BPF_OPS:payload, int16]]
+	TCA_BPF_OPS	nlattr[TCA_BPF_OPS, array[sock_filter]]
+} [packed]
 
 f_cgroup_options [
 	TCA_CGROUP_ACT		nlattr[TCA_CGROUP_ACT, tca_actions]
@@ -1069,11 +1072,10 @@ tc_estimator {
 	ewma_log	int8
 }
 
-stab_policy [
+stab_policy {
 	TCA_STAB_BASE	nlattr[TCA_STAB_BASE, tc_sizespec]
-# NEED: stab data should be tc_sizespec.tsize * sizeof(__u16)
-	TCA_STAB_DATA	nlattr[TCA_STAB_DATA, array[int16, 0:10]]
-] [varlen]
+	TCA_STAB_DATA	nlattr[TCA_STAB_DATA, array[int16]]
+} [packed]
 
 tc_sizespec {
 	cell_log	int8
@@ -1083,7 +1085,7 @@ tc_sizespec {
 	linklayer	flags[linklayer, int32]
 	mpu		int32
 	mtu		int32
-	tsize		int32[0:10]
+	tsize		len[stab_policy:TCA_STAB_DATA:payload, int32]
 }
 
 tcm_handle_offsets = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0xffe0, 0xfff1, 0xfff2, 0xfff3, 0xffff
