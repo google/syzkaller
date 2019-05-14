@@ -90,8 +90,10 @@ var structDescs_64 = []*KeyedStruct{
 	{Key: StructKey{Name: "explicitly_sized_union"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "explicitly_sized_union", TypeSize: 42}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
 	}}},
-	{Key: StructKey{Name: "len_expr1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "len_expr1", TypeSize: 64}, Fields: []Type{
+	{Key: StructKey{Name: "len_expr1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "len_expr1", TypeSize: 72}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "len_expr2"}, FldName: "f11"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "f12", TypeSize: 4}}, BitSize: 8, Path: []string{"syscall", "a2"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "len_expr2"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "len_expr2", TypeSize: 64}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "len_expr3"}, FldName: "f21"},
@@ -1003,4 +1005,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "3218225be4c9aad40c39be2b8bcb3008fd76ff1e"
+const revision_64 = "596ee9bf31191a84ff800056cadc632de17b3b28"

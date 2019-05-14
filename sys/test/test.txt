@@ -432,6 +432,7 @@ test$length29(a ptr[in, static_filename])
 
 len_expr1 {
 	f11	len_expr2
+	f12	bytesize[syscall:a2, int32]
 }
 
 len_expr2 {
