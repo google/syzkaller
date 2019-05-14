@@ -16,6 +16,15 @@ resource bpf_prog_id[int32]: 0, -1
 resource bpf_map_id[int32]: 0, -1
 resource bpf_btf_id[int32]: 0, -1
 
+# NEED: this is a random index in btf_header:types. We can't express this, so we just use a small index.
+type btf_type_id int32[1:5]
+# NEED: opt modified on typedefs, this could be btf_type_id[opt]
+type btf_opt_type_id int32[0:5]
+
+# NEED: offset in bpf_btf_program:strings. We can't express this, so we just use a small index.
+type btf_name_off int32[1:16]
+type btf_opt_name_off int32[0:16]
+
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
@@ -54,9 +63,9 @@ bpf_map_create_arg {
 	node			int32
 	map_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
 	map_ifindex		ifindex[opt]
-	btf_fd			fd_btf
-	btf_key_type_id		int32
-	btf_value_type_id	int32
+	btf_fd			fd_btf[opt]
+	btf_key_type_id		btf_opt_type_id
+	btf_value_type_id	btf_opt_type_id
 }
 
 bpf_map_get_fd_by_id_arg {
@@ -105,7 +114,7 @@ bpf_prog {
 	prog_name		array[const[0, int8], BPF_OBJ_NAME_LEN]
 	prog_ifindex		ifindex[opt]
 	expected_attach_type	flags[bpf_attach_type, int32]
-	btf_fd			fd_btf
+	btf_fd			fd_btf[opt]
 	func_info_rec_size	const[BPF_FUNC_INFO_SIZE, int32]
 	func_info		ptr64[in, bpf_func_info]
 	func_info_cnt		len[func_info, int32]
@@ -118,13 +127,15 @@ bpf_licenses = "GPL", "syzkaller"
 bpf_kern_version = 0x40f00, 0x41000, 0x41100
 
 bpf_func_info {
-	insn_off	int32
-	type_id		int32
+# This is instruction index, so should not be too large.
+	insn_off	int32[0:10]
+	type_id		btf_type_id
 }
 
 bpf_line_info {
-	insn_off	int32
-	file_name_off	int32
+# This is instruction index, so should not be too large.
+	insn_off	int32[0:5]
+	file_name_off	btf_opt_name_off
 	line_off	int32
 	line_col	int32
 }
@@ -360,7 +371,7 @@ bpf_prog_info {
 	nr_jited_func_lens		int32
 	jited_ksyms			ptr64[in, int64]
 	jited_func_lens			int64
-	btf_id				int32
+	btf_id				bpf_btf_id
 	func_info_rec_size		int32
 	func_info			ptr64[in, bpf_func_info]
 	nr_func_info			int32
@@ -436,22 +447,160 @@ btf_header {
 	hdr_len		const[0x18, int32]
 	type_off	const[0, int32]
 	type_len	bytesize[types, int32]
-	str_off		bytesize[parent, int32]
-# NEED: should be bytesize[bpf_btf_program.strings]
-	str_len		int32
-	types		bpf_btf_types
+	str_off		bytesize[types, int32]
+	str_len		bytesize[bpf_btf_program:strings, int32]
+	types		array[btf_type]
+} [align_4]
+
+btf_type [
+	int		btf_type_int
+	ptr		btf_type_ref_t[BTF_KIND_PTR]
+	array		btf_type_array
+	struct		btf_type_struct_t[BTF_KIND_STRUCT]
+	union		btf_type_struct_t[BTF_KIND_UNION]
+	enum		btf_type_enum
+	fwd		btf_type_fwd
+	typedef		btf_type_ref_t[BTF_KIND_TYPEDEF]
+	volatile	btf_type_ref_t[BTF_KIND_VOLATILE]
+	const		btf_type_ref_t[BTF_KIND_CONST]
+	restrict	btf_type_ref_t[BTF_KIND_RESTRICT]
+	func		btf_type_func
+	func_proto	btf_type_func_proto
+	var		btf_type_var
+	datasec		btf_type_datasec
+] [varlen]
+
+btf_type_int {
+# Note: this is an offset in bpf_btf_program:strings
+	name_off	btf_opt_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_INT, int8]
+	size		const[0, int32]
+	bits		int8[0:128]
+	pad		const[0, int8]
+	offset		int8[0:128]
+	encoding	flags[btf_type_int_encoding, int8]
 }
 
-bpf_btf_types {
-# This consists of some metas and some types (see btf_check_all_metas and btf_check_all_types).
-	data	array[int8]
-} [align_4]
+btf_type_int_encoding = 0, BTF_INT_SIGNED, BTF_INT_CHAR, BTF_INT_BOOL
+
+type btf_type_ref_t[TYP] {
+	name_off	btf_opt_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[TYP, int8]
+	type		btf_opt_type_id
+}
+
+btf_type_array {
+	name_off	const[0, int32]
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_ARRAY, int8]
+	size		const[0, int32]
+	data		btf_array
+}
+
+btf_array {
+	type		btf_type_id
+	index_type	btf_type_id
+	nelems		int32
+}
+
+type btf_type_struct_t[TYP] {
+	name_off	btf_opt_name_off
+	info_vlen	len[fields, int16]
+	info_pad	const[0, int8]
+	info_typ	const[TYP, int8:7]
+	info_kflag	int8:1
+	size		int32
+	fields		array[btf_member]
+}
+
+btf_member {
+	name_off	btf_opt_name_off
+	type		btf_opt_type_id
+	offset		int32
+}
+
+btf_type_enum {
+	name_off	btf_opt_name_off
+	info_vlen	len[values, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_ENUM, int8]
+	size		const[4, int32]
+	values		array[btf_enum]
+}
+
+btf_enum {
+	name_off	btf_opt_name_off
+	val		int32
+}
+
+btf_type_fwd {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_FWD, int8]
+	size		const[0, int32]
+}
+
+btf_type_func {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_FUNC, int8]
+	type		btf_type_id
+}
+
+btf_type_func_proto {
+	name_off	const[0, int32]
+	info_vlen	len[params, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_FUNC_PROTO, int8]
+	size		const[0, int32]
+	params		array[btf_param]
+}
+
+btf_param {
+	name_off	btf_opt_name_off
+	type		btf_opt_type_id
+}
+
+btf_type_var {
+	name_off	btf_name_off
+	info_vlen	const[0, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_VAR, int8]
+	type		btf_type_id
+	linkage		bool32
+}
+
+btf_type_datasec {
+	name_off	btf_name_off
+	info_vlen	len[secinfo, int16]
+	info_pad	const[0, int8]
+	info_typ	const[BTF_KIND_DATASEC, int8]
+	size		bytesize[data, int32]
+	secinfo		array[btf_var_secinfo]
+	data		array[int8, 1:3]
+} [packed]
+
+btf_var_secinfo {
+	type	btf_type_id
+# NEED: offset/size are for btf_type_datasec:data and must be increasing and within bounds (see btf_datasec_check_meta)
+	offset	int32
+	size	int32
+}
 
 bpf_btf_strings {
 	z0	const[0, int8]
-	data	array[int8]
+	data	array[flags[bpf_btf_strings_elem, int8]]
 	z1	const[0, int8]
 } [packed]
+
+bpf_btf_strings_elem = 'a', '0', '_', '.', 0
 
 bpf_task_fd_query {
 # NEED: part of fields are input here and part are output. We can't express this yet (#245).
