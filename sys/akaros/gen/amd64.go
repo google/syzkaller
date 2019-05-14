@@ -65,7 +65,7 @@ var structDescs_amd64 = []*KeyedStruct{
 
 var syscalls_amd64 = []*Syscall{
 	{NR: 31, Name: "abort_sysc", CallName: "abort_sysc", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "syscall", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "sysc", TypeSize: 8}}},
 	}},
 	{NR: 33, Name: "abort_sysc_fd", CallName: "abort_sysc_fd", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -1529,4 +1529,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "2e8809e8b792e94ba50fea9bd3cd76246566cb8b"
+const revision_amd64 = "33548b018e0972b7e80ce23e422cffc6d583fa02"
