@@ -6,6 +6,7 @@ THISDIR=`cd $(dirname $0); pwd`
 KASAN_CONFIG=${THISDIR}/upstream-kasan.config
 KMSAN_CONFIG=${THISDIR}/upstream-kmsan.config
 KMSAN_ADD=${THISDIR}/bits-kmsan.config
+. ${THISDIR}/util.sh
 
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 [ -z "${SOURCEDIR}" ] && echo 'Please set $SOURCEDIR to point to the kernel tree!' && exit
@@ -15,6 +16,8 @@ cd $SOURCEDIR
 cp ${KASAN_CONFIG} .config
 scripts/kconfig/merge_config.sh .config ${KMSAN_ADD}
 make CC="${CC}" oldconfig < /dev/null
+
+util_add_usb_bits
 
 echo "# The following configs are added manually, preserve them.
 # CONFIG_DEBUG_MEMORY was once added to mm tree and cause disabling of KASAN,
