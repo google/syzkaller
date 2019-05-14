@@ -430,7 +430,35 @@ test$length27(a0 ptr[in, explicitly_sized], a1 len[a0])
 test$length28(a0 ptr[in, explicitly_sized_union], a1 len[a0])
 test$length29(a ptr[in, static_filename])
 
-test$length30(a0 ptr[in, syz_length_int_struct], a1 bytesize[a0:f0])
+len_expr1 {
+	f11	len_expr2
+}
+
+len_expr2 {
+	f21	len_expr3
+	f22	len_expr4
+	f23	ptr[in, len_expr4]
+	f24	ptr[in, ptr[in, len_expr4]]
+	f25	len[f21:f31, int32]
+}
+
+len_expr3 {
+	f31	int16
+	f32	bytesize[len_expr2:f21, int32]
+	f33	bytesize[len_expr2:f22:f41, int32]
+	f34	bytesize[len_expr1:f11:f22:f42, int32]
+	f35	bytesize[len_expr2:f23:f43, int32]
+	f36	bytesize[len_expr2:f24:f44, int32]
+}
+
+len_expr4 {
+	f41	array[int8, 1]
+	f42	array[int8, 3]
+	f43	array[int8, 5]
+	f44	array[int8, 6]
+}
+
+test$length30(a0 ptr[in, len_expr1], a1 bytesize[a0:f11], a2 ptr[in, bytesize[a0:f11:f21, int32]], a3 bytesize[a0:f11:f21:f31])
 
 # Big endian
 

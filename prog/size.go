@@ -8,12 +8,82 @@ import (
 	"strings"
 )
 
-func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
+func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg, autos map[Arg]bool) {
+	for _, arg := range args {
+		if arg = InnerArg(arg); arg == nil {
+			continue // Pointer to optional len field, no need to fill in value.
+		}
+		typ, ok := arg.Type().(*LenType)
+		if !ok {
+			continue
+		}
+		if autos != nil {
+			if !autos[arg] {
+				continue
+			}
+			delete(autos, arg)
+		}
+		a := arg.(*ConstArg)
+		target.assignSize(a, a, typ.Path, args, parentsMap)
+	}
+}
+
+func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []Arg, parentsMap map[Arg]Arg) {
+	elem := path[0]
+	path = path[1:]
+	for _, buf := range args {
+		if elem != buf.Type().FieldName() {
+			continue
+		}
+		buf = InnerArg(buf)
+		if len(path) == 0 {
+			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
+		} else {
+			target.assignSize(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
+		}
+		return
+	}
+	if elem == "parent" {
+		buf := parentsMap[pos]
+		if len(path) == 0 {
+			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
+		} else {
+			if path[0] == "parent" {
+				buf = parentsMap[buf]
+			}
+			target.assignSize(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
+		}
+		return
+	}
+	for buf := parentsMap[pos]; buf != nil; buf = parentsMap[buf] {
+		parentName := buf.Type().Name()
+		if pos := strings.IndexByte(parentName, '['); pos != -1 {
+			// For template parents, strip arguments.
+			parentName = parentName[:pos]
+		}
+		if elem != parentName {
+			continue
+		}
+		if len(path) == 0 {
+			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
+		} else {
+			target.assignSize(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
+		}
+		return
+	}
+	var argNames []string
+	for _, arg := range args {
+		argNames = append(argNames, arg.Type().FieldName())
+	}
+	panic(fmt.Sprintf("len field %q references non existent field %q, pos=%q/%q, argsMap: %+v",
+		dst.Type().FieldName(), elem, pos.Type().Name(), pos.Type().FieldName(), argNames))
+}
+
+func (target *Target) computeSize(arg Arg, lenType *LenType) uint64 {
 	if arg == nil {
 		// Arg is an optional pointer, set size to 0.
 		return 0
 	}
-
 	bitSize := lenType.BitSize
 	if bitSize == 0 {
 		bitSize = 8
@@ -30,69 +100,6 @@ func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
 		return uint64(len(a.Inner))
 	default:
 		return arg.Size() * 8 / bitSize
-	}
-}
-
-func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg, autos map[Arg]bool) {
-	// Create a map from field names to args.
-	argsMap := make(map[string]Arg)
-	for _, arg := range args {
-		if IsPad(arg.Type()) {
-			continue
-		}
-		argsMap[arg.Type().FieldName()] = arg
-	}
-
-	// Fill in size arguments.
-nextArg:
-	for _, arg := range args {
-		if arg = InnerArg(arg); arg == nil {
-			continue // Pointer to optional len field, no need to fill in value.
-		}
-		typ, ok := arg.Type().(*LenType)
-		if !ok {
-			continue
-		}
-		if autos != nil {
-			if !autos[arg] {
-				continue
-			}
-			delete(autos, arg)
-		}
-		a := arg.(*ConstArg)
-
-		elem := typ.Path[0]
-		buf, ok := argsMap[elem]
-		if ok {
-			a.Val = target.generateSize(InnerArg(buf), typ)
-			continue
-		}
-
-		if elem == "parent" {
-			a.Val = parentsMap[arg].Size()
-			if typ.BitSize != 0 {
-				a.Val = a.Val * 8 / typ.BitSize
-			}
-			continue
-		}
-
-		for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
-			parentName := parent.Type().Name()
-			if pos := strings.IndexByte(parentName, '['); pos != -1 {
-				// For template parents, strip arguments.
-				parentName = parentName[:pos]
-			}
-			if elem != parentName {
-				continue
-			}
-			a.Val = parent.Size()
-			if typ.BitSize != 0 {
-				a.Val = a.Val * 8 / typ.BitSize
-			}
-			continue nextArg
-		}
-		panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v",
-			typ.FieldName(), elem, argsMap))
 	}
 }
 
@@ -126,8 +133,8 @@ func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
 	elemSize := typ.BitSize / 8
 	if elemSize == 0 {
 		elemSize = 1
+		// TODO(dvyukov): implement path support for size mutation.
 		if len(typ.Path) == 1 {
-			// TODO(dvyukov): implement path support for size mutation.
 			for _, field := range parent {
 				if typ.Path[0] != field.Type().FieldName() {
 					continue
