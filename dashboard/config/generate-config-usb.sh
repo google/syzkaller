@@ -12,10 +12,15 @@ MERGE_USB_SCRIPT=${THISDIR}/kconfiglib-merge-usb-configs.py
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 [ -z "${SOURCEDIR}" ] && echo 'Please set $SOURCEDIR to point to the kernel tree!' && exit
 
-cd $SOURCEDIR
-
-make CC="${CC}" defconfig
-make CC="${CC}" kvmconfig
+if [ -z "${1:-}" ]
+then
+  cd $SOURCEDIR
+  make CC="${CC}" defconfig
+  make CC="${CC}" kvmconfig
+else
+  cp "${1}" .config
+  cd $SOURCEDIR
+fi
 
 git clone --depth=1 https://github.com/ulfalizer/Kconfiglib.git
 wget -qO- https://raw.githubusercontent.com/ulfalizer/Kconfiglib/master/makefile.patch | patch -p1
