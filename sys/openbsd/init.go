@@ -59,6 +59,24 @@ func isKcovFd(dev uint64) bool {
 func (arch *arch) SanitizeCall(c *prog.Call) {
 	argStart := 1
 	switch c.Meta.CallName {
+	case "chflagsat":
+		argStart = 2
+		fallthrough
+	case "chflags", "fchflags":
+		// Prevent changing mutability flags on files. This is
+		// especially problematic for file descriptors referring to
+		// tty/pty devices since it can cause the SSH connection to the
+		// VM to die.
+		flags := c.Args[argStart].(*prog.ConstArg)
+		badflags := [...]uint64{
+			0x00000002, // UF_IMMUTABLE
+			0x00000004, // UF_APPEND
+			0x00020000, // SF_IMMUTABLE
+			0x00040000, // SF_APPEND
+		}
+		for _, f := range badflags {
+			flags.Val &= ^f
+		}
 	case "mknodat":
 		argStart = 2
 		fallthrough
