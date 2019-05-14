@@ -179,7 +179,7 @@ func (comp *compiler) checkFieldGroup(fields []*ast.Field, what, ctx string) {
 	existing := make(map[string]bool)
 	for _, f := range fields {
 		fn := f.Name.Name
-		if fn == prog.ParentRef {
+		if fn == prog.ParentRef || fn == prog.SyscallRef {
 			comp.error(f.Pos, "reserved %v name %v in %v", what, fn, ctx)
 		}
 		if existing[fn] {
@@ -347,10 +347,18 @@ func (comp *compiler) checkLenType(t0, t *ast.Type, parents []parentDesc,
 
 func (comp *compiler) checkLenTarget(arg, t0, t *ast.Type, parents []parentDesc, warned map[string]bool) {
 	targets := append([]*ast.Type{arg}, arg.Colon...)
-	if len(targets) != 1 {
-		for _, target := range targets {
-			if target.Ident == prog.ParentRef {
-				comp.error(target.Pos, "%v can't be part of path expressions", prog.ParentRef)
+	for i, target := range targets {
+		if target.Ident == prog.ParentRef && len(targets) != 1 {
+			comp.error(target.Pos, "%v can't be part of path expressions", prog.ParentRef)
+			return
+		}
+		if target.Ident == prog.SyscallRef {
+			if i != 0 {
+				comp.error(target.Pos, "syscall can't be in the middle of path expressions")
+				return
+			}
+			if len(targets) == 1 {
+				comp.error(targets[0].Pos, "no argument name after syscall reference")
 				return
 			}
 		}
@@ -405,15 +413,15 @@ func (comp *compiler) checkLenTargetRec(t0, t *ast.Type, targets []*ast.Type,
 	}
 	for pi := len(parents) - 1; pi >= 0; pi-- {
 		parent := parents[pi]
-		if parent.name == "" || parent.name != target.Ident && target.Ident != prog.ParentRef {
-			continue
+		if parent.name != "" && (parent.name == target.Ident || target.Ident == prog.ParentRef) ||
+			parent.name == "" && target.Ident == prog.SyscallRef {
+			if len(targets) != 0 {
+				parents1 := make([]parentDesc, pi+1)
+				copy(parents1, parents[:pi+1])
+				comp.checkLenTargetRec(t0, t, targets, parents1, warned)
+			}
+			return
 		}
-		if len(targets) != 0 {
-			parents1 := make([]parentDesc, pi+1)
-			copy(parents1, parents[:pi+1])
-			comp.checkLenTargetRec(t0, t, targets, parents1, warned)
-		}
-		return
 	}
 	comp.error(target.Pos, "%v target %v does not exist", t.Ident, target.Ident)
 }

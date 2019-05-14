@@ -72,6 +72,7 @@ foo$len_var1(a ptr[in, array[string]], b ptr[in, len[a, int32]])
 
 len_expr1 {
 	f11	len_expr2
+	f12	bytesize[syscall:b, int32]
 }
 
 len_expr2 {
@@ -95,7 +96,7 @@ len_expr4 {
 	f41	int32
 }
 
-foo$len_expr(a ptr[in, len_expr1])
+foo$len_expr(a ptr[in, len_expr1], b ptr[in, array[int8, 3]])
 
 # Pointer type.
 
