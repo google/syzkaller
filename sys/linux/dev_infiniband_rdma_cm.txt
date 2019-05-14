@@ -41,8 +41,8 @@ write$RDMA_USER_CM_CMD_JOIN_MCAST(fd fd_rdma_cm, data ptr[in, rdma_ucm_cmd_t[RDM
 type rdma_ucm_cmd_t[CMD, MSG] {
 	cmd	const[CMD, int32]
 	in	bytesize[msg, int16]
-# NEED: this seems to be only checked for less, so we can get away with a large const.
-# NEED: A properer support would require support for bytesize[MSG.response] syntax.
+# Note: this seems to be only checked for less, so we can get away with a large const.
+# bytesize[msg:response] does not work because lots of MSGs don't have response field.
 	out	const[64000, int16]
 	msg	MSG
 }
