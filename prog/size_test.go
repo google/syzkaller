@@ -151,8 +151,11 @@ func TestAssignSize(t *testing.T) {
 			"test$length29(&(0x7f0000000000)={'./a\\x00', './b/c\\x00', 0x0, 0x0, 0x0})",
 			"test$length29(&(0x7f0000000000)={'./a\\x00', './b/c\\x00', 0xa, 0x14, 0x21})",
 		},
+		{
+			"test$length30(&(0x7f0000000000)={{{0x0, 0x0, 0x0, 0x0, 0x0, 0x0}, {'a', 'aaa', 'aaaaa', 'aaaaaa'}, &(0x7f0000000000)={'a', 'aaa', 'aaaaa', 'aaaaaa'}, &(0x7f0000000000)=&(0x7f0000000000)={'a', 'aaa', 'aaaaa', 'aaaaaa'}, 0x0}}, 0x0, &(0x7f0000000000)=0x0, 0x0)",
+			"test$length30(&(0x7f0000000000)={{{0x0, 0x18, 0x1, 0x3, 0x5, 0x6}, {'a', 'aaa', 'aaaaa', 'aaaaaa'}, &(0x7f0000000000)={'a', 'aaa', 'aaaaa', 'aaaaaa'}, &(0x7f0000000000)=&(0x7f0000000000)={'a', 'aaa', 'aaaaa', 'aaaaaa'}, 0x2}}, 0x40, &(0x7f0000000000)=0x18, 0x2)",
+		},
 	}
-
 	for i, test := range tests {
 		p, err := target.Deserialize([]byte(test.unsizedProg), Strict)
 		if err != nil {

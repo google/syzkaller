@@ -570,7 +570,7 @@ func (p *parser) parseArgArray(typ Type) (Arg, error) {
 	p.Parse('[')
 	t1, ok := typ.(*ArrayType)
 	if !ok {
-		p.eatExcessive(false, "wrong array arg")
+		p.eatExcessive(false, "wrong array arg %T", typ)
 		p.Parse(']')
 		return typ.DefaultArg(), nil
 	}

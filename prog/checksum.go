@@ -121,6 +121,7 @@ func findCsummedArg(arg Arg, typ *CsumType, parentsMap map[Arg]Arg) Arg {
 		panic(fmt.Sprintf("parent for %v is not in parents map", typ.Name()))
 	} else {
 		for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
+			// TODO(dvyukov): support template argument names as in size calculation.
 			if typ.Buf == parent.Type().Name() {
 				return parent
 			}
