@@ -83,7 +83,7 @@ self_notify(vcoreid int32, ev_type flags[event_type], u_msg ptr[in, event_msg], 
 halt_core(usec intptr)
 change_to_m()
 poke_ksched(target_pid pid[opt], res_type const[0])
-abort_sysc(syscall intptr)
+abort_sysc(sysc intptr)
 populate_va(va vma, nr_pgs intptr)
 vmm_add_gpcs(nr_more_gpcs intptr, gpcis ptr[in, vmm_gpcore_init])
 vc_entry()
