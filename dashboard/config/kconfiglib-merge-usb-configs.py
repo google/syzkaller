@@ -90,4 +90,8 @@ for node in list(usb_nodes):
 			continue
 		kconf.syms[node.item.name].set_value(2)
 
+blacklist = ['COMPILE_TEST']
+for sym in blacklist:
+	kconf.syms[sym].set_value(0)
+
 kconf.write_config()
