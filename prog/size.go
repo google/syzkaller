@@ -47,6 +47,10 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 			continue
 		}
 		buf = InnerArg(buf)
+		if buf == nil {
+			dst.Val = 0 // target is an optional pointer
+			return
+		}
 		if len(path) == 0 {
 			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
 		} else {
