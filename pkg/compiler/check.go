@@ -179,7 +179,7 @@ func (comp *compiler) checkFieldGroup(fields []*ast.Field, what, ctx string) {
 	existing := make(map[string]bool)
 	for _, f := range fields {
 		fn := f.Name.Name
-		if fn == "parent" {
+		if fn == prog.ParentRef {
 			comp.error(f.Pos, "reserved %v name %v in %v", what, fn, ctx)
 		}
 		if existing[fn] {
@@ -292,7 +292,7 @@ func (comp *compiler) checkLenTargets() {
 			for _, arg := range n.Args {
 				checked := make(map[string]bool)
 				parents := []parentDesc{{fields: n.Args}}
-				comp.checkLenType(arg.Type, arg.Type, arg.Name.Name, parents, checked, warned, true)
+				comp.checkLenType(arg.Type, arg.Type, parents, checked, warned, true)
 			}
 		}
 	}
@@ -312,7 +312,7 @@ func parentTargetName(s *ast.Struct) string {
 	return parentName
 }
 
-func (comp *compiler) checkLenType(t0, t *ast.Type, name string, parents []parentDesc,
+func (comp *compiler) checkLenType(t0, t *ast.Type, parents []parentDesc,
 	checked, warned map[string]bool, isArg bool) {
 	desc := comp.getTypeDesc(t)
 	if desc == typeStruct {
@@ -329,7 +329,7 @@ func (comp *compiler) checkLenType(t0, t *ast.Type, name string, parents []paren
 		parentName := parentTargetName(s)
 		parents = append(parents, parentDesc{name: parentName, fields: fields})
 		for _, fld := range s.Fields {
-			comp.checkLenType(fld.Type, fld.Type, fld.Name.Name, parents, checked, warned, false)
+			comp.checkLenType(fld.Type, fld.Type, parents, checked, warned, false)
 		}
 		warned[parentName] = true
 		return
@@ -338,23 +338,27 @@ func (comp *compiler) checkLenType(t0, t *ast.Type, name string, parents []paren
 	for i, arg := range args {
 		argDesc := desc.Args[i]
 		if argDesc.Type == typeArgLenTarget {
-			targets := append([]*ast.Type{arg}, arg.Colon...)
-			if len(targets) != 1 {
-				for _, target := range targets {
-					if target.Ident == "parent" {
-						comp.error(target.Pos, "parent can't be part of path expressions")
-						return
-					}
-				}
-			}
-			comp.checkLenTarget(t0, t, name, targets, parents, warned)
+			comp.checkLenTarget(arg, t0, t, parents, warned)
 		} else if argDesc.Type == typeArgType {
-			comp.checkLenType(t0, arg, name, parents, checked, warned, argDesc.IsArg)
+			comp.checkLenType(t0, arg, parents, checked, warned, argDesc.IsArg)
 		}
 	}
 }
 
-func (comp *compiler) checkLenTarget(t0, t *ast.Type, name string, targets []*ast.Type,
+func (comp *compiler) checkLenTarget(arg, t0, t *ast.Type, parents []parentDesc, warned map[string]bool) {
+	targets := append([]*ast.Type{arg}, arg.Colon...)
+	if len(targets) != 1 {
+		for _, target := range targets {
+			if target.Ident == prog.ParentRef {
+				comp.error(target.Pos, "%v can't be part of path expressions", prog.ParentRef)
+				return
+			}
+		}
+	}
+	comp.checkLenTargetRec(t0, t, targets, parents, warned)
+}
+
+func (comp *compiler) checkLenTargetRec(t0, t *ast.Type, targets []*ast.Type,
 	parents []parentDesc, warned map[string]bool) {
 	if len(targets) == 0 {
 		return
@@ -396,18 +400,18 @@ func (comp *compiler) checkLenTarget(t0, t *ast.Type, name string, targets []*as
 			return
 		}
 		parents = append(parents, parentDesc{name: parentTargetName(s), fields: s.Fields})
-		comp.checkLenTarget(t0, t, name, targets, parents, warned)
+		comp.checkLenTargetRec(t0, t, targets, parents, warned)
 		return
 	}
 	for pi := len(parents) - 1; pi >= 0; pi-- {
 		parent := parents[pi]
-		if parent.name == "" || parent.name != target.Ident && target.Ident != "parent" {
+		if parent.name == "" || parent.name != target.Ident && target.Ident != prog.ParentRef {
 			continue
 		}
 		if len(targets) != 0 {
 			parents1 := make([]parentDesc, pi+1)
 			copy(parents1, parents[:pi+1])
-			comp.checkLenTarget(t0, t, name, targets, parents1, warned)
+			comp.checkLenTargetRec(t0, t, targets, parents1, warned)
 		}
 		return
 	}

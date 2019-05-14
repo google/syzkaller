@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+const (
+	// Special reference to the outer struct used in len targets.
+	ParentRef = "parent"
+)
+
 func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg, autos map[Arg]bool) {
 	for _, arg := range args {
 		if arg = InnerArg(arg); arg == nil {
@@ -43,12 +48,12 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 		}
 		return
 	}
-	if elem == "parent" {
+	if elem == ParentRef {
 		buf := parentsMap[pos]
 		if len(path) == 0 {
 			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
 		} else {
-			if path[0] == "parent" {
+			if path[0] == ParentRef {
 				buf = parentsMap[buf]
 			}
 			target.assignSize(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
