@@ -230,19 +230,7 @@ tidy:
 	# Just check for compiler warnings.
 	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
-gometalinter:
-ifeq ($(TRAVIS),)
-	env CGO_ENABLED=1 gometalinter.v2 ./...
-else
-	# GOMAXPROCS/GOGC settings help to reduce memory usage,
-	# otherwise this gets OOM-killed on travis.
-	env CGO_ENABLED=1 GOMAXPROCS=1 GOGC=50 gometalinter.v2 ./...
-endif
-
 lint:
-	# To install run:
-	# go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-	# Currently it consumes too much memory to run on Travis (see #977).
 	golangci-lint run ./...
 
 arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host \
@@ -298,18 +286,15 @@ arch_windows_amd64_target:
 arch_test:
 	env TARGETOS=test TARGETARCH=64 $(MAKE) executor
 	env TARGETOS=test TARGETARCH=64_fork $(MAKE) executor
-	# 32-bit build fails on travis with:
-	# /usr/include/c++/4.8/utility:68:28: fatal error: bits/c++config.h: No such file or directory
-	# #include <bits/c++config.h>
-	# env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
-	# env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
+	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
+	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
 
 presubmit:
 	$(MAKE) generate
 	$(MAKE) check_diff
 	$(GO) install ./...
 	$(MAKE) presubmit_parallel
-	$(MAKE) gometalinter
+	$(MAKE) lint
 	echo LGTM
 
 presubmit_parallel: test test_race arch check_links
@@ -333,7 +318,7 @@ clean:
 
 # For a tupical Ubuntu/Debian distribution.
 # We use "|| true" for apt-get install because packages are all different on different distros,
-# and we want to install at least gometalinter on Travis CI.
+# and we want to install at least golangci-lint on Travis CI.
 install_prerequisites:
 	uname -a
 	sudo apt-get update
@@ -344,8 +329,7 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-arm-linux-gnueabi || true
 	sudo apt-get install -y -q ragel
 	go get -u golang.org/x/tools/cmd/goyacc
-	go get -u gopkg.in/alecthomas/gometalinter.v2
-	gometalinter.v2 --install
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 check_links:
 	python ./tools/check_links.py $$(pwd) $$(ls ./*.md; find ./docs/ -name '*.md')
