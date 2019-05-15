@@ -46,7 +46,11 @@ scripts/config -e CONFIG_USB_GADGETFS
 scripts/config -e CONFIG_USB_DUMMY_HCD
 scripts/config -e CONFIG_USB_FUZZER
 
+if [ -z "${BASE_CONFIG}" ]
+then
 scripts/kconfig/merge_config.sh .config $SYZBOT_CONFIG
+fi
+
 sed -i "s#=m\$#=y#g" .config
 
 # Not merged in for some reason.
