@@ -18,8 +18,8 @@ then
   make CC="${CC}" defconfig
   make CC="${CC}" kvmconfig
 else
-  cp "${BASE_CONFIG}" .config
-  cd $SOURCEDIR
+  cp "${BASE_CONFIG}" "${SOURCEDIR}/.config"
+  cd "${SOURCEDIR}"
 fi
 
 git clone --depth=1 https://github.com/ulfalizer/Kconfiglib.git
