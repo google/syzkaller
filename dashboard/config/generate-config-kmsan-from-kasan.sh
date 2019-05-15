@@ -18,17 +18,7 @@ scripts/kconfig/merge_config.sh .config ${KMSAN_ADD}
 make CC="${CC}" oldconfig < /dev/null
 
 util_add_usb_bits
-
-echo "# The following configs are added manually, preserve them.
-# CONFIG_DEBUG_MEMORY was once added to mm tree and cause disabling of KASAN,
-# which in turn caused storm of assorted crashes after silent memory
-# corruptions. The config was reverted, but we keep it here for the case
-# it is reintroduced to kernel again.
-CONFIG_DEBUG_MEMORY=y
-# This config can be used to enable any additional temporal debugging
-# features in linux-next tree.
-CONFIG_DEBUG_AID_FOR_SYZBOT=y
-" > ${KMSAN_CONFIG}
+util_add_extra_syzbot_configs "${KMSAN_CONFIG}"
 
 cat .config >> ${KMSAN_CONFIG}
 cp ${KMSAN_CONFIG} .config
