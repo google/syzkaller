@@ -1,9 +1,8 @@
 //line straceLex.rl:1
-
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// nolint
+// +build !codeanalysis
 
 package parser
 
@@ -24,6 +23,7 @@ const strace_en_comment int = 207
 const strace_en_main int = 157
 
 //line straceLex.rl:22
+
 type Stracelexer struct {
 	result      *Syscall
 	data        []byte
@@ -5786,6 +5786,7 @@ func (lex *Stracelexer) Lex(out *StraceSymType) int {
 	}
 
 //line straceLex.rl:110
+
 	return tok
 }
 
