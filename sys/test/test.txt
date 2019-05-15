@@ -734,6 +734,8 @@ resource unsupported[int32]
 unsupported$0(a unsupported) unsupported
 unsupported$1(a unsupported) unsupported
 
+foo$arch_specific_const_as_array_size(a ptr[in, array[int8, ARCH_64_SPECIFIC_CONST]])
+
 # Fallback coverage.
 
 fallback$0() fd

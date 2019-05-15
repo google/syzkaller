@@ -15419,6 +15419,7 @@ const call_t syscalls[] = {
     {"fallback$1", 0},
     {"foo$any0", 0},
     {"foo$anyres", 0},
+    {"foo$arch_specific_const_as_array_size", 0},
     {"foo$fmt0", 0},
     {"foo$fmt1", 0},
     {"foo$fmt2", 0},

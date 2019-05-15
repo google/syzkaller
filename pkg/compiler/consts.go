@@ -210,9 +210,12 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			}
 			// Produce a warning about unsupported syscall/resource/struct.
 			// TODO(dvyukov): we should transitively remove everything that
-			// depends on unsupported things.
-			// Potentially we still can get, say, a bad int range error
-			// due to the 0 const value.
+			// depends on unsupported things. Potentially we still can get,
+			// say, a bad int range error due to the wrong const value.
+			// However, if we have a union where one of the options is
+			// arch-specific and does not have a const value, it's probably
+			// better to remove just that option. But then if we get to 0
+			// options in the union, we still need to remove it entirely.
 			pos, typ, name := decl.Info()
 			if id := typ + " " + name; !comp.unsupported[id] {
 				comp.unsupported[id] = true
@@ -230,14 +233,18 @@ func (comp *compiler) patchIntConst(val *uint64, id *string, consts map[string]u
 	if *id == "" {
 		return true
 	}
-	v, ok := consts[*id]
-	if !ok {
-		if missing != nil && *missing == "" {
-			*missing = *id
-		}
+	if v, ok := consts[*id]; ok {
+		*id = ""
+		*val = v
+		return true
 	}
-	*val = v
-	return ok
+	if missing != nil && *missing == "" {
+		*missing = *id
+	}
+	// 1 is slightly safer than 0 and allows to work-around e.g. an array size
+	// that comes from a const missing on an arch. Also see the TODO in patchConsts.
+	*val = 1
+	return false
 }
 
 func SerializeConsts(consts map[string]uint64, undeclared map[string]bool) []byte {
