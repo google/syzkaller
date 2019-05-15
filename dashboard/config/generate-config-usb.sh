@@ -12,13 +12,13 @@ MERGE_USB_SCRIPT=${THISDIR}/kconfiglib-merge-usb-configs.py
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 [ -z "${SOURCEDIR}" ] && echo 'Please set $SOURCEDIR to point to the kernel tree!' && exit
 
-if [ -z "${1:-}" ]
+if [ -z "${BASE_CONFIG}" ]
 then
   cd $SOURCEDIR
   make CC="${CC}" defconfig
   make CC="${CC}" kvmconfig
 else
-  cp "${1}" .config
+  cp "${BASE_CONFIG}" .config
   cd $SOURCEDIR
 fi
 
