@@ -70,16 +70,6 @@ ebt_entries_policy = EBT_DROP, EBT_ACCEPT, EBT_RETURN
 ebt_verdicts = EBT_DROP, EBT_ACCEPT, EBT_RETURN, EBT_CONTINUE
 
 type ebt_entry[TARGETS] {
-	watchers	ebt_entry_watchers[TARGETS]
-	target		TARGETS
-} [packed]
-
-type ebt_entry_watchers[TARGETS] {
-	matches		ebt_entry_matches
-	watchers	array[TARGETS, 0:2]
-} [packed]
-
-ebt_entry_matches {
 	bitmask		flags[ebt_entry_bitmask, int32]
 	invflags	flags[ebt_entry_invflags, int32]
 	ethproto	flags[ether_types, int16be]
@@ -91,12 +81,13 @@ ebt_entry_matches {
 	sourcemsk	mac_addr_mask
 	destmac		mac_addr
 	destmsk		mac_addr_mask
-# NEED: this asks for an offset type (field offset).
-	watchers_offset	bytesize[parent, int32]
-	target_offset	bytesize[ebt_entry_watchers, int32]
-	next_offset	bytesize[ebt_entry, int32]
+	watchers_offset	offsetof[watchers, int32]
+	target_offset	offsetof[target, int32]
+	next_offset	bytesize[parent, int32]
 	matches		array[ebt_matches, 0:2]
-}
+	watchers	array[TARGETS, 0:2]
+	target		TARGETS
+} [packed]
 
 ebt_entry_bitmask = EBT_NOPROTO_F, EBT_802_3_F, EBT_SOURCEMAC_F, EBT_DESTMAC_F
 ebt_entry_invflags = EBT_IPROTO, EBT_IIN, EBT_IOUT, EBT_ISOURCE, EBT_IDEST, EBT_ILOGICALIN, EBT_ILOGICALOUT
@@ -199,14 +190,17 @@ ebt_802_3_info {
 ebt_802_3_flags = EBT_802_3_SAP, EBT_802_3_TYPE, EBT_802_3
 
 ebt_among_info {
-# NEED: these 2 fields are offsets of dst and src
-# dst and src can also be not present in the struct, in which case ofs are 0
-	wh_dst_ofs	int32
-	wh_src_ofs	int32
+	wh_dst_ofs	ebt_among_info_offset[dst]
+	wh_src_ofs	ebt_among_info_offset[src]
 	bitmask		flags[ebt_among_flags, int32]
 	dst		ebt_mac_wormhash
 	src		ebt_mac_wormhash
 } [packed]
+
+type ebt_among_info_offset[FIELD] [
+	offset	offsetof[ebt_among_info:FIELD, int32]
+	zero	const[0, int32]
+]
 
 ebt_mac_wormhash {
 	table		array[int32, 257]
