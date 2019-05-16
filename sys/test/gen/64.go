@@ -152,6 +152,27 @@ var structDescs_64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f2", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 	}}},
+	{Key: StructKey{Name: "offsetof0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "offsetof0", TypeSize: 72}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f0", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f2", TypeSize: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f3", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 7}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f4", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f5", TypeSize: 4}, BitfieldLen: 5, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f6", TypeSize: 4}, BitfieldOff: 5, BitfieldLen: 10}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f7", TypeSize: 8}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o0", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f0"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o1", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f1"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o2", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f2"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o3", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f3"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o4", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f4"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o5", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f5"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o6", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f6"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o7", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f7"}},
+	}}},
 	{Key: StructKey{Name: "serialize0_struct"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "serialize0_struct", TypeSize: 15}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "a", TypeSize: 10}, Kind: 2, SubKind: "serialize_strings", Values: []string{"aaa\x00\x00\x00\x00\x00\x00\x00", "bbb\x00\x00\x00\x00\x00\x00\x00"}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "b", TypeSize: 5}, Kind: 2, SubKind: "serialize_strings", Values: []string{"aaa\x00\x00", "bbb\x00\x00"}},
@@ -896,6 +917,9 @@ var syscalls_64 = []*Syscall{
 	{Name: "test$missing_struct", CallName: "test", MissingArgs: 5, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_use_missing"}}},
 	}},
+	{Name: "test$offsetof0", CallName: "test", MissingArgs: 5, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "offsetof0"}}},
+	}},
 	{Name: "test$opt0", CallName: "test", MissingArgs: 5, Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "a0", TypeSize: 8, IsOptional: true}}},
 	}},
@@ -1010,4 +1034,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "e07c8657b55348a9385e59d435ee7ad303ccc728"
+const revision_64 = "74c87d08a1f72c38c85e889813b60823a1e5755c"

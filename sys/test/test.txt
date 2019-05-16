@@ -461,6 +461,27 @@ len_expr4 {
 
 test$length30(a0 ptr[in, len_expr1], a1 bytesize[a0:f11], a2 ptr[in, bytesize[a0:f11:f21, int32]], a3 bytesize[a0:f11:f21:f31])
 
+test$offsetof0(a0 ptr[in, offsetof0])
+
+offsetof0 {
+	f0	int32
+	f1	int8
+	f2	int16
+	f3	int8
+	f4	int64
+	f5	int32:5
+	f6	int32:10
+	f7	int64
+	o0	offsetof[f0, int32]
+	o1	offsetof[f1, int32]
+	o2	offsetof[f2, int32]
+	o3	offsetof[f3, int32]
+	o4	offsetof[f4, int32]
+	o5	offsetof[f5, int32]
+	o6	offsetof[f6, int32]
+	o7	offsetof[f7, int32]
+}
+
 # Big endian
 
 test$end0(a0 ptr[in, syz_end_int_struct])

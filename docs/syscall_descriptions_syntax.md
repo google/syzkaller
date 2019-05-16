@@ -50,6 +50,8 @@ rest of the type-options are type-specific:
 	argname of the object
 "bitsize": similar to "len", but always denotes the size in bits, type-options:
 	argname of the object
+"offsetof": offset of the field from the beginning of the parent struct, type-options:
+	field
 "vma"/"vma64": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise), type-options:
 	optional number of pages (e.g. vma[7]), or a range of pages (e.g. vma[2-4])
 	vma64 has size of 8 bytes regardless of target pointer size

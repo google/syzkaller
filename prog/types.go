@@ -255,6 +255,7 @@ func (t *FlagsType) isDefaultArg(arg Arg) bool {
 type LenType struct {
 	IntTypeCommon
 	BitSize uint64 // want size in multiple of bits instead of array size
+	Offset  bool   // offset from the beginning of the parent struct or base object
 	Path    []string
 }
 

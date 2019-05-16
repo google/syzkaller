@@ -147,6 +147,8 @@ slen1 {
 	f5 len[slen22:f, int32]		### len path slen22 does not refer to a struct
 	f6 len[syscall, int32]		### no argument name after syscall reference
 	f7 len[syscall:b, int32]	### len target b does not exist
+	f8 offsetof[parent, int32]	### offsetof must refer to fields
+	f9 offsetof[slen1, int32]	### offsetof must refer to fields
 	slen2 ptr[in, array[slen2]]
 	slen21 slen2
 	slen22 array[slen2]

@@ -415,7 +415,12 @@ func (comp *compiler) checkLenTargetRec(t0, t *ast.Type, targets []*ast.Type,
 		parent := parents[pi]
 		if parent.name != "" && (parent.name == target.Ident || target.Ident == prog.ParentRef) ||
 			parent.name == "" && target.Ident == prog.SyscallRef {
-			if len(targets) != 0 {
+			if len(targets) == 0 {
+				if t.Ident == "offsetof" {
+					comp.error(target.Pos, "%v must refer to fields", t.Ident)
+					return
+				}
+			} else {
 				parents1 := make([]parentDesc, pi+1)
 				copy(parents1, parents[:pi+1])
 				comp.checkLenTargetRec(t0, t, targets, parents1, warned)
