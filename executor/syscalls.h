@@ -15509,6 +15509,7 @@ const call_t syscalls[] = {
     {"test$length9", 0},
     {"test$missing_resource", 0},
     {"test$missing_struct", 0},
+    {"test$offsetof0", 0},
     {"test$opt0", 0},
     {"test$opt1", 0},
     {"test$opt2", 0},

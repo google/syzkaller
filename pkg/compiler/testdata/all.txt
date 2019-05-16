@@ -90,6 +90,8 @@ len_expr3 {
 	f34	bytesize[len_expr1:f11:f22:f41, int32]
 	f35	bytesize[len_expr2:f23:f41, int32]
 	f36	bytesize[len_expr2:f24:f41, int32]
+	f37	offsetof[f32, int32]
+	f38	offsetof[len_expr2:f21, int32]
 }
 
 len_expr4 {

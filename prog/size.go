@@ -42,8 +42,12 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg, syscallArg
 func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []Arg, parentsMap map[Arg]Arg) {
 	elem := path[0]
 	path = path[1:]
+	var offset uint64
 	for _, buf := range args {
 		if elem != buf.Type().FieldName() {
+			if !buf.Type().BitfieldMiddle() {
+				offset += buf.Size()
+			}
 			continue
 		}
 		buf = InnerArg(buf)
@@ -52,7 +56,7 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 			return
 		}
 		if len(path) == 0 {
-			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
+			dst.Val = target.computeSize(buf, offset, dst.Type().(*LenType))
 		} else {
 			target.assignSize(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
 		}
@@ -61,7 +65,7 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 	if elem == ParentRef {
 		buf := parentsMap[pos]
 		if len(path) == 0 {
-			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
+			dst.Val = target.computeSize(buf, noOffset, dst.Type().(*LenType))
 		} else {
 			target.assignSize(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
 		}
@@ -77,7 +81,7 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 			continue
 		}
 		if len(path) == 0 {
-			dst.Val = target.computeSize(buf, dst.Type().(*LenType))
+			dst.Val = target.computeSize(buf, noOffset, dst.Type().(*LenType))
 		} else {
 			target.assignSize(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
 		}
@@ -91,10 +95,14 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 		dst.Type().FieldName(), elem, pos.Type().Name(), pos.Type().FieldName(), argNames))
 }
 
-func (target *Target) computeSize(arg Arg, lenType *LenType) uint64 {
-	if arg == nil {
-		// Arg is an optional pointer, set size to 0.
-		return 0
+const noOffset = ^uint64(0)
+
+func (target *Target) computeSize(arg Arg, offset uint64, lenType *LenType) uint64 {
+	if lenType.Offset {
+		if offset == noOffset {
+			panic("offset of a non-field")
+		}
+		return offset * 8 / lenType.BitSize
 	}
 	bitSize := lenType.BitSize
 	if bitSize == 0 {
