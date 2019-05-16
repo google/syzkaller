@@ -16,3 +16,4 @@ spec_store_bypass_disable=prctl
 numa=fake=2
 nopcid
 dummy_hcd.num=8
+binder.debug_mask=0
