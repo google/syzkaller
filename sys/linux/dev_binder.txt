@@ -105,8 +105,20 @@ binder_transaction_data {
 	sender_euid	const[0, int32]
 	data_size	bytesize[buffer, int64]
 	offsets_size	bytesize[offsets, int64]
-	buffer		ptr64[in, array[binder_object, 0:3]]
-	offsets		ptr64[in, array[flags[binder_buffer_offsets, int64]]]
+	buffer		ptr64[in, binder_objects]
+	offsets		ptr64[in, binder_offsets]
+}
+
+binder_objects {
+	obj0	binder_object
+	obj1	binder_object
+	obj2	binder_object
+} [packed, align_8]
+
+binder_offsets {
+	off0	offsetof[binder_transaction_data:buffer:obj0, int64]
+	off1	offsetof[binder_transaction_data:buffer:obj1, int64]
+	off2	offsetof[binder_transaction_data:buffer:obj2, int64]
 }
 
 binder_transaction_data_sg {
@@ -115,10 +127,6 @@ binder_transaction_data_sg {
 	buffers_size	int64
 } [packed]
 
-# These are sizes of flat_binder_object, binder_fd_object, binder_fd_array_object and
-# binder_buffer_object, and also sums of all pairs of these sizes.
-# This allows guessing offsets for up to 3 objects.
-binder_buffer_offsets = 0, 24, 32, 40, 48, 56, 64, 72
 binder_transaction_flags = TF_ONE_WAY, TF_ACCEPT_FDS
 
 binder_object [
@@ -155,7 +163,7 @@ binder_fd_object {
 binder_fd_array_object {
 	type		const[BINDER_TYPE_FDA, int32]
 	num_fds		int64[0:10]
-	parnt		int64[0:4]
+	parnt		int64[0:2]
 	parent_offset	int64[0:64]
 }
 
@@ -164,7 +172,7 @@ binder_buffer_object {
 	flags		bool32
 	buffer		ptr64[in, array[int8]]
 	length		bytesize[buffer, int64]
-	parnt		int64[0:4]
+	parnt		int64[0:2]
 	parent_offset	int64[0:64]
 }
 
