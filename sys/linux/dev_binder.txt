@@ -11,16 +11,19 @@ include <linux/fcntl.h>
 resource fd_binder[fd]
 resource binder_ptr[int64]: 0
 
-type binder_handle int32[0:4]
-type binder_cookie int64[0:4]
+# What's the difference between these node and handle? Do they mean the same?
+type binder_node int64[0:3]
+type binder_handle int32[0:3]
+# It seems that cookies are only checked for inequality and non-matching cookies only cover error paths.
+type binder_cookie const[0, int64]
 
 syz_open_dev$binder(dev ptr[in, string["/dev/binder#"]], id proc[0, 1], flags flags[binder_open_flags]) fd_binder
 
-mmap$binder(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_binder, offset fileoff) binder_ptr
+mmap$binder(addr vma, len len[addr], prot const[PROT_READ], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
 
 ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], arg ptr[in, int32])
 ioctl$BINDER_SET_CONTEXT_MGR(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR], arg const[0])
-ioctl$BINDER_SET_CONTEXT_MGR_EXT(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR_EXT], arg ptr[in, flat_binder_object])
+ioctl$BINDER_SET_CONTEXT_MGR_EXT(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR_EXT], arg ptr[in, flat_binder_object_t[BINDER_TYPE_BINDER, binder_node]])
 ioctl$BINDER_THREAD_EXIT(fd fd_binder, cmd const[BINDER_THREAD_EXIT], arg const[0])
 ioctl$BINDER_GET_NODE_DEBUG_INFO(fd fd_binder, cmd const[BINDER_GET_NODE_DEBUG_INFO], arg ptr[inout, binder_node_debug_info])
 ioctl$BINDER_WRITE_READ(fd fd_binder, cmd const[BINDER_WRITE_READ], arg ptr[in, binder_write_read])
@@ -30,7 +33,7 @@ binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2
 
 binder_node_debug_info {
-	ptr		binder_ptr
+	ptr		binder_node
 	cookie		const[0, int64]
 	has_strong_ref	const[0, int32]
 	has_weak_ref	const[0, int32]
@@ -85,14 +88,19 @@ binder_cmd_reply {
 } [packed]
 
 binder_cmd_transaction_sg {
-	cmd	const[BC_TRANSACTION_SG, int32]
-	data	binder_transaction_data_sg
+	cmd		const[BC_TRANSACTION_SG, int32]
+	data		binder_transaction_data
+	buffers_size	flags[binder_sg_size, int64]
 } [packed]
 
 binder_cmd_reply_sg {
-	cmd	const[BC_REPLY_SG, int32]
-	data	binder_transaction_data_sg
+	cmd		const[BC_REPLY_SG, int32]
+	data		binder_transaction_data
+	buffers_size	flags[binder_sg_size, int64]
 } [packed]
+
+# NEED: buffers_size should be multiple of 8 and must be no less than size of all BINDER_TYPE_PTR buffers.
+binder_sg_size = 0, 64, 1024, 4096
 
 binder_transaction_data {
 	handle		binder_handle
@@ -121,12 +129,6 @@ binder_offsets {
 	off2	offsetof[binder_transaction_data:buffer:obj2, int64]
 }
 
-binder_transaction_data_sg {
-	trx		binder_transaction_data
-# NEED: buffers_size should be multiple of 8.
-	buffers_size	int64
-} [packed]
-
 binder_transaction_flags = TF_ONE_WAY, TF_ACCEPT_FDS
 
 binder_object [
@@ -137,8 +139,8 @@ binder_object [
 ] [varlen]
 
 flat_binder_object [
-	binder		flat_binder_object_t[BINDER_TYPE_BINDER, binder_ptr]
-	weak_binder	flat_binder_object_t[BINDER_TYPE_WEAK_BINDER, binder_ptr]
+	binder		flat_binder_object_t[BINDER_TYPE_BINDER, binder_node]
+	weak_binder	flat_binder_object_t[BINDER_TYPE_WEAK_BINDER, binder_node]
 	handle		flat_binder_object_t[BINDER_TYPE_HANDLE, binder_handle]
 	weak_handle	flat_binder_object_t[BINDER_TYPE_WEAK_HANDLE, binder_handle]
 ]
@@ -169,9 +171,12 @@ binder_fd_array_object {
 
 binder_buffer_object {
 	type		const[BINDER_TYPE_PTR, int32]
+# This is BINDER_BUFFER_FLAG_HAS_PARENT.
 	flags		bool32
-	buffer		ptr64[in, array[int8]]
+# The buffer is actually input, but the data is opaque.
+	buffer		ptr64[out, array[int8]]
 	length		bytesize[buffer, int64]
+# If flags == BINDER_BUFFER_FLAG_HAS_PARENT, this must point to another BINDER_TYPE_PTR object.
 	parnt		int64[0:2]
 	parent_offset	int64[0:64]
 }
@@ -183,33 +188,33 @@ binder_cmd_free_buffer {
 
 binder_cmd_increfs {
 	cmd	const[BC_INCREFS, int32]
-	ref	int32[0:4]
+	ref	binder_handle
 } [packed]
 
 binder_cmd_acquire {
 	cmd	const[BC_ACQUIRE, int32]
-	ref	int32[0:4]
+	ref	binder_handle
 } [packed]
 
 binder_cmd_release {
 	cmd	const[BC_RELEASE, int32]
-	ref	int32[0:4]
+	ref	binder_handle
 } [packed]
 
 binder_cmd_decrefs {
 	cmd	const[BC_DECREFS, int32]
-	ref	int32[0:4]
+	ref	binder_handle
 } [packed]
 
 binder_cmd_increfs_done {
 	cmd	const[BC_INCREFS_DONE, int32]
-	ptr	binder_ptr
+	ptr	binder_node
 	cookie	binder_cookie
 } [packed]
 
 binder_cmd_acquire_done {
 	cmd	const[BC_ACQUIRE_DONE, int32]
-	ptr	binder_ptr
+	ptr	binder_node
 	cookie	binder_cookie
 } [packed]
 
