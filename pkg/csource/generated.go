@@ -1451,6 +1451,14 @@ static void initialize_tun(void)
 #define DEV_IPV4 "172.20.20.%d"
 #define DEV_IPV6 "fe80::%02x"
 #define DEV_MAC 0x00aaaaaaaaaa
+
+static void netdevsim_add(unsigned int addr, unsigned int port_count)
+{
+	char buf[16];
+
+	sprintf(buf, "%u %u", addr, port_count);
+	write_file("/sys/bus/netdevsim/new_device", buf);
+}
 static void initialize_netdevices(void)
 {
 #if SYZ_EXECUTOR
@@ -1540,6 +1548,8 @@ static void initialize_netdevices(void)
 	netlink_add_hsr(sock, "hsr0", "hsr_slave_0", "hsr_slave_1");
 	netlink_device_change(sock, "hsr_slave_0", true, 0, 0, 0);
 	netlink_device_change(sock, "hsr_slave_1", true, 0, 0, 0);
+
+	netdevsim_add((int)procid, 4);
 
 	for (i = 0; i < sizeof(devices) / (sizeof(devices[0])); i++) {
 		char addr[32];
