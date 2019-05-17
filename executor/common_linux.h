@@ -578,7 +578,7 @@ static void initialize_netdevices(void)
 	netlink_device_change(sock, "hsr_slave_0", true, 0, 0, 0);
 	netlink_device_change(sock, "hsr_slave_1", true, 0, 0, 0);
 
-	netdevsim_add((int)procid, 4);
+	netdevsim_add((int)procid, 4); // Number of port is in sync with value in sys/linux/socket_netlink_generic_devlink.txt
 
 	for (i = 0; i < sizeof(devices) / (sizeof(devices[0])); i++) {
 		// Assign some unique address to devices. Some devices won't up without this.
