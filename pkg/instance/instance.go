@@ -136,10 +136,10 @@ func OverrideVMCount(cfg *mgrconfig.Config, n int) error {
 	if err := json.Unmarshal(cfg.VM, &vmConfig); err != nil {
 		return fmt.Errorf("failed to parse VM config: %v", err)
 	}
-	if vmConfig["count"] == "" || !vm.AllowsOvercommit(cfg.Type) {
+	if vmConfig["count"] == nil || !vm.AllowsOvercommit(cfg.Type) {
 		return nil
 	}
-	vmConfig["count"] = fmt.Sprint(n)
+	vmConfig["count"] = n
 	vmCfg, err := json.Marshal(vmConfig)
 	if err != nil {
 		return fmt.Errorf("failed to serialize VM config: %v", err)
