@@ -8,6 +8,7 @@ package csource
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -61,6 +62,7 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 	} {
 		src = bytes.Replace(src, []byte(from), []byte(to), -1)
 	}
+	src = regexp.MustCompile("#define SYZ_HAVE_.*").ReplaceAll(src, nil)
 
 	return src, nil
 }
@@ -84,6 +86,7 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 		"SYZ_REPEAT_TIMES":                  opts.RepeatTimes > 1,
 		"SYZ_PROCS":                         opts.Procs > 1,
 		"SYZ_FAULT_INJECTION":               opts.Fault,
+		"SYZ_ENABLE_LEAK":                   opts.Leak,
 		"SYZ_TUN_ENABLE":                    opts.EnableTun,
 		"SYZ_ENABLE_CGROUPS":                opts.EnableCgroups,
 		"SYZ_ENABLE_NETDEV":                 opts.EnableNetDev,

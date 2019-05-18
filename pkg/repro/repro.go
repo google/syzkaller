@@ -44,8 +44,10 @@ type context struct {
 	cfg          *mgrconfig.Config
 	reporter     report.Reporter
 	crashTitle   string
+	crashType    report.Type
 	instances    chan *instance
 	bootRequests chan int
+	timeouts     []time.Duration
 	stats        *Stats
 	report       *report.Report
 }
@@ -70,22 +72,42 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 	if len(entries) == 0 {
 		return nil, nil, fmt.Errorf("crash log does not contain any programs")
 	}
-	crashStart := len(crashLog) // assuming VM hanged
-	crashTitle := "hang"
+	crashStart := len(crashLog)
+	crashTitle, crashType := "", report.Unknown
 	if rep := reporter.Parse(crashLog); rep != nil {
 		crashStart = rep.StartPos
 		crashTitle = rep.Title
+		crashType = rep.Type
 	}
-
+	// The shortest duration is 10 seconds to detect simple crashes (i.e. no races and no hangs).
+	// The longest duration is 6 minutes to catch races and hangs.
+	noOutputTimeout := vm.NoOutputTimeout + time.Minute
+	timeouts := []time.Duration{15 * time.Second, time.Minute, noOutputTimeout}
+	switch {
+	case crashTitle == "":
+		crashTitle = "no output/lost connection"
+		// Lost connection can be detected faster,
+		// but theoretically if it's caused by a race it may need the largest timeout.
+		// No output can only be reproduced with the max timeout.
+		// As a compromise we use the smallest and the largest timeouts.
+		timeouts = []time.Duration{15 * time.Second, noOutputTimeout}
+	case crashType == report.MemoryLeak:
+		// Memory leaks can't be detected quickly because of expensive setup and scanning.
+		timeouts = []time.Duration{time.Minute, noOutputTimeout}
+	case crashType == report.Hang:
+		timeouts = []time.Duration{noOutputTimeout}
+	}
 	ctx := &context{
 		cfg:          cfg,
 		reporter:     reporter,
 		crashTitle:   crashTitle,
+		crashType:    crashType,
 		instances:    make(chan *instance, len(vmIndexes)),
 		bootRequests: make(chan int, len(vmIndexes)),
+		timeouts:     timeouts,
 		stats:        new(Stats),
 	}
-	ctx.reproLog(0, "%v programs, %v VMs", len(entries), len(vmIndexes))
+	ctx.reproLog(0, "%v programs, %v VMs, timeouts %v", len(entries), len(vmIndexes), timeouts)
 	var wg sync.WaitGroup
 	wg.Add(len(vmIndexes))
 	for _, vmIndex := range vmIndexes {
@@ -252,13 +274,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 	for i := len(indices) - 1; i >= 0; i-- {
 		lastEntries = append(lastEntries, entries[indices[i]])
 	}
-
-	// The shortest duration is 10 seconds to detect simple crashes (i.e. no races and no hangs).
-	// The longest duration is 6 minutes to catch races and hangs. Note that this value must be larger
-	// than hang/no output detection duration in vm.MonitorExecution, which is currently set to 5 mins.
-	timeouts := []time.Duration{10 * time.Second, 1 * time.Minute, vm.NoOutputTimeout + time.Minute}
-
-	for _, timeout := range timeouts {
+	for _, timeout := range ctx.timeouts {
 		// Execute each program separately to detect simple crashes caused by a single program.
 		// Programs are executed in reverse order, usually the last program is the guilty one.
 		res, err := ctx.extractProgSingle(reverseEntries(lastEntries), timeout)
@@ -294,6 +310,9 @@ func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Du
 	ctx.reproLog(3, "single: executing %d programs separately with timeout %s", len(entries), duration)
 
 	opts := csource.DefaultOpts(ctx.cfg)
+	if ctx.crashType == report.MemoryLeak {
+		opts.Leak = true
+	}
 	for _, ent := range entries {
 		opts.Fault = ent.Fault
 		opts.FaultCall = ent.FaultCall
@@ -324,8 +343,11 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 	ctx.reproLog(3, "bisect: bisecting %d programs with base timeout %s", len(entries), baseDuration)
 
 	opts := csource.DefaultOpts(ctx.cfg)
+	if ctx.crashType == report.MemoryLeak {
+		opts.Leak = true
+	}
 	duration := func(entries int) time.Duration {
-		return baseDuration + time.Duration((entries/4))*time.Second
+		return baseDuration + time.Duration(entries/4)*time.Second
 	}
 
 	// Bisect the log to find multiple guilty programs.
@@ -597,6 +619,10 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	}
 	if rep.Suppressed {
 		ctx.reproLog(2, "suppressed program crash: %v", rep.Title)
+		return false, nil
+	}
+	if ctx.crashType == report.MemoryLeak && rep.Type != report.MemoryLeak {
+		ctx.reproLog(2, "not a leak crash: %v", rep.Title)
 		return false, nil
 	}
 	ctx.report = rep

@@ -73,16 +73,25 @@ func main() {
 			log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 		}
 	}
-	if _, err = host.Setup(target, features); err != nil {
-		log.Fatalf("%v", err)
-	}
 	config, execOpts := createConfig(target, entries, features, featuresFlags)
-
+	if err = host.Setup(target, features, featuresFlags, config.Executor); err != nil {
+		log.Fatal(err)
+	}
+	var gateCallback func()
+	if features[host.FeatureLeakChecking].Enabled {
+		gateCallback = func() {
+			output, err := osutil.RunCmd(10*time.Minute, "", config.Executor, "leak")
+			if err != nil {
+				os.Stdout.Write(output)
+				os.Exit(1)
+			}
+		}
+	}
 	ctx := &Context{
 		entries:  entries,
 		config:   config,
 		execOpts: execOpts,
-		gate:     ipc.NewGate(2**flagProcs, nil),
+		gate:     ipc.NewGate(2**flagProcs, gateCallback),
 		shutdown: make(chan struct{}),
 		repeat:   *flagRepeat,
 	}
@@ -298,16 +307,9 @@ func createConfig(target *prog.Target, entries []*prog.LogEntry,
 		config.Flags |= ipc.FlagExtraCover
 	}
 	if *flagFaultCall >= 0 {
-		config.Flags |= ipc.FlagEnableFault
 		execOpts.Flags |= ipc.FlagInjectFault
 		execOpts.FaultCall = *flagFaultCall
 		execOpts.FaultNth = *flagFaultNth
-	}
-	for _, entry := range entries {
-		if entry.Fault {
-			config.Flags |= ipc.FlagEnableFault
-			break
-		}
 	}
 	if featuresFlags["tun"].Enabled && features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
@@ -320,9 +322,6 @@ func createConfig(target *prog.Target, entries []*prog.LogEntry,
 	}
 	if featuresFlags["cgroups"].Enabled {
 		config.Flags |= ipc.FlagEnableCgroups
-	}
-	if featuresFlags["binfmt_misc"].Enabled {
-		config.Flags |= ipc.FlagEnableBinfmtMisc
 	}
 	if featuresFlags["close_fds"].Enabled {
 		config.Flags |= ipc.FlagEnableCloseFds

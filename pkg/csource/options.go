@@ -28,6 +28,8 @@ type Options struct {
 	FaultCall int  `json:"fault_call,omitempty"`
 	FaultNth  int  `json:"fault_nth,omitempty"`
 
+	Leak bool `json:"leak,omitempty"` // do leak checking
+
 	// These options allow for a more fine-tuned control over the generated C code.
 	EnableTun        bool `json:"tun,omitempty"`
 	EnableNetDev     bool `json:"netdev,omitempty"`
@@ -128,6 +130,9 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	}
 	if opts.Fault {
 		return fmt.Errorf("option Fault is not supported on %v", OS)
+	}
+	if opts.Leak {
+		return fmt.Errorf("option Leak is not supported on %v", OS)
 	}
 	return nil
 }

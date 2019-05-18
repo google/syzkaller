@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
@@ -27,18 +29,19 @@ import (
 )
 
 type Fuzzer struct {
-	name        string
-	outputType  OutputType
-	config      *ipc.Config
-	execOpts    *ipc.ExecOpts
-	procs       []*Proc
-	gate        *ipc.Gate
-	workQueue   *WorkQueue
-	needPoll    chan struct{}
-	choiceTable *prog.ChoiceTable
-	stats       [StatCount]uint64
-	manager     *rpctype.RPCClient
-	target      *prog.Target
+	name              string
+	outputType        OutputType
+	config            *ipc.Config
+	execOpts          *ipc.ExecOpts
+	procs             []*Proc
+	gate              *ipc.Gate
+	workQueue         *WorkQueue
+	needPoll          chan struct{}
+	choiceTable       *prog.ChoiceTable
+	stats             [StatCount]uint64
+	manager           *rpctype.RPCClient
+	target            *prog.Target
+	triagedCandidates uint32
 
 	faultInjectionEnabled    bool
 	comparisonTracingEnabled bool
@@ -180,19 +183,15 @@ func main() {
 	for _, feat := range r.CheckResult.Features {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
-	periodicCallback, err := host.Setup(target, r.CheckResult.Features)
+	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
 	if err != nil {
-		log.Fatalf("BUG: %v", err)
+		log.Fatal(err)
 	}
-	var gateCallback func()
-	if periodicCallback != nil {
-		gateCallback = func() { periodicCallback(nil) }
+	if err = host.Setup(target, r.CheckResult.Features, featureFlags, config.Executor); err != nil {
+		log.Fatal(err)
 	}
 	if r.CheckResult.Features[host.FeatureExtraCoverage].Enabled {
 		config.Flags |= ipc.FlagExtraCover
-	}
-	if r.CheckResult.Features[host.FeatureFaultInjection].Enabled {
-		config.Flags |= ipc.FlagEnableFault
 	}
 	if r.CheckResult.Features[host.FeatureNetworkInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
@@ -202,7 +201,6 @@ func main() {
 	}
 	config.Flags |= ipc.FlagEnableNetReset
 	config.Flags |= ipc.FlagEnableCgroups
-	config.Flags |= ipc.FlagEnableBinfmtMisc
 	config.Flags |= ipc.FlagEnableCloseFds
 
 	if *flagRunTest {
@@ -217,7 +215,6 @@ func main() {
 		outputType:               outputType,
 		config:                   config,
 		execOpts:                 execOpts,
-		gate:                     ipc.NewGate(2**flagProcs, gateCallback),
 		workQueue:                newWorkQueue(*flagProcs, needPoll),
 		needPoll:                 needPoll,
 		manager:                  manager,
@@ -226,6 +223,11 @@ func main() {
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
 	}
+	var gateCallback func()
+	if r.CheckResult.Features[host.FeatureLeakChecking].Enabled {
+		gateCallback = func() { fuzzer.gateCallback(r.MemoryLeakFrames) }
+	}
+	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
 	for i := 0; fuzzer.poll(i == 0, nil); i++ {
 	}
 	calls := make(map[*prog.Syscall]bool)
@@ -245,6 +247,30 @@ func main() {
 	}
 
 	fuzzer.pollLoop()
+}
+
+func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
+	// Leak checking is very slow so we don't do it while triaging the corpus
+	// (otherwise it takes infinity). When we have presumably triaged the corpus
+	// (triagedCandidates == 1), we run leak checking bug ignore the result
+	// to flush any previous leaks. After that (triagedCandidates == 2)
+	// we do actual leak checking and report leaks.
+	triagedCandidates := atomic.LoadUint32(&fuzzer.triagedCandidates)
+	if triagedCandidates == 0 {
+		return
+	}
+	args := append([]string{"leak"}, leakFrames...)
+	output, err := osutil.RunCmd(10*time.Minute, "", fuzzer.config.Executor, args...)
+	if err != nil && triagedCandidates == 2 {
+		// If we exit right away, dying executors will dump lots of garbage to console.
+		os.Stdout.Write(output)
+		fmt.Printf("BUG: leak checking failed")
+		time.Sleep(time.Hour)
+		os.Exit(1)
+	}
+	if triagedCandidates == 1 {
+		atomic.StoreUint32(&fuzzer.triagedCandidates, 2)
+	}
 }
 
 func (fuzzer *Fuzzer) pollLoop() {
@@ -320,6 +346,9 @@ func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
 			p:     p,
 			flags: flags,
 		})
+	}
+	if needCandidates && len(r.Candidates) == 0 && atomic.LoadUint32(&fuzzer.triagedCandidates) == 0 {
+		atomic.StoreUint32(&fuzzer.triagedCandidates, 1)
 	}
 	return len(r.NewInputs) != 0 || len(r.Candidates) != 0 || maxSignal.Len() != 0
 }
