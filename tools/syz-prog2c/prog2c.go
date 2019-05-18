@@ -32,6 +32,7 @@ var (
 	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
 	flagTrace      = flag.Bool("trace", false, "trace syscall results")
 	flagStrict     = flag.Bool("strict", false, "parse input program in strict mode")
+	flagLeak       = flag.Bool("leak", false, "do leak checking")
 	flagEnable     = flag.String("enable", "none", "enable only listed additional features")
 	flagDisable    = flag.String("disable", "none", "enable all additional features except listed")
 )
@@ -79,6 +80,7 @@ func main() {
 		Fault:            *flagFaultCall >= 0,
 		FaultCall:        *flagFaultCall,
 		FaultNth:         *flagFaultNth,
+		Leak:             *flagLeak,
 		EnableTun:        features["tun"].Enabled,
 		EnableNetDev:     features["net_dev"].Enabled,
 		EnableNetReset:   features["net_reset"].Enabled,
