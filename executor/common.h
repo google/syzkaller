@@ -145,7 +145,8 @@ static void sleep_ms(uint64 ms)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER
+#if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER || \
+    SYZ_ENABLE_LEAK
 #include <time.h>
 
 static uint64 current_time_ms(void)
@@ -218,7 +219,7 @@ static void remove_dir(const char* dir)
 #endif
 
 #if !GOOS_linux
-#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION
+#if SYZ_EXECUTOR
 static int inject_fault(int nth)
 {
 	return 0;
@@ -638,6 +639,11 @@ static void loop(void)
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 		remove_dir(cwdbuf);
 #endif
+#if SYZ_ENABLE_LEAK
+		// Note: this will fail under setuid sandbox because we don't have
+		// write permissions for the kmemleak file.
+		check_leaks();
+#endif
 	}
 }
 #else
@@ -686,6 +692,16 @@ int main(void)
 	/*MMAP_DATA*/
 #endif
 
+#if SYZ_ENABLE_BINFMT_MISC
+	setup_binfmt_misc();
+#endif
+#if SYZ_ENABLE_LEAK
+	setup_leak();
+#endif
+#if SYZ_FAULT_INJECTION
+	setup_fault();
+#endif
+
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();
 #endif
@@ -705,6 +721,9 @@ int main(void)
 		}
 	}
 	sleep(1000000);
+#endif
+#if !SYZ_PROCS && !SYZ_REPEAT && SYZ_ENABLE_LEAK
+	check_leaks();
 #endif
 	return 0;
 }

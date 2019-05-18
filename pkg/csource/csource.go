@@ -174,12 +174,6 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 		}
 
 		if ctx.opts.Fault && ctx.opts.FaultCall == ci {
-			// Note: these files are also hardcoded in pkg/host/host_linux.go.
-			fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/failslab/ignore-gfp-wait\", \"N\");\n")
-			fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_futex/ignore-private\", \"N\");\n")
-			fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_page_alloc/ignore-gfp-highmem\", \"N\");\n")
-			fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_page_alloc/ignore-gfp-wait\", \"N\");\n")
-			fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_page_alloc/min-order\", \"0\");\n")
 			fmt.Fprintf(w, "\tinject_fault(%v);\n", ctx.opts.FaultNth)
 		}
 		// Call itself.

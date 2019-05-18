@@ -67,9 +67,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if _, err = host.Setup(target, features); err != nil {
-		log.Fatalf("%v", err)
-	}
 
 	calls := buildCallList(target, strings.Split(*flagSyscalls, ","))
 	prios := target.CalculatePriorities(corpus)
@@ -91,11 +88,11 @@ func main() {
 	if featuresFlags["cgroups"].Enabled {
 		config.Flags |= ipc.FlagEnableCgroups
 	}
-	if featuresFlags["binfmt_misc"].Enabled {
-		config.Flags |= ipc.FlagEnableBinfmtMisc
-	}
 	if featuresFlags["close_fds"].Enabled {
 		config.Flags |= ipc.FlagEnableCloseFds
+	}
+	if err = host.Setup(target, features, featuresFlags, config.Executor); err != nil {
+		log.Fatal(err)
 	}
 	gate = ipc.NewGate(2**flagProcs, nil)
 	for pid := 0; pid < *flagProcs; pid++ {

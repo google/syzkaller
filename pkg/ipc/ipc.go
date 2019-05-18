@@ -32,12 +32,10 @@ const (
 	FlagSandboxNamespace                                // use namespaces for sandboxing
 	FlagSandboxAndroidUntrustedApp                      // use Android sandboxing for the untrusted_app domain
 	FlagExtraCover                                      // collect extra coverage
-	FlagEnableFault                                     // enable fault injection support
 	FlagEnableTun                                       // setup and use /dev/tun for packet injection
 	FlagEnableNetDev                                    // setup more network devices for testing
 	FlagEnableNetReset                                  // reset network namespace between programs
 	FlagEnableCgroups                                   // setup cgroups for testing
-	FlagEnableBinfmtMisc                                // setup binfmt_misc for testing
 	FlagEnableCloseFds                                  // close fds after each program
 	// Executor does not know about these:
 	FlagUseShmem      // use shared memory instead of pipes for communication

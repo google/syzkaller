@@ -4,7 +4,11 @@
 package host
 
 import (
+	"time"
+
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -67,8 +71,6 @@ type Feature struct {
 type Features [numFeatures]Feature
 
 var checkFeature [numFeatures]func() string
-var setupFeature [numFeatures]func() error
-var callbFeature [numFeatures]func(leakFrames [][]byte)
 
 func unconditionallyEnabled() string { return "" }
 
@@ -108,29 +110,20 @@ func Check(target *prog.Target) (*Features, error) {
 
 // Setup enables and does any one-time setup for the requested features on the host.
 // Note: this can be called multiple times and must be idempotent.
-func Setup(target *prog.Target, features *Features) (func(leakFrames [][]byte), error) {
+func Setup(target *prog.Target, features *Features, featureFlags csource.Features, executor string) error {
 	if target.OS == "akaros" || target.OS == "test" {
-		return nil, nil
+		return nil
 	}
-	var callback func([][]byte)
-	for n, setup := range setupFeature {
-		if setup == nil || !features[n].Enabled {
-			continue
-		}
-		if err := setup(); err != nil {
-			return nil, err
-		}
-		cb := callbFeature[n]
-		if cb == nil {
-			continue
-		}
-		prev := callback
-		callback = func(leakFrames [][]byte) {
-			cb(leakFrames)
-			if prev != nil {
-				prev(leakFrames)
-			}
-		}
+	args := []string{"setup"}
+	if features[FeatureLeakChecking].Enabled {
+		args = append(args, "leak")
 	}
-	return callback, nil
+	if features[FeatureFaultInjection].Enabled {
+		args = append(args, "fault")
+	}
+	if featureFlags["binfmt_misc"].Enabled {
+		args = append(args, "binfmt_misc")
+	}
+	_, err := osutil.RunCmd(time.Minute, "", executor, args...)
+	return err
 }

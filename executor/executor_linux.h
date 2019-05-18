@@ -167,3 +167,10 @@ NORETURN void doexit(int status)
 	for (i = 0;; i++) {
 	}
 }
+
+#define SYZ_HAVE_FEATURES 1
+static feature_t features[] = {
+    {"leak", setup_leak},
+    {"fault", setup_fault},
+    {"binfmt_misc", setup_binfmt_misc},
+};

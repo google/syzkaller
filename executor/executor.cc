@@ -113,12 +113,10 @@ static bool flag_debug;
 static bool flag_cover;
 static sandbox_type flag_sandbox;
 static bool flag_extra_cover;
-static bool flag_enable_fault_injection;
 static bool flag_enable_tun;
 static bool flag_enable_net_dev;
 static bool flag_enable_net_reset;
 static bool flag_enable_cgroups;
-static bool flag_enable_binfmt_misc;
 static bool flag_enable_close_fds;
 
 static bool flag_collect_cover;
@@ -287,6 +285,11 @@ struct kcov_comparison_t {
 	bool operator<(const struct kcov_comparison_t& other) const;
 };
 
+struct feature_t {
+	const char* name;
+	void (*setup)();
+};
+
 static thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
 static void handle_completion(thread_t* th);
 static void copyout_call_results(thread_t* th);
@@ -303,6 +306,7 @@ static uint64 swap(uint64 v, uint64 size, uint64 bf);
 static void copyin(char* addr, uint64 val, uint64 size, uint64 bf, uint64 bf_off, uint64 bf_len);
 static bool copyout(char* addr, uint64 size, uint64* res);
 static void setup_control_pipes();
+static void setup_features(char** enable, int n);
 
 #include "syscalls.h"
 
@@ -328,6 +332,18 @@ int main(int argc, char** argv)
 {
 	if (argc == 2 && strcmp(argv[1], "version") == 0) {
 		puts(GOOS " " GOARCH " " SYZ_REVISION " " GIT_REVISION);
+		return 0;
+	}
+	if (argc >= 2 && strcmp(argv[1], "setup") == 0) {
+		setup_features(argv + 2, argc - 2);
+		return 0;
+	}
+	if (argc >= 2 && strcmp(argv[1], "leak") == 0) {
+#if SYZ_HAVE_LEAK_CHECK
+		check_leaks(argv + 2, argc - 2);
+#else
+		fail("leak checking is not implemented");
+#endif
 		return 0;
 	}
 	if (argc == 2 && strcmp(argv[1], "test") == 0)
@@ -449,13 +465,11 @@ void parse_env_flags(uint64 flags)
 	else if (flags & (1 << 4))
 		flag_sandbox = sandbox_android_untrusted_app;
 	flag_extra_cover = flags & (1 << 5);
-	flag_enable_fault_injection = flags & (1 << 6);
-	flag_enable_tun = flags & (1 << 7);
-	flag_enable_net_dev = flags & (1 << 8);
-	flag_enable_net_reset = flags & (1 << 9);
-	flag_enable_cgroups = flags & (1 << 10);
-	flag_enable_binfmt_misc = flags & (1 << 11);
-	flag_enable_close_fds = flags & (1 << 12);
+	flag_enable_tun = flags & (1 << 6);
+	flag_enable_net_dev = flags & (1 << 7);
+	flag_enable_net_reset = flags & (1 << 8);
+	flag_enable_cgroups = flags & (1 << 9);
+	flag_enable_close_fds = flags & (1 << 10);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER
@@ -1358,6 +1372,26 @@ bool kcov_comparison_t::operator<(const struct kcov_comparison_t& other) const
 	return arg2 < other.arg2;
 }
 #endif
+
+void setup_features(char** enable, int n)
+{
+	// This does any one-time setup for the requested features on the machine.
+	// Note: this can be called multiple times and must be idempotent.
+	for (int i = 0; i < n; i++) {
+		bool found = false;
+#if SYZ_HAVE_FEATURES
+		for (unsigned f = 0; f < sizeof(features) / sizeof(features[0]); f++) {
+			if (strcmp(enable[i], features[f].name) == 0) {
+				features[f].setup();
+				found = true;
+				break;
+			}
+		}
+#endif
+		if (!found)
+			fail("unknown feature %s", enable[i]);
+	}
+}
 
 void fail(const char* msg, ...)
 {
