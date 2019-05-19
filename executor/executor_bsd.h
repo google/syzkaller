@@ -38,9 +38,10 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 	return __syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
 }
 
-#if GOOS_freebsd || GOOS_openbsd
+#if GOOS_freebsd || GOOS_openbsd || GOOS_netbsd
 
 // KCOV support was added to FreeBSD in https://svnweb.freebsd.org/changeset/base/342962
+// KCOV support added to NetBSD in https://github.com/NetBSD/src/commit/080a26f01d79ded8a2154c128950d1d663c6ca88
 
 #include <sys/kcov.h>
 
@@ -60,9 +61,13 @@ static void cover_open(cover_t* cov, bool extra)
 	unsigned long cover_size = kCoverSize;
 	if (ioctl(cov->fd, KIOSETBUFSIZE, &cover_size))
 		fail("ioctl init trace write failed");
+#elif GOOS_netbsd
+	uint64_t cover_size = kCoverSize;
+	if (ioctl(cov->fd, KCOV_IOC_SETBUFSIZE, &cover_size))
+		fail("ioctl init trace write failed");
 #endif
 
-#if GOOS_freebsd
+#if GOOS_freebsd || GOOS_netbsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 #else
 	size_t mmap_alloc_size = kCoverSize * (is_kernel_64_bit ? 8 : 4);
@@ -86,6 +91,10 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 	// OpenBSD uses an pointer to an int as the third argument.
 	if (ioctl(cov->fd, KIOENABLE, &kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
+#elif GOOS_netbsd
+	if (ioctl(cov->fd, KCOV_IOC_ENABLE, &kcov_mode))
+		exitf("cover enable write trace failed, mode=%d", kcov_mode);
+
 #endif
 }
 

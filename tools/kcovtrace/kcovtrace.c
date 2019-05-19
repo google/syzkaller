@@ -18,7 +18,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/kcov.h>
 #define KCOV_PATH "/dev/kcov"
 #else
@@ -43,6 +43,9 @@ int main(int argc, char** argv, char** envp)
 		perror("open"), exit(1);
 #if defined(__FreeBSD__)
 	if (ioctl(fd, KIOSETBUFSIZE, COVER_SIZE))
+#elif defined(__NetBSD__)
+	uint64_t cover_size = COVER_SIZE;
+	if (ioctl(fd, KCOV_IOC_SETBUFSIZE, &cover_size))
 #else
 	if (ioctl(fd, KCOV_INIT_TRACE, COVER_SIZE))
 #endif
@@ -57,6 +60,9 @@ int main(int argc, char** argv, char** envp)
 	if (pid == 0) {
 #if defined(__FreeBSD__)
 		if (ioctl(fd, KIOENABLE, KCOV_MODE_TRACE_PC))
+#elif defined(__NetBSD__)
+		int kcov_mode = KCOV_MODE_TRACE_PC;
+		if (ioctl(cov->fd, KCOV_IOC_ENABLE, &kcov_mode))
 #else
 		if (ioctl(fd, KCOV_ENABLE, KCOV_TRACE_PC))
 #endif
