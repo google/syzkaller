@@ -189,3 +189,39 @@ in6_ifreq {
 	ifr6_prefixlen	int32[0:128]
 	ifr6_ifindex	ifindex
 }
+
+# sendmsg for ip_cmsg_send, ip6_datagram_send_ctl
+
+msghdr_inet6 {
+	msg_name	ptr[in, sockaddr_in6, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[in, array[cmsghdr_inet6], opt]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+mmsghdr_inet6 {
+	msg_hdr	msghdr_inet6
+	msg_len	const[0, int32]
+}
+
+cmsghdr_inet6 [
+	pktinfo		cmsghdr_t[SOL_IPV6, IPV6_PKTINFO, in6_pktinfo]
+	flowinfo	cmsghdr_t[SOL_IPV6, IPV6_FLOWINFO, int32be]
+	hopopts_2292	cmsghdr_t[SOL_IPV6, IPV6_HOPOPTS, ipv6_hopots_ext_header]
+	hopopts		cmsghdr_t[SOL_IPV6, IPV6_HOPOPTS, ipv6_hopots_ext_header]
+	dstopts_2292	cmsghdr_t[SOL_IPV6, IPV6_2292DSTOPTS, ipv6_dstopts_ext_header]
+	dstopts		cmsghdr_t[SOL_IPV6, IPV6_RTHDRDSTOPTS, ipv6_dstopts_ext_header]
+	rthdrdstopts	cmsghdr_t[SOL_IPV6, IPV6_RTHDRDSTOPTS, ipv6_dstopts_ext_header]
+	rthdr_2292	cmsghdr_t[SOL_IPV6, IPV6_RTHDR, ipv6_rt_hdr]
+	rthdr		cmsghdr_t[SOL_IPV6, IPV6_RTHDR, ipv6_rt_hdr]
+	hoplimit_2292	cmsghdr_t[SOL_IPV6, IPV6_2292HOPLIMIT, int32]
+	hoplimit	cmsghdr_t[SOL_IPV6, IPV6_HOPLIMIT, int32]
+	tclass		cmsghdr_t[SOL_IPV6, IPV6_TCLASS, int32]
+	dontfrag	cmsghdr_t[SOL_IPV6, IPV6_DONTFRAG, int32]
+] [varlen]
+
+sendmsg$inet6(fd sock_in6, msg ptr[in, msghdr_inet6], f flags[send_flags])
+sendmmsg$inet6(fd sock_in6, mmsg ptr[in, array[mmsghdr_inet6]], vlen len[mmsg], f flags[send_flags])

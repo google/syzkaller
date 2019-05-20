@@ -98,6 +98,7 @@ SIOCSIWNWID = 35586
 SIOCSIWSENS = 35592
 # SOCKADDR_SIZE is not set
 # SOCKADDR_STORAGE_SIZE is not set
+SOL_IP = 0
 __NR_accept = 330
 __NR_accept4 = 344
 __NR_bind = 327
@@ -107,6 +108,8 @@ __NR_getsockname = 331
 __NR_getsockopt = 340
 __NR_ioctl = 54
 __NR_recvfrom = 337
+__NR_sendmmsg = 349
+__NR_sendmsg = 341
 __NR_sendto = 335
 __NR_setsockopt = 339
 __NR_socket = 326
