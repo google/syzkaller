@@ -25,9 +25,8 @@ crashes create a new bug).
 ## Communication with syzbot
 
 If you fix a bug reported by `syzbot`, please add the provided `Reported-by`
-tag to the commit (`Reported-and-tested-by` and `Tested-by` tags with the
-`syzbot+HASH` address are recognized as well). You can also communicate with
-`syzbot` by replying to its emails. The commands are:
+tag to the commit. You can also communicate with `syzbot` by replying
+to its emails. The commands are:
 
 - to attach a fixing commit to the bug (if you forgot to add `Reported-by` tag):
 ```
@@ -89,6 +88,35 @@ to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 Note: see [below](#kmsan-bugs) for `KMSAN` bugs testing.
 
 Note: see [below](#usb-bugs) for `USB` bugs testing.
+
+<div id="amend"/>
+<div id="linux-next"/>
+
+## Rebuilt trees/amended patches
+
+There are several additional aspects if the tree is rebuilt/rebased or contains
+amended/folded patches (namely, `linux-next`).
+
+First, adding `Reported-by` tags to amended commits may be misleading.
+A `Reported-by` tag suggests that the commit fixes a bug in some previous
+commit, but here it's not the case (it only fixes a bug in a previous version
+of itself which is not in the tree). In such case it's recommended to include
+a `Tested-by` or a `Reviewed-by` tag with the hash instead. Technically,
+`syzbot` accepts any tag, so `With-inputs-from` would work too.
+
+Then, if the guilty commit is completely dropped (actually removed from the
+tree during rebuild), then there is effectively no fixing commit. There is no
+good way to handle such cases at the moment. One possibility is to mark them
+with `#syz invalid`. However this needs to be done only when `syzbot` picks up
+the new tree in all builds (current kernel commits can be seen on dashboard).
+Otherwise, the occurrences of the crash that are still happening in the current
+build will immediately create a new bug report. Another possibility is to mark
+it as fixed with some unrelated later commit using
+`#syz fix: some-later-commit`. This way `syzbot` will wait until the commit
+propagates to all tested trees automatically.
+
+In any case the relation between the report and the fix can later be fixed up
+using `#syz fix: commit-title` commands.
 
 <div id="bisection"/>
 
