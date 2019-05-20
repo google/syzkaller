@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in inotify_init
+TYPE: HANG
 
 [  990.309025][    C0] rcu: INFO: rcu_preempt self-detected stall on CPU
 [  990.312270][    C1] net_ratelimit: 18 callbacks suppressed

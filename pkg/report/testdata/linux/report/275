@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in kvm_vcpu_release
+TYPE: HANG
 
 [  401.753130] rcu: INFO: rcu_sched detected stalls on CPUs/tasks:
 [  401.759317] rcu: 	(detected by 0, t=105002 jiffies, g=89793, q=195)

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in llcp_sock_sendmsg
+TYPE: HANG
 
 [ 1098.520844] INFO: rcu_sched self-detected stall on CPU
 [ 1098.520919] 	1-....: (20918 ticks this GP) idle=55a/1/4611686018427387906 softirq=11347/11347 fqs=20240 

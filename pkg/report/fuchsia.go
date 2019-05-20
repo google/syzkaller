@@ -287,7 +287,7 @@ var zirconOopses = []*oops{
 		[]oopsFormat{
 			{
 				title:        compile("welcome to Zircon"),
-				fmt:          UnexpectedKernelReboot,
+				fmt:          unexpectedKernelReboot,
 				noStackTrace: true,
 			},
 		},

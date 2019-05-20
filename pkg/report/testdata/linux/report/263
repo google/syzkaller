@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in snd_seq_write
+TYPE: HANG
 
 [  599.875361] rcu: INFO: rcu_sched self-detected stall on CPU
 [  599.881199] rcu: 	0-....: (105000 ticks this GP) idle=2f6/1/0x4000000000000002 softirq=23001/23001 fqs=26239 

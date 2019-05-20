@@ -791,8 +791,6 @@ var linuxStackParams = &stackParams{
 	},
 }
 
-const MemoryLeakPrefix = "memory leak in "
-
 func warningStackFmt(skip ...string) *stackFmt {
 	return &stackFmt{
 		// In newer kernels WARNING traps and actual stack starts after invalid_op frame,
@@ -996,7 +994,7 @@ var linuxOopses = []*oops{
 			},
 			{
 				title: compile("BUG: memory leak"),
-				fmt:   MemoryLeakPrefix + "%[1]v",
+				fmt:   memoryLeakPrefix + "%[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						compile("backtrace:"),
@@ -1484,7 +1482,7 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				title:        compile("Booting the kernel."),
-				fmt:          UnexpectedKernelReboot,
+				fmt:          unexpectedKernelReboot,
 				noStackTrace: true,
 			},
 		},

@@ -1,4 +1,5 @@
 TITLE: BUG: soft lockup in ipv6_rcv
+TYPE: HANG
 
 [ 1290.104807] watchdog: BUG: soft lockup - CPU#1 stuck for 134s! [syz-executor738:4553]
 [ 1290.112830] Modules linked in:

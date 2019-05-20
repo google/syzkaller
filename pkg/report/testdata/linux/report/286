@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in sctp_generate_heartbeat_event
+TYPE: HANG
 
 [  486.569033] INFO: rcu_sched self-detected stall on CPU
 [  486.574490] 	0-...!: (124998 ticks this GP) idle=0be/1/4611686018427387908 softirq=15234/15234 fqs=59 

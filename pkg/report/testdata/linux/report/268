@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in kvm_vcpu_ioctl
+TYPE: HANG
 
 [  328.823841] rcu: INFO: rcu_preempt self-detected stall on CPU
 [  328.830097] rcu: 	1-...!: (3 GPs behind) idle=19a/1/0x4000000000000002 softirq=12356/12357 fqs=2 

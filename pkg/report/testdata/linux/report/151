@@ -1,4 +1,5 @@
 TITLE: memory leak in new_inode_pseudo
+TYPE: LEAK
 
 2018/01/09 14:28:48 BUG: memory leak
 unreferenced object 0xffff88007658a9e0 (size 944):

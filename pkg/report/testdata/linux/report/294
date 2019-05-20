@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in lo_compat_ioctl
+TYPE: HANG
 
 [  480.801028] INFO: rcu_sched self-detected stall on CPU
 [  480.806333] 	0-...: (64962 ticks this GP) idle=ff6/140000000000001/0 softirq=6610/6610 fqs=16220 

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in kvm_vcpu_ioctl
+TYPE: HANG
 
 [  557.780627] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
 [  557.786921] rcu: 	(detected by 0, t=10502 jiffies, g=52381, q=77)

@@ -1,4 +1,5 @@
 TITLE: unexpected kernel reboot
+TYPE: REBOOT
 
 [00037.711] 07800.07847> PageFault: 500574 free pages
 [00037.712] 07800.07847> PageFault: MemoryUsed: proc  1127   26M 'fshost'

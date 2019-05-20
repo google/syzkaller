@@ -31,6 +31,10 @@ type Reporter interface {
 type Report struct {
 	// Title contains a representative description of the first oops.
 	Title string
+	// Bug type (e.g. hang, memory leak, etc).
+	Type Type
+	// The indicative function name.
+	Frame string
 	// Report contains whole oops text.
 	Report []byte
 	// Output contains whole raw console output as passed to Reporter.Parse.
@@ -50,6 +54,30 @@ type Report struct {
 	guiltyFile string
 	// reportPrefixLen is length of additional prefix lines that we added before actual crash report.
 	reportPrefixLen int
+}
+
+type Type int
+
+const (
+	Unknown Type = iota
+	Hang
+	MemoryLeak
+	UnexpectedReboot
+)
+
+func (t Type) String() string {
+	switch t {
+	case Unknown:
+		return "UNKNOWN"
+	case Hang:
+		return "HANG"
+	case MemoryLeak:
+		return "LEAK"
+	case UnexpectedReboot:
+		return "REBOOT"
+	default:
+		panic("unknown report type")
+	}
 }
 
 // NewReporter creates reporter for the specified OS/Type.
@@ -81,7 +109,10 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 	return &reporterWrapper{rep, supps, typ}, nil
 }
 
-const UnexpectedKernelReboot = "unexpected kernel reboot"
+const (
+	unexpectedKernelReboot = "unexpected kernel reboot"
+	memoryLeakPrefix       = "memory leak in "
+)
 
 var ctors = map[string]fn{
 	"akaros":  ctorAkaros,
@@ -124,7 +155,29 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 	if bytes.Contains(rep.Output, gceConsoleHangup) {
 		rep.Corrupted = true
 	}
+	rep.Type = extractReportType(rep)
+	if match := reportFrameRe.FindStringSubmatch(rep.Title); match != nil {
+		rep.Frame = match[1]
+	}
 	return rep
+}
+
+func extractReportType(rep *Report) Type {
+	// Type/frame extraction logic should be integrated with oops types.
+	// But for now we do this more ad-hoc analysis here to at least isolate
+	// the rest of the code base from report parsing.
+	if rep.Title == unexpectedKernelReboot {
+		return UnexpectedReboot
+	}
+	if strings.HasPrefix(rep.Title, memoryLeakPrefix) {
+		return MemoryLeak
+	}
+	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") ||
+		strings.HasPrefix(rep.Title, "INFO: task hung") ||
+		strings.HasPrefix(rep.Title, "BUG: soft lockup") {
+		return Hang
+	}
+	return Unknown
 }
 
 func IsSuppressed(reporter Reporter, output []byte) bool {
@@ -515,5 +568,6 @@ func replace(where []byte, start, end int, what []byte) []byte {
 }
 
 var (
-	filenameRe = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
+	filenameRe    = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
+	reportFrameRe = regexp.MustCompile(`.* in ([a-zA-Z0-9_]+)`)
 )

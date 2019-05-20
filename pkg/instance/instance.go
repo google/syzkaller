@@ -226,7 +226,7 @@ func (inst *inst) test() error {
 		if bootErr, ok := err.(vm.BootErrorer); ok {
 			testErr.Title, testErr.Output = bootErr.BootError()
 			rep := inst.reporter.Parse(testErr.Output)
-			if rep != nil && rep.Title == report.UnexpectedKernelReboot {
+			if rep != nil && rep.Type == report.UnexpectedReboot {
 				// Avoid detecting any boot crash as "unexpected kernel reboot".
 				output := testErr.Output[rep.EndPos:]
 				if pos := bytes.IndexByte(testErr.Output[rep.StartPos:], '\n'); pos != -1 {
