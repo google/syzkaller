@@ -29,6 +29,8 @@ type ParseTest struct {
 	FileName   string
 	Log        []byte
 	Title      string
+	Type       Type
+	Frame      string
 	StartLine  string
 	EndLine    string
 	Corrupted  bool
@@ -57,44 +59,12 @@ func testParseFile(t *testing.T, reporter Reporter, fn string) {
 	for s.Scan() {
 		switch phase {
 		case phaseHeaders:
-			const (
-				titlePrefix      = "TITLE: "
-				startPrefix      = "START: "
-				endPrefix        = "END: "
-				corruptedPrefix  = "CORRUPTED: "
-				suppressedPrefix = "SUPPRESSED: "
-			)
-			switch ln := s.Text(); {
-			case strings.HasPrefix(ln, "#"):
-			case strings.HasPrefix(ln, titlePrefix):
-				test.Title = ln[len(titlePrefix):]
-			case strings.HasPrefix(ln, startPrefix):
-				test.StartLine = ln[len(startPrefix):]
-			case strings.HasPrefix(ln, endPrefix):
-				test.EndLine = ln[len(endPrefix):]
-			case strings.HasPrefix(ln, corruptedPrefix):
-				switch v := ln[len(corruptedPrefix):]; v {
-				case "Y":
-					test.Corrupted = true
-				case "N":
-					test.Corrupted = false
-				default:
-					t.Fatalf("unknown CORRUPTED value %q", v)
-				}
-			case strings.HasPrefix(ln, suppressedPrefix):
-				switch v := ln[len(suppressedPrefix):]; v {
-				case "Y":
-					test.Suppressed = true
-				case "N":
-					test.Suppressed = false
-				default:
-					t.Fatalf("unknown SUPPRESSED value %q", v)
-				}
-			case ln == "":
+			ln := s.Text()
+			if ln == "" {
 				phase = phaseLog
-			default:
-				t.Fatalf("unknown header field %q", ln)
+				continue
 			}
+			parseHeaderLine(t, test, ln)
 		case phaseLog:
 			if prevEmptyLine && string(s.Bytes()) == "REPORT:" {
 				test.HasReport = true
@@ -122,6 +92,60 @@ func testParseFile(t *testing.T, reporter Reporter, fn string) {
 	testParseImpl(t, reporter, test)
 }
 
+func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
+	const (
+		titlePrefix      = "TITLE: "
+		typePrefix       = "TYPE: "
+		framePrefix      = "FRAME: "
+		startPrefix      = "START: "
+		endPrefix        = "END: "
+		corruptedPrefix  = "CORRUPTED: "
+		suppressedPrefix = "SUPPRESSED: "
+	)
+	switch {
+	case strings.HasPrefix(ln, "#"):
+	case strings.HasPrefix(ln, titlePrefix):
+		test.Title = ln[len(titlePrefix):]
+	case strings.HasPrefix(ln, typePrefix):
+		switch v := ln[len(typePrefix):]; v {
+		case Hang.String():
+			test.Type = Hang
+		case MemoryLeak.String():
+			test.Type = MemoryLeak
+		case UnexpectedReboot.String():
+			test.Type = UnexpectedReboot
+		default:
+			t.Fatalf("unknown TYPE value %q", v)
+		}
+	case strings.HasPrefix(ln, framePrefix):
+		test.Frame = ln[len(framePrefix):]
+	case strings.HasPrefix(ln, startPrefix):
+		test.StartLine = ln[len(startPrefix):]
+	case strings.HasPrefix(ln, endPrefix):
+		test.EndLine = ln[len(endPrefix):]
+	case strings.HasPrefix(ln, corruptedPrefix):
+		switch v := ln[len(corruptedPrefix):]; v {
+		case "Y":
+			test.Corrupted = true
+		case "N":
+			test.Corrupted = false
+		default:
+			t.Fatalf("unknown CORRUPTED value %q", v)
+		}
+	case strings.HasPrefix(ln, suppressedPrefix):
+		switch v := ln[len(suppressedPrefix):]; v {
+		case "Y":
+			test.Suppressed = true
+		case "N":
+			test.Suppressed = false
+		default:
+			t.Fatalf("unknown SUPPRESSED value %q", v)
+		}
+	default:
+		t.Fatalf("unknown header field %q", ln)
+	}
+}
+
 func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	rep := reporter.Parse(test.Log)
 	containsCrash := reporter.ContainsCrash(test.Log)
@@ -135,21 +159,24 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	if rep != nil && rep.Title == "" {
 		t.Fatalf("found crash, but title is empty")
 	}
-	title, corrupted, corruptedReason, suppressed := "", false, "", false
+	title, corrupted, corruptedReason, suppressed, typ, frame := "", false, "", false, Unknown, ""
 	if rep != nil {
 		title = rep.Title
 		corrupted = rep.Corrupted
 		corruptedReason = rep.CorruptedReason
 		suppressed = rep.Suppressed
+		typ = rep.Type
+		frame = rep.Frame
 	}
-	if title != test.Title || corrupted != test.Corrupted || suppressed != test.Suppressed {
-		if *flagUpdate && test.StartLine == "" && test.EndLine == "" {
-			updateReportTest(t, test, title, corrupted, suppressed)
+	if title != test.Title || corrupted != test.Corrupted || suppressed != test.Suppressed ||
+		typ != test.Type || test.Frame != "" && frame != test.Frame {
+		if *flagUpdate && test.StartLine+test.EndLine == "" {
+			updateReportTest(t, test, title, corrupted, suppressed, typ, frame)
 		}
-		t.Fatalf("want:\nTITLE: %s\nCORRUPTED: %v\nSUPPRESSED: %v\n"+
-			"got:\nTITLE: %s\nCORRUPTED: %v (%v)\nSUPPRESSED: %v\n",
-			test.Title, test.Corrupted, test.Suppressed,
-			title, corrupted, corruptedReason, suppressed)
+		t.Fatalf("want:\nTITLE: %s\nTYPE: %v\nFRAME: %v\nCORRUPTED: %v\nSUPPRESSED: %v\n"+
+			"got:\nTITLE: %s\nTYPE: %v\nFRAME: %v\nCORRUPTED: %v (%v)\nSUPPRESSED: %v\n",
+			test.Title, test.Type, test.Frame, test.Corrupted, test.Suppressed,
+			title, typ, frame, corrupted, corruptedReason, suppressed)
 	}
 	if title != "" && len(rep.Report) == 0 {
 		t.Fatalf("found crash message but report is empty")
@@ -199,9 +226,16 @@ func checkReport(t *testing.T, rep *Report, test *ParseTest) {
 	}
 }
 
-func updateReportTest(t *testing.T, test *ParseTest, title string, corrupted, suppressed bool) {
+func updateReportTest(t *testing.T, test *ParseTest, title string, corrupted, suppressed bool,
+	typ Type, frame string) {
 	buf := new(bytes.Buffer)
 	fmt.Fprintf(buf, "TITLE: %v\n", title)
+	if typ != Unknown {
+		fmt.Fprintf(buf, "TYPE: %v\n", typ)
+	}
+	if test.Frame != "" {
+		fmt.Fprintf(buf, "FRAME: %v\n", frame)
+	}
 	if corrupted {
 		fmt.Fprintf(buf, "CORRUPTED: Y\n")
 	}

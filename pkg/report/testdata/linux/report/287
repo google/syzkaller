@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in br_handle_frame
+TYPE: HANG
 
 [  268.109997] bridge0: received packet on bridge_slave_0 with own address as source address
 [  268.110510] bridge0: received packet on bridge_slave_0 with own address as source address

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in snd_pcm_oss_write
+TYPE: HANG
 
 [  196.114026] INFO: rcu_sched detected stalls on CPUs/tasks:
 [  196.119690] 	(detected by 0, t=125002 jiffies, g=15654, c=15653, q=133)

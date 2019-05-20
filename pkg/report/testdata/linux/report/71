@@ -1,4 +1,5 @@
 TITLE: INFO: task hung in blkdev_put
+TYPE: HANG
 
 [  244.447743] INFO: task syz-executor2:14507 blocked for more than 120 seconds.
 [  244.455167]       Not tainted 4.9.40-ged32335 #11

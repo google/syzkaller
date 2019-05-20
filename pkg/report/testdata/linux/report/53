@@ -1,4 +1,5 @@
 TITLE: memory leak in ext4_mb_init
+TYPE: LEAK
 
 2018/01/09 14:28:48 BUG: memory leak
 unreferenced object 0xffff880133c63800 (size 1024):

@@ -1,4 +1,5 @@
 TITLE: INFO: task hung in mount_bdev
+TYPE: HANG
 
 [  767.964958][ T1042] INFO: task syz-executor013:7561 blocked for more than 143 seconds.
 [  767.973200][ T1042]       Not tainted 5.1.0-rc6+ #90

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in uhaul_release
+TYPE: HANG
 
 [ 3481.239960] INFO: rcu_sched detected stalls on CPUs/tasks:
 [ 3481.239969] 	(detected by 1, t=105002 jiffies, g=687946, c=687945, q=520)

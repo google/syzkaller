@@ -1,4 +1,5 @@
 TITLE: INFO: task hung in do_exit
+TYPE: HANG
 
 [  246.752196] INFO: task syz-executor0:10244 blocked for more than 120 seconds.
 [  246.759582]       Not tainted 4.15.0-rc8+ #269

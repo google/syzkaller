@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in fuse_dev_release
+TYPE: HANG
 
 [  629.392020] INFO: rcu_sched detected stalls on CPUs/tasks:
 [  629.397716] 	(detected by 0, t=105007 jiffies, g=118924, c=118923, q=65)

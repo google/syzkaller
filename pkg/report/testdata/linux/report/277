@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in ext4_file_write_iter
+TYPE: HANG
 
 [  587.513972] rcu: INFO: rcu_sched self-detected stall on CPU
 [  587.520042] rcu: 	0-....: (105000 ticks this GP) idle=76a/1/0x4000000000000002 softirq=144952/144952 fqs=26032 

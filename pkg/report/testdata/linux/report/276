@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in __cleanup_mnt
+TYPE: HANG
 
 [  396.319024] INFO: rcu_sched detected stalls on CPUs/tasks:
 [  396.324708] 	(detected by 0, t=105007 jiffies, g=54385, c=54384, q=120)

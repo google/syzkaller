@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in kvm_vm_compat_ioctl
+TYPE: HANG
 
 [  393.750282] INFO: rcu_sched self-detected stall on CPU
 [  393.755773] 	1: (104999 ticks this GP) idle=235/140000000000001/0 softirq=67058/67058 fqs=202 
