@@ -6,8 +6,18 @@ be rebuilt when compatibility bumps in OpenBSD-current are encountered. Manual
 tweaks to this image without updating the script will be lost.
 
 There is also a persistent disk with build artifacts and syz-bot state. It is
-mounted as `/syzkaller`. The original image was set up with:
+mounted as `/syzkaller`.
 
+
+The original image was created by running these GCE commands:
+
+```shell
+gcloud compute --project syzkaller disks delete ci-openbsd-syzkaller --zone "us-central1-c"
+gcloud compute --project syzkaller disks create ci-openbsd-syzkaller \
+  --description "/syzkaller FS" --size "1000GB" --zone "us-central1-c" --type pd-ssd
+```
+
+Once the host system is booted, the file system was provisioned with:
 ```shell
 ci-openbsd# fdisk -y -i sd1
 Writing MBR at offset 0.
@@ -30,5 +40,6 @@ Persistent disk structure:
 
 ```
 /syzkaller
-    /src - https://github.com/openbsd/src.git
+    /config-openbsd.ci - syz-ci config stored internally
+    /userspace/{key,image} - produced by create-openbsd-vmm-worker.sh
 ```
