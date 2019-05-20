@@ -34,7 +34,7 @@ type ConnectRes struct {
 	TargetRevision   string
 	AllSandboxes     bool
 	CheckResult      *CheckArgs
-	MemoryLeakFrames [][]byte
+	MemoryLeakFrames []string
 }
 
 type CheckArgs struct {
