@@ -7,6 +7,7 @@ include <linux/route.h>
 include <uapi/linux/if_arp.h>
 include <uapi/linux/netfilter_ipv6/ip6_tables.h>
 include <uapi/linux/wireless.h>
+include <uapi/linux/in.h>
 
 # IP sockets
 
@@ -204,3 +205,31 @@ arpreq_in {
 	arp_netmask	sockaddr_in
 	arp_dev		devname
 }
+
+# sendmsg for ip_cmsg_send
+
+msghdr_inet {
+	msg_name	ptr[in, sockaddr_in, opt]
+	msg_namelen	len[msg_name, int32]
+	msg_iov		ptr[in, array[iovec_in]]
+	msg_iovlen	len[msg_iov, intptr]
+	msg_control	ptr[in, array[cmsghdr_inet], opt]
+	msg_controllen	bytesize[msg_control, intptr]
+	msg_flags	const[0, int32]
+}
+
+mmsghdr_inet {
+	msg_hdr	msghdr_inet
+	msg_len	const[0, int32]
+}
+
+cmsghdr_inet [
+	ip_retopts	cmsghdr_t[SOL_IP, IP_RETOPTS, ipv4_options]
+	ip_pktinfo	cmsghdr_t[SOL_IP, IP_PKTINFO, in_pktinfo]
+	ip_ttl		cmsghdr_t[SOL_IP, IP_TTL, int32]
+	ip_tos_int	cmsghdr_t[SOL_IP, IP_TOS, int32]
+	ip_tos_u8	cmsghdr_t[SOL_IP, IP_TOS, int8]
+] [varlen]
+
+sendmsg$inet(fd sock, msg ptr[in, msghdr_inet], f flags[send_flags])
+sendmmsg$inet(fd sock, mmsg ptr[in, array[mmsghdr_inet]], vlen len[mmsg], f flags[send_flags])
