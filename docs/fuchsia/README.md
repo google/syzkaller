@@ -3,18 +3,19 @@
 For information about checking out and building Fuchsia see
 [Getting Started](https://fuchsia.googlesource.com/fuchsia/+/master/docs/getting_started.md)
 and [Soure Code](https://fuchsia.googlesource.com/fuchsia/+/master/docs/development/source_code/README.md).
+
+You need to build fuchsia for both amd64 and arm64:
+
 ```shell
-$ fx set core.x64 --build-dir "out/x64" \
-  --args extra_authorized_keys_file=\"//.ssh/authorized_keys\"
-$ fx full-build
+$ fx --dir "out/x64" set core.x64
+$ fx clean-build
 ```
 
-You need to build fuchsia for both arm64 and amd64:
+And
 
 ```shell
-$ fx set core.arm64 --build-dir "out/arm64" \
-  --args extra_authorized_keys_file=\"//.ssh/authorized_keys\"
-$ fx full-build
+$ fx --dir "out/arm64" set core.arm64
+$ fx clean-build
 ```
 
 Syscall descriptions live in the `sys/fuchsia` folder. To update a syscall, you need to modify the `.txt` file that contains it, make sure your new definition matches the one in zircon's [syscalls.abigen](https://fuchsia.googlesource.com/fuchsia/+/master/zircon/system/public/zircon/syscalls.abigen) file. **If the syscall was used in `executor/common_fuchsia.h`, you need to update the usages there as well**. FIDL definitions do not need manual updating because they are extracted automatically with the commands below.
