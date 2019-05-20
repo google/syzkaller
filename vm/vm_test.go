@@ -72,7 +72,7 @@ func (inst *testInstance) Close() {
 func init() {
 	beforeContext = 200
 	tickerPeriod = 1 * time.Second
-	noOutputTimeout = 5 * time.Second
+	NoOutputTimeout = 5 * time.Second
 	waitForOutputTimeout = 3 * time.Second
 
 	ctor := func(env *vmimpl.Env) (vmimpl.Pool, error) {

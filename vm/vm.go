@@ -225,7 +225,7 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			// in 140-280s detection delay.
 			// So the current timeout is 5 mins (300s).
 			// We don't want it to be too long too because it will waste time on real hangs.
-			if time.Since(lastExecuteTime) < noOutputTimeout {
+			if time.Since(lastExecuteTime) < NoOutputTimeout {
 				break
 			}
 			diag, wait := inst.Diagnose()
@@ -347,7 +347,7 @@ var (
 	beforeContext = 1024 << 10
 	afterContext  = 128 << 10
 
+	NoOutputTimeout      = 5 * time.Minute
 	tickerPeriod         = 10 * time.Second
-	noOutputTimeout      = 5 * time.Minute
 	waitForOutputTimeout = 10 * time.Second
 )
