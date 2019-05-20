@@ -1,5 +1,5 @@
-# TODO: this rcu stall does not contain apic_timer_interrupt somehow and so falsely marked as corrupted.
 TITLE: INFO: rcu detected stall in corrupted
+TYPE: HANG
 CORRUPTED: Y
 
 [  161.009133][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:

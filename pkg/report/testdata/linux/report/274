@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in ipv6_rcv
+TYPE: HANG
 
 [  842.597024] INFO: rcu_sched self-detected stall on CPU
 [  842.602466] 	0-....: (1 GPs behind) idle=222/1/4611686018427387906 softirq=196202/196203 fqs=31202 

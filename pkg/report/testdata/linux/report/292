@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in wb_workfn
+TYPE: HANG
 
 [  420.341960] INFO: rcu_preempt detected stalls on CPUs/tasks:
 [  420.347923] 	(detected by 1, t=10502 jiffies, g=9244, c=9243, q=178)

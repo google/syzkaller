@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in rtc_timer_do_work
+TYPE: HANG
 
 [  249.033000] INFO: rcu_sched self-detected stall on CPU
 [  249.038403] 	1-....: (10499 ticks this GP) idle=35e/140000000000001/0 softirq=17797/17797 fqs=5227 

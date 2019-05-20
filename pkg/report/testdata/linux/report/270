@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in mousedev_write
+TYPE: HANG
 
 [  489.536147] rcu: INFO: rcu_sched self-detected stall on CPU
 [  489.542259] rcu: 	1-....: (104999 ticks this GP) idle=19e/1/0x4000000000000002 softirq=112269/112269 fqs=19579 

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in snd_pcm_oss_release
+TYPE: HANG
 
 [  362.024021] INFO: rcu_sched self-detected stall on CPU
 [  362.029432] 	1-....: (124999 ticks this GP) idle=f9a/1/4611686018427387906 softirq=73140/73140 fqs=31238 

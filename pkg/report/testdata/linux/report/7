@@ -1,4 +1,5 @@
 TITLE: BUG: soft lockup in corrupted
+TYPE: HANG
 CORRUPTED: Y
 
 mmap(&(0x7f00008dd000/0x1000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)

@@ -1,4 +1,5 @@
 TITLE: BUG: soft lockup in kvm_vcpu_release
+TYPE: HANG
 
 [ 1342.342232] watchdog: BUG: soft lockup - CPU#0 stuck for 123s! [syz-executor0:8009]
 [ 1342.350104] Modules linked in:

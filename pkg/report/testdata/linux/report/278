@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in sys_futex
+TYPE: HANG
 
 [  246.173515] rcu: INFO: rcu_sched self-detected stall on CPU
 [  246.179319] rcu: 	1-...!: (1 ticks this GP) idle=2e6/1/0x4000000000000002 softirq=21091/21091 fqs=0 

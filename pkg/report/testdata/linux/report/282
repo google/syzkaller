@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in kvm_vcpu_ioctl
+TYPE: HANG
 
 [  618.102956] overlayfs: failed to resolve './file1': -2
 [  724.054784] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:

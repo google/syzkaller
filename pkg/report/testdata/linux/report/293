@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in perf_mmap
+TYPE: HANG
 
 [  323.391020] INFO: rcu_sched self-detected stall on CPU
 [  323.396363] 	1-...: (64999 ticks this GP) idle=97a/140000000000001/0 softirq=7370/7370 fqs=16241 

@@ -1,4 +1,5 @@
 TITLE: unexpected kernel reboot
+TYPE: REBOOT
 START: [00000.000] 00000.00000> welcome to Zircon
 
 000> PMM: boot reserve marking WIRED [0x100000, 0x2b5fff]

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in ext4_filemap_fault
+TYPE: HANG
 
 [ 2355.201776] INFO: rcu_preempt detected stalls on CPUs/tasks:
 [ 2355.201784] 	Tasks blocked on level-0 rcu_node (CPUs 0-1): P2270

@@ -1,4 +1,5 @@
 TITLE: INFO: rcu detected stall in netlink_sendmsg
+TYPE: HANG
 
 [  355.572806] INFO: rcu_sched self-detected stall on CPU
 [  355.578254] 	0: (104999 ticks this GP) idle=ab9/140000000000001/0 softirq=76582/76582 fqs=34894 
