@@ -41,7 +41,7 @@ zx_object_wait_many(items ptr[in, array[zx_wait_item]], count len[items], deadli
 zx_object_wait_one(handle zx_handle, signals int32, deadline zx_time, observed ptr[out, int32])
 zx_object_wait_async(handle zx_handle, port zx_port, key proc[1000, 4], signals int32, options flags[wait_async_options])
 
-wait_async_options = ZX_WAIT_ASYNC_ONCE, ZX_WAIT_ASYNC_REPEATING
+wait_async_options = ZX_WAIT_ASYNC_ONCE
 
 zx_info_handle_basic {
 	koid		koid

@@ -50,6 +50,10 @@ fuchsia_cobalt_CountEventInLine {
 	count			int64
 } [packed]
 
+fuchsia_cobalt_EventInLine {
+	void	void
+} [packed]
+
 fuchsia_cobalt_CobaltEventInLine {
 	metric_id		int32
 	event_codesInLine	fidl_vector
@@ -87,6 +91,7 @@ fuchsia_cobalt_ValueInLine [
 ]
 
 fuchsia_cobalt_EventPayloadInLine [
+	eventInLine		fidl_union_member[fuchsia_cobalt_EventPayloadTag_event, fuchsia_cobalt_EventInLine]
 	event_countInLine	fidl_union_member[fuchsia_cobalt_EventPayloadTag_event_count, fuchsia_cobalt_CountEventInLine]
 	elapsed_micros		fidl_union_member[fuchsia_cobalt_EventPayloadTag_elapsed_micros, int64]
 	fps			fidl_union_member[fuchsia_cobalt_EventPayloadTag_fps, int32]
@@ -748,9 +753,7 @@ fuchsia_cobalt_SystemDataUpdaterSetExperimentStateResponseHandles {
 fuchsia_cobalt_SystemDataUpdaterSetChannelRequest {
 	hdr				fidl_message_header[938569873]
 	current_channelInLine		fidl_string
-	target_channelInLine		fidl_string
 	current_channelOutOfLine	fidl_aligned[stringnoz]
-	target_channelOutOfLine		fidl_aligned[stringnoz]
 } [packed]
 
 fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles {
@@ -818,6 +821,19 @@ fuchsia_cobalt_ControllerGetFailedSendAttemptsResponseHandles {
 	void	void
 } [packed]
 
+fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequest {
+	hdr		fidl_message_header[1523993550]
+	day_index	int32
+} [packed]
+
+fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_cobalt_ControllerGenerateAggregatedObservationsResponseHandles {
+	void	void
+} [packed]
+
 resource zx_chan_fuchsia_cobalt_Controller_client[zx_chan]
 resource zx_chan_fuchsia_cobalt_Controller_server[zx_chan]
 
@@ -827,3 +843,4 @@ zx_channel_call$fuchsia_cobalt_ControllerRequestSendSoon(handle zx_chan_fuchsia_
 zx_channel_call$fuchsia_cobalt_ControllerBlockUntilEmpty(handle zx_chan_fuchsia_cobalt_Controller_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_ControllerBlockUntilEmptyRequest, fuchsia_cobalt_ControllerBlockUntilEmptyRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_ControllerBlockUntilEmptyResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_cobalt_ControllerGetNumSendAttempts(handle zx_chan_fuchsia_cobalt_Controller_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_ControllerGetNumSendAttemptsRequest, fuchsia_cobalt_ControllerGetNumSendAttemptsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_ControllerGetNumSendAttemptsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_cobalt_ControllerGetFailedSendAttempts(handle zx_chan_fuchsia_cobalt_Controller_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_ControllerGetFailedSendAttemptsRequest, fuchsia_cobalt_ControllerGetFailedSendAttemptsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_ControllerGetFailedSendAttemptsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_cobalt_ControllerGenerateAggregatedObservations(handle zx_chan_fuchsia_cobalt_Controller_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequest, fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_ControllerGenerateAggregatedObservationsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
