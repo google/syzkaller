@@ -13,27 +13,9 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/fuchsia/layout"
 	"github.com/google/syzkaller/sys/targets"
 )
-
-var layerToLibs = map[string][]string{
-	"zircon": {
-		"fuchsia-mem",
-		"fuchsia-cobalt",
-		"fuchsia-ldsvc",
-		"fuchsia-process",
-		"fuchsia-io",
-		"fuchsia-net",
-		"fuchsia-net-stack",
-		"fuchsia-hardware-ethernet",
-	},
-	"garnet": {
-		"fuchsia.devicesettings",
-		"fuchsia.timezone",
-		"fuchsia.power",
-		"fuchsia.scpi",
-	},
-}
 
 func main() {
 	targetArch := os.Getenv("TARGETARCH")
@@ -60,46 +42,17 @@ func main() {
 	}
 
 	var newFiles []string
+	for _, fidlLib := range layout.AllFidlLibraries {
+		jsonPath := filepath.Join(sourceDir, "out", arch, fidlLib.PathToJSONIr())
+		txtPathBase := strings.Replace(strings.Join(fidlLib.FqName, "_"), "^fuchsia", "fidl", 1)
 
-	for layer := range layerToLibs {
-		var jsonPathBase string
-		if layer == "garnet" {
-			jsonPathBase = filepath.Join(
-				sourceDir,
-				"out",
-				arch,
-				"fidling/gen/sdk/fidl",
-			)
-		} else {
-			jsonPathBase = filepath.Join(
-				sourceDir,
-				"out",
-				arch,
-				"fidling/gen",
-				layer,
-				"public/fidl",
-			)
-		}
+		txtPath := fidlgen(
+			fidlgenPath,
+			jsonPath,
+			txtPathBase,
+		)
 
-		for _, lib := range layerToLibs[layer] {
-			jsonPath := filepath.Join(
-				jsonPathBase,
-				lib,
-				fmt.Sprintf("%s.fidl.json", lib),
-			)
-
-			txtPathBase := lib
-			txtPathBase = strings.Replace(txtPathBase, "fuchsia.", "fidl_", 1)
-			txtPathBase = strings.Replace(txtPathBase, "fuchsia-", "fidl_", 1)
-
-			txtPath := fidlgen(
-				fidlgenPath,
-				jsonPath,
-				txtPathBase,
-			)
-
-			newFiles = append(newFiles, txtPath)
-		}
+		newFiles = append(newFiles, txtPath)
 	}
 
 	var errorPos ast.Pos
@@ -157,7 +110,7 @@ func fidlgen(fidlgenPath string, jsonPath string, txtPathBase string) string {
 		failf("fidlgen failed: %v", err)
 	}
 
-	return fmt.Sprintf("%s.txt", txtPathBase)
+	return fmt.Sprintf("%s.syz.txt", txtPathBase)
 }
 
 func failf(msg string, args ...interface{}) {
