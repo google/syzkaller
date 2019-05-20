@@ -155,11 +155,12 @@ fuchsia_net_stack_StackAddInterfaceAddressResponseHandles {
 fuchsia_net_stack_StackDelInterfaceAddressRequest {
 	hdr		fidl_message_header[1221457197]
 	id		int64
-	addrInLine	fuchsia_net_IpAddressInLine
+	addrInLine	fuchsia_net_stack_InterfaceAddressInLine
+	addrOutOfLine	fuchsia_net_stack_InterfaceAddressOutOfLine
 } [packed]
 
 fuchsia_net_stack_StackDelInterfaceAddressRequestHandles {
-	void	void
+	addr	fuchsia_net_stack_InterfaceAddressHandles
 } [packed]
 
 fuchsia_net_stack_StackDelInterfaceAddressResponseHandles {
@@ -206,6 +207,32 @@ fuchsia_net_stack_StackDelForwardingEntryResponseHandles {
 	err	fuchsia_net_stack_ErrorHandles
 } [packed]
 
+fuchsia_net_stack_StackEnablePacketFilterRequest {
+	hdr	fidl_message_header[104863984]
+	id	int64
+} [packed]
+
+fuchsia_net_stack_StackEnablePacketFilterRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_net_stack_StackEnablePacketFilterResponseHandles {
+	err	fuchsia_net_stack_ErrorHandles
+} [packed]
+
+fuchsia_net_stack_StackDisablePacketFilterRequest {
+	hdr	fidl_message_header[376878981]
+	id	int64
+} [packed]
+
+fuchsia_net_stack_StackDisablePacketFilterRequestHandles {
+	void	void
+} [packed]
+
+fuchsia_net_stack_StackDisablePacketFilterResponseHandles {
+	err	fuchsia_net_stack_ErrorHandles
+} [packed]
+
 fuchsia_net_stack_StackOnInterfaceStatusChangeEventHandles {
 	info	fuchsia_net_stack_InterfaceStatusChangeHandles
 } [packed]
@@ -230,5 +257,7 @@ zx_channel_call$fuchsia_net_stack_StackDelInterfaceAddress(handle zx_chan_fuchsi
 zx_channel_call$fuchsia_net_stack_StackGetForwardingTable(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackGetForwardingTableRequest, fuchsia_net_stack_StackGetForwardingTableRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackGetForwardingTableResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_stack_StackAddForwardingEntry(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackAddForwardingEntryRequest, fuchsia_net_stack_StackAddForwardingEntryRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackAddForwardingEntryResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_stack_StackDelForwardingEntry(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackDelForwardingEntryRequest, fuchsia_net_stack_StackDelForwardingEntryRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDelForwardingEntryResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_net_stack_StackEnablePacketFilter(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackEnablePacketFilterRequest, fuchsia_net_stack_StackEnablePacketFilterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackEnablePacketFilterResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
+zx_channel_call$fuchsia_net_stack_StackDisablePacketFilter(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_stack_StackDisablePacketFilterRequest, fuchsia_net_stack_StackDisablePacketFilterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDisablePacketFilterResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_read$fuchsia_net_stack_StackOnInterfaceStatusChange(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], bytes ptr[out, array[int8, ZX_CHANNEL_MAX_MSG_BYTES]], num_bytes bytesize[bytes], handles ptr[out, fuchsia_net_stack_StackOnInterfaceStatusChangeEventHandles], num_handles bytesize[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_read$fuchsia_net_stack_StackOnInterfaceAddressChange(handle zx_chan_fuchsia_net_stack_Stack_client, options const[0], bytes ptr[out, array[int8, ZX_CHANNEL_MAX_MSG_BYTES]], num_bytes bytesize[bytes], handles ptr[out, fuchsia_net_stack_StackOnInterfaceAddressChangeEventHandles], num_handles bytesize[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
