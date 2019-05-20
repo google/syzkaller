@@ -254,9 +254,9 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 	}
 
 	// The shortest duration is 10 seconds to detect simple crashes (i.e. no races and no hangs).
-	// The longest duration is 5 minutes to catch races and hangs. Note that this value must be larger
-	// than hang/no output detection duration in vm.MonitorExecution, which is currently set to 3 mins.
-	timeouts := []time.Duration{10 * time.Second, 1 * time.Minute, 5 * time.Minute}
+	// The longest duration is 6 minutes to catch races and hangs. Note that this value must be larger
+	// than hang/no output detection duration in vm.MonitorExecution, which is currently set to 5 mins.
+	timeouts := []time.Duration{10 * time.Second, 1 * time.Minute, vm.NoOutputTimeout + time.Minute}
 
 	for _, timeout := range timeouts {
 		// Execute each program separately to detect simple crashes caused by a single program.
