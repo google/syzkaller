@@ -38,7 +38,7 @@ type Fuzzer struct {
 
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect() ([]rpctype.RPCInput, [][]byte)
+	fuzzerConnect() ([]rpctype.RPCInput, []string)
 	machineChecked(result *rpctype.CheckArgs)
 	newInput(inp rpctype.RPCInput, sign signal.Signal)
 	candidateBatch(size int) []rpctype.RPCCandidate

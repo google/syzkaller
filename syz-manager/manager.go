@@ -889,7 +889,7 @@ func (mgr *Manager) minimizeCorpus() {
 	mgr.corpusDB.BumpVersion(currentDBVersion)
 }
 
-func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, [][]byte) {
+func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, []string) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -898,9 +898,9 @@ func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, [][]byte) {
 	for _, inp := range mgr.corpus {
 		corpus = append(corpus, inp)
 	}
-	memoryLeakFrames := make([][]byte, 0, len(mgr.memoryLeakFrames))
+	memoryLeakFrames := make([]string, 0, len(mgr.memoryLeakFrames))
 	for frame := range mgr.memoryLeakFrames {
-		memoryLeakFrames = append(memoryLeakFrames, []byte(frame))
+		memoryLeakFrames = append(memoryLeakFrames, frame)
 	}
 	return corpus, memoryLeakFrames
 }
