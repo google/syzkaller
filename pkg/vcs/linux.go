@@ -144,6 +144,10 @@ func linuxCompilerVersion(tags map[string]bool) string {
 
 func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
 	prereq := map[string]string{
+		// 5.2 has CONFIG_SECURITY_TOMOYO_INSECURE_BUILTIN_SETTING which allows to test tomoyo better.
+		// This config also enables CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
+		// but we need it disabled to boot older kernels.
+		"CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER": "v5.2",
 		// Kernel is boot broken before 4.15 due to double-free in vudc_probe:
 		// https://lkml.org/lkml/2018/9/7/648
 		// Fixed by e28fd56ad5273be67d0fae5bedc7e1680e729952.
