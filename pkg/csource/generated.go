@@ -4884,9 +4884,7 @@ static void check_leaks(void)
 	ssize_t n = read(fd, buf, sizeof(buf) - 1);
 	if (n < 0)
 		fail("failed to read(%s)", KMEMLEAK_FILE);
-#if SYZ_EXECUTOR
 	int nleaks = 0;
-#endif
 	if (n != 0) {
 		sleep(1);
 		if (write(fd, "scan", 4) != 4)
@@ -4920,18 +4918,14 @@ static void check_leaks(void)
 			fprintf(stderr, "BUG: memory leak\n%s\n", pos);
 			*next = prev;
 			pos = next;
-#if SYZ_EXECUTOR
 			nleaks++;
-#endif
 		}
 	}
 	if (write(fd, "clear", 5) != 5)
 		fail("failed to write(%s, \"clear\")", KMEMLEAK_FILE);
 	close(fd);
-#if SYZ_EXECUTOR
 	if (nleaks)
 		doexit(1);
-#endif
 }
 #endif
 
