@@ -4,6 +4,8 @@
 package openbsd
 
 import (
+	"fmt"
+
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -17,6 +19,7 @@ func InitTarget(target *prog.Target) {
 
 	target.MakeMmap = targets.MakePosixMmap(target)
 	target.SanitizeCall = arch.SanitizeCall
+	target.AnnotateCall = arch.annotateCall
 }
 
 type arch struct {
@@ -106,4 +109,17 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 	default:
 		arch.unix.SanitizeCall(c)
 	}
+}
+
+func (arch *arch) annotateCall(c prog.ExecCall) string {
+	devArg := 2
+	switch c.Meta.Name {
+	case "mknodat":
+		devArg = 3
+		fallthrough
+	case "mknod":
+		dev := c.Args[devArg].(prog.ExecArgConst).Value
+		return fmt.Sprintf("major = %v, minor = %v", devmajor(dev), devminor(dev))
+	}
+	return ""
 }

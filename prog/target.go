@@ -31,6 +31,11 @@ type Target struct {
 	// SanitizeCall neutralizes harmful calls.
 	SanitizeCall func(c *Call)
 
+	// AnnotateCall annotates a syscall invocation in C reproducers.
+	// The returned string will be placed inside a comment except for the
+	// empty string which will omit the comment.
+	AnnotateCall func(c ExecCall) string
+
 	// SpecialTypes allows target to do custom generation/mutation for some struct's and union's.
 	// Map key is struct/union name for which custom generation/mutation is required.
 	// Map value is custom generation/mutation function that will be called
@@ -106,6 +111,7 @@ func AllTargets() []*Target {
 
 func (target *Target) lazyInit() {
 	target.SanitizeCall = func(c *Call) {}
+	target.AnnotateCall = func(c ExecCall) string { return "" }
 	target.initTarget()
 	target.initArch(target)
 	target.ConstMap = nil // currently used only by initArch
