@@ -239,7 +239,12 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 		}
 		fmt.Fprintf(w, "0")
 	}
-	fmt.Fprintf(w, ");\n")
+	fmt.Fprintf(w, ");")
+	comment := ctx.target.AnnotateCall(call)
+	if len(comment) != 0 {
+		fmt.Fprintf(w, " /* %s */", comment)
+	}
+	fmt.Fprintf(w, "\n")
 	if trace {
 		cast := ""
 		if !native && !strings.HasPrefix(callName, "syz_") {
