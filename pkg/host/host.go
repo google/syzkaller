@@ -121,7 +121,7 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	if features[FeatureFaultInjection].Enabled {
 		args = append(args, "fault")
 	}
-	if featureFlags["binfmt_misc"].Enabled {
+	if target.OS == "linux" && featureFlags["binfmt_misc"].Enabled {
 		args = append(args, "binfmt_misc")
 	}
 	_, err := osutil.RunCmd(time.Minute, "", executor, args...)
