@@ -159,11 +159,16 @@ func main() {
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
 		log.Fatalf("failed to connect to manager: %v ", err)
 	}
+	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if r.CheckResult == nil {
 		checkArgs.gitRevision = r.GitRevision
 		checkArgs.targetRevision = r.TargetRevision
 		checkArgs.enabledCalls = r.EnabledCalls
 		checkArgs.allSandboxes = r.AllSandboxes
+		checkArgs.featureFlags = featureFlags
 		r.CheckResult, err = checkMachine(checkArgs)
 		if err != nil {
 			if r.CheckResult == nil {
@@ -178,17 +183,14 @@ func main() {
 		if r.CheckResult.Error != "" {
 			log.Fatalf("%v", r.CheckResult.Error)
 		}
+	} else {
+		if err = host.Setup(target, r.CheckResult.Features, featureFlags, config.Executor); err != nil {
+			log.Fatal(err)
+		}
 	}
 	log.Logf(0, "syscalls: %v", len(r.CheckResult.EnabledCalls[sandbox]))
 	for _, feat := range r.CheckResult.Features {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
-	}
-	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err = host.Setup(target, r.CheckResult.Features, featureFlags, config.Executor); err != nil {
-		log.Fatal(err)
 	}
 	if r.CheckResult.Features[host.FeatureExtraCoverage].Enabled {
 		config.Flags |= ipc.FlagExtraCover
