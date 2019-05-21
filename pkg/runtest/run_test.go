@@ -56,6 +56,13 @@ func test(t *testing.T, sysTarget *targets.Target) {
 		"":     calls,
 		"none": calls,
 	}
+	featureFlags, err := csource.ParseFeaturesFlags("none", "none", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := host.Setup(target, features, featureFlags, executor); err != nil {
+		t.Fatal(err)
+	}
 	requests := make(chan *RunRequest, 2*runtime.GOMAXPROCS(0))
 	go func() {
 		for req := range requests {
