@@ -111,7 +111,7 @@ func Check(target *prog.Target) (*Features, error) {
 // Setup enables and does any one-time setup for the requested features on the host.
 // Note: this can be called multiple times and must be idempotent.
 func Setup(target *prog.Target, features *Features, featureFlags csource.Features, executor string) error {
-	if target.OS == "akaros" || target.OS == "test" {
+	if target.OS == "akaros" {
 		return nil
 	}
 	args := []string{"setup"}
