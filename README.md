@@ -17,7 +17,7 @@ Found bugs: [Akaros](docs/akaros/found_bugs.md), [Darwin/XNU](docs/darwin/README
 
 Initially, syzkaller was developed with Linux kernel fuzzing in mind, but now
 it's being extended to support other OS kernels as well.
-Most of the documentation at this moment is related to the Linux kernel.
+Most of the documentation at this moment is related to the [Linux](docs/linux/setup.md) kernel.
 For other OS kernels check:
 [Akaros](docs/akaros/README.md),
 [Darwin/XNU](docs/darwin/README.md),
