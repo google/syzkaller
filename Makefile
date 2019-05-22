@@ -97,7 +97,8 @@ endif
 	arch_freebsd_amd64_host arch_netbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
 	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
-	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_windows_amd64_target \
+	arch_freebsd_amd64_target arch_freebsd_386_target \
+	arch_netbsd_amd64_target arch_windows_amd64_target \
 	arch_test presubmit presubmit_parallel clean
 
 all: host target
@@ -237,7 +238,8 @@ arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host \
 	arch_netbsd_amd64_host arch_openbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
 	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
-	arch_freebsd_amd64_target arch_netbsd_amd64_target arch_openbsd_amd64_target \
+	arch_freebsd_amd64_target arch_freebsd_386_target \
+	arch_netbsd_amd64_target arch_openbsd_amd64_target \
 	arch_windows_amd64_target arch_test
 
 arch_darwin_amd64_host:
@@ -266,6 +268,9 @@ arch_freebsd_amd64_host:
 
 arch_freebsd_amd64_target:
 	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
+
+arch_freebsd_386_target:
+	env TARGETOS=freebsd TARGETARCH=386 $(MAKE) target
 
 arch_netbsd_amd64_host:
 	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host

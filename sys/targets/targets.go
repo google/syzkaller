@@ -182,6 +182,14 @@ var List = map[string]map[string]*Target{
 			CrossCFlags:       []string{"-m64", "-static"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
+		"386": {
+			VMArch:            "amd64",
+			PtrSize:           4,
+			PageSize:          4 << 10,
+			CFlags:            []string{"-m32"},
+			CrossCFlags:       []string{"-m32", "-static"},
+			NeedSyscallDefine: dontNeedSyscallDefine,
+		},
 	},
 	"netbsd": {
 		"amd64": {
