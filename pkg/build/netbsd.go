@@ -33,6 +33,9 @@ include "arch/amd64/conf/GENERIC"
 makeoptions    KASAN=1
 options    KASAN
 no options SVS
+
+makeoptions     KCOV=1
+options     KCOV
 `)
 
 	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), conf); err != nil {
@@ -112,7 +115,9 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	if kernel != "/netbsd" {
 		return fmt.Errorf("kernel is copied into wrong location: %v", kernel)
 	}
-	commands := []string{"touch /fastboot"} // /fastboot file prevents disk check on start.
+	commands := []string{"touch /fastboot",
+		// /fastboot file prevents disk check on start.
+		"mknod /dev/kcov c 346 0"}
 	if vmType == "gce" {
 		commands = append(commands, []string{
 			// We expect boot disk to be wd0a for the qemu (that's how qemu exposes -hda disk).
