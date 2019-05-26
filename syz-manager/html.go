@@ -252,20 +252,31 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("no kernel_obj in config file"), http.StatusInternalServerError)
 		return
 	}
-	var cov cover.Cover
+	if err := initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject,
+		mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc, mgr.cfg.TargetVMArch, mgr.cfg.TargetOS); err != nil {
+		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+		return
+	}
+	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
-		cov.Merge(mgr.corpus[sig].Cover)
+		inp := mgr.corpus[sig]
+		progs = append(progs, cover.Prog{
+			Data: string(inp.Prog),
+			PCs:  coverToPCs(inp.Cover, mgr.cfg.TargetVMArch),
+		})
 	} else {
 		call := r.FormValue("call")
 		for _, inp := range mgr.corpus {
-			if call == "" || call == inp.Call {
-				cov.Merge(inp.Cover)
+			if call != "" && call != inp.Call {
+				continue
 			}
+			progs = append(progs, cover.Prog{
+				Data: string(inp.Prog),
+				PCs:  coverToPCs(inp.Cover, mgr.cfg.TargetVMArch),
+			})
 		}
 	}
-
-	if err := generateCoverHTML(w, mgr.cfg.KernelObj, mgr.sysTarget.KernelObject,
-		mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc, mgr.cfg.TargetVMArch, mgr.cfg.TargetOS, cov); err != nil {
+	if err := reportGenerator.Do(w, progs); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -415,11 +426,8 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	initCoverOnce.Do(func() {
-		initCoverError = initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject,
-			mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc, mgr.cfg.TargetArch, mgr.cfg.TargetOS)
-	})
-	if initCoverError != nil {
+	if err := initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject, mgr.cfg.KernelSrc,
+		mgr.cfg.KernelBuildSrc, mgr.cfg.TargetArch, mgr.cfg.TargetOS); err != nil {
 		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -428,12 +436,11 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	for _, inp := range mgr.corpus {
 		cov.Merge(inp.Cover)
 	}
-	pcs := make([]uint64, 0, len(cov))
+	covArray := make([]uint32, 0, len(cov))
 	for pc := range cov {
-		fullPC := cover.RestorePC(pc, initCoverVMOffset)
-		prevPC := cover.PreviousInstructionPC(mgr.cfg.TargetVMArch, fullPC)
-		pcs = append(pcs, prevPC)
+		covArray = append(covArray, pc)
 	}
+	pcs := coverToPCs(covArray, mgr.cfg.TargetVMArch)
 	sort.Slice(pcs, func(i, j int) bool {
 		return pcs[i] < pcs[j]
 	})
