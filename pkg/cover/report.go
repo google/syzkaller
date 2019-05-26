@@ -55,14 +55,13 @@ func MakeReportGenerator(vmlinux, srcDir, arch string) (*ReportGenerator, error)
 }
 
 func (rg *ReportGenerator) Do(w io.Writer, pcs []uint64) error {
-	var prefix string
 	if len(pcs) == 0 {
 		return fmt.Errorf("no coverage data available")
 	}
 	for i, pc := range pcs {
 		pcs[i] = PreviousInstructionPC(rg.arch, pc)
 	}
-	covered, prefix1, err := rg.symbolize(pcs)
+	covered, prefix, err := rg.symbolize(pcs)
 	if err != nil {
 		return err
 	}
@@ -74,16 +73,8 @@ func (rg *ReportGenerator) Do(w io.Writer, pcs []uint64) error {
 	if err != nil {
 		return err
 	}
-	if len(uncoveredPCs) == 0 {
-		prefix = prefix1
-	} else {
-		i := 0
-		for ; i < len(prefix1) && i < len(prefix2); i++ {
-			if prefix1[i] != prefix2[i] {
-				break
-			}
-		}
-		prefix = prefix1[:i]
+	if len(uncoveredPCs) != 0 {
+		prefix = combinePrefix(prefix, prefix2)
 	}
 	return rg.generate(w, prefix, covered, uncovered)
 }
@@ -244,19 +235,23 @@ func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, string, 
 		if prefix == "" {
 			prefix = frame.File
 		} else {
-			i := 0
-			for ; i < len(prefix) && i < len(frame.File); i++ {
-				if prefix[i] != frame.File[i] {
-					break
-				}
-			}
-			prefix = prefix[:i]
+			prefix = combinePrefix(prefix, frame.File)
 			if prefix == "" {
 				break
 			}
 		}
 	}
 	return frames, prefix, nil
+}
+
+func combinePrefix(prefix, prefix2 string) string {
+	i := 0
+	for ; i < len(prefix) && i < len(prefix2); i++ {
+		if prefix[i] != prefix2[i] {
+			break
+		}
+	}
+	return prefix[:i]
 }
 
 func parseFile(fn string) ([][]byte, error) {
