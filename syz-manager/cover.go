@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -26,33 +25,29 @@ var (
 )
 
 func initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS string) error {
-	if kernelObj == "" {
-		return fmt.Errorf("kernel_obj is not specified")
-	}
-	vmlinux := filepath.Join(kernelObj, kernelObjName)
-	var err error
-	reportGenerator, err = cover.MakeReportGenerator(vmlinux, kernelSrc, kernelBuildSrc, arch)
-	if err != nil {
-		return err
-	}
-	initCoverVMOffset, err = getVMOffset(vmlinux, OS)
-	return err
+	initCoverOnce.Do(func() {
+		if kernelObj == "" {
+			initCoverError = fmt.Errorf("kernel_obj is not specified")
+			return
+		}
+		vmlinux := filepath.Join(kernelObj, kernelObjName)
+		reportGenerator, initCoverError = cover.MakeReportGenerator(vmlinux, kernelSrc, kernelBuildSrc, arch)
+		if initCoverError != nil {
+			return
+		}
+		initCoverVMOffset, initCoverError = getVMOffset(vmlinux, OS)
+	})
+	return initCoverError
 }
 
-func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, kernelBuildSrc,
-	arch, OS string, cov cover.Cover) error {
-	if len(cov) == 0 {
-		return fmt.Errorf("no coverage data available")
-	}
-	initCoverOnce.Do(func() { initCoverError = initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS) })
-	if initCoverError != nil {
-		return initCoverError
-	}
+func coverToPCs(cov []uint32, arch string) []uint64 {
 	pcs := make([]uint64, 0, len(cov))
-	for pc := range cov {
-		pcs = append(pcs, cover.RestorePC(pc, initCoverVMOffset))
+	for _, pc := range cov {
+		fullPC := cover.RestorePC(pc, initCoverVMOffset)
+		prevPC := cover.PreviousInstructionPC(arch, fullPC)
+		pcs = append(pcs, prevPC)
 	}
-	return reportGenerator.Do(w, pcs)
+	return pcs
 }
 
 func getVMOffset(vmlinux, OS string) (uint32, error) {

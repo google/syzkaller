@@ -70,8 +70,9 @@ func main() {
 	if err != nil {
 		failf("%v", err)
 	}
+	progs := []cover.Prog{{PCs: pcs}}
 	buf := new(bytes.Buffer)
-	if err := rg.Do(buf, pcs); err != nil {
+	if err := rg.Do(buf, progs); err != nil {
 		failf("%v", err)
 	}
 	fn, err := osutil.TempFile("syz-cover")
