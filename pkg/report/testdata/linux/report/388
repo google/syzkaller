@@ -1,0 +1,68 @@
+TITLE: WARNING in submit_rx_urb/usb_submit_urb
+
+[   38.698988][   T12] ------------[ cut here ]------------
+[   38.709812][ T5638] usb 6-1: Direct firmware load for prism2_ru.fw failed with error -2
+[   38.720996][   T12] usb 5-1: BOGUS urb xfer, pipe 3 != type 1
+[   38.721146][   T12] WARNING: CPU: 0 PID: 12 at drivers/usb/core/urb.c:477 usb_submit_urb+0x119a/0x13c0
+[   38.736674][ T5588] usb-fuzzer-gadget dummy_udc.4: unregistering UDC driver [USB fuzzer]
+[   38.736739][   T12] Kernel panic - not syncing: panic_on_warn set ...
+[   38.742567][ T5588] dummy_hcd dummy_hcd.4: port status 0x00010100 has changes
+[   38.750334][   T12] CPU: 0 PID: 12 Comm: kworker/0:1 Not tainted 5.1.0-rc3+ #8
+[   38.757067][ T5638] prism2_usb 6-1:0.251 (unnamed net_device) (uninitialized): prism2_usb: Firmware not available, but not essential
+[   38.765636][   T12] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   38.765651][   T12] Workqueue: usb_hub_wq hub_event
+[   38.765659][   T12] Call Trace:
+[   38.765676][   T12]  dump_stack+0xca/0x13e
+[   38.765690][   T12]  ? usb_submit_urb+0x1180/0x13c0
+[   38.765702][   T12]  panic+0x292/0x5e1
+[   38.765712][   T12]  ? __warn_printk+0xf3/0xf3
+[   38.765723][   T12]  ? usb_submit_urb+0x119a/0x13c0
+[   38.765736][   T12]  ? __probe_kernel_read+0x16c/0x1b0
+[   38.765746][   T12]  ? __warn.cold+0x5/0x53
+[   38.765763][   T12]  ? __warn+0xe4/0x1c0
+[   38.774122][ T5638] prism2_usb 6-1:0.251 (unnamed net_device) (uninitialized): prism2_usb: can continue to use card anyway.
+[   38.780586][   T12]  ? usb_submit_urb+0x119a/0x13c0
+[   38.794292][   T17] prism2_usb 1-1:0.251 (unnamed net_device) (uninitialized): prism2_usb: Checking for firmware prism2_ru.fw
+[   38.795245][   T12]  __warn.cold+0x20/0x53
+[   38.810742][   T23] prism2_usb 3-1:0.251 (unnamed net_device) (uninitialized): prism2_usb: Checking for firmware prism2_ru.fw
+[   38.817343][   T12]  ? usb_submit_urb+0x119a/0x13c0
+[   38.823014][   T23] usb 3-1: Direct firmware load for prism2_ru.fw failed with error -2
+[   38.825645][   T12]  report_bug+0x262/0x2a0
+[   38.825660][   T12]  do_error_trap+0x12b/0x1e0
+[   38.825673][   T12]  ? usb_submit_urb+0x119a/0x13c0
+[   38.825686][   T12]  do_invalid_op+0x32/0x40
+[   38.825697][   T12]  ? usb_submit_urb+0x119a/0x13c0
+[   38.825708][   T12]  invalid_op+0x14/0x20
+[   38.825726][   T12] RIP: 0010:usb_submit_urb+0x119a/0x13c0
+[   38.830309][   T17] usb 1-1: Direct firmware load for prism2_ru.fw failed with error -2
+[   38.834966][   T12] Code: ea fd 48 8b 04 24 48 8d b8 a0 00 00 00 e8 9e 3f 12 ff 41 89 d8 44 89 e1 4c 89 ea 48 89 c6 48 c7 c7 e0 90 16 86 e8 e1 23 c0 fd <0f> 0b e9 14 f4 ff ff e8 3a 15 ea fd 49 8d be b0 00 00 00 48 b8 00
+[   38.834974][   T12] RSP: 0018:ffff8881d9e0efa8 EFLAGS: 00010286
+[   38.834984][   T12] RAX: 0000000000000000 RBX: 0000000000000001 RCX: 0000000000000000
+[   38.834991][   T12] RDX: 0000000000000000 RSI: ffffffff8127bbcd RDI: ffffed103b3c1de7
+[   38.834998][   T12] RBP: ffff8881d2da8a80 R08: ffff8881d9df9800 R09: 0000000000000000
+[   38.835005][   T12] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000003
+[   38.835013][   T12] R13: ffff8881ce3ac468 R14: ffff8881d5c1aa80 R15: ffff8881cbc1a108
+[   38.835030][   T12]  ? vprintk_func+0x7d/0x113
+[   38.835042][   T12]  ? usb_submit_urb+0x119a/0x13c0
+[   38.835055][   T12]  ? __netdev_alloc_skb+0x10f/0x2e0
+[   38.835074][   T12]  submit_rx_urb+0x2e1/0x3e0
+[   38.839134][   T23] prism2_usb 3-1:0.251 (unnamed net_device) (uninitialized): prism2_usb: Firmware not available, but not essential
+[   38.843545][   T12]  hfa384x_drvr_start+0x1cb/0x420
+[   38.843559][   T12]  ? hfa384x_drvr_setconfig+0x40/0x40
+[   38.843578][   T12]  ? __netdev_printk+0x1c7/0x27d
+[   38.843592][   T12]  prism2sta_ifstate+0x2ea/0x4a0
+[   38.843602][   T12]  ? netdev_notice+0x109/0x109
+[   38.843616][   T12]  ? refcount_dec_and_mutex_lock+0x80/0x80
+[   38.843628][   T12]  ? prism2mib_bytearea2pstr+0x1f0/0x1f0
+[   38.843639][   T12]  prism2sta_probe_usb.cold+0x1c8/0x49e
+[   38.843650][   T12]  ? prism2sta_mlmerequest+0x7e0/0x7e0
+[   38.843662][   T12]  ? __pm_runtime_resume+0x111/0x180
+[   38.843674][   T12]  usb_probe_interface+0x30d/0x7b0
+[   38.843687][   T12]  ? usb_probe_device+0x110/0x110
+[   38.843699][   T12]  really_probe+0x296/0x680
+[   38.843717][   T12]  driver_probe_device+0xf9/0x200
+[   38.848730][   T23] prism2_usb 3-1:0.251 (unnamed net_device) (uninitialized): prism2_usb: can continue to use card anyway.
+[   38.853997][   T12]  __device_attach_driver+0x1c4/0x230
+[   38.854010][   T12]  ? driver_allows_async_probing+0x160/0x160
+[   38.854020][   T12]  bus_for_each_drv+0x15e/0x1e0
+[   38.854038][   T12]  ? bus_rescan_devices+0x20/0x20

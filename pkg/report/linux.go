@@ -1081,6 +1081,11 @@ var linuxOopses = []*oops{
 					"vmalloc", "slab", "kmem"),
 			},
 			{
+				title: compile("WARNING: .* usb_submit_urb"),
+				fmt:   "WARNING in %[1]v/usb_submit_urb",
+				stack: warningStackFmt("usb_submit_urb"),
+			},
+			{
 				title: compile("WARNING: .* at {{SRC}} {{FUNC}}"),
 				fmt:   "WARNING in %[3]v",
 				stack: warningStackFmt(),
