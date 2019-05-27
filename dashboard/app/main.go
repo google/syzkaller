@@ -39,6 +39,7 @@ func initHTTPHandlers() {
 	for ns := range config.Namespaces {
 		http.Handle("/"+ns, handlerWrapper(handleMain))
 		http.Handle("/"+ns+"/fixed", handlerWrapper(handleFixed))
+		http.Handle("/"+ns+"/invalid", handlerWrapper(handleInvalid))
 	}
 }
 
@@ -51,7 +52,7 @@ type uiMainPage struct {
 	Groups     []*uiBugGroup
 }
 
-type uiFixedPage struct {
+type uiTerminalPage struct {
 	Header *uiHeader
 	Now    time.Time
 	Bugs   *uiBugGroup
@@ -224,22 +225,47 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 }
 
 func handleFixed(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	return handleTerminalBugList(c, w, r, &TerminalBug{
+		Status:    BugStatusFixed,
+		Subpage:   "/fixed",
+		Caption:   "fixed",
+		ShowPatch: true,
+	})
+}
+
+func handleInvalid(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	return handleTerminalBugList(c, w, r, &TerminalBug{
+		Status:    BugStatusInvalid,
+		Subpage:   "/invalid",
+		Caption:   "invalid",
+		ShowPatch: false,
+	})
+}
+
+type TerminalBug struct {
+	Status    int
+	Subpage   string
+	Caption   string
+	ShowPatch bool
+}
+
+func handleTerminalBugList(c context.Context, w http.ResponseWriter, r *http.Request, typ *TerminalBug) error {
 	accessLevel := accessLevel(c, r)
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err
 	}
-	hdr.Subpage = "/fixed"
-	bugs, err := fetchFixedBugs(c, accessLevel, hdr.Namespace)
+	hdr.Subpage = typ.Subpage
+	bugs, err := fetchTerminalBugs(c, accessLevel, hdr.Namespace, typ)
 	if err != nil {
 		return err
 	}
-	data := &uiFixedPage{
+	data := &uiTerminalPage{
 		Header: hdr,
 		Now:    timeNow(c),
 		Bugs:   bugs,
 	}
-	return serveTemplate(w, "fixed.html", data)
+	return serveTemplate(w, "terminal.html", data)
 }
 
 func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -538,11 +564,11 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string) (
 	return uiGroups, fixedCount, nil
 }
 
-func fetchFixedBugs(c context.Context, accessLevel AccessLevel, ns string) (*uiBugGroup, error) {
+func fetchTerminalBugs(c context.Context, accessLevel AccessLevel, ns string, typ *TerminalBug) (*uiBugGroup, error) {
 	var bugs []*Bug
 	_, err := db.NewQuery("Bug").
 		Filter("Namespace=", ns).
-		Filter("Status=", BugStatusFixed).
+		Filter("Status=", typ.Status).
 		GetAll(c, &bugs)
 	if err != nil {
 		return nil, err
@@ -557,8 +583,8 @@ func fetchFixedBugs(c context.Context, accessLevel AccessLevel, ns string) (*uiB
 	}
 	res := &uiBugGroup{
 		Now:       timeNow(c),
-		Caption:   "fixed",
-		ShowPatch: true,
+		Caption:   typ.Caption,
+		ShowPatch: typ.ShowPatch,
 		Namespace: ns,
 	}
 	for _, bug := range bugs {

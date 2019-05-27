@@ -147,8 +147,9 @@ func (bug *Bug) sanitizeAccess(currentLevel AccessLevel) AccessLevel {
 			ns := config.Namespaces[bug.Namespace]
 			bugLevel := ns.ReportingByName(bugReporting.Name).AccessLevel
 			if currentLevel < bugLevel {
-				if bug.Status == BugStatusFixed || len(bug.Commits) != 0 {
-					// Fixed bugs are visible in all reportings,
+				if bug.Status == BugStatusInvalid ||
+					bug.Status == BugStatusFixed || len(bug.Commits) != 0 {
+					// Invalid and fixed bugs are visible in all reportings,
 					// however, without previous reporting private information.
 					lastLevel := ns.Reporting[len(ns.Reporting)-1].AccessLevel
 					if currentLevel >= lastLevel {
