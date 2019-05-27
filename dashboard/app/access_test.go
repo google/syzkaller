@@ -69,6 +69,10 @@ func TestAccess(t *testing.T) {
 			url:   "/access-public/fixed",
 		},
 		{
+			level: AccessPublic,
+			url:   "/access-public/invalid",
+		},
+		{
 			level: AccessUser,
 			url:   "/access-user",
 		},
@@ -77,12 +81,20 @@ func TestAccess(t *testing.T) {
 			url:   "/access-user/fixed",
 		},
 		{
+			level: AccessUser,
+			url:   "/access-user/invalid",
+		},
+		{
 			level: AccessAdmin,
 			url:   "/access-admin",
 		},
 		{
 			level: AccessAdmin,
 			url:   "/access-admin/fixed",
+		},
+		{
+			level: AccessAdmin,
+			url:   "/access-admin/invalid",
 		},
 		{
 			// Any references to namespace, reporting, links, etc.
@@ -219,7 +231,10 @@ func TestAccess(t *testing.T) {
 				repInvalid = client.pollBug()
 			}
 			client.updateBug(repInvalid.ID, dashapi.BugStatusInvalid, "")
-			noteBugAccessLevel(repInvalid.ID, accessLevel)
+			// Invalid bugs become visible up to the last reporting.
+			finalLevel := config.Namespaces[ns].
+				Reporting[len(config.Namespaces[ns].Reporting)-1].AccessLevel
+			noteBugAccessLevel(repInvalid.ID, finalLevel)
 
 			crashFixed := testCrashWithRepro(build, reportingIdx*10+0)
 			client.ReportCrash(crashFixed)
@@ -241,9 +256,7 @@ func TestAccess(t *testing.T) {
 			buildFixing.Commits = []string{ns + "-patch0"}
 			client.UploadBuild(buildFixing)
 			noteBuildccessLevel(ns, buildFixing.ID)
-			// Fixed bugs become visible up to the last reporting.
-			finalLevel := config.Namespaces[ns].
-				Reporting[len(config.Namespaces[ns].Reporting)-1].AccessLevel
+			// Fixed bugs are also visible up to the last reporting.
 			noteBugAccessLevel(repFixed.ID, finalLevel)
 
 			crashOpen := testCrashWithRepro(build, reportingIdx*10+0)
