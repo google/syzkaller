@@ -277,7 +277,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 	for _, timeout := range ctx.timeouts {
 		// Execute each program separately to detect simple crashes caused by a single program.
 		// Programs are executed in reverse order, usually the last program is the guilty one.
-		res, err := ctx.extractProgSingle(reverseEntries(lastEntries), timeout)
+		res, err := ctx.extractProgSingle(lastEntries, timeout)
 		if err != nil {
 			return nil, err
 		}
@@ -292,7 +292,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 		}
 
 		// Execute all programs and bisect the log to find multiple guilty programs.
-		res, err = ctx.extractProgBisect(reverseEntries(entries), timeout)
+		res, err = ctx.extractProgBisect(entries, timeout)
 		if err != nil {
 			return nil, err
 		}
@@ -756,14 +756,6 @@ func chunksToStr(chunks [][]*prog.LogEntry) string {
 	}
 	log += "]"
 	return log
-}
-
-func reverseEntries(entries []*prog.LogEntry) []*prog.LogEntry {
-	last := len(entries) - 1
-	for i := 0; i < len(entries)/2; i++ {
-		entries[i], entries[last-i] = entries[last-i], entries[i]
-	}
-	return entries
 }
 
 func encodeEntries(entries []*prog.LogEntry) []byte {
