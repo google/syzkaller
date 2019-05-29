@@ -269,6 +269,7 @@ usb_ptm_cap_descriptor {
 # TODO: blan_mdlm_bind (iface)
 # TODO: gtco_probe (iface)
 # TODO: dlfb_parse_vendor_descriptor (iface)
+# TODO: snd_usbmidi_get_ms_info (ifcae, endpoint)
 
 # TODO: https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/usb/audio.h
 # TODO: search for snd_usb_find_csint_desc()
