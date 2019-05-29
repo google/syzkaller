@@ -187,7 +187,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:           4,
 			PageSize:          4 << 10,
 			CFlags:            []string{"-m32"},
-			CrossCFlags:       []string{"-m32", "-static"},
+			CrossCFlags:       []string{"-m32", "-static", "-B/usr/lib32"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
