@@ -1083,7 +1083,7 @@ var linuxOopses = []*oops{
 			{
 				title: compile("WARNING: .* usb_submit_urb"),
 				fmt:   "WARNING in %[1]v/usb_submit_urb",
-				stack: warningStackFmt("usb_submit_urb"),
+				stack: warningStackFmt("usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"),
 			},
 			{
 				title: compile("WARNING: .* at {{SRC}} {{FUNC}}"),
