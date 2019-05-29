@@ -183,11 +183,13 @@ var List = map[string]map[string]*Target{
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 		"386": {
-			VMArch:            "amd64",
-			PtrSize:           4,
-			PageSize:          4 << 10,
-			CFlags:            []string{"-m32"},
-			CrossCFlags:       []string{"-m32", "-static"},
+			VMArch:   "amd64",
+			PtrSize:  4,
+			PageSize: 4 << 10,
+			CFlags:   []string{"-m32"},
+			// The story behind -B/usr/lib32 is not completely clear, but it helps in some cases.
+			// For context see discussion in https://github.com/google/syzkaller/pull/1202
+			CrossCFlags:       []string{"-m32", "-static", "-B/usr/lib32"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
