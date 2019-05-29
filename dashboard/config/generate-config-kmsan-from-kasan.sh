@@ -18,7 +18,7 @@ scripts/kconfig/merge_config.sh .config ${KMSAN_ADD}
 make CC="${CC}" oldconfig < /dev/null
 
 util_add_usb_bits
-util_add_extra_syzbot_configs "${KMSAN_CONFIG}"
+util_add_syzbot_extra_bits "${KMSAN_CONFIG}"
 
 cat .config >> ${KMSAN_CONFIG}
 cp ${KMSAN_CONFIG} .config
