@@ -8,14 +8,21 @@ THISDIR=`cd $(dirname $0); pwd`
 
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 
-function util_add_usb_bits {
+function util_add_syzbot_bits {
+  scripts/kconfig/merge_config.sh .config $SYZBOT_CONFIG
+  # Not merged in for some reason.
+  scripts/config -e CONFIG_KCOV_ENABLE_COMPARISONS
+  make CC="${CC}" olddefconfig
+}
 
-  DISTRO_CONFIG=${THISDIR}/distros/ubuntu-bionic-config-4.15.0-47-generic
+function util_add_usb_bits {
   MERGE_USB_SCRIPT=${THISDIR}/kconfiglib-merge-usb-configs.py
 
   git clone --depth=1 https://github.com/ulfalizer/Kconfiglib.git
   wget -qO- https://raw.githubusercontent.com/ulfalizer/Kconfiglib/master/makefile.patch | patch -p1
-  make CC="${CC}" scriptconfig SCRIPT=${MERGE_USB_SCRIPT} SCRIPT_ARG=$DISTRO_CONFIG
+  for config in ${THISDIR}/distros/*; do
+    make CC="${CC}" scriptconfig SCRIPT=${MERGE_USB_SCRIPT} SCRIPT_ARG=${config}
+  done
   git checkout ./scripts/kconfig/Makefile
   rm -rf ./Kconfiglib
 
@@ -38,7 +45,7 @@ function util_add_usb_bits {
   scripts/config -e CONFIG_USB_FUZZER
 }
 
-function util_add_extra_syzbot_configs {
+function util_add_syzbot_extra_bits {
   echo "# The following configs are added manually, preserve them.
 # CONFIG_DEBUG_MEMORY was once added to mm tree and cause disabling of KASAN,
 # which in turn caused storm of assorted crashes after silent memory
