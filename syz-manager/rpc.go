@@ -159,7 +159,16 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 		r.Candidates = serv.mgr.candidateBatch(serv.batchSize)
 	}
 	if len(r.Candidates) == 0 {
-		for i := 0; i < serv.batchSize && len(f.inputs) > 0; i++ {
+		batchSize := serv.batchSize
+		// When the fuzzer starts, it pumps the whole corpus.
+		// If we do it using the final batchSize, it can be very slow
+		// (batch of size 6 can take more than 10 mins for 50K corpus and slow kernel).
+		// So use a larger batch initially (we use no stats as approximation of initial pump).
+		const initialBatch = 30
+		if len(a.Stats) == 0 && batchSize < initialBatch {
+			batchSize = initialBatch
+		}
+		for i := 0; i < batchSize && len(f.inputs) > 0; i++ {
 			last := len(f.inputs) - 1
 			r.NewInputs = append(r.NewInputs, f.inputs[last])
 			f.inputs[last] = rpctype.RPCInput{}
