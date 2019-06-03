@@ -17,7 +17,15 @@ static void cover_collect(cover_t* cov)
 {
 }
 
+static void cover_protect(cover_t* cov)
+{
+}
+
 #if SYZ_EXECUTOR_USES_SHMEM
+static void cover_unprotect(cover_t* cov)
+{
+}
+
 static bool cover_check(uint32 pc)
 {
 	return true;
