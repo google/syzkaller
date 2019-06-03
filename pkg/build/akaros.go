@@ -123,8 +123,7 @@ func (ctx akaros) cmd(kernelDir, runDir string, bin string, args ...string) erro
 	cmd.Env = append(cmd.Env, []string{
 		"MAKE_JOBS=" + strconv.Itoa(runtime.NumCPU()),
 		"AKAROS_ROOT=" + kernelDir,
-		"AKAROS_XCC_ROOT=" + filepath.Join(kernelDir, "toolchain", "x86_64-ucb-akaros-gcc"),
-		"X86_64_INSTDIR=" + filepath.Join(kernelDir, "toolchain", "x86_64-ucb-akaros-gcc"),
+		"AKAROS_TOOLCHAINS=" + filepath.Join(kernelDir, "toolchain"),
 		"PATH=" + filepath.Join(kernelDir, "toolchain", "x86_64-ucb-akaros-gcc", "bin") +
 			string(filepath.ListSeparator) + os.Getenv("PATH"),
 	}...)
