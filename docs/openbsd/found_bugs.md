@@ -6,6 +6,10 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [pckbc(4): command queue corruption](https://marc.info/?l=openbsd-cvs&m=155958041916637&w=2)
+
+- [wsmux(4): use-after-free in `wsmux_do_ioctl()`](https://marc.info/?l=openbsd-cvs&m=155847224722518&w=2)
+
 - [sendto: lenient validation in `rt_mpls_set()`](https://marc.info/?l=openbsd-cvs&m=155759323213186&w=2)
 
 - [bpf(4): unsigned integer wrap around](https://marc.info/?l=openbsd-cvs&m=155621669009140&w=2)
