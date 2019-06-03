@@ -80,6 +80,25 @@ static void cover_open(cover_t* cov, bool extra)
 	cov->data_end = cov->data + mmap_alloc_size;
 }
 
+static void cover_protect(cover_t* cov)
+{
+#if GOOS_freebsd
+	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
+	long page_size = sysconf(_SC_PAGESIZE);
+	if (page_size > 0)
+		mprotect(cov->data + page_size, mmap_alloc_size - page_size,
+			 PROT_READ);
+#endif
+}
+
+static void cover_unprotect(cover_t* cov)
+{
+#if GOOS_freebsd
+	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
+	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
+#endif
+}
+
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 {
 	int kcov_mode = collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;

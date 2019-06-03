@@ -75,6 +75,14 @@ static void cover_open(cover_t* cov, bool extra)
 	cov->data_end = cov->data + mmap_alloc_size;
 }
 
+static void cover_protect(cover_t* cov)
+{
+}
+
+static void cover_unprotect(cover_t* cov)
+{
+}
+
 static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 {
 	int kcov_mode = collect_comps ? KCOV_TRACE_CMP : KCOV_TRACE_PC;

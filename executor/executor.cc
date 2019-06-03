@@ -387,8 +387,10 @@ int main(int argc, char** argv)
 		for (int i = 0; i < kMaxThreads; i++) {
 			threads[i].cov.fd = kCoverFd + i;
 			cover_open(&threads[i].cov, false);
+			cover_protect(&threads[i].cov);
 		}
 		cover_open(&extra_cov, true);
+		cover_protect(&extra_cov);
 		if (flag_extra_cover) {
 			// Don't enable comps because we don't use them in the fuzzer yet.
 			cover_enable(&extra_cov, false, true);
@@ -846,8 +848,10 @@ void write_coverage_signal(cover_t* cov, uint32* signal_count_pos, uint32* cover
 	uint32 cover_size = cov->size;
 	if (flag_dedup_cover) {
 		cover_data_t* end = cover_data + cover_size;
+		cover_unprotect(cov);
 		std::sort(cover_data, end);
 		cover_size = std::unique(cover_data, end) - cover_data;
+		cover_protect(cov);
 	}
 	// Truncate PCs to uint32 assuming that they fit into 32-bits.
 	// True for x86_64 and arm64 without KASLR.
@@ -932,8 +936,10 @@ void write_call_output(thread_t* th, bool finished)
 		kcov_comparison_t* end = start + ncomps;
 		if ((char*)end > th->cov.data_end)
 			fail("too many comparisons %u", ncomps);
+		cover_unprotect(&th->cov);
 		std::sort(start, end);
 		ncomps = std::unique(start, end) - start;
+		cover_protect(&th->cov);
 		uint32 comps_size = 0;
 		for (uint32 i = 0; i < ncomps; ++i) {
 			if (start[i].ignore())
