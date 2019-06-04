@@ -46,7 +46,10 @@ You can see the compiled binaries in `bin/netbsd_amd64`.
 
 ## Setting up a NetBSD VM with qemu 
 
-Please follow the tutorial given [here](https://wiki.qemu.org/Hosts/BSD#NetBSD) to
+You can use the script given [here](https://github.com/R3x/netbsd-fuzzing-aids/blob/master/install_netbsd.sh) to create a disk image with NetBSD installed.
+The script would also automatically give you a ssh key to ssh into the VM. 
+
+Alternatively, You can follow the tutorial given [here](https://wiki.qemu.org/Hosts/BSD#NetBSD) to
 setup a basic NetBSD VM with qemu.
 
 After installing and running the NetBSD VM on qemu please follow the steps below to
