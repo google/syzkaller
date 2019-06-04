@@ -80,6 +80,7 @@ func test(t *testing.T, sysTarget *targets.Target) {
 			t.Helper()
 			t.Logf(text)
 		},
+		Retries: 7, // empirical number that seem to reduce flakes to zero
 		Verbose: true,
 	}
 	if err := ctx.Run(); err != nil {
