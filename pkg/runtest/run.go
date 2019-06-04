@@ -57,6 +57,7 @@ type Context struct {
 	EnabledCalls map[string]map[*prog.Syscall]bool
 	Requests     chan *RunRequest
 	LogFunc      func(text string)
+	Retries      int // max number of test retries to deal with flaky tests
 	Verbose      bool
 }
 
@@ -65,19 +66,18 @@ func (ctx *Context) log(msg string, args ...interface{}) {
 }
 
 func (ctx *Context) Run() error {
+	defer close(ctx.Requests)
+	if ctx.Retries%2 == 0 {
+		ctx.Retries++
+	}
 	progs := make(chan *RunRequest, 1000+2*cap(ctx.Requests))
 	errc := make(chan error, 1)
 	go func() {
 		defer close(progs)
-		defer close(ctx.Requests)
 		errc <- ctx.generatePrograms(progs)
 	}()
 	var ok, fail, broken, skip int
 	for req := range progs {
-		<-req.Done
-		if req.Bin != "" {
-			os.Remove(req.Bin)
-		}
 		result := ""
 		verbose := false
 		if req.broken != "" {
@@ -89,8 +89,36 @@ func (ctx *Context) Run() error {
 			result = fmt.Sprintf("SKIP (%v)", req.skip)
 			verbose = true
 		} else {
+			// The tests depend on timings and may be flaky, esp on overloaded/slow machines.
+			// We don't want to fix this by significantly bumping all timeouts,
+			// because if a program fails all the time with the default timeouts,
+			// it will also fail during fuzzing. And we want to ensure that it's not the case.
+			// So what we want is to tolerate episodic failures with the default timeouts.
+			// To achieve this we run each test several times and ensure that it passes
+			// in 50+% of cases (i.e. 1/1, 2/3, 3/5, 4/7, etc).
+			// In the best case this allows to get off with just 1 test run.
+			var resultErr error
+			for try, failed := 0, 0; try < ctx.Retries; try++ {
+				req.Output = nil
+				req.Info = nil
+				req.Done = make(chan struct{})
+				ctx.Requests <- req
+				<-req.Done
+				if req.Err != nil {
+					break
+				}
+				err := checkResult(req)
+				if err != nil {
+					failed++
+					resultErr = err
+				}
+				if ok := try + 1 - failed; ok > failed {
+					resultErr = nil
+					break
+				}
+			}
 			if req.Err == nil {
-				req.Err = checkResult(req)
+				req.Err = resultErr
 			}
 			if req.Err != nil {
 				fail++
@@ -107,6 +135,9 @@ func (ctx *Context) Run() error {
 		}
 		if !verbose || ctx.Verbose {
 			ctx.log("%-38v: %v", req.name, result)
+		}
+		if req.Bin != "" {
+			os.Remove(req.Bin)
 		}
 	}
 	if err := <-errc; err != nil {
@@ -134,8 +165,6 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 	}
 	sort.Strings(sandboxes)
 	sysTarget := targets.Get(ctx.Target.OS, ctx.Target.Arch)
-	closedDone := make(chan struct{})
-	close(closedDone)
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), "~") {
 			continue
@@ -153,7 +182,6 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 			for _, call := range p.Calls {
 				if !ctx.EnabledCalls[sandbox][call.Meta] {
 					progs <- &RunRequest{
-						Done: closedDone,
 						name: name,
 						skip: fmt.Sprintf("unsupported call %v", call.Meta.Name),
 					}
@@ -199,7 +227,6 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 					if !sysTarget.ExecutorUsesForkServer && times > 1 {
 						// Non-fork loop implementation does not support repetition.
 						progs <- &RunRequest{
-							Done:   closedDone,
 							name:   name,
 							broken: "non-forking loop",
 						}
@@ -290,13 +317,8 @@ func (ctx *Context) produceTest(progs chan *RunRequest, req *RunRequest, name st
 	properties, requires map[string]bool, results *ipc.ProgInfo) {
 	req.name = name
 	req.results = results
-	if match(properties, requires) {
-		req.Done = make(chan struct{})
-		ctx.Requests <- req
-	} else {
+	if !match(properties, requires) {
 		req.skip = "excluded by constraints"
-		req.Done = make(chan struct{})
-		close(req.Done)
 	}
 	progs <- req
 }
