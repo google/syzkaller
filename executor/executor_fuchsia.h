@@ -27,6 +27,7 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 		    !strcmp(c->name, "zx_debuglog_read") ||
 		    !strcmp(c->name, "zx_clock_get") ||
 		    !strcmp(c->name, "zx_clock_get_monotonic") ||
+		    !strcmp(c->name, "zx_deadline_after") ||
 		    !strcmp(c->name, "zx_ticks_get"))
 			return 0;
 		errno = (-res) & 0x7f;
