@@ -10,6 +10,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#if GOOS_openbsd
+#include <sys/sysctl.h>
+#endif
+
 static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
 #if GOOS_openbsd
@@ -88,6 +92,16 @@ static void cover_protect(cover_t* cov)
 	if (page_size > 0)
 		mprotect(cov->data + page_size, mmap_alloc_size - page_size,
 			 PROT_READ);
+#elif GOOS_openbsd
+	int mib[2], page_size;
+	size_t len;
+	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
+	mib[0] = CTL_HW;
+	mib[1] = HW_PAGESIZE;
+	len = sizeof(page_size);
+	if (sysctl(mib, ARRAY_SIZE(mib), &page_size, &len, NULL, 0) != -1)
+		mprotect(cov->data + page_size, mmap_alloc_size - page_size,
+			 PROT_READ);
 #endif
 }
 
@@ -95,6 +109,9 @@ static void cover_unprotect(cover_t* cov)
 {
 #if GOOS_freebsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
+	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
+#elif GOOS_openbsd
+	size_t mmap_alloc_size = kCoverSize * sizeof(uintptr_t);
 	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
 #endif
 }
