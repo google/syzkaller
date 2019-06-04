@@ -1,0 +1,100 @@
+TITLE: general protection fault in x25_connect
+
+[ 2348.757430][ T1533] ==================================================================
+[ 2348.763145][ T1560] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[ 2348.763191][ T1560] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[ 2348.771271][ T1533] BUG: KASAN: null-ptr-deref in refcount_sub_and_test_checked+0x87/0x200
+[ 2348.779316][ T1560] CPU: 0 PID: 1560 Comm: syz-executor.2 Not tainted 5.2.0-rc1+ #26
+[ 2348.786230][ T1533] Read of size 4 at addr 00000000000000c8 by task syz-executor.2/1533
+[ 2348.794618][ T1560] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 2348.802482][ T1533] 
+[ 2348.802504][ T1533] CPU: 1 PID: 1533 Comm: syz-executor.2 Not tainted 5.2.0-rc1+ #26
+[ 2348.810663][ T1560] RIP: 0010:refcount_sub_and_test_checked+0x8e/0x200
+[ 2348.820706][ T1533] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 2348.823036][ T1560] Code: f3 f3 65 48 8b 04 25 28 00 00 00 48 89 45 d0 31 c0 e8 26 75 3c fe be 04 00 00 00 48 89 df e8 99 e7 74 fe 48 89 d8 48 c1 e8 03 <42> 0f b6 14 20 48 89 d8 83 e0 07 83 c0 03 38 d0 7c 08 84 d2 0f 85
+[ 2348.830900][ T1533] Call Trace:
+[ 2348.837570][ T1560] RSP: 0018:ffff888068cb7bc8 EFLAGS: 00010202
+[ 2348.847633][ T1533]  dump_stack+0x172/0x1f0
+[ 2348.867226][ T1560] RAX: 0000000000000019 RBX: 00000000000000c8 RCX: ffffffff83342f57
+[ 2348.870507][ T1533]  ? refcount_sub_and_test_checked+0x87/0x200
+[ 2348.876556][ T1560] RDX: 0000000000000000 RSI: 0000000000000004 RDI: 00000000000000c8
+[ 2348.880875][ T1533]  ? refcount_sub_and_test_checked+0x87/0x200
+[ 2348.888829][ T1560] RBP: ffff888068cb7c60 R08: 1ffffffff12c8ca4 R09: fffffbfff12c8ca5
+[ 2348.894905][ T1533]  __kasan_report.cold+0x5/0x40
+[ 2348.902859][ T1560] R10: fffffbfff12c8ca4 R11: ffffffff89646523 R12: dffffc0000000000
+[ 2348.908925][ T1533]  ? remove_wait_queue+0x70/0x190
+[ 2348.916885][ T1560] R13: 0000000000000000 R14: ffff888068cb7c38 R15: 1ffff1100d196f7b
+[ 2348.921731][ T1533]  ? refcount_sub_and_test_checked+0x87/0x200
+[ 2348.929682][ T1560] FS:  00007f6d5fe6f700(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[ 2348.934699][ T1533]  kasan_report+0x12/0x20
+[ 2348.942651][ T1560] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 2348.948717][ T1533]  check_memory_region+0x123/0x190
+[ 2348.957627][ T1560] CR2: 0000000001572ec0 CR3: 000000006861b000 CR4: 00000000001406f0
+[ 2348.961978][ T1533]  kasan_check_read+0x11/0x20
+[ 2348.968564][ T1560] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 2348.973678][ T1533]  refcount_sub_and_test_checked+0x87/0x200
+[ 2348.981633][ T1560] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 2348.986303][ T1533]  ? refcount_dec_not_one+0x1f0/0x1f0
+[ 2348.996757][ T1560] Call Trace:
+[ 2349.002759][ T1533]  ? x25_connect+0x8a8/0xea0
+[ 2349.010724][ T1560]  ? refcount_dec_not_one+0x1f0/0x1f0
+[ 2349.016093][ T1533]  refcount_dec_and_test_checked+0x1b/0x20
+[ 2349.019386][ T1560]  ? x25_connect+0x8a8/0xea0
+[ 2349.023951][ T1533]  x25_connect+0x8d8/0xea0
+[ 2349.023971][ T1533]  ? x25_find_socket+0x140/0x140
+[ 2349.029338][ T1560]  refcount_dec_and_test_checked+0x1b/0x20
+[ 2349.035127][ T1533]  ? wake_up_q+0xf0/0xf0
+[ 2349.039695][ T1560]  x25_connect+0x8d8/0xea0
+[ 2349.044098][ T1533]  ? apparmor_socket_connect+0xb6/0x160
+[ 2349.049011][ T1560]  ? x25_find_socket+0x140/0x140
+[ 2349.054805][ T1533]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 2349.059034][ T1560]  ? wake_up_q+0xf0/0xf0
+[ 2349.063438][ T1533]  ? security_socket_connect+0x8d/0xc0
+[ 2349.068972][ T1560]  ? apparmor_socket_connect+0xb6/0x160
+[ 2349.073899][ T1533]  __sys_connect+0x264/0x330
+[ 2349.080135][ T1560]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[ 2349.084371][ T1533]  ? __ia32_sys_accept+0xb0/0xb0
+[ 2349.089824][ T1560]  ? security_socket_connect+0x8d/0xc0
+[ 2349.095370][ T1533]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 2349.099954][ T1560]  __sys_connect+0x264/0x330
+[ 2349.106189][ T1533]  ? put_timespec64+0xda/0x140
+[ 2349.111120][ T1560]  ? __ia32_sys_accept+0xb0/0xb0
+[ 2349.116584][ T1533]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[ 2349.122826][ T1560]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[ 2349.127908][ T1533]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[ 2349.132668][ T1560]  ? put_timespec64+0xda/0x140
+[ 2349.137599][ T1533]  ? do_syscall_64+0x26/0x680
+[ 2349.143054][ T1560]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[ 2349.149409][ T1533]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 2349.154855][ T1560]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[ 2349.159610][ T1533]  ? do_syscall_64+0x26/0x680
+[ 2349.164275][ T1560]  ? do_syscall_64+0x26/0x680
+[ 2349.169730][ T1533]  __x64_sys_connect+0x73/0xb0
+[ 2349.175890][ T1560]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 2349.181340][ T1533]  do_syscall_64+0xfd/0x680
+[ 2349.186004][ T1560]  ? do_syscall_64+0x26/0x680
+[ 2349.190690][ T1533]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 2349.195434][ T1560]  __x64_sys_connect+0x73/0xb0
+[ 2349.201488][ T1533] RIP: 0033:0x459279
+[ 2349.205994][ T1560]  do_syscall_64+0xfd/0x680
+[ 2349.210653][ T1533] Code: fd b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[ 2349.216736][ T1560]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 2349.221480][ T1533] RSP: 002b:00007f6d5feb0c78 EFLAGS: 00000246 ORIG_RAX: 000000000000002a
+[ 2349.225395][ T1560] RIP: 0033:0x459279
+[ 2349.229887][ T1533] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459279
+[ 2349.249600][ T1560] Code: fd b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[ 2349.255482][ T1533] RDX: 0000000000000012 RSI: 0000000020000000 RDI: 0000000000000004
+[ 2349.263909][ T1560] RSP: 002b:00007f6d5fe6ec78 EFLAGS: 00000246 ORIG_RAX: 000000000000002a
+[ 2349.267884][ T1533] RBP: 000000000075bfc0 R08: 0000000000000000 R09: 0000000000000000
+[ 2349.275858][ T1560] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459279
+[ 2349.295470][ T1533] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f6d5feb16d4
+[ 2349.303441][ T1560] RDX: 0000000000000012 RSI: 0000000020000100 RDI: 0000000000000004
+[ 2349.311941][ T1533] R13: 00000000004bf854 R14: 00000000004d0dc8 R15: 00000000ffffffff
+[ 2349.319932][ T1560] RBP: 000000000075c100 R08: 0000000000000000 R09: 0000000000000000
+[ 2349.327919][ T1533] ==================================================================
+[ 2349.336486][ T1560] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f6d5fe6f6d4
+[ 2349.344582][ T1533] Kernel panic - not syncing: panic_on_warn set ...
+[ 2349.352458][ T1560] R13: 00000000004bf854 R14: 00000000004d0dc8 R15: 00000000ffffffff
+[ 2349.391105][ T1560] Modules linked in:
+[ 2349.396383][ T1533] Kernel Offset: disabled
+[ 2349.400715][ T1533] Rebooting in 86400 seconds..
