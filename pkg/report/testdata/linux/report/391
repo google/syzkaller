@@ -1,0 +1,138 @@
+TITLE: KASAN: use-after-free Read in nr_release
+
+[  334.230640][T12837] ==================================================================
+[  334.239022][T12837] BUG: KASAN: use-after-free in refcount_inc_not_zero_checked+0x81/0x200
+[  334.247436][T12837] Read of size 4 at addr ffff88808bb14200 by task syz-executor.5/12837
+[  334.255675][T12837] 
+[  334.258012][T12837] CPU: 1 PID: 12837 Comm: syz-executor.5 Not tainted 5.1.0-rc5+ #72
+[  334.265985][T12837] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  334.276036][T12837] Call Trace:
+[  334.279336][T12837]  dump_stack+0x172/0x1f0
+[  334.283672][T12837]  ? refcount_inc_not_zero_checked+0x81/0x200
+[  334.289746][T12837]  print_address_description.cold+0x7c/0x20d
+[  334.295757][T12837]  ? refcount_inc_not_zero_checked+0x81/0x200
+[  334.301828][T12837]  ? refcount_inc_not_zero_checked+0x81/0x200
+[  334.307919][T12837]  kasan_report.cold+0x1b/0x40
+[  334.312691][T12837]  ? refcount_inc_not_zero_checked+0x81/0x200
+[  334.318765][T12837]  check_memory_region+0x123/0x190
+[  334.323883][T12837]  kasan_check_read+0x11/0x20
+[  334.328562][T12837]  refcount_inc_not_zero_checked+0x81/0x200
+[  334.334487][T12837]  ? refcount_dec_and_mutex_lock+0x90/0x90
+[  334.340298][T12837]  ? lock_acquire+0x16f/0x3f0
+[  334.344979][T12837]  refcount_inc_checked+0x17/0x70
+[  334.350042][T12837]  nr_release+0x62/0x3c0
+[  334.354311][T12837]  __sock_release+0xd3/0x2b0
+[  334.358903][T12837]  ? __sock_release+0x2b0/0x2b0
+[  334.363756][T12837]  sock_close+0x1b/0x30
+[  334.367915][T12837]  __fput+0x2e5/0x8d0
+[  334.371901][T12837]  ____fput+0x16/0x20
+[  334.375888][T12837]  task_work_run+0x14a/0x1c0
+[  334.380502][T12837]  exit_to_usermode_loop+0x273/0x2c0
+[  334.385795][T12837]  do_syscall_64+0x52d/0x610
+[  334.390397][T12837]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  334.396381][T12837] RIP: 0033:0x4129e1
+[  334.400278][T12837] Code: 75 14 b8 03 00 00 00 0f 05 48 3d 01 f0 ff ff 0f 83 e4 1a 00 00 c3 48 83 ec 08 e8 0a fc ff ff 48 89 04 24 b8 03 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 53 fc ff ff 48 89 d0 48 83 c4 08 48 3d 01
+[  334.420308][T12837] RSP: 002b:00007ffc18cd87a0 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+[  334.428897][T12837] RAX: 0000000000000000 RBX: 0000000000000008 RCX: 00000000004129e1
+[  334.436898][T12837] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000007
+[  334.444876][T12837] RBP: 000000000073c900 R08: ffffffff8132caba R09: 00000000dd5371a4
+[  334.452853][T12837] R10: 00007ffc18cd8870 R11: 0000000000000293 R12: 0000000000000001
+[  334.460826][T12837] R13: 000000000073c900 R14: 0000000000051747 R15: 000000000073c0ec
+[  334.468837][T12837]  ? __phys_addr+0x1a/0x120
+[  334.473346][T12837] 
+[  334.475694][T12837] Allocated by task 12840:
+[  334.480117][T12837]  save_stack+0x45/0xd0
+[  334.488181][T12837]  __kasan_kmalloc.constprop.0+0xcf/0xe0
+[  334.493809][T12837]  kasan_kmalloc+0x9/0x10
+[  334.498129][T12837]  __kmalloc+0x15c/0x740
+[  334.502364][T12837]  sk_prot_alloc+0x19c/0x2e0
+[  334.506949][T12837]  sk_alloc+0x39/0xf70
+[  334.511032][T12837]  nr_create+0xb9/0x5e0
+[  334.515196][T12837]  __sock_create+0x3e6/0x750
+[  334.519786][T12837]  __sys_socket+0x103/0x220
+[  334.524281][T12837]  __x64_sys_socket+0x73/0xb0
+[  334.528955][T12837]  do_syscall_64+0x103/0x610
+[  334.533541][T12837]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  334.539416][T12837] 
+[  334.541732][T12837] Freed by task 12837:
+[  334.545794][T12837]  save_stack+0x45/0xd0
+[  334.549954][T12837]  __kasan_slab_free+0x102/0x150
+[  334.554886][T12837]  kasan_slab_free+0xe/0x10
+[  334.559480][T12837]  kfree+0xcf/0x230
+[  334.563284][T12837]  __sk_destruct+0x4f1/0x6d0
+[  334.567868][T12837]  sk_destruct+0x7b/0x90
+[  334.572103][T12837]  __sk_free+0xce/0x300
+[  334.576255][T12837]  sk_free+0x42/0x50
+[  334.580159][T12837]  nr_release+0x337/0x3c0
+[  334.584485][T12837]  __sock_release+0xd3/0x2b0
+[  334.589069][T12837]  sock_close+0x1b/0x30
+[  334.593215][T12837]  __fput+0x2e5/0x8d0
+[  334.597649][T12837]  ____fput+0x16/0x20
+[  334.601626][T12837]  task_work_run+0x14a/0x1c0
+[  334.606208][T12837]  exit_to_usermode_loop+0x273/0x2c0
+[  334.611491][T12837]  do_syscall_64+0x52d/0x610
+[  334.616080][T12837]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  334.621956][T12837] 
+[  334.624279][T12837] The buggy address belongs to the object at ffff88808bb14180
+[  334.624279][T12837]  which belongs to the cache kmalloc-2k of size 2048
+[  334.638437][T12837] The buggy address is located 128 bytes inside of
+[  334.638437][T12837]  2048-byte region [ffff88808bb14180, ffff88808bb14980)
+[  334.651811][T12837] The buggy address belongs to the page:
+[  334.657467][T12837] page:ffffea00022ec500 count:1 mapcount:0 mapping:ffff88812c3f0c40 index:0xffff88808bb15280 compound_mapcount: 0
+[  334.669439][T12837] flags: 0x1fffc0000010200(slab|head)
+[  334.674830][T12837] raw: 01fffc0000010200 ffffea00022b2908 ffffea00025fea08 ffff88812c3f0c40
+[  334.683422][T12837] raw: ffff88808bb15280 ffff88808bb14180 0000000100000001 0000000000000000
+[  334.692002][T12837] page dumped because: kasan: bad access detected
+[  334.698404][T12837] 
+[  334.701072][T12837] Memory state around the buggy address:
+[  334.706695][T12837]  ffff88808bb14100: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  334.714749][T12837]  ffff88808bb14180: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  334.723020][T12837] >ffff88808bb14200: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  334.731589][T12837]                    ^
+[  334.735652][T12837]  ffff88808bb14280: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  334.743892][T12837]  ffff88808bb14300: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  334.751942][T12837] ==================================================================
+[  334.759990][T12837] Disabling lock debugging due to kernel taint
+[  334.795319][T12837] Kernel panic - not syncing: panic_on_warn set ...
+[  334.801951][T12837] CPU: 1 PID: 12837 Comm: syz-executor.5 Tainted: G    B             5.1.0-rc5+ #72
+[  334.811310][T12837] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  334.821358][T12837] Call Trace:
+[  334.824661][T12837]  dump_stack+0x172/0x1f0
+[  334.829024][T12837]  panic+0x2cb/0x65c
+[  334.832913][T12837]  ? __warn_printk+0xf3/0xf3
+[  334.837498][T12837]  ? refcount_inc_not_zero_checked+0x81/0x200
+[  334.843559][T12837]  ? preempt_schedule+0x4b/0x60
+[  334.848403][T12837]  ? ___preempt_schedule+0x16/0x18
+[  334.853520][T12837]  ? trace_hardirqs_on+0x5e/0x230
+[  334.858546][T12837]  ? refcount_inc_not_zero_checked+0x81/0x200
+[  334.864600][T12837]  end_report+0x47/0x4f
+[  334.868748][T12837]  ? refcount_inc_not_zero_checked+0x81/0x200
+[  334.874806][T12837]  kasan_report.cold+0xe/0x40
+[  334.879481][T12837]  ? refcount_inc_not_zero_checked+0x81/0x200
+[  334.885538][T12837]  check_memory_region+0x123/0x190
+[  334.890643][T12837]  kasan_check_read+0x11/0x20
+[  334.895308][T12837]  refcount_inc_not_zero_checked+0x81/0x200
+[  334.901189][T12837]  ? refcount_dec_and_mutex_lock+0x90/0x90
+[  334.906985][T12837]  ? lock_acquire+0x16f/0x3f0
+[  334.911652][T12837]  refcount_inc_checked+0x17/0x70
+[  334.916670][T12837]  nr_release+0x62/0x3c0
+[  334.920911][T12837]  __sock_release+0xd3/0x2b0
+[  334.925491][T12837]  ? __sock_release+0x2b0/0x2b0
+[  334.930352][T12837]  sock_close+0x1b/0x30
+[  334.934501][T12837]  __fput+0x2e5/0x8d0
+[  334.938499][T12837]  ____fput+0x16/0x20
+[  334.942479][T12837]  task_work_run+0x14a/0x1c0
+[  334.947693][T12837]  exit_to_usermode_loop+0x273/0x2c0
+[  334.952991][T12837]  do_syscall_64+0x52d/0x610
+[  334.957580][T12837]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  334.963472][T12837] RIP: 0033:0x4129e1
+[  334.967366][T12837] Code: 75 14 b8 03 00 00 00 0f 05 48 3d 01 f0 ff ff 0f 83 e4 1a 00 00 c3 48 83 ec 08 e8 0a fc ff ff 48 89 04 24 b8 03 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 53 fc ff ff 48 89 d0 48 83 c4 08 48 3d 01
+[  334.986969][T12837] RSP: 002b:00007ffc18cd87a0 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+[  334.995374][T12837] RAX: 0000000000000000 RBX: 0000000000000008 RCX: 00000000004129e1
+[  335.003342][T12837] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000007
+[  335.011302][T12837] RBP: 000000000073c900 R08: ffffffff8132caba R09: 00000000dd5371a4
+[  335.019268][T12837] R10: 00007ffc18cd8870 R11: 0000000000000293 R12: 0000000000000001
+[  335.027246][T12837] R13: 000000000073c900 R14: 0000000000051747 R15: 000000000073c0ec
+[  335.035229][T12837]  ? __phys_addr+0x1a/0x120
+[  335.040476][T12837] Kernel Offset: disabled
+[  335.044832][T12837] Rebooting in 86400 seconds..
