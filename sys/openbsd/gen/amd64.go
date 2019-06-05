@@ -703,6 +703,43 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fontwidth", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fontheight", TypeSize: 4}}},
 	}}},
+	{Key: StructKey{Name: "wsmouse_calibcoord"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "wsmouse_calibcoord", TypeSize: 16}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "rawx", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "rawy", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "x", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "y", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "wsmouse_calibcoord", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "wsmouse_calibcoord", TypeSize: 16, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "rawx", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "rawy", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "x", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "y", TypeSize: 4, ArgDir: 1}}},
+	}}},
+	{Key: StructKey{Name: "wsmouse_calibcoords"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "wsmouse_calibcoords", TypeSize: 288}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "minx", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "miny", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "maxx", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "maxy", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "swapxy", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "resx", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "resy", TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "samplelen", TypeSize: 4}}, Path: []string{"samples"}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "samples", TypeSize: 256}, Type: &StructType{Key: StructKey{Name: "wsmouse_calibcoord"}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
+	}}},
+	{Key: StructKey{Name: "wsmouse_calibcoords", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "wsmouse_calibcoords", TypeSize: 288, ArgDir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "minx", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "miny", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "maxx", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "maxy", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "swapxy", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "resx", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "resy", TypeSize: 4, ArgDir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "samplelen", TypeSize: 4, ArgDir: 1}}, Path: []string{"samples"}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "samples", TypeSize: 256, ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "wsmouse_calibcoord", Dir: 1}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
+	}}},
+	{Key: StructKey{Name: "wsmouse_mode"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "wsmouse_mode", TypeSize: 4}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "wsmouse_mode_flags", FldName: "mode", TypeSize: 4}}, Vals: []uint64{0, 1}, BitMask: true},
+	}}},
 	{Key: StructKey{Name: "wsmouse_param"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "wsmouse_param", TypeSize: 8}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "wsmousecfg_flags", FldName: "key", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 32, 33, 34, 35, 36, 37, 38, 64, 65, 66, 67, 68, 69, 70, 71, 72, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 256, 257}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "value", TypeSize: 4}}},
@@ -1565,15 +1602,40 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147768083},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "wskbd_mode_flags", TypeSize: 4}}, Vals: []uint64{1}, BitMask: true}},
 	}},
+	{NR: 54, Name: "ioctl$WSMOUSEIO_GCALIBCOORDS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsmouse", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1092638501},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "wsmouse_calibcoords", Dir: 1}}},
+	}},
 	{NR: 54, Name: "ioctl$WSMOUSEIO_GETPARAMS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsmouse", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2148554535},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "wsmouse_parameters", Dir: 1}}},
 	}},
+	{NR: 54, Name: "ioctl$WSMOUSEIO_GTYPE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsmouse", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074026272},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{NR: 54, Name: "ioctl$WSMOUSEIO_SCALIBCOORDS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsmouse", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2166380324},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "wsmouse_calibcoords"}}},
+	}},
+	{NR: 54, Name: "ioctl$WSMOUSEIO_SETMODE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsmouse", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147768102},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "wsmouse_mode"}}},
+	}},
 	{NR: 54, Name: "ioctl$WSMOUSEIO_SETPARAMS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsmouse", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2148554536},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "wsmouse_parameters"}}},
+	}},
+	{NR: 54, Name: "ioctl$WSMOUSEIO_SRES", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsmouse", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147768097},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 	}},
 	{NR: 54, Name: "ioctl$WSMUXIO_ADD_DEVICE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsdisplay", FldName: "fd", TypeSize: 4}},
@@ -2859,8 +2921,16 @@ var consts_amd64 = []ConstValue{
 	{Name: "WSMOUSECFG_X_INV", Value: 6},
 	{Name: "WSMOUSECFG_Y_HYSTERESIS", Value: 35},
 	{Name: "WSMOUSECFG_Y_INV", Value: 7},
+	{Name: "WSMOUSEIO_GCALIBCOORDS", Value: 1092638501},
 	{Name: "WSMOUSEIO_GETPARAMS", Value: 2148554535},
+	{Name: "WSMOUSEIO_GTYPE", Value: 1074026272},
+	{Name: "WSMOUSEIO_SCALIBCOORDS", Value: 2166380324},
+	{Name: "WSMOUSEIO_SETMODE", Value: 2147768102},
 	{Name: "WSMOUSEIO_SETPARAMS", Value: 2148554536},
+	{Name: "WSMOUSEIO_SRES", Value: 2147768097},
+	{Name: "WSMOUSE_CALIBCOORDS_MAX", Value: 16},
+	{Name: "WSMOUSE_COMPAT"},
+	{Name: "WSMOUSE_NATIVE", Value: 1},
 	{Name: "WSMUXIO_ADD_DEVICE", Value: 2148030305},
 	{Name: "WSMUXIO_INJECTEVENT", Value: 2149078880},
 	{Name: "WSMUXIO_LIST_DEVICES", Value: 3238287203},
@@ -2875,4 +2945,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "1f7a33a955602d488b0c3f964b983c9f8baf75a3"
+const revision_amd64 = "25b5d4aba6e9c263a9a1612d0fdf90ba439178fe"

@@ -60,8 +60,13 @@ resource fd_wsmouse[fd]
 
 openat$wsmouse(fd const[AT_FDCWD], file ptr[in, string["/dev/wsmouse0"]], flags flags[open_flags], mode const[0]) fd_wsmouse
 
+ioctl$WSMOUSEIO_GCALIBCOORDS(fd fd_wsmouse, cmd const[WSMOUSEIO_GCALIBCOORDS], arg ptr[out, wsmouse_calibcoords])
 ioctl$WSMOUSEIO_GETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_GETPARAMS], arg ptr[out, wsmouse_parameters])
+ioctl$WSMOUSEIO_GTYPE(fd fd_wsmouse, cmd const[WSMOUSEIO_GTYPE], arg ptr[out, int32])
+ioctl$WSMOUSEIO_SCALIBCOORDS(fd fd_wsmouse, cmd const[WSMOUSEIO_SCALIBCOORDS], arg ptr[in, wsmouse_calibcoords])
+ioctl$WSMOUSEIO_SETMODE(fd fd_wsmouse, cmd const[WSMOUSEIO_SETMODE], arg ptr[in, wsmouse_mode])
 ioctl$WSMOUSEIO_SETPARAMS(fd fd_wsmouse, cmd const[WSMOUSEIO_SETPARAMS], arg ptr[in, wsmouse_parameters])
+ioctl$WSMOUSEIO_SRES(fd fd_wsmouse, cmd const[WSMOUSEIO_SRES], arg ptr[in, int32])
 
 resource fd_wsmux[fd]
 
@@ -135,6 +140,29 @@ wsdisplay_screentype {
 	fontheight	int32
 }
 
+wsmouse_calibcoord {
+	rawx	int32
+	rawy	int32
+	x	int32
+	y	int32
+}
+
+wsmouse_calibcoords {
+	minx		int32
+	miny		int32
+	maxx		int32
+	maxy		int32
+	swapxy		int32
+	resx		int32
+	resy		int32
+	samplelen	len[samples, int32]
+	samples		array[wsmouse_calibcoord, WSMOUSE_CALIBCOORDS_MAX]
+}
+
+wsmouse_mode {
+	mode	flags[wsmouse_mode_flags, int32]
+}
+
 wsmouse_param {
 	key	flags[wsmousecfg_flags, int32]
 	value	int32
@@ -196,6 +224,8 @@ wsdisplay_font_order_flags = WSDISPLAY_FONTORDER_KNOWN, WSDISPLAY_FONTORDER_L2R,
 wsdisplay_svideo_flags = WSDISPLAYIO_VIDEO_OFF, WSDISPLAYIO_VIDEO_ON
 
 wsdisplay_burner_flags = WSDISPLAY_BURN_VBLANK, WSDISPLAY_BURN_KBD, WSDISPLAY_BURN_MOUSE, WSDISPLAY_BURN_OUTPUT
+
+wsmouse_mode_flags = WSMOUSE_COMPAT, WSMOUSE_NATIVE
 
 wsmousecfg_flags = WSMOUSECFG_DX_SCALE, WSMOUSECFG_DY_SCALE, WSMOUSECFG_PRESSURE_LO, WSMOUSECFG_PRESSURE_HI, WSMOUSECFG_TRKMAXDIST, WSMOUSECFG_SWAPXY, WSMOUSECFG_X_INV, WSMOUSECFG_Y_INV, WSMOUSECFG_DX_MAX, WSMOUSECFG_DY_MAX, WSMOUSECFG_X_HYSTERESIS, WSMOUSECFG_Y_HYSTERESIS, WSMOUSECFG_DECELERATION, WSMOUSECFG_STRONG_HYSTERESIS, WSMOUSECFG_SMOOTHING, WSMOUSECFG_SOFTBUTTONS, WSMOUSECFG_SOFTMBTN, WSMOUSECFG_TOPBUTTONS, WSMOUSECFG_TWOFINGERSCROLL, WSMOUSECFG_EDGESCROLL, WSMOUSECFG_HORIZSCROLL, WSMOUSECFG_SWAPSIDES, WSMOUSECFG_DISABLE, WSMOUSECFG_TAPPING, WSMOUSECFG_LEFT_EDGE, WSMOUSECFG_RIGHT_EDGE, WSMOUSECFG_TOP_EDGE, WSMOUSECFG_BOTTOM_EDGE, WSMOUSECFG_CENTERWIDTH, WSMOUSECFG_HORIZSCROLLDIST, WSMOUSECFG_VERTSCROLLDIST, WSMOUSECFG_F2WIDTH, WSMOUSECFG_F2PRESSURE, WSMOUSECFG_TAP_MAXTIME, WSMOUSECFG_TAP_CLICKTIME, WSMOUSECFG_TAP_LOCKTIME, WSMOUSECFG_LOG_INPUT, WSMOUSECFG_LOG_EVENTS
 
