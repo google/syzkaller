@@ -15,6 +15,7 @@ var resources_amd64 = []*ResourceDesc{
 	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_bpf", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_bpf"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_dir", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_dir"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "fd_klog", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_klog"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_kqueue", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_kqueue"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_pci", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_pci"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_tty", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_tty"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -1255,6 +1256,11 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsdisplay", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 536890179},
 	}},
+	{NR: 54, Name: "ioctl$LIOCSFD", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_klog", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147773567},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock", TypeSize: 4}}},
+	}},
 	{NR: 54, Name: "ioctl$PCIOCGETROM", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_pci", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3222302725},
@@ -1822,6 +1828,12 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 8, 512, 1024, 2048, 16, 32, 256, 65536, 128, 128, 128, 32768, 131072, 64}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 321, Name: "openat$klog", CallName: "openat", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 10}, Kind: 2, Values: []string{"/dev/klog\x00"}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 8, 512, 1024, 2048, 16, 32, 256, 65536, 128, 128, 128, 32768, 131072, 64}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_klog", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 321, Name: "openat$null", CallName: "openat", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 10}, Kind: 2, Values: []string{"/dev/null\x00"}}},
@@ -2087,6 +2099,11 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "msghdr_un"}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 1024}, BitMask: true},
+	}},
+	{NR: 112, Name: "sendsyslog", CallName: "sendsyslog", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Path: []string{"msg"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "log_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32}, BitMask: true},
 	}},
 	{NR: 133, Name: "sendto", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
@@ -2489,10 +2506,17 @@ var consts_amd64 = []ConstValue{
 	{Name: "LED_CAP", Value: 1},
 	{Name: "LED_NUM", Value: 2},
 	{Name: "LED_SCR", Value: 4},
+	{Name: "LIOCSFD", Value: 2147773567},
 	{Name: "LOCK_EX", Value: 2},
 	{Name: "LOCK_NB", Value: 4},
 	{Name: "LOCK_SH", Value: 1},
 	{Name: "LOCK_UN", Value: 8},
+	{Name: "LOG_CONS", Value: 2},
+	{Name: "LOG_NDELAY", Value: 8},
+	{Name: "LOG_NOWAIT", Value: 16},
+	{Name: "LOG_ODELAY", Value: 4},
+	{Name: "LOG_PERROR", Value: 32},
+	{Name: "LOG_PID", Value: 1},
 	{Name: "MADV_DONTNEED", Value: 4},
 	{Name: "MADV_FREE", Value: 6},
 	{Name: "MADV_NORMAL"},
@@ -2726,6 +2750,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_semget", Value: 221},
 	{Name: "SYS_semop", Value: 290},
 	{Name: "SYS_sendmsg", Value: 28},
+	{Name: "SYS_sendsyslog", Value: 112},
 	{Name: "SYS_sendto", Value: 133},
 	{Name: "SYS_setegid", Value: 182},
 	{Name: "SYS_seteuid", Value: 183},
@@ -2945,4 +2970,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "25b5d4aba6e9c263a9a1612d0fdf90ba439178fe"
+const revision_amd64 = "046b8d64999817e17f0813efa9e374d2ee520a81"
