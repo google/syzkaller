@@ -178,6 +178,18 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		if !ok {
 			panic("first open arg is not a pointer to string const")
 		}
+		if checkUSBInjection() == "" {
+			// These entries might not be available at boot time,
+			// but will be created by connected USB devices.
+			USBDevicePrefixes := []string{
+				"/dev/hidraw", "/dev/usb/hiddev", "/dev/input/",
+			}
+			for _, prefix := range USBDevicePrefixes {
+				if strings.HasPrefix(fname, prefix) {
+					return true, ""
+				}
+			}
+		}
 		var check func(dev string) bool
 		check = func(dev string) bool {
 			if !strings.Contains(dev, "#") {
