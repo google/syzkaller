@@ -471,7 +471,6 @@ openat$mixer(fd const[AT_FDCWD], file ptr[in, string["/dev/mixer"]], flags flags
 openat$irnet(fd const[AT_FDCWD], file ptr[in, string["/dev/irnet"]], flags flags[open_flags], mode const[0]) fd
 openat$hwrng(fd const[AT_FDCWD], file ptr[in, string["/dev/hwrng"]], flags flags[open_flags], mode const[0]) fd
 openat$hpet(fd const[AT_FDCWD], file ptr[in, string["/dev/hpet"]], flags flags[open_flags], mode const[0]) fd
-openat$hidraw0(fd const[AT_FDCWD], file ptr[in, string["/dev/hidraw0"]], flags flags[open_flags], mode const[0]) fd
 openat$fb0(fd const[AT_FDCWD], file ptr[in, string["/dev/fb0"]], flags flags[open_flags], mode const[0]) fd
 openat$autofs(fd const[AT_FDCWD], file ptr[in, string["/dev/autofs"]], flags flags[open_flags], mode const[0]) fd
 openat$keychord(fd const[AT_FDCWD], file ptr[in, string["/dev/keychord"]], flags flags[open_flags], mode const[0]) fd
