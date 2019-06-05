@@ -1,0 +1,89 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/hiddev.h>
+
+resource fd_hiddev[fd]
+
+syz_open_dev$hiddev(dev ptr[in, string["/dev/usb/hiddev#"]], id intptr, flags flags[open_flags]) fd_hiddev
+
+read$hiddev(fd fd_hiddev, data buffer[out], len bytesize[data])
+
+# https://elixir.bootlin.com/linux/v5.1.7/source/include/uapi/linux/hiddev.h#L155
+ioctl$HIDIOCGVERSION(fd fd_hiddev, cmd const[HIDIOCGVERSION], arg ptr[out, int32])
+ioctl$HIDIOCAPPLICATION(fd fd_hiddev, cmd const[HIDIOCAPPLICATION], arg int32)
+ioctl$HIDIOCGDEVINFO(fd fd_hiddev, cmd const[HIDIOCGDEVINFO], arg buffer[out])
+ioctl$HIDIOCGSTRING(fd fd_hiddev, cmd const[HIDIOCGSTRING], arg ptr[inout, hiddev_ioctl_string_arg])
+ioctl$HIDIOCINITREPORT(fd fd_hiddev, cmd const[HIDIOCINITREPORT], arg const[0])
+ioctl$HIDIOCGNAME(fd fd_hiddev, cmd const[HIDIOCGNAME64], arg ptr[out, array[int8, 64]])
+ioctl$HIDIOCGREPORT(fd fd_hiddev, cmd const[HIDIOCGREPORT], arg ptr[in, hiddev_report_info])
+ioctl$HIDIOCSREPORT(fd fd_hiddev, cmd const[HIDIOCSREPORT], arg ptr[in, hiddev_report_info])
+ioctl$HIDIOCGREPORTINFO(fd fd_hiddev, cmd const[HIDIOCGREPORTINFO], arg ptr[inout, hiddev_report_info])
+ioctl$HIDIOCGFIELDINFO(fd fd_hiddev, cmd const[HIDIOCGFIELDINFO], arg ptr[inout, hiddev_field_info])
+ioctl$HIDIOCGUSAGE(fd fd_hiddev, cmd const[HIDIOCGUSAGE], arg ptr[inout, hiddev_usage_ref])
+ioctl$HIDIOCSUSAGE(fd fd_hiddev, cmd const[HIDIOCSUSAGE], arg ptr[in, hiddev_usage_ref])
+ioctl$HIDIOCGUCODE(fd fd_hiddev, cmd const[HIDIOCGUCODE], arg ptr[inout, hiddev_usage_ref])
+ioctl$HIDIOCGFLAG(fd fd_hiddev, cmd const[HIDIOCGFLAG], arg ptr[out, int32])
+ioctl$HIDIOCSFLAG(fd fd_hiddev, cmd const[HIDIOCSFLAG], arg ptr[in, flags[hiddev_flags, int32]])
+ioctl$HIDIOCGCOLLECTIONINDEX(fd fd_hiddev, cmd const[HIDIOCGCOLLECTIONINDEX], arg ptr[in, hiddev_usage_ref])
+ioctl$HIDIOCGCOLLECTIONINFO(fd fd_hiddev, cmd const[HIDIOCGCOLLECTIONINFO], arg ptr[inout, hiddev_collection_info])
+ioctl$HIDIOCGPHYS(fd fd_hiddev, cmd const[HIDIOCGPHYS64], arg ptr[out, array[int8, 64]])
+ioctl$HIDIOCGUSAGES(fd fd_hiddev, cmd const[HIDIOCGUSAGES], arg ptr[inout, hiddev_usage_ref_multi])
+ioctl$HIDIOCSUSAGES(fd fd_hiddev, cmd const[HIDIOCSUSAGES], arg ptr[in, hiddev_usage_ref_multi])
+
+hiddev_ioctl_string_arg {
+	idx	len[data, int32]
+	data	array[int8]
+}
+
+hiddev_report_info {
+	report_type	int32[HID_REPORT_TYPE_MIN:HID_REPORT_TYPE_MAX]
+	report_id	flags[hid_report_ids, int32]
+	num_fields	int32
+}
+
+hiddev_field_info {
+	report_type		int32[HID_REPORT_TYPE_MIN:HID_REPORT_TYPE_MAX]
+	report_id		flags[hid_report_ids, int32]
+	field_index		int32
+	maxusage		int32
+	flags			int32
+	physical		int32
+	logical			int32
+	application		int32
+	logical_minimum		int32
+	logical_maximum		int32
+	physical_minimum	int32
+	physical_maximum	int32
+	unit_exponent		int32
+	unit			int32
+}
+
+hiddev_collection_info {
+	index	int32
+	type	int32
+	usage	int32
+	level	int32
+}
+
+hiddev_usage_ref {
+	report_type	int32[HID_REPORT_TYPE_MIN:HID_REPORT_TYPE_MAX]
+	report_id	flags[hid_report_ids, int32]
+	field_index	int32
+	usage_index	int32
+	usage_code	int32
+	value		int32
+}
+
+hiddev_usage_ref_multi {
+	uref		hiddev_usage_ref
+	num_values	int32[0:HID_MAX_MULTI_USAGES]
+	values		array[int32, HID_MAX_MULTI_USAGES]
+}
+
+hiddev_flags = HIDDEV_FLAG_UREF, HIDDEV_FLAG_REPORT, HIDDEV_FLAGS
+hid_report_ids = 1, 2, 3, HID_REPORT_ID_UNKNOWN, HID_REPORT_ID_FIRST, HID_REPORT_ID_NEXT
+
+define HIDIOCGNAME64	HIDIOCGNAME(64)
+define HIDIOCGPHYS64	HIDIOCGPHYS(64)
