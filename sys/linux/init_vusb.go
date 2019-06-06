@@ -100,15 +100,16 @@ func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, old p
 		id.BInterfaceNumber = uint8(g.Rand().Intn(0xff + 1))
 	}
 
-	patchGroupArg(arg, 7, "idVendor", uint64(id.IDVendor))
-	patchGroupArg(arg, 8, "idProduct", uint64(id.IDProduct))
-	patchGroupArg(arg, 9, "bcdDevice", uint64(bcdDevice))
-	patchGroupArg(arg, 3, "bDeviceClass", uint64(id.BDeviceClass))
-	patchGroupArg(arg, 4, "bDeviceSubClass", uint64(id.BDeviceSubClass))
-	patchGroupArg(arg, 5, "bDeviceProtocol", uint64(id.BDeviceProtocol))
+	devArg := arg.(*prog.GroupArg).Inner[0]
+	patchGroupArg(devArg, 7, "idVendor", uint64(id.IDVendor))
+	patchGroupArg(devArg, 8, "idProduct", uint64(id.IDProduct))
+	patchGroupArg(devArg, 9, "bcdDevice", uint64(bcdDevice))
+	patchGroupArg(devArg, 3, "bDeviceClass", uint64(id.BDeviceClass))
+	patchGroupArg(devArg, 4, "bDeviceSubClass", uint64(id.BDeviceSubClass))
+	patchGroupArg(devArg, 5, "bDeviceProtocol", uint64(id.BDeviceProtocol))
 
-	configArg := arg.(*prog.GroupArg).Inner[14].(*prog.GroupArg).Inner[0]
-	interfaceArg := configArg.(*prog.GroupArg).Inner[8].(*prog.GroupArg).Inner[0]
+	configArg := devArg.(*prog.GroupArg).Inner[14].(*prog.GroupArg).Inner[0].(*prog.GroupArg).Inner[0]
+	interfaceArg := configArg.(*prog.GroupArg).Inner[8].(*prog.GroupArg).Inner[0].(*prog.GroupArg).Inner[0]
 
 	patchGroupArg(interfaceArg, 5, "bInterfaceClass", uint64(id.BInterfaceClass))
 	patchGroupArg(interfaceArg, 6, "bInterfaceSubClass", uint64(id.BInterfaceSubClass))
