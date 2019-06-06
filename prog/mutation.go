@@ -9,8 +9,16 @@ import (
 	"unsafe"
 )
 
+// Maximum length of generated binary blobs inserted into the program.
 const maxBlobLen = uint64(100 << 10)
 
+// Mutate program p.
+//
+// p:       The program to mutate.
+// rs:      Random source.
+// ncalls:  The allowed maximum calls in mutated program.
+// ct:      ChoiceTable for syscalls.
+// corpus:  The entire corpus, including original program p.
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
 	r := newRand(p.Target, rs)
 	ctx := &mutator{
@@ -42,14 +50,19 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 	p.debugValidate()
 }
 
+// Internal state required for performing mutations -- currently this matches
+// the arguments passed to Mutate().
 type mutator struct {
-	p      *Prog
-	r      *randGen
-	ncalls int
-	ct     *ChoiceTable
-	corpus []*Prog
+	p      *Prog        // The program to mutate.
+	r      *randGen     // The randGen instance.
+	ncalls int          // The allowed maximum calls in mutated program.
+	ct     *ChoiceTable // ChoiceTable for syscalls.
+	corpus []*Prog      // The entire corpus, including original program p.
 }
 
+// This function selects a random other program p0 out of the corpus, and
+// mutates ctx.p as follows: preserve ctx.p's Calls up to a random index i
+// (exclusive) concatenated with p0's calls from index i (inclusive).
 func (ctx *mutator) splice() bool {
 	p, r := ctx.p, ctx.r
 	if len(ctx.corpus) == 0 || len(p.Calls) == 0 {
@@ -65,6 +78,8 @@ func (ctx *mutator) splice() bool {
 	return true
 }
 
+// Picks a random complex pointer and squashes its arguments into an ANY.
+// Subsequently, if the ANY contains blobs, mutates a random blob.
 func (ctx *mutator) squashAny() bool {
 	p, r := ctx.p, ctx.r
 	complexPtrs := p.complexPtrs()
@@ -104,6 +119,8 @@ func (ctx *mutator) squashAny() bool {
 	return true
 }
 
+// Inserts a new call at a randomly chosen point (with bias towards the end of
+// existing program). Does not insert a call if program already has ncalls.
 func (ctx *mutator) insertCall() bool {
 	p, r := ctx.p, ctx.r
 	if len(p.Calls) >= ctx.ncalls {
@@ -120,6 +137,7 @@ func (ctx *mutator) insertCall() bool {
 	return true
 }
 
+// Removes a random call from program.
 func (ctx *mutator) removeCall() bool {
 	p, r := ctx.p, ctx.r
 	if len(p.Calls) == 0 {
@@ -130,6 +148,7 @@ func (ctx *mutator) removeCall() bool {
 	return true
 }
 
+// Mutate an argument of a random call.
 func (ctx *mutator) mutateArg() bool {
 	p, r := ctx.p, ctx.r
 	if len(p.Calls) == 0 {
@@ -429,7 +448,8 @@ func mutateData(r *randGen, data []byte, minLen, maxLen uint64) []byte {
 	return data
 }
 
-const maxInc = 35
+// The maximum delta for integer mutations.
+const maxDelta = 35
 
 var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool){
 	// TODO(dvyukov): duplicate part of data.
@@ -520,7 +540,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 		}
 		i := r.Intn(len(data) - width + 1)
 		v := loadInt(data[i:], width)
-		delta := r.rand(2*maxInc+1) - maxInc
+		delta := r.rand(2*maxDelta+1) - maxDelta
 		if delta == 0 {
 			delta = 1
 		}
