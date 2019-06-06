@@ -10,7 +10,9 @@ include <uapi/linux/hid.h>
 include <linux/hid.h>
 include <uapi/linux/usb/cdc.h>
 
-resource fd_usb[fd]
+# This is a special fd for USB fuzzing and should only be used with syz_usb_* syzcalls.
+# We don't inherit it from the fd resource, to discourage syzkaller calling raw ioctls on it.
+resource fd_usb[int32]: -1
 
 syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb
 syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
