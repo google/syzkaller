@@ -316,14 +316,57 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 	if !ok || len(fname) == 0 || fname[0] != '/' {
 		return true, ""
 	}
+
+	// Test 1: try to extract the correct flags
+	constFlags, ok := c.Args[2].(*prog.ConstType)
+	if ok {
+		// flag exists and is const
+		fd, err := syscall.Open(fname, int(constFlags.Val), 0)
+		if fd != -1 {
+			syscall.Close(fd)
+		}
+		if err == nil {
+			return true, ""
+		} else {
+			out := fmt.Sprintf("open(%v) failed: %v, const declared but fails %d", fname, err, int(constFlags.Val))
+			return false, out
+		}
+	}
+
+	// Test 2: try O_RDONLY, O_WRONLY, O_RDWR
+	// O_RDONLY
 	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)
 	if fd != -1 {
 		syscall.Close(fd)
 	}
-	if err != nil {
+	if err == nil {
+		return true, ""
+	}
+
+	// ENOENT occurs when the file itself doesn't exist
+	if err == syscall.ENOENT {
 		return false, fmt.Sprintf("open(%v) failed: %v", fname, err)
 	}
-	return true, ""
+
+	// O_WRONLY
+	fd, err = syscall.Open(fname, syscall.O_WRONLY, 0)
+	if fd != -1 {
+		syscall.Close(fd)
+	}
+	if err == nil {
+		return true, ""
+	}
+
+	// O_RDWR
+	fd, err = syscall.Open(fname, syscall.O_RDWR, 0)
+	if fd != -1 {
+		syscall.Close(fd)
+	}
+	if err == nil {
+		return true, ""
+	}
+
+	return false, fmt.Sprintf("open(%v) failed: %v", fname, err)
 }
 
 func isSupportedMount(c *prog.Syscall, sandbox string) (bool, string) {
