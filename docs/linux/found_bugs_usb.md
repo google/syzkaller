@@ -1,6 +1,14 @@
 # Found Linux kernel USB bugs
 
-## USB drivers
+## Reported by syzbot
+
+[Reported by the USB fuzzing instance](https://groups.google.com/forum/#!searchin/syzkaller-bugs/%22usb-fuzzer%22%7Csort:date)
+
+[Reported by the KMSAN fuzzing instance](https://groups.google.com/forum/#!searchin/syzkaller-bugs/%22kmsan%22$20%22usb%22%7Csort:date)
+
+## Manually reported
+
+### USB drivers
 
 * usb/core: memory corruption due to an out-of-bounds access in usb_destroy_configuration [[fix](https://www.spinics.net/lists/linux-usb/msg163644.html)] [CVE-2017-17558]
 * [usb/net/zd1211rw: possible deadlock in zd_chip_disable_rxtx](https://groups.google.com/forum/#!topic/syzkaller/w_qXxIJfwmE)
@@ -75,7 +83,7 @@
 * [usb/midi: use-after-free in snd_rawmidi_dev_seq_free](https://groups.google.com/forum/#!topic/syzkaller/kuZzDHGkQu8) [[fix](https://github.com/torvalds/linux/commit/fc27fe7e8deef2f37cba3f2be2d52b6ca5eb9d57)] [CVE-2017-16528]
 * [usb/core: warning in usb_create_ep_devs/sysfs_create_dir_ns](https://groups.google.com/forum/#!topic/syzkaller/wvB_W78nTh0) [[fix](https://github.com/torvalds/linux/commit/0a8fd1346254974c3a852338508e4a4cddbb35f1)]
 
-## GadgetFS
+### GadgetFS
 
 * [usb/gadget: stalls in dummy_timer / usbtouch_probe](https://groups.google.com/forum/#!topic/syzkaller/9MKj0sRWn3Y) [[fix](https://github.com/torvalds/linux/commit/0173a68bfb0ad1c72a6ee39cc485aa2c97540b98)]
 * [usb/gadget: null-ptr-deref in dev_ioctl](https://groups.google.com/forum/#!topic/syzkaller/ShlQyQLCe60) [[fix](https://github.com/torvalds/linux/commit/520b72fc64debf8a86c3853b8e486aa5982188f0)]
