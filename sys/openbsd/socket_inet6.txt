@@ -46,7 +46,9 @@ mif6ctl {
 	mif6c_mifi	int16
 	mif6c_flags	flags[mif6c_flags, int8]
 	vifc_threshold	int8
-	mif6c_pifi	int16
+# Do not allow low interface indices since one of them is likely to be the
+# egress interface vio0 used on GCE instances during fuzzing.
+	mif6c_pifi	int16[4:0xffff]
 	vifc_rate_limit	int32
 }
 
