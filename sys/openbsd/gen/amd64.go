@@ -189,7 +189,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "mif6c_mifi", TypeSize: 2}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mif6c_flags", FldName: "mif6c_flags", TypeSize: 1}}, Vals: []uint64{1}, BitMask: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vifc_threshold", TypeSize: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "mif6c_pifi", TypeSize: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "mif6c_pifi", TypeSize: 2}}, Kind: 2, RangeBegin: 4, RangeEnd: 65535},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "vifc_rate_limit", TypeSize: 4}}},
 	}}},
@@ -2970,4 +2970,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "046b8d64999817e17f0813efa9e374d2ee520a81"
+const revision_amd64 = "6255253f9674826c8aeacb80503607f3c81dade2"
