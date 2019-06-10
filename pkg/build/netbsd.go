@@ -43,13 +43,13 @@ options     KCOV
 	}
 	// Build tools before building kernel
 	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
-		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "tools"); err != nil {
+		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "tools"); err != nil {
 		return err
 	}
 
 	// Build kernel
 	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
-		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "kernel="+kernelName); err != nil {
+		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "kernel="+kernelName); err != nil {
 		return err
 	}
 	for _, s := range []struct{ dir, src, dst string }{
@@ -115,9 +115,7 @@ func (ctx netbsd) copyKernelToDisk(targetArch, vmType, outputDir, kernel string)
 	if kernel != "/netbsd" {
 		return fmt.Errorf("kernel is copied into wrong location: %v", kernel)
 	}
-	commands := []string{"touch /fastboot",
-		// /fastboot file prevents disk check on start.
-		"mknod /dev/kcov c 346 0"}
+	commands := []string{"touch /fastboot"} // /fastboot file prevents disk check on start.
 	if vmType == "gce" {
 		commands = append(commands, []string{
 			// We expect boot disk to be wd0a for the qemu (that's how qemu exposes -hda disk).
