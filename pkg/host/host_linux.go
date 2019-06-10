@@ -312,6 +312,9 @@ func isSupportedSocket(c *prog.Syscall) (bool, string) {
 }
 
 func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
+	var fd int
+	var err error
+
 	fname, ok := extractStringConst(c.Args[1])
 	if !ok || len(fname) == 0 || fname[0] != '/' {
 		return true, ""
@@ -325,7 +328,7 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 	}
 
 	for _, mode := range modes {
-		fd, err := syscall.Open(fname, mode, 0)
+		fd, err = syscall.Open(fname, mode, 0)
 		if fd != -1 {
 			syscall.Close(fd)
 		}
