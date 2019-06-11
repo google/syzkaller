@@ -312,18 +312,32 @@ func isSupportedSocket(c *prog.Syscall) (bool, string) {
 }
 
 func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
+	var fd int
+	var err error
+
 	fname, ok := extractStringConst(c.Args[1])
 	if !ok || len(fname) == 0 || fname[0] != '/' {
 		return true, ""
 	}
-	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)
-	if fd != -1 {
-		syscall.Close(fd)
+
+	modes := []int{syscall.O_RDONLY, syscall.O_WRONLY, syscall.O_RDWR}
+
+	// Attempt to extract flags from the syscall description
+	if mode, ok := c.Args[2].(*prog.ConstType); ok {
+		modes = []int{int(mode.Val)}
 	}
-	if err != nil {
-		return false, fmt.Sprintf("open(%v) failed: %v", fname, err)
+
+	for _, mode := range modes {
+		fd, err = syscall.Open(fname, mode, 0)
+		if fd != -1 {
+			syscall.Close(fd)
+		}
+		if err == nil {
+			return true, ""
+		}
 	}
-	return true, ""
+
+	return false, fmt.Sprintf("open(%v) failed: %v", fname, err)
 }
 
 func isSupportedMount(c *prog.Syscall, sandbox string) (bool, string) {
