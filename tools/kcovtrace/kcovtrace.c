@@ -53,7 +53,7 @@ int main(int argc, char** argv, char** envp)
 #endif
 		perror("ioctl"), exit(1);
 	cover = (cover_t*)mmap(NULL, COVER_SIZE * KCOV_ENTRY_SIZE,
-				     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+			       PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if ((void*)cover == MAP_FAILED)
 		perror("mmap"), exit(1);
 	pid = fork();
