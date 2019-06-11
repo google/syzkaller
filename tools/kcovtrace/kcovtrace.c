@@ -21,6 +21,7 @@
 #if defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/kcov.h>
 #define KCOV_PATH "/dev/kcov"
+typedef uint64_t cover_t;
 #else
 #define KCOV_INIT_TRACE _IOR('c', 1, unsigned long)
 #define KCOV_ENABLE _IO('c', 100)
@@ -28,13 +29,14 @@
 #define KCOV_ENTRY_SIZE sizeof(unsigned long)
 #define KCOV_PATH "/sys/kernel/debug/kcov"
 #define KCOV_TRACE_PC 0
+typedef unsigned long cover_t;
 #endif
 #define COVER_SIZE (16 << 20)
 
 int main(int argc, char** argv, char** envp)
 {
 	int fd, pid, status;
-	unsigned long *cover, n, i;
+	cover_t *cover, n, i;
 
 	if (argc == 1)
 		fprintf(stderr, "usage: kcovtrace program [args...]\n"), exit(1);
@@ -50,7 +52,7 @@ int main(int argc, char** argv, char** envp)
 	if (ioctl(fd, KCOV_INIT_TRACE, COVER_SIZE))
 #endif
 		perror("ioctl"), exit(1);
-	cover = (unsigned long*)mmap(NULL, COVER_SIZE * KCOV_ENTRY_SIZE,
+	cover = (cover_t*)mmap(NULL, COVER_SIZE * KCOV_ENTRY_SIZE,
 				     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if ((void*)cover == MAP_FAILED)
 		perror("mmap"), exit(1);
@@ -80,7 +82,7 @@ int main(int argc, char** argv, char** envp)
 	}
 	n = __atomic_load_n(&cover[0], __ATOMIC_RELAXED);
 	for (i = 0; i < n; i++)
-		printf("0x%lx\n", cover[i + 1]);
+		printf("0x%jx\n", (uintmax_t)cover[i + 1]);
 	if (munmap(cover, COVER_SIZE * KCOV_ENTRY_SIZE))
 		perror("munmap"), exit(1);
 	if (close(fd))
