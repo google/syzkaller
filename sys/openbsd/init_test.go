@@ -46,6 +46,16 @@ func TestSanitizeMknodCall(t *testing.T) {
 			`mknod(0x0, 0x0, 0x0402)`,
 			`mknod(0x0, 0x0, 0x202)`,
 		},
+		{
+			// RLIMIT_DATA
+			`setrlimit(0x2, &(0x7f0000cc0ff0)={0x0, 0x80000000})`,
+			`setrlimit(0x2, &(0x7f0000cc0ff0)={0x60000000, 0x80000000})`,
+		},
+		{
+			// RLIMIT_CPU
+			`setrlimit(0x0, &(0x7f0000cc0ff0)={0x1, 0x1})`,
+			`setrlimit(0x0, &(0x7f0000cc0ff0)={0x1, 0x1})`,
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {

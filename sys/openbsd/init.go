@@ -40,6 +40,9 @@ const (
 	kcovFdMinorMin = 232
 	// kOutPipeFd in executor/executor.cc
 	kcovFdMinorMax = 248
+
+	// RLIMIT_DATA from openbsd:src/sys/sys/resource.h
+	rlimitData = 2
 )
 
 // openbsd:src/sys/sys/types.h
@@ -105,6 +108,28 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 		// the raw root disk.
 		if devmajor(dev.Val) == 4 && devminor(dev.Val) == 2 {
 			dev.Val = devNullDevT
+		}
+	case "setrlimit":
+		// OpenBSD performs a strict validation of the RLIMIT_DATA soft
+		// limit during memory allocation. Lowering the same limit could
+		// cause syz-executor to run out of memory quickly. Therefore
+		// make sure to not go lower than the default soft limit for the
+		// staff group.
+		if c.Args[0].(*prog.ConstArg).Val != rlimitData {
+			break
+		}
+		var rlimitDataMin uint64 = 1536 * 1024 * 1024
+		ptr := c.Args[1].(*prog.PointerArg)
+		if ptr.Res != nil {
+			args := ptr.Res.(*prog.GroupArg).Inner
+			for _, arg := range args {
+				switch v := arg.(type) {
+				case *prog.ConstArg:
+					if v.Val < rlimitDataMin {
+						v.Val = rlimitDataMin
+					}
+				}
+			}
 		}
 	default:
 		arch.unix.SanitizeCall(c)
