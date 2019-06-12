@@ -86,7 +86,7 @@ static void cover_open(cover_t* cov, bool extra)
 
 static void cover_protect(cover_t* cov)
 {
-#if GOOS_freebsd
+#if GOOS_freebsd || GOOS_netbsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 	long page_size = sysconf(_SC_PAGESIZE);
 	if (page_size > 0)
@@ -107,7 +107,7 @@ static void cover_protect(cover_t* cov)
 
 static void cover_unprotect(cover_t* cov)
 {
-#if GOOS_freebsd
+#if GOOS_freebsd || GOOS_netbsd
 	size_t mmap_alloc_size = kCoverSize * KCOV_ENTRY_SIZE;
 	mprotect(cov->data, mmap_alloc_size, PROT_READ | PROT_WRITE);
 #elif GOOS_openbsd
