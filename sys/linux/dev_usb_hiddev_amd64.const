@@ -30,4 +30,3 @@ HID_REPORT_TYPE_MAX = 3
 HID_REPORT_TYPE_MIN = 1
 __NR_ioctl = 16
 __NR_read = 0
-__NR_write = 1
