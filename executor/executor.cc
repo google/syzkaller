@@ -202,6 +202,7 @@ struct thread_t {
 	uint32 reserrno;
 	bool fault_injected;
 	cover_t cov;
+	bool extra_cover;
 };
 
 static thread_t threads[kMaxThreads];
@@ -290,7 +291,7 @@ struct feature_t {
 	void (*setup)();
 };
 
-static thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
+static thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos, bool extra_cover);
 static void handle_completion(thread_t* th);
 static void copyout_call_results(thread_t* th);
 static void write_call_output(thread_t* th, bool finished);
@@ -588,20 +589,25 @@ retry:
 	}
 
 	int call_index = 0;
-	bool collect_extra_cover = false;
+	bool prog_extra_cover = false;
 	int prog_extra_timeout = 0;
 	for (;;) {
 		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
 			break;
+		bool call_extra_cover = false;
 		int call_extra_timeout = 0;
-		// Must match timeouts in pkg/csource/csource.go.
+		if (strncmp(syscalls[call_num].name, "syz_usb", 7) == 0) {
+			prog_extra_cover = true;
+			call_extra_cover = true;
+		}
 		if (strcmp(syscalls[call_num].name, "syz_usb_connect") == 0) {
-			collect_extra_cover = true;
 			prog_extra_timeout = 2000;
+			// Must match timeout in pkg/csource/csource.go.
 			call_extra_timeout = 2000;
 		}
 		if (strcmp(syscalls[call_num].name, "syz_usb_disconnect") == 0) {
+			// Must match timeout in pkg/csource/csource.go.
 			call_extra_timeout = 200;
 		}
 		if (call_num == instr_copyin) {
@@ -704,7 +710,7 @@ retry:
 		for (uint64 i = num_args; i < kMaxArgs; i++)
 			args[i] = 0;
 		thread_t* th = schedule_call(call_index++, call_num, colliding, copyout_index,
-					     num_args, args, input_pos);
+					     num_args, args, input_pos, call_extra_cover);
 
 		if (colliding && (call_index % 2) == 0) {
 			// Don't wait for every other call.
@@ -761,7 +767,8 @@ retry:
 					write_call_output(th, false);
 				}
 			}
-			write_extra_output();
+			if (prog_extra_cover)
+				write_extra_output();
 		}
 	}
 
@@ -769,7 +776,7 @@ retry:
 	close_fds();
 #endif
 
-	if (!colliding && !collide && collect_extra_cover) {
+	if (!colliding && !collide && prog_extra_cover) {
 		sleep_ms(500);
 		write_extra_output();
 	}
@@ -781,7 +788,7 @@ retry:
 	}
 }
 
-thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos)
+thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos, bool extra_cover)
 {
 	// Find a spare thread to execute the call.
 	int i;
@@ -812,6 +819,7 @@ thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 cop
 	th->num_args = num_args;
 	for (int i = 0; i < kMaxArgs; i++)
 		th->args[i] = args[i];
+	th->extra_cover = extra_cover;
 	event_set(&th->ready);
 	running++;
 	return th;
@@ -870,7 +878,8 @@ void handle_completion(thread_t* th)
 		copyout_call_results(th);
 	if (!collide && !th->colliding) {
 		write_call_output(th, true);
-		write_extra_output();
+		if (th->extra_cover)
+			write_extra_output();
 	}
 	th->executing = false;
 	running--;
