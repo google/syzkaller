@@ -9,7 +9,7 @@ import (
 	_ "github.com/google/syzkaller/sys/openbsd/gen"
 )
 
-func TestSanitizeMknodCall(t *testing.T) {
+func TestSanitizeCall(t *testing.T) {
 	target, err := prog.GetTarget("openbsd", "amd64")
 	if err != nil {
 		t.Fatal(err)
