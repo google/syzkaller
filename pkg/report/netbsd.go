@@ -17,20 +17,20 @@ import (
 )
 
 type netbsd struct {
-	kernelSrc string
-	kernelObj string
+	kernelSrc    string
+	kernelObj    string
 	kernelObject string
 	symbols      map[string][]symbolizer.Symbol
-	ignores   []*regexp.Regexp
+	ignores      []*regexp.Regexp
 }
 
 var (
-        netbsdSymbolizeRe = []*regexp.Regexp{
-                // stack
-                regexp.MustCompile(` at ([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
-                // witness
-                regexp.MustCompile(`#[0-9]+ +([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
-        }
+	netbsdSymbolizeRe = []*regexp.Regexp{
+		// stack
+		regexp.MustCompile(` at ([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
+		// witness
+		regexp.MustCompile(`#[0-9]+ +([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
+	}
 )
 
 func ctorNetbsd(target *targets.Target, kernelSrc, kernelObj string,
@@ -47,11 +47,11 @@ func ctorNetbsd(target *targets.Target, kernelSrc, kernelObj string,
 		}
 	}
 	ctx := &netbsd{
-		kernelSrc: kernelSrc,
-		kernelObj: kernelObj,
+		kernelSrc:    kernelSrc,
+		kernelObj:    kernelObj,
 		kernelObject: kernelObject,
 		symbols:      symbols,
-		ignores:   ignores,
+		ignores:      ignores,
 	}
 	return ctx, nil, nil
 }
@@ -97,6 +97,8 @@ func (ctx *netbsd) Symbolize(rep *Report) error {
 func (ctx *netbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),
 	line []byte) []byte {
 	var match []int
+	// Check whether the line corresponds to the any of the parts that
+	// require symbolization.
 	for _, re := range netbsdSymbolizeRe {
 		match = re.FindSubmatchIndex(line)
 		if match != nil {
@@ -106,23 +108,30 @@ func (ctx *netbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symboli
 	if match == nil {
 		return line
 	}
+	// First part of the matched regex contains the function name
+	// Second part contains the offset
 	fn := line[match[2]:match[3]]
 	off, err := strconv.ParseUint(string(line[match[4]:match[5]]), 16, 64)
 	if err != nil {
 		return line
 	}
-	
+
+	// Get the symbol from the list of symbols generated using
+	// the kernel object and addr2line
 	symb := ctx.symbols[string(fn)]
 	if len(symb) == 0 {
 		return line
 	}
 	fnStart := (0xffffffff << 32) | symb[0].Addr
 
+	// Retrieve the frames for the corresponding offset of the funtion
 	frames, err := symbFunc(ctx.kernelObject, fnStart+off)
 	if err != nil || len(frames) == 0 {
 		return line
 	}
 	var symbolized []byte
+	// Go through each of the frames and add the corresponding file names
+	// and line numbers.
 	for _, frame := range frames {
 		file := frame.File
 		file = strings.TrimPrefix(file, ctx.kernelSrc)
@@ -131,6 +140,7 @@ func (ctx *netbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symboli
 		modified := append([]byte{}, line...)
 		modified = replace(modified, match[5], match[5], []byte(info))
 		if frame.Inline {
+			// If frames are marked inline then show that in the report also
 			end := match[5] + len(info)
 			modified = replace(modified, end, end, []byte(" [inline]"))
 			modified = replace(modified, match[5], match[5], []byte(" "+frame.Func))
