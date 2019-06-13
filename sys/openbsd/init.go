@@ -5,6 +5,7 @@ package openbsd
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -43,6 +44,8 @@ const (
 
 	// RLIMIT_DATA from openbsd:src/sys/sys/resource.h
 	rlimitData = 2
+	// RLIMIT_STACK from openbsd:src/sys/sys/resource.h
+	rlimitStack = 3
 )
 
 // openbsd:src/sys/sys/types.h
@@ -110,23 +113,38 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 			dev.Val = devNullDevT
 		}
 	case "setrlimit":
-		// OpenBSD performs a strict validation of the RLIMIT_DATA soft
-		// limit during memory allocation. Lowering the same limit could
-		// cause syz-executor to run out of memory quickly. Therefore
-		// make sure to not go lower than the default soft limit for the
-		// staff group.
-		if c.Args[0].(*prog.ConstArg).Val != rlimitData {
+		var rlimitMin uint64
+		var rlimitMax uint64 = math.MaxUint64
+		resource := c.Args[0].(*prog.ConstArg).Val
+		if resource == rlimitData {
+			// OpenBSD performs a strict validation of the
+			// RLIMIT_DATA soft limit during memory allocation.
+			// Lowering the same limit could cause syz-executor to
+			// run out of memory quickly. Therefore make sure to not
+			// go lower than the default soft limit for the staff
+			// group.
+			rlimitMin = 1536 * 1024 * 1024
+		} else if resource == rlimitStack {
+			// Do not allow the stack to grow beyond the initial
+			// soft limit chosen by syz-executor. Otherwise,
+			// syz-executor will most likely not be able to perform
+			// any more heap allocations since they majority of
+			// memory is reserved for the stack.
+			rlimitMax = 1 * 1024 * 1024
+		} else {
 			break
 		}
-		var rlimitDataMin uint64 = 1536 * 1024 * 1024
 		ptr := c.Args[1].(*prog.PointerArg)
 		if ptr.Res != nil {
 			args := ptr.Res.(*prog.GroupArg).Inner
 			for _, arg := range args {
 				switch v := arg.(type) {
 				case *prog.ConstArg:
-					if v.Val < rlimitDataMin {
-						v.Val = rlimitDataMin
+					if v.Val < rlimitMin {
+						v.Val = rlimitMin
+					}
+					if v.Val > rlimitMax {
+						v.Val = rlimitMax
 					}
 				}
 			}
