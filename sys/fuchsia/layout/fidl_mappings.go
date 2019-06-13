@@ -41,7 +41,6 @@ var AllFidlLibraries = []FidlLibrary{
 	{zircon, []string{"fuchsia", "hardware", "ethernet"}},
 	{garnet, []string{"fuchsia", "devicesettings"}},
 	{garnet, []string{"fuchsia", "timezone"}},
-	{garnet, []string{"fuchsia", "power"}},
 	{garnet, []string{"fuchsia", "scpi"}},
 }
 
