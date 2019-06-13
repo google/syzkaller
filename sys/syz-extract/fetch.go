@@ -122,6 +122,10 @@ func compile(cc string, args []string, data *CompileData) (bin string, out []byt
 var srcTemplate = template.Must(template.New("").Parse(`
 #define __asm__(...)
 
+#ifndef __GLIBC_USE
+#	define __GLIBC_USE(X) 0
+#endif
+
 {{range $incl := $.Includes}}
 #include <{{$incl}}>
 {{end}}
