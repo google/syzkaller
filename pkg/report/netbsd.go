@@ -124,7 +124,7 @@ func (ctx *netbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symboli
 	}
 	fnStart := (0xffffffff << 32) | symb[0].Addr
 
-	// Retrieve the frames for the corresponding offset of the funtion
+	// Retrieve the frames for the corresponding offset of the function
 	frames, err := symbFunc(ctx.kernelObject, fnStart+off)
 	if err != nil || len(frames) == 0 {
 		return line
