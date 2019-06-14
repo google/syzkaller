@@ -47,6 +47,11 @@ func TestSanitizeCall(t *testing.T) {
 			`mknod(0x0, 0x0, 0x202)`,
 		},
 		{
+			// MCL_CURRENT | MCL_FUTURE
+			`mlockall(0x3)`,
+			`mlockall(0x1)`,
+		},
+		{
 			// RLIMIT_DATA
 			`setrlimit(0x2, &(0x7f0000cc0ff0)={0x0, 0x80000000})`,
 			`setrlimit(0x2, &(0x7f0000cc0ff0)={0x60000000, 0x80000000})`,
