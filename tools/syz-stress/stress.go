@@ -68,7 +68,11 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	calls := buildCallList(target, strings.Split(*flagSyscalls, ","))
+	var syscalls []string
+	if *flagSyscalls != "" {
+		syscalls = strings.Split(*flagSyscalls, ",")
+	}
+	calls := buildCallList(target, syscalls)
 	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, calls)
 
