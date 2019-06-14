@@ -42,6 +42,9 @@ const (
 	// kOutPipeFd in executor/executor.cc
 	kcovFdMinorMax = 248
 
+	// MCL_FUTURE from openbsd:src/sys/sys/mman.h
+	mclFuture uint64 = 0x2
+
 	// RLIMIT_DATA from openbsd:src/sys/sys/resource.h
 	rlimitData = 2
 	// RLIMIT_STACK from openbsd:src/sys/sys/resource.h
@@ -112,6 +115,9 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 		if devmajor(dev.Val) == 4 && devminor(dev.Val) == 2 {
 			dev.Val = devNullDevT
 		}
+	case "mlockall":
+		flags := c.Args[0].(*prog.ConstArg)
+		flags.Val &= ^mclFuture
 	case "setrlimit":
 		var rlimitMin uint64
 		var rlimitMax uint64 = math.MaxUint64
