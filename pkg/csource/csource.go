@@ -76,6 +76,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	// Must match timeouts in executor/executor.cc.
 	specialCallTimeouts := map[string]int{
 		"syz_usb_connect":    2000,
+		"syz_usb_control_io": 200,
 		"syz_usb_disconnect": 200,
 	}
 	timeoutExpr := "45"
