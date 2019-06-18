@@ -74,13 +74,13 @@ $ make -C compile/SYZKALLER
 2. Create disk image:
 
    ```sh
-   $ vmctl create "qcow2:$VMIMG" -s 4G
+   $ vmctl create -s 4G "qcow2:$VMIMG"
    ```
 
 3. Install VM:
 
    ```sh
-   $ vmctl start syzkaller-1 -c -t syzkaller -b /bsd.rd -d "$VMIMG"
+   $ vmctl start -c -t syzkaller -b /bsd.rd -d "$VMIMG" syzkaller-1
    ```
 
    Answers to questions that deviates from the defaults:
@@ -93,8 +93,8 @@ $ make -C compile/SYZKALLER
 4. Restart the newly created VM and copy the SSH-key:
 
    ```sh
-   $ vmctl stop syzkaller-1 -w
-   $ vmctl start syzkaller-1 -c -t syzkaller -d "$VMIMG"
+   $ vmctl stop -w syzkaller-1
+   $ vmctl start -c -t syzkaller -d "$VMIMG" syzkaller-1
    $ ssh "root@100.64.${VMID}.3" 'cat >~/.ssh/authorized_keys' <$SSHKEY.pub
    ```
 
@@ -107,7 +107,7 @@ $ make -C compile/SYZKALLER
 6. Finally, stop the VM:
 
    ```sh
-   $ vmctl stop syzkaller-1 -w
+   $ vmctl stop -w syzkaller-1
    ```
 
 ## Configure and run syzkaller
