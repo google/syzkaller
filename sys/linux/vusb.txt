@@ -13,11 +13,18 @@ include <uapi/linux/usb/cdc.h>
 # This is a special fd for USB fuzzing and should only be used with syz_usb_* syzcalls.
 # We don't inherit it from the fd resource, to discourage syzkaller calling raw ioctls on it.
 resource fd_usb[int32]: -1
+resource fd_usb_hid[fd_usb]
 
+# These are generic syzcalls for emulating arbitrary USB devices.
+# They are mostly targeted to cover the enumeration process.
 syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb
 syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
 syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data buffer[in])
 syz_usb_disconnect(fd fd_usb)
+
+# These are syzcalls specifically targeted to the HID device class.
+syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
+syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid])
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
 
@@ -25,17 +32,15 @@ usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_H
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# USB device, configuration, interface and endpoint descriptors.
-
 type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE, CFS] {
 	bLength			const[USB_DT_DEVICE_SIZE, int8]
 	bDescriptorType		const[USB_DT_DEVICE, int8]
 
-	bcdUSB			int16
+	bcdUSB			flags[usb_versions, int16]
 	bDeviceClass		const[CLASS, int8]
 	bDeviceSubClass		const[SUBCLASS, int8]
 	bDeviceProtocol		const[PROTOCOL, int8]
-	bMaxPacketSize0		int8
+	bMaxPacketSize0		flags[usb_max_packet_sizes, int8]
 	idVendor		const[VENDOR, int16]
 	idProduct		const[PRODUCT, int16]
 	bcdDevice		const[DEVICE, int16]
@@ -47,14 +52,12 @@ type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE,
 	configs			CFS
 } [packed]
 
-# TODO: support more than one configuration.
-# bDeviceClass, bDeviceSubClass, bDeviceProtocol, idVendor, idProduct
-# and bcdDevice are patched by Go code, see sys/linux/init_vusb.go.
-usb_device_descriptor {
-	inner	usb_device_descriptor_t[0, 0, 0, 0, 0, 0, array[usb_config_descriptor, 1]]
-} [packed]
+usb_versions = 0x110, 0x200, 0x201, 0x250, 0x300, 0x310
 
-type usb_config_descriptor_t[IFS] {
+# https://elixir.bootlin.com/linux/v5.1.7/source/drivers/usb/core/hub.c#L4661
+usb_max_packet_sizes = 8, 16, 32, 64
+
+type usb_config_descriptor_t[ATTRS, IFS] {
 	bLength			const[USB_DT_CONFIG_SIZE, int8]
 	bDescriptorType		const[USB_DT_CONFIG, int8]
 
@@ -62,18 +65,11 @@ type usb_config_descriptor_t[IFS] {
 	bNumInterfaces		len[interfaces, int8]
 	bConfigurationValue	int8
 	iConfiguration		int8
-	bmAttributes		flags[usb_config_attributes, int8]
+	bmAttributes		ATTRS
 	bMaxPower		int8
 
 	interfaces		IFS
 } [packed]
-
-# TODO: support more than one interface.
-usb_config_descriptor {
-	inner	usb_config_descriptor_t[array[usb_interface_descriptor, 1]]
-} [packed]
-
-usb_config_attributes = USB_CONFIG_ATT_ONE, USB_CONFIG_ATT_SELFPOWER, USB_CONFIG_ATT_WAKEUP, USB_CONFIG_ATT_BATTERY
 
 type usb_interface_descriptor_t[CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
 	bLength			const[USB_DT_INTERFACE_SIZE, int8]
@@ -91,18 +87,12 @@ type usb_interface_descriptor_t[CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
 	endpoints		EPS
 } [packed]
 
-# bInterfaceClass, bInterfaceSubClass and bInterfaceProtocol
-# are patched by Go code, see sys/linux/init_vusb.go.
-usb_interface_descriptor {
-	inner	usb_interface_descriptor_t[0, 0, 0, array[usb_interface_extra_descriptor, 0:2], array[usb_endpoint_descriptor, 0:16]]
-} [packed]
-
-type usb_endpoint_descriptor_t[EXTRA] {
+type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
 	bLength			const[USB_DT_ENDPOINT_SIZE, int8]
 	bDescriptorType		const[USB_DT_ENDPOINT, int8]
 
-	bEndpointAddress	int8
-	bmAttributes		flags[usb_endpoint_attributes, int8]
+	bEndpointAddress	ADDR
+	bmAttributes		ATTRS
 	wMaxPacketSize		int16
 	bInterval		int8
 	bRefresh		int8
@@ -111,17 +101,39 @@ type usb_endpoint_descriptor_t[EXTRA] {
 	extra			EXTRA
 } [packed]
 
-usb_endpoint_descriptor {
-	inner	usb_endpoint_descriptor_t[array[usb_endpoint_extra_descriptor, 0:2]]
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Generic USB device, configuration, interface and endpoint descriptors.
+
+# TODO: support more than one configuration.
+# bDeviceClass, bDeviceSubClass, bDeviceProtocol, idVendor, idProduct
+# and bcdDevice are patched by Go code, see sys/linux/init_vusb.go.
+usb_device_descriptor {
+	inner	usb_device_descriptor_t[0, 0, 0, 0, 0, 0, array[usb_config_descriptor, 1]]
 } [packed]
 
+# TODO: support more than one interface.
+usb_config_descriptor {
+	inner	usb_config_descriptor_t[flags[usb_config_attributes, int8], array[usb_interface_descriptor, 1]]
+} [packed]
+
+usb_config_attributes = USB_CONFIG_ATT_ONE, USB_CONFIG_ATT_SELFPOWER, USB_CONFIG_ATT_WAKEUP, USB_CONFIG_ATT_BATTERY
+
+# bInterfaceClass, bInterfaceSubClass and bInterfaceProtocol
+# are patched by Go code, see sys/linux/init_vusb.go.
+usb_interface_descriptor {
+	inner	usb_interface_descriptor_t[0, 0, 0, array[usb_interface_extra_descriptor, 0:2], array[usb_endpoint_descriptor, 0:16]]
+} [packed]
+
+usb_endpoint_descriptor {
+	inner	usb_endpoint_descriptor_t[flags[usb_endpoint_addresses, int8], flags[usb_endpoint_attributes, int8], array[usb_endpoint_extra_descriptor, 0:2]]
+} [packed]
+
+usb_endpoint_addresses = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, USB_DIR_OUT, USB_DIR_IN
+
 usb_endpoint_attributes = USB_ENDPOINT_XFER_CONTROL, USB_ENDPOINT_XFER_ISOC, USB_ENDPOINT_XFER_BULK, USB_ENDPOINT_XFER_INT, USB_ENDPOINT_INTR_PERIODIC, USB_ENDPOINT_INTR_NOTIFICATION, USB_ENDPOINT_SYNC_NONE, USB_ENDPOINT_SYNC_ASYNC, USB_ENDPOINT_SYNC_ADAPTIVE, USB_ENDPOINT_SYNC_SYNC, USB_ENDPOINT_USAGE_DATA, USB_ENDPOINT_USAGE_FEEDBACK, USB_ENDPOINT_USAGE_FEEDBACK
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# USB descriptors requested by the kernel before the SET_CONFIGURATION request.
 
 # TODO: consider unifying with vusb_descriptors in case this struct significantly grows.
 vusb_connect_descriptors {
@@ -138,6 +150,113 @@ vusb_connect_string_descriptor {
 	str	ptr[in, usb_string_descriptor]
 } [packed]
 
+vusb_descriptors {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+	string		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+	hid_report	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
+	bos		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_BOS, usb_bos_descriptor]]
+	hub_hs		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_HUB, usb_hub_descriptor_hs]]
+	hub_ss		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_SS_HUB, usb_hub_descriptor_ss]]
+} [packed]
+
+vusb_descriptor_generic {
+	req_type	flags[usb_request_types, int8]
+	desc_type	flags[usb_descriptor_types, int8]
+	len		bytesize[data, int32]
+	data		usb_generic_descriptor
+} [packed]
+
+usb_request_types = USB_TYPE_STANDARD, USB_TYPE_CLASS, USB_TYPE_VENDOR
+
+type vusb_descriptor_t[CLASS, REQ, DATA] {
+	type	const[CLASS, int8]
+	req	const[REQ, int8]
+	len	bytesize[data, int32]
+	data	DATA
+} [packed]
+
+vusb_responses {
+	len			len[parent, int32]
+	generic			ptr[in, vusb_response_generic]
+	set_interface		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_SET_INTERFACE, void]]
+	get_interface		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_INTERFACE, int8]]
+	set_configuration	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_SET_CONFIGURATION, void]]
+	get_configuration	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_CONFIGURATION, int8]]
+	get_status_hub		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
+	get_status_port		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
+	aiptek_get_report	ptr[in, vusb_response_t[USB_TYPE_VENDOR, 0x1, array[int8, 3]]]
+	aiptek_set_report	ptr[in, vusb_response_t[USB_TYPE_VENDOR, 0x9, array[int8, 3]]]
+	cdc_get_ntb_parameters	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_CDC_GET_NTB_PARAMETERS, usb_cdc_ncm_ntb_parameters]]
+} [packed]
+
+vusb_response_generic {
+	type	flags[usb_request_types, int8]
+	req	flags[usb_requests, int8]
+	len	bytesize[data, int32]
+	data	array[int8]
+} [packed]
+
+usb_requests = USB_REQ_GET_STATUS, USB_REQ_CLEAR_FEATURE, USB_REQ_SET_FEATURE, USB_REQ_SET_ADDRESS, USB_REQ_GET_DESCRIPTOR, USB_REQ_SET_DESCRIPTOR, USB_REQ_GET_CONFIGURATION, USB_REQ_SET_CONFIGURATION, USB_REQ_GET_INTERFACE, USB_REQ_SET_INTERFACE, USB_REQ_SYNCH_FRAME, USB_REQ_SET_SEL, USB_REQ_SET_ISOCH_DELAY, USB_REQ_SET_ENCRYPTION, USB_REQ_GET_ENCRYPTION, USB_REQ_RPIPE_ABORT, USB_REQ_SET_HANDSHAKE, USB_REQ_RPIPE_RESET, USB_REQ_GET_HANDSHAKE, USB_REQ_SET_CONNECTION, USB_REQ_SET_SECURITY_DATA, USB_REQ_GET_SECURITY_DATA, USB_REQ_SET_WUSB_DATA, USB_REQ_LOOPBACK_DATA_WRITE, USB_REQ_LOOPBACK_DATA_READ, USB_REQ_SET_INTERFACE_DS, USB_REQ_GET_PARTNER_PDO, USB_REQ_GET_BATTERY_STATUS, USB_REQ_SET_PDO, USB_REQ_GET_VDM, USB_REQ_SEND_VDM
+
+type vusb_response_t[CLASS, REQ, DATA] {
+	type	const[CLASS, int8]
+	req	const[REQ, int8]
+	len	bytesize[data, int32]
+	data	DATA
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# USB device, configuration, interface and endpoint descriptors for the HID device class.
+# Modelled after the Logitech K120 keyboard.
+
+usb_device_descriptor_hid {
+	inner	usb_device_descriptor_t[0, 0, 0, 0x46d, 0xc31c, 64, array[usb_config_descriptor_hid, 1]]
+} [packed]
+
+usb_config_descriptor_hid {
+	inner	usb_config_descriptor_t[const[USB_CONFIG_HID_ATTRIBUTES, int8], array[usb_interface_descriptor_hid, 1]]
+} [packed]
+
+usb_interface_descriptor_hid {
+	inner	usb_interface_descriptor_t[USB_CLASS_HID, USB_INTERFACE_SUBCLASS_BOOT, USB_INTERFACE_PROTOCOL_KEYBOARD, hid_descriptor_hid, array[usb_endpoint_descriptor_hid, 1]]
+} [packed]
+
+usb_endpoint_descriptor_hid {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], array[usb_endpoint_extra_descriptor, 0:2]]
+} [packed]
+
+define USB_CONFIG_HID_ATTRIBUTES	(USB_CONFIG_ATT_ONE | USB_CONFIG_ATT_WAKEUP)
+define USB_ENDPOINT_HID_ADDRESS	(1 | USB_DIR_IN)
+define USB_ENDPOINT_HID_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
+
+# TODO: consider merging with vusb_descriptors.
+vusb_descriptors_hid {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+	string		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+	hid_report	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
+	bos		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_BOS, usb_bos_descriptor]]
+} [packed]
+
+# TODO: consider merging with vusb_responses.
+vusb_responses_hid {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_response_generic]
+	set_idle	ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_SET_IDLE, void]]
+	set_report	ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_SET_REPORT, void]]
+	set_protocol	ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_SET_PROTOCOL, void]]
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# USB descriptors requested by the kernel before the SET_CONFIGURATION request.
+
 usb_string_descriptor {
 	bLength		len[parent, int8]
 	bDescriptorType	const[USB_DT_STRING, int8]
@@ -152,11 +271,11 @@ usb_qualifier_descriptor {
 	bLength			len[parent, int8]
 	bDescriptorType		const[USB_DT_DEVICE_QUALIFIER, int8]
 
-	bcdUSB			int16
+	bcdUSB			flags[usb_versions, int16]
 	bDeviceClass		int8
 	bDeviceSubClass		int8
 	bDeviceProtocol		int8
-	bMaxPacketSize0		int8
+	bMaxPacketSize0		flags[usb_max_packet_sizes, int8]
 	bNumConfigurations	int8
 	bRESERVED		const[0, int8]
 } [packed]
@@ -505,7 +624,6 @@ usb_cdc_mbim_extended_desc {
 # USB descriptors requested after the SET_CONFIGURATION request.
 
 # TODO: define recusively to generate proper structures.
-
 hid_descriptor_report {
 	items	array[hid_report_item]
 } [packed]
@@ -618,70 +736,6 @@ usb_cdc_ncm_ntb_parameters {
 	wNdpOutPayloadRemainder	int16
 	wNdpOutAlignment	int16
 	wNtbOutMaxDatagrams	int16
-} [packed]
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-vusb_descriptors {
-	len		len[parent, int32]
-	generic		ptr[in, vusb_descriptor_generic]
-	string		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
-	hid_report	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
-	bos		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_BOS, usb_bos_descriptor]]
-	hub_hs		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_HUB, usb_hub_descriptor_hs]]
-	hub_ss		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_SS_HUB, usb_hub_descriptor_ss]]
-} [packed]
-
-vusb_descriptor_generic {
-	req_type	flags[usb_request_types, int8]
-	desc_type	flags[usb_descriptor_types, int8]
-	len		bytesize[data, int32]
-	data		usb_generic_descriptor
-} [packed]
-
-usb_request_types = USB_TYPE_STANDARD, USB_TYPE_CLASS, USB_TYPE_VENDOR
-
-type vusb_descriptor_t[CLASS, REQ, DATA] {
-	type	const[CLASS, int8]
-	req	const[REQ, int8]
-	len	bytesize[data, int32]
-	data	DATA
-} [packed]
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-vusb_responses {
-	len			len[parent, int32]
-	generic			ptr[in, vusb_response_generic]
-	set_interface		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_SET_INTERFACE, void]]
-	get_interface		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_INTERFACE, int8]]
-	set_configuration	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_SET_CONFIGURATION, void]]
-	get_configuration	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_CONFIGURATION, int8]]
-	get_status_hub		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
-	get_status_port		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
-	aiptek_get_report	ptr[in, vusb_response_t[USB_TYPE_VENDOR, 0x1, array[int8, 3]]]
-	aiptek_set_report	ptr[in, vusb_response_t[USB_TYPE_VENDOR, 0x9, array[int8, 3]]]
-	cdc_get_ntb_parameters	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_CDC_GET_NTB_PARAMETERS, usb_cdc_ncm_ntb_parameters]]
-} [packed]
-
-vusb_response_generic {
-	type	flags[usb_request_types, int8]
-	req	flags[usb_requests, int8]
-	len	bytesize[data, int32]
-	data	array[int8]
-} [packed]
-
-usb_requests = USB_REQ_GET_STATUS, USB_REQ_CLEAR_FEATURE, USB_REQ_SET_FEATURE, USB_REQ_SET_ADDRESS, USB_REQ_GET_DESCRIPTOR, USB_REQ_SET_DESCRIPTOR, USB_REQ_GET_CONFIGURATION, USB_REQ_SET_CONFIGURATION, USB_REQ_GET_INTERFACE, USB_REQ_SET_INTERFACE, USB_REQ_SYNCH_FRAME, USB_REQ_SET_SEL, USB_REQ_SET_ISOCH_DELAY, USB_REQ_SET_ENCRYPTION, USB_REQ_GET_ENCRYPTION, USB_REQ_RPIPE_ABORT, USB_REQ_SET_HANDSHAKE, USB_REQ_RPIPE_RESET, USB_REQ_GET_HANDSHAKE, USB_REQ_SET_CONNECTION, USB_REQ_SET_SECURITY_DATA, USB_REQ_GET_SECURITY_DATA, USB_REQ_SET_WUSB_DATA, USB_REQ_LOOPBACK_DATA_WRITE, USB_REQ_LOOPBACK_DATA_READ, USB_REQ_SET_INTERFACE_DS, USB_REQ_GET_PARTNER_PDO, USB_REQ_GET_BATTERY_STATUS, USB_REQ_SET_PDO, USB_REQ_GET_VDM, USB_REQ_SEND_VDM
-
-type vusb_response_t[CLASS, REQ, DATA] {
-	type	const[CLASS, int8]
-	req	const[REQ, int8]
-	len	bytesize[data, int32]
-	data	DATA
 } [packed]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
