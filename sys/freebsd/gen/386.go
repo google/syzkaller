@@ -1482,39 +1482,45 @@ var structDescs_386 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd1", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in", TypeSize: 16}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2}}, Val: 2},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1}}, Path: []string{"parent"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 1}}, Val: 2},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "addr"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 8}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 1}}, Val: 2},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1, ArgDir: 1}}, Path: []string{"parent"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 1, ArgDir: 1}}, Val: 2},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2, ArgDir: 1}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&UnionType{Key: StructKey{Name: "ipv4_addr", Dir: 1}, FldName: "addr"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 8, ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 1}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in", TypeSize: 16, ArgDir: 2}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 2}}, Val: 2},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1, ArgDir: 2}}, Path: []string{"parent"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 1, ArgDir: 2}}, Val: 2},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2, ArgDir: 2}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&UnionType{Key: StructKey{Name: "ipv4_addr", Dir: 2}, FldName: "addr"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 8, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 2}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in6", TypeSize: 28}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2}}, Val: 28},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1}}, Path: []string{"parent"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 1}}, Val: 28},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flow", TypeSize: 4}}},
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "addr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "scope", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in6", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in6", TypeSize: 28, ArgDir: 1}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 1}}, Val: 28},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1, ArgDir: 1}}, Path: []string{"parent"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 1, ArgDir: 1}}, Val: 28},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2, ArgDir: 1}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flow", TypeSize: 4, ArgDir: 1}}},
 		&UnionType{Key: StructKey{Name: "ipv6_addr", Dir: 1}, FldName: "addr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "scope", TypeSize: 4, ArgDir: 1}}},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in6", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in6", TypeSize: 28, ArgDir: 2}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 2}}, Val: 28},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1, ArgDir: 2}}, Path: []string{"parent"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 1, ArgDir: 2}}, Val: 28},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "port", TypeSize: 2, ArgDir: 2}, ArgFormat: 1}, ValuesStart: 20000, ValuesPerProc: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flow", TypeSize: 4, ArgDir: 2}}},
 		&UnionType{Key: StructKey{Name: "ipv6_addr", Dir: 2}, FldName: "addr"},
@@ -1573,23 +1579,27 @@ var structDescs_386 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sockaddr_un_abstract", Dir: 1}, FldName: "abs"},
 	}}},
 	{Key: StructKey{Name: "sockaddr_un_abstract"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un_abstract", TypeSize: 8}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 2}}, Vals: []uint64{1, 0}, BitMask: true},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1}}, Path: []string{"parent"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 1}}, Vals: []uint64{1, 0}, BitMask: true},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ind", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "id", TypeSize: 4}}, ValuesStart: 20000, ValuesPerProc: 4},
 	}}},
 	{Key: StructKey{Name: "sockaddr_un_abstract", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un_abstract", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 2, ArgDir: 1}}, Vals: []uint64{1, 0}, BitMask: true},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1, ArgDir: 1}}, Path: []string{"parent"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 1, ArgDir: 1}}, Vals: []uint64{1, 0}, BitMask: true},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ind", TypeSize: 1, ArgDir: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "id", TypeSize: 4, ArgDir: 1}}, ValuesStart: 20000, ValuesPerProc: 4},
 	}}},
 	{Key: StructKey{Name: "sockaddr_un_file"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un_file", IsVarlen: true}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 2}}, Vals: []uint64{1, 0}, BitMask: true},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1}}, Path: []string{"parent"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 1}}, Vals: []uint64{1, 0}, BitMask: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "path", IsVarlen: true}, Kind: 3},
 	}}},
 	{Key: StructKey{Name: "sockaddr_un_file", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un_file", ArgDir: 1, IsVarlen: true}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 2, ArgDir: 1}}, Vals: []uint64{1, 0}, BitMask: true},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1, ArgDir: 1}}, Path: []string{"parent"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 1, ArgDir: 1}}, Vals: []uint64{1, 0}, BitMask: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "path", ArgDir: 1, IsVarlen: true}, Kind: 3},
 	}}},
 	{Key: StructKey{Name: "stat", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "stat", TypeSize: 224, ArgDir: 1}, Fields: []Type{
@@ -5688,4 +5698,4 @@ var consts_386 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_386 = "2ce1f059c7424983db609ccd106002e29261876c"
+const revision_386 = "1f6b1f79ae35738bcf6e27d67c95fa63c1f86865"

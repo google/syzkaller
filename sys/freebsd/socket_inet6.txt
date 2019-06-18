@@ -16,7 +16,8 @@ include <sys/sockio.h>
 resource sock_in6[sock]
 
 sockaddr_in6 {
-	family	const[AF_INET6, int16]
+	len	len[parent, int8]
+	family	const[AF_INET6, int8]
 	port	sock_port
 	flow	int32
 	addr	ipv6_addr
