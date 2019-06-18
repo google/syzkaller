@@ -49,6 +49,8 @@ const (
 	rlimitData = 2
 	// RLIMIT_STACK from openbsd:src/sys/sys/resource.h
 	rlimitStack = 3
+	// Mask covering all valid rlimit resources.
+	rlimitMask = 0xf
 )
 
 // openbsd:src/sys/sys/types.h
@@ -121,7 +123,7 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 	case "setrlimit":
 		var rlimitMin uint64
 		var rlimitMax uint64 = math.MaxUint64
-		resource := c.Args[0].(*prog.ConstArg).Val
+		resource := c.Args[0].(*prog.ConstArg).Val & rlimitMask
 		if resource == rlimitData {
 			// OpenBSD performs a strict validation of the
 			// RLIMIT_DATA soft limit during memory allocation.
