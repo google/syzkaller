@@ -12,7 +12,8 @@ resource sock_in[sock]
 resource ifindex[int32]
 
 sockaddr_in {
-	family	const[AF_INET, int16]
+	len	len[parent, int8]
+	family	const[AF_INET, int8]
 	port	sock_port
 	addr	ipv4_addr
 	pad	array[const[0, int8], 8]
