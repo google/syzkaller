@@ -6,6 +6,14 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [ftruncate: side-effect in error path](https://marc.info/?l=openbsd-cvs&m=156084321808087&w=2)
+
+- [sendto: missing presence check of `RTF_MPLS` flag](https://marc.info/?l=openbsd-cvs&m=156041373709268&w=2)
+
+- [sendto: comparison of non-canonical sockaddr](https://marc.info/?l=openbsd-cvs&m=156041354609207&w=2)
+
+- [ioctl: NULL pointer dereference in `mrt_ioctl` and `mrt6_ioctl`](https://marc.info/?l=openbsd-cvs&m=155966468511915&w=2)
+
 - [pckbc(4): command queue corruption](https://marc.info/?l=openbsd-cvs&m=155958041916637&w=2)
 
 - [wsmux(4): use-after-free in `wsmux_do_ioctl()`](https://marc.info/?l=openbsd-cvs&m=155847224722518&w=2)
