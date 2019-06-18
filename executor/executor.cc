@@ -601,12 +601,16 @@ retry:
 			prog_extra_cover = true;
 			call_extra_cover = true;
 		}
-		if (strcmp(syscalls[call_num].name, "syz_usb_connect") == 0) {
+		if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
 			prog_extra_timeout = 2000;
 			// Must match timeout in pkg/csource/csource.go.
 			call_extra_timeout = 2000;
 		}
-		if (strcmp(syscalls[call_num].name, "syz_usb_disconnect") == 0) {
+		if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0) {
+			// Must match timeout in pkg/csource/csource.go.
+			call_extra_timeout = 200;
+		}
+		if (strncmp(syscalls[call_num].name, "syz_usb_disconnect", strlen("syz_usb_disconnect")) == 0) {
 			// Must match timeout in pkg/csource/csource.go.
 			call_extra_timeout = 200;
 		}
@@ -723,6 +727,7 @@ retry:
 				timeout_ms = 1000;
 			if (event_timedwait(&th->done, timeout_ms))
 				handle_completion(th);
+
 			// Check if any of previous calls have completed.
 			for (int i = 0; i < kMaxThreads; i++) {
 				th = &threads[i];
@@ -776,9 +781,10 @@ retry:
 	close_fds();
 #endif
 
-	if (!colliding && !collide && prog_extra_cover) {
+	if (prog_extra_cover) {
 		sleep_ms(500);
-		write_extra_output();
+		if (!colliding && !collide)
+			write_extra_output();
 	}
 
 	if (flag_collide && !flag_inject_fault && !colliding && !collide) {
@@ -1446,10 +1452,12 @@ void debug_dump_data(const char* data, int length)
 {
 	if (!flag_debug)
 		return;
-	for (int i = 0; i < length; i++) {
+	int i;
+	for (i = 0; i < length; i++) {
 		debug("%02x ", data[i] & 0xff);
 		if (i % 16 == 15)
 			debug("\n");
 	}
-	debug("\n");
+	if (i % 16 != 0)
+		debug("\n");
 }
