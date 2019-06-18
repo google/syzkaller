@@ -57,6 +57,11 @@ func TestSanitizeCall(t *testing.T) {
 			`setrlimit(0x2, &(0x7f0000cc0ff0)={0x60000000, 0x80000000})`,
 		},
 		{
+			// RLIMIT_DATA
+			`setrlimit(0x10000000000002, &(0x7f0000cc0ff0)={0x0, 0x80000000})`,
+			`setrlimit(0x10000000000002, &(0x7f0000cc0ff0)={0x60000000, 0x80000000})`,
+		},
+		{
 			// RLIMIT_STACK
 			`setrlimit(0x3, &(0x7f0000cc0ff0)={0x1000000000, 0x1000000000})`,
 			`setrlimit(0x3, &(0x7f0000cc0ff0)={0x100000, 0x100000})`,
