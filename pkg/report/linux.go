@@ -856,6 +856,12 @@ var linuxOopses = []*oops{
 				corrupted: true,
 			},
 			{
+				title:  compile("BUG: KMSAN: kernel-usb-infoleak"),
+				report: compile("BUG: KMSAN: kernel-usb-infoleak in {{FUNC}}"),
+				fmt:    "KMSAN: kernel-usb-infoleak in %[2]v",
+				stack:  warningStackFmt("usb_submit_urb", "usb_start_wait_urb", "usb_bulk_msg", "usb_interrupt_msg", "usb_control_msg"),
+			},
+			{
 				title:  compile("BUG: KMSAN:"),
 				report: compile("BUG: KMSAN: ([a-z\\-]+) in {{FUNC}}"),
 				fmt:    "KMSAN: %[1]v in %[3]v",
