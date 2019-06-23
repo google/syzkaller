@@ -719,7 +719,7 @@ var linuxStackParams = &stackParams{
 		"perf_trace",
 		"lock_acquire",
 		"lock_release",
-		"register_lock_class",
+		"lock_class",
 		"reacquire_held_locks",
 		"spin_lock",
 		"spin_trylock",

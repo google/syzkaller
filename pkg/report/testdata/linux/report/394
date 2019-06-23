@@ -1,0 +1,85 @@
+TITLE: WARNING: locking bug in do_ipv6_setsockopt
+
+[  130.232626][T17530] WARNING: CPU: 0 PID: 17530 at kernel/locking/lockdep.c:735 look_up_lock_class+0x179/0x260
+[  130.242736][T17530] Kernel panic - not syncing: panic_on_warn set ...
+[  130.249323][T17530] CPU: 0 PID: 17530 Comm: syz-executor.3 Not tainted 5.2.0-rc5+ #4
+[  130.257197][T17530] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  130.267237][T17530] Call Trace:
+[  130.270524][T17530]  dump_stack+0x1d8/0x2f8
+[  130.274849][T17530]  panic+0x28a/0x7c9
+[  130.279168][T17530]  ? __warn+0x126/0x220
+[  130.283303][T17530]  ? nmi_panic+0x97/0x97
+[  130.287540][T17530]  ? look_up_lock_class+0x179/0x260
+[  130.292734][T17530]  ? is_valid_bugaddr+0x81/0x100
+[  130.297666][T17530]  __warn+0x216/0x220
+[  130.301645][T17530]  ? look_up_lock_class+0x179/0x260
+[  130.306832][T17530]  report_bug+0x190/0x290
+[  130.311147][T17530]  ? look_up_lock_class+0x179/0x260
+[  130.316335][T17530]  do_error_trap+0xd7/0x450
+[  130.320815][T17530]  do_invalid_op+0x36/0x40
+[  130.325205][T17530]  ? look_up_lock_class+0x179/0x260
+[  130.330378][T17530]  invalid_op+0x14/0x20
+[  130.334510][T17530] RIP: 0010:look_up_lock_class+0x179/0x260
+[  130.340289][T17530] Code: ed b1 53 00 4c 8b 33 48 8b 5d d0 48 83 c3 18 48 89 d8 48 c1 e8 03 42 80 3c 28 00 74 08 48 89 df e8 cc b1 53 00 4c 3b 33 74 5a <0f> 0b eb 56 e8 6e 2b 01 02 45 31 e4 48 c7 c7 f9 76 5b 88 44 89 fe
+[  130.359875][T17530] RSP: 0018:ffff888089a2f460 EFLAGS: 00010083
+[  130.365915][T17530] RAX: 1ffff11011c9f927 RBX: ffff88808e4fc938 RCX: dffffc0000000000
+[  130.373860][T17530] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffff88808e4fc920
+[  130.381805][T17530] RBP: ffff888089a2f490 R08: 0000000000000001 R09: 0000000000000000
+[  130.389752][T17530] R10: ffffffff85edbef5 R11: 0000000000000002 R12: ffffffff893ef0b0
+[  130.397700][T17530] R13: dffffc0000000000 R14: ffffffff887b36a6 R15: 0000000000000000
+[  130.405661][T17530]  ? lock_sock_nested+0x45/0x120
+[  130.410589][T17530]  register_lock_class+0xde/0x1110
+[  130.415680][T17530]  ? __schedule+0x660/0x9e0
+[  130.420156][T17530]  ? is_dynamic_key+0x1c0/0x1c0
+[  130.425036][T17530]  __lock_acquire+0x151/0x1a40
+[  130.429793][T17530]  ? __might_sleep+0x8f/0x100
+[  130.434444][T17530]  ? kasan_check_read+0x11/0x20
+[  130.439289][T17530]  ? futex_wait_queue_me+0x3e7/0x570
+[  130.444563][T17530]  ? trace_lock_acquire+0x190/0x190
+[  130.449758][T17530]  ? futex_wait_setup+0x710/0x710
+[  130.454754][T17530]  ? futex_wait+0x6f1/0x7c0
+[  130.459243][T17530]  ? trace_lock_acquire+0x11c/0x190
+[  130.464424][T17530]  lock_acquire+0x158/0x250
+[  130.468900][T17530]  ? lock_sock_nested+0x45/0x120
+[  130.473815][T17530]  ? lock_sock_nested+0x45/0x120
+[  130.478740][T17530]  _raw_spin_lock_bh+0x34/0x50
+[  130.483474][T17530]  ? lock_sock_nested+0x45/0x120
+[  130.488385][T17530]  lock_sock_nested+0x45/0x120
+[  130.493124][T17530]  do_ipv6_setsockopt+0x2e5/0x3bc0
+[  130.498219][T17530]  ? ipv6_setsockopt+0x170/0x170
+[  130.503127][T17530]  ? do_futex+0x557/0x3f40
+[  130.507525][T17530]  ? __kasan_kmalloc+0x11c/0x1b0
+[  130.512456][T17530]  ? alloc_file+0x60/0x4c0
+[  130.516856][T17530]  ? __x64_sys_socket+0x7a/0x90
+[  130.521718][T17530]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  130.527760][T17530]  ? __bfs+0x550/0x550
+[  130.531804][T17530]  ? do_syscall_64+0xfe/0x140
+[  130.536456][T17530]  ? trace_lock_acquire+0x190/0x190
+[  130.541626][T17530]  ? __bfs+0x550/0x550
+[  130.545670][T17530]  ? handle_futex_death+0x3f0/0x3f0
+[  130.550841][T17530]  ? lockdep_unregister_key+0x660/0x660
+[  130.556359][T17530]  ? __lock_acquire+0xcf7/0x1a40
+[  130.561272][T17530]  ? trace_lock_acquire+0x190/0x190
+[  130.566469][T17530]  ? trace_lock_acquire+0x190/0x190
+[  130.571655][T17530]  ? percpu_counter_add_batch+0x169/0x190
+[  130.577362][T17530]  ? alloc_file+0x89/0x4c0
+[  130.581765][T17530]  ? rcu_lock_release+0xd/0x30
+[  130.586518][T17530]  ? rcu_lock_release+0x26/0x30
+[  130.591340][T17530]  ? __fget+0x4fe/0x540
+[  130.595491][T17530]  ipv6_setsockopt+0x51/0x170
+[  130.600146][T17530]  udpv6_setsockopt+0x7b/0x90
+[  130.604795][T17530]  sock_common_setsockopt+0x99/0xb0
+[  130.609968][T17530]  __sys_setsockopt+0x1e2/0x250
+[  130.614804][T17530]  __x64_sys_setsockopt+0xbf/0xd0
+[  130.619811][T17530]  do_syscall_64+0xfe/0x140
+[  130.624315][T17530]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  130.630218][T17530] RIP: 0033:0x4592c9
+[  130.634098][T17530] Code: fd b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  130.653690][T17530] RSP: 002b:00007f0ded8ffc78 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+[  130.662076][T17530] RAX: ffffffffffffffda RBX: 0000000000000005 RCX: 00000000004592c9
+[  130.670020][T17530] RDX: 0000000000000023 RSI: 0000000000000029 RDI: 0000000000000004
+[  130.677966][T17530] RBP: 000000000075bfc8 R08: 0000000000000000 R09: 0000000000000000
+[  130.685918][T17530] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f0ded9006d4
+[  130.693863][T17530] R13: 00000000004ce338 R14: 00000000004dcc68 R15: 00000000ffffffff
+[  130.702965][T17530] Kernel Offset: disabled
+[  130.707298][T17530] Rebooting in 86400 seconds..
