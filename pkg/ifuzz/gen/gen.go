@@ -362,6 +362,9 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			insn.No66Prefix = true
 		case v == "no66_prefix", v == "eosz32", v == "eosz64":
 			insn.No66Prefix = true
+		case v == "eosz16", v == "eosznot64", v == "REP!=3":
+			// TODO(dvyukov): this may have some effect on REP/66 prefixes,
+			// but this wasn't checked. These are just added here to unbreak build.
 		case v == "f2_refining_prefix", v == "refining_f2", v == "repne", v == "REP=2":
 			insn.Prefix = append(insn.Prefix, 0xF2)
 			insn.NoRepPrefix = true
@@ -416,6 +419,7 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			v == "ESIZE_16_BITS()",
 			v == "ESIZE_32_BITS()",
 			v == "ESIZE_64_BITS()",
+			v == "ESIZE_128_BITS()",
 			v == "NELEM_GPR_WRITER_STORE()",
 			v == "NELEM_GPR_WRITER_STORE_BYTE()",
 			v == "NELEM_GPR_WRITER_STORE_WORD()",
@@ -452,6 +456,13 @@ func parsePattern(insn *ifuzz.Insn, vals []string) error {
 			v == "SAE()",
 			v == "VL512", // VL=2
 			v == "not_refining_f3",
+			v == "EVEXRR_ONE",
+			v == "CET=0",
+			v == "CET=1",
+			v == "WBNOINVD=0",
+			v == "WBNOINVD=1",
+			v == "CLDEMOTE=0",
+			v == "CLDEMOTE=1",
 			strings.HasPrefix(v, "MODEP5="):
 		default:
 			return errSkip(fmt.Sprintf("unknown pattern %v", v))
