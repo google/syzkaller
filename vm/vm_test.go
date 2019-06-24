@@ -70,7 +70,7 @@ func (inst *testInstance) Close() {
 }
 
 func init() {
-	beforeContext = 200
+	beforeContext = maxErrorLength + 100
 	tickerPeriod = 1 * time.Second
 	NoOutputTimeout = 5 * time.Second
 	waitForOutputTimeout = 3 * time.Second
@@ -273,6 +273,26 @@ var tests = []*Test{
 			}
 			time.Sleep(time.Second)
 			errc <- vmimpl.ErrTimeout
+		},
+	},
+	{
+		Name: "split-line",
+		Exit: ExitNormal,
+		Body: func(outc chan []byte, errc chan error) {
+			// "ODEBUG:" lines should be ignored, however the matchPos logic
+			// used to trim the lines so that we could see just "BUG:" later
+			// and detect it as crash.
+			buf := new(bytes.Buffer)
+			for i := 0; i < 50; i++ {
+				buf.WriteString("[ 2886.597572] ODEBUG: Out of memory. ODEBUG disabled\n")
+				buf.Write(bytes.Repeat([]byte{'-'}, i))
+				buf.WriteByte('\n')
+			}
+			output := buf.Bytes()
+			for i := range output {
+				outc <- output[i : i+1]
+			}
+			errc <- nil
 		},
 	},
 }

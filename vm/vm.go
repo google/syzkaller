@@ -209,7 +209,19 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 				copy(mon.output, mon.output[len(mon.output)-beforeContext:])
 				mon.output = mon.output[:beforeContext]
 			}
+			// Find the starting position for crash matching on the next iteration.
+			// We step back from the end of output by maxErrorLength to handle the case
+			// when a crash line is currently split/incomplete. And then we try to find
+			// the preceeding '\n' to have a full line. This is required to handle
+			// the case when a particular pattern is ignored as crash, but a suffix
+			// of the pattern is detected as crash (e.g. "ODEBUG:" is trimmed to "BUG:").
 			mon.matchPos = len(mon.output) - maxErrorLength
+			for i := 0; i < maxErrorLength; i++ {
+				if mon.matchPos <= 0 || mon.output[mon.matchPos-1] == '\n' {
+					break
+				}
+				mon.matchPos--
+			}
 			if mon.matchPos < 0 {
 				mon.matchPos = 0
 			}
@@ -330,7 +342,7 @@ func (mon *monitor) waitForOutput() {
 }
 
 const (
-	maxErrorLength = 512
+	maxErrorLength = 256
 
 	lostConnectionCrash  = "lost connection to test machine"
 	noOutputCrash        = "no output from test machine"
