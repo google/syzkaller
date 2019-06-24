@@ -212,7 +212,7 @@ func (inst *Instance) MonitorExecution(outc <-chan []byte, errc <-chan error,
 			// Find the starting position for crash matching on the next iteration.
 			// We step back from the end of output by maxErrorLength to handle the case
 			// when a crash line is currently split/incomplete. And then we try to find
-			// the preceeding '\n' to have a full line. This is required to handle
+			// the preceding '\n' to have a full line. This is required to handle
 			// the case when a particular pattern is ignored as crash, but a suffix
 			// of the pattern is detected as crash (e.g. "ODEBUG:" is trimmed to "BUG:").
 			mon.matchPos = len(mon.output) - maxErrorLength
