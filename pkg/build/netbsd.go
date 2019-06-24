@@ -30,9 +30,12 @@ func (ctx netbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	conf := []byte(`
 include "arch/amd64/conf/GENERIC"
 
+options	   LOCKDEBUG
+
 makeoptions    KASAN=1
 options    KASAN
 no options SVS
+options	   KASAN_PANIC
 
 makeoptions     KCOV=1
 options     KCOV
