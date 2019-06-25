@@ -7,7 +7,6 @@ go:
 
 cache:
   directories:
-    - $HOME/bin
     - $HOME/libc
     - $HOME/.cache/go-build
     - $HOME/gopath/pkg/mod
@@ -25,12 +24,6 @@ before_install:
       dpkg-deb -x ./libstdc++6_5.4.0-6ubuntu1~16.04.10_amd64.deb $HOME/libc
     )
   - export LD_LIBRARY_PATH=$HOME/libc/usr/lib/x86_64-linux-gnu/
-  - which clang-format || (
-      wget http://releases.llvm.org/6.0.1/clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz &&
-      tar -xf ./clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz                           &&
-      cp clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04/bin/clang-format $HOME/bin/
-    )
-  - clang-format --version
 
 install: true
 
