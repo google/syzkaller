@@ -9,6 +9,8 @@ cache:
   directories:
     - $HOME/bin
     - $HOME/libc
+    - $HOME/.cache/go-build
+    - $HOME/gopath/pkg/mod
 
 before_install:
   # xenial packages are broken and do no allow to cross-compile for both 386 and arm.
