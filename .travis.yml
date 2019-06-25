@@ -22,7 +22,11 @@ before_install:
   - mkdir ./libc
   - dpkg-deb -x ./libstdc++6_5.4.0-6ubuntu1~16.04.10_amd64.deb ./libc
   - export LD_LIBRARY_PATH=`pwd`/libc/usr/lib/x86_64-linux-gnu/
-  - which clang-format || ( wget http://releases.llvm.org/6.0.1/clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz && tar -xf ./clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz && sudo cp clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04/bin/clang-format /usr/local/bin/ )
+  - which clang-format || (
+      wget http://releases.llvm.org/6.0.1/clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz &&
+      tar -xf ./clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04.tar.xz                           &&
+      sudo cp clang+llvm-6.0.1-x86_64-linux-gnu-ubuntu-14.04/bin/clang-format /usr/local/bin/
+    )
   - clang-format --version
 
 install: true
