@@ -332,7 +332,7 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-aarch64-linux-gnu || true
 	sudo apt-get install -y -q g++-powerpc64le-linux-gnu || true
 	sudo apt-get install -y -q g++-arm-linux-gnueabi || true
-	sudo apt-get install -y -q ragel
+	sudo apt-get install -y -q ragel clang-format
 	go get -u golang.org/x/tools/cmd/goyacc
 	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
