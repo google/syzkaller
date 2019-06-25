@@ -7,7 +7,6 @@ go:
 
 cache:
   directories:
-    - $HOME/libc
     - $HOME/.cache/go-build
     - $HOME/gopath/pkg/mod
 
@@ -18,12 +17,6 @@ before_install:
   - sudo dpkg --add-architecture i386
   - sudo apt-get update
   - sudo apt-get install -y -q linux-libc-dev:i386 lib32gcc-5-dev lib32stdc++-5-dev
-  - test -d $HOME/libc/usr/lib/x86_64-linux-gnu/ || (
-      mkdir -p $HOME/libc                                                                                   &&
-      wget http://security.ubuntu.com/ubuntu/pool/main/g/gcc-5/libstdc++6_5.4.0-6ubuntu1~16.04.10_amd64.deb &&
-      dpkg-deb -x ./libstdc++6_5.4.0-6ubuntu1~16.04.10_amd64.deb $HOME/libc
-    )
-  - export LD_LIBRARY_PATH=$HOME/libc/usr/lib/x86_64-linux-gnu/
 
 install: true
 
