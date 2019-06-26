@@ -52,7 +52,7 @@ Change the following options :
     CONFIG_KCOV=y
     CONFIG_KASAN=y
     CONFIG_DEBUG_INFO=y
-    CONFIG_CMDLINE=”console=ttyAMA0”
+    CONFIG_CMDLINE="console=ttyAMA0"
     CONFIG_KCOV_INSTRUMENT_ALL=y
     CONFIG_DEBUG_FS=y
     CONFIG_NET_9P=y
@@ -131,8 +131,8 @@ A sample config file that exercises the required options are shown below. Modify
     "name": "QEMU-aarch64",
     "target": "linux/arm64",
     "http": ":56700",
-    "workdir": "/path/to/a/dir/to/store/syzkaller/corpus”,
-    "kernel_obj": “/path/to/linux/build/dir",
+    "workdir": "/path/to/a/dir/to/store/syzkaller/corpus",
+    "kernel_obj": "/path/to/linux/build/dir",
     "syzkaller": "/path/to/syzkaller/arm64/",
     "image": "/path/to/rootfs.ext3",
     "sshkey": "/path/to/ida_rsa",
@@ -142,7 +142,7 @@ A sample config file that exercises the required options are shown below. Modify
         "count": 1,
         "qemu": "/path/to/qemu-system-aarch64",
         "cmdline": "console=ttyAMA0 root=/dev/vda",
-        "kernel": “/path/to/Image",
+        "kernel": "/path/to/Image",
         "cpu": 2,
         "mem": 2048
     }
