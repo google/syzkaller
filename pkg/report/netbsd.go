@@ -27,7 +27,7 @@ type netbsd struct {
 var (
 	netbsdSymbolizeRe = []*regexp.Regexp{
 		// stack
-		regexp.MustCompile(` at ([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
+		regexp.MustCompile(` at netbsd:([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
 		// witness
 		regexp.MustCompile(`#[0-9]+ +([A-Za-z0-9_]+)\+0x([0-9a-f]+)`),
 	}
