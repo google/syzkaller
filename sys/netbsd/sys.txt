@@ -15,6 +15,7 @@ include <sys/resource.h>
 include <time.h>
 include <signal.h>
 include <sys/wait.h>
+include <sys/ptrace.h>
 
 syz_execute_func(text ptr[in, text[target]])
 
@@ -107,6 +108,9 @@ nanosleep(req ptr[in, timespec], rem ptr[out, timespec, opt])
 getitimer(which flags[getitimer_which], cur ptr[out, itimerval])
 setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, itimerval, opt])
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
+
+exit(code intptr)
+ptrace(request intptr, pid pid, addr ptr[out, intptr], data intptr)
 
 pollfd {
 	fd	fd
