@@ -465,9 +465,12 @@ rtm_ipv6_policy [
 ] [varlen]
 
 rtm_mpls_policy [
-	RTA_DST			nlattr[RTA_DST, array[mpls_label]]
+	RTA_DST			nlattr[RTA_DST, mpls_label]
+	RTA_MULTIPATH		nlattr[RTA_MULTIPATH, rtnexthop]
+	RTA_NEWDST		nlattr[RTA_NEWDST, array[mpls_label, 32]]
 	RTA_OIF			nlattr[RTA_OIF, ifindex]
 	RTA_TTL_PROPAGATE	nlattr[RTA_TTL_PROPAGATE, int8]
+	RTA_VIA			nlattr[RTA_VIA, sockaddr_generic]
 ] [varlen]
 
 type fib_rule_hdr[FAMILY] {
