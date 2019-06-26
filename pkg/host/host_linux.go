@@ -214,7 +214,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	case "syz_emit_ethernet", "syz_extract_tcp_res":
 		reason := checkNetworkInjection()
 		return reason == "", reason
-	case "syz_usb_connect", "syz_usb_disconnect", "syz_usb_control_io", "syz_usb_ep_write":
+	case "syz_usb_connect", "syz_usb_disconnect", "syz_usb_control_io", "syz_usb_ep_write", "syz_usb_ep_read":
 		reason := checkUSBInjection()
 		return reason == "", reason
 	case "syz_kvm_setup_cpu":

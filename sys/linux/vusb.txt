@@ -20,6 +20,7 @@ resource fd_usb_hid[fd_usb]
 syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb
 syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
 syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data buffer[in])
+syz_usb_ep_read(fd fd_usb, ep int16[0:31], len len[data], data buffer[out])
 syz_usb_disconnect(fd fd_usb)
 
 # These are syzcalls specifically targeted to the HID device class.
@@ -87,14 +88,16 @@ type usb_interface_descriptor_t[CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
 	endpoints		EPS
 } [packed]
 
+# TODO: Some endpoints have USB_DT_ENDPOINT_SIZE.
 type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
-	bLength			const[USB_DT_ENDPOINT_SIZE, int8]
+	bLength			const[USB_DT_ENDPOINT_AUDIO_SIZE, int8]
 	bDescriptorType		const[USB_DT_ENDPOINT, int8]
 
 	bEndpointAddress	ADDR
 	bmAttributes		ATTRS
 	wMaxPacketSize		int16
 	bInterval		int8
+
 	bRefresh		int8
 	bSynchAddress		int8
 
