@@ -1424,12 +1424,11 @@ mpls_packet {
 	payload	mpls_payload
 } [packed]
 
-# TODO: is it this ordering or reverse?
 mpls_label {
-	ttl	int32be:8
-	s	int32be:1
-	tc	int32be:3
 	label	int32be:20
+	tc	const[0, int32be:3]
+	s	int32be:1
+	ttl	const[0, int32be:8]
 }
 
 mpls_payload [
