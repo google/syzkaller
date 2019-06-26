@@ -201,10 +201,7 @@ ssh -i netbsd-image.key -p 10022 -o IdentitiesOnly=yes root@localhost /sbin/rebo
 ## Missing things
 
 - Automating the configuation changes (like appending to config files), generating the json config file on the fly (with customizable values to the keys using command line parameters) and calling syz-manager with `anita` using just a single command.
-- Coverage. `executor/executor_netbsd.cc` uses a very primitive fallback for coverage. We need KCOV for NetBSD. It will also help to assess what's covered and what's missing.
 - System call descriptions. `sys/netbsd/*.txt` is a dirty copy from `sys/linux/*.txt` with everything that does not compile dropped. We need to go through syscalls and verify/fix/extend them, including devices/ioctls/etc.
 - Currently only `amd64` arch is supported. Supporting `386` would be useful, because it should cover compat paths. Also, we could do testing of the linux-compatibility subsystem.
 - `pkg/host` needs to be taught how to detect supported syscalls/devices.
-- `pkg/report`/`pkg/symbolizer` need to be taught how to extract/symbolize kernel crash reports.
-- We need to learn how to build/use debug version of kernel.
 - On Linux we have emission of exernal networking/USB traffic into kernel using tun/gadgetfs. Implementing these for NetBSD could uncover a number of high-profile bugs.
