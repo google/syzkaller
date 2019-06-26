@@ -608,11 +608,19 @@ retry:
 		}
 		if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0) {
 			// Must match timeout in pkg/csource/csource.go.
-			call_extra_timeout = 200;
+			call_extra_timeout = 300;
+		}
+		if (strncmp(syscalls[call_num].name, "syz_usb_ep_write", strlen("syz_usb_ep_write")) == 0) {
+			// Must match timeout in pkg/csource/csource.go.
+			call_extra_timeout = 300;
+		}
+		if (strncmp(syscalls[call_num].name, "syz_usb_ep_read", strlen("syz_usb_ep_read")) == 0) {
+			// Must match timeout in pkg/csource/csource.go.
+			call_extra_timeout = 300;
 		}
 		if (strncmp(syscalls[call_num].name, "syz_usb_disconnect", strlen("syz_usb_disconnect")) == 0) {
 			// Must match timeout in pkg/csource/csource.go.
-			call_extra_timeout = 200;
+			call_extra_timeout = 300;
 		}
 		if (call_num == instr_copyin) {
 			char* addr = (char*)read_input(&input_pos);

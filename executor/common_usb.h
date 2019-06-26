@@ -30,19 +30,21 @@ static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_
 	size_t offset = 0;
 
 	while (true) {
-		if (offset == length)
+		if (offset + 1 >= length)
 			break;
-		if (offset + 1 < length)
+		uint8 desc_length = buffer[offset];
+		uint8 desc_type = buffer[offset + 1];
+		if (desc_length <= 2)
 			break;
-		uint8 length = buffer[offset];
-		uint8 type = buffer[offset + 1];
-		if (type == USB_DT_ENDPOINT) {
+		if (offset + desc_length > length)
+			break;
+		if (desc_type == USB_DT_ENDPOINT) {
 			index->eps[index->eps_num] = (struct usb_endpoint_descriptor*)(buffer + offset);
 			index->eps_num++;
 		}
 		if (index->eps_num == USB_MAX_EP_NUM)
 			break;
-		offset += length;
+		offset += desc_length;
 	}
 
 	return true;
@@ -82,6 +84,7 @@ struct usb_fuzzer_ep_io {
 #define USB_FUZZER_IOCTL_EP0_WRITE _IOW('U', 3, struct usb_fuzzer_ep_io)
 #define USB_FUZZER_IOCTL_EP_ENABLE _IOW('U', 4, struct usb_endpoint_descriptor)
 #define USB_FUZZER_IOCTL_EP_WRITE _IOW('U', 6, struct usb_fuzzer_ep_io)
+#define USB_FUZZER_IOCTL_EP_READ _IOWR('U', 7, struct usb_fuzzer_ep_io)
 #define USB_FUZZER_IOCTL_CONFIGURE _IO('U', 8)
 #define USB_FUZZER_IOCTL_VBUS_DRAW _IOW('U', 9, uint32)
 
@@ -117,6 +120,11 @@ int usb_fuzzer_ep0_write(int fd, struct usb_fuzzer_ep_io* io)
 int usb_fuzzer_ep_write(int fd, struct usb_fuzzer_ep_io* io)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_EP_WRITE, io);
+}
+
+int usb_fuzzer_ep_read(int fd, struct usb_fuzzer_ep_io* io)
+{
+	return ioctl(fd, USB_FUZZER_IOCTL_EP_READ, io);
 }
 
 int usb_fuzzer_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
@@ -227,8 +235,10 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 	struct vusb_connect_descriptors* descs = (struct vusb_connect_descriptors*)a3;
 
 	debug("syz_usb_connect: dev: %p\n", dev);
-	if (!dev)
+	if (!dev) {
+		debug("syz_usb_connect: dev is null\n");
 		return -1;
+	}
 
 	debug("syz_usb_connect: device data:\n");
 	debug_dump_data(dev, dev_len);
@@ -241,7 +251,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		debug("syz_usb_connect: parse_usb_descriptor failed with %d\n", rv);
 		return rv;
 	}
-	debug("syz_usb_connect: parsed usb descriptor\n");
+	debug("syz_usb_connect: parsed usb descriptor, %d endpoints found\n", index.eps_num);
 
 	int fd = usb_fuzzer_open();
 	if (fd < 0) {
@@ -306,8 +316,11 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 			unsigned ep;
 			for (ep = 0; ep < index.eps_num; ep++) {
 				rv = usb_fuzzer_ep_enable(fd, index.eps[ep]);
-				if (rv < 0)
-					fail("syz_usb_connect: ep enable failed");
+				if (rv < 0) {
+					debug("syz_usb_connect: usb_fuzzer_ep_enable failed with %d\n", rv);
+				} else {
+					debug("syz_usb_connect: endpoint %d enabled\n", ep);
+				}
 			}
 		}
 
@@ -491,16 +504,55 @@ static volatile long syz_usb_ep_write(volatile long a0, volatile long a1, volati
 	uint32 len = a2;
 	char* data = (char*)a3;
 
-	struct usb_fuzzer_ep_io_data response;
-	response.inner.ep = ep;
-	response.inner.flags = 0;
-	if (len > sizeof(response.data))
-		len = 0;
-	response.inner.length = len;
-	if (data)
-		memcpy(&response.data[0], data, len);
+	struct usb_fuzzer_ep_io_data io_data;
+	io_data.inner.ep = ep;
+	io_data.inner.flags = 0;
+	if (len > sizeof(io_data.data))
+		len = sizeof(io_data.data);
+	io_data.inner.length = len;
+	NONFAILING(memcpy(&io_data.data[0], data, len));
 
-	return usb_fuzzer_ep_write(fd, (struct usb_fuzzer_ep_io*)&response);
+	int rv = usb_fuzzer_ep_write(fd, (struct usb_fuzzer_ep_io*)&io_data);
+	if (rv < 0) {
+		debug("syz_usb_ep_write: usb_fuzzer_ep_write failed with %d\n", rv);
+		return rv;
+	}
+
+	sleep_ms(200);
+
+	return 0;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_usb_ep_read
+static volatile long syz_usb_ep_read(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	int fd = a0;
+	uint16 ep = a1;
+	uint32 len = a2;
+	char* data = (char*)a3;
+
+	struct usb_fuzzer_ep_io_data io_data;
+	io_data.inner.ep = ep;
+	io_data.inner.flags = 0;
+	if (len > sizeof(io_data.data))
+		len = sizeof(io_data.data);
+	io_data.inner.length = len;
+
+	int rv = usb_fuzzer_ep_read(fd, (struct usb_fuzzer_ep_io*)&io_data);
+	if (rv < 0) {
+		debug("syz_usb_ep_read: usb_fuzzer_ep_read failed with %d\n", rv);
+		return rv;
+	}
+
+	NONFAILING(memcpy(&data[0], &io_data.data[0], io_data.inner.length));
+
+	debug("syz_usb_ep_read: received data:\n");
+	debug_dump_data(&io_data.data[0], io_data.inner.length);
+
+	sleep_ms(200);
+
+	return 0;
 }
 #endif
 
