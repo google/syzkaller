@@ -17,19 +17,19 @@ func TestNetbsdSymbolizeLine(t *testing.T) {
 	}{
 		// Normal symbolization.
 		{
-			"closef(ffffffff,ffffffff) at closef+0xaf\n",
-			"closef(ffffffff,ffffffff) at closef+0xaf kern_descrip.c:1241\n",
+			"closef(ffffffff,ffffffff) at netbsd:closef+0xaf\n",
+			"closef(ffffffff,ffffffff) at netbsd:closef+0xaf kern_descrip.c:1241\n",
 		},
 		// Inlined frames.
 		{
-			"sleep_finish_all(ffffffff,32) at sleep_finish_all+0x22\n",
-			"sleep_finish_all(ffffffff,32) at sleep_finish_all+0x22 sleep_finish_timeout kern_synch.c:336 [inline]\n" +
-				"sleep_finish_all(ffffffff,32) at sleep_finish_all+0x22 kern_synch.c:157\n",
+			"sleep_finish_all(ffffffff,32) at netbsd:sleep_finish_all+0x22\n",
+			"sleep_finish_all(ffffffff,32) at netbsd:sleep_finish_all+0x22 sleep_finish_timeout kern_synch.c:336 [inline]\n" +
+				"sleep_finish_all(ffffffff,32) at netbsd:sleep_finish_all+0x22 kern_synch.c:157\n",
 		},
 		// Missing symbol.
 		{
-			"foo(ffffffff,ffffffff) at foo+0x1e",
-			"foo(ffffffff,ffffffff) at foo+0x1e",
+			"foo(ffffffff,ffffffff) at netbsd:foo+0x1e",
+			"foo(ffffffff,ffffffff) at netbsd:foo+0x1e",
 		},
 		// Witness symbolization.
 		{
