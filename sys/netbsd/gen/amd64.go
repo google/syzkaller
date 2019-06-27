@@ -110,6 +110,10 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "onoff", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "linger", TypeSize: 4, ArgDir: 1}}},
 	}}},
+	{Key: StructKey{Name: "lwpctl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "lwpctl", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lc_curcpu", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lc_pctr", TypeSize: 4}}},
+	}}},
 	{Key: StructKey{Name: "mf6cctl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mf6cctl", TypeSize: 60}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_in6"}, FldName: "mf6cc_origin"},
 		&StructType{Key: StructKey{Name: "sockaddr_in6"}, FldName: "mf6cc_mcastgrp"},
@@ -362,6 +366,46 @@ var structDescs_amd64 = []*KeyedStruct{
 }
 
 var syscalls_amd64 = []*Syscall{
+	{NR: 314, Name: "_lwp_continue", CallName: "_lwp_continue", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+	}},
+	{NR: 325, Name: "_lwp_ctl", CallName: "_lwp_ctl", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lwpstr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "lwpctl"}}},
+	}},
+	{NR: 319, Name: "_lwp_detach", CallName: "_lwp_detach", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+	}},
+	{NR: 310, Name: "_lwp_exit", CallName: "_lwp_exit"},
+	{NR: 324, Name: "_lwp_getname", CallName: "_lwp_getname", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 8}}},
+	}},
+	{NR: 316, Name: "_lwp_getprivate", CallName: "_lwp_getprivate"},
+	{NR: 318, Name: "_lwp_kill", CallName: "_lwp_kill", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flag", TypeSize: 4}}},
+	}},
+	{NR: 311, Name: "_lwp_self", CallName: "_lwp_self", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+	}},
+	{NR: 323, Name: "_lwp_setname", CallName: "_lwp_setname", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+	}},
+	{NR: 317, Name: "_lwp_setprivate", CallName: "_lwp_setprivate", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pt", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
+	}},
+	{NR: 313, Name: "_lwp_suspend", CallName: "_lwp_suspend", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+	}},
+	{NR: 312, Name: "_lwp_wait", CallName: "_lwp_wait", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "wlwp", TypeSize: 4}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rlwp", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 315, Name: "_lwp_wakeup", CallName: "_lwp_wakeup", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+	}},
 	{NR: 30, Name: "accept", CallName: "accept", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}}},
@@ -841,6 +885,12 @@ var syscalls_amd64 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfds", TypeSize: 8}}, Path: []string{"fds"}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4}}},
 	}},
+	{NR: 173, Name: "pread", CallName: "pread", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nbyte", TypeSize: 8}}, Path: []string{"buf"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 8}}, Kind: 1},
+	}},
 	{NR: 289, Name: "preadv", CallName: "preadv", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
@@ -852,6 +902,12 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "data", TypeSize: 8}}},
+	}},
+	{NR: 174, Name: "pwrite", CallName: "pwrite", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nbyte", TypeSize: 8}}, Path: []string{"buf"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 8}}, Kind: 1},
 	}},
 	{NR: 290, Name: "pwritev", CallName: "pwritev", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -1504,6 +1560,19 @@ var consts_amd64 = []ConstValue{
 	{Name: "SO_SNDTIMEO", Value: 4107},
 	{Name: "SO_TIMESTAMP", Value: 8192},
 	{Name: "SO_TYPE", Value: 4104},
+	{Name: "SYS__lwp_continue", Value: 314},
+	{Name: "SYS__lwp_ctl", Value: 325},
+	{Name: "SYS__lwp_detach", Value: 319},
+	{Name: "SYS__lwp_exit", Value: 310},
+	{Name: "SYS__lwp_getname", Value: 324},
+	{Name: "SYS__lwp_getprivate", Value: 316},
+	{Name: "SYS__lwp_kill", Value: 318},
+	{Name: "SYS__lwp_self", Value: 311},
+	{Name: "SYS__lwp_setname", Value: 323},
+	{Name: "SYS__lwp_setprivate", Value: 317},
+	{Name: "SYS__lwp_suspend", Value: 313},
+	{Name: "SYS__lwp_wait", Value: 312},
+	{Name: "SYS__lwp_wakeup", Value: 315},
 	{Name: "SYS_accept", Value: 30},
 	{Name: "SYS_bind", Value: 104},
 	{Name: "SYS_chdir", Value: 12},
@@ -1578,8 +1647,10 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_pipe", Value: 42},
 	{Name: "SYS_pipe2", Value: 453},
 	{Name: "SYS_poll", Value: 209},
+	{Name: "SYS_pread", Value: 173},
 	{Name: "SYS_preadv", Value: 289},
 	{Name: "SYS_ptrace", Value: 26},
+	{Name: "SYS_pwrite", Value: 174},
 	{Name: "SYS_pwritev", Value: 290},
 	{Name: "SYS_read", Value: 3},
 	{Name: "SYS_readlink", Value: 58},
@@ -1652,4 +1723,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "96be9781647711050e565dac893dacbf183be15d"
+const revision_amd64 = "60d8e606f005f6535558c4158d87d3a26f96318c"

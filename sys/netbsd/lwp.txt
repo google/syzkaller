@@ -1,0 +1,33 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/lwp.h>
+include <sys/lwpctl.h>
+
+# _lwp_create(context, flags intptr, lwpid ptr [in, int32])
+_lwp_exit()
+_lwp_self(lwpid int32)
+_lwp_wait(wlwp int32, rlwp ptr[in, int32])
+_lwp_suspend(lwpid int32)
+_lwp_continue(lwpid int32)
+_lwp_wakeup(lwpid int32)
+_lwp_getprivate()
+_lwp_setprivate(pt ptr[in, intptr])
+_lwp_kill(lwpid int32, flag int32)
+_lwp_detach(lwpid int32)
+# compat_50__lwp_park()
+# _lwp_unpark(lwpid int32, hint ptr[in, intptr])
+# _lwp_unpark_all(lwpid int32, intptr, hint ptr[in, intptr])
+_lwp_setname(lwpid int32, name buffer[in])
+_lwp_getname(lwpid int32, name buffer[out], size intptr)
+_lwp_ctl(lwpstr ptr[in, lwpctl])
+
+# context {
+#
+# }
+
+lwpctl {
+	lc_curcpu	int32
+	lc_pctr		int32
+}
