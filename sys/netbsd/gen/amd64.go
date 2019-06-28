@@ -427,6 +427,15 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 313, Name: "_lwp_suspend", CallName: "_lwp_suspend", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
 	}},
+	{NR: 321, Name: "_lwp_unpark", CallName: "_lwp_unpark", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hint", TypeSize: 8, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
+	}},
+	{NR: 322, Name: "_lwp_unpark_all", CallName: "_lwp_unpark_all", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hint", TypeSize: 8, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
+	}},
 	{NR: 312, Name: "_lwp_wait", CallName: "_lwp_wait", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "wlwp", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rlwp", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", TypeSize: 4}}},
@@ -509,6 +518,12 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{NR: 6, Name: "close", CallName: "close", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+	}},
+	{NR: 320, Name: "compat_50__lwp_park", CallName: "compat_50__lwp_park", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "abstime", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "timespec"}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "unpark", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hint", TypeSize: 8, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "unparkhint", TypeSize: 8, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
 	}},
 	{NR: 98, Name: "connect", CallName: "connect", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
@@ -1604,6 +1619,8 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS__lwp_setname", Value: 323},
 	{Name: "SYS__lwp_setprivate", Value: 317},
 	{Name: "SYS__lwp_suspend", Value: 313},
+	{Name: "SYS__lwp_unpark", Value: 321},
+	{Name: "SYS__lwp_unpark_all", Value: 322},
 	{Name: "SYS__lwp_wait", Value: 312},
 	{Name: "SYS__lwp_wakeup", Value: 315},
 	{Name: "SYS_accept", Value: 30},
@@ -1617,6 +1634,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_clock_nanosleep", Value: 477},
 	{Name: "SYS_clock_settime", Value: 428},
 	{Name: "SYS_close", Value: 6},
+	{Name: "SYS_compat_50__lwp_park", Value: 320},
 	{Name: "SYS_connect", Value: 98},
 	{Name: "SYS_dup", Value: 41},
 	{Name: "SYS_dup2", Value: 90},
@@ -1761,4 +1779,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "_UC_STACK", Value: 2},
 }
 
-const revision_amd64 = "b56abeb8be4e5cd027c0d7b979f5f53a0a88b2b4"
+const revision_amd64 = "9a97bc2700997ed9022ea94214f684c666123ba6"
