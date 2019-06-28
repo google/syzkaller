@@ -389,6 +389,10 @@ var structDescs_amd64 = []*KeyedStruct{
 }
 
 var syscalls_amd64 = []*Syscall{
+	{NR: 287, Name: "__clone", CallName: "__clone", Args: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clone_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{255, 256, 512, 1024, 2048, 4096, 8192, 16384}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 314, Name: "_lwp_continue", CallName: "_lwp_continue", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
 	}},
@@ -1407,6 +1411,14 @@ var consts_amd64 = []ConstValue{
 	{Name: "CLOCK_REALTIME"},
 	{Name: "CLOCK_THREAD_CPUTIME_ID", Value: 536870912},
 	{Name: "CLOCK_VIRTUAL", Value: 1},
+	{Name: "CLONE_CSIGNAL", Value: 255},
+	{Name: "CLONE_FILES", Value: 1024},
+	{Name: "CLONE_FS", Value: 512},
+	{Name: "CLONE_PID", Value: 4096},
+	{Name: "CLONE_PTRACE", Value: 8192},
+	{Name: "CLONE_SIGHAND", Value: 2048},
+	{Name: "CLONE_VFORK", Value: 16384},
+	{Name: "CLONE_VM", Value: 256},
 	{Name: "FD_CLOEXEC", Value: 1},
 	{Name: "F_DUPFD"},
 	{Name: "F_DUPFD_CLOEXEC", Value: 12},
@@ -1607,6 +1619,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SO_TYPE", Value: 4104},
 	{Name: "SS_DISABLE", Value: 4},
 	{Name: "SS_ONSTACK", Value: 1},
+	{Name: "SYS___clone", Value: 287},
 	{Name: "SYS__lwp_continue", Value: 314},
 	{Name: "SYS__lwp_create", Value: 309},
 	{Name: "SYS__lwp_ctl", Value: 325},
@@ -1779,4 +1792,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "_UC_STACK", Value: 2},
 }
 
-const revision_amd64 = "9a97bc2700997ed9022ea94214f684c666123ba6"
+const revision_amd64 = "a66d474d949599b1ca96e651f5a58386a7a547c0"
