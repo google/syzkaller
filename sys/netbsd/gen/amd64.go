@@ -19,6 +19,7 @@ var resources_amd64 = []*ResourceDesc{
 	{Name: "ipc_msq", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ipc", "ipc_msq"}, Values: []uint64{0, 18446744073709551615}},
 	{Name: "ipc_sem", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ipc", "ipc_sem"}, Values: []uint64{0, 18446744073709551615}},
 	{Name: "ipc_shm", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ipc", "ipc_shm"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "lwpid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"lwpid"}, Values: []uint64{0, 18446744073709551615}},
 	{Name: "pid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"pid"}, Values: []uint64{0, 18446744073709551615}},
 	{Name: "shmaddr", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"shmaddr"}, Values: []uint64{0}},
 	{Name: "sock", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -113,6 +114,11 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "lwpctl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "lwpctl", TypeSize: 8}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lc_curcpu", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lc_pctr", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "mcontext_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mcontext_t", IsVarlen: true}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "__gregs", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "_mc_tlsbase", TypeSize: 8}}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "__fpregs", IsVarlen: true}, Kind: 2},
 	}}},
 	{Key: StructKey{Name: "mf6cctl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mf6cctl", TypeSize: 60}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_in6"}, FldName: "mf6cc_origin"},
@@ -246,6 +252,9 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused1", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused2", TypeSize: 8}}},
 	}}},
+	{Key: StructKey{Name: "sigset_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sigset_t", TypeSize: 16}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "__bits", TypeSize: 16}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
+	}}},
 	{Key: StructKey{Name: "sock_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sock_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd1", TypeSize: 4, ArgDir: 1}},
@@ -310,6 +319,12 @@ var structDescs_amd64 = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 2, ArgDir: 1}}, Vals: []uint64{1, 0}, BitMask: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "path", ArgDir: 1, IsVarlen: true}, Kind: 3},
 	}}},
+	{Key: StructKey{Name: "stack_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "stack_t", TypeSize: 24}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ss_sp", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ss_size", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ss_flags", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+	}}},
 	{Key: StructKey{Name: "stat", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "stat", TypeSize: 112, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dev", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ino", TypeSize: 8, ArgDir: 1}}},
@@ -349,6 +364,14 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "sec", TypeSize: 8, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "usec", TypeSize: 8, ArgDir: 2}}},
 	}}},
+	{Key: StructKey{Name: "ucontext_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ucontext_t", IsVarlen: true}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uc_flags", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "uc_link", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "ucontext_t"}}},
+		&StructType{Key: StructKey{Name: "sigset_t"}, FldName: "uc_sigmask"},
+		&StructType{Key: StructKey{Name: "stack_t"}, FldName: "uc_stack"},
+		&StructType{Key: StructKey{Name: "mcontext_t"}, FldName: "uc_mcontext"},
+	}}},
 	{Key: StructKey{Name: "ucred"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ucred", TypeSize: 12}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
@@ -367,44 +390,49 @@ var structDescs_amd64 = []*KeyedStruct{
 
 var syscalls_amd64 = []*Syscall{
 	{NR: 314, Name: "_lwp_continue", CallName: "_lwp_continue", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
+	}},
+	{NR: 309, Name: "_lwp_create", CallName: "_lwp_create", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "context", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ucontext_t"}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lwp_flags", FldName: "cflags", TypeSize: 8}}, Vals: []uint64{64, 128}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lwpid", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{NR: 325, Name: "_lwp_ctl", CallName: "_lwp_ctl", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lwpstr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "lwpctl"}}},
 	}},
 	{NR: 319, Name: "_lwp_detach", CallName: "_lwp_detach", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
 	}},
 	{NR: 310, Name: "_lwp_exit", CallName: "_lwp_exit"},
 	{NR: 324, Name: "_lwp_getname", CallName: "_lwp_getname", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 8}}},
 	}},
 	{NR: 316, Name: "_lwp_getprivate", CallName: "_lwp_getprivate"},
 	{NR: 318, Name: "_lwp_kill", CallName: "_lwp_kill", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flag", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}},
 	}},
 	{NR: 311, Name: "_lwp_self", CallName: "_lwp_self", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
 	}},
 	{NR: 323, Name: "_lwp_setname", CallName: "_lwp_setname", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}},
 	{NR: 317, Name: "_lwp_setprivate", CallName: "_lwp_setprivate", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pt", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
 	}},
 	{NR: 313, Name: "_lwp_suspend", CallName: "_lwp_suspend", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
 	}},
 	{NR: 312, Name: "_lwp_wait", CallName: "_lwp_wait", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "wlwp", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rlwp", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "wlwp", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rlwp", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", TypeSize: 4}}},
 	}},
 	{NR: 315, Name: "_lwp_wakeup", CallName: "_lwp_wakeup", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lwpid", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "lwp", TypeSize: 4}},
 	}},
 	{NR: 30, Name: "accept", CallName: "accept", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
@@ -1439,6 +1467,8 @@ var consts_amd64 = []ConstValue{
 	{Name: "LOCK_NB", Value: 4},
 	{Name: "LOCK_SH", Value: 1},
 	{Name: "LOCK_UN", Value: 8},
+	{Name: "LWP_DETACHED", Value: 64},
+	{Name: "LWP_SUSPENDED", Value: 128},
 	{Name: "MADV_DONTNEED", Value: 4},
 	{Name: "MADV_FREE", Value: 6},
 	{Name: "MADV_NORMAL"},
@@ -1561,6 +1591,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SO_TIMESTAMP", Value: 8192},
 	{Name: "SO_TYPE", Value: 4104},
 	{Name: "SYS__lwp_continue", Value: 314},
+	{Name: "SYS__lwp_create", Value: 309},
 	{Name: "SYS__lwp_ctl", Value: 325},
 	{Name: "SYS__lwp_detach", Value: 319},
 	{Name: "SYS__lwp_exit", Value: 310},
@@ -1723,4 +1754,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "60d8e606f005f6535558c4158d87d3a26f96318c"
+const revision_amd64 = "0fe6cd5443eafe21f2dcc47f19bca91c1113c820"
