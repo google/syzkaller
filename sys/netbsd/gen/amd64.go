@@ -322,7 +322,7 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "stack_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "stack_t", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ss_sp", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ss_size", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ss_flags", TypeSize: 4}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "stack_flags", FldName: "ss_flags", TypeSize: 4}}, Vals: []uint64{4, 1}, BitMask: true},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "stat", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "stat", TypeSize: 112, ArgDir: 1}, Fields: []Type{
@@ -365,7 +365,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "usec", TypeSize: 8, ArgDir: 2}}},
 	}}},
 	{Key: StructKey{Name: "ucontext_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ucontext_t", IsVarlen: true}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uc_flags", TypeSize: 4}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ucontext_flags", FldName: "uc_flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8, 1074724896}, BitMask: true},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "uc_link", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "ucontext_t"}}},
 		&StructType{Key: StructKey{Name: "sigset_t"}, FldName: "uc_sigmask"},
@@ -1590,6 +1590,8 @@ var consts_amd64 = []ConstValue{
 	{Name: "SO_SNDTIMEO", Value: 4107},
 	{Name: "SO_TIMESTAMP", Value: 8192},
 	{Name: "SO_TYPE", Value: 4104},
+	{Name: "SS_DISABLE", Value: 4},
+	{Name: "SS_ONSTACK", Value: 1},
 	{Name: "SYS__lwp_continue", Value: 314},
 	{Name: "SYS__lwp_create", Value: 309},
 	{Name: "SYS__lwp_ctl", Value: 325},
@@ -1752,6 +1754,11 @@ var consts_amd64 = []ConstValue{
 	{Name: "WSTOPPED", Value: 2},
 	{Name: "WTRAPPED", Value: 64},
 	{Name: "WUNTRACED", Value: 2},
+	{Name: "_UC_CPU", Value: 4},
+	{Name: "_UC_FPU", Value: 8},
+	{Name: "_UC_MD", Value: 1074724896},
+	{Name: "_UC_SIGMASK", Value: 1},
+	{Name: "_UC_STACK", Value: 2},
 }
 
-const revision_amd64 = "0fe6cd5443eafe21f2dcc47f19bca91c1113c820"
+const revision_amd64 = "b56abeb8be4e5cd027c0d7b979f5f53a0a88b2b4"

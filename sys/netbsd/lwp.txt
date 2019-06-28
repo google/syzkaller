@@ -4,6 +4,8 @@
 include <sys/types.h>
 include <sys/lwp.h>
 include <sys/lwpctl.h>
+include <sys/ucontext.h>
+include <sys/signal.h>
 
 resource lwpid[int32]: 0, 0xffffffffffffffff
 
@@ -26,7 +28,7 @@ _lwp_getname(lwp lwpid, name buffer[out], size intptr)
 _lwp_ctl(lwpstr ptr[in, lwpctl])
 
 ucontext_t {
-	uc_flags	int32
+	uc_flags	flags[ucontext_flags, int32]
 	uc_link		ptr[in, ucontext_t, opt]
 	uc_sigmask	sigset_t
 	uc_stack	stack_t
@@ -36,7 +38,7 @@ ucontext_t {
 stack_t {
 	ss_sp		int64
 	ss_size		int64
-	ss_flags	int32
+	ss_flags	flags[stack_flags, int32]
 }
 
 mcontext_t {
@@ -55,3 +57,5 @@ lwpctl {
 }
 
 lwp_flags = LWP_DETACHED, LWP_SUSPENDED
+ucontext_flags = _UC_SIGMASK, _UC_STACK, _UC_CPU, _UC_FPU, _UC_MD
+stack_flags = SS_DISABLE, SS_ONSTACK
