@@ -15971,6 +15971,7 @@ const call_t syscalls[] = {
     {"ioctl$WSDISPLAYIO_GVIDEO", 54},
     {"ioctl$WSDISPLAYIO_LDFONT", 54},
     {"ioctl$WSDISPLAYIO_LSFONT", 54},
+    {"ioctl$WSDISPLAYIO_SBURNER", 54},
     {"ioctl$WSDISPLAYIO_SETSCREEN", 54},
     {"ioctl$WSDISPLAYIO_SMODE", 54},
     {"ioctl$WSDISPLAYIO_SVIDEO", 54},
