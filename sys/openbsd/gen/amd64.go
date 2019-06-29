@@ -652,6 +652,11 @@ var structDescs_amd64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "screentype", TypeSize: 16}, Kind: 3},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "emul", TypeSize: 16}, Kind: 3},
 	}}},
+	{Key: StructKey{Name: "wsdisplay_burner"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "wsdisplay_burner", TypeSize: 12}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "off", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "on", TypeSize: 4}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "wsdisplay_burner_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8}, BitMask: true},
+	}}},
 	{Key: StructKey{Name: "wsdisplay_burner", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "wsdisplay_burner", TypeSize: 12, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "off", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "on", TypeSize: 4, ArgDir: 1}}},
@@ -1572,6 +1577,11 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsdisplay", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3227014990},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "wsdisplay_font", Dir: 1}}},
+	}},
+	{NR: 54, Name: "ioctl$WSDISPLAYIO_SBURNER", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsdisplay", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2148292433},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "wsdisplay_burner"}}},
 	}},
 	{NR: 54, Name: "ioctl$WSDISPLAYIO_SETSCREEN", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_wsdisplay", FldName: "fd", TypeSize: 4}},
@@ -2885,6 +2895,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "WSDISPLAYIO_MODE_DUMBFB", Value: 2},
 	{Name: "WSDISPLAYIO_MODE_EMUL"},
 	{Name: "WSDISPLAYIO_MODE_MAPPED", Value: 1},
+	{Name: "WSDISPLAYIO_SBURNER", Value: 2148292433},
 	{Name: "WSDISPLAYIO_SETSCREEN", Value: 2147768150},
 	{Name: "WSDISPLAYIO_SMODE", Value: 2147768140},
 	{Name: "WSDISPLAYIO_SVIDEO", Value: 2147768133},
@@ -2970,4 +2981,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "6255253f9674826c8aeacb80503607f3c81dade2"
+const revision_amd64 = "7f4015fe5d4b3777d30d2d5dd379e3de766e0e8e"

@@ -40,6 +40,7 @@ ioctl$WSDISPLAYIO_GMODE(fd fd_wsdisplay, cmd const[WSDISPLAYIO_GMODE], arg ptr[o
 ioctl$WSDISPLAYIO_GVIDEO(fd fd_wsdisplay, cmd const[WSDISPLAYIO_GVIDEO], arg ptr[out, int32])
 ioctl$WSDISPLAYIO_LDFONT(fd fd_wsdisplay, cmd const[WSDISPLAYIO_LDFONT], arg ptr[in, wsdisplay_font])
 ioctl$WSDISPLAYIO_LSFONT(fd fd_wsdisplay, cmd const[WSDISPLAYIO_LSFONT], arg ptr[out, wsdisplay_font])
+ioctl$WSDISPLAYIO_SBURNER(fd fd_wsdisplay, cmd const[WSDISPLAYIO_SBURNER], arg ptr[in, wsdisplay_burner])
 ioctl$WSDISPLAYIO_SETSCREEN(fd fd_wsdisplay, cmd const[WSDISPLAYIO_SETSCREEN], arg ptr[in, int32])
 ioctl$WSDISPLAYIO_SMODE(fd fd_wsdisplay, cmd const[WSDISPLAYIO_SMODE], arg ptr[in, wsdisplay_mode])
 ioctl$WSDISPLAYIO_SVIDEO(fd fd_wsdisplay, cmd const[WSDISPLAYIO_SVIDEO], arg ptr[in, wsdisplay_svideo])
