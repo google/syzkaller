@@ -9,23 +9,23 @@ include <sys/signal.h>
 
 resource lwpid[int32]: 0, 0xffffffffffffffff
 
-_lwp_create(context ptr[in, ucontext_t], cflags flags[lwp_flags], lwpid ptr[out, lwpid])
+_lwp_create(uc ptr[in, ucontext_t], flags flags[lwp_flags], new_lwp ptr[out, lwpid])
 _lwp_exit()
-_lwp_self(lwp lwpid)
-_lwp_wait(wlwp lwpid, rlwp ptr[in, lwpid])
-_lwp_suspend(lwp lwpid)
-_lwp_continue(lwp lwpid)
-_lwp_wakeup(lwp lwpid)
+_lwp_self() lwpid
+_lwp_wait(wait_for lwpid, departed ptr[in, lwpid])
+_lwp_suspend(target lwpid)
+_lwp_continue(target lwpid)
+_lwp_wakeup(target lwpid)
 _lwp_getprivate()
 _lwp_setprivate(data ptr[in, intptr])
-_lwp_kill(lwp lwpid, sig int32)
-_lwp_detach(lwp lwpid)
-compat_50__lwp_park(abstime ptr[in, timespec], unpark lwpid, hint ptr[in, intptr, opt], unparkhint ptr[in, intptr, opt])
-_lwp_unpark(lwp lwpid, hint ptr[in, intptr, opt])
-_lwp_unpark_all(lwp lwpid, size intptr, hint ptr[in, intptr, opt])
-_lwp_setname(lwp lwpid, name buffer[in])
-_lwp_getname(lwp lwpid, name buffer[out], size intptr)
-_lwp_ctl(lwpstr ptr[in, lwpctl])
+_lwp_kill(target lwpid, sig int32)
+_lwp_detach(target lwpid)
+compat_50__lwp_park(ts ptr[in, timespec], unpark lwpid, hint ptr[in, intptr, opt], unparkhint ptr[in, intptr, opt])
+_lwp_unpark(target lwpid, hint ptr[in, intptr, opt])
+_lwp_unpark_all(targets ptr[in, array[lwpid]], ntargets len[targets], hint ptr[in, intptr, opt])
+_lwp_setname(target lwpid, name ptr[in, string])
+_lwp_getname(target lwpid, name ptr[out, string], size bytesize[name])
+_lwp_ctl(features int32, address ptr[in, ptr[in, lwpctl]])
 
 ucontext_t {
 	uc_flags	flags[ucontext_flags, int32]
