@@ -20,9 +20,11 @@ openat(fd fd_dir[opt], file ptr[in, filename], flags flags[open_flags], mode fla
 close(fd fd)
 read(fd fd, buf buffer[out], count len[buf])
 readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
+pread(fd fd, buf buffer[in], nbyte len[buf], off fileoff)
 preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff)
 write(fd fd, buf buffer[in], count len[buf])
 writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
+pwrite(fd fd, buf buffer[in], nbyte len[buf], off fileoff)
 pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff)
 lseek(fd fd, offset fileoff, whence flags[seek_whence])
 dup(oldfd fd) fd
