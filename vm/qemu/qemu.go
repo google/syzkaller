@@ -36,17 +36,17 @@ type Config struct {
 	Kernel string `json:"kernel"`
 	// Additional command line options for the booting kernel, for example `root=/dev/sda1`.
 	// Can only be specified with kernel.
-	Cmdline     string `json:"cmdline"`
-	Initrd      string `json:"initrd"`       // linux initial ramdisk. (optional)
+	Cmdline string `json:"cmdline"`
+	Initrd  string `json:"initrd"` // linux initial ramdisk. (optional)
 	// qemu image device.
 	// The default value "hda" is transformed to "-hda image" for qemu.
 	// The modern way of describing qemu hard disks is supported, so the value
 	// "drive index=0,media=disk,file=" is transformed to "-drive index=0,media=disk,file=image"
 	// for qemu.
 	ImageDevice string `json:"image_device"`
-	CPU         int    `json:"cpu"`          // number of VM CPUs
-	Mem         int    `json:"mem"`          // amount of VM memory in MiB
-	Snapshot    bool   `json:"snapshot"`     // For building kernels without -snapshot (for pkg/build)
+	CPU         int    `json:"cpu"`      // number of VM CPUs
+	Mem         int    `json:"mem"`      // amount of VM memory in MiB
+	Snapshot    bool   `json:"snapshot"` // For building kernels without -snapshot (for pkg/build)
 }
 
 type Pool struct {
