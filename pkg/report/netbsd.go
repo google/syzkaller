@@ -176,15 +176,9 @@ var netbsdOopses = []*oops{
 				report: compile(`panic: lock error:(?:.*\n)+?.*?Begin traceback.*?\n(?:.*(?:panic|printf|lockdebug|abort|mutex).*\n)*.*?\](.*?)\(`),
 				fmt:    "lock error in %[1]v",
 			},
-		},
-		[]*regexp.Regexp{},
-	},
-	{
-		[]byte("ASan:"),
-		[]oopsFormat{
 			{
 				title:  compile("ASan: Unauthorized Access"),
-				report: compile(`ASan: Unauthorized Access (?:.*\n)+?.*in (.*)\<`),
+				report: compile(`ASan: Unauthorized Access (?:.*\n)+kasan.*\n(.*)\(`),
 				fmt:    "ASan: Unauthorized Access in %[1]v",
 			},
 		},
