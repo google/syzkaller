@@ -1,0 +1,61 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/lwp.h>
+include <sys/lwpctl.h>
+include <sys/ucontext.h>
+include <sys/signal.h>
+
+resource lwpid[int32]: 0, 0xffffffffffffffff
+
+_lwp_create(uc ptr[in, ucontext_t], flags flags[lwp_flags], new_lwp ptr[out, lwpid])
+_lwp_exit()
+_lwp_self() lwpid
+_lwp_wait(wait_for lwpid, departed ptr[in, lwpid])
+_lwp_suspend(target lwpid)
+_lwp_continue(target lwpid)
+_lwp_wakeup(target lwpid)
+_lwp_getprivate()
+_lwp_setprivate(data ptr[in, intptr])
+_lwp_kill(target lwpid, sig int32)
+_lwp_detach(target lwpid)
+compat_50__lwp_park(ts ptr[in, timespec], unpark lwpid, hint ptr[in, intptr, opt], unparkhint ptr[in, intptr, opt])
+_lwp_unpark(target lwpid, hint ptr[in, intptr, opt])
+_lwp_unpark_all(targets ptr[in, array[lwpid]], ntargets len[targets], hint ptr[in, intptr, opt])
+_lwp_setname(target lwpid, name ptr[in, string])
+_lwp_getname(target lwpid, name ptr[out, string], size bytesize[name])
+_lwp_ctl(features int32, address ptr[in, ptr[in, lwpctl]])
+
+ucontext_t {
+	uc_flags	flags[ucontext_flags, int32]
+	uc_link		ptr[in, ucontext_t, opt]
+	uc_sigmask	sigset_t
+	uc_stack	stack_t
+	uc_mcontext	mcontext_t
+}
+
+stack_t {
+	ss_sp		int64
+	ss_size		int64
+	ss_flags	flags[stack_flags, int32]
+}
+
+mcontext_t {
+	__gregs		int64
+	_mc_tlsbase	int64
+	__fpregs	string
+}
+
+sigset_t {
+	__bits	array[int32, 4]
+}
+
+lwpctl {
+	lc_curcpu	int32
+	lc_pctr		int32
+}
+
+lwp_flags = LWP_DETACHED, LWP_SUSPENDED
+ucontext_flags = _UC_SIGMASK, _UC_STACK, _UC_CPU, _UC_FPU, _UC_MD
+stack_flags = SS_DISABLE, SS_ONSTACK
