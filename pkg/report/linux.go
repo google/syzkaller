@@ -740,6 +740,7 @@ var linuxStackParams = &stackParams{
 		"mutex_unlock",
 		"osq_lock",
 		"osq_unlock",
+		"__wake_up",
 		"refcount_add",
 		"refcount_sub",
 		"refcount_inc",
