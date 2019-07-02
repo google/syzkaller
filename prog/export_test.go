@@ -41,9 +41,9 @@ func randSource(t *testing.T) rand.Source {
 }
 
 func iterCount() int {
-	iters := 10000
+	iters := 1000
 	if testing.Short() {
-		iters = 100
+		iters /= 10
 	}
 	if raceEnabled {
 		iters /= 10
