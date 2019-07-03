@@ -55,6 +55,8 @@ and ssh usage will reuse it.
 
 ## Syzkaller
 
+Build syzkaller as described [here](/docs/contributing.md).
+
 Use the following config:
 ```
 {
