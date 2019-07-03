@@ -120,7 +120,13 @@ Reboot the machine, and ensure that you can ssh from host to guest as.
 
 ## Build syzkaller
 
-    make TARGETARCH=arm64 [CC=/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++]
+Build syzkaller as described [here](/docs/contributing.md), with `arm64` target:
+
+```
+CC=gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++
+make TARGETARCH=arm64
+```
+
 
 ## Modify your config file and start off syzkaller
 

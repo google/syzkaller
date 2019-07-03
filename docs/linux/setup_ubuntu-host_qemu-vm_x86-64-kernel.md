@@ -4,7 +4,7 @@ These are the instructions on how to fuzz the x86-64 kernel in a QEMU with Ubunt
 
 ## GCC
 
-Get the latest compiler from [this](/docs/syzbot.md#crash-does-not-reproduce) list and unpack into `$GCC`.
+Use the latest compiler from your distro or get the one from [this](/docs/syzbot.md#crash-does-not-reproduce) list and unpack into `$GCC`.
 
 Now you should have GCC binaries in `$GCC/bin/`:
 ``` bash
@@ -158,7 +158,8 @@ kill $(cat vm.pid)
 
 ## syzkaller
 
-Create a manager config like the following, replacing the environment
+Build syzkaller as described [here](/docs/contributing.md). Then
+create a manager config like the following, replacing the environment
 variables `$GOPATH`, `$KERNEL` and `$IMAGE` with their actual values.
 ```
 {
