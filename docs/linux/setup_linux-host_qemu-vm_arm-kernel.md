@@ -104,8 +104,13 @@ ssh should succeed.
 
 # syzkaller
 
-Build `syzkaller` with `make TARGETARCH=arm`. Create manager config `arm.cfg`
-similar to the following one (changing paths as necessary):
+Build syzkaller as described [here](/docs/contributing.md), with `arm` target:
+
+```
+make TARGETOS=linux TARGETARCH=arm
+```
+
+Create manager config `arm.cfg` similar to the following one (changing paths as necessary):
 
 ```
 {

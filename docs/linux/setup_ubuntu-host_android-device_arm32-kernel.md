@@ -17,7 +17,8 @@ If feasible, recompile and reinstall the Linux kernel with any debugging options
 
 ## Build syzkaller executables
 
-Run make. 
+Build syzkaller as described [here](/docs/contributing.md), with `arm` target:
+
 ```
 make TARGETOS=linux TARGETARCH=arm
 ```
