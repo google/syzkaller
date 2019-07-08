@@ -432,6 +432,7 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clone_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{255, 256, 512, 1024, 2048, 4096, 8192, 16384}, BitMask: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 282, Name: "__vfork14", CallName: "__vfork14", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 314, Name: "_lwp_continue", CallName: "_lwp_continue", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "target", TypeSize: 4}},
 	}},
@@ -1691,6 +1692,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SS_DISABLE", Value: 4},
 	{Name: "SS_ONSTACK", Value: 1},
 	{Name: "SYS___clone", Value: 287},
+	{Name: "SYS___vfork14", Value: 282},
 	{Name: "SYS__lwp_continue", Value: 314},
 	{Name: "SYS__lwp_create", Value: 309},
 	{Name: "SYS__lwp_ctl", Value: 325},
@@ -1866,4 +1868,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "_UC_STACK", Value: 2},
 }
 
-const revision_amd64 = "49e283b548f639c19dd9a36c2985100da8d35119"
+const revision_amd64 = "75190c0fbdcd19c01861cd8fa231f6941769dfed"
