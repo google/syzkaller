@@ -115,6 +115,7 @@ exit(code intptr)
 ptrace(request intptr, pid pid, addr ptr[out, intptr], data intptr)
 __clone(flags flags[clone_flags], sp buffer[in]) pid
 fork() pid
+__vfork14() pid
 vfork() pid
 posix_spawn(pid pid, path ptr[in, string], file_actions ptr[in, posix_spawn_file_actions], attrp ptr[in, posix_spawnattr], argv ptr[in, array[string]], envp ptr[in, array[string]]) pid
 

@@ -16292,6 +16292,7 @@ const call_t syscalls[] = {
 #if GOARCH_amd64
 const call_t syscalls[] = {
     {"__clone", 287},
+    {"__vfork14", 282},
     {"_lwp_continue", 314},
     {"_lwp_create", 309},
     {"_lwp_ctl", 325},

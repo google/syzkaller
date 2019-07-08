@@ -81,6 +81,7 @@ SA_RESETHAND = 4
 SA_RESTART = 2
 SA_SIGINFO = 64
 SYS___clone = 287
+SYS___vfork14 = 282
 SYS_chdir = 12
 SYS_chmod = 15
 SYS_chown = 16
