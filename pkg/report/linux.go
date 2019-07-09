@@ -21,6 +21,7 @@ import (
 
 type linux struct {
 	kernelSrc             string
+	kernelBuildSrc        string
 	kernelObj             string
 	vmlinux               string
 	symbols               map[string][]symbolizer.Symbol
@@ -35,7 +36,7 @@ type linux struct {
 	eoi                   []byte
 }
 
-func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorLinux(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	var symbols map[string][]symbolizer.Symbol
 	vmlinux := ""
 	if kernelObj != "" {
@@ -47,11 +48,12 @@ func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*r
 		}
 	}
 	ctx := &linux{
-		kernelSrc: kernelSrc,
-		kernelObj: kernelObj,
-		vmlinux:   vmlinux,
-		symbols:   symbols,
-		ignores:   ignores,
+		kernelSrc:      kernelSrc,
+		kernelBuildSrc: kernelBuildSrc,
+		kernelObj:      kernelObj,
+		vmlinux:        vmlinux,
+		symbols:        symbols,
+		ignores:        ignores,
 	}
 	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
 	ctx.questionableRes = []*regexp.Regexp{

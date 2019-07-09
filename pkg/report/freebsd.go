@@ -11,17 +11,17 @@ import (
 )
 
 type freebsd struct {
-	kernelSrc string
-	kernelObj string
-	ignores   []*regexp.Regexp
+	kernelBuildSrc string
+	kernelObj      string
+	ignores        []*regexp.Regexp
 }
 
-func ctorFreebsd(target *targets.Target, kernelSrc, kernelObj string,
+func ctorFreebsd(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string,
 	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &freebsd{
-		kernelSrc: kernelSrc,
-		kernelObj: kernelObj,
-		ignores:   ignores,
+		kernelBuildSrc: kernelBuildSrc,
+		kernelObj:      kernelObj,
+		ignores:        ignores,
 	}
 	return ctx, nil, nil
 }

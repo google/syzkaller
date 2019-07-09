@@ -15,7 +15,7 @@ type stub struct {
 	ignores   []*regexp.Regexp
 }
 
-func ctorStub(target *targets.Target, kernelSrc, kernelObj string,
+func ctorStub(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string,
 	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &stub{
 		kernelSrc: kernelSrc,
