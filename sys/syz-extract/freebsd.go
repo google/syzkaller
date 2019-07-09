@@ -56,5 +56,5 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 			args = append(args, "-I"+dir)
 		}
 	}
-	return extract(info, "gcc", args, "#include <sys/syscall.h>", true)
+	return extract(info, "gcc", args, "#include <sys/syscall.h>", true, false)
 }
