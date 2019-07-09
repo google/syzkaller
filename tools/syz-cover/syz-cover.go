@@ -37,7 +37,6 @@ func main() {
 		flagOS             = flag.String("os", runtime.GOOS, "target os")
 		flagArch           = flag.String("arch", runtime.GOARCH, "target arch")
 		flagKernelSrc      = flag.String("kernel_src", "", "path to kernel sources")
-		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
 		flagKernelBuildSrc = flag.String("kernel_build_src", "", "path to kernel image's build dir (optional)")
 		flagKernelObj      = flag.String("kernel_obj", "", "path to kernel build/obj dir")
 	)
