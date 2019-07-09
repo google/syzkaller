@@ -82,7 +82,7 @@ func (rg *ReportGenerator) generate(w io.Writer, covered, uncovered []symbolizer
 	var d templateData
 	for f, covered := range fileSet(covered, uncovered) {
 		if strings.HasPrefix(f, rg.buildDir) {
-			return fmt.Errorf("Kernel object returned a path '%s' that doesn't match with the specified build dir '%s'", f, rg.buildDir)
+			return fmt.Errorf("path '%s' doesn't match build dir '%s'", f, rg.buildDir)
 		}
 		remain := filepath.Clean(strings.TrimPrefix(f, rg.buildDir))
 		if rg.srcDir != "" && !strings.HasPrefix(remain, rg.srcDir) {
