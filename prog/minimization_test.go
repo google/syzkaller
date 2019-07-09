@@ -10,6 +10,8 @@ import (
 
 func TestMinimize(t *testing.T) {
 	tests := []struct {
+		os              string
+		arch            string
 		orig            string
 		callIndex       int
 		pred            func(*Prog, int) bool
@@ -18,6 +20,7 @@ func TestMinimize(t *testing.T) {
 	}{
 		// Predicate always returns false, so must get the same program.
 		{
+			"linux", "amd64",
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"sched_yield()\n" +
 				"pipe2(&(0x7f0000000000), 0x0)\n",
@@ -38,6 +41,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Remove a call.
 		{
+			"linux", "amd64",
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"sched_yield()\n" +
 				"pipe2(&(0x7f0000000000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
@@ -52,6 +56,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Remove two dependent calls.
 		{
+			"linux", "amd64",
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)\n" +
 				"sched_yield()\n",
@@ -71,6 +76,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Remove a call and replace results.
 		{
+			"linux", "amd64",
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"pipe2(&(0x7f0000000000)={<r0=>0x0, 0x0}, 0x0)\n" +
 				"write(r0, &(0x7f0000000000)=\"1155\", 0x2)\n" +
@@ -86,6 +92,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Remove a call and replace results.
 		{
+			"linux", "amd64",
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"r0=open(&(0x7f0000000000)=\"1155\", 0x0, 0x0)\n" +
 				"write(r0, &(0x7f0000000000)=\"1155\", 0x2)\n" +
@@ -101,6 +108,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Minimize pointer.
 		{
+			"linux", "amd64",
 			"pipe2(&(0x7f0000001000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -111,6 +119,7 @@ func TestMinimize(t *testing.T) {
 		},
 		// Minimize pointee.
 		{
+			"linux", "amd64",
 			"pipe2(&(0x7f0000001000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
 			-1,
 			func(p *Prog, callIndex int) bool {
@@ -119,9 +128,26 @@ func TestMinimize(t *testing.T) {
 			"pipe2(&(0x7f0000001000), 0x0)\n",
 			-1,
 		},
+		// Make sure we don't hang when minimizing resources.
+		{
+			"test", "64",
+			"r0 = test$res0()\n" +
+				"test$res1(r0)\n",
+			-1,
+			func(p *Prog, callIndex int) bool {
+				return false
+			},
+			"r0 = test$res0()\n" +
+				"test$res1(r0)\n",
+			-1,
+		},
 	}
-	target, _, _ := initTest(t)
+	t.Parallel()
 	for ti, test := range tests {
+		target, err := GetTarget(test.os, test.arch)
+		if err != nil {
+			t.Fatal(err)
+		}
 		p, err := target.Deserialize([]byte(test.orig), Strict)
 		if err != nil {
 			t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
