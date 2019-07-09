@@ -223,11 +223,11 @@ func (typ *ResourceType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bo
 	a.Res, a.Val = nil, typ.Default()
 	if ctx.pred(ctx.p, ctx.callIndex0) {
 		*ctx.p0 = ctx.p
-		ctx.triedPaths[path] = true
-		return true
+	} else {
+		a.Res, a.Val = r0, 0
+		a.Res.uses[a] = true
 	}
-	a.Res, a.Val = r0, 0
-	a.Res.uses[a] = true
+	ctx.triedPaths[path] = true
 	return true
 }
 
