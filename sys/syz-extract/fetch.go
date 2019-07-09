@@ -16,14 +16,15 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf bool) (
+func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf bool, defineGlibcUse bool) (
 	map[string]uint64, map[string]bool, error) {
 	data := &CompileData{
-		AddSource:     addSource,
-		Defines:       info.Defines,
-		Includes:      info.Includes,
-		Values:        info.Consts,
-		DeclarePrintf: declarePrintf,
+		AddSource:      addSource,
+		Defines:        info.Defines,
+		Includes:       info.Includes,
+		Values:         info.Consts,
+		DeclarePrintf:  declarePrintf,
+		DefineGlibcUse: defineGlibcUse,
 	}
 	undeclared := make(map[string]bool)
 	bin, out, err := compile(cc, args, data)
@@ -89,11 +90,12 @@ func extract(info *compiler.ConstInfo, cc string, args []string, addSource strin
 }
 
 type CompileData struct {
-	AddSource     string
-	Defines       map[string]string
-	Includes      []string
-	Values        []string
-	DeclarePrintf bool
+	AddSource      string
+	Defines        map[string]string
+	Includes       []string
+	Values         []string
+	DeclarePrintf  bool
+	DefineGlibcUse bool // workaround for incorrect flags to clang for fuchsia.
 }
 
 func compile(cc string, args []string, data *CompileData) (bin string, out []byte, err error) {
@@ -122,9 +124,11 @@ func compile(cc string, args []string, data *CompileData) (bin string, out []byt
 var srcTemplate = template.Must(template.New("").Parse(`
 #define __asm__(...)
 
+{{if .DefineGlibcUse}}
 #ifndef __GLIBC_USE
 #	define __GLIBC_USE(X) 0
 #endif
+{{end}}
 
 {{range $incl := $.Includes}}
 #include <{{$incl}}>
