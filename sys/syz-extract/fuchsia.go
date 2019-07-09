@@ -37,5 +37,5 @@ func (*fuchsia) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 	for _, incdir := range info.Incdirs {
 		args = append(args, "-I"+filepath.Join(dir, incdir))
 	}
-	return extract(info, cc, args, "", true)
+	return extract(info, cc, args, "", true, true)
 }

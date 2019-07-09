@@ -147,7 +147,7 @@ unsigned long phys_base;
 unsigned long __phys_addr(unsigned long addr) { return 0; }
 #endif
 `
-	res, undeclared, err := extract(info, "gcc", args, addSource, true)
+	res, undeclared, err := extract(info, "gcc", args, addSource, true, false)
 	if err != nil {
 		return nil, nil, err
 	}
