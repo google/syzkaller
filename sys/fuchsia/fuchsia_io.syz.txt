@@ -22,6 +22,10 @@ fuchsia_io_PipeHandles {
 	socket	zx_socket
 } [packed]
 
+fuchsia_io_SocketHandles {
+	socket	zx_socket
+} [packed]
+
 fuchsia_io_VmofileHandles {
 	vmo	zx_vmo
 } [packed]
@@ -64,6 +68,7 @@ fuchsia_io_NodeInfoHandles [
 	vmofile		fuchsia_io_VmofileHandles
 	device		fuchsia_io_DeviceHandles
 	tty		fuchsia_io_TtyHandles
+	socket		fuchsia_io_SocketHandles
 ] [varlen]
 
 fuchsia_io_NodeCloneRequest {
