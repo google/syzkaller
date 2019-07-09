@@ -23,6 +23,6 @@ zx_vmo_replace_as_executable(handle zx_vmo, res const[ZX_HANDLE_INVALID], out pt
 # Not public:
 zx_vmo_set_cache_policy(handle zx_vmo, cache_policy flags[vmo_cache_policy])
 
-vmo_create_options = 0, ZX_VMO_NON_RESIZABLE
-vmo_create_child_options = ZX_VMO_CHILD_COPY_ON_WRITE, ZX_VMO_CHILD_NON_RESIZEABLE
+vmo_create_options = 0
+vmo_create_child_options = ZX_VMO_CHILD_COPY_ON_WRITE
 vmo_cache_policy = ZX_CACHE_POLICY_CACHED, ZX_CACHE_POLICY_UNCACHED, ZX_CACHE_POLICY_UNCACHED_DEVICE, ZX_CACHE_POLICY_WRITE_COMBINING
