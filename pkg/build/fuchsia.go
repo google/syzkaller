@@ -22,21 +22,29 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	}
 	arch := sysTarget.KernelHeaderArch
 	product := fmt.Sprintf("%s.%s", "core", arch)
-	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "set", product,
-		"--args", `extra_authorized_keys_file="//.ssh/authorized_keys"`,
-		"--with-base", "//bundles:tools",
-		"--build-dir", "out/"+arch); err != nil {
+	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "--dir", "out/"+arch,
+		"set", product, "--with-base", "//bundles:tools"); err != nil {
 		return err
 	}
 	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "clean-build"); err != nil {
 		return err
 	}
+
+	// Fuchsia images no longer include ssh keys. Manually append the ssh public key to the zbi.
+	sshZBI := filepath.Join(kernelDir, "out", arch, "fuchsia-ssh.zbi")
+	kernelZBI := filepath.Join(kernelDir, "out", arch, "fuchsia.zbi")
+	authorizedKeys := fmt.Sprintf("data/ssh/authorized_keys=%s", filepath.Join(kernelDir, ".ssh", "authorized_keys"))
+	if _, err := osutil.RunCmd(time.Minute, kernelDir, "out/"+arch+".zircon/tools/zbi",
+		"-o", sshZBI, kernelZBI, "--entry", authorizedKeys); err != nil {
+		return err
+	}
+
 	for src, dst := range map[string]string{
 		"out/" + arch + "/obj/build/images/fvm.blk": "image",
 		".ssh/pkey": "key",
 		"out/" + arch + ".zircon/kernel-" + arch + "-gcc/obj/kernel/zircon.elf": "obj/zircon.elf",
 		"out/" + arch + ".zircon/multiboot.bin":                                 "kernel",
-		"out/" + arch + "/fuchsia.zbi":                                          "initrd",
+		"out/" + arch + "/fuchsia-ssh.zbi":                                      "initrd",
 	} {
 		fullSrc := filepath.Join(kernelDir, filepath.FromSlash(src))
 		fullDst := filepath.Join(outputDir, filepath.FromSlash(dst))
