@@ -45,8 +45,9 @@ TARGETGOOS := $(TARGETOS)
 TARGETGOARCH := $(TARGETVMARCH)
 
 ifeq ("$(TARGETOS)", "fuchsia")
-	# SOURCEDIR should point to fuchsia checkout.
-	GO = "$(SOURCEDIR)/tools/devshell/contrib/go"
+# SOURCEDIR should point to fuchsia checkout.
+export FX_SRC_PATH=$(SOURCEDIR)
+	GO = "tools/fuchsia/go"
 endif
 
 GITREV=$(shell git rev-parse HEAD)
@@ -199,6 +200,12 @@ generate_fidl:
 ifeq ($(TARGETOS),fuchsia)
 	$(HOSTGO) generate ./sys/fuchsia
 	$(MAKE) format_sys
+else
+endif
+
+fuchsia_go:
+ifeq ($(TARGETOS),fuchsia)
+	./tools/fuchsia/build-go.sh
 else
 endif
 
