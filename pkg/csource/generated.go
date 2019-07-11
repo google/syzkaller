@@ -1910,6 +1910,8 @@ struct vusb_connect_descriptors {
 	struct vusb_connect_string_descriptor strs[0];
 } __attribute__((packed));
 
+static const char* default_string = "syzkaller";
+
 static bool lookup_connect_response(struct vusb_connect_descriptors* descs, struct usb_device_index* index,
 				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
 {
@@ -1930,11 +1932,13 @@ static bool lookup_connect_response(struct vusb_connect_descriptors* descs, stru
 				return true;
 			case USB_DT_STRING:
 				str_idx = (uint8)ctrl->wValue;
-				if (str_idx >= descs->strs_len && descs->strs_len > 0) {
-					str_idx = descs->strs_len - 1;
+				if (str_idx >= descs->strs_len) {
+					*response_data = (char*)default_string;
+					*response_length = strlen(default_string);
+				} else {
+					*response_data = descs->strs[str_idx].str;
+					*response_length = descs->strs[str_idx].len;
 				}
-				*response_data = descs->strs[str_idx].str;
-				*response_length = descs->strs[str_idx].len;
 				return true;
 			case USB_DT_BOS:
 				*response_data = descs->bos;
