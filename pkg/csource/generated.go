@@ -430,7 +430,7 @@ static uintptr_t syz_open_pts(void)
 
 #endif
 
-#if GOOS_freebsd || GOOS_openbsd
+#if GOOS_freebsd || GOOS_openbsd || GOOS_netbsd
 
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 
@@ -536,24 +536,22 @@ static void initialize_tun(int tun_id)
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
 #if GOOS_openbsd
 	execute_command(1, "ifconfig %s lladdr %s", tun_iface, local_mac);
+#elif GOOS_netbsd
+	execute_command(1, "ifconfig %s link %s", tun_iface, local_mac);
 #else
 	execute_command(1, "ifconfig %s ether %s", tun_iface, local_mac);
 #endif
-
 	char local_ipv4[sizeof(LOCAL_IPV4)];
 	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
 	execute_command(1, "ifconfig %s inet %s netmask 255.255.255.0", tun_iface, local_ipv4);
-
 	char remote_mac[sizeof(REMOTE_MAC)];
 	char remote_ipv4[sizeof(REMOTE_IPV4)];
 	snprintf_check(remote_mac, sizeof(remote_mac), REMOTE_MAC);
 	snprintf_check(remote_ipv4, sizeof(remote_ipv4), REMOTE_IPV4, tun_id);
 	execute_command(0, "arp -s %s %s", remote_ipv4, remote_mac);
-
 	char local_ipv6[sizeof(LOCAL_IPV6)];
 	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, tun_id);
 	execute_command(1, "ifconfig %s inet6 %s", tun_iface, local_ipv6);
-
 	char remote_ipv6[sizeof(REMOTE_IPV6)];
 	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, tun_id);
 	execute_command(0, "ndp -s %s%%%s %s", remote_ipv6, tun_iface, remote_mac);
@@ -701,7 +699,7 @@ static void loop();
 static int do_sandbox_none(void)
 {
 	sandbox_common();
-#if (GOOS_freebsd || GOOS_openbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
 	loop();
@@ -736,7 +734,7 @@ static int do_sandbox_setuid(void)
 		return wait_for_loop(pid);
 
 	sandbox_common();
-#if (GOOS_freebsd || GOOS_openbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
 
