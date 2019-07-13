@@ -157,7 +157,7 @@ var netbsdOopses = []*oops{
 		[]oopsFormat{
 			{
 				title:  compile("fatal (page|protection|integer divide) fault in supervisor mode"),
-				report: compile(`fatal (page|protection|integer divide) fault in supervisor mode(?:.*\n)+?.*trap.*?\n.*?\](.*?)\(`),
+				report: compile(`fatal (page|protection|integer divide) fault in supervisor mode(?:.*\n)+?.*Stopped in.*netbsd:([^\\+]+)`),
 				fmt:    "%[1]v fault in %[2]v",
 			},
 		},
