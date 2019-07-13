@@ -128,6 +128,8 @@ static void initialize_tun(int tun_id)
 	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
 
 #if GOOS_netbsd
+	// open(2) doesn't create an new tap/tun interface node
+	// so we use ifconfig to create the node. Might be casued due to regression
 	execute_command(0, "ifconfig %s destroy", tun_iface);
 	execute_command(0, "ifconfig %s create", tun_iface);
 #else
