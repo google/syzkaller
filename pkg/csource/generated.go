@@ -506,7 +506,16 @@ static void initialize_tun(int tun_id)
 
 	char tun_device[sizeof(TUN_DEVICE)];
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
+
+	char tun_iface[sizeof(TUN_IFACE)];
+	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
+
+#if GOOS_netbsd
+	execute_command(0, "ifconfig %s destroy", tun_iface);
+	execute_command(0, "ifconfig %s create", tun_iface);
+#else
 	execute_command(0, "ifconfig %s destroy", tun_device);
+#endif
 
 	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
 #if GOOS_freebsd
@@ -528,9 +537,6 @@ static void initialize_tun(int tun_id)
 		fail("dup2(tunfd, kTunFd) failed");
 	close(tunfd);
 	tunfd = kTunFd;
-
-	char tun_iface[sizeof(TUN_IFACE)];
-	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
 
 	char local_mac[sizeof(LOCAL_MAC)];
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);

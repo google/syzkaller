@@ -123,7 +123,7 @@ static void initialize_tun(int tun_id)
 
 	char tun_device[sizeof(TUN_DEVICE)];
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
-	
+
 	char tun_iface[sizeof(TUN_IFACE)];
 	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
 
