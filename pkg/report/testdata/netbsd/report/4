@@ -1,21 +1,3 @@
-TITLE: integer divide fault in callout_softclock
+TITLE: UBSan: Undefined behavior
 
-[  31.6002559] fatal integer divide fault in supervisor mode
-[  31.6002559] trap type 8 code 0 rip 0xffffffff80ee4614 cs 0x8 rflags 0x10246 cr2 0x20000540 ilevel 0x8 rsp 0xffff98816dabfd40
-[  31.6002559] curlwp 0xffff98800de018a0 pid 0.5 lowest kstack 0xffff98816dab82c0
-[  31.6002559] panic: trap
-[  31.6002559] cpu0: Begin traceback...
-[  31.6002559] vpanic() at netbsd:vpanic+0x214
-[  31.6002559] snprintf() at netbsd:snprintf
-[  31.6002559] startlwp() at netbsd:startlwp
-[  31.6002559] alltraps() at netbsd:alltraps+0xb2
-[  31.6002559] callout_softclock() at netbsd:callout_softclock+0x237
-[  31.6002559] softint_dispatch() at netbsd:softint_dispatch+0x23e
-[  31.6002559] DDB lost frame for netbsd:Xsoftintr+0x5a, trying 0xffff98816dabfff0
-[  31.6002559] Xsoftintr() at netbsd:Xsoftintr+0x5a
-[  31.6002559] --- interrupt ---
-[  31.6002559] 0:
-[  31.6002559] cpu0: End traceback...
-
-[  31.6002559] dumping to dev 4,1 (offset=0, size=0): not possible
-[  31.6002559] rebooting...
+[     1.000003] UBSan: Undefined Behavior in /media/k4iz3n/event1/kWork/src/sys/external/bsd/acpica/dist/events/evgpeinit.c:362:5, store to misaligned address 0xffffffff85b09a03 for type 'UINT32' which requires 4 byte alignment
