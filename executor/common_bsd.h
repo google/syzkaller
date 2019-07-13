@@ -123,7 +123,16 @@ static void initialize_tun(int tun_id)
 
 	char tun_device[sizeof(TUN_DEVICE)];
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
+	
+	char tun_iface[sizeof(TUN_IFACE)];
+	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
+
+#if GOOS_netbsd
+	execute_command(0, "ifconfig %s destroy", tun_iface);
+	execute_command(0, "ifconfig %s create", tun_iface);
+#else
 	execute_command(0, "ifconfig %s destroy", tun_device);
+#endif
 
 	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
 #if GOOS_freebsd
@@ -148,9 +157,6 @@ static void initialize_tun(int tun_id)
 	close(tunfd);
 	tunfd = kTunFd;
 
-	char tun_iface[sizeof(TUN_IFACE)];
-	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
-
 	char local_mac[sizeof(LOCAL_MAC)];
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
 
@@ -163,7 +169,7 @@ static void initialize_tun(int tun_id)
 	execute_command(1, "ifconfig %s ether %s", tun_iface, local_mac);
 #endif
 
-	// Setting up a static ip for the interface	
+	// Setting up a static ip for the interface
 	char local_ipv4[sizeof(LOCAL_IPV4)];
 	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
 	execute_command(1, "ifconfig %s inet %s netmask 255.255.255.0", tun_iface, local_ipv4);
@@ -340,7 +346,7 @@ static void loop();
 static int do_sandbox_none(void)
 {
 	sandbox_common();
-#if (GOOS_freebsd || GOOS_openbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
 	loop();
@@ -375,7 +381,7 @@ static int do_sandbox_setuid(void)
 		return wait_for_loop(pid);
 
 	sandbox_common();
-#if (GOOS_freebsd || GOOS_openbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
 
