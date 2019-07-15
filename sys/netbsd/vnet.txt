@@ -1,0 +1,16 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+syz_emit_ethernet(len len[packet], packet ptr[in, array[int8]])
+
+resource tcp_seq_num[int32]: 0x41424344
+
+tcp_resources {
+	seq	tcp_seq_num
+	ack	tcp_seq_num
+}
+
+# These pseudo syscalls read a packet from tap device and extract tcp sequence and acknowledgement numbers from it.
+# They also adds the inc arguments to the returned values, this way sequence numbers get incremented.
+syz_extract_tcp_res(res ptr[out, tcp_resources], seq_inc int32, ack_inc int32)
+syz_extract_tcp_res$synack(res ptr[out, tcp_resources], seq_inc const[1], ack_inc const[0])

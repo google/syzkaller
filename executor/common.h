@@ -281,9 +281,9 @@ typedef struct {
 static void event_init(event_t* ev)
 {
 	if (pthread_mutex_init(&ev->mu, 0))
-		fail("pthread_mutex_init failed");
+		exitf("pthread_mutex_init failed");
 	if (pthread_cond_init(&ev->cv, 0))
-		fail("pthread_cond_init failed");
+		exitf("pthread_cond_init failed");
 	ev->state = 0;
 }
 

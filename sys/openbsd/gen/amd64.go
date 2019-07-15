@@ -15,6 +15,7 @@ var resources_amd64 = []*ResourceDesc{
 	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_bpf", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_bpf"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_dir", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_dir"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "fd_diskmap", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_diskmap"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_klog", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_klog"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_kqueue", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_kqueue"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_pci", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_pci"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -89,6 +90,11 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 1},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "fds", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", TypeSize: 4}}},
 	}, AlignAttr: 8}},
+	{Key: StructKey{Name: "dk_diskmap"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dk_diskmap", TypeSize: 16}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "device", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dk_diskmap_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}, BitMask: true},
+	}}},
 	{Key: StructKey{Name: "fd_set", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fd_set", TypeSize: 64, ArgDir: 2}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask0", TypeSize: 8, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask1", TypeSize: 8, ArgDir: 2}}},
@@ -1200,6 +1206,11 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074020977},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "bpf_version", Dir: 1}}},
 	}},
+	{NR: 54, Name: "ioctl$DIOCMAP", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_diskmap", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3222299767},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "dk_diskmap"}}},
+	}},
 	{NR: 54, Name: "ioctl$FIOASYNC", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147772029},
@@ -1838,6 +1849,12 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 8, 512, 1024, 2048, 16, 32, 256, 65536, 128, 128, 128, 32768, 131072, 64}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 321, Name: "openat$diskmap", CallName: "openat", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/diskmap\x00"}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 8, 512, 1024, 2048, 16, 32, 256, 65536, 128, 128, 128, 32768, 131072, 64}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_diskmap", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 321, Name: "openat$klog", CallName: "openat", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 10}, Kind: 2, Values: []string{"/dev/klog\x00"}}},
@@ -2444,6 +2461,9 @@ var consts_amd64 = []ConstValue{
 	{Name: "CLOCK_PROCESS_CPUTIME_ID", Value: 2},
 	{Name: "CLOCK_REALTIME"},
 	{Name: "CLOCK_THREAD_CPUTIME_ID", Value: 4},
+	{Name: "DIOCMAP", Value: 3222299767},
+	{Name: "DM_OPENBLCK", Value: 2},
+	{Name: "DM_OPENPART", Value: 1},
 	{Name: "EVFILT_AIO", Value: 18446744073709551613},
 	{Name: "EVFILT_DEVICE", Value: 18446744073709551608},
 	{Name: "EVFILT_PROC", Value: 18446744073709551611},
@@ -2981,4 +3001,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "7f4015fe5d4b3777d30d2d5dd379e3de766e0e8e"
+const revision_amd64 = "33de16487cc0a0d25eaa32ea4166bbbc75d2994e"

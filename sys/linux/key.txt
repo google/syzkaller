@@ -51,9 +51,16 @@ keyctl$KEYCTL_PKEY_DECRYPT(code const[KEYCTL_PKEY_DECRYPT], params ptr[in, keyct
 keyctl$KEYCTL_PKEY_SIGN(code const[KEYCTL_PKEY_SIGN], params ptr[in, keyctl_pkey_params], info ptr[in, keyctl_pkey_info, opt], inout ptr[in, array[int8]], output ptr[out, array[int8]])
 keyctl$KEYCTL_PKEY_VERIFY(code const[KEYCTL_PKEY_VERIFY], params ptr[in, keyctl_pkey_params], info ptr[in, keyctl_pkey_info, opt], inout ptr[in, array[int8]], output ptr[in, array[int8]])
 keyctl$KEYCTL_RESTRICT_KEYRING(code const[KEYCTL_RESTRICT_KEYRING], key key, type ptr[in, string[key_type], opt], restriction ptr[in, key_restriction, opt])
+keyctl$KEYCTL_MOVE(code const[KEYCTL_MOVE], key key, from_keyring keyring, to_keyring keyring, flags flags[keyctl_move_flags])
+keyctl$KEYCTL_CAPABILITIES(code const[KEYCTL_CAPABILITIES], buffer ptr[out, array[int8]], buflen len[buffer])
+keyctl$KEYCTL_GRANT_PERMISSION(code const[KEYCTL_GRANT_PERMISSION], keyid key, type flags[key_ace_subject_type], subject flags[key_ace_standard_subject], perm flags[key_ace_perm])
 
 reqkey_keyring = KEY_REQKEY_DEFL_NO_CHANGE, KEY_REQKEY_DEFL_DEFAULT, KEY_REQKEY_DEFL_THREAD_KEYRING, KEY_REQKEY_DEFL_PROCESS_KEYRING, KEY_REQKEY_DEFL_SESSION_KEYRING, KEY_REQKEY_DEFL_USER_KEYRING, KEY_REQKEY_DEFL_USER_SESSION_KEYRING, KEY_REQKEY_DEFL_GROUP_KEYRING, KEY_REQKEY_DEFL_REQUESTOR_KEYRING
-key_perm = KEY_POS_VIEW, KEY_POS_READ, KEY_POS_WRITE, KEY_POS_SEARCH, KEY_POS_LINK, KEY_POS_SETATTR, KEY_USR_VIEW, KEY_USR_READ, KEY_USR_WRITE, KEY_USR_SEARCH, KEY_USR_LINK, KEY_USR_SETATTR, KEY_GRP_VIEW, KEY_GRP_READ, KEY_GRP_WRITE, KEY_GRP_SEARCH, KEY_GRP_LINK, KEY_GRP_SETATTR, KEY_OTH_VIEW, KEY_OTH_READ, KEY_OTH_WRITE, KEY_OTH_SEARCH, KEY_OTH_LINK, KEY_OTH_SETATTR, KEY_PERM_UNDEF
+keyctl_move_flags = KEYCTL_MOVE_EXCL
+key_ace_subject_type = KEY_ACE_SUBJ_STANDARD
+key_ace_standard_subject = KEY_ACE_EVERYONE, KEY_ACE_GROUP, KEY_ACE_OWNER, KEY_ACE_POSSESSOR
+key_ace_perm = KEY_ACE_VIEW, KEY_ACE_READ, KEY_ACE_WRITE, KEY_ACE_SEARCH, KEY_ACE_LINK, KEY_ACE_SET_SECURITY, KEY_ACE_INVAL, KEY_ACE_REVOKE, KEY_ACE_JOIN, KEY_ACE_CLEAR
+key_perm = KEY_POS_VIEW, KEY_POS_READ, KEY_POS_WRITE, KEY_POS_SEARCH, KEY_POS_LINK, KEY_POS_SETATTR, KEY_USR_VIEW, KEY_USR_READ, KEY_USR_WRITE, KEY_USR_SEARCH, KEY_USR_LINK, KEY_USR_SETATTR, KEY_GRP_VIEW, KEY_GRP_READ, KEY_GRP_WRITE, KEY_GRP_SEARCH, KEY_GRP_LINK, KEY_GRP_SETATTR, KEY_OTH_VIEW, KEY_OTH_READ, KEY_OTH_WRITE, KEY_OTH_SEARCH, KEY_OTH_LINK, KEY_OTH_SETATTR
 
 key_type = "asymmetric", "big_key", "blacklist", "ceph", "cifs.idmap", "cifs.spnego", ".dead", "dns_resolver", "encrypted", "id_legacy", "id_resolver", "keyring", "logon", "pkcs7_test", ".request_key_auth", "rxrpc", "rxrpc_s", "syzkaller", "trusted", "user"
 

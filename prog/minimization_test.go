@@ -142,15 +142,23 @@ func TestMinimize(t *testing.T) {
 func TestMinimizeRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	iters /= 10 // Long test.
+	r := rand.New(rs)
 	for i := 0; i < iters; i++ {
 		for _, crash := range []bool{false, true} {
 			p := target.Generate(rs, 5, nil)
-			Minimize(p, len(p.Calls)-1, crash, func(p1 *Prog, callIndex int) bool {
-				return false
-			})
-			Minimize(p, len(p.Calls)-1, crash, func(p1 *Prog, callIndex int) bool {
+			copyP := p.Clone()
+			minP, _ := Minimize(p, len(p.Calls)-1, crash, func(p1 *Prog, callIndex int) bool {
+				if r.Intn(2) == 0 {
+					return false
+				}
+				copyP = p1.Clone()
 				return true
 			})
+			got := string(minP.Serialize())
+			want := string(copyP.Serialize())
+			if got != want {
+				t.Fatalf("program:\n%s\ngot:\n%v\nwant:\n%s", string(p.Serialize()), got, want)
+			}
 		}
 	}
 }

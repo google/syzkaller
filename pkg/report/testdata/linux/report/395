@@ -1,0 +1,250 @@
+TITLE: KASAN: use-after-free Write in usb_anchor_resume_wakeups
+
+[  136.593735][    C1] ==================================================================
+[  136.593749][    C1] BUG: KASAN: use-after-free in register_lock_class+0xeb7/0x1240
+[  136.593755][    C1] Write of size 8 at addr ffff8881ceba71f8 by task kworker/1:1/22
+[  136.593756][    C1] 
+[  136.593763][    C1] CPU: 1 PID: 22 Comm: kworker/1:1 Not tainted 5.2.0-rc6+ #13
+[  136.593766][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  136.593775][    C1] Workqueue: usb_hub_wq hub_event
+[  136.593778][    C1] Call Trace:
+[  136.593781][    C1]  <IRQ>
+[  136.593788][    C1]  dump_stack+0xca/0x13e
+[  136.593807][    C1]  print_address_description+0x67/0x231
+[  136.593838][    C1]  __kasan_report.cold+0x1a/0x32
+[  136.593862][    C1]  kasan_report+0xe/0x20
+[  136.593867][    C1]  register_lock_class+0xeb7/0x1240
+[  136.593883][    C1]  __lock_acquire+0x11d/0x5340
+[  136.593899][    C1]  lock_acquire+0x100/0x2b0
+[  136.593911][    C1]  _raw_spin_lock_irqsave+0x32/0x50
+[  136.593921][    C1]  __wake_up_common_lock+0xb0/0x170
+[  136.593944][    C1]  usb_anchor_resume_wakeups+0xbe/0xe0
+[  136.593950][    C1]  __usb_hcd_giveback_urb+0x1fa/0x470
+[  136.593956][    C1]  usb_hcd_giveback_urb+0x34a/0x400
+[  136.593964][    C1]  dummy_timer+0x1022/0x2df4
+[  136.594012][    C1]  call_timer_fn+0x15e/0x5e0
+[  136.594057][    C1]  run_timer_softirq+0x597/0x1410
+[  136.594080][    C1]  irq_exit+0x17c/0x1a0
+[  136.594086][    C1]  smp_apic_timer_interrupt+0xe2/0x480
+[  136.594092][    C1]  apic_timer_interrupt+0xf/0x20
+[  136.594094][    C1]  </IRQ>
+[  136.594100][    C1] RIP: 0010:console_unlock+0x9db/0xbf0
+[  136.594107][    C1] Code: 00 89 ee 48 c7 c7 e0 eb f2 86 e8 50 a4 03 00 65 ff 0d 51 56 da 7e e9 11 fa ff ff e8 af 43 15 00 e8 ba 69 1a 00 ff 74 24 30 9d <e9> 31 fe ff ff e8 9b 43 15 00 48 8b bc 24 80 00 00 00 c7 05 d9 e6
+[  136.594110][    C1] RSP: 0018:ffff8881d9f8f2c0 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  136.594115][    C1] RAX: 0000000000000007 RBX: 0000000000000200 RCX: 1ffff1103b3cc729
+[  136.594119][    C1] RDX: 0000000000000000 RSI: ffff8881d9e63928 RDI: ffff8881d9e63834
+[  136.594122][    C1] RBP: 0000000000000000 R08: ffff8881d9e63000 R09: 0000000000000000
+[  136.594125][    C1] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000068
+[  136.594128][    C1] R13: ffffffff828cb580 R14: ffffffff8726a520 R15: dffffc0000000000
+[  136.594157][    C1]  vprintk_emit+0x171/0x3e0
+[  136.594162][    C1]  dev_vprintk_emit+0x4fc/0x541
+[  136.594238][    C1]  dev_printk_emit+0xba/0xf1
+[  136.594259][    C1]  __dev_printk+0x1db/0x203
+[  136.594264][    C1]  _dev_info+0xd7/0x109
+[  136.594292][    C1]  usb_serial_device_remove.cold+0x1e/0x98
+[  136.594303][    C1]  device_release_driver_internal+0x206/0x4c0
+[  136.594309][    C1]  bus_remove_device+0x2dc/0x4a0
+[  136.594314][    C1]  device_del+0x460/0xb80
+[  136.594335][    C1]  usb_serial_disconnect+0x20d/0x300
+[  136.594341][    C1]  usb_unbind_interface+0x1bd/0x8a0
+[  136.594352][    C1]  device_release_driver_internal+0x404/0x4c0
+[  136.594358][    C1]  bus_remove_device+0x2dc/0x4a0
+[  136.594363][    C1]  device_del+0x460/0xb80
+[  136.594383][    C1]  usb_disable_device+0x211/0x690
+[  136.594388][    C1]  usb_disconnect+0x284/0x830
+[  136.594394][    C1]  hub_event+0x1409/0x3590
+[  136.594407][    C1]  process_one_work+0x905/0x1570
+[  136.594414][    C1]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  136.594419][    C1]  ? do_raw_spin_lock+0x11a/0x280
+[  136.594425][    C1]  worker_thread+0x7ab/0xe20
+[  136.594432][    C1]  ? process_one_work+0x1570/0x1570
+[  136.594438][    C1]  kthread+0x30b/0x410
+[  136.594443][    C1]  ? kthread_park+0x1a0/0x1a0
+[  136.594448][    C1]  ret_from_fork+0x24/0x30
+[  136.594450][    C1] 
+[  136.594453][    C1] Allocated by task 107:
+[  136.594467][    C1]  save_stack+0x1b/0x80
+[  136.594473][    C1]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[  136.594478][    C1]  xpad_probe+0x24b/0x1b20
+[  136.594484][    C1]  usb_probe_interface+0x305/0x7a0
+[  136.594490][    C1]  really_probe+0x281/0x660
+[  136.594496][    C1]  driver_probe_device+0x104/0x210
+[  136.594501][    C1]  __device_attach_driver+0x1c2/0x220
+[  136.594506][    C1]  bus_for_each_drv+0x15c/0x1e0
+[  136.594511][    C1]  __device_attach+0x217/0x360
+[  136.594516][    C1]  bus_probe_device+0x1e4/0x290
+[  136.594520][    C1]  device_add+0xae6/0x16f0
+[  136.594525][    C1]  usb_set_configuration+0xdf6/0x1670
+[  136.594529][    C1]  generic_probe+0x9d/0xd5
+[  136.594534][    C1]  usb_probe_device+0x99/0x100
+[  136.594539][    C1]  really_probe+0x281/0x660
+[  136.594544][    C1]  driver_probe_device+0x104/0x210
+[  136.594549][    C1]  __device_attach_driver+0x1c2/0x220
+[  136.594554][    C1]  bus_for_each_drv+0x15c/0x1e0
+[  136.594559][    C1]  __device_attach+0x217/0x360
+[  136.594564][    C1]  bus_probe_device+0x1e4/0x290
+[  136.594568][    C1]  device_add+0xae6/0x16f0
+[  136.594573][    C1]  usb_new_device.cold+0x8c1/0x1016
+[  136.594578][    C1]  hub_event+0x1ada/0x3590
+[  136.594584][    C1]  process_one_work+0x905/0x1570
+[  136.594589][    C1]  worker_thread+0x7ab/0xe20
+[  136.594593][    C1]  kthread+0x30b/0x410
+[  136.594598][    C1]  ret_from_fork+0x24/0x30
+[  136.594599][    C1] 
+[  136.594601][    C1] Freed by task 2834:
+[  136.594606][    C1]  save_stack+0x1b/0x80
+[  136.594612][    C1]  __kasan_slab_free+0x130/0x180
+[  136.594616][    C1]  kfree+0xd7/0x280
+[  136.594621][    C1]  xpad_disconnect+0x1cb/0x4a3
+[  136.594625][    C1]  usb_unbind_interface+0x1bd/0x8a0
+[  136.594631][    C1]  device_release_driver_internal+0x404/0x4c0
+[  136.594636][    C1]  bus_remove_device+0x2dc/0x4a0
+[  136.594640][    C1]  device_del+0x460/0xb80
+[  136.594645][    C1]  usb_disable_device+0x211/0x690
+[  136.594649][    C1]  usb_disconnect+0x284/0x830
+[  136.594654][    C1]  hub_event+0x1409/0x3590
+[  136.594659][    C1]  process_one_work+0x905/0x1570
+[  136.594665][    C1]  worker_thread+0x96/0xe20
+[  136.594669][    C1]  kthread+0x30b/0x410
+[  136.594674][    C1]  ret_from_fork+0x24/0x30
+[  136.594675][    C1] 
+[  136.594679][    C1] The buggy address belongs to the object at ffff8881ceba7180
+[  136.594679][    C1]  which belongs to the cache kmalloc-1k of size 1024
+[  136.594684][    C1] The buggy address is located 120 bytes inside of
+[  136.594684][    C1]  1024-byte region [ffff8881ceba7180, ffff8881ceba7580)
+[  136.594685][    C1] The buggy address belongs to the page:
+[  136.594691][    C1] page:ffffea00073ae900 refcount:1 mapcount:0 mapping:ffff8881dac02a00 index:0x0 compound_mapcount: 0
+[  136.594698][    C1] flags: 0x200000000010200(slab|head)
+[  136.594707][    C1] raw: 0200000000010200 dead000000000100 dead000000000200 ffff8881dac02a00
+[  136.594713][    C1] raw: 0000000000000000 00000000000e000e 00000001ffffffff 0000000000000000
+[  136.594715][    C1] page dumped because: kasan: bad access detected
+[  136.594716][    C1] 
+[  136.594718][    C1] Memory state around the buggy address:
+[  136.594723][    C1]  ffff8881ceba7080: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  136.594727][    C1]  ffff8881ceba7100: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  136.594731][    C1] >ffff8881ceba7180: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  136.594733][    C1]                                                                 ^
+[  136.594738][    C1]  ffff8881ceba7200: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  136.594742][    C1]  ffff8881ceba7280: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  136.594744][    C1] ==================================================================
+[  136.594746][    C1] Disabling lock debugging due to kernel taint
+[  136.594749][    C1] Kernel panic - not syncing: panic_on_warn set ...
+[  136.594755][    C1] CPU: 1 PID: 22 Comm: kworker/1:1 Tainted: G    B             5.2.0-rc6+ #13
+[  136.594758][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  136.594764][    C1] Workqueue: usb_hub_wq hub_event
+[  136.594766][    C1] Call Trace:
+[  136.594768][    C1]  <IRQ>
+[  136.594773][    C1]  dump_stack+0xca/0x13e
+[  136.594778][    C1]  panic+0x292/0x6c9
+[  136.594783][    C1]  ? __warn_printk+0xf3/0xf3
+[  136.594788][    C1]  ? lock_downgrade+0x630/0x630
+[  136.594795][    C1]  ? print_shadow_for_address+0xb8/0x114
+[  136.594801][    C1]  ? trace_hardirqs_off+0x50/0x1c0
+[  136.594806][    C1]  ? register_lock_class+0xeb7/0x1240
+[  136.594812][    C1]  end_report+0x43/0x49
+[  136.594817][    C1]  ? register_lock_class+0xeb7/0x1240
+[  136.594823][    C1]  __kasan_report.cold+0xd/0x32
+[  136.594828][    C1]  ? register_lock_class+0xeb7/0x1240
+[  136.594834][    C1]  kasan_report+0xe/0x20
+[  136.594853][    C1]  register_lock_class+0xeb7/0x1240
+[  136.594859][    C1]  ? is_dynamic_key+0x1b0/0x1b0
+[  136.594864][    C1]  ? dev_vprintk_emit+0x4fc/0x541
+[  136.594868][    C1]  __lock_acquire+0x11d/0x5340
+[  136.594874][    C1]  ? mark_held_locks+0xe0/0xe0
+[  136.594879][    C1]  ? mark_held_locks+0xe0/0xe0
+[  136.594884][    C1]  lock_acquire+0x100/0x2b0
+[  136.594889][    C1]  ? __wake_up_common_lock+0xb0/0x170
+[  136.594894][    C1]  _raw_spin_lock_irqsave+0x32/0x50
+[  136.594900][    C1]  ? __wake_up_common_lock+0xb0/0x170
+[  136.594905][    C1]  __wake_up_common_lock+0xb0/0x170
+[  136.594911][    C1]  ? __usb_hcd_giveback_urb+0x1f2/0x470
+[  136.594916][    C1]  ? __wake_up_common+0x650/0x650
+[  136.594921][    C1]  ? usb_unanchor_urb+0x91/0xc0
+[  136.594927][    C1]  usb_anchor_resume_wakeups+0xbe/0xe0
+[  136.594933][    C1]  __usb_hcd_giveback_urb+0x1fa/0x470
+[  136.594939][    C1]  usb_hcd_giveback_urb+0x34a/0x400
+[  136.594945][    C1]  dummy_timer+0x1022/0x2df4
+[  136.594950][    C1]  ? mark_held_locks+0xe0/0xe0
+[  136.594955][    C1]  ? __lock_acquire+0x54a/0x5340
+[  136.594960][    C1]  ? find_held_lock+0x2d/0x110
+[  136.594965][    C1]  ? do_raw_spin_lock+0x11a/0x280
+[  136.594970][    C1]  ? lock_acquire+0x100/0x2b0
+[  136.594976][    C1]  ? dummy_udc_probe+0x970/0x970
+[  136.594981][    C1]  call_timer_fn+0x15e/0x5e0
+[  136.594992][    C1]  ? dummy_udc_probe+0x970/0x970
+[  136.594998][    C1]  ? process_timeout+0x40/0x40
+[  136.595002][    C1]  ? mark_held_locks+0x9f/0xe0
+[  136.595007][    C1]  ? _raw_spin_unlock_irq+0x24/0x30
+[  136.595013][    C1]  ? dummy_udc_probe+0x970/0x970
+[  136.595019][    C1]  run_timer_softirq+0x597/0x1410
+[  136.595024][    C1]  ? add_timer+0x7a0/0x7a0
+[  136.595029][    C1]  ? ktime_get+0x162/0x1d0
+[  136.595034][    C1]  __do_softirq+0x219/0x8b0
+[  136.595040][    C1]  irq_exit+0x17c/0x1a0
+[  136.595046][    C1]  smp_apic_timer_interrupt+0xe2/0x480
+[  136.595052][    C1]  apic_timer_interrupt+0xf/0x20
+[  136.595053][    C1]  </IRQ>
+[  136.595059][    C1] RIP: 0010:console_unlock+0x9db/0xbf0
+[  136.595065][    C1] Code: 00 89 ee 48 c7 c7 e0 eb f2 86 e8 50 a4 03 00 65 ff 0d 51 56 da 7e e9 11 fa ff ff e8 af 43 15 00 e8 ba 69 1a 00 ff 74 24 30 9d <e9> 31 fe ff ff e8 9b 43 15 00 48 8b bc 24 80 00 00 00 c7 05 d9 e6
+[  136.595068][    C1] RSP: 0018:ffff8881d9f8f2c0 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  136.595073][    C1] RAX: 0000000000000007 RBX: 0000000000000200 RCX: 1ffff1103b3cc729
+[  136.595076][    C1] RDX: 0000000000000000 RSI: ffff8881d9e63928 RDI: ffff8881d9e63834
+[  136.595079][    C1] RBP: 0000000000000000 R08: ffff8881d9e63000 R09: 0000000000000000
+[  136.595082][    C1] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000068
+[  136.595086][    C1] R13: ffffffff828cb580 R14: ffffffff8726a520 R15: dffffc0000000000
+[  136.595092][    C1]  ? netconsole_netdev_event+0x2a0/0x2a0
+[  136.595098][    C1]  vprintk_emit+0x171/0x3e0
+[  136.595103][    C1]  dev_vprintk_emit+0x4fc/0x541
+[  136.595108][    C1]  ? dev_attr_show.cold+0x3a/0x3a
+[  136.595114][    C1]  ? save_stack+0x4c/0x80
+[  136.595119][    C1]  ? save_stack+0x1b/0x80
+[  136.595124][    C1]  ? __kasan_slab_free+0x130/0x180
+[  136.595129][    C1]  ? kfree+0xd7/0x280
+[  136.595135][    C1]  ? ftdi_sio_port_remove+0x117/0x350
+[  136.595140][    C1]  ? usb_serial_device_remove+0x15d/0x1e0
+[  136.595146][    C1]  ? device_release_driver_internal+0x206/0x4c0
+[  136.595151][    C1]  ? bus_remove_device+0x2dc/0x4a0
+[  136.595155][    C1]  ? device_del+0x460/0xb80
+[  136.595160][    C1]  ? usb_serial_disconnect+0x20d/0x300
+[  136.595165][    C1]  ? usb_unbind_interface+0x1bd/0x8a0
+[  136.595170][    C1]  dev_printk_emit+0xba/0xf1
+[  136.595175][    C1]  ? dev_vprintk_emit+0x541/0x541
+[  136.595179][    C1]  ? find_held_lock+0x2d/0x110
+[  136.595185][    C1]  ? do_raw_spin_lock+0x11a/0x280
+[  136.595190][    C1]  __dev_printk+0x1db/0x203
+[  136.595195][    C1]  _dev_info+0xd7/0x109
+[  136.595200][    C1]  ? _dev_notice+0x109/0x109
+[  136.595205][    C1]  ? __kasan_slab_free+0x145/0x180
+[  136.595211][    C1]  ? ftdi_sio_port_remove+0x117/0x350
+[  136.595216][    C1]  ? kfree+0xd7/0x280
+[  136.595222][    C1]  usb_serial_device_remove.cold+0x1e/0x98
+[  136.595227][    C1]  ? usb_serial_device_match+0xa0/0xa0
+[  136.595233][    C1]  device_release_driver_internal+0x206/0x4c0
+[  136.595238][    C1]  bus_remove_device+0x2dc/0x4a0
+[  136.595243][    C1]  device_del+0x460/0xb80
+[  136.595248][    C1]  ? __device_links_no_driver+0x240/0x240
+[  136.595253][    C1]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[  136.595258][    C1]  ? lockdep_hardirqs_on+0x379/0x580
+[  136.595263][    C1]  usb_serial_disconnect+0x20d/0x300
+[  136.595268][    C1]  usb_unbind_interface+0x1bd/0x8a0
+[  136.595274][    C1]  ? usb_autoresume_device+0x60/0x60
+[  136.595279][    C1]  device_release_driver_internal+0x404/0x4c0
+[  136.595285][    C1]  bus_remove_device+0x2dc/0x4a0
+[  136.595289][    C1]  device_del+0x460/0xb80
+[  136.595294][    C1]  ? __device_links_no_driver+0x240/0x240
+[  136.595299][    C1]  ? lockdep_hardirqs_on+0x379/0x580
+[  136.595304][    C1]  ? remove_intf_ep_devs+0x13f/0x1d0
+[  136.595309][    C1]  usb_disable_device+0x211/0x690
+[  136.595314][    C1]  usb_disconnect+0x284/0x830
+[  136.595319][    C1]  hub_event+0x1409/0x3590
+[  136.595325][    C1]  ? hub_port_debounce+0x260/0x260
+[  136.595331][    C1]  process_one_work+0x905/0x1570
+[  136.595338][    C1]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  136.595343][    C1]  ? do_raw_spin_lock+0x11a/0x280
+[  136.595349][    C1]  worker_thread+0x7ab/0xe20
+[  136.595355][    C1]  ? process_one_work+0x1570/0x1570
+[  136.595360][    C1]  kthread+0x30b/0x410
+[  136.595365][    C1]  ? kthread_park+0x1a0/0x1a0
+[  136.595370][    C1]  ret_from_fork+0x24/0x30
+[  136.595625][    C1] Kernel Offset: disabled
+[  138.235281][    C1] Rebooting in 86400 seconds..

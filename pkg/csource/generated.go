@@ -263,9 +263,9 @@ typedef struct {
 static void event_init(event_t* ev)
 {
 	if (pthread_mutex_init(&ev->mu, 0))
-		fail("pthread_mutex_init failed");
+		exitf("pthread_mutex_init failed");
 	if (pthread_cond_init(&ev->cv, 0))
-		fail("pthread_cond_init failed");
+		exitf("pthread_cond_init failed");
 	ev->state = 0;
 }
 
@@ -430,7 +430,7 @@ static uintptr_t syz_open_pts(void)
 
 #endif
 
-#if GOOS_freebsd || GOOS_openbsd
+#if GOOS_freebsd || GOOS_openbsd || GOOS_netbsd
 
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 
@@ -506,7 +506,16 @@ static void initialize_tun(int tun_id)
 
 	char tun_device[sizeof(TUN_DEVICE)];
 	snprintf_check(tun_device, sizeof(tun_device), TUN_DEVICE, tun_id);
+
+	char tun_iface[sizeof(TUN_IFACE)];
+	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
+
+#if GOOS_netbsd
+	execute_command(0, "ifconfig %s destroy", tun_iface);
+	execute_command(0, "ifconfig %s create", tun_iface);
+#else
 	execute_command(0, "ifconfig %s destroy", tun_device);
+#endif
 
 	tunfd = open(tun_device, O_RDWR | O_NONBLOCK);
 #if GOOS_freebsd
@@ -529,31 +538,26 @@ static void initialize_tun(int tun_id)
 	close(tunfd);
 	tunfd = kTunFd;
 
-	char tun_iface[sizeof(TUN_IFACE)];
-	snprintf_check(tun_iface, sizeof(tun_iface), TUN_IFACE, tun_id);
-
 	char local_mac[sizeof(LOCAL_MAC)];
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
 #if GOOS_openbsd
 	execute_command(1, "ifconfig %s lladdr %s", tun_iface, local_mac);
+#elif GOOS_netbsd
+	execute_command(1, "ifconfig %s link %s", tun_iface, local_mac);
 #else
 	execute_command(1, "ifconfig %s ether %s", tun_iface, local_mac);
 #endif
-
 	char local_ipv4[sizeof(LOCAL_IPV4)];
 	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, tun_id);
 	execute_command(1, "ifconfig %s inet %s netmask 255.255.255.0", tun_iface, local_ipv4);
-
 	char remote_mac[sizeof(REMOTE_MAC)];
 	char remote_ipv4[sizeof(REMOTE_IPV4)];
 	snprintf_check(remote_mac, sizeof(remote_mac), REMOTE_MAC);
 	snprintf_check(remote_ipv4, sizeof(remote_ipv4), REMOTE_IPV4, tun_id);
 	execute_command(0, "arp -s %s %s", remote_ipv4, remote_mac);
-
 	char local_ipv6[sizeof(LOCAL_IPV6)];
 	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, tun_id);
 	execute_command(1, "ifconfig %s inet6 %s", tun_iface, local_ipv6);
-
 	char remote_ipv6[sizeof(REMOTE_IPV6)];
 	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, tun_id);
 	execute_command(0, "ndp -s %s%%%s %s", remote_ipv6, tun_iface, remote_mac);
@@ -701,7 +705,7 @@ static void loop();
 static int do_sandbox_none(void)
 {
 	sandbox_common();
-#if (GOOS_freebsd || GOOS_openbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
 	loop();
@@ -736,7 +740,7 @@ static int do_sandbox_setuid(void)
 		return wait_for_loop(pid);
 
 	sandbox_common();
-#if (GOOS_freebsd || GOOS_openbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
 	initialize_tun(procid);
 #endif
 
@@ -1815,13 +1819,14 @@ struct usb_fuzzer_ep_io {
 
 #define USB_FUZZER_IOCTL_INIT _IOW('U', 0, struct usb_fuzzer_init)
 #define USB_FUZZER_IOCTL_RUN _IO('U', 1)
-#define USB_FUZZER_IOCTL_EP0_READ _IOWR('U', 2, struct usb_fuzzer_event)
+#define USB_FUZZER_IOCTL_EVENT_FETCH _IOR('U', 2, struct usb_fuzzer_event)
 #define USB_FUZZER_IOCTL_EP0_WRITE _IOW('U', 3, struct usb_fuzzer_ep_io)
-#define USB_FUZZER_IOCTL_EP_ENABLE _IOW('U', 4, struct usb_endpoint_descriptor)
-#define USB_FUZZER_IOCTL_EP_WRITE _IOW('U', 6, struct usb_fuzzer_ep_io)
-#define USB_FUZZER_IOCTL_EP_READ _IOWR('U', 7, struct usb_fuzzer_ep_io)
-#define USB_FUZZER_IOCTL_CONFIGURE _IO('U', 8)
-#define USB_FUZZER_IOCTL_VBUS_DRAW _IOW('U', 9, uint32)
+#define USB_FUZZER_IOCTL_EP0_READ _IOWR('U', 4, struct usb_fuzzer_ep_io)
+#define USB_FUZZER_IOCTL_EP_ENABLE _IOW('U', 5, struct usb_endpoint_descriptor)
+#define USB_FUZZER_IOCTL_EP_WRITE _IOW('U', 7, struct usb_fuzzer_ep_io)
+#define USB_FUZZER_IOCTL_EP_READ _IOWR('U', 8, struct usb_fuzzer_ep_io)
+#define USB_FUZZER_IOCTL_CONFIGURE _IO('U', 9)
+#define USB_FUZZER_IOCTL_VBUS_DRAW _IOW('U', 10, uint32)
 
 int usb_fuzzer_open()
 {
@@ -1842,14 +1847,19 @@ int usb_fuzzer_run(int fd)
 	return ioctl(fd, USB_FUZZER_IOCTL_RUN, 0);
 }
 
-int usb_fuzzer_ep0_read(int fd, struct usb_fuzzer_event* event)
+int usb_fuzzer_event_fetch(int fd, struct usb_fuzzer_event* event)
 {
-	return ioctl(fd, USB_FUZZER_IOCTL_EP0_READ, event);
+	return ioctl(fd, USB_FUZZER_IOCTL_EVENT_FETCH, event);
 }
 
 int usb_fuzzer_ep0_write(int fd, struct usb_fuzzer_ep_io* io)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_EP0_WRITE, io);
+}
+
+int usb_fuzzer_ep0_read(int fd, struct usb_fuzzer_ep_io* io)
+{
+	return ioctl(fd, USB_FUZZER_IOCTL_EP0_READ, io);
 }
 
 int usb_fuzzer_ep_write(int fd, struct usb_fuzzer_ep_io* io)
@@ -1904,8 +1914,10 @@ struct vusb_connect_descriptors {
 	struct vusb_connect_string_descriptor strs[0];
 } __attribute__((packed));
 
+static const char* default_string = "syzkaller";
+
 static bool lookup_connect_response(struct vusb_connect_descriptors* descs, struct usb_device_index* index,
-				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length, bool* done)
+				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
 {
 	uint8 str_idx;
 
@@ -1924,11 +1936,13 @@ static bool lookup_connect_response(struct vusb_connect_descriptors* descs, stru
 				return true;
 			case USB_DT_STRING:
 				str_idx = (uint8)ctrl->wValue;
-				if (str_idx >= descs->strs_len && descs->strs_len > 0) {
-					str_idx = descs->strs_len - 1;
+				if (str_idx >= descs->strs_len) {
+					*response_data = (char*)default_string;
+					*response_length = strlen(default_string);
+				} else {
+					*response_data = descs->strs[str_idx].str;
+					*response_length = descs->strs[str_idx].len;
 				}
-				*response_data = descs->strs[str_idx].str;
-				*response_length = descs->strs[str_idx].len;
 				return true;
 			case USB_DT_BOS:
 				*response_data = descs->bos;
@@ -1943,11 +1957,6 @@ static bool lookup_connect_response(struct vusb_connect_descriptors* descs, stru
 				return false;
 			}
 			break;
-		case USB_REQ_SET_CONFIGURATION:
-			*response_length = 0;
-			*response_data = NULL;
-			*done = true;
-			return true;
 		default:
 			fail("syz_usb_connect: no response");
 			return false;
@@ -1963,8 +1972,8 @@ static bool lookup_connect_response(struct vusb_connect_descriptors* descs, stru
 
 static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
-	int64_t speed = a0;
-	int64_t dev_len = a1;
+	uint64 speed = a0;
+	uint64 dev_len = a1;
 	char* dev = (char*)a2;
 	struct vusb_connect_descriptors* descs = (struct vusb_connect_descriptors*)a3;
 
@@ -2015,9 +2024,9 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		struct usb_fuzzer_control_event event;
 		event.inner.type = 0;
 		event.inner.length = sizeof(event.ctrl);
-		rv = usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_event*)&event);
+		rv = usb_fuzzer_event_fetch(fd, (struct usb_fuzzer_event*)&event);
 		if (rv < 0) {
-			debug("syz_usb_connect: usb_fuzzer_ep0_read failed with %d\n", rv);
+			debug("syz_usb_connect: usb_fuzzer_event_fetch failed with %d\n", rv);
 			return rv;
 		}
 		if (event.inner.type != USB_FUZZER_EVENT_CONTROL)
@@ -2030,10 +2039,20 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		bool response_found = false;
 		char* response_data = NULL;
 		uint32 response_length = 0;
-		NONFAILING(response_found = lookup_connect_response(descs, &index, &event.ctrl, &response_data, &response_length, &done));
-		if (!response_found) {
-			debug("syz_usb_connect: no response found\n");
-			return -1;
+
+		if (event.ctrl.bRequestType & USB_DIR_IN) {
+			NONFAILING(response_found = lookup_connect_response(descs, &index, &event.ctrl, &response_data, &response_length));
+			if (!response_found) {
+				debug("syz_usb_connect: unknown IN request\n");
+				return -1;
+			}
+		} else {
+			if ((event.ctrl.bRequestType & USB_TYPE_MASK) != USB_TYPE_STANDARD ||
+			    event.ctrl.bRequest != USB_REQ_SET_CONFIGURATION) {
+				fail("syz_usb_connect: unknown OUT request");
+				return -1;
+			}
+			done = true;
 		}
 
 		if (done) {
@@ -2063,15 +2082,21 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		response.inner.flags = 0;
 		if (response_length > sizeof(response.data))
 			response_length = 0;
+		if (event.ctrl.wLength < response_length)
+			response_length = event.ctrl.wLength;
 		response.inner.length = response_length;
 		if (response_data)
 			memcpy(&response.data[0], response_data, response_length);
-		if (event.ctrl.wLength < response.inner.length)
-			response.inner.length = event.ctrl.wLength;
+		else
+			memset(&response.data[0], 0, response_length);
+
 		debug("syz_usb_connect: reply length = %d\n", response.inner.length);
-		rv = usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
+		if (event.ctrl.bRequestType & USB_DIR_IN)
+			rv = usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
+		else
+			rv = usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_ep_io*)&response);
 		if (rv < 0) {
-			debug("syz_usb_connect: usb_fuzzer_ep0_write failed with %d\n", rv);
+			debug("syz_usb_connect: usb_fuzzer_ep0_read/write failed with %d\n", rv);
 			return rv;
 		}
 	}
@@ -2178,7 +2203,7 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	struct usb_fuzzer_control_event event;
 	event.inner.type = 0;
 	event.inner.length = USB_MAX_PACKET_SIZE;
-	int rv = usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_event*)&event);
+	int rv = usb_fuzzer_event_fetch(fd, (struct usb_fuzzer_event*)&event);
 	if (rv < 0) {
 		debug("syz_usb_control_io: usb_fuzzer_ep0_read failed with %d\n", rv);
 		return rv;
@@ -2192,18 +2217,18 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	      event.ctrl.bRequestType, (event.ctrl.bRequestType & USB_DIR_IN) ? "IN" : "OUT",
 	      event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
 
-	if (!(event.ctrl.bRequestType & USB_DIR_IN) && event.ctrl.wLength != 0) {
-		debug("syz_usb_control_io: OUT data:\n");
-		debug_dump_data(&event.data[0], event.ctrl.wLength);
-	}
-
 	bool response_found = false;
 	char* response_data = NULL;
 	uint32 response_length = 0;
-	NONFAILING(response_found = lookup_control_io_response(descs, resps, &event.ctrl, &response_data, &response_length));
-	if (!response_found) {
-		debug("syz_usb_control_io: no response found\n");
-		return -1;
+
+	if (event.ctrl.bRequestType & USB_DIR_IN) {
+		NONFAILING(response_found = lookup_control_io_response(descs, resps, &event.ctrl, &response_data, &response_length));
+		if (!response_found) {
+			debug("syz_usb_control_io: no response found\n");
+			return -1;
+		}
+	} else {
+		response_length = event.ctrl.wLength;
 	}
 
 	struct usb_fuzzer_ep_io_data response;
@@ -2211,16 +2236,25 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	response.inner.flags = 0;
 	if (response_length > sizeof(response.data))
 		response_length = 0;
+	if (event.ctrl.wLength < response_length)
+		response_length = event.ctrl.wLength;
 	response.inner.length = response_length;
 	if (response_data)
 		memcpy(&response.data[0], response_data, response_length);
-	if (event.ctrl.wLength < response.inner.length)
-		response.inner.length = event.ctrl.wLength;
-	debug("syz_usb_control_io: response length = %d\n", response.inner.length);
-	debug_dump_data(&response.data[0], response.inner.length);
-	rv = usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
+	else
+		memset(&response.data[0], 0, response_length);
+
+	if (event.ctrl.bRequestType & USB_DIR_IN) {
+		debug("syz_usb_control_io: IN, length = %d\n", response.inner.length);
+		debug_dump_data(&response.data[0], response.inner.length);
+		rv = usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
+	} else {
+		rv = usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_ep_io*)&response);
+		debug("syz_usb_control_io: OUT, length = %d\n", response.inner.length);
+		debug_dump_data(&event.data[0], response.inner.length);
+	}
 	if (rv < 0) {
-		debug("syz_usb_control_io: usb_fuzzer_ep0_write failed with %d\n", rv);
+		debug("syz_usb_control_io: usb_fuzzer_ep0_read/write failed with %d\n", rv);
 		return rv;
 	}
 
