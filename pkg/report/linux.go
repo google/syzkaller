@@ -1159,7 +1159,7 @@ var linuxOopses = []*oops{
 			},
 			{
 				title:  compile("WARNING: held lock freed!"),
-				report: compile("WARNING: held lock freed!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				report: compile("WARNING: held lock freed!(?:.*\\n)+?.*at:(?: {{PC}})? +{{FUNC}}"),
 				fmt:    "WARNING: held lock freed in %[1]v",
 			},
 			{
