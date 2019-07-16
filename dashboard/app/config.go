@@ -151,6 +151,12 @@ const (
 	FilterHold                       // Hold off with reporting this bug.
 )
 
+func ConstFilter(result FilterResult) ReportingFilter {
+	return func(bug *Bug) FilterResult {
+		return result
+	}
+}
+
 func (cfg *Config) ReportingByName(name string) *Reporting {
 	for i := range cfg.Reporting {
 		reporting := &cfg.Reporting[i]
@@ -289,7 +295,7 @@ func checkNamespaceReporting(ns string, cfg *Config) {
 			fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
 		parentAccessLevel = reporting.AccessLevel
 		if reporting.Filter == nil {
-			reporting.Filter = func(bug *Bug) FilterResult { return FilterReport }
+			reporting.Filter = ConstFilter(FilterReport)
 		}
 		reportingNames[reporting.Name] = true
 		if reporting.Config.Type() == "" {
