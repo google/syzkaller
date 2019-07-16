@@ -5,6 +5,8 @@
 
 // Implementation of syz_usb_* pseudo-syscalls.
 
+#define USB_DEBUG 0
+
 #define USB_MAX_EP_NUM 32
 
 struct usb_device_index {
@@ -305,13 +307,13 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
 			NONFAILING(response_found = lookup_connect_response(descs, &index, &event.ctrl, &response_data, &response_length));
 			if (!response_found) {
-				debug("syz_usb_connect: unknown IN request\n");
+				debug("syz_usb_connect: unknown control IN request\n");
 				return -1;
 			}
 		} else {
 			if ((event.ctrl.bRequestType & USB_TYPE_MASK) != USB_TYPE_STANDARD ||
 			    event.ctrl.bRequest != USB_REQ_SET_CONFIGURATION) {
-				fail("syz_usb_connect: unknown OUT request");
+				fail("syz_usb_connect: unknown control OUT request");
 				return -1;
 			}
 			done = true;
@@ -397,8 +399,8 @@ struct vusb_responses {
 	struct vusb_response* resps[0];
 } __attribute__((packed));
 
-static bool lookup_control_io_response(struct vusb_descriptors* descs, struct vusb_responses* resps,
-				       struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
+static bool lookup_control_response(struct vusb_descriptors* descs, struct vusb_responses* resps,
+				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
 {
 	int descs_num = (descs->len - offsetof(struct vusb_descriptors, descs)) / sizeof(descs->descs[0]);
 	int resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
@@ -456,6 +458,44 @@ static bool lookup_control_io_response(struct vusb_descriptors* descs, struct vu
 	return false;
 }
 
+#if USB_DEBUG
+#include <linux/hid.h>
+#include <linux/usb/cdc.h>
+#include <linux/usb/ch11.h>
+#include <linux/usb/ch9.h>
+
+static void analyze_control_request(struct usb_ctrlrequest* ctrl)
+{
+	switch (ctrl->bRequestType & USB_TYPE_MASK) {
+	case USB_TYPE_STANDARD:
+		switch (ctrl->bRequest) {
+		case USB_REQ_GET_DESCRIPTOR:
+			switch (ctrl->wValue >> 8) {
+			case USB_DT_DEVICE:
+			case USB_DT_CONFIG:
+			case USB_DT_STRING:
+			case HID_DT_REPORT:
+			case USB_DT_BOS:
+			case USB_DT_HUB:
+			case USB_DT_SS_HUB:
+				return;
+			}
+		}
+		break;
+	case USB_TYPE_CLASS:
+		switch (ctrl->bRequest) {
+		case USB_REQ_GET_INTERFACE:
+		case USB_REQ_GET_CONFIGURATION:
+		case USB_REQ_GET_STATUS:
+		case USB_CDC_GET_NTB_PARAMETERS:
+			return;
+		}
+	}
+	fail("analyze_control_request: unknown control request (0x%x, 0x%x, 0x%x)",
+	     ctrl->bRequestType, ctrl->bRequest, ctrl->wValue);
+}
+#endif
+
 static volatile long syz_usb_control_io(volatile long a0, volatile long a1, volatile long a2)
 {
 	int fd = a0;
@@ -484,9 +524,12 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	uint32 response_length = 0;
 
 	if (event.ctrl.bRequestType & USB_DIR_IN) {
-		NONFAILING(response_found = lookup_control_io_response(descs, resps, &event.ctrl, &response_data, &response_length));
+		NONFAILING(response_found = lookup_control_response(descs, resps, &event.ctrl, &response_data, &response_length));
 		if (!response_found) {
-			debug("syz_usb_control_io: no response found\n");
+#if USB_DEBUG
+			analyze_control_request(&event.ctrl);
+#endif
+			debug("syz_usb_control_io: unknown control IN request\n");
 			return -1;
 		}
 	} else {
