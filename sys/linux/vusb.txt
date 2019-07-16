@@ -25,7 +25,7 @@ syz_usb_disconnect(fd fd_usb)
 
 # These are syzcalls specifically targeted to the HID device class.
 syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
-syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid])
+syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
 
@@ -182,15 +182,12 @@ type vusb_descriptor_t[CLASS, REQ, DATA] {
 vusb_responses {
 	len			len[parent, int32]
 	generic			ptr[in, vusb_response_generic]
-	set_interface		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_SET_INTERFACE, void]]
 	get_interface		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_INTERFACE, int8]]
-	set_configuration	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_SET_CONFIGURATION, void]]
 	get_configuration	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_CONFIGURATION, int8]]
 	get_status_hub		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
 	get_status_port		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
-	aiptek_get_report	ptr[in, vusb_response_t[USB_TYPE_VENDOR, 0x1, array[int8, 3]]]
-	aiptek_set_report	ptr[in, vusb_response_t[USB_TYPE_VENDOR, 0x9, array[int8, 3]]]
 	cdc_get_ntb_parameters	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_CDC_GET_NTB_PARAMETERS, usb_cdc_ncm_ntb_parameters]]
+	aiptek_get_report	ptr[in, vusb_response_t[USB_TYPE_VENDOR, 0x1, array[int8, 3]]]
 } [packed]
 
 vusb_response_generic {
@@ -225,34 +222,26 @@ usb_config_descriptor_hid {
 } [packed]
 
 usb_interface_descriptor_hid {
-	inner	usb_interface_descriptor_t[USB_CLASS_HID, USB_INTERFACE_SUBCLASS_BOOT, USB_INTERFACE_PROTOCOL_KEYBOARD, hid_descriptor_hid, array[usb_endpoint_descriptor_hid, 1]]
+	inner	usb_interface_descriptor_t[USB_CLASS_HID, USB_INTERFACE_SUBCLASS_BOOT, USB_INTERFACE_PROTOCOL_KEYBOARD, hid_descriptor_hid, usb_endpoint_descriptors]
 } [packed]
 
-usb_endpoint_descriptor_hid {
-	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], array[usb_endpoint_extra_descriptor, 0:2]]
+usb_endpoint_descriptors {
+	in	usb_endpoint_descriptor_hid_in
+	out	array[usb_endpoint_descriptor_hid_out, 0:1]
+} [packed]
+
+usb_endpoint_descriptor_hid_in {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_IN_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], array[usb_endpoint_extra_descriptor, 0:2]]
+} [packed]
+
+usb_endpoint_descriptor_hid_out {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_OUT_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], array[usb_endpoint_extra_descriptor, 0:2]]
 } [packed]
 
 define USB_CONFIG_HID_ATTRIBUTES	(USB_CONFIG_ATT_ONE | USB_CONFIG_ATT_WAKEUP)
-define USB_ENDPOINT_HID_ADDRESS	(1 | USB_DIR_IN)
 define USB_ENDPOINT_HID_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
-
-# TODO: consider merging with vusb_descriptors.
-vusb_descriptors_hid {
-	len		len[parent, int32]
-	generic		ptr[in, vusb_descriptor_generic]
-	string		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
-	hid_report	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
-	bos		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_BOS, usb_bos_descriptor]]
-} [packed]
-
-# TODO: consider merging with vusb_responses.
-vusb_responses_hid {
-	len		len[parent, int32]
-	generic		ptr[in, vusb_response_generic]
-	set_idle	ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_SET_IDLE, void]]
-	set_report	ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_SET_REPORT, void]]
-	set_protocol	ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_SET_PROTOCOL, void]]
-} [packed]
+define USB_ENDPOINT_HID_IN_ADDRESS	(1 | USB_DIR_IN)
+define USB_ENDPOINT_HID_OUT_ADDRESS	(2)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
