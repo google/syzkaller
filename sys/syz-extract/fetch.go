@@ -16,7 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf bool, defineGlibcUse bool) (
+func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf, defineGlibcUse bool) (
 	map[string]uint64, map[string]bool, error) {
 	data := &CompileData{
 		AddSource:      addSource,
