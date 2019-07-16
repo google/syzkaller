@@ -1,0 +1,142 @@
+TITLE: WARNING: held lock freed in nr_release
+
+[   68.540703][ T8559] =========================
+[   68.545204][ T8559] WARNING: held lock freed!
+[   68.549701][ T8559] 5.2.0-rc6+ #75 Not tainted
+[   68.554281][ T8559] -------------------------
+[   68.558778][ T8559] syz-executor315/8559 is freeing memory ffff88809faed2c0-ffff88809faedabf, with a lock still held there!
+[   68.570044][ T8559] 00000000cf45dbdb (sk_lock-AF_NETROM){+.+.}, at: nr_release+0x11a/0x3b0
+[   68.578474][ T8559] 2 locks held by syz-executor315/8559:
+[   68.584008][ T8559]  #0: 00000000c0a19dcd (&sb->s_type->i_mutex_key#11){+.+.}, at: __sock_release+0x89/0x2a0
+[   68.594004][ T8559]  #1: 00000000cf45dbdb (sk_lock-AF_NETROM){+.+.}, at: nr_release+0x11a/0x3b0
+[   68.602967][ T8559] 
+[   68.602967][ T8559] stack backtrace:
+[   68.608865][ T8559] CPU: 0 PID: 8559 Comm: syz-executor315 Not tainted 5.2.0-rc6+ #75
+[   68.616923][ T8559] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   68.626976][ T8559] Call Trace:
+[   68.630275][ T8559]  dump_stack+0x172/0x1f0
+[   68.634619][ T8559]  debug_check_no_locks_freed.cold+0x9d/0xa9
+[   68.640729][ T8559]  ? trace_hardirqs_off+0x62/0x220
+[   68.645846][ T8559]  kfree+0xb1/0x220
+[   68.649665][ T8559]  __sk_destruct+0x4f7/0x6e0
+[   68.654259][ T8559]  sk_destruct+0x7b/0x90
+[   68.658510][ T8559]  __sk_free+0xce/0x300
+[   68.662673][ T8559]  sk_free+0x42/0x50
+[   68.666630][ T8559]  nr_destroy_socket+0x3df/0x4a0
+[   68.671578][ T8559]  ? nr_clear_queues+0x3d/0x40
+[   68.676365][ T8559]  nr_release+0x323/0x3b0
+[   68.680700][ T8559]  __sock_release+0xce/0x2a0
+[   68.685294][ T8559]  sock_close+0x1b/0x30
+[   68.689451][ T8559]  __fput+0x2ff/0x890
+[   68.693453][ T8559]  ? __sock_release+0x2a0/0x2a0
+[   68.698312][ T8559]  ____fput+0x16/0x20
+[   68.702303][ T8559]  task_work_run+0x145/0x1c0
+[   68.706937][ T8559]  exit_to_usermode_loop+0x273/0x2c0
+[   68.712237][ T8559]  do_syscall_64+0x58e/0x680
+[   68.716834][ T8559]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   68.722726][ T8559] RIP: 0033:0x447269
+[   68.726618][ T8559] Code: e8 7c 14 03 00 48 83 c4 18 c3 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb 0e fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[   68.746221][ T8559] RSP: 002b:00007f653a7bed88 EFLAGS: 00000246 ORIG_RAX: 000000000000002d
+[   68.754636][ T8559] RAX: ffffffffffffff95 RBX: 00000000006dcc48 RCX: 0000000000447269
+[   68.762614][ T8559] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000003
+[   68.770596][ T8559] RBP: 00000000006dcc40 R08: 0000000000000000 R09: 0000000000000000
+[   68.778567][ T8559] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dcc4c
+[   68.786545][ T8559] R13: 0000003066736362 R14: 002cc7eb47000000 R15: 0000003066736362
+[   68.808986][ T8559] ==================================================================
+[   68.817113][ T8559] BUG: KASAN: use-after-free in do_raw_spin_lock+0x28a/0x2e0
+[   68.824567][ T8559] Read of size 4 at addr ffff88809faed34c by task syz-executor315/8559
+[   68.826952][ T8549] syz-executor315 (8549) used greatest stack depth: 23440 bytes left
+[   68.832794][ T8559] 
+[   68.832808][ T8559] CPU: 1 PID: 8559 Comm: syz-executor315 Not tainted 5.2.0-rc6+ #75
+[   68.832813][ T8559] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   68.832817][ T8559] Call Trace:
+[   68.832837][ T8559]  dump_stack+0x172/0x1f0
+[   68.832856][ T8559]  ? do_raw_spin_lock+0x28a/0x2e0
+[   68.873915][ T8559]  print_address_description.cold+0x7c/0x20d
+[   68.879900][ T8559]  ? do_raw_spin_lock+0x28a/0x2e0
+[   68.884932][ T8559]  ? do_raw_spin_lock+0x28a/0x2e0
+[   68.888244][ T8561] kobject: 'bcsf0' (00000000bf0de9ad): kobject_cleanup, parent 000000003736d4b0
+[   68.889962][ T8559]  __kasan_report.cold+0x1b/0x40
+[   68.900905][ T8561] kobject: 'bcsf0' (00000000bf0de9ad): calling ktype release
+[   68.903899][ T8559]  ? do_raw_spin_lock+0x28a/0x2e0
+[   68.911735][ T8561] kobject: 'bcsf0': free name
+[   68.916285][ T8559]  kasan_report+0x12/0x20
+[   68.925247][ T8559]  __asan_report_load4_noabort+0x14/0x20
+[   68.930869][ T8559]  do_raw_spin_lock+0x28a/0x2e0
+[   68.935720][ T8559]  ? rwlock_bug.part.0+0x90/0x90
+[   68.940725][ T8559]  ? lock_acquire+0x16f/0x3f0
+[   68.945421][ T8559]  ? release_sock+0x20/0x1c0
+[   68.949999][ T8559]  _raw_spin_lock_bh+0x3b/0x50
+[   68.954874][ T8559]  ? release_sock+0x20/0x1c0
+[   68.959462][ T8559]  release_sock+0x20/0x1c0
+[   68.963880][ T8559]  nr_release+0x2df/0x3b0
+[   68.968191][ T8559]  __sock_release+0xce/0x2a0
+[   68.972774][ T8559]  sock_close+0x1b/0x30
+[   68.977031][ T8559]  __fput+0x2ff/0x890
+[   68.981061][ T8559]  ? __sock_release+0x2a0/0x2a0
+[   68.985997][ T8559]  ____fput+0x16/0x20
+[   68.989961][ T8559]  task_work_run+0x145/0x1c0
+[   68.994534][ T8559]  exit_to_usermode_loop+0x273/0x2c0
+[   68.999815][ T8559]  do_syscall_64+0x58e/0x680
+[   69.004406][ T8559]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   69.010627][ T8559] RIP: 0033:0x447269
+[   69.014505][ T8559] Code: e8 7c 14 03 00 48 83 c4 18 c3 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb 0e fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[   69.034206][ T8559] RSP: 002b:00007f653a7bed88 EFLAGS: 00000246 ORIG_RAX: 000000000000002d
+[   69.042798][ T8559] RAX: ffffffffffffff95 RBX: 00000000006dcc48 RCX: 0000000000447269
+[   69.050977][ T8559] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000003
+[   69.059141][ T8559] RBP: 00000000006dcc40 R08: 0000000000000000 R09: 0000000000000000
+[   69.067116][ T8559] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006dcc4c
+[   69.075241][ T8559] R13: 0000003066736362 R14: 002cc7eb47000000 R15: 0000003066736362
+[   69.083336][ T8559] 
+[   69.085662][ T8559] Allocated by task 8562:
+[   69.089991][ T8559]  save_stack+0x23/0x90
+[   69.094144][ T8559]  __kasan_kmalloc.constprop.0+0xcf/0xe0
+[   69.099781][ T8559]  kasan_kmalloc+0x9/0x10
+[   69.104427][ T8559]  __kmalloc+0x15c/0x740
+[   69.108663][ T8559]  sk_prot_alloc+0x19c/0x2e0
+[   69.113248][ T8559]  sk_alloc+0x39/0xf70
+[   69.117364][ T8559]  nr_rx_frame+0x733/0x1e70
+[   69.122049][ T8559]  nr_loopback_timer+0x7b/0x170
+[   69.126914][ T8559]  call_timer_fn+0x193/0x720
+[   69.131500][ T8559]  run_timer_softirq+0x66f/0x1740
+[   69.136527][ T8559]  __do_softirq+0x25c/0x94c
+[   69.141004][ T8559] 
+[   69.143312][ T8559] Freed by task 8559:
+[   69.147274][ T8559]  save_stack+0x23/0x90
+[   69.151662][ T8559]  __kasan_slab_free+0x102/0x150
+[   69.156582][ T8559]  kasan_slab_free+0xe/0x10
+[   69.161080][ T8559]  kfree+0xcf/0x220
+[   69.164871][ T8559]  __sk_destruct+0x4f7/0x6e0
+[   69.169438][ T8559]  sk_destruct+0x7b/0x90
+[   69.173679][ T8559]  __sk_free+0xce/0x300
+[   69.177818][ T8559]  sk_free+0x42/0x50
+[   69.181697][ T8559]  nr_destroy_socket+0x3df/0x4a0
+[   69.186911][ T8559]  nr_release+0x323/0x3b0
+[   69.191251][ T8559]  __sock_release+0xce/0x2a0
+[   69.195958][ T8559]  sock_close+0x1b/0x30
+[   69.200102][ T8559]  __fput+0x2ff/0x890
+[   69.204064][ T8559]  ____fput+0x16/0x20
+[   69.208049][ T8559]  task_work_run+0x145/0x1c0
+[   69.212780][ T8559]  exit_to_usermode_loop+0x273/0x2c0
+[   69.218064][ T8559]  do_syscall_64+0x58e/0x680
+[   69.222814][ T8559]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   69.228776][ T8559] 
+[   69.231163][ T8559] The buggy address belongs to the object at ffff88809faed2c0
+[   69.231163][ T8559]  which belongs to the cache kmalloc-2k of size 2048
+[   69.245220][ T8559] The buggy address is located 140 bytes inside of
+[   69.245220][ T8559]  2048-byte region [ffff88809faed2c0, ffff88809faedac0)
+[   69.258665][ T8559] The buggy address belongs to the page:
+[   69.264360][ T8559] page:ffffea00027ebb00 refcount:1 mapcount:0 mapping:ffff8880aa400c40 index:0x0 compound_mapcount: 0
+[   69.275525][ T8559] flags: 0x1fffc0000010200(slab|head)
+[   69.280883][ T8559] raw: 01fffc0000010200 ffffea000242cd08 ffffea00023df908 ffff8880aa400c40
+[   69.289446][ T8559] raw: 0000000000000000 ffff88809faec1c0 0000000100000003 0000000000000000
+[   69.298176][ T8559] page dumped because: kasan: bad access detected
+[   69.304579][ T8559] 
+[   69.306885][ T8559] Memory state around the buggy address:
+[   69.312622][ T8559]  ffff88809faed200: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+[   69.320686][ T8559]  ffff88809faed280: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+[   69.328742][ T8559] >ffff88809faed300: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   69.337025][ T8559]                                               ^
+[   69.343507][ T8559]  ffff88809faed380: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   69.351675][ T8559]  ffff88809faed400: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   69.359720][ T8559] ==================================================================
