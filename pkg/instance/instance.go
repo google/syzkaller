@@ -292,8 +292,8 @@ func (inst *inst) testInstance() error {
 		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 	}
 
-	cmd := FuzzerCmd(fuzzerBin, executorBin, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
-		inst.cfg.Sandbox, 0, 0, inst.cfg.Cover, false, true, false)
+	cmd := OldFuzzerCmd(fuzzerBin, executorBin, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
+		inst.cfg.Sandbox, 0, inst.cfg.Cover, true)
 	outc, errc, err := inst.vm.Run(10*time.Minute, nil, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to run binary in VM: %v", err)
@@ -404,10 +404,18 @@ func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs,
 	if runtest {
 		runtestArg = " -runtest"
 	}
+	verbosityArg := ""
+	if verbosity != 0 {
+		verbosityArg = fmt.Sprintf(" -vv=%v", verbosity)
+	}
 	return fmt.Sprintf("%v -executor=%v -name=%v -arch=%v%v -manager=%v -sandbox=%v"+
-		" -procs=%v -v=%d -cover=%v -debug=%v -test=%v%v",
+		" -procs=%v -cover=%v -debug=%v -test=%v%v%v",
 		fuzzer, executor, name, arch, osArg, fwdAddr, sandbox,
-		procs, verbosity, cover, debug, test, runtestArg)
+		procs, cover, debug, test, runtestArg, verbosityArg)
+}
+
+func OldFuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs int, cover, test bool) string {
+	return FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox, procs, 0, cover, false, test, false)
 }
 
 func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded, collide bool,
