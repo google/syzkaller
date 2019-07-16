@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	flagV        = flag.Int("v", 0, "verbosity")
+	flagV        = flag.Int("vv", 0, "verbosity")
 	mu           sync.Mutex
 	cacheMem     int
 	cacheMaxMem  int

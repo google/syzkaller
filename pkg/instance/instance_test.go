@@ -29,8 +29,8 @@ func TestFuzzerCmd(t *testing.T) {
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
 	flagDebug := flags.Bool("debug", false, "debug output from executor")
 	flagV := flags.Int("v", 0, "verbosity")
-	cmdLine := FuzzerCmd(os.Args[0], "/myexecutor", "myname", "linux", "386", "localhost:1234",
-		"namespace", 3, 5, true, false, true, false)
+	cmdLine := OldFuzzerCmd(os.Args[0], "/myexecutor", "myname", "linux", "386", "localhost:1234",
+		"namespace", 3, true, true)
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := flags.Parse(args); err != nil {
 		t.Fatal(err)
@@ -71,8 +71,8 @@ func TestFuzzerCmd(t *testing.T) {
 	if *flagDebug {
 		t.Errorf("bad debug: %v, want: %v", *flagDebug, false)
 	}
-	if *flagV != 5 {
-		t.Errorf("bad verbosity: %v, want: %v", *flagV, 5)
+	if *flagV != 0 {
+		t.Errorf("bad verbosity: %v, want: %v", *flagV, 0)
 	}
 }
 

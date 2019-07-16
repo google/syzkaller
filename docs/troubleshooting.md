@@ -6,7 +6,7 @@ Here are some things to check if there are problems running syzkaller.
    from both the `syz-manager` top-level program and the `syz-fuzzer` instances. With this option
    syzkaller will only run one VM instance.
 
- - Use the `-v N` command line option to increase the amount of logging output, from both
+ - Use the `-vv N` command line option to increase the amount of logging output, from both
    the `syz-manager` top-level program and the `syz-fuzzer` instances (which go to the
    output files in the `crashes` subdirectory of the working directory). Higher values of
    N give more output.
