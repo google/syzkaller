@@ -42,9 +42,9 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	for src, dst := range map[string]string{
 		"out/" + arch + "/obj/build/images/fvm.blk": "image",
 		".ssh/pkey": "key",
-		"out/" + arch + ".zircon/kernel-" + arch + "-gcc/obj/kernel/zircon.elf": "obj/zircon.elf",
-		"out/" + arch + ".zircon/multiboot.bin":                                 "kernel",
-		"out/" + arch + "/fuchsia-ssh.zbi":                                      "initrd",
+		"out/" + arch + ".zircon/kernel-" + arch + "-clang/obj/kernel/zircon.elf": "obj/zircon.elf",
+		"out/" + arch + ".zircon/multiboot.bin":                                   "kernel",
+		"out/" + arch + "/fuchsia-ssh.zbi":                                        "initrd",
 	} {
 		fullSrc := filepath.Join(kernelDir, filepath.FromSlash(src))
 		fullDst := filepath.Join(outputDir, filepath.FromSlash(dst))
