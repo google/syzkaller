@@ -17,11 +17,12 @@ import (
 )
 
 type netbsd struct {
-	kernelSrc    string
-	kernelObj    string
-	kernelObject string
-	symbols      map[string][]symbolizer.Symbol
-	ignores      []*regexp.Regexp
+	kernelSrc      string
+	kernelBuildSrc string
+	kernelObj      string
+	kernelObject   string
+	symbols        map[string][]symbolizer.Symbol
+	ignores        []*regexp.Regexp
 }
 
 var (
@@ -33,7 +34,7 @@ var (
 	}
 )
 
-func ctorNetbsd(target *targets.Target, kernelSrc, kernelObj string,
+func ctorNetbsd(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string,
 	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	var symbols map[string][]symbolizer.Symbol
 	ignores = append(ignores, regexp.MustCompile("event_init: unable to initialize")) // postfix output
@@ -47,11 +48,12 @@ func ctorNetbsd(target *targets.Target, kernelSrc, kernelObj string,
 		}
 	}
 	ctx := &netbsd{
-		kernelSrc:    kernelSrc,
-		kernelObj:    kernelObj,
-		kernelObject: kernelObject,
-		symbols:      symbols,
-		ignores:      ignores,
+		kernelSrc:      kernelSrc,
+		kernelBuildSrc: kernelBuildSrc,
+		kernelObj:      kernelObj,
+		kernelObject:   kernelObject,
+		symbols:        symbols,
+		ignores:        ignores,
 	}
 	return ctx, nil, nil
 }
@@ -134,7 +136,7 @@ func (ctx *netbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symboli
 	// and line numbers.
 	for _, frame := range frames {
 		file := frame.File
-		file = strings.TrimPrefix(file, ctx.kernelSrc)
+		file = strings.TrimPrefix(file, ctx.kernelBuildSrc)
 		file = strings.TrimPrefix(file, "/")
 		info := fmt.Sprintf(" %v:%v", file, frame.Line)
 		modified := append([]byte{}, line...)

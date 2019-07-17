@@ -265,7 +265,7 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := generateCoverHTML(w, mgr.cfg.KernelObj, mgr.sysTarget.KernelObject,
-		mgr.cfg.KernelSrc, mgr.cfg.TargetVMArch, mgr.cfg.TargetOS, cov); err != nil {
+		mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc, mgr.cfg.TargetVMArch, mgr.cfg.TargetOS, cov); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -417,7 +417,7 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 
 	initCoverOnce.Do(func() {
 		initCoverError = initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject,
-			mgr.cfg.KernelSrc, mgr.cfg.TargetArch, mgr.cfg.TargetOS)
+			mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc, mgr.cfg.TargetArch, mgr.cfg.TargetOS)
 	})
 	if initCoverError != nil {
 		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)

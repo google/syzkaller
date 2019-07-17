@@ -21,7 +21,7 @@ type akaros struct {
 	objfile string
 }
 
-func ctorAkaros(target *targets.Target, kernelSrc, kernelObj string,
+func ctorAkaros(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string,
 	ignores []*regexp.Regexp) (Reporter, []string, error) {
 	ctx := &akaros{
 		ignores: ignores,

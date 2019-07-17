@@ -24,6 +24,8 @@ type Config struct {
 	KernelObj string `json:"kernel_obj"`
 	// Kernel source directory (if not set defaults to KernelObj).
 	KernelSrc string `json:"kernel_src,omitempty"`
+	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)
+	KernelBuildSrc string `json:"kernel_build_src"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
 	Tag string `json:"tag,omitempty"`
 	// Location of the disk image file.

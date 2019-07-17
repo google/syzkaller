@@ -25,13 +25,13 @@ var (
 	reportGenerator   *cover.ReportGenerator
 )
 
-func initCover(kernelObj, kernelObjName, kernelSrc, arch, OS string) error {
+func initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS string) error {
 	if kernelObj == "" {
 		return fmt.Errorf("kernel_obj is not specified")
 	}
 	vmlinux := filepath.Join(kernelObj, kernelObjName)
 	var err error
-	reportGenerator, err = cover.MakeReportGenerator(vmlinux, kernelSrc, arch)
+	reportGenerator, err = cover.MakeReportGenerator(vmlinux, kernelSrc, kernelBuildSrc, arch)
 	if err != nil {
 		return err
 	}
@@ -39,11 +39,12 @@ func initCover(kernelObj, kernelObjName, kernelSrc, arch, OS string) error {
 	return err
 }
 
-func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, arch, OS string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, arch,
+	kernelBuildSrc, OS string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("no coverage data available")
 	}
-	initCoverOnce.Do(func() { initCoverError = initCover(kernelObj, kernelObjName, kernelSrc, arch, OS) })
+	initCoverOnce.Do(func() { initCoverError = initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS) })
 	if initCoverError != nil {
 		return initCoverError
 	}
