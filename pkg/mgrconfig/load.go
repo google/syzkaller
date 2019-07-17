@@ -111,6 +111,9 @@ func Complete(cfg *Config) error {
 		cfg.KernelSrc = cfg.KernelObj // assume in-tree build by default
 	}
 	cfg.KernelSrc = osutil.Abs(cfg.KernelSrc)
+	if cfg.KernelBuildSrc == "" {
+		cfg.KernelBuildSrc = cfg.KernelSrc
+	}
 	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
 		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}

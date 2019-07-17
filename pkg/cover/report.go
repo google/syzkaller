@@ -23,6 +23,7 @@ import (
 type ReportGenerator struct {
 	vmlinux  string
 	srcDir   string
+	buildDir string
 	arch     string
 	symbols  []symbol
 	coverPCs []uint64
@@ -39,11 +40,12 @@ type coverage struct {
 	covered bool
 }
 
-func MakeReportGenerator(vmlinux, srcDir, arch string) (*ReportGenerator, error) {
+func MakeReportGenerator(vmlinux, srcDir, buildDir, arch string) (*ReportGenerator, error) {
 	rg := &ReportGenerator{
-		vmlinux: vmlinux,
-		srcDir:  srcDir,
-		arch:    arch,
+		vmlinux:  vmlinux,
+		srcDir:   srcDir,
+		buildDir: buildDir,
+		arch:     arch,
 	}
 	if err := rg.readSymbols(); err != nil {
 		return nil, err
@@ -61,7 +63,7 @@ func (rg *ReportGenerator) Do(w io.Writer, pcs []uint64) error {
 	for i, pc := range pcs {
 		pcs[i] = PreviousInstructionPC(rg.arch, pc)
 	}
-	covered, prefix, err := rg.symbolize(pcs)
+	covered, err := rg.symbolize(pcs)
 	if err != nil {
 		return err
 	}
@@ -69,23 +71,25 @@ func (rg *ReportGenerator) Do(w io.Writer, pcs []uint64) error {
 		return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", rg.vmlinux)
 	}
 	uncoveredPCs := rg.uncoveredPcsInFuncs(pcs)
-	uncovered, prefix2, err := rg.symbolize(uncoveredPCs)
+	uncovered, err := rg.symbolize(uncoveredPCs)
 	if err != nil {
 		return err
 	}
-	if len(uncoveredPCs) != 0 {
-		prefix = combinePrefix(prefix, prefix2)
-	}
-	return rg.generate(w, prefix, covered, uncovered)
+	return rg.generate(w, covered, uncovered)
 }
 
-func (rg *ReportGenerator) generate(w io.Writer, prefix string, covered, uncovered []symbolizer.Frame) error {
+func (rg *ReportGenerator) generate(w io.Writer, covered, uncovered []symbolizer.Frame) error {
 	var d templateData
 	for f, covered := range fileSet(covered, uncovered) {
-		remain := filepath.Clean(strings.TrimPrefix(f, prefix))
-		if rg.srcDir != "" && !strings.HasPrefix(remain, rg.srcDir) {
-			f = filepath.Join(rg.srcDir, remain)
+		if !strings.HasPrefix(f, rg.buildDir) {
+			return fmt.Errorf("path '%s' doesn't match build dir '%s'", f, rg.buildDir)
 		}
+
+		// Trim the existing build dir
+		remain := filepath.Clean(strings.TrimPrefix(f, rg.buildDir))
+
+		// Add the current kernel source dir
+		f = filepath.Join(rg.srcDir, remain)
 		lines, err := parseFile(f)
 		if err != nil {
 			return err
@@ -219,39 +223,20 @@ func (rg *ReportGenerator) uncoveredPcsInFuncs(pcs []uint64) []uint64 {
 	return uncoveredPCs
 }
 
-func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, string, error) {
+func (rg *ReportGenerator) symbolize(pcs []uint64) ([]symbolizer.Frame, error) {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
 
 	frames, err := symb.SymbolizeArray(rg.vmlinux, pcs)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	prefix := ""
 	for i := range frames {
 		frame := &frames[i]
 		frame.PC--
-		if prefix == "" {
-			prefix = frame.File
-		} else {
-			prefix = combinePrefix(prefix, frame.File)
-			if prefix == "" {
-				break
-			}
-		}
 	}
-	return frames, prefix, nil
-}
-
-func combinePrefix(prefix, prefix2 string) string {
-	i := 0
-	for ; i < len(prefix) && i < len(prefix2); i++ {
-		if prefix[i] != prefix2[i] {
-			break
-		}
-	}
-	return prefix[:i]
+	return frames, nil
 }
 
 func parseFile(fn string) ([][]byte, error) {

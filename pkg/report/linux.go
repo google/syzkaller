@@ -21,6 +21,7 @@ import (
 
 type linux struct {
 	kernelSrc             string
+	kernelBuildSrc        string
 	kernelObj             string
 	vmlinux               string
 	symbols               map[string][]symbolizer.Symbol
@@ -35,7 +36,7 @@ type linux struct {
 	eoi                   []byte
 }
 
-func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorLinux(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
 	var symbols map[string][]symbolizer.Symbol
 	vmlinux := ""
 	if kernelObj != "" {
@@ -47,11 +48,12 @@ func ctorLinux(target *targets.Target, kernelSrc, kernelObj string, ignores []*r
 		}
 	}
 	ctx := &linux{
-		kernelSrc: kernelSrc,
-		kernelObj: kernelObj,
-		vmlinux:   vmlinux,
-		symbols:   symbols,
-		ignores:   ignores,
+		kernelSrc:      kernelSrc,
+		kernelBuildSrc: kernelBuildSrc,
+		kernelObj:      kernelObj,
+		vmlinux:        vmlinux,
+		symbols:        symbols,
+		ignores:        ignores,
 	}
 	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
 	ctx.questionableRes = []*regexp.Regexp{
@@ -335,14 +337,13 @@ func (ctx *linux) Symbolize(rep *Report) error {
 func (ctx *linux) symbolize(rep *Report) error {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
-	strip := ctx.stripPrefix(symb)
 	var symbolized []byte
 	s := bufio.NewScanner(bytes.NewReader(rep.Report))
 	prefix := rep.reportPrefixLen
 	for s.Scan() {
 		line := append([]byte{}, s.Bytes()...)
 		line = append(line, '\n')
-		newLine := symbolizeLine(symb.Symbolize, ctx.symbols, ctx.vmlinux, strip, line)
+		newLine := symbolizeLine(symb.Symbolize, ctx.symbols, ctx.vmlinux, ctx.kernelBuildSrc, line)
 		if prefix > len(symbolized) {
 			prefix += len(newLine) - len(line)
 		}
@@ -351,33 +352,6 @@ func (ctx *linux) symbolize(rep *Report) error {
 	rep.Report = symbolized
 	rep.reportPrefixLen = prefix
 	return nil
-}
-
-func (ctx *linux) stripPrefix(symb *symbolizer.Symbolizer) string {
-	// Vmlinux may have been moved, so check if we can find debug info
-	// for some known functions and infer correct strip prefix from it.
-	knownSymbols := []struct {
-		symbol string
-		file   string
-	}{
-		{"__sanitizer_cov_trace_pc", "kernel/kcov.c"},
-		{"__asan_load1", "mm/kasan/kasan.c"},
-		{"start_kernel", "init/main.c"},
-	}
-	for _, s := range knownSymbols {
-		for _, covSymb := range ctx.symbols[s.symbol] {
-			frames, _ := symb.Symbolize(ctx.vmlinux, covSymb.Addr)
-			if len(frames) > 0 {
-				file := frames[len(frames)-1].File
-				if idx := strings.Index(file, s.file); idx != -1 {
-					return file[:idx]
-				}
-			}
-		}
-	}
-	// Strip vmlinux location from all paths.
-	strip, _ := filepath.Abs(ctx.vmlinux)
-	return filepath.Dir(strip) + string(filepath.Separator)
 }
 
 func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),

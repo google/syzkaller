@@ -98,7 +98,7 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 	if target == nil && typ != "gvisor" {
 		return nil, fmt.Errorf("unknown target %v/%v", cfg.TargetOS, cfg.TargetArch)
 	}
-	rep, suppressions, err := ctor(target, cfg.KernelSrc, cfg.KernelObj, ignores)
+	rep, suppressions, err := ctor(target, cfg.KernelSrc, cfg.KernelBuildSrc, cfg.KernelObj, ignores)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ var ctors = map[string]fn{
 	"windows": ctorStub,
 }
 
-type fn func(*targets.Target, string, string, []*regexp.Regexp) (Reporter, []string, error)
+type fn func(*targets.Target, string, string, string, []*regexp.Regexp) (Reporter, []string, error)
 
 func compileRegexps(list []string) ([]*regexp.Regexp, error) {
 	compiled := make([]*regexp.Regexp, len(list))

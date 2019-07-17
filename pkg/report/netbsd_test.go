@@ -82,10 +82,11 @@ func TestNetbsdSymbolizeLine(t *testing.T) {
 		}
 	}
 	nbsd := netbsd{
-		kernelSrc:    "netbsd/src",
-		kernelObj:    "/netbsd/src/obj/sys/arch/amd64/compile/GENERIC",
-		kernelObject: "netbsd.gdb",
-		symbols:      symbols,
+		kernelSrc:      "netbsd/src",
+		kernelBuildSrc: "netbsd/src",
+		kernelObj:      "/netbsd/src/obj/sys/arch/amd64/compile/GENERIC",
+		kernelObject:   "netbsd.gdb",
+		symbols:        symbols,
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
