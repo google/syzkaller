@@ -6944,12 +6944,9 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_clock_get", CallName: "zx_clock_get", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clock_id", FldName: "clock_id", TypeSize: 8}}, Vals: []uint64{0, 1, 2}, BitMask: true},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
-	{Name: "zx_clock_get_monotonic", CallName: "zx_clock_get_monotonic"},
-	{Name: "zx_clock_get_new", CallName: "zx_clock_get_new", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "clock_id", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "zx_time", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
 	}},
+	{Name: "zx_clock_get_monotonic", CallName: "zx_clock_get_monotonic"},
 	{Name: "zx_cprng_add_entropy", CallName: "zx_cprng_add_entropy", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Path: []string{"buffer"}},
@@ -7797,4 +7794,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "10ad2411f1db75aaa4971061b5f008e17d8dd923"
+const revision_amd64 = "0831ecb34bc4bfd3c444366782fdbd3fafe56026"
