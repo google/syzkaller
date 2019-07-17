@@ -81,13 +81,15 @@ func (rg *ReportGenerator) Do(w io.Writer, pcs []uint64) error {
 func (rg *ReportGenerator) generate(w io.Writer, covered, uncovered []symbolizer.Frame) error {
 	var d templateData
 	for f, covered := range fileSet(covered, uncovered) {
-		if strings.HasPrefix(f, rg.buildDir) {
+		if !strings.HasPrefix(f, rg.buildDir) {
 			return fmt.Errorf("path '%s' doesn't match build dir '%s'", f, rg.buildDir)
 		}
+
+		// Trim the existing build dir
 		remain := filepath.Clean(strings.TrimPrefix(f, rg.buildDir))
-		if rg.srcDir != "" && !strings.HasPrefix(remain, rg.srcDir) {
-			f = filepath.Join(rg.srcDir, remain)
-		}
+
+		// Add the current kernel source dir
+		f = filepath.Join(rg.srcDir, remain)
 		lines, err := parseFile(f)
 		if err != nil {
 			return err
