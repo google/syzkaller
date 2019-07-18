@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -94,7 +95,11 @@ func readPCs(files []string) ([]uint64, error) {
 			return nil, err
 		}
 		for s := bufio.NewScanner(bytes.NewReader(data)); s.Scan(); {
-			pc, err := strconv.ParseUint(s.Text(), 0, 64)
+			line := strings.TrimSpace(s.Text())
+			if line == "" {
+				continue
+			}
+			pc, err := strconv.ParseUint(line, 0, 64)
 			if err != nil {
 				return nil, err
 			}
