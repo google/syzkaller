@@ -4,6 +4,10 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [floppy: fix out-of-bounds read in copy_buffer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=da99466ac243f15fbba65bd261bfc75ffa1532b6)
+* [floppy: fix invalid pointer dereference in drive_name](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9b04609b784027968348796a18f601aed9db3789)
+* [floppy: fix out-of-bounds read in next_valid_format](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5635f897ed83fd539df78e98ba69ee91592f9bb8)
+* [floppy: fix div-by-zero in setup_format_params](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f3554aeb991214cbfafd17d55e2bfddb50282e32)
 * [bpf: BPF_PROG_TEST_RUN leads to unkillable process](https://groups.google.com/d/msg/syzkaller/EmqpzlOL164/loUGe070FwAJ)
 * [timer_settime leads to unkillable process](https://groups.google.com/d/msg/syzkaller/Q6t7TCcN630/ep3J4BT1FwAJ)
 * [UBSAN: Undefined behaviour in drivers/scsi/sr_ioctl.c](https://groups.google.com/d/msg/syzkaller/lfupcWLvlmI/ts9ut9LyEwAJ)
