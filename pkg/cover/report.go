@@ -157,7 +157,10 @@ func (rg *ReportGenerator) readPCs() error {
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to run objdump on %v: %v", rg.vmlinux, err)
 	}
-	defer cmd.Wait()
+	defer func() {
+		cmd.Process.Kill()
+		cmd.Wait()
+	}()
 	s := bufio.NewScanner(stdout)
 	callInsnS, traceFuncS := archCallInsn(rg.arch)
 	callInsn, traceFunc := []byte(callInsnS), []byte(traceFuncS)
@@ -310,7 +313,7 @@ func PreviousInstructionPC(arch string, pc uint64) uint64 {
 	case "ppc64le":
 		return pc - 4
 	default:
-		panic("unknown arch")
+		panic(fmt.Sprintf("unknown arch %q", arch))
 	}
 }
 
@@ -333,7 +336,7 @@ func archCallInsn(arch string) (string, string) {
 		// c00000000006d904:       bl      c000000000350780 <.__sanitizer_cov_trace_pc>
 		return "\tbl ", " <.__sanitizer_cov_trace_pc>"
 	default:
-		panic("unknown arch")
+		panic(fmt.Sprintf("unknown arch %q", arch))
 	}
 }
 
