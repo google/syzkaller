@@ -39,8 +39,8 @@ func initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS str
 	return err
 }
 
-func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, arch,
-	kernelBuildSrc, OS string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, kernelObj, kernelObjName, kernelSrc, kernelBuildSrc,
+	arch, OS string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("no coverage data available")
 	}
