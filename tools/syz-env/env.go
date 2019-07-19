@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -29,6 +30,16 @@ func main() {
 		Name string
 		Val  string
 	}
+	parallelism := runtime.NumCPU()
+	if mem := osutil.SystemMemorySize(); mem != 0 {
+		// Ensure that we have at least 1GB per Makefile job.
+		// Go compiler/linker can consume significant amount of memory
+		// (observed to consume at least 600MB). See #1276 for context.
+		memLimit := int(mem / (1 << 30))
+		if parallelism > memLimit {
+			parallelism = memLimit
+		}
+	}
 	vars := []Var{
 		{"BUILDOS", runtime.GOOS},
 		{"NATIVEBUILDOS", target.BuildOS},
@@ -39,7 +50,7 @@ func main() {
 		{"TARGETVMARCH", targetVMArch},
 		{"CC", target.CCompiler},
 		{"ADDCFLAGS", strings.Join(target.CrossCFlags, " ")},
-		{"NCORES", strconv.Itoa(runtime.NumCPU())},
+		{"NCORES", strconv.Itoa(parallelism)},
 		{"EXE", target.ExeExtension},
 		{"NATIVEBUILDOS", target.BuildOS},
 	}

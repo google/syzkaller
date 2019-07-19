@@ -38,6 +38,12 @@ func RemoveAll(dir string) error {
 	return nil
 }
 
+func SystemMemorySize() uint64 {
+	var info syscall.Sysinfo_t
+	syscall.Sysinfo(&info)
+	return info.Totalram
+}
+
 func removeImmutable(fname string) error {
 	// Reset FS_XFLAG_IMMUTABLE/FS_XFLAG_APPEND.
 	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)
