@@ -6,9 +6,19 @@ include <linux/byteorder/generic.h>
 
 include <uapi/linux/usb/ch9.h>
 include <uapi/linux/usb/ch11.h>
+
+include <uapi/linux/usb/audio.h>
 include <uapi/linux/hid.h>
 include <linux/hid.h>
 include <uapi/linux/usb/cdc.h>
+include <uapi/linux/if_ether.h>
+include <drivers/net/usb/asix.h>
+
+# drivers/usb/class/usblp.c
+define USBLP_REQ_GET_ID	0x00
+define USBLP_REQ_GET_STATUS	0x01
+define USBLP_REQ_RESET	0x02
+define USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST	0x00
 
 # This is a special fd for USB fuzzing and should only be used with syz_usb_* syzcalls.
 # We don't inherit it from the fd resource, to discourage syzkaller calling raw ioctls on it.
@@ -23,7 +33,7 @@ syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data buffer[in])
 syz_usb_ep_read(fd fd_usb, ep int16[0:31], len len[data], data buffer[out])
 syz_usb_disconnect(fd fd_usb)
 
-# These are syzcalls specifically targeted to the HID device class.
+# These are syzcalls that specifically target the HID device class.
 syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
 syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
 
@@ -72,16 +82,16 @@ type usb_config_descriptor_t[ATTRS, IFS] {
 	interfaces		IFS
 } [packed]
 
-type usb_interface_descriptor_t[CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
+type usb_interface_descriptor_t[IFNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
 	bLength			const[USB_DT_INTERFACE_SIZE, int8]
 	bDescriptorType		const[USB_DT_INTERFACE, int8]
 
-	bInterfaceNumber	const[0, int8]
+	bInterfaceNumber	IFNUM
 	bAlternateSetting	int8
 	bNumEndpoints		len[endpoints, int8]
-	bInterfaceClass		const[CLASS, int8]
-	bInterfaceSubClass	const[SUBCLASS, int8]
-	bInterfaceProtocol	const[PROTOCOL, int8]
+	bInterfaceClass		CLASS
+	bInterfaceSubClass	SUBCLASS
+	bInterfaceProtocol	PROTOCOL
 	iInterface		int8
 
 	extra			EXTRA
@@ -124,10 +134,10 @@ usb_config_descriptor {
 
 usb_config_attributes = USB_CONFIG_ATT_ONE, USB_CONFIG_ATT_SELFPOWER, USB_CONFIG_ATT_WAKEUP, USB_CONFIG_ATT_BATTERY
 
-# bInterfaceClass, bInterfaceSubClass and bInterfaceProtocol
+# bInterfaceNumber, bInterfaceClass, bInterfaceSubClass and bInterfaceProtocol
 # are patched by Go code, see sys/linux/init_vusb.go.
 usb_interface_descriptor {
-	inner	usb_interface_descriptor_t[0, 0, 0, array[usb_interface_extra_descriptor, 0:2], array[usb_endpoint_descriptor, 0:16]]
+	inner	usb_interface_descriptor_t[const[0, int8], const[0, int8], const[0, int8], const[0, int8], array[usb_interface_extra_descriptor, 0:2], array[usb_endpoint_descriptor, 0:16]]
 } [packed]
 
 usb_endpoint_descriptor {
@@ -156,11 +166,15 @@ vusb_connect_string_descriptor {
 vusb_descriptors {
 	len		len[parent, int32]
 	generic		ptr[in, vusb_descriptor_generic]
+
 	string		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
-	hid_report	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
 	bos		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_BOS, usb_bos_descriptor]]
-	hub_hs		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_HUB, usb_hub_descriptor_hs]]
-	hub_ss		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_SS_HUB, usb_hub_descriptor_ss]]
+
+# For unknown reasons HID_DT_REPORT is requested as USB_TYPE_STANDARD and not as USB_TYPE_CLASS.
+	hid_report	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
+
+	hub_hs		ptr[in, vusb_descriptor_t[USB_TYPE_CLASS, USB_DT_HUB, usb_hub_descriptor_hs]]
+	hub_ss		ptr[in, vusb_descriptor_t[USB_TYPE_CLASS, USB_DT_SS_HUB, usb_hub_descriptor_ss]]
 } [packed]
 
 vusb_descriptor_generic {
@@ -180,14 +194,38 @@ type vusb_descriptor_t[CLASS, REQ, DATA] {
 } [packed]
 
 vusb_responses {
-	len			len[parent, int32]
-	generic			ptr[in, vusb_response_generic]
-	get_interface		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_INTERFACE, int8]]
-	get_configuration	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_CONFIGURATION, int8]]
-	get_status_hub		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
-	get_status_port		ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
-	cdc_get_ntb_parameters	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_CDC_GET_NTB_PARAMETERS, usb_cdc_ncm_ntb_parameters]]
-	aiptek_get_report	ptr[in, vusb_response_t[USB_TYPE_VENDOR, 0x1, array[int8, 3]]]
+	len						len[parent, int32]
+	generic						ptr[in, vusb_response_generic]
+
+	get_interface					ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	get_configuration				ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+
+	audio_UAC_GET_CUR				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_CUR, array[int8, 1:3]]]
+	audio_UAC_GET_MIN				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MIN, array[int8, 1:3]]]
+	audio_UAC_GET_MAX				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MAX, array[int8, 1:3]]]
+	audio_UAC_GET_RES				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_RES, array[int8, 1:4]]]
+	audio_UAC_GET_MEM				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MEM, array[int8, 3]]]
+
+	printer_USBLP_REQ_GET_ID			ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_GET_ID, array[int8, 0:1023]]]
+	printer_USBLP_REQ_GET_STATUS			ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_GET_STATUS, int8]]
+	printer_USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST	ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST, int8]]
+
+	hub_USB_REQ_GET_STATUS_hub			ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
+	hub_USB_REQ_GET_STATUS_port			ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
+
+	cdc_USB_CDC_GET_NTB_PARAMETERS			ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_CDC_GET_NTB_PARAMETERS, usb_cdc_ncm_ntb_parameters]]
+
+	asix_AX_CMD_READ_MII_REG			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MII_REG, int16]]
+	asix_AX_CMD_STATMNGSTS_REG			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_STATMNGSTS_REG, int8]]
+	asix_AX_CMD_READ_EEPROM				ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_EEPROM, array[int8, 2]]]
+	asix_AX_CMD_READ_RX_CTL				ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_RX_CTL, int16]]
+	asix_AX_CMD_READ_NODE_ID			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_NODE_ID, mac_addr]]
+	asix_AX88172_CMD_READ_NODE_ID			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX88172_CMD_READ_NODE_ID, mac_addr]]
+	asix_AX_CMD_READ_PHY_ID				ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_PHY_ID, array[int8, 2]]]
+	asix_AX_CMD_READ_MEDIUM_STATUS			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MEDIUM_STATUS, int16]]
+	asix_AX_CMD_READ_MONITOR_MODE			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MONITOR_MODE, int8]]
+	asix_AX_CMD_READ_GPIOS				ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_GPIOS, int8]]
+	asix_AX_CMD_SW_PHY_STATUS			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_SW_PHY_STATUS, int8]]
 } [packed]
 
 vusb_response_generic {
@@ -211,10 +249,10 @@ type vusb_response_t[CLASS, REQ, DATA] {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # USB device, configuration, interface and endpoint descriptors for the HID device class.
-# Modelled after the Logitech K120 keyboard.
 
+# idVendor and idProduct are patched by Go code, see sys/linux/init_vusb.go.
 usb_device_descriptor_hid {
-	inner	usb_device_descriptor_t[0, 0, 0, 0x46d, 0xc31c, 64, array[usb_config_descriptor_hid, 1]]
+	inner	usb_device_descriptor_t[0, 0, 0, 0, 0, 64, array[usb_config_descriptor_hid, 1]]
 } [packed]
 
 usb_config_descriptor_hid {
@@ -222,20 +260,22 @@ usb_config_descriptor_hid {
 } [packed]
 
 usb_interface_descriptor_hid {
-	inner	usb_interface_descriptor_t[USB_CLASS_HID, USB_INTERFACE_SUBCLASS_BOOT, USB_INTERFACE_PROTOCOL_KEYBOARD, hid_descriptor_hid, usb_endpoint_descriptors]
+	inner	usb_interface_descriptor_t[int8, const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
 } [packed]
 
-usb_endpoint_descriptors {
+usb_hid_protocols = 0, USB_INTERFACE_PROTOCOL_KEYBOARD, USB_INTERFACE_PROTOCOL_MOUSE
+
+usb_endpoint_descriptors_hid {
 	in	usb_endpoint_descriptor_hid_in
 	out	array[usb_endpoint_descriptor_hid_out, 0:1]
 } [packed]
 
 usb_endpoint_descriptor_hid_in {
-	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_IN_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], array[usb_endpoint_extra_descriptor, 0:2]]
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_IN_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], void]
 } [packed]
 
 usb_endpoint_descriptor_hid_out {
-	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_OUT_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], array[usb_endpoint_extra_descriptor, 0:2]]
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_OUT_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], void]
 } [packed]
 
 define USB_CONFIG_HID_ATTRIBUTES	(USB_CONFIG_ATT_ONE | USB_CONFIG_ATT_WAKEUP)
@@ -386,7 +426,6 @@ usb_ptm_cap_descriptor {
 
 # Extra USB descriptors that come after an interface or an endpoint descriptor.
 
-# CHECK: usbhid_parse (iface)
 # CHECK: cdc_parse_cdc_header (iface)
 
 # TODO: uas_find_endpoints (endpoint)
@@ -404,7 +443,7 @@ usb_ptm_cap_descriptor {
 
 usb_interface_extra_descriptor [
 	generic	usb_generic_descriptor
-	hid_hid	hid_descriptor_hid
+	hid_hid	usb_hid_descriptor_hid
 	usb_cdc	usb_cdc_header
 ] [varlen]
 
@@ -421,23 +460,24 @@ usb_generic_descriptor {
 
 usb_descriptor_types = USB_DT_DEVICE, USB_DT_CONFIG, USB_DT_STRING, USB_DT_INTERFACE, USB_DT_ENDPOINT, USB_DT_DEVICE_QUALIFIER, USB_DT_OTHER_SPEED_CONFIG, USB_DT_INTERFACE_POWER, USB_DT_OTG, USB_DT_DEBUG, USB_DT_INTERFACE_ASSOCIATION, USB_DT_SECURITY, USB_DT_KEY, USB_DT_ENCRYPTION_TYPE, USB_DT_BOS, USB_DT_DEVICE_CAPABILITY, USB_DT_WIRELESS_ENDPOINT_COMP, USB_DT_WIRE_ADAPTER, USB_DT_RPIPE, USB_DT_CS_RADIO_CONTROL, USB_DT_PIPE_USAGE, USB_DT_SS_ENDPOINT_COMP, USB_DT_SSP_ISOC_ENDPOINT_COMP, HID_DT_HID, HID_DT_REPORT, HID_DT_PHYSICAL
 
-hid_descriptor_hid {
+# USB HID specifications allows for multiple report and physical descriptors
+# to be present, but I don't see any support for them in the Linux kernel,
+# except for a single report descriptor.
+usb_hid_descriptor_hid {
 	bLength		len[parent, int8]
 	bDescriptorType	const[HID_DT_HID, int8]
 
 	bcdHID		int16
 	bCountryCode	int8
-	bNumDescriptors	len[class_desc, int8]
+	bNumDescriptors	const[1, int8]
 
-	class_desc	array[hid_class_descriptor, 0:6]
+	report_desc	usb_hid_class_descriptor_report
 } [packed]
 
-hid_class_descriptor {
-	bDescriptorType		flags[hid_descriptor_types, int8]
+usb_hid_class_descriptor_report {
+	bDescriptorType		const[HID_DT_REPORT, int8]
 	wDescriptorLength	int16[0:HID_MAX_DESCRIPTOR_SIZE]
 } [packed]
-
-hid_descriptor_types = HID_DT_HID, HID_DT_REPORT, HID_DT_PHYSICAL
 
 usb_cdc_header {
 	items	array[usb_cdc_header_item, 0:16]
