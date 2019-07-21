@@ -112,9 +112,10 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 			dev.Val = devNullDevT
 		}
 
-		// Prevent /dev/sd0c nodes from being created since the refer to
-		// the raw root disk.
-		if devmajor(dev.Val) == 4 && devminor(dev.Val) == 2 {
+		// Prevent /dev/sd0b (swap partition) and /dev/sd0c (raw disk)
+		// nodes from being created. Writing to such devices can corrupt
+		// the file system.
+		if devmajor(dev.Val) == 4 && (devminor(dev.Val) == 1 || devminor(dev.Val) == 2) {
 			dev.Val = devNullDevT
 		}
 	case "mlockall":
