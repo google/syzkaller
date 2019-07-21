@@ -73,7 +73,7 @@ func main() {
 			log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 		}
 	}
-	config, execOpts := createConfig(target, entries, features, featuresFlags)
+	config, execOpts := createConfig(target, features, featuresFlags)
 	if err = host.Setup(target, features, featuresFlags, config.Executor); err != nil {
 		log.Fatal(err)
 	}
@@ -282,7 +282,7 @@ func loadPrograms(target *prog.Target, files []string) []*prog.LogEntry {
 	return entries
 }
 
-func createConfig(target *prog.Target, entries []*prog.LogEntry,
+func createConfig(target *prog.Target,
 	features *host.Features, featuresFlags csource.Features) (
 	*ipc.Config, *ipc.ExecOpts) {
 	config, execOpts, err := ipcconfig.Default(target)
