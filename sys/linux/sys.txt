@@ -804,7 +804,7 @@ user_desc_bases = 0, 4096, 1048576, 536870912, 536872960, 536875008, -1
 user_desc_limits = 0, 1024, 4096, 8192, 16384, -1
 
 sched_attr {
-	size	flags[sched_attr_size, int32]
+	size	bytesize[parent, int32]
 	policy	flags[sched_policy, int32]
 	flags	flags[sched_attr_flags2, int64]
 	nice	int32
@@ -905,7 +905,6 @@ priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
 sched_policy = SCHED_NORMAL, SCHED_BATCH, SCHED_IDLE, SCHED_FIFO, SCHED_RR, SCHED_DEADLINE
 sched_attr_flags = 0
 sched_attr_flags2 = 0, SCHED_FLAG_RESET_ON_FORK
-sched_attr_size = 48
 mempolicy_flags = 0, MPOL_F_MEMS_ALLOWED, MPOL_F_ADDR, MPOL_F_NODE
 ptrace_req = PTRACE_LISTEN, PTRACE_KILL, PTRACE_INTERRUPT, PTRACE_ATTACH, PTRACE_DETACH
 ptrace_req_peek = PTRACE_PEEKTEXT, PTRACE_PEEKDATA
