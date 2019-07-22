@@ -230,15 +230,39 @@ func getNextJob(c context.Context, testManagers, bisectManagers map[string]bool)
 
 func createBisectJob(c context.Context, managers map[string]bool, reproLevel dashapi.ReproLevel) (
 	*Job, *db.Key, error) {
+	job, jobKey, err := findBugsForBisection(c, managers, reproLevel, JobBisectCause)
+	if job != nil || err != nil {
+		return job, jobKey, err
+	}
+	return findBugsForBisection(c, managers, reproLevel, JobBisectFix)
+}
+
+func findBugsForBisection(c context.Context, managers map[string]bool, reproLevel dashapi.ReproLevel, jobType JobType) (
+	*Job, *db.Key, error) {
+	bisectQuery := map[JobType]string{
+		JobBisectCause: "BisectCause=",
+		JobBisectFix:   "BisectFix=",
+	}
+	// Sort property should be the same as property used in the inequality filter.
+	filterQuery := map[JobType]string{
+		JobBisectCause: "FirstTime>",
+		JobBisectFix:   "LastTime>",
+	}
+	orderQuery := map[JobType]string{
+		JobBisectCause: "-FirstTime",
+		JobBisectFix:   "LastTime",
+	}
 	var bugs []*Bug
 	// Note: we could also include len(Commits)==0 but datastore does not work this way.
 	// So we would need an additional HasCommits field or something.
+	// Note: For JobBisectCause, order the bugs from newest to oldest. For JobBisectFix,
+	// order the bugs from oldest to newest.
 	keys, err := db.NewQuery("Bug").
 		Filter("Status=", BugStatusOpen).
-		Filter("FirstTime>", time.Time{}).
+		Filter(filterQuery[jobType], time.Time{}).
 		Filter("ReproLevel=", reproLevel).
-		Filter("BisectCause=", BisectNot).
-		Order("-FirstTime").
+		Filter(bisectQuery[jobType], BisectNot).
+		Order(orderQuery[jobType]).
 		Limit(300). // we only need 1 job, but we skip some because the query is not precise
 		GetAll(c, &bugs)
 	if err != nil {
@@ -255,7 +279,10 @@ func createBisectJob(c context.Context, managers map[string]bool, reproLevel das
 		if crash == nil {
 			continue
 		}
-		return createBisectJobForBug(c, bug, crash, keys[bi], crashKey)
+		if jobType == JobBisectFix && timeSince(c, bug.LastTime) < 24*30*time.Hour {
+			continue
+		}
+		return createBisectJobForBug(c, bug, crash, keys[bi], crashKey, jobType)
 	}
 	return nil, nil, nil
 }
@@ -287,7 +314,7 @@ func bisectCrashForBug(c context.Context, bugKey *db.Key, managers map[string]bo
 	return nil, nil, nil
 }
 
-func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, crashKey *db.Key) (
+func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, crashKey *db.Key, jobType JobType) (
 	*Job, *db.Key, error) {
 	build, err := loadBuild(c, bug0.Namespace, crash.BuildID)
 	if err != nil {
@@ -295,7 +322,7 @@ func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, c
 	}
 	now := timeNow(c)
 	job := &Job{
-		Type:         JobBisectCause,
+		Type:         jobType,
 		Created:      now,
 		Namespace:    bug0.Namespace,
 		Manager:      crash.Manager,
@@ -311,12 +338,17 @@ func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, c
 		if err := db.Get(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to get bug %v: %v", bugKey.StringID(), err)
 		}
-		if bug.BisectCause != BisectNot {
+		if jobType == JobBisectFix && bug.BisectFix != BisectNot ||
+			jobType == JobBisectCause && bug.BisectCause != BisectNot {
 			// Race, we could do a more complex retry, but we just rely on the next poll.
 			job = nil
 			return nil
 		}
-		bug.BisectCause = BisectPending
+		if jobType == JobBisectCause {
+			bug.BisectCause = BisectPending
+		} else {
+			bug.BisectFix = BisectPending
+		}
 		// Create a new job.
 		var err error
 		jobKey = db.NewIncompleteKey(c, "Job", bugKey)
@@ -523,6 +555,11 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 	for i, job := range jobs {
 		if job.Reporting == "" {
 			log.Criticalf(c, "no reporting for job %v", extJobID(keys[i]))
+			continue
+		}
+		// TODO: this is temporary and will be removed once support for sending
+		// JobBisectFix result emails is implemented.
+		if job.Type == JobBisectFix {
 			continue
 		}
 		reporting := config.Namespaces[job.Namespace].ReportingByName(job.Reporting)

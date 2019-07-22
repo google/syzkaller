@@ -56,6 +56,16 @@ func TestBisectCause(t *testing.T) {
 	c.client2.ReportCrash(crash5)
 	c.client2.pollEmailBug()
 
+	// When polling for jobs the expected order is as follows :=
+	//		BisectCause #3
+	//		BisectCause #2
+	//		BisectCause #4
+	// After advancing time by 30 days, we get :=
+	//		BisectFix   #2
+	//		BisectFix   #3
+	//		BisectFix   #4
+
+	// BisectCause #3
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, "")
 	c.expectEQ(pollResp.Type, dashapi.JobBisectCause)
@@ -79,7 +89,7 @@ func TestBisectCause(t *testing.T) {
 	}
 	c.expectOK(c.client2.JobDone(done))
 
-	// Now we should get bisect for crash 2.
+	// BisectCause #2
 	pollResp = c.client2.pollJobs(build.Manager)
 	c.expectNE(pollResp.ID, pollResp2.ID)
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 2"))
@@ -225,6 +235,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 			bisectLogLink, bisectCrashReportLink, bisectCrashLogLink))
 	}
 
+	// BisectCause #4
 	// Crash 4 is bisected in reporting with MailMaintainers.
 	// It also skipped second reporting because of the title.
 	c.incomingEmail(msg4.Sender, "#syz upstream")
@@ -240,10 +251,10 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	done = &dashapi.JobDoneReq{
 		ID:          jobID,
 		Build:       *build,
-		Log:         []byte("bisect log 4"),
-		CrashTitle:  "bisect crash title 4",
-		CrashLog:    []byte("bisect crash log 4"),
-		CrashReport: []byte("bisect crash report 4"),
+		Log:         []byte("bisectcause log 4"),
+		CrashTitle:  "bisectcause crash title 4",
+		CrashLog:    []byte("bisectcause crash log 4"),
+		CrashReport: []byte("bisectcause crash report 4"),
 		Commits: []dashapi.Commit{
 			{
 				Hash:       "36e65cb4a0448942ec316b24d60446bbd5cc7827",
@@ -275,6 +286,83 @@ https://goo.gl/tpsmEJ#testing-patches`,
 			"reviewer2@kernel.org",
 		})
 	}
+
+	{
+		c.advanceTime(30 * 24 * time.Hour)
+		subjects := []string{"title3", "title1", "title5", "title3", "title5", "title1"}
+		for i := 0; i < 6; i++ {
+			msg := c.pollEmailBug()
+			c.expectEQ(msg.Subject, subjects[i])
+			if i < 3 {
+				c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+			} else {
+				c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash on"))
+			}
+		}
+	}
+
+	// BisectFix #2
+	pollResp = c.client2.pollJobs(build.Manager)
+	c.expectNE(pollResp.ID, "")
+	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
+	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 2"))
+	c.advanceTime(5 * 24 * time.Hour)
+	pollResp2 = c.client2.pollJobs(build.Manager)
+	c.expectEQ(pollResp, pollResp2)
+	done = &dashapi.JobDoneReq{
+		ID:    pollResp.ID,
+		Log:   []byte("bisect log 2"),
+		Error: []byte("bisect error 2"),
+	}
+	c.expectOK(c.client2.JobDone(done))
+
+	// BisectFix #3
+	pollResp = c.client2.pollJobs(build.Manager)
+	c.expectNE(pollResp.ID, "")
+	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
+	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 3"))
+	done = &dashapi.JobDoneReq{
+		ID:    pollResp.ID,
+		Log:   []byte("bisect log 3"),
+		Error: []byte("bisect error 3"),
+	}
+	c.expectOK(c.client2.JobDone(done))
+
+	// BisectFix #4
+	pollResp = c.client2.pollJobs(build.Manager)
+	c.expectNE(pollResp.ID, "")
+	c.expectEQ(pollResp.Type, dashapi.JobBisectFix)
+	c.expectEQ(pollResp.ReproOpts, []byte("repro opts 4"))
+	jobID = pollResp.ID
+	done = &dashapi.JobDoneReq{
+		ID:          jobID,
+		Build:       *build,
+		Log:         []byte("bisectfix log 4"),
+		CrashTitle:  "bisectfix crash title 4",
+		CrashLog:    []byte("bisectfix crash log 4"),
+		CrashReport: []byte("bisectfix crash report 4"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:       "46e65cb4a0448942ec316b24d60446bbd5cc7827",
+				Title:      "kernel: add a fix",
+				Author:     "author@kernel.org",
+				AuthorName: "Author Kernelov",
+				CC: []string{
+					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
+					// These must be filtered out:
+					"syzbot@testapp.appspotmail.com",
+					"syzbot+1234@testapp.appspotmail.com",
+					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
+				},
+				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	done.Build.ID = jobID
+	c.expectOK(c.client2.JobDone(done))
+
+	// TODO: Reporting for BisectFix results not implemented
+	// c.pollEmailBug()
 
 	// No more bisection jobs.
 	pollResp = c.client2.pollJobs(build.Manager)
