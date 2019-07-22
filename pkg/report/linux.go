@@ -1385,6 +1385,7 @@ var linuxOopses = []*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
+					skip: []string{"usercopy", "__check"},
 				},
 			},
 			{
