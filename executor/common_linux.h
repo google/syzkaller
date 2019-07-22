@@ -1981,16 +1981,24 @@ int wait_for_loop(int pid)
 
 static void drop_caps(void)
 {
-	// Drop CAP_SYS_PTRACE so that test processes can't attach to parent processes.
-	// Previously it lead to hangs because the loop process stopped due to SIGSTOP.
-	// Note that a process can always ptrace its direct children, which is enough for testing purposes.
 	struct __user_cap_header_struct cap_hdr = {};
 	struct __user_cap_data_struct cap_data[2] = {};
 	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
 	cap_hdr.pid = getpid();
 	if (syscall(SYS_capget, &cap_hdr, &cap_data))
 		fail("capget failed");
-	const int drop = (1 << CAP_SYS_PTRACE);
+	// Drop CAP_SYS_PTRACE so that test processes can't attach to parent processes.
+	// Previously it lead to hangs because the loop process stopped due to SIGSTOP.
+	// Note that a process can always ptrace its direct children, which is enough for testing purposes.
+	//
+	// A process with CAP_SYS_NICE can bring kernel down by asking for too high SCHED_DEADLINE priority,
+	// as the result rcu and other system services that use kernel threads will stop functioning.
+	// Some parameters for SCHED_DEADLINE should be OK, but we don't have means to enforce
+	// values of indirect syscall arguments. Peter Zijlstra proposed sysctl_deadline_period_{min,max}
+	// which could be used to enfore safe limits without droppping CAP_SYS_NICE, but we don't have it yet.
+	// See the following bug for details:
+	// https://groups.google.com/forum/#!topic/syzkaller-bugs/G6Wl_PKPIWI
+	const int drop = (1 << CAP_SYS_PTRACE) | (1 << CAP_SYS_NICE);
 	cap_data[0].effective &= ~drop;
 	cap_data[0].permitted &= ~drop;
 	cap_data[0].inheritable &= ~drop;
