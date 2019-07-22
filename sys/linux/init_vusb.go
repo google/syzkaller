@@ -25,6 +25,7 @@ const (
 	USB_DEVICE_ID_MATCH_INT_NUMBER
 
 	BytesPerUsbID = 17
+	BytesPerHidID = 12
 )
 
 type UsbDeviceID struct {
@@ -40,6 +41,13 @@ type UsbDeviceID struct {
 	BInterfaceSubClass uint8
 	BInterfaceProtocol uint8
 	BInterfaceNumber   uint8
+}
+
+type HidDeviceID struct {
+	Bus     uint16
+	Group   uint16
+	Vendor  uint32
+	Product uint32
 }
 
 func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, old prog.Arg) (
@@ -115,6 +123,36 @@ func (arch *arch) generateUsbDeviceDescriptor(g *prog.Gen, typ0 prog.Type, old p
 	patchGroupArg(interfaceArg, 6, "bInterfaceSubClass", uint64(id.BInterfaceSubClass))
 	patchGroupArg(interfaceArg, 7, "bInterfaceProtocol", uint64(id.BInterfaceProtocol))
 	patchGroupArg(interfaceArg, 2, "bInterfaceNumber", uint64(id.BInterfaceNumber))
+
+	return
+}
+
+func (arch *arch) generateUsbHidDeviceDescriptor(g *prog.Gen, typ0 prog.Type, old prog.Arg) (
+	arg prog.Arg, calls []*prog.Call) {
+
+	if old == nil {
+		arg = g.GenerateSpecialArg(typ0, &calls)
+	} else {
+		arg = old
+		calls = g.MutateArg(arg)
+	}
+	if g.Target().ArgContainsAny(arg) {
+		return
+	}
+
+	totalIds := len(hidIds) / BytesPerHidID
+	idNum := g.Rand().Intn(totalIds)
+	base := hidIds[idNum*BytesPerHidID : (idNum+1)*BytesPerHidID]
+
+	p := strings.NewReader(base)
+	var id HidDeviceID
+	if binary.Read(p, binary.LittleEndian, &id) != nil {
+		panic("not enough data to read")
+	}
+
+	devArg := arg.(*prog.GroupArg).Inner[0]
+	patchGroupArg(devArg, 7, "idVendor", uint64(id.Vendor))
+	patchGroupArg(devArg, 8, "idProduct", uint64(id.Product))
 
 	return
 }
