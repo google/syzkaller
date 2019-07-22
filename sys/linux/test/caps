@@ -1,0 +1,5 @@
+# Ensure that test processes don't have capabilities to do dangerious things,
+# see drop_caps function in executor for details.
+# requires: -sandbox=
+
+ptrace(0x10, 0x1)	# EPERM
