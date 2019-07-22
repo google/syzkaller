@@ -4441,7 +4441,7 @@ static void drop_caps(void)
 	cap_hdr.pid = getpid();
 	if (syscall(SYS_capget, &cap_hdr, &cap_data))
 		fail("capget failed");
-	const int drop = (1 << CAP_SYS_PTRACE);
+	const int drop = (1 << CAP_SYS_PTRACE) | (1 << CAP_SYS_NICE);
 	cap_data[0].effective &= ~drop;
 	cap_data[0].permitted &= ~drop;
 	cap_data[0].inheritable &= ~drop;
