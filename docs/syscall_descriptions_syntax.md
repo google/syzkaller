@@ -27,11 +27,11 @@ rest of the type-options are type-specific:
 "intN"/"intptr": an integer without a particular meaning, type-options:
 	optional range of values (e.g. "5:10", or "100:200")
 "flags": a set of flags, type-options:
-	reference to flags description (see below)
+	reference to flags description (see below), underlying int type (e.g. "int32")
 "array": a variable/fixed-length array, type-options:
 	type of elements, optional size (fixed "5", or ranged "5:10", boundaries inclusive)
 "ptr"/"ptr64": a pointer to an object, type-options:
-	type of the object; direction (in/out/inout)
+	direction (in/out/inout); type of the object
 	ptr64 has size of 8 bytes regardless of target pointer size
 "string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
 	either a string value in quotes for constant strings (e.g. "foo"),
