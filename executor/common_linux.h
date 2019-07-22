@@ -1976,6 +1976,29 @@ int wait_for_loop(int pid)
 }
 #endif
 
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE
+#include <linux/capability.h>
+
+static void drop_caps(void)
+{
+	// Drop CAP_SYS_PTRACE so that test processes can't attach to parent processes.
+	// Previously it lead to hangs because the loop process stopped due to SIGSTOP.
+	// Note that a process can always ptrace its direct children, which is enough for testing purposes.
+	struct __user_cap_header_struct cap_hdr = {};
+	struct __user_cap_data_struct cap_data[2] = {};
+	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
+	cap_hdr.pid = getpid();
+	if (syscall(SYS_capget, &cap_hdr, &cap_data))
+		fail("capget failed");
+	const int drop = (1 << CAP_SYS_PTRACE);
+	cap_data[0].effective &= ~drop;
+	cap_data[0].permitted &= ~drop;
+	cap_data[0].inheritable &= ~drop;
+	if (syscall(SYS_capset, &cap_hdr, &cap_data))
+		fail("capset failed");
+}
+#endif
+
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NONE
 #include <sched.h>
 #include <sys/types.h>
@@ -1997,6 +2020,7 @@ static int do_sandbox_none(void)
 
 	setup_common();
 	sandbox_common();
+	drop_caps();
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
 	initialize_netdevices_init();
 #endif
@@ -2063,7 +2087,6 @@ static int do_sandbox_setuid(void)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NAMESPACE
-#include <linux/capability.h>
 #include <sched.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
@@ -2151,22 +2174,7 @@ static int namespace_sandbox_proc(void* arg)
 		fail("chroot failed");
 	if (chdir("/"))
 		fail("chdir failed");
-
-	// Drop CAP_SYS_PTRACE so that test processes can't attach to parent processes.
-	// Previously it lead to hangs because the loop process stopped due to SIGSTOP.
-	// Note that a process can always ptrace its direct children, which is enough
-	// for testing purposes.
-	struct __user_cap_header_struct cap_hdr = {};
-	struct __user_cap_data_struct cap_data[2] = {};
-	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
-	cap_hdr.pid = getpid();
-	if (syscall(SYS_capget, &cap_hdr, &cap_data))
-		fail("capget failed");
-	cap_data[0].effective &= ~(1 << CAP_SYS_PTRACE);
-	cap_data[0].permitted &= ~(1 << CAP_SYS_PTRACE);
-	cap_data[0].inheritable &= ~(1 << CAP_SYS_PTRACE);
-	if (syscall(SYS_capset, &cap_hdr, &cap_data))
-		fail("capset failed");
+	drop_caps();
 
 	loop();
 	doexit(1);
