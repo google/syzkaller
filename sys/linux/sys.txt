@@ -53,8 +53,8 @@ include <uapi/linux/membarrier.h>
 include <uapi/linux/capability.h>
 include <uapi/linux/suspend_ioctls.h>
 
-resource fd[int32]: -1, AT_FDCWD
-resource fd_dir[fd]
+resource fd[int32]: -1
+resource fd_dir[fd]: AT_FDCWD
 
 type signalno int32[0:65]
 
