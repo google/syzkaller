@@ -71,7 +71,8 @@ type Config struct {
 	// Reproduce, localize and minimize crashers (default: true).
 	Reproduce bool `json:"reproduce"`
 
-	// List of syscalls to test (optional).
+	// List of syscalls to test (optional). For example:
+	//	"enable_syscalls": [ "mmap", "openat$ashmem", "ioctl$ASHMEM*" ]
 	EnabledSyscalls []string `json:"enable_syscalls,omitempty"`
 	// List of system calls that should be treated as disabled (optional).
 	DisabledSyscalls []string `json:"disable_syscalls,omitempty"`
