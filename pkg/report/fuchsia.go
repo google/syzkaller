@@ -13,13 +13,12 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
-	"github.com/google/syzkaller/sys/targets"
 	"github.com/ianlancetaylor/demangle"
 )
 
 type fuchsia struct {
-	obj     string
-	ignores []*regexp.Regexp
+	*config
+	obj string
 }
 
 var (
@@ -39,13 +38,12 @@ var (
 	}
 )
 
-func ctorFuchsia(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string,
-	ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorFuchsia(cfg *config) (Reporter, []string, error) {
 	ctx := &fuchsia{
-		ignores: ignores,
+		config: cfg,
 	}
-	if kernelObj != "" {
-		ctx.obj = filepath.Join(kernelObj, target.KernelObject)
+	if ctx.kernelObj != "" {
+		ctx.obj = filepath.Join(ctx.kernelObj, ctx.target.KernelObject)
 	}
 	suppressions := []string{
 		"fatal exception: process /tmp/syz-fuzzer", // OOM presumably

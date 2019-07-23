@@ -13,16 +13,12 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type netbsd struct {
-	kernelSrc      string
-	kernelBuildSrc string
-	kernelObj      string
-	kernelObject   string
-	symbols        map[string][]symbolizer.Symbol
-	ignores        []*regexp.Regexp
+	*config
+	kernelObject string
+	symbols      map[string][]symbolizer.Symbol
 }
 
 var (
@@ -34,13 +30,12 @@ var (
 	}
 )
 
-func ctorNetbsd(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string,
-	ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorNetbsd(cfg *config) (Reporter, []string, error) {
 	var symbols map[string][]symbolizer.Symbol
-	ignores = append(ignores, regexp.MustCompile("event_init: unable to initialize")) // postfix output
+	cfg.ignores = append(cfg.ignores, regexp.MustCompile("event_init: unable to initialize")) // postfix output
 	kernelObject := ""
-	if kernelObj != "" {
-		kernelObject = filepath.Join(kernelObj, target.KernelObject)
+	if cfg.kernelObj != "" {
+		kernelObject = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
 		var err error
 		symbols, err = symbolizer.ReadSymbols(kernelObject)
 		if err != nil {
@@ -48,12 +43,9 @@ func ctorNetbsd(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj str
 		}
 	}
 	ctx := &netbsd{
-		kernelSrc:      kernelSrc,
-		kernelBuildSrc: kernelBuildSrc,
-		kernelObj:      kernelObj,
-		kernelObject:   kernelObject,
-		symbols:        symbols,
-		ignores:        ignores,
+		config:       cfg,
+		kernelObject: kernelObject,
+		symbols:      symbols,
 	}
 	return ctx, nil, nil
 }

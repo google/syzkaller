@@ -6,18 +6,15 @@ package report
 import (
 	"bytes"
 	"regexp"
-
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type gvisor struct {
-	ignores []*regexp.Regexp
+	*config
 }
 
-func ctorGvisor(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string,
-	ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorGvisor(cfg *config) (Reporter, []string, error) {
 	ctx := &gvisor{
-		ignores: ignores,
+		config: cfg,
 	}
 	suppressions := []string{
 		"fatal error: runtime: out of memory",

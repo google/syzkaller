@@ -82,11 +82,13 @@ func TestOpenbsdSymbolizeLine(t *testing.T) {
 		}
 	}
 	obsd := openbsd{
-		kernelSrc:      "/usr/src",
-		kernelBuildSrc: "/usr/src",
-		kernelObj:      "/usr/src/sys/arch/amd64/compile/SYZKALLER/obj",
-		kernelObject:   "bsd.gdb",
-		symbols:        symbols,
+		config: &config{
+			kernelSrc:      "/usr/src",
+			kernelBuildSrc: "/usr/src",
+			kernelObj:      "/usr/src/sys/arch/amd64/compile/SYZKALLER/obj",
+		},
+		kernelObject: "bsd.gdb",
+		symbols:      symbols,
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {

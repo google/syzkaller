@@ -16,16 +16,12 @@ import (
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type linux struct {
-	kernelSrc             string
-	kernelBuildSrc        string
-	kernelObj             string
+	*config
 	vmlinux               string
 	symbols               map[string][]symbolizer.Symbol
-	ignores               []*regexp.Regexp
 	consoleOutputRe       *regexp.Regexp
 	questionableRes       []*regexp.Regexp
 	taskContext           *regexp.Regexp
@@ -36,11 +32,11 @@ type linux struct {
 	eoi                   []byte
 }
 
-func ctorLinux(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string, ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorLinux(cfg *config) (Reporter, []string, error) {
 	var symbols map[string][]symbolizer.Symbol
 	vmlinux := ""
-	if kernelObj != "" {
-		vmlinux = filepath.Join(kernelObj, target.KernelObject)
+	if cfg.kernelObj != "" {
+		vmlinux = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
 		var err error
 		symbols, err = symbolizer.ReadSymbols(vmlinux)
 		if err != nil {
@@ -48,12 +44,9 @@ func ctorLinux(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj stri
 		}
 	}
 	ctx := &linux{
-		kernelSrc:      kernelSrc,
-		kernelBuildSrc: kernelBuildSrc,
-		kernelObj:      kernelObj,
-		vmlinux:        vmlinux,
-		symbols:        symbols,
-		ignores:        ignores,
+		config:  cfg,
+		vmlinux: vmlinux,
+		symbols: symbols,
 	}
 	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
 	ctx.questionableRes = []*regexp.Regexp{

@@ -13,21 +13,19 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
-	"github.com/google/syzkaller/sys/targets"
 )
 
 type akaros struct {
-	ignores []*regexp.Regexp
+	*config
 	objfile string
 }
 
-func ctorAkaros(target *targets.Target, kernelSrc, kernelBuildSrc, kernelObj string,
-	ignores []*regexp.Regexp) (Reporter, []string, error) {
+func ctorAkaros(cfg *config) (Reporter, []string, error) {
 	ctx := &akaros{
-		ignores: ignores,
+		config: cfg,
 	}
-	if kernelObj != "" {
-		ctx.objfile = filepath.Join(kernelObj, target.KernelObject)
+	if ctx.kernelObj != "" {
+		ctx.objfile = filepath.Join(ctx.kernelObj, ctx.target.KernelObject)
 	}
 	return ctx, nil, nil
 }
