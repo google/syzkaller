@@ -83,7 +83,7 @@ func TestOpenbsdSymbolizeLine(t *testing.T) {
 	}
 	obsd := openbsd{
 		config: &config{
-			kernelSrc:      "/usr/src",
+			kernelSrc:      "/usr/src2",
 			kernelBuildSrc: "/usr/src",
 			kernelObj:      "/usr/src/sys/arch/amd64/compile/SYZKALLER/obj",
 		},
