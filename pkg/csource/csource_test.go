@@ -117,6 +117,10 @@ func TestSysTests(t *testing.T) {
 	t.Parallel()
 	for _, target := range prog.AllTargets() {
 		target := target
+		sysTarget := targets.Get(target.OS, target.Arch)
+		if runtime.GOOS != sysTarget.BuildOS {
+			continue // we need at least preprocessor binary to generate sources
+		}
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
 			t.Parallel()
 			dir := filepath.Join("..", "..", "sys", target.OS, "test")
