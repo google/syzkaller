@@ -59,7 +59,7 @@ func TestNetbsdSymbolizeLine(t *testing.T) {
 			return []symbolizer.Frame{
 				{
 					Func: "closef",
-					File: "netbsd/src/kern_descrip.c",
+					File: "/netbsd/src/kern_descrip.c",
 					Line: 1241,
 				},
 			}, nil
@@ -67,13 +67,13 @@ func TestNetbsdSymbolizeLine(t *testing.T) {
 			return []symbolizer.Frame{
 				{
 					Func:   "sleep_finish_timeout",
-					File:   "netbsd/src/kern_synch.c",
+					File:   "/netbsd/src/kern_synch.c",
 					Line:   336,
 					Inline: true,
 				},
 				{
 					Func: "sleep_finish_all",
-					File: "netbsd/src/kern_synch.c",
+					File: "/netbsd/src/kern_synch.c",
 					Line: 157,
 				},
 			}, nil
@@ -83,8 +83,8 @@ func TestNetbsdSymbolizeLine(t *testing.T) {
 	}
 	nbsd := netbsd{
 		config: &config{
-			kernelSrc:      "netbsd/src",
-			kernelBuildSrc: "netbsd/src",
+			kernelSrc:      "/netbsd/src2",
+			kernelBuildSrc: "/netbsd/src",
 			kernelObj:      "/netbsd/src/obj/sys/arch/amd64/compile/GENERIC",
 		},
 		kernelObject: "netbsd.gdb",

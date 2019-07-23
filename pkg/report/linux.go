@@ -386,7 +386,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	for _, frame := range frames {
 		file := frame.File
 		file = strings.TrimPrefix(file, strip)
-		file = strings.TrimPrefix(file, "./")
+		file = strings.TrimLeft(file, "./")
 		info := fmt.Sprintf(" %v:%v", file, frame.Line)
 		modified := append([]byte{}, line...)
 		modified = replace(modified, match[7], match[7], []byte(info))
