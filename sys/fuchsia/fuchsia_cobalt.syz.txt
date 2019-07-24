@@ -802,8 +802,10 @@ fuchsia_cobalt_ControllerGetNumObservationsAddedResponseHandles {
 } [packed]
 
 fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequest {
-	hdr		fidl_message_header[1523993550]
-	day_index	int32
+	hdr			fidl_message_header[1523993550]
+	day_index		int32
+	report_idsInLine	fidl_vector
+	report_idsOutOfLine	array[int32]
 } [packed]
 
 fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequestHandles {
