@@ -26,7 +26,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 		"set", product, "--with-base", "//bundles:tools"); err != nil {
 		return err
 	}
-	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "clean-build"); err != nil {
+	if _, err := osutil.RunCmd(time.Hour*2, kernelDir, "scripts/fx", "clean-build"); err != nil {
 		return err
 	}
 
