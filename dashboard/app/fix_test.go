@@ -82,6 +82,7 @@ func TestFixBasic(t *testing.T) {
 	// Regression test: previously upstreamming failed because the new bug had fixing commits.
 	c.client.ReportCrash(crash1)
 	c.client.updateBug(rep2.ID, dashapi.BugStatusUpstream, "")
+	c.client.pollBug()
 }
 
 // Test bug that is fixed by 2 commits.

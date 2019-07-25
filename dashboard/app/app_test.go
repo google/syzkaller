@@ -310,12 +310,14 @@ func TestApp(t *testing.T) {
 
 	crash1 := testCrash(build, 1)
 	c.client.ReportCrash(crash1)
+	c.client.pollBug()
 
 	// Test that namespace isolation works.
 	c.expectFail("unknown build", apiClient2.Query("report_crash", crash1, nil))
 
 	crash2 := testCrashWithRepro(build, 2)
 	c.client.ReportCrash(crash2)
+	c.client.pollBug()
 
 	// Provoke purgeOldCrashes.
 	for i := 0; i < 30; i++ {
@@ -324,6 +326,7 @@ func TestApp(t *testing.T) {
 		crash.Report = []byte(fmt.Sprintf("report%v", i))
 		c.client.ReportCrash(crash)
 	}
+	c.client.pollBug()
 
 	cid := &dashapi.CrashID{
 		BuildID: "build1",

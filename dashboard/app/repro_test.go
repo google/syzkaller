@@ -16,7 +16,7 @@ import (
 //  - upload crash -> need repro
 //  - upload syz repro -> still need repro
 //  - upload C repro -> don't need repro
-func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
+func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug bool) {
 	c := NewCtx(t)
 	defer c.Close()
 
@@ -51,15 +51,18 @@ func testNeedRepro1(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 
 	resp, _ = c.client.ReportCrash(crash2)
 	c.expectEQ(resp.NeedRepro, false)
+	if newBug {
+		c.client.pollBug()
+	}
 }
 
-func TestNeedRepro1_normal(t *testing.T)      { testNeedRepro1(t, normalCrash) }
-func TestNeedRepro1_dup(t *testing.T)         { testNeedRepro1(t, dupCrash) }
-func TestNeedRepro1_closed(t *testing.T)      { testNeedRepro1(t, closedCrash) }
-func TestNeedRepro1_closedRepro(t *testing.T) { testNeedRepro1(t, closedWithReproCrash) }
+func TestNeedRepro1_normal(t *testing.T)      { testNeedRepro1(t, normalCrash, true) }
+func TestNeedRepro1_dup(t *testing.T)         { testNeedRepro1(t, dupCrash, false) }
+func TestNeedRepro1_closed(t *testing.T)      { testNeedRepro1(t, closedCrash, true) }
+func TestNeedRepro1_closedRepro(t *testing.T) { testNeedRepro1(t, closedWithReproCrash, true) }
 
 // Upload C repro with first crash -> don't need repro.
-func testNeedRepro2(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
+func testNeedRepro2(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug bool) {
 	c := NewCtx(t)
 	defer c.Close()
 
@@ -72,12 +75,15 @@ func testNeedRepro2(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 
 	needRepro, _ := c.client.NeedRepro(testCrashID(crash1))
 	c.expectEQ(needRepro, false)
+	if newBug {
+		c.client.pollBug()
+	}
 }
 
-func TestNeedRepro2_normal(t *testing.T)      { testNeedRepro2(t, normalCrash) }
-func TestNeedRepro2_dup(t *testing.T)         { testNeedRepro2(t, dupCrash) }
-func TestNeedRepro2_closed(t *testing.T)      { testNeedRepro2(t, closedCrash) }
-func TestNeedRepro2_closedRepro(t *testing.T) { testNeedRepro2(t, closedWithReproCrash) }
+func TestNeedRepro2_normal(t *testing.T)      { testNeedRepro2(t, normalCrash, true) }
+func TestNeedRepro2_dup(t *testing.T)         { testNeedRepro2(t, dupCrash, false) }
+func TestNeedRepro2_closed(t *testing.T)      { testNeedRepro2(t, closedCrash, true) }
+func TestNeedRepro2_closedRepro(t *testing.T) { testNeedRepro2(t, closedWithReproCrash, true) }
 
 // Test that after uploading 5 failed repros, app stops requesting repros.
 func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
@@ -119,7 +125,7 @@ func TestNeedRepro3_closed(t *testing.T)      { testNeedRepro3(t, closedCrash) }
 func TestNeedRepro3_closedRepro(t *testing.T) { testNeedRepro3(t, closedWithReproCrash) }
 
 // Test that after uploading 5 syz repros, app stops requesting repros.
-func testNeedRepro4(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
+func testNeedRepro4(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash, newBug bool) {
 	c := NewCtx(t)
 	defer c.Close()
 
@@ -147,17 +153,23 @@ func testNeedRepro4(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	c.expectEQ(resp.NeedRepro, false)
 	needRepro, _ = c.client.NeedRepro(testCrashID(crash1))
 	c.expectEQ(needRepro, false)
+	if newBug {
+		c.client.pollBug()
+	}
 }
 
-func TestNeedRepro4_normal(t *testing.T)      { testNeedRepro4(t, normalCrash) }
-func TestNeedRepro4_dup(t *testing.T)         { testNeedRepro4(t, dupCrash) }
-func TestNeedRepro4_closed(t *testing.T)      { testNeedRepro4(t, closedCrash) }
-func TestNeedRepro4_closedRepro(t *testing.T) { testNeedRepro4(t, closedWithReproCrash) }
+func TestNeedRepro4_normal(t *testing.T)      { testNeedRepro4(t, normalCrash, true) }
+func TestNeedRepro4_dup(t *testing.T)         { testNeedRepro4(t, dupCrash, false) }
+func TestNeedRepro4_closed(t *testing.T)      { testNeedRepro4(t, closedCrash, true) }
+func TestNeedRepro4_closedRepro(t *testing.T) { testNeedRepro4(t, closedWithReproCrash, true) }
 
 func normalCrash(c *Ctx) *dashapi.Crash {
 	build := testBuild(1)
 	c.client.UploadBuild(build)
-	return testCrash(build, 1)
+	crash := testCrash(build, 1)
+	c.client.ReportCrash(crash)
+	c.client.pollBug()
+	return crash
 }
 
 func dupCrash(c *Ctx) *dashapi.Crash {
@@ -194,5 +206,7 @@ func closedCrashImpl(c *Ctx, withRepro bool) *dashapi.Crash {
 	c.client.updateBug(rep.ID, dashapi.BugStatusInvalid, "")
 
 	crash.ReproC = nil
+	c.client.ReportCrash(crash)
+	c.client.pollBug()
 	return crash
 }
