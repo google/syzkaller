@@ -1,5 +1,7 @@
-# Copyright 2017 syzkaller project authors. All rights reserved.
+# Copyright 2019 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# NOTE: This is an incomplete description for the VFIO system calls because no groups were added in the container. The desired coverage was not reached.
 
 # https://www.kernel.org/doc/Documentation/vfio.txt
 # https://elixir.bootlin.com/linux/latest/source/drivers/vfio/vfio.c
@@ -7,18 +9,14 @@
 # https://elixir.bootlin.com/linux/latest/source/drivers/vfio/vfio_iommu_type1.c
 
 include <uapi/linux/fcntl.h>
-include <linux/vfio.h>
-
-define VFIO_IOMMU_INFO_PGSIZES	(1 << 0)
-define VFIO_DMA_MAP_FLAG_READ	(1 << 0)
-define VFIO_DMA_MAP_FLAG_WRITE	(1 << 1)
+include <uapi/linux/vfio.h>
 
 resource fd_vfio[fd]
 
 openat$vfio(fd const[AT_FDCWD], file ptr[in, string["/dev/vfio/vfio"]], flags flags[open_flags], mode const[0]) fd_vfio
 
 ioctl$VFIO_GET_API_VERSION(fd fd_vfio, cmd const[VFIO_GET_API_VERSION])
-ioctl$VFIO_CHECK_EXTENSION(fd fd_vfio, cmd const[VFIO_CHECK_EXTENSION], arg intptr)
+ioctl$VFIO_CHECK_EXTENSION(fd fd_vfio, cmd const[VFIO_CHECK_EXTENSION], arg flags[iommu_flags])
 ioctl$VFIO_SET_IOMMU(fd fd_vfio, cmd const[VFIO_SET_IOMMU], arg flags[iommu_flags])
 
 ioctl$VFIO_IOMMU_GET_INFO(fd fd_vfio, cmd const[VFIO_IOMMU_GET_INFO], arg ptr[inout, vfio_iommu_type1_info])
