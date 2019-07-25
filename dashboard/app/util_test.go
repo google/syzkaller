@@ -157,6 +157,11 @@ func (c *Ctx) Close() {
 		for len(c.emailSink) != 0 {
 			c.t.Errorf("ERROR: leftover email: %v", (<-c.emailSink).Body)
 		}
+		// No pending external reports (tests need to consume them).
+		resp, _ := c.client.ReportingPollBugs("test")
+		for _, rep := range resp.Reports {
+			c.t.Errorf("ERROR: leftover external report:\n%#v", rep)
+		}
 	}
 	unregisterContext(c)
 	c.inst.Close()
