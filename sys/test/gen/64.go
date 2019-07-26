@@ -637,6 +637,10 @@ var syscalls_64 = []*Syscall{
 	{Name: "foo$fmt5", CallName: "foo", MissingArgs: 1, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "struct$fmt0"}}},
 	}},
+	{Name: "minimize$0", CallName: "minimize", Args: []Type{
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a0", TypeSize: 8}}, ValuesStart: 10, ValuesPerProc: 2},
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a1", TypeSize: 8, IsOptional: true}}, ValuesStart: 10, ValuesPerProc: 2},
+	}},
 	{Name: "mutate0", CallName: "mutate0"},
 	{Name: "mutate1", CallName: "mutate1"},
 	{Name: "mutate2", CallName: "mutate2"},
@@ -1018,6 +1022,7 @@ var consts_64 = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 	{Name: "SYS_fallback"},
 	{Name: "SYS_foo"},
+	{Name: "SYS_minimize"},
 	{Name: "SYS_mutate0"},
 	{Name: "SYS_mutate1"},
 	{Name: "SYS_mutate2"},
@@ -1034,4 +1039,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "74c87d08a1f72c38c85e889813b60823a1e5755c"
+const revision_64 = "8c0a50a6c63e5bd297e9f6421864685e1fd7dc96"
