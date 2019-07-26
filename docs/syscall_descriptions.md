@@ -17,28 +17,6 @@ for descriptions of the Linux MIDI interfaces.
 
 A more formal description of the description syntax can be found [here](syscall_descriptions_syntax.md).
 
-## Description compilation
-
-These textual syscall descriptions are then compiled into machine-usable form used by `syzkaller`
-to actually generate programs. This process consists of 2 steps.
-
-The first step is extraction of values of symbolic constants from kernel sources using
-[syz-extract](/sys/syz-extract) utility. `syz-extract` generates a small C program that
-includes kernel headers referenced by `include` directives, defines macros as specified
-by `define` directives and prints values of symbolic constants.
-Results are stored in `.const` files, one per arch.
-For example, [sys/linux/dev_ptmx.txt](/sys/linux/dev_ptmx.txt) is translated into
-[sys/linux/dev_ptmx_amd64.const](/sys/linux/dev_ptmx_amd64.const).
-
-The second step is translation of descriptions into Go code using
-[syz-sysgen](/sys/syz-sysgen) utility (the actual compiler code lives in
-[pkg/ast](/pkg/ast/) and [pkg/compiler](/pkg/compiler/)).
-This step uses syscall descriptions and the const files generated during the first step
-and produces instantiations of `Syscall` and `Type` types defined in [prog/types.go](/prog/types.go).
-Here is an [example](/sys/akaros/gen/amd64.go) of the compiler output for Akaros.
-This step also generates some minimal syscall metadata for C++ code in
-[executor/syscalls.h](/executor/syscalls.h).
-
 ## Programs
 
 The translated descriptions are then used to generate, mutate, execute, minimize, serialize
@@ -108,6 +86,33 @@ try `sudo make install_prerequisites` or install equivalent package for your dis
 If you want to fuzz the new subsystem that you described locally, you may find
 the `enable_syscalls` configuration parameter useful to specifically target
 the new system calls.
+
+When updating existing syzkaller descriptions, note, that unless there's a drastic
+change in descriptions for a particular syscall, the programs that are already in
+the corpus will be kept there, unless you manually clear them out (for example by
+removing the `corpus.db` file).
+
+## Description compilation internals
+
+The process of compiling the textual syscall descriptions into machine-usable
+form used by `syzkaller` to actually generate programs consists of 2 steps.
+
+The first step is extraction of values of symbolic constants from kernel sources using
+[syz-extract](/sys/syz-extract) utility. `syz-extract` generates a small C program that
+includes kernel headers referenced by `include` directives, defines macros as specified
+by `define` directives and prints values of symbolic constants.
+Results are stored in `.const` files, one per arch.
+For example, [sys/linux/dev_ptmx.txt](/sys/linux/dev_ptmx.txt) is translated into
+[sys/linux/dev_ptmx_amd64.const](/sys/linux/dev_ptmx_amd64.const).
+
+The second step is translation of descriptions into Go code using
+[syz-sysgen](/sys/syz-sysgen) utility (the actual compiler code lives in
+[pkg/ast](/pkg/ast/) and [pkg/compiler](/pkg/compiler/)).
+This step uses syscall descriptions and the const files generated during the first step
+and produces instantiations of `Syscall` and `Type` types defined in [prog/types.go](/prog/types.go).
+Here is an [example](/sys/akaros/gen/amd64.go) of the compiler output for Akaros.
+This step also generates some minimal syscall metadata for C++ code in
+[executor/syscalls.h](/executor/syscalls.h).
 
 ## Non-mainline subsystems
 
