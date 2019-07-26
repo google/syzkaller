@@ -465,7 +465,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 	},
 	// Insert random bytes.
 	func(r *randGen, data []byte, minLen, maxLen uint64) ([]byte, bool) {
-		if len(data) == 0 {
+		if len(data) == 0 || uint64(len(data)) >= maxLen {
 			return data, false
 		}
 		n := r.Intn(16) + 1
