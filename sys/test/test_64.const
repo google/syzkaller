@@ -8,6 +8,7 @@ SYS_mutate5 = 0
 SYS_mutate6 = 0
 SYS_mutate7 = 0
 SYS_mutate8 = 0
+SYS_minimize = 0
 SYS_serialize0 = 0
 SYS_serialize1 = 0
 SYS_test = 0

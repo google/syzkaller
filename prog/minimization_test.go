@@ -141,6 +141,14 @@ func TestMinimize(t *testing.T) {
 				"test$res1(r0)\n",
 			-1,
 		},
+		{
+			"test", "64",
+			"minimize$0(0x1, 0x1)\n",
+			-1,
+			func(p *Prog, callIndex int) bool { return len(p.Calls) == 1 },
+			"minimize$0(0x1, 0xffffffffffffffff)\n",
+			-1,
+		},
 	}
 	t.Parallel()
 	for ti, test := range tests {

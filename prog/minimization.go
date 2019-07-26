@@ -185,6 +185,14 @@ func (typ *FlagsType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool 
 }
 
 func (typ *ProcType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
+	if !typ.Optional() {
+		// Default value for ProcType is 0 (same for all PID's).
+		// Usually 0 either does not make sense at all or make different PIDs collide
+		// (since we use ProcType to separate value ranges for different PIDs).
+		// So don't change ProcType to 0 unless the type is explicitly marked as opt
+		// (in that case we will also generate 0 anyway).
+		return false
+	}
 	return minimizeInt(ctx, arg, path)
 }
 

@@ -736,6 +736,10 @@ mutate8(a0 proc[100, 4, opt])
 
 open_flags = 0xabababababababab, 0xcdcdcdcdcdcdcdcd
 
+# Minimization tests.
+
+minimize$0(a0 proc[10, 2], a1 proc[10, 2, opt])
+
 # Serialization tests.
 
 serialize0(a ptr[in, serialize0_struct])
