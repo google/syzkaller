@@ -487,7 +487,6 @@ openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], fl
 openat$dlm_control(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-control"]], flags flags[open_flags], mode const[0]) fd
 openat$dlm_monitor(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-monitor"]], flags flags[open_flags], mode const[0]) fd
 openat$dlm_plock(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm_plock"]], flags flags[open_flags], mode const[0]) fd
-openat$vfio(fd const[AT_FDCWD], file ptr[in, string["/dev/vfio/vfio"]], flags flags[open_flags], mode const[0]) fd
 openat$btrfs_control(fd const[AT_FDCWD], file ptr[in, string["/dev/btrfs-control"]], flags flags[open_flags], mode const[0]) fd
 openat$ubi_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/ubi_ctrl"]], flags flags[open_flags], mode const[0]) fd
 openat$cachefiles(fd const[AT_FDCWD], file ptr[in, string["/dev/cachefiles"]], flags flags[open_flags], mode const[0]) fd
