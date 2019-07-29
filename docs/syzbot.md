@@ -299,12 +299,13 @@ syzkaller has an ability to perform fuzzing of the Linux kernel USB stack, see
 the details [here](/docs/linux/external_fuzzing_usb.md). This requires
 non-yet-upstreamed kernel changes and thus patch testing is only possible on
 the `usb-fuzzer` branch of the `https://github.com/google/kasan.git` tree.
-The standard way for triggering tests with the `usb-fuzzer` tree is to send an
-email to `syzbot+HASH` address containing the following line:
+The recommended way for triggering tests with the `usb-fuzzer` tree is to send
+an email to `syzbot+HASH` address containing the following line:
 ```
-#syz test: https://github.com/google/kasan.git usb-fuzzer
+#syz test: https://github.com/google/kasan.git commit-hash
 ```
-and attach/inline your test patch in the same email.
+and attach/inline your test patch in the same email (`commit-hash` value can
+be found in the initial report email).
 
 ## Memory leaks
 
