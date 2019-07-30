@@ -239,32 +239,26 @@ func createBisectJob(c context.Context, managers map[string]bool, reproLevel das
 
 func findBugsForBisection(c context.Context, managers map[string]bool, reproLevel dashapi.ReproLevel, jobType JobType) (
 	*Job, *db.Key, error) {
-	bisectQuery := map[JobType]string{
-		JobBisectCause: "BisectCause=",
-		JobBisectFix:   "BisectFix=",
-	}
-	// Sort property should be the same as property used in the inequality filter.
-	filterQuery := map[JobType]string{
-		JobBisectCause: "FirstTime>",
-		JobBisectFix:   "LastTime>",
-	}
-	orderQuery := map[JobType]string{
-		JobBisectCause: "-FirstTime",
-		JobBisectFix:   "LastTime",
-	}
-	var bugs []*Bug
 	// Note: we could also include len(Commits)==0 but datastore does not work this way.
 	// So we would need an additional HasCommits field or something.
 	// Note: For JobBisectCause, order the bugs from newest to oldest. For JobBisectFix,
 	// order the bugs from oldest to newest.
-	keys, err := db.NewQuery("Bug").
-		Filter("Status=", BugStatusOpen).
-		Filter(filterQuery[jobType], time.Time{}).
-		Filter("ReproLevel=", reproLevel).
-		Filter(bisectQuery[jobType], BisectNot).
-		Order(orderQuery[jobType]).
-		Limit(300). // we only need 1 job, but we skip some because the query is not precise
-		GetAll(c, &bugs)
+	// Sort property should be the same as property used in the inequality filter.
+	query := db.NewQuery("Bug").Filter("Status=", BugStatusOpen)
+	if jobType == JobBisectCause {
+		query = query.Filter("FirstTime>", time.Time{}).
+			Filter("ReproLevel=", reproLevel).
+			Filter("BisectCause=", BisectNot).
+			Order("-FirstTime")
+	} else {
+		query = query.Filter("LastTime>", time.Time{}).
+			Filter("ReproLevel=", reproLevel).
+			Filter("BisectFix=", BisectNot).
+			Order("LastTime")
+	}
+	// We only need 1 job, but we skip some because the query is not precise.
+	var bugs []*Bug
+	keys, err := query.Limit(300).GetAll(c, &bugs)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query bugs: %v", err)
 	}
