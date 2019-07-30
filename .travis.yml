@@ -31,3 +31,16 @@ after_success:
 after_failure:
   - git diff --name-only
   - git diff
+
+jobs:
+  include:
+    - stage: Fuzzit (Fuzzing)
+      if: branch = master AND type IN (push)
+      go: 1.12.x
+      script:
+        - ./fuzzit.sh fuzzing
+    - stage: Fuzzit (Sanity)
+      if: type IN (pull_request)
+      go: 1.12.x
+      script:
+        - ./fuzzit.sh sanity

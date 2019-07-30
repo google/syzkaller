@@ -340,8 +340,9 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-powerpc64le-linux-gnu || true
 	sudo apt-get install -y -q g++-arm-linux-gnueabi || true
 	sudo apt-get install -y -q ragel clang-format
-	go get -u golang.org/x/tools/cmd/goyacc
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	go get -u golang.org/x/tools/cmd/goyacc \
+		github.com/golangci/golangci-lint/cmd/golangci-lint \
+		github.com/dvyukov/go-fuzz/go-fuzz-build
 
 check_links:
 	python ./tools/check_links.py $$(pwd) $$(ls ./*.md; find ./docs/ -name '*.md')
