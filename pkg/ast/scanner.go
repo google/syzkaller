@@ -279,7 +279,6 @@ func (s *scanner) next() {
 		// Makes lots of things simpler as we always
 		// want to treat EOF as NEWLINE as well.
 		s.ch = '\n'
-		s.off++
 		return
 	}
 	if s.off > len(s.data) {

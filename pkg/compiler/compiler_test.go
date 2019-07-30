@@ -202,7 +202,7 @@ type D[e]l`,
 		"E",
 		"#",
 	} {
-		Fuzz([]byte(data))
+		Fuzz([]byte(data)[:len(data):len(data)])
 	}
 }
 
