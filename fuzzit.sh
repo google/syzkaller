@@ -15,6 +15,7 @@ function target {
 	./fuzzit create job --type $JOB_TYPE --branch $TRAVIS_BRANCH --revision $TRAVIS_COMMIT $1 ./fuzzer
 }
 
+go get -u github.com/dvyukov/go-fuzz/go-fuzz-build
 wget -q -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/v1.2.7/fuzzit_Linux_x86_64
 chmod a+x fuzzit
 ./fuzzit auth ${FUZZIT_API_KEY}
