@@ -303,7 +303,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	var job *Job
 	if bug.BisectCause == BisectYes {
 		// If we have bisection results, report the crash/repro used for bisection.
-		job1, crash1, _, crashKey1, err := loadBisectJob(c, bug)
+		job1, crash1, _, crashKey1, err := loadBisectJob(c, bug, JobBisectCause)
 		if err != nil {
 			return nil, err
 		}
@@ -422,12 +422,12 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	return nil
 }
 
-func loadBisectJob(c context.Context, bug *Bug) (*Job, *Crash, *db.Key, *db.Key, error) {
+func loadBisectJob(c context.Context, bug *Bug, jobType JobType) (*Job, *Crash, *db.Key, *db.Key, error) {
 	bugKey := bug.key(c)
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
 		Ancestor(bugKey).
-		Filter("Type=", JobBisectCause).
+		Filter("Type=", jobType).
 		Filter("Finished>", time.Time{}).
 		Order("-Finished").
 		Limit(1).
@@ -436,7 +436,11 @@ func loadBisectJob(c context.Context, bug *Bug) (*Job, *Crash, *db.Key, *db.Key,
 		return nil, nil, nil, nil, fmt.Errorf("failed to query jobs: %v", err)
 	}
 	if len(jobs) == 0 {
-		return nil, nil, nil, nil, fmt.Errorf("can't find bisect cause job for bug")
+		jobStr := map[JobType]string{
+			JobBisectCause: "bisect cause",
+			JobBisectFix:   "bisect fix",
+		}
+		return nil, nil, nil, nil, fmt.Errorf("can't find %s job for bug", jobStr[jobType])
 	}
 	job := jobs[0]
 	crash := new(Crash)

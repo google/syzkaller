@@ -111,6 +111,7 @@ type uiBugPage struct {
 	Now            time.Time
 	Bug            *uiBug
 	BisectCause    *uiJob
+	BisectFix      *uiJob
 	DupOf          *uiBugGroup
 	Dups           *uiBugGroup
 	Similar        *uiBugGroup
@@ -360,20 +361,17 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	var bisectCause *uiJob
 	if bug.BisectCause > BisectPending {
-		job, _, jobKey, _, err := loadBisectJob(c, bug)
+		bisectCause, err = getUIJob(c, bug, JobBisectCause)
 		if err != nil {
 			return err
 		}
-		crash := new(Crash)
-		crashKey := db.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
-		if err := db.Get(c, crashKey, crash); err != nil {
-			return fmt.Errorf("failed to get crash: %v", err)
-		}
-		build, err := loadBuild(c, bug.Namespace, crash.BuildID)
+	}
+	var bisectFix *uiJob
+	if bug.BisectFix > BisectPending {
+		bisectFix, err = getUIJob(c, bug, JobBisectFix)
 		if err != nil {
 			return err
 		}
-		bisectCause = makeUIJob(job, jobKey, crash, build)
 	}
 	hasMaintainers := false
 	for _, crash := range crashes {
@@ -387,6 +385,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Now:            timeNow(c),
 		Bug:            uiBug,
 		BisectCause:    bisectCause,
+		BisectFix:      bisectFix,
 		DupOf:          dupOf,
 		Dups:           dups,
 		Similar:        similar,
@@ -395,6 +394,23 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Crashes:        crashes,
 	}
 	return serveTemplate(w, "bug.html", data)
+}
+
+func getUIJob(c context.Context, bug *Bug, jobType JobType) (*uiJob, error) {
+	job, _, jobKey, _, err := loadBisectJob(c, bug, jobType)
+	if err != nil {
+		return nil, err
+	}
+	crash := new(Crash)
+	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
+	if err := db.Get(c, crashKey, crash); err != nil {
+		return nil, fmt.Errorf("failed to get crash: %v", err)
+	}
+	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
+	if err != nil {
+		return nil, err
+	}
+	return makeUIJob(job, jobKey, crash, build), nil
 }
 
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).
