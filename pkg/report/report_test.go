@@ -372,6 +372,6 @@ func TestFuzz(t *testing.T) {
 		"cleaned vnod\re",
 		"kernel\r:",
 	} {
-		Fuzz([]byte(data))
+		Fuzz([]byte(data)[:len(data):len(data)])
 	}
 }

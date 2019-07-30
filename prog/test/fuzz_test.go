@@ -22,9 +22,11 @@ mutate4()
 mutate7()
 mutate8()
 `,
+		`E`,
 	} {
 		t.Logf("test #%v: %q", i, data)
-		FuzzDeserialize([]byte(data))
-		FuzzParseLog([]byte(data))
+		inp := []byte(data)[:len(data):len(data)]
+		FuzzDeserialize(inp)
+		FuzzParseLog(inp)
 	}
 }
