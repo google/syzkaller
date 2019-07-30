@@ -189,7 +189,7 @@ func TestWarnings(t *testing.T) {
 
 func TestFuzz(t *testing.T) {
 	t.Parallel()
-	inputs := []string{
+	for _, data := range []string{
 		"d~^gB̉`i\u007f?\xb0.",
 		"da[",
 		"define\x98define(define\x98define\x98define\x98define\x98define)define\tdefin",
@@ -199,16 +199,10 @@ l	t
 ]`,
 		`t()D[0]
 type D[e]l`,
-	}
-	consts := map[string]uint64{"A": 1, "B": 2, "C": 3, "SYS_A": 4, "SYS_B": 5, "SYS_C": 6}
-	eh := func(pos ast.Pos, msg string) {
-		t.Logf("%v: %v", pos, msg)
-	}
-	for _, data := range inputs {
-		desc := ast.Parse([]byte(data), "", eh)
-		if desc != nil {
-			Compile(desc, consts, targets.List["test"]["64"], eh)
-		}
+		"E",
+		"#",
+	} {
+		Fuzz([]byte(data))
 	}
 }
 
