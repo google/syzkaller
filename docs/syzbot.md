@@ -304,8 +304,9 @@ an email to `syzbot+HASH` address containing the following line:
 ```
 #syz test: https://github.com/google/kasan.git commit-hash
 ```
-and attach/inline your test patch in the same email (`commit-hash` value can
-be found in the initial report email).
+and attach/inline your test patch in the same email (`commit-hash` is the id
+of the kernel commit on which this bug was reproduced, its value can be found
+in the initial report email).
 
 ## Memory leaks
 
