@@ -297,16 +297,23 @@ is the original source of uninitialized-ness.
 
 syzkaller has an ability to perform fuzzing of the Linux kernel USB stack, see
 the details [here](/docs/linux/external_fuzzing_usb.md). This requires
-non-yet-upstreamed kernel changes and thus patch testing is only possible on
-the `usb-fuzzer` branch of the `https://github.com/google/kasan.git` tree.
-The recommended way for triggering tests with the `usb-fuzzer` tree is to send
-an email to `syzbot+HASH` address containing the following line:
+non-yet-upstreamed kernel changes, and as a result USB fuzzing is only being
+run n the `usb-fuzzer` branch of the `https://github.com/google/kasan.git` tree,
+and on the `master` branch of the `https://github.com/google/kmsan.git` tree.
+
+If the bug report comes from the `usb-fuzzer` tree, the recommended way for
+triggering patch testing is to send an email to `syzbot+HASH` address containing
+the following line:
 ```
 #syz test: https://github.com/google/kasan.git commit-hash
 ```
-and attach/inline your test patch in the same email (`commit-hash` is the id
+and attach/inline your test patch in the same email. `commit-hash` is the id
 of the kernel commit on which this bug was reproduced, its value can be found
-in the initial report email).
+in the initial report email.
+
+If the bug some from the `KMSAN` tree, follow the [instructions above](#kmsan-bugs),
+with the exception that you must also use `commit-hash` instead of the `master`
+branch when testing patches.
 
 ## Memory leaks
 
