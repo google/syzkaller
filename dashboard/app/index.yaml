@@ -35,6 +35,13 @@ indexes:
   - name: FirstTime
     direction: desc
 
+- kind: Bug
+  properties:
+  - name: BisectFix
+  - name: ReproLevel
+  - name: Status
+  - name: LastTime
+
 - kind: Build
   properties:
   - name: Namespace
