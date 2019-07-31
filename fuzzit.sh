@@ -18,8 +18,8 @@ wget -q -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/v1.2.7/f
 chmod a+x fuzzit
 ./fuzzit auth ${FUZZIT_API_KEY}
 
-target gD3t0a6kniec9zst4eqU ./prog/test FuzzDeserialize
-target aWERkQry8i44A4gToF5W ./prog/test FuzzParseLog
-target UJuwHm2dT3YWlWH88yyA ./pkg/compiler Fuzz
-target ZkAE6RkbUOP7V3cCbQ74 ./pkg/report Fuzz
-target s4Mxhb8MBZaWZkGS40SF ./tools/syz-trace2syz/proggen Fuzz
+target QOmcj5QL4FVtUWV2UmhG ./prog/test FuzzDeserialize
+target ddurE2yrDlqpklLYgNc6 ./prog/test FuzzParseLog
+target 4A7DVc22Gni7tUtZBc19 ./pkg/compiler Fuzz
+target YMCIxz61XkKWaB4jmiS5 ./pkg/report Fuzz
+target 1d75bUDf9zNQz1HgHyM0 ./tools/syz-trace2syz/proggen Fuzz
