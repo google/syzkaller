@@ -26,6 +26,8 @@ type Config struct {
 	KernelSrc string `json:"kernel_src,omitempty"`
 	// Location of the driectory where the kernel was built (if not set defaults to KernelSrc)
 	KernelBuildSrc string `json:"kernel_build_src"`
+	// Map of modules and their symbol files.
+	KernelModules json.RawMessage `json:"kernel_modules"`
 	// Arbitrary optional tag that is saved along with crash reports (e.g. branch/commit).
 	Tag string `json:"tag,omitempty"`
 	// Location of the disk image file.
@@ -99,4 +101,6 @@ type Config struct {
 	SyzFuzzerBin   string `json:"-"`
 	SyzExecprogBin string `json:"-"`
 	SyzExecutorBin string `json:"-"`
+	// Marshalled KernelModules
+	Modules map[string]string `json:"-"`
 }

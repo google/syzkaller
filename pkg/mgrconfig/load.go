@@ -4,6 +4,7 @@
 package mgrconfig
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -114,6 +115,13 @@ func Complete(cfg *Config) error {
 	if cfg.KernelBuildSrc == "" {
 		cfg.KernelBuildSrc = cfg.KernelSrc
 	}
+	if len(cfg.KernelModules) != 0 {
+		cfg.Modules = make(map[string]string)
+		if err := json.Unmarshal(cfg.KernelModules, &cfg.Modules); err != nil {
+			return err
+		}
+	}
+
 	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
 		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
