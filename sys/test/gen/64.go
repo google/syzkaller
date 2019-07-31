@@ -646,6 +646,9 @@ var syscalls_64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "i2", TypeSize: 8}}, Kind: 2, RangeEnd: 536870911},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 1}}},
 	}},
+	{Name: "mutate$array2", CallName: "mutate", MissingArgs: 8, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "syz_struct1"}}}},
+	}},
 	{Name: "mutate$flags", CallName: "mutate", MissingArgs: 5, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "i1", TypeSize: 8}}},
@@ -677,6 +680,9 @@ var syscalls_64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "i2", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "i3", TypeSize: 2}}, Kind: 2, RangeEnd: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "i4", TypeSize: 1}}, Kind: 2, RangeEnd: 8},
+	}},
+	{Name: "mutate$union", CallName: "mutate", MissingArgs: 8, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "p", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "syz_union0"}}},
 	}},
 	{Name: "mutate0", CallName: "mutate0"},
 	{Name: "mutate1", CallName: "mutate1"},
@@ -1077,4 +1083,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "aaee55a3532998a140b25dc52cc113c4de048dd2"
+const revision_64 = "71d8f9a8f2ed06129920bb9f60aef16fb9ca749b"

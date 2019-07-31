@@ -741,6 +741,8 @@ mutate$flags(filename ptr[in, filename], i1 int64, b1 bool16, flags flags[bitmas
 mutate$flags2(filename ptr[in, filename], flags flags[bitmask_flags2])
 mutate$flags3(filename ptr[in, filename], flags flags[open_flags2])
 mutate$array(i1 int64, i2 int64[0x0:0x1fffffff], vec ptr[in, array[int32[0:1]]])
+mutate$array2(vec ptr[in, array[syz_struct1]])
+mutate$union(p ptr[in, syz_union0])
 
 open_flags = 0xabababababababab, 0xcdcdcdcdcdcdcdcd
 open_flags2 = 0xaaaaaaaaaaaaaaaa, 0xaaaaaaaabbbbbbbb, 0xbbbbbbbbbbbbbbbb, 0xbbbbbbbbcccccccc, 0xcccccccccccccccc, 0xccccccccdddddddd, 0xdddddddddddddddd, 0xddddddddeeeeeeee, 0xeeeeeeeeeeeeeeee, 0xeeeeeeeeffffffff, 0xffffffffffffffff

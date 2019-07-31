@@ -65,6 +65,7 @@ type Type interface {
 	isDefaultArg(arg Arg) bool
 	generate(r *randGen, s *state) (arg Arg, calls []*Call)
 	mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool)
+	getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool)
 	minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 }
 
