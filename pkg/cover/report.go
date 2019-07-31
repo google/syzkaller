@@ -38,7 +38,7 @@ type symbol struct {
 	end   uint64
 }
 
-func MakeReportGenerator(vmlinux, srcDir, buildDir, arch string) (*ReportGenerator, error) {
+func MakeReportGenerator(modules map[string]string, srcDir, buildDir, arch string) (*ReportGenerator, error) {
 	rg := &ReportGenerator{
 		srcDir:   srcDir,
 		buildDir: buildDir,
@@ -47,15 +47,15 @@ func MakeReportGenerator(vmlinux, srcDir, buildDir, arch string) (*ReportGenerat
 	errc := make(chan error)
 	go func() {
 		var err error
-		rg.symbols, err = readSymbols(vmlinux)
+		rg.symbols, err = readSymbols(modules["vmlinux"])
 		errc <- err
 	}()
-	frames, err := objdumpAndSymbolize(vmlinux, arch)
+	frames, err := objdumpAndSymbolize(modules["vmlinux"], arch)
 	if err != nil {
 		return nil, err
 	}
 	if len(frames) == 0 {
-		return nil, fmt.Errorf("%v does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
+		return nil, fmt.Errorf("%v does not have debug info (set CONFIG_DEBUG_INFO=y)", modules["vmlinux"])
 	}
 	if err := <-errc; err != nil {
 		return nil, err

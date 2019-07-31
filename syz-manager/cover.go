@@ -24,14 +24,15 @@ var (
 	reportGenerator   *cover.ReportGenerator
 )
 
-func initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS string) error {
+func initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS string, modules map[string]string) error {
 	initCoverOnce.Do(func() {
 		if kernelObj == "" {
 			initCoverError = fmt.Errorf("kernel_obj is not specified")
 			return
 		}
 		vmlinux := filepath.Join(kernelObj, kernelObjName)
-		reportGenerator, initCoverError = cover.MakeReportGenerator(vmlinux, kernelSrc, kernelBuildSrc, arch)
+                modules["vmlinux"] = vmlinux
+		reportGenerator, initCoverError = cover.MakeReportGenerator(modules, kernelSrc, kernelBuildSrc, arch)
 		if initCoverError != nil {
 			return
 		}
