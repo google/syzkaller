@@ -7,12 +7,10 @@
 
 set -eux
 
-JOB_TYPE=$1
-
 function target {
 	go-fuzz-build -libfuzzer -func $3 -o fuzzer.a $2
 	clang -fsanitize=fuzzer fuzzer.a -o fuzzer
-	./fuzzit create job --type $JOB_TYPE --branch $TRAVIS_BRANCH --revision $TRAVIS_COMMIT $1 ./fuzzer
+	./fuzzit create job --type fuzzing --branch $TRAVIS_BRANCH --revision $TRAVIS_COMMIT $1 ./fuzzer
 }
 
 go get -u github.com/dvyukov/go-fuzz/go-fuzz-build
