@@ -134,25 +134,26 @@ type uiBugGroup struct {
 }
 
 type uiBug struct {
-	Namespace      string
-	Title          string
-	NumCrashes     int64
-	NumCrashesBad  bool
-	BisectCause    bool
-	FirstTime      time.Time
-	LastTime       time.Time
-	ReportedTime   time.Time
-	ClosedTime     time.Time
-	ReproLevel     dashapi.ReproLevel
-	ReportingIndex int
-	Status         string
-	Link           string
-	ExternalLink   string
-	CreditEmail    string
-	Commits        []*uiCommit
-	PatchedOn      []string
-	MissingOn      []string
-	NumManagers    int
+	Namespace       string
+	Title           string
+	NumCrashes      int64
+	NumCrashesBad   bool
+	BisectCauseDone bool
+	BisectFixDone   bool
+	FirstTime       time.Time
+	LastTime        time.Time
+	ReportedTime    time.Time
+	ClosedTime      time.Time
+	ReproLevel      dashapi.ReproLevel
+	ReportingIndex  int
+	Status          string
+	Link            string
+	ExternalLink    string
+	CreditEmail     string
+	Commits         []*uiCommit
+	PatchedOn       []string
+	MissingOn       []string
+	NumManagers     int
 }
 
 type uiCrash struct {
@@ -734,21 +735,22 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	}
 	id := bug.keyHash()
 	uiBug := &uiBug{
-		Namespace:      bug.Namespace,
-		Title:          bug.displayTitle(),
-		BisectCause:    bug.BisectCause > BisectPending,
-		NumCrashes:     bug.NumCrashes,
-		FirstTime:      bug.FirstTime,
-		LastTime:       bug.LastTime,
-		ReportedTime:   reported,
-		ClosedTime:     bug.Closed,
-		ReproLevel:     bug.ReproLevel,
-		ReportingIndex: reportingIdx,
-		Status:         status,
-		Link:           bugLink(id),
-		ExternalLink:   link,
-		CreditEmail:    creditEmail,
-		NumManagers:    len(managers),
+		Namespace:       bug.Namespace,
+		Title:           bug.displayTitle(),
+		BisectCauseDone: bug.BisectCause > BisectPending,
+		BisectFixDone:   bug.BisectFix > BisectPending,
+		NumCrashes:      bug.NumCrashes,
+		FirstTime:       bug.FirstTime,
+		LastTime:        bug.LastTime,
+		ReportedTime:    reported,
+		ClosedTime:      bug.Closed,
+		ReproLevel:      bug.ReproLevel,
+		ReportingIndex:  reportingIdx,
+		Status:          status,
+		Link:            bugLink(id),
+		ExternalLink:    link,
+		CreditEmail:     creditEmail,
+		NumManagers:     len(managers),
 	}
 	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
@@ -783,7 +785,8 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 
 func mergeUIBug(c context.Context, bug *uiBug, dup *Bug) {
 	bug.NumCrashes += dup.NumCrashes
-	bug.BisectCause = bug.BisectCause || dup.BisectCause > BisectPending
+	bug.BisectCauseDone = bug.BisectCauseDone || dup.BisectCause > BisectPending
+	bug.BisectFixDone = bug.BisectFixDone || dup.BisectFix > BisectPending
 	if bug.LastTime.Before(dup.LastTime) {
 		bug.LastTime = dup.LastTime
 	}
