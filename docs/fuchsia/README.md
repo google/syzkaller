@@ -85,14 +85,14 @@ Syscall descriptions live in the `sys/fuchsia` folder. To update a syscall, you 
 
 To build fuchsia run:
 ```shell
-$ fx --dir "out/x64" set core.x64
+$ fx --dir "out/x64" set core.x64 --with-base "//bundles:tools"
 $ fx clean-build
 ```
 
 And
 
 ```shell
-$ fx --dir "out/arm64" set core.arm64
+$ fx --dir "out/arm64" set core.arm64 --with-base "//bundles:tools"
 $ fx clean-build
 ```
 
