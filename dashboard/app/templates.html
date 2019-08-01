@@ -223,3 +223,54 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	</span>
 {{end}}
 {{end}}
+
+{{/* Show bisection results */}}
+{{define "bisect_results"}}
+{{if .}}
+	{{$causeJob := 1}}
+	{{$fixJob := 2}}
+	{{if .ErrorLink}}
+		<b>Bisection: {{link .ErrorLink "error"}}
+		({{link .LogLink "bisect log"}})</b><br>
+	{{else if .Commit}}
+		{{if eq .Type $causeJob}}
+			<b>Bisection: introduced by
+		{{else if eq .Type $fixJob}}
+			<b>Bisection: fixed by
+		{{end}}
+		({{link .LogLink "bisect log"}}):</b><br>
+		<br><span class="mono">
+		commit {{.Commit.Hash}}<br>
+		Author: {{.Commit.Author}}<br>
+		Date:   {{formatKernelTime .Commit.Date}}<br>
+		<br>
+		&nbsp;&nbsp;{{.Commit.Title}}<br>
+		</span><br>
+	{{else if .Commits}}
+		{{if eq .Type $causeJob}}
+			<b>Bisection: the cause commit could be any of
+		{{else if eq .Type $fixJob}}
+			<b>Bisection: the fix commit could be any of
+		{{end}}
+		({{link .LogLink "bisect log"}}):</b><br>
+		<br><span class="mono">
+		{{range $com := .Commits}}
+			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
+		{{end}}
+	{{else}}
+		{{if eq .Type $causeJob}}
+			<b>Bisection: the bug happens on the oldest tested release
+		{{else if eq .Type $fixJob}}
+			<b>Bisection: the fix commit could be any of
+		{{end}}
+		</span><br>
+	{{end}}
+	Tree: <span title="{{.Manager}}">{{.KernelAlias}}</span><br>
+	{{if .CrashLogLink}}
+		Crash: {{link .CrashReportLink .CrashTitle}} ({{link .CrashLogLink "log"}})<br>
+		Repro: {{optlink .Crash.ReproCLink "C"}}
+		{{optlink .Crash.ReproSyzLink "syz"}}
+		{{optlink .Crash.KernelConfigLink ".config"}}<br>
+	{{end}}
+{{end}}
+{{end}}
