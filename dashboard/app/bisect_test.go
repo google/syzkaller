@@ -819,3 +819,102 @@ func TestBugBisectionResults(t *testing.T) {
 	c.expectTrue(bytes.Contains(content, []byte("Bisection: fixed by")))
 	c.expectTrue(bytes.Contains(content, []byte("kernel: add a fix")))
 }
+
+// Test that bisection status shows up on main page
+func TestBugBisectionStatus(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Upload a crash report
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.client2.ReportCrash(crash)
+	c.client2.pollEmailBug()
+
+	// Receive the JobBisectCause and send cause information
+	resp := c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
+	jobID := resp.ID
+	done := &dashapi.JobDoneReq{
+		ID:          jobID,
+		Build:       *build,
+		Log:         []byte("bisectfix log 4"),
+		CrashTitle:  "bisectfix crash title 4",
+		CrashLog:    []byte("bisectfix crash log 4"),
+		CrashReport: []byte("bisectfix crash report 4"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:       "36e65cb4a0448942ec316b24d60446bbd5cc7827",
+				Title:      "kernel: add a bug",
+				Author:     "author@kernel.org",
+				AuthorName: "Author Kernelov",
+				CC: []string{
+					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
+					// These must be filtered out:
+					"syzbot@testapp.appspotmail.com",
+					"syzbot+1234@testapp.appspotmail.com",
+					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
+				},
+				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	c.expectOK(c.client2.JobDone(done))
+
+	// Fetch bug, namespace details
+	var bugs []*Bug
+	_, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
+	c.expectEQ(err, nil)
+	c.expectEQ(len(bugs), 1)
+	url := fmt.Sprintf("/%v", bugs[0].Namespace)
+	content, err := c.httpRequest("GET", url, "", AccessAdmin)
+	c.expectEQ(err, nil)
+	c.expectTrue(bytes.Contains(content, []byte("cause")))
+
+	// Advance time by 30 days and read out any notification emails
+	{
+		c.advanceTime(30 * 24 * time.Hour)
+		msg := c.client2.pollEmailBug()
+		c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this bug to:"))
+		msg = c.client2.pollEmailBug()
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+		msg = c.client2.pollEmailBug()
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+	}
+
+	// Receive a JobBisectfix and send fix information.
+	resp = c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
+	jobID = resp.ID
+	done = &dashapi.JobDoneReq{
+		ID:          jobID,
+		Build:       *build,
+		Log:         []byte("bisectfix log 4"),
+		CrashTitle:  "bisectfix crash title 4",
+		CrashLog:    []byte("bisectfix crash log 4"),
+		CrashReport: []byte("bisectfix crash report 4"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:       "46e65cb4a0448942ec316b24d60446bbd5cc7827",
+				Title:      "kernel: add a fix",
+				Author:     "author@kernel.org",
+				AuthorName: "Author Kernelov",
+				CC: []string{
+					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
+					// These must be filtered out:
+					"syzbot@testapp.appspotmail.com",
+					"syzbot+1234@testapp.appspotmail.com",
+					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
+				},
+				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	c.expectOK(c.client2.JobDone(done))
+	content, err = c.httpRequest("GET", url, "", AccessAdmin)
+	c.expectEQ(err, nil)
+	c.expectTrue(bytes.Contains(content, []byte("cause+fix")))
+}
