@@ -24,8 +24,8 @@ import (
 type ReportGenerator struct {
 	srcDir   string
 	buildDir string
-	symbols  []symbol
-	pcs      map[uint64][]symbolizer.Frame
+	symbols  map[string][]symbol
+	pcs      map[string]map[uint64][]symbolizer.Frame
 }
 
 type Prog struct {
@@ -42,26 +42,33 @@ func MakeReportGenerator(modules map[string]string, srcDir, buildDir, arch strin
 	rg := &ReportGenerator{
 		srcDir:   srcDir,
 		buildDir: buildDir,
-		pcs:      make(map[uint64][]symbolizer.Frame),
+		pcs:      make(map[string]map[uint64][]symbolizer.Frame),
 	}
 	errc := make(chan error)
 	go func() {
 		var err error
-		rg.symbols, err = readSymbols(modules["vmlinux"])
+		rg.symbols, err = readSymbols(modules)
 		errc <- err
 	}()
-	frames, err := objdumpAndSymbolize(modules["vmlinux"], arch)
+	frames, err := objdumpAndSymbolize(modules, arch)
 	if err != nil {
 		return nil, err
 	}
-	if len(frames) == 0 {
-		return nil, fmt.Errorf("%v does not have debug info (set CONFIG_DEBUG_INFO=y)", modules["vmlinux"])
+	for module, frms := range frames {
+		if len(frms) == 0 && module == "vmlinux" {
+			return nil, fmt.Errorf("%v does not have debug info (set CONFIG_DEBUG_INFO=y)", modules["vmlinux"])
+		}
 	}
 	if err := <-errc; err != nil {
 		return nil, err
 	}
-	for _, frame := range frames {
-		rg.pcs[frame.PC] = append(rg.pcs[frame.PC], frame)
+	for module, frms := range frames {
+		for _, frame := range frms {
+			if _, ok := rg.pcs[module]; !ok {
+				rg.pcs[module] = make(map[uint64][]symbolizer.Frame)
+			}
+			rg.pcs[module][frame.PC] = append(rg.pcs[module][frame.PC], frame)
+		}
 	}
 	return rg, nil
 }
@@ -81,62 +88,74 @@ type line struct {
 	symbolCovered bool
 }
 
-func (rg *ReportGenerator) Do(w io.Writer, progs []Prog) error {
-	coveredPCs := make(map[uint64]bool)
-	symbols := make(map[uint64]bool)
+func (rg *ReportGenerator) Do(w io.Writer, moduleProgs map[string][]Prog, dlkmAddr map[string]uint64) error {
+	coveredPCs := make(map[string]map[uint64]bool)
+	symbols := make(map[string]map[uint64]bool)
 	files := make(map[string]*file)
-	for progIdx, prog := range progs {
-		for _, pc := range prog.PCs {
-			symbols[rg.findSymbol(pc)] = true
-			frames, ok := rg.pcs[pc]
-			if !ok {
-				continue
-			}
-			coveredPCs[pc] = true
-			for _, frame := range frames {
-				f := getFile(files, frame.File)
-				ln := f.lines[frame.Line]
-				if ln.count == nil {
-					ln.count = make(map[int]bool)
-					ln.prog = -1
-				}
-				ln.count[progIdx] = true
-				if ln.prog == -1 || len(prog.Data) < len(progs[ln.prog].Data) {
-					ln.prog = progIdx
-				}
-				f.lines[frame.Line] = ln
-			}
+	for module, progs := range moduleProgs {
+		offset := dlkmAddr[module]
+		if module == "vmlinux" {
+			offset = 0
 		}
-	}
-	if len(coveredPCs) == 0 {
-		return fmt.Errorf("no coverage data available")
-	}
-	for pc, frames := range rg.pcs {
-		covered := coveredPCs[pc]
-		for _, frame := range frames {
-			f := getFile(files, frame.File)
-			if frame.Inline {
-				f.totalInline[frame.Line] = true
-				if covered {
-					f.coverInline[frame.Line] = true
+		for progIdx, prog := range progs {
+			for _, pc := range prog.PCs {
+				if _, ok := symbols[module]; !ok {
+					symbols[module] = make(map[uint64]bool)
 				}
-			} else {
-				f.totalPCs[pc] = true
-				if covered {
-					f.coverPCs[pc] = true
+				symbols[module][rg.findSymbol(module, pc-offset)] = true
+				frames, ok := rg.pcs[module][pc-offset]
+				if !ok {
+					continue
 				}
-			}
-			if !covered {
-				ln := f.lines[frame.Line]
-				if !frame.Inline || len(ln.count) == 0 {
-					ln.uncovered = true
-					ln.symbolCovered = symbols[rg.findSymbol(pc)]
+				if _, ok := coveredPCs[module]; !ok {
+					coveredPCs[module] = make(map[uint64]bool)
+				}
+				coveredPCs[module][pc-offset] = true
+				for _, frame := range frames {
+					f := getFile(files, frame.File)
+					ln := f.lines[frame.Line]
+					if ln.count == nil {
+						ln.count = make(map[int]bool)
+						ln.prog = -1
+					}
+					ln.count[progIdx] = true
+					if ln.prog == -1 || len(prog.Data) < len(progs[ln.prog].Data) {
+						ln.prog = progIdx
+					}
 					f.lines[frame.Line] = ln
 				}
 			}
 		}
+		if len(coveredPCs[module]) == 0 && module == "vmlinux" {
+			return fmt.Errorf("no coverage data available")
+		}
+		for pc, frames := range rg.pcs[module] {
+			covered := coveredPCs[module][pc-offset]
+			for _, frame := range frames {
+				f := getFile(files, frame.File)
+				if frame.Inline {
+					f.totalInline[frame.Line] = true
+					if covered {
+						f.coverInline[frame.Line] = true
+					}
+				} else {
+					f.totalPCs[pc-offset] = true
+					if covered {
+						f.coverPCs[pc-offset] = true
+					}
+				}
+				if !covered {
+					ln := f.lines[frame.Line]
+					if !frame.Inline || len(ln.count) == 0 {
+						ln.uncovered = true
+						ln.symbolCovered = symbols[module][rg.findSymbol(module, pc-offset)]
+						f.lines[frame.Line] = ln
+					}
+				}
+			}
+		}
 	}
-	return rg.generate(w, progs, files)
+	return rg.generate(w, moduleProgs, files)
 }
 
 func getFile(files map[string]*file, name string) *file {
@@ -154,7 +173,7 @@ func getFile(files map[string]*file, name string) *file {
 	return f
 }
 
-func (rg *ReportGenerator) generate(w io.Writer, progs []Prog, files map[string]*file) error {
+func (rg *ReportGenerator) generate(w io.Writer, moduleProgs map[string][]Prog, files map[string]*file) error {
 	d := &templateData{
 		Root: new(templateDir),
 	}
@@ -247,8 +266,10 @@ func (rg *ReportGenerator) generate(w io.Writer, progs []Prog, files map[string]
 		d.Contents = append(d.Contents, template.HTML(buf.String()))
 		f.Index = len(d.Contents) - 1
 	}
-	for _, prog := range progs {
-		d.Progs = append(d.Progs, template.HTML(html.EscapeString(prog.Data)))
+	for _, progs := range moduleProgs {
+		for _, prog := range progs {
+			d.Progs = append(d.Progs, template.HTML(html.EscapeString(prog.Data)))
+		}
 	}
 	processDir(d.Root)
 	return coverTemplate.Execute(w, d)
@@ -290,112 +311,121 @@ func percent(covered, total int) int {
 	return int(f)
 }
 
-func (rg *ReportGenerator) findSymbol(pc uint64) uint64 {
-	idx := sort.Search(len(rg.symbols), func(i int) bool {
-		return pc < rg.symbols[i].end
+func (rg *ReportGenerator) findSymbol(module string, pc uint64) uint64 {
+	idx := sort.Search(len(rg.symbols[module]), func(i int) bool {
+		return pc < rg.symbols[module][i].end
 	})
-	if idx == len(rg.symbols) {
+	if idx == len(rg.symbols[module]) {
 		return 0
 	}
-	s := rg.symbols[idx]
+	s := rg.symbols[module][idx]
 	if pc < s.start || pc > s.end {
 		return 0
 	}
 	return s.start
 }
 
-func readSymbols(obj string) ([]symbol, error) {
-	raw, err := symbolizer.ReadSymbols(obj)
-	if err != nil {
-		return nil, fmt.Errorf("failed to run nm on %v: %v", obj, err)
-	}
-	var symbols []symbol
-	for _, ss := range raw {
-		for _, s := range ss {
-			symbols = append(symbols, symbol{
-				start: s.Addr,
-				end:   s.Addr + uint64(s.Size),
-			})
+func readSymbols(modules map[string]string) (map[string][]symbol, error) {
+	symbols := make(map[string][]symbol)
+	for module := range modules {
+		raw, err := symbolizer.ReadSymbols(modules[module])
+		if err != nil {
+			return nil, fmt.Errorf("failed to run nm on %v: %v", modules[module], err)
 		}
+		for _, ss := range raw {
+			for _, s := range ss {
+				symbols[module] = append(symbols[module], symbol{
+					start: s.Addr,
+					end:   s.Addr + uint64(s.Size),
+				})
+			}
+		}
+		sort.Slice(symbols[module], func(i, j int) bool {
+			return symbols[module][i].start < symbols[module][j].start
+		})
 	}
-	sort.Slice(symbols, func(i, j int) bool {
-		return symbols[i].start < symbols[j].start
-	})
 	return symbols, nil
 }
 
 // objdumpAndSymbolize collects list of PCs of __sanitizer_cov_trace_pc calls
 // in the kernel and symbolizes them.
-func objdumpAndSymbolize(obj, arch string) ([]symbolizer.Frame, error) {
-	errc := make(chan error)
-	pcchan := make(chan []uint64, 10)
-	var frames []symbolizer.Frame
-	go func() {
-		symb := symbolizer.NewSymbolizer()
-		defer symb.Close()
-		var err error
-		for pcs := range pcchan {
+func objdumpAndSymbolize(modules map[string]string, arch string) (map[string][]symbolizer.Frame, error) {
+	frames := make(map[string][]symbolizer.Frame)
+	for module := range modules {
+		errc := make(chan error)
+		pcchan := make(chan []uint64, 10)
+		go func() {
+			symb := symbolizer.NewSymbolizer()
+			defer symb.Close()
+			var err error
+			for PCs := range pcchan {
+				if err != nil {
+					continue
+				}
+				frames1, err1 := symb.SymbolizeArray(modules[module], PCs)
+				if err1 != nil {
+					err = fmt.Errorf("failed to symbolize: %v", err1)
+				}
+				frames[module] = append(frames[module], frames1...)
+			}
+			errc <- err
+		}()
+		cmd := osutil.Command("objdump", "-d", "--no-show-raw-insn", modules[module])
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			return nil, err
+		}
+		defer stdout.Close()
+		if err := cmd.Start(); err != nil {
+			return nil, fmt.Errorf("failed to run objdump on %v: %v", modules[module], err)
+		}
+		defer func() {
+			cmd.Process.Kill()
+			cmd.Wait()
+		}()
+		s := bufio.NewScanner(stdout)
+		callInsnS, traceFuncS := archCallInsn(arch)
+		callInsn, traceFunc := []byte(callInsnS), []byte(traceFuncS)
+		var pcs []uint64
+		for s.Scan() {
+			ln := s.Bytes()
+			if pos := bytes.Index(ln, callInsn); pos == -1 {
+				continue
+			} else if !bytes.Contains(ln[pos:], traceFunc) {
+				continue
+			}
+			for len(ln) != 0 && ln[0] == ' ' {
+				ln = ln[1:]
+			}
+			colon := bytes.IndexByte(ln, ':')
+			if colon == -1 {
+				continue
+			}
+			pc, err := strconv.ParseUint(string(ln[:colon]), 16, 64)
 			if err != nil {
 				continue
 			}
-			frames1, err1 := symb.SymbolizeArray(obj, pcs)
-			if err1 != nil {
-				err = fmt.Errorf("failed to symbolize: %v", err1)
+			pcs = append(pcs, pc)
+			if len(pcs) == 100 {
+				pcchan <- pcs
+				pcs = nil
 			}
-			frames = append(frames, frames1...)
 		}
-		errc <- err
-	}()
-	cmd := osutil.Command("objdump", "-d", "--no-show-raw-insn", obj)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	defer stdout.Close()
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to run objdump on %v: %v", obj, err)
-	}
-	defer func() {
-		cmd.Process.Kill()
-		cmd.Wait()
-	}()
-	s := bufio.NewScanner(stdout)
-	callInsnS, traceFuncS := archCallInsn(arch)
-	callInsn, traceFunc := []byte(callInsnS), []byte(traceFuncS)
-	var pcs []uint64
-	for s.Scan() {
-		ln := s.Bytes()
-		if pos := bytes.Index(ln, callInsn); pos == -1 {
-			continue
-		} else if !bytes.Contains(ln[pos:], traceFunc) {
-			continue
-		}
-		for len(ln) != 0 && ln[0] == ' ' {
-			ln = ln[1:]
-		}
-		colon := bytes.IndexByte(ln, ':')
-		if colon == -1 {
-			continue
-		}
-		pc, err := strconv.ParseUint(string(ln[:colon]), 16, 64)
-		if err != nil {
-			continue
-		}
-		pcs = append(pcs, pc)
-		if len(pcs) == 100 {
+		if len(pcs) != 0 {
 			pcchan <- pcs
-			pcs = nil
+		}
+		close(pcchan)
+		if err := s.Err(); err != nil {
+			return nil, fmt.Errorf("failed to run objdump output: %v", err)
+		}
+		if err := <-errc; err != nil {
+			return nil, err
 		}
 	}
-	if len(pcs) != 0 {
-		pcchan <- pcs
-	}
-	close(pcchan)
-	if err := s.Err(); err != nil {
-		return nil, fmt.Errorf("failed to run objdump output: %v", err)
-	}
-	if err := <-errc; err != nil {
-		return nil, err
+	for module := range modules {
+		sort.Slice(frames[module], func(i, j int) bool {
+			return frames[module][i].PC < frames[module][j].PC
+		})
 	}
 	return frames, nil
 }

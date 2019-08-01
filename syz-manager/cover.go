@@ -31,7 +31,7 @@ func initCover(kernelObj, kernelObjName, kernelSrc, kernelBuildSrc, arch, OS str
 			return
 		}
 		vmlinux := filepath.Join(kernelObj, kernelObjName)
-                modules["vmlinux"] = vmlinux
+		modules["vmlinux"] = vmlinux
 		reportGenerator, initCoverError = cover.MakeReportGenerator(modules, kernelSrc, kernelBuildSrc, arch)
 		if initCoverError != nil {
 			return

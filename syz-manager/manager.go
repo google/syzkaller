@@ -13,6 +13,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -84,6 +86,10 @@ type Manager struct {
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
 	usedFiles map[string]time.Time
+
+	// DLKM
+	dlkms    []dlkmMap
+	dlkmAddr map[string]uint64
 }
 
 const (
@@ -175,6 +181,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		needMoreRepros:   make(chan chan bool),
 		reproRequest:     make(chan chan map[string]bool),
 		usedFiles:        make(map[string]time.Time),
+		dlkmAddr:         make(map[string]uint64),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -512,6 +519,11 @@ func (mgr *Manager) loadCorpus() {
 	mgr.phase = phaseLoadedCorpus
 }
 
+type dlkmMap struct {
+	dlkm    string
+	address uint64
+}
+
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	mgr.checkUsedFiles()
 	inst, err := mgr.vmPool.Create(index)
@@ -539,6 +551,56 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		fuzzerV = 100
 		procs = 1
 	}
+
+	var rawDlkms []byte
+	waitForOutput := func(outc <-chan []byte) {
+		timer := time.NewTimer(10 * time.Second).C
+		for {
+			select {
+			case out, ok := <-outc:
+				if !ok {
+					return
+				}
+				rawDlkms = append(rawDlkms, out...)
+			case <-timer:
+				return
+			}
+		}
+	}
+
+	// Find addresses of DLKMs
+	dlkmC, _, _ := inst.Run(time.Hour, mgr.vmStop, "cat /proc/modules")
+	waitForOutput(dlkmC)
+	dlkms := strings.Split(string(rawDlkms), "\n")
+
+	mgr.dlkmAddr["vmlinux"] = 0
+	mgr.dlkms = []dlkmMap{}
+	for _, dlkm := range dlkms {
+		tokens := strings.Fields(dlkm)
+		if len(tokens) == 7 && tokens[6] == "(O)" {
+			pair := dlkmMap{dlkm: tokens[0]}
+			fmt.Sscanf(strings.TrimPrefix(tokens[5], "0x"), "%x", &pair.address)
+			mgr.dlkms = append(mgr.dlkms, pair)
+			mgr.dlkmAddr[pair.dlkm] = pair.address
+		}
+	}
+	// Find addresses of _text
+	dlkmC, _, _ = inst.Run(time.Hour, mgr.vmStop, "cat /proc/kallsyms | grep -w _text")
+	waitForOutput(dlkmC)
+	dlkms = strings.Split(string(rawDlkms), "\n")
+	for _, dlkm := range dlkms {
+		tokens := strings.Fields(dlkm)
+		if len(tokens) == 3 && tokens[2] == "_text" {
+			pair := dlkmMap{dlkm: "vmlinux"}
+			fmt.Sscanf(tokens[0], "%x", &pair.address)
+			mgr.dlkms = append(mgr.dlkms, pair)
+			mgr.dlkmAddr[pair.dlkm] = pair.address
+		}
+	}
+
+	sort.Slice(mgr.dlkms, func(i, j int) bool {
+		return mgr.dlkms[i].address > mgr.dlkms[j].address
+	})
 
 	// Run the fuzzer binary.
 	start := time.Now()

@@ -66,13 +66,19 @@ func main() {
 		failf("%v", err)
 	}
 	kernelObj := filepath.Join(*flagKernelObj, target.KernelObject)
-	rg, err := cover.MakeReportGenerator(kernelObj, *flagKernelSrc, *flagKernelBuildSrc, *flagArch)
+	modules := make(map[string]string)
+	modules["vmlinux"] = kernelObj
+	rg, err := cover.MakeReportGenerator(modules, *flagKernelSrc, *flagKernelBuildSrc, *flagArch)
 	if err != nil {
 		failf("%v", err)
 	}
 	progs := []cover.Prog{{PCs: pcs}}
+	moduleProgs := make(map[string][]cover.Prog)
+	moduleProgs["vmlinux"] = progs
 	buf := new(bytes.Buffer)
-	if err := rg.Do(buf, progs); err != nil {
+	dlkmAddr := make(map[string]uint64)
+	dlkmAddr["vmlinux"] = 0
+	if err := rg.Do(buf, moduleProgs, dlkmAddr); err != nil {
 		failf("%v", err)
 	}
 	fn, err := osutil.TempFile("syz-cover")

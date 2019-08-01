@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/html"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
@@ -247,6 +248,40 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func convertInpToModuleProgs(inp rpctype.RPCInput, arch string, dlkms []dlkmMap) map[string][]cover.Prog {
+	moduleProgs := make(map[string][]cover.Prog)
+	pcs := coverToPCs(inp.Cover, arch)
+	for i, pc := range pcs {
+		tmpPcs := make([]uint64, 0)
+		tmpPcs = append(tmpPcs, pc)
+		cov := inp.Cover[i]
+		if cov > uint32(dlkms[0].address) {
+			if _, ok := moduleProgs[dlkms[0].dlkm]; !ok {
+				moduleProgs[dlkms[0].dlkm] = make([]cover.Prog, 0)
+			}
+			moduleProgs[dlkms[0].dlkm] = append(moduleProgs[dlkms[0].dlkm], cover.Prog{
+				Data: string(inp.Prog),
+				PCs:  tmpPcs,
+			})
+		} else {
+			for j := 0; j < len(dlkms)-1; j++ {
+				if cov < uint32(dlkms[j].address) && cov > uint32(dlkms[j+1].address) {
+					if _, ok := moduleProgs[dlkms[j+1].dlkm]; !ok {
+						moduleProgs[dlkms[j+1].dlkm] = make([]cover.Prog, 0)
+					}
+					moduleProgs[dlkms[j+1].dlkm] = append(moduleProgs[dlkms[j+1].dlkm], cover.Prog{
+						Data: string(inp.Prog),
+						PCs:  tmpPcs,
+					})
+					break
+				}
+			}
+		}
+	}
+
+	return moduleProgs
+}
+
 func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 	if mgr.cfg.KernelObj == "" {
 		http.Error(w, fmt.Sprintf("no kernel_obj in config file"), http.StatusInternalServerError)
@@ -257,26 +292,27 @@ func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
-	var progs []cover.Prog
+	moduleProgs := make(map[string][]cover.Prog)
 	if sig := r.FormValue("input"); sig != "" {
 		inp := mgr.corpus[sig]
-		progs = append(progs, cover.Prog{
-			Data: string(inp.Prog),
-			PCs:  coverToPCs(inp.Cover, mgr.cfg.TargetVMArch),
-		})
+		moduleProgs = convertInpToModuleProgs(inp, mgr.cfg.TargetVMArch, mgr.dlkms)
 	} else {
 		call := r.FormValue("call")
 		for _, inp := range mgr.corpus {
 			if call != "" && call != inp.Call {
 				continue
 			}
-			progs = append(progs, cover.Prog{
-				Data: string(inp.Prog),
-				PCs:  coverToPCs(inp.Cover, mgr.cfg.TargetVMArch),
-			})
+			for module, progs := range convertInpToModuleProgs(inp, mgr.cfg.TargetVMArch, mgr.dlkms) {
+				for _, prog := range progs {
+					if _, ok := moduleProgs[module]; !ok {
+						moduleProgs[module] = make([]cover.Prog, 0)
+					}
+					moduleProgs[module] = append(moduleProgs[module], prog)
+				}
+			}
 		}
 	}
-	if err := reportGenerator.Do(w, progs); err != nil {
+	if err := reportGenerator.Do(w, moduleProgs, mgr.dlkmAddr); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
