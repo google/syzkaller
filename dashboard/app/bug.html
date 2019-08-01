@@ -25,75 +25,8 @@ Page with details about a single bug.
 	{{end}}
 	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
 
-	{{with $bisect := .BisectCause}}<br>
-		{{if $bisect.ErrorLink}}
-			<b>Bisection: {{link $bisect.ErrorLink "error"}}
-			({{link $bisect.LogLink "bisect log"}})</b><br>
-		{{else if $bisect.Commit}}{{with $com := $bisect.Commit}}
-			<b>Bisection: introduced by
-			({{link $bisect.LogLink "bisect log"}}):</b><br>
-			<br><span class="mono">
-			commit {{$com.Hash}}<br>
-			Author: {{$com.Author}}<br>
-			Date:   {{formatKernelTime $com.Date}}<br>
-			<br>
-			&nbsp;&nbsp;{{$com.Title}}<br>
-			</span><br>
-		{{end}}{{else if $bisect.Commits}}{{with $bisect.Commits}}
-			<b>Bisection: the first bad commit could be any of
-			({{link $bisect.LogLink "bisect log"}}):</b><br>
-			<br><span class="mono">
-			{{range $com := $bisect.Commits}}
-				&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
-			{{end}}
-			</span><br>
-		{{end}}{{else}}
-			<b>Bisection: the bug happens on the oldest tested release
-			({{link $bisect.LogLink "bisect log"}})</b><br>
-		{{end}}
-		Tree: <span title="{{$bisect.Manager}}">{{$bisect.KernelAlias}}</span><br>
-		{{if $bisect.CrashLogLink}}
-			Crash: {{link $bisect.CrashReportLink $bisect.CrashTitle}} ({{link $bisect.CrashLogLink "log"}})<br>
-		{{end}}
-		Repro: {{optlink $bisect.Crash.ReproCLink "C"}}
-			{{optlink $bisect.Crash.ReproSyzLink "syz"}}
-			{{optlink $bisect.Crash.KernelConfigLink ".config"}}<br>
-	{{end}}
-
-	{{with $bisect := .BisectFix}}<br>
-		{{if $bisect.ErrorLink}}
-			<b>Bisection: {{link $bisect.ErrorLink "error"}}
-			({{link $bisect.LogLink "bisect log"}})</b><br>
-		{{else if $bisect.Commit}}{{with $com := $bisect.Commit}}
-			<b>Bisection: fixed by
-			({{link $bisect.LogLink "bisect log"}}):</b><br>
-			<br><span class="mono">
-			commit {{$com.Hash}}<br>
-			Author: {{$com.Author}}<br>
-			Date:   {{formatKernelTime $com.Date}}<br>
-			<br>
-			&nbsp;&nbsp;{{$com.Title}}<br>
-			</span><br>
-		{{end}}{{else if $bisect.Commits}}{{with $bisect.Commits}}
-			<b>Bisection: the fix commit could be any of
-			({{link $bisect.LogLink "bisect log"}}):</b><br>
-			<br><span class="mono">
-			{{range $com := $bisect.Commits}}
-				&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
-			{{end}}
-			</span><br>
-		{{end}}{{else}}
-			<b>Bisection: the bug occurs on the newest tested release
-			({{link $bisect.LogLink "bisect log"}})</b><br>
-		{{end}}
-		Tree: <span title="{{$bisect.Manager}}">{{$bisect.KernelAlias}}</span><br>
-		{{if $bisect.CrashLogLink}}
-			Crash: {{link $bisect.CrashReportLink $bisect.CrashTitle}} ({{link $bisect.CrashLogLink "log"}})<br>
-		{{end}}
-		Repro: {{optlink $bisect.Crash.ReproCLink "C"}}
-			{{optlink $bisect.Crash.ReproSyzLink "syz"}}
-			{{optlink $bisect.Crash.KernelConfigLink ".config"}}<br>
-	{{end}}
+	{{template "bisect_results" .BisectCause}}
+	{{template "bisect_results" .BisectFix}}
 
 	{{template "bug_list" .DupOf}}
 	{{template "bug_list" .Dups}}
