@@ -130,8 +130,8 @@ table td, table th {
 }
 
 .list_table .stat {
-	width: 50pt;
-	max-width: 50pt;
+	width: 55pt;
+	max-width: 55pt;
 	font-family: monospace;
 	text-align: right;
 }
@@ -221,7 +221,6 @@ function isSorted(values) {
 function textSort(v) { return v.toLowerCase(); }
 function numSort(v) { return -parseInt(v); }
 function floatSort(v) { return -parseFloat(v); }
-function yesSort(v) { return v == "yes" ? 0 : 1; }
 function reproSort(v) { return v == "C" ? 0 : v == "syz" ? 1 : 2; }
 function patchedSort(v) { return v == "" ? -1 : parseInt(v); }
 
