@@ -28,6 +28,9 @@ include "./GENERIC"
 ident		SYZKALLER
 options 	COVERAGE
 options 	KCOV
+
+options 	DEBUG_VFS_LOCKS
+options 	DIAGNOSTIC
 `)
 	}
 	if err := osutil.WriteFile(filepath.Join(confDir, confFile), config); err != nil {
