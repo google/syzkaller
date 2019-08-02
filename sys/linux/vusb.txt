@@ -105,7 +105,7 @@ type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
 
 	bEndpointAddress	ADDR
 	bmAttributes		ATTRS
-	wMaxPacketSize		int16
+	wMaxPacketSize		flags[usb_max_packet_sizes, int16]
 	bInterval		int8
 
 	bRefresh		int8
@@ -656,46 +656,41 @@ usb_cdc_mbim_extended_desc {
 # USB descriptors requested after the SET_CONFIGURATION request.
 
 # TODO: define recusively to generate proper structures.
+# Linux HID stack doesn't support long items.
 hid_descriptor_report {
-	items	array[hid_report_item]
+	items	array[hid_report_item_short]
 } [packed]
 
-hid_report_item_short_012 {
+type hid_report_item_short_012_t[TYPE, TAGS] {
 	bSize	len[data, int8:2]
-	bType	flags[hid_report_item_types, int8:2]
-	bTag	flags[hid_report_item_tags, int8:4]
+	bType	const[TYPE, int8:2]
+	bTag	flags[TAGS, int8:4]
 	data	array[int8, 0:2]
 } [packed]
 
-hid_report_item_short_4 {
+type hid_report_item_short_4_t[TYPE, TAGS] {
 	bSize	const[3, int8:2]
-	bType	flags[hid_report_item_types, int8:2]
-	bTag	flags[hid_report_item_tags, int8:4]
+	bType	const[TYPE, int8:2]
+	bTag	flags[TAGS, int8:4]
 	data	array[int8, 4]
 } [packed]
 
+type hid_report_item_short_t[TYPE, TAGS] [
+	item_012	hid_report_item_short_012_t[TYPE, TAGS]
+	item_4		hid_report_item_short_4_t[TYPE, TAGS]
+] [varlen]
+
 hid_report_item_short [
-	item_012	hid_report_item_short_012
-	item_4		hid_report_item_short_4
+	main	hid_report_item_short_t[HID_ITEM_TYPE_MAIN, hid_report_item_main_tags]
+	global	hid_report_item_short_t[HID_ITEM_TYPE_GLOBAL, hid_report_item_global_tags]
+	local	hid_report_item_short_t[HID_ITEM_TYPE_LOCAL, hid_report_item_local_tags]
 ] [varlen]
 
-hid_report_item_long {
-	bSize		int8:2
-	bType		int8:2
-	bTag		const[HID_ITEM_TAG_LONG, int8:4]
-	bDataSize	len[data, int8]
-	bLongItemTag	flags[hid_report_item_tags, int8]
-	data		array[int8, 0:255]
-} [packed]
+hid_report_item_main_tags = HID_MAIN_ITEM_TAG_INPUT, HID_MAIN_ITEM_TAG_OUTPUT, HID_MAIN_ITEM_TAG_FEATURE, HID_MAIN_ITEM_TAG_BEGIN_COLLECTION, HID_MAIN_ITEM_TAG_END_COLLECTION
+hid_report_item_global_tags = HID_GLOBAL_ITEM_TAG_USAGE_PAGE, HID_GLOBAL_ITEM_TAG_LOGICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_LOGICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_UNIT_EXPONENT, HID_GLOBAL_ITEM_TAG_UNIT, HID_GLOBAL_ITEM_TAG_REPORT_SIZE, HID_GLOBAL_ITEM_TAG_REPORT_ID, HID_GLOBAL_ITEM_TAG_REPORT_COUNT, HID_GLOBAL_ITEM_TAG_PUSH, HID_GLOBAL_ITEM_TAG_POP
+hid_report_item_local_tags = HID_LOCAL_ITEM_TAG_USAGE, HID_LOCAL_ITEM_TAG_USAGE_MINIMUM, HID_LOCAL_ITEM_TAG_USAGE_MAXIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_INDEX, HID_LOCAL_ITEM_TAG_DESIGNATOR_MINIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_MAXIMUM, HID_LOCAL_ITEM_TAG_STRING_INDEX, HID_LOCAL_ITEM_TAG_STRING_MINIMUM, HID_LOCAL_ITEM_TAG_STRING_MAXIMUM, HID_LOCAL_ITEM_TAG_DELIMITER
 
-hid_report_item [
-	short	hid_report_item_short
-	long	hid_report_item_long
-] [varlen]
-
-hid_report_item_types = HID_ITEM_TYPE_MAIN, HID_ITEM_TYPE_GLOBAL, HID_ITEM_TYPE_LOCAL, HID_ITEM_TYPE_RESERVED
-
-hid_report_item_tags = HID_ITEM_TAG_LONG, HID_MAIN_ITEM_TAG_INPUT, HID_MAIN_ITEM_TAG_OUTPUT, HID_MAIN_ITEM_TAG_FEATURE, HID_MAIN_ITEM_TAG_BEGIN_COLLECTION, HID_MAIN_ITEM_TAG_END_COLLECTION, HID_GLOBAL_ITEM_TAG_USAGE_PAGE, HID_GLOBAL_ITEM_TAG_LOGICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_LOGICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_UNIT_EXPONENT, HID_GLOBAL_ITEM_TAG_UNIT, HID_GLOBAL_ITEM_TAG_REPORT_SIZE, HID_GLOBAL_ITEM_TAG_REPORT_ID, HID_GLOBAL_ITEM_TAG_REPORT_COUNT, HID_GLOBAL_ITEM_TAG_PUSH, HID_GLOBAL_ITEM_TAG_POP, HID_LOCAL_ITEM_TAG_USAGE, HID_LOCAL_ITEM_TAG_USAGE_MINIMUM, HID_LOCAL_ITEM_TAG_USAGE_MAXIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_INDEX, HID_LOCAL_ITEM_TAG_DESIGNATOR_MINIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_MAXIMUM, HID_LOCAL_ITEM_TAG_STRING_INDEX, HID_LOCAL_ITEM_TAG_STRING_MINIMUM, HID_LOCAL_ITEM_TAG_STRING_MAXIMUM, HID_LOCAL_ITEM_TAG_DELIMITER
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 usb_hub_descriptor_hs {
 	bDescLength		len[parent, int8]
