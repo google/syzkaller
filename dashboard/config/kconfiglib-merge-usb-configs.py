@@ -55,7 +55,9 @@ kconf = kconfiglib.Kconfig(warn=False)
 kconf.load_config(sys.argv[2])
 
 # Make a list of some core USB symbols.
-core_usb_syms_names = ['USB_SUPPORT', 'USB', 'USB_ARCH_HAS_HCD']
+# Some USB drivers don't depend on core USB symbols, but rather depend on a
+# generic symbol for some input subsystem (e.g. HID), so include those as well.
+core_usb_syms_names = ['USB_SUPPORT', 'USB', 'USB_ARCH_HAS_HCD', 'HID']
 core_usb_syms = set()
 for name in core_usb_syms_names:
 	core_usb_syms.add(kconf.syms[name])
