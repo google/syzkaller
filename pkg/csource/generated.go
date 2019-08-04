@@ -440,7 +440,13 @@ static uintptr_t syz_open_pts(void)
 
 static int tunfd = -1;
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
+
+#if GOOS_netbsd
+#define MAX_TUN 64
+
+#else
 #define MAX_TUN 4
+#endif
 #define TUN_IFACE "tap%d"
 #define TUN_DEVICE "/dev/tap%d"
 

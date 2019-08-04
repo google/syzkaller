@@ -51,8 +51,14 @@ static int tunfd = -1;
 // Rest of the packet (if any) will be silently truncated which is fine.
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
 
+#if GOOS_netbsd
+// Increased number of tap and tun devices if image script is used
+#define MAX_TUN 64
+
+#else
 // Maximum number of tun devices in the default install.
 #define MAX_TUN 4
+#endif
 
 // All patterns are non-expanding given values < MAX_TUN.
 #define TUN_IFACE "tap%d"
