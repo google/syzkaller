@@ -347,9 +347,29 @@ func readSymbols(modules map[string]string) (map[string][]symbol, error) {
 	return symbols, nil
 }
 
+func getCrossCompilerPrefix(arch string) string {
+	var prefix string
+	switch arch {
+	case "amd64":
+		prefix = "x86_64_linux-gnu-"
+	case "386":
+		prefix = "x86_64_linux-gnu-"
+	case "arm64":
+		prefix = "aarch64-linux-gnu-"
+	case "arm":
+		prefix = "arm-linux-gnueabi-"
+	case "ppc64le":
+		prefix = "powerpc64le-linux-gnu-"
+	default:
+		prefix = ""
+	}
+	return prefix
+}
+
 // objdumpAndSymbolize collects list of PCs of __sanitizer_cov_trace_pc calls
 // in the kernel and symbolizes them.
 func objdumpAndSymbolize(modules map[string]string, arch string) (map[string][]symbolizer.Frame, error) {
+	prefix := getCrossCompilerPrefix(arch)
 	frames := make(map[string][]symbolizer.Frame)
 	for module := range modules {
 		errc := make(chan error)
@@ -370,7 +390,7 @@ func objdumpAndSymbolize(modules map[string]string, arch string) (map[string][]s
 			}
 			errc <- err
 		}()
-		cmd := osutil.Command("objdump", "-d", "--no-show-raw-insn", modules[module])
+		cmd := osutil.Command(prefix+"objdump", "-d", "--no-show-raw-insn", modules[module])
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			return nil, err

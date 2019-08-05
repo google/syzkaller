@@ -75,7 +75,18 @@ func loadPartial(cfg *Config) (*Config, error) {
 	return cfg, nil
 }
 
-func Complete(cfg *Config) error {
+func jsonLoads(str []byte) (map[string]string, error) {
+	if len(str) != 0 {
+		objects := make(map[string]string)
+		if err := json.Unmarshal(str, &objects); err != nil {
+			return nil, err
+		}
+		return objects, nil
+	}
+	return nil, nil
+}
+
+func initConfigCheck(cfg *Config) error {
 	if cfg.TargetOS == "" || cfg.TargetVMArch == "" || cfg.TargetArch == "" {
 		return fmt.Errorf("target parameters are not filled in")
 	}
@@ -106,6 +117,13 @@ func Complete(cfg *Config) error {
 	if err := checkSSHParams(cfg); err != nil {
 		return err
 	}
+	return nil
+}
+
+func Complete(cfg *Config) error {
+	if err := initConfigCheck(cfg); err != nil {
+		return err
+	}
 
 	cfg.KernelObj = osutil.Abs(cfg.KernelObj)
 	if cfg.KernelSrc == "" {
@@ -115,12 +133,12 @@ func Complete(cfg *Config) error {
 	if cfg.KernelBuildSrc == "" {
 		cfg.KernelBuildSrc = cfg.KernelSrc
 	}
-	if len(cfg.KernelModules) != 0 {
-		cfg.Modules = make(map[string]string)
-		if err := json.Unmarshal(cfg.KernelModules, &cfg.Modules); err != nil {
-			return err
-		}
+
+	modules, err := jsonLoads(cfg.KernelModules)
+	if err != nil {
+		return err
 	}
+	cfg.Modules = modules
 
 	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
 		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
