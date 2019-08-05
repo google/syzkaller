@@ -5574,7 +5574,7 @@ void execute_one(void)
 void loop(void)
 #endif
 {
-	/*SYSCALLS*/
+/*SYSCALLS*/
 #if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED && !SYZ_REPEAT
 	close_fds();
 #endif
@@ -5593,7 +5593,7 @@ int main(int argc, char** argv)
 #else
 int main(void)
 {
-	/*MMAP_DATA*/
+/*MMAP_DATA*/
 #endif
 
 #if SYZ_ENABLE_BINFMT_MISC
@@ -5616,7 +5616,7 @@ int main(void)
 #if SYZ_USE_TMP_DIR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 			use_temporary_dir();
 #endif
-			/*SANDBOX_FUNC*/
+/*SANDBOX_FUNC*/
 #if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED && !SYZ_REPEAT && !SYZ_SANDBOX_NONE && \
     !SYZ_SANDBOX_SETUID && !SYZ_SANDBOX_NAMESPACE && !SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 			close_fds();

@@ -162,7 +162,7 @@ static void initialize_tun(int tun_id)
 	char local_mac[sizeof(LOCAL_MAC)];
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC);
 
-	// Set the MAC address of the interface to LOCAL_MAC
+// Set the MAC address of the interface to LOCAL_MAC
 #if GOOS_openbsd
 	execute_command(1, "ifconfig %s lladdr %s", tun_iface, local_mac);
 #elif GOOS_netbsd
