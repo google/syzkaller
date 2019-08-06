@@ -4,6 +4,7 @@ pseudo-device kcov 1
 
 option LOCKF_DIAGNOSTIC
 option SPLASSERT_WATCH
+option VFSLCKDEBUG
 option WITNESS
 option WITNESS_LOCKTRACE
 option WITNESS_WATCH
