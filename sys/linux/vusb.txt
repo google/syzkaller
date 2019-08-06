@@ -14,16 +14,11 @@ include <uapi/linux/usb/cdc.h>
 include <uapi/linux/if_ether.h>
 include <drivers/net/usb/asix.h>
 
-# drivers/usb/class/usblp.c
-define USBLP_REQ_GET_ID	0x00
-define USBLP_REQ_GET_STATUS	0x01
-define USBLP_REQ_RESET	0x02
-define USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST	0x00
-
 # This is a special fd for USB fuzzing and should only be used with syz_usb_* syzcalls.
 # We don't inherit it from the fd resource, to discourage syzkaller calling raw ioctls on it.
 resource fd_usb[int32]: -1
 resource fd_usb_hid[fd_usb]
+resource fd_usb_printer[fd_usb]
 
 # These are generic syzcalls for emulating arbitrary USB devices.
 # They are mostly targeted to cover the enumeration process.
@@ -35,7 +30,11 @@ syz_usb_disconnect(fd fd_usb)
 
 # These are syzcalls that specifically target the HID device class.
 syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
-syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
+syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid])
+
+# These are syzcalls that specifically target the PRINTER device class.
+syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer
+syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer])
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
 
@@ -68,13 +67,13 @@ usb_versions = 0x110, 0x200, 0x201, 0x250, 0x300, 0x310
 # https://elixir.bootlin.com/linux/v5.1.7/source/drivers/usb/core/hub.c#L4661
 usb_max_packet_sizes = 8, 16, 32, 64
 
-type usb_config_descriptor_t[ATTRS, IFS] {
+type usb_config_descriptor_t[NUM, ATTRS, IFS] {
 	bLength			const[USB_DT_CONFIG_SIZE, int8]
 	bDescriptorType		const[USB_DT_CONFIG, int8]
 
 	wTotalLength		len[parent, int16]
 	bNumInterfaces		len[interfaces, int8]
-	bConfigurationValue	int8
+	bConfigurationValue	NUM
 	iConfiguration		int8
 	bmAttributes		ATTRS
 	bMaxPower		int8
@@ -129,7 +128,7 @@ usb_device_descriptor {
 
 # TODO: support more than one interface.
 usb_config_descriptor {
-	inner	usb_config_descriptor_t[flags[usb_config_attributes, int8], array[usb_interface_descriptor, 1]]
+	inner	usb_config_descriptor_t[int8, flags[usb_config_attributes, int8], array[usb_interface_descriptor, 1]]
 } [packed]
 
 usb_config_attributes = USB_CONFIG_ATT_ONE, USB_CONFIG_ATT_SELFPOWER, USB_CONFIG_ATT_WAKEUP, USB_CONFIG_ATT_BATTERY
@@ -148,7 +147,7 @@ usb_endpoint_addresses = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, USB_
 
 usb_endpoint_attributes = USB_ENDPOINT_XFER_CONTROL, USB_ENDPOINT_XFER_ISOC, USB_ENDPOINT_XFER_BULK, USB_ENDPOINT_XFER_INT, USB_ENDPOINT_INTR_PERIODIC, USB_ENDPOINT_INTR_NOTIFICATION, USB_ENDPOINT_SYNC_NONE, USB_ENDPOINT_SYNC_ASYNC, USB_ENDPOINT_SYNC_ADAPTIVE, USB_ENDPOINT_SYNC_SYNC, USB_ENDPOINT_USAGE_DATA, USB_ENDPOINT_USAGE_FEEDBACK, USB_ENDPOINT_USAGE_FEEDBACK
 
-# TODO: consider unifying with vusb_descriptors in case this struct significantly grows.
+# TODO: define this struct for each class.
 vusb_connect_descriptors {
 	qual_len	len[qual, int32]
 	qual		ptr[in, usb_qualifier_descriptor]
@@ -164,17 +163,14 @@ vusb_connect_string_descriptor {
 } [packed]
 
 vusb_descriptors {
-	len		len[parent, int32]
-	generic		ptr[in, vusb_descriptor_generic]
+	len	len[parent, int32]
+	generic	ptr[in, vusb_descriptor_generic]
 
-	string		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
-	bos		ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_BOS, usb_bos_descriptor]]
+	string	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+	bos	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_BOS, usb_bos_descriptor]]
 
-# For unknown reasons HID_DT_REPORT is requested as USB_TYPE_STANDARD and not as USB_TYPE_CLASS.
-	hid_report	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
-
-	hub_hs		ptr[in, vusb_descriptor_t[USB_TYPE_CLASS, USB_DT_HUB, usb_hub_descriptor_hs]]
-	hub_ss		ptr[in, vusb_descriptor_t[USB_TYPE_CLASS, USB_DT_SS_HUB, usb_hub_descriptor_ss]]
+	hub_hs	ptr[in, vusb_descriptor_t[USB_TYPE_CLASS, USB_DT_HUB, usb_hub_descriptor_hs]]
+	hub_ss	ptr[in, vusb_descriptor_t[USB_TYPE_CLASS, USB_DT_SS_HUB, usb_hub_descriptor_ss]]
 } [packed]
 
 vusb_descriptor_generic {
@@ -193,39 +189,39 @@ type vusb_descriptor_t[CLASS, REQ, DATA] {
 	data	DATA
 } [packed]
 
+# TODO: consider doing lookups based on USB_RECIP values.
+# TODO: split out class and driver specific responses into separate structs.
 vusb_responses {
-	len						len[parent, int32]
-	generic						ptr[in, vusb_response_generic]
+	len				len[parent, int32]
+	generic				ptr[in, vusb_response_generic]
 
-	get_interface					ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
-	get_configuration				ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+	get_interface			ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	get_configuration		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
 
-	audio_UAC_GET_CUR				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_CUR, array[int8, 1:3]]]
-	audio_UAC_GET_MIN				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MIN, array[int8, 1:3]]]
-	audio_UAC_GET_MAX				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MAX, array[int8, 1:3]]]
-	audio_UAC_GET_RES				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_RES, array[int8, 1:4]]]
-	audio_UAC_GET_MEM				ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MEM, array[int8, 3]]]
+# TODO: https://elixir.bootlin.com/linux/v5.2.6/source/include/linux/usb/audio-v2.h#L256
+	audio_UAC_GET_CUR		ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_CUR, array[int8, 1:3]]]
+	audio_UAC_GET_MIN		ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MIN, array[int8, 1:3]]]
+	audio_UAC_GET_MAX		ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MAX, array[int8, 1:3]]]
+	audio_UAC_GET_RES		ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_RES, array[int8, 1:4]]]
+	audio_UAC_GET_MEM		ptr[in, vusb_response_t[USB_TYPE_CLASS, UAC_GET_MEM, array[int8, 3]]]
 
-	printer_USBLP_REQ_GET_ID			ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_GET_ID, array[int8, 0:1023]]]
-	printer_USBLP_REQ_GET_STATUS			ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_GET_STATUS, int8]]
-	printer_USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST	ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST, int8]]
+	hub_USB_REQ_GET_STATUS_hub	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
+	hub_USB_REQ_GET_STATUS_port	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
 
-	hub_USB_REQ_GET_STATUS_hub			ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
-	hub_USB_REQ_GET_STATUS_port			ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
+# TODO: https://elixir.bootlin.com/linux/v5.2.6/source/include/uapi/linux/usb/cdc.h#L233
+	cdc_USB_CDC_GET_NTB_PARAMETERS	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_CDC_GET_NTB_PARAMETERS, usb_cdc_ncm_ntb_parameters]]
 
-	cdc_USB_CDC_GET_NTB_PARAMETERS			ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_CDC_GET_NTB_PARAMETERS, usb_cdc_ncm_ntb_parameters]]
-
-	asix_AX_CMD_READ_MII_REG			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MII_REG, int16]]
-	asix_AX_CMD_STATMNGSTS_REG			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_STATMNGSTS_REG, int8]]
-	asix_AX_CMD_READ_EEPROM				ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_EEPROM, array[int8, 2]]]
-	asix_AX_CMD_READ_RX_CTL				ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_RX_CTL, int16]]
-	asix_AX_CMD_READ_NODE_ID			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_NODE_ID, mac_addr]]
-	asix_AX88172_CMD_READ_NODE_ID			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX88172_CMD_READ_NODE_ID, mac_addr]]
-	asix_AX_CMD_READ_PHY_ID				ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_PHY_ID, array[int8, 2]]]
-	asix_AX_CMD_READ_MEDIUM_STATUS			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MEDIUM_STATUS, int16]]
-	asix_AX_CMD_READ_MONITOR_MODE			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MONITOR_MODE, int8]]
-	asix_AX_CMD_READ_GPIOS				ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_GPIOS, int8]]
-	asix_AX_CMD_SW_PHY_STATUS			ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_SW_PHY_STATUS, int8]]
+	asix_AX_CMD_READ_MII_REG	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MII_REG, int16]]
+	asix_AX_CMD_STATMNGSTS_REG	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_STATMNGSTS_REG, int8]]
+	asix_AX_CMD_READ_EEPROM		ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_EEPROM, array[int8, 2]]]
+	asix_AX_CMD_READ_RX_CTL		ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_RX_CTL, int16]]
+	asix_AX_CMD_READ_NODE_ID	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_NODE_ID, mac_addr]]
+	asix_AX88172_CMD_READ_NODE_ID	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX88172_CMD_READ_NODE_ID, mac_addr]]
+	asix_AX_CMD_READ_PHY_ID		ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_PHY_ID, array[int8, 2]]]
+	asix_AX_CMD_READ_MEDIUM_STATUS	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MEDIUM_STATUS, int16]]
+	asix_AX_CMD_READ_MONITOR_MODE	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MONITOR_MODE, int8]]
+	asix_AX_CMD_READ_GPIOS		ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_GPIOS, int8]]
+	asix_AX_CMD_SW_PHY_STATUS	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_SW_PHY_STATUS, int8]]
 } [packed]
 
 vusb_response_generic {
@@ -243,45 +239,6 @@ type vusb_response_t[CLASS, REQ, DATA] {
 	len	bytesize[data, int32]
 	data	DATA
 } [packed]
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# USB device, configuration, interface and endpoint descriptors for the HID device class.
-
-# idVendor and idProduct are patched by Go code, see sys/linux/init_vusb.go.
-usb_device_descriptor_hid {
-	inner	usb_device_descriptor_t[0, 0, 0, 0, 0, 64, array[usb_config_descriptor_hid, 1]]
-} [packed]
-
-usb_config_descriptor_hid {
-	inner	usb_config_descriptor_t[const[USB_CONFIG_HID_ATTRIBUTES, int8], array[usb_interface_descriptor_hid, 1]]
-} [packed]
-
-usb_interface_descriptor_hid {
-	inner	usb_interface_descriptor_t[int8, const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
-} [packed]
-
-usb_hid_protocols = 0, USB_INTERFACE_PROTOCOL_KEYBOARD, USB_INTERFACE_PROTOCOL_MOUSE
-
-usb_endpoint_descriptors_hid {
-	in	usb_endpoint_descriptor_hid_in
-	out	array[usb_endpoint_descriptor_hid_out, 0:1]
-} [packed]
-
-usb_endpoint_descriptor_hid_in {
-	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_IN_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], void]
-} [packed]
-
-usb_endpoint_descriptor_hid_out {
-	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_OUT_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], void]
-} [packed]
-
-define USB_CONFIG_HID_ATTRIBUTES	(USB_CONFIG_ATT_ONE | USB_CONFIG_ATT_WAKEUP)
-define USB_ENDPOINT_HID_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
-define USB_ENDPOINT_HID_IN_ADDRESS	(1 | USB_DIR_IN)
-define USB_ENDPOINT_HID_OUT_ADDRESS	(2)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -312,6 +269,7 @@ usb_qualifier_descriptor {
 	bRESERVED		const[0, int8]
 } [packed]
 
+# TODO: investigate which devices are required to have this descriptor.
 usb_bos_descriptor {
 	bLength		const[USB_DT_BOS_SIZE, int8]
 	bDescriptorType	const[USB_DT_BOS, int8]
@@ -459,25 +417,6 @@ usb_generic_descriptor {
 } [packed]
 
 usb_descriptor_types = USB_DT_DEVICE, USB_DT_CONFIG, USB_DT_STRING, USB_DT_INTERFACE, USB_DT_ENDPOINT, USB_DT_DEVICE_QUALIFIER, USB_DT_OTHER_SPEED_CONFIG, USB_DT_INTERFACE_POWER, USB_DT_OTG, USB_DT_DEBUG, USB_DT_INTERFACE_ASSOCIATION, USB_DT_SECURITY, USB_DT_KEY, USB_DT_ENCRYPTION_TYPE, USB_DT_BOS, USB_DT_DEVICE_CAPABILITY, USB_DT_WIRELESS_ENDPOINT_COMP, USB_DT_WIRE_ADAPTER, USB_DT_RPIPE, USB_DT_CS_RADIO_CONTROL, USB_DT_PIPE_USAGE, USB_DT_SS_ENDPOINT_COMP, USB_DT_SSP_ISOC_ENDPOINT_COMP, HID_DT_HID, HID_DT_REPORT, HID_DT_PHYSICAL
-
-# USB HID specifications allows for multiple report and physical descriptors
-# to be present, but I don't see any support for them in the Linux kernel,
-# except for a single report descriptor.
-usb_hid_descriptor_hid {
-	bLength		len[parent, int8]
-	bDescriptorType	const[HID_DT_HID, int8]
-
-	bcdHID		int16
-	bCountryCode	int8
-	bNumDescriptors	const[1, int8]
-
-	report_desc	usb_hid_class_descriptor_report
-} [packed]
-
-usb_hid_class_descriptor_report {
-	bDescriptorType		const[HID_DT_REPORT, int8]
-	wDescriptorLength	int16[0:HID_MAX_DESCRIPTOR_SIZE]
-} [packed]
 
 usb_cdc_header {
 	items	array[usb_cdc_header_item, 0:16]
@@ -655,43 +594,6 @@ usb_cdc_mbim_extended_desc {
 
 # USB descriptors requested after the SET_CONFIGURATION request.
 
-# TODO: define recusively to generate proper structures.
-# Linux HID stack doesn't support long items.
-hid_descriptor_report {
-	items	array[hid_report_item_short]
-} [packed]
-
-type hid_report_item_short_012_t[TYPE, TAGS] {
-	bSize	len[data, int8:2]
-	bType	const[TYPE, int8:2]
-	bTag	flags[TAGS, int8:4]
-	data	array[int8, 0:2]
-} [packed]
-
-type hid_report_item_short_4_t[TYPE, TAGS] {
-	bSize	const[3, int8:2]
-	bType	const[TYPE, int8:2]
-	bTag	flags[TAGS, int8:4]
-	data	array[int8, 4]
-} [packed]
-
-type hid_report_item_short_t[TYPE, TAGS] [
-	item_012	hid_report_item_short_012_t[TYPE, TAGS]
-	item_4		hid_report_item_short_4_t[TYPE, TAGS]
-] [varlen]
-
-hid_report_item_short [
-	main	hid_report_item_short_t[HID_ITEM_TYPE_MAIN, hid_report_item_main_tags]
-	global	hid_report_item_short_t[HID_ITEM_TYPE_GLOBAL, hid_report_item_global_tags]
-	local	hid_report_item_short_t[HID_ITEM_TYPE_LOCAL, hid_report_item_local_tags]
-] [varlen]
-
-hid_report_item_main_tags = HID_MAIN_ITEM_TAG_INPUT, HID_MAIN_ITEM_TAG_OUTPUT, HID_MAIN_ITEM_TAG_FEATURE, HID_MAIN_ITEM_TAG_BEGIN_COLLECTION, HID_MAIN_ITEM_TAG_END_COLLECTION
-hid_report_item_global_tags = HID_GLOBAL_ITEM_TAG_USAGE_PAGE, HID_GLOBAL_ITEM_TAG_LOGICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_LOGICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_UNIT_EXPONENT, HID_GLOBAL_ITEM_TAG_UNIT, HID_GLOBAL_ITEM_TAG_REPORT_SIZE, HID_GLOBAL_ITEM_TAG_REPORT_ID, HID_GLOBAL_ITEM_TAG_REPORT_COUNT, HID_GLOBAL_ITEM_TAG_PUSH, HID_GLOBAL_ITEM_TAG_POP
-hid_report_item_local_tags = HID_LOCAL_ITEM_TAG_USAGE, HID_LOCAL_ITEM_TAG_USAGE_MINIMUM, HID_LOCAL_ITEM_TAG_USAGE_MAXIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_INDEX, HID_LOCAL_ITEM_TAG_DESIGNATOR_MINIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_MAXIMUM, HID_LOCAL_ITEM_TAG_STRING_INDEX, HID_LOCAL_ITEM_TAG_STRING_MINIMUM, HID_LOCAL_ITEM_TAG_STRING_MAXIMUM, HID_LOCAL_ITEM_TAG_DELIMITER
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
 usb_hub_descriptor_hs {
 	bDescLength		len[parent, int8]
 	bDescriptorType		const[USB_DT_HUB, int8]
@@ -763,6 +665,208 @@ usb_cdc_ncm_ntb_parameters {
 	wNdpOutPayloadRemainder	int16
 	wNdpOutAlignment	int16
 	wNtbOutMaxDatagrams	int16
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# HID device class specific descriptions.
+# https://www.usb.org/sites/default/files/documents/hid1_11.pdf
+# https://elixir.bootlin.com/linux/latest/source/drivers/hid/usbhid/hid-core.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/hid/hid-core.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/hid.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_hid.c
+
+# Connected HID devices are known to create the following /dev/ files:
+# /dev/hidraw#, /dev/usb/hiddev# and /dev/input/event#.
+
+# idVendor and idProduct are patched by Go code, see sys/linux/init_vusb.go.
+usb_device_descriptor_hid {
+	inner	usb_device_descriptor_t[0, 0, 0, 0, 0, 64, array[usb_config_descriptor_hid, 1]]
+} [packed]
+
+usb_config_descriptor_hid {
+	inner	usb_config_descriptor_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_hid, 1]]
+} [packed]
+
+usb_interface_descriptor_hid {
+	inner	usb_interface_descriptor_t[int8, const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
+} [packed]
+
+usb_hid_protocols = 0, USB_INTERFACE_PROTOCOL_KEYBOARD, USB_INTERFACE_PROTOCOL_MOUSE
+
+usb_endpoint_descriptors_hid {
+	in	usb_endpoint_descriptor_hid_in
+	out	array[usb_endpoint_descriptor_hid_out, 0:1]
+} [packed]
+
+usb_endpoint_descriptor_hid_in {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_IN_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], void]
+} [packed]
+
+usb_endpoint_descriptor_hid_out {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_HID_OUT_ADDRESS, int8], const[USB_ENDPOINT_HID_ATTRIBUTES, int8], void]
+} [packed]
+
+define USB_ENDPOINT_HID_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
+define USB_ENDPOINT_HID_IN_ADDRESS	(1 | USB_DIR_IN)
+define USB_ENDPOINT_HID_OUT_ADDRESS	(2)
+
+vusb_descriptors_hid {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+
+# For unknown reasons these are requested as USB_TYPE_STANDARD and not as USB_TYPE_CLASS.
+# Linux doesn't request HID_DT_HID, but some hosts might do that.
+	HID_DT_REPORT	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_REPORT, hid_descriptor_report]]
+	HID_DT_HID	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, HID_DT_HID, usb_hid_descriptor_hid]]
+} [packed]
+
+vusb_responses_hid {
+	len				len[parent, int32]
+	generic				ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+
+	HID_REQ_GET_REPORT		ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_GET_REPORT, array[int8]]]
+	HID_REQ_GET_PROTOCOL		ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_GET_REPORT, int8]]
+} [packed]
+
+# USB HID specifications allows for multiple report and physical descriptors
+# to be present, but I don't see any support for them in the Linux kernel,
+# except for a single report descriptor.
+usb_hid_descriptor_hid {
+	bLength		len[parent, int8]
+	bDescriptorType	const[HID_DT_HID, int8]
+
+	bcdHID		int16
+	bCountryCode	int8
+	bNumDescriptors	const[1, int8]
+
+	report_desc	usb_hid_class_descriptor_report
+} [packed]
+
+usb_hid_class_descriptor_report {
+	bDescriptorType		const[HID_DT_REPORT, int8]
+	wDescriptorLength	int16[0:HID_MAX_DESCRIPTOR_SIZE]
+} [packed]
+
+# TODO: it's hard to describe the REPORT descriptor structure via syzkaller
+# descriptions, so consider generating it in Go code.
+# TODO: the length of REPORT descriptor must match the value in HID descriptor.
+# Linux HID stack doesn't support long items.
+# TODO: there are vendor specific REPORT descriptor formats (Logitech HID++).
+hid_descriptor_report {
+	items	array[hid_report_item_short]
+} [packed]
+
+type hid_report_item_short_012_t[TYPE, TAGS] {
+	bSize	len[data, int8:2]
+	bType	const[TYPE, int8:2]
+	bTag	flags[TAGS, int8:4]
+	data	array[int8, 0:2]
+} [packed]
+
+type hid_report_item_short_4_t[TYPE, TAGS] {
+	bSize	const[3, int8:2]
+	bType	const[TYPE, int8:2]
+	bTag	flags[TAGS, int8:4]
+	data	array[int8, 4]
+} [packed]
+
+type hid_report_item_short_t[TYPE, TAGS] [
+	item_012	hid_report_item_short_012_t[TYPE, TAGS]
+	item_4		hid_report_item_short_4_t[TYPE, TAGS]
+] [varlen]
+
+hid_report_item_short [
+	main	hid_report_item_short_t[HID_ITEM_TYPE_MAIN, hid_report_item_main_tags]
+	global	hid_report_item_short_t[HID_ITEM_TYPE_GLOBAL, hid_report_item_global_tags]
+	local	hid_report_item_short_t[HID_ITEM_TYPE_LOCAL, hid_report_item_local_tags]
+] [varlen]
+
+hid_report_item_main_tags = HID_MAIN_ITEM_TAG_INPUT, HID_MAIN_ITEM_TAG_OUTPUT, HID_MAIN_ITEM_TAG_FEATURE, HID_MAIN_ITEM_TAG_BEGIN_COLLECTION, HID_MAIN_ITEM_TAG_END_COLLECTION
+hid_report_item_global_tags = HID_GLOBAL_ITEM_TAG_USAGE_PAGE, HID_GLOBAL_ITEM_TAG_LOGICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_LOGICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MINIMUM, HID_GLOBAL_ITEM_TAG_PHYSICAL_MAXIMUM, HID_GLOBAL_ITEM_TAG_UNIT_EXPONENT, HID_GLOBAL_ITEM_TAG_UNIT, HID_GLOBAL_ITEM_TAG_REPORT_SIZE, HID_GLOBAL_ITEM_TAG_REPORT_ID, HID_GLOBAL_ITEM_TAG_REPORT_COUNT, HID_GLOBAL_ITEM_TAG_PUSH, HID_GLOBAL_ITEM_TAG_POP
+hid_report_item_local_tags = HID_LOCAL_ITEM_TAG_USAGE, HID_LOCAL_ITEM_TAG_USAGE_MINIMUM, HID_LOCAL_ITEM_TAG_USAGE_MAXIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_INDEX, HID_LOCAL_ITEM_TAG_DESIGNATOR_MINIMUM, HID_LOCAL_ITEM_TAG_DESIGNATOR_MAXIMUM, HID_LOCAL_ITEM_TAG_STRING_INDEX, HID_LOCAL_ITEM_TAG_STRING_MINIMUM, HID_LOCAL_ITEM_TAG_STRING_MAXIMUM, HID_LOCAL_ITEM_TAG_DELIMITER
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# PRINTER device class specific descriptions.
+# https://www.usb.org/sites/default/files/usbprint11a021811.pdf
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/class/usblp.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/printer.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_printer.c
+
+# Connected PRINTER devices are known to create the following /dev/ files:
+# /dev/usb/lp#.
+# TODO: write descriptions for it.
+
+# drivers/usb/class/usblp.c
+define USBLP_REQ_GET_ID	0x00
+define USBLP_REQ_GET_STATUS	0x01
+define USBLP_REQ_RESET	0x02
+define USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST	0x00
+define USBLP_FIRST_PROTOCOL	1
+define USBLP_LAST_PROTOCOL	3
+
+# TODO: consider patching idVendor and idProduct in Go code.
+usb_device_descriptor_printer {
+	inner	usb_device_descriptor_t[0, 0, 0, 0x3f0, 0x6c17, 64, array[usb_config_descriptor_printer, 1]]
+} [packed]
+
+usb_config_descriptor_printer {
+	inner	usb_config_descriptor_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_printer, 1]]
+} [packed]
+
+usb_interface_descriptor_printer {
+	inner	usb_interface_descriptor_t[int8, const[USB_CLASS_PRINTER, int8], const[1, int8], int8[USBLP_FIRST_PROTOCOL:USBLP_LAST_PROTOCOL], void, usb_endpoint_descriptors_printer]
+} [packed]
+
+usb_endpoint_descriptors_printer {
+	in	usb_endpoint_descriptor_printer_out
+	out	array[usb_endpoint_descriptor_printer_in, 0:1]
+} [packed]
+
+usb_endpoint_descriptor_printer_out {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_PRINTER_OUT_ADDRESS, int8], const[USB_ENDPOINT_PRINTER_ATTRIBUTES, int8], void]
+} [packed]
+
+usb_endpoint_descriptor_printer_in {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_PRINTER_IN_ADDRESS, int8], const[USB_ENDPOINT_PRINTER_ATTRIBUTES, int8], void]
+} [packed]
+
+define USB_ENDPOINT_PRINTER_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK | USB_ENDPOINT_SYNC_NONE | USB_ENDPOINT_USAGE_DATA)
+define USB_ENDPOINT_PRINTER_OUT_ADDRESS	(1)
+define USB_ENDPOINT_PRINTER_IN_ADDRESS	(2 | USB_DIR_IN)
+
+vusb_descriptors_printer {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor]]
+} [packed]
+
+vusb_responses_printer {
+	len					len[parent, int32]
+	generic					ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE			ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
+
+	USBLP_REQ_GET_ID			ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_GET_ID, usb_printer_get_id_response]]
+	USBLP_REQ_GET_STATUS			ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_GET_STATUS, int8]]
+	USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST	ptr[in, vusb_response_t[USB_TYPE_CLASS, USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST, int8]]
+} [packed]
+
+usb_printer_get_id_response {
+	length	len[id, int16be]
+	id	array[int8]
 } [packed]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
