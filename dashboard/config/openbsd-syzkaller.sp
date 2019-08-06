@@ -4,3 +4,4 @@ pseudo-device kcov 1
 
 option LOCKF_DIAGNOSTIC
 option SPLASSERT_WATCH
+option VFSLCKDEBUG
