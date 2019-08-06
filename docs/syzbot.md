@@ -311,7 +311,7 @@ and attach/inline your test patch in the same email. `commit-hash` is the id
 of the kernel commit on which this bug was reproduced, its value can be found
 in the initial report email.
 
-If the bug some from the `KMSAN` tree, follow the [instructions above](#kmsan-bugs),
+If the bug was triggered on the `KMSAN` tree, follow the [instructions above](#kmsan-bugs),
 with the exception that you must also use `commit-hash` instead of the `master`
 branch when testing patches.
 
