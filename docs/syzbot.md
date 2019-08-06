@@ -298,7 +298,7 @@ is the original source of uninitialized-ness.
 syzkaller has an ability to perform fuzzing of the Linux kernel USB stack, see
 the details [here](/docs/linux/external_fuzzing_usb.md). This requires
 non-yet-upstreamed kernel changes, and as a result USB fuzzing is only being
-run n the `usb-fuzzer` branch of the `https://github.com/google/kasan.git` tree,
+run on the `usb-fuzzer` branch of the `https://github.com/google/kasan.git` tree,
 and on the `master` branch of the `https://github.com/google/kmsan.git` tree.
 
 If the bug report comes from the `usb-fuzzer` tree, the recommended way for
