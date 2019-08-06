@@ -6,6 +6,8 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [diskmap(4): side-effect in error path](https://marc.info/?l=openbsd-cvs&m=156499481623952&w=2)
+
 - [rtable_walk(9): stack exhausted due to recursion](https://marc.info/?l=openbsd-cvs&m=156113711405665&w=2)
 
 - [ftruncate: side-effect in error path](https://marc.info/?l=openbsd-cvs&m=156084321808087&w=2)
