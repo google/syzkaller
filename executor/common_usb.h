@@ -267,6 +267,8 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 	}
 	debug("syz_usb_connect: usb_fuzzer_open success\n");
 
+	// TODO: consider creating two dummy_udc's per proc to increace the chance of
+	// triggering interaction between multiple USB devices within the same program.
 	char device[32];
 	sprintf(&device[0], "dummy_udc.%llu", procid);
 	rv = usb_fuzzer_init(fd, speed, "dummy_udc", &device[0]);
