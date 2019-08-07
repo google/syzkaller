@@ -641,6 +641,43 @@ var syscalls_64 = []*Syscall{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a0", TypeSize: 8}}, ValuesStart: 10, ValuesPerProc: 2},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a1", TypeSize: 8, IsOptional: true}}, ValuesStart: 10, ValuesPerProc: 2},
 	}},
+	{Name: "mutate$array", CallName: "mutate", MissingArgs: 6, Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "i1", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "i2", TypeSize: 8}}, Kind: 2, RangeEnd: 536870911},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 1}}},
+	}},
+	{Name: "mutate$flags", CallName: "mutate", MissingArgs: 5, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "i1", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "b1", TypeSize: 2}}, Kind: 2, RangeEnd: 1},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bitmask_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 8, 16}, BitMask: true},
+	}},
+	{Name: "mutate$flags2", CallName: "mutate", MissingArgs: 7, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bitmask_flags2", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128}, BitMask: true},
+	}},
+	{Name: "mutate$flags3", CallName: "mutate", MissingArgs: 7, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags2", FldName: "flags", TypeSize: 8}}, Vals: []uint64{12297829382473034410, 12297829382759365563, 13527612320720337851, 13527612321006669004, 14757395258967641292, 14757395259253972445, 15987178197214944733, 15987178197501275886, 17216961135462248174, 17216961135748579327, 18446744073709551615}},
+	}},
+	{Name: "mutate$integer", CallName: "mutate", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b1", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b2", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b3", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b4", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b5", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b6", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b7", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b8", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "i9", TypeSize: 8}}},
+	}},
+	{Name: "mutate$integer2", CallName: "mutate", MissingArgs: 4, Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "b1", TypeSize: 8}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "i1", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "i2", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "i3", TypeSize: 2}}, Kind: 2, RangeEnd: 8},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "i4", TypeSize: 1}}, Kind: 2, RangeEnd: 8},
+	}},
 	{Name: "mutate0", CallName: "mutate0"},
 	{Name: "mutate1", CallName: "mutate1"},
 	{Name: "mutate2", CallName: "mutate2"},
@@ -1023,6 +1060,7 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_fallback"},
 	{Name: "SYS_foo"},
 	{Name: "SYS_minimize"},
+	{Name: "SYS_mutate"},
 	{Name: "SYS_mutate0"},
 	{Name: "SYS_mutate1"},
 	{Name: "SYS_mutate2"},
@@ -1039,4 +1077,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "8c0a50a6c63e5bd297e9f6421864685e1fd7dc96"
+const revision_64 = "aaee55a3532998a140b25dc52cc113c4de048dd2"
