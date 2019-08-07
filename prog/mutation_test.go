@@ -11,6 +11,32 @@ import (
 	"testing"
 )
 
+func TestMutationFlags(t *testing.T) {
+	tests := [][2]string{
+		// Mutate flags (bitmask = true).
+		{
+			`r0 = mutate$flags(&(0x7f0000000000)="2e2f66696c653000", 0x0, 0x1, 0x1)`,
+			`r0 = mutate$flags(&(0x7f0000000000)="2e2f66696c653000", 0x20, 0x1, 0x9)`,
+		},
+		{
+			`r0 = mutate$flags2(&(0x7f0000000000)="2e2f66696c653000", 0x0)`,
+			`r0 = mutate$flags2(&(0x7f0000000000)="2e2f66696c653000", 0xd9)`,
+		},
+
+		// Mutate flags (bitmask = false).
+		{
+			`r0 = mutate$flags3(&(0x7f0000000000)="2e2f66696c653000", 0x0)`,
+			`r0 = mutate$flags3(&(0x7f0000000000)="2e2f66696c653000", 0xddddddddeeeeeeee)`,
+		},
+		{
+			`r0 = mutate$flags3(&(0x7f0000000000)="2e2f66696c653000", 0xddddddddeeeeeeee)`,
+			`r0 = mutate$flags3(&(0x7f0000000000)="2e2f66696c653000", 0xaaaaaaaaaaaaaaaa)`,
+		},
+	}
+
+	runMutationTests(t, tests)
+}
+
 func TestClone(t *testing.T) {
 	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
@@ -68,7 +94,6 @@ func TestMutateCorpus(t *testing.T) {
 }
 
 func TestMutateTable(t *testing.T) {
-	target := initTargetTest(t, "test", "64")
 	tests := [][2]string{
 		// Insert a call.
 		{`
@@ -151,6 +176,13 @@ mutate8(0x2)
 mutate8(0xffffffffffffffff)
 `},
 	}
+
+	runMutationTests(t, tests)
+}
+
+func runMutationTests(t *testing.T, tests [][2]string) {
+	target := initTargetTest(t, "test", "64")
+
 	for ti, test := range tests {
 		test := test
 		t.Run(fmt.Sprint(ti), func(t *testing.T) {
