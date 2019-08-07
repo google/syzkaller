@@ -41,6 +41,7 @@ func InitTarget(target *prog.Target) {
 		AF_AX25:                     target.GetConst("AF_AX25"),
 		AF_NETROM:                   target.GetConst("AF_NETROM"),
 		AF_ROSE:                     target.GetConst("AF_ROSE"),
+		USB_MAJOR:                   target.GetConst("USB_MAJOR"),
 		// These are not present on all arches.
 		ARCH_SET_FS: target.ConstMap["ARCH_SET_FS"],
 		ARCH_SET_GS: target.ConstMap["ARCH_SET_GS"],
@@ -138,6 +139,7 @@ type arch struct {
 	AF_AX25                     uint64
 	AF_NETROM                   uint64
 	AF_ROSE                     uint64
+	USB_MAJOR                   uint64
 }
 
 func (arch *arch) sanitizeCall(c *prog.Call) {
@@ -206,6 +208,10 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 	switch c.Meta.Name {
 	case "setsockopt$EBT_SO_SET_ENTRIES":
 		arch.sanitizeEbtables(c)
+	case "syz_open_dev$char_usb":
+		// Don't allow opening various char and block devices.
+		c.Args[0].(*prog.ConstArg).Val = 0xc
+		c.Args[1].(*prog.ConstArg).Val = arch.USB_MAJOR
 	}
 }
 
