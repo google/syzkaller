@@ -234,7 +234,31 @@ func (t *IntType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Ca
 }
 
 func (t *FlagsType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
-	return mutateInt(r, s, arg)
+	a := arg.(*ConstArg)
+
+	for oldVal := a.Val; oldVal == a.Val; {
+		// Generate a new value.
+		if r.nOutOf(1, 5) {
+			a.Val = r.flags(t.Vals, t.BitMask, 0)
+			continue
+		}
+
+		if !t.BitMask || (t.BitMask && r.nOutOf(1, 4)) {
+			a.Val = r.flags(t.Vals, t.BitMask, a.Val)
+			continue
+		}
+
+		for stop := false; !stop; stop = r.oneOf(3) {
+			idx := r.rand(len(t.Vals))
+			if r.bin() {
+				a.Val |= 1 << t.Vals[idx]
+			} else {
+				a.Val &= ^(1 << t.Vals[idx])
+			}
+		}
+	}
+
+	return
 }
 
 func (t *LenType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {

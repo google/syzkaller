@@ -137,15 +137,17 @@ func (r *randGen) randPageCount() (n uint64) {
 	return
 }
 
-func (r *randGen) flags(vv []uint64) (v uint64) {
+// Change a flag value or generate a new one.
+func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) (v uint64) {
+	v = oldVal
 	switch {
-	case r.nOutOf(90, 111):
+	case (bitmask && r.nOutOf(7, 10)) || (!bitmask && r.nOutOf(1, 5)):
 		for stop := false; !stop; stop = r.bin() {
-			v |= vv[r.rand(len(vv))]
+			v |= vv[r.rand(len(vv))] // prioritized when bitmask = true
 		}
-	case r.nOutOf(10, 21):
-		v = vv[r.rand(len(vv))]
-	case r.nOutOf(10, 11):
+	case (bitmask && r.nOutOf(2, 3)) || (!bitmask && r.nOutOf(7, 8)):
+		v = vv[r.rand(len(vv))] // prioritized when bitmask = false
+	case r.bin():
 		v = 0
 	default:
 		v = r.rand64()
@@ -675,7 +677,7 @@ func (a *VmaType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 }
 
 func (a *FlagsType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	return MakeConstArg(a, r.flags(a.Vals)), nil
+	return MakeConstArg(a, r.flags(a.Vals, a.BitMask, 0)), nil
 }
 
 func (a *ConstType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {

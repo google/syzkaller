@@ -734,7 +734,19 @@ mutate6(fd fd, data ptr[in, array[int8]], size bytesize[data])
 mutate7(a0 ptr[in, string], a1 len[a0])
 mutate8(a0 proc[100, 4, opt])
 
+# Test for arguments mutation
+mutate$integer(b1 bool8, b2 bool8, b3 bool8, b4 bool8, b5 bool8, b6 bool8, b7 bool8, b8 bool8, i9 int64)
+mutate$integer2(b1 bool64, i1 int64, i2 int32, i3 int16[0x0:0x8], i4 int8[0x0:0x8])
+mutate$flags(filename ptr[in, filename], i1 int64, b1 bool16, flags flags[bitmask_flags])
+mutate$flags2(filename ptr[in, filename], flags flags[bitmask_flags2])
+mutate$flags3(filename ptr[in, filename], flags flags[open_flags2])
+mutate$array(i1 int64, i2 int64[0x0:0x1fffffff], vec ptr[in, array[int32[0:1]]])
+
 open_flags = 0xabababababababab, 0xcdcdcdcdcdcdcdcd
+open_flags2 = 0xaaaaaaaaaaaaaaaa, 0xaaaaaaaabbbbbbbb, 0xbbbbbbbbbbbbbbbb, 0xbbbbbbbbcccccccc, 0xcccccccccccccccc, 0xccccccccdddddddd, 0xdddddddddddddddd, 0xddddddddeeeeeeee, 0xeeeeeeeeeeeeeeee, 0xeeeeeeeeffffffff, 0xffffffffffffffff
+
+bitmask_flags = 0x1, 0x8, 0x10
+bitmask_flags2 = 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80
 
 # Minimization tests.
 
