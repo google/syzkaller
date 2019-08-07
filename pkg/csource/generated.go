@@ -2005,7 +2005,6 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		return fd;
 	}
 	debug("syz_usb_connect: usb_fuzzer_open success\n");
-
 	char device[32];
 	sprintf(&device[0], "dummy_udc.%llu", procid);
 	rv = usb_fuzzer_init(fd, speed, "dummy_udc", &device[0]);
