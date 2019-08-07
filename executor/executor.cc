@@ -596,32 +596,25 @@ retry:
 		if (call_num == instr_eof)
 			break;
 		bool call_extra_cover = false;
+		// call_extra_timeout must match timeout in pkg/csource/csource.go.
 		int call_extra_timeout = 0;
-		if (strncmp(syscalls[call_num].name, "syz_usb", 7) == 0) {
+		// TODO: find a way to tune timeout values.
+		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0) {
 			prog_extra_cover = true;
 			call_extra_cover = true;
 		}
 		if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
 			prog_extra_timeout = 2000;
-			// Must match timeout in pkg/csource/csource.go.
 			call_extra_timeout = 2000;
 		}
-		if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0) {
-			// Must match timeout in pkg/csource/csource.go.
+		if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0)
 			call_extra_timeout = 300;
-		}
-		if (strncmp(syscalls[call_num].name, "syz_usb_ep_write", strlen("syz_usb_ep_write")) == 0) {
-			// Must match timeout in pkg/csource/csource.go.
+		if (strncmp(syscalls[call_num].name, "syz_usb_ep_write", strlen("syz_usb_ep_write")) == 0)
 			call_extra_timeout = 300;
-		}
-		if (strncmp(syscalls[call_num].name, "syz_usb_ep_read", strlen("syz_usb_ep_read")) == 0) {
-			// Must match timeout in pkg/csource/csource.go.
+		if (strncmp(syscalls[call_num].name, "syz_usb_ep_read", strlen("syz_usb_ep_read")) == 0)
 			call_extra_timeout = 300;
-		}
-		if (strncmp(syscalls[call_num].name, "syz_usb_disconnect", strlen("syz_usb_disconnect")) == 0) {
-			// Must match timeout in pkg/csource/csource.go.
+		if (strncmp(syscalls[call_num].name, "syz_usb_disconnect", strlen("syz_usb_disconnect")) == 0)
 			call_extra_timeout = 300;
-		}
 		if (call_num == instr_copyin) {
 			char* addr = (char*)read_input(&input_pos);
 			uint64 typ = read_input(&input_pos);
