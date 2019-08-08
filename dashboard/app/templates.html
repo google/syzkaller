@@ -242,11 +242,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		({{link .LogLink "bisect log"}})</b><br>
 	{{else if .Commit}}
 		{{if eq .Type $causeJob}}
-			<b>Bisection: introduced by
+			<b>Bisection: introduced by</b>
 		{{else if eq .Type $fixJob}}
-			<b>Bisection: fixed by
+			<b>Bisection: fixed by</b>
 		{{end}}
-		({{link .LogLink "bisect log"}}):</b><br>
+		<b>({{link .LogLink "bisect log"}}):</b><br>
 		<br><span class="mono">
 		commit {{.Commit.Hash}}<br>
 		Author: {{.Commit.Author}}<br>
@@ -256,22 +256,23 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</span><br>
 	{{else if .Commits}}
 		{{if eq .Type $causeJob}}
-			<b>Bisection: the cause commit could be any of
+			<b>Bisection: the cause commit could be any of</b>
 		{{else if eq .Type $fixJob}}
-			<b>Bisection: the fix commit could be any of
+			<b>Bisection: the fix commit could be any of</b>
 		{{end}}
-		({{link .LogLink "bisect log"}}):</b><br>
+		<b>({{link .LogLink "bisect log"}}):</b><br>
 		<br><span class="mono">
 		{{range $com := .Commits}}
 			&nbsp;&nbsp;{{formatTagHash $com.Hash}} {{$com.Title}}<br>
 		{{end}}
+		</span>
 	{{else}}
 		{{if eq .Type $causeJob}}
-			<b>Bisection: the bug happens on the oldest tested release
+			<b>Bisection: the bug happens on the oldest tested release</b>
 		{{else if eq .Type $fixJob}}
-			<b>Bisection: the fix commit could be any of
+			<b>Bisection: the bug occurs on the latest tested release</b>
 		{{end}}
-		</span><br>
+		<br>
 	{{end}}
 	Tree: <span title="{{.Manager}}">{{.KernelAlias}}</span><br>
 	{{if .CrashLogLink}}
