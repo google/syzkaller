@@ -1,0 +1,66 @@
+TITLE: WARNING in em28xx_usb_disconnect
+
+[   31.912260][   T21] ------------[ cut here ]------------
+[   31.917870][   T21] WARNING: CPU: 1 PID: 21 at kernel/workqueue.c:3031 __flush_work.cold+0x2c/0x36
+[   31.927362][   T21] Kernel panic - not syncing: panic_on_warn set ...
+[   31.934264][   T21] CPU: 1 PID: 21 Comm: kworker/1:1 Not tainted 5.3.0-rc2+ #25
+[   31.942018][   T21] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   31.952079][   T21] Workqueue: usb_hub_wq hub_event
+[   31.957276][   T21] Call Trace:
+[   31.960620][   T21]  dump_stack+0xca/0x13e
+[   31.965111][   T21]  ? alloc_unbound_pwq.cold+0x40/0x6a
+[   31.971638][   T21]  panic+0x2a3/0x6da
+[   31.975732][   T21]  ? add_taint.cold+0x16/0x16
+[   31.980486][   T21]  ? __probe_kernel_read+0x188/0x1d0
+[   31.985780][   T21]  ? __warn.cold+0x5/0x4a
+[   31.990110][   T21]  ? __warn+0xe3/0x1e0
+[   31.994260][   T21]  ? __flush_work.cold+0x2c/0x36
+[   31.999595][   T21]  __warn.cold+0x20/0x4a
+[   32.003835][   T21]  ? __flush_work.cold+0x2c/0x36
+[   32.008987][   T21]  report_bug+0x262/0x2a0
+[   32.013304][   T21]  do_error_trap+0x12b/0x1e0
+[   32.017879][   T21]  ? __flush_work.cold+0x2c/0x36
+[   32.022948][   T21]  do_invalid_op+0x32/0x40
+[   32.027646][   T21]  ? __flush_work.cold+0x2c/0x36
+[   32.032661][   T21]  invalid_op+0x23/0x30
+[   32.037069][   T21] RIP: 0010:__flush_work.cold+0x2c/0x36
+[   32.042687][   T21] Code: 9a 22 00 48 c7 c7 20 e4 c5 85 e8 d9 3a 0d 00 0f 0b 45 31 e4 e9 98 86 ff ff e8 51 9a 22 00 48 c7 c7 20 e4 c5 85 e8 be 3a 0d 00 <0f> 0b 45 31 e4 e9 7d 86 ff ff e8 36 9a 22 00 48 c7 c7 20 e4 c5 85
+[   32.066233][   T21] RSP: 0018:ffff8881da2f7720 EFLAGS: 00010286
+[   32.072615][   T21] RAX: 0000000000000024 RBX: dffffc0000000000 RCX: 0000000000000000
+[   32.081158][   T21] RDX: 0000000000000000 RSI: ffffffff8128a0fd RDI: ffffed103b45eed6
+[   32.090281][   T21] RBP: ffff8881da2f7888 R08: 0000000000000024 R09: fffffbfff11acd9a
+[   32.100441][   T21] R10: fffffbfff11acd99 R11: ffffffff88d66ccf R12: 0000000000000000
+[   32.109253][   T21] R13: 0000000000000001 R14: ffff8881d2e99df8 R15: ffff8881d2d61b78
+[   32.117896][   T21]  ? vprintk_func+0x7d/0x113
+[   32.122925][   T21]  ? wq_update_unbound_numa+0x710/0x710
+[   32.128901][   T21]  ? __dev_printk+0x1db/0x203
+[   32.133677][   T21]  ? _dev_info+0xd7/0x109
+[   32.138711][   T21]  ? _dev_notice+0x109/0x109
+[   32.143931][   T21]  ? lockdep_hardirqs_on+0x379/0x580
+[   32.149820][   T21]  ? usb_hcd_flush_endpoint+0x14c/0x2d0
+[   32.155978][   T21]  ? usb_disable_endpoint+0x1ba/0x1f0
+[   32.161459][   T21]  em28xx_usb_disconnect.cold+0x280/0x2a6
+[   32.170214][   T21]  usb_unbind_interface+0x1bd/0x8a0
+[   32.177191][   T21]  ? usb_autoresume_device+0x60/0x60
+[   32.182587][   T21]  device_release_driver_internal+0x404/0x4c0
+[   32.188714][   T21]  bus_remove_device+0x2dc/0x4a0
+[   32.195974][   T21]  device_del+0x420/0xb10
+[   32.200916][   T21]  ? __device_links_no_driver+0x240/0x240
+[   32.207857][   T21]  ? usb_remove_ep_devs+0x3e/0x80
+[   32.213675][   T21]  ? remove_intf_ep_devs+0x13f/0x1d0
+[   32.220341][   T21]  usb_disable_device+0x211/0x690
+[   32.225687][   T21]  usb_disconnect+0x284/0x8d0
+[   32.230774][   T21]  hub_event+0x1454/0x3640
+[   32.235406][   T21]  ? find_held_lock+0x2d/0x110
+[   32.240229][   T21]  ? mark_held_locks+0xe0/0xe0
+[   32.245957][   T21]  ? hub_port_debounce+0x260/0x260
+[   32.252587][   T21]  process_one_work+0x92b/0x1530
+[   32.257632][   T21]  ? pwq_dec_nr_in_flight+0x310/0x310
+[   32.263522][   T21]  ? do_raw_spin_lock+0x11a/0x280
+[   32.269121][   T21]  worker_thread+0x7ab/0xe20
+[   32.276466][   T21]  ? process_one_work+0x1530/0x1530
+[   32.282107][   T21]  kthread+0x318/0x420
+[   32.286548][   T21]  ? kthread_create_on_node+0xf0/0xf0
+[   32.292243][   T21]  ret_from_fork+0x24/0x30
+[   32.297457][   T21] Kernel Offset: disabled
+[   32.302033][   T21] Rebooting in 86400 seconds..
