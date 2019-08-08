@@ -269,6 +269,10 @@ func incomingMail(c context.Context, r *http.Request) error {
 		log.Warningf(c, "failed to parse email: %v", err)
 		return nil
 	}
+	// Ignore any incoming emails from syzbot itself.
+	if ownEmail(c) == msg.From {
+		return nil
+	}
 	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
 		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
 	if msg.Command == email.CmdFix && msg.CommandArgs == "exact-commit-title" {
