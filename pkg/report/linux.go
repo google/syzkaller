@@ -758,6 +758,9 @@ var linuxStackParams = &stackParams{
 		"program_check_exception",
 		"program_check_common",
 		"del_timer_sync",
+		"flush_work",
+		"__cancel_work_timer",
+		"cancel_work_sync",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
