@@ -1,0 +1,99 @@
+TITLE: KMSAN: kernel-usb-infoleak in ttusb_dec_send_command
+
+[   77.965881][   T49] ==================================================================
+[   77.974025][   T49] BUG: KMSAN: kernel-usb-infoleak in usb_submit_urb+0x7ec/0x1fa0
+[   77.981755][   T49] CPU: 1 PID: 49 Comm: kworker/1:1 Not tainted 5.1.0+ #1
+[   77.988770][   T49] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   77.998818][   T49] Workqueue: usb_hub_wq hub_event
+[   78.003821][   T49] Call Trace:
+[   78.007147][   T49]  dump_stack+0x191/0x1f0
+[   78.011468][   T49]  kmsan_report+0x162/0x2d0
+[   78.015969][   T49]  kmsan_internal_check_memory+0x974/0xa80
+[   78.021758][   T49]  ? hub_event+0x48d1/0x7290
+[   78.026329][   T49]  ? process_one_work+0x1572/0x1f00
+[   78.031503][   T49]  ? worker_thread+0x111b/0x2460
+[   78.036422][   T49]  ? kthread+0x4b5/0x4f0
+[   78.040655][   T49]  ? kmsan_get_shadow_origin_ptr+0x71/0x470
+[   78.046533][   T49]  kmsan_handle_urb+0x28/0x40
+[   78.051196][   T49]  usb_submit_urb+0x7ec/0x1fa0
+[   78.055960][   T49]  usb_start_wait_urb+0x143/0x410
+[   78.060976][   T49]  usb_bulk_msg+0x811/0x920
+[   78.065477][   T49]  ttusb_dec_send_command+0x47d/0xd50
+[   78.070836][   T49]  ttusb_dec_probe+0xe31/0x4e00
+[   78.075682][   T49]  ? __pm_runtime_set_status+0xf5e/0x1400
+[   78.081392][   T49]  ? kmsan_get_shadow_origin_ptr+0x71/0x470
+[   78.087299][   T49]  ? saa7134_go7007_s_std+0x30/0x30
+[   78.092495][   T49]  ? saa7134_go7007_s_std+0x30/0x30
+[   78.097681][   T49]  usb_probe_interface+0xd66/0x1320
+[   78.102872][   T49]  ? usb_register_driver+0x7d0/0x7d0
+[   78.108138][   T49]  really_probe+0xdae/0x1d80
+[   78.112712][   T49]  driver_probe_device+0x1b3/0x4f0
+[   78.117808][   T49]  __device_attach_driver+0x5b8/0x790
+[   78.123172][   T49]  bus_for_each_drv+0x28e/0x3b0
+[   78.128002][   T49]  ? deferred_probe_work_func+0x400/0x400
+[   78.133705][   T49]  __device_attach+0x454/0x730
+[   78.138462][   T49]  device_initial_probe+0x4a/0x60
+[   78.143478][   T49]  bus_probe_device+0x137/0x390
+[   78.148332][   T49]  device_add+0x288d/0x30e0
+[   78.153592][   T49]  usb_set_configuration+0x30dc/0x3750
+[   78.159054][   T49]  generic_probe+0xe7/0x280
+[   78.163546][   T49]  ? usb_choose_configuration+0xae0/0xae0
+[   78.169252][   T49]  usb_probe_device+0x14c/0x200
+[   78.174111][   T49]  ? usb_register_device_driver+0x470/0x470
+[   78.179996][   T49]  really_probe+0xdae/0x1d80
+[   78.184622][   T49]  driver_probe_device+0x1b3/0x4f0
+[   78.189723][   T49]  __device_attach_driver+0x5b8/0x790
+[   78.195082][   T49]  bus_for_each_drv+0x28e/0x3b0
+[   78.199913][   T49]  ? deferred_probe_work_func+0x400/0x400
+[   78.205614][   T49]  __device_attach+0x454/0x730
+[   78.210360][   T49]  device_initial_probe+0x4a/0x60
+[   78.215363][   T49]  bus_probe_device+0x137/0x390
+[   78.220196][   T49]  device_add+0x288d/0x30e0
+[   78.224706][   T49]  usb_new_device+0x23e5/0x2ff0
+[   78.229550][   T49]  hub_event+0x48d1/0x7290
+[   78.233980][   T49]  ? kmsan_get_shadow_origin_ptr+0x71/0x470
+[   78.239850][   T49]  ? led_work+0x720/0x720
+[   78.244157][   T49]  ? led_work+0x720/0x720
+[   78.248472][   T49]  process_one_work+0x1572/0x1f00
+[   78.253491][   T49]  worker_thread+0x111b/0x2460
+[   78.258346][   T49]  kthread+0x4b5/0x4f0
+[   78.262397][   T49]  ? process_one_work+0x1f00/0x1f00
+[   78.267580][   T49]  ? kthread_blkcg+0xf0/0xf0
+[   78.272166][   T49]  ret_from_fork+0x35/0x40
+[   78.276566][   T49]
+[   78.278872][   T49] Uninit was created at:
+[   78.283099][   T49]  kmsan_internal_poison_shadow+0x92/0x150
+[   78.288881][   T49]  kmsan_kmalloc+0xa4/0x130
+[   78.293364][   T49]  kmem_cache_alloc_trace+0x503/0xae0
+[   78.298712][   T49]  ttusb_dec_send_command+0x155/0xd50
+[   78.304063][   T49]  ttusb_dec_probe+0xe31/0x4e00
+[   78.308909][   T49]  usb_probe_interface+0xd66/0x1320
+[   78.314088][   T49]  really_probe+0xdae/0x1d80
+[   78.318654][   T49]  driver_probe_device+0x1b3/0x4f0
+[   78.323762][   T49]  __device_attach_driver+0x5b8/0x790
+[   78.329115][   T49]  bus_for_each_drv+0x28e/0x3b0
+[   78.333941][   T49]  __device_attach+0x454/0x730
+[   78.338682][   T49]  device_initial_probe+0x4a/0x60
+[   78.343682][   T49]  bus_probe_device+0x137/0x390
+[   78.348508][   T49]  device_add+0x288d/0x30e0
+[   78.353019][   T49]  usb_set_configuration+0x30dc/0x3750
+[   78.358554][   T49]  generic_probe+0xe7/0x280
+[   78.363047][   T49]  usb_probe_device+0x14c/0x200
+[   78.367870][   T49]  really_probe+0xdae/0x1d80
+[   78.372538][   T49]  driver_probe_device+0x1b3/0x4f0
+[   78.377630][   T49]  __device_attach_driver+0x5b8/0x790
+[   78.382979][   T49]  bus_for_each_drv+0x28e/0x3b0
+[   78.387807][   T49]  __device_attach+0x454/0x730
+[   78.392558][   T49]  device_initial_probe+0x4a/0x60
+[   78.397566][   T49]  bus_probe_device+0x137/0x390
+[   78.402401][   T49]  device_add+0x288d/0x30e0
+[   78.406884][   T49]  usb_new_device+0x23e5/0x2ff0
+[   78.411737][   T49]  hub_event+0x48d1/0x7290
+[   78.416138][   T49]  process_one_work+0x1572/0x1f00
+[   78.421144][   T49]  worker_thread+0x111b/0x2460
+[   78.425889][   T49]  kthread+0x4b5/0x4f0
+[   78.429936][   T49]  ret_from_fork+0x35/0x40
+[   78.434329][   T49]
+[   78.436634][   T49] Bytes 4-63 of 64 are uninitialized
+[   78.441891][   T49] Memory access of size 64 starts at ffff888106214540
+[   78.448625][   T49] ==================================================================
