@@ -363,8 +363,55 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	done.Build.ID = jobID
 	c.expectOK(c.client2.JobDone(done))
 
-	// TODO: Reporting for BisectFix results not implemented
-	// c.pollEmailBug()
+	_, extBugID, err = email.RemoveAddrContext(msg4.Sender)
+	c.expectOK(err)
+	_, dbCrash, _ = c.loadBug(extBugID)
+	reproSyzLink = externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
+	reproCLink = externalLink(c.ctx, textReproC, dbCrash.ReproC)
+	dbJob, dbBuild, dbJobCrash = c.loadJob(jobID)
+	kernelConfigLink = externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
+	bisectCrashReportLink = externalLink(c.ctx, textCrashReport, dbJob.CrashReport)
+	bisectCrashLogLink = externalLink(c.ctx, textCrashLog, dbJob.CrashLog)
+	bisectLogLink = externalLink(c.ctx, textLog, dbJob.Log)
+	crashLogLink = externalLink(c.ctx, textCrashLog, dbJobCrash.Log)
+
+	{
+		msg := c.pollEmailBug()
+		// Not mailed to commit author/cc because !MailMaintainers.
+		// c.expectEQ(msg.To, []string{"test@syzkaller.com"})
+		c.expectEQ(msg.Subject, crash4.Title)
+		c.expectEQ(len(msg.Attachments), 0)
+		c.expectEQ(msg.Body, fmt.Sprintf(`syzbot suspects this bug was fixed by commit:
+
+commit 46e65cb4a0448942ec316b24d60446bbd5cc7827
+Author: Author Kernelov <author@kernel.org>
+Date:   Wed Feb 9 04:05:06 2000 +0000
+
+    kernel: add a fix
+
+bisection log:  %[2]v
+start commit:   11111111 kernel_commit_title1
+git tree:       repo1 branch1
+final crash:    %[3]v
+console output: %[4]v
+kernel config:  %[5]v
+dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
+syz repro:      %[6]v
+
+If the bisection result looks correct, please reply with:
+
+#syz fix: fix-commit-title
+
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+`, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
+
+		syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
+		c.checkURLContents(bisectLogLink, []byte("bisectfix log 4"))
+		c.checkURLContents(bisectCrashReportLink, []byte("bisectfix crash report 4"))
+		c.checkURLContents(bisectCrashLogLink, []byte("bisectfix crash log 4"))
+		c.checkURLContents(kernelConfigLink, []byte("config1"))
+		c.checkURLContents(reproSyzLink, syzRepro)
+	}
 
 	// No more bisection jobs.
 	pollResp = c.client2.pollJobs(build.Manager)
@@ -803,6 +850,8 @@ func TestBugBisectionResults(t *testing.T) {
 		},
 	}
 	c.expectOK(c.client2.JobDone(done))
+	msg := c.client2.pollEmailBug()
+	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this bug was fixed by commit:"))
 
 	// Fetch bug details
 	var bugs []*Bug
@@ -917,4 +966,7 @@ func TestBugBisectionStatus(t *testing.T) {
 	content, err = c.httpRequest("GET", url, "", AccessAdmin)
 	c.expectEQ(err, nil)
 	c.expectTrue(bytes.Contains(content, []byte("cause+fix")))
+
+	msg := c.client2.pollEmailBug()
+	c.expectTrue(strings.Contains(msg.Body, "syzbot suspects this bug was fixed by commit:"))
 }

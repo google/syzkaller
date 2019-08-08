@@ -51,6 +51,14 @@ var Funcs = template.FuncMap{
 	"formatTagHash":          formatTagHash,
 	"formatCommitTableTitle": formatCommitTableTitle,
 	"formatList":             formatStringList,
+	"selectBisect":           selectBisect,
+}
+
+func selectBisect(rep *dashapi.BugReport) *dashapi.BisectResult {
+	if rep.BisectFix != nil {
+		return rep.BisectFix
+	}
+	return rep.BisectCause
 }
 
 func link(url, text string) template.HTML {
