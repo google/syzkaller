@@ -562,17 +562,14 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 			log.Criticalf(c, "no reporting for job %v", extJobID(keys[i]))
 			continue
 		}
-		// TODO: this is temporary and will be removed once support for sending
-		// JobBisectFix result emails is implemented.
-		if job.Type == JobBisectFix {
-			continue
-		}
 		reporting := config.Namespaces[job.Namespace].ReportingByName(job.Reporting)
 		if reporting.Config.Type() != typ {
 			continue
 		}
 		// TODO: this is temporal for gradual bisection rollout.
 		// Notify only about successful bisection for now.
+		// Note: If BisectFix results in a crash on HEAD, no notification is sent out. The following
+		// check also accounts for that condition.
 		if !appengine.IsDevAppServer() && job.Type != JobTestPatch && len(job.Commits) != 1 {
 			continue
 		}
@@ -686,6 +683,7 @@ func bisectFromJob(c context.Context, rep *dashapi.BugReport, job *Job) *dashapi
 		LogLink:         externalLink(c, textLog, job.Log),
 		CrashLogLink:    externalLink(c, textCrashLog, job.CrashLog),
 		CrashReportLink: externalLink(c, textCrashReport, job.CrashReport),
+		Fix:             job.Type == JobBisectFix,
 	}
 	for _, com := range job.Commits {
 		bisect.Commits = append(bisect.Commits, &dashapi.Commit{

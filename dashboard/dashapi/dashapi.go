@@ -332,6 +332,7 @@ type BisectResult struct {
 	LogLink         string
 	CrashLogLink    string
 	CrashReportLink string
+	Fix             bool
 }
 
 type BugUpdate struct {
