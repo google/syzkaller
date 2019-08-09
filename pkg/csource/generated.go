@@ -2078,7 +2078,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 			for (ep = 0; ep < index.eps_num; ep++) {
 				rv = usb_fuzzer_ep_enable(fd, index.eps[ep]);
 				if (rv < 0) {
-					debug("syz_usb_connect: usb_fuzzer_ep_enable failed with %d\n", rv);
+					debug("syz_usb_connect: usb_fuzzer_ep_enable(%d) failed with %d\n", ep, rv);
 				} else {
 					debug("syz_usb_connect: endpoint %d enabled\n", ep);
 				}
