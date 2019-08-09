@@ -311,7 +311,6 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
-		CPP:                    "cpp",
 	},
 	"freebsd": {
 		SyscallNumbers:         true,
@@ -328,7 +327,6 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "netbsd.gdb",
-		CPP:                    "cpp",
 	},
 	"openbsd": {
 		SyscallNumbers:         true,
@@ -344,7 +342,6 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
 		KernelObject:           "zircon.elf",
-		CPP:                    "cpp",
 	},
 	"windows": {
 		SyscallNumbers:         false,
@@ -352,7 +349,6 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: false,
 		ExeExtension:           ".exe",
 		KernelObject:           "vmlinux",
-		CPP:                    "cpp",
 	},
 	"akaros": {
 		BuildOS:                "linux",
@@ -361,12 +357,10 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "akaros-kernel-64b",
-		CPP:                    "cpp",
 	},
 	"trusty": {
 		SyscallNumbers: true,
 		SyscallPrefix:  "__NR_",
-		CPP:            "cpp",
 	},
 }
 
@@ -397,8 +391,12 @@ func init() {
 		goos = "linux"
 	}
 	for _, target := range List["test"] {
-		target.CCompiler = List[goos][runtime.GOARCH].CCompiler
-		target.CPP = List[goos][runtime.GOARCH].CPP
+		if List[goos] != nil {
+			if host := List[goos][runtime.GOARCH]; host != nil {
+				target.CCompiler = host.CCompiler
+				target.CPP = host.CPP
+			}
+		}
 		target.BuildOS = goos
 		if runtime.GOOS == "freebsd" && runtime.GOARCH == "amd64" && target.PtrSize == 4 {
 			// -m32 alone does not work on freebsd with gcc.
@@ -429,6 +427,9 @@ func initTarget(target *Target, OS, arch string) {
 	}
 	if target.CCompiler == "" {
 		target.CCompiler = target.CCompilerPrefix + "gcc"
+	}
+	if target.CPP == "" {
+		target.CPP = "cpp"
 	}
 	if target.BuildOS == "" {
 		target.BuildOS = OS
