@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -395,7 +394,7 @@ func init() {
 	checkFeature[FeatureFaultInjection] = checkFaultInjection
 	checkFeature[FeatureLeakChecking] = checkLeakChecking
 	checkFeature[FeatureNetworkInjection] = checkNetworkInjection
-	checkFeature[FeatureNetworkDevices] = checkNetworkDevices
+	checkFeature[FeatureNetworkDevices] = unconditionallyEnabled
 }
 
 func checkCoverage() string {
@@ -541,19 +540,12 @@ func checkNetworkInjection() string {
 	if err := osutil.IsAccessible("/dev/net/tun"); err != nil {
 		return err.Error()
 	}
-	return checkNetworkDevices()
+	return ""
 }
 
 func checkUSBInjection() string {
 	if err := osutil.IsAccessible("/sys/kernel/debug/usb-fuzzer"); err != nil {
 		return err.Error()
-	}
-	return ""
-}
-
-func checkNetworkDevices() string {
-	if _, err := exec.LookPath("ip"); err != nil {
-		return "ip command is not found"
 	}
 	return ""
 }
