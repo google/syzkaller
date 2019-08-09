@@ -1,6 +1,7 @@
 language: go
 dist: xenial
-
+services:
+  - docker
 go:
   - "1.11"
   - "1.12"
@@ -34,8 +35,16 @@ after_failure:
 
 jobs:
   include:
-    - stage: fuzzit.dev
-      if: branch = master AND type IN (push)
+    - stage: fuzzit.dev (regression)
+      if: branch = master AND type IN (pull_request)
       go: 1.12.x
       script:
-        - ./fuzzit.sh
+        - ./fuzzit.sh regression
+
+    - stage: fuzzit.dev (fuzzing)
+      if: branch = master AND type IN (push)
+      go: 1.12.x
+      env:
+        secure: "TEXvLRUk/cmNwksHLTihVVyBWoU76EhAXkCCdLbn1FtfqCOzzMnQm02oUYcufLrVWIuVDUEUa9Tq+BrS2LGN2oTJEzk8bdQxeiztiRwbPocRLY3y3BNWWk89Vvu/eC/nPPoeRKZ7k3VZDbAk/+cPyXNMVaxBO7rwMqrne90txgTunX9V7U9Rr7b2phECBEF+riWtO3kWumZZG9qGq6NRmEcsoMOHgF2WGmxeAkAaU8xKdYOYbbUIns3cSf+bGWnFKOxSDkVDOOyKxdAc6OufejbGU4rjspty6ueXaoL69Rq5+7GOUflqLTMO8WUhpc65DPY3+9G2iH1p7U4v10Vk2V6qbQw83DDeucjSH23zIbNkjjYHSV5IMNwAMcEG5fwANfmnmQeVQCJJkwRBZufD1T+CLf9gqVldLG9qUGPI+ySli2J0oVAQ1rvMhKgR44Ipb3FQm0XBYhYXa3i08ojVXEtG8PNGHgrmOJnhUzC/BA+m9QKncxqMuISsBdlRnuU37DD0HeHZ6NTWvGy7gv2mhnCHc7AWuveBsc3XDvSfK8U3tB9LxS2OdRKWQdhnJBKowjAZ55lvTP0AgagQL+mPBQ7qJ2N8OT/oDRtN6tkY+DIEi8JTie0XOitNbY9AaF4hRFcixpesthvTEdOzx//mURXZXiPYQwyrjf9u1dwEpfA="
+      script:
+        - ./fuzzit.sh fuzzing
