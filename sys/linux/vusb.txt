@@ -19,6 +19,7 @@ include <drivers/net/usb/asix.h>
 resource fd_usb[int32]: -1
 resource fd_usb_hid[fd_usb]
 resource fd_usb_printer[fd_usb]
+resource fd_usb_cdc_ethernet[fd_usb]
 
 # These are generic syzcalls for emulating arbitrary USB devices.
 # They are mostly targeted to cover the enumeration process.
@@ -28,13 +29,17 @@ syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data buffer[in])
 syz_usb_ep_read(fd fd_usb, ep int16[0:31], len len[data], data buffer[out])
 syz_usb_disconnect(fd fd_usb)
 
-# These are syzcalls that specifically target the HID device class.
+# These syzcalls specifically target the HID device class.
 syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
 syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid])
 
-# These are syzcalls that specifically target the PRINTER device class.
+# These syzcalls specifically target the PRINTER device class.
 syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer
 syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer])
+
+# These syzcalls specifically target the CDC Ethernet device class.
+syz_usb_connect$cdc_ethernet(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ethernet], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ethernet
+syz_usb_control_io$cdc_ethernet(fd fd_usb_cdc_ethernet, descs ptr[in, vusb_descriptors_cdc_ethernet], resps ptr[in, vusb_responses_cdc_ethernet])
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
 
@@ -246,6 +251,7 @@ type vusb_response_t[CLASS, REQ, DATA] {
 
 # USB descriptors requested by the kernel before the SET_CONFIGURATION request.
 
+# TODO: string should either contain lang ids or data.
 usb_string_descriptor {
 	bLength		len[parent, int8]
 	bDescriptorType	const[USB_DT_STRING, int8]
@@ -384,8 +390,6 @@ usb_ptm_cap_descriptor {
 
 # Extra USB descriptors that come after an interface or an endpoint descriptor.
 
-# CHECK: cdc_parse_cdc_header (iface)
-
 # TODO: uas_find_endpoints (endpoint)
 # TODO: rpipe_epc_find (endpoint)
 # TODO: uvc_parse_streaming (iface)
@@ -402,7 +406,7 @@ usb_ptm_cap_descriptor {
 usb_interface_extra_descriptor [
 	generic	usb_generic_descriptor
 	hid_hid	usb_hid_descriptor_hid
-	usb_cdc	usb_cdc_header
+	usb_cdc	usb_cdc_header_ethernet
 ] [varlen]
 
 usb_endpoint_extra_descriptor [
@@ -417,176 +421,6 @@ usb_generic_descriptor {
 } [packed]
 
 usb_descriptor_types = USB_DT_DEVICE, USB_DT_CONFIG, USB_DT_STRING, USB_DT_INTERFACE, USB_DT_ENDPOINT, USB_DT_DEVICE_QUALIFIER, USB_DT_OTHER_SPEED_CONFIG, USB_DT_INTERFACE_POWER, USB_DT_OTG, USB_DT_DEBUG, USB_DT_INTERFACE_ASSOCIATION, USB_DT_SECURITY, USB_DT_KEY, USB_DT_ENCRYPTION_TYPE, USB_DT_BOS, USB_DT_DEVICE_CAPABILITY, USB_DT_WIRELESS_ENDPOINT_COMP, USB_DT_WIRE_ADAPTER, USB_DT_RPIPE, USB_DT_CS_RADIO_CONTROL, USB_DT_PIPE_USAGE, USB_DT_SS_ENDPOINT_COMP, USB_DT_SSP_ISOC_ENDPOINT_COMP, HID_DT_HID, HID_DT_REPORT, HID_DT_PHYSICAL
-
-usb_cdc_header {
-	items	array[usb_cdc_header_item, 0:16]
-} [packed]
-
-usb_cdc_header_item [
-	generic			usb_cdc_generic
-	header			usb_cdc_header_desc
-	call_mgmt		usb_cdc_call_mgmt_descriptor
-	acm			usb_cdc_acm_descriptor
-	union			usb_cdc_union_desc
-	country_functional	usb_cdc_country_functional_desc
-	network_terminal	usb_cdc_network_terminal_desc
-	ether			usb_cdc_ether_desc
-	dmm			usb_cdc_dmm_desc
-	mdlm			usb_cdc_mdlm_desc
-	mdlm_detail		usb_cdc_mdlm_detail_desc
-	obex			usb_cdc_obex_desc
-	ncm			usb_cdc_ncm_desc
-	mbim			usb_cdc_mbim_desc
-	mbim_extended		usb_cdc_mbim_extended_desc
-] [varlen]
-
-usb_cdc_generic {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	flags[usb_cdc_types, int8]
-
-	data			array[int8]
-} [packed]
-
-usb_cdc_types = USB_CDC_HEADER_TYPE, USB_CDC_CALL_MANAGEMENT_TYPE, USB_CDC_ACM_TYPE, USB_CDC_UNION_TYPE, USB_CDC_COUNTRY_TYPE, USB_CDC_NETWORK_TERMINAL_TYPE, USB_CDC_ETHERNET_TYPE, USB_CDC_WHCM_TYPE, USB_CDC_MDLM_TYPE, USB_CDC_MDLM_DETAIL_TYPE, USB_CDC_DMM_TYPE, USB_CDC_OBEX_TYPE, USB_CDC_NCM_TYPE, USB_CDC_MBIM_TYPE, USB_CDC_MBIM_EXTENDED_TYPE
-
-usb_cdc_header_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_HEADER_TYPE, int8]
-
-	bcdCDC			int16
-} [packed]
-
-usb_cdc_call_mgmt_descriptor {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_CALL_MANAGEMENT_TYPE, int8]
-
-	bmCapabilities		flags[usb_cdc_call_mgmt_caps, int8]
-} [packed]
-
-usb_cdc_call_mgmt_caps = USB_CDC_CALL_MGMT_CAP_CALL_MGMT, USB_CDC_CALL_MGMT_CAP_DATA_INTF
-
-usb_cdc_acm_descriptor {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_ACM_TYPE, int8]
-
-	bmCapabilities		flags[usb_cdc_acm_caps, int8]
-} [packed]
-
-usb_cdc_acm_caps = USB_CDC_COMM_FEATURE, USB_CDC_CAP_LINE, USB_CDC_CAP_BRK, USB_CDC_CAP_NOTIFY
-
-usb_cdc_union_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_UNION_TYPE, int8]
-
-	bMasterInterface0	int8
-	bSlaveInterface0	int8
-	slave_interfaces	array[int8, 0:6]
-} [packed]
-
-usb_cdc_country_functional_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_COUNTRY_TYPE, int8]
-
-	iCountryCodeRelDate	int8
-	wCountyCode0		int16
-	country_codes		array[int16, 0:6]
-} [packed]
-
-usb_cdc_network_terminal_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_NETWORK_TERMINAL_TYPE, int8]
-
-	bEntityId		int8
-	iName			int8
-	bChannelIndex		int8
-	bPhysicalInterface	int8
-} [packed]
-
-usb_cdc_ether_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_ETHERNET_TYPE, int8]
-
-	iMACAddress		int8
-	bmEthernetStatistics	int32
-	wMaxSegmentSize		int16
-	wNumberMCFilters	int16
-	bNumberPowerFilters	int8
-} [packed]
-
-usb_cdc_dmm_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_DMM_TYPE, int8]
-
-	bcdVersion		int16
-	wMaxCommand		int16
-} [packed]
-
-usb_cdc_mdlm_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_MDLM_TYPE, int8]
-
-	bcdVersion		int16
-	bGUID			array[int8, 16]
-} [packed]
-
-usb_cdc_mdlm_detail_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_MDLM_DETAIL_TYPE, int8]
-
-	bGuidDescriptorType	int8
-	bDetailData		array[int8]
-} [packed]
-
-usb_cdc_obex_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_OBEX_TYPE, int8]
-
-	bcdVersion		int16
-} [packed]
-
-usb_cdc_ncm_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_NCM_TYPE, int8]
-
-	bcdNcmVersion		int16
-	bmNetworkCapabilities	int8
-} [packed]
-
-usb_cdc_mbim_desc {
-	bLength			len[parent, int8]
-	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType	const[USB_CDC_MBIM_TYPE, int8]
-
-	bcdMBIMVersion		int16
-	wMaxControlMessage	int16
-	bNumberFilters		int8
-	bMaxFilterSize		int8
-	wMaxSegmentSize		int16
-	bmNetworkCapabilities	int8
-} [packed]
-
-usb_cdc_mbim_extended_desc {
-	bLength				len[parent, int8]
-	bDescriptorType			const[USB_DT_CS_INTERFACE, int8]
-	bDescriptorSubType		const[USB_CDC_MBIM_EXTENDED_TYPE, int8]
-
-	bcdMBIMExtendedVersion		int16
-	bMaxOutstandingCommandMessages	int8
-	wMTU				int16
-} [packed]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -691,7 +525,7 @@ usb_config_descriptor_hid {
 } [packed]
 
 usb_interface_descriptor_hid {
-	inner	usb_interface_descriptor_t[int8, const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
+	inner	usb_interface_descriptor_t[const[0, int8], const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
 } [packed]
 
 usb_hid_protocols = 0, USB_INTERFACE_PROTOCOL_KEYBOARD, USB_INTERFACE_PROTOCOL_MOUSE
@@ -817,7 +651,7 @@ define USBLP_LAST_PROTOCOL	3
 
 # TODO: consider patching idVendor and idProduct in Go code.
 usb_device_descriptor_printer {
-	inner	usb_device_descriptor_t[0, 0, 0, 0x3f0, 0x6c17, 64, array[usb_config_descriptor_printer, 1]]
+	inner	usb_device_descriptor_t[0, 0, 0, 0x525, 0xa4a8, 64, array[usb_config_descriptor_printer, 1]]
 } [packed]
 
 usb_config_descriptor_printer {
@@ -825,7 +659,7 @@ usb_config_descriptor_printer {
 } [packed]
 
 usb_interface_descriptor_printer {
-	inner	usb_interface_descriptor_t[int8, const[USB_CLASS_PRINTER, int8], const[1, int8], int8[USBLP_FIRST_PROTOCOL:USBLP_LAST_PROTOCOL], void, usb_endpoint_descriptors_printer]
+	inner	usb_interface_descriptor_t[const[0, int8], const[USB_CLASS_PRINTER, int8], const[1, int8], int8[USBLP_FIRST_PROTOCOL:USBLP_LAST_PROTOCOL], void, usb_endpoint_descriptors_printer]
 } [packed]
 
 usb_endpoint_descriptors_printer {
@@ -841,7 +675,7 @@ usb_endpoint_descriptor_printer_in {
 	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_PRINTER_IN_ADDRESS, int8], const[USB_ENDPOINT_PRINTER_ATTRIBUTES, int8], void]
 } [packed]
 
-define USB_ENDPOINT_PRINTER_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK | USB_ENDPOINT_SYNC_NONE | USB_ENDPOINT_USAGE_DATA)
+define USB_ENDPOINT_PRINTER_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK)
 define USB_ENDPOINT_PRINTER_OUT_ADDRESS	(1)
 define USB_ENDPOINT_PRINTER_IN_ADDRESS	(2 | USB_DIR_IN)
 
@@ -867,6 +701,261 @@ vusb_responses_printer {
 usb_printer_get_id_response {
 	length	len[id, int16be]
 	id	array[int8]
+} [packed]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# CDC Ethernet device class specific descriptions.
+# https://www.usb.org/document-library/class-definitions-communication-devices-12
+# https://elixir.bootlin.com/linux/latest/source/drivers/net/usb/usbnet.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/net/usb/cdc_ether.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/ether.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_ecm.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/u_ether.c
+
+# TODO: currently the only endpoint which is being successfully enabled is the notification endpoint #1.
+
+# TODO: consider patching idVendor and idProduct in Go code.
+usb_device_descriptor_cdc_ethernet {
+	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ethernet, 1]]
+} [packed]
+
+usb_config_descriptor_cdc_ethernet {
+	inner	usb_config_descriptor_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_cdc_ethernet, 1]]
+} [packed]
+
+# Per specification CDC Ethernet devices have two interfaces (control and data), but we're merging
+# them into one, as Linux supports this, and syzkaller doesn't support multiple interfaces yet.
+usb_interface_descriptor_cdc_ethernet {
+	inner	usb_interface_descriptor_t[const[0, int8], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_ETHERNET, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ethernet, usb_endpoint_descriptors_cdc_ethernet]
+} [packed]
+
+usb_endpoint_descriptors_cdc_ethernet {
+	notify	array[usb_endpoint_descriptor_cdc_ethernet_notify, 0:1]
+	in	usb_endpoint_descriptor_cdc_ethernet_in
+	out	usb_endpoint_descriptor_cdc_ethernet_out
+} [packed]
+
+usb_endpoint_descriptor_cdc_ethernet_notify {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ETHERNET_NOTIFY_ADDRESS, int8], const[USB_ENDPOINT_CDC_ETHERNET_NOTIFY_ATTRIBUTES, int8], void]
+} [packed]
+
+usb_endpoint_descriptor_cdc_ethernet_in {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ETHERNET_IN_ADDRESS, int8], const[USB_ENDPOINT_CDC_ETHERNET_DATA_ATTRIBUTES, int8], void]
+} [packed]
+
+usb_endpoint_descriptor_cdc_ethernet_out {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ETHERNET_OUT_ADDRESS, int8], const[USB_ENDPOINT_CDC_ETHERNET_DATA_ATTRIBUTES, int8], void]
+} [packed]
+
+define USB_ENDPOINT_CDC_ETHERNET_NOTIFY_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
+define USB_ENDPOINT_CDC_ETHERNET_DATA_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK)
+define USB_ENDPOINT_CDC_ETHERNET_NOTIFY_ADDRESS	(1 | USB_DIR_IN)
+define USB_ENDPOINT_CDC_ETHERNET_IN_ADDRESS	(2 | USB_DIR_IN)
+define USB_ENDPOINT_CDC_ETHERNET_OUT_ADDRESS	(3)
+
+# https://elixir.bootlin.com/linux/v5.2.7/source/drivers/usb/core/message.c#L2137
+usb_cdc_header_ethernet {
+# This is a mandatory descriptor (for non RNDIS devices):
+	union		usb_cdc_union_desc
+
+# These are mandatory descriptors (for non RNDIS devices) that must not repeat:
+	header		usb_cdc_header_desc
+	ether		usb_cdc_ether_desc
+
+# These descriptors must not repeat:
+	mdlm		array[usb_cdc_mdlm_desc, 0:1]
+	mdlm_detail	array[usb_cdc_mdlm_detail_desc, 0:1]
+
+	other		usb_cdc_header_ethernet_others
+} [packed]
+
+usb_cdc_header_ethernet_others {
+	items	array[usb_cdc_header_other, 0:6]
+} [packed]
+
+usb_cdc_header_other [
+	call_mgmt		usb_cdc_call_mgmt_descriptor
+	acm			usb_cdc_acm_descriptor
+	country_functional	usb_cdc_country_functional_desc
+	network_terminal	usb_cdc_network_terminal_desc
+	dmm			usb_cdc_dmm_desc
+	obex			usb_cdc_obex_desc
+	ncm			usb_cdc_ncm_desc
+	mbim			usb_cdc_mbim_desc
+	mbim_extended		usb_cdc_mbim_extended_desc
+] [varlen]
+
+usb_cdc_header_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_HEADER_TYPE, int8]
+
+	bcdCDC			int16
+} [packed]
+
+usb_cdc_call_mgmt_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_CALL_MANAGEMENT_TYPE, int8]
+
+	bmCapabilities		flags[usb_cdc_call_mgmt_caps, int8]
+	bDataInterface		int8
+} [packed]
+
+usb_cdc_call_mgmt_caps = USB_CDC_CALL_MGMT_CAP_CALL_MGMT, USB_CDC_CALL_MGMT_CAP_DATA_INTF
+
+usb_cdc_acm_descriptor {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_ACM_TYPE, int8]
+
+	bmCapabilities		flags[usb_cdc_acm_caps, int8]
+} [packed]
+
+usb_cdc_acm_caps = USB_CDC_COMM_FEATURE, USB_CDC_CAP_LINE, USB_CDC_CAP_BRK, USB_CDC_CAP_NOTIFY
+
+usb_cdc_union_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_UNION_TYPE, int8]
+
+# These must match bInterfaceNumber.
+	bMasterInterface0	const[0, int8]
+	bSlaveInterface0	const[0, int8]
+	slave_interfaces	array[int8, 0:6]
+} [packed]
+
+usb_cdc_country_functional_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_COUNTRY_TYPE, int8]
+
+	iCountryCodeRelDate	int8
+	wCountyCode0		int16
+	country_codes		array[int16, 0:6]
+} [packed]
+
+usb_cdc_network_terminal_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_NETWORK_TERMINAL_TYPE, int8]
+
+	bEntityId		int8
+	iName			int8
+	bChannelIndex		int8
+	bPhysicalInterface	int8
+} [packed]
+
+usb_cdc_ether_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_ETHERNET_TYPE, int8]
+
+	iMACAddress		const[1, int8]
+	bmEthernetStatistics	int32
+	wMaxSegmentSize		int16
+	wNumberMCFilters	int16
+	bNumberPowerFilters	int8
+} [packed]
+
+usb_cdc_dmm_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_DMM_TYPE, int8]
+
+	bcdVersion		int16
+	wMaxCommand		int16
+} [packed]
+
+usb_cdc_mdlm_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_MDLM_TYPE, int8]
+
+	bcdVersion		int16
+	bGUID			usb_cdc_ethernet_mbm_guid
+} [packed]
+
+# https://elixir.bootlin.com/linux/v5.2.7/source/drivers/net/usb/cdc_ether.c#L61
+usb_cdc_ethernet_mbm_guid {
+	id0	const[0x14f5e048ba817a3, int64]
+	id1	const[0x2a397ecbffc007a6, int64]
+} [packed]
+
+usb_cdc_mdlm_detail_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_MDLM_DETAIL_TYPE, int8]
+
+	bGuidDescriptorType	int8
+	bDetailData		array[int8]
+} [packed]
+
+usb_cdc_obex_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_OBEX_TYPE, int8]
+
+	bcdVersion		int16
+} [packed]
+
+usb_cdc_ncm_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_NCM_TYPE, int8]
+
+	bcdNcmVersion		int16
+	bmNetworkCapabilities	int8
+} [packed]
+
+usb_cdc_mbim_desc {
+	bLength			len[parent, int8]
+	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType	const[USB_CDC_MBIM_TYPE, int8]
+
+	bcdMBIMVersion		int16
+	wMaxControlMessage	int16
+	bNumberFilters		int8
+	bMaxFilterSize		int8
+	wMaxSegmentSize		int16
+	bmNetworkCapabilities	int8
+} [packed]
+
+usb_cdc_mbim_extended_desc {
+	bLength				len[parent, int8]
+	bDescriptorType			const[USB_DT_CS_INTERFACE, int8]
+	bDescriptorSubType		const[USB_CDC_MBIM_EXTENDED_TYPE, int8]
+
+	bcdMBIMExtendedVersion		int16
+	bMaxOutstandingCommandMessages	int8
+	wMTU				int16
+} [packed]
+
+vusb_descriptors_cdc_ethernet {
+	len		len[parent, int32]
+	generic		ptr[in, vusb_descriptor_generic]
+
+# https://elixir.bootlin.com/linux/v5.2.7/source/drivers/net/usb/usbnet.c#L147
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor_cdc_ethernet_mac]]
+} [packed]
+
+usb_string_descriptor_cdc_ethernet_mac {
+	bLength		len[parent, int8]
+	bDescriptorType	const[USB_DT_STRING, int8]
+
+# This is a UTF16 encoded string '424242424242'.
+	data		stringnoz["340032003400320034003200340032003400320034003200"]
+} [packed]
+
+vusb_responses_cdc_ethernet {
+	len				len[parent, int32]
+	generic				ptr[in, vusb_response_generic]
+
+	USB_REQ_GET_INTERFACE		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
+	USB_REQ_GET_CONFIGURATION	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
 } [packed]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
