@@ -4,3 +4,6 @@
 workdir*
 
 bin/
+
+# jetbrains goland
+.idea
