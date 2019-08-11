@@ -16136,6 +16136,7 @@ const call_t syscalls[] = {
     {"ioctl$WSMUXIO_REMOVE_DEVICE", 54},
     {"kevent", 72},
     {"kqueue", 269},
+    {"ktrace", 45},
     {"lchown", 254},
     {"link", 9},
     {"linkat", 317},
