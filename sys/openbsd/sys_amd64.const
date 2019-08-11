@@ -64,6 +64,7 @@ RUSAGE_SELF = 0
 SF_APPEND = 262144
 SF_ARCHIVED = 65536
 SF_IMMUTABLE = 131072
+SYS_acct = 51
 SYS_chdir = 12
 SYS_chflags = 34
 SYS_chflagsat = 107
