@@ -1,0 +1,20 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/param.h>
+include <sys/ioctl.h>
+include <sys/fcntl.h>
+
+include <dev/isa/spkrio.h>
+
+resource fd_speaker[fd]
+
+openat$speaker(fd const[AT_FDCWD], file ptr[in, string["/dev/speaker"]], flags flags[open_flags], mode const[0]) fd_speaker
+
+ioctl$SPKRTONE(fd fd_diskmap, cmd const[SPKRTONE], arg ptr[in, tone])
+ioctl$SPKRTUNE(fd fd_diskmap, cmd const[SPKRTUNE], arg ptr[in, tone])
+
+tone {
+	frequency	int32
+	duration	int32
+}
