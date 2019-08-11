@@ -15942,6 +15942,7 @@ const call_t syscalls[] = {
     {"accept$inet", 30},
     {"accept$inet6", 30},
     {"accept$unix", 30},
+    {"acct", 51},
     {"bind", 104},
     {"bind$inet", 104},
     {"bind$inet6", 104},

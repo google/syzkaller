@@ -802,6 +802,9 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_un", Dir: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peerlen", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Path: []string{"peer"}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 51, Name: "acct", CallName: "acct", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+	}},
 	{NR: 104, Name: "bind", CallName: "bind", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "sockaddr_storage"}}},
@@ -2710,6 +2713,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SPKRTONE", Value: 2148029185},
 	{Name: "SPKRTUNE", Value: 536892162},
 	{Name: "SYS_accept", Value: 30},
+	{Name: "SYS_acct", Value: 51},
 	{Name: "SYS_bind", Value: 104},
 	{Name: "SYS_chdir", Value: 12},
 	{Name: "SYS_chflags", Value: 34},
@@ -3024,4 +3028,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__MAP_NOREPLACE", Value: 2048},
 }
 
-const revision_amd64 = "a3f9985253a0a8760aad5942057cf56e9fc5a5ed"
+const revision_amd64 = "c08476e4752b4059cf12a60808713009b95eb172"
