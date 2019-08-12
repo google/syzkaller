@@ -112,7 +112,7 @@ func (ctx *mutator) squashAny() bool {
 	arg.data = mutateData(r, arg.Data(), 0, maxBlobLen)
 	// Update base pointer if size has increased.
 	if baseSize < base.Res.Size() {
-		s := analyze(ctx.ct, p, p.Calls[0])
+		s := analyze(ctx.ct, ctx.corpus, p, p.Calls[0])
 		newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
 		*base = *newArg
 	}
@@ -131,8 +131,9 @@ func (ctx *mutator) insertCall() bool {
 	if idx < len(p.Calls) {
 		c = p.Calls[idx]
 	}
-	s := analyze(ctx.ct, p, c)
+	s := analyze(ctx.ct, ctx.corpus, p, c)
 	calls := r.generateCall(s, p)
+	// TODO: the program might have more than ncalls
 	p.insertBefore(c, calls)
 	return true
 }
@@ -158,7 +159,7 @@ func (ctx *mutator) mutateArg() bool {
 	if len(c.Args) == 0 {
 		return false
 	}
-	s := analyze(ctx.ct, p, c)
+	s := analyze(ctx.ct, ctx.corpus, p, c)
 	updateSizes := true
 	for stop, ok := false, false; !stop; stop = ok && r.oneOf(3) {
 		ok = true
