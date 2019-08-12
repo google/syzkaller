@@ -14,7 +14,7 @@ func (target *Target) Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Pro
 		Target: target,
 	}
 	r := newRand(target, rs)
-	s := newState(target, ct)
+	s := newState(target, ct, nil)
 	for len(p.Calls) < ncalls {
 		calls := r.generateCall(s, p)
 		for _, c := range calls {
