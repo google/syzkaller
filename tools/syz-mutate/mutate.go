@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
@@ -25,6 +26,7 @@ var (
 	flagSeed   = flag.Int("seed", -1, "prng seed")
 	flagLen    = flag.Int("len", 30, "number of calls in programs")
 	flagEnable = flag.String("enable", "", "comma-separated list of enabled syscalls")
+	flagCorpus = flag.String("corpus", "", "name of the corpus file")
 )
 
 func main() {
@@ -56,8 +58,12 @@ func main() {
 	if *flagSeed != -1 {
 		seed = int64(*flagSeed)
 	}
+	var corpus []*prog.Prog
+	if *flagCorpus != "" {
+		corpus = readCorpus(*flagCorpus, target)
+	}
 	rs := rand.NewSource(seed)
-	prios := target.CalculatePriorities(nil)
+	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, syscalls)
 	var p *prog.Prog
 	if flag.NArg() == 0 {
@@ -73,7 +79,24 @@ func main() {
 			fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 			os.Exit(1)
 		}
-		p.Mutate(rs, *flagLen, ct, nil)
+		p.Mutate(rs, *flagLen, ct, corpus)
 	}
 	fmt.Printf("%s\n", p.Serialize())
+}
+
+func readCorpus(filename string, target *prog.Target) (corpus []*prog.Prog) {
+	dbObj, err := db.Open(filename)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open the corpus file: %v\n", err)
+		os.Exit(1)
+	}
+	for _, v := range dbObj.Records {
+		p, err := target.Deserialize(v.Val, prog.NonStrict)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
+			os.Exit(1)
+		}
+		corpus = append(corpus, p)
+	}
+	return corpus
 }

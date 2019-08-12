@@ -302,7 +302,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		// Generate one of them.
 		meta := metas[r.Intn(len(metas))]
 		calls := r.generateParticularCall(s, meta)
-		s1 := newState(r.target, s.ct)
+		s1 := newState(r.target, s.ct, nil)
 		s1.analyze(calls[len(calls)-1])
 		// Now see if we have what we want.
 		var allres []*ResultArg
@@ -480,7 +480,7 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 		Target: target,
 	}
 	r := newRand(target, rs)
-	s := newState(target, nil)
+	s := newState(target, nil, nil)
 	handled := make(map[string]bool)
 	for _, meta := range target.Syscalls {
 		if !strings.HasPrefix(meta.CallName, "syz_") || handled[meta.CallName] {
@@ -589,7 +589,14 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 
 func (a *ResourceType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 	switch {
-	case r.nOutOf(1000, 1011):
+	case r.nOutOf(2, 5):
+		var res *ResultArg
+		res, calls = resourceCentric(a, s, r)
+		if res == nil {
+			return r.createResource(s, a)
+		}
+		arg = MakeResultArg(a, res, 0)
+	case r.nOutOf(1, 2):
 		// Get an existing resource.
 		alltypes := make([][]*ResultArg, 0, len(s.resources))
 		for _, res1 := range s.resources {
@@ -611,7 +618,7 @@ func (a *ResourceType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 		} else {
 			arg, calls = r.createResource(s, a)
 		}
-	case r.nOutOf(10, 11):
+	case r.nOutOf(2, 3):
 		// Create a new resource.
 		arg, calls = r.createResource(s, a)
 	default:
@@ -753,4 +760,76 @@ func (a *LenType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 func (a *CsumType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 	// Filled at runtime by executor.
 	return MakeConstArg(a, 0), nil
+}
+
+// Finds a compatible resource with the type `t` and the calls that initialize that resource.
+func resourceCentric(t *ResourceType, s *state, r *randGen) (resource *ResultArg, calls []*Call) {
+	var p *Prog
+	for idx := range r.Perm(len(s.corpus)) {
+		p = s.corpus[idx].Clone()
+		resources := getCompatibleResources(p, t.TypeName, r)
+		if len(resources) > 0 {
+			resource = resources[r.Intn(len(resources))]
+			break
+		}
+	}
+
+	// No compatible resource was found.
+	if resource == nil {
+		return nil, nil
+	}
+
+	// Set that stores the resources that appear in the same calls with the selected resource.
+	relatedRes := map[*ResultArg]bool{resource: true}
+
+	// Remove unrelated calls from the program.
+	for idx := len(p.Calls) - 1; idx >= 0; idx-- {
+		includeCall := false
+		var newResources []*ResultArg
+		ForeachArg(p.Calls[idx], func(arg Arg, _ *ArgCtx) {
+			if a, ok := arg.(*ResultArg); ok {
+				if a.Res != nil && !relatedRes[a.Res] {
+					newResources = append(newResources, a.Res)
+				}
+				if relatedRes[a] || relatedRes[a.Res] {
+					includeCall = true
+				}
+			}
+		})
+		if !includeCall {
+			p.removeCall(idx)
+		} else {
+			for _, res := range newResources {
+				relatedRes[res] = true
+			}
+		}
+	}
+
+	// Selects a biased random length of the returned calls (more calls could offer more
+	// interesting programs). The values returned (n = len(calls): n, n-1, ..., 2.
+	biasedLen := 2 + r.biasedRand(len(calls)-1, 10)
+
+	// Removes the references that are not used anymore.
+	for i := biasedLen; i < len(calls); i++ {
+		p.removeCall(i)
+	}
+
+	return resource, p.Calls
+}
+
+func getCompatibleResources(p *Prog, resourceType string, r *randGen) (resources []*ResultArg) {
+	for _, c := range p.Calls {
+		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+			// Collect only initialized resources (the ones that are already used in other calls).
+			a, ok := arg.(*ResultArg)
+			if !ok || len(a.uses) == 0 || a.typ.Dir() != DirOut {
+				return
+			}
+			if !r.target.isCompatibleResource(resourceType, a.typ.Name()) {
+				return
+			}
+			resources = append(resources, a)
+		})
+	}
+	return resources
 }

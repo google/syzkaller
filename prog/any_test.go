@@ -20,7 +20,7 @@ func TestIsComplexPtr(t *testing.T) {
 	compl := make(map[string]bool)
 	for _, meta := range target.Syscalls {
 		for i := 0; i < iters; i++ {
-			s := newState(target, nil)
+			s := newState(target, nil, nil)
 			calls := r.generateParticularCall(s, meta)
 			p := &Prog{Target: target, Calls: calls}
 			for _, arg := range p.complexPtrs() {
