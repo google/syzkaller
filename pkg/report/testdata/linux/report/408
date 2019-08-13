@@ -1,0 +1,82 @@
+TITLE: WARNING: refcount bug in input_register_device
+
+[  116.957737] ------------[ cut here ]------------
+[  116.963070] refcount_t: increment on 0; use-after-free.
+[  116.968562] WARNING: CPU: 1 PID: 4353 at lib/refcount.c:153 refcount_inc+0x47/0x50
+[  116.976271] Kernel panic - not syncing: panic_on_warn set ...
+[  116.976271] 
+[  116.983645] CPU: 1 PID: 4353 Comm: syz-executor5 Not tainted 4.14.89+ #6
+[  116.990488] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  116.999846] Call Trace:
+[  117.002449]  dump_stack+0x114/0x1cf
+[  117.006086]  ? show_regs_print_info+0x6a/0x6a
+[  117.010593]  ? _atomic_dec_and_lock+0x171/0x171
+[  117.015311]  ? do_raw_spin_trylock+0x190/0x190
+[  117.019907]  ? refcount_inc+0x47/0x50
+[  117.023720]  panic+0x1bb/0x3a0
+[  117.026918]  ? add_taint.cold.6+0x16/0x16
+[  117.031077]  ? __warn.cold.9+0x5/0x46
+[  117.034887]  ? refcount_inc+0x47/0x50
+[  117.038733]  __warn.cold.9+0x20/0x46
+[  117.042485]  ? refcount_inc+0x47/0x50
+[  117.046293]  report_bug+0x1fd/0x272
+[  117.049928]  do_error_trap+0x1c2/0x430
+[  117.053825]  ? math_error+0x3e0/0x3e0
+[  117.057636]  ? vprintk_func+0x63/0xea
+[  117.061440]  ? printk+0xa3/0xbf
+[  117.064735]  ? show_regs_print_info+0x6a/0x6a
+[  117.069235]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  117.074091]  do_invalid_op+0x20/0x30
+[  117.077813]  invalid_op+0x1b/0x40
+[  117.081277] RIP: 0010:refcount_inc+0x47/0x50
+[  117.085913] RSP: 0018:ffff8881c966f878 EFLAGS: 00010282
+[  117.085949] RAX: 000000000000002b RBX: ffff8881d40fa500 RCX: ffffc9000207d000
+[  117.085958] RDX: 00000000000030e2 RSI: ffffffff812d86d3 RDI: ffff8881c966f3c0
+[  117.085966] RBP: ffff8881c966f880 R08: ffff8881a65421c8 R09: 0000000000000006
+[  117.085974] R10: 0000000000000000 R11: ffff8881a6541900 R12: dffffc0000000000
+[  117.085981] R13: ffff8881d40fa4d0 R14: ffff8881d2b7bfc0 R15: ffff8881da3217c8
+[  117.086009]  ? vprintk_func+0x63/0xea
+[  117.131534]  ? refcount_inc+0x47/0x50
+[  117.135349]  kobject_get+0x50/0xa0
+[  117.139493]  get_device_parent.isra.27+0x3e0/0x5a0
+[  117.144452]  device_add+0x301/0x1620
+[  117.144471]  ? device_private_init+0x240/0x240
+[  117.144502]  ? __kmalloc+0x17f/0x380
+[  117.144520]  input_register_device+0x660/0xbb0
+[  117.144546]  ? devm_input_allocate_device+0x130/0x130
+[  117.144559]  ? lock_release+0x920/0x920
+[  117.144577]  uinput_ioctl_handler.isra.9+0x9f3/0x1fe0
+[  117.144591]  ? uinput_request_submit.part.8+0x290/0x290
+[  117.144613]  ? __fget+0x37b/0x580
+[  117.144622]  ? lock_downgrade+0x700/0x700
+[  117.144640]  ? expand_files.part.8+0x850/0x850
+[  117.144656]  ? static_key_enable.constprop.102+0x1b0/0x1b0
+[  117.144672]  ? uinput_compat_ioctl+0x80/0x80
+[  117.144681]  uinput_ioctl+0x51/0x60
+[  117.144695]  do_vfs_ioctl+0x1a4/0x1540
+[  117.144713]  ? ioctl_preallocate+0x2c0/0x2c0
+[  117.144726]  ? fget_raw+0x20/0x20
+[  117.144739]  ? put_timespec64+0x103/0x190
+[  117.144749]  ? nsecs_to_jiffies+0x30/0x30
+[  117.144788]  ? SyS_clock_gettime+0x111/0x1c0
+[  117.144802]  ? security_file_ioctl+0x94/0xc0
+[  117.144818]  SyS_ioctl+0x94/0xc0
+[  117.144830]  ? do_vfs_ioctl+0x1540/0x1540
+[  117.144843]  do_syscall_64+0x251/0x750
+[  117.144857]  ? copy_overflow+0x20/0x20
+[  117.144868]  ? syscall_return_slowpath+0x3b0/0x3b0
+[  117.144881]  ? syscall_return_slowpath+0x220/0x3b0
+[  117.144893]  ? __switch_to_asm+0x34/0x70
+[  117.144906]  ? prepare_exit_to_usermode+0x270/0x270
+[  117.144920]  ? entry_SYSCALL_64_after_hwframe+0x52/0xb7
+[  117.144936]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  117.144956]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  117.144964] RIP: 0033:0x457669
+[  117.144970] RSP: 002b:00007fb14c000c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  117.144982] RAX: ffffffffffffffda RBX: 0000000000000002 RCX: 0000000000457669
+[  117.144989] RDX: 0000000000000000 RSI: 0000000000005501 RDI: 0000000000000004
+[  117.144995] RBP: 000000000072bfa0 R08: 0000000000000000 R09: 0000000000000000
+[  117.145003] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fb14c0016d4
+[  117.145010] R13: 00000000004c17af R14: 00000000004d3390 R15: 00000000ffffffff
+[  117.146088] Kernel Offset: disabled
+[  117.336935] Rebooting in 86400 seconds..
