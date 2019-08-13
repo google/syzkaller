@@ -764,6 +764,8 @@ var linuxStackParams = &stackParams{
 		"flush_workqueue",
 		"drain_workqueue",
 		"destroy_workqueue",
+		"get_device_parent",
+		"device_add",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -1053,7 +1055,7 @@ var linuxOopses = []*oops{
 			{
 				title: compile("WARNING: .*lib/refcount\\.c.* refcount_"),
 				fmt:   "WARNING: refcount bug in %[1]v",
-				stack: warningStackFmt("refcount"),
+				stack: warningStackFmt("refcount", "kobject_"),
 			},
 			{
 				title: compile("WARNING: .*kernel/locking/lockdep\\.c.*lock_"),

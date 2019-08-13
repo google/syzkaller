@@ -1,0 +1,73 @@
+TITLE: WARNING: refcount bug in cdev_get
+
+[ 1191.409330][ T6711] ------------[ cut here ]------------
+[ 1191.414962][ T6711] refcount_t: increment on 0; use-after-free.
+[ 1191.421477][ T6711] WARNING: CPU: 1 PID: 6711 at lib/refcount.c:156 refcount_inc_checked+0x59/0x60
+[ 1191.430701][ T6711] Kernel panic - not syncing: panic_on_warn set ...
+[ 1191.437319][ T6711] CPU: 1 PID: 6711 Comm: syz-executor.0 Not tainted 5.3.0-rc2+ #25
+[ 1191.446758][ T6711] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1191.456844][ T6711] Call Trace:
+[ 1191.460354][ T6711]  dump_stack+0xca/0x13e
+[ 1191.464733][ T6711]  ? refcount_inc_not_zero_checked+0x170/0x1e0
+[ 1191.470914][ T6711]  panic+0x2a3/0x6da
+[ 1191.474838][ T6711]  ? add_taint.cold+0x16/0x16
+[ 1191.479610][ T6711]  ? __probe_kernel_read+0x188/0x1d0
+[ 1191.485106][ T6711]  ? __warn.cold+0x5/0x4a
+[ 1191.489637][ T6711]  ? __warn+0xe3/0x1e0
+[ 1191.493740][ T6711]  ? refcount_inc_checked+0x59/0x60
+[ 1191.498954][ T6711]  __warn.cold+0x20/0x4a
+[ 1191.503221][ T6711]  ? refcount_inc_checked+0x59/0x60
+[ 1191.508433][ T6711]  report_bug+0x262/0x2a0
+[ 1191.512960][ T6711]  do_error_trap+0x12b/0x1e0
+[ 1191.517566][ T6711]  ? refcount_inc_checked+0x59/0x60
+[ 1191.522782][ T6711]  do_invalid_op+0x32/0x40
+[ 1191.527314][ T6711]  ? refcount_inc_checked+0x59/0x60
+[ 1191.532585][ T6711]  invalid_op+0x23/0x30
+[ 1191.536851][ T6711] RIP: 0010:refcount_inc_checked+0x59/0x60
+[ 1191.542859][ T6711] Code: 1d 78 8f a7 05 31 ff 89 de e8 53 49 5d ff 84 db 75 e0 e8 1a 48 5d ff 48 c7 c7 40 c1 da 85 c6 05 58 8f a7 05 01 e8 3c 19 33 ff <0f> 0b eb c4 90 90 90 41 57 41 56 41 55 49 89 fd 41 54 55 48 89 f5
+[ 1191.562935][ T6711] RSP: 0018:ffff8881c853f958 EFLAGS: 00010282
+[ 1191.569024][ T6711] RAX: 0000000000000000 RBX: 0000000000000000 RCX: 0000000000000000
+[ 1191.577101][ T6711] RDX: 0000000000000000 RSI: ffffffff8128a0fd RDI: ffffed10390a7f1d
+[ 1191.585205][ T6711] RBP: ffff8881d660b938 R08: ffff8881d55f9800 R09: fffffbfff11acd9c
+[ 1191.593190][ T6711] R10: fffffbfff11acd9b R11: ffffffff88d66cdf R12: ffff8881d660b900
+[ 1191.601180][ T6711] R13: 0000000000000000 R14: ffff8881ca2bbc20 R15: ffff8881c8a391fc
+[ 1191.609481][ T6711]  ? vprintk_func+0x7d/0x113
+[ 1191.614095][ T6711]  ? refcount_inc_checked+0x59/0x60
+[ 1191.619471][ T6711]  kobject_get+0x62/0xc0
+[ 1191.623771][ T6711]  cdev_get+0x5c/0xb0
+[ 1191.627873][ T6711]  chrdev_open+0xaa/0x5c0
+[ 1191.632370][ T6711]  ? rwlock_bug.part.0+0x90/0x90
+[ 1191.637480][ T6711]  ? cdev_put.part.0+0x50/0x50
+[ 1191.642500][ T6711]  do_dentry_open+0x494/0x1120
+[ 1191.647333][ T6711]  ? cdev_put.part.0+0x50/0x50
+[ 1191.652114][ T6711]  ? chmod_common+0x3c0/0x3c0
+[ 1191.656956][ T6711]  ? inode_permission+0xbe/0x3a0
+[ 1191.661919][ T6711]  path_openat+0x1430/0x3f50
+[ 1191.666573][ T6711]  ? save_stack+0x1b/0x80
+[ 1191.670919][ T6711]  ? do_sys_open+0x294/0x580
+[ 1191.675682][ T6711]  ? do_syscall_64+0xb7/0x580
+[ 1191.680373][ T6711]  ? path_lookupat.isra.0+0x8d0/0x8d0
+[ 1191.685760][ T6711]  ? __lock_acquire+0x145e/0x3b50
+[ 1191.691048][ T6711]  do_filp_open+0x1a1/0x280
+[ 1191.695649][ T6711]  ? may_open_dev+0xf0/0xf0
+[ 1191.700186][ T6711]  ? __alloc_fd+0x46d/0x600
+[ 1191.704706][ T6711]  ? do_raw_spin_lock+0x11a/0x280
+[ 1191.709740][ T6711]  ? do_raw_spin_unlock+0x50/0x220
+[ 1191.715066][ T6711]  ? _raw_spin_unlock+0x1f/0x30
+[ 1191.719942][ T6711]  ? __alloc_fd+0x46d/0x600
+[ 1191.724460][ T6711]  do_sys_open+0x3c0/0x580
+[ 1191.728893][ T6711]  ? filp_open+0x70/0x70
+[ 1191.733238][ T6711]  ? __ia32_sys_clock_settime+0x260/0x260
+[ 1191.739119][ T6711]  ? trace_hardirqs_off_caller+0x55/0x1e0
+[ 1191.744853][ T6711]  do_syscall_64+0xb7/0x580
+[ 1191.749387][ T6711]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1191.755550][ T6711] RIP: 0033:0x413711
+[ 1191.759460][ T6711] Code: 75 14 b8 02 00 00 00 0f 05 48 3d 01 f0 ff ff 0f 83 04 19 00 00 c3 48 83 ec 08 e8 0a fa ff ff 48 89 04 24 b8 02 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 53 fa ff ff 48 89 d0 48 83 c4 08 48 3d 01
+[ 1191.779203][ T6711] RSP: 002b:00007fcd70ca27a0 EFLAGS: 00000293 ORIG_RAX: 0000000000000002
+[ 1191.787902][ T6711] RAX: ffffffffffffffda RBX: 6666666666666667 RCX: 0000000000413711
+[ 1191.795895][ T6711] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 00007fcd70ca2850
+[ 1191.803887][ T6711] RBP: 000000000075bf20 R08: 000000000000000f R09: 0000000000000000
+[ 1191.812072][ T6711] R10: 0000000000000000 R11: 0000000000000293 R12: 00007fcd70ca36d4
+[ 1191.820263][ T6711] R13: 00000000004c8bc7 R14: 00000000004dfa58 R15: 00000000ffffffff
+[ 1191.829087][ T6711] Kernel Offset: disabled
+[ 1191.833487][ T6711] Rebooting in 86400 seconds..
