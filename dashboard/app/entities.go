@@ -89,7 +89,7 @@ type Bug struct {
 	Reporting      []BugReporting
 	Commits        []string // titles of fixing commmits
 	CommitInfo     []Commit // additional info for commits (for historical reasons parallel array to Commits)
-	HappenedOn     []string `datastore:",noindex"` // list of managers
+	HappenedOn     []string // list of managers
 	PatchedOn      []string `datastore:",noindex"` // list of managers
 	UNCC           []string // don't CC these emails on this bug
 }

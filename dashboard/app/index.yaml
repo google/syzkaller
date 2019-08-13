@@ -18,6 +18,17 @@ indexes:
 - kind: Bug
   properties:
   - name: Namespace
+  - name: HappenedOn
+
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Status
+  - name: HappenedOn
+
+- kind: Bug
+  properties:
+  - name: Namespace
   - name: Title
   - name: Seq
     direction: desc
