@@ -89,3 +89,14 @@ func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs
 		})
 	}
 }
+
+func initBench(b *testing.B) (*Target, func()) {
+	olddebug := debug
+	debug = false
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	return target, func() { debug = olddebug }
+}

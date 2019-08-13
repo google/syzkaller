@@ -480,13 +480,8 @@ func TestHintsData(t *testing.T) {
 }
 
 func BenchmarkHints(b *testing.B) {
-	olddebug := debug
-	debug = false
-	defer func() { debug = olddebug }()
-	target, err := GetTarget("linux", "amd64")
-	if err != nil {
-		b.Fatal(err)
-	}
+	target, cleanup := initBench(b)
+	defer cleanup()
 	rs := rand.NewSource(0)
 	r := newRand(target, rs)
 	p := target.Generate(rs, 30, nil)

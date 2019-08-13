@@ -220,13 +220,8 @@ func runMutationTests(t *testing.T, tests [][2]string) {
 }
 
 func BenchmarkMutate(b *testing.B) {
-	olddebug := debug
-	debug = false
-	defer func() { debug = olddebug }()
-	target, err := GetTarget("linux", "amd64")
-	if err != nil {
-		b.Fatal(err)
-	}
+	target, cleanup := initBench(b)
+	defer cleanup()
 	ct := linuxAmd64ChoiceTable(target)
 	const progLen = 30
 	p := target.Generate(rand.NewSource(0), progLen, nil)
@@ -240,13 +235,8 @@ func BenchmarkMutate(b *testing.B) {
 }
 
 func BenchmarkGenerate(b *testing.B) {
-	olddebug := debug
-	debug = false
-	defer func() { debug = olddebug }()
-	target, err := GetTarget("linux", "amd64")
-	if err != nil {
-		b.Fatal(err)
-	}
+	target, cleanup := initBench(b)
+	defer cleanup()
 	ct := linuxAmd64ChoiceTable(target)
 	const progLen = 30
 	b.ResetTimer()
