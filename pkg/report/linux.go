@@ -761,6 +761,9 @@ var linuxStackParams = &stackParams{
 		"flush_work",
 		"__cancel_work_timer",
 		"cancel_work_sync",
+		"flush_workqueue",
+		"drain_workqueue",
+		"destroy_workqueue",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -957,6 +960,11 @@ var linuxOopses = []*oops{
 						parseStackTrace,
 					},
 				},
+			},
+			{
+				title: compile("BUG: MAX_STACK_TRACE_ENTRIES too low!"),
+				fmt:   "BUG: MAX_STACK_TRACE_ENTRIES too low in %[1]v",
+				stack: warningStackFmt("save_trace", "mark_lock"),
 			},
 			{
 				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible"),

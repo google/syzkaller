@@ -1,4 +1,4 @@
-TITLE: general protection fault in drain_workqueue
+TITLE: general protection fault in ucma_close
 
 [   52.099632] kasan: GPF could be caused by NULL-ptr deref or user memory access
 [   52.106982] general protection fault: 0000 [#1] SMP KASAN
