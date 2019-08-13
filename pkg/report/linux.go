@@ -761,6 +761,11 @@ var linuxStackParams = &stackParams{
 		"flush_work",
 		"__cancel_work_timer",
 		"cancel_work_sync",
+		"flush_workqueue",
+		"drain_workqueue",
+		"destroy_workqueue",
+		"get_device_parent",
+		"device_add",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -959,6 +964,11 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
+				title: compile("BUG: MAX_STACK_TRACE_ENTRIES too low!"),
+				fmt:   "BUG: MAX_STACK_TRACE_ENTRIES too low in %[1]v",
+				stack: warningStackFmt("save_trace", "mark_lock"),
+			},
+			{
 				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible"),
 				fmt:   "BUG: using __this_cpu_%[1]v() in preemptible code in %[2]v",
 				stack: &stackFmt{
@@ -1045,7 +1055,7 @@ var linuxOopses = []*oops{
 			{
 				title: compile("WARNING: .*lib/refcount\\.c.* refcount_"),
 				fmt:   "WARNING: refcount bug in %[1]v",
-				stack: warningStackFmt("refcount"),
+				stack: warningStackFmt("refcount", "kobject_"),
 			},
 			{
 				title: compile("WARNING: .*kernel/locking/lockdep\\.c.*lock_"),
