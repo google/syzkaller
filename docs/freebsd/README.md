@@ -186,6 +186,46 @@ executed 35803, cover 1248, crashes 0, repro 0
 ```
 If something does not work, try adding the `-debug` flag to `syz-manager`.
 
+## Kernel Dumps
+
+syzkaller is quite good at finding reproducers, but unfortunately there are many cases where it will fail to do so.  To make debugging such crashes easier, one can configure a bhyve guest to transmit a kernel dump to the guest using [netdump(4)](https://www.freebsd.org/cgi/man.cgi?query=netdump&sektion=4).
+
+On the host, install the netdump server daemon.  When a VM panics, it will transmit data over UDP to this daemon.
+
+```console
+# pkg install netdumpd
+```
+
+In the guest, ensure that the kernel will not drop to a debugger prompt upon panicking: add `debug.debugger_on_panic=0` to `/boot/loader.conf`.  Then, set up the DHCP client to configure netdump when the guest receives an IP address, by adding the following to `/etc/dhclient-exit-hooks`:
+
+```sh
+case $reason in
+BOUND|REBIND|REBOOT|RENEW)
+	if [ "$interface" != vtnet0 ] || [ -n "$old_ip_address" -a \
+	     "$old_ip_address" = "$new_ip_address" ]; then
+		break
+	fi
+	if [ -n "$new_routers" ]; then
+		# Take the first router in the list.
+		gateway_flag="-g ${new_routers%% *}"
+	fi
+	# Clear any pre-existing configuration.
+	dumpon /dev/null
+	dumpon -c $new_ip_address -s 169.254.0.1 $gateway_flag vtnet0
+	;;
+esac
+```
+
+To verify the configuration, boot the VM and run `dumpon -l`.
+
+On the host, configure `netdumpd`.  Its options can be set in `/etc/rc.conf`, or you can run it from the command-line.  For example:
+
+```sh
+# netdumpd -d /data/syzkaller/dumps -a 169.265.0.1
+```
+
+Then, run syzkaller.  Kernel dumps should end up in `/data/syzkaller/dumps`, and can be debugged using `kgdb` from ports.  Note that kernel dumps may occupy a large amount of disk space.  This can be mitigated somewhat with compression, either by adding a `netdumpd` hook to compress the core file, or by configuring the guest kernels to compress dumps before they are transmitted (add `-Z` to the `dumpon` invocation to get Zstandard compression).
+
 ## Missing things
 
 - System call descriptions. `sys/freebsd/*.txt` is a dirty copy from `sys/linux/*.txt` with everything that does not compile dropped. We need to go through syscalls and verify/fix/extend them, including devices/ioctls/etc.
