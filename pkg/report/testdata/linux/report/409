@@ -1,0 +1,62 @@
+TITLE: WARNING: ODEBUG bug in usbhid_disconnect
+
+[   40.696563][   T21] ------------[ cut here ]------------
+[   40.702869][   T21] ODEBUG: free active (active state 0) object type: timer_list hint: hid_retry_timeout+0x0/0xd0
+[   40.713321][   T21] WARNING: CPU: 1 PID: 21 at lib/debugobjects.c:325 debug_print_object+0x160/0x250
+[   40.722757][   T21] Kernel panic - not syncing: panic_on_warn set ...
+[   40.729334][   T21] CPU: 1 PID: 21 Comm: kworker/1:1 Not tainted 5.2.0-rc6+ #15
+[   40.736767][   T21] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   40.746813][   T21] Workqueue: usb_hub_wq hub_event
+[   40.751813][   T21] Call Trace:
+[   40.755139][   T21]  dump_stack+0xca/0x13e
+[   40.759374][   T21]  ? debug_print_object+0xe0/0x250
+[   40.764470][   T21]  panic+0x292/0x6c9
+[   40.768354][   T21]  ? __warn_printk+0xf3/0xf3
+[   40.772932][   T21]  ? debug_print_object+0x160/0x250
+[   40.778109][   T21]  ? __probe_kernel_read+0x16c/0x1b0
+[   40.783375][   T21]  ? __warn.cold+0x5/0x4b
+[   40.787687][   T21]  ? __warn+0xe4/0x1c0
+[   40.791732][   T21]  ? debug_print_object+0x160/0x250
+[   40.796910][   T21]  __warn.cold+0x20/0x4b
+[   40.801134][   T21]  ? debug_print_object+0x160/0x250
+[   40.806422][   T21]  report_bug+0x262/0x2a0
+[   40.810744][   T21]  do_error_trap+0x12b/0x1e0
+[   40.815334][   T21]  ? debug_print_object+0x160/0x250
+[   40.820520][   T21]  do_invalid_op+0x32/0x40
+[   40.824919][   T21]  ? debug_print_object+0x160/0x250
+[   40.830100][   T21]  invalid_op+0x14/0x20
+[   40.834325][   T21] RIP: 0010:debug_print_object+0x160/0x250
+[   40.840106][   T21] Code: dd e0 16 ba 85 48 89 fa 48 c1 ea 03 80 3c 02 00 0f 85 bf 00 00 00 48 8b 14 dd e0 16 ba 85 48 c7 c7 c0 0c ba 85 e8 db c7 33 ff <0f> 0b 83 05 03 6e 86 05 01 48 83 c4 20 5b 5d 41 5c 41 5d c3 48 89
+[   40.859705][   T21] RSP: 0018:ffff8881d9eff710 EFLAGS: 00010086
+[   40.865792][   T21] RAX: 0000000000000000 RBX: 0000000000000003 RCX: 0000000000000000
+[   40.873757][   T21] RDX: 0000000000000000 RSI: ffffffff8127ef3d RDI: ffffed103b3dfed4
+[   40.881741][   T21] RBP: 0000000000000001 R08: ffff8881d9e36000 R09: ffffed103b663ed7
+[   40.889697][   T21] R10: ffffed103b663ed6 R11: ffff8881db31f6b7 R12: ffffffff86b04760
+[   40.897656][   T21] R13: ffffffff812db3c0 R14: ffffffff88f4bae8 R15: ffff8881d0e1a8c8
+[   40.905626][   T21]  ? calc_wheel_index+0x220/0x220
+[   40.910641][   T21]  ? vprintk_func+0x7d/0x113
+[   40.915222][   T21]  debug_check_no_obj_freed+0x2a3/0x42e
+[   40.920755][   T21]  __free_pages_ok+0x215/0x1bb0
+[   40.925597][   T21]  ? usbhid_disconnect+0x98/0xd0
+[   40.930522][   T21]  ? rcu_read_lock_sched_held+0x113/0x130
+[   40.936254][   T21]  usbhid_disconnect+0x98/0xd0
+[   40.941010][   T21]  usb_unbind_interface+0x1bd/0x8a0
+[   40.946197][   T21]  ? usb_autoresume_device+0x60/0x60
+[   40.951469][   T21]  device_release_driver_internal+0x404/0x4c0
+[   40.957530][   T21]  bus_remove_device+0x2dc/0x4a0
+[   40.962454][   T21]  device_del+0x460/0xb80
+[   40.966776][   T21]  ? __device_links_no_driver+0x240/0x240
+[   40.972502][   T21]  ? usb_remove_ep_devs+0x3e/0x80
+[   40.977618][   T21]  ? remove_intf_ep_devs+0x13f/0x1d0
+[   40.982892][   T21]  usb_disable_device+0x211/0x690
+[   40.987905][   T21]  usb_disconnect+0x284/0x830
+[   40.992571][   T21]  hub_event+0x13bd/0x3550
+[   40.997067][   T21]  ? hub_port_debounce+0x260/0x260
+[   41.002171][   T21]  process_one_work+0x905/0x1570
+[   41.007104][   T21]  ? pwq_dec_nr_in_flight+0x310/0x310
+[   41.012472][   T21]  ? do_raw_spin_lock+0x11a/0x280
+[   41.017498][   T21]  worker_thread+0x96/0xe20
+[   41.022016][   T21]  ? process_one_work+0x1570/0x1570
+[   41.027211][   T21]  kthread+0x30b/0x410
+[   41.031295][   T21]  ? kthread_park+0x1a0/0x1a0
+[   41.035965][   T21]  ret_from_fork+0x24/0x30
