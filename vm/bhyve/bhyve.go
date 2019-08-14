@@ -4,6 +4,7 @@
 package bhyve
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -331,6 +332,34 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
+	var output []byte
+	var netdumpStart time.Time
+
+	netdumping := false
+	ticker := time.NewTicker(10 * time.Second)
+loop:
+	for {
+		select {
+		case out, ok := <-inst.merger.Output:
+			if !ok {
+				return nil, false
+			}
+			output = append(output, out...)
+			if !netdumping && bytes.Contains(output, []byte("netdump:")) {
+				netdumping = true
+				netdumpStart = time.Now()
+			}
+			if bytes.Contains(output, []byte("netdump finished")) {
+				break loop
+			}
+		case <-ticker.C:
+			if !netdumping || time.Since(netdumpStart) >= 5*time.Minute {
+				break loop
+			}
+		case <-vmimpl.Shutdown:
+			break loop
+		}
+	}
 	return nil, false
 }
 
