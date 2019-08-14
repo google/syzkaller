@@ -55,7 +55,7 @@ type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE,
 	bDeviceClass		const[CLASS, int8]
 	bDeviceSubClass		const[SUBCLASS, int8]
 	bDeviceProtocol		const[PROTOCOL, int8]
-	bMaxPacketSize0		flags[usb_max_packet_sizes, int8]
+	bMaxPacketSize0		flags[usb_device_max_packet_sizes, int8]
 	idVendor		const[VENDOR, int16]
 	idProduct		const[PRODUCT, int16]
 	bcdDevice		const[DEVICE, int16]
@@ -70,7 +70,7 @@ type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE,
 usb_versions = 0x110, 0x200, 0x201, 0x250, 0x300, 0x310
 
 # https://elixir.bootlin.com/linux/v5.1.7/source/drivers/usb/core/hub.c#L4661
-usb_max_packet_sizes = 8, 16, 32, 64
+usb_device_max_packet_sizes = 8, 16, 32, 64
 
 type usb_config_descriptor_t[NUM, ATTRS, IFS] {
 	bLength			const[USB_DT_CONFIG_SIZE, int8]
@@ -109,7 +109,7 @@ type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
 
 	bEndpointAddress	ADDR
 	bmAttributes		ATTRS
-	wMaxPacketSize		flags[usb_max_packet_sizes, int16]
+	wMaxPacketSize		int16[0:1024]
 	bInterval		int8
 
 	bRefresh		int8
@@ -251,14 +251,17 @@ type vusb_response_t[CLASS, REQ, DATA] {
 
 # USB descriptors requested by the kernel before the SET_CONFIGURATION request.
 
-# TODO: string should either contain lang ids or data.
-usb_string_descriptor {
+type usb_string_descriptor_t[DATA] {
 	bLength		len[parent, int8]
 	bDescriptorType	const[USB_DT_STRING, int8]
 
-	lang_id		flags[usb_lang_ids, int16]
-	data		array[int8]
+	data		DATA
 } [packed]
+
+usb_string_descriptor [
+	lang_id	usb_string_descriptor_t[flags[usb_lang_ids, int16]]
+	string	usb_string_descriptor_t[array[int8]]
+] [varlen]
 
 usb_lang_ids = 0x436, 0x41c, 0x401, 0x801, 0xc01, 0x1001, 0x1401, 0x1801, 0x1c01, 0x2001, 0x2401, 0x2801, 0x2c01, 0x3001, 0x3401, 0x3801, 0x3c01, 0x4001, 0x42b, 0x44d, 0x42c, 0x82c, 0x42d, 0x423, 0x445, 0x402, 0x455, 0x403, 0x404, 0x804, 0xc04, 0x1004, 0x1404, 0x41a, 0x405, 0x406, 0x413, 0x813, 0x409, 0x809, 0xc09, 0x1009, 0x1409, 0x1809, 0x1c09, 0x2009, 0x2409, 0x2809, 0x2c09, 0x3009, 0x3409, 0x425, 0x438, 0x429, 0x40b, 0x40c, 0x80c, 0xc0c, 0x100c, 0x140c, 0x180c, 0x437, 0x407, 0x807, 0xc07, 0x1007, 0x1407, 0x408, 0x447, 0x40d, 0x439, 0x40e, 0x40f, 0x421, 0x410, 0x810, 0x411, 0x44b, 0x860, 0x43f, 0x457, 0x412, 0x812, 0x426, 0x427, 0x827, 0x42f, 0x43e, 0x83e, 0x44c, 0x458, 0x44e, 0x861, 0x414, 0x814, 0x448, 0x415, 0x416, 0x816, 0x446, 0x418, 0x419, 0x44f, 0xc1a, 0x81a, 0x459, 0x41b, 0x424, 0x40a, 0x80a, 0xc0a, 0x100a, 0x140a, 0x180a, 0x1c0a, 0x200a, 0x240a, 0x280a, 0x2c0a, 0x300a, 0x340a, 0x380a, 0x3c0a, 0x400a, 0x440a, 0x480a, 0x4c0a, 0x500a, 0x430, 0x441, 0x41d, 0x81d, 0x449, 0x444, 0x44a, 0x41e, 0x41f, 0x422, 0x420, 0x820, 0x443, 0x843, 0x42a, 0x4ff, 0xf0ff, 0xf4ff, 0xf8ff, 0xfcff
 
@@ -270,7 +273,7 @@ usb_qualifier_descriptor {
 	bDeviceClass		int8
 	bDeviceSubClass		int8
 	bDeviceProtocol		int8
-	bMaxPacketSize0		flags[usb_max_packet_sizes, int8]
+	bMaxPacketSize0		flags[usb_device_max_packet_sizes, int8]
 	bNumConfigurations	int8
 	bRESERVED		const[0, int8]
 } [packed]
@@ -715,6 +718,9 @@ usb_printer_get_id_response {
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_ecm.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/u_ether.c
 
+# Connected CDC Ethernet devices are known to create usbN network interfaces.
+# TODO: enable fuzzing of those.
+
 # TODO: currently the only endpoint which is being successfully enabled is the notification endpoint #1.
 
 # TODO: consider patching idVendor and idProduct in Go code.
@@ -939,15 +945,12 @@ vusb_descriptors_cdc_ethernet {
 	generic		ptr[in, vusb_descriptor_generic]
 
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/net/usb/usbnet.c#L147
-	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor_cdc_ethernet_mac]]
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor_t[usb_cdc_ethernet_mac]]]
 } [packed]
 
-usb_string_descriptor_cdc_ethernet_mac {
-	bLength		len[parent, int8]
-	bDescriptorType	const[USB_DT_STRING, int8]
-
+usb_cdc_ethernet_mac {
 # This is a UTF16 encoded string '424242424242'.
-	data		stringnoz["340032003400320034003200340032003400320034003200"]
+	data	stringnoz["340032003400320034003200340032003400320034003200"]
 } [packed]
 
 vusb_responses_cdc_ethernet {
