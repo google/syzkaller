@@ -20,12 +20,13 @@ func ctorGvisor(cfg *config) (Reporter, []string, error) {
 		"fatal error: runtime: out of memory",
 		"fatal error: runtime: cannot allocate memory",
 		"fatal error: newosproc",
-		"panic: ptrace sysemu failed: no such process",           // OOM kill
-		`panic: ptrace (s|g)et fpregs.* failed: no such process`, // OOM kill
-		`panic: ptrace (s|g)et regs.* failed: no such process`,   // OOM kill
-		"panic: error initializing first thread: resource temporarily unavailable",
+		"panic: ptrace sysemu failed: no such process",                                          // OOM kill
+		`panic: ptrace (s|g)et fpregs.* failed: no such process`,                                // OOM kill
+		`panic: ptrace (s|g)et regs.* failed: no such process`,                                  // OOM kill
+		"panic: error initializing first thread: resource temporarily unavailable",              // PID exhaustion
+		"panic: unable to activate mm: creating stub process: resource temporarily unavailable", // PID exhaustion
+		"panic: executor failed: pthread_create failed",                                         // PID exhaustion
 		"panic: failed to start executor binary",
-		"panic: executor failed: pthread_create failed",
 		"panic: error mapping run data: error mapping runData: cannot allocate memory",
 		"ERROR: ThreadSanitizer", // Go race failing due to OOM.
 		"FATAL: ThreadSanitizer",
