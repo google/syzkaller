@@ -26,23 +26,7 @@ func (ctx netbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", kernelDir, targetArch)
 	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/obj/%v", kernelDir, targetArch, kernelName)
 
-	// Compile the kernel with KASAN
-	conf := []byte(`
-include "arch/amd64/conf/GENERIC"
-
-options	   DEBUG
-options	   LOCKDEBUG
-
-makeoptions    KASAN=1
-options    KASAN
-no options SVS
-options	   KASAN_PANIC
-
-makeoptions     KCOV=1
-options     KCOV
-`)
-
-	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), conf); err != nil {
+	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), config); err != nil {
 		return err
 	}
 	// Build tools before building kernel
