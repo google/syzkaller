@@ -184,6 +184,10 @@ var openbsdOopses = []*oops{
 				fmt:   "witness: thread exiting with locks held",
 			},
 			{
+				title: compile("witness: userret: returning with the following locks held:(.*\\n)+?.*sys_([a-z0-9_]+)\\+"),
+				fmt:   "witness: userret: %[2]v",
+			},
+			{
 				title: compile("(witness: .*)"),
 				fmt:   "%[1]v",
 			},
