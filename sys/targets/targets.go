@@ -243,7 +243,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			KernelHeaderArch: "x64",
-			CCompiler:        os.ExpandEnv("${SOURCEDIR}/buildtools/linux-x64/clang/bin/clang++"),
+			CCompiler:        os.ExpandEnv("${SOURCEDIR}/prebuilt/third_party/clang/linux-x64/bin/clang++"),
 			CrossCFlags: []string{
 				"-Wno-deprecated",
 				"--target=x86_64-fuchsia",
@@ -261,7 +261,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			KernelHeaderArch: "arm64",
-			CCompiler:        os.ExpandEnv("${SOURCEDIR}/buildtools/linux-x64/clang/bin/clang++"),
+			CCompiler:        os.ExpandEnv("${SOURCEDIR}/prebuilt/third_party/clang/linux-x64/bin/clang++"),
 			CrossCFlags: []string{
 				"-Wno-deprecated",
 				"--target=aarch64-fuchsia",
