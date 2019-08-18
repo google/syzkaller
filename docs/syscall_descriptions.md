@@ -6,7 +6,7 @@ excerpt from the description:
 
 ```
 open(file filename, flags flags[open_flags], mode flags[open_mode]) fd
-read(fd fd, buf buffer[out], count len[buf]) len[buf]
+read(fd fd, buf buffer[out], count len[buf])
 close(fd fd)
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 ```
@@ -24,7 +24,6 @@ and deserialize programs. A program is a sequences of syscalls with concrete val
 Here is an example (of a textual representation) of a program:
 
 ```
-mmap(&(0x7f0000000000), (0x1000), 0x3, 0x32, -1, 0)
 r0 = open(&(0x7f0000000000)="./file0", 0x3, 0x9)
 read(r0, &(0x7f0000000000), 42)
 close(r0)
