@@ -1,0 +1,155 @@
+TITLE: KASAN: use-after-free Read in hiddev_read
+
+[  501.875843][ T9186] ==================================================================
+[  501.883925][ T9186] BUG: KASAN: use-after-free in __lock_acquire+0x302a/0x3b50
+[  501.891279][ T9186] Read of size 8 at addr ffff8881d2bec328 by task syz-executor.4/9186
+[  501.899408][ T9186] 
+[  501.901720][ T9186] CPU: 1 PID: 9186 Comm: syz-executor.4 Not tainted 5.3.0-rc4+ #26
+[  501.909584][ T9186] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  501.919617][ T9186] Call Trace:
+[  501.922891][ T9186]  dump_stack+0xca/0x13e
+[  501.927205][ T9186]  ? __lock_acquire+0x302a/0x3b50
+[  501.932208][ T9186]  ? __lock_acquire+0x302a/0x3b50
+[  501.937386][ T9186]  print_address_description+0x6a/0x32c
+[  501.943011][ T9186]  ? __lock_acquire+0x302a/0x3b50
+[  501.948027][ T9186]  ? __lock_acquire+0x302a/0x3b50
+[  501.953037][ T9186]  __kasan_report.cold+0x1a/0x33
+[  501.957975][ T9186]  ? __lock_acquire+0x302a/0x3b50
+[  501.962995][ T9186]  kasan_report+0xe/0x12
+[  501.967223][ T9186]  __lock_acquire+0x302a/0x3b50
+[  501.972052][ T9186]  ? __mutex_lock+0x430/0x1360
+[  501.976800][ T9186]  ? lockdep_hardirqs_on+0x379/0x580
+[  501.982076][ T9186]  ? mark_held_locks+0xe0/0xe0
+[  501.986833][ T9186]  ? finish_task_switch+0xef/0x5a0
+[  501.991940][ T9186]  ? mutex_trylock+0x2c0/0x2c0
+[  501.996706][ T9186]  lock_acquire+0x127/0x320
+[  502.001227][ T9186]  ? finish_wait+0xb2/0x260
+[  502.005747][ T9186]  _raw_spin_lock_irqsave+0x32/0x50
+[  502.010938][ T9186]  ? finish_wait+0xb2/0x260
+[  502.015417][ T9186]  finish_wait+0xb2/0x260
+[  502.019727][ T9186]  hiddev_read+0x89d/0xbd0
+[  502.024128][ T9186]  ? hiddev_ioctl_usage.isra.0+0x13b0/0x13b0
+[  502.030087][ T9186]  ? finish_wait+0x260/0x260
+[  502.034763][ T9186]  ? security_file_permission+0x8a/0x370
+[  502.040382][ T9186]  ? hiddev_ioctl_usage.isra.0+0x13b0/0x13b0
+[  502.046372][ T9186]  __vfs_read+0x76/0x100
+[  502.050592][ T9186]  vfs_read+0x1ea/0x430
+[  502.054731][ T9186]  ksys_read+0x127/0x250
+[  502.058971][ T9186]  ? kernel_write+0x120/0x120
+[  502.063636][ T9186]  ? __ia32_sys_clock_settime+0x260/0x260
+[  502.069398][ T9186]  ? trace_hardirqs_off_caller+0x55/0x1e0
+[  502.075096][ T9186]  do_syscall_64+0xb7/0x580
+[  502.079579][ T9186]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  502.085444][ T9186] RIP: 0033:0x459829
+[  502.089321][ T9186] Code: fd b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  502.108917][ T9186] RSP: 002b:00007fab15b5ec78 EFLAGS: 00000246 ORIG_RAX: 0000000000000000
+[  502.117329][ T9186] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459829
+[  502.125309][ T9186] RDX: 0000000000000015 RSI: 0000000020000080 RDI: 0000000000000003
+[  502.133274][ T9186] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[  502.141235][ T9186] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fab15b5f6d4
+[  502.149188][ T9186] R13: 00000000004c6c66 R14: 00000000004dbf70 R15: 00000000ffffffff
+[  502.157159][ T9186] 
+[  502.159473][ T9186] Allocated by task 2740:
+[  502.163784][ T9186]  save_stack+0x1b/0x80
+[  502.167922][ T9186]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[  502.173535][ T9186]  hiddev_connect+0x242/0x5b0
+[  502.178192][ T9186]  hid_connect+0x239/0xbb0
+[  502.182586][ T9186]  hid_hw_start+0xa2/0x130
+[  502.186994][ T9186]  appleir_probe+0x13e/0x1a0
+[  502.191604][ T9186]  hid_device_probe+0x2be/0x3f0
+[  502.196434][ T9186]  really_probe+0x281/0x6d0
+[  502.200910][ T9186]  driver_probe_device+0x101/0x1b0
+[  502.206018][ T9186]  __device_attach_driver+0x1c2/0x220
+[  502.211368][ T9186]  bus_for_each_drv+0x162/0x1e0
+[  502.216193][ T9186]  __device_attach+0x217/0x360
+[  502.220930][ T9186]  bus_probe_device+0x1e4/0x290
+[  502.225751][ T9186]  device_add+0xae6/0x16f0
+[  502.230141][ T9186]  hid_add_device+0x33c/0x990
+[  502.234822][ T9186]  usbhid_probe+0xa81/0xfa0
+[  502.239317][ T9186]  usb_probe_interface+0x305/0x7a0
+[  502.244404][ T9186]  really_probe+0x281/0x6d0
+[  502.248900][ T9186]  driver_probe_device+0x101/0x1b0
+[  502.253989][ T9186]  __device_attach_driver+0x1c2/0x220
+[  502.259334][ T9186]  bus_for_each_drv+0x162/0x1e0
+[  502.264163][ T9186]  __device_attach+0x217/0x360
+[  502.268903][ T9186]  bus_probe_device+0x1e4/0x290
+[  502.273728][ T9186]  device_add+0xae6/0x16f0
+[  502.278122][ T9186]  usb_set_configuration+0xdf6/0x1670
+[  502.283477][ T9186]  generic_probe+0x9d/0xd5
+[  502.287883][ T9186]  usb_probe_device+0x99/0x100
+[  502.292638][ T9186]  really_probe+0x281/0x6d0
+[  502.297115][ T9186]  driver_probe_device+0x101/0x1b0
+[  502.302210][ T9186]  __device_attach_driver+0x1c2/0x220
+[  502.307599][ T9186]  bus_for_each_drv+0x162/0x1e0
+[  502.312433][ T9186]  __device_attach+0x217/0x360
+[  502.317191][ T9186]  bus_probe_device+0x1e4/0x290
+[  502.322021][ T9186]  device_add+0xae6/0x16f0
+[  502.326435][ T9186]  usb_new_device.cold+0x6a4/0xe79
+[  502.331546][ T9186]  hub_event+0x1b5c/0x3640
+[  502.335936][ T9186]  process_one_work+0x92b/0x1530
+[  502.340860][ T9186]  worker_thread+0x96/0xe20
+[  502.345352][ T9186]  kthread+0x318/0x420
+[  502.349397][ T9186]  ret_from_fork+0x24/0x30
+[  502.353782][ T9186] 
+[  502.356085][ T9186] Freed by task 2740:
+[  502.360055][ T9186]  save_stack+0x1b/0x80
+[  502.364188][ T9186]  __kasan_slab_free+0x130/0x180
+[  502.369112][ T9186]  kfree+0xe4/0x2f0
+[  502.372898][ T9186]  hiddev_connect.cold+0x45/0x5c
+[  502.377814][ T9186]  hid_connect+0x239/0xbb0
+[  502.382209][ T9186]  hid_hw_start+0xa2/0x130
+[  502.386598][ T9186]  appleir_probe+0x13e/0x1a0
+[  502.391199][ T9186]  hid_device_probe+0x2be/0x3f0
+[  502.396033][ T9186]  really_probe+0x281/0x6d0
+[  502.400515][ T9186]  driver_probe_device+0x101/0x1b0
+[  502.405604][ T9186]  __device_attach_driver+0x1c2/0x220
+[  502.410951][ T9186]  bus_for_each_drv+0x162/0x1e0
+[  502.415808][ T9186]  __device_attach+0x217/0x360
+[  502.420546][ T9186]  bus_probe_device+0x1e4/0x290
+[  502.425378][ T9186]  device_add+0xae6/0x16f0
+[  502.429787][ T9186]  hid_add_device+0x33c/0x990
+[  502.434459][ T9186]  usbhid_probe+0xa81/0xfa0
+[  502.438964][ T9186]  usb_probe_interface+0x305/0x7a0
+[  502.444079][ T9186]  really_probe+0x281/0x6d0
+[  502.448625][ T9186]  driver_probe_device+0x101/0x1b0
+[  502.453738][ T9186]  __device_attach_driver+0x1c2/0x220
+[  502.459113][ T9186]  bus_for_each_drv+0x162/0x1e0
+[  502.463963][ T9186]  __device_attach+0x217/0x360
+[  502.468724][ T9186]  bus_probe_device+0x1e4/0x290
+[  502.473566][ T9186]  device_add+0xae6/0x16f0
+[  502.477962][ T9186]  usb_set_configuration+0xdf6/0x1670
+[  502.483332][ T9186]  generic_probe+0x9d/0xd5
+[  502.487724][ T9186]  usb_probe_device+0x99/0x100
+[  502.492462][ T9186]  really_probe+0x281/0x6d0
+[  502.496939][ T9186]  driver_probe_device+0x101/0x1b0
+[  502.502024][ T9186]  __device_attach_driver+0x1c2/0x220
+[  502.507376][ T9186]  bus_for_each_drv+0x162/0x1e0
+[  502.512214][ T9186]  __device_attach+0x217/0x360
+[  502.516952][ T9186]  bus_probe_device+0x1e4/0x290
+[  502.521774][ T9186]  device_add+0xae6/0x16f0
+[  502.526179][ T9186]  usb_new_device.cold+0x6a4/0xe79
+[  502.537376][ T9186]  hub_event+0x1b5c/0x3640
+[  502.545003][ T9186]  process_one_work+0x92b/0x1530
+[  502.553088][ T9186]  worker_thread+0x96/0xe20
+[  502.559520][ T9186]  kthread+0x318/0x420
+[  502.563805][ T9186]  ret_from_fork+0x24/0x30
+[  502.568194][ T9186] 
+[  502.570511][ T9186] The buggy address belongs to the object at ffff8881d2bec280
+[  502.570511][ T9186]  which belongs to the cache kmalloc-512 of size 512
+[  502.584563][ T9186] The buggy address is located 168 bytes inside of
+[  502.584563][ T9186]  512-byte region [ffff8881d2bec280, ffff8881d2bec480)
+[  502.597836][ T9186] The buggy address belongs to the page:
+[  502.603455][ T9186] page:ffffea00074afb00 refcount:1 mapcount:0 mapping:ffff8881da002500 index:0x0 compound_mapcount: 0
+[  502.614364][ T9186] flags: 0x200000000010200(slab|head)
+[  502.619739][ T9186] raw: 0200000000010200 ffffea000741fc80 0000000600000006 ffff8881da002500
+[  502.628303][ T9186] raw: 0000000000000000 00000000000c000c 00000001ffffffff 0000000000000000
+[  502.636880][ T9186] page dumped because: kasan: bad access detected
+[  502.643315][ T9186] 
+[  502.645617][ T9186] Memory state around the buggy address:
+[  502.651257][ T9186]  ffff8881d2bec200: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  502.659293][ T9186]  ffff8881d2bec280: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  502.667334][ T9186] >ffff8881d2bec300: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  502.675368][ T9186]                                   ^
+[  502.680764][ T9186]  ffff8881d2bec380: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  502.688804][ T9186]  ffff8881d2bec400: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  502.696846][ T9186] ==================================================================
