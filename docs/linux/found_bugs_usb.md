@@ -2,9 +2,9 @@
 
 ## Reported by syzbot
 
-[Reported by the USB fuzzing instance](https://groups.google.com/forum/#!searchin/syzkaller-bugs/%22usb-fuzzer%22%7Csort:date)
+The bugs that were reported by the USB fuzzing instance can be found [here](https://syzkaller.appspot.com/upstream?manager=ci2-upstream-usb).
 
-[Reported by the KMSAN fuzzing instance](https://groups.google.com/forum/#!searchin/syzkaller-bugs/%22kmsan%22$20%22usb%22%7Csort:date)
+The USB bugs that were reported by the KMSAN fuzzing instance can be either found [here](https://groups.google.com/forum/#!searchin/syzkaller-bugs/%22kmsan%22$20%22usb%22%7Csort:date) or [here](https://syzkaller.appspot.com/upstream?manager=ci-upstream-kmsan-gce) (via a manual search, e.g. for `kernel-usb-infoleak`).
 
 ## Manually reported
 
