@@ -766,6 +766,7 @@ var linuxStackParams = &stackParams{
 		"destroy_workqueue",
 		"get_device_parent",
 		"device_add",
+		"finish_wait",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
