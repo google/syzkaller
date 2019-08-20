@@ -105,7 +105,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == linux {
 		return nil
 	}
-	if opts.EnableTun && !(OS == openbsd || OS == freebsd) {
+	if opts.EnableTun && !(OS == openbsd || OS == freebsd || OS == netbsd) {
 		return fmt.Errorf("option EnableTun is not supported on %v", OS)
 	}
 	if opts.EnableNetDev {
@@ -124,7 +124,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 		return fmt.Errorf("EnableCloseFds is not supported on %v", OS)
 	}
 	if opts.Sandbox == sandboxNamespace ||
-		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd)) ||
+		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
 		opts.Sandbox == sandboxAndroidUntrustedApp {
 		return fmt.Errorf("option Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}
