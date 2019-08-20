@@ -263,15 +263,13 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 
 	atomic.AddUint64(&env.StatExecs, 1)
 	if env.cmd == nil {
-		if p.Target.OS == "akaros" {
+		switch p.Target.OS {
+		case "akaros", "fuchsia":
 			// On akaros executor is actually ssh,
 			// starting them too frequently leads to timeouts.
 			<-rateLimit.C
 		}
 		tmpDirPath := "./"
-		if p.Target.OS == "fuchsia" {
-			tmpDirPath = "/data/"
-		}
 		atomic.AddUint64(&env.StatRestarts, 1)
 		env.cmd, err0 = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile, env.out, tmpDirPath)
 		if err0 != nil {

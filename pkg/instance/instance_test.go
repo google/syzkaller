@@ -91,7 +91,7 @@ func TestExecprogCmd(t *testing.T) {
 	flagCollide := flags.Bool("collide", true, "collide syscalls to provoke data races")
 	flagSignal := flags.Bool("cover", false, "collect feedback signals (coverage)")
 	flagSandbox := flags.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
-	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", "fuchsia", "386", "namespace", true, false, false, 7, 2, 3, "myprog")
+	cmdLine := ExecprogCmd(os.Args[0], "/myexecutor", "freebsd", "386", "namespace", true, false, false, 7, 2, 3, "myprog")
 	args := strings.Split(cmdLine, " ")[1:]
 	if err := flags.Parse(args); err != nil {
 		t.Fatal(err)

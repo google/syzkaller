@@ -164,6 +164,7 @@ var archConfigs = map[string]*archConfig{
 			"kernel.serial=legacy",
 			"kernel.halt-on-panic=true",
 		},
+		HostFuzzer: true,
 	},
 	"akaros/amd64": {
 		Qemu:       "qemu-system-x86_64",

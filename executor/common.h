@@ -167,6 +167,8 @@ static void use_temporary_dir(void)
 {
 #if SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
 	char tmpdir_template[] = "/data/data/syzkaller/syzkaller.XXXXXX";
+#elif GOOS_fuchsia
+	char tmpdir_template[] = "/tmp/syzkaller.XXXXXX";
 #else
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
 #endif

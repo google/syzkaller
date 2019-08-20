@@ -44,12 +44,6 @@ export CGO_ENABLED=0
 TARGETGOOS := $(TARGETOS)
 TARGETGOARCH := $(TARGETVMARCH)
 
-ifeq ("$(TARGETOS)", "fuchsia")
-# SOURCEDIR should point to fuchsia checkout.
-export FX_SRC_PATH=$(SOURCEDIR)
-	GO = "tools/fuchsia/go"
-endif
-
 GITREV=$(shell git rev-parse HEAD)
 ifeq ("$(shell git diff --shortstat)", "")
 	REV=$(GITREV)
@@ -77,6 +71,11 @@ ifeq ("$(TARGETOS)", "test")
 endif
 
 ifeq ("$(TARGETOS)", "akaros")
+	TARGETGOOS := $(HOSTOS)
+	TARGETGOARCH := $(HOSTARCH)
+endif
+
+ifeq ("$(TARGETOS)", "fuchsia")
 	TARGETGOOS := $(HOSTOS)
 	TARGETGOARCH := $(HOSTARCH)
 endif
