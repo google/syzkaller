@@ -1,0 +1,35 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/fstypes.h>
+
+mount$ffs(type ptr[in, string["ffs"]], dir ptr[in, filename], flags flags[mount_flags], data ptr[in, ufs_args], data_len len[data])
+unmount(dir ptr[in, filename], flags flags[umount_flags])
+
+syz_mount_image$msdos(fs ptr[in, string["msdos"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
+
+syz_mount_image$hfs(fs ptr[in, string["hfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
+
+syz_mount_image$ext(fs ptr[in, string[ext_types]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
+
+ext_types = "ext3", "ext2"
+
+fs_image_segment {
+	data	ptr[in, array[int8]]
+	size	len[data, intptr]
+	offset	intptr
+}
+
+ufs_args {
+	fspec	ptr[in, vnd_filename]
+}
+
+vnd_filename {
+	prefix	stringnoz["/dev/vnd"]
+	id	proc['0', 1, int8]
+	z	const[0, int8]
+} [packed]
+
+mount_flags = MNT_RDONLY, MNT_SYNCHRONOUS, MNT_NOEXEC, MNT_NOSUID, MNT_NODEV, MNT_UNION, MNT_ASYNC, MNT_NOCOREDUMP, MNT_RELATIME, MNT_IGNORE, MNT_DISCARD, MNT_EXTATTR, MNT_LOG, MNT_NOATIME, MNT_AUTOMOUNTED, MNT_SYMPERM, MNT_NODEVMTIME, MNT_SOFTDEP
+umount_flags = MNT_RDONLY, MNT_SYNCHRONOUS, MNT_NOEXEC, MNT_NOSUID, MNT_NODEV, MNT_UNION, MNT_ASYNC, MNT_NOCOREDUMP, MNT_RELATIME, MNT_IGNORE, MNT_DISCARD, MNT_EXTATTR, MNT_LOG, MNT_NOATIME, MNT_AUTOMOUNTED, MNT_SYMPERM, MNT_NODEVMTIME, MNT_SOFTDEP

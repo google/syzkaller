@@ -75,6 +75,11 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
+	{Key: StructKey{Name: "fs_image_segment"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fs_image_segment", TypeSize: 24}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Path: []string{"data"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "offset", TypeSize: 8}}},
+	}}},
 	{Key: StructKey{Name: "iovec_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_in", TypeSize: 16}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Path: []string{"addr"}},
@@ -387,9 +392,17 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4, ArgDir: 1}},
 	}}},
+	{Key: StructKey{Name: "ufs_args"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ufs_args", TypeSize: 8}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fspec", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "vnd_filename"}}},
+	}}},
 	{Key: StructKey{Name: "unix_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "unix_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd1", TypeSize: 4, ArgDir: 1}},
+	}}},
+	{Key: StructKey{Name: "vnd_filename"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vnd_filename", TypeSize: 10}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "prefix", TypeSize: 8}, Kind: 2, Values: []string{"/dev/vnd"}, NoZ: true},
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "id", TypeSize: 1}}, ValuesStart: 48, ValuesPerProc: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "z", TypeSize: 1}}},
 	}}},
 }
 
@@ -848,6 +861,13 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
+	}},
+	{NR: 410, Name: "mount$ffs", CallName: "mount", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, Values: []string{"ffs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 32768, 131072, 1048576, 8388608, 16777216, 33554432, 67108864, 268435456, 536870912, 1073741824, 2147483648}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ufs_args"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "data_len", TypeSize: 8}}, Path: []string{"data"}},
 	}},
 	{NR: 74, Name: "mprotect", CallName: "mprotect", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
@@ -1369,6 +1389,27 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "seq_inc", TypeSize: 8}}, Val: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ack_inc", TypeSize: 8}}},
 	}},
+	{Name: "syz_mount_image$ext", CallName: "syz_mount_image", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 5}, Kind: 2, SubKind: "ext_types", Values: []string{"ext3\x00", "ext2\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 8}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 8}}, Path: []string{"segments"}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+	}},
+	{Name: "syz_mount_image$hfs", CallName: "syz_mount_image", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, Values: []string{"hfs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 8}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 8}}, Path: []string{"segments"}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+	}},
+	{Name: "syz_mount_image$msdos", CallName: "syz_mount_image", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fs", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 6}, Kind: 2, Values: []string{"msdos\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 8}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 8}}, Path: []string{"segments"}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+	}},
 	{NR: 200, Name: "truncate", CallName: "truncate", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
@@ -1380,6 +1421,10 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unlinkat_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 2048}, BitMask: true},
+	}},
+	{NR: 22, Name: "unmount", CallName: "unmount", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "umount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 32768, 131072, 1048576, 8388608, 16777216, 33554432, 67108864, 268435456, 536870912, 1073741824, 2147483648}, BitMask: true},
 	}},
 	{NR: 467, Name: "utimensat", CallName: "utimensat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dir", TypeSize: 4}},
@@ -1533,6 +1578,24 @@ var consts_amd64 = []ConstValue{
 	{Name: "MCL_CURRENT", Value: 1},
 	{Name: "MCL_FUTURE", Value: 2},
 	{Name: "MIFF_REGISTER", Value: 1},
+	{Name: "MNT_ASYNC", Value: 64},
+	{Name: "MNT_AUTOMOUNTED", Value: 268435456},
+	{Name: "MNT_DISCARD", Value: 8388608},
+	{Name: "MNT_EXTATTR", Value: 16777216},
+	{Name: "MNT_IGNORE", Value: 1048576},
+	{Name: "MNT_LOG", Value: 33554432},
+	{Name: "MNT_NOATIME", Value: 67108864},
+	{Name: "MNT_NOCOREDUMP", Value: 32768},
+	{Name: "MNT_NODEV", Value: 16},
+	{Name: "MNT_NODEVMTIME", Value: 1073741824},
+	{Name: "MNT_NOEXEC", Value: 4},
+	{Name: "MNT_NOSUID", Value: 8},
+	{Name: "MNT_RDONLY", Value: 1},
+	{Name: "MNT_RELATIME", Value: 131072},
+	{Name: "MNT_SOFTDEP", Value: 2147483648},
+	{Name: "MNT_SYMPERM", Value: 536870912},
+	{Name: "MNT_SYNCHRONOUS", Value: 2},
+	{Name: "MNT_UNION", Value: 32},
 	{Name: "MRT6_ADD_MFC", Value: 104},
 	{Name: "MRT6_ADD_MIF", Value: 102},
 	{Name: "MRT6_DEL_MFC", Value: 105},
@@ -1714,6 +1777,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_mlock", Value: 203},
 	{Name: "SYS_mlockall", Value: 242},
 	{Name: "SYS_mmap", Value: 197},
+	{Name: "SYS_mount", Value: 410},
 	{Name: "SYS_mprotect", Value: 74},
 	{Name: "SYS_msgctl", Value: 444},
 	{Name: "SYS_msgget", Value: 225},
@@ -1774,6 +1838,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "SYS_truncate", Value: 200},
 	{Name: "SYS_unlink", Value: 10},
 	{Name: "SYS_unlinkat", Value: 471},
+	{Name: "SYS_unmount", Value: 22},
 	{Name: "SYS_utimensat", Value: 467},
 	{Name: "SYS_utimes", Value: 420},
 	{Name: "SYS_wait4", Value: 449},
@@ -1810,4 +1875,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "_UC_STACK", Value: 2},
 }
 
-const revision_amd64 = "65d5b75dae9655ed21ef93383407c6108cf4de62"
+const revision_amd64 = "577c4cc1c28c3ed91937988b6a38845abbc14121"

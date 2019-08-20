@@ -677,6 +677,83 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 #endif
 #endif
 
+#if GOOS_netbsd
+
+#if SYZ_EXECUTOR || __NR_syz_mount_image
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+struct fs_image_segment {
+	void* data;
+	uintptr_t size;
+	uintptr_t offset;
+};
+
+#define IMAGE_MAX_SEGMENTS 4096
+#define IMAGE_MAX_SIZE (129 << 20)
+
+#define VND_DEVICE "vnd%d"
+#define VND_IFACE "/dev/vnd%d"
+#define DISK_IMAGE "/tmp/diskimage%d"
+
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_mount_image
+#include <string.h>
+#include <sys/mount.h>
+
+static long syz_mount_image(volatile long fsarg, volatile long dir, volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
+{
+	char vnodename[64], vnodeiface[64], diskimage[64], fs[32];
+	int vndfd;
+	unsigned long i;
+
+	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+	if (nsegs > IMAGE_MAX_SEGMENTS)
+		nsegs = IMAGE_MAX_SEGMENTS;
+	for (i = 0; i < nsegs; i++) {
+		if (segs[i].size > IMAGE_MAX_SIZE)
+			segs[i].size = IMAGE_MAX_SIZE;
+		segs[i].offset %= IMAGE_MAX_SIZE;
+		if (segs[i].offset > IMAGE_MAX_SIZE - segs[i].size)
+			segs[i].offset = IMAGE_MAX_SIZE - segs[i].size;
+		if (size < segs[i].offset + segs[i].offset)
+			size = segs[i].offset + segs[i].offset;
+	}
+	if (size > IMAGE_MAX_SIZE)
+		size = IMAGE_MAX_SIZE;
+	snprintf_check(diskimage, sizeof(diskimage), DISK_IMAGE, procid);
+	vndfd = open(diskimage, O_RDWR);
+	if (vndfd == -1) {
+		debug("syz_mount_image: open[%s] failed: %d\n", diskimage, errno);
+		return -1;
+	}
+	for (i = 0; i < nsegs; i++) {
+		if (pwrite(vndfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
+			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
+		}
+	}
+	snprintf_check(vnodename, sizeof(vnodename), VND_DEVICE, procid);
+	execute_command(1, "vndconfig %s %s", vnodename, diskimage);
+	memset(fs, 0, sizeof(fs));
+	NONFAILING(strncpy(fs, (char*)fsarg, sizeof(fs) - 1));
+
+	mkdir((char*)dir, 0777);
+
+	debug("syz_mount_image: size=%llu segs=%llu vnd='%s' dir='%s' fs='%s'\n", (uint64)size, (uint64)nsegs, vnodename, (char*)dir, fs);
+
+	snprintf_check(vnodeiface, sizeof(vnodeiface), VND_IFACE, procid);
+	execute_command(1, "mount -r -t %s %s %s", fs, vnodeiface, dir);
+
+	return 0;
+}
+
+#endif
+
+#endif
+
 #if SYZ_EXECUTOR || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NONE
 
 #include <sys/resource.h>
