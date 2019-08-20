@@ -1,12 +1,15 @@
 External USB fuzzing for Linux kernel
 =====================================
 
-# USB fuzzing with syzkaller
-
 This page describes the current state of external USB fuzzing support in syzkaller.
 Note, that it's still in development and things might change.
 
-This allowed to find over [80 bugs](/docs/linux/found_bugs_usb.md) in the Linux kernel USB stack so far.
+Some details about how it works can be found:
+
+1. In the OffensiveCon 2019 [slides](https://docs.google.com/presentation/d/1z-giB9kom17Lk21YEjmceiNUVYeI6yIaG5_gZ3vKC-M/edit?usp=sharing).
+2. In [this](https://marc.info/?l=linux-usb&m=155551883403285&w=2) email.
+
+This allowed to find over [100 bugs](/docs/linux/found_bugs_usb.md) in the Linux kernel USB stack so far.
 
 How to set this up:
 
