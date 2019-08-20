@@ -394,7 +394,8 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs, verbosity int,
 	cover, debug, test, runtest bool) string {
 	osArg := ""
-	if OS == "akaros" {
+	switch OS {
+	case "akaros", "fuchsia":
 		// Only akaros needs OS, because the rest assume host OS.
 		// But speciying OS for all OSes breaks patch testing on syzbot
 		// because old execprog does not have os flag.
@@ -425,7 +426,8 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded,
 		repeatCount = 0
 	}
 	osArg := ""
-	if OS == "akaros" {
+	switch OS {
+	case "akaros", "fuchsia":
 		osArg = " -os=" + OS
 	}
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+
