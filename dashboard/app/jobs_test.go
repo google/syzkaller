@@ -141,10 +141,11 @@ commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
 console output: %[3]v
 kernel config:  %[2]v
+dashboard link: https://testapp.appspot.com/bug?extid=%[4]v
 compiler:       compiler1
 patch:          %[1]v
 
-`, patchLink, kernelConfigLink, logLink))
+`, patchLink, kernelConfigLink, logLink, extBugID))
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 		c.checkURLContents(logLink, jobDoneReq.CrashLog)
@@ -178,10 +179,11 @@ Tested on:
 commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
 kernel config:  %[2]v
+dashboard link: https://testapp.appspot.com/bug?extid=%[3]v
 compiler:       compiler1
 patch:          %[1]v
 
-`, patchLink, kernelConfigLink))
+`, patchLink, kernelConfigLink, extBugID))
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
@@ -219,10 +221,11 @@ Tested on:
 commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
 kernel config:  %[4]v
+dashboard link: https://testapp.appspot.com/bug?extid=%[5]v
 compiler:       compiler1
 patch:          %[3]v
 
-`, truncatedError, errorLink, patchLink, kernelConfigLink))
+`, truncatedError, errorLink, patchLink, kernelConfigLink, extBugID))
 		c.checkURLContents(patchLink, []byte(patch))
 		c.checkURLContents(errorLink, jobDoneReq.Error)
 		c.checkURLContents(kernelConfigLink, build.KernelConfig)
@@ -253,6 +256,7 @@ Tested on:
 commit:         11111111 kernel_commit_title1
 git tree:       repo1 branch1
 kernel config:  %[3]v
+dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler1
 patch:          %[2]v
 
@@ -311,6 +315,7 @@ Tested on:
 commit:         5e6a2eea kernel_commit_title2
 git tree:       git://mygit.com/git.git
 kernel config:  %[2]v
+dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 compiler:       compiler2
 
 Note: testing is done by a robot and is best-effort only.
