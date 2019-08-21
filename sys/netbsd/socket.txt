@@ -54,6 +54,12 @@ sockaddr_storage [
 	in6	sockaddr_in6
 ] [varlen]
 
+sockaddr {
+	sa_len		int8
+	sa_family	int8
+	sa_data		array[int8, 14]
+}
+
 send_msghdr {
 	msg_name	ptr[in, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
