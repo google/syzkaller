@@ -22,7 +22,7 @@ const (
 	linux   = "linux"
 	freebsd = "freebsd"
 	openbsd = "openbsd"
-	netbsd	= "netbsd"
+	netbsd  = "netbsd"
 
 	sandboxNone                = "none"
 	sandboxSetuid              = "setuid"
