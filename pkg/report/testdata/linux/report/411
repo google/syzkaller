@@ -1,0 +1,79 @@
+TITLE: WARNING in r871xu_dev_remove
+
+[   26.966491][  T101] ------------[ cut here ]------------
+[   26.974331][ T1737] usb 5-1: Direct firmware load for rtlwifi/rtl8712u.bin failed with error -2
+[   26.978202][  T101] WARNING: CPU: 0 PID: 101 at net/core/dev.c:8167 rollback_registered_many.cold+0x41/0x1bc
+[   26.987452][ T1737] usb 5-1: r8712u: Firmware request failed
+[   26.996887][  T101] Kernel panic - not syncing: panic_on_warn set ...
+[   26.996902][  T101] CPU: 0 PID: 101 Comm: kworker/0:2 Not tainted 5.3.0-rc4+ #26
+[   26.996910][  T101] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   26.996926][  T101] Workqueue: usb_hub_wq hub_event
+[   26.996933][  T101] Call Trace:
+[   26.996950][  T101]  dump_stack+0xca/0x13e
+[   26.996970][  T101]  ? rollback_registered_many.cold+0x4/0x1bc
+[   26.996988][  T101]  panic+0x2a3/0x6da
+[   27.003322][ T1737] usb 2-1: Direct firmware load for rtlwifi/rtl8712u.bin failed with error -2
+[   27.009556][  T101]  ? add_taint.cold+0x16/0x16
+[   27.009572][  T101]  ? __probe_kernel_read+0x188/0x1d0
+[   27.009583][  T101]  ? __warn.cold+0x5/0x4a
+[   27.009592][  T101]  ? __warn+0xe3/0x1e0
+[   27.009606][  T101]  ? rollback_registered_many.cold+0x41/0x1bc
+[   27.009615][  T101]  __warn.cold+0x20/0x4a
+[   27.009627][  T101]  ? __irq_work_queue_local+0xa3/0xe0
+[   27.009639][  T101]  ? rollback_registered_many.cold+0x41/0x1bc
+[   27.009651][  T101]  report_bug+0x262/0x2a0
+[   27.009671][  T101]  do_error_trap+0x12b/0x1e0
+[   27.034511][ T1737] usb 2-1: r8712u: Firmware request failed
+[   27.037337][  T101]  ? rollback_registered_many.cold+0x41/0x1bc
+[   27.037352][  T101]  do_invalid_op+0x32/0x40
+[   27.037366][  T101]  ? rollback_registered_many.cold+0x41/0x1bc
+[   27.037378][  T101]  invalid_op+0x23/0x30
+[   27.037398][  T101] RIP: 0010:rollback_registered_many.cold+0x41/0x1bc
+[   27.142564][  T101] Code: ff e8 c7 17 90 fc 48 c7 c7 00 e8 63 86 e8 24 b8 7a fc 0f 0b e9 93 be ff ff e8 af 17 90 fc 48 c7 c7 00 e8 63 86 e8 0c b8 7a fc <0f> 0b 4c 89 e7 e8 f9 0a 34 fd 31 ff 41 89 c4 89 c6 e8 bd 18 90 fc
+[   27.162178][  T101] RSP: 0018:ffff8881d505f6a8 EFLAGS: 00010286
+[   27.168229][  T101] RAX: 0000000000000024 RBX: ffff8881d2918000 RCX: 0000000000000000
+[   27.176185][  T101] RDX: 0000000000000000 RSI: ffffffff81288cfd RDI: ffffed103aa0bec7
+[   27.184168][  T101] RBP: ffff8881d505f7d8 R08: 0000000000000024 R09: ffffed103b645d58
+[   27.192164][  T101] R10: ffffed103b645d57 R11: ffff8881db22eabf R12: ffff8881d2918070
+[   27.200168][  T101] R13: ffff8881d505f768 R14: dffffc0000000000 R15: 0000000000000000
+[   27.208146][  T101]  ? vprintk_func+0x7d/0x113
+[   27.212725][  T101]  ? rollback_registered_many.cold+0x41/0x1bc
+[   27.218798][  T101]  ? generic_xdp_install+0x480/0x480
+[   27.224134][  T101]  ? __mutex_lock+0x430/0x1360
+[   27.228886][  T101]  ? do_raw_spin_lock+0x11a/0x280
+[   27.233931][  T101]  ? unregister_netdev+0xe/0x20
+[   27.238772][  T101]  ? mark_held_locks+0x9f/0xe0
+[   27.243538][  T101]  ? _raw_spin_unlock_irq+0x24/0x30
+[   27.248824][  T101]  ? mutex_trylock+0x2c0/0x2c0
+[   27.253605][  T101]  rollback_registered+0xf2/0x1c0
+[   27.258619][  T101]  ? rollback_registered_many+0xc70/0xc70
+[   27.264340][  T101]  ? wait_for_completion_interruptible+0x420/0x420
+[   27.271069][  T101]  ? wake_up_q+0xf0/0xf0
+[   27.275346][  T101]  unregister_netdevice_queue+0x1d7/0x2b0
+[   27.281338][  T101]  unregister_netdev+0x18/0x20
+[   27.286113][  T101]  r871xu_dev_remove+0xe2/0x215
+[   27.291003][  T101]  usb_unbind_interface+0x1bd/0x8a0
+[   27.296248][  T101]  ? usb_autoresume_device+0x60/0x60
+[   27.301608][  T101]  device_release_driver_internal+0x42f/0x500
+[   27.307702][  T101]  bus_remove_device+0x2dc/0x4a0
+[   27.312628][  T101]  device_del+0x420/0xb10
+[   27.317511][  T101]  ? __device_links_no_driver+0x240/0x240
+[   27.323349][  T101]  ? lockdep_hardirqs_on+0x379/0x580
+[   27.328733][  T101]  ? remove_intf_ep_devs+0x13f/0x1d0
+[   27.334034][  T101]  usb_disable_device+0x211/0x690
+[   27.339051][  T101]  usb_disconnect+0x284/0x8d0
+[   27.343966][  T101]  hub_event+0x1454/0x3640
+[   27.348381][  T101]  ? find_held_lock+0x2d/0x110
+[   27.353128][  T101]  ? mark_held_locks+0xe0/0xe0
+[   27.357885][  T101]  ? hub_port_debounce+0x260/0x260
+[   27.363039][  T101]  process_one_work+0x92b/0x1530
+[   27.367968][  T101]  ? pwq_dec_nr_in_flight+0x310/0x310
+[   27.369585][   T22] usb 1-1: new high-speed USB device number 3 using dummy_hcd
+[   27.373329][  T101]  ? do_raw_spin_lock+0x11a/0x280
+[   27.373343][  T101]  worker_thread+0x7ab/0xe20
+[   27.373358][  T101]  ? process_one_work+0x1530/0x1530
+[   27.373370][  T101]  kthread+0x318/0x420
+[   27.373382][  T101]  ? kthread_create_on_node+0xf0/0xf0
+[   27.373396][  T101]  ret_from_fork+0x24/0x30
+[   27.381295][  T101] Kernel Offset: disabled
+[   27.414812][  T101] Rebooting in 86400 seconds..
