@@ -14,6 +14,15 @@ import (
 
 type fuchsia struct{}
 
+func runSandboxed(timeout time.Duration, dir, command string, arg ...string) ([]byte, error) {
+	cmd := osutil.Command(command, arg...)
+	cmd.Dir = dir
+	if err := osutil.Sandbox(cmd, true, false); err != nil {
+		return nil, err
+	}
+	return osutil.Run(timeout, cmd)
+}
+
 func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
 	cmdlineFile, sysctlFile string, config []byte) error {
 	sysTarget := targets.Get("fuchsia", targetArch)
@@ -22,11 +31,11 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	}
 	arch := sysTarget.KernelHeaderArch
 	product := fmt.Sprintf("%s.%s", "core", arch)
-	if _, err := osutil.RunCmd(time.Hour, kernelDir, "scripts/fx", "--dir", "out/"+arch,
+	if _, err := runSandboxed(time.Hour, kernelDir, "scripts/fx", "--dir", "out/"+arch,
 		"set", product, "--with-base", "//bundles:tools"); err != nil {
 		return err
 	}
-	if _, err := osutil.RunCmd(time.Hour*2, kernelDir, "scripts/fx", "clean-build"); err != nil {
+	if _, err := runSandboxed(time.Hour*2, kernelDir, "scripts/fx", "clean-build"); err != nil {
 		return err
 	}
 
@@ -34,7 +43,7 @@ func (fu fuchsia) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	sshZBI := filepath.Join(kernelDir, "out", arch, "fuchsia-ssh.zbi")
 	kernelZBI := filepath.Join(kernelDir, "out", arch, "fuchsia.zbi")
 	authorizedKeys := fmt.Sprintf("data/ssh/authorized_keys=%s", filepath.Join(kernelDir, ".ssh", "authorized_keys"))
-	if _, err := osutil.RunCmd(time.Minute, kernelDir, "out/"+arch+".zircon/tools/zbi",
+	if _, err := runSandboxed(time.Minute, kernelDir, "out/"+arch+".zircon/tools/zbi",
 		"-o", sshZBI, kernelZBI, "--entry", authorizedKeys); err != nil {
 		return err
 	}
