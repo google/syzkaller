@@ -56,6 +56,18 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 1},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "fds", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", TypeSize: 4}}},
 	}, AlignAttr: 8}},
+	{Key: StructKey{Name: "export_args30"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "export_args30", TypeSize: 128}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ex_flags", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "ex_root", TypeSize: 4}},
+		&StructType{Key: StructKey{Name: "uucred"}, FldName: "ex_anon"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ex_addr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sockaddr"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ex_addrlen", TypeSize: 4}}, Path: []string{"ex_addr"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ex_mask", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sockaddr"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ex_masklen", TypeSize: 4}}, Path: []string{"ex_mask"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ex_indexfile", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
+	}}},
 	{Key: StructKey{Name: "fd_set", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fd_set", TypeSize: 64, ArgDir: 2}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask0", TypeSize: 8, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask1", TypeSize: 8, ArgDir: 2}}},
@@ -133,6 +145,13 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "mf6cc_ifset", TypeSize: 32}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
+	{Key: StructKey{Name: "mfs_args"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mfs_args", TypeSize: 152}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fspec", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "vnd_filename"}}},
+		&StructType{Key: StructKey{Name: "export_args30"}, FldName: "__pad1"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "base", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+	}}},
 	{Key: StructKey{Name: "mif6ctl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mif6ctl", TypeSize: 12}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "mif6c_mifi", TypeSize: 2}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mif6c_flags", FldName: "mif6c_flags", TypeSize: 1}}, Vals: []uint64{1}, BitMask: true},
@@ -140,6 +159,18 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "mif6c_pifi", TypeSize: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "vifc_rate_limit", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "msdosfs_args"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msdosfs_args", TypeSize: 168}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fspec", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "vnd_filename"}}},
+		&StructType{Key: StructKey{Name: "export_args30"}, FldName: "__pad1"},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "mask", TypeSize: 4}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msdosfs_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 63, 2147483648, 1073741824, 536870912}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 4}}, Val: 3},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dirmask", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gmtoff", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "msgbuf"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msgbuf", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msgbuf_type", FldName: "typ", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 3}},
@@ -264,6 +295,11 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "sock_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sock_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd1", TypeSize: 4, ArgDir: 1}},
+	}}},
+	{Key: StructKey{Name: "sockaddr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr", TypeSize: 16}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sa_len", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sa_family", TypeSize: 1}}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "sa_data", TypeSize: 14}, Kind: 1, RangeBegin: 14, RangeEnd: 14},
 	}}},
 	{Key: StructKey{Name: "sockaddr_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_in", TypeSize: 12}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2}}, Val: 2},
@@ -398,6 +434,15 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "unix_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "unix_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd1", TypeSize: 4, ArgDir: 1}},
+	}}},
+	{Key: StructKey{Name: "uucred"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "uucred", TypeSize: 80}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cr_unused", TypeSize: 2}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "cr_uid", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "cr_gid", TypeSize: 4}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cr_ngroups", TypeSize: 2}}, Path: []string{"cr_groups"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "cr_groups", TypeSize: 64}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "gid", TypeSize: 4}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
 	}}},
 	{Key: StructKey{Name: "vnd_filename"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vnd_filename", TypeSize: 10}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "prefix", TypeSize: 8}, Kind: 2, Values: []string{"/dev/vnd"}, NoZ: true},
@@ -862,11 +907,39 @@ var syscalls_amd64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
 	}},
+	{NR: 410, Name: "mount$ext2fs", CallName: "mount", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 7}, Kind: 2, Values: []string{"ext2fs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 32768, 131072, 1048576, 8388608, 16777216, 33554432, 67108864, 268435456, 536870912, 1073741824, 2147483648}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ufs_args"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "data_len", TypeSize: 8}}, Path: []string{"data"}},
+	}},
 	{NR: 410, Name: "mount$ffs", CallName: "mount", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, Values: []string{"ffs\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 32768, 131072, 1048576, 8388608, 16777216, 33554432, 67108864, 268435456, 536870912, 1073741824, 2147483648}, BitMask: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ufs_args"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "data_len", TypeSize: 8}}, Path: []string{"data"}},
+	}},
+	{NR: 410, Name: "mount$hfs", CallName: "mount", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, Values: []string{"hfs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 32768, 131072, 1048576, 8388608, 16777216, 33554432, 67108864, 268435456, 536870912, 1073741824, 2147483648}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ufs_args"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "data_len", TypeSize: 8}}, Path: []string{"data"}},
+	}},
+	{NR: 410, Name: "mount$mfs", CallName: "mount", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, Values: []string{"mfs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 32768, 131072, 1048576, 8388608, 16777216, 33554432, 67108864, 268435456, 536870912, 1073741824, 2147483648}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "mfs_args"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "data_len", TypeSize: 8}}, Path: []string{"data"}},
+	}},
+	{NR: 410, Name: "mount$msdos", CallName: "mount", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 7}, Kind: 2, Values: []string{"ext2fs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 32768, 131072, 1048576, 8388608, 16777216, 33554432, 67108864, 268435456, 536870912, 1073741824, 2147483648}, BitMask: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "msdosfs_args"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "data_len", TypeSize: 8}}, Path: []string{"data"}},
 	}},
 	{NR: 74, Name: "mprotect", CallName: "mprotect", Args: []Type{
@@ -1599,6 +1672,16 @@ var consts_amd64 = []ConstValue{
 	{Name: "MRT6_ADD_MFC", Value: 104},
 	{Name: "MRT6_ADD_MIF", Value: 102},
 	{Name: "MRT6_DEL_MFC", Value: 105},
+	{Name: "MSDOSFSMNT_GEMDOSFS", Value: 8},
+	{Name: "MSDOSFSMNT_LONGNAME", Value: 2},
+	{Name: "MSDOSFSMNT_MNTOPT", Value: 63},
+	{Name: "MSDOSFSMNT_NOWIN95", Value: 4},
+	{Name: "MSDOSFSMNT_RONLY", Value: 2147483648},
+	{Name: "MSDOSFSMNT_SHORTNAME", Value: 1},
+	{Name: "MSDOSFSMNT_UTF8", Value: 32},
+	{Name: "MSDOSFSMNT_VERSIONED", Value: 16},
+	{Name: "MSDOSFSMNT_WAITONFAT", Value: 1073741824},
+	{Name: "MSDOSFS_FATMIRROR", Value: 536870912},
 	{Name: "MSG_CMSG_CLOEXEC", Value: 2048},
 	{Name: "MSG_DONTROUTE", Value: 4},
 	{Name: "MSG_EOR", Value: 8},
@@ -1875,4 +1958,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "_UC_STACK", Value: 2},
 }
 
-const revision_amd64 = "577c4cc1c28c3ed91937988b6a38845abbc14121"
+const revision_amd64 = "571703d54c8b73130906dacad4971b2987bdcd7f"

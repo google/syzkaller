@@ -3,8 +3,16 @@
 
 include <sys/types.h>
 include <sys/fstypes.h>
+include <sys/mount.h>
+include <sys/vnode.h>
+include <fs/msdosfs/msdosfsmount.h>
 
 mount$ffs(type ptr[in, string["ffs"]], dir ptr[in, filename], flags flags[mount_flags], data ptr[in, ufs_args], data_len len[data])
+mount$mfs(type ptr[in, string["mfs"]], dir ptr[in, filename], flags flags[mount_flags], data ptr[in, mfs_args], data_len len[data])
+mount$hfs(type ptr[in, string["hfs"]], dir ptr[in, filename], flags flags[mount_flags], data ptr[in, ufs_args], data_len len[data])
+mount$ext2fs(type ptr[in, string["ext2fs"]], dir ptr[in, filename], flags flags[mount_flags], data ptr[in, ufs_args], data_len len[data])
+mount$msdos(type ptr[in, string["ext2fs"]], dir ptr[in, filename], flags flags[mount_flags], data ptr[in, msdosfs_args], data_len len[data])
+
 unmount(dir ptr[in, filename], flags flags[umount_flags])
 
 syz_mount_image$msdos(fs ptr[in, string["msdos"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
@@ -25,6 +33,36 @@ ufs_args {
 	fspec	ptr[in, vnd_filename]
 }
 
+mfs_args {
+	fspec	ptr[in, vnd_filename]
+	__pad1	export_args30
+	base	intptr
+	size	int32
+}
+
+msdosfs_args {
+	fspec	ptr[in, vnd_filename]
+	__pad1	export_args30
+	uid	uid
+	gid	gid
+	mask	int32
+	flags	flags[msdosfs_flags, int32]
+	version	const[3, int32]
+	dirmask	int32
+	gmtoff	int32
+}
+
+export_args30 {
+	ex_flags	int32
+	ex_root		uid
+	ex_anon		uucred
+	ex_addr		ptr[in, sockaddr]
+	ex_addrlen	len[ex_addr, int32]
+	ex_mask		ptr[in, sockaddr]
+	ex_masklen	len[ex_mask, int32]
+	ex_indexfile	ptr[in, string]
+}
+
 vnd_filename {
 	prefix	stringnoz["/dev/vnd"]
 	id	proc['0', 1, int8]
@@ -33,3 +71,4 @@ vnd_filename {
 
 mount_flags = MNT_RDONLY, MNT_SYNCHRONOUS, MNT_NOEXEC, MNT_NOSUID, MNT_NODEV, MNT_UNION, MNT_ASYNC, MNT_NOCOREDUMP, MNT_RELATIME, MNT_IGNORE, MNT_DISCARD, MNT_EXTATTR, MNT_LOG, MNT_NOATIME, MNT_AUTOMOUNTED, MNT_SYMPERM, MNT_NODEVMTIME, MNT_SOFTDEP
 umount_flags = MNT_RDONLY, MNT_SYNCHRONOUS, MNT_NOEXEC, MNT_NOSUID, MNT_NODEV, MNT_UNION, MNT_ASYNC, MNT_NOCOREDUMP, MNT_RELATIME, MNT_IGNORE, MNT_DISCARD, MNT_EXTATTR, MNT_LOG, MNT_NOATIME, MNT_AUTOMOUNTED, MNT_SYMPERM, MNT_NODEVMTIME, MNT_SOFTDEP
+msdosfs_flags = MSDOSFSMNT_SHORTNAME, MSDOSFSMNT_LONGNAME, MSDOSFSMNT_NOWIN95, MSDOSFSMNT_GEMDOSFS, MSDOSFSMNT_VERSIONED, MSDOSFSMNT_UTF8, MSDOSFSMNT_MNTOPT, MSDOSFSMNT_RONLY, MSDOSFSMNT_WAITONFAT, MSDOSFS_FATMIRROR

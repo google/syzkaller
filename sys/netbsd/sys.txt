@@ -190,6 +190,14 @@ ucred {
 	gid	gid
 }
 
+uucred {
+	cr_unused	const[0, int16]
+	cr_uid		uid
+	cr_gid		pid
+	cr_ngroups	len[cr_groups, int16]
+	cr_groups	array[gid, 16]
+}
+
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 at_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW
