@@ -23,7 +23,8 @@ commit:         {{formatShortHash .KernelCommit}} {{formatCommitTableTitle .Kern
 git tree:       {{.KernelRepoAlias}}
 {{if .LogLink}}console output: {{.LogLink}}
 {{end}}{{if .KernelConfigLink}}kernel config:  {{.KernelConfigLink}}
-{{end}}compiler:       {{.CompilerID}}
+{{end}}dashboard link: {{.Link}}
+compiler:       {{.CompilerID}}
 {{if .UserSpaceArch}}userspace arch: {{.UserSpaceArch}}
 {{end}}{{if .PatchLink}}patch:          {{.PatchLink}}
 {{end}}{{if and (not .CrashTitle) (not .Error)}}
