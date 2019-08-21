@@ -1,0 +1,110 @@
+TITLE: WARNING in default_device_exit_batch
+
+[  794.553848] WARNING: CPU: 0 PID: 21 at net/core/dev.c:8022 rollback_registered_many+0xeca/0x1250
+[  794.562851] Kernel panic - not syncing: panic_on_warn set ...
+[  794.568712] CPU: 0 PID: 21 Comm: kworker/u4:1 Not tainted 4.20.0-rc2+ #116
+[  794.575698] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  794.585053] Workqueue: netns cleanup_net
+[  794.589098] Call Trace:
+[  794.591669]  dump_stack+0x244/0x39d
+[  794.595288]  ? dump_stack_print_info.cold.1+0x20/0x20
+[  794.600467]  panic+0x2ad/0x55c
+[  794.603639]  ? add_taint.cold.5+0x16/0x16
+[  794.607782]  ? __warn.cold.8+0x5/0x45
+[  794.611559]  ? __warn+0xe8/0x1d0
+[  794.614920]  ? rollback_registered_many+0xeca/0x1250
+[  794.620000]  __warn.cold.8+0x20/0x45
+[  794.623692]  ? rcu_softirq_qs+0x20/0x20
+[  794.627645]  ? rollback_registered_many+0xeca/0x1250
+[  794.632730]  report_bug+0x254/0x2d0
+[  794.636443]  do_error_trap+0x11b/0x200
+[  794.640313]  do_invalid_op+0x36/0x40
+[  794.644013]  ? rollback_registered_many+0xeca/0x1250
+[  794.649107]  invalid_op+0x14/0x20
+[  794.652539] RIP: 0010:rollback_registered_many+0xeca/0x1250
+[  794.658228] Code: 57 19 00 00 48 c7 c6 e0 dd bc 88 48 c7 c7 20 de bc 88 c6 05 98 4d e2 03 01 e8 42 7f 18 fb 0f 0b e9 a6 f9 ff ff e8 c6 1b 4f fb <0f> 0b e9 7b f9 ff ff e8 ba 1b 4f fb 0f 0b e9 ea f9 ff ff e8 ae 1b
+[  794.677104] RSP: 0018:ffff8881d9467058 EFLAGS: 00010293
+[  794.682443] RAX: ffff8881d945a580 RBX: ffff8881bef64940 RCX: ffffffff86306593
+[  794.689692] RDX: 0000000000000000 RSI: ffffffff86306c1a RDI: 0000000000000001
+[  794.696940] RBP: ffff8881d94672a0 R08: ffff8881d945a580 R09: fffffbfff13e1a38
+[  794.704187] R10: fffffbfff13e1a38 R11: ffffffff89f0d1c7 R12: dffffc0000000000
+[  794.711434] R13: 0000000000000001 R14: ffffffff8494d7c0 R15: ffff8881d9467138
+[  794.718687]  ? bond_do_ioctl+0xae0/0xae0
+[  794.722729]  ? rollback_registered_many+0x843/0x1250
+[  794.727835]  ? rollback_registered_many+0xeca/0x1250
+[  794.733056]  ? rollback_registered_many+0xeca/0x1250
+[  794.738156]  ? generic_xdp_install+0x590/0x590
+[  794.742750]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  794.748276]  ? check_preemption_disabled+0x48/0x280
+[  794.753274]  ? __lock_is_held+0xb5/0x140
+[  794.757326]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  794.762845]  ? rtnl_is_locked+0xb5/0xf0
+[  794.766794]  ? rtnl_trylock+0x20/0x20
+[  794.770574]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  794.776090]  ? rtnl_is_locked+0xb5/0xf0
+[  794.780064]  ? rtnl_trylock+0x20/0x20
+[  794.783839]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  794.789355]  ? unregister_netdevice_queue+0x2c0/0x5e0
+[  794.794540]  unregister_netdevice_many+0xfa/0x4c0
+[  794.799362]  ? unregister_netdev+0x30/0x30
+[  794.803578]  ? sysfs_remove_group+0xf6/0x1b0
+[  794.807969]  ? br_dev_delete+0x139/0x190
+[  794.812137]  default_device_exit_batch+0x43a/0x540
+[  794.817054]  ? unregister_netdevice_many+0x4c0/0x4c0
+[  794.822140]  ? default_device_exit+0x224/0x2c0
+[  794.826792]  ? __init_waitqueue_head+0x150/0x150
+[  794.831528]  ? rtnl_unlock+0xe/0x10
+[  794.835140]  ? unregister_netdevice_many+0x4c0/0x4c0
+[  794.840217]  ? dev_change_net_namespace+0xe50/0xe50
+[  794.845208]  ops_exit_list.isra.5+0x105/0x160
+[  794.849684]  cleanup_net+0x555/0xb10
+[  794.853375]  ? peernet2id_alloc+0x3e0/0x3e0
+[  794.857672]  ? find_held_lock+0x36/0x1c0
+[  794.861714]  ? zap_class+0x640/0x640
+[  794.865425]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  794.871247]  ? check_preemption_disabled+0x48/0x280
+[  794.876250]  ? __lock_is_held+0xb5/0x140
+[  794.880296]  process_one_work+0xc90/0x1c40
+[  794.884521]  ? mark_held_locks+0x130/0x130
+[  794.888859]  ? pwq_dec_nr_in_flight+0x4a0/0x4a0
+[  794.893513]  ? __switch_to_asm+0x40/0x70
+[  794.897571]  ? __switch_to_asm+0x34/0x70
+[  794.901607]  ? __switch_to_asm+0x34/0x70
+[  794.905645]  ? __switch_to_asm+0x40/0x70
+[  794.909683]  ? __switch_to_asm+0x34/0x70
+[  794.913720]  ? __switch_to_asm+0x40/0x70
+[  794.917771]  ? __switch_to_asm+0x34/0x70
+[  794.921824]  ? __switch_to_asm+0x40/0x70
+[  794.925863]  ? __schedule+0x8d7/0x21d0
+[  794.929728]  ? lockdep_hardirqs_on+0x3bb/0x5b0
+[  794.934292]  ? trace_hardirqs_on_caller+0x310/0x310
+[  794.939285]  ? zap_class+0x640/0x640
+[  794.943014]  ? lockdep_hardirqs_on+0x3bb/0x5b0
+[  794.947588]  ? lock_acquire+0x1ed/0x520
+[  794.951537]  ? worker_thread+0x3e0/0x1390
+[  794.955672]  ? kasan_check_read+0x11/0x20
+[  794.959797]  ? do_raw_spin_lock+0x14f/0x350
+[  794.964098]  ? kasan_check_read+0x11/0x20
+[  794.968223]  ? rwlock_bug.part.2+0x90/0x90
+[  794.972435]  ? trace_hardirqs_on+0x310/0x310
+[  794.976828]  worker_thread+0x17f/0x1390
+[  794.980779]  ? __switch_to_asm+0x34/0x70
+[  794.984825]  ? process_one_work+0x1c40/0x1c40
+[  794.989310]  ? __sched_text_start+0x8/0x8
+[  794.993446]  ? __kthread_parkme+0xce/0x1a0
+[  794.997655]  ? _raw_spin_unlock_irqrestore+0x82/0xd0
+[  795.002736]  ? _raw_spin_unlock_irqrestore+0x82/0xd0
+[  795.007814]  ? lockdep_hardirqs_on+0x3bb/0x5b0
+[  795.012390]  ? trace_hardirqs_on+0xbd/0x310
+[  795.016686]  ? kasan_check_read+0x11/0x20
+[  795.020810]  ? __kthread_parkme+0xce/0x1a0
+[  795.025036]  ? trace_hardirqs_off_caller+0x310/0x310
+[  795.030138]  ? _raw_spin_unlock_irqrestore+0x6d/0xd0
+[  795.035233]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  795.040742]  ? __kthread_parkme+0xfb/0x1a0
+[  795.044955]  ? process_one_work+0x1c40/0x1c40
+[  795.049426]  kthread+0x35a/0x440
+[  795.052772]  ? kthread_stop+0x900/0x900
+[  795.056725]  ret_from_fork+0x3a/0x50
+[  795.061996] Kernel Offset: disabled
+[  795.065886] Rebooting in 86400 seconds..
