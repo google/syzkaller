@@ -14,33 +14,59 @@ var timespecRes = &ResourceDesc{
 	Kind: []string{"timespec"},
 }
 
-func (target *Target) calcResourceCtors(kind []string, precise bool) []*Syscall {
-	// Find calls that produce the necessary resources.
+func (target *Target) calcResourceCtors(res *ResourceDesc, precise bool) []*Syscall {
 	var metas []*Syscall
-	for _, meta := range target.Syscalls {
-		// Recurse into arguments to see if there is an out/inout arg of necessary type.
-		ok := false
-		ForeachType(meta, func(typ Type) {
-			if ok {
-				return
-			}
-			switch typ1 := typ.(type) {
-			case *ResourceType:
-				if typ1.Dir() != DirIn && isCompatibleResourceImpl(kind, typ1.Desc.Kind, precise) {
-					ok = true
-				}
-			}
-		})
-		if ok {
-			metas = append(metas, meta)
+	for _, ctor := range res.Ctors {
+		if !precise || ctor.Precise {
+			metas = append(metas, target.Syscalls[ctor.Call])
 		}
 	}
-	if kind[0] == timespecRes.Name {
+	if res.Kind[0] == timespecRes.Name {
 		if c := target.SyscallMap["clock_gettime"]; c != nil {
 			metas = append(metas, c)
 		}
 	}
 	return metas
+}
+
+func (target *Target) populateResourceCtors() {
+	// Find resources that are created by each call.
+	callsResources := make([][]*ResourceDesc, len(target.Syscalls))
+	for call, meta := range target.Syscalls {
+		ForeachType(meta, func(typ Type) {
+			switch typ1 := typ.(type) {
+			case *ResourceType:
+				if typ1.Dir() != DirIn {
+					callsResources[call] = append(callsResources[call], typ1.Desc)
+				}
+			}
+		})
+	}
+
+	// Populate resource ctors accounting for resource compatibility.
+	for _, res := range target.Resources {
+		for call, callResources := range callsResources {
+			preciseOk := false
+			impreciseOk := false
+			for _, callRes := range callResources {
+				if preciseOk && impreciseOk {
+					break
+				}
+				if isCompatibleResourceImpl(res.Kind, callRes.Kind, true) {
+					preciseOk = true
+				}
+				if isCompatibleResourceImpl(res.Kind, callRes.Kind, false) {
+					impreciseOk = true
+				}
+			}
+			if preciseOk {
+				res.Ctors = append(res.Ctors, ResourceCtor{call, true})
+			}
+			if impreciseOk {
+				res.Ctors = append(res.Ctors, ResourceCtor{call, false})
+			}
+		}
+	}
 }
 
 // isCompatibleResource returns true if resource of kind src can be passed as an argument of kind dst.
@@ -172,7 +198,7 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 			}
 			if ctors[res.Name] == nil {
 				var names []string
-				for _, call := range target.calcResourceCtors(res.Kind, true) {
+				for _, call := range target.calcResourceCtors(res, true) {
 					names = append(names, call.Name)
 				}
 				ctors[res.Name] = names
