@@ -168,9 +168,10 @@ func (target *Target) initTarget() {
 		})
 	}
 
+	target.populateResourceCtors()
 	target.resourceCtors = make(map[string][]*Syscall)
 	for _, res := range target.Resources {
-		target.resourceCtors[res.Name] = target.calcResourceCtors(res.Kind, false)
+		target.resourceCtors[res.Name] = target.calcResourceCtors(res, false)
 	}
 	initAnyTypes(target)
 }

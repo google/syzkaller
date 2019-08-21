@@ -132,6 +132,12 @@ type ResourceDesc struct {
 	Type   Type
 	Kind   []string
 	Values []uint64
+	Ctors  []ResourceCtor
+}
+
+type ResourceCtor struct {
+	Call    int // Index in Target.Syscalls
+	Precise bool
 }
 
 type ResourceType struct {
