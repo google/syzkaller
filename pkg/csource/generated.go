@@ -35,7 +35,7 @@ NORETURN void doexit(int status)
 
 #if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS ||         \
     SYZ_ENABLE_NETDEV || __NR_syz_mount_image || __NR_syz_read_part_table || \
-    __NR_syz_usb_connect || (GOOS_openbsd || GOOS_freebsd) && SYZ_TUN_ENABLE
+    __NR_syz_usb_connect || (GOOS_openbsd || GOOS_freebsd || GOOS_netbsd) && SYZ_TUN_ENABLE
 unsigned long long procid;
 #endif
 
@@ -725,7 +725,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	if (size > IMAGE_MAX_SIZE)
 		size = IMAGE_MAX_SIZE;
 	snprintf_check(diskimage, sizeof(diskimage), DISK_IMAGE, procid);
-	vndfd = open(diskimage, O_RDWR);
+	vndfd = open(diskimage, O_RDWR | O_CREAT);
 	if (vndfd == -1) {
 		debug("syz_mount_image: open[%s] failed: %d\n", diskimage, errno);
 		return -1;
@@ -735,6 +735,8 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
+
+	close(vndfd);
 	snprintf_check(vnodename, sizeof(vnodename), VND_DEVICE, procid);
 	execute_command(1, "vndconfig %s %s", vnodename, diskimage);
 	memset(fs, 0, sizeof(fs));

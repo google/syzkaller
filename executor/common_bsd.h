@@ -379,6 +379,8 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		}
 	}
 
+	close(vndfd);
+
 	// Create the vnode with the image
 	snprintf_check(vnodename, sizeof(vnodename), VND_DEVICE, procid);
 	execute_command(1, "vndconfig %s %s", vnodename, diskimage);
