@@ -523,7 +523,7 @@ func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, 
 		}
 		return
 	}
-	if desc == typeFlags {
+	if desc == typeFlags || desc == typeEnum {
 		flags[t.Args[0].Ident] = true
 		return
 	}

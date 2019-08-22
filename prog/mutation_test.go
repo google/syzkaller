@@ -32,6 +32,12 @@ func TestMutationFlags(t *testing.T) {
 			`r0 = mutate$flags3(&(0x7f0000000000)="2e2f66696c653000", 0xddddddddeeeeeeee)`,
 			`r0 = mutate$flags3(&(0x7f0000000000)="2e2f66696c653000", 0xaaaaaaaaaaaaaaaa)`,
 		},
+
+		// Mutate flags (enum = true).
+		{
+			`r0 = mutate$enum(&(0x7f0000000000)="2e2f66696c653000", 0x10)`,
+			`r0 = mutate$enum(&(0x7f0000000000)="2e2f66696c653000", 0x20)`,
+		},
 	}
 
 	runMutationTests(t, tests)

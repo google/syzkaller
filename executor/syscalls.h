@@ -16307,6 +16307,7 @@ const call_t syscalls[] = {
     {"foo$fmt5", 0},
     {"minimize$0", 0},
     {"mutate$array", 0},
+    {"mutate$enum", 0},
     {"mutate$flags", 0},
     {"mutate$flags2", 0},
     {"mutate$flags3", 0},

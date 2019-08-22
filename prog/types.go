@@ -248,6 +248,7 @@ type FlagsType struct {
 	IntTypeCommon
 	Vals    []uint64
 	BitMask bool
+	Enum    bool
 }
 
 func (t *FlagsType) DefaultArg() Arg {

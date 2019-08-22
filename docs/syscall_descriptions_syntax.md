@@ -28,6 +28,8 @@ rest of the type-options are type-specific:
 	optional range of values (e.g. "5:10", or "100:200")
 "flags": a set of flags, type-options:
 	reference to flags description (see below), underlying int type (e.g. "int32")
+"enum": an enum, type-options:
+	reference to flags description (see below), underlying int type (e.g. "int32")
 "array": a variable/fixed-length array, type-options:
 	type of elements, optional size (fixed "5", or ranged "5:10", boundaries inclusive)
 "ptr"/"ptr64": a pointer to an object, type-options:
@@ -45,13 +47,13 @@ rest of the type-options are type-specific:
 	the resulting data is always fixed-size (formatted as "%020llu", "0x%016llx" or "%023llo", respectively)
 "fileoff": offset within a file
 "len": length of another field (for array it is number of elements), type-options:
-	argname of the object
+	argname of the object, underlying int type (e.g. "int32")
 "bytesize": similar to "len", but always denotes the size in bytes, type-options:
-	argname of the object
+	argname of the object, underlying int type (e.g. "int32")
 "bitsize": similar to "len", but always denotes the size in bits, type-options:
-	argname of the object
+	argname of the object, underlying int type (e.g. "int32")
 "offsetof": offset of the field from the beginning of the parent struct, type-options:
-	field
+	field, underlying int type (e.g. "int32")
 "vma"/"vma64": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise), type-options:
 	optional number of pages (e.g. vma[7]), or a range of pages (e.g. vma[2-4])
 	vma64 has size of 8 bytes regardless of target pointer size
@@ -63,9 +65,7 @@ rest of the type-options are type-specific:
 	mostly useful inside of templates and varlen unions, can't be syscall argument
 ```
 
-flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.
-
-Flags are described as:
+Flags and enums are described as:
 
 ```
 flagname = const ["," const]*

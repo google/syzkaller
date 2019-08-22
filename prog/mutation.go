@@ -237,7 +237,7 @@ func (t *IntType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Ca
 func (t *FlagsType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	a := arg.(*ConstArg)
 	for oldVal := a.Val; oldVal == a.Val; {
-		a.Val = r.flags(t.Vals, t.BitMask, a.Val)
+		a.Val = r.flags(t.Vals, t.Enum, t.BitMask, a.Val)
 	}
 	return
 }

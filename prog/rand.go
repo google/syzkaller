@@ -138,14 +138,14 @@ func (r *randGen) randPageCount() (n uint64) {
 }
 
 // Change a flag value or generate a new one.
-func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) (v uint64) {
+func (r *randGen) flags(vv []uint64, enum bool, bitmask bool, oldVal uint64) (v uint64) {
 	v = oldVal
 	if r.oneOf(5) {
 		// Ignore the old value sometimes.
 		v = 0
 	}
 	switch {
-	case (bitmask && r.nOutOf(7, 10)) || (!bitmask && r.nOutOf(1, 5)):
+	case !enum && ((bitmask && r.nOutOf(7, 10)) || (!bitmask && r.nOutOf(1, 5))):
 		// Try flipping randomly chosen flags.
 		// Prioritized when bitmask == true.
 		for stop := false; !stop; stop = r.oneOf(3) {
@@ -161,7 +161,8 @@ func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) (v uint64) {
 			}
 			v ^= flag
 		}
-	case (bitmask && r.nOutOf(2, 3)) || (!bitmask && r.nOutOf(7, 8)):
+	case (enum && r.nOutOf(4, 5)) || (!enum &&
+		((bitmask && r.nOutOf(2, 3)) || (!bitmask && r.nOutOf(7, 8)))):
 		// Chose a random flag.
 		// Prioritized when bitmask == false.
 		v = vv[r.rand(len(vv))]
@@ -702,7 +703,7 @@ func (a *VmaType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 }
 
 func (a *FlagsType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	return MakeConstArg(a, r.flags(a.Vals, a.BitMask, 0)), nil
+	return MakeConstArg(a, r.flags(a.Vals, a.Enum, a.BitMask, 0)), nil
 }
 
 func (a *ConstType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {

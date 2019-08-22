@@ -257,6 +257,35 @@ var typeArgLenTarget = &typeArg{
 	MaxColon: 10,
 }
 
+func genFlags(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon, enum bool) prog.Type {
+	name := args[0].Ident
+	base.TypeName = name
+	f := comp.intFlags[name]
+	if len(f.Values) == 0 {
+		// We can get this if all values are unsupported consts.
+		return &prog.IntType{
+			IntTypeCommon: base,
+			Kind:          prog.IntPlain,
+		}
+	}
+	bitmask := true
+	var combined uint64
+	values := genIntArray(f.Values)
+	for _, v := range values {
+		if v&combined != 0 {
+			bitmask = false
+			break
+		}
+		combined |= v
+	}
+	return &prog.FlagsType{
+		IntTypeCommon: base,
+		Vals:          values,
+		BitMask:       bitmask,
+		Enum:          enum,
+	}
+}
+
 var typeFlags = &typeDesc{
 	Names:        []string{"flags"},
 	CanBeArgRet:  canBeArg,
@@ -265,31 +294,19 @@ var typeFlags = &typeDesc{
 	NeedBase:     true,
 	Args:         []namedArg{{Name: "flags", Type: typeArgFlags}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		name := args[0].Ident
-		base.TypeName = name
-		f := comp.intFlags[name]
-		if len(f.Values) == 0 {
-			// We can get this if all values are unsupported consts.
-			return &prog.IntType{
-				IntTypeCommon: base,
-				Kind:          prog.IntPlain,
-			}
-		}
-		bitmask := true
-		var combined uint64
-		values := genIntArray(f.Values)
-		for _, v := range values {
-			if v&combined != 0 {
-				bitmask = false
-				break
-			}
-			combined |= v
-		}
-		return &prog.FlagsType{
-			IntTypeCommon: base,
-			Vals:          values,
-			BitMask:       bitmask,
-		}
+		return genFlags(comp, t, args, base, false)
+	},
+}
+
+var typeEnum = &typeDesc{
+	Names:        []string{"enum"},
+	CanBeArgRet:  canBeArg,
+	CanBeTypedef: true,
+	CantBeOpt:    true,
+	NeedBase:     true,
+	Args:         []namedArg{{Name: "enum", Type: typeArgFlags}},
+	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		return genFlags(comp, t, args, base, true)
 	},
 }
 
@@ -615,7 +632,7 @@ var typeFmt = &typeDesc{
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		desc, _, _ := comp.getArgsBase(args[1], "", base.TypeCommon.ArgDir, true)
 		switch desc {
-		case typeResource, typeInt, typeLen, typeFlags, typeProc:
+		case typeResource, typeInt, typeLen, typeFlags, typeEnum, typeProc:
 		default:
 			comp.error(t.Pos, "bad fmt value %v, expect an integer", args[1].Ident)
 			return
@@ -889,6 +906,7 @@ func init() {
 		typeLen,
 		typeConst,
 		typeFlags,
+		typeEnum,
 		typeFileoff,
 		typeVMA,
 		typeCsum,
