@@ -967,11 +967,6 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
-				title: compile("BUG: MAX_STACK_TRACE_ENTRIES too low!"),
-				fmt:   "BUG: MAX_STACK_TRACE_ENTRIES too low in %[1]v",
-				stack: warningStackFmt("save_trace", "mark_lock"),
-			},
-			{
 				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible"),
 				fmt:   "BUG: using __this_cpu_%[1]v() in preemptible code in %[2]v",
 				stack: &stackFmt{

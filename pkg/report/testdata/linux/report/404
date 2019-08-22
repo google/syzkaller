@@ -1,4 +1,4 @@
-TITLE: BUG: MAX_STACK_TRACE_ENTRIES too low in scsi_remove_host
+TITLE: BUG: MAX_STACK_TRACE_ENTRIES too low!
 
 [ 3167.402179][T32668] BUG: MAX_STACK_TRACE_ENTRIES too low!
 [ 3167.407738][T32668] turning off the locking correctness validator.
