@@ -1,4 +1,4 @@
-TITLE: BUG: MAX_STACK_TRACE_ENTRIES too low in ucma_close
+TITLE: BUG: MAX_STACK_TRACE_ENTRIES too low!
 
 [  185.416858][  T809] BUG: MAX_STACK_TRACE_ENTRIES too low!
 [  185.422408][  T809] turning off the locking correctness validator.
