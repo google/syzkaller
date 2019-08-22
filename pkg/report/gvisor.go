@@ -28,6 +28,7 @@ func ctorGvisor(cfg *config) (Reporter, []string, error) {
 		"panic: executor failed: pthread_create failed",                                         // PID exhaustion
 		"panic: failed to start executor binary",
 		"panic: error mapping run data: error mapping runData: cannot allocate memory",
+		"race: limit on 8128 simultaneously alive goroutines is exceeded, dying",
 		"ERROR: ThreadSanitizer", // Go race failing due to OOM.
 		"FATAL: ThreadSanitizer",
 	}
