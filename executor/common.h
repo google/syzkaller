@@ -41,7 +41,7 @@ NORETURN void doexit(int status)
 
 #if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS ||         \
     SYZ_ENABLE_NETDEV || __NR_syz_mount_image || __NR_syz_read_part_table || \
-    __NR_syz_usb_connect || (GOOS_openbsd || GOOS_freebsd) && SYZ_TUN_ENABLE
+    __NR_syz_usb_connect || (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_TUN_ENABLE
 unsigned long long procid;
 #endif
 
