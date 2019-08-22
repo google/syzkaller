@@ -26,26 +26,26 @@ resource fd_usb_cdc_ncm[fd_usb]
 
 # These are generic syzcalls for emulating arbitrary USB devices.
 # They are mostly targeted to cover the enumeration process.
-syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb
+syz_usb_connect(speed enum[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb
 syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
 syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data buffer[in])
 syz_usb_ep_read(fd fd_usb, ep int16[0:31], len len[data], data buffer[out])
 syz_usb_disconnect(fd fd_usb)
 
 # These syzcalls specifically target the HID device class.
-syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
+syz_usb_connect$hid(speed enum[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
 syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid])
 
 # These syzcalls specifically target the PRINTER device class.
-syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer
+syz_usb_connect$printer(speed enum[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer
 syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer])
 
 # These syzcalls specifically target the CDC Ethernet device class.
-syz_usb_connect$cdc_ethernet(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ethernet], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ethernet
+syz_usb_connect$cdc_ethernet(speed enum[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ethernet], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ethernet
 syz_usb_control_io$cdc_ethernet(fd fd_usb_cdc_ethernet, descs ptr[in, vusb_descriptors_cdc_ethernet], resps ptr[in, vusb_responses_cdc_ethernet])
 
 # These syzcalls specifically target the CDC NCM device class.
-syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm
+syz_usb_connect$cdc_ncm(speed enum[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm
 syz_usb_control_io$cdc_ncm(fd fd_usb_cdc_ncm, descs ptr[in, vusb_descriptors_cdc_ncm], resps ptr[in, vusb_responses_cdc_ncm])
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
@@ -58,11 +58,11 @@ type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE,
 	bLength			const[USB_DT_DEVICE_SIZE, int8]
 	bDescriptorType		const[USB_DT_DEVICE, int8]
 
-	bcdUSB			flags[usb_versions, int16]
+	bcdUSB			enum[usb_versions, int16]
 	bDeviceClass		const[CLASS, int8]
 	bDeviceSubClass		const[SUBCLASS, int8]
 	bDeviceProtocol		const[PROTOCOL, int8]
-	bMaxPacketSize0		flags[usb_device_max_packet_sizes, int8]
+	bMaxPacketSize0		enum[usb_device_max_packet_sizes, int8]
 	idVendor		const[VENDOR, int16]
 	idProduct		const[PRODUCT, int16]
 	bcdDevice		const[DEVICE, int16]
@@ -188,8 +188,8 @@ vusb_descriptors {
 } [packed]
 
 vusb_descriptor_generic {
-	req_type	flags[usb_request_types, int8]
-	desc_type	flags[usb_descriptor_types, int8]
+	req_type	enum[usb_request_types, int8]
+	desc_type	enum[usb_descriptor_types, int8]
 	len		bytesize[data, int32]
 	data		usb_generic_descriptor
 } [packed]
@@ -236,8 +236,8 @@ vusb_responses {
 } [packed]
 
 vusb_response_generic {
-	type	flags[usb_request_types, int8]
-	req	flags[usb_requests, int8]
+	type	enum[usb_request_types, int8]
+	req	enum[usb_requests, int8]
 	len	bytesize[data, int32]
 	data	array[int8]
 } [packed]
@@ -265,7 +265,7 @@ type usb_string_descriptor_t[DATA] {
 } [packed]
 
 usb_string_descriptor [
-	lang_id	usb_string_descriptor_t[flags[usb_lang_ids, int16]]
+	lang_id	usb_string_descriptor_t[enum[usb_lang_ids, int16]]
 	string	usb_string_descriptor_t[array[int8]]
 ] [varlen]
 
@@ -275,11 +275,11 @@ usb_qualifier_descriptor {
 	bLength			len[parent, int8]
 	bDescriptorType		const[USB_DT_DEVICE_QUALIFIER, int8]
 
-	bcdUSB			flags[usb_versions, int16]
+	bcdUSB			enum[usb_versions, int16]
 	bDeviceClass		int8
 	bDeviceSubClass		int8
 	bDeviceProtocol		int8
-	bMaxPacketSize0		flags[usb_device_max_packet_sizes, int8]
+	bMaxPacketSize0		enum[usb_device_max_packet_sizes, int8]
 	bNumConfigurations	int8
 	bRESERVED		const[0, int8]
 } [packed]
@@ -308,7 +308,7 @@ usb_dev_cap [
 usb_generic_cap_descriptor {
 	bLength			len[parent, int8]
 	bDescriptorType		const[USB_DT_DEVICE_CAPABILITY, int8]
-	bDevCapabilityType	flags[usb_capability_types, int8]
+	bDevCapabilityType	enum[usb_capability_types, int8]
 
 	data			array[int8]
 } [packed]
@@ -321,7 +321,7 @@ usb_wireless_cap_descriptor {
 	bDevCapabilityType	const[USB_CAP_TYPE_WIRELESS_USB, int8]
 
 	bmAttributes		flags[usb_wireless_cap_attributes, int8]
-	wPHYRates		flags[usb_wireless_cap_phyrates, int16]
+	wPHYRates		enum[usb_wireless_cap_phyrates, int16]
 	bmTFITXPowerInfo	int8
 	bmFFITXPowerInfo	int8
 	bmBandGroup		int16
@@ -424,7 +424,7 @@ usb_endpoint_extra_descriptor [
 
 usb_generic_descriptor {
 	bLength		len[parent, int8]
-	bDescriptorType	flags[usb_descriptor_types, int8]
+	bDescriptorType	enum[usb_descriptor_types, int8]
 
 	data		array[int8]
 } [packed]
@@ -519,7 +519,7 @@ usb_config_descriptor_hid {
 } [packed]
 
 usb_interface_descriptor_hid {
-	inner	usb_interface_descriptor_t[const[0, int8], int8, int8[1:2], const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
+	inner	usb_interface_descriptor_t[const[0, int8], int8, int8[1:2], const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], enum[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
 } [packed]
 
 usb_hid_protocols = 0, USB_INTERFACE_PROTOCOL_KEYBOARD, USB_INTERFACE_PROTOCOL_MOUSE
@@ -595,14 +595,14 @@ hid_descriptor_report {
 type hid_report_item_short_012_t[TYPE, TAGS] {
 	bSize	len[data, int8:2]
 	bType	const[TYPE, int8:2]
-	bTag	flags[TAGS, int8:4]
+	bTag	enum[TAGS, int8:4]
 	data	array[int8, 0:2]
 } [packed]
 
 type hid_report_item_short_4_t[TYPE, TAGS] {
 	bSize	const[3, int8:2]
 	bType	const[TYPE, int8:2]
-	bTag	flags[TAGS, int8:4]
+	bTag	enum[TAGS, int8:4]
 	data	array[int8, 4]
 } [packed]
 
