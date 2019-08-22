@@ -93,14 +93,13 @@ type usb_config_descriptor_t[NUM, ATTRS, IFS] {
 	interfaces		IFS
 } [packed]
 
-type usb_interface_descriptor_t[IFNUM, ALTNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
+type usb_interface_descriptor_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
 	bLength			const[USB_DT_INTERFACE_SIZE, int8]
 	bDescriptorType		const[USB_DT_INTERFACE, int8]
 
 	bInterfaceNumber	IFNUM
 	bAlternateSetting	ALTNUM
 	bNumEndpoints		len[endpoints, int8]
-# TODO: endpoints is not necessarily an array.
 	bInterfaceClass		CLASS
 	bInterfaceSubClass	SUBCLASS
 	bInterfaceProtocol	PROTOCOL
@@ -109,6 +108,8 @@ type usb_interface_descriptor_t[IFNUM, ALTNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA,
 	extra			EXTRA
 	endpoints		EPS
 } [packed]
+
+type usb_interface_descriptor_eps_array_t[IFNUM, ALTNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] usb_interface_descriptor_t[IFNUM, ALTNUM, len[endpoints, int8], CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS]
 
 # TODO: Some endpoints have USB_DT_ENDPOINT_SIZE.
 type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
@@ -149,7 +150,7 @@ usb_config_attributes = USB_CONFIG_ATT_ONE, USB_CONFIG_ATT_SELFPOWER, USB_CONFIG
 # bInterfaceNumber, bInterfaceClass, bInterfaceSubClass and bInterfaceProtocol
 # are patched by Go code, see sys/linux/init_vusb.go.
 usb_interface_descriptor {
-	inner	usb_interface_descriptor_t[const[0, int8], int8, const[0, int8], const[0, int8], const[0, int8], array[usb_interface_extra_descriptor, 0:2], array[usb_endpoint_descriptor, 0:16]]
+	inner	usb_interface_descriptor_eps_array_t[const[0, int8], int8, const[0, int8], const[0, int8], const[0, int8], array[usb_interface_extra_descriptor, 0:2], array[usb_endpoint_descriptor, 0:16]]
 } [packed]
 
 usb_endpoint_descriptor {
@@ -518,7 +519,7 @@ usb_config_descriptor_hid {
 } [packed]
 
 usb_interface_descriptor_hid {
-	inner	usb_interface_descriptor_t[const[0, int8], int8, const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
+	inner	usb_interface_descriptor_t[const[0, int8], int8, int8[1:2], const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
 } [packed]
 
 usb_hid_protocols = 0, USB_INTERFACE_PROTOCOL_KEYBOARD, USB_INTERFACE_PROTOCOL_MOUSE
@@ -652,7 +653,7 @@ usb_config_descriptor_printer {
 } [packed]
 
 usb_interface_descriptor_printer {
-	inner	usb_interface_descriptor_t[const[0, int8], int8, const[USB_CLASS_PRINTER, int8], const[1, int8], int8[USBLP_FIRST_PROTOCOL:USBLP_LAST_PROTOCOL], void, usb_endpoint_descriptors_printer]
+	inner	usb_interface_descriptor_t[const[0, int8], int8, int8[1:2], const[USB_CLASS_PRINTER, int8], const[1, int8], int8[USBLP_FIRST_PROTOCOL:USBLP_LAST_PROTOCOL], void, usb_endpoint_descriptors_printer]
 } [packed]
 
 usb_endpoint_descriptors_printer {
@@ -725,7 +726,7 @@ usb_config_descriptor_cdc_ethernet {
 # Per specification CDC Ethernet devices have two interfaces (control and data), but we're merging
 # them into one, as Linux supports this, and syzkaller doesn't support multiple interfaces yet.
 usb_interface_descriptor_cdc_ethernet {
-	inner	usb_interface_descriptor_t[const[0, int8], int8, const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_ETHERNET, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ethernet, usb_endpoint_descriptors_cdc_ethernet]
+	inner	usb_interface_descriptor_t[const[0, int8], int8, in8[2:3], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_ETHERNET, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ethernet, usb_endpoint_descriptors_cdc_ethernet]
 } [packed]
 
 usb_endpoint_descriptors_cdc_ethernet {
@@ -968,7 +969,7 @@ usb_config_descriptor_cdc_ncm {
 } [packed]
 
 usb_interface_descriptor_cdc_ncm {
-	inner	usb_interface_descriptor_t[const[0, int8], const[CDC_NCM_COMM_ALTSETTING_NCM, int8], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_NCM, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ncm, usb_endpoint_descriptors_cdc_ethernet]
+	inner	usb_interface_descriptor_t[const[0, int8], const[CDC_NCM_COMM_ALTSETTING_NCM, int8], int8[2:3], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_NCM, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ncm, usb_endpoint_descriptors_cdc_ethernet]
 } [packed]
 
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/usb/core/message.c#L2137
