@@ -140,13 +140,31 @@ func (r *randGen) randPageCount() (n uint64) {
 // Change a flag value or generate a new one.
 func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) (v uint64) {
 	v = oldVal
+	if r.oneOf(5) {
+		// Ignore the old value sometimes.
+		v = 0
+	}
 	switch {
 	case (bitmask && r.nOutOf(7, 10)) || (!bitmask && r.nOutOf(1, 5)):
-		for stop := false; !stop; stop = r.bin() {
-			v |= vv[r.rand(len(vv))] // prioritized when bitmask = true
+		// Try flipping randomly chosen flags.
+		// Prioritized when bitmask == true.
+		for stop := false; !stop; stop = r.oneOf(3) {
+			flag := vv[r.rand(len(vv))]
+			if r.oneOf(5) {
+				// Try choosing adjacent bit values in case we forgot
+				// to add all relevant flags to the descriptions.
+				if r.bin() {
+					flag >>= 1
+				} else {
+					flag <<= 1
+				}
+			}
+			v ^= flag
 		}
 	case (bitmask && r.nOutOf(2, 3)) || (!bitmask && r.nOutOf(7, 8)):
-		v = vv[r.rand(len(vv))] // prioritized when bitmask = false
+		// Chose a random flag.
+		// Prioritized when bitmask == false.
+		v = vv[r.rand(len(vv))]
 	case r.bin():
 		v = 0
 	default:
