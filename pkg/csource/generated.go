@@ -2098,11 +2098,14 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		else
 			memset(&response.data[0], 0, response_length);
 
-		debug("syz_usb_connect: reply length = %d\n", response.inner.length);
-		if (event.ctrl.bRequestType & USB_DIR_IN)
+		if (event.ctrl.bRequestType & USB_DIR_IN) {
+			debug("syz_usb_connect: IN, length = %d\n", response.inner.length);
 			rv = usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
-		else
+		} else {
 			rv = usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_ep_io*)&response);
+			debug("syz_usb_connect: OUT, length = %d\n", response.inner.length);
+			debug_dump_data(&event.data[0], response.inner.length);
+		}
 		if (rv < 0) {
 			debug("syz_usb_connect: usb_fuzzer_ep0_read/write failed with %d\n", rv);
 			return rv;
