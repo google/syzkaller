@@ -11,7 +11,7 @@
 set -eu -o pipefail
 
 readonly MIRROR="${MIRROR:-cdn.openbsd.org}"
-readonly VERSION="${VERSION:-6.5}"
+readonly VERSION="${VERSION:-6.6}"
 readonly DOWNLOAD_VERSION="${DOWNLOAD_VERSION:-snapshots}"
 readonly RELNO="${2:-${VERSION/./}}"
 
