@@ -405,3 +405,67 @@ func TestBisectFixJob(t *testing.T) {
 	}
 	c.client2.expectOK(c.client2.JobDone(done))
 }
+
+// Test that JobBisectFix jobs are re-tried if crash occurs on ToT
+func TestBisectFixRetry(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Upload a crash report
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.client2.ReportCrash(crash)
+	c.client2.pollEmailBug()
+
+	// Receive the JobBisectCause
+	resp := c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
+	done := &dashapi.JobDoneReq{
+		ID:    resp.ID,
+		Error: []byte("testBisectFixRetry:JobBisectCause"),
+	}
+	c.client2.expectOK(c.client2.JobDone(done))
+
+	// Advance time by 30 days and read out any notification emails
+	{
+		c.advanceTime(30 * 24 * time.Hour)
+		msg := c.client2.pollEmailBug()
+		c.expectEQ(msg.Subject, "title1")
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+
+		msg = c.client2.pollEmailBug()
+		c.expectEQ(msg.Subject, "title1")
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+	}
+
+	// Ensure that we get a JobBisectFix. We send back a crashlog, no error, no commits
+	resp = c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
+	done = &dashapi.JobDoneReq{
+		Build: dashapi.Build{
+			ID: "build1",
+		},
+		ID:          resp.ID,
+		CrashLog:    []byte("this is a crashlog"),
+		CrashReport: []byte("this is a crashreport"),
+	}
+	c.client2.expectOK(c.client2.JobDone(done))
+
+	// Advance time by 30 days. No notification emails
+	{
+		c.advanceTime(30 * 24 * time.Hour)
+	}
+
+	// Ensure that we get a JobBisectFix retry
+	resp = c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
+	done = &dashapi.JobDoneReq{
+		ID:    resp.ID,
+		Error: []byte("testBisectFixRetry:JobBisectFix"),
+	}
+	c.client2.expectOK(c.client2.JobDone(done))
+}
