@@ -507,6 +507,9 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 			} else {
 				bug.BisectFix = result
 			}
+			// If the crash still occurs on HEAD, update the bug's LastTime so that it will be
+			// retried after 30 days.
+			crashesOnHead(c, bug, job, req, now)
 			if _, err := db.Put(c, bugKey, bug); err != nil {
 				return fmt.Errorf("failed to put bug: %v", err)
 			}
@@ -534,6 +537,14 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		return nil
 	}
 	return db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
+}
+
+func crashesOnHead(c context.Context, bug *Bug, job *Job, req *dashapi.JobDoneReq, now time.Time) {
+	if job.Type != JobBisectFix || req.Error != nil || len(req.Commits) != 0 || len(req.CrashLog) == 0 {
+		return
+	}
+	bug.BisectFix = BisectNot
+	bug.LastTime = now
 }
 
 func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, error) {
