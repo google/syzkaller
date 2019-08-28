@@ -131,8 +131,8 @@ Create manager config `arm.cfg` similar to the following one (changing paths as 
 		"cmdline": "console=ttyAMA0 root=/dev/mmcblk0",
 		"kernel": "/linux/arch/arm/boot/zImage",
 		"image_device": "sd",
-		"mem": 512
-		"cpu": 2,
+		"mem": 512,
+		"cpu": 2
 	}
 }
 ```
