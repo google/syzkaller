@@ -91,7 +91,7 @@ Run `make` again.
 Run:
 
 ```
-qemu-system-arm -m 512 -smp 2 -net nic -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 -display none -serial stdio -machine vexpress-a15 -dtb /linux/arch/arm/boot/dts/vexpress-v2p-ca15-tc1.dtb -sd /buildroot/output/images/rootfs.ext2 -snapshot -kernel /linux/arch/arm/boot/zImage -append "earlyprintk=serial console=ttyAMA0 root=/dev/sda root=/dev/mmcblk0"
+qemu-system-arm -m 512 -smp 2 -net nic -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 -display none -serial stdio -machine vexpress-a15 -dtb /linux/arch/arm/boot/dts/vexpress-v2p-ca15-tc1.dtb -sd /buildroot/output/images/rootfs.ext2 -snapshot -kernel /linux/arch/arm/boot/zImage -append "earlyprintk=serial console=ttyAMA0 root=/dev/mmcblk0"
 ```
 
 This should boot the kernel. Wait for login prompt, then in another console run:
