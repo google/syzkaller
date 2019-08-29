@@ -584,9 +584,6 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	if config.Flags&FlagDebug != 0 {
 		close(c.readDone)
 		cmd.Stderr = os.Stdout
-	} else if config.Flags&FlagUseForkServer == 0 {
-		close(c.readDone)
-		// TODO: read out output after execution failure.
 	} else {
 		cmd.Stderr = wp
 		go func(c *command) {
