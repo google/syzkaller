@@ -938,8 +938,10 @@ long syz_mmap(size_t addr, size_t size)
 	zx_handle_t root = zx_vmar_root_self();
 	zx_info_vmar_t info;
 	zx_status_t status = zx_object_get_info(root, ZX_INFO_VMAR, &info, sizeof(info), 0, 0);
-	if (status != ZX_OK)
-		fail("zx_object_get_info(ZX_INFO_VMAR) failed: %d", status);
+	if (status != ZX_OK) {
+		debug("zx_object_get_info(ZX_INFO_VMAR) failed: %d", status);
+		return status;
+	}
 	zx_handle_t vmo;
 	status = zx_vmo_create(size, 0, &vmo);
 	if (status != ZX_OK) {
@@ -947,8 +949,10 @@ long syz_mmap(size_t addr, size_t size)
 		return status;
 	}
 	status = zx_vmo_replace_as_executable(vmo, ZX_HANDLE_INVALID, &vmo);
-	if (status != ZX_OK)
+	if (status != ZX_OK) {
+		debug("zx_vmo_replace_as_executable failed with: %d\n", status);
 		return status;
+	}
 	uintptr_t mapped_addr;
 	status = zx_vmar_map(root, ZX_VM_FLAG_SPECIFIC_OVERWRITE | ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE | ZX_VM_FLAG_PERM_EXECUTE,
 			     addr - info.base, vmo, 0, size,
