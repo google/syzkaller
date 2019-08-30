@@ -4,24 +4,24 @@
 
 set -eux
 
-THISDIR=`cd $(dirname $0); pwd`
-
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 
+THIS_DIR=`cd $(dirname $0); pwd`
+MAKE_VARS="CC=${CC}"
+SYZBOT_BITS=${THIS_DIR}/bits-syzbot.config
+
 function util_add_syzbot_bits {
-  scripts/kconfig/merge_config.sh .config $SYZBOT_CONFIG
-  # Not merged in for some reason.
-  scripts/config -e CONFIG_KCOV_ENABLE_COMPARISONS
-  make CC="${CC}" olddefconfig
+  scripts/kconfig/merge_config.sh -m .config $SYZBOT_BITS
+  make ${MAKE_VARS} olddefconfig
 }
 
 function util_add_usb_bits {
-  MERGE_USB_SCRIPT=${THISDIR}/kconfiglib-merge-usb-configs.py
+  MERGE_USB_SCRIPT=${THIS_DIR}/kconfiglib-merge-usb-configs.py
 
   git clone --depth=1 https://github.com/ulfalizer/Kconfiglib.git
   wget -qO- https://raw.githubusercontent.com/ulfalizer/Kconfiglib/master/makefile.patch | patch -p1
-  for config in ${THISDIR}/distros/*; do
-    make CC="${CC}" scriptconfig SCRIPT=${MERGE_USB_SCRIPT} SCRIPT_ARG=${config}
+  for config in ${THIS_DIR}/distros/*; do
+    make ${MAKE_VARS} scriptconfig SCRIPT=${MERGE_USB_SCRIPT} SCRIPT_ARG=${config}
   done
   git checkout ./scripts/kconfig/Makefile
   rm -rf ./Kconfiglib
@@ -43,9 +43,12 @@ function util_add_usb_bits {
   scripts/config -e CONFIG_USB_GADGETFS
   scripts/config -e CONFIG_USB_DUMMY_HCD
   scripts/config -e CONFIG_USB_FUZZER
+
+  make ${MAKE_VARS} olddefconfig
 }
 
 function util_add_syzbot_extra_bits {
+  TMP_FILE=$(mktemp /tmp/syzkaller.XXXXXX)
   echo "# The following configs are added manually, preserve them.
 # CONFIG_DEBUG_MEMORY was once added to mm tree and cause disabling of KASAN,
 # which in turn caused storm of assorted crashes after silent memory
@@ -55,5 +58,8 @@ CONFIG_DEBUG_MEMORY=y
 # This config can be used to enable any additional temporal debugging
 # features in linux-next tree.
 CONFIG_DEBUG_AID_FOR_SYZBOT=y
-" > $1
+" > ${TMP_FILE}
+  cat .config >> ${TMP_FILE}
+  mv ${TMP_FILE} .config
+  rm -rf ${TMP_FILE}
 }
