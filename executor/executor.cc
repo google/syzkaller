@@ -595,26 +595,6 @@ retry:
 		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
 			break;
-		bool call_extra_cover = false;
-		// call_extra_timeout must match timeout in pkg/csource/csource.go.
-		int call_extra_timeout = 0;
-		// TODO: find a way to tune timeout values.
-		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0) {
-			prog_extra_cover = true;
-			call_extra_cover = true;
-		}
-		if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
-			prog_extra_timeout = 2000;
-			call_extra_timeout = 2000;
-		}
-		if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0)
-			call_extra_timeout = 300;
-		if (strncmp(syscalls[call_num].name, "syz_usb_ep_write", strlen("syz_usb_ep_write")) == 0)
-			call_extra_timeout = 300;
-		if (strncmp(syscalls[call_num].name, "syz_usb_ep_read", strlen("syz_usb_ep_read")) == 0)
-			call_extra_timeout = 300;
-		if (strncmp(syscalls[call_num].name, "syz_usb_disconnect", strlen("syz_usb_disconnect")) == 0)
-			call_extra_timeout = 300;
 		if (call_num == instr_copyin) {
 			char* addr = (char*)read_input(&input_pos);
 			uint64 typ = read_input(&input_pos);
@@ -705,6 +685,26 @@ retry:
 		// Normal syscall.
 		if (call_num >= ARRAY_SIZE(syscalls))
 			fail("invalid command number %llu", call_num);
+		bool call_extra_cover = false;
+		// call_extra_timeout must match timeout in pkg/csource/csource.go.
+		int call_extra_timeout = 0;
+		// TODO: find a way to tune timeout values.
+		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0) {
+			prog_extra_cover = true;
+			call_extra_cover = true;
+		}
+		if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
+			prog_extra_timeout = 2000;
+			call_extra_timeout = 2000;
+		}
+		if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0)
+			call_extra_timeout = 300;
+		if (strncmp(syscalls[call_num].name, "syz_usb_ep_write", strlen("syz_usb_ep_write")) == 0)
+			call_extra_timeout = 300;
+		if (strncmp(syscalls[call_num].name, "syz_usb_ep_read", strlen("syz_usb_ep_read")) == 0)
+			call_extra_timeout = 300;
+		if (strncmp(syscalls[call_num].name, "syz_usb_disconnect", strlen("syz_usb_disconnect")) == 0)
+			call_extra_timeout = 300;
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
