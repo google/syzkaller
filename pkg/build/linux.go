@@ -15,7 +15,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -46,12 +45,7 @@ func (linux) buildKernel(targetArch, kernelDir, outputDir, compiler string, conf
 	// One would expect olddefconfig here, but olddefconfig is not present in v3.6 and below.
 	// oldconfig is the same as olddefconfig if stdin is not set.
 	// Note: passing in compiler is important since 4.17 (at the very least it's noted in the config).
-	cmd := osutil.Command("make", "oldconfig", "CC="+compiler)
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return err
-	}
-	cmd.Dir = kernelDir
-	if _, err := osutil.Run(10*time.Minute, cmd); err != nil {
+	if err := runMake(kernelDir, "oldconfig", "CC="+compiler); err != nil {
 		return err
 	}
 	// Write updated kernel config early, so that it's captured on build failures.
@@ -60,8 +54,6 @@ func (linux) buildKernel(targetArch, kernelDir, outputDir, compiler string, conf
 		return err
 	}
 	// We build only zImage/bzImage as we currently don't use modules.
-	cpu := strconv.Itoa(runtime.NumCPU())
-
 	var target string
 	switch targetArch {
 	case "386", "amd64":
@@ -69,13 +61,7 @@ func (linux) buildKernel(targetArch, kernelDir, outputDir, compiler string, conf
 	case "ppc64le":
 		target = "zImage"
 	}
-	cmd = osutil.Command("make", target, "-j", cpu, "CC="+compiler)
-
-	if err := osutil.Sandbox(cmd, true, true); err != nil {
-		return err
-	}
-	cmd.Dir = kernelDir
-	if _, err := osutil.Run(time.Hour, cmd); err != nil {
+	if err := runMake(kernelDir, target, "CC="+compiler); err != nil {
 		return err
 	}
 	vmlinux := filepath.Join(kernelDir, "vmlinux")
@@ -132,12 +118,16 @@ func (linux) createImage(targetArch, vmType, kernelDir, outputDir, userspaceDir,
 }
 
 func (linux) clean(kernelDir, targetArch string) error {
-	cpu := strconv.Itoa(runtime.NumCPU())
-	cmd := osutil.Command("make", "distclean", "-j", cpu)
+	return runMake(kernelDir, "distclean")
+}
+
+func runMake(kernelDir string, args ...string) error {
+	args = append(args, fmt.Sprintf("-j=%v", runtime.NumCPU()))
+	cmd := osutil.Command("make", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
 	}
 	cmd.Dir = kernelDir
-	_, err := osutil.Run(10*time.Minute, cmd)
+	_, err := osutil.Run(time.Hour, cmd)
 	return err
 }
