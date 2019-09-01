@@ -575,10 +575,12 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 			continue
 		}
 		// TODO: this is temporal for gradual bisection rollout.
-		// Notify only about successful bisection for now.
-		// Note: If BisectFix results in a crash on HEAD, no notification is sent out. The following
-		// check also accounts for that condition.
-		if !appengine.IsDevAppServer() && job.Type != JobTestPatch && len(job.Commits) != 1 {
+		// Notify only about successful cause bisection for now.
+		if !appengine.IsDevAppServer() && job.Type == JobBisectCause && len(job.Commits) != 1 {
+			continue
+		}
+		// If BisectFix results in a crash on HEAD, no notification is sent out.
+		if job.Type == JobBisectFix && len(job.Commits) != 1 {
 			continue
 		}
 		rep, err := createBugReportForJob(c, job, keys[i], reporting.Config)
