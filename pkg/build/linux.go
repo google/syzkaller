@@ -122,7 +122,7 @@ func (linux) clean(kernelDir, targetArch string) error {
 }
 
 func runMake(kernelDir string, args ...string) error {
-	args = append(args, fmt.Sprintf("-j=%v", runtime.NumCPU()))
+	args = append(args, fmt.Sprintf("-j%v", runtime.NumCPU()))
 	cmd := osutil.Command("make", args...)
 	if err := osutil.Sandbox(cmd, true, true); err != nil {
 		return err
