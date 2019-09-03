@@ -861,6 +861,7 @@ func (comp *compiler) checkTypeArgs(t *ast.Type, desc *typeDesc, flags checkFlag
 	return args
 }
 
+// TODO: add warning when template arg is not used
 func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlags) {
 	typedefName := t.Ident
 	comp.usedTypedefs[typedefName] = true
@@ -940,6 +941,7 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 	for i, param := range params {
 		argMap[param.Name] = args[i]
 	}
+	argUsed := make(map[string]bool)
 	err0 := comp.errors
 	templ.Walk(ast.Recursive(func(n ast.Node) {
 		templArg, ok := n.(*ast.Type)
@@ -947,6 +949,7 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 			return
 		}
 		if concreteArg := argMap[templArg.Ident]; concreteArg != nil {
+			argUsed[templArg.Ident] = true
 			origArgs := templArg.Args
 			if len(origArgs) != 0 && len(concreteArg.Args) != 0 {
 				comp.error(templArg.Pos, "both template parameter %v and its usage"+
@@ -965,11 +968,18 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 		if len(templArg.Colon) != 0 {
 			col := templArg.Colon[0]
 			if concreteArg := argMap[col.Ident]; concreteArg != nil {
+				argUsed[col.Ident] = true
 				col.Ident = concreteArg.Ident
 				col.Pos = concreteArg.Pos
 			}
 		}
 	}))
+	for _, param := range params {
+		if !argUsed[param.Name] {
+			comp.error(argMap[param.Name].Pos,
+				"template argument %v is not used", param.Name)
+		}
+	}
 	return err0 == comp.errors
 }
 
