@@ -164,7 +164,28 @@ so please treat the results with understanding. You may consult the provided
 Suggestions and patches that improve bisection quality for common cases are
 [welcome](https://github.com/google/syzkaller/issues/1051).
 
-<div id="bisection"/>
+`syzbot` supports cause bisection (find the commit that introduces a bug) and
+fix bisection (find the commit that fixes a bug).
+
+The web UI for a specific kernel 
+(say [upstream linux](https://syzkaller.appspot.com/upstream)) shows the
+`Bisected` status for all bugs.
+
+<div id="fix-bisection"/>
+
+### Fix bisection
+`syzbot` will perform fix bisection on bugs that meet the following criterion:
+- The kernel tree corresponding to the bug has fix bisection enabled (for
+instance, fix bisection might be disabled on kernel trees that have commits
+which are force pushed).
+- The bug must have a reproducer.
+- The bug must not have occurred for at least 30 days. If the bug still occurs
+on HEAD upon fix bisection, it will be retried in another 30 days.
+
+If you receive an email with fix bisection results you think is correct, please
+reply with a `#syz fix: commit-title` so that syzbot can close the bug report.
+
+<div id="syzkaller-reproducers"/>
 
 ## syzkaller reproducers
 
