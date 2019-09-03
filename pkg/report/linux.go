@@ -705,6 +705,7 @@ var linuxStackParams = &stackParams{
 		"mutex_lock",
 		"mutex_trylock",
 		"mutex_unlock",
+		"mutex_remove_waiter",
 		"osq_lock",
 		"osq_unlock",
 		"__wake_up",
@@ -769,6 +770,7 @@ var linuxStackParams = &stackParams{
 		"finish_wait",
 		"rollback_registered",
 		"unregister_netdev",
+		"usb_kill_urb",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
