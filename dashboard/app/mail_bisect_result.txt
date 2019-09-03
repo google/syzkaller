@@ -22,9 +22,9 @@ git tree:       {{$br.KernelRepoAlias}}
 {{end}}{{if $br.ReproSyzLink}}syz repro:      {{$br.ReproSyzLink}}
 {{end}}{{if $br.ReproCLink}}C reproducer:   {{$br.ReproCLink}}
 {{end}}{{if $bisect.Fix}}
-If the bisection result looks correct, please reply with:
+If the result looks correct, please mark the bug fixed by replying with:
 
-#syz fix: fix-commit-title
+#syz fix: {{$bisect.Commit.Title}}
 {{else}}{{if $bisect.Commit}}
 Reported-by: {{$br.CreditEmail}}
 Fixes: {{formatTagHash $bisect.Commit.Hash}} ("{{$bisect.Commit.Title}}")
