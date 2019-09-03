@@ -105,15 +105,8 @@ func Complete(cfg *Config) error {
 	if err := checkSSHParams(cfg); err != nil {
 		return err
 	}
+	cfg.CompleteKernelDirs()
 
-	cfg.KernelObj = osutil.Abs(cfg.KernelObj)
-	if cfg.KernelSrc == "" {
-		cfg.KernelSrc = cfg.KernelObj // assume in-tree build by default
-	}
-	cfg.KernelSrc = osutil.Abs(cfg.KernelSrc)
-	if cfg.KernelBuildSrc == "" {
-		cfg.KernelBuildSrc = cfg.KernelSrc
-	}
 	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
 		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
@@ -124,6 +117,17 @@ func Complete(cfg *Config) error {
 	}
 
 	return nil
+}
+
+func (cfg *Config) CompleteKernelDirs() {
+	cfg.KernelObj = osutil.Abs(cfg.KernelObj)
+	if cfg.KernelSrc == "" {
+		cfg.KernelSrc = cfg.KernelObj // assume in-tree build by default
+	}
+	cfg.KernelSrc = osutil.Abs(cfg.KernelSrc)
+	if cfg.KernelBuildSrc == "" {
+		cfg.KernelBuildSrc = cfg.KernelSrc
+	}
 }
 
 func checkSSHParams(cfg *Config) error {
