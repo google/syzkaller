@@ -1,0 +1,111 @@
+TITLE: KASAN: use-after-free Write in iowarrior_disconnect
+
+[   72.512165][   T17] ==================================================================
+[   72.520532][   T17] BUG: KASAN: use-after-free in usb_kill_urb+0x18f/0x2c0
+[   72.527601][   T17] Write of size 4 at addr ffff8881d586ca14 by task kworker/1:0/17
+[   72.535386][   T17]
+[   72.537703][   T17] CPU: 1 PID: 17 Comm: kworker/1:0 Not tainted 5.3.0-rc5+ #28
+[   72.545140][   T17] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   72.555187][   T17] Workqueue: usb_hub_wq hub_event
+[   72.560191][   T17] Call Trace:
+[   72.563470][   T17]  dump_stack+0xca/0x13e
+[   72.567758][   T17]  ? usb_kill_urb+0x18f/0x2c0
+[   72.572512][   T17]  ? usb_kill_urb+0x18f/0x2c0
+[   72.577185][   T17]  print_address_description+0x6a/0x32c
+[   72.582980][   T17]  ? usb_kill_urb+0x18f/0x2c0
+[   72.587638][   T17]  ? usb_kill_urb+0x18f/0x2c0
+[   72.592301][   T17]  __kasan_report.cold+0x1a/0x33
+[   72.597239][   T17]  ? mark_held_locks+0x21/0xe0
+[   72.601990][   T17]  ? usb_kill_urb+0x18f/0x2c0
+[   72.606646][   T17]  kasan_report+0xe/0x12
+[   72.610887][   T17]  check_memory_region+0x128/0x190
+[   72.615983][   T17]  usb_kill_urb+0x18f/0x2c0
+[   72.620467][   T17]  ? usb_poison_anchored_urbs+0x150/0x150
+[   72.626178][   T17]  ? __mutex_unlock_slowpath+0x2d6/0x670
+[   72.631802][   T17]  ? wait_for_completion+0x3c0/0x3c0
+[   72.637112][   T17]  ? finish_wait+0x260/0x260
+[   72.641698][   T17]  iowarrior_disconnect+0x176/0x2c0
+[   72.646913][   T17]  usb_unbind_interface+0x1bd/0x8a0
+[   72.652102][   T17]  ? usb_autoresume_device+0x60/0x60
+[   72.657387][   T17]  device_release_driver_internal+0x42f/0x500
+[   72.663467][   T17]  bus_remove_device+0x2dc/0x4a0
+[   72.668431][   T17]  device_del+0x420/0xb10
+[   72.672845][   T17]  ? __device_links_no_driver+0x240/0x240
+[   72.678549][   T17]  ? usb_remove_ep_devs+0x3e/0x80
+[   72.683643][   T17]  ? remove_intf_ep_devs+0x13f/0x1d0
+[   72.688928][   T17]  usb_disable_device+0x211/0x690
+[   72.693942][   T17]  usb_disconnect+0x284/0x8d0
+[   72.698616][   T17]  hub_event+0x1454/0x3640
+[   72.703025][   T17]  ? find_held_lock+0x2d/0x110
+[   72.707860][   T17]  ? mark_held_locks+0xe0/0xe0
+[   72.712603][   T17]  ? hub_port_debounce+0x260/0x260
+[   72.717694][   T17]  process_one_work+0x92b/0x1530
+[   72.722622][   T17]  ? pwq_dec_nr_in_flight+0x310/0x310
+[   72.728008][   T17]  ? do_raw_spin_lock+0x11a/0x280
+[   72.733032][   T17]  worker_thread+0x96/0xe20
+[   72.737535][   T17]  ? process_one_work+0x1530/0x1530
+[   72.742723][   T17]  kthread+0x318/0x420
+[   72.746810][   T17]  ? kthread_create_on_node+0xf0/0xf0
+[   72.752171][   T17]  ret_from_fork+0x24/0x30
+[   72.756563][   T17]
+[   72.758870][   T17] Allocated by task 2767:
+[   72.763177][   T17]  save_stack+0x1b/0x80
+[   72.767331][   T17]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[   72.772977][   T17]  usb_alloc_urb+0x65/0xb0
+[   72.777397][   T17]  iowarrior_probe+0x4b2/0x10b2
+[   72.782256][   T17]  usb_probe_interface+0x305/0x7a0
+[   72.787367][   T17]  really_probe+0x281/0x6d0
+[   72.791854][   T17]  driver_probe_device+0x101/0x1b0
+[   72.797034][   T17]  __device_attach_driver+0x1c2/0x220
+[   72.802403][   T17]  bus_for_each_drv+0x162/0x1e0
+[   72.807251][   T17]  __device_attach+0x217/0x360
+[   72.812004][   T17]  bus_probe_device+0x1e4/0x290
+[   72.816832][   T17]  device_add+0xae6/0x16f0
+[   72.821232][   T17]  usb_set_configuration+0xdf6/0x1670
+[   72.826587][   T17]  generic_probe+0x9d/0xd5
+[   72.830981][   T17]  usb_probe_device+0x99/0x100
+[   72.835726][   T17]  really_probe+0x281/0x6d0
+[   72.840470][   T17]  driver_probe_device+0x101/0x1b0
+[   72.845562][   T17]  __device_attach_driver+0x1c2/0x220
+[   72.850914][   T17]  bus_for_each_drv+0x162/0x1e0
+[   72.855746][   T17]  __device_attach+0x217/0x360
+[   72.860613][   T17]  bus_probe_device+0x1e4/0x290
+[   72.865443][   T17]  device_add+0xae6/0x16f0
+[   72.869843][   T17]  usb_new_device.cold+0x6a4/0xe79
+[   72.874936][   T17]  hub_event+0x1b5c/0x3640
+[   72.879365][   T17]  process_one_work+0x92b/0x1530
+[   72.884282][   T17]  worker_thread+0x96/0xe20
+[   72.888780][   T17]  kthread+0x318/0x420
+[   72.892827][   T17]  ret_from_fork+0x24/0x30
+[   72.897220][   T17]
+[   72.899527][   T17] Freed by task 0:
+[   72.903585][   T17]  save_stack+0x1b/0x80
+[   72.907811][   T17]  __kasan_slab_free+0x130/0x180
+[   72.912736][   T17]  kfree+0xe4/0x2f0
+[   72.916530][   T17]  usb_free_urb.part.0+0x7a/0xc0
+[   72.921444][   T17]  usb_free_urb+0x1b/0x30
+[   72.925752][   T17]  usb_hcd_giveback_urb+0x368/0x420
+[   72.930927][   T17]  dummy_timer+0x120f/0x2fa2
+[   72.935496][   T17]  call_timer_fn+0x179/0x650
+[   72.940065][   T17]  run_timer_softirq+0x5cc/0x14b0
+[   72.945073][   T17]  __do_softirq+0x221/0x912
+[   72.949548][   T17]
+[   72.951876][   T17] The buggy address belongs to the object at ffff8881d586ca00
+[   72.951876][   T17]  which belongs to the cache kmalloc-192 of size 192
+[   72.965914][   T17] The buggy address is located 20 bytes inside of
+[   72.965914][   T17]  192-byte region [ffff8881d586ca00, ffff8881d586cac0)
+[   72.979174][   T17] The buggy address belongs to the page:
+[   72.984790][   T17] page:ffffea0007561b00 refcount:1 mapcount:0 mapping:ffff8881da002a00 index:0x0
+[   72.993874][   T17] flags: 0x200000000000200(slab)
+[   72.998796][   T17] raw: 0200000000000200 dead000000000100 dead000000000122 ffff8881da002a00
+[   73.007359][   T17] raw: 0000000000000000 0000000000100010 00000001ffffffff 0000000000000000
+[   73.015922][   T17] page dumped because: kasan: bad access detected
+[   73.022310][   T17]
+[   73.024614][   T17] Memory state around the buggy address:
+[   73.030227][   T17]  ffff8881d586c900: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   73.038271][   T17]  ffff8881d586c980: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+[   73.046312][   T17] >ffff8881d586ca00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   73.054353][   T17]                          ^
+[   73.058919][   T17]  ffff8881d586ca80: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+[   73.067044][   T17]  ffff8881d586cb00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   73.075087][   T17] ==================================================================

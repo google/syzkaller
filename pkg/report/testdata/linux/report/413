@@ -1,0 +1,113 @@
+TITLE: KASAN: use-after-free Read in iowarrior_disconnect
+
+[  272.327487][   T12] ==================================================================
+[  272.335789][   T12] BUG: KASAN: use-after-free in __list_del_entry_valid+0x15e/0x170
+[  272.336706][ T2803] hub 4-1:0.0: USB hub found
+[  272.343673][   T12] Read of size 8 at addr ffff8881d1b97948 by task kworker/0:1/12
+[  272.343694][   T12]
+[  272.343710][   T12] CPU: 0 PID: 12 Comm: kworker/0:1 Not tainted 5.3.0-rc5+ #28
+[  272.343718][   T12] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  272.343738][   T12] Workqueue: usb_hub_wq hub_event
+[  272.380797][   T12] Call Trace:
+[  272.384096][   T12]  dump_stack+0xca/0x13e
+[  272.388338][   T12]  ? __list_del_entry_valid+0x15e/0x170
+[  272.393865][   T12]  ? __list_del_entry_valid+0x15e/0x170
+[  272.399386][   T12]  print_address_description+0x6a/0x32c
+[  272.404915][   T12]  ? __list_del_entry_valid+0x15e/0x170
+[  272.410445][   T12]  ? __list_del_entry_valid+0x15e/0x170
+[  272.416029][   T12]  __kasan_report.cold+0x1a/0x33
+[  272.421045][   T12]  ? do_raw_spin_lock+0x70/0x280
+[  272.425962][   T12]  ? __list_del_entry_valid+0x15e/0x170
+[  272.431487][   T12]  kasan_report+0xe/0x12
+[  272.435712][   T12]  __list_del_entry_valid+0x15e/0x170
+[  272.441085][   T12]  mutex_remove_waiter+0x200/0x470
+[  272.446177][   T12]  __mutex_lock+0x4e0/0x1360
+[  272.450760][   T12]  ? iowarrior_disconnect+0xf0/0x2c0
+[  272.456024][   T12]  ? mutex_trylock+0x2c0/0x2c0
+[  272.460761][   T12]  ? __mutex_unlock_slowpath+0xea/0x670
+[  272.466280][   T12]  ? iowarrior_disconnect+0xf0/0x2c0
+[  272.471542][   T12]  iowarrior_disconnect+0xf0/0x2c0
+[  272.476643][   T12]  usb_unbind_interface+0x1bd/0x8a0
+[  272.479187][ T2760] usb 6-1: USB disconnect, device number 120
+[  272.481834][   T12]  ? usb_autoresume_device+0x60/0x60
+[  272.481851][   T12]  device_release_driver_internal+0x42f/0x500
+[  272.481864][   T12]  bus_remove_device+0x2dc/0x4a0
+[  272.481881][   T12]  device_del+0x420/0xb10
+[  272.508329][   T12]  ? __device_links_no_driver+0x240/0x240
+[  272.514037][   T12]  ? usb_remove_ep_devs+0x3e/0x80
+[  272.519065][   T12]  ? remove_intf_ep_devs+0x13f/0x1d0
+[  272.524348][   T12]  usb_disable_device+0x211/0x690
+[  272.529363][   T12]  usb_disconnect+0x284/0x8d0
+[  272.534019][   T12]  hub_event+0x1454/0x3640
+[  272.538415][   T12]  ? find_held_lock+0x2d/0x110
+[  272.543164][   T12]  ? mark_held_locks+0xe0/0xe0
+[  272.547913][   T12]  ? hub_port_debounce+0x260/0x260
+[  272.553031][   T12]  process_one_work+0x92b/0x1530
+[  272.557971][   T12]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  272.563344][   T12]  ? do_raw_spin_lock+0x11a/0x280
+[  272.568369][   T12]  worker_thread+0x96/0xe20
+[  272.572871][   T12]  ? process_one_work+0x1530/0x1530
+[  272.578059][   T12]  kthread+0x318/0x420
+[  272.582117][   T12]  ? kthread_create_on_node+0xf0/0xf0
+[  272.587470][   T12]  ret_from_fork+0x24/0x30
+[  272.591866][   T12]
+[  272.594181][   T12] Allocated by task 102:
+[  272.598410][   T12]  save_stack+0x1b/0x80
+[  272.602538][   T12]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[  272.608146][   T12]  iowarrior_probe+0x7a/0x10b2
+[  272.612890][   T12]  usb_probe_interface+0x305/0x7a0
+[  272.617996][   T12]  really_probe+0x281/0x6d0
+[  272.622493][   T12]  driver_probe_device+0x101/0x1b0
+[  272.627609][   T12]  __device_attach_driver+0x1c2/0x220
+[  272.632973][   T12]  bus_for_each_drv+0x162/0x1e0
+[  272.637819][   T12]  __device_attach+0x217/0x360
+[  272.642579][   T12]  bus_probe_device+0x1e4/0x290
+[  272.647430][   T12]  device_add+0xae6/0x16f0
+[  272.651852][   T12]  usb_set_configuration+0xdf6/0x1670
+[  272.657222][   T12]  generic_probe+0x9d/0xd5
+[  272.661635][   T12]  usb_probe_device+0x99/0x100
+[  272.666396][   T12]  really_probe+0x281/0x6d0
+[  272.670894][   T12]  driver_probe_device+0x101/0x1b0
+[  272.676004][   T12]  __device_attach_driver+0x1c2/0x220
+[  272.681366][   T12]  bus_for_each_drv+0x162/0x1e0
+[  272.686208][   T12]  __device_attach+0x217/0x360
+[  272.690960][   T12]  bus_probe_device+0x1e4/0x290
+[  272.695804][   T12]  device_add+0xae6/0x16f0
+[  272.700217][   T12]  usb_new_device.cold+0x6a4/0xe79
+[  272.705321][   T12]  hub_event+0x1b5c/0x3640
+[  272.709728][   T12]  process_one_work+0x92b/0x1530
+[  272.714658][   T12]  worker_thread+0x96/0xe20
+[  272.719154][   T12]  kthread+0x318/0x420
+[  272.723218][   T12]  ret_from_fork+0x24/0x30
+[  272.727616][   T12]
+[  272.729936][   T12] Freed by task 5858:
+[  272.733915][   T12]  save_stack+0x1b/0x80
+[  272.738067][   T12]  __kasan_slab_free+0x130/0x180
+[  272.742997][   T12]  kfree+0xe4/0x2f0
+[  272.746804][   T12]  iowarrior_release+0x187/0x280
+[  272.751735][   T12]  __fput+0x2d7/0x840
+[  272.755711][   T12]  task_work_run+0x13f/0x1c0
+[  272.760297][   T12]  exit_to_usermode_loop+0x1d2/0x200
+[  272.765575][   T12]  do_syscall_64+0x45f/0x580
+[  272.770163][   T12]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  272.776040][   T12]
+[  272.778367][   T12] The buggy address belongs to the object at ffff8881d1b97900
+[  272.778367][   T12]  which belongs to the cache kmalloc-512 of size 512
+[  272.792413][   T12] The buggy address is located 72 bytes inside of
+[  272.792413][   T12]  512-byte region [ffff8881d1b97900, ffff8881d1b97b00)
+[  272.805591][   T12] The buggy address belongs to the page:
+[  272.811215][   T12] page:ffffea000746e580 refcount:1 mapcount:0 mapping:ffff8881da002500 index:0x0 compound_mapcount: 0
+[  272.822141][   T12] flags: 0x200000000010200(slab|head)
+[  272.827513][   T12] raw: 0200000000010200 ffffea00072f9680 0000000400000004 ffff8881da002500
+[  272.836095][   T12] raw: 0000000000000000 00000000000c000c 00000001ffffffff 0000000000000000
+[  272.844663][   T12] page dumped because: kasan: bad access detected
+[  272.851062][   T12]
+[  272.853381][   T12] Memory state around the buggy address:
+[  272.859008][   T12]  ffff8881d1b97800: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  272.867065][   T12]  ffff8881d1b97880: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  272.875123][   T12] >ffff8881d1b97900: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  272.883175][   T12]                                               ^
+[  272.889587][   T12]  ffff8881d1b97980: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  272.897682][   T12]  ffff8881d1b97a00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  272.899562][   T83] usb 5-1: USB disconnect, device number 30
+[  272.905743][   T12] ==================================================================
