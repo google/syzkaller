@@ -99,7 +99,7 @@ type usb_interface_descriptor_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL
 
 	bInterfaceNumber	IFNUM
 	bAlternateSetting	ALTNUM
-	bNumEndpoints		len[endpoints, int8]
+	bNumEndpoints		EPSNUM
 	bInterfaceClass		CLASS
 	bInterfaceSubClass	SUBCLASS
 	bInterfaceProtocol	PROTOCOL
@@ -726,7 +726,7 @@ usb_config_descriptor_cdc_ethernet {
 # Per specification CDC Ethernet devices have two interfaces (control and data), but we're merging
 # them into one, as Linux supports this, and syzkaller doesn't support multiple interfaces yet.
 usb_interface_descriptor_cdc_ethernet {
-	inner	usb_interface_descriptor_t[const[0, int8], int8, in8[2:3], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_ETHERNET, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ethernet, usb_endpoint_descriptors_cdc_ethernet]
+	inner	usb_interface_descriptor_t[const[0, int8], int8, int8[2:3], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_ETHERNET, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ethernet, usb_endpoint_descriptors_cdc_ethernet]
 } [packed]
 
 usb_endpoint_descriptors_cdc_ethernet {
