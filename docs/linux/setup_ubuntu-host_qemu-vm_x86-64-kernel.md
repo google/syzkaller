@@ -25,8 +25,8 @@ git clone https://github.com/torvalds/linux.git $KERNEL
 Generate default configs:
 ``` bash
 cd $KERNEL
-make defconfig
-make kvmconfig
+make CC="$GCC/bin/gcc" defconfig
+make CC="$GCC/bin/gcc" kvmconfig
 ```
 
 Now we need to enable some config options required for syzkaller.
@@ -48,7 +48,7 @@ You might also want to enable some other kernel configs as described [here](kern
 
 Since enabling these options results in more sub options being available, we need to regenerate config. Run this and press enter each time when prompted for some config value to leave it as default:
 ``` bash
-make oldconfig
+make CC="$GCC/bin/gcc" oldconfig
 ```
 
 Build the kernel with previously built GCC:
