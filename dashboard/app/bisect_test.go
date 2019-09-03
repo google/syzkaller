@@ -398,9 +398,9 @@ kernel config:  %[5]v
 dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 syz repro:      %[6]v
 
-If the bisection result looks correct, please reply with:
+If the result looks correct, please mark the bug fixed by replying with:
 
-#syz fix: fix-commit-title
+#syz fix: kernel: add a fix
 
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
