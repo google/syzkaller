@@ -17,8 +17,8 @@ import (
 var (
 	flagOS        = flag.String("os", runtime.GOOS, "target os")
 	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
-	flagKernelSrc = flag.String("kernel_src", ".", "path to kernel sources")
 	flagKernelObj = flag.String("kernel_obj", ".", "path to kernel build/obj dir")
+	flagKernelSrc = flag.String("kernel_src", "", "path to kernel sources (defaults to kernel_obj)")
 )
 
 func main() {
@@ -29,11 +29,13 @@ func main() {
 		os.Exit(1)
 	}
 	cfg := &mgrconfig.Config{
-		TargetOS:   *flagOS,
-		TargetArch: *flagArch,
-		KernelObj:  *flagKernelObj,
-		KernelSrc:  *flagKernelSrc,
+		TargetOS:     *flagOS,
+		TargetArch:   *flagArch,
+		TargetVMArch: *flagArch,
+		KernelObj:    *flagKernelObj,
+		KernelSrc:    *flagKernelSrc,
 	}
+	cfg.CompleteKernelDirs()
 	reporter, err := report.NewReporter(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create reporter: %v\n", err)
