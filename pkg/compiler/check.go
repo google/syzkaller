@@ -861,7 +861,6 @@ func (comp *compiler) checkTypeArgs(t *ast.Type, desc *typeDesc, flags checkFlag
 	return args
 }
 
-// TODO: add warning when template arg is not used
 func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlags) {
 	typedefName := t.Ident
 	comp.usedTypedefs[typedefName] = true
