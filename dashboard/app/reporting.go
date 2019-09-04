@@ -900,6 +900,47 @@ func queryCrashesForBug(c context.Context, bugKey *db.Key, limit int) (
 	return crashes, keys, nil
 }
 
+func queryJobsForBug(c context.Context, bugKey *db.Key, jobType JobType) (
+	[]*Job, []*db.Key, error) {
+	var jobs []*Job
+	keys, err := db.NewQuery("Job").
+		Ancestor(bugKey).
+		Filter("Type=", jobType).
+		Filter("Finished>", time.Time{}).
+		Order("-Finished").
+		GetAll(c, &jobs)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch fix bisections: %v", err)
+	}
+	return jobs, keys, nil
+}
+
+func queryCrashForJob(c context.Context, job *Job, bugKey *db.Key) (*Crash, error) {
+	// If there was no crash corresponding to the Job, return.
+	if job.CrashTitle == "" {
+		return nil, nil
+	}
+	// First, fetch the crash who's repro was used to start the bisection
+	// job.
+	crash := new(Crash)
+	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bugKey)
+	if err := db.Get(c, crashKey, crash); err != nil {
+		return nil, err
+	}
+	// Now, create a crash object with the crash details from the job.
+	ret := &Crash{
+		Time:        job.Finished,
+		Maintainers: nil,
+		Log:         job.Log,
+		Report:      job.CrashReport,
+		ReproOpts:   crash.ReproOpts,
+		ReproSyz:    crash.ReproSyz,
+		ReproC:      crash.ReproC,
+		ReportLen:   0,
+	}
+	return ret, nil
+}
+
 func findCrashForBug(c context.Context, bug *Bug) (*Crash, *db.Key, error) {
 	bugKey := bug.key(c)
 	crashes, keys, err := queryCrashesForBug(c, bugKey, 1)

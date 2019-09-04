@@ -37,45 +37,12 @@ Page with details about a single bug.
 	<textarea id="log_textarea" readonly rows="25" wrap=off>{{printf "%s" .SampleReport}}</textarea><br>
 	{{end}}
 
-	<table class="list_table">
-		<caption>All crashes ({{.Bug.NumCrashes}}):</caption>
-		<thead>
-		<tr>
-			<th><a onclick="return sortTable(this, 'Manager', textSort)" href="#">Manager</a></th>
-			<th><a onclick="return sortTable(this, 'Time', textSort, true)" href="#">Time</a></th>
-			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
-			<th><a onclick="return sortTable(this, 'Commit', textSort)" href="#">Commit</a></th>
-			<th><a onclick="return sortTable(this, 'Syzkaller', textSort)" href="#">Syzkaller</a></th>
-			<th><a onclick="return sortTable(this, 'Config', textSort)" href="#">Config</a></th>
-			<th><a onclick="return sortTable(this, 'Log', textSort)" href="#">Log</a></th>
-			<th><a onclick="return sortTable(this, 'Report', reproSort)" href="#">Report</a></th>
-			<th><a onclick="return sortTable(this, 'Syz repro', reproSort)" href="#">Syz repro</a></th>
-			<th><a onclick="return sortTable(this, 'C repro', textSort)" href="#">C repro</a></th>
-			{{if $.HasMaintainers}}
-			<th><a onclick="return sortTable(this, 'Maintainers', textSort)" href="#">Maintainers</a></th>
-			{{end}}
-		</tr>
-		</thead>
-		<tbody>
-		{{range $c := $.Crashes}}
-			<tr>
-				<td class="manager">{{$c.Manager}}</td>
-				<td class="time">{{formatTime $c.Time}}</td>
-				<td class="kernel" title="{{$c.KernelAlias}}">{{$c.KernelAlias}}</td>
-				<td class="tag" title="{{$c.KernelCommit}}
-{{formatTime $c.KernelCommitDate}}">{{link $c.KernelCommitLink (formatShortHash $c.KernelCommit)}}</td>
-				<td class="tag">{{link $c.SyzkallerCommitLink (formatShortHash $c.SyzkallerCommit)}}</td>
-				<td class="config">{{if $c.KernelConfigLink}}<a href="{{$c.KernelConfigLink}}">.config</a>{{end}}</td>
-				<td class="repro">{{if $c.LogLink}}<a href="{{$c.LogLink}}">log</a>{{end}}</td>
-				<td class="repro">{{if $c.ReportLink}}<a href="{{$c.ReportLink}}">report</a>{{end}}</td>
-				<td class="repro">{{if $c.ReproSyzLink}}<a href="{{$c.ReproSyzLink}}">syz</a>{{end}}</td>
-				<td class="repro">{{if $c.ReproCLink}}<a href="{{$c.ReproCLink}}">C</a>{{end}}</td>
-				{{if $.HasMaintainers}}
-				<td class="maintainers" title="{{$c.Maintainers}}">{{$c.Maintainers}}</td>
-				{{end}}
-			</tr>
-		{{end}}
-		</tbody>
-	</table>
+	{{if .FixBisections}}
+	{{if .FixBisections.Crashes}}
+		{{template "crash_list" .FixBisections}}
+	{{end}}
+	{{end}}
+
+	{{template "crash_list" .Crashes}}
 </body>
 </html>
