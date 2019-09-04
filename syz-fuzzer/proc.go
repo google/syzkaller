@@ -87,16 +87,16 @@ func (proc *Proc) loop() {
 		}
 
 		ct := proc.fuzzer.choiceTable
-		corpus := proc.fuzzer.corpusSnapshot()
-		if len(corpus) == 0 || i%generatePeriod == 0 {
+		fuzzerSnapshot := proc.fuzzer.snapshot()
+		if len(fuzzerSnapshot.corpus) == 0 || i%generatePeriod == 0 {
 			// Generate a new prog.
 			p := proc.fuzzer.target.Generate(proc.rnd, programLength, ct)
 			log.Logf(1, "#%v: generated", proc.pid)
 			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
 			// Mutate an existing prog.
-			p := corpus[proc.rnd.Intn(len(corpus))].Clone()
-			p.Mutate(proc.rnd, programLength, ct, corpus)
+			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
+			p.Mutate(proc.rnd, programLength, ct, fuzzerSnapshot.corpus)
 			log.Logf(1, "#%v: mutated", proc.pid)
 			proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
 		}
@@ -211,10 +211,10 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 	if proc.fuzzer.comparisonTracingEnabled && item.call != -1 {
 		proc.executeHintSeed(item.p, item.call)
 	}
-	corpus := proc.fuzzer.corpusSnapshot()
+	fuzzerSnapshot := proc.fuzzer.snapshot()
 	for i := 0; i < 100; i++ {
 		p := item.p.Clone()
-		p.Mutate(proc.rnd, programLength, proc.fuzzer.choiceTable, corpus)
+		p.Mutate(proc.rnd, programLength, proc.fuzzer.choiceTable, fuzzerSnapshot.corpus)
 		log.Logf(1, "#%v: smash mutated", proc.pid)
 		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
 	}

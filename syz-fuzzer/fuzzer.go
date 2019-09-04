@@ -6,11 +6,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/debug"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -49,6 +51,8 @@ type Fuzzer struct {
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
 	corpusHashes map[hash.Sig]struct{}
+	corpusPrios  []int64
+	sumPrios     int64
 
 	signalMu     sync.RWMutex
 	corpusSignal signal.Signal // signal of inputs in corpus
@@ -56,6 +60,12 @@ type Fuzzer struct {
 	newSignal    signal.Signal // diff of maxSignal since last sync with master
 
 	logMu sync.Mutex
+}
+
+type FuzzerSnapshot struct {
+	corpus      []*prog.Prog
+	corpusPrios []int64
+	sumPrios    int64
 }
 
 type Stat int
@@ -375,11 +385,25 @@ func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
 	fuzzer.addInputToCorpus(p, sign, sig)
 }
 
+func (fuzzer *FuzzerSnapshot) chooseProgram(r *rand.Rand) *prog.Prog {
+	randVal := r.Int63n(fuzzer.sumPrios + 1)
+	idx := sort.Search(len(fuzzer.corpusPrios), func(i int) bool {
+		return fuzzer.corpusPrios[i] >= randVal
+	})
+	return fuzzer.corpus[idx]
+}
+
 func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig hash.Sig) {
 	fuzzer.corpusMu.Lock()
 	if _, ok := fuzzer.corpusHashes[sig]; !ok {
 		fuzzer.corpus = append(fuzzer.corpus, p)
 		fuzzer.corpusHashes[sig] = struct{}{}
+		prio := int64(len(sign))
+		if sign.Empty() {
+			prio = 1
+		}
+		fuzzer.sumPrios += prio
+		fuzzer.corpusPrios = append(fuzzer.corpusPrios, fuzzer.sumPrios)
 	}
 	fuzzer.corpusMu.Unlock()
 
@@ -391,10 +415,10 @@ func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig has
 	}
 }
 
-func (fuzzer *Fuzzer) corpusSnapshot() []*prog.Prog {
+func (fuzzer *Fuzzer) snapshot() FuzzerSnapshot {
 	fuzzer.corpusMu.RLock()
 	defer fuzzer.corpusMu.RUnlock()
-	return fuzzer.corpus
+	return FuzzerSnapshot{fuzzer.corpus, fuzzer.corpusPrios, fuzzer.sumPrios}
 }
 
 func (fuzzer *Fuzzer) addMaxSignal(sign signal.Signal) {
