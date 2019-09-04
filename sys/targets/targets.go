@@ -72,7 +72,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:     8,
 			PageSize:    4 << 10,
 			CFlags:      []string{"-m64"},
-			CrossCFlags: []string{"-m64", "-static"},
+			CrossCFlags: []string{"-m64", "-fsanitize=address"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
@@ -84,7 +84,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:     8,
 			PageSize:    8 << 10,
 			CFlags:      []string{"-m64"},
-			CrossCFlags: []string{"-m64", "-static"},
+			CrossCFlags: []string{"-m64", "-fsanitize=address"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
