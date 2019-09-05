@@ -767,10 +767,16 @@ var linuxStackParams = &stackParams{
 		"destroy_workqueue",
 		"get_device_parent",
 		"device_add",
+		"device_del",
+		"device_unregister",
+		"kobject_del",
 		"finish_wait",
 		"rollback_registered",
 		"unregister_netdev",
+		"sysfs_remove_file",
+		"device_remove_file",
 		"usb_kill_urb",
+		"usb_control_msg",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.

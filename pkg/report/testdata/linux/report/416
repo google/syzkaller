@@ -1,0 +1,110 @@
+TITLE: KASAN: use-after-free Write in video_unregister_device
+
+[ 1527.943923][T23697] ==================================================================
+[ 1527.952472][T23697] BUG: KASAN: use-after-free in kobject_del+0x12e/0x170
+[ 1527.959545][T23697] Write of size 1 at addr ffff8881c84f8b14 by task v4l_id/23697
+[ 1527.967273][T23697]
+[ 1527.969594][T23697] CPU: 1 PID: 23697 Comm: v4l_id Not tainted 5.3.0-rc7+ #0
+[ 1527.976778][T23697] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1527.986817][T23697] Call Trace:
+[ 1527.990098][T23697]  dump_stack+0xca/0x13e
+[ 1527.994323][T23697]  ? kobject_del+0x12e/0x170
+[ 1527.998893][T23697]  ? kobject_del+0x12e/0x170
+[ 1528.003532][T23697]  print_address_description+0x6a/0x32c
+[ 1528.009154][T23697]  ? kobject_del+0x12e/0x170
+[ 1528.013744][T23697]  ? kobject_del+0x12e/0x170
+[ 1528.018454][T23697]  __kasan_report.cold+0x1a/0x33
+[ 1528.023464][T23697]  ? kobject_del+0x12e/0x170
+[ 1528.028249][T23697]  kasan_report+0xe/0x12
+[ 1528.032488][T23697]  kobject_del+0x12e/0x170
+[ 1528.037099][T23697]  device_del+0x6dd/0xb10
+[ 1528.041527][T23697]  ? __device_links_no_driver+0x240/0x240
+[ 1528.047382][T23697]  ? wait_for_completion+0x3c0/0x3c0
+[ 1528.052652][T23697]  device_unregister+0x11/0x30
+[ 1528.057530][T23697]  video_unregister_device+0xa2/0xc0
+[ 1528.062885][T23697]  usbvision_unregister_video+0x83/0x120
+[ 1528.068512][T23697]  usbvision_release+0x10d/0x1c0
+[ 1528.073436][T23697]  usbvision_radio_close.cold+0x6f/0x74
+[ 1528.078968][T23697]  ? usbvision_disconnect+0x1d0/0x1d0
+[ 1528.084429][T23697]  v4l2_release+0x2e7/0x390
+[ 1528.088914][T23697]  ? dev_debug_store+0x100/0x100
+[ 1528.093887][T23697]  __fput+0x2d7/0x840
+[ 1528.097851][T23697]  task_work_run+0x13f/0x1c0
+[ 1528.102423][T23697]  exit_to_usermode_loop+0x1d2/0x200
+[ 1528.107685][T23697]  do_syscall_64+0x45f/0x580
+[ 1528.112260][T23697]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1528.118128][T23697] RIP: 0033:0x7f88374e32b0
+[ 1528.122540][T23697] Code: 40 75 0b 31 c0 48 83 c4 08 e9 0c ff ff ff 48 8d 3d c5 32 08 00 e8 c0 07 02 00 83 3d 45 a3 2b 00 00 75 10 b8 03 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 31 c3 48 83 ec 08 e8 ce 8a 01 00 48 89 04 24
+[ 1528.142135][T23697] RSP: 002b:00007ffce3f3e218 EFLAGS: 00000246 ORIG_RAX: 0000000000000003
+[ 1528.150541][T23697] RAX: 0000000000000000 RBX: 0000000000000003 RCX: 00007f88374e32b0
+[ 1528.158497][T23697] RDX: 00007f8837799df0 RSI: 0000000000000001 RDI: 0000000000000003
+[ 1528.166452][T23697] RBP: 0000000000000000 R08: 00007f8837799df0 R09: 000000000000000a
+[ 1528.174406][T23697] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000400884
+[ 1528.182359][T23697] R13: 00007ffce3f3e370 R14: 0000000000000000 R15: 0000000000000000
+[ 1528.190321][T23697]
+[ 1528.192631][T23697] Allocated by task 2775:
+[ 1528.196957][T23697]  save_stack+0x1b/0x80
+[ 1528.201092][T23697]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[ 1528.206700][T23697]  usbvision_probe.cold+0x586/0x1e57
+[ 1528.212016][T23697]  usb_probe_interface+0x305/0x7a0
+[ 1528.217268][T23697]  really_probe+0x281/0x6d0
+[ 1528.221955][T23697]  driver_probe_device+0x101/0x1b0
+[ 1528.227070][T23697]  __device_attach_driver+0x1c2/0x220
+[ 1528.232452][T23697]  bus_for_each_drv+0x162/0x1e0
+[ 1528.237301][T23697]  __device_attach+0x217/0x360
+[ 1528.242086][T23697]  bus_probe_device+0x1e4/0x290
+[ 1528.246918][T23697]  device_add+0xae6/0x16f0
+[ 1528.251380][T23697]  usb_set_configuration+0xdf6/0x1670
+[ 1528.256771][T23697]  generic_probe+0x9d/0xd5
+[ 1528.261184][T23697]  usb_probe_device+0x99/0x100
+[ 1528.265945][T23697]  really_probe+0x281/0x6d0
+[ 1528.270426][T23697]  driver_probe_device+0x101/0x1b0
+[ 1528.275540][T23697]  __device_attach_driver+0x1c2/0x220
+[ 1528.280913][T23697]  bus_for_each_drv+0x162/0x1e0
+[ 1528.285778][T23697]  __device_attach+0x217/0x360
+[ 1528.290711][T23697]  bus_probe_device+0x1e4/0x290
+[ 1528.295568][T23697]  device_add+0xae6/0x16f0
+[ 1528.299968][T23697]  usb_new_device.cold+0x6a4/0xe79
+[ 1528.305056][T23697]  hub_event+0x1b5c/0x3640
+[ 1528.309469][T23697]  process_one_work+0x92b/0x1530
+[ 1528.314399][T23697]  worker_thread+0x96/0xe20
+[ 1528.318883][T23697]  kthread+0x318/0x420
+[ 1528.322935][T23697]  ret_from_fork+0x24/0x30
+[ 1528.327325][T23697]
+[ 1528.329631][T23697] Freed by task 12:
+[ 1528.333420][T23697]  save_stack+0x1b/0x80
+[ 1528.337569][T23697]  __kasan_slab_free+0x130/0x180
+[ 1528.342584][T23697]  kfree+0xe4/0x2f0
+[ 1528.346461][T23697]  usbvision_release+0x181/0x1c0
+[ 1528.351520][T23697]  usbvision_disconnect+0x16c/0x1d0
+[ 1528.356739][T23697]  usb_unbind_interface+0x1bd/0x8a0
+[ 1528.361931][T23697]  device_release_driver_internal+0x42f/0x500
+[ 1528.368279][T23697]  bus_remove_device+0x2dc/0x4a0
+[ 1528.373293][T23697]  device_del+0x420/0xb10
+[ 1528.377737][T23697]  usb_disable_device+0x211/0x690
+[ 1528.382760][T23697]  usb_disconnect+0x284/0x8d0
+[ 1528.387424][T23697]  hub_event+0x1454/0x3640
+[ 1528.391830][T23697]  process_one_work+0x92b/0x1530
+[ 1528.396747][T23697]  worker_thread+0x96/0xe20
+[ 1528.401230][T23697]  kthread+0x318/0x420
+[ 1528.405299][T23697]  ret_from_fork+0x24/0x30
+[ 1528.409691][T23697]
+[ 1528.412163][T23697] The buggy address belongs to the object at ffff8881c84f8000
+[ 1528.412163][T23697]  which belongs to the cache kmalloc-8k of size 8192
+[ 1528.426457][T23697] The buggy address is located 2836 bytes inside of
+[ 1528.426457][T23697]  8192-byte region [ffff8881c84f8000, ffff8881c84fa000)
+[ 1528.439901][T23697] The buggy address belongs to the page:
+[ 1528.445541][T23697] page:ffffea0007213e00 refcount:1 mapcount:0 mapping:ffff8881da00c500 index:0x0 compound_mapcount: 0
+[ 1528.456458][T23697] flags: 0x200000000010200(slab|head)
+[ 1528.461814][T23697] raw: 0200000000010200 0000000000000000 0000000100000001 ffff8881da00c500
+[ 1528.470393][T23697] raw: 0000000000000000 0000000080030003 00000001ffffffff 0000000000000000
+[ 1528.478964][T23697] page dumped because: kasan: bad access detected
+[ 1528.485355][T23697]
+[ 1528.487659][T23697] Memory state around the buggy address:
+[ 1528.493311][T23697]  ffff8881c84f8a00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1528.501374][T23697]  ffff8881c84f8a80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1528.509442][T23697] >ffff8881c84f8b00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1528.517660][T23697]                          ^
+[ 1528.522244][T23697]  ffff8881c84f8b80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1528.530286][T23697]  ffff8881c84f8c00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1528.538418][T23697] ==================================================================

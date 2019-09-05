@@ -1,0 +1,105 @@
+TITLE: KASAN: use-after-free Read in usbvision_release
+
+[  472.680102][ T9268] ==================================================================
+[  472.689737][ T9268] BUG: KASAN: use-after-free in sysfs_remove_file_ns+0x5f/0x70
+[  472.697269][ T9268] Read of size 8 at addr ffff8881d53ec5c0 by task v4l_id/9268
+[  472.704705][ T9268]
+[  472.707042][ T9268] CPU: 1 PID: 9268 Comm: v4l_id Not tainted 5.3.0-rc7+ #0
+[  472.714167][ T9268] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  472.724226][ T9268] Call Trace:
+[  472.727595][ T9268]  dump_stack+0xca/0x13e
+[  472.731846][ T9268]  ? sysfs_remove_file_ns+0x5f/0x70
+[  472.737047][ T9268]  ? sysfs_remove_file_ns+0x5f/0x70
+[  472.742424][ T9268]  print_address_description+0x6a/0x32c
+[  472.747986][ T9268]  ? sysfs_remove_file_ns+0x5f/0x70
+[  472.753193][ T9268]  ? sysfs_remove_file_ns+0x5f/0x70
+[  472.758401][ T9268]  __kasan_report.cold+0x1a/0x33
+[  472.763349][ T9268]  ? sysfs_remove_file_ns+0x5f/0x70
+[  472.768550][ T9268]  kasan_report+0xe/0x12
+[  472.772798][ T9268]  sysfs_remove_file_ns+0x5f/0x70
+[  472.777900][ T9268]  device_remove_file+0x25/0x30
+[  472.782796][ T9268]  usbvision_release+0x97/0x1c0
+[  472.787651][ T9268]  usbvision_radio_close.cold+0x6f/0x74
+[  472.793199][ T9268]  ? usbvision_disconnect+0x1d0/0x1d0
+[  472.798643][ T9268]  v4l2_release+0x2e7/0x390
+[  472.803154][ T9268]  ? dev_debug_store+0x100/0x100
+[  472.808140][ T9268]  __fput+0x2d7/0x840
+[  472.812127][ T9268]  task_work_run+0x13f/0x1c0
+[  472.816718][ T9268]  exit_to_usermode_loop+0x1d2/0x200
+[  472.822007][ T9268]  do_syscall_64+0x45f/0x580
+[  472.826662][ T9268]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  472.832558][ T9268] RIP: 0033:0x7f09895112b0
+[  472.836981][ T9268] Code: 40 75 0b 31 c0 48 83 c4 08 e9 0c ff ff ff 48 8d 3d c5 32 08 00 e8 c0 07 02 00 83 3d 45 a3 2b 00 00 75 10 b8 03 00 00 00 0f 05 <48> 3d 01 f0 ff ff 73 31 c3 48 83 ec 08 e8 ce 8a 01 00 48 89 04 24
+[  472.856593][ T9268] RSP: 002b:00007ffd9be4b9e8 EFLAGS: 00000246 ORIG_RAX: 0000000000000003
+[  472.865009][ T9268] RAX: 0000000000000000 RBX: 0000000000000003 RCX: 00007f09895112b0
+[  472.872994][ T9268] RDX: 00007f09897c7df0 RSI: 0000000000000001 RDI: 0000000000000003
+[  472.880969][ T9268] RBP: 0000000000000000 R08: 00007f09897c7df0 R09: 000000000000000a
+[  472.888965][ T9268] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000400884
+[  472.897029][ T9268] R13: 00007ffd9be4bb40 R14: 0000000000000000 R15: 0000000000000000
+[  472.905001][ T9268]
+[  472.907342][ T9268] Allocated by task 2747:
+[  472.911675][ T9268]  save_stack+0x1b/0x80
+[  472.915833][ T9268]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[  472.921466][ T9268]  usbvision_probe.cold+0x586/0x1e57
+[  472.926853][ T9268]  usb_probe_interface+0x305/0x7a0
+[  472.932021][ T9268]  really_probe+0x281/0x6d0
+[  472.936532][ T9268]  driver_probe_device+0x101/0x1b0
+[  472.941646][ T9268]  __device_attach_driver+0x1c2/0x220
+[  472.947021][ T9268]  bus_for_each_drv+0x162/0x1e0
+[  472.951873][ T9268]  __device_attach+0x217/0x360
+[  472.956635][ T9268]  bus_probe_device+0x1e4/0x290
+[  472.961480][ T9268]  device_add+0xae6/0x16f0
+[  472.965956][ T9268]  usb_set_configuration+0xdf6/0x1670
+[  472.971375][ T9268]  generic_probe+0x9d/0xd5
+[  472.975808][ T9268]  usb_probe_device+0x99/0x100
+[  472.980569][ T9268]  really_probe+0x281/0x6d0
+[  472.985075][ T9268]  driver_probe_device+0x101/0x1b0
+[  472.990272][ T9268]  __device_attach_driver+0x1c2/0x220
+[  472.995641][ T9268]  bus_for_each_drv+0x162/0x1e0
+[  473.000489][ T9268]  __device_attach+0x217/0x360
+[  473.005250][ T9268]  bus_probe_device+0x1e4/0x290
+[  473.010101][ T9268]  device_add+0xae6/0x16f0
+[  473.014521][ T9268]  usb_new_device.cold+0x6a4/0xe79
+[  473.019635][ T9268]  hub_event+0x1b5c/0x3640
+[  473.024050][ T9268]  process_one_work+0x92b/0x1530
+[  473.028985][ T9268]  worker_thread+0x96/0xe20
+[  473.033492][ T9268]  kthread+0x318/0x420
+[  473.037558][ T9268]  ret_from_fork+0x24/0x30
+[  473.041964][ T9268]
+[  473.044289][ T9268] Freed by task 2943:
+[  473.048268][ T9268]  save_stack+0x1b/0x80
+[  473.052423][ T9268]  __kasan_slab_free+0x130/0x180
+[  473.057361][ T9268]  kfree+0xe4/0x2f0
+[  473.061170][ T9268]  usbvision_release+0x181/0x1c0
+[  473.066104][ T9268]  usbvision_disconnect+0x16c/0x1d0
+[  473.071300][ T9268]  usb_unbind_interface+0x1bd/0x8a0
+[  473.076501][ T9268]  device_release_driver_internal+0x42f/0x500
+[  473.082567][ T9268]  bus_remove_device+0x2dc/0x4a0
+[  473.087500][ T9268]  device_del+0x420/0xb10
+[  473.091843][ T9268]  usb_disable_device+0x211/0x690
+[  473.096867][ T9268]  usb_disconnect+0x284/0x8d0
+[  473.101554][ T9268]  hub_event+0x1454/0x3640
+[  473.106000][ T9268]  process_one_work+0x92b/0x1530
+[  473.110940][ T9268]  worker_thread+0x96/0xe20
+[  473.115446][ T9268]  kthread+0x318/0x420
+[  473.119514][ T9268]  ret_from_fork+0x24/0x30
+[  473.123918][ T9268]
+[  473.126269][ T9268] The buggy address belongs to the object at ffff8881d53ec200
+[  473.126269][ T9268]  which belongs to the cache kmalloc-8k of size 8192
+[  473.140316][ T9268] The buggy address is located 960 bytes inside of
+[  473.140316][ T9268]  8192-byte region [ffff8881d53ec200, ffff8881d53ee200)
+[  473.153655][ T9268] The buggy address belongs to the page:
+[  473.159409][ T9268] page:ffffea000754fa00 refcount:1 mapcount:0 mapping:ffff8881da00c500 index:0x0 compound_mapcount: 0
+[  473.170434][ T9268] flags: 0x200000000010200(slab|head)
+[  473.175813][ T9268] raw: 0200000000010200 0000000000000000 0000000100000001 ffff8881da00c500
+[  473.184643][ T9268] raw: 0000000000000000 0000000080030003 00000001ffffffff 0000000000000000
+[  473.193209][ T9268] page dumped because: kasan: bad access detected
+[  473.199599][ T9268]
+[  473.201910][ T9268] Memory state around the buggy address:
+[  473.207527][ T9268]  ffff8881d53ec480: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  473.215575][ T9268]  ffff8881d53ec500: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  473.223641][ T9268] >ffff8881d53ec580: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  473.233156][ T9268]                                            ^
+[  473.239291][ T9268]  ffff8881d53ec600: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  473.247344][ T9268]  ffff8881d53ec680: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  473.255385][ T9268] ==================================================================
