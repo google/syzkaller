@@ -1,0 +1,62 @@
+TITLE: general protection fault in hdm_disconnect
+
+[   43.976394][   T12] kasan: CONFIG_KASAN_INLINE enabled
+[   43.981766][   T12] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   43.990194][   T12] general protection fault: 0000 [#1] SMP KASAN
+[   43.996992][   T12] CPU: 0 PID: 12 Comm: kworker/0:1 Not tainted 5.2.0-rc6+ #14
+[   44.004550][   T12] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   44.014751][   T12] Workqueue: usb_hub_wq hub_event
+[   44.019837][   T12] RIP: 0010:device_del+0x7a/0xb80
+[   44.024916][   T12] Code: c7 40 04 00 07 f3 f3 65 48 8b 04 25 28 00 00 00 48 89 84 24 80 00 00 00 31 c0 e8 d1 9d d5 fe 48 8d 7b 40 48 89 f8 48 c1 e8 03 <80> 3c 28 00 0f 85 79 0a 00 00 48 8b 43 40 4c 8d a3 80 00 00 00 31
+[   44.044519][   T12] RSP: 0018:ffff8881d9e0f7d0 EFLAGS: 00010202
+[   44.050635][   T12] RAX: 0000000000000008 RBX: 0000000000000000 RCX: 0000000000000000
+[   44.058736][   T12] RDX: 0000000000000000 RSI: ffffffff82673ddf RDI: 0000000000000040
+[   44.066812][   T12] RBP: dffffc0000000000 R08: ffff8881d9df9800 R09: ffffed1039fee706
+[   44.074827][   T12] R10: ffffed1039fee705 R11: ffff8881cff7382f R12: ffff8881cfef1a28
+[   44.083004][   T12] R13: ffff8881cff73760 R14: ffff8881cfef19b0 R15: 0000000000000000
+[   44.091024][   T12] FS:  0000000000000000(0000) GS:ffff8881db200000(0000) knlGS:0000000000000000
+[   44.100010][   T12] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   44.106589][   T12] CR2: 00000000006cc0a0 CR3: 0000000006e21000 CR4: 00000000001406f0
+[   44.114551][   T12] Call Trace:
+[   44.117892][   T12]  ? try_to_del_timer_sync+0xbf/0x110
+[   44.123311][   T12]  ? __device_links_no_driver+0x240/0x240
+[   44.129090][   T12]  ? mark_held_locks+0x9f/0xe0
+[   44.133843][   T12]  ? del_timer_sync+0x121/0x130
+[   44.138778][   T12]  device_unregister+0x11/0x30
+[   44.143593][   T12]  hdm_disconnect+0xdf/0x200
+[   44.148174][   T12]  usb_unbind_interface+0x1bd/0x8a0
+[   44.153361][   T12]  ? usb_autoresume_device+0x60/0x60
+[   44.158710][   T12]  device_release_driver_internal+0x404/0x4c0
+[   44.164819][   T12]  bus_remove_device+0x2dc/0x4a0
+[   44.169824][   T12]  device_del+0x460/0xb80
+[   44.174147][   T12]  ? __device_links_no_driver+0x240/0x240
+[   44.179857][   T12]  ? usb_remove_ep_devs+0x3e/0x80
+[   44.184869][   T12]  ? remove_intf_ep_devs+0x13f/0x1d0
+[   44.190144][   T12]  usb_disable_device+0x211/0x690
+[   44.195157][   T12]  usb_disconnect+0x284/0x830
+[   44.199825][   T12]  hub_event+0x143d/0x35f0
+[   44.204242][   T12]  ? hub_port_debounce+0x260/0x260
+[   44.209335][   T12]  process_one_work+0x905/0x1570
+[   44.214273][   T12]  ? pwq_dec_nr_in_flight+0x310/0x310
+[   44.219636][   T12]  ? do_raw_spin_lock+0x11a/0x280
+[   44.224650][   T12]  worker_thread+0x96/0xe20
+[   44.229148][   T12]  ? process_one_work+0x1570/0x1570
+[   44.234338][   T12]  kthread+0x30b/0x410
+[   44.238394][   T12]  ? kthread_park+0x1a0/0x1a0
+[   44.243060][   T12]  ret_from_fork+0x24/0x30
+[   44.247593][   T12] Modules linked in:
+[   44.251552][   T12] ---[ end trace e4fe4de18bc13a7b ]---
+[   44.257035][   T12] RIP: 0010:device_del+0x7a/0xb80
+[   44.262054][   T12] Code: c7 40 04 00 07 f3 f3 65 48 8b 04 25 28 00 00 00 48 89 84 24 80 00 00 00 31 c0 e8 d1 9d d5 fe 48 8d 7b 40 48 89 f8 48 c1 e8 03 <80> 3c 28 00 0f 85 79 0a 00 00 48 8b 43 40 4c 8d a3 80 00 00 00 31
+[   44.281897][   T12] RSP: 0018:ffff8881d9e0f7d0 EFLAGS: 00010202
+[   44.287988][   T12] RAX: 0000000000000008 RBX: 0000000000000000 RCX: 0000000000000000
+[   44.296069][   T12] RDX: 0000000000000000 RSI: ffffffff82673ddf RDI: 0000000000000040
+[   44.304048][   T12] RBP: dffffc0000000000 R08: ffff8881d9df9800 R09: ffffed1039fee706
+[   44.312143][   T12] R10: ffffed1039fee705 R11: ffff8881cff7382f R12: ffff8881cfef1a28
+[   44.320164][   T12] R13: ffff8881cff73760 R14: ffff8881cfef19b0 R15: 0000000000000000
+[   44.328182][   T12] FS:  0000000000000000(0000) GS:ffff8881db200000(0000) knlGS:0000000000000000
+[   44.337301][   T12] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   44.343876][   T12] CR2: 00000000006cc0a0 CR3: 0000000006e21000 CR4: 00000000001406f0
+[   44.351869][   T12] Kernel panic - not syncing: Fatal exception
+[   44.358761][   T12] Kernel Offset: disabled
+[   44.363185][   T12] Rebooting in 86400 seconds..
