@@ -199,7 +199,7 @@ static bool lookup_connect_response(struct vusb_connect_descriptors* descs, stru
 				return true;
 			case USB_DT_STRING:
 				str_idx = (uint8)ctrl->wValue;
-				if (str_idx >= descs->strs_len) {
+				if (!descs || str_idx >= descs->strs_len) {
 					// Use the default string if we ran out.
 					*response_data = (char*)default_string;
 					*response_length = strlen(default_string);
