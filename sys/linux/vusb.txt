@@ -561,7 +561,7 @@ vusb_responses_hid {
 	USB_REQ_GET_CONFIGURATION	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
 
 	HID_REQ_GET_REPORT		ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_GET_REPORT, array[int8]]]
-	HID_REQ_GET_PROTOCOL		ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_GET_REPORT, int8]]
+	HID_REQ_GET_PROTOCOL		ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_GET_PROTOCOL, int8]]
 } [packed]
 
 # USB HID specifications allows for multiple report and physical descriptors
