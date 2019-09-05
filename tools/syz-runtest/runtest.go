@@ -33,6 +33,7 @@ import (
 var (
 	flagConfig = flag.String("config", "", "manager config")
 	flagDebug  = flag.Bool("debug", false, "debug mode")
+	flagTests  = flag.String("tests", "", "prefix to match test file names")
 )
 
 func main() {
@@ -123,6 +124,7 @@ func main() {
 		Requests:     mgr.requests,
 		LogFunc:      func(text string) { fmt.Println(text) },
 		Verbose:      false,
+		Tests:        *flagTests,
 	}
 	err = ctx.Run()
 	close(vm.Shutdown)
@@ -285,6 +287,9 @@ func testParsing(target *prog.Target, dir string) error {
 			continue
 		}
 		if strings.HasSuffix(file.Name(), ".swp") {
+			continue
+		}
+		if !strings.HasPrefix(file.Name(), *flagTests) {
 			continue
 		}
 		if err := runtest.TestParseProg(target, dir, file.Name()); err != nil {

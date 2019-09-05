@@ -59,6 +59,7 @@ type Context struct {
 	LogFunc      func(text string)
 	Retries      int // max number of test retries to deal with flaky tests
 	Verbose      bool
+	Tests        string // prefix to match test file names
 }
 
 func (ctx *Context) log(msg string, args ...interface{}) {
@@ -170,6 +171,9 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 			continue
 		}
 		if strings.HasSuffix(file.Name(), ".swp") {
+			continue
+		}
+		if !strings.HasPrefix(file.Name(), ctx.Tests) {
 			continue
 		}
 		p, requires, results, err := ctx.parseProg(file.Name())
