@@ -7,28 +7,33 @@
 
 #define USB_DEBUG 0
 
+#define USB_MAX_IFACE_NUM 4
 #define USB_MAX_EP_NUM 32
 
-struct usb_device_index {
-	struct usb_device_descriptor* dev;
-	struct usb_config_descriptor* config;
-	unsigned config_length;
+struct usb_iface_index {
 	struct usb_interface_descriptor* iface;
 	struct usb_endpoint_descriptor* eps[USB_MAX_EP_NUM];
 	unsigned eps_num;
 };
 
+struct usb_device_index {
+	struct usb_device_descriptor* dev;
+	struct usb_config_descriptor* config;
+	unsigned config_length;
+	struct usb_iface_index ifaces[USB_MAX_IFACE_NUM];
+	unsigned ifaces_num;
+};
+
 static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_index* index)
 {
-	if (length < sizeof(*index->dev) + sizeof(*index->config) + sizeof(*index->iface))
+	if (length < sizeof(*index->dev) + sizeof(*index->config))
 		return false;
+
+	memset(index, 0, sizeof(*index));
 
 	index->dev = (struct usb_device_descriptor*)buffer;
 	index->config = (struct usb_config_descriptor*)(buffer + sizeof(*index->dev));
 	index->config_length = length - sizeof(*index->dev);
-	index->iface = (struct usb_interface_descriptor*)(buffer + sizeof(*index->dev) + sizeof(*index->config));
-
-	index->eps_num = 0;
 	size_t offset = 0;
 
 	while (true) {
@@ -40,12 +45,18 @@ static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_
 			break;
 		if (offset + desc_length > length)
 			break;
-		if (desc_type == USB_DT_ENDPOINT) {
-			index->eps[index->eps_num] = (struct usb_endpoint_descriptor*)(buffer + offset);
-			index->eps_num++;
+		if (desc_type == USB_DT_INTERFACE && index->ifaces_num < USB_MAX_IFACE_NUM) {
+			struct usb_interface_descriptor* iface = (struct usb_interface_descriptor*)(buffer + offset);
+			debug("parse_usb_descriptor: found interface #%u (%d, %d) at %p\n",
+			      index->ifaces_num, iface->bInterfaceNumber, iface->bAlternateSetting, iface);
+			index->ifaces[index->ifaces_num++].iface = iface;
 		}
-		if (index->eps_num == USB_MAX_EP_NUM)
-			break;
+		if (desc_type == USB_DT_ENDPOINT && index->ifaces_num > 0) {
+			struct usb_iface_index* iface = &index->ifaces[index->ifaces_num - 1];
+			debug("parse_usb_descriptor: found endpoint #%u at %p\n", iface->eps_num, buffer + offset);
+			if (iface->eps_num < USB_MAX_EP_NUM)
+				iface->eps[iface->eps_num++] = (struct usb_endpoint_descriptor*)(buffer + offset);
+		}
 		offset += desc_length;
 	}
 
@@ -258,7 +269,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		debug("syz_usb_connect: parse_usb_descriptor failed with %d\n", rv);
 		return rv;
 	}
-	debug("syz_usb_connect: parsed usb descriptor, %d endpoints found\n", index.eps_num);
+	debug("syz_usb_connect: parsed usb descriptor\n");
 
 	int fd = usb_fuzzer_open();
 	if (fd < 0) {
@@ -333,8 +344,8 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 				return rv;
 			}
 			unsigned ep;
-			for (ep = 0; ep < index.eps_num; ep++) {
-				rv = usb_fuzzer_ep_enable(fd, index.eps[ep]);
+			for (ep = 0; ep < index.ifaces[0].eps_num; ep++) {
+				rv = usb_fuzzer_ep_enable(fd, index.ifaces[0].eps[ep]);
 				if (rv < 0) {
 					debug("syz_usb_connect: usb_fuzzer_ep_enable(%d) failed with %d\n", ep, rv);
 				} else {

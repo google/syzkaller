@@ -29,7 +29,9 @@ More details can be found:
 
 A few major things that need to be done:
 
-1. Implement support for multiple interfaces per configuration (this is required to properly emulate some USB devices like CDC NCM).
+1. Implement proper support for multiple interfaces per configuration.
+What currently is missing is enabling/disabling USB endpoints depending of which interface is set.
+This is required to properly emulate some USB devices like the CDC NCM class.
 2. Collect coverage from interrupts (this is required to enable better fuzzing of USB drivers after enumeration completes).
 3. Add descriptions for all main USB classes.
 4. Upstream KCOV changes.
@@ -39,7 +41,8 @@ Some ideas for things that can be done:
 
 1. Add a mode for standalone fuzzing of physical USB hosts (by using e.g. Raspberry Pi Zero, see below).
 This includes at least: a. making sure that current USB emulation implementation works properly on different OSes (there are some differences);
-and b. using USB requests coming from the host as a signal (like coverage) to enable "signal-driven" fuzzing.
+b. using USB requests coming from the host as a signal (like coverage) to enable "signal-driven" fuzzing,
+c. making UDC driver name configurable for syz-execprog and syz-prog2c.
 2. Generate syzkaller programs from usbmon trace that is produced by actual USB devices (this should make the fuzzer to go significantly deeper into the USB drivers code).
 
 Syzkaller descriptions for USB fuzzing can be found [here](/sys/linux/vusb.txt).
