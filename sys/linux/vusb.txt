@@ -21,7 +21,7 @@ include <drivers/net/usb/asix.h>
 resource fd_usb[int32]: -1
 resource fd_usb_hid[fd_usb]
 resource fd_usb_printer[fd_usb]
-resource fd_usb_cdc_ethernet[fd_usb]
+resource fd_usb_cdc_ecm[fd_usb]
 resource fd_usb_cdc_ncm[fd_usb]
 
 # These are generic syzcalls for emulating arbitrary USB devices.
@@ -40,9 +40,9 @@ syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps
 syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer
 syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer])
 
-# These syzcalls specifically target the CDC Ethernet device class.
-syz_usb_connect$cdc_ethernet(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ethernet], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ethernet
-syz_usb_control_io$cdc_ethernet(fd fd_usb_cdc_ethernet, descs ptr[in, vusb_descriptors_cdc_ethernet], resps ptr[in, vusb_responses_cdc_ethernet])
+# These syzcalls specifically target the CDC ECM (Ethernet) device class.
+syz_usb_connect$cdc_ecm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ecm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ecm
+syz_usb_control_io$cdc_ecm(fd fd_usb_cdc_ecm, descs ptr[in, vusb_descriptors_cdc_ecm], resps ptr[in, vusb_responses_cdc_ecm])
 
 # These syzcalls specifically target the CDC NCM device class.
 syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm
@@ -79,12 +79,12 @@ usb_versions = 0x110, 0x200, 0x201, 0x250, 0x300, 0x310
 # https://elixir.bootlin.com/linux/v5.1.7/source/drivers/usb/core/hub.c#L4661
 usb_device_max_packet_sizes = 8, 16, 32, 64, 255
 
-type usb_config_descriptor_t[NUM, ATTRS, IFS] {
+type usb_config_descriptor_t[NUM, IFSNUM, ATTRS, IFS] {
 	bLength			const[USB_DT_CONFIG_SIZE, int8]
 	bDescriptorType		const[USB_DT_CONFIG, int8]
 
 	wTotalLength		len[parent, int16]
-	bNumInterfaces		len[interfaces, int8]
+	bNumInterfaces		IFSNUM
 	bConfigurationValue	NUM
 	iConfiguration		int8
 	bmAttributes		ATTRS
@@ -92,6 +92,8 @@ type usb_config_descriptor_t[NUM, ATTRS, IFS] {
 
 	interfaces		IFS
 } [packed]
+
+type usb_config_descriptor_ifaces_array_t[NUM, ATTRS, IFS] usb_config_descriptor_t[NUM, len[interfaces, int8], ATTRS, IFS]
 
 type usb_interface_descriptor_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
 	bLength			const[USB_DT_INTERFACE_SIZE, int8]
@@ -133,16 +135,15 @@ type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
 
 # Generic USB device, configuration, interface and endpoint descriptors.
 
-# TODO: support more than one configuration.
+# We only support one configuration per device.
 # bDeviceClass, bDeviceSubClass, bDeviceProtocol, idVendor, idProduct
 # and bcdDevice are patched by Go code, see sys/linux/init_vusb.go.
 usb_device_descriptor {
 	inner	usb_device_descriptor_t[0, 0, 0, 0, 0, 0, array[usb_config_descriptor, 1]]
 } [packed]
 
-# TODO: support more than one interface.
 usb_config_descriptor {
-	inner	usb_config_descriptor_t[int8, flags[usb_config_attributes, int8], array[usb_interface_descriptor, 1]]
+	inner	usb_config_descriptor_ifaces_array_t[int8, flags[usb_config_attributes, int8], array[usb_interface_descriptor, 1:4]]
 } [packed]
 
 usb_config_attributes = USB_CONFIG_ATT_ONE, USB_CONFIG_ATT_SELFPOWER, USB_CONFIG_ATT_WAKEUP, USB_CONFIG_ATT_BATTERY
@@ -515,7 +516,7 @@ usb_device_descriptor_hid {
 } [packed]
 
 usb_config_descriptor_hid {
-	inner	usb_config_descriptor_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_hid, 1]]
+	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_hid, 1]]
 } [packed]
 
 usb_interface_descriptor_hid {
@@ -649,7 +650,7 @@ usb_device_descriptor_printer {
 } [packed]
 
 usb_config_descriptor_printer {
-	inner	usb_config_descriptor_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_printer, 1]]
+	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_printer, 1]]
 } [packed]
 
 usb_interface_descriptor_printer {
@@ -701,7 +702,7 @@ usb_printer_get_id_response {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# CDC Ethernet device class specific descriptions.
+# CDC ECM (Ethernet) device class specific descriptions.
 # https://www.usb.org/document-library/class-definitions-communication-devices-12
 # https://elixir.bootlin.com/linux/latest/source/drivers/net/usb/cdc_ether.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/net/usb/usbnet.c
@@ -709,54 +710,54 @@ usb_printer_get_id_response {
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_ecm.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/u_ether.c
 
-# Connected CDC Ethernet devices are known to create usbN network interfaces.
+# Connected CDC ECM devices are known to create usbN network interfaces.
 # TODO: enable fuzzing of those.
 
 # TODO: currently the only endpoint which is being successfully enabled is the notification endpoint #1.
 
 # TODO: consider patching idVendor and idProduct in Go code.
-usb_device_descriptor_cdc_ethernet {
-	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ethernet, 1]]
+usb_device_descriptor_cdc_ecm {
+	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ecm, 1]]
 } [packed]
 
-usb_config_descriptor_cdc_ethernet {
-	inner	usb_config_descriptor_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_cdc_ethernet, 1]]
+usb_config_descriptor_cdc_ecm {
+	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_cdc_ecm, 1]]
 } [packed]
 
-# Per specification CDC Ethernet devices have two interfaces (control and data), but we're merging
-# them into one, as Linux supports this, and syzkaller doesn't support multiple interfaces yet.
-usb_interface_descriptor_cdc_ethernet {
-	inner	usb_interface_descriptor_t[const[0, int8], int8, int8[2:3], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_ETHERNET, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ethernet, usb_endpoint_descriptors_cdc_ethernet]
+# Per specification CDC ECM devices have two interfaces (control and data),
+# but here we're merging them into one for simplicity since Linux supports that.
+usb_interface_descriptor_cdc_ecm {
+	inner	usb_interface_descriptor_t[const[0, int8], int8, int8[2:3], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_ETHERNET, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ethernet, usb_endpoint_descriptors_cdc_ecm]
 } [packed]
 
-usb_endpoint_descriptors_cdc_ethernet {
-	notify	array[usb_endpoint_descriptor_cdc_ethernet_notify, 0:1]
-	in	usb_endpoint_descriptor_cdc_ethernet_in
-	out	usb_endpoint_descriptor_cdc_ethernet_out
+usb_endpoint_descriptors_cdc_ecm {
+	notify	array[usb_endpoint_descriptor_cdc_ecm_notify, 0:1]
+	in	usb_endpoint_descriptor_cdc_ecm_in
+	out	usb_endpoint_descriptor_cdc_ecm_out
 } [packed]
 
-usb_endpoint_descriptor_cdc_ethernet_notify {
-	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ETHERNET_NOTIFY_ADDRESS, int8], const[USB_ENDPOINT_CDC_ETHERNET_NOTIFY_ATTRIBUTES, int8], void]
+usb_endpoint_descriptor_cdc_ecm_notify {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ECM_NOTIFY_ADDRESS, int8], const[USB_ENDPOINT_CDC_ECM_NOTIFY_ATTRIBUTES, int8], void]
 } [packed]
 
-usb_endpoint_descriptor_cdc_ethernet_in {
-	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ETHERNET_IN_ADDRESS, int8], const[USB_ENDPOINT_CDC_ETHERNET_DATA_ATTRIBUTES, int8], void]
+usb_endpoint_descriptor_cdc_ecm_in {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ECM_IN_ADDRESS, int8], const[USB_ENDPOINT_CDC_ECM_DATA_ATTRIBUTES, int8], void]
 } [packed]
 
-usb_endpoint_descriptor_cdc_ethernet_out {
-	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ETHERNET_OUT_ADDRESS, int8], const[USB_ENDPOINT_CDC_ETHERNET_DATA_ATTRIBUTES, int8], void]
+usb_endpoint_descriptor_cdc_ecm_out {
+	inner	usb_endpoint_descriptor_t[const[USB_ENDPOINT_CDC_ECM_OUT_ADDRESS, int8], const[USB_ENDPOINT_CDC_ECM_DATA_ATTRIBUTES, int8], void]
 } [packed]
 
-define USB_ENDPOINT_CDC_ETHERNET_NOTIFY_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
-define USB_ENDPOINT_CDC_ETHERNET_DATA_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK)
-define USB_ENDPOINT_CDC_ETHERNET_NOTIFY_ADDRESS	(1 | USB_DIR_IN)
-define USB_ENDPOINT_CDC_ETHERNET_IN_ADDRESS	(2 | USB_DIR_IN)
-define USB_ENDPOINT_CDC_ETHERNET_OUT_ADDRESS	(3)
+define USB_ENDPOINT_CDC_ECM_NOTIFY_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
+define USB_ENDPOINT_CDC_ECM_DATA_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK)
+define USB_ENDPOINT_CDC_ECM_NOTIFY_ADDRESS	(1 | USB_DIR_IN)
+define USB_ENDPOINT_CDC_ECM_IN_ADDRESS	(2 | USB_DIR_IN)
+define USB_ENDPOINT_CDC_ECM_OUT_ADDRESS	(3)
 
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/usb/core/message.c#L2137
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/net/usb/cdc_ether.c#L155
 usb_cdc_header_ethernet {
-	union	usb_cdc_union_desc
+	union	usb_cdc_union_desc_t[0, 0]
 	header	usb_cdc_header_desc
 	ether	usb_cdc_ether_desc
 
@@ -806,14 +807,13 @@ usb_cdc_acm_descriptor {
 
 usb_cdc_acm_caps = USB_CDC_COMM_FEATURE, USB_CDC_CAP_LINE, USB_CDC_CAP_BRK, USB_CDC_CAP_NOTIFY
 
-usb_cdc_union_desc {
+type usb_cdc_union_desc_t[MASTER, SLAVE] {
 	bLength			len[parent, int8]
 	bDescriptorType		const[USB_DT_CS_INTERFACE, int8]
 	bDescriptorSubType	const[USB_CDC_UNION_TYPE, int8]
 
-# These must match bInterfaceNumber.
-	bMasterInterface0	const[0, int8]
-	bSlaveInterface0	const[0, int8]
+	bMasterInterface0	const[MASTER, int8]
+	bSlaveInterface0	const[SLAVE, int8]
 	slave_interfaces	array[int8, 0:6]
 } [packed]
 
@@ -865,11 +865,11 @@ usb_cdc_mdlm_desc {
 	bDescriptorSubType	const[USB_CDC_MDLM_TYPE, int8]
 
 	bcdVersion		int16
-	bGUID			usb_cdc_ethernet_mbm_guid
+	bGUID			usb_cdc_ecm_mbm_guid
 } [packed]
 
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/net/usb/cdc_ether.c#L61
-usb_cdc_ethernet_mbm_guid {
+usb_cdc_ecm_mbm_guid {
 	id0	const[0x14f5e048ba817a3, int64]
 	id1	const[0x2a397ecbffc007a6, int64]
 } [packed]
@@ -923,20 +923,20 @@ usb_cdc_mbim_extended_desc {
 	wMTU				int16
 } [packed]
 
-vusb_descriptors_cdc_ethernet {
+vusb_descriptors_cdc_ecm {
 	len		len[parent, int32]
 	generic		ptr[in, vusb_descriptor_generic]
 
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/net/usb/usbnet.c#L147
-	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor_t[usb_cdc_ethernet_mac]]]
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor_t[usb_cdc_ecm_mac]]]
 } [packed]
 
-usb_cdc_ethernet_mac {
+usb_cdc_ecm_mac {
 # This is a UTF16 encoded string '424242424242'.
 	data	stringnoz["340032003400320034003200340032003400320034003200"]
 } [packed]
 
-vusb_responses_cdc_ethernet {
+vusb_responses_cdc_ecm {
 	len				len[parent, int32]
 	generic				ptr[in, vusb_response_generic]
 
@@ -949,15 +949,14 @@ vusb_responses_cdc_ethernet {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # CDC NCM class specific descriptions.
-# CDC NCM is based on CDC Ethernet, so some of the descriptions are reused.
+# CDC NCM is based on CDC ECM, so some of the descriptions are reused.
 # https://www.usb.org/document-library/network-control-model-devices-specification-v10-and-errata-and-adopters-agreement
 # https://elixir.bootlin.com/linux/latest/source/drivers/net/usb/cdc_ncm.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/net/usb/usbnet.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/ncm.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_ncm.c
 
-# TODO: CDC NCM requires altsettings (multiple interfaces) support for proper fuzzing.
-# https://elixir.bootlin.com/linux/v5.2.8/source/drivers/net/usb/cdc_ncm.c#L1028
+# TODO: currently the only endpoint which is being successfully enabled is the notification endpoint #1.
 
 # TODO: consider patching idVendor and idProduct in Go code.
 usb_device_descriptor_cdc_ncm {
@@ -965,17 +964,24 @@ usb_device_descriptor_cdc_ncm {
 } [packed]
 
 usb_config_descriptor_cdc_ncm {
-	inner	usb_config_descriptor_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_cdc_ncm, 1]]
+	inner	usb_config_descriptor_t[const[1, int8], const[2, int8], flags[usb_config_attributes, int8], usb_interface_descriptors_cdc_ncm]
 } [packed]
 
-usb_interface_descriptor_cdc_ncm {
-	inner	usb_interface_descriptor_t[const[0, int8], const[CDC_NCM_COMM_ALTSETTING_NCM, int8], int8[2:3], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_NCM, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ncm, usb_endpoint_descriptors_cdc_ethernet]
+usb_interface_descriptors_cdc_ncm {
+	control		usb_interface_descriptor_t[const[0, int8], const[CDC_NCM_COMM_ALTSETTING_NCM, int8], const[1, int8], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_NCM, int8], const[USB_CDC_PROTO_NONE, int8], usb_cdc_header_ncm, usb_endpoint_descriptor_cdc_ecm_notify]
+	data_nop	usb_interface_descriptor_t[const[1, int8], const[0, int8], const[0, int8], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_NCM, int8], const[USB_CDC_PROTO_NONE, int8], void, void]
+	data		usb_interface_descriptor_t[const[1, int8], const[CDC_NCM_DATA_ALTSETTING_NCM, int8], const[2, int8], const[USB_CLASS_COMM, int8], const[USB_CDC_SUBCLASS_NCM, int8], const[USB_CDC_PROTO_NONE, int8], void, usb_endpoint_descriptors_cdc_ncm_data]
+} [packed]
+
+usb_endpoint_descriptors_cdc_ncm_data {
+	in	usb_endpoint_descriptor_cdc_ecm_in
+	out	usb_endpoint_descriptor_cdc_ecm_out
 } [packed]
 
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/usb/core/message.c#L2137
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/net/usb/cdc_ncm.c#L798
 usb_cdc_header_ncm {
-	union	usb_cdc_union_desc
+	union	usb_cdc_union_desc_t[0, 1]
 	header	usb_cdc_header_desc
 	ether	usb_cdc_ether_desc
 	ncm	usb_cdc_ncm_desc
@@ -1001,7 +1007,7 @@ vusb_descriptors_cdc_ncm {
 	generic		ptr[in, vusb_descriptor_generic]
 
 # https://elixir.bootlin.com/linux/v5.2.7/source/drivers/net/usb/usbnet.c#L147
-	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor_t[usb_cdc_ethernet_mac]]]
+	USB_DT_STRING	ptr[in, vusb_descriptor_t[USB_TYPE_STANDARD, USB_DT_STRING, usb_string_descriptor_t[usb_cdc_ecm_mac]]]
 } [packed]
 
 vusb_responses_cdc_ncm {
