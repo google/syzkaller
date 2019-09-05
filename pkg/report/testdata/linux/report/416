@@ -1,0 +1,65 @@
+TITLE: WARNING in usbhid_submit_report
+
+[ 1183.284526][T22234] WARNING: CPU: 1 PID: 22234 at mm/page_alloc.c:4696 __alloc_pages_nodemask+0x36f/0x780
+[ 1183.294469][T22234] Kernel panic - not syncing: panic_on_warn set ...
+[ 1183.301070][T22234] CPU: 1 PID: 22234 Comm: syz-executor.5 Not tainted 5.3.0-rc7+ #0
+[ 1183.308958][T22234] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1183.319014][T22234] Call Trace:
+[ 1183.322317][T22234]  dump_stack+0xca/0x13e
+[ 1183.326562][T22234]  ? __alloc_pages_nodemask+0x320/0x780
+[ 1183.332129][T22234]  panic+0x2a3/0x6da
+[ 1183.336021][T22234]  ? add_taint.cold+0x16/0x16
+[ 1183.340769][T22234]  ? __probe_kernel_read+0x188/0x1d0
+[ 1183.346054][T22234]  ? __warn.cold+0x5/0x4a
+[ 1183.350384][T22234]  ? __alloc_pages_nodemask+0x36f/0x780
+[ 1183.355905][T22234]  __warn.cold+0x20/0x4a
+[ 1183.360146][T22234]  ? __alloc_pages_nodemask+0x36f/0x780
+[ 1183.365701][T22234]  report_bug+0x262/0x2a0
+[ 1183.370041][T22234]  do_error_trap+0x12b/0x1e0
+[ 1183.374646][T22234]  ? __alloc_pages_nodemask+0x36f/0x780
+[ 1183.380200][T22234]  do_invalid_op+0x32/0x40
+[ 1183.384619][T22234]  ? __alloc_pages_nodemask+0x36f/0x780
+[ 1183.390169][T22234]  invalid_op+0x23/0x30
+[ 1183.394328][T22234] RIP: 0010:__alloc_pages_nodemask+0x36f/0x780
+[ 1183.400484][T22234] Code: fe ff ff 65 48 8b 04 25 00 ef 01 00 48 05 60 10 00 00 41 be 01 00 00 00 48 89 44 24 58 e9 ee fd ff ff 81 e5 00 20 00 00 75 02 <0f> 0b 45 31 f6 e9 6b ff ff ff 8b 44 24 68 89 04 24 65 8b 2d e9 7e
+[ 1183.420083][T22234] RSP: 0018:ffff8881b13079d8 EFLAGS: 00010046
+[ 1183.426164][T22234] RAX: 0000000000000000 RBX: 1ffff11036260f3f RCX: 0000000000000000
+[ 1183.434112][T22234] RDX: 0000000000000000 RSI: dffffc0000000000 RDI: 0000000000040a20
+[ 1183.442059][T22234] RBP: 0000000000000000 R08: ffff8881ce986000 R09: ffffed103a0a9519
+[ 1183.450006][T22234] R10: ffffed103a0a9518 R11: ffff8881d054a8c7 R12: 0000000000000012
+[ 1183.457952][T22234] R13: 0000000000000012 R14: 0000000000000000 R15: ffff8881d054a8c0
+[ 1183.465924][T22234]  ? __alloc_pages_slowpath+0x2260/0x2260
+[ 1183.471620][T22234]  ? find_held_lock+0x2d/0x110
+[ 1183.476368][T22234]  alloc_pages_current+0xff/0x200
+[ 1183.481374][T22234]  ? usbhid_submit_report+0x54/0xde0
+[ 1183.486685][T22234]  kmalloc_order+0x1a/0x60
+[ 1183.491077][T22234]  kmalloc_order_trace+0x18/0x110
+[ 1183.496075][T22234]  usbhid_submit_report+0x5b5/0xde0
+[ 1183.501249][T22234]  usbhid_request+0x3c/0x70
+[ 1183.505735][T22234]  ? usbhid_submit_report+0xde0/0xde0
+[ 1183.511080][T22234]  hiddev_ioctl+0x526/0x1550
+[ 1183.515645][T22234]  ? hiddev_ioctl_string.isra.0+0x1d0/0x1d0
+[ 1183.521513][T22234]  ? __lock_acquire+0x80b/0x3b50
+[ 1183.526423][T22234]  ? __lock_acquire+0x145e/0x3b50
+[ 1183.531422][T22234]  ? find_held_lock+0x2d/0x110
+[ 1183.536156][T22234]  ? __fget+0x32e/0x530
+[ 1183.540288][T22234]  ? hiddev_ioctl_string.isra.0+0x1d0/0x1d0
+[ 1183.546161][T22234]  do_vfs_ioctl+0xd2d/0x1330
+[ 1183.550727][T22234]  ? ioctl_preallocate+0x200/0x200
+[ 1183.555812][T22234]  ? __fget+0x357/0x530
+[ 1183.559955][T22234]  ? ksys_dup3+0x3c0/0x3c0
+[ 1183.564345][T22234]  ksys_ioctl+0x9b/0xc0
+[ 1183.568481][T22234]  __x64_sys_ioctl+0x6f/0xb0
+[ 1183.573047][T22234]  ? lockdep_hardirqs_on+0x379/0x580
+[ 1183.578315][T22234]  do_syscall_64+0xb7/0x580
+[ 1183.582806][T22234]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1183.588676][T22234] RIP: 0033:0x459879
+[ 1183.592548][T22234] Code: fd b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb b7 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[ 1183.612130][T22234] RSP: 002b:00007fd598404c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[ 1183.620515][T22234] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459879
+[ 1183.628462][T22234] RDX: 00000000200001c0 RSI: 00000000400c4808 RDI: 0000000000000006
+[ 1183.636423][T22234] RBP: 000000000075c070 R08: 0000000000000000 R09: 0000000000000000
+[ 1183.644370][T22234] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fd5984056d4
+[ 1183.652343][T22234] R13: 00000000004c234a R14: 00000000004d5818 R15: 00000000ffffffff
+[ 1183.660999][T22234] Kernel Offset: disabled
+[ 1183.665381][T22234] Rebooting in 86400 seconds..

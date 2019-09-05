@@ -771,6 +771,9 @@ var linuxStackParams = &stackParams{
 		"rollback_registered",
 		"unregister_netdev",
 		"usb_kill_urb",
+		"alloc_pages",
+		"kmalloc_order",
+		"__kmalloc",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.

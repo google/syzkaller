@@ -1,0 +1,63 @@
+TITLE: WARNING in vga_arb_write
+
+[   22.183241] ------------[ cut here ]------------
+[   22.188158] WARNING: CPU: 0 PID: 2225 at mm/page_alloc.c:3556 __alloc_pages_nodemask+0x1189/0x1b90
+[   22.197432] Kernel panic - not syncing: panic_on_warn set ...
+[   22.197432]
+[   22.204779] CPU: 0 PID: 2225 Comm: syz-executor518 Not tainted 4.9.124+ #32
+[   22.211850]  ffff8801bee27700 ffffffff81af4529 ffffffff82838de0 00000000ffffffff
+[   22.219841]  0000000000000000 0000000000000000 0000000000000de4 ffff8801bee277c0
+[   22.227944]  ffffffff813f1b55 0000000041b58ab3 ffffffff82c2889b ffffffff813f1996
+[   22.236092] Call Trace:
+[   22.238755]  [<ffffffff81af4529>] dump_stack+0xc1/0x128
+[   22.244113]  [<ffffffff813f1b55>] panic+0x1bf/0x39f
+[   22.249136]  [<ffffffff813f1996>] ? add_taint.cold.6+0x16/0x16
+[   22.255089]  [<ffffffff814205d2>] ? get_page_from_freelist+0x702/0x18e0
+[   22.261825]  [<ffffffff813f1e09>] ? __warn.cold.9+0xa6/0x17f
+[   22.267600]  [<ffffffff81423449>] ? __alloc_pages_nodemask+0x1189/0x1b90
+[   22.274413]  [<ffffffff813f1e24>] __warn.cold.9+0xc1/0x17f
+[   22.280051]  [<ffffffff810dcebc>] warn_slowpath_null+0x2c/0x40
+[   22.285993]  [<ffffffff81423449>] __alloc_pages_nodemask+0x1189/0x1b90
+[   22.292639]  [<ffffffff81202540>] ? trace_hardirqs_on+0x10/0x10
+[   22.298679]  [<ffffffff81202540>] ? trace_hardirqs_on+0x10/0x10
+[   22.304723]  [<ffffffff8120232b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   22.311537]  [<ffffffff814222c0>] ? gfp_pfmemalloc_allowed+0x110/0x110
+[   22.318183]  [<ffffffff8123e547>] ? debug_lockdep_rcu_enabled+0x77/0x90
+[   22.324917]  [<ffffffff8123e547>] ? debug_lockdep_rcu_enabled+0x77/0x90
+[   22.331653]  [<ffffffff810ae1ec>] ? update_stack_state.constprop.2+0x7c/0x170
+[   22.338914]  [<ffffffff8146fb6a>] kmalloc_order+0x2a/0x70
+[   22.344430]  [<ffffffff8146fbcf>] kmalloc_order_trace+0x1f/0x190
+[   22.350566]  [<ffffffff814e1124>] __kmalloc+0x194/0x300
+[   22.355920]  [<ffffffff81d3b408>] vga_arb_write+0xd8/0xcc0
+[   22.361522]  [<ffffffff814e5629>] ? kasan_slab_free+0x119/0x190
+[   22.367558]  [<ffffffff81d3b330>] ? vga_str_to_iostate.isra.3+0x130/0x130
+[   22.374471]  [<ffffffff814e55bc>] ? kasan_slab_free+0xac/0x190
+[   22.380419]  [<ffffffff814e201e>] ? kmem_cache_free+0xbe/0x310
+[   22.386371]  [<ffffffff8153124b>] ? putname+0xdb/0x110
+[   22.391627]  [<ffffffff814f895a>] ? do_sys_open+0x2da/0x5c0
+[   22.397329]  [<ffffffff814f8cb0>] ? SyS_openat+0x30/0x40
+[   22.402763]  [<ffffffff8100554f>] ? do_syscall_64+0x19f/0x480
+[   22.408630]  [<ffffffff8278ba53>] ? entry_SYSCALL_64_after_swapgs+0x5d/0xdb
+[   22.415713]  [<ffffffff8278b17a>] ? _raw_spin_unlock_irqrestore+0x5a/0x70
+[   22.422621]  [<ffffffff8120232b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   22.429443]  [<ffffffff814fa895>] __vfs_write+0x115/0x580
+[   22.434963]  [<ffffffff81d3b330>] ? vga_str_to_iostate.isra.3+0x130/0x130
+[   22.441866]  [<ffffffff814fa780>] ? __vfs_read+0x560/0x560
+[   22.447470]  [<ffffffff811655d5>] ? __might_sleep+0x95/0x1a0
+[   22.453244]  [<ffffffff8153124b>] ? putname+0xdb/0x110
+[   22.458542]  [<ffffffff819b1639>] ? __inode_security_revalidate+0xd9/0x130
+[   22.465540]  [<ffffffff819a5b59>] ? avc_policy_seqno+0x9/0x20
+[   22.471401]  [<ffffffff819baca2>] ? selinux_file_permission+0x82/0x470
+[   22.478068]  [<ffffffff8199d19f>] ? security_file_permission+0x8f/0x1e0
+[   22.484799]  [<ffffffff814fccd5>] ? rw_verify_area+0xe5/0x2a0
+[   22.490675]  [<ffffffff814fd3a7>] vfs_write+0x187/0x520
+[   22.496035]  [<ffffffff815011d9>] SyS_write+0xd9/0x1c0
+[   22.501300]  [<ffffffff81501100>] ? SyS_read+0x1c0/0x1c0
+[   22.506733]  [<ffffffff810053f8>] ? do_syscall_64+0x48/0x480
+[   22.512532]  [<ffffffff81501100>] ? SyS_read+0x1c0/0x1c0
+[   22.517959]  [<ffffffff8100554f>] do_syscall_64+0x19f/0x480
+[   22.523659]  [<ffffffff8278ba53>] entry_SYSCALL_64_after_swapgs+0x5d/0xdb
+[   22.530841] Dumping ftrace buffer:
+[   22.534416]    (ftrace buffer empty)
+[   22.538367] Kernel Offset: disabled
+[   22.541973] Rebooting in 86400 seconds..
