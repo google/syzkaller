@@ -1,0 +1,118 @@
+TITLE: INFO: task hung in ld_usb_write
+TYPE: HANG
+
+[  534.703301][   T23] INFO: task syz-executor865:1721 blocked for more than 143 seconds.
+[  534.711469][   T23]       Not tainted 5.3.0-rc5+ #27
+[  534.716695][   T23] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  534.725429][   T23] syz-executor865 D28344  1721   1719 0x00000000
+[  534.731748][   T23] Call Trace:
+[  534.735164][   T23]  ? __schedule+0x703/0x1440
+[  534.739749][   T23]  ? __sched_text_start+0x8/0x8
+[  534.744699][   T23]  ? mark_held_locks+0x9f/0xe0
+[  534.749456][   T23]  schedule+0x9a/0x250
+[  534.753552][   T23]  schedule_timeout+0x440/0xb20
+[  534.758478][   T23]  ? find_held_lock+0x2d/0x110
+[  534.763310][   T23]  ? usleep_range+0x160/0x160
+[  534.768043][   T23]  ? __next_timer_interrupt+0x190/0x190
+[  534.773630][   T23]  ? mark_held_locks+0x9f/0xe0
+[  534.778487][   T23]  ? _raw_spin_unlock_irq+0x24/0x30
+[  534.783738][   T23]  wait_for_completion_timeout+0x282/0x3e0
+[  534.789540][   T23]  ? wait_for_completion_io+0x3c0/0x3c0
+[  534.795167][   T23]  ? wake_up_q+0xf0/0xf0
+[  534.799441][   T23]  ? usb_submit_urb+0x6ed/0x13b0
+[  534.804409][   T23]  usb_start_wait_urb+0x14b/0x2b0
+[  534.809410][   T23]  ? sg_clean+0x230/0x230
+[  534.813812][   T23]  ? kasan_unpoison_shadow+0x30/0x40
+[  534.819085][   T23]  ? memset+0x20/0x40
+[  534.823109][   T23]  usb_control_msg+0x31c/0x4a0
+[  534.827929][   T23]  ? usb_start_wait_urb+0x2b0/0x2b0
+[  534.833349][   T23]  ? __might_fault+0x192/0x1d0
+[  534.838245][   T23]  ld_usb_write+0x856/0xa10
+[  534.842741][   T23]  ? find_held_lock+0x2d/0x110
+[  534.847556][   T23]  ? copy_overflow+0x30/0x30
+[  534.852145][   T23]  ? vmf_insert_mixed_mkwrite+0x30/0x30
+[  534.857759][   T23]  ? lock_downgrade+0x6e0/0x6e0
+[  534.862601][   T23]  ? handle_mm_fault+0x1d5/0x900
+[  534.867699][   T23]  ? security_file_permission+0x8a/0x370
+[  534.873376][   T23]  ? copy_overflow+0x30/0x30
+[  534.877982][   T23]  __vfs_write+0x76/0x100
+[  534.882353][   T23]  vfs_write+0x262/0x5c0
+[  534.886675][   T23]  ksys_write+0x1e8/0x250
+[  534.891004][   T23]  ? __ia32_sys_read+0xb0/0xb0
+[  534.895996][   T23]  ? trace_hardirqs_off_caller+0x55/0x1e0
+[  534.901805][   T23]  do_syscall_64+0xb7/0x580
+[  534.906376][   T23]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  534.912336][   T23] RIP: 0033:0x4407e9
+[  534.916307][   T23] Code: Bad RIP value.
+[  534.920357][   T23] RSP: 002b:00007ffeb5a0a2c8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  534.928889][   T23] RAX: ffffffffffffffda RBX: 00000000004002c8 RCX: 00000000004407e9
+[  534.936927][   T23] RDX: 000000000000004f RSI: 0000000020001bc0 RDI: 0000000000000004
+[  534.944933][   T23] RBP: 00000000006cb018 R08: 000000000000000f R09: 00000000004002c8
+[  534.952895][   T23] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000402070
+[  534.960938][   T23] R13: 0000000000402100 R14: 0000000000000000 R15: 0000000000000000
+[  534.969054][   T23]
+[  534.969054][   T23] Showing all locks held in the system:
+[  534.976852][   T23] 1 lock held by khungtaskd/23:
+[  534.981745][   T23]  #0: 00000000fd563b60 (rcu_read_lock){....}, at: debug_show_all_locks+0x53/0x269
+[  534.991130][   T23] 1 lock held by rsyslogd/1600:
+[  534.995990][   T23]  #0: 00000000c20a41d9 (&f->f_pos_lock){+.+.}, at: __fdget_pos+0xe3/0x100
+[  535.004669][   T23] 2 locks held by getty/1690:
+[  535.009321][   T23]  #0: 000000001154fd1d (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x22/0x80
+[  535.018602][   T23]  #1: 000000002f4c05ee (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x223/0x1ae0
+[  535.028169][   T23] 2 locks held by getty/1691:
+[  535.032819][   T23]  #0: 00000000a911f389 (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x22/0x80
+[  535.042049][   T23]  #1: 00000000bba4c828 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x223/0x1ae0
+[  535.051613][   T23] 2 locks held by getty/1692:
+[  535.056343][   T23]  #0: 0000000081f06ffe (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x22/0x80
+[  535.065595][   T23]  #1: 0000000062b1cd97 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x223/0x1ae0
+[  535.075197][   T23] 2 locks held by getty/1693:
+[  535.079937][   T23]  #0: 00000000188b899f (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x22/0x80
+[  535.089208][   T23]  #1: 00000000ee216f65 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x223/0x1ae0
+[  535.098793][   T23] 2 locks held by getty/1694:
+[  535.103509][   T23]  #0: 00000000cd50b032 (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x22/0x80
+[  535.119785][   T23]  #1: 00000000c3aad320 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x223/0x1ae0
+[  535.129392][   T23] 2 locks held by getty/1695:
+[  535.134066][   T23]  #0: 00000000464bb3bf (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x22/0x80
+[  535.143375][   T23]  #1: 000000000fa65af6 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x223/0x1ae0
+[  535.152983][   T23] 2 locks held by getty/1696:
+[  535.157712][   T23]  #0: 0000000076992f0e (&tty->ldisc_sem){++++}, at: tty_ldisc_ref_wait+0x22/0x80
+[  535.166926][   T23]  #1: 00000000324b1de8 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x223/0x1ae0
+[  535.176506][   T23] 1 lock held by syz-executor865/1721:
+[  535.181936][   T23]  #0: 00000000f3f16e64 (&dev->mutex#3){+.+.}, at: ld_usb_write+0x111/0xa10
+[  535.190646][   T23]
+[  535.192952][   T23] =============================================
+[  535.192952][   T23]
+[  535.201470][   T23] NMI backtrace for cpu 1
+[  535.205836][   T23] CPU: 1 PID: 23 Comm: khungtaskd Not tainted 5.3.0-rc5+ #27
+[  535.213187][   T23] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  535.223232][   T23] Call Trace:
+[  535.226579][   T23]  dump_stack+0xca/0x13e
+[  535.230825][   T23]  ? irq_force_complete_move.cold+0x27/0x47
+[  535.236702][   T23]  nmi_cpu_backtrace.cold+0x55/0x96
+[  535.241876][   T23]  ? lapic_can_unplug_cpu.cold+0x3f/0x3f
+[  535.247483][   T23]  nmi_trigger_cpumask_backtrace+0x1b0/0x1c7
+[  535.253477][   T23]  watchdog+0x9a4/0xe50
+[  535.257605][   T23]  ? reset_hung_task_detector+0x30/0x30
+[  535.263176][   T23]  kthread+0x318/0x420
+[  535.267236][   T23]  ? kthread_create_on_node+0xf0/0xf0
+[  535.272605][   T23]  ret_from_fork+0x24/0x30
+[  535.277091][   T23] Sending NMI from CPU 1 to CPUs 0:
+[  535.282367][    C0] NMI backtrace for cpu 0 skipped: idling at default_idle+0x28/0x2e0
+[  535.283289][   T23] Kernel panic - not syncing: hung_task: blocked tasks
+[  535.297306][   T23] CPU: 1 PID: 23 Comm: khungtaskd Not tainted 5.3.0-rc5+ #27
+[  535.304646][   T23] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  535.314675][   T23] Call Trace:
+[  535.317945][   T23]  dump_stack+0xca/0x13e
+[  535.322202][   T23]  panic+0x2a3/0x6da
+[  535.326071][   T23]  ? add_taint.cold+0x16/0x16
+[  535.330717][   T23]  ? cpumask_next+0x1f/0x30
+[  535.335211][   T23]  ? printk_safe_flush+0xd9/0x120
+[  535.340212][   T23]  ? watchdog+0x9a4/0xe50
+[  535.344517][   T23]  ? nmi_trigger_cpumask_backtrace+0x168/0x1c7
+[  535.350724][   T23]  watchdog+0x9b5/0xe50
+[  535.354864][   T23]  ? reset_hung_task_detector+0x30/0x30
+[  535.360396][   T23]  kthread+0x318/0x420
+[  535.364440][   T23]  ? kthread_create_on_node+0xf0/0xf0
+[  535.369787][   T23]  ret_from_fork+0x24/0x30
+[  535.374959][   T23] Kernel Offset: disabled
+[  535.379284][   T23] Rebooting in 86400 seconds..
