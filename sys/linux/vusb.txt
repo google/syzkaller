@@ -66,9 +66,9 @@ type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE,
 	idVendor		const[VENDOR, int16]
 	idProduct		const[PRODUCT, int16]
 	bcdDevice		const[DEVICE, int16]
-	iManufacturer		int8
-	iProduct		int8
-	iSerialNumber		int8
+	iManufacturer		const[1, int8]
+	iProduct		const[2, int8]
+	iSerialNumber		const[3, int8]
 	bNumConfigurations	len[configs, int8]
 
 	configs			CFS
