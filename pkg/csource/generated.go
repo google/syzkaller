@@ -2162,8 +2162,13 @@ struct vusb_responses {
 static bool lookup_control_response(struct vusb_descriptors* descs, struct vusb_responses* resps,
 				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
 {
-	int descs_num = (descs->len - offsetof(struct vusb_descriptors, descs)) / sizeof(descs->descs[0]);
-	int resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
+	int descs_num = 0;
+	int resps_num = 0;
+
+	if (descs)
+		descs_num = (descs->len - offsetof(struct vusb_descriptors, descs)) / sizeof(descs->descs[0]);
+	if (resps)
+		resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
 
 	uint8 req = ctrl->bRequest;
 	uint8 req_type = ctrl->bRequestType & USB_TYPE_MASK;
