@@ -228,17 +228,17 @@ static bool lookup_connect_response(struct vusb_connect_descriptors* descs, stru
 				*response_length = descs->qual_len;
 				return true;
 			default:
-				fail("syz_usb_connect: no response");
+				fail("lookup_connect_response: no response");
 				return false;
 			}
 			break;
 		default:
-			fail("syz_usb_connect: no response");
+			fail("lookup_connect_response: no response");
 			return false;
 		}
 		break;
 	default:
-		fail("syz_usb_connect: no response");
+		fail("lookup_connect_response: no response");
 		return false;
 	}
 
@@ -309,7 +309,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		if (event.inner.type != USB_FUZZER_EVENT_CONTROL)
 			continue;
 
-		debug("syz_usb_connect: bRequestType: 0x%x (%s), bRequest: 0x%x, wValue: 0x%x, wIndex: 0x%x, wLength: %d\n",
+		debug("syz_usb_connect: bReqType: 0x%x (%s), bReq: 0x%x, wVal: 0x%x, wIdx: 0x%x, wLen: %d\n",
 		      event.ctrl.bRequestType, (event.ctrl.bRequestType & USB_DIR_IN) ? "IN" : "OUT",
 		      event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
 
@@ -368,11 +368,11 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 			memset(&response.data[0], 0, response_length);
 
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			debug("syz_usb_connect: IN, length = %d\n", response.inner.length);
+			debug("syz_usb_connect: writing %d bytes\n", response.inner.length);
 			rv = usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
 		} else {
 			rv = usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_ep_io*)&response);
-			debug("syz_usb_connect: OUT, length = %d\n", response.inner.length);
+			debug("syz_usb_connect: read %d bytes\n", response.inner.length);
 			debug_dump_data(&event.data[0], response.inner.length);
 		}
 		if (rv < 0) {
@@ -536,7 +536,7 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 		return -1;
 	}
 
-	debug("syz_usb_control_io: bRequestType: 0x%x (%s), bRequest: 0x%x, wValue: 0x%x, wIndex: 0x%x, wLength: %d\n",
+	debug("syz_usb_control_io: bReqType: 0x%x (%s), bReq: 0x%x, wVal: 0x%x, wIdx: 0x%x, wLen: %d\n",
 	      event.ctrl.bRequestType, (event.ctrl.bRequestType & USB_DIR_IN) ? "IN" : "OUT",
 	      event.ctrl.bRequest, event.ctrl.wValue, event.ctrl.wIndex, event.ctrl.wLength);
 
@@ -571,12 +571,12 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 		memset(&response.data[0], 0, response_length);
 
 	if (event.ctrl.bRequestType & USB_DIR_IN) {
-		debug("syz_usb_control_io: IN, length = %d\n", response.inner.length);
+		debug("syz_usb_control_io: writing %d bytes\n", response.inner.length);
 		debug_dump_data(&response.data[0], response.inner.length);
 		rv = usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
 	} else {
 		rv = usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_ep_io*)&response);
-		debug("syz_usb_control_io: OUT, length = %d\n", response.inner.length);
+		debug("syz_usb_control_io: read %d bytes\n", response.inner.length);
 		debug_dump_data(&event.data[0], response.inner.length);
 	}
 	if (rv < 0) {
