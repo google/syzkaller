@@ -447,7 +447,7 @@ static bool lookup_control_response(struct vusb_descriptors* descs, struct vusb_
 			}
 		}
 
-		if (descs->generic) {
+		if (descs && descs->generic) {
 			*response_data = &descs->generic->data[0];
 			*response_length = descs->generic->len;
 			return true;
@@ -469,7 +469,7 @@ static bool lookup_control_response(struct vusb_descriptors* descs, struct vusb_
 			}
 		}
 
-		if (resps->generic) {
+		if (resps && resps->generic) {
 			*response_data = &resps->generic->data[0];
 			*response_length = resps->generic->len;
 			return true;
