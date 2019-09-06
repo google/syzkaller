@@ -932,8 +932,10 @@ vusb_descriptors_cdc_ecm {
 } [packed]
 
 usb_cdc_ecm_mac {
-# This is a UTF16 encoded string '424242424242'.
-	data	stringnoz["340032003400320034003200340032003400320034003200"]
+# This is a UTF16 encoded string "424242424242".
+	data0	const[0x3400320034003200, int64be]
+	data1	const[0x3400320034003200, int64be]
+	data2	const[0x3400320034003200, int64be]
 } [packed]
 
 vusb_responses_cdc_ecm {
