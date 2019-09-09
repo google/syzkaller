@@ -57,7 +57,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	corpus := readCorpus(target)
+	corpus, err := db.ReadCorpus(*flagCorpus, target)
+	if err != nil {
+		log.Fatalf("failed to read corpus: %v", err)
+	}
 	log.Logf(0, "parsed %v programs", len(corpus))
 	if !*flagGenerate && len(corpus) == 0 {
 		log.Fatalf("nothing to mutate (-generate=false and no corpus)")
@@ -151,25 +154,6 @@ func execute(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog) {
 	if hanged || err != nil || *flagOutput {
 		os.Stdout.Write(output)
 	}
-}
-
-func readCorpus(target *prog.Target) []*prog.Prog {
-	if *flagCorpus == "" {
-		return nil
-	}
-	db, err := db.Open(*flagCorpus)
-	if err != nil {
-		log.Fatalf("failed to open corpus database: %v", err)
-	}
-	var progs []*prog.Prog
-	for _, rec := range db.Records {
-		p, err := target.Deserialize(rec.Val, prog.NonStrict)
-		if err != nil {
-			log.Fatalf("failed to deserialize corpus program: %v", err)
-		}
-		progs = append(progs, p)
-	}
-	return progs
 }
 
 func buildCallList(target *prog.Target, enabled []string) map[*prog.Syscall]bool {
