@@ -58,9 +58,10 @@ func main() {
 	if *flagSeed != -1 {
 		seed = int64(*flagSeed)
 	}
-	var corpus []*prog.Prog
-	if *flagCorpus != "" {
-		corpus = readCorpus(*flagCorpus, target)
+	corpus, err := db.ReadCorpus(*flagCorpus, target)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read corpus: %v", err)
+		os.Exit(1)
 	}
 	rs := rand.NewSource(seed)
 	prios := target.CalculatePriorities(corpus)
@@ -82,21 +83,4 @@ func main() {
 		p.Mutate(rs, *flagLen, ct, corpus)
 	}
 	fmt.Printf("%s\n", p.Serialize())
-}
-
-func readCorpus(filename string, target *prog.Target) (corpus []*prog.Prog) {
-	dbObj, err := db.Open(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to open the corpus file: %v\n", err)
-		os.Exit(1)
-	}
-	for _, v := range dbObj.Records {
-		p, err := target.Deserialize(v.Val, prog.NonStrict)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
-			os.Exit(1)
-		}
-		corpus = append(corpus, p)
-	}
-	return corpus
 }

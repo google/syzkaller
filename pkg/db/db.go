@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/prog"
 )
 
 type DB struct {
@@ -282,4 +283,22 @@ func Create(filename string, version uint64, records []Record) error {
 		return fmt.Errorf("failed to save database file: %v", err)
 	}
 	return nil
+}
+
+func ReadCorpus(filename string, target *prog.Target) (progs []*prog.Prog, err error) {
+	if filename == "" {
+		return
+	}
+	db, err := Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database file: %v", err)
+	}
+	for _, rec := range db.Records {
+		p, err := target.Deserialize(rec.Val, prog.NonStrict)
+		if err != nil {
+			return nil, fmt.Errorf("failed to deserialize corpus program: %v", err)
+		}
+		progs = append(progs, p)
+	}
+	return progs, nil
 }
