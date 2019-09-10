@@ -490,14 +490,15 @@ func (r *randGen) nOutOf(n, outOf int) bool {
 	return v < n
 }
 
-func (r *randGen) generateCall(s *state, p *Prog) []*Call {
+func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
 	idx := 0
-	if s.ct == nil {
+	if s.ct == nil || insertionPoint <= 0 {
 		idx = r.Intn(len(r.target.Syscalls))
 	} else {
 		call := -1
 		if len(p.Calls) != 0 {
-			call = p.Calls[r.Intn(len(p.Calls))].Meta.ID
+			// Choosing the base call is based on the insertion point of the new calls sequence.
+			call = p.Calls[r.Intn(insertionPoint)].Meta.ID
 		}
 		idx = s.ct.Choose(r.Rand, call)
 	}
