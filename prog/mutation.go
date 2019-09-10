@@ -134,7 +134,7 @@ func (ctx *mutator) insertCall() bool {
 		c = p.Calls[idx]
 	}
 	s := analyze(ctx.ct, ctx.corpus, p, c)
-	calls := r.generateCall(s, p)
+	calls := r.generateCall(s, p, idx)
 	// TODO: the program might have more than ncalls
 	p.insertBefore(c, calls)
 	return true
