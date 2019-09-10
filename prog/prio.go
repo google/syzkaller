@@ -48,28 +48,22 @@ func (target *Target) calcStaticPriorities() [][]float32 {
 					// Self-priority is assigned below.
 					continue
 				}
-				prios[c0][c1] += w0 * w1
+				// The static priority is assigned based on the direction of arguments. A higher priority will be
+				// assigned when c0 is a call that produces a resource and c1 a call that uses that resource.
+				prios[c0][c1] += w0.inout*w1.in + 0.7*w0.inout*w1.inout
 			}
 		}
-	}
-
-	// Self-priority (call wrt itself) is assigned to the maximum priority
-	// this call has wrt other calls. This way the priority is high, but not too high.
-	for c0, pp := range prios {
-		var max float32
-		for _, p := range pp {
-			if max < p {
-				max = p
-			}
-		}
-		pp[c0] = max
 	}
 	normalizePrio(prios)
+	// The value assigned for self-priority (call wrt itself) have to be high, but not too high.
+	for c0, pp := range prios {
+		pp[c0] = 0.9
+	}
 	return prios
 }
 
-func (target *Target) calcResourceUsage() map[string]map[int]float32 {
-	uses := make(map[string]map[int]float32)
+func (target *Target) calcResourceUsage() map[string]map[int]weights {
+	uses := make(map[string]map[int]weights)
 	for _, c := range target.Syscalls {
 		ForeachType(c, func(t Type) {
 			switch a := t.(type) {
@@ -77,7 +71,7 @@ func (target *Target) calcResourceUsage() map[string]map[int]float32 {
 				if a.Desc.Name == "pid" || a.Desc.Name == "uid" || a.Desc.Name == "gid" {
 					// Pid/uid/gid usually play auxiliary role,
 					// but massively happen in some structs.
-					noteUsage(uses, c, 0.1, "res%v", a.Desc.Name)
+					noteUsage(uses, c, 0.1, a.Dir(), "res%v", a.Desc.Name)
 				} else {
 					str := "res"
 					for i, k := range a.Desc.Kind {
@@ -86,33 +80,33 @@ func (target *Target) calcResourceUsage() map[string]map[int]float32 {
 						if i < len(a.Desc.Kind)-1 {
 							w = 0.2
 						}
-						noteUsage(uses, c, float32(w), str)
+						noteUsage(uses, c, float32(w), a.Dir(), str)
 					}
 				}
 			case *PtrType:
 				if _, ok := a.Type.(*StructType); ok {
-					noteUsage(uses, c, 1.0, "ptrto-%v", a.Type.Name())
+					noteUsage(uses, c, 1.0, a.Dir(), "ptrto-%v", a.Type.Name())
 				}
 				if _, ok := a.Type.(*UnionType); ok {
-					noteUsage(uses, c, 1.0, "ptrto-%v", a.Type.Name())
+					noteUsage(uses, c, 1.0, a.Dir(), "ptrto-%v", a.Type.Name())
 				}
 				if arr, ok := a.Type.(*ArrayType); ok {
-					noteUsage(uses, c, 1.0, "ptrto-%v", arr.Type.Name())
+					noteUsage(uses, c, 1.0, a.Dir(), "ptrto-%v", arr.Type.Name())
 				}
 			case *BufferType:
 				switch a.Kind {
 				case BufferBlobRand, BufferBlobRange, BufferText:
 				case BufferString:
 					if a.SubKind != "" {
-						noteUsage(uses, c, 0.2, fmt.Sprintf("str-%v", a.SubKind))
+						noteUsage(uses, c, 0.2, a.Dir(), fmt.Sprintf("str-%v", a.SubKind))
 					}
 				case BufferFilename:
-					noteUsage(uses, c, 1.0, "filename")
+					noteUsage(uses, c, 1.0, DirIn, "filename")
 				default:
 					panic("unknown buffer kind")
 				}
 			case *VmaType:
-				noteUsage(uses, c, 0.5, "vma")
+				noteUsage(uses, c, 0.5, a.Dir(), "vma")
 			case *IntType:
 				switch a.Kind {
 				case IntPlain, IntFileoff, IntRange:
@@ -125,15 +119,26 @@ func (target *Target) calcResourceUsage() map[string]map[int]float32 {
 	return uses
 }
 
-func noteUsage(uses map[string]map[int]float32, c *Syscall, weight float32, str string, args ...interface{}) {
+type weights struct {
+	in    float32
+	inout float32
+}
+
+func noteUsage(uses map[string]map[int]weights, c *Syscall, weight float32, dir Dir, str string, args ...interface{}) {
 	id := fmt.Sprintf(str, args...)
 	if uses[id] == nil {
-		uses[id] = make(map[int]float32)
+		uses[id] = make(map[int]weights)
 	}
-	old := uses[id][c.ID]
-	if weight > old {
-		uses[id][c.ID] = weight
+	callWeight := uses[id][c.ID]
+	if dir != DirOut {
+		if weight > uses[id][c.ID].in {
+			callWeight.in = weight
+		}
 	}
+	if weight > uses[id][c.ID].inout {
+		callWeight.inout = weight
+	}
+	uses[id][c.ID] = callWeight
 }
 
 func (target *Target) calcDynamicPrio(corpus []*Prog) [][]float32 {
@@ -142,8 +147,8 @@ func (target *Target) calcDynamicPrio(corpus []*Prog) [][]float32 {
 		prios[i] = make([]float32, len(target.Syscalls))
 	}
 	for _, p := range corpus {
-		for _, c0 := range p.Calls {
-			for _, c1 := range p.Calls {
+		for idx0, c0 := range p.Calls {
+			for _, c1 := range p.Calls[idx0+1:] {
 				id0 := c0.Meta.ID
 				id1 := c1.Meta.ID
 				prios[id0][id1] += 1.0
