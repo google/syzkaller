@@ -181,9 +181,9 @@ func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
 	if r.bin() {
 		// Small adjustment to trigger missed size checks.
 		if arg.Val != 0 && r.bin() {
-			arg.Val = r.randRangeInt(0, arg.Val-1)
+			arg.Val = r.randRangeInt(0, arg.Val-1, arg.Type().TypeBitSize())
 		} else {
-			arg.Val = r.randRangeInt(arg.Val+1, arg.Val+1000)
+			arg.Val = r.randRangeInt(arg.Val+1, arg.Val+1000, arg.Type().TypeBitSize())
 		}
 		return true
 	}

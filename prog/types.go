@@ -56,6 +56,7 @@ type Type interface {
 	Optional() bool
 	Varlen() bool
 	Size() uint64
+	TypeBitSize() uint64
 	Format() BinaryFormat
 	BitfieldOffset() uint64
 	BitfieldLength() uint64
@@ -102,6 +103,10 @@ func (t *TypeCommon) Size() uint64 {
 		panic(fmt.Sprintf("static type size is not known: %#v", t))
 	}
 	return t.TypeSize
+}
+
+func (t *TypeCommon) TypeBitSize() uint64 {
+	panic("cannot get the bitsize for a non-integer type")
 }
 
 func (t *TypeCommon) Varlen() bool {
@@ -187,6 +192,19 @@ func (t *IntTypeCommon) String() string {
 
 func (t *IntTypeCommon) Format() BinaryFormat {
 	return t.ArgFormat
+}
+
+// Returns the size in bits for integers in binary format or 64 for string-formatted integers. The return
+// value is used in computing limits and truncating other values.
+func (t *IntTypeCommon) TypeBitSize() uint64 {
+	if t.ArgFormat != FormatNative && t.ArgFormat != FormatBigEndian {
+		// TODO: add special cases for mutation and generation of string-formatted integers.
+		return 64
+	}
+	if t.BitfieldLen != 0 {
+		return t.BitfieldLen
+	}
+	return t.TypeSize * 8
 }
 
 func (t *IntTypeCommon) BitfieldOffset() uint64 {

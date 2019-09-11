@@ -152,6 +152,37 @@ func TestMutateArgument(t *testing.T) {
 	}
 }
 
+func TestSizeMutateArg(t *testing.T) {
+	target, rs, iters := initRandomTargetTest(t, "test", "64")
+	r := newRand(target, rs)
+	ct := target.BuildChoiceTable(nil, nil)
+	for i := 0; i < 100; i++ {
+		p := target.Generate(rs, 10, nil)
+		for it := 0; it < iters; it++ {
+			p1 := p.Clone()
+			ctx := &mutator{
+				p:      p1,
+				r:      r,
+				ncalls: 10,
+				ct:     ct,
+				corpus: nil,
+			}
+			ctx.mutateArg()
+			ForeachArg(p.Calls[0], func(arg Arg, ctx *ArgCtx) {
+				if _, ok := arg.Type().(*IntType); !ok {
+					return
+				}
+				bits := arg.Type().TypeBitSize()
+				limit := uint64(1<<bits - 1)
+				val := arg.(*ConstArg).Val
+				if val > limit {
+					t.Fatalf("Invalid argument value: %d. (arg size: %d; max value: %d)", val, arg.Size(), limit)
+				}
+			})
+		}
+	}
+}
+
 func TestRandomChoice(t *testing.T) {
 	t.Parallel()
 	target, err := GetTarget("test", "64")
