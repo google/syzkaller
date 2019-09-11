@@ -386,11 +386,11 @@ func TestHintsRandom(t *testing.T) {
 		for i, c := range p.Calls {
 			vals := extractValues(c)
 			for j := 0; j < 5; j++ {
-				vals[r.randInt()] = true
+				vals[r.randInt64()] = true
 			}
 			comps := make(CompMap)
 			for v := range vals {
-				comps.AddComp(v, r.randInt())
+				comps.AddComp(v, r.randInt64())
 			}
 			p.MutateWithHints(i, comps, func(p1 *Prog) {})
 		}
@@ -489,11 +489,11 @@ func BenchmarkHints(b *testing.B) {
 	for i, c := range p.Calls {
 		vals := extractValues(c)
 		for j := 0; j < 5; j++ {
-			vals[r.randInt()] = true
+			vals[r.randInt64()] = true
 		}
 		comps[i] = make(CompMap)
 		for v := range vals {
-			comps[i].AddComp(v, r.randInt())
+			comps[i].AddComp(v, r.randInt64())
 		}
 	}
 	b.RunParallel(func(pb *testing.PB) {
