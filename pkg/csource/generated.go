@@ -957,6 +957,11 @@ long syz_mmap(size_t addr, size_t size)
 	status = zx_vmar_map(root, ZX_VM_FLAG_SPECIFIC_OVERWRITE | ZX_VM_FLAG_PERM_READ | ZX_VM_FLAG_PERM_WRITE | ZX_VM_FLAG_PERM_EXECUTE,
 			     addr - info.base, vmo, 0, size,
 			     &mapped_addr);
+
+	zx_status_t close_vmo_status = zx_handle_close(vmo);
+	if (close_vmo_status != ZX_OK) {
+		debug("zx_handle_close(vmo) failed with: %d\n", close_vmo_status);
+	}
 	return status;
 }
 #endif
