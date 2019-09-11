@@ -258,6 +258,7 @@ func mutateInt(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve bo
 	if r.bin() {
 		return regenerate(r, s, arg)
 	}
+	bits := arg.Type().TypeBitSize()
 	a := arg.(*ConstArg)
 	switch {
 	case r.nOutOf(1, 3):
@@ -265,8 +266,9 @@ func mutateInt(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve bo
 	case r.nOutOf(1, 2):
 		a.Val -= uint64(r.Intn(4)) + 1
 	default:
-		a.Val ^= 1 << uint64(r.Intn(64))
+		a.Val ^= 1 << uint64(r.Intn(int(bits)))
 	}
+	a.Val = truncateToBitSize(a.Val, bits)
 	return
 }
 
@@ -706,7 +708,7 @@ var mutateDataFuncs = [...]func(r *randGen, data []byte, minLen, maxLen uint64) 
 			return data, false
 		}
 		i := r.Intn(len(data) - width + 1)
-		value := r.randInt()
+		value := r.randInt64()
 		if r.oneOf(10) {
 			value = swap64(value)
 		}
