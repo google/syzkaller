@@ -15,7 +15,7 @@ function target {
 }
 
 go get -u github.com/dvyukov/go-fuzz/go-fuzz-build
-wget -q -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/v2.4.12/fuzzit_Linux_x86_64
+wget -q -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/v2.4.46/fuzzit_Linux_x86_64
 chmod a+x fuzzit
 if [ "$1" = "fuzzing" ]; then
     ./fuzzit auth ${FUZZIT_API_KEY}
