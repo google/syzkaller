@@ -85,6 +85,10 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 		// Random proc will not pass validation.
 		// We can mutate it, but only if the resulting value is within the legal range.
 		return
+	case *ConstType:
+		if IsPad(typ) {
+			return
+		}
 	case *CsumType:
 		// Csum will not pass validation and is always computed.
 		return
@@ -107,7 +111,7 @@ func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
 	original := arg.Val
 	// Note: because shrinkExpand returns a map, order of programs is non-deterministic.
 	// This can affect test coverage reports.
-	for _, replacer := range shrinkExpand(original, compMap) {
+	for _, replacer := range shrinkExpand(original, compMap, arg.Type().TypeBitSize()) {
 		arg.Val = replacer
 		exec()
 	}
@@ -125,7 +129,7 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 		original := make([]byte, 8)
 		copy(original, data[i:])
 		val := binary.LittleEndian.Uint64(original)
-		for _, replacer := range shrinkExpand(val, compMap) {
+		for _, replacer := range shrinkExpand(val, compMap, 64) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(data[i:], bytes)
 			exec()
@@ -164,7 +168,9 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 // As with shrink we ignore cases when the other operand is wider.
 // Note that executor sign extends all the comparison operands to int64.
 // ======================================================================
-func shrinkExpand(v uint64, compMap CompMap) []uint64 {
+func shrinkExpand(v uint64, compMap CompMap, bitsize uint64) []uint64 {
+	v = truncateToBitSize(v, bitsize)
+	limit := uint64(1<<bitsize - 1)
 	var replacers map[uint64]bool
 	for _, iwidth := range []int{8, 4, 2, 1, -4, -2, -1} {
 		var width int
@@ -176,6 +182,12 @@ func shrinkExpand(v uint64, compMap CompMap) []uint64 {
 		} else {
 			width = -iwidth
 			size = uint64(width) * 8
+			if size > bitsize {
+				size = bitsize
+			}
+			if v&(1<<(size-1)) == 0 {
+				continue
+			}
 			mutant = v | ^((1 << size) - 1)
 		}
 		// Use big-endian match/replace for both blobs and ints.
@@ -194,6 +206,10 @@ func shrinkExpand(v uint64, compMap CompMap) []uint64 {
 				mutant = swapInt(mutant, width)
 			}
 			for newV := range compMap[mutant] {
+				// Check the limit for negative numbers
+				if newV > limit && ((^(limit >> 1) & newV) != ^(limit >> 1)) {
+					continue
+				}
 				mask := uint64(1<<size - 1)
 				newHi := newV & ^mask
 				newV = newV & mask
@@ -212,6 +228,8 @@ func shrinkExpand(v uint64, compMap CompMap) []uint64 {
 				if replacer == v {
 					continue
 				}
+
+				replacer = truncateToBitSize(replacer, bitsize)
 				// TODO(dvyukov): should we try replacing with arg+/-1?
 				// This could trigger some off-by-ones.
 				if replacers == nil {
