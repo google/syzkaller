@@ -15,10 +15,12 @@ import (
 type uint64Set map[uint64]bool
 
 type ConstArgTest struct {
-	name  string
-	in    uint64
-	comps CompMap
-	res   []uint64
+	name    string
+	in      uint64
+	size    uint64
+	bitsize uint64
+	comps   CompMap
+	res     []uint64
 }
 
 type DataArgTest struct {
@@ -34,31 +36,130 @@ func TestHintsCheckConstArg(t *testing.T) {
 	t.Parallel()
 	var tests = []ConstArgTest{
 		{
-			"One replacer test",
-			0xdeadbeef,
-			CompMap{0xdeadbeef: uint64Set{0xdeadbeef: true, 0xcafebabe: true}},
-			[]uint64{0xcafebabe},
+			name:  "One replacer test",
+			in:    0xdeadbeef,
+			size:  4,
+			comps: CompMap{0xdeadbeef: uint64Set{0xdeadbeef: true, 0xcafebabe: true}},
+			res:   []uint64{0xcafebabe},
 		},
 		// Test for cases when there's multiple comparisons (op1, op2), (op1, op3), ...
 		// Checks that for every such operand a program is generated.
 		{
-			"Multiple replacers test",
-			0xabcd,
-			CompMap{0xabcd: uint64Set{0x2: true, 0x3: true}},
-			[]uint64{0x2, 0x3},
+			name:  "Multiple replacers test",
+			in:    0xabcd,
+			size:  2,
+			comps: CompMap{0xabcd: uint64Set{0x2: true, 0x3: true}},
+			res:   []uint64{0x2, 0x3},
 		},
 		// Checks that special ints are not used.
 		{
-			"Special ints test",
-			0xabcd,
-			CompMap{0xabcd: uint64Set{0x1: true, 0x2: true}},
-			[]uint64{0x2},
+			name:  "Special ints test",
+			in:    0xabcd,
+			size:  2,
+			comps: CompMap{0xabcd: uint64Set{0x1: true, 0x2: true}},
+			res:   []uint64{0x2},
+		},
+
+		// The following tests check the size limits for each replacer and for the initial value
+		// of the argument. The checks are made for positive and negative values and also for bitfields.
+		{
+			name: "Int8 invalid value (positive)",
+			in:   0x1234,
+			size: 1,
+			comps: CompMap{
+				// void test8(i8 el) {
+				//		i16 w = (i16) el
+				//		if (w == 0x88) {...}
+				//		i16 other = 0xfffe
+				// 		if (w == other)
+				//  }; test8(i8(0x1234));
+				0x34: uint64Set{0x88: true, 0x1122: true, 0xfffffffffffffffe: true, 0xffffffffffffff0a: true},
+				// This following args should be iggnored.
+				0x1234:             uint64Set{0xa1: true},
+				0xffffffffffffff34: uint64Set{0xaa: true},
+			},
+			res: []uint64{0x88, 0xfe},
+		},
+		{
+			name: "Int8 invalid value (negative)",
+			in:   0x12ab,
+			size: 1,
+			comps: CompMap{
+				0xab:               uint64Set{0xab: true, 0xac: true, 0xabcd: true},
+				0xffffffffffffffab: uint64Set{0x11: true, 0x22: true, 0xffffffffffffff34: true},
+			},
+			res: []uint64{0x11, 0x22, 0xac},
+		},
+		{
+			name:    "Int16 valid value (bitsize=12)",
+			in:      0x3ab,
+			size:    2,
+			bitsize: 12,
+			comps: CompMap{
+				0x3ab:              uint64Set{0x11: true, 0x1234: true, 0xfffffffffffffffe: true},
+				0x13ab:             uint64Set{0xab: true, 0xffa: true},
+				0xffffffffffffffab: uint64Set{0xfffffffffffffff1: true},
+				0xfffffffffffff3ab: uint64Set{0xff1: true, 0x12: true},
+			},
+			res: []uint64{0x11, 0x3f1, 0xffe},
+		},
+		{
+			name:    "Int16 invalid value (bitsize=12)",
+			in:      0x71ab,
+			size:    2,
+			bitsize: 12,
+			comps: CompMap{
+				0x1ab: uint64Set{0x11: true, 0x1234: true, 0xfffffffffffffffe: true},
+			},
+			res: []uint64{0x11, 0xffe},
+		},
+		{
+			name:    "Int16 negative valid value (bitsize=12)",
+			in:      0x8ab,
+			size:    2,
+			bitsize: 12,
+			comps: CompMap{
+				0x8ab:              uint64Set{0x11: true},
+				0xffffffffffffffab: uint64Set{0x12: true, 0xffffffffffffff0a: true},
+				0xfffffffffffff8ab: uint64Set{0x13: true, 0xffffffffffffff00: true},
+			},
+			res: []uint64{0x11, 0x13, 0x80a, 0x812, 0xf00},
+		},
+		{
+			name:    "Int16 negative invalid value (bitsize=12)",
+			in:      0x88ab,
+			size:    2,
+			bitsize: 12,
+			comps: CompMap{
+				0x8ab:              uint64Set{0x13: true},
+				0xfffffffffffff8ab: uint64Set{0x11: true, 0xffffffffffffff11: true},
+			},
+			res: []uint64{0x11, 0x13, 0xf11},
+		},
+		{
+			name: "Int32 invalid value",
+			in:   0xaabaddcafe,
+			size: 4,
+			comps: CompMap{0xbaddcafe: uint64Set{0xab: true, 0xabcd: true, 0xbaddcafe: true,
+				0xdeadbeef: true, 0xaabbccddeeff1122: true}},
+			res: []uint64{0xab, 0xabcd, 0xdeadbeef},
+		},
+		{
+			name:  "Int64 valid value",
+			in:    0xdeadc0debaddcafe,
+			size:  8,
+			comps: CompMap{0xdeadc0debaddcafe: uint64Set{0xab: true, 0xabcd: true, 0xdeadbeef: true, 0xdeadbeefdeadbeef: true}},
+			res:   []uint64{0xab, 0xabcd, 0xdeadbeef, 0xdeadbeefdeadbeef},
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
 			var res []uint64
-			constArg := &ConstArg{ArgCommon{nil}, test.in}
+			typ := &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{
+				TypeSize: test.size},
+				BitfieldLen: test.bitsize}}
+			constArg := MakeConstArg(typ, test.in)
 			checkConstArg(constArg, test.comps, func() {
 				res = append(res, constArg.Val)
 			})
@@ -234,13 +335,13 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		if (b == 0xab) {...}
 			//		if (w == 0xcdcd) {...}
 			//  }; f(0x1234);
-			"Shrink 16 test",
-			0x1234,
-			CompMap{
+			name: "Shrink 16 test",
+			in:   0x1234,
+			comps: CompMap{
 				0x34:   uint64Set{0xab: true},
 				0x1234: uint64Set{0xcdcd: true},
 			},
-			[]uint64{0x12ab, 0xcdcd},
+			res: []uint64{0x12ab, 0xcdcd},
 		},
 		{
 			// Models the following code:
@@ -251,14 +352,14 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		if (w == 0xcdcd) {...}
 			//		if (dw == 0xefefefef) {...}
 			//  }; f(0x12345678);
-			"Shrink 32 test",
-			0x12345678,
-			CompMap{
+			name: "Shrink 32 test",
+			in:   0x12345678,
+			comps: CompMap{
 				0x78:       uint64Set{0xab: true},
 				0x5678:     uint64Set{0xcdcd: true},
 				0x12345678: uint64Set{0xefefefef: true},
 			},
-			[]uint64{0x123456ab, 0x1234cdcd, 0xefefefef},
+			res: []uint64{0x123456ab, 0x1234cdcd, 0xefefefef},
 		},
 		{
 			// Models the following code:
@@ -271,15 +372,15 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		if (dw == 0xefefefef) {...}
 			//		if (qw == 0x0101010101010101) {...}
 			//  }; f(0x1234567890abcdef);
-			"Shrink 64 test",
-			0x1234567890abcdef,
-			CompMap{
+			name: "Shrink 64 test",
+			in:   0x1234567890abcdef,
+			comps: CompMap{
 				0xef:               uint64Set{0xab: true, 0xef: true},
 				0xcdef:             uint64Set{0xcdcd: true},
 				0x90abcdef:         uint64Set{0xefefefef: true},
 				0x1234567890abcdef: uint64Set{0x0101010101010101: true},
 			},
-			[]uint64{
+			res: []uint64{
 				0x0101010101010101,
 				0x1234567890abcdab,
 				0x1234567890abcdcd,
@@ -295,10 +396,10 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//  }; f(0x1234);
 			// In such code the comparison will never be true, so we don't
 			// generate a hint for it.
-			"Shrink with a wider replacer test1",
-			0x1234,
-			CompMap{0x34: uint64Set{0x1bab: true}},
-			nil,
+			name:  "Shrink with a wider replacer test1",
+			in:    0x1234,
+			comps: CompMap{0x34: uint64Set{0x1bab: true}},
+			res:   nil,
 		},
 		{
 			// Models the following code:
@@ -311,10 +412,10 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// the lower byte, then the if statement will be true.
 			// Note that executor sign extends all the comparison operands to
 			// int64, so we model this accordingly.
-			"Shrink with a wider replacer test2",
-			0x1234,
-			CompMap{0x34: uint64Set{0xfffffffffffffffd: true}},
-			[]uint64{0x12fd},
+			name:  "Shrink with a wider replacer test2",
+			in:    0x1234,
+			comps: CompMap{0x34: uint64Set{0xfffffffffffffffd: true}},
+			res:   []uint64{0x12fd},
 		},
 		// -----------------------------------------------------------------
 		// Extend tests:
@@ -326,10 +427,10 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		i64 qw = (i64) b;
 			//		if (qw == -2) {...};
 			// }; f(-1);
-			"Extend 8 test",
-			0xff,
-			CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
-			[]uint64{0xfe},
+			name:  "Extend 8 test",
+			in:    0xff,
+			comps: CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
+			res:   []uint64{0xfe},
 		},
 		{
 			// Models the following code:
@@ -337,10 +438,10 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		i64 qw = (i64) w;
 			//		if (qw == -2) {...};
 			// }; f(-1);
-			"Extend 16 test",
-			0xffff,
-			CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
-			[]uint64{0xfffe},
+			name:  "Extend 16 test",
+			in:    0xffff,
+			comps: CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
+			res:   []uint64{0xfffe},
 		},
 		{
 			// Models the following code:
@@ -348,10 +449,10 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		i64 qw = (i32) dw;
 			//		if (qw == -2) {...};
 			// }; f(-1);
-			"Extend 32 test",
-			0xffffffff,
-			CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
-			[]uint64{0xfffffffe},
+			name:  "Extend 32 test",
+			in:    0xffffffff,
+			comps: CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
+			res:   []uint64{0xfffffffe},
 		},
 		{
 			// Models the following code:
@@ -361,15 +462,15 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// }; f(-1);
 			// There's no value for b that will make the comparison true,
 			// so we don't generate hints.
-			"Extend with a wider replacer test",
-			0xff,
-			CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffeff: true}},
-			nil,
+			name:  "Extend with a wider replacer test",
+			in:    0xff,
+			comps: CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffeff: true}},
+			res:   nil,
 		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
-			res := shrinkExpand(test.in, test.comps)
+			res := shrinkExpand(test.in, test.comps, 64)
 			if !reflect.DeepEqual(res, test.res) {
 				t.Fatalf("\ngot : %v\nwant: %v", res, test.res)
 			}
