@@ -39,7 +39,7 @@ jobs:
       if: branch = master AND type IN (pull_request)
       go: 1.12.x
       script:
-        - ./fuzzit.sh regression
+        - ./fuzzit.sh local-regression
 
     - stage: fuzzit.dev (fuzzing)
       if: branch = master AND type IN (push)
