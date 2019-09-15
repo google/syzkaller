@@ -5104,6 +5104,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "IPPROTO_CMTP", Value: 38},
 	{Name: "IPPROTO_CPHB", Value: 73},
 	{Name: "IPPROTO_CPNX", Value: 72},
+	{Name: "IPPROTO_DCCP", Value: 33},
 	{Name: "IPPROTO_DDP", Value: 37},
 	{Name: "IPPROTO_DGP", Value: 86},
 	{Name: "IPPROTO_DSTOPTS", Value: 60},
@@ -5173,7 +5174,6 @@ var consts_amd64 = []ConstValue{
 	{Name: "IPPROTO_SCCSP", Value: 96},
 	{Name: "IPPROTO_SCTP", Value: 132},
 	{Name: "IPPROTO_SDRP", Value: 42},
-	{Name: "IPPROTO_SEP", Value: 33},
 	{Name: "IPPROTO_SHIM6", Value: 140},
 	{Name: "IPPROTO_SKIP", Value: 57},
 	{Name: "IPPROTO_SRPC", Value: 90},
@@ -5715,4 +5715,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "8a3bca2af862d54553a68c1871a0802a78b1f5e2"
+const revision_amd64 = "894df9c93925b59c1559c7005392d1c68f694738"
