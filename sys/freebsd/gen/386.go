@@ -1461,6 +1461,12 @@ var structDescs_386 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "msg_controllen", TypeSize: 4}}, BitSize: 8, Path: []string{"msg_control"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "msg_flags", TypeSize: 4}}},
 	}}},
+	{Key: StructKey{Name: "sf_hdtr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sf_hdtr", TypeSize: 16}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "headers", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "hdr_cnt", TypeSize: 4}}, Path: []string{"headers"}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "trailers", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "trl_cnt", TypeSize: 4}}, Path: []string{"trailers"}},
+	}}},
 	{Key: StructKey{Name: "shmid_ds"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "shmid_ds", TypeSize: 72}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "ipc_perm"}, FldName: "perm"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "segsz", TypeSize: 4}}},
@@ -3498,10 +3504,13 @@ var syscalls_386 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nops", TypeSize: 4}}, Path: []string{"ops"}},
 	}},
 	{NR: 393, Name: "sendfile", CallName: "sendfile", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdout", TypeSize: 4}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdin", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "off", TypeSize: 4, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", TypeSize: 8, ArgDir: 2}}, Kind: 1}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "count", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "s", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "nbytes", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdtr", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "sf_hdtr"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sbytes", TypeSize: 4}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", TypeSize: 8, ArgDir: 1}}, Kind: 1}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sf_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 16, 4, 8}, BitMask: true},
 	}},
 	{NR: 28, Name: "sendmsg", CallName: "sendmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
@@ -5441,6 +5450,10 @@ var consts_386 = []ConstValue{
 	{Name: "SEM_UNDO", Value: 4096},
 	{Name: "SETALL", Value: 9},
 	{Name: "SETVAL", Value: 8},
+	{Name: "SF_NOCACHE", Value: 16},
+	{Name: "SF_NODISKIO", Value: 1},
+	{Name: "SF_SYNC", Value: 4},
+	{Name: "SF_USER_READAHEAD", Value: 8},
 	{Name: "SHM_INFO", Value: 14},
 	{Name: "SHM_LOCK", Value: 11},
 	{Name: "SHM_RDONLY", Value: 4096},
@@ -5698,4 +5711,4 @@ var consts_386 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_386 = "21175f04ae07157b426479c1f43eb01988da85e4"
+const revision_386 = "499f5feaf81c9d39b33515503572aa8f6e24db8b"
