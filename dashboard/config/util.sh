@@ -44,6 +44,9 @@ function util_add_usb_bits {
   scripts/config -e CONFIG_USB_DUMMY_HCD
   scripts/config -e CONFIG_USB_FUZZER
 
+  scripts/config -d CONFIG_HZ_100
+  scripts/config -e CONFIG_HZ_1000
+
   make ${MAKE_VARS} olddefconfig
 }
 

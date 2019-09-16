@@ -15,8 +15,8 @@ cd ${KERNEL_SOURCE}
 make ${MAKE_VARS} defconfig
 make ${MAKE_VARS} kvmconfig
 
-util_add_usb_bits
 util_add_syzbot_bits
+util_add_usb_bits
 
 sed -i "s#=m\$#=y#g" .config
 make ${MAKE_VARS} olddefconfig
