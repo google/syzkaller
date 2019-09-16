@@ -19,7 +19,15 @@ include <sys/wait.h>
 
 syz_execute_func(text ptr[in, text[target]])
 
-sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count int64)
+sf_hdtr {
+	headers		ptr[in, array[iovec_in]]
+	hdr_cnt		len[headers, int32]
+	trailers	ptr[in, array[iovec_in]]
+	trl_cnt		len[trailers, int32]
+}
+
+sf_flags = SF_NODISKIO, SF_NOCACHE, SF_SYNC, SF_USER_READAHEAD
+sendfile(fd fd, s sock_in, offset fileoff, nbytes int64, hdtr ptr[in, sf_hdtr], sbytes ptr[out, fileoff[int64]], flags flags[sf_flags])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset], size len[sigmask])
