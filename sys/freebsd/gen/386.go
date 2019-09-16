@@ -5087,6 +5087,7 @@ var consts_386 = []ConstValue{
 	{Name: "IPPROTO_CMTP", Value: 38},
 	{Name: "IPPROTO_CPHB", Value: 73},
 	{Name: "IPPROTO_CPNX", Value: 72},
+	{Name: "IPPROTO_DCCP", Value: 33},
 	{Name: "IPPROTO_DDP", Value: 37},
 	{Name: "IPPROTO_DGP", Value: 86},
 	{Name: "IPPROTO_DSTOPTS", Value: 60},
@@ -5156,7 +5157,6 @@ var consts_386 = []ConstValue{
 	{Name: "IPPROTO_SCCSP", Value: 96},
 	{Name: "IPPROTO_SCTP", Value: 132},
 	{Name: "IPPROTO_SDRP", Value: 42},
-	{Name: "IPPROTO_SEP", Value: 33},
 	{Name: "IPPROTO_SHIM6", Value: 140},
 	{Name: "IPPROTO_SKIP", Value: 57},
 	{Name: "IPPROTO_SRPC", Value: 90},
@@ -5698,4 +5698,4 @@ var consts_386 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_386 = "1f6b1f79ae35738bcf6e27d67c95fa63c1f86865"
+const revision_386 = "21175f04ae07157b426479c1f43eb01988da85e4"
