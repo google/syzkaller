@@ -1267,6 +1267,7 @@ var linuxOopses = []*oops{
 			compile("INFO: lockdep is turned off"),
 			compile("INFO: Stall ended before state dump start"),
 			compile("INFO: NMI handler"),
+			compile("INFO: recovery required on readonly filesystem"),
 			compile("(handler|interrupt).*took too long"),
 			compile("_INFO::"),                                       // Android can print this during boot.
 			compile("INFO: sys_.* is not present in /proc/kallsyms"), // pkg/host output in debug mode
