@@ -160,6 +160,7 @@ bpf_insn [
 	exit	bpf_insn_exit
 	initr0	bpf_insn_init_r0
 	map	bpf_insn_map
+	map_val	bpf_insn_map_value
 ] [varlen]
 
 bpf_insn_generic {
@@ -290,6 +291,18 @@ bpf_insn_map {
 	regs2	const[0, int8]
 	off2	const[0, int16]
 	imm2	const[0, int32]
+}
+
+bpf_insn_map_value {
+	code	const[bpf_insn_load_imm_dw, int8]
+	dst	flags[bpf_reg, int8:4]
+	src	const[BPF_PSEUDO_MAP_VALUE, int8:4]
+	off	const[0, int16]
+	imm	fd_bpf_map
+	code2	const[0, int8]
+	regs2	const[0, int8]
+	off2	const[0, int16]
+	imm2	int32
 }
 
 define bpf_insn_load_imm_dw	BPF_LD | BPF_DW | BPF_IMM
