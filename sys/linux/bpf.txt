@@ -156,7 +156,8 @@ bpf_insn [
 	ldst	bpf_insn_ldst
 	alu	bpf_insn_alu
 	jmp	bpf_insn_jmp
-	call	bpf_insn_call
+	call	bpf_insn_call_helper
+	func	bpf_insn_call_func
 	exit	bpf_insn_exit
 	initr0	bpf_insn_init_r0
 	map	bpf_insn_map
@@ -251,11 +252,20 @@ define BPF_JLE0	BPF_JLE >> 4
 define BPF_JSLT0	BPF_JSLT >> 4
 define BPF_JSLE0	BPF_JSLE >> 4
 
-bpf_insn_call {
+bpf_insn_call_helper {
 	code	const[bpf_call_code, int8]
 	regs	const[0, int8]
 	off	const[0, int16]
 	func	int32[0:__BPF_FUNC_MAX_ID]
+}
+
+bpf_insn_call_func {
+	code	const[bpf_call_code, int8]
+	dst	const[0, int8:4]
+	src	const[BPF_PSEUDO_CALL, int8:4]
+	off	const[0, int16]
+# NEED: to limit the call offset to the program size, we'd need support for path expressions inside ranges of values.
+	func	int32[-8:8]
 }
 
 define bpf_call_code	BPF_JMP | BPF_CALL
