@@ -241,9 +241,28 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
     ``` bash
     # Connect the board to some USB host.
     wget https://raw.githubusercontent.com/google/syzkaller/up-usb-docs/tools/syz-usbgen/keyboard.c
+    # Apply the patch below.
     gcc keyboard.c -o keyboard
     sudo ./keyboard
     # Make sure you see the letter 'x' being entered on the host.
+    ```
+
+    ``` c
+    diff --git a/tools/syz-usbgen/keyboard.c b/tools/syz-usbgen/keyboard.c
+    index 2a6015d4..3ebd1e03 100644
+    --- a/tools/syz-usbgen/keyboard.c
+    +++ b/tools/syz-usbgen/keyboard.c
+    @@ -95,8 +95,8 @@ int usb_fuzzer_open() {
+     void usb_fuzzer_init(int fd, enum usb_device_speed speed) {
+            struct usb_fuzzer_init arg;
+            arg.speed = speed;
+    -       arg.driver_name = "dummy_udc";
+    -       arg.device_name = "dummy_udc.0";
+    +       arg.driver_name = "20980000.usb";
+    +       arg.device_name = "20980000.usb";
+            int rv = ioctl(fd, USB_FUZZER_IOCTL_INIT, &arg);
+            if (rv != 0) {
+                    perror("ioctl(USB_FUZZER_IOCTL_INIT)");
     ```
 
 17. You should now be able to execute syzkaller USB programs:
