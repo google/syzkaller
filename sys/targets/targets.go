@@ -385,6 +385,7 @@ var (
 	optionalCFlags = map[string]bool{
 		"-static":                 true, // some distributions don't have static libraries
 		"-Wunused-const-variable": true, // gcc 5 does not support this flag
+		"-fsanitize=address":      true, // some OSes don't have ASAN
 	}
 )
 
