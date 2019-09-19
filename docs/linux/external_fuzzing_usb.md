@@ -175,14 +175,14 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
     cp bin/linux_arm/syz-executor ~/syz-bin/
     ```
 
-10. Build `syz-execprog` on your host machine for arm32 with `make TARGETARCH=arm execprog` and copy to `~/syz-bin` onto the SD card.
+10. Build `syz-execprog` on your host machine for arm32 with `make TARGETARCH=arm execprog` and copy to `~/syz-bin` onto the SD card. You may try building syz-execprog on the Raspberry Pi itself, but that worked poorly for me due to large memory consumption during the compilation process.
 
 11. Make sure that ou can now execute syzkaller programs:
 
     ``` bash
     cat socket.log
     r0 = socket$inet_tcp(0x2, 0x1, 0x0)
-    sudo ./syz-bin/syz-execprog -executor ./syz-bin/syz-executor -threaded=0 -collide=0 -procs=1 -nocgroups -nonetdev -nonetreset -notun -debug socket.log
+    sudo ./syz-bin/syz-execprog -executor ./syz-bin/syz-executor -threaded=0 -collide=0 -procs=1 -enable='' -debug socket.log
     ```
 
 12. Setup the dwc2 USB gadget driver:
@@ -273,10 +273,12 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
     $ sudo ./syz-bin/syz-execprog -executor ./syz-bin/syz-executor -threaded=0 -collide=0 -procs=1 -enable='' -debug usb.log
     ```
 
-18. Follow [this](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md) to setup Wi-Fi hotspot.
+18. Steps 19 through 21 are optional. You may use a UART console and a normal USB cable instead of ssh and Zero Stem.
 
-19. Follow [this](https://www.raspberrypi.org/documentation/remote-access/ssh/) to enable ssh.
+19. Follow [this](https://www.raspberrypi.org/documentation/configuration/wireless/access-point.md) to setup Wi-Fi hotspot.
 
-20. Optionally solder [Zero Stem](https://zerostem.io/) onto your Raspberry Pi Zero W.
+20. Follow [this](https://www.raspberrypi.org/documentation/remote-access/ssh/) to enable ssh.
+
+21. Optionally solder [Zero Stem](https://zerostem.io/) onto your Raspberry Pi Zero W.
 
 21. You can now connect the board to an arbitrary USB port, wait for it to boot, join its Wi-Fi network, ssh onto it, and run arbitrary syzkaller USB programs.
