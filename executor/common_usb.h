@@ -572,7 +572,7 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	char* response_data = NULL;
 	uint32 response_length = 0;
 
-	if (event.ctrl.bRequestType & USB_DIR_IN) {
+	if ((event.ctrl.bRequestType & USB_DIR_IN) && event.ctrl.wLength) {
 		NONFAILING(response_found = lookup_control_response(descs, resps, &event.ctrl, &response_data, &response_length));
 		if (!response_found) {
 #if USB_DEBUG
@@ -592,20 +592,24 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 		response_length = 0;
 	if (event.ctrl.wLength < response_length)
 		response_length = event.ctrl.wLength;
+	if ((event.ctrl.bRequestType & USB_DIR_IN) && !event.ctrl.wLength) {
+		// Something fishy is going on, try to read more data.
+		response_length = USB_MAX_PACKET_SIZE;
+	}
 	response.inner.length = response_length;
 	if (response_data)
 		memcpy(&response.data[0], response_data, response_length);
 	else
 		memset(&response.data[0], 0, response_length);
 
-	if (event.ctrl.bRequestType & USB_DIR_IN) {
+	if ((event.ctrl.bRequestType & USB_DIR_IN) && event.ctrl.wLength) {
 		debug("syz_usb_control_io: writing %d bytes\n", response.inner.length);
 		debug_dump_data(&response.data[0], response.inner.length);
 		rv = usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io*)&response);
 	} else {
 		rv = usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_ep_io*)&response);
 		debug("syz_usb_control_io: read %d bytes\n", response.inner.length);
-		debug_dump_data(&event.data[0], response.inner.length);
+		debug_dump_data(&response.data[0], response.inner.length);
 	}
 	if (rv < 0) {
 		debug("syz_usb_control_io: usb_fuzzer_ep0_read/write failed with %d\n", rv);
