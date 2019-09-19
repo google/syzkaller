@@ -236,6 +236,22 @@ static bool lookup_connect_response(struct vusb_connect_descriptors* descs, stru
 				*response_length = descs->bos_len;
 				return true;
 			case USB_DT_DEVICE_QUALIFIER:
+				if (!descs->qual) {
+					// Fill in DEVICE_QUALIFIER based on DEVICE if not provided.
+					struct usb_qualifier_descriptor* qual =
+					    (struct usb_qualifier_descriptor*)response_data;
+					qual->bLength = sizeof(*qual);
+					qual->bDescriptorType = USB_DT_DEVICE_QUALIFIER;
+					qual->bcdUSB = index->dev->bcdUSB;
+					qual->bDeviceClass = index->dev->bDeviceClass;
+					qual->bDeviceSubClass = index->dev->bDeviceSubClass;
+					qual->bDeviceProtocol = index->dev->bDeviceProtocol;
+					qual->bMaxPacketSize0 = index->dev->bMaxPacketSize0;
+					qual->bNumConfigurations = index->dev->bNumConfigurations;
+					qual->bRESERVED = 0;
+					*response_length = sizeof(*qual);
+					return true;
+				}
 				*response_data = descs->qual;
 				*response_length = descs->qual_len;
 				return true;
