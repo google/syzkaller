@@ -1,0 +1,95 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fs.h>
+include <uapi/linux/fscrypt.h>
+
+ioctl$FS_IOC_SET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_SET_ENCRYPTION_POLICY], arg ptr[in, fscrypt_policy])
+ioctl$FS_IOC_GET_ENCRYPTION_PWSALT(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_PWSALT], arg ptr[out, array[int8, 16]])
+ioctl$FS_IOC_GET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_POLICY], arg ptr[out, fscrypt_policy_v1])
+ioctl$FS_IOC_GET_ENCRYPTION_POLICY_EX(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_POLICY_EX], arg ptr[inout, fscrypt_get_policy_ex_arg])
+ioctl$FS_IOC_ADD_ENCRYPTION_KEY(fd fd, cmd const[FS_IOC_ADD_ENCRYPTION_KEY], arg ptr[inout, fscrypt_add_key_arg])
+ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY(fd fd, cmd const[FS_IOC_REMOVE_ENCRYPTION_KEY], arg ptr[inout, fscrypt_remove_key_arg])
+ioctl$FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS(fd fd, cmd const[FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS], arg ptr[inout, fscrypt_remove_key_arg])
+ioctl$FS_IOC_GET_ENCRYPTION_KEY_STATUS(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_KEY_STATUS], arg ptr[inout, fscrypt_get_key_status_arg])
+
+type fscrypt_key_descriptor array[int8, FSCRYPT_KEY_DESCRIPTOR_SIZE]
+type fscrypt_key_identifier array[int8, FSCRYPT_KEY_IDENTIFIER_SIZE]
+
+fscrypt_policy_v1 {
+	version			const[0, int8]
+	modes			fscrypt_policy_modes
+	flags			flags[fscrypt_policy_flags, int8]
+	master_key_descriptor	fscrypt_key_descriptor
+}
+
+fscrypt_policy_v2 {
+	version			const[2, int8]
+	modes			fscrypt_policy_modes
+	flags			flags[fscrypt_policy_flags, int8]
+	reserved		array[const[0, int8], 4]
+	master_key_identifier	fscrypt_key_identifier
+}
+
+fscrypt_policy [
+	v1	fscrypt_policy_v1
+	v2	fscrypt_policy_v2
+] [varlen]
+
+fscrypt_policy_modes [
+	aes256		fscrypt_policy_mode_t[FSCRYPT_MODE_AES_256_XTS, FSCRYPT_MODE_AES_256_CTS]
+	aes128		fscrypt_policy_mode_t[FSCRYPT_MODE_AES_128_CBC, FSCRYPT_MODE_AES_128_CTS]
+	adiantum	fscrypt_policy_mode_t[FSCRYPT_MODE_ADIANTUM, FSCRYPT_MODE_ADIANTUM]
+]
+
+type fscrypt_policy_mode_t[CONTENTS, FILENAMES] {
+	contents_encryption_mode	const[CONTENTS, int8]
+	filenames_encryption_mode	const[FILENAMES, int8]
+}
+
+fscrypt_policy_flags = FSCRYPT_POLICY_FLAGS_PAD_4, FSCRYPT_POLICY_FLAGS_PAD_8, FSCRYPT_POLICY_FLAGS_PAD_16, FSCRYPT_POLICY_FLAGS_PAD_32, FSCRYPT_POLICY_FLAG_DIRECT_KEY
+
+fscrypt_get_policy_ex_arg {
+	policy_size	len[policy, int64]
+# policy is an output field, so just leave it zeroed.
+	policy		array[const[0, int8]]
+}
+
+fscrypt_key_specifier {
+	type		flags[fscrypt_key_specifier_type, int32]
+	reserved	const[0, int32]
+	u		fscrypt_key_specifier_payload
+}
+
+fscrypt_key_specifier_type = FSCRYPT_KEY_SPEC_TYPE_DESCRIPTOR, FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER
+
+fscrypt_key_specifier_payload [
+	reserved	array[int8, 32]
+	descriptor	fscrypt_key_descriptor
+	identifier	fscrypt_key_identifier
+]
+
+fscrypt_add_key_arg {
+	key_spec	fscrypt_key_specifier
+	raw_size	len[raw, int32]
+	reserved	array[const[0, int32], 9]
+	raw		array[int8]
+}
+
+fscrypt_remove_key_arg {
+	key_spec		fscrypt_key_specifier
+# removal_status_flags is an output field, so just leave it zeroed.
+	removal_status_flags	const[0, int32]
+	reserved		array[const[0, int32], 5]
+}
+
+fscrypt_get_key_status_arg {
+	key_spec	fscrypt_key_specifier
+	reserved	array[const[0, int32], 6]
+
+# The following are output fields, so just leave them zeroed.
+	status		const[0, int32]
+	status_flags	const[0, int32]
+	user_count	const[0, int32]
+	out_reserved	array[const[0, int32], 13]
+}
