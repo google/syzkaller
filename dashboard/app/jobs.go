@@ -583,6 +583,17 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 		if job.Type == JobBisectFix && len(job.Commits) != 1 {
 			continue
 		}
+		// If the bug is already known to be fixed, invalid or duplicate, do not report the
+		// bisection results.
+		bug := new(Bug)
+		bugKey := keys[i].Parent()
+		if err := db.Get(c, bugKey, bug); err != nil {
+			return nil, fmt.Errorf("job %v: failed to get bug: %v", extJobID(keys[i]), err)
+		}
+		if len(bug.Commits) != 0 || bug.Status != BugStatusOpen {
+			jobReported(c, extJobID(keys[i]))
+			continue
+		}
 		rep, err := createBugReportForJob(c, job, keys[i], reporting.Config)
 		if err != nil {
 			log.Errorf(c, "failed to create report for job: %v", err)
