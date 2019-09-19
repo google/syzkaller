@@ -236,11 +236,11 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 
 15. Insert the module with `sudo insmod fuzzer.ko`.
 
-16. Build and test the [keyboard emulator program](https://raw.githubusercontent.com/google/syzkaller/up-usb-docs/tools/syz-usbgen/keyboard.c):
+16. Build and test the [keyboard emulator program](/tools/syz-usbgen/keyboard.c):
 
     ``` bash
     # Connect the board to some USB host.
-    wget https://raw.githubusercontent.com/google/syzkaller/up-usb-docs/tools/syz-usbgen/keyboard.c
+    wget https://raw.githubusercontent.com/google/syzkaller/master/tools/syz-usbgen/keyboard.c
     # Apply the patch below.
     gcc keyboard.c -o keyboard
     sudo ./keyboard
