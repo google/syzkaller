@@ -321,7 +321,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 	} else {
-		return ErrDontLog(fmt.Errorf("mandatory parameter id/extid is missing"))
+		return ErrDontLog{fmt.Errorf("mandatory parameter id/extid is missing")}
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
@@ -426,14 +426,14 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	if x := r.FormValue("x"); x != "" {
 		xid, err := strconv.ParseUint(x, 16, 64)
 		if err != nil || xid == 0 {
-			return ErrDontLog(fmt.Errorf("failed to parse text id: %v", err))
+			return ErrDontLog{fmt.Errorf("failed to parse text id: %v", err)}
 		}
 		id = int64(xid)
 	} else {
 		// Old link support, don't remove.
 		xid, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 		if err != nil || xid == 0 {
-			return ErrDontLog(fmt.Errorf("failed to parse text id: %v", err))
+			return ErrDontLog{fmt.Errorf("failed to parse text id: %v", err)}
 		}
 		id = xid
 	}
