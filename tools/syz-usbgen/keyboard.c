@@ -200,6 +200,18 @@ struct usb_device_descriptor usb_device = {
 	.bNumConfigurations =	1,
 };
 
+struct usb_qualifier_descriptor usb_qualifier = {
+	.bLength =		sizeof(struct usb_qualifier_descriptor),
+	.bDescriptorType =	USB_DT_DEVICE_QUALIFIER,
+	.bcdUSB =		__constant_cpu_to_le16(0x0200),
+	.bDeviceClass =		0,
+	.bDeviceSubClass =	0,
+	.bDeviceProtocol =	0,
+	.bMaxPacketSize0 =	MAX_PACKET_SIZE,
+	.bNumConfigurations =	1,
+	.bRESERVED =		0,
+};
+
 struct usb_config_descriptor usb_config = {
 	.bLength =		USB_DT_CONFIG_SIZE,
 	.bDescriptorType =	USB_DT_CONFIG,
@@ -539,6 +551,10 @@ int keyboard_connect(int fd) {
 				case USB_DT_DEVICE:
 					memcpy(&response.data[0], &usb_device, sizeof(usb_device));
 					response.inner.length = sizeof(usb_device);
+					goto reply;
+				case USB_DT_DEVICE_QUALIFIER:
+					memcpy(&response.data[0], &usb_qualifier, sizeof(usb_qualifier));
+					response.inner.length = sizeof(usb_qualifier);
 					goto reply;
 				case USB_DT_CONFIG:
 					config_length = build_config(&response.data[0], sizeof(response.data));
