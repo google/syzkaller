@@ -23,30 +23,7 @@ ioctl$FS_IOC_FSGETXATTR(fd fd, cmd const[FS_IOC_FSGETXATTR], arg ptr[in, fsxattr
 ioctl$FS_IOC_FSSETXATTR(fd fd, cmd const[FS_IOC_FSSETXATTR], arg ptr[in, fsxattr])
 ioctl$FS_IOC_GETFSLABEL(fd fd, cmd const[FS_IOC_GETFSLABEL], arg ptr[out, array[const[0, int8], FSLABEL_MAX]])
 ioctl$FS_IOC_SETFSLABEL(fd fd, cmd const[FS_IOC_SETFSLABEL], arg ptr[in, array[int8, FSLABEL_MAX]])
-ioctl$FS_IOC_SET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_SET_ENCRYPTION_POLICY], arg ptr[in, fscrypt_policy])
-ioctl$FS_IOC_GET_ENCRYPTION_POLICY(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_POLICY], arg ptr[out, array[int8, 16]])
-ioctl$FS_IOC_GET_ENCRYPTION_PWSALT(fd fd, cmd const[FS_IOC_GET_ENCRYPTION_PWSALT], arg ptr[out, fscrypt_policy])
 ioctl$FS_IOC_GETFSMAP(fd fd, cmd const[FS_IOC_GETFSMAP], arg ptr[in, fsmap_head])
-
-fscrypt_policy {
-	version			const[0, int8]
-	mode			fscrypt_policy_mode
-	flags			flags[fs_policy_flags, int8]
-	master_key_descriptor	array[int8, FS_KEY_DESCRIPTOR_SIZE]
-}
-
-fscrypt_policy_mode [
-	aes128		fscrypt_policy_mode_t[FS_ENCRYPTION_MODE_AES_128_CBC, FS_ENCRYPTION_MODE_AES_128_CTS]
-	aes256		fscrypt_policy_mode_t[FS_ENCRYPTION_MODE_AES_256_XTS, FS_ENCRYPTION_MODE_AES_256_CTS]
-	speck128	fscrypt_policy_mode_t[FS_ENCRYPTION_MODE_SPECK128_256_XTS, FS_ENCRYPTION_MODE_SPECK128_256_CTS]
-]
-
-type fscrypt_policy_mode_t[CONTENTS, FILENAMES] {
-	contents_encryption_mode	const[CONTENTS, int8]
-	filenames_encryption_mode	const[FILENAMES, int8]
-}
-
-fs_policy_flags = FS_POLICY_FLAGS_PAD_4, FS_POLICY_FLAGS_PAD_8, FS_POLICY_FLAGS_PAD_16
 
 space_resv {
 	l_type		const[0, int16]
