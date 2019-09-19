@@ -469,3 +469,84 @@ func TestBisectFixRetry(t *testing.T) {
 	}
 	c.client2.expectOK(c.client2.JobDone(done))
 }
+
+// Test that bisection results are not reported for bugs that are already marked as fixed.
+func TestNotReportingAlreadyFixed(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Upload a crash report.
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.client2.ReportCrash(crash)
+	c.client2.pollEmailBug()
+
+	// Receive the JobBisectCause.
+	resp := c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
+	done := &dashapi.JobDoneReq{
+		ID:    resp.ID,
+		Error: []byte("testBisectFixRetry:JobBisectCause"),
+	}
+	c.client2.expectOK(c.client2.JobDone(done))
+
+	sender := ""
+	// Advance time by 30 days and read out any notification emails.
+	{
+		c.advanceTime(30 * 24 * time.Hour)
+		msg := c.client2.pollEmailBug()
+		c.expectEQ(msg.Subject, "title1")
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+
+		msg = c.client2.pollEmailBug()
+		c.expectEQ(msg.Subject, "title1")
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+		sender = msg.Sender
+	}
+
+	// Poll for a BisectFix job.
+	resp = c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
+
+	// Meanwhile, the bug is marked as fixed separately.
+	c.incomingEmail(sender, "#syz fix: kernel: add a fix", EmailOptCC(nil))
+
+	{
+		// Email notification of "Your 'fix:' command is accepted, but please keep
+		// bugs@syzkaller.com mailing list in CC next time."
+		c.client2.pollEmailBug()
+	}
+
+	// At this point, send back the results for the BisectFix job also.
+	done = &dashapi.JobDoneReq{
+		ID:          resp.ID,
+		Build:       *build,
+		Log:         []byte("bisectfix log 4"),
+		CrashTitle:  "bisectfix crash title 4",
+		CrashLog:    []byte("bisectfix crash log 4"),
+		CrashReport: []byte("bisectfix crash report 4"),
+		Commits: []dashapi.Commit{
+			{
+				Hash:       "46e65cb4a0448942ec316b24d60446bbd5cc7827",
+				Title:      "kernel: add a fix",
+				Author:     "author@kernel.org",
+				AuthorName: "Author Kernelov",
+				CC: []string{
+					"reviewer1@kernel.org", "\"Reviewer2\" <reviewer2@kernel.org>",
+					// These must be filtered out:
+					"syzbot@testapp.appspotmail.com",
+					"syzbot+1234@testapp.appspotmail.com",
+					"\"syzbot\" <syzbot+1234@testapp.appspotmail.com>",
+				},
+				Date: time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+			},
+		},
+	}
+	c.expectOK(c.client2.JobDone(done))
+
+	// No reporting should come in at this point. If there is reporting, c.Close()
+	// will fail.
+}
