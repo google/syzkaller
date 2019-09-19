@@ -64,8 +64,8 @@ func handleContext(fn contextHandler) http.Handler {
 }
 
 type (
-	ErrDontLog  error
-	ErrRedirect error
+	ErrDontLog  struct{ error }
+	ErrRedirect struct{ error }
 )
 
 func handleAuth(fn contextHandler) contextHandler {
@@ -188,7 +188,7 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 			ns = adminPage
 		}
 		if ns != adminPage || !isAdminPage {
-			return nil, ErrRedirect(fmt.Errorf("/%v", ns))
+			return nil, ErrRedirect{fmt.Errorf("/%v", ns)}
 		}
 	}
 	if ns != adminPage {
