@@ -1,0 +1,266 @@
+# This is a bit unusual rcu stall report which we misparse now, see:
+# https://groups.google.com/d/msg/syzkaller-bugs/EtMMaRJPRHY/6B9IK2hmAgAJ
+TITLE: INFO: rcu detected stall in sys_exit_group
+TYPE: HANG
+
+[  351.648071][    C1] rcu: INFO: rcu_preempt self-detected stall on CPU
+[  351.654925][    C1] rcu: 	1-...!: (10499 ticks this GP) idle=63a/1/0x4000000000000002 softirq=10978/10978 fqs=0 
+[  351.665511][    C1] 	(t=10501 jiffies g=10601 q=227)
+[  351.670612][    C1] rcu: rcu_preempt kthread starved for 10502 jiffies! g10601 f0x0 RCU_GP_WAIT_FQS(5) ->state=0x402 ->cpu=0
+[  351.682037][    C1] rcu: RCU grace-period kthread stack dump:
+[  351.688376][    C1] rcu_preempt     I29040    10      2 0x80004000
+[  351.694871][    C1] Call Trace:
+[  351.698288][    C1]  __schedule+0x755/0x1580
+[  351.702700][    C1]  ? __sched_text_start+0x8/0x8
+[  351.707541][    C1]  schedule+0xd9/0x260
+[  351.711598][    C1]  schedule_timeout+0x486/0xc50
+[  351.716436][    C1]  ? rwlock_bug.part.0+0x90/0x90
+[  351.721533][    C1]  ? usleep_range+0x170/0x170
+[  351.726194][    C1]  ? trace_hardirqs_on+0x67/0x240
+[  351.731204][    C1]  ? __kasan_check_read+0x11/0x20
+[  351.736374][    C1]  ? __next_timer_interrupt+0x1a0/0x1a0
+[  351.741906][    C1]  ? swake_up_one+0x60/0x60
+[  351.746394][    C1]  ? trace_hardirqs_on+0x67/0x240
+[  351.751408][    C1]  rcu_gp_kthread+0x9b2/0x18c0
+[  351.756162][    C1]  ? rcu_barrier+0x310/0x310
+[  351.760740][    C1]  ? trace_hardirqs_on+0x67/0x240
+[  351.766119][    C1]  ? __kasan_check_read+0x11/0x20
+[  351.771309][    C1]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  351.777551][    C1]  ? __kthread_parkme+0x108/0x1c0
+[  351.783514][    C1]  ? __kasan_check_read+0x11/0x20
+[  351.788534][    C1]  kthread+0x361/0x430
+[  351.792607][    C1]  ? rcu_barrier+0x310/0x310
+[  351.797186][    C1]  ? kthread_cancel_delayed_work_sync+0x20/0x20
+[  351.803587][    C1]  ret_from_fork+0x24/0x30
+[  351.808040][    C1] Sending NMI from CPU 1 to CPUs 0:
+[  351.814650][    C0] INFO: NMI handler (nmi_cpu_backtrace_handler) took too long to run: 1.403 msecs
+[  351.815225][    C1] NMI backtrace for cpu 0
+[  351.815230][    C1] CPU: 0 PID: 10344 Comm: syz-executor933 Not tainted 5.3.0-rc8+ #0
+[  351.815236][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  351.815240][    C1] RIP: 0010:hhf_dequeue+0x552/0xa20
+[  351.815251][    C1] Code: ff ff 45 31 ff e9 b0 02 00 00 e8 49 05 ac fb 48 8d 43 f0 41 be 01 00 00 00 49 8d 95 c0 02 00 00 48 39 c2 74 34 e8 2e 05 ac fb <49> 8d bd ac 03 00 00 48 89 f8 48 c1 e8 03 42 0f b6 14 20 48 89 f8
+[  351.815255][    C1] RSP: 0018:ffff8880ae809038 EFLAGS: 00000206
+[  351.815263][    C1] RAX: ffff8880a3970100 RBX: ffff8880a8b1d538 RCX: ffffffff85c66b39
+[  351.815268][    C1] RDX: 0000000000000100 RSI: ffffffff85c66fd2 RDI: 0000000000000005
+[  351.815272][    C1] RBP: ffff8880ae809088 R08: ffff8880a3970100 R09: 0000000000000000
+[  351.815277][    C1] R10: fffffbfff134afaf R11: ffff8880a3970100 R12: dffffc0000000000
+[  351.815282][    C1] R13: ffff8880a8b1d240 R14: 0000000000000001 R15: 0000000000000000
+[  351.815287][    C1] FS:  0000000000000000(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[  351.815292][    C1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  351.815297][    C1] CR2: 00000000006dab10 CR3: 0000000008c6d000 CR4: 00000000001406f0
+[  351.815302][    C1] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  351.815306][    C1] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  351.815309][    C1] Call Trace:
+[  351.815311][    C1]  <IRQ>
+[  351.815315][    C1]  __qdisc_run+0x1e7/0x19d0
+[  351.815318][    C1]  ? dev_queue_xmit+0x18/0x20
+[  351.815325][    C1]  __dev_queue_xmit+0x16f1/0x3650
+[  351.815329][    C1]  ? __local_bh_enable_ip+0x15a/0x270
+[  351.815333][    C1]  ? netdev_core_pick_tx+0x2f0/0x2f0
+[  351.815337][    C1]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  351.815340][    C1]  ? br_nf_post_routing+0xd73/0x1d30
+[  351.815344][    C1]  ? br_forward_finish+0x235/0x400
+[  351.815347][    C1]  ? __kasan_check_read+0x11/0x20
+[  351.815351][    C1]  ? __dev_queue_xmit+0x2b15/0x3650
+[  351.815354][    C1]  dev_queue_xmit+0x18/0x20
+[  351.815358][    C1]  ? dev_queue_xmit+0x18/0x20
+[  351.815361][    C1]  br_dev_queue_push_xmit+0x3f3/0x5c0
+[  351.815365][    C1]  ? nf_hook_slow+0xf0/0x1e0
+[  351.815368][    C1]  br_forward_finish+0xfa/0x400
+[  351.815372][    C1]  ? br_dev_queue_push_xmit+0x5c0/0x5c0
+[  351.815376][    C1]  ? br_fdb_add.cold+0x8c/0x8c
+[  351.815379][    C1]  ? __sanitizer_cov_trace_cmp4+0x16/0x20
+[  351.815383][    C1]  ? nf_hook_slow+0xf0/0x1e0
+[  351.815386][    C1]  __br_forward+0x641/0xb00
+[  351.815390][    C1]  ? br_forward_finish+0x400/0x400
+[  351.815393][    C1]  ? br_dev_queue_push_xmit+0x5c0/0x5c0
+[  351.815396][    C1]  deliver_clone+0x61/0xc0
+[  351.815400][    C1]  maybe_deliver+0x2c7/0x390
+[  351.815403][    C1]  br_flood+0x13a/0x3d0
+[  351.815406][    C1]  br_dev_xmit+0x98c/0x15a0
+[  351.815410][    C1]  ? br_poll_controller+0x10/0x10
+[  351.815413][    C1]  ? netif_skb_features+0x6c2/0xb90
+[  351.815417][    C1]  ? netdev_set_sb_channel+0xe0/0xe0
+[  351.815421][    C1]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  351.815425][    C1]  ? validate_xmit_xfrm+0x43c/0xf10
+[  351.815429][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  351.815432][    C1]  dev_hard_start_xmit+0x1a3/0x9c0
+[  351.815436][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  351.815440][    C1]  __dev_queue_xmit+0x2b15/0x3650
+[  351.815444][    C1]  ? __nf_conntrack_find_get+0xa97/0x13a0
+[  351.815448][    C1]  ? netdev_core_pick_tx+0x2f0/0x2f0
+[  351.815451][    C1]  ? __ip_finish_output+0x5fc/0xb90
+[  351.815455][    C1]  ? __kasan_check_read+0x11/0x20
+[  351.815459][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  351.815463][    C1]  ? lock_downgrade+0x920/0x920
+[  351.815466][    C1]  ? lock_acquire+0x190/0x410
+[  351.815470][    C1]  ? __ip_finish_output+0x5fc/0xb90
+[  351.815473][    C1]  dev_queue_xmit+0x18/0x20
+[  351.815476][    C1]  ? dev_queue_xmit+0x18/0x20
+[  351.815480][    C1]  ip_finish_output2+0x1726/0x2570
+[  351.815484][    C1]  ? nf_ct_deliver_cached_events+0x23d/0x6e0
+[  351.815487][    C1]  ? ip_frag_next+0x910/0x910
+[  351.815490][    C1]  ? __kasan_check_read+0x11/0x20
+[  351.815494][    C1]  __ip_finish_output+0x5fc/0xb90
+[  351.815498][    C1]  ? __ip_finish_output+0x5fc/0xb90
+[  351.815501][    C1]  ? audit_alloc_mark+0x420/0x500
+[  351.815505][    C1]  ip_finish_output+0x38/0x1f0
+[  351.815508][    C1]  ip_output+0x21f/0x640
+[  351.815511][    C1]  ? ip_mc_output+0xf40/0xf40
+[  351.815515][    C1]  ? __ip_finish_output+0xb90/0xb90
+[  351.815518][    C1]  ? __kasan_check_read+0x11/0x20
+[  351.815522][    C1]  ip_local_out+0xbb/0x190
+[  351.815525][    C1]  igmpv3_sendpack+0x1b5/0x2c0
+[  351.815529][    C1]  igmp_ifc_timer_expire+0x687/0xa00
+[  351.815532][    C1]  ? call_timer_fn+0xe0/0x780
+[  351.815535][    C1]  call_timer_fn+0x1ac/0x780
+[  351.815539][    C1]  ? __ip_mc_dec_group+0x520/0x520
+[  351.815543][    C1]  ? msleep_interruptible+0x150/0x150
+[  351.815546][    C1]  ? trace_hardirqs_on+0x67/0x240
+[  351.815550][    C1]  ? __kasan_check_read+0x11/0x20
+[  351.815554][    C1]  ? __ip_mc_dec_group+0x520/0x520
+[  351.815557][    C1]  ? __ip_mc_dec_group+0x520/0x520
+[  351.815561][    C1]  run_timer_softirq+0x697/0x17a0
+[  351.815564][    C1]  ? add_timer+0x930/0x930
+[  351.815567][    C1]  ? kvm_clock_read+0x18/0x30
+[  351.815571][    C1]  ? kvm_sched_clock_read+0x9/0x20
+[  351.815574][    C1]  ? sched_clock+0x2e/0x50
+[  351.815577][    C1]  ? sched_clock_cpu+0x1b/0x1b0
+[  351.815582][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  351.815586][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  351.815589][    C1]  __do_softirq+0x262/0x98c
+[  351.815593][    C1]  ? sched_clock_cpu+0x1b/0x1b0
+[  351.815596][    C1]  irq_exit+0x19b/0x1e0
+[  351.815600][    C1]  smp_apic_timer_interrupt+0x1a3/0x610
+[  351.815603][    C1]  apic_timer_interrupt+0xf/0x20
+[  351.815606][    C1]  </IRQ>
+[  351.815609][    C1] RIP: 0010:_raw_write_unlock_irq+0x54/0x90
+[  351.815620][    C1] Code: c0 60 f4 d2 88 48 ba 00 00 00 00 00 fc ff df 48 c1 e8 03 80 3c 10 00 75 33 48 83 3d 05 bf 94 01 00 74 20 fb 66 0f 1f 44 00 00 <bf> 01 00 00 00 e8 62 8c 10 fa 65 8b 05 93 c8 c3 78 85 c0 74 06 41
+[  351.815624][    C1] RSP: 0018:ffff8880a406fd70 EFLAGS: 00000282 ORIG_RAX: ffffffffffffff13
+[  351.815633][    C1] RAX: 1ffffffff11a5e8c RBX: ffff88809fbda740 RCX: 1ffffffff134b5ee
+[  351.815638][    C1] RDX: dffffc0000000000 RSI: ffffffff8177f15e RDI: ffffffff873e3538
+[  351.815643][    C1] RBP: ffff8880a406fd78 R08: ffff8880a3970100 R09: fffffbfff134afb0
+[  351.815647][    C1] R10: fffffbfff134afaf R11: ffffffff89a57d7f R12: ffffffff88c090c0
+[  351.815652][    C1] R13: 0000000000000011 R14: ffff8880a3970100 R15: 0000000000000000
+[  351.815656][    C1]  ? trace_hardirqs_on+0x5e/0x240
+[  351.815664][    C1]  ? _raw_write_unlock_irq+0x28/0x90
+[  351.815667][    C1]  do_exit+0x13ab/0x2e50
+[  351.815671][    C1]  ? mm_update_next_owner+0x640/0x640
+[  351.815674][    C1]  ? down_read_non_owner+0x450/0x450
+[  351.815678][    C1]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  351.815682][    C1]  ? handle_mm_fault+0x1d3/0x6b0
+[  351.815685][    C1]  do_group_exit+0x135/0x360
+[  351.815689][    C1]  __x64_sys_exit_group+0x44/0x50
+[  351.815692][    C1]  do_syscall_64+0xfd/0x6a0
+[  351.815696][    C1]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  351.815699][    C1] RIP: 0033:0x440f88
+[  351.815702][    C1] Code: Bad RIP value.
+[  351.815706][    C1] RSP: 002b:00007ffe302d02b8 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+[  351.815714][    C1] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 0000000000440f88
+[  351.815719][    C1] RDX: 0000000000000000 RSI: 000000000000003c RDI: 0000000000000000
+[  351.815724][    C1] RBP: 00000000004c6eb0 R08: 00000000000000e7 R09: ffffffffffffffd0
+[  351.815729][    C1] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000001
+[  351.815734][    C1] R13: 00000000006d95e0 R14: 0000000000000000 R15: 0000000000000000
+[  351.815741][    C1] NMI backtrace for cpu 1
+[  352.590657][    C1] CPU: 1 PID: 10345 Comm: syz-executor933 Not tainted 5.3.0-rc8+ #0
+[  352.598782][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  352.609011][    C1] Call Trace:
+[  352.612468][    C1]  <IRQ>
+[  352.615577][    C1]  dump_stack+0x172/0x1f0
+[  352.620089][    C1]  nmi_cpu_backtrace.cold+0x70/0xb2
+[  352.625376][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  352.631787][    C1]  ? lapic_can_unplug_cpu.cold+0x45/0x45
+[  352.637425][    C1]  nmi_trigger_cpumask_backtrace+0x23b/0x28b
+[  352.643685][    C1]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  352.649832][    C1]  rcu_dump_cpu_stacks+0x183/0x1cf
+[  352.654949][    C1]  rcu_sched_clock_irq.cold+0x4dd/0xc13
+[  352.660584][    C1]  ? raise_softirq+0x138/0x340
+[  352.665357][    C1]  update_process_times+0x32/0x80
+[  352.670564][    C1]  tick_sched_handle+0xa2/0x190
+[  352.675822][    C1]  tick_sched_timer+0x53/0x140
+[  352.680592][    C1]  __hrtimer_run_queues+0x364/0xe40
+[  352.686112][    C1]  ? tick_sched_do_timer+0x1b0/0x1b0
+[  352.691403][    C1]  ? hrtimer_start_range_ns+0xcb0/0xcb0
+[  352.697161][    C1]  ? __sanitizer_cov_trace_cmp4+0x16/0x20
+[  352.704973][    C1]  ? ktime_get_update_offsets_now+0x2d3/0x440
+[  352.711269][    C1]  hrtimer_interrupt+0x314/0x770
+[  352.716225][    C1]  smp_apic_timer_interrupt+0x160/0x610
+[  352.721907][    C1]  apic_timer_interrupt+0xf/0x20
+[  352.727454][    C1]  </IRQ>
+[  352.730759][    C1] RIP: 0010:native_queued_spin_lock_slowpath+0x132/0x9f0
+[  352.737876][    C1] Code: 00 00 00 48 8b 45 d0 65 48 33 04 25 28 00 00 00 0f 85 37 07 00 00 48 81 c4 98 00 00 00 5b 41 5c 41 5d 41 5e 41 5f 5d c3 f3 90 <e9> 73 ff ff ff 8b 45 98 4c 8d 65 d8 3d 00 01 00 00 0f 84 e5 00 00
+[  352.757777][    C1] RSP: 0018:ffff8880946ef2f8 EFLAGS: 00000202 ORIG_RAX: ffffffffffffff13
+[  352.766276][    C1] RAX: 0000000000000000 RBX: ffff8880a8b1d328 RCX: ffffffff81595c17
+[  352.774247][    C1] RDX: 0000000000000000 RSI: 0000000000000004 RDI: ffff8880a8b1d328
+[  352.782332][    C1] RBP: ffff8880946ef3b8 R08: 1ffff11015163a65 R09: ffffed1015163a66
+[  352.790301][    C1] R10: ffffed1015163a65 R11: ffff8880a8b1d32b R12: 0000000000000001
+[  352.798893][    C1] R13: 0000000000000003 R14: ffffed1015163a65 R15: 0000000000000001
+[  352.807058][    C1]  ? native_queued_spin_lock_slowpath+0xb7/0x9f0
+[  352.813663][    C1]  ? native_queued_spin_lock_slowpath+0xb7/0x9f0
+[  352.820078][    C1]  ? __pv_queued_spin_lock_slowpath+0xd10/0xd10
+[  352.826443][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  352.832775][    C1]  ? __nla_validate_parse+0x2d0/0x1ed0
+[  352.838239][    C1]  ? mark_held_locks+0xf0/0xf0
+[  352.843008][    C1]  do_raw_spin_lock+0x20e/0x2e0
+[  352.847950][    C1]  ? rwlock_bug.part.0+0x90/0x90
+[  352.852887][    C1]  ? lock_acquire+0x190/0x410
+[  352.857741][    C1]  ? hhf_change+0x2e3/0xad0
+[  352.863137][    C1]  _raw_spin_lock_bh+0x3b/0x50
+[  352.868504][    C1]  ? hhf_change+0x2e3/0xad0
+[  352.873261][    C1]  hhf_change+0x2e3/0xad0
+[  352.877683][    C1]  ? hhf_reset+0x40/0x40
+[  352.881928][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  352.888176][    C1]  ? nla_strcmp+0xe3/0x120
+[  352.892594][    C1]  ? hhf_reset+0x40/0x40
+[  352.896837][    C1]  tc_modify_qdisc+0xfcf/0x1c50
+[  352.901694][    C1]  ? qdisc_create+0x1210/0x1210
+[  352.906889][    C1]  ? rtnetlink_rcv_msg+0x1ea/0xb00
+[  352.914365][    C1]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  352.921216][    C1]  ? qdisc_create+0x1210/0x1210
+[  352.926102][    C1]  rtnetlink_rcv_msg+0x463/0xb00
+[  352.931974][    C1]  ? rtnetlink_put_metrics+0x580/0x580
+[  352.937436][    C1]  ? netdev_core_pick_tx+0x2f0/0x2f0
+[  352.942777][    C1]  ? __copy_skb_header+0x250/0x550
+[  352.948529][    C1]  netlink_rcv_skb+0x177/0x450
+[  352.953603][    C1]  ? rtnetlink_put_metrics+0x580/0x580
+[  352.959428][    C1]  ? netlink_ack+0xb30/0xb30
+[  352.964109][    C1]  ? netlink_deliver_tap+0x254/0xbf0
+[  352.969400][    C1]  rtnetlink_rcv+0x1d/0x30
+[  352.974151][    C1]  netlink_unicast+0x531/0x710
+[  352.978920][    C1]  ? netlink_attachskb+0x7c0/0x7c0
+[  352.984298][    C1]  ? _copy_from_iter_full+0x25d/0x8a0
+[  352.989677][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  352.996419][    C1]  netlink_sendmsg+0x8a5/0xd60
+[  353.001187][    C1]  ? netlink_unicast+0x710/0x710
+[  353.006148][    C1]  ? tomoyo_socket_sendmsg+0x26/0x30
+[  353.011451][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  353.017788][    C1]  ? security_socket_sendmsg+0x8d/0xc0
+[  353.023948][    C1]  ? netlink_unicast+0x710/0x710
+[  353.028958][    C1]  sock_sendmsg+0xd7/0x130
+[  353.033383][    C1]  ___sys_sendmsg+0x803/0x920
+[  353.038065][    C1]  ? copy_msghdr_from_user+0x440/0x440
+[  353.043539][    C1]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  353.049945][    C1]  ? tomoyo_path_number_perm+0x263/0x520
+[  353.055587][    C1]  ? sock_ioctl+0x489/0x780
+[  353.060096][    C1]  ? dlci_ioctl_set+0x40/0x40
+[  353.064953][    C1]  ? ___might_sleep+0x163/0x280
+[  353.069897][    C1]  ? dlci_ioctl_set+0x40/0x40
+[  353.074665][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  353.083009][    C1]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  353.089283][    C1]  ? __fget_light+0x1a9/0x230
+[  353.094055][    C1]  ? __fdget+0x1b/0x20
+[  353.098125][    C1]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[  353.104476][    C1]  __sys_sendmsg+0x105/0x1d0
+[  353.109072][    C1]  ? __sys_sendmsg_sock+0xd0/0xd0
+[  353.114237][    C1]  ? entry_SYSCALL_64_after_hwframe+0x3e/0xbe
+[  353.120368][    C1]  __x64_sys_sendmsg+0x78/0xb0
+[  353.125140][    C1]  do_syscall_64+0xfd/0x6a0
+[  353.129752][    C1]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  353.135935][    C1] RIP: 0033:0x442399
+[  353.139914][    C1] Code: e8 9c 07 03 00 48 83 c4 18 c3 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 3b 0a fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[  353.160914][    C1] RSP: 002b:00007ffe302d02f8 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[  353.169462][    C1] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000442399
+[  353.177800][    C1] RDX: 0000000000000000 RSI: 0000000020000240 RDI: 0000000000000003
+[  353.185922][    C1] RBP: 000000000003c361 R08: 0000000000000000 R09: 0000000000000000
+[  353.193990][    C1] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[  353.202174][    C1] R13: 00000000004032f0 R14: 0000000000000000 R15: 0000000000000000
