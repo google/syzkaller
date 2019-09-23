@@ -1,0 +1,91 @@
+TITLE: KASAN: use-after-free Read in chaoskey_disconnect
+
+[  744.592276][ T3173] ==================================================================
+[  744.593789][ T3173] BUG: KASAN: use-after-free in refcount_inc_not_zero_checked+0x72/0x1e0
+[  744.595200][ T3173] Read of size 4 at addr ffff88805b8f1820 by task kworker/1:3/3173
+[  744.596644][ T3173]
+[  744.597052][ T3173] CPU: 1 PID: 3173 Comm: kworker/1:3 Not tainted 5.3.0+ #296
+[  744.598324][ T3173] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  744.600029][ T3173] Workqueue: usb_hub_wq hub_event
+[  744.600890][ T3173] Call Trace:
+[  744.601452][ T3173]  dump_stack+0xca/0x13e
+[  744.602183][ T3173]  ? refcount_inc_not_zero_checked+0x72/0x1e0
+[  744.603262][ T3173]  ? refcount_inc_not_zero_checked+0x72/0x1e0
+[  744.604902][ T3173]  print_address_description+0x6a/0x32c
+[  744.606397][ T3173]  ? refcount_inc_not_zero_checked+0x72/0x1e0
+[  744.608297][ T3173]  ? refcount_inc_not_zero_checked+0x72/0x1e0
+[  744.610301][ T3173]  __kasan_report.cold+0x1a/0x33
+[  744.611499][ T3173]  ? refcount_inc_not_zero_checked+0x72/0x1e0
+[  744.612670][ T3173]  kasan_report+0xe/0x12
+[  744.613400][ T3173]  check_memory_region+0x128/0x190
+[  744.614340][ T3173]  refcount_inc_not_zero_checked+0x72/0x1e0
+[  744.615279][ T3173]  ? refcount_dec_and_mutex_lock+0x80/0x80
+[  744.616362][ T3173]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  744.617766][ T3173]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  744.619091][ T3173]  refcount_inc_checked+0x12/0x60
+[  744.620362][ T3173]  kthread_stop+0x6c/0x600
+[  744.621363][ T3173]  hwrng_unregister+0x190/0x210
+[  744.622111][ T3173]  chaoskey_disconnect+0x1b2/0x200
+[  744.622919][ T3173]  usb_unbind_interface+0x1bd/0x8a0
+[  744.623650][ T3173]  ? usb_autoresume_device+0x60/0x60
+[  744.624395][ T3173]  device_release_driver_internal+0x42f/0x500
+[  744.625254][ T3173]  bus_remove_device+0x2dc/0x4a0
+[  744.625979][ T3173]  device_del+0x420/0xb10
+[  744.626624][ T3173]  ? __device_links_no_driver+0x240/0x240
+[  744.627430][ T3173]  ? usb_remove_ep_devs+0x3e/0x80
+[  744.628144][ T3173]  ? remove_intf_ep_devs+0x13f/0x1d0
+[  744.628872][ T3173]  usb_disable_device+0x211/0x690
+[  744.629575][ T3173]  usb_disconnect+0x284/0x8d0
+[  744.630221][ T3173]  hub_event+0x1454/0x3640
+[  744.630862][ T3173]  ? find_held_lock+0x2d/0x110
+[  744.631538][ T3173]  ? mark_held_locks+0xe0/0xe0
+[  744.632216][ T3173]  ? hub_port_debounce+0x260/0x260
+[  744.632952][ T3173]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  744.633728][ T3173]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  744.634492][ T3173]  process_one_work+0x92b/0x1530
+[  744.635201][ T3173]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  744.636011][ T3173]  ? do_raw_spin_lock+0x11a/0x280
+[  744.636939][ T3173]  worker_thread+0x7ab/0xe20
+[  744.637678][ T3173]  ? process_one_work+0x1530/0x1530
+[  744.638485][ T3173]  kthread+0x318/0x420
+[  744.639125][ T3173]  ? kthread_create_on_node+0xf0/0xf0
+[  744.639979][ T3173]  ret_from_fork+0x24/0x30
+[  744.640583][ T3173]
+[  744.640979][ T3173] Allocated by task 2:
+[  744.641607][ T3173]  save_stack+0x1b/0x80
+[  744.642312][ T3173]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[  744.643170][ T3173]  kmem_cache_alloc_node+0xdc/0x310
+[  744.643950][ T3173]  copy_process+0x41ad/0x6410
+[  744.644704][ T3173]  _do_fork+0x129/0xec0
+[  744.645338][ T3173]  kernel_thread+0xaa/0xe0
+[  744.646005][ T3173]  kthreadd+0x4a2/0x680
+[  744.646735][ T3173]  ret_from_fork+0x24/0x30
+[  744.647364][ T3173]
+[  744.647767][ T3173] Freed by task 16:
+[  744.648407][ T3173]  save_stack+0x1b/0x80
+[  744.649181][ T3173]  __kasan_slab_free+0x130/0x180
+[  744.650073][ T3173]  kmem_cache_free+0xb9/0x380
+[  744.650744][ T3173]  __put_task_struct+0x1e2/0x4a0
+[  744.651540][ T3173]  delayed_put_task_struct+0x1b4/0x2c0
+[  744.652409][ T3173]  rcu_core+0x630/0x1ca0
+[  744.653028][ T3173]  __do_softirq+0x221/0x912
+[  744.653886][ T3173]
+[  744.654366][ T3173] The buggy address belongs to the object at ffff88805b8f1800
+[  744.654366][ T3173]  which belongs to the cache task_struct of size 5888
+[  744.657365][ T3173] The buggy address is located 32 bytes inside of
+[  744.657365][ T3173]  5888-byte region [ffff88805b8f1800, ffff88805b8f2f00)
+[  744.659960][ T3173] The buggy address belongs to the page:
+[  744.660975][ T3173] page:ffffea00016e3c00 refcount:1 mapcount:0 mapping:ffff88806c50e000 index:0x0 compound_mapcount: 0
+[  744.662922][ T3173] flags: 0x100000000010200(slab|head)
+[  744.663844][ T3173] raw: 0100000000010200 dead000000000100 dead000000000122 ffff88806c50e000
+[  744.665448][ T3173] raw: 0000000000000000 0000000000050005 00000001ffffffff 0000000000000000
+[  744.667066][ T3173] page dumped because: kasan: bad access detected
+[  744.668216][ T3173]
+[  744.668632][ T3173] Memory state around the buggy address:
+[  744.669623][ T3173]  ffff88805b8f1700: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  744.671167][ T3173]  ffff88805b8f1780: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  744.672588][ T3173] >ffff88805b8f1800: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  744.674006][ T3173]                                ^
+[  744.674964][ T3173]  ffff88805b8f1880: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  744.676699][ T3173]  ffff88805b8f1900: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  744.678359][ T3173] ==================================================================

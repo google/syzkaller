@@ -1,0 +1,97 @@
+TITLE: KASAN: use-after-free Read in mcba_usb_disconnect
+
+[  723.789406][  T102] ==================================================================
+[  723.790974][  T102] BUG: KASAN: use-after-free in __lock_acquire+0x3377/0x3eb0
+[  723.792263][  T102] Read of size 8 at addr ffff88803b8d8f48 by task kworker/0:2/102
+[  723.793777][  T102]
+[  723.794247][  T102] CPU: 0 PID: 102 Comm: kworker/0:2 Not tainted 5.3.0+ #296
+[  723.795572][  T102] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  723.797369][  T102] Workqueue: usb_hub_wq hub_event
+[  723.798502][  T102] Call Trace:
+[  723.799161][  T102]  dump_stack+0xca/0x13e
+[  723.800048][  T102]  ? __lock_acquire+0x3377/0x3eb0
+[  723.801210][  T102]  ? __lock_acquire+0x3377/0x3eb0
+[  723.802097][  T102]  print_address_description+0x6a/0x32c
+[  723.803112][  T102]  ? __lock_acquire+0x3377/0x3eb0
+[  723.804061][  T102]  ? __lock_acquire+0x3377/0x3eb0
+[  723.805027][  T102]  __kasan_report.cold+0x1a/0x33
+[  723.805958][  T102]  ? __lock_acquire+0x3377/0x3eb0
+[  723.806908][  T102]  kasan_report+0xe/0x12
+[  723.807638][  T102]  __lock_acquire+0x3377/0x3eb0
+[  723.808527][  T102]  ? mark_held_locks+0x9f/0xe0
+[  723.809449][  T102]  ? lockdep_hardirqs_on+0x379/0x580
+[  723.810520][  T102]  ? quarantine_put+0xb2/0x150
+[  723.811487][  T102]  ? mark_held_locks+0xe0/0xe0
+[  723.812419][  T102]  lock_acquire+0x127/0x320
+[  723.813276][  T102]  ? usb_kill_anchored_urbs+0x1e/0x110
+[  723.814303][  T102]  ? kobject_put+0x18c/0x280
+[  723.815153][  T102]  _raw_spin_lock_irq+0x2d/0x40
+[  723.816075][  T102]  ? usb_kill_anchored_urbs+0x1e/0x110
+[  723.817142][  T102]  usb_kill_anchored_urbs+0x1e/0x110
+[  723.818155][  T102]  mcba_usb_disconnect+0xd6/0xe4
+[  723.819116][  T102]  usb_unbind_interface+0x1bd/0x8a0
+[  723.820138][  T102]  ? usb_autoresume_device+0x60/0x60
+[  723.821222][  T102]  device_release_driver_internal+0x42f/0x500
+[  723.822362][  T102]  bus_remove_device+0x2dc/0x4a0
+[  723.823285][  T102]  device_del+0x420/0xb10
+[  723.824082][  T102]  ? __device_links_no_driver+0x240/0x240
+[  723.825190][  T102]  ? usb_remove_ep_devs+0x3e/0x80
+[  723.826128][  T102]  ? remove_intf_ep_devs+0x13f/0x1d0
+[  723.827128][  T102]  usb_disable_device+0x211/0x690
+[  723.828095][  T102]  usb_disconnect+0x284/0x8d0
+[  723.829025][  T102]  hub_event+0x1454/0x3640
+[  723.829820][  T102]  ? find_held_lock+0x2d/0x110
+[  723.830985][  T102]  ? mark_held_locks+0xe0/0xe0
+[  723.832271][  T102]  ? hub_port_debounce+0x260/0x260
+[  723.833628][  T102]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  723.835108][  T102]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  723.836502][  T102]  process_one_work+0x92b/0x1530
+[  723.837830][  T102]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  723.839199][  T102]  ? do_raw_spin_lock+0x11a/0x280
+[  723.840346][  T102]  worker_thread+0x96/0xe20
+[  723.841423][  T102]  ? process_one_work+0x1530/0x1530
+[  723.842603][  T102]  kthread+0x318/0x420
+[  723.843538][  T102]  ? kthread_create_on_node+0xf0/0xf0
+[  723.844787][  T102]  ret_from_fork+0x24/0x30
+[  723.845813][  T102]
+[  723.846365][  T102] Allocated by task 15859:
+[  723.847393][  T102]  save_stack+0x1b/0x80
+[  723.848366][  T102]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[  723.849722][  T102]  kmem_cache_alloc+0xd6/0x2d0
+[  723.850953][  T102]  getname_flags+0xd2/0x5b0
+[  723.851992][  T102]  user_path_at_empty+0x2a/0x50
+[  723.853144][  T102]  vfs_statx+0x113/0x1e0
+[  723.854137][  T102]  __do_sys_newstat+0x96/0x120
+[  723.855225][  T102]  do_syscall_64+0xb7/0x580
+[  723.855986][  T102]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  723.856973][  T102]
+[  723.857422][  T102] Freed by task 15859:
+[  723.858353][  T102]  save_stack+0x1b/0x80
+[  723.859313][  T102]  __kasan_slab_free+0x130/0x180
+[  723.860452][  T102]  kmem_cache_free+0xb9/0x380
+[  723.861601][  T102]  putname+0xe1/0x120
+[  723.862539][  T102]  filename_lookup+0x28f/0x3f0
+[  723.863628][  T102]  vfs_statx+0x113/0x1e0
+[  723.864560][  T102]  __do_sys_newstat+0x96/0x120
+[  723.865437][  T102]  do_syscall_64+0xb7/0x580
+[  723.866198][  T102]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  723.867164][  T102]
+[  723.867553][  T102] The buggy address belongs to the object at ffff88803b8d8000
+[  723.867553][  T102]  which belongs to the cache names_cache of size 4096
+[  723.869885][  T102] The buggy address is located 3912 bytes inside of
+[  723.869885][  T102]  4096-byte region [ffff88803b8d8000, ffff88803b8d9000)
+[  723.872392][  T102] The buggy address belongs to the page:
+[  723.873386][  T102] page:ffffea0000ee3600 refcount:1 mapcount:0 mapping:ffff88806c515900 index:0x0 compound_mapcount: 0
+[  723.875262][  T102] flags: 0x100000000010200(slab|head)
+[  723.876181][  T102] raw: 0100000000010200 dead000000000100 dead000000000122 ffff88806c515900
+[  723.877662][  T102] raw: 0000000000000000 0000000000070007 00000001ffffffff 0000000000000000
+[  723.879114][  T102] page dumped because: kasan: bad access detected
+[  723.880269][  T102]
+[  723.880699][  T102] Memory state around the buggy address:
+[  723.881688][  T102]  ffff88803b8d8e00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  723.883049][  T102]  ffff88803b8d8e80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  723.884598][  T102] >ffff88803b8d8f00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  723.886061][  T102]                                               ^
+[  723.887248][  T102]  ffff88803b8d8f80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  723.888739][  T102]  ffff88803b8d9000: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  723.890329][  T102] ==================================================================
