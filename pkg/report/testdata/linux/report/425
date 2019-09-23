@@ -1,0 +1,64 @@
+TITLE: WARNING in pvr2_i2c_core_done
+
+[  274.845466][  T107] ------------[ cut here ]------------
+[  274.846771][  T107] sysfs group 'power' not found for kobject 'i2c-0'
+[  274.848200][  T107] WARNING: CPU: 0 PID: 107 at fs/sysfs/group.c:278 sysfs_remove_group+0x155/0x1b0
+[  274.850359][  T107] Kernel panic - not syncing: panic_on_warn set ...
+[  274.852042][  T107] CPU: 0 PID: 107 Comm: pvrusb2-context Not tainted 5.3.0+ #296
+[  274.853827][  T107] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  274.856018][  T107] Call Trace:
+[  274.856795][  T107]  dump_stack+0xca/0x13e
+[  274.857524][  T107]  ? sysfs_remove_group+0x70/0x1b0
+[  274.858399][  T107]  panic+0x2a3/0x6da
+[  274.859055][  T107]  ? add_taint.cold+0x16/0x16
+[  274.859904][  T107]  ? __probe_kernel_read+0x188/0x1d0
+[  274.860804][  T107]  ? __warn.cold+0x5/0x4a
+[  274.861530][  T107]  ? __warn+0xe3/0x1e0
+[  274.862212][  T107]  ? sysfs_remove_group+0x155/0x1b0
+[  274.863299][  T107]  __warn.cold+0x20/0x4a
+[  274.863952][ T3185] usb 8-1: Invalid ep0 maxpacket: 512
+[  274.864037][  T107]  ? sysfs_remove_group+0x155/0x1b0
+[  274.865995][  T107]  report_bug+0x262/0x2a0
+[  274.866727][  T107]  do_error_trap+0x12b/0x1e0
+[  274.867497][  T107]  ? sysfs_remove_group+0x155/0x1b0
+[  274.868382][  T107]  do_invalid_op+0x32/0x40
+[  274.869130][  T107]  ? sysfs_remove_group+0x155/0x1b0
+[  274.870123][  T107]  invalid_op+0x23/0x30
+[  274.871036][  T107] RIP: 0010:sysfs_remove_group+0x155/0x1b0
+[  274.872188][  T107] Code: 48 89 d9 49 8b 14 24 48 b8 00 00 00 00 00 fc ff df 48 c1 e9 03 80 3c 01 00 75 41 48 8b 33 48 c7 c7 a0 d0 d0 85 e8 d0 9a 8a ff <0f> 0b eb 95 e8 f2 c7 db ff e9 d2 fe ff ff 48 89 df e8 e5 c7 db ff
+[  274.875503][  T107] RSP: 0018:ffff888068157c40 EFLAGS: 00010282
+[  274.876694][  T107] RAX: 0000000000000000 RBX: ffffffff85f30ee0 RCX: 0000000000000000
+[  274.878439][  T107] RDX: 0000000000000000 RSI: ffffffff8128d9ad RDI: ffffed100d02af7a
+[  274.879815][  T107] RBP: 0000000000000000 R08: ffff888068b96000 R09: ffffed100d943ee7
+[  274.881155][  T107] R10: ffffed100d943ee6 R11: ffff88806ca1f737 R12: ffff888048704338
+[  274.882520][  T107] R13: ffffffff85f31480 R14: ffff888048704900 R15: ffff888068b96000
+[  274.884117][  T107]  ? vprintk_func+0x7d/0x113
+[  274.885246][  T107]  dpm_sysfs_remove+0x97/0xb0
+[  274.886360][  T107]  device_del+0x12a/0xb10
+[  274.887409][  T107]  ? __pm_runtime_disable+0x148/0x3d0
+[  274.888691][  T107]  ? __device_links_no_driver+0x240/0x240
+[  274.890013][  T107]  ? pm_runtime_barrier+0x260/0x260
+[  274.891249][  T107]  ? lockdep_init_map+0x1b0/0x5e0
+[  274.892466][  T107]  ? lockdep_init_map+0x1b0/0x5e0
+[  274.893684][  T107]  device_unregister+0x11/0x30
+[  274.894165][ T3109] usbhid 3-1:0.0: can't add hid device: -71
+[  274.894843][  T107]  i2c_del_adapter+0x42b/0x590
+[  274.894868][  T107]  ? del_timer_sync+0x11e/0x130
+[  274.896739][ T3109] usbhid: probe of 3-1:0.0 failed with error -71
+[  274.897766][  T107]  pvr2_i2c_core_done+0x69/0xb6
+[  274.897791][  T107]  pvr2_hdw_destroy+0x179/0x370
+[  274.902671][  T107]  pvr2_context_destroy+0x84/0x230
+[  274.903544][  T107]  pvr2_context_thread_func+0x657/0x860
+[  274.904501][  T107]  ? lock_acquire+0x127/0x320
+[  274.905283][  T107]  ? pvr2_context_destroy+0x230/0x230
+[  274.906178][  T107]  ? finish_wait+0x260/0x260
+[  274.907068][  T107]  ? lockdep_hardirqs_on+0x379/0x580
+[  274.908371][  T107]  ? __kthread_parkme+0x10a/0x1c0
+[  274.909556][  T107]  ? pvr2_context_destroy+0x230/0x230
+[  274.910853][  T107]  kthread+0x318/0x420
+[  274.911842][  T107]  ? kthread_create_on_node+0xf0/0xf0
+[  274.913116][  T107]  ret_from_fork+0x24/0x30
+[  274.914738][  T107] Dumping ftrace buffer:
+[  274.915783][  T107]    (ftrace buffer empty)
+[  274.916544][  T107] Kernel Offset: disabled
+[  274.917280][  T107] Rebooting in 1 seconds..
