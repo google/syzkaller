@@ -46,19 +46,31 @@ func TestDefaultCallArgs(t *testing.T) {
 	}
 }
 
-func TestSerialize(t *testing.T) {
+func testSerialize(t *testing.T, verbose bool) {
 	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 10, nil)
-		data := p.Serialize()
-		p1, err := target.Deserialize(data, NonStrict)
+		var data []byte
+		mode := NonStrict
+		if verbose {
+			data = p.SerializeVerbose()
+			mode = Strict
+		} else {
+			data = p.Serialize()
+		}
+		p1, err := target.Deserialize(data, mode)
 		if err != nil {
 			t.Fatalf("failed to deserialize program: %v\n%s", err, data)
 		}
 		if p1 == nil {
 			t.Fatalf("deserialized nil program:\n%s", data)
 		}
-		data1 := p1.Serialize()
+		var data1 []byte
+		if verbose {
+			data1 = p1.SerializeVerbose()
+		} else {
+			data1 = p1.Serialize()
+		}
 		if len(p.Calls) != len(p1.Calls) {
 			t.Fatalf("different number of calls")
 		}
@@ -66,6 +78,14 @@ func TestSerialize(t *testing.T) {
 			t.Fatalf("program changed after serialize/deserialize\noriginal:\n%s\n\nnew:\n%s\n", data, data1)
 		}
 	}
+}
+
+func TestSerialize(t *testing.T) {
+	testSerialize(t, false)
+}
+
+func TestSerializeVerbose(t *testing.T) {
+	testSerialize(t, true)
 }
 
 func TestVmaType(t *testing.T) {
