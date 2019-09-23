@@ -160,6 +160,15 @@ func (git *git) getCommit(commit string) (*Commit, error) {
 	return gitParseCommit(output, nil, nil, git.ignoreCC)
 }
 
+func isEmpty(lines [][]byte) bool {
+	for _, line := range lines {
+		if len(line) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Commit, error) {
 	lines := bytes.Split(output, []byte{'\n'})
 	if len(lines) < 4 || len(lines[0]) != 40 {
@@ -173,7 +182,12 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 	cc := make(map[string]bool)
 	cc[strings.ToLower(string(lines[2]))] = true
 	var tags []string
-	for _, line := range lines[5:] {
+	bodyLines := lines[5:]
+	if isEmpty(bodyLines) {
+		// Body is empty, use summary instead.
+		bodyLines = [][]byte{lines[1]}
+	}
+	for _, line := range bodyLines {
 		if user != nil {
 			userPos := bytes.Index(line, user)
 			if userPos != -1 {
