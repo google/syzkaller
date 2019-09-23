@@ -172,6 +172,9 @@ trace2syz:
 usbgen:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-usbgen github.com/google/syzkaller/tools/syz-usbgen
 
+expand:
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o ./bin/syz-expand github.com/google/syzkaller/tools/syz-expand
+
 # `extract` extracts const files from various kernel sources, and may only
 # re-generate parts of files.
 extract: bin/syz-extract

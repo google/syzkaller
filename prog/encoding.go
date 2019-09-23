@@ -25,11 +25,20 @@ func (p *Prog) String() string {
 }
 
 func (p *Prog) Serialize() []byte {
+	return p.serialize(false)
+}
+
+func (p *Prog) SerializeVerbose() []byte {
+	return p.serialize(true)
+}
+
+func (p *Prog) serialize(verbose bool) []byte {
 	p.debugValidate()
 	ctx := &serializer{
-		target: p.Target,
-		buf:    new(bytes.Buffer),
-		vars:   make(map[*ResultArg]int),
+		target:  p.Target,
+		buf:     new(bytes.Buffer),
+		vars:    make(map[*ResultArg]int),
+		verbose: verbose,
 	}
 	for _, c := range p.Calls {
 		ctx.call(c)
@@ -38,10 +47,11 @@ func (p *Prog) Serialize() []byte {
 }
 
 type serializer struct {
-	target *Target
-	buf    *bytes.Buffer
-	vars   map[*ResultArg]int
-	varSeq int
+	target  *Target
+	buf     *bytes.Buffer
+	vars    map[*ResultArg]int
+	varSeq  int
+	verbose bool
 }
 
 func (ctx *serializer) printf(text string, args ...interface{}) {
@@ -91,7 +101,7 @@ func (a *PointerArg) serialize(ctx *serializer) {
 	}
 	target := ctx.target
 	ctx.printf("&%v", target.serializeAddr(a))
-	if a.Res != nil && isDefault(a.Res) && !target.isAnyPtr(a.Type()) {
+	if a.Res != nil && !ctx.verbose && isDefault(a.Res) && !target.isAnyPtr(a.Type()) {
 		return
 	}
 	ctx.printf("=")
@@ -136,7 +146,7 @@ func (a *GroupArg) serialize(ctx *serializer) {
 	}
 	ctx.buf.WriteByte(delims[0])
 	lastNonDefault := len(a.Inner) - 1
-	if a.fixedInnerSize() {
+	if !ctx.verbose && a.fixedInnerSize() {
 		for ; lastNonDefault >= 0; lastNonDefault-- {
 			if !isDefault(a.Inner[lastNonDefault]) {
 				break
@@ -158,7 +168,7 @@ func (a *GroupArg) serialize(ctx *serializer) {
 
 func (a *UnionArg) serialize(ctx *serializer) {
 	ctx.printf("@%v", a.Option.Type().FieldName())
-	if isDefault(a.Option) {
+	if !ctx.verbose && isDefault(a.Option) {
 		return
 	}
 	ctx.printf("=")
