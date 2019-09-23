@@ -281,6 +281,13 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 		cc:     []string{"gregkh@linuxfoundation.org", userEmail, "zaitcev@redhat.com"},
 		tags:   []string{"f9831b881b3e849829fc"},
 	},
+	{
+		description: `Do more sanity checks when accepting socket addresses in routing messages from user land. Reported-by: syzbot+638dbf7851da8e255af5@my.mail.com`,
+		title:       "Do more sanity checks when accepting socket addresses in routing messages from user land. Reported-by: syzbot+638dbf7851da8e255af5@my.mail.com",
+		author:      userEmail,
+		cc:          []string{userEmail},
+		tags:        []string{"638dbf7851da8e255af5"},
+	},
 }
 
 func TestBisect(t *testing.T) {
