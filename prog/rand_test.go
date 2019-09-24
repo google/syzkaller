@@ -71,6 +71,28 @@ func generateProg(t *testing.T, target *Target, rs rand.Source) *Prog {
 	return p
 }
 
+// Checks that a generated program contains only enabled syscalls.
+func TestEnabledCalls(t *testing.T) {
+	target, rs, iters := initTest(t)
+	enabledCalls := map[string]bool{"open": true, "read": true, "dup3": true, "write": true, "close": true}
+	enabled := make(map[*Syscall]bool)
+	for c := range enabledCalls {
+		enabled[target.SyscallMap[c]] = true
+	}
+	ct := target.BuildChoiceTable(nil, enabled)
+	for i := 0; i < 100; i++ {
+		p := target.Generate(rs, 50, ct)
+		for it := 0; it < iters/10; it++ {
+			p.Mutate(rs, 50, ct, nil)
+		}
+		for _, c := range p.Calls {
+			if _, ok := enabledCalls[c.Meta.Name]; !ok {
+				t.Fatalf("program contains a syscall that is not enabled: %v\n", c.Meta.Name)
+			}
+		}
+	}
+}
+
 func TestSizeGenerateConstArg(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
