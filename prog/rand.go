@@ -492,8 +492,10 @@ func (r *randGen) nOutOf(n, outOf int) bool {
 
 func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
 	idx := 0
-	if s.ct == nil || insertionPoint <= 0 {
+	if s.ct == nil {
 		idx = r.Intn(len(r.target.Syscalls))
+	} else if insertionPoint <= 0 {
+		idx = s.ct.enabledCalls[r.Intn(len(s.ct.enabledCalls))].ID
 	} else {
 		call := -1
 		if len(p.Calls) != 0 {
