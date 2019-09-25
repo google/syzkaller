@@ -775,6 +775,8 @@ var linuxStackParams = &stackParams{
 		"device_destroy",
 		"hwrng_unregister",
 		"i2c_del_adapter",
+		"__unregister_client",
+		"device_for_each_child",
 		"rollback_registered",
 		"unregister_netdev",
 		"sysfs_remove",

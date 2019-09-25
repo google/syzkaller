@@ -1,0 +1,64 @@
+TITLE: WARNING in pvr2_i2c_core_done
+
+[  194.547018][  T102] ------------[ cut here ]------------
+[  194.552531][  T102] sysfs group 'power' not found for kobject '0-0011'
+[  194.559872][  T102] WARNING: CPU: 0 PID: 102 at fs/sysfs/group.c:278 sysfs_remove_group+0x155/0x1b0
+[  194.569222][  T102] Kernel panic - not syncing: panic_on_warn set ...
+[  194.575949][  T102] CPU: 0 PID: 102 Comm: pvrusb2-context Not tainted 5.3.0+ #0
+[  194.583399][  T102] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  194.593440][  T102] Call Trace:
+[  194.596822][  T102]  dump_stack+0xca/0x13e
+[  194.601321][  T102]  ? sysfs_remove_group+0xe0/0x1b0
+[  194.606424][  T102]  panic+0x2a3/0x6da
+[  194.611269][  T102]  ? add_taint.cold+0x16/0x16
+[  194.615957][  T102]  ? __probe_kernel_read+0x188/0x1d0
+[  194.621366][  T102]  ? __warn.cold+0x5/0x4a
+[  194.625691][  T102]  ? __warn+0xe3/0x1e0
+[  194.629756][  T102]  ? sysfs_remove_group+0x155/0x1b0
+[  194.634944][  T102]  __warn.cold+0x20/0x4a
+[  194.639174][  T102]  ? sysfs_remove_group+0x155/0x1b0
+[  194.644390][  T102]  report_bug+0x262/0x2a0
+[  194.648824][  T102]  do_error_trap+0x12b/0x1e0
+[  194.654281][  T102]  ? sysfs_remove_group+0x155/0x1b0
+[  194.659473][  T102]  do_invalid_op+0x32/0x40
+[  194.663904][  T102]  ? sysfs_remove_group+0x155/0x1b0
+[  194.669725][  T102]  invalid_op+0x23/0x30
+[  194.673882][  T102] RIP: 0010:sysfs_remove_group+0x155/0x1b0
+[  194.679682][  T102] Code: 48 89 d9 49 8b 14 24 48 b8 00 00 00 00 00 fc ff df 48 c1 e9 03 80 3c 01 00 75 41 48 8b 33 48 c7 c7 a0 dc d0 85 e8 e0 67 8a ff <0f> 0b eb 95 e8 72 c4 db ff e9 d2 fe ff ff 48 89 df e8 65 c4 db ff
+[  194.699276][  T102] RSP: 0018:ffff8881d586fb90 EFLAGS: 00010282
+[  194.705328][  T102] RAX: 0000000000000000 RBX: ffffffff85f33f80 RCX: 0000000000000000
+[  194.713287][  T102] RDX: 0000000000000000 RSI: ffffffff8128d3fd RDI: ffffed103ab0df64
+[  194.721246][  T102] RBP: 0000000000000000 R08: ffff8881d5860000 R09: ffffed103b645d58
+[  194.729205][  T102] R10: ffffed103b645d57 R11: ffff8881db22eabf R12: ffff8881d97f6ea0
+[  194.737180][  T102] R13: ffffffff85f34520 R14: 1ffff1103ab0df98 R15: dffffc0000000000
+[  194.745152][  T102]  ? vprintk_func+0x7d/0x113
+[  194.749737][  T102]  ? __unregister_dummy+0x80/0x80
+[  194.754751][  T102]  dpm_sysfs_remove+0x97/0xb0
+[  194.759421][  T102]  device_del+0x12a/0xb10
+[  194.763744][  T102]  ? lock_acquire+0x127/0x320
+[  194.768406][  T102]  ? __device_links_no_driver+0x240/0x240
+[  194.774104][  T102]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[  194.779890][  T102]  ? lockdep_hardirqs_on+0x382/0x580
+[  194.785189][  T102]  ? __unregister_dummy+0x80/0x80
+[  194.790192][  T102]  device_unregister+0x11/0x30
+[  194.794952][  T102]  __unregister_client+0x8b/0xa0
+[  194.799875][  T102]  device_for_each_child+0xf9/0x170
+[  194.805062][  T102]  ? device_remove_class_symlinks+0x210/0x210
+[  194.811121][  T102]  ? __radix_tree_lookup+0x1ed/0x260
+[  194.816409][  T102]  i2c_del_adapter+0x2e2/0x590
+[  194.821179][  T102]  ? del_timer_sync+0x11e/0x130
+[  194.826010][  T102]  pvr2_i2c_core_done+0x69/0xb6
+[  194.830868][  T102]  pvr2_hdw_destroy+0x179/0x370
+[  194.835708][  T102]  pvr2_context_destroy+0x84/0x230
+[  194.840826][  T102]  pvr2_context_thread_func+0x657/0x860
+[  194.846370][  T102]  ? lock_acquire+0x127/0x320
+[  194.851212][  T102]  ? pvr2_context_destroy+0x230/0x230
+[  194.856565][  T102]  ? finish_wait+0x260/0x260
+[  194.861134][  T102]  ? lockdep_hardirqs_on+0x382/0x580
+[  194.866399][  T102]  ? __kthread_parkme+0x10a/0x1c0
+[  194.871415][  T102]  ? pvr2_context_destroy+0x230/0x230
+[  194.876893][  T102]  kthread+0x318/0x420
+[  194.880941][  T102]  ? kthread_create_on_node+0xf0/0xf0
+[  194.886307][  T102]  ret_from_fork+0x24/0x30
+[  194.891730][  T102] Kernel Offset: disabled
+[  194.896107][  T102] Rebooting in 86400 seconds..
