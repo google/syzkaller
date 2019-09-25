@@ -779,6 +779,7 @@ var linuxStackParams = &stackParams{
 		"unregister_netdev",
 		"sysfs_remove",
 		"device_remove_file",
+		"tty_unregister_device",
 		"dummy_urb_enqueue",
 		"usb_kill_urb",
 		"usb_kill_anchored_urbs",
