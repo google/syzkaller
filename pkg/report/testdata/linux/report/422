@@ -1,4 +1,4 @@
-TITLE: KASAN: use-after-free Read in tty_unregister_device
+TITLE: KASAN: use-after-free Read in hso_probe
 
 [   54.689586][ T1737] ==================================================================
 [   54.697746][ T1737] BUG: KASAN: use-after-free in __mutex_lock+0xf23/0x1360
