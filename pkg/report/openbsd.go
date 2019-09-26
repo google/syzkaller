@@ -163,6 +163,10 @@ var openbsdOopses = []*oops{
 				title: compile("panic: timeout_add: to_ticks \\(.+\\) < 0"),
 				fmt:   "panic: timeout_add: to_ticks < 0",
 			},
+			{
+				title: compile("panic: attempt to execute user address {{ADDR}} in supervisor mode"),
+				fmt:   "panic: attempt to execute user address",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
