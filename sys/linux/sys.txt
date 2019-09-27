@@ -241,6 +241,19 @@ futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
 clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in])
+clone3(args ptr[in, clone_args], size bytesize[args]) pid
+
+clone_args {
+	flags		flags[clone_flags, int64]
+	pidfd		ptr64[out, fd_pidfd]
+	child_tid	ptr64[out, pid]
+	parent_tid	ptr64[out, pid]
+	exit_signal	signalno
+	exit_signal_pad	const[0, int32]
+	stack		ptr64[out, array[int8]]
+	stack_size	bytesize[stack, int64]
+	tls		ptr64[out, array[int8]]
+}
 
 resource pid[int32]: 0, -1
 resource uid[int32]: 0, -1, 0xee00, 0xee01
@@ -369,6 +382,7 @@ setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, iti
 exit(code intptr)
 exit_group(code intptr)
 waitid(which flags[waitid_which], pid pid, infop ptr[out, siginfo, opt], options flags[wait_options], ru ptr[out, rusage, opt])
+waitid$P_PIDFD(which const[P_PIDFD], pidfd fd_pidfd, infop ptr[out, siginfo, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
 times(buf ptr[out, tms])
 # Can send signals to all processes (pid=-1).
@@ -431,6 +445,7 @@ resource fd_pidfd[fd]
 
 openat$pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/self"]], flags flags[open_flags], mode const[0]) fd_pidfd
 pidfd_send_signal(fd fd_pidfd, sig signalno, info ptr[in, siginfo], flags const[0])
+pidfd_open(pid pid, flags const[0]) fd_pidfd
 
 # Uncomment on your own account.
 #syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
