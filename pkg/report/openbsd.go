@@ -202,6 +202,10 @@ var openbsdOopses = []*oops{
 		[]byte("uvm_fault"),
 		[]oopsFormat{
 			{
+				title: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+{{ADDR}}"),
+				fmt:   "uvm_fault",
+			},
+			{
 				title: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+([^\\+]+)"),
 				fmt:   "uvm_fault: %[1]v",
 			},
