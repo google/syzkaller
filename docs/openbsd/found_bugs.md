@@ -6,6 +6,18 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [sendto: lenient validation of socket address](https://marc.info/?l=openbsd-cvs&m=156923645331466&w=2)
+
+- [vmm(4): missing locking](https://marc.info/?l=openbsd-cvs&m=156822096707365&w=2)
+
+- [vmm(4): number of VMs counter overflow](https://marc.info/?l=openbsd-cvs&m=156814418919992&w=2)
+
+- [ip6(4): use-after-free in multicast route](https://marc.info/?l=openbsd-cvs&m=156761352927972&w=2)
+
+- [VOP_LOCK(9): threads not observing exclusive lock](https://marc.info/?l=openbsd-cvs&m=156684581030011&w=2)
+
+- [ip6(4): don't use the flow of the first fragment to store ECN data](https://marc.info/?l=openbsd-cvs&m=156684528429904&w=2 )
+
 - [acct: `vn_close(9)` race](https://marc.info/?l=openbsd-cvs&m=156585417104888&w=2)
 
 - [diskmap(4): side-effect in error path](https://marc.info/?l=openbsd-cvs&m=156499481623952&w=2)
