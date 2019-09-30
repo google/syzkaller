@@ -29,7 +29,10 @@ define MON_IOCX_GETX	_IOW(MON_IOC_MAGIC, 10,  struct {void *hdr; void *data; siz
 
 resource fd_usbmon[fd]
 
-openat$usbmon(fd const[AT_FDCWD], file ptr[in, string["/dev/usbmon0"]], flags flags[open_flags], mode const[0]) fd_usbmon
+syz_open_dev$usbmon(dev ptr[in, string["/dev/usbmon#"]], id intptr, flags flags[open_flags]) fd_usbmon
+read$usbmon(fd fd_usbmon, buf buffer[out], count len[buf])
+mmap$usbmon(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_usbmon, offset fileoff)
+_ = __NR_mmap2
 
 ioctl$MON_IOCQ_URB_LEN(fd fd_usbmon, cmd const[MON_IOCQ_URB_LEN])
 ioctl$MON_IOCQ_RING_SIZE(fd fd_usbmon, cmd const[MON_IOCQ_RING_SIZE])
