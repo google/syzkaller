@@ -238,7 +238,7 @@ syz_open_dev$loop(&(0x7f0000000000)='/dev/loop1\x00', 0x1, 0x0)
 		}, {`
 open("\x2f\x64\x65\x76\x2f\x62\x75\x73\x2f\x75\x73\x62\x2f\x30\x30\x31\x2f\x30\x30\x31", 0) = 3
 `, `
-syz_open_dev$usb(&(0x7f0000000000)='/dev/bus/usb/001/001\x00', 0xb, 0x0)
+syz_open_dev$usbfs(&(0x7f0000000000)='/dev/bus/usb/001/001\x00', 0xb, 0x0)
 `,
 		}, {`
 openat(0xffffffffffffff9c, "\x2f\x64\x65\x76\x2f\x7a\x65\x72\x6f", 0x31, 0) = 3
