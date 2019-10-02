@@ -479,7 +479,7 @@ func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
 func (t *IntType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool) {
 	// For a integer without a range of values, the priority is based on
 	// the number of bits occupied by the underlying type.
-	plainPrio := math.Log2((float64(t.Size() * 8))) + 0.1*maxPriority
+	plainPrio := math.Log2(float64(t.TypeBitSize())) + 0.1*maxPriority
 	if t.Kind != IntRange {
 		return plainPrio, false
 	}
