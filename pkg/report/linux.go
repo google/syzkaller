@@ -874,7 +874,6 @@ var linuxOopses = []*oops{
 				title:  compile("BUG: KCSAN:"),
 				report: compile("BUG: KCSAN: (.*)"),
 				fmt:    "KCSAN: %[1]v",
-				noStackTrace: true,
 			},
 			{
 				title: compile("BUG: (?:unable to handle kernel paging request|unable to handle page fault for address)"),

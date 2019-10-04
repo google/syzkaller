@@ -1,25 +1,24 @@
-TITLE: KCSAN: racing read in e1000_clean_rx_irq
+TITLE: KCSAN: racing read in tcp_release_cb
 
-[   44.381409][    C4]  ==================================================================
-[   44.381969][    C4]  BUG: KCSAN: racing read in e1000_clean_rx_irq+0x551/0xb10
-[   44.382748][    C4]  
-[   44.383468][    C4]  race at unknown origin, with read to 0xffff933db8a2ae6c of 1 bytes by interrupt on cpu 0:
-[   44.384066][    C4]   e1000_clean_rx_irq+0x551/0xb10
-[   44.384704][    C4]   e1000_clean+0x533/0xda0
-[   44.385296][    C4]   net_rx_action+0x329/0x900
-[   44.385831][    C4]   __do_softirq+0xdb/0x2db
-[   44.386391][    C4]   irq_exit+0x9b/0xa0
-[   44.386691][    C4]   do_IRQ+0x9c/0xf0
-[   44.387656][    C4]   ret_from_intr+0x0/0x18
-[   44.388333][    C4]   default_idle+0x3f/0x220
-[   44.388954][    C4]   arch_cpu_idle+0x21/0x30
-[   44.389545][    C4]   do_idle+0x1df/0x230
-[   44.390327][    C4]   cpu_startup_entry+0x14/0x20
-[   44.391267][    C4]   rest_init+0xc5/0xcb
-[   44.392120][    C4]   arch_call_rest_init+0x13/0x2b
-[   44.392902][    C4]   start_kernel+0x6db/0x700
-[   44.393638][    C4]  
-[   44.394244][    C4]  Reported by Kernel Concurrency Sanitizer on:
-[   44.394819][    C4]  CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.3.0-rc7+ #2
-[   44.395392][    C4]  Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
-[   44.395951][    C4]  ==================================================================
+[   23.819849][ T6263] ==================================================================
+[   23.821543][ T6263] BUG: KCSAN: racing read in tcp_release_cb+0x55/0x200
+[   23.822916][ T6263] 
+[   23.823524][ T6263] CPU: 7 PID: 6263 Comm: syz-fuzzer Not tainted 5.3.0+ #7
+[   23.825231][ T6263] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[   23.827311][ T6263] Call Trace:
+[   23.827874][ T6263] 
+[   23.828287][ T6263] race at unknown origin, with read to 0xffff888074086a50 of 8 bytes by task 6263 on cpu 7:
+[   23.830024][ T6263]  tcp_release_cb+0x55/0x200
+[   23.830842][ T6263]  release_sock+0x96/0x160
+[   23.831621][ T6263]  tcp_sendmsg+0x44/0x60
+[   23.832362][ T6263]  inet_sendmsg+0x6d/0x90
+[   23.833138][ T6263]  sock_sendmsg+0x9f/0xc0
+[   23.833925][ T6263]  sock_write_iter+0x16b/0x210
+[   23.834815][ T6263]  new_sync_write+0x388/0x4a0
+[   23.835621][ T6263]  __vfs_write+0xb1/0xc0
+[   23.836341][ T6263]  vfs_write+0x18a/0x390
+[   23.837051][ T6263]  ksys_write+0xd5/0x1b0
+[   23.837772][ T6263]  __x64_sys_write+0x4c/0x60
+[   23.838565][ T6263]  do_syscall_64+0xcf/0x2f0
+[   23.839301][ T6263]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[   23.840244][ T6263] ==================================================================

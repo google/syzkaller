@@ -1,34 +1,32 @@
-TITLE: KCSAN: data-race in find_next_bit / rcu_report_exp_cpu_mult
+TITLE: KCSAN: data-race in ep_poll / ep_poll_callback
 
-[   44.377931][    C4] ==================================================================
-[   44.379001][    C4] BUG: KCSAN: data-race in find_next_bit / rcu_report_exp_cpu_mult
-[   44.379966][    C4] 
-[   44.380268][    C4] read to 0xffffffff85a7f140 of 8 bytes by task 1082 on cpu 7:
-[   44.381409][    C4]  find_next_bit+0x57/0xe0
-[   44.381969][    C4]  sync_rcu_exp_select_node_cpus+0x28e/0x510
-[   44.382748][    C4]  sync_rcu_exp_select_cpus+0x30c/0x590
-[   44.383468][    C4]  wait_rcu_exp_gp+0x25/0x40
-[   44.384066][    C4]  process_one_work+0x3d4/0x890
-[   44.384704][    C4]  worker_thread+0xa0/0x800
-[   44.385296][    C4]  kthread+0x1d4/0x200
-[   44.385831][    C4]  ret_from_fork+0x1f/0x30
-[   44.386391][    C4] 
-[   44.386691][    C4] write to 0xffffffff85a7f140 of 8 bytes by interrupt on cpu 4:
-[   44.387656][    C4]  rcu_report_exp_cpu_mult+0x4f/0xa0
-[   44.388333][    C4]  rcu_report_exp_rdp+0x6c/0x90
-[   44.388954][    C4]  rcu_exp_handler+0xe5/0x190
-[   44.389545][    C4]  flush_smp_call_function_queue+0x190/0x2a0
-[   44.390327][    C4]  generic_smp_call_function_single_interrupt+0x1c/0x49
-[   44.391267][    C4]  smp_call_function_single_interrupt+0x71/0x1c0
-[   44.392120][    C4]  call_function_single_interrupt+0xf/0x20
-[   44.392902][    C4]  __kcsan_check_watchpoint+0x2e/0x180
-[   44.393638][    C4]  __tsan_write4+0x18/0x40
-[   44.394244][    C4]  vsnprintf+0x23a/0xb40
-[   44.394819][    C4]  seq_vprintf+0xaa/0xf0
-[   44.395392][    C4]  seq_printf+0x6c/0x90
-[   44.395951][    C4]  s_show+0x189/0x1b0
-[   44.396484][    C4] 
-[   44.396800][    C4] Reported by Kernel Concurrency Sanitizer on:
-[   44.397634][    C4] CPU: 4 PID: 6252 Comm: syz-fuzzer Not tainted 5.3.0+ #3
-[   44.398597][    C4] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
-[   44.399836][    C4] ==================================================================
+[   24.338905][ T6241] ==================================================================
+[   24.340322][ T6241] BUG: KCSAN: data-race in ep_poll / ep_poll_callback
+[   24.341327][ T6241] 
+[   24.341693][ T6241] CPU: 2 PID: 6241 Comm: syz-fuzzer Not tainted 5.3.0+ #7
+[   24.342879][ T6241] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[   24.344355][ T6241] Call Trace:
+[   24.344869][ T6241] 
+[   24.345229][ T6241] read to 0xffff8880799ca590 of 8 bytes by task 6241 on cpu 2:
+[   24.346388][ T6241]  ep_poll+0x47b/0x900
+[   24.347050][ T6241]  do_epoll_wait+0x162/0x180
+[   24.347773][ T6241]  __x64_sys_epoll_pwait+0xcd/0x170
+[   24.348585][ T6241]  do_syscall_64+0xcf/0x2f0
+[   24.349349][ T6241]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[   24.350299][ T6241] 
+[   24.350674][ T6241] write to 0xffff8880799ca590 of 8 bytes by interrupt on cpu 1:
+[   24.351805][ T6241]  ep_poll_callback+0x5e7/0x6a0
+[   24.352529][ T6241]  __wake_up_common+0x7b/0x180
+[   24.353235][ T6241]  __wake_up_common_lock+0x77/0xb0
+[   24.354006][ T6241]  __wake_up_sync_key+0x19/0x20
+[   24.354737][ T6241]  sock_def_readable+0xa9/0x140
+[   24.355487][ T6241]  tcp_data_ready+0x7d/0xd0
+[   24.356251][ T6241]  tcp_rcv_established+0xd0c/0xf50
+[   24.357095][ T6241]  tcp_v4_do_rcv+0x381/0x4e0
+[   24.357813][ T6241]  tcp_v4_rcv+0x1a03/0x1bf0
+[   24.358525][ T6241]  ip_protocol_deliver_rcu+0x51/0x470
+[   24.359369][ T6241]  ip_local_deliver_finish+0x110/0x140
+[   24.360285][ T6241]  ip_local_deliver+0x133/0x210
+[   24.361083][ T6241]  ip_rcv_finish+0x121/0x160
+[   24.361810][ T6241]  ip_rcv+0x18f/0x1a0
+[   24.362435][ T6241] ==================================================================
