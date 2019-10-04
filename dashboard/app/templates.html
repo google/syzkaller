@@ -232,6 +232,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{end}}
 {{end}}
 
+{{/* Bisection result, invoked with *uiJob */}}
 {{/* Show bisection results */}}
 {{define "bisect_results"}}
 {{if .}}
@@ -281,5 +282,52 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{optlink .Crash.ReproSyzLink "syz"}}
 		{{optlink .Crash.KernelConfigLink ".config"}}<br>
 	{{end}}
+{{end}}
+{{end}}
+
+{{/* List of fixing commits, invoked with *uiCrashTable */}}
+{{/* Show crashes */}}
+{{define "crash_list"}}
+{{if .}}
+<table class="list_table">
+	<caption>{{.Caption}}</caption>
+		<thead>
+		<tr>
+			<th><a onclick="return sortTable(this, 'Manager', textSort)" href="#">Manager</a></th>
+			<th><a onclick="return sortTable(this, 'Time', textSort, true)" href="#">Time</a></th>
+			<th><a onclick="return sortTable(this, 'Kernel', textSort)" href="#">Kernel</a></th>
+			<th><a onclick="return sortTable(this, 'Commit', textSort)" href="#">Commit</a></th>
+			<th><a onclick="return sortTable(this, 'Syzkaller', textSort)" href="#">Syzkaller</a></th>
+			<th><a onclick="return sortTable(this, 'Config', textSort)" href="#">Config</a></th>
+			<th><a onclick="return sortTable(this, 'Log', textSort)" href="#">Log</a></th>
+			<th><a onclick="return sortTable(this, 'Report', reproSort)" href="#">Report</a></th>
+			<th><a onclick="return sortTable(this, 'Syz repro', reproSort)" href="#">Syz repro</a></th>
+			<th><a onclick="return sortTable(this, 'C repro', textSort)" href="#">C repro</a></th>
+			{{if .HasMaintainers}}
+			<th><a onclick="return sortTable(this, 'Maintainers', textSort)" href="#">Maintainers</a></th>
+			{{end}}
+		</tr>
+		</thead>
+		<tbody>
+		{{range $b := .Crashes}}
+		<tr>
+			<td class="manager">{{$b.Manager}}</td>
+			<td class="time">{{formatTime $b.Time}}</td>
+			<td class="kernel" title="{{$b.KernelAlias}}">{{$b.KernelAlias}}</td>
+			<td class="tag" title="{{$b.KernelCommit}}
+	{{formatTime $b.KernelCommitDate}}">{{link $b.KernelCommitLink (formatShortHash $b.KernelCommit)}}</td>
+			<td class="tag">{{link $b.SyzkallerCommitLink (formatShortHash $b.SyzkallerCommit)}}</td>
+			<td class="config">{{if $b.KernelConfigLink}}<a href="{{$b.KernelConfigLink}}">.config</a>{{end}}</td>
+			<td class="repro">{{if $b.LogLink}}<a href="{{$b.LogLink}}">log</a>{{end}}</td>
+			<td class="repro">{{if $b.ReportLink}}<a href="{{$b.ReportLink}}">report</a>{{end}}</td>
+			<td class="repro">{{if $b.ReproSyzLink}}<a href="{{$b.ReproSyzLink}}">syz</a>{{end}}</td>
+			<td class="repro">{{if $b.ReproCLink}}<a href="{{$b.ReproCLink}}">C</a>{{end}}</td>
+			{{if $.HasMaintainers}}
+			<td class="maintainers" title="{{$b.Maintainers}}">{{$b.Maintainers}}</td>
+			{{end}}
+		</tr>
+		{{end}}
+		</tbody>
+</table>
 {{end}}
 {{end}}

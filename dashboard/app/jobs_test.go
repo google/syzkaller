@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
+	db "google.golang.org/appengine/datastore"
 )
 
 func TestJob(t *testing.T) {
@@ -549,4 +550,92 @@ func TestNotReportingAlreadyFixed(t *testing.T) {
 
 	// No reporting should come in at this point. If there is reporting, c.Close()
 	// will fail.
+}
+
+// Test that fix bisections are listed on the bug page if the bug.BisectFix
+// is not BisectYes.
+func TestFixBisectionsListed(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	// Upload a crash report
+	build := testBuild(1)
+	c.client2.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.client2.ReportCrash(crash)
+	c.client2.pollEmailBug()
+
+	// Receive the JobBisectCause.
+	resp := c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectCause)
+	done := &dashapi.JobDoneReq{
+		ID:    resp.ID,
+		Error: []byte("testBisectFixRetry:JobBisectCause"),
+	}
+	c.client2.expectOK(c.client2.JobDone(done))
+
+	// At this point, no fix bisections should be listed out.
+	var bugs []*Bug
+	keys, err := db.NewQuery("Bug").GetAll(c.ctx, &bugs)
+	c.expectEQ(err, nil)
+	c.expectEQ(len(bugs), 1)
+	url := fmt.Sprintf("/bug?id=%v", keys[0].StringID())
+	content, err := c.httpRequest("GET", url, "", AccessAdmin)
+	c.expectEQ(err, nil)
+	c.expectTrue(!bytes.Contains(content, []byte("All fix bisections")))
+
+	// Advance time by 30 days and read out any notification emails.
+	{
+		c.advanceTime(30 * 24 * time.Hour)
+		msg := c.client2.pollEmailBug()
+		c.expectEQ(msg.Subject, "title1")
+		c.expectTrue(strings.Contains(msg.Body, "Sending this report upstream."))
+
+		msg = c.client2.pollEmailBug()
+		c.expectEQ(msg.Subject, "title1")
+		c.expectTrue(strings.Contains(msg.Body, "syzbot found the following crash"))
+	}
+
+	// Ensure that we get a JobBisectFix. We send back a crashlog, no error,
+	// no commits.
+	resp = c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
+	done = &dashapi.JobDoneReq{
+		Build: dashapi.Build{
+			ID: "build1",
+		},
+		ID:          resp.ID,
+		CrashTitle:  "this is a crashtitle",
+		CrashLog:    []byte("this is a crashlog"),
+		CrashReport: []byte("this is a crashreport"),
+		Log:         []byte("this is a log"),
+	}
+	c.client2.expectOK(c.client2.JobDone(done))
+
+	// Check the bug page and ensure that a bisection is listed out.
+	content, err = c.httpRequest("GET", url, "", AccessAdmin)
+	c.expectEQ(err, nil)
+	c.expectTrue(bytes.Contains(content, []byte("All fix bisections (1)")))
+
+	// Advance time by 30 days. No notification emails.
+	{
+		c.advanceTime(30 * 24 * time.Hour)
+	}
+
+	// Ensure that we get a JobBisectFix retry.
+	resp = c.client2.pollJobs(build.Manager)
+	c.client2.expectNE(resp.ID, "")
+	c.client2.expectEQ(resp.Type, dashapi.JobBisectFix)
+	done = &dashapi.JobDoneReq{
+		ID:    resp.ID,
+		Error: []byte("testBisectFixRetry:JobBisectFix"),
+	}
+	c.client2.expectOK(c.client2.JobDone(done))
+
+	// Check the bug page and ensure that no bisections are listed out.
+	content, err = c.httpRequest("GET", url, "", AccessAdmin)
+	c.expectEQ(err, nil)
+	c.expectTrue(!bytes.Contains(content, []byte("All fix bisections")))
 }
