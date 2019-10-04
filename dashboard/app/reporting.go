@@ -929,14 +929,13 @@ func queryCrashForJob(c context.Context, job *Job, bugKey *db.Key) (*Crash, erro
 	}
 	// Now, create a crash object with the crash details from the job.
 	ret := &Crash{
-		Time:        job.Finished,
-		Maintainers: nil,
-		Log:         job.Log,
-		Report:      job.CrashReport,
-		ReproOpts:   crash.ReproOpts,
-		ReproSyz:    crash.ReproSyz,
-		ReproC:      crash.ReproC,
-		ReportLen:   0,
+		Manager:   crash.Manager,
+		Time:      job.Finished,
+		Log:       job.Log,
+		Report:    job.CrashReport,
+		ReproOpts: crash.ReproOpts,
+		ReproSyz:  crash.ReproSyz,
+		ReproC:    crash.ReproC,
 	}
 	return ret, nil
 }

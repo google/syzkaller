@@ -366,16 +366,14 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	crashesTable := &uiCrashTable{
 		Crashes: crashes,
-		Caption: fmt.Sprintf("All crashes (%d):", bug.NumCrashes),
+		Caption: fmt.Sprintf("Crashes (%d)", bug.NumCrashes),
 	}
-	hasMaintainers := false
 	for _, crash := range crashesTable.Crashes {
 		if len(crash.Maintainers) != 0 {
-			hasMaintainers = true
+			crashesTable.HasMaintainers = true
 			break
 		}
 	}
-	crashesTable.HasMaintainers = hasMaintainers
 	dups, err := loadDupsForBug(c, r, bug, state, managers)
 	if err != nil {
 		return err
@@ -418,9 +416,11 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		if err != nil {
 			return err
 		}
-		data.FixBisections = &uiCrashTable{
-			Crashes: fixBisections,
-			Caption: fmt.Sprintf("All fix bisections (%d):", len(fixBisections)),
+		if len(fixBisections) != 0 {
+			data.FixBisections = &uiCrashTable{
+				Crashes: fixBisections,
+				Caption: fmt.Sprintf("Fix bisections (%v)", len(fixBisections)),
+			}
 		}
 	}
 	return serveTemplate(w, "bug.html", data)
