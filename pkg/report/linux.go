@@ -871,9 +871,9 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
-				title:  compile("BUG: KCSAN:"),
-				report: compile("BUG: KCSAN: (.*)"),
-				fmt:    "KCSAN: %[1]v",
+				title:        compile("BUG: KCSAN:"),
+				report:       compile("BUG: KCSAN: (.*)"),
+				fmt:          "KCSAN: %[1]v",
 				noStackTrace: true,
 			},
 			{
