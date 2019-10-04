@@ -107,17 +107,17 @@ type uiCommit struct {
 }
 
 type uiBugPage struct {
-	Header         *uiHeader
-	Now            time.Time
-	Bug            *uiBug
-	BisectCause    *uiJob
-	BisectFix      *uiJob
-	DupOf          *uiBugGroup
-	Dups           *uiBugGroup
-	Similar        *uiBugGroup
-	SampleReport   []byte
-	HasMaintainers bool
-	Crashes        []*uiCrash
+	Header        *uiHeader
+	Now           time.Time
+	Bug           *uiBug
+	BisectCause   *uiJob
+	BisectFix     *uiJob
+	DupOf         *uiBugGroup
+	Dups          *uiBugGroup
+	Similar       *uiBugGroup
+	SampleReport  []byte
+	Crashes       *uiCrashTable
+	FixBisections *uiCrashTable
 }
 
 type uiBugGroup struct {
@@ -165,6 +165,12 @@ type uiCrash struct {
 	ReproSyzLink string
 	ReproCLink   string
 	*uiBuild
+}
+
+type uiCrashTable struct {
+	Crashes        []*uiCrash
+	Caption        string
+	HasMaintainers bool
 }
 
 type uiJob struct {
@@ -358,6 +364,18 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	crashesTable := &uiCrashTable{
+		Crashes: crashes,
+		Caption: fmt.Sprintf("All crashes (%d):", bug.NumCrashes),
+	}
+	hasMaintainers := false
+	for _, crash := range crashesTable.Crashes {
+		if len(crash.Maintainers) != 0 {
+			hasMaintainers = true
+			break
+		}
+	}
+	crashesTable.HasMaintainers = hasMaintainers
 	dups, err := loadDupsForBug(c, r, bug, state, managers)
 	if err != nil {
 		return err
@@ -380,25 +398,30 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 	}
-	hasMaintainers := false
-	for _, crash := range crashes {
-		if len(crash.Maintainers) != 0 {
-			hasMaintainers = true
-			break
-		}
-	}
 	data := &uiBugPage{
-		Header:         hdr,
-		Now:            timeNow(c),
-		Bug:            uiBug,
-		BisectCause:    bisectCause,
-		BisectFix:      bisectFix,
-		DupOf:          dupOf,
-		Dups:           dups,
-		Similar:        similar,
-		SampleReport:   sampleReport,
-		HasMaintainers: hasMaintainers,
-		Crashes:        crashes,
+		Header:       hdr,
+		Now:          timeNow(c),
+		Bug:          uiBug,
+		BisectCause:  bisectCause,
+		BisectFix:    bisectFix,
+		DupOf:        dupOf,
+		Dups:         dups,
+		Similar:      similar,
+		SampleReport: sampleReport,
+		Crashes:      crashesTable,
+	}
+	// bug.BisectFix is set to BisectNot in two cases :
+	// - no fix bisections have been performed on the bug
+	// - fix bisection was performed but resulted in a crash on HEAD
+	if bug.BisectFix == BisectNot {
+		fixBisections, err := loadFixBisectionsForBug(c, bug)
+		if err != nil {
+			return err
+		}
+		data.FixBisections = &uiCrashTable{
+			Crashes: fixBisections,
+			Caption: fmt.Sprintf("All fix bisections (%d):", len(fixBisections)),
+		}
 	}
 	return serveTemplate(w, "bug.html", data)
 }
@@ -837,6 +860,30 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 		return nil, nil, err
 	}
 	return results, sampleReport, nil
+}
+
+func loadFixBisectionsForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
+	bugKey := bug.key(c)
+	jobs, _, err := queryJobsForBug(c, bugKey, JobBisectFix)
+	if err != nil {
+		return nil, err
+	}
+	var results []*uiCrash
+	for _, job := range jobs {
+		crash, err := queryCrashForJob(c, job, bugKey)
+		if err != nil {
+			return nil, err
+		}
+		if crash == nil {
+			continue
+		}
+		build, err := loadBuild(c, bug.Namespace, job.BuildID)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, makeUICrash(crash, build))
+	}
+	return results, nil
 }
 
 func makeUICrash(crash *Crash, build *Build) *uiCrash {
