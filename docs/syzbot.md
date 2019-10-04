@@ -359,6 +359,16 @@ A useful litmus test is to remove `KMEMLEAK` code from the reproducer
 and run it for longer and/or multiple times. If memory consumption and number
 of live objects in `/proc/slabinfo` steadily grow, most likely the leak is real.
 
+## KCSAN bugs
+
+`KCSAN` is a dynamic data-race detector. `KCSAN` is not upstream yet, though,
+we want to upstream it later. For now, it lives in
+[github.com/google/ktsan/tree/kcsan](https://github.com/google/ktsan/tree/kcsan)
+and is based on a reasonably fresh upstream tree.
+
+Reproduction of data-races is unsupported, and syzbot is unable to test
+patches.
+
 ## No custom patches
 
 While `syzbot` can test patches that fix bugs, it does not support applying
