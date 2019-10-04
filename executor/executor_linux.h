@@ -181,4 +181,5 @@ static feature_t features[] = {
     {"leak", setup_leak},
     {"fault", setup_fault},
     {"binfmt_misc", setup_binfmt_misc},
+    {"kcsan", setup_kcsan},
 };

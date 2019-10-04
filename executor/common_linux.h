@@ -2778,3 +2778,11 @@ static void setup_binfmt_misc()
 	write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:\x02::./file0:POC");
 }
 #endif
+
+#if SYZ_EXECUTOR || SYZ_ENABLE_KCSAN
+static void setup_kcsan()
+{
+	if (!write_file("/proc/kcsaninfo", "on"))
+		fail("failed to enable KCSAN");
+}
+#endif

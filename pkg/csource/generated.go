@@ -5193,6 +5193,14 @@ static void setup_binfmt_misc()
 }
 #endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_KCSAN
+static void setup_kcsan()
+{
+	if (!write_file("/proc/kcsaninfo", "on"))
+		fail("failed to enable KCSAN");
+}
+#endif
+
 #elif GOOS_test
 
 #include <stdlib.h>
@@ -5670,6 +5678,9 @@ int main(void)
 #endif
 #if SYZ_FAULT_INJECTION
 	setup_fault();
+#endif
+#if SYZ_ENABLE_KCSAN
+	setup_kcsan();
 #endif
 
 #if SYZ_HANDLE_SEGV
