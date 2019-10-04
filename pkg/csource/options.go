@@ -37,6 +37,7 @@ type Options struct {
 	EnableCgroups    bool `json:"cgroups,omitempty"`
 	EnableBinfmtMisc bool `json:"binfmt_misc,omitempty"`
 	EnableCloseFds   bool `json:"close_fds"`
+	EnableKCSAN      bool `json:"kcsan,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -121,7 +122,10 @@ func (opts Options) checkLinuxOnly(OS string) error {
 		return fmt.Errorf("option EnableBinfmtMisc is not supported on %v", OS)
 	}
 	if opts.EnableCloseFds {
-		return fmt.Errorf("EnableCloseFds is not supported on %v", OS)
+		return fmt.Errorf("option EnableCloseFds is not supported on %v", OS)
+	}
+	if opts.EnableKCSAN {
+		return fmt.Errorf("option EnableKCSAN is not supported on %v", OS)
 	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
