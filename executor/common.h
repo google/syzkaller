@@ -704,6 +704,9 @@ int main(void)
 #if SYZ_FAULT_INJECTION
 	setup_fault();
 #endif
+#if SYZ_ENABLE_KCSAN
+	setup_kcsan();
+#endif
 
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();

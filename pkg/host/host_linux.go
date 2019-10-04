@@ -395,6 +395,7 @@ func init() {
 	checkFeature[FeatureLeakChecking] = checkLeakChecking
 	checkFeature[FeatureNetworkInjection] = checkNetworkInjection
 	checkFeature[FeatureNetworkDevices] = unconditionallyEnabled
+	checkFeature[FeatureKCSAN] = checkKCSAN
 }
 
 func checkCoverage() string {
@@ -553,6 +554,13 @@ func checkUSBInjection() string {
 func checkDebugFS() string {
 	if err := osutil.IsAccessible("/sys/kernel/debug"); err != nil {
 		return "debugfs is not enabled or not mounted"
+	}
+	return ""
+}
+
+func checkKCSAN() string {
+	if err := osutil.IsAccessible("/proc/kcsaninfo"); err != nil {
+		return err.Error()
 	}
 	return ""
 }

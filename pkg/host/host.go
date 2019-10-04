@@ -75,6 +75,7 @@ const (
 	FeatureLeakChecking
 	FeatureNetworkInjection
 	FeatureNetworkDevices
+	FeatureKCSAN
 	numFeatures
 )
 
@@ -106,6 +107,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureLeakChecking:               {Name: "leak checking", Reason: unsupported},
 		FeatureNetworkInjection:           {Name: "net packet injection", Reason: unsupported},
 		FeatureNetworkDevices:             {Name: "net device setup", Reason: unsupported},
+		FeatureKCSAN:                      {Name: "concurrency sanitizer", Reason: unsupported},
 	}
 	switch target.OS {
 	case "akaros", "fuchsia", "test":
@@ -141,6 +143,9 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	}
 	if target.OS == "linux" && featureFlags["binfmt_misc"].Enabled {
 		args = append(args, "binfmt_misc")
+	}
+	if features[FeatureKCSAN].Enabled {
+		args = append(args, "kcsan")
 	}
 	_, err := osutil.RunCmd(time.Minute, "", executor, args...)
 	return err
