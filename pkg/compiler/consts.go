@@ -184,10 +184,13 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				args []*ast.Type, _ prog.IntTypeCommon) {
 				for i, arg := range args {
 					if desc.Args[i].Type.Kind == kindInt {
-						comp.patchIntConst(&arg.Value, &arg.Ident, consts, &missing)
+						// We can't differentiate between an int referring to a
+						// constant and an int range using a path expression.
+						// We therefore don't report any unknown constant here.
+						comp.patchIntConst(&arg.Value, &arg.Ident, consts, nil)
 						for _, col := range arg.Colon {
 							comp.patchIntConst(&col.Value,
-								&col.Ident, consts, &missing)
+								&col.Ident, consts, nil)
 						}
 					}
 				}

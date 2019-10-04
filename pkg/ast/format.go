@@ -177,7 +177,11 @@ func fmtType(t *Type) string {
 		v = FormatInt(t.Value, t.ValueFmt)
 	}
 	for _, c := range t.Colon {
-		v += ":" + fmtType(c)
+		if t.Ident == "" && c.Ident != "" && len(c.Colon) != 0 {
+			v += ":(" + fmtType(c) + ")"
+		} else {
+			v += ":" + fmtType(c)
+		}
 	}
 	v += fmtTypeList(t.Args)
 	return v

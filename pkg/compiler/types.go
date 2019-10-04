@@ -83,12 +83,20 @@ var typeInt = &typeDesc{
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		size, be := comp.parseIntType(t.Ident)
-		kind, rangeBegin, rangeEnd := prog.IntPlain, uint64(0), uint64(0)
+		kind, rangeBegin, rangeEnd := prog.IntPlain, uint64(0), prog.RefVal{Val: uint64(0)}
 		if len(args) > 0 {
 			rangeArg := args[0]
-			kind, rangeBegin, rangeEnd = prog.IntRange, rangeArg.Value, rangeArg.Value
+			kind, rangeBegin, rangeEnd.Val = prog.IntRange, rangeArg.Value, rangeArg.Value
 			if len(rangeArg.Colon) != 0 {
-				rangeEnd = rangeArg.Colon[0].Value
+				if len(rangeArg.Colon[0].Colon) == 0 {
+					rangeEnd.Val = rangeArg.Colon[0].Value
+				} else {
+					rangeEnd.Val = uint64(0)
+					rangeEnd.Path = []string{rangeArg.Colon[0].Ident}
+					for _, col := range rangeArg.Colon[0].Colon {
+						rangeEnd.Path = append(rangeEnd.Path, col.Ident)
+					}
+				}
 			}
 		}
 		var bitLen uint64

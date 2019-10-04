@@ -434,6 +434,21 @@ func (p *parser) parseType() *Type {
 				col.Value, col.ValueFmt = p.parseIntValue()
 			case tokIdent:
 				col.Ident = p.lit
+			case tokLParen:
+				p.next()
+				p.expect(tokIdent)
+				col.Ident = p.lit
+				p.next()
+				for p.tryConsume(tokColon) {
+					p.expect(tokIdent)
+					path := &Type{
+						Pos:   p.pos,
+						Ident: p.lit,
+					}
+					col.Colon = append(col.Colon, path)
+					p.next()
+				}
+				p.expect(tokRParen)
 			default:
 				p.expect(tokInt, tokIdent)
 			}

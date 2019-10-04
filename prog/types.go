@@ -248,11 +248,16 @@ const (
 	IntRange
 )
 
+type RefVal struct {
+	Val  uint64
+	Path []string
+}
+
 type IntType struct {
 	IntTypeCommon
 	Kind       IntKind
 	RangeBegin uint64
-	RangeEnd   uint64
+	RangeEnd   RefVal
 }
 
 func (t *IntType) DefaultArg() Arg {
