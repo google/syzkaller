@@ -38,9 +38,7 @@ Page with details about a single bug.
 	{{end}}
 
 	{{if .FixBisections}}
-	{{if .FixBisections.Crashes}}
 		{{template "crash_list" .FixBisections}}
-	{{end}}
 	{{end}}
 
 	{{template "crash_list" .Crashes}}
