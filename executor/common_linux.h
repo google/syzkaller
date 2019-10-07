@@ -2782,7 +2782,7 @@ static void setup_binfmt_misc()
 #if SYZ_EXECUTOR || SYZ_ENABLE_KCSAN
 static void setup_kcsan()
 {
-	if (!write_file("/proc/kcsaninfo", "on"))
+	if (!write_file("/sys/kernel/debug/kcsan", "on"))
 		fail("failed to enable KCSAN");
 }
 #endif
