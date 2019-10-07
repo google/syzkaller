@@ -49,6 +49,8 @@ var apiNamespaceHandlers = map[string]APINamespaceHandler{
 	"manager_stats":       apiManagerStats,
 	"commit_poll":         apiCommitPoll,
 	"upload_commits":      apiUploadCommits,
+	"bug_list":            apiBugList,
+	"load_bug":            apiLoadBug,
 }
 
 type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
@@ -969,6 +971,71 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 		return nil
 	})
 	return nil, err
+}
+
+func apiBugList(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+	keys, err := db.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		KeysOnly().
+		GetAll(c, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query bugs: %v", err)
+	}
+	resp := &dashapi.BugListResp{}
+	for _, key := range keys {
+		resp.List = append(resp.List, key.StringID())
+	}
+	return resp, nil
+}
+
+func apiLoadBug(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
+	req := new(dashapi.LoadBugReq)
+	if err := json.Unmarshal(payload, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	bug := new(Bug)
+	bugKey := db.NewKey(c, "Bug", req.ID, 0, nil)
+	if err := db.Get(c, bugKey, bug); err != nil {
+		return nil, fmt.Errorf("failed to get bug: %v", err)
+	}
+	if bug.Namespace != ns {
+		return nil, fmt.Errorf("no such bug")
+	}
+	if bug.sanitizeAccess(AccessPublic) > AccessPublic {
+		return nil, nil
+	}
+	crash, _, err := findCrashForBug(c, bug)
+	if err != nil {
+		return nil, err
+	}
+	build, err := loadBuild(c, ns, crash.BuildID)
+	if err != nil {
+		return nil, err
+	}
+	reproSyz, _, err := getText(c, textReproSyz, crash.ReproSyz)
+	if err != nil {
+		return nil, err
+	}
+	reproC, _, err := getText(c, textReproC, crash.ReproC)
+	if err != nil {
+		return nil, err
+	}
+	statuses := map[int]string{
+		BugStatusOpen:    "open",
+		BugStatusFixed:   "fixed",
+		BugStatusInvalid: "invalid",
+		BugStatusDup:     "dup",
+	}
+	resp := &dashapi.LoadBugResp{
+		ID:              req.ID,
+		Title:           bug.displayTitle(),
+		Status:          statuses[bug.Status],
+		SyzkallerCommit: build.SyzkallerCommit,
+		ReproOpts:       crash.ReproOpts,
+		ReproSyz:        reproSyz,
+		ReproC:          reproC,
+	}
+	return resp, nil
 }
 
 func findBugForCrash(c context.Context, ns, title string) (*Bug, *db.Key, error) {

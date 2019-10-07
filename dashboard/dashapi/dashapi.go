@@ -460,6 +460,38 @@ func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
 	return dash.Query("manager_stats", req, nil)
 }
 
+type BugListResp struct {
+	List []string
+}
+
+func (dash *Dashboard) BugList() (*BugListResp, error) {
+	resp := new(BugListResp)
+	err := dash.Query("bug_list", nil, resp)
+	return resp, err
+}
+
+type LoadBugReq struct {
+	ID string
+}
+
+type LoadBugResp struct {
+	ID              string
+	Title           string
+	Status          string
+	SyzkallerCommit string
+	Arch            string
+	ReproOpts       []byte
+	ReproSyz        []byte
+	ReproC          []byte
+}
+
+func (dash *Dashboard) LoadBug(id string) (*LoadBugResp, error) {
+	req := LoadBugReq{id}
+	resp := new(LoadBugResp)
+	err := dash.Query("load_bug", req, resp)
+	return resp, err
+}
+
 type (
 	BugStatus  int
 	BugNotif   int
