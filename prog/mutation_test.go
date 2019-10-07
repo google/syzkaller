@@ -33,7 +33,7 @@ func TestMutationFlags(t *testing.T) {
 			`r0 = mutate$flags3(&(0x7f0000000000)="2e2f66696c653000", 0xaaaaaaaaaaaaaaaa)`,
 		},
 	}
-	runMutationTests(t, tests)
+	runMutationTests(t, tests, true)
 }
 
 func TestChooseCall(t *testing.T) {
@@ -79,7 +79,7 @@ test$array0(&(0x7f0000001000)={0x1, [@f0=0x2, @f1=0x3], 0x4})
 mutate$integer(0x0, 0x1, 0x1, 0x1, 0x0, 0x1, 0x0, 0x0, 0x1)`,
 		},
 	}
-	runMutationTests(t, tests)
+	runMutationTests(t, tests, true)
 }
 
 func TestMutateArgument(t *testing.T) {
@@ -359,9 +359,44 @@ mutate8(0x2)
 `, `
 mutate8(0xffffffffffffffff)
 `},
+		// Increase buffer length
+		{`
+mutate$buffer(&(0x7f0000000000)=""/100)
+`, `
+mutate$buffer(&(0x7f0000000000)=""/200)
+`},
+		// Decrease buffer length
+		{`
+mutate$buffer(&(0x7f0000000000)=""/800)
+`, `
+mutate$buffer(&(0x7f0000000000)=""/4)
+`},
+		// Mutate a ranged buffer
+		{`
+mutate$rangedbuffer(&(0x7f00000000c0)=""/10)
+`, `
+mutate$rangedbuffer(&(0x7f00000000c0)=""/7)
+`},
 	}
 
-	runMutationTests(t, tests)
+	runMutationTests(t, tests, true)
+}
+
+func TestNegativeMutations(t *testing.T) {
+	tests := [][2]string{
+		// Mutate buffer size outside the range limits
+		{`
+mutate$rangedbuffer(&(0x7f00000000c0)=""/7)
+`, `
+mutate$rangedbuffer(&(0x7f00000000c0)=""/4)
+`},
+		{`
+mutate$rangedbuffer(&(0x7f00000000c0)=""/7)
+`, `
+mutate$rangedbuffer(&(0x7f00000000c0)=""/11)
+`},
+	}
+	runMutationTests(t, tests, false)
 }
 
 func BenchmarkMutate(b *testing.B) {
@@ -405,7 +440,7 @@ func linuxAmd64ChoiceTable(target *Target) *ChoiceTable {
 	return linuxCT
 }
 
-func runMutationTests(t *testing.T, tests [][2]string) {
+func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 	target := initTargetTest(t, "test", "64")
 	for ti, test := range tests {
 		test := test
@@ -416,16 +451,25 @@ func runMutationTests(t *testing.T, tests [][2]string) {
 				t.Fatalf("failed to deserialize the program: %v", err)
 			}
 			want := goal.Serialize()
-			for i := 0; i < 1e5; i++ {
+			iters := int(1e5)
+			if !valid {
+				iters /= 10
+			}
+			for i := 0; i < iters; i++ {
 				p1 := p.Clone()
 				p1.Mutate(rs, len(goal.Calls), ct, nil)
 				data1 := p1.Serialize()
 				if bytes.Equal(want, data1) {
+					if !valid {
+						t.Fatalf("failed on iter %v", i)
+					}
 					t.Logf("success on iter %v", i)
 					return
 				}
 			}
-			t.Fatalf("failed to achieve goal, original:%s\ngoal:%s", test[0], test[1])
+			if valid {
+				t.Fatalf("failed to achieve goal, original:%s\ngoal:%s", test[0], test[1])
+			}
 		})
 	}
 }

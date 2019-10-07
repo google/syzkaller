@@ -649,6 +649,9 @@ var syscalls_64 = []*Syscall{
 	{Name: "mutate$array2", CallName: "mutate", MissingArgs: 8, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "syz_struct1"}}}},
 	}},
+	{Name: "mutate$buffer", CallName: "mutate", MissingArgs: 8, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "p", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
+	}},
 	{Name: "mutate$flags", CallName: "mutate", MissingArgs: 5, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "i1", TypeSize: 8}}},
@@ -680,6 +683,9 @@ var syscalls_64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "i2", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "i3", TypeSize: 2}}, Kind: 2, RangeEnd: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "i4", TypeSize: 1}}, Kind: 2, RangeEnd: 8},
+	}},
+	{Name: "mutate$rangedbuffer", CallName: "mutate", MissingArgs: 8, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "p", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Kind: 1, RangeBegin: 5, RangeEnd: 10}},
 	}},
 	{Name: "mutate$union", CallName: "mutate", MissingArgs: 8, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "p", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "syz_union0"}}},
@@ -1083,4 +1089,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "71d8f9a8f2ed06129920bb9f60aef16fb9ca749b"
+const revision_64 = "d3a892553e6e706b3c4f1a086bdd22a2578120c1"
