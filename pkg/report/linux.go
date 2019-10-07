@@ -1059,7 +1059,7 @@ var linuxOopses = []*oops{
 				// Skip all users of ODEBUG as well.
 				stack: warningStackFmt("debug_", "rcu", "hrtimer_", "timer_",
 					"work_", "percpu_", "kmem_", "slab_", "kfree", "vunmap",
-					"vfree", "__free_", "debug_check"),
+					"vfree", "__free_", "debug_check", "kobject_"),
 			},
 			{
 				title: compile("WARNING: .*mm/usercopy\\.c.* usercopy_warn"),
