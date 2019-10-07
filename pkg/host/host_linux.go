@@ -559,7 +559,7 @@ func checkDebugFS() string {
 }
 
 func checkKCSAN() string {
-	if err := osutil.IsAccessible("/proc/kcsaninfo"); err != nil {
+	if err := osutil.IsAccessible("/sys/kernel/debug/kcsan"); err != nil {
 		return err.Error()
 	}
 	return ""
