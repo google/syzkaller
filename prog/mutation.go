@@ -306,19 +306,22 @@ func (t *ProcType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*C
 }
 
 func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
+	minLen, maxLen := uint64(0), maxBlobLen
+	if t.Kind == BufferBlobRange {
+		minLen, maxLen = t.RangeBegin, t.RangeEnd
+	}
 	a := arg.(*DataArg)
+	if t.Dir() == DirOut {
+		mutateBufferSize(r, a, minLen, maxLen)
+		return
+	}
 	switch t.Kind {
 	case BufferBlobRand, BufferBlobRange:
 		data := append([]byte{}, a.Data()...)
-		minLen, maxLen := uint64(0), maxBlobLen
-		if t.Kind == BufferBlobRange {
-			minLen, maxLen = t.RangeBegin, t.RangeEnd
-		}
 		a.data = mutateData(r, data, minLen, maxLen)
 	case BufferString:
 		data := append([]byte{}, a.Data()...)
 		if r.bin() {
-			minLen, maxLen := uint64(0), maxBlobLen
 			if t.TypeSize != 0 {
 				minLen, maxLen = t.TypeSize, t.TypeSize
 			}
@@ -335,6 +338,18 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 		panic("unknown buffer kind")
 	}
 	return
+}
+
+func mutateBufferSize(r *randGen, arg *DataArg, minLen, maxLen uint64) {
+	for oldSize := arg.Size(); oldSize == arg.Size(); {
+		arg.size += uint64(r.Intn(33)) - 16
+		if arg.size < minLen {
+			arg.size = minLen
+		}
+		if arg.size > maxLen {
+			arg.size = maxLen
+		}
+	}
 }
 
 func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
@@ -464,7 +479,9 @@ func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
 		return
 	}
 
-	if typ.Dir() == DirOut || !typ.Varlen() && typ.Size() == 0 {
+	_, isArrayTyp := typ.(*ArrayType)
+	_, isBufferTyp := typ.(*BufferType)
+	if !isBufferTyp && !isArrayTyp && typ.Dir() == DirOut || !typ.Varlen() && typ.Size() == 0 {
 		return
 	}
 
@@ -577,6 +594,9 @@ func (t *LenType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (
 }
 
 func (t *BufferType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool) {
+	if t.Dir() == DirOut && !t.Varlen() {
+		return dontMutate, false
+	}
 	return 0.8 * maxPriority, false
 }
 
