@@ -10,22 +10,14 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func init() {
 	// Disable sandboxing entirely because we create test repos without sandboxing.
 	os.Setenv("SYZ_DISABLE_SANDBOXING", "yes")
 }
-
-const (
-	userEmail           = `test@syzkaller.com`
-	userName            = `Test Syzkaller`
-	extractFixTagsEmail = `"syzbot" <syzbot@my.mail.com>`
-)
 
 func TestGitRepo(t *testing.T) {
 	t.Parallel()
@@ -34,30 +26,30 @@ func TestGitRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(baseDir)
-	repo1 := createTestRepo(t, baseDir, "repo1")
-	repo2 := createTestRepo(t, baseDir, "repo2")
+	repo1 := CreateTestRepo(t, baseDir, "repo1")
+	repo2 := CreateTestRepo(t, baseDir, "repo2")
 	repo := newGit(filepath.Join(baseDir, "repo"), nil)
 	{
-		com, err := repo.Poll(repo1.dir, "master")
+		com, err := repo.Poll(repo1.Dir, "master")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, repo1.commits["master"]["1"]); diff != "" {
+		if diff := cmp.Diff(com, repo1.Commits["master"]["1"]); diff != "" {
 			t.Fatal(diff)
 		}
 	}
 	{
-		com, err := repo.CheckoutBranch(repo1.dir, "branch1")
+		com, err := repo.CheckoutBranch(repo1.Dir, "branch1")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, repo1.commits["branch1"]["1"]); diff != "" {
+		if diff := cmp.Diff(com, repo1.Commits["branch1"]["1"]); diff != "" {
 			t.Fatal(diff)
 		}
 	}
 	{
-		want := repo1.commits["branch1"]["0"]
-		com, err := repo.CheckoutCommit(repo1.dir, want.Hash)
+		want := repo1.Commits["branch1"]["0"]
+		com, err := repo.CheckoutCommit(repo1.Dir, want.Hash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +58,7 @@ func TestGitRepo(t *testing.T) {
 		}
 	}
 	{
-		commits, err := repo.ListRecentCommits(repo1.commits["branch1"]["1"].Hash)
+		commits, err := repo.ListRecentCommits(repo1.Commits["branch1"]["1"].Hash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -76,8 +68,8 @@ func TestGitRepo(t *testing.T) {
 		}
 	}
 	{
-		want := repo2.commits["branch1"]["0"]
-		com, err := repo.CheckoutCommit(repo2.dir, want.Hash)
+		want := repo2.Commits["branch1"]["0"]
+		com, err := repo.CheckoutCommit(repo2.Dir, want.Hash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -86,8 +78,8 @@ func TestGitRepo(t *testing.T) {
 		}
 	}
 	{
-		want := repo2.commits["branch1"]["1"]
-		com, err := repo.CheckoutCommit(repo2.dir, want.Hash)
+		want := repo2.Commits["branch1"]["1"]
+		com, err := repo.CheckoutCommit(repo2.Dir, want.Hash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -96,16 +88,16 @@ func TestGitRepo(t *testing.T) {
 		}
 	}
 	{
-		com, err := repo.CheckoutBranch(repo2.dir, "branch2")
+		com, err := repo.CheckoutBranch(repo2.Dir, "branch2")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if diff := cmp.Diff(com, repo2.commits["branch2"]["1"]); diff != "" {
+		if diff := cmp.Diff(com, repo2.Commits["branch2"]["1"]); diff != "" {
 			t.Fatal(diff)
 		}
 	}
 	{
-		want := repo2.commits["branch2"]["0"]
+		want := repo2.Commits["branch2"]["0"]
 		com, err := repo.SwitchCommit(want.Hash)
 		if err != nil {
 			t.Fatal(err)
@@ -123,9 +115,9 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(repoDir)
-	repo := makeTestRepo(t, repoDir)
+	repo := MakeTestRepo(t, repoDir)
 	for i, test := range metadataTests {
-		repo.commitChange(test.description)
+		repo.CommitChange(test.description)
 		com, err := repo.repo.HeadCommit()
 		if err != nil {
 			t.Fatal(err)
@@ -297,10 +289,10 @@ func TestBisect(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(repoDir)
-	repo := makeTestRepo(t, repoDir)
+	repo := MakeTestRepo(t, repoDir)
 	var commits []string
 	for i := 0; i < 5; i++ {
-		repo.commitChange(fmt.Sprintf("commit %v", i))
+		repo.CommitChange(fmt.Sprintf("commit %v", i))
 		com, err := repo.repo.HeadCommit()
 		if err != nil {
 			t.Fatal(err)
@@ -412,81 +404,4 @@ func TestBisect(t *testing.T) {
 			t.Fatal(diff)
 		}
 	}
-}
-
-type testWriter testing.T
-
-func (t *testWriter) Write(data []byte) (int, error) {
-	(*testing.T)(t).Log(string(data))
-	return len(data), nil
-}
-
-func createTestRepo(t *testing.T, baseDir, name string) *testRepo {
-	repo := makeTestRepo(t, filepath.Join(baseDir, name))
-	repo.git("checkout", "-b", "master")
-	repo.commitFileChange("master", "0")
-	for _, branch := range []string{"branch1", "branch2"} {
-		repo.git("checkout", "-b", branch, "master")
-		repo.commitFileChange(branch, "0")
-		repo.commitFileChange(branch, "1")
-	}
-	repo.git("checkout", "master")
-	repo.commitFileChange("master", "1")
-	return repo
-}
-
-type testRepo struct {
-	t       *testing.T
-	dir     string
-	name    string
-	commits map[string]map[string]*Commit
-	repo    *git
-}
-
-func makeTestRepo(t *testing.T, dir string) *testRepo {
-	if err := osutil.MkdirAll(dir); err != nil {
-		t.Fatal(err)
-	}
-	ignoreCC := map[string]bool{
-		"stable@vger.kernel.org": true,
-	}
-	repo := &testRepo{
-		t:       t,
-		dir:     dir,
-		name:    filepath.Base(dir),
-		commits: make(map[string]map[string]*Commit),
-		repo:    newGit(dir, ignoreCC),
-	}
-	repo.git("init")
-	repo.git("config", "--add", "user.email", userEmail)
-	repo.git("config", "--add", "user.name", userName)
-	return repo
-}
-
-func (repo *testRepo) git(args ...string) {
-	if _, err := osutil.RunCmd(time.Minute, repo.dir, "git", args...); err != nil {
-		repo.t.Fatal(err)
-	}
-}
-
-func (repo *testRepo) commitFileChange(branch, change string) {
-	id := fmt.Sprintf("%v-%v-%v", repo.name, branch, change)
-	file := filepath.Join(repo.dir, "file")
-	if err := osutil.WriteFile(file, []byte(id)); err != nil {
-		repo.t.Fatal(err)
-	}
-	repo.git("add", file)
-	repo.git("commit", "-m", id)
-	if repo.commits[branch] == nil {
-		repo.commits[branch] = make(map[string]*Commit)
-	}
-	com, err := repo.repo.HeadCommit()
-	if err != nil {
-		repo.t.Fatal(err)
-	}
-	repo.commits[branch][change] = com
-}
-
-func (repo *testRepo) commitChange(description string) {
-	repo.git("commit", "--allow-empty", "-m", description)
 }

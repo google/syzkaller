@@ -450,3 +450,27 @@ func (git *git) bisectInconclusive(output []byte) ([]*Commit, error) {
 	}
 	return commits, nil
 }
+
+func (git *git) previousReleaseTags(commit string, self bool) ([]string, error) {
+	var tags []string
+	if self {
+		output, err := git.git("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
+		if err != nil {
+			return nil, err
+		}
+		tags, err = gitParseReleaseTags(output)
+		if err != nil {
+			return nil, err
+		}
+	}
+	output, err := git.git("tag", "--no-contains", commit, "--merged", commit, "v*.*")
+	if err != nil {
+		return nil, err
+	}
+	tags1, err := gitParseReleaseTags(output)
+	if err != nil {
+		return nil, err
+	}
+	tags = append(tags, tags1...)
+	return tags, nil
+}

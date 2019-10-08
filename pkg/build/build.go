@@ -79,6 +79,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		{"openbsd", "amd64", []string{"gce", "vmm"}, openbsd{}},
 		{"netbsd", "amd64", []string{"gce", "qemu"}, netbsd{}},
 		{"freebsd", "amd64", []string{"gce", "qemu"}, freebsd{}},
+		{"test", "64", []string{"qemu"}, testBuilder{}},
 	}
 	for _, s := range supported {
 		if targetOS == s.OS && targetArch == s.arch {
@@ -92,7 +93,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 	return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
 }
 
-func CompilerIdentity(compiler string) (string, error) {
+var CompilerIdentity = func(compiler string) (string, error) {
 	if compiler == "" {
 		return "", nil
 	}

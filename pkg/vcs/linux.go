@@ -31,30 +31,10 @@ func newLinux(dir string) *linux {
 }
 
 func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
-	return ctx.previousReleaseTags(commit, false)
-}
-
-func (ctx *linux) previousReleaseTags(commit string, self bool) ([]string, error) {
-	var tags []string
-	if self {
-		output, err := ctx.git.git("tag", "--list", "--points-at", commit, "--merged", commit, "v*.*")
-		if err != nil {
-			return nil, err
-		}
-		tags, err = gitParseReleaseTags(output)
-		if err != nil {
-			return nil, err
-		}
-	}
-	output, err := ctx.git.git("tag", "--no-contains", commit, "--merged", commit, "v*.*")
+	tags, err := ctx.git.previousReleaseTags(commit, false)
 	if err != nil {
 		return nil, err
 	}
-	tags1, err := gitParseReleaseTags(output)
-	if err != nil {
-		return nil, err
-	}
-	tags = append(tags, tags1...)
 	for i, tag := range tags {
 		if tag == "v4.0" {
 			// Initially we tried to stop at 3.8 because:
