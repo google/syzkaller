@@ -4,7 +4,8 @@
 include <uapi/linux/i2c-dev.h>
 include <uapi/linux/i2c.h>
 
-define I2C_MAX_BLOCK	(I2C_SMBUS_BLOCK_MAX + 2)
+define I2C_MAX_BLOCK_1	(I2C_SMBUS_BLOCK_MAX + 1)
+define I2C_MAX_BLOCK_2	(I2C_SMBUS_BLOCK_MAX + 2)
 
 resource fd_i2c[fd]
 
@@ -28,11 +29,10 @@ i2c_smbus_ioctl_data {
 	data		ptr[in, i2c_smbus_data]
 }
 
-i2c_smbus_data [
-	byte	int8
-	word	int16
-	block	array[int8, I2C_MAX_BLOCK]
-]
+i2c_smbus_data {
+	size	int8[0:I2C_MAX_BLOCK_2]
+	block	array[int8, I2C_MAX_BLOCK_1]
+}
 
 i2c_rdwr_ioctl_data {
 	msgs	ptr[in, array[i2c_msg]]
