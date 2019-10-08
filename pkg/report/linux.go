@@ -1263,7 +1263,7 @@ var linuxOopses = []*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
-					skip: []string{"sched", "_lock", "down", "completion", "kthread",
+					skip: []string{"sched", "_lock", "_slowlock", "down", "completion", "kthread",
 						"wait", "synchronize", "context_switch", "__switch_to",
 					},
 				},
