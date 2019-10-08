@@ -120,7 +120,7 @@ func main() {
 	}
 }
 
-func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env *instance.Env, com *vcs.Commit) {
+func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instance.BuilderTester, com *vcs.Commit) {
 	bisectEnv, err := bisecter.EnvForCommit(com.Hash, kernelConfig)
 	if err != nil {
 		fail(err)

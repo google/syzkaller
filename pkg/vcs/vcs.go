@@ -104,6 +104,8 @@ func NewRepo(os, vm, dir string) (Repo, error) {
 		return newNetBSD(vm, dir), nil
 	case "freebsd":
 		return newFreeBSD(vm, dir), nil
+	case "test":
+		return newTestos(dir), nil
 	}
 	return nil, fmt.Errorf("vcs is unsupported for %v", os)
 }

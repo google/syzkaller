@@ -55,7 +55,7 @@ type env struct {
 	repo      vcs.Repo
 	bisecter  vcs.Bisecter
 	head      *vcs.Commit
-	inst      *instance.Env
+	inst      instance.BuilderTester
 	numTests  int
 	buildTime time.Duration
 	testTime  time.Duration
@@ -85,11 +85,30 @@ func Run(cfg *Config) ([]*vcs.Commit, *report.Report, error) {
 	if !ok {
 		return nil, nil, fmt.Errorf("bisection is not implemented for %v", cfg.Manager.TargetOS)
 	}
+	inst, err := instance.NewEnv(&cfg.Manager)
+	if err != nil {
+		return nil, nil, err
+	}
+	if _, err = repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
+		return nil, nil, err
+	}
+
+	return runImpl(cfg, repo, bisecter, inst)
+}
+
+func runImpl(cfg *Config, repo vcs.Repo, bisecter vcs.Bisecter, inst instance.BuilderTester) (
+	[]*vcs.Commit, *report.Report, error) {
 	env := &env{
 		cfg:      cfg,
 		repo:     repo,
 		bisecter: bisecter,
+		inst:     inst,
 	}
+	head, err := repo.HeadCommit()
+	if err != nil {
+		return nil, nil, err
+	}
+	env.head = head
 	if cfg.Fix {
 		env.log("bisecting fixing commit since %v", cfg.Kernel.Commit)
 	} else {
@@ -135,12 +154,6 @@ func Run(cfg *Config) ([]*vcs.Commit, *report.Report, error) {
 func (env *env) bisect() ([]*vcs.Commit, *report.Report, error) {
 	cfg := env.cfg
 	var err error
-	if env.inst, err = instance.NewEnv(&cfg.Manager); err != nil {
-		return nil, nil, err
-	}
-	if env.head, err = env.repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
-		return nil, nil, err
-	}
 	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return nil, nil, fmt.Errorf("kernel clean failed: %v", err)
