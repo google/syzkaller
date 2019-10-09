@@ -69,10 +69,11 @@ func Get(OS, arch string) *Target {
 var List = map[string]map[string]*Target{
 	"test": {
 		"64": {
-			PtrSize:     8,
-			PageSize:    4 << 10,
-			CFlags:      []string{"-m64"},
-			CrossCFlags: []string{"-m64", "-fsanitize=address"},
+			PtrSize:  8,
+			PageSize: 4 << 10,
+			CFlags:   []string{"-m64"},
+			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le
+			CrossCFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
@@ -81,10 +82,11 @@ var List = map[string]map[string]*Target{
 			},
 		},
 		"64_fork": {
-			PtrSize:     8,
-			PageSize:    8 << 10,
-			CFlags:      []string{"-m64"},
-			CrossCFlags: []string{"-m64", "-fsanitize=address"},
+			PtrSize:  8,
+			PageSize: 8 << 10,
+			CFlags:   []string{"-m64"},
+			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le
+			CrossCFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
