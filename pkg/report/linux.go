@@ -877,7 +877,7 @@ var linuxOopses = []*oops{
 				noStackTrace: true,
 			},
 			{
-				title: compile("BUG: (?:unable to handle kernel paging request|unable to handle page fault for address)"),
+				title: compile("BUG: (?:unable to handle kernel paging request|unable to handle page fault for address|Unable to handle kernel data access)"),
 				fmt:   "BUG: unable to handle kernel paging request in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
@@ -888,7 +888,7 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
-				title: compile("BUG: (?:unable to handle kernel NULL pointer dereference|kernel NULL pointer dereference)"),
+				title: compile("BUG: (?:unable to handle kernel NULL pointer dereference|kernel NULL pointer dereference|Kernel NULL pointer dereference)"),
 				fmt:   "BUG: unable to handle kernel NULL pointer dereference in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
@@ -901,7 +901,7 @@ var linuxOopses = []*oops{
 			{
 				// Sometimes with such BUG failures, the second part of the header doesn't get printed
 				// or gets corrupted, because kernel prints it as two separate printk() calls.
-				title:     compile("BUG: unable to handle kernel"),
+				title:     compile("BUG: (?:unable to handle kernel|Unable to handle kernel)"),
 				fmt:       "BUG: unable to handle kernel",
 				corrupted: true,
 			},
