@@ -983,7 +983,11 @@ static struct ipt_table_desc ipv6_tables[] = {
     {.name = "security"},
 };
 
+#if GOARCH_arm
+#define IPT_BASE_CTL 32
+#else
 #define IPT_BASE_CTL 64
+#endif
 #define IPT_SO_SET_REPLACE (IPT_BASE_CTL)
 #define IPT_SO_GET_INFO (IPT_BASE_CTL)
 #define IPT_SO_GET_ENTRIES (IPT_BASE_CTL + 1)
