@@ -942,7 +942,7 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 	}
 	argUsed := make(map[string]bool)
 	err0 := comp.errors
-	templ.Walk(ast.Recursive(func(n ast.Node) {
+	templ.Walk(ast.PostRecursive(func(n ast.Node) {
 		templArg, ok := n.(*ast.Type)
 		if !ok {
 			return

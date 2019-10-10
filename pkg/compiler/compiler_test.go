@@ -201,6 +201,11 @@ l	t
 type D[e]l`,
 		"E",
 		"#",
+		`
+type p b[L]
+type b[L] {
+	e b[L[L]]
+}`,
 	} {
 		Fuzz([]byte(data)[:len(data):len(data)])
 	}
