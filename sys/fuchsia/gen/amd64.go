@@ -4985,7 +4985,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
 	}},
 	{Name: "syz_future_time", CallName: "syz_future_time", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "when", TypeSize: 8}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "when", TypeSize: 8}}, Kind: 2, RangeEnd: RefVal{Val: 1}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{Name: "syz_job_default", CallName: "syz_job_default", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_job", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "syz_mmap", CallName: "syz_mmap", Args: []Type{
@@ -7010,7 +7010,7 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_thread_exit", CallName: "zx_thread_exit"},
 	{Name: "zx_thread_read_state", CallName: "zx_thread_read_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "handle", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 2, RangeEnd: 9},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 2, RangeEnd: RefVal{Val: 9}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Path: []string{"buffer"}},
 	}},
@@ -7029,7 +7029,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_thread_write_state", CallName: "zx_thread_write_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "handle", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 2, RangeEnd: 9},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 2, RangeEnd: RefVal{Val: 9}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Path: []string{"buffer"}},
 	}},
@@ -7395,4 +7395,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "f0ef39210d9bc1961aa7d4b3cbb065e1e1e3824b"
+const revision_amd64 = "4439ee070a801040d02398510fb55b88030e7668"

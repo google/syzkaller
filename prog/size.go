@@ -208,3 +208,117 @@ func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
 	arg.Val = n
 	return true
 }
+
+func (r *randGen) assignRanges(args []Arg, parentsMap map[Arg]Arg, syscallArgs []Arg, autos map[Arg]bool) {
+	for _, arg := range args {
+		if arg = InnerArg(arg); arg == nil {
+			continue // Pointer to optional len field, no need to fill in value.
+		}
+		typ, ok := arg.Type().(*IntType)
+		// We're only interested in integer ranges.
+		if !ok || typ.Kind != IntRange {
+			continue
+		}
+		if autos != nil {
+			if !autos[arg] {
+				continue
+			}
+			delete(autos, arg)
+		}
+		a := arg.(*ConstArg)
+		if len(typ.RangeEnd.Path) != 0 {
+			if typ.RangeEnd.Path[0] == SyscallRef {
+				r.assignRange(a, nil, typ.RangeEnd.Path[1:], syscallArgs, parentsMap)
+			} else {
+				r.assignRange(a, a, typ.RangeEnd.Path, args, parentsMap)
+			}
+		}
+	}
+}
+
+func (r *randGen) assignRange(dst *ConstArg, pos Arg, path []string, args []Arg, parentsMap map[Arg]Arg) {
+	elem := path[0]
+	path = path[1:]
+	for _, buf := range args {
+		if elem != buf.Type().FieldName() {
+			continue
+		}
+		buf = InnerArg(buf)
+		if buf == nil {
+			dst.Val = 0 // target is an optional pointer
+			return
+		}
+		if len(path) == 0 {
+			dst.Val = r.computeRange(buf, dst.Type().(*IntType))
+		} else {
+			r.assignRange(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
+		}
+		return
+	}
+	if elem == ParentRef {
+		buf := parentsMap[pos]
+		if len(path) == 0 {
+			dst.Val = r.computeRange(buf, dst.Type().(*IntType))
+		} else {
+			r.assignRange(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
+		}
+		return
+	}
+	var fieldNames []string
+	for buf := parentsMap[pos]; buf != nil; buf = parentsMap[buf] {
+		fieldNames = append(fieldNames, buf.Type().FieldName())
+		parentName := buf.Type().Name()
+		if pos := strings.IndexByte(parentName, '['); pos != -1 {
+			// For template parents, strip arguments.
+			parentName = parentName[:pos]
+		}
+		if elem != parentName {
+			continue
+		}
+		if len(path) == 0 {
+			dst.Val = r.computeRange(buf, dst.Type().(*IntType))
+		} else {
+			r.assignRange(dst, buf, path, buf.(*GroupArg).Inner, parentsMap)
+		}
+		return
+	}
+	var argNames []string
+	for _, arg := range args {
+		argNames = append(argNames, arg.Type().FieldName())
+	}
+	panic(fmt.Sprintf("field %q references non existent field %q, pos=%q/%q, argsMap: %+v",
+		dst.Type().FieldName(), elem, pos.Type().Name(), pos.Type().FieldName(), argNames))
+}
+
+func (r *randGen) computeRange(arg Arg, intType *IntType) uint64 {
+	if constArg, ok := arg.(*ConstArg); ok {
+		intType.RangeEnd.Val = constArg.Val
+		return r.randRangeInt(intType.RangeBegin, constArg.Val, intType.TypeBitSize())
+	}
+	panic(fmt.Sprintf("field %q is not ConstArg", arg.Type().FieldName()))
+}
+
+func (r *randGen) assignRangesArray(args []Arg, autos map[Arg]bool) {
+	parentsMap := make(map[Arg]Arg)
+	for _, arg := range args {
+		ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
+			if _, ok := arg.Type().(*StructType); ok {
+				for _, field := range arg.(*GroupArg).Inner {
+					parentsMap[InnerArg(field)] = arg
+				}
+			}
+		})
+	}
+	r.assignRanges(args, parentsMap, args, autos)
+	for _, arg := range args {
+		ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
+			if _, ok := arg.Type().(*StructType); ok {
+				r.assignRanges(arg.(*GroupArg).Inner, parentsMap, args, autos)
+			}
+		})
+	}
+}
+
+func (r *randGen) assignRangesCall(c *Call) {
+	r.assignRangesArray(c.Args, nil)
+}

@@ -484,7 +484,9 @@ func (t *IntType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (
 		return plainPrio, false
 	}
 
-	switch size := t.RangeEnd - t.RangeBegin + 1; {
+	// In case of a path expression in the range, assignRangesCall should have
+	// already replaced .Val with the value referred to by the path expression.
+	switch size := t.RangeEnd.Val - t.RangeBegin + 1; {
 	case size <= 15:
 		// For a small range, we assume that it is effectively
 		// similar with FlagsType and we need to try all possible values.

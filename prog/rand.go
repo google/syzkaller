@@ -515,6 +515,7 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 	}
 	c.Args, calls = r.generateArgs(s, meta.Args)
 	r.target.assignSizesCall(c)
+	r.assignRangesCall(c)
 	calls = append(calls, c)
 	for _, c1 := range calls {
 		r.target.SanitizeCall(c1)
@@ -753,7 +754,12 @@ func (a *IntType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 			v = r.randInt(bits)
 		}
 	case IntRange:
-		v = r.randRangeInt(a.RangeBegin, a.RangeEnd, bits)
+		if len(a.RangeEnd.Path) == 0 {
+			v = r.randRangeInt(a.RangeBegin, a.RangeEnd.Val, bits)
+		} else {
+			// Updated later in assignRangesCall.
+			v = 0
+		}
 	}
 	return MakeConstArg(a, v), nil
 }
