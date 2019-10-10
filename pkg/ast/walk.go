@@ -4,7 +4,7 @@
 package ast
 
 // Walk calls callback cb for every top-level node in description.
-// Note: it's not recursive. Use Recursive helper for recursive walk.
+// Note: it's not recursive. Use Recursive/PostRecursive helpers for recursive walk.
 func (desc *Description) Walk(cb func(Node)) {
 	for _, n := range desc.Nodes {
 		cb(n)
@@ -16,6 +16,15 @@ func Recursive(cb func(Node)) func(Node) {
 	rec = func(n Node) {
 		cb(n)
 		n.Walk(rec)
+	}
+	return rec
+}
+
+func PostRecursive(cb func(Node)) func(Node) {
+	var rec func(Node)
+	rec = func(n Node) {
+		n.Walk(rec)
+		cb(n)
 	}
 	return rec
 }
