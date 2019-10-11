@@ -40,7 +40,8 @@ GO := go
 HOSTGO := go
 # By default, build all Go binaries as static. We don't need cgo and it is
 # known to cause problems at least on Android emulator.
-export CGO_ENABLED=0
+CGO_ENABLED ?= 0
+export CGO_ENABLED
 TARGETGOOS := $(TARGETOS)
 TARGETGOARCH := $(TARGETVMARCH)
 
