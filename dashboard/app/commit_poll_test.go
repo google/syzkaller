@@ -3,7 +3,7 @@
 
 // +build aetest
 
-package dash
+package main
 
 import (
 	"sort"

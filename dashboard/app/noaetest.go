@@ -3,6 +3,6 @@
 
 // +build !aetest
 
-package dash
+package main
 
 const isAppEngineTest = false
