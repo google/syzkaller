@@ -152,6 +152,10 @@ var openbsdOopses = []*oops{
 				fmt:   "assert %[1]v failed in %[2]v",
 			},
 			{
+				title: compile("panic: Data modified on freelist: .* previous type ([^ ]+)"),
+				fmt:   "malloc: free list modified: %[1]v",
+			},
+			{
 				title: compile("panic: pool_do_put: ([^:]+): double pool_put"),
 				fmt:   "pool: double put: %[1]v",
 			},
