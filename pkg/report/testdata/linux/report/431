@@ -1,0 +1,42 @@
+TITLE: BUG: unable to handle kernel paging request in partition_sched_domains_locked
+
+IPVS: ftp: loaded support on port[0] = 21
+IPVS: ftp: loaded support on port[0] = 21
+BUG: Unable to handle kernel data access at 0x8000000041a25f20
+Faulting instruction address: 0xc00000000022d79c
+Oops: Kernel access of bad area, sig: 11 [#1]
+LE PAGE_SIZE=64K MMU=Hash SMP NR_CPUS=2048 NUMA pSeries
+Modules linked in:
+CPU: 0 PID: 12 Comm: kworker/0:1 Not tainted 5.4.0-rc2-00104-g9e208aa06c21 #0
+Workqueue: cgroup_destroy css_killed_work_fn
+NIP:  c00000000022d79c LR: c00000000022d784 CTR: 0000000000000000
+REGS: c00000007a3ef6e0 TRAP: 0380   Not tainted  (5.4.0-rc2-00104-g9e208aa06c21)
+MSR:  800000010280b033 <SF,VEC,VSX,EE,FP,ME,IR,DR,RI,LE,TM[E]>  CR: 22824428  XER: 20000000
+CFAR: c000000000aaf11c IRQMASK: 0 
+GPR00: c00000000022d784 c00000007a3ef970 c000000001f24600 0000000000004000 
+GPR04: 0000000000000800 0000000000000000 0000000000000000 0000000000000010 
+GPR08: 0000000000000000 c00000003fffc000 c00000007a3a0500 0000000000000000 
+GPR12: 0000000000008800 c000000002be0000 c0000000001e3d18 c00000007a243f90 
+GPR16: c0000000016d5a90 c0000000016d5a40 0000000000000001 c0000000016d5a70 
+GPR20: c000000001e91065 0000000000000000 0000000000000002 c00000000b8c8400 
+GPR24: c00000000203a800 c00000000203a5c0 0000000000000000 c00000001dfd76d0 
+GPR28: 0000000000000002 c00000005e0a5800 0000000000000000 8000000041a25400 
+NIP [c00000000022d79c] partition_sched_domains_locked+0x1ac/0x5f0 kernel/sched/topology.c:2216
+LR [c00000000022d784] cpumask_first include/linux/cpumask.h:214 [inline]
+LR [c00000000022d784] partition_sched_domains_locked+0x194/0x5f0 kernel/sched/topology.c:2216
+Call Trace:
+[c00000007a3efa20] [c00000000030a060] partition_and_rebuild_sched_domains kernel/cgroup/cpuset.c:965 [inline]
+[c00000007a3efa20] [c00000000030a060] rebuild_sched_domains_locked+0x7b0/0x13a0 kernel/cgroup/cpuset.c:1007
+[c00000007a3efb30] [c00000000030b06c] update_flag+0x26c/0x280 kernel/cgroup/cpuset.c:1903
+[c00000007a3efb90] [c00000000030e6fc] cpuset_css_offline+0x15c/0x160 kernel/cgroup/cpuset.c:2813
+[c00000007a3efbd0] [c0000000002e70c4] offline_css kernel/cgroup/cgroup.c:5129 [inline]
+[c00000007a3efbd0] [c0000000002e70c4] css_killed_work_fn+0xd4/0x460 kernel/cgroup/cgroup.c:5433
+[c00000007a3efc40] [c0000000001d3da8] process_one_work+0x428/0xa80 kernel/workqueue.c:2269
+[c00000007a3efd10] [c0000000001d4494] worker_thread+0x94/0x770 kernel/workqueue.c:2415
+[c00000007a3efda0] [c0000000001e3f00] kthread+0x1f0/0x200 kernel/kthread.c:255
+[c00000007a3efe20] [c00000000000bfbc] ret_from_kernel_thread+0x5c/0x80
+Instruction dump:
+7fa3eb78 38a00000 38800800 3fe2ffb0 3bff4e00 488818d9 60000000 3d220005 
+39291df8 78631f48 7d29182a 7fe9fa14 <e87f0b20> 4bff81e9 60000000 60000000 
+---[ end trace ecc3a767a3dac4b3 ]---
+
