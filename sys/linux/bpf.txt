@@ -22,7 +22,7 @@ type btf_type_id int32[1:5]
 type btf_opt_type_id int32[0:5]
 
 # NEED: offset in bpf_btf_program:strings. We can't express this, so we just use a small index.
-type btf_name_off int32[1:16]
+type btf_name_off int32[0:16]
 type btf_opt_name_off int32[0:16]
 
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
