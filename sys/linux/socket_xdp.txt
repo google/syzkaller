@@ -42,7 +42,7 @@ sockaddr_xdp_bind {
 	sxdp_shared_umem_fd	sock_xdp[opt]
 }
 
-sxdp_flags = XDP_SHARED_UMEM, XDP_COPY, XDP_ZEROCOPY
+sxdp_flags = XDP_SHARED_UMEM, XDP_COPY, XDP_ZEROCOPY, XDP_USE_NEED_WAKEUP
 
 msghdr_xdp {
 	msg_name	ptr[in, sockaddr_xdp, opt]
