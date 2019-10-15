@@ -1,5 +1,5 @@
 security=apparmor
-lsm=yama,safesetid,integrity,tomoyo,apparmor
+lsm=lockdown,yama,safesetid,integrity,tomoyo,apparmor
 ima_policy=tcb
 workqueue.watchdog_thresh=140
 kvm-intel.nested=1
