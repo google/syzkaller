@@ -6,3 +6,4 @@ __NR_ioctl = 29
 __NR_mmap = 222
 # __NR_mmap2 is not set
 __NR_openat = 56
+__NR_watch_devices = 436

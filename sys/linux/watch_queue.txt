@@ -12,6 +12,8 @@ mmap$watch_queue(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mma
 ioctl$IOC_WATCH_QUEUE_SET_SIZE(fd fd_watch_queue, cmd const[IOC_WATCH_QUEUE_SET_SIZE], arg flags[watch_queue_size])
 ioctl$IOC_WATCH_QUEUE_SET_FILTER(fd fd_watch_queue, cmd const[IOC_WATCH_QUEUE_SET_FILTER], arg ptr[in, watch_notification_filter])
 
+watch_devices(watch_fd fd_watch_queue, watch_id intptr[-1:0xff], flags const[0])
+
 watch_notification_filter {
 	nr_filters	len[filters, int32]
 	__reserved	const[0, int32]
