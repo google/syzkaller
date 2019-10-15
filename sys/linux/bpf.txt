@@ -329,24 +329,28 @@ bpf_reg = BPF_REG_0, BPF_REG_1, BPF_REG_2, BPF_REG_3, BPF_REG_4, BPF_REG_5, BPF_
 
 define MAX_BPF_REG	__MAX_BPF_REG
 
-# NEED: these filenames must be on bpf filesystem, can we do it somehow?
 bpf_obj_pin_map {
-	path	ptr64[in, filename]
+	path	ptr64[in, bpf_filename]
 	fd	fd_bpf_map
 	flags	const[0, int32]
 }
 
 bpf_obj_pin_prog {
-	path	ptr64[in, filename]
+	path	ptr64[in, bpf_filename]
 	fd	fd_bpf_prog
 	flags	const[0, int32]
 }
 
 bpf_obj_get {
-	path		ptr64[in, filename]
+	path		ptr64[in, bpf_filename]
 	fd		const[0, int32]
 	file_flags	flags[bpf_open_flags, int32]
 }
+
+bpf_filename {
+	prefix		stringnoz["/sys/fs/bpf/"]
+	filename	filename
+} [packed]
 
 bpf_attach_arg {
 	target_fd	fd_cgroup
