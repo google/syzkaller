@@ -1,5 +1,5 @@
 security=smack
-lsm=yama,safesetid,integrity,smack,tomoyo
+lsm=lockdown,yama,safesetid,integrity,smack,tomoyo
 ima_policy=tcb
 workqueue.watchdog_thresh=140
 kvm-intel.nested=1
