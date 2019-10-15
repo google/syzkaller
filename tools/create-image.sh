@@ -18,6 +18,7 @@ fi
 # Variables affected by options
 RELEASE=stretch
 FEATURE=minimal
+SEEK=2047
 PERF=false
 
 # Display help function
@@ -26,6 +27,7 @@ display_help() {
     echo
     echo "   -d, --distribution         Set on which debian distribution to create"
     echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
+    echo "   -s, --size                 Image size (MB), default 2048 (2G)"
     echo "   -h, --help                 Display help message"
     echo "   -p, --add-perf             Add perf support with this option enabled. Please set envrionment variable \$KERNEL at first"
     echo
@@ -47,6 +49,10 @@ while true; do
             ;;
         -f | --feature)
 	    FEATURE=$2
+            shift 2
+            ;;
+        -s | --seek)
+	    SEEK=$(($2 - 1))
             shift 2
             ;;
         -p | --add-perf)
@@ -113,7 +119,7 @@ if [ $PERF = "true" ]; then
 fi
 
 # Build a disk image
-dd if=/dev/zero of=$RELEASE.img bs=1M seek=2047 count=1
+dd if=/dev/zero of=$RELEASE.img bs=1M seek=$SEEK count=1
 sudo mkfs.ext4 -F $RELEASE.img
 sudo mkdir -p /mnt/$DIR
 sudo mount -o loop $RELEASE.img /mnt/$DIR
