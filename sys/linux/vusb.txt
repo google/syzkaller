@@ -710,8 +710,6 @@ usb_printer_get_id_response {
 # Connected CDC ECM devices are known to create usbN network interfaces.
 # TODO: enable fuzzing of those.
 
-# TODO: currently the only endpoint which is being successfully enabled is the notification endpoint #1.
-
 usb_device_descriptor_cdc_ecm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ecm, 1]]
 } [packed]
@@ -953,8 +951,6 @@ vusb_responses_cdc_ecm {
 # https://elixir.bootlin.com/linux/latest/source/drivers/net/usb/usbnet.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/ncm.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_ncm.c
-
-# TODO: currently the only endpoint which is being successfully enabled is the notification endpoint #1.
 
 usb_device_descriptor_cdc_ncm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ncm, 1]]

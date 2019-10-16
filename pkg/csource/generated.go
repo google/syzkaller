@@ -1750,6 +1750,10 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 }
 #endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_CLOSE_FDS || __NR_syz_usb_connect
+#define MAX_FDS 30
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 #include <errno.h>
 #include <fcntl.h>
@@ -1769,16 +1773,20 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 
 struct usb_iface_index {
 	struct usb_interface_descriptor* iface;
-	struct usb_endpoint_descriptor* eps[USB_MAX_EP_NUM];
-	unsigned eps_num;
+	uint8 bInterfaceNumber;
+	uint8 bAlternateSetting;
+	struct usb_endpoint_descriptor eps[USB_MAX_EP_NUM];
+	int eps_num;
 };
 
 struct usb_device_index {
 	struct usb_device_descriptor* dev;
 	struct usb_config_descriptor* config;
-	unsigned config_length;
+	uint8 bMaxPower;
+	int config_length;
 	struct usb_iface_index ifaces[USB_MAX_IFACE_NUM];
-	unsigned ifaces_num;
+	int ifaces_num;
+	int iface_cur;
 };
 
 static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_index* index)
@@ -1790,7 +1798,9 @@ static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_
 
 	index->dev = (struct usb_device_descriptor*)buffer;
 	index->config = (struct usb_config_descriptor*)(buffer + sizeof(*index->dev));
+	index->bMaxPower = index->config->bMaxPower;
 	index->config_length = length - sizeof(*index->dev);
+	index->iface_cur = -1;
 	size_t offset = 0;
 
 	while (true) {
@@ -1806,13 +1816,18 @@ static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_
 			struct usb_interface_descriptor* iface = (struct usb_interface_descriptor*)(buffer + offset);
 			debug("parse_usb_descriptor: found interface #%u (%d, %d) at %p\n",
 			      index->ifaces_num, iface->bInterfaceNumber, iface->bAlternateSetting, iface);
-			index->ifaces[index->ifaces_num++].iface = iface;
+			index->ifaces[index->ifaces_num].iface = iface;
+			index->ifaces[index->ifaces_num].bInterfaceNumber = iface->bInterfaceNumber;
+			index->ifaces[index->ifaces_num].bAlternateSetting = iface->bAlternateSetting;
+			index->ifaces_num++;
 		}
 		if (desc_type == USB_DT_ENDPOINT && index->ifaces_num > 0) {
 			struct usb_iface_index* iface = &index->ifaces[index->ifaces_num - 1];
 			debug("parse_usb_descriptor: found endpoint #%u at %p\n", iface->eps_num, buffer + offset);
-			if (iface->eps_num < USB_MAX_EP_NUM)
-				iface->eps[iface->eps_num++] = (struct usb_endpoint_descriptor*)(buffer + offset);
+			if (iface->eps_num < USB_MAX_EP_NUM) {
+				memcpy(&iface->eps[iface->eps_num], buffer + offset, sizeof(iface->eps[iface->eps_num]));
+				iface->eps_num++;
+			}
 		}
 		offset += desc_length;
 	}
@@ -1854,17 +1869,18 @@ struct usb_fuzzer_ep_io {
 #define USB_FUZZER_IOCTL_EP0_WRITE _IOW('U', 3, struct usb_fuzzer_ep_io)
 #define USB_FUZZER_IOCTL_EP0_READ _IOWR('U', 4, struct usb_fuzzer_ep_io)
 #define USB_FUZZER_IOCTL_EP_ENABLE _IOW('U', 5, struct usb_endpoint_descriptor)
+#define USB_FUZZER_IOCTL_EP_DISABLE _IOW('U', 6, int)
 #define USB_FUZZER_IOCTL_EP_WRITE _IOW('U', 7, struct usb_fuzzer_ep_io)
 #define USB_FUZZER_IOCTL_EP_READ _IOWR('U', 8, struct usb_fuzzer_ep_io)
 #define USB_FUZZER_IOCTL_CONFIGURE _IO('U', 9)
 #define USB_FUZZER_IOCTL_VBUS_DRAW _IOW('U', 10, uint32)
 
-int usb_fuzzer_open()
+static int usb_fuzzer_open()
 {
 	return open("/sys/kernel/debug/usb-fuzzer", O_RDWR);
 }
 
-int usb_fuzzer_init(int fd, uint32 speed, const char* driver, const char* device)
+static int usb_fuzzer_init(int fd, uint32 speed, const char* driver, const char* device)
 {
 	struct usb_fuzzer_init arg;
 	arg.speed = speed;
@@ -1873,49 +1889,164 @@ int usb_fuzzer_init(int fd, uint32 speed, const char* driver, const char* device
 	return ioctl(fd, USB_FUZZER_IOCTL_INIT, &arg);
 }
 
-int usb_fuzzer_run(int fd)
+static int usb_fuzzer_run(int fd)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_RUN, 0);
 }
 
-int usb_fuzzer_event_fetch(int fd, struct usb_fuzzer_event* event)
+static int usb_fuzzer_event_fetch(int fd, struct usb_fuzzer_event* event)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_EVENT_FETCH, event);
 }
 
-int usb_fuzzer_ep0_write(int fd, struct usb_fuzzer_ep_io* io)
+static int usb_fuzzer_ep0_write(int fd, struct usb_fuzzer_ep_io* io)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_EP0_WRITE, io);
 }
 
-int usb_fuzzer_ep0_read(int fd, struct usb_fuzzer_ep_io* io)
+static int usb_fuzzer_ep0_read(int fd, struct usb_fuzzer_ep_io* io)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_EP0_READ, io);
 }
 
-int usb_fuzzer_ep_write(int fd, struct usb_fuzzer_ep_io* io)
+#if SYZ_EXECUTOR || __NR_syz_usb_ep_write
+static int usb_fuzzer_ep_write(int fd, struct usb_fuzzer_ep_io* io)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_EP_WRITE, io);
 }
+#endif
 
-int usb_fuzzer_ep_read(int fd, struct usb_fuzzer_ep_io* io)
+#if SYZ_EXECUTOR || __NR_syz_usb_ep_read
+static int usb_fuzzer_ep_read(int fd, struct usb_fuzzer_ep_io* io)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_EP_READ, io);
 }
+#endif
 
-int usb_fuzzer_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
+static int usb_fuzzer_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_EP_ENABLE, desc);
 }
 
-int usb_fuzzer_configure(int fd)
+static int usb_fuzzer_ep_disable(int fd, int ep)
+{
+	return ioctl(fd, USB_FUZZER_IOCTL_EP_DISABLE, ep);
+}
+
+static int usb_fuzzer_configure(int fd)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_CONFIGURE, 0);
 }
 
-int usb_fuzzer_vbus_draw(int fd, uint32 power)
+static int usb_fuzzer_vbus_draw(int fd, uint32 power)
 {
 	return ioctl(fd, USB_FUZZER_IOCTL_VBUS_DRAW, power);
+}
+
+#define MAX_USB_FDS 6
+
+struct usb_info {
+	int fd;
+	struct usb_device_index index;
+};
+
+static struct usb_info usb_devices[MAX_USB_FDS];
+static int usb_devices_num;
+
+static struct usb_device_index* add_usb_index(int fd, char* dev, size_t dev_len)
+{
+	int i = __atomic_fetch_add(&usb_devices_num, 1, __ATOMIC_RELAXED);
+	if (i >= MAX_USB_FDS)
+		return NULL;
+
+	int rv = 0;
+	NONFAILING(rv = parse_usb_descriptor(dev, dev_len, &usb_devices[i].index));
+	if (!rv)
+		return NULL;
+
+	__atomic_store_n(&usb_devices[i].fd, fd, __ATOMIC_RELEASE);
+	return &usb_devices[i].index;
+}
+
+static struct usb_device_index* lookup_usb_index(int fd)
+{
+	int i;
+	for (i = 0; i < MAX_USB_FDS; i++) {
+		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd) {
+			return &usb_devices[i].index;
+		}
+	}
+	return NULL;
+}
+
+#if SYZ_EXECUTOR || __NR_syz_usb_control_io
+static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
+{
+	struct usb_device_index* index = lookup_usb_index(fd);
+	int i;
+
+	if (!index)
+		return -1;
+
+	for (i = 0; i < index->ifaces_num; i++) {
+		if (index->ifaces[i].bInterfaceNumber == bInterfaceNumber &&
+		    index->ifaces[i].bAlternateSetting == bAlternateSetting)
+			return i;
+	}
+	return -1;
+}
+#endif
+
+static void set_interface(int fd, int n)
+{
+	struct usb_device_index* index = lookup_usb_index(fd);
+	int ep;
+
+	if (!index)
+		return;
+
+	if (index->iface_cur >= 0 && index->iface_cur < index->ifaces_num) {
+		for (ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++) {
+			int rv = usb_fuzzer_ep_disable(fd, ep);
+			if (rv < 0) {
+				debug("set_interface: failed to disable endpoint %d\n", ep);
+			} else {
+				debug("set_interface: endpoint %d disabled\n", ep);
+			}
+		}
+	}
+	if (n >= 0 && n < index->ifaces_num) {
+		for (ep = 0; ep < index->ifaces[n].eps_num; ep++) {
+			int rv = usb_fuzzer_ep_enable(fd, &index->ifaces[n].eps[ep]);
+			if (rv < 0) {
+				debug("set_interface: failed to enable endpoint %d\n", ep);
+			} else {
+				debug("set_interface: endpoint %d enabled as %d\n", ep, rv);
+			}
+		}
+		index->iface_cur = n;
+	}
+}
+
+static int configure_device(int fd)
+{
+	struct usb_device_index* index = lookup_usb_index(fd);
+
+	if (!index)
+		return -1;
+
+	int rv = usb_fuzzer_vbus_draw(fd, index->bMaxPower);
+	if (rv < 0) {
+		debug("configure_device: usb_fuzzer_vbus_draw failed with %d\n", rv);
+		return rv;
+	}
+	rv = usb_fuzzer_configure(fd);
+	if (rv < 0) {
+		debug("configure_device: usb_fuzzer_configure failed with %d\n", rv);
+		return rv;
+	}
+	set_interface(fd, 0);
+	return 0;
 }
 
 #define USB_MAX_PACKET_SIZE 1024
@@ -1955,10 +2086,14 @@ static const char default_lang_id[] = {
     0x09, 0x04
 };
 
-static bool lookup_connect_response(struct vusb_connect_descriptors* descs, struct usb_device_index* index,
-				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
+static bool lookup_connect_response(int fd, struct vusb_connect_descriptors* descs, struct usb_ctrlrequest* ctrl,
+				    char** response_data, uint32* response_length)
 {
+	struct usb_device_index* index = lookup_usb_index(fd);
 	uint8 str_idx;
+
+	if (!index)
+		return false;
 
 	switch (ctrl->bRequestType & USB_TYPE_MASK) {
 	case USB_TYPE_STANDARD:
@@ -2045,25 +2180,27 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 	debug("syz_usb_connect: device data:\n");
 	debug_dump_data(dev, dev_len);
 
-	struct usb_device_index index;
-	memset(&index, 0, sizeof(index));
-	int rv = 0;
-	NONFAILING(rv = parse_usb_descriptor(dev, dev_len, &index));
-	if (!rv) {
-		debug("syz_usb_connect: parse_usb_descriptor failed with %d\n", rv);
-		return rv;
-	}
-	debug("syz_usb_connect: parsed usb descriptor\n");
-
 	int fd = usb_fuzzer_open();
 	if (fd < 0) {
-		debug("syz_usb_connect: usb_fuzzer_open failed with %d\n", rv);
+		debug("syz_usb_connect: usb_fuzzer_open failed with %d\n", fd);
 		return fd;
 	}
+	if (fd >= MAX_FDS) {
+		close(fd);
+		debug("syz_usb_connect: too many open fds\n");
+		return -1;
+	}
 	debug("syz_usb_connect: usb_fuzzer_open success\n");
+
+	struct usb_device_index* index = add_usb_index(fd, dev, dev_len);
+	if (!index) {
+		debug("syz_usb_connect: add_usb_index failed\n");
+		return -1;
+	}
+	debug("syz_usb_connect: add_usb_index success\n");
 	char device[32];
 	sprintf(&device[0], "dummy_udc.%llu", procid);
-	rv = usb_fuzzer_init(fd, speed, "dummy_udc", &device[0]);
+	int rv = usb_fuzzer_init(fd, speed, "dummy_udc", &device[0]);
 	if (rv < 0) {
 		debug("syz_usb_connect: usb_fuzzer_init failed with %d\n", rv);
 		return rv;
@@ -2099,7 +2236,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		uint32 response_length = 0;
 
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			NONFAILING(response_found = lookup_connect_response(descs, &index, &event.ctrl, &response_data, &response_length));
+			NONFAILING(response_found = lookup_connect_response(fd, descs, &event.ctrl, &response_data, &response_length));
 			if (!response_found) {
 				debug("syz_usb_connect: unknown control IN request\n");
 				return -1;
@@ -2114,24 +2251,10 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		}
 
 		if (done) {
-			rv = usb_fuzzer_vbus_draw(fd, index.config->bMaxPower);
+			rv = configure_device(fd);
 			if (rv < 0) {
-				debug("syz_usb_connect: usb_fuzzer_vbus_draw failed with %d\n", rv);
+				debug("syz_usb_connect: configure_device failed with %d\n", rv);
 				return rv;
-			}
-			rv = usb_fuzzer_configure(fd);
-			if (rv < 0) {
-				debug("syz_usb_connect: usb_fuzzer_configure failed with %d\n", rv);
-				return rv;
-			}
-			unsigned ep;
-			for (ep = 0; ep < index.ifaces[0].eps_num; ep++) {
-				rv = usb_fuzzer_ep_enable(fd, index.ifaces[0].eps[ep]);
-				if (rv < 0) {
-					debug("syz_usb_connect: usb_fuzzer_ep_enable(%d) failed with %d\n", ep, rv);
-				} else {
-					debug("syz_usb_connect: endpoint %d enabled\n", ep);
-				}
 			}
 		}
 
@@ -2335,6 +2458,20 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 			return -1;
 		}
 	} else {
+		if ((event.ctrl.bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD ||
+		    event.ctrl.bRequest == USB_REQ_SET_INTERFACE) {
+			int iface_num = event.ctrl.wIndex;
+			int alt_set = event.ctrl.wValue;
+			debug("syz_usb_control_io: setting interface (%d, %d)\n", iface_num, alt_set);
+			int iface_index = lookup_interface(fd, iface_num, alt_set);
+			if (iface_index < 0) {
+				debug("syz_usb_control_io: interface (%d, %d) not found\n", iface_num, alt_set);
+			} else {
+				set_interface(fd, iface_index);
+				debug("syz_usb_control_io: interface (%d, %d) set\n", iface_num, alt_set);
+			}
+		}
+
 		response_length = event.ctrl.wLength;
 	}
 
@@ -5058,7 +5195,7 @@ static void close_fds()
 		return;
 #endif
 	int fd;
-	for (fd = 3; fd < 30; fd++)
+	for (fd = 3; fd < MAX_FDS; fd++)
 		close(fd);
 }
 #endif
