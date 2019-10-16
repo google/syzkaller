@@ -799,6 +799,10 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 }
 #endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_CLOSE_FDS || __NR_syz_usb_connect
+#define MAX_FDS 30
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 #include <errno.h>
 #include <fcntl.h>
@@ -2630,7 +2634,7 @@ static void close_fds()
 	// Also close all USB emulation descriptors to trigger exit from USB
 	// event loop to collect coverage.
 	int fd;
-	for (fd = 3; fd < 30; fd++)
+	for (fd = 3; fd < MAX_FDS; fd++)
 		close(fd);
 }
 #endif

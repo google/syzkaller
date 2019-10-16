@@ -29,13 +29,10 @@ More details can be found:
 
 A few major things that need to be done:
 
-1. Implement proper support for multiple interfaces per configuration.
-What currently is missing is enabling/disabling USB endpoints depending of which interface is set.
-This is required to properly emulate some USB devices like the CDC NCM class.
-2. Collect coverage from interrupts (this is required to enable better fuzzing of USB drivers after enumeration completes).
-3. Add descriptions for all main USB classes.
-4. Upstream KCOV changes.
-5. Upstream the kernel interface for USB device emulation.
+1. Collect coverage from interrupts (this is required to enable better fuzzing of USB drivers after enumeration completes).
+2. Add descriptions for all main USB classes.
+3. Upstream KCOV changes.
+4. Upstream the kernel interface for USB device emulation.
 
 Some ideas for things that can be done:
 
