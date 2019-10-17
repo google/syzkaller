@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,9 +25,11 @@ func init() {
 }
 
 type Config struct {
-	Targets      []string `json:"targets"`       // target machines: (hostname|ip)(:port)?
-	TargetDir    string   `json:"target_dir"`    // directory to copy/run on target
-	TargetReboot bool     `json:"target_reboot"` // reboot target on repair
+	Host         string   `json:"host"`           // host ip addr
+	Targets      []string `json:"targets"`        // target machines: (hostname|ip)(:port)?
+	TargetDir    string   `json:"target_dir"`     // directory to copy/run on target
+	TargetReboot bool     `json:"target_reboot"`  // reboot target on repair
+	USBDeviceNum string   `json:"usb_device_num"` // usb device number
 }
 
 type Pool struct {
@@ -51,11 +54,17 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, err
 	}
+	if cfg.Host == "" {
+		return nil, fmt.Errorf("config param Host is empty")
+	}
 	if len(cfg.Targets) == 0 {
 		return nil, fmt.Errorf("config param targets is empty")
 	}
 	if cfg.TargetDir == "" {
 		return nil, fmt.Errorf("config param target_dir is empty")
+	}
+	if cfg.USBDeviceNum == "" {
+		return nil, fmt.Errorf("config param usb_device_num is empty")
 	}
 	for _, target := range cfg.Targets {
 		if _, _, err := splitTargetPort(target); err != nil {
@@ -99,6 +108,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
+	//remount to writable
+	inst.ssh("mount -o remount,rw /")
+
 	// Create working dir if doesn't exist.
 	inst.ssh("mkdir -p '" + inst.cfg.TargetDir + "'")
 
@@ -117,7 +129,7 @@ func (inst *instance) Forward(port int) (string, error) {
 		return "", fmt.Errorf("isolated: Forward port is zero")
 	}
 	inst.forwardPort = port
-	return fmt.Sprintf("127.0.0.1:%v", port), nil
+	return fmt.Sprintf(inst.cfg.Host+":%v", port), nil
 }
 
 func (inst *instance) ssh(command string) error {
@@ -173,26 +185,35 @@ func (inst *instance) ssh(command string) error {
 
 func (inst *instance) repair() error {
 	log.Logf(2, "isolated: trying to ssh")
-	if err := inst.waitForSSH(30 * time.Minute); err == nil {
+	if err := inst.waitForSSH(3 * time.Minute); err == nil {
+		log.Logf(2, "isolated: ssh succeeded")
+	} else {
+		log.Logf(2, "isolated: ssh failed")
 		if inst.cfg.TargetReboot {
 			log.Logf(2, "isolated: trying to reboot")
-			inst.ssh("reboot") // reboot will return an error, ignore it
-			if err := inst.waitForReboot(5 * 60); err != nil {
+			_, err = exec.Command("/bin/sh", "-c", "echo 0 > /sys/bus/usb/devices/"+inst.cfg.USBDeviceNum+"/authorized").Output()
+			if err != nil {
+				log.Logf(2, "isolated: failed to turn off the device")
+				return err
+			}
+
+			_, err = exec.Command("/bin/sh", "-c", "echo 1 > /sys/bus/usb/devices/"+inst.cfg.USBDeviceNum+"/authorized").Output()
+			if err != nil {
+				log.Logf(2, "isolated: failed to turn on the device")
+				return err
+			}
+
+			if err := inst.waitForReboot(3 * 60); err != nil {
 				log.Logf(2, "isolated: machine did not reboot")
 				return err
 			}
 			log.Logf(2, "isolated: rebooted wait for comeback")
-			if err := inst.waitForSSH(30 * time.Minute); err != nil {
-				log.Logf(2, "isolated: machine did not comeback")
+			if err := inst.waitForSSH(3 * time.Minute); err != nil {
+				log.Logf(0, "isolated: machine did not comeback")
 				return err
 			}
 			log.Logf(2, "isolated: reboot succeeded")
-		} else {
-			log.Logf(2, "isolated: ssh succeeded")
 		}
-	} else {
-		log.Logf(2, "isolated: ssh failed")
-		return fmt.Errorf("SSH failed")
 	}
 
 	return nil
