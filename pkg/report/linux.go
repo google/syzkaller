@@ -566,6 +566,45 @@ func linuxStallFrameExtractor(frames []string) (string, string) {
 	return "", "did not find any anchor frame"
 }
 
+func linuxHangTaskFrameExtractor(frames []string) (string, string) {
+	// The problem with task hung reports is that they manifest at random victim stacks,
+	// rather at the root cause stack. E.g. if there is something wrong with RCU subsystem,
+	// we are getting hangs all over the kernel on all synchronize_* calls.
+	// So before resotring to the common logic of skipping some common frames,
+	// we look for 2 common buckets: hangs on synchronize_rcu and hangs on rtnl_lock
+	// and group these together.
+	const synchronizeRCU = "synchronize_rcu"
+	anchorFrames := map[string]string{
+		"rtnl_lock":         "",
+		"synchronize_rcu":   synchronizeRCU,
+		"synchronize_srcu":  synchronizeRCU,
+		"synchronize_net":   synchronizeRCU,
+		"synchronize_sched": synchronizeRCU,
+	}
+	for _, frame := range frames {
+		for anchor, replacement := range anchorFrames {
+			if strings.HasPrefix(frame, anchor) {
+				if replacement != "" {
+					frame = replacement
+				}
+				return frame, ""
+			}
+		}
+	}
+	skip := []string{"sched", "_lock", "_slowlock", "down", "completion", "kthread",
+		"wait", "synchronize", "context_switch", "__switch_to"}
+nextFrame:
+	for _, frame := range frames {
+		for _, ignore := range skip {
+			if strings.Contains(frame, ignore) {
+				continue nextFrame
+			}
+		}
+		return frame, ""
+	}
+	return "", "all frames are skipped"
+}
+
 var linuxStallAnchorFrames = []*regexp.Regexp{
 	// Various generic functions that dispatch work.
 	// We also include some of their callers, so that if some names change
@@ -1263,9 +1302,7 @@ var linuxOopses = []*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
-					skip: []string{"sched", "_lock", "_slowlock", "down", "completion", "kthread",
-						"wait", "synchronize", "context_switch", "__switch_to",
-					},
+					extractor: linuxHangTaskFrameExtractor,
 				},
 			},
 			{

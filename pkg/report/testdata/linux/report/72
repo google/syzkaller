@@ -1,4 +1,4 @@
-TITLE: INFO: task hung in ieee80211_unregister_hw
+TITLE: INFO: task hung in rtnl_lock
 TYPE: HANG
 
 [  981.809015] INFO: task kworker/0:1:764 blocked for more than 120 seconds.

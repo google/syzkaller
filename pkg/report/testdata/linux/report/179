@@ -1,4 +1,4 @@
-TITLE: INFO: task hung in input_close_device
+TITLE: INFO: task hung in synchronize_rcu
 TYPE: HANG
 
 [  369.632214] INFO: task syz-executor4:8442 blocked for more than 120 seconds.

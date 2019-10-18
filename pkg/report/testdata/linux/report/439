@@ -1,0 +1,79 @@
+TITLE: INFO: task hung in synchronize_rcu
+TYPE: HANG
+
+[  348.321211][ T1056] INFO: task syz-executor.2:9976 blocked for more than 143 seconds.
+[  348.329682][ T1056]       Not tainted 5.3.0-rc6+ #147
+[  348.335482][ T1056] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  348.344623][ T1056] syz-executor.2  D25560  9976   9905 0x00004004
+[  348.351333][ T1056] Call Trace:
+[  348.354916][ T1056]  __schedule+0x755/0x1580
+[  348.375394][ T1056]  schedule+0xd9/0x260
+[  348.379651][ T1056]  synchronize_rcu_expedited+0x544/0x5b0
+[  348.451454][ T1056]  bdi_unregister+0x167/0x5b0
+[  348.478128][ T1056]  bdi_put+0x15e/0x190
+[  348.482313][ T1056]  generic_shutdown_super+0x2b0/0x370
+[  348.488024][ T1056]  kill_anon_super+0x3e/0x60
+[  348.493072][ T1056]  fuse_kill_sb_anon+0x1e/0x30
+[  348.498539][ T1056]  deactivate_locked_super+0x95/0x100
+[  348.504260][ T1056]  deactivate_super+0x1b2/0x1d0
+[  348.536682][ T1056]  cleanup_mnt+0x351/0x4b0
+[  348.551705][ T1056]  __cleanup_mnt+0x16/0x20
+[  348.556288][ T1056]  task_work_run+0x145/0x1c0
+[  348.561245][ T1056]  exit_to_usermode_loop+0x316/0x380
+[  348.566831][ T1056]  do_syscall_64+0x5a9/0x6a0
+[  348.571653][ T1056]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  348.577798][ T1056] RIP: 0033:0x459879
+[  348.581822][ T1056] Code: 30 48 c7 44 24 38 00 00 00 00 48 c7 44 24 40 00 00 00 00 48 c7 44 24 48 00 00 00 00 e8 b0 67 ff ff 48 8b 44 24 50 48 8b 4c 24 <58> 48 89 01 48 8b 6c 24 60 48 83 c4 68 c3 e8 14 06 fd ff 0f 0b e8
+[  348.603860][ T1056] RSP: 002b:00007f55778a4c78 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  348.613007][ T1056] RAX: ffffffffffffffea RBX: 0000000000000005 RCX: 0000000000459879
+[  348.621416][ T1056] RDX: 0000000020000080 RSI: 0000000020000040 RDI: 0000000000000000
+[  348.629760][ T1056] RBP: 000000000075bf20 R08: 00000000200001c0 R09: 0000000000000000
+[  348.651558][ T1056] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f55778a56d4
+[  348.659855][ T1056] R13: 00000000004c5e8b R14: 00000000004da9d8 R15: 00000000ffffffff
+[  348.684479][ T1056] INFO: lockdep is turned off.
+[  348.700316][ T1056] NMI backtrace for cpu 0
+[  348.705322][ T1056] CPU: 0 PID: 1056 Comm: khungtaskd Not tainted 5.3.0-rc6+ #147
+[  348.713316][ T1056] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  348.723474][ T1056] Call Trace:
+[  348.726838][ T1056]  dump_stack+0x172/0x1f0
+[  348.731515][ T1056]  nmi_cpu_backtrace.cold+0x70/0xb2
+[  348.749826][ T1056]  nmi_trigger_cpumask_backtrace+0x23b/0x28b
+[  348.755943][ T1056]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  348.762479][ T1056]  watchdog+0x9d0/0xef0
+[  348.766832][ T1056]  kthread+0x361/0x430
+[  348.785271][ T1056]  ret_from_fork+0x24/0x30
+[  348.789848][ T1056] Sending NMI from CPU 0 to CPUs 1:
+[  348.795419][    C1] NMI backtrace for cpu 1
+[  348.795428][    C1] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 5.3.0-rc6+ #147
+[  348.795432][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  348.795434][    C1] RIP: 0010:reschedule_interrupt+0x0/0x20
+[  348.795445][    C1] Code: 66 2e 0f 1f 84 00 00 00 00 00 68 03 ff ff ff e8 b6 f0 ff ff e8 c1 23 00 00 e9 ab f1 ff ff 66 90 66 2e 0f 1f 84 00 00 00 00 00 <68> 02 ff ff ff e8 96 f0 ff ff e8 e1 1e 00 00 e9 8b f1 ff ff 66 90
+[  348.795448][    C1] RSP: 0018:ffff8880a98dfd38 EFLAGS: 00000086
+[  348.795453][    C1] RAX: 1ffffffff11a5e8d RBX: ffff8880a98c6340 RCX: 1ffffffff134b5de
+[  348.795457][    C1] RDX: dffffc0000000000 RSI: ffffffff8177f03e RDI: ffffffff873db36c
+[  348.795460][    C1] RBP: ffff8880a98dfd98 R08: ffff8880a98c6340 R09: ffffed1015318c69
+[  348.795463][    C1] R10: ffffed1015318c68 R11: ffff8880a98c6347 R12: dffffc0000000000
+[  348.795466][    C1] R13: ffffffff89a57cf8 R14: 0000000000000000 R15: 0000000000000001
+[  348.795470][    C1] FS:  0000000000000000(0000) GS:ffff8880ae900000(0000) knlGS:0000000000000000
+[  348.795473][    C1] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  348.795476][    C1] CR2: ffffffffff600400 CR3: 0000000090e40000 CR4: 00000000001406e0
+[  348.795480][    C1] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  348.795483][    C1] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  348.795485][    C1] Call Trace:
+[  348.795491][    C1]  arch_cpu_idle+0xa/0x10
+[  348.795493][    C1]  default_idle_call+0x84/0xb0
+[  348.795495][    C1]  do_idle+0x413/0x760
+[  348.795500][    C1]  cpu_startup_entry+0x1b/0x20
+[  348.795502][    C1]  start_secondary+0x315/0x430
+[  348.795507][    C1]  secondary_startup_64+0xa4/0xb0
+[  348.796672][ T1056] Kernel panic - not syncing: hung_task: blocked tasks
+[  348.989545][ T1056] CPU: 0 PID: 1056 Comm: khungtaskd Not tainted 5.3.0-rc6+ #147
+[  348.997469][ T1056] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  349.007812][ T1056] Call Trace:
+[  349.011195][ T1056]  dump_stack+0x172/0x1f0
+[  349.015522][ T1056]  panic+0x2dc/0x755
+[  349.062252][ T1056]  watchdog+0x9e1/0xef0
+[  349.066642][ T1056]  kthread+0x361/0x430
+[  349.082864][ T1056]  ret_from_fork+0x24/0x30
+[  349.088901][ T1056] Kernel Offset: disabled
+[  349.093412][ T1056] Rebooting in 86400 seconds..

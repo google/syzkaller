@@ -1,0 +1,131 @@
+TITLE: INFO: task hung in synchronize_rcu
+TYPE: HANG
+
+[  926.100386] INFO: task kworker/u4:12:9048 blocked for more than 140 seconds.
+[  926.107664]       Not tainted 4.19.0-rc2+ #6
+[  926.112836] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  926.121293] kworker/u4:12   D10792  9048      2 0x80000000
+[  926.126968] Workqueue: events_unbound fsnotify_mark_destroy_workfn
+[  926.139232] Call Trace:
+[  926.142419]  __schedule+0x86c/0x1ed0
+[  926.194094]  schedule+0xfe/0x460
+[  926.216547]  schedule_timeout+0x1cc/0x260
+[  926.245000]  wait_for_completion+0x427/0x8a0
+[  926.274418]  __synchronize_srcu+0x184/0x230
+[  926.298281]  synchronize_srcu+0x440/0x5ab
+[  926.331114]  fsnotify_mark_destroy_workfn+0x1be/0x510
+[  926.360984]  process_one_work+0xc90/0x1b90
+[  926.477062]  worker_thread+0x17f/0x1390
+[  926.564207]  kthread+0x35a/0x420
+[  926.576486]  ret_from_fork+0x3a/0x50
+[  926.581133] 
+[  926.581133] Showing all locks held in the system:
+[  926.587490] 1 lock held by khungtaskd/984:
+[  926.592275]  #0: 00000000b38e653c (rcu_read_lock){....}, at: debug_show_all_locks+0xd0/0x424
+[  926.601453] 1 lock held by rsyslogd/5317:
+[  926.605607]  #0: 00000000d292a055 (&f->f_pos_lock){+.+.}, at: __fdget_pos+0x1bb/0x200
+[  926.614208] 2 locks held by getty/5439:
+[  926.618199]  #0: 0000000056010e53 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  926.627033]  #1: 0000000099b700ed (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  926.636461] 2 locks held by getty/5440:
+[  926.640967]  #0: 00000000ebabf63b (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  926.649267]  #1: 0000000049a4581f (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  926.658729] 2 locks held by getty/5441:
+[  926.663260]  #0: 0000000079d1f009 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  926.672064]  #1: 0000000047aed8e4 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  926.681484] 2 locks held by getty/5442:
+[  926.685471]  #0: 00000000400826c6 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  926.694452]  #1: 00000000dbe3dd22 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  926.703881] 2 locks held by getty/5443:
+[  926.707865]  #0: 000000002edc9d22 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  926.716725]  #1: 0000000049e6e57a (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  926.726178] 2 locks held by getty/5444:
+[  926.730685]  #0: 00000000c8e5c3c5 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  926.738980]  #1: 00000000333eb678 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  926.748834] 2 locks held by getty/5445:
+[  926.753325]  #0: 00000000a8e6e545 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  926.762128]  #1: 00000000561394bf (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  926.771585] 2 locks held by kworker/u4:12/9048:
+[  926.776274]  #0: 000000002977e987 ((wq_completion)"events_unbound"){+.+.}, at: process_one_work+0xb43/0x1b90
+[  926.786841]  #1: 00000000233e961c ((reaper_work).work){+.+.}, at: process_one_work+0xb9a/0x1b90
+[  926.796472] 4 locks held by syz-executor6/30089:
+[  926.801767] 1 lock held by syz-executor2/30088:
+[  926.806452] 
+[  926.808085] =============================================
+[  926.808085] 
+[  926.815661] NMI backtrace for cpu 1
+[  926.819311] CPU: 1 PID: 984 Comm: khungtaskd Not tainted 4.19.0-rc2+ #6
+[  926.826066] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  926.835424] Call Trace:
+[  926.838028]  dump_stack+0x1c4/0x2b4
+[  926.852447]  nmi_cpu_backtrace.cold.3+0x63/0xa2
+[  926.862343]  nmi_trigger_cpumask_backtrace+0x1b3/0x1ed
+[  926.867653]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  926.872858]  watchdog+0xb3e/0x1050
+[  926.942491]  kthread+0x35a/0x420
+[  926.954544]  ret_from_fork+0x3a/0x50
+[  926.958457] Sending NMI from CPU 1 to CPUs 0:
+[  926.965218] NMI backtrace for cpu 0
+[  926.965236] INFO: NMI handler (nmi_cpu_backtrace_handler) took too long to run: 1.860 msecs
+[  926.965241] CPU: 0 PID: 30089 Comm: syz-executor6 Not tainted 4.19.0-rc2+ #6
+[  926.965253] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  926.965257] RIP: 0010:mark_lock+0x1f/0x1cb0
+[  926.965269] Code: e8 a6 d1 61 00 eb 87 0f 1f 40 00 55 4c 8d 46 20 41 89 d1 49 89 fb 48 ba 00 00 00 00 00 fc ff df 48 89 e5 41 57 44 89 c9 41 56 <4c> 8d 7d d8 41 be 01 00 00 00 41 55 41 d3 e6 41 54 49 89 f4 53 48
+[  926.965274] RSP: 0018:ffff8801dae07660 EFLAGS: 00000046
+[  926.965299] RAX: 000000000000000c RBX: 0000000000000053 RCX: 0000000000000000
+[  926.965305] RDX: dffffc0000000000 RSI: ffff8801bdd82ad0 RDI: ffff8801bdd82200
+[  926.965326] RBP: ffff8801dae07670 R08: ffff8801bdd82af0 R09: 0000000000000000
+[  926.965333] R10: ffff8801bdd82ad0 R11: ffff8801bdd82200 R12: ffff8801bdd82af2
+[  926.965340] R13: 0000000000000040 R14: ffff8801bdd82200 R15: 000000000000000c
+[  926.965348] FS:  00007faae8231700(0000) GS:ffff8801dae00000(0000) knlGS:0000000000000000
+[  926.965354] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  926.965360] CR2: 0000000000000000 CR3: 000000018daa6000 CR4: 00000000001426f0
+[  926.965367] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  926.965374] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  926.965377] Call Trace:
+[  926.965381]  <IRQ>
+[  926.965385]  __lock_acquire+0x1564/0x4ec0
+[  926.965468]  lock_acquire+0x1ed/0x520
+[  926.965497]  _raw_spin_lock_irq+0x61/0x80
+[  926.965507]  __hrtimer_run_queues+0x488/0x10d0
+[  926.965572]  hrtimer_interrupt+0x313/0x780
+[  926.965577]  smp_apic_timer_interrupt+0x1a1/0x760
+[  926.965648]  apic_timer_interrupt+0xf/0x20
+[  926.965652]  </IRQ>
+[  926.965657] RIP: 0010:rcu_lockdep_current_cpu_online+0x189/0x2d0
+[  926.965673] Code: 49 c1 e8 03 43 80 3c 30 00 0f 85 c0 00 00 00 48 c7 c1 c0 0e 17 89 48 03 1c c1 48 8d 7b 20 48 89 f8 48 c1 e8 03 42 80 3c 30 00 <0f> 85 b7 00 00 00 48 8d 7b 28 48 8b 43 20 49 89 f8 49 c1 e8 03 43
+[  926.965678] RSP: 0018:ffff8801892072f8 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  926.965696] RAX: 1ffff1003b5c5b24 RBX: ffff8801dae2d900 RCX: ffffffff89170ec0
+[  926.965703] RDX: 0000000000040000 RSI: ffffffff83907258 RDI: ffff8801dae2d920
+[  926.965709] RBP: ffff880189207398 R08: 1ffffffff122e1d8 R09: ffffed003b5c4732
+[  926.965716] R10: ffffed003b5c4732 R11: ffff8801dae23993 R12: ffffffff895a1e00
+[  926.965722] R13: ffff880189207370 R14: dffffc0000000000 R15: ffffed0031240e66
+[  926.965757]  rcu_read_lock_sched_held+0x96/0x120
+[  926.965762]  vmx_handle_exit+0x1144/0x17f0
+[  926.965790]  vcpu_enter_guest+0x14a9/0x62e0
+[  926.965903]  kvm_arch_vcpu_ioctl_run+0x375/0x16e0
+[  926.965912]  kvm_vcpu_ioctl+0x72b/0x1150
+[  926.965971]  do_vfs_ioctl+0x1de/0x1720
+[  926.966014]  ksys_ioctl+0xa9/0xd0
+[  926.966019]  __x64_sys_ioctl+0x73/0xb0
+[  926.966023]  do_syscall_64+0x1b9/0x820
+[  926.966069]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  926.966073] RIP: 0033:0x457099
+[  926.966087] Code: fd b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00 00 66 90 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb b4 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  926.966092] RSP: 002b:00007faae8230c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  926.966103] RAX: ffffffffffffffda RBX: 00007faae82316d4 RCX: 0000000000457099
+[  926.966109] RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000006
+[  926.966116] RBP: 00000000009300a0 R08: 0000000000000000 R09: 0000000000000000
+[  926.966122] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  926.966129] R13: 00000000004cf730 R14: 00000000004c59b9 R15: 0000000000000000
+[  926.976405] Kernel panic - not syncing: hung_task: blocked tasks
+[  927.811176] CPU: 1 PID: 984 Comm: khungtaskd Not tainted 4.19.0-rc2+ #6
+[  927.817935] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  927.827293] Call Trace:
+[  927.829901]  dump_stack+0x1c4/0x2b4
+[  927.838828]  panic+0x238/0x4e7
+[  927.868112]  watchdog+0xb4f/0x1050
+[  927.937423]  kthread+0x35a/0x420
+[  927.949493]  ret_from_fork+0x3a/0x50
+[  927.953658] Dumping ftrace buffer:
+[  927.957370] ---------------------------------

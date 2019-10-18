@@ -1,0 +1,84 @@
+TITLE: INFO: task hung in synchronize_rcu
+TYPE: HANG
+
+[  405.210796][ T1057] INFO: task syz-executor.3:18078 blocked for more than 143 seconds.
+[  405.219079][ T1057]       Not tainted 5.3.0-rc5 #135
+[  405.224245][ T1057] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  405.232952][ T1057] syz-executor.3  D28864 18078   9699 0x00004006
+[  405.239370][ T1057] Call Trace:
+[  405.242711][ T1057]  __schedule+0x755/0x1580
+[  405.262618][ T1057]  schedule+0xa8/0x270
+[  405.266706][ T1057]  synchronize_rcu_expedited+0x544/0x5b0
+[  405.333604][ T1057]  synchronize_net+0x3b/0x60
+[  405.338220][ T1057]  packet_release+0x9cf/0xcb0
+[  405.368338][ T1057]  __sock_release+0xce/0x280
+[  405.372974][ T1057]  sock_close+0x1e/0x30
+[  405.377139][ T1057]  __fput+0x2ff/0x890
+[  405.386034][ T1057]  ____fput+0x16/0x20
+[  405.390013][ T1057]  task_work_run+0x145/0x1c0
+[  405.397162][ T1057]  get_signal+0x2078/0x2500
+[  405.428810][ T1057]  do_signal+0x87/0x1700
+[  405.462833][ T1057]  exit_to_usermode_loop+0x286/0x380
+[  405.468263][ T1057]  do_syscall_64+0x5a9/0x6a0
+[  405.472993][ T1057]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  405.478908][ T1057] RIP: 0033:0x459829
+[  405.482853][ T1057] Code: 24 60 48 8b 42 08 48 8b 4a 10 48 8b 5a 18 48 8b 72 20 48 8b 7a 28 48 8b 3f 4c 8b 42 30 48 8b 52 38 48 85 d2 76 62 48 89 44 24 <58> 4c 89 44 24 28 48 89 0c 24 48 89 5c 24 08 48 c7 44 24 10 00 00
+[  405.502517][ T1057] RSP: 002b:00007f7bd6a5ac78 EFLAGS: 00000246 ORIG_RAX: 0000000000000031
+[  405.511028][ T1057] RAX: 0000000000000000 RBX: 0000000000000003 RCX: 0000000000459829
+[  405.519020][ T1057] RDX: 0000000000000014 RSI: 0000000020000040 RDI: 0000000000000003
+[  405.527053][ T1057] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[  405.535246][ T1057] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f7bd6a5b6d4
+[  405.543265][ T1057] R13: 00000000004bf9f9 R14: 00000000004d15c0 R15: 00000000ffffffff
+[  405.551288][ T1057] INFO: task syz-executor.0:18081 blocked for more than 143 seconds.
+[  405.559335][ T1057]       Not tainted 5.3.0-rc5 #135
+[  405.564509][ T1057] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  405.573305][ T1057] syz-executor.0  D28784 18081   9691 0x00004006
+[  405.580023][ T1057] Call Trace:
+[  405.583429][ T1057]  __schedule+0x755/0x1580
+[  405.603357][ T1057]  schedule+0xa8/0x270
+[  405.607468][ T1057]  synchronize_rcu_expedited+0x544/0x5b0
+[  405.673780][ T1057]  synchronize_net+0x3b/0x60
+[  405.678438][ T1057]  packet_release+0x9cf/0xcb0
+[  405.708170][ T1057]  __sock_release+0xce/0x280
+[  405.712797][ T1057]  sock_close+0x1e/0x30
+[  405.716965][ T1057]  __fput+0x2ff/0x890
+[  405.725858][ T1057]  ____fput+0x16/0x20
+[  405.729836][ T1057]  task_work_run+0x145/0x1c0
+[  405.734605][ T1057]  get_signal+0x2078/0x2500
+[  405.767355][ T1057]  do_signal+0x87/0x1700
+[  405.801628][ T1057]  exit_to_usermode_loop+0x286/0x380
+[  405.806942][ T1057]  do_syscall_64+0x5a9/0x6a0
+[  405.811577][ T1057]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  405.817475][ T1057] RIP: 0033:0x459829
+[  405.821445][ T1057] Code: 24 60 48 8b 42 08 48 8b 4a 10 48 8b 5a 18 48 8b 72 20 48 8b 7a 28 48 8b 3f 4c 8b 42 30 48 8b 52 38 48 85 d2 76 62 48 89 44 24 <58> 4c 89 44 24 28 48 89 0c 24 48 89 5c 24 08 48 c7 44 24 10 00 00
+[  405.841371][ T1057] RSP: 002b:00007fd45a61cc78 EFLAGS: 00000246 ORIG_RAX: 0000000000000031
+[  405.849792][ T1057] RAX: 0000000000000000 RBX: 0000000000000003 RCX: 0000000000459829
+[  405.858156][ T1057] RDX: 0000000000000014 RSI: 0000000020000040 RDI: 0000000000000003
+[  405.866194][ T1057] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[  405.874213][ T1057] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fd45a61d6d4
+[  405.882231][ T1057] R13: 00000000004bf9f9 R14: 00000000004d15c0 R15: 00000000ffffffff
+[  405.890202][ T1057] INFO: lockdep is turned off.
+[  405.895004][ T1057] NMI backtrace for cpu 1
+[  405.899363][ T1057] CPU: 1 PID: 1057 Comm: khungtaskd Not tainted 5.3.0-rc5 #135
+[  405.906880][ T1057] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  405.917056][ T1057] Call Trace:
+[  405.920331][ T1057]  dump_stack+0x172/0x1f0
+[  405.924640][ T1057]  nmi_cpu_backtrace.cold+0x70/0xb2
+[  405.941725][ T1057]  nmi_trigger_cpumask_backtrace+0x23b/0x28b
+[  405.947828][ T1057]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  405.953698][ T1057]  watchdog+0x9d0/0xef0
+[  405.958529][ T1057]  kthread+0x361/0x430
+[  405.974331][ T1057]  ret_from_fork+0x24/0x30
+[  405.978893][ T1057] Sending NMI from CPU 1 to CPUs 0:
+[  405.984191][    C0] NMI backtrace for cpu 0 skipped: idling at native_safe_halt+0xe/0x10
+[  405.985458][ T1057] Kernel panic - not syncing: hung_task: blocked tasks
+[  405.999272][ T1057] CPU: 1 PID: 1057 Comm: khungtaskd Not tainted 5.3.0-rc5 #135
+[  406.006919][ T1057] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  406.017046][ T1057] Call Trace:
+[  406.020334][ T1057]  dump_stack+0x172/0x1f0
+[  406.024648][ T1057]  panic+0x2dc/0x755
+[  406.068613][ T1057]  watchdog+0x9e1/0xef0
+[  406.072754][ T1057]  kthread+0x361/0x430
+[  406.088619][ T1057]  ret_from_fork+0x24/0x30
+[  406.094205][ T1057] Kernel Offset: disabled
+[  406.098552][ T1057] Rebooting in 86400 seconds..

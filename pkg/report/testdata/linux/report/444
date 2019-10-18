@@ -1,0 +1,23 @@
+TITLE: INFO: task hung in rtnl_lock
+TYPE: HANG
+
+[  715.843349] INFO: task kworker/u4:0:5 blocked for more than 140 seconds.
+[  715.850238]       Not tainted 4.15.0 #0
+[  715.855356] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  715.863375] kworker/u4:0    D 8064     5      2 0x90000000 437968653576
+[  715.870148] Workqueue: netns cleanup_net
+[  715.874223] Call Trace:
+[  715.876816]  [<ffffffff8147436f>] context_switch+0x60f/0xa60
+[  715.882617]  [<ffffffff8100095a>] __schedule+0x5aa/0x1da0
+[  715.894058]  [<ffffffff810021df>] schedule+0x8f/0x1b0
+[  715.899248]  [<ffffffff81002a80>] schedule_preempt_disabled+0x10/0x20
+[  715.905933]  [<ffffffff810075ad>] __mutex_lock+0x82d/0x1430
+[  715.960323]  [<ffffffff810081c6>] mutex_lock_nested+0x16/0x20
+[  715.972316]  [<ffffffff83a7b4b7>] rtnl_lock+0x17/0x20
+[  715.977535]  [<ffffffff83bd0c35>] nat_exit_net+0x25/0x380
+[  715.989126]  [<ffffffff839fbbc5>] ops_exit_list.isra.0+0x105/0x160
+[  715.995473]  [<ffffffff839fd438>] cleanup_net+0x4d8/0xa20
+[  716.012922]  [<ffffffff814338f6>] process_one_work+0x886/0x1650
+[  716.043399]  [<ffffffff81434d13>] worker_thread+0x653/0x1150
+[  716.049197]  [<ffffffff8144c478>] kthread+0x348/0x420
+[  716.067875]  [<ffffffff84400273>] ret_from_fork+0x63/0x70

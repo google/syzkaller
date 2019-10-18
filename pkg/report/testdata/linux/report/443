@@ -1,0 +1,161 @@
+TITLE: INFO: task hung in rtnl_lock
+TYPE: HANG
+
+[  702.091171] INFO: task syz-executor.4:15720 blocked for more than 140 seconds.
+[  702.098581]       Not tainted 4.4.196+ #0
+[  702.138127] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  702.180820] syz-executor.4  D ffff8801bc073040 27144 15720   2030 0x00000004
+[  702.188314]  ffff8801bc073040 ffff8800b9488d40 ffff8801bbad4840 ffff8801db61dd40
+[  702.267645]  ffff8801db61dd58 ffff8801bba979a0 ffffffff82a33b03 0000000000000246
+[  702.346846]  ffffffff832dc7a0 ffff8801bc073040 0000000000000000 00ff8801bc073818
+[  702.425892] Call Trace:
+[  702.471280]  [<ffffffff82a350bb>] schedule+0x9b/0x1c0
+[  702.476501]  [<ffffffff82a358a5>] schedule_preempt_disabled+0x15/0x20
+[  702.519883]  [<ffffffff82a39184>] mutex_lock_nested+0x3f4/0x1480
+[  702.703168]  [<ffffffff822d37bc>] rtnl_lock+0x1c/0x20
+[  702.708393]  [<ffffffff8284ef58>] ipv6_route_ioctl+0x1f8/0x2b0
+[  702.801113]  [<ffffffff827ff2a0>] inet6_ioctl+0x110/0x1c0
+[  702.806685]  [<ffffffff8223859f>] sock_do_ioctl+0x6f/0xb0
+[  702.849029]  [<ffffffff82238831>] sock_ioctl+0x251/0x3d0
+[  702.897775]  [<ffffffff8156c6c1>] do_vfs_ioctl+0xa41/0xfe0
+[  703.037558]  [<ffffffff8156ccf4>] SyS_ioctl+0x94/0xc0
+[  703.079597]  [<ffffffff82a491cf>] tracesys_phase2+0x90/0x95
+[  703.121903] 1 lock held by syz-executor.4/15720:
+[  703.126701]  #0:  (rtnl_mutex){+.+.+.}, at: [<ffffffff822d37bc>] rtnl_lock+0x1c/0x20
+[  703.205848]   task                        PC stack   pid father
+[  703.247701] kworker/0:1     D ffff8801d9358040 26968    30      2 0x00000000
+[  703.326179] Workqueue: events proc_cleanup_work
+[  703.368060]  ffff8801d9358040 0000000000000000 ffff8800b9fc6040 ffff8801db61dd40
+[  703.448261]  ffff8801db61dd58 ffff8801d9377858 ffffffff82a33b03 ffffffff00000000
+[  703.527910]  0000000000120018[  703.530883] net_ratelimit: 7720 callbacks suppressed
+[  704.018316]  1ffff1003b26ef08 ffff8800b9fc6040 00ff8801d93778c8
+[  704.097007] Call Trace:
+[  704.142253]  [<ffffffff82a350bb>] schedule+0x9b/0x1c0
+[  704.147472]  [<ffffffff82a46628>] schedule_timeout+0x3c8/0x690
+[  704.332399]  [<ffffffff82a37e71>] wait_for_completion+0x201/0x2d0
+[  704.388784]  [<ffffffff8123ee1c>] __wait_rcu_gp+0x14c/0x1d0
+[  704.431545]  [<ffffffff81244293>] synchronize_sched.part.0+0x83/0xa0
+[  704.532530]  [<ffffffff812486a8>] synchronize_sched+0xa8/0x130
+[  704.538535]  [<ffffffff8159530c>] kern_unmount+0x5c/0xd0
+[  704.580535]  [<ffffffff816891ec>] pid_ns_release_proc+0x3c/0x50
+[  704.624111]  [<ffffffff812e259e>] proc_cleanup_work+0x1e/0x30
+[  704.630028]  [<ffffffff8115ee3b>] process_one_work+0x7cb/0x15a0
+[  704.722882]  [<ffffffff81160141>] worker_thread+0x531/0x1010
+[  704.777708]  [<ffffffff8116e42d>] kthread+0x27d/0x310
+[  705.018397]  [<ffffffff82a494be>] ret_from_fork+0x4e/0x80
+[  705.068308] kworker/0:2     D ffff8800b9fc6040 27400   433      2 0x00000000
+[  705.146350] Workqueue: events proc_cleanup_work
+[  705.188269]  ffff8800b9fc6040 0000000000000000 ffff8800a7c5c840 ffff8801db61dd40
+[  705.267575]  ffff8801db61dd58 ffff8800b9f27858 ffffffff82a33b03 ffffffff00000000
+[  705.348023]  0000000000120018 1ffff100173e4f08 ffff8800a7c5c840 00ff8800b9f278c8
+[  705.428313] Call Trace:
+[  705.467276] <Same stack as pid 30>
+[  705.506547] kworker/0:3     D ffff8801c6a93040 29592  2098      2 0x00000000
+[  705.549561] Workqueue: events proc_cleanup_work
+[  705.591176]  ffff8801c6a93040 0000000000000000 ffff8801bba86040 ffff8801db61dd40
+[  705.599224]  ffff8801db61dd58 ffff8801c605f858 ffffffff82a33b03 ffffffff00000000
+[  705.679278]  0000000000120018 1ffff10038c0bf08 ffff8801bba86040 00ff8801c605f8c8
+[  705.759116] Call Trace:
+[  705.797838] <Same stack as pid 30>
+[  705.837532] syz-executor.4  D ffff8801c3eec840 29320  4989   2030 0x00000002
+[  705.916670]  ffff8801c3eec840 0000000000000000 ffff8801d9c36040 ffff8801db61dd40
+[  705.960191]  ffff8801db61dd58 ffff8801c2a87770 ffffffff82a33b03 0000000000000246
+[  706.076952]  ffffffff832dc7a0 ffff8801c3eec840 0000000000000000 00ff8801c3eed018
+[  706.156407] Call Trace:
+[  706.201971]  [<ffffffff82a350bb>] schedule+0x9b/0x1c0
+[  706.207219]  [<ffffffff82a358a5>] schedule_preempt_disabled+0x15/0x20
+[  706.251027]  [<ffffffff82a39184>] mutex_lock_nested+0x3f4/0x1480
+[  706.437235]  [<ffffffff81380478>] perf_trace_destroy+0x28/0x100
+[  706.480333]  [<ffffffff813b59c6>] tp_perf_event_destroy+0x16/0x20
+[  706.529630]  [<ffffffff813d1dbe>] _free_event+0x25e/0xd70
+[  706.572324]  [<ffffffff813d2b37>] put_event+0x267/0x390
+[  706.664382]  [<ffffffff813d2cb7>] perf_release+0x37/0x50
+[  706.669856]  [<ffffffff815351ce>] __fput+0x24e/0x7a0
+[  706.712164]  [<ffffffff815357ab>] ____fput+0x1b/0x20
+[  706.717307]  [<ffffffff81169707>] task_work_run+0x207/0x2b0
+[  706.759744]  [<ffffffff811155b2>] do_exit+0x8d2/0x29c0
+[  706.851813]  [<ffffffff81117826>] do_group_exit+0x116/0x330
+[  706.857576]  [<ffffffff81139d06>] get_signal+0x396/0x1ca0
+[  706.901069]  [<ffffffff8100b532>] do_signal+0x92/0x17c0
+[  707.087594]  [<ffffffff81002950>] exit_to_usermode_loop+0xc0/0x150
+[  707.130741]  [<ffffffff8100541a>] syscall_return_slowpath+0x21a/0x260
+[  707.137434]  [<ffffffff82a491f9>] int_ret_from_sys_call+0x25/0xa3
+[  707.180335] syz-executor.4  D ffff8801c3fa0040 29080  5725   2030 0x00000002
+[  707.258728]  ffff8801c3fa0040 0000000000000000 ffff8801da3d1840 ffff8801db61dd40
+[  707.339410]  ffff8801db61dd58 ffff8800bb72f770 ffffffff82a33b03 0000000000000246
+[  707.419611]  ffffffff832dc7a0 ffff8801c3fa0040 0000000000000000 00ff8801c3fa0818
+[  707.500215] Call Trace:
+[  707.539066] <Same stack as pid 4989>
+[  707.578789] syz-executor.2  D ffff8801c1303040 29112  6109   2029 0x00000002
+[  707.657675]  ffff8801c1303040 0000000000000000 ffff8801c2171840 ffff8801db71dd40
+[  707.738339]  ffff8801db71dd58 ffff8800b961f810 ffffffff82a33b03 0000000000000246
+[  707.817373]  ffffffff832dc7a0 ffff8801c1303040 0000000000000000 00ff8801c1303818
+[  707.898139] Call Trace:
+[  707.979988]  [<ffffffff82a350bb>] schedule+0x9b/0x1c0
+[  708.022301]  [<ffffffff82a358a5>] schedule_preempt_disabled+0x15/0x20
+[  708.028926]  [<ffffffff82a39184>] mutex_lock_nested+0x3f4/0x1480
+[  708.162451]  [<ffffffff822d37bc>] rtnl_lock+0x1c/0x20
+[  708.167665]  [<ffffffff820838fe>] tun_chr_close+0x3e/0x60
+[  708.210017]  [<ffffffff815351ce>] __fput+0x24e/0x7a0
+[  708.252037]  [<ffffffff815357ab>] ____fput+0x1b/0x20
+[  708.257169]  [<ffffffff81169707>] task_work_run+0x207/0x2b0
+[  708.299552]  [<ffffffff811155b2>] do_exit+0x8d2/0x29c0
+[  708.391636]  [<ffffffff81117826>] do_group_exit+0x116/0x330
+[  708.397376]  [<ffffffff81139d06>] get_signal+0x396/0x1ca0
+[  708.439563]  [<ffffffff8100b532>] do_signal+0x92/0x17c0
+[  709.009167]  [<ffffffff81002950>] exit_to_usermode_loop+0xc0/0x150
+[  709.052114]  [<ffffffff8100541a>] syscall_return_slowpath+0x21a/0x260
+[  709.058730]  [<ffffffff82a491f9>] int_ret_from_sys_call+0x25/0xa3
+[  709.101959] syz-executor.4  D ffff8801c2173040 28520  7596   2030 0x00000002
+[  709.109484]  ffff8801c2173040 0000000000000000 ffff8801da3d1840 ffff8801db61dd40
+[  709.189245]  ffff8801db61dd58 ffff8801c12bf598 ffffffff82a33b03 ffffffff00000000
+[  709.269153]  1ffff10038257eaf ffff8801c12bf880 ffff8801c12bf600 00ffffff811ffa48
+[  709.349148] Call Trace:
+[  709.429955]  [<ffffffff82a350bb>] schedule+0x9b/0x1c0
+[  709.472028]  [<ffffffff82a46628>] schedule_timeout+0x3c8/0x690
+[  709.620056]  [<ffffffff82a37e71>] wait_for_completion+0x201/0x2d0
+[  709.751089]  [<ffffffff8123ee1c>] __wait_rcu_gp+0x14c/0x1d0
+[  709.756832]  [<ffffffff81244293>] synchronize_sched.part.0+0x83/0xa0
+[  709.894299]  [<ffffffff812486a8>] synchronize_sched+0xa8/0x130
+[  709.900333]  [<ffffffff8137f8b5>] perf_trace_event_unreg.isra.0+0xb5/0x1e0
+[  709.944353]  [<ffffffff81380511>] perf_trace_destroy+0xc1/0x100
+[  709.950448]  [<ffffffff813b59c6>] tp_perf_event_destroy+0x16/0x20
+[  709.999890]  [<ffffffff813d1dbe>] _free_event+0x25e/0xd70
+[  710.049297]  [<ffffffff813d2b37>] put_event+0x267/0x390
+[  710.141579]  [<ffffffff813d2cb7>] perf_release+0x37/0x50
+[  710.147065]  [<ffffffff815351ce>] __fput+0x24e/0x7a0
+[  710.188676]  [<ffffffff815357ab>] ____fput+0x1b/0x20
+[  710.230857]  [<ffffffff81169707>] task_work_run+0x207/0x2b0
+[  710.236611]  [<ffffffff811155b2>] do_exit+0x8d2/0x29c0
+[  710.328349]  [<ffffffff81117826>] do_group_exit+0x116/0x330
+[  710.371187]  [<ffffffff81139d06>] get_signal+0x396/0x1ca0
+[  710.376760]  [<ffffffff8100b532>] do_signal+0x92/0x17c0
+[  710.560018]  [<ffffffff81002950>] exit_to_usermode_loop+0xc0/0x150
+[  710.603248]  [<ffffffff8100541a>] syscall_return_slowpath+0x21a/0x260
+[  710.610560]  [<ffffffff82a491f9>] int_ret_from_sys_call+0x25/0xa3
+[  710.692234] syz-executor.0  D ffff8801c138b040 29160  9727   2032 0x00000002
+[  710.700026]  ffff8801c138b040 0000000000000000 ffff8801c2a41840 ffff8801db71dd40
+[  710.780194]  ffff8801db71dd58 ffff8800a7f7f7a0 ffffffff82a33b03 0000000000000246
+[  710.860167]  ffffffff832dc7a0 ffff8801c138b040 0000000000000001 00ff8801c138b818
+[  710.939597] Call Trace:
+[  711.020737]  [<ffffffff82a350bb>] schedule+0x9b/0x1c0
+[  711.025969]  [<ffffffff82a358a5>] schedule_preempt_disabled+0x15/0x20
+[  711.069526]  [<ffffffff82a39184>] mutex_lock_nested+0x3f4/0x1480
+[  711.167967]  [<ffffffff822d37bc>] rtnl_lock+0x1c/0x20
+[  711.209783]  [<ffffffff828972c5>] ipv6_sock_mc_close+0xb5/0xf0
+[  711.252724]  [<ffffffff827fefe8>] inet6_release+0x48/0x80
+[  711.258291]  [<ffffffff8223822a>] __sock_release+0xda/0x2c0
+[  711.307304]  [<ffffffff82238430>] sock_close+0x20/0x30
+[  711.349441]  [<ffffffff815351ce>] __fput+0x24e/0x7a0
+[  711.391570]  [<ffffffff815357ab>] ____fput+0x1b/0x20
+[  711.396712]  [<ffffffff81169707>] task_work_run+0x207/0x2b0
+[  711.439503]  [<ffffffff811155b2>] do_exit+0x8d2/0x29c0
+[  711.530713]  [<ffffffff81117826>] do_group_exit+0x116/0x330
+[  711.536464]  [<ffffffff81139d06>] get_signal+0x396/0x1ca0
+[  711.579118]  [<ffffffff8100b532>] do_signal+0x92/0x17c0
+[  711.727280]  [<ffffffff81002950>] exit_to_usermode_loop+0xc0/0x150
+[  711.770433]  [<ffffffff8100541a>] syscall_return_slowpath+0x21a/0x260
+[  711.817120]  [<ffffffff82a491f9>] int_ret_from_sys_call+0x25/0xa3
+[  711.860511] syz-executor.0  D ffff8800a7f88040 29400  9733   2032 0x00000002
+[  711.939081]  ffff8800a7f88040 0000000000000000 ffff8801c3d93040 ffff8801db71dd40
+[  712.018817]  ffff8801db71dd58 ffff8800a6f877a0 ffffffff82a33b03 0000000000000246

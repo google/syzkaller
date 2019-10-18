@@ -1,0 +1,263 @@
+TITLE: INFO: task hung in rtnl_lock
+TYPE: HANG
+
+[ 1120.085107][ T1053] INFO: task kworker/u4:2:24 blocked for more than 143 seconds.
+[ 1120.093002][ T1053]       Not tainted 5.2.0+ #97
+[ 1120.102117][ T1053] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 1120.110940][ T1053] kworker/u4:2    D24184    24      2 0x80004000
+[ 1120.121587][ T1053] Workqueue: netns cleanup_net
+[ 1120.126453][ T1053] Call Trace:
+[ 1120.130034][ T1053]  __schedule+0x755/0x1580
+[ 1120.170056][ T1053]  schedule+0xa8/0x270
+[ 1120.174233][ T1053]  schedule_preempt_disabled+0x13/0x20
+[ 1120.180500][ T1053]  __mutex_lock+0x751/0x1340
+[ 1120.224170][ T1053]  mutex_lock_nested+0x16/0x20
+[ 1120.234485][ T1053]  rtnl_lock+0x17/0x20
+[ 1120.238686][ T1053]  tipc_net_stop+0x2fa/0x320
+[ 1120.243359][ T1053]  tipc_exit_net+0x16/0x40
+[ 1120.253662][ T1053]  ops_exit_list.isra.0+0xaa/0x150
+[ 1120.258920][ T1053]  cleanup_net+0x4e2/0xa70
+[ 1120.268343][ T1053]  process_one_work+0x9af/0x1740
+[ 1120.283447][ T1053]  worker_thread+0x98/0xe40
+[ 1120.288051][ T1053]  kthread+0x361/0x430
+[ 1120.304089][ T1053]  ret_from_fork+0x24/0x30
+[ 1120.309062][ T1053] INFO: task syz-executor.2:13855 blocked for more than 143 seconds.
+[ 1120.317268][ T1053]       Not tainted 5.2.0+ #97
+[ 1120.322070][ T1053] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 1120.331044][ T1053] syz-executor.2  D24320 13855      1 0x80004002
+[ 1120.337543][ T1053] Call Trace:
+[ 1120.340927][ T1053]  __schedule+0x755/0x1580
+[ 1120.361374][ T1053]  schedule+0xa8/0x270
+[ 1120.365543][ T1053]  schedule_preempt_disabled+0x13/0x20
+[ 1120.371017][ T1053]  __mutex_lock+0x751/0x1340
+[ 1120.412279][ T1053]  mutex_lock_nested+0x16/0x20
+[ 1120.422158][ T1053]  rtnl_lock+0x17/0x20
+[ 1120.426487][ T1053]  netdev_run_todo+0x4d4/0x7b0
+[ 1120.436193][ T1053]  rtnl_unlock+0xe/0x10
+[ 1120.440454][ T1053]  tun_chr_close+0xfc/0x180
+[ 1120.445073][ T1053]  __fput+0x2ff/0x890
+[ 1120.453965][ T1053]  ____fput+0x16/0x20
+[ 1120.458034][ T1053]  task_work_run+0x145/0x1c0
+[ 1120.462642][ T1053]  do_exit+0x92f/0x2ea0
+[ 1120.490480][ T1053]  do_group_exit+0x135/0x360
+[ 1120.495214][ T1053]  __x64_sys_exit_group+0x44/0x50
+[ 1120.500250][ T1053]  do_syscall_64+0xfd/0x6a0
+[ 1120.504842][ T1053]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1120.510747][ T1053] RIP: 0033:0x459829
+[ 1120.514963][ T1053] Code: Bad RIP value.
+[ 1120.519043][ T1053] RSP: 002b:00007ffec7957b18 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+[ 1120.527533][ T1053] RAX: ffffffffffffffda RBX: 000000000000001c RCX: 0000000000459829
+[ 1120.535607][ T1053] RDX: 0000000000413430 RSI: 0000000000a74ef0 RDI: 0000000000000043
+[ 1120.543831][ T1053] RBP: 00000000004bf017 R08: 000000000000000c R09: 00000000000ee31c
+[ 1120.552245][ T1053] R10: 0000555556a08940 R11: 0000000000000246 R12: 00000000ffffffff
+[ 1120.560408][ T1053] R13: 00007ffec7957c60 R14: 00000000000ee2c8 R15: 00007ffec7957c70
+[ 1120.569058][ T1053] INFO: task syz-executor.1:1147 blocked for more than 143 seconds.
+[ 1120.577252][ T1053]       Not tainted 5.2.0+ #97
+[ 1120.582017][ T1053] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 1120.590772][ T1053] syz-executor.1  D24320  1147      1 0x80004002
+[ 1120.597406][ T1053] Call Trace:
+[ 1120.600955][ T1053]  __schedule+0x755/0x1580
+[ 1120.617076][ T1053]  schedule+0xa8/0x270
+[ 1120.630073][ T1053]  synchronize_rcu_expedited+0x544/0x5b0
+[ 1120.668515][ T1053]  synchronize_net+0x3b/0x60
+[ 1120.673152][ T1053]  __tun_detach+0x3f5/0x1040
+[ 1120.677975][ T1053]  tun_chr_close+0xe0/0x180
+[ 1120.682584][ T1053]  __fput+0x2ff/0x890
+[ 1120.691650][ T1053]  ____fput+0x16/0x20
+[ 1120.695830][ T1053]  task_work_run+0x145/0x1c0
+[ 1120.700433][ T1053]  do_exit+0x92f/0x2ea0
+[ 1120.727096][ T1053]  do_group_exit+0x135/0x360
+[ 1120.731722][ T1053]  __x64_sys_exit_group+0x44/0x50
+[ 1120.737731][ T1053]  do_syscall_64+0xfd/0x6a0
+[ 1120.742258][ T1053]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1120.748237][ T1053] RIP: 0033:0x459829
+[ 1120.752364][ T1053] Code: Bad RIP value.
+[ 1120.756695][ T1053] RSP: 002b:00007ffe8bbd9168 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+[ 1120.765171][ T1053] RAX: ffffffffffffffda RBX: 000000000000001c RCX: 0000000000459829
+[ 1120.773206][ T1053] RDX: 0000000000413430 RSI: 0000000000a74ef0 RDI: 0000000000000043
+[ 1120.781277][ T1053] RBP: 00000000004bf017 R08: 000000000000000c R09: 00000000000ee31c
+[ 1120.789636][ T1053] R10: 000055555611b940 R11: 0000000000000246 R12: 00000000ffffffff
+[ 1120.797915][ T1053] R13: 00007ffe8bbd92b0 R14: 00000000000ee2c9 R15: 00007ffe8bbd92c0
+[ 1120.806471][ T1053] INFO: task syz-executor.0:20090 blocked for more than 144 seconds.
+[ 1120.814915][ T1053]       Not tainted 5.2.0+ #97
+[ 1120.819839][ T1053] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 1120.828725][ T1053] syz-executor.0  D28704 20090   3752 0x00000004
+[ 1120.835591][ T1053] Call Trace:
+[ 1120.838889][ T1053]  __schedule+0x755/0x1580
+[ 1120.858442][ T1053]  schedule+0xa8/0x270
+[ 1120.862804][ T1053]  schedule_preempt_disabled+0x13/0x20
+[ 1120.869342][ T1053]  __mutex_lock+0x751/0x1340
+[ 1120.893763][ T1053]  mutex_lock_nested+0x16/0x20
+[ 1120.903735][ T1053]  rtnl_lock+0x17/0x20
+[ 1120.907884][ T1053]  sock_do_ioctl+0x24e/0x2f0
+[ 1120.935885][ T1053]  sock_ioctl+0x3ed/0x790
+[ 1120.950129][ T1053]  do_vfs_ioctl+0xdb6/0x13e0
+[ 1120.990191][ T1053]  ksys_ioctl+0xab/0xd0
+[ 1120.994350][ T1053]  __x64_sys_ioctl+0x73/0xb0
+[ 1120.999952][ T1053]  do_syscall_64+0xfd/0x6a0
+[ 1121.004620][ T1053]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1121.010762][ T1053] RIP: 0033:0x459829
+[ 1121.014671][ T1053] Code: Bad RIP value.
+[ 1121.018914][ T1053] RSP: 002b:00007f2c31d90c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[ 1121.027467][ T1053] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459829
+[ 1121.035550][ T1053] RDX: 0000000020000000 RSI: 0000001000008912 RDI: 0000000000000003
+[ 1121.043641][ T1053] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[ 1121.052106][ T1053] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f2c31d916d4
+[ 1121.060732][ T1053] R13: 00000000004c0c29 R14: 00000000004d3c20 R15: 00000000ffffffff
+[ 1121.068958][ T1053] INFO: task syz-executor.3:20104 blocked for more than 144 seconds.
+[ 1121.077735][ T1053]       Not tainted 5.2.0+ #97
+[ 1121.082505][ T1053] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 1121.091466][ T1053] syz-executor.3  D27584 20104  16534 0x00000004
+[ 1121.097905][ T1053] Call Trace:
+[ 1121.101206][ T1053]  __schedule+0x755/0x1580
+[ 1121.120501][ T1053]  schedule+0xa8/0x270
+[ 1121.124555][ T1053]  schedule_preempt_disabled+0x13/0x20
+[ 1121.130729][ T1053]  __mutex_lock+0x751/0x1340
+[ 1121.155952][ T1053]  mutex_lock_nested+0x16/0x20
+[ 1121.165937][ T1053]  rtnl_lock+0x17/0x20
+[ 1121.170033][ T1053]  sock_do_ioctl+0x24e/0x2f0
+[ 1121.198473][ T1053]  sock_ioctl+0x3ed/0x790
+[ 1121.212601][ T1053]  do_vfs_ioctl+0xdb6/0x13e0
+[ 1121.253005][ T1053]  ksys_ioctl+0xab/0xd0
+[ 1121.257936][ T1053]  __x64_sys_ioctl+0x73/0xb0
+[ 1121.262544][ T1053]  do_syscall_64+0xfd/0x6a0
+[ 1121.267254][ T1053]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1121.273459][ T1053] RIP: 0033:0x459829
+[ 1121.277856][ T1053] Code: Bad RIP value.
+[ 1121.282065][ T1053] RSP: 002b:00007f315200cc78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[ 1121.290751][ T1053] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459829
+[ 1121.298888][ T1053] RDX: 0000000020000000 RSI: 0000001000008912 RDI: 0000000000000004
+[ 1121.307183][ T1053] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[ 1121.315337][ T1053] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f315200d6d4
+[ 1121.323882][ T1053] R13: 00000000004c0c29 R14: 00000000004d3c20 R15: 00000000ffffffff
+[ 1121.332167][ T1053] INFO: task syz-executor.5:20132 blocked for more than 144 seconds.
+[ 1121.340296][ T1053]       Not tainted 5.2.0+ #97
+[ 1121.345254][ T1053] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[ 1121.353945][ T1053] syz-executor.5  D29712 20132  12006 0x00000004
+[ 1121.360401][ T1053] Call Trace:
+[ 1121.364168][ T1053]  __schedule+0x755/0x1580
+[ 1121.383622][ T1053]  schedule+0xa8/0x270
+[ 1121.388406][ T1053]  schedule_preempt_disabled+0x13/0x20
+[ 1121.393867][ T1053]  __mutex_lock+0x751/0x1340
+[ 1121.418979][ T1053]  mutex_lock_nested+0x16/0x20
+[ 1121.428843][ T1053]  rtnl_lock+0x17/0x20
+[ 1121.433240][ T1053]  sock_do_ioctl+0x24e/0x2f0
+[ 1121.461519][ T1053]  sock_ioctl+0x3ed/0x790
+[ 1121.475863][ T1053]  do_vfs_ioctl+0xdb6/0x13e0
+[ 1121.517150][ T1053]  ksys_ioctl+0xab/0xd0
+[ 1121.521422][ T1053]  __x64_sys_ioctl+0x73/0xb0
+[ 1121.526302][ T1053]  do_syscall_64+0xfd/0x6a0
+[ 1121.530827][ T1053]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1121.536832][ T1053] RIP: 0033:0x459829
+[ 1121.540747][ T1053] Code: Bad RIP value.
+[ 1121.544863][ T1053] RSP: 002b:00007efdcbf7ec78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[ 1121.554163][ T1053] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459829
+[ 1121.562455][ T1053] RDX: 0000000020000000 RSI: 0000001000008912 RDI: 0000000000000003
+[ 1121.570551][ T1053] RBP: 000000000075bf20 R08: 0000000000000000 R09: 0000000000000000
+[ 1121.587235][ T1053] R10: 0000000000000000 R11: 0000000000000246 R12: 00007efdcbf7f6d4
+[ 1121.595270][ T1053] R13: 00000000004c0c29 R14: 00000000004d3c20 R15: 00000000ffffffff
+[ 1121.603604][ T1053] 
+[ 1121.603604][ T1053] Showing all locks held in the system:
+[ 1121.612362][ T1053] 3 locks held by kworker/0:0/5:
+[ 1121.617375][ T1053]  #0: 00000000ca2a6787 ((wq_completion)events){+.+.}, at: process_one_work+0x88b/0x1740
+[ 1121.627267][ T1053]  #1: 000000007322d568 (deferred_process_work){+.+.}, at: process_one_work+0x8c1/0x1740
+[ 1121.637367][ T1053]  #2: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1121.646520][ T1053] 4 locks held by kworker/u4:2/24:
+[ 1121.651644][ T1053]  #0: 00000000b8d372cb ((wq_completion)netns){+.+.}, at: process_one_work+0x88b/0x1740
+[ 1121.661452][ T1053]  #1: 000000004782a238 (net_cleanup_work){+.+.}, at: process_one_work+0x8c1/0x1740
+[ 1121.671852][ T1053]  #2: 00000000a28d9920 (pernet_ops_rwsem){++++}, at: cleanup_net+0xae/0xa70
+[ 1121.680796][ T1053]  #3: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1121.688938][ T1053] 1 lock held by khungtaskd/1053:
+[ 1121.694207][ T1053]  #0: 0000000054249aed (rcu_read_lock){....}, at: debug_show_all_locks+0x5f/0x27e
+[ 1121.703911][ T1053] 3 locks held by kworker/1:2/2857:
+[ 1121.709273][ T1053]  #0: 00000000bc8d780e ((wq_completion)ipv6_addrconf){+.+.}, at: process_one_work+0x88b/0x1740
+[ 1121.719885][ T1053]  #1: 00000000b0bf8297 ((addr_chk_work).work){+.+.}, at: process_one_work+0x8c1/0x1740
+[ 1121.729969][ T1053]  #2: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1121.739277][ T1053] 1 lock held by rsyslogd/9033:
+[ 1121.744175][ T1053]  #0: 00000000f196c93b (&f->f_pos_lock){+.+.}, at: __fdget_pos+0xee/0x110
+[ 1121.752999][ T1053] 2 locks held by getty/9123:
+[ 1121.757911][ T1053]  #0: 00000000e0b1e502 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[ 1121.767341][ T1053]  #1: 0000000048566469 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[ 1121.778192][ T1053] 2 locks held by getty/9124:
+[ 1121.783345][ T1053]  #0: 0000000037b7e548 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[ 1121.792596][ T1053]  #1: 00000000ef96a409 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[ 1121.802385][ T1053] 2 locks held by getty/9125:
+[ 1121.807399][ T1053]  #0: 00000000425bfa1f (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[ 1121.817102][ T1053]  #1: 000000002772175c (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[ 1121.827676][ T1053] 2 locks held by getty/9126:
+[ 1121.832546][ T1053]  #0: 000000006258c8ab (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[ 1121.841777][ T1053]  #1: 00000000db5792f3 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[ 1121.851568][ T1053] 2 locks held by getty/9127:
+[ 1121.856505][ T1053]  #0: 00000000404d7cde (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[ 1121.866293][ T1053]  #1: 000000004e7d21a3 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[ 1121.876526][ T1053] 2 locks held by getty/9128:
+[ 1121.881394][ T1053]  #0: 00000000e9525678 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[ 1121.890842][ T1053]  #1: 00000000b3f75441 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[ 1121.900976][ T1053] 2 locks held by getty/9129:
+[ 1121.906923][ T1053]  #0: 0000000029bd9625 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[ 1121.916247][ T1053]  #1: 00000000e766e31d (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[ 1121.926250][ T1053] 2 locks held by kworker/u4:8/9999:
+[ 1121.931910][ T1053]  #0: 00000000a6c03799 (&rq->lock){-.-.}, at: __schedule+0x1f5/0x1580
+[ 1121.940499][ T1053]  #1: 0000000054249aed (rcu_read_lock){....}, at: __update_idle_core+0x45/0x3f0
+[ 1121.950081][ T1053] 1 lock held by syz-executor.2/13855:
+[ 1121.955808][ T1053]  #0: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1121.963976][ T1053] 1 lock held by syz-executor.1/1147:
+[ 1121.969428][ T1053]  #0: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1121.977803][ T1053] 1 lock held by syz-executor.0/20090:
+[ 1121.983260][ T1053]  #0: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1121.991475][ T1053] 1 lock held by syz-executor.3/20104:
+[ 1121.997172][ T1053]  #0: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1122.005404][ T1053] 1 lock held by syz-executor.5/20132:
+[ 1122.011199][ T1053]  #0: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1122.019724][ T1053] 1 lock held by syz-executor.5/20135:
+[ 1122.025517][ T1053]  #0: 000000009930efbd (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 1122.034246][ T1053] 
+[ 1122.038072][ T1053] =============================================
+[ 1122.038072][ T1053] 
+[ 1122.047720][ T1053] NMI backtrace for cpu 1
+[ 1122.053721][ T1053] CPU: 1 PID: 1053 Comm: khungtaskd Not tainted 5.2.0+ #97
+[ 1122.062308][ T1053] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1122.074645][ T1053] Call Trace:
+[ 1122.078184][ T1053]  dump_stack+0x172/0x1f0
+[ 1122.082779][ T1053]  nmi_cpu_backtrace.cold+0x70/0xb2
+[ 1122.100440][ T1053]  nmi_trigger_cpumask_backtrace+0x23b/0x28b
+[ 1122.106746][ T1053]  arch_trigger_cpumask_backtrace+0x14/0x20
+[ 1122.112836][ T1053]  watchdog+0x9d0/0xef0
+[ 1122.117560][ T1053]  kthread+0x361/0x430
+[ 1122.135103][ T1053]  ret_from_fork+0x24/0x30
+[ 1122.139897][ T1053] Sending NMI from CPU 1 to CPUs 0:
+[ 1122.146060][    C0] NMI backtrace for cpu 0
+[ 1122.146067][    C0] CPU: 0 PID: 9999 Comm: kworker/u4:8 Not tainted 5.2.0+ #97
+[ 1122.146073][    C0] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1122.146077][    C0] Workqueue: bat_events batadv_nc_worker
+[ 1122.146085][    C0] RIP: 0010:__lock_acquire+0x65f/0x4c30
+[ 1122.146096][    C0] Code: 77 48 8b b5 60 ff ff ff 48 8d 04 80 4c 8d 74 c6 d8 48 b8 00 00 00 00 00 fc ff df 49 8d 7e 21 48 89 fa 48 c1 ea 03 0f b6 04 02 <48> 89 fa 83 e2 07 38 d0 7f 08 84 c0 0f 85 47 17 00 00 49 8d 7a 21
+[ 1122.146101][    C0] RSP: 0018:ffff888068aefb38 EFLAGS: 00000802
+[ 1122.146109][    C0] RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffffffff81588694
+[ 1122.146114][    C0] RDX: 1ffff11012630183 RSI: ffff888093180bd0 RDI: ffff888093180c19
+[ 1122.146120][    C0] RBP: ffff888068aefc50 R08: 1ffffffff14a7740 R09: fffffbfff14a7741
+[ 1122.146125][    C0] R10: ffff888093180c20 R11: ffff888093180340 R12: 0000000000000029
+[ 1122.146130][    C0] R13: 4d24e336586895d7 R14: ffff888093180bf8 R15: 0000000000000000
+[ 1122.146143][    C0] FS:  0000000000000000(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[ 1122.146148][    C0] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1122.146154][    C0] CR2: 000000c4213d5800 CR3: 0000000095df9000 CR4: 00000000001406f0
+[ 1122.146159][    C0] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[ 1122.146165][    C0] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[ 1122.146168][    C0] Call Trace:
+[ 1122.146175][    C0]  lock_acquire+0x190/0x410
+[ 1122.146183][    C0]  batadv_nc_worker+0x117/0x760
+[ 1122.146193][    C0]  process_one_work+0x9af/0x1740
+[ 1122.146205][    C0]  worker_thread+0x98/0xe40
+[ 1122.146209][    C0]  kthread+0x361/0x430
+[ 1122.146221][    C0]  ret_from_fork+0x24/0x30
+[ 1122.146611][ T1053] Kernel panic - not syncing: hung_task: blocked tasks
+[ 1122.359476][ T1053] CPU: 1 PID: 1053 Comm: khungtaskd Not tainted 5.2.0+ #97
+[ 1122.366887][ T1053] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1122.376957][ T1053] Call Trace:
+[ 1122.380298][ T1053]  dump_stack+0x172/0x1f0
+[ 1122.384681][ T1053]  panic+0x2dc/0x755
+[ 1122.423857][ T1053]  watchdog+0x9e1/0xef0
+[ 1122.428055][ T1053]  kthread+0x361/0x430
+[ 1122.444125][ T1053]  ret_from_fork+0x24/0x30
+[ 1122.450078][ T1053] Kernel Offset: disabled
+[ 1122.454674][ T1053] Rebooting in 86400 seconds..
