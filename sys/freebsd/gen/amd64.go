@@ -195,9 +195,6 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask6", TypeSize: 8, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask7", TypeSize: 8, ArgDir: 2}}},
 	}}},
-	{Key: StructKey{Name: "fileoff[int64]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fileoff[int64]", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8, ArgDir: 1}}},
-	}}},
 	{Key: StructKey{Name: "flock"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "flock", TypeSize: 32}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "flock_type", FldName: "type", TypeSize: 2}}, Vals: []uint64{1, 3, 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "seek_whence", FldName: "whence", TypeSize: 2}}, Vals: []uint64{0, 1, 2, 3, 4}},
@@ -3531,7 +3528,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "offset", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "nbytes", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdtr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sf_hdtr"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sbytes", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "fileoff[int64]", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sbytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sf_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 16, 4, 8}, BitMask: true},
 	}},
 	{NR: 28, Name: "sendmsg", CallName: "sendmsg", Args: []Type{
@@ -5733,4 +5730,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "91773221719273e62a7a673b8a82eaacf241d834"
+const revision_amd64 = "6272e6ebf68449a7f4c8efa0e137504013e57433"

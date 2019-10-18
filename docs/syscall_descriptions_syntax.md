@@ -186,9 +186,7 @@ type bool64	int64[0:1]
 type boolptr	intptr[0:1]
 
 type fileoff    int32
-type fileoff[T] [
-        val     T
-]
+type fileoff[T] T
 
 type filename string[filename]
 

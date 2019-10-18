@@ -194,9 +194,6 @@ var structDescs_386 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask6", TypeSize: 8, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask7", TypeSize: 8, ArgDir: 2}}},
 	}}},
-	{Key: StructKey{Name: "fileoff[int64]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fileoff[int64]", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8, ArgDir: 1}}},
-	}}},
 	{Key: StructKey{Name: "flock"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "flock", TypeSize: 16}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "flock_type", FldName: "type", TypeSize: 2}}, Vals: []uint64{1, 3, 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "seek_whence", FldName: "whence", TypeSize: 2}}, Vals: []uint64{0, 1, 2, 3, 4}},
@@ -3512,7 +3509,7 @@ var syscalls_386 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "offset", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "nbytes", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdtr", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "sf_hdtr"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sbytes", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "fileoff[int64]", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sbytes", TypeSize: 4}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sf_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 16, 4, 8}, BitMask: true},
 	}},
 	{NR: 28, Name: "sendmsg", CallName: "sendmsg", Args: []Type{
@@ -5714,4 +5711,4 @@ var consts_386 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_386 = "0d850cdf742896a4f0acd8e918bdc477a387be43"
+const revision_386 = "e4b83a99b0630931d9b78c564340fe5a620e7218"
