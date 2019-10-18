@@ -1,0 +1,176 @@
+TITLE: INFO: task hung in synchronize_rcu
+TYPE: HANG
+
+[  341.326285][ T1070] INFO: task kworker/u4:0:7 blocked for more than 143 seconds.
+[  341.334129][ T1070]       Not tainted 5.4.0-rc1+ #0
+[  341.339263][ T1070] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  341.348009][ T1070] kworker/u4:0    D24128     7      2 0x80004000
+[  341.354425][ T1070] Workqueue: netns cleanup_net
+[  341.359309][ T1070] Call Trace:
+[  341.362623][ T1070]  __schedule+0x94f/0x1e70
+[  341.388635][ T1070]  schedule+0xd9/0x260
+[  341.392727][ T1070]  synchronize_rcu_expedited+0x57f/0x5f0
+[  341.430800][ T1070]  synchronize_net+0x3b/0x60
+[  341.435406][ T1070]  rollback_registered_many+0x66e/0x10d0
+[  341.456923][ T1070]  unregister_netdevice_many.part.0+0x1b/0x1f0
+[  341.463085][ T1070]  unregister_netdevice_many+0x3b/0x50
+[  341.468639][ T1070]  vti6_exit_batch_net+0x467/0x690
+[  341.484291][ T1070]  ops_exit_list.isra.0+0xfc/0x150
+[  341.489541][ T1070]  cleanup_net+0x4e2/0xa60
+[  341.515822][ T1070]  process_one_work+0x9af/0x1740
+[  341.531189][ T1070]  worker_thread+0x98/0xe40
+[  341.535684][ T1070]  kthread+0x361/0x430
+[  341.551682][ T1070]  ret_from_fork+0x24/0x30
+[  341.556517][ T1070] INFO: task syz-executor.2:11340 blocked for more than 143 seconds.
+[  341.564599][ T1070]       Not tainted 5.4.0-rc1+ #0
+[  341.569944][ T1070] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  341.578678][ T1070] syz-executor.2  D26840 11340   9045 0x00000004
+[  341.585308][ T1070] Call Trace:
+[  341.589021][ T1070]  __schedule+0x94f/0x1e70
+[  341.608410][ T1070]  schedule+0xd9/0x260
+[  341.612503][ T1070]  schedule_preempt_disabled+0x13/0x20
+[  341.618048][ T1070]  __mutex_lock+0x7b0/0x13c0
+[  341.655109][ T1070]  mutex_lock_nested+0x16/0x20
+[  341.669351][ T1070]  rtnl_lock+0x17/0x20
+[  341.673800][ T1070]  dev_ioctl+0x1a4/0xc60
+[  341.678151][ T1070]  sock_do_ioctl+0x1b7/0x2f0
+[  341.700868][ T1070]  sock_ioctl+0x3ed/0x780
+[  341.714803][ T1070]  do_vfs_ioctl+0xdb6/0x13e0
+[  341.755193][ T1070]  ksys_ioctl+0xab/0xd0
+[  341.759416][ T1070]  __x64_sys_ioctl+0x73/0xb0
+[  341.764020][ T1070]  do_syscall_64+0xfa/0x760
+[  341.768703][ T1070]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  341.774727][ T1070] RIP: 0033:0x459a59
+[  341.778705][ T1070] Code: 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 <90> 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90
+[  341.798496][ T1070] RSP: 002b:00007f2916a67c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  341.807774][ T1070] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459a59
+[  341.816119][ T1070] RDX: 0000000020000440 RSI: 0000000000008914 RDI: 0000000000000008
+[  341.824111][ T1070] RBP: 000000000075bfc8 R08: 0000000000000000 R09: 0000000000000000
+[  341.832203][ T1070] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f2916a686d4
+[  341.840257][ T1070] R13: 00000000004cdab8 R14: 00000000004d7280 R15: 00000000ffffffff
+[  341.848302][ T1070] INFO: task syz-executor.2:11346 blocked for more than 143 seconds.
+[  341.856427][ T1070]       Not tainted 5.4.0-rc1+ #0
+[  341.861441][ T1070] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  341.870141][ T1070] syz-executor.2  D29712 11346   9045 0x00004004
+[  341.876516][ T1070] Call Trace:
+[  341.879795][ T1070]  __schedule+0x94f/0x1e70
+[  341.899171][ T1070]  schedule+0xd9/0x260
+[  341.903255][ T1070]  schedule_preempt_disabled+0x13/0x20
+[  341.908785][ T1070]  __mutex_lock+0x7b0/0x13c0
+[  341.939521][ T1070]  mutex_lock_nested+0x16/0x20
+[  341.953849][ T1070]  rtnl_lock+0x17/0x20
+[  341.958012][ T1070]  dev_ioctl+0x1a4/0xc60
+[  341.962335][ T1070]  sock_do_ioctl+0x1b7/0x2f0
+[  341.984685][ T1070]  sock_ioctl+0x3ed/0x780
+[  341.998692][ T1070]  do_vfs_ioctl+0xdb6/0x13e0
+[  342.038975][ T1070]  ksys_ioctl+0xab/0xd0
+[  342.043130][ T1070]  __x64_sys_ioctl+0x73/0xb0
+[  342.047792][ T1070]  do_syscall_64+0xfa/0x760
+[  342.052299][ T1070]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  342.058261][ T1070] RIP: 0033:0x459a59
+[  342.062242][ T1070] Code: 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 <90> 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90
+[  342.081924][ T1070] RSP: 002b:00007f2916a46c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  342.090416][ T1070] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459a59
+[  342.098476][ T1070] RDX: 0000000020000a00 RSI: 0000000000008914 RDI: 0000000000000008
+[  342.106641][ T1070] RBP: 000000000075c070 R08: 0000000000000000 R09: 0000000000000000
+[  342.114727][ T1070] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f2916a476d4
+[  342.122790][ T1070] R13: 00000000004cdab8 R14: 00000000004d7280 R15: 00000000ffffffff
+[  342.130878][ T1070] INFO: task syz-executor.2:11358 blocked for more than 144 seconds.
+[  342.139017][ T1070]       Not tainted 5.4.0-rc1+ #0
+[  342.144032][ T1070] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  342.153041][ T1070] syz-executor.2  D29712 11358   9045 0x00004004
+[  342.159601][ T1070] Call Trace:
+[  342.163011][ T1070]  __schedule+0x94f/0x1e70
+[  342.182445][ T1070]  schedule+0xd9/0x260
+[  342.186768][ T1070]  schedule_preempt_disabled+0x13/0x20
+[  342.192260][ T1070]  __mutex_lock+0x7b0/0x13c0
+[  342.229368][ T1070]  mutex_lock_nested+0x16/0x20
+[  342.243372][ T1070]  rtnl_lock+0x17/0x20
+[  342.247502][ T1070]  dev_ioctl+0x1a4/0xc60
+[  342.251743][ T1070]  sock_do_ioctl+0x1b7/0x2f0
+[  342.274080][ T1070]  sock_ioctl+0x3ed/0x780
+[  342.288068][ T1070]  do_vfs_ioctl+0xdb6/0x13e0
+[  342.328606][ T1070]  ksys_ioctl+0xab/0xd0
+[  342.332786][ T1070]  __x64_sys_ioctl+0x73/0xb0
+[  342.337455][ T1070]  do_syscall_64+0xfa/0x760
+[  342.341961][ T1070]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  342.347916][ T1070] RIP: 0033:0x459a59
+[  342.351831][ T1070] Code: 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 <90> 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90
+[  342.372839][ T1070] RSP: 002b:00007f2916a25c78 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  342.381736][ T1070] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 0000000000459a59
+[  342.389858][ T1070] RDX: 0000000020000a00 RSI: 0000000000008914 RDI: 0000000000000008
+[  342.398065][ T1070] RBP: 000000000075c118 R08: 0000000000000000 R09: 0000000000000000
+[  342.406233][ T1070] R10: 0000000000000000 R11: 0000000000000246 R12: 00007f2916a266d4
+[  342.414214][ T1070] R13: 00000000004cdab8 R14: 00000000004d7280 R15: 00000000ffffffff
+[  342.422298][ T1070] INFO: task syz-executor.5:11347 blocked for more than 144 seconds.
+[  342.430465][ T1070]       Not tainted 5.4.0-rc1+ #0
+[  342.435826][ T1070] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  342.444575][ T1070] syz-executor.5  D27808 11347      1 0x00000004
+[  342.451109][ T1070] Call Trace:
+[  342.454395][ T1070]  __schedule+0x94f/0x1e70
+[  342.474047][ T1070]  schedule+0xd9/0x260
+[  342.478174][ T1070]  schedule_preempt_disabled+0x13/0x20
+[  342.483639][ T1070]  __mutex_lock+0x7b0/0x13c0
+[  342.525811][ T1070]  mutex_lock_nested+0x16/0x20
+[  342.535721][ T1070]  rtnetlink_rcv_msg+0x40a/0xb00
+[  342.561330][ T1070]  netlink_rcv_skb+0x177/0x450
+[  342.586580][ T1070]  rtnetlink_rcv+0x1d/0x30
+[  342.591008][ T1070]  netlink_unicast+0x531/0x710
+[  342.618357][ T1070]  netlink_sendmsg+0x8a5/0xd60
+[  342.656622][ T1070]  sock_sendmsg+0xd7/0x130
+[  342.661184][ T1070]  __sys_sendto+0x262/0x380
+[  342.715080][ T1070]  __x64_sys_sendto+0xe1/0x1a0
+[  342.719887][ T1070]  do_syscall_64+0xfa/0x760
+[  342.724392][ T1070]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  342.730506][ T1070] RIP: 0033:0x4138a3
+[  342.734517][ T1070] Code: f7 f6 4c 89 ea 4c 8d 68 ff 49 0f af f5 48 03 73 08 48 c1 ee 03 4c 89 f8 e9 3a fd ff ff 4d 89 e6 e9 21 fd ff ff 49 89 d3 49 89 <c5> 48 89 c8 4c 89 c1 e9 f3 fc ff ff 4d 8d 71 07 49 c1 ee 03 4d 8d
+[  342.754435][ T1070] RSP: 002b:00007ffc9c9a0e88 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+[  342.762947][ T1070] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 00000000004138a3
+[  342.770981][ T1070] RDX: 0000000000000028 RSI: 0000000000a70070 RDI: 0000000000000003
+[  342.779037][ T1070] RBP: 00007ffc9c9a0ef0 R08: 00007ffc9c9a0e90 R09: 000000000000000c
+[  342.787100][ T1070] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000003
+[  342.795397][ T1070] R13: 00007ffc9c9a11f8 R14: 0000000000000000 R15: 0000000000000000
+[  342.803965][ T1070] 
+[  342.803965][ T1070] Showing all locks held in the system:
+[  342.811958][ T1070] 4 locks held by kworker/u4:0/7:
+[  342.817029][ T1070]  #0: ffff8880a999be68 ((wq_completion)netns){+.+.}, at: process_one_work+0x88b/0x1740
+[  342.826986][ T1070]  #1: ffff8880a9897dc0 (net_cleanup_work){+.+.}, at: process_one_work+0x8c1/0x1740
+[  342.836499][ T1070]  #2: ffffffff89997088 (pernet_ops_rwsem){++++}, at: cleanup_net+0xae/0xa60
+[  342.845276][ T1070]  #3: ffffffff899a4320 (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[  342.853538][ T1070] 1 lock held by khungtaskd/1070:
+[  342.858617][ T1070]  #0: ffffffff88faaf80 (rcu_read_lock){....}, at: debug_show_all_locks+0x5f/0x27e
+[  342.868133][ T1070] 2 locks held by getty/8997:
+[  342.872799][ T1070]  #0: ffff88809c5a8b90 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[  342.881777][ T1070]  #1: ffffc90005f1d2e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[  342.891418][ T1070] 2 locks held by getty/8998:
+[  342.896124][ T1070]  #0: ffff88809b74aad0 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[  342.905082][ T1070]  #1: ffffc90005f412e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[  342.914822][ T1070] 2 locks held by getty/8999:
+[  342.919556][ T1070]  #0: ffff88809c561350 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[  342.928599][ T1070]  #1: ffffc90005f212e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[  342.938274][ T1070] 2 locks held by getty/9000:
+[  342.942965][ T1070]  #0: ffff88808e085250 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[  342.951976][ T1070]  #1: ffffc90005f292e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[  342.961798][ T1070] 2 locks held by getty/9001:
+[  342.966533][ T1070]  #0: ffff888087bad390 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[  342.975504][ T1070]  #1: ffffc90005f352e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[  342.985387][ T1070] 2 locks held by getty/9002:
+[  342.990256][ T1070]  #0: ffff88809b74a250 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[  342.999580][ T1070]  #1: ffffc90005f3d2e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[  343.009376][ T1070] 2 locks held by getty/9003:
+[  343.014179][ T1070]  #0: ffff88808c518110 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x33/0x40
+[  343.023207][ T1070]  #1: ffffc90005f112e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x232/0x1c10
+[  343.033016][ T1070] 3 locks held by kworker/1:4/9051:
+[  343.038406][ T1070]  #0: ffff88809c8eabe8 ((wq_completion)ipv6_addrconf){+.+.}, at: process_one_work+0x88b/0x1740
+[  343.048919][ T1070]  #1: ffff888070f37dc0 ((addr_chk_work).work){+.+.}, at: process_one_work+0x8c1/0x1740
+[  343.058826][ T1070]  #2: ffffffff899a4320 (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[  343.067030][ T1070] 1 lock held by syz-executor.2/11340:
+[  343.072492][ T1070]  #0: ffffffff899a4320 (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[  343.080648][ T1070] 1 lock held by syz-executor.2/11346:
+[  343.086307][ T1070]  #0: ffffffff899a4320 (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[  343.094312][ T1070] 1 lock held by syz-executor.2/11358:
+[  343.100194][ T1070]  #0: ffffffff899a4320 (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[  343.108528][ T1070] 1 lock held by syz-executor.5/11347:
+[  343.113991][ T1070]  #0: ffffffff899a4320 (rtnl_mutex){+.+.}, at: rtnetlink_rcv_msg+0x40a/0xb00
+[  343.122991][ T1070] 
+[  343.125330][ T1070] =============================================
