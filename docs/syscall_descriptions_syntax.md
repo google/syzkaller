@@ -25,7 +25,8 @@ rest of the type-options are type-specific:
 "const": integer constant, type-options:
 	value, underlying type (one of "intN", "intptr")
 "intN"/"intptr": an integer without a particular meaning, type-options:
-	optional range of values (e.g. "5:10", or "100:200")
+	optional range of values (e.g. "5:10", or "100:200"),
+	optionally followed by an alignment parameter
 "flags": a set of flags, type-options:
 	reference to flags description (see below), underlying int type (e.g. "int32")
 "array": a variable/fixed-length array, type-options:
@@ -84,7 +85,7 @@ flagname = "\"" literal "\"" ["," "\"" literal "\""]*
 
 By appending `be` suffix (e.g. `int16be`) integers become big-endian.
 
-It's possible to specify range of values for an integer in the format of `int32[0:100]`.
+It's possible to specify a range of values for an integer in the format of `int32[0:100]` or `int32[0:4096, 512]` for a 512-aligned int.
 
 To denote a bitfield of size N use `int64:N`.
 
@@ -95,7 +96,8 @@ example_struct {
 	f0	int8			# random 1-byte integer
 	f1	const[0x42, int16be]	# const 2-byte integer with value 0x4200 (big-endian 0x42)
 	f2	int32[0:100]		# random 4-byte integer with values from 0 to 100 inclusive
-	f3	int64:20		# random 20-bit bitfield
+	f3	int32[1:10, 2]		# random 4-byte integer with values {1, 3, 5, 7, 9}
+	f4	int64:20		# random 20-bit bitfield
 }
 ```
 

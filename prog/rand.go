@@ -119,9 +119,17 @@ func truncateToBitSize(v, bitSize uint64) uint64 {
 	return v & uint64(1<<bitSize-1)
 }
 
-func (r *randGen) randRangeInt(begin, end, bitSize uint64) uint64 {
+func (r *randGen) randRangeInt(begin, end, bitSize, align uint64) uint64 {
 	if r.oneOf(100) {
 		return r.randInt(bitSize)
+	}
+	if align != 0 {
+		if begin == 0 && int64(end) == -1 {
+			// Special [0:-1] range for all possible values.
+			end = uint64(1<<bitSize - 1)
+		}
+		endAlign := (end - begin) / align
+		return begin + r.randRangeInt(0, endAlign, bitSize, 0)*align
 	}
 	return begin + (r.Uint64() % (end - begin + 1))
 }
@@ -753,7 +761,7 @@ func (a *IntType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 			v = r.randInt(bits)
 		}
 	case IntRange:
-		v = r.randRangeInt(a.RangeBegin, a.RangeEnd, bits)
+		v = r.randRangeInt(a.RangeBegin, a.RangeEnd, bits, a.Align)
 	}
 	return MakeConstArg(a, v), nil
 }
