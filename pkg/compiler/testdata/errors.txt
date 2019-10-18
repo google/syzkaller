@@ -122,6 +122,7 @@ foo$64(a ptr[in, flags[f1[int32], int32]])	### flags argument has subargs
 foo$65(a int32, b len[1])	### unexpected int 1 for len target argument of len type, expect identifier
 foo$66(a int32, b len[a:1])	### unexpected int 1 after colon, expect identifier
 foo$67(x int32[1:2:3, opt])	### unexpected ':'
+foo$68(a int32[15, 2])		### first argument of int32 needs to be a range
 
 opt {				### struct uses reserved name opt
 	f1	int32

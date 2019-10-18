@@ -12,6 +12,8 @@ foo$7(a int8[-20:20])
 foo$8(a ptr[in, strings])
 foo$9(a ptr[out, ptr[in, string]])
 foo$10(a ptr[out, buffer[in]])
+foo$11(a int64[1:100, 2])
+foo$12(a int64[0:-1, 0x1000])
 
 resource r0[intptr]
 
@@ -166,6 +168,9 @@ foo$void8(a ptr[in, void])
 bitfield0 {
 	f1	int8:1
 	f2	int8:2
+	f3	int16:8[-255:0]
+	f4	int16:8[0:255]
+	f5	int64:64[-1:1]
 }
 
 foo$bitfield0(a ptr[in, bitfield0])

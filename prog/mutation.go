@@ -254,26 +254,50 @@ func regenerate(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve b
 	return
 }
 
-func mutateInt(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve bool) {
-	if r.bin() {
-		return regenerate(r, s, arg)
-	}
-	bits := arg.Type().TypeBitSize()
-	a := arg.(*ConstArg)
+func mutateInt(r *randGen, a *ConstArg, t *IntType) uint64 {
 	switch {
 	case r.nOutOf(1, 3):
-		a.Val += uint64(r.Intn(4)) + 1
+		return a.Val + (uint64(r.Intn(4)) + 1)
 	case r.nOutOf(1, 2):
-		a.Val -= uint64(r.Intn(4)) + 1
+		return a.Val - (uint64(r.Intn(4)) + 1)
 	default:
-		a.Val ^= 1 << uint64(r.Intn(int(bits)))
+		return a.Val ^ (1 << uint64(r.Intn(int(t.TypeBitSize()))))
 	}
-	a.Val = truncateToBitSize(a.Val, bits)
-	return
+}
+
+func mutateAlignedInt(r *randGen, a *ConstArg, t *IntType) uint64 {
+	rangeEnd := t.RangeEnd
+	if t.RangeBegin == 0 && int64(rangeEnd) == -1 {
+		// Special [0:-1] range for all possible values.
+		rangeEnd = uint64(1<<t.TypeBitSize() - 1)
+	}
+	index := (a.Val - t.RangeBegin) / t.Align
+	misalignment := (a.Val - t.RangeBegin) % t.Align
+	switch {
+	case r.nOutOf(1, 3):
+		index += uint64(r.Intn(4)) + 1
+	case r.nOutOf(1, 2):
+		index -= uint64(r.Intn(4)) + 1
+	default:
+		index ^= 1 << uint64(r.Intn(int(t.TypeBitSize())))
+	}
+	lastIndex := (rangeEnd - t.RangeBegin) / t.Align
+	index %= lastIndex + 1
+	return t.RangeBegin + index*t.Align + misalignment
 }
 
 func (t *IntType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
-	return mutateInt(r, s, arg)
+	if r.bin() {
+		return regenerate(r, s, arg)
+	}
+	a := arg.(*ConstArg)
+	if t.Align == 0 {
+		a.Val = mutateInt(r, a, t)
+	} else {
+		a.Val = mutateAlignedInt(r, a, t)
+	}
+	a.Val = truncateToBitSize(a.Val, t.TypeBitSize())
+	return
 }
 
 func (t *FlagsType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
@@ -501,7 +525,16 @@ func (t *IntType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (
 		return plainPrio, false
 	}
 
-	switch size := t.RangeEnd - t.RangeBegin + 1; {
+	size := t.RangeEnd - t.RangeBegin + 1
+	if t.Align != 0 {
+		if t.RangeBegin == 0 && int64(t.RangeEnd) == -1 {
+			// Special [0:-1] range for all possible values.
+			size = (1<<t.TypeBitSize()-1)/t.Align + 1
+		} else {
+			size = (t.RangeEnd-t.RangeBegin)/t.Align + 1
+		}
+	}
+	switch {
 	case size <= 15:
 		// For a small range, we assume that it is effectively
 		// similar with FlagsType and we need to try all possible values.

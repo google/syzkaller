@@ -68,8 +68,11 @@ var typeInt = &typeDesc{
 	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	MaxColon:     1,
-	OptArgs:      1,
-	Args:         []namedArg{{Name: "range", Type: typeArgIntRange}},
+	OptArgs:      2,
+	Args: []namedArg{
+		{Name: "range", Type: typeArgIntRange},
+		{Name: "align", Type: typeArgIntAlign},
+	},
 	CanBeResourceBase: func(comp *compiler, t *ast.Type) bool {
 		// Big-endian resources can always be converted to non-big-endian,
 		// since we will always revert bytes during copyout and during copyin,
@@ -84,14 +87,41 @@ var typeInt = &typeDesc{
 			comp.error(args[0].Pos, "first argument of %v needs to be a range", t.Ident)
 		}
 	},
+	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+		if len(args) > 0 && len(args[0].Colon) != 0 {
+			begin := args[0].Value
+			end := args[0].Colon[0].Value
+			size, _ := comp.parseIntType(t.Ident)
+			size = size * 8
+			if len(t.Colon) != 0 {
+				// Integer is bitfield.
+				size = t.Colon[0].Value
+			}
+			if len(args) > 1 && begin == 0 && int64(end) == -1 {
+				// intN[0:-1, align] is a special value for 'all possible values',
+				// but aligned.
+				end = 1<<size - 1
+			} else if end-begin > 1<<64-1<<32 {
+				comp.error(args[0].Pos, "bad int range [%v:%v]", begin, end)
+				return
+			}
+			if len(args) > 1 && args[1].Value != 0 && (end-begin)/args[1].Value == 0 {
+				comp.error(args[1].Pos, "int alignment %v is too large for range [%v:%v]",
+					args[1].Value, begin, end)
+			}
+		}
+	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		size, be := comp.parseIntType(t.Ident)
-		kind, rangeBegin, rangeEnd := prog.IntPlain, uint64(0), uint64(0)
+		kind, rangeBegin, rangeEnd, align := prog.IntPlain, uint64(0), uint64(0), uint64(0)
 		if len(args) > 0 {
 			rangeArg := args[0]
 			kind, rangeBegin, rangeEnd = prog.IntRange, rangeArg.Value, rangeArg.Value
 			if len(rangeArg.Colon) != 0 {
 				rangeEnd = rangeArg.Colon[0].Value
+			}
+			if len(args) > 1 {
+				align = args[1].Value
 			}
 		}
 		var bitLen uint64
@@ -104,6 +134,7 @@ var typeInt = &typeDesc{
 			Kind:          kind,
 			RangeBegin:    rangeBegin,
 			RangeEnd:      rangeEnd,
+			Align:         align,
 		}
 	},
 }
@@ -794,13 +825,14 @@ var typeArgInt = &typeArg{
 var typeArgIntRange = &typeArg{
 	Kind:     kindInt,
 	MaxColon: 1,
+}
+
+var typeArgIntAlign = &typeArg{
+	Kind:     kindInt,
+	MaxColon: 0,
 	CheckConsts: func(comp *compiler, t *ast.Type) {
-		end := t.Value
-		if len(t.Colon) != 0 {
-			end = t.Colon[0].Value
-		}
-		if end-t.Value > 1<<64-1<<32 {
-			comp.error(t.Pos, "bad int range [%v:%v]", t.Value, end)
+		if t.Value <= 1 {
+			comp.error(t.Pos, "bad int alignment %v", t.Value)
 		}
 	},
 }
