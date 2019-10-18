@@ -32,7 +32,7 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "event_queue"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "event_queue", TypeSize: 40}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ev_mbox", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 80}, Kind: 1, RangeBegin: 80, RangeEnd: 80}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ev_flags", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ev_alert_pending", TypeSize: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ev_alert_pending", TypeSize: 1}}, Kind: 1, RangeEnd: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ev_vcore", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
@@ -83,7 +83,7 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 29, Name: "change_to_m", CallName: "change_to_m"},
 	{NR: 14, Name: "change_vcore", CallName: "change_vcore", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "vcoreid", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "enable_my_notif", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "enable_my_notif", TypeSize: 4}}, Kind: 1, RangeEnd: 1},
 	}},
 	{NR: 116, Name: "chdir", CallName: "chdir", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4, IsOptional: true}},
@@ -112,7 +112,7 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "arg", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "must_use_low", TypeSize: 8}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "must_use_low", TypeSize: 8}}, Kind: 1, RangeEnd: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 107, Name: "fcntl$F_GETFD", CallName: "fcntl", MissingArgs: 2, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -1246,7 +1246,7 @@ var syscalls_amd64 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "path_l", TypeSize: 8}}, Path: []string{"path"}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "argenv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "argenv_l", TypeSize: 8}}, Path: []string{"argenv"}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "flags", TypeSize: 8}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "flags", TypeSize: 8}}, Kind: 1, RangeEnd: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 12, Name: "proc_destroy", CallName: "proc_destroy", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4, IsOptional: true}},
@@ -1256,7 +1256,7 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4, IsOptional: true}},
 	}},
 	{NR: 13, Name: "proc_yield", CallName: "proc_yield", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "being_nice", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "being_nice", TypeSize: 4}}, Kind: 1, RangeEnd: 1},
 	}},
 	{NR: 24, Name: "provision", CallName: "provision", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "target_pid", TypeSize: 4, IsOptional: true}},
@@ -1288,7 +1288,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "vcoreid", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "event_type", FldName: "ev_type", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 25, 50}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "u_msg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "event_msg"}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "priv", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "priv", TypeSize: 4}}, Kind: 1, RangeEnd: 1},
 	}},
 	{NR: 39, Name: "send_event", CallName: "send_event", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ev_q", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "event_queue"}}},
@@ -1530,4 +1530,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "9fb99740f068a514f775b2acf8781edb2e641b80"
+const revision_amd64 = "a264ca7f9fabd2954922d5245e4808a09556e312"

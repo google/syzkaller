@@ -21,7 +21,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nLength", TypeSize: 4}}, Path: []string{"parent"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityDescriptor", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "SECURITY_DESCRIPTOR"}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bInheritHandle", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bInheritHandle", TypeSize: 4}}, Kind: 1, RangeEnd: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "SECURITY_DESCRIPTOR"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "SECURITY_DESCRIPTOR", TypeSize: 4}, Fields: []Type{
@@ -14619,4 +14619,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WRITE_OWNER", Value: 524288},
 }
 
-const revision_amd64 = "75e6a1fa03cbbd34d40cee331e1f7e5f3d26d4ef"
+const revision_amd64 = "c2afc45a61c1b00b9b934b07e685db56280c48a5"
