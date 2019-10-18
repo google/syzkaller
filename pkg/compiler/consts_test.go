@@ -37,7 +37,8 @@ func TestExtractConsts(t *testing.T) {
 		"CONST6", "CONST7", "CONST8", "CONST9", "CONST10",
 		"CONST11", "CONST12", "CONST13", "CONST14", "CONST15",
 		"CONST16", "CONST17", "CONST18", "CONST19", "CONST20",
-		"CONST21", "CONST22", "CONST23", "CONST24",
+		"CONST21", "CONST22", "CONST23", "CONST24", "CONST25",
+		"CONST26",
 	}
 	sort.Strings(wantConsts)
 	if !reflect.DeepEqual(info.Consts, wantConsts) {

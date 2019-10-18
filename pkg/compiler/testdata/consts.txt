@@ -21,7 +21,7 @@ str {
 
 bar$BAZ(x vma[opt], y vma[CONST8], z vma[CONST9:CONST10])
 bar$QUX(s ptr[in, string["foo", CONST11]], x ptr[in, csum[s, pseudo, CONST12, int16]])
-bar$FOO(x int8[8:CONST13], y int16be[CONST14:10], z intptr[CONST15:CONST16])
+bar$FOO(x int8[8:CONST13], y int16be[CONST14:10], z intptr[CONST15:CONST16], w int32[0:CONST25, CONST26])
 
 type type0 const[CONST17, int8]
 type templ0[C] const[C, int8]

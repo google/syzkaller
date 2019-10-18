@@ -253,6 +253,7 @@ type IntType struct {
 	Kind       IntKind
 	RangeBegin uint64
 	RangeEnd   uint64
+	Align      uint64
 }
 
 func (t *IntType) DefaultArg() Arg {
