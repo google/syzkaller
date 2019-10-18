@@ -84,10 +84,20 @@ func (comp *compiler) checkNames() {
 					name, prev.Pos)
 				continue
 			}
-			if prev := comp.typedefs[name]; prev != nil {
-				comp.error(pos, "type %v redeclared, previously declared as type alias at %v",
-					name, prev.Pos)
-				continue
+			if prev := comp.typedefs[name]; len(prev) != 0 {
+				if typedef, ok := decl.(*ast.TypeDef); ok {
+					if n1, declared := prev[len(typedef.Args)]; declared {
+						comp.error(pos, "type %v (with %v argument(s)) redeclared, previously declared at %v",
+							name, len(typedef.Args), n1.Pos)
+					}
+				} else {
+					for _, n1 := range prev {
+						comp.error(pos, "type %v redeclared, previously declared as type alias at %v",
+							name, n1.Pos)
+						break
+					}
+					continue
+				}
 			}
 			if prev := comp.structs[name]; prev != nil {
 				_, typ, _ := prev.Info()
@@ -99,7 +109,10 @@ func (comp *compiler) checkNames() {
 			case *ast.Resource:
 				comp.resources[name] = n
 			case *ast.TypeDef:
-				comp.typedefs[name] = n
+				if _, ok := comp.typedefs[name]; !ok {
+					comp.typedefs[name] = make(map[int]*ast.TypeDef)
+				}
+				comp.typedefs[name][len(n.Args)] = n
 			case *ast.Struct:
 				comp.structs[name] = n
 			}
@@ -472,9 +485,11 @@ func (comp *compiler) collectUnused() []ast.Node {
 			unused = append(unused, n)
 		}
 	}
-	for name, n := range comp.typedefs {
-		if !comp.usedTypedefs[name] {
-			unused = append(unused, n)
+	for name, nodes := range comp.typedefs {
+		for nargs, n := range nodes {
+			if !comp.usedTypedefs[name][nargs] {
+				unused = append(unused, n)
+			}
 		}
 	}
 
@@ -863,12 +878,19 @@ func (comp *compiler) checkTypeArgs(t *ast.Type, desc *typeDesc, flags checkFlag
 
 func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlags) {
 	typedefName := t.Ident
-	comp.usedTypedefs[typedefName] = true
+	if _, ok := comp.usedTypedefs[typedefName]; !ok {
+		comp.usedTypedefs[typedefName] = make(map[int]bool)
+	}
+	comp.usedTypedefs[typedefName][len(t.Args)] = true
 	if len(t.Colon) != 0 {
 		comp.error(t.Pos, "type alias %v with ':'", t.Ident)
 		return
 	}
-	typedef := comp.typedefs[typedefName]
+	typedef, ok := comp.typedefs[typedefName][len(t.Args)]
+	if !ok {
+		comp.error(t.Pos, "type %v (with %v argument(s)) is not a template", typedefName, len(t.Args))
+		return
+	}
 	fullTypeName := ast.SerializeNode(t)
 	for i, prev := range ctx.instantiationStack {
 		if prev == fullTypeName {
@@ -885,17 +907,7 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 		}
 	}
 	ctx.instantiationStack = append(ctx.instantiationStack, fullTypeName)
-	nargs := len(typedef.Args)
 	args := t.Args
-	if nargs != len(t.Args) {
-		if nargs == 0 {
-			comp.error(t.Pos, "type %v is not a template", typedefName)
-		} else {
-			comp.error(t.Pos, "template %v needs %v arguments instead of %v",
-				typedefName, nargs, len(t.Args))
-		}
-		return
-	}
 	pos0 := t.Pos
 	if typedef.Type != nil {
 		*t = *typedef.Type.Clone().(*ast.Type)

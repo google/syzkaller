@@ -850,7 +850,7 @@ var typeArgBase = namedArg{
 
 var (
 	builtinTypes    = make(map[string]*typeDesc)
-	builtinTypedefs = make(map[string]*ast.TypeDef)
+	builtinTypedefs = make(map[string]map[int]*ast.TypeDef)
 	builtinStrFlags = make(map[string]*ast.StrFlags)
 
 	// To avoid weird cases like ptr[in, in] and ptr[out, opt].
@@ -911,7 +911,11 @@ func init() {
 	for _, decl := range builtinDesc.Nodes {
 		switch n := decl.(type) {
 		case *ast.TypeDef:
-			builtinTypedefs[n.Name.Name] = n
+			name := n.Name.Name
+			if _, ok := builtinTypedefs[name]; !ok {
+				builtinTypedefs[name] = make(map[int]*ast.TypeDef)
+			}
+			builtinTypedefs[name][len(n.Args)] = n
 		case *ast.StrFlags:
 			builtinStrFlags[n.Name.Name] = n
 		case *ast.NewLine:

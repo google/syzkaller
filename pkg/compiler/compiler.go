@@ -54,19 +54,23 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 		ptrSize:      target.PtrSize,
 		unsupported:  make(map[string]bool),
 		resources:    make(map[string]*ast.Resource),
-		typedefs:     make(map[string]*ast.TypeDef),
+		typedefs:     make(map[string]map[int]*ast.TypeDef),
 		structs:      make(map[string]*ast.Struct),
 		intFlags:     make(map[string]*ast.IntFlags),
 		strFlags:     make(map[string]*ast.StrFlags),
 		used:         make(map[string]bool),
-		usedTypedefs: make(map[string]bool),
+		usedTypedefs: make(map[string]map[int]bool),
 		structDescs:  make(map[prog.StructKey]*prog.StructDesc),
 		structNodes:  make(map[*prog.StructDesc]*ast.Struct),
 		structVarlen: make(map[string]bool),
 	}
-	for name, n := range builtinTypedefs {
-		comp.typedefs[name] = n
-		comp.usedTypedefs[name] = true
+	for name, nodes := range builtinTypedefs {
+		comp.typedefs[name] = make(map[int]*ast.TypeDef)
+		comp.usedTypedefs[name] = make(map[int]bool)
+		for nargs, n := range nodes {
+			comp.typedefs[name][nargs] = n
+			comp.usedTypedefs[name][nargs] = true
+		}
 	}
 	for name, n := range builtinStrFlags {
 		comp.strFlags[name] = n
@@ -125,12 +129,12 @@ type compiler struct {
 
 	unsupported  map[string]bool
 	resources    map[string]*ast.Resource
-	typedefs     map[string]*ast.TypeDef
+	typedefs     map[string]map[int]*ast.TypeDef
 	structs      map[string]*ast.Struct
 	intFlags     map[string]*ast.IntFlags
 	strFlags     map[string]*ast.StrFlags
 	used         map[string]bool // contains used structs/resources
-	usedTypedefs map[string]bool
+	usedTypedefs map[string]map[int]bool
 
 	structDescs  map[prog.StructKey]*prog.StructDesc
 	structNodes  map[*prog.StructDesc]*ast.Struct
