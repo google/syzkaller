@@ -457,14 +457,11 @@ trusty_storage_file_set_size_req {
 trusty_storage_rpmb_send_req {
 	reliable_write_size	bytesize[reliable_write, int32]
 	write_size		bytesize[write, int32]
-	read_size		flags[trusty_storage_rpmb_read_size, int32]
+	read_size		int32[0:4096, 512]
 	__reserved		const[0, int32]
 	reliable_write		array[array[const[0, int8], 512]]
 	write			array[array[const[0, int8], 512]]
 } [packed]
-
-# NEED: this should be a 512-aligned int in range [0:4096]
-trusty_storage_rpmb_read_size = 0, 512, 1024, 1536, 1536, 2048, 2560, 3072, 3584, 4096
 
 ### hwkey ###
 
