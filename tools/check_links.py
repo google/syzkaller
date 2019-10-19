@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import os
 import re
 import sys
@@ -7,7 +8,7 @@ import sys
 link_re = re.compile('\[' + '[^\[\]]+' + '\]' + '\(' + '([^\(\)]+)' + '\)')
 
 if len(sys.argv) < 3:
-	print 'Usage: <root_dir> <doc_files>...'
+	print('Usage: <root_dir> <doc_files>...')
 	sys.exit(1)
 
 root = sys.argv[1]
@@ -22,7 +23,8 @@ for doc in docs:
 		for link in r:
 			links += [(doc, link)]
 
-def filter_link((doc, link)):
+def filter_link(args):
+	(doc, link) = args
 	if link.startswith('http'):
 		return False
 	if link.startswith('#'):
@@ -31,18 +33,20 @@ def filter_link((doc, link)):
 		return False
 	return True
 
-links = filter(filter_link, links)
+links = list(filter(filter_link, links))
 
-def fix_link((doc, link)):
+def fix_link(args):
+	(doc, link) = args
 	link = link.split('#')[0]
 	link = link.split('?')[0]
 	return (doc, link)
 
-links = map(fix_link, links)
+links = list(map(fix_link, links))
 
 errors = []
 
-def check_link((doc, link)):
+def check_link(args):
+	(doc, link) = args
 	path = os.path.dirname(doc)
 	full_link = None
 	if link[0] == '/':
@@ -59,10 +63,10 @@ for link in links:
 		errors += [link]
 
 if len(errors) == 0:
-	print '%d links checked: OK' % (len(links),)
+	print('%d links checked: OK' % (len(links),))
 	sys.exit(0)
 
 for (doc, link) in errors:
-	print 'File %s linked from %s not found' % (link, doc)
+	print('File %s linked from %s not found' % (link, doc))
 
 sys.exit(2)
