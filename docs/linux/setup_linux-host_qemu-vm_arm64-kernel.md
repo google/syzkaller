@@ -15,7 +15,7 @@ Choose the following options.
 	    External toolchain - Linaro AArch64
     System Configuration
     [*] Enable root login with password
-            ( ) Root password ⇐= set your password using this option
+            ( ) Root password = set your password using this option
     [*] Run a getty (login prompt) after boot  --->
 	    TTY port - ttyAMA0
     Target packages
