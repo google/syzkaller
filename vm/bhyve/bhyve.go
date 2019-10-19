@@ -49,6 +49,7 @@ type instance struct {
 	merger   *vmimpl.OutputMerger
 	vmName   string
 	bhyve    *exec.Cmd
+	consolew io.WriteCloser
 }
 
 var ipRegex = regexp.MustCompile(`bound to (([0-9]+\.){3}[0-9]+) `)
@@ -177,17 +178,28 @@ func (inst *instance) Boot() error {
 	if err != nil {
 		return err
 	}
+	inr, inw, err := osutil.LongPipe()
+	if err != nil {
+		outr.Close()
+		outw.Close()
+		return err
+	}
 
 	bhyve := osutil.Command("bhyve", bhyveArgs...)
+	bhyve.Stdin = inr
 	bhyve.Stdout = outw
 	bhyve.Stderr = outw
 	if err := bhyve.Start(); err != nil {
 		outr.Close()
 		outw.Close()
+		inr.Close()
+		inw.Close()
 		return err
 	}
 	outw.Close()
 	outw = nil
+	inst.consolew = inw
+	inr.Close()
 	inst.bhyve = bhyve
 
 	var tee io.Writer
@@ -245,6 +257,9 @@ func (inst *instance) Boot() error {
 }
 
 func (inst *instance) Close() {
+	if inst.consolew != nil {
+		inst.consolew.Close()
+	}
 	if inst.bhyve != nil {
 		inst.bhyve.Process.Kill()
 		inst.bhyve.Wait()
@@ -331,7 +346,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	return nil, false
+	return nil, vmimpl.DiagnoseFreeBSD(inst.consolew)
 }
 
 func parseIP(output []byte) string {
