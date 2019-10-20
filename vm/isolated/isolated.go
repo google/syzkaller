@@ -55,7 +55,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, err
 	}
 	if cfg.Host == "" {
-		return nil, fmt.Errorf("config param Host is empty")
+		cfg.Host = "127.0.0.1"
 	}
 	if len(cfg.Targets) == 0 {
 		return nil, fmt.Errorf("config param targets is empty")
@@ -108,7 +108,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
-	//remount to writable
+	//Remount to writable
 	inst.ssh("mount -o remount,rw /")
 
 	// Create working dir if doesn't exist.
