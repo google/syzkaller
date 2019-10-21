@@ -18,10 +18,20 @@ devlink_devname {
 	z	const[0, int8]
 } [packed]
 
-devlink_handle {
+devlink_handle_nsim {
 	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["netdevsim"]]
 	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, devlink_devname]
 } [packed, align_4]
+
+devlink_handle_pci {
+	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["pci"]]
+	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, string["0000:00:10.0"]]
+} [packed, align_4]
+
+devlink_handle [
+	nsim	devlink_handle_nsim
+	pci	devlink_handle_pci
+] [varlen]
 
 devlink_port_handle {
 	port_handle		devlink_handle
