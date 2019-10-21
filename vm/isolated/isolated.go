@@ -29,7 +29,7 @@ type Config struct {
 	Targets      []string `json:"targets"`        // target machines: (hostname|ip)(:port)?
 	TargetDir    string   `json:"target_dir"`     // directory to copy/run on target
 	TargetReboot bool     `json:"target_reboot"`  // reboot target on repair
-	USBDeviceNum string   `json:"usb_device_num"` // usb device number
+	USBDevNum    string   `json:"usb_device_num"` // usb device number
 }
 
 type Pool struct {
@@ -62,9 +62,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	if cfg.TargetDir == "" {
 		return nil, fmt.Errorf("config param target_dir is empty")
-	}
-	if cfg.USBDeviceNum == "" {
-		return nil, fmt.Errorf("config param usb_device_num is empty")
 	}
 	for _, target := range cfg.Targets {
 		if _, _, err := splitTargetPort(target); err != nil {
@@ -108,7 +105,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
-	//Remount to writable
+	// Remount to writable.
 	inst.ssh("mount -o remount,rw /")
 
 	// Create working dir if doesn't exist.
@@ -191,16 +188,19 @@ func (inst *instance) repair() error {
 		log.Logf(2, "isolated: ssh failed")
 		if inst.cfg.TargetReboot {
 			log.Logf(2, "isolated: trying to reboot")
-			_, err = exec.Command("/bin/sh", "-c", "echo 0 > /sys/bus/usb/devices/"+inst.cfg.USBDeviceNum+"/authorized").Output()
-			if err != nil {
-				log.Logf(2, "isolated: failed to turn off the device")
-				return err
-			}
-
-			_, err = exec.Command("/bin/sh", "-c", "echo 1 > /sys/bus/usb/devices/"+inst.cfg.USBDeviceNum+"/authorized").Output()
-			if err != nil {
-				log.Logf(2, "isolated: failed to turn on the device")
-				return err
+			if inst.cfg.USBDevNum == "" {
+				inst.ssh("reboot")
+			} else {
+				_, err = exec.Command("/bin/sh", "-c", "echo 0 > /sys/bus/usb/devices/"+inst.cfg.USBDevNum+"/authorized").Output()
+				if err != nil {
+					log.Logf(2, "isolated: failed to turn off the device")
+					return err
+				}
+				_, err = exec.Command("/bin/sh", "-c", "echo 1 > /sys/bus/usb/devices/"+inst.cfg.USBDevNum+"/authorized").Output()
+				if err != nil {
+					log.Logf(2, "isolated: failed to turn on the device")
+					return err
+				}
 			}
 
 			if err := inst.waitForReboot(3 * 60); err != nil {
