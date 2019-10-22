@@ -28,7 +28,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/google/syzkaller/pkg/build"
@@ -121,16 +120,15 @@ func main() {
 }
 
 func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instance.BuilderTester, com *vcs.Commit) {
-	bisectEnv, err := bisecter.EnvForCommit(com.Hash, kernelConfig)
+	bisectEnv, err := bisecter.EnvForCommit(*flagBisectBin, com.Hash, kernelConfig)
 	if err != nil {
 		fail(err)
 	}
 	log.Printf("testing: %v %v using %v", com.Hash, com.Title, bisectEnv.Compiler)
-	compiler := filepath.Join(*flagBisectBin, bisectEnv.Compiler, "bin", "gcc")
 	if err := build.Clean(*flagOS, *flagArch, vmType, *flagKernelSrc); err != nil {
 		fail(err)
 	}
-	_, err = env.BuildKernel(compiler, *flagUserspace, *flagKernelCmdline, *flagKernelSysctl, bisectEnv.KernelConfig)
+	_, err = env.BuildKernel(bisectEnv.Compiler, *flagUserspace, *flagKernelCmdline, *flagKernelSysctl, bisectEnv.KernelConfig)
 	if err != nil {
 		if verr, ok := err.(*osutil.VerboseError); ok {
 			log.Printf("BUILD BROKEN: %v", verr.Title)

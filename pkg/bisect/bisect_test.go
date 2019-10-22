@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/syzkaller/pkg/build"
 	"github.com/google/syzkaller/pkg/instance"
 	"github.com/google/syzkaller/pkg/mgrconfig"
 	"github.com/google/syzkaller/pkg/report"
@@ -72,9 +71,6 @@ func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]erro
 // commit.
 func TestBisectCause(t *testing.T) {
 	t.Parallel()
-	build.CompilerIdentity = func(_ string) (string, error) {
-		return "unused-compiler-identity", nil
-	}
 	baseDir, err := ioutil.TempDir("", "syz-git-test")
 	if err != nil {
 		t.Fatal(err)
