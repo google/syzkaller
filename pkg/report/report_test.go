@@ -112,6 +112,8 @@ func parseHeaderLine(t *testing.T, test *ParseTest, ln string) {
 			test.Type = Hang
 		case MemoryLeak.String():
 			test.Type = MemoryLeak
+		case DataRace.String():
+			test.Type = DataRace
 		case UnexpectedReboot.String():
 			test.Type = UnexpectedReboot
 		default:
