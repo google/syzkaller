@@ -3,6 +3,7 @@ package vcs
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -80,6 +81,14 @@ func (repo *TestRepo) CommitChange(description string) {
 
 func (repo *TestRepo) SetTag(tag string) {
 	repo.git("tag", tag)
+}
+
+func (repo *TestRepo) SupportsBisection() bool {
+	// Detect too old git binary. --no-contains appeared in git 2.13.
+	_, err := repo.repo.previousReleaseTags("HEAD", true)
+	return err == nil ||
+		!strings.Contains(err.Error(), "usage: git tag") &&
+			!strings.Contains(err.Error(), "error: unknown option")
 }
 
 func CreateTestRepo(t *testing.T, baseDir, name string) *TestRepo {
