@@ -88,7 +88,7 @@ func gitReleaseTagToInt(tag string) uint64 {
 	return v1*1e6 + v2*1e3 + v3
 }
 
-func (ctx *linux) EnvForCommit(commit string, kernelConfig []byte) (*BisectEnv, error) {
+func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
 	tagList, err := ctx.previousReleaseTags(commit, true)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (ctx *linux) EnvForCommit(commit string, kernelConfig []byte) (*BisectEnv, 
 		tags[tag] = true
 	}
 	env := &BisectEnv{
-		Compiler:     "gcc-" + linuxCompilerVersion(tags),
+		Compiler:     filepath.Join(binDir, "gcc-"+linuxCompilerVersion(tags), "bin", "gcc"),
 		KernelConfig: linuxDisableConfigs(kernelConfig, tags),
 	}
 	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.

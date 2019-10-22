@@ -93,7 +93,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 	return nil, fmt.Errorf("unsupported image type %v/%v/%v", targetOS, targetArch, vmType)
 }
 
-var CompilerIdentity = func(compiler string) (string, error) {
+func CompilerIdentity(compiler string) (string, error) {
 	if compiler == "" {
 		return "", nil
 	}

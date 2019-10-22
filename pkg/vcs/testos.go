@@ -16,8 +16,7 @@ func newTestos(dir string) *testos {
 func (ctx *testos) PreviousReleaseTags(commit string) ([]string, error) {
 	return ctx.git.previousReleaseTags(commit, false)
 }
-func (ctx *testos) EnvForCommit(commit string, kernelConfig []byte) (*BisectEnv, error) {
-	return &BisectEnv{
-		Compiler: "test-compiler-dont-use",
-	}, nil
+
+func (ctx *testos) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
+	return &BisectEnv{}, nil
 }

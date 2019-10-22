@@ -259,12 +259,11 @@ func (env *env) test() (vcs.BisectResult, *vcs.Commit, *report.Report, error) {
 	if err != nil {
 		return 0, nil, nil, err
 	}
-	bisectEnv, err := env.bisecter.EnvForCommit(current.Hash, cfg.Kernel.Config)
+	bisectEnv, err := env.bisecter.EnvForCommit(cfg.BinDir, current.Hash, cfg.Kernel.Config)
 	if err != nil {
 		return 0, nil, nil, err
 	}
-	compiler := filepath.Join(cfg.BinDir, bisectEnv.Compiler, "bin", "gcc")
-	compilerID, err := build.CompilerIdentity(compiler)
+	compilerID, err := build.CompilerIdentity(bisectEnv.Compiler)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -274,7 +273,7 @@ func (env *env) test() (vcs.BisectResult, *vcs.Commit, *report.Report, error) {
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
 		return 0, nil, nil, fmt.Errorf("kernel clean failed: %v", err)
 	}
-	_, err = env.inst.BuildKernel(compiler, cfg.Kernel.Userspace,
+	_, err = env.inst.BuildKernel(bisectEnv.Compiler, cfg.Kernel.Userspace,
 		cfg.Kernel.Cmdline, cfg.Kernel.Sysctl, bisectEnv.KernelConfig)
 	env.buildTime += time.Since(buildStart)
 	if err != nil {
