@@ -85,6 +85,9 @@ func TestBisectCause(t *testing.T) {
 			}
 		}
 	}
+	if !originRepo.SupportsBisection() {
+		t.Skip("bisection is unsupported by git (probably too old version)")
+	}
 	repo := vcs.CloneTestRepo(t, baseDir, "repo", originRepo)
 	r, err := vcs.NewRepo("test", "64", repo.Dir)
 	if err != nil {
