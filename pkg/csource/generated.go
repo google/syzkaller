@@ -5331,11 +5331,35 @@ static void setup_binfmt_misc()
 #endif
 
 #if SYZ_EXECUTOR || SYZ_ENABLE_KCSAN
+#define KCSAN_DEBUGFS_FILE "/sys/kernel/debug/kcsan"
+
 static void setup_kcsan()
 {
-	if (!write_file("/sys/kernel/debug/kcsan", "on"))
+	if (!write_file(KCSAN_DEBUGFS_FILE, "on"))
 		fail("failed to enable KCSAN");
 }
+
+#if SYZ_EXECUTOR
+static void setup_kcsan_filterlist(char** frames, int nframes, bool blacklist)
+{
+	int fd = open(KCSAN_DEBUGFS_FILE, O_WRONLY);
+	if (fd == -1)
+		fail("failed to open(\"%s\")", KCSAN_DEBUGFS_FILE);
+
+	const char* const filtertype = blacklist ? "blacklist" : "whitelist";
+	printf("adding functions to KCSAN %s: ", filtertype);
+	dprintf(fd, "%s\n", filtertype);
+	for (int i = 0; i < nframes; ++i) {
+		printf("'%s' ", frames[i]);
+		dprintf(fd, "!%s\n", frames[i]);
+	}
+	printf("\n");
+
+	close(fd);
+}
+
+#define SYZ_HAVE_KCSAN 1
+#endif
 #endif
 
 #elif GOOS_test

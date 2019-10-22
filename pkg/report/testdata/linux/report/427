@@ -1,4 +1,6 @@
 TITLE: KCSAN: data-race in find_next_bit / rcu_report_exp_cpu_mult
+TYPE: DATARACE
+FRAME: find_next_bit
 
 [   44.377931][    C4] ==================================================================
 [   44.379001][    C4] BUG: KCSAN: data-race in find_next_bit / rcu_report_exp_cpu_mult

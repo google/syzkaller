@@ -62,6 +62,7 @@ const (
 	Unknown Type = iota
 	Hang
 	MemoryLeak
+	DataRace
 	UnexpectedReboot
 )
 
@@ -73,6 +74,8 @@ func (t Type) String() string {
 		return "HANG"
 	case MemoryLeak:
 		return "LEAK"
+	case DataRace:
+		return "DATARACE"
 	case UnexpectedReboot:
 		return "REBOOT"
 	default:
@@ -119,6 +122,7 @@ func NewReporter(cfg *mgrconfig.Config) (Reporter, error) {
 const (
 	unexpectedKernelReboot = "unexpected kernel reboot"
 	memoryLeakPrefix       = "memory leak in "
+	dataRacePrefix         = "KCSAN: data-race"
 )
 
 var ctors = map[string]fn{
@@ -186,6 +190,9 @@ func extractReportType(rep *Report) Type {
 	}
 	if strings.HasPrefix(rep.Title, memoryLeakPrefix) {
 		return MemoryLeak
+	}
+	if strings.HasPrefix(rep.Title, dataRacePrefix) {
+		return DataRace
 	}
 	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") ||
 		strings.HasPrefix(rep.Title, "INFO: task hung") ||

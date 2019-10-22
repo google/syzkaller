@@ -1,7 +1,9 @@
-TITLE: KCSAN: racing read in e1000_clean_rx_irq
+TITLE: KCSAN: data-race in e1000_clean_rx_irq
+TYPE: DATARACE
+FRAME: e1000_clean_rx_irq
 
 [   44.381409][    C4]  ==================================================================
-[   44.381969][    C4]  BUG: KCSAN: racing read in e1000_clean_rx_irq+0x551/0xb10
+[   44.381969][    C4]  BUG: KCSAN: data-race in e1000_clean_rx_irq+0x551/0xb10
 [   44.382748][    C4]  
 [   44.383468][    C4]  race at unknown origin, with read to 0xffff933db8a2ae6c of 1 bytes by interrupt on cpu 0:
 [   44.384066][    C4]   e1000_clean_rx_irq+0x551/0xb10
