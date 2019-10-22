@@ -128,7 +128,8 @@ func test(repo vcs.Repo, bisecter vcs.Bisecter, kernelConfig []byte, env instanc
 	if err := build.Clean(*flagOS, *flagArch, vmType, *flagKernelSrc); err != nil {
 		fail(err)
 	}
-	_, err = env.BuildKernel(bisectEnv.Compiler, *flagUserspace, *flagKernelCmdline, *flagKernelSysctl, bisectEnv.KernelConfig)
+	_, err = env.BuildKernel(bisectEnv.Compiler, *flagUserspace,
+		*flagKernelCmdline, *flagKernelSysctl, bisectEnv.KernelConfig)
 	if err != nil {
 		if verr, ok := err.(*osutil.VerboseError); ok {
 			log.Printf("BUILD BROKEN: %v", verr.Title)
