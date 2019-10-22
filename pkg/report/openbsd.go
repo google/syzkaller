@@ -156,6 +156,10 @@ var openbsdOopses = []*oops{
 				fmt:   "malloc: free list modified: %[1]v",
 			},
 			{
+				title: compile("panic: pool_cache_item_magic_check: ([^ ]+) cpu free list modified"),
+				fmt:   "pool: cpu free list modified: %[1]v",
+			},
+			{
 				title: compile("panic: pool_do_put: ([^:]+): double pool_put"),
 				fmt:   "pool: double put: %[1]v",
 			},
