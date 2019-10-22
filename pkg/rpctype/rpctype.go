@@ -35,6 +35,7 @@ type ConnectRes struct {
 	AllSandboxes     bool
 	CheckResult      *CheckArgs
 	MemoryLeakFrames []string
+	DataRaceFrames   []string
 }
 
 type CheckArgs struct {

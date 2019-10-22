@@ -36,9 +36,14 @@ type Fuzzer struct {
 	newMaxSignal signal.Signal
 }
 
+type BugFrames struct {
+	memoryLeaks []string
+	dataRaces   []string
+}
+
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
-	fuzzerConnect() ([]rpctype.RPCInput, []string)
+	fuzzerConnect() ([]rpctype.RPCInput, BugFrames)
 	machineChecked(result *rpctype.CheckArgs)
 	newInput(inp rpctype.RPCInput, sign signal.Signal)
 	candidateBatch(size int) []rpctype.RPCCandidate
@@ -70,7 +75,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	log.Logf(1, "fuzzer %v connected", a.Name)
 	serv.stats.vmRestarts.inc()
 
-	corpus, memoryLeakFrames := serv.mgr.fuzzerConnect()
+	corpus, bugFrames := serv.mgr.fuzzerConnect()
 
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
@@ -80,7 +85,8 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 		inputs:       corpus,
 		newMaxSignal: serv.maxSignal.Copy(),
 	}
-	r.MemoryLeakFrames = memoryLeakFrames
+	r.MemoryLeakFrames = bugFrames.memoryLeaks
+	r.DataRaceFrames = bugFrames.dataRaces
 	r.EnabledCalls = serv.enabledSyscalls
 	r.CheckResult = serv.checkResult
 	r.GitRevision = sys.GitRevision

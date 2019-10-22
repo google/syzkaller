@@ -76,6 +76,7 @@ type Manager struct {
 	newRepros        [][]byte
 	lastMinCorpus    int
 	memoryLeakFrames map[string]bool
+	dataRaceFrames   map[string]bool
 
 	needMoreRepros chan chan bool
 	hubReproQueue  chan *Crash
@@ -169,6 +170,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		corpus:           make(map[string]rpctype.RPCInput),
 		disabledHashes:   make(map[string]struct{}),
 		memoryLeakFrames: make(map[string]bool),
+		dataRaceFrames:   make(map[string]bool),
 		fresh:            true,
 		vmStop:           make(chan bool),
 		hubReproQueue:    make(chan *Crash, 10),
@@ -587,6 +589,11 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		mgr.memoryLeakFrames[crash.Frame] = true
 		mgr.mu.Unlock()
 	}
+	if crash.Type == report.DataRace {
+		mgr.mu.Lock()
+		mgr.dataRaceFrames[crash.Frame] = true
+		mgr.mu.Unlock()
+	}
 	if crash.Suppressed {
 		log.Logf(0, "vm-%v: suppressed crash %v", crash.vmIndex, crash.Title)
 		mgr.stats.crashSuppressed.inc()
@@ -895,7 +902,7 @@ func (mgr *Manager) minimizeCorpus() {
 	mgr.corpusDB.BumpVersion(currentDBVersion)
 }
 
-func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, []string) {
+func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -908,7 +915,11 @@ func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, []string) {
 	for frame := range mgr.memoryLeakFrames {
 		memoryLeakFrames = append(memoryLeakFrames, frame)
 	}
-	return corpus, memoryLeakFrames
+	dataRaceFrames := make([]string, 0, len(mgr.dataRaceFrames))
+	for frame := range mgr.dataRaceFrames {
+		dataRaceFrames = append(dataRaceFrames, frame)
+	}
+	return corpus, BugFrames{memoryLeaks: memoryLeakFrames, dataRaces: dataRaceFrames}
 }
 
 func (mgr *Manager) machineChecked(a *rpctype.CheckArgs) {

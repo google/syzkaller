@@ -235,11 +235,9 @@ func main() {
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
 	}
-	var gateCallback func()
-	if r.CheckResult.Features[host.FeatureLeakChecking].Enabled {
-		gateCallback = func() { fuzzer.gateCallback(r.MemoryLeakFrames) }
-	}
+	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
+
 	for i := 0; fuzzer.poll(i == 0, nil); i++ {
 	}
 	calls := make(map[*prog.Syscall]bool)
@@ -259,6 +257,21 @@ func main() {
 	}
 
 	fuzzer.pollLoop()
+}
+
+// Returns gateCallback for leak checking if enabled.
+func (fuzzer *Fuzzer) useBugFrames(r *rpctype.ConnectRes, flagProcs int) func() {
+	var gateCallback func()
+
+	if r.CheckResult.Features[host.FeatureLeakChecking].Enabled {
+		gateCallback = func() { fuzzer.gateCallback(r.MemoryLeakFrames) }
+	}
+
+	if r.CheckResult.Features[host.FeatureKCSAN].Enabled && len(r.DataRaceFrames) != 0 {
+		fuzzer.blacklistDataRaceFrames(r.DataRaceFrames)
+	}
+
+	return gateCallback
 }
 
 func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
@@ -283,6 +296,15 @@ func (fuzzer *Fuzzer) gateCallback(leakFrames []string) {
 	if triagedCandidates == 1 {
 		atomic.StoreUint32(&fuzzer.triagedCandidates, 2)
 	}
+}
+
+func (fuzzer *Fuzzer) blacklistDataRaceFrames(frames []string) {
+	args := append([]string{"setup_kcsan_blacklist"}, frames...)
+	output, err := osutil.RunCmd(10*time.Minute, "", fuzzer.config.Executor, args...)
+	if err != nil {
+		log.Fatalf("failed to set KCSAN blacklist: %v", err)
+	}
+	log.Logf(0, "%s", output)
 }
 
 func (fuzzer *Fuzzer) pollLoop() {
