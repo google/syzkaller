@@ -132,7 +132,7 @@ rdma_ucm_accept {
 
 rdma_ucm_reject {
 	id			rdma_cm_id
-	private_data_len	int8[0:RDMA_MAX_PRIVATE_DATA]
+	private_data_len	int8
 	reserved		array[int8, 3]
 	private_data		array[int8, RDMA_MAX_PRIVATE_DATA]
 }
@@ -230,7 +230,7 @@ rdma_ucm_conn_param {
 	qp_num			int32
 	qkey			int32
 	private_data		array[int8, RDMA_MAX_PRIVATE_DATA]
-	private_data_len	int8[0:RDMA_MAX_PRIVATE_DATA]
+	private_data_len	int8
 	srq			int8
 	responder_resources	int8
 	initiator_depth		int8
