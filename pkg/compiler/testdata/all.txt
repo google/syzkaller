@@ -168,7 +168,7 @@ foo$void8(a ptr[in, void])
 bitfield0 {
 	f1	int8:1
 	f2	int8:2
-	f3	int16:8[-255:0]
+	f3	int16:8[-127:0]
 	f4	int16:8[0:255]
 	f5	int64:64[-1:1]
 }
