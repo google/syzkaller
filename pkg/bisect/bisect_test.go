@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"strconv"
 	"testing"
@@ -20,11 +21,13 @@ import (
 // testEnv will implement instance.BuilderTester. This allows us to
 // set bisect.env.inst to a testEnv object.
 type testEnv struct {
-	repo *vcs.TestRepo
-	r    vcs.Repo
-	t    *testing.T
-	// TODO: add a "fix bool" here so that Test() can return results according to
-	// whether fix/cause bisection is happening.
+	repo        *vcs.TestRepo
+	r           vcs.Repo
+	t           *testing.T
+	fix         bool
+	brokenStart float64
+	brokenEnd   float64
+	culprit     float64
 }
 
 func (env *testEnv) BuildSyzkaller(repo, commit string) error {
@@ -36,46 +39,62 @@ func (env *testEnv) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFi
 	return "", nil
 }
 
+func crashErrors(num int, title string) []error {
+	var errors []error
+	for i := 0; i < num; i++ {
+		errors = append(errors, &instance.CrashError{
+			Report: &report.Report{
+				Title: fmt.Sprintf("crashes at %v", title),
+			},
+		})
+	}
+	return errors
+}
+
+func nilErrors(num int) []error {
+	var errors []error
+	for i := 0; i < num; i++ {
+		errors = append(errors, nil)
+	}
+	return errors
+}
+
 func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, error) {
 	hc, err := env.r.HeadCommit()
 	if err != nil {
 		env.t.Fatal(err)
 	}
-	// For cause bisection, if newer than or equal to 602, it crashes.
-	// -- 602 is the cause commit.
-	// TODO: for fix bisection(check env.fix), if older than 602, it crashes.
-	// -- 602 is the fix commit.
-	val, err := strconv.Atoi(hc.Title)
+	commit, err := strconv.ParseFloat(hc.Title, 64)
 	if err != nil {
-		env.t.Fatalf("invalid commit title: %v", val)
+		env.t.Fatalf("invalid commit title: %v", hc.Title)
 	}
-	if val >= 602 {
-		var errors []error
-		for i := 0; i < numVMs; i++ {
-			errors = append(errors, &instance.CrashError{
-				Report: &report.Report{
-					Title: fmt.Sprintf("crashes at %v", hc.Title),
-				},
-			})
-		}
-		return errors, nil
+	var e error
+	var res []error
+	if commit >= env.brokenStart && commit <= env.brokenEnd {
+		e = fmt.Errorf("broken build")
+	} else if commit < env.culprit && !env.fix || commit >= env.culprit && env.fix {
+		res = nilErrors(numVMs)
+	} else {
+		res = crashErrors(numVMs, "crash occurs")
 	}
-	var errors []error
-	for i := 0; i < numVMs; i++ {
-		errors = append(errors, nil)
-	}
-	return errors, nil
+	return res, e
 }
 
-// TestBisectCause tests that bisection returns the correct cause
-// commit.
-func TestBisectCause(t *testing.T) {
-	t.Parallel()
+type Ctx struct {
+	t          *testing.T
+	baseDir    string
+	repo       *vcs.TestRepo
+	r          vcs.Repo
+	cfg        *Config
+	inst       *testEnv
+	originRepo *vcs.TestRepo
+}
+
+func NewCtx(t *testing.T, fix bool, brokenStart, brokenEnd, culprit float64, commit string) *Ctx {
 	baseDir, err := ioutil.TempDir("", "syz-git-test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(baseDir)
 	originRepo := vcs.CreateTestRepo(t, baseDir, "originRepo")
 	for rv := 4; rv < 10; rv++ {
 		for i := 0; i < 6; i++ {
@@ -93,12 +112,12 @@ func TestBisectCause(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	head, err := r.HeadCommit()
+	sc, err := r.GetCommitByTitle(commit)
 	if err != nil {
 		t.Fatal(err)
 	}
 	cfg := &Config{
-		Fix:   false,
+		Fix:   fix,
 		Trace: new(bytes.Buffer),
 		Manager: mgrconfig.Config{
 			TargetOS:     "test",
@@ -107,26 +126,170 @@ func TestBisectCause(t *testing.T) {
 			KernelSrc:    repo.Dir,
 		},
 		Kernel: KernelConfig{
-			Commit: head.Hash,
 			Repo:   originRepo.Dir,
+			Commit: sc.Hash,
 		},
 	}
 	inst := &testEnv{
-		repo: repo,
-		r:    r,
-		t:    t,
+		repo:        repo,
+		r:           r,
+		t:           t,
+		fix:         fix,
+		brokenStart: brokenStart,
+		brokenEnd:   brokenEnd,
+		culprit:     culprit,
 	}
-	commits, rep, err := runImpl(cfg, r, r.(vcs.Bisecter), inst)
-	if err != nil {
-		t.Fatalf("returned error: '%v'", err)
+	c := &Ctx{
+		t:          t,
+		baseDir:    baseDir,
+		repo:       repo,
+		r:          r,
+		cfg:        cfg,
+		inst:       inst,
+		originRepo: originRepo,
 	}
-	if len(commits) != 1 {
-		t.Fatalf("Got %d commits: %v", len(commits), commits)
+	return c
+}
+
+type BisectionTests struct {
+	// input environment
+	name        string
+	fix         bool
+	startCommit string
+	brokenStart float64
+	brokenEnd   float64
+	// expected output
+	errIsNil  bool
+	commitLen int
+	repIsNil  bool
+	// input and output
+	culprit float64
+}
+
+func TestBisectionResults(t *testing.T) {
+	t.Parallel()
+	var tests = []BisectionTests{
+		// Tests that bisection returns the correct cause commit.
+		{
+			name:        "bisect cause finds cause",
+			fix:         false,
+			startCommit: "905",
+			brokenStart: math.Inf(0),
+			brokenEnd:   0,
+			errIsNil:    true,
+			commitLen:   1,
+			repIsNil:    false,
+			culprit:     602,
+		},
+		// Tests that cause bisection returns error when crash does not reproduce
+		// on the original commit.
+		{
+			name:        "bisect cause does not repro",
+			fix:         false,
+			startCommit: "400",
+			brokenStart: math.Inf(0),
+			brokenEnd:   0,
+			errIsNil:    false,
+			commitLen:   0,
+			repIsNil:    true,
+			culprit:     math.Inf(0),
+		},
+		// Tests that no commits are returned when crash occurs on oldest commit
+		// for cause bisection.
+		{
+			name:        "bisect cause crashes oldest",
+			fix:         false,
+			startCommit: "905",
+			brokenStart: math.Inf(0),
+			brokenEnd:   0,
+			errIsNil:    true,
+			commitLen:   0,
+			repIsNil:    false,
+			culprit:     0,
+		},
+		// Tests that more than 1 commit is returned when cause bisection is
+		// inconclusive.
+		{
+			name:        "bisect cause inconclusive",
+			fix:         false,
+			startCommit: "802",
+			brokenStart: 500,
+			brokenEnd:   700,
+			errIsNil:    true,
+			commitLen:   14,
+			repIsNil:    true,
+			culprit:     605,
+		},
+		// Tests that bisection returns the correct fix commit.
+		{
+			name:        "bisect fix finds fix",
+			fix:         true,
+			startCommit: "400",
+			brokenStart: math.Inf(0),
+			brokenEnd:   0,
+			errIsNil:    true,
+			commitLen:   1,
+			repIsNil:    true,
+			culprit:     500,
+		},
+		// Tests that fix bisection returns error when crash does not reproduce
+		// on the original commit.
+		{
+			name:        "bisect fix does not repro",
+			fix:         true,
+			startCommit: "905",
+			brokenStart: math.Inf(0),
+			brokenEnd:   0,
+			errIsNil:    false,
+			commitLen:   0,
+			repIsNil:    true,
+			culprit:     0,
+		},
+		// Tests that no commits are returned when crash occurs on HEAD
+		// for fix bisection.
+		{
+			name:        "bisect fix crashes HEAD",
+			fix:         true,
+			startCommit: "400",
+			brokenStart: math.Inf(0),
+			brokenEnd:   0,
+			errIsNil:    true,
+			commitLen:   0,
+			repIsNil:    false,
+			culprit:     1000,
+		},
+		// Tests that more than 1 commit is returned when fix bisection is
+		// inconclusive.
+		{
+			name:        "bisect fix inconclusive",
+			fix:         true,
+			startCommit: "400",
+			brokenStart: 500,
+			brokenEnd:   600,
+			errIsNil:    true,
+			commitLen:   8,
+			repIsNil:    true,
+			culprit:     501,
+		},
 	}
-	if commits[0].Title != "602" {
-		t.Fatalf("Expected commit '602' got '%v'", commits[0].Title)
-	}
-	if rep == nil {
-		t.Fatal("returned rep==nil, report should not be empty")
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
+			c := NewCtx(t, test.fix, test.brokenStart, test.brokenEnd, test.culprit, test.startCommit)
+			defer os.RemoveAll(c.baseDir)
+			commits, rep, err := runImpl(c.cfg, c.r, c.r.(vcs.Bisecter), c.inst)
+			if test.errIsNil && err != nil || !test.errIsNil && err == nil {
+				t.Fatalf("returned error: '%v'", err)
+			}
+			if len(commits) != test.commitLen {
+				t.Fatalf("expected %d commits got %d commits", test.commitLen, len(commits))
+			}
+			expectedTitle := fmt.Sprintf("%v", test.culprit)
+			if len(commits) == 1 && expectedTitle != commits[0].Title {
+				t.Fatalf("expected commit '%v' got '%v'", expectedTitle, commits[0].Title)
+			}
+			if test.repIsNil && rep != nil || !test.repIsNil && rep == nil {
+				t.Fatalf("returned rep: '%v'", err)
+			}
+		})
 	}
 }
