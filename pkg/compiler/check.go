@@ -942,7 +942,7 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 	}
 	argUsed := make(map[string]bool)
 	err0 := comp.errors
-	templ.Walk(ast.PostRecursive(func(n ast.Node) {
+	ast.PostRecursive(func(n ast.Node) {
 		templArg, ok := n.(*ast.Type)
 		if !ok {
 			return
@@ -972,7 +972,7 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 				col.Pos = concreteArg.Pos
 			}
 		}
-	}))
+	})(templ)
 	for _, param := range params {
 		if !argUsed[param.Name] {
 			comp.error(argMap[param.Name].Pos,

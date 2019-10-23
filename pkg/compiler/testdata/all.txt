@@ -224,6 +224,7 @@ type templ_struct4 templ_struct3
 type templ_struct5 templ_struct0[C1, templ_struct0[C2, int8]]
 type templ_struct6 templ_struct0[C1, templ_struct2[C2]]
 type templ_union union_with_templ_struct
+type templ_base3[BASE] BASE
 
 foo$templ0(a templ0[42, int8])
 foo$templ1(a ptr[in, templ_struct0[C2, int8]])
@@ -234,6 +235,7 @@ foo$templ5(a ptr[in, templ_struct1[3]])
 foo$templ6(a ptr[in, templ_struct4])
 foo$templ7(a ptr[in, templ_struct5], b ptr[in, templ_struct6], c ptr[in, templ_union], d ptr[in, type3])
 foo$templ8(a ptr[in, templ_templ_use])
+foo$templ9(a ptr[in, templ_base3[int64]])
 
 # Structs.
 
