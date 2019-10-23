@@ -266,7 +266,7 @@ func findBugsForBisection(c context.Context, managers map[string]bool, reproLeve
 		if !shouldBisectBug(bug, managers) {
 			continue
 		}
-		crash, crashKey, err := bisectCrashForBug(c, keys[bi], managers)
+		crash, crashKey, err := bisectCrashForBug(c, bug, keys[bi], managers, jobType)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -293,7 +293,7 @@ func shouldBisectBug(bug *Bug, managers map[string]bool) bool {
 	return false
 }
 
-func bisectCrashForBug(c context.Context, bugKey *db.Key, managers map[string]bool) (
+func bisectCrashForBug(c context.Context, bug *Bug, bugKey *db.Key, managers map[string]bool, jobType JobType) (
 	*Crash, *db.Key, error) {
 	crashes, crashKeys, err := queryCrashesForBug(c, bugKey, maxCrashes)
 	if err != nil {
@@ -303,9 +303,25 @@ func bisectCrashForBug(c context.Context, bugKey *db.Key, managers map[string]bo
 		if crash.ReproSyz == 0 || !managers[crash.Manager] {
 			continue
 		}
+		if ok, err := shouldBisectCrash(c, bug, crash, jobType); err != nil {
+			return nil, nil, err
+		} else if !ok {
+			continue
+		}
 		return crash, crashKeys[ci], nil
 	}
 	return nil, nil, nil
+}
+
+func shouldBisectCrash(c context.Context, bug *Bug, crash *Crash, jobType JobType) (bool, error) {
+	if jobType != JobBisectFix {
+		return true, nil
+	}
+	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
+	if err != nil {
+		return false, err
+	}
+	return !kernelRepoInfo(build).FixBisectionDisabled, nil
 }
 
 func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, crashKey *db.Key, jobType JobType) (
