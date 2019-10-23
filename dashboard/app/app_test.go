@@ -98,6 +98,13 @@ var testConfig = &GlobalConfig{
 					Alias:  "repo10alias",
 					CC:     []string{"maintainers@repo10.org", "bugs@repo10.org"},
 				},
+				{
+					URL:                  "git://syzkaller.org",
+					Branch:               "branch20",
+					Alias:                "repo20",
+					CC:                   []string{"maintainers@repo20.org", "bugs@repo20.org"},
+					FixBisectionDisabled: true,
+				},
 			},
 			Managers: map[string]ConfigManager{
 				"restricted-manager": {

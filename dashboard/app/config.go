@@ -154,6 +154,8 @@ type KernelRepo struct {
 	ReportingPriority int
 	// Additional CC list to add to all bugs reported on this repo.
 	CC []string
+	// Determines if fix bisection should be disabled on this repo.
+	FixBisectionDisabled bool
 }
 
 var (
