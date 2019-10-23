@@ -1,0 +1,289 @@
+TITLE: INFO: task hung in p9_fd_close
+TYPE: HANG
+
+[  553.841261] INFO: task syz-executor4:6761 blocked for more than 140 seconds.
+[  553.848760]       Not tainted 4.19.0-rc2+ #220
+[  553.853395] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  553.861417] syz-executor4   D24208  6761   4671 0x00000004
+[  553.867126] Call Trace:
+[  553.869906]  __schedule+0x87c/0x1df0
+[  553.945930]  schedule+0xfb/0x450
+[  553.957505]  schedule_timeout+0x1cc/0x260
+[  553.984219]  wait_for_completion+0x430/0x8d0
+[  554.026409]  __flush_work+0x59f/0x9c0
+[  554.057841]  __cancel_work_timer+0x4c2/0x830
+[  554.111415]  cancel_work_sync+0x17/0x20
+[  554.115413]  p9_fd_close+0x376/0x5c0
+[  554.127847]  p9_client_create+0xa41/0x159b
+[  554.188529]  v9fs_session_init+0x21a/0x1a80
+[  554.236768]  v9fs_mount+0x7c/0x900
+[  554.244961]  mount_fs+0xae/0x328
+[  554.248365]  vfs_kern_mount.part.35+0xdc/0x4f0
+[  554.264757]  do_mount+0x581/0x30e0
+[  554.306007]  ksys_mount+0x12d/0x140
+[  554.309671]  __x64_sys_mount+0xbe/0x150
+[  554.313690]  do_syscall_64+0x1b9/0x820
+[  554.352006]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  554.357227] RIP: 0033:0x457099
+[  554.360464] Code: ff 48 89 f1 48 01 d9 48 39 f9 76 bb 48 01 df 48 01 de fd 48 89 d9 48 c1 e9 03 48 83 e3 07 48 83 ef 08 48 83 ee 08 f3 48 a5 fc <48> 83 c7 08 48 83 c6 08 48 29 df 48 29 de e9 13 ff ff ff 8a 06 8a
+[  554.379398] RSP: 002b:00007fc85cf84c78 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  554.387139] RAX: ffffffffffffffda RBX: 00007fc85cf856d4 RCX: 0000000000457099
+[  554.394431] RDX: 0000000020000340 RSI: 0000000020000080 RDI: 0000000000000000
+[  554.401855] RBP: 0000000000930140 R08: 00000000200006c0 R09: 0000000000000000
+[  554.409151] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  554.416448] R13: 00000000004d2ec8 R14: 00000000004c7f7e R15: 0000000000000001
+[  554.423839] INFO: task syz-executor7:6763 blocked for more than 140 seconds.
+[  554.431064]       Not tainted 4.19.0-rc2+ #220
+[  554.435796] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  554.443800] syz-executor7   D24280  6763   4679 0x00000004
+[  554.449457] Call Trace:
+[  554.452082]  __schedule+0x87c/0x1df0
+[  554.503292]  schedule+0xfb/0x450
+[  554.514849]  schedule_timeout+0x1cc/0x260
+[  554.541292]  wait_for_completion+0x430/0x8d0
+[  554.583439]  __flush_work+0x59f/0x9c0
+[  554.614328]  __cancel_work_timer+0x4c2/0x830
+[  554.667448]  cancel_work_sync+0x17/0x20
+[  554.671449]  p9_fd_close+0x376/0x5c0
+[  554.683728]  p9_client_create+0xa41/0x159b
+[  554.744339]  v9fs_session_init+0x21a/0x1a80
+[  554.792450]  v9fs_mount+0x7c/0x900
+[  554.800628]  mount_fs+0xae/0x328
+[  554.804028]  vfs_kern_mount.part.35+0xdc/0x4f0
+[  554.820504]  do_mount+0x581/0x30e0
+[  554.863229]  ksys_mount+0x12d/0x140
+[  554.866881]  __x64_sys_mount+0xbe/0x150
+[  554.870876]  do_syscall_64+0x1b9/0x820
+[  554.909487]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  554.914719] RIP: 0033:0x457099
+[  554.917931] Code: ff 48 89 f1 48 01 d9 48 39 f9 76 bb 48 01 df 48 01 de fd 48 89 d9 48 c1 e9 03 48 83 e3 07 48 83 ef 08 48 83 ee 08 f3 48 a5 fc <48> 83 c7 08 48 83 c6 08 48 29 df 48 29 de e9 13 ff ff ff 8a 06 8a
+[  554.936982] RSP: 002b:00007f8f5c943c78 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  554.944914] RAX: ffffffffffffffda RBX: 00007f8f5c9446d4 RCX: 0000000000457099
+[  554.952208] RDX: 0000000020000340 RSI: 0000000020000080 RDI: 0000000000000000
+[  554.959976] RBP: 0000000000930140 R08: 00000000200006c0 R09: 0000000000000000
+[  554.967279] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  554.974570] R13: 00000000004d2ec8 R14: 00000000004c7f7e R15: 0000000000000001
+[  554.981877] INFO: task syz-executor1:6767 blocked for more than 140 seconds.
+[  554.989080]       Not tainted 4.19.0-rc2+ #220
+[  554.993685] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  555.001804] syz-executor1   D23728  6767   4680 0x00000004
+[  555.007486] Call Trace:
+[  555.010131]  __schedule+0x87c/0x1df0
+[  555.085382]  schedule+0xfb/0x450
+[  555.096866]  schedule_timeout+0x1cc/0x260
+[  555.123583]  wait_for_completion+0x430/0x8d0
+[  555.165709]  __flush_work+0x59f/0x9c0
+[  555.196881]  __cancel_work_timer+0x4c2/0x830
+[  555.250434]  cancel_work_sync+0x17/0x20
+[  555.254436]  p9_fd_close+0x376/0x5c0
+[  555.266706]  p9_client_create+0xa41/0x159b
+[  555.327191]  v9fs_session_init+0x21a/0x1a80
+[  555.375363]  v9fs_mount+0x7c/0x900
+[  555.383540]  mount_fs+0xae/0x328
+[  555.386932]  vfs_kern_mount.part.35+0xdc/0x4f0
+[  555.403290]  do_mount+0x581/0x30e0
+[  555.446153]  ksys_mount+0x12d/0x140
+[  555.449827]  __x64_sys_mount+0xbe/0x150
+[  555.453851]  do_syscall_64+0x1b9/0x820
+[  555.492127]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  555.497391] RIP: 0033:0x457099
+[  555.500644] Code: ff 48 89 f1 48 01 d9 48 39 f9 76 bb 48 01 df 48 01 de fd 48 89 d9 48 c1 e9 03 48 83 e3 07 48 83 ef 08 48 83 ee 08 f3 48 a5 fc <48> 83 c7 08 48 83 c6 08 48 29 df 48 29 de e9 13 ff ff ff 8a 06 8a
+[  555.519563] RSP: 002b:00007effeff81c78 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  555.527328] RAX: ffffffffffffffda RBX: 00007effeff826d4 RCX: 0000000000457099
+[  555.534617] RDX: 0000000020000340 RSI: 0000000020000080 RDI: 0000000000000000
+[  555.541910] RBP: 0000000000930140 R08: 00000000200006c0 R09: 0000000000000000
+[  555.549215] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  555.556512] R13: 00000000004d2ec8 R14: 00000000004c7f7e R15: 0000000000000001
+[  555.563819] INFO: task syz-executor0:6778 blocked for more than 140 seconds.
+[  555.571024]       Not tainted 4.19.0-rc2+ #220
+[  555.575617] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  555.583601] syz-executor0   D24208  6778   4672 0x00000004
+[  555.589248] Call Trace:
+[  555.591866]  __schedule+0x87c/0x1df0
+[  555.662608]  schedule+0xfb/0x450
+[  555.674168]  schedule_timeout+0x1cc/0x260
+[  555.700924]  wait_for_completion+0x430/0x8d0
+[  555.742971]  __flush_work+0x59f/0x9c0
+[  555.773842]  __cancel_work_timer+0x4c2/0x830
+[  555.827241]  cancel_work_sync+0x17/0x20
+[  555.831343]  p9_fd_close+0x376/0x5c0
+[  555.843646]  p9_client_create+0xa41/0x159b
+[  555.904122]  v9fs_session_init+0x21a/0x1a80
+[  555.952681]  v9fs_mount+0x7c/0x900
+[  555.960887]  mount_fs+0xae/0x328
+[  555.964286]  vfs_kern_mount.part.35+0xdc/0x4f0
+[  555.980633]  do_mount+0x581/0x30e0
+[  556.026360]  ksys_mount+0x12d/0x140
+[  556.030008]  __x64_sys_mount+0xbe/0x150
+[  556.034015]  do_syscall_64+0x1b9/0x820
+[  556.072308]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  556.077522] RIP: 0033:0x457099
+[  556.080856] Code: ff 48 89 f1 48 01 d9 48 39 f9 76 bb 48 01 df 48 01 de fd 48 89 d9 48 c1 e9 03 48 83 e3 07 48 83 ef 08 48 83 ee 08 f3 48 a5 fc <48> 83 c7 08 48 83 c6 08 48 29 df 48 29 de e9 13 ff ff ff 8a 06 8a
+[  556.099793] RSP: 002b:00007f0f1a501c78 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  556.107537] RAX: ffffffffffffffda RBX: 00007f0f1a5026d4 RCX: 0000000000457099
+[  556.114828] RDX: 0000000020000340 RSI: 0000000020000080 RDI: 0000000000000000
+[  556.122206] RBP: 0000000000930140 R08: 00000000200006c0 R09: 0000000000000000
+[  556.129503] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  556.136800] R13: 00000000004d2ec8 R14: 00000000004c7f7e R15: 0000000000000001
+[  556.144132] INFO: task syz-executor5:6786 blocked for more than 140 seconds.
+[  556.151334]       Not tainted 4.19.0-rc2+ #220
+[  556.155936] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  556.163920] syz-executor5   D23728  6786   4676 0x00000004
+[  556.169725] Call Trace:
+[  556.172341]  __schedule+0x87c/0x1df0
+[  556.223417]  schedule+0xfb/0x450
+[  556.234897]  schedule_timeout+0x1cc/0x260
+[  556.261326]  wait_for_completion+0x430/0x8d0
+[  556.303408]  __flush_work+0x59f/0x9c0
+[  556.334450]  __cancel_work_timer+0x4c2/0x830
+[  556.387810]  cancel_work_sync+0x17/0x20
+[  556.391807]  p9_fd_close+0x376/0x5c0
+[  556.404271]  p9_client_create+0xa41/0x159b
+[  556.464928]  v9fs_session_init+0x21a/0x1a80
+[  556.513197]  v9fs_mount+0x7c/0x900
+[  556.521384]  mount_fs+0xae/0x328
+[  556.524787]  vfs_kern_mount.part.35+0xdc/0x4f0
+[  556.541181]  do_mount+0x581/0x30e0
+[  556.584116]  ksys_mount+0x12d/0x140
+[  556.587774]  __x64_sys_mount+0xbe/0x150
+[  556.591774]  do_syscall_64+0x1b9/0x820
+[  556.630093]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  556.635347] RIP: 0033:0x457099
+[  556.638586] Code: ff 48 89 f1 48 01 d9 48 39 f9 76 bb 48 01 df 48 01 de fd 48 89 d9 48 c1 e9 03 48 83 e3 07 48 83 ef 08 48 83 ee 08 f3 48 a5 fc <48> 83 c7 08 48 83 c6 08 48 29 df 48 29 de e9 13 ff ff ff 8a 06 8a
+[  556.657520] RSP: 002b:00007f5ce1e47c78 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  556.665260] RAX: ffffffffffffffda RBX: 00007f5ce1e486d4 RCX: 0000000000457099
+[  556.672548] RDX: 0000000020000340 RSI: 0000000020000080 RDI: 0000000000000000
+[  556.680036] RBP: 0000000000930140 R08: 00000000200006c0 R09: 0000000000000000
+[  556.687337] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  556.694639] R13: 00000000004d2ec8 R14: 00000000004c7f7e R15: 0000000000000001
+[  556.701941] INFO: task syz-executor3:6796 blocked for more than 140 seconds.
+[  556.709158]       Not tainted 4.19.0-rc2+ #220
+[  556.713768] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  556.721776] syz-executor3   D24208  6796   4669 0x00000004
+[  556.727434] Call Trace:
+[  556.730090]  __schedule+0x87c/0x1df0
+[  556.801016]  schedule+0xfb/0x450
+[  556.812566]  schedule_timeout+0x1cc/0x260
+[  556.839410]  wait_for_completion+0x430/0x8d0
+[  556.881735]  __flush_work+0x59f/0x9c0
+[  556.912711]  __cancel_work_timer+0x4c2/0x830
+[  556.966210]  cancel_work_sync+0x17/0x20
+[  556.970250]  p9_fd_close+0x376/0x5c0
+[  556.982582]  p9_client_create+0xa41/0x159b
+[  557.043287]  v9fs_session_init+0x21a/0x1a80
+[  557.091557]  v9fs_mount+0x7c/0x900
+[  557.099781]  mount_fs+0xae/0x328
+[  557.103194]  vfs_kern_mount.part.35+0xdc/0x4f0
+[  557.119648]  do_mount+0x581/0x30e0
+[  557.162527]  ksys_mount+0x12d/0x140
+[  557.166194]  __x64_sys_mount+0xbe/0x150
+[  557.170212]  do_syscall_64+0x1b9/0x820
+[  557.208692]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  557.213926] RIP: 0033:0x457099
+[  557.217158] Code: ff 48 89 f1 48 01 d9 48 39 f9 76 bb 48 01 df 48 01 de fd 48 89 d9 48 c1 e9 03 48 83 e3 07 48 83 ef 08 48 83 ee 08 f3 48 a5 fc <48> 83 c7 08 48 83 c6 08 48 29 df 48 29 de e9 13 ff ff ff 8a 06 8a
+[  557.236149] RSP: 002b:00007fd9154a3c78 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  557.243903] RAX: ffffffffffffffda RBX: 00007fd9154a46d4 RCX: 0000000000457099
+[  557.251219] RDX: 0000000020000340 RSI: 0000000020000080 RDI: 0000000000000000
+[  557.258524] RBP: 0000000000930140 R08: 00000000200006c0 R09: 0000000000000000
+[  557.265839] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  557.273144] R13: 00000000004d2ec8 R14: 00000000004c7f7e R15: 0000000000000001
+[  557.280476] 
+[  557.280476] Showing all locks held in the system:
+[  557.286869] 1 lock held by khungtaskd/792:
+[  557.291135]  #0: 000000000e95ae68 (rcu_read_lock){....}, at: debug_show_all_locks+0xd0/0x428
+[  557.299832] 2 locks held by kworker/1:2/2017:
+[  557.304359]  #0: 00000000833bda7a ((wq_completion)"events"){+.+.}, at: process_one_work+0xb44/0x1aa0
+[  557.313752]  #1: 00000000e891bf2d ((work_completion)(&m->wq)){+.+.}, at: process_one_work+0xb9b/0x1aa0
+[  557.323340] 1 lock held by rsyslogd/4534:
+[  557.327518]  #0: 00000000a9629eb8 (&f->f_pos_lock){+.+.}, at: __fdget_pos+0x1bb/0x200
+[  557.335561] 2 locks held by getty/4624:
+[  557.339560]  #0: 00000000ea90a35c (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x37/0x40
+[  557.347856]  #1: 00000000bd156fd4 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  557.356845] 2 locks held by getty/4625:
+[  557.360852]  #0: 00000000169d0485 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x37/0x40
+[  557.369158]  #1: 00000000c4539382 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  557.378063] 2 locks held by getty/4626:
+[  557.382068]  #0: 00000000a26a0a94 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x37/0x40
+[  557.390408]  #1: 000000003ec956e0 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  557.399316] 2 locks held by getty/4627:
+[  557.403316]  #0: 00000000dcbe9c13 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x37/0x40
+[  557.411609]  #1: 000000001afea02f (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  557.420541] 2 locks held by getty/4628:
+[  557.424543]  #0: 00000000d4a69f40 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x37/0x40
+[  557.432842]  #1: 00000000c3d9d403 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  557.441751] 2 locks held by getty/4629:
+[  557.445754]  #0: 00000000c03b8a61 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x37/0x40
+[  557.454046]  #1: 00000000eb4a7587 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  557.463007] 2 locks held by getty/4630:
+[  557.467019]  #0: 000000001dace414 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x37/0x40
+[  557.475340]  #1: 00000000ea0adf09 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1ce0
+[  557.484273] 2 locks held by kworker/0:1/4958:
+[  557.488798]  #0: 00000000833bda7a ((wq_completion)"events"){+.+.}, at: process_one_work+0xb44/0x1aa0
+[  557.498148]  #1: 000000008346206e ((work_completion)(&m->wq)){+.+.}, at: process_one_work+0xb9b/0x1aa0
+[  557.507684] 2 locks held by kworker/1:0/4973:
+[  557.512225]  #0: 00000000833bda7a ((wq_completion)"events"){+.+.}, at: process_one_work+0xb44/0x1aa0
+[  557.521583]  #1: 0000000065680b0e ((work_completion)(&m->wq)){+.+.}, at: process_one_work+0xb9b/0x1aa0
+[  557.531136] 2 locks held by kworker/1:3/5135:
+[  557.535656]  #0: 00000000833bda7a ((wq_completion)"events"){+.+.}, at: process_one_work+0xb44/0x1aa0
+[  557.545011]  #1: 00000000cf4ba585 ((work_completion)(&m->wq)){+.+.}, at: process_one_work+0xb9b/0x1aa0
+[  557.554575] 2 locks held by kworker/1:4/6784:
+[  557.559124]  #0: 00000000833bda7a ((wq_completion)"events"){+.+.}, at: process_one_work+0xb44/0x1aa0
+[  557.568488]  #1: 000000008563b2dd ((work_completion)(&m->wq)){+.+.}, at: process_one_work+0xb9b/0x1aa0
+[  557.578019] 2 locks held by kworker/1:5/6792:
+[  557.582540]  #0: 00000000833bda7a ((wq_completion)"events"){+.+.}, at: process_one_work+0xb44/0x1aa0
+[  557.591883]  #1: 000000002a8f7162 ((work_completion)(&m->wq)){+.+.}, at: process_one_work+0xb9b/0x1aa0
+[  557.601425] 
+[  557.603119] =============================================
+[  557.603119] 
+[  557.610167] NMI backtrace for cpu 1
+[  557.613829] CPU: 1 PID: 792 Comm: khungtaskd Not tainted 4.19.0-rc2+ #220
+[  557.620748] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  557.630088] Call Trace:
+[  557.632720]  dump_stack+0x1c9/0x2b4
+[  557.650752]  nmi_cpu_backtrace.cold.3+0x48/0x88
+[  557.665295]  nmi_trigger_cpumask_backtrace+0x151/0x192
+[  557.670563]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  557.675743]  watchdog+0xb39/0x1040
+[  557.734039]  kthread+0x35a/0x420
+[  557.746020]  ret_from_fork+0x3a/0x50
+[  557.749806] Sending NMI from CPU 1 to CPUs 0:
+[  557.754864] NMI backtrace for cpu 0
+[  557.754870] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 4.19.0-rc2+ #220
+[  557.754877] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  557.754881] RIP: 0010:reschedule_interrupt+0x0/0x20
+[  557.754893] Code: 66 2e 0f 1f 84 00 00 00 00 00 68 03 ff ff ff e8 56 f2 ff ff e8 d1 27 00 00 e9 4b f3 ff ff 66 90 66 2e 0f 1f 84 00 00 00 00 00 <68> 02 ff ff ff e8 36 f2 ff ff e8 d1 21 00 00 e9 2b f3 ff ff 66 90
+[  557.754898] RSP: 0018:ffffffff88007b88 EFLAGS: 00000082
+[  557.754906] RAX: dffffc0000000000 RBX: 1ffffffff1000f7b RCX: 0000000000000000
+[  557.754911] RDX: 1ffffffff10237c8 RSI: 0000000000000001 RDI: ffffffff8811be40
+[  557.754917] RBP: ffffffff88007bb8 R08: ffffffff88075e00 R09: 0000000000000000
+[  557.754922] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  557.754928] R13: ffffffff88007c78 R14: 0000000000000000 R15: 0000000000000000
+[  557.754933] FS:  0000000000000000(0000) GS:ffff8801db000000(0000) knlGS:0000000000000000
+[  557.754938] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  557.754944] CR2: 0000000000e5a000 CR3: 00000001bbe81000 CR4: 00000000001406f0
+[  557.754949] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  557.754954] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  557.754965] Call Trace:
+[  557.754973]  default_idle+0xc2/0x410
+[  557.755012]  arch_cpu_idle+0x10/0x20
+[  557.755016]  default_idle_call+0x6d/0x90
+[  557.755019]  do_idle+0x3aa/0x580
+[  557.755030]  cpu_startup_entry+0x10c/0x120
+[  557.755037]  rest_init+0xe1/0xe4
+[  557.755041]  start_kernel+0x913/0x94e
+[  557.755066]  x86_64_start_reservations+0x29/0x2b
+[  557.755069]  x86_64_start_kernel+0x76/0x79
+[  557.755073]  secondary_startup_64+0xa4/0xb0
+[  557.755339] Kernel panic - not syncing: hung_task: blocked tasks
+[  558.004401] CPU: 1 PID: 792 Comm: khungtaskd Not tainted 4.19.0-rc2+ #220
+[  558.011310] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  558.020648] Call Trace:
+[  558.023228]  dump_stack+0x1c9/0x2b4
+[  558.036769]  panic+0x238/0x4e7
+[  558.059366]  watchdog+0xb4a/0x1040
+[  558.117713]  kthread+0x35a/0x420
+[  558.129720]  ret_from_fork+0x3a/0x50
+[  558.133929] Dumping ftrace buffer:
+[  558.137498]    (ftrace buffer empty)
+[  558.141192] Kernel Offset: disabled
+[  558.144804] Rebooting in 86400 seconds..

@@ -1,0 +1,96 @@
+TITLE: INFO: task hung in tls_sw_free_resources_tx
+TYPE: HANG
+
+[  412.216359] TCP: request_sock_TCPv6: Possible SYN flooding on port 20002. Sending cookies.  Check SNMP counters.
+[  567.074029] INFO: task syz-executor925:7871 blocked for more than 140 seconds.
+[  567.081703]       Not tainted 4.20.0-rc7+ #360
+[  567.086435] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  567.094451] syz-executor925 D19912  7871   7870 0x00000004
+[  567.100074] Call Trace:
+[  567.102785]  __schedule+0x86c/0x1ed0
+[  567.140546]  schedule+0xfe/0x460
+[  567.156318]  schedule_timeout+0x1cc/0x260
+[  567.174621]  wait_for_completion+0x427/0x8a0
+[  567.212980]  __flush_work+0x59c/0x9b0
+[  567.239230]  __cancel_work_timer+0x4ba/0x820
+[  567.315274]  cancel_delayed_work_sync+0x1a/0x20
+[  567.319959]  tls_sw_free_resources_tx+0x1df/0xcf0
+[  567.373036]  tls_sk_proto_close+0x602/0x750
+[  567.399879]  inet_release+0x104/0x1f0
+[  567.403680]  inet6_release+0x50/0x70
+[  567.407457]  __sock_release+0xd7/0x250
+[  567.415575]  sock_close+0x19/0x20
+[  567.419031]  __fput+0x385/0xa30
+[  567.448180]  ____fput+0x15/0x20
+[  567.451455]  task_work_run+0x1e8/0x2a0
+[  567.468113]  exit_to_usermode_loop+0x318/0x380
+[  567.483281]  do_syscall_64+0x6be/0x820
+[  567.522478]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  567.527707] RIP: 0033:0x401010
+[  567.530892] Code: 01 f0 ff ff 0f 83 b0 0a 00 00 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 83 3d bd 16 2d 00 00 75 14 b8 03 00 00 00 0f 05 <48> 3d 01 f0 ff ff 0f 83 84 0a 00 00 c3 48 83 ec 08 e8 3a 01 00 00
+[  567.550123] RSP: 002b:00007ffec7856f48 EFLAGS: 00000246 ORIG_RAX: 0000000000000003
+[  567.557879] RAX: 0000000000000000 RBX: 0000000000000004 RCX: 0000000000401010
+[  567.565363] RDX: 00000000e0ffffff RSI: 00000000200005c0 RDI: 0000000000000004
+[  567.572728] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  567.580090] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000401f20
+[  567.587387] R13: 0000000000401fb0 R14: 0000000000000000 R15: 0000000000000000
+[  567.594859] 
+[  567.594859] Showing all locks held in the system:
+[  567.601353] 2 locks held by kworker/0:0/5:
+[  567.605664]  #0: 000000006d11dec0 ((wq_completion)"events"){+.+.}, at: process_one_work+0xb43/0x1c40
+[  567.614974]  #1: 00000000ccfe6c9a ((work_completion)(&(&sw_ctx_tx->tx_work.work)->work)){+.+.}, at: process_one_work+0xb9a/0x1c40
+[  567.626991] 1 lock held by khungtaskd/1014:
+[  567.631430]  #0: 00000000153ed952 (rcu_read_lock){....}, at: debug_show_all_locks+0xd0/0x424
+[  567.640306] 1 lock held by rsyslogd/7757:
+[  567.644474]  #0: 0000000034b64696 (&f->f_pos_lock){+.+.}, at: __fdget_pos+0x1bb/0x200
+[  567.652538] 2 locks held by getty/7847:
+[  567.656559]  #0: 00000000d063ffb7 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  567.664966]  #1: 0000000045d4d183 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1e80
+[  567.673825] 2 locks held by getty/7848:
+[  567.677841]  #0: 00000000dda11696 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  567.686109]  #1: 00000000a02eb135 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1e80
+[  567.695018] 2 locks held by getty/7849:
+[  567.699082]  #0: 0000000013f4e4e1 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  567.707370]  #1: 00000000f6bb4c99 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1e80
+[  567.716493] 2 locks held by getty/7850:
+[  567.720453]  #0: 00000000daef1117 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  567.728782]  #1: 00000000229b8dfc (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1e80
+[  567.737761] 2 locks held by getty/7851:
+[  567.741733]  #0: 000000005093d448 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  567.750028]  #1: 00000000bca705ed (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1e80
+[  567.759024] 2 locks held by getty/7852:
+[  567.762988]  #0: 000000000f124289 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  567.771272]  #1: 00000000a9adbb34 (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1e80
+[  567.780138] 2 locks held by getty/7853:
+[  567.784144]  #0: 0000000027476b58 (&tty->ldisc_sem){++++}, at: ldsem_down_read+0x32/0x40
+[  567.792501]  #1: 000000007cc578ce (&ldata->atomic_read_lock){+.+.}, at: n_tty_read+0x335/0x1e80
+[  567.801504] 2 locks held by syz-executor925/7871:
+[  567.806376]  #0: 00000000997b6df5 (&sb->s_type->i_mutex_key#11){+.+.}, at: __sock_release+0x8b/0x250
+[  567.815700]  #1: 00000000af711cb5 (sk_lock-AF_INET6){+.+.}, at: wait_on_pending_writer+0x27c/0x5b0
+[  567.824943] 
+[  567.826555] =============================================
+[  567.826555] 
+[  567.833648] NMI backtrace for cpu 1
+[  567.837320] CPU: 1 PID: 1014 Comm: khungtaskd Not tainted 4.20.0-rc7+ #360
+[  567.844322] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  567.853661] Call Trace:
+[  567.856235]  dump_stack+0x1d3/0x2c6
+[  567.875816]  nmi_cpu_backtrace.cold.4+0x63/0xa2
+[  567.885651]  nmi_trigger_cpumask_backtrace+0x1c2/0x22c
+[  567.891018]  arch_trigger_cpumask_backtrace+0x14/0x20
+[  567.896210]  watchdog+0xb51/0x1060
+[  567.964872]  kthread+0x35a/0x440
+[  567.972106]  ret_from_fork+0x3a/0x50
+[  567.975949] Sending NMI from CPU 1 to CPUs 0:
+[  567.980545] NMI backtrace for cpu 0 skipped: idling at native_safe_halt+0x6/0x10
+[  567.981465] Kernel panic - not syncing: hung_task: blocked tasks
+[  567.994235] CPU: 1 PID: 1014 Comm: khungtaskd Not tainted 4.20.0-rc7+ #360
+[  568.001245] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  568.010586] Call Trace:
+[  568.013187]  dump_stack+0x1d3/0x2c6
+[  568.026040]  panic+0x2ad/0x55c
+[  568.049975]  watchdog+0xb62/0x1060
+[  568.119000]  kthread+0x35a/0x440
+[  568.126213]  ret_from_fork+0x3a/0x50
+[  568.130955] Kernel Offset: disabled
+[  568.134651] Rebooting in 86400 seconds..
