@@ -22,9 +22,9 @@ type Node interface {
 	Info() (pos Pos, typ string, name string)
 	// Clone makes a deep copy of the node.
 	Clone() Node
-	// Walk calls callback cb for all child nodes of this node.
+	// walk calls callback cb for all child nodes of this node.
 	// Note: it's not recursive. Use Recursive helper for recursive walk.
-	Walk(cb func(Node))
+	walk(cb func(Node))
 }
 
 // Top-level AST nodes:
