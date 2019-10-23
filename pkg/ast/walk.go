@@ -15,7 +15,7 @@ func Recursive(cb func(Node)) func(Node) {
 	var rec func(Node)
 	rec = func(n Node) {
 		cb(n)
-		n.Walk(rec)
+		n.walk(rec)
 	}
 	return rec
 }
@@ -23,32 +23,32 @@ func Recursive(cb func(Node)) func(Node) {
 func PostRecursive(cb func(Node)) func(Node) {
 	var rec func(Node)
 	rec = func(n Node) {
-		n.Walk(rec)
+		n.walk(rec)
 		cb(n)
 	}
 	return rec
 }
 
-func (n *NewLine) Walk(cb func(Node)) {}
-func (n *Comment) Walk(cb func(Node)) {}
-func (n *Ident) Walk(cb func(Node))   {}
-func (n *String) Walk(cb func(Node))  {}
-func (n *Int) Walk(cb func(Node))     {}
+func (n *NewLine) walk(cb func(Node)) {}
+func (n *Comment) walk(cb func(Node)) {}
+func (n *Ident) walk(cb func(Node))   {}
+func (n *String) walk(cb func(Node))  {}
+func (n *Int) walk(cb func(Node))     {}
 
-func (n *Include) Walk(cb func(Node)) {
+func (n *Include) walk(cb func(Node)) {
 	cb(n.File)
 }
 
-func (n *Incdir) Walk(cb func(Node)) {
+func (n *Incdir) walk(cb func(Node)) {
 	cb(n.Dir)
 }
 
-func (n *Define) Walk(cb func(Node)) {
+func (n *Define) walk(cb func(Node)) {
 	cb(n.Name)
 	cb(n.Value)
 }
 
-func (n *Resource) Walk(cb func(Node)) {
+func (n *Resource) walk(cb func(Node)) {
 	cb(n.Name)
 	cb(n.Base)
 	for _, v := range n.Values {
@@ -56,7 +56,7 @@ func (n *Resource) Walk(cb func(Node)) {
 	}
 }
 
-func (n *TypeDef) Walk(cb func(Node)) {
+func (n *TypeDef) walk(cb func(Node)) {
 	cb(n.Name)
 	for _, a := range n.Args {
 		cb(a)
@@ -69,7 +69,7 @@ func (n *TypeDef) Walk(cb func(Node)) {
 	}
 }
 
-func (n *Call) Walk(cb func(Node)) {
+func (n *Call) walk(cb func(Node)) {
 	cb(n.Name)
 	for _, f := range n.Args {
 		cb(f)
@@ -79,7 +79,7 @@ func (n *Call) Walk(cb func(Node)) {
 	}
 }
 
-func (n *Struct) Walk(cb func(Node)) {
+func (n *Struct) walk(cb func(Node)) {
 	cb(n.Name)
 	for _, f := range n.Fields {
 		cb(f)
@@ -92,27 +92,27 @@ func (n *Struct) Walk(cb func(Node)) {
 	}
 }
 
-func (n *IntFlags) Walk(cb func(Node)) {
+func (n *IntFlags) walk(cb func(Node)) {
 	cb(n.Name)
 	for _, v := range n.Values {
 		cb(v)
 	}
 }
 
-func (n *StrFlags) Walk(cb func(Node)) {
+func (n *StrFlags) walk(cb func(Node)) {
 	cb(n.Name)
 	for _, v := range n.Values {
 		cb(v)
 	}
 }
 
-func (n *Type) Walk(cb func(Node)) {
+func (n *Type) walk(cb func(Node)) {
 	for _, t := range n.Args {
 		cb(t)
 	}
 }
 
-func (n *Field) Walk(cb func(Node)) {
+func (n *Field) walk(cb func(Node)) {
 	cb(n.Name)
 	cb(n.Type)
 	for _, c := range n.Comments {
