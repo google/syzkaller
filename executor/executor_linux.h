@@ -29,11 +29,17 @@ struct kcov_remote_arg {
 #define KCOV_DISABLE _IO('c', 101)
 #define KCOV_REMOTE_ENABLE _IOW('c', 102, struct kcov_remote_arg<0>)
 
-#define KCOV_REMOTE_HANDLE_USB 0x4242000000000000ull
+#define KCOV_SUBSYSTEM_COMMON (0x00ull << 56)
+#define KCOV_SUBSYSTEM_USB (0x01ull << 56)
 
-static inline __u64 kcov_remote_handle_usb(int bus)
+#define KCOV_SUBSYSTEM_MASK (0xffull << 56)
+#define KCOV_INSTANCE_MASK (0xffffffffull)
+
+static inline __u64 kcov_remote_handle(__u64 subsys, __u64 inst)
 {
-	return KCOV_REMOTE_HANDLE_USB + (__u64)bus;
+	if (subsys & ~KCOV_SUBSYSTEM_MASK || inst & ~KCOV_INSTANCE_MASK)
+		return 0;
+	return subsys | inst;
 }
 
 static bool detect_kernel_bitness();
@@ -98,11 +104,11 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 	struct kcov_remote_arg<1> arg;
 	memset(&arg, 0, sizeof(arg));
 	arg.trace_mode = kcov_mode;
-	// Coverage buffer size of remote threads.
+	// Coverage buffer size of background threads.
 	arg.area_size = kExtraCoverSize;
 	arg.num_handles = 1;
-	arg.handles[0] = kcov_remote_handle_usb(procid + 1);
-	arg.common_handle = procid + 1;
+	arg.handles[0] = kcov_remote_handle(KCOV_SUBSYSTEM_USB, procid + 1);
+	arg.common_handle = kcov_remote_handle(KCOV_SUBSYSTEM_COMMON, procid + 1);
 	if (ioctl(cov->fd, KCOV_REMOTE_ENABLE, &arg))
 		exitf("cover enable write trace failed");
 }
