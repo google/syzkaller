@@ -261,7 +261,20 @@ foo$519(a int64[0:10, 512])		### int alignment 512 is too large for range [0:10]
 foo$520(a int8[0:16, 0xffff])		### int alignment 65535 is too large for range [0:16]
 foo$521(a int32[9:10, 8])		### int alignment 8 is too large for range [9:10]
 foo$522(a int8[0:-1, 1000])		### int alignment 1000 is too large for range [0:255]
+foo$523(a int8[0:256])			### int range [0:256] is too large for base type of size 8
+foo$524(a int8[-1000:0])		### int range [18446744073709550616:0] is too large for base type of size 8
+foo$525(a int8[-256:256])		### int range [18446744073709551360:256] is too large for base type of size 8
+foo$526(a int8[-255:255])		### int range [18446744073709551361:255] is too large for base type of size 8
+foo$527(a int16[-40000:40000])		### int range [18446744073709511616:40000] is too large for base type of size 16
+foo$528(a ptr[in, s405])
 
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
 type type501 int8		### unused type type501
 type type502[C] const[C, int8]	### unused type type502
+
+s405 {
+	f1	int16:8[-256:0]		### int range [18446744073709551360:0] is too large for base type of size 8
+	f2	int16:8[0:256]		### int range [0:256] is too large for base type of size 8
+	f3	int64:16[-65541:-10]	### int range [18446744073709486075:18446744073709551606] is too large for base type of size 16
+	f4	int16:8[-255:0]		### int range [18446744073709551361:0] is too large for base type of size 8
+}
