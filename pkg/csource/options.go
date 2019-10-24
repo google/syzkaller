@@ -38,6 +38,7 @@ type Options struct {
 	EnableBinfmtMisc bool `json:"binfmt_misc,omitempty"`
 	EnableCloseFds   bool `json:"close_fds"`
 	EnableKCSAN      bool `json:"kcsan,omitempty"`
+	EnableDevlinkPCI bool `json:"devlinkpci,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -127,6 +128,9 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.EnableKCSAN {
 		return fmt.Errorf("option EnableKCSAN is not supported on %v", OS)
 	}
+	if opts.EnableDevlinkPCI {
+		return fmt.Errorf("option EnableDevlinkPCI is not supported on %v", OS)
+	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
 		opts.Sandbox == sandboxAndroidUntrustedApp {
@@ -154,6 +158,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		EnableCgroups:    true,
 		EnableBinfmtMisc: true,
 		EnableCloseFds:   true,
+		EnableDevlinkPCI: true,
 		UseTmpDir:        true,
 		HandleSegv:       true,
 		Repro:            true,
@@ -165,6 +170,12 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.EnableCgroups = false
 		opts.EnableBinfmtMisc = false
 		opts.EnableCloseFds = false
+		opts.EnableDevlinkPCI = false
+	}
+	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
+		opts.EnableNetReset = false
+	}
+	if err := opts.Check(cfg.TargetOS); err != nil {
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.EnableNetReset = false
@@ -244,6 +255,7 @@ func defaultFeatures(value bool) Features {
 		"cgroups":     {"setup cgroups for testing", value},
 		"binfmt_misc": {"setup binfmt_misc for testing", value},
 		"close_fds":   {"close fds after each program", value},
+		"devlink_pci": {"setup devlink PCI device", value},
 	}
 }
 

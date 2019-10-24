@@ -98,6 +98,9 @@ func main() {
 	if featuresFlags["close_fds"].Enabled {
 		config.Flags |= ipc.FlagEnableCloseFds
 	}
+	if featuresFlags["devlink_pci"].Enabled && features[host.FeatureDevlinkPCI].Enabled {
+		config.Flags |= ipc.FlagEnableDevlinkPCI
+	}
 	if err = host.Setup(target, features, featuresFlags, config.Executor); err != nil {
 		log.Fatal(err)
 	}
