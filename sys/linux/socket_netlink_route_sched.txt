@@ -53,6 +53,8 @@ netlink_msg_route_sched [
 
 type tcmsg[FAMILY] {
 	family		const[FAMILY, int8]
+	tcm__pad1	const[0, int16]
+	tcm__pad2	const[0, int16]
 	ifindex		ifindex
 	tcm_handle	tcm_handle
 	tcm_parent	tcm_handle
