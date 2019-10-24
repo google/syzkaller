@@ -37,6 +37,7 @@ const (
 	FlagEnableNetReset                                  // reset network namespace between programs
 	FlagEnableCgroups                                   // setup cgroups for testing
 	FlagEnableCloseFds                                  // close fds after each program
+	FlagEnableDevlinkPCI                                // setup devlink PCI device
 	// Executor does not know about these:
 	FlagUseShmem      // use shared memory instead of pipes for communication
 	FlagUseForkServer // use extended protocol with handshake

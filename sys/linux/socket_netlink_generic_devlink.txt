@@ -25,6 +25,7 @@ devlink_handle_nsim {
 
 devlink_handle_pci {
 	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["pci"]]
+# 0000:00:10.0 is a fixed pci address what is moved from initial network namespace by initialize_devlink()
 	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, string["0000:00:10.0"]]
 } [packed, align_4]
 

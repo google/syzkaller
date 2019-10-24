@@ -88,6 +88,7 @@ func main() {
 		EnableBinfmtMisc: features["binfmt_misc"].Enabled,
 		EnableCloseFds:   features["close_fds"].Enabled,
 		EnableKCSAN:      features["kcsan"].Enabled,
+		EnableDevlinkPCI: features["devlink_pci"].Enabled,
 		UseTmpDir:        *flagUseTmpDir,
 		HandleSegv:       *flagHandleSegv,
 		Repro:            false,
