@@ -485,28 +485,38 @@ func loadAllBugs(c context.Context, ns, manager string) ([]*Bug, error) {
 
 func foreachBug(c context.Context, ns, manager string, fn func(bug *Bug) error) error {
 	const batchSize = 1000
-	for offset := 0; ; offset += batchSize {
-		var bugs []*Bug
-		query := db.NewQuery("Bug")
+	var cursor db.Cursor
+	for first := true; ; first = false {
+		query := db.NewQuery("Bug").Limit(batchSize)
 		if ns != "" {
 			query = query.Filter("Namespace=", ns)
 			if manager != "" {
 				query = query.Filter("HappenedOn=", manager)
 			}
 		}
-		_, err := query.Offset(offset).
-			Limit(batchSize).
-			GetAll(c, &bugs)
-		if err != nil {
-			return fmt.Errorf("foreachBug: failed to query bugs: %v", err)
+		if !first {
+			query = query.Start(cursor)
 		}
-		for _, bug := range bugs {
+		iter := query.Run(c)
+		for i := 0; ; i++ {
+			bug := new(Bug)
+			_, err := iter.Next(bug)
+			if err == db.Done {
+				if i < batchSize {
+					return nil
+				}
+				cursor, err = iter.Cursor()
+				if err != nil {
+					return fmt.Errorf("cursor failed while fetching bugs: %v", err)
+				}
+				break
+			}
+			if err != nil {
+				return fmt.Errorf("failed to fetch bugs: %v", err)
+			}
 			if err := fn(bug); err != nil {
 				return err
 			}
-		}
-		if len(bugs) < batchSize {
-			return nil
 		}
 	}
 }
