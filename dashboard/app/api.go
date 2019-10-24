@@ -177,13 +177,12 @@ func apiBuilderPoll(c context.Context, ns string, r *http.Request, payload []byt
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	var bugs []*Bug
-	_, err := db.NewQuery("Bug").
-		Filter("Namespace=", ns).
-		Filter("Status<", BugStatusFixed).
-		GetAll(c, &bugs)
+	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Namespace=", ns).
+			Filter("Status<", BugStatusFixed)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to query bugs: %v", err)
+		return nil, err
 	}
 	m := make(map[string]bool)
 loop:
@@ -521,13 +520,12 @@ func addCommitsToBugs(c context.Context, ns, manager string, titles []string, fi
 
 func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string, managers []string,
 	presentCommits map[string]bool, bugFixedBy map[string][]string) error {
-	var bugs []*Bug
-	_, err := db.NewQuery("Bug").
-		Filter("Namespace=", ns).
-		Filter("Status=", status).
-		GetAll(c, &bugs)
+	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Namespace=", ns).
+			Filter("Status=", status)
+	})
 	if err != nil {
-		return fmt.Errorf("failed to query bugs: %v", err)
+		return err
 	}
 	for _, bug := range bugs {
 		var fixCommits []string

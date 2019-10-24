@@ -527,7 +527,14 @@ func textFilename(tag string) string {
 
 func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel,
 	ns, manager string) ([]*uiBugGroup, int, error) {
-	bugs, err := loadAllBugs(c, ns, manager)
+	filter := func(query *db.Query) *db.Query {
+		query = query.Filter("Namespace=", ns)
+		if manager != "" {
+			query = query.Filter("HappenedOn=", manager)
+		}
+		return query
+	}
+	bugs, err := loadAllBugs(c, filter)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -616,14 +623,15 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel,
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	ns, manager string, typ *TerminalBug) (*uiBugGroup, error) {
-	var bugs []*Bug
-	query := db.NewQuery("Bug").
-		Filter("Namespace=", ns).
-		Filter("Status=", typ.Status)
-	if manager != "" {
-		query = query.Filter("HappenedOn=", manager)
-	}
-	if _, err := query.GetAll(c, &bugs); err != nil {
+	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		query = query.Filter("Namespace=", ns).
+			Filter("Status=", typ.Status)
+		if manager != "" {
+			query = query.Filter("HappenedOn=", manager)
+		}
+		return query
+	})
+	if err != nil {
 		return nil, err
 	}
 	state, err := loadReportingState(c)

@@ -111,7 +111,7 @@ func emailPollBugs(c context.Context) error {
 	reports := reportingPollBugs(c, emailType)
 	for _, rep := range reports {
 		if err := emailSendBugReport(c, rep); err != nil {
-			log.Errorf(c, "%v", err)
+			log.Errorf(c, "emailPollBugs: %v", err)
 		}
 	}
 	return nil
@@ -147,7 +147,7 @@ func emailPollNotifications(c context.Context) error {
 	notifs := reportingPollNotifications(c, emailType)
 	for _, notif := range notifs {
 		if err := emailSendBugNotif(c, notif); err != nil {
-			log.Errorf(c, "%v", err)
+			log.Errorf(c, "emailPollNotifications: %v", err)
 		}
 	}
 	return nil
@@ -256,7 +256,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	if err := incomingMail(c, r); err != nil {
-		log.Errorf(c, "%v", err)
+		log.Errorf(c, "handleIncomingMail: %v", err)
 	}
 }
 
