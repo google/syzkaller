@@ -108,8 +108,11 @@ func checkCrashTextAccess(c context.Context, r *http.Request, field string, id i
 		return nil, fmt.Errorf("failed to query crashes: %v", err)
 	}
 	if len(crashes) != 1 {
-		return nil, fmt.Errorf("checkCrashTextAccess: found %v crashes for %v=%v",
-			len(crashes), field, id)
+		err := fmt.Errorf("checkCrashTextAccess: found %v crashes for %v=%v", len(crashes), field, id)
+		if len(crashes) == 0 {
+			err = ErrDontLog{err}
+		}
+		return nil, err
 	}
 	crash := crashes[0]
 	bug := new(Bug)
@@ -128,13 +131,13 @@ func checkJobTextAccess(c context.Context, r *http.Request, field string, id int
 	if err != nil {
 		return fmt.Errorf("failed to query jobs: %v", err)
 	}
-	if len(keys) == 0 {
-		// This can be triggered by bad user requests, so don't log the error.
-		return ErrDontLog{fmt.Errorf("checkJobTextAccess: found no jobs for %v=%v", field, id)}
-	}
-	if len(keys) > 1 {
-		return fmt.Errorf("checkJobTextAccess: found %v jobs for %v=%v",
-			len(keys), field, id)
+	if len(keys) != 1 {
+		err := fmt.Errorf("checkJobTextAccess: found %v jobs for %v=%v", len(keys), field, id)
+		if len(keys) == 0 {
+			// This can be triggered by bad user requests, so don't log the error.
+			err = ErrDontLog{err}
+		}
+		return err
 	}
 	bug := new(Bug)
 	if err := db.Get(c, keys[0].Parent(), bug); err != nil {
