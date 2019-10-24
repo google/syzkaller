@@ -8,18 +8,22 @@ include <uapi/linux/if.h>
 include <uapi/linux/netlink.h>
 include <uapi/linux/rtnetlink.h>
 include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/x_tables.h>
 include <uapi/linux/if_packet.h>
 include <uapi/linux/can.h>
 include <uapi/linux/pkt_cls.h>
 include <uapi/linux/pkt_sched.h>
 include <uapi/linux/tc_act/tc_bpf.h>
+include <uapi/linux/tc_act/tc_ct.h>
 include <uapi/linux/tc_act/tc_connmark.h>
 include <uapi/linux/tc_act/tc_csum.h>
+include <uapi/linux/tc_act/tc_ctinfo.h>
 include <uapi/linux/tc_act/tc_defact.h>
 include <uapi/linux/tc_act/tc_gact.h>
 include <uapi/linux/tc_act/tc_ife.h>
 include <uapi/linux/tc_act/tc_ipt.h>
 include <uapi/linux/tc_act/tc_mirred.h>
+include <uapi/linux/tc_act/tc_mpls.h>
 include <uapi/linux/tc_act/tc_nat.h>
 include <uapi/linux/tc_act/tc_pedit.h>
 include <uapi/linux/tc_act/tc_sample.h>
@@ -896,10 +900,14 @@ tca_actions [
 	m_bpf		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["bpf", array[m_bpf_options]]]
 	m_connmark	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["connmark", m_connmark_options]]
 	m_csum		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["csum", m_csum_options]]
+	m_ct		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["ct", m_ct_options]]
+	m_ctinfo	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["ctinfo", m_ctinfo_options]]
 	m_gact		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["gact", array[m_gact_options]]]
 	m_ife		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["ife", array[m_ife_options]]]
 	m_ipt		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["ipt", array[m_ipt_options]]]
+	m_xt		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["xt", array[m_xt_options]]]
 	m_mirred	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["mirred", m_mirred_options]]
+	m_mpls		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["mpls", m_mpls_options]]
 	m_nat		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["nat", m_nat_options]]
 	m_pedit		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["pedit", array[m_pedit_options]]]
 	m_police	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["police", array[m_police_options]]]
@@ -933,6 +941,30 @@ m_csum_options [
 	TCA_CSUM_PARMS	nlattr[TCA_CSUM_PARMS, tc_csum]
 ] [varlen]
 
+m_ct_options [
+	TCA_CT_PARMS		nlattr[TCA_CT_PARMS, tc_gen]
+	TCA_CT_ACTION		nlattr[TCA_CT_ACTION, flags[tca_ct_actions, int16]]
+	TCA_CT_ZONE		nlattr[TCA_CT_ZONE, int16]
+	TCA_CT_MARK		nlattr[TCA_CT_MARK, int32]
+	TCA_CT_MARK_MASK	nlattr[TCA_CT_MARK_MASK, int32]
+	TCA_CT_LABELS		nlattr[TCA_CT_LABELS, array[int8, 16]]
+	TCA_CT_LABELS_MASK	nlattr[TCA_CT_LABELS_MASK, array[int8, 16]]
+	TCA_CT_NAT_IPV4_MIN	nlattr[TCA_CT_NAT_IPV4_MIN, ipv4_addr]
+	TCA_CT_NAT_IPV4_MAX	nlattr[TCA_CT_NAT_IPV4_MAX, ipv4_addr]
+	TCA_CT_NAT_IPV6_MIN	nlattr[TCA_CT_NAT_IPV6_MIN, ipv6_addr]
+	TCA_CT_NAT_IPV6_MAX	nlattr[TCA_CT_NAT_IPV6_MAX, ipv6_addr]
+	TCA_CT_NAT_PORT_MIN	nlattr[TCA_CT_NAT_PORT_MIN, sock_port]
+	TCA_CT_NAT_PORT_MAX	nlattr[TCA_CT_NAT_PORT_MAX, sock_port]
+] [varlen]
+
+m_ctinfo_options [
+	TCA_CTINFO_ACT			nlattr[TCA_CTINFO_ACT, tc_gen]
+	TCA_CTINFO_ZONE			nlattr[TCA_CTINFO_ZONE, int16]
+	TCA_CTINFO_PARMS_DSCP_MASK	nlattr[TCA_CTINFO_PARMS_DSCP_MASK, int32]
+	TCA_CTINFO_PARMS_DSCP_STATEMASK	nlattr[TCA_CTINFO_PARMS_DSCP_STATEMASK, int32]
+	TCA_CTINFO_PARMS_CPMARK_MASK	nlattr[TCA_CTINFO_PARMS_CPMARK_MASK, int32]
+]
+
 m_gact_options [
 	TCA_GACT_PARMS	nlattr[TCA_GACT_PARMS, tc_gen]
 	TCA_GACT_PROB	nlattr[TCA_GACT_PROB, tc_gact_p]
@@ -952,15 +984,40 @@ tca_ife_meta_policy [
 	IFE_META_TCINDEX	nlattr[IFE_META_TCINDEX, optional[int16]]
 ] [varlen]
 
-# TODO: add TCA_IPT_TARG support
+# NEED: u_target_size = XT_ALIGN(sizeof(struct xt_entry_target)) + target->size
+xt_entry_target {
+	u_target_size	int16
+	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
+	revision	int8
+	target_size	int16
+	data		array[int8]
+}
+
 m_ipt_options [
-	TCA_IPT_TABLE	nlattr[TCA_IPT_TABLE, string[ipt_tables, IFNAMSIZ]]
+	TCA_IPT_TABLE	nlattr[TCA_IPT_TABLE, string[ipt_tables, XT_TABLE_MAXNAMELEN]]
 	TCA_IPT_HOOK	nlattr[TCA_IPT_HOOK, flags[nf_inet_hooks, int32]]
 	TCA_IPT_INDEX	nlattr[TCA_IPT_INDEX, int32]
+	TCA_IPT_TARG	nlattr[TCA_IPT_TARG, xt_entry_target]
+] [varlen]
+
+m_xt_options [
+	TCA_IPT_TABLE	nlattr[TCA_IPT_TABLE, string[ipt_tables, XT_TABLE_MAXNAMELEN]]
+	TCA_IPT_HOOK	nlattr[TCA_IPT_HOOK, flags[nf_inet_hooks, int32]]
+	TCA_IPT_INDEX	nlattr[TCA_IPT_INDEX, int32]
+	TCA_IPT_TARG	nlattr[TCA_IPT_TARG, xt_entry_target]
 ] [varlen]
 
 m_mirred_options [
 	TCA_MIRRED_PARMS	nlattr[TCA_MIRRED_PARMS, tc_mirred]
+] [varlen]
+
+m_mpls_options [
+	TCA_MPLS_PARMS	nlattr[TCA_MPLS_PARMS, tc_mpls]
+	TCA_MPLS_PROTO	nlattr[TCA_MPLS_PROTO, flags[ether_types, int16be]]
+	TCA_MPLS_LABEL	nlattr[TCA_MPLS_LABEL, int32[0:0xfffff]]
+	TCA_MPLS_TC	nlattr[TCA_MPLS_TC, int8[0:7]]
+	TCA_MPLS_TTL	nlattr[TCA_MPLS_TTL, int8]
+	TCA_MPLS_BOS	nlattr[TCA_MPLS_BOS, int8[0:1]]
 ] [varlen]
 
 m_nat_options [
@@ -1094,6 +1151,11 @@ tc_mirred {
 	tc_gen	tc_gen
 	eaction	flags[tc_mirred_eactions, int32]
 	ifindex	ifindex
+}
+
+tc_mpls {
+	tc_gen		tc_gen
+	m_action	flags[tca_mpls_actions, int32]
 }
 
 tc_nat {
@@ -1316,3 +1378,5 @@ tc_etf_clock_id = CLOCK_REALTIME, CLOCK_TAI, CLOCK_BOOTTIME, CLOCK_MONOTONIC
 tc_etf_flags = TC_ETF_DEADLINE_MODE_ON, TC_ETF_OFFLOAD_ON, TC_ETF_SKIP_SOCK_CHECK
 tc_plug_actions = TCQ_PLUG_BUFFER, TCQ_PLUG_RELEASE_ONE, TCQ_PLUG_RELEASE_INDEFINITE, TCQ_PLUG_LIMIT
 tc_flower_flags = TCA_CLS_FLAGS_SKIP_HW, TCA_CLS_FLAGS_SKIP_SW, TCA_CLS_FLAGS_IN_HW, TCA_CLS_FLAGS_NOT_IN_HW, TCA_CLS_FLAGS_VERBOSE
+tca_ct_actions = TCA_CT_ACT_COMMIT, TCA_CT_ACT_FORCE, TCA_CT_ACT_CLEAR, TCA_CT_ACT_NAT, TCA_CT_ACT_NAT_SRC, TCA_CT_ACT_NAT_DST
+tca_mpls_actions = TCA_MPLS_ACT_POP, TCA_MPLS_ACT_PUSH, TCA_MPLS_ACT_MODIFY, TCA_MPLS_ACT_DEC_TTL
