@@ -326,5 +326,8 @@ func createConfig(target *prog.Target,
 	if featuresFlags["close_fds"].Enabled {
 		config.Flags |= ipc.FlagEnableCloseFds
 	}
+	if featuresFlags["devlink_pci"].Enabled && features[host.FeatureDevlinkPCI].Enabled {
+		config.Flags |= ipc.FlagEnableDevlinkPCI
+	}
 	return config, execOpts
 }

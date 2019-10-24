@@ -215,6 +215,10 @@ func createProg2CArgs(bug *dashapi.LoadBugResp, opts csource.Options, file strin
 	if opts.EnableCloseFds && haveCloseFds {
 		enable = append(enable, "close_fds")
 	}
+	if opts.EnableDevlinkPCI {
+		enable = append(enable, "devlink_pci")
+		flags = append(flags, "-devlinkpci")
+	}
 	if !haveEnableFlag {
 		args = append(args, flags...)
 	} else if len(enable) != 0 {

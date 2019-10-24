@@ -118,6 +118,7 @@ static bool flag_enable_net_dev;
 static bool flag_enable_net_reset;
 static bool flag_enable_cgroups;
 static bool flag_enable_close_fds;
+static bool flag_enable_devlink_pci;
 
 static bool flag_collect_cover;
 static bool flag_dedup_cover;
@@ -481,6 +482,7 @@ void parse_env_flags(uint64 flags)
 	flag_enable_net_reset = flags & (1 << 8);
 	flag_enable_cgroups = flags & (1 << 9);
 	flag_enable_close_fds = flags & (1 << 10);
+	flag_enable_devlink_pci = flags & (1 << 11);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER

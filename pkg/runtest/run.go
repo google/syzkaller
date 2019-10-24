@@ -381,6 +381,9 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	}
 	cfg.Flags |= ipc.FlagEnableNetReset
 	cfg.Flags |= ipc.FlagEnableCgroups
+	if ctx.Features[host.FeatureDevlinkPCI].Enabled {
+		cfg.Flags |= ipc.FlagEnableDevlinkPCI
+	}
 	req := &RunRequest{
 		P:      p,
 		Cfg:    cfg,
