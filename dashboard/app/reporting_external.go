@@ -61,7 +61,6 @@ func apiReportingPollClosed(c context.Context, r *http.Request, payload []byte) 
 	}
 	ids, err := reportingPollClosed(c, req.IDs)
 	if err != nil {
-		log.Errorf(c, "failed to poll closed bugs: %v", err)
 		return nil, err
 	}
 	resp := &dashapi.PollClosedResponse{
