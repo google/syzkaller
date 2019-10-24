@@ -128,7 +128,11 @@ func checkJobTextAccess(c context.Context, r *http.Request, field string, id int
 	if err != nil {
 		return fmt.Errorf("failed to query jobs: %v", err)
 	}
-	if len(keys) != 1 {
+	if len(keys) == 0 {
+		// This can be triggered by bad user requests, so don't log the error.
+		return ErrDontLog{fmt.Errorf("checkJobTextAccess: found no jobs for %v=%v", field, id)}
+	}
+	if len(keys) > 1 {
 		return fmt.Errorf("checkJobTextAccess: found %v jobs for %v=%v",
 			len(keys), field, id)
 	}
