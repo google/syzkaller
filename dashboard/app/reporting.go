@@ -471,12 +471,30 @@ func managersToRepos(c context.Context, ns string, managers []string) []string {
 	return repos
 }
 
-func foreachBug(c context.Context, fn func(bug *Bug) error) error {
+func loadAllBugs(c context.Context, ns, manager string) ([]*Bug, error) {
+	var bugs []*Bug
+	err := foreachBug(c, ns, manager, func(bug *Bug) error {
+		bugs = append(bugs, bug)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return bugs, nil
+}
+
+func foreachBug(c context.Context, ns, manager string, fn func(bug *Bug) error) error {
 	const batchSize = 1000
 	for offset := 0; ; offset += batchSize {
 		var bugs []*Bug
-		_, err := db.NewQuery("Bug").
-			Offset(offset).
+		query := db.NewQuery("Bug")
+		if ns != "" {
+			query = query.Filter("Namespace=", ns)
+			if manager != "" {
+				query = query.Filter("HappenedOn=", manager)
+			}
+		}
+		_, err := query.Offset(offset).
 			Limit(batchSize).
 			GetAll(c, &bugs)
 		if err != nil {
@@ -500,7 +518,7 @@ func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 		idMap[id] = true
 	}
 	var closed []string
-	err := foreachBug(c, func(bug *Bug) error {
+	err := foreachBug(c, "", "", func(bug *Bug) error {
 		for i := range bug.Reporting {
 			bugReporting := &bug.Reporting[i]
 			if !idMap[bugReporting.ID] {
