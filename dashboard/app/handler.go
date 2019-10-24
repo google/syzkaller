@@ -52,9 +52,13 @@ func handleContext(fn contextHandler) http.Handler {
 				http.Redirect(w, r, redir.Error(), http.StatusFound)
 				return
 			}
-			if _, dontlog := err.(ErrDontLog); !dontlog {
-				log.Errorf(c, "%v", err)
+			logf := log.Errorf
+			if _, dontlog := err.(ErrDontLog); dontlog {
+				// We don't log these as errors because they can be provoked
+				// by invalid user requests, so we don't wan't to pollute error log.
+				logf = log.Warningf
 			}
+			logf(c, "%v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -314,20 +314,9 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 
 // handleBug serves page about a single bug (which is passed in id argument).
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	bug := new(Bug)
-	if id := r.FormValue("id"); id != "" {
-		bugKey := db.NewKey(c, "Bug", id, 0, nil)
-		if err := db.Get(c, bugKey, bug); err != nil {
-			return err
-		}
-	} else if extID := r.FormValue("extid"); extID != "" {
-		var err error
-		bug, _, err = findBugByReportingID(c, extID)
-		if err != nil {
-			return err
-		}
-	} else {
-		return ErrDontLog{fmt.Errorf("mandatory parameter id/extid is missing")}
+	bug, err := findBugByID(c, r)
+	if err != nil {
+		return ErrDontLog{err}
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
@@ -426,6 +415,20 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	return serveTemplate(w, "bug.html", data)
 }
 
+func findBugByID(c context.Context, r *http.Request) (*Bug, error) {
+	if id := r.FormValue("id"); id != "" {
+		bug := new(Bug)
+		bugKey := db.NewKey(c, "Bug", id, 0, nil)
+		err := db.Get(c, bugKey, bug)
+		return bug, err
+	}
+	if extID := r.FormValue("extid"); extID != "" {
+		bug, _, err := findBugByReportingID(c, extID)
+		return bug, err
+	}
+	return nil, fmt.Errorf("mandatory parameter id/extid is missing")
+}
+
 func getUIJob(c context.Context, bug *Bug, jobType JobType) (*uiJob, error) {
 	job, _, jobKey, _, err := loadBisectJob(c, bug, jobType)
 	if err != nil {
@@ -466,6 +469,9 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	}
 	data, ns, err := getText(c, tag, id)
 	if err != nil {
+		if strings.Contains(err.Error(), "datastore: no such entity") {
+			err = ErrDontLog{err}
+		}
 		return err
 	}
 	if err := checkAccessLevel(c, r, config.Namespaces[ns].AccessLevel); err != nil {
