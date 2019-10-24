@@ -97,11 +97,13 @@ type tca_kind_options_t[NAME, VALUES] {
 }
 # ------------------------------ tc qdisc ------------------------------
 qdisc_kind_options [
+	q_cake			tca_kind_options_t["cake", array[q_cake_options]]
 	q_cbq			tca_kind_options_t["cbq", array[q_cbq_options]]
 	q_cbs			tca_kind_options_t["cbs", q_cbs_options]
 	q_choke			tca_kind_options_t["choke", array[q_choke_options]]
 	q_codel			tca_kind_options_t["codel", array[q_codel_options]]
 	q_dsmark		tca_kind_options_t["dsmark", array[q_dsmark_options]]
+	q_etf			tca_kind_options_t["etf", q_etf_options]
 	q_bfifo			tca_kind_options_t["bfifo", int32]
 	q_pfifo			tca_kind_options_t["pfifo", int32]
 	q_pfifo_head_drop	tca_kind_options_t["pfifo_head_drop", int32]
@@ -116,10 +118,42 @@ qdisc_kind_options [
 	q_netem			tca_kind_options_t["netem", tc_netem_message]
 	q_pie			tca_kind_options_t["pie", array[q_pie_options]]
 	q_prio			tca_kind_options_t["prio", tc_prio_qopt]
+	q_plug			tca_kind_options_t["plug", tc_plug_qopt]
 	q_red			tca_kind_options_t["red", array[q_red_options]]
+	q_rr			tca_kind_options_t["rr", tc_prio_qopt]
 	q_sfb			tca_kind_options_t["sfb", q_sfb_options]
 	q_sfq			tca_kind_options_t["sfq", tc_sfq_qopt_v1]
+	q_skbprio		tca_kind_options_t["skbprio", int32]
+	q_taprio		tca_kind_options_t["taprio", array[tc_taprio_options]]
 	q_tbf			tca_kind_options_t["tbf", array[q_tbf_options]]
+	q_atm			nlattr[TCA_KIND, string["atm"]]
+	q_drr			nlattr[TCA_KIND, string["drr"]]
+	q_blackhole		nlattr[TCA_KIND, string["blackhole"]]
+	q_clsact		nlattr[TCA_KIND, string["clsact"]]
+	q_pfifo_fast		nlattr[TCA_KIND, string["pfifo_fast"]]
+	q_qfg			nlattr[TCA_KIND, string["qfq"]]
+	q_ingress		nlattr[TCA_KIND, string["ingress"]]
+	q_mq			nlattr[TCA_KIND, string["mq"]]
+] [varlen]
+
+q_cake_options [
+	TCA_CAKE_BASE_RATE64	nlattr[TCA_CAKE_BASE_RATE64, int64]
+	TCA_CAKE_DIFFSERV_MODE	nlattr[TCA_CAKE_DIFFSERV_MODE, flags[tc_cake_diffserv_mode, int32]]
+	TCA_CAKE_ATM		nlattr[TCA_CAKE_ATM, flags[tc_cake_atm, int32]]
+	TCA_CAKE_FLOW_MODE	nlattr[TCA_CAKE_FLOW_MODE, flags[tc_cake_flow_mode, int32]]
+	TCA_CAKE_OVERHEAD	nlattr[TCA_CAKE_OVERHEAD, int32[-64:256]]
+	TCA_CAKE_RTT		nlattr[TCA_CAKE_RTT, int32]
+	TCA_CAKE_TARGET		nlattr[TCA_CAKE_TARGET, int32]
+	TCA_CAKE_AUTORATE	nlattr[TCA_CAKE_AUTORATE, int32]
+	TCA_CAKE_MEMORY		nlattr[TCA_CAKE_MEMORY, int32]
+	TCA_CAKE_NAT		nlattr[TCA_CAKE_NAT, int32[0:1]]
+	TCA_CAKE_RAW		nlattr[TCA_CAKE_RAW, int32[0:1]]
+	TCA_CAKE_WASH		nlattr[TCA_CAKE_WASH, int32[0:1]]
+	TCA_CAKE_MPU		nlattr[TCA_CAKE_MPU, int32[0:256]]
+	TCA_CAKE_INGRESS	nlattr[TCA_CAKE_INGRESS, int32[0:1]]
+	TCA_CAKE_ACK_FILTER	nlattr[TCA_CAKE_ACK_FILTER, flags[tc_cake_ack_filter, int32]]
+	TCA_CAKE_SPLIT_GSO	nlattr[TCA_CAKE_SPLIT_GSO, int32[0:1]]
+	TCA_CAKE_FWMARK		nlattr[TCA_CAKE_FWMARK, int32]
 ] [varlen]
 
 q_cbq_options [
@@ -152,6 +186,16 @@ q_dsmark_options [
 	TCA_DSMARK_INDICES		nlattr[TCA_DSMARK_INDICES, flags[tca_dsmark_ind, int16]]
 	TCA_DSMARK_DEFAULT_INDEX	nlattr[TCA_DSMARK_DEFAULT_INDEX, int16]
 	TCA_DSMARK_SET_TC_INDEX		nlattr[TCA_DSMARK_SET_TC_INDEX, void]
+] [varlen]
+
+tc_etf_qopt {
+	delta	int32
+	clockid	flags[tc_etf_clock_id, int32]
+	flags	flags[tc_etf_flags, int32]
+}
+
+q_etf_options [
+	TCA_ETF_PARMS	tc_etf_qopt
 ] [varlen]
 
 q_fq_options [
@@ -258,6 +302,27 @@ q_red_options [
 
 q_sfb_options [
 	TCA_SFB_PARMS	nlattr[TCA_SFB_PARMS, tc_sfb_qopt]
+] [varlen]
+
+tc_taprio_sched_entries [
+	TCA_TAPRIO_SCHED_ENTRY_CMD		nlattr[TCA_TAPRIO_SCHED_ENTRY_CMD, int8]
+	TCA_TAPRIO_SCHED_ENTRY_GATE_MASK	nlattr[TCA_TAPRIO_SCHED_ENTRY_GATE_MASK, int32]
+	TCA_TAPRIO_SCHED_ENTRY_INTERVAL		nlattr[TCA_TAPRIO_SCHED_ENTRY_INTERVAL, int32]
+] [varlen]
+
+tc_taprio_sched_entry [
+	TCA_TAPRIO_SCHED_ENTRY	nlattr[TCA_TAPRIO_SCHED_ENTRY, tc_taprio_sched_entries]
+] [varlen]
+
+tc_taprio_options [
+	TCA_TAPRIO_ATTR_PRIOMAP				nlattr[TCA_TAPRIO_ATTR_PRIOMAP, tc_mqprio_qopt]
+	TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST		nlattr[TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST, array[tc_taprio_sched_entry]]
+	TCA_TAPRIO_ATTR_SCHED_BASE_TIME			nlattr[TCA_TAPRIO_ATTR_SCHED_BASE_TIME, int64]
+	TCA_TAPRIO_ATTR_SCHED_CLOCKID			nlattr[TCA_TAPRIO_ATTR_SCHED_CLOCKID, int32]
+	TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME		nlattr[TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME, int64]
+	TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME_EXTENSION	nlattr[TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME_EXTENSION, int64]
+	TCA_TAPRIO_ATTR_FLAGS				nlattr[TCA_TAPRIO_ATTR_FLAGS, int32]
+	TCA_TAPRIO_ATTR_TXTIME_DELAY			nlattr[TCA_TAPRIO_ATTR_TXTIME_DELAY, int32]
 ] [varlen]
 
 q_tbf_options [
@@ -420,7 +485,12 @@ tc_netem_gemodel {
 
 tc_prio_qopt {
 	bands	int32
-	priomap	array[int8, 16]
+	priomap	array[int8, TC_PRIO_MAX]
+}
+
+tc_plug_qopt {
+	action	flags[tc_plug_actions, int32]
+	limit	int32
 }
 
 tc_sfb_qopt {
@@ -1111,3 +1181,10 @@ pedit_header_type = TCA_PEDIT_KEY_EX_HDR_TYPE_NETWORK, TCA_PEDIT_KEY_EX_HDR_TYPE
 pedit_cmd = TCA_PEDIT_KEY_EX_CMD_SET, TCA_PEDIT_KEY_EX_CMD_ADD
 packet_types = PACKET_HOST, PACKET_BROADCAST, PACKET_MULTICAST, PACKET_OTHERHOST, PACKET_OUTGOING, PACKET_LOOPBACK, PACKET_USER, PACKET_KERNEL
 vlan_proto = ETH_P_8021Q, ETH_P_8021AD
+tc_cake_ack_filter = CAKE_ACK_NONE, CAKE_ACK_FILTER, CAKE_ACK_AGGRESSIVE
+tc_cake_atm = CAKE_ATM_NONE, CAKE_ATM_ATM, CAKE_ATM_PTM
+tc_cake_diffserv_mode = CAKE_DIFFSERV_DIFFSERV3, CAKE_DIFFSERV_DIFFSERV4, CAKE_DIFFSERV_DIFFSERV8, CAKE_DIFFSERV_BESTEFFORT, CAKE_DIFFSERV_PRECEDENCE
+tc_cake_flow_mode = CAKE_FLOW_NONE, CAKE_FLOW_SRC_IP, CAKE_FLOW_DST_IP, CAKE_FLOW_HOSTS, CAKE_FLOW_FLOWS, CAKE_FLOW_DUAL_SRC, CAKE_FLOW_DUAL_DST, CAKE_FLOW_TRIPLE
+tc_etf_clock_id = CLOCK_REALTIME, CLOCK_TAI, CLOCK_BOOTTIME, CLOCK_MONOTONIC
+tc_etf_flags = TC_ETF_DEADLINE_MODE_ON, TC_ETF_OFFLOAD_ON, TC_ETF_SKIP_SOCK_CHECK
+tc_plug_actions = TCQ_PLUG_BUFFER, TCQ_PLUG_RELEASE_ONE, TCQ_PLUG_RELEASE_INDEFINITE, TCQ_PLUG_LIMIT
