@@ -76,6 +76,7 @@ const (
 	FeatureNetworkInjection
 	FeatureNetworkDevices
 	FeatureKCSAN
+	FeatureDevlinkPCI
 	numFeatures
 )
 
@@ -108,6 +109,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureNetworkInjection:           {Name: "net packet injection", Reason: unsupported},
 		FeatureNetworkDevices:             {Name: "net device setup", Reason: unsupported},
 		FeatureKCSAN:                      {Name: "concurrency sanitizer", Reason: unsupported},
+		FeatureDevlinkPCI:                 {Name: "devlink PCI setup", Reason: unsupported},
 	}
 	switch target.OS {
 	case "akaros", "fuchsia", "test":

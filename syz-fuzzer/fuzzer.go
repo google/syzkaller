@@ -214,6 +214,9 @@ func main() {
 	config.Flags |= ipc.FlagEnableNetReset
 	config.Flags |= ipc.FlagEnableCgroups
 	config.Flags |= ipc.FlagEnableCloseFds
+	if r.CheckResult.Features[host.FeatureDevlinkPCI].Enabled {
+		config.Flags |= ipc.FlagEnableDevlinkPCI
+	}
 
 	if *flagRunTest {
 		runTest(target, manager, *flagName, config.Executor)
