@@ -44,10 +44,9 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 		log.Errorf(c, "%v", err)
 		return nil
 	}
-	var bugs []*Bug
-	_, err = db.NewQuery("Bug").
-		Filter("Status<", BugStatusFixed).
-		GetAll(c, &bugs)
+	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Status<", BugStatusFixed)
+	})
 	if err != nil {
 		log.Errorf(c, "%v", err)
 		return nil
@@ -152,10 +151,9 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 }
 
 func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNotification {
-	var bugs []*Bug
-	_, err := db.NewQuery("Bug").
-		Filter("Status<", BugStatusFixed).
-		GetAll(c, &bugs)
+	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		return query.Filter("Status<", BugStatusFixed)
+	})
 	if err != nil {
 		log.Errorf(c, "%v", err)
 		return nil
@@ -471,9 +469,9 @@ func managersToRepos(c context.Context, ns string, managers []string) []string {
 	return repos
 }
 
-func loadAllBugs(c context.Context, ns, manager string) ([]*Bug, error) {
+func loadAllBugs(c context.Context, filter func(*db.Query) *db.Query) ([]*Bug, error) {
 	var bugs []*Bug
-	err := foreachBug(c, ns, manager, func(bug *Bug) error {
+	err := foreachBug(c, filter, func(bug *Bug, _ *db.Key) error {
 		bugs = append(bugs, bug)
 		return nil
 	})
@@ -483,41 +481,39 @@ func loadAllBugs(c context.Context, ns, manager string) ([]*Bug, error) {
 	return bugs, nil
 }
 
-func foreachBug(c context.Context, ns, manager string, fn func(bug *Bug) error) error {
+func foreachBug(c context.Context, filter func(*db.Query) *db.Query, fn func(bug *Bug, key *db.Key) error) error {
 	const batchSize = 1000
-	var cursor db.Cursor
-	for first := true; ; first = false {
+	var cursor *db.Cursor
+	for {
 		query := db.NewQuery("Bug").Limit(batchSize)
-		if ns != "" {
-			query = query.Filter("Namespace=", ns)
-			if manager != "" {
-				query = query.Filter("HappenedOn=", manager)
-			}
+		if filter != nil {
+			query = filter(query)
 		}
-		if !first {
-			query = query.Start(cursor)
+		if cursor != nil {
+			query = query.Start(*cursor)
 		}
 		iter := query.Run(c)
 		for i := 0; ; i++ {
 			bug := new(Bug)
-			_, err := iter.Next(bug)
+			key, err := iter.Next(bug)
 			if err == db.Done {
 				if i < batchSize {
 					return nil
-				}
-				cursor, err = iter.Cursor()
-				if err != nil {
-					return fmt.Errorf("cursor failed while fetching bugs: %v", err)
 				}
 				break
 			}
 			if err != nil {
 				return fmt.Errorf("failed to fetch bugs: %v", err)
 			}
-			if err := fn(bug); err != nil {
+			if err := fn(bug, key); err != nil {
 				return err
 			}
 		}
+		cur, err := iter.Cursor()
+		if err != nil {
+			return fmt.Errorf("cursor failed while fetching bugs: %v", err)
+		}
+		cursor = &cur
 	}
 }
 
@@ -528,7 +524,7 @@ func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 		idMap[id] = true
 	}
 	var closed []string
-	err := foreachBug(c, "", "", func(bug *Bug) error {
+	err := foreachBug(c, nil, func(bug *Bug, _ *db.Key) error {
 		for i := range bug.Reporting {
 			bugReporting := &bug.Reporting[i]
 			if !idMap[bugReporting.ID] {
