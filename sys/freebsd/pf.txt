@@ -79,7 +79,7 @@ ioctl$DIOCCLRIFFLAG(fd fd_pf, cmd const[DIOCCLRIFFLAG], arg ptr[in, pfioc_iface]
 ioctl$DIOCKILLSRCNODES(fd fd_pf, cmd const[DIOCKILLSRCNODES], arg ptr[in, array[int8]])
 
 pfioc_if {
-	ifname	int8[IFNAMSIZ]
+	ifname	const[IFNAMSIZ, int8]
 }
 
 pfioc_tm {
@@ -113,7 +113,7 @@ pfioc_table {
 }
 
 pfioc_iface {
-	pfiio_name	int8[IFNAMSIZ]
+	pfiio_name	const[IFNAMSIZ, int8]
 	pfiio_buffer	ptr[in, array[int8]]
 	pfiio_esize	int32
 	pfiio_size	int32

@@ -1062,10 +1062,10 @@ var structDescs_386 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad1", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "pfioc_if"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pfioc_if", TypeSize: 1}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ifname", TypeSize: 1}}, Kind: 2, RangeBegin: 16, RangeEnd: 16},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ifname", TypeSize: 1}}, Val: 16},
 	}}},
 	{Key: StructKey{Name: "pfioc_iface"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pfioc_iface", TypeSize: 20}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "pfiio_name", TypeSize: 1}}, Kind: 2, RangeBegin: 16, RangeEnd: 16},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pfiio_name", TypeSize: 1}}, Val: 16},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfiio_buffer", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pfiio_esize", TypeSize: 4}}},
@@ -5711,4 +5711,4 @@ var consts_386 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_386 = "499f5feaf81c9d39b33515503572aa8f6e24db8b"
+const revision_386 = "7f88209d240ee3d70f75d79fb3c76b180a3ff867"
