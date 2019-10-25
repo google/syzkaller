@@ -149,6 +149,7 @@ s3 {
 	f6	int32:32
 	f7	int32:33	### bitfield of size 33 is too large for base type of size 32
 	f8	const[0, int32:C1]	### literal const bitfield sizes are not supported
+	f9	const[0]	### wrong number of arguments for type const, expect value, base type
 } [packed, align_4]
 
 s4 {
@@ -282,6 +283,10 @@ type templ4[A, A] ptr[in, A]	### duplicate type argument A
 type templ5[abc] ptr[in, abc]	### type argument abc must be ALL_CAPS
 type templ6[T] ptr[in, T]
 type templ7 templ0[templ6, int8]
+type templ8[BASE, A] BASE[A]	### type argument BASE must be the last argument
+type templ9[BASE] BASE
+type templ10[A] templ9[A]
+type templ11[VAL, BASE] const[VAL, BASE]
 
 # Note: here 42 is stripped as base type, so const ends up without arguments.
 foo$201(a templ1[42])		### wrong number of arguments for type const, expect value
@@ -306,12 +311,12 @@ type templ_base0[TYPE] {
 	f1	TYPE
 }
 
-type templ_templ0[BASE] {
-	f1	BASE
+type templ_templ0[B] {
+	f1	B
 }
 
-type templ_templ1[BASE] {
-	f1	BASE[int16]			### both template parameter BASE and its usage have sub-arguments
+type templ_templ1[B] {
+	f1	B[int16]			### both template parameter B and its usage have sub-arguments
 }
 
 templ_templ_use0 {
@@ -325,6 +330,11 @@ foo$203(a type0[42])		### type type0 is not a template
 foo$204(a ptr[in, templ_struct0[42, int8]])
 foo$205(a ptr[in, templ_struct0[int8, int8]])
 foo$207(a ptr[in, templ_struct2[1]])		### template argument A is not used
+foo$208(a ptr[in, templ9[string["foo"]]])	### unexpected value string for base type argument of templ9 type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
+foo$209(a ptr[in, templ10[templ0[42, int8]]])	### unexpected value templ0 for base type argument of templ9 type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
+foo$210(a ptr[in, templ11[0, 1, int8]])		### template templ11 needs 2 arguments instead of 3
+foo$211(a ptr[in, templ9])			### template templ9 needs 1 arguments instead of 0
+foo$212(a ptr[in, templ11[1]])			### template templ11 needs 2 arguments instead of 1
 
 # fmt
 
