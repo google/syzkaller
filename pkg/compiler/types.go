@@ -80,6 +80,9 @@ var typeInt = &typeDesc{
 	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		typeArgBase.Type.Check(comp, t)
+		if len(args) > 0 && len(args[0].Colon) == 0 {
+			comp.error(args[0].Pos, "first argument of %v needs to be a range", t.Ident)
+		}
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		size, be := comp.parseIntType(t.Ident)

@@ -76,7 +76,7 @@ foo$11(a buffer["in"])		### unexpected string "in" for direction argument of ptr
 foo$12(a buffer[10])		### unexpected int 10 for direction argument of ptr type, expect [in out inout]
 foo$13(a int32[2:3])
 foo$14(a int32[2:2])
-foo$16(a int32[3])
+foo$16(a int32[3])		### first argument of int32 needs to be a range
 foo$17(a ptr[in, int32])
 foo$18(a ptr[in, int32[2:3]])
 foo$19(a ptr[in, int32[opt]])
