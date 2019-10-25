@@ -213,9 +213,9 @@ type templ_base1[TYPE, CONST] {
 	f1	TYPE
 }
 
-type templ_templ[BASE, CONST] {
-	f1	BASE[int8, CONST]
-	f2	BASE[int32, 0]
+type templ_templ[TMPL, CONST] {
+	f1	TMPL[int8, CONST]
+	f2	TMPL[int32, 0]
 }
 
 templ_templ_use {
@@ -230,6 +230,8 @@ type templ_struct5 templ_struct0[C1, templ_struct0[C2, int8]]
 type templ_struct6 templ_struct0[C1, templ_struct2[C2]]
 type templ_union union_with_templ_struct
 type templ_base3[BASE] BASE
+type templ_base4[BASE] const[0, BASE]
+type templ_base5[VAL, BASE] const[VAL, BASE]
 
 foo$templ0(a templ0[42, int8])
 foo$templ1(a ptr[in, templ_struct0[C2, int8]])
@@ -241,6 +243,8 @@ foo$templ6(a ptr[in, templ_struct4])
 foo$templ7(a ptr[in, templ_struct5], b ptr[in, templ_struct6], c ptr[in, templ_union], d ptr[in, type3])
 foo$templ8(a ptr[in, templ_templ_use])
 foo$templ9(a ptr[in, templ_base3[int64]])
+foo$templ10(a ptr[in, templ_base4[int8]])
+foo$templ11(a ptr[in, templ_base5[42, int8]])
 
 # Structs.
 
