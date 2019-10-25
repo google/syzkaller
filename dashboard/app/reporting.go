@@ -31,7 +31,7 @@ const (
 	maxInlineError             = 16 << 10
 	notifyResendPeriod         = 14 * 24 * time.Hour
 	notifyAboutBadCommitPeriod = 90 * 24 * time.Hour
-	autoObsoletePeriod         = 180 * 24 * time.Hour
+	autoObsoletePeriod         = 120 * 24 * time.Hour
 	internalError              = "internal error"
 	// This is embedded as first line of syzkaller reproducer files.
 	syzReproPrefix = "# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"

@@ -124,7 +124,7 @@ func TestEmailNotifObsoleted(t *testing.T) {
 	c.expectNoEmail()
 
 	// Not yet.
-	c.advanceTime(179 * 24 * time.Hour)
+	c.advanceTime(119 * 24 * time.Hour)
 	c.expectNoEmail()
 
 	// Now!
@@ -145,7 +145,7 @@ func TestEmailNotifObsoleted(t *testing.T) {
 	c.incomingEmail(report.Sender, "#syz upstream")
 	report = c.pollEmailBug()
 
-	c.advanceTime(181 * 24 * time.Hour)
+	c.advanceTime(121 * 24 * time.Hour)
 	notif = c.pollEmailBug()
 	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
 		t.Fatalf("bad notification text: %q", notif.Body)
@@ -190,7 +190,7 @@ func TestEmailNotifNotObsoleted(t *testing.T) {
 	c.incomingEmail(report4.Sender, "#syz upstream")
 	report4 = c.pollEmailBug()
 
-	c.advanceTime(179 * 24 * time.Hour)
+	c.advanceTime(119 * 24 * time.Hour)
 	c.expectNoEmail()
 
 	c.client2.ReportCrash(crash2)
