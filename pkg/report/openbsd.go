@@ -46,7 +46,10 @@ func ctorOpenbsd(cfg *config) (Reporter, []string, error) {
 		kernelObject: kernelObject,
 		symbols:      symbols,
 	}
-	return ctx, nil, nil
+	suppressions := []string{
+		"panic: fifo_badop called",
+	}
+	return ctx, suppressions, nil
 }
 
 func (ctx *openbsd) ContainsCrash(output []byte) bool {
