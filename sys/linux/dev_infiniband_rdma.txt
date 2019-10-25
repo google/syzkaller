@@ -872,7 +872,7 @@ create_rwq_ind_table_cmd {
 	provider_out_words	const[0x0, int16]
 	cmd_hdr_reserved	const[0x0, int32]
 	comp_mask		const[0x0, int32]
-	log_ind_tbl_size	int32[1]
+	log_ind_tbl_size	const[0x1, int32]
 	wq_handles		array[wq_handle, 2]
 }
 
