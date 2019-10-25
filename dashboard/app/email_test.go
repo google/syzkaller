@@ -27,6 +27,7 @@ func TestEmailReport(t *testing.T) {
 
 	// Report the crash over email and check all fields.
 	var sender0, extBugID0, body0 string
+	var dbBug0 *Bug
 	{
 		msg := c.pollEmailBug()
 		sender0 = msg.Sender
@@ -34,7 +35,8 @@ func TestEmailReport(t *testing.T) {
 		sender, extBugID, err := email.RemoveAddrContext(msg.Sender)
 		c.expectOK(err)
 		extBugID0 = extBugID
-		_, dbCrash, dbBuild := c.loadBug(extBugID0)
+		dbBug, dbCrash, dbBuild := c.loadBug(extBugID0)
+		dbBug0 = dbBug
 		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
 		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
@@ -127,7 +129,8 @@ For more options, visit https://groups.google.com/d/optout.
 	crash.BuildID = build2.ID
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("getpid()")
-	syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
+	syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
+		dbBug0.keyHash(), syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
 	c.client2.ReportCrash(crash)
 
 	{
@@ -247,6 +250,8 @@ Content-Type: text/plain
 	crash.ReproC = []byte("int main() {}")
 	crash.Maintainers = []string{"\"qux\" <qux@qux.com>"}
 	c.client2.ReportCrash(crash)
+	cRepro := []byte(fmt.Sprintf("// https://testapp.appspot.com/bug?id=%v\n%s",
+		dbBug0.keyHash(), crash.ReproC))
 
 	{
 		msg := c.pollEmailBug()
@@ -283,7 +288,7 @@ Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 
 report1
 `, extBugID1, reproCLink, reproSyzLink, crashLogLink, kernelConfigLink))
-		c.checkURLContents(reproCLink, crash.ReproC)
+		c.checkURLContents(reproCLink, cRepro)
 		c.checkURLContents(reproSyzLink, syzRepro)
 		c.checkURLContents(crashLogLink, crash.Log)
 		c.checkURLContents(kernelConfigLink, build2.KernelConfig)
