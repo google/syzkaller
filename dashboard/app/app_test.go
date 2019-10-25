@@ -32,6 +32,12 @@ var testConfig = &GlobalConfig{
 	EmailBlacklist: []string{
 		"\"Bar\" <BlackListed@Domain.com>",
 	},
+	Obsoleting: ObsoletingConfig{
+		MinPeriod:         80 * 24 * time.Hour,
+		MaxPeriod:         100 * 24 * time.Hour,
+		NonFinalMinPeriod: 40 * 24 * time.Hour,
+		NonFinalMaxPeriod: 60 * 24 * time.Hour,
+	},
 	DefaultNamespace: "test1",
 	Namespaces: map[string]*Config{
 		"test1": {
@@ -52,6 +58,12 @@ var testConfig = &GlobalConfig{
 					Branch: "master",
 					Alias:  "repo10alias",
 					CC:     []string{"maintainers@repo10.org", "bugs@repo10.org"},
+				},
+			},
+			Managers: map[string]ConfigManager{
+				"special-obsoleting": {
+					ObsoletingMinPeriod: 10 * 24 * time.Hour,
+					ObsoletingMaxPeriod: 20 * 24 * time.Hour,
 				},
 			},
 			Reporting: []Reporting{

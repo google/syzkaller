@@ -102,6 +102,81 @@ func TestEmailNotifBadFix(t *testing.T) {
 	}
 }
 
+func TestBugObsoleting(t *testing.T) {
+	// To simplify test we specify all dates in days from a fixed point in time.
+	const day = 24 * time.Hour
+	days := func(n int) time.Time {
+		t := time.Date(2000, 0, 0, 0, 0, 0, 0, time.UTC)
+		t.Add(time.Duration(n+1) * day)
+		return t
+	}
+	tests := []struct {
+		bug    *Bug
+		period time.Duration
+	}{
+		// Final bug with just 1 crash: max final period.
+		{
+			bug: &Bug{
+				FirstTime:  days(0),
+				LastTime:   days(0),
+				NumCrashes: 1,
+				Reporting:  []BugReporting{{Reported: days(0)}},
+			},
+			period: 100 * day,
+		},
+		// Non-final bug with just 1 crash: max non-final period.
+		{
+			bug: &Bug{
+				FirstTime:  days(0),
+				LastTime:   days(0),
+				NumCrashes: 1,
+				Reporting:  []BugReporting{{Reported: days(0)}, {}},
+			},
+			period: 60 * day,
+		},
+		// Special manger: max period that that manager.
+		{
+			bug: &Bug{
+				FirstTime:  days(0),
+				LastTime:   days(0),
+				NumCrashes: 1,
+				HappenedOn: []string{"special-obsoleting"},
+				Reporting:  []BugReporting{{Reported: days(0)}, {}},
+			},
+			period: 20 * day,
+		},
+		// Special manger and a non-special: normal rules.
+		{
+			bug: &Bug{
+				FirstTime:  days(0),
+				LastTime:   days(0),
+				NumCrashes: 1,
+				HappenedOn: []string{"special-obsoleting", "non-special-manager"},
+				Reporting:  []BugReporting{{Reported: days(0)}},
+			},
+			period: 100 * day,
+		},
+		// Happened a lot: min period.
+		{
+			bug: &Bug{
+				FirstTime:  days(0),
+				LastTime:   days(1),
+				NumCrashes: 1000,
+				Reporting:  []BugReporting{{Reported: days(0)}},
+			},
+			period: 80 * day,
+		},
+	}
+	for i, test := range tests {
+		test.bug.Namespace = "test1"
+		got := test.bug.obsoletePeriod()
+		if got != test.period {
+			t.Errorf("test #%v: got: %.2f, want %.2f",
+				i, float64(got/time.Hour)/24, float64(test.period/time.Hour)/24)
+		}
+	}
+}
+
 func TestEmailNotifObsoleted(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
@@ -124,7 +199,7 @@ func TestEmailNotifObsoleted(t *testing.T) {
 	c.expectNoEmail()
 
 	// Not yet.
-	c.advanceTime(119 * 24 * time.Hour)
+	c.advanceTime(59 * 24 * time.Hour)
 	c.expectNoEmail()
 
 	// Now!
@@ -145,7 +220,7 @@ func TestEmailNotifObsoleted(t *testing.T) {
 	c.incomingEmail(report.Sender, "#syz upstream")
 	report = c.pollEmailBug()
 
-	c.advanceTime(121 * 24 * time.Hour)
+	c.advanceTime(101 * 24 * time.Hour)
 	notif = c.pollEmailBug()
 	if !strings.Contains(notif.Body, "Auto-closing this bug as obsolete") {
 		t.Fatalf("bad notification text: %q", notif.Body)
@@ -190,7 +265,7 @@ func TestEmailNotifNotObsoleted(t *testing.T) {
 	c.incomingEmail(report4.Sender, "#syz upstream")
 	report4 = c.pollEmailBug()
 
-	c.advanceTime(119 * 24 * time.Hour)
+	c.advanceTime(59 * 24 * time.Hour)
 	c.expectNoEmail()
 
 	c.client2.ReportCrash(crash2)

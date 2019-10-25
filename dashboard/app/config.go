@@ -33,6 +33,8 @@ type GlobalConfig struct {
 	Clients map[string]string
 	// List of emails blacklisted from issuing test requests.
 	EmailBlacklist []string
+	// Bug obsoleting settings. See ObsoletingConfig for details.
+	Obsoleting ObsoletingConfig
 	// Namespace that is shown by default (no namespace selected yet).
 	DefaultNamespace string
 	// Per-namespace config.
@@ -78,6 +80,22 @@ type Config struct {
 	Repos []KernelRepo
 }
 
+// ObsoletingConfig describes how bugs without reproducer should be obsoleted.
+// First, for each bug we conservatively estimate period since the last crash
+// when we consider it stopped happenning. This estimation is based on the first/last time
+// and number and rate of crashes. Then this period is capped by MinPeriod/MaxPeriod.
+// Then if the period has elapsed since the last crash, we obsolete the bug.
+// NonFinalMinPeriod/NonFinalMaxPeriod (if specified) are used to cap bugs in non-final reportings.
+// Additionally ConfigManager.ObsoletingMin/MaxPeriod override the cap settings
+// for bugs that happen only on that manager.
+// If no periods are specified, no bugs are obsoleted.
+type ObsoletingConfig struct {
+	MinPeriod         time.Duration
+	MaxPeriod         time.Duration
+	NonFinalMinPeriod time.Duration
+	NonFinalMaxPeriod time.Duration
+}
+
 // ConfigManager describes a single syz-manager instance.
 // Dashboard does not generally need to know about all of them,
 // but in some special cases it needs to know some additional information.
@@ -90,6 +108,10 @@ type ConfigManager struct {
 	// and RestrictedTestingReason contains a human readable reason for the restriction.
 	RestrictedTestingRepo   string
 	RestrictedTestingReason string
+	// If a bug happens only on this manager, this overrides global obsoleting settings.
+	// See ObsoletingConfig for details.
+	ObsoletingMinPeriod time.Duration
+	ObsoletingMaxPeriod time.Duration
 }
 
 // One reporting stage.
@@ -200,11 +222,36 @@ func checkConfig(cfg *GlobalConfig) {
 	clientNames := make(map[string]bool)
 	checkClients(clientNames, cfg.Clients)
 	checkConfigAccessLevel(&cfg.AccessLevel, AccessPublic, "global")
+	checkObsoleting(cfg.Obsoleting)
 	if cfg.Namespaces[cfg.DefaultNamespace] == nil {
 		panic(fmt.Sprintf("default namespace %q is not found", cfg.DefaultNamespace))
 	}
 	for ns, cfg := range cfg.Namespaces {
 		checkNamespace(ns, cfg, namespaces, clientNames)
+	}
+}
+
+func checkObsoleting(o ObsoletingConfig) {
+	if (o.MinPeriod == 0) != (o.MaxPeriod == 0) {
+		panic(fmt.Sprintf("obsoleting: both or none of Min/MaxPeriod must be specified"))
+	}
+	if o.MinPeriod > o.MaxPeriod {
+		panic(fmt.Sprintf("obsoleting: Min > MaxPeriod"))
+	}
+	if o.MinPeriod != 0 && o.MinPeriod < 24*time.Hour {
+		panic(fmt.Sprintf("obsoleting: too low MinPeriod"))
+	}
+	if (o.NonFinalMinPeriod == 0) != (o.NonFinalMaxPeriod == 0) {
+		panic(fmt.Sprintf("obsoleting: both or none of NonFinalMin/MaxPeriod must be specified"))
+	}
+	if o.NonFinalMinPeriod > o.NonFinalMaxPeriod {
+		panic(fmt.Sprintf("obsoleting: NonFinalMin > MaxPeriod"))
+	}
+	if o.NonFinalMinPeriod != 0 && o.NonFinalMinPeriod < 24*time.Hour {
+		panic(fmt.Sprintf("obsoleting: too low MinPeriod"))
+	}
+	if o.MinPeriod == 0 && o.NonFinalMinPeriod != 0 {
+		panic(fmt.Sprintf("obsoleting: NonFinalMinPeriod without MinPeriod"))
 	}
 }
 
@@ -323,6 +370,15 @@ func checkManager(ns, name string, mgr ConfigManager) {
 	}
 	if mgr.RestrictedTestingRepo == "" && mgr.RestrictedTestingReason != "" {
 		panic(fmt.Sprintf("unrestricted manager %v/%v has restriction reason", ns, name))
+	}
+	if (mgr.ObsoletingMinPeriod == 0) != (mgr.ObsoletingMaxPeriod == 0) {
+		panic(fmt.Sprintf("manager %v/%v obsoleting: both or none of Min/MaxPeriod must be specified", ns, name))
+	}
+	if mgr.ObsoletingMinPeriod > mgr.ObsoletingMaxPeriod {
+		panic(fmt.Sprintf("manager %v/%v obsoleting: Min > MaxPeriod", ns, name))
+	}
+	if mgr.ObsoletingMinPeriod != 0 && mgr.ObsoletingMinPeriod < 24*time.Hour {
+		panic(fmt.Sprintf("manager %v/%v obsoleting: too low MinPeriod", ns, name))
 	}
 }
 
