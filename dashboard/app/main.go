@@ -463,7 +463,7 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 		}
 		id = xid
 	}
-	crash, err := checkTextAccess(c, r, tag, id)
+	bug, crash, err := checkTextAccess(c, r, tag, id)
 	if err != nil {
 		return err
 	}
@@ -481,6 +481,22 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 	// Unfortunately filename does not work in chrome on linux due to:
 	// https://bugs.chromium.org/p/chromium/issues/detail?id=608342
 	w.Header().Set("Content-Disposition", "inline; filename="+textFilename(tag))
+	augmentRepro(c, w, tag, bug, crash)
+	w.Write(data)
+	return nil
+}
+
+func augmentRepro(c context.Context, w http.ResponseWriter, tag string, bug *Bug, crash *Crash) {
+	if tag == textReproSyz || tag == textReproC {
+		// Users asked for the bug link in reproducers (in case you only saved the repro link).
+		if bug != nil {
+			prefix := "#"
+			if tag == textReproC {
+				prefix = "//"
+			}
+			fmt.Fprintf(w, "%v %v/bug?id=%v\n", prefix, appURL(c), bug.keyHash())
+		}
+	}
 	if tag == textReproSyz {
 		// Add link to documentation and repro opts for syzkaller reproducers.
 		w.Write([]byte(syzReproPrefix))
@@ -488,8 +504,6 @@ func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, t
 			fmt.Fprintf(w, "#%s\n", crash.ReproOpts)
 		}
 	}
-	w.Write(data)
-	return nil
 }
 
 func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error {

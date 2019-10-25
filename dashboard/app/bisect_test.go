@@ -127,7 +127,7 @@ func TestBisectCause(t *testing.T) {
 
 	_, extBugID, err := email.RemoveAddrContext(msg2.Sender)
 	c.expectOK(err)
-	_, dbCrash, _ := c.loadBug(extBugID)
+	dbBug, dbCrash, _ := c.loadBug(extBugID)
 	reproSyzLink := externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
 	reproCLink := externalLink(c.ctx, textReproC, dbCrash.ReproC)
 	dbJob, dbBuild, dbJobCrash := c.loadJob(jobID)
@@ -167,13 +167,16 @@ Fixes: 36e65cb4a044 ("kernel: add a bug")
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 
-		syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
+		syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
+			dbBug.keyHash(), syzReproPrefix, crash2.ReproOpts, crash2.ReproSyz))
+		cRepro := []byte(fmt.Sprintf("// https://testapp.appspot.com/bug?id=%v\n%s",
+			dbBug.keyHash(), crash2.ReproC))
 		c.checkURLContents(bisectLogLink, []byte("bisect log 2"))
 		c.checkURLContents(bisectCrashReportLink, []byte("bisect crash report"))
 		c.checkURLContents(bisectCrashLogLink, []byte("bisect crash log"))
 		c.checkURLContents(kernelConfigLink, []byte("config1"))
 		c.checkURLContents(reproSyzLink, syzRepro)
-		c.checkURLContents(reproCLink, crash2.ReproC)
+		c.checkURLContents(reproCLink, cRepro)
 	}
 
 	// The next reporting must get bug report with bisection results.
@@ -365,7 +368,7 @@ https://goo.gl/tpsmEJ#testing-patches`,
 
 	_, extBugID, err = email.RemoveAddrContext(msg4.Sender)
 	c.expectOK(err)
-	_, dbCrash, _ = c.loadBug(extBugID)
+	dbBug, dbCrash, _ = c.loadBug(extBugID)
 	reproSyzLink = externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
 	reproCLink = externalLink(c.ctx, textReproC, dbCrash.ReproC)
 	dbJob, dbBuild, dbJobCrash = c.loadJob(jobID)
@@ -405,7 +408,8 @@ If the result looks correct, please mark the bug fixed by replying with:
 For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 `, extBugID, bisectLogLink, bisectCrashReportLink, bisectCrashLogLink, kernelConfigLink, reproSyzLink, reproCLink))
 
-		syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
+		syzRepro := []byte(fmt.Sprintf("# https://testapp.appspot.com/bug?id=%v\n%s#%s\n%s",
+			dbBug.keyHash(), syzReproPrefix, crash4.ReproOpts, crash4.ReproSyz))
 		c.checkURLContents(bisectLogLink, []byte("bisectfix log 4"))
 		c.checkURLContents(bisectCrashReportLink, []byte("bisectfix crash report 4"))
 		c.checkURLContents(bisectCrashLogLink, []byte("bisectfix crash log 4"))
