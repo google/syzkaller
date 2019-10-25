@@ -204,7 +204,10 @@ func (comp *compiler) checkTypedefs() {
 			} else {
 				// For templates we only do basic checks of arguments.
 				names := make(map[string]bool)
-				for _, arg := range n.Args {
+				for i, arg := range n.Args {
+					if arg.Name == "BASE" && i != len(n.Args)-1 {
+						comp.error(arg.Pos, "type argument BASE must be the last argument")
+					}
 					if names[arg.Name] {
 						comp.error(arg.Pos, "duplicate type argument %v", arg.Name)
 					}
@@ -869,6 +872,17 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 		return
 	}
 	typedef := comp.typedefs[typedefName]
+	// Handling optional BASE argument.
+	if len(typedef.Args) > 0 && typedef.Args[len(typedef.Args)-1].Name == "BASE" {
+		if flags&checkIsArg != 0 && len(t.Args) == len(typedef.Args)-1 {
+			t.Args = append(t.Args, &ast.Type{
+				Pos:   t.Pos,
+				Ident: "intptr",
+			})
+		} else if len(t.Args) == len(typedef.Args) {
+			comp.checkTypeArg(t, t.Args[len(t.Args)-1], typeArgBase)
+		}
+	}
 	fullTypeName := ast.SerializeNode(t)
 	for i, prev := range ctx.instantiationStack {
 		if prev == fullTypeName {
@@ -891,6 +905,9 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlag
 		if nargs == 0 {
 			comp.error(t.Pos, "type %v is not a template", typedefName)
 		} else {
+			if flags&checkIsArg != 0 && typedef.Args[len(typedef.Args)-1].Name == "BASE" {
+				nargs--
+			}
 			comp.error(t.Pos, "template %v needs %v arguments instead of %v",
 				typedefName, nargs, len(t.Args))
 		}
