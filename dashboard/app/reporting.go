@@ -31,7 +31,7 @@ const (
 	maxInlineError             = 16 << 10
 	notifyResendPeriod         = 14 * 24 * time.Hour
 	notifyAboutBadCommitPeriod = 90 * 24 * time.Hour
-	autoObsoletePeriod         = 120 * 24 * time.Hour
+	never                      = 100 * 365 * 24 * time.Hour
 	internalError              = "internal error"
 	// This is embedded as first line of syzkaller reproducer files.
 	syzReproPrefix = "# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"
@@ -207,7 +207,7 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 	if len(bug.Commits) == 0 &&
 		bug.ReproLevel == ReproLevelNone &&
 		timeSince(c, bug.LastActivity) > notifyResendPeriod &&
-		timeSince(c, bug.LastTime) > autoObsoletePeriod {
+		timeSince(c, bug.LastTime) > bug.obsoletePeriod() {
 		log.Infof(c, "%v: obsoleting: %v", bug.Namespace, bug.Title)
 		return createNotification(c, dashapi.BugNotifObsoleted, false, "", bug, reporting, bugReporting)
 	}
@@ -220,6 +220,39 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 		return createNotification(c, dashapi.BugNotifBadCommit, true, commits, bug, reporting, bugReporting)
 	}
 	return nil, nil
+}
+
+func (bug *Bug) obsoletePeriod() time.Duration {
+	period := never
+	if config.Obsoleting.MinPeriod == 0 {
+		return period
+	}
+	// Before we have at least 10 crashes, any estimation of frequency is too imprecise.
+	// In such case we conservatively assume it still happens.
+	if bug.NumCrashes >= 10 {
+		// This is linear extrapolation for when the next crash should happen.
+		period = bug.LastTime.Sub(bug.FirstTime) / time.Duration(bug.NumCrashes-1)
+		// Let's be conservative with obsoleting too early.
+		period *= 100
+	}
+	min, max := config.Obsoleting.MinPeriod, config.Obsoleting.MaxPeriod
+	if config.Obsoleting.NonFinalMinPeriod != 0 &&
+		bug.Reporting[len(bug.Reporting)-1].Reported.IsZero() {
+		min, max = config.Obsoleting.NonFinalMinPeriod, config.Obsoleting.NonFinalMaxPeriod
+	}
+	if len(bug.HappenedOn) == 1 {
+		mgr := config.Namespaces[bug.Namespace].Managers[bug.HappenedOn[0]]
+		if mgr.ObsoletingMinPeriod != 0 {
+			min, max = mgr.ObsoletingMinPeriod, mgr.ObsoletingMaxPeriod
+		}
+	}
+	if period < min {
+		period = min
+	}
+	if period > max {
+		period = max
+	}
+	return period
 }
 
 func createNotification(c context.Context, typ dashapi.BugNotif, public bool, text string, bug *Bug,
