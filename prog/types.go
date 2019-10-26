@@ -243,8 +243,7 @@ func (t *ConstType) String() string {
 type IntKind int
 
 const (
-	IntPlain   IntKind = iota
-	IntFileoff         // offset within a file
+	IntPlain IntKind = iota
 	IntRange
 )
 

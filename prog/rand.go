@@ -751,15 +751,6 @@ func (a *IntType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 	bits := a.TypeBitSize()
 	v := r.randInt(bits)
 	switch a.Kind {
-	case IntFileoff:
-		switch {
-		case r.nOutOf(90, 101):
-			v = 0
-		case r.nOutOf(10, 11):
-			v = r.rand(100)
-		default:
-			v = r.randInt(bits)
-		}
 	case IntRange:
 		v = r.randRangeInt(a.RangeBegin, a.RangeEnd, bits, a.Align)
 	}

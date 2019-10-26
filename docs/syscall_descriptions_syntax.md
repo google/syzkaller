@@ -44,7 +44,6 @@ rest of the type-options are type-specific:
 "fmt": a string representation of an integer (not zero-terminated), type-options:
 	format (one of "dec", "hex", "oct") and the value (a resource, int, flags, const or proc)
 	the resulting data is always fixed-size (formatted as "%020llu", "0x%016llx" or "%023llo", respectively)
-"fileoff": offset within a file
 "len": length of another field (for array it is number of elements), type-options:
 	argname of the object
 "bytesize": similar to "len", but always denotes the size in bytes, type-options:
@@ -187,6 +186,8 @@ type bool16	int16[0:1]
 type bool32	int32[0:1]
 type bool64	int64[0:1]
 type boolptr	intptr[0:1]
+
+type fileoff[BASE] BASE
 
 type filename string[filename]
 

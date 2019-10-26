@@ -109,7 +109,7 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 				noteUsage(uses, c, 0.5, a.Dir(), "vma")
 			case *IntType:
 				switch a.Kind {
-				case IntPlain, IntFileoff, IntRange:
+				case IntPlain, IntRange:
 				default:
 					panic("unknown int kind")
 				}
