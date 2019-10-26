@@ -4872,7 +4872,7 @@ var syscalls_arm64 = []*Syscall{
 	}},
 	{Name: "lseek", CallName: "lseek", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "offset", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "seek_whence", FldName: "whence", TypeSize: 8}}, Vals: []uint64{0, 1, 2}, BitMask: true},
 	}},
 	{Name: "lstat", CallName: "lstat", Args: []Type{
@@ -4918,13 +4918,13 @@ var syscalls_arm64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 8}}, Path: []string{"vec"}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 8}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "off", TypeSize: 8}}},
 	}},
 	{Name: "pwritev", CallName: "pwritev", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 8}}, Path: []string{"vec"}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 8}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "off", TypeSize: 8}}},
 	}},
 	{Name: "read", CallName: "read", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -4985,7 +4985,7 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
 	}},
 	{Name: "syz_future_time", CallName: "syz_future_time", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "when", TypeSize: 8}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "when", TypeSize: 8}}, Kind: 1, RangeEnd: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{Name: "syz_job_default", CallName: "syz_job_default", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_job", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "syz_mmap", CallName: "syz_mmap", Args: []Type{
@@ -7010,7 +7010,7 @@ var syscalls_arm64 = []*Syscall{
 	{Name: "zx_thread_exit", CallName: "zx_thread_exit"},
 	{Name: "zx_thread_read_state", CallName: "zx_thread_read_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "handle", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 2, RangeEnd: 9},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 1, RangeEnd: 9},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Path: []string{"buffer"}},
 	}},
@@ -7029,7 +7029,7 @@ var syscalls_arm64 = []*Syscall{
 	}},
 	{Name: "zx_thread_write_state", CallName: "zx_thread_write_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "handle", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 2, RangeEnd: 9},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4}}, Kind: 1, RangeEnd: 9},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Path: []string{"buffer"}},
 	}},
@@ -7395,4 +7395,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_arm64 = "6a8f950f7eee2c03aa38625f64563d19c3548436"
+const revision_arm64 = "e646f419d01107d87ff346ec5ee9a586dc261305"
