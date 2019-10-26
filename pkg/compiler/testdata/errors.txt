@@ -69,7 +69,7 @@ resource r6[int64be]		### int64be can't be resource base (int types can)
 resource r9["foo"]		### unexpected string "foo", expect type
 
 foo$7(a r0, a1 r2[opt])
-foo$8(a fileoff[a, b, c])	### wrong number of arguments for type fileoff, expect no arguments
+foo$8(a fileoff[a, b, int8])	### template fileoff needs 0 arguments instead of 3
 foo$9(a buffer[inout])
 foo$10(a buffer[intout])	### unexpected value intout for direction argument of ptr type, expect [in out inout]
 foo$11(a buffer["in"])		### unexpected string "in" for direction argument of ptr type, expect [in out inout]
@@ -95,7 +95,7 @@ foo$33(a int8, b ptr[in, csum[a, pseudo, 1, int32]])
 foo$34(a int32["foo"])		### unexpected string "foo" for range argument of int32 type, expect int
 foo$35(a ptr[in, s3[opt]])	### s3 can't be marked as opt
 foo$36(a const[1:2])		### unexpected ':'
-foo$39(a fileoff:1)		### unexpected ':'
+foo$39(a fileoff:1)		### type alias fileoff with ':'
 foo$40(a len["a"])		### unexpected string "a" for len target argument of len type, expect identifier
 foo$41(a vma[C1:C2])
 foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string literal or string flags

@@ -348,19 +348,6 @@ var typeArgFlags = &typeArg{
 	},
 }
 
-var typeFileoff = &typeDesc{
-	Names:       []string{"fileoff"},
-	CanBeArgRet: canBeArg,
-	CantBeOpt:   true,
-	NeedBase:    true,
-	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		return &prog.IntType{
-			IntTypeCommon: base,
-			Kind:          prog.IntFileoff,
-		}
-	},
-}
-
 var typeVMA = &typeDesc{
 	Names:       []string{"vma", "vma64"},
 	CanBeArgRet: canBeArg,
@@ -915,6 +902,8 @@ type bool32 int32[0:1]
 type bool64 int64[0:1]
 type boolptr intptr[0:1]
 
+type fileoff[BASE] BASE
+
 type filename string[filename]
 filename = "", "."
 
@@ -935,7 +924,6 @@ func init() {
 		typeLen,
 		typeConst,
 		typeFlags,
-		typeFileoff,
 		typeVMA,
 		typeCsum,
 		typeProc,
