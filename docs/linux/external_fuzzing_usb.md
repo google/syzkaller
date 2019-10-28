@@ -49,7 +49,7 @@ Syzkaller descriptions for USB fuzzing can be found [here](/sys/linux/vusb.txt).
 
 1. Checkout the `usb-fuzzer` branch from https://github.com/google/kasan
 
-2. Configure the kernel (at the very least `CONFIG_USB_FUZZER=y` and `CONFIG_USB_DUMMY_HCD=y` need to be enabled).
+2. Configure the kernel (at the very least `CONFIG_USB_RAW_GADGET=y` and `CONFIG_USB_DUMMY_HCD=y` need to be enabled).
 
     The easiest option is to use the [config](/dashboard/config/upstream-usb.config) from the syzbot USB fuzzing instance.
 
@@ -86,7 +86,7 @@ The instructions below describe a way to generate syzkaller USB IDs for all USB 
 
 2. Build and boot the kernel.
 
-3. Connect a USB HID device. In case you're using a `CONFIG_USB_FUZZER=y` kernel, use the provided [keyboard emulation program](/tools/syz-usbgen/keyboard.c).
+3. Connect a USB HID device. In case you're using a `CONFIG_USB_RAW_GADGET=y` kernel, use the provided [keyboard emulation program](/tools/syz-usbgen/keyboard.c).
 
 4. Use [syz-usbgen](/tools/syz-usbgen/usbgen.go) script to update [syzkaller descriptions](/sys/linux/init_vusb_ids.go):
 
@@ -140,10 +140,10 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
             // triggering interaction between multiple USB devices within the same program.
     -       char device[32];
     -       sprintf(&device[0], "dummy_udc.%llu", procid);
-    -       rv = usb_fuzzer_init(fd, speed, "dummy_udc", &device[0]);
-    +       rv = usb_fuzzer_init(fd, speed, "20980000.usb", "20980000.usb");
+    -       rv = usb_raw_init(fd, speed, "dummy_udc", &device[0]);
+    +       rv = usb_raw_init(fd, speed, "20980000.usb", "20980000.usb");
             if (rv < 0) {
-                    debug("syz_usb_connect: usb_fuzzer_init failed with %d\n", rv);
+                    debug("syz_usb_connect: usb_raw_init failed with %d\n", rv);
                     return rv;
     diff --git a/executor/executor.cc b/executor/executor.cc
     index 34949a01..1afcb288 100644
@@ -192,37 +192,37 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 
 13. Get Linux kernel headers following [this](https://github.com/notro/rpi-source/wiki).
 
-14. Download the fuzzer module:
+14. Download the USB Raw Gadget module:
 
     ``` bash
     mkdir module
     cd module
-    wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/drivers/usb/gadget/fuzzer/fuzzer.c
-    wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/include/uapi/linux/usb/fuzzer.h
+    wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/drivers/usb/gadget/raw/raw.c
+    wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/include/uapi/linux/usb/raw-gadget.h
     ```
 
     Apply the following change:
 
     ``` c
-    diff --git a/fuzzer.c b/fuzzer.c
+    diff --git a/raw.c b/raw.c
     index 308c540..68d43b9 100644
-    --- a/fuzzer.c
-    +++ b/fuzzer.c
+    --- a/raw.c
+    +++ b/raw.c
     @@ -17,7 +17,7 @@
      #include <linux/usb/gadgetfs.h>
      #include <linux/usb/gadget.h>
      
-    -#include <uapi/linux/usb/fuzzer.h>
-    +#include "fuzzer.h"
+    -#include <uapi/linux/usb/raw-gadget.h>
+    +#include "raw-gadget.h"
      
-     #define        DRIVER_DESC "USB fuzzer"
-     #define DRIVER_NAME "usb-fuzzer-gadget"
+     #define        DRIVER_DESC "USB Raw Gadget"
+     #define DRIVER_NAME "raw-gadget"
     ```
 
     Add a `Makefile`:
 
     ``` make
-    obj-m := fuzzer.o
+    obj-m := raw.o
     KDIR := /lib/modules/$(shell uname -r)/build
     PWD := $(shell pwd)
     default:
@@ -231,7 +231,7 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 
     And build with `make`.
 
-15. Insert the module with `sudo insmod fuzzer.ko`.
+15. Insert the module with `sudo insmod raw.ko`.
 
 16. Build and test the [keyboard emulator program](/tools/syz-usbgen/keyboard.c):
 
@@ -249,17 +249,17 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
     index 2a6015d4..3ebd1e03 100644
     --- a/tools/syz-usbgen/keyboard.c
     +++ b/tools/syz-usbgen/keyboard.c
-    @@ -95,8 +95,8 @@ int usb_fuzzer_open() {
-     void usb_fuzzer_init(int fd, enum usb_device_speed speed) {
-            struct usb_fuzzer_init arg;
+    @@ -95,8 +95,8 @@ int usb_raw_open() {
+     void usb_raw_init(int fd, enum usb_device_speed speed) {
+            struct usb_raw_init arg;
             arg.speed = speed;
     -       arg.driver_name = "dummy_udc";
     -       arg.device_name = "dummy_udc.0";
     +       arg.driver_name = "20980000.usb";
     +       arg.device_name = "20980000.usb";
-            int rv = ioctl(fd, USB_FUZZER_IOCTL_INIT, &arg);
+            int rv = ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
             if (rv != 0) {
-                    perror("ioctl(USB_FUZZER_IOCTL_INIT)");
+                    perror("ioctl(USB_RAW_IOCTL_INIT)");
     ```
 
 17. You should now be able to execute syzkaller USB programs:
