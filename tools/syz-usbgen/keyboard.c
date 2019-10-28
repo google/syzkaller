@@ -42,49 +42,49 @@ struct hid_descriptor {
 
 /*----------------------------------------------------------------------*/
 
-enum usb_fuzzer_event_type {
-	USB_FUZZER_EVENT_INVALID,
-	USB_FUZZER_EVENT_CONNECT,
-	USB_FUZZER_EVENT_DISCONNECT,
-	USB_FUZZER_EVENT_SUSPEND,
-	USB_FUZZER_EVENT_RESUME,
-	USB_FUZZER_EVENT_CONTROL,
+enum usb_raw_event_type {
+	USB_RAW_EVENT_INVALID,
+	USB_RAW_EVENT_CONNECT,
+	USB_RAW_EVENT_DISCONNECT,
+	USB_RAW_EVENT_SUSPEND,
+	USB_RAW_EVENT_CONTROL,
 };
 
-struct usb_fuzzer_event {
+struct usb_raw_event {
 	uint32_t	type;
 	uint32_t	length;
 	char		data[0];
 };
 
-struct usb_fuzzer_init {
+struct usb_raw_init {
 	uint64_t	speed;
 	const char	*driver_name;
 	const char	*device_name;
 };
 
-struct usb_fuzzer_ep_io {
+struct usb_raw_ep_io {
 	uint16_t	ep;
 	uint16_t	flags;
 	uint32_t	length;
 	char		data[0];
 };
 
-#define USB_FUZZER_IOCTL_INIT		_IOW('U', 0, struct usb_fuzzer_init)
-#define USB_FUZZER_IOCTL_RUN		_IO('U', 1)
-#define USB_FUZZER_IOCTL_EVENT_FETCH	_IOR('U', 2, struct usb_fuzzer_event)
-#define USB_FUZZER_IOCTL_EP0_WRITE	_IOW('U', 3, struct usb_fuzzer_ep_io)
-#define USB_FUZZER_IOCTL_EP0_READ	_IOWR('U', 4, struct usb_fuzzer_ep_io)
-#define USB_FUZZER_IOCTL_EP_ENABLE	_IOW('U', 5, struct usb_endpoint_descriptor)
-#define USB_FUZZER_IOCTL_EP_WRITE	_IOW('U', 7, struct usb_fuzzer_ep_io)
-#define USB_FUZZER_IOCTL_EP_READ	_IOWR('U', 8, struct usb_fuzzer_ep_io)
-#define USB_FUZZER_IOCTL_CONFIGURE	_IO('U', 9)
-#define USB_FUZZER_IOCTL_VBUS_DRAW	_IOW('U', 10, uint32_t)
+#define USB_RAW_IOCTL_INIT		_IOW('U', 0, struct usb_raw_init)
+#define USB_RAW_IOCTL_RUN		_IO('U', 1)
+#define USB_RAW_IOCTL_EVENT_FETCH	_IOR('U', 2, struct usb_raw_event)
+#define USB_RAW_IOCTL_EP0_WRITE		_IOW('U', 3, struct usb_raw_ep_io)
+#define USB_RAW_IOCTL_EP0_READ		_IOWR('U', 4, struct usb_raw_ep_io)
+#define USB_RAW_IOCTL_EP_ENABLE		_IOW('U', 5, struct usb_endpoint_descriptor)
+#define USB_RAW_IOCTL_EP_DISABLE	_IOW('U', 6, int)
+#define USB_RAW_IOCTL_EP_WRITE		_IOW('U', 7, struct usb_raw_ep_io)
+#define USB_RAW_IOCTL_EP_READ		_IOWR('U', 8, struct usb_raw_ep_io)
+#define USB_RAW_IOCTL_CONFIGURE		_IO('U', 9)
+#define USB_RAW_IOCTL_VBUS_DRAW		_IOW('U', 10, uint32_t)
 
 /*----------------------------------------------------------------------*/
 
-int usb_fuzzer_open() {
-	int fd = open("/sys/kernel/debug/usb-fuzzer", O_RDWR);
+int usb_raw_open() {
+	int fd = open("/sys/kernel/debug/usb/raw-gadget", O_RDWR);
 	if (fd < 0) {
 		perror("open()");
 		exit(EXIT_FAILURE);
@@ -92,80 +92,80 @@ int usb_fuzzer_open() {
 	return fd;
 }
 
-void usb_fuzzer_init(int fd, enum usb_device_speed speed) {
-	struct usb_fuzzer_init arg;
+void usb_raw_init(int fd, enum usb_device_speed speed) {
+	struct usb_raw_init arg;
 	arg.speed = speed;
 	arg.driver_name = "dummy_udc";
 	arg.device_name = "dummy_udc.0";
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_INIT, &arg);
-	if (rv != 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_INIT)");
-		exit(EXIT_FAILURE);
-	}
-}
-
-void usb_fuzzer_run(int fd) {
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_RUN, 0);
-	if (rv != 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_RUN)");
-		exit(EXIT_FAILURE);
-	}
-}
-
-void usb_fuzzer_event_fetch(int fd, struct usb_fuzzer_event *event) {
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_EVENT_FETCH, event);
-	if (rv != 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_EVENT_FETCH)");
-		exit(EXIT_FAILURE);
-	}
-}
-
-void usb_fuzzer_ep0_read(int fd, struct usb_fuzzer_ep_io *io) {
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_EP0_READ, io);
-	if (rv != 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_EP0_READ)");
-		exit(EXIT_FAILURE);
-	}
-}
-
-void usb_fuzzer_ep0_write(int fd, struct usb_fuzzer_ep_io *io) {
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_EP0_WRITE, io);
-	if (rv != 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_EP0_WRITE)");
-		exit(EXIT_FAILURE);
-	}
-}
-
-int usb_fuzzer_ep_enable(int fd, struct usb_endpoint_descriptor *desc) {
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_EP_ENABLE, desc);
+	int rv = ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
 	if (rv < 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_EP_ENABLE)");
+		perror("ioctl(USB_RAW_IOCTL_INIT)");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void usb_raw_run(int fd) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_RUN, 0);
+	if (rv < 0) {
+		perror("ioctl(USB_RAW_IOCTL_RUN)");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void USB_RAW_EVENT_fetch(int fd, struct usb_raw_event *event) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_EVENT_FETCH, event);
+	if (rv < 0) {
+		perror("ioctl(USB_RAW_IOCTL_EVENT_FETCH)");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void usb_raw_ep0_read(int fd, struct usb_raw_ep_io *io) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_EP0_READ, io);
+	if (rv < 0) {
+		perror("ioctl(USB_RAW_IOCTL_EP0_READ)");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void usb_raw_ep0_write(int fd, struct usb_raw_ep_io *io) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
+	if (rv < 0) {
+		perror("ioctl(USB_RAW_IOCTL_EP0_WRITE)");
+		exit(EXIT_FAILURE);
+	}
+}
+
+int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor *desc) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_EP_ENABLE, desc);
+	if (rv < 0) {
+		perror("ioctl(USB_RAW_IOCTL_EP_ENABLE)");
 		exit(EXIT_FAILURE);
 	}
 	return rv;
 }
 
-int usb_fuzzer_ep_write(int fd, struct usb_fuzzer_ep_io *io) {
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_EP_WRITE, io);
+int usb_raw_ep_write(int fd, struct usb_raw_ep_io *io) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_EP_WRITE, io);
 	if (rv < 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_EP_WRITE)");
+		perror("ioctl(USB_RAW_IOCTL_EP_WRITE)");
 		exit(EXIT_FAILURE);
 	}
 	return rv;
 }
 
-void usb_fuzzer_configure(int fd) {
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_CONFIGURE, 0);
+void usb_raw_configure(int fd) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_CONFIGURE, 0);
 	if (rv < 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_CONFIGURED)");
+		perror("ioctl(USB_RAW_IOCTL_CONFIGURED)");
 		exit(EXIT_FAILURE);
 	}
 }
 
-void usb_fuzzer_vbus_draw(int fd, uint32_t power) {
-	int rv = ioctl(fd, USB_FUZZER_IOCTL_VBUS_DRAW, power);
+void usb_raw_vbus_draw(int fd, uint32_t power) {
+	int rv = ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW, power);
 	if (rv < 0) {
-		perror("ioctl(USB_FUZZER_IOCTL_VBUS_DRAW)");
+		perror("ioctl(USB_RAW_IOCTL_VBUS_DRAW)");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -483,21 +483,18 @@ void log_control_request(struct usb_ctrlrequest *ctrl) {
 	}
 }
 
-void log_event(struct usb_fuzzer_event *event) {
+void log_event(struct usb_raw_event *event) {
 	switch (event->type) {
-	case USB_FUZZER_EVENT_CONNECT:
+	case USB_RAW_EVENT_CONNECT:
 		printf("event: connect, length: %u\n", event->length);
 		break;
-	case USB_FUZZER_EVENT_DISCONNECT:
+	case USB_RAW_EVENT_DISCONNECT:
 		printf("event: disconnect, length: %u\n", event->length);
 		break;
-	case USB_FUZZER_EVENT_SUSPEND:
+	case USB_RAW_EVENT_SUSPEND:
 		printf("event: suspend, length: %u\n", event->length);
 		break;
-	case USB_FUZZER_EVENT_RESUME:
-		printf("event: resume, length: %u\n", event->length);
-		break;
-	case USB_FUZZER_EVENT_CONTROL:
+	case USB_RAW_EVENT_CONTROL:
 		printf("event: control, length: %u\n", event->length);
 		log_control_request((struct usb_ctrlrequest *)&event->data[0]);
 		break;
@@ -508,18 +505,18 @@ void log_event(struct usb_fuzzer_event *event) {
 
 /*----------------------------------------------------------------------*/
 
-struct usb_fuzzer_control_event {
-	struct usb_fuzzer_event		inner;
+struct usb_raw_control_event {
+	struct usb_raw_event		inner;
 	struct usb_ctrlrequest		ctrl;
 };
 
-struct usb_fuzzer_control_io {
-	struct usb_fuzzer_ep_io		inner;
+struct usb_raw_control_io {
+	struct usb_raw_ep_io		inner;
 	char				data[MAX_PACKET_SIZE];
 };
 
-struct usb_fuzzer_keyboard_io {
-	struct usb_fuzzer_ep_io		inner;
+struct usb_raw_keyboard_io {
+	struct usb_raw_ep_io		inner;
 	char				data[8];
 };
 
@@ -529,18 +526,18 @@ int keyboard_connect(int fd) {
 
 	bool done = false;
 	while (!done) {
-		struct usb_fuzzer_control_event event;
+		struct usb_raw_control_event event;
 		event.inner.type = 0;
 		event.inner.length = sizeof(event.ctrl);
 
-		struct usb_fuzzer_control_io response;
+		struct usb_raw_control_io response;
 		response.inner.ep = 0;
 		response.inner.flags = 0;
 		response.inner.length = 0;
 
-		usb_fuzzer_event_fetch(fd, (struct usb_fuzzer_event *)&event);
-		log_event((struct usb_fuzzer_event *)&event);
-		if (event.inner.type != USB_FUZZER_EVENT_CONTROL)
+		USB_RAW_EVENT_fetch(fd, (struct usb_raw_event *)&event);
+		log_event((struct usb_raw_event *)&event);
+		if (event.inner.type != USB_RAW_EVENT_CONTROL)
 			continue;
 
 		switch (event.ctrl.bRequestType & USB_TYPE_MASK) {
@@ -582,9 +579,9 @@ int keyboard_connect(int fd) {
 				}
 				break;
 			case USB_REQ_SET_CONFIGURATION:
-				ep = usb_fuzzer_ep_enable(fd, &usb_endpoint);
-				usb_fuzzer_vbus_draw(fd, usb_config.bMaxPower);
-				usb_fuzzer_configure(fd);
+				ep = usb_raw_ep_enable(fd, &usb_endpoint);
+				usb_raw_vbus_draw(fd, usb_config.bMaxPower);
+				usb_raw_configure(fd);
 				response.inner.length = 0;
 				goto reply;
 			case USB_REQ_GET_INTERFACE:
@@ -623,9 +620,9 @@ reply:
 		if (event.ctrl.wLength < response.inner.length)
 			response.inner.length = event.ctrl.wLength;
 		if (event.ctrl.bRequestType & USB_DIR_IN)
-			usb_fuzzer_ep0_write(fd, (struct usb_fuzzer_ep_io *)&response);
+			usb_raw_ep0_write(fd, (struct usb_raw_ep_io *)&response);
 		else
-			usb_fuzzer_ep0_read(fd, (struct usb_fuzzer_ep_io *)&response);
+			usb_raw_ep0_read(fd, (struct usb_raw_ep_io *)&response);
 	}
 
 	printf("endpoint: #%d\n", ep);
@@ -633,18 +630,18 @@ reply:
 }
 
 void keyboard_loop(int fd, int ep) {
-	struct usb_fuzzer_keyboard_io io;
+	struct usb_raw_keyboard_io io;
 	io.inner.ep = ep;
 	io.inner.flags = 0;
 	io.inner.length = 8;
 
 	while (true) {
 		memcpy(&io.inner.data[0], "\x00\x00\x1b\x00\x00\x00\x00\x00", 8);
-		int rv = usb_fuzzer_ep_write(fd, (struct usb_fuzzer_ep_io *)&io);
+		int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
 		printf("key down: %d\n", rv);
 
 		memcpy(&io.inner.data[0], "\x00\x00\x00\x00\x00\x00\x00\x00", 8);
-		rv = usb_fuzzer_ep_write(fd, (struct usb_fuzzer_ep_io *)&io);
+		rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
 		printf("key up: %d\n", rv);
 
 		sleep(1);
@@ -652,9 +649,9 @@ void keyboard_loop(int fd, int ep) {
 }
 
 int main(int argc, char **argv) {
-	int fd = usb_fuzzer_open();
-	usb_fuzzer_init(fd, USB_SPEED_HIGH);
-	usb_fuzzer_run(fd);
+	int fd = usb_raw_open();
+	usb_raw_init(fd, USB_SPEED_HIGH);
+	usb_raw_run(fd);
 
 	int ep = keyboard_connect(fd);
 
