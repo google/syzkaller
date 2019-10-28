@@ -42,7 +42,7 @@ function util_add_usb_bits {
   scripts/config -e CONFIG_USB_GADGET
   scripts/config -e CONFIG_USB_GADGETFS
   scripts/config -e CONFIG_USB_DUMMY_HCD
-  scripts/config -e CONFIG_USB_FUZZER
+  scripts/config -e CONFIG_USB_RAW_GADGET
 
   make ${MAKE_VARS} olddefconfig
 }
