@@ -1,0 +1,51 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/seccomp.h>
+include <asm/ioctls.h>
+
+resource fd_seccomp[fd]
+resource seccomp_id[int64]
+
+seccomp$SECCOMP_SET_MODE_STRICT(op const[SECCOMP_SET_MODE_STRICT], flags const[0], arg const[0])
+seccomp$SECCOMP_SET_MODE_FILTER(op const[SECCOMP_SET_MODE_FILTER], flags flags[seccomp_flags], arg ptr[in, sock_fprog])
+seccomp$SECCOMP_SET_MODE_FILTER_LISTENER(op const[SECCOMP_SET_MODE_FILTER], flags flags[seccomp_flags_listener], arg ptr[in, sock_fprog]) fd_seccomp
+seccomp$SECCOMP_GET_ACTION_AVAIL(op const[SECCOMP_GET_ACTION_AVAIL], flags const[0], arg ptr[in, int32])
+seccomp$SECCOMP_GET_NOTIF_SIZES(op const[SECCOMP_GET_NOTIF_SIZES], flags const[0], arg ptr[out, seccomp_notif_sizes])
+
+ioctl$SECCOMP_IOCTL_NOTIF_RECV(fd fd_seccomp, cmd const[SECCOMP_IOCTL_NOTIF_RECV], arg ptr[out, seccomp_notif])
+ioctl$SECCOMP_IOCTL_NOTIF_SEND(fd fd_seccomp, cmd const[SECCOMP_IOCTL_NOTIF_SEND], arg ptr[in, seccomp_notif_resp])
+ioctl$SECCOMP_IOCTL_NOTIF_ID_VALID(fd fd_seccomp, cmd const[SECCOMP_IOCTL_NOTIF_ID_VALID], arg ptr[in, seccomp_id])
+
+seccomp_notif_sizes {
+	seccomp_notif		int16
+	seccomp_notif_resp	int16
+	seccomp_data		int16
+}
+
+seccomp_notif {
+	id	seccomp_id
+	pid	pid
+	flags	int32
+	data	seccomp_data
+}
+
+seccomp_data {
+	nr			int32
+	arch			int32
+	instruction_pointer	int64
+	args			array[int64, 6]
+}
+
+seccomp_notif_resp {
+	id	seccomp_id
+	val	int64
+	error	int32
+	flags	const[0, int32]
+}
+
+seccomp_flags = 0, SECCOMP_FILTER_FLAG_TSYNC, SECCOMP_FILTER_FLAG_LOG, SECCOMP_FILTER_FLAG_SPEC_ALLOW
+seccomp_flags_listener = SECCOMP_FILTER_FLAG_NEW_LISTENER, SECCOMP_FILTER_FLAG_LOG_LISTENER, SECCOMP_FILTER_FLAG_SPEC_ALLOW_LISTENER
+
+define SECCOMP_FILTER_FLAG_LOG_LISTENER	SECCOMP_FILTER_FLAG_LOG | SECCOMP_FILTER_FLAG_NEW_LISTENER
+define SECCOMP_FILTER_FLAG_SPEC_ALLOW_LISTENER	SECCOMP_FILTER_FLAG_SPEC_ALLOW | SECCOMP_FILTER_FLAG_NEW_LISTENER

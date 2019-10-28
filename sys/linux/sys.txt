@@ -24,7 +24,6 @@ include <linux/fadvise.h>
 include <linux/falloc.h>
 include <linux/futex.h>
 include <linux/kexec.h>
-include <linux/seccomp.h>
 include <linux/elf.h>
 include <linux/fiemap.h>
 include <linux/kd.h>
@@ -51,6 +50,7 @@ include <linux/membarrier.h>
 include <uapi/linux/kcov.h>
 include <uapi/linux/membarrier.h>
 include <uapi/linux/capability.h>
+include <uapi/linux/seccomp.h>
 include <uapi/linux/suspend_ioctls.h>
 
 resource fd[int32]: -1
@@ -212,7 +212,6 @@ seccomp_metadata {
 
 capget(hdr ptr[in, cap_header], data ptr[in, cap_data])
 capset(hdr ptr[in, cap_header], data ptr[in, cap_data])
-seccomp(op flags[seccomp_op], flags flags[seccomp_flags], prog ptr[in, sock_fprog])
 
 resource fd_mq[fd]
 mq_open(name ptr[in, string], flags flags[mq_open_flags], mode flags[open_mode], attr ptr[in, mq_attr]) fd_mq
@@ -884,8 +883,6 @@ linkat_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
 unlinkat_flags = 0, AT_REMOVEDIR
 renameat2_flags = RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT
 flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
-seccomp_op = SECCOMP_SET_MODE_STRICT, SECCOMP_SET_MODE_FILTER
-seccomp_flags = 0, SECCOMP_FILTER_FLAG_TSYNC
 statx_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUNT, AT_EMPTY_PATH, AT_STATX_SYNC_TYPE, AT_STATX_SYNC_AS_STAT, AT_STATX_FORCE_SYNC, AT_STATX_DONT_SYNC
 statx_mask = STATX_TYPE, STATX_MODE, STATX_NLINK, STATX_UID, STATX_GID, STATX_ATIME, STATX_MTIME, STATX_CTIME, STATX_INO, STATX_SIZE, STATX_BLOCKS, STATX_BASIC_STATS, STATX_BTIME, STATX_ALL
 name_to_handle_at_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
