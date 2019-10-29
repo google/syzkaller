@@ -20,6 +20,10 @@
 // All APIs in this package are experimental.
 package resolver
 
+import (
+	"google.golang.org/grpc/serviceconfig"
+)
+
 var (
 	// m is a map from scheme to resolver builder.
 	m = make(map[string]Builder)
@@ -49,8 +53,12 @@ func Get(scheme string) Builder {
 	return nil
 }
 
-// SetDefaultScheme sets the default scheme that will be used.
-// The default default scheme is "passthrough".
+// SetDefaultScheme sets the default scheme that will be used. The default
+// default scheme is "passthrough".
+//
+// NOTE: this function must only be called during initialization time (i.e. in
+// an init() function), and is not thread-safe. The scheme set last overrides
+// previously set values.
 func SetDefaultScheme(scheme string) {
 	defaultScheme = scheme
 }
@@ -78,9 +86,16 @@ type Address struct {
 	// Type is the type of this address.
 	Type AddressType
 	// ServerName is the name of this address.
+	// If non-empty, the ServerName is used as the transport certification authority for
+	// the address, instead of the hostname from the Dial target string. In most cases,
+	// this should not be set.
 	//
-	// e.g. if Type is GRPCLB, ServerName should be the name of the remote load
+	// If Type is GRPCLB, ServerName should be the name of the remote load
 	// balancer, not the name of the backend.
+	//
+	// WARNING: ServerName must only be populated with trusted values. It
+	// is insecure to populate it with data from untrusted inputs since untrusted
+	// values could be used to bypass the authority checks performed by TLS.
 	ServerName string
 	// Metadata is the information associated with Addr, which may be used
 	// to make load balancing decision.
@@ -94,6 +109,17 @@ type BuildOption struct {
 	DisableServiceConfig bool
 }
 
+// State contains the current Resolver state relevant to the ClientConn.
+type State struct {
+	// Addresses is the latest set of resolved addresses for the target.
+	Addresses []Address
+
+	// ServiceConfig contains the result from parsing the latest service
+	// config.  If it is nil, it indicates no service config is present or the
+	// resolver does not provide service configs.
+	ServiceConfig *serviceconfig.ParseResult
+}
+
 // ClientConn contains the callbacks for resolver to notify any updates
 // to the gRPC ClientConn.
 //
@@ -102,17 +128,45 @@ type BuildOption struct {
 // testing, the new implementation should embed this interface. This allows
 // gRPC to add new methods to this interface.
 type ClientConn interface {
+	// UpdateState updates the state of the ClientConn appropriately.
+	UpdateState(State)
+	// ReportError notifies the ClientConn that the Resolver encountered an
+	// error.  The ClientConn will notify the load balancer and begin calling
+	// ResolveNow on the Resolver with exponential backoff.
+	ReportError(error)
 	// NewAddress is called by resolver to notify ClientConn a new list
 	// of resolved addresses.
 	// The address list should be the complete list of resolved addresses.
+	//
+	// Deprecated: Use UpdateState instead.
 	NewAddress(addresses []Address)
 	// NewServiceConfig is called by resolver to notify ClientConn a new
 	// service config. The service config should be provided as a json string.
+	//
+	// Deprecated: Use UpdateState instead.
 	NewServiceConfig(serviceConfig string)
+	// ParseServiceConfig parses the provided service config and returns an
+	// object that provides the parsed config.
+	ParseServiceConfig(serviceConfigJSON string) *serviceconfig.ParseResult
 }
 
 // Target represents a target for gRPC, as specified in:
 // https://github.com/grpc/grpc/blob/master/doc/naming.md.
+// It is parsed from the target string that gets passed into Dial or DialContext by the user. And
+// grpc passes it to the resolver and the balancer.
+//
+// If the target follows the naming spec, and the parsed scheme is registered with grpc, we will
+// parse the target string according to the spec. e.g. "dns://some_authority/foo.bar" will be parsed
+// into &Target{Scheme: "dns", Authority: "some_authority", Endpoint: "foo.bar"}
+//
+// If the target does not contain a scheme, we will apply the default scheme, and set the Target to
+// be the full target string. e.g. "foo.bar" will be parsed into
+// &Target{Scheme: resolver.GetDefaultScheme(), Endpoint: "foo.bar"}.
+//
+// If the parsed scheme is not registered (i.e. no corresponding resolver available to resolve the
+// endpoint), we set the Scheme to be the default scheme, and set the Endpoint to be the full target
+// string. e.g. target string "unknown_scheme://authority/endpoint" will be parsed into
+// &Target{Scheme: resolver.GetDefaultScheme(), Endpoint: "unknown_scheme://authority/endpoint"}.
 type Target struct {
 	Scheme    string
 	Authority string

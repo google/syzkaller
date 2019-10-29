@@ -25,6 +25,12 @@ type Options struct {
 	// StronglyConsistentDatastore is whether the local datastore should be
 	// strongly consistent. This will diverge from production behaviour.
 	StronglyConsistentDatastore bool
+	// SupportDatastoreEmulator is whether use Cloud Datastore Emulator or
+	// use old SQLite based Datastore backend or use default settings.
+	SupportDatastoreEmulator *bool
+	// SuppressDevAppServerLog is whether the dev_appserver running in tests
+	// should output logs.
+	SuppressDevAppServerLog bool
 	// StartupTimeout is a duration to wait for instance startup.
 	// By default, 15 seconds.
 	StartupTimeout time.Duration

@@ -8,6 +8,7 @@ package cmpopts
 import (
 	"math"
 	"reflect"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -86,4 +87,39 @@ func areNaNsF64s(x, y float64) bool {
 }
 func areNaNsF32s(x, y float32) bool {
 	return areNaNsF64s(float64(x), float64(y))
+}
+
+// EquateApproxTime returns a Comparer options that
+// determine two time.Time values to be equal if they
+// are within the given time interval of one another.
+// Note that if both times have a monotonic clock reading,
+// the monotonic time difference will be used.
+//
+// The zero time is treated specially: it is only considered
+// equal to another zero time value.
+//
+// It will panic if margin is negative.
+func EquateApproxTime(margin time.Duration) cmp.Option {
+	if margin < 0 {
+		panic("negative duration in EquateApproxTime")
+	}
+	return cmp.FilterValues(func(x, y time.Time) bool {
+		return !x.IsZero() && !y.IsZero()
+	}, cmp.Comparer(timeApproximator{margin}.compare))
+}
+
+type timeApproximator struct {
+	margin time.Duration
+}
+
+func (a timeApproximator) compare(x, y time.Time) bool {
+	// Avoid subtracting times to avoid overflow when the
+	// difference is larger than the largest representible duration.
+	if x.After(y) {
+		// Ensure x is always before y
+		x, y = y, x
+	}
+	// We're within the margin if x+margin >= y.
+	// Note: time.Time doesn't have AfterOrEqual method hence the negation.
+	return !x.Add(a.margin).Before(y)
 }
