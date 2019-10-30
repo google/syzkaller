@@ -6,7 +6,7 @@
 include <fuchsia/timezone/c/fidl.h>
 
 fuchsia_timezone_TimeServiceUpdateRequest {
-	hdr		fidl_message_header[158808681]
+	hdr		fidl_message_header[682078091215896576]
 	num_retries	int8
 } [packed]
 
@@ -26,7 +26,7 @@ fdio_service_connect$fuchsia_timezone_TimeService(path ptr[in, string["/svc/fuch
 zx_channel_call$fuchsia_timezone_TimeServiceUpdate(handle zx_chan_fuchsia_timezone_TimeService_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_timezone_TimeServiceUpdateRequest, fuchsia_timezone_TimeServiceUpdateRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_timezone_TimeServiceUpdateResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_timezone_TimezoneGetTimezoneOffsetMinutesRequest {
-	hdr				fidl_message_header[1814425986]
+	hdr				fidl_message_header[7792900270882553856]
 	milliseconds_since_epoch	int64
 } [packed]
 
@@ -39,7 +39,7 @@ fuchsia_timezone_TimezoneGetTimezoneOffsetMinutesResponseHandles {
 } [packed]
 
 fuchsia_timezone_TimezoneSetTimezoneRequest {
-	hdr			fidl_message_header[1904474588]
+	hdr			fidl_message_header[8179656071523074048]
 	timezone_idInLine	fidl_string
 	timezone_idOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -53,7 +53,7 @@ fuchsia_timezone_TimezoneSetTimezoneResponseHandles {
 } [packed]
 
 fuchsia_timezone_TimezoneGetTimezoneIdRequest {
-	hdr	fidl_message_header[1119663833]
+	hdr	fidl_message_header[4808919545249005568]
 } [packed]
 
 fuchsia_timezone_TimezoneGetTimezoneIdRequestHandles {
@@ -65,7 +65,7 @@ fuchsia_timezone_TimezoneGetTimezoneIdResponseHandles {
 } [packed]
 
 fuchsia_timezone_TimezoneWatchRequest {
-	hdr	fidl_message_header[2067944433]
+	hdr	fidl_message_header[8881753709680263168]
 	watcher	flags[fidl_handle_presence, int32]
 } [packed]
 
@@ -84,7 +84,7 @@ zx_channel_call$fuchsia_timezone_TimezoneGetTimezoneId(handle zx_chan_fuchsia_ti
 zx_channel_write$fuchsia_timezone_TimezoneWatch(handle zx_chan_fuchsia_timezone_Timezone_client, options const[0], bytes ptr[in, fuchsia_timezone_TimezoneWatchRequest], num_bytes bytesize[bytes], handles ptr[in, fuchsia_timezone_TimezoneWatchRequestHandles], num_handles bytesize[handles])
 
 fuchsia_timezone_TimezoneWatcherOnTimezoneOffsetChangeRequest {
-	hdr			fidl_message_header[1964417497]
+	hdr			fidl_message_header[8437108905305178112]
 	timezone_idInLine	fidl_string
 	timezone_idOutOfLine	fidl_aligned[stringnoz]
 } [packed]

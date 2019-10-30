@@ -101,7 +101,7 @@ fuchsia_cobalt_EventPayloadInLine [
 ]
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerRequest {
-	hdr			fidl_message_header[1594393985]
+	hdr			fidl_message_header[6847870022514114560]
 	profileInLine		fuchsia_cobalt_ProjectProfileInLine
 	logger			flags[fidl_handle_presence, int32]
 	profileOutOfLine	fuchsia_cobalt_ProjectProfileOutOfLine
@@ -117,7 +117,7 @@ fuchsia_cobalt_LoggerFactoryCreateLoggerResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleRequest {
-	hdr			fidl_message_header[1594344351]
+	hdr			fidl_message_header[6847656846107344896]
 	profileInLine		fuchsia_cobalt_ProjectProfileInLine
 	logger			flags[fidl_handle_presence, int32]
 	profileOutOfLine	fuchsia_cobalt_ProjectProfileOutOfLine
@@ -133,7 +133,7 @@ fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerFromProjectNameRequest {
-	hdr			fidl_message_header[537166031]
+	hdr			fidl_message_header[2307110535667122176]
 	project_nameInLine	fidl_string
 	release_stage		flags[fuchsia_cobalt_ReleaseStage, int32]
 	logger			flags[fidl_handle_presence, int32]
@@ -149,7 +149,7 @@ fuchsia_cobalt_LoggerFactoryCreateLoggerFromProjectNameResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleFromProjectNameRequest {
-	hdr			fidl_message_header[930272946]
+	hdr			fidl_message_header[3995491879423574016]
 	project_nameInLine	fidl_string
 	release_stage		flags[fuchsia_cobalt_ReleaseStage, int32]
 	logger			flags[fidl_handle_presence, int32]
@@ -175,7 +175,7 @@ zx_channel_call$fuchsia_cobalt_LoggerFactoryCreateLoggerFromProjectName(handle z
 zx_channel_call$fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleFromProjectName(handle zx_chan_fuchsia_cobalt_LoggerFactory_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleFromProjectNameRequest, fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleFromProjectNameRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleFromProjectNameResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_LoggerBaseLogEventRequest {
-	hdr		fidl_message_header[324887181]
+	hdr		fidl_message_header[1395379817284632576]
 	metric_id	int32
 	event_code	int32
 } [packed]
@@ -189,7 +189,7 @@ fuchsia_cobalt_LoggerBaseLogEventResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerBaseLogEventCountRequest {
-	hdr			fidl_message_header[1875801957]
+	hdr			fidl_message_header[8056508059087798272]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -207,7 +207,7 @@ fuchsia_cobalt_LoggerBaseLogEventCountResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerBaseLogElapsedTimeRequest {
-	hdr			fidl_message_header[351572256]
+	hdr			fidl_message_header[1509991341700939776]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -224,7 +224,7 @@ fuchsia_cobalt_LoggerBaseLogElapsedTimeResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerBaseLogFrameRateRequest {
-	hdr			fidl_message_header[730276536]
+	hdr			fidl_message_header[3136513839156166656]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -241,7 +241,7 @@ fuchsia_cobalt_LoggerBaseLogFrameRateResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerBaseLogMemoryUsageRequest {
-	hdr			fidl_message_header[1724292379]
+	hdr			fidl_message_header[7405779376547037184]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -258,7 +258,7 @@ fuchsia_cobalt_LoggerBaseLogMemoryUsageResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerBaseLogStringRequest {
-	hdr		fidl_message_header[1288241002]
+	hdr		fidl_message_header[5532952972956270592]
 	metric_id	int32
 	sInLine		fidl_string
 	sOutOfLine	fidl_aligned[stringnoz]
@@ -273,7 +273,7 @@ fuchsia_cobalt_LoggerBaseLogStringResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerBaseStartTimerRequest {
-	hdr			fidl_message_header[1247568160]
+	hdr			fidl_message_header[5358264446730895360]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -293,7 +293,7 @@ fuchsia_cobalt_LoggerBaseStartTimerResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerBaseEndTimerRequest {
-	hdr			fidl_message_header[1708879426]
+	hdr			fidl_message_header[7339581247477252096]
 	timer_idInLine		fidl_string
 	timestamp		int64
 	timeout_s		int32
@@ -323,7 +323,7 @@ zx_channel_call$fuchsia_cobalt_LoggerBaseStartTimer(handle zx_chan_fuchsia_cobal
 zx_channel_call$fuchsia_cobalt_LoggerBaseEndTimer(handle zx_chan_fuchsia_cobalt_LoggerBase_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerBaseEndTimerRequest, fuchsia_cobalt_LoggerBaseEndTimerRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerBaseEndTimerResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_LoggerLogEventRequest {
-	hdr		fidl_message_header[324887181]
+	hdr		fidl_message_header[1395379817284632576]
 	metric_id	int32
 	event_code	int32
 } [packed]
@@ -337,7 +337,7 @@ fuchsia_cobalt_LoggerLogEventResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogEventCountRequest {
-	hdr			fidl_message_header[1875801957]
+	hdr			fidl_message_header[8056508059087798272]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -355,7 +355,7 @@ fuchsia_cobalt_LoggerLogEventCountResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogElapsedTimeRequest {
-	hdr			fidl_message_header[351572256]
+	hdr			fidl_message_header[1509991341700939776]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -372,7 +372,7 @@ fuchsia_cobalt_LoggerLogElapsedTimeResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogFrameRateRequest {
-	hdr			fidl_message_header[730276536]
+	hdr			fidl_message_header[3136513839156166656]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -389,7 +389,7 @@ fuchsia_cobalt_LoggerLogFrameRateResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogMemoryUsageRequest {
-	hdr			fidl_message_header[1724292379]
+	hdr			fidl_message_header[7405779376547037184]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -406,7 +406,7 @@ fuchsia_cobalt_LoggerLogMemoryUsageResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogStringRequest {
-	hdr		fidl_message_header[1288241002]
+	hdr		fidl_message_header[5532952972956270592]
 	metric_id	int32
 	sInLine		fidl_string
 	sOutOfLine	fidl_aligned[stringnoz]
@@ -421,7 +421,7 @@ fuchsia_cobalt_LoggerLogStringResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerStartTimerRequest {
-	hdr			fidl_message_header[1247568160]
+	hdr			fidl_message_header[5358264446730895360]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -441,7 +441,7 @@ fuchsia_cobalt_LoggerStartTimerResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerEndTimerRequest {
-	hdr			fidl_message_header[1708879426]
+	hdr			fidl_message_header[7339581247477252096]
 	timer_idInLine		fidl_string
 	timestamp		int64
 	timeout_s		int32
@@ -457,7 +457,7 @@ fuchsia_cobalt_LoggerEndTimerResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogIntHistogramRequest {
-	hdr			fidl_message_header[2063400240]
+	hdr			fidl_message_header[8862236549358551040]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -475,7 +475,7 @@ fuchsia_cobalt_LoggerLogIntHistogramResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogCustomEventRequest {
-	hdr			fidl_message_header[1023246268]
+	hdr			fidl_message_header[4394809256814051328]
 	metric_id		int32
 	event_valuesInLine	fidl_vector
 	event_valuesOutOfLine	parallel_array[fuchsia_cobalt_CustomEventValueInLine, fuchsia_cobalt_CustomEventValueOutOfLine]
@@ -490,7 +490,7 @@ fuchsia_cobalt_LoggerLogCustomEventResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogCobaltEventRequest {
-	hdr		fidl_message_header[1719478404]
+	hdr		fidl_message_header[7385103511358275584]
 	eventInLine	fuchsia_cobalt_CobaltEventInLine
 	eventOutOfLine	fuchsia_cobalt_CobaltEventOutOfLine
 } [packed]
@@ -504,7 +504,7 @@ fuchsia_cobalt_LoggerLogCobaltEventResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerLogCobaltEventsRequest {
-	hdr		fidl_message_header[688248468]
+	hdr		fidl_message_header[2956004661582102528]
 	eventsInLine	fidl_vector
 	eventsOutOfLine	parallel_array[fuchsia_cobalt_CobaltEventInLine, fuchsia_cobalt_CobaltEventOutOfLine]
 } [packed]
@@ -536,7 +536,7 @@ zx_channel_call$fuchsia_cobalt_LoggerLogCobaltEvent(handle zx_chan_fuchsia_cobal
 zx_channel_call$fuchsia_cobalt_LoggerLogCobaltEvents(handle zx_chan_fuchsia_cobalt_Logger_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerLogCobaltEventsRequest, fuchsia_cobalt_LoggerLogCobaltEventsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerLogCobaltEventsResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_LoggerSimpleLogEventRequest {
-	hdr		fidl_message_header[324887181]
+	hdr		fidl_message_header[1395379817284632576]
 	metric_id	int32
 	event_code	int32
 } [packed]
@@ -550,7 +550,7 @@ fuchsia_cobalt_LoggerSimpleLogEventResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerSimpleLogEventCountRequest {
-	hdr			fidl_message_header[1875801957]
+	hdr			fidl_message_header[8056508059087798272]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -568,7 +568,7 @@ fuchsia_cobalt_LoggerSimpleLogEventCountResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerSimpleLogElapsedTimeRequest {
-	hdr			fidl_message_header[351572256]
+	hdr			fidl_message_header[1509991341700939776]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -585,7 +585,7 @@ fuchsia_cobalt_LoggerSimpleLogElapsedTimeResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerSimpleLogFrameRateRequest {
-	hdr			fidl_message_header[730276536]
+	hdr			fidl_message_header[3136513839156166656]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -602,7 +602,7 @@ fuchsia_cobalt_LoggerSimpleLogFrameRateResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerSimpleLogMemoryUsageRequest {
-	hdr			fidl_message_header[1724292379]
+	hdr			fidl_message_header[7405779376547037184]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -619,7 +619,7 @@ fuchsia_cobalt_LoggerSimpleLogMemoryUsageResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerSimpleLogStringRequest {
-	hdr		fidl_message_header[1288241002]
+	hdr		fidl_message_header[5532952972956270592]
 	metric_id	int32
 	sInLine		fidl_string
 	sOutOfLine	fidl_aligned[stringnoz]
@@ -634,7 +634,7 @@ fuchsia_cobalt_LoggerSimpleLogStringResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerSimpleStartTimerRequest {
-	hdr			fidl_message_header[1247568160]
+	hdr			fidl_message_header[5358264446730895360]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -654,7 +654,7 @@ fuchsia_cobalt_LoggerSimpleStartTimerResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerSimpleEndTimerRequest {
-	hdr			fidl_message_header[1708879426]
+	hdr			fidl_message_header[7339581247477252096]
 	timer_idInLine		fidl_string
 	timestamp		int64
 	timeout_s		int32
@@ -670,7 +670,7 @@ fuchsia_cobalt_LoggerSimpleEndTimerResponseHandles {
 } [packed]
 
 fuchsia_cobalt_LoggerSimpleLogIntHistogramRequest {
-	hdr			fidl_message_header[759190088]
+	hdr			fidl_message_header[3260696599407362048]
 	metric_id		int32
 	event_code		int32
 	componentInLine		fidl_string
@@ -705,7 +705,7 @@ zx_channel_call$fuchsia_cobalt_LoggerSimpleEndTimer(handle zx_chan_fuchsia_cobal
 zx_channel_call$fuchsia_cobalt_LoggerSimpleLogIntHistogram(handle zx_chan_fuchsia_cobalt_LoggerSimple_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_LoggerSimpleLogIntHistogramRequest, fuchsia_cobalt_LoggerSimpleLogIntHistogramRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_LoggerSimpleLogIntHistogramResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest {
-	hdr			fidl_message_header[1903807121]
+	hdr			fidl_message_header[8176789322586914816]
 	experimentsInLine	fidl_vector
 	experimentsOutOfLine	parallel_array[fuchsia_cobalt_ExperimentInLine, fuchsia_cobalt_ExperimentOutOfLine]
 } [packed]
@@ -719,7 +719,7 @@ fuchsia_cobalt_SystemDataUpdaterSetExperimentStateResponseHandles {
 } [packed]
 
 fuchsia_cobalt_SystemDataUpdaterSetChannelRequest {
-	hdr				fidl_message_header[938569873]
+	hdr				fidl_message_header[4031126909545873408]
 	current_channelInLine		fidl_string
 	current_channelOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -741,7 +741,7 @@ zx_channel_call$fuchsia_cobalt_SystemDataUpdaterSetExperimentState(handle zx_cha
 zx_channel_call$fuchsia_cobalt_SystemDataUpdaterSetChannel(handle zx_chan_fuchsia_cobalt_SystemDataUpdater_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_cobalt_SystemDataUpdaterSetChannelRequest, fuchsia_cobalt_SystemDataUpdaterSetChannelRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_cobalt_SystemDataUpdaterSetChannelResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_cobalt_ControllerRequestSendSoonRequest {
-	hdr	fidl_message_header[148310311]
+	hdr	fidl_message_header[636987935404589056]
 } [packed]
 
 fuchsia_cobalt_ControllerRequestSendSoonRequestHandles {
@@ -753,7 +753,7 @@ fuchsia_cobalt_ControllerRequestSendSoonResponseHandles {
 } [packed]
 
 fuchsia_cobalt_ControllerBlockUntilEmptyRequest {
-	hdr			fidl_message_header[737508914]
+	hdr			fidl_message_header[3167576666138476544]
 	max_wait_seconds	int32
 } [packed]
 
@@ -766,7 +766,7 @@ fuchsia_cobalt_ControllerBlockUntilEmptyResponseHandles {
 } [packed]
 
 fuchsia_cobalt_ControllerGetNumSendAttemptsRequest {
-	hdr	fidl_message_header[1476784191]
+	hdr	fidl_message_header[6342739803594817536]
 } [packed]
 
 fuchsia_cobalt_ControllerGetNumSendAttemptsRequestHandles {
@@ -778,7 +778,7 @@ fuchsia_cobalt_ControllerGetNumSendAttemptsResponseHandles {
 } [packed]
 
 fuchsia_cobalt_ControllerGetFailedSendAttemptsRequest {
-	hdr	fidl_message_header[976719687]
+	hdr	fidl_message_header[4194979113024356352]
 } [packed]
 
 fuchsia_cobalt_ControllerGetFailedSendAttemptsRequestHandles {
@@ -790,7 +790,7 @@ fuchsia_cobalt_ControllerGetFailedSendAttemptsResponseHandles {
 } [packed]
 
 fuchsia_cobalt_ControllerGetNumObservationsAddedRequest {
-	hdr	fidl_message_header[680119621]
+	hdr	fidl_message_header[2921091529562914816]
 } [packed]
 
 fuchsia_cobalt_ControllerGetNumObservationsAddedRequestHandles {
@@ -802,7 +802,7 @@ fuchsia_cobalt_ControllerGetNumObservationsAddedResponseHandles {
 } [packed]
 
 fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequest {
-	hdr			fidl_message_header[1523993550]
+	hdr			fidl_message_header[6545502456564940800]
 	day_index		int32
 	report_idsInLine	fidl_vector
 	report_idsOutOfLine	array[int32]

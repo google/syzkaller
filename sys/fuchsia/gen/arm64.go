@@ -52,8 +52,8 @@ var resources_arm64 = []*ResourceDesc{
 	{Name: "zx_chan_fuchsia_net_Connectivity_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_Connectivity_server"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_net_NameLookup_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_NameLookup_client"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_net_NameLookup_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_NameLookup_server"}, Values: []uint64{0}},
-	{Name: "zx_chan_fuchsia_net_SocketProvider_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_SocketProvider_client"}, Values: []uint64{0}},
-	{Name: "zx_chan_fuchsia_net_SocketProvider_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_SocketProvider_server"}, Values: []uint64{0}},
+	{Name: "zx_chan_fuchsia_net_stack_Log_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_stack_Log_client"}, Values: []uint64{0}},
+	{Name: "zx_chan_fuchsia_net_stack_Log_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_stack_Log_server"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_net_stack_Stack_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_stack_Stack_client"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_net_stack_Stack_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_net_stack_Stack_server"}, Values: []uint64{0}},
 	{Name: "zx_chan_fuchsia_process_Launcher_client", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_process_Launcher_client"}, Values: []uint64{0}},
@@ -70,6 +70,7 @@ var resources_arm64 = []*ResourceDesc{
 	{Name: "zx_chan_fuchsia_timezone_Timezone_server", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_chan", "zx_chan_fuchsia_timezone_Timezone_server"}, Values: []uint64{0}},
 	{Name: "zx_debug_log", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_debug_log"}, Values: []uint64{0}},
 	{Name: "zx_event", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_event"}, Values: []uint64{0}},
+	{Name: "zx_eventpair", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_eventpair"}, Values: []uint64{0}},
 	{Name: "zx_fifo", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle", "zx_fifo"}, Values: []uint64{0}},
 	{Name: "zx_guest", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"zx_guest"}, Values: []uint64{0}},
 	{Name: "zx_handle", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle"}, Values: []uint64{0}},
@@ -767,16 +768,6 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
 	}}},
-	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryAdminIoctlRequest, fuchsia_io_DirectoryAdminIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminIoctlResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_DirectoryAdminIoctlRequest, fuchsia_io_DirectoryAdminIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminIoctlResponseHandles]", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminIoctlRequest"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminIoctlRequestHandles"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminIoctlResponseHandles", Dir: 1}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
-	}}},
 	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryAdminLinkRequest, fuchsia_io_DirectoryAdminLinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminLinkResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_DirectoryAdminLinkRequest, fuchsia_io_DirectoryAdminLinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminLinkResponseHandles]", TypeSize: 48}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminLinkRequest"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminLinkRequestHandles"}}},
@@ -802,6 +793,26 @@ var structDescs_arm64 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminMountRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminMountResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryAdminNodeGetFlagsRequest, fuchsia_io_DirectoryAdminNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminNodeGetFlagsResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_DirectoryAdminNodeGetFlagsRequest, fuchsia_io_DirectoryAdminNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminNodeGetFlagsResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeGetFlagsRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeGetFlagsRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeGetFlagsResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryAdminNodeSetFlagsRequest, fuchsia_io_DirectoryAdminNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminNodeSetFlagsResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_DirectoryAdminNodeSetFlagsRequest, fuchsia_io_DirectoryAdminNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminNodeSetFlagsResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeSetFlagsRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeSetFlagsRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeSetFlagsResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
@@ -947,21 +958,31 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
 	}}},
-	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryIoctlRequest, fuchsia_io_DirectoryIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryIoctlResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_DirectoryIoctlRequest, fuchsia_io_DirectoryIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryIoctlResponseHandles]", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryIoctlRequest"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryIoctlRequestHandles"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryIoctlResponseHandles", Dir: 1}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
-	}}},
 	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryLinkRequest, fuchsia_io_DirectoryLinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryLinkResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_DirectoryLinkRequest, fuchsia_io_DirectoryLinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryLinkResponseHandles]", TypeSize: 48}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryLinkRequest"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryLinkRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryLinkResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryNodeGetFlagsRequest, fuchsia_io_DirectoryNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryNodeGetFlagsResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_DirectoryNodeGetFlagsRequest, fuchsia_io_DirectoryNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryNodeGetFlagsResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryNodeGetFlagsRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryNodeGetFlagsRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryNodeGetFlagsResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryNodeSetFlagsRequest, fuchsia_io_DirectoryNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryNodeSetFlagsResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_DirectoryNodeSetFlagsRequest, fuchsia_io_DirectoryNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryNodeSetFlagsResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryNodeSetFlagsRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryNodeSetFlagsRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_DirectoryNodeSetFlagsResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
@@ -1087,11 +1108,21 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
 	}}},
-	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_FileIoctlRequest, fuchsia_io_FileIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileIoctlResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_FileIoctlRequest, fuchsia_io_FileIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileIoctlResponseHandles]", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileIoctlRequest"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileIoctlRequestHandles"}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_FileNodeGetFlagsRequest, fuchsia_io_FileNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileNodeGetFlagsResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_FileNodeGetFlagsRequest, fuchsia_io_FileNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileNodeGetFlagsResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileNodeGetFlagsRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileNodeGetFlagsRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileIoctlResponseHandles", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileNodeGetFlagsResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_FileNodeSetFlagsRequest, fuchsia_io_FileNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileNodeSetFlagsResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_FileNodeSetFlagsRequest, fuchsia_io_FileNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileNodeSetFlagsResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileNodeSetFlagsRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileNodeSetFlagsRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_FileNodeSetFlagsResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
@@ -1217,11 +1248,21 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
 	}}},
-	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_NodeIoctlRequest, fuchsia_io_NodeIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeIoctlResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_NodeIoctlRequest, fuchsia_io_NodeIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeIoctlResponseHandles]", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeIoctlRequest"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeIoctlRequestHandles"}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_NodeNodeGetFlagsRequest, fuchsia_io_NodeNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeNodeGetFlagsResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_NodeNodeGetFlagsRequest, fuchsia_io_NodeNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeNodeGetFlagsResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeNodeGetFlagsRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeNodeGetFlagsRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeIoctlResponseHandles", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeNodeGetFlagsResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_io_NodeNodeSetFlagsRequest, fuchsia_io_NodeNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeNodeSetFlagsResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_io_NodeNodeSetFlagsRequest, fuchsia_io_NodeNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeNodeSetFlagsResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeNodeSetFlagsRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeNodeSetFlagsRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_io_NodeNodeSetFlagsResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
@@ -1267,41 +1308,11 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
 	}}},
-	{Key: StructKey{Name: "fidl_call_args[fuchsia_ldsvc_LoaderDebugLoadConfigRequest, fuchsia_ldsvc_LoaderDebugLoadConfigRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderDebugLoadConfigResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_ldsvc_LoaderDebugLoadConfigRequest, fuchsia_ldsvc_LoaderDebugLoadConfigRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderDebugLoadConfigResponseHandles]", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugLoadConfigRequest"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugLoadConfigRequestHandles"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugLoadConfigResponseHandles", Dir: 1}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
-	}}},
-	{Key: StructKey{Name: "fidl_call_args[fuchsia_ldsvc_LoaderDebugPublishDataSinkRequest, fuchsia_ldsvc_LoaderDebugPublishDataSinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderDebugPublishDataSinkResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_ldsvc_LoaderDebugPublishDataSinkRequest, fuchsia_ldsvc_LoaderDebugPublishDataSinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderDebugPublishDataSinkResponseHandles]", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugPublishDataSinkRequest"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugPublishDataSinkRequestHandles"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugPublishDataSinkResponseHandles", Dir: 1}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
-	}}},
 	{Key: StructKey{Name: "fidl_call_args[fuchsia_ldsvc_LoaderLoadObjectRequest, fuchsia_ldsvc_LoaderLoadObjectRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderLoadObjectResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_ldsvc_LoaderLoadObjectRequest, fuchsia_ldsvc_LoaderLoadObjectRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderLoadObjectResponseHandles]", TypeSize: 48}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadObjectRequest"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadObjectRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadObjectResponseHandles", Dir: 1}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
-	}}},
-	{Key: StructKey{Name: "fidl_call_args[fuchsia_ldsvc_LoaderLoadScriptInterpreterRequest, fuchsia_ldsvc_LoaderLoadScriptInterpreterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderLoadScriptInterpreterResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_ldsvc_LoaderLoadScriptInterpreterRequest, fuchsia_ldsvc_LoaderLoadScriptInterpreterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderLoadScriptInterpreterResponseHandles]", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadScriptInterpreterRequest"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadScriptInterpreterRequestHandles"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadScriptInterpreterResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
@@ -1327,11 +1338,11 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
 	}}},
-	{Key: StructKey{Name: "fidl_call_args[fuchsia_net_SocketProviderGetAddrInfoRequest, fuchsia_net_SocketProviderGetAddrInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketProviderGetAddrInfoResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_net_SocketProviderGetAddrInfoRequest, fuchsia_net_SocketProviderGetAddrInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketProviderGetAddrInfoResponseHandles]", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_SocketProviderGetAddrInfoRequest"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_SocketProviderGetAddrInfoRequestHandles"}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_LogSetLogLevelRequest, fuchsia_net_stack_LogSetLogLevelRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_LogSetLogLevelResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_net_stack_LogSetLogLevelRequest, fuchsia_net_stack_LogSetLogLevelRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_LogSetLogLevelResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_LogSetLogLevelRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_LogSetLogLevelRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_SocketProviderGetAddrInfoResponseHandles", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_LogSetLogLevelResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
@@ -1407,6 +1418,16 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
 	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackDisableIpForwardingRequest, fuchsia_net_stack_StackDisableIpForwardingRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDisableIpForwardingResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_net_stack_StackDisableIpForwardingRequest, fuchsia_net_stack_StackDisableIpForwardingRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDisableIpForwardingResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackDisableIpForwardingRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackDisableIpForwardingRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackDisableIpForwardingResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
+	}}},
 	{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackDisablePacketFilterRequest, fuchsia_net_stack_StackDisablePacketFilterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDisablePacketFilterResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_net_stack_StackDisablePacketFilterRequest, fuchsia_net_stack_StackDisablePacketFilterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDisablePacketFilterResponseHandles]", TypeSize: 48}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackDisablePacketFilterRequest"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackDisablePacketFilterRequestHandles"}}},
@@ -1422,6 +1443,16 @@ var structDescs_arm64 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackEnableInterfaceRequestHandles"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackEnableInterfaceResponseHandles", Dir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
+	}}},
+	{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackEnableIpForwardingRequest, fuchsia_net_stack_StackEnableIpForwardingRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackEnableIpForwardingResponseHandles]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_call_args[fuchsia_net_stack_StackEnableIpForwardingRequest, fuchsia_net_stack_StackEnableIpForwardingRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackEnableIpForwardingResponseHandles]", TypeSize: 48}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_bytes", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackEnableIpForwardingRequest"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "wr_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackEnableIpForwardingRequestHandles"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rd_handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackEnableIpForwardingResponseHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "wr_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"wr_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "wr_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"wr_handles"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
@@ -1557,695 +1588,695 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "rd_num_bytes", TypeSize: 4}}, BitSize: 8, Path: []string{"rd_bytes"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "rd_num_handles", TypeSize: 4}}, BitSize: 32, Path: []string{"rd_handles"}},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1023246268]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1023246268]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1209179889647747072]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1209179889647747072]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1023246268},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1209179889647747072},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1039990421]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1039990421]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1395379817284632576]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1395379817284632576]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1039990421},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1395379817284632576},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1045766885]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1045766885]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1454498564645322752]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1454498564645322752]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1045766885},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1454498564645322752},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[104863984]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[104863984]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1477455143367606272]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1477455143367606272]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 104863984},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1477455143367606272},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1059310710]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1059310710]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1509991341700939776]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1509991341700939776]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1059310710},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1509991341700939776},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1110617141]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1110617141]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1618682897944805376]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1618682897944805376]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1110617141},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1618682897944805376},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1118517818]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1118517818]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1646690903668031488]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1646690903668031488]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1118517818},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1646690903668031488},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1119663833]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1119663833]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1682143474989662208]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1682143474989662208]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1119663833},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1682143474989662208},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1166403528]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1166403528]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1728936181606907904]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1728936181606907904]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1166403528},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1728936181606907904},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1206135815]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1206135815]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1788620812383682560]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1788620812383682560]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1206135815},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1788620812383682560},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1220947097]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1220947097]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1788877243406090240]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1788877243406090240]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1220947097},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1788877243406090240},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1221457197]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1221457197]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1804345787165966336]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1804345787165966336]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1221457197},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1804345787165966336},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1247568160]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1247568160]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1936186706034163712]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1936186706034163712]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1247568160},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1936186706034163712},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1251258540]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1251258540]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1960696280506171392]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1960696280506171392]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1251258540},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1960696280506171392},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1273992648]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1273992648]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[1984502369399865344]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1984502369399865344]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1273992648},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1984502369399865344},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1288241002]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1288241002]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2161791481143099392]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2161791481143099392]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1288241002},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2161791481143099392},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1332017729]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1332017729]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2247683804791570432]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2247683804791570432]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1332017729},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2247683804791570432},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1339014161]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1339014161]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2261615557713330176]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2261615557713330176]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1339014161},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2261615557713330176},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1343632858]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1343632858]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2307110535667122176]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2307110535667122176]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1343632858},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2307110535667122176},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1373297565]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1373297565]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2314278406587416576]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2314278406587416576]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1373297565},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2314278406587416576},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1387878023]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1387878023]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2345193005658406912]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2345193005658406912]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1387878023},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2345193005658406912},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1409085196]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1409085196]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2348638754840772608]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2348638754840772608]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1409085196},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2348638754840772608},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1475819982]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1475819982]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2441488624861052928]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2441488624861052928]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1475819982},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2441488624861052928},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1476784191]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1476784191]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2446327292067053568]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2446327292067053568]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1476784191},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2446327292067053568},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[148310311]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[148310311]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2552164773823250432]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2552164773823250432]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 148310311},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2552164773823250432},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1522700084]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1522700084]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2583718567107100672]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2583718567107100672]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1522700084},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2583718567107100672},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1523993550]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1523993550]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[261153905885315072]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[261153905885315072]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1523993550},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 261153905885315072},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1529124283]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1529124283]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2646667141100601344]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2646667141100601344]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1529124283},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2646667141100601344},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1556999609]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1556999609]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2666737171087491072]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2666737171087491072]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1556999609},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2666737171087491072},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1557565451]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1557565451]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2735727333842354176]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2735727333842354176]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1557565451},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2735727333842354176},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1574160577]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1574160577]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2776554506979115008]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2776554506979115008]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1574160577},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2776554506979115008},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[158808681]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[158808681]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2921091529562914816]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2921091529562914816]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 158808681},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2921091529562914816},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1594344351]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1594344351]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2956004661582102528]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2956004661582102528]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1594344351},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2956004661582102528},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1594393985]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1594393985]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[2992354533176246272]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2992354533176246272]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1594393985},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2992354533176246272},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[164294732]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[164294732]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3037510934563127296]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3037510934563127296]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 164294732},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3037510934563127296},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1648508842]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1648508842]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3077242749305487360]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3077242749305487360]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1648508842},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3077242749305487360},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1678545441]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1678545441]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3136513839156166656]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3136513839156166656]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1678545441},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3136513839156166656},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1679205366]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1679205366]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3167576666138476544]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3167576666138476544]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1679205366},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3167576666138476544},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1689435905]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1689435905]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3223129383757676544]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3223129383757676544]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1689435905},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3223129383757676544},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1708879426]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1708879426]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3260696599407362048]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3260696599407362048]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1708879426},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3260696599407362048},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1713999250]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1713999250]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3361158860873138176]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3361158860873138176]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1713999250},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3361158860873138176},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1719478404]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1719478404]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3384189828428988416]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3384189828428988416]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1719478404},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3384189828428988416},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1724292379]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1724292379]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3513418264719917056]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3513418264719917056]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1724292379},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3513418264719917056},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1814425986]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1814425986]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3609561352454012928]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3609561352454012928]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1814425986},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3609561352454012928},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1835250494]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1835250494]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3613565378665381888]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3613565378665381888]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1835250494},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3613565378665381888},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1847022830]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1847022830]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[365609194151215104]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[365609194151215104]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1847022830},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 365609194151215104},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1875801957]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1875801957]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3801485603913072640]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3801485603913072640]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1875801957},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3801485603913072640},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1886584199]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1886584199]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[381505718517235712]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[381505718517235712]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1886584199},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 381505718517235712},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1903807121]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1903807121]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[3995491879423574016]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[3995491879423574016]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1903807121},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 3995491879423574016},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1904474588]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1904474588]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4031126909545873408]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4031126909545873408]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1904474588},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4031126909545873408},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1915582394]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1915582394]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4063087685340758016]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4063087685340758016]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1915582394},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4063087685340758016},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1958938995]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1958938995]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4119408201378562048]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4119408201378562048]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1958938995},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4119408201378562048},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[1964417497]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[1964417497]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4188689949463150592]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4188689949463150592]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 1964417497},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4188689949463150592},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[198530458]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[198530458]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4194979113024356352]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4194979113024356352]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 198530458},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4194979113024356352},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[2011483371]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2011483371]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4333802197016903680]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4333802197016903680]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2011483371},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4333802197016903680},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[2016048965]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2016048965]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4394809256814051328]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4394809256814051328]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2016048965},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4394809256814051328},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[2063400240]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2063400240]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4466724846348271616]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4466724846348271616]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2063400240},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4466724846348271616},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[2067944433]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2067944433]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4491534570314792960]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4491534570314792960]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2067944433},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4491534570314792960},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[2087865796]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2087865796]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[450387381808267264]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[450387381808267264]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2087865796},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 450387381808267264},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[2120159974]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[2120159974]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4549704855752540160]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4549704855752540160]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 2120159974},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4549704855752540160},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[281534132]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[281534132]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4770064298972020736]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4770064298972020736]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 281534132},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4770064298972020736},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[324887181]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[324887181]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4803997448303280128]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4803997448303280128]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 324887181},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4803997448303280128},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[338651837]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[338651837]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[4808919545249005568]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[4808919545249005568]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 338651837},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 4808919545249005568},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[343996832]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[343996832]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5009665006699020288]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5009665006699020288]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 343996832},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5009665006699020288},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[351572256]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[351572256]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5085703167836946432]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5085703167836946432]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 351572256},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5085703167836946432},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[376878981]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[376878981]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5180313879959306240]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5180313879959306240]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 376878981},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5180313879959306240},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[383400103]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[383400103]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5243927851761139712]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5243927851761139712]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 383400103},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5243927851761139712},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[391654548]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[391654548]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5246118714578829312]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5246118714578829312]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 391654548},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5246118714578829312},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[402549324]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[402549324]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5358264446730895360]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5358264446730895360]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 402549324},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5358264446730895360},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[416505440]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[416505440]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5374114508140707840]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5374114508140707840]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 416505440},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5374114508140707840},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[420106991]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[420106991]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5471756758504439808]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5471756758504439808]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 420106991},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5471756758504439808},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[450803597]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[450803597]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5532952972956270592]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5532952972956270592]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 450803597},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5532952972956270592},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[456510177]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[456510177]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5751022030375878656]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5751022030375878656]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 456510177},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5751022030375878656},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[462052964]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[462052964]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5770859182941011968]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5770859182941011968]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 462052964},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5770859182941011968},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[498796293]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[498796293]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5898268129351434240]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5898268129351434240]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 498796293},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5898268129351434240},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[503331302]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[503331302]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[5960890719622135808]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[5960890719622135808]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 503331302},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 5960890719622135808},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[523329667]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[523329667]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6051974834097750016]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6051974834097750016]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 523329667},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6051974834097750016},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[526573406]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[526573406]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6338598557473308672]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6338598557473308672]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 526573406},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6338598557473308672},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[537166031]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[537166031]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6342739803594817536]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6342739803594817536]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 537166031},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6342739803594817536},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[538834931]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[538834931]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[636987935404589056]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[636987935404589056]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 538834931},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 636987935404589056},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[546032797]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[546032797]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6539947062396452864]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6539947062396452864]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 546032797},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6539947062396452864},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[546835073]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[546835073]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6545502456564940800]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6545502456564940800]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 546835073},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6545502456564940800},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[568453368]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[568453368]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6567538787004448768]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6567538787004448768]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 568453368},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6567538787004448768},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[569579958]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[569579958]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6687262400539787264]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6687262400539787264]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 569579958},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6687262400539787264},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[594222167]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[594222167]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6689692673424490496]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6689692673424490496]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 594222167},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6689692673424490496},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[601568857]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[601568857]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6760968196867489792]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6760968196867489792]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 601568857},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6760968196867489792},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[60804632]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[60804632]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[682078091215896576]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[682078091215896576]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 60804632},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 682078091215896576},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[616225214]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[616225214]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6847656846107344896]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6847656846107344896]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 616225214},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6847656846107344896},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[620898132]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[620898132]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[6847870022514114560]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[6847870022514114560]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 620898132},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 6847870022514114560},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[636961156]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[636961156]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[705640500845084672]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[705640500845084672]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 636961156},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 705640500845084672},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[646466973]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[646466973]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7080291563556831232]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7080291563556831232]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 646466973},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7080291563556831232},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[680119621]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[680119621]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7209297773944897536]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7209297773944897536]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 680119621},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7209297773944897536},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[688248468]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[688248468]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7212132130237710336]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7212132130237710336]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 688248468},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7212132130237710336},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[707225626]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[707225626]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7256071960663162880]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7256071960663162880]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 707225626},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7256071960663162880},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[716476410]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[716476410]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7339581247477252096]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7339581247477252096]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 716476410},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7339581247477252096},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[730276536]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[730276536]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7361570724118528000]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7361570724118528000]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 730276536},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7361570724118528000},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[737508914]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[737508914]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7385103511358275584]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7385103511358275584]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 737508914},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7385103511358275584},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[750443289]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[750443289]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7405779376547037184]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7405779376547037184]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 750443289},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7405779376547037184},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[759190088]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[759190088]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[757452748626067456]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[757452748626067456]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 759190088},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 757452748626067456},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[782580781]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[782580781]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7792900270882553856]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7792900270882553856]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 782580781},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7792900270882553856},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[787943096]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[787943096]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7882340851697844224]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7882340851697844224]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 787943096},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7882340851697844224},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[818031436]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[818031436]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[7932902649815367680]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[7932902649815367680]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 818031436},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 7932902649815367680},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[840416493]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[840416493]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8056508059087798272]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8056508059087798272]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 840416493},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8056508059087798272},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[841348753]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[841348753]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8102817435855355904]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8102817435855355904]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 841348753},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8102817435855355904},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[85125024]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[85125024]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8176789322586914816]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8176789322586914816]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 85125024},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8176789322586914816},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[852262734]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[852262734]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8179656071523074048]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8179656071523074048]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 852262734},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8179656071523074048},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[885102340]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[885102340]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8413578918384107520]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8413578918384107520]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 885102340},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8413578918384107520},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[88826222]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[88826222]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8437108905305178112]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8437108905305178112]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 88826222},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8437108905305178112},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[905161895]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[905161895]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[852681824369901568]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[852681824369901568]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 905161895},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 852681824369901568},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[930272946]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[930272946]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8639255294892834816]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8639255294892834816]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 930272946},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8639255294892834816},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[938569873]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[938569873]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8658864371809648640]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8658864371809648640]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 938569873},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8658864371809648640},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[946011321]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[946011321]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8862236549358551040]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8862236549358551040]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 946011321},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8862236549358551040},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[959124463]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[959124463]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8881753709680263168]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8881753709680263168]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 959124463},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8881753709680263168},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[975255377]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[975255377]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[8967315312257007616]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[8967315312257007616]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 975255377},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 8967315312257007616},
 	}}},
-	{Key: StructKey{Name: "fidl_message_header[976719687]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[976719687]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_message_header[9106017750618210304]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_message_header[9106017750618210304]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "txid", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 976719687},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ordinal", TypeSize: 4}}, Val: 9106017750618210304},
 	}}},
 	{Key: StructKey{Name: "fidl_string"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_string", TypeSize: 16}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "size", TypeSize: 8}}},
@@ -2311,12 +2342,12 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 1},
 		&StructType{Key: StructKey{Name: "fuchsia_net_Ipv6AddressInLine"}, FldName: "data"},
 	}}},
-	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_deviceId, int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_deviceId, int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_device_id, int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_device_id, int64]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "data", TypeSize: 8}}},
 	}}},
-	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_nextHop, fuchsia_net_IpAddressInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_nextHop, fuchsia_net_IpAddressInLine]", TypeSize: 24}, Fields: []Type{
+	{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_next_hop, fuchsia_net_IpAddressInLine]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_next_hop, fuchsia_net_IpAddressInLine]", TypeSize: 24}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tag", TypeSize: 4}}, Val: 1},
 		&UnionType{Key: StructKey{Name: "fuchsia_net_IpAddressInLine"}, FldName: "data"},
 	}}},
@@ -2338,7 +2369,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "componentOutOfLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerBlockUntilEmptyRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerBlockUntilEmptyRequest", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[737508914]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3167576666138476544]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "max_wait_seconds", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerBlockUntilEmptyRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerBlockUntilEmptyRequestHandles"}, Fields: []Type{
@@ -2348,7 +2379,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerGenerateAggregatedObservationsRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1523993550]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6545502456564940800]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "day_index", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "report_idsInLine"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "report_idsOutOfLine", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
@@ -2360,7 +2391,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerGetFailedSendAttemptsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerGetFailedSendAttemptsRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[976719687]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4194979113024356352]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerGetFailedSendAttemptsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerGetFailedSendAttemptsRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -2369,7 +2400,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerGetNumObservationsAddedRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerGetNumObservationsAddedRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[680119621]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2921091529562914816]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerGetNumObservationsAddedRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerGetNumObservationsAddedRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -2378,7 +2409,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerGetNumSendAttemptsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerGetNumSendAttemptsRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1476784191]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6342739803594817536]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerGetNumSendAttemptsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerGetNumSendAttemptsRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -2387,7 +2418,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerRequestSendSoonRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerRequestSendSoonRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[148310311]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[636987935404589056]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_ControllerRequestSendSoonRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ControllerRequestSendSoonRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -2442,7 +2473,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerBaseEndTimerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerBaseEndTimerRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1708879426]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7339581247477252096]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "timer_idInLine"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "timestamp", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout_s", TypeSize: 4}}},
@@ -2455,7 +2486,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerBaseLogElapsedTimeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerBaseLogElapsedTimeRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[351572256]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1509991341700939776]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2469,7 +2500,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerBaseLogEventCountRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerBaseLogEventCountRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1875801957]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8056508059087798272]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2484,7 +2515,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerBaseLogEventRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerBaseLogEventRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[324887181]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1395379817284632576]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 	}}},
@@ -2495,7 +2526,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerBaseLogFrameRateRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerBaseLogFrameRateRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[730276536]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3136513839156166656]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2509,7 +2540,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerBaseLogMemoryUsageRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerBaseLogMemoryUsageRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1724292379]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7405779376547037184]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2523,7 +2554,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerBaseLogStringRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerBaseLogStringRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1288241002]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5532952972956270592]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "sInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "sOutOfLine"},
@@ -2535,7 +2566,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerBaseStartTimerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerBaseStartTimerRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1247568160]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5358264446730895360]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2552,7 +2583,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerEndTimerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerEndTimerRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1708879426]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7339581247477252096]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "timer_idInLine"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "timestamp", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout_s", TypeSize: 4}}},
@@ -2565,7 +2596,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerFactoryCreateLoggerFromProjectNameRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerFactoryCreateLoggerFromProjectNameRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[537166031]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2307110535667122176]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "project_nameInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ReleaseStage", FldName: "release_stage", TypeSize: 4}}, Vals: []uint64{0, 10, 20, 99}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "logger", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
@@ -2578,7 +2609,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerFactoryCreateLoggerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerFactoryCreateLoggerRequest", TypeSize: 36}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1594393985]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6847870022514114560]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_cobalt_ProjectProfileInLine"}, FldName: "profileInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "logger", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fuchsia_cobalt_ProjectProfileOutOfLine"}, FldName: "profileOutOfLine"},
@@ -2591,7 +2622,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleFromProjectNameRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleFromProjectNameRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[930272946]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3995491879423574016]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "project_nameInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_ReleaseStage", FldName: "release_stage", TypeSize: 4}}, Vals: []uint64{0, 10, 20, 99}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "logger", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
@@ -2604,7 +2635,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerFactoryCreateLoggerSimpleRequest", TypeSize: 36}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1594344351]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6847656846107344896]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_cobalt_ProjectProfileInLine"}, FldName: "profileInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "logger", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fuchsia_cobalt_ProjectProfileOutOfLine"}, FldName: "profileOutOfLine"},
@@ -2617,7 +2648,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogCobaltEventRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogCobaltEventRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1719478404]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7385103511358275584]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_cobalt_CobaltEventInLine"}, FldName: "eventInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_cobalt_CobaltEventOutOfLine"}, FldName: "eventOutOfLine"},
 	}}},
@@ -2628,7 +2659,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogCobaltEventsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogCobaltEventsRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[688248468]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2956004661582102528]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "eventsInLine"},
 		&StructType{Key: StructKey{Name: "parallel_array[fuchsia_cobalt_CobaltEventInLine, fuchsia_cobalt_CobaltEventOutOfLine]"}, FldName: "eventsOutOfLine"},
 	}}},
@@ -2639,7 +2670,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogCustomEventRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogCustomEventRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1023246268]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4394809256814051328]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "event_valuesInLine"},
 		&StructType{Key: StructKey{Name: "parallel_array[fuchsia_cobalt_CustomEventValueInLine, fuchsia_cobalt_CustomEventValueOutOfLine]"}, FldName: "event_valuesOutOfLine"},
@@ -2651,7 +2682,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogElapsedTimeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogElapsedTimeRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[351572256]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1509991341700939776]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2665,7 +2696,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogEventCountRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogEventCountRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1875801957]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8056508059087798272]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2680,7 +2711,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogEventRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogEventRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[324887181]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1395379817284632576]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 	}}},
@@ -2691,7 +2722,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogFrameRateRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogFrameRateRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[730276536]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3136513839156166656]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2705,7 +2736,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogIntHistogramRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogIntHistogramRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[2063400240]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8862236549358551040]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2720,7 +2751,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogMemoryUsageRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogMemoryUsageRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1724292379]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7405779376547037184]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2734,7 +2765,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerLogStringRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerLogStringRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1288241002]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5532952972956270592]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "sInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "sOutOfLine"},
@@ -2746,7 +2777,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleEndTimerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleEndTimerRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1708879426]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7339581247477252096]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "timer_idInLine"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "timestamp", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout_s", TypeSize: 4}}},
@@ -2759,7 +2790,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleLogElapsedTimeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleLogElapsedTimeRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[351572256]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1509991341700939776]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2773,7 +2804,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleLogEventCountRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleLogEventCountRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1875801957]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8056508059087798272]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2788,7 +2819,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleLogEventRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleLogEventRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[324887181]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1395379817284632576]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 	}}},
@@ -2799,7 +2830,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleLogFrameRateRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleLogFrameRateRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[730276536]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3136513839156166656]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2813,7 +2844,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleLogIntHistogramRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleLogIntHistogramRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[759190088]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3260696599407362048]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2830,7 +2861,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleLogMemoryUsageRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleLogMemoryUsageRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1724292379]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7405779376547037184]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2844,7 +2875,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleLogStringRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleLogStringRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1288241002]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5532952972956270592]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "sInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "sOutOfLine"},
@@ -2856,7 +2887,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerSimpleStartTimerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerSimpleStartTimerRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1247568160]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5358264446730895360]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2873,7 +2904,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_LoggerStartTimerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_LoggerStartTimerRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1247568160]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5358264446730895360]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "metric_id", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "event_code", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "componentInLine"},
@@ -2900,7 +2931,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_mem_BufferOutOfLine"}, FldName: "configOutOfLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetChannelRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_SystemDataUpdaterSetChannelRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[938569873]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4031126909545873408]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "current_channelInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "current_channelOutOfLine"},
 	}}},
@@ -2911,7 +2942,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_cobalt_SystemDataUpdaterSetExperimentStateRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1903807121]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8176789322586914816]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "experimentsInLine"},
 		&StructType{Key: StructKey{Name: "parallel_array[fuchsia_cobalt_ExperimentInLine, fuchsia_cobalt_ExperimentOutOfLine]"}, FldName: "experimentsOutOfLine"},
 	}}},
@@ -2928,7 +2959,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_cobalt_ValueTag_index_value, int32]"}, FldName: "index_value"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_devicesettings_DeviceSettingsManagerGetIntegerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_devicesettings_DeviceSettingsManagerGetIntegerRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1556999609]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6687262400539787264]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "keyInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "keyOutOfLine"},
 	}}},
@@ -2939,7 +2970,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_devicesettings_DeviceSettingsManagerGetStringRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_devicesettings_DeviceSettingsManagerGetStringRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1273992648]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5471756758504439808]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "keyInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "keyOutOfLine"},
 	}}},
@@ -2950,7 +2981,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_devicesettings_DeviceSettingsManagerSetIntegerRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_devicesettings_DeviceSettingsManagerSetIntegerRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[959124463]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4119408201378562048]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "keyInLine"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "keyOutOfLine"},
@@ -2962,7 +2993,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_devicesettings_DeviceSettingsManagerSetStringRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_devicesettings_DeviceSettingsManagerSetStringRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[569579958]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2446327292067053568]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "keyInLine"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "valInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "keyOutOfLine"},
@@ -2975,7 +3006,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_devicesettings_DeviceSettingsManagerWatchRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_devicesettings_DeviceSettingsManagerWatchRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[975255377]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4188689949463150592]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "keyInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "watcher", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "keyOutOfLine"},
@@ -2987,14 +3018,14 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_devicesettings_DeviceSettingsWatcherOnChangeSettingsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_devicesettings_DeviceSettingsWatcherOnChangeSettingsRequest", TypeSize: 17}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[616225214]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2646667141100601344]"}, FldName: "hdr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuchsia_devicesettings_ValueType", FldName: "type_", TypeSize: 1}}, Vals: []uint64{1, 2}, BitMask: true},
 	}}},
 	{Key: StructKey{Name: "fuchsia_devicesettings_DeviceSettingsWatcherOnChangeSettingsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_devicesettings_DeviceSettingsWatcherOnChangeSettingsRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceConfigMulticastAddMacRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceConfigMulticastAddMacRequest", TypeSize: 22}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[60804632]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[261153905885315072]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_hardware_ethernet_MacAddressInLine"}, FldName: "addrInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_hardware_ethernet_MacAddressOutOfLine"}, FldName: "addrOutOfLine"},
 	}}},
@@ -3005,7 +3036,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceConfigMulticastDeleteMacRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceConfigMulticastDeleteMacRequest", TypeSize: 22}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1373297565]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5898268129351434240]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_hardware_ethernet_MacAddressInLine"}, FldName: "addrInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_hardware_ethernet_MacAddressOutOfLine"}, FldName: "addrOutOfLine"},
 	}}},
@@ -3016,7 +3047,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest", TypeSize: 17}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[716476410]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3077242749305487360]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "enabled", TypeSize: 1}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceConfigMulticastSetPromiscuousModeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceConfigMulticastSetPromiscuousModeRequestHandles"}, Fields: []Type{
@@ -3026,7 +3057,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceConfigMulticastTestFilterRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceConfigMulticastTestFilterRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[88826222]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[381505718517235712]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceConfigMulticastTestFilterRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceConfigMulticastTestFilterRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3035,7 +3066,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceDumpRegistersRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceDumpRegistersRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1574160577]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6760968196867489792]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceDumpRegistersRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceDumpRegistersRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3044,7 +3075,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceGetFifosRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceGetFifosRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[568453368]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2441488624861052928]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceGetFifosRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceGetFifosRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3053,7 +3084,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_hardware_ethernet_FifosHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceGetInfoRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceGetInfoRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[281534132]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1209179889647747072]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceGetInfoRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceGetInfoRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3062,7 +3093,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_hardware_ethernet_InfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceGetStatusRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceGetStatusRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1835250494]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7882340851697844224]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceGetStatusRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceGetStatusRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3071,7 +3102,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceListenStartRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceListenStartRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1529124283]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6567538787004448768]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceListenStartRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceListenStartRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3080,7 +3111,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceListenStopRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceListenStopRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[594222167]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2552164773823250432]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceListenStopRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceListenStopRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3089,7 +3120,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceSetClientNameRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceSetClientNameRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1678545441]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7209297773944897536]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "nameInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "nameOutOfLine"},
 	}}},
@@ -3100,7 +3131,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceSetIOBufferRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceSetIOBufferRequest", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[538834931]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2314278406587416576]"}, FldName: "hdr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "h", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceSetIOBufferRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceSetIOBufferRequestHandles", TypeSize: 4}, Fields: []Type{
@@ -3110,7 +3141,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceSetPromiscuousModeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceSetPromiscuousModeRequest", TypeSize: 17}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[885102340]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3801485603913072640]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "enabled", TypeSize: 1}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceSetPromiscuousModeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceSetPromiscuousModeRequestHandles"}, Fields: []Type{
@@ -3120,7 +3151,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceStartRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceStartRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[601568857]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2583718567107100672]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceStartRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceStartRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3129,7 +3160,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceStopRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceStopRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1039990421]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4466724846348271616]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_hardware_ethernet_DeviceStopRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_hardware_ethernet_DeviceStopRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3157,10 +3188,10 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DeviceHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DeviceHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_event", FldName: "event", TypeSize: 4, ArgDir: 1}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_eventpair", FldName: "event", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminCloneRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminCloneRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[402549324]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1728936181606907904]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "object", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 	}}},
@@ -3168,7 +3199,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Node_server", FldName: "object", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminCloseRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminCloseRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1387878023]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5960890719622135808]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminCloseRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminCloseRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3177,7 +3208,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminDescribeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminDescribeRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[526573406]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2261615557713330176]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminDescribeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminDescribeRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3186,7 +3217,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "fuchsia_io_NodeInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminGetAttrRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminGetAttrRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1166403528]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5009665006699020288]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminGetAttrRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminGetAttrRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3195,7 +3226,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesHandles", Dir: 1}, FldName: "attributes"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminGetDevicePathRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminGetDevicePathRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[787943096]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3384189828428988416]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminGetDevicePathRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminGetDevicePathRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3204,7 +3235,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminGetTokenRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminGetTokenRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[840416493]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3609561352454012928]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminGetTokenRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminGetTokenRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3212,23 +3243,8 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminGetTokenResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminGetTokenResponseHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "token", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminIoctlRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminIoctlRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[905161895]"}, FldName: "hdr"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "opcode", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "max_out", TypeSize: 8}}},
-		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "handlesInLine"},
-		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "inInLine"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handlesOutOfLine", IsVarlen: true}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "inOutOfLine", IsVarlen: true}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminIoctlRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminIoctlRequestHandles", IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4}}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminIoctlResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminIoctlResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", ArgDir: 1, IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
-	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminLinkRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminLinkRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[462052964]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1984502369399865344]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "srcInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "dst_parent_token", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "dstInLine"},
@@ -3242,7 +3258,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminMountAndCreateRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminMountAndCreateRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[841348753]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3613565378665381888]"}, FldName: "hdr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "remote", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "nameInLine"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
@@ -3255,7 +3271,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminMountRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminMountRequest", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[2120159974]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[9106017750618210304]"}, FldName: "hdr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "remote", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminMountRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminMountRequestHandles", TypeSize: 4}, Fields: []Type{
@@ -3264,11 +3280,30 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminMountResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminMountResponseHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeGetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminNodeGetFlagsRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[4333802197016903680]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeGetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminNodeGetFlagsRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeGetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminNodeGetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeSetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminNodeSetFlagsRequest", TypeSize: 20}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[5085703167836946432]"}, FldName: "hdr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeSetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminNodeSetFlagsRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminNodeSetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminNodeSetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminOnOpenEventHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminOnOpenEventHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "fuchsia_io_NodeInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminOpenRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminOpenRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[2011483371]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8639255294892834816]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "mode", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "pathInLine"},
@@ -3279,7 +3314,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Node_server", FldName: "object", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminQueryFilesystemRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminQueryFilesystemRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1713999250]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7361570724118528000]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminQueryFilesystemRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminQueryFilesystemRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3288,7 +3323,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_io_FilesystemInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminReadDirentsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminReadDirentsRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[782580781]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3361158860873138176]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "max_bytes", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminReadDirentsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminReadDirentsRequestHandles"}, Fields: []Type{
@@ -3298,7 +3333,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminRenameRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminRenameRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1251258540]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5374114508140707840]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "srcInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "dst_parent_token", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "dstInLine"},
@@ -3312,7 +3347,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminRewindRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminRewindRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1886584199]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8102817435855355904]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminRewindRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminRewindRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3321,7 +3356,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminSetAttrRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminSetAttrRequest", TypeSize: 72}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[198530458]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[852681824369901568]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesInLine"}, FldName: "attributesInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesOutOfLine"}, FldName: "attributesOutOfLine"},
@@ -3333,7 +3368,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminSyncRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminSyncRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1648508842]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7080291563556831232]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminSyncRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminSyncRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3342,7 +3377,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminUnlinkRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminUnlinkRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[750443289]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3223129383757676544]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "pathInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "pathOutOfLine"},
 	}}},
@@ -3353,7 +3388,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminUnmountNodeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminUnmountNodeRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[383400103]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1646690903668031488]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminUnmountNodeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminUnmountNodeRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3362,7 +3397,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Directory_client", FldName: "remote", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminUnmountRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminUnmountRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[620898132]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2666737171087491072]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminUnmountRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminUnmountRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3371,7 +3406,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryAdminWatchRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryAdminWatchRequest", TypeSize: 28}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1522700084]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6539947062396452864]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "mask", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "watcher", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
@@ -3383,7 +3418,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryCloneRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryCloneRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[402549324]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1728936181606907904]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "object", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 	}}},
@@ -3391,7 +3426,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Node_server", FldName: "object", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryCloseRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryCloseRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1387878023]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5960890719622135808]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryCloseRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryCloseRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3400,7 +3435,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryDescribeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryDescribeRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[526573406]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2261615557713330176]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryDescribeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryDescribeRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3409,7 +3444,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "fuchsia_io_NodeInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryGetAttrRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryGetAttrRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1166403528]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5009665006699020288]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryGetAttrRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryGetAttrRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3418,7 +3453,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesHandles", Dir: 1}, FldName: "attributes"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryGetTokenRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryGetTokenRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[840416493]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3609561352454012928]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryGetTokenRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryGetTokenRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3426,23 +3461,8 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_io_DirectoryGetTokenResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryGetTokenResponseHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "token", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "fuchsia_io_DirectoryIoctlRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryIoctlRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[905161895]"}, FldName: "hdr"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "opcode", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "max_out", TypeSize: 8}}},
-		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "handlesInLine"},
-		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "inInLine"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handlesOutOfLine", IsVarlen: true}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "inOutOfLine", IsVarlen: true}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_io_DirectoryIoctlRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryIoctlRequestHandles", IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4}}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_io_DirectoryIoctlResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryIoctlResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", ArgDir: 1, IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
-	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryLinkRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryLinkRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[462052964]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1984502369399865344]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "srcInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "dst_parent_token", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "dstInLine"},
@@ -3455,6 +3475,25 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_io_DirectoryLinkResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryLinkResponseHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryNodeGetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryNodeGetFlagsRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[4333802197016903680]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryNodeGetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryNodeGetFlagsRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryNodeGetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryNodeGetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryNodeSetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryNodeSetFlagsRequest", TypeSize: 20}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[5085703167836946432]"}, FldName: "hdr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryNodeSetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryNodeSetFlagsRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_DirectoryNodeSetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryNodeSetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryObjectHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryObjectHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
@@ -3462,7 +3501,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "fuchsia_io_NodeInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryOpenRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryOpenRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[2011483371]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8639255294892834816]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "mode", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "pathInLine"},
@@ -3473,7 +3512,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Node_server", FldName: "object", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryReadDirentsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryReadDirentsRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[782580781]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3361158860873138176]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "max_bytes", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryReadDirentsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryReadDirentsRequestHandles"}, Fields: []Type{
@@ -3483,7 +3522,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryRenameRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryRenameRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1251258540]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5374114508140707840]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "srcInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "dst_parent_token", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "dstInLine"},
@@ -3497,7 +3536,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryRewindRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryRewindRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1886584199]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8102817435855355904]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryRewindRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryRewindRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3506,7 +3545,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectorySetAttrRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectorySetAttrRequest", TypeSize: 72}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[198530458]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[852681824369901568]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesInLine"}, FldName: "attributesInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesOutOfLine"}, FldName: "attributesOutOfLine"},
@@ -3518,7 +3557,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectorySyncRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectorySyncRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1648508842]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7080291563556831232]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectorySyncRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectorySyncRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3527,7 +3566,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryUnlinkRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryUnlinkRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[750443289]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3223129383757676544]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "pathInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "pathOutOfLine"},
 	}}},
@@ -3538,7 +3577,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryWatchRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryWatchRequest", TypeSize: 28}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1522700084]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6539947062396452864]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "mask", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "watcher", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
@@ -3550,7 +3589,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_DirectoryWatcherOnEventRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_DirectoryWatcherOnEventRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[546032797]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2345193005658406912]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "eventsInLine"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "eventsOutOfLine", IsVarlen: true}},
 	}}},
@@ -3558,7 +3597,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileCloneRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileCloneRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[402549324]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1728936181606907904]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "object", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 	}}},
@@ -3566,7 +3605,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Node_server", FldName: "object", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileCloseRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileCloseRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1387878023]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5960890719622135808]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileCloseRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileCloseRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3575,7 +3614,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileDescribeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileDescribeRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[526573406]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2261615557713330176]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileDescribeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileDescribeRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3584,7 +3623,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "fuchsia_io_NodeInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileGetAttrRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileGetAttrRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1166403528]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5009665006699020288]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileGetAttrRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileGetAttrRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3593,7 +3632,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesHandles", Dir: 1}, FldName: "attributes"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileGetBufferRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileGetBufferRequest", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1958938995]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8413578918384107520]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileGetBufferRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileGetBufferRequestHandles"}, Fields: []Type{
@@ -3603,7 +3642,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_mem_BufferHandles", Dir: 1}, FldName: "buffer_"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileGetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileGetFlagsRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1679205366]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7212132130237710336]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileGetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileGetFlagsRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3611,20 +3650,24 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_io_FileGetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileGetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_io_FileIoctlRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileIoctlRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[905161895]"}, FldName: "hdr"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "opcode", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "max_out", TypeSize: 8}}},
-		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "handlesInLine"},
-		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "inInLine"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handlesOutOfLine", IsVarlen: true}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "inOutOfLine", IsVarlen: true}},
+	{Key: StructKey{Name: "fuchsia_io_FileNodeGetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileNodeGetFlagsRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[4333802197016903680]"}, FldName: "hdr"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_io_FileIoctlRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileIoctlRequestHandles", IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4}}},
+	{Key: StructKey{Name: "fuchsia_io_FileNodeGetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileNodeGetFlagsRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_io_FileIoctlResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileIoctlResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", ArgDir: 1, IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
+	{Key: StructKey{Name: "fuchsia_io_FileNodeGetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileNodeGetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_FileNodeSetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileNodeSetFlagsRequest", TypeSize: 20}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[5085703167836946432]"}, FldName: "hdr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_FileNodeSetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileNodeSetFlagsRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_FileNodeSetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileNodeSetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileObjectHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileObjectHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_event", FldName: "event", TypeSize: 4, ArgDir: 1}},
@@ -3633,7 +3676,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "fuchsia_io_NodeInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileReadAtRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileReadAtRequest", TypeSize: 32}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[2087865796]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8967315312257007616]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "count", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "offset", TypeSize: 8}}},
 	}}},
@@ -3644,7 +3687,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileReadRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileReadRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[636961156]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2735727333842354176]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "count", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileReadRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileReadRequestHandles"}, Fields: []Type{
@@ -3654,7 +3697,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileSeekRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileSeekRequest", TypeSize: 28}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[2016048965]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8658864371809648640]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "offset", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuchsia_io_SeekOrigin", FldName: "start", TypeSize: 4}}, Vals: []uint64{0, 1, 2}, BitMask: true},
 	}}},
@@ -3665,7 +3708,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileSetAttrRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileSetAttrRequest", TypeSize: 72}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[198530458]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[852681824369901568]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesInLine"}, FldName: "attributesInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesOutOfLine"}, FldName: "attributesOutOfLine"},
@@ -3677,7 +3720,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileSetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileSetFlagsRequest", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1059310710]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4549704855752540160]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileSetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileSetFlagsRequestHandles"}, Fields: []Type{
@@ -3687,7 +3730,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileSyncRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileSyncRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1648508842]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7080291563556831232]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileSyncRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileSyncRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3696,7 +3739,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileTruncateRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileTruncateRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1118517818]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4803997448303280128]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "length", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileTruncateRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileTruncateRequestHandles"}, Fields: []Type{
@@ -3706,7 +3749,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileWriteAtRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileWriteAtRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1045766885]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4491534570314792960]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "dataInLine"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "offset", TypeSize: 8}}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "dataOutOfLine", IsVarlen: true}},
@@ -3718,7 +3761,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_FileWriteRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_FileWriteRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[85125024]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[365609194151215104]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "dataInLine"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "dataOutOfLine", IsVarlen: true}},
 	}}},
@@ -3750,7 +3793,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeCloneRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeCloneRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[402549324]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1728936181606907904]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "object", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 	}}},
@@ -3758,7 +3801,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Node_server", FldName: "object", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeCloseRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeCloseRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1387878023]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5960890719622135808]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeCloseRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeCloseRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3767,7 +3810,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeDescribeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeDescribeRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[526573406]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2261615557713330176]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeDescribeRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeDescribeRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3776,7 +3819,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "fuchsia_io_NodeInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeGetAttrRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeGetAttrRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1166403528]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5009665006699020288]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeGetAttrRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeGetAttrRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3794,26 +3837,30 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_io_TtyHandles", Dir: 1}, FldName: "tty"},
 		&StructType{Key: StructKey{Name: "fuchsia_io_SocketHandles", Dir: 1}, FldName: "socket"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_io_NodeIoctlRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeIoctlRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[905161895]"}, FldName: "hdr"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "opcode", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "max_out", TypeSize: 8}}},
-		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "handlesInLine"},
-		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "inInLine"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handlesOutOfLine", IsVarlen: true}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "inOutOfLine", IsVarlen: true}},
+	{Key: StructKey{Name: "fuchsia_io_NodeNodeGetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeNodeGetFlagsRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[4333802197016903680]"}, FldName: "hdr"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_io_NodeIoctlRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeIoctlRequestHandles", IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4}}},
+	{Key: StructKey{Name: "fuchsia_io_NodeNodeGetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeNodeGetFlagsRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_io_NodeIoctlResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeIoctlResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", ArgDir: 1, IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
+	{Key: StructKey{Name: "fuchsia_io_NodeNodeGetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeNodeGetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_NodeNodeSetFlagsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeNodeSetFlagsRequest", TypeSize: 20}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[5085703167836946432]"}, FldName: "hdr"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_NodeNodeSetFlagsRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeNodeSetFlagsRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_io_NodeNodeSetFlagsResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeNodeSetFlagsResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeOnOpenEventHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeOnOpenEventHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "fuchsia_io_NodeInfoHandles", Dir: 1}, FldName: "info"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeSetAttrRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeSetAttrRequest", TypeSize: 72}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[198530458]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[852681824369901568]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesInLine"}, FldName: "attributesInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_io_NodeAttributesOutOfLine"}, FldName: "attributesOutOfLine"},
@@ -3825,7 +3872,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeSyncRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeSyncRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1648508842]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7080291563556831232]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_NodeSyncRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_NodeSyncRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -3843,13 +3890,13 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_socket", FldName: "socket", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_TtyHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_TtyHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_event", FldName: "event", TypeSize: 4, ArgDir: 1}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_eventpair", FldName: "event", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_io_VmofileHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_io_VmofileHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "vmo", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderCloneRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderCloneRequest", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[946011321]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4063087685340758016]"}, FldName: "hdr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "loader", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderCloneRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderCloneRequestHandles", TypeSize: 4}, Fields: []Type{
@@ -3859,7 +3906,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderConfigRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderConfigRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[450803597]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1936186706034163712]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "configInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "configOutOfLine"},
 	}}},
@@ -3869,37 +3916,14 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderConfigResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderConfigResponseHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugLoadConfigRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderDebugLoadConfigRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1915582394]"}, FldName: "hdr"},
-		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "config_nameInLine"},
-		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "config_nameOutOfLine"},
-	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugLoadConfigRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderDebugLoadConfigRequestHandles"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
-	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugLoadConfigResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderDebugLoadConfigResponseHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "config", TypeSize: 4, ArgDir: 1}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugPublishDataSinkRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderDebugPublishDataSinkRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1332017729]"}, FldName: "hdr"},
-		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "data_sinkInLine"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "data", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
-		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "data_sinkOutOfLine"},
-	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugPublishDataSinkRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderDebugPublishDataSinkRequestHandles", TypeSize: 4}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "data", TypeSize: 4}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDebugPublishDataSinkResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderDebugPublishDataSinkResponseHandles", ArgDir: 1}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
-	}}},
 	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDoneRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderDoneRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1343632858]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5770859182941011968]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderDoneRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderDoneRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadObjectRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderLoadObjectRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[416505440]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1788877243406090240]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "object_nameInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "object_nameOutOfLine"},
 	}}},
@@ -3907,17 +3931,6 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadObjectResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderLoadObjectResponseHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "object", TypeSize: 4, ArgDir: 1}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadScriptInterpreterRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderLoadScriptInterpreterRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[852262734]"}, FldName: "hdr"},
-		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "interpreter_nameInLine"},
-		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "interpreter_nameOutOfLine"},
-	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadScriptInterpreterRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderLoadScriptInterpreterRequestHandles"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
-	}}},
-	{Key: StructKey{Name: "fuchsia_ldsvc_LoaderLoadScriptInterpreterResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_ldsvc_LoaderLoadScriptInterpreterResponseHandles", TypeSize: 4, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", FldName: "object", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_mem_BufferHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mem_BufferHandles", TypeSize: 4}, Fields: []Type{
@@ -3932,24 +3945,6 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "fuchsia_mem_BufferOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_mem_BufferOutOfLine"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_AddrInfoHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_AddrInfoHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_AddrStorageHandles", Dir: 1}, FldName: "addr"},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_AddrInfoHintsHandles"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_AddrInfoHintsInLine", TypeSize: 16}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags_", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "family", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sock_type", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "protocol", TypeSize: 4}}},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_AddrInfoHintsOutOfLine"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_AddrStorageHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_AddrStorageHandles", ArgDir: 1}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_ConnectivityOnNetworkReachableEventHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_ConnectivityOnNetworkReachableEventHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
@@ -3995,7 +3990,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_NameLookupLookupHostnameRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_NameLookupLookupHostnameRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[391654548]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1682143474989662208]"}, FldName: "hdr"},
 		&UnionType{Key: StructKey{Name: "fuchsia_net_IpAddressInLine"}, FldName: "addrInLine"},
 		&UnionType{Key: StructKey{Name: "fuchsia_net_IpAddressOutOfLine"}, FldName: "addrOutOfLine"},
 	}}},
@@ -4006,7 +4001,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "fuchsia_net_NameLookup_LookupHostname_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_NameLookupLookupIpRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_NameLookupLookupIpRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[818031436]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3513418264719917056]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "hostnameInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuchsia_net_LookupIpOptions", FldName: "options", TypeSize: 1}}, Vals: []uint64{1, 2, 4}, BitMask: true},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "hostnameOutOfLine"},
@@ -4029,21 +4024,6 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_net_NameLookup_LookupIp_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_NameLookup_LookupIp_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_NameLookup_LookupIp_ResponseHandles", Dir: 1}, FldName: "response"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_SocketProviderGetAddrInfoRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_SocketProviderGetAddrInfoRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[498796293]"}, FldName: "hdr"},
-		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "nodeInLine"},
-		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "serviceInLine"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsInLine"}, FldName: "hintsInLine"},
-		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "nodeOutOfLine"},
-		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "serviceOutOfLine"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsOutOfLine"}, FldName: "hintsOutOfLine"},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_SocketProviderGetAddrInfoRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_SocketProviderGetAddrInfoRequestHandles"}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHintsHandles"}, FldName: "hints"},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_SocketProviderGetAddrInfoResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_SocketProviderGetAddrInfoResponseHandles", ArgDir: 1}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "resHandles", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_AddrInfoHandles", Dir: 1}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
-	}}},
 	{Key: StructKey{Name: "fuchsia_net_SubnetHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_SubnetHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
@@ -4057,12 +4037,9 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_net_SubnetOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_SubnetOutOfLine"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_ErrorHandles", ArgDir: 1}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
-	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_ForwardingDestinationInLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_ForwardingDestinationInLine", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_deviceId, int64]"}, FldName: "device_id"},
-		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_nextHop, fuchsia_net_IpAddressInLine]"}, FldName: "next_hopInLine"},
+		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_device_id, int64]"}, FldName: "device_id"},
+		&StructType{Key: StructKey{Name: "fidl_union_member[fuchsia_net_stack_ForwardingDestinationTag_next_hop, fuchsia_net_IpAddressInLine]"}, FldName: "next_hopInLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_ForwardingEntryHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_ForwardingEntryHandles"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_SubnetHandles"}, FldName: "subnet"},
@@ -4076,9 +4053,6 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_ForwardingEntryOutOfLine"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_ForwardingEntryOutOfLine"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_SubnetOutOfLine"}, FldName: "subnetOutOfLine"},
-	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressChangeHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_InterfaceAddressChangeHandles", ArgDir: 1}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_InterfaceAddressHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -4103,8 +4077,24 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_net_stack_InterfaceStatusChangeHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_InterfaceStatusChangeHandles", ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_LogSetLogLevelRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_LogSetLogLevelRequest", TypeSize: 20}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[757452748626067456]"}, FldName: "hdr"},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_LogLevelFilter", FldName: "level", TypeSize: 4}}, Vals: []uint64{18446744073709551614, 18446744073709551615, 0, 1, 2, 3}},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_LogSetLogLevelRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_LogSetLogLevelRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_LogSetLogLevelResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_LogSetLogLevelResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Log_SetLogLevel_ResultHandles", Dir: 1}, FldName: "result"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Log_SetLogLevel_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Log_SetLogLevel_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Log_SetLogLevel_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Log_SetLogLevel_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Log_SetLogLevel_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddEthernetInterfaceRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[523329667]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2247683804791570432]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "topological_pathInLine"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "device", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "topological_pathOutOfLine"},
@@ -4112,22 +4102,22 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddEthernetInterfaceRequestHandles", TypeSize: 4}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_hardware_ethernet_Device_client", FldName: "device", TypeSize: 4}},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddEthernetInterfaceResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddEthernetInterface_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackAddForwardingEntryRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddForwardingEntryRequest", TypeSize: 61}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[707225626]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[3037510934563127296]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ForwardingEntryInLine"}, FldName: "entryInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ForwardingEntryOutOfLine"}, FldName: "entryOutOfLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackAddForwardingEntryRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddForwardingEntryRequestHandles"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ForwardingEntryHandles"}, FldName: "entry"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackAddForwardingEntryResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddForwardingEntryResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackAddForwardingEntryResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddForwardingEntryResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddForwardingEntry_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackAddInterfaceAddressRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddInterfaceAddressRequest", TypeSize: 45}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[503331302]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2161791481143099392]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressInLine"}, FldName: "addrInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressOutOfLine"}, FldName: "addrOutOfLine"},
@@ -4135,32 +4125,32 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_net_stack_StackAddInterfaceAddressRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddInterfaceAddressRequestHandles"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressHandles"}, FldName: "addr"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackAddInterfaceAddressResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddInterfaceAddressResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackAddInterfaceAddressResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackAddInterfaceAddressResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddInterfaceAddress_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelEthernetInterfaceRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[164294732]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[705640500845084672]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelEthernetInterfaceRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelEthernetInterfaceResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelEthernetInterface_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDelForwardingEntryRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelForwardingEntryRequest", TypeSize: 37}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[456510177]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1960696280506171392]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_SubnetInLine"}, FldName: "subnetInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_SubnetOutOfLine"}, FldName: "subnetOutOfLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDelForwardingEntryRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelForwardingEntryRequestHandles"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_SubnetHandles"}, FldName: "subnet"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackDelForwardingEntryResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelForwardingEntryResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDelForwardingEntryResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelForwardingEntryResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelForwardingEntry_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDelInterfaceAddressRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelInterfaceAddressRequest", TypeSize: 45}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1221457197]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5246118714578829312]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressInLine"}, FldName: "addrInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressOutOfLine"}, FldName: "addrOutOfLine"},
@@ -4168,51 +4158,69 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDelInterfaceAddressRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelInterfaceAddressRequestHandles"}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressHandles"}, FldName: "addr"},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackDelInterfaceAddressResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelInterfaceAddressResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDelInterfaceAddressResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDelInterfaceAddressResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelInterfaceAddress_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDisableInterfaceRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisableInterfaceRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[420106991]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1804345787165966336]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDisableInterfaceRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisableInterfaceRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackDisableInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisableInterfaceResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDisableInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisableInterfaceResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DisableInterface_ResultHandles", Dir: 1}, FldName: "result"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDisableIpForwardingRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisableIpForwardingRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[2992354533176246272]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDisableIpForwardingRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisableIpForwardingRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDisableIpForwardingResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisableIpForwardingResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDisablePacketFilterRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisablePacketFilterRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[376878981]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1618682897944805376]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackDisablePacketFilterRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisablePacketFilterRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackDisablePacketFilterResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisablePacketFilterResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackDisablePacketFilterResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackDisablePacketFilterResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DisablePacketFilter_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackEnableInterfaceRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnableInterfaceRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[338651837]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1454498564645322752]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackEnableInterfaceRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnableInterfaceRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackEnableInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnableInterfaceResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackEnableInterfaceResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnableInterfaceResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_EnableInterface_ResultHandles", Dir: 1}, FldName: "result"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackEnableIpForwardingRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnableIpForwardingRequest", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fidl_message_header[1788620812383682560]"}, FldName: "hdr"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackEnableIpForwardingRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnableIpForwardingRequestHandles"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackEnableIpForwardingResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnableIpForwardingResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackEnablePacketFilterRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnablePacketFilterRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[104863984]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[450387381808267264]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackEnablePacketFilterRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnablePacketFilterRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackEnablePacketFilterResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnablePacketFilterResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackEnablePacketFilterResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackEnablePacketFilterResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_EnablePacketFilter_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackGetForwardingTableRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackGetForwardingTableRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1689435905]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7256071960663162880]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackGetForwardingTableRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackGetForwardingTableRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -4221,18 +4229,17 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "table", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_ForwardingEntryHandles", Dir: 1}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackGetInterfaceInfoRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackGetInterfaceInfoRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1475819982]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6338598557473308672]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackGetInterfaceInfoRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackGetInterfaceInfoRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackGetInterfaceInfoResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackGetInterfaceInfoResponseHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceInfoHandles", Dir: 1}, FldName: "info"},
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_ErrorHandles", Dir: 1}, FldName: "err"},
+	{Key: StructKey{Name: "fuchsia_net_stack_StackGetInterfaceInfoResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackGetInterfaceInfoResponseHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&UnionType{Key: StructKey{Name: "fuchsia_net_stack_Stack_GetInterfaceInfo_ResultHandles", Dir: 1}, FldName: "result"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackListInterfacesRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackListInterfacesRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1110617141]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4770064298972020736]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackListInterfacesRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackListInterfacesRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -4240,11 +4247,74 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "fuchsia_net_stack_StackListInterfacesResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackListInterfacesResponseHandles", ArgDir: 1}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ifs", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceInfoHandles", Dir: 1}}},
 	}}},
-	{Key: StructKey{Name: "fuchsia_net_stack_StackOnInterfaceAddressChangeEventHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackOnInterfaceAddressChangeEventHandles", ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceAddressChangeHandles", Dir: 1}, FldName: "info"},
-	}}},
 	{Key: StructKey{Name: "fuchsia_net_stack_StackOnInterfaceStatusChangeEventHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_StackOnInterfaceStatusChangeEventHandles", ArgDir: 1}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceStatusChangeHandles", Dir: 1}, FldName: "info"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddEthernetInterface_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_AddEthernetInterface_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddEthernetInterface_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_AddEthernetInterface_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddEthernetInterface_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddForwardingEntry_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_AddForwardingEntry_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddForwardingEntry_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_AddForwardingEntry_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddForwardingEntry_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddInterfaceAddress_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_AddInterfaceAddress_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddInterfaceAddress_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_AddInterfaceAddress_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_AddInterfaceAddress_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelEthernetInterface_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DelEthernetInterface_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelEthernetInterface_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DelEthernetInterface_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelEthernetInterface_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelForwardingEntry_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DelForwardingEntry_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelForwardingEntry_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DelForwardingEntry_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelForwardingEntry_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelInterfaceAddress_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DelInterfaceAddress_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelInterfaceAddress_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DelInterfaceAddress_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DelInterfaceAddress_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DisableInterface_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DisableInterface_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DisableInterface_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DisableInterface_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DisableInterface_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DisablePacketFilter_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DisablePacketFilter_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_DisablePacketFilter_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_DisablePacketFilter_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_DisablePacketFilter_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_EnableInterface_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_EnableInterface_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_EnableInterface_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_EnableInterface_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_EnableInterface_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_EnablePacketFilter_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_EnablePacketFilter_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_EnablePacketFilter_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_EnablePacketFilter_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_EnablePacketFilter_ResponseHandles", Dir: 1}, FldName: "response"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_GetInterfaceInfo_ResponseHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_GetInterfaceInfo_ResponseHandles", ArgDir: 1}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_InterfaceInfoHandles", Dir: 1}, FldName: "info"},
+	}}},
+	{Key: StructKey{Name: "fuchsia_net_stack_Stack_GetInterfaceInfo_ResultHandles", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_net_stack_Stack_GetInterfaceInfo_ResultHandles", ArgDir: 1, IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "fuchsia_net_stack_Stack_GetInterfaceInfo_ResponseHandles", Dir: 1}, FldName: "response"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_HandleInfoHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_HandleInfoHandles", TypeSize: 4}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
@@ -4269,7 +4339,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "nameOutOfLine"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherAddArgsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherAddArgsRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[343996832]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[1477455143367606272]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "argsInLine"},
 		&StructType{Key: StructKey{Name: "parallel_array[fidl_vector, array[int8]]"}, FldName: "argsOutOfLine"},
 	}}},
@@ -4277,7 +4347,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherAddEnvironsRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherAddEnvironsRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1220947097]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5243927851761139712]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "environInLine"},
 		&StructType{Key: StructKey{Name: "parallel_array[fidl_vector, array[int8]]"}, FldName: "environOutOfLine"},
 	}}},
@@ -4285,7 +4355,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherAddHandlesRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherAddHandlesRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1557565451]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6689692673424490496]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "handlesInLine"},
 		&StructType{Key: StructKey{Name: "parallel_array[fuchsia_process_HandleInfoInLine, fuchsia_process_HandleInfoOutOfLine]"}, FldName: "handlesOutOfLine"},
 	}}},
@@ -4293,7 +4363,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handles", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_HandleInfoHandles"}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherAddNamesRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherAddNamesRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1409085196]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[6051974834097750016]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_vector"}, FldName: "namesInLine"},
 		&StructType{Key: StructKey{Name: "parallel_array[fuchsia_process_NameInfoInLine, fuchsia_process_NameInfoOutOfLine]"}, FldName: "namesOutOfLine"},
 	}}},
@@ -4301,7 +4371,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "names", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fuchsia_process_NameInfoHandles"}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherCreateWithoutStartingRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherCreateWithoutStartingRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1339014161]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5751022030375878656]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_process_LaunchInfoInLine"}, FldName: "infoInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_process_LaunchInfoOutOfLine"}, FldName: "infoOutOfLine"},
 	}}},
@@ -4312,7 +4382,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "fuchsia_process_ProcessStartDataHandles", Dir: 1}, FldName: "data"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_LauncherLaunchRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_LauncherLaunchRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[646466973]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2776554506979115008]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fuchsia_process_LaunchInfoInLine"}, FldName: "infoInLine"},
 		&StructType{Key: StructKey{Name: "fuchsia_process_LaunchInfoOutOfLine"}, FldName: "infoOutOfLine"},
 	}}},
@@ -4339,7 +4409,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", FldName: "bootstrap", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_process_ResolverResolveRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_process_ResolverResolveRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[546835073]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[2348638754840772608]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "nameInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "nameOutOfLine"},
 	}}},
@@ -4354,7 +4424,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_scpi_SystemControllerGetDvfsInfoRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_scpi_SystemControllerGetDvfsInfoRequest", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1206135815]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[5180313879959306240]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "power_domain", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_scpi_SystemControllerGetDvfsInfoRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_scpi_SystemControllerGetDvfsInfoRequestHandles"}, Fields: []Type{
@@ -4364,7 +4434,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "opps", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "fuchsia_scpi_DvfsOppHandles", Dir: 1}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_scpi_SystemControllerGetSystemStatusRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_scpi_SystemControllerGetSystemStatusRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1847022830]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7932902649815367680]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_scpi_SystemControllerGetSystemStatusRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_scpi_SystemControllerGetSystemStatusRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -4376,7 +4446,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimeServiceUpdateRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimeServiceUpdateRequest", TypeSize: 17}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[158808681]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[682078091215896576]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "num_retries", TypeSize: 1}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimeServiceUpdateRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimeServiceUpdateRequestHandles"}, Fields: []Type{
@@ -4386,7 +4456,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimezoneGetTimezoneIdRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimezoneGetTimezoneIdRequest", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1119663833]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[4808919545249005568]"}, FldName: "hdr"},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimezoneGetTimezoneIdRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimezoneGetTimezoneIdRequestHandles"}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void"}, Kind: 1},
@@ -4395,7 +4465,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimezoneGetTimezoneOffsetMinutesRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimezoneGetTimezoneOffsetMinutesRequest", TypeSize: 24}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1814425986]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[7792900270882553856]"}, FldName: "hdr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "milliseconds_since_epoch", TypeSize: 8}}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimezoneGetTimezoneOffsetMinutesRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimezoneGetTimezoneOffsetMinutesRequestHandles"}, Fields: []Type{
@@ -4405,7 +4475,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimezoneSetTimezoneRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimezoneSetTimezoneRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1904474588]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8179656071523074048]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "timezone_idInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "timezone_idOutOfLine"},
 	}}},
@@ -4416,14 +4486,14 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "void", ArgDir: 1}, Kind: 1},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimezoneWatchRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimezoneWatchRequest", TypeSize: 20}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[2067944433]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8881753709680263168]"}, FldName: "hdr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fidl_handle_presence", FldName: "watcher", TypeSize: 4}}, Vals: []uint64{0, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimezoneWatchRequestHandles"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimezoneWatchRequestHandles", TypeSize: 4}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_timezone_TimezoneWatcher_client", FldName: "watcher", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "fuchsia_timezone_TimezoneWatcherOnTimezoneOffsetChangeRequest"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuchsia_timezone_TimezoneWatcherOnTimezoneOffsetChangeRequest", IsVarlen: true}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "fidl_message_header[1964417497]"}, FldName: "hdr"},
+		&StructType{Key: StructKey{Name: "fidl_message_header[8437108905305178112]"}, FldName: "hdr"},
 		&StructType{Key: StructKey{Name: "fidl_string"}, FldName: "timezone_idInLine"},
 		&StructType{Key: StructKey{Name: "fidl_aligned[stringnoz]"}, FldName: "timezone_idOutOfLine"},
 	}}},
@@ -4803,9 +4873,9 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 28}, Kind: 2, Values: []string{"/svc/fuchsia.net.NameLookup\x00"}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_NameLookup_server", FldName: "handle", TypeSize: 4}},
 	}},
-	{Name: "fdio_service_connect$fuchsia_net_SocketProvider", CallName: "fdio_service_connect", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 32}, Kind: 2, Values: []string{"/svc/fuchsia.net.SocketProvider\x00"}}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_SocketProvider_server", FldName: "handle", TypeSize: 4}},
+	{Name: "fdio_service_connect$fuchsia_net_stack_Log", CallName: "fdio_service_connect", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 27}, Kind: 2, Values: []string{"/svc/fuchsia.net.stack.Log\x00"}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Log_server", FldName: "handle", TypeSize: 4}},
 	}},
 	{Name: "fdio_service_connect$fuchsia_net_stack_Stack", CallName: "fdio_service_connect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 29}, Kind: 2, Values: []string{"/svc/fuchsia.net.stack.Stack\x00"}}},
@@ -5572,14 +5642,6 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
-	{Name: "zx_channel_call$fuchsia_io_DirectoryAdminIoctl", CallName: "zx_channel_call", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_DirectoryAdmin_client", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryAdminIoctlRequest, fuchsia_io_DirectoryAdminIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminIoctlResponseHandles]"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-	}},
 	{Name: "zx_channel_call$fuchsia_io_DirectoryAdminLink", CallName: "zx_channel_call", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_DirectoryAdmin_client", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
@@ -5601,6 +5663,22 @@ var syscalls_arm64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryAdminMountAndCreateRequest, fuchsia_io_DirectoryAdminMountAndCreateRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminMountAndCreateResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_io_DirectoryAdminNodeGetFlags", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_DirectoryAdmin_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryAdminNodeGetFlagsRequest, fuchsia_io_DirectoryAdminNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminNodeGetFlagsResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_io_DirectoryAdminNodeSetFlags", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_DirectoryAdmin_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryAdminNodeSetFlagsRequest, fuchsia_io_DirectoryAdminNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryAdminNodeSetFlagsResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -5716,19 +5794,27 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
-	{Name: "zx_channel_call$fuchsia_io_DirectoryIoctl", CallName: "zx_channel_call", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Directory_client", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryIoctlRequest, fuchsia_io_DirectoryIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryIoctlResponseHandles]"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-	}},
 	{Name: "zx_channel_call$fuchsia_io_DirectoryLink", CallName: "zx_channel_call", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Directory_client", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryLinkRequest, fuchsia_io_DirectoryLinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryLinkResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_io_DirectoryNodeGetFlags", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Directory_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryNodeGetFlagsRequest, fuchsia_io_DirectoryNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryNodeGetFlagsResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_io_DirectoryNodeSetFlags", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Directory_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_DirectoryNodeSetFlagsRequest, fuchsia_io_DirectoryNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_DirectoryNodeSetFlagsResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -5828,11 +5914,19 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
-	{Name: "zx_channel_call$fuchsia_io_FileIoctl", CallName: "zx_channel_call", Args: []Type{
+	{Name: "zx_channel_call$fuchsia_io_FileNodeGetFlags", CallName: "zx_channel_call", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_File_client", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_FileIoctlRequest, fuchsia_io_FileIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileIoctlResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_FileNodeGetFlagsRequest, fuchsia_io_FileNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileNodeGetFlagsResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_io_FileNodeSetFlags", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_File_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_FileNodeSetFlagsRequest, fuchsia_io_FileNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_FileNodeSetFlagsResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -5932,11 +6026,19 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
-	{Name: "zx_channel_call$fuchsia_io_NodeIoctl", CallName: "zx_channel_call", Args: []Type{
+	{Name: "zx_channel_call$fuchsia_io_NodeNodeGetFlags", CallName: "zx_channel_call", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Node_client", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_NodeIoctlRequest, fuchsia_io_NodeIoctlRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeIoctlResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_NodeNodeGetFlagsRequest, fuchsia_io_NodeNodeGetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeNodeGetFlagsResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_io_NodeNodeSetFlags", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_io_Node_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_io_NodeNodeSetFlagsRequest, fuchsia_io_NodeNodeSetFlagsRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_io_NodeNodeSetFlagsResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -5972,35 +6074,11 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
-	{Name: "zx_channel_call$fuchsia_ldsvc_LoaderDebugLoadConfig", CallName: "zx_channel_call", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_ldsvc_Loader_client", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_ldsvc_LoaderDebugLoadConfigRequest, fuchsia_ldsvc_LoaderDebugLoadConfigRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderDebugLoadConfigResponseHandles]"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-	}},
-	{Name: "zx_channel_call$fuchsia_ldsvc_LoaderDebugPublishDataSink", CallName: "zx_channel_call", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_ldsvc_Loader_client", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_ldsvc_LoaderDebugPublishDataSinkRequest, fuchsia_ldsvc_LoaderDebugPublishDataSinkRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderDebugPublishDataSinkResponseHandles]"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-	}},
 	{Name: "zx_channel_call$fuchsia_ldsvc_LoaderLoadObject", CallName: "zx_channel_call", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_ldsvc_Loader_client", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_ldsvc_LoaderLoadObjectRequest, fuchsia_ldsvc_LoaderLoadObjectRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderLoadObjectResponseHandles]"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-	}},
-	{Name: "zx_channel_call$fuchsia_ldsvc_LoaderLoadScriptInterpreter", CallName: "zx_channel_call", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_ldsvc_Loader_client", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_ldsvc_LoaderLoadScriptInterpreterRequest, fuchsia_ldsvc_LoaderLoadScriptInterpreterRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_ldsvc_LoaderLoadScriptInterpreterResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -6020,11 +6098,11 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
-	{Name: "zx_channel_call$fuchsia_net_SocketProviderGetAddrInfo", CallName: "zx_channel_call", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_SocketProvider_client", FldName: "handle", TypeSize: 4}},
+	{Name: "zx_channel_call$fuchsia_net_stack_LogSetLogLevel", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Log_client", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_net_SocketProviderGetAddrInfoRequest, fuchsia_net_SocketProviderGetAddrInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketProviderGetAddrInfoResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_LogSetLogLevelRequest, fuchsia_net_stack_LogSetLogLevelRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_LogSetLogLevelResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -6084,6 +6162,14 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
+	{Name: "zx_channel_call$fuchsia_net_stack_StackDisableIpForwarding", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Stack_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackDisableIpForwardingRequest, fuchsia_net_stack_StackDisableIpForwardingRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackDisableIpForwardingResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
 	{Name: "zx_channel_call$fuchsia_net_stack_StackDisablePacketFilter", CallName: "zx_channel_call", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Stack_client", FldName: "handle", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
@@ -6097,6 +6183,14 @@ var syscalls_arm64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackEnableInterfaceRequest, fuchsia_net_stack_StackEnableInterfaceRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackEnableInterfaceResponseHandles]"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{Name: "zx_channel_call$fuchsia_net_stack_StackEnableIpForwarding", CallName: "zx_channel_call", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Stack_client", FldName: "handle", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "deadline", TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fidl_call_args[fuchsia_net_stack_StackEnableIpForwardingRequest, fuchsia_net_stack_StackEnableIpForwardingRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_stack_StackEnableIpForwardingResponseHandles]"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 	}},
@@ -6294,10 +6388,10 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_NameLookup_client", TypeSize: 4, ArgDir: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out1", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_NameLookup_server", TypeSize: 4, ArgDir: 1}}},
 	}},
-	{Name: "zx_channel_create$fuchsia_net_SocketProvider", CallName: "zx_channel_create", Args: []Type{
+	{Name: "zx_channel_create$fuchsia_net_stack_Log", CallName: "zx_channel_create", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_SocketProvider_client", TypeSize: 4, ArgDir: 1}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out1", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_SocketProvider_server", TypeSize: 4, ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out0", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Log_client", TypeSize: 4, ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out1", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Log_server", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{Name: "zx_channel_create$fuchsia_net_stack_Stack", CallName: "zx_channel_create", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
@@ -6390,16 +6484,6 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "num_bytes", TypeSize: 8}}, BitSize: 8, Path: []string{"bytes"}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_ConnectivityOnNetworkReachableEventHandles", Dir: 1}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "num_handles", TypeSize: 8}}, BitSize: 8, Path: []string{"handles"}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-	}},
-	{Name: "zx_channel_read$fuchsia_net_stack_StackOnInterfaceAddressChange", CallName: "zx_channel_read", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan_fuchsia_net_stack_Stack_client", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "options", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "bytes", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 65536, ArgDir: 1}, Kind: 1, RangeBegin: 65536, RangeEnd: 65536}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "num_bytes", TypeSize: 8}}, BitSize: 8, Path: []string{"bytes"}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "handles", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fuchsia_net_stack_StackOnInterfaceAddressChangeEventHandles", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "num_handles", TypeSize: 8}}, BitSize: 8, Path: []string{"handles"}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_bytes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "actual_handles", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
@@ -7390,9 +7474,17 @@ var consts_arm64 = []ConstValue{
 	{Name: "fuchsia_net_LookupIpOptions_V4_ADDRS", Value: 1},
 	{Name: "fuchsia_net_LookupIpOptions_V6_ADDRS", Value: 2},
 	{Name: "fuchsia_net_stack_ForwardingDestinationTag_deviceId"},
+	{Name: "fuchsia_net_stack_ForwardingDestinationTag_device_id"},
 	{Name: "fuchsia_net_stack_ForwardingDestinationTag_nextHop", Value: 1},
+	{Name: "fuchsia_net_stack_ForwardingDestinationTag_next_hop", Value: 1},
+	{Name: "fuchsia_net_stack_LogLevelFilter_DEBUG", Value: 18446744073709551615},
+	{Name: "fuchsia_net_stack_LogLevelFilter_ERROR", Value: 2},
+	{Name: "fuchsia_net_stack_LogLevelFilter_FATAL", Value: 3},
+	{Name: "fuchsia_net_stack_LogLevelFilter_INFO"},
+	{Name: "fuchsia_net_stack_LogLevelFilter_TRACE", Value: 18446744073709551614},
+	{Name: "fuchsia_net_stack_LogLevelFilter_WARN", Value: 1},
 	{Name: "fuchsia_power_Status_NotAvailable", Value: 1},
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_arm64 = "e646f419d01107d87ff346ec5ee9a586dc261305"
+const revision_arm64 = "42bf2ab2b8b1b89317ed03575f5c42aec66d7a62"
