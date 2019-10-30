@@ -27,7 +27,7 @@ fuchsia_hardware_ethernet_FifosHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceGetInfoRequest {
-	hdr	fidl_message_header[281534132]
+	hdr	fidl_message_header[1209179889647747072]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceGetInfoRequestHandles {
@@ -39,7 +39,7 @@ fuchsia_hardware_ethernet_DeviceGetInfoResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceGetFifosRequest {
-	hdr	fidl_message_header[568453368]
+	hdr	fidl_message_header[2441488624861052928]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceGetFifosRequestHandles {
@@ -51,7 +51,7 @@ fuchsia_hardware_ethernet_DeviceGetFifosResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceSetIOBufferRequest {
-	hdr	fidl_message_header[538834931]
+	hdr	fidl_message_header[2314278406587416576]
 	h	flags[fidl_handle_presence, int32]
 } [packed]
 
@@ -64,7 +64,7 @@ fuchsia_hardware_ethernet_DeviceSetIOBufferResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceStartRequest {
-	hdr	fidl_message_header[601568857]
+	hdr	fidl_message_header[2583718567107100672]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceStartRequestHandles {
@@ -76,7 +76,7 @@ fuchsia_hardware_ethernet_DeviceStartResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceStopRequest {
-	hdr	fidl_message_header[1039990421]
+	hdr	fidl_message_header[4466724846348271616]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceStopRequestHandles {
@@ -88,7 +88,7 @@ fuchsia_hardware_ethernet_DeviceStopResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceListenStartRequest {
-	hdr	fidl_message_header[1529124283]
+	hdr	fidl_message_header[6567538787004448768]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceListenStartRequestHandles {
@@ -100,7 +100,7 @@ fuchsia_hardware_ethernet_DeviceListenStartResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceListenStopRequest {
-	hdr	fidl_message_header[594222167]
+	hdr	fidl_message_header[2552164773823250432]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceListenStopRequestHandles {
@@ -112,7 +112,7 @@ fuchsia_hardware_ethernet_DeviceListenStopResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceSetClientNameRequest {
-	hdr		fidl_message_header[1678545441]
+	hdr		fidl_message_header[7209297773944897536]
 	nameInLine	fidl_string
 	nameOutOfLine	fidl_aligned[stringnoz]
 } [packed]
@@ -126,7 +126,7 @@ fuchsia_hardware_ethernet_DeviceSetClientNameResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceGetStatusRequest {
-	hdr	fidl_message_header[1835250494]
+	hdr	fidl_message_header[7882340851697844224]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceGetStatusRequestHandles {
@@ -138,7 +138,7 @@ fuchsia_hardware_ethernet_DeviceGetStatusResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceSetPromiscuousModeRequest {
-	hdr	fidl_message_header[885102340]
+	hdr	fidl_message_header[3801485603913072640]
 	enabled	int8
 } [packed]
 
@@ -151,7 +151,7 @@ fuchsia_hardware_ethernet_DeviceSetPromiscuousModeResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceConfigMulticastAddMacRequest {
-	hdr		fidl_message_header[60804632]
+	hdr		fidl_message_header[261153905885315072]
 	addrInLine	fuchsia_hardware_ethernet_MacAddressInLine
 	addrOutOfLine	fuchsia_hardware_ethernet_MacAddressOutOfLine
 } [packed]
@@ -165,7 +165,7 @@ fuchsia_hardware_ethernet_DeviceConfigMulticastAddMacResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceConfigMulticastDeleteMacRequest {
-	hdr		fidl_message_header[1373297565]
+	hdr		fidl_message_header[5898268129351434240]
 	addrInLine	fuchsia_hardware_ethernet_MacAddressInLine
 	addrOutOfLine	fuchsia_hardware_ethernet_MacAddressOutOfLine
 } [packed]
@@ -179,7 +179,7 @@ fuchsia_hardware_ethernet_DeviceConfigMulticastDeleteMacResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceConfigMulticastSetPromiscuousModeRequest {
-	hdr	fidl_message_header[716476410]
+	hdr	fidl_message_header[3077242749305487360]
 	enabled	int8
 } [packed]
 
@@ -192,7 +192,7 @@ fuchsia_hardware_ethernet_DeviceConfigMulticastSetPromiscuousModeResponseHandles
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceConfigMulticastTestFilterRequest {
-	hdr	fidl_message_header[88826222]
+	hdr	fidl_message_header[381505718517235712]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceConfigMulticastTestFilterRequestHandles {
@@ -204,7 +204,7 @@ fuchsia_hardware_ethernet_DeviceConfigMulticastTestFilterResponseHandles {
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceDumpRegistersRequest {
-	hdr	fidl_message_header[1574160577]
+	hdr	fidl_message_header[6760968196867489792]
 } [packed]
 
 fuchsia_hardware_ethernet_DeviceDumpRegistersRequestHandles {
