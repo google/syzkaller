@@ -31,7 +31,6 @@
 #include <zircon/syscalls/debug.h>
 #include <zircon/syscalls/exception.h>
 #include <zircon/syscalls/object.h>
-#include <zircon/syscalls/port.h>
 
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
@@ -46,49 +45,69 @@ static void segv_handler(void)
 	doexit(SIGSEGV);
 }
 
-static void* ex_handler(void* arg)
+static zx_status_t update_exception_thread_regs(zx_handle_t exception)
 {
-	zx_handle_t port = (zx_handle_t)(long)arg;
-	for (int i = 0; i < 10000; i++) {
-		zx_port_packet_t packet = {};
-		zx_status_t status = zx_port_wait(port, ZX_TIME_INFINITE, &packet);
-		if (status != ZX_OK) {
-			debug("zx_port_wait failed: %d\n", status);
-			continue;
-		}
-		debug("got exception packet: type=%d status=%d tid=%llu\n",
-		      packet.type, packet.status, (unsigned long long)(packet.exception.tid));
-		zx_handle_t thread;
-		status = zx_object_get_child(zx_process_self(), packet.exception.tid,
-					     ZX_RIGHT_SAME_RIGHTS, &thread);
-		if (status != ZX_OK) {
-			debug("zx_object_get_child failed: %d\n", status);
-			continue;
-		}
-		zx_thread_state_general_regs_t regs;
-		status = zx_thread_read_state(thread, ZX_THREAD_STATE_GENERAL_REGS,
-					      &regs, sizeof(regs));
-		if (status != ZX_OK) {
-			debug("zx_thread_read_state failed: %d (%d)\n",
-			      (int)sizeof(regs), status);
-		} else {
+	zx_handle_t thread;
+	zx_status_t status = zx_exception_get_thread(exception, &thread);
+	if (status != ZX_OK) {
+		debug("zx_exception_get_thread failed: %d\n", status);
+		return status;
+	}
+
+	zx_thread_state_general_regs_t regs;
+	status = zx_thread_read_state(thread, ZX_THREAD_STATE_GENERAL_REGS,
+				      &regs, sizeof(regs));
+	if (status != ZX_OK) {
+		debug("zx_thread_read_state failed: %d (%d)\n",
+		      (int)sizeof(regs), status);
+	} else {
 #if GOARCH_amd64
-			regs.rip = (uint64)(void*)&segv_handler;
+		regs.rip = (uint64)(void*)&segv_handler;
 #elif GOARCH_arm64
-			regs.pc = (uint64)(void*)&segv_handler;
+		regs.pc = (uint64)(void*)&segv_handler;
 #else
 #error "unsupported arch"
 #endif
-			status = zx_thread_write_state(thread, ZX_THREAD_STATE_GENERAL_REGS, &regs, sizeof(regs));
-			if (status != ZX_OK) {
-				debug("zx_thread_write_state failed: %d\n", status);
-			}
-		}
-		status = zx_task_resume_from_exception(thread, port, 0);
+		status = zx_thread_write_state(thread, ZX_THREAD_STATE_GENERAL_REGS, &regs, sizeof(regs));
 		if (status != ZX_OK) {
-			debug("zx_task_resume_from_exception failed: %d\n", status);
+			debug("zx_thread_write_state failed: %d\n", status);
 		}
-		zx_handle_close(thread);
+	}
+
+	zx_handle_close(thread);
+	return status;
+}
+
+static void* ex_handler(void* arg)
+{
+	zx_handle_t exception_channel = (zx_handle_t)(long)arg;
+	for (int i = 0; i < 10000; i++) {
+		zx_status_t status = zx_object_wait_one(exception_channel, ZX_CHANNEL_READABLE, ZX_TIME_INFINITE, NULL);
+		if (status != ZX_OK) {
+			debug("zx_object_wait_one failed: %d\n", status);
+			continue;
+		}
+
+		zx_exception_info_t info;
+		zx_handle_t exception;
+		status = zx_channel_read(exception_channel, 0, &info, &exception, sizeof(info), 1, NULL, NULL);
+		if (status != ZX_OK) {
+			debug("zx_channel_read failed: %d\n", status);
+			continue;
+		}
+
+		debug("got exception: type=%d tid=%llu\n", info.type, (unsigned long long)(info.tid));
+		status = update_exception_thread_regs(exception);
+		if (status != ZX_OK) {
+			debug("failed to update exception thread registers: %d\n", status);
+		}
+
+		uint32 state = ZX_EXCEPTION_STATE_HANDLED;
+		status = zx_object_set_property(exception, ZX_PROP_EXCEPTION_STATE, &state, sizeof(state));
+		if (status != ZX_OK) {
+			debug("zx_object_set_property(ZX_PROP_EXCEPTION_STATE) failed: %d\n", status);
+		}
+		zx_handle_close(exception);
 	}
 	doexit(1);
 	return 0;
@@ -97,13 +116,11 @@ static void* ex_handler(void* arg)
 static void install_segv_handler(void)
 {
 	zx_status_t status;
-	zx_handle_t port;
-	if ((status = zx_port_create(0, &port)) != ZX_OK)
-		fail("zx_port_create failed: %d", status);
-	if ((status = zx_task_bind_exception_port(zx_process_self(), port, 0, 0)) != ZX_OK)
-		fail("zx_task_bind_exception_port failed: %d", status);
+	zx_handle_t exception_channel;
+	if ((status = zx_task_create_exception_channel(zx_process_self(), 0, &exception_channel)) != ZX_OK)
+		fail("zx_task_create_exception_channel failed: %d", status);
 	pthread_t th;
-	if (pthread_create(&th, 0, ex_handler, (void*)(long)port))
+	if (pthread_create(&th, 0, ex_handler, (void*)(long)exception_channel))
 		fail("pthread_create failed");
 }
 

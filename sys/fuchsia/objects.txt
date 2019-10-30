@@ -75,7 +75,7 @@ zx_info_process {
 
 zx_info_thread {
 	state				int32
-	wait_exception_port_type	int32
+	wait_exception_channel_type	int32
 }
 
 zx_exception_report {
