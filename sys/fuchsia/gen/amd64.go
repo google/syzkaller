@@ -4695,7 +4695,7 @@ var structDescs_amd64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "zx_info_thread", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_thread", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "state", TypeSize: 4, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "wait_exception_port_type", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "wait_exception_channel_type", TypeSize: 4, ArgDir: 1}}},
 	}}},
 	{Key: StructKey{Name: "zx_info_thread_stats", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_thread_stats", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "total_runtime", TypeSize: 8, ArgDir: 1}}},
@@ -7068,21 +7068,10 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "version", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "version_len", TypeSize: 8}}, Path: []string{"version"}},
 	}},
-	{Name: "zx_task_bind_exception_port", CallName: "zx_task_bind_exception_port", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_task", FldName: "task", TypeSize: 4}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_port", FldName: "eport", TypeSize: 4}},
-		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "key", TypeSize: 8}}, ValuesStart: 1000, ValuesPerProc: 4},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "exception_port_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1}, BitMask: true},
-	}},
 	{Name: "zx_task_create_exception_channel", CallName: "zx_task_create_exception_channel", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_task", FldName: "task", TypeSize: 4}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "exception_port_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "exception_channel_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{1}, BitMask: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_chan", TypeSize: 4, ArgDir: 1}}},
-	}},
-	{Name: "zx_task_resume_from_exception", CallName: "zx_task_resume_from_exception", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_task", FldName: "task", TypeSize: 4}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_port", FldName: "eport", TypeSize: 4}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "task_resume_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{2}, BitMask: true},
 	}},
 	{Name: "zx_thread_create", CallName: "zx_thread_create", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "process", TypeSize: 4}},
@@ -7357,7 +7346,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_CLOCK_MONOTONIC"},
 	{Name: "ZX_CLOCK_THREAD", Value: 2},
 	{Name: "ZX_CLOCK_UTC", Value: 1},
-	{Name: "ZX_EXCEPTION_PORT_DEBUGGER", Value: 1},
+	{Name: "ZX_EXCEPTION_CHANNEL_DEBUGGER", Value: 1},
 	{Name: "ZX_HANDLE_INVALID"},
 	{Name: "ZX_INFO_BTI", Value: 20},
 	{Name: "ZX_INFO_CPU_STATS", Value: 16},
@@ -7403,7 +7392,6 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_POL_NEW_VMO", Value: 4},
 	{Name: "ZX_POL_VMAR_WX", Value: 2},
 	{Name: "ZX_POL_WRONG_OBJECT", Value: 1},
-	{Name: "ZX_RESUME_TRY_NEXT", Value: 2},
 	{Name: "ZX_RIGHT_DESTROY", Value: 512},
 	{Name: "ZX_RIGHT_DUPLICATE", Value: 1},
 	{Name: "ZX_RIGHT_ENUMERATE", Value: 256},
@@ -7487,4 +7475,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "bdf3b9df3ff1d16e7a61432e4f19a866479775e2"
+const revision_amd64 = "329fe6a047fa9d6a9ad388c2e46e5d3dc9ab6c72"
