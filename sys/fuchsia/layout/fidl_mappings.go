@@ -37,9 +37,9 @@ var AllFidlLibraries = []FidlLibrary{
 	{zircon, []string{"fuchsia", "process"}},
 	{zircon, []string{"fuchsia", "io"}},
 	{zircon, []string{"fuchsia", "net"}},
-	{zircon, []string{"fuchsia", "net", "stack"}},
 	{zircon, []string{"fuchsia", "hardware", "ethernet"}},
 	{garnet, []string{"fuchsia", "devicesettings"}},
+	{garnet, []string{"fuchsia", "net", "stack"}},
 	{garnet, []string{"fuchsia", "timezone"}},
 	{garnet, []string{"fuchsia", "scpi"}},
 }
@@ -68,7 +68,7 @@ func (fidlLib FidlLibrary) PathToJSONIr() string {
 func (fidlLib FidlLibrary) PathToCompiledDir() string {
 	switch fidlLib.layer {
 	case zircon:
-		return filepath.Join("fidling", "gen", "zircon", "public", "fidl", fidlLib.dirName())
+		return filepath.Join("fidling", "gen", "zircon", "system", "fidl", fidlLib.dirName())
 	case garnet:
 		return filepath.Join("fidling", "gen", "sdk", "fidl", fidlLib.dirName())
 	default:

@@ -56,29 +56,6 @@ fuchsia_net_SubnetHandles {
 	void	void
 } [packed]
 
-fuchsia_net_AddrInfoHintsInLine {
-	flags_		int32
-	family		int32
-	sock_type	int32
-	protocol	int32
-} [packed]
-
-fuchsia_net_AddrInfoHintsOutOfLine {
-	void	void
-} [packed]
-
-fuchsia_net_AddrInfoHintsHandles {
-	void	void
-} [packed]
-
-fuchsia_net_AddrStorageHandles {
-	void	void
-} [packed]
-
-fuchsia_net_AddrInfoHandles {
-	addr	fuchsia_net_AddrStorageHandles
-} [packed]
-
 fuchsia_net_NameLookup_LookupIp_ResultHandles [
 	response	fuchsia_net_NameLookup_LookupIp_ResponseHandles
 ] [varlen]
@@ -114,7 +91,7 @@ fdio_service_connect$fuchsia_net_Connectivity(path ptr[in, string["/svc/fuchsia.
 zx_channel_read$fuchsia_net_ConnectivityOnNetworkReachable(handle zx_chan_fuchsia_net_Connectivity_client, options const[0], bytes ptr[out, array[int8, ZX_CHANNEL_MAX_MSG_BYTES]], num_bytes bytesize[bytes], handles ptr[out, fuchsia_net_ConnectivityOnNetworkReachableEventHandles], num_handles bytesize[handles], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 
 fuchsia_net_NameLookupLookupIpRequest {
-	hdr			fidl_message_header[818031436]
+	hdr			fidl_message_header[3513418264719917056]
 	hostnameInLine		fidl_string
 	options			flags[fuchsia_net_LookupIpOptions, int8]
 	hostnameOutOfLine	fidl_aligned[stringnoz]
@@ -129,7 +106,7 @@ fuchsia_net_NameLookupLookupIpResponseHandles {
 } [packed]
 
 fuchsia_net_NameLookupLookupHostnameRequest {
-	hdr		fidl_message_header[391654548]
+	hdr		fidl_message_header[1682143474989662208]
 	addrInLine	fuchsia_net_IpAddressInLine
 	addrOutOfLine	fuchsia_net_IpAddressOutOfLine
 } [packed]
@@ -149,28 +126,3 @@ zx_channel_create$fuchsia_net_NameLookup(options const[0], out0 ptr[out, zx_chan
 fdio_service_connect$fuchsia_net_NameLookup(path ptr[in, string["/svc/fuchsia.net.NameLookup"]], handle zx_chan_fuchsia_net_NameLookup_server)
 zx_channel_call$fuchsia_net_NameLookupLookupIp(handle zx_chan_fuchsia_net_NameLookup_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_NameLookupLookupIpRequest, fuchsia_net_NameLookupLookupIpRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_NameLookupLookupIpResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
 zx_channel_call$fuchsia_net_NameLookupLookupHostname(handle zx_chan_fuchsia_net_NameLookup_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_NameLookupLookupHostnameRequest, fuchsia_net_NameLookupLookupHostnameRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_NameLookupLookupHostnameResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
-
-fuchsia_net_SocketProviderGetAddrInfoRequest {
-	hdr			fidl_message_header[498796293]
-	nodeInLine		fidl_string
-	serviceInLine		fidl_string
-	hintsInLine		fuchsia_net_AddrInfoHintsInLine
-	nodeOutOfLine		fidl_aligned[stringnoz]
-	serviceOutOfLine	fidl_aligned[stringnoz]
-	hintsOutOfLine		fuchsia_net_AddrInfoHintsOutOfLine
-} [packed]
-
-fuchsia_net_SocketProviderGetAddrInfoRequestHandles {
-	hints	fuchsia_net_AddrInfoHintsHandles
-} [packed]
-
-fuchsia_net_SocketProviderGetAddrInfoResponseHandles {
-	resHandles	array[fuchsia_net_AddrInfoHandles, 4]
-} [packed]
-
-resource zx_chan_fuchsia_net_SocketProvider_client[zx_chan]
-resource zx_chan_fuchsia_net_SocketProvider_server[zx_chan]
-
-zx_channel_create$fuchsia_net_SocketProvider(options const[0], out0 ptr[out, zx_chan_fuchsia_net_SocketProvider_client], out1 ptr[out, zx_chan_fuchsia_net_SocketProvider_server])
-fdio_service_connect$fuchsia_net_SocketProvider(path ptr[in, string["/svc/fuchsia.net.SocketProvider"]], handle zx_chan_fuchsia_net_SocketProvider_server)
-zx_channel_call$fuchsia_net_SocketProviderGetAddrInfo(handle zx_chan_fuchsia_net_SocketProvider_client, options const[0], deadline zx_time, args ptr[in, fidl_call_args[fuchsia_net_SocketProviderGetAddrInfoRequest, fuchsia_net_SocketProviderGetAddrInfoRequestHandles, array[int8, ZX_CHANNEL_MAX_MSG_BYTES], fuchsia_net_SocketProviderGetAddrInfoResponseHandles]], actual_bytes ptr[out, int32], actual_handles ptr[out, int32])
