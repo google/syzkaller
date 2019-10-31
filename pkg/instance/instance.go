@@ -300,16 +300,23 @@ func (inst *inst) testInstance() error {
 	if err != nil {
 		return fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
+
 	fuzzerBin, err := inst.vm.Copy(inst.cfg.SyzFuzzerBin)
 	if err != nil {
 		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 	}
-	executorBin, err := inst.vm.Copy(inst.cfg.SyzExecutorBin)
-	if err != nil {
-		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
+
+	// If SyzExecutorCmd is provided, it means that syz-executor is already in
+	// the image, so no need to copy it.
+	executorCmd := targets.Get(inst.cfg.TargetOS, inst.cfg.TargetArch).SyzExecutorCmd
+	if executorCmd == "" {
+		executorCmd, err = inst.vm.Copy(inst.cfg.SyzExecutorBin)
+		if err != nil {
+			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
+		}
 	}
 
-	cmd := OldFuzzerCmd(fuzzerBin, executorBin, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
+	cmd := OldFuzzerCmd(fuzzerBin, executorCmd, "test", inst.cfg.TargetOS, inst.cfg.TargetArch, fwdAddr,
 		inst.cfg.Sandbox, 0, inst.cfg.Cover, true)
 	outc, errc, err := inst.vm.Run(10*time.Minute, nil, cmd)
 	if err != nil {
@@ -340,9 +347,14 @@ func (inst *inst) testRepro() error {
 	if err != nil {
 		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 	}
-	executorBin, err := inst.vm.Copy(cfg.SyzExecutorBin)
-	if err != nil {
-		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
+	// If SyzExecutorCmd is provided, it means that syz-executor is already in
+	// the image, so no need to copy it.
+	executorCmd := targets.Get(cfg.TargetOS, cfg.TargetArch).SyzExecutorCmd
+	if executorCmd == "" {
+		executorCmd, err = inst.vm.Copy(inst.cfg.SyzExecutorBin)
+		if err != nil {
+			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
+		}
 	}
 	progFile := filepath.Join(cfg.Workdir, "repro.prog")
 	if err := osutil.WriteFile(progFile, inst.reproSyz); err != nil {
@@ -366,7 +378,7 @@ func (inst *inst) testRepro() error {
 	if !opts.Fault {
 		opts.FaultCall = -1
 	}
-	cmdSyz := ExecprogCmd(execprogBin, executorBin, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
+	cmdSyz := ExecprogCmd(execprogBin, executorCmd, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
 		true, true, true, cfg.Procs, opts.FaultCall, opts.FaultNth, vmProgFile)
 	if err := inst.testProgram(cmdSyz, 7*time.Minute); err != nil {
 		return err
