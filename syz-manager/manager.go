@@ -526,13 +526,20 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
+
 	fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
-	executorBin, err := inst.Copy(mgr.cfg.SyzExecutorBin)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy binary: %v", err)
+
+	// If SyzExecutorCmd is provided, it means that syz-executor is already in
+	// the image, so no need to copy it.
+	executorCmd := targets.Get(mgr.cfg.TargetOS, mgr.cfg.TargetArch).SyzExecutorCmd
+	if executorCmd == "" {
+		executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
+		if err != nil {
+			return nil, fmt.Errorf("failed to copy binary: %v", err)
+		}
 	}
 
 	fuzzerV := 0
@@ -546,7 +553,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	start := time.Now()
 	atomic.AddUint32(&mgr.numFuzzing, 1)
 	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
-	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, fmt.Sprintf("vm-%v", index),
+	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, fmt.Sprintf("vm-%v", index),
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, procs, fuzzerV,
 		mgr.cfg.Cover, *flagDebug, false, false)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)

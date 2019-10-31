@@ -27,6 +27,7 @@ import (
 	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -165,15 +166,22 @@ func (mgr *Manager) boot(name string, index int) (*report.Report, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
+
 	fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
-	executorBin, err := inst.Copy(mgr.cfg.SyzExecutorBin)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy binary: %v", err)
+
+	// If SyzExecutorCmd is provided, it means that syz-executor is already in
+	// the image, so no need to copy it.
+	executorCmd := targets.Get(mgr.cfg.TargetOS, mgr.cfg.TargetArch).SyzExecutorCmd
+	if executorCmd == "" {
+		executorCmd, err = inst.Copy(mgr.cfg.SyzExecutorBin)
+		if err != nil {
+			return nil, fmt.Errorf("failed to copy binary: %v", err)
+		}
 	}
-	cmd := instance.FuzzerCmd(fuzzerBin, executorBin, name,
+	cmd := instance.FuzzerCmd(fuzzerBin, executorCmd, name,
 		mgr.cfg.TargetOS, mgr.cfg.TargetArch, fwdAddr, mgr.cfg.Sandbox, mgr.cfg.Procs, 0,
 		mgr.cfg.Cover, mgr.debug, false, true)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)

@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -138,18 +139,21 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 						time.Sleep(10 * time.Second)
 						continue
 					}
-					executorBin, err := vmInst.Copy(cfg.SyzExecutorBin)
-					if err != nil {
-						ctx.reproLog(0, "failed to copy to VM: %v", err)
-						vmInst.Close()
-						time.Sleep(10 * time.Second)
-						continue
+					executorCmd := targets.Get(cfg.TargetOS, cfg.TargetArch).SyzExecutorCmd
+					if executorCmd == "" {
+						executorCmd, err = vmInst.Copy(cfg.SyzExecutorBin)
+						if err != nil {
+							ctx.reproLog(0, "failed to copy to VM: %v", err)
+							vmInst.Close()
+							time.Sleep(10 * time.Second)
+							continue
+						}
 					}
 					inst = &instance{
 						Instance:    vmInst,
 						index:       vmIndex,
 						execprogBin: execprogBin,
-						executorBin: executorBin,
+						executorBin: executorCmd,
 					}
 					break
 				}
