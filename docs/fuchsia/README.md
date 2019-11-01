@@ -19,14 +19,20 @@ The rest of the document will use the following environment variables:
 To build fuchsia run:
 
 ```shell
-$ fx --dir "out/arm64" set core.arm64 --with-base "//bundles:tools"
+$ fx --dir "out/arm64" set core.arm64 \
+  --with-base "//bundles:tools" \
+  --with-base "//src/testing/fuzzing/syzkaller" \
+  --args=syzkaller_dir='"/full/path/to/syzkaller"'
 $ fx clean-build
 ```
 
 And
 
 ```shell
-$ fx --dir "out/x64" set core.x64 --with-base "//bundles:tools"
+$ fx --dir "out/x64" set core.x64 \
+  --with-base "//bundles:tools" \
+  --with-base "//src/testing/fuzzing/syzkaller" \
+  --args=syzkaller_dir='"/full/path/to/syzkaller"'
 $ fx clean-build
 ```
 
@@ -109,7 +115,6 @@ $SOURCEDIR/out/x64/host_x64/fidlgen -generators syzkaller -json /tmp/io.json -ou
 
 To run `syz-ci` locally for Fuchsia, you need:
 
-- Go 1.12 toolchain (in `/go1.12` dir in the example below)
 - bootstrapped Fuchsia checkout (in `/bootstrap/fuchsia` dir in the example below)
 - bootstrap `syz-ci` binary (in the current dir, build with `make ci`)
 - `syz-ci` config similar to the one below (in `ci.cfg` file in the current dir)
@@ -119,7 +124,6 @@ To run `syz-ci` locally for Fuchsia, you need:
 	"name": "testci",
 	"http": ":50000",
 	"manager_port_start": 50001,
-	"goroot": "/go1.12",
 	"syzkaller_repo": "https://github.com/google/syzkaller.git",
 	"managers": [
 		{
