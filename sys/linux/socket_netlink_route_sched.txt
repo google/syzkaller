@@ -1319,11 +1319,6 @@ tcf_em_meta_int_var [
 	TCF_META_TYPE_VAR	array[int8, 0:10]
 ] [varlen]
 
-can_filter {
-	can_id		int32
-	can_mask	int32
-}
-
 tcf_em_ipt_policy [
 	TCA_EM_IPT_HOOK			nlattr[TCA_EM_IPT_HOOK, flags[nf_inet_hooks, int32]]
 	TCA_EM_IPT_MATCH_NAME		nlattr[TCA_EM_IPT_MATCH_NAME, string["policy"]]
