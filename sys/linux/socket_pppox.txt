@@ -13,10 +13,8 @@ resource sock_pptp[sock_pppox]
 
 type pptp_call_id int16be[0:3]
 type sid_t int16[0:4]
-type l2tp_tunnel16 int16[0:4]
-type l2tp_session16 int16[0:4]
-type l2tp_tunnel32 int32[0:4]
-type l2tp_session32 int32[0:4]
+type l2tp_tunnel[BASE] BASE[0:4]
+type l2tp_session[BASE] BASE[0:4]
 
 socket$pppoe(domain const[AF_PPPOX], type const[SOCK_STREAM], proto const[PX_PROTO_OE]) sock_pppoe
 connect$pppoe(fd sock_pppoe, addr ptr[in, sockaddr_pppoe], addrlen len[addr])
@@ -76,45 +74,30 @@ type sockaddr_l2tp_t[ADDR] {
 	addr		ADDR
 } [packed]
 
-pppol2tp_addr {
+type pppol2tp_addr_t[BASE] {
 	pid		const[0, int32]
 	fd		sock
 	addr		sockaddr_in
-	s_tunnel	l2tp_tunnel16
-	s_session	l2tp_session16
-	d_tunnel	l2tp_tunnel16
-	d_session	l2tp_session16
+	s_tunnel	l2tp_tunnel[BASE]
+	s_session	l2tp_session[BASE]
+	d_tunnel	l2tp_tunnel[BASE]
+	d_session	l2tp_session[BASE]
 }
 
-pppol2tpin6_addr {
+type pppol2tpin6_addr_t[BASE] {
 	pid		const[0, int32]
 	fd		sock
-	s_tunnel	l2tp_tunnel16
-	s_session	l2tp_session16
-	d_tunnel	l2tp_tunnel16
-	d_session	l2tp_session16
+	s_tunnel	l2tp_tunnel[BASE]
+	s_session	l2tp_session[BASE]
+	d_tunnel	l2tp_tunnel[BASE]
+	d_session	l2tp_session[BASE]
 	addr		sockaddr_in6
 }
 
-pppol2tpv3_addr {
-	pid		const[0, int32]
-	fd		sock
-	addr		sockaddr_in
-	s_tunnel	l2tp_tunnel32
-	s_session	l2tp_session32
-	d_tunnel	l2tp_tunnel32
-	d_session	l2tp_session32
-}
-
-pppol2tpv3in6_addr {
-	pid		const[0, int32]
-	fd		sock
-	s_tunnel	l2tp_tunnel32
-	s_session	l2tp_session32
-	d_tunnel	l2tp_tunnel32
-	d_session	l2tp_session32
-	addr		sockaddr_in6
-}
+type pppol2tp_addr pppol2tp_addr_t[int16]
+type pppol2tpv3_addr pppol2tp_addr_t[int32]
+type pppol2tpin6_addr pppol2tpin6_addr_t[int16]
+type pppol2tpv3in6_addr pppol2tpin6_addr_t[int32]
 
 sockaddr_pptp {
 	sa_family	const[AF_PPPOX, int16]
