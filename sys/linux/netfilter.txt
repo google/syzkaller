@@ -225,8 +225,8 @@ xt_rateest_match_flags = XT_RATEEST_MATCH_INVERT, XT_RATEEST_MATCH_ABS, XT_RATEE
 xt_rateest_match_mode = XT_RATEEST_MATCH_NONE, XT_RATEEST_MATCH_EQ, XT_RATEEST_MATCH_LT, XT_RATEEST_MATCH_GT
 
 xt_l2tp_info {
-	tid	l2tp_tunnel32
-	sid	l2tp_session32
+	tid	l2tp_tunnel[int32]
+	sid	l2tp_session[int32]
 	version	int8[2:3]
 	type	flags[xt_l2tp_type, int8]
 	flags	flags[xt_l2tp_flags, int8]
