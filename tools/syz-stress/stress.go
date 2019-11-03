@@ -79,27 +79,9 @@ func main() {
 	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, calls)
 
-	config, execOpts, err := ipcconfig.Default(target)
+	config, execOpts, err := createIPCConfig(target, features, featuresFlags)
 	if err != nil {
 		log.Fatalf("%v", err)
-	}
-	if featuresFlags["tun"].Enabled && features[host.FeatureNetworkInjection].Enabled {
-		config.Flags |= ipc.FlagEnableTun
-	}
-	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetworkDevices].Enabled {
-		config.Flags |= ipc.FlagEnableNetDev
-	}
-	if featuresFlags["net_reset"].Enabled {
-		config.Flags |= ipc.FlagEnableNetReset
-	}
-	if featuresFlags["cgroups"].Enabled {
-		config.Flags |= ipc.FlagEnableCgroups
-	}
-	if featuresFlags["close_fds"].Enabled {
-		config.Flags |= ipc.FlagEnableCloseFds
-	}
-	if featuresFlags["devlink_pci"].Enabled && features[host.FeatureDevlinkPCI].Enabled {
-		config.Flags |= ipc.FlagEnableDevlinkPCI
 	}
 	if err = host.Setup(target, features, featuresFlags, config.Executor); err != nil {
 		log.Fatal(err)
@@ -157,6 +139,33 @@ func execute(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog) {
 	if hanged || err != nil || *flagOutput {
 		os.Stdout.Write(output)
 	}
+}
+
+func createIPCConfig(target *prog.Target, features *host.Features, featuresFlags csource.Features) (
+	*ipc.Config, *ipc.ExecOpts, error) {
+	config, execOpts, err := ipcconfig.Default(target)
+	if err != nil {
+		return nil, nil, err
+	}
+	if featuresFlags["tun"].Enabled && features[host.FeatureNetworkInjection].Enabled {
+		config.Flags |= ipc.FlagEnableTun
+	}
+	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetworkDevices].Enabled {
+		config.Flags |= ipc.FlagEnableNetDev
+	}
+	if featuresFlags["net_reset"].Enabled {
+		config.Flags |= ipc.FlagEnableNetReset
+	}
+	if featuresFlags["cgroups"].Enabled {
+		config.Flags |= ipc.FlagEnableCgroups
+	}
+	if featuresFlags["close_fds"].Enabled {
+		config.Flags |= ipc.FlagEnableCloseFds
+	}
+	if featuresFlags["devlink_pci"].Enabled && features[host.FeatureDevlinkPCI].Enabled {
+		config.Flags |= ipc.FlagEnableDevlinkPCI
+	}
+	return config, execOpts, nil
 }
 
 func buildCallList(target *prog.Target, enabled []string) map[*prog.Syscall]bool {

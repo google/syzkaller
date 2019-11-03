@@ -175,8 +175,6 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.EnableNetReset = false
 	}
-	if err := opts.Check(cfg.TargetOS); err != nil {
-	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.EnableNetReset = false
 	}
