@@ -1608,6 +1608,7 @@ static void initialize_netdevices(void)
 	    {"hsr0", 0},
 	    {"dummy0", ETH_ALEN},
 	    {"nlmon0", 0},
+	    {"vxcan0", 0, true},
 	    {"vxcan1", 0, true},
 	    {"caif0", ETH_ALEN},
 	    {"batadv0", ETH_ALEN},

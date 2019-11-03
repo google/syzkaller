@@ -587,7 +587,7 @@ static void initialize_netdevices(void)
 	    {"nlmon", "nlmon0"},
 	    {"caif", "caif0"},
 	    {"batadv", "batadv0"},
-	    // Note: adding device vxcan0 fails.
+	    // Note: this adds vxcan0/vxcan1 pair, similar to veth (creating vxcan0 would fail).
 	    {"vxcan", "vxcan1"},
 	    // Note: netdevsim devices can't have the same name even in different namespaces.
 	    {"netdevsim", netdevsim},
@@ -629,6 +629,7 @@ static void initialize_netdevices(void)
 	    {"hsr0", 0},
 	    {"dummy0", ETH_ALEN},
 	    {"nlmon0", 0},
+	    {"vxcan0", 0, true},
 	    {"vxcan1", 0, true},
 	    {"caif0", ETH_ALEN}, // TODO: up'ing caif fails with ENODEV
 	    {"batadv0", ETH_ALEN},
