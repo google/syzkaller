@@ -14,3 +14,11 @@
 * [Synthesis of Linux Kernel Fuzzing Tools Based on Syscall](http://dpi-proceedings.com/index.php/dtcse/article/download/14990/14503)
 * [Drill the Apple Core: Up & Down](https://i.blackhat.com/eu-18/Wed-Dec-5/eu-18-Juwei_Lin-Drill-The-Apple-Core.pdf)
 * [WSL Reloaded](https://www.slideshare.net/AnthonyLAOUHINETSUEI/wsl-reloaded)
+
+# Other kernel fuzzing work
+
+* [trinity](https://github.com/kernelslacker/trinity)
+* [kAFL: Hardware-Assisted Feedback Fuzzing for OS Kernels](https://www.usenix.org/system/files/conference/usenixsecurity17/sec17-schumilo.pdf) (bridges AFL and Intel PT)
+* [kernel-fuzzing](https://github.com/oracle/kernel-fuzzing) (bridges AFL and KCOV)
+* [A gentle introduction to Linux Kernel fuzzing](https://blog.cloudflare.com/a-gentle-introduction-to-linux-kernel-fuzzing/) (bridges AFL and KCOV)
+* [IMF: Inferred Model-based Fuzzer](https://acmccs.github.io/papers/p2345-hanA.pdf)
