@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -29,7 +28,7 @@ type Config struct {
 	Targets      []string `json:"targets"`        // target machines: (hostname|ip)(:port)?
 	TargetDir    string   `json:"target_dir"`     // directory to copy/run on target
 	TargetReboot bool     `json:"target_reboot"`  // reboot target on repair
-	USBDevNum    string   `json:"usb_device_num"` // usb device number
+	USBDevNum    []string `json:"usb_device_num"` // usb device number
 }
 
 type Pool struct {
@@ -42,6 +41,7 @@ type instance struct {
 	os          string
 	targetAddr  string
 	targetPort  int
+	USBAuth     string
 	closed      chan bool
 	debug       bool
 	sshUser     string
@@ -85,11 +85,13 @@ func (pool *Pool) Count() int {
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	targetAddr, targetPort, _ := splitTargetPort(pool.cfg.Targets[index])
+	USBAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", pool.cfg.USBDevNum, "/authorized")
 	inst := &instance{
 		cfg:        pool.cfg,
 		os:         pool.env.OS,
 		targetAddr: targetAddr,
 		targetPort: targetPort,
+		USBAuth:    USBAuth,
 		closed:     make(chan bool),
 		debug:      pool.env.Debug,
 		sshUser:    pool.env.SSHUser,
@@ -172,6 +174,7 @@ func (inst *instance) ssh(command string) error {
 			log.Logf(0, "ssh failed: %v\n%s", err, out)
 		}
 		return fmt.Errorf("ssh %+v failed: %v\n%s", args, err, out)
+
 	}
 	close(done)
 	if inst.debug {
@@ -181,41 +184,39 @@ func (inst *instance) ssh(command string) error {
 }
 
 func (inst *instance) repair() error {
-	log.Logf(2, "isolated: trying to ssh")
-	if err := inst.waitForSSH(3 * time.Minute); err == nil {
-		log.Logf(2, "isolated: ssh succeeded")
-	} else {
-		log.Logf(2, "isolated: ssh failed")
-		if inst.cfg.TargetReboot {
-			log.Logf(2, "isolated: trying to reboot")
-			if inst.cfg.USBDevNum == "" {
-				inst.ssh("reboot")
-			} else {
-				_, err = exec.Command("/bin/sh", "-c", "echo 0 > /sys/bus/usb/devices/"+inst.cfg.USBDevNum+"/authorized").Output()
-				if err != nil {
-					log.Logf(2, "isolated: failed to turn off the device")
-					return err
-				}
-				_, err = exec.Command("/bin/sh", "-c", "echo 1 > /sys/bus/usb/devices/"+inst.cfg.USBDevNum+"/authorized").Output()
-				if err != nil {
-					log.Logf(2, "isolated: failed to turn on the device")
-					return err
-				}
-			}
-
-			if err := inst.waitForReboot(3 * 60); err != nil {
-				log.Logf(2, "isolated: machine did not reboot")
+	if inst.cfg.TargetReboot {
+		log.Logf(2, "isolated: trying to ssh")
+		if err := inst.waitForSSH(30 * time.Minute); err == nil {
+			log.Logf(2, "isolated: ssh succeeded")
+			log.Logf(2, "isolated: trying to reboot by ssh")
+			e := inst.ssh("reboot") // reboot will return an error, ignore it
+			log.Logf(2, "ssh return: %v",e)
+		} else {
+			log.Logf(2, "isolated: ssh failed")
+			log.Logf(2, "isolated: trying to reboot by USB authorization")
+			err = ioutil.WriteFile(inst.USBAuth, []byte("0"), 0)
+			if err != nil {
+				log.Logf(2, "isolated: failed to turn off the device")
 				return err
 			}
-			log.Logf(2, "isolated: rebooted wait for comeback")
-			if err := inst.waitForSSH(3 * time.Minute); err != nil {
-				log.Logf(0, "isolated: machine did not comeback")
+			err = ioutil.WriteFile(inst.USBAuth, []byte("1"), 0)
+			if err != nil {
+				log.Logf(2, "isolated: failed to turn on the device")
 				return err
 			}
-			log.Logf(2, "isolated: reboot succeeded")
 		}
-	}
 
+		if err := inst.waitForReboot(5 * 60); err != nil {
+			log.Logf(2, "isolated: machine did not reboot")
+			return err
+		}
+		log.Logf(2, "isolated: rebooted wait for comeback")
+		if err := inst.waitForSSH(30 * time.Minute); err != nil {
+			log.Logf(0, "isolated: machine did not comeback")
+			return err
+		}
+		log.Logf(2, "isolated: reboot succeeded")
+	}
 	return nil
 }
 
