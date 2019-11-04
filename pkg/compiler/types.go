@@ -100,8 +100,7 @@ var typeInt = &typeDesc{
 			maxUInt := uint64(1<<size - 1)
 			maxSInt := uint64(1<<(size-1) - 1)
 			if len(args) > 1 && begin == 0 && int64(end) == -1 {
-				// intN[0:-1, align] is a special value for 'all possible values',
-				// but aligned.
+				// intN[0:-1, align] is a special value for 'all possible values', but aligned.
 				end = maxUInt
 			} else if end-begin > 1<<64-1<<32 {
 				comp.error(args[0].Pos, "bad int range [%v:%v]", begin, end)
