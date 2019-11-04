@@ -397,7 +397,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		Manager: *mgrcfg,
 	}
 
-	commits, rep, err := bisect.Run(cfg)
+	commits, rep, _, err := bisect.Run(cfg)
 	resp.Log = trace.Bytes()
 	if err != nil {
 		return err
