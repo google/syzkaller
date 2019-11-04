@@ -51,7 +51,7 @@ getsockopt$SO_J1939_PROMISC(fd sock_can_j1939, level const[SOL_CAN_J1939], opt c
 getsockopt$SO_J1939_ERRQUEUE(fd sock_can_j1939, level const[SOL_CAN_J1939], opt const[SO_J1939_ERRQUEUE], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
 getsockopt$SO_J1939_SEND_PRIO(fd sock_can_j1939, level const[SOL_CAN_J1939], opt const[SO_J1939_SEND_PRIO], val ptr[out, int32], len ptr[inout, bytesize[val, int32]])
 
-ioctl$ifreq_SIOCGIFINDEX_vcan(fd sock_can, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[vcan_device_names, ifindex_vcan]])
+ioctl$ifreq_SIOCGIFINDEX_vcan(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[vcan_device_names, ifindex_vcan]])
 vcan_device_names = "vcan0", "vxcan0", "vxcan1"
 
 sockaddr_can {
@@ -63,10 +63,10 @@ sockaddr_can {
 
 sockaddr_can_j1939 {
 	can_family	const[AF_CAN, int16]
-	can_ifindex	ifindex_vcan[opt]
-	name		int64
+	can_ifindex	ifindex_vcan
+	name		can_j1939_name
 	pgn		can_j1939_pgn
-	addr		int8
+	addr		can_j1939_addr
 }
 
 can_j1939_pgn {
@@ -79,6 +79,9 @@ can_j1939_pgn {
 can_j1939_pgn_ps = 0, 1, 2
 can_j1939_pgn_pf = 0, 1, 0xf0, 0xff
 can_j1939_pgn_flags = 0, 1, 2, 3, 4
+type can_j1939_name int64[0:3]
+type can_j1939_addr flags[can_j1939_addrs, int8]
+can_j1939_addrs = J1939_MAX_UNICAST_ADDR, J1939_IDLE_ADDR, J1939_NO_ADDR, 0, 1, 2
 
 type msghdr_can[MSG] {
 	addr	ptr[in, sockaddr_can, opt]
@@ -141,12 +144,12 @@ can_filter {
 }
 
 j1939_filter {
-	name		int64
-	name_mask	int64
+	name		can_j1939_name
+	name_mask	can_j1939_name
 	pgn		can_j1939_pgn
 	pgn_mask	can_j1939_pgn
-	addr		int8
-	addr_mask	int8
+	addr		can_j1939_addr
+	addr_mask	can_j1939_addr
 }
 
 can_bcm_opcodes = TX_SETUP, TX_DELETE, TX_READ, TX_SEND, RX_SETUP, RX_DELETE, RX_READ
