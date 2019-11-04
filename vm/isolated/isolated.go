@@ -71,6 +71,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Debug && len(cfg.Targets) > 1 {
 		log.Logf(0, "limiting number of targets from %v to 1 in debug mode", len(cfg.Targets))
 		cfg.Targets = cfg.Targets[:1]
+		cfg.USBDevNum = cfg.USBDevNum[:1]
 	}
 	pool := &Pool{
 		cfg: cfg,
@@ -85,7 +86,7 @@ func (pool *Pool) Count() int {
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	targetAddr, targetPort, _ := splitTargetPort(pool.cfg.Targets[index])
-	USBAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", pool.cfg.USBDevNum, "/authorized")
+	USBAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", pool.cfg.USBDevNum[index], "/authorized")
 	inst := &instance{
 		cfg:        pool.cfg,
 		os:         pool.env.OS,
@@ -174,7 +175,6 @@ func (inst *instance) ssh(command string) error {
 			log.Logf(0, "ssh failed: %v\n%s", err, out)
 		}
 		return fmt.Errorf("ssh %+v failed: %v\n%s", args, err, out)
-
 	}
 	close(done)
 	if inst.debug {
@@ -190,7 +190,7 @@ func (inst *instance) repair() error {
 			log.Logf(2, "isolated: ssh succeeded")
 			log.Logf(2, "isolated: trying to reboot by ssh")
 			e := inst.ssh("reboot") // reboot will return an error, ignore it
-			log.Logf(2, "ssh return: %v",e)
+			log.Logf(2, "ssh return: %v", e)
 		} else {
 			log.Logf(2, "isolated: ssh failed")
 			log.Logf(2, "isolated: trying to reboot by USB authorization")
@@ -205,13 +205,12 @@ func (inst *instance) repair() error {
 				return err
 			}
 		}
-
 		if err := inst.waitForReboot(5 * 60); err != nil {
 			log.Logf(2, "isolated: machine did not reboot")
 			return err
 		}
 		log.Logf(2, "isolated: rebooted wait for comeback")
-		if err := inst.waitForSSH(30 * time.Minute); err != nil {
+		if err := inst.waitForSSH(3 * time.Minute); err != nil {
 			log.Logf(0, "isolated: machine did not comeback")
 			return err
 		}
