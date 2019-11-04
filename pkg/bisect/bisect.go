@@ -54,6 +54,7 @@ type env struct {
 	cfg       *Config
 	repo      vcs.Repo
 	bisecter  vcs.Bisecter
+	commit    *vcs.Commit
 	head      *vcs.Commit
 	inst      instance.BuilderTester
 	numTests  int
@@ -67,37 +68,40 @@ const NumTests = 10 // number of tests we do per commit
 //  - if bisection is conclusive, the single cause/fix commit
 //    - for cause bisection report is the crash on the cause commit
 //    - for fix bisection report is nil
+//    - *vcs.Commit will be nil
 //  - if bisection is inconclusive, range of potential cause/fix commits
 //    - report is nil in such case
+//    - *vcs.Commit will be nil
 //  - if the crash still happens on the oldest release/HEAD (for cause/fix bisection correspondingly),
-//    no commits and the crash report on the oldest release/HEAD
-//  - if the crash is not reproduced on the start commit, an error
-func Run(cfg *Config) ([]*vcs.Commit, *report.Report, error) {
+//    no commits and the crash report on the oldest release/HEAD; and *vcs.Commit will point to
+//    the oldest/latest commit where crash happens.
+//  - if the crash is not reproduced on the start commit, an error, *vcs.Commit will be nil
+func Run(cfg *Config) ([]*vcs.Commit, *report.Report, *vcs.Commit, error) {
 	if err := checkConfig(cfg); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	cfg.Manager.Cover = false // it's not supported somewhere back in time
 	repo, err := vcs.NewRepo(cfg.Manager.TargetOS, cfg.Manager.Type, cfg.Manager.KernelSrc)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	bisecter, ok := repo.(vcs.Bisecter)
 	if !ok {
-		return nil, nil, fmt.Errorf("bisection is not implemented for %v", cfg.Manager.TargetOS)
+		return nil, nil, nil, fmt.Errorf("bisection is not implemented for %v", cfg.Manager.TargetOS)
 	}
 	inst, err := instance.NewEnv(&cfg.Manager)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if _, err = repo.CheckoutBranch(cfg.Kernel.Repo, cfg.Kernel.Branch); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	return runImpl(cfg, repo, bisecter, inst)
 }
 
 func runImpl(cfg *Config, repo vcs.Repo, bisecter vcs.Bisecter, inst instance.BuilderTester) (
-	[]*vcs.Commit, *report.Report, error) {
+	[]*vcs.Commit, *report.Report, *vcs.Commit, error) {
 	env := &env{
 		cfg:      cfg,
 		repo:     repo,
@@ -106,7 +110,7 @@ func runImpl(cfg *Config, repo vcs.Repo, bisecter vcs.Bisecter, inst instance.Bu
 	}
 	head, err := repo.HeadCommit()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	env.head = head
 	if cfg.Fix {
@@ -115,12 +119,12 @@ func runImpl(cfg *Config, repo vcs.Repo, bisecter vcs.Bisecter, inst instance.Bu
 		env.log("bisecting cause commit starting from %v", cfg.Kernel.Commit)
 	}
 	start := time.Now()
-	commits, rep, err := env.bisect()
+	commits, rep, bad, err := env.bisect()
 	env.log("revisions tested: %v, total time: %v (build: %v, test: %v)",
 		env.numTests, time.Since(start), env.buildTime, env.testTime)
 	if err != nil {
 		env.log("error: %v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if len(commits) == 0 {
 		if cfg.Fix {
@@ -128,8 +132,9 @@ func runImpl(cfg *Config, repo vcs.Repo, bisecter vcs.Bisecter, inst instance.Bu
 		} else {
 			env.log("the crash already happened on the oldest tested release")
 		}
+		env.log("commit msg: %v", bad.Title)
 		env.log("crash: %v\n%s", rep.Title, rep.Report)
-		return nil, rep, nil
+		return nil, rep, bad, nil
 	}
 	what := "bad"
 	if cfg.Fix {
@@ -140,7 +145,7 @@ func runImpl(cfg *Config, repo vcs.Repo, bisecter vcs.Bisecter, inst instance.Bu
 		for _, com := range commits {
 			env.log("%v", com.Hash)
 		}
-		return commits, nil, nil
+		return commits, nil, nil, nil
 	}
 	com := commits[0]
 	env.log("first %v commit: %v %v", what, com.Hash, com.Title)
@@ -148,39 +153,41 @@ func runImpl(cfg *Config, repo vcs.Repo, bisecter vcs.Bisecter, inst instance.Bu
 	if rep != nil {
 		env.log("crash: %v\n%s", rep.Title, rep.Report)
 	}
-	return commits, rep, nil
+	return commits, rep, nil, nil
 }
 
-func (env *env) bisect() ([]*vcs.Commit, *report.Report, error) {
+func (env *env) bisect() ([]*vcs.Commit, *report.Report, *vcs.Commit, error) {
 	cfg := env.cfg
 	var err error
 	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
 		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
-		return nil, nil, fmt.Errorf("kernel clean failed: %v", err)
+		return nil, nil, nil, fmt.Errorf("kernel clean failed: %v", err)
 	}
 	env.log("building syzkaller on %v", cfg.Syzkaller.Commit)
 	if err := env.inst.BuildSyzkaller(cfg.Syzkaller.Repo, cfg.Syzkaller.Commit); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	if _, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit); err != nil {
-		return nil, nil, err
+	com, err := env.repo.CheckoutCommit(cfg.Kernel.Repo, cfg.Kernel.Commit)
+	if err != nil {
+		return nil, nil, nil, err
 	}
+	env.commit = com
 	res, _, rep0, err := env.test()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	} else if res != vcs.BisectBad {
-		return nil, nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
+		return nil, nil, nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
 	}
 	bad, good, rep1, err := env.commitRange()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	if good == "" {
-		return nil, rep1, nil // still not fixed/happens on the oldest release
+	if rep1 != nil {
+		return nil, rep1, bad, nil // still not fixed/happens on the oldest release
 	}
 	reports := make(map[string]*report.Report)
 	reports[cfg.Kernel.Commit] = rep0
-	commits, err := env.bisecter.Bisect(bad, good, cfg.Trace, func() (vcs.BisectResult, error) {
+	commits, err := env.bisecter.Bisect(bad.Hash, good.Hash, cfg.Trace, func() (vcs.BisectResult, error) {
 		res, com, rep, err := env.test()
 		reports[com.Hash] = rep
 		if cfg.Fix {
@@ -196,60 +203,61 @@ func (env *env) bisect() ([]*vcs.Commit, *report.Report, error) {
 	if len(commits) == 1 {
 		rep = reports[commits[0].Hash]
 	}
-	return commits, rep, err
+	return commits, rep, nil, err
 }
 
-func (env *env) commitRange() (string, string, *report.Report, error) {
+func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, *report.Report, error) {
 	if env.cfg.Fix {
 		return env.commitRangeForFix()
 	}
 	return env.commitRangeForBug()
 }
 
-func (env *env) commitRangeForFix() (string, string, *report.Report, error) {
+func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, *report.Report, error) {
 	env.log("testing current HEAD %v", env.head.Hash)
 	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
-		return "", "", nil, err
+		return nil, nil, nil, err
 	}
 	res, _, rep, err := env.test()
 	if err != nil {
-		return "", "", nil, err
+		return nil, nil, nil, err
 	}
 	if res != vcs.BisectGood {
-		return "", "", rep, nil
+		return env.head, nil, rep, nil
 	}
-	return env.head.Hash, env.cfg.Kernel.Commit, nil, nil
+	return env.head, env.commit, nil, nil
 }
 
-func (env *env) commitRangeForBug() (string, string, *report.Report, error) {
+func (env *env) commitRangeForBug() (*vcs.Commit, *vcs.Commit, *report.Report, error) {
 	cfg := env.cfg
 	tags, err := env.bisecter.PreviousReleaseTags(cfg.Kernel.Commit)
 	if err != nil {
-		return "", "", nil, err
+		return nil, nil, nil, err
 	}
 	if len(tags) == 0 {
-		return "", "", nil, fmt.Errorf("no release tags before this commit")
+		return nil, nil, nil, fmt.Errorf("no release tags before this commit")
 	}
-	lastBad := cfg.Kernel.Commit
+	lastBad := env.commit
 	var lastRep *report.Report
 	for _, tag := range tags {
 		env.log("testing release %v", tag)
-		if _, err := env.repo.SwitchCommit(tag); err != nil {
-			return "", "", nil, err
+		com, err := env.repo.SwitchCommit(tag)
+		if err != nil {
+			return nil, nil, nil, err
 		}
 		res, _, rep, err := env.test()
 		if err != nil {
-			return "", "", nil, err
+			return nil, nil, nil, err
 		}
 		if res == vcs.BisectGood {
-			return lastBad, tag, nil, nil
+			return lastBad, com, nil, nil
 		}
 		if res == vcs.BisectBad {
-			lastBad = tag
+			lastBad = com
 			lastRep = rep
 		}
 	}
-	return "", "", lastRep, nil
+	return lastBad, nil, lastRep, nil
 }
 
 func (env *env) test() (vcs.BisectResult, *vcs.Commit, *report.Report, error) {
