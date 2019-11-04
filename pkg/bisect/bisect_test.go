@@ -159,9 +159,10 @@ type BisectionTests struct {
 	brokenStart float64
 	brokenEnd   float64
 	// expected output
-	errIsNil  bool
-	commitLen int
-	repIsNil  bool
+	errIsNil     bool
+	commitLen    int
+	repIsNil     bool
+	oldestLatest string
 	// input and output
 	culprit float64
 }
@@ -197,15 +198,16 @@ func TestBisectionResults(t *testing.T) {
 		// Tests that no commits are returned when crash occurs on oldest commit
 		// for cause bisection.
 		{
-			name:        "bisect cause crashes oldest",
-			fix:         false,
-			startCommit: "905",
-			brokenStart: math.Inf(0),
-			brokenEnd:   0,
-			errIsNil:    true,
-			commitLen:   0,
-			repIsNil:    false,
-			culprit:     0,
+			name:         "bisect cause crashes oldest",
+			fix:          false,
+			startCommit:  "905",
+			brokenStart:  math.Inf(0),
+			brokenEnd:    0,
+			errIsNil:     true,
+			commitLen:    0,
+			repIsNil:     false,
+			culprit:      0,
+			oldestLatest: "400",
 		},
 		// Tests that more than 1 commit is returned when cause bisection is
 		// inconclusive.
@@ -248,15 +250,16 @@ func TestBisectionResults(t *testing.T) {
 		// Tests that no commits are returned when crash occurs on HEAD
 		// for fix bisection.
 		{
-			name:        "bisect fix crashes HEAD",
-			fix:         true,
-			startCommit: "400",
-			brokenStart: math.Inf(0),
-			brokenEnd:   0,
-			errIsNil:    true,
-			commitLen:   0,
-			repIsNil:    false,
-			culprit:     1000,
+			name:         "bisect fix crashes HEAD",
+			fix:          true,
+			startCommit:  "400",
+			brokenStart:  math.Inf(0),
+			brokenEnd:    0,
+			errIsNil:     true,
+			commitLen:    0,
+			repIsNil:     false,
+			culprit:      1000,
+			oldestLatest: "905",
 		},
 		// Tests that more than 1 commit is returned when fix bisection is
 		// inconclusive.
@@ -276,7 +279,7 @@ func TestBisectionResults(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
 			c := NewCtx(t, test.fix, test.brokenStart, test.brokenEnd, test.culprit, test.startCommit)
 			defer os.RemoveAll(c.baseDir)
-			commits, rep, err := runImpl(c.cfg, c.r, c.r.(vcs.Bisecter), c.inst)
+			commits, rep, com, err := runImpl(c.cfg, c.r, c.r.(vcs.Bisecter), c.inst)
 			if test.errIsNil && err != nil || !test.errIsNil && err == nil {
 				t.Fatalf("returned error: '%v'", err)
 			}
@@ -289,6 +292,10 @@ func TestBisectionResults(t *testing.T) {
 			}
 			if test.repIsNil && rep != nil || !test.repIsNil && rep == nil {
 				t.Fatalf("returned rep: '%v'", err)
+			}
+			if test.oldestLatest != "" && test.oldestLatest != com.Title ||
+				test.oldestLatest == "" && com != nil {
+				t.Fatalf("expected latest/oldest: '%v' got '%v'", test.oldestLatest, com.Title)
 			}
 		})
 	}
