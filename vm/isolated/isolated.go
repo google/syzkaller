@@ -210,7 +210,7 @@ func (inst *instance) repair() error {
 			return err
 		}
 		log.Logf(2, "isolated: rebooted wait for comeback")
-		if err := inst.waitForSSH(3 * time.Minute); err != nil {
+		if err := inst.waitForSSH(30 * time.Minute); err != nil {
 			log.Logf(0, "isolated: machine did not comeback")
 			return err
 		}
