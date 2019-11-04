@@ -586,7 +586,7 @@ func TestBisectCauseAncient(t *testing.T) {
 		c.expectEQ(msg.Body, fmt.Sprintf(`Bisection is inconclusive: the bug happens on the oldest tested release.
 
 bisection log:  %[2]v
-start commit:   11111111 kernel_commit_title1
+oldest commit:  11111111 kernel_commit_title1
 git tree:       repo1 branch1
 final crash:    %[3]v
 console output: %[4]v

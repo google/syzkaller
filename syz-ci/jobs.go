@@ -397,7 +397,7 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		Manager: *mgrcfg,
 	}
 
-	commits, rep, _, err := bisect.Run(cfg)
+	commits, rep, com, err := bisect.Run(cfg)
 	resp.Log = trace.Bytes()
 	if err != nil {
 		return err
@@ -418,6 +418,12 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		resp.CrashLog = rep.Output
 		if len(resp.Commits) != 0 {
 			resp.Commits[0].CC = append(resp.Commits[0].CC, rep.Maintainers...)
+		} else {
+			// If there is a report ahd there is no commit, it means a crash
+			// occurred on HEAD(for BisectFix) and oldest tested release(for BisectCause).
+			resp.Build.KernelCommit = com.Hash
+			resp.Build.KernelCommitDate = com.Date
+			resp.Build.KernelCommitTitle = com.Title
 		}
 	}
 	return nil
