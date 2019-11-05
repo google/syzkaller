@@ -197,7 +197,7 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
     ``` bash
     mkdir module
     cd module
-    wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/drivers/usb/gadget/raw/raw.c
+    wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/drivers/usb/gadget/raw.c
     wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/include/uapi/linux/usb/raw-gadget.h
     ```
 
