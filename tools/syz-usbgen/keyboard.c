@@ -45,8 +45,6 @@ struct hid_descriptor {
 enum usb_raw_event_type {
 	USB_RAW_EVENT_INVALID,
 	USB_RAW_EVENT_CONNECT,
-	USB_RAW_EVENT_DISCONNECT,
-	USB_RAW_EVENT_SUSPEND,
 	USB_RAW_EVENT_CONTROL,
 };
 
@@ -487,12 +485,6 @@ void log_event(struct usb_raw_event *event) {
 	switch (event->type) {
 	case USB_RAW_EVENT_CONNECT:
 		printf("event: connect, length: %u\n", event->length);
-		break;
-	case USB_RAW_EVENT_DISCONNECT:
-		printf("event: disconnect, length: %u\n", event->length);
-		break;
-	case USB_RAW_EVENT_SUSPEND:
-		printf("event: suspend, length: %u\n", event->length);
 		break;
 	case USB_RAW_EVENT_CONTROL:
 		printf("event: control, length: %u\n", event->length);
