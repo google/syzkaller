@@ -233,7 +233,7 @@ func (ctx *context) emitCall(w *bytes.Buffer, call prog.ExecCall, ci int, haveCo
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("sring format in syscall argument")
 			}
-			fmt.Fprintf(w, "%v", ctx.constArgToStr(arg, true))
+			fmt.Fprintf(w, "%v", ctx.constArgToStr(arg, true, native))
 		case prog.ExecArgResult:
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("sring format in syscall argument")
@@ -312,7 +312,7 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 	switch arg := copyin.Arg.(type) {
 	case prog.ExecArgConst:
 		if arg.BitfieldOffset == 0 && arg.BitfieldLength == 0 {
-			ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.constArgToStr(arg, true), arg.Format)
+			ctx.copyinVal(w, copyin.Addr, arg.Size, ctx.constArgToStr(arg, true, false), arg.Format)
 		} else {
 			if arg.Format != prog.FormatNative && arg.Format != prog.FormatBigEndian {
 				panic("bitfield+string format")
@@ -322,7 +322,7 @@ func (ctx *context) copyin(w *bytes.Buffer, csumSeq *int, copyin prog.ExecCopyin
 				htobe = fmt.Sprintf("htobe%v", arg.Size*8)
 			}
 			fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v, %v, 0x%x, %v, %v, %v));\n",
-				arg.Size*8, htobe, copyin.Addr, ctx.constArgToStr(arg, false),
+				arg.Size*8, htobe, copyin.Addr, ctx.constArgToStr(arg, false, false),
 				arg.BitfieldOffset, arg.BitfieldLength)
 		}
 	case prog.ExecArgResult:
@@ -397,7 +397,7 @@ func (ctx *context) copyout(w *bytes.Buffer, call prog.ExecCall, resCopyout bool
 	}
 }
 
-func (ctx *context) constArgToStr(arg prog.ExecArgConst, handleBigEndian bool) string {
+func (ctx *context) constArgToStr(arg prog.ExecArgConst, handleBigEndian, native bool) string {
 	mask := (uint64(1) << (arg.Size * 8)) - 1
 	v := arg.Value & mask
 	val := fmt.Sprintf("%v", v)
@@ -405,6 +405,28 @@ func (ctx *context) constArgToStr(arg prog.ExecArgConst, handleBigEndian bool) s
 		val = "-1"
 	} else if v >= 10 {
 		val = fmt.Sprintf("0x%x", v)
+	}
+	if native && arg.Size == 8 {
+		// syscall() is variadic, so constant arguments must be explicitly
+		// promoted.  Otherwise the compiler is free to leave garbage in the
+		// upper 32 bits of the argument value.  In practice this can happen
+		// on amd64 with arguments that are passed on the stack, i.e.,
+		// arguments beyond the first six.  For example, on freebsd/amd64,
+		// syscall(SYS_mmap, ..., 0) causes clang to emit a 32-bit store of
+		// 0 to the stack, but the kernel expects a 64-bit value.
+		//
+		// syzkaller's argument type representations do not always match
+		// the OS ABI.  For instance, "flags" is always 64 bits wide on 64-bit
+		// platforms, but is a 32-bit value ("unsigned int" or so) in many
+		// cases.  Thus, we assume here that passing a 64-bit argument where
+		// a 32-bit argument is expected won't break anything.  On amd64
+		// this should be fine: arguments are passed in 64-bit registers or
+		// at 64 bit-aligned addresses on the stack.
+		if ctx.target.PtrSize == 4 {
+			val += "ull"
+		} else {
+			val += "ul"
+		}
 	}
 	if ctx.opts.Procs > 1 && arg.PidStride != 0 {
 		val += fmt.Sprintf(" + procid*%v", arg.PidStride)
