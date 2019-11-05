@@ -103,7 +103,7 @@ func (env *env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile s
 		SysctlFile:   sysctlFile,
 		Config:       kernelConfig,
 	}
-	if err := build.Image(params); err != nil {
+	if _, err := build.Image(params); err != nil {
 		return "", err
 	}
 	if err := SetConfigImage(env.cfg, imageDir, true); err != nil {

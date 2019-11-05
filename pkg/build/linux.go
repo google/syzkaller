@@ -10,7 +10,11 @@
 package build
 
 import (
+	"crypto/sha1"
+	"debug/elf"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -138,4 +142,30 @@ func runMake(kernelDir string, args ...string) error {
 	)
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
+}
+
+// elfBinarySignature calculates signature of an elf binary aiming at runtime behavior
+// (text/data, debug info is ignored).
+func elfBinarySignature(bin string) (string, error) {
+	f, err := os.Open(bin)
+	if err != nil {
+		return "", fmt.Errorf("failed to open binary for signature: %v", err)
+	}
+	ef, err := elf.NewFile(f)
+	if err != nil {
+		return "", fmt.Errorf("failed to open elf binary: %v", err)
+	}
+	hasher := sha1.New()
+	for _, sec := range ef.Sections {
+		// Hash allocated sections (e.g. no debug info as it's not allocated)
+		// with file data (e.g. no bss). We also ignore .notes section as it
+		// contains some small changing binary blob that seems irrelevant.
+		// It's unclear if it's better to check NOTE type,
+		// or ".notes" name or !PROGBITS type.
+		if sec.Flags&elf.SHF_ALLOC == 0 || sec.Type == elf.SHT_NOBITS || sec.Type == elf.SHT_NOTE {
+			continue
+		}
+		io.Copy(hasher, sec.Open())
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }

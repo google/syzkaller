@@ -40,22 +40,37 @@ type Params struct {
 //  - kernel.config: actual kernel config used during build
 //  - obj/: directory with kernel object files (this should match KernelObject
 //    specified in sys/targets, e.g. vmlinux for linux)
-func Image(params *Params) error {
+// The returned string is a kernel ID that will be the same for kernels with the
+// same runtime behavior, and different for kernels with different runtime
+// behavior. Binary equal builds, or builds that differ only in e.g. debug info,
+// have the same ID. The ID may be empty if OS implementation does not have
+// a way to calculate such IDs.
+func Image(params *Params) (string, error) {
 	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := osutil.MkdirAll(filepath.Join(params.OutputDir, "obj")); err != nil {
-		return err
+		return "", err
 	}
 	if len(params.Config) != 0 {
 		// Write kernel config early, so that it's captured on build failures.
 		if err := osutil.WriteFile(filepath.Join(params.OutputDir, "kernel.config"), params.Config); err != nil {
-			return fmt.Errorf("failed to write config file: %v", err)
+			return "", fmt.Errorf("failed to write config file: %v", err)
 		}
 	}
 	err = builder.build(params)
-	return extractRootCause(err)
+	if err != nil {
+		return "", extractRootCause(err)
+	}
+	sign := ""
+	if signer, ok := builder.(signer); ok {
+		sign, err = signer.sign(params)
+		if err != nil {
+			return "", err
+		}
+	}
+	return sign, nil
 }
 
 func Clean(targetOS, targetArch, vmType, kernelDir string) error {
@@ -73,6 +88,10 @@ type KernelBuildError struct {
 type builder interface {
 	build(params *Params) error
 	clean(kernelDir, targetArch string) error
+}
+
+type signer interface {
+	sign(params *Params) (string, error)
 }
 
 func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
