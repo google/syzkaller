@@ -290,9 +290,19 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
-	if err := build.Image(mgr.managercfg.TargetOS, mgr.managercfg.TargetVMArch, mgr.managercfg.Type,
-		mgr.kernelDir, tmpDir, mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace,
-		mgr.mgrcfg.KernelCmdline, mgr.mgrcfg.KernelSysctl, mgr.configData); err != nil {
+	params := &build.Params{
+		TargetOS:     mgr.managercfg.TargetOS,
+		TargetArch:   mgr.managercfg.TargetVMArch,
+		VMType:       mgr.managercfg.Type,
+		KernelDir:    mgr.kernelDir,
+		OutputDir:    tmpDir,
+		Compiler:     mgr.mgrcfg.Compiler,
+		UserspaceDir: mgr.mgrcfg.Userspace,
+		CmdlineFile:  mgr.mgrcfg.KernelCmdline,
+		SysctlFile:   mgr.mgrcfg.KernelSysctl,
+		Config:       mgr.configData,
+	}
+	if err := build.Image(params); err != nil {
 		if buildErr, ok := err.(build.KernelBuildError); ok {
 			rep := &report.Report{
 				Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
