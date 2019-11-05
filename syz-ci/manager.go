@@ -302,7 +302,7 @@ func (mgr *Manager) build(kernelCommit *vcs.Commit) error {
 		SysctlFile:   mgr.mgrcfg.KernelSysctl,
 		Config:       mgr.configData,
 	}
-	if err := build.Image(params); err != nil {
+	if _, err := build.Image(params); err != nil {
 		if buildErr, ok := err.(build.KernelBuildError); ok {
 			rep := &report.Report{
 				Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.RepoAlias),
