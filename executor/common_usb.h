@@ -77,8 +77,6 @@ static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_
 enum usb_raw_event_type {
 	USB_RAW_EVENT_INVALID,
 	USB_RAW_EVENT_CONNECT,
-	USB_RAW_EVENT_DISCONNECT,
-	USB_RAW_EVENT_SUSPEND,
 	USB_RAW_EVENT_CONTROL,
 };
 
