@@ -20,38 +20,38 @@ import (
 
 type netbsd struct{}
 
-func (ctx netbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
-	cmdlineFile, sysctlFile string, config []byte) error {
+func (ctx netbsd) build(params *Params) error {
 	const kernelName = "GENERIC_SYZKALLER"
-	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", kernelDir, targetArch)
-	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/obj/%v", kernelDir, targetArch, kernelName)
+	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", params.KernelDir, params.TargetArch)
+	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/obj/%v", params.KernelDir, params.TargetArch, kernelName)
 
-	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), config); err != nil {
+	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), params.Config); err != nil {
 		return err
 	}
 	// Build tools before building kernel
-	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
+	if _, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "tools"); err != nil {
 		return err
 	}
 
 	// Build kernel
-	if _, err := osutil.RunCmd(10*time.Minute, kernelDir, "./build.sh", "-m", targetArch,
+	if _, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 		"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "kernel="+kernelName); err != nil {
 		return err
 	}
 	for _, s := range []struct{ dir, src, dst string }{
 		{compileDir, "netbsd.gdb", "obj/netbsd.gdb"},
-		{userspaceDir, "image", "image"},
-		{userspaceDir, "key", "key"},
+		{params.UserspaceDir, "image", "image"},
+		{params.UserspaceDir, "key", "key"},
 	} {
 		fullSrc := filepath.Join(s.dir, s.src)
-		fullDst := filepath.Join(outputDir, s.dst)
+		fullDst := filepath.Join(params.OutputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
-	return ctx.copyKernelToDisk(targetArch, vmType, outputDir, filepath.Join(compileDir, "netbsd"))
+	return ctx.copyKernelToDisk(params.TargetArch, params.VMType, params.OutputDir,
+		filepath.Join(compileDir, "netbsd"))
 }
 
 func (ctx netbsd) clean(kernelDir, targetArch string) error {

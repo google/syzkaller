@@ -16,11 +16,11 @@ import (
 
 type freebsd struct{}
 
-func (ctx freebsd) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
-	cmdlineFile, sysctlFile string, config []byte) error {
-	confDir := fmt.Sprintf("%v/sys/%v/conf/", kernelDir, targetArch)
+func (ctx freebsd) build(params *Params) error {
+	confDir := fmt.Sprintf("%v/sys/%v/conf/", params.KernelDir, params.TargetArch)
 	confFile := "SYZKALLER"
 
+	config := params.Config
 	if config == nil {
 		config = []byte(`
 include "./GENERIC"
@@ -37,22 +37,23 @@ options 	DIAGNOSTIC
 		return err
 	}
 
-	objPrefix := filepath.Join(kernelDir, "obj")
-	if err := ctx.make(kernelDir, objPrefix, "kernel-toolchain", "-DNO_CLEAN"); err != nil {
+	objPrefix := filepath.Join(params.KernelDir, "obj")
+	if err := ctx.make(params.KernelDir, objPrefix, "kernel-toolchain", "-DNO_CLEAN"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, objPrefix, "buildkernel", fmt.Sprintf("KERNCONF=%v", confFile)); err != nil {
+	if err := ctx.make(params.KernelDir, objPrefix, "buildkernel", fmt.Sprintf("KERNCONF=%v", confFile)); err != nil {
 		return err
 	}
 
-	kernelObjDir := filepath.Join(objPrefix, kernelDir, fmt.Sprintf("%v.%v", targetArch, targetArch), "sys", confFile)
+	kernelObjDir := filepath.Join(objPrefix, params.KernelDir,
+		fmt.Sprintf("%v.%v", params.TargetArch, params.TargetArch), "sys", confFile)
 	for _, s := range []struct{ dir, src, dst string }{
-		{userspaceDir, "image", "image"},
-		{userspaceDir, "key", "key"},
+		{params.UserspaceDir, "image", "image"},
+		{params.UserspaceDir, "key", "key"},
 		{kernelObjDir, "kernel.full", "obj/kernel.full"},
 	} {
 		fullSrc := filepath.Join(s.dir, s.src)
-		fullDst := filepath.Join(outputDir, s.dst)
+		fullDst := filepath.Join(params.OutputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
@@ -71,9 +72,9 @@ echo 'pf_load="YES"' | sudo tee -a /boot/loader.conf
 
 sudo umount $tmpdir
 sudo mdconfig -d -u ${md#md}
-`, objPrefix, kernelDir, confFile)
+`, objPrefix, params.KernelDir, confFile)
 
-	if debugOut, err := osutil.RunCmd(10*time.Minute, outputDir, "/bin/sh", "-c", script); err != nil {
+	if debugOut, err := osutil.RunCmd(10*time.Minute, params.OutputDir, "/bin/sh", "-c", script); err != nil {
 		return fmt.Errorf("error copying kernel: %v\n%v", err, debugOut)
 	}
 	return nil

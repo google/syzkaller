@@ -22,21 +22,19 @@ import (
 
 type linux struct{}
 
-func (linux linux) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
-	cmdlineFile, sysctlFile string, config []byte) error {
-	if err := linux.buildKernel(targetArch, kernelDir, outputDir, compiler, config); err != nil {
+func (linux linux) build(params *Params) error {
+	if err := linux.buildKernel(params); err != nil {
 		return err
 	}
-	if err := linux.createImage(targetArch, vmType, kernelDir, outputDir, userspaceDir, cmdlineFile,
-		sysctlFile); err != nil {
+	if err := linux.createImage(params); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (linux) buildKernel(targetArch, kernelDir, outputDir, compiler string, config []byte) error {
-	configFile := filepath.Join(kernelDir, ".config")
-	if err := osutil.WriteFile(configFile, config); err != nil {
+func (linux) buildKernel(params *Params) error {
+	configFile := filepath.Join(params.KernelDir, ".config")
+	if err := osutil.WriteFile(configFile, params.Config); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
 	if err := osutil.SandboxChown(configFile); err != nil {
@@ -45,34 +43,34 @@ func (linux) buildKernel(targetArch, kernelDir, outputDir, compiler string, conf
 	// One would expect olddefconfig here, but olddefconfig is not present in v3.6 and below.
 	// oldconfig is the same as olddefconfig if stdin is not set.
 	// Note: passing in compiler is important since 4.17 (at the very least it's noted in the config).
-	if err := runMake(kernelDir, "oldconfig", "CC="+compiler); err != nil {
+	if err := runMake(params.KernelDir, "oldconfig", "CC="+params.Compiler); err != nil {
 		return err
 	}
 	// Write updated kernel config early, so that it's captured on build failures.
-	outputConfig := filepath.Join(outputDir, "kernel.config")
+	outputConfig := filepath.Join(params.OutputDir, "kernel.config")
 	if err := osutil.CopyFile(configFile, outputConfig); err != nil {
 		return err
 	}
 	// We build only zImage/bzImage as we currently don't use modules.
 	var target string
-	switch targetArch {
+	switch params.TargetArch {
 	case "386", "amd64":
 		target = "bzImage"
 	case "ppc64le":
 		target = "zImage"
 	}
-	if err := runMake(kernelDir, target, "CC="+compiler); err != nil {
+	if err := runMake(params.KernelDir, target, "CC="+params.Compiler); err != nil {
 		return err
 	}
-	vmlinux := filepath.Join(kernelDir, "vmlinux")
-	outputVmlinux := filepath.Join(outputDir, "obj", "vmlinux")
+	vmlinux := filepath.Join(params.KernelDir, "vmlinux")
+	outputVmlinux := filepath.Join(params.OutputDir, "obj", "vmlinux")
 	if err := osutil.Rename(vmlinux, outputVmlinux); err != nil {
 		return fmt.Errorf("failed to rename vmlinux: %v", err)
 	}
 	return nil
 }
 
-func (linux) createImage(targetArch, vmType, kernelDir, outputDir, userspaceDir, cmdlineFile, sysctlFile string) error {
+func (linux) createImage(params *Params) error {
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -84,30 +82,30 @@ func (linux) createImage(targetArch, vmType, kernelDir, outputDir, userspaceDir,
 	}
 
 	var kernelImage string
-	switch targetArch {
+	switch params.TargetArch {
 	case "386", "amd64":
 		kernelImage = "arch/x86/boot/bzImage"
 	case "ppc64le":
 		kernelImage = "arch/powerpc/boot/zImage.pseries"
 	}
-	kernelImagePath := filepath.Join(kernelDir, filepath.FromSlash(kernelImage))
-	cmd := osutil.Command(scriptFile, userspaceDir, kernelImagePath, targetArch)
+	kernelImagePath := filepath.Join(params.KernelDir, filepath.FromSlash(kernelImage))
+	cmd := osutil.Command(scriptFile, params.UserspaceDir, kernelImagePath, params.TargetArch)
 	cmd.Dir = tempDir
 	cmd.Env = append([]string{}, os.Environ()...)
 	cmd.Env = append(cmd.Env,
-		"SYZ_VM_TYPE="+vmType,
-		"SYZ_CMDLINE_FILE="+osutil.Abs(cmdlineFile),
-		"SYZ_SYSCTL_FILE="+osutil.Abs(sysctlFile),
+		"SYZ_VM_TYPE="+params.VMType,
+		"SYZ_CMDLINE_FILE="+osutil.Abs(params.CmdlineFile),
+		"SYZ_SYSCTL_FILE="+osutil.Abs(params.SysctlFile),
 	)
 	if _, err = osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
 	// Note: we use CopyFile instead of Rename because src and dst can be on different filesystems.
-	imageFile := filepath.Join(outputDir, "image")
+	imageFile := filepath.Join(params.OutputDir, "image")
 	if err := osutil.CopyFile(filepath.Join(tempDir, "disk.raw"), imageFile); err != nil {
 		return err
 	}
-	keyFile := filepath.Join(outputDir, "key")
+	keyFile := filepath.Join(params.OutputDir, "key")
 	if err := osutil.CopyFile(filepath.Join(tempDir, "key"), keyFile); err != nil {
 		return err
 	}

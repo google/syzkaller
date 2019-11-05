@@ -16,16 +16,15 @@ import (
 
 type akaros struct{}
 
-func (ctx akaros) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
-	cmdlineFile, sysctlFile string, config []byte) error {
-	configFile := filepath.Join(kernelDir, ".config")
-	if err := osutil.WriteFile(configFile, config); err != nil {
+func (ctx akaros) build(params *Params) error {
+	configFile := filepath.Join(params.KernelDir, ".config")
+	if err := osutil.WriteFile(configFile, params.Config); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
 	if err := osutil.SandboxChown(configFile); err != nil {
 		return err
 	}
-	sshkey := filepath.Join(kernelDir, "key")
+	sshkey := filepath.Join(params.KernelDir, "key")
 	sshkeyPub := sshkey + ".pub"
 	os.Remove(sshkey)
 	os.Remove(sshkeyPub)
@@ -36,22 +35,22 @@ func (ctx akaros) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 	if err := osutil.SandboxChown(sshkeyPub); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, "", "olddefconfig", "ARCH=x86"); err != nil {
+	if err := ctx.make(params.KernelDir, "", "olddefconfig", "ARCH=x86"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, "", "xcc"); err != nil {
+	if err := ctx.make(params.KernelDir, "", "xcc"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, "tools/dev-libs/elfutils", "install"); err != nil {
+	if err := ctx.make(params.KernelDir, "tools/dev-libs/elfutils", "install"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, "", "apps-install"); err != nil {
+	if err := ctx.make(params.KernelDir, "", "apps-install"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, "", "fill-kfs"); err != nil {
+	if err := ctx.make(params.KernelDir, "", "fill-kfs"); err != nil {
 		return err
 	}
-	targetKey := filepath.Join(kernelDir, "kern", "kfs", ".ssh", "authorized_keys")
+	targetKey := filepath.Join(params.KernelDir, "kern", "kfs", ".ssh", "authorized_keys")
 	if err := osutil.Rename(sshkeyPub, targetKey); err != nil {
 		return err
 	}
@@ -60,7 +59,7 @@ func (ctx akaros) build(targetArch, vmType, kernelDir, outputDir, compiler, user
 dropbear -F 2>db_out &
 bash
 `
-	initFile := filepath.Join(kernelDir, "kern", "kfs", "init.sh")
+	initFile := filepath.Join(params.KernelDir, "kern", "kfs", "init.sh")
 	if err := osutil.WriteFile(initFile, []byte(init)); err != nil {
 		return fmt.Errorf("failed to write init script: %v", err)
 	}
@@ -70,19 +69,19 @@ bash
 	if err := os.Chmod(initFile, 0770); err != nil {
 		return err
 	}
-	if err := ctx.cmd(kernelDir, "dropbear", "./CONFIGURE_AKAROS"); err != nil {
+	if err := ctx.cmd(params.KernelDir, "dropbear", "./CONFIGURE_AKAROS"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, "dropbear/build"); err != nil {
+	if err := ctx.make(params.KernelDir, "dropbear/build"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, "dropbear/build", "install"); err != nil {
+	if err := ctx.make(params.KernelDir, "dropbear/build", "install"); err != nil {
 		return err
 	}
-	if err := ctx.make(kernelDir, ""); err != nil {
+	if err := ctx.make(params.KernelDir, ""); err != nil {
 		return err
 	}
-	if err := osutil.WriteFile(filepath.Join(outputDir, "image"), nil); err != nil {
+	if err := osutil.WriteFile(filepath.Join(params.OutputDir, "image"), nil); err != nil {
 		return fmt.Errorf("failed to write image file: %v", err)
 	}
 	for src, dst := range map[string]string{
@@ -91,8 +90,8 @@ bash
 		"obj/kern/akaros-kernel":     "kernel",
 		"obj/kern/akaros-kernel-64b": "obj/akaros-kernel-64b",
 	} {
-		fullSrc := filepath.Join(kernelDir, filepath.FromSlash(src))
-		fullDst := filepath.Join(outputDir, filepath.FromSlash(dst))
+		fullSrc := filepath.Join(params.KernelDir, filepath.FromSlash(src))
+		fullDst := filepath.Join(params.OutputDir, filepath.FromSlash(dst))
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
 			return fmt.Errorf("failed to copy %v: %v", src, err)
 		}

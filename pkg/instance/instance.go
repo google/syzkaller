@@ -88,16 +88,25 @@ func (env *env) BuildSyzkaller(repo, commit string) error {
 	return nil
 }
 
-func (env *env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string,
-	kernelConfig []byte) (string, error) {
-	cfg := env.cfg
-	imageDir := filepath.Join(cfg.Workdir, "image")
-	if err := build.Image(cfg.TargetOS, cfg.TargetVMArch, cfg.Type,
-		cfg.KernelSrc, imageDir, compilerBin, userspaceDir,
-		cmdlineFile, sysctlFile, kernelConfig); err != nil {
+func (env *env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) (
+	string, error) {
+	imageDir := filepath.Join(env.cfg.Workdir, "image")
+	params := &build.Params{
+		TargetOS:     env.cfg.TargetOS,
+		TargetArch:   env.cfg.TargetVMArch,
+		VMType:       env.cfg.Type,
+		KernelDir:    env.cfg.KernelSrc,
+		OutputDir:    imageDir,
+		Compiler:     compilerBin,
+		UserspaceDir: userspaceDir,
+		CmdlineFile:  cmdlineFile,
+		SysctlFile:   sysctlFile,
+		Config:       kernelConfig,
+	}
+	if err := build.Image(params); err != nil {
 		return "", err
 	}
-	if err := SetConfigImage(cfg, imageDir, true); err != nil {
+	if err := SetConfigImage(env.cfg, imageDir, true); err != nil {
 		return "", err
 	}
 	kernelConfigFile := filepath.Join(imageDir, "kernel.config")

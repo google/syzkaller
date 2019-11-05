@@ -16,13 +16,12 @@ import (
 
 type openbsd struct{}
 
-func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
-	cmdlineFile, sysctlFile string, config []byte) error {
+func (ctx openbsd) build(params *Params) error {
 	const kernelName = "SYZKALLER"
-	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", kernelDir, targetArch)
-	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/%v", kernelDir, targetArch, kernelName)
+	confDir := fmt.Sprintf("%v/sys/arch/%v/conf", params.KernelDir, params.TargetArch)
+	compileDir := fmt.Sprintf("%v/sys/arch/%v/compile/%v", params.KernelDir, params.TargetArch, kernelName)
 
-	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), config); err != nil {
+	if err := osutil.WriteFile(filepath.Join(confDir, kernelName), params.Config); err != nil {
 		return err
 	}
 
@@ -41,18 +40,18 @@ func (ctx openbsd) build(targetArch, vmType, kernelDir, outputDir, compiler, use
 	for _, s := range []struct{ dir, src, dst string }{
 		{compileDir, "obj/bsd", "kernel"},
 		{compileDir, "obj/bsd.gdb", "obj/bsd.gdb"},
-		{userspaceDir, "image", "image"},
-		{userspaceDir, "key", "key"},
+		{params.UserspaceDir, "image", "image"},
+		{params.UserspaceDir, "key", "key"},
 	} {
 		fullSrc := filepath.Join(s.dir, s.src)
-		fullDst := filepath.Join(outputDir, s.dst)
+		fullDst := filepath.Join(params.OutputDir, s.dst)
 		if err := osutil.CopyFile(fullSrc, fullDst); err != nil {
 			return fmt.Errorf("failed to copy %v -> %v: %v", fullSrc, fullDst, err)
 		}
 	}
-	if vmType == "gce" {
+	if params.VMType == "gce" {
 		return ctx.copyFilesToImage(
-			filepath.Join(userspaceDir, "overlay"), outputDir)
+			filepath.Join(params.UserspaceDir, "overlay"), params.OutputDir)
 	}
 	return nil
 }

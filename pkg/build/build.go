@@ -14,11 +14,25 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
+// Params is input arguments for the Image function.
+type Params struct {
+	TargetOS     string
+	TargetArch   string
+	VMType       string
+	KernelDir    string
+	OutputDir    string
+	Compiler     string
+	UserspaceDir string
+	CmdlineFile  string
+	SysctlFile   string
+	Config       []byte
+}
+
 // Image creates a disk image for the specified OS/ARCH/VM.
-// Kernel is taken from kernelDir, userspace system is taken from userspaceDir.
-// If cmdlineFile is not empty, contents of the file are appended to the kernel command line.
-// If sysctlFile is not empty, contents of the file are appended to the image /etc/sysctl.conf.
-// Output is stored in outputDir and includes (everything except for image is optional):
+// Kernel is taken from KernelDir, userspace system is taken from UserspaceDir.
+// If CmdlineFile is not empty, contents of the file are appended to the kernel command line.
+// If SysctlFile is not empty, contents of the file are appended to the image /etc/sysctl.conf.
+// Output is stored in OutputDir and includes (everything except for image is optional):
 //  - image: the image
 //  - key: ssh key for the image
 //  - kernel: kernel for injected boot
@@ -26,22 +40,21 @@ import (
 //  - kernel.config: actual kernel config used during build
 //  - obj/: directory with kernel object files (this should match KernelObject
 //    specified in sys/targets, e.g. vmlinux for linux)
-func Image(targetOS, targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
-	cmdlineFile, sysctlFile string, config []byte) error {
-	builder, err := getBuilder(targetOS, targetArch, vmType)
+func Image(params *Params) error {
+	builder, err := getBuilder(params.TargetOS, params.TargetArch, params.VMType)
 	if err != nil {
 		return err
 	}
-	if err := osutil.MkdirAll(filepath.Join(outputDir, "obj")); err != nil {
+	if err := osutil.MkdirAll(filepath.Join(params.OutputDir, "obj")); err != nil {
 		return err
 	}
-	if len(config) != 0 {
+	if len(params.Config) != 0 {
 		// Write kernel config early, so that it's captured on build failures.
-		if err := osutil.WriteFile(filepath.Join(outputDir, "kernel.config"), config); err != nil {
+		if err := osutil.WriteFile(filepath.Join(params.OutputDir, "kernel.config"), params.Config); err != nil {
 			return fmt.Errorf("failed to write config file: %v", err)
 		}
 	}
-	err = builder.build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir, cmdlineFile, sysctlFile, config)
+	err = builder.build(params)
 	return extractRootCause(err)
 }
 
@@ -58,8 +71,7 @@ type KernelBuildError struct {
 }
 
 type builder interface {
-	build(targetArch, vmType, kernelDir, outputDir, compiler, userspaceDir,
-		cmdlineFile, sysctlFile string, config []byte) error
+	build(params *Params) error
 	clean(kernelDir, targetArch string) error
 }
 
@@ -79,7 +91,7 @@ func getBuilder(targetOS, targetArch, vmType string) (builder, error) {
 		{"openbsd", "amd64", []string{"gce", "vmm"}, openbsd{}},
 		{"netbsd", "amd64", []string{"gce", "qemu"}, netbsd{}},
 		{"freebsd", "amd64", []string{"gce", "qemu"}, freebsd{}},
-		{"test", "64", []string{"qemu"}, testBuilder{}},
+		{"test", "64", []string{"qemu"}, test{}},
 	}
 	for _, s := range supported {
 		if targetOS == s.OS && targetArch == s.arch {
