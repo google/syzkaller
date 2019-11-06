@@ -606,6 +606,9 @@ var commonOopses = []*oops{
 				noStackTrace: true,
 			},
 		},
-		[]*regexp.Regexp{},
+		[]*regexp.Regexp{
+			// This can match some kernel functions (skb_panic, skb_over_panic).
+			compile("_panic:"),
+		},
 	},
 }
