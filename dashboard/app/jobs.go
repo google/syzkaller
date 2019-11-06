@@ -507,45 +507,16 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 				Date:       com.Date,
 			})
 		}
-		if job.Type == JobBisectCause || job.Type == JobBisectFix {
-			// Update bug.BisectCause/Fix status and also remember current bug reporting to send results.
-			bug := new(Bug)
-			bugKey := jobKey.Parent()
-			if err := db.Get(c, bugKey, bug); err != nil {
-				return fmt.Errorf("job %v: failed to get bug: %v", jobID, err)
-			}
-			result := BisectYes
-			if len(req.Error) != 0 {
-				result = BisectError
-			}
-			if job.Type == JobBisectCause {
-				bug.BisectCause = result
-			} else {
-				bug.BisectFix = result
-			}
-			// If the crash still occurs on HEAD, update the bug's LastTime so that it will be
-			// retried after 30 days.
-			crashesOnHead(c, bug, job, req, now)
-			if _, err := db.Put(c, bugKey, bug); err != nil {
-				return fmt.Errorf("failed to put bug: %v", err)
-			}
-			_, bugReporting, _, _, _ := currentReporting(c, bug)
-			if bugReporting == nil || bugReporting.Reported.IsZero() {
-				// The bug is either already closed or not yet reported in the current reporting,
-				// either way we don't need to report it. If it wasn't reported, it will be reported
-				// with the bisection results.
-				job.Reported = true
-			} else {
-				job.Reporting = bugReporting.Name
-			}
-		}
-		if job.Error != 0 && job.Type != JobTestPatch {
-			// Don't report errors for non-user-initiated jobs.
-			job.Reported = true
-		}
 		job.BuildID = req.Build.ID
 		job.CrashTitle = req.CrashTitle
 		job.Finished = now
+		job.Flags = JobFlags(req.Flags)
+		if job.Type == JobBisectCause || job.Type == JobBisectFix {
+			// Update bug.BisectCause/Fix status and also remember current bug reporting to send results.
+			if err := updateBugBisection(c, job, jobKey, req, now); err != nil {
+				return err
+			}
+		}
 		if _, err := db.Put(c, jobKey, job); err != nil {
 			return fmt.Errorf("failed to put job: %v", err)
 		}
@@ -555,12 +526,44 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 	return db.RunInTransaction(c, tx, &db.TransactionOptions{XG: true, Attempts: 30})
 }
 
-func crashesOnHead(c context.Context, bug *Bug, job *Job, req *dashapi.JobDoneReq, now time.Time) {
-	if job.Type != JobBisectFix || req.Error != nil || len(req.Commits) != 0 || len(req.CrashLog) == 0 {
-		return
+func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashapi.JobDoneReq, now time.Time) error {
+	bug := new(Bug)
+	bugKey := jobKey.Parent()
+	if err := db.Get(c, bugKey, bug); err != nil {
+		return fmt.Errorf("job %v: failed to get bug: %v", req.ID, err)
 	}
-	bug.BisectFix = BisectNot
-	bug.LastTime = now
+	result := BisectYes
+	if len(req.Error) != 0 {
+		result = BisectError
+	}
+	if job.Type == JobBisectCause {
+		bug.BisectCause = result
+	} else {
+		bug.BisectFix = result
+	}
+	// If the crash still occurs on HEAD, update the bug's LastTime so that it will be
+	// retried after 30 days.
+	if job.Type == JobBisectFix && req.Error == nil && len(req.Commits) == 0 && len(req.CrashLog) != 0 {
+		bug.BisectFix = BisectNot
+		bug.LastTime = now
+	}
+	if _, err := db.Put(c, bugKey, bug); err != nil {
+		return fmt.Errorf("failed to put bug: %v", err)
+	}
+	_, bugReporting, _, _, _ := currentReporting(c, bug)
+	// The bug is either already closed or not yet reported in the current reporting,
+	// either way we don't need to report it. If it wasn't reported, it will be reported
+	// with the bisection results.
+	if bugReporting == nil || bugReporting.Reported.IsZero() ||
+		// Don't report errors for non-user-initiated jobs.
+		job.Error != 0 ||
+		// Don't report unreliable/wrong bisections.
+		job.isUnreliableBisect() {
+		job.Reported = true
+	} else {
+		job.Reporting = bugReporting.Name
+	}
+	return nil
 }
 
 func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, error) {

@@ -158,6 +158,7 @@ type JobDoneReq struct {
 	// If there is 1 commits: bisection result (cause or fix).
 	// If there are more than 1: suspected commits due to skips (broken build/boot).
 	Commits []Commit
+	Flags   JobDoneFlags
 }
 
 type JobType int
@@ -166,6 +167,13 @@ const (
 	JobTestPatch JobType = iota
 	JobBisectCause
 	JobBisectFix
+)
+
+type JobDoneFlags int64
+
+const (
+	BisectResultMerge JobDoneFlags = 1 << iota // bisected to a merge commit
+	BisectResultNoop                           // commit does not affect resulting kernel binary
 )
 
 func (dash *Dashboard) JobPoll(req *JobPollReq) (*JobPollResp, error) {

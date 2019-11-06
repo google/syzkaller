@@ -27,9 +27,9 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
-type BuilderTester interface {
+type Env interface {
 	BuildSyzkaller(string, string) error
-	BuildKernel(string, string, string, string, []byte) (string, error)
+	BuildKernel(string, string, string, string, []byte) (string, string, error)
 	Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, error)
 }
 
@@ -37,7 +37,7 @@ type env struct {
 	cfg *mgrconfig.Config
 }
 
-func NewEnv(cfg *mgrconfig.Config) (BuilderTester, error) {
+func NewEnv(cfg *mgrconfig.Config) (Env, error) {
 	if !vm.AllowsOvercommit(cfg.Type) {
 		return nil, fmt.Errorf("test instances are not supported for %v VMs", cfg.Type)
 	}
@@ -89,7 +89,7 @@ func (env *env) BuildSyzkaller(repo, commit string) error {
 }
 
 func (env *env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile string, kernelConfig []byte) (
-	string, error) {
+	string, string, error) {
 	imageDir := filepath.Join(env.cfg.Workdir, "image")
 	params := &build.Params{
 		TargetOS:     env.cfg.TargetOS,
@@ -103,17 +103,18 @@ func (env *env) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFile s
 		SysctlFile:   sysctlFile,
 		Config:       kernelConfig,
 	}
-	if _, err := build.Image(params); err != nil {
-		return "", err
+	kernelSign, err := build.Image(params)
+	if err != nil {
+		return "", "", err
 	}
 	if err := SetConfigImage(env.cfg, imageDir, true); err != nil {
-		return "", err
+		return "", "", err
 	}
 	kernelConfigFile := filepath.Join(imageDir, "kernel.config")
 	if !osutil.IsExist(kernelConfigFile) {
 		kernelConfigFile = ""
 	}
-	return kernelConfigFile, nil
+	return kernelConfigFile, kernelSign, nil
 }
 
 func SetConfigImage(cfg *mgrconfig.Config, imageDir string, reliable bool) error {

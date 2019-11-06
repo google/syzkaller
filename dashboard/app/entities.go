@@ -183,6 +183,7 @@ type Job struct {
 	BuildID     string
 	Log         int64 // reference to Log text entity
 	Error       int64 // reference to Error text entity, if set job failed
+	Flags       JobFlags
 
 	Reported bool // have we reported result back to user?
 }
@@ -194,6 +195,24 @@ const (
 	JobBisectCause
 	JobBisectFix
 )
+
+type JobFlags int64
+
+const (
+	// Parallel to dashapi.JobDoneFlags, see comments there.
+	BisectResultMerge JobFlags = 1 << iota
+	BisectResultNoop
+)
+
+func (job *Job) isUnreliableBisect() bool {
+	if job.Type != JobBisectCause && job.Type != JobBisectFix {
+		panic(fmt.Sprintf("bad job type %v", job.Type))
+	}
+	// If a bisection points to a merge or a commit that does not affect the kernel binary,
+	// it is considered an unreliable/wrong result and should not be reported in emails.
+	return job.Flags&BisectResultMerge != 0 ||
+		job.Flags&BisectResultNoop != 0
+}
 
 // Text holds text blobs (crash logs, reports, reproducers, etc).
 type Text struct {

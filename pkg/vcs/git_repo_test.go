@@ -116,6 +116,7 @@ func TestMetadata(t *testing.T) {
 	}
 	defer os.RemoveAll(repoDir)
 	repo := MakeTestRepo(t, repoDir)
+	prevHash := ""
 	for i, test := range metadataTests {
 		repo.CommitChange(test.description)
 		com, err := repo.repo.HeadCommit()
@@ -123,6 +124,10 @@ func TestMetadata(t *testing.T) {
 			t.Fatal(err)
 		}
 		checkCommit(t, i, test, com, false)
+		if len(com.Parents) != 1 || com.Parents[0] != prevHash {
+			t.Fatalf("bad parents: %+q, expect %q", com.Parents, prevHash)
+		}
+		prevHash = com.Hash
 	}
 	commits, err := repo.repo.ExtractFixTagsFromCommits("HEAD", extractFixTagsEmail)
 	if err != nil {

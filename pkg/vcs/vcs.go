@@ -74,6 +74,7 @@ type Commit struct {
 	AuthorName string
 	CC         []string
 	Tags       []string
+	Parents    []string
 	Date       time.Time
 }
 

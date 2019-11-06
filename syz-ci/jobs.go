@@ -397,12 +397,12 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		Manager: *mgrcfg,
 	}
 
-	commits, rep, com, err := bisect.Run(cfg)
+	res, err := bisect.Run(cfg)
 	resp.Log = trace.Bytes()
 	if err != nil {
 		return err
 	}
-	for _, com := range commits {
+	for _, com := range res.Commits {
 		resp.Commits = append(resp.Commits, dashapi.Commit{
 			Hash:       com.Hash,
 			Title:      com.Title,
@@ -412,18 +412,26 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 			Date:       com.Date,
 		})
 	}
-	if rep != nil {
-		resp.CrashTitle = rep.Title
-		resp.CrashReport = rep.Report
-		resp.CrashLog = rep.Output
+	if len(res.Commits) == 1 {
+		if len(res.Commits[0].Parents) > 1 {
+			resp.Flags |= dashapi.BisectResultMerge
+		}
+		if res.NoopChange {
+			resp.Flags |= dashapi.BisectResultNoop
+		}
+	}
+	if res.Report != nil {
+		resp.CrashTitle = res.Report.Title
+		resp.CrashReport = res.Report.Report
+		resp.CrashLog = res.Report.Output
 		if len(resp.Commits) != 0 {
-			resp.Commits[0].CC = append(resp.Commits[0].CC, rep.Maintainers...)
+			resp.Commits[0].CC = append(resp.Commits[0].CC, res.Report.Maintainers...)
 		} else {
 			// If there is a report ahd there is no commit, it means a crash
 			// occurred on HEAD(for BisectFix) and oldest tested release(for BisectCause).
-			resp.Build.KernelCommit = com.Hash
-			resp.Build.KernelCommitDate = com.Date
-			resp.Build.KernelCommitTitle = com.Title
+			resp.Build.KernelCommit = res.Commit.Hash
+			resp.Build.KernelCommitDate = res.Commit.Date
+			resp.Build.KernelCommitTitle = res.Commit.Title
 		}
 	}
 	return nil
@@ -475,7 +483,7 @@ func (jp *JobProcessor) testPatch(job *Job, mgrcfg *mgrconfig.Config) error {
 	}
 
 	log.Logf(0, "job: building kernel...")
-	kernelConfig, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline,
+	kernelConfig, _, err := env.BuildKernel(mgr.mgrcfg.Compiler, mgr.mgrcfg.Userspace, mgr.mgrcfg.KernelCmdline,
 		mgr.mgrcfg.KernelSysctl, req.KernelConfig)
 	if err != nil {
 		return err

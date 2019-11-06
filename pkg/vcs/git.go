@@ -153,7 +153,7 @@ func (git *git) HeadCommit() (*Commit, error) {
 }
 
 func (git *git) getCommit(commit string) (*Commit, error) {
-	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%b", "-n", "1", commit)
+	output, err := git.git("log", "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%b", "-n", "1", commit)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 	cc := make(map[string]bool)
 	cc[strings.ToLower(string(lines[2]))] = true
 	var tags []string
-	bodyLines := lines[5:]
+	bodyLines := lines[6:]
 	if isEmpty(bodyLines) {
 		// Body is empty, use summary instead.
 		bodyLines = [][]byte{lines[1]}
@@ -231,11 +231,13 @@ func gitParseCommit(output, user, domain []byte, ignoreCC map[string]bool) (*Com
 		sortedCC = append(sortedCC, addr)
 	}
 	sort.Strings(sortedCC)
+	parents := strings.Split(string(lines[5]), " ")
 	com := &Commit{
 		Hash:       string(lines[0]),
 		Title:      string(lines[1]),
 		Author:     string(lines[2]),
 		AuthorName: string(lines[3]),
+		Parents:    parents,
 		CC:         sortedCC,
 		Tags:       tags,
 		Date:       date,
@@ -303,7 +305,7 @@ func (git *git) ExtractFixTagsFromCommits(baseCommit, email string) ([]*Commit, 
 
 func (git *git) fetchCommits(since, base, user, domain string, greps []string, fixedStrings bool) ([]*Commit, error) {
 	const commitSeparator = "---===syzkaller-commit-separator===---"
-	args := []string{"log", "--since", since, "--format=%H%n%s%n%ae%n%an%n%ad%n%b%n" + commitSeparator}
+	args := []string{"log", "--since", since, "--format=%H%n%s%n%ae%n%an%n%ad%n%P%n%b%n" + commitSeparator}
 	if fixedStrings {
 		args = append(args, "--fixed-strings")
 	}
