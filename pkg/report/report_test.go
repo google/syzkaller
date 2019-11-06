@@ -303,15 +303,9 @@ func testGuiltyFile(t *testing.T, reporter Reporter, fn string) {
 }
 
 func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Reporter, fn string)) {
-	testFilenameRe := regexp.MustCompile("^[0-9]+$")
 	for os := range ctors {
-		path := filepath.Join("testdata", os, dir)
-		if !osutil.IsExist(path) {
-			continue
-		}
-		files, err := ioutil.ReadDir(path)
-		if err != nil {
-			t.Fatal(err)
+		if os == "windows" {
+			continue // not implemented
 		}
 		cfg := &mgrconfig.Config{
 			TargetOS:   os,
@@ -321,15 +315,35 @@ func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Report
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, file := range files {
-			if !testFilenameRe.MatchString(file.Name()) {
-				continue
-			}
-			t.Run(fmt.Sprintf("%v/%v", os, file.Name()), func(t *testing.T) {
-				fn(t, reporter, filepath.Join(path, file.Name()))
+		for _, file := range readDir(t, filepath.Join("testdata", os, dir)) {
+			t.Run(fmt.Sprintf("%v/%v", os, filepath.Base(file)), func(t *testing.T) {
+				fn(t, reporter, file)
+			})
+		}
+		for _, file := range readDir(t, filepath.Join("testdata", "all", dir)) {
+			t.Run(fmt.Sprintf("%v/all/%v", os, filepath.Base(file)), func(t *testing.T) {
+				fn(t, reporter, file)
 			})
 		}
 	}
+}
+
+func readDir(t *testing.T, dir string) (files []string) {
+	if !osutil.IsExist(dir) {
+		return nil
+	}
+	entries, err := ioutil.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testFilenameRe := regexp.MustCompile("^[0-9]+$")
+	for _, ent := range entries {
+		if !testFilenameRe.MatchString(ent.Name()) {
+			continue
+		}
+		files = append(files, filepath.Join(dir, ent.Name()))
+	}
+	return
 }
 
 func TestReplace(t *testing.T) {

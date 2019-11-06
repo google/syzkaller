@@ -853,7 +853,7 @@ func warningStackFmt(skip ...string) *stackFmt {
 	}
 }
 
-var linuxOopses = []*oops{
+var linuxOopses = append([]*oops{
 	{
 		[]byte("BUG:"),
 		[]oopsFormat{
@@ -1584,4 +1584,4 @@ var linuxOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-}
+}, commonOopses...)

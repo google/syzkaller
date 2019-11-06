@@ -145,7 +145,7 @@ func (ctx *netbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symboli
 }
 
 // nolint: lll
-var netbsdOopses = []*oops{
+var netbsdOopses = append([]*oops{
 	{
 		[]byte("fault in supervisor mode"),
 		[]oopsFormat{
@@ -188,4 +188,4 @@ var netbsdOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-}
+}, commonOopses...)

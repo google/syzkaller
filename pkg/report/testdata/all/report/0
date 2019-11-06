@@ -1,0 +1,19 @@
+TITLE: panic: bad arg kind
+
+panic: bad arg kind
+
+goroutine 25 [running]:
+github.com/google/syzkaller/prog.clone(0x0, 0x0, 0xc003ab9e38, 0xc001037040, 0x10)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/clone.go:75 +0x8b8
+github.com/google/syzkaller/prog.clone(0x97ca80, 0xc001d3f650, 0xc003ab9e38, 0xc00184bf70, 0x30)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/clone.go:53 +0x17c
+github.com/google/syzkaller/prog.clone(0x97ca80, 0xc001d3f680, 0xc003ab9e38, 0xc003ab9ec8, 0x30)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/clone.go:53 +0x17c
+github.com/google/syzkaller/prog.clone(0x97cac0, 0xc001d3f6b0, 0xc003ab9e38, 0x97cb00, 0xc0022c7940)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/clone.go:40 +0x570
+github.com/google/syzkaller/prog.(*Prog).Clone(0xc001d8d100, 0xc002fdb470)
+	/syzkaller/gopath/src/github.com/google/syzkaller/prog/clone.go:20 +0x270
+main.(*Proc).loop(0xc002fc86c0)
+	/syzkaller/gopath/src/github.com/google/syzkaller/syz-fuzzer/proc.go:98 +0x3cb
+created by main.main
+	/syzkaller/gopath/src/github.com/google/syzkaller/syz-fuzzer/fuzzer.go:258 +0x111b

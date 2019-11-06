@@ -593,3 +593,19 @@ var (
 	filenameRe    = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
 	reportFrameRe = regexp.MustCompile(`.* in ([a-zA-Z0-9_]+)`)
 )
+
+// These are produced by syzkaller itself.
+// But also catches crashes in Go programs in gvisor/fuchsia.
+var commonOopses = []*oops{
+	{
+		[]byte("panic:"),
+		[]oopsFormat{
+			{
+				title:        compile("panic:(.*)"),
+				fmt:          "panic:%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+}
