@@ -28,7 +28,7 @@ type Config struct {
 	Targets      []string `json:"targets"`        // target machines: (hostname|ip)(:port)?
 	TargetDir    string   `json:"target_dir"`     // directory to copy/run on target
 	TargetReboot bool     `json:"target_reboot"`  // reboot target on repair
-	USBDevNum    []string `json:"usb_device_num"` // usb device number
+	USBDevNums   []string `json:"usb_device_num"` // usb device number
 }
 
 type Pool struct {
@@ -41,7 +41,7 @@ type instance struct {
 	os          string
 	targetAddr  string
 	targetPort  int
-	USBAuth     string
+	index       int
 	closed      chan bool
 	debug       bool
 	sshUser     string
@@ -71,7 +71,9 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Debug && len(cfg.Targets) > 1 {
 		log.Logf(0, "limiting number of targets from %v to 1 in debug mode", len(cfg.Targets))
 		cfg.Targets = cfg.Targets[:1]
-		cfg.USBDevNum = cfg.USBDevNum[:1]
+		if len(cfg.Targets) > 1 && len(cfg.USBDevNums) > 1 {
+			cfg.USBDevNums = cfg.USBDevNums[:1]
+		}
 	}
 	pool := &Pool{
 		cfg: cfg,
@@ -86,13 +88,13 @@ func (pool *Pool) Count() int {
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	targetAddr, targetPort, _ := splitTargetPort(pool.cfg.Targets[index])
-	USBAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", pool.cfg.USBDevNum[index], "/authorized")
+	
 	inst := &instance{
 		cfg:        pool.cfg,
 		os:         pool.env.OS,
 		targetAddr: targetAddr,
 		targetPort: targetPort,
-		USBAuth:    USBAuth,
+		index:      index,
 		closed:     make(chan bool),
 		debug:      pool.env.Debug,
 		sshUser:    pool.env.SSHUser,
@@ -191,15 +193,16 @@ func (inst *instance) repair() error {
 			log.Logf(2, "isolated: trying to reboot by ssh")
 			e := inst.ssh("reboot") // reboot will return an error, ignore it
 			log.Logf(2, "ssh return: %v", e)
-		} else {
+		} else if len(inst.cfg.USBDevNums) > 1 {
 			log.Logf(2, "isolated: ssh failed")
-			log.Logf(2, "isolated: trying to reboot by USB authorization")
-			err = ioutil.WriteFile(inst.USBAuth, []byte("0"), 0)
+			log.Logf(2, "isolated: trying to reboot by USB authorization")			
+			usbAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", inst.cfg.USBDevNums[inst.index], "/authorized")
+			err = ioutil.WriteFile(usbAuth, []byte("0"), 0)
 			if err != nil {
 				log.Logf(2, "isolated: failed to turn off the device")
 				return err
 			}
-			err = ioutil.WriteFile(inst.USBAuth, []byte("1"), 0)
+			err = ioutil.WriteFile(usbAuth, []byte("1"), 0)
 			if err != nil {
 				log.Logf(2, "isolated: failed to turn on the device")
 				return err
