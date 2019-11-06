@@ -136,7 +136,7 @@ func (ctx *openbsd) symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbol
 	return symbolized
 }
 
-var openbsdOopses = []*oops{
+var openbsdOopses = append([]*oops{
 	{
 		[]byte("cleaned vnode"),
 		[]oopsFormat{
@@ -235,4 +235,4 @@ var openbsdOopses = []*oops{
 			compile("reorder_kernel"),
 		},
 	},
-}
+}, commonOopses...)

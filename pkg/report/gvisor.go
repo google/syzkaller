@@ -95,18 +95,7 @@ var gvisorTitleReplacement = []replacement{
 	},
 }
 
-var gvisorOopses = []*oops{
-	{
-		[]byte("panic:"),
-		[]oopsFormat{
-			{
-				title:        compile("panic:(.*)"),
-				fmt:          "panic:%[1]v",
-				noStackTrace: true,
-			},
-		},
-		[]*regexp.Regexp{},
-	},
+var gvisorOopses = append([]*oops{
 	{
 		[]byte("Panic:"),
 		[]oopsFormat{
@@ -124,17 +113,6 @@ var gvisorOopses = []*oops{
 			{
 				title:        compile("fatal error:(.*)"),
 				fmt:          "fatal error:%[1]v",
-				noStackTrace: true,
-			},
-		},
-		[]*regexp.Regexp{},
-	},
-	{
-		[]byte("runtime error:"),
-		[]oopsFormat{
-			{
-				title:        compile("runtime error:(.*)"),
-				fmt:          "runtime error:%[1]v",
 				noStackTrace: true,
 			},
 		},
@@ -197,4 +175,4 @@ var gvisorOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-}
+}, commonOopses...)

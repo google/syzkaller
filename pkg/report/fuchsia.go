@@ -185,7 +185,7 @@ var zirconStackParams = &stackParams{
 	},
 }
 
-var zirconOopses = []*oops{
+var zirconOopses = append([]*oops{
 	{
 		[]byte("ZIRCON KERNEL PANIC"),
 		[]oopsFormat{
@@ -316,17 +316,4 @@ var zirconOopses = []*oops{
 			compile("<== fatal exception: process .+?syz.+?\\["),
 		},
 	},
-	{
-		// Panics in Go services.
-		[]byte("panic: "),
-		[]oopsFormat{
-			{
-				title:        compile("panic: .*"),
-				report:       compile("panic: (.*)(?:.*\\n)+?.* goroutine"),
-				fmt:          "panic: %[1]v",
-				noStackTrace: true,
-			},
-		},
-		[]*regexp.Regexp{},
-	},
-}
+}, commonOopses...)

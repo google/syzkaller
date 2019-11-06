@@ -133,7 +133,7 @@ var akarosStackParams = &stackParams{
 	},
 }
 
-var akarosOopses = []*oops{
+var akarosOopses = append([]*oops{
 	{
 		[]byte("kernel panic"),
 		[]oopsFormat{
@@ -188,4 +188,4 @@ var akarosOopses = []*oops{
 		},
 		[]*regexp.Regexp{},
 	},
-}
+}, commonOopses...)

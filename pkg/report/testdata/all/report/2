@@ -1,0 +1,22 @@
+TITLE: panic: executor 2: failed: event already set (errno 0)
+
+panic: executor 2: failed: event already set (errno 0)
+child failed (errno 2)
+loop failed (errno 0)
+
+
+goroutine 16 [running]:
+main.(*Proc).executeRaw(0x442002b480, 0x44200cafa0, 0x44280cbee0, 0x4, 0x0, 0x0, 0x0)
+	/home/jbtheou/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:271 +0x39c
+main.(*Proc).execute(0x442002b480, 0x44200cafa0, 0x44280cbee0, 0x0, 0x4, 0x442625ce60, 0x1, 0x2a7260)
+	/home/jbtheou/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:231 +0x40
+main.(*Proc).triageInput.func1(0x44280cbee0, 0x4, 0x1)
+	/home/jbtheou/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:145 +0x88
+github.com/google/syzkaller/prog.Minimize(0x4423334b60, 0x6, 0x200, 0x4424751de8, 0x442b100e10, 0x7)
+	/home/jbtheou/go/src/github.com/google/syzkaller/prog/minimization.go:43 +0x10c
+main.(*Proc).triageInput(0x442002b480, 0x4423531ec0)
+	/home/jbtheou/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:142 +0x658
+main.(*Proc).loop(0x442002b480)
+	/home/jbtheou/go/src/github.com/google/syzkaller/syz-fuzzer/proc.go:72 +0xe4
+created by main.main
+	/home/jbtheou/go/src/github.com/google/syzkaller/syz-fuzzer/fuzzer.go:294 +0xc90
