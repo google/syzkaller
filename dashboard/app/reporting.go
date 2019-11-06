@@ -339,7 +339,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 			return nil, err
 		}
 		job = job1
-		if crash1.ReproC != 0 || crash.ReproC == 0 {
+		if !job.isUnreliableBisect() && (crash1.ReproC != 0 || crash.ReproC == 0) {
 			// Don't override the crash in this case,
 			// otherwise we will always think that we haven't reported the C repro.
 			crash, crashKey = crash1, crashKey1
@@ -408,7 +408,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 	if bugReporting.CC != "" {
 		rep.CC = strings.Split(bugReporting.CC, "|")
 	}
-	if bug.BisectCause == BisectYes {
+	if bug.BisectCause == BisectYes && !job.isUnreliableBisect() {
 		rep.BisectCause = bisectFromJob(c, rep, job)
 	}
 	if err := fillBugReport(c, rep, bug, bugReporting, build); err != nil {

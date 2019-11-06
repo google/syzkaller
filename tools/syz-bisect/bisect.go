@@ -103,7 +103,7 @@ func main() {
 	loadFile("kernel.config", &cfg.Kernel.Config)
 	loadFile("repro.syz", &cfg.Repro.Syz)
 	loadFile("repro.opts", &cfg.Repro.Opts)
-	if _, _, _, err := bisect.Run(cfg); err != nil {
+	if _, err := bisect.Run(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "bisection failed: %v\n", err)
 		os.Exit(1)
 	}
