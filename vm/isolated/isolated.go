@@ -88,7 +88,6 @@ func (pool *Pool) Count() int {
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	targetAddr, targetPort, _ := splitTargetPort(pool.cfg.Targets[index])
-	
 	inst := &instance{
 		cfg:        pool.cfg,
 		os:         pool.env.OS,
@@ -195,7 +194,7 @@ func (inst *instance) repair() error {
 			log.Logf(2, "ssh return: %v", e)
 		} else if len(inst.cfg.USBDevNums) > 1 {
 			log.Logf(2, "isolated: ssh failed")
-			log.Logf(2, "isolated: trying to reboot by USB authorization")			
+			log.Logf(2, "isolated: trying to reboot by USB authorization")
 			usbAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", inst.cfg.USBDevNums[inst.index], "/authorized")
 			err = ioutil.WriteFile(usbAuth, []byte("0"), 0)
 			if err != nil {
