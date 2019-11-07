@@ -976,9 +976,9 @@ func TestBugBisectionResults(t *testing.T) {
 	url := fmt.Sprintf("/bug?id=%v", keys[0].StringID())
 	content, err := c.httpRequest("GET", url, "", AccessAdmin)
 	c.expectEQ(err, nil)
-	c.expectTrue(bytes.Contains(content, []byte("Bisection: introduced by")))
+	c.expectTrue(bytes.Contains(content, []byte("Cause bisection: introduced by")))
 	c.expectTrue(bytes.Contains(content, []byte("kernel: add a bug")))
-	c.expectTrue(bytes.Contains(content, []byte("Bisection: fixed by")))
+	c.expectTrue(bytes.Contains(content, []byte("Fix bisection: fixed by")))
 	c.expectTrue(bytes.Contains(content, []byte("kernel: add a fix")))
 }
 

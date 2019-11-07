@@ -239,13 +239,17 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 	{{$causeJob := 1}}
 	{{$fixJob := 2}}
 	{{if .ErrorLink}}
-		<b>Bisection: {{link .ErrorLink "error"}}
+		{{if eq .Type $causeJob}}
+			<b>Cause bisection: failed</b>
+		{{else if eq .Type $fixJob}}
+			<b>Fix bisection: failed</b>
+		{{end}}
 		({{link .LogLink "bisect log"}})</b><br>
 	{{else if .Commit}}
 		{{if eq .Type $causeJob}}
-			<b>Bisection: introduced by</b>
+			<b>Cause bisection: introduced by</b>
 		{{else if eq .Type $fixJob}}
-			<b>Bisection: fixed by</b>
+			<b>Fix bisection: fixed by</b>
 		{{end}}
 		<b>({{link .LogLink "bisect log"}}):</b><br>
 		<br><span class="mono">
@@ -257,9 +261,9 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</span><br>
 	{{else if .Commits}}
 		{{if eq .Type $causeJob}}
-			<b>Bisection: the cause commit could be any of</b>
+			<b>Cause bisection: the cause commit could be any of</b>
 		{{else if eq .Type $fixJob}}
-			<b>Bisection: the fix commit could be any of</b>
+			<b>Fix bisection: the fix commit could be any of</b>
 		{{end}}
 		<b>({{link .LogLink "bisect log"}}):</b><br>
 		<br><span class="mono">
@@ -269,13 +273,12 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		</span>
 	{{else}}
 		{{if eq .Type $causeJob}}
-			<b>Bisection: the bug happens on the oldest tested release</b>
+			<b>Cause bisection: the bug happens on the oldest tested release</b>
 		{{else if eq .Type $fixJob}}
-			<b>Bisection: the bug occurs on the latest tested release</b>
+			<b>Fix bisection: the bug occurs on the latest tested release</b>
 		{{end}}
 		<br>
 	{{end}}
-	Tree: <span title="{{.Manager}}">{{.KernelAlias}}</span><br>
 	{{if .CrashLogLink}}
 		Crash: {{link .CrashReportLink .CrashTitle}} ({{link .CrashLogLink "log"}})<br>
 		Repro: {{optlink .Crash.ReproCLink "C"}}
