@@ -456,6 +456,9 @@ func initTarget(target *Target, OS, arch string) {
 }
 
 func checkOptionalFlags(target *Target) {
+	if runtime.GOOS != target.BuildOS {
+		return
+	}
 	flags := make(map[string]*bool)
 	var wg sync.WaitGroup
 	for _, flag := range target.CrossCFlags {
