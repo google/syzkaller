@@ -134,9 +134,9 @@ prctl$PR_SET_SPECULATION_CTRL(option const[PR_SET_SPECULATION_CTRL], arg2 const[
 
 pr_spec_mode = PR_SPEC_ENABLE, PR_SPEC_DISABLE, PR_SPEC_FORCE_DISABLE
 
-arch_prctl$ARCH_GET_FS(code const[ARCH_GET_FS], arg ptr[out, int64])
-arch_prctl$ARCH_GET_GS(code const[ARCH_GET_GS], arg ptr[out, int64])
-arch_prctl$ARCH_SET_GS(code const[ARCH_SET_GS], arg int64)
+arch_prctl$ARCH_GET_FS(code const[ARCH_GET_FS], arg ptr[out, intptr])
+arch_prctl$ARCH_GET_GS(code const[ARCH_GET_GS], arg ptr[out, intptr])
+arch_prctl$ARCH_SET_GS(code const[ARCH_SET_GS], arg ptr[out, intptr])
 arch_prctl$ARCH_GET_CPUID(code const[ARCH_GET_CPUID])
 arch_prctl$ARCH_SET_CPUID(code const[ARCH_SET_CPUID], arg boolptr)
 arch_prctl$ARCH_MAP_VDSO_X32(code const[ARCH_MAP_VDSO_X32], arg intptr)
