@@ -646,8 +646,8 @@ func TestFixBisectionsDisabled(t *testing.T) {
 	defer c.Close()
 
 	// Upload a crash report
-	build := testBuild(20)
-	build.KernelRepo = "git://syzkaller.org"
+	build := testBuild(1)
+	build.Manager = "no-fix-bisection-manager"
 	c.client2.UploadBuild(build)
 	crash := testCrashWithRepro(build, 20)
 	c.client2.ReportCrash(crash)
