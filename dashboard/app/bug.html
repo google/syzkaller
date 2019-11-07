@@ -23,9 +23,9 @@ Page with details about a single bug.
 			Patched on: {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
 		{{end}}
 	{{end}}
-	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
+	First crash: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br><br>
 
-	{{template "bisect_results" .BisectCause}}
+	{{template "bisect_results" .BisectCause}}<br>
 	{{template "bisect_results" .BisectFix}}
 
 	{{template "bug_list" .DupOf}}
