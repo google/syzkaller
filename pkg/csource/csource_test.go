@@ -43,6 +43,14 @@ func TestGenerate(t *testing.T) {
 			if _, err := exec.LookPath(sysTarget.CCompiler); err != nil {
 				t.Skipf("no target compiler %v", sysTarget.CCompiler)
 			}
+			bin, err := Build(target, []byte(`
+#include <stdio.h>
+int main() { printf("Hello, World!\n"); }
+`))
+			if err != nil {
+				t.Skipf("target compiler is broken: %v", err)
+			}
+			os.Remove(bin)
 			full := !checked[target.OS]
 			checked[target.OS] = true
 			t.Parallel()
