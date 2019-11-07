@@ -408,7 +408,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		if len(fixBisections) != 0 {
 			data.FixBisections = &uiCrashTable{
 				Crashes: fixBisections,
-				Caption: fmt.Sprintf("Fix bisections (%v)", len(fixBisections)),
+				Caption: "Fix bisection attempts",
 			}
 		}
 	}
