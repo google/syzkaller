@@ -236,6 +236,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{/* Show bisection results */}}
 {{define "bisect_results"}}
 {{if .}}
+	<br>
 	{{$causeJob := 1}}
 	{{$fixJob := 2}}
 	{{if .ErrorLink}}

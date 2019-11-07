@@ -617,7 +617,7 @@ func TestFixBisectionsListed(t *testing.T) {
 	// Check the bug page and ensure that a bisection is listed out.
 	content, err = c.httpRequest("GET", url, "", AccessAdmin)
 	c.expectEQ(err, nil)
-	c.expectTrue(bytes.Contains(content, []byte("Fix bisections (1)")))
+	c.expectTrue(bytes.Contains(content, []byte("Fix bisection attempts")))
 
 	// Advance time by 30 days. No notification emails.
 	{
