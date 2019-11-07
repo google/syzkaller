@@ -100,17 +100,19 @@ var testConfig = &GlobalConfig{
 					CC:     []string{"maintainers@repo10.org", "bugs@repo10.org"},
 				},
 				{
-					URL:                  "git://syzkaller.org",
-					Branch:               "branch20",
-					Alias:                "repo20",
-					CC:                   []string{"maintainers@repo20.org", "bugs@repo20.org"},
-					FixBisectionDisabled: true,
+					URL:    "git://syzkaller.org",
+					Branch: "branch20",
+					Alias:  "repo20",
+					CC:     []string{"maintainers@repo20.org", "bugs@repo20.org"},
 				},
 			},
 			Managers: map[string]ConfigManager{
 				"restricted-manager": {
 					RestrictedTestingRepo:   "git://restricted.git/restricted.git",
 					RestrictedTestingReason: "you should test only on restricted.git",
+				},
+				"no-fix-bisection-manager": {
+					FixBisectionDisabled: true,
 				},
 			},
 			Reporting: []Reporting{

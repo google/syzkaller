@@ -321,7 +321,8 @@ func shouldBisectCrash(c context.Context, bug *Bug, crash *Crash, jobType JobTyp
 	if err != nil {
 		return false, err
 	}
-	return !kernelRepoInfo(build).FixBisectionDisabled, nil
+	cfg := config.Namespaces[build.Namespace]
+	return !cfg.Managers[build.Manager].FixBisectionDisabled, nil
 }
 
 func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, crashKey *db.Key, jobType JobType) (

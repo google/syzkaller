@@ -114,6 +114,8 @@ type ConfigManager struct {
 	// See ObsoletingConfig for details.
 	ObsoletingMinPeriod time.Duration
 	ObsoletingMaxPeriod time.Duration
+	// Determines if fix bisection should be disabled on this manager.
+	FixBisectionDisabled bool
 }
 
 // One reporting stage.
@@ -156,8 +158,6 @@ type KernelRepo struct {
 	ReportingPriority int
 	// Additional CC list to add to all bugs reported on this repo.
 	CC []string
-	// Determines if fix bisection should be disabled on this repo.
-	FixBisectionDisabled bool
 }
 
 var (
