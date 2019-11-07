@@ -443,7 +443,7 @@ func getUIJob(c context.Context, bug *Bug, jobType JobType) (*uiJob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return makeUIJob(job, jobKey, crash, build), nil
+	return makeUIJob(job, jobKey, bug, crash, build), nil
 }
 
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).
@@ -1036,12 +1036,12 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	}
 	var results []*uiJob
 	for i, job := range jobs {
-		results = append(results, makeUIJob(job, keys[i], nil, nil))
+		results = append(results, makeUIJob(job, keys[i], nil, nil, nil))
 	}
 	return results, nil
 }
 
-func makeUIJob(job *Job, jobKey *db.Key, crash *Crash, build *Build) *uiJob {
+func makeUIJob(job *Job, jobKey *db.Key, bug *Bug, crash *Crash, build *Build) *uiJob {
 	ui := &uiJob{
 		Type:            job.Type,
 		Created:         job.Created,
@@ -1062,9 +1062,17 @@ func makeUIJob(job *Job, jobKey *db.Key, crash *Crash, build *Build) *uiJob {
 		CrashReportLink: textLink(textCrashReport, job.CrashReport),
 		LogLink:         textLink(textLog, job.Log),
 		ErrorLink:       textLink(textError, job.Error),
+		Reported:        job.Reported,
 	}
 	if !job.Finished.IsZero() {
 		ui.Duration = job.Finished.Sub(job.Started)
+	}
+	if job.Type == JobBisectCause || job.Type == JobBisectFix {
+		// We don't report these yet (or at all), see pollCompletedJobs.
+		if len(job.Commits) != 1 ||
+			bug != nil && (len(bug.Commits) != 0 || bug.Status != BugStatusOpen) {
+			ui.Reported = true
+		}
 	}
 	for _, com := range job.Commits {
 		ui.Commits = append(ui.Commits, &uiCommit{

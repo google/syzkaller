@@ -286,6 +286,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{optlink .Crash.ReproSyzLink "syz"}}
 		{{optlink .Crash.KernelConfigLink ".config"}}<br>
 	{{end}}
+	{{if not .Reported}}[report pending]<br>{{end}}
 {{end}}
 {{end}}
 
