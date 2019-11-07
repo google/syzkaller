@@ -786,7 +786,7 @@ func TestBisectCauseExternal(t *testing.T) {
 		},
 	}
 	done.Build.ID = jobID
-	c.expectOK(c.client2.JobDone(done))
+	c.expectOK(c.client.JobDone(done))
 
 	resp, _ := c.client.ReportingPollBugs("test")
 	c.expectEQ(len(resp.Reports), 1)
@@ -797,6 +797,59 @@ func TestBisectCauseExternal(t *testing.T) {
 
 	c.expectEQ(bisect.Type, dashapi.ReportBisectCause)
 	c.expectEQ(bisect.Title, rep.Title)
+}
+
+func TestBisectFixExternal(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.client.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.client.ReportCrash(crash)
+	rep := c.client.pollBug()
+	{
+		// Cause bisection fails.
+		pollResp := c.client.pollJobs(build.Manager)
+		done := &dashapi.JobDoneReq{
+			ID:    pollResp.ID,
+			Log:   []byte("bisect log"),
+			Error: []byte("bisect error"),
+		}
+		c.expectOK(c.client.JobDone(done))
+	}
+	c.advanceTime(31 * 24 * time.Hour)
+	{
+		// Fix bisection succeeds.
+		pollResp := c.client.pollJobs(build.Manager)
+		done := &dashapi.JobDoneReq{
+			ID:          pollResp.ID,
+			Build:       *build,
+			Log:         []byte("bisectfix log"),
+			CrashTitle:  "bisectfix crash title",
+			CrashLog:    []byte("bisectfix crash log"),
+			CrashReport: []byte("bisectfix crash report"),
+			Commits: []dashapi.Commit{
+				{
+					Hash:       "46e65cb4a0448942ec316b24d60446bbd5cc7827",
+					Title:      "kernel: add a fix",
+					Author:     "fixer@kernel.org",
+					AuthorName: "Author Kernelov",
+					Date:       time.Date(2000, 2, 9, 4, 5, 6, 7, time.UTC),
+				},
+			},
+		}
+		done.Build.ID = pollResp.ID
+		c.expectOK(c.client.JobDone(done))
+		rep := c.client.pollBug()
+		c.expectEQ(rep.Type, dashapi.ReportBisectFix)
+	}
+	{
+		// At this point the bug should be marked as fixed by the commit
+		// because the namespace has FixBisectionAutoClose set.
+		dbBug, _, _ := c.loadBug(rep.ID)
+		c.expectEQ(dbBug.Commits, []string{"kernel: add a fix"})
+	}
 }
 
 func TestBisectCauseReproSyz(t *testing.T) {

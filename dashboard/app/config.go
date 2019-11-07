@@ -64,6 +64,8 @@ type Config struct {
 	ReportingDelay time.Duration
 	// How long should we wait for a C repro before reporting a bug.
 	WaitForRepro time.Duration
+	// If set, successful fix bisections will auto-close the bug.
+	FixBisectionAutoClose bool
 	// Managers contains some special additional info about syz-manager instances.
 	Managers map[string]ConfigManager
 	// Reporting config.

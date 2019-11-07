@@ -41,8 +41,9 @@ var testConfig = &GlobalConfig{
 	DefaultNamespace: "test1",
 	Namespaces: map[string]*Config{
 		"test1": {
-			AccessLevel: AccessAdmin,
-			Key:         "test1keytest1keytest1key",
+			AccessLevel:           AccessAdmin,
+			Key:                   "test1keytest1keytest1key",
+			FixBisectionAutoClose: true,
 			Clients: map[string]string{
 				client1: key1,
 			},

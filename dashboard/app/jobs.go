@@ -745,12 +745,30 @@ func jobReported(c context.Context, jobID string) error {
 	if err != nil {
 		return err
 	}
+	now := timeNow(c)
 	tx := func(c context.Context) error {
 		job := new(Job)
 		if err := db.Get(c, jobKey, job); err != nil {
 			return fmt.Errorf("job %v: failed to get job: %v", jobID, err)
 		}
 		job.Reported = true
+		// Auto-mark the bug as fixed by the result of fix bisection,
+		// if the setting is enabled for the namespace.
+		if job.Type == JobBisectFix &&
+			config.Namespaces[job.Namespace].FixBisectionAutoClose &&
+			len(job.Commits) == 1 {
+			bug := new(Bug)
+			bugKey := jobKey.Parent()
+			if err := db.Get(c, bugKey, bug); err != nil {
+				return fmt.Errorf("failed to get bug: %v", err)
+			}
+			if bug.Status == BugStatusOpen && len(bug.Commits) == 0 {
+				bug.updateCommits([]string{job.Commits[0].Title}, now)
+				if _, err := db.Put(c, bugKey, bug); err != nil {
+					return fmt.Errorf("failed to put bug: %v", err)
+				}
+			}
+		}
 		if _, err := db.Put(c, jobKey, job); err != nil {
 			return fmt.Errorf("failed to put job: %v", err)
 		}
