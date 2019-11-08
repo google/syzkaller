@@ -251,7 +251,7 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 			// from other CPUs regardless of what is the current context.
 			// Otherwise we will throw traceback away because it does not match the oops context.
 			cpuTraceback = true
-		} else if textLines > 25 &&
+		} else if textLines > 22 &&
 			(bytes.Contains(line, []byte("Kernel panic - not syncing")) ||
 				bytes.Contains(line, []byte("WARNING: possible circular locking dependency detected"))) {
 			// If panic_on_warn set, then we frequently have 2 stacks:
