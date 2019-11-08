@@ -1,0 +1,316 @@
+TITLE: general protection fault in dma_direct_max_mapping_size
+
+[    3.598126][  T259] kworker/u4:1 (259) used greatest stack depth: 27248 bytes left
+[    3.853329][  T895] kworker/u4:0 (895) used greatest stack depth: 27168 bytes left
+[    3.919246][    T1] WARNING: workqueue cpumask: online intersect > possible intersect
+[    3.922135][    T1] HugeTLB registered 1.00 GiB page size, pre-allocated 0 pages
+[    3.922135][    T1] HugeTLB registered 2.00 MiB page size, pre-allocated 0 pages
+[    3.961607][    T1] cryptd: max_cpu_qlen set to 1000
+[    4.200857][    T1] raid6: avx2x4   gen() 11248 MB/s
+[    4.370910][    T1] raid6: avx2x4   xor()  6695 MB/s
+[    4.534029][    T1] raid6: avx2x2   gen()  6687 MB/s
+[    4.710879][    T1] raid6: avx2x2   xor()  3654 MB/s
+[    4.874052][    T1] raid6: avx2x1   gen()  3443 MB/s
+[    5.044029][    T1] raid6: avx2x1   xor()  2027 MB/s
+[    5.214031][    T1] raid6: sse2x4   gen()  5758 MB/s
+[    5.390860][    T1] raid6: sse2x4   xor()  3294 MB/s
+[    5.554043][    T1] raid6: sse2x2   gen()  3924 MB/s
+[    5.724026][    T1] raid6: sse2x2   xor()  1858 MB/s
+[    5.894045][    T1] raid6: sse2x1   gen()  1745 MB/s
+[    6.064024][    T1] raid6: sse2x1   xor()  1019 MB/s
+[    6.064866][    T1] raid6: using algorithm avx2x4 gen() 11248 MB/s
+[    6.065760][    T1] raid6: .... xor() 6695 MB/s, rmw enabled
+[    6.066536][    T1] raid6: using avx2x2 recovery algorithm
+[    6.071729][    T1] ACPI: Added _OSI(Module Device)
+[    6.071729][    T1] ACPI: Added _OSI(Processor Device)
+[    6.071729][    T1] ACPI: Added _OSI(3.0 _SCP Extensions)
+[    6.071729][    T1] ACPI: Added _OSI(Processor Aggregator Device)
+[    6.071729][    T1] ACPI: Added _OSI(Linux-Dell-Video)
+[    6.072456][    T1] ACPI: Added _OSI(Linux-Lenovo-NV-HDMI-Audio)
+[    6.073288][    T1] ACPI: Added _OSI(Linux-HPI-Hybrid-Graphics)
+[    6.115552][    T1] ACPI: 2 ACPI AML tables successfully acquired and loaded
+[    6.167758][    T1] ACPI: Interpreter enabled
+[    6.167978][    T1] ACPI: (supports S0 S3 S4 S5)
+[    6.168676][    T1] ACPI: Using IOAPIC for interrupt routing
+[    6.170899][    T1] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    6.172912][    T1] ACPI: Enabled 16 GPEs in block 00 to 0F
+[    6.265006][    T1] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    6.265006][    T1] acpi PNP0A03:00: _OSC: OS supports [ASPM ClockPM Segments MSI HPX-Type3]
+[    6.265006][    T1] acpi PNP0A03:00: fail to add MMCONFIG information, can't access extended PCI configuration space under this bridge.
+[    6.271612][    T1] PCI host bridge to bus 0000:00
+[    6.271612][    T1] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    6.271951][    T1] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    6.273045][    T1] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    6.274200][    T1] pci_bus 0000:00: root bus resource [mem 0xc0000000-0xfebfffff window]
+[    6.275344][    T1] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    6.276438][    T1] pci 0000:00:00.0: [8086:1237] type 00 class 0x060000
+[    6.283650][    T1] pci 0000:00:01.0: [8086:7110] type 00 class 0x060100
+[    6.303287][    T1] pci 0000:00:01.3: [8086:7113] type 00 class 0x068000
+[    6.316748][    T1] pci 0000:00:01.3: quirk: [io  0xb000-0xb03f] claimed by PIIX4 ACPI
+[    6.321504][    T1] pci 0000:00:03.0: [1af4:1004] type 00 class 0x000000
+[    6.327089][    T1] pci 0000:00:03.0: reg 0x10: [io  0xc000-0xc03f]
+[    6.330861][    T1] pci 0000:00:03.0: reg 0x14: [mem 0xfebfe000-0xfebfe07f]
+[    6.350847][    T1] pci 0000:00:04.0: [1af4:1000] type 00 class 0x020000
+[    6.353124][    T1] pci 0000:00:04.0: reg 0x10: [io  0xc040-0xc07f]
+[    6.357601][    T1] pci 0000:00:04.0: reg 0x14: [mem 0xfebff000-0xfebff07f]
+[    6.381120][    T1] ACPI: PCI Interrupt Link [LNKA] (IRQs 5 *10 11)
+[    6.385042][    T1] ACPI: PCI Interrupt Link [LNKB] (IRQs 5 *10 11)
+[    6.388304][    T1] ACPI: PCI Interrupt Link [LNKC] (IRQs 5 10 *11)
+[    6.391692][    T1] ACPI: PCI Interrupt Link [LNKD] (IRQs 5 10 *11)
+[    6.394361][    T1] ACPI: PCI Interrupt Link [LNKS] (IRQs *9)
+[    6.411086][    T1] vgaarb: loaded
+[    6.414482][    T1] SCSI subsystem initialized
+[    6.415512][    T1] ACPI: bus type USB registered
+[    6.420858][    T1] usbcore: registered new interface driver usbfs
+[    6.421811][    T1] usbcore: registered new interface driver hub
+[    6.421811][    T1] usbcore: registered new device driver usb
+[    6.422789][    T1] mc: Linux media interface: v0.10
+[    6.423978][    T1] videodev: Linux video capture interface: v2.00
+[    6.426105][    T1] pps_core: LinuxPPS API ver. 1 registered
+[    6.427074][    T1] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    6.431606][    T1] PTP clock support registered
+[    6.431606][    T1] EDAC MC: Ver: 3.0.0
+[    6.441994][    T1] Advanced Linux Sound Architecture Driver Initialized.
+[    6.443815][    T1] PCI: Using ACPI for IRQ routing
+[    6.446658][    T1] Bluetooth: Core ver 2.22
+[    6.446658][    T1] NET: Registered protocol family 31
+[    6.450847][    T1] Bluetooth: HCI device and connection manager initialized
+[    6.451045][    T1] Bluetooth: HCI socket layer initialized
+[    6.451045][    T1] Bluetooth: L2CAP socket layer initialized
+[    6.451045][    T1] Bluetooth: SCO socket layer initialized
+[    6.451045][    T1] NET: Registered protocol family 8
+[    6.451045][    T1] NET: Registered protocol family 20
+[    6.453767][    T1] NetLabel: Initializing
+[    6.453767][    T1] NetLabel:  domain hash size = 128
+[    6.453767][    T1] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    6.453767][    T1] NetLabel:  unlabeled traffic allowed by default
+[    6.462445][    T1] nfc: nfc_init: NFC Core ver 0.1
+[    6.463337][    T1] NET: Registered protocol family 39
+[    6.463337][    T1] clocksource: Switched to clocksource kvm-clock
+[    8.556243][    T1] VFS: Disk quotas dquot_6.6.0
+[    8.557352][    T1] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    8.559219][    T1] FS-Cache: Loaded
+[    8.559927][    T1] *** VALIDATE hugetlbfs ***
+[    8.561777][    T1] CacheFiles: Loaded
+[    8.562751][    T1] TOMOYO: 2.6.0
+[    8.563247][    T1] Mandatory Access Control activated.
+[    8.565690][    T1] AppArmor: AppArmor Filesystem Enabled
+[    8.567118][    T1] pnp: PnP ACPI init
+[    8.579378][    T1] pnp: PnP ACPI: found 7 devices
+[    8.626706][    T1] thermal_sys: Registered thermal governor 'step_wise'
+[    8.626713][    T1] thermal_sys: Registered thermal governor 'user_space'
+[    8.638037][    T1] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    8.639409][    T1] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    8.640461][    T1] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    8.642095][    T1] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    8.643220][    T1] pci_bus 0000:00: resource 7 [mem 0xc0000000-0xfebfffff window]
+[    8.645526][    T1] NET: Registered protocol family 2
+[    8.649230][    T1] tcp_listen_portaddr_hash hash table entries: 4096 (order: 6, 294912 bytes, vmalloc)
+[    8.651814][    T1] TCP established hash table entries: 65536 (order: 7, 524288 bytes, vmalloc)
+[    8.659458][    T1] TCP bind hash table entries: 65536 (order: 10, 4194304 bytes, vmalloc)
+[    8.663640][    T1] TCP: Hash tables configured (established 65536 bind 65536)
+[    8.666259][    T1] UDP hash table entries: 4096 (order: 7, 655360 bytes, vmalloc)
+[    8.668720][    T1] UDP-Lite hash table entries: 4096 (order: 7, 655360 bytes, vmalloc)
+[    8.671747][    T1] NET: Registered protocol family 1
+[    8.674483][    T1] RPC: Registered named UNIX socket transport module.
+[    8.675484][    T1] RPC: Registered udp transport module.
+[    8.676261][    T1] RPC: Registered tcp transport module.
+[    8.677022][    T1] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    8.689654][    T1] NET: Registered protocol family 44
+[    8.690481][    T1] pci 0000:00:00.0: Limiting direct PCI/PCI transfers
+[    8.691945][    T1] PCI: CLS 0 bytes, default 64
+[    8.696403][    T1] PCI-DMA: Using software bounce buffering for IO (SWIOTLB)
+[    8.697525][    T1] software IO TLB: mapped [mem 0xaa800000-0xae800000] (64MB)
+[    8.700721][    T1] RAPL PMU: API unit is 2^-32 Joules, 0 fixed counters, 10737418240 ms ovfl timer
+[    8.704865][    T1] kvm: already loaded the other module
+[    8.705814][    T1] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x212735223b2, max_idle_ns: 440795277976 ns
+[    8.707432][    T1] clocksource: Switched to clocksource tsc
+[    8.708460][    T1] mce: Machine check injector initialized
+[    8.714440][    T1] check: Scanning for low memory corruption every 60 seconds
+[    8.837964][    T1] Initialise system trusted keyrings
+[    8.838261][ T1782] kworker/u4:0 (1782) used greatest stack depth: 27024 bytes left
+[    8.840691][    T1] workingset: timestamp_bits=40 max_order=21 bucket_order=0
+[    8.842848][    T1] zbud: loaded
+[    8.848409][    T1] DLM installed
+[    8.851109][    T1] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    8.854774][    T1] FS-Cache: Netfs 'nfs' registered for caching
+[    8.856981][    T1] NFS: Registering the id_resolver key type
+[    8.857888][    T1] Key type id_resolver registered
+[    8.858875][    T1] Key type id_legacy registered
+[    8.859630][    T1] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    8.860730][    T1] Installing knfsd (copyright (C) 1996 okir@monad.swb.de).
+[    8.866892][    T1] ntfs: driver 2.1.32 [Flags: R/W].
+[    8.868643][    T1] fuse: init (API version 7.31)
+[    8.871680][    T1] JFS: nTxBlock = 8192, nTxLock = 65536
+[    8.886895][    T1] SGI XFS with ACLs, security attributes, realtime, no debug enabled
+[    8.892437][    T1] 9p: Installing v9fs 9p2000 file system support
+[    8.893491][    T1] FS-Cache: Netfs '9p' registered for caching
+[    8.899160][    T1] gfs2: GFS2 installed
+[    8.904395][    T1] FS-Cache: Netfs 'ceph' registered for caching
+[    8.905348][    T1] ceph: loaded (mds proto 32)
+[    8.913057][    T1] NET: Registered protocol family 38
+[    8.914910][    T1] async_tx: api initialized (async)
+[    8.915711][    T1] Key type asymmetric registered
+[    8.916460][    T1] Asymmetric key parser 'x509' registered
+[    8.917283][    T1] Asymmetric key parser 'pkcs8' registered
+[    8.918167][    T1] Key type pkcs7_test registered
+[    8.918848][    T1] Asymmetric key parser 'tpm_parser' registered
+[    8.919886][    T1] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 246)
+[    8.921657][    T1] io scheduler mq-deadline registered
+[    8.922656][    T1] io scheduler kyber registered
+[    8.923796][    T1] io scheduler bfq registered
+[    8.929433][    T1] input: Power Button as /devices/LNXSYSTM:00/LNXPWRBN:00/input/input0
+[    8.941305][    T1] ACPI: Power Button [PWRF]
+[    8.942965][    T1] input: Sleep Button as /devices/LNXSYSTM:00/LNXSLPBN:00/input/input1
+[    8.944324][    T1] ACPI: Sleep Button [SLPF]
+[    8.950277][    T1] ioatdma: Intel(R) QuickData Technology Driver 5.00
+[    8.962900][    T1] PCI Interrupt Link [LNKC] enabled at IRQ 11
+[    8.964071][    T1] virtio-pci 0000:00:03.0: virtio_pci: leaving for legacy driver
+[    8.976595][    T1] PCI Interrupt Link [LNKD] enabled at IRQ 10
+[    8.977592][    T1] virtio-pci 0000:00:04.0: virtio_pci: leaving for legacy driver
+[    9.281533][    T1] HDLC line discipline maxframe=4096
+[    9.282412][    T1] N_HDLC line discipline registered.
+[    9.283140][    T1] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    9.307420][    T1] 00:03: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    9.333750][    T1] 00:04: ttyS1 at I/O 0x2f8 (irq = 3, base_baud = 115200) is a 16550A
+[    9.358935][    T1] 00:05: ttyS2 at I/O 0x3e8 (irq = 6, base_baud = 115200) is a 16550A
+[    9.383988][    T1] 00:06: ttyS3 at I/O 0x2e8 (irq = 7, base_baud = 115200) is a 16550A
+[    9.393864][    T1] Non-volatile memory driver v1.3
+[    9.395481][    T1] Linux agpgart interface v0.103
+[    9.405426][    T1] [drm] Initialized vgem 1.0.0 20120112 for vgem on minor 0
+[    9.407244][    T1] [drm] Supports vblank timestamp caching Rev 2 (21.10.2013).
+[    9.408716][    T1] [drm] Driver supports precise vblank timestamp query.
+[    9.412717][    T1] [drm] Initialized vkms 1.0.0 20180514 for vkms on minor 1
+[    9.414381][    T1] usbcore: registered new interface driver udl
+[    9.466869][    T1] brd: module loaded
+[    9.502331][    T1] loop: module loaded
+[    9.574958][    T1] zram: Added device: zram0
+[    9.602095][    T1] null: module loaded
+[    9.608237][    T1] nfcsim 0.2 initialized
+[    9.612766][    T1] Loading iSCSI transport class v2.0-870.
+[    9.633477][    T1] scsi host0: Virtio SCSI HBA
+[    9.675300][    T1] st: Version 20160209, fixed bufsize 32768, s/g segs 256
+[    9.677797][   T21] kasan: CONFIG_KASAN_INLINE enabled
+[    9.679156][   T21] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[    9.681754][   T21] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[    9.682253][    T1] kobject: 'sd' (0000000040ee4d1b): kobject_add_internal: parent: 'drivers', set: 'drivers'
+[    9.683570][   T21] CPU: 1 PID: 21 Comm: kworker/u4:1 Not tainted 5.3.0-rc1+ #43
+[    9.686168][    T1] kobject: 'sd' (0000000040ee4d1b): kobject_uevent_env
+[    9.688034][   T21] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[    9.689772][    T1] kobject: 'sd' (0000000040ee4d1b): fill_kobj_path: path = '/bus/scsi/drivers/sd'
+[    9.691329][   T21] Workqueue: events_unbound async_run_entry_fn
+[    9.691329][   T21] RIP: 0010:dma_direct_max_mapping_size+0x7c/0x1a7
+[    9.691329][   T21] Code: 48 89 fa 48 c1 ea 03 80 3c 02 00 0f 85 23 01 00 00 49 8b 9c 24 38 03 00 00 48 b8 00 00 00 00 00 fc ff df 48 89 da 48 c1 ea 03 <80> 3c 02 00 0f 85 0a 01 00 00 49 8d bc 24 48 03 00 00 48 8b 1b 48
+[    9.691329][   T21] RSP: 0000:ffff8880a9a3f768 EFLAGS: 00010246
+[    9.691329][   T21] RAX: dffffc0000000000 RBX: 0000000000000000 RCX: ffffffff816128d1
+[    9.691329][   T21] RDX: 0000000000000000 RSI: ffffffff816128f0 RDI: ffff8880a50ea478
+[    9.691329][   T21] RBP: ffff8880a9a3f780 R08: ffff8880a9a2c580 R09: ffffed101441ca8d
+[    9.691329][   T21] R10: ffffed101441ca8c R11: ffff8880a20e5467 R12: ffff8880a50ea140
+[    9.691329][   T21] R13: ffff8880a50ea140 R14: ffff888219296b70 R15: 0000000000000200
+[    9.691329][   T21] FS:  0000000000000000(0000) GS:ffff8880ae900000(0000) knlGS:0000000000000000
+[    9.691329][   T21] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    9.691329][   T21] CR2: 0000000000000000 CR3: 0000000008c6d000 CR4: 00000000001406e0
+[    9.695502][    T1] kobject: 'sr' (00000000e7d12427): kobject_add_internal: parent: 'drivers', set: 'drivers'
+[    9.691329][   T21] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[    9.698150][    T1] kobject: 'sr' (00000000e7d12427): kobject_uevent_env
+[    9.691329][   T21] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[    9.691329][   T21] Call Trace:
+[    9.691329][   T21]  dma_max_mapping_size+0xba/0x100
+[    9.691329][   T21]  __scsi_init_queue+0x1cb/0x580
+[    9.704875][    T1] kobject: 'sr' (00000000e7d12427): fill_kobj_path: path = '/bus/scsi/drivers/sr'
+[    9.691329][   T21]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[    9.708923][    T1] kobject: 'scsi_generic' (000000000443366b): kobject_add_internal: parent: 'class', set: 'class'
+[    9.691329][   T21]  scsi_mq_alloc_queue+0xd2/0x180
+[    9.712702][    T1] kobject: 'scsi_generic' (000000000443366b): kobject_uevent_env
+[    9.691329][   T21]  scsi_alloc_sdev+0x837/0xc60
+[    9.716982][    T1] kobject: 'scsi_generic' (000000000443366b): fill_kobj_path: path = '/class/scsi_generic'
+[    9.691329][   T21]  scsi_probe_and_add_lun+0x2440/0x39f0
+[    9.731792][    T1] kobject: 'nvme-wq' (0000000010fea8b9): kobject_add_internal: parent: 'workqueue', set: 'devices'
+[    9.730932][   T21]  ? __kasan_check_read+0x11/0x20
+[    9.735657][    T1] kobject: 'nvme-wq' (0000000010fea8b9): kobject_uevent_env
+[    9.730932][   T21]  ? mark_lock+0xc0/0x11e0
+[    9.738768][    T1] kobject: 'nvme-wq' (0000000010fea8b9): kobject_uevent_env: uevent_suppress caused the event to drop!
+[    9.730932][   T21]  ? scsi_alloc_sdev+0xc60/0xc60
+[    9.742738][    T1] kobject: 'nvme-wq' (0000000010fea8b9): kobject_uevent_env
+[    9.730932][   T21]  ? mark_held_locks+0xa4/0xf0
+[    9.746730][    T1] kobject: 'nvme-wq' (0000000010fea8b9): fill_kobj_path: path = '/devices/virtual/workqueue/nvme-wq'
+[    9.730932][   T21]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[    9.730932][   T21]  ? __pm_runtime_resume+0x11b/0x180
+[    9.730932][   T21]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[    9.760572][    T1] kobject: 'nvme-reset-wq' (00000000a7f5b0c8): kobject_add_internal: parent: 'workqueue', set: 'devices'
+[    9.730932][   T21]  ? lockdep_hardirqs_on+0x418/0x5d0
+[    9.730932][   T21]  ? trace_hardirqs_on+0x67/0x240
+[    9.730932][   T21]  ? __kasan_check_read+0x11/0x20
+[    9.765100][    T1] kobject: 'nvme-reset-wq' (00000000a7f5b0c8): kobject_uevent_env
+[    9.730932][   T21]  ? _raw_spin_unlock_irqrestore+0xa4/0xe0
+[    9.767510][    T1] kobject: 'nvme-reset-wq' (00000000a7f5b0c8): kobject_uevent_env: uevent_suppress caused the event to drop!
+[    9.730932][   T21]  ? __pm_runtime_resume+0x11b/0x180
+[    9.770827][    T1] kobject: 'nvme-reset-wq' (00000000a7f5b0c8): kobject_uevent_env
+[    9.730932][   T21]  __scsi_scan_target+0x29a/0xfa0
+[    9.776040][    T1] kobject: 'nvme-reset-wq' (00000000a7f5b0c8): fill_kobj_path: path = '/devices/virtual/workqueue/nvme-reset-wq'
+[    9.730932][   T21]  ? __pm_runtime_resume+0x11b/0x180
+[    9.780391][   T21]  ? __kasan_check_read+0x11/0x20
+[    9.780391][   T21]  ? mark_lock+0xc0/0x11e0
+[    9.780391][   T21]  ? scsi_probe_and_add_lun+0x39f0/0x39f0
+[    9.780391][   T21]  ? mark_held_locks+0xa4/0xf0
+[    9.780391][   T21]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[    9.780391][   T21]  ? __pm_runtime_resume+0x11b/0x180
+[    9.780391][   T21]  ? _raw_spin_unlock_irqrestore+0x6b/0xe0
+[    9.780391][   T21]  ? lockdep_hardirqs_on+0x418/0x5d0
+[    9.790047][    T1] kobject: 'nvme-delete-wq' (00000000dc28d66f): kobject_add_internal: parent: 'workqueue', set: 'devices'
+[    9.780391][   T21]  ? trace_hardirqs_on+0x67/0x240
+[    9.793601][    T1] kobject: 'nvme-delete-wq' (00000000dc28d66f): kobject_uevent_env
+[    9.780391][   T21]  scsi_scan_channel.part.0+0x11a/0x190
+[    9.796667][    T1] kobject: 'nvme-delete-wq' (00000000dc28d66f): kobject_uevent_env: uevent_suppress caused the event to drop!
+[    9.780391][   T21]  scsi_scan_host_selected+0x313/0x450
+[    9.801103][    T1] kobject: 'nvme-delete-wq' (00000000dc28d66f): kobject_uevent_env
+[    9.780391][   T21]  ? scsi_scan_host+0x450/0x450
+[    9.804509][    T1] kobject: 'nvme-delete-wq' (00000000dc28d66f): fill_kobj_path: path = '/devices/virtual/workqueue/nvme-delete-wq'
+[    9.780391][   T21]  do_scsi_scan_host+0x1ef/0x260
+[    9.809006][    T1] kobject: 'nvme' (00000000d7d8a11c): kobject_add_internal: parent: 'class', set: 'class'
+[    9.780391][   T21]  ? scsi_scan_host+0x450/0x450
+[    9.812604][    T1] kobject: 'nvme' (00000000d7d8a11c): kobject_uevent_env
+[    9.780391][   T21]  do_scan_async+0x41/0x500
+[    9.815622][    T1] kobject: 'nvme' (00000000d7d8a11c): fill_kobj_path: path = '/class/nvme'
+[    9.780391][   T21]  ? scsi_scan_host+0x450/0x450
+[    9.819469][    T1] kobject: 'nvme-subsystem' (00000000f9b59088): kobject_add_internal: parent: 'class', set: 'class'
+[    9.819149][   T21]  async_run_entry_fn+0x124/0x570
+[    9.822979][    T1] kobject: 'nvme-subsystem' (00000000f9b59088): kobject_uevent_env
+[    9.819149][   T21]  process_one_work+0x9af/0x1740
+[    9.826220][    T1] kobject: 'nvme-subsystem' (00000000f9b59088): fill_kobj_path: path = '/class/nvme-subsystem'
+[    9.819149][   T21]  ? pwq_dec_nr_in_flight+0x320/0x320
+[    9.830472][    T1] kobject: 'nvme' (000000005b8830cb): kobject_add_internal: parent: 'drivers', set: 'drivers'
+[    9.819149][   T21]  ? lock_acquire+0x190/0x410
+[    9.819149][   T21]  worker_thread+0x98/0xe40
+[    9.819149][   T21]  kthread+0x361/0x430
+[    9.834309][    T1] kobject: 'drivers' (00000000f79b6140): kobject_add_internal: parent: 'nvme', set: '<NULL>'
+[    9.819149][   T21]  ? process_one_work+0x1740/0x1740
+[    9.836718][    T1] kobject: 'nvme' (000000005b8830cb): kobject_uevent_env
+[    9.819149][   T21]  ? kthread_cancel_delayed_work_sync+0x20/0x20
+[    9.840215][    T1] kobject: 'nvme' (000000005b8830cb): fill_kobj_path: path = '/bus/pci/drivers/nvme'
+[    9.819149][   T21]  ret_from_fork+0x24/0x30
+[    9.819149][   T21] Modules linked in:
+[    9.842366][   T21] ---[ end trace 0fc1a59865d0d042 ]---
+[    9.843735][    T1] kobject: 'ahci' (000000005bbce619): kobject_add_internal: parent: 'drivers', set: 'drivers'
+[    9.844927][   T21] RIP: 0010:dma_direct_max_mapping_size+0x7c/0x1a7
+[    9.849141][    T1] kobject: 'drivers' (000000000440468e): kobject_add_internal: parent: 'ahci', set: '<NULL>'
+[    9.850091][   T21] Code: 48 89 fa 48 c1 ea 03 80 3c 02 00 0f 85 23 01 00 00 49 8b 9c 24 38 03 00 00 48 b8 00 00 00 00 00 fc ff df 48 89 da 48 c1 ea 03 <80> 3c 02 00 0f 85 0a 01 00 00 49 8d bc 24 48 03 00 00 48 8b 1b 48
+[    9.851412][    T1] kobject: 'ahci' (000000005bbce619): kobject_uevent_env
+[    9.852613][   T21] RSP: 0000:ffff8880a9a3f768 EFLAGS: 00010246
+[    9.855199][    T1] kobject: 'ahci' (000000005bbce619): fill_kobj_path: path = '/bus/pci/drivers/ahci'
+[    9.856832][   T21] RAX: dffffc0000000000 RBX: 0000000000000000 RCX: ffffffff816128d1
+[    9.859947][    T1] kobject: 'ata_piix' (00000000b703d945): kobject_add_internal: parent: 'drivers', set: 'drivers'
+[    9.864394][   T21] RDX: 0000000000000000 RSI: ffffffff816128f0 RDI: ffff8880a50ea478
+[    9.866248][    T1] kobject: 'drivers' (000000008d5db480): kobject_add_internal: parent: 'ata_piix', set: '<NULL>'
+[    9.867682][   T21] RBP: ffff8880a9a3f780 R08: ffff8880a9a2c580 R09: ffffed101441ca8d
+[    9.870104][    T1] kobject: 'ata_piix' (00000000b703d945): kobject_uevent_env
+[    9.872098][   T21] R10: ffffed101441ca8c R11: ffff8880a20e5467 R12: ffff8880a50ea140
+[    9.872106][   T21] R13: ffff8880a50ea140 R14: ffff888219296b70 R15: 0000000000000200
+[    9.872116][   T21] FS:  0000000000000000(0000) GS:ffff8880ae900000(0000) knlGS:0000000000000000
+[    9.872125][   T21] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    9.872132][   T21] CR2: 0000000000000000 CR3: 0000000008c6d000 CR4: 00000000001406e0
+[    9.872143][   T21] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[    9.872151][   T21] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[    9.872159][   T21] Kernel panic - not syncing: Fatal exception
+[    9.873118][   T21] Kernel Offset: disabled
+[    9.882070][   T21] Rebooting in 86400 seconds..

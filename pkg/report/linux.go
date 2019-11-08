@@ -1223,6 +1223,7 @@ var linuxOopses = append([]*oops{
 		},
 		[]*regexp.Regexp{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
+			compile("WARNING: workqueue cpumask: online intersect > possible intersect"),
 		},
 	},
 	{
