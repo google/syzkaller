@@ -586,10 +586,6 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 		if reporting.Config.Type() != typ {
 			continue
 		}
-		// TODO: fix bisection results are only supported for email at the moment.
-		if !appengine.IsDevAppServer() && job.Type == JobBisectFix && typ != emailType {
-			continue
-		}
 		// TODO: this is temporal for gradual bisection rollout.
 		// Notify only about successful cause bisection for now.
 		if !appengine.IsDevAppServer() && job.Type == JobBisectCause && len(job.Commits) != 1 {
