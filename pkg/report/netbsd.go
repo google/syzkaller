@@ -172,7 +172,7 @@ var netbsdOopses = append([]*oops{
 			},
 			{
 				title:  compile("ASan: Unauthorized Access"),
-				report: compile(`ASan: Unauthorized Access (?:.*\n)+kasan.*\n(.*)\(`),
+				report: compile(`ASan: Unauthorized Access (?:.*\n)+(?:kasan|__asan).*\n(.*)\(`),
 				fmt:    "ASan: Unauthorized Access in %[1]v",
 			},
 		},
