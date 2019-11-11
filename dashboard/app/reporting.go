@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/html"
 	"golang.org/x/net/context"
+	"google.golang.org/appengine"
 	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
@@ -205,7 +206,7 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 		return createNotification(c, dashapi.BugNotifUpstream, true, "", bug, reporting, bugReporting)
 	}
 	if len(bug.Commits) == 0 &&
-		bug.ReproLevel == ReproLevelNone &&
+		bug.wontBeFixBisected() &&
 		timeSince(c, bug.LastActivity) > notifyResendPeriod &&
 		timeSince(c, bug.LastTime) > bug.obsoletePeriod() {
 		log.Infof(c, "%v: obsoleting: %v", bug.Namespace, bug.Title)
@@ -220,6 +221,25 @@ func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNot
 		return createNotification(c, dashapi.BugNotifBadCommit, true, commits, bug, reporting, bugReporting)
 	}
 	return nil, nil
+}
+
+func (bug *Bug) wontBeFixBisected() bool {
+	if bug.ReproLevel == ReproLevelNone {
+		return true
+	}
+	// TODO: this is what we would like to do, but we need to figure out
+	// KMSAN story: we don't do fix bisection on it (rebased),
+	// do we want to close all old KMSAN bugs with repros?
+	if appengine.IsDevAppServer() {
+		cfg := config.Namespaces[bug.Namespace]
+		for _, mgr := range bug.HappenedOn {
+			if !cfg.Managers[mgr].FixBisectionDisabled {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 func (bug *Bug) obsoletePeriod() time.Duration {

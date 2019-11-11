@@ -283,6 +283,24 @@ func TestEmailNotifNotObsoleted(t *testing.T) {
 	c.expectEQ(notif.Sender, report3.Sender)
 }
 
+func TestEmailNotifObsoletedManager(t *testing.T) {
+	// Crashes with repro are auto-obsoleted if happen on a particular manager only.
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	build.Manager = "no-fix-bisection-manager"
+	c.client2.UploadBuild(build)
+	crash := testCrashWithRepro(build, 1)
+	c.client2.ReportCrash(crash)
+	report := c.pollEmailBug()
+	c.incomingEmail(report.Sender, "#syz upstream")
+	report = c.pollEmailBug()
+	c.advanceTime(200 * 24 * time.Hour)
+	notif := c.pollEmailBug()
+	c.expectTrue(strings.Contains(notif.Body, "Auto-closing this bug as obsolete"))
+}
+
 func TestExtNotifUpstreamEmbargo(t *testing.T) {
 	c := NewCtx(t)
 	defer c.Close()
