@@ -1460,16 +1460,13 @@ const int kInitNetNsFd = 239;
 #define DEVLINK_ATTR_DEV_NAME 2
 #define DEVLINK_ATTR_NETNS_FD 137
 
-static void netlink_devlink_netns_move(const char* bus_name, const char* dev_name, int netns_fd)
+static int netlink_devlink_id_get(int sock)
 {
 	struct genlmsghdr genlhdr;
 	struct nlattr* attr;
-	int sock, err, n;
+	int err, n;
 	uint16 id = 0;
 
-	sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-	if (sock == -1)
-		fail("socket(AF_NETLINK) failed\n");
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = CTRL_CMD_GETFAMILY;
 	netlink_init(GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
@@ -1477,7 +1474,7 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	err = netlink_send_ext(sock, GENL_ID_CTRL, &n);
 	if (err) {
 		debug("netlink: failed to get devlink family id: %s\n", strerror(err));
-		goto error;
+		return -1;
 	}
 	attr = (struct nlattr*)(nlmsg.buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
 	for (; (char*)attr < nlmsg.buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
@@ -1488,9 +1485,27 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	}
 	if (!id) {
 		debug("netlink: failed to parse message for devlink family id\n");
-		goto error;
+		return -1;
 	}
 	recv(sock, nlmsg.buf, sizeof(nlmsg.buf), 0); /* recv ack */
+
+	return id;
+}
+
+static void netlink_devlink_netns_move(const char* bus_name, const char* dev_name, int netns_fd)
+{
+	struct genlmsghdr genlhdr;
+	int sock;
+	int id;
+
+	sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+	if (sock == -1)
+		fail("socket(AF_NETLINK) failed\n");
+
+	id = netlink_devlink_id_get(sock);
+	if (id == -1)
+		goto error;
+
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = DEVLINK_CMD_RELOAD;
 	netlink_init(id, 0, &genlhdr, sizeof(genlhdr));
