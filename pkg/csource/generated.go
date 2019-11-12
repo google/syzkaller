@@ -1275,7 +1275,8 @@ static void netlink_add_hsr(int sock, const char* name, const char* slave1, cons
 
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE
 static void netlink_device_change(int sock, const char* name, bool up,
-				  const char* master, const void* mac, int macsize)
+				  const char* master, const void* mac, int macsize,
+				  const char* new_name)
 {
 	struct ifinfomsg hdr;
 	memset(&hdr, 0, sizeof(hdr));
@@ -1283,6 +1284,8 @@ static void netlink_device_change(int sock, const char* name, bool up,
 		hdr.ifi_flags = hdr.ifi_change = IFF_UP;
 	hdr.ifi_index = if_nametoindex(name);
 	netlink_init(RTM_NEWLINK, 0, &hdr, sizeof(hdr));
+	if (new_name)
+		netlink_attr(IFLA_IFNAME, new_name, strlen(new_name));
 	if (master) {
 		int ifindex = if_nametoindex(master);
 		netlink_attr(IFLA_MASTER, &ifindex, sizeof(ifindex));
@@ -1440,7 +1443,7 @@ static void initialize_tun(void)
 	inet_pton(AF_INET6, REMOTE_IPV6, &in6_addr);
 	netlink_add_neigh(sock, TUN_IFACE, &in6_addr, sizeof(in6_addr), &macaddr, ETH_ALEN);
 	macaddr = LOCAL_MAC;
-	netlink_device_change(sock, TUN_IFACE, true, 0, &macaddr, ETH_ALEN);
+	netlink_device_change(sock, TUN_IFACE, true, 0, &macaddr, ETH_ALEN, NULL);
 	close(sock);
 }
 #endif
@@ -1644,16 +1647,16 @@ static void initialize_netdevices(void)
 		sprintf(veth1, "veth1_to_%s", devmasters[i]);
 		netlink_add_veth(sock, slave1, veth1);
 		sprintf(master, "%s0", devmasters[i]);
-		netlink_device_change(sock, slave0, false, master, 0, 0);
-		netlink_device_change(sock, slave1, false, master, 0, 0);
+		netlink_device_change(sock, slave0, false, master, 0, 0, NULL);
+		netlink_device_change(sock, slave1, false, master, 0, 0, NULL);
 	}
-	netlink_device_change(sock, "bridge_slave_0", true, 0, 0, 0);
-	netlink_device_change(sock, "bridge_slave_1", true, 0, 0, 0);
+	netlink_device_change(sock, "bridge_slave_0", true, 0, 0, 0, NULL);
+	netlink_device_change(sock, "bridge_slave_1", true, 0, 0, 0, NULL);
 	netlink_add_veth(sock, "hsr_slave_0", "veth0_to_hsr");
 	netlink_add_veth(sock, "hsr_slave_1", "veth1_to_hsr");
 	netlink_add_hsr(sock, "hsr0", "hsr_slave_0", "hsr_slave_1");
-	netlink_device_change(sock, "hsr_slave_0", true, 0, 0, 0);
-	netlink_device_change(sock, "hsr_slave_1", true, 0, 0, 0);
+	netlink_device_change(sock, "hsr_slave_0", true, 0, 0, 0, NULL);
+	netlink_device_change(sock, "hsr_slave_1", true, 0, 0, 0, NULL);
 
 	netdevsim_add((int)procid, 4);
 
@@ -1666,7 +1669,7 @@ static void initialize_netdevices(void)
 			netlink_add_addr6(sock, devices[i].name, addr);
 		}
 		uint64 macaddr = DEV_MAC + ((i + 10ull) << 40);
-		netlink_device_change(sock, devices[i].name, true, 0, &macaddr, devices[i].macsize);
+		netlink_device_change(sock, devices[i].name, true, 0, &macaddr, devices[i].macsize, NULL);
 	}
 	close(sock);
 }
@@ -1701,7 +1704,7 @@ static void initialize_netdevices_init(void)
 		int macsize = devtypes[i].macsize;
 		uint64 macaddr = 0xbbbbbb + ((unsigned long long)i << (8 * (macsize - 2))) +
 				 (procid << (8 * (macsize - 1)));
-		netlink_device_change(sock, dev, !devtypes[i].noup, 0, &macaddr, macsize);
+		netlink_device_change(sock, dev, !devtypes[i].noup, 0, &macaddr, macsize, NULL);
 	}
 	close(sock);
 }
