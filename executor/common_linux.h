@@ -201,6 +201,18 @@ static int netlink_send(struct nlmsg* nlmsg, int sock)
 	return netlink_send_ext(nlmsg, sock, 0, NULL);
 }
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_ENABLE_DEVLINK_PCI
+static int netlink_next_msg(struct nlmsg* nlmsg, unsigned int offset,
+			    unsigned int total_len)
+{
+	struct nlmsghdr* hdr = (struct nlmsghdr*)(nlmsg->buf + offset);
+
+	if (offset == total_len || offset + hdr->nlmsg_len > total_len)
+		return -1;
+	return hdr->nlmsg_len;
+}
+#endif
+
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
 static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
 				    const char* name)
@@ -258,7 +270,7 @@ static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE || SYZ_ENABLE_DEVLINK_PCI
 static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* name, bool up,
 				  const char* master, const void* mac, int macsize,
 				  const char* new_name)
@@ -281,7 +293,9 @@ static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* nam
 	debug("netlink: device %s up master %s: %s\n", name, master, strerror(err));
 	(void)err;
 }
+#endif
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE
 static int netlink_add_addr(struct nlmsg* nlmsg, int sock, const char* dev,
 			    const void* addr, int addrsize)
 {
@@ -454,16 +468,22 @@ static void initialize_tun(void)
 const int kInitNetNsFd = 239; // see kMaxFd
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI || SYZ_ENABLE_NETDEV
 
 #include <linux/genetlink.h>
 
 #define DEVLINK_FAMILY_NAME "devlink"
 
+#define DEVLINK_CMD_PORT_GET 5
+#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
 #define DEVLINK_CMD_RELOAD 37
+#endif
 #define DEVLINK_ATTR_BUS_NAME 1
 #define DEVLINK_ATTR_DEV_NAME 2
+#define DEVLINK_ATTR_NETDEV_NAME 7
+#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
 #define DEVLINK_ATTR_NETNS_FD 137
+#endif
 
 static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 {
@@ -497,6 +517,7 @@ static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 	return id;
 }
 
+#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
 static void netlink_devlink_netns_move(const char* bus_name, const char* dev_name, int netns_fd)
 {
 	struct genlmsghdr genlhdr;
@@ -521,7 +542,64 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 error:
 	close(sock);
 }
+#endif
 
+static struct nlmsg nlmsg2;
+
+static void initialize_devlink_ports(const char* bus_name, const char* dev_name,
+				     const char* netdev_prefix)
+{
+	struct genlmsghdr genlhdr;
+	int len, total_len, id, err, offset;
+	uint16 netdev_index;
+
+	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+	if (sock == -1)
+		fail("socket(AF_NETLINK) failed\n");
+
+	int rtsock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (rtsock == -1)
+		fail("socket(AF_NETLINK) failed");
+
+	id = netlink_devlink_id_get(&nlmsg, sock);
+	if (id == -1)
+		goto error;
+
+	memset(&genlhdr, 0, sizeof(genlhdr));
+	genlhdr.cmd = DEVLINK_CMD_PORT_GET;
+	netlink_init(&nlmsg, id, NLM_F_DUMP, &genlhdr, sizeof(genlhdr));
+	netlink_attr(&nlmsg, DEVLINK_ATTR_BUS_NAME, bus_name, strlen(bus_name) + 1);
+	netlink_attr(&nlmsg, DEVLINK_ATTR_DEV_NAME, dev_name, strlen(dev_name) + 1);
+
+	err = netlink_send_ext(&nlmsg, sock, id, &total_len);
+	if (err) {
+		debug("netlink: failed to get port get reply: %s\n", strerror(err));
+		goto error;
+	}
+
+	offset = 0;
+	netdev_index = 0;
+	while ((len = netlink_next_msg(&nlmsg, offset, total_len)) != -1) {
+		struct nlattr* attr = (struct nlattr*)(nlmsg.buf + offset + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
+		for (; (char*)attr < nlmsg.buf + offset + len; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
+			if (attr->nla_type == DEVLINK_ATTR_NETDEV_NAME) {
+				char* port_name;
+				char netdev_name[IFNAMSIZ];
+				port_name = (char*)(attr + 1);
+				snprintf(netdev_name, sizeof(netdev_name), "%s%d", netdev_prefix, netdev_index);
+				netlink_device_change(&nlmsg2, rtsock, port_name, true, 0, 0, 0, netdev_name);
+				break;
+			}
+		}
+		offset += len;
+		netdev_index++;
+	}
+error:
+	close(rtsock);
+	close(sock);
+}
+
+#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
 static void initialize_devlink_pci(void)
 {
 #if SYZ_EXECUTOR
@@ -539,7 +617,10 @@ static void initialize_devlink_pci(void)
 	if (ret == -1)
 		fail("set_ns(this_netns_fd) failed");
 	close(netns);
+
+	initialize_devlink_ports("pci", "0000:00:10.0", "netpci");
 }
+#endif
 #endif
 
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
@@ -570,6 +651,8 @@ static void netdevsim_add(unsigned int addr, unsigned int port_count)
 
 	sprintf(buf, "%u %u", addr, port_count);
 	write_file("/sys/bus/netdevsim/new_device", buf);
+	snprintf(buf, sizeof(buf), "netdevsim%d", addr);
+	initialize_devlink_ports("netdevsim", buf, "netdevsim");
 }
 
 // We test in a separate namespace, which does not have any network devices initially (even lo).
