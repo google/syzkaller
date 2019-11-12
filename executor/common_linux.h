@@ -123,61 +123,66 @@ static bool write_file(const char* file, const char* what, ...)
 #include <linux/rtnetlink.h>
 #include <linux/veth.h>
 
-static struct {
+struct nlmsg {
 	char* pos;
 	int nesting;
 	struct nlattr* nested[8];
 	char buf[1024];
-} nlmsg;
+};
 
-static void netlink_init(int typ, int flags, const void* data, int size)
+static struct nlmsg nlmsg;
+
+static void netlink_init(struct nlmsg* nlmsg, int typ, int flags,
+			 const void* data, int size)
 {
-	memset(&nlmsg, 0, sizeof(nlmsg));
-	struct nlmsghdr* hdr = (struct nlmsghdr*)nlmsg.buf;
+	memset(nlmsg, 0, sizeof(*nlmsg));
+	struct nlmsghdr* hdr = (struct nlmsghdr*)nlmsg->buf;
 	hdr->nlmsg_type = typ;
 	hdr->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK | flags;
 	memcpy(hdr + 1, data, size);
-	nlmsg.pos = (char*)(hdr + 1) + NLMSG_ALIGN(size);
+	nlmsg->pos = (char*)(hdr + 1) + NLMSG_ALIGN(size);
 }
 
-static void netlink_attr(int typ, const void* data, int size)
+static void netlink_attr(struct nlmsg* nlmsg, int typ,
+			 const void* data, int size)
 {
-	struct nlattr* attr = (struct nlattr*)nlmsg.pos;
+	struct nlattr* attr = (struct nlattr*)nlmsg->pos;
 	attr->nla_len = sizeof(*attr) + size;
 	attr->nla_type = typ;
 	memcpy(attr + 1, data, size);
-	nlmsg.pos += NLMSG_ALIGN(attr->nla_len);
+	nlmsg->pos += NLMSG_ALIGN(attr->nla_len);
 }
 
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
-static void netlink_nest(int typ)
+static void netlink_nest(struct nlmsg* nlmsg, int typ)
 {
-	struct nlattr* attr = (struct nlattr*)nlmsg.pos;
+	struct nlattr* attr = (struct nlattr*)nlmsg->pos;
 	attr->nla_type = typ;
-	nlmsg.pos += sizeof(*attr);
-	nlmsg.nested[nlmsg.nesting++] = attr;
+	nlmsg->pos += sizeof(*attr);
+	nlmsg->nested[nlmsg->nesting++] = attr;
 }
 
-static void netlink_done(void)
+static void netlink_done(struct nlmsg* nlmsg)
 {
-	struct nlattr* attr = nlmsg.nested[--nlmsg.nesting];
-	attr->nla_len = nlmsg.pos - (char*)attr;
+	struct nlattr* attr = nlmsg->nested[--nlmsg->nesting];
+	attr->nla_len = nlmsg->pos - (char*)attr;
 }
 #endif
 
-static int netlink_send_ext(int sock, uint16 reply_type, int* reply_len)
+static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
+			    uint16 reply_type, int* reply_len)
 {
-	if (nlmsg.pos > nlmsg.buf + sizeof(nlmsg.buf) || nlmsg.nesting)
+	if (nlmsg->pos > nlmsg->buf + sizeof(nlmsg->buf) || nlmsg->nesting)
 		fail("nlmsg overflow/bad nesting");
-	struct nlmsghdr* hdr = (struct nlmsghdr*)nlmsg.buf;
-	hdr->nlmsg_len = nlmsg.pos - nlmsg.buf;
+	struct nlmsghdr* hdr = (struct nlmsghdr*)nlmsg->buf;
+	hdr->nlmsg_len = nlmsg->pos - nlmsg->buf;
 	struct sockaddr_nl addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.nl_family = AF_NETLINK;
-	unsigned n = sendto(sock, nlmsg.buf, hdr->nlmsg_len, 0, (struct sockaddr*)&addr, sizeof(addr));
+	unsigned n = sendto(sock, nlmsg->buf, hdr->nlmsg_len, 0, (struct sockaddr*)&addr, sizeof(addr));
 	if (n != hdr->nlmsg_len)
 		fail("short netlink write: %d/%d", n, hdr->nlmsg_len);
-	n = recv(sock, nlmsg.buf, sizeof(nlmsg.buf), 0);
+	n = recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
 	if (n < sizeof(struct nlmsghdr))
 		fail("short netlink read: %d", n);
 	if (reply_len && hdr->nlmsg_type == reply_type) {
@@ -191,58 +196,62 @@ static int netlink_send_ext(int sock, uint16 reply_type, int* reply_len)
 	return -((struct nlmsgerr*)(hdr + 1))->error;
 }
 
-static int netlink_send(int sock)
+static int netlink_send(struct nlmsg* nlmsg, int sock)
 {
-	return netlink_send_ext(sock, 0, NULL);
+	return netlink_send_ext(nlmsg, sock, 0, NULL);
 }
 
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
-static void netlink_add_device_impl(const char* type, const char* name)
+static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
+				    const char* name)
 {
 	struct ifinfomsg hdr;
 	memset(&hdr, 0, sizeof(hdr));
-	netlink_init(RTM_NEWLINK, NLM_F_EXCL | NLM_F_CREATE, &hdr, sizeof(hdr));
+	netlink_init(nlmsg, RTM_NEWLINK, NLM_F_EXCL | NLM_F_CREATE, &hdr, sizeof(hdr));
 	if (name)
-		netlink_attr(IFLA_IFNAME, name, strlen(name));
-	netlink_nest(IFLA_LINKINFO);
-	netlink_attr(IFLA_INFO_KIND, type, strlen(type));
+		netlink_attr(nlmsg, IFLA_IFNAME, name, strlen(name));
+	netlink_nest(nlmsg, IFLA_LINKINFO);
+	netlink_attr(nlmsg, IFLA_INFO_KIND, type, strlen(type));
 }
 
-static void netlink_add_device(int sock, const char* type, const char* name)
+static void netlink_add_device(struct nlmsg* nlmsg, int sock, const char* type,
+			       const char* name)
 {
-	netlink_add_device_impl(type, name);
-	netlink_done();
-	int err = netlink_send(sock);
+	netlink_add_device_impl(nlmsg, type, name);
+	netlink_done(nlmsg);
+	int err = netlink_send(nlmsg, sock);
 	debug("netlink: adding device %s type %s: %s\n", name, type, strerror(err));
 	(void)err;
 }
 
-static void netlink_add_veth(int sock, const char* name, const char* peer)
+static void netlink_add_veth(struct nlmsg* nlmsg, int sock, const char* name,
+			     const char* peer)
 {
-	netlink_add_device_impl("veth", name);
-	netlink_nest(IFLA_INFO_DATA);
-	netlink_nest(VETH_INFO_PEER);
-	nlmsg.pos += sizeof(struct ifinfomsg);
-	netlink_attr(IFLA_IFNAME, peer, strlen(peer));
-	netlink_done();
-	netlink_done();
-	netlink_done();
-	int err = netlink_send(sock);
+	netlink_add_device_impl(nlmsg, "veth", name);
+	netlink_nest(nlmsg, IFLA_INFO_DATA);
+	netlink_nest(nlmsg, VETH_INFO_PEER);
+	nlmsg->pos += sizeof(struct ifinfomsg);
+	netlink_attr(nlmsg, IFLA_IFNAME, peer, strlen(peer));
+	netlink_done(nlmsg);
+	netlink_done(nlmsg);
+	netlink_done(nlmsg);
+	int err = netlink_send(nlmsg, sock);
 	debug("netlink: adding device %s type veth peer %s: %s\n", name, peer, strerror(err));
 	(void)err;
 }
 
-static void netlink_add_hsr(int sock, const char* name, const char* slave1, const char* slave2)
+static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
+			    const char* slave1, const char* slave2)
 {
-	netlink_add_device_impl("hsr", name);
-	netlink_nest(IFLA_INFO_DATA);
+	netlink_add_device_impl(nlmsg, "hsr", name);
+	netlink_nest(nlmsg, IFLA_INFO_DATA);
 	int ifindex1 = if_nametoindex(slave1);
-	netlink_attr(IFLA_HSR_SLAVE1, &ifindex1, sizeof(ifindex1));
+	netlink_attr(nlmsg, IFLA_HSR_SLAVE1, &ifindex1, sizeof(ifindex1));
 	int ifindex2 = if_nametoindex(slave2);
-	netlink_attr(IFLA_HSR_SLAVE2, &ifindex2, sizeof(ifindex2));
-	netlink_done();
-	netlink_done();
-	int err = netlink_send(sock);
+	netlink_attr(nlmsg, IFLA_HSR_SLAVE2, &ifindex2, sizeof(ifindex2));
+	netlink_done(nlmsg);
+	netlink_done(nlmsg);
+	int err = netlink_send(nlmsg, sock);
 	debug("netlink: adding device %s type hsr slave1 %s slave2 %s: %s\n",
 	      name, slave1, slave2, strerror(err));
 	(void)err;
@@ -250,7 +259,7 @@ static void netlink_add_hsr(int sock, const char* name, const char* slave1, cons
 #endif
 
 #if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE
-static void netlink_device_change(int sock, const char* name, bool up,
+static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* name, bool up,
 				  const char* master, const void* mac, int macsize,
 				  const char* new_name)
 {
@@ -259,21 +268,22 @@ static void netlink_device_change(int sock, const char* name, bool up,
 	if (up)
 		hdr.ifi_flags = hdr.ifi_change = IFF_UP;
 	hdr.ifi_index = if_nametoindex(name);
-	netlink_init(RTM_NEWLINK, 0, &hdr, sizeof(hdr));
+	netlink_init(nlmsg, RTM_NEWLINK, 0, &hdr, sizeof(hdr));
 	if (new_name)
-		netlink_attr(IFLA_IFNAME, new_name, strlen(new_name));
+		netlink_attr(nlmsg, IFLA_IFNAME, new_name, strlen(new_name));
 	if (master) {
 		int ifindex = if_nametoindex(master);
-		netlink_attr(IFLA_MASTER, &ifindex, sizeof(ifindex));
+		netlink_attr(nlmsg, IFLA_MASTER, &ifindex, sizeof(ifindex));
 	}
 	if (macsize)
-		netlink_attr(IFLA_ADDRESS, mac, macsize);
-	int err = netlink_send(sock);
+		netlink_attr(nlmsg, IFLA_ADDRESS, mac, macsize);
+	int err = netlink_send(nlmsg, sock);
 	debug("netlink: device %s up master %s: %s\n", name, master, strerror(err));
 	(void)err;
 }
 
-static int netlink_add_addr(int sock, const char* dev, const void* addr, int addrsize)
+static int netlink_add_addr(struct nlmsg* nlmsg, int sock, const char* dev,
+			    const void* addr, int addrsize)
 {
 	struct ifaddrmsg hdr;
 	memset(&hdr, 0, sizeof(hdr));
@@ -281,33 +291,35 @@ static int netlink_add_addr(int sock, const char* dev, const void* addr, int add
 	hdr.ifa_prefixlen = addrsize == 4 ? 24 : 120;
 	hdr.ifa_scope = RT_SCOPE_UNIVERSE;
 	hdr.ifa_index = if_nametoindex(dev);
-	netlink_init(RTM_NEWADDR, NLM_F_CREATE | NLM_F_REPLACE, &hdr, sizeof(hdr));
-	netlink_attr(IFA_LOCAL, addr, addrsize);
-	netlink_attr(IFA_ADDRESS, addr, addrsize);
-	return netlink_send(sock);
+	netlink_init(nlmsg, RTM_NEWADDR, NLM_F_CREATE | NLM_F_REPLACE, &hdr, sizeof(hdr));
+	netlink_attr(nlmsg, IFA_LOCAL, addr, addrsize);
+	netlink_attr(nlmsg, IFA_ADDRESS, addr, addrsize);
+	return netlink_send(nlmsg, sock);
 }
 
-static void netlink_add_addr4(int sock, const char* dev, const char* addr)
+static void netlink_add_addr4(struct nlmsg* nlmsg, int sock,
+			      const char* dev, const char* addr)
 {
 	struct in_addr in_addr;
 	inet_pton(AF_INET, addr, &in_addr);
-	int err = netlink_add_addr(sock, dev, &in_addr, sizeof(in_addr));
+	int err = netlink_add_addr(nlmsg, sock, dev, &in_addr, sizeof(in_addr));
 	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(err));
 	(void)err;
 }
 
-static void netlink_add_addr6(int sock, const char* dev, const char* addr)
+static void netlink_add_addr6(struct nlmsg* nlmsg, int sock,
+			      const char* dev, const char* addr)
 {
 	struct in6_addr in6_addr;
 	inet_pton(AF_INET6, addr, &in6_addr);
-	int err = netlink_add_addr(sock, dev, &in6_addr, sizeof(in6_addr));
+	int err = netlink_add_addr(nlmsg, sock, dev, &in6_addr, sizeof(in6_addr));
 	debug("netlink: add addr %s dev %s: %s\n", addr, dev, strerror(err));
 	(void)err;
 }
 #endif
 
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
-static void netlink_add_neigh(int sock, const char* name,
+static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 			      const void* addr, int addrsize, const void* mac, int macsize)
 {
 	struct ndmsg hdr;
@@ -315,10 +327,10 @@ static void netlink_add_neigh(int sock, const char* name,
 	hdr.ndm_family = addrsize == 4 ? AF_INET : AF_INET6;
 	hdr.ndm_ifindex = if_nametoindex(name);
 	hdr.ndm_state = NUD_PERMANENT;
-	netlink_init(RTM_NEWNEIGH, NLM_F_EXCL | NLM_F_CREATE, &hdr, sizeof(hdr));
-	netlink_attr(NDA_DST, addr, addrsize);
-	netlink_attr(NDA_LLADDR, mac, macsize);
-	int err = netlink_send(sock);
+	netlink_init(nlmsg, RTM_NEWNEIGH, NLM_F_EXCL | NLM_F_CREATE, &hdr, sizeof(hdr));
+	netlink_attr(nlmsg, NDA_DST, addr, addrsize);
+	netlink_attr(nlmsg, NDA_LLADDR, mac, macsize);
+	int err = netlink_send(nlmsg, sock);
 	debug("netlink: add neigh %s addr %d lladdr %d: %s\n",
 	      name, addrsize, macsize, strerror(err));
 	(void)err;
@@ -423,17 +435,17 @@ static void initialize_tun(void)
 	if (sock == -1)
 		fail("socket(AF_NETLINK) failed");
 
-	netlink_add_addr4(sock, TUN_IFACE, LOCAL_IPV4);
-	netlink_add_addr6(sock, TUN_IFACE, LOCAL_IPV6);
+	netlink_add_addr4(&nlmsg, sock, TUN_IFACE, LOCAL_IPV4);
+	netlink_add_addr6(&nlmsg, sock, TUN_IFACE, LOCAL_IPV6);
 	uint64 macaddr = REMOTE_MAC;
 	struct in_addr in_addr;
 	inet_pton(AF_INET, REMOTE_IPV4, &in_addr);
-	netlink_add_neigh(sock, TUN_IFACE, &in_addr, sizeof(in_addr), &macaddr, ETH_ALEN);
+	netlink_add_neigh(&nlmsg, sock, TUN_IFACE, &in_addr, sizeof(in_addr), &macaddr, ETH_ALEN);
 	struct in6_addr in6_addr;
 	inet_pton(AF_INET6, REMOTE_IPV6, &in6_addr);
-	netlink_add_neigh(sock, TUN_IFACE, &in6_addr, sizeof(in6_addr), &macaddr, ETH_ALEN);
+	netlink_add_neigh(&nlmsg, sock, TUN_IFACE, &in6_addr, sizeof(in6_addr), &macaddr, ETH_ALEN);
 	macaddr = LOCAL_MAC;
-	netlink_device_change(sock, TUN_IFACE, true, 0, &macaddr, ETH_ALEN, NULL);
+	netlink_device_change(&nlmsg, sock, TUN_IFACE, true, 0, &macaddr, ETH_ALEN, NULL);
 	close(sock);
 }
 #endif
@@ -453,7 +465,7 @@ const int kInitNetNsFd = 239; // see kMaxFd
 #define DEVLINK_ATTR_DEV_NAME 2
 #define DEVLINK_ATTR_NETNS_FD 137
 
-static int netlink_devlink_id_get(int sock)
+static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 {
 	struct genlmsghdr genlhdr;
 	struct nlattr* attr;
@@ -462,15 +474,15 @@ static int netlink_devlink_id_get(int sock)
 
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = CTRL_CMD_GETFAMILY;
-	netlink_init(GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
-	netlink_attr(CTRL_ATTR_FAMILY_NAME, DEVLINK_FAMILY_NAME, strlen(DEVLINK_FAMILY_NAME) + 1);
-	err = netlink_send_ext(sock, GENL_ID_CTRL, &n);
+	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, DEVLINK_FAMILY_NAME, strlen(DEVLINK_FAMILY_NAME) + 1);
+	err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
 	if (err) {
 		debug("netlink: failed to get devlink family id: %s\n", strerror(err));
 		return -1;
 	}
-	attr = (struct nlattr*)(nlmsg.buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
-	for (; (char*)attr < nlmsg.buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
+	attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
+	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
 		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
 			id = *(uint16*)(attr + 1);
 			break;
@@ -480,7 +492,7 @@ static int netlink_devlink_id_get(int sock)
 		debug("netlink: failed to parse message for devlink family id\n");
 		return -1;
 	}
-	recv(sock, nlmsg.buf, sizeof(nlmsg.buf), 0); /* recv ack */
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); /* recv ack */
 
 	return id;
 }
@@ -495,17 +507,17 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	if (sock == -1)
 		fail("socket(AF_NETLINK) failed\n");
 
-	id = netlink_devlink_id_get(sock);
+	id = netlink_devlink_id_get(&nlmsg, sock);
 	if (id == -1)
 		goto error;
 
 	memset(&genlhdr, 0, sizeof(genlhdr));
 	genlhdr.cmd = DEVLINK_CMD_RELOAD;
-	netlink_init(id, 0, &genlhdr, sizeof(genlhdr));
-	netlink_attr(DEVLINK_ATTR_BUS_NAME, bus_name, strlen(bus_name) + 1);
-	netlink_attr(DEVLINK_ATTR_DEV_NAME, dev_name, strlen(dev_name) + 1);
-	netlink_attr(DEVLINK_ATTR_NETNS_FD, &netns_fd, sizeof(netns_fd));
-	netlink_send(sock);
+	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(&nlmsg, DEVLINK_ATTR_BUS_NAME, bus_name, strlen(bus_name) + 1);
+	netlink_attr(&nlmsg, DEVLINK_ATTR_DEV_NAME, dev_name, strlen(dev_name) + 1);
+	netlink_attr(&nlmsg, DEVLINK_ATTR_NETNS_FD, &netns_fd, sizeof(netns_fd));
+	netlink_send(&nlmsg, sock);
 error:
 	close(sock);
 }
@@ -658,7 +670,7 @@ static void initialize_netdevices(void)
 		fail("socket(AF_NETLINK) failed");
 	unsigned i;
 	for (i = 0; i < sizeof(devtypes) / sizeof(devtypes[0]); i++)
-		netlink_add_device(sock, devtypes[i].type, devtypes[i].dev);
+		netlink_add_device(&nlmsg, sock, devtypes[i].type, devtypes[i].dev);
 	// This creates connected bridge/bond/team_slave devices of type veth,
 	// and makes them slaves of bridge/bond/team devices, respectively.
 	// Note: slave devices don't need MAC/IP addresses, only master devices.
@@ -667,25 +679,25 @@ static void initialize_netdevices(void)
 		char master[32], slave0[32], veth0[32], slave1[32], veth1[32];
 		sprintf(slave0, "%s_slave_0", devmasters[i]);
 		sprintf(veth0, "veth0_to_%s", devmasters[i]);
-		netlink_add_veth(sock, slave0, veth0);
+		netlink_add_veth(&nlmsg, sock, slave0, veth0);
 		sprintf(slave1, "%s_slave_1", devmasters[i]);
 		sprintf(veth1, "veth1_to_%s", devmasters[i]);
-		netlink_add_veth(sock, slave1, veth1);
+		netlink_add_veth(&nlmsg, sock, slave1, veth1);
 		sprintf(master, "%s0", devmasters[i]);
-		netlink_device_change(sock, slave0, false, master, 0, 0, NULL);
-		netlink_device_change(sock, slave1, false, master, 0, 0, NULL);
+		netlink_device_change(&nlmsg, sock, slave0, false, master, 0, 0, NULL);
+		netlink_device_change(&nlmsg, sock, slave1, false, master, 0, 0, NULL);
 	}
 	// bond/team_slave_* will set up automatically when set their master.
 	// But bridge_slave_* need to set up manually.
-	netlink_device_change(sock, "bridge_slave_0", true, 0, 0, 0, NULL);
-	netlink_device_change(sock, "bridge_slave_1", true, 0, 0, 0, NULL);
+	netlink_device_change(&nlmsg, sock, "bridge_slave_0", true, 0, 0, 0, NULL);
+	netlink_device_change(&nlmsg, sock, "bridge_slave_1", true, 0, 0, 0, NULL);
 
 	// Setup hsr device (slightly different from what we do for devmasters).
-	netlink_add_veth(sock, "hsr_slave_0", "veth0_to_hsr");
-	netlink_add_veth(sock, "hsr_slave_1", "veth1_to_hsr");
-	netlink_add_hsr(sock, "hsr0", "hsr_slave_0", "hsr_slave_1");
-	netlink_device_change(sock, "hsr_slave_0", true, 0, 0, 0, NULL);
-	netlink_device_change(sock, "hsr_slave_1", true, 0, 0, 0, NULL);
+	netlink_add_veth(&nlmsg, sock, "hsr_slave_0", "veth0_to_hsr");
+	netlink_add_veth(&nlmsg, sock, "hsr_slave_1", "veth1_to_hsr");
+	netlink_add_hsr(&nlmsg, sock, "hsr0", "hsr_slave_0", "hsr_slave_1");
+	netlink_device_change(&nlmsg, sock, "hsr_slave_0", true, 0, 0, 0, NULL);
+	netlink_device_change(&nlmsg, sock, "hsr_slave_1", true, 0, 0, 0, NULL);
 
 	netdevsim_add((int)procid, 4); // Number of port is in sync with value in sys/linux/socket_netlink_generic_devlink.txt
 
@@ -694,13 +706,13 @@ static void initialize_netdevices(void)
 		// Shift addresses by 10 because 0 subnet address can mean special things.
 		char addr[32];
 		sprintf(addr, DEV_IPV4, i + 10);
-		netlink_add_addr4(sock, devices[i].name, addr);
+		netlink_add_addr4(&nlmsg, sock, devices[i].name, addr);
 		if (!devices[i].noipv6) {
 			sprintf(addr, DEV_IPV6, i + 10);
-			netlink_add_addr6(sock, devices[i].name, addr);
+			netlink_add_addr6(&nlmsg, sock, devices[i].name, addr);
 		}
 		uint64 macaddr = DEV_MAC + ((i + 10ull) << 40);
-		netlink_device_change(sock, devices[i].name, true, 0, &macaddr, devices[i].macsize, NULL);
+		netlink_device_change(&nlmsg, sock, devices[i].name, true, 0, &macaddr, devices[i].macsize, NULL);
 	}
 	close(sock);
 }
@@ -734,15 +746,15 @@ static void initialize_netdevices_init(void)
 		sprintf(dev, "%s%d", devtypes[i].type, (int)procid);
 		// Note: syscall descriptions know these addresses.
 		sprintf(addr, "172.30.%d.%d", i, (int)procid + 1);
-		netlink_add_addr4(sock, dev, addr);
+		netlink_add_addr4(&nlmsg, sock, dev, addr);
 		if (!devtypes[i].noipv6) {
 			sprintf(addr, "fe88::%02x:%02x", i, (int)procid + 1);
-			netlink_add_addr6(sock, dev, addr);
+			netlink_add_addr6(&nlmsg, sock, dev, addr);
 		}
 		int macsize = devtypes[i].macsize;
 		uint64 macaddr = 0xbbbbbb + ((unsigned long long)i << (8 * (macsize - 2))) +
 				 (procid << (8 * (macsize - 1)));
-		netlink_device_change(sock, dev, !devtypes[i].noup, 0, &macaddr, macsize, NULL);
+		netlink_device_change(&nlmsg, sock, dev, !devtypes[i].noup, 0, &macaddr, macsize, NULL);
 	}
 	close(sock);
 }
