@@ -1281,8 +1281,8 @@ static void netlink_device_change(int sock, const char* name, bool up,
 	memset(&hdr, 0, sizeof(hdr));
 	if (up)
 		hdr.ifi_flags = hdr.ifi_change = IFF_UP;
+	hdr.ifi_index = if_nametoindex(name);
 	netlink_init(RTM_NEWLINK, 0, &hdr, sizeof(hdr));
-	netlink_attr(IFLA_IFNAME, name, strlen(name));
 	if (master) {
 		int ifindex = if_nametoindex(master);
 		netlink_attr(IFLA_MASTER, &ifindex, sizeof(ifindex));
