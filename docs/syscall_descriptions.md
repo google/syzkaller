@@ -74,6 +74,9 @@ Note: `make extract` overwrites `.config` in `$KSRC` and `mrproper`'s it.
 Then `make generate` updates generated code and `make` rebuilds binaries.\
 Note: `make generate` does not require any kernel sources, native compilers, etc
 and is pure text processing.
+Note: `make generate` also updates the SYZ_REVISION under executor/defs.h, which
+is required for machine check while running syz-manager. This should be take care
+of especially if you are trying to rebase with your own change on syscall description.
 
 Note: _all_ generated files (`*.const`, `*.go`, `*.h`) are checked-in with the
 `*.txt` changes in the same commit.
@@ -123,6 +126,8 @@ used by `make extract` can be run manually for single file/arch as:
 ```
 make bin/syz-extract
 bin/syz-extract -os linux -arch $ARCH -sourcedir $KSRC -builddir $LINUXBLD <new>.txt
+make generate
+make
 ```
 
 `$ARCH` is one of `amd64`, `386` `arm64`, `arm`, `ppc64le`.
