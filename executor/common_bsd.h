@@ -117,7 +117,7 @@ static void execute_command(bool panic, const char* format, ...)
 static void initialize_tun(int tun_id)
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_tun)
+	if (!flag_net_injection)
 		return;
 #endif // SYZ_EXECUTOR
 
