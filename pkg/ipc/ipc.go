@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // Configuration flags for Config.Flags.
@@ -264,9 +265,8 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 
 	atomic.AddUint64(&env.StatExecs, 1)
 	if env.cmd == nil {
-		switch p.Target.OS {
-		case "akaros", "fuchsia":
-			// On akaros executor is actually ssh,
+		if targets.Get(p.Target.OS, p.Target.Arch).HostFuzzer {
+			// The executor is actually ssh,
 			// starting them too frequently leads to timeouts.
 			<-rateLimit.C
 		}

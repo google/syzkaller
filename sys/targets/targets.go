@@ -46,6 +46,9 @@ type osCommon struct {
 	ExecutorUsesShmem bool
 	// If ExecutorUsesForkServer, executor uses extended protocol with handshake.
 	ExecutorUsesForkServer bool
+	// Special mode for OSes that do not have support for building Go binaries.
+	// In this mode we run Go binaries on the host machine, only executor runs on target.
+	HostFuzzer bool
 	// Extension of executable files (notably, .exe for windows).
 	ExeExtension string
 	// Name of the kernel object file.
@@ -79,6 +82,7 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      false,
 				ExecutorUsesForkServer: false,
+				HostFuzzer:             true,
 			},
 		},
 		"64_fork": {
@@ -92,6 +96,7 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      false,
 				ExecutorUsesForkServer: true,
+				HostFuzzer:             true,
 			},
 		},
 		"32_shmem": {
@@ -104,6 +109,7 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      true,
 				ExecutorUsesForkServer: false,
+				HostFuzzer:             true,
 			},
 		},
 		"32_fork_shmem": {
@@ -116,6 +122,7 @@ var List = map[string]map[string]*Target{
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      true,
 				ExecutorUsesForkServer: true,
+				HostFuzzer:             true,
 			},
 		},
 	},
@@ -353,6 +360,7 @@ var oses = map[string]osCommon{
 		SyscallNumbers:         false,
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: false,
+		HostFuzzer:             true,
 		KernelObject:           "zircon.elf",
 	},
 	"windows": {
@@ -368,6 +376,7 @@ var oses = map[string]osCommon{
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      false,
 		ExecutorUsesForkServer: true,
+		HostFuzzer:             true,
 		KernelObject:           "akaros-kernel-64b",
 	},
 	"trusty": {
