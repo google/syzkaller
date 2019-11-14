@@ -63,7 +63,7 @@ type Config struct {
 	// "namespace": create a new namespace for fuzzer using CLONE_NEWNS/CLONE_NEWNET/CLONE_NEWPID/etc,
 	//	requires building kernel with CONFIG_NAMESPACES, CONFIG_UTS_NS, CONFIG_USER_NS,
 	//	CONFIG_PID_NS and CONFIG_NET_NS. Supported only for some OSes.
-	// "android_untrusted_app": (Android) Emulate permissions of an untrusted app.
+	// "android": (Android) Emulate permissions of an untrusted app.
 	Sandbox string `json:"sandbox"`
 
 	// Use KCOV coverage (default: true).

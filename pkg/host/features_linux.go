@@ -20,7 +20,7 @@ func init() {
 	checkFeature[FeatureExtraCoverage] = checkExtraCoverage
 	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
 	checkFeature[FeatureSandboxNamespace] = checkSandboxNamespace
-	checkFeature[FeatureSandboxAndroidUntrustedApp] = checkSandboxAndroidUntrustedApp
+	checkFeature[FeatureSandboxAndroid] = checkSandboxAndroid
 	checkFeature[FeatureFaultInjection] = checkFaultInjection
 	checkFeature[FeatureLeakChecking] = checkLeakChecking
 	checkFeature[FeatureNetworkInjection] = checkNetworkInjection
@@ -169,7 +169,7 @@ func checkSandboxNamespace() string {
 	return ""
 }
 
-func checkSandboxAndroidUntrustedApp() string {
+func checkSandboxAndroid() string {
 	if err := osutil.IsAccessible("/sys/fs/selinux/policy"); err != nil {
 		return err.Error()
 	}

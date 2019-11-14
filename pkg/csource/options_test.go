@@ -49,7 +49,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			HandleSegv:       true,
 			Repro:            true,
 		},
-		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"android_untrusted_app",
+		`{"threaded":true,"collide":true,"repeat":true,"procs":10,"sandbox":"android",
 		"fault":true,"fault_call":1,"fault_nth":2,"tun":true,"tmpdir":true,"cgroups":true,
 		"netdev":true,"resetnet":true,
 		"segv":true,"waitrepeat":true,"debug":true,"repro":true}`: {
@@ -57,7 +57,7 @@ func TestParseOptionsCanned(t *testing.T) {
 			Collide:          true,
 			Repeat:           true,
 			Procs:            10,
-			Sandbox:          "android_untrusted_app",
+			Sandbox:          "android",
 			Fault:            true,
 			FaultCall:        1,
 			FaultNth:         2,
@@ -170,7 +170,7 @@ func enumerateField(OS string, opt Options, field int) []Options {
 	fldName := s.Type().Field(field).Name
 	fld := s.Field(field)
 	if fldName == "Sandbox" {
-		for _, sandbox := range []string{"", "none", "setuid", "namespace", "android_untrusted_app"} {
+		for _, sandbox := range []string{"", "none", "setuid", "namespace", "android"} {
 			fld.SetString(sandbox)
 			opts = append(opts, opt)
 		}

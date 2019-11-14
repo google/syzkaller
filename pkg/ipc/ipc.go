@@ -27,18 +27,18 @@ type EnvFlags uint64
 
 // Note: New / changed flags should be added to parse_env_flags in executor.cc
 const (
-	FlagDebug                      EnvFlags = 1 << iota // debug output from executor
-	FlagSignal                                          // collect feedback signals (coverage)
-	FlagSandboxSetuid                                   // impersonate nobody user
-	FlagSandboxNamespace                                // use namespaces for sandboxing
-	FlagSandboxAndroidUntrustedApp                      // use Android sandboxing for the untrusted_app domain
-	FlagExtraCover                                      // collect extra coverage
-	FlagEnableTun                                       // setup and use /dev/tun for packet injection
-	FlagEnableNetDev                                    // setup more network devices for testing
-	FlagEnableNetReset                                  // reset network namespace between programs
-	FlagEnableCgroups                                   // setup cgroups for testing
-	FlagEnableCloseFds                                  // close fds after each program
-	FlagEnableDevlinkPCI                                // setup devlink PCI device
+	FlagDebug            EnvFlags = 1 << iota // debug output from executor
+	FlagSignal                                // collect feedback signals (coverage)
+	FlagSandboxSetuid                         // impersonate nobody user
+	FlagSandboxNamespace                      // use namespaces for sandboxing
+	FlagSandboxAndroid                        // use Android sandboxing for the untrusted_app domain
+	FlagExtraCover                            // collect extra coverage
+	FlagEnableTun                             // setup and use /dev/tun for packet injection
+	FlagEnableNetDev                          // setup more network devices for testing
+	FlagEnableNetReset                        // reset network namespace between programs
+	FlagEnableCgroups                         // setup cgroups for testing
+	FlagEnableCloseFds                        // close fds after each program
+	FlagEnableDevlinkPCI                      // setup devlink PCI device
 	// Executor does not know about these:
 	FlagUseShmem      // use shared memory instead of pipes for communication
 	FlagUseForkServer // use extended protocol with handshake
@@ -134,10 +134,10 @@ func SandboxToFlags(sandbox string) (EnvFlags, error) {
 		return FlagSandboxSetuid, nil
 	case "namespace":
 		return FlagSandboxNamespace, nil
-	case "android_untrusted_app":
-		return FlagSandboxAndroidUntrustedApp, nil
+	case "android":
+		return FlagSandboxAndroid, nil
 	default:
-		return 0, fmt.Errorf("sandbox must contain one of none/setuid/namespace/android_untrusted_app")
+		return 0, fmt.Errorf("sandbox must contain one of none/setuid/namespace/android")
 	}
 }
 
@@ -146,8 +146,8 @@ func FlagsToSandbox(flags EnvFlags) string {
 		return "setuid"
 	} else if flags&FlagSandboxNamespace != 0 {
 		return "namespace"
-	} else if flags&FlagSandboxAndroidUntrustedApp != 0 {
-		return "android_untrusted_app"
+	} else if flags&FlagSandboxAndroid != 0 {
+		return "android"
 	}
 	return "none"
 }
@@ -542,7 +542,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 		}
 	}()
 
-	if config.Flags&(FlagSandboxSetuid|FlagSandboxNamespace|FlagSandboxAndroidUntrustedApp) != 0 {
+	if config.Flags&(FlagSandboxSetuid|FlagSandboxNamespace|FlagSandboxAndroid) != 0 {
 		if err := os.Chmod(dir, 0777); err != nil {
 			return nil, fmt.Errorf("failed to chmod temp dir: %v", err)
 		}

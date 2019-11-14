@@ -54,7 +54,7 @@ type Options struct {
 // Invalid combinations must not be passed to Write.
 func (opts Options) Check(OS string) error {
 	switch opts.Sandbox {
-	case "", sandboxNone, sandboxNamespace, sandboxSetuid, sandboxAndroidUntrustedApp:
+	case "", sandboxNone, sandboxNamespace, sandboxSetuid, sandboxAndroid:
 	default:
 		return fmt.Errorf("unknown sandbox %v", opts.Sandbox)
 	}
@@ -133,7 +133,7 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
-		opts.Sandbox == sandboxAndroidUntrustedApp {
+		opts.Sandbox == sandboxAndroid {
 		return fmt.Errorf("option Sandbox=%v is not supported on %v", opts.Sandbox, OS)
 	}
 	if opts.Fault {
