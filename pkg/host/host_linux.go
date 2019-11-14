@@ -546,7 +546,7 @@ func checkNetworkInjection() string {
 }
 
 func checkUSBInjection() string {
-	if err := osutil.IsAccessible("/sys/kernel/debug/usb/raw-gadget"); err != nil {
+	if err := osutil.IsAccessible("/dev/raw-gadget"); err != nil {
 		return err.Error()
 	}
 	return ""

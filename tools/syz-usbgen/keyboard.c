@@ -42,6 +42,12 @@ struct hid_descriptor {
 
 /*----------------------------------------------------------------------*/
 
+struct usb_raw_init {
+	__u64		speed;
+	const __u8	*driver_name;
+	const __u8	*device_name;
+};
+
 enum usb_raw_event_type {
 	USB_RAW_EVENT_INVALID,
 	USB_RAW_EVENT_CONNECT,
@@ -49,22 +55,16 @@ enum usb_raw_event_type {
 };
 
 struct usb_raw_event {
-	uint32_t	type;
-	uint32_t	length;
-	char		data[0];
-};
-
-struct usb_raw_init {
-	uint64_t	speed;
-	const char	*driver_name;
-	const char	*device_name;
+	__u32		type;
+	__u32		length;
+	__u8		data[0];
 };
 
 struct usb_raw_ep_io {
-	uint16_t	ep;
-	uint16_t	flags;
-	uint32_t	length;
-	char		data[0];
+	__u16		ep;
+	__u16		flags;
+	__u32		length;
+	__u8		data[0];
 };
 
 #define USB_RAW_IOCTL_INIT		_IOW('U', 0, struct usb_raw_init)
@@ -73,16 +73,16 @@ struct usb_raw_ep_io {
 #define USB_RAW_IOCTL_EP0_WRITE		_IOW('U', 3, struct usb_raw_ep_io)
 #define USB_RAW_IOCTL_EP0_READ		_IOWR('U', 4, struct usb_raw_ep_io)
 #define USB_RAW_IOCTL_EP_ENABLE		_IOW('U', 5, struct usb_endpoint_descriptor)
-#define USB_RAW_IOCTL_EP_DISABLE	_IOW('U', 6, int)
+#define USB_RAW_IOCTL_EP_DISABLE	_IOW('U', 6, __u32)
 #define USB_RAW_IOCTL_EP_WRITE		_IOW('U', 7, struct usb_raw_ep_io)
 #define USB_RAW_IOCTL_EP_READ		_IOWR('U', 8, struct usb_raw_ep_io)
 #define USB_RAW_IOCTL_CONFIGURE		_IO('U', 9)
-#define USB_RAW_IOCTL_VBUS_DRAW		_IOW('U', 10, uint32_t)
+#define USB_RAW_IOCTL_VBUS_DRAW		_IOW('U', 10, __u32)
 
 /*----------------------------------------------------------------------*/
 
 int usb_raw_open() {
-	int fd = open("/sys/kernel/debug/usb/raw-gadget", O_RDWR);
+	int fd = open("/dev/raw-gadget", O_RDWR);
 	if (fd < 0) {
 		perror("open()");
 		exit(EXIT_FAILURE);
