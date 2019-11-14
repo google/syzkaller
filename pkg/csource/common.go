@@ -69,9 +69,25 @@ func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, 
 }
 
 func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
+	for def, ok := range commonDefines(p, opts) {
+		if ok {
+			defines = append(defines, def)
+		}
+	}
+	for _, c := range p.Calls {
+		defines = append(defines, "__NR_"+c.Meta.CallName)
+	}
+	for _, c := range mmapProg.Calls {
+		defines = append(defines, "__NR_"+c.Meta.CallName)
+	}
+	sort.Strings(defines)
+	return
+}
+
+func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
 	bitmasks, csums := prog.RequiredFeatures(p)
-	enabled := map[string]bool{
+	return map[string]bool{
 		"GOOS_" + p.Target.OS:               true,
 		"GOARCH_" + p.Target.Arch:           true,
 		"HOSTGOOS_" + runtime.GOOS:          true,
@@ -103,19 +119,6 @@ func defineList(p, mmapProg *prog.Prog, opts Options) (defines []string) {
 		"SYZ_EXECUTOR_USES_SHMEM":           sysTarget.ExecutorUsesShmem,
 		"SYZ_EXECUTOR_USES_FORK_SERVER":     sysTarget.ExecutorUsesForkServer,
 	}
-	for def, ok := range enabled {
-		if ok {
-			defines = append(defines, def)
-		}
-	}
-	for _, c := range p.Calls {
-		defines = append(defines, "__NR_"+c.Meta.CallName)
-	}
-	for _, c := range mmapProg.Calls {
-		defines = append(defines, "__NR_"+c.Meta.CallName)
-	}
-	sort.Strings(defines)
-	return
 }
 
 func removeSystemDefines(src []byte, defines []string) ([]byte, error) {

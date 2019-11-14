@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -158,5 +159,25 @@ func TestSysTests(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestExecutorMacros(t *testing.T) {
+	// Ensure that executor does not mis-spell any of the SYZ_* macros.
+	target, _ := prog.GetTarget("test", "64")
+	p := target.Generate(rand.NewSource(0), 1, nil)
+	expected := commonDefines(p, Options{})
+	expected["SYZ_EXECUTOR"] = true
+	expected["SYZ_HAVE_SETUP_LOOP"] = true
+	expected["SYZ_HAVE_RESET_LOOP"] = true
+	expected["SYZ_HAVE_SETUP_TEST"] = true
+	macros := regexp.MustCompile("SYZ_[A-Za-z0-9_]+").FindAllString(commonHeader, -1)
+	for _, macro := range macros {
+		if strings.HasPrefix(macro, "SYZ_HAVE_") {
+			continue
+		}
+		if _, ok := expected[macro]; !ok {
+			t.Errorf("unexpected macro: %v", macro)
+		}
 	}
 }
