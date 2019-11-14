@@ -100,18 +100,14 @@ static uint32 hash(uint32 a);
 static bool dedup(uint32 sig);
 #endif
 
-enum sandbox_type {
-	sandbox_none,
-	sandbox_setuid,
-	sandbox_namespace,
-	sandbox_android_untrusted_app
-};
-
 uint64 start_time_ms = 0;
 
 static bool flag_debug;
 static bool flag_coverage;
-static sandbox_type flag_sandbox;
+static bool flag_sandbox_none;
+static bool flag_sandbox_setuid;
+static bool flag_sandbox_namespace;
+static bool flag_sandbox_android;
 static bool flag_extra_coverage;
 static bool flag_net_injection;
 static bool flag_net_devices;
@@ -408,28 +404,23 @@ int main(int argc, char** argv)
 	}
 
 	int status = 0;
-	switch (flag_sandbox) {
-	case sandbox_none:
+	if (flag_sandbox_none)
 		status = do_sandbox_none();
-		break;
 #if SYZ_HAVE_SANDBOX_SETUID
-	case sandbox_setuid:
+	else if (flag_sandbox_setuid)
 		status = do_sandbox_setuid();
-		break;
 #endif
 #if SYZ_HAVE_SANDBOX_NAMESPACE
-	case sandbox_namespace:
+	else if (flag_sandbox_namespace)
 		status = do_sandbox_namespace();
-		break;
 #endif
-#if SYZ_HAVE_SANDBOX_ANDROID_UNTRUSTED_APP
-	case sandbox_android_untrusted_app:
-		status = do_sandbox_android_untrusted_app();
-		break;
+#if SYZ_HAVE_SANDBOX_ANDROID
+	else if (flag_sandbox_android)
+		status = do_sandbox_android();
 #endif
-	default:
+	else
 		fail("unknown sandbox type");
-	}
+
 #if SYZ_EXECUTOR_USES_FORK_SERVER
 	fprintf(stderr, "loop exited with status %d\n", status);
 	// Other statuses happen when fuzzer processes manages to kill loop, e.g. with:
@@ -469,13 +460,14 @@ void parse_env_flags(uint64 flags)
 	// Note: Values correspond to ordering in pkg/ipc/ipc.go, e.g. FlagSandboxNamespace
 	flag_debug = flags & (1 << 0);
 	flag_coverage = flags & (1 << 1);
-	flag_sandbox = sandbox_none;
 	if (flags & (1 << 2))
-		flag_sandbox = sandbox_setuid;
+		flag_sandbox_setuid = true;
 	else if (flags & (1 << 3))
-		flag_sandbox = sandbox_namespace;
+		flag_sandbox_namespace = true;
 	else if (flags & (1 << 4))
-		flag_sandbox = sandbox_android_untrusted_app;
+		flag_sandbox_android = true;
+	else
+		flag_sandbox_none = true;
 	flag_extra_coverage = flags & (1 << 5);
 	flag_net_injection = flags & (1 << 6);
 	flag_net_devices = flags & (1 << 7);

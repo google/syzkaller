@@ -24,10 +24,10 @@ const (
 	openbsd = "openbsd"
 	netbsd  = "netbsd"
 
-	sandboxNone                = "none"
-	sandboxSetuid              = "setuid"
-	sandboxNamespace           = "namespace"
-	sandboxAndroidUntrustedApp = "android_untrusted_app"
+	sandboxNone      = "none"
+	sandboxSetuid    = "setuid"
+	sandboxNamespace = "namespace"
+	sandboxAndroid   = "android"
 )
 
 func createCommonHeader(p, mmapProg *prog.Prog, replacements map[string]string, opts Options) ([]byte, error) {
@@ -96,7 +96,7 @@ func commonDefines(p *prog.Prog, opts Options) map[string]bool {
 		"SYZ_SANDBOX_NONE":              opts.Sandbox == sandboxNone,
 		"SYZ_SANDBOX_SETUID":            opts.Sandbox == sandboxSetuid,
 		"SYZ_SANDBOX_NAMESPACE":         opts.Sandbox == sandboxNamespace,
-		"SYZ_SANDBOX_ANDROID":           opts.Sandbox == sandboxAndroidUntrustedApp,
+		"SYZ_SANDBOX_ANDROID":           opts.Sandbox == sandboxAndroid,
 		"SYZ_THREADED":                  opts.Threaded,
 		"SYZ_COLLIDE":                   opts.Collide,
 		"SYZ_REPEAT":                    opts.Repeat,
