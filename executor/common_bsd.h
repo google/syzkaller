@@ -45,10 +45,6 @@ static uintptr_t syz_open_pts(void)
 
 static int tunfd = -1;
 
-// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
-// Rest of the packet (if any) will be silently truncated which is fine.
-#define SYZ_TUN_MAX_PACKET_SIZE 1000
-
 #if GOOS_netbsd
 // Increased number of tap and tun devices if image script is used
 #define MAX_TUN 64
@@ -266,7 +262,9 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
-	char data[SYZ_TUN_MAX_PACKET_SIZE];
+	// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
+	// Rest of the packet (if any) will be silently truncated which is fine.
+	char data[1000];
 	int rv = read_tun(&data[0], sizeof(data));
 	if (rv == -1)
 		return (uintptr_t)-1;
