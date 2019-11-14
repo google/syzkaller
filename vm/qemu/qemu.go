@@ -16,6 +16,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm/vmimpl"
 )
 
@@ -52,11 +53,13 @@ type Config struct {
 type Pool struct {
 	env        *vmimpl.Env
 	cfg        *Config
+	target     *targets.Target
 	archConfig *archConfig
 }
 
 type instance struct {
 	cfg        *Config
+	target     *targets.Target
 	archConfig *archConfig
 	image      string
 	debug      bool
@@ -79,10 +82,6 @@ type archConfig struct {
 	TargetDir string
 	NicModel  string
 	CmdLine   []string
-	// Weird mode for akaros.
-	// Currently akaros does not have support for building Go binaries.
-	// So we will run Go binaries (but not executor on host).
-	HostFuzzer bool
 }
 
 var archConfigs = map[string]*archConfig{
@@ -164,14 +163,12 @@ var archConfigs = map[string]*archConfig{
 			"kernel.serial=legacy",
 			"kernel.halt-on-panic=true",
 		},
-		HostFuzzer: true,
 	},
 	"akaros/amd64": {
-		Qemu:       "qemu-system-x86_64",
-		QemuArgs:   "-enable-kvm -cpu host,migratable=off",
-		TargetDir:  "/",
-		NicModel:   ",model=e1000",
-		HostFuzzer: true,
+		Qemu:      "qemu-system-x86_64",
+		QemuArgs:  "-enable-kvm -cpu host,migratable=off",
+		TargetDir: "/",
+		NicModel:  ",model=e1000",
 	},
 }
 
@@ -232,8 +229,9 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg.Kernel = osutil.Abs(cfg.Kernel)
 	cfg.Initrd = osutil.Abs(cfg.Initrd)
 	pool := &Pool{
-		cfg:        cfg,
 		env:        env,
+		cfg:        cfg,
+		target:     targets.Get(env.OS, env.Arch),
 		archConfig: archConfig,
 	}
 	return pool, nil
@@ -275,6 +273,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
 		cfg:        pool.cfg,
+		target:     pool.target,
 		archConfig: pool.archConfig,
 		image:      pool.env.Image,
 		debug:      pool.env.Debug,
@@ -429,7 +428,7 @@ func (inst *instance) boot() error {
 
 func (inst *instance) Forward(port int) (string, error) {
 	addr := hostAddr
-	if inst.archConfig.HostFuzzer {
+	if inst.target.HostFuzzer {
 		addr = "127.0.0.1"
 	}
 	return fmt.Sprintf("%v:%v", addr, port), nil
@@ -445,7 +444,7 @@ func (inst *instance) targetDir() string {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	base := filepath.Base(hostSrc)
 	vmDst := filepath.Join(inst.targetDir(), base)
-	if inst.archConfig.HostFuzzer {
+	if inst.target.HostFuzzer {
 		if base == "syz-fuzzer" || base == "syz-execprog" {
 			return hostSrc, nil // we will run these on host
 		}
@@ -477,7 +476,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	sshArgs := vmimpl.SSHArgs(inst.debug, inst.sshkey, inst.port)
 	args := strings.Split(command, " ")
-	if bin := filepath.Base(args[0]); inst.archConfig.HostFuzzer &&
+	if bin := filepath.Base(args[0]); inst.target.HostFuzzer &&
 		(bin == "syz-fuzzer" || bin == "syz-execprog") {
 		// Weird mode for akaros.
 		// Fuzzer and execprog are on host (we did not copy them), so we will run them as is,
