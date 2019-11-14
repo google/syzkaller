@@ -70,9 +70,9 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_TUN_ENABLE || SYZ_FAULT_INJECTION || SYZ_SANDBOX_NONE || \
-    SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP ||        \
-    SYZ_FAULT_INJECTION || SYZ_ENABLE_LEAK || SYZ_ENABLE_BINFMT_MISC
+#if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_NET_INJECTION || SYZ_FAULT || SYZ_SANDBOX_NONE || \
+    SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
+    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -106,7 +106,7 @@ static bool write_file(const char* file, const char* what, ...)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -153,7 +153,7 @@ static void netlink_attr(struct nlmsg* nlmsg, int typ,
 	nlmsg->pos += NLMSG_ALIGN(attr->nla_len);
 }
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 static void netlink_nest(struct nlmsg* nlmsg, int typ)
 {
 	struct nlattr* attr = (struct nlattr*)nlmsg->pos;
@@ -205,7 +205,7 @@ static int netlink_send(struct nlmsg* nlmsg, int sock)
 	return netlink_send_ext(nlmsg, sock, 0, NULL);
 }
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_DEVLINK_PCI
 static int netlink_next_msg(struct nlmsg* nlmsg, unsigned int offset,
 			    unsigned int total_len)
 {
@@ -217,7 +217,7 @@ static int netlink_next_msg(struct nlmsg* nlmsg, unsigned int offset,
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 static void netlink_add_device_impl(struct nlmsg* nlmsg, const char* type,
 				    const char* name)
 {
@@ -274,7 +274,7 @@ static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
 static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* name, bool up,
 				  const char* master, const void* mac, int macsize,
 				  const char* new_name)
@@ -299,7 +299,7 @@ static void netlink_device_change(struct nlmsg* nlmsg, int sock, const char* nam
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION
 static int netlink_add_addr(struct nlmsg* nlmsg, int sock, const char* dev,
 			    const void* addr, int addrsize)
 {
@@ -336,7 +336,7 @@ static void netlink_add_addr6(struct nlmsg* nlmsg, int sock,
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 			      const void* addr, int addrsize, const void* mac, int macsize)
 {
@@ -356,7 +356,7 @@ static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -464,24 +464,24 @@ static void initialize_tun(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
 const int kInitNetNsFd = 239; // see kMaxFd
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI || SYZ_NET_DEVICES
 
 #include <linux/genetlink.h>
 
 #define DEVLINK_FAMILY_NAME "devlink"
 
 #define DEVLINK_CMD_PORT_GET 5
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 #define DEVLINK_CMD_RELOAD 37
 #endif
 #define DEVLINK_ATTR_BUS_NAME 1
 #define DEVLINK_ATTR_DEV_NAME 2
 #define DEVLINK_ATTR_NETDEV_NAME 7
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 #define DEVLINK_ATTR_NETNS_FD 137
 #endif
 
@@ -517,7 +517,7 @@ static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
 	return id;
 }
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 static void netlink_devlink_netns_move(const char* bus_name, const char* dev_name, int netns_fd)
 {
 	struct genlmsghdr genlhdr;
@@ -599,7 +599,7 @@ error:
 	close(sock);
 }
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 static void initialize_devlink_pci(void)
 {
 #if SYZ_EXECUTOR
@@ -623,7 +623,7 @@ static void initialize_devlink_pci(void)
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -843,7 +843,7 @@ static void initialize_netdevices_init(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
 #include <errno.h>
 
 static int read_tun(char* data, int size)
@@ -864,7 +864,7 @@ static int read_tun(char* data, int size)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_NET_INJECTION
 #include <stdbool.h>
 #include <sys/uio.h>
 
@@ -925,7 +925,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_REPEAT && SYZ_NET_INJECTION
 static void flush_tun()
 {
 #if SYZ_EXECUTOR
@@ -938,7 +938,7 @@ static void flush_tun()
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_NET_INJECTION
 #ifndef __ANDROID__
 // Can't include <linux/ipv6.h>, since it causes
 // conflicts due to some structs redefinition.
@@ -1015,7 +1015,7 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_CLOSE_FDS || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || SYZ_CLOSE_FDS || __NR_syz_usb_connect
 #define MAX_FDS 30
 #endif
 
@@ -1108,7 +1108,7 @@ static long syz_open_pts(volatile long a0, volatile long a1)
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_init_net_socket
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #include <fcntl.h>
 #include <sched.h>
 #include <sys/stat.h>
@@ -1442,7 +1442,7 @@ static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long 
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_NET_RESET
 #include <errno.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -1938,7 +1938,7 @@ static void reset_net_namespace(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || (SYZ_ENABLE_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP))
+#if SYZ_EXECUTOR || (SYZ_CGROUPS && (SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID))
 #include <fcntl.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
@@ -2088,7 +2088,7 @@ void initialize_cgroups()
 #endif
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #include <errno.h>
 #include <sys/mount.h>
 
@@ -2097,7 +2097,7 @@ static void setup_common()
 	if (mount(0, "/sys/fs/fuse/connections", "fusectl", 0, 0)) {
 		debug("mount(fusectl) failed: %d\n", errno);
 	}
-#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || SYZ_CGROUPS
 	setup_cgroups();
 #endif
 }
@@ -2116,7 +2116,7 @@ static void sandbox_common()
 	setpgrp();
 	setsid();
 
-#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || __NR_syz_init_net_socket || SYZ_DEVLINK_PCI
 	int netns = open("/proc/self/ns/net", O_RDONLY);
 	if (netns == -1)
 		fail("open(/proc/self/ns/net) failed");
@@ -2248,19 +2248,19 @@ static int do_sandbox_none(void)
 	setup_common();
 	sandbox_common();
 	drop_caps();
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices_init();
 #endif
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	initialize_tun();
 #endif
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
 #endif
 	loop();
@@ -2285,19 +2285,19 @@ static int do_sandbox_setuid(void)
 
 	setup_common();
 	sandbox_common();
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices_init();
 #endif
 	if (unshare(CLONE_NEWNET)) {
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	initialize_tun();
 #endif
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
 #endif
 
@@ -2339,17 +2339,17 @@ static int namespace_sandbox_proc(void* arg)
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices_init();
 #endif
 	// CLONE_NEWNET must always happen before tun setup,
 	// because we want the tun device in the test namespace.
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
-#if SYZ_EXECUTOR || SYZ_ENABLE_DEVLINK_PCI
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 	initialize_devlink_pci();
 #endif
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	// We setup tun here as it needs to be in the test net namespace,
 	// which in turn needs to be in the test user namespace.
 	// However, IFF_NAPI_FRAGS will fail as we are not root already.
@@ -2357,7 +2357,7 @@ static int namespace_sandbox_proc(void* arg)
 	// to move it to the target namespace.
 	initialize_tun();
 #endif
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	initialize_netdevices();
 #endif
 
@@ -2390,7 +2390,7 @@ static int namespace_sandbox_proc(void* arg)
 		fail("mkdir failed");
 	if (mount("/sys", "./syz-tmp/newroot/sys", 0, bind_mount_flags, NULL))
 		fail("mount(sysfs) failed");
-#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || SYZ_CGROUPS
 	initialize_cgroups();
 #endif
 	if (mkdir("./syz-tmp/pivot", 0777))
@@ -2431,7 +2431,7 @@ static int do_sandbox_namespace(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID
 #include <fcntl.h> // open(2)
 #include <grp.h> // setgroups
 #include <sys/xattr.h> // setxattr, getxattr
@@ -2560,10 +2560,10 @@ static int do_sandbox_android_untrusted_app(void)
 	syz_setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
 	syz_setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
 
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	initialize_tun();
 #endif
-#if SYZ_EXECUTOR || SYZ_ENABLE_NETDEV
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
 	// Note: sandbox_android_untrusted_app does not unshare net namespace.
 	initialize_netdevices_init();
 	initialize_netdevices();
@@ -2689,7 +2689,7 @@ retry:
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION
+#if SYZ_EXECUTOR || SYZ_FAULT
 #include <fcntl.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -2786,7 +2786,7 @@ static void kill_and_wait(int pid, int* status)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_ENABLE_CGROUPS || SYZ_RESET_NET_NAMESPACE)
+#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_CGROUPS || SYZ_NET_RESET)
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -2796,16 +2796,16 @@ static void kill_and_wait(int pid, int* status)
 #define SYZ_HAVE_SETUP_LOOP 1
 static void setup_loop()
 {
-#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || SYZ_CGROUPS
 	setup_cgroups_loop();
 #endif
-#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_NET_RESET
 	checkpoint_net_namespace();
 #endif
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_RESET_NET_NAMESPACE || __NR_syz_mount_image || __NR_syz_read_part_table)
+#if SYZ_EXECUTOR || SYZ_REPEAT && (SYZ_NET_RESET || __NR_syz_mount_image || __NR_syz_read_part_table)
 #define SYZ_HAVE_RESET_LOOP 1
 static void reset_loop()
 {
@@ -2818,7 +2818,7 @@ static void reset_loop()
 		close(loopfd);
 	}
 #endif
-#if SYZ_EXECUTOR || SYZ_RESET_NET_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_NET_RESET
 	reset_net_namespace();
 #endif
 }
@@ -2832,12 +2832,12 @@ static void setup_test()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	setpgrp();
-#if SYZ_EXECUTOR || SYZ_ENABLE_CGROUPS
+#if SYZ_EXECUTOR || SYZ_CGROUPS
 	setup_cgroups_test();
 #endif
 	// It's the leaf test process we want to be always killed first.
 	write_file("/proc/self/oom_score_adj", "1000");
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	// Read all remaining packets from tun to better
 	// isolate consequently executing programs.
 	flush_tun();
@@ -2845,7 +2845,7 @@ static void setup_test()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_CLOSE_FDS
+#if SYZ_EXECUTOR || SYZ_CLOSE_FDS
 #define SYZ_HAVE_CLOSE_FDS 1
 static void close_fds()
 {
@@ -2863,7 +2863,7 @@ static void close_fds()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_FAULT_INJECTION
+#if SYZ_EXECUTOR || SYZ_FAULT
 #include <errno.h>
 
 static void setup_fault()
@@ -2892,7 +2892,7 @@ static void setup_fault()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_LEAK
+#if SYZ_EXECUTOR || SYZ_LEAK
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -2991,7 +2991,7 @@ static void check_leaks(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_BINFMT_MISC
+#if SYZ_EXECUTOR || SYZ_BINFMT_MISC
 #include <fcntl.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
@@ -3007,7 +3007,7 @@ static void setup_binfmt_misc()
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_ENABLE_KCSAN
+#if SYZ_EXECUTOR || SYZ_KCSAN
 #define KCSAN_DEBUGFS_FILE "/sys/kernel/debug/kcsan"
 
 static void setup_kcsan()
