@@ -110,15 +110,15 @@ enum sandbox_type {
 uint64 start_time_ms = 0;
 
 static bool flag_debug;
-static bool flag_cover;
+static bool flag_coverage;
 static sandbox_type flag_sandbox;
-static bool flag_extra_cover;
-static bool flag_enable_tun;
-static bool flag_enable_net_dev;
-static bool flag_enable_net_reset;
-static bool flag_enable_cgroups;
-static bool flag_enable_close_fds;
-static bool flag_enable_devlink_pci;
+static bool flag_extra_coverage;
+static bool flag_net_injection;
+static bool flag_net_devices;
+static bool flag_net_reset;
+static bool flag_cgroups;
+static bool flag_close_fds;
+static bool flag_devlink_pci;
 
 static bool flag_collect_cover;
 static bool flag_dedup_cover;
@@ -126,10 +126,10 @@ static bool flag_threaded;
 static bool flag_collide;
 
 // If true, then executor should write the comparisons data to fuzzer.
-static bool flag_collect_comps;
+static bool flag_comparisons;
 
 // Inject fault into flag_fault_nth-th operation in flag_fault_call-th syscall.
-static bool flag_inject_fault;
+static bool flag_fault;
 static int flag_fault_call;
 static int flag_fault_nth;
 
@@ -393,7 +393,7 @@ int main(int argc, char** argv)
 #else
 	receive_execute();
 #endif
-	if (flag_cover) {
+	if (flag_coverage) {
 		for (int i = 0; i < kMaxThreads; i++) {
 			threads[i].cov.fd = kCoverFd + i;
 			cover_open(&threads[i].cov, false);
@@ -401,7 +401,7 @@ int main(int argc, char** argv)
 		}
 		cover_open(&extra_cov, true);
 		cover_protect(&extra_cov);
-		if (flag_extra_cover) {
+		if (flag_extra_coverage) {
 			// Don't enable comps because we don't use them in the fuzzer yet.
 			cover_enable(&extra_cov, false, true);
 		}
@@ -468,7 +468,7 @@ void parse_env_flags(uint64 flags)
 {
 	// Note: Values correspond to ordering in pkg/ipc/ipc.go, e.g. FlagSandboxNamespace
 	flag_debug = flags & (1 << 0);
-	flag_cover = flags & (1 << 1);
+	flag_coverage = flags & (1 << 1);
 	flag_sandbox = sandbox_none;
 	if (flags & (1 << 2))
 		flag_sandbox = sandbox_setuid;
@@ -476,13 +476,13 @@ void parse_env_flags(uint64 flags)
 		flag_sandbox = sandbox_namespace;
 	else if (flags & (1 << 4))
 		flag_sandbox = sandbox_android_untrusted_app;
-	flag_extra_cover = flags & (1 << 5);
-	flag_enable_tun = flags & (1 << 6);
-	flag_enable_net_dev = flags & (1 << 7);
-	flag_enable_net_reset = flags & (1 << 8);
-	flag_enable_cgroups = flags & (1 << 9);
-	flag_enable_close_fds = flags & (1 << 10);
-	flag_enable_devlink_pci = flags & (1 << 11);
+	flag_extra_coverage = flags & (1 << 5);
+	flag_net_injection = flags & (1 << 6);
+	flag_net_devices = flags & (1 << 7);
+	flag_net_reset = flags & (1 << 8);
+	flag_cgroups = flags & (1 << 9);
+	flag_close_fds = flags & (1 << 10);
+	flag_devlink_pci = flags & (1 << 11);
 }
 
 #if SYZ_EXECUTOR_USES_FORK_SERVER
@@ -522,8 +522,8 @@ void receive_execute()
 	procid = req.pid;
 	flag_collect_cover = req.exec_flags & (1 << 0);
 	flag_dedup_cover = req.exec_flags & (1 << 1);
-	flag_inject_fault = req.exec_flags & (1 << 2);
-	flag_collect_comps = req.exec_flags & (1 << 3);
+	flag_fault = req.exec_flags & (1 << 2);
+	flag_comparisons = req.exec_flags & (1 << 3);
 	flag_threaded = req.exec_flags & (1 << 4);
 	flag_collide = req.exec_flags & (1 << 5);
 	flag_fault_call = req.fault_call;
@@ -532,7 +532,7 @@ void receive_execute()
 		flag_collide = false;
 	debug("[%llums] exec opts: procid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu\n",
 	      current_time_ms() - start_time_ms, procid, flag_threaded, flag_collide,
-	      flag_collect_cover, flag_collect_comps, flag_dedup_cover, flag_inject_fault,
+	      flag_collect_cover, flag_comparisons, flag_dedup_cover, flag_fault,
 	      flag_fault_call, flag_fault_nth, req.prog_size);
 	if (SYZ_EXECUTOR_USES_SHMEM) {
 		if (req.prog_size)
@@ -591,10 +591,10 @@ void execute_one()
 retry:
 	uint64* input_pos = (uint64*)input_data;
 
-	if (flag_cover && !colliding) {
+	if (flag_coverage && !colliding) {
 		if (!flag_threaded)
-			cover_enable(&threads[0].cov, flag_collect_comps, false);
-		if (flag_extra_cover)
+			cover_enable(&threads[0].cov, flag_comparisons, false);
+		if (flag_extra_coverage)
 			cover_reset(&extra_cov);
 	}
 
@@ -780,7 +780,7 @@ retry:
 			for (int i = 0; i < kMaxThreads; i++) {
 				thread_t* th = &threads[i];
 				if (th->executing) {
-					if (flag_cover)
+					if (flag_coverage)
 						cover_collect(&th->cov);
 					write_call_output(th, false);
 				}
@@ -800,7 +800,7 @@ retry:
 			write_extra_output();
 	}
 
-	if (flag_collide && !flag_inject_fault && !colliding && !collide) {
+	if (flag_collide && !flag_fault && !colliding && !collide) {
 		debug("enabling collider\n");
 		collide = colliding = true;
 		goto retry;
@@ -957,7 +957,7 @@ void write_call_output(thread_t* th, bool finished)
 	uint32* cover_count_pos = write_output(0); // filled in later
 	uint32* comps_count_pos = write_output(0); // filled in later
 
-	if (flag_collect_comps) {
+	if (flag_comparisons) {
 		// Collect only the comparisons
 		uint32 ncomps = th->cov.size;
 		kcov_comparison_t* start = (kcov_comparison_t*)(th->cov.data + sizeof(uint64));
@@ -977,7 +977,7 @@ void write_call_output(thread_t* th, bool finished)
 		}
 		// Write out number of comparisons.
 		*comps_count_pos = comps_size;
-	} else if (flag_cover) {
+	} else if (flag_coverage) {
 		if (is_kernel_64_bit)
 			write_coverage_signal<uint64>(&th->cov, signal_count_pos, cover_count_pos);
 		else
@@ -1010,7 +1010,7 @@ void write_call_output(thread_t* th, bool finished)
 void write_extra_output()
 {
 #if SYZ_EXECUTOR_USES_SHMEM
-	if (!flag_cover || !flag_extra_cover || flag_collect_comps)
+	if (!flag_coverage || !flag_extra_coverage || flag_comparisons)
 		return;
 	cover_collect(&extra_cov);
 	if (!extra_cov.size)
@@ -1049,8 +1049,8 @@ void* worker_thread(void* arg)
 {
 	thread_t* th = (thread_t*)arg;
 
-	if (flag_cover)
-		cover_enable(&th->cov, flag_collect_comps, false);
+	if (flag_coverage)
+		cover_enable(&th->cov, flag_comparisons, false);
 	for (;;) {
 		event_wait(&th->ready);
 		event_reset(&th->ready);
@@ -1073,35 +1073,35 @@ void execute_call(thread_t* th)
 	debug(")\n");
 
 	int fail_fd = -1;
-	if (flag_inject_fault && th->call_index == flag_fault_call) {
+	if (flag_fault && th->call_index == flag_fault_call) {
 		if (collide)
 			fail("both collide and fault injection are enabled");
 		fail_fd = inject_fault(flag_fault_nth);
 	}
 
-	if (flag_cover)
+	if (flag_coverage)
 		cover_reset(&th->cov);
 	errno = 0;
 	th->res = execute_syscall(call, th->args);
 	th->reserrno = errno;
 	if (th->res == -1 && th->reserrno == 0)
 		th->reserrno = EINVAL; // our syz syscalls may misbehave
-	if (flag_cover) {
+	if (flag_coverage) {
 		cover_collect(&th->cov);
 		if (th->cov.size >= kCoverSize)
 			fail("#%d: too much cover %u", th->id, th->cov.size);
 	}
 	th->fault_injected = false;
 
-	if (flag_inject_fault && th->call_index == flag_fault_call) {
+	if (flag_fault && th->call_index == flag_fault_call) {
 		th->fault_injected = fault_injected(fail_fd);
 	}
 
 	debug("#%d [%llums] <- %s=0x%llx errno=%d ",
 	      th->id, current_time_ms() - start_time_ms, call->name, (uint64)th->res, th->reserrno);
-	if (flag_cover)
+	if (flag_coverage)
 		debug("cover=%u ", th->cov.size);
-	if (flag_inject_fault && th->call_index == flag_fault_call)
+	if (flag_fault && th->call_index == flag_fault_call)
 		debug("fault=%d ", th->fault_injected);
 	debug("\n");
 }
