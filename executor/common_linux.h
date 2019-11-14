@@ -375,10 +375,6 @@ static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 static int tunfd = -1;
 static int tun_frags_enabled;
 
-// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
-// Rest of the packet (if any) will be silently truncated which is fine.
-#define SYZ_TUN_MAX_PACKET_SIZE 1000
-
 #define TUN_IFACE "syz_tun"
 
 #define LOCAL_MAC 0xaaaaaaaaaaaa
@@ -936,7 +932,7 @@ static void flush_tun()
 	if (!flag_net_injection)
 		return;
 #endif
-	char data[SYZ_TUN_MAX_PACKET_SIZE];
+	char data[1000];
 	while (read_tun(&data[0], sizeof(data)) != -1) {
 	}
 }
@@ -972,7 +968,9 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
-	char data[SYZ_TUN_MAX_PACKET_SIZE];
+	// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
+	// Rest of the packet (if any) will be silently truncated which is fine.
+	char data[1000];
 	int rv = read_tun(&data[0], sizeof(data));
 	if (rv == -1)
 		return (uintptr_t)-1;
@@ -1214,15 +1212,15 @@ struct fs_image_segment {
 #define IMAGE_MAX_SIZE (129 << 20)
 
 #if GOARCH_386
-#define SYZ_memfd_create 356
+#define sys_memfd_create 356
 #elif GOARCH_amd64
-#define SYZ_memfd_create 319
+#define sys_memfd_create 319
 #elif GOARCH_arm
-#define SYZ_memfd_create 385
+#define sys_memfd_create 385
 #elif GOARCH_arm64
-#define SYZ_memfd_create 279
+#define sys_memfd_create 279
 #elif GOARCH_ppc64le
-#define SYZ_memfd_create 360
+#define sys_memfd_create 360
 #endif
 #endif
 
@@ -1249,7 +1247,7 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	}
 	if (size > IMAGE_MAX_SIZE)
 		size = IMAGE_MAX_SIZE;
-	int memfd = syscall(SYZ_memfd_create, "syz_read_part_table", 0);
+	int memfd = syscall(sys_memfd_create, "syz_read_part_table", 0);
 	if (memfd == -1) {
 		err = errno;
 		goto error;
@@ -1352,7 +1350,7 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	}
 	if (size > IMAGE_MAX_SIZE)
 		size = IMAGE_MAX_SIZE;
-	int memfd = syscall(SYZ_memfd_create, "syz_mount_image", 0);
+	int memfd = syscall(sys_memfd_create, "syz_mount_image", 0);
 	if (memfd == -1) {
 		err = errno;
 		goto error;
