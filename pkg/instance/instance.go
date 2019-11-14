@@ -24,6 +24,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -410,9 +411,8 @@ func (inst *inst) testProgram(command string, testTime time.Duration) error {
 func FuzzerCmd(fuzzer, executor, name, OS, arch, fwdAddr, sandbox string, procs, verbosity int,
 	cover, debug, test, runtest bool) string {
 	osArg := ""
-	switch OS {
-	case "akaros", "fuchsia":
-		// Only akaros needs OS, because the rest assume host OS.
+	if targets.Get(OS, arch).HostFuzzer {
+		// Only these OSes need the flag, because the rest assume host OS.
 		// But speciying OS for all OSes breaks patch testing on syzbot
 		// because old execprog does not have os flag.
 		osArg = " -os=" + OS
@@ -442,8 +442,7 @@ func ExecprogCmd(execprog, executor, OS, arch, sandbox string, repeat, threaded,
 		repeatCount = 0
 	}
 	osArg := ""
-	switch OS {
-	case "akaros", "fuchsia":
+	if targets.Get(OS, arch).HostFuzzer {
 		osArg = " -os=" + OS
 	}
 	return fmt.Sprintf("%v -executor=%v -arch=%v%v -sandbox=%v"+

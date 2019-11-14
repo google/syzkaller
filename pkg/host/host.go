@@ -10,6 +10,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // DetectSupportedSyscalls returns list on supported and unsupported syscalls on the host.
@@ -19,9 +20,8 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 	log.Logf(1, "detecting supported syscalls")
 	supported := make(map[*prog.Syscall]bool)
 	unsupported := make(map[*prog.Syscall]string)
-	// Akaros does not have own host and parasitizes on some other OS.
-	switch target.OS {
-	case "akaros", "fuchsia", "test":
+	// These do not have own host and parasitize on some other OS.
+	if targets.Get(target.OS, target.Arch).HostFuzzer {
 		for _, c := range target.Syscalls {
 			supported[c] = true
 		}
@@ -111,8 +111,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureKCSAN:                      {Name: "concurrency sanitizer", Reason: unsupported},
 		FeatureDevlinkPCI:                 {Name: "devlink PCI setup", Reason: unsupported},
 	}
-	switch target.OS {
-	case "akaros", "fuchsia", "test":
+	if targets.Get(target.OS, target.Arch).HostFuzzer {
 		return res, nil
 	}
 	for n, check := range checkFeature {
@@ -132,8 +131,7 @@ func Check(target *prog.Target) (*Features, error) {
 // Setup enables and does any one-time setup for the requested features on the host.
 // Note: this can be called multiple times and must be idempotent.
 func Setup(target *prog.Target, features *Features, featureFlags csource.Features, executor string) error {
-	switch target.OS {
-	case "akaros", "fuchsia":
+	if targets.Get(target.OS, target.Arch).HostFuzzer {
 		return nil
 	}
 	args := []string{"setup"}
