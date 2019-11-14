@@ -4,8 +4,10 @@
 package build
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -14,15 +16,35 @@ import (
 
 type fuchsia struct{}
 
+// syzRoot returns $GOPATH/src/github.com/google/syzkaller.
+func syzRoot() (string, error) {
+	_, selfPath, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("runtime.Caller failed")
+	}
+
+	return filepath.Abs(filepath.Join(filepath.Dir(selfPath), "../.."))
+}
+
 func (fu fuchsia) build(params *Params) error {
+	syzDir, err := syzRoot()
+	if err != nil {
+		return err
+	}
+
 	sysTarget := targets.Get("fuchsia", params.TargetArch)
 	if sysTarget == nil {
 		return fmt.Errorf("unsupported fuchsia arch %v", params.TargetArch)
 	}
 	arch := sysTarget.KernelHeaderArch
 	product := fmt.Sprintf("%s.%s", "core", arch)
-	if _, err := runSandboxed(time.Hour, params.KernelDir, "scripts/fx", "--dir", "out/"+arch,
-		"set", product, "--with-base", "//bundles:tools"); err != nil {
+	if _, err := runSandboxed(time.Hour, params.KernelDir,
+		"scripts/fx", "--dir", "out/"+arch,
+		"set", product,
+		"--args", fmt.Sprintf(`syzkaller_dir="%s"`, syzDir),
+		"--with-base", "//bundles:tools",
+		"--with-base", "//src/testing/fuzzing/syzkaller",
+	); err != nil {
 		return err
 	}
 	if _, err := runSandboxed(time.Hour*2, params.KernelDir, "scripts/fx", "clean-build"); err != nil {
