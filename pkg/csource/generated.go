@@ -432,8 +432,6 @@ static uintptr_t syz_open_pts(void)
 
 #endif
 
-#if GOOS_freebsd || GOOS_openbsd || GOOS_netbsd
-
 #if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 
 #include <fcntl.h>
@@ -677,7 +675,6 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 	return 0;
 }
 #endif
-#endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NONE
 
@@ -713,7 +710,7 @@ static void loop();
 static int do_sandbox_none(void)
 {
 	sandbox_common();
-#if (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 	initialize_tun(procid);
 #endif
 	loop();
@@ -748,7 +745,7 @@ static int do_sandbox_setuid(void)
 		return wait_for_loop(pid);
 
 	sandbox_common();
-#if (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && (SYZ_EXECUTOR || SYZ_TUN_ENABLE)
+#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
 	initialize_tun(procid);
 #endif
 
