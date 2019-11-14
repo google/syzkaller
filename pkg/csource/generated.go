@@ -502,7 +502,7 @@ static void execute_command(bool panic, const char* format, ...)
 static void initialize_tun(int tun_id)
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_tun)
+	if (!flag_net_injection)
 		return;
 #endif
 
@@ -1435,7 +1435,7 @@ static int tun_frags_enabled;
 static void initialize_tun(void)
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_tun)
+	if (!flag_net_injection)
 		return;
 #endif
 	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
@@ -1631,7 +1631,7 @@ error:
 static void initialize_devlink_pci(void)
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_devlink_pci)
+	if (!flag_devlink_pci)
 		return;
 #endif
 	int netns = open("/proc/self/ns/net", O_RDONLY);
@@ -1683,7 +1683,7 @@ static void netdevsim_add(unsigned int addr, unsigned int port_count)
 static void initialize_netdevices(void)
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_net_dev)
+	if (!flag_net_devices)
 		return;
 #endif
 	char netdevsim[16];
@@ -1789,7 +1789,7 @@ static void initialize_netdevices(void)
 static void initialize_netdevices_init(void)
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_net_dev)
+	if (!flag_net_devices)
 		return;
 #endif
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
@@ -1902,7 +1902,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 static void flush_tun()
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_tun)
+	if (!flag_net_injection)
 		return;
 #endif
 	char data[SYZ_TUN_MAX_PACKET_SIZE];
@@ -4599,7 +4599,7 @@ static void reset_ebtables()
 static void checkpoint_net_namespace(void)
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_net_reset)
+	if (!flag_net_reset)
 		return;
 	if (flag_sandbox == sandbox_setuid)
 		return;
@@ -4613,7 +4613,7 @@ static void checkpoint_net_namespace(void)
 static void reset_net_namespace(void)
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_net_reset)
+	if (!flag_net_reset)
 		return;
 	if (flag_sandbox == sandbox_setuid)
 		return;
@@ -4634,7 +4634,7 @@ static void reset_net_namespace(void)
 static void setup_cgroups()
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_cgroups)
+	if (!flag_cgroups)
 		return;
 #endif
 	if (mkdir("/syzcgroup", 0777)) {
@@ -4675,7 +4675,7 @@ static void setup_cgroups()
 static void setup_cgroups_loop()
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_cgroups)
+	if (!flag_cgroups)
 		return;
 #endif
 	int pid = getpid();
@@ -4712,7 +4712,7 @@ static void setup_cgroups_loop()
 static void setup_cgroups_test()
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_cgroups)
+	if (!flag_cgroups)
 		return;
 #endif
 	char cgroupdir[64];
@@ -4735,7 +4735,7 @@ static void setup_cgroups_test()
 void initialize_cgroups()
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_cgroups)
+	if (!flag_cgroups)
 		return;
 #endif
 	if (mkdir("./syz-tmp/newroot/syzcgroup", 0700))
@@ -5427,7 +5427,7 @@ static void setup_test()
 static void close_fds()
 {
 #if SYZ_EXECUTOR
-	if (!flag_enable_close_fds)
+	if (!flag_close_fds)
 		return;
 #endif
 	int fd;
