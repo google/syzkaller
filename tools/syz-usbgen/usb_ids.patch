@@ -1,14 +1,25 @@
-commit 17edce0094c7d7b78b05748d5ce54d68d9bcb419
+commit ea0efe3b58049ad27b63e95e73af92ae8e75b3f3
 Author: Andrey Konovalov <andreyknvl@google.com>
 Date:   Wed Sep 27 17:06:15 2017 +0200
 
-    usb-fuzzer: dump usb device ids on enumeration
+    usb: dump usb device ids on hid enumeration
+    
+    Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+    Change-Id: I9ba9626fe77c5a1b818d274b39c26fef9010d865
 
 diff --git a/drivers/hid/hid-core.c b/drivers/hid/hid-core.c
-index 210b81a56e1a..6547515b8a2d 100644
+index 63fdbf09b044..99237de8e20a 100644
 --- a/drivers/hid/hid-core.c
 +++ b/drivers/hid/hid-core.c
-@@ -2114,11 +2114,45 @@ static void hid_free_dynids(struct hid_driver *hdrv)
+@@ -27,6 +27,7 @@
+ #include <linux/vmalloc.h>
+ #include <linux/sched.h>
+ #include <linux/semaphore.h>
++#include <linux/usb.h>
+ 
+ #include <linux/hid.h>
+ #include <linux/hiddev.h>
+@@ -2117,11 +2118,120 @@ static void hid_free_dynids(struct hid_driver *hdrv)
  	spin_unlock(&hdrv->dyn_lock);
  }
  
@@ -43,25 +54,16 @@ index 210b81a56e1a..6547515b8a2d 100644
 +	spin_unlock(&hdrv->dyn_lock);
 +}
 +
- const struct hid_device_id *hid_match_device(struct hid_device *hdev,
- 					     struct hid_driver *hdrv)
- {
- 	struct hid_dynid *dynid;
- 
++static int hid_device_id_dump_driver(struct device_driver *drv, void *data)
++{
++	struct hid_driver *hdrv = to_hid_driver(drv);
++
 +	hid_device_id_dump_static(hdrv);
 +	hid_device_id_dump_dynamic(hdrv);
 +
- 	spin_lock(&hdrv->dyn_lock);
- 	list_for_each_entry(dynid, &hdrv->dyn_list, list) {
- 		if (hid_match_one_id(hdev, &dynid->id)) {
-diff --git a/drivers/usb/core/driver.c b/drivers/usb/core/driver.c
-index ebcadaad89d1..44e2d797bb6a 100644
---- a/drivers/usb/core/driver.c
-+++ b/drivers/usb/core/driver.c
-@@ -790,6 +790,39 @@ const struct usb_device_id *usb_match_id(struct usb_interface *interface,
- }
- EXPORT_SYMBOL_GPL(usb_match_id);
- 
++	return 0;
++}
++
 +static void usb_device_id_dump_one(const struct usb_device_id *id)
 +{
 +	char buffer[128];
@@ -95,16 +97,46 @@ index ebcadaad89d1..44e2d797bb6a 100644
 +	spin_unlock(&drv->dynids.lock);
 +}
 +
- static int usb_device_match(struct device *dev, struct device_driver *drv)
- {
- 	/* devices and interfaces are handled separately */
-@@ -814,6 +847,9 @@ static int usb_device_match(struct device *dev, struct device_driver *drv)
- 		intf = to_usb_interface(dev);
- 		usb_drv = to_usb_driver(drv);
- 
-+		usb_device_id_dump_static(usb_drv);
-+		usb_device_id_dump_dynamic(usb_drv);
++static inline int is_usb_device_driver(struct device_driver *drv)
++{
++	return container_of(drv, struct usbdrv_wrap, driver)->
++			for_devices;
++}
 +
- 		id = usb_match_id(intf, usb_drv->id_table);
- 		if (id)
- 			return 1;
++static int usb_device_id_dump_driver(struct device_driver *drv, void *data)
++{
++	struct usb_driver *usb_drv;
++
++	if (is_usb_device_driver(drv))
++		return 0;
++	usb_drv = to_usb_driver(drv);
++
++	usb_device_id_dump_static(usb_drv);
++	usb_device_id_dump_dynamic(usb_drv);
++
++	return 0;
++}
++
++static int usb_ids_dumped;
++
++struct bus_type hid_bus_type;
++
++static void usb_device_id_dump_all(void)
++{
++	if (usb_ids_dumped)
++		return;
++	usb_ids_dumped = 1;
++	bus_for_each_drv(&usb_bus_type, NULL, NULL, usb_device_id_dump_driver);
++	bus_for_each_drv(&hid_bus_type, NULL, NULL, hid_device_id_dump_driver);
++}
++
+ const struct hid_device_id *hid_match_device(struct hid_device *hdev,
+ 					     struct hid_driver *hdrv)
+ {
+ 	struct hid_dynid *dynid;
+ 
++	usb_device_id_dump_all();
++
+ 	spin_lock(&hdrv->dyn_lock);
+ 	list_for_each_entry(dynid, &hdrv->dyn_list, list) {
+ 		if (hid_match_one_id(hdev, &dynid->id)) {
