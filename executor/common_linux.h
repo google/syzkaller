@@ -1912,9 +1912,7 @@ static void reset_ebtables()
 static void checkpoint_net_namespace(void)
 {
 #if SYZ_EXECUTOR
-	if (!flag_net_reset)
-		return;
-	if (flag_sandbox == sandbox_setuid)
+	if (!flag_net_reset || flag_sandbox_setuid)
 		return;
 #endif
 	checkpoint_ebtables();
@@ -1926,9 +1924,7 @@ static void checkpoint_net_namespace(void)
 static void reset_net_namespace(void)
 {
 #if SYZ_EXECUTOR
-	if (!flag_net_reset)
-		return;
-	if (flag_sandbox == sandbox_setuid)
+	if (!flag_net_reset || flag_sandbox_setuid)
 		return;
 #endif
 	reset_ebtables();
@@ -2539,8 +2535,8 @@ static void syz_setfilecon(const char* path, const char* context)
 		fail("setfilecon: could not set context to %s, currently %s", context, new_context);
 }
 
-#define SYZ_HAVE_SANDBOX_ANDROID_UNTRUSTED_APP 1
-static int do_sandbox_android_untrusted_app(void)
+#define SYZ_HAVE_SANDBOX_ANDROID 1
+static int do_sandbox_android(void)
 {
 	setup_common();
 	sandbox_common();
@@ -2564,7 +2560,7 @@ static int do_sandbox_android_untrusted_app(void)
 	initialize_tun();
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
-	// Note: sandbox_android_untrusted_app does not unshare net namespace.
+	// Note: sandbox_android does not unshare net namespace.
 	initialize_netdevices_init();
 	initialize_netdevices();
 #endif

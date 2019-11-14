@@ -18,7 +18,7 @@ const (
 	FeatureExtraCoverage
 	FeatureSandboxSetuid
 	FeatureSandboxNamespace
-	FeatureSandboxAndroidUntrustedApp
+	FeatureSandboxAndroid
 	FeatureFaultInjection
 	FeatureLeakChecking
 	FeatureNetworkInjection
@@ -46,18 +46,18 @@ func unconditionallyEnabled() string { return "" }
 func Check(target *prog.Target) (*Features, error) {
 	const unsupported = "support is not implemented in syzkaller"
 	res := &Features{
-		FeatureCoverage:                   {Name: "code coverage", Reason: unsupported},
-		FeatureComparisons:                {Name: "comparison tracing", Reason: unsupported},
-		FeatureExtraCoverage:              {Name: "extra coverage", Reason: unsupported},
-		FeatureSandboxSetuid:              {Name: "setuid sandbox", Reason: unsupported},
-		FeatureSandboxNamespace:           {Name: "namespace sandbox", Reason: unsupported},
-		FeatureSandboxAndroidUntrustedApp: {Name: "Android sandbox", Reason: unsupported},
-		FeatureFaultInjection:             {Name: "fault injection", Reason: unsupported},
-		FeatureLeakChecking:               {Name: "leak checking", Reason: unsupported},
-		FeatureNetworkInjection:           {Name: "net packet injection", Reason: unsupported},
-		FeatureNetworkDevices:             {Name: "net device setup", Reason: unsupported},
-		FeatureKCSAN:                      {Name: "concurrency sanitizer", Reason: unsupported},
-		FeatureDevlinkPCI:                 {Name: "devlink PCI setup", Reason: unsupported},
+		FeatureCoverage:         {Name: "code coverage", Reason: unsupported},
+		FeatureComparisons:      {Name: "comparison tracing", Reason: unsupported},
+		FeatureExtraCoverage:    {Name: "extra coverage", Reason: unsupported},
+		FeatureSandboxSetuid:    {Name: "setuid sandbox", Reason: unsupported},
+		FeatureSandboxNamespace: {Name: "namespace sandbox", Reason: unsupported},
+		FeatureSandboxAndroid:   {Name: "Android sandbox", Reason: unsupported},
+		FeatureFaultInjection:   {Name: "fault injection", Reason: unsupported},
+		FeatureLeakChecking:     {Name: "leak checking", Reason: unsupported},
+		FeatureNetworkInjection: {Name: "net packet injection", Reason: unsupported},
+		FeatureNetworkDevices:   {Name: "net device setup", Reason: unsupported},
+		FeatureKCSAN:            {Name: "concurrency sanitizer", Reason: unsupported},
+		FeatureDevlinkPCI:       {Name: "devlink PCI setup", Reason: unsupported},
 	}
 	if targets.Get(target.OS, target.Arch).HostFuzzer {
 		return res, nil
