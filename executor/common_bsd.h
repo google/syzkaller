@@ -37,7 +37,7 @@ static uintptr_t syz_open_pts(void)
 
 #endif // GOOS_openbsd
 
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 
 #include <fcntl.h>
 #include <net/if_tun.h>
@@ -194,9 +194,9 @@ static void initialize_tun(int tun_id)
 	execute_command(0, "ndp -s %s%%%s %s", remote_ipv6, tun_iface, remote_mac);
 }
 
-#endif // SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#endif // SYZ_EXECUTOR || SYZ_NET_INJECTION
 
-#if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || __NR_syz_emit_ethernet && SYZ_NET_INJECTION
 #include <stdbool.h>
 #include <sys/uio.h>
 
@@ -214,7 +214,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION && (__NR_syz_extract_tcp_res || SYZ_REPEAT)
 #include <errno.h>
 
 static int read_tun(char* data, int size)
@@ -232,7 +232,7 @@ static int read_tun(char* data, int size)
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || __NR_syz_extract_tcp_res && SYZ_NET_INJECTION
 
 struct tcp_resources {
 	uint32 seq;
@@ -349,7 +349,7 @@ static void loop();
 static int do_sandbox_none(void)
 {
 	sandbox_common();
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	initialize_tun(procid);
 #endif
 	loop();
@@ -384,7 +384,7 @@ static int do_sandbox_setuid(void)
 		return wait_for_loop(pid);
 
 	sandbox_common();
-#if SYZ_EXECUTOR || SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
 	initialize_tun(procid);
 #endif
 

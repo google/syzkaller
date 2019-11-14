@@ -39,9 +39,9 @@ NORETURN void doexit(int status)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_PROCS || SYZ_REPEAT && SYZ_ENABLE_CGROUPS ||         \
-    SYZ_ENABLE_NETDEV || __NR_syz_mount_image || __NR_syz_read_part_table || \
-    __NR_syz_usb_connect || (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_TUN_ENABLE
+#if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
+    SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table || \
+    __NR_syz_usb_connect || (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
 unsigned long long procid;
 #endif
 
@@ -146,7 +146,7 @@ static void sleep_ms(uint64 ms)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER || \
-    SYZ_ENABLE_LEAK
+    SYZ_LEAK
 #include <time.h>
 
 static uint64 current_time_ms(void)
@@ -158,14 +158,14 @@ static uint64 current_time_ms(void)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP || SYZ_USE_TMP_DIR
+#if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID || SYZ_USE_TMP_DIR
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 static void use_temporary_dir(void)
 {
-#if SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#if SYZ_SANDBOX_ANDROID
 	char tmpdir_template[] = "/data/data/syzkaller/syzkaller.XXXXXX";
 #elif GOOS_fuchsia
 	char tmpdir_template[] = "/tmp/syzkaller.XXXXXX";
@@ -642,7 +642,7 @@ static void loop(void)
 #if SYZ_EXECUTOR || SYZ_USE_TMP_DIR
 		remove_dir(cwdbuf);
 #endif
-#if SYZ_ENABLE_LEAK
+#if SYZ_LEAK
 		// Note: this will fail under setuid sandbox because we don't have
 		// write permissions for the kmemleak file.
 		check_leaks();
@@ -662,7 +662,7 @@ static void loop(void)
 
 /*RESULTS*/
 
-#if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#if SYZ_THREADED || SYZ_REPEAT || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #if SYZ_THREADED
 void execute_call(int call)
 #elif SYZ_REPEAT
@@ -695,40 +695,40 @@ int main(void)
 	/*MMAP_DATA*/
 #endif
 
-#if SYZ_ENABLE_BINFMT_MISC
+#if SYZ_BINFMT_MISC
 	setup_binfmt_misc();
 #endif
-#if SYZ_ENABLE_LEAK
+#if SYZ_LEAK
 	setup_leak();
 #endif
-#if SYZ_FAULT_INJECTION
+#if SYZ_FAULT
 	setup_fault();
 #endif
-#if SYZ_ENABLE_KCSAN
+#if SYZ_KCSAN
 	setup_kcsan();
 #endif
 
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();
 #endif
-#if SYZ_PROCS
+#if SYZ_MULTI_PROC
 	for (procid = 0; procid < /*PROCS*/; procid++) {
 		if (fork() == 0) {
 #endif
-#if SYZ_USE_TMP_DIR || SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+#if SYZ_USE_TMP_DIR || SYZ_SANDBOX_ANDROID
 			use_temporary_dir();
 #endif
 			/*SANDBOX_FUNC*/
 #if SYZ_HAVE_CLOSE_FDS && !SYZ_THREADED && !SYZ_REPEAT && !SYZ_SANDBOX_NONE && \
-    !SYZ_SANDBOX_SETUID && !SYZ_SANDBOX_NAMESPACE && !SYZ_SANDBOX_ANDROID_UNTRUSTED_APP
+    !SYZ_SANDBOX_SETUID && !SYZ_SANDBOX_NAMESPACE && !SYZ_SANDBOX_ANDROID
 			close_fds();
 #endif
-#if SYZ_PROCS
+#if SYZ_MULTI_PROC
 		}
 	}
 	sleep(1000000);
 #endif
-#if !SYZ_PROCS && !SYZ_REPEAT && SYZ_ENABLE_LEAK
+#if !SYZ_MULTI_PROC && !SYZ_REPEAT && SYZ_LEAK
 	check_leaks();
 #endif
 	return 0;
