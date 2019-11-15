@@ -69,7 +69,7 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 	if *flagOutput {
-		for _, feat := range features {
+		for _, feat := range features.Supported() {
 			log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 		}
 	}

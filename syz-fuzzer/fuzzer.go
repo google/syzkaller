@@ -199,7 +199,7 @@ func main() {
 		}
 	}
 	log.Logf(0, "syscalls: %v", len(r.CheckResult.EnabledCalls[sandbox]))
-	for _, feat := range r.CheckResult.Features {
+	for _, feat := range r.CheckResult.Features.Supported() {
 		log.Logf(0, "%v: %v", feat.Name, feat.Reason)
 	}
 	if r.CheckResult.Features[host.FeatureExtraCoverage].Enabled {
