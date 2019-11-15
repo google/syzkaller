@@ -38,13 +38,8 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	}
 	c.Flags |= sandboxFlags
 	sysTarget := targets.Get(target.OS, target.Arch)
-	if sysTarget.ExecutorUsesShmem {
-		c.Flags |= ipc.FlagUseShmem
-	}
-	if sysTarget.ExecutorUsesForkServer {
-		c.Flags |= ipc.FlagUseForkServer
-	}
-
+	c.UseShmem = sysTarget.ExecutorUsesShmem
+	c.UseForkServer = sysTarget.ExecutorUsesForkServer
 	opts := &ipc.ExecOpts{
 		Flags: ipc.FlagDedupCover,
 	}
