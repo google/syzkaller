@@ -78,7 +78,7 @@ func main() {
 		log.Fatal(err)
 	}
 	var gateCallback func()
-	if features[host.FeatureLeakChecking].Enabled {
+	if features[host.FeatureLeak].Enabled {
 		gateCallback = func() {
 			output, err := osutil.RunCmd(10*time.Minute, "", config.Executor, "leak")
 			if err != nil {
@@ -311,10 +311,10 @@ func createConfig(target *prog.Target,
 		execOpts.FaultCall = *flagFaultCall
 		execOpts.FaultNth = *flagFaultNth
 	}
-	if featuresFlags["tun"].Enabled && features[host.FeatureNetworkInjection].Enabled {
+	if featuresFlags["tun"].Enabled && features[host.FeatureNetInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
-	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetworkDevices].Enabled {
+	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetDevices].Enabled {
 		config.Flags |= ipc.FlagEnableNetDev
 	}
 	if featuresFlags["net_reset"].Enabled {

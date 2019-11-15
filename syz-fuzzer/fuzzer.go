@@ -205,10 +205,10 @@ func main() {
 	if r.CheckResult.Features[host.FeatureExtraCoverage].Enabled {
 		config.Flags |= ipc.FlagExtraCover
 	}
-	if r.CheckResult.Features[host.FeatureNetworkInjection].Enabled {
+	if r.CheckResult.Features[host.FeatureNetInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
-	if r.CheckResult.Features[host.FeatureNetworkDevices].Enabled {
+	if r.CheckResult.Features[host.FeatureNetDevices].Enabled {
 		config.Flags |= ipc.FlagEnableNetDev
 	}
 	config.Flags |= ipc.FlagEnableNetReset
@@ -234,7 +234,7 @@ func main() {
 		needPoll:                 needPoll,
 		manager:                  manager,
 		target:                   target,
-		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFaultInjection].Enabled,
+		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFault].Enabled,
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
 	}
@@ -266,7 +266,7 @@ func main() {
 func (fuzzer *Fuzzer) useBugFrames(r *rpctype.ConnectRes, flagProcs int) func() {
 	var gateCallback func()
 
-	if r.CheckResult.Features[host.FeatureLeakChecking].Enabled {
+	if r.CheckResult.Features[host.FeatureLeak].Enabled {
 		gateCallback = func() { fuzzer.gateCallback(r.MemoryLeakFrames) }
 	}
 

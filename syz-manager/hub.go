@@ -22,7 +22,7 @@ func (mgr *Manager) hubSyncLoop() {
 		target:        mgr.target,
 		stats:         mgr.stats,
 		enabledCalls:  mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox],
-		leak:          mgr.checkResult.Features[host.FeatureLeakChecking].Enabled,
+		leak:          mgr.checkResult.Features[host.FeatureLeak].Enabled,
 		fresh:         mgr.fresh,
 		hubReproQueue: mgr.hubReproQueue,
 	}

@@ -681,7 +681,7 @@ func (mgr *Manager) needLocalRepro(crash *Crash) bool {
 	if !mgr.cfg.Reproduce || crash.Corrupted {
 		return false
 	}
-	if mgr.checkResult.Features[host.FeatureLeakChecking].Enabled &&
+	if mgr.checkResult.Features[host.FeatureLeak].Enabled &&
 		crash.Type != report.MemoryLeak {
 		// Leak checking is very slow, don't bother reproducing other crashes.
 		return false
