@@ -167,13 +167,9 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 	sort.Strings(sandboxes)
 	sysTarget := targets.Get(ctx.Target.OS, ctx.Target.Arch)
 	for _, file := range files {
-		if strings.HasSuffix(file.Name(), "~") {
-			continue
-		}
-		if strings.HasSuffix(file.Name(), ".swp") {
-			continue
-		}
-		if !strings.HasPrefix(file.Name(), ctx.Tests) {
+		if strings.HasSuffix(file.Name(), "~") ||
+			strings.HasSuffix(file.Name(), ".swp") ||
+			!strings.HasPrefix(file.Name(), ctx.Tests) {
 			continue
 		}
 		p, requires, results, err := ctx.parseProg(file.Name())
