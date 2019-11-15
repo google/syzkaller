@@ -150,7 +150,7 @@ func createProg2CArgs(bug *dashapi.LoadBugResp, opts csource.Options, file strin
 	haveCgroupFlag := containsCommit("9753d3be5e6c79e271ed128795039f161ee339b7")
 	haveWaitRepeatFlag := containsCommit("c99b02d2248fbdcd6f44037326b16c928f4423f1")
 	haveWaitRepeatRemoved := containsCommit("9fe4bdc5f1037a409e82299f36117030114c7b94")
-	haveCloseFds := containsCommit("5c51045d28eb1ad9465a51487d436133ce7b98d2")
+	haveCloseFDs := containsCommit("5c51045d28eb1ad9465a51487d436133ce7b98d2")
 	haveOSFlag := containsCommit("aa2533b98d21ebcad5777310215159127bfe3573")
 	args := []string{
 		"-prog", file,
@@ -188,19 +188,19 @@ func createProg2CArgs(bug *dashapi.LoadBugResp, opts csource.Options, file strin
 		args = append(args, "-leak")
 	}
 	var enable, flags []string
-	if opts.EnableTun {
+	if opts.NetInjection {
 		enable = append(enable, "tun")
 		flags = append(flags, "-tun")
 	}
-	if opts.EnableNetDev {
+	if opts.NetDevices {
 		enable = append(enable, "net_dev")
 		flags = append(flags, "-netdev")
 	}
-	if opts.EnableNetReset {
+	if opts.NetReset {
 		enable = append(enable, "net_reset")
 		flags = append(flags, "-resetnet")
 	}
-	if opts.EnableCgroups {
+	if opts.Cgroups {
 		enable = append(enable, "cgroups")
 		if haveCgroupFlag {
 			flags = append(flags, "-cgroups")
@@ -209,13 +209,13 @@ func createProg2CArgs(bug *dashapi.LoadBugResp, opts csource.Options, file strin
 			}
 		}
 	}
-	if opts.EnableBinfmtMisc {
+	if opts.BinfmtMisc {
 		enable = append(enable, "binfmt_misc")
 	}
-	if opts.EnableCloseFds && haveCloseFds {
+	if opts.CloseFDs && haveCloseFDs {
 		enable = append(enable, "close_fds")
 	}
-	if opts.EnableDevlinkPCI {
+	if opts.DevlinkPCI {
 		enable = append(enable, "devlink_pci")
 		flags = append(flags, "-devlinkpci")
 	}

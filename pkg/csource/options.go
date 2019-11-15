@@ -31,14 +31,14 @@ type Options struct {
 	Leak bool `json:"leak,omitempty"` // do leak checking
 
 	// These options allow for a more fine-tuned control over the generated C code.
-	EnableTun        bool `json:"tun,omitempty"`
-	EnableNetDev     bool `json:"netdev,omitempty"`
-	EnableNetReset   bool `json:"resetnet,omitempty"`
-	EnableCgroups    bool `json:"cgroups,omitempty"`
-	EnableBinfmtMisc bool `json:"binfmt_misc,omitempty"`
-	EnableCloseFds   bool `json:"close_fds"`
-	EnableKCSAN      bool `json:"kcsan,omitempty"`
-	EnableDevlinkPCI bool `json:"devlinkpci,omitempty"`
+	NetInjection bool `json:"tun,omitempty"`
+	NetDevices   bool `json:"netdev,omitempty"`
+	NetReset     bool `json:"resetnet,omitempty"`
+	Cgroups      bool `json:"cgroups,omitempty"`
+	BinfmtMisc   bool `json:"binfmt_misc,omitempty"`
+	CloseFDs     bool `json:"close_fds"`
+	KCSAN        bool `json:"kcsan,omitempty"`
+	DevlinkPCI   bool `json:"devlinkpci,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -67,25 +67,25 @@ func (opts Options) Check(OS string) error {
 			// This does not affect generated code.
 			return errors.New("option Procs>1 without Repeat")
 		}
-		if opts.EnableNetReset {
-			return errors.New("option EnableNetReset without Repeat")
+		if opts.NetReset {
+			return errors.New("option NetReset without Repeat")
 		}
 		if opts.RepeatTimes > 1 {
 			return errors.New("option RepeatTimes without Repeat")
 		}
 	}
 	if opts.Sandbox == "" {
-		if opts.EnableTun {
-			return errors.New("option EnableTun without sandbox")
+		if opts.NetInjection {
+			return errors.New("option NetInjection without sandbox")
 		}
-		if opts.EnableNetDev {
-			return errors.New("option EnableNetDev without sandbox")
+		if opts.NetDevices {
+			return errors.New("option NetDevices without sandbox")
 		}
-		if opts.EnableCgroups {
-			return errors.New("option EnableCgroups without sandbox")
+		if opts.Cgroups {
+			return errors.New("option Cgroups without sandbox")
 		}
-		if opts.EnableBinfmtMisc {
-			return errors.New("option EnableBinfmtMisc without sandbox")
+		if opts.BinfmtMisc {
+			return errors.New("option BinfmtMisc without sandbox")
 		}
 	}
 	if opts.Sandbox == sandboxNamespace && !opts.UseTmpDir {
@@ -94,11 +94,11 @@ func (opts Options) Check(OS string) error {
 		// which will fail if procs>1 and on second run of the program.
 		return errors.New("option Sandbox=namespace without UseTmpDir")
 	}
-	if opts.EnableNetReset && (opts.Sandbox == "" || opts.Sandbox == sandboxSetuid) {
-		return errors.New("option EnableNetReset without sandbox")
+	if opts.NetReset && (opts.Sandbox == "" || opts.Sandbox == sandboxSetuid) {
+		return errors.New("option NetReset without sandbox")
 	}
-	if opts.EnableCgroups && !opts.UseTmpDir {
-		return errors.New("option EnableCgroups without UseTmpDir")
+	if opts.Cgroups && !opts.UseTmpDir {
+		return errors.New("option Cgroups without UseTmpDir")
 	}
 	return opts.checkLinuxOnly(OS)
 }
@@ -107,29 +107,29 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if OS == linux {
 		return nil
 	}
-	if opts.EnableTun && !(OS == openbsd || OS == freebsd || OS == netbsd) {
-		return fmt.Errorf("option EnableTun is not supported on %v", OS)
+	if opts.NetInjection && !(OS == openbsd || OS == freebsd || OS == netbsd) {
+		return fmt.Errorf("option NetInjection is not supported on %v", OS)
 	}
-	if opts.EnableNetDev {
-		return fmt.Errorf("option EnableNetDev is not supported on %v", OS)
+	if opts.NetDevices {
+		return fmt.Errorf("option NetDevices is not supported on %v", OS)
 	}
-	if opts.EnableNetReset {
-		return fmt.Errorf("option EnableNetReset is not supported on %v", OS)
+	if opts.NetReset {
+		return fmt.Errorf("option NetReset is not supported on %v", OS)
 	}
-	if opts.EnableCgroups {
-		return fmt.Errorf("option EnableCgroups is not supported on %v", OS)
+	if opts.Cgroups {
+		return fmt.Errorf("option Cgroups is not supported on %v", OS)
 	}
-	if opts.EnableBinfmtMisc {
-		return fmt.Errorf("option EnableBinfmtMisc is not supported on %v", OS)
+	if opts.BinfmtMisc {
+		return fmt.Errorf("option BinfmtMisc is not supported on %v", OS)
 	}
-	if opts.EnableCloseFds {
-		return fmt.Errorf("option EnableCloseFds is not supported on %v", OS)
+	if opts.CloseFDs {
+		return fmt.Errorf("option CloseFDs is not supported on %v", OS)
 	}
-	if opts.EnableKCSAN {
-		return fmt.Errorf("option EnableKCSAN is not supported on %v", OS)
+	if opts.KCSAN {
+		return fmt.Errorf("option KCSAN is not supported on %v", OS)
 	}
-	if opts.EnableDevlinkPCI {
-		return fmt.Errorf("option EnableDevlinkPCI is not supported on %v", OS)
+	if opts.DevlinkPCI {
+		return fmt.Errorf("option DevlinkPCI is not supported on %v", OS)
 	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
@@ -147,33 +147,33 @@ func (opts Options) checkLinuxOnly(OS string) error {
 
 func DefaultOpts(cfg *mgrconfig.Config) Options {
 	opts := Options{
-		Threaded:         true,
-		Collide:          true,
-		Repeat:           true,
-		Procs:            cfg.Procs,
-		Sandbox:          cfg.Sandbox,
-		EnableTun:        true,
-		EnableNetDev:     true,
-		EnableNetReset:   true,
-		EnableCgroups:    true,
-		EnableBinfmtMisc: true,
-		EnableCloseFds:   true,
-		EnableDevlinkPCI: true,
-		UseTmpDir:        true,
-		HandleSegv:       true,
-		Repro:            true,
+		Threaded:     true,
+		Collide:      true,
+		Repeat:       true,
+		Procs:        cfg.Procs,
+		Sandbox:      cfg.Sandbox,
+		NetInjection: true,
+		NetDevices:   true,
+		NetReset:     true,
+		Cgroups:      true,
+		BinfmtMisc:   true,
+		CloseFDs:     true,
+		DevlinkPCI:   true,
+		UseTmpDir:    true,
+		HandleSegv:   true,
+		Repro:        true,
 	}
 	if cfg.TargetOS != linux {
-		opts.EnableTun = false
-		opts.EnableNetDev = false
-		opts.EnableNetReset = false
-		opts.EnableCgroups = false
-		opts.EnableBinfmtMisc = false
-		opts.EnableCloseFds = false
-		opts.EnableDevlinkPCI = false
+		opts.NetInjection = false
+		opts.NetDevices = false
+		opts.NetReset = false
+		opts.Cgroups = false
+		opts.BinfmtMisc = false
+		opts.CloseFDs = false
+		opts.DevlinkPCI = false
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
-		opts.EnableNetReset = false
+		opts.NetReset = false
 	}
 	if err := opts.Check(cfg.TargetOS); err != nil {
 		panic(fmt.Sprintf("DefaultOpts created bad opts: %v", err))
@@ -191,9 +191,8 @@ func (opts Options) Serialize() []byte {
 
 func DeserializeOptions(data []byte) (Options, error) {
 	var opts Options
-	// Before EnableCloseFds was added, close_fds() was always called,
-	// so default to true.
-	opts.EnableCloseFds = true
+	// Before CloseFDs was added, close_fds() was always called, so default to true.
+	opts.CloseFDs = true
 	if err := json.Unmarshal(data, &opts); err == nil {
 		return opts, nil
 	}
@@ -205,7 +204,7 @@ func DeserializeOptions(data []byte) (Options, error) {
 			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
 			" HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
 		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox,
-		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.EnableTun, &opts.UseTmpDir,
+		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
 		&opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
 	if err == nil {
 		if want := 14; n != want {
@@ -221,8 +220,8 @@ func DeserializeOptions(data []byte) (Options, error) {
 			" Fault:%t FaultCall:%d FaultNth:%d EnableTun:%t UseTmpDir:%t"+
 			" EnableCgroups:%t HandleSegv:%t WaitRepeat:%t Debug:%t Repro:%t}",
 		&opts.Threaded, &opts.Collide, &opts.Repeat, &opts.Procs, &opts.Sandbox,
-		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.EnableTun, &opts.UseTmpDir,
-		&opts.EnableCgroups, &opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
+		&opts.Fault, &opts.FaultCall, &opts.FaultNth, &opts.NetInjection, &opts.UseTmpDir,
+		&opts.Cgroups, &opts.HandleSegv, &waitRepeat, &debug, &opts.Repro)
 	if err == nil {
 		if want := 15; n != want {
 			return opts, fmt.Errorf("failed to parse repro options: got %v fields, want %v", n, want)
