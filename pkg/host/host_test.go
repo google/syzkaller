@@ -56,7 +56,7 @@ func TestCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, feat := range features {
+	for _, feat := range features.Supported() {
 		t.Logf("%-24v: %v", feat.Name, feat.Reason)
 	}
 }
