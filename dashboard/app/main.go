@@ -548,7 +548,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel,
 		}
 		return query
 	}
-	bugs, err := loadAllBugs(c, filter)
+	bugs, _, err := loadAllBugs(c, filter)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -637,7 +637,7 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel,
 
 func fetchTerminalBugs(c context.Context, accessLevel AccessLevel,
 	ns, manager string, typ *TerminalBug) (*uiBugGroup, error) {
-	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		query = query.Filter("Namespace=", ns).
 			Filter("Status=", typ.Status)
 		if manager != "" {
