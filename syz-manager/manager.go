@@ -943,7 +943,7 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs) {
 	log.Logf(0, "machine check:")
 	log.Logf(0, "%-24v: %v/%v", "syscalls",
 		len(a.EnabledCalls[mgr.cfg.Sandbox]), len(mgr.target.Syscalls))
-	for _, feat := range a.Features {
+	for _, feat := range a.Features.Supported() {
 		log.Logf(0, "%-24v: %v", feat.Name, feat.Reason)
 	}
 	mgr.checkResult = a

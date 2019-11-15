@@ -110,7 +110,7 @@ func main() {
 		}
 		enabledCalls[sandbox] = calls
 	}
-	for _, feat := range mgr.checkResult.Features {
+	for _, feat := range mgr.checkResult.Features.Supported() {
 		fmt.Printf("%-24v: %v\n", feat.Name, feat.Reason)
 	}
 	for sandbox, calls := range enabledCalls {

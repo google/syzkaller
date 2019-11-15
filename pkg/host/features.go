@@ -36,6 +36,10 @@ type Feature struct {
 
 type Features [numFeatures]Feature
 
+func (features *Features) Supported() *Features {
+	return features
+}
+
 var checkFeature [numFeatures]func() string
 
 func unconditionallyEnabled() string { return "" }
