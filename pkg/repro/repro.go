@@ -801,8 +801,8 @@ var progSimplifies = []Simplify{
 			return false
 		}
 		opts.Repeat = false
-		opts.EnableCgroups = false
-		opts.EnableNetReset = false
+		opts.Cgroups = false
+		opts.NetReset = false
 		opts.Procs = 1
 		return true
 	},
@@ -828,60 +828,60 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.Sandbox = ""
-		opts.EnableTun = false
-		opts.EnableNetDev = false
-		opts.EnableNetReset = false
-		opts.EnableCgroups = false
-		opts.EnableBinfmtMisc = false
-		opts.EnableCloseFds = false
+		opts.NetInjection = false
+		opts.NetDevices = false
+		opts.NetReset = false
+		opts.Cgroups = false
+		opts.BinfmtMisc = false
+		opts.CloseFDs = false
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.EnableTun {
+		if !opts.NetInjection {
 			return false
 		}
-		opts.EnableTun = false
+		opts.NetInjection = false
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.EnableNetDev {
+		if !opts.NetDevices {
 			return false
 		}
-		opts.EnableNetDev = false
+		opts.NetDevices = false
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.EnableNetReset {
+		if !opts.NetReset {
 			return false
 		}
-		opts.EnableNetReset = false
+		opts.NetReset = false
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.EnableCgroups {
+		if !opts.Cgroups {
 			return false
 		}
-		opts.EnableCgroups = false
+		opts.Cgroups = false
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.EnableBinfmtMisc {
+		if !opts.BinfmtMisc {
 			return false
 		}
-		opts.EnableBinfmtMisc = false
+		opts.BinfmtMisc = false
 		return true
 	},
 	func(opts *csource.Options) bool {
 		// We don't want to remove close_fds() call when repeat is enabled,
 		// since that can lead to deadlocks, see executor/common_linux.h.
-		if !opts.EnableCloseFds || opts.Repeat {
+		if !opts.CloseFDs || opts.Repeat {
 			return false
 		}
-		opts.EnableCloseFds = false
+		opts.CloseFDs = false
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.UseTmpDir || opts.Sandbox == "namespace" || opts.EnableCgroups {
+		if !opts.UseTmpDir || opts.Sandbox == "namespace" || opts.Cgroups {
 			return false
 		}
 		opts.UseTmpDir = false
