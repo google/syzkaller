@@ -31,6 +31,6 @@ func isSupportedVMM() (bool, string) {
 func init() {
 	checkFeature[FeatureCoverage] = unconditionallyEnabled
 	checkFeature[FeatureComparisons] = unconditionallyEnabled
-	checkFeature[FeatureNetworkInjection] = unconditionallyEnabled
+	checkFeature[FeatureNetInjection] = unconditionallyEnabled
 	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
 }

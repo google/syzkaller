@@ -201,7 +201,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	case "syz_open_pts":
 		return true, ""
 	case "syz_emit_ethernet", "syz_extract_tcp_res":
-		reason := checkNetworkInjection()
+		reason := checkNetInjection()
 		return reason == "", reason
 	case "syz_usb_connect", "syz_usb_disconnect", "syz_usb_control_io", "syz_usb_ep_write", "syz_usb_ep_read":
 		reason := checkUSBInjection()
