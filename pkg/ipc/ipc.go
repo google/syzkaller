@@ -542,10 +542,8 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 		}
 	}()
 
-	if config.Flags&(FlagSandboxSetuid|FlagSandboxNamespace|FlagSandboxAndroid) != 0 {
-		if err := os.Chmod(dir, 0777); err != nil {
-			return nil, fmt.Errorf("failed to chmod temp dir: %v", err)
-		}
+	if err := os.Chmod(dir, 0777); err != nil {
+		return nil, fmt.Errorf("failed to chmod temp dir: %v", err)
 	}
 
 	// Output capture pipe.
