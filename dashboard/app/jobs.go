@@ -244,21 +244,22 @@ func findBugsForBisection(c context.Context, managers map[string]bool, reproLeve
 	// Note: For JobBisectCause, order the bugs from newest to oldest. For JobBisectFix,
 	// order the bugs from oldest to newest.
 	// Sort property should be the same as property used in the inequality filter.
-	query := db.NewQuery("Bug").Filter("Status=", BugStatusOpen)
-	if jobType == JobBisectCause {
-		query = query.Filter("FirstTime>", time.Time{}).
-			Filter("ReproLevel=", reproLevel).
-			Filter("BisectCause=", BisectNot).
-			Order("-FirstTime")
-	} else {
-		query = query.Filter("LastTime>", time.Time{}).
-			Filter("ReproLevel=", reproLevel).
-			Filter("BisectFix=", BisectNot).
-			Order("LastTime")
-	}
 	// We only need 1 job, but we skip some because the query is not precise.
-	var bugs []*Bug
-	keys, err := query.Limit(300).GetAll(c, &bugs)
+	bugs, keys, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+		query = query.Filter("Status=", BugStatusOpen)
+		if jobType == JobBisectCause {
+			query = query.Filter("FirstTime>", time.Time{}).
+				Filter("ReproLevel=", reproLevel).
+				Filter("BisectCause=", BisectNot).
+				Order("-FirstTime")
+		} else {
+			query = query.Filter("LastTime>", time.Time{}).
+				Filter("ReproLevel=", reproLevel).
+				Filter("BisectFix=", BisectNot).
+				Order("LastTime")
+		}
+		return query
+	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query bugs: %v", err)
 	}
@@ -303,26 +304,13 @@ func bisectCrashForBug(c context.Context, bug *Bug, bugKey *db.Key, managers map
 		if crash.ReproSyz == 0 || !managers[crash.Manager] {
 			continue
 		}
-		if ok, err := shouldBisectCrash(c, bug, crash, jobType); err != nil {
-			return nil, nil, err
-		} else if !ok {
+		if jobType == JobBisectFix &&
+			config.Namespaces[bug.Namespace].Managers[crash.Manager].FixBisectionDisabled {
 			continue
 		}
 		return crash, crashKeys[ci], nil
 	}
 	return nil, nil, nil
-}
-
-func shouldBisectCrash(c context.Context, bug *Bug, crash *Crash, jobType JobType) (bool, error) {
-	if jobType != JobBisectFix {
-		return true, nil
-	}
-	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
-	if err != nil {
-		return false, err
-	}
-	cfg := config.Namespaces[build.Namespace]
-	return !cfg.Managers[build.Manager].FixBisectionDisabled, nil
 }
 
 func createBisectJobForBug(c context.Context, bug0 *Bug, crash *Crash, bugKey, crashKey *db.Key, jobType JobType) (

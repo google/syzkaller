@@ -45,7 +45,7 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 		log.Errorf(c, "%v", err)
 		return nil
 	}
-	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Status<", BugStatusFixed)
 	})
 	if err != nil {
@@ -152,7 +152,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 }
 
 func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNotification {
-	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Status<", BugStatusFixed)
 	})
 	if err != nil {
@@ -522,16 +522,18 @@ func managersToRepos(c context.Context, ns string, managers []string) []string {
 	return repos
 }
 
-func loadAllBugs(c context.Context, filter func(*db.Query) *db.Query) ([]*Bug, error) {
+func loadAllBugs(c context.Context, filter func(*db.Query) *db.Query) ([]*Bug, []*db.Key, error) {
 	var bugs []*Bug
-	err := foreachBug(c, filter, func(bug *Bug, _ *db.Key) error {
+	var keys []*db.Key
+	err := foreachBug(c, filter, func(bug *Bug, key *db.Key) error {
 		bugs = append(bugs, bug)
+		keys = append(keys, key)
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return bugs, nil
+	return bugs, keys, nil
 }
 
 func foreachBug(c context.Context, filter func(*db.Query) *db.Query, fn func(bug *Bug, key *db.Key) error) error {

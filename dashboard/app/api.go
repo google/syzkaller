@@ -177,7 +177,7 @@ func apiBuilderPoll(c context.Context, ns string, r *http.Request, payload []byt
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("Status<", BugStatusFixed)
 	})
@@ -520,7 +520,7 @@ func addCommitsToBugs(c context.Context, ns, manager string, titles []string, fi
 
 func addCommitsToBugsInStatus(c context.Context, status int, ns, manager string, managers []string,
 	presentCommits map[string]bool, bugFixedBy map[string][]string) error {
-	bugs, err := loadAllBugs(c, func(query *db.Query) *db.Query {
+	bugs, _, err := loadAllBugs(c, func(query *db.Query) *db.Query {
 		return query.Filter("Namespace=", ns).
 			Filter("Status=", status)
 	})
