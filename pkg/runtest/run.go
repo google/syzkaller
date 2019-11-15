@@ -352,12 +352,8 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	sysTarget := targets.Get(p.Target.OS, p.Target.Arch)
 	cfg := new(ipc.Config)
 	opts := new(ipc.ExecOpts)
-	if sysTarget.ExecutorUsesShmem {
-		cfg.Flags |= ipc.FlagUseShmem
-	}
-	if sysTarget.ExecutorUsesForkServer {
-		cfg.Flags |= ipc.FlagUseForkServer
-	}
+	cfg.UseShmem = sysTarget.ExecutorUsesShmem
+	cfg.UseForkServer = sysTarget.ExecutorUsesForkServer
 	sandboxFlags, err := ipc.SandboxToFlags(sandbox)
 	if err != nil {
 		return nil, err
