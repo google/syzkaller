@@ -39,9 +39,6 @@ const (
 	FlagEnableCgroups                         // setup cgroups for testing
 	FlagEnableCloseFds                        // close fds after each program
 	FlagEnableDevlinkPCI                      // setup devlink PCI device
-	// Executor does not know about these:
-	FlagUseShmem      // use shared memory instead of pipes for communication
-	FlagUseForkServer // use extended protocol with handshake
 )
 
 // Per-exec flags for ExecOpts.Flags:
@@ -66,6 +63,9 @@ type ExecOpts struct {
 type Config struct {
 	// Path to executor binary.
 	Executor string
+
+	UseShmem      bool // use shared memory instead of pipes for communication
+	UseForkServer bool // use extended protocol with handshake
 
 	// Flags are configuation flags, defined above.
 	Flags EnvFlags
@@ -155,7 +155,7 @@ func FlagsToSandbox(flags EnvFlags) string {
 func MakeEnv(config *Config, pid int) (*Env, error) {
 	var inf, outf *os.File
 	var inmem, outmem []byte
-	if config.Flags&FlagUseShmem != 0 {
+	if config.UseShmem {
 		var err error
 		inf, inmem, err = osutil.CreateMemMappedFile(prog.ExecBufferSize)
 		if err != nil {
@@ -254,7 +254,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 		return
 	}
 	var progData []byte
-	if env.config.Flags&FlagUseShmem == 0 {
+	if !env.config.UseShmem {
 		progData = env.in[:progSize]
 	}
 	// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
@@ -288,7 +288,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	if info != nil && env.config.Flags&FlagSignal == 0 {
 		addFallbackSignal(p, info)
 	}
-	if env.config.Flags&FlagUseForkServer == 0 {
+	if !env.config.UseForkServer {
 		env.cmd.close()
 		env.cmd = nil
 	}
@@ -620,7 +620,7 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	// reading from inrp will hang since we hold another end of the pipe open.
 	inwp.Close()
 
-	if c.config.Flags&FlagUseForkServer != 0 {
+	if c.config.UseForkServer {
 		if err := c.handshake(); err != nil {
 			return nil, err
 		}
@@ -809,14 +809,14 @@ func sanitizeTimeout(config *Config) time.Duration {
 		// Executor can be slow due to global locks in namespaces and other things,
 		// so let's better wait than report false misleading crashes.
 		timeout = time.Minute
-		if config.Flags&FlagUseForkServer == 0 {
+		if !config.UseForkServer {
 			// If there is no fork server, executor does not have internal timeout.
 			timeout = executorTimeout
 		}
 	}
 	// IPC timeout must be larger then executor timeout.
 	// Otherwise IPC will kill parent executor but leave child executor alive.
-	if config.Flags&FlagUseForkServer != 0 && timeout < minTimeout {
+	if config.UseForkServer && timeout < minTimeout {
 		timeout = minTimeout
 	}
 	return timeout
