@@ -183,6 +183,10 @@ static int netlink_send_ext(struct nlmsg* nlmsg, int sock,
 	if (n != hdr->nlmsg_len)
 		fail("short netlink write: %d/%d", n, hdr->nlmsg_len);
 	n = recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0);
+	if (hdr->nlmsg_type == NLMSG_DONE) {
+		*reply_len = 0;
+		return 0;
+	}
 	if (n < sizeof(struct nlmsghdr))
 		fail("short netlink read: %d", n);
 	if (reply_len && hdr->nlmsg_type == reply_type) {
