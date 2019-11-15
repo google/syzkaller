@@ -19,10 +19,10 @@ const (
 	FeatureSandboxSetuid
 	FeatureSandboxNamespace
 	FeatureSandboxAndroid
-	FeatureFaultInjection
-	FeatureLeakChecking
-	FeatureNetworkInjection
-	FeatureNetworkDevices
+	FeatureFault
+	FeatureLeak
+	FeatureNetInjection
+	FeatureNetDevices
 	FeatureKCSAN
 	FeatureDevlinkPCI
 	numFeatures
@@ -52,10 +52,10 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureSandboxSetuid:    {Name: "setuid sandbox", Reason: unsupported},
 		FeatureSandboxNamespace: {Name: "namespace sandbox", Reason: unsupported},
 		FeatureSandboxAndroid:   {Name: "Android sandbox", Reason: unsupported},
-		FeatureFaultInjection:   {Name: "fault injection", Reason: unsupported},
-		FeatureLeakChecking:     {Name: "leak checking", Reason: unsupported},
-		FeatureNetworkInjection: {Name: "net packet injection", Reason: unsupported},
-		FeatureNetworkDevices:   {Name: "net device setup", Reason: unsupported},
+		FeatureFault:            {Name: "fault injection", Reason: unsupported},
+		FeatureLeak:             {Name: "leak checking", Reason: unsupported},
+		FeatureNetInjection:     {Name: "net packet injection", Reason: unsupported},
+		FeatureNetDevices:       {Name: "net device setup", Reason: unsupported},
 		FeatureKCSAN:            {Name: "concurrency sanitizer", Reason: unsupported},
 		FeatureDevlinkPCI:       {Name: "devlink PCI setup", Reason: unsupported},
 	}
@@ -83,10 +83,10 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 		return nil
 	}
 	args := []string{"setup"}
-	if features[FeatureLeakChecking].Enabled {
+	if features[FeatureLeak].Enabled {
 		args = append(args, "leak")
 	}
-	if features[FeatureFaultInjection].Enabled {
+	if features[FeatureFault].Enabled {
 		args = append(args, "fault")
 	}
 	if target.OS == "linux" && featureFlags["binfmt_misc"].Enabled {

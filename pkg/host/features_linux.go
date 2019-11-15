@@ -21,10 +21,10 @@ func init() {
 	checkFeature[FeatureSandboxSetuid] = unconditionallyEnabled
 	checkFeature[FeatureSandboxNamespace] = checkSandboxNamespace
 	checkFeature[FeatureSandboxAndroid] = checkSandboxAndroid
-	checkFeature[FeatureFaultInjection] = checkFaultInjection
-	checkFeature[FeatureLeakChecking] = checkLeakChecking
-	checkFeature[FeatureNetworkInjection] = checkNetworkInjection
-	checkFeature[FeatureNetworkDevices] = unconditionallyEnabled
+	checkFeature[FeatureFault] = checkFault
+	checkFeature[FeatureLeak] = checkLeak
+	checkFeature[FeatureNetInjection] = checkNetInjection
+	checkFeature[FeatureNetDevices] = unconditionallyEnabled
 	checkFeature[FeatureKCSAN] = checkKCSAN
 	checkFeature[FeatureDevlinkPCI] = checkDevlinkPCI
 }
@@ -128,7 +128,7 @@ type KcovRemoteArg struct {
 	// Handles []uint64 goes here.
 }
 
-func checkFaultInjection() string {
+func checkFault() string {
 	if err := osutil.IsAccessible("/proc/self/make-it-fail"); err != nil {
 		return "CONFIG_FAULT_INJECTION is not enabled"
 	}
@@ -144,7 +144,7 @@ func checkFaultInjection() string {
 	return ""
 }
 
-func checkLeakChecking() string {
+func checkLeak() string {
 	if reason := checkDebugFS(); reason != "" {
 		return reason
 	}
@@ -176,7 +176,7 @@ func checkSandboxAndroid() string {
 	return ""
 }
 
-func checkNetworkInjection() string {
+func checkNetInjection() string {
 	if err := osutil.IsAccessible("/dev/net/tun"); err != nil {
 		return err.Error()
 	}

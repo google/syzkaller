@@ -373,10 +373,10 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	if ctx.Features[host.FeatureExtraCoverage].Enabled {
 		cfg.Flags |= ipc.FlagExtraCover
 	}
-	if ctx.Features[host.FeatureNetworkInjection].Enabled {
+	if ctx.Features[host.FeatureNetInjection].Enabled {
 		cfg.Flags |= ipc.FlagEnableTun
 	}
-	if ctx.Features[host.FeatureNetworkDevices].Enabled {
+	if ctx.Features[host.FeatureNetDevices].Enabled {
 		cfg.Flags |= ipc.FlagEnableNetDev
 	}
 	cfg.Flags |= ipc.FlagEnableNetReset
@@ -407,10 +407,10 @@ func (ctx *Context) createCTest(p *prog.Prog, sandbox string, threaded bool, tim
 		Trace:       true,
 	}
 	if sandbox != "" {
-		if ctx.Features[host.FeatureNetworkInjection].Enabled {
+		if ctx.Features[host.FeatureNetInjection].Enabled {
 			opts.NetInjection = true
 		}
-		if ctx.Features[host.FeatureNetworkDevices].Enabled {
+		if ctx.Features[host.FeatureNetDevices].Enabled {
 			opts.NetDevices = true
 		}
 	}

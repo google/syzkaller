@@ -147,10 +147,10 @@ func createIPCConfig(target *prog.Target, features *host.Features, featuresFlags
 	if err != nil {
 		return nil, nil, err
 	}
-	if featuresFlags["tun"].Enabled && features[host.FeatureNetworkInjection].Enabled {
+	if featuresFlags["tun"].Enabled && features[host.FeatureNetInjection].Enabled {
 		config.Flags |= ipc.FlagEnableTun
 	}
-	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetworkDevices].Enabled {
+	if featuresFlags["net_dev"].Enabled && features[host.FeatureNetDevices].Enabled {
 		config.Flags |= ipc.FlagEnableNetDev
 	}
 	if featuresFlags["net_reset"].Enabled {
