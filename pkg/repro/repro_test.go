@@ -77,18 +77,18 @@ func TestBisect(t *testing.T) {
 
 func TestSimplifies(t *testing.T) {
 	opts := csource.Options{
-		Threaded:       true,
-		Collide:        true,
-		Repeat:         true,
-		Procs:          10,
-		Sandbox:        "namespace",
-		EnableTun:      true,
-		EnableNetDev:   true,
-		EnableNetReset: true,
-		EnableCgroups:  true,
-		UseTmpDir:      true,
-		HandleSegv:     true,
-		Repro:          true,
+		Threaded:     true,
+		Collide:      true,
+		Repeat:       true,
+		Procs:        10,
+		Sandbox:      "namespace",
+		NetInjection: true,
+		NetDevices:   true,
+		NetReset:     true,
+		Cgroups:      true,
+		UseTmpDir:    true,
+		HandleSegv:   true,
+		Repro:        true,
 	}
 	var check func(opts csource.Options, i int)
 	check = func(opts csource.Options, i int) {

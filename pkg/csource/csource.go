@@ -196,7 +196,7 @@ func (ctx *context) generateCalls(p prog.ExecProg, trace bool) ([]string, []uint
 		callName := call.Meta.CallName
 		resCopyout := call.Index != prog.ExecNoCopyout
 		argCopyout := len(call.Copyout) != 0
-		emitCall := ctx.opts.EnableTun ||
+		emitCall := ctx.opts.NetInjection ||
 			callName != "syz_emit_ethernet" &&
 				callName != "syz_extract_tcp_res"
 		// TODO: if we don't emit the call we must also not emit copyin, copyout and fault injection.
