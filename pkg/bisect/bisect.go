@@ -222,6 +222,8 @@ func (env *env) bisect() (*Result, error) {
 			res.Report = testRes.rep
 			if testRes.kernelSign != "" && len(com.Parents) == 1 {
 				if prevRes := results[com.Parents[0]]; prevRes != nil {
+					env.log("kernel signature:   %v", testRes.kernelSign)
+					env.log("previous signature: %v", prevRes.kernelSign)
 					res.NoopChange = testRes.kernelSign == prevRes.kernelSign
 				}
 			}
@@ -314,6 +316,9 @@ func (env *env) test() (*testResult, error) {
 	}
 	_, kernelSign, err := env.inst.BuildKernel(bisectEnv.Compiler, cfg.Kernel.Userspace,
 		cfg.Kernel.Cmdline, cfg.Kernel.Sysctl, bisectEnv.KernelConfig)
+	if kernelSign != "" {
+		env.log("kernel signature: %v", kernelSign)
+	}
 	env.buildTime += time.Since(buildStart)
 	res := &testResult{
 		verdict:    vcs.BisectSkip,
