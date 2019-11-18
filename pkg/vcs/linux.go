@@ -154,6 +154,8 @@ func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
 		// Second, at 6689da155bdcd17abfe4d3a8b1e245d9ed4b5f2c CONFIG_KCOV selects CONFIG_GCC_PLUGIN_SANCOV
 		// (why?), which is build broken for hundreds of revisions.
 		"CONFIG_KCOV": "disable-always",
+		// This helps to produce stable binaries in presence of kernel tag changes.
+		"CONFIG_LOCALVERSION_AUTO": "disable-always",
 	}
 	for cfg, tag := range prereq {
 		if !tags[tag] {

@@ -133,12 +133,15 @@ func runMake(kernelDir string, args ...string) error {
 	cmd.Env = append([]string{}, os.Environ()...)
 	// This makes the build [more] deterministic:
 	// 2 builds from the same sources should result in the same vmlinux binary.
-	// We plan to use it for detecting no-op changes during bisection.
+	// Build on a release commit and on the previous one should result in the same vmlinux too.
+	// We use it for detecting no-op changes during bisection.
 	cmd.Env = append(cmd.Env,
 		"KBUILD_BUILD_VERSION=0",
 		"KBUILD_BUILD_TIMESTAMP=now",
 		"KBUILD_BUILD_USER=syzkaller",
 		"KBUILD_BUILD_HOST=syzkaller",
+		"KERNELVERSION=syzkaller",
+		"LOCALVERSION=-syzkaller",
 	)
 	_, err := osutil.Run(time.Hour, cmd)
 	return err
