@@ -1341,10 +1341,10 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{},
 	},
 	{
-		[]byte("general protection fault:"),
+		[]byte("general protection fault"),
 		[]oopsFormat{
 			{
-				title: compile("general protection fault:"),
+				title: compile("general protection fault.*:"),
 				fmt:   "general protection fault in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
