@@ -1496,6 +1496,7 @@ const int kInitNetNsFd = 239;
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI || SYZ_NET_DEVICES
 
 #include <linux/genetlink.h>
+#include <stdbool.h>
 
 #define DEVLINK_FAMILY_NAME "devlink"
 
@@ -1625,6 +1626,8 @@ error:
 }
 
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
+#include <fcntl.h>
+
 static void initialize_devlink_pci(void)
 {
 #if SYZ_EXECUTOR
