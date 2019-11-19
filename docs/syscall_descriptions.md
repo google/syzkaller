@@ -81,7 +81,7 @@ Then `make generate` updates generated code and `make` rebuilds binaries.\
 Note: `make generate` does not require any kernel sources, native compilers, etc
 and is pure text processing.
 Note: `make generate` also updates the SYZ_REVISION under executor/defs.h, which
-is required for machine check while running syz-manager. This should be take care
+is required for machine check while running syz-manager. This should be taken care
 of especially if you are trying to rebase with your own change on syscall description.
 
 Note: _all_ generated files (`*.const`, `*.go`, `*.h`) are checked-in with the
@@ -90,6 +90,9 @@ Note: _all_ generated files (`*.const`, `*.go`, `*.h`) are checked-in with the
 Note: `make extract` extracts constants for all architectures which requires
 installed cross-compilers. If you get errors about missing compilers/libraries,
 try `sudo make install_prerequisites` or install equivalent package for your distro.
+Note: `sudo make install_prerequisites` will success even with some package failed to
+install, `sudo apt-get update && sudo apt-get upgrade` might be required to make this
+more efficient.
 
 If you want to fuzz the new subsystem that you described locally, you may find
 the `enable_syscalls` configuration parameter useful to specifically target
