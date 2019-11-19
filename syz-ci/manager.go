@@ -139,9 +139,11 @@ func (mgr *Manager) loop() {
 	nextBuildTime := time.Now()
 	var managerRestartTime, coverUploadTime time.Time
 	latestInfo := mgr.checkLatest()
-	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 {
+	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 && mgr.managercfg.TargetOS != "fuchsia" {
 		// If we have a reasonably fresh build,
 		// start manager straight away and don't rebuild kernel for a while.
+		// Fuchsia is a special case: it builds with syz-executor, so if we just updated syzkaller, we need
+		// to rebuild fuchsia as well.
 		log.Logf(0, "%v: using latest image built on %v", mgr.name, latestInfo.KernelCommit)
 		managerRestartTime = latestInfo.Time
 		nextBuildTime = time.Now().Add(kernelRebuildPeriod)
