@@ -58,7 +58,7 @@ func removeImmutable(fname string) error {
 		cmd = 1074030082
 	case "amd64", "arm64":
 		cmd = 1074292226
-	case "ppc64le":
+	case "ppc64le", "mips64le":
 		cmd = 2148034050
 	default:
 		panic("unknown arch")
