@@ -206,12 +206,6 @@ ifeq ($(TARGETOS),fuchsia)
 else
 endif
 
-fuchsia_go:
-ifeq ($(TARGETOS),fuchsia)
-	./tools/fuchsia/build-go.sh
-else
-endif
-
 generate_trace2syz:
 	(cd tools/syz-trace2syz/parser; ragel -Z -G2 -o lex.go straceLex.rl)
 	(cd tools/syz-trace2syz/parser; goyacc -o strace.go -p Strace -v="" strace.y)
