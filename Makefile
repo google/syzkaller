@@ -97,7 +97,7 @@ endif
 	arch arch_darwin_amd64_host arch_linux_amd64_host \
 	arch_freebsd_amd64_host arch_netbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
-	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
+	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target arch_linux_mips64le_target \
 	arch_freebsd_amd64_target arch_freebsd_386_target \
 	arch_netbsd_amd64_target arch_windows_amd64_target \
 	arch_test presubmit presubmit_parallel clean
@@ -242,7 +242,7 @@ lint:
 arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host \
 	arch_netbsd_amd64_host arch_openbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
-	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target \
+	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target arch_linux_mips64le_target \
 	arch_freebsd_amd64_target arch_freebsd_386_target \
 	arch_netbsd_amd64_target arch_openbsd_amd64_target \
 	arch_windows_amd64_target arch_test
@@ -264,6 +264,9 @@ arch_linux_arm64_target:
 
 arch_linux_arm_target:
 	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
+
+arch_linux_mips64le_target:
+	env TARGETOS=linux TARGETARCH=mips64le $(MAKE) target
 
 arch_linux_ppc64le_target:
 	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
@@ -333,10 +336,11 @@ install_prerequisites:
 	uname -a
 	sudo apt-get update
 	sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev \
-		gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-powerpc64le-linux-gnu || true
+		gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-powerpc64le-linux-gnu gcc-mips64el-linux-gnuabi64 || true
 	sudo apt-get install -y -q g++-aarch64-linux-gnu || true
 	sudo apt-get install -y -q g++-powerpc64le-linux-gnu || true
 	sudo apt-get install -y -q g++-arm-linux-gnueabi || true
+	sudo apt-get install -y -q g++-mips64el-linux-gnuabi64 || true
 	sudo apt-get install -y -q ragel clang-format
 	go get -u golang.org/x/tools/cmd/goyacc \
 		github.com/golangci/golangci-lint/cmd/golangci-lint \

@@ -136,6 +136,16 @@ var archConfigs = map[string]*archConfig{
 			"console=ttyAMA0",
 		),
 	},
+	"linux/mips64le": {
+		Qemu:      "qemu-system-mips64el",
+		TargetDir: "/",
+		QemuArgs:  "-M malta -cpu MIPS64R2-generic -nodefaults",
+		NicModel:  ",model=e1000",
+		CmdLine: append(linuxCmdline,
+			"root=/dev/sda",
+			"console=ttyS0",
+		),
+	},
 	"linux/ppc64le": {
 		Qemu:      "qemu-system-ppc64",
 		TargetDir: "/",
