@@ -174,6 +174,16 @@ var List = map[string]map[string]*Target{
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
 		},
+		"mips64le": {
+			VMArch:           "mips64le",
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			CFlags:           []string{"-D_MIPS_SZLONG=64", "-D__MIPSEL__", "-D__KERNEL__", "-D_MIPS_SIM=_MIPS_SIM_ABI64"},
+			CrossCFlags:      []string{"-static", "-march=mips64r2", "-mabi=64", "-EL"},
+			CCompilerPrefix:  "mips64el-linux-gnuabi64-",
+			KernelArch:       "mips",
+			KernelHeaderArch: "mips",
+		},
 		"ppc64le": {
 			PtrSize:  8,
 			PageSize: 4 << 10,

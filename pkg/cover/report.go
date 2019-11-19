@@ -435,6 +435,8 @@ func PreviousInstructionPC(arch string, pc uint64) uint64 {
 		return (pc - 3) & ^uint64(1)
 	case "ppc64le":
 		return pc - 4
+	case "mips64le":
+		return pc - 4
 	default:
 		panic(fmt.Sprintf("unknown arch %q", arch))
 	}
@@ -458,6 +460,9 @@ func archCallInsn(arch string) (string, string) {
 	case "ppc64le":
 		// c00000000006d904:       bl      c000000000350780 <.__sanitizer_cov_trace_pc>
 		return "\tbl ", " <.__sanitizer_cov_trace_pc>"
+	case "mips64le":
+		// ffffffff80100420:       jal     ffffffff80205880 <__sanitizer_cov_trace_pc>
+		return "\tjal\t", callName
 	default:
 		panic(fmt.Sprintf("unknown arch %q", arch))
 	}
