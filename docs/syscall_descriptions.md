@@ -139,7 +139,7 @@ make generate
 make
 ```
 
-`$ARCH` is one of `amd64`, `386` `arm64`, `arm`, `ppc64le`.
+`$ARCH` is one of `amd64`, `386` `arm64`, `arm`, `ppc64le`, `mips64le`.
 If the subsystem is supported on several architectures, then run `syz-extract` for each arch.
 `$LINUX` should point to kernel source checkout, which is configured for the
 corresponding arch (i.e. you need to run `make ARCH=arch someconfig && make ARCH=arch` there first,

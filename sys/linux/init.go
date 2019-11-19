@@ -83,6 +83,7 @@ func InitTarget(target *prog.Target) {
 	case "arm64":
 	case "arm":
 	case "ppc64le":
+	case "mips64le":
 	default:
 		panic("unknown arch")
 	}
