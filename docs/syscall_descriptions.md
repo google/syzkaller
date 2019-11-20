@@ -69,7 +69,13 @@ make
 
 Here `make extract` generates/updates the `*.const` files.
 `$KSRC` should point to the _latest_ kernel checkout.\
-Note: `make extract` overwrites `.config` in `$KSRC` and `mrproper`'s it.
+_Note_: for Linux the _latest_ kernel checkout generally means the
+[mainline](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/) tree.\
+However, in some cases we add descriptions for interfaces that are not in the mainline tree yet,
+so if `make extract` complains about missing header files or constants undefined on all architectures,
+try to use the latest [linux-next](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/log/)
+tree (or if it happens to be broken at the moment, try a slightly older linux-next tree).\
+_Note_: `make extract` overwrites `.config` in `$KSRC` and `mrproper`'s it.
 
 Then `make generate` updates generated code and `make` rebuilds binaries.\
 Note: `make generate` does not require any kernel sources, native compilers, etc
@@ -133,6 +139,6 @@ make
 `$ARCH` is one of `amd64`, `386` `arm64`, `arm`, `ppc64le`.
 If the subsystem is supported on several architectures, then run `syz-extract` for each arch.
 `$LINUX` should point to kernel source checkout, which is configured for the
-corresponding arch (i.e. you need to run `make someconfig && make` there first).
+corresponding arch (i.e. you need to run `make ARCH=arch someconfig && make ARCH=arch` there first).
 If the kernel was built into a separate directory (with `make O=...`) then also
 set `$LINUXBLD` to the location of the build directory.
