@@ -82,7 +82,9 @@ smackfs_cipso_category {
 smackfs_cipso {
 	label	smack_labelnoz
 	sp0	const[' ', int8]
-# int8 because of SMK_DIGITLEN == 4
+# NEED: format specifiers with the given len ("%04d").
+# Kernel expects level to take exactly 4 (SMK_DIGITLEN) chars.
+# This affects lots of other fmt's in this file too.
 	level	fmt[dec, int8[0:SMACK_CIPSO_MAXLEVEL]]
 	sp1	const[' ', int8]
 	num	fmt[dec, len[cats]]
