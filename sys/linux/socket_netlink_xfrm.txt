@@ -124,7 +124,7 @@ xfrm_attrs [
 	algo_auth_trunc	nlattr[XFRMA_ALG_AUTH_TRUNC, xfrm_algo_auth]
 	algo_aead	nlattr[XFRMA_ALG_AEAD, xfrm_algo_aead]
 	algo_auth	nlattr[XFRMA_ALG_AUTH, xfrm_algo_hash]
-	algo_crypt	nlattr[XFRMA_ALG_CRYPT, xfrm_algo_blkcipher]
+	algo_crypt	nlattr[XFRMA_ALG_CRYPT, xfrm_algo_skcipher]
 	algo_comp	nlattr[XFRMA_ALG_COMP, xfrm_algo_compress]
 	srcaddr		nlattr[XFRMA_SRCADDR, xfrm_address]
 	coaddr		nlattr[XFRMA_COADDR, xfrm_address]
@@ -284,8 +284,8 @@ xfrm_algo_hash {
 	alg_key		array[int8]
 }
 
-xfrm_algo_blkcipher {
-	alg_name	alg_blkcipher_name
+xfrm_algo_skcipher {
+	alg_name	alg_skcipher_name
 	alg_key_len	bitsize[alg_key, int32]
 	alg_key		array[int8]
 }

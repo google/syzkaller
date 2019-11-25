@@ -90,7 +90,11 @@ func (*linux) prepareArch(arch *Arch) error {
 		"-e", "NETFILTER",
 		// include/net/mptcp.h is the only header in kernel that guards some
 		// of the consts with own config, so we need to enable CONFIG_MPTCP.
-		"-e", "MPTCP")
+		"-e", "MPTCP",
+		// security/smack/smack.h requires this to build.
+		"-e", "SECURITY",
+		"-e", "SECURITY_SMACK",
+	)
 	if err != nil {
 		return err
 	}

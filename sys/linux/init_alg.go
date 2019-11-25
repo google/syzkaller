@@ -50,9 +50,9 @@ func (arch *arch) generateAlgHashName(g *prog.Gen, typ prog.Type, old prog.Arg) 
 	return generateAlgNameStruct(g, typ, ALG_HASH)
 }
 
-func (arch *arch) generateAlgBlkcipherhName(g *prog.Gen, typ prog.Type, old prog.Arg) (
+func (arch *arch) generateAlgSkcipherhName(g *prog.Gen, typ prog.Type, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return generateAlgNameStruct(g, typ, ALG_BLKCIPHER)
+	return generateAlgNameStruct(g, typ, ALG_SKCIPHER)
 }
 
 func generateAlgNameStruct(g *prog.Gen, typ0 prog.Type, algTyp int) (arg prog.Arg, calls []*prog.Call) {
@@ -108,7 +108,7 @@ type algDesc struct {
 
 const (
 	ALG_CIPHER = iota
-	ALG_BLKCIPHER
+	ALG_SKCIPHER
 	ALG_AEAD
 	ALG_HASH
 	ALG_RNG
@@ -116,7 +116,7 @@ const (
 
 var allTypes = []algType{
 	{"aead", ALG_AEAD},
-	{"skcipher", ALG_BLKCIPHER},
+	{"skcipher", ALG_SKCIPHER},
 	{"hash", ALG_HASH},
 	{"rng", ALG_RNG},
 }
@@ -124,20 +124,20 @@ var allTypes = []algType{
 var allAlgs = map[int][]algDesc{
 	ALG_AEAD: {
 		// templates:
-		{"authenc", []int{ALG_HASH, ALG_BLKCIPHER}},
-		{"authencesn", []int{ALG_HASH, ALG_BLKCIPHER}},
+		{"authenc", []int{ALG_HASH, ALG_SKCIPHER}},
+		{"authencesn", []int{ALG_HASH, ALG_SKCIPHER}},
 		{"ccm", []int{ALG_CIPHER}},
-		{"ccm_base", []int{ALG_BLKCIPHER, ALG_HASH}},
+		{"ccm_base", []int{ALG_SKCIPHER, ALG_HASH}},
 		{"echainiv", []int{ALG_AEAD}},
 		{"essiv", []int{ALG_AEAD, ALG_HASH}},
 		{"gcm", []int{ALG_CIPHER}},
-		{"gcm_base", []int{ALG_BLKCIPHER, ALG_HASH}},
+		{"gcm_base", []int{ALG_SKCIPHER, ALG_HASH}},
 		{"pcrypt", []int{ALG_AEAD}},
 		{"rfc4106", []int{ALG_AEAD}},
 		{"rfc4309", []int{ALG_AEAD}},
 		{"rfc4543", []int{ALG_AEAD}},
-		{"rfc7539", []int{ALG_BLKCIPHER, ALG_HASH}},
-		{"rfc7539esp", []int{ALG_BLKCIPHER, ALG_HASH}},
+		{"rfc7539", []int{ALG_SKCIPHER, ALG_HASH}},
+		{"rfc7539esp", []int{ALG_SKCIPHER, ALG_HASH}},
 		{"seqiv", []int{ALG_AEAD}},
 
 		// algorithms:
@@ -165,25 +165,25 @@ var allAlgs = map[int][]algDesc{
 		{"rfc4106(gcm(aes))", nil},
 		{"rfc4106-gcm-aesni", nil},
 	},
-	ALG_BLKCIPHER: {
+	ALG_SKCIPHER: {
 		// templates:
-		{"adiantum", []int{ALG_BLKCIPHER, ALG_CIPHER, ALG_HASH}},
-		{"adiantum", []int{ALG_BLKCIPHER, ALG_CIPHER}},
+		{"adiantum", []int{ALG_SKCIPHER, ALG_CIPHER, ALG_HASH}},
+		{"adiantum", []int{ALG_SKCIPHER, ALG_CIPHER}},
 		{"cbc", []int{ALG_CIPHER}},
 		{"cfb", []int{ALG_CIPHER}},
-		{"cryptd", []int{ALG_BLKCIPHER}},
+		{"cryptd", []int{ALG_SKCIPHER}},
 		{"ctr", []int{ALG_CIPHER}},
-		{"cts", []int{ALG_BLKCIPHER}},
+		{"cts", []int{ALG_SKCIPHER}},
 		{"ecb", []int{ALG_CIPHER}},
-		{"essiv", []int{ALG_BLKCIPHER, ALG_HASH}},
-		{"fpu", []int{ALG_BLKCIPHER}},
+		{"essiv", []int{ALG_SKCIPHER, ALG_HASH}},
+		{"fpu", []int{ALG_SKCIPHER}},
 		{"kw", []int{ALG_CIPHER}},
-		{"lrw", []int{ALG_BLKCIPHER}},
+		{"lrw", []int{ALG_SKCIPHER}},
 		{"lrw", []int{ALG_CIPHER}},
 		{"ofb", []int{ALG_CIPHER}},
 		{"pcbc", []int{ALG_CIPHER}},
-		{"rfc3686", []int{ALG_BLKCIPHER}},
-		{"xts", []int{ALG_BLKCIPHER}},
+		{"rfc3686", []int{ALG_SKCIPHER}},
+		{"xts", []int{ALG_SKCIPHER}},
 		{"xts", []int{ALG_CIPHER}},
 
 		// algorithms:
