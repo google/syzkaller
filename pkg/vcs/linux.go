@@ -21,6 +21,8 @@ type linux struct {
 	*git
 }
 
+var _ Bisecter = new(linux)
+
 func newLinux(dir string) *linux {
 	ignoreCC := map[string]bool{
 		"stable@vger.kernel.org": true,

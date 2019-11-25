@@ -26,6 +26,8 @@ import (
 
 type linux struct{}
 
+var _ signer = linux{}
+
 func (linux linux) build(params *Params) error {
 	if err := linux.buildKernel(params); err != nil {
 		return err
@@ -34,6 +36,10 @@ func (linux linux) build(params *Params) error {
 		return err
 	}
 	return nil
+}
+
+func (linux linux) sign(params *Params) (string, error) {
+	return elfBinarySignature(filepath.Join(params.OutputDir, "obj", "vmlinux"))
 }
 
 func (linux) buildKernel(params *Params) error {
