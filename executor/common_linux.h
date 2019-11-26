@@ -483,7 +483,7 @@ const int kInitNetNsFd = 239; // see kMaxFd
 #define DEVLINK_ATTR_DEV_NAME 2
 #define DEVLINK_ATTR_NETDEV_NAME 7
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
-#define DEVLINK_ATTR_NETNS_FD 137
+#define DEVLINK_ATTR_NETNS_FD 138
 #endif
 
 static int netlink_devlink_id_get(struct nlmsg* nlmsg, int sock)
