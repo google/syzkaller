@@ -1,6 +1,8 @@
 # Copyright 2019 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# Reference: https://www.kernel.org/doc/html/latest/filesystems/fscrypt.html#user-api
+
 include <uapi/linux/fs.h>
 include <uapi/linux/fscrypt.h>
 
@@ -47,7 +49,7 @@ type fscrypt_policy_mode_t[CONTENTS, FILENAMES] {
 	filenames_encryption_mode	const[FILENAMES, int8]
 }
 
-fscrypt_policy_flags = FSCRYPT_POLICY_FLAGS_PAD_4, FSCRYPT_POLICY_FLAGS_PAD_8, FSCRYPT_POLICY_FLAGS_PAD_16, FSCRYPT_POLICY_FLAGS_PAD_32, FSCRYPT_POLICY_FLAG_DIRECT_KEY
+fscrypt_policy_flags = FSCRYPT_POLICY_FLAGS_PAD_4, FSCRYPT_POLICY_FLAGS_PAD_8, FSCRYPT_POLICY_FLAGS_PAD_16, FSCRYPT_POLICY_FLAGS_PAD_32, FSCRYPT_POLICY_FLAG_DIRECT_KEY, FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64
 
 fscrypt_get_policy_ex_arg {
 	policy_size	len[policy, int64]
