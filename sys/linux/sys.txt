@@ -251,6 +251,8 @@ clone_args {
 	stack		ptr64[out, array[int8]]
 	stack_size	bytesize[stack, int64]
 	tls		ptr64[out, array[int8]]
+	set_tid		ptr64[in, array[pid]]
+	set_tid_size	len[set_tid, int64]
 }
 
 resource pid[int32]: 0, -1
