@@ -3,6 +3,10 @@
 
 package prog
 
+import (
+	"fmt"
+)
+
 func (p *Prog) Clone() *Prog {
 	p1 := &Prog{
 		Target: p.Target,
@@ -72,7 +76,7 @@ func clone(arg Arg, newargs map[*ResultArg]*ResultArg) Arg {
 		a1.uses = nil // filled when we clone the referent
 		newargs[a] = a1
 	default:
-		panic("bad arg kind")
+		panic(fmt.Sprintf("bad arg kind: %#v", arg))
 	}
 	return arg1
 }
