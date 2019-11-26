@@ -11,6 +11,7 @@ include <linux/socket.h>
 include <uapi/linux/in.h>
 include <uapi/linux/ethtool.h>
 include <uapi/linux/if_ether.h>
+include <uapi/linux/if_vlan.h>
 include <uapi/asm-generic/socket.h>
 
 resource sock[fd]
@@ -236,11 +237,34 @@ sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFT
 
 # Since some socket ioctls are forwarded to the network device, adding device ioctls here as well.
 
-# http://lxr.free-electrons.com/source/include/uapi/linux/sockios.h
+# http://lxr.free-electrons.com/linux/latest/source/include/uapi/linux/sockios.h
 
-# http://lxr.free-electrons.com/source/include/uapi/asm-generic/sockios.h
+# http://lxr.free-electrons.com/linux/latest/source/include/uapi/asm-generic/sockios.h
 
-# TODO: add SIOCADDRT, SIOCDELRT, SIOCRTMSG, SIOCDRARP, SIOCGRARP, SIOCSRARP, SIOCGIFVLAN, SIOCSIFVLAN
+ioctl$sock_SIOCADDRT(fd sock, cmd const[SIOCADDRT], arg ptr[inout, rtentry])
+ioctl$sock_SIOCDELRT(fd sock, cmd const[SIOCDELRT], arg ptr[inout, rtentry])
+
+ioctl$sock_SIOCGIFVLAN_SET_VLAN_INGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[SET_VLAN_INGRESS_PRIORITY_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_SET_VLAN_EGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[SET_VLAN_EGRESS_PRIORITY_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_SET_VLAN_FLAG_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[SET_VLAN_FLAG_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_SET_VLAN_NAME_TYPE_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[SET_VLAN_NAME_TYPE_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_ADD_VLAN_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[ADD_VLAN_CMD, int32[0:4]]])
+ioctl$sock_SIOCGIFVLAN_DEL_VLAN_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[in, vlan_args[DEL_VLAN_CMD, const[0, int32]]])
+ioctl$sock_SIOCGIFVLAN_GET_VLAN_REALDEV_NAME_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[inout, vlan_args[GET_VLAN_REALDEV_NAME_CMD, string[devnames, 24]]])
+ioctl$sock_SIOCGIFVLAN_GET_VLAN_VID_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[out, vlan_args[GET_VLAN_VID_CMD, int32]])
+ioctl$sock_SIOCGIFVLAN_GET_VLAN_INGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[out, vlan_args[GET_VLAN_INGRESS_PRIORITY_CMD, const[0, int32]]])
+ioctl$sock_SIOCGIFVLAN_GET_VLAN_EGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCGIFVLAN], arg ptr[out, vlan_args[GET_VLAN_EGRESS_PRIORITY_CMD, const[0, int32]]])
+
+ioctl$sock_SIOCSIFVLAN_SET_VLAN_INGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[SET_VLAN_INGRESS_PRIORITY_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_SET_VLAN_EGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[SET_VLAN_EGRESS_PRIORITY_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_SET_VLAN_FLAG_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[SET_VLAN_FLAG_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_SET_VLAN_NAME_TYPE_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[SET_VLAN_NAME_TYPE_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_ADD_VLAN_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[ADD_VLAN_CMD, int32[0:4]]])
+ioctl$sock_SIOCSIFVLAN_DEL_VLAN_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[in, vlan_args[DEL_VLAN_CMD, const[0, int32]]])
+ioctl$sock_SIOCSIFVLAN_GET_VLAN_REALDEV_NAME_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[inout, vlan_args[GET_VLAN_REALDEV_NAME_CMD, string[devnames, 24]]])
+ioctl$sock_SIOCSIFVLAN_GET_VLAN_VID_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[out, vlan_args[GET_VLAN_VID_CMD, int32]])
+ioctl$sock_SIOCSIFVLAN_GET_VLAN_INGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[out, vlan_args[GET_VLAN_INGRESS_PRIORITY_CMD, const[0, int32]]])
+ioctl$sock_SIOCSIFVLAN_GET_VLAN_EGRESS_PRIORITY_CMD(fd sock, cmd const[SIOCSIFVLAN], arg ptr[out, vlan_args[GET_VLAN_EGRESS_PRIORITY_CMD, const[0, int32]]])
 
 ioctl$sock_SIOCETHTOOL(fd sock, cmd const[SIOCETHTOOL], arg ptr[inout, ifreq_t[ptr[inout, ethtool_cmd_u]]])
 
@@ -316,6 +340,35 @@ ifr_ifru [
 ]
 
 define IFREQ_SIZE	sizeof(struct ifreq)
+
+# https://elixir.bootlin.com/linux/v5.3.11/source/include/uapi/linux/if_vlan.h
+type vlan_args[CMD, DATA] {
+	cmd		const[CMD, int32]
+	device1		string[devnames, 24]
+	u		vlan_args_u[DATA]
+	vlan_qos	int16
+}
+
+type vlan_args_u[DATA] {
+	datadata	DATA
+} [size[24]]
+
+# https://elixir.bootlin.com/linux/v5.3.12/source/include/uapi/linux/route.h#L31
+rtentry {
+	rt_pad1		const[0, intptr]
+	rt_dst		sockaddr
+	rt_gateway	sockaddr
+	rt_genmask	sockaddr
+	rt_flags	int16
+	rt_pad2		const[0, int16]
+	rt_pad3		const[0, intptr]
+	rt_pad4		const[0, intptr]
+	rt_metric	int16
+	rt_dev		ptr[in, devname, opt]
+	rt_mtu		intptr
+	rt_window	intptr
+	rt_irtt		int16
+}
 
 # We could add "eth0" to this list as well, but this will affect the connection
 # between fuzzer and manager and produce lots of "no output" crashes
