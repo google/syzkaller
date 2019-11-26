@@ -523,7 +523,7 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 {
 	struct genlmsghdr genlhdr;
 	int sock;
-	int id;
+	int id, err;
 
 	sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
 	if (sock == -1)
@@ -539,7 +539,11 @@ static void netlink_devlink_netns_move(const char* bus_name, const char* dev_nam
 	netlink_attr(&nlmsg, DEVLINK_ATTR_BUS_NAME, bus_name, strlen(bus_name) + 1);
 	netlink_attr(&nlmsg, DEVLINK_ATTR_DEV_NAME, dev_name, strlen(dev_name) + 1);
 	netlink_attr(&nlmsg, DEVLINK_ATTR_NETNS_FD, &netns_fd, sizeof(netns_fd));
-	netlink_send(&nlmsg, sock);
+	err = netlink_send(&nlmsg, sock);
+	if (err) {
+		debug("netlink: failed to move devlink instance %s/%s into network namespace: %s\n",
+		      bus_name, dev_name, strerror(err));
+	}
 error:
 	close(sock);
 }
