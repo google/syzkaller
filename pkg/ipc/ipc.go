@@ -780,8 +780,10 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 	output = <-c.readDone
 	if err := c.wait(); <-hang {
 		hanged = true
-		output = append(output, []byte(err.Error())...)
-		output = append(output, '\n')
+		if err != nil {
+			output = append(output, err.Error()...)
+			output = append(output, '\n')
+		}
 		return
 	}
 	if exitStatus == -1 {
