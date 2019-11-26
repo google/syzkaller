@@ -1676,9 +1676,10 @@ static void netdevsim_add(unsigned int addr, unsigned int port_count)
 	char buf[16];
 
 	sprintf(buf, "%u %u", addr, port_count);
-	write_file("/sys/bus/netdevsim/new_device", buf);
-	snprintf(buf, sizeof(buf), "netdevsim%d", addr);
-	initialize_devlink_ports("netdevsim", buf, "netdevsim");
+	if (write_file("/sys/bus/netdevsim/new_device", buf)) {
+		snprintf(buf, sizeof(buf), "netdevsim%d", addr);
+		initialize_devlink_ports("netdevsim", buf, "netdevsim");
+	}
 }
 static void initialize_netdevices(void)
 {
