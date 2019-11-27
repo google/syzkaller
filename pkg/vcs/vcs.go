@@ -64,6 +64,8 @@ type Bisecter interface {
 	// PreviousReleaseTags returns list of preceding release tags that are reachable from the given commit.
 	PreviousReleaseTags(commit string) ([]string, error)
 
+	IsRelease(commit string) (bool, error)
+
 	EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error)
 }
 

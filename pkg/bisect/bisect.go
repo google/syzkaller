@@ -71,6 +71,7 @@ const NumTests = 10 // number of tests we do per commit
 //    - Commit is nil
 //    - NoopChange is set if the commit did not cause any change in the kernel binary
 //      (bisection result it most likely wrong)
+//    - Bisected to a release commit
 //  - if bisection is inconclusive, range of potential cause/fix commits in Commits
 //    - report is nil in such case
 //    - Commit is nil
@@ -83,6 +84,7 @@ type Result struct {
 	Report     *report.Report
 	Commit     *vcs.Commit
 	NoopChange bool
+	IsRelease  bool
 }
 
 // Run does the bisection and returns either the Result,
@@ -221,6 +223,11 @@ func (env *env) bisect() (*Result, error) {
 	}
 	if len(commits) == 1 {
 		com := commits[0]
+		isRelease, err := env.bisecter.IsRelease(com.Hash)
+		if err != nil {
+			env.log("failed to detect release: %v", err)
+		}
+		res.IsRelease = isRelease
 		if testRes := results[com.Hash]; testRes != nil {
 			res.Report = testRes.rep
 			if testRes.kernelSign != "" && len(com.Parents) == 1 {

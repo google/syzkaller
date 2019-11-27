@@ -127,6 +127,7 @@ type BisectionTest struct {
 	expectErr    bool
 	expectRep    bool
 	noopChange   bool
+	isRelease    bool
 	commitLen    int
 	oldestLatest int
 	// input and output
@@ -177,6 +178,7 @@ func TestBisectionResults(t *testing.T) {
 			startCommit: 400,
 			commitLen:   1,
 			culprit:     500,
+			isRelease:   true,
 		},
 		// Tests that fix bisection returns error when crash does not reproduce
 		// on the original commit.
@@ -254,6 +256,7 @@ func TestBisectionResults(t *testing.T) {
 			sameBinaryStart: 405,
 			sameBinaryEnd:   500,
 			noopChange:      true,
+			isRelease:       true,
 		},
 		{
 			name:            "cause-same-binary-release2",
@@ -284,6 +287,14 @@ func TestBisectionResults(t *testing.T) {
 			sameBinaryStart: 904,
 			sameBinaryEnd:   905,
 			noopChange:      true,
+		},
+		{
+			name:        "fix-release",
+			fix:         true,
+			startCommit: 400,
+			commitLen:   1,
+			culprit:     900,
+			isRelease:   true,
 		},
 	}
 	for _, test := range tests {
@@ -327,6 +338,9 @@ func TestBisectionResults(t *testing.T) {
 			}
 			if res.NoopChange != test.noopChange {
 				t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
+			}
+			if res.IsRelease != test.isRelease {
+				t.Fatalf("got release change: %v, want: %v", res.IsRelease, test.isRelease)
 			}
 			if test.oldestLatest != 0 && fmt.Sprint(test.oldestLatest) != res.Commit.Title ||
 				test.oldestLatest == 0 && res.Commit != nil {

@@ -419,6 +419,9 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		if res.NoopChange {
 			resp.Flags |= dashapi.BisectResultNoop
 		}
+		if res.IsRelease {
+			resp.Flags |= dashapi.BisectResultRelease
+		}
 	}
 	if res.Report != nil {
 		resp.CrashTitle = res.Report.Title

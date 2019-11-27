@@ -552,7 +552,7 @@ func TestBisectWrong(t *testing.T) {
 
 	build := testBuild(1)
 	c.client2.UploadBuild(build)
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 5; i++ {
 		var flags dashapi.JobDoneFlags
 		switch i {
 		case 0:
@@ -562,6 +562,8 @@ func TestBisectWrong(t *testing.T) {
 			flags = dashapi.BisectResultNoop
 		case 3:
 			flags = dashapi.BisectResultMerge | dashapi.BisectResultNoop
+		case 4:
+			flags = dashapi.BisectResultRelease
 		default:
 			t.Fatalf("assign flags")
 		}
