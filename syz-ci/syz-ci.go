@@ -93,7 +93,7 @@ type Config struct {
 	// GCS path to upload coverage reports from managers (optional).
 	CoverUploadPath string `json:"cover_upload_path"`
 	// Enable patch testing jobs.
-	EnableJobs   bool             `json:"enable_jobs"`
+	//EnableJobs   bool             `json:"enable_jobs"`
 	BisectBinDir string           `json:"bisect_bin_dir"`
 	Managers     []*ManagerConfig `json:"managers"`
 }
@@ -113,8 +113,15 @@ type ManagerConfig struct {
 	KernelCmdline string `json:"kernel_cmdline"`
 	// File with sysctl values (e.g. output of sysctl -a, optional).
 	KernelSysctl string `json:"kernel_sysctl"`
-	PollCommits  bool   `json:"poll_commits"`
-	Bisect       bool   `json:"bisect"`
+	//PollCommits  bool   `json:"poll_commits"`
+	//Bisect       bool   `json:"bisect"`
+
+	// Comma-separated list of job types to do for this manager:
+	//  - test-patch: test proposed fix patches
+	//  - bisect-cause: do cause bisection
+	//  - bisect-fix: do fix bisection
+	//  - poll-commits: poll info about fix commits
+	Jobs string `json:"bisect"`
 
 	ManagerConfig json.RawMessage `json:"manager_config"`
 	managercfg    *mgrconfig.Config
