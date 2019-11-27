@@ -186,17 +186,10 @@ func checkTestJob(c context.Context, bug *Bug, bugReporting *BugReporting, crash
 }
 
 // pollPendingJobs returns the next job to execute for the provided list of managers.
-func pollPendingJobs(c context.Context, testMgrs, bisectMgrs []string) (*dashapi.JobPollResp, error) {
-	testManagers := make(map[string]bool)
-	for _, mgr := range testMgrs {
-		testManagers[mgr] = true
-	}
-	bisectManagers := make(map[string]bool)
-	for _, mgr := range bisectMgrs {
-		bisectManagers[mgr] = true
-	}
+func pollPendingJobs(c context.Context, managers map[string]dashapi.ManagerJobs) (
+	*dashapi.JobPollResp, error) {
 retry:
-	job, jobKey, err := getNextJob(c, testManagers, bisectManagers)
+	job, jobKey, err := getNextJob(c, managers)
 	if job == nil || err != nil {
 		return nil, err
 	}
@@ -210,35 +203,45 @@ retry:
 	return resp, nil
 }
 
-func getNextJob(c context.Context, testManagers, bisectManagers map[string]bool) (*Job, *db.Key, error) {
-	job, jobKey, err := loadPendingJob(c, testManagers, bisectManagers)
+func getNextJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
+	job, jobKey, err := loadPendingJob(c, managers)
 	if job != nil || err != nil {
 		return job, jobKey, err
-	}
-	if len(bisectManagers) == 0 {
-		return nil, nil, nil
 	}
 	// We need both C and syz repros, but the crazy datastore query restrictions
 	// do not allow to use ReproLevel>ReproLevelNone in the query.  So we do 2 separate queries.
 	// C repros tend to be of higher reliability so maybe it's not bad.
-	job, jobKey, err = createBisectJob(c, bisectManagers, ReproLevelC)
+	job, jobKey, err = createBisectJob(c, managers, ReproLevelC)
 	if job != nil || err != nil {
 		return job, jobKey, err
 	}
-	return createBisectJob(c, bisectManagers, ReproLevelSyz)
+	return createBisectJob(c, managers, ReproLevelSyz)
 }
 
-func createBisectJob(c context.Context, managers map[string]bool, reproLevel dashapi.ReproLevel) (
-	*Job, *db.Key, error) {
-	job, jobKey, err := findBugsForBisection(c, managers, reproLevel, JobBisectCause)
+func createBisectJob(c context.Context, managers map[string]dashapi.ManagerJobs,
+	reproLevel dashapi.ReproLevel) (*Job, *db.Key, error) {
+	causeManagers := make(map[string]bool)
+	fixManagers := make(map[string]bool)
+	for mgr, jobs := range managers {
+		if jobs.BisectCause {
+			causeManagers[mgr] = true
+		}
+		if jobs.BisectFix {
+			fixManagers[mgr] = true
+		}
+	}
+	job, jobKey, err := findBugsForBisection(c, causeManagers, reproLevel, JobBisectCause)
 	if job != nil || err != nil {
 		return job, jobKey, err
 	}
-	return findBugsForBisection(c, managers, reproLevel, JobBisectFix)
+	return findBugsForBisection(c, fixManagers, reproLevel, JobBisectFix)
 }
 
-func findBugsForBisection(c context.Context, managers map[string]bool, reproLevel dashapi.ReproLevel, jobType JobType) (
-	*Job, *db.Key, error) {
+func findBugsForBisection(c context.Context, managers map[string]bool,
+	reproLevel dashapi.ReproLevel, jobType JobType) (*Job, *db.Key, error) {
+	if len(managers) == 0 {
+		return nil, nil, nil
+	}
 	// Note: we could also include len(Commits)==0 but datastore does not work this way.
 	// So we would need an additional HasCommits field or something.
 	// Note: For JobBisectCause, order the bugs from newest to oldest. For JobBisectFix,
@@ -762,7 +765,7 @@ func jobReported(c context.Context, jobID string) error {
 	return db.RunInTransaction(c, tx, nil)
 }
 
-func loadPendingJob(c context.Context, testManagers, bisectManagers map[string]bool) (*Job, *db.Key, error) {
+func loadPendingJob(c context.Context, managers map[string]dashapi.ManagerJobs) (*Job, *db.Key, error) {
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
 		Filter("Finished=", time.Time{}).
@@ -775,11 +778,12 @@ func loadPendingJob(c context.Context, testManagers, bisectManagers map[string]b
 	for i, job := range jobs {
 		switch job.Type {
 		case JobTestPatch:
-			if !testManagers[job.Manager] {
+			if !managers[job.Manager].TestPatches {
 				continue
 			}
 		case JobBisectCause, JobBisectFix:
-			if !bisectManagers[job.Manager] {
+			if job.Type == JobBisectCause && !managers[job.Manager].BisectCause ||
+				job.Type == JobBisectFix && !managers[job.Manager].BisectFix {
 				continue
 			}
 			// Don't retry bisection jobs too often.

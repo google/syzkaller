@@ -91,11 +91,9 @@ type Config struct {
 	// Dir with additional syscall descriptions (.txt and .const files).
 	SyzkallerDescriptions string `json:"syzkaller_descriptions"`
 	// GCS path to upload coverage reports from managers (optional).
-	CoverUploadPath string `json:"cover_upload_path"`
-	// Enable patch testing jobs.
-	//EnableJobs   bool             `json:"enable_jobs"`
-	BisectBinDir string           `json:"bisect_bin_dir"`
-	Managers     []*ManagerConfig `json:"managers"`
+	CoverUploadPath string           `json:"cover_upload_path"`
+	BisectBinDir    string           `json:"bisect_bin_dir"`
+	Managers        []*ManagerConfig `json:"managers"`
 }
 
 type ManagerConfig struct {
@@ -112,19 +110,18 @@ type ManagerConfig struct {
 	// File with kernel cmdline values (optional).
 	KernelCmdline string `json:"kernel_cmdline"`
 	// File with sysctl values (e.g. output of sysctl -a, optional).
-	KernelSysctl string `json:"kernel_sysctl"`
-	//PollCommits  bool   `json:"poll_commits"`
-	//Bisect       bool   `json:"bisect"`
-
-	// Comma-separated list of job types to do for this manager:
-	//  - test-patch: test proposed fix patches
-	//  - bisect-cause: do cause bisection
-	//  - bisect-fix: do fix bisection
-	//  - poll-commits: poll info about fix commits
-	Jobs string `json:"bisect"`
+	KernelSysctl string      `json:"kernel_sysctl"`
+	Jobs         ManagerJobs `json:"jobs"`
 
 	ManagerConfig json.RawMessage `json:"manager_config"`
 	managercfg    *mgrconfig.Config
+}
+
+type ManagerJobs struct {
+	TestPatches bool `json:"test_patches"` // enable patch testing jobs
+	PollCommits bool `json:"poll_commits"` // poll info about fix commits
+	BisectCause bool `json:"bisect_cause"` // do cause bisection
+	BisectFix   bool `json:"bisect_fix"`   // do fix bisection
 }
 
 func main() {
@@ -251,12 +248,6 @@ func loadConfig(filename string) (*Config, error) {
 	if len(cfg.Managers) == 0 {
 		return nil, fmt.Errorf("no managers specified")
 	}
-	if cfg.EnableJobs && (cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
-		return nil, fmt.Errorf("enabled_jobs is set but no dashboard info")
-	}
-	if cfg.EnableJobs && cfg.BisectBinDir == "" {
-		return nil, fmt.Errorf("enabled_jobs is set but no bisect_bin_dir")
-	}
 	// Manager name must not contain dots because it is used as GCE image name prefix.
 	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{4,64}$")
 	for i, mgr := range cfg.Managers {
@@ -270,8 +261,16 @@ func loadConfig(filename string) (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("manager %v: %v", mgr.Name, err)
 		}
-		if mgr.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
+		if (mgr.Jobs.TestPatches || mgr.Jobs.PollCommits ||
+			mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) &&
+			(cfg.DashboardAddr == "" || cfg.DashboardClient == "") {
+			return nil, fmt.Errorf("manager %v: has jobs but no dashboard info", mgr.Name)
+		}
+		if mgr.Jobs.PollCommits && (cfg.DashboardAddr == "" || mgr.DashboardClient == "") {
 			return nil, fmt.Errorf("manager %v: commit_poll is set but no dashboard info", mgr.Name)
+		}
+		if (mgr.Jobs.BisectCause || mgr.Jobs.BisectFix) && cfg.BisectBinDir == "" {
+			return nil, fmt.Errorf("manager %v: enabled bisection but no bisect_bin_dir", mgr.Name)
 		}
 		mgr.managercfg = managercfg
 		managercfg.Name = cfg.Name + "-" + mgr.Name

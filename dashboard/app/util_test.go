@@ -392,10 +392,16 @@ func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup s
 }
 
 func (client *apiClient) pollJobs(manager string) *dashapi.JobPollResp {
-	resp, err := client.JobPoll(&dashapi.JobPollReq{
-		PatchTestManagers: []string{manager},
-		BisectManagers:    []string{manager},
-	})
+	req := &dashapi.JobPollReq{
+		Managers: map[string]dashapi.ManagerJobs{
+			manager: {
+				TestPatches: true,
+				BisectCause: true,
+				BisectFix:   true,
+			},
+		},
+	}
+	resp, err := client.JobPoll(req)
 	client.expectOK(err)
 	return resp
 }

@@ -771,6 +771,7 @@ func TestBisectCauseExternal(t *testing.T) {
 	rep := c.client.pollBug()
 
 	pollResp := c.client.pollJobs(build.Manager)
+	c.expectNE(pollResp.ID, "")
 	jobID := pollResp.ID
 	done := &dashapi.JobDoneReq{
 		ID:    jobID,

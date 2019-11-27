@@ -357,10 +357,10 @@ func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}
 	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	if len(req.PatchTestManagers) == 0 && len(req.BisectManagers) == 0 {
+	if len(req.Managers) == 0 {
 		return nil, fmt.Errorf("no managers")
 	}
-	return pollPendingJobs(c, req.PatchTestManagers, req.BisectManagers)
+	return pollPendingJobs(c, req.Managers)
 }
 
 func apiJobDone(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
