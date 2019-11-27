@@ -202,6 +202,7 @@ const (
 	// Parallel to dashapi.JobDoneFlags, see comments there.
 	BisectResultMerge JobFlags = 1 << iota
 	BisectResultNoop
+	BisectResultRelease
 )
 
 func (job *Job) isUnreliableBisect() bool {
@@ -211,7 +212,8 @@ func (job *Job) isUnreliableBisect() bool {
 	// If a bisection points to a merge or a commit that does not affect the kernel binary,
 	// it is considered an unreliable/wrong result and should not be reported in emails.
 	return job.Flags&BisectResultMerge != 0 ||
-		job.Flags&BisectResultNoop != 0
+		job.Flags&BisectResultNoop != 0 ||
+		job.Flags&BisectResultRelease != 0
 }
 
 // Text holds text blobs (crash logs, reports, reproducers, etc).

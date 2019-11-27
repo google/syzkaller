@@ -476,3 +476,15 @@ func (git *git) previousReleaseTags(commit string, self bool) ([]string, error) 
 	tags = append(tags, tags1...)
 	return tags, nil
 }
+
+func (git *git) IsRelease(commit string) (bool, error) {
+	tags1, err := git.previousReleaseTags(commit, true)
+	if err != nil {
+		return false, err
+	}
+	tags2, err := git.previousReleaseTags(commit, false)
+	if err != nil {
+		return false, err
+	}
+	return len(tags1) != len(tags2), nil
+}
