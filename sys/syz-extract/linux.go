@@ -133,6 +133,8 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + buildDir + "/include/generated/uapi",
 		"-I" + sourceDir,
 		"-I" + buildDir + "/syzkaller",
+		"-I" + sourceDir + "/arch/" + headerArch + "/include/asm/mach-malta",
+		"-I" + sourceDir + "/arch/" + headerArch + "/include/asm/mach-generic",
 		"-include", sourceDir + "/include/linux/kconfig.h",
 	}
 	args = append(args, arch.target.CrossCFlags...)
