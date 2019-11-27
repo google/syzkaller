@@ -42,23 +42,17 @@ type JobProcessor struct {
 }
 
 func newJobProcessor(cfg *Config, managers []*Manager, stop, shutdownPending chan struct{}) *JobProcessor {
-	jp := &JobProcessor{
+	return &JobProcessor{
 		cfg:             cfg,
 		name:            fmt.Sprintf("%v-job", cfg.Name),
 		managers:        managers,
 		knownCommits:    make(map[string]bool),
 		stop:            stop,
 		shutdownPending: shutdownPending,
+		dash:            dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey),
 		syzkallerRepo:   cfg.SyzkallerRepo,
 		syzkallerBranch: cfg.SyzkallerBranch,
 	}
-	if cfg.EnableJobs {
-		if cfg.DashboardAddr == "" || cfg.DashboardClient == "" {
-			panic("enabled_jobs is set but no dashboard info")
-		}
-		jp.dash = dashapi.New(cfg.DashboardClient, cfg.DashboardAddr, cfg.DashboardKey)
-	}
-	return jp
 }
 
 func (jp *JobProcessor) loop() {
@@ -81,9 +75,7 @@ loop:
 				// Otherwise we claim a job, but can't start it for a while.
 				continue loop
 			}
-			if jp.cfg.EnableJobs {
-				jp.pollJobs()
-			}
+			jp.pollJobs()
 			if time.Since(lastCommitPoll) > commitPollPeriod {
 				jp.pollCommits()
 				lastCommitPoll = time.Now()
@@ -97,7 +89,7 @@ loop:
 
 func (jp *JobProcessor) pollCommits() {
 	for _, mgr := range jp.managers {
-		if !mgr.mgrcfg.PollCommits {
+		if !mgr.mgrcfg.Jobs.PollCommits {
 			continue
 		}
 		if err := jp.pollManagerCommits(mgr); err != nil {
@@ -206,17 +198,25 @@ func (jp *JobProcessor) getCommitInfo(mgr *Manager, URL, branch string, commits 
 }
 
 func (jp *JobProcessor) pollJobs() {
-	var patchTestManagers, bisectManagers []string
+	poll := &dashapi.JobPollReq{
+		Managers: make(map[string]dashapi.ManagerJobs),
+	}
 	for _, mgr := range jp.managers {
-		patchTestManagers = append(patchTestManagers, mgr.name)
-		if mgr.mgrcfg.Bisect {
-			bisectManagers = append(bisectManagers, mgr.name)
+		if !mgr.mgrcfg.Jobs.TestPatches &&
+			!mgr.mgrcfg.Jobs.BisectCause &&
+			!mgr.mgrcfg.Jobs.BisectFix {
+			continue
+		}
+		poll.Managers[mgr.name] = dashapi.ManagerJobs{
+			TestPatches: mgr.mgrcfg.Jobs.TestPatches,
+			BisectCause: mgr.mgrcfg.Jobs.BisectCause,
+			BisectFix:   mgr.mgrcfg.Jobs.BisectFix,
 		}
 	}
-	req, err := jp.dash.JobPoll(&dashapi.JobPollReq{
-		PatchTestManagers: patchTestManagers,
-		BisectManagers:    bisectManagers,
-	})
+	if len(poll.Managers) == 0 {
+		return
+	}
+	req, err := jp.dash.JobPoll(poll)
 	if err != nil {
 		jp.Errorf("failed to poll jobs: %v", err)
 		return

@@ -122,8 +122,13 @@ func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
 //     ID must match JobPollResp.ID.
 
 type JobPollReq struct {
-	PatchTestManagers []string
-	BisectManagers    []string
+	Managers map[string]ManagerJobs
+}
+
+type ManagerJobs struct {
+	TestPatches bool
+	BisectCause bool
+	BisectFix   bool
 }
 
 type JobPollResp struct {
