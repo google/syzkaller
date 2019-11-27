@@ -187,7 +187,7 @@ func (env *env) bisect() (*Result, error) {
 	} else if testRes.verdict != vcs.BisectBad {
 		return nil, fmt.Errorf("the crash wasn't reproduced on the original commit")
 	}
-	bad, good, rep1, err := env.commitRange()
+	bad, good, rep1, results1, err := env.commitRange()
 	if err != nil {
 		return nil, err
 	}
@@ -195,6 +195,9 @@ func (env *env) bisect() (*Result, error) {
 		return &Result{Report: rep1, Commit: bad}, nil // still not fixed/happens on the oldest release
 	}
 	results := map[string]*testResult{cfg.Kernel.Commit: testRes}
+	for _, res := range results1 {
+		results[res.com.Hash] = res
+	}
 	commits, err := env.bisecter.Bisect(bad.Hash, good.Hash, cfg.Trace, func() (vcs.BisectResult, error) {
 		testRes1, err := env.test()
 		if err != nil {
@@ -232,58 +235,60 @@ func (env *env) bisect() (*Result, error) {
 	return res, nil
 }
 
-func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, *report.Report, error) {
+func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
 	if env.cfg.Fix {
 		return env.commitRangeForFix()
 	}
 	return env.commitRangeForBug()
 }
 
-func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, *report.Report, error) {
+func (env *env) commitRangeForFix() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
 	env.log("testing current HEAD %v", env.head.Hash)
 	if _, err := env.repo.SwitchCommit(env.head.Hash); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	res, err := env.test()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	if res.verdict != vcs.BisectGood {
-		return env.head, nil, res.rep, nil
+		return env.head, nil, res.rep, []*testResult{res}, nil
 	}
-	return env.head, env.commit, nil, nil
+	return env.head, env.commit, nil, []*testResult{res}, nil
 }
 
-func (env *env) commitRangeForBug() (*vcs.Commit, *vcs.Commit, *report.Report, error) {
+func (env *env) commitRangeForBug() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
 	cfg := env.cfg
 	tags, err := env.bisecter.PreviousReleaseTags(cfg.Kernel.Commit)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	if len(tags) == 0 {
-		return nil, nil, nil, fmt.Errorf("no release tags before this commit")
+		return nil, nil, nil, nil, fmt.Errorf("no release tags before this commit")
 	}
 	lastBad := env.commit
 	var lastRep *report.Report
+	var results []*testResult
 	for _, tag := range tags {
 		env.log("testing release %v", tag)
 		com, err := env.repo.SwitchCommit(tag)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 		res, err := env.test()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
+		results = append(results, res)
 		if res.verdict == vcs.BisectGood {
-			return lastBad, com, nil, nil
+			return lastBad, com, nil, results, nil
 		}
 		if res.verdict == vcs.BisectBad {
 			lastBad = com
 			lastRep = res.rep
 		}
 	}
-	return lastBad, nil, lastRep, nil
+	return lastBad, nil, lastRep, results, nil
 }
 
 type testResult struct {
