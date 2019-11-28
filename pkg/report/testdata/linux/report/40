@@ -1,4 +1,4 @@
-TITLE: UBSAN: Undefined behaviour in drivers/usb/core/devio.c:LINE
+TITLE: UBSAN: undefined-behaviour in proc_do_submiturb
 
 [    4.556968] ================================================================================
 [    4.556972] UBSAN: Undefined behaviour in drivers/usb/core/devio.c:1517:25

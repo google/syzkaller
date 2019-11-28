@@ -1534,8 +1534,16 @@ var linuxOopses = append([]*oops{
 		[]byte("UBSAN:"),
 		[]oopsFormat{
 			{
-				title: compile("UBSAN: (.*)"),
-				fmt:   "UBSAN: %[1]v",
+				title:  compile("UBSAN:"),
+				report: compile("UBSAN: Undefined behaviour in"),
+				fmt:    "UBSAN: undefined-behaviour in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"ubsan", "overflow"},
+				},
 			},
 		},
 		[]*regexp.Regexp{},

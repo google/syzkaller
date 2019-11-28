@@ -1,0 +1,30 @@
+TITLE: UBSAN: undefined-behaviour in lkdtm_ARRAY_BOUNDS
+
+[  180.184126][ T6213] ================================================================================
+[  180.187725][ T6213] UBSAN: Undefined behaviour in drivers/misc/lkdtm/bugs.c:243:16
+[  180.189145][ T6213] index 8 is out of range for type 'char [8]'
+[  180.190251][ T6213] CPU: 1 PID: 6213 Comm: bash Tainted: G            E     5.4.0-next-20191128+ #3
+[  180.191926][ T6213] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  180.193608][ T6213] Call Trace:
+[  180.194228][ T6213]  dump_stack+0x1b1/0x22a
+[  180.195024][ T6213]  ubsan_epilogue+0xe/0x2b
+[  180.195837][ T6213]  __ubsan_handle_out_of_bounds.cold.13+0x39/0x44
+[  180.197018][ T6213]  lkdtm_ARRAY_BOUNDS.cold.2+0x3c1/0x52e [lkdtm]
+[  180.199193][ T6213]  lkdtm_do_action+0x42/0x60 [lkdtm]
+[  180.200163][ T6213]  direct_entry+0x15a/0x190 [lkdtm]
+[  180.201131][ T6213]  full_proxy_write+0x11f/0x190
+[  180.202010][ T6213]  __vfs_write+0x8a/0x110
+[  180.203694][ T6213]  vfs_write+0x24b/0x5d0
+[  180.204463][ T6213]  ksys_write+0x13a/0x270
+[  180.209764][ T6213]  __x64_sys_write+0x73/0xb0
+[  180.210596][ T6213]  do_syscall_64+0xfa/0x7d0
+[  180.211432][ T6213]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  180.212492][ T6213] RIP: 0033:0x7fdd4d945370
+[  180.213292][ T6213] Code: 73 01 c3 48 8b 0d c8 4a 2b 00 31 d2 48 29 c2 64 89 11 48 83 c8 ff eb ea 90 90 83 3d 854
+[  180.216804][ T6213] RSP: 002b:00007ffdf3bb6a38 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  180.218314][ T6213] RAX: ffffffffffffffda RBX: 000000000000000d RCX: 00007fdd4d945370
+[  180.219753][ T6213] RDX: 000000000000000d RSI: 0000000001bca808 RDI: 0000000000000001
+[  180.221207][ T6213] RBP: 0000000001bca808 R08: 000000000000000a R09: 00007fdd4e244700
+[  180.222634][ T6213] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fdd4dbfa7a0
+[  180.224065][ T6213] R13: 000000000000000d R14: 0000000000000001 R15: 0000000000000000
+[  180.225797][ T6213] ================================================================================
