@@ -1,4 +1,4 @@
-TITLE: UBSAN: Undefined behaviour in ./arch/x86/include/asm/atomic.h:LINE
+TITLE: UBSAN: undefined-behaviour in ip_idents_reserve
 
 [    3.805449] ================================================================================
 [    3.805453] UBSAN: Undefined behaviour in ./arch/x86/include/asm/atomic.h:156:2
