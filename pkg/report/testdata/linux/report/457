@@ -1,0 +1,27 @@
+TITLE: UBSAN: undefined-behaviour in decode_data
+
+[   97.633355][ T6275] ================================================================================
+[   97.635153][ T6275] UBSAN: Undefined behaviour in drivers/net/hamradio/6pack.c:843:16
+[   97.636358][ T6275] index 402 is out of range for type 'unsigned char [400]'
+[   97.637509][ T6275] CPU: 2 PID: 6275 Comm: kworker/u8:5 Not tainted 5.4.0-next-20191128+ #3
+[   97.638735][ T6275] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[   97.640034][ T6275] Workqueue: events_unbound flush_to_ldisc
+[   97.640897][ T6275] Call Trace:
+[   97.641347][ T6275]  dump_stack+0x1b1/0x22a
+[   97.641952][ T6275]  ubsan_epilogue+0xe/0x2b
+[   97.642591][ T6275]  __ubsan_handle_out_of_bounds.cold.13+0x39/0x44
+[   97.643482][ T6275]  decode_data+0x308/0x3a0
+[   97.644100][ T6275]  sixpack_receive_buf+0xbc2/0x1110
+[   97.644871][ T6275]  ? sixpack_write_wakeup+0x330/0x330
+[   97.645655][ T6275]  tty_ldisc_receive_buf+0x14d/0x190
+[   97.646402][ T6275]  tty_port_default_receive_buf+0x7b/0xb0
+[   97.647445][ T6275]  flush_to_ldisc+0x219/0x390
+[   97.648167][ T6275]  process_one_work+0x9bd/0x1850
+[   97.648887][ T6275]  ? pwq_dec_nr_in_flight+0x370/0x370
+[   97.649659][ T6275]  ? lock_acquire+0x194/0x440
+[   97.650343][ T6275]  worker_thread+0x8b/0xd20
+[   97.650993][ T6275]  ? process_one_work+0x1850/0x1850
+[   97.651720][ T6275]  kthread+0x365/0x450
+[   97.652306][ T6275]  ? kthread_mod_delayed_work+0x1b0/0x1b0
+[   97.653133][ T6275]  ret_from_fork+0x24/0x30
+[   97.654931][ T6275] ================================================================================
