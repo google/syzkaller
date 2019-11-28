@@ -15,8 +15,7 @@ VirtualAlloc(lpAddress vma, dwSize len[lpAddress], flAllocationType flags[alloca
 SECURITY_ATTRIBUTES {
 	nLength			len[parent, int32]
 	lpSecurityDescriptor	ptr[in, SECURITY_DESCRIPTOR, opt]
-# TODO: at this point we probably do need the BOOL type.
-	bInheritHandle		int32[0:1]
+	bInheritHandle		bool32
 }
 
 # TODO: describe
