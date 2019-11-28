@@ -5610,8 +5610,9 @@ retry:
 				int fd = open(filename, O_RDONLY);
 				if (fd != -1) {
 					long flags = 0;
-					if (ioctl(fd, FS_IOC_SETFLAGS, &flags) == 0)
+					if (ioctl(fd, FS_IOC_SETFLAGS, &flags) == 0) {
 						debug("reset FS_XFLAG_IMMUTABLE\n");
+					}
 					close(fd);
 					continue;
 				}
@@ -5637,8 +5638,9 @@ retry:
 				int fd = open(dir, O_RDONLY);
 				if (fd != -1) {
 					long flags = 0;
-					if (ioctl(fd, FS_IOC_SETFLAGS, &flags) == 0)
+					if (ioctl(fd, FS_IOC_SETFLAGS, &flags) == 0) {
 						debug("reset FS_XFLAG_IMMUTABLE\n");
+					}
 					close(fd);
 					continue;
 				}
