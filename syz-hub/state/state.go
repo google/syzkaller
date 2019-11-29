@@ -288,10 +288,21 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
 	}
 	maxSeq := st.corpusSeq
 	more := 0
-	// Send at most that many records (rounded up to next seq number).
-	const maxRecords = 100
+	const (
+		// Send at most that many records (rounded up to next seq number).
+		maxRecords = 100
+		// If we have way too many records to send (more than capRecords),
+		// cap total number to capRecords and give up sending all.
+		// Otherwise new managers will never chew all this on a busy hub.
+		capRecords = 100000
+	)
 	if len(records) > maxRecords {
-		sort.Sort(recordSeqSorter(records))
+		sort.Slice(records, func(i, j int) bool {
+			return records[i].Seq < records[j].Seq
+		})
+		if len(records) > capRecords {
+			records = records[len(records)-capRecords:]
+		}
 		pos := maxRecords
 		maxSeq = records[pos].Seq
 		for pos+1 < len(records) && records[pos+1].Seq == maxSeq {
@@ -379,18 +390,4 @@ func loadSeqFile(filename string) uint64 {
 	str, _ := ioutil.ReadFile(filename)
 	seq, _ := strconv.ParseUint(string(str), 10, 64)
 	return seq
-}
-
-type recordSeqSorter []db.Record
-
-func (a recordSeqSorter) Len() int {
-	return len(a)
-}
-
-func (a recordSeqSorter) Less(i, j int) bool {
-	return a[i].Seq < a[j].Seq
-}
-
-func (a recordSeqSorter) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
 }
