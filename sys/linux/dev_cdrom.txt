@@ -18,7 +18,8 @@ include <uapi/linux/cdrom.h>
 
 resource fd_cdrom[fd]
 
-syz_open_dev$CDROM_DEV_LINK(dev ptr[in, string["/dev/cdrom"]], id intptr, flags flags[open_flags]) fd_cdrom
+openat$cdrom(fd const[AT_FDCWD], file ptr[in, string["/dev/cdrom"]], flags flags[open_flags], mode const[0]) fd_cdrom
+openat$cdrom1(fd const[AT_FDCWD], file ptr[in, string["/dev/cdrom1"]], flags flags[open_flags], mode const[0]) fd_cdrom
 
 ioctl$CDROMPAUSE(fd fd_cdrom, cmd const[CDROMPAUSE])
 ioctl$CDROMRESUME(fd fd_cdrom, cmd const[CDROMRESUME])
