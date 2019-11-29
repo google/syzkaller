@@ -26,7 +26,7 @@ syz_init_net_socket$nfc_raw(domain const[AF_NFC], type flags[nfc_raw_type], prot
 connect$nfc_raw(fd sock_nfc_raw, addr ptr[in, sockaddr_nfc], addrlen len[addr])
 
 nfc_llcp_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
-nfc_raw_type = SOCK_STREAM, SOCK_RAW
+nfc_raw_type = SOCK_SEQPACKET, SOCK_RAW
 nfc_proto = NFC_PROTO_JEWEL, NFC_PROTO_MIFARE, NFC_PROTO_FELICA, NFC_PROTO_ISO14443, NFC_PROTO_NFC_DEP, NFC_PROTO_ISO14443_B, NFC_PROTO_ISO15693
 nfc_llcp_opts = NFC_LLCP_RW, NFC_LLCP_MIUX, NFC_LLCP_REMOTE_MIU, NFC_LLCP_REMOTE_LTO, NFC_LLCP_REMOTE_RW
 
