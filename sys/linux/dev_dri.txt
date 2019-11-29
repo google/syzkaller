@@ -14,6 +14,7 @@ resource drm_gem_name[int32]
 syz_open_dev$dri(dev ptr[in, string["/dev/dri/card#"]], id intptr, flags flags[open_flags]) fd_dri
 syz_open_dev$dricontrol(dev ptr[in, string["/dev/dri/controlD#"]], id intptr, flags flags[open_flags]) fd_dri
 syz_open_dev$drirender(dev ptr[in, string["/dev/dri/renderD#"]], id intptr, flags flags[open_flags]) fd_dri
+openat$drirender128(fd const[AT_FDCWD], file ptr[in, string["/dev/dri/renderD128"]], flags flags[open_flags], mode const[0]) fd_dri
 
 ioctl$DRM_IOCTL_VERSION(fd fd_dri, cmd const[DRM_IOCTL_VERSION], arg ptr[in, drm_version])
 ioctl$DRM_IOCTL_GET_UNIQUE(fd fd_dri, cmd const[DRM_IOCTL_GET_UNIQUE], arg ptr[in, drm_unique_out])
