@@ -17,10 +17,8 @@ mount$9p_fd(src const[0], dst ptr[in, filename], type ptr[in, string["9p"]], fla
 mount$9p_tcp(src ptr[in, string["127.0.0.1"]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_tcp])
 mount$9p_unix(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_unix])
 mount$9p_rdma(src ptr[in, string["127.0.0.1"]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_rdma])
-# TODO: src is some "virtio chan tag name".
-mount$9p_virtio(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_virtio])
-# TODO: src is some "xen dev tag name".
-mount$9p_xen(src ptr[in, string], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_xen])
+mount$9p_virtio(src ptr[in, string["syz"]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_virtio])
+mount$9p_xen(src ptr[in, string["syz"]], dst ptr[in, filename], type ptr[in, string["9p"]], flags flags[mount_flags], opts ptr[in, p9_options_xen])
 
 pipe2$9p(pipefd ptr[out, pipe_9p], flags flags[pipe_flags])
 
