@@ -32,10 +32,13 @@ syz_open_dev$vivid(dev ptr[in, string["/dev/video#"]], id proc[3, 4], flags cons
 openat$vim2m(fd const[AT_FDCWD], file ptr[in, string["/dev/video35"]], flags const[O_RDWR], mode const[0]) fd_video
 openat$vicodec0(fd const[AT_FDCWD], file ptr[in, string["/dev/video36"]], flags const[O_RDWR], mode const[0]) fd_video
 openat$vicodec1(fd const[AT_FDCWD], file ptr[in, string["/dev/video37"]], flags const[O_RDWR], mode const[0]) fd_video
-syz_open_dev$swradio(dev ptr[in, string["/dev/swradio#"]], id proc[0, 2], flags const[O_RDWR]) fd
-syz_open_dev$radio(dev ptr[in, string["/dev/radio#"]], id proc[0, 4], flags const[O_RDWR]) fd
-syz_open_dev$vbi(dev ptr[in, string["/dev/vbi#"]], id proc[0, 4], flags const[O_RDWR]) fd
-syz_open_dev$cec(dev ptr[in, string["/dev/cec#"]], id proc[0, 4], flags const[O_RDWR]) fd
+# TODO: there are some complex rules as to what ioctl's are applicable to what devices
+# (see determine_valid_ioctls in v4l2-dev.c). We don't have these rules described.
+# Currently we just apply all ioctl's to all v4l devices.
+syz_open_dev$swradio(dev ptr[in, string["/dev/swradio#"]], id proc[0, 2], flags const[O_RDWR]) fd_video
+syz_open_dev$radio(dev ptr[in, string["/dev/radio#"]], id proc[0, 4], flags const[O_RDWR]) fd_video
+syz_open_dev$vbi(dev ptr[in, string["/dev/vbi#"]], id proc[0, 4], flags const[O_RDWR]) fd_video
+syz_open_dev$cec(dev ptr[in, string["/dev/cec#"]], id proc[0, 4], flags const[O_RDWR]) fd_video
 
 ioctl$VIDIOC_QUERYCAP(fd fd_video, cmd const[VIDIOC_QUERYCAP], arg ptr[out, v4l2_capability])
 ioctl$VIDIOC_RESERVED(fd fd_video, cmd const[VIDIOC_RESERVED], arg const[0])
