@@ -12,6 +12,7 @@ syz_open_dev$sndmidi(dev ptr[in, string["/dev/snd/midiC#D#"]], id intptr, flags 
 syz_open_dev$dmmidi(dev ptr[in, string["/dev/dmmidi#"]], id intptr, flags flags[open_flags]) fd_midi
 syz_open_dev$admmidi(dev ptr[in, string["/dev/admmidi#"]], id intptr, flags flags[open_flags]) fd_midi
 syz_open_dev$amidi(dev ptr[in, string["/dev/amidi#"]], id intptr, flags flags[open_flags]) fd_midi
+syz_open_dev$midi(dev ptr[in, string["/dev/midi#"]], id intptr, flags flags[open_flags]) fd_midi
 
 write$midi(fd fd_midi, data ptr[in, array[int8]], len bytesize[data])
 read$midi(fd fd_midi, data ptr[out, array[int8]], len bytesize[data])

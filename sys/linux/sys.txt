@@ -470,7 +470,6 @@ pidfd_open(pid pid, flags const[0]) fd_pidfd
 # TODO: all these devices returning just fd need proper interface descriptions.
 syz_open_dev$vcsn(dev ptr[in, string["/dev/vcs#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$vcsa(dev ptr[in, string["/dev/vcsa#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$midi(dev ptr[in, string["/dev/midi#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$ircomm(dev ptr[in, string["/dev/ircomm#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$audion(dev ptr[in, string["/dev/audio#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndhw(dev ptr[in, string["/dev/snd/hwC#D#"]], id intptr, flags flags[open_flags]) fd
@@ -481,11 +480,9 @@ openat$zero(fd const[AT_FDCWD], file ptr[in, string["/dev/zero"]], flags flags[o
 openat$full(fd const[AT_FDCWD], file ptr[in, string["/dev/full"]], flags flags[open_flags], mode const[0]) fd
 openat$vga_arbiter(fd const[AT_FDCWD], file ptr[in, string["/dev/vga_arbiter"]], flags flags[open_flags], mode const[0]) fd
 openat$qat_adf_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/qat_adf_ctl"]], flags flags[open_flags], mode const[0]) fd
-openat$mixer(fd const[AT_FDCWD], file ptr[in, string["/dev/mixer"]], flags flags[open_flags], mode const[0]) fd
 openat$irnet(fd const[AT_FDCWD], file ptr[in, string["/dev/irnet"]], flags flags[open_flags], mode const[0]) fd
 openat$hwrng(fd const[AT_FDCWD], file ptr[in, string["/dev/hwrng"]], flags flags[open_flags], mode const[0]) fd
 openat$hpet(fd const[AT_FDCWD], file ptr[in, string["/dev/hpet"]], flags flags[open_flags], mode const[0]) fd
-openat$fb0(fd const[AT_FDCWD], file ptr[in, string["/dev/fb0"]], flags flags[open_flags], mode const[0]) fd
 openat$autofs(fd const[AT_FDCWD], file ptr[in, string["/dev/autofs"]], flags flags[open_flags], mode const[0]) fd
 openat$keychord(fd const[AT_FDCWD], file ptr[in, string["/dev/keychord"]], flags flags[open_flags], mode const[0]) fd
 openat$zygote(fd const[AT_FDCWD], file ptr[in, string["/dev/socket/zygote"]], flags flags[open_flags], mode const[0]) fd
@@ -495,7 +492,6 @@ openat$lightnvm(fd const[AT_FDCWD], file ptr[in, string["/dev/lightnvm/control"]
 openat$vcs(fd const[AT_FDCWD], file ptr[in, string["/dev/vcs"]], flags flags[open_flags], mode const[0]) fd
 openat$sequencer(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer"]], flags flags[open_flags], mode const[0]) fd
 openat$sequencer2(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer2"]], flags flags[open_flags], mode const[0]) fd
-openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
 openat$dlm_control(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-control"]], flags flags[open_flags], mode const[0]) fd
 openat$dlm_monitor(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-monitor"]], flags flags[open_flags], mode const[0]) fd
@@ -503,6 +499,13 @@ openat$dlm_plock(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm_plock"]], fla
 openat$btrfs_control(fd const[AT_FDCWD], file ptr[in, string["/dev/btrfs-control"]], flags flags[open_flags], mode const[0]) fd
 openat$ubi_ctrl(fd const[AT_FDCWD], file ptr[in, string["/dev/ubi_ctrl"]], flags flags[open_flags], mode const[0]) fd
 openat$cachefiles(fd const[AT_FDCWD], file ptr[in, string["/dev/cachefiles"]], flags flags[open_flags], mode const[0]) fd
+openat$ndctl0(fd const[AT_FDCWD], file ptr[in, string["/dev/ndctl0"]], flags flags[open_flags], mode const[0]) fd
+openat$nmem0(fd const[AT_FDCWD], file ptr[in, string["/dev/nmem0"]], flags flags[open_flags], mode const[0]) fd
+openat$nvram(fd const[AT_FDCWD], file ptr[in, string["/dev/nvram"]], flags flags[open_flags], mode const[0]) fd
+openat$ttynull(fd const[AT_FDCWD], file ptr[in, string["/dev/ttynull"]], flags flags[open_flags], mode const[0]) fd
+openat$ocfs2_control(fd const[AT_FDCWD], file ptr[in, string["/dev/ocfs2_control"]], flags flags[open_flags], mode const[0]) fd
+openat$nvme_fabrics(fd const[AT_FDCWD], file ptr[in, string["/dev/nvme-fabrics"]], flags flags[open_flags], mode const[0]) fd
+openat$bsg(fd const[AT_FDCWD], file ptr[in, string["/dev/bsg"]], flags flags[open_flags], mode const[0]) fd
 
 openat$snapshot(fd const[AT_FDCWD], file ptr[in, string["/dev/snapshot"]], flags flags[open_flags], mode const[0]) fd
 _ = SNAPSHOT_FREEZE, SNAPSHOT_UNFREEZE
