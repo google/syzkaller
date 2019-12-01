@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -110,6 +111,13 @@ func (*linux) prepareArch(arch *Arch) error {
 }
 
 func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
+	arch.once.Do(func() {
+		arch.cc = "gcc"
+		if !checkCompiler("gcc", arch.target.CFlags) &&
+			checkCompiler("clang", arch.target.CFlags) {
+			arch.cc = "clang"
+		}
+	})
 	headerArch := arch.target.KernelHeaderArch
 	sourceDir := arch.sourceDir
 	buildDir := arch.buildDir
@@ -151,7 +159,7 @@ unsigned long phys_base;
 unsigned long __phys_addr(unsigned long addr) { return 0; }
 #endif
 `
-	res, undeclared, err := extract(info, "gcc", args, addSource, true, false)
+	res, undeclared, err := extract(info, arch.cc, args, addSource, true, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -170,4 +178,10 @@ unsigned long __phys_addr(unsigned long addr) { return 0; }
 		}
 	}
 	return res, undeclared, nil
+}
+
+func checkCompiler(cc string, args []string) bool {
+	cmd := exec.Command(cc, append(args, "-x", "c", "-", "-o", "/dev/null")...)
+	cmd.Stdin = strings.NewReader("int main(){}")
+	return cmd.Run() == nil
 }
