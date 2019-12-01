@@ -472,10 +472,6 @@ syz_open_dev$vcsn(dev ptr[in, string["/dev/vcs#"]], id intptr, flags flags[open_
 syz_open_dev$vcsa(dev ptr[in, string["/dev/vcsa#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$midi(dev ptr[in, string["/dev/midi#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$ircomm(dev ptr[in, string["/dev/ircomm#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$dmmidi(dev ptr[in, string["/dev/dmmidi#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$admmidi(dev ptr[in, string["/dev/admmidi#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$adsp(dev ptr[in, string["/dev/adsp#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$amidi(dev ptr[in, string["/dev/amidi#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$audion(dev ptr[in, string["/dev/audio#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndhw(dev ptr[in, string["/dev/snd/hwC#D#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$media(dev ptr[in, string["/dev/media#"]], id intptr, flags flags[open_flags]) fd
