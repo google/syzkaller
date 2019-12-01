@@ -472,7 +472,6 @@ syz_open_dev$vcsn(dev ptr[in, string["/dev/vcs#"]], id intptr, flags flags[open_
 syz_open_dev$vcsa(dev ptr[in, string["/dev/vcsa#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$midi(dev ptr[in, string["/dev/midi#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$ircomm(dev ptr[in, string["/dev/ircomm#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$dspn(dev ptr[in, string["/dev/dsp#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$dmmidi(dev ptr[in, string["/dev/dmmidi#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$admmidi(dev ptr[in, string["/dev/admmidi#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$adsp(dev ptr[in, string["/dev/adsp#"]], id intptr, flags flags[open_flags]) fd
@@ -502,7 +501,6 @@ openat$lightnvm(fd const[AT_FDCWD], file ptr[in, string["/dev/lightnvm/control"]
 openat$vcs(fd const[AT_FDCWD], file ptr[in, string["/dev/vcs"]], flags flags[open_flags], mode const[0]) fd
 openat$sequencer(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer"]], flags flags[open_flags], mode const[0]) fd
 openat$sequencer2(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer2"]], flags flags[open_flags], mode const[0]) fd
-openat$dsp(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp"]], flags flags[open_flags], mode const[0]) fd
 openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
 openat$dlm_control(fd const[AT_FDCWD], file ptr[in, string["/dev/dlm-control"]], flags flags[open_flags], mode const[0]) fd
