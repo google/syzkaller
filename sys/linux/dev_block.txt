@@ -13,6 +13,7 @@ resource fd_block[fd_block_trace]
 
 openat$nullb(fd const[AT_FDCWD], file ptr[in, string["/dev/nullb0"]], flags flags[open_flags], mode const[0]) fd_block
 openat$md(fd const[AT_FDCWD], file ptr[in, string["/dev/md0"]], flags flags[open_flags], mode const[0]) fd_block
+openat$pmem0(fd const[AT_FDCWD], file ptr[in, string["/dev/pmem0"]], flags flags[open_flags], mode const[0]) fd_block
 
 ioctl$BLKTRACESETUP(fd fd_block_trace, cmd const[BLKTRACESETUP], arg ptr[in, blk_user_trace_setup])
 ioctl$BLKTRACESTART(fd fd_block_trace, cmd const[BLKTRACESTART], arg const[0])

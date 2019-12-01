@@ -9,6 +9,7 @@ resource fd_dsp[fd]
 
 openat$dsp(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp"]], flags flags[open_flags], mode const[0]) fd_dsp
 openat$dsp1(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp1"]], flags flags[open_flags], mode const[0]) fd_dsp
+openat$adsp1(fd const[AT_FDCWD], file ptr[in, string["/dev/adsp1"]], flags flags[open_flags], mode const[0]) fd_dsp
 
 write$dsp(fd fd_dsp, data ptr[in, array[int8]], len bytesize[data])
 read$dsp(fd fd_dsp, data ptr[out, array[int8]], len bytesize[data])
