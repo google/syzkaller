@@ -5,11 +5,15 @@ include <uapi/asm/ioctl.h>
 include <uapi/linux/fcntl.h>
 include <uapi/linux/soundcard.h>
 
-resource fd_dsp[fd]
+resource fd_mixer[fd]
+resource fd_dsp[fd_mixer]
 
+openat$mixer(fd const[AT_FDCWD], file ptr[in, string["/dev/mixer"]], flags flags[open_flags], mode const[0]) fd_mixer
 openat$dsp(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp"]], flags flags[open_flags], mode const[0]) fd_dsp
 openat$dsp1(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp1"]], flags flags[open_flags], mode const[0]) fd_dsp
 openat$adsp1(fd const[AT_FDCWD], file ptr[in, string["/dev/adsp1"]], flags flags[open_flags], mode const[0]) fd_dsp
+openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd_dsp
+openat$audio1(fd const[AT_FDCWD], file ptr[in, string["/dev/audio1"]], flags flags[open_flags], mode const[0]) fd_dsp
 
 write$dsp(fd fd_dsp, data ptr[in, array[int8]], len bytesize[data])
 read$dsp(fd fd_dsp, data ptr[out, array[int8]], len bytesize[data])
@@ -39,16 +43,16 @@ ioctl$SNDCTL_DSP_GETODELAY(fd fd_dsp, cmd const[SNDCTL_DSP_GETODELAY], arg ptr[o
 ioctl$SOUND_PCM_READ_RATE(fd fd_dsp, cmd const[SOUND_PCM_READ_RATE], arg ptr[out, int32])
 ioctl$SOUND_PCM_READ_CHANNELS(fd fd_dsp, cmd const[SOUND_PCM_READ_CHANNELS], arg ptr[out, int32])
 ioctl$SOUND_PCM_READ_BITS(fd fd_dsp, cmd const[SOUND_PCM_READ_BITS], arg ptr[out, int32])
-ioctl$SOUND_OLD_MIXER_INFO(fd fd_dsp, cmd const[SOUND_OLD_MIXER_INFO], arg ptr[out, array[int8, OLD_MIXED_INFO_SIZE]])
-ioctl$SOUND_MIXER_INFO(fd fd_dsp, cmd const[SOUND_MIXER_INFO], arg ptr[out, array[int8, MIXER_INFO_SIZE]])
-ioctl$SOUND_MIXER_WRITE_RECSRC(fd fd_dsp, cmd const[SOUND_MIXER_WRITE_RECSRC], arg ptr[in, int32])
-ioctl$SOUND_MIXER_READ_DEVMASK(fd fd_dsp, cmd const[SOUND_MIXER_READ_DEVMASK], arg ptr[out, int32])
-ioctl$SOUND_MIXER_READ_STEREODEVS(fd fd_dsp, cmd const[SOUND_MIXER_READ_STEREODEVS], arg ptr[out, int32])
-ioctl$SOUND_MIXER_READ_RECMASK(fd fd_dsp, cmd const[SOUND_MIXER_READ_RECMASK], arg ptr[out, int32])
-ioctl$SOUND_MIXER_READ_CAPS(fd fd_dsp, cmd const[SOUND_MIXER_READ_CAPS], arg ptr[out, int32])
-ioctl$SOUND_MIXER_READ_RECSRC(fd fd_dsp, cmd const[SOUND_MIXER_READ_RECSRC], arg ptr[out, int32])
-ioctl$SOUND_MIXER_WRITE_VOLUME(fd fd_dsp, cmd int32[SOUND_MIXER_WRITE_VOLUME:SOUND_MIXER_WRITE_ONOFF_MAX], arg ptr[in, int32[0:100]])
-ioctl$SOUND_MIXER_READ_VOLUME(fd fd_dsp, cmd int32[SOUND_MIXER_READ_VOLUME:SOUND_MIXER_READ_ONOFF_MAX], arg ptr[out, int32])
+ioctl$SOUND_OLD_MIXER_INFO(fd fd_mixer, cmd const[SOUND_OLD_MIXER_INFO], arg ptr[out, array[int8, OLD_MIXED_INFO_SIZE]])
+ioctl$SOUND_MIXER_INFO(fd fd_mixer, cmd const[SOUND_MIXER_INFO], arg ptr[out, array[int8, MIXER_INFO_SIZE]])
+ioctl$SOUND_MIXER_WRITE_RECSRC(fd fd_mixer, cmd const[SOUND_MIXER_WRITE_RECSRC], arg ptr[in, int32])
+ioctl$SOUND_MIXER_READ_DEVMASK(fd fd_mixer, cmd const[SOUND_MIXER_READ_DEVMASK], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_STEREODEVS(fd fd_mixer, cmd const[SOUND_MIXER_READ_STEREODEVS], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_RECMASK(fd fd_mixer, cmd const[SOUND_MIXER_READ_RECMASK], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_CAPS(fd fd_mixer, cmd const[SOUND_MIXER_READ_CAPS], arg ptr[out, int32])
+ioctl$SOUND_MIXER_READ_RECSRC(fd fd_mixer, cmd const[SOUND_MIXER_READ_RECSRC], arg ptr[out, int32])
+ioctl$SOUND_MIXER_WRITE_VOLUME(fd fd_mixer, cmd int32[SOUND_MIXER_WRITE_VOLUME:SOUND_MIXER_WRITE_ONOFF_MAX], arg ptr[in, int32[0:100]])
+ioctl$SOUND_MIXER_READ_VOLUME(fd fd_mixer, cmd int32[SOUND_MIXER_READ_VOLUME:SOUND_MIXER_READ_ONOFF_MAX], arg ptr[out, int32])
 
 # NEED: we could provide a special support for this to save typing and duplication here.
 # It could be eigher:

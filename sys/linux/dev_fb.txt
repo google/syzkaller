@@ -1,0 +1,9 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+
+resource fd_fb[fd]
+
+openat$fb0(fd const[AT_FDCWD], file ptr[in, string["/dev/fb0"]], flags flags[open_flags], mode const[0]) fd_fb
