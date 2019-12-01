@@ -4,9 +4,10 @@
 # Constants for this descriptions were generated on the following tree:
 # https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
 
-include <linux/ioctl.h>
 include <linux/time.h>
 include <linux/types.h>
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
 include <uapi/linux/videodev2.h>
 include <uapi/linux/v4l2-common.h>
 include <uapi/linux/v4l2-subdev.h>
