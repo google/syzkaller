@@ -1,8 +1,11 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-include <sound/asound.h>
-include <sound/asequencer.h>
+include <uapi/asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <uapi/linux/time.h>
+include <uapi/sound/asound.h>
+include <uapi/sound/asequencer.h>
 
 resource fd_sndseq[fd]
 

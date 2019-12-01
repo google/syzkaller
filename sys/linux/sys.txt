@@ -478,8 +478,6 @@ syz_open_dev$adsp(dev ptr[in, string["/dev/adsp#"]], id intptr, flags flags[open
 syz_open_dev$amidi(dev ptr[in, string["/dev/amidi#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$audion(dev ptr[in, string["/dev/audio#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndhw(dev ptr[in, string["/dev/snd/hwC#D#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sndpcmc(dev ptr[in, string["/dev/snd/pcmC#D#c"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sndpcmp(dev ptr[in, string["/dev/snd/pcmC#D#p"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$media(dev ptr[in, string["/dev/media#"]], id intptr, flags flags[open_flags]) fd
 
 openat$null(fd const[AT_FDCWD], file ptr[in, string["/dev/null"]], flags flags[open_flags], mode const[0]) fd
