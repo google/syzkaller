@@ -468,8 +468,12 @@ pidfd_open(pid pid, flags const[0]) fd_pidfd
 # They need a more comprehensive support. But let at least open them for now,
 # maybe fuzzer will be able to skrew them in a useful way.
 # TODO: all these devices returning just fd need proper interface descriptions.
+openat$vcs(fd const[AT_FDCWD], file ptr[in, string["/dev/vcs"]], flags flags[open_flags], mode const[0]) fd
 syz_open_dev$vcsn(dev ptr[in, string["/dev/vcs#"]], id intptr, flags flags[open_flags]) fd
+openat$vcsa(fd const[AT_FDCWD], file ptr[in, string["/dev/vcsa"]], flags flags[open_flags], mode const[0]) fd
 syz_open_dev$vcsa(dev ptr[in, string["/dev/vcsa#"]], id intptr, flags flags[open_flags]) fd
+openat$vcsu(fd const[AT_FDCWD], file ptr[in, string["/dev/vcsu"]], flags flags[open_flags], mode const[0]) fd
+syz_open_dev$vcsu(dev ptr[in, string["/dev/vcsu#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$ircomm(dev ptr[in, string["/dev/ircomm#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$audion(dev ptr[in, string["/dev/audio#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndhw(dev ptr[in, string["/dev/snd/hwC#D#"]], id intptr, flags flags[open_flags]) fd
@@ -489,7 +493,6 @@ openat$zygote(fd const[AT_FDCWD], file ptr[in, string["/dev/socket/zygote"]], fl
 openat$sw_sync(fd const[AT_FDCWD], file ptr[in, string["/dev/sw_sync"]], flags flags[open_flags], mode const[0]) fd
 openat$pktcdvd(fd const[AT_FDCWD], file ptr[in, string["/dev/pktcdvd/control"]], flags flags[open_flags], mode const[0]) fd
 openat$lightnvm(fd const[AT_FDCWD], file ptr[in, string["/dev/lightnvm/control"]], flags flags[open_flags], mode const[0]) fd
-openat$vcs(fd const[AT_FDCWD], file ptr[in, string["/dev/vcs"]], flags flags[open_flags], mode const[0]) fd
 openat$sequencer(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer"]], flags flags[open_flags], mode const[0]) fd
 openat$sequencer2(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer2"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
@@ -502,7 +505,6 @@ openat$cachefiles(fd const[AT_FDCWD], file ptr[in, string["/dev/cachefiles"]], f
 openat$ndctl0(fd const[AT_FDCWD], file ptr[in, string["/dev/ndctl0"]], flags flags[open_flags], mode const[0]) fd
 openat$nmem0(fd const[AT_FDCWD], file ptr[in, string["/dev/nmem0"]], flags flags[open_flags], mode const[0]) fd
 openat$nvram(fd const[AT_FDCWD], file ptr[in, string["/dev/nvram"]], flags flags[open_flags], mode const[0]) fd
-openat$ttynull(fd const[AT_FDCWD], file ptr[in, string["/dev/ttynull"]], flags flags[open_flags], mode const[0]) fd
 openat$ocfs2_control(fd const[AT_FDCWD], file ptr[in, string["/dev/ocfs2_control"]], flags flags[open_flags], mode const[0]) fd
 openat$nvme_fabrics(fd const[AT_FDCWD], file ptr[in, string["/dev/nvme-fabrics"]], flags flags[open_flags], mode const[0]) fd
 openat$bsg(fd const[AT_FDCWD], file ptr[in, string["/dev/bsg"]], flags flags[open_flags], mode const[0]) fd

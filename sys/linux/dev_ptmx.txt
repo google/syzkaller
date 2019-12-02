@@ -13,6 +13,12 @@ resource fd_tty[fd]
 
 openat$ptmx(fd const[AT_FDCWD], file ptr[in, string["/dev/ptmx"]], flags flags[open_flags], mode const[0]) fd_tty
 syz_open_pts(fd fd_tty, flags flags[open_flags]) fd_tty
+openat$ttynull(fd const[AT_FDCWD], file ptr[in, string["/dev/ttynull"]], flags flags[open_flags], mode const[0]) fd_tty
+openat$ttyprintk(fd const[AT_FDCWD], file ptr[in, string["/dev/ttyprintk"]], flags flags[open_flags], mode const[0]) fd_tty
+syz_open_dev$tty(dev ptr[in, string["/dev/tty1#"]], id intptr, flags flags[open_flags]) fd_tty
+syz_open_dev$ttys(dev ptr[in, string["/dev/ttys#"]], id intptr, flags flags[open_flags]) fd_tty
+syz_open_dev$ptys(dev ptr[in, string["/dev/ptys#"]], id intptr, flags flags[open_flags]) fd_tty
+
 ioctl$TCGETS(fd fd_tty, cmd const[TCGETS], arg ptr[out, termios])
 ioctl$TCSETS(fd fd_tty, cmd const[TCSETS], arg ptr[in, termios])
 ioctl$TCSETSW(fd fd_tty, cmd const[TCSETSW], arg ptr[in, termios])
@@ -71,10 +77,14 @@ ioctl$KIOCSOUND(fd fd_tty, cmd const[KIOCSOUND], arg intptr)
 ioctl$GIO_CMAP(fd fd_tty, cmd const[GIO_CMAP], arg ptr[out, io_cmap])
 ioctl$PIO_CMAP(fd fd_tty, cmd const[PIO_CMAP], arg ptr[in, io_cmap])
 ioctl$GIO_FONT(fd fd_tty, cmd const[GIO_FONT], arg buffer[out])
-ioctl$GIO_FONTX(fd fd_tty, cmd const[GIO_FONTX], arg buffer[out])
+ioctl$GIO_FONTX(fd fd_tty, cmd const[GIO_FONTX], arg ptr[in, consolefontdesc[out]])
 ioctl$PIO_FONT(fd fd_tty, cmd const[PIO_FONT], arg buffer[in])
-ioctl$PIO_FONTX(fd fd_tty, cmd const[PIO_FONTX], arg buffer[in])
+ioctl$PIO_FONTX(fd fd_tty, cmd const[PIO_FONTX], arg ptr[in, consolefontdesc[in]])
 ioctl$PIO_FONTRESET(fd fd_tty, cmd const[PIO_FONTRESET], arg const[0])
+ioctl$KDFONTOP_SET(fd fd_tty, cmd const[KDFONTOP], arg ptr[in, console_font_op[KD_FONT_OP_SET, in]])
+ioctl$KDFONTOP_GET(fd fd_tty, cmd const[KDFONTOP], arg ptr[in, console_font_op[KD_FONT_OP_GET, out]])
+ioctl$KDFONTOP_SET_DEF(fd fd_tty, cmd const[KDFONTOP], arg ptr[in, console_font_op[KD_FONT_OP_SET_DEFAULT, in]])
+ioctl$KDFONTOP_COPY(fd fd_tty, cmd const[KDFONTOP], arg ptr[in, console_font_op[KD_FONT_OP_COPY, out]])
 ioctl$GIO_SCRNMAP(fd fd_tty, cmd const[GIO_SCRNMAP], arg buffer[out])
 ioctl$GIO_UNISCRNMAP(fd fd_tty, cmd const[GIO_UNISCRNMAP], arg buffer[out])
 ioctl$PIO_SCRNMAP(fd fd_tty, cmd const[PIO_SCRNMAP], arg buffer[in])
@@ -316,4 +326,19 @@ serial_iso7816 {
 	sc_di		int32
 	clk		int32
 	reserved	array[const[0, int32], 5]
+}
+
+type consolefontdesc[DIR] {
+	charcount	int16[0:512]
+	charheight	int16[0:32]
+	chardata	ptr[DIR, array[int8, 1024]]
+}
+
+type console_font_op[OP, DIR] {
+	op		const[OP, int32]
+	flags		bool32
+	width		int32[0:32]
+	height		int32[0:32]
+	charcount	int32[0:512]
+	data		ptr[DIR, array[int8, 1024]]
 }
