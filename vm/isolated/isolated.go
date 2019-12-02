@@ -71,9 +71,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Debug && len(cfg.Targets) > 1 {
 		log.Logf(0, "limiting number of targets from %v to 1 in debug mode", len(cfg.Targets))
 		cfg.Targets = cfg.Targets[:1]
-		if len(cfg.Targets) > 1 && len(cfg.USBDevNums) > 1 {
-			cfg.USBDevNums = cfg.USBDevNums[:1]
-		}
+		cfg.USBDevNums = cfg.USBDevNums[:1]
 	}
 	pool := &Pool{
 		cfg: cfg,
@@ -192,7 +190,7 @@ func (inst *instance) repair() error {
 			log.Logf(2, "isolated: trying to reboot by ssh")
 			e := inst.ssh("reboot") // reboot will return an error, ignore it
 			log.Logf(2, "ssh return: %v", e)
-		} else if len(inst.cfg.USBDevNums) > 1 {
+		} else if len(inst.cfg.USBDevNums) > 0 {
 			log.Logf(2, "isolated: ssh failed")
 			log.Logf(2, "isolated: trying to reboot by USB authorization")
 			usbAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", inst.cfg.USBDevNums[inst.index], "/authorized")
