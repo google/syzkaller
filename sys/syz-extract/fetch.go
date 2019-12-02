@@ -5,7 +5,10 @@ package main
 
 import (
 	"bytes"
+	"debug/elf"
+	"encoding/binary"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
@@ -16,15 +19,20 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf, defineGlibcUse bool) (
+type extractParams struct {
+	AddSource      string
+	DeclarePrintf  bool
+	DefineGlibcUse bool // workaround for incorrect flags to clang for fuchsia.
+	ExtractFromELF bool
+}
+
+func extract(info *compiler.ConstInfo, cc string, args []string, params *extractParams) (
 	map[string]uint64, map[string]bool, error) {
 	data := &CompileData{
-		AddSource:      addSource,
-		Defines:        info.Defines,
-		Includes:       info.Includes,
-		Values:         info.Consts,
-		DeclarePrintf:  declarePrintf,
-		DefineGlibcUse: defineGlibcUse,
+		extractParams: params,
+		Defines:       info.Defines,
+		Includes:      info.Includes,
+		Values:        info.Consts,
 	}
 	undeclared := make(map[string]bool)
 	bin, out, err := compile(cc, args, data)
@@ -59,19 +67,20 @@ func extract(info *compiler.ConstInfo, cc string, args []string, addSource strin
 		}
 		bin, out, err = compile(cc, args, data)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to run compiler: %v %v\n%v\n%v",
-				cc, args, err, string(out))
+			return nil, nil, fmt.Errorf("failed to run compiler: %v %v\n%v\n%s",
+				cc, args, err, out)
 		}
 	}
 	defer os.Remove(bin)
 
-	out, err = osutil.Command(bin).CombinedOutput()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to run flags binary: %v\n%v", err, string(out))
+	var flagVals []uint64
+	if data.ExtractFromELF {
+		flagVals, err = extractFromELF(bin)
+	} else {
+		flagVals, err = extractFromExecutable(bin)
 	}
-	flagVals := strings.Split(string(out), " ")
-	if len(out) == 0 {
-		flagVals = nil
+	if err != nil {
+		return nil, nil, err
 	}
 	if len(flagVals) != len(data.Values) {
 		return nil, nil, fmt.Errorf("fetched wrong number of values %v, want != %v",
@@ -79,26 +88,19 @@ func extract(info *compiler.ConstInfo, cc string, args []string, addSource strin
 	}
 	res := make(map[string]uint64)
 	for i, name := range data.Values {
-		val := flagVals[i]
-		n, err := strconv.ParseUint(val, 10, 64)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to parse value: %v (%v)", err, val)
-		}
-		res[name] = n
+		res[name] = flagVals[i]
 	}
 	return res, undeclared, nil
 }
 
 type CompileData struct {
-	AddSource      string
-	Defines        map[string]string
-	Includes       []string
-	Values         []string
-	DeclarePrintf  bool
-	DefineGlibcUse bool // workaround for incorrect flags to clang for fuchsia.
+	*extractParams
+	Defines  map[string]string
+	Includes []string
+	Values   []string
 }
 
-func compile(cc string, args []string, data *CompileData) (bin string, out []byte, err error) {
+func compile(cc string, args []string, data *CompileData) (string, []byte, error) {
 	src := new(bytes.Buffer)
 	if err := srcTemplate.Execute(src, data); err != nil {
 		return "", nil, fmt.Errorf("failed to generate source: %v", err)
@@ -112,6 +114,9 @@ func compile(cc string, args []string, data *CompileData) (bin string, out []byt
 		"-o", binFile,
 		"-w",
 	}...)
+	if data.ExtractFromELF {
+		args = append(args, "-c")
+	}
 	cmd := osutil.Command(cc, args...)
 	cmd.Stdin = src
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -119,6 +124,51 @@ func compile(cc string, args []string, data *CompileData) (bin string, out []byt
 		return "", out, err
 	}
 	return binFile, nil, nil
+}
+
+func extractFromExecutable(binFile string) ([]uint64, error) {
+	out, err := osutil.Command(binFile).CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to run flags binary: %v\n%s", err, out)
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+	var vals []uint64
+	for _, val := range strings.Split(string(out), " ") {
+		n, err := strconv.ParseUint(val, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse value: %v (%v)", err, val)
+		}
+		vals = append(vals, n)
+	}
+	return vals, nil
+}
+
+func extractFromELF(binFile string) ([]uint64, error) {
+	f, err := os.Open(binFile)
+	if err != nil {
+		return nil, err
+	}
+	ef, err := elf.NewFile(f)
+	if err != nil {
+		return nil, err
+	}
+	for _, sec := range ef.Sections {
+		if sec.Name != "syz_extract_data" {
+			continue
+		}
+		data, err := ioutil.ReadAll(sec.Open())
+		if err != nil {
+			return nil, err
+		}
+		vals := make([]uint64, len(data)/8)
+		if err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &vals); err != nil {
+			return nil, err
+		}
+		return vals, nil
+	}
+	return nil, fmt.Errorf("did not find syz_extract_data section")
 }
 
 var srcTemplate = template.Must(template.New("").Parse(`
@@ -146,6 +196,13 @@ var srcTemplate = template.Must(template.New("").Parse(`
 int printf(const char *format, ...);
 {{end}}
 
+{{if .ExtractFromELF}}
+__attribute__((section("syz_extract_data")))
+unsigned long long vals[] = {
+	{{range $val := $.Values}}(unsigned long long){{$val}},
+	{{end}}
+};
+{{else}}
 int main() {
 	int i;
 	unsigned long long vals[] = {
@@ -159,4 +216,5 @@ int main() {
 	}
 	return 0;
 }
+{{end}}
 `))

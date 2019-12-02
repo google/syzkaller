@@ -91,7 +91,10 @@ func (*netbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 			info.Consts = append(info.Consts, compat)
 		}
 	}
-	res, undeclared, err := extract(info, "gcc", args, "#include <sys/syscall.h>", false, false)
+	params := &extractParams{
+		AddSource: "#include <sys/syscall.h>",
+	}
+	res, undeclared, err := extract(info, "gcc", args, params)
 	for orig, compats := range compatNames {
 		for _, compat := range compats {
 			if undeclared[orig] && !undeclared[compat] {

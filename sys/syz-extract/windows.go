@@ -18,5 +18,8 @@ func (*windows) prepareArch(arch *Arch) error {
 }
 
 func (*windows) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
-	return extract(info, "cl", nil, "", true, false)
+	params := &extractParams{
+		DeclarePrintf: true,
+	}
+	return extract(info, "cl", nil, params)
 }
