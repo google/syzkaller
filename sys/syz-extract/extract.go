@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -39,9 +38,6 @@ type Arch struct {
 	files       []*File
 	err         error
 	done        chan bool
-	// Used by OS implementations:
-	once sync.Once
-	cc   string
 }
 
 type File struct {

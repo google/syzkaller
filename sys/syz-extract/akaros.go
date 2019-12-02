@@ -41,5 +41,8 @@ func (*akaros) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 			args = append(args, "-I"+dir)
 		}
 	}
-	return extract(info, "gcc", args, "", true, false)
+	params := &extractParams{
+		DeclarePrintf: true,
+	}
+	return extract(info, "gcc", args, params)
 }
