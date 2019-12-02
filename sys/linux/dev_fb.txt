@@ -3,7 +3,84 @@
 
 include <uapi/asm/ioctl.h>
 include <uapi/linux/fcntl.h>
+include <uapi/linux/fb.h>
 
 resource fd_fb[fd]
 
 openat$fb0(fd const[AT_FDCWD], file ptr[in, string["/dev/fb0"]], flags flags[open_flags], mode const[0]) fd_fb
+
+write$fb(fd fd_fb, data ptr[in, array[int8]], len bytesize[data])
+read$fb(fd fd_fb, data ptr[out, array[int8]], len bytesize[data])
+mmap$fb(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_fb, off int64[0:0x100000, 0x1000])
+
+ioctl$FBIOGET_VSCREENINFO(fd fd_fb, cmd const[FBIOGET_VSCREENINFO], arg ptr[out, array[int8, FB_VAR_SCREENINFO_SIZE]])
+ioctl$FBIOPUT_VSCREENINFO(fd fd_fb, cmd const[FBIOPUT_VSCREENINFO], arg ptr[in, fb_var_screeninfo])
+ioctl$FBIOGET_FSCREENINFO(fd fd_fb, cmd const[FBIOGET_FSCREENINFO], arg ptr[out, array[int8, FB_FIX_SCREENINFO_SIZE]])
+ioctl$FBIOPUTCMAP(fd fd_fb, cmd const[FBIOPUTCMAP], arg ptr[in, fb_cmap_user[in]])
+ioctl$FBIOGETCMAP(fd fd_fb, cmd const[FBIOGETCMAP], arg ptr[in, fb_cmap_user[out]])
+ioctl$FBIOPAN_DISPLAY(fd fd_fb, cmd const[FBIOPAN_DISPLAY], arg ptr[in, fb_var_screeninfo])
+ioctl$FBIOGET_CON2FBMAP(fd fd_fb, cmd const[FBIOGET_CON2FBMAP], arg ptr[in, fb_con2fbmap])
+ioctl$FBIOPUT_CON2FBMAP(fd fd_fb, cmd const[FBIOPUT_CON2FBMAP], arg ptr[in, fb_con2fbmap])
+ioctl$FBIOBLANK(fd fd_fb, cmd const[FBIOBLANK], arg intptr[FB_BLANK_UNBLANK:FB_BLANK_POWERDOWN])
+ioctl$FBIO_WAITFORVSYNC(fd fd_fb, cmd const[FBIO_WAITFORVSYNC], arg const[0])
+
+fb_var_screeninfo {
+	xres		int32
+	yres		int32
+	xres_virtual	int32
+	yres_virtual	int32
+	xoffset		int32
+	yoffset		int32
+	bits_per_pixel	flags[fb_bpp, int32]
+	grayscale	int32
+	red		fb_bitfield
+	green		fb_bitfield
+	blue		fb_bitfield
+	transp		fb_bitfield
+	nonstd		int32
+	activate	flags[fb_activate, int32]
+	height		int32
+	width		int32
+	accel_flags	int32
+	pixclock	int32
+	left_margin	int32
+	right_margin	int32
+	upper_margin	int32
+	lower_margin	int32
+	hsync_len	int32
+	vsync_len	int32
+	sync		int32
+	vmode		flags[fb_mode, int32]
+	rotate		int32
+	colorspace	int32
+	reserved	array[const[0, int32], 4]
+}
+
+fb_activate = FB_ACTIVATE_NOW, FB_ACTIVATE_NXTOPEN, FB_ACTIVATE_TEST, FB_ACTIVATE_VBL, FB_ACTIVATE_ALL, FB_ACTIVATE_FORCE, FB_ACTIVATE_INV_MODE
+fb_mode = FB_VMODE_NONINTERLACED, FB_VMODE_INTERLACED, FB_VMODE_DOUBLE, FB_VMODE_ODD_FLD_FIRST
+fb_bpp = 1, 2, 8, 15, 16, 24, 32
+
+type fb_cmap_user[DIR] {
+	start	int32
+	len	len[red, int32]
+# NEED:	these should be parallel arrays of the same size.
+	red	ptr[DIR, array[int16]]
+	green	ptr[DIR, array[int16]]
+	blue	ptr[DIR, array[int16]]
+	transp	ptr[DIR, array[int16]]
+}
+
+fb_bitfield {
+	offset		int32
+	length		int32
+	msb_right	bool32
+}
+
+fb_con2fbmap {
+	console		int32
+	framebuffer	int32
+}
+
+define FB_VAR_SCREENINFO_SIZE	sizeof(struct fb_var_screeninfo)
+define FB_FIX_SCREENINFO_SIZE	sizeof(struct fb_fix_screeninfo)
+_ = __NR_mmap2
