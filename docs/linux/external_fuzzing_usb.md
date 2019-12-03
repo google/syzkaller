@@ -9,17 +9,9 @@ This is still in development and things might change.
 USB fuzzing consists of 3 parts:
 
 1. Syzkaller changes that are now upstream.
-2. Kernel interface for USB device emulation, which can be found [here](https://github.com/google/kasan/commits/usb-fuzzer).
+2. Kernel interface for USB device emulation, which can be found [here](https://github.com/google/kasan/commits/usb-fuzzer) and is now being upstreamed.
 3. KCOV changes that allow to collect coverage from background threads and interrupts
-(the former can be found [here](https://github.com/google/kasan/commits/usb-fuzzer), the latter in still in development).
-
-Currently syzkaller defines 5 USB syzcalls (see [this](/sys/linux/vusb.txt) and [this](/executor/common_usb.h)):
-
-1. `syz_usb_connect` - connects a USB device.
-2. `syz_usb_disconnect` - disconnects a USB device.
-3. `syz_usb_control_io` - sends or receives a control message over endpoint 0.
-4. `syz_usb_ep_write` - sends a message to an endpoint.
-4. `syz_usb_ep_read` - receives a message from an endpoint.
+(the former can be found [here](https://github.com/google/kasan/commits/usb-fuzzer) and is now being upstreamed, the latter is still in development).
 
 More details can be found:
 
@@ -29,12 +21,13 @@ More details can be found:
 
 A few major things that need to be done:
 
-1. Collect coverage from interrupts (this is required to enable better fuzzing of USB drivers after enumeration completes).
-2. Add descriptions for all main USB classes.
-3. Upstream KCOV changes.
-4. Upstream the kernel interface for USB device emulation.
+1. Upstream KCOV changes that allow to collect coverage from background threads.
+2. Upstream the kernel interface for USB device emulation.
+3. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
+4. Add descriptions for all main USB classes.
+5. Collect coverage from interrupts (this is required to enable better fuzzing of USB drivers after enumeration completes).
 
-The work on points 3 and 4 has started:
+The work on points 1 and 2 has started:
 
 Kernel patches in mainline:
 
@@ -52,6 +45,17 @@ This includes at least: a. making sure that current USB emulation implementation
 b. using USB requests coming from the host as a signal (like coverage) to enable "signal-driven" fuzzing,
 c. making UDC driver name configurable for syz-execprog and syz-prog2c.
 2. Generate syzkaller programs from usbmon trace that is produced by actual USB devices (this should make the fuzzer to go significantly deeper into the USB drivers code).
+
+
+## Internals
+
+Currently syzkaller defines 5 USB syzcalls (see [this](/sys/linux/vusb.txt) and [this](/executor/common_usb.h)):
+
+1. `syz_usb_connect` - connects a USB device.
+2. `syz_usb_disconnect` - disconnects a USB device.
+3. `syz_usb_control_io` - sends or receives a control message over endpoint 0.
+4. `syz_usb_ep_write` - sends a message to an endpoint.
+4. `syz_usb_ep_read` - receives a message from an endpoint.
 
 Syzkaller descriptions for USB fuzzing can be found [here](/sys/linux/vusb.txt).
 
@@ -91,7 +95,7 @@ Syzkaller descriptions for USB fuzzing can be found [here](/sys/linux/vusb.txt).
 
 Syzkaller uses a list of hardcoded [USB IDs](/sys/linux/init_vusb_ids.go) that are [patched](/sys/linux/init_vusb.go) into the `syz_usb_connect` syzcall by syzkaller runtime.
 One of the ways to make syzkaller target only particular USB drivers is to alter that list.
-The instructions below describe a way to generate syzkaller USB IDs for all USB drivers enabled in your .config.
+The instructions below describe a hackish way to generate syzkaller USB IDs for all USB drivers enabled in your .config.
 
 1. Apply [this](/tools/syz-usbgen/usb_ids.patch) kernel patch.
 
