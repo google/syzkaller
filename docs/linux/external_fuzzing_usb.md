@@ -34,6 +34,17 @@ A few major things that need to be done:
 3. Upstream KCOV changes.
 4. Upstream the kernel interface for USB device emulation.
 
+The work on points 3 and 4 has started:
+
+Kernel patches in mainline:
+
+- [USB: dummy-hcd: use usb_urb_dir_in instead of usb_pipein](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6dabeb891c001c592645df2f477fed9f5d959987)
+- [USB: dummy-hcd: increase max number of devices to 32](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8442b02bf3c6770e0d7e7ea17be36c30e95987b6)
+
+Kernel patches in review:
+- [[v3] kcov: collect coverage from usb and vhost](https://lore.kernel.org/patchwork/cover/1146106/)
+- [[v2] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/patch/11246371/)
+
 Some ideas for things that can be done:
 
 1. Add a mode for standalone fuzzing of physical USB hosts (by using e.g. Raspberry Pi Zero, see below).
