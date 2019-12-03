@@ -24,7 +24,7 @@ A few major things that need to be done:
 1. Upstream KCOV changes that allow to collect coverage from background threads.
 2. Upstream the kernel interface for USB device emulation.
 3. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
-4. Add descriptions for all main USB classes.
+4. Add descriptions for all relevant USB classes and drivers.
 5. Collect coverage from interrupts (this is required to enable better fuzzing of USB drivers after enumeration completes).
 
 The work on points 1 and 2 has started:
