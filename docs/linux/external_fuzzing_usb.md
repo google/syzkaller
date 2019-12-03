@@ -1,7 +1,7 @@
 External USB fuzzing for Linux kernel
 =====================================
 
-Syzkaller support fuzzing the Linux kernel USB subsystem externally
+Syzkaller supports fuzzing the Linux kernel USB subsystem externally
 (as it would be done by plugging in a physical USB device with e.g. [Facedancer](https://github.com/usb-tools/Facedancer)).
 This allowed to find over [100 bugs](/docs/linux/found_bugs_usb.md) in the Linux kernel USB stack so far.
 This is still in development and things might change.
