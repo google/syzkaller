@@ -68,6 +68,11 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 			return nil, fmt.Errorf("bad target %q: %v", target, err)
 		}
 	}
+	if len(cfg.USBDevNums) > 0 {
+		if len(cfg.USBDevNums) != len(cfg.Targets) {
+			return nil, fmt.Errorf("the number of Targets and the number of USBDevNums should be same")
+		}
+	}
 	if env.Debug && len(cfg.Targets) > 1 {
 		log.Logf(0, "limiting number of targets from %v to 1 in debug mode", len(cfg.Targets))
 		cfg.Targets = cfg.Targets[:1]
