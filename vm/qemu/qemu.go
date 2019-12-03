@@ -337,9 +337,7 @@ func (inst *instance) boot() error {
 		"-serial", "stdio",
 		"-no-reboot",
 	}
-	if inst.cfg.QemuArgs != "" {
-		args = append(args, strings.Split(inst.cfg.QemuArgs, " ")...)
-	}
+	args = append(args, splitArgs(inst.cfg.QemuArgs, filepath.Join(inst.workdir, "template"))...)
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
@@ -424,6 +422,16 @@ func (inst *instance) boot() error {
 	}
 	bootOutputStop <- true
 	return nil
+}
+
+func splitArgs(str, template string) (args []string) {
+	for _, arg := range strings.Split(str, " ") {
+		if arg == "" {
+			continue
+		}
+		args = append(args, strings.Replace(arg, "{{TEMPLATE}}", template, -1))
+	}
+	return
 }
 
 func (inst *instance) Forward(port int) (string, error) {

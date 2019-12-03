@@ -5,6 +5,7 @@ package mgrconfig
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -82,6 +83,12 @@ func Complete(cfg *Config) error {
 		return fmt.Errorf("config param workdir is empty")
 	}
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
+	if cfg.WorkdirTemplate != "" {
+		cfg.WorkdirTemplate = osutil.Abs(cfg.WorkdirTemplate)
+		if _, err := ioutil.ReadDir(cfg.WorkdirTemplate); err != nil {
+			return fmt.Errorf("failed to read workdir_template: %v", err)
+		}
+	}
 	if cfg.Syzkaller == "" {
 		return fmt.Errorf("config param syzkaller is empty")
 	}

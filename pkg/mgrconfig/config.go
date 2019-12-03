@@ -19,6 +19,21 @@ type Config struct {
 	// - <workdir>/corpus.db: corpus with interesting programs
 	// - <workdir>/instance-x: per VM instance temporary files
 	Workdir string `json:"workdir"`
+	// Refers to a directory. Optional.
+	// Each VM will get a recursive copy of the files that are present in workdir_template.
+	// VM config can then use these private copies as needed. The copy directory
+	// can be referenced with "{{TEMPLATE}}" string. This is different from using
+	// the files directly in that each instance will get own clean, private,
+	// scratch copy of the files. Currently supported only for qemu_args argument
+	// of qemu VM type. Use example:
+	// Create a template dir with necessary files:
+	// $ mkdir /mytemplatedir
+	// $ truncate -s 64K /mytemplatedir/fd
+	// Then specify the dir in the manager config:
+	//	"workdir_template": "/mytemplatedir"
+	// Then use these files in VM config:
+	//	"qemu_args": "-fda {{TEMPLATE}}/fd"
+	WorkdirTemplate string `json:"workdir_template"`
 	// Directory with kernel object files (e.g. `vmlinux` for linux)
 	// (used for report symbolization and coverage reports, optional).
 	KernelObj string `json:"kernel_obj"`
