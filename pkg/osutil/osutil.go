@@ -163,6 +163,30 @@ func CopyFiles(srcDir, dstDir string, files map[string]bool) error {
 	return os.Rename(tmpDir, dstDir)
 }
 
+func CopyDirRecursively(srcDir, dstDir string) error {
+	if err := MkdirAll(dstDir); err != nil {
+		return err
+	}
+	files, err := ioutil.ReadDir(srcDir)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		src := filepath.Join(srcDir, file.Name())
+		dst := filepath.Join(dstDir, file.Name())
+		if file.IsDir() {
+			if err := CopyDirRecursively(src, dst); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := CopyFile(src, dst); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // LinkFiles creates hard links for files from dstDir to srcDir.
 // Files are assumed to be relative names in slash notation.
 // All other files in dstDir are removed.

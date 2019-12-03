@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/syzkaller/pkg/mgrconfig"
@@ -32,8 +33,9 @@ import (
 )
 
 type Pool struct {
-	impl    vmimpl.Pool
-	workdir string
+	impl     vmimpl.Pool
+	workdir  string
+	template string
 }
 
 type Instance struct {
@@ -86,8 +88,9 @@ func Create(cfg *mgrconfig.Config, debug bool) (*Pool, error) {
 		return nil, err
 	}
 	return &Pool{
-		impl:    impl,
-		workdir: env.Workdir,
+		impl:     impl,
+		workdir:  env.Workdir,
+		template: cfg.WorkdirTemplate,
 	}, nil
 }
 
@@ -102,6 +105,11 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 	workdir, err := osutil.ProcessTempDir(pool.workdir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
+	}
+	if pool.template != "" {
+		if err := osutil.CopyDirRecursively(pool.template, filepath.Join(workdir, "template")); err != nil {
+			return nil, err
+		}
 	}
 	impl, err := pool.impl.Create(workdir, index)
 	if err != nil {
