@@ -152,6 +152,19 @@ syz_open_procfs(0x0, &(0x7f0000000000)='net\x00')
 syz_open_procfs(0x0, &(0x7f0000000000)='net\x00')
 			`,
 		},
+
+		{
+			`
+syz_open_dev$tty1(0xc, 0x4, 0x4)
+syz_open_dev$tty1(0xb, 0x2, 0x4)
+syz_open_dev$tty1(0xc, 0x4, 0x5)
+`,
+			`
+syz_open_dev$tty1(0xc, 0x4, 0x4)
+syz_open_dev$tty1(0xc, 0x4, 0x4)
+syz_open_dev$tty1(0xc, 0x4, 0x1)
+			`,
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
