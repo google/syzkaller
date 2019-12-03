@@ -8,6 +8,7 @@ include <uapi/linux/fb.h>
 resource fd_fb[fd]
 
 openat$fb0(fd const[AT_FDCWD], file ptr[in, string["/dev/fb0"]], flags flags[open_flags], mode const[0]) fd_fb
+openat$fb1(fd const[AT_FDCWD], file ptr[in, string["/dev/fb1"]], flags flags[open_flags], mode const[0]) fd_fb
 
 write$fb(fd fd_fb, data ptr[in, array[int8]], len bytesize[data])
 read$fb(fd fd_fb, data ptr[out, array[int8]], len bytesize[data])
