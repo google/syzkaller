@@ -11,13 +11,22 @@ include <uapi/linux/termios.h>
 
 resource fd_tty[fd]
 
+# UNIX 98 pseudoterminal pairs (see man pts and man pty):
 openat$ptmx(fd const[AT_FDCWD], file ptr[in, string["/dev/ptmx"]], flags flags[open_flags], mode const[0]) fd_tty
 syz_open_pts(fd fd_tty, flags flags[open_flags]) fd_tty
+
+# BSD pseudoterminal pair (see man pty):
+syz_open_dev$ttys(dev const[0xc], major const[2], minor proc[20, 2]) fd_tty
+syz_open_dev$ptys(dev const[0xc], major const[3], minor proc[20, 2]) fd_tty
+
+# Some special tty devices.
+# Note /dev/{tty,tty1,tty2,tty7} seem to be of different types.
+openat$tty(fd const[AT_FDCWD], file ptr[in, string["/dev/tty"]], flags flags[open_flags], mode const[0]) fd_tty
+syz_open_dev$tty1(dev const[0xc], major const[4], minor intptr[1:4]) fd_tty
+syz_open_dev$tty20(dev const[0xc], major const[4], minor proc[20, 2]) fd_tty
+openat$ttyS3(fd const[AT_FDCWD], file ptr[in, string["/dev/ttyS3"]], flags flags[open_flags], mode const[0]) fd_tty
 openat$ttynull(fd const[AT_FDCWD], file ptr[in, string["/dev/ttynull"]], flags flags[open_flags], mode const[0]) fd_tty
 openat$ttyprintk(fd const[AT_FDCWD], file ptr[in, string["/dev/ttyprintk"]], flags flags[open_flags], mode const[0]) fd_tty
-syz_open_dev$tty(dev ptr[in, string["/dev/tty1#"]], id intptr, flags flags[open_flags]) fd_tty
-syz_open_dev$ttys(dev ptr[in, string["/dev/ttys#"]], id intptr, flags flags[open_flags]) fd_tty
-syz_open_dev$ptys(dev ptr[in, string["/dev/ptys#"]], id intptr, flags flags[open_flags]) fd_tty
 
 ioctl$TCGETS(fd fd_tty, cmd const[TCGETS], arg ptr[out, termios])
 ioctl$TCSETS(fd fd_tty, cmd const[TCSETS], arg ptr[in, termios])
@@ -38,7 +47,7 @@ ioctl$TIOCCBRK(fd fd_tty, cmd const[TIOCCBRK])
 ioctl$TCXONC(fd fd_tty, cmd const[TCXONC], arg intptr)
 ioctl$FIONREAD(fd fd_tty, cmd const[FIONREAD], arg ptr[out, int32])
 ioctl$TIOCOUTQ(fd fd_tty, cmd const[TIOCOUTQ], arg ptr[out, int32])
-ioctl$TCFLSH(fd fd_tty, cmd const[TCFLSH], arg intptr)
+ioctl$TCFLSH(fd fd_tty, cmd const[TCFLSH], arg intptr[TCIFLUSH:TCIOFLUSH])
 ioctl$TIOCGPTPEER(fd fd_tty, cmd const[TIOCGPTPEER], arg intptr) fd_tty
 ioctl$TIOCSTI(fd fd_tty, cmd const[TIOCSTI], arg intptr)
 ioctl$TIOCCONS(fd fd_tty, cmd const[TIOCCONS])
