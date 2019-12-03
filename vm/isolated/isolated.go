@@ -28,7 +28,7 @@ type Config struct {
 	Targets      []string `json:"targets"`        // target machines: (hostname|ip)(:port)?
 	TargetDir    string   `json:"target_dir"`     // directory to copy/run on target
 	TargetReboot bool     `json:"target_reboot"`  // reboot target on repair
-	USBDevNums   []string `json:"usb_device_num"` // usb device number
+	USBDevNums   []string `json:"usb_device_num"` // /sys/bus/usb/devices/
 }
 
 type Pool struct {
@@ -71,7 +71,9 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Debug && len(cfg.Targets) > 1 {
 		log.Logf(0, "limiting number of targets from %v to 1 in debug mode", len(cfg.Targets))
 		cfg.Targets = cfg.Targets[:1]
-		cfg.USBDevNums = cfg.USBDevNums[:1]
+		if len(cfg.USBDevNums) > 1 {
+			cfg.USBDevNums = cfg.USBDevNums[:1]
+		}
 	}
 	pool := &Pool{
 		cfg: cfg,
