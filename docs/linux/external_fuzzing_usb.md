@@ -109,6 +109,8 @@ The instructions below describe a hackish way to generate syzkaller USB IDs for 
     ./bin/syz-usbgen KERNEL_LOG ./sys/linux/init_vusb_ids.go
     ```
 
+5. Don't forget to revert the applied patch and rebuild the kernel before doing actual fuzzing.
+
 
 ## Running reproducers with Raspberry Pi Zero W
 
