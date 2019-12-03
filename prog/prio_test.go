@@ -63,6 +63,11 @@ func TestPrioChoice(t *testing.T) {
 // Test static priorities assigned based on argument direction.
 func TestStaticPriorities(t *testing.T) {
 	target, rs, iters := initTest(t)
+	if iters < 100 {
+		// Both -short and -race reduce iters to 10 which is not enough
+		// for this probablistic test.
+		iters = 100
+	}
 	// The first call is the one that creates a resource and the rest are calls that can use that resource.
 	tests := [][]string{
 		{"open", "read", "write", "mmap"},
@@ -89,8 +94,8 @@ func TestStaticPriorities(t *testing.T) {
 			}
 			// Checks that prio[callCreatesRes][callUsesRes] > prio[callUsesRes][callCreatesRes]
 			if count >= counter[call] {
-				t.Fatalf("Too high priority for %s -> %s: %d vs %s -> %s: %d", call, referenceCall,
-					count, referenceCall, call, counter[call])
+				t.Fatalf("Too high priority for %s -> %s: %d vs %s -> %s: %d",
+					call, referenceCall, count, referenceCall, call, counter[call])
 			}
 		}
 	}
