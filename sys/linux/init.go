@@ -74,6 +74,7 @@ func InitTarget(target *prog.Target) {
 		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1", "GPL",
 	}
 	switch target.Arch {
+
 	case "amd64":
 		target.SpecialPointers = []uint64{
 			0xffffffff81000000, // kernel text
@@ -203,15 +204,30 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		}
 	case "syz_open_procfs":
 		arch.sanitizeSyzOpenProcfs(c)
+	case "syz_open_dev":
+		enforceIntArg(c.Args[0])
+		enforceIntArg(c.Args[1])
+		enforceIntArg(c.Args[2])
 	}
 
 	switch c.Meta.Name {
 	case "setsockopt$EBT_SO_SET_ENTRIES":
 		arch.sanitizeEbtables(c)
-	case "syz_open_dev$char_usb":
-		// Don't allow opening various char and block devices.
-		c.Args[0].(*prog.ConstArg).Val = 0xc
-		c.Args[1].(*prog.ConstArg).Val = arch.USB_MAJOR
+	}
+}
+
+func enforceIntArg(a prog.Arg) {
+	arg, ok := a.(*prog.ConstArg)
+	if !ok {
+		return
+	}
+	switch typ := arg.Type().(type) {
+	case *prog.ConstType:
+		arg.Val = typ.Val
+	case *prog.IntType:
+		if typ.Kind == prog.IntRange && (arg.Val < typ.RangeBegin || arg.Val > typ.RangeEnd) {
+			arg.Val = typ.RangeBegin
+		}
 	}
 }
 
