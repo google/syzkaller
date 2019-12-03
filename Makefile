@@ -219,7 +219,8 @@ format_go:
 	$(GO) fmt ./...
 
 format_cpp:
-	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
+	clang-format --style=file -i executor/*.cc executor/*.h \
+		tools/kcovtrace/*.c tools/kcovfuzzer/*.c tools/fops_probe/*.cc
 
 format_sys: bin/syz-fmt
 	bin/syz-fmt all
