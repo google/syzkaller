@@ -98,6 +98,7 @@ type Config struct {
 
 type ManagerConfig struct {
 	Name            string `json:"name"`
+	Disabled        string `json:"disabled"` // If not empty, don't build/start this manager.
 	DashboardClient string `json:"dashboard_client"`
 	DashboardKey    string `json:"dashboard_key"`
 	Repo            string `json:"repo"`
@@ -245,12 +246,13 @@ func loadConfig(filename string) (*Config, error) {
 	if cfg.HTTP == "" {
 		return nil, fmt.Errorf("param 'http' is empty")
 	}
-	if len(cfg.Managers) == 0 {
-		return nil, fmt.Errorf("no managers specified")
-	}
 	// Manager name must not contain dots because it is used as GCE image name prefix.
 	managerNameRe := regexp.MustCompile("^[a-zA-Z0-9-_]{4,64}$")
+	var managers []*ManagerConfig
 	for i, mgr := range cfg.Managers {
+		if mgr.Disabled == "" {
+			managers = append(managers, mgr)
+		}
 		if !managerNameRe.MatchString(mgr.Name) {
 			return nil, fmt.Errorf("param 'managers[%v].name' has bad value: %q", i, mgr.Name)
 		}
@@ -279,6 +281,10 @@ func loadConfig(filename string) (*Config, error) {
 			managercfg.HTTP = fmt.Sprintf(":%v", cfg.ManagerPort)
 			cfg.ManagerPort++
 		}
+	}
+	cfg.Managers = managers
+	if len(cfg.Managers) == 0 {
+		return nil, fmt.Errorf("no managers specified")
 	}
 	return cfg, nil
 }
