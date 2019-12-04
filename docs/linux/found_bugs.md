@@ -4,6 +4,7 @@ Most latest bugs are reported by [syzbot](/docs/syzbot.md) and are listed [here]
 Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [cirrusfb: divide errors in cirrusfb_check_var/cirrusfb_check_pixclock/cirrusfb_set_par_foo](https://groups.google.com/forum/#!topic/syzkaller/_utQWPf5qeY)
 * [floppy: fix out-of-bounds read in copy_buffer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=da99466ac243f15fbba65bd261bfc75ffa1532b6)
 * [floppy: fix invalid pointer dereference in drive_name](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9b04609b784027968348796a18f601aed9db3789)
 * [floppy: fix out-of-bounds read in next_valid_format](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5635f897ed83fd539df78e98ba69ee91592f9bb8)
