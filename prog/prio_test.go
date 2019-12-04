@@ -65,7 +65,7 @@ func TestStaticPriorities(t *testing.T) {
 	target, rs, iters := initTest(t)
 	if iters < 100 {
 		// Both -short and -race reduce iters to 10 which is not enough
-		// for this probablistic test.
+		// for this probabilistic test.
 		iters = 100
 	}
 	// The first call is the one that creates a resource and the rest are calls that can use that resource.
