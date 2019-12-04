@@ -59,10 +59,6 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "dup2_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dup2_t", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "newfildes", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "fae_data_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fae_data_t", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "open_t"}, FldName: "open"},
-		&StructType{Key: StructKey{Name: "dup2_t"}, FldName: "dup2"},
-	}}},
 	{Key: StructKey{Name: "fd_set", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fd_set", TypeSize: 64, ArgDir: 2}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask0", TypeSize: 8, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "mask1", TypeSize: 8, ArgDir: 2}}},
@@ -192,12 +188,27 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "posix_spawn_file_actions"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "posix_spawn_file_actions", TypeSize: 16}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "len", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fae", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "posix_spawn_file_actions_entry"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fae", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "posix_spawn_file_actions_entry"}}},
 	}}},
 	{Key: StructKey{Name: "posix_spawn_file_actions_entry"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "posix_spawn_file_actions_entry", TypeSize: 24}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fae_action", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fae_filedes", TypeSize: 4}}},
-		&UnionType{Key: StructKey{Name: "fae_data_t"}, FldName: "fae_data"},
+		&StructType{Key: StructKey{Name: "posix_spawn_file_actions_entry_t[FAE_OPEN, fd, open_t]"}, FldName: "open"},
+		&StructType{Key: StructKey{Name: "posix_spawn_file_actions_entry_t[FAE_DUP2, fd, dup2_t]"}, FldName: "dup"},
+		&StructType{Key: StructKey{Name: "posix_spawn_file_actions_entry_t[FAE_CLOSE, fd, void]"}, FldName: "close"},
+	}}},
+	{Key: StructKey{Name: "posix_spawn_file_actions_entry_t[FAE_CLOSE, fd, void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "posix_spawn_file_actions_entry_t[FAE_CLOSE, fd, void]", TypeSize: 8}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fae_action", TypeSize: 4}}, Val: 2},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fae_filedes", TypeSize: 4}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "fae_data"}, Kind: 1},
+	}}},
+	{Key: StructKey{Name: "posix_spawn_file_actions_entry_t[FAE_DUP2, fd, dup2_t]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "posix_spawn_file_actions_entry_t[FAE_DUP2, fd, dup2_t]", TypeSize: 12}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fae_action", TypeSize: 4}}, Val: 1},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fae_filedes", TypeSize: 4}},
+		&StructType{Key: StructKey{Name: "dup2_t"}, FldName: "fae_data"},
+	}}},
+	{Key: StructKey{Name: "posix_spawn_file_actions_entry_t[FAE_OPEN, fd, open_t]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "posix_spawn_file_actions_entry_t[FAE_OPEN, fd, open_t]", TypeSize: 24}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fae_action", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fae_filedes", TypeSize: 4}},
+		&StructType{Key: StructKey{Name: "open_t"}, FldName: "fae_data"},
 	}}},
 	{Key: StructKey{Name: "posix_spawnattr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "posix_spawnattr", TypeSize: 48}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sa_flags", FldName: "sa_flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 16, 8, 32, 64, 128, 255}},
@@ -1482,6 +1493,9 @@ var consts_amd64 = []ConstValue{
 	{Name: "CLONE_SIGHAND", Value: 2048},
 	{Name: "CLONE_VFORK", Value: 16384},
 	{Name: "CLONE_VM", Value: 256},
+	{Name: "FAE_CLOSE", Value: 2},
+	{Name: "FAE_DUP2", Value: 1},
+	{Name: "FAE_OPEN"},
 	{Name: "FD_CLOEXEC", Value: 1},
 	{Name: "F_DUPFD"},
 	{Name: "F_DUPFD_CLOEXEC", Value: 12},
@@ -1868,4 +1882,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "_UC_STACK", Value: 2},
 }
 
-const revision_amd64 = "75190c0fbdcd19c01861cd8fa231f6941769dfed"
+const revision_amd64 = "f31cb43d193657198cdbdaaf2f2e31a81921803d"
