@@ -201,16 +201,17 @@ posix_spawn_file_actions {
 	fae	ptr[in, posix_spawn_file_actions_entry]
 }
 
-posix_spawn_file_actions_entry {
-	fae_action	int32
-	fae_filedes	int32
-	fae_data	fae_data_t
-}
-
-fae_data_t [
-	open	open_t
-	dup2	dup2_t
+posix_spawn_file_actions_entry [
+  open posix_spawn_file_actions_entry_t[FAE_OPEN, fd, open_t]
+  dup posix_spawn_file_actions_entry_t[FAE_DUP2, fd, dup2_t]
+  close posix_spawn_file_actions_entry_t[FAE_CLOSE, fd, void]
 ]
+
+type posix_spawn_file_actions_entry_t[ACTION, FILEDES, DATA] {
+  fae_action const[ACTION, int32]
+  fae_filedes FILEDES
+  fae_data DATA
+}
 
 open_t {
 	path	ptr[in, string]
