@@ -55,7 +55,9 @@ syz_usb_control_io$uac1(fd fd_usb_uac1, descs ptr[in, vusb_descriptors_uac1], re
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
 
-# TODO: consider patching idVendor and idProduct for all classes in Go code.
+# TODO: consider patching idVendor and idProduct for all class specific descriptions in Go code to cover more drivers.
+# TODO: custom syz_usb_ep_write() descriptions for all class specific descriptions.
+# TODO: consider adding custom vusb_connect_descriptors definitions to all class specific descriptions.
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -123,7 +125,7 @@ type usb_interface_descriptor_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL
 type usb_interface_descriptor_eps_array_t[IFNUM, ALTNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] usb_interface_descriptor_t[IFNUM, ALTNUM, len[endpoints, int8], CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS]
 type usb_interface_descriptor_consts_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] usb_interface_descriptor_t[const[IFNUM, int8], const[ALTNUM, int8], const[EPSNUM, int8], const[CLASS, int8], const[SUBCLASS, int8], const[PROTOCOL, int8], EXTRA, EPS]
 
-# TODO: Some endpoints have USB_DT_ENDPOINT_SIZE.
+# TODO: non-audio endpoints have USB_DT_ENDPOINT_SIZE.
 type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
 	bLength			const[USB_DT_ENDPOINT_AUDIO_SIZE, int8]
 	bDescriptorType		const[USB_DT_ENDPOINT, int8]
@@ -172,7 +174,6 @@ usb_endpoint_addresses = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, USB_
 
 usb_endpoint_attributes = USB_ENDPOINT_XFER_CONTROL, USB_ENDPOINT_XFER_ISOC, USB_ENDPOINT_XFER_BULK, USB_ENDPOINT_XFER_INT, USB_ENDPOINT_INTR_PERIODIC, USB_ENDPOINT_INTR_NOTIFICATION, USB_ENDPOINT_SYNC_NONE, USB_ENDPOINT_SYNC_ASYNC, USB_ENDPOINT_SYNC_ADAPTIVE, USB_ENDPOINT_SYNC_SYNC, USB_ENDPOINT_USAGE_DATA, USB_ENDPOINT_USAGE_FEEDBACK, USB_ENDPOINT_USAGE_FEEDBACK
 
-# TODO: define this struct for each class.
 vusb_connect_descriptors {
 	qual_len	len[qual, int32]
 	qual		ptr[in, usb_qualifier_descriptor]
@@ -215,7 +216,6 @@ type vusb_descriptor_t[CLASS, REQ, DATA] {
 } [packed]
 
 # TODO: consider doing lookups based on USB_RECIP values.
-# TODO: split out class and driver specific responses into separate structs.
 vusb_responses {
 	len				len[parent, int32]
 	generic				ptr[in, vusb_response_generic]
@@ -223,9 +223,11 @@ vusb_responses {
 	get_interface			ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
 	get_configuration		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
 
+# TODO: move these into custom descriptions for hub class when they are added.
 	hub_USB_REQ_GET_STATUS_hub	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_hub_status]]
 	hub_USB_REQ_GET_STATUS_port	ptr[in, vusb_response_t[USB_TYPE_CLASS, USB_REQ_GET_STATUS, usb_port_status]]
 
+# TODO: move these into custom descriptions for asix driver when they are added.
 	asix_AX_CMD_READ_MII_REG	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_MII_REG, int16]]
 	asix_AX_CMD_STATMNGSTS_REG	ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_STATMNGSTS_REG, int8]]
 	asix_AX_CMD_READ_EEPROM		ptr[in, vusb_response_t[USB_TYPE_VENDOR, AX_CMD_READ_EEPROM, array[int8, 2]]]
@@ -263,6 +265,7 @@ type vusb_response_t[CLASS, REQ, DATA] {
 
 # TODO: figure out when is the USB_DT_OTG descriptor used.
 # TODO: figure out when is the USB_DT_INTERFACE_ASSOCIATION descriptor used.
+# TODO: figure out when is the USB_DT_BOS descriptor used.
 
 type usb_string_descriptor_t[DATA] {
 	bLength		len[parent, int8]
@@ -291,7 +294,6 @@ usb_qualifier_descriptor {
 	bRESERVED		const[0, int8]
 } [packed]
 
-# TODO: investigate which devices are required to have this descriptor.
 usb_bos_descriptor {
 	bLength		const[USB_DT_BOS_SIZE, int8]
 	bDescriptorType	const[USB_DT_BOS, int8]
@@ -406,7 +408,7 @@ usb_ptm_cap_descriptor {
 
 # Extra USB descriptors that come after an interface or an endpoint descriptor.
 
-# TODO: rework this union so each option is a single descriptor.
+# TODO: consider removing class specific descriptors here for described classes.
 usb_interface_extra_descriptor [
 	generic		usb_generic_descriptor
 	hid_hid		usb_hid_descriptor_hid
@@ -585,8 +587,9 @@ usb_hid_class_descriptor_report {
 # TODO: it's hard to describe the REPORT descriptor structure via syzkaller
 # descriptions, so consider generating it in Go code.
 # TODO: the length of REPORT descriptor must match the value in HID descriptor.
-# Linux HID stack doesn't support long items.
 # TODO: there are vendor specific REPORT descriptor formats (Logitech HID++).
+
+# Linux HID stack doesn't support long items.
 hid_descriptor_report {
 	items	array[hid_report_item_short]
 } [packed]
@@ -632,7 +635,7 @@ hid_report_item_local_tags = HID_LOCAL_ITEM_TAG_USAGE, HID_LOCAL_ITEM_TAG_USAGE_
 
 # Connected PRINTER devices are known to create the following /dev/ files:
 # /dev/usb/lp#.
-# TODO: write descriptions for it.
+# TODO: write descriptions for those.
 
 # drivers/usb/class/usblp.c
 define USBLP_REQ_GET_ID	0x00
@@ -708,7 +711,7 @@ usb_printer_get_id_response {
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/u_ether.c
 
 # Connected CDC ECM devices are known to create usbN network interfaces.
-# TODO: enable fuzzing of those.
+# TODO: write descriptions for those.
 
 usb_device_descriptor_cdc_ecm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ecm, 1]]
@@ -1043,7 +1046,7 @@ usb_cdc_ncm_ntb_parameters {
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_uac1_legacy.c
 # https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/usb/audio.h
 
-# TODO: find out which /dev/ file are created by connected UAC1 devices.
+# TODO: find out which /dev/ files are created by connected UAC1 devices and add descriptions for those.
 
 usb_device_descriptor_uac1 {
 	inner	usb_device_descriptor_t[0, 0, 0, 0x1d6b, 0x101, 64, array[usb_config_descriptor_uac1, 1]]
@@ -1053,7 +1056,7 @@ usb_config_descriptor_uac1 {
 	inner	usb_config_descriptor_t[const[1, int8], const[3, int8], flags[usb_config_attributes, int8], usb_interface_descriptors_uac1]
 } [packed]
 
-# TODO: optional interrupt endpoint for control interface.
+# TODO: control interface might have and optional interrupt endpoint.
 usb_interface_descriptors_uac1 {
 	control		usb_interface_descriptor_consts_t[0, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOCONTROL, 0, uac_control_iface_extra_descriptors, void]
 	as_out_alt_0	usb_interface_descriptor_consts_t[1, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, void, void]
@@ -1303,9 +1306,10 @@ vusb_responses_uac1 {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# TODO: MIDI, UAC2, UAC3
+# TODO: describe MIDI, UAC2, UAC3
 # https://www.usb.org/sites/default/files/midi10.pdf
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_midi.c
+# https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_uac2.c
 # https://elixir.bootlin.com/linux/latest/source/include/linux/usb/audio-v2.h
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
