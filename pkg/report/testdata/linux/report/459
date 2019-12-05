@@ -1,0 +1,86 @@
+TITLE: BUG: unable to handle kernel paging request in input_unregister_device
+
+[  346.619398][  T102] BUG: unable to handle page fault for address: ffff8801d386d964
+[  346.627264][  T102] #PF: supervisor read access in kernel mode
+[  346.633299][  T102] #PF: error_code(0x0000) - not-present page
+[  346.639273][  T102] PGD 0 P4D 0 
+[  346.642632][  T102] Oops: 0000 [#1] SMP KASAN
+[  346.647117][  T102] CPU: 0 PID: 102 Comm: kworker/0:2 Not tainted 5.4.0-syzkaller #0
+[  346.654985][  T102] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  346.665075][  T102] Workqueue: usb_hub_wq hub_event
+[  346.670131][  T102] RIP: 0010:kobject_put+0x4b/0x2e0
+[  346.675224][  T102] Code: 8d 65 3c 48 b8 00 00 00 00 00 fc ff df 4c 89 e2 48 c1 ea 03 0f b6 04 02 4c 89 e2 83 e2 07 38 d0 7f 08 84 c0 0f 85 34 02 00 00 <0f> b6 5d 3c 31 ff 83 e3 01 89 de e8 f5 50 cc fb 84 db 74 6c e8 bc
+[  346.694810][  T102] RSP: 0000:ffff8881d510f500 EFLAGS: 00010246
+[  346.700868][  T102] RAX: 0000000000000000 RBX: ffff8801d386d928 RCX: ffffc90010f17000
+[  346.708817][  T102] RDX: 0000000000000004 RSI: ffffffff85722e00 RDI: ffff8801d386d928
+[  346.716765][  T102] RBP: ffff8801d386d928 R08: ffff8881d77f4980 R09: fffffbfff0dfd419
+[  346.724725][  T102] R10: fffffbfff0dfd418 R11: ffffffff86fea0c7 R12: ffff8801d386d964
+[  346.732675][  T102] R13: ffff8881ca472000 R14: dffffc0000000000 R15: ffff8881ca472460
+[  346.740986][  T102] FS:  0000000000000000(0000) GS:ffff8881db400000(0000) knlGS:0000000000000000
+[  346.750082][  T102] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  346.756649][  T102] CR2: ffff8801d386d964 CR3: 00000001c8403000 CR4: 00000000001406f0
+[  346.764619][  T102] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  346.772599][  T102] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  346.780578][  T102] Call Trace:
+[  346.780999][ T7486] raw: raw_ioctl_run: fail, usb_gadget_probe_driver returned -16
+[  346.783952][  T102]  device_del+0x91a/0xd30
+[  346.795923][  T102]  ? device_create_with_groups+0x120/0x120
+[  346.801811][  T102]  input_unregister_device+0xb4/0xf0
+[  346.807149][  T102]  hidinput_disconnect+0x15e/0x3d0
+[  346.812257][  T102]  ? kernfs_remove_by_name_ns+0x62/0xb0
+[  346.817839][  T102]  hid_disconnect+0x13f/0x1a0
+[  346.822511][  T102]  hid_hw_stop+0x12/0x70
+[  346.826809][  T102]  ms_remove+0x12/0x90
+[  346.830875][  T102]  hid_device_remove+0xed/0x240
+[  346.835719][  T102]  ? ms_event+0x3d0/0x3d0
+[  346.840047][  T102]  ? hid_compare_device_paths+0xc0/0xc0
+[  346.845644][  T102]  device_release_driver_internal+0x231/0x500
+[  346.851705][  T102]  bus_remove_device+0x2dc/0x4a0
+[  346.856632][  T102]  device_del+0x481/0xd30
+[  346.860952][  T102]  ? device_create_with_groups+0x120/0x120
+[  346.866748][  T102]  ? do_raw_spin_lock+0x11a/0x280
+[  346.871763][  T102]  hid_destroy_device+0xe1/0x150
+[  346.876771][  T102]  usbhid_disconnect+0x9f/0xe0
+[  346.881558][  T102]  usb_unbind_interface+0x1bd/0x8a0
+[  346.886746][  T102]  ? usb_autoresume_device+0x60/0x60
+[  346.892019][  T102]  device_release_driver_internal+0x42f/0x500
+[  346.898088][  T102]  bus_remove_device+0x2dc/0x4a0
+[  346.903015][  T102]  device_del+0x481/0xd30
+[  346.907339][  T102]  ? device_create_with_groups+0x120/0x120
+[  346.913136][  T102]  ? usb_remove_ep_devs+0x3e/0x80
+[  346.918154][  T102]  ? remove_intf_ep_devs+0x13f/0x1d0
+[  346.923437][  T102]  usb_disable_device+0x211/0x690
+[  346.928459][  T102]  usb_disconnect+0x284/0x8d0
+[  346.933150][  T102]  hub_event+0x1753/0x3860
+[  346.937568][  T102]  ? hub_port_debounce+0x260/0x260
+[  346.942674][  T102]  ? find_held_lock+0x2d/0x110
+[  346.947418][  T102]  ? mark_held_locks+0xe0/0xe0
+[  346.952166][  T102]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  346.957688][  T102]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  346.962954][  T102]  process_one_work+0x92b/0x1530
+[  346.967882][  T102]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  346.973248][  T102]  ? do_raw_spin_lock+0x11a/0x280
+[  346.978265][  T102]  worker_thread+0x96/0xe20
+[  346.982751][  T102]  ? process_one_work+0x1530/0x1530
+[  346.987929][  T102]  kthread+0x318/0x420
+[  346.991984][  T102]  ? kthread_create_on_node+0xf0/0xf0
+[  346.997418][  T102]  ret_from_fork+0x24/0x30
+[  347.001813][  T102] Modules linked in:
+[  347.005687][  T102] CR2: ffff8801d386d964
+[  347.009839][  T102] ---[ end trace 70c9bb4758a12760 ]---
+[  347.015294][  T102] RIP: 0010:kobject_put+0x4b/0x2e0
+[  347.020385][  T102] Code: 8d 65 3c 48 b8 00 00 00 00 00 fc ff df 4c 89 e2 48 c1 ea 03 0f b6 04 02 4c 89 e2 83 e2 07 38 d0 7f 08 84 c0 0f 85 34 02 00 00 <0f> b6 5d 3c 31 ff 83 e3 01 89 de e8 f5 50 cc fb 84 db 74 6c e8 bc
+[  347.039977][  T102] RSP: 0000:ffff8881d510f500 EFLAGS: 00010246
+[  347.046041][  T102] RAX: 0000000000000000 RBX: ffff8801d386d928 RCX: ffffc90010f17000
+[  347.054080][  T102] RDX: 0000000000000004 RSI: ffffffff85722e00 RDI: ffff8801d386d928
+[  347.062029][  T102] RBP: ffff8801d386d928 R08: ffff8881d77f4980 R09: fffffbfff0dfd419
+[  347.069980][  T102] R10: fffffbfff0dfd418 R11: ffffffff86fea0c7 R12: ffff8801d386d964
+[  347.077931][  T102] R13: ffff8881ca472000 R14: dffffc0000000000 R15: ffff8881ca472460
+[  347.085882][  T102] FS:  0000000000000000(0000) GS:ffff8881db400000(0000) knlGS:0000000000000000
+[  347.094914][  T102] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  347.101488][  T102] CR2: ffff8801d386d964 CR3: 00000001c8403000 CR4: 00000000001406f0
+[  347.109441][  T102] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  347.117395][  T102] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  347.125351][  T102] Kernel panic - not syncing: Fatal exception
+[  347.132033][  T102] Kernel Offset: disabled
+[  347.136345][  T102] Rebooting in 86400 seconds..
