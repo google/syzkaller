@@ -402,7 +402,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 
 func (ctx *linux) extractGuiltyFile(rep *Report) string {
 	report := rep.Report[rep.reportPrefixLen:]
-	if linuxRcuStall.Match(report) {
+	if strings.HasPrefix(rep.Title, "INFO: rcu detected stall") {
 		// Special case for rcu stalls.
 		// There are too many frames that we want to skip before actual guilty frames,
 		// we would need to blacklist too many files and that would be fragile.
@@ -675,7 +675,6 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 var (
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	stackFrameRe     = regexp.MustCompile(`^ *(?:\[\<?(?:[0-9a-f]+)\>?\] ?){0,2}[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	linuxRcuStall    = compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall")
 	linuxRipFrame    = compile(`N?IP:? (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+|(?:[0-9]+:)?{{PC}} +\[< *\(null\)>\] +\(null\)|[0-9]+: +\(null\))`)
 )
 
@@ -1258,7 +1257,7 @@ var linuxOopses = append([]*oops{
 				fmt:    "inconsistent lock state in %[1]v",
 			},
 			{
-				title: linuxRcuStall,
+				title: compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall"),
 				fmt:   "INFO: rcu detected stall in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{

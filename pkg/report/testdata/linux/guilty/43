@@ -1,0 +1,165 @@
+FILE: net/netfilter/nf_conntrack_core.c
+
+BUG: spinlock lockup suspected on CPU#1, kworker/u4:0/6
+ lock: nf_conntrack_locks+0x0/0xe000, .magic: dead4ead, .owner: kworker/u4:0/6, .owner_cpu: 1
+CPU: 1 PID: 6 Comm: kworker/u4:0 Not tainted 4.5.0-rc3-syzkaller #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Workqueue: netns cleanup_net
+ 0000000000000000 ffff88012b767c18 ffffffff8195cc30 ffff88012b760180
+ ffffffff8320a780 ffff88012b767c38 ffffffff811c3753 ffffffff8320a780
+ 0000000089173700 ffff88012b767c68 ffffffff811c3883 ffffffff8320a780
+Call Trace:
+ [<ffffffff8195cc30>] __dump_stack lib/dump_stack.c:15 [inline]
+ [<ffffffff8195cc30>] dump_stack+0x99/0xd9 lib/dump_stack.c:51
+ [<ffffffff811c3753>] spin_dump+0x73/0xc0 kernel/locking/spinlock_debug.c:67
+ [<ffffffff811c3883>] __spin_lock_debug kernel/locking/spinlock_debug.c:117 [inline]
+ [<ffffffff811c3883>] do_raw_spin_lock+0xa3/0x160 kernel/locking/spinlock_debug.c:137
+ [<ffffffff826dc37e>] __raw_spin_lock include/linux/spinlock_api_smp.h:145 [inline]
+ [<ffffffff826dc37e>] _raw_spin_lock+0x3e/0x50 kernel/locking/spinlock.c:151
+ [<ffffffff8222f9fd>] spin_lock include/linux/spinlock.h:302 [inline]
+ [<ffffffff8222f9fd>] nf_conntrack_lock+0xd/0x50 net/netfilter/nf_conntrack_core.c:74
+ [<ffffffff822484cc>] ctnl_untimeout.isra.4+0xdc/0x110 net/netfilter/nfnetlink_cttimeout.c:315
+ [<ffffffff82248528>] cttimeout_net_exit+0x28/0x80 net/netfilter/nfnetlink_cttimeout.c:581
+ [<ffffffff8219d283>] ops_exit_list.isra.4+0x33/0x60 net/core/net_namespace.c:134
+ [<ffffffff8219e4f9>] cleanup_net+0x1a9/0x270 net/core/net_namespace.c:431
+ [<ffffffff811884db>] process_one_work+0x21b/0x690 kernel/workqueue.c:2036
+ [<ffffffff81188999>] worker_thread+0x49/0x490 kernel/workqueue.c:2170
+ [<ffffffff8118f67a>] kthread+0xea/0x100 drivers/block/aoe/aoecmd.c:1312
+ [<ffffffff826dd52f>] ret_from_fork+0x3f/0x70 arch/x86/entry/entry_64.S:468
+Sending NMI to all CPUs:
+NMI backtrace for cpu 0
+CPU: 0 PID: 0 Comm: swapper/0 Not tainted 4.5.0-rc3-syzkaller #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+task: ffffffff83221540 ti: ffffffff83200000 task.ti: ffffffff83200000
+RIP: 0010:[<ffffffff810c8686>]  [<ffffffff810c8686>] native_safe_halt+0x6/0x10 arch/x86/include/asm/irqflags.h:50
+RSP: 0018:ffffffff83203eb8  EFLAGS: 00000282
+RAX: 0000000000000000 RBX: ffffffff83200000 RCX: 0000000000000000
+RDX: 0000000000000000 RSI: ffffffff82f69d89 RDI: ffffffff81089bf6
+RBP: ffffffff83203eb8 R08: 0000000000000000 R09: 0000000000000001
+R10: 0000000000000000 R11: 0000000000000000 R12: ffffffff83204000
+R13: 0000000000000000 R14: 0000000000000000 R15: ffffffff83200000
+FS:  0000000000000000(0000) GS:ffff88012c000000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000000c4200b1ff8 CR3: 00000000ab521000 CR4: 00000000001406f0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Stack:
+ ffffffff83203ed8 ffffffff81089c09 ffffffff83200000 ffffffff83204000
+ ffffffff83203ee8 ffffffff8108a61a ffffffff83203ef8 ffffffff811b6f45
+ ffffffff83203f40 ffffffff811b733f ffffffff835902e0 ffffffff83204000
+Call Trace:
+ [<ffffffff81089c09>] arch_safe_halt arch/x86/include/asm/paravirt.h:117 [inline]
+ [<ffffffff81089c09>] default_idle+0x29/0x190 arch/x86/kernel/process.c:304
+ [<ffffffff8108a61a>] arch_cpu_idle+0xa/0x10 arch/x86/kernel/process.c:295
+ [<ffffffff811b6f45>] default_idle_call+0x25/0x50 kernel/sched/idle.c:92
+ [<ffffffff811b733f>] cpuidle_idle_call kernel/sched/idle.c:150 [inline]
+ [<ffffffff811b733f>] cpu_idle_loop kernel/sched/idle.c:246 [inline]
+ [<ffffffff811b733f>] cpu_startup_entry+0x3cf/0x460 kernel/sched/idle.c:294
+ [<ffffffff826cd951>] rest_init+0x131/0x140 init/main.c:412
+ [<ffffffff834a2f94>] start_kernel+0x44a/0x457 init/main.c:683
+ [<ffffffff834a2345>] x86_64_start_reservations+0x2a/0x2c arch/x86/kernel/head64.c:203
+ [<ffffffff834a248c>] x86_64_start_kernel+0x145/0x152 arch/x86/kernel/head64.c:184
+Code: 00 00 00 00 00 55 48 89 e5 fa 5d c3 66 0f 1f 84 00 00 00 00 00 55 48 89 e5 fb 5d c3 66 0f 1f 84 00 00 00 00 00 55 48 89 e5 fb f4 <5d> c3 0f 1f 84 00 00 00 00 00 55 48 89 e5 f4 5d c3 66 0f 1f 84 
+NMI backtrace for cpu 1
+CPU: 1 PID: 6 Comm: kworker/u4:0 Not tainted 4.5.0-rc3-syzkaller #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Workqueue: netns cleanup_net
+task: ffff88012b760180 ti: ffff88012b764000 task.ti: ffff88012b764000
+RIP: 0010:[<ffffffff810c8a66>]  [<ffffffff810c8a66>] native_write_msr_safe+0x6/0x40 arch/x86/include/asm/msr.h:132
+RSP: 0018:ffff88012b767b68  EFLAGS: 00000086
+RAX: 0000000000000400 RBX: ffffffff83470880 RCX: 0000000000000830
+RDX: 0000000000000001 RSI: 0000000000000400 RDI: 0000000000000830
+RBP: ffff88012b767b70 R08: 0000000000000400 R09: 0000000000000003
+R10: ffff88012b760a30 R11: 0000000000000001 R12: 0000000000080000
+R13: 0000000000000001 R14: 0000000000000002 R15: 000000000000a130
+FS:  0000000000000000(0000) GS:ffff88012c100000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007fac72e10150 CR3: 000000000321a000 CR4: 00000000001406e0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Stack:
+ ffffffff810c261a ffff88012b767bb8 ffffffff810c2701 0000000000000282
+ 0000000000000001 00000000000114e0 0000000000000001 ffffffff810bf280
+ 0000000000000040 0000000000000001 ffff88012b767bc8 ffffffff810c27ce
+Call Trace:
+ [<ffffffff810c2701>] __x2apic_send_IPI_mask+0xe1/0x150 arch/x86/kernel/apic/x2apic_phys.c:62
+ [<ffffffff810c27ce>] x2apic_send_IPI_mask+0xe/0x10 arch/x86/kernel/apic/x2apic_cluster.c:87
+ [<ffffffff810bf296>] nmi_raise_cpu_backtrace+0x16/0x20 arch/x86/kernel/apic/hw_nmi.c:33
+ [<ffffffff819617e2>] nmi_trigger_all_cpu_backtrace+0x322/0x330 lib/nmi_backtrace.c:85
+ [<ffffffff810bf2f4>] arch_trigger_all_cpu_backtrace+0x14/0x20 arch/x86/kernel/apic/hw_nmi.c:38
+ [<ffffffff811c388d>] trigger_all_cpu_backtrace include/linux/nmi.h:41 [inline]
+ [<ffffffff811c388d>] __spin_lock_debug kernel/locking/spinlock_debug.c:119 [inline]
+ [<ffffffff811c388d>] do_raw_spin_lock+0xad/0x160 kernel/locking/spinlock_debug.c:137
+ [<ffffffff826dc37e>] __raw_spin_lock include/linux/spinlock_api_smp.h:145 [inline]
+ [<ffffffff826dc37e>] _raw_spin_lock+0x3e/0x50 kernel/locking/spinlock.c:151
+ [<ffffffff8222f9fd>] spin_lock include/linux/spinlock.h:302 [inline]
+ [<ffffffff8222f9fd>] nf_conntrack_lock+0xd/0x50 net/netfilter/nf_conntrack_core.c:74
+ [<ffffffff822484cc>] ctnl_untimeout.isra.4+0xdc/0x110 net/netfilter/nfnetlink_cttimeout.c:315
+ [<ffffffff82248528>] cttimeout_net_exit+0x28/0x80 net/netfilter/nfnetlink_cttimeout.c:581
+ [<ffffffff8219d283>] ops_exit_list.isra.4+0x33/0x60 net/core/net_namespace.c:134
+ [<ffffffff8219e4f9>] cleanup_net+0x1a9/0x270 net/core/net_namespace.c:431
+ [<ffffffff811884db>] process_one_work+0x21b/0x690 kernel/workqueue.c:2036
+ [<ffffffff81188999>] worker_thread+0x49/0x490 kernel/workqueue.c:2170
+ [<ffffffff8118f67a>] kthread+0xea/0x100 drivers/block/aoe/aoecmd.c:1312
+ [<ffffffff826dd52f>] ret_from_fork+0x3f/0x70 arch/x86/entry/entry_64.S:468
+Code: 5b 5d c3 48 c1 e2 20 48 89 d3 31 d2 48 09 c3 48 89 de e8 3e f0 8c 00 48 89 d8 5b 5d c3 0f 1f 84 00 00 00 00 00 89 f0 89 f9 0f 30 <31> c0 0f 1f 44 00 00 c3 41 89 f0 48 89 d6 55 89 c2 48 c1 e6 20 
+INFO: rcu_preempt self-detected stall on CPU
+	1-...: (10454 ticks this GP) idle=35b/140000000000001/0 softirq=6107/6107 fqs=10501 
+INFO: rcu_preempt detected stalls on CPUs/tasks:
+	1-...: (10454 ticks this GP) idle=35b/140000000000001/0 softirq=6107/6107 fqs=10501 
+	(detected by 0, t=10502 jiffies, g=452, c=451, q=943)
+Task dump for CPU 1:
+kworker/u4:0    R  running task    13504     6      2 0x00000008
+Workqueue: netns cleanup_net
+ 0000000000000292 ffffffff81003017 0000000000000000 0000000000000000
+ 0000000000000001 0000000000000000 ffff88012b760180 ffff88012b788300
+ ffff88012c117180 ffffffff82f69d89 0140000000000001 ffffffff826ddcf9
+Call Trace:
+	 (t=10523 jiffies g=452 c=451 q=943)
+Task dump for CPU 1:
+kworker/u4:0    R  running task    13504     6      2 0x00000008
+Workqueue: netns cleanup_net
+ ffff88012b760180 ffff88012c103da0 ffffffff8119ee63 0000000000000001
+ ffffffff83272b00 0000000000000086 ffff88012c103db8 ffffffff811a1c42
+ 0000000000000002 ffff88012c103de8 ffffffff811db709 ffff88012c117dc0
+Call Trace:
+ <IRQ>  [<ffffffff8119ee63>] sched_show_task+0xe3/0x180 kernel/sched/core.c:5036
+ [<ffffffff811a1c42>] dump_cpu_task+0x32/0x40 kernel/sched/core.c:8717
+ [<ffffffff811db709>] rcu_dump_cpu_stacks+0x89/0xe0 kernel/rcu/tree.c:1247
+ [<ffffffff811e08ed>] print_cpu_stall kernel/rcu/tree.c:1354 [inline]
+ [<ffffffff811e08ed>] check_cpu_stall kernel/rcu/tree.c:1418 [inline]
+ [<ffffffff811e08ed>] __rcu_pending kernel/rcu/tree.c:3906 [inline]
+ [<ffffffff811e08ed>] rcu_pending kernel/rcu/tree.c:3970 [inline]
+ [<ffffffff811e08ed>] rcu_check_callbacks+0x66d/0xa30 kernel/rcu/tree.c:2795
+ [<ffffffff811e6f04>] update_process_times+0x34/0x60 kernel/time/timer.c:1420
+ [<ffffffff811f79b0>] tick_sched_handle.isra.20+0x20/0x60 kernel/time/tick-sched.c:152
+ [<ffffffff811f7ca8>] tick_sched_timer+0x38/0x70 kernel/time/tick-sched.c:1088
+ [<ffffffff811e7b1d>] __run_hrtimer kernel/time/hrtimer.c:1248 [inline]
+ [<ffffffff811e7b1d>] __hrtimer_run_queues+0x11d/0x4a0 kernel/time/hrtimer.c:1312
+ [<ffffffff811e84da>] hrtimer_interrupt+0xaa/0x1b0 kernel/time/hrtimer.c:1346
+ [<ffffffff810bbb71>] local_apic_timer_interrupt+0x31/0x50 arch/x86/kernel/apic/apic.c:907
+ [<ffffffff810bc678>] smp_apic_timer_interrupt+0x38/0x50 arch/x86/kernel/apic/apic.c:931
+ [<ffffffff826ddf7c>] apic_timer_interrupt+0x8c/0xa0 arch/x86/entry/entry_64.S:687
+ <EOI>  [<ffffffff810c7c2b>] ? kvm_wait+0xbb/0xe0 arch/x86/kernel/kvm.c:612
+ [<ffffffff810c7c3a>] arch_safe_halt arch/x86/include/asm/paravirt.h:117 [inline]
+ [<ffffffff810c7c3a>] kvm_wait+0xca/0xe0 arch/x86/kernel/kvm.c:612
+ [<ffffffff811c212a>] pv_wait arch/x86/include/asm/paravirt.h:680 [inline]
+ [<ffffffff811c212a>] pv_wait_head_or_lock kernel/locking/qspinlock_paravirt.h:449 [inline]
+ [<ffffffff811c212a>] __pv_queued_spin_lock_slowpath+0x26a/0x2d0 kernel/locking/qspinlock.c:446
+ [<ffffffff811c3937>] pv_queued_spin_lock_slowpath arch/x86/include/asm/paravirt.h:670 [inline]
+ [<ffffffff811c3937>] queued_spin_lock_slowpath arch/x86/include/asm/qspinlock.h:28 [inline]
+ [<ffffffff811c3937>] queued_spin_lock include/asm-generic/qspinlock.h:84 [inline]
+ [<ffffffff811c3937>] __spin_lock_debug kernel/locking/spinlock_debug.c:130 [inline]
+ [<ffffffff811c3937>] do_raw_spin_lock+0x157/0x160 kernel/locking/spinlock_debug.c:137
+ [<ffffffff826dc37e>] __raw_spin_lock include/linux/spinlock_api_smp.h:145 [inline]
+ [<ffffffff826dc37e>] _raw_spin_lock+0x3e/0x50 kernel/locking/spinlock.c:151
+ [<ffffffff8222f9fd>] spin_lock include/linux/spinlock.h:302 [inline]
+ [<ffffffff8222f9fd>] nf_conntrack_lock+0xd/0x50 net/netfilter/nf_conntrack_core.c:74
+ [<ffffffff822484cc>] ctnl_untimeout.isra.4+0xdc/0x110 net/netfilter/nfnetlink_cttimeout.c:315
+ [<ffffffff82248528>] cttimeout_net_exit+0x28/0x80 net/netfilter/nfnetlink_cttimeout.c:581
+ [<ffffffff8219d283>] ops_exit_list.isra.4+0x33/0x60 net/core/net_namespace.c:134
+ [<ffffffff8219e4f9>] cleanup_net+0x1a9/0x270 net/core/net_namespace.c:431
+ [<ffffffff811884db>] process_one_work+0x21b/0x690 kernel/workqueue.c:2036
+ [<ffffffff81188999>] worker_thread+0x49/0x490 kernel/workqueue.c:2170
+ [<ffffffff8118f67a>] kthread+0xea/0x100 drivers/block/aoe/aoecmd.c:1312
+ [<ffffffff826dd52f>] ret_from_fork+0x3f/0x70 arch/x86/entry/entry_64.S:468
