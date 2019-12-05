@@ -809,6 +809,7 @@ var linuxStackParams = &stackParams{
 		"finish_wait",
 		"kthread_stop",
 		"kobject_del",
+		"kobject_put",
 		"get_device_parent",
 		"device_add",
 		"device_del",
