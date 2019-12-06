@@ -175,6 +175,11 @@ var netbsdOopses = append([]*oops{
 				report: compile(`ASan: Unauthorized Access (?:.*\n)+(?:kasan|__asan).*\n(.*)\(`),
 				fmt:    "ASan: Unauthorized Access in %[1]v",
 			},
+			{
+				title:  compile("MSan: Uninitialized"),
+				report: compile(`MSan: Uninitialized (?:.*\n)+(?:kmsan|__msan).*\n(.*)\(`),
+				fmt:    "MSan: Uninitialized Memory in %[1]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
