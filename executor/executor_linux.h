@@ -34,8 +34,8 @@ struct uint64_aligned32 {
 typedef kcov_remote_arg<uint64_aligned32, 0> kcov_remote_arg32;
 typedef kcov_remote_arg<uint64_aligned64, 0> kcov_remote_arg64;
 
-static_assert(sizeof(kcov_remote_arg32) == 20, "bad kcov_remote_arg32 size");
-static_assert(sizeof(kcov_remote_arg64) == 24, "bad kcov_remote_arg64 size");
+typedef char kcov_remote_arg32_size[sizeof(kcov_remote_arg32) == 20 ? 1 : -1];
+typedef char kcov_remote_arg64_size[sizeof(kcov_remote_arg64) == 24 ? 1 : -1];
 
 #define KCOV_INIT_TRACE32 _IOR('c', 1, uint32)
 #define KCOV_INIT_TRACE64 _IOR('c', 1, uint64)
