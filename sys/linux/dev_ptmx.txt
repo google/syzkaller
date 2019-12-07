@@ -8,6 +8,7 @@ include <uapi/linux/fcntl.h>
 include <uapi/linux/tty.h>
 include <uapi/linux/serial.h>
 include <uapi/linux/termios.h>
+include <uapi/linux/tiocl.h>
 
 resource fd_tty[fd]
 
@@ -68,8 +69,6 @@ ioctl$TIOCMBIS(fd fd_tty, cmd const[TIOCMBIS], arg ptr[in, int32])
 ioctl$TIOCGSOFTCAR(fd fd_tty, cmd const[TIOCGSOFTCAR], arg ptr[out, int32])
 ioctl$TIOCSSOFTCAR(fd fd_tty, cmd const[TIOCSSOFTCAR], arg ptr[in, int32])
 
-# For the TIOCLINUX ioctl, see console_ioctl(4).
-
 ioctl$KDGETLED(fd fd_tty, cmd const[KDGETLED], arg ptr[out, int8])
 ioctl$KDSETLED(fd fd_tty, cmd const[KDSETLED], arg intptr)
 ioctl$KDGKBLED(fd fd_tty, cmd const[KDGKBLED], arg ptr[out, int8])
@@ -79,7 +78,7 @@ ioctl$KDADDIO(fd fd_tty, cmd const[KDADDIO], arg intptr)
 ioctl$KDDELIO(fd fd_tty, cmd const[KDDELIO], arg intptr)
 ioctl$KDENABIO(fd fd_tty, cmd const[KDENABIO])
 ioctl$KDDISABIO(fd fd_tty, cmd const[KDDISABIO])
-ioctl$KDSETMODE(fd fd_tty, cmd const[KDSETMODE], arg intptr)
+ioctl$KDSETMODE(fd fd_tty, cmd const[KDSETMODE], arg intptr[KD_TEXT:KD_GRAPHICS])
 ioctl$KDGETMODE(fd fd_tty, cmd const[KDGETMODE], arg ptr[out, intptr])
 ioctl$KDMKTONE(fd fd_tty, cmd const[KDMKTONE], arg intptr)
 ioctl$KIOCSOUND(fd fd_tty, cmd const[KIOCSOUND], arg intptr)
@@ -102,12 +101,13 @@ ioctl$GIO_UNIMAP(fd fd_tty, cmd const[GIO_UNIMAP], arg ptr[in, unimapdesc_out])
 ioctl$PIO_UNIMAP(fd fd_tty, cmd const[PIO_UNIMAP], arg ptr[in, unimapdesc_in])
 ioctl$PIO_UNIMAPCLR(fd fd_tty, cmd const[PIO_UNIMAPCLR], arg ptr[in, unimapinit])
 ioctl$KDGKBMODE(fd fd_tty, cmd const[KDGKBMODE], arg ptr[out, intptr])
-ioctl$KDSKBMODE(fd fd_tty, cmd const[KDSKBMODE], arg ptr[in, intptr])
+ioctl$KDSKBMODE(fd fd_tty, cmd const[KDSKBMODE], arg ptr[in, intptr[K_RAW:K_OFF]])
 ioctl$KDGKBMETA(fd fd_tty, cmd const[KDGKBMETA], arg ptr[out, intptr])
-ioctl$KDSKBMETA(fd fd_tty, cmd const[KDSKBMETA], arg ptr[in, intptr])
+ioctl$KDSKBMETA(fd fd_tty, cmd const[KDSKBMETA], arg ptr[in, intptr[K_METABIT:K_ESCPREFIX]])
 ioctl$KDGKBENT(fd fd_tty, cmd const[KDGKBENT], arg ptr[in, kbentry])
-ioctl$KDGKBSENT(fd fd_tty, cmd const[KDGKBSENT], arg ptr[in, kbentry])
-ioctl$KDSKBSENT(fd fd_tty, cmd const[KDSKBSENT], arg buffer[in])
+ioctl$KDSKBENT(fd fd_tty, cmd const[KDSKBENT], arg ptr[in, kbentry])
+ioctl$KDGKBSENT(fd fd_tty, cmd const[KDGKBSENT], arg ptr[in, kbsentry])
+ioctl$KDSKBSENT(fd fd_tty, cmd const[KDSKBSENT], arg ptr[in, kbsentry])
 ioctl$KDGKBDIACR(fd fd_tty, cmd const[KDGKBDIACR], arg buffer[out])
 ioctl$KDGETKEYCODE(fd fd_tty, cmd const[KDGETKEYCODE], arg ptr[in, kbkeycode])
 ioctl$KDSETKEYCODE(fd fd_tty, cmd const[KDSETKEYCODE], arg ptr[in, kbkeycode])
@@ -122,12 +122,20 @@ ioctl$VT_WAITACTIVE(fd fd_tty, cmd const[VT_WAITACTIVE])
 ioctl$VT_DISALLOCATE(fd fd_tty, cmd const[VT_DISALLOCATE])
 ioctl$VT_RESIZE(fd fd_tty, cmd const[VT_RESIZE], arg ptr[in, vt_sizes])
 ioctl$VT_RESIZEX(fd fd_tty, cmd const[VT_RESIZEX], arg ptr[in, vt_consize])
-ioctl$TIOCLINUX2(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_selection])
-ioctl$TIOCLINUX3(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[3, int8]])
-ioctl$TIOCLINUX4(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[4, int8]])
-ioctl$TIOCLINUX5(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, loadlut])
-ioctl$TIOCLINUX6(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_shift_state])
-ioctl$TIOCLINUX7(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_report_mouse])
+
+# For the TIOCLINUX ioctl, see console_ioctl(4).
+ioctl$TIOCL_SETSEL(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_selection])
+ioctl$TIOCL_PASTESEL(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_PASTESEL, int8]])
+ioctl$TIOCL_UNBLANKSCREEN(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_UNBLANKSCREEN, int8]])
+ioctl$TIOCL_SELLOADLUT(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, loadlut])
+ioctl$TIOCL_GETSHIFTSTATE(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_shift_state])
+ioctl$TIOCL_GETMOUSEREPORTING(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_GETMOUSEREPORTING, int8]])
+ioctl$TIOCL_SETVESABLANK(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_SETVESABLANK, int8]])
+
+ioctl$TIOCL_GETKMSGREDIRECT(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_GETKMSGREDIRECT, int8]])
+ioctl$TIOCL_SCROLLCONSOLE(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tioctl_scroll_console])
+ioctl$TIOCL_BLANKSCREEN(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_BLANKSCREEN, int8]])
+
 ioctl$TIOCGSERIAL(fd fd_tty, cmd const[TIOCGSERIAL], arg ptr[out, serial_struct])
 ioctl$TIOCSSERIAL(fd fd_tty, cmd const[TIOCSSERIAL], arg ptr[in, serial_struct])
 ioctl$TCGETS2(fd fd_tty, cmd const[TCGETS2], arg ptr[out, termios2])
@@ -239,6 +247,11 @@ kbentry {
 	value	int16
 }
 
+kbsentry {
+	kb_func		int8
+	kb_string	array[int8, 512]
+}
+
 kbkeycode {
 	scan	int32
 	key	int32
@@ -274,30 +287,32 @@ vt_consize {
 }
 
 tiocl_selection {
-	subcode	const[2, int8]
+	subcode	const[TIOCL_SETSEL, int8]
 	xs	int16
 	ys	int16
 	xe	int16
 	ye	int16
-	mode	int16
-}
+	mode	flags[tiocl_selection_mode, int16]
+} [packed]
+
+tiocl_selection_mode = TIOCL_SELCHAR, TIOCL_SELWORD, TIOCL_SELLINE, TIOCL_SELPOINTER, TIOCL_SELCLEAR, TIOCL_SELMOUSEREPORT, TIOCL_SELBUTTONMASK
 
 loadlut {
-	submode	const[5, int8]
+	submode	const[TIOCL_SELLOADLUT, int8]
 	tab0	int64
 	tab1	int64
 	tab2	int64
 	tab3	int64
-}
+} [packed]
 
 tiocl_shift_state {
-	subcode	const[6, int8]
+	subcode	const[TIOCL_GETSHIFTSTATE, int8]
 	shift	int8
-}
+} [packed]
 
-tiocl_report_mouse {
-	subcode	const[7, int8]
-	shift	int8
+tioctl_scroll_console {
+	subcode	const[TIOCL_SCROLLCONSOLE, int8]
+	lines	int32
 }
 
 serial_struct {
