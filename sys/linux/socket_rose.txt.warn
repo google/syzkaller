@@ -1,0 +1,7 @@
+0051: struct rose_address: bad number of fields: syz=2 kernel=1
+0057: struct rose_address_remote: no corresponding struct in kernel
+0066: struct rose_address_dev: no corresponding struct in kernel
+0074: struct rose_route_struct: bad size: syz=108 kernel=88
+0078: field rose_route_struct.device/device: bad offset: syz=24 kernel=15
+0079: field rose_route_struct.ndigis/ndigis: bad offset: syz=40 kernel=31
+0080: field rose_route_struct.digipeaters/digipeaters: bad offset: syz=41 kernel=32

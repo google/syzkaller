@@ -1,0 +1,8 @@
+0036: struct sockaddr_nl: bad number of fields: syz=3 kernel=4
+0037: field sockaddr_nl.kern/nl_family: bad size: syz=12 kernel=2
+0038: field sockaddr_nl.proc/nl_pad: bad offset: syz=12 kernel=2
+0038: field sockaddr_nl.proc/nl_pad: bad size: syz=12 kernel=2
+0039: field sockaddr_nl.unspec/nl_pid: bad offset: syz=24 kernel=4
+0039: field sockaddr_nl.unspec/nl_pid: bad size: syz=12 kernel=4
+0042: struct sockaddr_nl_send: no corresponding struct in kernel
+0128: struct nl_mmap_req: no corresponding struct in kernel

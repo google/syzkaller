@@ -1,0 +1,7 @@
+0057: struct sockaddr_can: bad number of fields: syz=4 kernel=3
+0057: struct sockaddr_can: bad size: syz=16 kernel=24
+0060: field sockaddr_can.rx_id/can_addr: bad size: syz=4 kernel=16
+0064: struct sockaddr_can_j1939: no corresponding struct in kernel
+0072: struct can_j1939_pgn: no corresponding struct in kernel
+0096: struct msghdr_can_j1939: no corresponding struct in kernel
+0134: struct canid_t: no corresponding struct in kernel

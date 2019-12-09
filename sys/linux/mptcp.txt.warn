@@ -1,0 +1,4 @@
+0057: struct mptcp_mp_join_option: no corresponding struct in kernel
+0064: struct mptcp_syn_option: no corresponding struct in kernel
+0074: struct mptcp_synack_option: no corresponding struct in kernel
+0092: struct mptcp_mp_fclose_option: no corresponding struct in kernel
