@@ -108,6 +108,16 @@
 #define SYZ_DATA_OFFSET 536870912
 #endif
 
+#if GOARCH_mips64le
+#define GOARCH "mips64le"
+#define SYZ_REVISION "b8ab48e10bccfe31cbe27a8bf8cfd2cd8a659d60"
+#define SYZ_EXECUTOR_USES_FORK_SERVER 1
+#define SYZ_EXECUTOR_USES_SHMEM 1
+#define SYZ_PAGE_SIZE 4096
+#define SYZ_NUM_PAGES 4096
+#define SYZ_DATA_OFFSET 536870912
+#endif
+
 #if GOARCH_ppc64le
 #define GOARCH "ppc64le"
 #define SYZ_REVISION "15c2fde38843e35c2c4639824f84d353ed67955e"
