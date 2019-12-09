@@ -1,0 +1,8 @@
+0029: struct unix_pair: no corresponding struct in kernel
+0035: field sockaddr_un.file/sun_family: bad size: syz=110 kernel=2
+0036: field sockaddr_un.abs/sun_path: bad offset: syz=110 kernel=2
+0036: field sockaddr_un.abs/sun_path: bad size: syz=8 kernel=108
+0039: struct sockaddr_un_file: no corresponding struct in kernel
+0044: struct sockaddr_un_abstract: no corresponding struct in kernel
+0050: struct msghdr_un: no corresponding struct in kernel
+0065: struct cmsg_un_cred: no corresponding struct in kernel

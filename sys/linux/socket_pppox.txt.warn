@@ -1,0 +1,2 @@
+0047: struct sockaddr_pppoe: no corresponding struct in kernel
+0102: struct sockaddr_pptp: no corresponding struct in kernel

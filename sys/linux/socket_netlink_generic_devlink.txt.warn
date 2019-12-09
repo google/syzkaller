@@ -1,0 +1,3 @@
+0015: struct devlink_devname: no corresponding struct in kernel
+0021: struct devlink_handle_nsim: no corresponding struct in kernel
+0026: struct devlink_handle_pci: no corresponding struct in kernel

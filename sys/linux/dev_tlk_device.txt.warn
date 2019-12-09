@@ -1,0 +1,9 @@
+0026: struct te_service_id: no corresponding struct in kernel
+0033: struct te_opensession: no corresponding struct in kernel
+0039: struct te_closesession: no corresponding struct in kernel
+0044: struct te_answer: no corresponding struct in kernel
+0050: struct te_launchop: no corresponding struct in kernel
+0056: struct te_operation: no corresponding struct in kernel
+0065: struct te_int_mem_union: no corresponding struct in kernel
+0070: struct te_mem: no corresponding struct in kernel
+0075: struct te_oper_param: no corresponding struct in kernel

@@ -1,0 +1,8 @@
+0061: struct snd_ctl_elem_info: bad number of fields: syz=12 kernel=8
+0067: field snd_ctl_elem_info.items/value: bad size: syz=4 kernel=128
+0068: field snd_ctl_elem_info.item/dimen: bad offset: syz=84 kernel=208
+0068: field snd_ctl_elem_info.item/dimen: bad size: syz=4 kernel=8
+0069: field snd_ctl_elem_info.name/reserved: bad offset: syz=88 kernel=216
+0069: field snd_ctl_elem_info.name/reserved: bad size: syz=64 kernel=56
+0078: struct snd_ctl_elem_value: bad number of fields: syz=4 kernel=5
+0080: field snd_ctl_elem_value.indir/indirect: bad bit size/offset: syz=0/0 kernel=1/0

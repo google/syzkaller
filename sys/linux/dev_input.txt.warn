@@ -1,0 +1,8 @@
+0058: struct input_event: bad number of fields: syz=4 kernel=5
+0059: field input_event.time/__sec: bad size: syz=16 kernel=8
+0060: field input_event.type/__usec: bad offset: syz=16 kernel=8
+0060: field input_event.type/__usec: bad size: syz=2 kernel=8
+0061: field input_event.code/type: bad offset: syz=18 kernel=16
+0062: field input_event.val/code: bad offset: syz=20 kernel=18
+0062: field input_event.val/code: bad size: syz=4 kernel=2
+0082: struct ff_effect_u: no corresponding struct in kernel

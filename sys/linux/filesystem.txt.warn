@@ -1,0 +1,4 @@
+0052: struct nbd_filename: no corresponding struct in kernel
+0058: struct loop_filename: no corresponding struct in kernel
+0112: struct fs_image_segment: no corresponding struct in kernel
+0199: struct uuid_str: no corresponding struct in kernel

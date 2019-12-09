@@ -1,0 +1,3 @@
+0064: struct key_desc: no corresponding struct in kernel
+0149: struct key_restriction_keyring: no corresponding struct in kernel
+0155: struct key_restriction_keyring_chain: no corresponding struct in kernel

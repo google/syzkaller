@@ -1,0 +1,17 @@
+0102: struct sockaddr_storage_tcp: no corresponding struct in kernel
+0107: struct tcp_md5sig: bad number of fields: syz=5 kernel=6
+0109: field tcp_md5sig.__tcpm_pad1/tcpm_flags: bad size: syz=2 kernel=1
+0110: field tcp_md5sig.tcpm_keylen/tcpm_prefixlen: bad offset: syz=130 kernel=129
+0110: field tcp_md5sig.tcpm_keylen/tcpm_prefixlen: bad size: syz=2 kernel=1
+0111: field tcp_md5sig.__tcpm_pad2/tcpm_keylen: bad offset: syz=132 kernel=130
+0111: field tcp_md5sig.__tcpm_pad2/tcpm_keylen: bad size: syz=4 kernel=2
+0112: field tcp_md5sig.tcpm_key/__tcpm_pad: bad offset: syz=136 kernel=132
+0112: field tcp_md5sig.tcpm_key/__tcpm_pad: bad size: syz=80 kernel=4
+0115: struct tcp_repair_opt: bad number of fields: syz=4 kernel=2
+0116: field tcp_repair_opt.mss/opt_code: bad size: syz=8 kernel=4
+0117: field tcp_repair_opt.window/opt_val: bad offset: syz=8 kernel=4
+0117: field tcp_repair_opt.window/opt_val: bad size: syz=8 kernel=4
+0122: struct tcp_repair_opt_mss: no corresponding struct in kernel
+0127: struct tcp_repair_opt_window: no corresponding struct in kernel
+0133: struct tcp_repair_opt_sack_perm: no corresponding struct in kernel
+0138: struct tcp_repair_opt_timestamp: no corresponding struct in kernel
