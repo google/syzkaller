@@ -1,0 +1,15 @@
+0031: struct loop_info: bad size: syz=152 kernel=168
+0033: field loop_info.lo_device/lo_device: bad offset: syz=4 kernel=8
+0033: field loop_info.lo_device/lo_device: bad size: syz=4 kernel=8
+0034: field loop_info.lo_inode/lo_inode: bad offset: syz=8 kernel=16
+0034: field loop_info.lo_inode/lo_inode: bad size: syz=4 kernel=8
+0035: field loop_info.lo_rdevice/lo_rdevice: bad offset: syz=12 kernel=24
+0035: field loop_info.lo_rdevice/lo_rdevice: bad size: syz=4 kernel=8
+0036: field loop_info.lo_offset/lo_offset: bad offset: syz=16 kernel=32
+0037: field loop_info.lo_enc_type/lo_encrypt_type: bad offset: syz=20 kernel=36
+0038: field loop_info.lo_enc_key_size/lo_encrypt_key_size: bad offset: syz=24 kernel=40
+0039: field loop_info.lo_flags/lo_flags: bad offset: syz=28 kernel=44
+0040: field loop_info.lo_name/lo_name: bad offset: syz=32 kernel=48
+0041: field loop_info.lo_enc_key/lo_encrypt_key: bad offset: syz=96 kernel=112
+0042: field loop_info.lo_init/lo_init: bad offset: syz=128 kernel=144
+0043: field loop_info.reserved/reserved: bad offset: syz=144 kernel=160

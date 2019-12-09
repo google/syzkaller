@@ -1,0 +1,13 @@
+0164: struct rdma_ucm_create_mcast_id_resp: no corresponding struct in kernel
+0179: struct rdma_ucm_leave_mcast: no corresponding struct in kernel
+0189: struct rdma_ucm_event_resp: bad number of fields: syz=2 kernel=6
+0191: field rdma_ucm_event_resp.id/id: bad size: syz=8 kernel=4
+0196: struct rdma_ucm_set_option: bad number of fields: syz=4 kernel=5
+0197: field rdma_ucm_set_option.id_tos/optval: bad size: syz=24 kernel=8
+0198: field rdma_ucm_set_option.id_resuseaddr/id: bad offset: syz=24 kernel=8
+0198: field rdma_ucm_set_option.id_resuseaddr/id: bad size: syz=24 kernel=4
+0199: field rdma_ucm_set_option.id_afonly/level: bad offset: syz=48 kernel=12
+0199: field rdma_ucm_set_option.id_afonly/level: bad size: syz=24 kernel=4
+0200: field rdma_ucm_set_option.ib_path/optname: bad offset: syz=72 kernel=16
+0200: field rdma_ucm_set_option.ib_path/optname: bad size: syz=24 kernel=4
+0245: struct sockaddr_rdma_cm: no corresponding struct in kernel

@@ -1,0 +1,32 @@
+0052: struct sock_pair: no corresponding struct in kernel
+0061: struct sockaddr: bad number of fields: syz=17 kernel=2
+0062: field sockaddr.in/sa_family: bad size: syz=16 kernel=2
+0063: field sockaddr.ax25/sa_data: bad offset: syz=16 kernel=2
+0063: field sockaddr.ax25/sa_data: bad size: syz=16 kernel=14
+0082: struct sockaddr_storage: no corresponding struct in kernel
+0119: struct sockaddr_generic: no corresponding struct in kernel
+0124: struct sockaddr_storage_generic: no corresponding struct in kernel
+0129: struct send_msghdr: no corresponding struct in kernel
+0139: struct msghdr_sock: no corresponding struct in kernel
+0149: struct send_mmsghdr: no corresponding struct in kernel
+0154: struct mmsghdr_sock: no corresponding struct in kernel
+0159: struct recv_msghdr: no corresponding struct in kernel
+0169: struct recv_mmsghdr: no corresponding struct in kernel
+0330: struct ifr_ifru: no corresponding struct in kernel
+0384: struct devname_mask: no corresponding struct in kernel
+0407: struct ifs_ifsu: no corresponding struct in kernel
+0460: field ifconf.req/ifc_len: bad size: syz=16 kernel=4
+0461: field ifconf.buf/ifc_ifcu: bad offset: syz=16 kernel=8
+0461: field ifconf.buf/ifc_ifcu: bad size: syz=16 kernel=8
+0464: struct ifconf_buf: no corresponding struct in kernel
+0469: struct ifconf_req: no corresponding struct in kernel
+0476: struct brctl_arg: no corresponding struct in kernel
+0482: struct brctl_arg_get: no corresponding struct in kernel
+0488: struct brctl_arg_add_del: no corresponding struct in kernel
+0494: struct brctl_arg_generic: no corresponding struct in kernel
+0615: struct ethtool_modinfo: bad size: syz=20 kernel=44
+0619: field ethtool_modinfo.reserved/reserved: bad size: syz=8 kernel=32
+0745: struct ethtool_flow_union: no corresponding struct in kernel
+0844: struct ethtool_rx_ntuple: no corresponding struct in kernel
+0851: struct ethtool_rx_ntuple_flow_spec: no corresponding struct in kernel
+0862: struct ethtool_rx_ntuple_flow_spec_union: no corresponding struct in kernel

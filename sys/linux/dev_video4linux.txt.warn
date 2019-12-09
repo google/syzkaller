@@ -1,0 +1,71 @@
+0146: struct v4l2_capability: bad size: syz=88 kernel=104
+0148: field v4l2_capability.card/card: bad size: syz=16 kernel=32
+0149: field v4l2_capability.bus_version/bus_info: bad offset: syz=32 kernel=48
+0150: field v4l2_capability.version/version: bad offset: syz=64 kernel=80
+0151: field v4l2_capability.capabilities/capabilities: bad offset: syz=68 kernel=84
+0152: field v4l2_capability.device_caps/device_caps: bad offset: syz=72 kernel=88
+0153: field v4l2_capability.reserved/reserved: bad offset: syz=76 kernel=92
+0170: struct v4l2_format_fmt: no corresponding struct in kernel
+0262: struct v4l2_requestbuffers: bad number of fields: syz=4 kernel=5
+0266: field v4l2_requestbuffers.reserved/capabilities: bad size: syz=8 kernel=4
+0269: struct v4l2_buffer: bad number of fields: syz=12 kernel=13
+0269: struct v4l2_buffer: bad size: syz=80 kernel=88
+0274: field v4l2_buffer.timestamp/field: bad size: syz=16 kernel=4
+0275: field v4l2_buffer.timecode/timestamp: bad offset: syz=32 kernel=24
+0276: field v4l2_buffer.sequence/timecode: bad offset: syz=48 kernel=40
+0276: field v4l2_buffer.sequence/timecode: bad size: syz=4 kernel=16
+0277: field v4l2_buffer.memory/sequence: bad offset: syz=52 kernel=56
+0278: field v4l2_buffer.m/memory: bad offset: syz=56 kernel=60
+0278: field v4l2_buffer.m/memory: bad size: syz=8 kernel=4
+0279: field v4l2_buffer.length/m: bad size: syz=4 kernel=8
+0280: field v4l2_buffer.reserved2/length: bad offset: syz=68 kernel=72
+0281: field v4l2_buffer.reserved/reserved2: bad offset: syz=72 kernel=76
+0284: struct v4l2_buffer_union: no corresponding struct in kernel
+0309: struct v4l2_plane_union: no corresponding struct in kernel
+0322: struct v4l2_framebuffer_union: no corresponding struct in kernel
+0347: struct v4l2_streamparm_union: no corresponding struct in kernel
+0422: struct v4l2_querymenu_union: no corresponding struct in kernel
+0490: struct v4l2_ext_controls: bad number of fields: syz=5 kernel=6
+0494: field v4l2_ext_controls.reserved/request_fd: bad size: syz=8 kernel=4
+0495: field v4l2_ext_controls.controls/reserved: bad offset: syz=24 kernel=16
+0495: field v4l2_ext_controls.controls/reserved: bad size: syz=8 kernel=4
+0505: struct v4l2_ext_u: no corresponding struct in kernel
+0523: struct v4l2_frmsizeenum_union: no corresponding struct in kernel
+0552: struct v4l2_frmivalenum_union: no corresponding struct in kernel
+0590: struct v4l2_dbg_match_union: no corresponding struct in kernel
+0611: struct v4l2_dv_timings_union: no corresponding struct in kernel
+0616: struct v4l2_bt_timings: bad number of fields: syz=17 kernel=20
+0633: field v4l2_bt_timings.reserved/picture_aspect: bad size: syz=56 kernel=8
+0652: struct v4l2_event_union: no corresponding struct in kernel
+0676: struct v4l2_event_ctrl_union: no corresponding struct in kernel
+0702: struct v4l2_create_buffers: bad number of fields: syz=5 kernel=6
+0707: field v4l2_create_buffers.reserved/capabilities: bad size: syz=32 kernel=4
+0724: struct v4l2_decoder_cmd_u: no corresponding struct in kernel
+0730: struct v4l2_decoder_cmd_start: no corresponding struct in kernel
+0749: struct v4l2_dv_timings_cap_u: no corresponding struct in kernel
+0800: struct v4l2_standard: bad size: syz=60 kernel=72
+0802: field v4l2_standard.id/id: bad offset: syz=4 kernel=8
+0802: field v4l2_standard.id/id: bad size: syz=4 kernel=8
+0803: field v4l2_standard.name/name: bad offset: syz=8 kernel=16
+0804: field v4l2_standard.frameperiod/frameperiod: bad offset: syz=32 kernel=40
+0805: field v4l2_standard.framelines/framelines: bad offset: syz=40 kernel=48
+0806: field v4l2_standard.reserved/reserved: bad offset: syz=44 kernel=52
+0809: struct v4l2_input: bad size: syz=72 kernel=80
+0815: field v4l2_input.std/std: bad size: syz=4 kernel=8
+0816: field v4l2_input.status/status: bad offset: syz=52 kernel=56
+0817: field v4l2_input.capabilities/capabilities: bad offset: syz=56 kernel=60
+0818: field v4l2_input.reserved/reserved: bad offset: syz=60 kernel=64
+0821: struct v4l2_output: bad size: syz=68 kernel=72
+0827: field v4l2_output.std/std: bad size: syz=4 kernel=8
+0828: field v4l2_output.capabilities/capabilities: bad offset: syz=52 kernel=56
+0829: field v4l2_output.reserved/reserved: bad offset: syz=56 kernel=60
+0832: struct v4l2_subdev_format: bad size: syz=72 kernel=88
+0835: field v4l2_subdev_format.format/format: bad size: syz=32 kernel=48
+0836: field v4l2_subdev_format.reserved/reserved: bad offset: syz=40 kernel=56
+0839: struct v4l2_mbus_framefmt: bad number of fields: syz=8 kernel=9
+0839: struct v4l2_mbus_framefmt: bad size: syz=32 kernel=48
+0845: field v4l2_mbus_framefmt.ycbcr_enc/ycbcr_enc: bad size: syz=4 kernel=2
+0846: field v4l2_mbus_framefmt.quantization/quantization: bad offset: syz=24 kernel=22
+0846: field v4l2_mbus_framefmt.quantization/quantization: bad size: syz=4 kernel=2
+0847: field v4l2_mbus_framefmt.xfer_func/xfer_func: bad offset: syz=28 kernel=24
+0847: field v4l2_mbus_framefmt.xfer_func/xfer_func: bad size: syz=4 kernel=2

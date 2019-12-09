@@ -1,0 +1,2 @@
+0025: struct sockaddr_ipx: no corresponding struct in kernel
+0050: struct ipx_config_data: no corresponding struct in kernel
