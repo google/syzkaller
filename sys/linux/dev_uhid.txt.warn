@@ -1,0 +1,23 @@
+0018: struct uhid_create_req: bad number of fields: syz=11 kernel=10
+0018: struct uhid_create_req: bad size: syz=288 kernel=284
+0019: field uhid_create_req.type/name: bad size: syz=4 kernel=128
+0020: field uhid_create_req.name/phys: bad offset: syz=4 kernel=128
+0020: field uhid_create_req.name/phys: bad size: syz=128 kernel=64
+0021: field uhid_create_req.phys/uniq: bad offset: syz=132 kernel=192
+0022: field uhid_create_req.uniq/rd_data: bad offset: syz=196 kernel=256
+0022: field uhid_create_req.uniq/rd_data: bad size: syz=64 kernel=8
+0023: field uhid_create_req.rd_data/rd_size: bad offset: syz=260 kernel=264
+0023: field uhid_create_req.rd_data/rd_size: bad size: syz=8 kernel=2
+0024: field uhid_create_req.rd_size/bus: bad offset: syz=268 kernel=266
+0025: field uhid_create_req.bus/vendor: bad offset: syz=270 kernel=268
+0025: field uhid_create_req.bus/vendor: bad size: syz=2 kernel=4
+0046: struct uhid_destroy_req: no corresponding struct in kernel
+0050: struct uhid_input_req: bad number of fields: syz=3 kernel=2
+0050: struct uhid_input_req: bad size: syz=4102 kernel=4098
+0051: field uhid_input_req.type/data: bad size: syz=4 kernel=4096
+0052: field uhid_input_req.data/size: bad offset: syz=4 kernel=4096
+0052: field uhid_input_req.data/size: bad size: syz=4096 kernel=2
+0062: struct uhid_get_report_req: bad number of fields: syz=4 kernel=3
+0062: struct uhid_get_report_req: bad size: syz=10 kernel=6
+0064: field uhid_get_report_req.id/rnum: bad size: syz=4 kernel=1
+0065: field uhid_get_report_req.rnum/rtype: bad offset: syz=8 kernel=5

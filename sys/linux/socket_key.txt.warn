@@ -1,0 +1,8 @@
+0019: struct send_msghdr_key: no corresponding struct in kernel
+0029: struct iovec_sadb_msg: no corresponding struct in kernel
+0106: struct sadb_ident: no corresponding struct in kernel
+0122: struct sadb_x_policy: bad number of fields: syz=8 kernel=7
+0122: struct sadb_x_policy: bad size: syz=64 kernel=16
+0133: struct sadb_x_ipsecrequest: bad number of fields: syz=9 kernel=7
+0133: struct sadb_x_ipsecrequest: bad size: syz=48 kernel=16
+0196: struct sadb_filter_addr: no corresponding struct in kernel

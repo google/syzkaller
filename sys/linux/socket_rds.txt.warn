@@ -1,0 +1,6 @@
+0027: struct msghdr_rds: no corresponding struct in kernel
+0064: struct rds_atomic_args: bad number of fields: syz=9 kernel=6
+0068: field rds_atomic_args.arg1/: bad size: syz=8 kernel=32
+0069: field rds_atomic_args.arg2/flags: bad offset: syz=32 kernel=56
+0070: field rds_atomic_args.mask1/user_token: bad offset: syz=40 kernel=64
+0104: struct rds_rdma_cookie_t: no corresponding struct in kernel

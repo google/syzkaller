@@ -1,0 +1,3 @@
+0030: struct mISDN_devinfo: bad size: syz=116 kernel=56
+0038: field mISDN_devinfo.name/name: bad size: syz=80 kernel=20
+0097: struct capi20_command: no corresponding struct in kernel

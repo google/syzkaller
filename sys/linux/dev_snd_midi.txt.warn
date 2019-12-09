@@ -1,0 +1,14 @@
+0026: struct snd_rawmidi_info_raw: no corresponding struct in kernel
+0040: struct snd_rawmidi_params: bad size: syz=32 kernel=48
+0042: field snd_rawmidi_params.buffer_size/buffer_size: bad offset: syz=4 kernel=8
+0042: field snd_rawmidi_params.buffer_size/buffer_size: bad size: syz=4 kernel=8
+0043: field snd_rawmidi_params.avail_min/avail_min: bad offset: syz=8 kernel=16
+0043: field snd_rawmidi_params.avail_min/avail_min: bad size: syz=4 kernel=8
+0044: field snd_rawmidi_params.no_active_sensing/no_active_sensing: bad bit size/offset: syz=0/0 kernel=1/0
+0044: field snd_rawmidi_params.no_active_sensing/no_active_sensing: bad offset: syz=12 kernel=24
+0045: field snd_rawmidi_params.reserved/reserved: bad offset: syz=16 kernel=25
+0048: struct snd_rawmidi_status: bad size: syz=48 kernel=56
+0051: field snd_rawmidi_status.avail/avail: bad size: syz=4 kernel=8
+0052: field snd_rawmidi_status.xruns/xruns: bad offset: syz=28 kernel=32
+0052: field snd_rawmidi_status.xruns/xruns: bad size: syz=4 kernel=8
+0053: field snd_rawmidi_status.reserved/reserved: bad offset: syz=32 kernel=40

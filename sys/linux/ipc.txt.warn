@@ -1,0 +1,38 @@
+0073: struct ipc_perm: bad number of fields: syz=10 kernel=7
+0073: struct ipc_perm: bad size: syz=48 kernel=28
+0086: struct msqid_ds: bad number of fields: syz=11 kernel=13
+0086: struct msqid_ds: bad size: syz=120 kernel=104
+0087: field msqid_ds.perm/msg_perm: bad size: syz=48 kernel=28
+0088: field msqid_ds.stime/msg_first: bad offset: syz=48 kernel=32
+0089: field msqid_ds.rtime/msg_last: bad offset: syz=56 kernel=40
+0090: field msqid_ds.ctime/msg_stime: bad offset: syz=64 kernel=48
+0091: field msqid_ds.cbytes/msg_rtime: bad offset: syz=72 kernel=56
+0092: field msqid_ds.qnum/msg_ctime: bad offset: syz=80 kernel=64
+0093: field msqid_ds.qbytes/msg_lcbytes: bad offset: syz=88 kernel=72
+0094: field msqid_ds.lspid/msg_lqbytes: bad offset: syz=96 kernel=80
+0094: field msqid_ds.lspid/msg_lqbytes: bad size: syz=4 kernel=8
+0095: field msqid_ds.lrpid/msg_cbytes: bad offset: syz=100 kernel=88
+0095: field msqid_ds.lrpid/msg_cbytes: bad size: syz=4 kernel=2
+0096: field msqid_ds.pad0/msg_qnum: bad offset: syz=104 kernel=90
+0096: field msqid_ds.pad0/msg_qnum: bad size: syz=8 kernel=2
+0097: field msqid_ds.pad1/msg_qbytes: bad offset: syz=112 kernel=92
+0097: field msqid_ds.pad1/msg_qbytes: bad size: syz=8 kernel=2
+0100: struct shmid_ds: bad size: syz=112 kernel=88
+0101: field shmid_ds.perm/shm_perm: bad size: syz=48 kernel=28
+0102: field shmid_ds.segsz/shm_segsz: bad offset: syz=48 kernel=28
+0103: field shmid_ds.atime/shm_atime: bad offset: syz=56 kernel=32
+0104: field shmid_ds.dtime/shm_dtime: bad offset: syz=64 kernel=40
+0105: field shmid_ds.ctime/shm_ctime: bad offset: syz=72 kernel=48
+0106: field shmid_ds.cpid/shm_cpid: bad offset: syz=80 kernel=56
+0107: field shmid_ds.lpid/shm_lpid: bad offset: syz=84 kernel=60
+0108: field shmid_ds.nattch/shm_nattch: bad offset: syz=88 kernel=64
+0109: field shmid_ds.unused0/shm_unused: bad offset: syz=90 kernel=66
+0110: field shmid_ds.unused1/shm_unused2: bad offset: syz=96 kernel=72
+0111: field shmid_ds.unused2/shm_unused3: bad offset: syz=104 kernel=80
+0114: struct semid_ds: bad number of fields: syz=6 kernel=8
+0115: field semid_ds.perm/sem_perm: bad size: syz=48 kernel=28
+0116: field semid_ds.otime/sem_otime: bad offset: syz=48 kernel=32
+0117: field semid_ds.ctime/sem_ctime: bad offset: syz=56 kernel=40
+0118: field semid_ds.nsems/sem_base: bad offset: syz=64 kernel=48
+0119: field semid_ds.pad0/sem_pending: bad offset: syz=72 kernel=56
+0120: field semid_ds.pad1/sem_pending_last: bad offset: syz=80 kernel=64

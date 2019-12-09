@@ -1,0 +1,12 @@
+0046: struct trusty_gatekeeper_error: no corresponding struct in kernel
+0052: struct trusty_gatekeeper_retry: no corresponding struct in kernel
+0078: struct trusty_password_handle: no corresponding struct in kernel
+0107: struct trusty_km_secure_msg: no corresponding struct in kernel
+0188: struct trusty_km_supported_digests: no corresponding struct in kernel
+0206: struct trusty_km_configure: no corresponding struct in kernel
+0270: struct trusty_authorization_bytes: no corresponding struct in kernel
+0342: struct trusty_avb_rollback_index: no corresponding struct in kernel
+0425: struct trusty_storage_file_close_req: no corresponding struct in kernel
+0429: struct trusty_storage_file_read_req: no corresponding struct in kernel
+0448: struct trusty_storage_file_get_size_req: no corresponding struct in kernel
+0452: struct trusty_storage_file_set_size_req: no corresponding struct in kernel
