@@ -139,8 +139,14 @@ static void cover_enable(cover_t* cov, bool collect_comps, bool extra)
 
 static void cover_reset(cover_t* cov)
 {
-	if (cov == 0)
+	// Callers in common_linux.h don't check this flag.
+	if (!flag_coverage)
+		return;
+	if (cov == 0) {
+		if (current_cover == 0)
+			fail("cover_reset: current_cover == 0");
 		cov = current_cover;
+	}
 	*(uint64*)cov->data = 0;
 }
 
