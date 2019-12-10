@@ -438,7 +438,7 @@ func fuchsiaCFlags(arch, clangArch string) []string {
 		"-lfdio",
 		"-lzircon",
 		"--sysroot", out + "/zircon_toolchain/obj/zircon/public/sysroot/sysroot",
-		"-I", sourceDirVar + "/zircon/system/ulib/fdio/include",
+		"-I", sourceDirVar + "/sdk/lib/fdio/include",
 		"-I", sourceDirVar + "/zircon/system/ulib/fidl/include",
 		"-I", sourceDirVar + "/src/lib/ddk/include",
 		"-I", out + "/fidling/gen/sdk/fidl/fuchsia.device",

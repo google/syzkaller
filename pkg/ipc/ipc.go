@@ -711,6 +711,21 @@ func (c *command) wait() error {
 	return err
 }
 
+// readReplyData reads `elems` uint32 elements from the in reader into buf.
+// returns a slice pointing at the end of the copied data.
+func readReplyData(in io.Reader, buf []byte, elems int) ([]byte, error) {
+	size := int(unsafe.Sizeof(uint32(0))) * elems
+	if size > len(buf) {
+		return nil, fmt.Errorf("reply too big. size: %d, bufsz: %d", size, len(buf))
+	}
+
+	if _, err := io.ReadFull(in, buf[:size]); err != nil {
+		return nil, err
+	}
+
+	return buf[size:], nil
+}
+
 func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
 	req := &executeReq{
 		magic:     inMagic,
@@ -771,13 +786,18 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged b
 		if _, err := io.ReadFull(c.inrp, callReplyData); err != nil {
 			break
 		}
-		if callReply.signalSize != 0 || callReply.coverSize != 0 || callReply.compsSize != 0 {
-			// This is unsupported yet.
-			fmt.Fprintf(os.Stderr, "executor %v: got call reply with coverage\n", c.pid)
-			os.Exit(1)
-		}
 		copy(outmem, callReplyData)
 		outmem = outmem[len(callReplyData):]
+		var err error
+		if outmem, err = readReplyData(c.inrp, outmem, int(callReply.signalSize)); err != nil {
+			break
+		}
+		if outmem, err = readReplyData(c.inrp, outmem, int(callReply.coverSize)); err != nil {
+			break
+		}
+		if outmem, err = readReplyData(c.inrp, outmem, int(callReply.compsSize)); err != nil {
+			break
+		}
 		*completedCalls++
 	}
 	close(done)

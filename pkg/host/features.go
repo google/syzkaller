@@ -67,6 +67,11 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureUSBEmulation:     {Name: "USB emulation", Reason: unsupported},
 	}
 	if noHostChecks(target) {
+		// TODO(1603): HostFuzzer Mode checks have to be run on syz-executor.
+		if target.OS == "fuchsia" {
+			res[FeatureCoverage].Enabled = true
+			res[FeatureCoverage].Reason = "pending on-target detection, assumed to be available."
+		}
 		return res, nil
 	}
 	for n, check := range checkFeature {
