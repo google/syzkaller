@@ -308,15 +308,14 @@ func TestBisectionResults(t *testing.T) {
 			isRelease:   true,
 		},
 		{
-			name:            "cause-not-in-previous-release",
+			name:            "cause-not-in-previous-release-issue-1527",
 			startCommit:     905,
 			culprit:         650,
 			commitLen:       1,
 			expectRep:       true,
 			sameBinaryStart: 500,
 			sameBinaryEnd:   650,
-			// This should be (see #1527):
-			// noopChange:      true,
+			noopChange:      true,
 		},
 	}
 	for _, test := range tests {
