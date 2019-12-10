@@ -223,23 +223,52 @@ func (env *env) bisect() (*Result, error) {
 	}
 	if len(commits) == 1 {
 		com := commits[0]
+		testRes := results[com.Hash]
+		if testRes == nil {
+			return nil, fmt.Errorf("no result for culprit commit")
+		}
+		res.Report = testRes.rep
 		isRelease, err := env.bisecter.IsRelease(com.Hash)
 		if err != nil {
 			env.log("failed to detect release: %v", err)
 		}
 		res.IsRelease = isRelease
-		if testRes := results[com.Hash]; testRes != nil {
-			res.Report = testRes.rep
-			if testRes.kernelSign != "" && len(com.Parents) == 1 {
-				if prevRes := results[com.Parents[0]]; prevRes != nil {
-					env.log("kernel signature:   %v", testRes.kernelSign)
-					env.log("previous signature: %v", prevRes.kernelSign)
-					res.NoopChange = testRes.kernelSign == prevRes.kernelSign
-				}
-			}
+		noopChange, err := env.detectNoopChange(results, com)
+		if err != nil {
+			env.log("failed to detect noop change: %v", err)
 		}
+		res.NoopChange = noopChange
 	}
 	return res, nil
+}
+
+func (env *env) detectNoopChange(results map[string]*testResult, com *vcs.Commit) (bool, error) {
+	testRes := results[com.Hash]
+	if testRes.kernelSign == "" || len(com.Parents) != 1 {
+		return false, nil
+	}
+	parent := com.Parents[0]
+	parentRes := results[parent]
+	if parentRes == nil {
+		env.log("parent commit %v wasn't tested", parent)
+		// We could not test the parent commit if it is not based on the previous release
+		// (instead based on an older release, i.e. a very old non-rebased commit
+		// merged into the current release).
+		// TODO: we can use a differnet compiler for this old commit
+		// since effectively it's in the older release, in that case we may not
+		// detect noop change anyway.
+		if _, err := env.repo.SwitchCommit(parent); err != nil {
+			return false, err
+		}
+		_, kernelSign, err := env.build()
+		if err != nil {
+			return false, err
+		}
+		parentRes = &testResult{kernelSign: kernelSign}
+	}
+	env.log("culprit signature: %v", testRes.kernelSign)
+	env.log("parent  signature: %v", parentRes.kernelSign)
+	return testRes.kernelSign == parentRes.kernelSign, nil
 }
 
 func (env *env) commitRange() (*vcs.Commit, *vcs.Commit, *report.Report, []*testResult, error) {
@@ -305,33 +334,42 @@ type testResult struct {
 	kernelSign string
 }
 
-func (env *env) test() (*testResult, error) {
-	cfg := env.cfg
-	env.numTests++
+func (env *env) build() (*vcs.Commit, string, error) {
 	current, err := env.repo.HeadCommit()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	bisectEnv, err := env.bisecter.EnvForCommit(cfg.BinDir, current.Hash, cfg.Kernel.Config)
+	bisectEnv, err := env.bisecter.EnvForCommit(env.cfg.BinDir, current.Hash, env.cfg.Kernel.Config)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	compilerID, err := build.CompilerIdentity(bisectEnv.Compiler)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	env.log("testing commit %v with %v", current.Hash, compilerID)
 	buildStart := time.Now()
-	if err := build.Clean(cfg.Manager.TargetOS, cfg.Manager.TargetVMArch,
-		cfg.Manager.Type, cfg.Manager.KernelSrc); err != nil {
-		return nil, fmt.Errorf("kernel clean failed: %v", err)
+	mgr := &env.cfg.Manager
+	if err := build.Clean(mgr.TargetOS, mgr.TargetVMArch, mgr.Type, mgr.KernelSrc); err != nil {
+		return nil, "", fmt.Errorf("kernel clean failed: %v", err)
 	}
-	_, kernelSign, err := env.inst.BuildKernel(bisectEnv.Compiler, cfg.Kernel.Userspace,
-		cfg.Kernel.Cmdline, cfg.Kernel.Sysctl, bisectEnv.KernelConfig)
+	kern := &env.cfg.Kernel
+	_, kernelSign, err := env.inst.BuildKernel(bisectEnv.Compiler, kern.Userspace,
+		kern.Cmdline, kern.Sysctl, bisectEnv.KernelConfig)
 	if kernelSign != "" {
 		env.log("kernel signature: %v", kernelSign)
 	}
 	env.buildTime += time.Since(buildStart)
+	return current, kernelSign, err
+}
+
+func (env *env) test() (*testResult, error) {
+	cfg := env.cfg
+	env.numTests++
+	current, kernelSign, err := env.build()
+	if err != nil {
+		return nil, err
+	}
 	res := &testResult{
 		verdict:    vcs.BisectSkip,
 		com:        current,
