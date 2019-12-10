@@ -709,6 +709,8 @@ retry:
 			call_extra_timeout = 300;
 		if (strncmp(syscalls[call_num].name, "syz_open_dev$hiddev", strlen("syz_open_dev$hiddev")) == 0)
 			call_extra_timeout = 50;
+		if (strncmp(syscalls[call_num].name, "syz_mount_image", strlen("syz_mount_image")) == 0)
+			call_extra_timeout = 50;
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)

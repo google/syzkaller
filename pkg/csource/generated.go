@@ -3385,14 +3385,10 @@ struct fs_image_segment {
 #elif GOARCH_ppc64le
 #define sys_memfd_create 360
 #endif
-#endif
 
-#if SYZ_EXECUTOR || __NR_syz_read_part_table
-static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
+static unsigned long fs_image_segment_check(unsigned long size, unsigned long nsegs, long segments)
 {
-	char loopname[64], linkname[64];
-	int loopfd, err = 0, res = -1;
-	unsigned long i, j;
+	unsigned long i;
 	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 
 	if (nsegs > IMAGE_MAX_SEGMENTS)
@@ -3408,6 +3404,17 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	}
 	if (size > IMAGE_MAX_SIZE)
 		size = IMAGE_MAX_SIZE;
+	return size;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_read_part_table
+static long syz_read_part_table(volatile unsigned long size, volatile unsigned long nsegs, volatile long segments)
+{
+	char loopname[64], linkname[64];
+	int loopfd, err = 0, res = -1;
+	unsigned long i, j;
+	NONFAILING(size = fs_image_segment_check(size, nsegs, segments));
 	int memfd = syscall(sys_memfd_create, "syz_read_part_table", 0);
 	if (memfd == -1) {
 		err = errno;
@@ -3418,9 +3425,8 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 		goto error_close_memfd;
 	}
 	for (i = 0; i < nsegs; i++) {
-		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
-			debug("syz_read_part_table: pwrite[%u] failed: %d\n", (int)i, errno);
-		}
+		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+		NONFAILING(pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
 	}
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 	loopfd = open(loopname, O_RDWR);
@@ -3484,21 +3490,8 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	char loopname[64], fs[32], opts[256];
 	int loopfd, err = 0, res = -1;
 	unsigned long i;
-	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
 
-	if (nsegs > IMAGE_MAX_SEGMENTS)
-		nsegs = IMAGE_MAX_SEGMENTS;
-	for (i = 0; i < nsegs; i++) {
-		if (segs[i].size > IMAGE_MAX_SIZE)
-			segs[i].size = IMAGE_MAX_SIZE;
-		segs[i].offset %= IMAGE_MAX_SIZE;
-		if (segs[i].offset > IMAGE_MAX_SIZE - segs[i].size)
-			segs[i].offset = IMAGE_MAX_SIZE - segs[i].size;
-		if (size < segs[i].offset + segs[i].offset)
-			size = segs[i].offset + segs[i].offset;
-	}
-	if (size > IMAGE_MAX_SIZE)
-		size = IMAGE_MAX_SIZE;
+	NONFAILING(size = fs_image_segment_check(size, nsegs, segments));
 	int memfd = syscall(sys_memfd_create, "syz_mount_image", 0);
 	if (memfd == -1) {
 		err = errno;
@@ -3509,9 +3502,8 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 		goto error_close_memfd;
 	}
 	for (i = 0; i < nsegs; i++) {
-		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
-			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
-		}
+		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+		NONFAILING(pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
 	}
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 	loopfd = open(loopname, O_RDWR);

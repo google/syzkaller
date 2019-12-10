@@ -81,6 +81,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		"syz_usb_ep_read":     300,
 		"syz_usb_disconnect":  300,
 		"syz_open_dev$hiddev": 50,
+		"syz_mount_image":     100,
 	}
 	timeoutExpr := "45"
 	for i, call := range p.Calls {
