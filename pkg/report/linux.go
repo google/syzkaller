@@ -449,12 +449,14 @@ func (ctx *linux) getMaintainers(file string) ([]string, error) {
 }
 
 func (ctx *linux) getMaintainersImpl(file string, blame bool) ([]string, error) {
-	args := []string{"--no-n", "--no-rolestats"}
+	// See #1441 re --git-min-percent.
+	args := []string{"--no-n", "--no-rolestats", "--git-min-percent=15"}
 	if blame {
 		args = append(args, "--git-blame")
 	}
 	args = append(args, "-f", file)
-	output, err := osutil.RunCmd(time.Minute, ctx.kernelSrc, filepath.FromSlash("scripts/get_maintainer.pl"), args...)
+	script := filepath.FromSlash("scripts/get_maintainer.pl")
+	output, err := osutil.RunCmd(time.Minute, ctx.kernelSrc, script, args...)
 	if err != nil {
 		return nil, err
 	}

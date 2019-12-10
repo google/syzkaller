@@ -184,7 +184,7 @@ func (ctx *linux) Bisect(bad, good string, trace io.Writer, pred func() (BisectR
 }
 
 func (ctx *linux) addMaintainers(com *Commit) {
-	if len(com.CC) > 3 {
+	if len(com.CC) > 2 {
 		return
 	}
 	list := ctx.getMaintainers(com.Hash, false)
@@ -195,8 +195,10 @@ func (ctx *linux) addMaintainers(com *Commit) {
 }
 
 func (ctx *linux) getMaintainers(hash string, blame bool) []string {
+	// See #1441 re --git-min-percent.
 	args := "git show " + hash + " | " +
-		filepath.FromSlash("scripts/get_maintainer.pl") + " --no-n --no-rolestats"
+		filepath.FromSlash("scripts/get_maintainer.pl") +
+		" --no-n --no-rolestats --git-min-percent=20"
 	if blame {
 		args += " --git-blame"
 	}
