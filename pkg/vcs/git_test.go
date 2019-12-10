@@ -44,7 +44,6 @@ Signed-off-by: Linux Master <linux@linux-foundation.org>
 				"linux@linux-foundation.org",
 				"mustbe@correct.com",
 				"name@name.com",
-				"somewhere@email.com",
 				"subsystem@reviewer.com",
 				"yetanother@email.org",
 			},
