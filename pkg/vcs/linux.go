@@ -38,7 +38,7 @@ func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 		return nil, err
 	}
 	for i, tag := range tags {
-		if tag == "v4.0" {
+		if tag == "v4.5" {
 			// Initially we tried to stop at 3.8 because:
 			// v3.8 does not work with modern perl, and as we go further in history
 			// make stops to work, then binutils, glibc, etc. So we stop at v3.8.
@@ -48,8 +48,16 @@ func (ctx *linux) PreviousReleaseTags(commit string) ([]string, error) {
 			// That was fixed by 99124e4db5b7b70daeaaf1d88a6a8078a0004c6e,
 			// and it can be cherry-picked into 3.14..4.0 but it conflicts for 3.13 and older.
 			//
-			// But starting from 4.0 our user-space binaries start crashing with assorted errors
-			// which suggests process memory corruption by kernel. So for now we stop at 4.1.
+			// But starting from 4.0 our user-space binaries start crashing with
+			// assorted errors which suggests process memory corruption by kernel.
+			//
+			// We used to use 4.1 as the oldest tested release (it works in general).
+			// However, there is correlation between how far back we go and probability
+			// of getting correct result (see #1532). So we now stop at 4.6.
+			// 4.6 is somewhat arbitrary, we've seen lots of wrong results in 4.5..4.6 range,
+			// but there is definitive reason for 4.6. Most likely later we want to bump it
+			// even more (as new releases are produced). Next good candidate may be 4.11
+			// because then we won't need gcc 5.5.
 			tags = tags[:i]
 			break
 		}
