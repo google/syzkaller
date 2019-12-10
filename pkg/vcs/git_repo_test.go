@@ -410,3 +410,10 @@ func TestBisect(t *testing.T) {
 		}
 	}
 }
+
+type testWriter testing.T
+
+func (t *testWriter) Write(data []byte) (int, error) {
+	(*testing.T)(t).Log(string(data))
+	return len(data), nil
+}

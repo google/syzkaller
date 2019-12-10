@@ -74,7 +74,18 @@ func runBisection(t *testing.T, test BisectionTest) (*Result, error) {
 	}
 	for rv := 4; rv < 10; rv++ {
 		for i := 0; i < 6; i++ {
-			repo.CommitChange(fmt.Sprintf("%v", rv*100+i))
+			if rv == 7 && i == 0 {
+				// Create a slightly special commit graph here (for #1527):
+				// Commit 650 is part of 700 release, but it does not have
+				// 600 (the previous release) in parents, instead it's based
+				// on the previous-previous release 500.
+				repo.Git("checkout", "v5.0")
+				com := repo.CommitChange("650")
+				repo.Git("checkout", "master")
+				repo.Git("merge", "-m", "700", com.Hash)
+			} else {
+				repo.CommitChange(fmt.Sprintf("%v", rv*100+i))
+			}
 			if i == 0 {
 				repo.SetTag(fmt.Sprintf("v%v.0", rv))
 			}
@@ -168,7 +179,7 @@ func TestBisectionResults(t *testing.T) {
 			startCommit: 802,
 			brokenStart: 500,
 			brokenEnd:   700,
-			commitLen:   14,
+			commitLen:   15,
 			culprit:     605,
 		},
 		// Tests that bisection returns the correct fix commit.
@@ -295,6 +306,17 @@ func TestBisectionResults(t *testing.T) {
 			commitLen:   1,
 			culprit:     900,
 			isRelease:   true,
+		},
+		{
+			name:            "cause-not-in-previous-release",
+			startCommit:     905,
+			culprit:         650,
+			commitLen:       1,
+			expectRep:       true,
+			sameBinaryStart: 500,
+			sameBinaryEnd:   650,
+			// This should be (see #1527):
+			// noopChange:      true,
 		},
 	}
 	for _, test := range tests {

@@ -16,13 +16,6 @@ const (
 	extractFixTagsEmail = `"syzbot" <syzbot@my.mail.com>`
 )
 
-type testWriter testing.T
-
-func (t *testWriter) Write(data []byte) (int, error) {
-	(*testing.T)(t).Log(string(data))
-	return len(data), nil
-}
-
 type TestRepo struct {
 	t       *testing.T
 	Dir     string
@@ -31,7 +24,7 @@ type TestRepo struct {
 	repo    *git
 }
 
-func (repo *TestRepo) git(args ...string) {
+func (repo *TestRepo) Git(args ...string) {
 	if _, err := osutil.RunCmd(time.Minute, repo.Dir, "git", args...); err != nil {
 		repo.t.Fatal(err)
 	}
@@ -51,9 +44,9 @@ func MakeTestRepo(t *testing.T, dir string) *TestRepo {
 		Commits: make(map[string]map[string]*Commit),
 		repo:    newGit(dir, ignoreCC),
 	}
-	repo.git("init")
-	repo.git("config", "--add", "user.email", userEmail)
-	repo.git("config", "--add", "user.name", userName)
+	repo.Git("init")
+	repo.Git("config", "--add", "user.email", userEmail)
+	repo.Git("config", "--add", "user.name", userName)
 	return repo
 }
 
@@ -63,8 +56,8 @@ func (repo *TestRepo) CommitFileChange(branch, change string) {
 	if err := osutil.WriteFile(file, []byte(id)); err != nil {
 		repo.t.Fatal(err)
 	}
-	repo.git("add", file)
-	repo.git("commit", "-m", id)
+	repo.Git("add", file)
+	repo.Git("commit", "-m", id)
 	if repo.Commits[branch] == nil {
 		repo.Commits[branch] = make(map[string]*Commit)
 	}
@@ -75,12 +68,17 @@ func (repo *TestRepo) CommitFileChange(branch, change string) {
 	repo.Commits[branch][change] = com
 }
 
-func (repo *TestRepo) CommitChange(description string) {
-	repo.git("commit", "--allow-empty", "-m", description)
+func (repo *TestRepo) CommitChange(description string) *Commit {
+	repo.Git("commit", "--allow-empty", "-m", description)
+	com, err := repo.repo.HeadCommit()
+	if err != nil {
+		repo.t.Fatal(err)
+	}
+	return com
 }
 
 func (repo *TestRepo) SetTag(tag string) {
-	repo.git("tag", tag)
+	repo.Git("tag", tag)
 }
 
 func (repo *TestRepo) SupportsBisection() bool {
@@ -93,14 +91,14 @@ func (repo *TestRepo) SupportsBisection() bool {
 
 func CreateTestRepo(t *testing.T, baseDir, name string) *TestRepo {
 	repo := MakeTestRepo(t, filepath.Join(baseDir, name))
-	repo.git("checkout", "-b", "master")
+	repo.Git("checkout", "-b", "master")
 	repo.CommitFileChange("master", "0")
 	for _, branch := range []string{"branch1", "branch2"} {
-		repo.git("checkout", "-b", branch, "master")
+		repo.Git("checkout", "-b", branch, "master")
 		repo.CommitFileChange(branch, "0")
 		repo.CommitFileChange(branch, "1")
 	}
-	repo.git("checkout", "master")
+	repo.Git("checkout", "master")
 	repo.CommitFileChange("master", "1")
 	return repo
 }
@@ -120,6 +118,6 @@ func CloneTestRepo(t *testing.T, baseDir string, name string, originRepo *TestRe
 		Commits: make(map[string]map[string]*Commit),
 		repo:    newGit(dir, ignoreCC),
 	}
-	repo.git("clone", originRepo.Dir, repo.Dir)
+	repo.Git("clone", originRepo.Dir, repo.Dir)
 	return repo
 }
