@@ -200,12 +200,11 @@ func (env *env) bisect() (*Result, error) {
 	for _, res := range results1 {
 		results[res.com.Hash] = res
 	}
-	commits, err := env.bisecter.Bisect(bad.Hash, good.Hash, cfg.Trace, func() (vcs.BisectResult, error) {
+	pred := func() (vcs.BisectResult, error) {
 		testRes1, err := env.test()
 		if err != nil {
 			return 0, err
 		}
-		results[testRes1.com.Hash] = testRes1
 		if cfg.Fix {
 			if testRes1.verdict == vcs.BisectBad {
 				testRes1.verdict = vcs.BisectGood
@@ -213,8 +212,10 @@ func (env *env) bisect() (*Result, error) {
 				testRes1.verdict = vcs.BisectBad
 			}
 		}
+		results[testRes1.com.Hash] = testRes1
 		return testRes1.verdict, err
-	})
+	}
+	commits, err := env.bisecter.Bisect(bad.Hash, good.Hash, cfg.Trace, pred)
 	if err != nil {
 		return nil, err
 	}
