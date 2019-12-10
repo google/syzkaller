@@ -3426,7 +3426,11 @@ static long syz_read_part_table(volatile unsigned long size, volatile unsigned l
 	}
 	for (i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-		NONFAILING(pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
+		int res1 = 0;
+		NONFAILING(res1 = pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
+		if (res1 < 0) {
+			debug("syz_read_part_table: pwrite[%u] failed: %d\n", (int)i, errno);
+		}
 	}
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 	loopfd = open(loopname, O_RDWR);
@@ -3503,7 +3507,11 @@ static long syz_mount_image(volatile long fsarg, volatile long dir, volatile uns
 	}
 	for (i = 0; i < nsegs; i++) {
 		struct fs_image_segment* segs = (struct fs_image_segment*)segments;
-		NONFAILING(pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
+		int res1 = 0;
+		NONFAILING(res1 = pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset));
+		if (res1 < 0) {
+			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
+		}
 	}
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
 	loopfd = open(loopname, O_RDWR);
