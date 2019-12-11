@@ -42,10 +42,12 @@ struct hid_descriptor {
 
 /*----------------------------------------------------------------------*/
 
+#define UDC_NAME_LENGTH_MAX 128
+
 struct usb_raw_init {
-	__u64		speed;
-	const __u8	*driver_name;
-	const __u8	*device_name;
+	__u8 driver_name[UDC_NAME_LENGTH_MAX];
+	__u8 device_name[UDC_NAME_LENGTH_MAX];
+	__u8 speed;
 };
 
 enum usb_raw_event_type {
@@ -92,9 +94,9 @@ int usb_raw_open() {
 
 void usb_raw_init(int fd, enum usb_device_speed speed) {
 	struct usb_raw_init arg;
+	strcpy(&arg.driver_name[0], "dummy_udc");
+	strcpy(&arg.device_name[0], "dummy_udc.0");
 	arg.speed = speed;
-	arg.driver_name = "dummy_udc";
-	arg.device_name = "dummy_udc.0";
 	int rv = ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
 	if (rv < 0) {
 		perror("ioctl(USB_RAW_IOCTL_INIT)");
