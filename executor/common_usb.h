@@ -76,10 +76,12 @@ static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_
 	return true;
 }
 
+#define UDC_NAME_LENGTH_MAX 128
+
 struct usb_raw_init {
-	__u64 speed;
-	const __u8* driver_name;
-	const __u8* device_name;
+	__u8 driver_name[UDC_NAME_LENGTH_MAX];
+	__u8 device_name[UDC_NAME_LENGTH_MAX];
+	__u8 speed;
 };
 
 enum usb_raw_event_type {
@@ -121,9 +123,9 @@ static int usb_raw_open()
 static int usb_raw_init(int fd, uint32 speed, const char* driver, const char* device)
 {
 	struct usb_raw_init arg;
+	strncpy((char*)&arg.driver_name[0], driver, sizeof(arg.driver_name));
+	strncpy((char*)&arg.device_name[0], device, sizeof(arg.device_name));
 	arg.speed = speed;
-	arg.driver_name = (const __u8*)driver;
-	arg.device_name = (const __u8*)device;
 	return ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
 }
 
