@@ -78,8 +78,6 @@ indexes:
   properties:
   - name: ReportLen
     direction: desc
-  - name: Reported
-    direction: desc
   - name: Time
     direction: desc
 
