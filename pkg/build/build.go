@@ -167,26 +167,48 @@ func extractRootCause(err error) error {
 		return err
 	}
 	cause := extractCauseInner(verr.Output)
-	if cause != nil {
-		verr.Title = string(cause)
+	if cause != "" {
+		verr.Title = cause
 	}
 	return KernelBuildError{verr}
 }
 
-func extractCauseInner(s []byte) []byte {
-	var cause []byte
+func extractCauseInner(s []byte) string {
+	lines := extractCauseRaw(s)
+	const maxLines = 10
+	if len(lines) > maxLines {
+		lines = lines[:maxLines]
+	}
+	res := bytes.Join(lines, []byte{'\n'})
+	// gcc uses these weird quotes around identifiers, which may be
+	// mis-rendered by systems that don't understand utf-8.
+	res = bytes.Replace(res, []byte("‘"), []byte{'\''}, -1)
+	res = bytes.Replace(res, []byte("’"), []byte{'\''}, -1)
+	return string(res)
+}
+
+func extractCauseRaw(s []byte) [][]byte {
+	weak := true
+	var cause [][]byte
+	dedup := make(map[string]bool)
 	for _, line := range bytes.Split(s, []byte{'\n'}) {
 		for _, pattern := range buildFailureCauses {
-			if pattern.weak && cause != nil {
+			if !bytes.Contains(line, pattern.pattern) {
 				continue
 			}
-			if bytes.Contains(line, pattern.pattern) {
-				cause = line
-				if pattern.weak {
-					break
-				}
-				return cause
+			if weak && !pattern.weak {
+				cause = nil
+				dedup = make(map[string]bool)
 			}
+			if dedup[string(line)] {
+				continue
+			}
+			dedup[string(line)] = true
+			if cause == nil {
+				weak = pattern.weak
+			}
+			cause = append(cause, line)
+			break
 		}
 	}
 	return cause
