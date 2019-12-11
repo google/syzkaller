@@ -4,7 +4,6 @@
 package build
 
 import (
-	"bytes"
 	"os/exec"
 	"strings"
 	"testing"
@@ -39,6 +38,20 @@ func TestCompilerIdentity(t *testing.T) {
 func TestExtractRootCause(t *testing.T) {
 	// nolint: lll
 	for _, s := range []struct{ e, expect string }{
+		{`
+  LINK     /home/dvyukov/src/linux2/tools/objtool/objtool
+  MKELF   scripts/mod/elfconfig.h
+  HOSTCC  scripts/mod/modpost.o
+  HOSTCC  scripts/mod/sumversion.o
+  HOSTCC  scripts/mod/file2alias.o
+  HOSTLD  scripts/mod/modpost
+  CC      kernel/bounds.s
+  CALL    scripts/atomic/check-atomics.sh
+  CC      arch/x86/kernel/asm-offsets.s
+  UPD     include/generated/asm-offsets.h
+  CALL    scripts/checksyscalls.sh
+`, "",
+		},
 		{`
 cc -g -Werror db_break.c
 sys/dev/kcov.c:93:6: error: use of undeclared identifier 'kcov_cold123'; did you mean 'kcov_cold'?
@@ -82,7 +95,9 @@ INFO: Elapsed time: 14.914s
 INFO: 0 processes.
 FAILED: Build did NOT complete successfully (189 packages loaded)
 `,
-			"ERROR: /kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'",
+			`ERROR: /kernel/vdso/BUILD:13:1: no such target '@bazel_tools//tools/cpp:cc_flags': target 'cc_flags' not declared in package 'tools/cpp' defined by /syzkaller/home/.cache/bazel/_bazel_root/e1c9d86bae2b34f90e83d224bc900958/external/bazel_tools/tools/cpp/BUILD and referenced by '//vdso:vdso'
+ERROR: Analysis of target '//runsc:runsc' failed; build aborted: Analysis failed
+FAILED: Build did NOT complete successfully (189 packages loaded)`,
 		},
 		{`
 ld -T ld.script -X --warn-common -nopie -o bsd ${SYSTEM_HEAD} vers.o ${OBJS}
@@ -101,7 +116,8 @@ ld: error: undefined symbol: __stack_smash_handler
 ld: error: too many errors emitted, stopping now (use -error-limit=0 to see all errors)
 *** Error 1 in /kernel/sys/arch/amd64/compile/SYZKALLER (Makefile:991 'bsd': @echo ld -T ld.script -X --warn-commo...)
 `,
-			"ld: error: undefined symbol: __stack_smash_handler",
+			`ld: error: undefined symbol: __stack_smash_handler
+ld: error: too many errors emitted, stopping now (use -error-limit=0 to see all errors)`,
 		},
 		{`
 make: execvp: /gcc-5.5.0/bin/gcc: Permission denied
@@ -132,11 +148,37 @@ Makefile:545: recipe for target 'scripts' failed
 make: *** [scripts] Error 2
 make: *** Waiting for unfinished jobs....
   HOSTLD  arch/x86/tools/relocs
-`, "make: execvp: /gcc-5.5.0/bin/gcc: Permission denied",
+`,
+			`make: execvp: /gcc-5.5.0/bin/gcc: Permission denied
+scripts/xen-hypercalls.sh: line 7: /gcc-5.5.0/bin/gcc: Permission denied
+/bin/sh: 1: /gcc-5.5.0/bin/gcc: Permission denied`,
+		},
+		{`
+./arch/x86/include/asm/nospec-branch.h:360:1: warning: data definition has no type or storage class
+  360 | DECLARE_STATIC_KEY_FALSE(mds_user_clear);
+      | ^~~~~~~~~~~~~~~~~~~~~~~~
+./arch/x86/include/asm/nospec-branch.h:360:1: error: type defaults to ‘int’ in declaration of ‘DECLARE_STATIC_KEY_FALSE’ [-Werror=implicit-int]
+./arch/x86/include/asm/nospec-branch.h:360:1: warning: parameter names (without types) in function declaration
+./arch/x86/include/asm/nospec-branch.h: In function ‘mds_user_clear_cpu_buffers’:
+./arch/x86/include/asm/nospec-branch.h:394:6: error: implicit declaration of function ‘static_branch_likely’ [-Werror=implicit-function-declaration]
+  394 |  if (static_branch_likely(&mds_user_clear))
+      |      ^~~~~~~~~~~~~~~~~~~~
+./arch/x86/include/asm/nospec-branch.h:394:28: error: ‘mds_user_clear’ undeclared (first use in this function)
+  394 |  if (static_branch_likely(&mds_user_clear))
+      |                            ^~~~~~~~~~~~~~
+./arch/x86/include/asm/nospec-branch.h:394:28: note: each undeclared identifier is reported only once for each function it appears in
+cc1: some warnings being treated as errors
+Kbuild:57: recipe for target 'arch/x86/kernel/asm-offsets.s' failed
+make[1]: *** [arch/x86/kernel/asm-offsets.s] Error 1
+Makefile:1227: recipe for target 'prepare0' failed
+make: *** [prepare0] Error 2
+`, `./arch/x86/include/asm/nospec-branch.h:360:1: error: type defaults to 'int' in declaration of 'DECLARE_STATIC_KEY_FALSE' [-Werror=implicit-int]
+./arch/x86/include/asm/nospec-branch.h:394:6: error: implicit declaration of function 'static_branch_likely' [-Werror=implicit-function-declaration]
+./arch/x86/include/asm/nospec-branch.h:394:28: error: 'mds_user_clear' undeclared (first use in this function)`,
 		},
 	} {
 		got := extractCauseInner([]byte(s.e))
-		if !bytes.Equal([]byte(s.expect), got) {
+		if s.expect != got {
 			t.Errorf("Expected:\n%s\ngot:\n%s", s.expect, got)
 		}
 	}
