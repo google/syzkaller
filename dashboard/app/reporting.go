@@ -969,7 +969,6 @@ func queryCrashesForBug(c context.Context, bugKey *db.Key, limit int) (
 	keys, err := db.NewQuery("Crash").
 		Ancestor(bugKey).
 		Order("-ReportLen").
-		Order("-Reported").
 		Order("-Time").
 		Limit(limit).
 		GetAll(c, &crashes)

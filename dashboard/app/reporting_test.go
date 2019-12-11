@@ -110,8 +110,7 @@ func TestReportBug(t *testing.T) {
 	c.expectEQ(reply.OK, false)
 
 	// Report another crash with syz repro for this bug,
-	// ensure that we still report the original crash in the next reporting.
-	// That's what we've upstreammed, it's bad to switch crashes without reason.
+	// ensure that we report the new crash in the next reporting.
 	crash1.Report = []byte("report2")
 	c.client.ReportCrash(crash1)
 
@@ -121,6 +120,11 @@ func TestReportBug(t *testing.T) {
 	c.expectNE(rep2.ID, rep.ID)
 	want.Type = dashapi.ReportNew
 	want.ID = rep2.ID
+	want.Report = []byte("report2")
+	want.LogLink = rep2.LogLink
+	want.ReportLink = rep2.ReportLink
+	want.CrashID = rep2.CrashID
+	want.ReproSyzLink = rep2.ReproSyzLink
 	want.Link = fmt.Sprintf("https://testapp.appspot.com/bug?extid=%v", rep2.ID)
 	want.CreditEmail = fmt.Sprintf("syzbot+%v@testapp.appspotmail.com", rep2.ID)
 	want.First = true
