@@ -25,7 +25,11 @@ type TestRepo struct {
 }
 
 func (repo *TestRepo) Git(args ...string) {
-	if _, err := osutil.RunCmd(time.Minute, repo.Dir, "git", args...); err != nil {
+	cmd := osutil.Command("git", args...)
+	cmd.Dir = repo.Dir
+	cmd.Env = filterEnv()
+
+	if _, err := osutil.Run(time.Minute, cmd); err != nil {
 		repo.t.Fatal(err)
 	}
 }
