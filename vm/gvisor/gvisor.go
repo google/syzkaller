@@ -328,7 +328,7 @@ func (inst *instance) guestProxy() (*os.File, error) {
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	b, err := osutil.Run(time.Minute, inst.runscCmd("debug", "-stacks", inst.name))
+	b, err := osutil.Run(time.Minute, inst.runscCmd("debug", "-stacks", "--ps", inst.name))
 	if err != nil {
 		b = append(b, []byte(fmt.Sprintf("\n\nError collecting stacks: %v", err))...)
 	}
