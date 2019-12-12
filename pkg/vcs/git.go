@@ -33,6 +33,26 @@ func newGit(dir string, ignoreCC map[string]bool) *git {
 	}
 }
 
+func filterEnv() []string {
+	// We have to filter various git environment variables - if
+	// these variables are set (e.g. if a test is being run as
+	// part of a rebase) we're going to be acting on some other
+	// repository (e.g the syzkaller tree itself) rather than the
+	// intended repo.
+	env := os.Environ()
+	for i := 0; i < len(env); i++ {
+		if strings.HasPrefix(env[i], "GIT_DIR") ||
+			strings.HasPrefix(env[i], "GIT_WORK_TREE") ||
+			strings.HasPrefix(env[i], "GIT_INDEX_FILE") ||
+			strings.HasPrefix(env[i], "GIT_OBJECT_DIRECTORY") {
+			env = append(env[:i], env[i+1:]...)
+			i--
+		}
+	}
+
+	return env
+}
+
 func (git *git) Poll(repo, branch string) (*Commit, error) {
 	git.reset()
 	origin, err := git.git("remote", "get-url", "origin")
@@ -315,6 +335,7 @@ func (git *git) fetchCommits(since, base, user, domain string, greps []string, f
 	args = append(args, base)
 	cmd := exec.Command("git", args...)
 	cmd.Dir = git.dir
+	cmd.Env = filterEnv()
 	if err := osutil.Sandbox(cmd, true, false); err != nil {
 		return nil, err
 	}
@@ -359,7 +380,7 @@ func (git *git) fetchCommits(since, base, user, domain string, greps []string, f
 }
 
 func (git *git) git(args ...string) ([]byte, error) {
-	return runSandboxed(git.dir, "git", args...)
+	return runSandboxedEnv(git.dir, "git", filterEnv(), args...)
 }
 
 func splitEmail(email string) (user, domain string, err error) {
