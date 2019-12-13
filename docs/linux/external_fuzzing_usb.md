@@ -3,7 +3,7 @@ External USB fuzzing for Linux kernel
 
 Syzkaller supports fuzzing the Linux kernel USB subsystem externally
 (as it would be done by plugging in a physical USB device with e.g. [Facedancer](https://github.com/usb-tools/Facedancer)).
-This allowed to find over [100 bugs](/docs/linux/found_bugs_usb.md) in the Linux kernel USB stack so far.
+This allowed to find over [200 bugs](/docs/linux/found_bugs_usb.md) in the Linux kernel USB stack so far.
 This is still in development and things might change.
 
 USB fuzzing support consists of 3 parts:
@@ -21,11 +21,10 @@ More details can be found:
 
 A few major things that need to be done:
 
-1. Upstream KCOV changes that allow to collect coverage from background threads.
+1. Upstream KCOV changes that allow to collect coverage from interrupts.
 2. Upstream the kernel interface for USB device emulation.
 3. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
 4. Add descriptions for all relevant USB classes and drivers.
-5. Collect coverage from interrupts (this is required to enable better fuzzing of USB drivers after enumeration completes).
 
 The work on points 1 and 2 has started:
 
