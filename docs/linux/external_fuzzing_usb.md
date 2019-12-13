@@ -6,7 +6,7 @@ Syzkaller supports fuzzing the Linux kernel USB subsystem externally
 This allowed to find over [100 bugs](/docs/linux/found_bugs_usb.md) in the Linux kernel USB stack so far.
 This is still in development and things might change.
 
-USB fuzzing consists of 3 parts:
+USB fuzzing support consists of 3 parts:
 
 1. Syzkaller changes that are now upstream.
 2. Kernel interface for USB device emulation, which can be found [here](https://github.com/google/kasan/commits/usb-fuzzer) and is now being upstreamed.
