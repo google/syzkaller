@@ -15,6 +15,12 @@ compare_data [
 	bf1	syz_bf_struct1
 	bf2	syz_bf_struct2
 	bf3	syz_bf_struct3
+	bf4	syz_bf_align[syz_bf_struct4]
+	bf5	syz_bf_align[syz_bf_struct5]
+	bf6	syz_bf_align[syz_bf_struct6]
+	bf7	syz_bf_align[syz_bf_struct7]
+	bf8	syz_bf_align[syz_bf_struct8]
+	bf9	syz_bf_align[syz_bf_struct9]
 	str	string
 	blob	array[int8]
 	arr16be	array[int16be]
@@ -26,4 +32,43 @@ align0 {
 	f2	int8
 	f3	int16
 	f4	int64
+}
+
+syz_bf_struct4 {
+	f0	int8
+	f1	int32:4
+	f2	int8
+}
+
+syz_bf_struct5 {
+	f0	int8
+	f1	int32:4
+}
+
+syz_bf_struct6 {
+	f0	int8
+	f1	int16:4
+	f2	int8
+}
+
+syz_bf_struct7 {
+	f0	int8
+	f1	int16:4
+}
+
+syz_bf_struct8 {
+	f0	int8
+	f1	int32:4
+	f2	int16:4
+}
+
+syz_bf_struct9 {
+	f0	int8
+	f1	int16:4
+	f2	int16:4
+}
+
+type syz_bf_align[T] {
+	f0	int8
+	f1	T
 }
