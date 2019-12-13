@@ -11,7 +11,7 @@ USB fuzzing consists of 3 parts:
 1. Syzkaller changes that are now upstream.
 2. Kernel interface for USB device emulation, which can be found [here](https://github.com/google/kasan/commits/usb-fuzzer) and is now being upstreamed.
 3. KCOV changes that allow to collect coverage from background threads and interrupts
-(the former can be found [here](https://github.com/google/kasan/commits/usb-fuzzer) and is now being upstreamed, the latter is still in development).
+(the former is now upstream, the latter can be found [here](https://github.com/google/kasan/commits/usb-fuzzer) and is now being upstreamed).
 
 More details can be found:
 
