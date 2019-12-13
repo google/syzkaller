@@ -86,8 +86,6 @@ type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE,
 usb_versions = 0x110, 0x200, 0x201, 0x250, 0x300, 0x310
 
 # https://elixir.bootlin.com/linux/v5.1.7/source/drivers/usb/core/hub.c#L4661
-# TODO: dummy driver has complex requirements for packet sizes, account for those:
-# https://elixir.bootlin.com/linux/v5.3.6/source/drivers/usb/gadget/udc/dummy_hcd.c#L497
 usb_device_max_packet_sizes = 8, 16, 32, 64, 255
 
 type usb_config_descriptor_t[NUM, IFSNUM, ATTRS, IFS] {
@@ -132,7 +130,7 @@ type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
 
 	bEndpointAddress	ADDR
 	bmAttributes		ATTRS
-	wMaxPacketSize		int16[0:1024]
+	wMaxPacketSize		flags[usb_endpoint_max_packet_sizes, int16]
 	bInterval		int8
 
 	bRefresh		int8
@@ -140,6 +138,10 @@ type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
 
 	extra			EXTRA
 } [packed]
+
+# TODO: dummy driver has complex requirements for packet sizes, account for those:
+# https://elixir.bootlin.com/linux/v5.3.6/source/drivers/usb/gadget/udc/dummy_hcd.c#L497
+usb_endpoint_max_packet_sizes = 8, 16, 32, 64, 512, 1023, 1024
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -894,8 +896,10 @@ usb_cdc_ncm_desc {
 	bDescriptorSubType	const[USB_CDC_NCM_TYPE, int8]
 
 	bcdNcmVersion		int16
-	bmNetworkCapabilities	int8
+	bmNetworkCapabilities	flags[usb_cdc_ncm_ncaps, int8]
 } [packed]
+
+usb_cdc_ncm_ncaps = USB_CDC_NCM_NCAP_ETH_FILTER, USB_CDC_NCM_NCAP_NET_ADDRESS, USB_CDC_NCM_NCAP_ENCAP_COMMAND, USB_CDC_NCM_NCAP_MAX_DATAGRAM_SIZE, USB_CDC_NCM_NCAP_CRC_MODE, USB_CDC_NCM_NCAP_NTB_INPUT_SIZE
 
 usb_cdc_mbim_desc {
 	bLength			len[parent, int8]
