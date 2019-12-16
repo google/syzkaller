@@ -28,6 +28,7 @@ function util_add_usb_bits {
 
   scripts/config -d CONFIG_USB_CONFIGFS
   scripts/config -d CONFIG_USB_LIBCOMPOSITE
+  scripts/config -d CONFIG_USB_GADGETFS
 
   scripts/config -d CONFIG_USB_G_NCM
   scripts/config -d CONFIG_USB_G_SERIAL
@@ -40,7 +41,6 @@ function util_add_usb_bits {
   scripts/config -d CONFIG_USB_G_WEBCAM
   
   scripts/config -e CONFIG_USB_GADGET
-  scripts/config -e CONFIG_USB_GADGETFS
   scripts/config -e CONFIG_USB_DUMMY_HCD
   scripts/config -e CONFIG_USB_RAW_GADGET
 
