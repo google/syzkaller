@@ -59,6 +59,7 @@ type Context struct {
 	LogFunc      func(text string)
 	Retries      int // max number of test retries to deal with flaky tests
 	Verbose      bool
+	Debug        bool
 	Tests        string // prefix to match test file names
 }
 
@@ -375,6 +376,9 @@ func (ctx *Context) createSyzTest(p *prog.Prog, sandbox string, threaded, cov bo
 	cfg.Flags |= ipc.FlagEnableCgroups
 	if ctx.Features[host.FeatureDevlinkPCI].Enabled {
 		cfg.Flags |= ipc.FlagEnableDevlinkPCI
+	}
+	if ctx.Debug {
+		cfg.Flags |= ipc.FlagDebug
 	}
 	req := &RunRequest{
 		P:      p,

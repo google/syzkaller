@@ -125,6 +125,7 @@ func main() {
 		Requests:     mgr.requests,
 		LogFunc:      func(text string) { fmt.Println(text) },
 		Verbose:      false,
+		Debug:        *flagDebug,
 		Tests:        *flagTests,
 	}
 	err = ctx.Run()
