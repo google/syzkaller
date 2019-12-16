@@ -1073,7 +1073,7 @@ static void event_set(event_t* ev)
 	if (ev->state)
 		fail("event already set");
 	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
-	syscall(SYS_futex, &ev->state, FUTEX_WAKE | FUTEX_PRIVATE_FLAG);
+	syscall(SYS_futex, &ev->state, FUTEX_WAKE | FUTEX_PRIVATE_FLAG, 1000000);
 }
 
 static void event_wait(event_t* ev)
