@@ -172,7 +172,9 @@ func extractFromELF(binFile string) ([]uint64, error) {
 }
 
 var srcTemplate = template.Must(template.New("").Parse(`
+{{if not .ExtractFromELF}}
 #define __asm__(...)
+{{end}}
 
 {{if .DefineGlibcUse}}
 #ifndef __GLIBC_USE
