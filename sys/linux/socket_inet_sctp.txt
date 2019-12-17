@@ -372,13 +372,15 @@ sctp_setadaptation {
 }
 
 sctp_paddrparams {
-	spp_assoc_id	assoc_id
-	spp_address	sockaddr_storage_sctp
-	spp_hbinterval	int32
-	spp_pathmaxrxt	int16
-	spp_pathmtu	int32
-	spp_sackdelay	int32
-	spp_flags	flags[sctp_spp_flags, int32]
+	spp_assoc_id		assoc_id
+	spp_address		sockaddr_storage_sctp
+	spp_hbinterval		int32
+	spp_pathmaxrxt		int16
+	spp_pathmtu		int32
+	spp_sackdelay		int32
+	spp_flags		flags[sctp_spp_flags, int32]
+	spp_ipv6_flowlabel	int32
+	spp_dscp		int8
 } [packed, align_4]
 
 sctp_spp_flags = SPP_HB_ENABLE, SPP_HB_DISABLE, SPP_HB_DEMAND, SPP_HB_TIME_IS_ZERO, SPP_PMTUD_ENABLE, SPP_PMTUD_DISABLE, SPP_SACKDELAY_ENABLE, SPP_SACKDELAY_DISABLE
@@ -398,17 +400,20 @@ sctp_sndrcvinfo {
 sctp_sndrcv_flags = SCTP_UNORDERED, SCTP_ADDR_OVER, SCTP_ABORT, SCTP_SACK_IMMEDIATELY, SCTP_NOTIFICATION, SCTP_EOF
 
 sctp_event_subscribe {
-	sctp_data_io_event	int8
-	sctp_association_event	int8
-	sctp_address_event	int8
-	sctp_send_failure_event	int8
-	sctp_peer_error_event	int8
-	sctp_shutdown_event	int8
-	sctp_partial_delivery_e	int8
-	sctp_adaptation_layer_e	int8
-	sctp_authentication_e	int8
-	sctp_sender_dry_event	int8
-	sctp_stream_reset_event	int8
+	sctp_data_io_event		int8
+	sctp_association_event		int8
+	sctp_address_event		int8
+	sctp_send_failure_event		int8
+	sctp_peer_error_event		int8
+	sctp_shutdown_event		int8
+	sctp_partial_delivery_e		int8
+	sctp_adaptation_layer_e		int8
+	sctp_authentication_e		int8
+	sctp_sender_dry_event		int8
+	sctp_stream_reset_event		int8
+	sctp_assoc_reset_event		int8
+	sctp_stream_change_event	int8
+	sctp_send_failure_event_event	int8
 }
 
 sctp_maxseg [
