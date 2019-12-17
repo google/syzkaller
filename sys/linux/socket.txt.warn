@@ -24,8 +24,6 @@
 0482: struct brctl_arg_get: no corresponding struct in kernel
 0488: struct brctl_arg_add_del: no corresponding struct in kernel
 0494: struct brctl_arg_generic: no corresponding struct in kernel
-0615: struct ethtool_modinfo: bad size: syz=20 kernel=44
-0619: field ethtool_modinfo.reserved/reserved: bad size: syz=8 kernel=32
 0745: struct ethtool_flow_union: no corresponding struct in kernel
 0844: struct ethtool_rx_ntuple: no corresponding struct in kernel
 0851: struct ethtool_rx_ntuple_flow_spec: no corresponding struct in kernel

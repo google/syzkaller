@@ -39,17 +39,17 @@ snd_rawmidi_info_raw {
 
 snd_rawmidi_params {
 	stream			flags[sndrv_rawmidi_stream, int32]
-	buffer_size		int32
-	avail_min		int32
-	no_active_sensing	int32
+	buffer_size		intptr
+	avail_min		intptr
+	no_active_sensing	int32:1
 	reserved		array[const[0, int8], 16]
 }
 
 snd_rawmidi_status {
 	stream		flags[sndrv_rawmidi_stream, int32]
 	tstamp		timespec
-	avail		int32
-	xruns		int32
+	avail		intptr
+	xruns		intptr
 	reserved	array[const[0, int8], 16]
 }
 

@@ -1,4 +1,2 @@
 0037: struct sockaddr_xdp_bind: no corresponding struct in kernel
 0047: struct msghdr_xdp: no corresponding struct in kernel
-0057: struct xdp_umem_reg: bad number of fields: syz=4 kernel=5
-0057: struct xdp_umem_reg: bad size: syz=24 kernel=32
