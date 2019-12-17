@@ -70,11 +70,11 @@ sockaddr_vm {
 }
 
 vmaddr_cid [
-	any		const[VMADDR_CID_ANY, int32]
-	hyper		const[VMADDR_CID_HYPERVISOR, int32]
-	reserved	const[VMADDR_CID_RESERVED, int32]
-	host		const[VMADDR_CID_HOST, int32]
-	my		proc[1234, 2, int32]
+	any	const[VMADDR_CID_ANY, int32]
+	hyper	const[VMADDR_CID_HYPERVISOR, int32]
+	local	const[VMADDR_CID_LOCAL, int32]
+	host	const[VMADDR_CID_HOST, int32]
+	my	proc[1234, 2, int32]
 ]
 
 vmaddr_cid64 {
