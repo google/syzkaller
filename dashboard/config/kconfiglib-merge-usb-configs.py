@@ -26,89 +26,101 @@ def unpack_dep_expr(expr):
 	return r
 
 # Extract item dependencies recursively.
-def extract_deps(item):
+def extract_item_deps(item):
 	deps = set()
 	handled = set()
-	def extract_deps_impl(item):
+	def extract_item_deps_impl(item):
 		if item in handled:
 			return
 		handled.add(item)
 		sub = unpack_dep_expr(item.direct_dep)
 		deps.update(sub)
 		for sub_item in sub:
-			extract_deps_impl(sub_item)
-	extract_deps_impl(item)
+			extract_item_deps_impl(sub_item)
+	extract_item_deps_impl(item)
 	return deps
 
-# Extract all dependencies for a list of nodes.
-def extract_nodes_deps(nodes):
+# Extract all dependencies for a list of items.
+def extract_items_deps(items):
 	deps = set()
-	for node in nodes:
-		deps.update(extract_deps(node.item))
+	for item in items:
+		deps.update(extract_item_deps(item))
 	return deps
 
+# Returns true if an item depends on any of the given symbols.
 def item_depends_on_syms(item, syms):
-	return len(syms.intersection(extract_deps(item))) > 0
+	return len(syms.intersection(extract_item_deps(item))) > 0
 
-if len(sys.argv) < 3:
-	sys.exit('Usage: {} usb.config'.format(sys.argv[0]))
-
-# Load config given in SCRIPT_ARG.
-base_kconf = kconfiglib.Kconfig(warn=False)
-base_kconf.load_config(sys.argv[2])
-
-# Make a list of some core USB symbols.
-# Some USB drivers don't depend on core USB symbols, but rather depend on a
+# A list of some core USB symbol names.
+# Some USB drivers don't depend on any USB related symbols, but rather on a
 # generic symbol for some input subsystem (e.g. HID), so include those as well.
 core_usb_syms_names = ['USB_SUPPORT', 'USB', 'USB_ARCH_HAS_HCD', 'HID']
-core_usb_syms = set([base_kconf.syms[name] for name in core_usb_syms_names])
 
-# Extract all enabled (as =y or =m) USB nodes. A USB node is detected as a
-# node, which depends on least one USB core symbol.
-usb_nodes = set()
-for node in base_kconf.node_iter():
-	if node.item.__class__ not in [kconfiglib.Symbol, kconfiglib.Choice]:
-		continue
-	if node.item.tri_value == 0:
-		continue
-	if item_depends_on_syms(node.item, core_usb_syms):
-		usb_nodes.add(node)
-print('USB nodes:', len(usb_nodes))
+def extract_usb_items_and_deps(kconf):
+	core_usb_syms = set([kconf.syms[name] for name in core_usb_syms_names])
 
-# Extract USB nodes dependencies.
-deps = extract_nodes_deps(usb_nodes)
-print('USB nodes dependencies:', len(deps))
+	# Extract all enabled (as =y or =m) USB items.
+	# A USB item is an item that depends on least one core USB symbol.
+	usb_items = set()
+	for node in kconf.node_iter():
+		if node.item.__class__ not in [kconfiglib.Symbol, kconfiglib.Choice]:
+			continue
+		if node.item.tri_value == 0:
+			continue
+		if item_depends_on_syms(node.item, core_usb_syms):
+			usb_items.add(node.item)
 
-# Extract choice options to be disabled to only leave the last option enabled
-# for each choice.
-exclude = set()
-for dep in deps:
-	if dep.__class__ is not kconfiglib.Choice:
+	# Extract USB items dependencies.
+	dep_items = extract_items_deps(usb_items)
+
+	# For consistency leave only the last option enabled for each choice.
+	exclude = set()
+	for item in dep_items:
+		if item.__class__ is not kconfiglib.Choice:
+			continue
+		for sym in item.syms[:-1]:
+			exclude.add(sym)
+	dep_items = filter(lambda item: item not in exclude, dep_items)
+	usb_items = filter(lambda item: item not in exclude, usb_items)
+
+	print('USB items:', len(usb_items))
+	print('USB dependencies:', len(dep_items))
+
+	return (usb_items, dep_items)
+
+if len(sys.argv) < 3:
+	sys.exit('Usage: {} <usb1.config>,<usb2.config>,...'.format(sys.argv[0]))
+
+# Load configs given in SCRIPT_ARG.
+base_kconfs = []
+for config in sys.argv[2].split(','):
+	if len(config) == 0:
 		continue
-	for sym in dep.syms[:-1]:
-		exclude.add(sym)
-print('Excluded choice options:', len(exclude))
+	kconf = kconfiglib.Kconfig(warn=False)
+	kconf.load_config(config)
+	base_kconfs.append(kconf)
+
+base_items = []
+for kconf in base_kconfs:
+	base_items.append(extract_usb_items_and_deps(kconf))
 
 # Load current .config.
 new_kconf = kconfiglib.Kconfig(warn=False)
 new_kconf.load_config()
 
-# First, enable all extracted dependencies.
-for dep in deps:
-	if dep.__class__ is kconfiglib.Symbol:
-		if dep in exclude:
-			continue
-		new_kconf.syms[dep.name].set_value(2)
+for (usb_items, dep_items) in base_items:
+	# First, enable all extracted dependencies as =y.
+	for item in dep_items:
+		if item.__class__ is kconfiglib.Symbol:
+			new_kconf.syms[item.name].set_value(2)
 
-# Then, enable extracted USB nodes as =y.
-for node in list(usb_nodes):
-	if node.item.__class__ is kconfiglib.Symbol:
-		if node.item in exclude:
-			continue
-		new_kconf.syms[node.item.name].set_value(2)
+	# Then, enable extracted USB items as =y.
+	for item in usb_items:
+		if item.__class__ is kconfiglib.Symbol:
+			new_kconf.syms[item.name].set_value(2)
 
-# Now, disable USB symbols that are disabled in the base config, as they might
-# have been enabled when some of the dependecies got enabled.
+# Now, disable USB symbols that are disabled in all of the base configs,
+# as they might have been enabled when some of the dependecies got enabled.
 to_disable = []
 core_usb_syms = set([new_kconf.syms[name] for name in core_usb_syms_names])
 for node in new_kconf.node_iter():
@@ -116,10 +128,16 @@ for node in new_kconf.node_iter():
 		continue
 	if not item_depends_on_syms(node.item, core_usb_syms):
 		continue
-	sym = base_kconf.syms.get(node.item.name)
-	if not sym:
-		to_disable.append(node.item.name)
-	if sym.tri_value == 0:
+	disable = True
+	for kconf in base_kconfs:
+		sym = kconf.syms.get(node.item.name)
+		if not sym:
+			continue
+		if sym.tri_value == 0:
+			continue
+		disable = False
+		break
+	if disable:
 		to_disable.append(node.item.name)
 for name in to_disable:
 	new_kconf.syms[name].set_value(0)
