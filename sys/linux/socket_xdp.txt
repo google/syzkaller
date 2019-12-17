@@ -59,6 +59,7 @@ xdp_umem_reg {
 	len		flags[xdp_umem_sizes, int64]
 	chunk_size	flags[xdp_umem_chunk_sizes, int32]
 	headroom	int32
+	flags		int32
 }
 
 xdp_umem_sizes = 4096, 8192, 16384, 32768, 65536, 131072, 1048576, 2097152, 16777216
