@@ -616,7 +616,7 @@ ethtool_modinfo {
 	cmd		const[ETHTOOL_GMODULEINFO, int32]
 	type		int32
 	eeprom_len	int32
-	reserved	array[int8, 8]
+	reserved	array[int32, 8]
 }
 
 ethtool_coalesce_cmd_flags = ETHTOOL_GCOALESCE, ETHTOOL_SCOALESCE

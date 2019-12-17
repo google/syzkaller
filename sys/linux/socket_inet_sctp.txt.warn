@@ -7,10 +7,6 @@
 0087: struct cmsghdr_sctp_dstaddrv4: no corresponding struct in kernel
 0094: struct cmsghdr_sctp_dstaddrv6: no corresponding struct in kernel
 0365: struct sockaddr_storage_sctp: no corresponding struct in kernel
-0374: struct sctp_paddrparams: bad number of fields: syz=7 kernel=9
-0374: struct sctp_paddrparams: bad size: syz=152 kernel=156
-0400: struct sctp_event_subscribe: bad number of fields: syz=11 kernel=14
-0400: struct sctp_event_subscribe: bad size: syz=11 kernel=14
-0507: struct sctp_paddrthlds: no corresponding struct in kernel
-0544: struct sctp_assoc_stats: bad number of fields: syz=3 kernel=17
-0547: field sctp_assoc_stats.status/sas_maxrto: bad size: syz=120 kernel=8
+0512: struct sctp_paddrthlds: no corresponding struct in kernel
+0549: struct sctp_assoc_stats: bad number of fields: syz=3 kernel=17
+0552: field sctp_assoc_stats.status/sas_maxrto: bad size: syz=120 kernel=8
