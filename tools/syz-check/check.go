@@ -74,11 +74,11 @@ func main() {
 }
 
 func check(OS, arch, obj string) error {
-	structs, err := parseKernelObject(obj)
+	structDescs, locs, err := parseDescriptions(OS, arch)
 	if err != nil {
 		return err
 	}
-	structDescs, locs, err := parseDescriptions(OS, arch)
+	structs, err := parseKernelObject(obj)
 	if err != nil {
 		return err
 	}
@@ -219,18 +219,21 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 }
 
 func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.Struct, error) {
-	eh := func(pos ast.Pos, msg string) {}
+	errorBuf := new(bytes.Buffer)
+	eh := func(pos ast.Pos, msg string) {
+		fmt.Fprintf(errorBuf, "%v: %v\n", pos, msg)
+	}
 	top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), eh)
 	if top == nil {
-		return nil, nil, fmt.Errorf("failed to parse txt files")
+		return nil, nil, fmt.Errorf("failed to parse txt files:\n%s", errorBuf.Bytes())
 	}
 	consts := compiler.DeserializeConstsGlob(filepath.Join("sys", OS, "*_"+arch+".const"), eh)
 	if consts == nil {
-		return nil, nil, fmt.Errorf("failed to parse const files")
+		return nil, nil, fmt.Errorf("failed to parse const files:\n%s", errorBuf.Bytes())
 	}
 	prg := compiler.Compile(top, consts, targets.Get(OS, arch), eh)
 	if prg == nil {
-		return nil, nil, fmt.Errorf("failed to compile descriptions")
+		return nil, nil, fmt.Errorf("failed to compile descriptions:\n%s", errorBuf.Bytes())
 	}
 	prog.RestoreLinks(prg.Syscalls, prg.Resources, prg.StructDescs)
 	locs := make(map[string]*ast.Struct)
