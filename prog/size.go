@@ -45,9 +45,7 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 	var offset uint64
 	for _, buf := range args {
 		if elem != buf.Type().FieldName() {
-			if !buf.Type().BitfieldMiddle() {
-				offset += buf.Size()
-			}
+			offset += buf.Size()
 			continue
 		}
 		buf = InnerArg(buf)
