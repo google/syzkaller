@@ -1,17 +1,17 @@
-0072: struct ipt_entry_underflow: no corresponding struct in kernel
-0077: struct ipt_entry_underflow_matches: no corresponding struct in kernel
-0086: struct ipt_ip_or_uncond: no corresponding struct in kernel
-0094: struct ipt_ip: bad size: syz=120 kernel=84
-0101: field ipt_ip.iniface_mask/iniface_mask: bad offset: syz=60 kernel=48
-0102: field ipt_ip.outiface_mask/outiface_mask: bad offset: syz=90 kernel=64
-0103: field ipt_ip.proto/proto: bad offset: syz=106 kernel=80
-0104: field ipt_ip.flags/flags: bad offset: syz=108 kernel=82
-0105: field ipt_ip.invflags/invflags: bad offset: syz=109 kernel=83
-0171: struct ipt_icmp: bad number of fields: syz=4 kernel=3
-0173: field ipt_icmp.code_min/code: bad size: syz=1 kernel=2
-0174: field ipt_icmp.code_max/invflags: bad offset: syz=2 kernel=3
-0178: struct ipt_ah: bad number of fields: syz=3 kernel=2
-0179: field ipt_ah.spi_min/spis: bad size: syz=4 kernel=8
-0180: field ipt_ah.spi_max/invflags: bad offset: syz=4 kernel=8
-0180: field ipt_ah.spi_max/invflags: bad size: syz=4 kernel=1
-0184: struct xt_osf_info: no corresponding struct in kernel
+struct ipt_entry_underflow: no corresponding struct in kernel
+struct ipt_entry_underflow_matches: no corresponding struct in kernel
+struct ipt_ip_or_uncond: no corresponding struct in kernel
+struct ipt_ip: bad size: syz=120 kernel=84
+field ipt_ip.iniface_mask/iniface_mask: bad offset: syz=60 kernel=48
+field ipt_ip.outiface_mask/outiface_mask: bad offset: syz=90 kernel=64
+field ipt_ip.proto/proto: bad offset: syz=106 kernel=80
+field ipt_ip.flags/flags: bad offset: syz=108 kernel=82
+field ipt_ip.invflags/invflags: bad offset: syz=109 kernel=83
+struct ipt_icmp: bad number of fields: syz=4 kernel=3
+field ipt_icmp.code_min/code: bad size: syz=1 kernel=2
+field ipt_icmp.code_max/invflags: bad offset: syz=2 kernel=3
+struct ipt_ah: bad number of fields: syz=3 kernel=2
+field ipt_ah.spi_min/spis: bad size: syz=4 kernel=8
+field ipt_ah.spi_max/invflags: bad offset: syz=4 kernel=8
+field ipt_ah.spi_max/invflags: bad size: syz=4 kernel=1
+struct xt_osf_info: no corresponding struct in kernel

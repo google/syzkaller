@@ -1,29 +1,29 @@
-0051: struct sg_io_hdr: bad number of fields: syz=20 kernel=22
-0056: field sg_io_hdr.data/iovec_count: bad size: syz=14 kernel=2
-0057: field sg_io_hdr.cmdp/dxfer_len: bad offset: syz=24 kernel=12
-0057: field sg_io_hdr.cmdp/dxfer_len: bad size: syz=8 kernel=4
-0058: field sg_io_hdr.sbp/dxferp: bad offset: syz=32 kernel=16
-0059: field sg_io_hdr.timeout/cmdp: bad offset: syz=40 kernel=24
-0059: field sg_io_hdr.timeout/cmdp: bad size: syz=4 kernel=8
-0060: field sg_io_hdr.flags/sbp: bad offset: syz=44 kernel=32
-0060: field sg_io_hdr.flags/sbp: bad size: syz=4 kernel=8
-0061: field sg_io_hdr.pack_id/timeout: bad offset: syz=48 kernel=40
-0062: field sg_io_hdr.usr_ptr/flags: bad offset: syz=52 kernel=44
-0062: field sg_io_hdr.usr_ptr/flags: bad size: syz=8 kernel=4
-0063: field sg_io_hdr.status/pack_id: bad offset: syz=60 kernel=48
-0063: field sg_io_hdr.status/pack_id: bad size: syz=1 kernel=4
-0064: field sg_io_hdr.masked_status/usr_ptr: bad offset: syz=61 kernel=56
-0064: field sg_io_hdr.masked_status/usr_ptr: bad size: syz=1 kernel=8
-0065: field sg_io_hdr.msg_status/status: bad offset: syz=62 kernel=64
-0066: field sg_io_hdr.sb_len_wr/masked_status: bad offset: syz=63 kernel=65
-0067: field sg_io_hdr.host_status/msg_status: bad offset: syz=64 kernel=66
-0067: field sg_io_hdr.host_status/msg_status: bad size: syz=2 kernel=1
-0068: field sg_io_hdr.driver_status/sb_len_wr: bad offset: syz=66 kernel=67
-0068: field sg_io_hdr.driver_status/sb_len_wr: bad size: syz=2 kernel=1
-0069: field sg_io_hdr.resid/host_status: bad size: syz=4 kernel=2
-0070: field sg_io_hdr.duration/driver_status: bad offset: syz=72 kernel=70
-0070: field sg_io_hdr.duration/driver_status: bad size: syz=4 kernel=2
-0071: field sg_io_hdr.info/resid: bad offset: syz=76 kernel=72
-0074: struct sg_io_hdr_data: no corresponding struct in kernel
-0079: struct sg_io_hdr_data_buffer: no corresponding struct in kernel
-0085: struct sg_io_hdr_data_scatter: no corresponding struct in kernel
+struct sg_io_hdr: bad number of fields: syz=20 kernel=22
+field sg_io_hdr.data/iovec_count: bad size: syz=14 kernel=2
+field sg_io_hdr.cmdp/dxfer_len: bad offset: syz=24 kernel=12
+field sg_io_hdr.cmdp/dxfer_len: bad size: syz=8 kernel=4
+field sg_io_hdr.sbp/dxferp: bad offset: syz=32 kernel=16
+field sg_io_hdr.timeout/cmdp: bad offset: syz=40 kernel=24
+field sg_io_hdr.timeout/cmdp: bad size: syz=4 kernel=8
+field sg_io_hdr.flags/sbp: bad offset: syz=44 kernel=32
+field sg_io_hdr.flags/sbp: bad size: syz=4 kernel=8
+field sg_io_hdr.pack_id/timeout: bad offset: syz=48 kernel=40
+field sg_io_hdr.usr_ptr/flags: bad offset: syz=52 kernel=44
+field sg_io_hdr.usr_ptr/flags: bad size: syz=8 kernel=4
+field sg_io_hdr.status/pack_id: bad offset: syz=60 kernel=48
+field sg_io_hdr.status/pack_id: bad size: syz=1 kernel=4
+field sg_io_hdr.masked_status/usr_ptr: bad offset: syz=61 kernel=56
+field sg_io_hdr.masked_status/usr_ptr: bad size: syz=1 kernel=8
+field sg_io_hdr.msg_status/status: bad offset: syz=62 kernel=64
+field sg_io_hdr.sb_len_wr/masked_status: bad offset: syz=63 kernel=65
+field sg_io_hdr.host_status/msg_status: bad offset: syz=64 kernel=66
+field sg_io_hdr.host_status/msg_status: bad size: syz=2 kernel=1
+field sg_io_hdr.driver_status/sb_len_wr: bad offset: syz=66 kernel=67
+field sg_io_hdr.driver_status/sb_len_wr: bad size: syz=2 kernel=1
+field sg_io_hdr.resid/host_status: bad size: syz=4 kernel=2
+field sg_io_hdr.duration/driver_status: bad offset: syz=72 kernel=70
+field sg_io_hdr.duration/driver_status: bad size: syz=4 kernel=2
+field sg_io_hdr.info/resid: bad offset: syz=76 kernel=72
+struct sg_io_hdr_data: no corresponding struct in kernel
+struct sg_io_hdr_data_buffer: no corresponding struct in kernel
+struct sg_io_hdr_data_scatter: no corresponding struct in kernel

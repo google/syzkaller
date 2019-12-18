@@ -1,2 +1,9 @@
-0026: struct snd_rawmidi_info_raw: no corresponding struct in kernel
-0045: field snd_rawmidi_params.reserved/reserved: bad offset: syz=28 kernel=25
+struct snd_rawmidi_info_raw: no corresponding struct in kernel
+field snd_rawmidi_params.reserved/reserved: bad offset: syz=28 kernel=25
+struct snd_rawmidi_status32: bad number of fields: syz=6 kernel=5
+field snd_rawmidi_status32.tstamp_sec/tstamp: bad size: syz=4 kernel=8
+field snd_rawmidi_status32.tstamp_nsec/avail: bad offset: syz=8 kernel=12
+field snd_rawmidi_status32.avail/xruns: bad offset: syz=12 kernel=16
+field snd_rawmidi_status32.xruns/reserved: bad offset: syz=16 kernel=20
+field snd_rawmidi_status32.xruns/reserved: bad size: syz=4 kernel=16
+struct snd_rawmidi_status64: no corresponding struct in kernel

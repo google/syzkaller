@@ -1,20 +1,20 @@
-0053: struct usbdevfs_ep: no corresponding struct in kernel
-0070: struct usbdevfs_bulktransfer: bad number of fields: syz=6 kernel=4
-0071: field usbdevfs_bulktransfer.ep/ep: bad size: syz=1 kernel=4
-0072: field usbdevfs_bulktransfer.pad0/len: bad offset: syz=1 kernel=4
-0072: field usbdevfs_bulktransfer.pad0/len: bad size: syz=1 kernel=4
-0073: field usbdevfs_bulktransfer.pad1/timeout: bad offset: syz=2 kernel=8
-0073: field usbdevfs_bulktransfer.pad1/timeout: bad size: syz=2 kernel=4
-0074: field usbdevfs_bulktransfer.len/data: bad offset: syz=4 kernel=16
-0074: field usbdevfs_bulktransfer.len/data: bad size: syz=4 kernel=8
-0101: struct usbdevfs_urb_control: no corresponding struct in kernel
-0124: struct usbdevfs_urb_bulk: no corresponding struct in kernel
-0139: struct usbdevfs_urb_interrupt: no corresponding struct in kernel
-0184: field usbdevfs_ioctl.usbdevfs_disconnect/ifno: bad size: syz=16 kernel=4
-0185: field usbdevfs_ioctl.usbdevfs_connect/ioctl_code: bad offset: syz=16 kernel=4
-0185: field usbdevfs_ioctl.usbdevfs_connect/ioctl_code: bad size: syz=16 kernel=4
-0186: field usbdevfs_ioctl.usbdevfs_driver/data: bad offset: syz=32 kernel=8
-0186: field usbdevfs_ioctl.usbdevfs_driver/data: bad size: syz=16 kernel=8
-0189: struct usbdevfs_ioctl_disconnect: no corresponding struct in kernel
-0195: struct usbdevfs_ioctl_connect: no corresponding struct in kernel
-0201: struct usbdevfs_ioctl_driver: no corresponding struct in kernel
+struct usbdevfs_ep: no corresponding struct in kernel
+struct usbdevfs_bulktransfer: bad number of fields: syz=6 kernel=4
+field usbdevfs_bulktransfer.ep/ep: bad size: syz=1 kernel=4
+field usbdevfs_bulktransfer.pad0/len: bad offset: syz=1 kernel=4
+field usbdevfs_bulktransfer.pad0/len: bad size: syz=1 kernel=4
+field usbdevfs_bulktransfer.pad1/timeout: bad offset: syz=2 kernel=8
+field usbdevfs_bulktransfer.pad1/timeout: bad size: syz=2 kernel=4
+field usbdevfs_bulktransfer.len/data: bad offset: syz=4 kernel=16
+field usbdevfs_bulktransfer.len/data: bad size: syz=4 kernel=8
+struct usbdevfs_urb_control: no corresponding struct in kernel
+struct usbdevfs_urb_bulk: no corresponding struct in kernel
+struct usbdevfs_urb_interrupt: no corresponding struct in kernel
+field usbdevfs_ioctl.usbdevfs_disconnect/ifno: bad size: syz=16 kernel=4
+field usbdevfs_ioctl.usbdevfs_connect/ioctl_code: bad offset: syz=16 kernel=4
+field usbdevfs_ioctl.usbdevfs_connect/ioctl_code: bad size: syz=16 kernel=4
+field usbdevfs_ioctl.usbdevfs_driver/data: bad offset: syz=32 kernel=8
+field usbdevfs_ioctl.usbdevfs_driver/data: bad size: syz=16 kernel=8
+struct usbdevfs_ioctl_disconnect: no corresponding struct in kernel
+struct usbdevfs_ioctl_connect: no corresponding struct in kernel
+struct usbdevfs_ioctl_driver: no corresponding struct in kernel
