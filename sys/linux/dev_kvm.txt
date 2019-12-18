@@ -115,8 +115,8 @@ ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, 
 ioctl$KVM_X86_SET_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SET_MCE], arg ptr[in, kvm_x86_mce])
 ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
 ioctl$KVM_ARM_SET_DEVICE_ADDR(fd fd_kvmcpu, cmd const[KVM_ARM_SET_DEVICE_ADDR], arg ptr[in, kvm_arm_device_addr])
-ioctl$KVM_GET_NESTED_STATE(fd fd_kvmcpu, cmd const[KVM_GET_NESTED_STATE], arg ptr[out, kvm_nested_state])
-ioctl$KVM_SET_NESTED_STATE(fd fd_kvmcpu, cmd const[KVM_SET_NESTED_STATE], arg ptr[in, kvm_nested_state])
+ioctl$KVM_GET_NESTED_STATE(fd fd_kvmcpu, cmd const[KVM_GET_NESTED_STATE], arg ptr[out, kvm_nested_state_arg])
+ioctl$KVM_SET_NESTED_STATE(fd fd_kvmcpu, cmd const[KVM_SET_NESTED_STATE], arg ptr[in, kvm_nested_state_arg])
 
 ioctl$KVM_SET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_SET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
 ioctl$KVM_GET_DEVICE_ATTR(fd fd_kvmdev, cmd const[KVM_GET_DEVICE_ATTR], arg ptr[in, kvm_device_attr])
@@ -428,9 +428,10 @@ kvm_irq_routing_irqchip {
 }
 
 kvm_irq_routing_msi {
-	addrlo	int32
-	addrhi	int32
-	data	int32
+	address_lo	int32
+	address_hi	int32
+	data		int32
+	devid		int32
 }
 
 kvm_irq_routing_s390_adapter {
@@ -474,7 +475,7 @@ kvm_xcrs {
 }
 
 kvm_xsave {
-	region	array[int8, 1024]
+	region	array[int32, 1024]
 }
 
 kvm_enable_cap_cpu {
@@ -500,29 +501,33 @@ kvm_userspace_memory_region {
 }
 
 kvm_vcpu_events {
-	exinjec	int8
-	exnr	int8
-	exhec	int8
-	pad1	const[0, int8]
-	exec	int32
+	exinjec			int8
+	exnr			int8
+	exhec			int8
+	pad1			const[0, int8]
+	exec			int32
 
-	ininjec	int8
-	innr	int8
-	insoft	int8
-	inshad	int8
+	ininjec			int8
+	innr			int8
+	insoft			int8
+	inshad			int8
 
-	nmiinj	int8
-	nmipend	int8
-	nmimask	int8
-	pad2	const[0, int8]
+	nmiinj			int8
+	nmipend			int8
+	nmimask			int8
+	pad2			const[0, int8]
 
-	sipi	int32
-	flags	int32
+	sipi_vector		int32
+	flags			int32
 
-	smismm	int8
-	smipend	int8
-	smiinsi	int8
-	smilatc	int8
+	smismm			int8
+	smipend			int8
+	smiinsi			int8
+	smilatc			int8
+
+	reserved		array[const[0, int8], 27]
+	exception_has_payload	int8
+	exception_payload	int64
 }
 
 kvm_clock_data {
@@ -584,11 +589,12 @@ kvm_cpuid2 {
 }
 
 kvm_translation {
-	laddr	flags[kvm_guest_addrs, int64]
-	paddr	flags[kvm_guest_addrs, int64]
-	valid	int8
-	write	int8
-	umode	int8
+	laddr		flags[kvm_guest_addrs, int64]
+	paddr		flags[kvm_guest_addrs, int64]
+	valid		int8
+	writeable	int8
+	usermode	int8
+	pad		array[const[0, int8], 5]
 }
 
 kvm_dirty_log {
@@ -695,7 +701,7 @@ kvm_irqchip {
 kvm_irq_chip [
 	pic	kvm_pic_state
 	ioapic	kvm_ioapic_state
-]
+] [size[512]]
 
 kvm_pic_state {
 	lastirr	int8
@@ -781,11 +787,15 @@ kvm_hyperv_eventfd {
 }
 
 kvm_nested_state {
-	flags		flags[kvm_nested_state_flags, int16]
-	format		const[0, int16]
-	size		bytesize[parent, int32]
-	vmx		kvm_vmx_nested_state
-	pad		array[const[0, int8], 96]
+	flags	flags[kvm_nested_state_flags, int16]
+	format	const[0, int16]
+	size	bytesize[parent, int32]
+	hdr	kvm_vmx_nested_state
+	data	void
+}
+
+kvm_nested_state_arg {
+	state		kvm_nested_state
 	current_vmcs	array[int8, VMCS12_SIZE]
 	shadow_vmcs	array[int8, VMCS12_SIZE]
 }
@@ -794,7 +804,7 @@ kvm_vmx_nested_state {
 	vmxon_pa	flags[kvm_guest_addrs, int64]
 	vmcs_pa		flags[kvm_guest_addrs, int64]
 	smm_flags	flags[kvm_nested_smm_flags, int16]
-}
+} [size[120]]
 
 kvm_nested_state_flags = KVM_STATE_NESTED_GUEST_MODE, KVM_STATE_NESTED_RUN_PENDING
 kvm_nested_smm_flags = KVM_STATE_NESTED_SMM_GUEST_MODE, KVM_STATE_NESTED_SMM_VMXON

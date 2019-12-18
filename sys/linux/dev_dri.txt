@@ -140,12 +140,8 @@ drm_map {
 drm_client {
 	idx	int32
 	auth	int32
-	pid	pid
-# pid is declared is long
-	pid_pad	const[0, int32]
-	uid	uid
-# uid is declared is long
-	uid_pad	const[0, int32]
+	pid	alignptr[pid]
+	uid	alignptr[uid]
 	magic	intptr
 	iocs	intptr
 }
@@ -301,14 +297,15 @@ drm_mode_get_plane_res {
 }
 
 drm_mode_crtc {
-	connect	ptr[in, array[int32]]
-	cnt	len[connect, int32]
-	crtcid	int32
-	x	int32
-	y	int32
-	gamma	int32
-	valid	int32
-	mode	drm_mode_modeinfo
+	set_connectors_ptr	ptr64[in, array[int32]]
+	count_connectors	len[set_connectors_ptr, int32]
+	crtc_id			int32
+	fb_id			int32
+	x			int32
+	y			int32
+	gamma_size		int32
+	mode_valid		int32
+	mode			drm_mode_modeinfo
 }
 
 drm_mode_modeinfo {

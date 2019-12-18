@@ -76,9 +76,7 @@ ioctl$CDROM_SEND_PACKET(fd fd_cdrom, cmd const[CDROM_SEND_PACKET], arg ptr[inout
 ioctl$CDROM_NEXT_WRITABLE(fd fd_cdrom, cmd const[CDROM_NEXT_WRITABLE], arg ptr[out, int64])
 ioctl$CDROM_LAST_WRITTEN(fd fd_cdrom, cmd const[CDROM_LAST_WRITTEN], arg ptr[out, int64])
 
-cdrom_output_buffer {
-	reserved	array[int8, CD_FRAMESIZE_RAWER]
-}
+type cdrom_output_buffer array[int8, CD_FRAMESIZE_RAWER]
 
 cdrom_msf {
 	cdmsf_min0	int8

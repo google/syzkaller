@@ -24,16 +24,11 @@ struct kvm_dirty_tlb: no corresponding struct in kernel
 struct kvm_assigned_msix_entry: no corresponding struct in kernel
 struct kvm_assigned_msix_nr: no corresponding struct in kernel
 struct kvm_irq_routing_entry_u: no corresponding struct in kernel
-struct kvm_irq_routing_msi: bad number of fields: syz=3 kernel=4
-struct kvm_irq_routing_msi: bad size: syz=12 kernel=16
 struct kvm_assigned_irq: no corresponding struct in kernel
 struct kvm_assigned_pci_dev: no corresponding struct in kernel
-struct kvm_xsave: bad size: syz=1024 kernel=4096
-field kvm_xsave.region: bad size: syz=1024 kernel=4096
 struct kvm_enable_cap_cpu: no corresponding struct in kernel
 struct kvm_enable_cap_vm: no corresponding struct in kernel
-struct kvm_vcpu_events: bad number of fields: syz=19 kernel=9
-struct kvm_vcpu_events: bad size: syz=28 kernel=64
+struct kvm_vcpu_events: bad number of fields: syz=22 kernel=9
 field kvm_vcpu_events.exinjec/exception: bad size: syz=1 kernel=8
 field kvm_vcpu_events.exnr/interrupt: bad offset: syz=1 kernel=8
 field kvm_vcpu_events.exnr/interrupt: bad size: syz=1 kernel=4
@@ -49,7 +44,6 @@ field kvm_vcpu_events.innr/reserved: bad size: syz=1 kernel=27
 field kvm_vcpu_events.insoft/exception_has_payload: bad offset: syz=10 kernel=55
 field kvm_vcpu_events.inshad/exception_payload: bad offset: syz=11 kernel=56
 field kvm_vcpu_events.inshad/exception_payload: bad size: syz=1 kernel=8
-struct kvm_translation: bad number of fields: syz=5 kernel=6
 struct kvm_regs: bad number of fields: syz=3 kernel=18
 field kvm_regs.gp/rax: bad size: syz=128 kernel=8
 field kvm_regs.rip/rbx: bad offset: syz=128 kernel=8
@@ -57,14 +51,11 @@ field kvm_regs.rflags/rcx: bad offset: syz=136 kernel=16
 field kvm_fpu.fsw: bad size: syz=1 kernel=2
 field kvm_fpu.ftws/ftwx: bad offset: syz=131 kernel=132
 field kvm_fpu.pad1: bad offset: syz=132 kernel=133
-struct kvm_irqchip: bad size: syz=224 kernel=520
-field kvm_irqchip.chip: bad size: syz=216 kernel=512
 struct kvm_irq_chip: no corresponding struct in kernel
 struct kvm_ioapic_redir: no corresponding struct in kernel
 struct kvm_mce_cap: no corresponding struct in kernel
-struct kvm_nested_state: bad number of fields: syz=7 kernel=5
-struct kvm_nested_state: bad size: syz=8320 kernel=128
-field kvm_nested_state.vmx/hdr: bad size: syz=24 kernel=120
-field kvm_nested_state.pad/data: bad offset: syz=32 kernel=128
-field kvm_nested_state.pad/data: bad size: syz=96 kernel=0
+struct kvm_nested_state: bad size: syz=288 kernel=128
+field kvm_nested_state.hdr: bad offset: syz=96 kernel=8
+field kvm_nested_state.data: bad offset: syz=216 kernel=128
+struct kvm_nested_state_arg: no corresponding struct in kernel
 struct kvm_vmx_nested_state: no corresponding struct in kernel

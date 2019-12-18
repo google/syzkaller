@@ -1,4 +1,3 @@
-struct cdrom_output_buffer: no corresponding struct in kernel
 struct cdrom_msf_out_stub: no corresponding struct in kernel
 struct cdrom_addr: no corresponding struct in kernel
 field dvd_struct.physical: bad offset: syz=1 kernel=0

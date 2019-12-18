@@ -52,9 +52,24 @@ include <uapi/linux/membarrier.h>
 include <uapi/linux/capability.h>
 include <uapi/linux/seccomp.h>
 include <uapi/linux/suspend_ioctls.h>
+include <kernel/sched/sched.h>
 
 resource fd[int32]: -1
 resource fd_dir[fd]: AT_FDCWD
+
+# alignptr/align32/align64 can be used when ABI uses int64/intptr to hold a smaller tqype.
+# E.g. pid/uid stored as intptr/int64.
+type alignptr[T] {
+	v	T
+} [align_ptr]
+
+type align32[T] {
+	v	T
+} [align_4]
+
+type align64[T] {
+	v	T
+} [align_8]
 
 type signalno int32[0:65]
 
@@ -254,8 +269,7 @@ clone_args {
 	pidfd		ptr64[out, fd_pidfd]
 	child_tid	ptr64[out, pid]
 	parent_tid	ptr64[out, pid]
-	exit_signal	signalno
-	exit_signal_pad	const[0, int32]
+	exit_signal	align64[signalno]
 	stack		ptr64[out, array[int8]]
 	stack_size	bytesize[stack, int64]
 	tls		ptr64[out, array[int8]]
@@ -414,8 +428,8 @@ sched_getparam(pid pid, prio ptr[out, int32])
 sched_setparam(pid pid, prio ptr[in, int32])
 sched_getaffinity(pid pid, cpusetsize len[mask], mask ptr[out, int64])
 sched_setaffinity(pid pid, cpusetsize len[mask], mask ptr[in, int64])
-sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags flags[sched_attr_flags])
-sched_setattr(pid pid, attr ptr[in, sched_attr], flags flags[sched_attr_flags])
+sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags const[0])
+sched_setattr(pid pid, attr ptr[in, sched_attr], flags const[0])
 sched_yield()
 getrandom(buf buffer[out], len len[buf], flags flags[getrandom_flags])
 
@@ -691,14 +705,11 @@ file_handle {
 }
 
 mq_attr {
-	flags	intptr
-	maxmsg	intptr
-	msgsize	intptr
-	curmsg	intptr
-	res0	intptr
-	res1	intptr
-	res2	intptr
-	res3	intptr
+	mq_flags	intptr
+	mq_maxmsg	intptr
+	mq_msgsize	intptr
+	mq_curmsgs	intptr
+	__reserved	array[const[0, intptr], 4]
 }
 
 kexec_segment {
@@ -795,11 +806,10 @@ timex {
 }
 
 ustat {
-	free	int32
-	inode	intptr
-	nampac0	int32
-	nampac1	int32
-	nampac2	int32
+	f_tfree		int32
+	f_tinode	intptr
+	f_fname		array[int8, 6]
+	f_fpack		array[int8, 6]
 }
 
 user_desc {
@@ -821,15 +831,20 @@ user_desc_bases = 0, 4096, 1048576, 536870912, 536872960, 536875008, -1
 user_desc_limits = 0, 1024, 4096, 8192, 16384, -1
 
 sched_attr {
-	size	bytesize[parent, int32]
-	policy	flags[sched_policy, int32]
-	flags	flags[sched_attr_flags2, int64]
-	nice	int32
-	prio	int32
-	runtime	int64
-	deadlin	int64
-	period	int64
+	size		bytesize[parent, int32]
+	sched_policy	flags[sched_policy, int32]
+	sched_flags	flags[sched_attr_flags, int64]
+	sched_nice	int32
+	sched_priority	int32
+	sched_runtime	int64
+	sched_deadline	int64
+	sched_period	int64
+	sched_util_min	int32
+	sched_util_max	int32
 }
+
+sched_policy = SCHED_NORMAL, SCHED_FIFO, SCHED_RR, SCHED_BATCH, SCHED_IDLE, SCHED_DEADLINE
+sched_attr_flags = 0, SCHED_FLAG_RESET_ON_FORK, SCHED_FLAG_RECLAIM, SCHED_FLAG_DL_OVERRUN, SCHED_FLAG_KEEP_POLICY, SCHED_FLAG_KEEP_PARAMS, SCHED_FLAG_UTIL_CLAMP_MIN, SCHED_FLAG_UTIL_CLAMP_MAX, SCHED_FLAG_SUGOV
 
 flock {
 	type	flags[flock_type, int16]
@@ -917,9 +932,6 @@ sigaction_flags = SA_NOCLDSTOP, SA_NOCLDWAIT, SA_NODEFER, SA_ONSTACK, SA_RESETHA
 timer_flags = 0, TIMER_ABSTIME
 utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
 priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
-sched_policy = SCHED_NORMAL, SCHED_BATCH, SCHED_IDLE, SCHED_FIFO, SCHED_RR, SCHED_DEADLINE
-sched_attr_flags = 0
-sched_attr_flags2 = 0, SCHED_FLAG_RESET_ON_FORK
 mempolicy_flags = 0, MPOL_F_MEMS_ALLOWED, MPOL_F_ADDR, MPOL_F_NODE
 ptrace_req = PTRACE_LISTEN, PTRACE_KILL, PTRACE_INTERRUPT, PTRACE_ATTACH, PTRACE_DETACH
 ptrace_req_peek = PTRACE_PEEKTEXT, PTRACE_PEEKDATA
