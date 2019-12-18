@@ -1,7 +1,7 @@
 struct rdma_ucm_create_mcast_id_resp: no corresponding struct in kernel
 struct rdma_ucm_leave_mcast: no corresponding struct in kernel
 struct rdma_ucm_event_resp: bad number of fields: syz=2 kernel=6
-field rdma_ucm_event_resp.id/id: bad size: syz=8 kernel=4
+field rdma_ucm_event_resp.id: bad size: syz=8 kernel=4
 struct rdma_ucm_set_option: bad number of fields: syz=4 kernel=5
 field rdma_ucm_set_option.id_tos/optval: bad size: syz=24 kernel=8
 field rdma_ucm_set_option.id_resuseaddr/id: bad offset: syz=24 kernel=8

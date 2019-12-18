@@ -1,6 +1,6 @@
 struct usbdevfs_ep: no corresponding struct in kernel
 struct usbdevfs_bulktransfer: bad number of fields: syz=6 kernel=4
-field usbdevfs_bulktransfer.ep/ep: bad size: syz=1 kernel=4
+field usbdevfs_bulktransfer.ep: bad size: syz=1 kernel=4
 field usbdevfs_bulktransfer.pad0/len: bad offset: syz=1 kernel=4
 field usbdevfs_bulktransfer.pad0/len: bad size: syz=1 kernel=4
 field usbdevfs_bulktransfer.pad1/timeout: bad offset: syz=2 kernel=8

@@ -1,10 +1,10 @@
 struct v4l2_capability: bad size: syz=88 kernel=104
-field v4l2_capability.card/card: bad size: syz=16 kernel=32
+field v4l2_capability.card: bad size: syz=16 kernel=32
 field v4l2_capability.bus_version/bus_info: bad offset: syz=32 kernel=48
-field v4l2_capability.version/version: bad offset: syz=64 kernel=80
-field v4l2_capability.capabilities/capabilities: bad offset: syz=68 kernel=84
-field v4l2_capability.device_caps/device_caps: bad offset: syz=72 kernel=88
-field v4l2_capability.reserved/reserved: bad offset: syz=76 kernel=92
+field v4l2_capability.version: bad offset: syz=64 kernel=80
+field v4l2_capability.capabilities: bad offset: syz=68 kernel=84
+field v4l2_capability.device_caps: bad offset: syz=72 kernel=88
+field v4l2_capability.reserved: bad offset: syz=76 kernel=92
 struct v4l2_format_fmt: no corresponding struct in kernel
 struct v4l2_requestbuffers: bad number of fields: syz=4 kernel=5
 field v4l2_requestbuffers.reserved/capabilities: bad size: syz=8 kernel=4
@@ -44,28 +44,28 @@ struct v4l2_decoder_cmd_u: no corresponding struct in kernel
 struct v4l2_decoder_cmd_start: no corresponding struct in kernel
 struct v4l2_dv_timings_cap_u: no corresponding struct in kernel
 struct v4l2_standard: bad size: syz=60 kernel=72
-field v4l2_standard.id/id: bad offset: syz=4 kernel=8
-field v4l2_standard.id/id: bad size: syz=4 kernel=8
-field v4l2_standard.name/name: bad offset: syz=8 kernel=16
-field v4l2_standard.frameperiod/frameperiod: bad offset: syz=32 kernel=40
-field v4l2_standard.framelines/framelines: bad offset: syz=40 kernel=48
-field v4l2_standard.reserved/reserved: bad offset: syz=44 kernel=52
+field v4l2_standard.id: bad offset: syz=4 kernel=8
+field v4l2_standard.id: bad size: syz=4 kernel=8
+field v4l2_standard.name: bad offset: syz=8 kernel=16
+field v4l2_standard.frameperiod: bad offset: syz=32 kernel=40
+field v4l2_standard.framelines: bad offset: syz=40 kernel=48
+field v4l2_standard.reserved: bad offset: syz=44 kernel=52
 struct v4l2_input: bad size: syz=72 kernel=80
-field v4l2_input.std/std: bad size: syz=4 kernel=8
-field v4l2_input.status/status: bad offset: syz=52 kernel=56
-field v4l2_input.capabilities/capabilities: bad offset: syz=56 kernel=60
-field v4l2_input.reserved/reserved: bad offset: syz=60 kernel=64
+field v4l2_input.std: bad size: syz=4 kernel=8
+field v4l2_input.status: bad offset: syz=52 kernel=56
+field v4l2_input.capabilities: bad offset: syz=56 kernel=60
+field v4l2_input.reserved: bad offset: syz=60 kernel=64
 struct v4l2_output: bad size: syz=68 kernel=72
-field v4l2_output.std/std: bad size: syz=4 kernel=8
-field v4l2_output.capabilities/capabilities: bad offset: syz=52 kernel=56
-field v4l2_output.reserved/reserved: bad offset: syz=56 kernel=60
+field v4l2_output.std: bad size: syz=4 kernel=8
+field v4l2_output.capabilities: bad offset: syz=52 kernel=56
+field v4l2_output.reserved: bad offset: syz=56 kernel=60
 struct v4l2_subdev_format: bad size: syz=72 kernel=88
-field v4l2_subdev_format.format/format: bad size: syz=32 kernel=48
-field v4l2_subdev_format.reserved/reserved: bad offset: syz=40 kernel=56
+field v4l2_subdev_format.format: bad size: syz=32 kernel=48
+field v4l2_subdev_format.reserved: bad offset: syz=40 kernel=56
 struct v4l2_mbus_framefmt: bad number of fields: syz=8 kernel=9
 struct v4l2_mbus_framefmt: bad size: syz=32 kernel=48
-field v4l2_mbus_framefmt.ycbcr_enc/ycbcr_enc: bad size: syz=4 kernel=2
-field v4l2_mbus_framefmt.quantization/quantization: bad offset: syz=24 kernel=22
-field v4l2_mbus_framefmt.quantization/quantization: bad size: syz=4 kernel=2
-field v4l2_mbus_framefmt.xfer_func/xfer_func: bad offset: syz=28 kernel=24
-field v4l2_mbus_framefmt.xfer_func/xfer_func: bad size: syz=4 kernel=2
+field v4l2_mbus_framefmt.ycbcr_enc: bad size: syz=4 kernel=2
+field v4l2_mbus_framefmt.quantization: bad offset: syz=24 kernel=22
+field v4l2_mbus_framefmt.quantization: bad size: syz=4 kernel=2
+field v4l2_mbus_framefmt.xfer_func: bad offset: syz=28 kernel=24
+field v4l2_mbus_framefmt.xfer_func: bad size: syz=4 kernel=2

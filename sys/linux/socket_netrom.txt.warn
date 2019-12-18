@@ -1,3 +1,3 @@
 struct address_netrom_dev: no corresponding struct in kernel
 struct nr_route_struct: bad size: syz=120 kernel=112
-field nr_route_struct.device/device: bad offset: syz=12 kernel=11
+field nr_route_struct.device: bad offset: syz=12 kernel=11

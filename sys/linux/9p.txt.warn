@@ -1,7 +1,7 @@
 struct pipe_9p: no corresponding struct in kernel
 struct p9_qid: bad size: syz=13 kernel=16
-field p9_qid.version/version: bad offset: syz=1 kernel=4
-field p9_qid.path/path: bad offset: syz=5 kernel=8
+field p9_qid.version: bad offset: syz=1 kernel=4
+field p9_qid.path: bad offset: syz=5 kernel=8
 struct p9_ropen: no corresponding struct in kernel
 struct p9_rstatfs: bad size: syz=60 kernel=64
 struct p9_rgetattr: no corresponding struct in kernel

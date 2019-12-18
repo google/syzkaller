@@ -1,6 +1,6 @@
-field seccomp_metadata.flags/flags: bad size: syz=4 kernel=8
+field seccomp_metadata.flags: bad size: syz=4 kernel=8
 struct clone_args: bad number of fields: syz=11 kernel=10
-field clone_args.exit_signal/exit_signal: bad size: syz=4 kernel=8
+field clone_args.exit_signal: bad size: syz=4 kernel=8
 field clone_args.exit_signal_pad/stack: bad offset: syz=36 kernel=40
 field clone_args.exit_signal_pad/stack: bad size: syz=4 kernel=8
 field clone_args.stack/stack_size: bad offset: syz=40 kernel=48
