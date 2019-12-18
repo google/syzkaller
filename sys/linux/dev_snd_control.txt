@@ -76,13 +76,11 @@ snd_ctl_elem_info {
 define SND_CTL_ELEM_INFO_SIZE	sizeof(struct snd_ctl_elem_info)
 
 snd_ctl_elem_value {
-	id	snd_ctl_elem_id
-	indir	bool32
-	value	array[intptr, 128]
-	tstamp	timespec
-} [size[SND_CTL_ELEM_VALUE_SIZE]]
-
-define SND_CTL_ELEM_VALUE_SIZE	sizeof(struct snd_ctl_elem_value)
+	id		snd_ctl_elem_id
+	indirect	int32:1
+	value		array[intptr, 128]
+	reserved	array[const[0, int8], 128]
+}
 
 snd_ctl_tlv {
 	numid	int32
@@ -103,19 +101,5 @@ snd_pcm_info {
 	count	int32
 	avail	int32
 	sync	array[int8, 16]
-	pad	array[const[0, int8], 64]
-}
-
-snd_rawmidi_info {
-	dev	int32
-	subdev	int32
-	stream	int32
-	card	const[0, int32]
-	flags	const[0, int32]
-	id	array[const[0, int8], 64]
-	name	array[const[0, int8], 80]
-	subname	array[const[0, int8], 32]
-	count	int32
-	avail	int32
 	pad	array[const[0, int8], 64]
 }

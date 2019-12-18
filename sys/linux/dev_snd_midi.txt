@@ -17,24 +17,24 @@ syz_open_dev$midi(dev ptr[in, string["/dev/midi#"]], id intptr, flags flags[open
 write$midi(fd fd_midi, data ptr[in, array[int8]], len bytesize[data])
 read$midi(fd fd_midi, data ptr[out, array[int8]], len bytesize[data])
 ioctl$SNDRV_RAWMIDI_IOCTL_PVERSION(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_PVERSION], arg ptr[out, int32])
-ioctl$SNDRV_RAWMIDI_IOCTL_INFO(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_INFO], arg ptr[out, snd_rawmidi_info_raw])
+ioctl$SNDRV_RAWMIDI_IOCTL_INFO(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_INFO], arg ptr[out, snd_rawmidi_info])
 ioctl$SNDRV_RAWMIDI_IOCTL_PARAMS(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_PARAMS], arg ptr[inout, snd_rawmidi_params])
 ioctl$SNDRV_RAWMIDI_IOCTL_STATUS32(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_STATUS32], arg ptr[inout, snd_rawmidi_status32])
 ioctl$SNDRV_RAWMIDI_IOCTL_STATUS64(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_STATUS64], arg ptr[inout, snd_rawmidi_status64])
 ioctl$SNDRV_RAWMIDI_IOCTL_DROP(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_DROP], arg ptr[in, int32])
 ioctl$SNDRV_RAWMIDI_IOCTL_DRAIN(fd fd_midi, cmd const[SNDRV_RAWMIDI_IOCTL_DRAIN], arg ptr[in, int32])
 
-snd_rawmidi_info_raw {
+snd_rawmidi_info {
 	device			int32
 	subdevice		int32
 	stream			flags[sndrv_rawmidi_stream, int32]
-	card			int32
-	flags			flags[snd_rawmidi_info_flags, int32]
-	id			array[int8, 64]
-	name			array[int8, 80]
-	subname			array[int8, 32]
-	subdevices_count	int32
-	subdevices_avail	int32
+	card			const[0, int32]
+	flags			const[0, int32]
+	id			array[const[0, int8], 64]
+	name			array[const[0, int8], 80]
+	subname			array[const[0, int8], 32]
+	subdevices_count	const[0, int32]
+	subdevices_avail	const[0, int32]
 	reserved		array[const[0, int8], 64]
 }
 
@@ -69,4 +69,3 @@ define SNDRV_RAWMIDI_IOCTL_STATUS32	_IOWR('W', 0x20, char[36])
 define SNDRV_RAWMIDI_IOCTL_STATUS64	_IOWR('W', 0x20, char[56])
 
 sndrv_rawmidi_stream = SNDRV_RAWMIDI_STREAM_OUTPUT, SNDRV_RAWMIDI_STREAM_INPUT
-snd_rawmidi_info_flags = SNDRV_RAWMIDI_INFO_OUTPUT, SNDRV_RAWMIDI_INFO_INPUT, SNDRV_RAWMIDI_INFO_DUPLEX
