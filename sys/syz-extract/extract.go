@@ -132,15 +132,13 @@ func main() {
 			continue
 		}
 		for _, f := range arch.files {
-			fmt.Printf("extracting from %v\n", f.name)
 			<-f.done
 			if f.err != nil {
 				failed = true
-				fmt.Printf("	%v\n", f.err)
+				fmt.Printf("%v: %v\n", f.name, f.err)
 				continue
 			}
 		}
-		fmt.Printf("\n")
 	}
 
 	if !failed {
