@@ -134,11 +134,9 @@ func foreachArgImpl(arg Arg, ctx ArgCtx, f func(Arg, *ArgCtx)) {
 		var totalSize uint64
 		for _, arg1 := range a.Inner {
 			foreachArgImpl(arg1, ctx, f)
-			if !arg1.Type().BitfieldMiddle() {
-				size := arg1.Size()
-				ctx.Offset += size
-				totalSize += size
-			}
+			size := arg1.Size()
+			ctx.Offset += size
+			totalSize += size
 		}
 		claimedSize := a.Size()
 		varlen := a.Type().Varlen()

@@ -331,9 +331,7 @@ func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
 	if typ, ok := arg.Type().(*StructType); ok && typ.Varlen() && typ.AlignAttr != 0 {
 		var fieldsSize uint64
 		for _, fld := range arg.Inner {
-			if !fld.Type().BitfieldMiddle() {
-				fieldsSize += fld.Size()
-			}
+			fieldsSize += fld.Size()
 		}
 		if fieldsSize%typ.AlignAttr != 0 {
 			pad = typ.AlignAttr - fieldsSize%typ.AlignAttr
@@ -342,7 +340,8 @@ func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
 	var bitfield uint64
 	for _, fld := range arg.Inner {
 		// Squash bitfields separately.
-		if bfLen := fld.Type().BitfieldLength(); bfLen != 0 {
+		if fld.Type().IsBitfield() {
+			bfLen := fld.Type().BitfieldLength()
 			bfOff := fld.Type().BitfieldOffset()
 			// Note: we can have a ResultArg here as well,
 			// but it is unsupported at the moment.
@@ -351,7 +350,7 @@ func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
 				panic(fmt.Sprintf("bitfield has bad format %v", bf))
 			}
 			bitfield |= (v & ((1 << bfLen) - 1)) << bfOff
-			if !fld.Type().BitfieldMiddle() {
+			if fld.Size() != 0 {
 				elem := target.ensureDataElem(elems)
 				for i := uint64(0); i < fld.Size(); i++ {
 					elem.data = append(elem.Data(), byte(bitfield))
@@ -370,8 +369,9 @@ func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
 }
 
 func (target *Target) squashedValue(arg *ConstArg) (uint64, BinaryFormat) {
-	bf := arg.Type().Format()
-	if _, ok := arg.Type().(*CsumType); ok {
+	typ := arg.Type()
+	bf := typ.Format()
+	if _, ok := typ.(*CsumType); ok {
 		// We can't compute value for the checksum here,
 		// but at least leave something recognizable by hints code.
 		// TODO: hints code won't recognize this, because it won't find
@@ -383,7 +383,7 @@ func (target *Target) squashedValue(arg *ConstArg) (uint64, BinaryFormat) {
 	v, _ := arg.Value()
 	if bf == FormatBigEndian {
 		bf = FormatNative
-		switch arg.Size() {
+		switch typ.UnitSize() {
 		case 2:
 			v = uint64(swap16(uint16(v)))
 		case 4:
