@@ -68,9 +68,7 @@ usbdevfs_ctrltransfer {
 usb_request_type_flags = USB_DIR_OUT, USB_DIR_IN, USB_TYPE_MASK, USB_TYPE_STANDARD, USB_TYPE_CLASS, USB_TYPE_VENDOR, USB_TYPE_RESERVED, USB_RECIP_MASK, USB_RECIP_DEVICE, USB_RECIP_INTERFACE, USB_RECIP_ENDPOINT, USB_RECIP_OTHER, USB_RECIP_PORT, USB_RECIP_RPIPE
 
 usbdevfs_bulktransfer {
-	ep	usbdevfs_ep
-	pad0	int8
-	pad1	int16
+	ep	align32[usbdevfs_ep]
 	len	len[data, int32]
 	timeout	int32
 	data	ptr[inout, array[int8]]
