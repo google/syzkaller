@@ -1,2 +1,2 @@
-0037: struct sockaddr_xdp_bind: no corresponding struct in kernel
-0047: struct msghdr_xdp: no corresponding struct in kernel
+struct sockaddr_xdp_bind: no corresponding struct in kernel
+struct msghdr_xdp: no corresponding struct in kernel

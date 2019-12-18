@@ -1,64 +1,64 @@
-0210: field seccomp_metadata.flags/flags: bad size: syz=4 kernel=8
-0252: struct clone_args: bad number of fields: syz=11 kernel=10
-0257: field clone_args.exit_signal/exit_signal: bad size: syz=4 kernel=8
-0258: field clone_args.exit_signal_pad/stack: bad offset: syz=36 kernel=40
-0258: field clone_args.exit_signal_pad/stack: bad size: syz=4 kernel=8
-0259: field clone_args.stack/stack_size: bad offset: syz=40 kernel=48
-0260: field clone_args.stack_size/tls: bad offset: syz=48 kernel=56
-0261: field clone_args.tls/set_tid: bad offset: syz=56 kernel=64
-0262: field clone_args.set_tid/set_tid_size: bad offset: syz=64 kernel=72
-0515: struct pipefd: no corresponding struct in kernel
-0527: struct stat: bad size: syz=68 kernel=144
-0528: field stat.dev/st_dev: bad size: syz=2 kernel=8
-0529: field stat.ino/st_ino: bad offset: syz=4 kernel=8
-0529: field stat.ino/st_ino: bad size: syz=4 kernel=8
-0530: field stat.mode/st_nlink: bad offset: syz=8 kernel=16
-0530: field stat.mode/st_nlink: bad size: syz=2 kernel=8
-0531: field stat.nlink/st_mode: bad offset: syz=10 kernel=24
-0531: field stat.nlink/st_mode: bad size: syz=2 kernel=4
-0532: field stat.uid/st_uid: bad offset: syz=12 kernel=28
-0533: field stat.gid/st_gid: bad offset: syz=16 kernel=32
-0534: field stat.rdev/__pad0: bad offset: syz=20 kernel=36
-0534: field stat.rdev/__pad0: bad size: syz=2 kernel=4
-0535: field stat.size/st_rdev: bad offset: syz=24 kernel=40
-0535: field stat.size/st_rdev: bad size: syz=4 kernel=8
-0536: field stat.blksize/st_size: bad offset: syz=28 kernel=48
-0536: field stat.blksize/st_size: bad size: syz=4 kernel=8
-0537: field stat.blocks/st_blksize: bad offset: syz=32 kernel=56
-0537: field stat.blocks/st_blksize: bad size: syz=4 kernel=8
-0538: field stat.atime/st_blocks: bad offset: syz=36 kernel=64
-0538: field stat.atime/st_blocks: bad size: syz=4 kernel=8
-0539: field stat.ansec/st_atime: bad offset: syz=40 kernel=72
-0539: field stat.ansec/st_atime: bad size: syz=4 kernel=8
-0540: field stat.mtime/st_atime_nsec: bad offset: syz=44 kernel=80
-0540: field stat.mtime/st_atime_nsec: bad size: syz=4 kernel=8
-0541: field stat.mnsec/st_mtime: bad offset: syz=48 kernel=88
-0541: field stat.mnsec/st_mtime: bad size: syz=4 kernel=8
-0542: field stat.ctime/st_mtime_nsec: bad offset: syz=52 kernel=96
-0542: field stat.ctime/st_mtime_nsec: bad size: syz=4 kernel=8
-0543: field stat.cnsec/st_ctime: bad offset: syz=56 kernel=104
-0543: field stat.cnsec/st_ctime: bad size: syz=4 kernel=8
-0544: field stat.pad1/st_ctime_nsec: bad offset: syz=60 kernel=112
-0544: field stat.pad1/st_ctime_nsec: bad size: syz=4 kernel=8
-0545: field stat.pad2/__unused: bad offset: syz=64 kernel=120
-0545: field stat.pad2/__unused: bad size: syz=4 kernel=24
-0578: struct sigset: no corresponding struct in kernel
-0582: struct sigset_size: no corresponding struct in kernel
-0609: struct itimerspec: no corresponding struct in kernel
-0628: field sigevent.u/_sigev_un: bad size: syz=16 kernel=48
-0631: struct sigevent_u: no corresponding struct in kernel
-0638: struct sigevent_thread: no corresponding struct in kernel
-0644: struct cap_header: no corresponding struct in kernel
-0649: struct cap_data: no corresponding struct in kernel
-0664: struct fd_set: no corresponding struct in kernel
-0693: struct mq_attr: bad number of fields: syz=8 kernel=5
-0698: field mq_attr.res0/__reserved: bad size: syz=8 kernel=32
-0760: struct siginfo: bad number of fields: syz=3 kernel=1
-0761: field siginfo.signo/: bad size: syz=4 kernel=128
-0768: struct timex: no corresponding struct in kernel
-0797: struct ustat: bad number of fields: syz=5 kernel=4
-0800: field ustat.nampac0/f_fname: bad size: syz=4 kernel=6
-0801: field ustat.nampac1/f_fpack: bad offset: syz=20 kernel=22
-0801: field ustat.nampac1/f_fpack: bad size: syz=4 kernel=6
-0823: struct sched_attr: bad number of fields: syz=8 kernel=10
-0823: struct sched_attr: bad size: syz=48 kernel=56
+field seccomp_metadata.flags/flags: bad size: syz=4 kernel=8
+struct clone_args: bad number of fields: syz=11 kernel=10
+field clone_args.exit_signal/exit_signal: bad size: syz=4 kernel=8
+field clone_args.exit_signal_pad/stack: bad offset: syz=36 kernel=40
+field clone_args.exit_signal_pad/stack: bad size: syz=4 kernel=8
+field clone_args.stack/stack_size: bad offset: syz=40 kernel=48
+field clone_args.stack_size/tls: bad offset: syz=48 kernel=56
+field clone_args.tls/set_tid: bad offset: syz=56 kernel=64
+field clone_args.set_tid/set_tid_size: bad offset: syz=64 kernel=72
+struct pipefd: no corresponding struct in kernel
+struct stat: bad size: syz=68 kernel=144
+field stat.dev/st_dev: bad size: syz=2 kernel=8
+field stat.ino/st_ino: bad offset: syz=4 kernel=8
+field stat.ino/st_ino: bad size: syz=4 kernel=8
+field stat.mode/st_nlink: bad offset: syz=8 kernel=16
+field stat.mode/st_nlink: bad size: syz=2 kernel=8
+field stat.nlink/st_mode: bad offset: syz=10 kernel=24
+field stat.nlink/st_mode: bad size: syz=2 kernel=4
+field stat.uid/st_uid: bad offset: syz=12 kernel=28
+field stat.gid/st_gid: bad offset: syz=16 kernel=32
+field stat.rdev/__pad0: bad offset: syz=20 kernel=36
+field stat.rdev/__pad0: bad size: syz=2 kernel=4
+field stat.size/st_rdev: bad offset: syz=24 kernel=40
+field stat.size/st_rdev: bad size: syz=4 kernel=8
+field stat.blksize/st_size: bad offset: syz=28 kernel=48
+field stat.blksize/st_size: bad size: syz=4 kernel=8
+field stat.blocks/st_blksize: bad offset: syz=32 kernel=56
+field stat.blocks/st_blksize: bad size: syz=4 kernel=8
+field stat.atime/st_blocks: bad offset: syz=36 kernel=64
+field stat.atime/st_blocks: bad size: syz=4 kernel=8
+field stat.ansec/st_atime: bad offset: syz=40 kernel=72
+field stat.ansec/st_atime: bad size: syz=4 kernel=8
+field stat.mtime/st_atime_nsec: bad offset: syz=44 kernel=80
+field stat.mtime/st_atime_nsec: bad size: syz=4 kernel=8
+field stat.mnsec/st_mtime: bad offset: syz=48 kernel=88
+field stat.mnsec/st_mtime: bad size: syz=4 kernel=8
+field stat.ctime/st_mtime_nsec: bad offset: syz=52 kernel=96
+field stat.ctime/st_mtime_nsec: bad size: syz=4 kernel=8
+field stat.cnsec/st_ctime: bad offset: syz=56 kernel=104
+field stat.cnsec/st_ctime: bad size: syz=4 kernel=8
+field stat.pad1/st_ctime_nsec: bad offset: syz=60 kernel=112
+field stat.pad1/st_ctime_nsec: bad size: syz=4 kernel=8
+field stat.pad2/__unused: bad offset: syz=64 kernel=120
+field stat.pad2/__unused: bad size: syz=4 kernel=24
+struct sigset: no corresponding struct in kernel
+struct sigset_size: no corresponding struct in kernel
+struct itimerspec: no corresponding struct in kernel
+field sigevent.u/_sigev_un: bad size: syz=16 kernel=48
+struct sigevent_u: no corresponding struct in kernel
+struct sigevent_thread: no corresponding struct in kernel
+struct cap_header: no corresponding struct in kernel
+struct cap_data: no corresponding struct in kernel
+struct fd_set: no corresponding struct in kernel
+struct mq_attr: bad number of fields: syz=8 kernel=5
+field mq_attr.res0/__reserved: bad size: syz=8 kernel=32
+struct siginfo: bad number of fields: syz=3 kernel=1
+field siginfo.signo/: bad size: syz=4 kernel=128
+struct timex: no corresponding struct in kernel
+struct ustat: bad number of fields: syz=5 kernel=4
+field ustat.nampac0/f_fname: bad size: syz=4 kernel=6
+field ustat.nampac1/f_fpack: bad offset: syz=20 kernel=22
+field ustat.nampac1/f_fpack: bad size: syz=4 kernel=6
+struct sched_attr: bad number of fields: syz=8 kernel=10
+struct sched_attr: bad size: syz=48 kernel=56

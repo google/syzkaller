@@ -1,2 +1,2 @@
-0017: struct msghdr_nl_netfilter: no corresponding struct in kernel
-0027: struct iovec_nl_netfilter: no corresponding struct in kernel
+struct msghdr_nl_netfilter: no corresponding struct in kernel
+struct iovec_nl_netfilter: no corresponding struct in kernel

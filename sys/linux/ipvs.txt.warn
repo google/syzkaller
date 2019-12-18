@@ -1,1 +1,1 @@
-0130: struct ip_vs_svcdest_user: no corresponding struct in kernel
+struct ip_vs_svcdest_user: no corresponding struct in kernel

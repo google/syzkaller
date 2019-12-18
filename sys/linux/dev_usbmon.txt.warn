@@ -1,1 +1,1 @@
-0052: struct mon_bin_union: no corresponding struct in kernel
+struct mon_bin_union: no corresponding struct in kernel

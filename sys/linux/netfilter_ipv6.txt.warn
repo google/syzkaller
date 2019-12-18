@@ -1,38 +1,38 @@
-0072: struct ip6t_entry_underflow: no corresponding struct in kernel
-0077: struct ip6t_entry_underflow_matches: no corresponding struct in kernel
-0086: struct ip6t_ip6_or_uncond: no corresponding struct in kernel
-0094: struct ip6t_ip6: bad size: syz=165 kernel=136
-0101: field ip6t_ip6.iniface_mask/iniface_mask: bad offset: syz=105 kernel=96
-0102: field ip6t_ip6.outiface_mask/outiface_mask: bad offset: syz=135 kernel=112
-0103: field ip6t_ip6.proto/proto: bad offset: syz=152 kernel=128
-0104: field ip6t_ip6.tos/tos: bad offset: syz=154 kernel=130
-0105: field ip6t_ip6.flags/flags: bad offset: syz=155 kernel=131
-0106: field ip6t_ip6.invflags/invflags: bad offset: syz=156 kernel=132
-0153: struct ip6t_icmp: bad number of fields: syz=4 kernel=3
-0155: field ip6t_icmp.code_min/code: bad size: syz=1 kernel=2
-0156: field ip6t_icmp.code_max/invflags: bad offset: syz=2 kernel=3
-0160: struct ip6t_rt: bad number of fields: syz=8 kernel=7
-0162: field ip6t_rt.segsleft_min/segsleft: bad size: syz=4 kernel=8
-0163: field ip6t_rt.segsleft_max/hdrlen: bad offset: syz=8 kernel=12
-0164: field ip6t_rt.hdrlen/flags: bad offset: syz=12 kernel=16
-0164: field ip6t_rt.hdrlen/flags: bad size: syz=4 kernel=1
-0165: field ip6t_rt.flags/invflags: bad offset: syz=16 kernel=17
-0166: field ip6t_rt.invflags/addrs: bad offset: syz=17 kernel=20
-0166: field ip6t_rt.invflags/addrs: bad size: syz=1 kernel=256
-0167: field ip6t_rt.addrs/addrnr: bad offset: syz=20 kernel=276
-0167: field ip6t_rt.addrs/addrnr: bad size: syz=256 kernel=1
-0174: struct ip6t_mh: bad number of fields: syz=3 kernel=2
-0175: field ip6t_mh.types_min/types: bad size: syz=1 kernel=2
-0176: field ip6t_mh.types_max/invflags: bad offset: syz=1 kernel=2
-0191: struct ip6t_frag: bad number of fields: syz=5 kernel=4
-0192: field ip6t_frag.ids_min/ids: bad size: syz=4 kernel=8
-0193: field ip6t_frag.ids_max/hdrlen: bad offset: syz=4 kernel=8
-0194: field ip6t_frag.hdrlen/flags: bad offset: syz=8 kernel=12
-0194: field ip6t_frag.hdrlen/flags: bad size: syz=4 kernel=1
-0195: field ip6t_frag.flags/invflags: bad offset: syz=12 kernel=13
-0210: struct ip6t_ah: bad number of fields: syz=5 kernel=4
-0211: field ip6t_ah.spis_min/spis: bad size: syz=4 kernel=8
-0212: field ip6t_ah.spis_max/hdrlen: bad offset: syz=4 kernel=8
-0213: field ip6t_ah.hdrlen/hdrres: bad offset: syz=8 kernel=12
-0213: field ip6t_ah.hdrlen/hdrres: bad size: syz=4 kernel=1
-0214: field ip6t_ah.hdrres/invflags: bad offset: syz=12 kernel=13
+struct ip6t_entry_underflow: no corresponding struct in kernel
+struct ip6t_entry_underflow_matches: no corresponding struct in kernel
+struct ip6t_ip6_or_uncond: no corresponding struct in kernel
+struct ip6t_ip6: bad size: syz=165 kernel=136
+field ip6t_ip6.iniface_mask/iniface_mask: bad offset: syz=105 kernel=96
+field ip6t_ip6.outiface_mask/outiface_mask: bad offset: syz=135 kernel=112
+field ip6t_ip6.proto/proto: bad offset: syz=152 kernel=128
+field ip6t_ip6.tos/tos: bad offset: syz=154 kernel=130
+field ip6t_ip6.flags/flags: bad offset: syz=155 kernel=131
+field ip6t_ip6.invflags/invflags: bad offset: syz=156 kernel=132
+struct ip6t_icmp: bad number of fields: syz=4 kernel=3
+field ip6t_icmp.code_min/code: bad size: syz=1 kernel=2
+field ip6t_icmp.code_max/invflags: bad offset: syz=2 kernel=3
+struct ip6t_rt: bad number of fields: syz=8 kernel=7
+field ip6t_rt.segsleft_min/segsleft: bad size: syz=4 kernel=8
+field ip6t_rt.segsleft_max/hdrlen: bad offset: syz=8 kernel=12
+field ip6t_rt.hdrlen/flags: bad offset: syz=12 kernel=16
+field ip6t_rt.hdrlen/flags: bad size: syz=4 kernel=1
+field ip6t_rt.flags/invflags: bad offset: syz=16 kernel=17
+field ip6t_rt.invflags/addrs: bad offset: syz=17 kernel=20
+field ip6t_rt.invflags/addrs: bad size: syz=1 kernel=256
+field ip6t_rt.addrs/addrnr: bad offset: syz=20 kernel=276
+field ip6t_rt.addrs/addrnr: bad size: syz=256 kernel=1
+struct ip6t_mh: bad number of fields: syz=3 kernel=2
+field ip6t_mh.types_min/types: bad size: syz=1 kernel=2
+field ip6t_mh.types_max/invflags: bad offset: syz=1 kernel=2
+struct ip6t_frag: bad number of fields: syz=5 kernel=4
+field ip6t_frag.ids_min/ids: bad size: syz=4 kernel=8
+field ip6t_frag.ids_max/hdrlen: bad offset: syz=4 kernel=8
+field ip6t_frag.hdrlen/flags: bad offset: syz=8 kernel=12
+field ip6t_frag.hdrlen/flags: bad size: syz=4 kernel=1
+field ip6t_frag.flags/invflags: bad offset: syz=12 kernel=13
+struct ip6t_ah: bad number of fields: syz=5 kernel=4
+field ip6t_ah.spis_min/spis: bad size: syz=4 kernel=8
+field ip6t_ah.spis_max/hdrlen: bad offset: syz=4 kernel=8
+field ip6t_ah.hdrlen/hdrres: bad offset: syz=8 kernel=12
+field ip6t_ah.hdrlen/hdrres: bad size: syz=4 kernel=1
+field ip6t_ah.hdrres/invflags: bad offset: syz=12 kernel=13

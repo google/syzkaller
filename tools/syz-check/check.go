@@ -89,7 +89,12 @@ func check(OS, arch, obj string) error {
 	return writeWarnings(OS, arch, warnings)
 }
 
-func writeWarnings(OS, arch string, warnings map[string][]string) error {
+type Warn struct {
+	pos ast.Pos
+	msg string
+}
+
+func writeWarnings(OS, arch string, warnings []Warn) error {
 	allFiles, err := filepath.Glob(filepath.Join("sys", OS, "*.warn"))
 	if err != nil {
 		return err
@@ -98,11 +103,21 @@ func writeWarnings(OS, arch string, warnings map[string][]string) error {
 	for _, file := range allFiles {
 		toRemove[file] = true
 	}
-	for file, warns := range warnings {
-		sort.Strings(warns)
+	byFile := make(map[string][]Warn)
+	for _, warn := range warnings {
+		byFile[warn.pos.File] = append(byFile[warn.pos.File], warn)
+	}
+	for file, warns := range byFile {
+		sort.Slice(warns, func(i, j int) bool {
+			w1, w2 := warns[i], warns[j]
+			if w1.pos.Line != w2.pos.Line {
+				return w1.pos.Line < w2.pos.Line
+			}
+			return w1.msg < w2.msg
+		})
 		buf := new(bytes.Buffer)
 		for _, warn := range warns {
-			fmt.Fprintf(buf, "%v\n", warn)
+			fmt.Fprintf(buf, "%v\n", warn.msg)
 		}
 		warnFile := filepath.Join("sys", OS, file+".warn")
 		if err := osutil.WriteFile(warnFile, buf.Bytes()); err != nil {
@@ -117,8 +132,8 @@ func writeWarnings(OS, arch string, warnings map[string][]string) error {
 }
 
 func checkImpl(structs map[string]*dwarf.StructType, structDescs []*prog.KeyedStruct,
-	locs map[string]*ast.Struct) (map[string][]string, error) {
-	warnings := make(map[string][]string)
+	locs map[string]*ast.Struct) ([]Warn, error) {
+	var warnings []Warn
 	checked := make(map[string]bool)
 	for _, str := range structDescs {
 		typ := str.Desc
@@ -134,29 +149,30 @@ func checkImpl(structs map[string]*dwarf.StructType, structDescs []*prog.KeyedSt
 			continue
 		}
 		checked[typ.Name()] = true
-
-		if err := checkStruct(warnings, typ, astStruct, structs[typ.Name()]); err != nil {
+		warns, err := checkStruct(typ, astStruct, structs[typ.Name()])
+		if err != nil {
 			return nil, err
 		}
-
+		warnings = append(warnings, warns...)
 	}
 	return warnings, nil
 }
 
-func checkStruct(warnings map[string][]string, typ *prog.StructDesc, astStruct *ast.Struct,
-	str *dwarf.StructType) error {
+func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructType) ([]Warn, error) {
+	var warnings []Warn
 	warn := func(pos ast.Pos, msg string, args ...interface{}) {
-		warnings[pos.File] = append(warnings[pos.File],
-			fmt.Sprintf("%04v: ", pos.Line)+fmt.Sprintf(msg, args...))
+		warnings = append(warnings, Warn{pos, fmt.Sprintf(msg, args...)})
 	}
 	if str == nil {
 		warn(astStruct.Pos, "struct %v: no corresponding struct in kernel", typ.Name())
-		return nil
+		return warnings, nil
 	}
 	if typ.Size() != uint64(str.ByteSize) {
 		warn(astStruct.Pos, "struct %v: bad size: syz=%v kernel=%v", typ.Name(), typ.Size(), str.ByteSize)
 	}
 	// TODO: handle unions, currently we should report some false errors.
+	// TODO: we could also check enums (elements match corresponding flags in syzkaller).
+	// TODO: we could also check values of literal constants (dwarf should have that, right?).
 	ai := 0
 	offset := uint64(0)
 	for _, field := range typ.Fields {
@@ -199,7 +215,7 @@ func checkStruct(warnings map[string][]string, typ *prog.StructDesc, astStruct *
 	if ai != len(str.Field) {
 		warn(astStruct.Pos, "struct %v: bad number of fields: syz=%v kernel=%v", typ.Name(), ai, len(str.Field))
 	}
-	return nil
+	return warnings, nil
 }
 
 func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.Struct, error) {

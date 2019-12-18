@@ -1,14 +1,14 @@
-0225: struct xt_hmark_info: bad number of fields: syz=11 kernel=9
-0228: field xt_hmark_info.src_port_mask/port_mask: bad size: syz=2 kernel=4
-0229: field xt_hmark_info.dst_port_mask/port_set: bad offset: syz=34 kernel=36
-0229: field xt_hmark_info.dst_port_mask/port_set: bad size: syz=2 kernel=4
-0230: field xt_hmark_info.src_port_set/flags: bad offset: syz=36 kernel=40
-0230: field xt_hmark_info.src_port_set/flags: bad size: syz=2 kernel=4
-0231: field xt_hmark_info.dst_port_set/proto_mask: bad offset: syz=38 kernel=44
-0232: field xt_hmark_info.flags/hashrnd: bad offset: syz=40 kernel=48
-0233: field xt_hmark_info.proto_mask/hmodulus: bad offset: syz=44 kernel=52
-0233: field xt_hmark_info.proto_mask/hmodulus: bad size: syz=2 kernel=4
-0234: field xt_hmark_info.hashrnd/hoffset: bad offset: syz=48 kernel=56
-0280: struct xt_set_info_v0: bad number of fields: syz=5 kernel=2
-0282: field xt_set_info_v0.flags/u: bad size: syz=24 kernel=28
-0349: struct xt_synproxy_info: no corresponding struct in kernel
+struct xt_hmark_info: bad number of fields: syz=11 kernel=9
+field xt_hmark_info.src_port_mask/port_mask: bad size: syz=2 kernel=4
+field xt_hmark_info.dst_port_mask/port_set: bad offset: syz=34 kernel=36
+field xt_hmark_info.dst_port_mask/port_set: bad size: syz=2 kernel=4
+field xt_hmark_info.src_port_set/flags: bad offset: syz=36 kernel=40
+field xt_hmark_info.src_port_set/flags: bad size: syz=2 kernel=4
+field xt_hmark_info.dst_port_set/proto_mask: bad offset: syz=38 kernel=44
+field xt_hmark_info.flags/hashrnd: bad offset: syz=40 kernel=48
+field xt_hmark_info.proto_mask/hmodulus: bad offset: syz=44 kernel=52
+field xt_hmark_info.proto_mask/hmodulus: bad size: syz=2 kernel=4
+field xt_hmark_info.hashrnd/hoffset: bad offset: syz=48 kernel=56
+struct xt_set_info_v0: bad number of fields: syz=5 kernel=2
+field xt_set_info_v0.flags/u: bad size: syz=24 kernel=28
+struct xt_synproxy_info: no corresponding struct in kernel

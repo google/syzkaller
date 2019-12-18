@@ -1,121 +1,121 @@
-0075: struct mlx5_get_context_cmd_resp: no corresponding struct in kernel
-0100: struct mlx5_get_context_cmd: no corresponding struct in kernel
-0118: struct query_device_resp_ex: no corresponding struct in kernel
-0187: struct query_device_cmd_ex: no corresponding struct in kernel
-0231: struct alloc_pd_cmd_resp: no corresponding struct in kernel
-0235: struct mlx5_alloc_pd_cmd_resp: no corresponding struct in kernel
-0240: struct dealloc_pd_cmd: no corresponding struct in kernel
-0250: struct create_ah_cmd_resp: no corresponding struct in kernel
-0254: struct create_ah_cmd: no corresponding struct in kernel
-0277: struct destroy_ah_cmd: no corresponding struct in kernel
-0286: struct reg_mr_resp: no corresponding struct in kernel
-0305: struct rereg_mr_resp: no corresponding struct in kernel
-0325: struct dereg_mr_cmd: no corresponding struct in kernel
-0332: struct alloc_mw_resp: no corresponding struct in kernel
-0337: struct alloc_mw_cmd: no corresponding struct in kernel
-0348: struct dealloc_mw_cmd: no corresponding struct in kernel
-0359: struct create_comp_channel_resp: no corresponding struct in kernel
-0363: struct create_comp_channel_cmd: no corresponding struct in kernel
-0373: struct create_cq_resp: no corresponding struct in kernel
-0378: struct mlx5_create_cq_cmd: no corresponding struct in kernel
-0415: struct create_cq_ex_cmd: no corresponding struct in kernel
-0448: struct destroy_cq_resp: no corresponding struct in kernel
-0453: struct destroy_cq_cmd: no corresponding struct in kernel
-0462: struct kern_wc: no corresponding struct in kernel
-0486: struct poll_cq_cmd: no corresponding struct in kernel
-0495: struct req_notify_cq_cmd: no corresponding struct in kernel
-0506: struct create_qp_resp: no corresponding struct in kernel
-0539: struct mlx5_create_qp_cmd: no corresponding struct in kernel
-0569: struct mlx5_create_qp_resp: no corresponding struct in kernel
-0612: struct destroy_qp_resp: no corresponding struct in kernel
-0616: struct destroy_qp_cmd: no corresponding struct in kernel
-0692: struct modify_qp_cmd: no corresponding struct in kernel
-0749: struct create_wq_resp: no corresponding struct in kernel
-0758: struct create_wq_cmd: no corresponding struct in kernel
-0777: struct mlx5_create_wq_resp: no corresponding struct in kernel
-0788: struct mlx5_create_wq_cmd: no corresponding struct in kernel
-0817: struct destroy_wq_resp: no corresponding struct in kernel
-0824: struct destroy_wq_cmd: no corresponding struct in kernel
-0836: struct mlx5_modify_wq_cmd: no corresponding struct in kernel
-0857: struct create_rwq_ind_table_resp: no corresponding struct in kernel
-0866: struct create_rwq_ind_table_cmd: no corresponding struct in kernel
-0879: struct destroy_rwq_ind_table_cmd: no corresponding struct in kernel
-0887: struct rdma: bad number of fields: syz=3 kernel=6
-0887: struct rdma: bad size: syz=16 kernel=256
-0888: field rdma.remote_addr/qptype: bad size: syz=8 kernel=1
-0889: field rdma.rkey/prtype: bad offset: syz=8 kernel=1
-0889: field rdma.rkey/prtype: bad size: syz=4 kernel=1
-0890: field rdma.reserved/cms: bad offset: syz=12 kernel=2
-0890: field rdma.reserved/cms: bad size: syz=4 kernel=1
-0893: struct atomic: no corresponding struct in kernel
-0901: struct ud: no corresponding struct in kernel
-0908: struct xrc: no corresponding struct in kernel
-0912: struct wr: no corresponding struct in kernel
-0918: struct kern_send_wr: no corresponding struct in kernel
-0940: struct post_send_resp: no corresponding struct in kernel
-0956: struct post_recv_resp: no corresponding struct in kernel
-0982: struct create_srq_resp: no corresponding struct in kernel
-1002: struct mlx5_ib_create_srq_resp: no corresponding struct in kernel
-1007: struct mlx5_create_srq_cmd: no corresponding struct in kernel
-1041: struct query_srq_resp: no corresponding struct in kernel
-1058: struct destroy_srq_resp: no corresponding struct in kernel
-1062: struct destroy_srq_cmd: no corresponding struct in kernel
-1071: struct kern_recv_wr: no corresponding struct in kernel
-1077: struct post_srq_recv_resp: no corresponding struct in kernel
-1092: struct open_xrcd_resp: no corresponding struct in kernel
-1106: struct close_xrcd_cmd: no corresponding struct in kernel
-1116: struct ib_flow_eth_filter: bad number of fields: syz=4 kernel=5
-1123: struct ib_flow_spec_eth: bad number of fields: syz=5 kernel=4
-1126: field ib_flow_spec_eth.reserved/val: bad size: syz=2 kernel=16
-1127: field ib_flow_spec_eth.val/mask: bad offset: syz=8 kernel=22
-1131: struct ib_flow_ipv4_filter: bad number of fields: syz=6 kernel=7
-1140: struct ib_flow_spec_ipv4: bad number of fields: syz=5 kernel=4
-1143: field ib_flow_spec_ipv4.reserved/val: bad offset: syz=6 kernel=8
-1143: field ib_flow_spec_ipv4.reserved/val: bad size: syz=2 kernel=12
-1144: field ib_flow_spec_ipv4.val/mask: bad offset: syz=8 kernel=20
-1155: field ib_flow_ipv6_filter.reserved/real_sz: bad size: syz=1 kernel=0
-1158: struct ib_flow_spec_ipv6: bad number of fields: syz=5 kernel=4
-1161: field ib_flow_spec_ipv6.reserved/val: bad offset: syz=6 kernel=8
-1161: field ib_flow_spec_ipv6.reserved/val: bad size: syz=2 kernel=40
-1162: field ib_flow_spec_ipv6.val/mask: bad offset: syz=8 kernel=48
-1166: struct ib_flow_tcp_udp_filter: bad number of fields: syz=2 kernel=3
-1171: struct ib_flow_spec_tcp_udp: bad number of fields: syz=5 kernel=4
-1174: field ib_flow_spec_tcp_udp.reserved/val: bad size: syz=2 kernel=4
-1175: field ib_flow_spec_tcp_udp.val/mask: bad offset: syz=8 kernel=10
-1179: struct ib_flow_esp_filter: bad number of fields: syz=2 kernel=3
-1184: struct ib_flow_spec_esp: bad number of fields: syz=5 kernel=4
-1187: field ib_flow_spec_esp.reserved/val: bad offset: syz=6 kernel=8
-1187: field ib_flow_spec_esp.reserved/val: bad size: syz=2 kernel=8
-1188: field ib_flow_spec_esp.val/mask: bad offset: syz=8 kernel=16
-1192: struct ib_flow_tunnel_filter: bad number of fields: syz=1 kernel=2
-1196: struct ib_flow_spec_tunnel: bad number of fields: syz=5 kernel=4
-1199: field ib_flow_spec_tunnel.reserved/val: bad offset: syz=6 kernel=8
-1199: field ib_flow_spec_tunnel.reserved/val: bad size: syz=2 kernel=4
-1200: field ib_flow_spec_tunnel.val/mask: bad offset: syz=8 kernel=12
-1204: struct ib_flow_gre_filter: bad number of fields: syz=3 kernel=4
-1210: struct ib_flow_spec_gre: bad number of fields: syz=5 kernel=4
-1213: field ib_flow_spec_gre.reserved/val: bad offset: syz=6 kernel=8
-1213: field ib_flow_spec_gre.reserved/val: bad size: syz=2 kernel=8
-1214: field ib_flow_spec_gre.val/mask: bad offset: syz=8 kernel=16
-1218: struct ib_flow_mpls_filter: bad number of fields: syz=1 kernel=2
-1222: struct ib_flow_spec_mpls: bad number of fields: syz=5 kernel=4
-1225: field ib_flow_spec_mpls.reserved/val: bad offset: syz=6 kernel=8
-1225: field ib_flow_spec_mpls.reserved/val: bad size: syz=2 kernel=4
-1226: field ib_flow_spec_mpls.val/mask: bad offset: syz=8 kernel=12
-1230: struct ib_flow_spec_action_tag: bad number of fields: syz=5 kernel=3
-1230: struct ib_flow_spec_action_tag: bad size: syz=16 kernel=12
-1233: field ib_flow_spec_action_tag.reserved/tag_id: bad offset: syz=6 kernel=8
-1233: field ib_flow_spec_action_tag.reserved/tag_id: bad size: syz=2 kernel=4
-1238: struct ib_flow_spec_action_drop: bad number of fields: syz=3 kernel=2
-1244: struct ib_uverbs_flow_spec_action_count: bad number of fields: syz=5 kernel=3
-1245: field ib_uverbs_flow_spec_action_count.type/: bad size: syz=4 kernel=8
-1246: field ib_uverbs_flow_spec_action_count.size/handle: bad offset: syz=4 kernel=8
-1246: field ib_uverbs_flow_spec_action_count.size/handle: bad size: syz=2 kernel=4
-1247: field ib_uverbs_flow_spec_action_count.reserved0/reserved1: bad offset: syz=6 kernel=12
-1247: field ib_uverbs_flow_spec_action_count.reserved0/reserved1: bad size: syz=2 kernel=4
-1252: struct union_ib_flow_spec: no corresponding struct in kernel
-1284: struct create_flow_resp: no corresponding struct in kernel
-1300: struct destroy_flow_cmd: no corresponding struct in kernel
-1318: struct ib_uverbs_create_counters_cmd: no corresponding struct in kernel
-1337: struct ib_uverbs_destroy_counters_cmd: no corresponding struct in kernel
-1357: struct ib_uverbs_read_counters_cmd: no corresponding struct in kernel
+struct mlx5_get_context_cmd_resp: no corresponding struct in kernel
+struct mlx5_get_context_cmd: no corresponding struct in kernel
+struct query_device_resp_ex: no corresponding struct in kernel
+struct query_device_cmd_ex: no corresponding struct in kernel
+struct alloc_pd_cmd_resp: no corresponding struct in kernel
+struct mlx5_alloc_pd_cmd_resp: no corresponding struct in kernel
+struct dealloc_pd_cmd: no corresponding struct in kernel
+struct create_ah_cmd_resp: no corresponding struct in kernel
+struct create_ah_cmd: no corresponding struct in kernel
+struct destroy_ah_cmd: no corresponding struct in kernel
+struct reg_mr_resp: no corresponding struct in kernel
+struct rereg_mr_resp: no corresponding struct in kernel
+struct dereg_mr_cmd: no corresponding struct in kernel
+struct alloc_mw_resp: no corresponding struct in kernel
+struct alloc_mw_cmd: no corresponding struct in kernel
+struct dealloc_mw_cmd: no corresponding struct in kernel
+struct create_comp_channel_resp: no corresponding struct in kernel
+struct create_comp_channel_cmd: no corresponding struct in kernel
+struct create_cq_resp: no corresponding struct in kernel
+struct mlx5_create_cq_cmd: no corresponding struct in kernel
+struct create_cq_ex_cmd: no corresponding struct in kernel
+struct destroy_cq_resp: no corresponding struct in kernel
+struct destroy_cq_cmd: no corresponding struct in kernel
+struct kern_wc: no corresponding struct in kernel
+struct poll_cq_cmd: no corresponding struct in kernel
+struct req_notify_cq_cmd: no corresponding struct in kernel
+struct create_qp_resp: no corresponding struct in kernel
+struct mlx5_create_qp_cmd: no corresponding struct in kernel
+struct mlx5_create_qp_resp: no corresponding struct in kernel
+struct destroy_qp_resp: no corresponding struct in kernel
+struct destroy_qp_cmd: no corresponding struct in kernel
+struct modify_qp_cmd: no corresponding struct in kernel
+struct create_wq_resp: no corresponding struct in kernel
+struct create_wq_cmd: no corresponding struct in kernel
+struct mlx5_create_wq_resp: no corresponding struct in kernel
+struct mlx5_create_wq_cmd: no corresponding struct in kernel
+struct destroy_wq_resp: no corresponding struct in kernel
+struct destroy_wq_cmd: no corresponding struct in kernel
+struct mlx5_modify_wq_cmd: no corresponding struct in kernel
+struct create_rwq_ind_table_resp: no corresponding struct in kernel
+struct create_rwq_ind_table_cmd: no corresponding struct in kernel
+struct destroy_rwq_ind_table_cmd: no corresponding struct in kernel
+struct rdma: bad number of fields: syz=3 kernel=6
+struct rdma: bad size: syz=16 kernel=256
+field rdma.remote_addr/qptype: bad size: syz=8 kernel=1
+field rdma.rkey/prtype: bad offset: syz=8 kernel=1
+field rdma.rkey/prtype: bad size: syz=4 kernel=1
+field rdma.reserved/cms: bad offset: syz=12 kernel=2
+field rdma.reserved/cms: bad size: syz=4 kernel=1
+struct atomic: no corresponding struct in kernel
+struct ud: no corresponding struct in kernel
+struct xrc: no corresponding struct in kernel
+struct wr: no corresponding struct in kernel
+struct kern_send_wr: no corresponding struct in kernel
+struct post_send_resp: no corresponding struct in kernel
+struct post_recv_resp: no corresponding struct in kernel
+struct create_srq_resp: no corresponding struct in kernel
+struct mlx5_ib_create_srq_resp: no corresponding struct in kernel
+struct mlx5_create_srq_cmd: no corresponding struct in kernel
+struct query_srq_resp: no corresponding struct in kernel
+struct destroy_srq_resp: no corresponding struct in kernel
+struct destroy_srq_cmd: no corresponding struct in kernel
+struct kern_recv_wr: no corresponding struct in kernel
+struct post_srq_recv_resp: no corresponding struct in kernel
+struct open_xrcd_resp: no corresponding struct in kernel
+struct close_xrcd_cmd: no corresponding struct in kernel
+struct ib_flow_eth_filter: bad number of fields: syz=4 kernel=5
+struct ib_flow_spec_eth: bad number of fields: syz=5 kernel=4
+field ib_flow_spec_eth.reserved/val: bad size: syz=2 kernel=16
+field ib_flow_spec_eth.val/mask: bad offset: syz=8 kernel=22
+struct ib_flow_ipv4_filter: bad number of fields: syz=6 kernel=7
+struct ib_flow_spec_ipv4: bad number of fields: syz=5 kernel=4
+field ib_flow_spec_ipv4.reserved/val: bad offset: syz=6 kernel=8
+field ib_flow_spec_ipv4.reserved/val: bad size: syz=2 kernel=12
+field ib_flow_spec_ipv4.val/mask: bad offset: syz=8 kernel=20
+field ib_flow_ipv6_filter.reserved/real_sz: bad size: syz=1 kernel=0
+struct ib_flow_spec_ipv6: bad number of fields: syz=5 kernel=4
+field ib_flow_spec_ipv6.reserved/val: bad offset: syz=6 kernel=8
+field ib_flow_spec_ipv6.reserved/val: bad size: syz=2 kernel=40
+field ib_flow_spec_ipv6.val/mask: bad offset: syz=8 kernel=48
+struct ib_flow_tcp_udp_filter: bad number of fields: syz=2 kernel=3
+struct ib_flow_spec_tcp_udp: bad number of fields: syz=5 kernel=4
+field ib_flow_spec_tcp_udp.reserved/val: bad size: syz=2 kernel=4
+field ib_flow_spec_tcp_udp.val/mask: bad offset: syz=8 kernel=10
+struct ib_flow_esp_filter: bad number of fields: syz=2 kernel=3
+struct ib_flow_spec_esp: bad number of fields: syz=5 kernel=4
+field ib_flow_spec_esp.reserved/val: bad offset: syz=6 kernel=8
+field ib_flow_spec_esp.reserved/val: bad size: syz=2 kernel=8
+field ib_flow_spec_esp.val/mask: bad offset: syz=8 kernel=16
+struct ib_flow_tunnel_filter: bad number of fields: syz=1 kernel=2
+struct ib_flow_spec_tunnel: bad number of fields: syz=5 kernel=4
+field ib_flow_spec_tunnel.reserved/val: bad offset: syz=6 kernel=8
+field ib_flow_spec_tunnel.reserved/val: bad size: syz=2 kernel=4
+field ib_flow_spec_tunnel.val/mask: bad offset: syz=8 kernel=12
+struct ib_flow_gre_filter: bad number of fields: syz=3 kernel=4
+struct ib_flow_spec_gre: bad number of fields: syz=5 kernel=4
+field ib_flow_spec_gre.reserved/val: bad offset: syz=6 kernel=8
+field ib_flow_spec_gre.reserved/val: bad size: syz=2 kernel=8
+field ib_flow_spec_gre.val/mask: bad offset: syz=8 kernel=16
+struct ib_flow_mpls_filter: bad number of fields: syz=1 kernel=2
+struct ib_flow_spec_mpls: bad number of fields: syz=5 kernel=4
+field ib_flow_spec_mpls.reserved/val: bad offset: syz=6 kernel=8
+field ib_flow_spec_mpls.reserved/val: bad size: syz=2 kernel=4
+field ib_flow_spec_mpls.val/mask: bad offset: syz=8 kernel=12
+struct ib_flow_spec_action_tag: bad number of fields: syz=5 kernel=3
+struct ib_flow_spec_action_tag: bad size: syz=16 kernel=12
+field ib_flow_spec_action_tag.reserved/tag_id: bad offset: syz=6 kernel=8
+field ib_flow_spec_action_tag.reserved/tag_id: bad size: syz=2 kernel=4
+struct ib_flow_spec_action_drop: bad number of fields: syz=3 kernel=2
+struct ib_uverbs_flow_spec_action_count: bad number of fields: syz=5 kernel=3
+field ib_uverbs_flow_spec_action_count.type/: bad size: syz=4 kernel=8
+field ib_uverbs_flow_spec_action_count.size/handle: bad offset: syz=4 kernel=8
+field ib_uverbs_flow_spec_action_count.size/handle: bad size: syz=2 kernel=4
+field ib_uverbs_flow_spec_action_count.reserved0/reserved1: bad offset: syz=6 kernel=12
+field ib_uverbs_flow_spec_action_count.reserved0/reserved1: bad size: syz=2 kernel=4
+struct union_ib_flow_spec: no corresponding struct in kernel
+struct create_flow_resp: no corresponding struct in kernel
+struct destroy_flow_cmd: no corresponding struct in kernel
+struct ib_uverbs_create_counters_cmd: no corresponding struct in kernel
+struct ib_uverbs_destroy_counters_cmd: no corresponding struct in kernel
+struct ib_uverbs_read_counters_cmd: no corresponding struct in kernel

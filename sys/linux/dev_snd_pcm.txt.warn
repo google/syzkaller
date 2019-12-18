@@ -1,34 +1,40 @@
-0071: struct snd_pcm_hw_params_old: bad size: syz=344 kernel=256
-0073: field snd_pcm_hw_params_old.masks/masks: bad size: syz=96 kernel=12
-0074: field snd_pcm_hw_params_old.intervals/intervals: bad offset: syz=100 kernel=16
-0075: field snd_pcm_hw_params_old.rmask/rmask: bad offset: syz=244 kernel=160
-0076: field snd_pcm_hw_params_old.cmask/cmask: bad offset: syz=248 kernel=164
-0077: field snd_pcm_hw_params_old.info/info: bad offset: syz=252 kernel=168
-0078: field snd_pcm_hw_params_old.msbits/msbits: bad offset: syz=256 kernel=172
-0079: field snd_pcm_hw_params_old.rate_num/rate_num: bad offset: syz=260 kernel=176
-0080: field snd_pcm_hw_params_old.rate_den/rate_den: bad offset: syz=264 kernel=180
-0081: field snd_pcm_hw_params_old.fifo_size/fifo_size: bad offset: syz=272 kernel=184
-0082: field snd_pcm_hw_params_old.reserved/reserved: bad offset: syz=280 kernel=192
-0085: struct snd_pcm_sw_params: bad number of fields: syz=12 kernel=13
-0102: field snd_pcm_sync_ptr.status/s: bad offset: syz=4 kernel=8
-0103: field snd_pcm_sync_ptr.control/c: bad size: syz=16 kernel=64
-0111: struct snd_pcm_status: bad number of fields: syz=13 kernel=15
-0113: field snd_pcm_status.trigger_tstamp_sec/trigger_tstamp: bad size: syz=8 kernel=16
-0114: field snd_pcm_status.trigger_tstamp_nsec/tstamp: bad offset: syz=16 kernel=24
-0114: field snd_pcm_status.trigger_tstamp_nsec/tstamp: bad size: syz=8 kernel=16
-0115: field snd_pcm_status.tstamp_sec/appl_ptr: bad offset: syz=24 kernel=40
-0116: field snd_pcm_status.tstamp_nsec/hw_ptr: bad offset: syz=32 kernel=48
-0117: field snd_pcm_status.appl_ptr/delay: bad offset: syz=40 kernel=56
-0118: field snd_pcm_status.hw_ptr/avail: bad offset: syz=48 kernel=64
-0119: field snd_pcm_status.delay/avail_max: bad offset: syz=56 kernel=72
-0120: field snd_pcm_status.avail/overrange: bad offset: syz=64 kernel=80
-0121: field snd_pcm_status.avail_max/suspended_state: bad offset: syz=72 kernel=88
-0121: field snd_pcm_status.avail_max/suspended_state: bad size: syz=8 kernel=4
-0122: field snd_pcm_status.overrange/audio_tstamp_data: bad offset: syz=80 kernel=92
-0122: field snd_pcm_status.overrange/audio_tstamp_data: bad size: syz=8 kernel=4
-0123: field snd_pcm_status.suspended_state/audio_tstamp: bad offset: syz=88 kernel=96
-0123: field snd_pcm_status.suspended_state/audio_tstamp: bad size: syz=4 kernel=16
-0124: field snd_pcm_status.audio_tstamp_data/driver_tstamp: bad offset: syz=92 kernel=112
-0124: field snd_pcm_status.audio_tstamp_data/driver_tstamp: bad size: syz=4 kernel=16
-0139: struct snd_interval: bad number of fields: syz=3 kernel=6
-0142: field snd_interval.flags/openmin: bad bit size/offset: syz=0/0 kernel=1/0
+struct snd_pcm_hw_params_old: bad size: syz=344 kernel=256
+field snd_pcm_hw_params_old.masks/masks: bad size: syz=96 kernel=12
+field snd_pcm_hw_params_old.intervals/intervals: bad offset: syz=100 kernel=16
+field snd_pcm_hw_params_old.rmask/rmask: bad offset: syz=244 kernel=160
+field snd_pcm_hw_params_old.cmask/cmask: bad offset: syz=248 kernel=164
+field snd_pcm_hw_params_old.info/info: bad offset: syz=252 kernel=168
+field snd_pcm_hw_params_old.msbits/msbits: bad offset: syz=256 kernel=172
+field snd_pcm_hw_params_old.rate_num/rate_num: bad offset: syz=260 kernel=176
+field snd_pcm_hw_params_old.rate_den/rate_den: bad offset: syz=264 kernel=180
+field snd_pcm_hw_params_old.fifo_size/fifo_size: bad offset: syz=272 kernel=184
+field snd_pcm_hw_params_old.reserved/reserved: bad offset: syz=280 kernel=192
+struct snd_pcm_sw_params: bad number of fields: syz=12 kernel=13
+field snd_pcm_sync_ptr.status/s: bad offset: syz=4 kernel=8
+field snd_pcm_sync_ptr.control/c: bad size: syz=16 kernel=64
+struct snd_pcm_status32: bad number of fields: syz=13 kernel=15
+field snd_pcm_status32.trigger_tstamp_sec/trigger_tstamp: bad offset: syz=8 kernel=4
+field snd_pcm_status32.trigger_tstamp_nsec/tstamp: bad offset: syz=16 kernel=12
+field snd_pcm_status32.tstamp_sec/appl_ptr: bad offset: syz=24 kernel=20
+field snd_pcm_status32.tstamp_sec/appl_ptr: bad size: syz=8 kernel=4
+field snd_pcm_status32.tstamp_nsec/hw_ptr: bad offset: syz=32 kernel=24
+field snd_pcm_status32.tstamp_nsec/hw_ptr: bad size: syz=8 kernel=4
+field snd_pcm_status32.appl_ptr/delay: bad offset: syz=40 kernel=28
+field snd_pcm_status32.appl_ptr/delay: bad size: syz=8 kernel=4
+field snd_pcm_status32.hw_ptr/avail: bad offset: syz=48 kernel=32
+field snd_pcm_status32.hw_ptr/avail: bad size: syz=8 kernel=4
+field snd_pcm_status32.delay/avail_max: bad offset: syz=56 kernel=36
+field snd_pcm_status32.delay/avail_max: bad size: syz=8 kernel=4
+field snd_pcm_status32.avail/overrange: bad offset: syz=64 kernel=40
+field snd_pcm_status32.avail/overrange: bad size: syz=8 kernel=4
+field snd_pcm_status32.avail_max/suspended_state: bad offset: syz=72 kernel=44
+field snd_pcm_status32.avail_max/suspended_state: bad size: syz=8 kernel=4
+field snd_pcm_status32.overrange/audio_tstamp_data: bad offset: syz=80 kernel=48
+field snd_pcm_status32.overrange/audio_tstamp_data: bad size: syz=8 kernel=4
+field snd_pcm_status32.suspended_state/audio_tstamp: bad offset: syz=88 kernel=52
+field snd_pcm_status32.suspended_state/audio_tstamp: bad size: syz=4 kernel=8
+field snd_pcm_status32.audio_tstamp_data/driver_tstamp: bad offset: syz=92 kernel=60
+field snd_pcm_status32.audio_tstamp_data/driver_tstamp: bad size: syz=4 kernel=8
+struct snd_pcm_status64: no corresponding struct in kernel
+struct snd_interval: bad number of fields: syz=3 kernel=6
+field snd_interval.flags/openmin: bad bit size/offset: syz=0/0 kernel=1/0

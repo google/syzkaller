@@ -1,1 +1,1 @@
-0053: struct nbd_sock_pair: no corresponding struct in kernel
+struct nbd_sock_pair: no corresponding struct in kernel

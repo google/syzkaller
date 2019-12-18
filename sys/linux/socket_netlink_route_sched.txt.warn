@@ -1,46 +1,46 @@
-0068: struct tcm_handle: no corresponding struct in kernel
-0468: struct tc_netem_slot: bad number of fields: syz=4 kernel=6
-0468: struct tc_netem_slot: bad size: syz=24 kernel=40
-0492: field tc_prio_qopt.priomap/priomap: bad size: syz=15 kernel=16
-0512: struct tc_sfq_qopt_v1: bad number of fields: syz=11 kernel=12
-0512: struct tc_sfq_qopt_v1: bad size: syz=68 kernel=72
-0523: field tc_sfq_qopt_v1.stats/max_P: bad size: syz=24 kernel=4
-0543: struct tc_tbf_qopt: bad size: syz=12 kernel=36
-0960: struct m_ctinfo_options: no corresponding struct in kernel
-1114: struct tc_gen: no corresponding struct in kernel
-1124: struct tc_connmark: bad number of fields: syz=2 kernel=6
-1125: field tc_connmark.tc_gen/index: bad size: syz=20 kernel=4
-1126: field tc_connmark.zone/capab: bad offset: syz=20 kernel=4
-1126: field tc_connmark.zone/capab: bad size: syz=2 kernel=4
-1134: struct tc_csum: bad number of fields: syz=2 kernel=6
-1135: field tc_csum.tc_gen/index: bad size: syz=20 kernel=4
-1136: field tc_csum.update_flags/capab: bad offset: syz=20 kernel=4
-1145: struct tc_ife: bad number of fields: syz=2 kernel=6
-1146: field tc_ife.tc_gen/index: bad size: syz=20 kernel=4
-1147: field tc_ife.flags/capab: bad offset: syz=20 kernel=4
-1147: field tc_ife.flags/capab: bad size: syz=2 kernel=4
-1150: struct tc_mirred: bad number of fields: syz=3 kernel=7
-1151: field tc_mirred.tc_gen/index: bad size: syz=20 kernel=4
-1152: field tc_mirred.eaction/capab: bad offset: syz=20 kernel=4
-1153: field tc_mirred.ifindex/action: bad offset: syz=24 kernel=8
-1156: struct tc_mpls: bad number of fields: syz=2 kernel=6
-1157: field tc_mpls.tc_gen/index: bad size: syz=20 kernel=4
-1158: field tc_mpls.m_action/capab: bad offset: syz=20 kernel=4
-1161: struct tc_nat: bad number of fields: syz=5 kernel=9
-1162: field tc_nat.tc_gen/index: bad size: syz=20 kernel=4
-1163: field tc_nat.old_addr/capab: bad offset: syz=20 kernel=4
-1164: field tc_nat.new_addr/action: bad offset: syz=24 kernel=8
-1165: field tc_nat.mask/refcnt: bad offset: syz=28 kernel=12
-1166: field tc_nat.flags/bindcnt: bad offset: syz=32 kernel=16
-1192: struct m_pedit_key_ex: no corresponding struct in kernel
-1197: struct tc_skbmod: bad number of fields: syz=2 kernel=6
-1198: field tc_skbmod.tc_gen/index: bad size: syz=20 kernel=4
-1199: field tc_skbmod.flags/capab: bad offset: syz=24 kernel=4
-1199: field tc_skbmod.flags/capab: bad size: syz=8 kernel=4
-1202: struct tc_tunnel_key: bad number of fields: syz=2 kernel=6
-1203: field tc_tunnel_key.tc_gen/index: bad size: syz=20 kernel=4
-1204: field tc_tunnel_key.t_action/capab: bad offset: syz=20 kernel=4
-1207: struct tc_vlan: bad number of fields: syz=2 kernel=6
-1208: field tc_vlan.tc_gen/index: bad size: syz=20 kernel=4
-1209: field tc_vlan.v_action/capab: bad offset: syz=20 kernel=4
-1331: struct tc_estimator: no corresponding struct in kernel
+struct tcm_handle: no corresponding struct in kernel
+struct tc_netem_slot: bad number of fields: syz=4 kernel=6
+struct tc_netem_slot: bad size: syz=24 kernel=40
+field tc_prio_qopt.priomap/priomap: bad size: syz=15 kernel=16
+struct tc_sfq_qopt_v1: bad number of fields: syz=11 kernel=12
+struct tc_sfq_qopt_v1: bad size: syz=68 kernel=72
+field tc_sfq_qopt_v1.stats/max_P: bad size: syz=24 kernel=4
+struct tc_tbf_qopt: bad size: syz=12 kernel=36
+struct m_ctinfo_options: no corresponding struct in kernel
+struct tc_gen: no corresponding struct in kernel
+struct tc_connmark: bad number of fields: syz=2 kernel=6
+field tc_connmark.tc_gen/index: bad size: syz=20 kernel=4
+field tc_connmark.zone/capab: bad offset: syz=20 kernel=4
+field tc_connmark.zone/capab: bad size: syz=2 kernel=4
+struct tc_csum: bad number of fields: syz=2 kernel=6
+field tc_csum.tc_gen/index: bad size: syz=20 kernel=4
+field tc_csum.update_flags/capab: bad offset: syz=20 kernel=4
+struct tc_ife: bad number of fields: syz=2 kernel=6
+field tc_ife.tc_gen/index: bad size: syz=20 kernel=4
+field tc_ife.flags/capab: bad offset: syz=20 kernel=4
+field tc_ife.flags/capab: bad size: syz=2 kernel=4
+struct tc_mirred: bad number of fields: syz=3 kernel=7
+field tc_mirred.tc_gen/index: bad size: syz=20 kernel=4
+field tc_mirred.eaction/capab: bad offset: syz=20 kernel=4
+field tc_mirred.ifindex/action: bad offset: syz=24 kernel=8
+struct tc_mpls: bad number of fields: syz=2 kernel=6
+field tc_mpls.tc_gen/index: bad size: syz=20 kernel=4
+field tc_mpls.m_action/capab: bad offset: syz=20 kernel=4
+struct tc_nat: bad number of fields: syz=5 kernel=9
+field tc_nat.tc_gen/index: bad size: syz=20 kernel=4
+field tc_nat.old_addr/capab: bad offset: syz=20 kernel=4
+field tc_nat.new_addr/action: bad offset: syz=24 kernel=8
+field tc_nat.mask/refcnt: bad offset: syz=28 kernel=12
+field tc_nat.flags/bindcnt: bad offset: syz=32 kernel=16
+struct m_pedit_key_ex: no corresponding struct in kernel
+struct tc_skbmod: bad number of fields: syz=2 kernel=6
+field tc_skbmod.tc_gen/index: bad size: syz=20 kernel=4
+field tc_skbmod.flags/capab: bad offset: syz=24 kernel=4
+field tc_skbmod.flags/capab: bad size: syz=8 kernel=4
+struct tc_tunnel_key: bad number of fields: syz=2 kernel=6
+field tc_tunnel_key.tc_gen/index: bad size: syz=20 kernel=4
+field tc_tunnel_key.t_action/capab: bad offset: syz=20 kernel=4
+struct tc_vlan: bad number of fields: syz=2 kernel=6
+field tc_vlan.tc_gen/index: bad size: syz=20 kernel=4
+field tc_vlan.v_action/capab: bad offset: syz=20 kernel=4
+struct tc_estimator: no corresponding struct in kernel

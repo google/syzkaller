@@ -1,5 +1,5 @@
-0024: struct sockaddr_storage_in6: no corresponding struct in kernel
-0135: struct group_req_in6: no corresponding struct in kernel
-0140: struct group_source_req_in6: no corresponding struct in kernel
-0195: struct msghdr_inet6: no corresponding struct in kernel
-0205: struct mmsghdr_inet6: no corresponding struct in kernel
+struct sockaddr_storage_in6: no corresponding struct in kernel
+struct group_req_in6: no corresponding struct in kernel
+struct group_source_req_in6: no corresponding struct in kernel
+struct msghdr_inet6: no corresponding struct in kernel
+struct mmsghdr_inet6: no corresponding struct in kernel

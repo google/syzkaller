@@ -1,16 +1,16 @@
-0201: struct xfrm_user_migrate: bad number of fields: syz=8 kernel=10
-0201: struct xfrm_user_migrate: bad size: syz=44 kernel=76
-0204: field xfrm_user_migrate.proto/new_daddr: bad size: syz=1 kernel=16
-0205: field xfrm_user_migrate.mode/new_saddr: bad offset: syz=33 kernel=48
-0205: field xfrm_user_migrate.mode/new_saddr: bad size: syz=1 kernel=16
-0206: field xfrm_user_migrate.reserved/proto: bad offset: syz=34 kernel=64
-0206: field xfrm_user_migrate.reserved/proto: bad size: syz=2 kernel=1
-0207: field xfrm_user_migrate.reqid/mode: bad offset: syz=36 kernel=65
-0207: field xfrm_user_migrate.reqid/mode: bad size: syz=4 kernel=1
-0208: field xfrm_user_migrate.old_family/reserved: bad offset: syz=40 kernel=66
-0209: field xfrm_user_migrate.new_family/reqid: bad offset: syz=42 kernel=68
-0209: field xfrm_user_migrate.new_family/reqid: bad size: syz=2 kernel=4
-0232: struct xfrmu_spdhthresh4: no corresponding struct in kernel
-0237: struct xfrmu_spdhthresh6: no corresponding struct in kernel
-0321: struct xfrm_address: no corresponding struct in kernel
-0326: struct xfrm_filter: no corresponding struct in kernel
+struct xfrm_user_migrate: bad number of fields: syz=8 kernel=10
+struct xfrm_user_migrate: bad size: syz=44 kernel=76
+field xfrm_user_migrate.proto/new_daddr: bad size: syz=1 kernel=16
+field xfrm_user_migrate.mode/new_saddr: bad offset: syz=33 kernel=48
+field xfrm_user_migrate.mode/new_saddr: bad size: syz=1 kernel=16
+field xfrm_user_migrate.reserved/proto: bad offset: syz=34 kernel=64
+field xfrm_user_migrate.reserved/proto: bad size: syz=2 kernel=1
+field xfrm_user_migrate.reqid/mode: bad offset: syz=36 kernel=65
+field xfrm_user_migrate.reqid/mode: bad size: syz=4 kernel=1
+field xfrm_user_migrate.old_family/reserved: bad offset: syz=40 kernel=66
+field xfrm_user_migrate.new_family/reqid: bad offset: syz=42 kernel=68
+field xfrm_user_migrate.new_family/reqid: bad size: syz=2 kernel=4
+struct xfrmu_spdhthresh4: no corresponding struct in kernel
+struct xfrmu_spdhthresh6: no corresponding struct in kernel
+struct xfrm_address: no corresponding struct in kernel
+struct xfrm_filter: no corresponding struct in kernel

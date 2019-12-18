@@ -1,4 +1,4 @@
-0026: struct vfio_iommu_type1_info: bad number of fields: syz=3 kernel=4
-0026: struct vfio_iommu_type1_info: bad size: syz=16 kernel=24
-0040: struct vfio_iommu_type1_dma_unmap: bad number of fields: syz=5 kernel=4
-0040: struct vfio_iommu_type1_dma_unmap: bad size: syz=32 kernel=24
+struct vfio_iommu_type1_info: bad number of fields: syz=3 kernel=4
+struct vfio_iommu_type1_info: bad size: syz=16 kernel=24
+struct vfio_iommu_type1_dma_unmap: bad number of fields: syz=5 kernel=4
+struct vfio_iommu_type1_dma_unmap: bad size: syz=32 kernel=24

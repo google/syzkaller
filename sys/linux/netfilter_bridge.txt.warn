@@ -1,10 +1,10 @@
-0114: struct ebt_getinfo: no corresponding struct in kernel
-0125: struct ebt_get_entries: no corresponding struct in kernel
-0236: struct ebt_ip_info: bad number of fields: syz=12 kernel=10
-0245: field ebt_ip_info.sport_min/: bad size: syz=2 kernel=4
-0246: field ebt_ip_info.sport_max/: bad offset: syz=22 kernel=24
-0246: field ebt_ip_info.sport_max/: bad size: syz=2 kernel=4
-0253: struct ebt_ip6_info: bad number of fields: syz=12 kernel=10
-0262: field ebt_ip6_info.sport_min/: bad size: syz=2 kernel=4
-0263: field ebt_ip6_info.sport_max/: bad offset: syz=70 kernel=72
-0263: field ebt_ip6_info.sport_max/: bad size: syz=2 kernel=4
+struct ebt_getinfo: no corresponding struct in kernel
+struct ebt_get_entries: no corresponding struct in kernel
+struct ebt_ip_info: bad number of fields: syz=12 kernel=10
+field ebt_ip_info.sport_min/: bad size: syz=2 kernel=4
+field ebt_ip_info.sport_max/: bad offset: syz=22 kernel=24
+field ebt_ip_info.sport_max/: bad size: syz=2 kernel=4
+struct ebt_ip6_info: bad number of fields: syz=12 kernel=10
+field ebt_ip6_info.sport_min/: bad size: syz=2 kernel=4
+field ebt_ip6_info.sport_max/: bad offset: syz=70 kernel=72
+field ebt_ip6_info.sport_max/: bad size: syz=2 kernel=4
