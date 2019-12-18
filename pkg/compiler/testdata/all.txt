@@ -256,7 +256,16 @@ s1 {
 	f1	int8
 } [size[C2]]
 
-foo$s0(a ptr[in, s0], b ptr[in, s1])
+s2 {
+	f1	int8
+	f2	s3
+} [size[101]]
+
+s3 {
+	f1	int8
+} [size[100]]
+
+foo$s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2])
 
 # Unions.
 
