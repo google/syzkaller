@@ -1,7 +1,7 @@
 struct tcm_handle: no corresponding struct in kernel
 struct tc_netem_slot: bad number of fields: syz=4 kernel=6
 struct tc_netem_slot: bad size: syz=24 kernel=40
-field tc_prio_qopt.priomap/priomap: bad size: syz=15 kernel=16
+field tc_prio_qopt.priomap: bad size: syz=15 kernel=16
 struct tc_sfq_qopt_v1: bad number of fields: syz=11 kernel=12
 struct tc_sfq_qopt_v1: bad size: syz=68 kernel=72
 field tc_sfq_qopt_v1.stats/max_P: bad size: syz=24 kernel=4

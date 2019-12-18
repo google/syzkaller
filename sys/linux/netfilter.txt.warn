@@ -4,8 +4,8 @@ struct xt_bpf_info_v1: bad number of fields: syz=3 kernel=5
 field xt_bpf_info_v1.bytecode/mode: bad size: syz=528 kernel=2
 field xt_bpf_info_v1.pinned/bpf_program_num_elem: bad offset: syz=528 kernel=2
 field xt_bpf_info_v1.pinned/bpf_program_num_elem: bad size: syz=528 kernel=2
-field xt_bpf_info_v1.fd/fd: bad offset: syz=1056 kernel=4
-field xt_bpf_info_v1.fd/fd: bad size: syz=8 kernel=4
+field xt_bpf_info_v1.fd: bad offset: syz=1056 kernel=4
+field xt_bpf_info_v1.fd: bad size: syz=8 kernel=4
 struct xt_bpf_info_bytecode: no corresponding struct in kernel
 struct xt_bpf_info_pinned: no corresponding struct in kernel
 struct xt_bpf_info_fd: no corresponding struct in kernel
@@ -53,7 +53,7 @@ field xt_udp.spts_max/dpts: bad offset: syz=2 kernel=4
 field xt_udp.spts_max/dpts: bad size: syz=2 kernel=4
 field xt_udp.dpts_min/invflags: bad offset: syz=4 kernel=8
 field xt_udp.dpts_min/invflags: bad size: syz=2 kernel=1
-field xt_connmark_mtinfo1.invert/invert: bad size: syz=4 kernel=1
+field xt_connmark_mtinfo1.invert: bad size: syz=4 kernel=1
 struct xt_connbytes_info: bad number of fields: syz=4 kernel=3
 field xt_connbytes_info.count_from/count: bad size: syz=8 kernel=16
 field xt_connbytes_info.count_to/what: bad offset: syz=8 kernel=16
@@ -107,11 +107,11 @@ field xt_policy_elem.reqid/match: bad offset: syz=68 kernel=74
 field xt_policy_elem.reqid/match: bad size: syz=4 kernel=1
 field xt_policy_elem.proto/invert: bad offset: syz=72 kernel=75
 struct xt_physdev_info: bad size: syz=105 kernel=66
-field xt_physdev_info.in_mask/in_mask: bad offset: syz=30 kernel=16
-field xt_physdev_info.physoutdev/physoutdev: bad offset: syz=46 kernel=32
-field xt_physdev_info.out_mask/out_mask: bad offset: syz=75 kernel=48
-field xt_physdev_info.invert/invert: bad offset: syz=91 kernel=64
-field xt_physdev_info.bitmask/bitmask: bad offset: syz=92 kernel=65
+field xt_physdev_info.in_mask: bad offset: syz=30 kernel=16
+field xt_physdev_info.physoutdev: bad offset: syz=46 kernel=32
+field xt_physdev_info.out_mask: bad offset: syz=75 kernel=48
+field xt_physdev_info.invert: bad offset: syz=91 kernel=64
+field xt_physdev_info.bitmask: bad offset: syz=92 kernel=65
 struct xt_esp: bad number of fields: syz=3 kernel=2
 field xt_esp.spis_min/spis: bad size: syz=4 kernel=8
 field xt_esp.spis_max/invflags: bad offset: syz=4 kernel=8

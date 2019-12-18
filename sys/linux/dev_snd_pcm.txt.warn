@@ -1,14 +1,14 @@
 struct snd_pcm_hw_params_old: bad size: syz=344 kernel=256
-field snd_pcm_hw_params_old.masks/masks: bad size: syz=96 kernel=12
-field snd_pcm_hw_params_old.intervals/intervals: bad offset: syz=100 kernel=16
-field snd_pcm_hw_params_old.rmask/rmask: bad offset: syz=244 kernel=160
-field snd_pcm_hw_params_old.cmask/cmask: bad offset: syz=248 kernel=164
-field snd_pcm_hw_params_old.info/info: bad offset: syz=252 kernel=168
-field snd_pcm_hw_params_old.msbits/msbits: bad offset: syz=256 kernel=172
-field snd_pcm_hw_params_old.rate_num/rate_num: bad offset: syz=260 kernel=176
-field snd_pcm_hw_params_old.rate_den/rate_den: bad offset: syz=264 kernel=180
-field snd_pcm_hw_params_old.fifo_size/fifo_size: bad offset: syz=272 kernel=184
-field snd_pcm_hw_params_old.reserved/reserved: bad offset: syz=280 kernel=192
+field snd_pcm_hw_params_old.masks: bad size: syz=96 kernel=12
+field snd_pcm_hw_params_old.intervals: bad offset: syz=100 kernel=16
+field snd_pcm_hw_params_old.rmask: bad offset: syz=244 kernel=160
+field snd_pcm_hw_params_old.cmask: bad offset: syz=248 kernel=164
+field snd_pcm_hw_params_old.info: bad offset: syz=252 kernel=168
+field snd_pcm_hw_params_old.msbits: bad offset: syz=256 kernel=172
+field snd_pcm_hw_params_old.rate_num: bad offset: syz=260 kernel=176
+field snd_pcm_hw_params_old.rate_den: bad offset: syz=264 kernel=180
+field snd_pcm_hw_params_old.fifo_size: bad offset: syz=272 kernel=184
+field snd_pcm_hw_params_old.reserved: bad offset: syz=280 kernel=192
 struct snd_pcm_sw_params: bad number of fields: syz=12 kernel=13
 struct snd_pcm_sync_ptr: bad number of fields: syz=3 kernel=4
 field snd_pcm_sync_ptr.status/pad1: bad size: syz=64 kernel=4
@@ -18,28 +18,28 @@ struct snd_pcm_mmap_control: bad number of fields: syz=2 kernel=6
 field snd_pcm_mmap_control.appl_ptr/__pad1: bad size: syz=8 kernel=0
 field snd_pcm_mmap_control.avail_min/appl_ptr: bad offset: syz=8 kernel=0
 struct snd_pcm_status32: bad number of fields: syz=13 kernel=19
-field snd_pcm_status32.trigger_tstamp_sec/trigger_tstamp_sec: bad offset: syz=8 kernel=4
-field snd_pcm_status32.trigger_tstamp_sec/trigger_tstamp_sec: bad size: syz=8 kernel=4
-field snd_pcm_status32.trigger_tstamp_nsec/trigger_tstamp_nsec: bad offset: syz=16 kernel=8
-field snd_pcm_status32.trigger_tstamp_nsec/trigger_tstamp_nsec: bad size: syz=8 kernel=4
-field snd_pcm_status32.tstamp_sec/tstamp_sec: bad offset: syz=24 kernel=12
-field snd_pcm_status32.tstamp_sec/tstamp_sec: bad size: syz=8 kernel=4
-field snd_pcm_status32.tstamp_nsec/tstamp_nsec: bad offset: syz=32 kernel=16
-field snd_pcm_status32.tstamp_nsec/tstamp_nsec: bad size: syz=8 kernel=4
-field snd_pcm_status32.appl_ptr/appl_ptr: bad offset: syz=40 kernel=20
-field snd_pcm_status32.appl_ptr/appl_ptr: bad size: syz=8 kernel=4
-field snd_pcm_status32.hw_ptr/hw_ptr: bad offset: syz=48 kernel=24
-field snd_pcm_status32.hw_ptr/hw_ptr: bad size: syz=8 kernel=4
-field snd_pcm_status32.delay/delay: bad offset: syz=56 kernel=28
-field snd_pcm_status32.delay/delay: bad size: syz=8 kernel=4
-field snd_pcm_status32.avail/avail: bad offset: syz=64 kernel=32
-field snd_pcm_status32.avail/avail: bad size: syz=8 kernel=4
-field snd_pcm_status32.avail_max/avail_max: bad offset: syz=72 kernel=36
-field snd_pcm_status32.avail_max/avail_max: bad size: syz=8 kernel=4
-field snd_pcm_status32.overrange/overrange: bad offset: syz=80 kernel=40
-field snd_pcm_status32.overrange/overrange: bad size: syz=8 kernel=4
-field snd_pcm_status32.suspended_state/suspended_state: bad offset: syz=88 kernel=44
-field snd_pcm_status32.audio_tstamp_data/audio_tstamp_data: bad offset: syz=92 kernel=48
+field snd_pcm_status32.trigger_tstamp_sec: bad offset: syz=8 kernel=4
+field snd_pcm_status32.trigger_tstamp_sec: bad size: syz=8 kernel=4
+field snd_pcm_status32.trigger_tstamp_nsec: bad offset: syz=16 kernel=8
+field snd_pcm_status32.trigger_tstamp_nsec: bad size: syz=8 kernel=4
+field snd_pcm_status32.tstamp_sec: bad offset: syz=24 kernel=12
+field snd_pcm_status32.tstamp_sec: bad size: syz=8 kernel=4
+field snd_pcm_status32.tstamp_nsec: bad offset: syz=32 kernel=16
+field snd_pcm_status32.tstamp_nsec: bad size: syz=8 kernel=4
+field snd_pcm_status32.appl_ptr: bad offset: syz=40 kernel=20
+field snd_pcm_status32.appl_ptr: bad size: syz=8 kernel=4
+field snd_pcm_status32.hw_ptr: bad offset: syz=48 kernel=24
+field snd_pcm_status32.hw_ptr: bad size: syz=8 kernel=4
+field snd_pcm_status32.delay: bad offset: syz=56 kernel=28
+field snd_pcm_status32.delay: bad size: syz=8 kernel=4
+field snd_pcm_status32.avail: bad offset: syz=64 kernel=32
+field snd_pcm_status32.avail: bad size: syz=8 kernel=4
+field snd_pcm_status32.avail_max: bad offset: syz=72 kernel=36
+field snd_pcm_status32.avail_max: bad size: syz=8 kernel=4
+field snd_pcm_status32.overrange: bad offset: syz=80 kernel=40
+field snd_pcm_status32.overrange: bad size: syz=8 kernel=4
+field snd_pcm_status32.suspended_state: bad offset: syz=88 kernel=44
+field snd_pcm_status32.audio_tstamp_data: bad offset: syz=92 kernel=48
 struct snd_pcm_status64: bad number of fields: syz=14 kernel=20
 struct snd_interval: bad number of fields: syz=3 kernel=6
 field snd_interval.flags/openmin: bad bit size/offset: syz=0/0 kernel=1/0

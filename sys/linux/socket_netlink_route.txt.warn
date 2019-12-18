@@ -1,2 +1,2 @@
 struct ifla_vf_mac: bad number of fields: syz=3 kernel=2
-field ifla_vf_mac.mac/mac: bad size: syz=6 kernel=32
+field ifla_vf_mac.mac: bad size: syz=6 kernel=32

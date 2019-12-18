@@ -10,18 +10,18 @@ field arpt_arp.tgt_devaddr/src_devaddr: bad offset: syz=56 kernel=18
 field arpt_arp.tgt_devaddr/src_devaddr: bad size: syz=16 kernel=32
 field arpt_arp.tgt_devmask/tgt_devaddr: bad offset: syz=80 kernel=50
 field arpt_arp.tgt_devmask/tgt_devaddr: bad size: syz=16 kernel=32
-field arpt_arp.arpop/arpop: bad offset: syz=96 kernel=82
-field arpt_arp.arpop_mask/arpop_mask: bad offset: syz=98 kernel=84
-field arpt_arp.arhrd/arhrd: bad offset: syz=100 kernel=86
-field arpt_arp.arhrd_mask/arhrd_mask: bad offset: syz=102 kernel=88
-field arpt_arp.arpro/arpro: bad offset: syz=104 kernel=90
-field arpt_arp.arpro_mask/arpro_mask: bad offset: syz=106 kernel=92
-field arpt_arp.iniface/iniface: bad offset: syz=108 kernel=94
-field arpt_arp.outiface/outiface: bad offset: syz=124 kernel=110
-field arpt_arp.iniface_mask/iniface_mask: bad offset: syz=150 kernel=126
-field arpt_arp.outiface_mask/outiface_mask: bad offset: syz=180 kernel=142
-field arpt_arp.flags/flags: bad offset: syz=196 kernel=158
-field arpt_arp.invflags/invflags: bad offset: syz=198 kernel=160
+field arpt_arp.arpop: bad offset: syz=96 kernel=82
+field arpt_arp.arpop_mask: bad offset: syz=98 kernel=84
+field arpt_arp.arhrd: bad offset: syz=100 kernel=86
+field arpt_arp.arhrd_mask: bad offset: syz=102 kernel=88
+field arpt_arp.arpro: bad offset: syz=104 kernel=90
+field arpt_arp.arpro_mask: bad offset: syz=106 kernel=92
+field arpt_arp.iniface: bad offset: syz=108 kernel=94
+field arpt_arp.outiface: bad offset: syz=124 kernel=110
+field arpt_arp.iniface_mask: bad offset: syz=150 kernel=126
+field arpt_arp.outiface_mask: bad offset: syz=180 kernel=142
+field arpt_arp.flags: bad offset: syz=196 kernel=158
+field arpt_arp.invflags: bad offset: syz=198 kernel=160
 struct arpt_devaddr: no corresponding struct in kernel
 struct arpt_devmask: no corresponding struct in kernel
 struct arpt_counters_info: no corresponding struct in kernel
