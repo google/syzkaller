@@ -2,12 +2,12 @@ struct ip6t_entry_underflow: no corresponding struct in kernel
 struct ip6t_entry_underflow_matches: no corresponding struct in kernel
 struct ip6t_ip6_or_uncond: no corresponding struct in kernel
 struct ip6t_ip6: bad size: syz=165 kernel=136
-field ip6t_ip6.iniface_mask/iniface_mask: bad offset: syz=105 kernel=96
-field ip6t_ip6.outiface_mask/outiface_mask: bad offset: syz=135 kernel=112
-field ip6t_ip6.proto/proto: bad offset: syz=152 kernel=128
-field ip6t_ip6.tos/tos: bad offset: syz=154 kernel=130
-field ip6t_ip6.flags/flags: bad offset: syz=155 kernel=131
-field ip6t_ip6.invflags/invflags: bad offset: syz=156 kernel=132
+field ip6t_ip6.iniface_mask: bad offset: syz=105 kernel=96
+field ip6t_ip6.outiface_mask: bad offset: syz=135 kernel=112
+field ip6t_ip6.proto: bad offset: syz=152 kernel=128
+field ip6t_ip6.tos: bad offset: syz=154 kernel=130
+field ip6t_ip6.flags: bad offset: syz=155 kernel=131
+field ip6t_ip6.invflags: bad offset: syz=156 kernel=132
 struct ip6t_icmp: bad number of fields: syz=4 kernel=3
 field ip6t_icmp.code_min/code: bad size: syz=1 kernel=2
 field ip6t_icmp.code_max/invflags: bad offset: syz=2 kernel=3

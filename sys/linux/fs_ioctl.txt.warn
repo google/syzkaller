@@ -1,11 +1,11 @@
 struct file_clone_range: bad number of fields: syz=5 kernel=4
-field file_clone_range.src_fd/src_fd: bad size: syz=4 kernel=8
+field file_clone_range.src_fd: bad size: syz=4 kernel=8
 field file_clone_range.pad/src_offset: bad offset: syz=4 kernel=8
 field file_clone_range.pad/src_offset: bad size: syz=4 kernel=8
 field file_clone_range.src_offset/src_length: bad offset: syz=8 kernel=16
 field file_clone_range.src_length/dest_offset: bad offset: syz=16 kernel=24
 struct file_dedupe_range_info: bad number of fields: syz=6 kernel=5
-field file_dedupe_range_info.dest_fd/dest_fd: bad size: syz=4 kernel=8
+field file_dedupe_range_info.dest_fd: bad size: syz=4 kernel=8
 field file_dedupe_range_info.pad/dest_offset: bad offset: syz=4 kernel=8
 field file_dedupe_range_info.pad/dest_offset: bad size: syz=4 kernel=8
 field file_dedupe_range_info.dest_offset/bytes_deduped: bad offset: syz=8 kernel=16
@@ -13,7 +13,7 @@ field file_dedupe_range_info.bytes_deduped/status: bad offset: syz=16 kernel=24
 field file_dedupe_range_info.bytes_deduped/status: bad size: syz=8 kernel=4
 field file_dedupe_range_info.status/reserved: bad offset: syz=24 kernel=28
 struct fsxattr: bad size: syz=32 kernel=28
-field fsxattr.fsx_pad/fsx_pad: bad offset: syz=24 kernel=20
+field fsxattr.fsx_pad: bad offset: syz=24 kernel=20
 struct fiemap_extent: bad number of fields: syz=9 kernel=6
 field fiemap_extent.pad1/fe_reserved64: bad size: syz=8 kernel=16
 field fiemap_extent.pad2/fe_flags: bad offset: syz=32 kernel=40

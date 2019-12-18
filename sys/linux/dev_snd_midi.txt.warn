@@ -1,1 +1,1 @@
-field snd_rawmidi_params.reserved/reserved: bad offset: syz=28 kernel=25
+field snd_rawmidi_params.reserved: bad offset: syz=28 kernel=25

@@ -1,61 +1,61 @@
 struct cdrom_output_buffer: no corresponding struct in kernel
 struct cdrom_msf_out_stub: no corresponding struct in kernel
 struct cdrom_addr: no corresponding struct in kernel
-field dvd_struct.physical/physical: bad offset: syz=1 kernel=0
-field dvd_struct.copyright/copyright: bad offset: syz=85 kernel=0
-field dvd_struct.disckey/disckey: bad offset: syz=89 kernel=0
-field dvd_struct.disckey/disckey: bad size: syz=2056 kernel=2052
-field dvd_struct.bca/bca: bad offset: syz=2145 kernel=0
-field dvd_struct.manufact/manufact: bad offset: syz=2341 kernel=0
+field dvd_struct.physical: bad offset: syz=1 kernel=0
+field dvd_struct.copyright: bad offset: syz=85 kernel=0
+field dvd_struct.disckey: bad offset: syz=89 kernel=0
+field dvd_struct.disckey: bad size: syz=2056 kernel=2052
+field dvd_struct.bca: bad offset: syz=2145 kernel=0
+field dvd_struct.manufact: bad offset: syz=2341 kernel=0
 struct dvd_disckey: bad size: syz=2056 kernel=2052
-field dvd_disckey.agid/agid: bad bit size/offset: syz=2/0 kernel=2/8
-field dvd_disckey.agid/agid: bad offset: syz=4 kernel=0
-field dvd_disckey.value/value: bad offset: syz=8 kernel=2
+field dvd_disckey.agid: bad bit size/offset: syz=2/0 kernel=2/8
+field dvd_disckey.agid: bad offset: syz=4 kernel=0
+field dvd_disckey.value: bad offset: syz=8 kernel=2
 struct dvd_authinfo: bad size: syz=24 kernel=16
-field dvd_authinfo.lsa/lsa: bad offset: syz=1 kernel=0
-field dvd_authinfo.lsa/lsa: bad size: syz=8 kernel=4
-field dvd_authinfo.hsc/hsc: bad offset: syz=9 kernel=0
-field dvd_authinfo.hsc/hsc: bad size: syz=20 kernel=12
-field dvd_authinfo.lsk/lsk: bad offset: syz=29 kernel=0
-field dvd_authinfo.lsk/lsk: bad size: syz=16 kernel=8
-field dvd_authinfo.lsc/lsc: bad offset: syz=45 kernel=0
-field dvd_authinfo.lsc/lsc: bad size: syz=20 kernel=12
-field dvd_authinfo.hsk/hsk: bad offset: syz=65 kernel=0
-field dvd_authinfo.hsk/hsk: bad size: syz=16 kernel=8
-field dvd_authinfo.lstk/lstk: bad offset: syz=81 kernel=0
-field dvd_authinfo.lstk/lstk: bad size: syz=24 kernel=16
-field dvd_authinfo.lsasf/lsasf: bad offset: syz=105 kernel=0
-field dvd_authinfo.lsasf/lsasf: bad size: syz=8 kernel=4
-field dvd_authinfo.hrpcs/hrpcs: bad offset: syz=113 kernel=0
-field dvd_authinfo.lrpcs/lrpcs: bad offset: syz=115 kernel=0
+field dvd_authinfo.lsa: bad offset: syz=1 kernel=0
+field dvd_authinfo.lsa: bad size: syz=8 kernel=4
+field dvd_authinfo.hsc: bad offset: syz=9 kernel=0
+field dvd_authinfo.hsc: bad size: syz=20 kernel=12
+field dvd_authinfo.lsk: bad offset: syz=29 kernel=0
+field dvd_authinfo.lsk: bad size: syz=16 kernel=8
+field dvd_authinfo.lsc: bad offset: syz=45 kernel=0
+field dvd_authinfo.lsc: bad size: syz=20 kernel=12
+field dvd_authinfo.hsk: bad offset: syz=65 kernel=0
+field dvd_authinfo.hsk: bad size: syz=16 kernel=8
+field dvd_authinfo.lstk: bad offset: syz=81 kernel=0
+field dvd_authinfo.lstk: bad size: syz=24 kernel=16
+field dvd_authinfo.lsasf: bad offset: syz=105 kernel=0
+field dvd_authinfo.lsasf: bad size: syz=8 kernel=4
+field dvd_authinfo.hrpcs: bad offset: syz=113 kernel=0
+field dvd_authinfo.lrpcs: bad offset: syz=115 kernel=0
 struct dvd_lu_send_agid: bad size: syz=8 kernel=4
-field dvd_lu_send_agid.agid/agid: bad bit size/offset: syz=2/0 kernel=2/8
-field dvd_lu_send_agid.agid/agid: bad offset: syz=4 kernel=0
+field dvd_lu_send_agid.agid: bad bit size/offset: syz=2/0 kernel=2/8
+field dvd_lu_send_agid.agid: bad offset: syz=4 kernel=0
 struct dvd_host_send_challenge: bad size: syz=20 kernel=12
-field dvd_host_send_challenge.agid/agid: bad bit size/offset: syz=2/0 kernel=2/8
-field dvd_host_send_challenge.agid/agid: bad offset: syz=4 kernel=0
-field dvd_host_send_challenge.chal/chal: bad offset: syz=8 kernel=2
+field dvd_host_send_challenge.agid: bad bit size/offset: syz=2/0 kernel=2/8
+field dvd_host_send_challenge.agid: bad offset: syz=4 kernel=0
+field dvd_host_send_challenge.chal: bad offset: syz=8 kernel=2
 struct dvd_send_key: bad size: syz=16 kernel=8
-field dvd_send_key.agid/agid: bad bit size/offset: syz=2/0 kernel=2/8
-field dvd_send_key.agid/agid: bad offset: syz=4 kernel=0
-field dvd_send_key.key/key: bad offset: syz=8 kernel=2
+field dvd_send_key.agid: bad bit size/offset: syz=2/0 kernel=2/8
+field dvd_send_key.agid: bad offset: syz=4 kernel=0
+field dvd_send_key.key: bad offset: syz=8 kernel=2
 struct dvd_lu_send_challenge: bad size: syz=20 kernel=12
-field dvd_lu_send_challenge.agid/agid: bad bit size/offset: syz=2/0 kernel=2/8
-field dvd_lu_send_challenge.agid/agid: bad offset: syz=4 kernel=0
-field dvd_lu_send_challenge.chal/chal: bad offset: syz=8 kernel=2
+field dvd_lu_send_challenge.agid: bad bit size/offset: syz=2/0 kernel=2/8
+field dvd_lu_send_challenge.agid: bad offset: syz=4 kernel=0
+field dvd_lu_send_challenge.chal: bad offset: syz=8 kernel=2
 struct dvd_lu_send_title_key: bad size: syz=24 kernel=16
-field dvd_lu_send_title_key.agid/agid: bad bit size/offset: syz=2/0 kernel=2/8
-field dvd_lu_send_title_key.agid/agid: bad offset: syz=4 kernel=0
-field dvd_lu_send_title_key.title_key/title_key: bad offset: syz=8 kernel=2
-field dvd_lu_send_title_key.lba/lba: bad offset: syz=16 kernel=8
-field dvd_lu_send_title_key.cpm/cpm: bad offset: syz=20 kernel=12
-field dvd_lu_send_title_key.cp_sec/cp_sec: bad offset: syz=20 kernel=12
-field dvd_lu_send_title_key.cgms/cgms: bad offset: syz=20 kernel=12
+field dvd_lu_send_title_key.agid: bad bit size/offset: syz=2/0 kernel=2/8
+field dvd_lu_send_title_key.agid: bad offset: syz=4 kernel=0
+field dvd_lu_send_title_key.title_key: bad offset: syz=8 kernel=2
+field dvd_lu_send_title_key.lba: bad offset: syz=16 kernel=8
+field dvd_lu_send_title_key.cpm: bad offset: syz=20 kernel=12
+field dvd_lu_send_title_key.cp_sec: bad offset: syz=20 kernel=12
+field dvd_lu_send_title_key.cgms: bad offset: syz=20 kernel=12
 struct dvd_lu_send_asf: bad size: syz=8 kernel=4
-field dvd_lu_send_asf.agid/agid: bad bit size/offset: syz=2/0 kernel=2/8
-field dvd_lu_send_asf.agid/agid: bad offset: syz=4 kernel=0
-field dvd_lu_send_asf.asf/asf: bad bit size/offset: syz=1/2 kernel=1/10
-field dvd_lu_send_asf.asf/asf: bad offset: syz=4 kernel=0
+field dvd_lu_send_asf.agid: bad bit size/offset: syz=2/0 kernel=2/8
+field dvd_lu_send_asf.agid: bad offset: syz=4 kernel=0
+field dvd_lu_send_asf.asf: bad bit size/offset: syz=1/2 kernel=1/10
+field dvd_lu_send_asf.asf: bad offset: syz=4 kernel=0
 struct request_sense: bad number of fields: syz=11 kernel=15
 field request_sense.valid_err_code/error_code: bad bit size/offset: syz=0/0 kernel=7/0
 field request_sense.segment_number/valid: bad bit size/offset: syz=0/0 kernel=1/7

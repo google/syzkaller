@@ -6,7 +6,7 @@ field sockaddr_hci.chan/hci_channel: bad offset: syz=8 kernel=4
 struct hci_inquiry_req: bad number of fields: syz=7 kernel=5
 struct hci_inquiry_req: bad size: syz=12 kernel=10
 field hci_inquiry_req.dev/dev_id: bad size: syz=4 kernel=2
-field hci_inquiry_req.flags/flags: bad offset: syz=4 kernel=2
+field hci_inquiry_req.flags: bad offset: syz=4 kernel=2
 field hci_inquiry_req.lap0/lap: bad offset: syz=6 kernel=4
 field hci_inquiry_req.lap0/lap: bad size: syz=1 kernel=3
 struct hci_ufilter: bad number of fields: syz=4 kernel=3

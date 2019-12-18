@@ -3,33 +3,33 @@ field snd_seq_client_info.pad/card: bad size: syz=64 kernel=4
 struct snd_seq_port_info: bad size: syz=176 kernel=168
 field snd_seq_port_info.timeq/time_queue: bad size: syz=4 kernel=1
 field snd_seq_port_info.pad/reserved: bad offset: syz=112 kernel=109
-field snd_seq_queue_info.locked/locked: bad bit size/offset: syz=0/0 kernel=1/0
-field snd_seq_queue_info.name/name: bad offset: syz=12 kernel=9
+field snd_seq_queue_info.locked: bad bit size/offset: syz=0/0 kernel=1/0
+field snd_seq_queue_info.name: bad offset: syz=12 kernel=9
 struct snd_seq_queue_status: bad size: syz=104 kernel=92
-field snd_seq_queue_status.time/time: bad offset: syz=16 kernel=12
-field snd_seq_queue_status.time/time: bad size: syz=16 kernel=8
+field snd_seq_queue_status.time: bad offset: syz=16 kernel=12
+field snd_seq_queue_status.time: bad size: syz=16 kernel=8
 field snd_seq_queue_status.runnint/running: bad offset: syz=32 kernel=20
-field snd_seq_queue_status.flags/flags: bad offset: syz=36 kernel=24
+field snd_seq_queue_status.flags: bad offset: syz=36 kernel=24
 field snd_seq_queue_status.pad/reserved: bad offset: syz=40 kernel=28
 struct snd_seq_queue_timer: bad size: syz=92 kernel=96
 field snd_seq_queue_timer.id/u: bad size: syz=20 kernel=24
 field snd_seq_queue_timer.pad/reserved: bad offset: syz=28 kernel=32
 struct snd_seq_remove_events: bad size: syz=80 kernel=64
-field snd_seq_remove_events.time/time: bad offset: syz=8 kernel=4
-field snd_seq_remove_events.time/time: bad size: syz=16 kernel=8
-field snd_seq_remove_events.queue/queue: bad offset: syz=24 kernel=12
-field snd_seq_remove_events.dest/dest: bad offset: syz=25 kernel=13
+field snd_seq_remove_events.time: bad offset: syz=8 kernel=4
+field snd_seq_remove_events.time: bad size: syz=16 kernel=8
+field snd_seq_remove_events.queue: bad offset: syz=24 kernel=12
+field snd_seq_remove_events.dest: bad offset: syz=25 kernel=13
 field snd_seq_remove_events.chan/channel: bad offset: syz=27 kernel=15
-field snd_seq_remove_events.type/type: bad offset: syz=28 kernel=16
-field snd_seq_remove_events.tag/tag: bad offset: syz=32 kernel=20
+field snd_seq_remove_events.type: bad offset: syz=28 kernel=16
+field snd_seq_remove_events.tag: bad offset: syz=32 kernel=20
 field snd_seq_remove_events.pad/reserved: bad offset: syz=36 kernel=24
 struct snd_seq_event: bad size: syz=48 kernel=28
-field snd_seq_event.time/time: bad offset: syz=8 kernel=4
-field snd_seq_event.time/time: bad size: syz=16 kernel=8
+field snd_seq_event.time: bad offset: syz=8 kernel=4
+field snd_seq_event.time: bad size: syz=16 kernel=8
 field snd_seq_event.src/source: bad offset: syz=24 kernel=12
 field snd_seq_event.dst/dest: bad offset: syz=26 kernel=14
-field snd_seq_event.data/data: bad offset: syz=32 kernel=16
-field snd_seq_event.data/data: bad size: syz=16 kernel=12
+field snd_seq_event.data: bad offset: syz=32 kernel=16
+field snd_seq_event.data: bad size: syz=16 kernel=12
 struct snd_seq_event_data: no corresponding struct in kernel
 struct snd_seq_ev_ctrl: bad number of fields: syz=3 kernel=6
 field snd_seq_ev_ctrl.param/unused1: bad offset: syz=4 kernel=1

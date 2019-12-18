@@ -182,13 +182,18 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 		}
 		if ai < len(str.Field) {
 			fld := str.Field[ai]
+			pos := astStruct.Fields[ai].Pos
+			desc := fmt.Sprintf("field %v.%v", typ.Name(), field.FieldName())
+			if field.FieldName() != fld.Name {
+				desc += "/" + fld.Name
+			}
 			if field.Size() != uint64(fld.Type.Size()) {
-				warn(astStruct.Fields[ai].Pos, "field %v.%v/%v: bad size: syz=%v kernel=%v",
-					typ.Name(), field.FieldName(), fld.Name, field.Size(), fld.Type.Size())
+				warn(pos, "%v: bad size: syz=%v kernel=%v",
+					desc, field.Size(), fld.Type.Size())
 			}
 			if offset != uint64(fld.ByteOffset) {
-				warn(astStruct.Fields[ai].Pos, "field %v.%v/%v: bad offset: syz=%v kernel=%v",
-					typ.Name(), field.FieldName(), fld.Name, offset, fld.ByteOffset)
+				warn(pos, "%v: bad offset: syz=%v kernel=%v",
+					desc, offset, fld.ByteOffset)
 			}
 			// How would you define bitfield offset?
 			// Offset of the beginning of the field from the beginning of the memory location, right?
@@ -201,9 +206,8 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 			}
 			if field.BitfieldLength() != uint64(fld.BitSize) ||
 				field.BitfieldOffset() != uint64(offset) {
-				warn(astStruct.Fields[ai].Pos, "field %v.%v/%v: bad bit size/offset: syz=%v/%v kernel=%v/%v",
-					typ.Name(), field.FieldName(), fld.Name,
-					field.BitfieldLength(), field.BitfieldOffset(),
+				warn(pos, "%v: bad bit size/offset: syz=%v/%v kernel=%v/%v",
+					desc, field.BitfieldLength(), field.BitfieldOffset(),
 					fld.BitSize, offset)
 			}
 		}
