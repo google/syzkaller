@@ -3,9 +3,10 @@
 
 # AF_UNIX support.
 
-include <linux/socket.h>
 include <linux/net.h>
+include <linux/socket.h>
 include <uapi/linux/un.h>
+include <uapi/asm-generic/socket.h>
 
 resource sock_unix[sock]
 

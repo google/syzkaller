@@ -20,7 +20,8 @@ ioctl$SNDRV_TIMER_IOCTL_GSTATUS(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_GSTA
 ioctl$SNDRV_TIMER_IOCTL_SELECT(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_SELECT], arg ptr[in, snd_timer_select])
 ioctl$SNDRV_TIMER_IOCTL_INFO(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_INFO], arg buffer[out])
 ioctl$SNDRV_TIMER_IOCTL_PARAMS(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_PARAMS], arg ptr[in, snd_timer_params])
-ioctl$SNDRV_TIMER_IOCTL_STATUS(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_STATUS], arg buffer[out])
+ioctl$SNDRV_TIMER_IOCTL_STATUS32(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_STATUS32], arg ptr[out, array[int8, SND_TIMER_STATUS32_SIZE]])
+ioctl$SNDRV_TIMER_IOCTL_STATUS64(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_STATUS64], arg ptr[out, array[int8, SND_TIMER_STATUS64_SIZE]])
 ioctl$SNDRV_TIMER_IOCTL_START(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_START])
 ioctl$SNDRV_TIMER_IOCTL_STOP(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_STOP])
 ioctl$SNDRV_TIMER_IOCTL_CONTINUE(fd fd_sndtimer, cmd const[SNDRV_TIMER_IOCTL_CONTINUE])
@@ -77,3 +78,8 @@ snd_timer_params {
 	filter	flags[snd_timer_filter, int32]
 	pad2	array[const[0, int8], 60]
 }
+
+define SND_TIMER_STATUS32_SIZE	88
+define SND_TIMER_STATUS64_SIZE	96
+define SNDRV_TIMER_IOCTL_STATUS32	_IOR('T', 0x14, char[SND_TIMER_STATUS32_SIZE])
+define SNDRV_TIMER_IOCTL_STATUS64	_IOR('T', 0x14, char[SND_TIMER_STATUS64_SIZE])
