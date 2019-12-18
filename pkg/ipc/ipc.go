@@ -265,7 +265,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 
 	atomic.AddUint64(&env.StatExecs, 1)
 	if env.cmd == nil {
-		if targets.Get(p.Target.OS, p.Target.Arch).HostFuzzer {
+		if p.Target.OS != "test" && targets.Get(p.Target.OS, p.Target.Arch).HostFuzzer {
 			// The executor is actually ssh,
 			// starting them too frequently leads to timeouts.
 			<-rateLimit.C
