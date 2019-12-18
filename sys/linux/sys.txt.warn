@@ -1,12 +1,4 @@
 field seccomp_metadata.flags: bad size: syz=4 kernel=8
-struct clone_args: bad number of fields: syz=11 kernel=10
-field clone_args.exit_signal: bad size: syz=4 kernel=8
-field clone_args.exit_signal_pad/stack: bad offset: syz=36 kernel=40
-field clone_args.exit_signal_pad/stack: bad size: syz=4 kernel=8
-field clone_args.stack/stack_size: bad offset: syz=40 kernel=48
-field clone_args.stack_size/tls: bad offset: syz=48 kernel=56
-field clone_args.tls/set_tid: bad offset: syz=56 kernel=64
-field clone_args.set_tid/set_tid_size: bad offset: syz=64 kernel=72
 struct pipefd: no corresponding struct in kernel
 struct stat: bad size: syz=68 kernel=144
 field stat.dev/st_dev: bad size: syz=2 kernel=8
@@ -51,14 +43,6 @@ struct sigevent_thread: no corresponding struct in kernel
 struct cap_header: no corresponding struct in kernel
 struct cap_data: no corresponding struct in kernel
 struct fd_set: no corresponding struct in kernel
-struct mq_attr: bad number of fields: syz=8 kernel=5
-field mq_attr.res0/__reserved: bad size: syz=8 kernel=32
 struct siginfo: bad number of fields: syz=3 kernel=1
 field siginfo.signo/: bad size: syz=4 kernel=128
 struct timex: no corresponding struct in kernel
-struct ustat: bad number of fields: syz=5 kernel=4
-field ustat.nampac0/f_fname: bad size: syz=4 kernel=6
-field ustat.nampac1/f_fpack: bad offset: syz=20 kernel=22
-field ustat.nampac1/f_fpack: bad size: syz=4 kernel=6
-struct sched_attr: bad number of fields: syz=8 kernel=10
-struct sched_attr: bad size: syz=48 kernel=56

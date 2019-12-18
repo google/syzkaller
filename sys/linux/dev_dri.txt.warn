@@ -1,14 +1,6 @@
 struct drm_unique_in: no corresponding struct in kernel
 struct drm_unique_out: no corresponding struct in kernel
 struct drm_map: no corresponding struct in kernel
-struct drm_client: bad number of fields: syz=8 kernel=6
-field drm_client.pid: bad size: syz=4 kernel=8
-field drm_client.pid_pad/uid: bad offset: syz=12 kernel=16
-field drm_client.pid_pad/uid: bad size: syz=4 kernel=8
-field drm_client.uid/magic: bad offset: syz=16 kernel=24
-field drm_client.uid/magic: bad size: syz=4 kernel=8
-field drm_client.uid_pad/iocs: bad offset: syz=20 kernel=32
-field drm_client.uid_pad/iocs: bad size: syz=4 kernel=8
 struct drm_ctx_priv_map: no corresponding struct in kernel
 struct drm_ctx: no corresponding struct in kernel
 struct drm_ctx_res: no corresponding struct in kernel
@@ -21,6 +13,4 @@ struct drm_dma: no corresponding struct in kernel
 struct drm_control: no corresponding struct in kernel
 struct drm_scatter_gather: no corresponding struct in kernel
 struct drm_wait_vblank: no corresponding struct in kernel
-struct drm_mode_crtc: bad number of fields: syz=8 kernel=9
-field drm_mode_crtc.mode/mode_valid: bad size: syz=68 kernel=4
 field drm_mode_modeinfo.vrefr/vrefresh: bad size: syz=2 kernel=4

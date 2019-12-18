@@ -30,9 +30,9 @@ lo_flags = LO_FLAGS_READ_ONLY, LO_FLAGS_AUTOCLEAR, LO_FLAGS_PARTSCAN, LO_FLAGS_D
 
 loop_info {
 	lo_number	const[0, int32]
-	lo_device	const[0, int32]
-	lo_inode	const[0, int32]
-	lo_rdevice	const[0, int32]
+	lo_device	const[0, intptr]
+	lo_inode	const[0, intptr]
+	lo_rdevice	const[0, intptr]
 	lo_offset	int32
 	lo_enc_type	flags[lo_encrypt_type, int32]
 	lo_enc_key_size	int32[0:LO_KEY_SIZE]
