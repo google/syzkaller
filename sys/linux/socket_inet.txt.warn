@@ -1,10 +1,10 @@
-0016: struct sockaddr_in: bad number of fields: syz=3 kernel=4
-0022: struct sockaddr_storage_in: no corresponding struct in kernel
-0088: struct ip_mreq: no corresponding struct in kernel
-0121: struct group_req_in: no corresponding struct in kernel
-0126: struct group_source_req_in: no corresponding struct in kernel
-0176: struct rtentry_in: no corresponding struct in kernel
-0194: struct sockaddr_ethernet: no corresponding struct in kernel
-0201: struct arpreq_in: no corresponding struct in kernel
-0211: struct msghdr_inet: no corresponding struct in kernel
-0221: struct mmsghdr_inet: no corresponding struct in kernel
+struct sockaddr_in: bad number of fields: syz=3 kernel=4
+struct sockaddr_storage_in: no corresponding struct in kernel
+struct ip_mreq: no corresponding struct in kernel
+struct group_req_in: no corresponding struct in kernel
+struct group_source_req_in: no corresponding struct in kernel
+struct rtentry_in: no corresponding struct in kernel
+struct sockaddr_ethernet: no corresponding struct in kernel
+struct arpreq_in: no corresponding struct in kernel
+struct msghdr_inet: no corresponding struct in kernel
+struct mmsghdr_inet: no corresponding struct in kernel

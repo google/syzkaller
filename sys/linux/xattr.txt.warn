@@ -1,5 +1,5 @@
-0080: struct vfs_cap_data_v1: no corresponding struct in kernel
-0096: struct vfs_cap_elem: no corresponding struct in kernel
-0133: struct evm_ima_xattr_digest_md5: no corresponding struct in kernel
-0138: struct evm_ima_xattr_digest_sha1: no corresponding struct in kernel
-0169: struct xattr_overlay_nlink: no corresponding struct in kernel
+struct vfs_cap_data_v1: no corresponding struct in kernel
+struct vfs_cap_elem: no corresponding struct in kernel
+struct evm_ima_xattr_digest_md5: no corresponding struct in kernel
+struct evm_ima_xattr_digest_sha1: no corresponding struct in kernel
+struct xattr_overlay_nlink: no corresponding struct in kernel

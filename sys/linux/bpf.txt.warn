@@ -1,87 +1,87 @@
-0057: struct bpf_map_create_arg: no corresponding struct in kernel
-0072: struct bpf_map_get_fd_by_id_arg: no corresponding struct in kernel
-0078: struct bpf_map_lookup_arg: no corresponding struct in kernel
-0085: struct bpf_map_update_arg: no corresponding struct in kernel
-0092: struct bpf_map_delete_arg: no corresponding struct in kernel
-0099: struct bpf_map_get_next_arg: no corresponding struct in kernel
-0109: struct bpf_prog: bad number of fields: syz=21 kernel=20
-0109: struct bpf_prog: bad size: syz=120 kernel=56
-0110: field bpf_prog.type/pages: bad size: syz=4 kernel=2
-0111: field bpf_prog.ninsn/jited: bad bit size/offset: syz=0/0 kernel=1/0
-0111: field bpf_prog.ninsn/jited: bad offset: syz=4 kernel=2
-0111: field bpf_prog.ninsn/jited: bad size: syz=4 kernel=2
-0112: field bpf_prog.insns/jit_requested: bad bit size/offset: syz=0/0 kernel=1/1
-0112: field bpf_prog.insns/jit_requested: bad offset: syz=8 kernel=2
-0112: field bpf_prog.insns/jit_requested: bad size: syz=8 kernel=2
-0113: field bpf_prog.license/gpl_compatible: bad bit size/offset: syz=0/0 kernel=1/2
-0113: field bpf_prog.license/gpl_compatible: bad offset: syz=16 kernel=2
-0113: field bpf_prog.license/gpl_compatible: bad size: syz=8 kernel=2
-0114: field bpf_prog.loglev/cb_access: bad bit size/offset: syz=0/0 kernel=1/3
-0114: field bpf_prog.loglev/cb_access: bad offset: syz=24 kernel=2
-0114: field bpf_prog.loglev/cb_access: bad size: syz=4 kernel=2
-0115: field bpf_prog.logsize/dst_needed: bad bit size/offset: syz=0/0 kernel=1/4
-0115: field bpf_prog.logsize/dst_needed: bad offset: syz=28 kernel=2
-0115: field bpf_prog.logsize/dst_needed: bad size: syz=4 kernel=2
-0116: field bpf_prog.log/blinded: bad bit size/offset: syz=0/0 kernel=1/5
-0116: field bpf_prog.log/blinded: bad offset: syz=32 kernel=2
-0116: field bpf_prog.log/blinded: bad size: syz=8 kernel=2
-0117: field bpf_prog.kern_version/is_func: bad bit size/offset: syz=0/0 kernel=1/6
-0117: field bpf_prog.kern_version/is_func: bad offset: syz=40 kernel=2
-0117: field bpf_prog.kern_version/is_func: bad size: syz=4 kernel=2
-0118: field bpf_prog.flags/kprobe_override: bad bit size/offset: syz=0/0 kernel=1/7
-0118: field bpf_prog.flags/kprobe_override: bad offset: syz=44 kernel=2
-0118: field bpf_prog.flags/kprobe_override: bad size: syz=4 kernel=2
-0119: field bpf_prog.prog_name/has_callchain_buf: bad bit size/offset: syz=0/0 kernel=1/8
-0119: field bpf_prog.prog_name/has_callchain_buf: bad offset: syz=48 kernel=2
-0119: field bpf_prog.prog_name/has_callchain_buf: bad size: syz=16 kernel=2
-0120: field bpf_prog.prog_ifindex/enforce_expected_attach_type: bad bit size/offset: syz=0/0 kernel=1/9
-0120: field bpf_prog.prog_ifindex/enforce_expected_attach_type: bad offset: syz=64 kernel=2
-0120: field bpf_prog.prog_ifindex/enforce_expected_attach_type: bad size: syz=4 kernel=2
-0121: field bpf_prog.expected_attach_type/type: bad offset: syz=68 kernel=4
-0122: field bpf_prog.btf_fd/expected_attach_type: bad offset: syz=72 kernel=8
-0123: field bpf_prog.func_info_rec_size/len: bad offset: syz=76 kernel=12
-0124: field bpf_prog.func_info/jited_len: bad offset: syz=80 kernel=16
-0124: field bpf_prog.func_info/jited_len: bad size: syz=8 kernel=4
-0125: field bpf_prog.func_info_cnt/tag: bad offset: syz=88 kernel=20
-0125: field bpf_prog.func_info_cnt/tag: bad size: syz=4 kernel=8
-0126: field bpf_prog.line_info_rec_size/aux: bad offset: syz=92 kernel=32
-0126: field bpf_prog.line_info_rec_size/aux: bad size: syz=4 kernel=8
-0127: field bpf_prog.line_info/orig_prog: bad offset: syz=96 kernel=40
-0128: field bpf_prog.line_info_cnt/bpf_func: bad offset: syz=104 kernel=48
-0128: field bpf_prog.line_info_cnt/bpf_func: bad size: syz=4 kernel=8
-0129: field bpf_prog.attach_btf_id/: bad offset: syz=108 kernel=56
-0129: field bpf_prog.attach_btf_id/: bad size: syz=4 kernel=0
-0174: struct bpf_insn_generic: no corresponding struct in kernel
-0182: struct bpf_insn_ldst: no corresponding struct in kernel
-0207: struct bpf_insn_alu: no corresponding struct in kernel
-0235: struct bpf_insn_jmp: no corresponding struct in kernel
-0262: struct bpf_insn_call_helper: no corresponding struct in kernel
-0269: struct bpf_insn_call_func: no corresponding struct in kernel
-0280: struct bpf_insn_exit: no corresponding struct in kernel
-0289: struct bpf_insn_init_r0: no corresponding struct in kernel
-0301: struct bpf_insn_map: no corresponding struct in kernel
-0313: struct bpf_insn_map_value: no corresponding struct in kernel
-0335: struct bpf_obj_pin_map: no corresponding struct in kernel
-0341: struct bpf_obj_pin_prog: no corresponding struct in kernel
-0347: struct bpf_obj_get: no corresponding struct in kernel
-0353: struct bpf_attach_arg: no corresponding struct in kernel
-0360: struct bpf_detach_arg: no corresponding struct in kernel
-0367: struct bpf_test_prog_arg: no corresponding struct in kernel
-0382: struct bpf_obj_get_next_id_arg: no corresponding struct in kernel
-0388: struct bpf_prog_get_fd_by_id_arg: no corresponding struct in kernel
-0394: struct bpf_get_prog_info_arg: no corresponding struct in kernel
-0400: struct bpf_prog_info: bad number of fields: syz=32 kernel=34
-0400: struct bpf_prog_info: bad size: syz=192 kernel=208
-0435: struct bpf_get_map_info_arg: no corresponding struct in kernel
-0441: struct bpf_map_info: bad number of fields: syz=7 kernel=13
-0441: struct bpf_map_info: bad size: syz=40 kernel=80
-0451: struct bpf_get_btf_info_arg: no corresponding struct in kernel
-0463: struct bpf_prog_query: no corresponding struct in kernel
-0474: field bpf_raw_tracepoint.prog_fd/prog: bad size: syz=4 kernel=8
-0477: struct bpf_btf_load: no corresponding struct in kernel
-0520: struct btf_type_int: no corresponding struct in kernel
-0543: struct btf_type_array: no corresponding struct in kernel
-0588: struct btf_type_fwd: no corresponding struct in kernel
-0596: struct btf_type_func: no corresponding struct in kernel
-0618: struct btf_type_var: no corresponding struct in kernel
-0652: struct bpf_task_fd_query: no corresponding struct in kernel
+struct bpf_map_create_arg: no corresponding struct in kernel
+struct bpf_map_get_fd_by_id_arg: no corresponding struct in kernel
+struct bpf_map_lookup_arg: no corresponding struct in kernel
+struct bpf_map_update_arg: no corresponding struct in kernel
+struct bpf_map_delete_arg: no corresponding struct in kernel
+struct bpf_map_get_next_arg: no corresponding struct in kernel
+struct bpf_prog: bad number of fields: syz=21 kernel=20
+struct bpf_prog: bad size: syz=120 kernel=56
+field bpf_prog.type/pages: bad size: syz=4 kernel=2
+field bpf_prog.ninsn/jited: bad bit size/offset: syz=0/0 kernel=1/0
+field bpf_prog.ninsn/jited: bad offset: syz=4 kernel=2
+field bpf_prog.ninsn/jited: bad size: syz=4 kernel=2
+field bpf_prog.insns/jit_requested: bad bit size/offset: syz=0/0 kernel=1/1
+field bpf_prog.insns/jit_requested: bad offset: syz=8 kernel=2
+field bpf_prog.insns/jit_requested: bad size: syz=8 kernel=2
+field bpf_prog.license/gpl_compatible: bad bit size/offset: syz=0/0 kernel=1/2
+field bpf_prog.license/gpl_compatible: bad offset: syz=16 kernel=2
+field bpf_prog.license/gpl_compatible: bad size: syz=8 kernel=2
+field bpf_prog.loglev/cb_access: bad bit size/offset: syz=0/0 kernel=1/3
+field bpf_prog.loglev/cb_access: bad offset: syz=24 kernel=2
+field bpf_prog.loglev/cb_access: bad size: syz=4 kernel=2
+field bpf_prog.logsize/dst_needed: bad bit size/offset: syz=0/0 kernel=1/4
+field bpf_prog.logsize/dst_needed: bad offset: syz=28 kernel=2
+field bpf_prog.logsize/dst_needed: bad size: syz=4 kernel=2
+field bpf_prog.log/blinded: bad bit size/offset: syz=0/0 kernel=1/5
+field bpf_prog.log/blinded: bad offset: syz=32 kernel=2
+field bpf_prog.log/blinded: bad size: syz=8 kernel=2
+field bpf_prog.kern_version/is_func: bad bit size/offset: syz=0/0 kernel=1/6
+field bpf_prog.kern_version/is_func: bad offset: syz=40 kernel=2
+field bpf_prog.kern_version/is_func: bad size: syz=4 kernel=2
+field bpf_prog.flags/kprobe_override: bad bit size/offset: syz=0/0 kernel=1/7
+field bpf_prog.flags/kprobe_override: bad offset: syz=44 kernel=2
+field bpf_prog.flags/kprobe_override: bad size: syz=4 kernel=2
+field bpf_prog.prog_name/has_callchain_buf: bad bit size/offset: syz=0/0 kernel=1/8
+field bpf_prog.prog_name/has_callchain_buf: bad offset: syz=48 kernel=2
+field bpf_prog.prog_name/has_callchain_buf: bad size: syz=16 kernel=2
+field bpf_prog.prog_ifindex/enforce_expected_attach_type: bad bit size/offset: syz=0/0 kernel=1/9
+field bpf_prog.prog_ifindex/enforce_expected_attach_type: bad offset: syz=64 kernel=2
+field bpf_prog.prog_ifindex/enforce_expected_attach_type: bad size: syz=4 kernel=2
+field bpf_prog.expected_attach_type/type: bad offset: syz=68 kernel=4
+field bpf_prog.btf_fd/expected_attach_type: bad offset: syz=72 kernel=8
+field bpf_prog.func_info_rec_size/len: bad offset: syz=76 kernel=12
+field bpf_prog.func_info/jited_len: bad offset: syz=80 kernel=16
+field bpf_prog.func_info/jited_len: bad size: syz=8 kernel=4
+field bpf_prog.func_info_cnt/tag: bad offset: syz=88 kernel=20
+field bpf_prog.func_info_cnt/tag: bad size: syz=4 kernel=8
+field bpf_prog.line_info_rec_size/aux: bad offset: syz=92 kernel=32
+field bpf_prog.line_info_rec_size/aux: bad size: syz=4 kernel=8
+field bpf_prog.line_info/orig_prog: bad offset: syz=96 kernel=40
+field bpf_prog.line_info_cnt/bpf_func: bad offset: syz=104 kernel=48
+field bpf_prog.line_info_cnt/bpf_func: bad size: syz=4 kernel=8
+field bpf_prog.attach_btf_id/: bad offset: syz=108 kernel=56
+field bpf_prog.attach_btf_id/: bad size: syz=4 kernel=0
+struct bpf_insn_generic: no corresponding struct in kernel
+struct bpf_insn_ldst: no corresponding struct in kernel
+struct bpf_insn_alu: no corresponding struct in kernel
+struct bpf_insn_jmp: no corresponding struct in kernel
+struct bpf_insn_call_helper: no corresponding struct in kernel
+struct bpf_insn_call_func: no corresponding struct in kernel
+struct bpf_insn_exit: no corresponding struct in kernel
+struct bpf_insn_init_r0: no corresponding struct in kernel
+struct bpf_insn_map: no corresponding struct in kernel
+struct bpf_insn_map_value: no corresponding struct in kernel
+struct bpf_obj_pin_map: no corresponding struct in kernel
+struct bpf_obj_pin_prog: no corresponding struct in kernel
+struct bpf_obj_get: no corresponding struct in kernel
+struct bpf_attach_arg: no corresponding struct in kernel
+struct bpf_detach_arg: no corresponding struct in kernel
+struct bpf_test_prog_arg: no corresponding struct in kernel
+struct bpf_obj_get_next_id_arg: no corresponding struct in kernel
+struct bpf_prog_get_fd_by_id_arg: no corresponding struct in kernel
+struct bpf_get_prog_info_arg: no corresponding struct in kernel
+struct bpf_prog_info: bad number of fields: syz=32 kernel=34
+struct bpf_prog_info: bad size: syz=192 kernel=208
+struct bpf_get_map_info_arg: no corresponding struct in kernel
+struct bpf_map_info: bad number of fields: syz=7 kernel=13
+struct bpf_map_info: bad size: syz=40 kernel=80
+struct bpf_get_btf_info_arg: no corresponding struct in kernel
+struct bpf_prog_query: no corresponding struct in kernel
+field bpf_raw_tracepoint.prog_fd/prog: bad size: syz=4 kernel=8
+struct bpf_btf_load: no corresponding struct in kernel
+struct btf_type_int: no corresponding struct in kernel
+struct btf_type_array: no corresponding struct in kernel
+struct btf_type_fwd: no corresponding struct in kernel
+struct btf_type_func: no corresponding struct in kernel
+struct btf_type_var: no corresponding struct in kernel
+struct bpf_task_fd_query: no corresponding struct in kernel

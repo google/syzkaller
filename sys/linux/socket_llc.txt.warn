@@ -1,1 +1,1 @@
-0027: struct sockaddr_llc: bad number of fields: syz=7 kernel=8
+struct sockaddr_llc: bad number of fields: syz=7 kernel=8

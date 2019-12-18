@@ -1,12 +1,12 @@
-0023: struct msghdr_sctp: no corresponding struct in kernel
-0043: struct cmsghdr_sctp_init: no corresponding struct in kernel
-0050: struct cmsghdr_sctp_sndrcv: no corresponding struct in kernel
-0057: struct cmsghdr_sctp_sndinfo: no corresponding struct in kernel
-0064: struct cmsghdr_sctp_prinfo: no corresponding struct in kernel
-0076: struct cmsghdr_sctp_authinfo: no corresponding struct in kernel
-0087: struct cmsghdr_sctp_dstaddrv4: no corresponding struct in kernel
-0094: struct cmsghdr_sctp_dstaddrv6: no corresponding struct in kernel
-0365: struct sockaddr_storage_sctp: no corresponding struct in kernel
-0512: struct sctp_paddrthlds: no corresponding struct in kernel
-0549: struct sctp_assoc_stats: bad number of fields: syz=3 kernel=17
-0552: field sctp_assoc_stats.status/sas_maxrto: bad size: syz=120 kernel=8
+struct msghdr_sctp: no corresponding struct in kernel
+struct cmsghdr_sctp_init: no corresponding struct in kernel
+struct cmsghdr_sctp_sndrcv: no corresponding struct in kernel
+struct cmsghdr_sctp_sndinfo: no corresponding struct in kernel
+struct cmsghdr_sctp_prinfo: no corresponding struct in kernel
+struct cmsghdr_sctp_authinfo: no corresponding struct in kernel
+struct cmsghdr_sctp_dstaddrv4: no corresponding struct in kernel
+struct cmsghdr_sctp_dstaddrv6: no corresponding struct in kernel
+struct sockaddr_storage_sctp: no corresponding struct in kernel
+struct sctp_paddrthlds: no corresponding struct in kernel
+struct sctp_assoc_stats: bad number of fields: syz=3 kernel=17
+field sctp_assoc_stats.status/sas_maxrto: bad size: syz=120 kernel=8

@@ -1,2 +1,2 @@
-0041: struct x25_address: bad number of fields: syz=2 kernel=1
-0048: struct x25_address_remote: no corresponding struct in kernel
+struct x25_address: bad number of fields: syz=2 kernel=1
+struct x25_address_remote: no corresponding struct in kernel

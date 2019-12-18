@@ -1,8 +1,8 @@
-0034: struct alg_name: no corresponding struct in kernel
-0039: struct alg_aead_name: no corresponding struct in kernel
-0044: struct alg_hash_name: no corresponding struct in kernel
-0049: struct alg_skcipher_name: no corresponding struct in kernel
-0053: struct alg_compress_name: no corresponding struct in kernel
-0060: struct msghdr_alg: no corresponding struct in kernel
-0084: struct cmsghdr_alg_op: no corresponding struct in kernel
-0091: struct cmsghdr_alg_assoc: no corresponding struct in kernel
+struct alg_name: no corresponding struct in kernel
+struct alg_aead_name: no corresponding struct in kernel
+struct alg_hash_name: no corresponding struct in kernel
+struct alg_skcipher_name: no corresponding struct in kernel
+struct alg_compress_name: no corresponding struct in kernel
+struct msghdr_alg: no corresponding struct in kernel
+struct cmsghdr_alg_op: no corresponding struct in kernel
+struct cmsghdr_alg_assoc: no corresponding struct in kernel

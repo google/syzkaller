@@ -1,14 +1,14 @@
-0021: struct fscrypt_policy_v1: bad number of fields: syz=4 kernel=5
-0023: field fscrypt_policy_v1.modes/contents_encryption_mode: bad size: syz=2 kernel=1
-0024: field fscrypt_policy_v1.flags/filenames_encryption_mode: bad offset: syz=3 kernel=2
-0025: field fscrypt_policy_v1.master_key_descriptor/flags: bad offset: syz=4 kernel=3
-0025: field fscrypt_policy_v1.master_key_descriptor/flags: bad size: syz=8 kernel=1
-0028: struct fscrypt_policy_v2: bad number of fields: syz=5 kernel=6
-0030: field fscrypt_policy_v2.modes/contents_encryption_mode: bad size: syz=2 kernel=1
-0031: field fscrypt_policy_v2.flags/filenames_encryption_mode: bad offset: syz=3 kernel=2
-0032: field fscrypt_policy_v2.reserved/flags: bad offset: syz=4 kernel=3
-0032: field fscrypt_policy_v2.reserved/flags: bad size: syz=4 kernel=1
-0033: field fscrypt_policy_v2.master_key_identifier/__reserved: bad offset: syz=8 kernel=4
-0033: field fscrypt_policy_v2.master_key_identifier/__reserved: bad size: syz=16 kernel=4
-0041: struct fscrypt_policy_modes: no corresponding struct in kernel
-0068: struct fscrypt_key_specifier_payload: no corresponding struct in kernel
+struct fscrypt_policy_v1: bad number of fields: syz=4 kernel=5
+field fscrypt_policy_v1.modes/contents_encryption_mode: bad size: syz=2 kernel=1
+field fscrypt_policy_v1.flags/filenames_encryption_mode: bad offset: syz=3 kernel=2
+field fscrypt_policy_v1.master_key_descriptor/flags: bad offset: syz=4 kernel=3
+field fscrypt_policy_v1.master_key_descriptor/flags: bad size: syz=8 kernel=1
+struct fscrypt_policy_v2: bad number of fields: syz=5 kernel=6
+field fscrypt_policy_v2.modes/contents_encryption_mode: bad size: syz=2 kernel=1
+field fscrypt_policy_v2.flags/filenames_encryption_mode: bad offset: syz=3 kernel=2
+field fscrypt_policy_v2.reserved/flags: bad offset: syz=4 kernel=3
+field fscrypt_policy_v2.reserved/flags: bad size: syz=4 kernel=1
+field fscrypt_policy_v2.master_key_identifier/__reserved: bad offset: syz=8 kernel=4
+field fscrypt_policy_v2.master_key_identifier/__reserved: bad size: syz=16 kernel=4
+struct fscrypt_policy_modes: no corresponding struct in kernel
+struct fscrypt_key_specifier_payload: no corresponding struct in kernel
