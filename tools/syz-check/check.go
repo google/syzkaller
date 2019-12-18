@@ -187,9 +187,9 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 			if field.FieldName() != fld.Name {
 				desc += "/" + fld.Name
 			}
-			if field.Size() != uint64(fld.Type.Size()) {
+			if field.UnitSize() != uint64(fld.Type.Size()) {
 				warn(pos, "%v: bad size: syz=%v kernel=%v",
-					desc, field.Size(), fld.Type.Size())
+					desc, field.UnitSize(), fld.Type.Size())
 			}
 			if offset != uint64(fld.ByteOffset) {
 				warn(pos, "%v: bad offset: syz=%v kernel=%v",
@@ -212,9 +212,7 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 			}
 		}
 		ai++
-		if !field.BitfieldMiddle() {
-			offset += field.Size()
-		}
+		offset += field.Size()
 	}
 	if ai != len(str.Field) {
 		warn(astStruct.Pos, "struct %v: bad number of fields: syz=%v kernel=%v", typ.Name(), ai, len(str.Field))

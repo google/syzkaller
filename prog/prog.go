@@ -193,9 +193,7 @@ func (arg *GroupArg) Size() uint64 {
 	case *StructType:
 		var size uint64
 		for _, fld := range arg.Inner {
-			if !fld.Type().BitfieldMiddle() {
-				size += fld.Size()
-			}
+			size += fld.Size()
 		}
 		if typ.AlignAttr != 0 && size%typ.AlignAttr != 0 {
 			size += typ.AlignAttr - size%typ.AlignAttr
