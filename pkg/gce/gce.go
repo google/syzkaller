@@ -138,6 +138,11 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string, pree
 	}
 
 retry:
+	if !instance.Scheduling.Preemptible && strings.HasPrefix(machineType, "e2-") {
+		// Otherwise we get "Error 400: Efficient instances do not support
+		// onHostMaintenance=TERMINATE unless they are preemptible".
+		instance.Scheduling.OnHostMaintenance = "MIGRATE"
+	}
 	var op *compute.Operation
 	err := ctx.apiCall(func() (err error) {
 		op, err = ctx.computeService.Instances.Insert(ctx.ProjectID, ctx.ZoneID, instance).Do()
