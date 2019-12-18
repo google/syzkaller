@@ -349,15 +349,17 @@ func (comp *compiler) addAlignment(fields []prog.Type, varlen, packed bool, alig
 }
 
 func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
-	switch t0.(type) {
-	case *prog.IntType, *prog.ConstType, *prog.LenType, *prog.FlagsType, *prog.ProcType,
+	switch t := t0.(type) {
+	case *prog.IntType, *prog.LenType, *prog.FlagsType, *prog.ProcType,
 		*prog.CsumType, *prog.PtrType, *prog.VmaType, *prog.ResourceType:
 		return t0.Size()
+	case *prog.ConstType:
+		if t.IsPad {
+			return 1
+		}
+		return t.Size()
 	case *prog.BufferType:
 		return 1
-	}
-
-	switch t := t0.(type) {
 	case *prog.ArrayType:
 		return comp.typeAlign(t.Type)
 	case *prog.StructType:

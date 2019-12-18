@@ -106,12 +106,6 @@ field xt_policy_elem.spi/mode: bad size: syz=4 kernel=1
 field xt_policy_elem.reqid/match: bad offset: syz=68 kernel=74
 field xt_policy_elem.reqid/match: bad size: syz=4 kernel=1
 field xt_policy_elem.proto/invert: bad offset: syz=72 kernel=75
-struct xt_physdev_info: bad size: syz=105 kernel=66
-field xt_physdev_info.in_mask: bad offset: syz=30 kernel=16
-field xt_physdev_info.physoutdev: bad offset: syz=46 kernel=32
-field xt_physdev_info.out_mask: bad offset: syz=75 kernel=48
-field xt_physdev_info.invert: bad offset: syz=91 kernel=64
-field xt_physdev_info.bitmask: bad offset: syz=92 kernel=65
 struct xt_esp: bad number of fields: syz=3 kernel=2
 field xt_esp.spis_min/spis: bad size: syz=4 kernel=8
 field xt_esp.spis_max/invflags: bad offset: syz=4 kernel=8

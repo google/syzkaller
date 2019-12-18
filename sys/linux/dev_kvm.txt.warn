@@ -54,8 +54,5 @@ field kvm_fpu.pad1: bad offset: syz=132 kernel=133
 struct kvm_irq_chip: no corresponding struct in kernel
 struct kvm_ioapic_redir: no corresponding struct in kernel
 struct kvm_mce_cap: no corresponding struct in kernel
-struct kvm_nested_state: bad size: syz=288 kernel=128
-field kvm_nested_state.hdr: bad offset: syz=96 kernel=8
-field kvm_nested_state.data: bad offset: syz=216 kernel=128
 struct kvm_nested_state_arg: no corresponding struct in kernel
 struct kvm_vmx_nested_state: no corresponding struct in kernel
