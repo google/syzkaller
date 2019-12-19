@@ -42,6 +42,8 @@ func InitTarget(target *prog.Target) {
 		AF_NETROM:                   target.GetConst("AF_NETROM"),
 		AF_ROSE:                     target.GetConst("AF_ROSE"),
 		USB_MAJOR:                   target.GetConst("USB_MAJOR"),
+		TIOCSSERIAL:                 target.GetConst("TIOCSSERIAL"),
+		TIOCGSERIAL:                 target.GetConst("TIOCGSERIAL"),
 		// These are not present on all arches.
 		ARCH_SET_FS: target.ConstMap["ARCH_SET_FS"],
 		ARCH_SET_GS: target.ConstMap["ARCH_SET_GS"],
@@ -142,6 +144,8 @@ type arch struct {
 	AF_NETROM                   uint64
 	AF_ROSE                     uint64
 	USB_MAJOR                   uint64
+	TIOCSSERIAL                 uint64
+	TIOCGSERIAL                 uint64
 }
 
 func (arch *arch) sanitizeCall(c *prog.Call) {
@@ -234,28 +238,36 @@ func enforceIntArg(a prog.Arg) {
 
 func (arch *arch) sanitizeIoctl(c *prog.Call) {
 	cmd := c.Args[1].(*prog.ConstArg)
-	// Freeze kills machine. Though, it is an interesting functions,
-	// so we need to test it somehow.
-	// TODO: not required if executor drops privileges.
-	// Fortunately, the value does not conflict with any other ioctl commands for now.
-	if uint64(uint32(cmd.Val)) == arch.FIFREEZE {
+	switch uint64(uint32(cmd.Val)) {
+	case arch.FIFREEZE:
+		// Freeze kills machine. Though, it is an interesting functions,
+		// so we need to test it somehow.
+		// TODO: not required if executor drops privileges.
+		// Fortunately, the value does not conflict with any other ioctl commands for now.
 		cmd.Val = arch.FITHAW
-	}
-	// SNAPSHOT_FREEZE freezes all processes and leaves the machine dead.
-	if uint64(uint32(cmd.Val)) == arch.SNAPSHOT_FREEZE {
+	case arch.SNAPSHOT_FREEZE:
+		// SNAPSHOT_FREEZE freezes all processes and leaves the machine dead.
 		cmd.Val = arch.SNAPSHOT_UNFREEZE
-	}
-	// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
-	// Fortunately, the value does not conflict with any other ioctl commands for now.
-	if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_SHUTDOWN {
+	case arch.EXT4_IOC_SHUTDOWN:
+		// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
+		// Fortunately, the value does not conflict with any other ioctl commands for now.
 		cmd.Val = arch.EXT4_IOC_MIGRATE
-	}
-	// EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
-	// and then creation of new temp dirs for tests will fail.
-	// TODO: not necessary for sandbox=namespace as it tests in a tmpfs
-	// and/or if we mount tmpfs for sandbox=none (#971).
-	if uint64(uint32(cmd.Val)) == arch.EXT4_IOC_RESIZE_FS {
+	case arch.EXT4_IOC_RESIZE_FS:
+		// EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
+		// and then creation of new temp dirs for tests will fail.
+		// TODO: not necessary for sandbox=namespace as it tests in a tmpfs
+		// and/or if we mount tmpfs for sandbox=none (#971).
 		cmd.Val = arch.EXT4_IOC_MIGRATE
+	case arch.TIOCSSERIAL:
+		// TIOCSSERIAL can do nasty things under root, like causing writes to random memory
+		// pretty much like /dev/mem, but this is also working as intended.
+		// For details see:
+		// https://groups.google.com/g/syzkaller-bugs/c/1rVENJf9P4U/m/QtGpapRxAgAJ
+		// https://syzkaller.appspot.com/bug?extid=f4f1e871965064ae689e
+		// TODO: TIOCSSERIAL does some other things that are not dangerous
+		// and would be nice to test, if/when we can sanitize based on sandbox value
+		// we could prohibit it only under sandbox=none.
+		cmd.Val = arch.TIOCGSERIAL
 	}
 }
 
