@@ -12,7 +12,7 @@ PREINSTALL_PKGS=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmi
 
 # If ADD_PACKAGE is not defined as an external environment variable, use our default packages
 if [ -z ${ADD_PACKAGE+x} ]; then
-    ADD_PACKAGE="make,sysbench,git,vim,tmux,usbutils"
+    ADD_PACKAGE="make,sysbench,git,vim,tmux,usbutils,tcpdump"
 fi
 
 # Variables affected by options
