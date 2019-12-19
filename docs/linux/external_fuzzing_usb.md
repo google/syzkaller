@@ -39,7 +39,7 @@ Kernel patches in mainline:
 Kernel patches in review:
 
 - [[v2] kcov: fix struct layout for kcov_remote_arg](https://patchwork.kernel.org/patch/11276137/)
-- [[v3] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/cover/11285901/)
+- [[v4] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/cover/11301723/)
 - [[RFC] kcov: collect coverage from usbhid interrupts](https://patchwork.kernel.org/cover/11288771/)
 
 Some ideas for things that can be done:
