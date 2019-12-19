@@ -39,6 +39,7 @@ var structDescs_64_fork = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "syz_bf_align[syz_bf_struct10]"}, FldName: "bf10"},
 		&StructType{Key: StructKey{Name: "syz_bf_align[syz_bf_struct11]"}, FldName: "bf11"},
 		&StructType{Key: StructKey{Name: "syz_bf_align[syz_bf_struct12]"}, FldName: "bf12"},
+		&StructType{Key: StructKey{Name: "syz_bf_align[syz_bf_struct13]"}, FldName: "bf13"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "str", IsVarlen: true}, Kind: 2},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "blob", IsVarlen: true}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "arr16be", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", TypeSize: 2}, ArgFormat: 1}}},
@@ -57,6 +58,11 @@ var structDescs_64_fork = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f0", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "syz_bf_struct12"}, FldName: "f1"},
+	}}},
+	{Key: StructKey{Name: "syz_bf_align[syz_bf_struct13]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_align[syz_bf_struct13]", TypeSize: 12}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f0", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
+		&StructType{Key: StructKey{Name: "syz_bf_struct13"}, FldName: "f1"},
 	}}},
 	{Key: StructKey{Name: "syz_bf_align[syz_bf_struct4]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_align[syz_bf_struct4]", TypeSize: 16}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f0", TypeSize: 1}}},
@@ -137,6 +143,12 @@ var structDescs_64_fork = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f5", TypeSize: 4}, BitfieldOff: 8, BitfieldLen: 4, BitfieldUnit: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f6", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "syz_bf_struct13"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct13", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f0", TypeSize: 2}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f1"}, BitfieldLen: 12, BitfieldUnit: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f2", TypeSize: 4}, BitfieldOff: 12, BitfieldLen: 12, BitfieldUnit: 4}},
 	}}},
 	{Key: StructKey{Name: "syz_bf_struct1_internal"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct1_internal", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f0"}, BitfieldLen: 10, BitfieldUnit: 4}},
@@ -242,4 +254,4 @@ var consts_64_fork = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64_fork = "f7a499875897bbabb3bd01434205689198862c5b"
+const revision_64_fork = "29137bab7309a05174b99d683a1c31207323ea3b"
