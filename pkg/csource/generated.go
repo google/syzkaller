@@ -6026,20 +6026,21 @@ static long syz_exit(volatile long status)
 static long syz_compare(volatile long want, volatile long want_len, volatile long got, volatile long got_len)
 {
 	if (want_len != got_len) {
-		debug("syz_compare: want_len=%lu got_len=%lu data:\n", want_len, got_len);
-		debug_dump_data((char*)got, got_len);
 		errno = EBADF;
-		return -1;
+		goto error;
 	}
 	if (memcmp((void*)want, (void*)got, want_len)) {
-		debug("syz_compare: data differs, want:\n");
-		debug_dump_data((char*)want, want_len);
-		debug("got:\n");
-		debug_dump_data((char*)got, got_len);
 		errno = EINVAL;
-		return -1;
+		goto error;
 	}
 	return 0;
+
+error:
+	debug("syz_compare: want (%lu):\n", want_len);
+	debug_dump_data((char*)want, want_len);
+	debug("got (%lu):\n", got_len);
+	debug_dump_data((char*)got, got_len);
+	return -1;
 }
 #endif
 
