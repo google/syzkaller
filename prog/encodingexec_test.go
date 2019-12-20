@@ -249,10 +249,10 @@ func TestSerializeForExec(t *testing.T) {
 				execInstrCopyin, dataOffset + 8, execArgConst, 8, 0x42,
 				execInstrCopyin, dataOffset + 16, execArgConst, 2 | 0<<16 | 5<<24, 0x42,
 				execInstrCopyin, dataOffset + 16, execArgConst, 2 | 5<<16 | 6<<24, 0x42,
-				execInstrCopyin, dataOffset + 20, execArgConst, 4 | 0<<16 | 15<<24, 0x42,
-				execInstrCopyin, dataOffset + 24, execArgConst, 2 | 0<<16 | 11<<24, 0x42,
-				execInstrCopyin, dataOffset + 26, execArgConst, 2 | 1<<8 | 0<<16 | 11<<24, 0x42,
-				execInstrCopyin, dataOffset + 28, execArgConst, 1, 0x42,
+				execInstrCopyin, dataOffset + 16, execArgConst, 4 | 11<<16 | 15<<24, 0x42,
+				execInstrCopyin, dataOffset + 20, execArgConst, 2 | 0<<16 | 11<<24, 0x42,
+				execInstrCopyin, dataOffset + 22, execArgConst, 2 | 1<<8 | 0<<16 | 11<<24, 0x42,
+				execInstrCopyin, dataOffset + 24, execArgConst, 1, 0x42,
 				callID("test$bf0"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,
 			},
@@ -303,16 +303,16 @@ func TestSerializeForExec(t *testing.T) {
 								},
 							},
 							{
-								Addr: dataOffset + 20,
+								Addr: dataOffset + 16,
 								Arg: ExecArgConst{
 									Size:           4,
 									Value:          0x42,
-									BitfieldOffset: 0,
+									BitfieldOffset: 11,
 									BitfieldLength: 15,
 								},
 							},
 							{
-								Addr: dataOffset + 24,
+								Addr: dataOffset + 20,
 								Arg: ExecArgConst{
 									Size:           2,
 									Value:          0x42,
@@ -321,7 +321,7 @@ func TestSerializeForExec(t *testing.T) {
 								},
 							},
 							{
-								Addr: dataOffset + 26,
+								Addr: dataOffset + 22,
 								Arg: ExecArgConst{
 									Size:           2,
 									Format:         FormatBigEndian,
@@ -331,7 +331,7 @@ func TestSerializeForExec(t *testing.T) {
 								},
 							},
 							{
-								Addr: dataOffset + 28,
+								Addr: dataOffset + 24,
 								Arg: ExecArgConst{
 									Size:  1,
 									Value: 0x42,
@@ -394,9 +394,9 @@ func TestSerializeForExec(t *testing.T) {
 				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 0<<16 | 1<<24, 0x1,
 				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 1<<16 | 1<<24, 0x2,
 				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 2<<16 | 1<<24, 0x3,
-				execInstrCopyin, dataOffset + 1, execArgConst, 2 | 0<<16 | 1<<24, 0x4,
-				execInstrCopyin, dataOffset + 1, execArgConst, 2 | 1<<16 | 1<<24, 0x5,
-				execInstrCopyin, dataOffset + 1, execArgConst, 2 | 2<<16 | 1<<24, 0x6,
+				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 3<<16 | 1<<24, 0x4,
+				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 4<<16 | 1<<24, 0x5,
+				execInstrCopyin, dataOffset + 0, execArgConst, 2 | 5<<16 | 1<<24, 0x6,
 				execInstrCopyin, dataOffset + 8, execArgConst, 1, 0x42,
 				callID("test$align7"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
 				execInstrEOF,

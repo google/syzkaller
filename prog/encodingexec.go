@@ -125,6 +125,7 @@ func (w *execContext) writeCopyin(c *Call) {
 			return
 		}
 		addr := w.target.PhysicalAddr(ctx.Base) + ctx.Offset
+		addr -= arg.Type().UnitOffset()
 		if w.willBeUsed(arg) {
 			w.args[arg] = argInfo{Addr: addr}
 		}

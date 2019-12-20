@@ -65,6 +65,7 @@ type Type interface {
 	// These are different only for all but last bitfield in the group,
 	// where Size == 0 and UnitSize equals to the underlying bitfield type size.
 	UnitSize() uint64
+	UnitOffset() uint64
 
 	DefaultArg() Arg
 	isDefaultArg(arg Arg) bool
@@ -134,6 +135,10 @@ func (t *TypeCommon) UnitSize() uint64 {
 	return t.Size()
 }
 
+func (t *TypeCommon) UnitOffset() uint64 {
+	return 0
+}
+
 func (t *TypeCommon) IsBitfield() bool {
 	return false
 }
@@ -189,10 +194,11 @@ func (t *ResourceType) Format() BinaryFormat {
 
 type IntTypeCommon struct {
 	TypeCommon
-	ArgFormat    BinaryFormat
-	BitfieldOff  uint64
-	BitfieldLen  uint64
-	BitfieldUnit uint64
+	ArgFormat       BinaryFormat
+	BitfieldOff     uint64
+	BitfieldLen     uint64
+	BitfieldUnit    uint64
+	BitfieldUnitOff uint64
 }
 
 func (t *IntTypeCommon) String() string {
@@ -229,6 +235,10 @@ func (t *IntTypeCommon) UnitSize() uint64 {
 		return t.BitfieldUnit
 	}
 	return t.Size()
+}
+
+func (t *IntTypeCommon) UnitOffset() uint64 {
+	return t.BitfieldUnitOff
 }
 
 func (t *IntTypeCommon) IsBitfield() bool {
