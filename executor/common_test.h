@@ -44,7 +44,8 @@ static long syz_exit(volatile long status)
 static long syz_compare(volatile long want, volatile long want_len, volatile long got, volatile long got_len)
 {
 	if (want_len != got_len) {
-		debug("syz_compare: want_len=%lu got_len=%lu\n", want_len, got_len);
+		debug("syz_compare: want_len=%lu got_len=%lu data:\n", want_len, got_len);
+		debug_dump_data((char*)got, got_len);
 		errno = EBADF;
 		return -1;
 	}
