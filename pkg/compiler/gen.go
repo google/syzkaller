@@ -199,9 +199,8 @@ func (ctx *structGen) walkStruct(t *prog.StructType) {
 			varlen = true
 		}
 	}
-	comp.markBitfields(t.Fields)
 	packed, sizeAttr, alignAttr := comp.parseStructAttrs(structNode)
-	t.Fields = comp.addAlignment(t.Fields, varlen, packed, alignAttr)
+	t.Fields = comp.layoutStruct(t.Fields, varlen, packed, alignAttr)
 	t.AlignAttr = alignAttr
 	t.TypeSize = 0
 	if !varlen {
@@ -259,22 +258,58 @@ func (comp *compiler) genStructDesc(res *prog.StructDesc, n *ast.Struct, dir pro
 	}
 }
 
-func (comp *compiler) markBitfields(fields []prog.Type) {
-	var bfOffset uint64
+func (comp *compiler) layoutStruct(fields []prog.Type, varlen, packed bool, alignAttr uint64) []prog.Type {
+	var newFields []prog.Type
+	var align, off, bfOffset uint64
 	for i, f := range fields {
-		if f.BitfieldLength() == 0 {
-			continue
+		if f.IsBitfield() {
+			off, middle := bfOffset, true
+			bfOffset += f.BitfieldLength()
+			// Last bitfield in a group, if last field of the struct...
+			if i == len(fields)-1 ||
+				// or next field is not a bitfield...
+				fields[i+1].BitfieldLength() == 0 ||
+				// or next field is of different size...
+				f.Size() != fields[i+1].Size() ||
+				// or next field does not fit into the current group.
+				bfOffset+fields[i+1].BitfieldLength() > f.Size()*8 {
+				middle, bfOffset = false, 0
+			}
+			setBitfieldOffset(f, off, middle)
 		}
-		off, middle := bfOffset, true
-		bfOffset += f.BitfieldLength()
-		if i == len(fields)-1 || // Last bitfield in a group, if last field of the struct...
-			fields[i+1].BitfieldLength() == 0 || // or next field is not a bitfield...
-			f.Size() != fields[i+1].Size() || // or next field is of different size...
-			bfOffset+fields[i+1].BitfieldLength() > f.Size()*8 { // or next field does not fit into the current group.
-			middle, bfOffset = false, 0
+		needPadding := true
+		if i != 0 {
+			prev := fields[i-1]
+			needPadding = !prev.Varlen() && prev.Size() != 0
 		}
-		setBitfieldOffset(f, off, middle)
+		if needPadding && !packed {
+			a := comp.typeAlign(f)
+			if align < a {
+				align = a
+			}
+			// Append padding if the last field is not a bitfield or it's the last bitfield in a set.
+			if !packed && off%a != 0 {
+				pad := a - off%a
+				off += pad
+				newFields = append(newFields, genPad(pad))
+			}
+		}
+		newFields = append(newFields, f)
+		if !f.Varlen() {
+			// Increase offset if the current field except when it's
+			// the last field in a struct and has variable length.
+			off += f.Size()
+		}
 	}
+	if alignAttr != 0 {
+		align = alignAttr
+	}
+	if align != 0 && off%align != 0 && !varlen {
+		pad := align - off%align
+		off += pad
+		newFields = append(newFields, genPad(pad))
+	}
+	return newFields
 }
 
 func setBitfieldOffset(t0 prog.Type, offset uint64, middle bool) {
@@ -297,55 +332,6 @@ func setBitfieldOffset(t0 prog.Type, offset uint64, middle bool) {
 	default:
 		panic(fmt.Sprintf("type %#v can't be a bitfield", t))
 	}
-}
-
-func (comp *compiler) addAlignment(fields []prog.Type, varlen, packed bool, alignAttr uint64) []prog.Type {
-	var newFields []prog.Type
-	if packed {
-		// If a struct is packed, statically sized and has explicitly set alignment,
-		// add a padding at the end.
-		newFields = fields
-		if !varlen && alignAttr != 0 {
-			size := uint64(0)
-			for _, f := range fields {
-				size += f.Size()
-			}
-			if tail := size % alignAttr; tail != 0 {
-				newFields = append(newFields, genPad(alignAttr-tail))
-			}
-		}
-		return newFields
-	}
-	var align, off uint64
-	for i, f := range fields {
-		if i == 0 || fields[i-1].Size() != 0 {
-			a := comp.typeAlign(f)
-			if align < a {
-				align = a
-			}
-			// Append padding if the last field is not a bitfield or it's the last bitfield in a set.
-			if off%a != 0 {
-				pad := a - off%a
-				off += pad
-				newFields = append(newFields, genPad(pad))
-			}
-		}
-		newFields = append(newFields, f)
-		if !(i == len(fields)-1 && f.Varlen()) {
-			// Increase offset if the current field except when it's
-			// the last field in a struct and has variable length.
-			off += f.Size()
-		}
-	}
-	if alignAttr != 0 {
-		align = alignAttr
-	}
-	if align != 0 && off%align != 0 && !varlen {
-		pad := align - off%align
-		off += pad
-		newFields = append(newFields, genPad(pad))
-	}
-	return newFields
 }
 
 func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
