@@ -73,7 +73,7 @@ snd_pcm_hw_params {
 
 snd_pcm_hw_params_old {
 	flags		int32
-	masks		array[snd_mask, 3]
+	masks		array[int32, 3]
 	intervals	array[snd_interval, 12]
 	rmask		int32
 	cmask		const[0, int32]
@@ -98,7 +98,8 @@ snd_pcm_sw_params {
 	boundary		intptr
 	proto			int32
 	tstamp_type		flags[sndrv_pcm_audio_tstamp_type, int32]
-} [size[SND_PCM_SW_PARAMS_SIZE]]
+	reserved		array[const[0, int8], 56]
+}
 
 snd_pcm_sync_ptr {
 	flags	flags[snd_pcm_sync_flags, int32]
@@ -159,7 +160,10 @@ snd_xfern {
 snd_interval {
 	min	int32
 	max	int32
-	flags	int32
+	openmin	int32:1
+	openmax	int32:1
+	integer	int32:1
+	empty	int32:1
 }
 
 type snd_mask array[int32, 8]
@@ -174,6 +178,5 @@ define SND_PCM_STATUS32_SIZE	sizeof(struct snd_pcm_status32)
 define SND_PCM_STATUS64_SIZE	sizeof(struct snd_pcm_status64)
 define SND_PCM_SFRAMES_SIZE	sizeof(snd_pcm_sframes_t)
 define SND_PCM_CHANNEL_INFO_SIZE	sizeof(struct snd_pcm_channel_info)
-define SND_PCM_SW_PARAMS_SIZE	sizeof(struct snd_pcm_sw_params)
 define SND_PCM_SYNC_PTR_SIZE	sizeof(struct snd_pcm_sync_ptr)
 _ = __NR_mmap2

@@ -130,26 +130,25 @@ getsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCV
 
 bt_voice_settings = BT_VOICE_TRANSPARENT, BT_VOICE_CVSD_16BIT
 
+type hci_dev_t int16[-1:10]
+
 sockaddr_hci {
 	fam	const[AF_BLUETOOTH, int16]
-	dev	ifindex
+	dev	hci_dev_t
 	chan	flags[bt_chi_chan, int16]
 }
 
 hci_inquiry_req {
-	dev	ifindex
+	dev	hci_dev_t
 	flags	int16
-	lap0	int8
-	lap1	int8
-	lap2	int8
+	lap	array[int8, 3]
 	len	int8
 	rsp	int8
 }
 
 hci_ufilter {
 	type	int32
-	event0	int32
-	event1	int32
+	event	array[int32, 2]
 	opcode	int16
 }
 
@@ -192,9 +191,7 @@ l2cap_options {
 
 l2cap_conninfo {
 	handle	int16
-	devcls0	int8
-	devcls1	int8
-	devcls2	int8
+	devcls	array[int8, 3]
 }
 
 sockaddr_rc {

@@ -11,83 +11,32 @@ struct xt_bpf_info_pinned: no corresponding struct in kernel
 struct xt_bpf_info_fd: no corresponding struct in kernel
 struct xt_conntrack_mtinfo_common: no corresponding struct in kernel
 struct xt_conntrack_mtinfo1: bad number of fields: syz=3 kernel=19
-struct xt_conntrack_mtinfo1: bad size: syz=156 kernel=152
-field xt_conntrack_mtinfo1.common/origsrc_addr: bad size: syz=152 kernel=16
-field xt_conntrack_mtinfo1.state_mask/origsrc_mask: bad offset: syz=152 kernel=16
+field xt_conntrack_mtinfo1.common/origsrc_addr: bad size: syz=150 kernel=16
+field xt_conntrack_mtinfo1.state_mask/origsrc_mask: bad offset: syz=150 kernel=16
 field xt_conntrack_mtinfo1.state_mask/origsrc_mask: bad size: syz=1 kernel=16
-field xt_conntrack_mtinfo1.status_mask/origdst_addr: bad offset: syz=153 kernel=32
+field xt_conntrack_mtinfo1.status_mask/origdst_addr: bad offset: syz=151 kernel=32
 field xt_conntrack_mtinfo1.status_mask/origdst_addr: bad size: syz=1 kernel=16
 struct xt_conntrack_mtinfo2: bad number of fields: syz=3 kernel=19
-field xt_conntrack_mtinfo2.common/origsrc_addr: bad size: syz=152 kernel=16
-field xt_conntrack_mtinfo2.state_mask/origsrc_mask: bad offset: syz=152 kernel=16
+field xt_conntrack_mtinfo2.common/origsrc_addr: bad size: syz=150 kernel=16
+field xt_conntrack_mtinfo2.state_mask/origsrc_mask: bad offset: syz=150 kernel=16
 field xt_conntrack_mtinfo2.state_mask/origsrc_mask: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo2.status_mask/origdst_addr: bad offset: syz=154 kernel=32
+field xt_conntrack_mtinfo2.status_mask/origdst_addr: bad offset: syz=152 kernel=32
 field xt_conntrack_mtinfo2.status_mask/origdst_addr: bad size: syz=2 kernel=16
 struct xt_conntrack_mtinfo3: bad number of fields: syz=7 kernel=23
-field xt_conntrack_mtinfo3.common/origsrc_addr: bad size: syz=152 kernel=16
-field xt_conntrack_mtinfo3.state_mask/origsrc_mask: bad offset: syz=152 kernel=16
+field xt_conntrack_mtinfo3.common/origsrc_addr: bad size: syz=150 kernel=16
+field xt_conntrack_mtinfo3.state_mask/origsrc_mask: bad offset: syz=150 kernel=16
 field xt_conntrack_mtinfo3.state_mask/origsrc_mask: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.status_mask/origdst_addr: bad offset: syz=154 kernel=32
+field xt_conntrack_mtinfo3.status_mask/origdst_addr: bad offset: syz=152 kernel=32
 field xt_conntrack_mtinfo3.status_mask/origdst_addr: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.origsrc_port_high/origdst_mask: bad offset: syz=156 kernel=48
+field xt_conntrack_mtinfo3.origsrc_port_high/origdst_mask: bad offset: syz=154 kernel=48
 field xt_conntrack_mtinfo3.origsrc_port_high/origdst_mask: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.origdst_port_high/replsrc_addr: bad offset: syz=158 kernel=64
+field xt_conntrack_mtinfo3.origdst_port_high/replsrc_addr: bad offset: syz=156 kernel=64
 field xt_conntrack_mtinfo3.origdst_port_high/replsrc_addr: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: bad offset: syz=160 kernel=80
+field xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: bad offset: syz=158 kernel=80
 field xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: bad offset: syz=162 kernel=96
+field xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: bad offset: syz=160 kernel=96
 field xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: bad size: syz=2 kernel=16
-struct xt_tcp: bad number of fields: syz=8 kernel=6
-field xt_tcp.spts_min/spts: bad size: syz=2 kernel=4
-field xt_tcp.spts_max/dpts: bad offset: syz=2 kernel=4
-field xt_tcp.spts_max/dpts: bad size: syz=2 kernel=4
-field xt_tcp.dpts_min/option: bad offset: syz=4 kernel=8
-field xt_tcp.dpts_min/option: bad size: syz=2 kernel=1
-field xt_tcp.dpts_max/flg_mask: bad offset: syz=6 kernel=9
-field xt_tcp.dpts_max/flg_mask: bad size: syz=2 kernel=1
-field xt_tcp.option/flg_cmp: bad offset: syz=8 kernel=10
-field xt_tcp.flg_mask/invflags: bad offset: syz=9 kernel=11
-struct xt_udp: bad number of fields: syz=5 kernel=3
-field xt_udp.spts_min/spts: bad size: syz=2 kernel=4
-field xt_udp.spts_max/dpts: bad offset: syz=2 kernel=4
-field xt_udp.spts_max/dpts: bad size: syz=2 kernel=4
-field xt_udp.dpts_min/invflags: bad offset: syz=4 kernel=8
-field xt_udp.dpts_min/invflags: bad size: syz=2 kernel=1
-field xt_connmark_mtinfo1.invert: bad size: syz=4 kernel=1
-struct xt_connbytes_info: bad number of fields: syz=4 kernel=3
-field xt_connbytes_info.count_from/count: bad size: syz=8 kernel=16
-field xt_connbytes_info.count_to/what: bad offset: syz=8 kernel=16
-field xt_connbytes_info.count_to/what: bad size: syz=8 kernel=1
-field xt_connbytes_info.what/direction: bad offset: syz=16 kernel=17
-struct xt_sctp_info: bad number of fields: syz=10 kernel=8
-field xt_sctp_info.dpts_min/dpts: bad size: syz=2 kernel=4
-field xt_sctp_info.dpts_max/spts: bad offset: syz=2 kernel=4
-field xt_sctp_info.dpts_max/spts: bad size: syz=2 kernel=4
-field xt_sctp_info.spts_min/chunkmap: bad offset: syz=4 kernel=8
-field xt_sctp_info.spts_min/chunkmap: bad size: syz=2 kernel=256
-field xt_sctp_info.spts_max/chunk_match_type: bad offset: syz=6 kernel=264
-field xt_sctp_info.spts_max/chunk_match_type: bad size: syz=2 kernel=4
-field xt_sctp_info.chunkmap/flag_info: bad offset: syz=8 kernel=268
-field xt_sctp_info.chunkmap/flag_info: bad size: syz=256 kernel=12
-field xt_sctp_info.chunk_match_type/flag_count: bad offset: syz=264 kernel=280
-field xt_sctp_info.flag_info/flags: bad offset: syz=268 kernel=284
-field xt_sctp_info.flag_info/flags: bad size: syz=12 kernel=4
-field xt_sctp_info.flag_count/invflags: bad offset: syz=280 kernel=288
-struct xt_dccp_info: bad number of fields: syz=8 kernel=6
-field xt_dccp_info.dpts_min/dpts: bad size: syz=2 kernel=4
-field xt_dccp_info.dpts_max/spts: bad offset: syz=2 kernel=4
-field xt_dccp_info.dpts_max/spts: bad size: syz=2 kernel=4
-field xt_dccp_info.spts_min/flags: bad offset: syz=4 kernel=8
-field xt_dccp_info.spts_max/invflags: bad offset: syz=6 kernel=10
-field xt_dccp_info.flags/typemask: bad offset: syz=8 kernel=12
-field xt_dccp_info.invflags/option: bad offset: syz=10 kernel=14
-field xt_dccp_info.invflags/option: bad size: syz=2 kernel=1
 struct xt_comment_info: no corresponding struct in kernel
-struct xt_ipcomp: bad number of fields: syz=4 kernel=3
-field xt_ipcomp.spis_min/spis: bad size: syz=4 kernel=8
-field xt_ipcomp.spis_max/invflags: bad offset: syz=4 kernel=8
-field xt_ipcomp.spis_max/invflags: bad size: syz=4 kernel=1
-field xt_ipcomp.invflags/hdrres: bad offset: syz=8 kernel=9
 struct xt_statistic_info: bad number of fields: syz=6 kernel=4
 field xt_statistic_info.every/u: bad size: syz=4 kernel=12
 field xt_statistic_info.packet/master: bad offset: syz=8 kernel=16
@@ -106,7 +55,3 @@ field xt_policy_elem.spi/mode: bad size: syz=4 kernel=1
 field xt_policy_elem.reqid/match: bad offset: syz=68 kernel=74
 field xt_policy_elem.reqid/match: bad size: syz=4 kernel=1
 field xt_policy_elem.proto/invert: bad offset: syz=72 kernel=75
-struct xt_esp: bad number of fields: syz=3 kernel=2
-field xt_esp.spis_min/spis: bad size: syz=4 kernel=8
-field xt_esp.spis_max/invflags: bad offset: syz=4 kernel=8
-field xt_esp.spis_max/invflags: bad size: syz=4 kernel=1

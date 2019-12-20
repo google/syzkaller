@@ -470,6 +470,8 @@ tc_netem_slot {
 	max_delay	int64
 	max_packets	int32
 	max_bytes	int32
+	dist_delay	int64
+	dist_jitter	int64
 }
 
 tc_netem_gimodel {
@@ -489,8 +491,10 @@ tc_netem_gemodel {
 
 tc_prio_qopt {
 	bands	int32
-	priomap	array[int8, TC_PRIO_MAX]
+	priomap	array[int8, TC_PRIO_MAX1]
 }
+
+define TC_PRIO_MAX1	TC_PRIO_MAX + 1
 
 tc_plug_qopt {
 	action	flags[tc_plug_actions, int32]
@@ -520,6 +524,7 @@ tc_sfq_qopt_v1 {
 	Plog		int8[0:32]
 	Scell_log	int8[0:32]
 	flag		int8[0:8]
+	max_P		int32
 	stats		tc_sfqred_stats
 }
 
@@ -540,13 +545,13 @@ tc_sfqred_stats {
 	forced_mark_head	int32
 }
 
-tc_tbf_qopt [
+tc_tbf_qopt {
 	rate		tc_ratespec
 	peakrate	tc_ratespec
 	limit		int32
 	buffer		int32
 	mtu		int32[0:9000]
-]
+}
 
 # ------------------------------ tc class ------------------------------
 tclass_kind_options [

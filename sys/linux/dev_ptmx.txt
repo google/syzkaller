@@ -124,7 +124,7 @@ ioctl$VT_RESIZE(fd fd_tty, cmd const[VT_RESIZE], arg ptr[in, vt_sizes])
 ioctl$VT_RESIZEX(fd fd_tty, cmd const[VT_RESIZEX], arg ptr[in, vt_consize])
 
 # For the TIOCLINUX ioctl, see console_ioctl(4).
-ioctl$TIOCL_SETSEL(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_selection])
+ioctl$TIOCL_SETSEL(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tiocl_selection_arg])
 ioctl$TIOCL_PASTESEL(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_PASTESEL, int8]])
 ioctl$TIOCL_UNBLANKSCREEN(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_UNBLANKSCREEN, int8]])
 ioctl$TIOCL_SELLOADLUT(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, loadlut])
@@ -166,18 +166,12 @@ termiox {
 }
 
 termios {
-	iflag	int32
-	oflag	int32
-	cflag	int32
-	lflag	int32
-	line	int8[N_TTY:N_NULL]
-	cc0	int8
-	cc1	int8
-	cc2	int8
-	cc3_6	int32
-	cc7_10	int32
-	cc11_14	int32
-	cc15_18	int32
+	c_iflag	int32
+	c_oflag	int32
+	c_cflag	int32
+	c_lflag	int32
+	c_line	int8[N_TTY:N_NULL]
+	c_cc	array[int8, NCCS]
 }
 
 termios2 {
@@ -192,16 +186,12 @@ termios2 {
 }
 
 termio {
-	iflag	int16
-	oflag	int16
-	cflag	int16
-	lflag	int16
-	line	int8[N_TTY:N_NULL]
-	cc0	int8
-	cc1	int8
-	cc2	int8
-	cc3_6	int32
-	cc7	int8
+	c_iflag	int16
+	c_oflag	int16
+	c_cflag	int16
+	c_lflag	int16
+	c_line	int8[N_TTY:N_NULL]
+	c_cc	array[int8, NCC]
 }
 
 winsize {
@@ -286,6 +276,11 @@ vt_consize {
 	ccol	int16
 }
 
+tiocl_selection_arg {
+	subcode	const[TIOCL_SETSEL, int8]
+	data	tiocl_selection
+} [packed]
+
 tiocl_selection {
 	subcode	const[TIOCL_SETSEL, int8]
 	xs	int16
@@ -324,7 +319,7 @@ serial_struct {
 	xmit_fifo_size	int32
 	custom_divisor	int32
 	baud_base	int32
-	close_delay	int32
+	close_delay	int16
 	io_type		int8
 	reserved_char	int8
 	hub6		int32

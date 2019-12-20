@@ -2,26 +2,6 @@ struct arpt_entry_matches: no corresponding struct in kernel
 struct arpt_entry_underflow: no corresponding struct in kernel
 struct arpt_entry_underflow_matches: no corresponding struct in kernel
 struct arpt_arp_or_uncond: no corresponding struct in kernel
-struct arpt_arp: bad size: syz=160 kernel=164
-field arpt_arp.src_devaddr/arhln: bad size: syz=16 kernel=1
-field arpt_arp.src_devmask/arhln_mask: bad offset: syz=32 kernel=17
-field arpt_arp.src_devmask/arhln_mask: bad size: syz=16 kernel=1
-field arpt_arp.tgt_devaddr/src_devaddr: bad offset: syz=48 kernel=18
-field arpt_arp.tgt_devaddr/src_devaddr: bad size: syz=16 kernel=32
-field arpt_arp.tgt_devmask/tgt_devaddr: bad offset: syz=64 kernel=50
-field arpt_arp.tgt_devmask/tgt_devaddr: bad size: syz=16 kernel=32
-field arpt_arp.arpop: bad offset: syz=80 kernel=82
-field arpt_arp.arpop_mask: bad offset: syz=82 kernel=84
-field arpt_arp.arhrd: bad offset: syz=84 kernel=86
-field arpt_arp.arhrd_mask: bad offset: syz=86 kernel=88
-field arpt_arp.arpro: bad offset: syz=88 kernel=90
-field arpt_arp.arpro_mask: bad offset: syz=90 kernel=92
-field arpt_arp.iniface: bad offset: syz=92 kernel=94
-field arpt_arp.outiface: bad offset: syz=108 kernel=110
-field arpt_arp.iniface_mask: bad offset: syz=124 kernel=126
-field arpt_arp.outiface_mask: bad offset: syz=140 kernel=142
-field arpt_arp.flags: bad offset: syz=156 kernel=158
-field arpt_arp.invflags: bad offset: syz=158 kernel=160
 struct arpt_devaddr: no corresponding struct in kernel
 struct arpt_devmask: no corresponding struct in kernel
 struct arpt_counters_info: no corresponding struct in kernel

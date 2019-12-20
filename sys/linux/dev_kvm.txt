@@ -659,17 +659,17 @@ kvm_dtable {
 }
 
 kvm_fpu {
-	fpr	array[const[0, int64], 16]
-	fcw	int16
-	fsw	int8
-	ftws	int8
-	pad1	const[0, int8]
-	opcode	int16
-	lastip	flags[kvm_guest_addrs, int64]
-	lastdp	flags[kvm_guest_addrs, int64]
-	xmm	array[const[0, int64], 32]
-	mxcsr	int32
-	pad2	const[0, int32]
+	fpr		array[const[0, int64], 16]
+	fcw		int16
+	fsw		int16
+	ftws		int8
+	pad1		const[0, int8]
+	last_opcode	int16
+	last_ip		flags[kvm_guest_addrs, int64]
+	last_dp		flags[kvm_guest_addrs, int64]
+	xmm		array[const[0, int64], 32]
+	mxcsr		int32
+	pad2		const[0, int32]
 }
 
 kvm_debugregs {
