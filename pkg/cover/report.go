@@ -436,7 +436,7 @@ func PreviousInstructionPC(arch string, pc uint64) uint64 {
 	case "ppc64le":
 		return pc - 4
 	case "mips64le":
-		return pc - 4
+		return pc - 8
 	default:
 		panic(fmt.Sprintf("unknown arch %q", arch))
 	}
