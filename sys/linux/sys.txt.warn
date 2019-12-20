@@ -1,3 +1,4 @@
+unsupported syscall: sendfile64 due to missing const __NR_sendfile64
 field seccomp_metadata.flags: bad size: syz=4 kernel=8
 struct pipefd: no corresponding struct in kernel
 struct stat: bad size: syz=68 kernel=144

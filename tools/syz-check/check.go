@@ -74,7 +74,7 @@ func main() {
 }
 
 func check(OS, arch, obj string) error {
-	structDescs, locs, err := parseDescriptions(OS, arch)
+	structDescs, locs, warnings1, err := parseDescriptions(OS, arch)
 	if err != nil {
 		return err
 	}
@@ -82,11 +82,11 @@ func check(OS, arch, obj string) error {
 	if err != nil {
 		return err
 	}
-	warnings, err := checkImpl(structs, structDescs, locs)
+	warnings2, err := checkImpl(structs, structDescs, locs)
 	if err != nil {
 		return err
 	}
-	return writeWarnings(OS, arch, warnings)
+	return writeWarnings(OS, arch, append(warnings1, warnings2...))
 }
 
 type Warn struct {
@@ -224,22 +224,24 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 	return warnings, nil
 }
 
-func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.Struct, error) {
+func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.Struct, []Warn, error) {
 	errorBuf := new(bytes.Buffer)
+	var warnings []Warn
 	eh := func(pos ast.Pos, msg string) {
+		warnings = append(warnings, Warn{pos, msg})
 		fmt.Fprintf(errorBuf, "%v: %v\n", pos, msg)
 	}
 	top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), eh)
 	if top == nil {
-		return nil, nil, fmt.Errorf("failed to parse txt files:\n%s", errorBuf.Bytes())
+		return nil, nil, nil, fmt.Errorf("failed to parse txt files:\n%s", errorBuf.Bytes())
 	}
 	consts := compiler.DeserializeConstsGlob(filepath.Join("sys", OS, "*_"+arch+".const"), eh)
 	if consts == nil {
-		return nil, nil, fmt.Errorf("failed to parse const files:\n%s", errorBuf.Bytes())
+		return nil, nil, nil, fmt.Errorf("failed to parse const files:\n%s", errorBuf.Bytes())
 	}
 	prg := compiler.Compile(top, consts, targets.Get(OS, arch), eh)
 	if prg == nil {
-		return nil, nil, fmt.Errorf("failed to compile descriptions:\n%s", errorBuf.Bytes())
+		return nil, nil, nil, fmt.Errorf("failed to compile descriptions:\n%s", errorBuf.Bytes())
 	}
 	prog.RestoreLinks(prg.Syscalls, prg.Resources, prg.StructDescs)
 	locs := make(map[string]*ast.Struct)
@@ -249,5 +251,5 @@ func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.St
 			locs[n.Name.Name] = n
 		}
 	}
-	return prg.StructDescs, locs, nil
+	return prg.StructDescs, locs, warnings, nil
 }

@@ -1,5 +1,6 @@
 struct snd_ctl_elem_info: bad number of fields: syz=12 kernel=8
 field snd_ctl_elem_info.items/value: bad size: syz=4 kernel=128
+len target names_ptr refer to an array with variable-size elements (do you mean bytesize?)
 field snd_ctl_elem_info.item/dimen: bad offset: syz=84 kernel=208
 field snd_ctl_elem_info.item/dimen: bad size: syz=4 kernel=8
 field snd_ctl_elem_info.name/reserved: bad offset: syz=88 kernel=216

@@ -4,6 +4,8 @@ struct trusty_password_handle: no corresponding struct in kernel
 struct trusty_km_secure_msg: no corresponding struct in kernel
 struct trusty_km_supported_digests: no corresponding struct in kernel
 struct trusty_km_configure: no corresponding struct in kernel
+len target params refer to an array with variable-size elements (do you mean bytesize?)
+len target elements refer to an array with variable-size elements (do you mean bytesize?)
 struct trusty_authorization_bytes: no corresponding struct in kernel
 struct trusty_avb_rollback_index: no corresponding struct in kernel
 struct trusty_storage_file_close_req: no corresponding struct in kernel

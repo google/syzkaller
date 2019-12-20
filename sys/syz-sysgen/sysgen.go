@@ -111,6 +111,8 @@ func main() {
 
 				job.ArchData = generateExecutorSyscalls(job.Target, prog.Syscalls, rev)
 
+				// Don't print warnings, they are printed in syz-check.
+				job.Errors = nil
 				job.OK = true
 			}()
 		}
@@ -131,7 +133,6 @@ func main() {
 			for u := range job.Unsupported {
 				unsupported[u]++
 			}
-			fmt.Printf("\n")
 		}
 		oses = append(oses, OSData{
 			GOOS:  OS,

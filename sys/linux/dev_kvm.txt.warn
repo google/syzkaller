@@ -1,3 +1,4 @@
+unsupported syscall: ioctl$KVM_ARM_VCPU_INIT due to missing const KVM_ARM_VCPU_INIT
 struct kvm_text_x86: no corresponding struct in kernel
 struct kvm_text_x86_real: no corresponding struct in kernel
 struct kvm_text_x86_16: no corresponding struct in kernel
