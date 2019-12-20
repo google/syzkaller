@@ -171,6 +171,9 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 		warn(astStruct.Pos, "struct %v: bad size: syz=%v kernel=%v", typ.Name(), typ.Size(), str.ByteSize)
 	}
 	// TODO: handle unions, currently we should report some false errors.
+	if str.Kind == "union" {
+		return warnings, nil
+	}
 	// TODO: we could also check enums (elements match corresponding flags in syzkaller).
 	// TODO: we could also check values of literal constants (dwarf should have that, right?).
 	ai := 0
@@ -191,24 +194,25 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 				warn(pos, "%v: bad size: syz=%v kernel=%v",
 					desc, field.UnitSize(), fld.Type.Size())
 			}
-			if offset != uint64(fld.ByteOffset) {
+			byteOffset := offset - field.UnitOffset()
+			if byteOffset != uint64(fld.ByteOffset) {
 				warn(pos, "%v: bad offset: syz=%v kernel=%v",
-					desc, offset, fld.ByteOffset)
+					desc, byteOffset, fld.ByteOffset)
 			}
 			// How would you define bitfield offset?
 			// Offset of the beginning of the field from the beginning of the memory location, right?
 			// No, DWARF defines it as offset of the end of the field from the end of the memory location.
-			offset := fld.Type.Size()*8 - fld.BitOffset - fld.BitSize
+			bitOffset := fld.Type.Size()*8 - fld.BitOffset - fld.BitSize
 			if fld.BitSize == 0 {
 				// And to make things even more interesting this calculation
 				// does not work for normal variables.
-				offset = 0
+				bitOffset = 0
 			}
 			if field.BitfieldLength() != uint64(fld.BitSize) ||
-				field.BitfieldOffset() != uint64(offset) {
+				field.BitfieldOffset() != uint64(bitOffset) {
 				warn(pos, "%v: bad bit size/offset: syz=%v/%v kernel=%v/%v",
 					desc, field.BitfieldLength(), field.BitfieldOffset(),
-					fld.BitSize, offset)
+					fld.BitSize, bitOffset)
 			}
 		}
 		ai++
