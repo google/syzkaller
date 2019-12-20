@@ -1,3 +1,4 @@
+len target entries refer to an array with variable-size elements (do you mean bytesize?)
 struct ebt_getinfo: no corresponding struct in kernel
 struct ebt_get_entries: no corresponding struct in kernel
 struct ebt_ip_info: bad number of fields: syz=12 kernel=10
