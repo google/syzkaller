@@ -335,6 +335,13 @@ func setBitfieldOffset(t0 prog.Type, offset uint64, middle bool) {
 }
 
 func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
+	switch t0.Format() {
+	case prog.FormatNative, prog.FormatBigEndian:
+	case prog.FormatStrDec, prog.FormatStrHex, prog.FormatStrOct:
+		return 1
+	default:
+		panic("unknown binary format")
+	}
 	switch t := t0.(type) {
 	case *prog.IntType, *prog.LenType, *prog.FlagsType, *prog.ProcType,
 		*prog.CsumType, *prog.PtrType, *prog.VmaType, *prog.ResourceType:

@@ -265,7 +265,12 @@ s3 {
 	f1	int8
 } [size[100]]
 
-foo$s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2])
+s4 {
+	f1	fmt[hex, int32]
+	f2	int8
+} [size[19]]
+
+foo$s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2], d ptr[in, s4])
 
 # Unions.
 
