@@ -1,6 +1,10 @@
+len target configs refer to an array with variable-size elements (do you mean bytesize?)
+len target interfaces refer to an array with variable-size elements (do you mean bytesize?)
+len target endpoints refer to an array with variable-size elements (do you mean bytesize?)
 struct vusb_connect_string_descriptor: no corresponding struct in kernel
 struct vusb_descriptors: no corresponding struct in kernel
 struct vusb_responses: no corresponding struct in kernel
+len target caps refer to an array with variable-size elements (do you mean bytesize?)
 struct usb_wireless_cap_descriptor: no corresponding struct in kernel
 struct usb_ext_cap_descriptor: bad number of fields: syz=7 kernel=4
 field usb_ext_cap_descriptor.bmAttributes1/bmAttributes: bad bit size/offset: syz=8/0 kernel=0/0

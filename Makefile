@@ -28,7 +28,8 @@ ENV := $(subst \n,$(newline),$(shell \
 	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
 	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
 	go run tools/syz-env/env.go))
-$(info $(ENV))
+# Uncomment in case of emergency.
+# $(info $(ENV))
 $(eval $(ENV))
 ifeq ("$(NCORES)", "")
 $(error syz-env failed)
