@@ -42,8 +42,7 @@ fstrim_range {
 }
 
 file_clone_range {
-	src_fd		fd
-	pad		const[0, int32]
+	src_fd		align64[fd]
 	src_offset	int64
 	src_length	int64
 	dest_offset	int64
@@ -59,8 +58,7 @@ file_dedupe_range {
 }
 
 file_dedupe_range_info {
-	dest_fd		fd
-	pad		const[0, int32]
+	dest_fd		align64[fd]
 	dest_offset	int64
 	bytes_deduped	const[0, int64]
 	status		const[0, int32]
@@ -73,7 +71,7 @@ fsxattr {
 	fsx_nextents	int32
 	fsx_projid	int32
 	fsx_cowextsize	int32
-	fsx_pad		const[0, int64]
+	fsx_pad		array[const[0, int8], 8]
 }
 
 fiemap {
@@ -86,15 +84,12 @@ fiemap {
 }
 
 fiemap_extent {
-	logical	int64
-	phys	int64
-	len	int64
-	pad1	const[0, int64]
-	pad2	const[0, int64]
-	flags	flags[fiemap_extent_flags, int32]
-	pad3	const[0, int32]
-	pad4	const[0, int32]
-	pad5	const[0, int32]
+	fe_logical	int64
+	fe_physical	int64
+	fe_length	int64
+	fe_reserved64	array[const[0, int64], 2]
+	fe_flags	flags[fiemap_extent_flags, int32]
+	fe_reserved	array[const[0, int32], 3]
 }
 
 fsmap_head {

@@ -49,9 +49,6 @@ struct kvm_regs: bad number of fields: syz=3 kernel=18
 field kvm_regs.gp/rax: bad size: syz=128 kernel=8
 field kvm_regs.rip/rbx: bad offset: syz=128 kernel=8
 field kvm_regs.rflags/rcx: bad offset: syz=136 kernel=16
-field kvm_fpu.fsw: bad size: syz=1 kernel=2
-field kvm_fpu.ftws/ftwx: bad offset: syz=131 kernel=132
-field kvm_fpu.pad1: bad offset: syz=132 kernel=133
 struct kvm_irq_chip: no corresponding struct in kernel
 struct kvm_ioapic_redir: no corresponding struct in kernel
 struct kvm_mce_cap: no corresponding struct in kernel

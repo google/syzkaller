@@ -1,24 +1,2 @@
 struct cdrom_msf_out_stub: no corresponding struct in kernel
 struct cdrom_addr: no corresponding struct in kernel
-struct request_sense: bad number of fields: syz=11 kernel=15
-field request_sense.valid_err_code/error_code: bad bit size/offset: syz=0/0 kernel=7/0
-field request_sense.segment_number/valid: bad bit size/offset: syz=0/0 kernel=1/7
-field request_sense.segment_number/valid: bad offset: syz=1 kernel=0
-field request_sense.ili_sense_key/segment_number: bad offset: syz=2 kernel=1
-field request_sense.information/sense_key: bad bit size/offset: syz=0/0 kernel=4/0
-field request_sense.information/sense_key: bad offset: syz=3 kernel=2
-field request_sense.information/sense_key: bad size: syz=4 kernel=1
-field request_sense.add_sense_len/reserved2: bad bit size/offset: syz=0/0 kernel=1/4
-field request_sense.add_sense_len/reserved2: bad offset: syz=7 kernel=2
-field request_sense.command_info/ili: bad bit size/offset: syz=0/0 kernel=1/5
-field request_sense.command_info/ili: bad offset: syz=8 kernel=2
-field request_sense.command_info/ili: bad size: syz=4 kernel=1
-field request_sense.asc/reserved1: bad bit size/offset: syz=0/0 kernel=2/6
-field request_sense.asc/reserved1: bad offset: syz=12 kernel=2
-field request_sense.ascq/information: bad offset: syz=13 kernel=3
-field request_sense.ascq/information: bad size: syz=1 kernel=4
-field request_sense.fruc/add_sense_len: bad offset: syz=14 kernel=7
-field request_sense.sks/command_info: bad offset: syz=15 kernel=8
-field request_sense.sks/command_info: bad size: syz=3 kernel=4
-field request_sense.asb/asc: bad offset: syz=18 kernel=12
-field request_sense.asb/asc: bad size: syz=46 kernel=1

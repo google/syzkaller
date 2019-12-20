@@ -34,7 +34,8 @@ io_uring_params {
 	flags		flags[io_uring_setup_flags, int32]
 	sq_thread_cpu	int32[0:3]
 	sq_thread_idle	int32[0:1000]
-	resv		array[const[0, int32], 5]
+	features	const[0, int32]
+	resv		array[const[0, int32], 4]
 	sq_off		io_sqring_offsets
 	cq_off		io_sqring_offsets
 }

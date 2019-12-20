@@ -1,5 +1,0 @@
-struct io_uring_params: bad number of fields: syz=8 kernel=9
-field io_uring_params.resv/features: bad size: syz=20 kernel=4
-field io_uring_params.sq_off/resv: bad offset: syz=40 kernel=24
-field io_uring_params.sq_off/resv: bad size: syz=40 kernel=16
-field io_uring_params.cq_off/sq_off: bad offset: syz=80 kernel=40

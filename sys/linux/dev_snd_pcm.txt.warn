@@ -1,15 +1,3 @@
-struct snd_pcm_hw_params_old: bad size: syz=344 kernel=256
-field snd_pcm_hw_params_old.masks: bad size: syz=96 kernel=12
-field snd_pcm_hw_params_old.intervals: bad offset: syz=100 kernel=16
-field snd_pcm_hw_params_old.rmask: bad offset: syz=244 kernel=160
-field snd_pcm_hw_params_old.cmask: bad offset: syz=248 kernel=164
-field snd_pcm_hw_params_old.info: bad offset: syz=252 kernel=168
-field snd_pcm_hw_params_old.msbits: bad offset: syz=256 kernel=172
-field snd_pcm_hw_params_old.rate_num: bad offset: syz=260 kernel=176
-field snd_pcm_hw_params_old.rate_den: bad offset: syz=264 kernel=180
-field snd_pcm_hw_params_old.fifo_size: bad offset: syz=272 kernel=184
-field snd_pcm_hw_params_old.reserved: bad offset: syz=280 kernel=192
-struct snd_pcm_sw_params: bad number of fields: syz=12 kernel=13
 struct snd_pcm_sync_ptr: bad number of fields: syz=3 kernel=4
 field snd_pcm_sync_ptr.status/pad1: bad size: syz=64 kernel=4
 field snd_pcm_sync_ptr.control/s: bad offset: syz=72 kernel=8
@@ -41,5 +29,3 @@ field snd_pcm_status32.overrange: bad size: syz=8 kernel=4
 field snd_pcm_status32.suspended_state: bad offset: syz=88 kernel=44
 field snd_pcm_status32.audio_tstamp_data: bad offset: syz=92 kernel=48
 struct snd_pcm_status64: bad number of fields: syz=14 kernel=20
-struct snd_interval: bad number of fields: syz=3 kernel=6
-field snd_interval.flags/openmin: bad bit size/offset: syz=0/0 kernel=1/0

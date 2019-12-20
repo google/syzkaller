@@ -71,13 +71,13 @@ define ARPT_ARP_SIZE	sizeof(struct arpt_arp)
 
 arpt_arp {
 	src		ipv4_addr
-	dst		ipv4_addr
+	tgt		ipv4_addr
 	smsk		ipv4_addr_mask
-	dmsk		ipv4_addr_mask
-	src_devaddr	arpt_devaddr
-	src_devmask	arpt_devmask
-	tgt_devaddr	arpt_devaddr
-	tgt_devmask	arpt_devmask
+	tmsk		ipv4_addr_mask
+	arhln		int8[0:ARPT_DEV_ADDR_LEN_MAX]
+	arhln_mask	int8[0:ARPT_DEV_ADDR_LEN_MAX]
+	src_devaddr	arpt_devaddr_info
+	tgt_devaddr	arpt_devaddr_info
 	arpop		int16be
 	arpop_mask	int16be
 	arhrd		int16be
@@ -90,6 +90,11 @@ arpt_arp {
 	outiface_mask	devname_mask
 	flags		const[0, int8]
 	invflags	flags[arpt_arp_invflags, int16]
+}
+
+arpt_devaddr_info {
+	addr	arpt_devaddr
+	mask	arpt_devmask
 }
 
 arpt_devaddr [

@@ -1,18 +1,2 @@
 struct vhci_command_vendor_pkt: no corresponding struct in kernel
-struct sockaddr_hci: bad size: syz=12 kernel=6
-field sockaddr_hci.dev/hci_dev: bad offset: syz=4 kernel=2
-field sockaddr_hci.dev/hci_dev: bad size: syz=4 kernel=2
-field sockaddr_hci.chan/hci_channel: bad offset: syz=8 kernel=4
-struct hci_inquiry_req: bad number of fields: syz=7 kernel=5
-struct hci_inquiry_req: bad size: syz=12 kernel=10
-field hci_inquiry_req.dev/dev_id: bad size: syz=4 kernel=2
-field hci_inquiry_req.flags: bad offset: syz=4 kernel=2
-field hci_inquiry_req.lap0/lap: bad offset: syz=6 kernel=4
-field hci_inquiry_req.lap0/lap: bad size: syz=1 kernel=3
-struct hci_ufilter: bad number of fields: syz=4 kernel=3
-field hci_ufilter.event0/event_mask: bad size: syz=4 kernel=8
-field hci_ufilter.event1/opcode: bad offset: syz=8 kernel=12
-field hci_ufilter.event1/opcode: bad size: syz=4 kernel=2
 struct bdaddr: no corresponding struct in kernel
-struct l2cap_conninfo: bad number of fields: syz=4 kernel=2
-field l2cap_conninfo.devcls0/dev_class: bad size: syz=1 kernel=3

@@ -1,2 +1,0 @@
-struct ptp_sys_offset: bad number of fields: syz=2 kernel=3
-struct ptp_sys_offset_extended: bad number of fields: syz=2 kernel=3

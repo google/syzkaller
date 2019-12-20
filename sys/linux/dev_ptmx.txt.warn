@@ -1,12 +1,8 @@
-struct termios: bad number of fields: syz=12 kernel=6
-field termios.cc0/c_cc: bad size: syz=1 kernel=19
-struct termio: bad number of fields: syz=10 kernel=6
-struct termio: bad size: syz=20 kernel=18
-field termio.cc0/c_cc: bad size: syz=1 kernel=8
 struct io_cmap: no corresponding struct in kernel
 struct unimapdesc_in: no corresponding struct in kernel
 struct unimapdesc_out: no corresponding struct in kernel
 struct unimapinit: no corresponding struct in kernel
+struct tiocl_selection_arg: no corresponding struct in kernel
 struct tiocl_selection: bad number of fields: syz=6 kernel=5
 struct tiocl_selection: bad size: syz=11 kernel=10
 field tiocl_selection.subcode/xs: bad size: syz=1 kernel=2
@@ -17,9 +13,3 @@ field tiocl_selection.ye/sel_mode: bad offset: syz=7 kernel=8
 struct loadlut: no corresponding struct in kernel
 struct tiocl_shift_state: no corresponding struct in kernel
 struct tioctl_scroll_console: no corresponding struct in kernel
-field serial_struct.close_delay: bad size: syz=4 kernel=2
-field serial_struct.io_type: bad offset: syz=36 kernel=34
-field serial_struct.reserved_char: bad offset: syz=37 kernel=35
-field serial_struct.hub6: bad offset: syz=40 kernel=36
-field serial_struct.closing_wait: bad offset: syz=44 kernel=40
-field serial_struct.closing_wait2: bad offset: syz=46 kernel=42

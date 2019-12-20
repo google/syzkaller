@@ -320,9 +320,13 @@ cdrom_generic_command {
 }
 
 request_sense {
-	valid_err_code	int8
+	error_code	int8:7
+	valid		int8:1
 	segment_number	int8
-	ili_sense_key	int8
+	sense_key	int8:4
+	reserved2	const[0, int8:1]
+	ili		int8:1
+	reserved1	const[0, int8:2]
 	information	array[int8, 4]
 	add_sense_len	int8
 	command_info	array[int8, 4]

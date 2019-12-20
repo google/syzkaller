@@ -35,7 +35,7 @@ mISDN_devinfo {
 	protocol	const[0, int32]
 	channelmap	array[const[0, int8], MISDN_CHMAP_SIZE]
 	nrbchan		const[0, int32]
-	name		array[const[0, int32], MISDN_MAX_IDLEN]
+	name		array[const[0, int8], MISDN_MAX_IDLEN]
 }
 
 mISDN_devrename {

@@ -106,9 +106,10 @@ sockaddr_storage_tcp [
 
 tcp_md5sig {
 	tcpm_addr	sockaddr_storage_tcp
-	__tcpm_pad1	const[0, int16]
-	tcpm_keylen	int16
-	__tcpm_pad2	const[0, int32]
+	tcpm_flags	const[0, int8]
+	tcpm_prefixlen	const[0, int8]
+	tcpm_keylen	int16[0:TCP_MD5SIG_MAXKEYLEN]
+	__tcpm_pad	const[0, int32]
 	tcpm_key	array[int8, TCP_MD5SIG_MAXKEYLEN]
 }
 

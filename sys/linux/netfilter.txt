@@ -308,19 +308,19 @@ xt_conntrack_mtinfo_common {
 	repldst_port	sock_port
 	match_flags	flags[xt_conntrack_flags, int16]
 	invert_flags	flags[xt_conntrack_flags, int16]
-}
+} [packed]
 
 xt_conntrack_mtinfo1 {
 	common		xt_conntrack_mtinfo_common
 	state_mask	flags[xt_conntrack_state, int8]
 	status_mask	flags[xt_conntrack_status, int8]
-}
+} [align_4]
 
 xt_conntrack_mtinfo2 {
 	common		xt_conntrack_mtinfo_common
 	state_mask	flags[xt_conntrack_state, int16]
 	status_mask	flags[xt_conntrack_status, int16]
-}
+} [align_4]
 
 xt_conntrack_mtinfo3 {
 	common			xt_conntrack_mtinfo_common
@@ -330,17 +330,15 @@ xt_conntrack_mtinfo3 {
 	origdst_port_high	sock_port
 	replsrc_port_high	sock_port
 	repldst_port_high	sock_port
-}
+} [align_4]
 
 xt_conntrack_flags = XT_CONNTRACK_STATE, XT_CONNTRACK_PROTO, XT_CONNTRACK_ORIGSRC, XT_CONNTRACK_ORIGDST, XT_CONNTRACK_REPLSRC, XT_CONNTRACK_REPLDST, XT_CONNTRACK_STATUS, XT_CONNTRACK_EXPIRES, XT_CONNTRACK_ORIGSRC_PORT, XT_CONNTRACK_ORIGDST_PORT, XT_CONNTRACK_REPLSRC_PORT, XT_CONNTRACK_REPLDST_PORT, XT_CONNTRACK_DIRECTION, XT_CONNTRACK_STATE_ALIAS
 xt_conntrack_state = XT_CONNTRACK_STATE_INVALID, XT_CONNTRACK_STATE_SNAT, XT_CONNTRACK_STATE_DNAT, XT_CONNTRACK_STATE_UNTRACKED
 xt_conntrack_status = IPS_EXPECTED, IPS_SEEN_REPLY, IPS_ASSURED, IPS_CONFIRMED, IPS_SRC_NAT, IPS_DST_NAT, IPS_SEQ_ADJUST, IPS_SRC_NAT_DONE, IPS_DST_NAT_DONE, IPS_DYING, IPS_FIXED_TIMEOUT, IPS_TEMPLATE, IPS_UNTRACKED, IPS_HELPER
 
 xt_tcp {
-	spts_min	sock_port
-	spts_max	sock_port
-	dpts_min	sock_port
-	dpts_max	sock_port
+	spts		array[sock_port, 2]
+	dpts		array[sock_port, 2]
 	option		flags[tcp_option_types, int8]
 	flg_mask	flags[tcp_flags, int8]
 	flg_cmp		flags[tcp_flags, int8]
@@ -350,10 +348,8 @@ xt_tcp {
 xt_tcp_inv_flags = XT_TCP_INV_SRCPT, XT_TCP_INV_DSTPT, XT_TCP_INV_FLAGS, XT_TCP_INV_OPTION
 
 xt_udp {
-	spts_min	sock_port
-	spts_max	sock_port
-	dpts_min	sock_port
-	dpts_max	sock_port
+	spts		array[sock_port, 2]
+	dpts		array[sock_port, 2]
 	invflags	flags[xt_udp_inv_flags, int8]
 }
 
@@ -390,7 +386,7 @@ xt_mark_mtinfo1 {
 xt_connmark_mtinfo1 {
 	mark	int32
 	mask	int32
-	invert	bool32
+	invert	bool8
 }
 
 xt_realm_info {
@@ -400,8 +396,7 @@ xt_realm_info {
 }
 
 xt_connbytes_info {
-	count_from	int64
-	count_to	int64
+	count		array[int64, 2]
 	what		flags[xt_connbytes_what, int8]
 	direction	flags[xt_connbytes_direction, int8]
 }
@@ -417,10 +412,8 @@ xt_quota_info {
 }
 
 xt_sctp_info {
-	dpts_min		sock_port
-	dpts_max		sock_port
-	spts_min		sock_port
-	spts_max		sock_port
+	dpts			array[sock_port, 2]
+	spts			array[sock_port, 2]
 	chunkmap		array[int32, 64]
 	chunk_match_type	flags[xt_sctp_match_type, int32]
 	flag_info		array[xt_sctp_flag_info, XT_NUM_SCTP_FLAGS]
@@ -478,10 +471,8 @@ xt_ipvs_mtinfo {
 xt_ipvs_flags = XT_IPVS_IPVS_PROPERTY, XT_IPVS_PROTO, XT_IPVS_VADDR, XT_IPVS_VPORT, XT_IPVS_DIR, XT_IPVS_METHOD, XT_IPVS_VPORT
 
 xt_dccp_info {
-	dpts_min	sock_port
-	dpts_max	sock_port
-	spts_min	sock_port
-	spts_max	sock_port
+	dpts		array[sock_port, 2]
+	spts		array[sock_port, 2]
 	flags		flags[xt_dccp_flags, int16]
 	invflags	flags[xt_dccp_flags, int16]
 	typemask	int16
@@ -571,8 +562,7 @@ xt_comment_info {
 }
 
 xt_ipcomp {
-	spis_min	xfrm_spi
-	spis_max	xfrm_spi
+	spis		array[xfrm_spi, 2]
 	invflags	flags[xt_ipcomp_flags, int8]
 	hdrres		const[0, int8]
 }
@@ -768,8 +758,7 @@ xt_iprange_mtinfo {
 xt_iprange_flags = IPRANGE_SRC, IPRANGE_DST, IPRANGE_SRC_INV, IPRANGE_DST_INV
 
 xt_esp {
-	spis_min	xfrm_spi
-	spis_max	xfrm_spi
+	spis		array[xfrm_spi, 2]
 	invflags	flags[xt_esp_flags, int8]
 }
 
