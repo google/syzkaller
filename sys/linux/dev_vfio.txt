@@ -27,6 +27,7 @@ vfio_iommu_type1_info {
 	argsz		len[parent, int32]
 	flags		const[0, int32]
 	iova_pgsizes	const[0, int64]
+	cap_offset	int32
 }
 
 vfio_iommu_type1_dma_map {
@@ -40,7 +41,6 @@ vfio_iommu_type1_dma_map {
 vfio_iommu_type1_dma_unmap {
 	argsz	len[parent, int32]
 	flags	flags[vfio_dma_flags, int32]
-	vaddr	int64
 	iova	int64
 	size	int64
 }

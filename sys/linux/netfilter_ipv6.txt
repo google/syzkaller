@@ -152,15 +152,13 @@ ip6t_security_matches [
 
 ip6t_icmp {
 	type		flags[icmp_types, int8]
-	code_min	int8
-	code_max	int8
+	code		array[int8, 2]
 	invflags	bool8
 }
 
 ip6t_rt {
 	rt_type		int32
-	segsleft_min	int32
-	segsleft_max	int32
+	segsleft	array[int32, 2]
 	hdrlen		int32
 	flags		flags[ip6t_rt_flags, int8]
 	invflags	flags[ip6t_rt_invflags, int8]
@@ -172,8 +170,7 @@ ip6t_rt_flags = IP6T_RT_TYP, IP6T_RT_SGS, IP6T_RT_LEN, IP6T_RT_RES, IP6T_RT_FST_
 ip6t_rt_invflags = IP6T_RT_INV_TYP, IP6T_RT_INV_SGS, IP6T_RT_INV_LEN
 
 ip6t_mh {
-	types_min	int8
-	types_max	int8
+	types		array[int8, 2]
 	invflags	bool8
 }
 
@@ -189,8 +186,7 @@ ip6t_opts_flags = IP6T_OPTS_LEN, IP6T_OPTS_OPTS, IP6T_OPTS_NSTRICT
 ip6t_opts_invflags = IP6T_OPTS_INV_LEN
 
 ip6t_frag {
-	ids_min		int32
-	ids_max		int32
+	ids		array[int32, 2]
 	hdrlen		int32
 	flags		flags[ip6t_frag_flags, int8]
 	invflags	flags[ip6t_frag_invflags, int8]
@@ -208,8 +204,7 @@ ip6t_ipv6header_info {
 ip6t_ipv6header_flags = MASK_HOPOPTS, MASK_DSTOPTS, MASK_ROUTING, MASK_FRAGMENT, MASK_AH, MASK_ESP, MASK_NONE, MASK_PROTO
 
 ip6t_ah {
-	spis_min	xfrm_spi
-	spis_max	xfrm_spi
+	spis		array[xfrm_spi, 2]
 	hdrlen		int32
 	hdrres		int8
 	invflags	flags[ip6t_ah_flags, int8]

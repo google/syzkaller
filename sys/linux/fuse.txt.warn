@@ -1,5 +1,1 @@
-struct fuse_init_out: bad number of fields: syz=9 kernel=11
-field fuse_init_out.unused/max_pages: bad size: syz=36 kernel=2
-struct fuse_kstatfs: bad number of fields: syz=9 kernel=10
-field fuse_kstatfs.padding_spare/padding: bad size: syz=28 kernel=4
 struct fuse_create_open_out: no corresponding struct in kernel

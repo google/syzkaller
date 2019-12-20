@@ -81,31 +81,33 @@ snd_seq_running_info {
 }
 
 snd_seq_client_info {
-	client	int32
-	type	flags[snd_seq_client_type, int32]
-	name	string[snd_seq_client_name, 64]
-	filter	flags[snd_seq_filter, int32]
-	mfilt	array[int8, 8]
-	evfilt	array[int8, 32]
-	nports	int32
-	lost	int32
-	pad	array[const[0, int8], 64]
+	client			int32
+	type			flags[snd_seq_client_type, int32]
+	name			string[snd_seq_client_name, 64]
+	filter			flags[snd_seq_filter, int32]
+	multicast_filter	array[int8, 8]
+	event_filter		array[int8, 32]
+	num_ports		int32
+	event_lost		int32
+	card			const[0, int32]
+	pid			const[0, int32]
+	pad			array[const[0, int8], 56]
 }
 
 snd_seq_port_info {
-	addr	snd_seq_addr
-	name	string[snd_seq_port_name, 64]
-	cap	flags[snd_seq_port_cap, int32]
-	type	flags[snd_seq_port_type, int32]
-	chans	int32
-	voices	int32
-	svoices	int32
-	readuse	int32
-	wruse	int32
-	kernel	const[0, intptr]
-	flags	flags[snd_seq_port_flags, int32]
-	timeq	int32
-	pad	array[const[0, int8], 59]
+	addr		snd_seq_addr
+	name		string[snd_seq_port_name, 64]
+	capability	flags[snd_seq_port_cap, int32]
+	type		flags[snd_seq_port_type, int32]
+	midi_channels	int32
+	midi_voices	int32
+	synth_voices	int32
+	read_use	int32
+	write_use	int32
+	kernel		const[0, intptr]
+	flags		flags[snd_seq_port_flags, int32]
+	time_queue	int8
+	pad		array[const[0, int8], 59]
 }
 
 snd_seq_port_subscribe {
@@ -119,29 +121,30 @@ snd_seq_port_subscribe {
 }
 
 snd_seq_queue_info {
-	queue	int32
-	owner	int32
-	locked	int32
-	name	string[snd_seq_queue_name, 64]
-	flags	int32
-	pad	array[const[0, int8], 60]
+	queue		int32
+	owner		int32
+	locked		int32:1
+	name		string[snd_seq_queue_name, 64]
+	flags		int32
+	reserved	array[const[0, int8], 60]
 }
 
 snd_seq_queue_status {
 	queue	int32
 	events	int32
 	tick	int32
-	time	timespec
-	runnint	int32
+	time	snd_seq_real_time
+	running	int32
 	flags	int32
 	pad	array[const[0, int8], 64]
 }
 
 snd_seq_queue_timer {
-	queue	int32
-	type	flags[snd_seq_timer_type, int32]
-	id	snd_timer_id
-	pad	array[const[0, int8], 64]
+	queue		int32
+	type		flags[snd_seq_timer_type, int32]
+	id		snd_timer_id
+	resolution	int32
+	pad		array[const[0, int8], 64]
 }
 
 snd_timer_id {
@@ -170,14 +173,14 @@ snd_seq_client_pool {
 }
 
 snd_seq_remove_events {
-	mode	flags[snd_seq_remove_mode, int32]
-	time	snd_seq_timestamp
-	queue	int8
-	dest	snd_seq_addr
-	chan	int8
-	type	flags[snd_seq_client_type, int32]
-	tag	int8
-	pad	array[const[0, int32], 10]
+	remove_mode	flags[snd_seq_remove_mode, int32]
+	time		snd_seq_timestamp
+	queue		int8
+	dest		snd_seq_addr
+	channel		int8
+	type		flags[snd_seq_client_type, int32]
+	tag		int8
+	pad		array[const[0, int32], 10]
 }
 
 snd_seq_query_subs {
@@ -271,8 +274,13 @@ snd_seq_queue_skew {
 
 snd_seq_timestamp [
 	tick	int32
-	time	timespec
+	time	snd_seq_real_time
 ]
+
+snd_seq_real_time {
+	tv_sec	int32
+	tv_nsec	int32
+}
 
 snd_seq_addr {
 	client	int8

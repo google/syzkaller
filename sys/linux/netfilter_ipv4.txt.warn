@@ -1,11 +1,4 @@
 struct ipt_entry_underflow: no corresponding struct in kernel
 struct ipt_entry_underflow_matches: no corresponding struct in kernel
 struct ipt_ip_or_uncond: no corresponding struct in kernel
-struct ipt_icmp: bad number of fields: syz=4 kernel=3
-field ipt_icmp.code_min/code: bad size: syz=1 kernel=2
-field ipt_icmp.code_max/invflags: bad offset: syz=2 kernel=3
-struct ipt_ah: bad number of fields: syz=3 kernel=2
-field ipt_ah.spi_min/spis: bad size: syz=4 kernel=8
-field ipt_ah.spi_max/invflags: bad offset: syz=4 kernel=8
-field ipt_ah.spi_max/invflags: bad size: syz=4 kernel=1
 struct xt_osf_info: no corresponding struct in kernel

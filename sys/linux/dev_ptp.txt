@@ -45,14 +45,14 @@ ptp_perout_request {
 ptp_sys_offset {
 	n_samples	int32[0:PTP_MAX_SAMPLES]
 	rsv		array[const[0, int32], 3]
-# Nothing interesting/input beyond this point.
-} [size[PTP_SYS_OFFSET_SIZE]]
+	ts		array[const[0, int64], 102]
+}
 
 ptp_sys_offset_extended {
 	n_samples	int32[0:PTP_MAX_SAMPLES]
 	rsv		array[const[0, int32], 3]
-# Nothing interesting/input beyond this point.
-} [size[PTP_SYS_OFFSET_EXTENDED_SIZE]]
+	ts		array[const[0, int64], 150]
+}
 
 ptp_pin_desc {
 	name	array[const[0, int8], 64]
@@ -72,6 +72,4 @@ ptp_extts_request_flags = PTP_ENABLE_FEATURE, PTP_RISING_EDGE, PTP_FALLING_EDGE,
 ptp_pin_pf = PTP_PF_NONE, PTP_PF_EXTTS, PTP_PF_PEROUT, PTP_PF_PHYSYNC
 
 define PTP_CLOCK_CAPS_SIZE	sizeof(struct ptp_clock_caps)
-define PTP_SYS_OFFSET_SIZE	sizeof(struct ptp_sys_offset)
 define PTP_SYS_OFFSET_PRECISE_SIZE	sizeof(struct ptp_sys_offset_precise)
-define PTP_SYS_OFFSET_EXTENDED_SIZE	sizeof(struct ptp_sys_offset_extended)

@@ -170,14 +170,12 @@ ipt_security_matches [
 
 ipt_icmp {
 	type		flags[icmp_types, int8]
-	code_min	int8
-	code_max	int8
+	code		array[int8, 2]
 	invflags	bool8
 }
 
 ipt_ah {
-	spi_min		int32
-	spi_max		int32
+	spis		array[int32, 2]
 	invflags	bool8
 }
 
