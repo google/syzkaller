@@ -20713,6 +20713,7 @@ const call_t syscalls[] = {
     {"test$opt1", 0},
     {"test$opt2", 0},
     {"test$opt3", 0},
+    {"test$out_const", 0},
     {"test$recur0", 0},
     {"test$recur1", 0},
     {"test$recur2", 0},

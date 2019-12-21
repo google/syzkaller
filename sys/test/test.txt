@@ -541,6 +541,7 @@ test$excessive_args1()
 test$excessive_args2(a1 int8)
 test$excessive_fields1(a1 ptr[in, excessive_fields])
 test$type_confusion1(a1 ptr[in, type_confusion])
+test$out_const(a1 ptr[out, const[1, int32]])
 
 # Bitfields
 
