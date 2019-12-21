@@ -267,6 +267,11 @@ func TestDeserialize(t *testing.T) {
 			input:  `test$blob0(&AUTO="3031000a0d7022273a01")`,
 			output: `test$blob0(&(0x7f0000000040)="3031000a0d7022273a01")`,
 		},
+		{
+			input:     `test$out_const(&(0x7f0000000000)=0x2)`,
+			output:    `test$out_const(&(0x7f0000000000))`,
+			strictErr: regexp.MustCompile(`out arg const\[1, const\] has non-default value: 2`),
+		},
 	}
 	buf := make([]byte, ExecBufferSize)
 	for _, test := range tests {

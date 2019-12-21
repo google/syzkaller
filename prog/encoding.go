@@ -382,7 +382,14 @@ func (p *parser) parseArgInt(typ Type) (Arg, error) {
 		return nil, fmt.Errorf("wrong arg value '%v': %v", val, err)
 	}
 	switch typ.(type) {
-	case *ConstType, *IntType, *FlagsType, *ProcType, *LenType, *CsumType:
+	case *ConstType, *IntType, *FlagsType, *ProcType, *CsumType:
+		arg := Arg(MakeConstArg(typ, v))
+		if typ.Dir() == DirOut && !typ.isDefaultArg(arg) {
+			p.strictFailf("out arg %v has non-default value: %v", typ, v)
+			arg = typ.DefaultArg()
+		}
+		return arg, nil
+	case *LenType:
 		return MakeConstArg(typ, v), nil
 	case *ResourceType:
 		return MakeResultArg(typ, nil, v), nil

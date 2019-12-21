@@ -1233,6 +1233,9 @@ var syscalls_64 = []*Syscall{
 	{Name: "test$opt3", CallName: "test", MissingArgs: 5, Args: []Type{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a0", TypeSize: 8, IsOptional: true}}, ValuesStart: 100, ValuesPerProc: 4},
 	}},
+	{Name: "test$out_const", CallName: "test", MissingArgs: 5, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a1", TypeSize: 8}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 4, ArgDir: 1}}, Val: 1}},
+	}},
 	{Name: "test$recur0", CallName: "test", MissingArgs: 5, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_recur_0", Dir: 2}}},
 	}},
@@ -1337,4 +1340,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "854312b077f42679e628a51764359033f376a9d4"
+const revision_64 = "fd5870a81478a9208df976f4d8066bbdfa12f8e5"
