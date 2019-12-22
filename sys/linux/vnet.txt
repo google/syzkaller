@@ -967,12 +967,12 @@ include <uapi/linux/erspan.h>
 type erspan_base_hdr[VER] {
 	vlan_upper		int8:4
 	ver			const[VER, int8:4]
-	vlan			int8
+	vlan			int8:8
 	session_id_upper	int8:2
 	t			int8:1
 	en			int8:2
 	cos			int8:3
-	session_id		int8
+	session_id		int8:8
 } [packed]
 
 erspan_md1 {
