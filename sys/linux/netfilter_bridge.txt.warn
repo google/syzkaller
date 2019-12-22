@@ -1,6 +1,13 @@
+struct ebt_replace_t: no corresponding struct in kernel
 len target entries refer to an array with variable-size elements (do you mean bytesize?)
 struct ebt_getinfo: no corresponding struct in kernel
 struct ebt_get_entries: no corresponding struct in kernel
+field ebt_entry_match.revision/match_size: bad size: syz=1 kernel=4
+field ebt_entry_match.match_size/data: bad offset: syz=36 kernel=40
+field ebt_entry_match.match_size/data: bad size: syz=4 kernel=0
+struct ebt_entry_match_t: no corresponding struct in kernel
+struct xt_padded: no corresponding struct in kernel
+struct ebt_among_info_offset: no corresponding struct in kernel
 struct ebt_ip_info: bad number of fields: syz=12 kernel=10
 field ebt_ip_info.sport_min/: bad size: syz=2 kernel=4
 field ebt_ip_info.sport_max/: bad offset: syz=22 kernel=24
@@ -9,3 +16,15 @@ struct ebt_ip6_info: bad number of fields: syz=12 kernel=10
 field ebt_ip6_info.sport_min/: bad size: syz=2 kernel=4
 field ebt_ip6_info.sport_max/: bad offset: syz=70 kernel=72
 field ebt_ip6_info.sport_max/: bad size: syz=2 kernel=4
+struct ebt_entry_target: bad size: syz=120 kernel=40
+struct ebt_entry_target: bad size: syz=304 kernel=40
+struct ebt_entry_target: bad size: syz=48 kernel=40
+struct ebt_entry_target: bad size: syz=56 kernel=40
+struct ebt_entry_target: bad size: syz=72 kernel=40
+struct ebt_entry_target: bad size: syz=80 kernel=40
+field ebt_entry_target.data: bad size: syz=16 kernel=0
+field ebt_entry_target.data: bad size: syz=264 kernel=0
+field ebt_entry_target.data: bad size: syz=32 kernel=0
+field ebt_entry_target.data: bad size: syz=40 kernel=0
+field ebt_entry_target.data: bad size: syz=8 kernel=0
+field ebt_entry_target.data: bad size: syz=80 kernel=0

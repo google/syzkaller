@@ -1,1 +1,2 @@
 struct exec: no corresponding struct in kernel
+struct elf_hdr: no corresponding struct in kernel

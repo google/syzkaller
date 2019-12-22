@@ -1,20 +1,24 @@
 struct vnet_fragmentation: no corresponding struct in kernel
 struct tcp_resources: no corresponding struct in kernel
+struct mac_addr_t: no corresponding struct in kernel
 struct mac_addr_link_local: no corresponding struct in kernel
 struct mac_addr: bad number of fields: syz=7 kernel=1
 struct vlan_tag_ad: no corresponding struct in kernel
 struct vlan_tag_q: no corresponding struct in kernel
+struct eth2_packet_t: no corresponding struct in kernel
 struct arp_ether_ipv4_packet: no corresponding struct in kernel
 struct arp_ether_ipv6_packet: no corresponding struct in kernel
 struct ipx_network: no corresponding struct in kernel
 struct ipx_node: no corresponding struct in kernel
 struct ipx_addr: no corresponding struct in kernel
+struct ipv4_addr_t: no corresponding struct in kernel
 struct ipv4_addr_initdev: no corresponding struct in kernel
 struct ipv4_addr: no corresponding struct in kernel
 struct ipv4_option_end: no corresponding struct in kernel
 struct ipv4_option_noop: no corresponding struct in kernel
 struct ipv4_option_ra: no corresponding struct in kernel
 struct ipv6_addr_empty: no corresponding struct in kernel
+struct ipv6_addr_t: no corresponding struct in kernel
 struct ipv6_addr_initdev: no corresponding struct in kernel
 struct ipv6_addr_loopback: no corresponding struct in kernel
 struct ipv6_addr_ipv4: no corresponding struct in kernel
@@ -35,6 +39,9 @@ struct tcp_sack_perm_option: no corresponding struct in kernel
 struct tcp_timestamp_option: no corresponding struct in kernel
 struct tcp_md5sig_option: no corresponding struct in kernel
 struct tcp_exp_smc_option: no corresponding struct in kernel
+struct gre_packet_erspan: no corresponding struct in kernel
+field erspan_base_hdr.vlan: bad bit size/offset: syz=0/0 kernel=8/0
+field erspan_base_hdr.session_id: bad bit size/offset: syz=0/0 kernel=8/0
 struct erspan_md1: no corresponding struct in kernel
 struct erspan_md1_msg: no corresponding struct in kernel
 field erspan_md2.hwid: bad bit size/offset: syz=1/4 kernel=4/4
@@ -49,5 +56,10 @@ struct icmpv6_mld_packet: no corresponding struct in kernel
 struct dccp_header: no corresponding struct in kernel
 struct mpls_label: bad number of fields: syz=4 kernel=1
 field mpls_label.label/entry: bad bit size/offset: syz=20/0 kernel=0/0
+struct tipc_payload_hdr: no corresponding struct in kernel
+struct tipc_payload_hdr6: no corresponding struct in kernel
+struct tipc_payload_hdr8: no corresponding struct in kernel
+struct tipc_payload_hdr10: no corresponding struct in kernel
+struct tipc_payload_hdr11: no corresponding struct in kernel
 struct tipc_name_distributor_hdr: no corresponding struct in kernel
 struct tipc_name_publication: no corresponding struct in kernel

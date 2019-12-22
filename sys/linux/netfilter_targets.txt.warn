@@ -1,3 +1,4 @@
+struct xt_target_t: no corresponding struct in kernel
 struct xt_hmark_info: bad number of fields: syz=11 kernel=9
 field xt_hmark_info.src_port_mask/port_mask: bad size: syz=2 kernel=4
 field xt_hmark_info.dst_port_mask/port_set: bad offset: syz=34 kernel=36

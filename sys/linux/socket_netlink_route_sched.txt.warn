@@ -1,4 +1,13 @@
+struct tcmsg: bad size: syz=24 kernel=20
+field tcmsg.tcm__pad1: bad offset: syz=2 kernel=1
+field tcmsg.tcm__pad1: bad size: syz=2 kernel=1
+field tcmsg.tcm__pad2: bad offset: syz=4 kernel=2
+field tcmsg.ifindex/tcm_ifindex: bad offset: syz=8 kernel=4
+field tcmsg.tcm_handle: bad offset: syz=12 kernel=8
+field tcmsg.tcm_parent: bad offset: syz=16 kernel=12
+field tcmsg.tcm_info: bad offset: syz=20 kernel=16
 struct tcm_handle: no corresponding struct in kernel
+struct tca_kind_options_t: no corresponding struct in kernel
 struct m_ctinfo_options: no corresponding struct in kernel
 struct tc_gen: no corresponding struct in kernel
 struct tc_connmark: bad number of fields: syz=2 kernel=6
@@ -36,4 +45,9 @@ field tc_tunnel_key.t_action/capab: bad offset: syz=20 kernel=4
 struct tc_vlan: bad number of fields: syz=2 kernel=6
 field tc_vlan.tc_gen/index: bad size: syz=20 kernel=4
 field tc_vlan.v_action/capab: bad offset: syz=20 kernel=4
+struct tcf_ematch_hdr: bad number of fields: syz=5 kernel=4
+struct tcf_ematch_hdr: bad size: syz=12 kernel=8
+struct tcf_ematch_hdr: bad size: syz=16 kernel=8
+struct tcf_ematch_hdr: bad size: syz=20 kernel=8
+struct tcf_ematch_hdr: bad size: syz=24 kernel=8
 struct tc_estimator: no corresponding struct in kernel

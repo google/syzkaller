@@ -137,13 +137,13 @@ ipt_get_entries {
 ipt_matches [
 	unspec		xt_unspec_matches
 	inet		xt_inet_matches
-	icmp		xt_entry_match["icmp", ipt_icmp, 0]
-	ah		xt_entry_match["ah", ipt_ah, 0]
-	socket0		xt_entry_match["socket", void, 0]
-	set		xt_entry_match["set", xt_set_info_match_v0, 0]
-	addrtype	xt_entry_match["addrtype", xt_addrtype_info, 0]
-	osf		xt_entry_match["osf", xt_osf_info, 0]
-	ttl		xt_entry_match["ttl", ipt_ttl_info, 0]
+	icmp		xt_entry_match_t["icmp", ipt_icmp, 0]
+	ah		xt_entry_match_t["ah", ipt_ah, 0]
+	socket0		xt_entry_match_t["socket", void, 0]
+	set		xt_entry_match_t["set", xt_set_info_match_v0, 0]
+	addrtype	xt_entry_match_t["addrtype", xt_addrtype_info, 0]
+	osf		xt_entry_match_t["osf", xt_osf_info, 0]
+	ttl		xt_entry_match_t["ttl", ipt_ttl_info, 0]
 ] [varlen]
 
 ipt_filter_matches [

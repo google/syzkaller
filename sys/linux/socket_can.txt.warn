@@ -3,5 +3,7 @@ struct sockaddr_can: bad size: syz=16 kernel=24
 field sockaddr_can.rx_id/can_addr: bad size: syz=4 kernel=16
 struct sockaddr_can_j1939: no corresponding struct in kernel
 struct can_j1939_pgn: no corresponding struct in kernel
+struct msghdr_can: no corresponding struct in kernel
 struct msghdr_can_j1939: no corresponding struct in kernel
+struct can_frame_t: no corresponding struct in kernel
 struct canid_t: no corresponding struct in kernel

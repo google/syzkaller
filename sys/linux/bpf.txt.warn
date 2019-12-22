@@ -80,6 +80,7 @@ struct bpf_prog_query: no corresponding struct in kernel
 field bpf_raw_tracepoint.prog_fd/prog: bad size: syz=4 kernel=8
 struct bpf_btf_load: no corresponding struct in kernel
 struct btf_type_int: no corresponding struct in kernel
+struct btf_type_ref_t: no corresponding struct in kernel
 struct btf_type_array: no corresponding struct in kernel
 struct btf_type_fwd: no corresponding struct in kernel
 struct btf_type_func: no corresponding struct in kernel

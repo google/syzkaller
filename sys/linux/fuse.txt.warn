@@ -1,1 +1,3 @@
+struct fuse_notify: no corresponding struct in kernel
+struct fuse_out: no corresponding struct in kernel
 struct fuse_create_open_out: no corresponding struct in kernel
