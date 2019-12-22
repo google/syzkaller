@@ -40,7 +40,8 @@ ioctl$VHOST_VSOCK_SET_GUEST_CID(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_GUEST_
 ioctl$VHOST_VSOCK_SET_RUNNING(fd vhost_vsock, cmd const[VHOST_VSOCK_SET_RUNNING], arg ptr[in, bool32])
 
 openat$vnet(fd const[AT_FDCWD], file ptr[in, string["/dev/vhost-net"]], flags const[O_RDWR], mode const[0]) vhost_net
-write$vnet(fd vhost_net, buf ptr[in, vhost_msg], size len[buf])
+write$vhost_msg(fd vhost_net, buf ptr[in, vhost_msg], size len[buf])
+write$vhost_msg_v2(fd vhost_net, buf ptr[in, vhost_msg_v2], size len[buf])
 ioctl$VHOST_NET_SET_BACKEND(fd vhost_net, cmd const[VHOST_NET_SET_BACKEND], arg ptr[in, vhost_vring_file])
 
 ioctl$VHOST_GET_FEATURES(fd fd_vhost, cmd const[VHOST_GET_FEATURES], arg ptr[out, int64])
@@ -117,8 +118,17 @@ vhost_vring_file {
 vhost_msg {
 	type	const[VHOST_IOTLB_MSG, int32]
 	iotlb	vhost_iotlb_msg
-	padding	array[const[0, int64], 8]
-}
+} [size[VHOST_MSG_SIZE]]
+
+define VHOST_MSG_SIZE	sizeof(struct vhost_msg)
+
+vhost_msg_v2 {
+	type		const[VHOST_IOTLB_MSG_V2, int32]
+	reserved	const[0, int32]
+	iotlb		vhost_iotlb_msg
+} [size[VHOST_MSG_SIZE]]
+
+define VHOST_MSG_V2_SIZE	sizeof(struct vhost_msg_v2)
 
 vhost_iotlb_msg {
 # TODO: is it host or guest address?
