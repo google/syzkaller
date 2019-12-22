@@ -40,8 +40,6 @@ struct tcp_timestamp_option: no corresponding struct in kernel
 struct tcp_md5sig_option: no corresponding struct in kernel
 struct tcp_exp_smc_option: no corresponding struct in kernel
 struct gre_packet_erspan: no corresponding struct in kernel
-field erspan_base_hdr.vlan: bad bit size/offset: syz=0/0 kernel=8/0
-field erspan_base_hdr.session_id: bad bit size/offset: syz=0/0 kernel=8/0
 struct erspan_md1: no corresponding struct in kernel
 struct erspan_md1_msg: no corresponding struct in kernel
 field erspan_md2.hwid: bad bit size/offset: syz=1/4 kernel=4/4

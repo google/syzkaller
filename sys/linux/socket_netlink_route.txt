@@ -481,7 +481,7 @@ type fib_rule_hdr[FAMILY] {
 	table		int8
 	res1		const[0, int8]
 	res2		const[0, int8]
-	action		flags[fr_actions, int32]
+	action		flags[fr_actions, int8]
 	flags		flags[fr_flags, int32]
 }
 
