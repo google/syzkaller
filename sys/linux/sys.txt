@@ -106,9 +106,14 @@ sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[intptr], opt], count intptr)
 sendfile64(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count intptr)
 
 stat(file ptr[in, filename], statbuf ptr[out, stat])
-statx(fd fd_dir, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
 lstat(file ptr[in, filename], statbuf ptr[out, stat])
 fstat(fd fd, statbuf ptr[out, stat])
+newfstatat(dfd const[AT_FDCWD], file ptr[in, filename], statbuf ptr[out, stat], flag flags[statx_flags])
+stat64(file ptr[in, filename], statbuf ptr[out, stat64])
+lstat64(file ptr[in, filename], statbuf ptr[out, stat64])
+fstat64(fd fd, statbuf ptr[out, stat64])
+fstatat64(dfd const[AT_FDCWD], file ptr[in, filename], statbuf ptr[out, stat64], flag flags[statx_flags])
+statx(fd fd_dir, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset], size len[sigmask])
@@ -221,8 +226,8 @@ ptrace$PTRACE_SECCOMP_GET_FILTER(req const[PTRACE_SECCOMP_GET_FILTER], pid pid, 
 ptrace$PTRACE_SECCOMP_GET_METADATA(req const[PTRACE_SECCOMP_GET_METADATA], pid pid, addr len[data], data ptr[in, seccomp_metadata])
 
 seccomp_metadata {
-	filter_off	intptr
-	flags		const[0, int32]
+	filter_off	int64
+	flags		const[0, int64]
 }
 
 ptrace_peeksiginfo_args {
@@ -539,24 +544,26 @@ type iovec_in iovec[in, array[int8]]
 type iovec_out iovec[out, array[int8]]
 
 stat {
-	dev	int16
-	ino	int32
-	mode	int16
-	nlink	int16
-	uid	uid
-	gid	gid
-	rdev	int16
-	size	int32
-	blksize	int32
-	blocks	int32
-	atime	int32
-	ansec	int32
-	mtime	int32
-	mnsec	int32
-	ctime	int32
-	cnsec	int32
-	pad1	const[0, int32]
-	pad2	const[0, int32]
+	st_dev		intptr
+	st_ino		intptr
+	st_mode		int32
+	st_nlink	int32
+	st_uid		uid
+	st_gid		gid
+	st_rdev		intptr
+	__pad1		const[0, intptr]
+	st_size		intptr
+	st_blksize	int32
+	__pad2		const[0, int32]
+	st_blocks	intptr
+	st_atime	intptr
+	st_atime_nsec	intptr
+	st_mtime	intptr
+	st_mtime_nsec	intptr
+	st_ctime	intptr
+	st_ctime_nsec	intptr
+	__unused4	const[0, int32]
+	__unused5	const[0, int32]
 }
 
 statx {
@@ -564,8 +571,8 @@ statx {
 	blksize		int32
 	attributes	int64
 	nlink		int32
-	uid		int32
-	gid		int32
+	uid		uid
+	gid		gid
 	mode		int16
 	__spare0	int16
 	ino		int64
@@ -582,6 +589,10 @@ statx {
 	dev_minor	int32
 	__spare2	array[int64, 14]
 }
+
+define STAT64_SIZE	sizeof(struct stat64)
+
+type stat64 array[int8, STAT64_SIZE]
 
 pollfd {
 	fd	fd

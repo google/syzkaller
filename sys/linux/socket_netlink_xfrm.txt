@@ -49,7 +49,7 @@ netlink_msg_xfrm [
 xfrm_usersa_info {
 	sel		xfrm_selector
 	id		xfrm_id
-	saddr		xfrm_address
+	saddr		xfrm_address_t
 	lft		xfrm_lifetime_cfg
 	curlft		xfrm_lifetime_cur
 	stats		xfrm_stats
@@ -62,7 +62,7 @@ xfrm_usersa_info {
 }
 
 xfrm_usersa_id {
-	daddr	xfrm_address
+	daddr	xfrm_address_t
 	spi	xfrm_spi
 	family	flags[xfrm_family, int16]
 	proto	flags[xfrm_proto, int8]
@@ -82,7 +82,7 @@ xfrm_userspi_info {
 
 xfrm_user_acquire {
 	id	xfrm_id
-	saddr	xfrm_address
+	saddr	xfrm_address_t
 	sel	xfrm_selector
 	policy	xfrm_userpolicy_info
 	aalgos	int32
@@ -112,7 +112,7 @@ xfrm_user_report {
 
 xfrm_aevent_id {
 	sa_id	xfrm_usersa_id
-	saddr	xfrm_address
+	saddr	xfrm_address_t
 	flags	int32
 	reqid	xfrm_req_id
 }
@@ -126,8 +126,8 @@ xfrm_attrs [
 	algo_auth	nlattr[XFRMA_ALG_AUTH, xfrm_algo_hash]
 	algo_crypt	nlattr[XFRMA_ALG_CRYPT, xfrm_algo_skcipher]
 	algo_comp	nlattr[XFRMA_ALG_COMP, xfrm_algo_compress]
-	srcaddr		nlattr[XFRMA_SRCADDR, xfrm_address]
-	coaddr		nlattr[XFRMA_COADDR, xfrm_address]
+	srcaddr		nlattr[XFRMA_SRCADDR, xfrm_address_t]
+	coaddr		nlattr[XFRMA_COADDR, xfrm_address_t]
 	extra_flags	nlattr[XFRMA_SA_EXTRA_FLAGS, int32]
 	tfcpad		nlattr[XFRMA_TFCPAD, int32]
 	replay_thresh	nlattr[XFRMA_REPLAY_THRESH, int32]
@@ -146,15 +146,15 @@ xfrm_attrs [
 	mark		nlattr[XFRMA_MARK, xfrm_mark]
 	proto		nlattr[XFRMA_PROTO, flags[xfrm_proto, int8]]
 	address_filter	nlattr[XFRMA_ADDRESS_FILTER, xfrm_address_filter]
-	ipv4_hthresh	nlattr[XFRMA_SPD_IPV4_HTHRESH, xfrmu_spdhthresh4]
-	ipv6_hthresh	nlattr[XFRMA_SPD_IPV6_HTHRESH, xfrmu_spdhthresh6]
+	ipv4_hthresh	nlattr[XFRMA_SPD_IPV4_HTHRESH, xfrmu_spdhthresh[32]]
+	ipv6_hthresh	nlattr[XFRMA_SPD_IPV6_HTHRESH, xfrmu_spdhthresh[128]]
 ] [varlen]
 
 xfrm_encap_tmpl {
 	encap_type	flags[xfrm_encap_type, int16]
 	encap_sport	sock_port
 	encap_dport	sock_port
-	encap_oa	xfrm_address
+	encap_oa	xfrm_address_t
 }
 
 xfrm_user_offload {
@@ -199,8 +199,10 @@ xfrm_userpolicy_type {
 }
 
 xfrm_user_migrate {
-	old_daddr	xfrm_address
-	new_saddr	xfrm_address
+	old_daddr	xfrm_address_t
+	old_saddr	xfrm_address_t
+	new_daddr	xfrm_address_t
+	new_saddr	xfrm_address_t
 	proto		flags[xfrm_proto, int8]
 	mode		flags[xfrm_mode, int8]
 	reserved	const[0, int16]
@@ -210,8 +212,8 @@ xfrm_user_migrate {
 }
 
 xfrm_user_kmaddress {
-	local		xfrm_address
-	remote		xfrm_address
+	local		xfrm_address_t
+	remote		xfrm_address_t
 	reserved	const[0, int32]
 	family		flags[xfrm_family, int16]
 }
@@ -222,26 +224,21 @@ xfrm_mark {
 }
 
 xfrm_address_filter {
-	saddr	xfrm_address
-	daddr	xfrm_address
+	saddr	xfrm_address_t
+	daddr	xfrm_address_t
 	family	flags[xfrm_family, int16]
 	splen	int8
 	dplen	int8
 }
 
-xfrmu_spdhthresh4 {
-	lbits	int8[0:32]
-	rbits	int8[0:32]
-}
-
-xfrmu_spdhthresh6 {
-	lbits	int8[0:128]
-	rbits	int8[0:128]
+type xfrmu_spdhthresh[BOUND] {
+	lbits	int8[0:BOUND]
+	rbits	int8[0:BOUND]
 }
 
 xfrm_selector {
-	daddr		xfrm_address
-	saddr		xfrm_address
+	daddr		xfrm_address_t
+	saddr		xfrm_address_t
 	dport		sock_port
 	dport_mask	int16be[opt]
 	sport		sock_port
@@ -313,12 +310,12 @@ xfrm_algo_aead {
 xfrm_algo_truncbits = 0, 64, 96, 128, 160, 192, 256, 384, 512
 
 xfrm_id {
-	daddr	xfrm_address
+	daddr	xfrm_address_t
 	spi	xfrm_spi
 	proto	flags[xfrm_proto, int8]
 }
 
-xfrm_address [
+xfrm_address_t [
 	in	ipv4_addr
 	in6	ipv6_addr
 ]
@@ -343,7 +340,7 @@ xfrm_userpolicy_info {
 xfrm_user_tmpl {
 	id		xfrm_id
 	family		flags[xfrm_family, int16]
-	saddr		xfrm_address
+	saddr		xfrm_address_t
 	reqid		xfrm_req_id
 	mode		flags[xfrm_mode, int8]
 	share		flags[xfrm_policy_shares, int8]

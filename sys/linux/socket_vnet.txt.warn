@@ -1,5 +1,4 @@
 struct vmaddr_cid: no corresponding struct in kernel
 struct vmaddr_cid64: no corresponding struct in kernel
-struct vhost_msg: bad number of fields: syz=3 kernel=2
-struct vhost_msg: bad size: syz=104 kernel=72
 field vhost_msg.iotlb/: bad size: syz=32 kernel=64
+field vhost_msg_v2.iotlb/: bad size: syz=32 kernel=64
