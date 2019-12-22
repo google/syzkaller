@@ -18,7 +18,6 @@ include <uapi/linux/v4l2-controls.h>
 resource fd_video[fd]
 resource fd_dmabuf[fd]
 resource fd_v4l2_buffer[fd]
-resource v4l2_std_id[int64]
 
 syz_open_dev$video(dev ptr[in, string["/dev/video#"]], id intptr, flags flags[open_flags]) fd_video
 syz_open_dev$video4linux(dev ptr[in, string["/dev/v4l-subdev#"]], id intptr, flags flags[open_flags]) fd_video
@@ -145,8 +144,8 @@ ioctl$VIDIOC_SUBDEV_DV_TIMINGS_CAP(fd fd_video, cmd const[VIDIOC_SUBDEV_DV_TIMIN
 
 v4l2_capability {
 	driver		array[int8, 16]
-	card		array[int8, 16]
-	bus_version	array[int8, 32]
+	card		array[int8, 32]
+	bus_info	array[int8, 32]
 	version		int32
 	capabilities	flags[v4l2_capability_capabilities, int32]
 	device_caps	int32
@@ -263,7 +262,8 @@ v4l2_requestbuffers {
 	count		int32
 	type		flags[v4l2_buf_type, int32]
 	memory		flags[v4l2_memory, int32]
-	reserved	array[const[0, int32], 2]
+	capabilities	const[0, int32]
+	reserved	const[0, int32]
 }
 
 v4l2_buffer {
@@ -271,14 +271,15 @@ v4l2_buffer {
 	type		flags[v4l2_buf_type, int32]
 	bytesused	len[type, int32]
 	flags		flags[v4l2_buffer_flags, int32]
+	field		int32
 	timestamp	timeval
 	timecode	v4l2_timecode
 	sequence	int32
 	memory		flags[v4l2_memory, int32]
 	m		v4l2_buffer_union
-	length		len[type, int32]
+	length		int32
 	reserved2	const[0, int32]
-	reserved	const[0, int32]
+	request_fd	fd[opt]
 }
 
 v4l2_buffer_union [
@@ -491,7 +492,8 @@ v4l2_ext_controls {
 	ctrl_class	flags[v4l2_ext_ctrl_class, int32]
 	count		int32
 	error_idx	int32
-	reserved	array[const[0, int32], 2]
+	request_fd	fd[opt]
+	reserved	const[0, int32]
 	controls	ptr[inout, v4l2_ext_control]
 }
 
@@ -630,7 +632,10 @@ v4l2_bt_timings {
 	il_vbackporch	int32
 	standards	flags[v4l2_bt_timings_standards, int32]
 	flags		flags[v4l2_bt_timings_flags, int32]
-	reserved	array[const[0, int32], 14]
+	picture_aspect	v4l2_fract
+	cea861_vic	int8
+	hdmi_vic	int8
+	reserved	array[const[0, int8], 46]
 } [packed]
 
 v4l2_encoder_cmd {
@@ -704,7 +709,8 @@ v4l2_create_buffers {
 	count		int32
 	memory		flags[v4l2_memory, int32]
 	format		v4l2_format
-	reserved	array[const[0, int32], 8]
+	capabilities	int32
+	reserved	array[const[0, int32], 7]
 }
 
 v4l2_selection {
@@ -797,9 +803,11 @@ v4l2_query_ext_ctrl {
 	reserved	array[const[0, int32], 32]
 }
 
+type v4l2_std_id flags[v4l2_std_id, int64]
+
 v4l2_standard {
 	index		int32
-	id		flags[v4l2_standard_std, int32]
+	id		v4l2_std_id
 	name		array[int8, 24]
 	frameperiod	v4l2_fract
 	framelines	int32
@@ -812,7 +820,7 @@ v4l2_input {
 	type		flags[v4l2_input_type, int32]
 	audioset	int32
 	tuner		flags[v4l2_tuner_type, int32]
-	std		flags[v4l2_standard_std, int32]
+	std		v4l2_std_id
 	status		flags[v4l2_input_status, int32]
 	capabilities	flags[v4l2_input_capabilities, int32]
 	reserved	array[const[0, int32], 3]
@@ -824,7 +832,7 @@ v4l2_output {
 	type		flags[v4l2_output_type, int32]
 	audioset	int32
 	modulator	int32
-	std		flags[v4l2_standard_std, int32]
+	std		v4l2_std_id
 	capabilities	flags[v4l2_output_capabilities, int32]
 	reserved	array[const[0, int32], 3]
 }
@@ -842,9 +850,10 @@ v4l2_mbus_framefmt {
 	code		flags[media_bus_fmt, int32]
 	field		flags[v4l2_field, int32]
 	colorspace	flags[v4l2_colorspace, int32]
-	ycbcr_enc	flags[v4l2_ycbcr_encoding, int32]
-	quantization	flags[v4l2_quantization, int32]
-	xfer_func	flags[v4l2_xfer_func, int32]
+	ycbcr_enc	flags[v4l2_ycbcr_encoding, int16]
+	quantization	flags[v4l2_quantization, int16]
+	xfer_func	flags[v4l2_xfer_func, int16]
+	reserved	array[const[0, int16], 11]
 }
 
 v4l2_subdev_frame_interval {
@@ -960,7 +969,7 @@ v4l2_selection_target = V4L2_SEL_TGT_CROP, V4L2_SEL_TGT_CROP_DEFAULT, V4L2_SEL_T
 v4l2_selection_flags = V4L2_SEL_FLAG_GE, V4L2_SEL_FLAG_LE, V4L2_SEL_FLAG_KEEP_CONFIG, V4L2_SUBDEV_SEL_FLAG_SIZE_GE, V4L2_SUBDEV_SEL_FLAG_SIZE_LE, V4L2_SUBDEV_SEL_FLAG_KEEP_CONFIG
 v4l2_bt_timings_cap_capabilities = V4L2_DV_BT_CAP_INTERLACED, V4L2_DV_BT_CAP_PROGRESSIVE, V4L2_DV_BT_CAP_REDUCED_BLANKING, V4L2_DV_BT_CAP_CUSTOM
 v4l2_dbg_chip_info_flags = V4L2_CHIP_FL_READABLE, V4L2_CHIP_FL_WRITABLE
-v4l2_standard_std = V4L2_STD_PAL_B, V4L2_STD_PAL_B1, V4L2_STD_PAL_G, V4L2_STD_PAL_H, V4L2_STD_PAL_I, V4L2_STD_PAL_D, V4L2_STD_PAL_D1, V4L2_STD_PAL_K, V4L2_STD_PAL_M, V4L2_STD_PAL_N, V4L2_STD_PAL_Nc, V4L2_STD_PAL_60, V4L2_STD_NTSC_M, V4L2_STD_NTSC_M_JP, V4L2_STD_NTSC_443, V4L2_STD_NTSC_M_KR, V4L2_STD_SECAM_B, V4L2_STD_SECAM_D, V4L2_STD_SECAM_G, V4L2_STD_SECAM_H, V4L2_STD_SECAM_K, V4L2_STD_SECAM_K1, V4L2_STD_SECAM_L, V4L2_STD_SECAM_LC, V4L2_STD_ATSC_8_VSB, V4L2_STD_ATSC_16_VSB, V4L2_STD_NTSC, V4L2_STD_SECAM_DK, V4L2_STD_SECAM, V4L2_STD_PAL_BG, V4L2_STD_PAL_DK, V4L2_STD_PAL, V4L2_STD_B, V4L2_STD_G, V4L2_STD_H, V4L2_STD_L, V4L2_STD_GH, V4L2_STD_DK, V4L2_STD_BG, V4L2_STD_MN, V4L2_STD_MTS, V4L2_STD_525_60, V4L2_STD_625_50, V4L2_STD_ATSC, V4L2_STD_UNKNOWN, V4L2_STD_ALL
+v4l2_std_id = V4L2_STD_PAL_B, V4L2_STD_PAL_B1, V4L2_STD_PAL_G, V4L2_STD_PAL_H, V4L2_STD_PAL_I, V4L2_STD_PAL_D, V4L2_STD_PAL_D1, V4L2_STD_PAL_K, V4L2_STD_PAL_M, V4L2_STD_PAL_N, V4L2_STD_PAL_Nc, V4L2_STD_PAL_60, V4L2_STD_NTSC_M, V4L2_STD_NTSC_M_JP, V4L2_STD_NTSC_443, V4L2_STD_NTSC_M_KR, V4L2_STD_SECAM_B, V4L2_STD_SECAM_D, V4L2_STD_SECAM_G, V4L2_STD_SECAM_H, V4L2_STD_SECAM_K, V4L2_STD_SECAM_K1, V4L2_STD_SECAM_L, V4L2_STD_SECAM_LC, V4L2_STD_ATSC_8_VSB, V4L2_STD_ATSC_16_VSB, V4L2_STD_NTSC, V4L2_STD_SECAM_DK, V4L2_STD_SECAM, V4L2_STD_PAL_BG, V4L2_STD_PAL_DK, V4L2_STD_PAL, V4L2_STD_B, V4L2_STD_G, V4L2_STD_H, V4L2_STD_L, V4L2_STD_GH, V4L2_STD_DK, V4L2_STD_BG, V4L2_STD_MN, V4L2_STD_MTS, V4L2_STD_525_60, V4L2_STD_625_50, V4L2_STD_ATSC, V4L2_STD_UNKNOWN, V4L2_STD_ALL
 v4l2_input_status = V4L2_IN_ST_NO_POWER, V4L2_IN_ST_NO_SIGNAL, V4L2_IN_ST_NO_COLOR, V4L2_IN_ST_HFLIP, V4L2_IN_ST_VFLIP, V4L2_IN_ST_NO_H_LOCK, V4L2_IN_ST_COLOR_KILL, V4L2_IN_ST_NO_V_LOCK, V4L2_IN_ST_NO_STD_LOCK, V4L2_IN_ST_NO_SYNC, V4L2_IN_ST_NO_EQU, V4L2_IN_ST_NO_CARRIER, V4L2_IN_ST_MACROVISION, V4L2_IN_ST_NO_ACCESS, V4L2_IN_ST_VTR
 v4l2_input_type = V4L2_INPUT_TYPE_TUNER, V4L2_INPUT_TYPE_CAMERA, V4L2_INPUT_TYPE_TOUCH
 v4l2_input_capabilities = V4L2_IN_CAP_DV_TIMINGS, V4L2_IN_CAP_CUSTOM_TIMINGS, V4L2_IN_CAP_STD, V4L2_IN_CAP_NATIVE_SIZE

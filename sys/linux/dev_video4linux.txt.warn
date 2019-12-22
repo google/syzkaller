@@ -1,71 +1,16 @@
-struct v4l2_capability: bad size: syz=88 kernel=104
-field v4l2_capability.card: bad size: syz=16 kernel=32
-field v4l2_capability.bus_version/bus_info: bad offset: syz=32 kernel=48
-field v4l2_capability.version: bad offset: syz=64 kernel=80
-field v4l2_capability.capabilities: bad offset: syz=68 kernel=84
-field v4l2_capability.device_caps: bad offset: syz=72 kernel=88
-field v4l2_capability.reserved: bad offset: syz=76 kernel=92
 struct v4l2_format_fmt: no corresponding struct in kernel
-struct v4l2_requestbuffers: bad number of fields: syz=4 kernel=5
-field v4l2_requestbuffers.reserved/capabilities: bad size: syz=8 kernel=4
-struct v4l2_buffer: bad number of fields: syz=12 kernel=13
-struct v4l2_buffer: bad size: syz=80 kernel=88
-field v4l2_buffer.timestamp/field: bad size: syz=16 kernel=4
-field v4l2_buffer.timecode/timestamp: bad offset: syz=32 kernel=24
-field v4l2_buffer.sequence/timecode: bad offset: syz=48 kernel=40
-field v4l2_buffer.sequence/timecode: bad size: syz=4 kernel=16
-field v4l2_buffer.memory/sequence: bad offset: syz=52 kernel=56
-field v4l2_buffer.m/memory: bad offset: syz=56 kernel=60
-field v4l2_buffer.m/memory: bad size: syz=8 kernel=4
-field v4l2_buffer.length/m: bad size: syz=4 kernel=8
-field v4l2_buffer.reserved2/length: bad offset: syz=68 kernel=72
-field v4l2_buffer.reserved/reserved2: bad offset: syz=72 kernel=76
 struct v4l2_buffer_union: no corresponding struct in kernel
 struct v4l2_plane_union: no corresponding struct in kernel
 struct v4l2_framebuffer_union: no corresponding struct in kernel
 struct v4l2_streamparm_union: no corresponding struct in kernel
 struct v4l2_querymenu_union: no corresponding struct in kernel
-struct v4l2_ext_controls: bad number of fields: syz=5 kernel=6
-field v4l2_ext_controls.reserved/request_fd: bad size: syz=8 kernel=4
-field v4l2_ext_controls.controls/reserved: bad offset: syz=24 kernel=16
-field v4l2_ext_controls.controls/reserved: bad size: syz=8 kernel=4
 struct v4l2_ext_u: no corresponding struct in kernel
 struct v4l2_frmsizeenum_union: no corresponding struct in kernel
 struct v4l2_frmivalenum_union: no corresponding struct in kernel
 struct v4l2_dbg_match_union: no corresponding struct in kernel
 struct v4l2_dv_timings_union: no corresponding struct in kernel
-struct v4l2_bt_timings: bad number of fields: syz=17 kernel=20
-field v4l2_bt_timings.reserved/picture_aspect: bad size: syz=56 kernel=8
 struct v4l2_event_union: no corresponding struct in kernel
 struct v4l2_event_ctrl_union: no corresponding struct in kernel
-struct v4l2_create_buffers: bad number of fields: syz=5 kernel=6
-field v4l2_create_buffers.reserved/capabilities: bad size: syz=32 kernel=4
 struct v4l2_decoder_cmd_u: no corresponding struct in kernel
 struct v4l2_decoder_cmd_start: no corresponding struct in kernel
 struct v4l2_dv_timings_cap_u: no corresponding struct in kernel
-struct v4l2_standard: bad size: syz=60 kernel=72
-field v4l2_standard.id: bad offset: syz=4 kernel=8
-field v4l2_standard.id: bad size: syz=4 kernel=8
-field v4l2_standard.name: bad offset: syz=8 kernel=16
-field v4l2_standard.frameperiod: bad offset: syz=32 kernel=40
-field v4l2_standard.framelines: bad offset: syz=40 kernel=48
-field v4l2_standard.reserved: bad offset: syz=44 kernel=52
-struct v4l2_input: bad size: syz=72 kernel=80
-field v4l2_input.std: bad size: syz=4 kernel=8
-field v4l2_input.status: bad offset: syz=52 kernel=56
-field v4l2_input.capabilities: bad offset: syz=56 kernel=60
-field v4l2_input.reserved: bad offset: syz=60 kernel=64
-struct v4l2_output: bad size: syz=68 kernel=72
-field v4l2_output.std: bad size: syz=4 kernel=8
-field v4l2_output.capabilities: bad offset: syz=52 kernel=56
-field v4l2_output.reserved: bad offset: syz=56 kernel=60
-struct v4l2_subdev_format: bad size: syz=72 kernel=88
-field v4l2_subdev_format.format: bad size: syz=32 kernel=48
-field v4l2_subdev_format.reserved: bad offset: syz=40 kernel=56
-struct v4l2_mbus_framefmt: bad number of fields: syz=8 kernel=9
-struct v4l2_mbus_framefmt: bad size: syz=32 kernel=48
-field v4l2_mbus_framefmt.ycbcr_enc: bad size: syz=4 kernel=2
-field v4l2_mbus_framefmt.quantization: bad offset: syz=24 kernel=22
-field v4l2_mbus_framefmt.quantization: bad size: syz=4 kernel=2
-field v4l2_mbus_framefmt.xfer_func: bad offset: syz=28 kernel=24
-field v4l2_mbus_framefmt.xfer_func: bad size: syz=4 kernel=2
