@@ -1,1 +1,1 @@
-struct sockaddr_hf: no corresponding struct in kernel
+no-such-struct: sockaddr_hf

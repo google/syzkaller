@@ -1,1 +1,1 @@
-struct sockaddr_llc: bad number of fields: syz=7 kernel=8
+bad-field-number: sockaddr_llc: syz=7 kernel=8

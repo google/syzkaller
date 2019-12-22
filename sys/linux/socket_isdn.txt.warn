@@ -1,1 +1,1 @@
-struct capi20_command: no corresponding struct in kernel
+no-such-struct: capi20_command

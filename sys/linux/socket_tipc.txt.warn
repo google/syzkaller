@@ -1,10 +1,10 @@
-struct tipc_pair: no corresponding struct in kernel
-struct sockaddr_tipc: bad number of fields: syz=3 kernel=4
-field sockaddr_tipc.nameseq/family: bad size: syz=16 kernel=2
-field sockaddr_tipc.name/addrtype: bad offset: syz=16 kernel=2
-field sockaddr_tipc.name/addrtype: bad size: syz=16 kernel=1
-field sockaddr_tipc.id/scope: bad offset: syz=32 kernel=3
-field sockaddr_tipc.id/scope: bad size: syz=12 kernel=1
-struct sockaddr_tipc_t: no corresponding struct in kernel
-struct msghdr_tipc: no corresponding struct in kernel
-struct tipc_address_name: no corresponding struct in kernel
+no-such-struct: tipc_pair
+bad-field-number: sockaddr_tipc: syz=3 kernel=4
+bad-field-size: sockaddr_tipc.nameseq/family: syz=16 kernel=2
+bad-field-size: sockaddr_tipc.name/addrtype: syz=16 kernel=1
+bad-field-offset: sockaddr_tipc.name/addrtype: syz=16 kernel=2
+bad-field-size: sockaddr_tipc.id/scope: syz=12 kernel=1
+bad-field-offset: sockaddr_tipc.id/scope: syz=32 kernel=3
+no-such-struct: sockaddr_tipc_t
+no-such-struct: msghdr_tipc
+no-such-struct: tipc_address_name

@@ -1,1 +1,1 @@
-struct uhid_req: no corresponding struct in kernel
+no-such-struct: uhid_req

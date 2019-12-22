@@ -1,31 +1,50 @@
-struct snd_pcm_sync_ptr: bad number of fields: syz=3 kernel=4
-field snd_pcm_sync_ptr.status/pad1: bad size: syz=64 kernel=4
-field snd_pcm_sync_ptr.control/s: bad offset: syz=72 kernel=8
-field snd_pcm_sync_ptr.control/s: bad size: syz=16 kernel=64
-struct snd_pcm_mmap_control: bad number of fields: syz=2 kernel=6
-field snd_pcm_mmap_control.appl_ptr/__pad1: bad size: syz=8 kernel=0
-field snd_pcm_mmap_control.avail_min/appl_ptr: bad offset: syz=8 kernel=0
-struct snd_pcm_status32: bad number of fields: syz=13 kernel=19
-field snd_pcm_status32.trigger_tstamp_sec: bad offset: syz=8 kernel=4
-field snd_pcm_status32.trigger_tstamp_sec: bad size: syz=8 kernel=4
-field snd_pcm_status32.trigger_tstamp_nsec: bad offset: syz=16 kernel=8
-field snd_pcm_status32.trigger_tstamp_nsec: bad size: syz=8 kernel=4
-field snd_pcm_status32.tstamp_sec: bad offset: syz=24 kernel=12
-field snd_pcm_status32.tstamp_sec: bad size: syz=8 kernel=4
-field snd_pcm_status32.tstamp_nsec: bad offset: syz=32 kernel=16
-field snd_pcm_status32.tstamp_nsec: bad size: syz=8 kernel=4
-field snd_pcm_status32.appl_ptr: bad offset: syz=40 kernel=20
-field snd_pcm_status32.appl_ptr: bad size: syz=8 kernel=4
-field snd_pcm_status32.hw_ptr: bad offset: syz=48 kernel=24
-field snd_pcm_status32.hw_ptr: bad size: syz=8 kernel=4
-field snd_pcm_status32.delay: bad offset: syz=56 kernel=28
-field snd_pcm_status32.delay: bad size: syz=8 kernel=4
-field snd_pcm_status32.avail: bad offset: syz=64 kernel=32
-field snd_pcm_status32.avail: bad size: syz=8 kernel=4
-field snd_pcm_status32.avail_max: bad offset: syz=72 kernel=36
-field snd_pcm_status32.avail_max: bad size: syz=8 kernel=4
-field snd_pcm_status32.overrange: bad offset: syz=80 kernel=40
-field snd_pcm_status32.overrange: bad size: syz=8 kernel=4
-field snd_pcm_status32.suspended_state: bad offset: syz=88 kernel=44
-field snd_pcm_status32.audio_tstamp_data: bad offset: syz=92 kernel=48
-struct snd_pcm_status64: bad number of fields: syz=14 kernel=20
+bad-field-number: snd_pcm_sync_ptr: syz=3 kernel=4
+bad-field-size: snd_pcm_sync_ptr.status/pad1: syz=64 kernel=4
+bad-field-size: snd_pcm_sync_ptr.control/s: syz=16 kernel=64 [amd64]
+bad-field-offset: snd_pcm_sync_ptr.control/s: syz=68 kernel=8 [386]
+bad-field-offset: snd_pcm_sync_ptr.control/s: syz=72 kernel=8 [amd64]
+bad-field-size: snd_pcm_sync_ptr.control/s: syz=8 kernel=64 [386]
+bad-field-number: snd_pcm_mmap_control: syz=2 kernel=6
+bad-struct-size: snd_pcm_mmap_control: syz=8 kernel=12 [386]
+bad-field-size: snd_pcm_mmap_control.appl_ptr/__pad1: syz=4 kernel=0 [386]
+bad-field-size: snd_pcm_mmap_control.appl_ptr/__pad1: syz=8 kernel=0 [amd64]
+bad-field-offset: snd_pcm_mmap_control.avail_min/appl_ptr: syz=4 kernel=0 [386]
+bad-field-offset: snd_pcm_mmap_control.avail_min/appl_ptr: syz=8 kernel=0 [amd64]
+bad-field-number: snd_pcm_status32: syz=13 kernel=19
+bad-field-size: snd_pcm_status32.trigger_tstamp_sec: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.trigger_tstamp_nsec: syz=16 kernel=8 [amd64]
+bad-field-size: snd_pcm_status32.trigger_tstamp_nsec: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.tstamp_sec: syz=24 kernel=12 [amd64]
+bad-field-size: snd_pcm_status32.tstamp_sec: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.tstamp_nsec: syz=32 kernel=16 [amd64]
+bad-field-size: snd_pcm_status32.tstamp_nsec: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.appl_ptr: syz=40 kernel=20 [amd64]
+bad-field-size: snd_pcm_status32.appl_ptr: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.hw_ptr: syz=48 kernel=24 [amd64]
+bad-field-size: snd_pcm_status32.hw_ptr: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.delay: syz=56 kernel=28 [amd64]
+bad-field-size: snd_pcm_status32.delay: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.avail: syz=64 kernel=32 [amd64]
+bad-field-size: snd_pcm_status32.avail: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.avail_max: syz=72 kernel=36 [amd64]
+bad-field-size: snd_pcm_status32.avail_max: syz=8 kernel=4 [amd64]
+bad-field-size: snd_pcm_status32.overrange: syz=8 kernel=4 [amd64]
+bad-field-offset: snd_pcm_status32.overrange: syz=80 kernel=40 [amd64]
+bad-field-offset: snd_pcm_status32.suspended_state: syz=88 kernel=44 [amd64]
+bad-field-offset: snd_pcm_status32.audio_tstamp_data: syz=92 kernel=48 [amd64]
+bad-field-number: snd_pcm_status64: syz=14 kernel=20
+bad-field-size: snd_pcm_status64.trigger_tstamp_sec: syz=4 kernel=8 [386]
+bad-field-offset: snd_pcm_status64.trigger_tstamp_nsec: syz=12 kernel=16 [386]
+bad-field-size: snd_pcm_status64.trigger_tstamp_nsec: syz=4 kernel=8 [386]
+bad-field-offset: snd_pcm_status64.tstamp_sec: syz=16 kernel=24 [386]
+bad-field-size: snd_pcm_status64.tstamp_sec: syz=4 kernel=8 [386]
+bad-field-offset: snd_pcm_status64.tstamp_nsec: syz=20 kernel=32 [386]
+bad-field-size: snd_pcm_status64.tstamp_nsec: syz=4 kernel=8 [386]
+bad-field-offset: snd_pcm_status64.appl_ptr: syz=24 kernel=40 [386]
+bad-field-offset: snd_pcm_status64.hw_ptr: syz=28 kernel=44 [386]
+bad-field-offset: snd_pcm_status64.delay: syz=32 kernel=48 [386]
+bad-field-offset: snd_pcm_status64.avail: syz=36 kernel=52 [386]
+bad-field-offset: snd_pcm_status64.avail_max: syz=40 kernel=56 [386]
+bad-field-offset: snd_pcm_status64.overrange: syz=44 kernel=60 [386]
+bad-field-offset: snd_pcm_status64.suspended_state: syz=48 kernel=64 [386]
+bad-field-offset: snd_pcm_status64.audio_tstamp_data: syz=52 kernel=68 [386]

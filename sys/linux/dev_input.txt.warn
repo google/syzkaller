@@ -1,8 +1,15 @@
-struct input_event: bad number of fields: syz=4 kernel=5
-field input_event.time/__sec: bad size: syz=16 kernel=8
-field input_event.type/__usec: bad offset: syz=16 kernel=8
-field input_event.type/__usec: bad size: syz=2 kernel=8
-field input_event.code/type: bad offset: syz=18 kernel=16
-field input_event.val/code: bad offset: syz=20 kernel=18
-field input_event.val/code: bad size: syz=4 kernel=2
-struct ff_effect_u: no corresponding struct in kernel
+bad-field-number: input_event: syz=4 kernel=5
+bad-field-size: input_event.time/__sec: syz=16 kernel=8 [amd64]
+bad-field-size: input_event.time/__sec: syz=8 kernel=4 [386]
+bad-field-offset: input_event.type/__usec: syz=16 kernel=8 [amd64]
+bad-field-size: input_event.type/__usec: syz=2 kernel=4 [386]
+bad-field-size: input_event.type/__usec: syz=2 kernel=8 [amd64]
+bad-field-offset: input_event.type/__usec: syz=8 kernel=4 [386]
+bad-field-offset: input_event.code/type: syz=10 kernel=8 [386]
+bad-field-offset: input_event.code/type: syz=18 kernel=16 [amd64]
+bad-field-offset: input_event.val/code: syz=12 kernel=10 [386]
+bad-field-offset: input_event.val/code: syz=20 kernel=18 [amd64]
+bad-field-size: input_event.val/code: syz=4 kernel=2
+no-such-struct: ff_effect_u
+bad-struct-size: input_mask: syz=12 kernel=16 [386]
+bad-field-size: input_mask.ptr/codes_ptr: syz=4 kernel=8 [386]

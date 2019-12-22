@@ -1,43 +1,43 @@
-len target configs refer to an array with variable-size elements (do you mean bytesize?)
-len target interfaces refer to an array with variable-size elements (do you mean bytesize?)
-struct usb_interface_descriptor_t: no corresponding struct in kernel
-len target endpoints refer to an array with variable-size elements (do you mean bytesize?)
-struct usb_endpoint_descriptor_t: no corresponding struct in kernel
-struct vusb_connect_string_descriptor: no corresponding struct in kernel
-struct vusb_descriptors: no corresponding struct in kernel
-struct vusb_descriptor_t: no corresponding struct in kernel
-struct vusb_responses: no corresponding struct in kernel
-struct vusb_response_t: no corresponding struct in kernel
-struct usb_string_descriptor_t: no corresponding struct in kernel
-len target caps refer to an array with variable-size elements (do you mean bytesize?)
-struct usb_wireless_cap_descriptor: no corresponding struct in kernel
-struct usb_ext_cap_descriptor: bad number of fields: syz=7 kernel=4
-field usb_ext_cap_descriptor.bmAttributes1/bmAttributes: bad bit size/offset: syz=8/0 kernel=0/0
-struct usb_hub_descriptor_hs: no corresponding struct in kernel
-struct usb_hub_descriptor_ss: no corresponding struct in kernel
-struct usb_endpoint_descriptor_hid_in: no corresponding struct in kernel
-struct usb_endpoint_descriptor_hid_out: no corresponding struct in kernel
-struct vusb_descriptors_hid: no corresponding struct in kernel
-struct vusb_responses_hid: no corresponding struct in kernel
-struct usb_hid_descriptor_hid: no corresponding struct in kernel
-struct usb_hid_class_descriptor_report: no corresponding struct in kernel
-struct hid_report_item_short_4_t: no corresponding struct in kernel
-struct usb_endpoint_descriptor_printer_out: no corresponding struct in kernel
-struct usb_endpoint_descriptor_printer_in: no corresponding struct in kernel
-struct vusb_descriptors_printer: no corresponding struct in kernel
-struct vusb_responses_printer: no corresponding struct in kernel
-struct usb_endpoint_descriptor_cdc_ecm_notify: no corresponding struct in kernel
-struct usb_endpoint_descriptor_cdc_ecm_in: no corresponding struct in kernel
-struct usb_endpoint_descriptor_cdc_ecm_out: no corresponding struct in kernel
-struct usb_cdc_ecm_mbm_guid: no corresponding struct in kernel
-struct vusb_descriptors_cdc_ecm: no corresponding struct in kernel
-struct usb_cdc_ecm_mac: no corresponding struct in kernel
-struct vusb_responses_cdc_ecm: no corresponding struct in kernel
-struct usb_endpoint_descriptors_cdc_ncm_data: no corresponding struct in kernel
-struct vusb_descriptors_cdc_ncm: no corresponding struct in kernel
-struct vusb_responses_cdc_ncm: no corresponding struct in kernel
-struct uac1_ac_header_descriptor_2: no corresponding struct in kernel
-struct uac_as_out_endpoint_descriptor: no corresponding struct in kernel
-struct uac_as_in_endpoint_descriptor: no corresponding struct in kernel
-struct vusb_descriptors_uac1: no corresponding struct in kernel
-struct vusb_responses_uac1: no corresponding struct in kernel
+compiler: len target configs refer to an array with variable-size elements (do you mean bytesize?)
+compiler: len target interfaces refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: usb_interface_descriptor_t
+compiler: len target endpoints refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: usb_endpoint_descriptor_t
+no-such-struct: vusb_connect_string_descriptor
+no-such-struct: vusb_descriptors
+no-such-struct: vusb_descriptor_t
+no-such-struct: vusb_responses
+no-such-struct: vusb_response_t
+no-such-struct: usb_string_descriptor_t
+compiler: len target caps refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: usb_wireless_cap_descriptor
+bad-field-number: usb_ext_cap_descriptor: syz=7 kernel=4
+bad-bitfield: usb_ext_cap_descriptor.bmAttributes1/bmAttributes: size/offset: syz=8/0 kernel=0/0
+no-such-struct: usb_hub_descriptor_hs
+no-such-struct: usb_hub_descriptor_ss
+no-such-struct: usb_endpoint_descriptor_hid_in
+no-such-struct: usb_endpoint_descriptor_hid_out
+no-such-struct: vusb_descriptors_hid
+no-such-struct: vusb_responses_hid
+no-such-struct: usb_hid_descriptor_hid
+no-such-struct: usb_hid_class_descriptor_report
+no-such-struct: hid_report_item_short_4_t
+no-such-struct: usb_endpoint_descriptor_printer_out
+no-such-struct: usb_endpoint_descriptor_printer_in
+no-such-struct: vusb_descriptors_printer
+no-such-struct: vusb_responses_printer
+no-such-struct: usb_endpoint_descriptor_cdc_ecm_notify
+no-such-struct: usb_endpoint_descriptor_cdc_ecm_in
+no-such-struct: usb_endpoint_descriptor_cdc_ecm_out
+no-such-struct: usb_cdc_ecm_mbm_guid
+no-such-struct: vusb_descriptors_cdc_ecm
+no-such-struct: usb_cdc_ecm_mac
+no-such-struct: vusb_responses_cdc_ecm
+no-such-struct: usb_endpoint_descriptors_cdc_ncm_data
+no-such-struct: vusb_descriptors_cdc_ncm
+no-such-struct: vusb_responses_cdc_ncm
+no-such-struct: uac1_ac_header_descriptor_2
+no-such-struct: uac_as_out_endpoint_descriptor
+no-such-struct: uac_as_in_endpoint_descriptor
+no-such-struct: vusb_descriptors_uac1
+no-such-struct: vusb_responses_uac1

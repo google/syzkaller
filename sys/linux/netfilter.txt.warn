@@ -1,62 +1,83 @@
-struct nf_inet_addr: no corresponding struct in kernel
-struct nf_conntrack_man_proto: no corresponding struct in kernel
-struct xt_entry_match: bad number of fields: syz=3 kernel=2
-field xt_entry_match.match_size/u: bad size: syz=2 kernel=32
-field xt_entry_match.name/data: bad offset: syz=2 kernel=32
-field xt_entry_match.name/data: bad size: syz=29 kernel=0
-struct xt_entry_match_t: no corresponding struct in kernel
-struct xt_bpf_info_v1: bad number of fields: syz=3 kernel=5
-field xt_bpf_info_v1.bytecode/mode: bad size: syz=528 kernel=2
-field xt_bpf_info_v1.pinned/bpf_program_num_elem: bad offset: syz=528 kernel=2
-field xt_bpf_info_v1.pinned/bpf_program_num_elem: bad size: syz=528 kernel=2
-field xt_bpf_info_v1.fd: bad offset: syz=1056 kernel=4
-field xt_bpf_info_v1.fd: bad size: syz=8 kernel=4
-struct xt_bpf_info_bytecode: no corresponding struct in kernel
-struct xt_bpf_info_pinned: no corresponding struct in kernel
-struct xt_bpf_info_fd: no corresponding struct in kernel
-struct xt_conntrack_mtinfo_common: no corresponding struct in kernel
-struct xt_conntrack_mtinfo1: bad number of fields: syz=3 kernel=19
-field xt_conntrack_mtinfo1.common/origsrc_addr: bad size: syz=150 kernel=16
-field xt_conntrack_mtinfo1.state_mask/origsrc_mask: bad offset: syz=150 kernel=16
-field xt_conntrack_mtinfo1.state_mask/origsrc_mask: bad size: syz=1 kernel=16
-field xt_conntrack_mtinfo1.status_mask/origdst_addr: bad offset: syz=151 kernel=32
-field xt_conntrack_mtinfo1.status_mask/origdst_addr: bad size: syz=1 kernel=16
-struct xt_conntrack_mtinfo2: bad number of fields: syz=3 kernel=19
-field xt_conntrack_mtinfo2.common/origsrc_addr: bad size: syz=150 kernel=16
-field xt_conntrack_mtinfo2.state_mask/origsrc_mask: bad offset: syz=150 kernel=16
-field xt_conntrack_mtinfo2.state_mask/origsrc_mask: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo2.status_mask/origdst_addr: bad offset: syz=152 kernel=32
-field xt_conntrack_mtinfo2.status_mask/origdst_addr: bad size: syz=2 kernel=16
-struct xt_conntrack_mtinfo3: bad number of fields: syz=7 kernel=23
-field xt_conntrack_mtinfo3.common/origsrc_addr: bad size: syz=150 kernel=16
-field xt_conntrack_mtinfo3.state_mask/origsrc_mask: bad offset: syz=150 kernel=16
-field xt_conntrack_mtinfo3.state_mask/origsrc_mask: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.status_mask/origdst_addr: bad offset: syz=152 kernel=32
-field xt_conntrack_mtinfo3.status_mask/origdst_addr: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.origsrc_port_high/origdst_mask: bad offset: syz=154 kernel=48
-field xt_conntrack_mtinfo3.origsrc_port_high/origdst_mask: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.origdst_port_high/replsrc_addr: bad offset: syz=156 kernel=64
-field xt_conntrack_mtinfo3.origdst_port_high/replsrc_addr: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: bad offset: syz=158 kernel=80
-field xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: bad size: syz=2 kernel=16
-field xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: bad offset: syz=160 kernel=96
-field xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: bad size: syz=2 kernel=16
-struct xt_comment_info: no corresponding struct in kernel
-struct xt_statistic_info: bad number of fields: syz=6 kernel=4
-field xt_statistic_info.every/u: bad size: syz=4 kernel=12
-field xt_statistic_info.packet/master: bad offset: syz=8 kernel=16
-field xt_statistic_info.packet/master: bad size: syz=4 kernel=8
-struct xt_recent_mtinfo: no corresponding struct in kernel
-struct xt_policy_elem: bad number of fields: syz=10 kernel=7
-field xt_policy_elem.saddr/: bad size: syz=16 kernel=64
-field xt_policy_elem.smask/spi: bad offset: syz=16 kernel=64
-field xt_policy_elem.smask/spi: bad size: syz=16 kernel=4
-field xt_policy_elem.daddr/reqid: bad offset: syz=32 kernel=68
-field xt_policy_elem.daddr/reqid: bad size: syz=16 kernel=4
-field xt_policy_elem.dmask/proto: bad offset: syz=48 kernel=72
-field xt_policy_elem.dmask/proto: bad size: syz=16 kernel=1
-field xt_policy_elem.spi/mode: bad offset: syz=64 kernel=73
-field xt_policy_elem.spi/mode: bad size: syz=4 kernel=1
-field xt_policy_elem.reqid/match: bad offset: syz=68 kernel=74
-field xt_policy_elem.reqid/match: bad size: syz=4 kernel=1
-field xt_policy_elem.proto/invert: bad offset: syz=72 kernel=75
+no-such-struct: nf_inet_addr
+no-such-struct: nf_conntrack_man_proto
+bad-field-number: xt_entry_match: syz=3 kernel=2
+bad-field-size: xt_entry_match.match_size/u: syz=2 kernel=32
+bad-field-offset: xt_entry_match.name/data: syz=2 kernel=32
+bad-field-size: xt_entry_match.name/data: syz=29 kernel=0
+no-such-struct: xt_entry_match_t
+bad-struct-size: xt_cgroup_info_v1: syz=4108 kernel=4112 [386]
+bad-struct-size: xt_rateest_match_info: syz=60 kernel=72 [386]
+bad-field-offset: xt_rateest_match_info.est1: syz=52 kernel=56 [386]
+bad-field-offset: xt_rateest_match_info.est2: syz=56 kernel=64 [386]
+bad-struct-size: xt_bpf_info: syz=520 kernel=528 [386]
+bad-field-offset: xt_bpf_info.filter: syz=516 kernel=520 [386]
+bad-field-number: xt_bpf_info_v1: syz=3 kernel=5
+bad-struct-size: xt_bpf_info_v1: syz=524 kernel=528 [386]
+bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=524 kernel=2 [386]
+bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=528 kernel=2 [amd64]
+bad-field-size: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=524 kernel=2 [386]
+bad-field-size: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=528 kernel=2 [amd64]
+bad-field-offset: xt_bpf_info_v1.fd: syz=1048 kernel=4 [386]
+bad-field-offset: xt_bpf_info_v1.fd: syz=1056 kernel=4 [amd64]
+bad-field-size: xt_bpf_info_v1.fd: syz=8 kernel=4
+no-such-struct: xt_bpf_info_bytecode
+no-such-struct: xt_bpf_info_pinned
+no-such-struct: xt_bpf_info_fd
+bad-struct-size: xt_connlimit_info: syz=28 kernel=32 [386]
+no-such-struct: xt_conntrack_mtinfo_common
+bad-field-number: xt_conntrack_mtinfo1: syz=3 kernel=19
+bad-field-size: xt_conntrack_mtinfo1.common/origsrc_addr: syz=150 kernel=16
+bad-field-size: xt_conntrack_mtinfo1.state_mask/origsrc_mask: syz=1 kernel=16
+bad-field-offset: xt_conntrack_mtinfo1.state_mask/origsrc_mask: syz=150 kernel=16
+bad-field-size: xt_conntrack_mtinfo1.status_mask/origdst_addr: syz=1 kernel=16
+bad-field-offset: xt_conntrack_mtinfo1.status_mask/origdst_addr: syz=151 kernel=32
+bad-field-number: xt_conntrack_mtinfo2: syz=3 kernel=19
+bad-field-size: xt_conntrack_mtinfo2.common/origsrc_addr: syz=150 kernel=16
+bad-field-offset: xt_conntrack_mtinfo2.state_mask/origsrc_mask: syz=150 kernel=16
+bad-field-size: xt_conntrack_mtinfo2.state_mask/origsrc_mask: syz=2 kernel=16
+bad-field-offset: xt_conntrack_mtinfo2.status_mask/origdst_addr: syz=152 kernel=32
+bad-field-size: xt_conntrack_mtinfo2.status_mask/origdst_addr: syz=2 kernel=16
+bad-field-number: xt_conntrack_mtinfo3: syz=7 kernel=23
+bad-field-size: xt_conntrack_mtinfo3.common/origsrc_addr: syz=150 kernel=16
+bad-field-offset: xt_conntrack_mtinfo3.state_mask/origsrc_mask: syz=150 kernel=16
+bad-field-size: xt_conntrack_mtinfo3.state_mask/origsrc_mask: syz=2 kernel=16
+bad-field-offset: xt_conntrack_mtinfo3.status_mask/origdst_addr: syz=152 kernel=32
+bad-field-size: xt_conntrack_mtinfo3.status_mask/origdst_addr: syz=2 kernel=16
+bad-field-offset: xt_conntrack_mtinfo3.origsrc_port_high/origdst_mask: syz=154 kernel=48
+bad-field-size: xt_conntrack_mtinfo3.origsrc_port_high/origdst_mask: syz=2 kernel=16
+bad-field-offset: xt_conntrack_mtinfo3.origdst_port_high/replsrc_addr: syz=156 kernel=64
+bad-field-size: xt_conntrack_mtinfo3.origdst_port_high/replsrc_addr: syz=2 kernel=16
+bad-field-offset: xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: syz=158 kernel=80
+bad-field-size: xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: syz=2 kernel=16
+bad-field-offset: xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: syz=160 kernel=96
+bad-field-size: xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: syz=2 kernel=16
+bad-struct-size: xt_set_info_match_v3: syz=48 kernel=32 [386]
+bad-field-size: xt_set_info_match_v3.packets: syz=16 kernel=12 [386]
+bad-field-offset: xt_set_info_match_v3.packets: syz=8 kernel=4 [386]
+bad-field-size: xt_set_info_match_v3.bytes: syz=16 kernel=12 [386]
+bad-field-offset: xt_set_info_match_v3.bytes: syz=24 kernel=16 [386]
+bad-field-offset: xt_set_info_match_v3.flags: syz=40 kernel=28 [386]
+bad-struct-size: xt_hashlimit_mtinfo1: syz=52 kernel=56 [386]
+bad-field-size: xt_hashlimit_mtinfo3.cfg: syz=48 kernel=44 [386]
+bad-struct-size: hashlimit_cfg3: syz=48 kernel=44 [386]
+no-such-struct: xt_comment_info
+bad-struct-size: xt_statistic_info: syz=20 kernel=24 [386]
+bad-field-number: xt_statistic_info: syz=6 kernel=4
+bad-field-size: xt_statistic_info.every/u: syz=4 kernel=12
+bad-field-size: xt_statistic_info.packet/master: syz=4 kernel=8 [amd64]
+bad-field-offset: xt_statistic_info.packet/master: syz=8 kernel=16
+no-such-struct: xt_recent_mtinfo
+bad-field-number: xt_policy_elem: syz=10 kernel=7
+bad-field-size: xt_policy_elem.saddr/: syz=16 kernel=64
+bad-field-size: xt_policy_elem.smask/spi: syz=16 kernel=4
+bad-field-offset: xt_policy_elem.smask/spi: syz=16 kernel=64
+bad-field-size: xt_policy_elem.daddr/reqid: syz=16 kernel=4
+bad-field-offset: xt_policy_elem.daddr/reqid: syz=32 kernel=68
+bad-field-size: xt_policy_elem.dmask/proto: syz=16 kernel=1
+bad-field-offset: xt_policy_elem.dmask/proto: syz=48 kernel=72
+bad-field-size: xt_policy_elem.spi/mode: syz=4 kernel=1
+bad-field-offset: xt_policy_elem.spi/mode: syz=64 kernel=73
+bad-field-size: xt_policy_elem.reqid/match: syz=4 kernel=1
+bad-field-offset: xt_policy_elem.reqid/match: syz=68 kernel=74
+bad-field-offset: xt_policy_elem.proto/invert: syz=72 kernel=75
+bad-struct-size: xt_string_info: syz=156 kernel=160 [386]

@@ -1,1 +1,1 @@
-struct ip_vs_svcdest_user: no corresponding struct in kernel
+no-such-struct: ip_vs_svcdest_user

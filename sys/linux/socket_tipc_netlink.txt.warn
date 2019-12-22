@@ -1,2 +1,2 @@
-struct tipc_genlmsghdr_t: no corresponding struct in kernel
-struct tipc_tlv_desc: no corresponding struct in kernel
+no-such-struct: tipc_genlmsghdr_t
+no-such-struct: tipc_tlv_desc

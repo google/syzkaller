@@ -1,13 +1,12 @@
-struct sockaddr_nl: bad number of fields: syz=3 kernel=4
-field sockaddr_nl.kern/nl_family: bad size: syz=12 kernel=2
-field sockaddr_nl.proc/nl_pad: bad offset: syz=12 kernel=2
-field sockaddr_nl.proc/nl_pad: bad size: syz=12 kernel=2
-field sockaddr_nl.unspec/nl_pid: bad offset: syz=24 kernel=4
-field sockaddr_nl.unspec/nl_pid: bad size: syz=12 kernel=4
-struct sockaddr_nl_send: no corresponding struct in kernel
-struct sockaddr_nl_t: no corresponding struct in kernel
-struct msghdr_netlink_full: no corresponding struct in kernel
-struct msghdr_netlink: no corresponding struct in kernel
-struct netlink_msg_t: no corresponding struct in kernel
-struct nlattr_t: no corresponding struct in kernel
-struct nl_mmap_req: no corresponding struct in kernel
+bad-field-number: sockaddr_nl: syz=3 kernel=4
+bad-field-size: sockaddr_nl.kern/nl_family: syz=12 kernel=2
+bad-field-offset: sockaddr_nl.proc/nl_pad: syz=12 kernel=2
+bad-field-size: sockaddr_nl.unspec/nl_pid: syz=12 kernel=4
+bad-field-offset: sockaddr_nl.unspec/nl_pid: syz=24 kernel=4
+no-such-struct: sockaddr_nl_send
+no-such-struct: sockaddr_nl_t
+no-such-struct: msghdr_netlink_full
+no-such-struct: msghdr_netlink
+no-such-struct: netlink_msg_t
+no-such-struct: nlattr_t
+no-such-struct: nl_mmap_req

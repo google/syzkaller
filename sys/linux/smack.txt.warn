@@ -1,3 +1,3 @@
-struct smackfs_cipso_category: no corresponding struct in kernel
-struct smack_ipv6: no corresponding struct in kernel
-struct smack_ipv4: no corresponding struct in kernel
+no-such-struct: smackfs_cipso_category
+no-such-struct: smack_ipv6
+no-such-struct: smack_ipv4

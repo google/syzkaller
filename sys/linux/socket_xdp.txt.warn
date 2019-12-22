@@ -1,2 +1,3 @@
-struct sockaddr_xdp_bind: no corresponding struct in kernel
-struct msghdr_xdp: no corresponding struct in kernel
+no-such-struct: sockaddr_xdp_bind
+no-such-struct: msghdr_xdp
+bad-struct-size: xdp_umem_reg: syz=32 kernel=28 [386]

@@ -1,2 +1,2 @@
-struct sockaddr_ipx: no corresponding struct in kernel
-struct ipx_config_data: no corresponding struct in kernel
+no-such-struct: sockaddr_ipx
+no-such-struct: ipx_config_data

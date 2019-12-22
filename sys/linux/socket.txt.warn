@@ -1,35 +1,40 @@
-struct sock_pair: no corresponding struct in kernel
-struct sockaddr: bad number of fields: syz=17 kernel=2
-field sockaddr.in/sa_family: bad size: syz=16 kernel=2
-field sockaddr.ax25/sa_data: bad offset: syz=16 kernel=2
-field sockaddr.ax25/sa_data: bad size: syz=16 kernel=14
-struct sockaddr_storage: no corresponding struct in kernel
-struct sockaddr_generic: no corresponding struct in kernel
-struct sockaddr_storage_generic: no corresponding struct in kernel
-struct send_msghdr: no corresponding struct in kernel
-struct msghdr_sock: no corresponding struct in kernel
-struct send_mmsghdr: no corresponding struct in kernel
-struct mmsghdr_sock: no corresponding struct in kernel
-struct recv_msghdr: no corresponding struct in kernel
-struct recv_mmsghdr: no corresponding struct in kernel
-struct cmsghdr_t: no corresponding struct in kernel
-struct cmsghdr_unaligned: no corresponding struct in kernel
-struct ifreq_dev_t: no corresponding struct in kernel
-struct ifr_ifru: no corresponding struct in kernel
-struct vlan_args: no corresponding struct in kernel
-struct vlan_args_u: no corresponding struct in kernel
-struct devname_mask: no corresponding struct in kernel
-struct ifs_ifsu: no corresponding struct in kernel
-field ifconf.req/ifc_len: bad size: syz=16 kernel=4
-field ifconf.buf/ifc_ifcu: bad offset: syz=16 kernel=8
-field ifconf.buf/ifc_ifcu: bad size: syz=16 kernel=8
-struct ifconf_buf: no corresponding struct in kernel
-struct ifconf_req: no corresponding struct in kernel
-struct brctl_arg: no corresponding struct in kernel
-struct brctl_arg_get: no corresponding struct in kernel
-struct brctl_arg_add_del: no corresponding struct in kernel
-struct brctl_arg_generic: no corresponding struct in kernel
-struct ethtool_flow_union: no corresponding struct in kernel
-struct ethtool_rx_ntuple: no corresponding struct in kernel
-struct ethtool_rx_ntuple_flow_spec: no corresponding struct in kernel
-struct ethtool_rx_ntuple_flow_spec_union: no corresponding struct in kernel
+compiler: unsupported syscall: accept due to missing const __NR_accept [386]
+no-such-struct: sock_pair
+bad-field-number: sockaddr: syz=17 kernel=2
+bad-field-size: sockaddr.in/sa_family: syz=16 kernel=2
+bad-field-size: sockaddr.ax25/sa_data: syz=16 kernel=14
+bad-field-offset: sockaddr.ax25/sa_data: syz=16 kernel=2
+no-such-struct: sockaddr_storage
+no-such-struct: sockaddr_generic
+no-such-struct: sockaddr_storage_generic
+no-such-struct: send_msghdr
+no-such-struct: msghdr_sock
+no-such-struct: send_mmsghdr
+no-such-struct: mmsghdr_sock
+no-such-struct: recv_msghdr
+no-such-struct: recv_mmsghdr
+no-such-struct: cmsghdr_t
+no-such-struct: cmsghdr_unaligned
+no-such-struct: ifreq_dev_t
+no-such-struct: ifr_ifru
+no-such-struct: vlan_args
+no-such-struct: vlan_args_u
+no-such-struct: devname_mask
+no-such-struct: ifs_ifsu
+bad-field-size: ifconf.req/ifc_len: syz=16 kernel=4 [amd64]
+bad-field-size: ifconf.req/ifc_len: syz=8 kernel=4 [386]
+bad-field-size: ifconf.buf/ifc_ifcu: syz=16 kernel=8 [amd64]
+bad-field-offset: ifconf.buf/ifc_ifcu: syz=8 kernel=4 [386]
+no-such-struct: ifconf_buf
+no-such-struct: ifconf_req
+no-such-struct: brctl_arg
+no-such-struct: brctl_arg_get
+no-such-struct: brctl_arg_add_del
+no-such-struct: brctl_arg_generic
+bad-struct-size: ethtool_rx_flow_spec: syz=168 kernel=160 [386]
+bad-field-offset: ethtool_rx_flow_spec.ring_cookie: syz=152 kernel=148 [386]
+bad-field-offset: ethtool_rx_flow_spec.location: syz=160 kernel=156 [386]
+no-such-struct: ethtool_flow_union
+no-such-struct: ethtool_rx_ntuple
+no-such-struct: ethtool_rx_ntuple_flow_spec
+no-such-struct: ethtool_rx_ntuple_flow_spec_union

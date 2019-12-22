@@ -1,15 +1,15 @@
-struct io_cmap: no corresponding struct in kernel
-struct unimapdesc_in: no corresponding struct in kernel
-struct unimapdesc_out: no corresponding struct in kernel
-struct unimapinit: no corresponding struct in kernel
-struct tiocl_selection_arg: no corresponding struct in kernel
-struct tiocl_selection: bad number of fields: syz=6 kernel=5
-struct tiocl_selection: bad size: syz=11 kernel=10
-field tiocl_selection.subcode/xs: bad size: syz=1 kernel=2
-field tiocl_selection.xs/ys: bad offset: syz=1 kernel=2
-field tiocl_selection.ys/xe: bad offset: syz=3 kernel=4
-field tiocl_selection.xe/ye: bad offset: syz=5 kernel=6
-field tiocl_selection.ye/sel_mode: bad offset: syz=7 kernel=8
-struct loadlut: no corresponding struct in kernel
-struct tiocl_shift_state: no corresponding struct in kernel
-struct tioctl_scroll_console: no corresponding struct in kernel
+no-such-struct: io_cmap
+no-such-struct: unimapdesc_in
+no-such-struct: unimapdesc_out
+no-such-struct: unimapinit
+no-such-struct: tiocl_selection_arg
+bad-struct-size: tiocl_selection: syz=11 kernel=10
+bad-field-number: tiocl_selection: syz=6 kernel=5
+bad-field-size: tiocl_selection.subcode/xs: syz=1 kernel=2
+bad-field-offset: tiocl_selection.xs/ys: syz=1 kernel=2
+bad-field-offset: tiocl_selection.ys/xe: syz=3 kernel=4
+bad-field-offset: tiocl_selection.xe/ye: syz=5 kernel=6
+bad-field-offset: tiocl_selection.ye/sel_mode: syz=7 kernel=8
+no-such-struct: loadlut
+no-such-struct: tiocl_shift_state
+no-such-struct: tioctl_scroll_console

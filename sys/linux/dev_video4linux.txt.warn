@@ -1,16 +1,31 @@
-struct v4l2_format_fmt: no corresponding struct in kernel
-struct v4l2_buffer_union: no corresponding struct in kernel
-struct v4l2_plane_union: no corresponding struct in kernel
-struct v4l2_framebuffer_union: no corresponding struct in kernel
-struct v4l2_streamparm_union: no corresponding struct in kernel
-struct v4l2_querymenu_union: no corresponding struct in kernel
-struct v4l2_ext_u: no corresponding struct in kernel
-struct v4l2_frmsizeenum_union: no corresponding struct in kernel
-struct v4l2_frmivalenum_union: no corresponding struct in kernel
-struct v4l2_dbg_match_union: no corresponding struct in kernel
-struct v4l2_dv_timings_union: no corresponding struct in kernel
-struct v4l2_event_union: no corresponding struct in kernel
-struct v4l2_event_ctrl_union: no corresponding struct in kernel
-struct v4l2_decoder_cmd_u: no corresponding struct in kernel
-struct v4l2_decoder_cmd_start: no corresponding struct in kernel
-struct v4l2_dv_timings_cap_u: no corresponding struct in kernel
+no-such-struct: v4l2_format_fmt
+no-such-struct: v4l2_buffer_union
+no-such-struct: v4l2_plane_union
+no-such-struct: v4l2_framebuffer_union
+no-such-struct: v4l2_streamparm_union
+no-such-struct: v4l2_querymenu_union
+no-such-struct: v4l2_ext_u
+no-such-struct: v4l2_frmsizeenum_union
+no-such-struct: v4l2_frmivalenum_union
+no-such-struct: v4l2_dbg_match_union
+no-such-struct: v4l2_dv_timings_union
+bad-struct-size: v4l2_event: syz=128 kernel=120 [386]
+bad-field-offset: v4l2_event.u: syz=8 kernel=4 [386]
+bad-field-offset: v4l2_event.pending: syz=72 kernel=68 [386]
+bad-field-offset: v4l2_event.sequence: syz=76 kernel=72 [386]
+bad-field-offset: v4l2_event.timestamp: syz=80 kernel=76 [386]
+bad-field-offset: v4l2_event.id: syz=88 kernel=84 [386]
+bad-field-offset: v4l2_event.reserved: syz=92 kernel=88 [386]
+no-such-struct: v4l2_event_union
+bad-struct-size: v4l2_event_ctrl: syz=40 kernel=36 [386]
+no-such-struct: v4l2_event_ctrl_union
+no-such-struct: v4l2_decoder_cmd_u
+no-such-struct: v4l2_decoder_cmd_start
+no-such-struct: v4l2_dv_timings_cap_u
+bad-struct-size: v4l2_standard: syz=72 kernel=64 [386]
+bad-field-offset: v4l2_standard.id: syz=8 kernel=4 [386]
+bad-field-offset: v4l2_standard.name: syz=16 kernel=12 [386]
+bad-field-offset: v4l2_standard.frameperiod: syz=40 kernel=36 [386]
+bad-field-offset: v4l2_standard.framelines: syz=48 kernel=44 [386]
+bad-field-offset: v4l2_standard.reserved: syz=52 kernel=48 [386]
+bad-struct-size: v4l2_input: syz=80 kernel=76 [386]

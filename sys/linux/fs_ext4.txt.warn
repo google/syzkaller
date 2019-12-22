@@ -1,0 +1,7 @@
+bad-struct-size: ext4_new_group_input: syz=40 kernel=36 [386]
+bad-field-offset: ext4_new_group_input.block_bitmap: syz=8 kernel=4 [386]
+bad-field-offset: ext4_new_group_input.inode_bitmap: syz=16 kernel=12 [386]
+bad-field-offset: ext4_new_group_input.inode_table: syz=24 kernel=20 [386]
+bad-field-offset: ext4_new_group_input.blocks_count: syz=32 kernel=28 [386]
+bad-field-offset: ext4_new_group_input.reserved_blocks: syz=36 kernel=32 [386]
+bad-field-offset: ext4_new_group_input.unused: syz=38 kernel=34 [386]
