@@ -913,8 +913,8 @@ gre_packet {
 # ipv4 -> gre -> ipv4 -> ...
 	cisco_ipv4	gre_packet_cisco[ETH_P_IP, array[int8]]
 	cisco_ipv6	gre_packet_cisco[ETH_P_IPV6, array[int8]]
-	erspan1		gre_packet_erspan[ETH_P_ERSPAN, erspan_md1]
-	erspan2		gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2]
+	erspan1		gre_packet_erspan[ETH_P_ERSPAN, erspan_md1_msg]
+	erspan2		gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2_msg]
 	teb		gre_packet_erspan[ETH_P_TEB, array[int8]]
 } [packed]
 
@@ -976,14 +976,16 @@ type erspan_base_hdr[VER] {
 } [packed]
 
 erspan_md1 {
-	base	erspan_base_hdr[1]
-	version	const[1, int32]
 	index	int32be
 } [packed]
 
+erspan_md1_msg {
+	base	erspan_base_hdr[1]
+	version	const[1, int32]
+	payload	erspan_md1
+}
+
 erspan_md2 {
-	base		erspan_base_hdr[2]
-	version		const[2, int32]
 	timestamp	int32be
 	sgt		int16be
 	hwid_upper	int8:2
@@ -994,6 +996,12 @@ erspan_md2 {
 	dir		int8:1
 	hwid		int8:1
 } [packed]
+
+erspan_md2_msg {
+	base	erspan_base_hdr[2]
+	version	const[2, int32]
+	payload	erspan_md2
+}
 
 ################################################################################
 ###################################### ICMP ####################################

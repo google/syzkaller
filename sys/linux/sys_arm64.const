@@ -472,6 +472,7 @@ SPLICE_F_GIFT = 8
 SPLICE_F_MORE = 4
 SPLICE_F_MOVE = 1
 SPLICE_F_NONBLOCK = 2
+STAT64_SIZE = 104
 STATX_ALL = 4095
 STATX_ATIME = 32
 STATX_BASIC_STATS = 2047
@@ -592,6 +593,8 @@ __NR_fdatasync = 83
 __NR_finit_module = 273
 __NR_flock = 32
 __NR_fstat = 80
+# __NR_fstat64 is not set
+# __NR_fstatat64 is not set
 __NR_fstatfs = 44
 __NR_fsync = 82
 __NR_ftruncate = 46
@@ -633,6 +636,7 @@ __NR_linkat = 37
 __NR_lookup_dcookie = 18
 __NR_lseek = 62
 # __NR_lstat is not set
+# __NR_lstat64 is not set
 __NR_madvise = 233
 __NR_mbind = 235
 __NR_membarrier = 283
@@ -664,6 +668,7 @@ __NR_munlockall = 231
 __NR_munmap = 215
 __NR_name_to_handle_at = 264
 __NR_nanosleep = 101
+__NR_newfstatat = 79
 # __NR_open is not set
 __NR_open_by_handle_at = 265
 __NR_openat = 56
@@ -744,6 +749,7 @@ __NR_sigaltstack = 132
 __NR_signalfd4 = 74
 __NR_splice = 76
 # __NR_stat is not set
+# __NR_stat64 is not set
 __NR_statfs = 43
 __NR_statx = 291
 # __NR_symlink is not set

@@ -1,43 +1,33 @@
 unsupported syscall: sendfile64 due to missing const __NR_sendfile64
-field seccomp_metadata.flags: bad size: syz=4 kernel=8
+unsupported syscall: stat64 due to missing const __NR_stat64
+unsupported syscall: lstat64 due to missing const __NR_lstat64
+unsupported syscall: fstat64 due to missing const __NR_fstat64
+unsupported syscall: fstatat64 due to missing const __NR_fstatat64
 struct pipefd: no corresponding struct in kernel
-struct stat: bad size: syz=68 kernel=144
-field stat.dev/st_dev: bad size: syz=2 kernel=8
-field stat.ino/st_ino: bad offset: syz=4 kernel=8
-field stat.ino/st_ino: bad size: syz=4 kernel=8
-field stat.mode/st_nlink: bad offset: syz=8 kernel=16
-field stat.mode/st_nlink: bad size: syz=2 kernel=8
-field stat.nlink/st_mode: bad offset: syz=10 kernel=24
-field stat.nlink/st_mode: bad size: syz=2 kernel=4
-field stat.uid/st_uid: bad offset: syz=12 kernel=28
-field stat.gid/st_gid: bad offset: syz=16 kernel=32
-field stat.rdev/__pad0: bad offset: syz=20 kernel=36
-field stat.rdev/__pad0: bad size: syz=2 kernel=4
-field stat.size/st_rdev: bad offset: syz=24 kernel=40
-field stat.size/st_rdev: bad size: syz=4 kernel=8
-field stat.blksize/st_size: bad offset: syz=28 kernel=48
-field stat.blksize/st_size: bad size: syz=4 kernel=8
-field stat.blocks/st_blksize: bad offset: syz=32 kernel=56
-field stat.blocks/st_blksize: bad size: syz=4 kernel=8
-field stat.atime/st_blocks: bad offset: syz=36 kernel=64
-field stat.atime/st_blocks: bad size: syz=4 kernel=8
-field stat.ansec/st_atime: bad offset: syz=40 kernel=72
-field stat.ansec/st_atime: bad size: syz=4 kernel=8
-field stat.mtime/st_atime_nsec: bad offset: syz=44 kernel=80
-field stat.mtime/st_atime_nsec: bad size: syz=4 kernel=8
-field stat.mnsec/st_mtime: bad offset: syz=48 kernel=88
-field stat.mnsec/st_mtime: bad size: syz=4 kernel=8
-field stat.ctime/st_mtime_nsec: bad offset: syz=52 kernel=96
-field stat.ctime/st_mtime_nsec: bad size: syz=4 kernel=8
-field stat.cnsec/st_ctime: bad offset: syz=56 kernel=104
-field stat.cnsec/st_ctime: bad size: syz=4 kernel=8
-field stat.pad1/st_ctime_nsec: bad offset: syz=60 kernel=112
-field stat.pad1/st_ctime_nsec: bad size: syz=4 kernel=8
-field stat.pad2/__unused: bad offset: syz=64 kernel=120
-field stat.pad2/__unused: bad size: syz=4 kernel=24
+struct stat: bad number of fields: syz=20 kernel=18
+struct stat: bad size: syz=128 kernel=144
+field stat.st_mode/st_nlink: bad size: syz=4 kernel=8
+field stat.st_nlink/st_mode: bad offset: syz=20 kernel=24
+field stat.st_uid: bad offset: syz=24 kernel=28
+field stat.st_gid: bad offset: syz=28 kernel=32
+field stat.st_rdev/__pad0: bad offset: syz=32 kernel=36
+field stat.st_rdev/__pad0: bad size: syz=8 kernel=4
+field stat.st_blksize: bad size: syz=4 kernel=8
+field stat.__pad2/st_blocks: bad offset: syz=60 kernel=64
+field stat.__pad2/st_blocks: bad size: syz=4 kernel=8
+field stat.st_blocks/st_atime: bad offset: syz=64 kernel=72
+field stat.st_atime/st_atime_nsec: bad offset: syz=72 kernel=80
+field stat.st_atime_nsec/st_mtime: bad offset: syz=80 kernel=88
+field stat.st_mtime/st_mtime_nsec: bad offset: syz=88 kernel=96
+field stat.st_mtime_nsec/st_ctime: bad offset: syz=96 kernel=104
+field stat.st_ctime/st_ctime_nsec: bad offset: syz=104 kernel=112
+field stat.st_ctime_nsec/__unused: bad offset: syz=112 kernel=120
+field stat.st_ctime_nsec/__unused: bad size: syz=8 kernel=24
+unsupported type: stat64 due to missing const STAT64_SIZE
 struct sigset: no corresponding struct in kernel
 struct sigset_size: no corresponding struct in kernel
 struct itimerspec: no corresponding struct in kernel
+struct itimerval: no corresponding struct in kernel
 field sigevent.u/_sigev_un: bad size: syz=16 kernel=48
 struct sigevent_u: no corresponding struct in kernel
 struct sigevent_thread: no corresponding struct in kernel

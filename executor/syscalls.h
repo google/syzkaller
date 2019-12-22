@@ -2257,6 +2257,8 @@ const call_t syscalls[] = {
     {"fsopen", 430},
     {"fspick", 433},
     {"fstat", 108},
+    {"fstat64", 197},
+    {"fstatat64", 300},
     {"fstatfs", 100},
     {"fsync", 118},
     {"ftruncate", 93},
@@ -3804,6 +3806,7 @@ const call_t syscalls[] = {
     {"lsetxattr$trusted_overlay_redirect", 227},
     {"lsetxattr$trusted_overlay_upper", 227},
     {"lstat", 107},
+    {"lstat64", 196},
     {"madvise", 219},
     {"mbind", 274},
     {"membarrier", 375},
@@ -4723,6 +4726,7 @@ const call_t syscalls[] = {
     {"socketpair$unix", 360},
     {"splice", 313},
     {"stat", 106},
+    {"stat64", 195},
     {"statfs", 99},
     {"statx", 383},
     {"symlink", 83},
@@ -5076,7 +5080,8 @@ const call_t syscalls[] = {
     {"write$tun", 4},
     {"write$uinput_user_dev", 4},
     {"write$vhci", 4},
-    {"write$vnet", 4},
+    {"write$vhost_msg", 4},
+    {"write$vhost_msg_v2", 4},
     {"writev", 146},
 
 };
@@ -6925,6 +6930,7 @@ const call_t syscalls[] = {
     {"munmap", 11},
     {"name_to_handle_at", 303},
     {"nanosleep", 35},
+    {"newfstatat", 262},
     {"open", 2},
     {"open$dir", 2},
     {"open_by_handle_at", 304},
@@ -8125,7 +8131,8 @@ const call_t syscalls[] = {
     {"write$tun", 1},
     {"write$uinput_user_dev", 1},
     {"write$vhci", 1},
-    {"write$vnet", 1},
+    {"write$vhost_msg", 1},
+    {"write$vhost_msg_v2", 1},
     {"writev", 20},
 
 };
@@ -8340,6 +8347,8 @@ const call_t syscalls[] = {
     {"fsopen", 430},
     {"fspick", 433},
     {"fstat", 108},
+    {"fstat64", 197},
+    {"fstatat64", 327},
     {"fstatfs", 100},
     {"fsync", 118},
     {"ftruncate", 93},
@@ -9859,6 +9868,7 @@ const call_t syscalls[] = {
     {"lsetxattr$trusted_overlay_redirect", 227},
     {"lsetxattr$trusted_overlay_upper", 227},
     {"lstat", 107},
+    {"lstat64", 196},
     {"madvise", 220},
     {"mbind", 319},
     {"membarrier", 389},
@@ -10774,6 +10784,7 @@ const call_t syscalls[] = {
     {"socketpair$unix", 288},
     {"splice", 340},
     {"stat", 106},
+    {"stat64", 195},
     {"statfs", 99},
     {"statx", 397},
     {"symlink", 83},
@@ -11124,7 +11135,8 @@ const call_t syscalls[] = {
     {"write$tun", 4},
     {"write$uinput_user_dev", 4},
     {"write$vhci", 4},
-    {"write$vnet", 4},
+    {"write$vhost_msg", 4},
+    {"write$vhost_msg_v2", 4},
     {"writev", 146},
 
 };
@@ -12917,6 +12929,7 @@ const call_t syscalls[] = {
     {"munmap", 215},
     {"name_to_handle_at", 264},
     {"nanosleep", 101},
+    {"newfstatat", 79},
     {"open_by_handle_at", 265},
     {"open_tree", 428},
     {"openat", 56},
@@ -14095,7 +14108,8 @@ const call_t syscalls[] = {
     {"write$tun", 64},
     {"write$uinput_user_dev", 64},
     {"write$vhci", 64},
-    {"write$vnet", 64},
+    {"write$vhost_msg", 64},
+    {"write$vhost_msg_v2", 64},
     {"writev", 66},
 
 };
@@ -15793,6 +15807,7 @@ const call_t syscalls[] = {
     {"munmap", 5011},
     {"name_to_handle_at", 5298},
     {"nanosleep", 5034},
+    {"newfstatat", 5252},
     {"open", 5002},
     {"open$dir", 5002},
     {"open_by_handle_at", 5299},
@@ -16990,7 +17005,8 @@ const call_t syscalls[] = {
     {"write$tun", 5001},
     {"write$uinput_user_dev", 5001},
     {"write$vhci", 5001},
-    {"write$vnet", 5001},
+    {"write$vhost_msg", 5001},
+    {"write$vhost_msg_v2", 5001},
     {"writev", 5019},
 
 };
@@ -18792,6 +18808,7 @@ const call_t syscalls[] = {
     {"munmap", 91},
     {"name_to_handle_at", 345},
     {"nanosleep", 162},
+    {"newfstatat", 291},
     {"open", 5},
     {"open$dir", 5},
     {"open_by_handle_at", 346},
@@ -19989,7 +20006,8 @@ const call_t syscalls[] = {
     {"write$tun", 4},
     {"write$uinput_user_dev", 4},
     {"write$vhci", 4},
-    {"write$vnet", 4},
+    {"write$vhost_msg", 4},
+    {"write$vhost_msg_v2", 4},
     {"writev", 146},
 
 };

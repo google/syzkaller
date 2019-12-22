@@ -36,25 +36,9 @@ struct tcp_timestamp_option: no corresponding struct in kernel
 struct tcp_md5sig_option: no corresponding struct in kernel
 struct tcp_exp_smc_option: no corresponding struct in kernel
 struct erspan_md1: no corresponding struct in kernel
-struct erspan_md2: bad number of fields: syz=11 kernel=9
-struct erspan_md2: bad size: syz=16 kernel=8
-field erspan_md2.version/sgt: bad size: syz=4 kernel=2
-field erspan_md2.timestamp/hwid_upper: bad bit size/offset: syz=0/0 kernel=2/0
-field erspan_md2.timestamp/hwid_upper: bad offset: syz=8 kernel=6
-field erspan_md2.timestamp/hwid_upper: bad size: syz=4 kernel=1
-field erspan_md2.sgt/ft: bad bit size/offset: syz=0/0 kernel=5/2
-field erspan_md2.sgt/ft: bad offset: syz=12 kernel=6
-field erspan_md2.sgt/ft: bad size: syz=2 kernel=1
-field erspan_md2.hwid_upper/p: bad bit size/offset: syz=2/0 kernel=1/7
-field erspan_md2.hwid_upper/p: bad offset: syz=14 kernel=6
-field erspan_md2.ft/o: bad bit size/offset: syz=5/2 kernel=1/0
-field erspan_md2.ft/o: bad offset: syz=14 kernel=7
-field erspan_md2.p/gra: bad bit size/offset: syz=1/7 kernel=2/1
-field erspan_md2.p/gra: bad offset: syz=14 kernel=7
-field erspan_md2.o/dir: bad bit size/offset: syz=1/0 kernel=1/3
-field erspan_md2.o/dir: bad offset: syz=15 kernel=7
-field erspan_md2.gra/hwid: bad bit size/offset: syz=2/1 kernel=4/4
-field erspan_md2.gra/hwid: bad offset: syz=15 kernel=7
+struct erspan_md1_msg: no corresponding struct in kernel
+field erspan_md2.hwid: bad bit size/offset: syz=1/4 kernel=4/4
+struct erspan_md2_msg: no corresponding struct in kernel
 struct icmp_timestamp_packet: no corresponding struct in kernel
 struct icmp_timestamp_reply_packet: no corresponding struct in kernel
 struct icmp_info_request_packet: no corresponding struct in kernel
