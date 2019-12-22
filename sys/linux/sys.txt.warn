@@ -1,3 +1,6 @@
+struct alignptr: no corresponding struct in kernel
+struct align32: no corresponding struct in kernel
+struct align64: no corresponding struct in kernel
 unsupported syscall: sendfile64 due to missing const __NR_sendfile64
 unsupported syscall: stat64 due to missing const __NR_stat64
 unsupported syscall: lstat64 due to missing const __NR_lstat64

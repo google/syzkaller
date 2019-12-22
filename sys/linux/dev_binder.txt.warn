@@ -24,6 +24,7 @@ field flat_binder_object.handle/: bad offset: syz=48 kernel=8
 field flat_binder_object.handle/: bad size: syz=24 kernel=8
 field flat_binder_object.weak_handle/cookie: bad offset: syz=72 kernel=16
 field flat_binder_object.weak_handle/cookie: bad size: syz=24 kernel=8
+struct flat_binder_object_t: no corresponding struct in kernel
 struct binder_fd_object: bad number of fields: syz=5 kernel=4
 field binder_fd_object.fd/: bad size: syz=4 kernel=8
 field binder_fd_object.pad2/cookie: bad offset: syz=12 kernel=16

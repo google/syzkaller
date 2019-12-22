@@ -1,9 +1,14 @@
 len target configs refer to an array with variable-size elements (do you mean bytesize?)
 len target interfaces refer to an array with variable-size elements (do you mean bytesize?)
+struct usb_interface_descriptor_t: no corresponding struct in kernel
 len target endpoints refer to an array with variable-size elements (do you mean bytesize?)
+struct usb_endpoint_descriptor_t: no corresponding struct in kernel
 struct vusb_connect_string_descriptor: no corresponding struct in kernel
 struct vusb_descriptors: no corresponding struct in kernel
+struct vusb_descriptor_t: no corresponding struct in kernel
 struct vusb_responses: no corresponding struct in kernel
+struct vusb_response_t: no corresponding struct in kernel
+struct usb_string_descriptor_t: no corresponding struct in kernel
 len target caps refer to an array with variable-size elements (do you mean bytesize?)
 struct usb_wireless_cap_descriptor: no corresponding struct in kernel
 struct usb_ext_cap_descriptor: bad number of fields: syz=7 kernel=4
@@ -16,6 +21,7 @@ struct vusb_descriptors_hid: no corresponding struct in kernel
 struct vusb_responses_hid: no corresponding struct in kernel
 struct usb_hid_descriptor_hid: no corresponding struct in kernel
 struct usb_hid_class_descriptor_report: no corresponding struct in kernel
+struct hid_report_item_short_4_t: no corresponding struct in kernel
 struct usb_endpoint_descriptor_printer_out: no corresponding struct in kernel
 struct usb_endpoint_descriptor_printer_in: no corresponding struct in kernel
 struct vusb_descriptors_printer: no corresponding struct in kernel

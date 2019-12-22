@@ -1,5 +1,10 @@
 struct nf_inet_addr: no corresponding struct in kernel
 struct nf_conntrack_man_proto: no corresponding struct in kernel
+struct xt_entry_match: bad number of fields: syz=3 kernel=2
+field xt_entry_match.match_size/u: bad size: syz=2 kernel=32
+field xt_entry_match.name/data: bad offset: syz=2 kernel=32
+field xt_entry_match.name/data: bad size: syz=29 kernel=0
+struct xt_entry_match_t: no corresponding struct in kernel
 struct xt_bpf_info_v1: bad number of fields: syz=3 kernel=5
 field xt_bpf_info_v1.bytecode/mode: bad size: syz=528 kernel=2
 field xt_bpf_info_v1.pinned/bpf_program_num_elem: bad offset: syz=528 kernel=2

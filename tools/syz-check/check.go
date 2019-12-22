@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"sort"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -116,7 +117,12 @@ func writeWarnings(OS, arch string, warnings []Warn) error {
 			return w1.msg < w2.msg
 		})
 		buf := new(bytes.Buffer)
+		prev := ""
 		for _, warn := range warns {
+			if warn.msg == prev {
+				continue // deduplicate warnings in templates
+			}
+			prev = warn.msg
 			fmt.Fprintf(buf, "%v\n", warn.msg)
 		}
 		warnFile := filepath.Join("sys", OS, file+".warn")
@@ -140,16 +146,16 @@ func checkImpl(structs map[string]*dwarf.StructType, structDescs []*prog.KeyedSt
 		if typ.Varlen() {
 			continue
 		}
-		astStruct := locs[typ.Name()]
-		if astStruct == nil {
-			// TODO: that's a template. Handle templates.
-			continue
-		}
 		if checked[typ.Name()] {
 			continue
 		}
 		checked[typ.Name()] = true
-		warns, err := checkStruct(typ, astStruct, structs[typ.Name()])
+		name := templateName(typ.Name())
+		astStruct := locs[name]
+		if astStruct == nil {
+			continue
+		}
+		warns, err := checkStruct(typ, astStruct, structs[name])
 		if err != nil {
 			return nil, err
 		}
@@ -158,17 +164,25 @@ func checkImpl(structs map[string]*dwarf.StructType, structDescs []*prog.KeyedSt
 	return warnings, nil
 }
 
+func templateName(name string) string {
+	if pos := strings.IndexByte(name, '['); pos != -1 {
+		name = name[:pos]
+	}
+	return name
+}
+
 func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructType) ([]Warn, error) {
 	var warnings []Warn
 	warn := func(pos ast.Pos, msg string, args ...interface{}) {
 		warnings = append(warnings, Warn{pos, fmt.Sprintf(msg, args...)})
 	}
+	name := templateName(typ.Name())
 	if str == nil {
-		warn(astStruct.Pos, "struct %v: no corresponding struct in kernel", typ.Name())
+		warn(astStruct.Pos, "struct %v: no corresponding struct in kernel", name)
 		return warnings, nil
 	}
 	if typ.Size() != uint64(str.ByteSize) {
-		warn(astStruct.Pos, "struct %v: bad size: syz=%v kernel=%v", typ.Name(), typ.Size(), str.ByteSize)
+		warn(astStruct.Pos, "struct %v: bad size: syz=%v kernel=%v", name, typ.Size(), str.ByteSize)
 	}
 	// TODO: handle unions, currently we should report some false errors.
 	if str.Kind == "union" {
@@ -198,7 +212,7 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 		if ai < len(str.Field) {
 			fld := str.Field[ai]
 			pos := astStruct.Fields[ai].Pos
-			desc := fmt.Sprintf("field %v.%v", typ.Name(), field.FieldName())
+			desc := fmt.Sprintf("field %v.%v", name, field.FieldName())
 			if field.FieldName() != fld.Name {
 				desc += "/" + fld.Name
 			}
@@ -231,7 +245,7 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 		offset += field.Size()
 	}
 	if ai != len(str.Field) {
-		warn(astStruct.Pos, "struct %v: bad number of fields: syz=%v kernel=%v", typ.Name(), ai, len(str.Field))
+		warn(astStruct.Pos, "struct %v: bad number of fields: syz=%v kernel=%v", name, ai, len(str.Field))
 	}
 	return warnings, nil
 }
@@ -261,6 +275,10 @@ func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.St
 		switch n := decl.(type) {
 		case *ast.Struct:
 			locs[n.Name.Name] = n
+		case *ast.TypeDef:
+			if n.Struct != nil {
+				locs[n.Name.Name] = n.Struct
+			}
 		}
 	}
 	return prg.StructDescs, locs, warnings, nil
