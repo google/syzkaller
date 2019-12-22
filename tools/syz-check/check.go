@@ -176,6 +176,18 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 	}
 	// TODO: we could also check enums (elements match corresponding flags in syzkaller).
 	// TODO: we could also check values of literal constants (dwarf should have that, right?).
+	// TODO: handle nested structs/unions, e.g.:
+	// struct foo {
+	//	union {
+	//		...
+	//	} bar;
+	// };
+	// should be matched with:
+	// foo_bar [
+	//	...
+	// ]
+	// TODO: consider making guesses about semantic types of fields,
+	// e.g. if a name contains filedes/uid/pid/gid that may be the corresponding resource.
 	ai := 0
 	offset := uint64(0)
 	for _, field := range typ.Fields {
