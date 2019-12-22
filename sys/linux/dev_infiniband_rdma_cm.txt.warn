@@ -1,15 +1,15 @@
-struct rdma_ucm_cmd_t: no corresponding struct in kernel
-struct rdma_ucm_create_mcast_id_resp: no corresponding struct in kernel
-struct rdma_ucm_leave_mcast: no corresponding struct in kernel
-struct rdma_ucm_event_resp: bad number of fields: syz=2 kernel=6
-field rdma_ucm_event_resp.id: bad size: syz=8 kernel=4
-struct rdma_ucm_set_option: bad number of fields: syz=4 kernel=5
-field rdma_ucm_set_option.id_tos/optval: bad size: syz=24 kernel=8
-field rdma_ucm_set_option.id_resuseaddr/id: bad offset: syz=24 kernel=8
-field rdma_ucm_set_option.id_resuseaddr/id: bad size: syz=24 kernel=4
-field rdma_ucm_set_option.id_afonly/level: bad offset: syz=48 kernel=12
-field rdma_ucm_set_option.id_afonly/level: bad size: syz=24 kernel=4
-field rdma_ucm_set_option.ib_path/optname: bad offset: syz=72 kernel=16
-field rdma_ucm_set_option.ib_path/optname: bad size: syz=24 kernel=4
-struct rdma_ucm_set_option_t: no corresponding struct in kernel
-struct sockaddr_rdma_cm: no corresponding struct in kernel
+no-such-struct: rdma_ucm_cmd_t
+no-such-struct: rdma_ucm_create_mcast_id_resp
+no-such-struct: rdma_ucm_leave_mcast
+bad-field-number: rdma_ucm_event_resp: syz=2 kernel=6
+bad-field-size: rdma_ucm_event_resp.id: syz=8 kernel=4
+bad-field-number: rdma_ucm_set_option: syz=4 kernel=5
+bad-field-size: rdma_ucm_set_option.id_tos/optval: syz=24 kernel=8
+bad-field-size: rdma_ucm_set_option.id_resuseaddr/id: syz=24 kernel=4
+bad-field-offset: rdma_ucm_set_option.id_resuseaddr/id: syz=24 kernel=8
+bad-field-size: rdma_ucm_set_option.id_afonly/level: syz=24 kernel=4
+bad-field-offset: rdma_ucm_set_option.id_afonly/level: syz=48 kernel=12
+bad-field-size: rdma_ucm_set_option.ib_path/optname: syz=24 kernel=4
+bad-field-offset: rdma_ucm_set_option.ib_path/optname: syz=72 kernel=16
+no-such-struct: rdma_ucm_set_option_t
+no-such-struct: sockaddr_rdma_cm

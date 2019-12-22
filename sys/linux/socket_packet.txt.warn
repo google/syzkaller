@@ -1,4 +1,4 @@
-struct sockaddr_ll: bad number of fields: syz=8 kernel=7
-field sockaddr_ll.sll_addr: bad size: syz=6 kernel=8
-struct packet_mreq: no corresponding struct in kernel
-struct packet_fanout_val: no corresponding struct in kernel
+bad-field-number: sockaddr_ll: syz=8 kernel=7
+bad-field-size: sockaddr_ll.sll_addr: syz=6 kernel=8
+no-such-struct: packet_mreq
+no-such-struct: packet_fanout_val

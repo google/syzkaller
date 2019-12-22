@@ -1,2 +1,2 @@
-struct cdrom_msf_out_stub: no corresponding struct in kernel
-struct cdrom_addr: no corresponding struct in kernel
+no-such-struct: cdrom_msf_out_stub
+no-such-struct: cdrom_addr

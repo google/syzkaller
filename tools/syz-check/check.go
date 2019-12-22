@@ -33,23 +33,25 @@ import (
 
 func main() {
 	var (
-		flagOS           = flag.String("os", runtime.GOOS, "OS")
-		flagArch         = flag.String("arch", runtime.GOARCH, "arch")
-		flagKernelObject = flag.String("obj", "", "kernel object file")
-		flagCPUProfile   = flag.String("cpuprofile", "", "write CPU profile to this file")
-		flagMEMProfile   = flag.String("memprofile", "", "write memory profile to this file")
+		flagOS         = flag.String("os", runtime.GOOS, "OS")
+		flagObjAMD64   = flag.String("obj-amd64", "", "amd64 kernel object file")
+		flagObj386     = flag.String("obj-386", "", "386 kernel object file")
+		flagCPUProfile = flag.String("cpuprofile", "", "write CPU profile to this file")
+		flagMEMProfile = flag.String("memprofile", "", "write memory profile to this file")
 	)
+	failf := func(msg string, args ...interface{}) {
+		fmt.Fprintf(os.Stderr, msg+"\n", args...)
+		os.Exit(1)
+	}
 	flag.Parse()
 	if *flagCPUProfile != "" {
 		f, err := os.Create(*flagCPUProfile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create cpuprofile file: %v\n", err)
-			os.Exit(1)
+			failf("failed to create cpuprofile file: %v", err)
 		}
 		defer f.Close()
 		if err := pprof.StartCPUProfile(f); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to start cpu profile: %v\n", err)
-			os.Exit(1)
+			failf("failed to start cpu profile: %v", err)
 		}
 		defer pprof.StopCPUProfile()
 	}
@@ -57,45 +59,68 @@ func main() {
 		defer func() {
 			f, err := os.Create(*flagMEMProfile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to create memprofile file: %v\n", err)
-				os.Exit(1)
+				failf("failed to create memprofile file: %v", err)
 			}
 			defer f.Close()
 			runtime.GC()
 			if err := pprof.WriteHeapProfile(f); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to write mem profile: %v\n", err)
-				os.Exit(1)
+				failf("failed to write mem profile: %v", err)
 			}
 		}()
 	}
-	if err := check(*flagOS, *flagArch, *flagKernelObject); err != nil {
+	warnings1, err := check(*flagOS, "amd64", *flagObjAMD64)
+	if err != nil {
+		failf("%v", err)
+	}
+	runtime.GC()
+	warnings2, err := check(*flagOS, "386", *flagObj386)
+	if err != nil {
+		failf("%v", err)
+	}
+	if err := writeWarnings(*flagOS, append(warnings1, warnings2...)); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func check(OS, arch, obj string) error {
+func check(OS, arch, obj string) ([]Warn, error) {
 	structDescs, locs, warnings1, err := parseDescriptions(OS, arch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	structs, err := parseKernelObject(obj)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	warnings2, err := checkImpl(structs, structDescs, locs)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return writeWarnings(OS, arch, append(warnings1, warnings2...))
+	warnings := append(warnings1, warnings2...)
+	for i := range warnings {
+		warnings[i].arch = arch
+	}
+	return warnings, nil
 }
+
+const (
+	WarnCompiler       = "compiler"
+	WarnNoSuchStruct   = "no-such-struct"
+	WarnBadStructSize  = "bad-struct-size"
+	WarnBadFieldNumber = "bad-field-number"
+	WarnBadFieldSize   = "bad-field-size"
+	WarnBadFieldOffset = "bad-field-offset"
+	WarnBadBitfield    = "bad-bitfield"
+)
 
 type Warn struct {
-	pos ast.Pos
-	msg string
+	pos  ast.Pos
+	arch string
+	typ  string
+	msg  string
 }
 
-func writeWarnings(OS, arch string, warnings []Warn) error {
+func writeWarnings(OS string, warnings []Warn) error {
 	allFiles, err := filepath.Glob(filepath.Join("sys", OS, "*.warn"))
 	if err != nil {
 		return err
@@ -114,16 +139,28 @@ func writeWarnings(OS, arch string, warnings []Warn) error {
 			if w1.pos.Line != w2.pos.Line {
 				return w1.pos.Line < w2.pos.Line
 			}
-			return w1.msg < w2.msg
+			if w1.msg != w2.msg {
+				return w1.msg < w2.msg
+			}
+			return w1.arch < w2.arch
 		})
 		buf := new(bytes.Buffer)
-		prev := ""
-		for _, warn := range warns {
-			if warn.msg == prev {
-				continue // deduplicate warnings in templates
+		for i := 0; i < len(warns); i++ {
+			warn := warns[i]
+			arch := warn.arch
+			arches := []string{warn.arch}
+			for i < len(warns)-1 && warn.msg == warns[i+1].msg {
+				if arch != warns[i+1].arch {
+					arch = warns[i+1].arch
+					arches = append(arches, arch)
+				}
+				i++
 			}
-			prev = warn.msg
-			fmt.Fprintf(buf, "%v\n", warn.msg)
+			archStr := ""
+			if len(arches) < 2 {
+				archStr = fmt.Sprintf(" [%v]", strings.Join(arches, ","))
+			}
+			fmt.Fprintf(buf, "%v: %v%v\n", warn.typ, warn.msg, archStr)
 		}
 		warnFile := filepath.Join("sys", OS, file+".warn")
 		if err := osutil.WriteFile(warnFile, buf.Bytes()); err != nil {
@@ -173,16 +210,16 @@ func templateName(name string) string {
 
 func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructType) ([]Warn, error) {
 	var warnings []Warn
-	warn := func(pos ast.Pos, msg string, args ...interface{}) {
-		warnings = append(warnings, Warn{pos, fmt.Sprintf(msg, args...)})
+	warn := func(pos ast.Pos, typ, msg string, args ...interface{}) {
+		warnings = append(warnings, Warn{pos: pos, typ: typ, msg: fmt.Sprintf(msg, args...)})
 	}
 	name := templateName(typ.Name())
 	if str == nil {
-		warn(astStruct.Pos, "struct %v: no corresponding struct in kernel", name)
+		warn(astStruct.Pos, WarnNoSuchStruct, "%v", name)
 		return warnings, nil
 	}
 	if typ.Size() != uint64(str.ByteSize) {
-		warn(astStruct.Pos, "struct %v: bad size: syz=%v kernel=%v", name, typ.Size(), str.ByteSize)
+		warn(astStruct.Pos, WarnBadStructSize, "%v: syz=%v kernel=%v", name, typ.Size(), str.ByteSize)
 	}
 	// TODO: handle unions, currently we should report some false errors.
 	if str.Kind == "union" {
@@ -212,17 +249,17 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 		if ai < len(str.Field) {
 			fld := str.Field[ai]
 			pos := astStruct.Fields[ai].Pos
-			desc := fmt.Sprintf("field %v.%v", name, field.FieldName())
+			desc := fmt.Sprintf("%v.%v", name, field.FieldName())
 			if field.FieldName() != fld.Name {
 				desc += "/" + fld.Name
 			}
 			if field.UnitSize() != uint64(fld.Type.Size()) {
-				warn(pos, "%v: bad size: syz=%v kernel=%v",
+				warn(pos, WarnBadFieldSize, "%v: syz=%v kernel=%v",
 					desc, field.UnitSize(), fld.Type.Size())
 			}
 			byteOffset := offset - field.UnitOffset()
 			if byteOffset != uint64(fld.ByteOffset) {
-				warn(pos, "%v: bad offset: syz=%v kernel=%v",
+				warn(pos, WarnBadFieldOffset, "%v: syz=%v kernel=%v",
 					desc, byteOffset, fld.ByteOffset)
 			}
 			// How would you define bitfield offset?
@@ -236,7 +273,7 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 			}
 			if field.BitfieldLength() != uint64(fld.BitSize) ||
 				field.BitfieldOffset() != uint64(bitOffset) {
-				warn(pos, "%v: bad bit size/offset: syz=%v/%v kernel=%v/%v",
+				warn(pos, WarnBadBitfield, "%v: size/offset: syz=%v/%v kernel=%v/%v",
 					desc, field.BitfieldLength(), field.BitfieldOffset(),
 					fld.BitSize, bitOffset)
 			}
@@ -245,7 +282,7 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 		offset += field.Size()
 	}
 	if ai != len(str.Field) {
-		warn(astStruct.Pos, "struct %v: bad number of fields: syz=%v kernel=%v", name, ai, len(str.Field))
+		warn(astStruct.Pos, WarnBadFieldNumber, "%v: syz=%v kernel=%v", name, ai, len(str.Field))
 	}
 	return warnings, nil
 }
@@ -254,7 +291,7 @@ func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.St
 	errorBuf := new(bytes.Buffer)
 	var warnings []Warn
 	eh := func(pos ast.Pos, msg string) {
-		warnings = append(warnings, Warn{pos, msg})
+		warnings = append(warnings, Warn{pos: pos, typ: WarnCompiler, msg: msg})
 		fmt.Fprintf(errorBuf, "%v: %v\n", pos, msg)
 	}
 	top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), eh)

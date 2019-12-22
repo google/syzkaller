@@ -1,2 +1,2 @@
-struct vhci_command_vendor_pkt: no corresponding struct in kernel
-struct bdaddr: no corresponding struct in kernel
+no-such-struct: vhci_command_vendor_pkt
+no-such-struct: bdaddr

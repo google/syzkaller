@@ -1,9 +1,9 @@
-struct ax25_address: bad number of fields: syz=6 kernel=1
-struct ax25_address_remote: no corresponding struct in kernel
-struct ax25_address_bcast: no corresponding struct in kernel
-struct ax25_address_default: no corresponding struct in kernel
-struct ax25_address_null: no corresponding struct in kernel
-struct sockaddr_ax25_uid: no corresponding struct in kernel
-struct ax25_devname: no corresponding struct in kernel
-struct ax25_devname_rose: no corresponding struct in kernel
-struct ax25_devname_netrom: no corresponding struct in kernel
+bad-field-number: ax25_address: syz=6 kernel=1
+no-such-struct: ax25_address_remote
+no-such-struct: ax25_address_bcast
+no-such-struct: ax25_address_default
+no-such-struct: ax25_address_null
+no-such-struct: sockaddr_ax25_uid
+no-such-struct: ax25_devname
+no-such-struct: ax25_devname_rose
+no-such-struct: ax25_devname_netrom

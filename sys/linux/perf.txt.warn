@@ -1,57 +1,57 @@
-struct perf_event_attr: bad number of fields: syz=50 kernel=52
-struct perf_event_attr: bad size: syz=112 kernel=120
-field perf_event_attr.config0/config: bad size: syz=1 kernel=8
-field perf_event_attr.config1/: bad offset: syz=9 kernel=16
-field perf_event_attr.config1/: bad size: syz=1 kernel=8
-field perf_event_attr.config2/sample_type: bad offset: syz=10 kernel=24
-field perf_event_attr.config2/sample_type: bad size: syz=1 kernel=8
-field perf_event_attr.config3/read_format: bad offset: syz=11 kernel=32
-field perf_event_attr.config3/read_format: bad size: syz=1 kernel=8
-field perf_event_attr.config4/disabled: bad bit size/offset: syz=0/0 kernel=1/0
-field perf_event_attr.config4/disabled: bad offset: syz=12 kernel=40
-field perf_event_attr.config4/disabled: bad size: syz=4 kernel=8
-field perf_event_attr.sample_freq/inherit: bad bit size/offset: syz=0/0 kernel=1/1
-field perf_event_attr.sample_freq/inherit: bad offset: syz=16 kernel=40
-field perf_event_attr.sample_type/pinned: bad bit size/offset: syz=0/0 kernel=1/2
-field perf_event_attr.sample_type/pinned: bad offset: syz=24 kernel=40
-field perf_event_attr.read_format/exclusive: bad bit size/offset: syz=0/0 kernel=1/3
-field perf_event_attr.read_format/exclusive: bad offset: syz=32 kernel=40
-field perf_event_attr.disabled/exclude_user: bad bit size/offset: syz=1/0 kernel=1/4
-field perf_event_attr.inherit/exclude_kernel: bad bit size/offset: syz=1/1 kernel=1/5
-field perf_event_attr.pinned/exclude_hv: bad bit size/offset: syz=1/2 kernel=1/6
-field perf_event_attr.exclusive/exclude_idle: bad bit size/offset: syz=1/3 kernel=1/7
-field perf_event_attr.exclude_user/mmap: bad bit size/offset: syz=1/4 kernel=1/8
-field perf_event_attr.exclude_kernel/comm: bad bit size/offset: syz=1/5 kernel=1/9
-field perf_event_attr.exclude_hv/freq: bad bit size/offset: syz=1/6 kernel=1/10
-field perf_event_attr.exclude_idle/inherit_stat: bad bit size/offset: syz=1/7 kernel=1/11
-field perf_event_attr.mmap/enable_on_exec: bad bit size/offset: syz=1/8 kernel=1/12
-field perf_event_attr.comm/task: bad bit size/offset: syz=1/9 kernel=1/13
-field perf_event_attr.freq/watermark: bad bit size/offset: syz=1/10 kernel=1/14
-field perf_event_attr.inherit_stat/precise_ip: bad bit size/offset: syz=1/11 kernel=2/15
-field perf_event_attr.enable_on_exec/mmap_data: bad bit size/offset: syz=1/12 kernel=1/17
-field perf_event_attr.task/sample_id_all: bad bit size/offset: syz=1/13 kernel=1/18
-field perf_event_attr.watermark/exclude_host: bad bit size/offset: syz=1/14 kernel=1/19
-field perf_event_attr.precise_ip/exclude_guest: bad bit size/offset: syz=2/15 kernel=1/20
-field perf_event_attr.mmap_data/exclude_callchain_kernel: bad bit size/offset: syz=1/17 kernel=1/21
-field perf_event_attr.sample_id_all/exclude_callchain_user: bad bit size/offset: syz=1/18 kernel=1/22
-field perf_event_attr.exclude_host/mmap2: bad bit size/offset: syz=1/19 kernel=1/23
-field perf_event_attr.exclude_guest/comm_exec: bad bit size/offset: syz=1/20 kernel=1/24
-field perf_event_attr.exclude_callchain_kernel/use_clockid: bad bit size/offset: syz=1/21 kernel=1/25
-field perf_event_attr.exclude_callchain_user/context_switch: bad bit size/offset: syz=1/22 kernel=1/26
-field perf_event_attr.mmap2/write_backward: bad bit size/offset: syz=1/23 kernel=1/27
-field perf_event_attr.comm_exec/namespaces: bad bit size/offset: syz=1/24 kernel=1/28
-field perf_event_attr.use_clockid/ksymbol: bad bit size/offset: syz=1/25 kernel=1/29
-field perf_event_attr.context_switch/bpf_event: bad bit size/offset: syz=1/26 kernel=1/30
-field perf_event_attr.write_backward/aux_output: bad bit size/offset: syz=1/27 kernel=1/31
-field perf_event_attr.namespaces/__reserved_1: bad bit size/offset: syz=1/28 kernel=32/32
-field perf_event_attr.__reserved_1/: bad bit size/offset: syz=35/29 kernel=0/0
-field perf_event_attr.__reserved_1/: bad offset: syz=40 kernel=48
-field perf_event_attr.__reserved_1/: bad size: syz=8 kernel=4
-field perf_event_attr.wakeup_events/bp_type: bad offset: syz=48 kernel=52
-field perf_event_attr.bp_type/: bad offset: syz=52 kernel=56
-field perf_event_attr.bp_type/: bad size: syz=4 kernel=8
-field perf_event_attr.bp_config/: bad offset: syz=56 kernel=64
-field perf_event_attr.bp_config/: bad size: syz=16 kernel=8
-struct perf_bp_config: no corresponding struct in kernel
-struct perf_bp: no corresponding struct in kernel
-struct perf_config_ext: no corresponding struct in kernel
+bad-struct-size: perf_event_attr: syz=112 kernel=120
+bad-field-number: perf_event_attr: syz=50 kernel=52
+bad-field-size: perf_event_attr.config0/config: syz=1 kernel=8
+bad-field-size: perf_event_attr.config1/: syz=1 kernel=8
+bad-field-offset: perf_event_attr.config1/: syz=9 kernel=16
+bad-field-size: perf_event_attr.config2/sample_type: syz=1 kernel=8
+bad-field-offset: perf_event_attr.config2/sample_type: syz=10 kernel=24
+bad-field-size: perf_event_attr.config3/read_format: syz=1 kernel=8
+bad-field-offset: perf_event_attr.config3/read_format: syz=11 kernel=32
+bad-bitfield: perf_event_attr.config4/disabled: size/offset: syz=0/0 kernel=1/0
+bad-field-offset: perf_event_attr.config4/disabled: syz=12 kernel=40
+bad-field-size: perf_event_attr.config4/disabled: syz=4 kernel=8
+bad-bitfield: perf_event_attr.sample_freq/inherit: size/offset: syz=0/0 kernel=1/1
+bad-field-offset: perf_event_attr.sample_freq/inherit: syz=16 kernel=40
+bad-bitfield: perf_event_attr.sample_type/pinned: size/offset: syz=0/0 kernel=1/2
+bad-field-offset: perf_event_attr.sample_type/pinned: syz=24 kernel=40
+bad-bitfield: perf_event_attr.read_format/exclusive: size/offset: syz=0/0 kernel=1/3
+bad-field-offset: perf_event_attr.read_format/exclusive: syz=32 kernel=40
+bad-bitfield: perf_event_attr.disabled/exclude_user: size/offset: syz=1/0 kernel=1/4
+bad-bitfield: perf_event_attr.inherit/exclude_kernel: size/offset: syz=1/1 kernel=1/5
+bad-bitfield: perf_event_attr.pinned/exclude_hv: size/offset: syz=1/2 kernel=1/6
+bad-bitfield: perf_event_attr.exclusive/exclude_idle: size/offset: syz=1/3 kernel=1/7
+bad-bitfield: perf_event_attr.exclude_user/mmap: size/offset: syz=1/4 kernel=1/8
+bad-bitfield: perf_event_attr.exclude_kernel/comm: size/offset: syz=1/5 kernel=1/9
+bad-bitfield: perf_event_attr.exclude_hv/freq: size/offset: syz=1/6 kernel=1/10
+bad-bitfield: perf_event_attr.exclude_idle/inherit_stat: size/offset: syz=1/7 kernel=1/11
+bad-bitfield: perf_event_attr.mmap/enable_on_exec: size/offset: syz=1/8 kernel=1/12
+bad-bitfield: perf_event_attr.comm/task: size/offset: syz=1/9 kernel=1/13
+bad-bitfield: perf_event_attr.freq/watermark: size/offset: syz=1/10 kernel=1/14
+bad-bitfield: perf_event_attr.inherit_stat/precise_ip: size/offset: syz=1/11 kernel=2/15
+bad-bitfield: perf_event_attr.enable_on_exec/mmap_data: size/offset: syz=1/12 kernel=1/17
+bad-bitfield: perf_event_attr.task/sample_id_all: size/offset: syz=1/13 kernel=1/18
+bad-bitfield: perf_event_attr.watermark/exclude_host: size/offset: syz=1/14 kernel=1/19
+bad-bitfield: perf_event_attr.precise_ip/exclude_guest: size/offset: syz=2/15 kernel=1/20
+bad-bitfield: perf_event_attr.mmap_data/exclude_callchain_kernel: size/offset: syz=1/17 kernel=1/21
+bad-bitfield: perf_event_attr.sample_id_all/exclude_callchain_user: size/offset: syz=1/18 kernel=1/22
+bad-bitfield: perf_event_attr.exclude_host/mmap2: size/offset: syz=1/19 kernel=1/23
+bad-bitfield: perf_event_attr.exclude_guest/comm_exec: size/offset: syz=1/20 kernel=1/24
+bad-bitfield: perf_event_attr.exclude_callchain_kernel/use_clockid: size/offset: syz=1/21 kernel=1/25
+bad-bitfield: perf_event_attr.exclude_callchain_user/context_switch: size/offset: syz=1/22 kernel=1/26
+bad-bitfield: perf_event_attr.mmap2/write_backward: size/offset: syz=1/23 kernel=1/27
+bad-bitfield: perf_event_attr.comm_exec/namespaces: size/offset: syz=1/24 kernel=1/28
+bad-bitfield: perf_event_attr.use_clockid/ksymbol: size/offset: syz=1/25 kernel=1/29
+bad-bitfield: perf_event_attr.context_switch/bpf_event: size/offset: syz=1/26 kernel=1/30
+bad-bitfield: perf_event_attr.write_backward/aux_output: size/offset: syz=1/27 kernel=1/31
+bad-bitfield: perf_event_attr.namespaces/__reserved_1: size/offset: syz=1/28 kernel=32/32
+bad-bitfield: perf_event_attr.__reserved_1/: size/offset: syz=35/29 kernel=0/0
+bad-field-offset: perf_event_attr.__reserved_1/: syz=40 kernel=48
+bad-field-size: perf_event_attr.__reserved_1/: syz=8 kernel=4
+bad-field-offset: perf_event_attr.wakeup_events/bp_type: syz=48 kernel=52
+bad-field-size: perf_event_attr.bp_type/: syz=4 kernel=8
+bad-field-offset: perf_event_attr.bp_type/: syz=52 kernel=56
+bad-field-size: perf_event_attr.bp_config/: syz=16 kernel=8
+bad-field-offset: perf_event_attr.bp_config/: syz=56 kernel=64
+no-such-struct: perf_bp_config
+no-such-struct: perf_bp
+no-such-struct: perf_config_ext

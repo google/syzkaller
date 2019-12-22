@@ -1,41 +1,42 @@
-struct tcm_handle: no corresponding struct in kernel
-struct tca_kind_options_t: no corresponding struct in kernel
-struct m_ctinfo_options: no corresponding struct in kernel
-struct tc_gen: no corresponding struct in kernel
-struct tc_connmark: bad number of fields: syz=2 kernel=6
-field tc_connmark.tc_gen/index: bad size: syz=20 kernel=4
-field tc_connmark.zone/capab: bad offset: syz=20 kernel=4
-field tc_connmark.zone/capab: bad size: syz=2 kernel=4
-struct tc_csum: bad number of fields: syz=2 kernel=6
-field tc_csum.tc_gen/index: bad size: syz=20 kernel=4
-field tc_csum.update_flags/capab: bad offset: syz=20 kernel=4
-struct tc_ife: bad number of fields: syz=2 kernel=6
-field tc_ife.tc_gen/index: bad size: syz=20 kernel=4
-field tc_ife.flags/capab: bad offset: syz=20 kernel=4
-field tc_ife.flags/capab: bad size: syz=2 kernel=4
-struct tc_mirred: bad number of fields: syz=3 kernel=7
-field tc_mirred.tc_gen/index: bad size: syz=20 kernel=4
-field tc_mirred.eaction/capab: bad offset: syz=20 kernel=4
-field tc_mirred.ifindex/action: bad offset: syz=24 kernel=8
-struct tc_mpls: bad number of fields: syz=2 kernel=6
-field tc_mpls.tc_gen/index: bad size: syz=20 kernel=4
-field tc_mpls.m_action/capab: bad offset: syz=20 kernel=4
-struct tc_nat: bad number of fields: syz=5 kernel=9
-field tc_nat.tc_gen/index: bad size: syz=20 kernel=4
-field tc_nat.old_addr/capab: bad offset: syz=20 kernel=4
-field tc_nat.new_addr/action: bad offset: syz=24 kernel=8
-field tc_nat.mask/refcnt: bad offset: syz=28 kernel=12
-field tc_nat.flags/bindcnt: bad offset: syz=32 kernel=16
-struct m_pedit_key_ex: no corresponding struct in kernel
-struct tc_skbmod: bad number of fields: syz=2 kernel=6
-field tc_skbmod.tc_gen/index: bad size: syz=20 kernel=4
-field tc_skbmod.flags/capab: bad offset: syz=24 kernel=4
-field tc_skbmod.flags/capab: bad size: syz=8 kernel=4
-struct tc_tunnel_key: bad number of fields: syz=2 kernel=6
-field tc_tunnel_key.tc_gen/index: bad size: syz=20 kernel=4
-field tc_tunnel_key.t_action/capab: bad offset: syz=20 kernel=4
-struct tc_vlan: bad number of fields: syz=2 kernel=6
-field tc_vlan.tc_gen/index: bad size: syz=20 kernel=4
-field tc_vlan.v_action/capab: bad offset: syz=20 kernel=4
-struct tcf_ematch_hdr_t: no corresponding struct in kernel
-struct tc_estimator: no corresponding struct in kernel
+no-such-struct: tcm_handle
+no-such-struct: tca_kind_options_t
+no-such-struct: m_ctinfo_options
+no-such-struct: tc_gen
+bad-field-number: tc_connmark: syz=2 kernel=6
+bad-field-size: tc_connmark.tc_gen/index: syz=20 kernel=4
+bad-field-size: tc_connmark.zone/capab: syz=2 kernel=4
+bad-field-offset: tc_connmark.zone/capab: syz=20 kernel=4
+bad-field-number: tc_csum: syz=2 kernel=6
+bad-field-size: tc_csum.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_csum.update_flags/capab: syz=20 kernel=4
+bad-field-number: tc_ife: syz=2 kernel=6
+bad-field-size: tc_ife.tc_gen/index: syz=20 kernel=4
+bad-field-size: tc_ife.flags/capab: syz=2 kernel=4
+bad-field-offset: tc_ife.flags/capab: syz=20 kernel=4
+bad-field-number: tc_mirred: syz=3 kernel=7
+bad-field-size: tc_mirred.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_mirred.eaction/capab: syz=20 kernel=4
+bad-field-offset: tc_mirred.ifindex/action: syz=24 kernel=8
+bad-field-number: tc_mpls: syz=2 kernel=6
+bad-field-size: tc_mpls.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_mpls.m_action/capab: syz=20 kernel=4
+bad-field-number: tc_nat: syz=5 kernel=9
+bad-field-size: tc_nat.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_nat.old_addr/capab: syz=20 kernel=4
+bad-field-offset: tc_nat.new_addr/action: syz=24 kernel=8
+bad-field-offset: tc_nat.mask/refcnt: syz=28 kernel=12
+bad-field-offset: tc_nat.flags/bindcnt: syz=32 kernel=16
+no-such-struct: m_pedit_key_ex
+bad-field-number: tc_skbmod: syz=2 kernel=6
+bad-struct-size: tc_skbmod: syz=32 kernel=28 [386]
+bad-field-size: tc_skbmod.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_skbmod.flags/capab: syz=24 kernel=4
+bad-field-size: tc_skbmod.flags/capab: syz=8 kernel=4
+bad-field-number: tc_tunnel_key: syz=2 kernel=6
+bad-field-size: tc_tunnel_key.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_tunnel_key.t_action/capab: syz=20 kernel=4
+bad-field-number: tc_vlan: syz=2 kernel=6
+bad-field-size: tc_vlan.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_vlan.v_action/capab: syz=20 kernel=4
+no-such-struct: tcf_ematch_hdr_t
+no-such-struct: tc_estimator

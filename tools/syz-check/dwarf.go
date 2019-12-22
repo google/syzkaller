@@ -36,7 +36,10 @@ func parseKernelObject(obj string) (map[string]*dwarf.StructType, error) {
 	// Next parallel stage consumes offsets, extracts struct types and sends them over structc.
 	// Last stage consumes structs, deduplicates them and builds the resulting map.
 	numProcs := runtime.GOMAXPROCS(0)
-	numTypes := numProcs/8 + 1
+	numTypes := numProcs / 8
+	if numTypes == 0 {
+		numTypes = 1
+	}
 	buffer := 100 * numProcs
 	unitc := make(chan Unit, buffer)
 	offsetc := make(chan []dwarf.Offset, buffer)

@@ -1,8 +1,8 @@
-struct sockaddr_caif: bad number of fields: syz=5 kernel=2
-field sockaddr_caif.at/family: bad size: syz=4 kernel=2
-field sockaddr_caif.util/u: bad size: syz=18 kernel=20
-struct sockaddr_caif_at: no corresponding struct in kernel
-struct sockaddr_caif_util: no corresponding struct in kernel
-struct sockaddr_caif_dgm: no corresponding struct in kernel
-struct sockaddr_caif_rfm: no corresponding struct in kernel
-struct sockaddr_caif_dbg: no corresponding struct in kernel
+bad-field-number: sockaddr_caif: syz=5 kernel=2
+bad-field-size: sockaddr_caif.at/family: syz=4 kernel=2
+bad-field-size: sockaddr_caif.util/u: syz=18 kernel=20
+no-such-struct: sockaddr_caif_at
+no-such-struct: sockaddr_caif_util
+no-such-struct: sockaddr_caif_dgm
+no-such-struct: sockaddr_caif_rfm
+no-such-struct: sockaddr_caif_dbg

@@ -1,1 +1,1 @@
-struct mon_bin_union: no corresponding struct in kernel
+no-such-struct: mon_bin_union

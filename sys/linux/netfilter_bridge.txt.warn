@@ -1,30 +1,44 @@
-struct ebt_replace_t: no corresponding struct in kernel
-len target entries refer to an array with variable-size elements (do you mean bytesize?)
-struct ebt_getinfo: no corresponding struct in kernel
-struct ebt_get_entries: no corresponding struct in kernel
-field ebt_entry_match.revision/match_size: bad size: syz=1 kernel=4
-field ebt_entry_match.match_size/data: bad offset: syz=36 kernel=40
-field ebt_entry_match.match_size/data: bad size: syz=4 kernel=0
-struct ebt_entry_match_t: no corresponding struct in kernel
-struct xt_padded: no corresponding struct in kernel
-struct ebt_among_info_offset: no corresponding struct in kernel
-struct ebt_ip_info: bad number of fields: syz=12 kernel=10
-field ebt_ip_info.sport_min/: bad size: syz=2 kernel=4
-field ebt_ip_info.sport_max/: bad offset: syz=22 kernel=24
-field ebt_ip_info.sport_max/: bad size: syz=2 kernel=4
-struct ebt_ip6_info: bad number of fields: syz=12 kernel=10
-field ebt_ip6_info.sport_min/: bad size: syz=2 kernel=4
-field ebt_ip6_info.sport_max/: bad offset: syz=70 kernel=72
-field ebt_ip6_info.sport_max/: bad size: syz=2 kernel=4
-struct ebt_entry_target: bad size: syz=120 kernel=40
-struct ebt_entry_target: bad size: syz=304 kernel=40
-struct ebt_entry_target: bad size: syz=48 kernel=40
-struct ebt_entry_target: bad size: syz=56 kernel=40
-struct ebt_entry_target: bad size: syz=72 kernel=40
-struct ebt_entry_target: bad size: syz=80 kernel=40
-field ebt_entry_target.data: bad size: syz=16 kernel=0
-field ebt_entry_target.data: bad size: syz=264 kernel=0
-field ebt_entry_target.data: bad size: syz=32 kernel=0
-field ebt_entry_target.data: bad size: syz=40 kernel=0
-field ebt_entry_target.data: bad size: syz=8 kernel=0
-field ebt_entry_target.data: bad size: syz=80 kernel=0
+no-such-struct: ebt_replace_t
+compiler: len target entries refer to an array with variable-size elements (do you mean bytesize?)
+no-such-struct: ebt_getinfo
+no-such-struct: ebt_get_entries
+bad-struct-size: ebt_entry_match: syz=40 kernel=36 [386]
+bad-field-size: ebt_entry_match.revision/match_size: syz=1 kernel=4
+bad-field-offset: ebt_entry_match.match_size/data: syz=36 kernel=40 [amd64]
+bad-field-size: ebt_entry_match.match_size/data: syz=4 kernel=0
+no-such-struct: ebt_entry_match_t
+no-such-struct: xt_padded
+no-such-struct: ebt_among_info_offset
+bad-field-number: ebt_ip_info: syz=12 kernel=10
+bad-field-size: ebt_ip_info.sport_min/: syz=2 kernel=4
+bad-field-size: ebt_ip_info.sport_max/: syz=2 kernel=4
+bad-field-offset: ebt_ip_info.sport_max/: syz=22 kernel=24
+bad-field-number: ebt_ip6_info: syz=12 kernel=10
+bad-field-size: ebt_ip6_info.sport_min/: syz=2 kernel=4
+bad-field-size: ebt_ip6_info.sport_max/: syz=2 kernel=4
+bad-field-offset: ebt_ip6_info.sport_max/: syz=70 kernel=72
+bad-struct-size: ebt_entry_target: syz=112 kernel=36 [386]
+bad-struct-size: ebt_entry_target: syz=120 kernel=40 [amd64]
+bad-struct-size: ebt_entry_target: syz=300 kernel=36 [386]
+bad-struct-size: ebt_entry_target: syz=304 kernel=40 [amd64]
+bad-struct-size: ebt_entry_target: syz=40 kernel=36 [386]
+bad-struct-size: ebt_entry_target: syz=44 kernel=36 [386]
+bad-struct-size: ebt_entry_target: syz=48 kernel=36 [386]
+bad-struct-size: ebt_entry_target: syz=48 kernel=40 [amd64]
+bad-struct-size: ebt_entry_target: syz=56 kernel=40 [amd64]
+bad-struct-size: ebt_entry_target: syz=60 kernel=36 [386]
+bad-struct-size: ebt_entry_target: syz=68 kernel=36 [386]
+bad-struct-size: ebt_entry_target: syz=72 kernel=36 [386]
+bad-struct-size: ebt_entry_target: syz=72 kernel=40 [amd64]
+bad-struct-size: ebt_entry_target: syz=80 kernel=40 [amd64]
+bad-field-size: ebt_entry_target.data: syz=12 kernel=0 [386]
+bad-field-size: ebt_entry_target.data: syz=16 kernel=0 [amd64]
+bad-field-size: ebt_entry_target.data: syz=24 kernel=0 [386]
+bad-field-size: ebt_entry_target.data: syz=264 kernel=0
+bad-field-size: ebt_entry_target.data: syz=32 kernel=0
+bad-field-size: ebt_entry_target.data: syz=36 kernel=0 [386]
+bad-field-size: ebt_entry_target.data: syz=4 kernel=0 [386]
+bad-field-size: ebt_entry_target.data: syz=40 kernel=0 [amd64]
+bad-field-size: ebt_entry_target.data: syz=76 kernel=0 [386]
+bad-field-size: ebt_entry_target.data: syz=8 kernel=0
+bad-field-size: ebt_entry_target.data: syz=80 kernel=0 [amd64]

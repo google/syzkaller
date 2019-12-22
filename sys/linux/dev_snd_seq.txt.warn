@@ -1,14 +1,13 @@
-struct snd_seq_queue_timer: bad number of fields: syz=5 kernel=4
-field snd_seq_queue_timer.id/u: bad size: syz=20 kernel=24
-field snd_seq_queue_timer.resolution/reserved: bad offset: syz=28 kernel=32
-field snd_seq_queue_timer.resolution/reserved: bad size: syz=4 kernel=64
-struct snd_seq_event_data: no corresponding struct in kernel
-struct snd_seq_ev_ctrl: bad number of fields: syz=3 kernel=6
-field snd_seq_ev_ctrl.param/unused1: bad offset: syz=4 kernel=1
-field snd_seq_ev_ctrl.param/unused1: bad size: syz=4 kernel=1
-field snd_seq_ev_ctrl.val/unused2: bad offset: syz=8 kernel=2
-field snd_seq_ev_ctrl.val/unused2: bad size: syz=4 kernel=1
-struct snd_seq_ev_queue_control: bad number of fields: syz=2 kernel=3
-field snd_seq_ev_queue_control.param/pad: bad offset: syz=4 kernel=1
-field snd_seq_ev_queue_control.param/pad: bad size: syz=8 kernel=3
-struct snd_seq_timestamp: no corresponding struct in kernel
+bad-field-number: snd_seq_queue_timer: syz=5 kernel=4
+bad-field-size: snd_seq_queue_timer.id/u: syz=20 kernel=24
+bad-field-offset: snd_seq_queue_timer.resolution/reserved: syz=28 kernel=32
+bad-field-size: snd_seq_queue_timer.resolution/reserved: syz=4 kernel=64
+no-such-struct: snd_seq_event_data
+bad-field-number: snd_seq_ev_ctrl: syz=3 kernel=6
+bad-field-offset: snd_seq_ev_ctrl.param/unused1: syz=4 kernel=1
+bad-field-size: snd_seq_ev_ctrl.val/unused2: syz=4 kernel=1
+bad-field-offset: snd_seq_ev_ctrl.val/unused2: syz=8 kernel=2
+bad-field-number: snd_seq_ev_queue_control: syz=2 kernel=3
+bad-field-offset: snd_seq_ev_queue_control.param/pad: syz=4 kernel=1
+bad-field-size: snd_seq_ev_queue_control.param/pad: syz=8 kernel=3
+no-such-struct: snd_seq_timestamp

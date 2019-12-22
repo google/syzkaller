@@ -1,12 +1,14 @@
-struct msghdr_sctp: no corresponding struct in kernel
-struct cmsghdr_sctp_init: no corresponding struct in kernel
-struct cmsghdr_sctp_sndrcv: no corresponding struct in kernel
-struct cmsghdr_sctp_sndinfo: no corresponding struct in kernel
-struct cmsghdr_sctp_prinfo: no corresponding struct in kernel
-struct cmsghdr_sctp_authinfo: no corresponding struct in kernel
-struct cmsghdr_sctp_dstaddrv4: no corresponding struct in kernel
-struct cmsghdr_sctp_dstaddrv6: no corresponding struct in kernel
-struct sockaddr_storage_sctp: no corresponding struct in kernel
-struct sctp_paddrthlds: no corresponding struct in kernel
-struct sctp_assoc_stats: bad number of fields: syz=3 kernel=17
-field sctp_assoc_stats.status/sas_maxrto: bad size: syz=120 kernel=8
+no-such-struct: msghdr_sctp
+no-such-struct: cmsghdr_sctp_init
+no-such-struct: cmsghdr_sctp_sndrcv
+no-such-struct: cmsghdr_sctp_sndinfo
+no-such-struct: cmsghdr_sctp_prinfo
+no-such-struct: cmsghdr_sctp_authinfo
+no-such-struct: cmsghdr_sctp_dstaddrv4
+no-such-struct: cmsghdr_sctp_dstaddrv6
+no-such-struct: sockaddr_storage_sctp
+no-such-struct: sctp_paddrthlds
+bad-struct-size: sctp_assoc_stats: syz=256 kernel=252 [386]
+bad-field-number: sctp_assoc_stats: syz=3 kernel=17
+bad-field-size: sctp_assoc_stats.status/sas_maxrto: syz=120 kernel=8
+bad-field-offset: sctp_assoc_stats.status/sas_maxrto: syz=136 kernel=132 [386]

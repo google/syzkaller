@@ -1,0 +1,7 @@
+bad-field-size: uffdio_range.start: syz=4 kernel=8 [386]
+bad-struct-size: uffdio_copy: syz=32 kernel=40 [386]
+bad-field-size: uffdio_copy.dst: syz=4 kernel=8 [386]
+bad-field-size: uffdio_copy.src: syz=4 kernel=8 [386]
+bad-field-offset: uffdio_copy.len: syz=8 kernel=16 [386]
+bad-field-offset: uffdio_copy.mode: syz=16 kernel=24 [386]
+bad-field-offset: uffdio_copy.copy: syz=24 kernel=32 [386]
