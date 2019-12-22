@@ -12,7 +12,12 @@ struct send_mmsghdr: no corresponding struct in kernel
 struct mmsghdr_sock: no corresponding struct in kernel
 struct recv_msghdr: no corresponding struct in kernel
 struct recv_mmsghdr: no corresponding struct in kernel
+struct cmsghdr_t: no corresponding struct in kernel
+struct cmsghdr_unaligned: no corresponding struct in kernel
+struct ifreq_dev_t: no corresponding struct in kernel
 struct ifr_ifru: no corresponding struct in kernel
+struct vlan_args: no corresponding struct in kernel
+struct vlan_args_u: no corresponding struct in kernel
 struct devname_mask: no corresponding struct in kernel
 struct ifs_ifsu: no corresponding struct in kernel
 field ifconf.req/ifc_len: bad size: syz=16 kernel=4

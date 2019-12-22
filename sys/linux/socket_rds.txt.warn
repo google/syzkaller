@@ -1,4 +1,5 @@
 struct msghdr_rds: no corresponding struct in kernel
+struct cmsghdr_rds_t: no corresponding struct in kernel
 struct rds_atomic_args: bad number of fields: syz=9 kernel=6
 field rds_atomic_args.arg1/: bad size: syz=8 kernel=32
 field rds_atomic_args.arg2/flags: bad offset: syz=32 kernel=56

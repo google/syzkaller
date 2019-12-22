@@ -114,18 +114,18 @@ ip6t_ip6_invflags = IP6T_INV_VIA_IN, IP6T_INV_VIA_OUT, IP6T_INV_TOS, IP6T_INV_SR
 ipt6_matches [
 	unspec		xt_unspec_matches
 	inet		xt_inet_matches
-	icmp6		xt_entry_match["icmp6", ip6t_icmp, 0]
-	rt		xt_entry_match["rt", ip6t_rt, 0]
-	mh		xt_entry_match["mh", ip6t_mh, 0]
-	hbh		xt_entry_match["hbh", ip6t_opts, 0]
-	dst		xt_entry_match["dst", ip6t_opts, 0]
-	frag		xt_entry_match["frag", ip6t_frag, 0]
-	eui64		xt_entry_match["eui64", const[0, int32], 0]
-	ah		xt_entry_match["ah", ip6t_ah, 0]
-	ipv6header	xt_entry_match["ipv6header", ip6t_ipv6header_info, 0]
-	hl		xt_entry_match["hl", ipt_ttl_info, 0]
-	srh		xt_entry_match["srh", ip6t_srh, 0]
-	srh1		xt_entry_match["srh", ip6t_srh1, 1]
+	icmp6		xt_entry_match_t["icmp6", ip6t_icmp, 0]
+	rt		xt_entry_match_t["rt", ip6t_rt, 0]
+	mh		xt_entry_match_t["mh", ip6t_mh, 0]
+	hbh		xt_entry_match_t["hbh", ip6t_opts, 0]
+	dst		xt_entry_match_t["dst", ip6t_opts, 0]
+	frag		xt_entry_match_t["frag", ip6t_frag, 0]
+	eui64		xt_entry_match_t["eui64", const[0, int32], 0]
+	ah		xt_entry_match_t["ah", ip6t_ah, 0]
+	ipv6header	xt_entry_match_t["ipv6header", ip6t_ipv6header_info, 0]
+	hl		xt_entry_match_t["hl", ipt_ttl_info, 0]
+	srh		xt_entry_match_t["srh", ip6t_srh, 0]
+	srh1		xt_entry_match_t["srh", ip6t_srh1, 1]
 ] [varlen]
 
 ip6t_filter_matches [

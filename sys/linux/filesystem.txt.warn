@@ -1,4 +1,6 @@
 struct nbd_filename: no corresponding struct in kernel
 struct loop_filename: no corresponding struct in kernel
 struct fs_image_segment: no corresponding struct in kernel
+struct fs_opt: no corresponding struct in kernel
+struct fs_opt_nodelim: no corresponding struct in kernel
 struct uuid_str: no corresponding struct in kernel

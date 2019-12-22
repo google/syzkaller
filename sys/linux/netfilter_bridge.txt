@@ -135,10 +135,15 @@ ebt_get_entries {
 
 # MATCHES:
 
-type ebt_entry_match[NAME, DATA] {
+type ebt_entry_match[NAME] {
 	name		string[NAME, EBT_FUNCTION_MAXNAMELEN]
-	match_size	bytesize[data, int32]
-	data		xt_padded[DATA]
+	revision	const[0, int8]
+	match_size	bytesize[ebt_entry_match_t:data, int32]
+}
+
+type ebt_entry_match_t[NAME, DATA] {
+	header	ebt_entry_match[NAME]
+	data	xt_padded[DATA]
 }
 
 type xt_padded[TYPE] {
@@ -146,38 +151,38 @@ type xt_padded[TYPE] {
 } [align_ptr]
 
 ebt_matches [
-	m802_3		ebt_entry_match["802_3", ebt_802_3_info]
-	among		ebt_entry_match["among", ebt_among_info]
-	arp		ebt_entry_match["arp", ebt_arp_info]
-	ip		ebt_entry_match["ip", ebt_ip_info]
-	ip6		ebt_entry_match["ip6", ebt_ip6_info]
-	limit		ebt_entry_match["limit", ebt_limit_info]
-	mark_m		ebt_entry_match["mark_m", ebt_mark_m_info]
-	pkttype		ebt_entry_match["pkttype", ebt_pkttype_info]
-	stp		ebt_entry_match["stp", ebt_stp_info]
-	vlan		ebt_entry_match["vlan", ebt_vlan_info]
+	m802_3		ebt_entry_match_t["802_3", ebt_802_3_info]
+	among		ebt_entry_match_t["among", ebt_among_info]
+	arp		ebt_entry_match_t["arp", ebt_arp_info]
+	ip		ebt_entry_match_t["ip", ebt_ip_info]
+	ip6		ebt_entry_match_t["ip6", ebt_ip6_info]
+	limit		ebt_entry_match_t["limit", ebt_limit_info]
+	mark_m		ebt_entry_match_t["mark_m", ebt_mark_m_info]
+	pkttype		ebt_entry_match_t["pkttype", ebt_pkttype_info]
+	stp		ebt_entry_match_t["stp", ebt_stp_info]
+	vlan		ebt_entry_match_t["vlan", ebt_vlan_info]
 # AF_UNSPEC matches (only version 0 and not overriden by AF_BRIDGE).
-	cgroup0		ebt_entry_match["cgroup", xt_cgroup_info_v0]
-	helper		ebt_entry_match["helper", xt_helper_info]
-	rateest		ebt_entry_match["rateest", xt_rateest_match_info]
-	time		ebt_entry_match["time", xt_time_info]
-	bpf0		ebt_entry_match["bpf", xt_bpf_info]
-	realm		ebt_entry_match["realm", xt_realm_info]
-	connbytes	ebt_entry_match["connbytes", xt_connbytes_info]
-	quota		ebt_entry_match["quota", xt_quota_info]
-	ipvs		ebt_entry_match["ipvs", xt_ipvs_mtinfo]
-	nfacct		ebt_entry_match["nfacct", xt_nfacct_match_info]
-	mac		ebt_entry_match["mac", xt_mac_info]
-	comment		ebt_entry_match["comment", xt_comment_info]
-	statistic	ebt_entry_match["statistic", xt_statistic_info]
-	physdev		ebt_entry_match["physdev", xt_physdev_info]
-	connlabel	ebt_entry_match["connlabel", xt_connlabel_mtinfo]
-	devgroup	ebt_entry_match["devgroup", xt_devgroup_info]
-	cluster		ebt_entry_match["cluster", xt_cluster_match_info]
-	owner		ebt_entry_match["owner", xt_owner_match_info]
-	u32		ebt_entry_match["u32", xt_u32]
-	cpu		ebt_entry_match["cpu", xt_cpu_info]
-	state		ebt_entry_match["state", xt_state_info]
+	cgroup0		ebt_entry_match_t["cgroup", xt_cgroup_info_v0]
+	helper		ebt_entry_match_t["helper", xt_helper_info]
+	rateest		ebt_entry_match_t["rateest", xt_rateest_match_info]
+	time		ebt_entry_match_t["time", xt_time_info]
+	bpf0		ebt_entry_match_t["bpf", xt_bpf_info]
+	realm		ebt_entry_match_t["realm", xt_realm_info]
+	connbytes	ebt_entry_match_t["connbytes", xt_connbytes_info]
+	quota		ebt_entry_match_t["quota", xt_quota_info]
+	ipvs		ebt_entry_match_t["ipvs", xt_ipvs_mtinfo]
+	nfacct		ebt_entry_match_t["nfacct", xt_nfacct_match_info]
+	mac		ebt_entry_match_t["mac", xt_mac_info]
+	comment		ebt_entry_match_t["comment", xt_comment_info]
+	statistic	ebt_entry_match_t["statistic", xt_statistic_info]
+	physdev		ebt_entry_match_t["physdev", xt_physdev_info]
+	connlabel	ebt_entry_match_t["connlabel", xt_connlabel_mtinfo]
+	devgroup	ebt_entry_match_t["devgroup", xt_devgroup_info]
+	cluster		ebt_entry_match_t["cluster", xt_cluster_match_info]
+	owner		ebt_entry_match_t["owner", xt_owner_match_info]
+	u32		ebt_entry_match_t["u32", xt_u32]
+	cpu		ebt_entry_match_t["cpu", xt_cpu_info]
+	state		ebt_entry_match_t["state", xt_state_info]
 ] [varlen]
 
 ebt_802_3_info {

@@ -1,2 +1,5 @@
 struct sockaddr_pppoe: no corresponding struct in kernel
+struct sockaddr_l2tp_t: no corresponding struct in kernel
+struct pppol2tp_addr_t: no corresponding struct in kernel
+struct pppol2tpin6_addr_t: no corresponding struct in kernel
 struct sockaddr_pptp: no corresponding struct in kernel

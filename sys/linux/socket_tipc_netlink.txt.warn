@@ -1,0 +1,7 @@
+struct tipc_genlmsghdr: bad number of fields: syz=5 kernel=3
+struct tipc_genlmsghdr: bad size: syz=12 kernel=8
+struct tipc_genlmsghdr: bad size: syz=20 kernel=8
+struct tipc_genlmsghdr: bad size: syz=32 kernel=8
+field tipc_genlmsghdr.dest/cmd: bad size: syz=4 kernel=2
+field tipc_genlmsghdr.cmd/reserved: bad offset: syz=8 kernel=6
+struct tipc_tlv_desc: no corresponding struct in kernel

@@ -1,4 +1,5 @@
 struct pipe_9p: no corresponding struct in kernel
+struct p9_msg: no corresponding struct in kernel
 struct p9_qid: bad size: syz=13 kernel=16
 field p9_qid.version: bad offset: syz=1 kernel=4
 field p9_qid.path: bad offset: syz=5 kernel=8
