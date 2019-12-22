@@ -57,7 +57,7 @@ netlink_msg_route_sched [
 
 type tcmsg[FAMILY] {
 	family		const[FAMILY, int8]
-	tcm__pad1	const[0, int16]
+	tcm__pad1	const[0, int8]
 	tcm__pad2	const[0, int16]
 	ifindex		ifindex
 	tcm_handle	tcm_handle
@@ -1259,21 +1259,25 @@ tcf_ematch_tree_hdr {
 }
 
 tca_ematch_tree_list [
-	TCF_EM_CONTAINER	nlattr_t[int32, tcf_ematch_hdr[TCF_EM_CONTAINER, array[int8]]]
-	TCF_EM_CMP		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_CMP, tcf_em_cmp]]
-	TCF_EM_NBYTE		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_NBYTE, tcf_em_nbyte]]
-	TCF_EM_U32		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_U32, tc_u32_key]]
-	TCF_EM_META		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_META, array[tcf_em_meta_policy]]]
-	TCF_EM_CANID		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_CANID, can_filter]]
-	TCF_EM_IPSET		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_IPSET, xt_set_info]]
-	TCF_EM_IPT		nlattr_t[int32, tcf_ematch_hdr[TCF_EM_IPT, array[tcf_em_ipt_policy]]]
+	TCF_EM_CONTAINER	nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_CONTAINER, array[int8]]]
+	TCF_EM_CMP		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_CMP, tcf_em_cmp]]
+	TCF_EM_NBYTE		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_NBYTE, tcf_em_nbyte]]
+	TCF_EM_U32		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_U32, tc_u32_key]]
+	TCF_EM_META		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_META, array[tcf_em_meta_policy]]]
+	TCF_EM_CANID		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_CANID, can_filter]]
+	TCF_EM_IPSET		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_IPSET, xt_set_info]]
+	TCF_EM_IPT		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_IPT, array[tcf_em_ipt_policy]]]
 ] [varlen]
 
-type tcf_ematch_hdr[KIND, PAYLOAD] {
+type tcf_ematch_hdr[KIND] {
 	matchid	int16
 	kind	const[KIND, int16]
 	flags	int16
 	pad	const[0, int16]
+} [align_4]
+
+type tcf_ematch_hdr_t[KIND, PAYLOAD] {
+	header	tcf_ematch_hdr[KIND]
 	payload	PAYLOAD
 } [align_4]
 

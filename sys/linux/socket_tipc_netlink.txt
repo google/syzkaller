@@ -31,14 +31,18 @@ sendmsg$TIPC_CMD_DISABLE_BEARER(fd sock_nl_generic, msg ptr[in, msghdr_nl_tipc[T
 sendmsg$TIPC_CMD_RESET_LINK_STATS(fd sock_nl_generic, msg ptr[in, msghdr_nl_tipc[TIPC_CMD_RESET_LINK_STATS, tipc_tlv_desc[TIPC_TLV_LINK_NAME, string[tipc_links]]]], f flags[send_flags])
 sendmsg$TIPC_CMD_SET_NETID(fd sock_nl_generic, msg ptr[in, msghdr_nl_tipc[TIPC_CMD_SET_NETID, tipc_tlv_desc[TIPC_TLV_UNSIGNED, int32be]]], f flags[send_flags])
 
-type msghdr_nl_tipc[CMD, DATA] msghdr_netlink[netlink_msg_t[genl_tipc_family_id, tipc_genlmsghdr[CMD, DATA], void]]
+type msghdr_nl_tipc[CMD, DATA] msghdr_netlink[netlink_msg_t[genl_tipc_family_id, tipc_genlmsghdr_t[CMD, DATA], void]]
 
-type tipc_genlmsghdr[CMD, DATA] {
-	hdr		genlmsghdr_t[TIPC_GENL_CMD]
+type tipc_genlmsghdr[CMD] {
 	dest		const[0, int32]
 	cmd		const[CMD, int16]
 	reserved	const[0, int16]
-	data		DATA
+} [packed]
+
+type tipc_genlmsghdr_t[CMD, DATA] {
+	hdr	genlmsghdr_t[TIPC_GENL_CMD]
+	tipc	tipc_genlmsghdr[CMD]
+	data	DATA
 } [packed]
 
 type tipc_tlv_desc[TYP, DATA] {
