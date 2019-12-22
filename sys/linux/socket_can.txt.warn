@@ -1,9 +1,10 @@
-struct sockaddr_can: bad number of fields: syz=4 kernel=3
-struct sockaddr_can: bad size: syz=16 kernel=24
-field sockaddr_can.rx_id/can_addr: bad size: syz=4 kernel=16
-struct sockaddr_can_j1939: no corresponding struct in kernel
-struct can_j1939_pgn: no corresponding struct in kernel
-struct msghdr_can: no corresponding struct in kernel
-struct msghdr_can_j1939: no corresponding struct in kernel
-struct can_frame_t: no corresponding struct in kernel
-struct canid_t: no corresponding struct in kernel
+bad-struct-size: sockaddr_can: syz=16 kernel=24
+bad-field-number: sockaddr_can: syz=4 kernel=3
+bad-field-size: sockaddr_can.rx_id/can_addr: syz=4 kernel=16
+no-such-struct: sockaddr_can_j1939
+no-such-struct: can_j1939_pgn
+no-such-struct: msghdr_can
+no-such-struct: msghdr_can_j1939
+no-such-struct: can_frame_t
+no-such-struct: canid_t
+bad-struct-size: j1939_filter: syz=32 kernel=28 [386]

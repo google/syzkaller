@@ -1,5 +1,5 @@
-struct sockaddr_rxrpc: bad number of fields: syz=2 kernel=5
-field sockaddr_rxrpc.in4/srx_family: bad size: syz=24 kernel=2
-field sockaddr_rxrpc.in6/srx_service: bad offset: syz=24 kernel=2
-field sockaddr_rxrpc.in6/srx_service: bad size: syz=36 kernel=2
-struct sockaddr_rxrpc_t: no corresponding struct in kernel
+bad-field-number: sockaddr_rxrpc: syz=2 kernel=5
+bad-field-size: sockaddr_rxrpc.in4/srx_family: syz=24 kernel=2
+bad-field-offset: sockaddr_rxrpc.in6/srx_service: syz=24 kernel=2
+bad-field-size: sockaddr_rxrpc.in6/srx_service: syz=36 kernel=2
+no-such-struct: sockaddr_rxrpc_t

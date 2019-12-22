@@ -1,7 +1,7 @@
-struct arpt_entry_matches: no corresponding struct in kernel
-struct arpt_entry_underflow: no corresponding struct in kernel
-struct arpt_entry_underflow_matches: no corresponding struct in kernel
-struct arpt_arp_or_uncond: no corresponding struct in kernel
-struct arpt_devaddr: no corresponding struct in kernel
-struct arpt_devmask: no corresponding struct in kernel
-struct arpt_counters_info: no corresponding struct in kernel
+no-such-struct: arpt_entry_matches
+no-such-struct: arpt_entry_underflow
+no-such-struct: arpt_entry_underflow_matches
+no-such-struct: arpt_arp_or_uncond
+no-such-struct: arpt_devaddr
+no-such-struct: arpt_devmask
+no-such-struct: arpt_counters_info

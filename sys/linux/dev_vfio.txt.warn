@@ -1,0 +1,1 @@
+bad-struct-size: vfio_iommu_type1_info: syz=24 kernel=20 [386]

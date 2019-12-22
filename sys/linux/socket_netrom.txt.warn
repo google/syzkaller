@@ -1,1 +1,1 @@
-struct address_netrom_dev: no corresponding struct in kernel
+no-such-struct: address_netrom_dev

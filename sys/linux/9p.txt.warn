@@ -1,8 +1,8 @@
-struct pipe_9p: no corresponding struct in kernel
-struct p9_msg: no corresponding struct in kernel
-struct p9_qid: bad size: syz=13 kernel=16
-field p9_qid.version: bad offset: syz=1 kernel=4
-field p9_qid.path: bad offset: syz=5 kernel=8
-struct p9_ropen: no corresponding struct in kernel
-struct p9_rstatfs: bad size: syz=60 kernel=64
-struct p9_rgetattr: no corresponding struct in kernel
+no-such-struct: pipe_9p
+no-such-struct: p9_msg
+bad-struct-size: p9_qid: syz=13 kernel=16
+bad-field-offset: p9_qid.version: syz=1 kernel=4
+bad-field-offset: p9_qid.path: syz=5 kernel=8
+no-such-struct: p9_ropen
+bad-struct-size: p9_rstatfs: syz=60 kernel=64 [amd64]
+no-such-struct: p9_rgetattr

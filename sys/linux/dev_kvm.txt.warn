@@ -1,56 +1,66 @@
-unsupported syscall: ioctl$KVM_ARM_VCPU_INIT due to missing const KVM_ARM_VCPU_INIT
-struct kvm_text_x86: no corresponding struct in kernel
-struct kvm_text_x86_real: no corresponding struct in kernel
-struct kvm_text_x86_16: no corresponding struct in kernel
-struct kvm_text_x86_32: no corresponding struct in kernel
-struct kvm_text_x86_64: no corresponding struct in kernel
-struct kvm_text_arm64: no corresponding struct in kernel
-struct kvm_setup_opt_x86: no corresponding struct in kernel
-struct kvm_setup_opt_cr0: no corresponding struct in kernel
-struct kvm_setup_opt_cr4: no corresponding struct in kernel
-struct kvm_setup_opt_efer: no corresponding struct in kernel
-struct kvm_setup_opt_flags: no corresponding struct in kernel
-struct kvm_setup_opt_cstype0: no corresponding struct in kernel
-struct kvm_setup_opt_cstype3: no corresponding struct in kernel
-struct kvm_setup_opt_dstype0: no corresponding struct in kernel
-struct kvm_setup_opt_dstype3: no corresponding struct in kernel
-struct kvm_setup_opt_vmwrite: no corresponding struct in kernel
-struct kvm_setup_opt_arm64: no corresponding struct in kernel
-struct kvm_setup_opt_feature: no corresponding struct in kernel
-struct kvm_arm_device_addr: no corresponding struct in kernel
-struct kvm_s390_interrupt: no corresponding struct in kernel
-struct kvm_one_reg: no corresponding struct in kernel
-struct kvm_s390_ucas_mapping: no corresponding struct in kernel
-struct kvm_dirty_tlb: no corresponding struct in kernel
-struct kvm_assigned_msix_entry: no corresponding struct in kernel
-struct kvm_assigned_msix_nr: no corresponding struct in kernel
-struct kvm_irq_routing_entry_u: no corresponding struct in kernel
-struct kvm_assigned_irq: no corresponding struct in kernel
-struct kvm_assigned_pci_dev: no corresponding struct in kernel
-struct kvm_enable_cap_cpu: no corresponding struct in kernel
-struct kvm_enable_cap_vm: no corresponding struct in kernel
-struct kvm_vcpu_events: bad number of fields: syz=22 kernel=9
-field kvm_vcpu_events.exinjec/exception: bad size: syz=1 kernel=8
-field kvm_vcpu_events.exnr/interrupt: bad offset: syz=1 kernel=8
-field kvm_vcpu_events.exnr/interrupt: bad size: syz=1 kernel=4
-field kvm_vcpu_events.exhec/nmi: bad offset: syz=2 kernel=12
-field kvm_vcpu_events.exhec/nmi: bad size: syz=1 kernel=4
-field kvm_vcpu_events.pad1/sipi_vector: bad offset: syz=3 kernel=16
-field kvm_vcpu_events.pad1/sipi_vector: bad size: syz=1 kernel=4
-field kvm_vcpu_events.exec/flags: bad offset: syz=4 kernel=20
-field kvm_vcpu_events.ininjec/smi: bad offset: syz=8 kernel=24
-field kvm_vcpu_events.ininjec/smi: bad size: syz=1 kernel=4
-field kvm_vcpu_events.innr/reserved: bad offset: syz=9 kernel=28
-field kvm_vcpu_events.innr/reserved: bad size: syz=1 kernel=27
-field kvm_vcpu_events.insoft/exception_has_payload: bad offset: syz=10 kernel=55
-field kvm_vcpu_events.inshad/exception_payload: bad offset: syz=11 kernel=56
-field kvm_vcpu_events.inshad/exception_payload: bad size: syz=1 kernel=8
-struct kvm_regs: bad number of fields: syz=3 kernel=18
-field kvm_regs.gp/rax: bad size: syz=128 kernel=8
-field kvm_regs.rip/rbx: bad offset: syz=128 kernel=8
-field kvm_regs.rflags/rcx: bad offset: syz=136 kernel=16
-struct kvm_irq_chip: no corresponding struct in kernel
-struct kvm_ioapic_redir: no corresponding struct in kernel
-struct kvm_mce_cap: no corresponding struct in kernel
-struct kvm_nested_state_arg: no corresponding struct in kernel
-struct kvm_vmx_nested_state: no corresponding struct in kernel
+compiler: unsupported syscall: ioctl$KVM_ARM_VCPU_INIT due to missing const KVM_ARM_VCPU_INIT
+no-such-struct: kvm_text_x86
+no-such-struct: kvm_text_x86_real
+no-such-struct: kvm_text_x86_16
+no-such-struct: kvm_text_x86_32
+no-such-struct: kvm_text_x86_64
+no-such-struct: kvm_text_arm64
+no-such-struct: kvm_setup_opt_x86
+no-such-struct: kvm_setup_opt_cr0
+no-such-struct: kvm_setup_opt_cr4
+no-such-struct: kvm_setup_opt_efer
+no-such-struct: kvm_setup_opt_flags
+no-such-struct: kvm_setup_opt_cstype0
+no-such-struct: kvm_setup_opt_cstype3
+no-such-struct: kvm_setup_opt_dstype0
+no-such-struct: kvm_setup_opt_dstype3
+no-such-struct: kvm_setup_opt_vmwrite
+no-such-struct: kvm_setup_opt_arm64
+no-such-struct: kvm_setup_opt_feature
+no-such-struct: kvm_arm_device_addr
+no-such-struct: kvm_s390_interrupt
+no-such-struct: kvm_one_reg
+no-such-struct: kvm_s390_ucas_mapping
+no-such-struct: kvm_dirty_tlb
+no-such-struct: kvm_assigned_msix_entry
+no-such-struct: kvm_assigned_msix_nr
+no-such-struct: kvm_irq_routing_entry_u
+no-such-struct: kvm_assigned_irq
+no-such-struct: kvm_assigned_pci_dev
+no-such-struct: kvm_enable_cap_cpu
+no-such-struct: kvm_enable_cap_vm
+bad-field-size: kvm_userspace_memory_region.addr/userspace_addr: syz=4 kernel=8 [386]
+bad-field-number: kvm_vcpu_events: syz=22 kernel=9
+bad-field-size: kvm_vcpu_events.exinjec/exception: syz=1 kernel=8
+bad-field-size: kvm_vcpu_events.exnr/interrupt: syz=1 kernel=4
+bad-field-offset: kvm_vcpu_events.exnr/interrupt: syz=1 kernel=8
+bad-field-size: kvm_vcpu_events.exhec/nmi: syz=1 kernel=4
+bad-field-offset: kvm_vcpu_events.exhec/nmi: syz=2 kernel=12
+bad-field-size: kvm_vcpu_events.pad1/sipi_vector: syz=1 kernel=4
+bad-field-offset: kvm_vcpu_events.pad1/sipi_vector: syz=3 kernel=16
+bad-field-offset: kvm_vcpu_events.exec/flags: syz=4 kernel=20
+bad-field-size: kvm_vcpu_events.ininjec/smi: syz=1 kernel=4
+bad-field-offset: kvm_vcpu_events.ininjec/smi: syz=8 kernel=24
+bad-field-size: kvm_vcpu_events.innr/reserved: syz=1 kernel=27
+bad-field-offset: kvm_vcpu_events.innr/reserved: syz=9 kernel=28
+bad-field-offset: kvm_vcpu_events.insoft/exception_has_payload: syz=10 kernel=55
+bad-field-size: kvm_vcpu_events.inshad/exception_payload: syz=1 kernel=8
+bad-field-offset: kvm_vcpu_events.inshad/exception_payload: syz=11 kernel=56
+bad-struct-size: kvm_xen_hvm_config: syz=48 kernel=56 [386]
+bad-field-size: kvm_xen_hvm_config.addr32/blob_addr_32: syz=4 kernel=8 [386]
+bad-field-offset: kvm_xen_hvm_config.addr64/blob_addr_64: syz=12 kernel=16 [386]
+bad-field-size: kvm_xen_hvm_config.addr64/blob_addr_64: syz=4 kernel=8 [386]
+bad-field-offset: kvm_xen_hvm_config.size32/blob_size_32: syz=16 kernel=24 [386]
+bad-field-offset: kvm_xen_hvm_config.size64/blob_size_64: syz=17 kernel=25 [386]
+bad-field-offset: kvm_xen_hvm_config.pad/pad2: syz=18 kernel=26 [386]
+bad-struct-size: kvm_dirty_log: syz=12 kernel=16 [386]
+bad-field-size: kvm_dirty_log.bitmap/: syz=4 kernel=8 [386]
+bad-field-number: kvm_regs: syz=3 kernel=18
+bad-field-size: kvm_regs.gp/rax: syz=128 kernel=8
+bad-field-offset: kvm_regs.rip/rbx: syz=128 kernel=8
+bad-field-offset: kvm_regs.rflags/rcx: syz=136 kernel=16
+no-such-struct: kvm_irq_chip
+no-such-struct: kvm_ioapic_redir
+no-such-struct: kvm_mce_cap
+no-such-struct: kvm_nested_state_arg
+no-such-struct: kvm_vmx_nested_state

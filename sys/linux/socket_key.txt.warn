@@ -1,8 +1,8 @@
-struct send_msghdr_key: no corresponding struct in kernel
-struct iovec_sadb_msg: no corresponding struct in kernel
-struct sadb_ident: no corresponding struct in kernel
-struct sadb_x_policy: bad number of fields: syz=8 kernel=7
-struct sadb_x_policy: bad size: syz=64 kernel=16
-struct sadb_x_ipsecrequest: bad number of fields: syz=9 kernel=7
-struct sadb_x_ipsecrequest: bad size: syz=48 kernel=16
-struct sadb_filter_addr: no corresponding struct in kernel
+no-such-struct: send_msghdr_key
+no-such-struct: iovec_sadb_msg
+no-such-struct: sadb_ident
+bad-struct-size: sadb_x_policy: syz=64 kernel=16
+bad-field-number: sadb_x_policy: syz=8 kernel=7
+bad-struct-size: sadb_x_ipsecrequest: syz=48 kernel=16
+bad-field-number: sadb_x_ipsecrequest: syz=9 kernel=7
+no-such-struct: sadb_filter_addr

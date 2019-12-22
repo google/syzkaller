@@ -1,2 +1,3 @@
-struct exec: no corresponding struct in kernel
-struct elf_hdr: no corresponding struct in kernel
+no-such-struct: exec
+no-such-struct: elf_hdr
+no-such-struct: elf64_phdr [386]

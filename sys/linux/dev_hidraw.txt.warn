@@ -1,1 +1,1 @@
-struct hidraw_get_report_arg: no corresponding struct in kernel
+no-such-struct: hidraw_get_report_arg

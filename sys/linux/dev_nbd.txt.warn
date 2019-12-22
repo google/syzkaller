@@ -1,1 +1,1 @@
-struct nbd_sock_pair: no corresponding struct in kernel
+no-such-struct: nbd_sock_pair
