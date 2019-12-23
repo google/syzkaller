@@ -13,22 +13,4 @@ no-such-struct: drm_dma
 no-such-struct: drm_control
 no-such-struct: drm_scatter_gather
 no-such-struct: drm_wait_vblank
-bad-struct-size: drm_mode_card_res: syz=48 kernel=64 [386]
-bad-field-size: drm_mode_card_res.fbid/fb_id_ptr: syz=4 kernel=8 [386]
-bad-field-size: drm_mode_card_res.crtcid/crtc_id_ptr: syz=4 kernel=8 [386]
-bad-field-size: drm_mode_card_res.connid/connector_id_ptr: syz=4 kernel=8 [386]
-bad-field-offset: drm_mode_card_res.connid/connector_id_ptr: syz=8 kernel=16 [386]
-bad-field-offset: drm_mode_card_res.encid/encoder_id_ptr: syz=12 kernel=24 [386]
-bad-field-size: drm_mode_card_res.encid/encoder_id_ptr: syz=4 kernel=8 [386]
-bad-field-offset: drm_mode_card_res.nfbid/count_fbs: syz=16 kernel=32 [386]
-bad-field-offset: drm_mode_card_res.ncrtcid/count_crtcs: syz=20 kernel=36 [386]
-bad-field-offset: drm_mode_card_res.nconnid/count_connectors: syz=24 kernel=40 [386]
-bad-field-offset: drm_mode_card_res.nencid/count_encoders: syz=28 kernel=44 [386]
-bad-field-offset: drm_mode_card_res.maxw/min_width: syz=32 kernel=48 [386]
-bad-field-offset: drm_mode_card_res.maxh/max_width: syz=36 kernel=52 [386]
-bad-field-offset: drm_mode_card_res.minw/min_height: syz=40 kernel=56 [386]
-bad-field-offset: drm_mode_card_res.minh/max_height: syz=44 kernel=60 [386]
-bad-struct-size: drm_mode_get_plane_res: syz=8 kernel=12 [386]
-bad-field-size: drm_mode_get_plane_res.ids/plane_id_ptr: syz=4 kernel=8 [386]
-bad-field-offset: drm_mode_get_plane_res.cnt/count_planes: syz=4 kernel=8 [386]
 bad-field-size: drm_mode_modeinfo.vrefr/vrefresh: syz=2 kernel=4

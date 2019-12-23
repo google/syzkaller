@@ -11,5 +11,3 @@ bad-field-offset: input_event.val/code: syz=12 kernel=10 [386]
 bad-field-offset: input_event.val/code: syz=20 kernel=18 [amd64]
 bad-field-size: input_event.val/code: syz=4 kernel=2
 no-such-struct: ff_effect_u
-bad-struct-size: input_mask: syz=12 kernel=16 [386]
-bad-field-size: input_mask.ptr/codes_ptr: syz=4 kernel=8 [386]

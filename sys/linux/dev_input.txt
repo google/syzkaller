@@ -143,7 +143,7 @@ ff_envelope {
 input_mask {
 	type	flags[input_codes, int32]
 	size	bytesize[ptr, int32]
-	ptr	buffer[in]
+	ptr	ptr64[in, array[int8]]
 }
 
 input_absinfo {

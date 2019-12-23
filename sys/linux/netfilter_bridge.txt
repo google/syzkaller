@@ -136,10 +136,10 @@ ebt_get_entries {
 # MATCHES:
 
 type ebt_entry_match[NAME] {
-	name		string[NAME, EBT_FUNCTION_MAXNAMELEN]
+	name		string[NAME, EBT_EXTENSION_MAXNAMELEN]
 	revision	const[0, int8]
 	match_size	bytesize[ebt_entry_match_t:data, int32]
-}
+} [align_ptr]
 
 type ebt_entry_match_t[NAME, DATA] {
 	header	ebt_entry_match[NAME]

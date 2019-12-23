@@ -271,10 +271,10 @@ drm_gem_flink {
 }
 
 drm_mode_card_res {
-	fbid	ptr[out, array[int32]]
-	crtcid	ptr[out, array[int32]]
-	connid	ptr[out, array[int32]]
-	encid	ptr[out, array[int32]]
+	fbid	ptr64[out, array[int32]]
+	crtcid	ptr64[out, array[int32]]
+	connid	ptr64[out, array[int32]]
+	encid	ptr64[out, array[int32]]
 	nfbid	len[fbid, int32]
 	ncrtcid	len[crtcid, int32]
 	nconnid	len[connid, int32]
@@ -292,7 +292,7 @@ drm_prime_handle {
 }
 
 drm_mode_get_plane_res {
-	ids	ptr[out, array[int32]]
+	ids	ptr64[out, array[int32]]
 	cnt	len[ids, int32]
 }
 

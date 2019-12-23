@@ -1,4 +1,2 @@
 bad-field-size: loop_info.lo_device: syz=4 kernel=2 [386]
 bad-field-size: loop_info.lo_rdevice: syz=4 kernel=2 [386]
-bad-struct-size: loop_info64: syz=224 kernel=232 [386]
-bad-field-size: loop_info64.lo_init: syz=8 kernel=16 [386]

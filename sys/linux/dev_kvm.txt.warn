@@ -29,8 +29,6 @@ no-such-struct: kvm_assigned_irq
 no-such-struct: kvm_assigned_pci_dev
 no-such-struct: kvm_enable_cap_cpu
 no-such-struct: kvm_enable_cap_vm
-bad-struct-size: kvm_userspace_memory_region: syz=28 kernel=32 [386]
-bad-field-size: kvm_userspace_memory_region.addr/userspace_addr: syz=4 kernel=8 [386]
 bad-field-number: kvm_vcpu_events: syz=22 kernel=9
 bad-field-size: kvm_vcpu_events.exinjec/exception: syz=1 kernel=8
 bad-field-size: kvm_vcpu_events.exnr/interrupt: syz=1 kernel=4
@@ -47,15 +45,6 @@ bad-field-offset: kvm_vcpu_events.innr/reserved: syz=9 kernel=28
 bad-field-offset: kvm_vcpu_events.insoft/exception_has_payload: syz=10 kernel=55
 bad-field-size: kvm_vcpu_events.inshad/exception_payload: syz=1 kernel=8
 bad-field-offset: kvm_vcpu_events.inshad/exception_payload: syz=11 kernel=56
-bad-struct-size: kvm_xen_hvm_config: syz=48 kernel=56 [386]
-bad-field-size: kvm_xen_hvm_config.addr32/blob_addr_32: syz=4 kernel=8 [386]
-bad-field-offset: kvm_xen_hvm_config.addr64/blob_addr_64: syz=12 kernel=16 [386]
-bad-field-size: kvm_xen_hvm_config.addr64/blob_addr_64: syz=4 kernel=8 [386]
-bad-field-offset: kvm_xen_hvm_config.size32/blob_size_32: syz=16 kernel=24 [386]
-bad-field-offset: kvm_xen_hvm_config.size64/blob_size_64: syz=17 kernel=25 [386]
-bad-field-offset: kvm_xen_hvm_config.pad/pad2: syz=18 kernel=26 [386]
-bad-struct-size: kvm_dirty_log: syz=12 kernel=16 [386]
-bad-field-size: kvm_dirty_log.bitmap/: syz=4 kernel=8 [386]
 bad-field-number: kvm_regs: syz=3 kernel=18
 bad-field-size: kvm_regs.gp/rax: syz=128 kernel=8
 bad-field-offset: kvm_regs.rip/rbx: syz=128 kernel=8

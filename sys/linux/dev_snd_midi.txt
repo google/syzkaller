@@ -60,8 +60,8 @@ snd_rawmidi_status64 {
 	rsvd		array[const[0, int8], 4]
 	tstamp_sec	const[0, int64]
 	tstamp_nsec	const[0, int64]
-	avail		const[0, int64]
-	xruns		const[0, int64]
+	avail		const[0, intptr]
+	xruns		const[0, intptr]
 	reserved	array[const[0, int8], 16]
 }
 
