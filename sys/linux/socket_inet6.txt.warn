@@ -1,9 +1,5 @@
 no-such-struct: sockaddr_storage_in6
 no-such-struct: group_req_in6
 no-such-struct: group_source_req_in6
-bad-struct-size: in6_rtmsg: syz=76 kernel=72 [386]
-bad-field-size: in6_rtmsg.rtmsg_info: syz=8 kernel=4 [386]
-bad-field-offset: in6_rtmsg.rtmsg_flags: syz=68 kernel=64 [386]
-bad-field-offset: in6_rtmsg.rtmsg_ifindex: syz=72 kernel=68 [386]
 no-such-struct: msghdr_inet6
 no-such-struct: mmsghdr_inet6

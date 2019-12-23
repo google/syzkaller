@@ -497,7 +497,7 @@ kvm_userspace_memory_region {
 	flags	flags[kvm_mem_region_flags, int32]
 	paddr	flags[kvm_guest_addrs, int64]
 	size	len[addr, int64]
-	addr	vma[1:2]
+	addr	vma64[1:2]
 }
 
 kvm_vcpu_events {
@@ -539,8 +539,8 @@ kvm_clock_data {
 kvm_xen_hvm_config {
 	flags	int32
 	msr	flags[msr_index, int32]
-	addr32	buffer[in]
-	addr64	buffer[in]
+	addr32	ptr64[in, array[int8]]
+	addr64	ptr64[in, array[int8]]
 	size32	len[addr32, int8]
 	size64	len[addr64, int8]
 	pad	array[const[0, int8], 30]
@@ -600,7 +600,7 @@ kvm_translation {
 kvm_dirty_log {
 	slot	flags[kvm_mem_slots, int32]
 	pad	const[0, int32]
-	bitmap	vma
+	bitmap	vma64
 }
 
 kvm_msr_list {

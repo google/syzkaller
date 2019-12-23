@@ -29,7 +29,7 @@ uffdio_api {
 }
 
 uffdio_range {
-	start	vma
+	start	vma64
 	len	len[start, int64]
 }
 
@@ -40,8 +40,8 @@ uffdio_register {
 }
 
 uffdio_copy {
-	dst	vma
-	src	vma
+	dst	vma64
+	src	vma64
 	len	len[dst, int64]
 	mode	flags[uffdio_copy_mode, int64]
 	copy	const[0, int64]

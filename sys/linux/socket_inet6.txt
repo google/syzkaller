@@ -179,7 +179,7 @@ in6_rtmsg {
 	rtmsg_dst_len	int16
 	rtmsg_src_len	int16
 	rtmsg_metric	flags[rtmsg_metrics, int32]
-	rtmsg_info	int64
+	rtmsg_info	intptr
 	rtmsg_flags	flags[rtmsg_flags, int32]
 	rtmsg_ifindex	ifindex
 }

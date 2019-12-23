@@ -102,14 +102,14 @@ xt_inet_mangle_targets [
 xt_tee_tginfo {
 	gw	nf_inet_addr
 	oif	devname
-	priv	intptr
+	priv	align64[intptr]
 }
 
 xt_led_info {
 	id		string[xt_led_names, 27]
 	always_blink	bool8
 	delay		int32
-	internal_data	intptr
+	internal_data	align64[intptr]
 }
 
 xt_led_names = "syz0", "syz1"
@@ -122,7 +122,7 @@ xt_rateest_target_info {
 	name		string[xt_rateest_names, IFNAMSIZ]
 	interval	int8
 	ewma_log	int8
-	est		intptr
+	est		align64[intptr]
 }
 
 xt_rateest_names = "syz0", "syz1"
@@ -183,7 +183,7 @@ xt_classify_target_info {
 idletimer_tg_info {
 	timeout	int32
 	label	string[idletimer_tg_names, MAX_IDLETIMER_LABEL_SIZE]
-	timer	intptr
+	timer	align64[intptr]
 }
 
 idletimer_tg_names = "syz0", "syz1"
@@ -198,7 +198,7 @@ xt_ct_target_info {
 	ct_events	int32
 	exp_events	int32
 	helper		string[xt_ct_helpers, 16]
-	ct		intptr
+	ct		align64[intptr]
 }
 
 xt_ct_target_info_v1 {
@@ -209,7 +209,7 @@ xt_ct_target_info_v1 {
 	helper		string[xt_ct_helpers, 16]
 # TODO: these names must be registered somewhere from netlink.
 	timeout		string[xt_ct_timeouts, 32]
-	ct		intptr
+	ct		align64[intptr]
 }
 
 xt_ct_flags = XT_CT_NOTRACK, XT_CT_NOTRACK_ALIAS, XT_CT_ZONE_DIR_ORIG, XT_CT_ZONE_DIR_REPL, XT_CT_ZONE_MARK
@@ -297,7 +297,7 @@ ip_set_counter_match0 {
 }
 
 ip_set_counter_match {
-	value	int64
+	value	align64[int64]
 	op	int8
 }
 
