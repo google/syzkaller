@@ -1,6 +1,3 @@
 no-such-struct: ifla_info_policy_t
 bad-field-number: ifla_vf_mac: syz=3 kernel=2
 bad-field-size: ifla_vf_mac.mac: syz=6 kernel=32
-bad-struct-size: ifla_vf_guid: syz=16 kernel=12 [386]
-bad-field-offset: ifla_vf_guid.guid: syz=8 kernel=4 [386]
-bad-struct-size: rtnl_link_ifmap: syz=32 kernel=28 [386]

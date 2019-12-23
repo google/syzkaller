@@ -7,4 +7,3 @@ no-such-struct: msghdr_can
 no-such-struct: msghdr_can_j1939
 no-such-struct: can_frame_t
 no-such-struct: canid_t
-bad-struct-size: j1939_filter: syz=32 kernel=28 [386]

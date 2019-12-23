@@ -15,8 +15,8 @@ bad-field-number: xt_bpf_info_v1: syz=3 kernel=5
 bad-struct-size: xt_bpf_info_v1: syz=524 kernel=528 [386]
 bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=524 kernel=2 [386]
 bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=528 kernel=2 [amd64]
-bad-field-size: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=524 kernel=2 [386]
-bad-field-size: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=528 kernel=2 [amd64]
+bad-field-offset: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=524 kernel=2 [386]
+bad-field-offset: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=528 kernel=2 [amd64]
 bad-field-offset: xt_bpf_info_v1.fd: syz=1048 kernel=4 [386]
 bad-field-offset: xt_bpf_info_v1.fd: syz=1056 kernel=4 [amd64]
 bad-field-size: xt_bpf_info_v1.fd: syz=8 kernel=4
@@ -51,15 +51,18 @@ bad-field-offset: xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: syz=158 k
 bad-field-size: xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: syz=2 kernel=16
 bad-field-offset: xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: syz=160 kernel=96
 bad-field-size: xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: syz=2 kernel=16
-bad-struct-size: xt_set_info_match_v3: syz=48 kernel=32 [386]
-bad-field-size: xt_set_info_match_v3.packets: syz=16 kernel=12 [386]
-bad-field-offset: xt_set_info_match_v3.packets: syz=8 kernel=4 [386]
-bad-field-size: xt_set_info_match_v3.bytes: syz=16 kernel=12 [386]
-bad-field-offset: xt_set_info_match_v3.bytes: syz=24 kernel=16 [386]
-bad-field-offset: xt_set_info_match_v3.flags: syz=40 kernel=28 [386]
+bad-struct-size: xt_set_info_match_v4: syz=32 kernel=48 [386]
+bad-field-size: xt_set_info_match_v4.packets: syz=12 kernel=16 [386]
+bad-field-offset: xt_set_info_match_v4.packets: syz=4 kernel=8 [386]
+bad-field-size: xt_set_info_match_v4.bytes: syz=12 kernel=16 [386]
+bad-field-offset: xt_set_info_match_v4.bytes: syz=16 kernel=24 [386]
+bad-field-offset: xt_set_info_match_v4.flags: syz=28 kernel=40 [386]
+bad-struct-size: xt_connbytes_info: syz=20 kernel=24 [386]
+bad-struct-size: xt_quota_info: syz=20 kernel=24 [386]
 bad-struct-size: xt_hashlimit_mtinfo1: syz=52 kernel=56 [386]
-bad-field-size: xt_hashlimit_mtinfo3.cfg: syz=48 kernel=44 [386]
-bad-struct-size: hashlimit_cfg3: syz=48 kernel=44 [386]
+bad-struct-size: xt_hashlimit_mtinfo2: syz=300 kernel=304 [386]
+bad-struct-size: xt_hashlimit_mtinfo3: syz=304 kernel=312 [386]
+bad-field-offset: xt_hashlimit_mtinfo3.hinfo: syz=300 kernel=304 [386]
 no-such-struct: xt_comment_info
 bad-struct-size: xt_statistic_info: syz=20 kernel=24 [386]
 bad-field-number: xt_statistic_info: syz=6 kernel=4

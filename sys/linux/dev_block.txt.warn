@@ -1,4 +1,0 @@
-bad-struct-size: blk_user_trace_setup: syz=72 kernel=64 [386]
-bad-field-offset: blk_user_trace_setup.start_lba: syz=48 kernel=44 [386]
-bad-field-offset: blk_user_trace_setup.end_lba: syz=56 kernel=52 [386]
-bad-field-offset: blk_user_trace_setup.pid: syz=64 kernel=60 [386]

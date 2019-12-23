@@ -21,6 +21,5 @@ bad-field-offset: xt_hmark_info.proto_mask/hmodulus: syz=44 kernel=52
 bad-field-offset: xt_hmark_info.hashrnd/hoffset: syz=48 kernel=56
 bad-field-number: xt_set_info_v0: syz=5 kernel=2
 bad-field-size: xt_set_info_v0.flags/u: syz=24 kernel=28
-bad-struct-size: ip_set_counter_match0: syz=16 kernel=12 [386]
-bad-field-offset: ip_set_counter_match0.value: syz=8 kernel=4 [386]
+bad-struct-size: ip_set_counter_match: syz=12 kernel=16 [386]
 no-such-struct: xt_synproxy_info
