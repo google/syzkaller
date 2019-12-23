@@ -7,13 +7,6 @@ compiler: unsupported syscall: stat64 due to missing const __NR_stat64 [amd64]
 compiler: unsupported syscall: lstat64 due to missing const __NR_lstat64 [amd64]
 compiler: unsupported syscall: fstat64 due to missing const __NR_fstat64 [amd64]
 compiler: unsupported syscall: fstatat64 due to missing const __NR_fstatat64 [amd64]
-bad-field-size: rseq.rseq_cs: syz=4 kernel=8 [386]
-bad-field-offset: rseq.flags: syz=12 kernel=16 [386]
-bad-field-size: rseq_cs.start_ip: syz=4 kernel=8 [386]
-bad-field-offset: rseq_cs.post_commit_offset: syz=12 kernel=16 [386]
-bad-field-size: rseq_cs.post_commit_offset: syz=4 kernel=8 [386]
-bad-field-offset: rseq_cs.abort_ip: syz=16 kernel=24 [386]
-bad-field-size: rseq_cs.abort_ip: syz=4 kernel=8 [386]
 no-such-struct: pipefd
 bad-struct-size: stat: syz=128 kernel=144 [amd64]
 bad-field-number: stat: syz=20 kernel=18

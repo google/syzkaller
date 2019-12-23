@@ -126,7 +126,7 @@ vhost_msg_v2 {
 	type		const[VHOST_IOTLB_MSG_V2, int32]
 	reserved	const[0, int32]
 	iotlb		vhost_iotlb_msg
-} [size[VHOST_MSG_SIZE]]
+} [size[VHOST_MSG_V2_SIZE]]
 
 define VHOST_MSG_V2_SIZE	sizeof(struct vhost_msg_v2)
 

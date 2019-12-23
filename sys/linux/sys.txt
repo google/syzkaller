@@ -447,16 +447,16 @@ rseq(rseq ptr[in, rseq], rseq_len bytesize[rseq], flags boolptr, sig const[0])
 rseq {
 	cpu_id_start	const[0, int32]
 	cpu_id		const[0, int32]
-	rseq_cs		ptr[in, rseq_cs, opt]
+	rseq_cs		ptr64[in, rseq_cs, opt]
 	flags		flags[rseq_cs_flags, int32]
 } [align_32]
 
 rseq_cs {
 	version			const[0, int32]
 	flags			flags[rseq_cs_flags, int32]
-	start_ip		intptr
-	post_commit_offset	intptr
-	abort_ip		intptr
+	start_ip		int64
+	post_commit_offset	int64
+	abort_ip		int64
 } [align_32]
 
 rseq_cs_flags = RSEQ_CS_FLAG_NO_RESTART_ON_PREEMPT, RSEQ_CS_FLAG_NO_RESTART_ON_SIGNAL, RSEQ_CS_FLAG_NO_RESTART_ON_MIGRATE

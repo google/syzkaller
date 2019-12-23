@@ -73,6 +73,7 @@ shmget_flags = IPC_CREAT, IPC_EXCL, SHM_HUGETLB, SHM_HUGE_2MB, SHM_HUGE_1GB, SHM
 shmat_flags = SHM_RND, SHM_RDONLY, SHM_REMAP
 
 ipc_perm {
+# NEED: all these uid, gid, pid, mode seem to be 2 bytes on 386 (what about arm?)
 	key	ipc_key_t
 	uid	uid
 	gid	gid

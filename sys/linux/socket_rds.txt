@@ -75,14 +75,14 @@ rds_atomic_args {
 
 rds_get_mr_args {
 	vec		rds_iovec
-	cookie_addr	ptr[out, int8]
+	cookie_addr	ptr64[out, int8]
 	flags		flags[rds_rdma_flags, int64]
 }
 
 rds_get_mr_for_dest_args {
 	dest_addr	sockaddr_storage
 	vec		rds_iovec
-	cookie_addr	ptr[out, int8]
+	cookie_addr	ptr64[out, int8]
 	flags		flags[rds_rdma_flags, int64]
 } [packed]
 

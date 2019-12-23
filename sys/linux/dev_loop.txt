@@ -30,9 +30,10 @@ lo_flags = LO_FLAGS_READ_ONLY, LO_FLAGS_AUTOCLEAR, LO_FLAGS_PARTSCAN, LO_FLAGS_D
 
 loop_info {
 	lo_number	const[0, int32]
-	lo_device	const[0, intptr]
+# NEED: on amd64 lo_device/lo_rdevice (__kernel_old_dev_t) is long, on 386 it's short...
+	lo_device	alignptr[const[0, int16]]
 	lo_inode	const[0, intptr]
-	lo_rdevice	const[0, intptr]
+	lo_rdevice	alignptr[const[0, int16]]
 	lo_offset	int32
 	lo_enc_type	flags[lo_encrypt_type, int32]
 	lo_enc_key_size	int32[0:LO_KEY_SIZE]
@@ -56,5 +57,5 @@ loop_info64 {
 	lo_file_name	array[int8, LO_NAME_SIZE]
 	lo_crypt_name	array[int8, LO_NAME_SIZE]
 	lo_enc_key	array[int8, LO_KEY_SIZE]
-	lo_init		array[intptr, 2]
+	lo_init		array[int64, 2]
 }

@@ -202,7 +202,7 @@ xt_cgroup_info_v1 {
 	path		string[cgroup_paths, PATH_MAX]
 # TODO: again "cgroup classid"
 	classid		int32
-	priv		intptr
+	priv		align64[intptr]
 }
 
 xt_helper_info {
@@ -221,8 +221,8 @@ xt_rateest_match_info {
 	pps1	int32
 	bps2	int32
 	pps2	int32
-	est1	intptr
-	est2	intptr
+	est1	align64[intptr]
+	est2	align64[intptr]
 }
 
 xt_rateest_match_flags = XT_RATEEST_MATCH_INVERT, XT_RATEEST_MATCH_ABS, XT_RATEEST_MATCH_REL, XT_RATEEST_MATCH_DELTA, XT_RATEEST_MATCH_BPS, XT_RATEEST_MATCH_PPS
@@ -254,7 +254,7 @@ xt_time_flags = XT_TIME_LOCAL_TZ, XT_TIME_CONTIGUOUS
 xt_bpf_info {
 	bpf_program_num_elem	int16[0:XT_BPF_MAX_NUM_INSTR]
 	bpf_program		array[sock_filter, XT_BPF_MAX_NUM_INSTR]
-	filter			intptr
+	filter			align64[intptr]
 }
 
 xt_bpf_info_v1 [
@@ -289,7 +289,7 @@ xt_connlimit_info {
 	mask	ipv6_addr_mask
 	limit	int32
 	flags	flags[xt_connlimit_flags, int32]
-	data	intptr
+	data	align64[intptr]
 }
 
 xt_connlimit_flags = XT_CONNLIMIT_INVERT, XT_CONNLIMIT_DADDR
@@ -400,7 +400,7 @@ xt_realm_info {
 }
 
 xt_connbytes_info {
-	count		array[int64, 2]
+	count		array[align64[int64], 2]
 	what		flags[xt_connbytes_what, int8]
 	direction	flags[xt_connbytes_direction, int8]
 }
@@ -412,7 +412,7 @@ xt_quota_info {
 	flags	bool32
 	pad	const[0, int32]
 	quota	int64
-	master	intptr
+	master	align64[intptr]
 }
 
 xt_sctp_info {
@@ -488,19 +488,19 @@ xt_dccp_flags = XT_DCCP_SRC_PORTS, XT_DCCP_DEST_PORTS, XT_DCCP_TYPE, XT_DCCP_OPT
 xt_hashlimit_mtinfo1 {
 	name	devname
 	cfg	hashlimit_cfg1
-	hinfo	intptr
+	hinfo	align64[intptr]
 }
 
 xt_hashlimit_mtinfo2 {
 	name	string[devnames, NAME_MAX]
 	cfg	hashlimit_cfg2
-	hinfo	intptr
+	hinfo	align64[intptr]
 }
 
 xt_hashlimit_mtinfo3 {
 	name	string[devnames, NAME_MAX]
 	cfg	hashlimit_cfg3
-	hinfo	intptr
+	hinfo	align64[intptr]
 }
 
 hashlimit_cfg1 {
@@ -579,7 +579,7 @@ xt_statistic_info {
 	every	int32
 	packet	int32
 	count	int32
-	master	intptr
+	master	align64[intptr]
 }
 
 xt_recent_mtinfo {
@@ -651,7 +651,7 @@ xt_string_info {
 	pattern		array[int8, XT_STRING_MAX_PATTERN_SIZE]
 	patlen		int8[0:XT_STRING_MAX_PATTERN_SIZE]
 	flags		flags[xt_string_flags, int8]
-	config		intptr
+	config		align64[intptr]
 }
 
 textsearch_algos = "bm", "fsm", "kmp"

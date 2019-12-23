@@ -1,5 +1,0 @@
-bad-struct-size: snd_rawmidi_status64: syz=56 kernel=48 [386]
-bad-field-size: snd_rawmidi_status64.avail: syz=8 kernel=4 [386]
-bad-field-offset: snd_rawmidi_status64.xruns: syz=32 kernel=28 [386]
-bad-field-size: snd_rawmidi_status64.xruns: syz=8 kernel=4 [386]
-bad-field-offset: snd_rawmidi_status64.reserved: syz=40 kernel=32 [386]
