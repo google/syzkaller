@@ -390,15 +390,17 @@ func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
 	default:
 		panic("unknown binary format")
 	}
+	if prog.IsPad(t0) {
+		return 1
+	}
 	switch t := t0.(type) {
-	case *prog.IntType, *prog.LenType, *prog.FlagsType, *prog.ProcType,
+	case *prog.ConstType, *prog.IntType, *prog.LenType, *prog.FlagsType, *prog.ProcType,
 		*prog.CsumType, *prog.PtrType, *prog.VmaType, *prog.ResourceType:
-		return t0.UnitSize()
-	case *prog.ConstType:
-		if t.IsPad {
-			return 1
+		align := t0.UnitSize()
+		if align == 8 && comp.target.Int64Alignment != 0 {
+			align = comp.target.Int64Alignment
 		}
-		return t.UnitSize()
+		return align
 	case *prog.BufferType:
 		return 1
 	case *prog.ArrayType:

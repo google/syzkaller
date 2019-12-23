@@ -1,6 +1,0 @@
-bad-struct-size: space_resv: syz=48 kernel=44 [386]
-bad-field-offset: space_resv.l_start: syz=8 kernel=4 [386]
-bad-field-offset: space_resv.l_len: syz=16 kernel=12 [386]
-bad-field-offset: space_resv.l_sysid: syz=24 kernel=20 [386]
-bad-field-offset: space_resv.l_pid: syz=28 kernel=24 [386]
-bad-field-offset: space_resv.l_pad: syz=32 kernel=28 [386]

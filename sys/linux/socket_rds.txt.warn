@@ -4,7 +4,9 @@ bad-field-number: rds_atomic_args: syz=9 kernel=6
 bad-field-size: rds_atomic_args.arg1/: syz=8 kernel=32
 bad-field-offset: rds_atomic_args.arg2/flags: syz=32 kernel=56
 bad-field-offset: rds_atomic_args.mask1/user_token: syz=40 kernel=64
+bad-struct-size: rds_get_mr_args: syz=28 kernel=32 [386]
 bad-field-size: rds_get_mr_args.cookie_addr: syz=4 kernel=8 [386]
+bad-field-offset: rds_get_mr_args.flags: syz=20 kernel=24 [386]
 bad-struct-size: rds_get_mr_for_dest_args: syz=156 kernel=160 [386]
 bad-field-size: rds_get_mr_for_dest_args.cookie_addr: syz=4 kernel=8 [386]
 bad-field-offset: rds_get_mr_for_dest_args.flags: syz=148 kernel=152 [386]

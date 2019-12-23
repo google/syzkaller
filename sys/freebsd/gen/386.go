@@ -224,25 +224,21 @@ var structDescs_386 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "btime", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "bnsec", TypeSize: 8, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "group_req_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_req_in", TypeSize: 144}, Fields: []Type{
+	{Key: StructKey{Name: "group_req_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_req_in", TypeSize: 140}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gr_interface", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in"}, FldName: "gr_group"},
 	}}},
-	{Key: StructKey{Name: "group_req_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_req_in6", TypeSize: 136}, Fields: []Type{
+	{Key: StructKey{Name: "group_req_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_req_in6", TypeSize: 128}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gr_interface", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "gr_group"},
 	}}},
-	{Key: StructKey{Name: "group_source_req_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_source_req_in", TypeSize: 280}, Fields: []Type{
+	{Key: StructKey{Name: "group_source_req_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_source_req_in", TypeSize: 276}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gsr_interface", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in"}, FldName: "gsr_group"},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in"}, FldName: "gsr_source"},
 	}}},
-	{Key: StructKey{Name: "group_source_req_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_source_req_in6", TypeSize: 264}, Fields: []Type{
+	{Key: StructKey{Name: "group_source_req_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_source_req_in6", TypeSize: 252}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gsr_interface", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "gsr_group"},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "gsr_source"},
 	}}},
@@ -1076,10 +1072,9 @@ var structDescs_386 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "index", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "limit", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "pfioc_table"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pfioc_table", TypeSize: 1136}, Fields: []Type{
+	{Key: StructKey{Name: "pfioc_table"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pfioc_table", TypeSize: 1128}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "pfr_table"}, FldName: "pfrio_table"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfrio_buffer", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "pfrio_esize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "pfrio_size", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "pfrio_size2", TypeSize: 8}}},
@@ -1088,7 +1083,6 @@ var structDescs_386 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "pfrio_nchange", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "pfrio_flags", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pfrio_ticket", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "pfioc_tm"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pfioc_tm", TypeSize: 8}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4}}},
@@ -1558,14 +1552,12 @@ var structDescs_386 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sockaddr_in", Dir: 2}, FldName: "addr"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 120, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 8, ArgDir: 2}}}, Kind: 1, RangeBegin: 15, RangeEnd: 15},
 	}}},
-	{Key: StructKey{Name: "sockaddr_storage_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_in6", TypeSize: 128}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_storage_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_in6", TypeSize: 124}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_in6"}, FldName: "addr"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 96}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 8}}}, Kind: 1, RangeBegin: 12, RangeEnd: 12},
 	}}},
-	{Key: StructKey{Name: "sockaddr_storage_in6", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_in6", TypeSize: 128, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_storage_in6", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_in6", TypeSize: 124, ArgDir: 2}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_in6", Dir: 2}, FldName: "addr"},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 96, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 8, ArgDir: 2}}}, Kind: 1, RangeBegin: 12, RangeEnd: 12},
 	}}},
 	{Key: StructKey{Name: "sockaddr_storage_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage_sctp", IsVarlen: true}, Fields: []Type{
@@ -5711,4 +5703,4 @@ var consts_386 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_386 = "87b266d609e225327bd5680ba2b4a8982e68da10"
+const revision_386 = "136509de148674987498a29d5f83582c5840173f"

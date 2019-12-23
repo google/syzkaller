@@ -23,17 +23,14 @@ no-such-struct: devname_mask
 no-such-struct: ifs_ifsu
 bad-field-size: ifconf.req/ifc_len: syz=16 kernel=4 [amd64]
 bad-field-size: ifconf.req/ifc_len: syz=8 kernel=4 [386]
-bad-field-size: ifconf.buf/ifc_ifcu: syz=16 kernel=8 [amd64]
-bad-field-offset: ifconf.buf/ifc_ifcu: syz=8 kernel=4 [386]
+bad-field-offset: ifconf.buf/ifc_ifcu: syz=16 kernel=8 [amd64]
+bad-field-size: ifconf.buf/ifc_ifcu: syz=8 kernel=4 [386]
 no-such-struct: ifconf_buf
 no-such-struct: ifconf_req
 no-such-struct: brctl_arg
 no-such-struct: brctl_arg_get
 no-such-struct: brctl_arg_add_del
 no-such-struct: brctl_arg_generic
-bad-struct-size: ethtool_rx_flow_spec: syz=168 kernel=160 [386]
-bad-field-offset: ethtool_rx_flow_spec.ring_cookie: syz=152 kernel=148 [386]
-bad-field-offset: ethtool_rx_flow_spec.location: syz=160 kernel=156 [386]
 no-such-struct: ethtool_flow_union
 no-such-struct: ethtool_rx_ntuple
 no-such-struct: ethtool_rx_ntuple_flow_spec

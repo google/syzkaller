@@ -8,7 +8,5 @@ no-such-struct: cmsghdr_sctp_dstaddrv4
 no-such-struct: cmsghdr_sctp_dstaddrv6
 no-such-struct: sockaddr_storage_sctp
 no-such-struct: sctp_paddrthlds
-bad-struct-size: sctp_assoc_stats: syz=256 kernel=252 [386]
 bad-field-number: sctp_assoc_stats: syz=3 kernel=17
 bad-field-size: sctp_assoc_stats.status/sas_maxrto: syz=120 kernel=8
-bad-field-offset: sctp_assoc_stats.status/sas_maxrto: syz=136 kernel=132 [386]

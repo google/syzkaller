@@ -29,6 +29,7 @@ no-such-struct: kvm_assigned_irq
 no-such-struct: kvm_assigned_pci_dev
 no-such-struct: kvm_enable_cap_cpu
 no-such-struct: kvm_enable_cap_vm
+bad-struct-size: kvm_userspace_memory_region: syz=28 kernel=32 [386]
 bad-field-size: kvm_userspace_memory_region.addr/userspace_addr: syz=4 kernel=8 [386]
 bad-field-number: kvm_vcpu_events: syz=22 kernel=9
 bad-field-size: kvm_vcpu_events.exinjec/exception: syz=1 kernel=8
