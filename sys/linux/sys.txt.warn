@@ -67,10 +67,9 @@ no-such-struct: sigevent_thread
 no-such-struct: cap_header
 no-such-struct: cap_data
 no-such-struct: fd_set
-bad-struct-size: sigaction: syz=24 kernel=20 [386]
-bad-field-offset: sigaction.mask/sa_flags: syz=8 kernel=4 [386]
-bad-field-offset: sigaction.flags/sa_restorer: syz=16 kernel=8 [386]
-bad-field-offset: sigaction.restor/sa_mask: syz=20 kernel=12 [386]
+bad-field-size: sigaction.mask/sa_flags: syz=8 kernel=4 [386]
+bad-field-offset: sigaction.flags/sa_restorer: syz=12 kernel=8 [386]
+bad-field-offset: sigaction.restor/sa_mask: syz=16 kernel=12 [386]
 bad-field-size: sigaction.restor/sa_mask: syz=4 kernel=8 [386]
 bad-field-number: siginfo: syz=3 kernel=1
 bad-field-size: siginfo.signo/: syz=4 kernel=128

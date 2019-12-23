@@ -4,7 +4,7 @@ no-such-struct: bpf_map_lookup_arg
 no-such-struct: bpf_map_update_arg
 no-such-struct: bpf_map_delete_arg
 no-such-struct: bpf_map_get_next_arg
-bad-struct-size: bpf_prog: syz=120 kernel=40 [386]
+bad-struct-size: bpf_prog: syz=116 kernel=40 [386]
 bad-struct-size: bpf_prog: syz=120 kernel=56 [amd64]
 bad-field-number: bpf_prog: syz=21 kernel=20
 bad-field-size: bpf_prog.type/pages: syz=4 kernel=2

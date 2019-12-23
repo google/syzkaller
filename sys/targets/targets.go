@@ -22,6 +22,7 @@ type Target struct {
 	PageSize         uint64
 	NumPages         uint64
 	DataOffset       uint64
+	Int64Alignment   uint64
 	CFlags           []string
 	CrossCFlags      []string
 	CCompilerPrefix  string
@@ -105,10 +106,11 @@ var List = map[string]map[string]*Target{
 			},
 		},
 		"32_shmem": {
-			PtrSize:     4,
-			PageSize:    8 << 10,
-			CFlags:      []string{"-m32"},
-			CrossCFlags: []string{"-m32", "-static"},
+			PtrSize:        4,
+			PageSize:       8 << 10,
+			Int64Alignment: 4,
+			CFlags:         []string{"-m32"},
+			CrossCFlags:    []string{"-m32", "-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
@@ -150,6 +152,7 @@ var List = map[string]map[string]*Target{
 			VMArch:           "amd64",
 			PtrSize:          4,
 			PageSize:         4 << 10,
+			Int64Alignment:   4,
 			CFlags:           []string{"-m32"},
 			CrossCFlags:      []string{"-m32", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
@@ -207,10 +210,11 @@ var List = map[string]map[string]*Target{
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 		"386": {
-			VMArch:   "amd64",
-			PtrSize:  4,
-			PageSize: 4 << 10,
-			CFlags:   []string{"-m32"},
+			VMArch:         "amd64",
+			PtrSize:        4,
+			PageSize:       4 << 10,
+			Int64Alignment: 4,
+			CFlags:         []string{"-m32"},
 			// The story behind -B/usr/lib32 is not completely clear, but it helps in some cases.
 			// For context see discussion in https://github.com/google/syzkaller/pull/1202
 			CrossCFlags:       []string{"-m32", "-static", "-B/usr/lib32"},
