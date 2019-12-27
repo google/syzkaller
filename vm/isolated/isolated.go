@@ -190,26 +190,23 @@ func (inst *instance) ssh(command string) error {
 }
 
 func (inst *instance) repair() error {
-	if inst.cfg.TargetReboot {
-		log.Logf(2, "isolated: trying to ssh")
-		if err := inst.waitForSSH(30 * time.Minute); err == nil {
-			log.Logf(2, "isolated: ssh succeeded")
-			log.Logf(2, "isolated: trying to reboot by ssh")
-			e := inst.ssh("reboot") // reboot will return an error, ignore it
-			log.Logf(2, "ssh return: %v", e)
-		} else if len(inst.cfg.USBDevNums) > 0 {
-			log.Logf(2, "isolated: ssh failed")
-			log.Logf(2, "isolated: trying to reboot by USB authorization")
-			usbAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", inst.cfg.USBDevNums[inst.index], "/authorized")
-			err = ioutil.WriteFile(usbAuth, []byte("0"), 0)
-			if err != nil {
-				log.Logf(2, "isolated: failed to turn off the device")
-				return err
-			}
-			err = ioutil.WriteFile(usbAuth, []byte("1"), 0)
-			if err != nil {
-				log.Logf(2, "isolated: failed to turn on the device")
-				return err
+	log.Logf(2, "isolated: trying to ssh")
+	if err := inst.waitForSSH(30 * time.Minute); err == nil {
+		if inst.cfg.TargetReboot {
+			if len(inst.cfg.USBDevNums) > 0 {
+				log.Logf(2, "isolated: trying to reboot by USB authorization")
+				usbAuth := fmt.Sprintf("%s%s%s", "/sys/bus/usb/devices/", inst.cfg.USBDevNums[inst.index], "/authorized")
+				if err := ioutil.WriteFile(usbAuth, []byte("0"), 0); err != nil {
+					log.Logf(2, "isolated: failed to turn off the device")
+					return err
+				}
+				if err := ioutil.WriteFile(usbAuth, []byte("1"), 0); err != nil {
+					log.Logf(2, "isolated: failed to turn on the device")
+					return err
+				}
+			} else {
+				log.Logf(2, "isolated: ssh succeeded, trying to reboot by ssh")
+				inst.ssh("reboot") // reboot will return an error, ignore it
 			}
 		}
 		if err := inst.waitForReboot(5 * 60); err != nil {
