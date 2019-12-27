@@ -5,6 +5,7 @@ services:
 go:
   - "1.11"
   - "1.12"
+go_import_path: github.com/google/syzkaller
 
 cache:
   directories:
