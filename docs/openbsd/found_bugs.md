@@ -6,6 +6,20 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [uvm(9): incorrect offset calculation in `uvm_share(9)`](https://marc.info/?l=openbsd-cvs&m=157544812928708&w=2)
+
+- [vmm(4): wrong virtual memory structure type](https://marc.info/?l=openbsd-cvs&m=157544746828404&w=2)
+
+- [tun(4): interface creation race](https://marc.info/?l=openbsd-cvs&m=157412200313814&w=2)
+
+- [ioctl: lenient validation of interface address](https://marc.info/?l=openbsd-cvs&m=157313316301838&w=2)
+
+- [shmctl: use-after-free due to sleeping](https://marc.info/?l=openbsd-cvs&m=157229269222248&w=2)
+
+- [bpf(4): missing reference counting](https://marc.info/?l=openbsd-cvs&m=157169894124474&w=2)
+
+- [unveil: do not increment `ps_uvncount` more than once per unveiled path](https://marc.info/?l=openbsd-cvs&m=156995587324429&w=2)
+
 - [sendto: lenient validation of socket address](https://marc.info/?l=openbsd-cvs&m=156923645331466&w=2)
 
 - [vmm(4): missing locking](https://marc.info/?l=openbsd-cvs&m=156822096707365&w=2)
