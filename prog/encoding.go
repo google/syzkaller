@@ -1107,7 +1107,7 @@ func (p *parser) strictFailf(msg string, args ...interface{}) {
 }
 
 // CallSet returns a set of all calls in the program.
-// It does very conservative parsing and is intended to parse paste/future serialization formats.
+// It does very conservative parsing and is intended to parse past/future serialization formats.
 func CallSet(data []byte) (map[string]struct{}, error) {
 	calls := make(map[string]struct{})
 	s := bufio.NewScanner(bytes.NewReader(data))
