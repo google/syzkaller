@@ -1,0 +1,47 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_GENERIC/gtp support.
+
+# TODO: describe gtp packets in vnet.txt (they go inside of udp packets, see gtp_encap_recv()).
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/if_link.h>
+include <uapi/linux/gtp.h>
+
+resource genl_gtp_family_id[int16]
+type msghdr_nl_gtp[CMD] msghdr_netlink[netlink_msg_t[genl_gtp_family_id, genlmsghdr_t[CMD], gtp_genl_policy]]
+
+syz_genetlink_get_family_id$gtp(name ptr[in, string["gtp"]]) genl_gtp_family_id
+
+sendmsg$GTP_CMD_NEWPDP(fd sock_nl_generic, msg ptr[in, msghdr_nl_gtp[GTP_CMD_NEWPDP]], f flags[send_flags])
+sendmsg$GTP_CMD_DELPDP(fd sock_nl_generic, msg ptr[in, msghdr_nl_gtp[GTP_CMD_DELPDP]], f flags[send_flags])
+sendmsg$GTP_CMD_GETPDP(fd sock_nl_generic, msg ptr[in, msghdr_nl_gtp[GTP_CMD_GETPDP]], f flags[send_flags])
+
+gtp_genl_policy [
+# TODO: fuzzer will have hard time getting ifindex of a gtp device (which needs to be created before).
+	GTPA_LINK		nlattr[GTPA_LINK, ifindex]
+	GTPA_VERSION		nlattr[GTPA_VERSION, int32[GTP_V0:GTP_V1]]
+	GTPA_TID		nlattr[GTPA_TID, int64[0:4]]
+	GTPA_PEER_ADDRESS	nlattr[GTPA_PEER_ADDRESS, ipv4_addr]
+	GTPA_MS_ADDRESS		nlattr[GTPA_MS_ADDRESS, ipv4_addr]
+	GTPA_FLOW		nlattr[GTPA_FLOW, int16[0:4]]
+	GTPA_NET_NS_FD		nlattr[GTPA_NET_NS_FD, fd_namespace]
+	GTPA_I_TEI		nlattr[GTPA_I_TEI, int32[0:4]]
+	GTPA_O_TEI		nlattr[GTPA_O_TEI, int32[0:4]]
+] [varlen]
+
+gtp_policy {
+	IFLA_GTP_FD0	nlattr[IFLA_GTP_FD0, sock_udp]
+	IFLA_GTP_FD1	nlattr[IFLA_GTP_FD1, sock_udp]
+	var		array[gtp_policy_var]
+}
+
+gtp_policy_var [
+	IFLA_GTP_FD0		nlattr[IFLA_GTP_FD0, sock_udp6]
+	IFLA_GTP_FD1		nlattr[IFLA_GTP_FD1, sock_udp6]
+	IFLA_GTP_PDP_HASHSIZE	nlattr[IFLA_GTP_PDP_HASHSIZE, int32]
+	IFLA_GTP_ROLE		nlattr[IFLA_GTP_ROLE, int32[0:2]]
+] [varlen]

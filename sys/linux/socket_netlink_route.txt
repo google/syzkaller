@@ -18,6 +18,7 @@ include <uapi/linux/if_tunnel.h>
 include <uapi/linux/net_namespace.h>
 include <uapi/linux/veth.h>
 include <uapi/linux/can/gw.h>
+include <uapi/linux/can/vxcan.h>
 
 resource sock_nl_route[sock_netlink]
 type netns_id int32[0:4]
@@ -156,7 +157,7 @@ ifla_policy [
 	IFLA_BROADCAST		nlattr[IFLA_BROADCAST, mac_addr]
 	IFLA_MAP		nlattr[IFLA_MAP, rtnl_link_ifmap]
 	IFLA_MTU		nlattr[IFLA_MAP, int32]
-	IFLA_LINK		nlattr[IFLA_LINK, int32]
+	IFLA_LINK		nlattr[IFLA_LINK, ifindex]
 	IFLA_MASTER		nlattr[IFLA_MASTER, ifindex]
 	IFLA_CARRIER		nlattr[IFLA_CARRIER, int8]
 	IFLA_TXQLEN		nlattr[IFLA_TXQLEN, int32]
@@ -185,6 +186,11 @@ ifla_policy [
 	IFLA_EVENT		nlattr[IFLA_EVENT, int32]
 	IFLA_GROUP		nlattr[IFLA_GROUP, int32]
 	IFLA_IF_NETNSID		nlattr[IFLA_IF_NETNSID, netns_id]
+	IFLA_TARGET_NETNSID	nlattr[IFLA_TARGET_NETNSID, netns_id]
+	IFLA_PROP_LIST		nlattr[IFLA_PROP_LIST, array[nlattr[IFLA_ALT_IFNAME, devname]]]
+	IFLA_ALT_IFNAME		nlattr[IFLA_ALT_IFNAME, devname]
+	IFLA_GSO_MAX_SEGS	nlattr[IFLA_GSO_MAX_SEGS, int32[0:GSO_MAX_SEGS]]
+	IFLA_GSO_MAX_SIZE	nlattr[IFLA_GSO_MAX_SIZE, int32[0:GSO_MAX_SIZE]]
 ] [varlen]
 
 type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {
@@ -192,7 +198,7 @@ type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {
 	IFLA_INFO_DATA	nlattr[DATA_TYPE, DATA]
 }
 
-# TODO: can, dummy, geneve, hsr, ifb, ipoib, ipvlan, macvlan, macvtap, netdevsim
+# TODO: can, dummy, geneve, ifb, ipoib, ipvlan, macvlan, macvtap, netdevsim
 # nlmon, vlan, vrf, vxlan, macsec
 ifla_info_policy [
 	bond		ifla_info_policy_t["bond", IFLA_INFO_DATA, array[bond_policy]]
@@ -214,6 +220,25 @@ ifla_info_policy [
 	ip6vti		ifla_info_policy_t["ip6vti", IFLA_INFO_DATA, array[ip6vti_policy]]
 # TODO: this should be a net device fd. How does one even obtain these?
 	ppp		ifla_info_policy_t["ppp", IFLA_INFO_DATA, nlattr[IFLA_PPP_DEV_FD, fd]]
+	gtp		ifla_info_policy_t["gtp", IFLA_INFO_DATA, gtp_policy]
+	hsr		ifla_info_policy_t["hsr", IFLA_INFO_DATA, hsr_policy]
+	xfrm		ifla_info_policy_t["xfrm", IFLA_INFO_DATA, xfrmi_policy]
+	vcan		ifla_info_policy_t["vcan", IFLA_INFO_DATA, void]
+	vxcan		ifla_info_policy_t["vxcan", IFLA_INFO_DATA, optional[nlattr[VXCAN_INFO_PEER, peer_info]]]
+] [varlen]
+
+xfrmi_policy [
+	IFLA_XFRM_LINK	nlattr[IFLA_XFRM_LINK, int32[0:4]]
+	IFLA_XFRM_IF_ID	nlattr[IFLA_XFRM_IF_ID, int32[0:4]]
+] [varlen]
+
+hsr_policy [
+	IFLA_HSR_SLAVE1			nlattr[IFLA_HSR_SLAVE1, ifindex]
+	IFLA_HSR_SLAVE2			nlattr[IFLA_HSR_SLAVE2, ifindex]
+	IFLA_HSR_MULTICAST_SPEC		nlattr[IFLA_HSR_MULTICAST_SPEC, int8]
+	IFLA_HSR_VERSION		nlattr[IFLA_HSR_VERSION, int8]
+	IFLA_HSR_SUPERVISION_ADDR	nlattr[IFLA_HSR_SUPERVISION_ADDR, mac_addr]
+	IFLA_HSR_SEQ_NR			nlattr[IFLA_HSR_SEQ_NR, int16]
 ] [varlen]
 
 bond_policy [
@@ -341,10 +366,15 @@ ip6gre_policy [
 	gre_common_policy	array[gre_common_policy]
 ] [varlen]
 
-# TODO: There could have some ifla_policy after ifinfomsg
 veth_policy [
-	VETH_INFO_PEER	nlattr[VETH_INFO_PEER, ifinfomsg[AF_UNSPEC]]
+	VETH_INFO_PEER	nlattr[VETH_INFO_PEER, peer_info]
 ] [varlen]
+
+peer_info {
+	hdr	ifinfomsg[AF_UNSPEC]
+# This may be followed by ifla_policy for the peer, but adding it causes recursion.
+#	policy optional[ifla_policy]
+}
 
 vti_common_policy [
 	IFLA_VTI_LINK	nlattr[IFLA_VTI_LINK, ifindex]
