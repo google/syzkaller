@@ -272,6 +272,18 @@ static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
 	      name, slave1, slave2, strerror(err));
 	(void)err;
 }
+
+static void netlink_add_virt_wifi(struct nlmsg* nlmsg, int sock, const char* name, const char* link)
+{
+	netlink_add_device_impl(nlmsg, "virt_wifi", name);
+	netlink_done(nlmsg);
+	int ifindex = if_nametoindex(link);
+	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
+	int err = netlink_send(nlmsg, sock);
+	debug("netlink: adding device %s type virt_wifi link %s: %s\n",
+	      name, link, strerror(err));
+	(void)err;
+}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
@@ -714,6 +726,7 @@ static void initialize_netdevices(void)
 	    {"netdevsim", netdevsim},
 	    // This adds connected veth0 and veth1 devices.
 	    {"veth", 0},
+	    {"xfrm", "xfrm0"},
 	};
 	const char* devmasters[] = {"bridge", "bond", "team"};
 	// If you extend this array, also update netdev_addr_id in vnet.txt.
@@ -755,6 +768,8 @@ static void initialize_netdevices(void)
 	    {"caif0", ETH_ALEN}, // TODO: up'ing caif fails with ENODEV
 	    {"batadv0", ETH_ALEN},
 	    {netdevsim, ETH_ALEN},
+	    {"xfrm0", ETH_ALEN},
+	    {"virt_wifi0", ETH_ALEN},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
@@ -789,6 +804,7 @@ static void initialize_netdevices(void)
 	netlink_add_hsr(&nlmsg, sock, "hsr0", "hsr_slave_0", "hsr_slave_1");
 	netlink_device_change(&nlmsg, sock, "hsr_slave_0", true, 0, 0, 0, NULL);
 	netlink_device_change(&nlmsg, sock, "hsr_slave_1", true, 0, 0, 0, NULL);
+	netlink_add_virt_wifi(&nlmsg, sock, "virt_wifi0", "lo");
 
 	netdevsim_add((int)procid, 4); // Number of port is in sync with value in sys/linux/socket_netlink_generic_devlink.txt
 
