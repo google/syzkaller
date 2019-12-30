@@ -67,6 +67,7 @@ func InitTarget(target *prog.Target) {
 		"usb_device_descriptor":     arch.generateUsbDeviceDescriptor,
 		"usb_device_descriptor_hid": arch.generateUsbHidDeviceDescriptor,
 	}
+
 	// TODO(dvyukov): get rid of this, this must be in descriptions.
 	target.StringDictionary = []string{
 		"user", "keyring", "trusted", "system", "security", "selinux",
@@ -75,17 +76,24 @@ func InitTarget(target *prog.Target) {
 		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1",
 		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1", "GPL",
 	}
-	switch target.Arch {
 
+	target.AuxResources = map[string]bool{
+		"uid":       true,
+		"pid":       true,
+		"gid":       true,
+		"timespec":  true,
+		"timeval":   true,
+		"time_sec":  true,
+		"time_usec": true,
+		"time_nsec": true,
+	}
+
+	switch target.Arch {
 	case "amd64":
 		target.SpecialPointers = []uint64{
 			0xffffffff81000000, // kernel text
 		}
-	case "386":
-	case "arm64":
-	case "arm":
-	case "ppc64le":
-	case "mips64le":
+	case "386", "arm64", "arm", "ppc64le", "mips64le":
 	default:
 		panic("unknown arch")
 	}

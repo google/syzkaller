@@ -15,6 +15,9 @@ type Syscall struct {
 	MissingArgs int // number of trailing args that should be zero-filled
 	Args        []Type
 	Ret         Type
+
+	inputResources  []*ResourceDesc
+	outputResources []*ResourceDesc
 }
 
 type Dir int

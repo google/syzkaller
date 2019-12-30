@@ -4,8 +4,11 @@
 package main
 
 import (
+	"fmt"
+	"math/rand"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/log"
@@ -20,6 +23,7 @@ type RPCServer struct {
 	target          *prog.Target
 	enabledSyscalls []int
 	stats           *Stats
+	sandbox         string
 	batchSize       int
 
 	mu           sync.Mutex
@@ -28,12 +32,15 @@ type RPCServer struct {
 	maxSignal    signal.Signal
 	corpusSignal signal.Signal
 	corpusCover  cover.Cover
+	rotator      *prog.Rotator
+	rnd          *rand.Rand
 }
 
 type Fuzzer struct {
-	name         string
-	inputs       []rpctype.RPCInput
-	newMaxSignal signal.Signal
+	name          string
+	inputs        []rpctype.RPCInput
+	newMaxSignal  signal.Signal
+	rotatedSignal signal.Signal
 }
 
 type BugFrames struct {
@@ -47,6 +54,7 @@ type RPCManagerView interface {
 	machineChecked(result *rpctype.CheckArgs)
 	newInput(inp rpctype.RPCInput, sign signal.Signal)
 	candidateBatch(size int) []rpctype.RPCCandidate
+	rotateCorpus() bool
 }
 
 func startRPCServer(mgr *Manager) (int, error) {
@@ -55,7 +63,9 @@ func startRPCServer(mgr *Manager) (int, error) {
 		target:          mgr.target,
 		enabledSyscalls: mgr.enabledSyscalls,
 		stats:           mgr.stats,
+		sandbox:         mgr.cfg.Sandbox,
 		fuzzers:         make(map[string]*Fuzzer),
+		rnd:             rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	serv.batchSize = 5
 	if serv.batchSize < mgr.cfg.Procs {
@@ -80,18 +90,100 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
-	serv.fuzzers[a.Name] = &Fuzzer{
-		name:         a.Name,
-		inputs:       corpus,
-		newMaxSignal: serv.maxSignal.Copy(),
+	f := &Fuzzer{
+		name: a.Name,
 	}
+	serv.fuzzers[a.Name] = f
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
 	r.DataRaceFrames = bugFrames.dataRaces
 	r.EnabledCalls = serv.enabledSyscalls
-	r.CheckResult = serv.checkResult
 	r.GitRevision = sys.GitRevision
 	r.TargetRevision = serv.target.Revision
+	if serv.mgr.rotateCorpus() && serv.rnd.Intn(3) != 0 {
+		// We do rotation every other time because there are no objective
+		// proofs regarding its efficiency either way.
+		r.CheckResult = serv.rotateCorpus(f, corpus)
+	} else {
+		r.CheckResult = serv.checkResult
+		f.inputs = corpus
+		f.newMaxSignal = serv.maxSignal.Copy()
+	}
 	return nil
+}
+
+func (serv *RPCServer) rotateCorpus(f *Fuzzer, corpus []rpctype.RPCInput) *rpctype.CheckArgs {
+	// Fuzzing tends to stuck in some local optimum and then it fails to cover
+	// other state space points since code coverage is only a very approximate
+	// measure of logic coverage. To overcome this we introduce some variation
+	// into the process which should cause steady corpus rotation over time
+	// (the same coverage is achieved in different ways).
+	//
+	// First, we select a subset of all syscalls for each VM run (result.EnabledCalls).
+	// This serves 2 goals: (1) target fuzzer at a particular area of state space,
+	// (2) disable syscalls that cause frequent crashes at least in some runs
+	// to allow it to do actual fuzzing.
+	//
+	// Then, we remove programs that contain disabled syscalls from corpus
+	// that will be sent to the VM (f.inputs). We also remove 10% of remaining
+	// programs at random to allow to rediscover different variations of these programs.
+	//
+	// Then, we drop signal provided by the removed programs and also 10%
+	// of the remaining signal at random (f.newMaxSignal). This again allows
+	// rediscovery of this signal by different programs.
+	//
+	// Finally, we adjust criteria for accepting new programs from this VM (f.rotatedSignal).
+	// This allows to accept rediscovered varied programs even if they don't
+	// increase overall coverage. As the result we have multiple programs
+	// providing the same duplicate coverage, these are removed during periodic
+	// corpus minimization process. The minimization process is specifically
+	// non-deterministic to allow the corpus rotation.
+	//
+	// Note: at no point we drop anything globally and permanently.
+	// Everything we remove during this process is temporal and specific to a single VM.
+	calls := serv.rotator.Select()
+
+	var callIDs []int
+	callNames := make(map[string]bool)
+	for call := range calls {
+		callNames[call.Name] = true
+		callIDs = append(callIDs, call.ID)
+	}
+
+	f.inputs, f.newMaxSignal = serv.selectInputs(callNames, corpus, serv.maxSignal)
+	// Remove the corresponding signal from rotatedSignal which will
+	// be used to accept new inputs from this manager.
+	f.rotatedSignal = serv.corpusSignal.Intersection(f.newMaxSignal)
+
+	result := *serv.checkResult
+	result.EnabledCalls = map[string][]int{serv.sandbox: callIDs}
+	return &result
+}
+
+func (serv *RPCServer) selectInputs(enabled map[string]bool, inputs0 []rpctype.RPCInput, signal0 signal.Signal) (
+	inputs []rpctype.RPCInput, signal signal.Signal) {
+	signal = signal0.Copy()
+	for _, inp := range inputs0 {
+		calls, err := prog.CallSet(inp.Prog)
+		if err != nil {
+			panic(fmt.Sprintf("rotateInputs: CallSet failed: %v\n%s", err, inp.Prog))
+		}
+		for call := range calls {
+			if !enabled[call] {
+				goto drop
+			}
+		}
+		if serv.rnd.Float64() > 0.9 {
+			goto drop
+		}
+		inputs = append(inputs, inp)
+		continue
+	drop:
+		for _, sig := range inp.Signal.Elems {
+			delete(signal, sig)
+		}
+	}
+	signal.Split(len(signal) / 10)
+	return inputs, signal
 }
 
 func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
@@ -104,6 +196,11 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	serv.mgr.machineChecked(a)
 	a.DisabledCalls = nil
 	serv.checkResult = a
+	calls := make(map[*prog.Syscall]bool)
+	for _, call := range a.EnabledCalls[serv.sandbox] {
+		calls[serv.target.Syscalls[call]] = true
+	}
+	serv.rotator = prog.MakeRotator(serv.target, calls, serv.rnd)
 	return nil
 }
 
@@ -119,23 +216,38 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
-	if serv.corpusSignal.Diff(inputSignal).Empty() {
+	f := serv.fuzzers[a.Name]
+	genuine := !serv.corpusSignal.Diff(inputSignal).Empty()
+	rotated := false
+	if !genuine && f.rotatedSignal != nil {
+		rotated = !f.rotatedSignal.Diff(inputSignal).Empty()
+	}
+	if !genuine && !rotated {
 		return nil
 	}
 	serv.mgr.newInput(a.RPCInput, inputSignal)
 
-	serv.stats.newInputs.inc()
-	serv.corpusSignal.Merge(inputSignal)
-	serv.stats.corpusSignal.set(serv.corpusSignal.Len())
+	if f.rotatedSignal != nil {
+		f.rotatedSignal.Merge(inputSignal)
+	}
 	serv.corpusCover.Merge(a.Cover)
 	serv.stats.corpusCover.set(len(serv.corpusCover))
+	serv.stats.newInputs.inc()
+	if rotated {
+		serv.stats.rotatedInputs.inc()
+	}
 
-	a.RPCInput.Cover = nil // Don't send coverage back to all fuzzers.
-	for _, f := range serv.fuzzers {
-		if f.name == a.Name {
-			continue
+	if genuine {
+		serv.corpusSignal.Merge(inputSignal)
+		serv.stats.corpusSignal.set(serv.corpusSignal.Len())
+
+		a.RPCInput.Cover = nil // Don't send coverage back to all fuzzers.
+		for _, other := range serv.fuzzers {
+			if other == f {
+				continue
+			}
+			other.inputs = append(other.inputs, a.RPCInput)
 		}
-		f.inputs = append(f.inputs, a.RPCInput)
 	}
 	return nil
 }

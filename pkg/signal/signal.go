@@ -4,10 +4,6 @@
 // Package signal provides types for working with feedback signal.
 package signal
 
-import (
-	"sort"
-)
-
 type (
 	elemType uint32
 	prioType int8
@@ -163,9 +159,6 @@ type Context struct {
 }
 
 func Minimize(corpus []Context) []interface{} {
-	sort.Slice(corpus, func(i, j int) bool {
-		return corpus[i].Signal.Len() > corpus[j].Signal.Len()
-	})
 	type ContextPrio struct {
 		prio prioType
 		idx  int
