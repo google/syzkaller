@@ -102,6 +102,8 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	if serv.mgr.rotateCorpus() && serv.rnd.Intn(3) != 0 {
 		// We do rotation every other time because there are no objective
 		// proofs regarding its efficiency either way.
+		// Also, rotation gives significantly skewed syscall selection
+		// (run prog.TestRotationCoverage), it may or may not be OK.
 		r.CheckResult = serv.rotateCorpus(f, corpus)
 	} else {
 		r.CheckResult = serv.checkResult
