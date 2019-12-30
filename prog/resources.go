@@ -7,12 +7,25 @@ import (
 	"fmt"
 )
 
-// We need to support structs as resources,
-// but for now we just special-case timespec/timeval.
-var timespecRes = &ResourceDesc{
-	Name: "timespec",
-	Kind: []string{"timespec"},
-}
+var (
+	// We need to support structs as resources,
+	// but for now we just special-case timespec/timeval.
+	timespecRes = &ResourceDesc{
+		Name: "timespec",
+		Kind: []string{"timespec"},
+	}
+	// On one hand these are resources, but they don't have constructors.
+	// It can make sense to provide generic support for such things,
+	// but for now we just special-case them.
+	filenameRes = &ResourceDesc{
+		Name: "filename",
+		Kind: []string{"filename"},
+	}
+	vmaRes = &ResourceDesc{
+		Name: "vma",
+		Kind: []string{"vma"},
+	}
+)
 
 func (target *Target) calcResourceCtors(res *ResourceDesc, precise bool) []*Syscall {
 	var metas []*Syscall
@@ -113,7 +126,7 @@ func isCompatibleResourceImpl(dst, src []string, precise bool) bool {
 	return true
 }
 
-func (target *Target) inputResources(c *Syscall) []*ResourceDesc {
+func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 	var resources []*ResourceDesc
 	ForeachType(c, func(typ Type) {
 		if typ.Dir() == DirOut {
@@ -133,7 +146,7 @@ func (target *Target) inputResources(c *Syscall) []*ResourceDesc {
 	return resources
 }
 
-func (target *Target) outputResources(c *Syscall) []*ResourceDesc {
+func (target *Target) getOutputResources(c *Syscall) []*ResourceDesc {
 	var resources []*ResourceDesc
 	ForeachType(c, func(typ Type) {
 		switch typ1 := typ.(type) {
@@ -149,18 +162,9 @@ func (target *Target) outputResources(c *Syscall) []*ResourceDesc {
 	return resources
 }
 
-func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*Syscall]bool, map[*Syscall]string) {
-	supported := make(map[*Syscall]bool)
-	disabled := make(map[*Syscall]string)
-	canCreate := make(map[string]bool)
-	inputResources := make(map[*Syscall][]*ResourceDesc)
-	for c := range enabled {
-		inputResources[c] = target.inputResources(c)
-
-		if c.Name == "pipe$9p" {
-			fmt.Printf("%v: input resource: %+v\n", c.Name, inputResources[c])
-		}
-	}
+func (target *Target) transitivelyEnabled(enabled map[*Syscall]bool) (map[*Syscall]bool, map[string]bool) {
+	supported := make(map[*Syscall]bool, len(enabled))
+	canCreate := make(map[string]bool, len(enabled))
 	for {
 		n := len(supported)
 		for c := range enabled {
@@ -168,7 +172,7 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 				continue
 			}
 			ready := true
-			for _, res := range inputResources[c] {
+			for _, res := range c.inputResources {
 				if !canCreate[res.Name] {
 					ready = false
 					break
@@ -176,7 +180,7 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 			}
 			if ready {
 				supported[c] = true
-				for _, res := range target.outputResources(c) {
+				for _, res := range c.outputResources {
 					for _, kind := range res.Kind {
 						canCreate[kind] = true
 					}
@@ -187,12 +191,18 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*
 			break
 		}
 	}
+	return supported, canCreate
+}
+
+func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*Syscall]bool, map[*Syscall]string) {
+	supported, canCreate := target.transitivelyEnabled(enabled)
+	disabled := make(map[*Syscall]string)
 	ctors := make(map[string][]string)
 	for c := range enabled {
 		if supported[c] {
 			continue
 		}
-		for _, res := range inputResources[c] {
+		for _, res := range c.inputResources {
 			if canCreate[res.Name] {
 				continue
 			}

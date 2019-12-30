@@ -49,6 +49,9 @@ type Target struct {
 	// Used as fallback when string type does not have own dictionary.
 	StringDictionary []string
 
+	// Resources that play auxiliary role, but widely used throughout all syscalls (e.g. pid/uid).
+	AuxResources map[string]bool
+
 	// Additional special invalid pointer values besides NULL to use.
 	SpecialPointers []uint64
 
@@ -139,6 +142,8 @@ func (target *Target) initTarget() {
 	for i, c := range target.Syscalls {
 		c.ID = i
 		target.SyscallMap[c.Name] = c
+		c.inputResources = target.getInputResources(c)
+		c.outputResources = target.getOutputResources(c)
 	}
 
 	target.populateResourceCtors()

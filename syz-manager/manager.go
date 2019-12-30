@@ -504,10 +504,9 @@ func (mgr *Manager) loadCorpus() {
 	// Shuffling should alleviate deterministically losing the same inputs on fuzzer crashing.
 	mgr.candidates = append(mgr.candidates, mgr.candidates...)
 	shuffle := mgr.candidates[len(mgr.candidates)/2:]
-	for i := range shuffle {
-		j := i + rand.Intn(len(shuffle)-i)
+	rand.Shuffle(len(shuffle), func(i, j int) {
 		shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
-	}
+	})
 	if mgr.phase != phaseInit {
 		panic(fmt.Sprintf("loadCorpus: bad phase %v", mgr.phase))
 	}
@@ -876,7 +875,7 @@ func (mgr *Manager) addNewCandidates(progs [][]byte) {
 }
 
 func (mgr *Manager) minimizeCorpus() {
-	if mgr.phase < phaseLoadedCorpus || len(mgr.corpus) <= mgr.lastMinCorpus*101/100 {
+	if mgr.phase < phaseLoadedCorpus || len(mgr.corpus) <= mgr.lastMinCorpus*103/100 {
 		return
 	}
 	inputs := make([]signal.Context, 0, len(mgr.corpus))
@@ -887,6 +886,8 @@ func (mgr *Manager) minimizeCorpus() {
 		})
 	}
 	newCorpus := make(map[string]rpctype.RPCInput)
+	// Note: inputs are unsorted (based on map iteration).
+	// This gives some intentional non-determinism during minimization.
 	for _, ctx := range signal.Minimize(inputs) {
 		inp := ctx.(rpctype.RPCInput)
 		newCorpus[hash.String(inp.Prog)] = inp
@@ -1004,6 +1005,12 @@ func (mgr *Manager) candidateBatch(size int) []rpctype.RPCCandidate {
 		}
 	}
 	return res
+}
+
+func (mgr *Manager) rotateCorpus() bool {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	return mgr.phase == phaseTriagedHub
 }
 
 func (mgr *Manager) collectUsedFiles() {
