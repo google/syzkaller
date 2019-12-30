@@ -68,9 +68,7 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 		ForeachType(c, func(t Type) {
 			switch a := t.(type) {
 			case *ResourceType:
-				if a.Desc.Name == "pid" || a.Desc.Name == "uid" || a.Desc.Name == "gid" {
-					// Pid/uid/gid usually play auxiliary role,
-					// but massively happen in some structs.
+				if target.AuxResources[a.Desc.Name] {
 					noteUsage(uses, c, 0.1, a.Dir(), "res%v", a.Desc.Name)
 				} else {
 					str := "res"
