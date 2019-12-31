@@ -1,0 +1,110 @@
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/l2tp.h>
+
+resource sock_l2tp[sock_in]
+resource sock_l2tp6[sock_in6]
+
+type l2tp_conn_id int32[0:4]
+
+socket$l2tp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_L2TP]) sock_l2tp
+bind$l2tp(fd sock_l2tp, addr ptr[in, sockaddr_l2tpip], addrlen len[addr])
+connect$l2tp(fd sock_l2tp, addr ptr[in, sockaddr_l2tpip], addrlen len[addr])
+sendto$l2tp(fd sock_l2tp, buf ptr[in, array[int8]], len bytesize[buf], f flags[send_flags], addr ptr[in, sockaddr_l2tpip, opt], addrlen len[addr])
+recvfrom$l2tp(fd sock_l2tp, buf ptr[out, array[int8]], len bytesize[buf], f flags[recv_flags], addr ptr[out, sockaddr_l2tpip, opt], addrlen len[addr])
+getsockname$l2tp(fd sock_l2tp, addr ptr[out, sockaddr_l2tpip], addrlen ptr[inout, len[addr, int32]])
+getpeername$l2tp(fd sock_l2tp, peer ptr[out, sockaddr_l2tpip], peerlen ptr[inout, len[peer, int32]])
+
+socket$l2tp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_L2TP]) sock_l2tp6
+bind$l2tp6(fd sock_l2tp6, addr ptr[in, sockaddr_l2tpip6], addrlen len[addr])
+connect$l2tp6(fd sock_l2tp6, addr ptr[in, sockaddr_l2tpip6], addrlen len[addr])
+sendto$l2tp6(fd sock_l2tp6, buf ptr[in, array[int8]], len bytesize[buf], f flags[send_flags], addr ptr[in, sockaddr_l2tpip6, opt], addrlen len[addr])
+recvfrom$l2tp6(fd sock_l2tp6, buf ptr[out, array[int8]], len bytesize[buf], f flags[recv_flags], addr ptr[out, sockaddr_l2tpip6, opt], addrlen len[addr])
+getsockname$l2tp6(fd sock_l2tp6, addr ptr[out, sockaddr_l2tpip6], addrlen ptr[inout, len[addr, int32]])
+getpeername$l2tp6(fd sock_l2tp6, peer ptr[out, sockaddr_l2tpip6], peerlen ptr[inout, len[peer, int32]])
+
+sockaddr_l2tpip {
+	l2tp_family	const[AF_INET, int16]
+	l2tp_unused	const[0, int16]
+	l2tp_addr	ipv4_addr
+	l2tp_conn_id	l2tp_conn_id
+	__pad		const[0, int32]
+}
+
+sockaddr_l2tpip6 {
+	l2tp_family	const[AF_INET6, int16]
+	l2tp_unused	const[0, int16]
+	l2tp_flowinfo	int32be
+	l2tp_addr	ipv6_addr
+	l2tp_scope_id	int32
+	l2tp_conn_id	l2tp_conn_id
+}
+
+resource genl_l2tp_family_id[int16]
+type msghdr_nl_l2tp[CMD] msghdr_netlink[netlink_msg_t[genl_l2tp_family_id, genlmsghdr_t[CMD], l2tp_nl_policy]]
+
+syz_genetlink_get_family_id$l2tp(name ptr[in, string["l2tp"]]) genl_l2tp_family_id
+
+sendmsg$L2TP_CMD_NOOP(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_NOOP]], f flags[send_flags])
+sendmsg$L2TP_CMD_TUNNEL_CREATE(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_TUNNEL_CREATE]], f flags[send_flags])
+sendmsg$L2TP_CMD_TUNNEL_DELETE(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_TUNNEL_DELETE]], f flags[send_flags])
+sendmsg$L2TP_CMD_TUNNEL_MODIFY(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_TUNNEL_MODIFY]], f flags[send_flags])
+sendmsg$L2TP_CMD_TUNNEL_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_TUNNEL_GET]], f flags[send_flags])
+sendmsg$L2TP_CMD_SESSION_CREATE(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_SESSION_CREATE]], f flags[send_flags])
+sendmsg$L2TP_CMD_SESSION_DELETE(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_SESSION_DELETE]], f flags[send_flags])
+sendmsg$L2TP_CMD_SESSION_MODIFY(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_SESSION_MODIFY]], f flags[send_flags])
+sendmsg$L2TP_CMD_SESSION_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_l2tp[L2TP_CMD_SESSION_GET]], f flags[send_flags])
+
+l2tp_nl_policy [
+	L2TP_ATTR_PW_TYPE		nlattr[L2TP_ATTR_PW_TYPE, flags[l2tp_pwtype, int16]]
+	L2TP_ATTR_ENCAP_TYPE		nlattr[L2TP_ATTR_ENCAP_TYPE, flags[l2tp_encap_type, int16]]
+	L2TP_ATTR_OFFSET		nlattr[L2TP_ATTR_OFFSET, int16]
+	L2TP_ATTR_DATA_SEQ		nlattr[L2TP_ATTR_DATA_SEQ, int8]
+	L2TP_ATTR_L2SPEC_TYPE		nlattr[L2TP_ATTR_L2SPEC_TYPE, flags[l2tp_l2spec_type, int8]]
+	L2TP_ATTR_L2SPEC_LEN		nlattr[L2TP_ATTR_L2SPEC_LEN, int8]
+	L2TP_ATTR_PROTO_VERSION		nlattr[L2TP_ATTR_PROTO_VERSION, int8[2:3]]
+	L2TP_ATTR_CONN_ID		nlattr[L2TP_ATTR_CONN_ID, l2tp_conn_id]
+	L2TP_ATTR_PEER_CONN_ID		nlattr[L2TP_ATTR_PEER_CONN_ID, l2tp_conn_id]
+	L2TP_ATTR_SESSION_ID		nlattr[L2TP_ATTR_SESSION_ID, l2tp_session[int32]]
+	L2TP_ATTR_PEER_SESSION_ID	nlattr[L2TP_ATTR_PEER_SESSION_ID, l2tp_session[int32]]
+	L2TP_ATTR_UDP_CSUM		nlattr[L2TP_ATTR_UDP_CSUM, bool8]
+# TODO: what is this vlan id? It sure needs to match something somewhere. Is it a confused name for vlan tag?...
+	L2TP_ATTR_VLAN_ID		nlattr[L2TP_ATTR_VLAN_ID, int16]
+	L2TP_ATTR_DEBUG			nlattr[L2TP_ATTR_DEBUG, bool32]
+	L2TP_ATTR_RECV_SEQ		nlattr[L2TP_ATTR_RECV_SEQ, int8]
+	L2TP_ATTR_SEND_SEQ		nlattr[L2TP_ATTR_SEND_SEQ, int8]
+	L2TP_ATTR_LNS_MODE		nlattr[L2TP_ATTR_LNS_MODE, int8]
+# L2TP_ATTR_USING_IPSEC is output
+	L2TP_ATTR_RECV_TIMEOUT		nlattr[L2TP_ATTR_RECV_TIMEOUT, int64]
+	L2TP_ATTR_FD			nlattr[L2TP_ATTR_FD, l2tp_tunnel_fd]
+	L2TP_ATTR_IP_SADDR		nlattr[L2TP_ATTR_IP_SADDR, ipv4_addr]
+	L2TP_ATTR_IP_DADDR		nlattr[L2TP_ATTR_IP_DADDR, ipv4_addr]
+	L2TP_ATTR_UDP_SPORT		nlattr[L2TP_ATTR_UDP_SPORT, sock_port]
+	L2TP_ATTR_UDP_DPORT		nlattr[L2TP_ATTR_UDP_DPORT, sock_port]
+	L2TP_ATTR_MTU			nlattr[L2TP_ATTR_MTU, int16]
+	L2TP_ATTR_MRU			nlattr[L2TP_ATTR_MRU, int16]
+# L2TP_ATTR_STATS is output
+	L2TP_ATTR_IP6_SADDR		nlattr[L2TP_ATTR_IP6_SADDR, ipv6_addr]
+	L2TP_ATTR_IP6_DADDR		nlattr[L2TP_ATTR_IP6_DADDR, ipv6_addr]
+	L2TP_ATTR_IFNAME		nlattr[L2TP_ATTR_IFNAME, devname]
+	L2TP_ATTR_COOKIE		nlattr[L2TP_ATTR_COOKIE, int64]
+	L2TP_ATTR_PEER_COOKIE		nlattr[L2TP_ATTR_PEER_COOKIE, int64]
+	L2TP_ATTR_UDP_ZERO_CSUM6_TX	nlattr[L2TP_ATTR_UDP_ZERO_CSUM6_TX, bool8]
+	L2TP_ATTR_UDP_ZERO_CSUM6_RX	nlattr[L2TP_ATTR_UDP_ZERO_CSUM6_RX, bool8]
+# L2TP_ATTR_PAD is output
+] [varlen]
+
+l2tp_tunnel_fd [
+	udp	sock_udp
+	udp6	sock_udp6
+	l2tp	sock_l2tp
+	l2tp6	sock_l2tp6
+]
+
+l2tp_pwtype = L2TP_PWTYPE_NONE, L2TP_PWTYPE_ETH_VLAN, L2TP_PWTYPE_ETH, L2TP_PWTYPE_PPP, L2TP_PWTYPE_PPP_AC, L2TP_PWTYPE_IP
+l2tp_l2spec_type = L2TP_L2SPECTYPE_NONE, L2TP_L2SPECTYPE_DEFAULT
+l2tp_encap_type = L2TP_ENCAPTYPE_UDP, L2TP_ENCAPTYPE_IP
