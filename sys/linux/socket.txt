@@ -74,6 +74,7 @@ sockaddr [
 	xdp		sockaddr_xdp
 	tipc		sockaddr_tipc
 	isdn		sockaddr_mISDN
+	l2tp		sockaddr_l2tpip
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
 ] [size[SOCKADDR_SIZE]]
@@ -94,6 +95,8 @@ sockaddr_storage [
 	pppol2tpv3	sockaddr_pppol2tpv3
 	pppol2tpv3in6	sockaddr_pppol2tpv3in6
 	pptp		sockaddr_pptp
+	l2tp		sockaddr_l2tpip
+	l2tp6		sockaddr_l2tpip6
 	llc		sockaddr_llc
 	can		sockaddr_can
 	sco		sockaddr_sco
