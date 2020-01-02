@@ -182,6 +182,10 @@ var openbsdOopses = append([]*oops{
 				title: compile("panic: attempt to execute user address {{ADDR}} in supervisor mode"),
 				fmt:   "panic: attempt to execute user address",
 			},
+			{
+				title: compile("panic: unhandled af"),
+				fmt:   "panic: unhandled af",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
