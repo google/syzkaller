@@ -82,10 +82,10 @@ func calcChecksumsCall(c *Call) (map[Arg]CsumInfo, map[Arg]struct{}) {
 			return
 		}
 		// syz_csum_* structs are used in tests
-		switch groupArg.Type().Name() {
+		switch groupArg.Type().TemplateName() {
 		case "ipv4_header", "syz_csum_ipv4_header":
 			ipSrcAddr, ipDstAddr = extractHeaderParams(groupArg, 4)
-		case "ipv6_packet", "syz_csum_ipv6_header":
+		case "ipv6_packet_t", "syz_csum_ipv6_header":
 			ipSrcAddr, ipDstAddr = extractHeaderParams(groupArg, 16)
 		}
 	})
