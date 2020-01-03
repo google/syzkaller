@@ -284,6 +284,54 @@ static void netlink_add_virt_wifi(struct nlmsg* nlmsg, int sock, const char* nam
 	      name, link, strerror(err));
 	(void)err;
 }
+
+static void netlink_add_vlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link, uint16 id, uint16 proto)
+{
+	netlink_add_device_impl(nlmsg, "vlan", name);
+	netlink_nest(nlmsg, IFLA_INFO_DATA);
+	netlink_attr(nlmsg, IFLA_VLAN_ID, &id, sizeof(id));
+	netlink_attr(nlmsg, IFLA_VLAN_PROTOCOL, &proto, sizeof(proto));
+	netlink_done(nlmsg);
+	netlink_done(nlmsg);
+	int ifindex = if_nametoindex(link);
+	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
+	int err = netlink_send(nlmsg, sock);
+	debug("netlink: add %s type vlan link %s id %d: %s\n",
+	      name, link, id, strerror(err));
+	(void)err;
+}
+
+static void netlink_add_macvlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link)
+{
+	netlink_add_device_impl(nlmsg, "macvlan", name);
+	netlink_nest(nlmsg, IFLA_INFO_DATA);
+	uint32 mode = MACVLAN_MODE_BRIDGE;
+	netlink_attr(nlmsg, IFLA_MACVLAN_MODE, &mode, sizeof(mode));
+	netlink_done(nlmsg);
+	netlink_done(nlmsg);
+	int ifindex = if_nametoindex(link);
+	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
+	int err = netlink_send(nlmsg, sock);
+	debug("netlink: add %s type macvlan link %s mode %d: %s\n",
+	      name, link, mode, strerror(err));
+	(void)err;
+}
+
+static void netlink_add_ipvlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link, uint16 mode, uint16 flags)
+{
+	netlink_add_device_impl(nlmsg, "ipvlan", name);
+	netlink_nest(nlmsg, IFLA_INFO_DATA);
+	netlink_attr(nlmsg, IFLA_IPVLAN_MODE, &mode, sizeof(mode));
+	netlink_attr(nlmsg, IFLA_IPVLAN_FLAGS, &flags, sizeof(flags));
+	netlink_done(nlmsg);
+	netlink_done(nlmsg);
+	int ifindex = if_nametoindex(link);
+	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
+	int err = netlink_send(nlmsg, sock);
+	debug("netlink: add %s type ipvlan link %s mode %d: %s\n",
+	      name, link, mode, strerror(err));
+	(void)err;
+}
 #endif
 
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES || SYZ_NET_INJECTION || SYZ_DEVLINK_PCI
@@ -684,10 +732,7 @@ static void initialize_netdevices(void)
 		return;
 #endif
 	// TODO: add the following devices:
-	// - vlan
 	// - vxlan
-	// - macvlan
-	// - ipvlan
 	// - macsec
 	// - ipip
 	// - lowpan
@@ -772,6 +817,14 @@ static void initialize_netdevices(void)
 	    {"veth0_virt_wifi", ETH_ALEN},
 	    {"veth1_virt_wifi", ETH_ALEN},
 	    {"virt_wifi0", ETH_ALEN},
+	    {"veth0_vlan", ETH_ALEN},
+	    {"veth1_vlan", ETH_ALEN},
+	    {"vlan0", ETH_ALEN},
+	    {"vlan1", ETH_ALEN},
+	    {"macvlan0", ETH_ALEN},
+	    {"macvlan1", ETH_ALEN},
+	    {"ipvlan0", ETH_ALEN},
+	    {"ipvlan1", ETH_ALEN},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
@@ -809,6 +862,14 @@ static void initialize_netdevices(void)
 
 	netlink_add_veth(&nlmsg, sock, "veth0_virt_wifi", "veth1_virt_wifi");
 	netlink_add_virt_wifi(&nlmsg, sock, "virt_wifi0", "veth1_virt_wifi");
+
+	netlink_add_veth(&nlmsg, sock, "veth0_vlan", "veth1_vlan");
+	netlink_add_vlan(&nlmsg, sock, "vlan0", "veth0_vlan", 0, htons(ETH_P_8021Q));
+	netlink_add_vlan(&nlmsg, sock, "vlan1", "veth0_vlan", 1, htons(ETH_P_8021AD));
+	netlink_add_macvlan(&nlmsg, sock, "macvlan0", "veth1_vlan");
+	netlink_add_macvlan(&nlmsg, sock, "macvlan1", "veth1_vlan");
+	netlink_add_ipvlan(&nlmsg, sock, "ipvlan0", "veth0_vlan", IPVLAN_MODE_L2, 0);
+	netlink_add_ipvlan(&nlmsg, sock, "ipvlan1", "veth0_vlan", IPVLAN_MODE_L3S, IPVLAN_F_VEPA);
 
 	netdevsim_add((int)procid, 4); // Number of port is in sync with value in sys/linux/socket_netlink_generic_devlink.txt
 
