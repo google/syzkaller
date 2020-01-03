@@ -6,8 +6,7 @@ bad-field-number: mac_addr: syz=7 kernel=1
 no-such-struct: vlan_tag_ad
 no-such-struct: vlan_tag_q
 no-such-struct: eth2_packet_t
-no-such-struct: arp_ether_ipv4_packet
-no-such-struct: arp_ether_ipv6_packet
+no-such-struct: arp_packet_t
 no-such-struct: ipx_network
 no-such-struct: ipx_node
 no-such-struct: ipx_addr
@@ -16,6 +15,7 @@ no-such-struct: ipv4_addr_initdev
 no-such-struct: ipv4_addr
 no-such-struct: ipv4_option_end
 no-such-struct: ipv4_option_noop
+no-such-struct: ipv4_option_timestamp_timestamp
 no-such-struct: ipv4_option_ra
 no-such-struct: ipv6_addr_empty
 no-such-struct: ipv6_addr_t
