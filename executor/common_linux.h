@@ -319,9 +319,8 @@ static void netlink_add_macvlan(struct nlmsg* nlmsg, int sock, const char* name,
 
 #define IFLA_IPVLAN_FLAGS 2
 #define IPVLAN_MODE_L3S 2
-#ifndef IPVLAN_F_VEPA
+#undef IPVLAN_F_VEPA
 #define IPVLAN_F_VEPA 2
-#endif
 
 static void netlink_add_ipvlan(struct nlmsg* nlmsg, int sock, const char* name, const char* link, uint16 mode, uint16 flags)
 {
