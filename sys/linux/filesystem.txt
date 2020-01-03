@@ -109,6 +109,8 @@ syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], size i
 
 syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[exfat_options]])
 
+syz_mount_image$afs(fs ptr[in, string["afs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[afs_options]])
+
 fs_image_segment {
 	data	ptr[in, array[int8]]
 	size	len[data, intptr]
@@ -739,6 +741,16 @@ exfat_options [
 	errors_continue	stringnoz["errors=continue"]
 	utf8		stringnoz["utf8"]
 	discard		stringnoz["discard"]
+] [varlen]
+
+afs_options [
+	autocell	stringnoz["autocell"]
+	dyn		stringnoz["dyn"]
+	flock_local	stringnoz["flock=local"]
+	flock_openafs	stringnoz["flock=openafs"]
+	flock_strict	stringnoz["flock=strict"]
+	flock_write	stringnoz["flock=write"]
+	source		fs_opt_str["source"]
 ] [varlen]
 
 codepage_nums = "1250", "1251", "1255", "437", "737", "775", "850", "852", "855", "857", "860", "861", "862", "863", "864", "865", "866", "869", "874", "932", "936", "949", "950"
