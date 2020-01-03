@@ -75,6 +75,7 @@ sockaddr [
 	tipc		sockaddr_tipc
 	isdn		sockaddr_mISDN
 	l2tp		sockaddr_l2tpip
+	phonet		sockaddr_pn
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
 ] [size[SOCKADDR_SIZE]]
@@ -112,6 +113,7 @@ sockaddr_storage [
 	caif		sockaddr_caif
 	isdn		sockaddr_mISDN
 	rxrpc		sockaddr_rxrpc
+	phonet		sockaddr_pn
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_storage_generic
 ] [size[SOCKADDR_STORAGE_SIZE]]
