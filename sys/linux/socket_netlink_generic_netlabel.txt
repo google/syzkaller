@@ -1,0 +1,120 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <net/netlabel.h>
+include <net/cipso_ipv4.h>
+include <net/calipso.h>
+include <net/netlabel/netlabel_mgmt.h>
+include <net/netlabel/netlabel_unlabeled.h>
+include <net/netlabel/netlabel_cipso_v4.h>
+include <net/netlabel/netlabel_calipso.h>
+
+# MGMT
+
+resource netlbl_mgmt_family_id[int16]
+type msghdr_netlbl_mgmt[CMD] msghdr_netlink[netlink_msg_t[netlbl_mgmt_family_id, genlmsghdr_t[CMD], netlbl_mgmt_genl_policy]]
+
+syz_genetlink_get_family_id$netlbl_mgmt(name ptr[in, string["NLBL_MGMT"]]) netlbl_mgmt_family_id
+
+sendmsg$NLBL_MGMT_C_ADD(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_mgmt[NLBL_MGMT_C_ADD]], f flags[send_flags])
+sendmsg$NLBL_MGMT_C_REMOVE(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_mgmt[NLBL_MGMT_C_REMOVE]], f flags[send_flags])
+sendmsg$NLBL_MGMT_C_LISTALL(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_mgmt[NLBL_MGMT_C_LISTALL]], f flags[send_flags])
+sendmsg$NLBL_MGMT_C_ADDDEF(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_mgmt[NLBL_MGMT_C_ADDDEF]], f flags[send_flags])
+sendmsg$NLBL_MGMT_C_REMOVEDEF(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_mgmt[NLBL_MGMT_C_REMOVEDEF]], f flags[send_flags])
+sendmsg$NLBL_MGMT_C_LISTDEF(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_mgmt[NLBL_MGMT_C_LISTDEF]], f flags[send_flags])
+sendmsg$NLBL_MGMT_C_PROTOCOLS(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_mgmt[NLBL_MGMT_C_PROTOCOLS]], f flags[send_flags])
+sendmsg$NLBL_MGMT_C_VERSION(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_mgmt[NLBL_MGMT_C_VERSION]], f flags[send_flags])
+
+netlbl_mgmt_genl_policy [
+# NLBL_MGMT_A_VERSION, NLBL_MGMT_A_ADDRSELECTOR, NLBL_MGMT_A_SELECTORLIST are output.
+	NLBL_MGMT_A_DOMAIN	nlattr[NLBL_MGMT_A_DOMAIN, string]
+	NLBL_MGMT_A_PROTOCOL	nlattr[NLBL_MGMT_A_PROTOCOL, flags[nlbl_mgmt_protocol, int32]]
+	NLBL_MGMT_A_CV4DOI	nlattr[NLBL_MGMT_A_CV4DOI, flags[cipso_doi, int32]]
+	NLBL_MGMT_A_FAMILY	nlattr[NLBL_MGMT_A_FAMILY, flags[socket_domain, int16]]
+	NLBL_MGMT_A_CLPDOI	nlattr[NLBL_MGMT_A_CLPDOI, flags[calipso_doi, int32]]
+	NLBL_MGMT_A_IPV6ADDR	nlattr[NLBL_MGMT_A_IPV6ADDR, ipv6_addr]
+	NLBL_MGMT_A_IPV6MASK	nlattr[NLBL_MGMT_A_IPV6MASK, ipv6_addr]
+	NLBL_MGMT_A_IPV4ADDR	nlattr[NLBL_MGMT_A_IPV4ADDR, ipv4_addr]
+	NLBL_MGMT_A_IPV4MASK	nlattr[NLBL_MGMT_A_IPV4MASK, ipv4_addr]
+] [varlen]
+
+nlbl_mgmt_protocol = NETLBL_NLTYPE_UNLABELED, NETLBL_NLTYPE_CIPSOV4, NETLBL_NLTYPE_CALIPSO
+
+# UNLABELLED
+
+resource netlbl_unlabel_family_id[int16]
+type msghdr_netlbl_unlabel[CMD] msghdr_netlink[netlink_msg_t[netlbl_unlabel_family_id, genlmsghdr_t[CMD], netlbl_unlabel_genl_policy]]
+
+syz_genetlink_get_family_id$netlbl_unlabel(name ptr[in, string["NLBL_UNLBL"]]) netlbl_unlabel_family_id
+
+sendmsg$NLBL_UNLABEL_C_STATICADD(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_unlabel[NLBL_UNLABEL_C_STATICADD]], f flags[send_flags])
+sendmsg$NLBL_UNLABEL_C_STATICREMOVE(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_unlabel[NLBL_UNLABEL_C_STATICREMOVE]], f flags[send_flags])
+sendmsg$NLBL_UNLABEL_C_STATICLIST(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_unlabel[NLBL_UNLABEL_C_STATICLIST]], f flags[send_flags])
+sendmsg$NLBL_UNLABEL_C_STATICADDDEF(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_unlabel[NLBL_UNLABEL_C_STATICADDDEF]], f flags[send_flags])
+sendmsg$NLBL_UNLABEL_C_STATICREMOVEDEF(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_unlabel[NLBL_UNLABEL_C_STATICREMOVEDEF]], f flags[send_flags])
+sendmsg$NLBL_UNLABEL_C_STATICLISTDEF(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_unlabel[NLBL_UNLABEL_C_STATICLISTDEF]], f flags[send_flags])
+sendmsg$NLBL_UNLABEL_C_ACCEPT(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_unlabel[NLBL_UNLABEL_C_ACCEPT]], f flags[send_flags])
+sendmsg$NLBL_UNLABEL_C_LIST(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_unlabel[NLBL_UNLABEL_C_LIST]], f flags[send_flags])
+
+netlbl_unlabel_genl_policy [
+	NLBL_UNLABEL_A_ACPTFLG	nlattr[NLBL_UNLABEL_A_ACPTFLG, bool8]
+	NLBL_UNLABEL_A_IPV6ADDR	nlattr[NLBL_UNLABEL_A_IPV6ADDR, ipv6_addr]
+	NLBL_UNLABEL_A_IPV6MASK	nlattr[NLBL_UNLABEL_A_IPV6MASK, ipv6_addr]
+	NLBL_UNLABEL_A_IPV4ADDR	nlattr[NLBL_UNLABEL_A_IPV4ADDR, ipv4_addr]
+	NLBL_UNLABEL_A_IPV4MASK	nlattr[NLBL_UNLABEL_A_IPV4MASK, ipv4_addr]
+	NLBL_UNLABEL_A_IFACE	nlattr[NLBL_UNLABEL_A_IFACE, devname]
+	NLBL_UNLABEL_A_SECCTX	nlattr[NLBL_UNLABEL_A_SECCTX, string[selinux_security_context]]
+] [varlen]
+
+# CIPSO v4
+
+resource netlbl_cipsov4_family_id[int16]
+type msghdr_netlbl_cipsov4[CMD] msghdr_netlink[netlink_msg_t[netlbl_cipsov4_family_id, genlmsghdr_t[CMD], netlbl_cipsov4_genl_policy]]
+
+syz_genetlink_get_family_id$netlbl_cipso(name ptr[in, string["NLBL_CIPSOv4"]]) netlbl_cipsov4_family_id
+
+sendmsg$NLBL_CIPSOV4_C_ADD(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_cipsov4[NLBL_CIPSOV4_C_ADD]], f flags[send_flags])
+sendmsg$NLBL_CIPSOV4_C_REMOVE(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_cipsov4[NLBL_CIPSOV4_C_REMOVE]], f flags[send_flags])
+sendmsg$NLBL_CIPSOV4_C_LIST(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_cipsov4[NLBL_CIPSOV4_C_LIST]], f flags[send_flags])
+sendmsg$NLBL_CIPSOV4_C_LISTALL(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_cipsov4[NLBL_CIPSOV4_C_LISTALL]], f flags[send_flags])
+
+netlbl_cipsov4_genl_policy [
+	NLBL_CIPSOV4_A_DOI		nlattr[NLBL_CIPSOV4_A_DOI, flags[cipso_doi, int32]]
+	NLBL_CIPSOV4_A_MTYPE		nlattr[NLBL_CIPSOV4_A_MTYPE, flags[cipsov4_type, int32]]
+	NLBL_CIPSOV4_A_TAGLST		nlattr[NLBL_CIPSOV4_A_TAGLST, array[nlattr[NLBL_CIPSOV4_A_TAG, flags[cipsov4_tags, int8]]]]
+	NLBL_CIPSOV4_A_MLSLVLLST	nlattr[NLBL_CIPSOV4_A_MLSLVLLST, array[nlattr[NLBL_CIPSOV4_A_MLSLVL, array[netlbl_cipsov4_mlslvl_policy]]]]
+	NLBL_CIPSOV4_A_MLSCATLST	nlattr[NLBL_CIPSOV4_A_MLSCATLST, array[nlattr[NLBL_CIPSOV4_A_MLSCAT, array[netlbl_cipsov4_mlscat_policy]]]]
+] [varlen]
+
+netlbl_cipsov4_mlslvl_policy [
+	NLBL_CIPSOV4_A_MLSLVLLOC	nlattr[NLBL_CIPSOV4_A_MLSLVLLOC, int32[0:CIPSO_V4_MAX_LOC_LVLS]]
+	NLBL_CIPSOV4_A_MLSLVLREM	nlattr[NLBL_CIPSOV4_A_MLSLVLREM, int32[0:CIPSO_V4_MAX_REM_LVLS]]
+] [varlen]
+
+netlbl_cipsov4_mlscat_policy [
+	NLBL_CIPSOV4_A_MLSCATLOC	nlattr[NLBL_CIPSOV4_A_MLSCATLOC, int32[0:CIPSO_V4_MAX_LOC_CATS]]
+	NLBL_CIPSOV4_A_MLSCATREM	nlattr[NLBL_CIPSOV4_A_MLSCATREM, int32[0:CIPSO_V4_MAX_REM_CATS]]
+] [varlen]
+
+cipsov4_type = CIPSO_V4_MAP_TRANS, CIPSO_V4_MAP_PASS, CIPSO_V4_MAP_LOCAL
+cipsov4_tags = CIPSO_V4_TAG_INVALID, CIPSO_V4_TAG_RBITMAP, CIPSO_V4_TAG_ENUM, CIPSO_V4_TAG_RANGE, CIPSO_V4_TAG_PBITMAP, CIPSO_V4_TAG_FREEFORM
+
+# CALIPSO
+
+resource netlbl_calipso_family_id[int16]
+type msghdr_netlbl_calipso[CMD] msghdr_netlink[netlink_msg_t[netlbl_calipso_family_id, genlmsghdr_t[CMD], calipso_genl_policy]]
+
+syz_genetlink_get_family_id$netlbl_calipso(name ptr[in, string["NLBL_CALIPSO"]]) netlbl_calipso_family_id
+
+sendmsg$NLBL_CALIPSO_C_ADD(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_calipso[NLBL_CALIPSO_C_ADD]], f flags[send_flags])
+sendmsg$NLBL_CALIPSO_C_REMOVE(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_calipso[NLBL_CALIPSO_C_REMOVE]], f flags[send_flags])
+sendmsg$NLBL_CALIPSO_C_LIST(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_calipso[NLBL_CALIPSO_C_LIST]], f flags[send_flags])
+sendmsg$NLBL_CALIPSO_C_LISTALL(fd sock_nl_generic, msg ptr[in, msghdr_netlbl_calipso[NLBL_CALIPSO_C_LISTALL]], f flags[send_flags])
+
+calipso_genl_policy [
+	NLBL_CALIPSO_A_DOI	nlattr[NLBL_CALIPSO_A_DOI, flags[calipso_doi, int32]]
+	NLBL_CALIPSO_A_MTYPE	nlattr[NLBL_CALIPSO_A_MTYPE, const[CALIPSO_MAP_PASS, int32]]
+] [varlen]
