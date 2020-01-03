@@ -84,14 +84,14 @@ vlan_tag_q {
 } [packed]
 
 vlan_tag {
-	tag_ad	array[vlan_tag_ad, 0:1]
+	tag_ad	optional[vlan_tag_ad]
 	tag_q	vlan_tag_q
 } [packed]
 
 eth_packet {
 	dst_mac	mac_addr
 	src_mac	mac_addr
-	vtag	array[vlan_tag, 0:1]
+	vtag	optional[vlan_tag]
 	payload	eth_payload
 } [packed]
 
@@ -144,47 +144,23 @@ arp_htypes = ARPHRD_NETROM, ARPHRD_ETHER, ARPHRD_EETHER, ARPHRD_AX25, ARPHRD_PRO
 
 arp_ops = ARPOP_REQUEST, ARPOP_REPLY, ARPOP_RREQUEST, ARPOP_RREPLY, ARPOP_InREQUEST, ARPOP_InREPLY, ARPOP_NAK
 
-arp_generic_packet {
-	htype	flags[arp_htypes, int16be]
-	ptype	flags[ether_types, int16be]
+arp_packet [
+	generic		arp_packet_t[flags[arp_htypes, int16be], flags[ether_types, int16be], array[int8, 0:16]]
+	ether_ipv4	arp_packet_t[const[ARPHRD_ETHER, int16be], const[ETH_P_IP, int16be], ipv4_addr]
+	ether_ipv6	arp_packet_t[const[ARPHRD_ETHER, int16be], const[ETH_P_IPV6, int16be], ipv6_addr]
+] [varlen]
+
+type arp_packet_t[HTYPE, PTYPE, ADDR] {
+	htype	HTYPE
+	ptype	PTYPE
 	hlen	const[6, int8]
 	plen	len[spa, int8]
 	op	flags[arp_ops, int16be]
 	sha	mac_addr
-	spa	array[int8, 0:16]
+	spa	ADDR
 	tha	mac_addr
-	tpa	array[int8, 16]
+	tpa	ADDR
 } [packed]
-
-arp_ether_ipv4_packet {
-	htype	const[ARPHRD_ETHER, int16be]
-	ptype	const[ETH_P_IP, int16be]
-	hlen	const[6, int8]
-	plen	const[4, int8]
-	op	flags[arp_ops, int16be]
-	sha	mac_addr
-	spa	ipv4_addr
-	tha	mac_addr
-	tpa	ipv4_addr
-} [packed]
-
-arp_ether_ipv6_packet {
-	htype	const[ARPHRD_ETHER, int16be]
-	ptype	const[ETH_P_IPV6, int16be]
-	hlen	const[6, int8]
-	plen	const[16, int8]
-	op	flags[arp_ops, int16be]
-	sha	mac_addr
-	spa	ipv6_addr
-	tha	mac_addr
-	tpa	ipv6_addr
-} [packed]
-
-arp_packet [
-	generic		arp_generic_packet
-	ether_ipv4	arp_ether_ipv4_packet
-	ether_ipv6	arp_ether_ipv6_packet
-] [varlen]
 
 ################################################################################
 ################################## 802.2 (LLC) #################################
@@ -306,6 +282,7 @@ include <uapi/linux/in.h>
 include <uapi/linux/ip.h>
 include <uapi/linux/l2tp.h>
 include <net/cipso_ipv4.h>
+include <security/smack/smack.h>
 
 type ipv4_addr_t[LAST] {
 	a0	const[0xac, int8]
@@ -346,19 +323,21 @@ ipv4_addr_mask_vals = 0, 0xff000000, 0xffffff00, 0xffffffff, 0xff
 
 # http://www.iana.org/assignments/ip-parameters/ip-parameters.xhtml#ip-parameters-1
 ipv4_option [
-	generic		ipv4_option_generic
-	end		ipv4_option_end
-	noop		ipv4_option_noop
-	lsrr		ipv4_option_lsrr
-	ssrr		ipv4_option_ssrr
-	rr		ipv4_option_rr
-	timestamp	ipv4_option_timestamp
-	cipso		ipv4_option_cipso
-	ra		ipv4_option_ra
+	generic			ipv4_option_generic
+	end			ipv4_option_end
+	noop			ipv4_option_noop
+	lsrr			ipv4_option_route[IPOPT_LSRR]
+	ssrr			ipv4_option_route[IPOPT_SSRR]
+	rr			ipv4_option_route[IPOPT_RR]
+	timestamp		ipv4_option_timestamp[IPOPT_TS_TSONLY, int32be]
+	timestamp_addr		ipv4_option_timestamp[IPOPT_TS_TSANDADDR, ipv4_option_timestamp_timestamp]
+	timestamp_prespec	ipv4_option_timestamp[IPOPT_TS_PRESPEC, ipv4_option_timestamp_timestamp]
+	cipso			ipv4_option_cipso
+	ra			ipv4_option_ra
 # IPOPT_SEC and IPOPT_SID are not supported by Linux kernel
 ] [varlen]
 
-ipv4_option_types = IPOPT_END, IPOPT_NOOP, IPOPT_SEC, IPOPT_LSRR, IPOPT_TIMESTAMP, IPOPT_CIPSO, IPOPT_RR, IPOPT_SID, IPOPT_SSRR, IPOPT_RA
+ipv4_option_types = IPOPT_SEC, IPOPT_LSRR, IPOPT_TIMESTAMP, IPOPT_CIPSO, IPOPT_RR, IPOPT_SID, IPOPT_SSRR, IPOPT_RA
 
 ipv4_option_generic {
 	type	flags[ipv4_option_types, int8]
@@ -377,45 +356,27 @@ ipv4_option_noop {
 } [packed]
 
 # https://tools.ietf.org/html/rfc791#section-3.1
-ipv4_option_lsrr {
-	type	const[IPOPT_LSRR, int8]
+type ipv4_option_route[OPT] {
+	type	const[OPT, int8]
 	length	len[parent, int8]
-	pointer	int8
+	pointer	int8[4:255]
 	data	array[ipv4_addr]
-} [packed]
-
-# https://tools.ietf.org/html/rfc791#section-3.1
-ipv4_option_ssrr {
-	type	const[IPOPT_SSRR, int8]
-	length	len[parent, int8]
-	pointer	int8
-	data	array[ipv4_addr]
-} [packed]
-
-# https://tools.ietf.org/html/rfc791#section-3.1
-ipv4_option_rr {
-	type	const[IPOPT_RR, int8]
-	length	len[parent, int8]
-	pointer	int8
-	data	array[ipv4_addr]
-} [packed]
-
-ipv4_option_timestamp_flags = IPOPT_TS_TSONLY, IPOPT_TS_TSANDADDR, IPOPT_TS_PRESPEC
-
-ipv4_option_timestamp_timestamp {
-	addr		array[ipv4_addr, 0:1]
-	timestamp	int32be
 } [packed]
 
 # https://tools.ietf.org/html/rfc791#section-3.1
 # http://www.networksorcery.com/enp/protocol/ip/option004.htm
-ipv4_option_timestamp {
+type ipv4_option_timestamp[TYP, TSTAMP] {
 	type		const[IPOPT_TIMESTAMP, int8]
 	length		len[parent, int8]
-	pointer		int8
-	flg		flags[ipv4_option_timestamp_flags, int8:4]
+	pointer		int8[5:255]
+	flg		const[TYP, int8:4]
 	oflw		int8:4
-	timestamps	array[ipv4_option_timestamp_timestamp]
+	timestamps	array[TSTAMP]
+} [packed]
+
+ipv4_option_timestamp_timestamp {
+	addr		ipv4_addr
+	timestamp	int32be
 } [packed]
 
 ipv4_option_cipso_tag_types = CIPSO_V4_TAG_INVALID, CIPSO_V4_TAG_RBITMAP, CIPSO_V4_TAG_ENUM, CIPSO_V4_TAG_RANGE, CIPSO_V4_TAG_PBITMAP, CIPSO_V4_TAG_FREEFORM
@@ -431,15 +392,17 @@ ipv4_option_cipso_tag {
 ipv4_option_cipso {
 	type	const[IPOPT_CIPSO, int8]
 	length	len[parent, int8]
-	doi	int32be
+	doi	flags[cipso_doi, int32be]
 	tags	array[ipv4_option_cipso_tag]
 } [packed]
+
+cipso_doi = 0, 1, 2, SMACK_CIPSO_DOI_DEFAULT, SMACK_CIPSO_DOI_INVALID
 
 # https://tools.ietf.org/html/rfc2113
 ipv4_option_ra {
 	type	const[IPOPT_RA, int8]
 	length	len[parent, int8]
-	value	int32be
+	value	bool16
 } [packed]
 
 ipv4_options {
@@ -448,27 +411,41 @@ ipv4_options {
 
 ipv4_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW, IPPROTO_L2TP
 
-ipv4_header {
+type ipv4_header[PROTO] {
 	ihl		bytesize4[parent, int8:4]
 	version		const[4, int8:4]
 	ecn		int8:2
 	dscp		int8:6
-	total_len	len[ipv4_packet, int16be]
+# TODO: if s/ipv4_packet_t/ipv4_packet/, (1) this crashes, (2) only at runtime with:
+# panic: len field "total_len" references non existent field "ipv4_packet", pos="len"/"total_len"
+	total_len	len[ipv4_packet_t, int16be]
 	id		int16be[100:104]
-	frag_off	int16be
 # TODO: frag_off is actually 13 bits, 3 bits are flags
+	frag_off	int16be[0:0]
 	ttl		int8
-	protocol	flags[ipv4_types, int8]
+	protocol	PROTO
 	csum		csum[parent, inet, int16be]
 	src_ip		ipv4_addr
 	dst_ip		ipv4_addr
 	options		ipv4_options
 } [packed]
 
-ipv4_packet {
-	header	ipv4_header
-	payload	ipv4_payload
+type ipv4_packet_t[PROTO, PAYLOAD] {
+	header	ipv4_header[PROTO]
+	payload	PAYLOAD
 } [packed]
+
+ipv4_packet [
+	generic	ipv4_packet_t[flags[ipv4_types, int8], array[int8]]
+	tcp	ipv4_packet_t[const[IPPROTO_TCP, int8], tcp_packet]
+	udp	ipv4_packet_t[const[IPPROTO_UDP, int8], udp_packet]
+	icmp	ipv4_packet_t[const[IPPROTO_ICMP, int8], icmp_packet]
+	dccp	ipv4_packet_t[const[IPPROTO_DCCP, int8], dccp_packet]
+	igmp	ipv4_packet_t[const[IPPROTO_IGMP, int8], igmp_packet]
+	gre	ipv4_packet_t[const[IPPROTO_GRE, int8], gre_packet]
+# TODO: what proto do we need for tipc (there is no IPPROTO_TIPC)?
+	tipc	ipv4_packet_t[const[IPPROTO_TCP, int8], tipc_packet]
+] [varlen]
 
 ################################################################################
 ##################################### IPv6 #####################################
@@ -686,46 +663,34 @@ ipv6_tlv_enc_lim {
 	encap_limit	int8
 } [packed]
 
-ipv6_packet {
+ipv6_packet [
+	generic		ipv6_packet_t[flags[ipv6_types, int8], array[int8]]
+	tcp		ipv6_packet_t[const[IPPROTO_TCP, int8], tcp_packet]
+	udp		ipv6_packet_t[const[IPPROTO_UDP, int8], udp_packet]
+	icmpv6		ipv6_packet_t[const[IPPROTO_ICMPV6, int8], icmpv6_packet]
+	dccp_packet	ipv6_packet_t[const[IPPROTO_DCCP, int8], dccp_packet]
+	gre_packet	ipv6_packet_t[const[IPPROTO_GRE, int8], gre_packet]
+# TODO: what proto do we need for tipc (there is no IPPROTO_TIPC)?
+	tipc_packet	ipv6_packet_t[const[IPPROTO_TCP, int8], tipc_packet]
+] [varlen]
+
+type ipv6_packet_t[PROTO, PAYLOAD] {
 	priority	int8:4
 	version		const[6, int8:4]
-	flow_label	array[int8, 3]
 # TODO: flow_label is actually 20 bits, 4 bits are part of priority
+	flow_label	array[int8, 3]
 	length		len[payload, int16be]
-	next_header	flags[ipv6_types, int8]
+	next_header	PROTO
 	hop_limit	int8
 	src_ip		ipv6_addr
 	dst_ip		ipv6_addr
-	payload		ipv6_packet_payload
+	payload		ipv6_packet_payload[PAYLOAD]
 } [packed]
 
-ipv6_packet_payload {
+type ipv6_packet_payload[PAYLOAD] {
 	ext_headers	array[ipv6_ext_header]
-	payload		ipv6_payload
+	payload		PAYLOAD
 } [packed]
-
-################################################################################
-###################################### IP ######################################
-################################################################################
-
-ipv4_payload [
-	tcp	tcp_packet
-	udp	udp_packet
-	icmp	icmp_packet
-	dccp	dccp_packet
-	igmp	igmp_packet
-	gre	gre_packet
-	tipc	tipc_packet
-] [varlen]
-
-ipv6_payload [
-	tcp	tcp_packet
-	udp	udp_packet
-	icmpv6	icmpv6_packet
-	dccp	dccp_packet
-	gre	gre_packet
-	tipc	tipc_packet
-] [varlen]
 
 ################################################################################
 ###################################### TCP #####################################
@@ -892,7 +857,7 @@ guehdr {
 	version		int8:2
 	proto_ctype	int8
 	flags		flags[guehdr_flags, int16]
-	priv		array[flags[guehdr_prov_flags, int32], 0:1]
+	priv		optional[flags[guehdr_prov_flags, int32]]
 } [packed]
 
 guehdr_flags = GUE_FLAG_PRIV
