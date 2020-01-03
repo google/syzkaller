@@ -1763,6 +1763,8 @@ static void initialize_netdevices(void)
 	    {"batadv0", ETH_ALEN},
 	    {netdevsim, ETH_ALEN},
 	    {"xfrm0", ETH_ALEN},
+	    {"veth0_virt_wifi", ETH_ALEN},
+	    {"veth1_virt_wifi", ETH_ALEN},
 	    {"virt_wifi0", ETH_ALEN},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
@@ -1790,7 +1792,9 @@ static void initialize_netdevices(void)
 	netlink_add_hsr(&nlmsg, sock, "hsr0", "hsr_slave_0", "hsr_slave_1");
 	netlink_device_change(&nlmsg, sock, "hsr_slave_0", true, 0, 0, 0, NULL);
 	netlink_device_change(&nlmsg, sock, "hsr_slave_1", true, 0, 0, 0, NULL);
-	netlink_add_virt_wifi(&nlmsg, sock, "virt_wifi0", "lo");
+
+	netlink_add_veth(&nlmsg, sock, "veth0_virt_wifi", "veth1_virt_wifi");
+	netlink_add_virt_wifi(&nlmsg, sock, "virt_wifi0", "veth1_virt_wifi");
 
 	netdevsim_add((int)procid, 4);
 
