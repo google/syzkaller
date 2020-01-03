@@ -8,6 +8,7 @@ include <linux/netdevice.h>
 include <uapi/linux/if.h>
 include <uapi/linux/if_link.h>
 include <uapi/linux/if_addr.h>
+include <uapi/linux/if_vlan.h>
 include <uapi/linux/netlink.h>
 include <uapi/linux/netconf.h>
 include <uapi/linux/rtnetlink.h>
@@ -198,8 +199,7 @@ type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {
 	IFLA_INFO_DATA	nlattr[DATA_TYPE, DATA]
 }
 
-# TODO: can, dummy, geneve, ifb, ipoib, ipvlan, macvlan, macvtap, netdevsim
-# nlmon, vlan, vrf, vxlan, macsec
+# TODO: can, dummy, geneve, ifb, ipoib, netdevsim, nlmon, vrf, vxlan
 ifla_info_policy [
 	bond		ifla_info_policy_t["bond", IFLA_INFO_DATA, array[bond_policy]]
 	bond_slave	ifla_info_policy_t["bond_slave", IFLA_INFO_SLAVE_DATA, bond_slave_policy]
@@ -215,17 +215,81 @@ ifla_info_policy [
 	ipip6		ifla_info_policy_t["ip6tnl", IFLA_INFO_DATA, array[ipip6_policy]]
 	ip6ip6		ifla_info_policy_t["ip6tnl", IFLA_INFO_DATA, array[ip6ip6_policy]]
 	sit		ifla_info_policy_t["sit", IFLA_INFO_DATA, array[sit_policy]]
-	veth		ifla_info_policy_t["veth", IFLA_INFO_DATA, veth_policy]
+	veth		ifla_info_policy_t["veth", IFLA_INFO_DATA, optional[veth_policy]]
 	vti		ifla_info_policy_t["vti", IFLA_INFO_DATA, array[vti_policy]]
 	ip6vti		ifla_info_policy_t["ip6vti", IFLA_INFO_DATA, array[ip6vti_policy]]
 # TODO: this should be a net device fd. How does one even obtain these?
 	ppp		ifla_info_policy_t["ppp", IFLA_INFO_DATA, nlattr[IFLA_PPP_DEV_FD, fd]]
-	gtp		ifla_info_policy_t["gtp", IFLA_INFO_DATA, gtp_policy]
-	hsr		ifla_info_policy_t["hsr", IFLA_INFO_DATA, hsr_policy]
-	xfrm		ifla_info_policy_t["xfrm", IFLA_INFO_DATA, xfrmi_policy]
+	gtp		ifla_info_policy_t["gtp", IFLA_INFO_DATA, array[gtp_policy]]
+	hsr		ifla_info_policy_t["hsr", IFLA_INFO_DATA, array[hsr_policy]]
+	xfrm		ifla_info_policy_t["xfrm", IFLA_INFO_DATA, array[xfrmi_policy]]
 	vcan		ifla_info_policy_t["vcan", IFLA_INFO_DATA, void]
 	vxcan		ifla_info_policy_t["vxcan", IFLA_INFO_DATA, optional[nlattr[VXCAN_INFO_PEER, peer_info]]]
+	vlan		ifla_info_policy_t["vlan", IFLA_INFO_DATA, array[vlan_policy]]
+	ipvlan		ifla_info_policy_t["ipvlan", IFLA_INFO_DATA, array[ipvlan_nl_policy]]
+	macvlan		ifla_info_policy_t["macvlan", IFLA_INFO_DATA, array[macvlan_policy]]
+	macvtap		ifla_info_policy_t["macvtap", IFLA_INFO_DATA, void]
+	macsec		ifla_info_policy_t["macsec", IFLA_INFO_DATA, array[macsec_rtnl_policy]]
 ] [varlen]
+
+macsec_rtnl_policy [
+# TODO: all of these need better types.
+	IFLA_MACSEC_SCI			nlattr[IFLA_MACSEC_SCI, int64]
+	IFLA_MACSEC_ICV_LEN		nlattr[IFLA_MACSEC_ICV_LEN, int8]
+	IFLA_MACSEC_CIPHER_SUITE	nlattr[IFLA_MACSEC_CIPHER_SUITE, int64]
+	IFLA_MACSEC_WINDOW		nlattr[IFLA_MACSEC_WINDOW, int32]
+	IFLA_MACSEC_ENCODING_SA		nlattr[IFLA_MACSEC_ENCODING_SA, int8]
+	IFLA_MACSEC_ENCRYPT		nlattr[IFLA_MACSEC_ENCRYPT, int8]
+	IFLA_MACSEC_PROTECT		nlattr[IFLA_MACSEC_PROTECT, int8]
+	IFLA_MACSEC_INC_SCI		nlattr[IFLA_MACSEC_INC_SCI, int8]
+	IFLA_MACSEC_ES			nlattr[IFLA_MACSEC_ES, int8]
+	IFLA_MACSEC_SCB			nlattr[IFLA_MACSEC_SCB, int8]
+	IFLA_MACSEC_REPLAY_PROTECT	nlattr[IFLA_MACSEC_REPLAY_PROTECT, int8]
+	IFLA_MACSEC_VALIDATION		nlattr[IFLA_MACSEC_SCI, int8]
+] [varlen]
+
+ipvlan_nl_policy [
+	IFLA_IPVLAN_MODE	nlattr[IFLA_IPVLAN_MODE, flags[ipvlan_mode, int16]]
+	IFLA_IPVLAN_FLAGS	nlattr[IFLA_IPVLAN_FLAGS, flags[ipvlan_flags, int16]]
+] [varlen]
+
+ipvlan_mode = IPVLAN_MODE_L2, IPVLAN_MODE_L3, IPVLAN_MODE_L3S
+ipvlan_flags = IPVLAN_F_PRIVATE, IPVLAN_F_VEPA
+
+macvlan_policy [
+	IFLA_MACVLAN_MODE		nlattr[IFLA_MACVLAN_MODE, flags[macvlan_mode, int32]]
+	IFLA_MACVLAN_FLAGS		nlattr[IFLA_MACVLAN_FLAGS, bool16]
+	IFLA_MACVLAN_MACADDR_MODE	nlattr[IFLA_MACVLAN_MACADDR_MODE, flags[macvlan_macaddr_mode, int32]]
+	IFLA_MACVLAN_MACADDR		nlattr[IFLA_MACVLAN_MACADDR, mac_addr]
+	IFLA_MACVLAN_MACADDR_DATA	nlattr[IFLA_MACVLAN_MACADDR_DATA, array[nlattr[IFLA_MACVLAN_MACADDR, mac_addr]]]
+] [varlen]
+
+macvlan_mode = MACVLAN_MODE_PRIVATE, MACVLAN_MODE_VEPA, MACVLAN_MODE_BRIDGE, MACVLAN_MODE_PASSTHRU, MACVLAN_MODE_SOURCE
+macvlan_macaddr_mode = MACVLAN_MACADDR_ADD, MACVLAN_MACADDR_DEL, MACVLAN_MACADDR_FLUSH, MACVLAN_MACADDR_SET
+
+vlan_policy [
+	IFLA_VLAN_ID		nlattr[IFLA_VLAN_ID, int16[0:4]]
+	IFLA_VLAN_FLAGS		nlattr[IFLA_VLAN_FLAGS, ifla_vlan_flags]
+	IFLA_VLAN_EGRESS_QOS	nlattr[IFLA_VLAN_EGRESS_QOS, array[vlan_map_policy]]
+	IFLA_VLAN_INGRESS_QOS	nlattr[IFLA_VLAN_INGRESS_QOS, array[vlan_map_policy]]
+	IFLA_VLAN_PROTOCOL	nlattr[IFLA_VLAN_PROTOCOL, flags[vlan_proto, int16be]]
+] [varlen]
+
+ifla_vlan_flags {
+	flags	flags[ifla_vlan_flags, int32]
+	mask	flags[ifla_vlan_flags, int32]
+}
+
+ifla_vlan_flags = VLAN_FLAG_REORDER_HDR, VLAN_FLAG_GVRP, VLAN_FLAG_LOOSE_BINDING, VLAN_FLAG_MVRP, VLAN_FLAG_BRIDGE_BINDING
+
+vlan_map_policy [
+	IFLA_VLAN_QOS_MAPPING	nlattr[IFLA_VLAN_QOS_MAPPING, ifla_vlan_qos_mapping]
+] [varlen]
+
+ifla_vlan_qos_mapping {
+	from	int32
+	to	int32
+}
 
 xfrmi_policy [
 	IFLA_XFRM_LINK	nlattr[IFLA_XFRM_LINK, int32[0:4]]
