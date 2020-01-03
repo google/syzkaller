@@ -233,30 +233,24 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
-	if mgr.checkResult == nil {
-		http.Error(w, fmt.Sprintf("machine is not checked yet"), http.StatusInternalServerError)
-		return
-	}
-	if mgr.cfg.Cover {
-		mgr.httpCoverCover(w, r)
-	} else {
+	if !mgr.cfg.Cover {
+		mgr.mu.Lock()
+		defer mgr.mu.Unlock()
 		mgr.httpCoverFallback(w, r)
 	}
-}
-
-func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
-	if mgr.cfg.KernelObj == "" {
-		http.Error(w, fmt.Sprintf("no kernel_obj in config file"), http.StatusInternalServerError)
-		return
-	}
+	// Note: initCover is executed without mgr.mu because it takes very long time
+	// (but it only reads config and it protected by initCoverOnce).
 	if err := initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject,
 		mgr.cfg.KernelSrc, mgr.cfg.KernelBuildSrc, mgr.cfg.TargetVMArch, mgr.cfg.TargetOS); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	mgr.httpCoverCover(w, r)
+}
+
+func (mgr *Manager) httpCoverCover(w http.ResponseWriter, r *http.Request) {
 	var progs []cover.Prog
 	if sig := r.FormValue("input"); sig != "" {
 		inp := mgr.corpus[sig]
@@ -423,14 +417,15 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
+	// Note: initCover is executed without mgr.mu because it takes very long time
+	// (but it only reads config and it protected by initCoverOnce).
 	if err := initCover(mgr.cfg.KernelObj, mgr.sysTarget.KernelObject, mgr.cfg.KernelSrc,
 		mgr.cfg.KernelBuildSrc, mgr.cfg.TargetArch, mgr.cfg.TargetOS); err != nil {
 		http.Error(w, initCoverError.Error(), http.StatusInternalServerError)
 		return
 	}
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
 
 	var cov cover.Cover
 	for _, inp := range mgr.corpus {
