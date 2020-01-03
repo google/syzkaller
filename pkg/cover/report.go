@@ -24,6 +24,7 @@ import (
 type ReportGenerator struct {
 	srcDir   string
 	buildDir string
+	objDir   string
 	symbols  []symbol
 	pcs      map[uint64][]symbolizer.Frame
 }
@@ -42,6 +43,7 @@ func MakeReportGenerator(vmlinux, srcDir, buildDir, arch string) (*ReportGenerat
 	rg := &ReportGenerator{
 		srcDir:   srcDir,
 		buildDir: buildDir,
+		objDir:   filepath.Dir(vmlinux),
 		pcs:      make(map[uint64][]symbolizer.Frame),
 	}
 	errc := make(chan error)
@@ -159,13 +161,19 @@ func (rg *ReportGenerator) generate(w io.Writer, progs []Prog, files map[string]
 		Root: new(templateDir),
 	}
 	for fname, file := range files {
-		if !strings.HasPrefix(fname, rg.buildDir) {
-			return fmt.Errorf("path '%s' doesn't match build dir '%s'", fname, rg.buildDir)
+		remain := ""
+		switch {
+		case strings.HasPrefix(fname, rg.objDir):
+			// Assume the file was built there.
+			remain = filepath.Clean(strings.TrimPrefix(fname, rg.objDir))
+		case strings.HasPrefix(fname, rg.buildDir):
+			// Assume the file was moved from buildDir to srcDir.
+			remain = filepath.Clean(strings.TrimPrefix(fname, rg.buildDir))
+			fname = filepath.Join(rg.srcDir, remain)
+		default:
+			return fmt.Errorf("path %q doesn't match build dir %q nor obj dir %q",
+				fname, rg.buildDir, rg.objDir)
 		}
-		// Trim the existing build dir
-		remain := filepath.Clean(strings.TrimPrefix(fname, rg.buildDir))
-		// Add the current kernel source dir
-		fname = filepath.Join(rg.srcDir, remain)
 		pos := d.Root
 		path := ""
 		for {
