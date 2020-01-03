@@ -396,7 +396,7 @@ ipv4_option_cipso {
 	tags	array[ipv4_option_cipso_tag]
 } [packed]
 
-cipso_doi = 0, 1, 2, SMACK_CIPSO_DOI_DEFAULT, SMACK_CIPSO_DOI_INVALID
+cipso_doi = CIPSO_V4_DOI_UNKNOWN, SMACK_CIPSO_DOI_DEFAULT, SMACK_CIPSO_DOI_INVALID, 1, 2, 3
 
 # https://tools.ietf.org/html/rfc2113
 ipv4_option_ra {
@@ -642,14 +642,15 @@ ipv6_tlv_calipso {
 } [packed]
 
 # TODO: checksum is generally incorrect.
-# TODO: domain should be flags, but it's unclear if we have any domains registered by default.
 ipv6_tlv_calipso_payload {
-	domain			int32be
+	domain			flags[calipso_doi, int32be]
 	compartment_length	bytesize4[compartment_bitmap, int8]
 	sensitivity_level	int8
 	checksum		int16
 	compartment_bitmap	array[int64]
 } [packed]
+
+calipso_doi = 0, 1, 2, 3
 
 ipv6_tlv_hao {
 	type	const[IPV6_TLV_HAO, int8]
