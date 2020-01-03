@@ -5,7 +5,6 @@ package prog
 
 import (
 	"fmt"
-	"strings"
 )
 
 const (
@@ -70,12 +69,7 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 		return
 	}
 	for buf := parentsMap[pos]; buf != nil; buf = parentsMap[buf] {
-		parentName := buf.Type().Name()
-		if pos := strings.IndexByte(parentName, '['); pos != -1 {
-			// For template parents, strip arguments.
-			parentName = parentName[:pos]
-		}
-		if elem != parentName {
+		if elem != buf.Type().TemplateName() {
 			continue
 		}
 		if len(path) == 0 {

@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Syscall struct {
@@ -55,6 +56,7 @@ type Type interface {
 	String() string
 	Name() string
 	FieldName() string
+	TemplateName() string // for template structs name without arguments
 	Dir() Dir
 	Optional() bool
 	Varlen() bool
@@ -101,6 +103,14 @@ func (t *TypeCommon) Name() string {
 
 func (t *TypeCommon) FieldName() string {
 	return t.FldName
+}
+
+func (t *TypeCommon) TemplateName() string {
+	name := t.TypeName
+	if pos := strings.IndexByte(name, '['); pos != -1 {
+		name = name[:pos]
+	}
+	return name
 }
 
 func (t *TypeCommon) Optional() bool {
