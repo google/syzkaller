@@ -65,7 +65,9 @@ def extract_usb_items_and_deps(kconf):
 	for node in kconf.node_iter():
 		if node.item.__class__ not in [kconfiglib.Symbol, kconfiglib.Choice]:
 			continue
-		if node.item.tri_value == 0:
+		if node.item.__class__ is kconfiglib.Symbol and node.item.str_value == "n":
+			continue
+		if node.item.__class__ is kconfiglib.Choice and node.item.str_value == 0:
 			continue
 		if item_depends_on_syms(node.item, core_usb_syms):
 			usb_items.add(node.item)
@@ -109,15 +111,21 @@ new_kconf = kconfiglib.Kconfig(warn=False)
 new_kconf.load_config()
 
 for (usb_items, dep_items) in base_items:
-	# First, enable all extracted dependencies as =y.
+	# First, enable all extracted dependencies turning =m into =y.
 	for item in dep_items:
 		if item.__class__ is kconfiglib.Symbol:
-			new_kconf.syms[item.name].set_value(2)
+			value = item.str_value
+			if value == "m":
+				value = "y"
+			new_kconf.syms[item.name].set_value(value)
 
-	# Then, enable extracted USB items as =y.
+	# Then, enable extracted USB items turning =m into =y.
 	for item in usb_items:
 		if item.__class__ is kconfiglib.Symbol:
-			new_kconf.syms[item.name].set_value(2)
+			value = item.str_value
+			if value == "m":
+				value = "y"
+			new_kconf.syms[item.name].set_value(value)
 
 # Now, disable USB symbols that are disabled in all of the base configs,
 # as they might have been enabled when some of the dependecies got enabled.
