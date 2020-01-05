@@ -1696,6 +1696,7 @@ error:
 
 #if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
 #include <fcntl.h>
+#include <sched.h>
 
 static void initialize_devlink_pci(void)
 {
