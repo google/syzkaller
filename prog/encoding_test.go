@@ -338,7 +338,7 @@ func TestSerializeDeserialize(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
 	tests := [][2]string{
 		{
-			`serialize0(&(0x7f0000408000)={"6861736800000000000000000000", "4849000000"})`,
+			`serialize0(&(0x7f0000408000)={"6861736800000000000000000000", "48490000"})`,
 			`serialize0(&(0x7f0000408000)={'hash\x00', 'HI\x00'})`,
 		},
 		{
