@@ -115,7 +115,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	callName := ".extra"
 	logCallName := "extra"
 	if item.call != -1 {
-		callName = item.p.Calls[item.call].Meta.CallName
+		callName = item.p.Calls[item.call].Meta.Name
 		logCallName = fmt.Sprintf("call #%v %v", item.call, callName)
 	}
 	log.Logf(3, "triaging input for %v (new signal=%v)", logCallName, newSignal.Len())
