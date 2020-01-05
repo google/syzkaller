@@ -210,7 +210,7 @@ xt_helper_info {
 	name	string[xt_helper_names, 30]
 }
 
-xt_helper_names = "ftp-20000", "tftp-20000", "sip-20000", "irc-20000", "sane-20000", "amanda", "RAS", "Q.931", "H.245"
+xt_helper_names = "ftp-20000", "tftp-20000", "sip-20000", "irc-20000", "sane-20000", "amanda", "RAS", "Q.931", "H.245", "netbios-ns", "snmp", "snmp_trap", "pptp"
 
 xt_rateest_match_info {
 	name1	devname
