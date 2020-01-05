@@ -170,8 +170,13 @@ func convertStats(stats map[string]uint64, secs uint64) []UIStat {
 func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-
+	if mgr.checkResult == nil {
+		return nil
+	}
 	calls := make(map[string]*CallCov)
+	for _, call := range mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox] {
+		calls[mgr.target.Syscalls[call].Name] = new(CallCov)
+	}
 	for _, inp := range mgr.corpus {
 		if calls[inp.Call] == nil {
 			calls[inp.Call] = new(CallCov)
@@ -316,16 +321,10 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	call := r.FormValue("call")
-	idx := -1
-	for i, c := range mgr.target.Syscalls {
-		if c.CallName == call {
-			idx = i
-			break
-		}
-	}
-	if idx == -1 {
-		http.Error(w, fmt.Sprintf("unknown call: %v", call), http.StatusInternalServerError)
+	callName := r.FormValue("call")
+	call := mgr.target.SyscallMap[callName]
+	if call == nil {
+		http.Error(w, fmt.Sprintf("unknown call: %v", callName), http.StatusInternalServerError)
 		return
 	}
 
@@ -340,8 +339,8 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	}
 	prios := mgr.target.CalculatePriorities(corpus)
 
-	data := &UIPrioData{Call: call}
-	for i, p := range prios[idx] {
+	data := &UIPrioData{Call: callName}
+	for i, p := range prios[call.ID] {
 		data.Prios = append(data.Prios, UIPrio{mgr.target.Syscalls[i].Name, p})
 	}
 	sort.Slice(data.Prios, func(i, j int) bool {
