@@ -1,0 +1,37 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/nfnetlink.h>
+include <uapi/linux/netfilter/nfnetlink_conntrack.h>
+
+type msghdr_conntrack_exp[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_CTNETLINK_EXP, CMD, POLICY]]
+
+sendmsg$IPCTNL_MSG_EXP_GET(fd sock_nl_netfilter, msg ptr[in, msghdr_conntrack_exp[IPCTNL_MSG_EXP_GET, exp_nla_policy]], f flags[send_flags])
+sendmsg$IPCTNL_MSG_EXP_NEW(fd sock_nl_netfilter, msg ptr[in, msghdr_conntrack_exp[IPCTNL_MSG_EXP_NEW, exp_nla_policy]], f flags[send_flags])
+sendmsg$IPCTNL_MSG_EXP_DELETE(fd sock_nl_netfilter, msg ptr[in, msghdr_conntrack_exp[IPCTNL_MSG_EXP_DELETE, exp_nla_policy]], f flags[send_flags])
+sendmsg$IPCTNL_MSG_EXP_GET_STATS_CPU(fd sock_nl_netfilter, msg ptr[in, msghdr_conntrack_exp[IPCTNL_MSG_EXP_GET_STATS_CPU, void]], f flags[send_flags])
+
+exp_nla_policy [
+	CTA_EXPECT_MASTER	nlattr[CTA_EXPECT_MASTER, array[tuple_nla_policy]]
+	CTA_EXPECT_TUPLE	nlattr[CTA_EXPECT_TUPLE, array[tuple_nla_policy]]
+	CTA_EXPECT_MASK		nlattr[CTA_EXPECT_MASK, array[tuple_nla_policy]]
+	CTA_EXPECT_TIMEOUT	nlattr[CTA_EXPECT_TIMEOUT, int32be]
+	CTA_EXPECT_ID		nlattr[CTA_EXPECT_ID, int32be]
+	CTA_EXPECT_HELP_NAME	nlattr[CTA_EXPECT_HELP_NAME, string[xt_helper_names]]
+	CTA_EXPECT_ZONE		nlattr[CTA_EXPECT_ZONE, conntrack_zone]
+	CTA_EXPECT_FLAGS	nlattr[CTA_EXPECT_FLAGS, flags[conntrack_exp_flags, int32be]]
+	CTA_EXPECT_CLASS	nlattr[CTA_EXPECT_CLASS, int32be]
+	CTA_EXPECT_NAT		nlattr[CTA_EXPECT_NAT, array[exp_nat_nla_policy]]
+	CTA_EXPECT_FN		nlattr[CTA_EXPECT_FN, string[conntrack_exp_func]]
+] [varlen]
+
+exp_nat_nla_policy [
+	CTA_EXPECT_NAT_DIR	nlattr[CTA_EXPECT_NAT_DIR, int32be[0:1]]
+	CTA_EXPECT_NAT_TUPLE	nlattr[CTA_EXPECT_NAT_TUPLE, array[tuple_nla_policy]]
+] [varlen]
+
+conntrack_exp_flags = NF_CT_EXPECT_PERMANENT, NF_CT_EXPECT_INACTIVE
+conntrack_exp_func = "Q.931", "callforwarding", "sip"

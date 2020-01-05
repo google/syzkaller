@@ -6,6 +6,7 @@ include <uapi/linux/netlink.h>
 include <uapi/linux/netfilter.h>
 include <uapi/linux/netfilter/nfnetlink.h>
 include <uapi/linux/netfilter/nfnetlink_conntrack.h>
+include <uapi/linux/netfilter/nf_conntrack_common.h>
 
 type msghdr_conntrack[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_CTNETLINK, CMD, POLICY]]
 
@@ -24,21 +25,21 @@ sendmsg$IPCTNL_MSG_CT_GET_UNCONFIRMED(fd sock_nl_netfilter, msg ptr[in, msghdr_c
 ct_nla_policy [
 	CTA_TUPLE_ORIG		nlattr[CTA_TUPLE_ORIG, array[tuple_nla_policy]]
 	CTA_TUPLE_REPLY		nlattr[CTA_TUPLE_REPLY, array[tuple_nla_policy]]
-	CTA_STATUS		nlattr[CTA_STATUS, flags[ip_conntrack_status, int32]]
+	CTA_STATUS		nlattr[CTA_STATUS, flags[ip_conntrack_status, int32be]]
 	CTA_PROTOINFO		nlattr[CTA_PROTOINFO, protoinfo_policy]
 # The policy may also contain CTA_HELP_INFO, but I don't see any of the helpers use it.
 	CTA_HELP		nlattr[CTA_HELP, nlattr[CTA_HELP_NAME, string[xt_helper_names]]]
 	CTA_NAT_SRC		nlattr[CTA_NAT_SRC, array[nat_nla_policy]]
-	CTA_TIMEOUT		nlattr[CTA_TIMEOUT, int32]
+	CTA_TIMEOUT		nlattr[CTA_TIMEOUT, int32be]
 	CTA_MARK		nlattr[CTA_MARK, int32be]
 	CTA_ID			nlattr[CTA_ID, conntrack_id]
 	CTA_NAT_DST		nlattr[CTA_NAT_DST, array[nat_nla_policy]]
 	CTA_TUPLE_MASTER	nlattr[CTA_TUPLE_MASTER, array[tuple_nla_policy]]
 	CTA_ZONE		nlattr[CTA_ZONE, conntrack_zone]
 	CTA_MARK_MASK		nlattr[CTA_MARK_MASK, conntrack_id]
-	CTA_LABELS		nlattr[CTA_LABELS, array[int32]]
+	CTA_LABELS		nlattr[CTA_LABELS, array[int32be]]
 # NEED: CTA_LABELS_MASK should be of the same size as CTA_LABELS.
-	CTA_LABELS_MASK		nlattr[CTA_LABELS_MASK, array[int32]]
+	CTA_LABELS_MASK		nlattr[CTA_LABELS_MASK, array[int32be]]
 ] [varlen]
 
 tuple_nla_policy [
@@ -84,13 +85,13 @@ nf_ct_tcp_flags {
 dccp_nla_policy [
 	CTA_PROTOINFO_DCCP_STATE		nlattr[CTA_PROTOINFO_DCCP_STATE, int8]
 	CTA_PROTOINFO_DCCP_ROLE			nlattr[CTA_PROTOINFO_DCCP_ROLE, int8]
-	CTA_PROTOINFO_DCCP_HANDSHAKE_SEQ	nlattr[CTA_PROTOINFO_DCCP_HANDSHAKE_SEQ, int64]
+	CTA_PROTOINFO_DCCP_HANDSHAKE_SEQ	nlattr[CTA_PROTOINFO_DCCP_HANDSHAKE_SEQ, int64be]
 ] [varlen]
 
 sctp_nla_policy [
 	CTA_PROTOINFO_SCTP_STATE		nlattr[CTA_PROTOINFO_SCTP_STATE, int8]
-	CTA_PROTOINFO_SCTP_VTAG_ORIGINAL	nlattr[CTA_PROTOINFO_SCTP_VTAG_ORIGINAL, int32]
-	CTA_PROTOINFO_SCTP_VTAG_REPLY		nlattr[CTA_PROTOINFO_SCTP_VTAG_REPLY, int32]
+	CTA_PROTOINFO_SCTP_VTAG_ORIGINAL	nlattr[CTA_PROTOINFO_SCTP_VTAG_ORIGINAL, int32be]
+	CTA_PROTOINFO_SCTP_VTAG_REPLY		nlattr[CTA_PROTOINFO_SCTP_VTAG_REPLY, int32be]
 ] [varlen]
 
 nat_nla_policy [
