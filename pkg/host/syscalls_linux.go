@@ -263,7 +263,11 @@ func isSupportedLSM(c *prog.Syscall) string {
 	lsmOnce.Do(func() {
 		data, err := ioutil.ReadFile("/sys/kernel/security/lsm")
 		if err != nil {
-			lsmError = err
+			// securityfs may not be mounted, but it does not mean
+			// that no LSMs are enabled.
+			if !os.IsNotExist(err) {
+				lsmError = err
+			}
 			return
 		}
 		lsmDisabled = make(map[string]bool)
