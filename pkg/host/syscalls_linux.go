@@ -26,6 +26,9 @@ func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, st
 	if strings.HasPrefix(c.CallName, "syz_") {
 		return isSupportedSyzkall(sandbox, c)
 	}
+	if reason := isSupportedLSM(c); reason != "" {
+		return false, reason
+	}
 	if strings.HasPrefix(c.Name, "socket$") ||
 		strings.HasPrefix(c.Name, "socketpair$") {
 		return isSupportedSocket(c)
@@ -151,6 +154,9 @@ var (
 	trialSupported  = make(map[uint64]bool)
 	filesystems     []byte
 	filesystemsOnce sync.Once
+	lsmOnce         sync.Once
+	lsmError        error
+	lsmDisabled     map[string]bool
 )
 
 // The function is lengthy as it handles all pseudo-syscalls,
@@ -251,6 +257,31 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		return true, ""
 	}
 	panic("unknown syzkall: " + c.Name)
+}
+
+func isSupportedLSM(c *prog.Syscall) string {
+	lsmOnce.Do(func() {
+		data, err := ioutil.ReadFile("/sys/kernel/security/lsm")
+		if err != nil {
+			lsmError = err
+			return
+		}
+		lsmDisabled = make(map[string]bool)
+		for _, lsm := range []string{"selinux", "apparmor", "smack"} {
+			if !strings.Contains(string(data), lsm) {
+				lsmDisabled[lsm] = true
+			}
+		}
+	})
+	if lsmError != nil {
+		return lsmError.Error()
+	}
+	for lsm := range lsmDisabled {
+		if strings.Contains(strings.ToLower(c.Name), lsm) {
+			return fmt.Sprintf("LSM %v is not enabled", lsm)
+		}
+	}
+	return ""
 }
 
 func onlySandboxNone(sandbox string) (bool, string) {
