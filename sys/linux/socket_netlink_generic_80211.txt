@@ -7,6 +7,9 @@ include <uapi/linux/genetlink.h>
 include <uapi/linux/nl80211.h>
 include <linux/ieee80211.h>
 
+# TODO: the description is incomplete, lots of commands are missing.
+# But it makes sense to setup hwsim devices first, otherwise there is not much to test.
+
 resource nl80211_family_id[int16]
 
 type msghdr_nl80211[CMD, POLICY] msghdr_netlink[netlink_msg_t[nl80211_family_id, genlmsghdr_t[CMD], POLICY]]

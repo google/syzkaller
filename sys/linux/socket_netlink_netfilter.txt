@@ -14,20 +14,7 @@ socket$nl_netfilter(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[
 
 sendmsg$nl_netfilter(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_netfilter], f flags[send_flags])
 
-msghdr_nl_netfilter {
-	addr	ptr[in, sockaddr_nl_kern]
-	addrlen	len[addr, int32]
-	vec	ptr[in, iovec_nl_netfilter]
-	vlen	const[1, intptr]
-	ctrl	const[0, intptr]
-	ctrllen	const[0, intptr]
-	f	flags[send_flags, int32]
-}
-
-iovec_nl_netfilter {
-	data	ptr[in, netlink_msg_netfilter]
-	len	bytesize[data, intptr]
-}
+type msghdr_nl_netfilter msghdr_netlink[netlink_msg_netfilter]
 
 netlink_msg_netfilter {
 	len	len[parent, int32]
@@ -39,6 +26,18 @@ netlink_msg_netfilter {
 	hdr	nfgenmsg
 # No body. Generic attribute can represent a random body.
 	attrs	array[nl_generic_attr]
+} [align_4]
+
+type netlink_msg_netfilter_t[SUBSYS, CMD, POLICY] {
+	len	len[parent, int32]
+	type	const[CMD, int8]
+	subsys	const[SUBSYS, int8]
+	flags	flags[netlink_msg_flags, int16]
+	seq	netlink_seq
+	pid	netlink_port_id
+	hdr	nfgenmsg
+# No body. Generic attribute can represent a random body.
+	attrs	array[POLICY]
 } [align_4]
 
 nfgenmsg {
