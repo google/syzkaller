@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -132,8 +131,8 @@ func TestDeserialize(t *testing.T) {
 	tests := []struct {
 		input     string
 		output    string
-		err       *regexp.Regexp
-		strictErr *regexp.Regexp
+		err       string
+		strictErr string
 	}{
 		{
 			input: `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
@@ -141,7 +140,7 @@ func TestDeserialize(t *testing.T) {
 		{
 			input:     `test$struct(&(0x7f0000000000)=0x0)`,
 			output:    `test$struct(&(0x7f0000000000))`,
-			strictErr: regexp.MustCompile("wrong int arg"),
+			strictErr: "wrong int arg",
 		},
 		{
 			input: `test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
@@ -151,23 +150,23 @@ func TestDeserialize(t *testing.T) {
 		},
 		{
 			input:     `test$excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
-			strictErr: regexp.MustCompile("excessive syscall arguments"),
+			strictErr: "excessive syscall arguments",
 		},
 		{
 			input:     `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
-			strictErr: regexp.MustCompile("excessive syscall arguments"),
+			strictErr: "excessive syscall arguments",
 		},
 		{
 			input:     `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
-			strictErr: regexp.MustCompile("excessive syscall arguments"),
+			strictErr: "excessive syscall arguments",
 		},
 		{
 			input:     `test$excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
-			strictErr: regexp.MustCompile("excessive syscall arguments"),
+			strictErr: "excessive syscall arguments",
 		},
 		{
 			input:     `test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
-			strictErr: regexp.MustCompile("excessive struct excessive_fields fields"),
+			strictErr: "excessive struct excessive_fields fields",
 		},
 		{
 			input:  `test$excessive_fields1(0x0)`,
@@ -176,37 +175,37 @@ func TestDeserialize(t *testing.T) {
 		{
 			input:     `test$excessive_fields1(r0)`,
 			output:    `test$excessive_fields1(&(0x7f0000000000))`,
-			strictErr: regexp.MustCompile("undeclared variable r0"),
+			strictErr: "undeclared variable r0",
 		},
 		{
 			input:     `test$excessive_args2(r1)`,
 			output:    `test$excessive_args2(0x0)`,
-			strictErr: regexp.MustCompile("undeclared variable r1"),
+			strictErr: "undeclared variable r1",
 		},
 		{
 			input:     `test$excessive_args2({0x0, 0x1})`,
 			output:    `test$excessive_args2(0x0)`,
-			strictErr: regexp.MustCompile("wrong struct arg"),
+			strictErr: "wrong struct arg",
 		},
 		{
 			input:     `test$excessive_args2([0x0], 0x0)`,
 			output:    `test$excessive_args2(0x0)`,
-			strictErr: regexp.MustCompile("wrong array arg"),
+			strictErr: "wrong array arg",
 		},
 		{
 			input:     `test$excessive_args2(@foo)`,
 			output:    `test$excessive_args2(0x0)`,
-			strictErr: regexp.MustCompile("wrong union arg"),
+			strictErr: "wrong union arg",
 		},
 		{
 			input:     `test$excessive_args2('foo')`,
 			output:    `test$excessive_args2(0x0)`,
-			strictErr: regexp.MustCompile("wrong string arg"),
+			strictErr: "wrong string arg",
 		},
 		{
 			input:     `test$excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
 			output:    `test$excessive_args2(0x0)`,
-			strictErr: regexp.MustCompile("wrong addr arg"),
+			strictErr: "wrong addr arg",
 		},
 		{
 			input:  `test$excessive_args2(nil)`,
@@ -215,17 +214,17 @@ func TestDeserialize(t *testing.T) {
 		{
 			input:     `test$type_confusion1(&(0x7f0000000000)=@unknown)`,
 			output:    `test$type_confusion1(&(0x7f0000000000))`,
-			strictErr: regexp.MustCompile("wrong union option"),
+			strictErr: "wrong union option",
 		},
 		{
 			input:     `test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
 			output:    `test$type_confusion1(&(0x7f0000000000))`,
-			strictErr: regexp.MustCompile("wrong union option"),
+			strictErr: "wrong union option",
 		},
 		{
 			input:     `test$excessive_fields1(&(0x7f0000000000)=0x0)`,
 			output:    `test$excessive_fields1(&(0x7f0000000000))`,
-			strictErr: regexp.MustCompile("wrong int arg"),
+			strictErr: "wrong int arg",
 		},
 		{
 			input:  `test$excessive_fields1(0x0)`,
@@ -253,7 +252,7 @@ func TestDeserialize(t *testing.T) {
 		},
 		{
 			input: `test$auto0(AUTO, &AUTO={AUTO, AUTO, AUTO}, AUTO, 0x0)`,
-			err:   regexp.MustCompile(`wrong type \*prog\.IntType for AUTO`),
+			err:   `wrong type *prog.IntType for AUTO`,
 		},
 		{
 			input:  `test$str0(&AUTO="303100090a0d7022273a")`,
@@ -270,15 +269,33 @@ func TestDeserialize(t *testing.T) {
 		{
 			input:     `test$out_const(&(0x7f0000000000)=0x2)`,
 			output:    `test$out_const(&(0x7f0000000000))`,
-			strictErr: regexp.MustCompile(`out arg const\[1, const\] has non-default value: 2`),
+			strictErr: `out arg const[1, const] has non-default value: 2`,
+		},
+		{
+			input:  `test$str1(&(0x7f0000000000)='foo\x00')`,
+			output: `test$str1(&(0x7f0000000000)='foo\x00')`,
+		},
+		{
+			input:     `test$str1(&(0x7f0000000000)='bar\x00')`,
+			output:    `test$str1(&(0x7f0000000000)='foo\x00')`,
+			strictErr: `bad string value "bar\x00", expect ["foo\x00"]`,
+		},
+		{
+			input:  `test$str2(&(0x7f0000000000)='bar\x00')`,
+			output: `test$str2(&(0x7f0000000000)='bar\x00')`,
+		},
+		{
+			input:     `test$str2(&(0x7f0000000000)='baz\x00')`,
+			output:    `test$str2(&(0x7f0000000000)='foo\x00')`,
+			strictErr: `bad string value "baz\x00", expect ["foo\x00" "bar\x00"]`,
 		},
 	}
 	buf := make([]byte, ExecBufferSize)
 	for _, test := range tests {
-		if test.err != nil && test.strictErr == nil {
+		if test.strictErr == "" {
 			test.strictErr = test.err
 		}
-		if test.err != nil && test.output != "" {
+		if test.err != "" && test.output != "" {
 			t.Errorf("both err and output are set")
 			continue
 		}
@@ -289,18 +306,18 @@ func TestDeserialize(t *testing.T) {
 				wantErr = test.strictErr
 			}
 			if err != nil {
-				if wantErr == nil {
+				if wantErr == "" {
 					t.Errorf("deserialization failed with\n%s\ndata:\n%s\n",
 						err, test.input)
 					continue
 				}
-				if !wantErr.MatchString(err.Error()) {
+				if !strings.Contains(err.Error(), wantErr) {
 					t.Errorf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s",
 						err, wantErr, test.input)
 					continue
 				}
 			} else {
-				if wantErr != nil {
+				if wantErr != "" {
 					t.Errorf("deserialization should have failed with:\n%s\ndata:\n%s\n",
 						wantErr, test.input)
 					continue

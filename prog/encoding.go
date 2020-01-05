@@ -506,10 +506,11 @@ func (p *parser) parseArgAddr(typ Type) (Arg, error) {
 	return arg, nil
 }
 
-func (p *parser) parseArgString(typ Type) (Arg, error) {
-	if _, ok := typ.(*BufferType); !ok {
+func (p *parser) parseArgString(t Type) (Arg, error) {
+	typ, ok := t.(*BufferType)
+	if !ok {
 		p.eatExcessive(true, "wrong string arg")
-		return typ.DefaultArg(), nil
+		return t.DefaultArg(), nil
 	}
 	data, err := p.deserializeData()
 	if err != nil {
@@ -541,6 +542,19 @@ func (p *parser) parseArgString(typ Type) (Arg, error) {
 		data = append(data, make([]byte, diff)...)
 	}
 	data = data[:size]
+	if typ.Kind == BufferString && len(typ.Values) != 0 {
+		matched := false
+		for _, val := range typ.Values {
+			if string(data) == val {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			p.strictFailf("bad string value %q, expect %q", data, typ.Values)
+			data = []byte(typ.Values[0])
+		}
+	}
 	return MakeDataArg(typ, data), nil
 }
 
