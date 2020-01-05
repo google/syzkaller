@@ -14,7 +14,11 @@ test$int(a0 intptr, a1 int8, a2 int16, a3 int32, a4 int64)
 # String types.
 
 test$str0(a ptr[in, string])
+test$str1(a ptr[in, string["foo"]])
+test$str2(a ptr[in, string[fixed_strings]])
 test$blob0(a ptr[in, array[int8]])
+
+fixed_strings = "foo", "bar"
 
 # Opt arguments
 

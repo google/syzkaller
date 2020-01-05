@@ -93,9 +93,17 @@ func generateHints(compMap CompMap, arg Arg, exec func()) {
 		// Csum will not pass validation and is always computed.
 		return
 	case *BufferType:
-		if t.Kind == BufferFilename {
+		switch t.Kind {
+		case BufferFilename:
 			// This can generate escaping paths and is probably not too useful anyway.
 			return
+		case BufferString:
+			if len(t.Values) != 0 {
+				// These are frequently file names or complete enumerations.
+				// Mutating these may be useful iff we intercept strcmp
+				// (and filter out file names).
+				return
+			}
 		}
 	}
 

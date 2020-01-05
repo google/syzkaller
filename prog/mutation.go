@@ -344,14 +344,14 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 		data := append([]byte{}, a.Data()...)
 		a.data = mutateData(r, data, minLen, maxLen)
 	case BufferString:
-		data := append([]byte{}, a.Data()...)
-		if r.bin() {
+		if len(t.Values) != 0 {
+			a.data = r.randString(s, t)
+		} else {
 			if t.TypeSize != 0 {
 				minLen, maxLen = t.TypeSize, t.TypeSize
 			}
+			data := append([]byte{}, a.Data()...)
 			a.data = mutateData(r, data, minLen, maxLen)
-		} else {
-			a.data = r.randString(s, t)
 		}
 	case BufferFilename:
 		a.data = []byte(r.filename(s, t))
@@ -628,6 +628,10 @@ func (t *LenType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (
 
 func (t *BufferType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool) {
 	if t.Dir() == DirOut && !t.Varlen() {
+		return dontMutate, false
+	}
+	if t.Kind == BufferString && len(t.Values) == 1 {
+		// These are effectively consts (and frequently file names).
 		return dontMutate, false
 	}
 	return 0.8 * maxPriority, false
