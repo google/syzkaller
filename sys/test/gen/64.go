@@ -193,8 +193,8 @@ var structDescs_64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "offsetof", FldName: "o7", TypeSize: 4}}, BitSize: 8, Offset: true, Path: []string{"f7"}},
 	}}},
 	{Key: StructKey{Name: "serialize0_struct"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "serialize0_struct", TypeSize: 15}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "a", TypeSize: 10}, Kind: 2, SubKind: "serialize_strings", Values: []string{"aaa\x00\x00\x00\x00\x00\x00\x00", "bbb\x00\x00\x00\x00\x00\x00\x00"}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "b", TypeSize: 5}, Kind: 2, SubKind: "serialize_strings", Values: []string{"aaa\x00\x00", "bbb\x00\x00"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "a", TypeSize: 10}, Kind: 2, SubKind: "serialize_strings", Values: []string{"aaa\x00\x00\x00\x00\x00\x00\x00", "bbb\x00\x00\x00\x00\x00\x00\x00", "hash\x00\x00\x00\x00\x00\x00", "HI\x00\x00\x00\x00\x00\x00\x00\x00"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "b", TypeSize: 5}, Kind: 2, SubKind: "serialize_strings", Values: []string{"aaa\x00\x00", "bbb\x00\x00", "hash\x00", "HI\x00\x00\x00"}},
 	}}},
 	{Key: StructKey{Name: "static_filename"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "static_filename", TypeSize: 33}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "f1", TypeSize: 10}, Kind: 3},
@@ -1346,4 +1346,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "108f16d364fe32a8c41e4592f79eab831b5935a0"
+const revision_64 = "69825d8961f9b9d716935a1e9585b512ce8ef9b7"

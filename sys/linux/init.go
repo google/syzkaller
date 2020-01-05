@@ -4,7 +4,6 @@
 package linux
 
 import (
-	"bytes"
 	"runtime"
 
 	"github.com/google/syzkaller/prog"
@@ -215,8 +214,6 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		default:
 			family.Val = ^uint64(0)
 		}
-	case "syz_open_procfs":
-		arch.sanitizeSyzOpenProcfs(c)
 	case "syz_open_dev":
 		enforceIntArg(c.Args[0])
 		enforceIntArg(c.Args[1])
@@ -276,26 +273,6 @@ func (arch *arch) sanitizeIoctl(c *prog.Call) {
 		// and would be nice to test, if/when we can sanitize based on sandbox value
 		// we could prohibit it only under sandbox=none.
 		cmd.Val = arch.TIOCGSERIAL
-	}
-}
-
-func (arch *arch) sanitizeSyzOpenProcfs(c *prog.Call) {
-	// If fuzzer manages to open /proc/self/exe, it does some nasty things with it:
-	//  - mark as non-executable
-	//  - set some extended acl's that prevent execution
-	//  - mark as immutable, etc
-	// As the result we fail to start executor again and recreate the VM.
-	// Don't let it open /proc/self/exe.
-	ptr := c.Args[1].(*prog.PointerArg)
-	if ptr.Res != nil {
-		arg := ptr.Res.(*prog.DataArg)
-		file := arg.Data()
-		for len(file) != 0 && (file[0] == '/' || file[0] == '.') {
-			file = file[1:]
-		}
-		if bytes.HasPrefix(file, []byte("exe")) {
-			arg.SetData([]byte("net\x00"))
-		}
 	}
 }
 

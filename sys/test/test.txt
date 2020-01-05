@@ -771,7 +771,7 @@ serialize0_struct {
 	b	string[serialize_strings, 5]
 }
 
-serialize_strings = "aaa", "bbb"
+serialize_strings = "aaa", "bbb", "hash", "HI"
 
 # Unsupported syscalls due to resources.
 
