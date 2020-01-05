@@ -21431,6 +21431,8 @@ const call_t syscalls[] = {
     {"test$res1", 0},
     {"test$res2", 0},
     {"test$str0", 0},
+    {"test$str1", 0},
+    {"test$str2", 0},
     {"test$struct", 0},
     {"test$syz_union3", 0},
     {"test$syz_union4", 0},

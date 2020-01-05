@@ -1262,6 +1262,12 @@ var syscalls_64 = []*Syscall{
 	{Name: "test$str0", CallName: "test", MissingArgs: 5, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
+	{Name: "test$str1", CallName: "test", MissingArgs: 5, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, Values: []string{"foo\x00"}}},
+	}},
+	{Name: "test$str2", CallName: "test", MissingArgs: 5, Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, SubKind: "fixed_strings", Values: []string{"foo\x00", "bar\x00"}}},
+	}},
 	{Name: "test$struct", CallName: "test", MissingArgs: 5, Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_struct0"}}},
 	}},
@@ -1340,4 +1346,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "fd5870a81478a9208df976f4d8066bbdfa12f8e5"
+const revision_64 = "108f16d364fe32a8c41e4592f79eab831b5935a0"
