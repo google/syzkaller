@@ -164,7 +164,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		reporter:         reporter,
 		crashdir:         crashdir,
 		startTime:        time.Now(),
-		stats:            new(Stats),
+		stats:            &Stats{haveHub: cfg.HubClient != ""},
 		crashTypes:       make(map[string]bool),
 		enabledSyscalls:  syscalls,
 		corpus:           make(map[string]rpctype.RPCInput),

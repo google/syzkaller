@@ -30,26 +30,29 @@ type Stats struct {
 
 	mu         sync.Mutex
 	namedStats map[string]uint64
+	haveHub    bool
 }
 
 func (stats *Stats) all() map[string]uint64 {
 	m := map[string]uint64{
-		"crashes":              stats.crashes.get(),
-		"crash types":          stats.crashTypes.get(),
-		"suppressed":           stats.crashSuppressed.get(),
-		"vm restarts":          stats.vmRestarts.get(),
-		"new inputs":           stats.newInputs.get(),
-		"rotated inputs":       stats.rotatedInputs.get(),
-		"exec total":           stats.execTotal.get(),
-		"hub: send prog add":   stats.hubSendProgAdd.get(),
-		"hub: send prog del":   stats.hubSendProgDel.get(),
-		"hub: send repro":      stats.hubSendRepro.get(),
-		"hub: recv prog":       stats.hubRecvProg.get(),
-		"hub: recv prog drop":  stats.hubRecvProgDrop.get(),
-		"hub: recv repro":      stats.hubRecvRepro.get(),
-		"hub: recv repro drop": stats.hubRecvReproDrop.get(),
-		"cover":                stats.corpusCover.get(),
-		"signal":               stats.corpusSignal.get(),
+		"crashes":        stats.crashes.get(),
+		"crash types":    stats.crashTypes.get(),
+		"suppressed":     stats.crashSuppressed.get(),
+		"vm restarts":    stats.vmRestarts.get(),
+		"new inputs":     stats.newInputs.get(),
+		"rotated inputs": stats.rotatedInputs.get(),
+		"exec total":     stats.execTotal.get(),
+		"cover":          stats.corpusCover.get(),
+		"signal":         stats.corpusSignal.get(),
+	}
+	if stats.haveHub {
+		m["hub: send prog add"] = stats.hubSendProgAdd.get()
+		m["hub: send prog del"] = stats.hubSendProgDel.get()
+		m["hub: send repro"] = stats.hubSendRepro.get()
+		m["hub: recv prog"] = stats.hubRecvProg.get()
+		m["hub: recv prog drop"] = stats.hubRecvProgDrop.get()
+		m["hub: recv repro"] = stats.hubRecvRepro.get()
+		m["hub: recv repro drop"] = stats.hubRecvReproDrop.get()
 	}
 	stats.mu.Lock()
 	defer stats.mu.Unlock()
