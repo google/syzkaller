@@ -111,6 +111,9 @@ syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], size i
 
 syz_mount_image$afs(fs ptr[in, string["afs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[afs_options]])
 
+# Note: tmpfs does not need an image, but we use this in tests.
+syz_mount_image$tmpfs(fs ptr[in, string["tmpfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]])
+
 fs_image_segment {
 	data	ptr[in, array[int8]]
 	size	len[data, intptr]
@@ -148,7 +151,7 @@ type fs_opt_filename[NAME] fs_opt[NAME, stringnoz[filename]]
 type fs_opt_codepage[NAME] fs_opt[NAME, stringnoz[codepages_names]]
 type fs_opt_cp_num[NAME] fs_opt[NAME, stringnoz[codepage_nums]]
 
-fs_opt_digits_suffix = '-', 'x', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'k', 'm', 'g', 't', 'p', 'e'
+fs_opt_digits_suffix = '-', 'x', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'k', 'm', 'g', 't', 'p', 'e', '%'
 
 fs_options_security [
 # SELinux options:
@@ -752,6 +755,35 @@ afs_options [
 	flock_write	stringnoz["flock=write"]
 	source		fs_opt_str["source"]
 ] [varlen]
+
+tmpfs_options [
+	uid			fs_opt_hex["uid", uid]
+	gid			fs_opt_hex["gid", gid]
+	mode			fs_opt_oct["mode", int32]
+	nr_blocks		fs_opt_dec_suffix["nr_blocks"]
+	nr_inodes		fs_opt_dec_suffix["nr_inodes"]
+	size			fs_opt_dec_suffix["size"]
+	huge_never		fs_opt_str["huge=never"]
+	huge_always		fs_opt_str["huge=always"]
+	huge_within_size	fs_opt_str["huge=within_size"]
+	huge_advise		fs_opt_str["huge=advise"]
+	mpol			fs_opt["mpol", tmpfs_mpol]
+] [varlen]
+
+tmpfs_mpol {
+	policy	stringnoz[tmpfs_mpol_policy]
+	flags	stringnoz[tmpfs_mpol_flags]
+	nodes	optional[tmpfs_mpol_nodes]
+} [packed]
+
+tmpfs_mpol_nodes {
+	colon	const[':', int8]
+	nodes	array[flags[tmpfs_mpol_node_chars, int8]]
+}
+
+tmpfs_mpol_policy = "default", "prefer", "bind", "interleave", "local"
+tmpfs_mpol_flags = "", "=static", "=relative"
+tmpfs_mpol_node_chars = '-', ':', '/', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
 
 codepage_nums = "1250", "1251", "1255", "437", "737", "775", "850", "852", "855", "857", "860", "861", "862", "863", "864", "865", "866", "869", "874", "932", "936", "949", "950"
 codepages_names = "macceltic", "maccenteuro", "maccroatian", "maccyrillic", "macgaelic", "macgreek", "maciceland", "macinuit", "macroman", "macromanian", "macturkish", "ascii", "default", "cp1250", "cp1251", "cp1255", "cp437", "cp737", "cp775", "cp850", "cp852", "cp855", "cp857", "cp860", "cp861", "cp862", "cp863", "cp864", "cp865", "cp866", "cp869", "cp874", "cp932", "cp936", "cp949", "cp950", "euc-jp", "iso8859-13", "iso8859-14", "iso8859-15", "iso8859-1", "iso8859-2", "iso8859-3", "iso8859-4", "iso8859-5", "iso8859-6", "iso8859-7", "iso8859-9", "koi8-r", "koi8-ru", "koi8-u", "utf8", "none"
