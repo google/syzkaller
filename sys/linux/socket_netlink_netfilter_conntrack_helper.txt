@@ -1,0 +1,25 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/nfnetlink.h>
+include <uapi/linux/netfilter/nfnetlink_cthelper.h>
+
+type msghdr_cthelper[CMD] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_CTHELPER, CMD, nfnl_cthelper_policy]]
+
+sendmsg$NFNL_MSG_CTHELPER_NEW(fd sock_nl_netfilter, msg ptr[in, msghdr_cthelper[NFNL_MSG_CTHELPER_NEW]], f flags[send_flags])
+sendmsg$NFNL_MSG_CTHELPER_GET(fd sock_nl_netfilter, msg ptr[in, msghdr_cthelper[NFNL_MSG_CTHELPER_GET]], f flags[send_flags])
+sendmsg$NFNL_MSG_CTHELPER_DEL(fd sock_nl_netfilter, msg ptr[in, msghdr_cthelper[NFNL_MSG_CTHELPER_DEL]], f flags[send_flags])
+
+nfnl_cthelper_policy [
+	NFCTH_NAME		nlattr[NFCTH_NAME, string[cthelper_name]]
+	NFCTH_TUPLE		nlattr[NFCTH_TUPLE, array[tuple_nla_policy]]
+	NFCTH_QUEUE_NUM		nlattr[NFCTH_QUEUE_NUM, int32be]
+	NFCTH_POLICY		nlattr[NFCTH_POLICY, nlattr[NFCTH_POLICY_SET_MAX, int32be]]
+	NFCTH_PRIV_DATA_LEN	nlattr[NFCTH_PRIV_DATA_LEN, int32be[0:32]]
+	NFCTH_STATUS		nlattr[NFCTH_STATUS, int32be[0:1]]
+] [varlen]
+
+cthelper_name = "syz0", "syz1"
