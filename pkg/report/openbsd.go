@@ -186,6 +186,10 @@ var openbsdOopses = append([]*oops{
 				title: compile("panic: unhandled af"),
 				fmt:   "panic: unhandled af",
 			},
+			{
+				title: compile("panic: (kqueue|knote).* ([a-z]+ .*)"),
+				fmt:   "kqueue: %[2]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
