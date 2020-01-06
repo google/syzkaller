@@ -843,6 +843,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.Cgroups = false
 		opts.BinfmtMisc = false
 		opts.CloseFDs = false
+		opts.DevlinkPCI = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -887,6 +888,13 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.CloseFDs = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.DevlinkPCI {
+			return false
+		}
+		opts.DevlinkPCI = false
 		return true
 	},
 	func(opts *csource.Options) bool {
