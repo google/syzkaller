@@ -811,6 +811,8 @@ var linuxStackParams = &stackParams{
 		"kthread_stop",
 		"kobject_del",
 		"kobject_put",
+		"kobject_uevent_env",
+		"add_uevent_var",
 		"get_device_parent",
 		"device_add",
 		"device_del",
