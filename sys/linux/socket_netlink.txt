@@ -111,7 +111,7 @@ type nlattr[TYPE, PAYLOAD] nlattr_t[const[TYPE, int16], PAYLOAD]
 # nlattr with NLA_F_NESTED set.
 type nlnest[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 0, 1, PAYLOAD]
 # nlattr with NLA_F_NET_BYTEORDER set (unused for now).
-# type nlnetw[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 1, 0, PAYLOAD]
+type nlnetw[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 1, 0, PAYLOAD]
 
 nl_generic_attr [
 	generic	array[int8]

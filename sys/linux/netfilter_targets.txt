@@ -275,21 +275,20 @@ xt_set_info_target_v3 {
 	timeout	int32
 }
 
-type ip_set_id_t int16
-
 xt_set_info_v0 {
 	index	ip_set_id_t
-	flags	array[int32, IPSET_DIM_MAX]
-	dim	int8
-	flags2	int8
-	pad	const[0, int16]
+	flags	array[flags[xt_set_info_flags, int32], IPSET_DIM_MAX]
+	dim	int8[0:IPSET_DIM_MAX]
+	flags2	flags[xt_set_info_flags, int8]
 }
 
 xt_set_info {
 	index	ip_set_id_t
-	dim	int8
-	flags	int8
+	dim	int8[0:IPSET_DIM_MAX]
+	flags	flags[xt_set_info_flags, int8]
 }
+
+xt_set_info_flags = IPSET_SRC, IPSET_DST, IPSET_MATCH_INV
 
 ip_set_counter_match0 {
 	op	int8
