@@ -157,10 +157,10 @@ ip_set_type_adt_policy [
 
 ipaddr_policy [
 # TODO: should ipv4_addr be in reverse byte order here? 
-	IPSET_ATTR_IPADDR_IPV4	nlattr[IPSET_ATTR_IPADDR_IPV4, ipv4_addr]
-	IPSET_ATTR_IPADDR_IPV6	nlattr[IPSET_ATTR_IPADDR_IPV6, ipv6_addr]
+	IPSET_ATTR_IPADDR_IPV4	nlnetw[IPSET_ATTR_IPADDR_IPV4, ipv4_addr]
+	IPSET_ATTR_IPADDR_IPV6	nlnetw[IPSET_ATTR_IPADDR_IPV6, ipv6_addr]
 ] [varlen]
 
 ipset_name = "syz0", "syz1", "syz2"
-ipset_type = "list:set", "bitmap:ip", "hash:net,port,net", "hash:net,port", "hash:net,net", "hash:net,iface", "hash:net", "hash:mac", "hash:ip,port,net", "hash:ip,port,ip", "hash:ip,port", "hash:ip,mark", "hash:ip", "hash:ip,mac", "hash:ip", "bitmap:ip,mac"
+ipset_type = "list:set", "bitmap:ip", "bitmap:port", "hash:net,port,net", "hash:net,port", "hash:net,net", "hash:net,iface", "hash:net", "hash:mac", "hash:ip,port,net", "hash:ip,port,ip", "hash:ip,port", "hash:ip,mark", "hash:ip", "hash:ip,mac", "hash:ip", "bitmap:ip,mac"
 ipset_cadt_flags = IPSET_FLAG_BEFORE, IPSET_FLAG_PHYSDEV, IPSET_FLAG_NOMATCH, IPSET_FLAG_WITH_COUNTERS, IPSET_FLAG_WITH_COMMENT, IPSET_FLAG_WITH_FORCEADD, IPSET_FLAG_WITH_SKBINFO, IPSET_FLAG_IFACE_WILDCARD
