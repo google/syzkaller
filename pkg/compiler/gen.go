@@ -299,6 +299,16 @@ func (comp *compiler) layoutStruct(t *prog.StructType, varlen, packed bool) {
 			byteOffset += pad
 			if i != 0 && t.Fields[i-1].IsBitfield() {
 				setBitfieldTypeSize(t.Fields[i-1], pad)
+				if bitOffset >= 8*pad {
+					// The padding is due to bitfields, so consume the bitOffset.
+					bitOffset -= 8 * pad
+				} else if bitOffset >= 8 {
+					// Unclear is this is a bug or not and what to do in this case.
+					// But since we don't have any descriptions that trigger this,
+					// let's just guard with the panic.
+					panic(fmt.Sprintf("bad bitOffset: %v.%v pad=%v bitOffset=%v",
+						t.Name(), f.FieldName(), pad, bitOffset))
+				}
 			} else {
 				newFields = append(newFields, genPad(pad))
 			}

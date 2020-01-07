@@ -21,3 +21,4 @@ syz_compare(&AUTO="12000000333333334567ab89", AUTO, &AUTO=@bf21={0x12, {0x333333
 syz_compare(&AUTO="123465", AUTO, &AUTO=@bf22={0x12, {0x34, 0x5, 0x6}}, AUTO)
 syz_compare(&AUTO="12346503", AUTO, &AUTO=@bf23={0x12, {0x34, 0x5, 0x36}}, AUTO)
 syz_compare(&AUTO="123405", AUTO, &AUTO=@bf24={0x12, {0x34, 0x5}}, AUTO)
+syz_compare(&AUTO="12000000aa00bbc0ccbb0000", AUTO, &AUTO=@bf25={0x12, {0xaa, 0xbb, 0x1, 0x1, 0xbbcc, ''}}, AUTO)

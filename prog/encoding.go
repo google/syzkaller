@@ -397,7 +397,7 @@ func (p *parser) parseArgInt(typ Type) (Arg, error) {
 		index := -v % uint64(len(p.target.SpecialPointers))
 		return MakeSpecialPointerArg(typ, index), nil
 	default:
-		p.eatExcessive(true, "wrong int arg")
+		p.eatExcessive(true, "wrong int arg %T", typ)
 		return typ.DefaultArg(), nil
 	}
 }
