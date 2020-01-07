@@ -171,6 +171,24 @@ line 2
 		cmd:  CmdNone,
 		args: "",
 	},
+	{
+		body: `#syz-fix: bar   baz`,
+		cmd:  CmdFix,
+		str:  "fix:",
+		args: "bar   baz",
+	},
+	{
+		body: `#syz-fix bar   baz`,
+		cmd:  CmdFix,
+		str:  "fix",
+		args: "bar   baz",
+	},
+	{
+		body: `#syz: fix: bar   baz`,
+		cmd:  CmdFix,
+		str:  "fix:",
+		args: "bar   baz",
+	},
 	// This is unfortunate case when a command is split by email client
 	// due to 80-column limitation.
 	{
