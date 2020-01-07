@@ -92,24 +92,37 @@ type netlink_msg_t[TYPE, PAYLOAD, ATTRS] {
 type netlink_msg[TYPE, PAYLOAD, ATTRS] netlink_msg_t[const[TYPE, int16], PAYLOAD, ATTRS]
 
 type nlattr_t[TYPE, PAYLOAD] {
-	nla_len		len[parent, int16]
+	nla_len		offsetof[size, int16]
 	nla_type	TYPE
 	payload		PAYLOAD
+	size		void
 } [packed, align_4]
 
-# NL80211 has 150 attributes.
-type nlattr_anytype[PAYLOAD] nlattr_t[int16[0:150], PAYLOAD]
+type nlattr_tt[TYPE, NETORDER, NESTED, PAYLOAD] {
+	nla_len			offsetof[size, int16]
+	nla_type		TYPE
+	NLA_F_NET_BYTEORDER	const[NETORDER, int16:1]
+	NLA_F_NESTED		const[NESTED, int16:1]
+	payload			PAYLOAD
+	size			void
+} [packed, align_4]
+
 type nlattr[TYPE, PAYLOAD] nlattr_t[const[TYPE, int16], PAYLOAD]
+# nlattr with NLA_F_NESTED set.
+type nlnest[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 0, 1, PAYLOAD]
+# nlattr with NLA_F_NET_BYTEORDER set (unused for now).
+# type nlnetw[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 1, 0, PAYLOAD]
 
 nl_generic_attr [
 	generic	array[int8]
-	typed	nlattr_anytype[nl_generic_attr_data]
-	nested	nlattr_anytype[array[nl_generic_attr_nonested]]
+# NL80211 has 150 attributes.
+	typed	nlattr_tt[int16:14[0:150], 0, 0, nl_generic_attr_data]
+	nested	nlattr_tt[int16:14[0:150], 0, 1, array[nl_generic_attr_nonested]]
 ] [varlen]
 
 nl_generic_attr_nonested [
 	generic	array[int8]
-	typed	nlattr_anytype[nl_generic_attr_data]
+	typed	nlattr_tt[int16:14[0:150], 0, 0, nl_generic_attr_data]
 ] [varlen]
 
 nl_generic_attr_data [
