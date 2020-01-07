@@ -901,32 +901,34 @@ tc_u32_mark {
 }
 
 # ------------------------------ tc action ------------------------------
+type nlattr_tca_actions[PAYLOAD] nlattr_tt[int16:14[0:TCA_ACT_MAX_PRIO], 0, 0, PAYLOAD]
+
 tca_actions [
-	m_bpf		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["bpf", array[m_bpf_options]]]
-	m_connmark	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["connmark", m_connmark_options]]
-	m_csum		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["csum", m_csum_options]]
-	m_ct		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["ct", m_ct_options]]
-	m_ctinfo	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["ctinfo", m_ctinfo_options]]
-	m_gact		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["gact", array[m_gact_options]]]
-	m_ife		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["ife", array[m_ife_options]]]
-	m_ipt		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["ipt", array[m_ipt_options]]]
-	m_xt		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["xt", array[m_xt_options]]]
-	m_mirred	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["mirred", m_mirred_options]]
-	m_mpls		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["mpls", m_mpls_options]]
-	m_nat		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["nat", m_nat_options]]
-	m_pedit		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["pedit", array[m_pedit_options]]]
-	m_police	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["police", array[m_police_options]]]
-	m_sample	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["sample", array[m_sample_options]]]
-	m_simple	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["simple", array[m_simple_options]]]
-	m_skbedit	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["skbedit", array[m_skbedit_options]]]
-	m_skbmod	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["skbmod", array[m_skbmod_options]]]
-	m_tunnel_key	nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["tunnel_key", array[m_tunnel_key_options]]]
-	m_vlan		nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_t["vlan", array[m_vlan_options]]]
+	m_bpf		nlattr_tca_actions[tca_actions_t["bpf", m_bpf_options]]
+	m_connmark	nlattr_tca_actions[tca_actions_t["connmark", m_connmark_options]]
+	m_csum		nlattr_tca_actions[tca_actions_t["csum", m_csum_options]]
+	m_ct		nlattr_tca_actions[tca_actions_t["ct", m_ct_options]]
+	m_ctinfo	nlattr_tca_actions[tca_actions_t["ctinfo", ctinfo_policy]]
+	m_gact		nlattr_tca_actions[tca_actions_t["gact", m_gact_options]]
+	m_ife		nlattr_tca_actions[tca_actions_t["ife", m_ife_options]]
+	m_ipt		nlattr_tca_actions[tca_actions_t["ipt", m_ipt_options]]
+	m_xt		nlattr_tca_actions[tca_actions_t["xt", m_xt_options]]
+	m_mirred	nlattr_tca_actions[tca_actions_t["mirred", m_mirred_options]]
+	m_mpls		nlattr_tca_actions[tca_actions_t["mpls", mpls_policy]]
+	m_nat		nlattr_tca_actions[tca_actions_t["nat", m_nat_options]]
+	m_pedit		nlattr_tca_actions[tca_actions_t["pedit", m_pedit_options]]
+	m_police	nlattr_tca_actions[tca_actions_t["police", m_police_options]]
+	m_sample	nlattr_tca_actions[tca_actions_t["sample", m_sample_options]]
+	m_simple	nlattr_tca_actions[tca_actions_t["simple", m_simple_options]]
+	m_skbedit	nlattr_tca_actions[tca_actions_t["skbedit", m_skbedit_options]]
+	m_skbmod	nlattr_tca_actions[tca_actions_t["skbmod", m_skbmod_options]]
+	m_tunnel_key	nlattr_tca_actions[tca_actions_t["tunnel_key", m_tunnel_key_options]]
+	m_vlan		nlattr_tca_actions[tca_actions_t["vlan", m_vlan_options]]
 ] [varlen]
 
 type tca_actions_t[NAME, VALUES] {
 	TCA_ACT_KIND	nlattr[TCA_ACT_KIND, string[NAME]]
-	TCA_ACT_OPTIONS	nlattr[TCA_ACT_OPTIONS, VALUES]
+	TCA_ACT_OPTIONS	nlnest[TCA_ACT_OPTIONS, array[VALUES]]
 	TCA_ACT_COOKIE	nlattr[TCA_ACT_COOKIE, array[int8]]
 } [packed, align_4]
 
@@ -962,13 +964,13 @@ m_ct_options [
 	TCA_CT_NAT_PORT_MAX	nlattr[TCA_CT_NAT_PORT_MAX, sock_port]
 ] [varlen]
 
-m_ctinfo_options [
+ctinfo_policy [
 	TCA_CTINFO_ACT			nlattr[TCA_CTINFO_ACT, tc_gen]
 	TCA_CTINFO_ZONE			nlattr[TCA_CTINFO_ZONE, int16]
 	TCA_CTINFO_PARMS_DSCP_MASK	nlattr[TCA_CTINFO_PARMS_DSCP_MASK, int32]
 	TCA_CTINFO_PARMS_DSCP_STATEMASK	nlattr[TCA_CTINFO_PARMS_DSCP_STATEMASK, int32]
 	TCA_CTINFO_PARMS_CPMARK_MASK	nlattr[TCA_CTINFO_PARMS_CPMARK_MASK, int32]
-]
+] [varlen]
 
 m_gact_options [
 	TCA_GACT_PARMS	nlattr[TCA_GACT_PARMS, tc_gen]
@@ -1016,7 +1018,7 @@ m_mirred_options [
 	TCA_MIRRED_PARMS	nlattr[TCA_MIRRED_PARMS, tc_mirred]
 ] [varlen]
 
-m_mpls_options [
+mpls_policy [
 	TCA_MPLS_PARMS	nlattr[TCA_MPLS_PARMS, tc_mpls]
 	TCA_MPLS_PROTO	nlattr[TCA_MPLS_PROTO, flags[ether_types, int16be]]
 	TCA_MPLS_LABEL	nlattr[TCA_MPLS_LABEL, int32[0:0xfffff]]
@@ -1098,7 +1100,7 @@ m_vlan_options [
 ] [varlen]
 
 action_gd_policy [
-	TCA_ACT_TAB	nlattr[TCA_ACT_TAB, array[nlattr_t[int32[0:TCA_ACT_MAX_PRIO], tca_actions_kind_index]]]
+	TCA_ACT_TAB	nlattr[TCA_ACT_TAB, array[nlattr_tca_actions[tca_actions_kind_index]]]
 ] [varlen]
 
 tca_actions_kind_index [
@@ -1258,15 +1260,17 @@ tcf_ematch_tree_hdr {
 	progid		const[TCF_EM_PROG_TC, int16]
 }
 
+type nlattr_tca_ematch_tree_list[PAYLOAD] nlattr_tt[int16:14[1:3], 0, 0, PAYLOAD]
+
 tca_ematch_tree_list [
-	TCF_EM_CONTAINER	nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_CONTAINER, array[int8]]]
-	TCF_EM_CMP		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_CMP, tcf_em_cmp]]
-	TCF_EM_NBYTE		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_NBYTE, tcf_em_nbyte]]
-	TCF_EM_U32		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_U32, tc_u32_key]]
-	TCF_EM_META		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_META, array[tcf_em_meta_policy]]]
-	TCF_EM_CANID		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_CANID, can_filter]]
-	TCF_EM_IPSET		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_IPSET, xt_set_info]]
-	TCF_EM_IPT		nlattr_t[int32, tcf_ematch_hdr_t[TCF_EM_IPT, array[tcf_em_ipt_policy]]]
+	TCF_EM_CONTAINER	nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_CONTAINER, array[int8]]]
+	TCF_EM_CMP		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_CMP, tcf_em_cmp]]
+	TCF_EM_NBYTE		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_NBYTE, tcf_em_nbyte]]
+	TCF_EM_U32		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_U32, tc_u32_key]]
+	TCF_EM_META		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_META, array[tcf_em_meta_policy]]]
+	TCF_EM_CANID		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_CANID, can_filter]]
+	TCF_EM_IPSET		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_IPSET, xt_set_info]]
+	TCF_EM_IPT		nlattr_tca_ematch_tree_list[tcf_ematch_hdr_t[TCF_EM_IPT, array[tcf_em_ipt_policy]]]
 ] [varlen]
 
 type tcf_ematch_hdr[KIND] {

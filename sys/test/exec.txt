@@ -40,7 +40,40 @@ compare_data [
 	str	string
 	blob	array[int8]
 	arr16be	array[int16be]
+	nla	array[compare_nla]
 ] [varlen]
+
+compare_nla [
+	a0	nlattr[0xaa, int8]
+	a1	nlattr[0xbb, int16]
+	a2	nlattr[0xcc, int32]
+	a3	nlattr[0xdd, int64]
+	a4	nlattr[0xee, stringnoz]
+	a5	nlnest[0xaa, int8]
+	a6	nlnest[0xaa, int32]
+	a7	nlnetw[0xaa, int8]
+	a8	nlnetw[0xaa, int32]
+] [varlen]
+
+type nlattr_t[TYPE, PAYLOAD] {
+	nla_len		offsetof[size, int16]
+	nla_type	TYPE
+	payload		PAYLOAD
+	size		void
+} [packed, align_4]
+
+type nlattr_tt[TYPE, NETORDER, NESTED, PAYLOAD] {
+	nla_len			offsetof[size, int16]
+	nla_type		TYPE
+	NLA_F_NET_BYTEORDER	const[NETORDER, int16:1]
+	NLA_F_NESTED		const[NESTED, int16:1]
+	payload			PAYLOAD
+	size			void
+} [packed, align_4]
+
+type nlattr[TYPE, PAYLOAD] nlattr_t[const[TYPE, int16], PAYLOAD]
+type nlnest[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 0, 1, PAYLOAD]
+type nlnetw[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 1, 0, PAYLOAD]
 
 align0 {
 	f0	int16
