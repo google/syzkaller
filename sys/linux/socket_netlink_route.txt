@@ -6,6 +6,7 @@
 include <linux/net.h>
 include <linux/netdevice.h>
 include <uapi/linux/if.h>
+include <uapi/linux/ip.h>
 include <uapi/linux/if_link.h>
 include <uapi/linux/if_addr.h>
 include <uapi/linux/if_vlan.h>
@@ -173,7 +174,7 @@ ifla_policy [
 	IFLA_VFINFO_LIST	nlattr[IFLA_VFINFO_LIST, array[nlattr[IFLA_VF_INFO, array[ifla_vf_policy]]]]
 	IFLA_VF_PORTS		nlattr[IFLA_VF_PORTS, array[nlattr[IFLA_VF_PORT, array[ifla_port_policy]]]]
 	IFLA_PORT_SELF		nlattr[IFLA_PORT_SELF, array[ifla_port_policy]]
-	IFLA_AF_SPEC		nlattr[IFLA_AF_SPEC, array[nlattr_t[flags[rtnl_af, int16], void]]]
+	IFLA_AF_SPEC		nlnest[IFLA_AF_SPEC, array[ifla_af_spec_policy]]
 	IFLA_EXT_MASK		nlattr[IFLA_EXT_MASK, int32]
 	IFLA_PROMISCUITY	nlattr[IFLA_PROMISCUITY, int32]
 	IFLA_NUM_TX_QUEUES	nlattr[IFLA_NUM_TX_QUEUES, int32]
@@ -192,6 +193,18 @@ ifla_policy [
 	IFLA_ALT_IFNAME		nlattr[IFLA_ALT_IFNAME, devname]
 	IFLA_GSO_MAX_SEGS	nlattr[IFLA_GSO_MAX_SEGS, int32[0:GSO_MAX_SEGS]]
 	IFLA_GSO_MAX_SIZE	nlattr[IFLA_GSO_MAX_SIZE, int32[0:GSO_MAX_SIZE]]
+] [varlen]
+
+ifla_af_spec_policy [
+	AF_INET		nlnest[AF_INET, nlnest[IFLA_INET_CONF, array[nlattr_tt[int16:14[0:IPV4_DEVCONF_MAX], 0, 0, int32]]]]
+	AF_INET6	nlnest[AF_INET6, array[inet6_af_policy]]
+	AF_BRIDGE	nlattr[AF_BRIDGE, void]
+	AF_MPLS		nlattr[AF_MPLS, void]
+] [varlen]
+
+inet6_af_policy [
+	IFLA_INET6_ADDR_GEN_MODE	nlattr[IFLA_INET6_ADDR_GEN_MODE, int8]
+	IFLA_INET6_TOKEN		nlattr[IFLA_INET6_TOKEN, ipv6_addr]
 ] [varlen]
 
 type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {

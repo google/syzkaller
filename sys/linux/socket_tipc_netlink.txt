@@ -126,7 +126,7 @@ tipc_nl_policy [
 	TIPC_NLA_SOCK	nlattr[TIPC_NLA_SOCK, array[tipc_nl_sock_policy]]
 	TIPC_NLA_LINK	nlattr[TIPC_NLA_LINK, array[tipc_nl_link_policy]]
 	TIPC_NLA_MEDIA	nlattr[TIPC_NLA_MEDIA, array[tipc_nl_media_policy]]
-	TIPC_NLA_NODE	nlattr[TIPC_NLA_NODE, array[tipc_nl_node_policy]]
+	TIPC_NLA_NODE	nlnest[TIPC_NLA_NODE, array[tipc_nl_node_policy]]
 	TIPC_NLA_NET	nlattr[TIPC_NLA_NET, array[tipc_nl_net_policy]]
 	TIPC_NLA_MON	nlattr[TIPC_NLA_MON, array[tipc_nl_monitor_policy]]
 ] [varlen]
