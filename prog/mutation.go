@@ -382,8 +382,14 @@ func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 	count := uint64(0)
 	switch t.Kind {
 	case ArrayRandLen:
-		for count == uint64(len(a.Inner)) {
-			count = r.randArrayLen()
+		if r.bin() {
+			for count = uint64(len(a.Inner)); r.bin(); {
+				count++
+			}
+		} else {
+			for count == uint64(len(a.Inner)) {
+				count = r.randArrayLen()
+			}
 		}
 	case ArrayRangeLen:
 		if t.RangeBegin == t.RangeEnd {
