@@ -47,8 +47,6 @@ const (
 	cmdTest5
 )
 
-const commandPrefix = "#syz "
-
 var groupsLinkRe = regexp.MustCompile("\nTo view this discussion on the web visit" +
 	" (https://groups\\.google\\.com/.*?)\\.(?:\r)?\n")
 
@@ -192,16 +190,25 @@ func CanonicalEmail(email string) string {
 	return strings.ToLower(addr.Address)
 }
 
+const commandPrefix = "#syz"
+
 // extractCommand extracts command to syzbot from email body.
 // Commands are of the following form:
 // ^#syz cmd args...
 func extractCommand(body string) (cmd Command, str, args string) {
-	cmdPos := strings.Index("\n"+body, "\n"+commandPrefix)
+	nbody := "\n" + body
+	cmdPos := -1
+	for _, delim := range []string{" ", "-", ":"} {
+		cmdPos = strings.Index(nbody, "\n"+commandPrefix+delim)
+		if cmdPos != -1 {
+			break
+		}
+	}
 	if cmdPos == -1 {
 		cmd = CmdNone
 		return
 	}
-	cmdPos += len(commandPrefix)
+	cmdPos += len(commandPrefix) + 1
 	for cmdPos < len(body) && body[cmdPos] == ' ' {
 		cmdPos++
 	}

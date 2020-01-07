@@ -43,6 +43,34 @@ this is reply
 `,
 	},
 	{
+		email: `
+#syz-fix
+line2
+`,
+		reply: "this is reply",
+		result: `>
+> #syz-fix
+
+this is reply
+
+> line2
+`,
+	},
+	{
+		email: `
+#syz: fix
+line2
+`,
+		reply: "this is reply",
+		result: `>
+> #syz: fix
+
+this is reply
+
+> line2
+`,
+	},
+	{
 		email: `> line1
 > line2
 #syz foo
