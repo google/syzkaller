@@ -99,7 +99,8 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	r.EnabledCalls = serv.enabledSyscalls
 	r.GitRevision = sys.GitRevision
 	r.TargetRevision = serv.target.Revision
-	if serv.mgr.rotateCorpus() && serv.rnd.Intn(3) != 0 {
+	// TODO: temporary disabled b/c we suspect this negatively affects fuzzing.
+	if false && serv.mgr.rotateCorpus() && serv.rnd.Intn(3) != 0 {
 		// We do rotation every other time because there are no objective
 		// proofs regarding its efficiency either way.
 		// Also, rotation gives significantly skewed syscall selection
