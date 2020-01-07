@@ -166,6 +166,10 @@ func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
 		"CONFIG_KCOV": "disable-always",
 		// This helps to produce stable binaries in presence of kernel tag changes.
 		"CONFIG_LOCALVERSION_AUTO": "disable-always",
+		// BTF fails lots of builds with:
+		// pahole version v1.9 is too old, need at least v1.13
+		// Failed to generate BTF for vmlinux. Try to disable CONFIG_DEBUG_INFO_BTF.
+		"CONFIG_DEBUG_INFO_BTF": "disable-always",
 	}
 	for cfg, tag := range prereq {
 		if !tags[tag] {
