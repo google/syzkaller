@@ -219,6 +219,9 @@ func (inst *instance) repair() error {
 			return err
 		}
 		log.Logf(2, "isolated: reboot succeeded")
+	} else {
+		log.Logf(2, "isolated: ssh failed")
+		return fmt.Errorf("SSH failed")
 	}
 	return nil
 }
