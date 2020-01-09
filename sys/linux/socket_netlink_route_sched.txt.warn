@@ -1,6 +1,5 @@
 no-such-struct: tcm_handle
 no-such-struct: tca_kind_options_t
-no-such-struct: m_ctinfo_options
 no-such-struct: tc_gen
 bad-field-number: tc_connmark: syz=2 kernel=6
 bad-field-size: tc_connmark.tc_gen/index: syz=20 kernel=4

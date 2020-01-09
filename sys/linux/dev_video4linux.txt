@@ -22,6 +22,9 @@ resource fd_v4l2_buffer[fd]
 syz_open_dev$video(dev ptr[in, string["/dev/video#"]], id intptr, flags flags[open_flags]) fd_video
 syz_open_dev$video4linux(dev ptr[in, string["/dev/v4l-subdev#"]], id intptr, flags flags[open_flags]) fd_video
 
+# TODO: we now get wrong values for ioctl commands that involve v4l2_buffer and v4l2_event.
+# Our definition uses 32-bit timespec, while kernel uses 64-bit timespec when __KERNEL__ is defined.
+
 # Special support for CONFIG_VIDEO_VIMC/VIM2M/VIVID/VICODEC.
 # Here we assume that all of them are enabled and the following arguments are passed on command line:
 # vivid.n_devs=16 vivid.multiplanar=1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2
