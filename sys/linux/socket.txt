@@ -41,7 +41,7 @@ shutdown(fd sock, how flags[shutdown_flags])
 getsockopt(fd sock, level int32, optname int32, optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt(fd sock, level int32, optname int32, optval buffer[in], optlen len[optval])
 
-socket_domain = AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET
+socket_domain = AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET, AF_VSOCK, AF_XDP, AF_TIPC, AF_RXRPC, AF_PPPOX, AF_RDS, AF_ROSE, AF_PHONET, AF_NFC, AF_NETROM, AF_KEY, AF_KCM, AF_ISDN, AF_SMC, AF_CAN, AF_CAIF, AF_BLUETOOTH, AF_LLC, AF_ALG
 socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET, SOCK_DCCP, SOCK_PACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
 accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
 shutdown_flags = SHUT_RD, SHUT_WR
