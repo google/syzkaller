@@ -777,10 +777,8 @@ ifla_vf_vlan_info {
 	vf		int32
 	vlan		int32[0:4095]
 	qos		int32
-	vlan_proto	flags[ifla_vf_vlan_proto, int16be]
+	vlan_proto	flags[vlan_proto, int16be]
 }
-
-ifla_vf_vlan_proto = ETH_P_8021Q, ETH_P_8021AD
 
 ifla_port_policy [
 	IFLA_PORT_VF		nlattr[IFLA_PORT_VF, int32]
