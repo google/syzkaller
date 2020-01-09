@@ -1,6 +1,6 @@
 compiler: unsupported syscall: accept due to missing const __NR_accept [386]
 no-such-struct: sock_pair
-bad-field-number: sockaddr: syz=18 kernel=2
+bad-field-number: sockaddr: syz=19 kernel=2
 bad-field-size: sockaddr.in/sa_family: syz=16 kernel=2
 bad-field-size: sockaddr.ax25/sa_data: syz=16 kernel=14
 bad-field-offset: sockaddr.ax25/sa_data: syz=16 kernel=2

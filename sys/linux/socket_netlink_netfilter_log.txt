@@ -1,0 +1,32 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/nfnetlink.h>
+include <uapi/linux/netfilter/nfnetlink_log.h>
+
+type msghdr_nf_log[CMD, POLICY] msghdr_netlink[netlink_msg_netfilter_t[NFNL_SUBSYS_ULOG, CMD, POLICY]]
+
+sendmsg$NFULNL_MSG_CONFIG(fd sock_nl_netfilter, msg ptr[in, msghdr_nf_log[NFULNL_MSG_CONFIG, nfula_cfg_policy]], f flags[send_flags])
+
+nfula_cfg_policy [
+	NFULA_CFG_CMD		nlattr[NFULA_CFG_CMD, flags[nfulnl_msg_config_cmds, int8]]
+	NFULA_CFG_MODE		nlattr[NFULA_CFG_MODE, nfulnl_msg_config_mode]
+	NFULA_CFG_TIMEOUT	nlnetw[NFULA_CFG_TIMEOUT, int32be]
+	NFULA_CFG_QTHRESH	nlnetw[NFULA_CFG_QTHRESH, int32be]
+	NFULA_CFG_NLBUFSIZ	nlnetw[NFULA_CFG_NLBUFSIZ, int32be]
+	NFULA_CFG_FLAGS		nlnetw[NFULA_CFG_FLAGS, flags[nfula_cfg_flags, int16be]]
+] [varlen]
+
+nfulnl_msg_config_cmds = NFULNL_CFG_CMD_BIND, NFULNL_CFG_CMD_UNBIND, NFULNL_CFG_CMD_PF_BIND, NFULNL_CFG_CMD_PF_UNBIND
+
+nfulnl_msg_config_mode {
+	copy_range	int32be
+	copy_mode	flags[nfula_copy_mode, int8]
+	_pad		const[0, int8]
+} [packed]
+
+nfula_cfg_flags = NFULNL_CFG_F_SEQ, NFULNL_CFG_F_SEQ_GLOBAL, NFULNL_CFG_F_CONNTRACK
+nfula_copy_mode = NFULNL_COPY_NONE, NFULNL_COPY_META, NFULNL_COPY_PACKET

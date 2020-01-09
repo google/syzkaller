@@ -16,6 +16,6 @@ bad-field-offset: xt_hmark_info.flags/hashrnd: syz=40 kernel=48
 bad-field-size: xt_hmark_info.proto_mask/hmodulus: syz=2 kernel=4
 bad-field-offset: xt_hmark_info.proto_mask/hmodulus: syz=44 kernel=52
 bad-field-offset: xt_hmark_info.hashrnd/hoffset: syz=48 kernel=56
-bad-field-number: xt_set_info_v0: syz=5 kernel=2
+bad-field-number: xt_set_info_v0: syz=4 kernel=2
 bad-field-size: xt_set_info_v0.flags/u: syz=24 kernel=28
 no-such-struct: xt_synproxy_info

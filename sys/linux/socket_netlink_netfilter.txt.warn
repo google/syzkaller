@@ -1,2 +1,1 @@
-no-such-struct: msghdr_nl_netfilter
-no-such-struct: iovec_nl_netfilter
+no-such-struct: netlink_msg_netfilter_t
