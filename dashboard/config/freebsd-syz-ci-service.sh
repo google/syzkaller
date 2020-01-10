@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # To use:
 # - place this script to /usr/local/etc/rc.d/syz_ci
