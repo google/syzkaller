@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # This script provides utility functions, don't use it directly.
 
@@ -6,12 +8,21 @@ set -eux
 
 [ -z "${CC}" ] && echo 'Please set $CC to point to the compiler!' && exit
 
-THIS_DIR=`cd $(dirname $0); pwd`
+THIS_DIR=`cd "${BASH_SOURCE[0]}"; pwd`
 MAKE_VARS="CC=${CC}"
-SYZBOT_BITS=${THIS_DIR}/bits-syzbot.config
 
 function util_add_syzbot_bits {
-  scripts/kconfig/merge_config.sh -m .config $SYZBOT_BITS
+  scripts/kconfig/merge_config.sh -m .config ${THIS_DIR}/bits-syzbot.config
+  if [ "$#" == "1" ]; then
+    if [ "$1" == "aux-debug" ]; then
+      scripts/kconfig/merge_config.sh -m .config ${THIS_DIR}/bits-syzbot-aux-debug.config
+    fi
+  fi
+  # Fix up config.
+  make ${MAKE_VARS} olddefconfig
+  # syzbot does not support modules.
+  sed -i "s#=m\$#=y#g" .config
+  # Fix up configs that can only be modules.
   make ${MAKE_VARS} olddefconfig
 }
 

@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
 # Generate upstream-kmsan.config from upstream-kasan.config.
 # Make sure $CC points to the Clang binary and $KERNEL_SOURCE - to the kernel tree.
 
