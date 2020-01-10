@@ -1,0 +1,13 @@
+### Custom additional to Android configs.
+
+### This config produces WARNINGs which we won't catch.
+# CONFIG_REFCOUNT_FULL is not set
+
+### This immidiately produces too many WARNINGs but we are not interested in WARNINGs.
+# CONFIG_DEBUG_PREEMPT is not set
+
+### This driver contains bugs and is a test module anyway.
+# CONFIG_RTC_DRV_TEST is not set
+
+### This is just being selected by something else.
+### CONFIG_CRYPTO_DEV_VIRTIO is not set
