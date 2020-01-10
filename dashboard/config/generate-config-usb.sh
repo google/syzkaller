@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2019 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 set -eux
 
@@ -16,10 +18,7 @@ make ${MAKE_VARS} defconfig
 make ${MAKE_VARS} kvmconfig
 
 util_add_usb_bits
-util_add_syzbot_bits
-
-sed -i "s#=m\$#=y#g" .config
-make ${MAKE_VARS} olddefconfig
+util_add_syzbot_bits aux-debug
 
 util_add_syzbot_extra_bits
 
