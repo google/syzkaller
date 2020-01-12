@@ -157,7 +157,7 @@ var structDescs_386 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "eth2_packet_generic"}, FldName: "generic"},
 		&StructType{Key: StructKey{Name: "eth2_packet_t[ETHERTYPE_ARP, arp_packet]"}, FldName: "arp"},
 		&StructType{Key: StructKey{Name: "eth2_packet_t[ETHERTYPE_IP, ipv4_packet]"}, FldName: "ipv4"},
-		&StructType{Key: StructKey{Name: "eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet]"}, FldName: "ipv6"},
+		&StructType{Key: StructKey{Name: "eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet_t]"}, FldName: "ipv6"},
 	}}},
 	{Key: StructKey{Name: "eth2_packet_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet_generic", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "etype", TypeSize: 2}, ArgFormat: 1}, Vals: []uint64{4, 512, 512, 1280, 1536, 1537, 1632, 1633, 2048, 2049, 2050, 2051, 2052, 2053, 2054, 2055, 2056, 2304, 2560, 2561, 2989, 2990, 2991, 4660, 5632, 6537, 6549, 15360, 15361, 15362, 15363, 15364, 15365, 15366, 15367, 15368, 15369, 15370, 15371, 15372, 15373, 16962, 16972, 17185, 19522, 21000, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 24584, 24585, 25944, 25945, 28672, 28673, 28674, 28675, 28677, 28679, 28681, 28720, 28721, 28724, 32771, 32772, 32773, 32774, 32776, 32784, 32787, 32788, 32789, 32790, 32793, 32814, 32815, 32821, 32822, 32823, 32824, 32825, 32826, 32827, 32828, 32829, 32830, 32831, 32832, 32833, 32836, 32840, 32841, 32859, 32860, 32861, 32864, 32866, 32871, 32872, 32873, 32874, 32876, 32877, 32890, 32891, 32892, 32896, 32923, 32927, 32966, 32967, 32981, 32989, 33010, 33011, 33015, 33024, 33026, 33027, 33067, 33072, 33072, 33073, 33079, 33080, 33087, 33093, 33094, 33095, 33096, 33097, 33098, 33100, 33103, 33104, 33149, 33150, 33152, 33153, 33165, 33169, 33680, 34091, 34178, 34523, 34525, 34526, 34527, 34617, 34618, 34667, 34668, 34669, 34824, 34825, 34827, 34848, 34850, 34887, 34888, 34902, 34915, 34916, 34952, 34958, 34984, 36864, 36865, 36866, 36867, 43690, 64245, 65280}},
@@ -171,9 +171,9 @@ var structDescs_386 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "etype", TypeSize: 2}, ArgFormat: 1}, Val: 2048},
 		&StructType{Key: StructKey{Name: "ipv4_packet"}, FldName: "payload"},
 	}}},
-	{Key: StructKey{Name: "eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet]", IsVarlen: true}, Fields: []Type{
+	{Key: StructKey{Name: "eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet_t]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet_t]", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "etype", TypeSize: 2}, ArgFormat: 1}, Val: 34525},
-		&StructType{Key: StructKey{Name: "ipv6_packet"}, FldName: "payload"},
+		&StructType{Key: StructKey{Name: "ipv6_packet_t"}, FldName: "payload"},
 	}}},
 	{Key: StructKey{Name: "eth_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth_packet", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "mac_addr"}, FldName: "dst_mac"},
@@ -905,7 +905,11 @@ var structDescs_386 = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_tlv_option"}}},
 	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "ipv6_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_packet", IsVarlen: true}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_packet_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_packet_payload", IsVarlen: true}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ext_headers", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_ext_header"}}},
+		&UnionType{Key: StructKey{Name: "ipv6_payload"}, FldName: "payload"},
+	}}},
+	{Key: StructKey{Name: "ipv6_packet_t"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_packet_t", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "priority"}, BitfieldLen: 4, BitfieldUnit: 1}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4, BitfieldUnit: 1}, Val: 6},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "flow_label", TypeSize: 3}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
@@ -915,10 +919,6 @@ var structDescs_386 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "src_ip"},
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "dst_ip"},
 		&StructType{Key: StructKey{Name: "ipv6_packet_payload"}, FldName: "payload"},
-	}}},
-	{Key: StructKey{Name: "ipv6_packet_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_packet_payload", IsVarlen: true}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ext_headers", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_ext_header"}}},
-		&UnionType{Key: StructKey{Name: "ipv6_payload"}, FldName: "payload"},
 	}}},
 	{Key: StructKey{Name: "ipv6_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_payload", IsVarlen: true}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "generic", IsVarlen: true}},
@@ -5703,4 +5703,4 @@ var consts_386 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_386 = "136509de148674987498a29d5f83582c5840173f"
+const revision_386 = "5f762b9ffaa1b7fb061eee13de307a294d57ba39"
