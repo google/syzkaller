@@ -89,7 +89,7 @@ eth2_packet [
 	generic	eth2_packet_generic
 	arp	eth2_packet_t[ETHERTYPE_ARP, arp_packet]
 	ipv4	eth2_packet_t[ETHERTYPE_IP, ipv4_packet]
-	ipv6	eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet]
+	ipv6	eth2_packet_t[ETHERTYPE_IPV6, ipv6_packet_t]
 ] [varlen]
 
 eth2_packet_generic {
@@ -639,7 +639,7 @@ ipv6_tlv_ra {
 	ra	int16be
 } [packed]
 
-ipv6_packet {
+ipv6_packet_t {
 	priority	int8:4
 	version		const[6, int8:4]
 	flow_label	array[int8, 3]
