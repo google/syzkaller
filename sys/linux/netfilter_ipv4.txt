@@ -181,13 +181,13 @@ ipt_ah {
 
 xt_osf_info {
 	genre		string[xt_osf_genre, MAXGENRELEN]
-	len		int32
+# unused?
+	len		const[0, int32]
 	flags		flags[xt_osf_flags, int32]
 	loglevel	int32[0:2]
 	ttl		int32[0:2]
 }
 
-# TODO: genres are somehow setup via netlink.
 xt_osf_genre = "syz0", "syz1"
 xt_osf_flags = XT_OSF_GENRE, XT_OSF_TTL, XT_OSF_LOG, XT_OSF_INVERT
 
