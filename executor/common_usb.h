@@ -85,9 +85,9 @@ struct usb_raw_init {
 };
 
 enum usb_raw_event_type {
-	USB_RAW_EVENT_INVALID,
-	USB_RAW_EVENT_CONNECT,
-	USB_RAW_EVENT_CONTROL,
+	USB_RAW_EVENT_INVALID = 0,
+	USB_RAW_EVENT_CONNECT = 1,
+	USB_RAW_EVENT_CONTROL = 2,
 };
 
 struct usb_raw_event {
