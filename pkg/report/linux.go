@@ -1364,6 +1364,23 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{},
 	},
 	{
+		[]byte("stack segment: "),
+		[]oopsFormat{
+			{
+				title: compile("stack segment: "),
+				fmt:   "stack segment fault in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		[]byte("Kernel panic"),
 		[]oopsFormat{
 			// Note: for stack corruption reports kernel may fail
