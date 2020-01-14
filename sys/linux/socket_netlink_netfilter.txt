@@ -36,7 +36,6 @@ type netlink_msg_netfilter_t[SUBSYS, CMD, POLICY] {
 	seq	netlink_seq
 	pid	netlink_port_id
 	hdr	nfgenmsg
-# No body. Generic attribute can represent a random body.
 	attrs	array[POLICY]
 } [align_4]
 
