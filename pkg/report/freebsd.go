@@ -120,6 +120,14 @@ var freebsdOopses = append([]*oops{
 				title: compile("panic: sbflush_internal: ccc [0-9]+ mb [0-9]+ mbcnt [0-9]+\\r?\\n"),
 				fmt:   "panic: sbflush_internal: residual data",
 			},
+			{
+				title: compile("(panic: sx lock still held)\\r?\\n(?:.*\\n)+?" +
+					"KDB: stack backtrace:\\r?\\n" +
+					"(?:[a-zA-Z0-9_]+\\(\\) at [a-zA-Z0-9_]+\\+0x.*\\r?\\n)*" +
+					"sx_destroy\\(\\) at [a-zA-Z0-9_+/ ]+\\r?\\n" +
+					"([a-zA-Z0-9_]+)\\(\\) at [a-zA-Z0-9_+/ ]+\\+0x.*\\r?\\n"),
+				fmt: "%[1]v in %[2]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
