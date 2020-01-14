@@ -294,10 +294,14 @@ func (mgr *Manager) vmLoop() {
 	if instancesPerRepro > vmCount {
 		instancesPerRepro = vmCount
 	}
-	instances := make([]int, vmCount)
-	for i := range instances {
-		instances[i] = vmCount - i - 1
-	}
+	bootInstance := make(chan int)
+	go func() {
+		for i := 0; i < vmCount; i++ {
+			bootInstance <- i
+			time.Sleep(10 * time.Second)
+		}
+	}()
+	var instances []int
 	runDone := make(chan *RunResult, 1)
 	pendingRepro := make(map[*Crash]bool)
 	reproducing := make(map[string]bool)
@@ -375,6 +379,8 @@ func (mgr *Manager) vmLoop() {
 
 	wait:
 		select {
+		case idx := <-bootInstance:
+			instances = append(instances, idx)
 		case stopRequest <- true:
 			log.Logf(1, "loop: issued stop request")
 			stopPending = true
