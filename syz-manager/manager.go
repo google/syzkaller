@@ -77,6 +77,7 @@ type Manager struct {
 	lastMinCorpus    int
 	memoryLeakFrames map[string]bool
 	dataRaceFrames   map[string]bool
+	saturatedCalls   map[string]bool
 
 	needMoreRepros chan chan bool
 	hubReproQueue  chan *Crash
@@ -177,6 +178,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, sysTarget *targets.T
 		needMoreRepros:   make(chan chan bool),
 		reproRequest:     make(chan chan map[string]bool),
 		usedFiles:        make(map[string]time.Time),
+		saturatedCalls:   make(map[string]bool),
 	}
 
 	log.Logf(0, "loading corpus...")
@@ -902,6 +904,39 @@ func (mgr *Manager) minimizeCorpus() {
 	mgr.corpus = newCorpus
 	mgr.lastMinCorpus = len(newCorpus)
 
+	// From time to time we get corpus explosion due to different reason:
+	// generic bugs, per-OS bugs, problems with fallback coverage, kcov bugs, etc.
+	// This has bad effect on the instance and especially on instances
+	// connected via hub. Do some per-syscall sanity checking to prevent this.
+	for call, info := range mgr.collectSyscallInfoUnlocked() {
+		if mgr.cfg.Cover {
+			// If we have less than 1K inputs per this call,
+			// accept all new inputs unconditionally.
+			if info.count < 1000 {
+				continue
+			}
+			// If we have more than 3K already, don't accept any more.
+			// Between 1K and 3K look at amount of coverage we are getting from these programs.
+			// Empirically, real coverage for the most saturated syscalls is ~30-60
+			// per program (even when we have a thousand of them). For explosion
+			// case coverage tend to be much lower (~0.3-5 per program).
+			if info.count < 3000 && len(info.cov)/info.count >= 10 {
+				continue
+			}
+		} else {
+			// If we don't have real coverage, signal is weak.
+			// If we have more than several hundreds, there is something wrong.
+			if info.count < 300 {
+				continue
+			}
+		}
+		if mgr.saturatedCalls[call] {
+			continue
+		}
+		mgr.saturatedCalls[call] = true
+		log.Logf(0, "coverage for %v has saturated, not accepting more inputs", call)
+	}
+
 	// Don't minimize persistent corpus until fuzzers have triaged all inputs from it.
 	if mgr.phase < phaseTriagedCorpus {
 		return
@@ -914,6 +949,36 @@ func (mgr *Manager) minimizeCorpus() {
 		}
 	}
 	mgr.corpusDB.BumpVersion(currentDBVersion)
+}
+
+type CallCov struct {
+	count int
+	cov   cover.Cover
+}
+
+func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	return mgr.collectSyscallInfoUnlocked()
+}
+
+func (mgr *Manager) collectSyscallInfoUnlocked() map[string]*CallCov {
+	if mgr.checkResult == nil {
+		return nil
+	}
+	calls := make(map[string]*CallCov)
+	for _, call := range mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox] {
+		calls[mgr.target.Syscalls[call].Name] = new(CallCov)
+	}
+	for _, inp := range mgr.corpus {
+		if calls[inp.Call] == nil {
+			calls[inp.Call] = new(CallCov)
+		}
+		cc := calls[inp.Call]
+		cc.count++
+		cc.cov.Merge(inp.Cover)
+	}
+	return calls
 }
 
 func (mgr *Manager) fuzzerConnect() ([]rpctype.RPCInput, BugFrames) {
@@ -965,9 +1030,12 @@ func (mgr *Manager) machineChecked(a *rpctype.CheckArgs) {
 	mgr.firstConnect = time.Now()
 }
 
-func (mgr *Manager) newInput(inp rpctype.RPCInput, sign signal.Signal) {
+func (mgr *Manager) newInput(inp rpctype.RPCInput, sign signal.Signal) bool {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+	if mgr.saturatedCalls[inp.Call] {
+		return false
+	}
 	sig := hash.String(inp.Prog)
 	if old, ok := mgr.corpus[sig]; ok {
 		// The input is already present, but possibly with diffent signal/coverage/call.
@@ -985,6 +1053,7 @@ func (mgr *Manager) newInput(inp rpctype.RPCInput, sign signal.Signal) {
 			log.Logf(0, "failed to save corpus database: %v", err)
 		}
 	}
+	return true
 }
 
 func (mgr *Manager) candidateBatch(size int) []rpctype.RPCCandidate {
