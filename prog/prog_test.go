@@ -368,6 +368,40 @@ fallback$0()
 				},
 			},
 		},
+		{
+			`
+fallback$0()
+prctl$PR_SET_SECCOMP()
+fallback$0()
+prctl$PR_SET_SECCOMP()
+fallback$0()
+`,
+			[]CallInfo{
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  1,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags:  CallExecuted,
+					Errno:  0,
+					Signal: make([]uint32, 1),
+				},
+				{
+					Flags: CallExecuted,
+				},
+			},
+		},
 	}
 	target, err := GetTarget("test", "64")
 	if err != nil {

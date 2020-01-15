@@ -209,8 +209,9 @@ func (p *Prog) FallbackSignal(info []CallInfo) {
 		if inf.Errno != 0 {
 			continue
 		}
-		if c.Meta.CallName == "seccomp" {
-			// seccomp filter can produce arbitrary errno values for subsequent syscalls. Don't trust anything afterwards.
+		if c.Meta.CallName == "seccomp" || c.Meta.CallName == "prctl" {
+			// seccomp filter can produce arbitrary errno values for subsequent syscalls.
+			// Don't trust anything afterwards. prctl can setup seccomp too.
 			break
 		}
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {

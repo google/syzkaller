@@ -21713,6 +21713,7 @@ const call_t syscalls[] = {
     {"mutate6", 0},
     {"mutate7", 0},
     {"mutate8", 0},
+    {"prctl$PR_SET_SECCOMP", 0},
     {"seccomp", 0},
     {"serialize0", 0},
     {"serialize1", 0},
