@@ -213,7 +213,7 @@ xt_ct_target_info_v1 {
 }
 
 xt_ct_flags = XT_CT_NOTRACK, XT_CT_NOTRACK_ALIAS, XT_CT_ZONE_DIR_ORIG, XT_CT_ZONE_DIR_REPL, XT_CT_ZONE_MARK
-xt_ct_helpers = "", "snmp_trap", "netbios-ns", "pptp", "snmp"
+xt_ct_helpers = "", "snmp_trap", "netbios-ns", "pptp", "snmp", "syz0", "syz1"
 xt_ct_timeouts = "syz0", "syz1"
 
 xt_audit_info {
