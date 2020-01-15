@@ -20,7 +20,7 @@ netlink_msg_netfilter {
 	len	len[parent, int32]
 	type	int8[0:20]
 	subsys	flags[nfnl_subsys, int8]
-	flags	flags[netlink_msg_flags, int16]
+	flags	flags[netlink_netfilter_msg_flags, int16]
 	seq	netlink_seq
 	pid	netlink_port_id
 	hdr	nfgenmsg
@@ -28,15 +28,17 @@ netlink_msg_netfilter {
 	attrs	array[nl_generic_attr]
 } [align_4]
 
-type netlink_msg_netfilter_t[SUBSYS, CMD, POLICY] {
+type netlink_msg_netfilter_t[SUBSYS, CMD, POLICY] netlink_msg_netfilter_tt[SUBSYS, CMD, array[POLICY]]
+
+type netlink_msg_netfilter_tt[SUBSYS, CMD, POLICY] {
 	len	len[parent, int32]
 	type	const[CMD, int8]
 	subsys	const[SUBSYS, int8]
-	flags	flags[netlink_msg_flags, int16]
-	seq	netlink_seq
-	pid	netlink_port_id
+	flags	flags[netlink_netfilter_msg_flags, int16]
+	seq	const[0, int32]
+	pid	const[0, int32]
 	hdr	nfgenmsg
-	attrs	array[POLICY]
+	attrs	POLICY
 } [align_4]
 
 nfgenmsg {
@@ -48,3 +50,15 @@ nfgenmsg {
 
 nfnl_subsys = NFNL_SUBSYS_CTNETLINK, NFNL_SUBSYS_CTNETLINK_EXP, NFNL_SUBSYS_QUEUE, NFNL_SUBSYS_ULOG, NFNL_SUBSYS_OSF, NFNL_SUBSYS_IPSET, NFNL_SUBSYS_ACCT, NFNL_SUBSYS_CTNETLINK_TIMEOUT, NFNL_SUBSYS_CTHELPER, NFNL_SUBSYS_NFTABLES, NFNL_SUBSYS_NFT_COMPAT
 nfproto = NFPROTO_UNSPEC, NFPROTO_INET, NFPROTO_IPV4, NFPROTO_ARP, NFPROTO_NETDEV, NFPROTO_BRIDGE, NFPROTO_IPV6, NFPROTO_DECNET
+
+# We always need to send NLM_F_REQUEST and some netlink flags are not used.
+netlink_netfilter_msg_flags = NLM_F_ACK_REQUEST, NLM_F_APPEND_REQUEST, NLM_F_CREATE_REQUEST, NLM_F_DUMP_REQUEST, NLM_F_EXCL_REQUEST, NLM_F_EXCL_REQUEST, NLM_F_MULTI_REQUEST, NLM_F_NONREC_REQUEST, NLM_F_REPLACE_REQUEST
+
+define NLM_F_ACK_REQUEST	NLM_F_ACK | NLM_F_REQUEST
+define NLM_F_APPEND_REQUEST	NLM_F_APPEND | NLM_F_REQUEST
+define NLM_F_CREATE_REQUEST	NLM_F_CREATE | NLM_F_REQUEST
+define NLM_F_DUMP_REQUEST	NLM_F_DUMP | NLM_F_REQUEST
+define NLM_F_EXCL_REQUEST	NLM_F_EXCL | NLM_F_REQUEST
+define NLM_F_MULTI_REQUEST	NLM_F_MULTI | NLM_F_REQUEST
+define NLM_F_NONREC_REQUEST	NLM_F_NONREC | NLM_F_REQUEST
+define NLM_F_REPLACE_REQUEST	NLM_F_REPLACE | NLM_F_REQUEST
