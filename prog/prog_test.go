@@ -351,14 +351,12 @@ fallback$0()
 					Signal: make([]uint32, 1),
 				},
 				{
-					Flags:  CallExecuted,
-					Errno:  0,
-					Signal: make([]uint32, 1),
+					Flags: CallExecuted,
+					Errno: 0,
 				},
 				{
-					Flags:  CallExecuted,
-					Errno:  0,
-					Signal: make([]uint32, 1),
+					Flags: CallExecuted,
+					Errno: 0,
 				},
 				{
 					Flags: CallExecuted,
@@ -388,14 +386,12 @@ fallback$0()
 					Signal: make([]uint32, 1),
 				},
 				{
-					Flags:  CallExecuted,
-					Errno:  0,
-					Signal: make([]uint32, 1),
+					Flags: CallExecuted,
+					Errno: 0,
 				},
 				{
-					Flags:  CallExecuted,
-					Errno:  0,
-					Signal: make([]uint32, 1),
+					Flags: CallExecuted,
+					Errno: 0,
 				},
 				{
 					Flags: CallExecuted,

@@ -206,13 +206,16 @@ func (p *Prog) FallbackSignal(info []CallInfo) {
 			typ = fallbackSignalErrnoBlocked
 		}
 		inf.Signal = append(inf.Signal, encodeFallbackSignal(typ, id, inf.Errno))
+		// seccomp filter can produce arbitrary errno values for subsequent syscalls.
+		// Don't trust anything afterwards. prctl can setup seccomp too.
+		// clone+ptrace combo cause fallback coverage explosion under gvisor.
+		// Mechanics of that are unclear, but effect is very clear.
+		if c.Meta.CallName == "seccomp" || c.Meta.CallName == "prctl" ||
+			c.Meta.CallName == "clone" || c.Meta.CallName == "ptrace" {
+			break
+		}
 		if inf.Errno != 0 {
 			continue
-		}
-		if c.Meta.CallName == "seccomp" || c.Meta.CallName == "prctl" {
-			// seccomp filter can produce arbitrary errno values for subsequent syscalls.
-			// Don't trust anything afterwards. prctl can setup seccomp too.
-			break
 		}
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if a, ok := arg.(*ResultArg); ok {
