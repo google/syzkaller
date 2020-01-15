@@ -52,7 +52,7 @@ type BugFrames struct {
 type RPCManagerView interface {
 	fuzzerConnect() ([]rpctype.RPCInput, BugFrames)
 	machineChecked(result *rpctype.CheckArgs)
-	newInput(inp rpctype.RPCInput, sign signal.Signal)
+	newInput(inp rpctype.RPCInput, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.RPCCandidate
 	rotateCorpus() bool
 }
@@ -228,7 +228,9 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	if !genuine && !rotated {
 		return nil
 	}
-	serv.mgr.newInput(a.RPCInput, inputSignal)
+	if !serv.mgr.newInput(a.RPCInput, inputSignal) {
+		return nil
+	}
 
 	if f.rotatedSignal != nil {
 		f.rotatedSignal.Merge(inputSignal)
