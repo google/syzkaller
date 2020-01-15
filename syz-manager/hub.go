@@ -88,6 +88,13 @@ func (hc *HubConnector) connect(corpus [][]byte) (*rpctype.RPCClient, error) {
 		hubCorpus[hash.Hash(inp)] = true
 		a.Corpus = append(a.Corpus, inp)
 	}
+	// Never send more than this, this is never healthy but happens episodically
+	// due to various reasons: problems with fallback coverage, bugs in kcov,
+	// fuzzer exploiting our infrastructure, etc.
+	const max = 100 * 1000
+	if len(a.Corpus) > max {
+		a.Corpus = a.Corpus[:max]
+	}
 	// Hub.Connect request can be very large, so do it on a transient connection
 	// (rpc connection buffers never shrink).
 	if err := rpctype.RPCCall(hc.cfg.HubAddr, "Hub.Connect", a, nil); err != nil {
