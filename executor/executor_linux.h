@@ -73,7 +73,13 @@ static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
 {
 	if (c->call)
 		return c->call(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
-	return syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5]);
+	intptr_t res = syscall(c->sys_nr, a[0], a[1], a[2], a[3], a[4], a[5]);
+	// Some prctl commands don't respect the normal convention for return values
+	// (e.g. PR_GET_TIMERSLACK, but there are more) and may produce all possible
+	// errno values. This conflicts with fallback coverage.
+	if (!flag_coverage && res == -1 && !strcmp(c->name, "prctl"))
+		errno = EINVAL;
+	return res;
 }
 
 static void cover_open(cover_t* cov, bool extra)
