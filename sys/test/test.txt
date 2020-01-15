@@ -787,6 +787,7 @@ foo$arch_specific_const_as_array_size(a ptr[in, array[int8, ARCH_64_SPECIFIC_CON
 fallback$0() fd
 fallback$1(a fd)
 seccomp()
+prctl$PR_SET_SECCOMP()
 
 # AUTO
 

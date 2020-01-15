@@ -16,6 +16,7 @@ SYS_test = 0
 SYS_unsupported = 0
 SYS_fallback = 0
 SYS_seccomp = 0
+SYS_prctl = 0
 
 IPPROTO_ICMPV6 = 58
 IPPROTO_TCP = 6
