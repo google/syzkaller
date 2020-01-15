@@ -1059,6 +1059,7 @@ var syscalls_64 = []*Syscall{
 	{Name: "mutate8", CallName: "mutate8", Args: []Type{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a0", TypeSize: 8, IsOptional: true}}, ValuesStart: 100, ValuesPerProc: 4},
 	}},
+	{Name: "prctl$PR_SET_SECCOMP", CallName: "prctl"},
 	{Name: "seccomp", CallName: "seccomp"},
 	{Name: "serialize0", CallName: "serialize0", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "serialize0_struct"}}},
@@ -1433,6 +1434,7 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_mutate6"},
 	{Name: "SYS_mutate7"},
 	{Name: "SYS_mutate8"},
+	{Name: "SYS_prctl"},
 	{Name: "SYS_seccomp"},
 	{Name: "SYS_serialize0"},
 	{Name: "SYS_serialize1"},
@@ -1440,4 +1442,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "70ed4d89f5c1baa13983ab0123304d124539e73f"
+const revision_64 = "d0f62693719adf6dcc3c1b8507f98115b0e870a0"
