@@ -107,11 +107,6 @@ func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type CallCov struct {
-	count int
-	cov   cover.Cover
-}
-
 func (mgr *Manager) collectStats() []UIStat {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -165,27 +160,6 @@ func convertStats(stats map[string]uint64, secs uint64) []UIStat {
 		intStats = append(intStats, UIStat{Name: k, Value: val})
 	}
 	return intStats
-}
-
-func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-	if mgr.checkResult == nil {
-		return nil
-	}
-	calls := make(map[string]*CallCov)
-	for _, call := range mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox] {
-		calls[mgr.target.Syscalls[call].Name] = new(CallCov)
-	}
-	for _, inp := range mgr.corpus {
-		if calls[inp.Call] == nil {
-			calls[inp.Call] = new(CallCov)
-		}
-		cc := calls[inp.Call]
-		cc.count++
-		cc.cov.Merge(inp.Cover)
-	}
-	return calls
 }
 
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
