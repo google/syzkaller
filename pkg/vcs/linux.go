@@ -170,6 +170,11 @@ func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
 		// pahole version v1.9 is too old, need at least v1.13
 		// Failed to generate BTF for vmlinux. Try to disable CONFIG_DEBUG_INFO_BTF.
 		"CONFIG_DEBUG_INFO_BTF": "disable-always",
+		// This config only adds debug output. It should not be enabled at all,
+		// but it was accidentially enabled on some instances for some periods of time,
+		// and kernel is boot-broken for prolonged ranges of commits with deadlock
+		// which makes bisections take weeks.
+		"CONFIG_DEBUG_KOBJECT": "disable-always",
 	}
 	for cfg, tag := range prereq {
 		if !tags[tag] {
