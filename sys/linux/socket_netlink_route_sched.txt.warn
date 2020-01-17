@@ -29,7 +29,7 @@ no-such-struct: m_pedit_key_ex
 bad-field-number: tc_skbmod: syz=2 kernel=6
 bad-field-size: tc_skbmod.tc_gen/index: syz=20 kernel=4
 bad-field-offset: tc_skbmod.flags/capab: syz=20 kernel=4 [386]
-bad-field-offset: tc_skbmod.flags/capab: syz=24 kernel=4 [amd64]
+bad-field-offset: tc_skbmod.flags/capab: syz=24 kernel=4 [amd64,arm,arm64]
 bad-field-size: tc_skbmod.flags/capab: syz=8 kernel=4
 bad-field-number: tc_tunnel_key: syz=2 kernel=6
 bad-field-size: tc_tunnel_key.tc_gen/index: syz=20 kernel=4

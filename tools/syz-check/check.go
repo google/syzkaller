@@ -34,11 +34,13 @@ import (
 func main() {
 	var (
 		flagOS         = flag.String("os", runtime.GOOS, "OS")
-		flagObjAMD64   = flag.String("obj-amd64", "", "amd64 kernel object file")
-		flagObj386     = flag.String("obj-386", "", "386 kernel object file")
 		flagCPUProfile = flag.String("cpuprofile", "", "write CPU profile to this file")
 		flagMEMProfile = flag.String("memprofile", "", "write memory profile to this file")
 	)
+	arches := map[string]*string{"amd64": nil, "386": nil, "arm64": nil, "arm": nil}
+	for arch := range arches {
+		arches[arch] = flag.String("obj-"+arch, "", arch+" kernel object file")
+	}
 	failf := func(msg string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, msg+"\n", args...)
 		os.Exit(1)
@@ -68,16 +70,16 @@ func main() {
 			}
 		}()
 	}
-	warnings1, err := check(*flagOS, "amd64", *flagObjAMD64)
-	if err != nil {
-		failf("%v", err)
+	var warnings []Warn
+	for arch, obj := range arches {
+		warnings1, err := check(*flagOS, arch, *obj)
+		if err != nil {
+			failf("%v", err)
+		}
+		warnings = append(warnings, warnings1...)
+		runtime.GC()
 	}
-	runtime.GC()
-	warnings2, err := check(*flagOS, "386", *flagObj386)
-	if err != nil {
-		failf("%v", err)
-	}
-	if err := writeWarnings(*flagOS, append(warnings1, warnings2...)); err != nil {
+	if err := writeWarnings(*flagOS, len(arches), warnings); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -120,7 +122,7 @@ type Warn struct {
 	msg  string
 }
 
-func writeWarnings(OS string, warnings []Warn) error {
+func writeWarnings(OS string, narches int, warnings []Warn) error {
 	allFiles, err := filepath.Glob(filepath.Join("sys", OS, "*.warn"))
 	if err != nil {
 		return err
@@ -157,7 +159,7 @@ func writeWarnings(OS string, warnings []Warn) error {
 				i++
 			}
 			archStr := ""
-			if len(arches) < 2 {
+			if len(arches) < narches {
 				archStr = fmt.Sprintf(" [%v]", strings.Join(arches, ","))
 			}
 			fmt.Fprintf(buf, "%v: %v%v\n", warn.typ, warn.msg, archStr)

@@ -11,6 +11,8 @@ no-such-struct: drm_buf_pub
 no-such-struct: drm_buf_free
 no-such-struct: drm_dma
 no-such-struct: drm_control
+no-such-struct: drm_agp_buffer [arm,arm64]
+no-such-struct: drm_agp_binding [arm,arm64]
 no-such-struct: drm_scatter_gather
 no-such-struct: drm_wait_vblank
 bad-field-size: drm_mode_modeinfo.vrefr/vrefresh: syz=2 kernel=4

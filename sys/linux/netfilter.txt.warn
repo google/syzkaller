@@ -5,23 +5,23 @@ bad-field-size: xt_entry_match.match_size/u: syz=2 kernel=32
 bad-field-offset: xt_entry_match.name/data: syz=2 kernel=32
 bad-field-size: xt_entry_match.name/data: syz=29 kernel=0
 no-such-struct: xt_entry_match_t
-bad-field-size: xt_cgroup_info_v1.priv: syz=8 kernel=4 [386]
-bad-field-size: xt_rateest_match_info.est1: syz=8 kernel=4 [386]
-bad-field-size: xt_rateest_match_info.est2: syz=8 kernel=4 [386]
-bad-field-size: xt_bpf_info.filter: syz=8 kernel=4 [386]
+bad-field-size: xt_cgroup_info_v1.priv: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_rateest_match_info.est1: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_rateest_match_info.est2: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_bpf_info.filter: syz=8 kernel=4 [386,arm]
 bad-field-number: xt_bpf_info_v1: syz=3 kernel=5
-bad-struct-size: xt_bpf_info_v1: syz=524 kernel=528 [386]
-bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=524 kernel=2 [386]
-bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=528 kernel=2 [amd64]
-bad-field-size: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=524 kernel=2 [386]
-bad-field-offset: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=528 kernel=2 [amd64]
-bad-field-offset: xt_bpf_info_v1.fd: syz=1048 kernel=4 [386]
-bad-field-offset: xt_bpf_info_v1.fd: syz=1056 kernel=4 [amd64]
+bad-struct-size: xt_bpf_info_v1: syz=524 kernel=528 [386,arm]
+bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=524 kernel=2 [386,arm]
+bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=528 kernel=2 [amd64,arm64]
+bad-field-offset: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=524 kernel=2 [386,arm]
+bad-field-offset: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=528 kernel=2 [amd64,arm64]
+bad-field-offset: xt_bpf_info_v1.fd: syz=1048 kernel=4 [386,arm]
+bad-field-offset: xt_bpf_info_v1.fd: syz=1056 kernel=4 [amd64,arm64]
 bad-field-size: xt_bpf_info_v1.fd: syz=8 kernel=4
 no-such-struct: xt_bpf_info_bytecode
 no-such-struct: xt_bpf_info_pinned
 no-such-struct: xt_bpf_info_fd
-bad-field-size: xt_connlimit_info.data: syz=8 kernel=4 [386]
+bad-field-size: xt_connlimit_info.data: syz=8 kernel=4 [386,arm]
 no-such-struct: xt_conntrack_mtinfo_common
 bad-field-number: xt_conntrack_mtinfo1: syz=3 kernel=19
 bad-field-size: xt_conntrack_mtinfo1.common/origsrc_addr: syz=150 kernel=16
@@ -49,14 +49,14 @@ bad-field-offset: xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: syz=158 k
 bad-field-size: xt_conntrack_mtinfo3.replsrc_port_high/replsrc_mask: syz=2 kernel=16
 bad-field-offset: xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: syz=160 kernel=96
 bad-field-size: xt_conntrack_mtinfo3.repldst_port_high/repldst_addr: syz=2 kernel=16
-bad-field-size: xt_quota_info.master: syz=8 kernel=4 [386]
-bad-field-size: xt_hashlimit_mtinfo1.hinfo: syz=8 kernel=4 [386]
-bad-field-size: xt_hashlimit_mtinfo2.hinfo: syz=8 kernel=4 [386]
-bad-field-size: xt_hashlimit_mtinfo3.hinfo: syz=8 kernel=4 [386]
+bad-field-size: xt_quota_info.master: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_hashlimit_mtinfo1.hinfo: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_hashlimit_mtinfo2.hinfo: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_hashlimit_mtinfo3.hinfo: syz=8 kernel=4 [386,arm]
 no-such-struct: xt_comment_info
 bad-field-number: xt_statistic_info: syz=6 kernel=4
 bad-field-size: xt_statistic_info.every/u: syz=4 kernel=12
-bad-field-size: xt_statistic_info.packet/master: syz=4 kernel=8 [amd64]
+bad-field-size: xt_statistic_info.packet/master: syz=4 kernel=8 [amd64,arm64]
 bad-field-offset: xt_statistic_info.packet/master: syz=8 kernel=16
 no-such-struct: xt_recent_mtinfo
 bad-field-number: xt_policy_elem: syz=10 kernel=7
@@ -72,4 +72,4 @@ bad-field-offset: xt_policy_elem.spi/mode: syz=64 kernel=73
 bad-field-size: xt_policy_elem.reqid/match: syz=4 kernel=1
 bad-field-offset: xt_policy_elem.reqid/match: syz=68 kernel=74
 bad-field-offset: xt_policy_elem.proto/invert: syz=72 kernel=75
-bad-field-size: xt_string_info.config: syz=8 kernel=4 [386]
+bad-field-size: xt_string_info.config: syz=8 kernel=4 [386,arm]
