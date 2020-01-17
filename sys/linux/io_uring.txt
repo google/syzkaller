@@ -11,7 +11,7 @@ include <uapi/linux/io_uring.h>
 resource fd_io_uring[fd]
 
 io_uring_setup(entries int32[1:4096], params ptr[in, io_uring_params]) fd_io_uring
-io_uring_enter(fd fd_io_uring, to_submit int32, min_complete int32, flags flags[io_uring_enter_flags], sigmask ptr[in, sigset], size len[sigmask])
+io_uring_enter(fd fd_io_uring, to_submit int32, min_complete int32, flags flags[io_uring_enter_flags], sigmask ptr[in, sigset_t], size len[sigmask])
 io_uring_register$IORING_REGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_REGISTER_BUFFERS], arg ptr[in, array[iovec_out]], nr_args len[arg])
 io_uring_register$IORING_UNREGISTER_BUFFERS(fd fd_io_uring, opcode const[IORING_UNREGISTER_BUFFERS], arg const[0], nr_args const[0])
 io_uring_register$IORING_REGISTER_FILES(fd fd_io_uring, opcode const[IORING_REGISTER_FILES], arg ptr[in, array[fd]], nr_args len[arg])

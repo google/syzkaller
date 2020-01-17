@@ -1,3 +1,3 @@
 bad-field-number: io_uring_files_update: syz=2 kernel=3 [arm,arm64]
 bad-struct-size: io_uring_files_update: syz=8 kernel=16 [arm]
-bad-field-size: io_uring_files_update.fds/resv: syz=8 kernel=4 [arm64]
+bad-field-offset: io_uring_files_update.fds/resv: syz=8 kernel=4 [arm64]

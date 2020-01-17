@@ -3,15 +3,15 @@ no-such-struct: tca_kind_options_t
 no-such-struct: tc_gen
 bad-field-number: tc_connmark: syz=2 kernel=6
 bad-field-size: tc_connmark.tc_gen/index: syz=20 kernel=4
-bad-field-size: tc_connmark.zone/capab: syz=2 kernel=4
 bad-field-offset: tc_connmark.zone/capab: syz=20 kernel=4
+bad-field-size: tc_connmark.zone/capab: syz=2 kernel=4
 bad-field-number: tc_csum: syz=2 kernel=6
 bad-field-size: tc_csum.tc_gen/index: syz=20 kernel=4
 bad-field-offset: tc_csum.update_flags/capab: syz=20 kernel=4
 bad-field-number: tc_ife: syz=2 kernel=6
 bad-field-size: tc_ife.tc_gen/index: syz=20 kernel=4
-bad-field-size: tc_ife.flags/capab: syz=2 kernel=4
 bad-field-offset: tc_ife.flags/capab: syz=20 kernel=4
+bad-field-size: tc_ife.flags/capab: syz=2 kernel=4
 bad-field-number: tc_mirred: syz=3 kernel=7
 bad-field-size: tc_mirred.tc_gen/index: syz=20 kernel=4
 bad-field-offset: tc_mirred.eaction/capab: syz=20 kernel=4
