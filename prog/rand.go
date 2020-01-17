@@ -173,39 +173,70 @@ func (r *randGen) randPageCount() (n uint64) {
 }
 
 // Change a flag value or generate a new one.
-func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) (v uint64) {
-	v = oldVal
-	if r.oneOf(5) {
-		// Ignore the old value sometimes.
-		v = 0
+// If you are changing this function, run TestFlags and examine effect of results.
+func (r *randGen) flags(vv []uint64, bitmask bool, oldVal uint64) uint64 {
+	// Get these simpler cases out of the way first.
+	// Once in a while we want to return completely random values,
+	// or 0 which is frequently special.
+	if r.oneOf(100) {
+		return r.rand64()
 	}
-	switch {
-	case (bitmask && r.nOutOf(7, 10)) || (!bitmask && r.nOutOf(1, 5)):
-		// Try flipping randomly chosen flags.
-		// Prioritized when bitmask == true.
-		for stop := false; !stop; stop = r.oneOf(3) {
-			flag := vv[r.rand(len(vv))]
-			if r.oneOf(5) {
-				// Try choosing adjacent bit values in case we forgot
-				// to add all relevant flags to the descriptions.
-				if r.bin() {
-					flag >>= 1
-				} else {
-					flag <<= 1
-				}
-			}
-			v ^= flag
+	if r.oneOf(50) {
+		return 0
+	}
+	if !bitmask && oldVal != 0 && r.oneOf(100) {
+		// Slightly increment/decrement the old value.
+		// This is especially important during mutation when len(vv) == 1,
+		// otherwise in that case we produce almost no randomness
+		// (the value is always mutated to 0).
+		inc := uint64(1)
+		if r.bin() {
+			inc = ^uint64(0)
 		}
-	case (bitmask && r.nOutOf(2, 3)) || (!bitmask && r.nOutOf(7, 8)):
-		// Chose a random flag.
-		// Prioritized when bitmask == false.
-		v = vv[r.rand(len(vv))]
-	case r.bin():
-		v = 0
-	default:
-		v = r.rand64()
+		v := oldVal + inc
+		for r.bin() {
+			v += inc
+		}
+		return v
 	}
-	return
+	if len(vv) == 1 {
+		// This usually means that value or 0,
+		// at least that's our best (and only) bet.
+		if r.bin() {
+			return 0
+		}
+		return vv[0]
+	}
+	if !bitmask && !r.oneOf(10) {
+		// Enumeration, so just choose one of the values.
+		return vv[r.rand(len(vv))]
+	}
+	if r.oneOf(len(vv) + 4) {
+		return 0
+	}
+	// Flip rand bits. Do this for non-bitmask sometimes
+	// because we may have detected bitmask incorrectly for complex cases
+	// (e.g. part of the vlaue is bitmask and another is not).
+	v := oldVal
+	if v != 0 && r.oneOf(10) {
+		v = 0 // Ignore the old value sometimes.
+	}
+	// We don't want to return 0 here, because we already given 0
+	// fixed probability above (otherwise we get 0 too frequently).
+	for v == 0 || r.nOutOf(2, 3) {
+		flag := vv[r.rand(len(vv))]
+		if r.oneOf(20) {
+			// Try choosing adjacent bit values in case we forgot
+			// to add all relevant flags to the descriptions.
+			if r.bin() {
+				flag >>= 1
+			} else {
+				flag <<= 1
+			}
+		}
+		v ^= flag
+	}
+	return v
 }
 
 func (r *randGen) filename(s *state, typ *BufferType) string {
