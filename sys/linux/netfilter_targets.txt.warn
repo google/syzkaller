@@ -1,10 +1,10 @@
 no-such-struct: xt_target_t
-bad-field-size: xt_tee_tginfo.priv: syz=8 kernel=4 [386]
-bad-field-size: xt_led_info.internal_data: syz=8 kernel=4 [386]
-bad-field-size: xt_rateest_target_info.est: syz=8 kernel=4 [386]
-bad-field-size: idletimer_tg_info.timer: syz=8 kernel=4 [386]
-bad-field-size: xt_ct_target_info.ct: syz=8 kernel=4 [386]
-bad-field-size: xt_ct_target_info_v1.ct: syz=8 kernel=4 [386]
+bad-field-size: xt_tee_tginfo.priv: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_led_info.internal_data: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_rateest_target_info.est: syz=8 kernel=4 [386,arm]
+bad-field-size: idletimer_tg_info.timer: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_ct_target_info.ct: syz=8 kernel=4 [386,arm]
+bad-field-size: xt_ct_target_info_v1.ct: syz=8 kernel=4 [386,arm]
 bad-field-number: xt_hmark_info: syz=11 kernel=9
 bad-field-size: xt_hmark_info.src_port_mask/port_mask: syz=2 kernel=4
 bad-field-size: xt_hmark_info.dst_port_mask/port_set: syz=2 kernel=4

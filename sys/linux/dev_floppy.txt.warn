@@ -1,0 +1,8 @@
+no-such-struct: floppy_struct [arm,arm64]
+no-such-struct: format_descr [arm,arm64]
+no-such-struct: floppy_max_errors [arm,arm64]
+no-such-struct: floppy_drive_params [arm,arm64]
+no-such-struct: floppy_drive_struct [arm,arm64]
+no-such-struct: floppy_fdc_state [arm,arm64]
+no-such-struct: floppy_write_errors [arm,arm64]
+no-such-struct: floppy_raw_cmd [arm,arm64]
