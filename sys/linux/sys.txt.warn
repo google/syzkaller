@@ -50,6 +50,8 @@ bad-field-size: stat.st_ctime_nsec/__unused: syz=8 kernel=24 [amd64]
 compiler: unsupported type: stat64 due to missing const STAT64_SIZE [amd64]
 no-such-struct: sigset
 no-such-struct: sigset_size
+no-such-struct: timespec [amd64]
+no-such-struct: timeval [amd64]
 no-such-struct: itimerspec
 no-such-struct: itimerval
 no-such-struct: utimbuf [386]
