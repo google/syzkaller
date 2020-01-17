@@ -49,7 +49,7 @@ const (
 )
 
 const (
-	ExecBufferSize = 2 << 20
+	ExecBufferSize = 4 << 20
 	ExecNoCopyout  = ^uint64(0)
 )
 
