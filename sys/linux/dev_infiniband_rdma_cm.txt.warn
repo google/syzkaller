@@ -5,11 +5,11 @@ bad-field-number: rdma_ucm_event_resp: syz=2 kernel=6
 bad-field-size: rdma_ucm_event_resp.id: syz=8 kernel=4
 bad-field-number: rdma_ucm_set_option: syz=4 kernel=5
 bad-field-size: rdma_ucm_set_option.id_tos/optval: syz=24 kernel=8
-bad-field-size: rdma_ucm_set_option.id_resuseaddr/id: syz=24 kernel=4
 bad-field-offset: rdma_ucm_set_option.id_resuseaddr/id: syz=24 kernel=8
-bad-field-size: rdma_ucm_set_option.id_afonly/level: syz=24 kernel=4
+bad-field-size: rdma_ucm_set_option.id_resuseaddr/id: syz=24 kernel=4
 bad-field-offset: rdma_ucm_set_option.id_afonly/level: syz=48 kernel=12
-bad-field-size: rdma_ucm_set_option.ib_path/optname: syz=24 kernel=4
+bad-field-size: rdma_ucm_set_option.id_afonly/level: syz=24 kernel=4
 bad-field-offset: rdma_ucm_set_option.ib_path/optname: syz=72 kernel=16
+bad-field-size: rdma_ucm_set_option.ib_path/optname: syz=24 kernel=4
 no-such-struct: rdma_ucm_set_option_t
 no-such-struct: sockaddr_rdma_cm

@@ -116,7 +116,7 @@ fstatat64(dfd const[AT_FDCWD], file ptr[in, filename], statbuf ptr[out, stat64],
 statx(fd fd_dir, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
-ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset], size len[sigmask])
+ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset_t], size len[sigmask])
 select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
 pselect6(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timespec], sig ptr[in, sigset_size])
 
@@ -127,12 +127,12 @@ epoll_ctl$EPOLL_CTL_ADD(epfd fd_epoll, op const[EPOLL_CTL_ADD], fd fd, ev ptr[in
 epoll_ctl$EPOLL_CTL_MOD(epfd fd_epoll, op const[EPOLL_CTL_MOD], fd fd, ev ptr[in, epoll_event])
 epoll_ctl$EPOLL_CTL_DEL(epfd fd_epoll, op const[EPOLL_CTL_DEL], fd fd)
 epoll_wait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32)
-epoll_pwait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset], size len[sigmask])
+epoll_pwait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset_t], size len[sigmask])
 
 resource fd_signal[fd]
 resource fd_timer[fd]
-signalfd(fd fd, mask ptr[in, sigset], size len[mask]) fd_signal
-signalfd4(fd fd, mask ptr[in, sigset], size len[mask], flags flags[signalfd_flags]) fd_signal
+signalfd(fd fd, mask ptr[in, sigset_t], size len[mask]) fd_signal
+signalfd4(fd fd, mask ptr[in, sigset_t], size len[mask], flags flags[signalfd_flags]) fd_signal
 timerfd_create(clockid flags[clock_type], flags flags[timerfd_create_flags]) fd_timer
 timerfd_settime(fd fd_timer, flags flags[timerfd_settime_flags], new ptr[in, itimerspec], old ptr[out, itimerspec])
 timerfd_gettime(fd fd_timer, cur ptr[out, itimerspec])
@@ -390,12 +390,12 @@ clock_settime(id flags[clock_id], tp ptr[in, timespec])
 clock_adjtime(id flags[clock_id], tx ptr[in, timex])
 clock_getres(id flags[clock_id], tp ptr[out, timespec])
 clock_nanosleep(id flags[clock_id], flags flags[timer_flags], rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
-rt_sigaction(sig signalno, act ptr[in, sigaction], oact ptr[out, sigaction, opt], sigsetsize len[fake], fake ptr[out, sigset])
-rt_sigprocmask(how flags[sigprocmask_how], nset ptr[in, sigset], oset ptr[out, sigset, opt], sigsetsize len[nset])
+rt_sigaction(sig signalno, act ptr[in, sigaction], oact ptr[out, sigaction, opt], sigsetsize len[fake], fake ptr[out, sigset_t])
+rt_sigprocmask(how flags[sigprocmask_how], nset ptr[in, sigset_t], oset ptr[out, sigset_t, opt], sigsetsize len[nset])
 rt_sigreturn()
-rt_sigpending(set ptr[out, sigset], sigsetsize len[set])
-rt_sigtimedwait(these ptr[in, sigset], info ptr[out, siginfo, opt], ts ptr[in, timespec], sigsetsize len[these])
-rt_sigsuspend(new ptr[in, sigset], sigsetsize len[new])
+rt_sigpending(set ptr[out, sigset_t], sigsetsize len[set])
+rt_sigtimedwait(these ptr[in, sigset_t], info ptr[out, siginfo, opt], ts ptr[in, timespec], sigsetsize len[these])
+rt_sigsuspend(new ptr[in, sigset_t], sigsetsize len[new])
 rt_sigqueueinfo(pid pid, sig signalno, info ptr[in, siginfo])
 rt_tgsigqueueinfo(gid pid, tid pid, sig signalno, info ptr[in, siginfo])
 sigaltstack(ss vma, oss ptr[out, intptr, opt])
@@ -605,12 +605,12 @@ pollfd {
 	revents	const[0, int16]
 }
 
-sigset {
-	mask	int64
+sigset_t {
+	mask	array[intptr, _NSIG_WORDS]
 }
 
 sigset_size {
-	ss	ptr[inout, sigset]
+	ss	ptr[inout, sigset_t]
 	len	len[ss, intptr]
 }
 
@@ -688,6 +688,7 @@ cap_data {
 epoll_event {
 	ev	flags[epoll_ev, int32]
 	data	const[0, int64]
+# TODO: this packed only on amd64
 } [packed]
 
 # TODO: fd_set needs to be a separate type
@@ -771,10 +772,10 @@ rlimit {
 }
 
 sigaction {
-	handler	ptr[in, text[target]]
-	mask	sigset
-	flags	flags[sigaction_flags, intptr]
-	restor	ptr[in, text[target]]
+	sa_handler	ptr[in, text[target]]
+	sa_flags	flags[sigaction_flags, intptr]
+	sa_restorer	ptr[in, text[target]]
+	sa_mask		sigset_t
 }
 
 tms {

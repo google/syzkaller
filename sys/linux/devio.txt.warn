@@ -5,11 +5,13 @@ no-such-struct: usbdevfs_urb_interrupt
 bad-field-size: usbdevfs_ioctl.usbdevfs_disconnect/ifno: syz=12 kernel=4 [386,arm]
 bad-field-size: usbdevfs_ioctl.usbdevfs_disconnect/ifno: syz=16 kernel=4 [amd64,arm64]
 bad-field-offset: usbdevfs_ioctl.usbdevfs_connect/ioctl_code: syz=12 kernel=4 [386,arm]
+bad-field-offset: usbdevfs_ioctl.usbdevfs_connect/ioctl_code: syz=16 kernel=4 [amd64,arm64]
+bad-field-size: usbdevfs_ioctl.usbdevfs_connect/ioctl_code: syz=12 kernel=4 [386,arm]
 bad-field-size: usbdevfs_ioctl.usbdevfs_connect/ioctl_code: syz=16 kernel=4 [amd64,arm64]
-bad-field-size: usbdevfs_ioctl.usbdevfs_driver/data: syz=12 kernel=4 [386,arm]
-bad-field-size: usbdevfs_ioctl.usbdevfs_driver/data: syz=16 kernel=8 [amd64,arm64]
 bad-field-offset: usbdevfs_ioctl.usbdevfs_driver/data: syz=24 kernel=8 [386,arm]
 bad-field-offset: usbdevfs_ioctl.usbdevfs_driver/data: syz=32 kernel=8 [amd64,arm64]
+bad-field-size: usbdevfs_ioctl.usbdevfs_driver/data: syz=12 kernel=4 [386,arm]
+bad-field-size: usbdevfs_ioctl.usbdevfs_driver/data: syz=16 kernel=8 [amd64,arm64]
 no-such-struct: usbdevfs_ioctl_disconnect
 no-such-struct: usbdevfs_ioctl_connect
 no-such-struct: usbdevfs_ioctl_driver

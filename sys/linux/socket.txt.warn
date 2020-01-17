@@ -2,8 +2,8 @@ compiler: unsupported syscall: accept due to missing const __NR_accept [386]
 no-such-struct: sock_pair
 bad-field-number: sockaddr: syz=19 kernel=2
 bad-field-size: sockaddr.in/sa_family: syz=16 kernel=2
-bad-field-size: sockaddr.ax25/sa_data: syz=16 kernel=14
 bad-field-offset: sockaddr.ax25/sa_data: syz=16 kernel=2
+bad-field-size: sockaddr.ax25/sa_data: syz=16 kernel=14
 no-such-struct: sockaddr_storage
 no-such-struct: sockaddr_generic
 no-such-struct: sockaddr_storage_generic
@@ -25,8 +25,10 @@ no-such-struct: devname_mask
 no-such-struct: ifs_ifsu
 bad-field-size: ifconf.req/ifc_len: syz=16 kernel=4 [amd64,arm64]
 bad-field-size: ifconf.req/ifc_len: syz=8 kernel=4 [386,arm]
-bad-field-size: ifconf.buf/ifc_ifcu: syz=16 kernel=8 [amd64,arm64]
+bad-field-offset: ifconf.buf/ifc_ifcu: syz=16 kernel=8 [amd64,arm64]
 bad-field-offset: ifconf.buf/ifc_ifcu: syz=8 kernel=4 [386,arm]
+bad-field-size: ifconf.buf/ifc_ifcu: syz=16 kernel=8 [amd64,arm64]
+bad-field-size: ifconf.buf/ifc_ifcu: syz=8 kernel=4 [386,arm]
 no-such-struct: ifconf_buf
 no-such-struct: ifconf_req
 no-such-struct: brctl_arg
