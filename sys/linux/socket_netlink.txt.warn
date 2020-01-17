@@ -1,6 +1,6 @@
 bad-field-number: sockaddr_nl: syz=3 kernel=4
 bad-field-size: sockaddr_nl.kern/nl_family: syz=12 kernel=2
-bad-field-size: sockaddr_nl.proc/nl_pad: syz=12 kernel=2
+bad-field-offset: sockaddr_nl.proc/nl_pad: syz=12 kernel=2
 bad-field-size: sockaddr_nl.unspec/nl_pid: syz=12 kernel=4
 bad-field-offset: sockaddr_nl.unspec/nl_pid: syz=24 kernel=4
 no-such-struct: sockaddr_nl_send

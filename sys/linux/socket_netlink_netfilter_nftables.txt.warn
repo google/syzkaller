@@ -1,0 +1,3 @@
+no-such-struct: nft_nlmsghdr
+no-such-struct: nfgenmsg_nft
+no-such-struct: nft_flow_offload_policy

@@ -78,7 +78,8 @@ bad-struct-size: bpf_prog_info: syz=192 kernel=208
 bad-field-number: bpf_prog_info: syz=32 kernel=34
 no-such-struct: bpf_get_map_info_arg
 bad-struct-size: bpf_map_info: syz=40 kernel=80
-bad-field-number: bpf_map_info: syz=7 kernel=13
+bad-field-number: bpf_map_info: syz=7 kernel=13 [386]
+bad-field-number: bpf_map_info: syz=7 kernel=14 [amd64]
 no-such-struct: bpf_get_btf_info_arg
 no-such-struct: bpf_prog_query
 bad-struct-size: bpf_raw_tracepoint: syz=16 kernel=8 [386]
