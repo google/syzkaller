@@ -3,3 +3,6 @@ compiler: len target names_ptr refer to an array with variable-size elements (do
 bad-field-size: snd_ctl_elem_info.items/value: syz=4 kernel=128
 bad-field-size: snd_ctl_elem_info.item/reserved: syz=4 kernel=64
 bad-field-offset: snd_ctl_elem_info.item/reserved: syz=84 kernel=208
+bad-struct-size: snd_ctl_elem_value: syz=708 kernel=712 [arm]
+bad-field-offset: snd_ctl_elem_value.value: syz=68 kernel=72 [arm]
+bad-field-offset: snd_ctl_elem_value.reserved: syz=580 kernel=584 [arm]
