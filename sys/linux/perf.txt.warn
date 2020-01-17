@@ -1,12 +1,12 @@
-bad-struct-size: perf_event_attr: syz=112 kernel=120
 bad-field-number: perf_event_attr: syz=50 kernel=52
+bad-struct-size: perf_event_attr: syz=112 kernel=120
 bad-field-size: perf_event_attr.config0/config: syz=1 kernel=8
-bad-field-size: perf_event_attr.config1/: syz=1 kernel=8
 bad-field-offset: perf_event_attr.config1/: syz=9 kernel=16
-bad-field-size: perf_event_attr.config2/sample_type: syz=1 kernel=8
+bad-field-size: perf_event_attr.config1/: syz=1 kernel=8
 bad-field-offset: perf_event_attr.config2/sample_type: syz=10 kernel=24
-bad-field-size: perf_event_attr.config3/read_format: syz=1 kernel=8
+bad-field-size: perf_event_attr.config2/sample_type: syz=1 kernel=8
 bad-field-offset: perf_event_attr.config3/read_format: syz=11 kernel=32
+bad-field-size: perf_event_attr.config3/read_format: syz=1 kernel=8
 bad-bitfield: perf_event_attr.config4/disabled: size/offset: syz=0/0 kernel=1/0
 bad-field-offset: perf_event_attr.config4/disabled: syz=12 kernel=40
 bad-field-size: perf_event_attr.config4/disabled: syz=4 kernel=8
@@ -48,10 +48,10 @@ bad-bitfield: perf_event_attr.__reserved_1/: size/offset: syz=35/29 kernel=0/0
 bad-field-offset: perf_event_attr.__reserved_1/: syz=40 kernel=48
 bad-field-size: perf_event_attr.__reserved_1/: syz=8 kernel=4
 bad-field-offset: perf_event_attr.wakeup_events/bp_type: syz=48 kernel=52
-bad-field-size: perf_event_attr.bp_type/: syz=4 kernel=8
 bad-field-offset: perf_event_attr.bp_type/: syz=52 kernel=56
-bad-field-size: perf_event_attr.bp_config/: syz=16 kernel=8
+bad-field-size: perf_event_attr.bp_type/: syz=4 kernel=8
 bad-field-offset: perf_event_attr.bp_config/: syz=56 kernel=64
+bad-field-size: perf_event_attr.bp_config/: syz=16 kernel=8
 no-such-struct: perf_bp_config
 no-such-struct: perf_bp
 no-such-struct: perf_config_ext

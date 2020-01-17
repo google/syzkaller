@@ -18,21 +18,21 @@ bad-field-size: binder_transaction_data.offsets_size/data: syz=8 kernel=16
 no-such-struct: binder_offsets
 bad-field-size: flat_binder_object.binder/hdr: syz=24 kernel=4
 bad-field-offset: flat_binder_object.weak_binder/flags: syz=24 kernel=4
+bad-field-offset: flat_binder_object.handle/: syz=48 kernel=8
 bad-field-size: flat_binder_object.handle/: syz=20 kernel=8 [386]
 bad-field-size: flat_binder_object.handle/: syz=24 kernel=8 [amd64,arm,arm64]
-bad-field-offset: flat_binder_object.handle/: syz=48 kernel=8
-bad-field-size: flat_binder_object.weak_handle/cookie: syz=20 kernel=8 [386]
-bad-field-size: flat_binder_object.weak_handle/cookie: syz=24 kernel=8 [amd64,arm,arm64]
 bad-field-offset: flat_binder_object.weak_handle/cookie: syz=68 kernel=16 [386]
 bad-field-offset: flat_binder_object.weak_handle/cookie: syz=72 kernel=16 [amd64,arm,arm64]
+bad-field-size: flat_binder_object.weak_handle/cookie: syz=20 kernel=8 [386]
+bad-field-size: flat_binder_object.weak_handle/cookie: syz=24 kernel=8 [amd64,arm,arm64]
 no-such-struct: flat_binder_object_t
 bad-field-number: binder_fd_object: syz=5 kernel=4
 bad-field-size: binder_fd_object.fd/: syz=4 kernel=8
 bad-field-offset: binder_fd_object.pad2/cookie: syz=12 kernel=16
 bad-field-size: binder_fd_object.pad2/cookie: syz=4 kernel=8
-bad-struct-size: binder_fd_array_object: syz=28 kernel=32 [386]
 bad-field-number: binder_fd_array_object: syz=4 kernel=5
-bad-field-size: binder_fd_array_object.num_fds/pad: syz=8 kernel=4
+bad-struct-size: binder_fd_array_object: syz=28 kernel=32 [386]
+bad-field-offset: binder_fd_array_object.num_fds/pad: syz=8 kernel=4
 bad-field-offset: binder_fd_array_object.parnt/num_fds: syz=12 kernel=8 [386]
 bad-field-offset: binder_fd_array_object.parnt/num_fds: syz=16 kernel=8 [amd64,arm,arm64]
 bad-field-offset: binder_fd_array_object.parent_offset/parent: syz=20 kernel=16 [386]

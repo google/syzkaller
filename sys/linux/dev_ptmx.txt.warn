@@ -3,8 +3,8 @@ no-such-struct: unimapdesc_in
 no-such-struct: unimapdesc_out
 no-such-struct: unimapinit
 no-such-struct: tiocl_selection_arg
-bad-struct-size: tiocl_selection: syz=11 kernel=10
 bad-field-number: tiocl_selection: syz=6 kernel=5
+bad-struct-size: tiocl_selection: syz=11 kernel=10
 bad-field-size: tiocl_selection.subcode/xs: syz=1 kernel=2
 bad-field-offset: tiocl_selection.xs/ys: syz=1 kernel=2
 bad-field-offset: tiocl_selection.ys/xe: syz=3 kernel=4
