@@ -304,7 +304,7 @@ func (t *IntType) isDefaultArg(arg Arg) bool {
 
 type FlagsType struct {
 	IntTypeCommon
-	Vals    []uint64
+	Vals    []uint64 // compiler ensures that it's not empty
 	BitMask bool
 }
 
