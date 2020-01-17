@@ -4,7 +4,10 @@
 package prog
 
 import (
+	"bytes"
+	"fmt"
 	"math/rand"
+	"sort"
 	"testing"
 )
 
@@ -111,5 +114,58 @@ func TestSizeGenerateConstArg(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFlags(t *testing.T) {
+	// This test does not test anything, it just prints resulting
+	// distribution of values for different scenarios.
+	tests := []struct {
+		vv      []uint64
+		bitmask bool
+		old     uint64
+	}{
+		{[]uint64{0, 1, 2, 3}, false, 0},
+		{[]uint64{0, 1, 2, 3}, false, 2},
+		{[]uint64{1, 2, 3, 4}, false, 0},
+		{[]uint64{1, 2, 3, 4}, false, 2},
+		{[]uint64{1, 2, 4, 8}, true, 0},
+		{[]uint64{1, 2, 4, 8}, true, 2},
+		{[]uint64{7}, false, 0},
+		{[]uint64{7}, false, 7},
+		{[]uint64{1, 2}, true, 0},
+		{[]uint64{1, 2}, true, 2},
+	}
+	target, rs, _ := initRandomTargetTest(t, "test", "64")
+	r := newRand(target, rs)
+	for _, test := range tests {
+		results := make(map[uint64]uint64)
+		const throws = 1e4
+		for i := 0; i < throws; i++ {
+			var v uint64
+			for {
+				v = r.flags(test.vv, test.bitmask, test.old)
+				if test.old == 0 || test.old != v {
+					break
+				}
+			}
+			if v > 100 {
+				v = 999 // to not print all possible random values we generated
+			}
+			results[v]++
+		}
+		var sorted [][2]uint64
+		for v, c := range results {
+			sorted = append(sorted, [2]uint64{v, c})
+		}
+		sort.Slice(sorted, func(i, j int) bool {
+			return sorted[i][0] < sorted[j][0]
+		})
+		buf := new(bytes.Buffer)
+		for _, p := range sorted {
+			fmt.Fprintf(buf, "%v\t%v\n", p[0], p[1])
+		}
+		t.Logf("test: vv=%+v bitmask=%v old=%v\nvalue\ttimes (out of %v)\n%v",
+			test.vv, test.bitmask, test.old, throws, buf.String())
 	}
 }
