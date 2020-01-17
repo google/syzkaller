@@ -141,6 +141,9 @@ func writeWarnings(OS string, narches int, warnings []Warn) error {
 			if w1.pos.Line != w2.pos.Line {
 				return w1.pos.Line < w2.pos.Line
 			}
+			if w1.typ != w2.typ {
+				return w1.typ < w2.typ
+			}
 			if w1.msg != w2.msg {
 				return w1.msg < w2.msg
 			}

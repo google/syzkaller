@@ -1,4 +1,5 @@
 bad-struct-size: loop_info: syz=168 kernel=160 [arm64]
+bad-field-offset: loop_info.lo_device: syz=8 kernel=4 [arm64]
 bad-field-size: loop_info.lo_device: syz=4 kernel=2 [386,arm]
 bad-field-size: loop_info.lo_device: syz=8 kernel=4 [arm64]
 bad-field-offset: loop_info.lo_inode: syz=16 kernel=8 [arm64]

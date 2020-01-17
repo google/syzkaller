@@ -1,8 +1,8 @@
 bad-field-number: snd_pcm_sync_ptr: syz=3 kernel=4
 bad-field-size: snd_pcm_sync_ptr.status/pad1: syz=64 kernel=4
-bad-field-size: snd_pcm_sync_ptr.control/s: syz=16 kernel=64 [amd64,arm64]
 bad-field-offset: snd_pcm_sync_ptr.control/s: syz=68 kernel=8 [386,arm]
 bad-field-offset: snd_pcm_sync_ptr.control/s: syz=72 kernel=8 [amd64,arm64]
+bad-field-size: snd_pcm_sync_ptr.control/s: syz=16 kernel=64 [amd64,arm64]
 bad-field-size: snd_pcm_sync_ptr.control/s: syz=8 kernel=64 [386,arm]
 bad-field-number: snd_pcm_mmap_control: syz=2 kernel=6
 bad-struct-size: snd_pcm_mmap_control: syz=8 kernel=12 [386,arm]

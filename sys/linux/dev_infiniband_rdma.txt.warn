@@ -40,11 +40,11 @@ no-such-struct: mlx5_modify_wq_cmd
 no-such-struct: create_rwq_ind_table_resp
 no-such-struct: create_rwq_ind_table_cmd
 no-such-struct: destroy_rwq_ind_table_cmd
-bad-struct-size: rdma: syz=16 kernel=256
 bad-field-number: rdma: syz=3 kernel=6
+bad-struct-size: rdma: syz=16 kernel=256
 bad-field-size: rdma.remote_addr/qptype: syz=8 kernel=1
-bad-field-size: rdma.rkey/prtype: syz=4 kernel=1
 bad-field-offset: rdma.rkey/prtype: syz=8 kernel=1
+bad-field-size: rdma.rkey/prtype: syz=4 kernel=1
 bad-field-offset: rdma.reserved/cms: syz=12 kernel=2
 bad-field-size: rdma.reserved/cms: syz=4 kernel=1
 no-such-struct: atomic
@@ -70,13 +70,13 @@ bad-field-size: ib_flow_spec_eth.reserved/val: syz=2 kernel=16
 bad-field-offset: ib_flow_spec_eth.val/mask: syz=8 kernel=22
 bad-field-number: ib_flow_ipv4_filter: syz=6 kernel=7
 bad-field-number: ib_flow_spec_ipv4: syz=5 kernel=4
-bad-field-size: ib_flow_spec_ipv4.reserved/val: syz=2 kernel=12
 bad-field-offset: ib_flow_spec_ipv4.reserved/val: syz=6 kernel=8
+bad-field-size: ib_flow_spec_ipv4.reserved/val: syz=2 kernel=12
 bad-field-offset: ib_flow_spec_ipv4.val/mask: syz=8 kernel=20
 bad-field-size: ib_flow_ipv6_filter.reserved/real_sz: syz=1 kernel=0
 bad-field-number: ib_flow_spec_ipv6: syz=5 kernel=4
-bad-field-size: ib_flow_spec_ipv6.reserved/val: syz=2 kernel=40
 bad-field-offset: ib_flow_spec_ipv6.reserved/val: syz=6 kernel=8
+bad-field-size: ib_flow_spec_ipv6.reserved/val: syz=2 kernel=40
 bad-field-offset: ib_flow_spec_ipv6.val/mask: syz=8 kernel=48
 bad-field-number: ib_flow_tcp_udp_filter: syz=2 kernel=3
 bad-field-number: ib_flow_spec_tcp_udp: syz=5 kernel=4
@@ -84,35 +84,35 @@ bad-field-size: ib_flow_spec_tcp_udp.reserved/val: syz=2 kernel=4
 bad-field-offset: ib_flow_spec_tcp_udp.val/mask: syz=8 kernel=10
 bad-field-number: ib_flow_esp_filter: syz=2 kernel=3
 bad-field-number: ib_flow_spec_esp: syz=5 kernel=4
-bad-field-size: ib_flow_spec_esp.reserved/val: syz=2 kernel=8
 bad-field-offset: ib_flow_spec_esp.reserved/val: syz=6 kernel=8
+bad-field-size: ib_flow_spec_esp.reserved/val: syz=2 kernel=8
 bad-field-offset: ib_flow_spec_esp.val/mask: syz=8 kernel=16
 bad-field-number: ib_flow_tunnel_filter: syz=1 kernel=2
 bad-field-number: ib_flow_spec_tunnel: syz=5 kernel=4
-bad-field-size: ib_flow_spec_tunnel.reserved/val: syz=2 kernel=4
 bad-field-offset: ib_flow_spec_tunnel.reserved/val: syz=6 kernel=8
+bad-field-size: ib_flow_spec_tunnel.reserved/val: syz=2 kernel=4
 bad-field-offset: ib_flow_spec_tunnel.val/mask: syz=8 kernel=12
 bad-field-number: ib_flow_gre_filter: syz=3 kernel=4
 bad-field-number: ib_flow_spec_gre: syz=5 kernel=4
-bad-field-size: ib_flow_spec_gre.reserved/val: syz=2 kernel=8
 bad-field-offset: ib_flow_spec_gre.reserved/val: syz=6 kernel=8
+bad-field-size: ib_flow_spec_gre.reserved/val: syz=2 kernel=8
 bad-field-offset: ib_flow_spec_gre.val/mask: syz=8 kernel=16
 bad-field-number: ib_flow_mpls_filter: syz=1 kernel=2
 bad-field-number: ib_flow_spec_mpls: syz=5 kernel=4
-bad-field-size: ib_flow_spec_mpls.reserved/val: syz=2 kernel=4
 bad-field-offset: ib_flow_spec_mpls.reserved/val: syz=6 kernel=8
+bad-field-size: ib_flow_spec_mpls.reserved/val: syz=2 kernel=4
 bad-field-offset: ib_flow_spec_mpls.val/mask: syz=8 kernel=12
-bad-struct-size: ib_flow_spec_action_tag: syz=16 kernel=12
 bad-field-number: ib_flow_spec_action_tag: syz=5 kernel=3
-bad-field-size: ib_flow_spec_action_tag.reserved/tag_id: syz=2 kernel=4
+bad-struct-size: ib_flow_spec_action_tag: syz=16 kernel=12
 bad-field-offset: ib_flow_spec_action_tag.reserved/tag_id: syz=6 kernel=8
+bad-field-size: ib_flow_spec_action_tag.reserved/tag_id: syz=2 kernel=4
 bad-field-number: ib_flow_spec_action_drop: syz=3 kernel=2
 bad-field-number: ib_uverbs_flow_spec_action_count: syz=5 kernel=3
 bad-field-size: ib_uverbs_flow_spec_action_count.type/: syz=4 kernel=8
-bad-field-size: ib_uverbs_flow_spec_action_count.size/handle: syz=2 kernel=4
 bad-field-offset: ib_uverbs_flow_spec_action_count.size/handle: syz=4 kernel=8
-bad-field-size: ib_uverbs_flow_spec_action_count.reserved0/reserved1: syz=2 kernel=4
+bad-field-size: ib_uverbs_flow_spec_action_count.size/handle: syz=2 kernel=4
 bad-field-offset: ib_uverbs_flow_spec_action_count.reserved0/reserved1: syz=6 kernel=12
+bad-field-size: ib_uverbs_flow_spec_action_count.reserved0/reserved1: syz=2 kernel=4
 no-such-struct: union_ib_flow_spec
 no-such-struct: create_flow_resp
 no-such-struct: destroy_flow_cmd

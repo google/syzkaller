@@ -268,7 +268,7 @@ xt_bpf_info_bytecode {
 	bpf_program_num_elem	int16[0:XT_BPF_MAX_NUM_INSTR]
 	fd			const[0, int32]
 	bpf_program		array[sock_filter, XT_BPF_MAX_NUM_INSTR]
-	filter			intptr
+	filter			align64[intptr]
 }
 
 xt_bpf_info_pinned {
@@ -276,7 +276,7 @@ xt_bpf_info_pinned {
 	bpf_program_num_elem	const[0, int16]
 	fd			const[0, int32]
 	path			string[filename, XT_BPF_PATH_MAX]
-	filter			intptr
+	filter			align64[intptr]
 }
 
 xt_bpf_info_fd {
