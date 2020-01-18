@@ -804,7 +804,7 @@ tcp_options {
 	options	array[tcp_option]
 } [packed, align_4]
 
-tcp_flags = 0, TCPHDR_FIN, TCPHDR_SYN, TCPHDR_RST, TCPHDR_PSH, TCPHDR_ACK, TCPHDR_URG, TCPHDR_ECE, TCPHDR_CWR, TCPHDR_SYN_ECN
+tcp_flags = TCPHDR_FIN, TCPHDR_SYN, TCPHDR_RST, TCPHDR_PSH, TCPHDR_ACK, TCPHDR_URG, TCPHDR_ECE, TCPHDR_CWR, TCPHDR_SYN_ECN
 
 tcp_header {
 	src_port	sock_port
