@@ -5,6 +5,7 @@ package compiler
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -332,6 +333,9 @@ var typeFlags = &typeDesc{
 				Val:           0,
 			}
 		}
+		sort.Slice(values, func(i, j int) bool {
+			return values[i] < values[j]
+		})
 		return &prog.FlagsType{
 			IntTypeCommon: base,
 			Vals:          values,
