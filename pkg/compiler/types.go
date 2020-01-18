@@ -312,13 +312,6 @@ var typeFlags = &typeDesc{
 		name := args[0].Ident
 		base.TypeName = name
 		f := comp.intFlags[name]
-		if len(f.Values) == 0 {
-			// We can get this if all values are unsupported consts.
-			return &prog.IntType{
-				IntTypeCommon: base,
-				Kind:          prog.IntPlain,
-			}
-		}
 		bitmask := true
 		var combined uint64
 		values := genIntArray(f.Values)
@@ -328,6 +321,16 @@ var typeFlags = &typeDesc{
 				break
 			}
 			combined |= v
+		}
+		if len(values) == 0 || len(values) == 1 && values[0] == 0 {
+			// We can get this if all values are unsupported consts.
+			// Also generate const[0] if we have only 1 flags value which is 0,
+			// this is the intention in all existing cases (e.g. an enum with types
+			// of something, but there is really only 1 type exists).
+			return &prog.ConstType{
+				IntTypeCommon: base,
+				Val:           0,
+			}
 		}
 		return &prog.FlagsType{
 			IntTypeCommon: base,
