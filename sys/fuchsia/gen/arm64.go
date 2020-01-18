@@ -6982,7 +6982,7 @@ var syscalls_arm64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_port", FldName: "port", TypeSize: 4}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "key", TypeSize: 8}}, ValuesStart: 1000, ValuesPerProc: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "signals", TypeSize: 4}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "wait_async_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{0}, BitMask: true},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "wait_async_options", FldName: "options", TypeSize: 8}}},
 	}},
 	{Name: "zx_object_wait_many", CallName: "zx_object_wait_many", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "items", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "zx_wait_item"}}}},
@@ -7192,7 +7192,7 @@ var syscalls_arm64 = []*Syscall{
 	}},
 	{Name: "zx_vmo_create", CallName: "zx_vmo_create", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "size", TypeSize: 8}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmo_create_options", FldName: "options", TypeSize: 8}}, Vals: []uint64{0}, BitMask: true},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "vmo_create_options", FldName: "options", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmo", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{Name: "zx_vmo_create_child", CallName: "zx_vmo_create_child", Args: []Type{
@@ -7475,4 +7475,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_arm64 = "e0903c549d1df4deee6c6891fa0b9220464983d4"
+const revision_arm64 = "416f52d4efcccffaf25ed9c4ed2a6bb846e5e2af"
