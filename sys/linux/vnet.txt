@@ -53,7 +53,7 @@ mac_addr_link_local {
 mac_addr_link_local_values = 0x0, 0x1, 0x2, 0x3, 0xe
 
 # This corresponds to the last digit in DEV_MAC/DEV_IPV4/DEV_IPV6 in executor/common_linux.h
-type netdev_addr_id int8[10:55]
+type netdev_addr_id int8[10:59]
 
 mac_addr [
 	empty		array[const[0x0, int8], 6]

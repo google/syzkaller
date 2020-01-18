@@ -1309,15 +1309,15 @@ static void netlink_add_hsr(struct nlmsg* nlmsg, int sock, const char* name,
 	(void)err;
 }
 
-static void netlink_add_virt_wifi(struct nlmsg* nlmsg, int sock, const char* name, const char* link)
+static void netlink_add_linked(struct nlmsg* nlmsg, int sock, const char* type, const char* name, const char* link)
 {
-	netlink_add_device_impl(nlmsg, "virt_wifi", name);
+	netlink_add_device_impl(nlmsg, type, name);
 	netlink_done(nlmsg);
 	int ifindex = if_nametoindex(link);
 	netlink_attr(nlmsg, IFLA_LINK, &ifindex, sizeof(ifindex));
 	int err = netlink_send(nlmsg, sock);
-	debug("netlink: adding device %s type virt_wifi link %s: %s\n",
-	      name, link, strerror(err));
+	debug("netlink: adding device %s type %s link %s: %s\n",
+	      name, type, link, strerror(err));
 	(void)err;
 }
 
@@ -1828,6 +1828,10 @@ static void initialize_netdevices(void)
 	    {"macvlan1", ETH_ALEN},
 	    {"ipvlan0", ETH_ALEN},
 	    {"ipvlan1", ETH_ALEN},
+	    {"veth0_macvtap", ETH_ALEN},
+	    {"veth1_macvtap", ETH_ALEN},
+	    {"macvtap0", ETH_ALEN},
+	    {"macsec0", ETH_ALEN},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
@@ -1856,7 +1860,7 @@ static void initialize_netdevices(void)
 	netlink_device_change(&nlmsg, sock, "hsr_slave_1", true, 0, 0, 0, NULL);
 
 	netlink_add_veth(&nlmsg, sock, "veth0_virt_wifi", "veth1_virt_wifi");
-	netlink_add_virt_wifi(&nlmsg, sock, "virt_wifi0", "veth1_virt_wifi");
+	netlink_add_linked(&nlmsg, sock, "virt_wifi", "virt_wifi0", "veth1_virt_wifi");
 
 	netlink_add_veth(&nlmsg, sock, "veth0_vlan", "veth1_vlan");
 	netlink_add_vlan(&nlmsg, sock, "vlan0", "veth0_vlan", 0, htons(ETH_P_8021Q));
@@ -1865,6 +1869,10 @@ static void initialize_netdevices(void)
 	netlink_add_macvlan(&nlmsg, sock, "macvlan1", "veth1_vlan");
 	netlink_add_ipvlan(&nlmsg, sock, "ipvlan0", "veth0_vlan", IPVLAN_MODE_L2, 0);
 	netlink_add_ipvlan(&nlmsg, sock, "ipvlan1", "veth0_vlan", IPVLAN_MODE_L3S, IPVLAN_F_VEPA);
+
+	netlink_add_veth(&nlmsg, sock, "veth0_macvtap", "veth1_macvtap");
+	netlink_add_linked(&nlmsg, sock, "macvtap", "macvtap0", "veth0_macvtap");
+	netlink_add_linked(&nlmsg, sock, "macsec", "macsec0", "veth1_macvtap");
 
 	netdevsim_add((int)procid, 4);
 
