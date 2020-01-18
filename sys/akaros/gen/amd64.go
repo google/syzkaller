@@ -74,7 +74,7 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 108, Name: "access", CallName: "access", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "path_l", TypeSize: 8}}, Path: []string{"path"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, BitMask: true},
 	}},
 	{NR: 2, Name: "block", CallName: "block", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "usec", TypeSize: 8}}},
@@ -130,7 +130,7 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 107, Name: "fcntl$F_SETFL", CallName: "fcntl", MissingArgs: 1, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 4},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_status", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1024, 2048, 524288, 1048576, 32768}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_status", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1024, 2048, 32768, 524288, 1048576}, BitMask: true},
 	}},
 	{NR: 107, Name: "fcntl$F_SYNC", CallName: "fcntl", MissingArgs: 2, Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -182,20 +182,20 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 118, Name: "mkdir", CallName: "mkdir", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "path_l", TypeSize: 8}}, Path: []string{"path"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, BitMask: true},
 	}},
 	{NR: 18, Name: "mmap", CallName: "mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Path: []string{"addr"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 16777216, 33554432}, BitMask: true},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 32, 2048, 4096, 16, 256, 8192, 65536, 16384, 32768, 131072}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 16777216, 33554432}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 16, 32, 256, 2048, 4096, 8192, 16384, 32768, 65536, 131072}, BitMask: true},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4, IsOptional: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "offset", TypeSize: 8}}},
 	}},
 	{NR: 20, Name: "mprotect", CallName: "mprotect", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Path: []string{"addr"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 16777216, 33554432}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 16777216, 33554432}, BitMask: true},
 	}},
 	{NR: 19, Name: "munmap", CallName: "munmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
@@ -233,8 +233,8 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fromfd", TypeSize: 4, IsOptional: true}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "path_l", TypeSize: 8}}, Path: []string{"path"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "oflag", TypeSize: 8}}, Vals: []uint64{1, 2, 3, 1024, 524288, 64, 65536, 128, 256, 131072, 2048, 4096, 512, 1048576, 32768}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "oflag", TypeSize: 8}}, Vals: []uint64{1, 2, 3, 64, 128, 256, 512, 1024, 2048, 4096, 32768, 65536, 131072, 524288, 1048576}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, BitMask: true},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 102, Name: "openat$dev_bintime", CallName: "openat", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fromfd", TypeSize: 8}}, Val: 18446744073709551516},
@@ -1530,4 +1530,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "a264ca7f9fabd2954922d5245e4808a09556e312"
+const revision_amd64 = "151f81f83288f777c8cc926f272efafb7520db4e"

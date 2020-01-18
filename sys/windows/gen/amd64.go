@@ -2054,11 +2054,11 @@ var syscalls_amd64 = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{Name: "CreateFileA", CallName: "CreateFileA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_access_rights", FldName: "dwDesiredAccess", TypeSize: 8}}, Vals: []uint64{65536, 131072, 1048576, 262144, 524288, 2, 4, 2032127, 4, 4, 64, 32, 1, 128, 1, 8, 32, 256, 2, 16}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_share_mode", FldName: "dwShareMode", TypeSize: 8}}, Vals: []uint64{4, 1, 2}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_access_rights", FldName: "dwDesiredAccess", TypeSize: 8}}, Vals: []uint64{1, 1, 2, 2, 4, 4, 4, 8, 16, 32, 32, 64, 128, 256, 65536, 131072, 262144, 524288, 1048576, 2032127}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_share_mode", FldName: "dwShareMode", TypeSize: 8}}, Vals: []uint64{1, 2, 4}, BitMask: true},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityAttributes", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "SECURITY_ATTRIBUTES"}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_create_disposition", FldName: "dwCreationDisposition", TypeSize: 8}}, Vals: []uint64{2, 1, 4, 3, 5}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_attributes", FldName: "dwFlagsAndAttributes", TypeSize: 8}}, Vals: []uint64{32, 16384, 2, 128, 4096, 1, 4, 256, 33554432, 67108864, 536870912, 1048576, 2097152, 1073741824, 16777216, 268435456, 8388608, 134217728, 2147483648, 0, 262144, 196608, 524288, 65536, 131072}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_create_disposition", FldName: "dwCreationDisposition", TypeSize: 8}}, Vals: []uint64{1, 2, 3, 4, 5}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_attributes", FldName: "dwFlagsAndAttributes", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 32, 128, 256, 4096, 16384, 65536, 131072, 196608, 262144, 524288, 1048576, 2097152, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456, 536870912, 1073741824, 2147483648}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hTemplateFile", TypeSize: 8, IsOptional: true}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "hFile", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{Name: "CreateFileMappingA", CallName: "CreateFileMappingA", Args: []Type{
@@ -13140,8 +13140,8 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "VirtualAlloc", CallName: "VirtualAlloc", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "lpAddress", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "dwSize", TypeSize: 8}}, Path: []string{"lpAddress"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "allocation_type", FldName: "flAllocationType", TypeSize: 8}}, Vals: []uint64{4096, 8192, 524288, 16777216, 536870912, 4194304, 1048576, 2097152}, BitMask: true},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "protect_flags", FldName: "flProtect", TypeSize: 8}}, Vals: []uint64{16, 32, 64, 128, 1, 2, 4, 8, 1073741824, 1073741824, 256, 512, 1024, 2147483648, 536870912}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "allocation_type", FldName: "flAllocationType", TypeSize: 8}}, Vals: []uint64{4096, 8192, 524288, 1048576, 2097152, 4194304, 16777216, 536870912}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "protect_flags", FldName: "flProtect", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 536870912, 1073741824, 1073741824, 2147483648}},
 	}},
 	{Name: "VirtualAllocEx", CallName: "VirtualAllocEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
@@ -14619,4 +14619,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WRITE_OWNER", Value: 524288},
 }
 
-const revision_amd64 = "c2afc45a61c1b00b9b934b07e685db56280c48a5"
+const revision_amd64 = "56d124420666b6fc19206ed671468b4c3ddf90c4"
