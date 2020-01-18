@@ -132,7 +132,7 @@ setsockopt$sock_int(r0, 0x1, 0x2, &(0x7f0000000000)=0x1, 0x4)
 9795  ioctl(3, 35123, {ifr_name="\x6c\x6f", }) = 0
 `, `
 r0 = socket$packet(0x11, 0x3, 0x300)
-ioctl$ifreq_SIOCGIFINDEX_team(r0, 0x8933, &(0x7f0000000000)={'lo\x00'})
+ioctl$ifreq_SIOCGIFINDEX_batadv_hard(r0, 0x8933, &(0x7f0000000000)={'lo\x00'})
 `,
 		}, {`
 open("temp", 1) = 3
