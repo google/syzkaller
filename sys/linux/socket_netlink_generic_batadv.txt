@@ -1,0 +1,68 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/batman_adv.h>
+
+resource genl_batadv_family_id[int16]
+type msghdr_batadv[CMD] msghdr_netlink[netlink_msg_t[genl_batadv_family_id, genlmsghdr_t[CMD], batadv_netlink_policy]]
+
+syz_genetlink_get_family_id$batadv(name ptr[in, string["batadv"]]) genl_batadv_family_id
+
+sendmsg$BATADV_CMD_GET_MESH(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_MESH]], f flags[send_flags])
+sendmsg$BATADV_CMD_TP_METER(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_TP_METER]], f flags[send_flags])
+sendmsg$BATADV_CMD_TP_METER_CANCEL(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_TP_METER_CANCEL]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_ROUTING_ALGOS(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_ROUTING_ALGOS]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_HARDIF(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_HARDIF]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_TRANSTABLE_LOCAL(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_TRANSTABLE_LOCAL]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_TRANSTABLE_GLOBAL(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_TRANSTABLE_GLOBAL]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_ORIGINATORS(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_ORIGINATORS]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_NEIGHBORS(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_NEIGHBORS]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_GATEWAYS(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_GATEWAYS]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_BLA_CLAIM(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_BLA_CLAIM]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_BLA_BACKBONE(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_BLA_BACKBONE]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_DAT_CACHE(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_DAT_CACHE]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_MCAST_FLAGS(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_MCAST_FLAGS]], f flags[send_flags])
+sendmsg$BATADV_CMD_SET_MESH(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_SET_MESH]], f flags[send_flags])
+sendmsg$BATADV_CMD_SET_HARDIF(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_SET_HARDIF]], f flags[send_flags])
+sendmsg$BATADV_CMD_GET_VLAN(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_GET_VLAN]], f flags[send_flags])
+sendmsg$BATADV_CMD_SET_VLAN(fd sock_nl_generic, msg ptr[in, msghdr_batadv[BATADV_CMD_SET_VLAN]], f flags[send_flags])
+
+resource batadv_mesh_ifindex[ifindex]
+resource batadv_hard_ifindex[ifindex]
+
+ioctl$ifreq_SIOCGIFINDEX_batadv_mesh(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t["batadv0", batadv_mesh_ifindex[opt]]])
+ioctl$ifreq_SIOCGIFINDEX_batadv_hard(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[batadv_hard_ifindex_names, batadv_hard_ifindex[opt]]])
+
+batadv_hard_ifindex_names = "batadv_slave_0", "batadv_slave_1"
+
+batadv_netlink_policy [
+	BATADV_ATTR_MESH_IFINDEX			nlattr[BATADV_ATTR_MESH_IFINDEX, batadv_mesh_ifindex]
+	BATADV_ATTR_HARD_IFINDEX			nlattr[BATADV_ATTR_HARD_IFINDEX, batadv_hard_ifindex]
+	BATADV_ATTR_ORIG_ADDRESS			nlattr[BATADV_ATTR_ORIG_ADDRESS, mac_addr]
+	BATADV_ATTR_TPMETER_TEST_TIME			nlattr[BATADV_ATTR_TPMETER_TEST_TIME, int32]
+	BATADV_ATTR_VLANID				nlattr[BATADV_ATTR_VLANID, int16[0:4]]
+	BATADV_ATTR_AGGREGATED_OGMS_ENABLED		nlattr[BATADV_ATTR_AGGREGATED_OGMS_ENABLED, bool8]
+	BATADV_ATTR_AP_ISOLATION_ENABLED		nlattr[BATADV_ATTR_AP_ISOLATION_ENABLED, bool8]
+	BATADV_ATTR_ISOLATION_MARK			nlattr[BATADV_ATTR_ISOLATION_MARK, int32]
+	BATADV_ATTR_ISOLATION_MASK			nlattr[BATADV_ATTR_ISOLATION_MASK, int32]
+	BATADV_ATTR_BONDING_ENABLED			nlattr[BATADV_ATTR_BONDING_ENABLED, bool8]
+	BATADV_ATTR_BRIDGE_LOOP_AVOIDANCE_ENABLED	nlattr[BATADV_ATTR_BRIDGE_LOOP_AVOIDANCE_ENABLED, bool8]
+	BATADV_ATTR_DISTRIBUTED_ARP_TABLE_ENABLED	nlattr[BATADV_ATTR_DISTRIBUTED_ARP_TABLE_ENABLED, bool8]
+	BATADV_ATTR_FRAGMENTATION_ENABLED		nlattr[BATADV_ATTR_FRAGMENTATION_ENABLED, bool8]
+	BATADV_ATTR_GW_BANDWIDTH_DOWN			nlattr[BATADV_ATTR_GW_BANDWIDTH_DOWN, int32]
+	BATADV_ATTR_GW_BANDWIDTH_UP			nlattr[BATADV_ATTR_GW_BANDWIDTH_UP, int32]
+	BATADV_ATTR_GW_MODE				nlattr[BATADV_ATTR_GW_MODE, flags[batadv_gw_modes, int8]]
+	BATADV_ATTR_GW_SEL_CLASS			nlattr[BATADV_ATTR_GW_SEL_CLASS, int32]
+	BATADV_ATTR_HOP_PENALTY				nlattr[BATADV_ATTR_HOP_PENALTY, int8]
+	BATADV_ATTR_MULTICAST_FORCEFLOOD_ENABLED	nlattr[BATADV_ATTR_MULTICAST_FORCEFLOOD_ENABLED, bool8]
+	BATADV_ATTR_MULTICAST_FANOUT			nlattr[BATADV_ATTR_MULTICAST_FANOUT, int32]
+	BATADV_ATTR_NETWORK_CODING_ENABLED		nlattr[BATADV_ATTR_NETWORK_CODING_ENABLED, bool8]
+	BATADV_ATTR_ORIG_INTERVAL			nlattr[BATADV_ATTR_ORIG_INTERVAL, int32]
+	BATADV_ATTR_ELP_INTERVAL			nlattr[BATADV_ATTR_ELP_INTERVAL, int32]
+	BATADV_ATTR_THROUGHPUT_OVERRIDE			nlattr[BATADV_ATTR_THROUGHPUT_OVERRIDE, int32]
+] [varlen]
+
+batadv_gw_modes = BATADV_GW_MODE_OFF, BATADV_GW_MODE_CLIENT, BATADV_GW_MODE_SERVER
