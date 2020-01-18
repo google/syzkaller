@@ -629,7 +629,8 @@ func (t *VmaType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (
 }
 
 func (t *LenType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool) {
-	return 0.6 * maxPriority, false
+	// Mutating LenType only produces "incorrect" results according to descriptions.
+	return 0.1 * maxPriority, false
 }
 
 func (t *BufferType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool) {
