@@ -530,7 +530,7 @@ btf_type_int {
 	encoding	flags[btf_type_int_encoding, int8]
 }
 
-btf_type_int_encoding = 0, BTF_INT_SIGNED, BTF_INT_CHAR, BTF_INT_BOOL
+btf_type_int_encoding = BTF_INT_SIGNED, BTF_INT_CHAR, BTF_INT_BOOL
 
 type btf_type_ref_t[TYP] {
 	name_off	btf_opt_name_off
