@@ -525,7 +525,7 @@ usb_interface_descriptor_hid {
 	inner	usb_interface_descriptor_t[const[0, int8], int8, int8[1:2], const[USB_CLASS_HID, int8], const[USB_INTERFACE_SUBCLASS_BOOT, int8], flags[usb_hid_protocols, int8], usb_hid_descriptor_hid, usb_endpoint_descriptors_hid]
 } [packed]
 
-usb_hid_protocols = 0, USB_INTERFACE_PROTOCOL_KEYBOARD, USB_INTERFACE_PROTOCOL_MOUSE
+usb_hid_protocols = USB_INTERFACE_PROTOCOL_KEYBOARD, USB_INTERFACE_PROTOCOL_MOUSE
 
 usb_endpoint_descriptors_hid {
 	in	usb_endpoint_descriptor_hid_in

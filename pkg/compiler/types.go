@@ -313,16 +313,7 @@ var typeFlags = &typeDesc{
 		name := args[0].Ident
 		base.TypeName = name
 		f := comp.intFlags[name]
-		bitmask := true
-		var combined uint64
 		values := genIntArray(f.Values)
-		for _, v := range values {
-			if v&combined != 0 {
-				bitmask = false
-				break
-			}
-			combined |= v
-		}
 		if len(values) == 0 || len(values) == 1 && values[0] == 0 {
 			// We can get this if all values are unsupported consts.
 			// Also generate const[0] if we have only 1 flags value which is 0,
@@ -339,9 +330,26 @@ var typeFlags = &typeDesc{
 		return &prog.FlagsType{
 			IntTypeCommon: base,
 			Vals:          values,
-			BitMask:       bitmask,
+			BitMask:       isBitmask(values),
 		}
 	},
+}
+
+func isBitmask(values []uint64) bool {
+	if values[0] == 0 {
+		// 0 can't be part of bitmask, this helps to handle important
+		// case like "0, 1" and "0, 1, 2" that would be detected
+		// as bitmask otherwise.
+		return false
+	}
+	var combined uint64
+	for _, v := range values {
+		if v&combined != 0 {
+			return false
+		}
+		combined |= v
+	}
+	return true
 }
 
 var typeArgFlags = &typeArg{

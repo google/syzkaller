@@ -14,7 +14,7 @@ io_submit(ctx io_ctx, nr len[iocbpp], iocbpp ptr[in, array[ptr[in, iocb]]])
 io_cancel(ctx io_ctx, iocb ptr[in, iocb], res ptr[out, io_event])
 
 lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV, IOCB_CMD_POLL
-iocb_flags = 0, IOCB_FLAG_RESFD, IOCB_FLAG_IOPRIO
+iocb_flags = IOCB_FLAG_RESFD, IOCB_FLAG_IOPRIO
 
 io_event {
 	data	int64
