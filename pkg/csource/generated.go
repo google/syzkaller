@@ -1777,7 +1777,7 @@ static void initialize_netdevices(void)
 	    {"veth", 0},
 	    {"xfrm", "xfrm0"},
 	};
-	const char* devmasters[] = {"bridge", "bond", "team"};
+	const char* devmasters[] = {"bridge", "bond", "team", "batadv"};
 	struct {
 		const char* name;
 		int macsize;
@@ -1832,6 +1832,10 @@ static void initialize_netdevices(void)
 	    {"veth1_macvtap", ETH_ALEN},
 	    {"macvtap0", ETH_ALEN},
 	    {"macsec0", ETH_ALEN},
+	    {"veth0_to_batadv", ETH_ALEN},
+	    {"veth1_to_batadv", ETH_ALEN},
+	    {"batadv_slave_0", ETH_ALEN},
+	    {"batadv_slave_1", ETH_ALEN},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
