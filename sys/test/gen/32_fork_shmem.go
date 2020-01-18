@@ -242,7 +242,7 @@ var structDescs_32_fork_shmem = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "syz_bf_struct9"}, FldName: "f1"},
 	}}},
 	{Key: StructKey{Name: "syz_bf_struct0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct0", TypeSize: 32}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_bf_flags", FldName: "f0", TypeSize: 8}, BitfieldLen: 10, BitfieldUnit: 2}, Vals: []uint64{0, 1, 2}, BitMask: true},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_bf_flags", FldName: "f0", TypeSize: 8}, BitfieldLen: 10, BitfieldUnit: 2}, Vals: []uint64{0, 1, 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f1", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f2"}, BitfieldLen: 5, BitfieldUnit: 2}, Val: 66},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f3"}, BitfieldOff: 5, BitfieldLen: 6, BitfieldUnit: 2}},
@@ -464,4 +464,4 @@ var consts_32_fork_shmem = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32_fork_shmem = "2efcbbbee05d0f1b1815d450e261aa68e6ea3243"
+const revision_32_fork_shmem = "5b498fda3872cf282c19d670eef023cab46d2b99"
