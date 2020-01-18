@@ -175,7 +175,7 @@ func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
 		if arg.Val != 0 && r.bin() {
 			arg.Val = r.randRangeInt(0, arg.Val-1, arg.Type().TypeBitSize(), 0)
 		} else {
-			arg.Val = r.randRangeInt(arg.Val+1, arg.Val+1000, arg.Type().TypeBitSize(), 0)
+			arg.Val = r.randRangeInt(arg.Val+1, arg.Val+100, arg.Type().TypeBitSize(), 0)
 		}
 		return true
 	}
