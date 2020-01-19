@@ -317,6 +317,23 @@ static void netlink_add_macvlan(struct nlmsg* nlmsg, int sock, const char* name,
 	(void)err;
 }
 
+static void netlink_add_geneve(struct nlmsg* nlmsg, int sock, const char* name, uint32 vni, struct in_addr* addr4, struct in6_addr* addr6)
+{
+	netlink_add_device_impl(nlmsg, "geneve", name);
+	netlink_nest(nlmsg, IFLA_INFO_DATA);
+	netlink_attr(nlmsg, IFLA_GENEVE_ID, &vni, sizeof(vni));
+	if (addr4)
+		netlink_attr(nlmsg, IFLA_GENEVE_REMOTE, addr4, sizeof(*addr4));
+	if (addr6)
+		netlink_attr(nlmsg, IFLA_GENEVE_REMOTE6, addr6, sizeof(*addr6));
+	netlink_done(nlmsg);
+	netlink_done(nlmsg);
+	int err = netlink_send(nlmsg, sock);
+	debug("netlink: add %s type geneve vni %u: %s\n",
+	      name, vni, strerror(err));
+	(void)err;
+}
+
 #define IFLA_IPVLAN_FLAGS 2
 #define IPVLAN_MODE_L3S 2
 #undef IPVLAN_F_VEPA
@@ -739,11 +756,9 @@ static void initialize_netdevices(void)
 #endif
 	// TODO: add the following devices:
 	// - vxlan
-	// - macsec
 	// - ipip
-	// - lowpan
-	// - ipoib
-	// - geneve
+	// - lowpan (requires link to device of type IEEE802154, e.g. wpan0)
+	// - ipoib (requires link to device of type ARPHRD_INFINIBAND)
 	// - vrf
 	// - rmnet
 	// - openvswitch
@@ -840,6 +855,8 @@ static void initialize_netdevices(void)
 	    {"veth1_to_batadv", ETH_ALEN},
 	    {"batadv_slave_0", ETH_ALEN},
 	    {"batadv_slave_1", ETH_ALEN},
+	    {"geneve0", ETH_ALEN},
+	    {"geneve1", ETH_ALEN},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)
@@ -889,6 +906,18 @@ static void initialize_netdevices(void)
 	netlink_add_veth(&nlmsg, sock, "veth0_macvtap", "veth1_macvtap");
 	netlink_add_linked(&nlmsg, sock, "macvtap", "macvtap0", "veth0_macvtap");
 	netlink_add_linked(&nlmsg, sock, "macsec", "macsec0", "veth1_macvtap");
+
+	char addr[32];
+	sprintf(addr, DEV_IPV4, 14 + 10); // should point to veth0
+	struct in_addr geneve_addr4;
+	if (inet_pton(AF_INET, addr, &geneve_addr4) <= 0)
+		fail("geneve0 inet_pton failed");
+	struct in6_addr geneve_addr6;
+	// Must not be link local (our device addresses are link local).
+	if (inet_pton(AF_INET6, "fc00::01", &geneve_addr6) <= 0)
+		fail("geneve1 inet_pton failed");
+	netlink_add_geneve(&nlmsg, sock, "geneve0", 0, &geneve_addr4, 0);
+	netlink_add_geneve(&nlmsg, sock, "geneve1", 1, 0, &geneve_addr6);
 
 	netdevsim_add((int)procid, 4); // Number of port is in sync with value in sys/linux/socket_netlink_generic_devlink.txt
 
