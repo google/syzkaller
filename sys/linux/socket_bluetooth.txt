@@ -154,24 +154,28 @@ hci_ufilter {
 
 sockaddr_sco {
 	fam	const[AF_BLUETOOTH, int16]
-	addr	bdaddr
+	addr	bdaddr_t
 }
 
 sockaddr_l2 {
-	fam	const[AF_BLUETOOTH, int16]
-	psm	int16
-	addr	bdaddr
-	cid	int16
-	typ	int8
+	l2_family	const[AF_BLUETOOTH, int16]
+	l2_psm		int16
+	l2_bdaddr	bdaddr_t
+	l2_cid		int16
+	l2_bdaddr_type	flags[bdaddr_type, int8]
 }
 
-bdaddr {
-	addr0	int8
-	addr1	int8
-	addr2	int8
-	addr3	int8
-	addr4	int8
-	addr5	int8
+bdaddr_type = BDADDR_BREDR, BDADDR_LE_PUBLIC, BDADDR_LE_RANDOM
+
+bdaddr_t [
+	any	array[const[0, int8], 6]
+	none	array[const[0xff, int8], 6]
+	fixed	bdaddr_fixed
+]
+
+bdaddr_fixed {
+	b	array[const[0xaa, int8], 5]
+	a	int8[0x10:0x12]
 }
 
 bt_security {
@@ -196,7 +200,7 @@ l2cap_conninfo {
 
 sockaddr_rc {
 	fam	const[AF_BLUETOOTH, int16]
-	addr	bdaddr
+	addr	bdaddr_t
 	chan	int8
 }
 
@@ -223,12 +227,12 @@ define HIDP_VIRTUAL_CABLE_UNPLUG_BIT	1<<HIDP_VIRTUAL_CABLE_UNPLUG
 define HIDP_BOOT_PROTOCOL_MODE_BIT	1<<HIDP_BOOT_PROTOCOL_MODE
 
 hidp_conndel_req {
-	addr	bdaddr
+	addr	bdaddr_t
 	flags	int32
 }
 
 hidp_conninfo {
-	addr	bdaddr
+	addr	bdaddr_t
 	flags	int32
 	state	int16
 	vendor	int16
@@ -248,12 +252,12 @@ cmtp_connadd_req {
 }
 
 cmtp_conndel_req {
-	addr	bdaddr
+	addr	bdaddr_t
 	flags	int32
 }
 
 cmtp_conninfo {
-	addr	bdaddr
+	addr	bdaddr_t
 	flags	int32
 	state	int16
 	num	int32
@@ -295,3 +299,15 @@ bt_hci_sockopt = HCI_DATA_DIR, HCI_TIME_STAMP, HCI_FILTER
 bt_l2cap_type = SOCK_SEQPACKET, SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
 bt_l2cap_lm = L2CAP_LM_MASTER, L2CAP_LM_AUTH, L2CAP_LM_ENCRYPT, L2CAP_LM_TRUSTED, L2CAP_LM_RELIABLE, L2CAP_LM_SECURE, L2CAP_LM_FIPS
 bt_rfcomm_type = SOCK_STREAM, SOCK_RAW
+
+resource fd_6lowpan_enable[fd]
+resource fd_6lowpan_control[fd]
+
+openat$6lowpan_enable(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/bluetooth/6lowpan_enable"]], flags const[O_RDWR], mode const[0]) fd_6lowpan_enable
+openat$6lowpan_control(fd const[AT_FDCWD], file ptr[in, string["/sys/kernel/debug/bluetooth/6lowpan_control"]], flags const[O_RDWR], mode const[0]) fd_6lowpan_control
+
+write$6lowpan_enable(fd fd_6lowpan_enable, data ptr[in, stringnoz[lowpan_enable_values]], len bytesize[data])
+write$6lowpan_control(fd fd_6lowpan_control, data ptr[in, stringnoz[lowpan_control_values]], len bytesize[data])
+
+lowpan_enable_values = "0", "1"
+lowpan_control_values = "connect aa:aa:aa:aa:aa:10 0", "connect aa:aa:aa:aa:aa:10 1", "connect aa:aa:aa:aa:aa:10 2", "connect aa:aa:aa:aa:aa:11 0", "connect aa:aa:aa:aa:aa:11 1", "connect aa:aa:aa:aa:aa:11 2", "disconnect aa:aa:aa:aa:aa:10 0", "disconnect aa:aa:aa:aa:aa:10 1", "disconnect aa:aa:aa:aa:aa:10 2", "disconnect aa:aa:aa:aa:aa:11 0", "disconnect aa:aa:aa:aa:aa:11 1", "disconnect aa:aa:aa:aa:aa:11 2"
