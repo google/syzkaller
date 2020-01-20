@@ -1,0 +1,58 @@
+TITLE: INFO: rcu detected stall in nf_tables_getgen
+TYPE: HANG
+
+[  419.322115] rcu: INFO: rcu_sched self-detected stall on CPU
+[  419.322853] rcu: 	2-....: (25998 ticks this GP) idle=a26/1/0x4000000000000002 softirq=56853/56853 fqs=6287 
+[  419.324226] 	(t=26002 jiffies g=90629 q=551)
+[  419.324756] NMI backtrace for cpu 2
+[  419.325255] CPU: 2 PID: 21428 Comm: syz-executor.1 Not tainted 5.5.0-rc6-next-20200117+ #9
+[  419.326239] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  419.327227] Call Trace:
+[  419.327568]  <IRQ>
+[  419.327872]  dump_stack+0xee/0x16e
+[  419.328365]  nmi_cpu_backtrace.cold.7+0x55/0x95
+[  419.329483]  nmi_trigger_cpumask_backtrace+0x1bb/0x20b
+[  419.330089]  rcu_dump_cpu_stacks+0x1a1/0x1ed
+[  419.330575]  rcu_sched_clock_irq.cold.87+0x707/0x917
+[  419.331709]  update_process_times+0x24/0x70
+[  419.332237]  tick_sched_handle+0x139/0x180
+[  419.332737]  tick_sched_timer+0x40/0x120
+[  419.333231]  __hrtimer_run_queues+0x33a/0xc90
+[  419.335589]  hrtimer_interrupt+0x2e9/0x730
+[  419.336095]  smp_apic_timer_interrupt+0x104/0x500
+[  419.336778]  apic_timer_interrupt+0xf/0x20
+[  419.337274]  </IRQ>
+[  419.337559] RIP: 0010:check_memory_region+0x52/0x1f0
+[  419.338176] Code: 4c 8d 5c 37 ff 49 89 f8 49 b9 00 00 00 00 00 fc ff df 4d 89 da 49 c1 e8 03 49 c1 ea 03 4d 01 ca 4d 01 c1 49 8d 6a 01 4c 89 c8 <48> 89 eb 4c 29 cb 48 83 fb 10 0f 8e cb 00 00 00 45 89 c8 41 83 e0
+[  419.340534] RSP: 0018:ffffc900151a7230 EFLAGS: 00000282 ORIG_RAX: ffffffffffffff13
+[  419.341458] RAX: ffffed100df66a5b RBX: ffff88806fb35200 RCX: ffffffffb76cfefc
+[  419.342344] RDX: 0000000000000000 RSI: 0000000000000004 RDI: ffff88806fb352d8
+[  419.343215] RBP: ffffed100df66a5c R08: 1ffff1100df66a5b R09: ffffed100df66a5b
+[  419.344047] R10: ffffed100df66a5b R11: ffff88806fb352db R12: dffffc0000000000
+[  419.344832] R13: ffff88806cef1608 R14: ffff88806f3ed276 R15: ffff888000b28500
+[  419.346095]  rcu_is_watching+0x2c/0x80
+[  419.346545]  rcu_read_lock_held_common+0xc8/0x170
+[  419.347088]  rcu_read_lock_held+0x5a/0xb0
+[  419.348695]  netlink_lookup+0x641/0xa00
+[  419.350148]  netlink_unicast+0x248/0x750
+[  419.351513]  nf_tables_getgen+0x109/0x170
+[  419.352756]  nfnetlink_rcv_msg+0x51c/0xf80
+[  419.355222]  netlink_rcv_skb+0x14f/0x400
+[  419.357271]  nfnetlink_rcv+0x1ac/0x420
+[  419.359437]  netlink_unicast+0x558/0x750
+[  419.362062]  netlink_sendmsg+0x852/0xd90
+[  419.364521]  sock_sendmsg+0x147/0x180
+[  419.364979]  ____sys_sendmsg+0x6a9/0x820
+[  419.365946]  ___sys_sendmsg+0x10a/0x180
+[  419.369207]  __sys_sendmsg+0xfb/0x1d0
+[  419.372168]  do_syscall_64+0xbc/0x5c0
+[  419.372596]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  419.373330] RIP: 0033:0x466879
+[  419.373809] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[  419.376537] RSP: 002b:00007fdb2a3e9c68 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[  419.377624] RAX: ffffffffffffffda RBX: 000000000052bfa8 RCX: 0000000000466879
+[  419.378640] RDX: 0000000000000000 RSI: 00000000200001c0 RDI: 0000000000000004
+[  419.379670] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[  419.380708] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fdb2a3ea6bc
+[  419.381757] R13: 0000000000000904 R14: 00000000004b07db R15: 00000000004e7180
+
