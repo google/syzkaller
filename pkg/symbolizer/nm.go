@@ -16,8 +16,21 @@ type Symbol struct {
 	Size int
 }
 
-// ReadSymbols returns list of text symbols in the binary bin.
-func ReadSymbols(bin string) (map[string][]Symbol, error) {
+// ReadTextSymbols returns list of text symbols in the binary bin.
+func ReadTextSymbols(bin string) (map[string][]Symbol, error) {
+	return read(bin, "t", "T")
+}
+
+// ReadRodataSymbols returns list of rodata symbols in the binary bin.
+func ReadRodataSymbols(bin string) (map[string][]Symbol, error) {
+	return read(bin, "r", "R")
+}
+
+func read(bin string, types ...string) (map[string][]Symbol, error) {
+	if len(types) != 2 || len(types[0]) != 1 || len(types[1]) != 1 {
+		// We assume these things below.
+		panic("bad types")
+	}
 	cmd := osutil.Command("nm", "-Ptx", bin)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -30,11 +43,14 @@ func ReadSymbols(bin string) (map[string][]Symbol, error) {
 	defer cmd.Wait()
 	symbols := make(map[string][]Symbol)
 	s := bufio.NewScanner(stdout)
-	text := [][]byte{[]byte(" t "), []byte(" T ")}
+	var tt [][]byte
+	for _, typ := range types {
+		tt = append(tt, []byte(" "+typ+" "))
+	}
 	for s.Scan() {
 		// A line looks as: "snb_uncore_msr_enable_box t ffffffff8104db90 0000000000000059"
 		ln := s.Bytes()
-		if !bytes.Contains(ln, text[0]) && !bytes.Contains(ln, text[1]) {
+		if !bytes.Contains(ln, tt[0]) && !bytes.Contains(ln, tt[1]) {
 			continue
 		}
 
@@ -42,11 +58,11 @@ func ReadSymbols(bin string) (map[string][]Symbol, error) {
 		if sp1 == -1 {
 			continue
 		}
-		if !bytes.HasPrefix(ln[sp1:], text[0]) && !bytes.HasPrefix(ln[sp1:], text[1]) {
+		if !bytes.HasPrefix(ln[sp1:], tt[0]) && !bytes.HasPrefix(ln[sp1:], tt[1]) {
 			continue
 		}
 
-		sp2 := sp1 + len(text[0])
+		sp2 := sp1 + len(tt[0])
 		sp3 := bytes.IndexByte(ln[sp2:], ' ')
 		if sp3 == -1 {
 			continue

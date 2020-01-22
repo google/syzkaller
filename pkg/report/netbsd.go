@@ -37,7 +37,7 @@ func ctorNetbsd(cfg *config) (Reporter, []string, error) {
 	if cfg.kernelObj != "" {
 		kernelObject = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
 		var err error
-		symbols, err = symbolizer.ReadSymbols(kernelObject)
+		symbols, err = symbolizer.ReadTextSymbols(kernelObject)
 		if err != nil {
 			return nil, nil, err
 		}
