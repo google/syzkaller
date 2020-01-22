@@ -1309,6 +1309,7 @@ tc_u32_key {
 	offmask	int32
 }
 
+# in kernel meta_policy
 tcf_em_meta_policy [
 	TCA_EM_META_HDR		nlattr[TCA_EM_META_HDR, tcf_meta_hdr]
 	TCA_EM_META_LVALUE	nlattr[TCA_EM_META_LVALUE, array[tcf_em_meta_int_var]]
@@ -1332,6 +1333,7 @@ tcf_em_meta_int_var [
 	TCF_META_TYPE_VAR	array[int8, 0:10]
 ] [varlen]
 
+# in kernel em_ipt_policy
 tcf_em_ipt_policy [
 	TCA_EM_IPT_HOOK			nlattr[TCA_EM_IPT_HOOK, flags[nf_inet_hooks, int32]]
 	TCA_EM_IPT_MATCH_NAME		nlattr[TCA_EM_IPT_MATCH_NAME, string["policy"]]

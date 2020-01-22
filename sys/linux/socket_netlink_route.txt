@@ -467,12 +467,14 @@ gre_common_policy [
 	IFLA_GRE_ERSPAN_HWID		nlattr[IFLA_GRE_ERSPAN_HWID, int16]
 ] [varlen]
 
+# ipgre_policy in kernel
 ipgre_policy [
 	IFLA_GRE_LOCAL		nlattr[IFLA_GRE_LOCAL, ipv4_addr]
 	IFLA_GRE_REMOTE		nlattr[IFLA_GRE_REMOTE, ipv4_addr]
 	gre_common_policy	array[gre_common_policy]
 ] [varlen]
 
+# ip6gre_policy in kernel
 ip6gre_policy [
 	IFLA_GRE_LOCAL		nlattr[IFLA_GRE_LOCAL, ipv6_addr]
 	IFLA_GRE_REMOTE		nlattr[IFLA_GRE_REMOTE, ipv6_addr]

@@ -60,6 +60,7 @@ nl80211_wdev {
 	whipy	nl80211_whipy
 }
 
+# nl80211_policy in kernel
 nl80211_dev_policy [
 	NL80211_ATTR_WIPHY	nlattr[NL80211_ATTR_WIPHY, nl80211_whipy]
 	NL80211_ATTR_IFINDEX	nlattr[NL80211_ATTR_IFINDEX, ifindex]
