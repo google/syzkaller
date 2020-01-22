@@ -1,2 +1,12 @@
-no-such-netlink-policy: xfrm_attrs [amd64]
+bad-netlink-attr: xfrma_policy.algo_auth_trunc: bad size -1, expect 72
+bad-netlink-attr: xfrma_policy.algo_aead: bad size -1, expect 72
+bad-netlink-attr: xfrma_policy.algo_auth: bad size -1, expect 68
+bad-netlink-attr: xfrma_policy.algo_crypt: bad size -1, expect 68
+bad-netlink-attr: xfrma_policy.algo_comp: bad size -1, expect 68
+bad-netlink-attr: xfrma_policy.sec_ctx: bad size -1, expect 8
+bad-netlink-attr: xfrma_policy.tmpl: bad size -1, expect 64
+bad-netlink-attr: xfrma_policy.replay_esn_val: bad size -1, expect 24
+bad-netlink-attr: xfrma_policy.migrate: bad size -1, expect 76
+bad-netlink-attr: xfrma_policy.ipv4_hthresh: bad size 2, expect 68
+bad-netlink-attr: xfrma_policy.ipv6_hthresh: bad size 2, expect 24
 no-such-struct: xfrm_filter

@@ -1,27 +1,45 @@
 no-such-struct: nl80211_wdev
-no-such-netlink-policy: nl80211_dev_policy [amd64]
-no-such-netlink-policy: nl80211_wiphy_policy [amd64]
-no-such-netlink-policy: nl80211_setns_policy [amd64]
-no-such-netlink-policy: nl80211_interface_policy [amd64]
-no-such-netlink-policy: nl80211_cmd_key_policy [amd64]
-bad-netlink-attr: nl80211_key_policy.NL80211_KEY_DEFAULT_TYPES: should be nlnest [amd64]
-no-such-netlink-policy: nl80211_beacon_policy [amd64]
-no-such-netlink-policy: nl80211_tx_rates_policy [amd64]
-no-such-netlink-policy: nl80211_station_policy [amd64]
-no-such-netlink-policy: nl80211_mpath_policy [amd64]
-no-such-netlink-policy: nl80211_bss_policy [amd64]
-no-such-netlink-policy: nl80211_reg_policy [amd64]
-no-such-netlink-policy: nl80211_mesh_policy [amd64]
-no-such-netlink-policy: nl80211_join_mesh_policy [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_TTL: bad min value 0, expect 1 [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_ELEMENT_TTL: bad min value 0, expect 1 [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_MIN_DISCOVERY_TIMEOUT: bad min value 0, expect 1 [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_PREQ_MIN_INTERVAL: bad min value 0, expect 1 [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_PERR_MIN_INTERVAL: bad min value 0, expect 1 [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_NET_DIAM_TRVS_TIME: bad min value 0, expect 1 [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_RANN_INTERVAL: bad min value 0, expect 1 [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_ROOT_INTERVAL: bad min value 0, expect 1 [amd64]
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_CONFIRMATION_INTERVAL: bad min value 0, expect 1 [amd64]
-no-such-netlink-policy: nl80211_scan_policy [amd64]
-no-such-netlink-policy: nl80211_rates_policy [amd64]
-bad-netlink-attr: nl80211_match_policy.NL80211_SCHED_SCAN_MATCH_PER_BAND_RSSI: should be nlnest [amd64]
+bad-netlink-attr: nl80211_policy_wiphy.NL80211_ATTR_WIPHY_TXQ_PARAMS: should be nlnest
+bad-netlink-attr: nl80211_policy_wiphy.NL80211_ATTR_WIPHY_RETRY_SHORT: bad min value 0, expect 1
+bad-netlink-attr: nl80211_policy_wiphy.NL80211_ATTR_WIPHY_RETRY_LONG: bad min value 0, expect 1
+bad-netlink-attr: nl80211_policy_cmd_key.NL80211_ATTR_KEY_DEFAULT_TYPES: should be nlnest
+bad-netlink-attr: nl80211_policy_cmd_key.NL80211_ATTR_KEY: should be nlnest
+bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DATA_WEP40: bad size 5, expect 4
+bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DATA_WEP104: bad size 13, expect 4
+bad-netlink-attr: nl80211_policy_key.NL80211_KEY_IDX: expect string
+bad-netlink-attr: nl80211_policy_key.NL80211_KEY_SEQ: expect string
+bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DEFAULT: bad size 0, expect 4
+bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DEFAULT_MGMT: bad size 0, expect 6
+bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DEFAULT_TYPES: bad size -1, expect 1
+bad-netlink-attr: nl80211_policy_key.NL80211_KEY_MODE: bad size 1, expect 4
+bad-netlink-attr: nl80211_policy_beacon.NL80211_ATTR_FTM_RESPONDER: should be nlnest
+bad-netlink-attr: nl80211_policy_beacon.NL80211_ATTR_TX_RATES: should be nlnest
+bad-netlink-attr: nl80211_policy_beacon.NL80211_ATTR_MAC_ADDRS: should be nlnest
+no-such-netlink-policy: nl80211_tx_rates_policy
+bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_VLAN_ID: bad min value 0, expect 1
+bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_STA_SUPPORT_P2P_PS: bad max value 2, expect 1
+bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_STA_FLAGS: should be nlnest
+bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_STA_PLINK_ACTION: bad max value 3, expect 2
+bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_STA_PLINK_STATE: bad max value 7, expect 6
+bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_LOCAL_MESH_POWER_MODE: bad min value 0, expect 1
+bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_AIRTIME_WEIGHT: bad min value 0, expect 1
+bad-netlink-attr: nl80211_policy_bss.NL80211_STA_WME_MAX_SP: expect string
+bad-netlink-attr: nl80211_policy_reg.NL80211_ATTR_REG_RULES: should be nlnest
+bad-netlink-attr: nl80211_policy_mesh.NL80211_ATTR_MESH_CONFIG: should be nlnest
+bad-netlink-attr: nl80211_policy_join_mesh.NL80211_ATTR_MESH_CONFIG: should be nlnest
+bad-netlink-attr: nl80211_policy_join_mesh.NL80211_ATTR_TX_RATES: should be nlnest
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_TTL: bad min value 0, expect 1
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_ELEMENT_TTL: bad min value 0, expect 1
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_MIN_DISCOVERY_TIMEOUT: bad min value 0, expect 1
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_PREQ_MIN_INTERVAL: bad min value 0, expect 1
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_PERR_MIN_INTERVAL: bad min value 0, expect 1
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_NET_DIAM_TRVS_TIME: bad min value 0, expect 1
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_RANN_INTERVAL: bad min value 0, expect 1
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_ROOT_INTERVAL: bad min value 0, expect 1
+bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_CONFIRMATION_INTERVAL: bad min value 0, expect 1
+bad-netlink-attr: nl80211_policy_scan.NL80211_ATTR_SCAN_FREQUENCIES: should be nlnest
+bad-netlink-attr: nl80211_policy_scan.NL80211_ATTR_SCAN_SSIDS: should be nlnest
+bad-netlink-attr: nl80211_policy_scan.NL80211_ATTR_SCAN_SUPP_RATES: should be nlnest
+bad-netlink-attr: nl80211_policy_scan.NL80211_ATTR_SCHED_SCAN_MATCH: should be nlnest
+no-such-netlink-policy: nl80211_rates_policy
+bad-netlink-attr: nl80211_match_policy.NL80211_SCHED_SCAN_MATCH_PER_BAND_RSSI: should be nlnest

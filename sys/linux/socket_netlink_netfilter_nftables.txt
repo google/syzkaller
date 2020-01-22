@@ -62,7 +62,7 @@ nft_batch_message [
 	NFT_MSG_DELSET		netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_DELSET, nft_set_policy]
 	NFT_MSG_NEWSETELEM	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWSETELEM, nft_set_elem_list_policy]
 	NFT_MSG_DELSETELEM	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_DELSETELEM, nft_set_elem_list_policy]
-	NFT_MSG_NEWOBJ		netlink_msg_netfilter_tt[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWOBJ, nft_new_obj_policy]
+	NFT_MSG_NEWOBJ		netlink_msg_netfilter_tt[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWOBJ, nft_obj_policy_new]
 	NFT_MSG_DELOBJ		netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_DELOBJ, nft_obj_policy]
 	NFT_MSG_NEWFLOWTABLE	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWFLOWTABLE, nft_flowtable_policy]
 	NFT_MSG_DELFLOWTABLE	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_DELFLOWTABLE, nft_flowtable_policy]
@@ -205,7 +205,7 @@ nft_obj_policy [
 	NFTA_OBJ_HANDLE	nlnetw[NFTA_OBJ_HANDLE, nft_handle]
 ] [varlen]
 
-type nft_new_obj_policy_t[TYPE, POLICY] [
+type nft_obj_policy_new_t[TYPE, POLICY] [
 	NFTA_OBJ_TABLE	nlattr[NFTA_OBJ_TABLE, string[nft_table_name]]
 	NFTA_OBJ_NAME	nlattr[NFTA_OBJ_NAME, string[nft_obj_name]]
 	NFTA_OBJ_TYPE	nlnetw[NFTA_OBJ_TYPE, const[TYPE, int32be]]
@@ -213,17 +213,17 @@ type nft_new_obj_policy_t[TYPE, POLICY] [
 	NFTA_OBJ_HANDLE	nlnetw[NFTA_OBJ_HANDLE, nft_handle]
 ] [varlen]
 
-nft_new_obj_policy [
-	NFT_OBJECT_SECMARK	nft_new_obj_policy_t[NFT_OBJECT_SECMARK, nft_secmark_policy]
-	NFT_OBJECT_CONNLIMIT	nft_new_obj_policy_t[NFT_OBJECT_CONNLIMIT, nft_connlimit_policy]
-	NFT_OBJECT_COUNTER	nft_new_obj_policy_t[NFT_OBJECT_COUNTER, nft_counter_policy]
-	NFT_OBJECT_CT_TIMEOUT	nft_new_obj_policy_t[NFT_OBJECT_CT_TIMEOUT, nft_ct_timeout_policy]
-	NFT_OBJECT_CT_HELPER	nft_new_obj_policy_t[NFT_OBJECT_CT_HELPER, nft_ct_helper_policy]
-	NFT_OBJECT_CT_EXPECT	nft_new_obj_policy_t[NFT_OBJECT_CT_EXPECT, nft_ct_expect_policy]
-	NFT_OBJECT_LIMIT	nft_new_obj_policy_t[NFT_OBJECT_LIMIT, nft_limit_policy]
-	NFT_OBJECT_QUOTA	nft_new_obj_policy_t[NFT_OBJECT_QUOTA, nft_quota_policy]
-	NFT_OBJECT_SYNPROXY	nft_new_obj_policy_t[NFT_OBJECT_SYNPROXY, nft_synproxy_policy]
-	NFT_OBJECT_TUNNEL	nft_new_obj_policy_t[NFT_OBJECT_TUNNEL, nft_tunnel_key_policy]
+nft_obj_policy_new [
+	NFT_OBJECT_SECMARK	nft_obj_policy_new_t[NFT_OBJECT_SECMARK, nft_secmark_policy]
+	NFT_OBJECT_CONNLIMIT	nft_obj_policy_new_t[NFT_OBJECT_CONNLIMIT, nft_connlimit_policy]
+	NFT_OBJECT_COUNTER	nft_obj_policy_new_t[NFT_OBJECT_COUNTER, nft_counter_policy]
+	NFT_OBJECT_CT_TIMEOUT	nft_obj_policy_new_t[NFT_OBJECT_CT_TIMEOUT, nft_ct_timeout_policy]
+	NFT_OBJECT_CT_HELPER	nft_obj_policy_new_t[NFT_OBJECT_CT_HELPER, nft_ct_helper_policy]
+	NFT_OBJECT_CT_EXPECT	nft_obj_policy_new_t[NFT_OBJECT_CT_EXPECT, nft_ct_expect_policy]
+	NFT_OBJECT_LIMIT	nft_obj_policy_new_t[NFT_OBJECT_LIMIT, nft_limit_policy]
+	NFT_OBJECT_QUOTA	nft_obj_policy_new_t[NFT_OBJECT_QUOTA, nft_quota_policy]
+	NFT_OBJECT_SYNPROXY	nft_obj_policy_new_t[NFT_OBJECT_SYNPROXY, nft_synproxy_policy]
+	NFT_OBJECT_TUNNEL	nft_obj_policy_new_t[NFT_OBJECT_TUNNEL, nft_tunnel_key_policy]
 ] [varlen]
 
 nft_obj_name = "syz0", "syz1", "syz2"
