@@ -41,7 +41,7 @@ nbd_attr_policy [
 	NBD_ATTR_TIMEOUT		nlattr[NBD_ATTR_TIMEOUT, int64]
 	NBD_ATTR_SERVER_FLAGS		nlattr[NBD_ATTR_SERVER_FLAGS, flags[nbd_server_flags, int64]]
 	NBD_ATTR_CLIENT_FLAGS		nlattr[NBD_ATTR_CLIENT_FLAGS, flags[nbd_client_flags, int64]]
-	NBD_ATTR_SOCKETS		nlattr[NBD_ATTR_SOCKETS, array[nlattr[NBD_SOCK_FD, sock_nbd_client]]]
+	NBD_ATTR_SOCKETS		nlnest[NBD_ATTR_SOCKETS, array[nlattr[NBD_SOCK_FD, sock_nbd_client]]]
 	NBD_ATTR_DEAD_CONN_TIMEOUT	nlattr[NBD_ATTR_DEAD_CONN_TIMEOUT, int64]
 ] [varlen]
 

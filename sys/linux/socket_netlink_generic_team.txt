@@ -23,7 +23,7 @@ sendmsg$TEAM_CMD_PORT_LIST_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TE
 
 team_nl_policy {
 	TEAM_ATTR_TEAM_IFINDEX	nlattr[TEAM_ATTR_TEAM_IFINDEX, ifindex_team]
-	TEAM_ATTR_LIST_OPTION	nlattr[TEAM_ATTR_LIST_OPTION, array[nlattr[TEAM_ATTR_ITEM_OPTION, team_attr_option]]]
+	TEAM_ATTR_LIST_OPTION	nlnest[TEAM_ATTR_LIST_OPTION, array[nlattr[TEAM_ATTR_ITEM_OPTION, team_attr_option]]]
 } [packed, align_4]
 
 type team_nl_option_policy[NAME, TYPE, DATA] {

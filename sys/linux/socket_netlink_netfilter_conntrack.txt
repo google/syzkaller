@@ -23,18 +23,18 @@ sendmsg$IPCTNL_MSG_CT_GET_DYING(fd sock_nl_netfilter, msg ptr[in, msghdr_conntra
 sendmsg$IPCTNL_MSG_CT_GET_UNCONFIRMED(fd sock_nl_netfilter, msg ptr[in, msghdr_conntrack[IPCTNL_MSG_CT_GET_UNCONFIRMED, void]], f flags[send_flags])
 
 ct_nla_policy [
-	CTA_TUPLE_ORIG		nlattr[CTA_TUPLE_ORIG, array[tuple_nla_policy]]
-	CTA_TUPLE_REPLY		nlattr[CTA_TUPLE_REPLY, array[tuple_nla_policy]]
+	CTA_TUPLE_ORIG		nlnest[CTA_TUPLE_ORIG, array[tuple_nla_policy]]
+	CTA_TUPLE_REPLY		nlnest[CTA_TUPLE_REPLY, array[tuple_nla_policy]]
 	CTA_STATUS		nlattr[CTA_STATUS, flags[ip_conntrack_status, int32be]]
-	CTA_PROTOINFO		nlattr[CTA_PROTOINFO, protoinfo_policy]
+	CTA_PROTOINFO		nlnest[CTA_PROTOINFO, protoinfo_policy]
 # The policy may also contain CTA_HELP_INFO, but I don't see any of the helpers use it.
-	CTA_HELP		nlattr[CTA_HELP, nlattr[CTA_HELP_NAME, string[xt_helper_names]]]
-	CTA_NAT_SRC		nlattr[CTA_NAT_SRC, array[nat_nla_policy]]
+	CTA_HELP		nlnest[CTA_HELP, nlattr[CTA_HELP_NAME, string[xt_helper_names]]]
+	CTA_NAT_SRC		nlnest[CTA_NAT_SRC, array[nat_nla_policy]]
 	CTA_TIMEOUT		nlattr[CTA_TIMEOUT, int32be]
 	CTA_MARK		nlattr[CTA_MARK, int32be]
 	CTA_ID			nlattr[CTA_ID, conntrack_id]
-	CTA_NAT_DST		nlattr[CTA_NAT_DST, array[nat_nla_policy]]
-	CTA_TUPLE_MASTER	nlattr[CTA_TUPLE_MASTER, array[tuple_nla_policy]]
+	CTA_NAT_DST		nlnest[CTA_NAT_DST, array[nat_nla_policy]]
+	CTA_TUPLE_MASTER	nlnest[CTA_TUPLE_MASTER, array[tuple_nla_policy]]
 	CTA_ZONE		nlattr[CTA_ZONE, conntrack_zone]
 	CTA_MARK_MASK		nlattr[CTA_MARK_MASK, conntrack_id]
 	CTA_LABELS		nlattr[CTA_LABELS, array[int32be]]
@@ -43,8 +43,8 @@ ct_nla_policy [
 ] [varlen]
 
 tuple_nla_policy [
-	CTA_TUPLE_IP	nlattr[CTA_TUPLE_IP, cta_ip_nla_policy]
-	CTA_TUPLE_PROTO	nlattr[CTA_TUPLE_PROTO, nlattr[CTA_PROTO_NUM, flags[conntrack_proto, int8]]]
+	CTA_TUPLE_IP	nlnest[CTA_TUPLE_IP, cta_ip_nla_policy]
+	CTA_TUPLE_PROTO	nlnest[CTA_TUPLE_PROTO, nlattr[CTA_PROTO_NUM, flags[conntrack_proto, int8]]]
 	CTA_TUPLE_ZONE	nlattr[CTA_TUPLE_ZONE, conntrack_zone]
 ] [varlen]
 
@@ -64,9 +64,9 @@ cta_ip_nla_policy_ipv6 {
 }
 
 protoinfo_policy [
-	CTA_PROTOINFO_TCP	nlattr[CTA_PROTOINFO_TCP, array[tcp_nla_policy]]
-	CTA_PROTOINFO_DCCP	nlattr[CTA_PROTOINFO_DCCP, array[dccp_nla_policy]]
-	CTA_PROTOINFO_SCTP	nlattr[CTA_PROTOINFO_SCTP, array[sctp_nla_policy]]
+	CTA_PROTOINFO_TCP	nlnest[CTA_PROTOINFO_TCP, array[tcp_nla_policy]]
+	CTA_PROTOINFO_DCCP	nlnest[CTA_PROTOINFO_DCCP, array[dccp_nla_policy]]
+	CTA_PROTOINFO_SCTP	nlnest[CTA_PROTOINFO_SCTP, array[sctp_nla_policy]]
 ] [varlen]
 
 tcp_nla_policy [
@@ -99,7 +99,7 @@ nat_nla_policy [
 	CTA_NAT_V4_MAXIP	nlattr[CTA_NAT_V4_MAXIP, ipv4_addr]
 	CTA_NAT_V6_MINIP	nlattr[CTA_NAT_V6_MINIP, ipv6_addr]
 	CTA_NAT_V6_MAXIP	nlattr[CTA_NAT_V6_MAXIP, ipv6_addr]
-	CTA_NAT_PROTO		nlattr[CTA_NAT_PROTO, array[protonat_nla_policy]]
+	CTA_NAT_PROTO		nlnest[CTA_NAT_PROTO, array[protonat_nla_policy]]
 ] [varlen]
 
 protonat_nla_policy [

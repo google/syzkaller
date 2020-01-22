@@ -1,2 +1,1 @@
-bad-netlink-attr: nbd_attr_policy.NBD_ATTR_SOCKETS: should be nlnest
 no-such-struct: nbd_sock_pair

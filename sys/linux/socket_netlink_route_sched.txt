@@ -50,7 +50,7 @@ netlink_msg_route_sched [
 	newchain	netlink_msg[RTM_NEWCHAIN, tcmsg[AF_UNSPEC], filter_policy]
 	delchain	netlink_msg[RTM_DELCHAIN, tcmsg[AF_UNSPEC], filter_policy]
 	getchain	netlink_msg[RTM_GETCHAIN, tcmsg[AF_UNSPEC], nlattr[TCA_CHAIN, int32]]
-	newtaction	netlink_msg[RTM_NEWACTION, tcamsg[AF_UNSPEC], nlattr[TCA_ACT_TAB, tca_actions]]
+	newtaction	netlink_msg[RTM_NEWACTION, tcamsg[AF_UNSPEC], nlattr[TCA_ACT_TAB, array[tca_actions]]]
 	deltaction	netlink_msg[RTM_DELACTION, tcamsg[AF_UNSPEC], action_gd_policy]
 	gettaction	netlink_msg[RTM_GETACTION, tcamsg[AF_UNSPEC], action_dump_policy]
 ] [varlen]
@@ -79,7 +79,7 @@ type tcamsg[FAMILY] {
 rtm_tca_policy [
 	qdisc_kind_options	qdisc_kind_options
 	TCA_RATE		nlattr[TCA_RATE, tc_estimator]
-	TCA_STAB		nlattr[TCA_STAB, array[stab_policy]]
+	TCA_STAB		nlnest[TCA_STAB, array[stab_policy]]
 	TCA_INGRESS_BLOCK	nlattr[TCA_INGRESS_BLOCK, int32]
 	TCA_EGRESS_BLOCK	nlattr[TCA_EGRESS_BLOCK, int32]
 ] [varlen]
@@ -272,8 +272,8 @@ tc_mqprio_message {
 mqprio_policy [
 	TCA_MQPRIO_MODE		nlattr[TCA_MQPRIO_MODE, flags[tc_mqprio_modes, int32]]
 	TCA_MQPRIO_SHAPER	nlattr[TCA_MQPRIO_SHAPER, flags[tc_mqprio_shapers, int32]]
-	TCA_MQPRIO_MIN_RATE64	nlattr[TCA_MQPRIO_MIN_RATE64, array[nlattr[TCA_MQPRIO_MIN_RATE64, int64], 0:16]]
-	TCA_MQPRIO_MAX_RATE64	nlattr[TCA_MQPRIO_MAX_RATE64, array[nlattr[TCA_MQPRIO_MAX_RATE64, int64], 0:16]]
+	TCA_MQPRIO_MIN_RATE64	nlnest[TCA_MQPRIO_MIN_RATE64, array[nlattr[TCA_MQPRIO_MIN_RATE64, int64], 0:16]]
+	TCA_MQPRIO_MAX_RATE64	nlnest[TCA_MQPRIO_MAX_RATE64, array[nlattr[TCA_MQPRIO_MAX_RATE64, int64], 0:16]]
 ] [varlen]
 
 tc_netem_message {
@@ -286,7 +286,7 @@ netem_policy [
 	TCA_NETEM_DELAY_DIST	nlattr[TCA_NETEM_DELAY_DIST, array[int8, 0:100]]
 	TCA_NETEM_REORDER	nlattr[TCA_NETEM_REORDER, tc_netem_reorder]
 	TCA_NETEM_CORRUPT	nlattr[TCA_NETEM_CORRUPT, tc_netem_corrupt]
-	TCA_NETEM_LOSS		nlattr[TCA_NETEM_LOSS, array[netem_loss_policy]]
+	TCA_NETEM_LOSS		nlnest[TCA_NETEM_LOSS, array[netem_loss_policy]]
 	TCA_NETEM_RATE		nlattr[TCA_NETEM_RATE, tc_netem_rate]
 	TCA_NETEM_ECN		nlattr[TCA_NETEM_ECN, int32[0:1]]
 	TCA_NETEM_RATE64	nlattr[TCA_NETEM_RATE64, int64[0x100000000:0xffffffffffffffff]]
@@ -328,7 +328,7 @@ entry_policy_taprio [
 
 taprio_policy [
 	TCA_TAPRIO_ATTR_PRIOMAP				nlattr[TCA_TAPRIO_ATTR_PRIOMAP, tc_mqprio_qopt]
-	TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST		nlattr[TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST, array[nlattr[TCA_TAPRIO_SCHED_ENTRY, array[entry_policy_taprio]]]]
+	TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST		nlnest[TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST, array[nlnest[TCA_TAPRIO_SCHED_ENTRY, array[entry_policy_taprio]]]]
 	TCA_TAPRIO_ATTR_SCHED_BASE_TIME			nlattr[TCA_TAPRIO_ATTR_SCHED_BASE_TIME, int64]
 	TCA_TAPRIO_ATTR_SCHED_CLOCKID			nlattr[TCA_TAPRIO_ATTR_SCHED_CLOCKID, int32]
 	TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME		nlattr[TCA_TAPRIO_ATTR_SCHED_CYCLE_TIME, int64]
@@ -646,14 +646,14 @@ filter_kind_options [
 
 basic_policy [
 	TCA_BASIC_CLASSID	nlattr[TCA_BASIC_CLASSID, tcm_handle]
-	TCA_BASIC_EMATCHES	nlattr[TCA_BASIC_EMATCHES, array[em_policy]]
-	TCA_BASIC_ACT		nlattr[TCA_BASIC_ACT, tca_actions]
-	TCA_BASIC_POLICE	nlattr[TCA_BASIC_POLICE, police_policy]
+	TCA_BASIC_EMATCHES	nlnest[TCA_BASIC_EMATCHES, array[em_policy]]
+	TCA_BASIC_ACT		nlattr[TCA_BASIC_ACT, array[tca_actions]]
+	TCA_BASIC_POLICE	nlattr[TCA_BASIC_POLICE, array[police_policy]]
 ] [varlen]
 
 bpf_policy [
-	TCA_BPF_ACT		nlattr[TCA_BPF_ACT, tca_actions]
-	TCA_BPF_POLICE		nlattr[TCA_BPF_POLICE, police_policy]
+	TCA_BPF_ACT		nlattr[TCA_BPF_ACT, array[tca_actions]]
+	TCA_BPF_POLICE		nlattr[TCA_BPF_POLICE, array[police_policy]]
 	TCA_BPF_CLASSID		nlattr[TCA_BPF_CLASSID, tcm_handle]
 	TCA_BPF_OPS		bpf_policy_ops
 	TCA_BPF_FD		nlattr[TCA_BPF_FD, fd_bpf_prog]
@@ -668,9 +668,9 @@ bpf_policy_ops {
 } [packed]
 
 cgroup_policy [
-	TCA_CGROUP_ACT		nlattr[TCA_CGROUP_ACT, tca_actions]
-	TCA_CGROUP_POLICE	nlattr[TCA_CGROUP_POLICE, police_policy]
-	TCA_CGROUP_EMATCHES	nlattr[TCA_CGROUP_EMATCHES, array[em_policy]]
+	TCA_CGROUP_ACT		nlattr[TCA_CGROUP_ACT, array[tca_actions]]
+	TCA_CGROUP_POLICE	nlattr[TCA_CGROUP_POLICE, array[police_policy]]
+	TCA_CGROUP_EMATCHES	nlnest[TCA_CGROUP_EMATCHES, array[em_policy]]
 ] [varlen]
 
 flow_policy [
@@ -682,16 +682,16 @@ flow_policy [
 	TCA_FLOW_MASK		nlattr[TCA_FLOW_MASK, int32]
 	TCA_FLOW_XOR		nlattr[TCA_FLOW_XOR, int32]
 	TCA_FLOW_DIVISOR	nlattr[TCA_FLOW_DIVISOR, int32]
-	TCA_FLOW_ACT		nlattr[TCA_FLOW_ACT, tca_actions]
-	TCA_FLOW_POLICE		nlattr[TCA_FLOW_POLICE, police_policy]
-	TCA_FLOW_EMATCHES	nlattr[TCA_FLOW_EMATCHES, array[em_policy]]
+	TCA_FLOW_ACT		nlnest[TCA_FLOW_ACT, array[tca_actions]]
+	TCA_FLOW_POLICE		nlnest[TCA_FLOW_POLICE, array[police_policy]]
+	TCA_FLOW_EMATCHES	nlnest[TCA_FLOW_EMATCHES, array[em_policy]]
 	TCA_FLOW_PERTURB	nlattr[TCA_FLOW_PERTURB, int32]
 ] [varlen]
 
 fl_policy [
 	TCA_FLOWER_CLASSID			nlattr[TCA_FLOWER_CLASSID, tcm_handle]
 	TCA_FLOWER_INDEV			nlattr[TCA_FLOWER_INDEV, devname]
-	TCA_FLOWER_ACT				nlattr[TCA_FLOWER_ACT, tca_actions]
+	TCA_FLOWER_ACT				nlattr[TCA_FLOWER_ACT, array[tca_actions]]
 	TCA_FLOWER_KEY_ETH_DST			nlattr[TCA_FLOWER_KEY_ETH_DST, mac_addr]
 	TCA_FLOWER_KEY_ETH_DST_MASK		nlattr[TCA_FLOWER_KEY_ETH_DST_MASK, mac_addr_mask]
 	TCA_FLOWER_KEY_ETH_SRC			nlattr[TCA_FLOWER_KEY_ETH_SRC, mac_addr]
@@ -772,8 +772,8 @@ fl_policy [
 	TCA_FLOWER_KEY_ENC_IP_TOS_MASK		nlattr[TCA_FLOWER_KEY_ENC_IP_TOS_MASK, int8]
 	TCA_FLOWER_KEY_ENC_IP_TTL		nlattr[TCA_FLOWER_KEY_ENC_IP_TTL, int8]
 	TCA_FLOWER_KEY_ENC_IP_TTL_MASK		nlattr[TCA_FLOWER_KEY_ENC_IP_TTL_MASK, int8]
-	TCA_FLOWER_KEY_ENC_OPTS			nlattr[TCA_FLOWER_KEY_ENC_OPTS, enc_opts_policy]
-	TCA_FLOWER_KEY_ENC_OPTS_MASK		nlattr[TCA_FLOWER_KEY_ENC_OPTS_MASK, enc_opts_policy]
+	TCA_FLOWER_KEY_ENC_OPTS			nlnest[TCA_FLOWER_KEY_ENC_OPTS, array[enc_opts_policy]]
+	TCA_FLOWER_KEY_ENC_OPTS_MASK		nlnest[TCA_FLOWER_KEY_ENC_OPTS_MASK, array[enc_opts_policy]]
 	TCA_FLOWER_KEY_PORT_SRC_MIN		nlattr[TCA_FLOWER_KEY_PORT_SRC_MIN, sock_port]
 	TCA_FLOWER_KEY_PORT_SRC_MAX		nlattr[TCA_FLOWER_KEY_PORT_SRC_MAX, sock_port]
 	TCA_FLOWER_KEY_PORT_DST_MIN		nlattr[TCA_FLOWER_KEY_PORT_DST_MIN, sock_port]
@@ -789,9 +789,9 @@ fl_policy [
 ] [varlen]
 
 enc_opts_policy [
-	TCA_FLOWER_KEY_ENC_OPTS_GENEVE	nlattr[TCA_FLOWER_KEY_ENC_OPTS_GENEVE, array[geneve_opt_policy]]
-	TCA_FLOWER_KEY_ENC_OPTS_VXLAN	nlattr[TCA_FLOWER_KEY_ENC_OPTS_VXLAN, array[vxlan_opt_policy]]
-	TCA_FLOWER_KEY_ENC_OPTS_ERSPAN	nlattr[TCA_FLOWER_KEY_ENC_OPTS_ERSPAN, array[erspan_opt_policy]]
+	TCA_FLOWER_KEY_ENC_OPTS_GENEVE	nlnest[TCA_FLOWER_KEY_ENC_OPTS_GENEVE, array[geneve_opt_policy]]
+	TCA_FLOWER_KEY_ENC_OPTS_VXLAN	nlnest[TCA_FLOWER_KEY_ENC_OPTS_VXLAN, array[vxlan_opt_policy]]
+	TCA_FLOWER_KEY_ENC_OPTS_ERSPAN	nlnest[TCA_FLOWER_KEY_ENC_OPTS_ERSPAN, array[erspan_opt_policy]]
 ] [varlen]
 
 geneve_opt_policy [
@@ -813,15 +813,15 @@ erspan_opt_policy [
 
 fw_policy [
 	TCA_FW_CLASSID	nlattr[TCA_FW_CLASSID, tcm_handle]
-	TCA_FW_POLICE	nlattr[TCA_FW_POLICE, police_policy]
+	TCA_FW_POLICE	nlattr[TCA_FW_POLICE, array[police_policy]]
 	TCA_FW_INDEV	nlattr[TCA_FW_INDEV, devname]
-	TCA_FW_ACT	nlattr[TCA_FW_ACT, tca_actions]
+	TCA_FW_ACT	nlattr[TCA_FW_ACT, array[tca_actions]]
 	TCA_FW_MASK	nlattr[TCA_FW_MASK, int32]
 ] [varlen]
 
 mall_policy [
 	TCA_MATCHALL_CLASSID	nlattr[TCA_MATCHALL_CLASSID, tcm_handle]
-	TCA_MATCHALL_ACT	nlattr[TCA_MATCHALL_ACT, tca_actions]
+	TCA_MATCHALL_ACT	nlattr[TCA_MATCHALL_ACT, array[tca_actions]]
 	TCA_MATCHALL_FLAGS	nlattr[TCA_MATCHALL_FLAGS, int32[0:8]]
 ] [varlen]
 
@@ -830,8 +830,8 @@ route4_policy [
 	TCA_ROUTE4_TO		nlattr[TCA_ROUTE4_TO, int32[0:256]]
 	TCA_ROUTE4_FROM		nlattr[TCA_ROUTE4_FROM, int32[0:256]]
 	TCA_ROUTE4_IIF		nlattr[TCA_ROUTE4_IIF, devname]
-	TCA_ROUTE4_POLICE	nlattr[TCA_ROUTE4_POLICE, police_policy]
-	TCA_ROUTE4_ACT		nlattr[TCA_ROUTE4_ACT, tca_actions]
+	TCA_ROUTE4_POLICE	nlattr[TCA_ROUTE4_POLICE, array[police_policy]]
+	TCA_ROUTE4_ACT		nlattr[TCA_ROUTE4_ACT, array[tca_actions]]
 ] [varlen]
 
 rsvp_policy [
@@ -839,8 +839,8 @@ rsvp_policy [
 	TCA_RSVP_DST		nlattr[TCA_RSVP_DST, ipv4_addr]
 	TCA_RSVP_SRC		nlattr[TCA_RSVP_SRC, ipv4_addr]
 	TCA_RSVP_PINFO		nlattr[TCA_RSVP_PINFO, tc_rsvp_pinfo]
-	TCA_RSVP_POLICE		nlattr[TCA_RSVP_POLICE, police_policy]
-	TCA_RSVP_ACT		nlattr[TCA_RSVP_ACT, tca_actions]
+	TCA_RSVP_POLICE		nlattr[TCA_RSVP_POLICE, array[police_policy]]
+	TCA_RSVP_ACT		nlattr[TCA_RSVP_ACT, array[tca_actions]]
 ] [varlen]
 
 rsvp_policy_ipv6 [
@@ -848,8 +848,8 @@ rsvp_policy_ipv6 [
 	TCA_RSVP_DST		nlattr[TCA_RSVP_DST, ipv6_addr]
 	TCA_RSVP_SRC		nlattr[TCA_RSVP_SRC, ipv6_addr]
 	TCA_RSVP_PINFO		nlattr[TCA_RSVP_PINFO, tc_rsvp_pinfo]
-	TCA_RSVP_POLICE		nlattr[TCA_RSVP_POLICE, police_policy]
-	TCA_RSVP_ACT		nlattr[TCA_RSVP_ACT, tca_actions]
+	TCA_RSVP_POLICE		nlattr[TCA_RSVP_POLICE, array[police_policy]]
+	TCA_RSVP_ACT		nlattr[TCA_RSVP_ACT, array[tca_actions]]
 ] [varlen]
 
 tcindex_policy [
@@ -858,8 +858,8 @@ tcindex_policy [
 	TCA_TCINDEX_SHIFT		nlattr[TCA_TCINDEX_SHIFT, int32]
 	TCA_TCINDEX_FALL_THROUGH	nlattr[TCA_TCINDEX_FALL_THROUGH, int32[0:1]]
 	TCA_TCINDEX_CLASSID		nlattr[TCA_TCINDEX_CLASSID, tcm_handle]
-	TCA_TCINDEX_POLICE		nlattr[TCA_TCINDEX_POLICE, police_policy]
-	TCA_TCINDEX_ACT			nlattr[TCA_TCINDEX_ACT, tca_actions]
+	TCA_TCINDEX_POLICE		nlattr[TCA_TCINDEX_POLICE, array[police_policy]]
+	TCA_TCINDEX_ACT			nlattr[TCA_TCINDEX_ACT, array[tca_actions]]
 ] [varlen]
 
 u32_policy [
@@ -868,8 +868,8 @@ u32_policy [
 	TCA_U32_LINK	nlattr[TCA_U32_LINK, int32]
 	TCA_U32_DIVISOR	nlattr[TCA_U32_DIVISOR, int32[0:0x100]]
 	TCA_U32_SEL	nlattr[TCA_U32_SEL, tc_u32_sel]
-	TCA_U32_POLICE	nlattr[TCA_U32_POLICE, police_policy]
-	TCA_U32_ACT	nlattr[TCA_U32_ACT, tca_actions]
+	TCA_U32_POLICE	nlattr[TCA_U32_POLICE, array[police_policy]]
+	TCA_U32_ACT	nlattr[TCA_U32_ACT, array[tca_actions]]
 	TCA_U32_INDEV	nlattr[TCA_U32_INDEV, devname]
 	TCA_U32_MARK	nlattr[TCA_U32_MARK, tc_u32_mark]
 	TCA_U32_FLAGS	nlattr[TCA_U32_FLAGS, int32[0:8]]
@@ -926,7 +926,7 @@ tca_actions [
 	m_mpls		nlattr_tca_actions[tcf_action_policy["mpls", mpls_policy]]
 	m_nat		nlattr_tca_actions[tcf_action_policy["nat", nat_policy]]
 	m_pedit		nlattr_tca_actions[tcf_action_policy["pedit", pedit_policy]]
-	m_police	nlattr_tca_actions[tcf_action_policy["police", police_policy]]
+	m_police	nlattr_tca_actions[tcf_action_policy["police", array[police_policy]]]
 	m_sample	nlattr_tca_actions[tcf_action_policy["sample", sample_policy]]
 	m_simple	nlattr_tca_actions[tcf_action_policy["simple", simple_policy]]
 	m_skbedit	nlattr_tca_actions[tcf_action_policy["skbedit", skbedit_policy]]
@@ -1036,7 +1036,7 @@ nat_policy [
 pedit_policy [
 	TCA_PEDIT_PARMS		nlattr[TCA_PEDIT_PARMS, m_pedit_sel]
 	TCA_PEDIT_PARMS_EX	nlattr[TCA_PEDIT_PARMS_EX, m_pedit_sel]
-	TCA_PEDIT_KEYS_EX	nlattr[TCA_PEDIT_KEYS_EX, array[nlattr[TCA_PEDIT_KEY_EX, array[pedit_key_ex_policy]]]]
+	TCA_PEDIT_KEYS_EX	nlnest[TCA_PEDIT_KEYS_EX, array[nlnest[TCA_PEDIT_KEY_EX, array[pedit_key_ex_policy]]]]
 ] [varlen]
 
 pedit_key_ex_policy [
@@ -1242,7 +1242,7 @@ tc_ratespec {
 # ------------------------------ tc ematch ------------------------------
 em_policy [
 	TCA_EMATCH_TREE_HDR	nlattr[TCA_EMATCH_TREE_HDR, tcf_ematch_tree_hdr]
-	TCA_EMATCH_TREE_LIST	nlattr[TCA_EMATCH_TREE_LIST, tca_ematch_tree_list]
+	TCA_EMATCH_TREE_LIST	nlnest[TCA_EMATCH_TREE_LIST, array[tca_ematch_tree_list]]
 ] [varlen]
 
 tcf_ematch_tree_hdr {
