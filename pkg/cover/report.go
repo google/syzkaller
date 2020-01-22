@@ -313,7 +313,7 @@ func (rg *ReportGenerator) findSymbol(pc uint64) uint64 {
 }
 
 func readSymbols(obj string) ([]symbol, error) {
-	raw, err := symbolizer.ReadSymbols(obj)
+	raw, err := symbolizer.ReadTextSymbols(obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run nm on %v: %v", obj, err)
 	}

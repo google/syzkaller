@@ -8,7 +8,7 @@ import (
 )
 
 func TestSymbols(t *testing.T) {
-	symbols, err := ReadSymbols("testdata/nm.test.out")
+	symbols, err := ReadTextSymbols("testdata/nm.test.out")
 	if err != nil {
 		t.Fatalf("failed to read symbols: %v", err)
 	}

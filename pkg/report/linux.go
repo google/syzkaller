@@ -38,7 +38,7 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 	if cfg.kernelObj != "" {
 		vmlinux = filepath.Join(cfg.kernelObj, cfg.target.KernelObject)
 		var err error
-		symbols, err = symbolizer.ReadSymbols(vmlinux)
+		symbols, err = symbolizer.ReadTextSymbols(vmlinux)
 		if err != nil {
 			return nil, nil, err
 		}
