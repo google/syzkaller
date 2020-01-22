@@ -1,12 +1,9 @@
 no-such-struct: tcm_handle
 no-such-netlink-policy: tca_kind_options_t
 no-such-netlink-policy: qdisc_kind_options
-bad-netlink-attr: mqprio_policy.TCA_MQPRIO_MODE: bad size 4, expect 2
-bad-netlink-attr: mqprio_policy.TCA_MQPRIO_SHAPER: bad size 4, expect 2
 no-such-netlink-policy: netem_loss_policy
 no-such-netlink-policy: tclass_kind_options
 bad-netlink-attr: bpf_policy.TCA_BPF_NAME: expect string
-bad-netlink-attr: route4_policy.TCA_ROUTE4_IIF: bad size 16, expect 4
 bad-netlink-attr: u32_policy.TCA_U32_SEL: bad size -1, expect 16
 no-such-netlink-policy: tca_actions
 bad-netlink-attr: act_bpf_policy.TCA_ACT_BPF_NAME: expect string

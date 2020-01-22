@@ -1,14 +1,6 @@
 no-such-struct: nl80211_wdev
 bad-netlink-attr: nl80211_policy_wiphy.NL80211_ATTR_WIPHY_RETRY_SHORT: bad min value 0, expect 1
 bad-netlink-attr: nl80211_policy_wiphy.NL80211_ATTR_WIPHY_RETRY_LONG: bad min value 0, expect 1
-bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DATA_WEP40: bad size 5, expect 4
-bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DATA_WEP104: bad size 13, expect 4
-bad-netlink-attr: nl80211_policy_key.NL80211_KEY_IDX: expect string
-bad-netlink-attr: nl80211_policy_key.NL80211_KEY_SEQ: expect string
-bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DEFAULT: bad size 0, expect 4
-bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DEFAULT_MGMT: bad size 0, expect 6
-bad-netlink-attr: nl80211_policy_key.NL80211_KEY_DEFAULT_TYPES: bad size -1, expect 1
-bad-netlink-attr: nl80211_policy_key.NL80211_KEY_MODE: bad size 1, expect 4
 no-such-netlink-policy: nl80211_tx_rates_policy
 bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_VLAN_ID: bad min value 0, expect 1
 bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_STA_SUPPORT_P2P_PS: bad max value 2, expect 1
