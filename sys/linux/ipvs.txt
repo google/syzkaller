@@ -53,9 +53,9 @@ getsockopt$IP_VS_SO_GET_TIMEOUT(fd sock, level const[SOL_IP], opt const[IP_VS_SO
 getsockopt$IP_VS_SO_GET_DAEMON(fd sock, level const[SOL_IP], opt const[IP_VS_SO_GET_DAEMON], val ptr[out, array[int8, IP_VS_DAEMON_SIZE]], len ptr[inout, len[val, int32]])
 
 ip_vs_cmd_policy [
-	IPVS_CMD_ATTR_SERVICE		nlattr[IPVS_CMD_ATTR_SERVICE, array[ip_vs_svc_policy]]
-	IPVS_CMD_ATTR_DEST		nlattr[IPVS_CMD_ATTR_DEST, array[ip_vs_dest_policy]]
-	IPVS_CMD_ATTR_DAEMON		nlattr[IPVS_CMD_ATTR_DAEMON, array[ip_vs_daemon_policy]]
+	IPVS_CMD_ATTR_SERVICE		nlnest[IPVS_CMD_ATTR_SERVICE, array[ip_vs_svc_policy]]
+	IPVS_CMD_ATTR_DEST		nlnest[IPVS_CMD_ATTR_DEST, array[ip_vs_dest_policy]]
+	IPVS_CMD_ATTR_DAEMON		nlnest[IPVS_CMD_ATTR_DAEMON, array[ip_vs_daemon_policy]]
 	IPVS_CMD_ATTR_TIMEOUT_TCP	nlattr[IPVS_CMD_ATTR_TIMEOUT_TCP, int32]
 	IPVS_CMD_ATTR_TIMEOUT_TCP_FIN	nlattr[IPVS_CMD_ATTR_TIMEOUT_TCP_FIN, int32]
 	IPVS_CMD_ATTR_TIMEOUT_UDP	nlattr[IPVS_CMD_ATTR_TIMEOUT_UDP, int32]

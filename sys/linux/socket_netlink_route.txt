@@ -167,14 +167,14 @@ ifla_policy [
 	IFLA_WEIGHT		nlattr[IFLA_WEIGHT, int32]
 	IFLA_OPERSTATE		nlattr[IFLA_OPERSTATE, int8]
 	IFLA_LINKMODE		nlattr[IFLA_LINKMODE, int8]
-	IFLA_LINKINFO		nlattr[IFLA_LINKINFO, ifla_info_policy]
+	IFLA_LINKINFO		nlnest[IFLA_LINKINFO, ifla_info_policy]
 	IFLA_NET_NS_PID		nlattr[IFLA_NET_NS_PID, pid]
 	IFLA_NET_NS_FD		nlattr[IFLA_NET_NS_FD, fd_namespace]
 	IFLA_IFALIAS		nlattr[IFLA_IFALIAS, devname]
 	IFLA_IFALIASn		nlattr[IFLA_IFALIAS, void]
-	IFLA_VFINFO_LIST	nlattr[IFLA_VFINFO_LIST, array[nlattr[IFLA_VF_INFO, array[ifla_vf_policy]]]]
-	IFLA_VF_PORTS		nlattr[IFLA_VF_PORTS, array[nlattr[IFLA_VF_PORT, array[ifla_port_policy]]]]
-	IFLA_PORT_SELF		nlattr[IFLA_PORT_SELF, array[ifla_port_policy]]
+	IFLA_VFINFO_LIST	nlnest[IFLA_VFINFO_LIST, array[nlnest[IFLA_VF_INFO, array[ifla_vf_policy]]]]
+	IFLA_VF_PORTS		nlnest[IFLA_VF_PORTS, array[nlnest[IFLA_VF_PORT, array[ifla_port_policy]]]]
+	IFLA_PORT_SELF		nlnest[IFLA_PORT_SELF, array[ifla_port_policy]]
 	IFLA_AF_SPEC		nlnest[IFLA_AF_SPEC, array[ifla_af_spec_policy]]
 	IFLA_EXT_MASK		nlattr[IFLA_EXT_MASK, int32]
 	IFLA_PROMISCUITY	nlattr[IFLA_PROMISCUITY, int32]
@@ -185,12 +185,12 @@ ifla_policy [
 	IFLA_PHYS_SWITCH_ID	nlattr[IFLA_PHYS_SWITCH_ID, array[int8, 0:MAX_PHYS_ITEM_ID_LEN]]
 	IFLA_LINK_NETNSID	nlattr[IFLA_LINK_NETNSID, netns_id]
 	IFLA_PROTO_DOWN		nlattr[IFLA_PROTO_DOWN, int8]
-	IFLA_XDP		nlattr[IFLA_XDP, array[ifla_xdp_policy]]
+	IFLA_XDP		nlnest[IFLA_XDP, array[ifla_xdp_policy]]
 	IFLA_EVENT		nlattr[IFLA_EVENT, int32]
 	IFLA_GROUP		nlattr[IFLA_GROUP, int32]
 	IFLA_IF_NETNSID		nlattr[IFLA_IF_NETNSID, netns_id]
 	IFLA_TARGET_NETNSID	nlattr[IFLA_TARGET_NETNSID, netns_id]
-	IFLA_PROP_LIST		nlattr[IFLA_PROP_LIST, array[nlattr[IFLA_ALT_IFNAME, devname]]]
+	IFLA_PROP_LIST		nlnest[IFLA_PROP_LIST, array[nlattr[IFLA_ALT_IFNAME, devname]]]
 	IFLA_ALT_IFNAME		nlattr[IFLA_ALT_IFNAME, devname]
 	IFLA_GSO_MAX_SEGS	nlattr[IFLA_GSO_MAX_SEGS, int32[0:GSO_MAX_SEGS]]
 	IFLA_GSO_MAX_SIZE	nlattr[IFLA_GSO_MAX_SIZE, int32[0:GSO_MAX_SIZE]]
@@ -210,7 +210,7 @@ inet6_af_policy [
 
 type ifla_info_policy_t[TYPE, DATA_TYPE, DATA] {
 	IFLA_INFO_KIND	nlattr[IFLA_INFO_KIND, string[TYPE]]
-	IFLA_INFO_DATA	nlattr[DATA_TYPE, DATA]
+	IFLA_INFO_DATA	nlnest[DATA_TYPE, DATA]
 }
 
 # TODO: can, dummy, geneve, ifb, netdevsim, nlmon, vrf, vxlan
@@ -310,7 +310,7 @@ macvlan_policy [
 	IFLA_MACVLAN_FLAGS		nlattr[IFLA_MACVLAN_FLAGS, bool16]
 	IFLA_MACVLAN_MACADDR_MODE	nlattr[IFLA_MACVLAN_MACADDR_MODE, flags[macvlan_macaddr_mode, int32]]
 	IFLA_MACVLAN_MACADDR		nlattr[IFLA_MACVLAN_MACADDR, mac_addr]
-	IFLA_MACVLAN_MACADDR_DATA	nlattr[IFLA_MACVLAN_MACADDR_DATA, array[nlattr[IFLA_MACVLAN_MACADDR, mac_addr]]]
+	IFLA_MACVLAN_MACADDR_DATA	nlnest[IFLA_MACVLAN_MACADDR_DATA, array[nlattr[IFLA_MACVLAN_MACADDR, mac_addr]]]
 ] [varlen]
 
 macvlan_mode = MACVLAN_MODE_PRIVATE, MACVLAN_MODE_VEPA, MACVLAN_MODE_BRIDGE, MACVLAN_MODE_PASSTHRU, MACVLAN_MODE_SOURCE
@@ -319,8 +319,8 @@ macvlan_macaddr_mode = MACVLAN_MACADDR_ADD, MACVLAN_MACADDR_DEL, MACVLAN_MACADDR
 vlan_policy [
 	IFLA_VLAN_ID		nlattr[IFLA_VLAN_ID, int16[0:4]]
 	IFLA_VLAN_FLAGS		nlattr[IFLA_VLAN_FLAGS, ifla_vlan_flags]
-	IFLA_VLAN_EGRESS_QOS	nlattr[IFLA_VLAN_EGRESS_QOS, array[vlan_map_policy]]
-	IFLA_VLAN_INGRESS_QOS	nlattr[IFLA_VLAN_INGRESS_QOS, array[vlan_map_policy]]
+	IFLA_VLAN_EGRESS_QOS	nlnest[IFLA_VLAN_EGRESS_QOS, array[vlan_map_policy]]
+	IFLA_VLAN_INGRESS_QOS	nlnest[IFLA_VLAN_INGRESS_QOS, array[vlan_map_policy]]
 	IFLA_VLAN_PROTOCOL	nlattr[IFLA_VLAN_PROTOCOL, flags[vlan_proto, int16be]]
 ] [varlen]
 
@@ -362,7 +362,7 @@ bond_policy [
 	IFLA_BOND_DOWNDELAY		nlattr[IFLA_BOND_DOWNDELAY, int32]
 	IFLA_BOND_USE_CARRIER		nlattr[IFLA_BOND_USE_CARRIER, int8]
 	IFLA_BOND_ARP_INTERVAL		nlattr[IFLA_BOND_ARP_INTERVAL, int32]
-	IFLA_BOND_ARP_IP_TARGET		nlattr[IFLA_BOND_ARP_IP_TARGET, array[ipv4_addr]]
+	IFLA_BOND_ARP_IP_TARGET		nlnest[IFLA_BOND_ARP_IP_TARGET, array[ipv4_addr]]
 	IFLA_BOND_ARP_VALIDATE		nlattr[IFLA_BOND_ARP_VALIDATE, int32[0:3]]
 	IFLA_BOND_ARP_ALL_TARGETS	nlattr[IFLA_BOND_ARP_ALL_TARGETS, int32[0:1]]
 	IFLA_BOND_PRIMARY		nlattr[IFLA_BOND_PRIMARY, ifindex]
@@ -580,12 +580,12 @@ rtm_ipv4_policy [
 	RTA_PRIORITY	nlattr[RTA_PRIORITY, int32]
 	RTA_PREFSRC	nlattr[RTA_PREFSRC, ipv4_addr]
 # TODO: what's this? is this interesting?
-	RTA_METRICS	nlattr[RTA_METRICS, array[int8]]
+	RTA_METRICS	nlnest[RTA_METRICS, array[int8]]
 	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, rtnexthop]
 	RTA_FLOW	nlattr[RTA_FLOW, int32]
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
 # TODO: describe RTA_ENCAP
-	RTA_ENCAP	nlattr[RTA_ENCAP, nl_generic_attr]
+	RTA_ENCAP	nlnest[RTA_ENCAP, nl_generic_attr]
 	RTA_UID		nlattr[RTA_UID, uid]
 	RTA_MARK	nlattr[RTA_MARK, int32]
 ] [varlen]
@@ -596,12 +596,12 @@ rtm_ipv6_policy [
 	RTA_OIF		nlattr[RTA_OIF, ifindex]
 	RTA_PRIORITY	nlattr[RTA_PRIORITY, int32]
 # TODO: what's this? is this interesting?
-	RTA_METRICS	nlattr[RTA_METRICS, array[int8]]
+	RTA_METRICS	nlnest[RTA_METRICS, array[int8]]
 	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, rtnexthop]
 	RTA_PREF	nlattr[RTA_PREF, int8]
 	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
 # TODO: describe RTA_ENCAP
-	RTA_ENCAP	nlattr[RTA_ENCAP, nl_generic_attr]
+	RTA_ENCAP	nlnest[RTA_ENCAP, nl_generic_attr]
 	RTA_EXPIRES	nlattr[RTA_EXPIRES, int32]
 	RTA_UID		nlattr[RTA_UID, uid]
 	RTA_MARK	nlattr[RTA_MARK, int32]
@@ -677,7 +677,7 @@ nl_neightbl_policy [
 	NDTA_THRESH2		nlattr[NDTA_THRESH2, int32]
 	NDTA_THRESH3		nlattr[NDTA_THRESH3, int32]
 	NDTA_GC_INTERVAL	nlattr[NDTA_GC_INTERVAL, int64]
-	NDTA_PARMS		nlattr[NDTA_PARMS, array[nl_ntbl_parm_policy]]
+	NDTA_PARMS		nlnest[NDTA_PARMS, array[nl_ntbl_parm_policy]]
 ] [varlen]
 
 nl_ntbl_parm_policy [
@@ -750,7 +750,7 @@ devconf_mpls_policy [
 ifla_vf_policy [
 	IFLA_VF_MAC		nlattr[IFLA_VF_MAC, ifla_vf_mac]
 	IFLA_VF_VLAN		nlattr[IFLA_VF_VLAN, ifla_vf_vlan]
-	IFLA_VF_VLAN_LIST	nlattr[IFLA_VF_VLAN_LIST, array[nlattr[IFLA_VF_VLAN_INFO, ifla_vf_vlan_info]]]
+	IFLA_VF_VLAN_LIST	nlnest[IFLA_VF_VLAN_LIST, array[nlattr[IFLA_VF_VLAN_INFO, ifla_vf_vlan_info]]]
 	IFLA_VF_TX_RATE		nlattr[IFLA_VF_TX_RATE, ifla_vf_tx_rate]
 	IFLA_VF_SPOOFCHK	nlattr[IFLA_VF_SPOOFCHK, ifla_vf_spoofchk]
 	IFLA_VF_RATE		nlattr[IFLA_VF_RATE, ifla_vf_rate]

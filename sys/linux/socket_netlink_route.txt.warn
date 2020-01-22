@@ -1,13 +1,6 @@
 bad-netlink-attr: ifla_policy.IFLA_MTU: bad size 4, expect 32
-bad-netlink-attr: ifla_policy.IFLA_LINKINFO: should be nlnest
-bad-netlink-attr: ifla_policy.IFLA_VFINFO_LIST: should be nlnest
-bad-netlink-attr: ifla_policy.IFLA_VF_PORTS: should be nlnest
-bad-netlink-attr: ifla_policy.IFLA_PORT_SELF: should be nlnest
-bad-netlink-attr: ifla_policy.IFLA_XDP: should be nlnest
-bad-netlink-attr: ifla_policy.IFLA_PROP_LIST: should be nlnest
 no-such-netlink-policy: ifla_af_spec_policy
 no-such-struct: ifla_info_policy_t
-bad-netlink-attr: ifla_info_policy_t.IFLA_INFO_DATA: should be nlnest
 bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_INACTIVITY_TOUT: bad size 2, expect 4
 bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_AGGREGATION_TOUT: bad size 2, expect 4
 bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_HEAD_ALIGN: bad size 2, expect 4
@@ -15,10 +8,6 @@ bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_TAIL_ALIGN: bad size 2, expect
 bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_QHIGH_WATERMARK: bad size 2, expect 4
 bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_QLOW_WATERMARK: bad size 2, expect 4
 bad-netlink-attr: macsec_rtnl_policy.IFLA_MACSEC_VALIDATION: bad size 1, expect 8
-bad-netlink-attr: macvlan_policy.IFLA_MACVLAN_MACADDR_DATA: should be nlnest
-bad-netlink-attr: vlan_policy.IFLA_VLAN_EGRESS_QOS: should be nlnest
-bad-netlink-attr: vlan_policy.IFLA_VLAN_INGRESS_QOS: should be nlnest
-bad-netlink-attr: bond_policy.IFLA_BOND_ARP_IP_TARGET: should be nlnest
 bad-netlink-attr: br_policy.IFLA_BR_VLAN_PROTOCOL: bad size 4, expect 2
 bad-netlink-attr: br_policy.IFLA_BR_GROUP_FWD_MASK: bad size 4, expect 2
 bad-netlink-attr: br_policy.IFLA_BR_MCAST_ROUTER: bad size 4, expect 1
@@ -48,12 +37,6 @@ bad-netlink-attr: ipip6_policy_common.IFLA_IPTUN_FLAGS: bad size 4, expect 2
 bad-netlink-attr: ipip6_policy_sit.IFLA_IPTUN_LOCAL: bad size 16, expect 4
 bad-netlink-attr: ipip6_policy_sit.IFLA_IPTUN_REMOTE: bad size 16, expect 4
 bad-netlink-attr: ipip6_policy_sit.IFLA_IPTUN_FLAGS: bad size 4, expect 2
-bad-netlink-attr: rtm_ipv4_policy.RTA_METRICS: should be nlnest
-bad-netlink-attr: rtm_ipv4_policy.RTA_ENCAP: should be nlnest
-bad-netlink-attr: rtm_ipv6_policy.RTA_METRICS: should be nlnest
-bad-netlink-attr: rtm_ipv6_policy.RTA_ENCAP: should be nlnest
-bad-netlink-attr: nl_neightbl_policy.NDTA_PARMS: should be nlnest
-bad-netlink-attr: ifla_vf_policy.IFLA_VF_VLAN_LIST: should be nlnest
 bad-field-number: ifla_vf_mac: syz=3 kernel=2
 bad-field-size: ifla_vf_mac.mac: syz=6 kernel=32
 bad-netlink-attr: ifla_port_policy.IFLA_PORT_HOST_UUID: expect string
