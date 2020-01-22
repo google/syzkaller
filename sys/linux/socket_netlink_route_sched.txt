@@ -565,13 +565,13 @@ tc_tbf_qopt {
 
 # ------------------------------ tc class ------------------------------
 tclass_kind_options [
-	c_atm		tca_kind_options_t["atm", array[c_atm_options]]
+	c_atm		tca_kind_options_t["atm", array[atm_policy]]
 	c_cbq		tca_kind_options_t["cbq", array[cbq_policy]]
-	c_drr		tca_kind_options_t["drr", c_drr_options]
-	c_dsmark	tca_kind_options_t["dsmark", c_dsmark_options]
+	c_drr		tca_kind_options_t["drr", drr_policy]
+	c_dsmark	tca_kind_options_t["dsmark", dsmark_policy_class]
 	c_hfsc		tca_kind_options_t["hfsc", array[hfsc_policy]]
-	c_htb		tca_kind_options_t["htb", array[c_htb_options]]
-	c_qfq		tca_kind_options_t["qfq", array[c_qfq_options]]
+	c_htb		tca_kind_options_t["htb", array[htb_policy_class]]
+	c_qfq		tca_kind_options_t["qfq", array[qfq_policy]]
 	c_cake		nlattr[TCA_KIND, string["cake"]]
 	c_cbs		nlattr[TCA_KIND, string["cbs"]]
 	c_fq_codel	nlattr[TCA_KIND, string["fq_codel"]]
@@ -590,22 +590,22 @@ tclass_kind_options [
 	c_clsact	nlattr[TCA_KIND, string["clsact"]]
 ] [varlen]
 
-c_atm_options [
+atm_policy [
 	TCA_ATM_FD	nlattr[TCA_ATM_FD, sock]
 	TCA_ATM_HDR	nlattr[TCA_ATM_HDR, array[int8, 0:64]]
 	TCA_ATM_EXCESS	nlattr[TCA_ATM_EXCESS, tcm_handle]
 ] [varlen]
 
-c_drr_options [
+drr_policy [
 	TCA_DRR_QUANTUM	nlattr[TCA_DRR_QUANTUM, int32]
 ] [varlen]
 
-c_dsmark_options [
+dsmark_policy_class [
 	TCA_DSMARK_MASK		nlattr[TCA_DSMARK_MASK, int8]
 	TCA_DSMARK_VALUE	nlattr[TCA_DSMARK_VALUE, int8]
 ] [varlen]
 
-c_htb_options [
+htb_policy_class [
 	TCA_HTB_PARMS	nlattr[TCA_HTB_PARMS, tc_htb_opt]
 	TCA_HTB_CTAB	nlattr[TCA_HTB_CTAB, array[int32, 256]]
 	TCA_HTB_RTAB	nlattr[TCA_HTB_RTAB, array[int32, 256]]
@@ -613,7 +613,7 @@ c_htb_options [
 	TCA_HTB_CEIL64	nlattr[TCA_HTB_CEIL64, int64]
 ] [varlen]
 
-c_qfq_options [
+qfq_policy [
 	TCA_QFQ_WEIGHT	nlattr[TCA_QFQ_WEIGHT, int32]
 	TCA_QFQ_LMAX	nlattr[TCA_QFQ_LMAX, int32]
 ] [varlen]
