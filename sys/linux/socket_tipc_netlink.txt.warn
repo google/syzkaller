@@ -1,2 +1,13 @@
 no-such-struct: tipc_genlmsghdr_t
 no-such-struct: tipc_tlv_desc
+bad-netlink-attr: tipc_nl_policy.TIPC_NLA_BEARER: should be nlnest [amd64]
+bad-netlink-attr: tipc_nl_policy.TIPC_NLA_SOCK: should be nlnest [amd64]
+bad-netlink-attr: tipc_nl_policy.TIPC_NLA_LINK: should be nlnest [amd64]
+bad-netlink-attr: tipc_nl_policy.TIPC_NLA_MEDIA: should be nlnest [amd64]
+bad-netlink-attr: tipc_nl_policy.TIPC_NLA_NET: should be nlnest [amd64]
+bad-netlink-attr: tipc_nl_policy.TIPC_NLA_MON: should be nlnest [amd64]
+bad-netlink-attr: tipc_nl_bearer_policy.TIPC_NLA_BEARER_NAME: expect string [amd64]
+bad-netlink-attr: tipc_nl_bearer_policy.TIPC_NLA_BEARER_PROP: should be nlnest [amd64]
+bad-netlink-attr: tipc_nl_link_policy.TIPC_NLA_LINK_PROP: should be nlnest [amd64]
+bad-netlink-attr: tipc_nl_media_policy.TIPC_NLA_MEDIA_PROP: should be nlnest [amd64]
+no-such-netlink-policy: tipc_bearer_udp [amd64]

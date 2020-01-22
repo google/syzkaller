@@ -1,3 +1,5 @@
 no-such-struct: nft_nlmsghdr
 no-such-struct: nfgenmsg_nft
+multiple-netlink-policy: nft_counter_policy [amd64]
+no-such-netlink-policy: nft_new_obj_policy_t [amd64]
 no-such-struct: nft_flow_offload_policy

@@ -1,2 +1,15 @@
-no-such-struct: cta_ip_nla_policy4
-no-such-struct: cta_ip_nla_policy6
+bad-netlink-attr: ct_nla_policy.CTA_TUPLE_ORIG: should be nlnest [amd64]
+bad-netlink-attr: ct_nla_policy.CTA_TUPLE_REPLY: should be nlnest [amd64]
+bad-netlink-attr: ct_nla_policy.CTA_PROTOINFO: should be nlnest [amd64]
+bad-netlink-attr: ct_nla_policy.CTA_HELP: should be nlnest [amd64]
+bad-netlink-attr: ct_nla_policy.CTA_NAT_SRC: should be nlnest [amd64]
+bad-netlink-attr: ct_nla_policy.CTA_NAT_DST: should be nlnest [amd64]
+bad-netlink-attr: ct_nla_policy.CTA_TUPLE_MASTER: should be nlnest [amd64]
+bad-netlink-attr: tuple_nla_policy.CTA_TUPLE_IP: should be nlnest [amd64]
+bad-netlink-attr: tuple_nla_policy.CTA_TUPLE_PROTO: should be nlnest [amd64]
+no-such-netlink-policy: cta_ip_nla_policy4
+no-such-netlink-policy: cta_ip_nla_policy6
+bad-netlink-attr: protoinfo_policy.CTA_PROTOINFO_TCP: should be nlnest [amd64]
+bad-netlink-attr: protoinfo_policy.CTA_PROTOINFO_DCCP: should be nlnest [amd64]
+bad-netlink-attr: protoinfo_policy.CTA_PROTOINFO_SCTP: should be nlnest [amd64]
+bad-netlink-attr: nat_nla_policy.CTA_NAT_PROTO: should be nlnest [amd64]

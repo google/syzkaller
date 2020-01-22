@@ -1,0 +1,5 @@
+bad-netlink-attr: exp_nla_policy.CTA_EXPECT_MASTER: should be nlnest [amd64]
+bad-netlink-attr: exp_nla_policy.CTA_EXPECT_TUPLE: should be nlnest [amd64]
+bad-netlink-attr: exp_nla_policy.CTA_EXPECT_MASK: should be nlnest [amd64]
+bad-netlink-attr: exp_nla_policy.CTA_EXPECT_NAT: should be nlnest [amd64]
+bad-netlink-attr: exp_nat_nla_policy.CTA_EXPECT_NAT_TUPLE: should be nlnest [amd64]

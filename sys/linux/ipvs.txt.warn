@@ -1,1 +1,5 @@
+bad-netlink-attr: ip_vs_cmd_policy.IPVS_CMD_ATTR_SERVICE: should be nlnest [amd64]
+bad-netlink-attr: ip_vs_cmd_policy.IPVS_CMD_ATTR_DEST: should be nlnest [amd64]
+bad-netlink-attr: ip_vs_cmd_policy.IPVS_CMD_ATTR_DAEMON: should be nlnest [amd64]
+bad-netlink-attr: ip_vs_dest_policy.IPVS_DEST_ATTR_FWD_METHOD: bad size 2, expect 4 [amd64]
 no-such-struct: ip_vs_svcdest_user
