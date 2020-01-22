@@ -270,8 +270,8 @@ tc_mqprio_message {
 }
 
 mqprio_policy [
-	TCA_MQPRIO_MODE		nlattr[TCA_MQPRIO_MODE, flags[tc_mqprio_modes, int32]]
-	TCA_MQPRIO_SHAPER	nlattr[TCA_MQPRIO_SHAPER, flags[tc_mqprio_shapers, int32]]
+	TCA_MQPRIO_MODE		nlattr[TCA_MQPRIO_MODE, flags[tc_mqprio_modes, int16]]
+	TCA_MQPRIO_SHAPER	nlattr[TCA_MQPRIO_SHAPER, flags[tc_mqprio_shapers, int16]]
 	TCA_MQPRIO_MIN_RATE64	nlnest[TCA_MQPRIO_MIN_RATE64, array[nlattr[TCA_MQPRIO_MIN_RATE64, int64], 0:16]]
 	TCA_MQPRIO_MAX_RATE64	nlnest[TCA_MQPRIO_MAX_RATE64, array[nlattr[TCA_MQPRIO_MAX_RATE64, int64], 0:16]]
 ] [varlen]
@@ -829,7 +829,7 @@ route4_policy [
 	TCA_ROUTE4_CLASSID	nlattr[TCA_ROUTE4_CLASSID, tcm_handle]
 	TCA_ROUTE4_TO		nlattr[TCA_ROUTE4_TO, int32[0:256]]
 	TCA_ROUTE4_FROM		nlattr[TCA_ROUTE4_FROM, int32[0:256]]
-	TCA_ROUTE4_IIF		nlattr[TCA_ROUTE4_IIF, devname]
+	TCA_ROUTE4_IIF		nlattr[TCA_ROUTE4_IIF, ifindex]
 	TCA_ROUTE4_POLICE	nlattr[TCA_ROUTE4_POLICE, array[police_policy]]
 	TCA_ROUTE4_ACT		nlattr[TCA_ROUTE4_ACT, array[tca_actions]]
 ] [varlen]
