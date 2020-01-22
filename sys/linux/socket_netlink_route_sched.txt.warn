@@ -1,73 +1,40 @@
 no-such-struct: tcm_handle
+bad-netlink-attr: rtm_tca_policy.TCA_STAB: should be nlnest
 no-such-netlink-policy: tca_kind_options_t
-no-such-netlink-policy: q_cake_options [amd64]
-no-such-netlink-policy: q_cbq_options [amd64]
-no-such-netlink-policy: q_cbs_options [amd64]
-no-such-netlink-policy: q_choke_options [amd64]
-no-such-netlink-policy: q_codel_options [amd64]
-no-such-netlink-policy: q_dsmark_options [amd64]
-no-such-netlink-policy: q_fq_options [amd64]
-no-such-netlink-policy: q_fq_codel_options [amd64]
-no-such-netlink-policy: q_gred_options [amd64]
-no-such-netlink-policy: q_hhf_options [amd64]
-no-such-netlink-policy: q_htb_options [amd64]
-no-such-netlink-policy: q_mqprio_options [amd64]
-no-such-netlink-policy: q_netem_options [amd64]
-no-such-netlink-policy: netem_loss_policy [amd64]
-no-such-netlink-policy: q_pie_options [amd64]
-no-such-netlink-policy: q_red_options [amd64]
-no-such-netlink-policy: q_sfb_options [amd64]
-no-such-netlink-policy: tc_taprio_sched_entries [amd64]
-no-such-netlink-policy: tc_taprio_sched_entry [amd64]
-no-such-netlink-policy: tc_taprio_options [amd64]
-no-such-netlink-policy: q_tbf_options [amd64]
-no-such-netlink-policy: c_atm_options [amd64]
-no-such-netlink-policy: c_drr_options [amd64]
-no-such-netlink-policy: c_dsmark_options [amd64]
-no-such-netlink-policy: c_hfsc_options [amd64]
-no-such-netlink-policy: c_htb_options [amd64]
-no-such-netlink-policy: c_qfq_options [amd64]
-no-such-netlink-policy: f_basic_options [amd64]
-no-such-netlink-policy: tca_bpf_ops [amd64]
-no-such-netlink-policy: f_cgroup_options [amd64]
-no-such-netlink-policy: f_flow_options [amd64]
-no-such-netlink-policy: tc_flower_key_enc_opts_geneve [amd64]
-no-such-netlink-policy: tc_flower_key_enc_opts [amd64]
-no-such-netlink-policy: f_flower_options [amd64]
-no-such-netlink-policy: f_fw_options [amd64]
-no-such-netlink-policy: f_matchall_options [amd64]
-no-such-netlink-policy: f_route_options [amd64]
-no-such-netlink-policy: f_rfvp_options [amd64]
-no-such-netlink-policy: f_rfvp6_options [amd64]
-no-such-netlink-policy: f_tcindex_options [amd64]
-no-such-netlink-policy: f_u32_options [amd64]
-no-such-netlink-policy: tca_actions [amd64]
-no-such-netlink-policy: tca_actions_t [amd64]
-no-such-netlink-policy: m_bpf_options [amd64]
-no-such-netlink-policy: m_connmark_options [amd64]
-no-such-netlink-policy: m_csum_options [amd64]
-no-such-netlink-policy: m_ct_options [amd64]
-no-such-netlink-policy: m_gact_options [amd64]
-no-such-netlink-policy: m_ife_options [amd64]
-no-such-netlink-policy: tca_ife_meta_policy [amd64]
-no-such-netlink-policy: m_ipt_options [amd64]
-no-such-netlink-policy: m_xt_options [amd64]
-no-such-netlink-policy: m_mirred_options [amd64]
-bad-netlink-attr: mpls_policy.TCA_MPLS_TTL: bad min value 0, expect 1 [amd64]
-no-such-netlink-policy: m_nat_options [amd64]
-no-such-netlink-policy: m_pedit_options [amd64]
-no-such-netlink-policy: tca_pedit_keys_ex_policy [amd64]
-no-such-netlink-policy: tca_pedit_key_ex_policy [amd64]
-no-such-netlink-policy: m_police_options [amd64]
-no-such-netlink-policy: m_sample_options [amd64]
-no-such-netlink-policy: m_simple_options [amd64]
-no-such-netlink-policy: m_skbedit_options [amd64]
-no-such-netlink-policy: m_skbmod_options [amd64]
-no-such-netlink-policy: m_tunnel_key_options [amd64]
-no-such-netlink-policy: m_vlan_options [amd64]
-no-such-netlink-policy: action_gd_policy [amd64]
-no-such-netlink-policy: tca_actions_kind_index [amd64]
-no-such-netlink-policy: action_dump_flags [amd64]
+no-such-netlink-policy: qdisc_kind_options
+bad-netlink-attr: mqprio_policy.TCA_MQPRIO_MODE: bad size 4, expect 2
+bad-netlink-attr: mqprio_policy.TCA_MQPRIO_SHAPER: bad size 4, expect 2
+bad-netlink-attr: mqprio_policy.TCA_MQPRIO_MIN_RATE64: should be nlnest
+bad-netlink-attr: mqprio_policy.TCA_MQPRIO_MAX_RATE64: should be nlnest
+bad-netlink-attr: netem_policy.TCA_NETEM_LOSS: should be nlnest
+no-such-netlink-policy: netem_loss_policy
+bad-netlink-attr: taprio_policy.TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST: should be nlnest
+no-such-netlink-policy: tclass_kind_options
+bad-netlink-attr-type: c_dsmark_options.TCA_DSMARK_VALUE: type 5, kernel policy size 5
+bad-netlink-attr-type: c_htb_options.TCA_HTB_RATE64: type 6, kernel policy size 5
+bad-netlink-attr-type: c_htb_options.TCA_HTB_CEIL64: type 7, kernel policy size 5
+bad-netlink-attr: basic_policy.TCA_BASIC_EMATCHES: should be nlnest
+bad-netlink-attr: bpf_policy.TCA_BPF_NAME: expect string
+bad-netlink-attr: cgroup_policy.TCA_CGROUP_EMATCHES: should be nlnest
+bad-netlink-attr: flow_policy.TCA_FLOW_ACT: should be nlnest
+bad-netlink-attr: flow_policy.TCA_FLOW_POLICE: should be nlnest
+bad-netlink-attr: flow_policy.TCA_FLOW_EMATCHES: should be nlnest
+bad-netlink-attr: fl_policy.TCA_FLOWER_KEY_ENC_OPTS: should be nlnest
+bad-netlink-attr: fl_policy.TCA_FLOWER_KEY_ENC_OPTS_MASK: should be nlnest
+bad-netlink-attr: enc_opts_policy.TCA_FLOWER_KEY_ENC_OPTS_GENEVE: should be nlnest
+bad-netlink-attr: enc_opts_policy.TCA_FLOWER_KEY_ENC_OPTS_VXLAN: should be nlnest
+bad-netlink-attr: enc_opts_policy.TCA_FLOWER_KEY_ENC_OPTS_ERSPAN: should be nlnest
+bad-netlink-attr: route4_policy.TCA_ROUTE4_IIF: bad size 16, expect 4
+bad-netlink-attr: u32_policy.TCA_U32_SEL: bad size -1, expect 16
+no-such-netlink-policy: tca_actions
+bad-netlink-attr: act_bpf_policy.TCA_ACT_BPF_NAME: expect string
+no-such-netlink-policy: tca_ife_meta_policy
+bad-netlink-attr: ipt_policy.TCA_IPT_TARG: bad size -1, expect 32
+bad-netlink-attr: mpls_policy.TCA_MPLS_TTL: bad min value 0, expect 1
+bad-netlink-attr: pedit_policy.TCA_PEDIT_PARMS: bad size -1, expect 24
+bad-netlink-attr: pedit_policy.TCA_PEDIT_KEYS_EX: should be nlnest
+no-such-netlink-policy: action_gd_policy
+bad-netlink-attr: tcaa_policy.TCA_ROOT_FLAGS: unhandled type 16
 no-such-struct: tc_gen
 bad-field-number: tc_connmark: syz=2 kernel=6
 bad-field-size: tc_connmark.tc_gen/index: syz=20 kernel=4
@@ -105,10 +72,7 @@ bad-field-offset: tc_tunnel_key.t_action/capab: syz=20 kernel=4
 bad-field-number: tc_vlan: syz=2 kernel=6
 bad-field-size: tc_vlan.tc_gen/index: syz=20 kernel=4
 bad-field-offset: tc_vlan.v_action/capab: syz=20 kernel=4
-no-such-netlink-policy: tca_polices [amd64]
-no-such-netlink-policy: tca_ematches [amd64]
-no-such-netlink-policy: tca_ematch_tree_list [amd64]
+bad-netlink-attr: em_policy.TCA_EMATCH_TREE_LIST: should be nlnest
+no-such-netlink-policy: tca_ematch_tree_list
 no-such-struct: tcf_ematch_hdr_t
-no-such-netlink-policy: tcf_em_meta_policy [amd64]
-no-such-netlink-policy: tcf_em_ipt_policy [amd64]
 no-such-struct: tc_estimator

@@ -40,8 +40,8 @@ netlink_msg_route [
 	getrule			netlink_msg[RTM_GETRULE, rtgenmsg[AF_UNSPEC], void]
 	getnetconf		netlink_msg[RTM_GETNETCONF, rtgenmsg[AF_UNSPEC], void]
 	getstats		netlink_msg[RTM_GETSTATS, if_stats_msg[AF_UNSPEC], void]
-	newneigh		netlink_msg[RTM_NEWNEIGH, ndmsg, nd_policy]
-	delneigh		netlink_msg[RTM_DELNEIGH, ndmsg, nd_policy]
+	newneigh		netlink_msg[RTM_NEWNEIGH, ndmsg, nda_policy]
+	delneigh		netlink_msg[RTM_DELNEIGH, ndmsg, nda_policy]
 	getneigh		netlink_msg[RTM_GETNEIGH, rtgenmsg[AF_UNSPEC], void]
 	getneightbl		netlink_msg[RTM_GETNEIGHTBL, rtgenmsg[AF_UNSPEC], void]
 	setneightbl		netlink_msg[RTM_SETNEIGHTBL, ndtmsg, nl_neightbl_policy]
@@ -52,7 +52,7 @@ netlink_msg_route [
 	ipv4_newroute		netlink_msg[RTM_NEWROUTE, rtmsg[AF_INET], rtm_ipv4_policy]
 	ipv4_delroute		netlink_msg[RTM_DELROUTE, rtmsg[AF_INET], rtm_ipv4_policy]
 	ipv4_getroute		netlink_msg[RTM_GETROUTE, rtmsg[AF_INET], void]
-	ipv4_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_INET], devconf_ip_policy]
+	ipv4_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_INET], devconf_ipv4_policy]
 	ipv4_newrule		netlink_msg[RTM_NEWRULE, fib_rule_hdr[AF_INET], fib4_rule_policy]
 	ipv4_delrule		netlink_msg[RTM_DELRULE, fib_rule_hdr[AF_INET], fib4_rule_policy]
 	ipv4_getrule		netlink_msg[RTM_GETRULE, fib_rule_hdr[AF_INET], void]
@@ -65,7 +65,7 @@ netlink_msg_route [
 	ipv6_getroute		netlink_msg[RTM_GETROUTE, rtmsg[AF_INET6], rtm_ipv6_policy]
 	ipv6_getmulticast	netlink_msg[RTM_GETMULTICAST, rtgenmsg[AF_INET6], void]
 	ipv6_getanyicast	netlink_msg[RTM_GETANYCAST, rtgenmsg[AF_INET6], void]
-	ipv6_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_INET6], devconf_ip_policy]
+	ipv6_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_INET6], devconf_ipv4_policy]
 	ipv6_newrule		netlink_msg[RTM_NEWRULE, fib_rule_hdr[AF_INET6], fib6_rule_policy]
 	ipv6_delrule		netlink_msg[RTM_DELRULE, fib_rule_hdr[AF_INET6], fib6_rule_policy]
 	ipv6_getrule		netlink_msg[RTM_GETRULE, fib_rule_hdr[AF_INET6], void]
@@ -79,8 +79,8 @@ netlink_msg_route [
 	mpls_getroute		netlink_msg[RTM_GETROUTE, rtmsg[AF_MPLS], rtm_mpls_policy]
 	mpls_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_MPLS], devconf_mpls_policy]
 
-	bridge_newneigh		netlink_msg[RTM_NEWNEIGH, ndmsg, nd_policy]
-	bridge_delneigh		netlink_msg[RTM_DELNEIGH, ndmsg, nd_policy]
+	bridge_newneigh		netlink_msg[RTM_NEWNEIGH, ndmsg, nda_policy]
+	bridge_delneigh		netlink_msg[RTM_DELNEIGH, ndmsg, nda_policy]
 	bridge_getneigh		netlink_msg[RTM_GETNEIGH, ifinfomsg[AF_BRIDGE], ifla_policy]
 	bridge_getlink		netlink_msg[RTM_GETLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
 	bridge_setlink		netlink_msg[RTM_SETLINK, ifinfomsg[AF_BRIDGE], ifla_policy]
@@ -219,19 +219,19 @@ ifla_info_policy [
 	bond_slave	ifla_info_policy_t["bond_slave", IFLA_INFO_SLAVE_DATA, bond_slave_policy]
 	bridge		ifla_info_policy_t["bridge", IFLA_INFO_DATA, array[br_policy]]
 	bridge_slave	ifla_info_policy_t["bridge_slave", IFLA_INFO_SLAVE_DATA, array[br_port_policy]]
-	gre		ifla_info_policy_t["gre", IFLA_INFO_DATA, array[ipgre_policy]]
-	gretap		ifla_info_policy_t["gretap", IFLA_INFO_DATA, array[ipgre_policy]]
-	erspan		ifla_info_policy_t["erspan", IFLA_INFO_DATA, array[ipgre_policy]]
-	ip6gre		ifla_info_policy_t["ip6gre", IFLA_INFO_DATA, array[ip6gre_policy]]
-	ip6gretap	ifla_info_policy_t["ip6gretap", IFLA_INFO_DATA, array[ip6gre_policy]]
-	ip6erspan	ifla_info_policy_t["ip6erspan", IFLA_INFO_DATA, array[ip6gre_policy]]
+	gre		ifla_info_policy_t["gre", IFLA_INFO_DATA, array[ipgre_policy_ipv4]]
+	gretap		ifla_info_policy_t["gretap", IFLA_INFO_DATA, array[ipgre_policy_ipv4]]
+	erspan		ifla_info_policy_t["erspan", IFLA_INFO_DATA, array[ipgre_policy_ipv4]]
+	ip6gre		ifla_info_policy_t["ip6gre", IFLA_INFO_DATA, array[ipgre_policy_ipv6]]
+	ip6gretap	ifla_info_policy_t["ip6gretap", IFLA_INFO_DATA, array[ipgre_policy_ipv6]]
+	ip6erspan	ifla_info_policy_t["ip6erspan", IFLA_INFO_DATA, array[ipgre_policy_ipv6]]
 	ipip		ifla_info_policy_t["ipip", IFLA_INFO_DATA, array[ipip_policy]]
 	ipip6		ifla_info_policy_t["ip6tnl", IFLA_INFO_DATA, array[ipip6_policy]]
-	ip6ip6		ifla_info_policy_t["ip6tnl", IFLA_INFO_DATA, array[ip6ip6_policy]]
-	sit		ifla_info_policy_t["sit", IFLA_INFO_DATA, array[sit_policy]]
+	ip6ip6		ifla_info_policy_t["ip6tnl", IFLA_INFO_DATA, array[ipip6_policy_ipv6]]
+	sit		ifla_info_policy_t["sit", IFLA_INFO_DATA, array[ipip6_policy_sit]]
 	veth		ifla_info_policy_t["veth", IFLA_INFO_DATA, optional[veth_policy]]
 	vti		ifla_info_policy_t["vti", IFLA_INFO_DATA, array[vti_policy]]
-	ip6vti		ifla_info_policy_t["ip6vti", IFLA_INFO_DATA, array[ip6vti_policy]]
+	ip6vti		ifla_info_policy_t["ip6vti", IFLA_INFO_DATA, array[vti6_policy]]
 # TODO: this should be a net device fd. How does one even obtain these?
 	ppp		ifla_info_policy_t["ppp", IFLA_INFO_DATA, nlattr[IFLA_PPP_DEV_FD, fd]]
 	gtp		ifla_info_policy_t["gtp", IFLA_INFO_DATA, array[gtp_policy]]
@@ -445,7 +445,7 @@ br_port_policy [
 	IFLA_BRPORT_FLUSH		nlattr[IFLA_BRPORT_FLUSH, void]
 ] [varlen]
 
-gre_common_policy [
+ipgre_policy [
 	IFLA_GRE_LINK			nlattr[IFLA_GRE_LINK, ifindex]
 	IFLA_GRE_IFLAGS			nlattr[IFLA_GRE_IFLAGS, int16]
 	IFLA_GRE_OFLAGS			nlattr[IFLA_GRE_OFLAGS, int16]
@@ -467,18 +467,16 @@ gre_common_policy [
 	IFLA_GRE_ERSPAN_HWID		nlattr[IFLA_GRE_ERSPAN_HWID, int16]
 ] [varlen]
 
-# ipgre_policy in kernel
-ipgre_policy [
+ipgre_policy_ipv4 [
 	IFLA_GRE_LOCAL		nlattr[IFLA_GRE_LOCAL, ipv4_addr]
 	IFLA_GRE_REMOTE		nlattr[IFLA_GRE_REMOTE, ipv4_addr]
-	gre_common_policy	array[gre_common_policy]
+	gre_common_policy	array[ipgre_policy]
 ] [varlen]
 
-# ip6gre_policy in kernel
-ip6gre_policy [
+ipgre_policy_ipv6 [
 	IFLA_GRE_LOCAL		nlattr[IFLA_GRE_LOCAL, ipv6_addr]
 	IFLA_GRE_REMOTE		nlattr[IFLA_GRE_REMOTE, ipv6_addr]
-	gre_common_policy	array[gre_common_policy]
+	gre_common_policy	array[ipgre_policy]
 ] [varlen]
 
 veth_policy [
@@ -491,7 +489,7 @@ peer_info {
 #	policy optional[ifla_policy]
 }
 
-vti_common_policy [
+vti_policy_common [
 	IFLA_VTI_LINK	nlattr[IFLA_VTI_LINK, ifindex]
 	IFLA_VTI_IKEY	nlattr[IFLA_VTI_IKEY, int32]
 	IFLA_VTI_OKEY	nlattr[IFLA_VTI_OKEY, int32]
@@ -501,16 +499,16 @@ vti_common_policy [
 vti_policy [
 	IFLA_VTI_LOCAL		nlattr[IFLA_VTI_LOCAL, ipv4_addr]
 	IFLA_VTI_REMOTE		nlattr[IFLA_VTI_REMOTE, ipv4_addr]
-	vti_common_policy	array[vti_common_policy]
+	vti_common_policy	array[vti_policy_common]
 ] [varlen]
 
-ip6vti_policy [
+vti6_policy [
 	IFLA_VTI_LOCAL		nlattr[IFLA_VTI_LOCAL, ipv6_addr]
 	IFLA_VTI_REMOTE		nlattr[IFLA_VTI_REMOTE, ipv6_addr]
-	vti_common_policy	array[vti_common_policy]
+	vti_common_policy	array[vti_policy_common]
 ] [varlen]
 
-tunl_policy [
+ipip_policy_common [
 	IFLA_IPTUN_LINK			nlattr[IFLA_INFO_DATA, ifindex]
 	IFLA_IPTUN_TTL			nlattr[IFLA_IPTUN_TTL, int8]
 	IFLA_IPTUN_TOS			nlattr[IFLA_IPTUN_TOS, int8]
@@ -526,14 +524,14 @@ ipip_policy [
 	IFLA_IPTUN_PROTO	nlattr[IFLA_IPTUN_PROTO, const[IPPROTO_IPIP, int8]]
 	IFLA_IPTUN_LOCAL	nlattr[IFLA_IPTUN_LOCAL, ipv4_addr]
 	IFLA_IPTUN_REMOTE	nlattr[IFLA_IPTUN_REMOTE, ipv4_addr]
-	tunl_policy		array[tunl_policy]
+	tunl_policy		array[ipip_policy_common]
 	IFLA_IPTUN_PMTUDISC	nlattr[IFLA_IPTUN_PMTUDISC, int8[0:1]]
 ] [varlen]
 
-tunl6_policy [
+ipip6_policy_common [
 	IFLA_IPTUN_LOCAL	nlattr[IFLA_IPTUN_LOCAL, ipv6_addr]
 	IFLA_IPTUN_REMOTE	nlattr[IFLA_IPTUN_REMOTE, ipv6_addr]
-	tunl_policy		array[tunl_policy]
+	tunl_policy		array[ipip_policy_common]
 	IFLA_IPTUN_ENCAP_LIMIT	nlattr[IFLA_IPTUN_ENCAP_LIMIT, int8]
 	IFLA_IPTUN_FLOWINFO	nlattr[IFLA_IPTUN_FLOWINFO, int32]
 	IFLA_IPTUN_FLAGS	nlattr[IFLA_IPTUN_FLAGS, int32[0:0x40]]
@@ -541,19 +539,19 @@ tunl6_policy [
 
 ipip6_policy [
 	IFLA_IPTUN_PROTO	nlattr[IFLA_IPTUN_PROTO, const[IPPROTO_IPIP, int8]]
-	tunl6_policy		array[tunl6_policy]
+	tunl6_policy		array[ipip6_policy_common]
 ] [varlen]
 
-ip6ip6_policy [
+ipip6_policy_ipv6 [
 	IFLA_IPTUN_PROTO	nlattr[IFLA_IPTUN_PROTO, const[IPPROTO_IPV6, int8]]
-	tunl6_policy		array[tunl6_policy]
+	tunl6_policy		array[ipip6_policy_common]
 ] [varlen]
 
-sit_policy [
+ipip6_policy_sit [
 	IFLA_IPTUN_PROTO	nlattr[IFLA_IPTUN_PROTO, const[IPPROTO_IPV6, int8]]
 	IFLA_IPTUN_LOCAL	nlattr[IFLA_IPTUN_LOCAL, ipv6_addr]
 	IFLA_IPTUN_REMOTE	nlattr[IFLA_IPTUN_REMOTE, ipv6_addr]
-	tunl_policy		array[tunl_policy]
+	tunl_policy		array[ipip_policy_common]
 	IFLA_IPTUN_FLAGS	nlattr[IFLA_IPTUN_FLAGS, int32[0:0x40]]
 ] [varlen]
 
@@ -640,7 +638,7 @@ fib_rule_port_range {
 	end	sock_port
 }
 
-fra_generic_policy [
+fib4_rule_policy_generic [
 	FRA_IIFNAME		nlattr[FRA_IIFNAME, devname]
 	FRA_OIFNAME		nlattr[FRA_OIFNAME, devname]
 	FRA_PRIORITY		nlattr[FRA_PRIORITY, int32]
@@ -663,14 +661,14 @@ fra_generic_policy [
 fib4_rule_policy [
 	FRA_DST			nlattr[RTA_DST, ipv4_addr]
 	FRA_SRC			nlattr[RTA_SRC, ipv4_addr]
-	FRA_GENERIC_POLICY	fra_generic_policy
+	FRA_GENERIC_POLICY	fib4_rule_policy_generic
 	FRA_FLOW		nlattr[FRA_FLOW, int32]
 ] [varlen]
 
 fib6_rule_policy [
 	FRA_DST		nlattr[RTA_DST, ipv6_addr]
 	FRA_SRC		nlattr[RTA_SRC, ipv6_addr]
-	FIB_RULE_POLICY	fra_generic_policy
+	FIB_RULE_POLICY	fib4_rule_policy_generic
 ] [varlen]
 
 nl_neightbl_policy [
@@ -699,7 +697,7 @@ nl_ntbl_parm_policy [
 	NDTPA_LOCKTIME			nlattr[NDTPA_LOCKTIME, int64]
 ] [varlen]
 
-nd_policy [
+nda_policy [
 	NDA_DST_IPV4		nlattr[NDA_DST, ipv4_addr]
 	NDA_DST_IPV6		nlattr[NDA_DST, ipv6_addr]
 	NDA_DST_MAC		nlattr[NDA_DST, mac_addr]
@@ -736,7 +734,7 @@ ifa_cacheinfo {
 	tstamp		int32
 }
 
-devconf_ip_policy [
+devconf_ipv4_policy [
 	NETCONFA_IFINDEX		nlattr[NETCONFA_IFINDEX, ifindex]
 	NETCONFA_FORWARDING		nlattr[NETCONFA_FORWARDING, int32]
 	NETCONFA_RP_FILTER		nlattr[NETCONFA_RP_FILTER, int32]

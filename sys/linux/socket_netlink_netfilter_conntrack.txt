@@ -49,16 +49,16 @@ tuple_nla_policy [
 ] [varlen]
 
 cta_ip_nla_policy [
-	ipv4	cta_ip_nla_policy4
-	ipv6	cta_ip_nla_policy6
+	ipv4	cta_ip_nla_policy_ipv4
+	ipv6	cta_ip_nla_policy_ipv6
 ] [varlen]
 
-cta_ip_nla_policy4 {
+cta_ip_nla_policy_ipv4 {
 	CTA_IP_V4_SRC	nlattr[CTA_IP_V4_SRC, ipv4_addr]
 	CTA_IP_V4_DST	nlattr[CTA_IP_V4_DST, ipv4_addr]
 }
 
-cta_ip_nla_policy6 {
+cta_ip_nla_policy_ipv6 {
 	CTA_IP_V6_SRC	nlattr[CTA_IP_V6_SRC, ipv6_addr]
 	CTA_IP_V6_DST	nlattr[CTA_IP_V6_DST, ipv6_addr]
 }
