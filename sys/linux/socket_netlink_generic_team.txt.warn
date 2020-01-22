@@ -1,4 +1,4 @@
-bad-netlink-attr: team_nl_policy.TEAM_ATTR_LIST_OPTION: should be nlnest [amd64]
+bad-netlink-attr: team_nl_policy.TEAM_ATTR_LIST_OPTION: should be nlnest
 no-such-struct: team_nl_option_policy
 no-such-struct: team_nl_option_policy_per_port
 no-such-struct: team_nl_option_policy_array

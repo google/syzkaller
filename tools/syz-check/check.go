@@ -39,6 +39,8 @@ func main() {
 		flagOS         = flag.String("os", runtime.GOOS, "OS")
 		flagCPUProfile = flag.String("cpuprofile", "", "write CPU profile to this file")
 		flagMEMProfile = flag.String("memprofile", "", "write memory profile to this file")
+		flagDWARF      = flag.Bool("dwarf", true, "do checking based on DWARF")
+		flagNetlink    = flag.Bool("netlink", true, "do checking of netlink policies")
 	)
 	arches := map[string]*string{"amd64": nil, "386": nil, "arm64": nil, "arm": nil}
 	for arch := range arches {
@@ -75,7 +77,7 @@ func main() {
 	}
 	var warnings []Warn
 	for arch, obj := range arches {
-		warnings1, err := check(*flagOS, arch, *obj)
+		warnings1, err := check(*flagOS, arch, *obj, *flagDWARF, *flagNetlink)
 		if err != nil {
 			failf("%v", err)
 		}
@@ -88,27 +90,31 @@ func main() {
 	}
 }
 
-func check(OS, arch, obj string) ([]Warn, error) {
+func check(OS, arch, obj string, dwarf, netlink bool) ([]Warn, error) {
 	var warnings []Warn
 	structDescs, locs, warnings1, err := parseDescriptions(OS, arch)
 	if err != nil {
 		return nil, err
 	}
 	warnings = append(warnings, warnings1...)
-	structs, err := parseKernelObject(obj)
-	if err != nil {
-		return nil, err
+	if dwarf {
+		structs, err := parseKernelObject(obj)
+		if err != nil {
+			return nil, err
+		}
+		warnings2, err := checkImpl(structs, structDescs, locs)
+		if err != nil {
+			return nil, err
+		}
+		warnings = append(warnings, warnings2...)
 	}
-	warnings2, err := checkImpl(structs, structDescs, locs)
-	if err != nil {
-		return nil, err
+	if netlink {
+		warnings3, err := checkNetlink(OS, arch, obj, structDescs, locs)
+		if err != nil {
+			return nil, err
+		}
+		warnings = append(warnings, warnings3...)
 	}
-	warnings = append(warnings, warnings2...)
-	warnings3, err := checkNetlink(OS, arch, obj, structDescs, locs)
-	if err != nil {
-		return nil, err
-	}
-	warnings = append(warnings, warnings3...)
 	for i := range warnings {
 		warnings[i].arch = arch
 	}
@@ -116,18 +122,17 @@ func check(OS, arch, obj string) ([]Warn, error) {
 }
 
 const (
-	WarnCompiler              = "compiler"
-	WarnNoSuchStruct          = "no-such-struct"
-	WarnBadStructSize         = "bad-struct-size"
-	WarnBadFieldNumber        = "bad-field-number"
-	WarnBadFieldSize          = "bad-field-size"
-	WarnBadFieldOffset        = "bad-field-offset"
-	WarnBadBitfield           = "bad-bitfield"
-	WarnNoNetlinkPolicy       = "no-such-netlink-policy"
-	WarnMultipleNetlinkPolicy = "multiple-netlink-policy"
-	WarnNetlinkBadSize        = "bad-kernel-netlink-policy-size"
-	WarnNetlinkBadAttrType    = "bad-netlink-attr-type"
-	WarnNetlinkBadAttr        = "bad-netlink-attr"
+	WarnCompiler           = "compiler"
+	WarnNoSuchStruct       = "no-such-struct"
+	WarnBadStructSize      = "bad-struct-size"
+	WarnBadFieldNumber     = "bad-field-number"
+	WarnBadFieldSize       = "bad-field-size"
+	WarnBadFieldOffset     = "bad-field-offset"
+	WarnBadBitfield        = "bad-bitfield"
+	WarnNoNetlinkPolicy    = "no-such-netlink-policy"
+	WarnNetlinkBadSize     = "bad-kernel-netlink-policy-size"
+	WarnNetlinkBadAttrType = "bad-netlink-attr-type"
+	WarnNetlinkBadAttr     = "bad-netlink-attr"
 )
 
 type Warn struct {
@@ -177,7 +182,8 @@ func writeWarnings(OS string, narches int, warnings []Warn) error {
 				i++
 			}
 			archStr := ""
-			if len(arches) < narches {
+			// We do netlink checking only on amd64, so don't add arch.
+			if len(arches) < narches && !strings.Contains(warn.typ, "netlink") {
 				archStr = fmt.Sprintf(" [%v]", strings.Join(arches, ","))
 			}
 			fmt.Fprintf(buf, "%v: %v%v\n", warn.typ, warn.msg, archStr)
@@ -386,44 +392,88 @@ func checkNetlink(OS, arch, obj string, structDescs []*prog.KeyedStruct,
 		if !isNetlinkPolicy(typ) {
 			continue
 		}
-		ss := symbols[name]
+		kernelName := name
+		var ss []symbolizer.Symbol
+		// In some cases we split a single policy into multiple ones
+		// (more precise description), so try to match our foo_bar_baz
+		// with kernel foo_bar and foo as well.
+		for kernelName != "" {
+			ss = symbols[kernelName]
+			if len(ss) != 0 {
+				break
+			}
+			underscore := strings.LastIndexByte(kernelName, '_')
+			if underscore == -1 {
+				break
+			}
+			kernelName = kernelName[:underscore]
+		}
 		if len(ss) == 0 {
 			warn(astStruct.Pos, WarnNoNetlinkPolicy, "%v", name)
 			continue
 		}
-		if len(ss) != 1 {
-			warn(astStruct.Pos, WarnMultipleNetlinkPolicy, "%v", name)
-			continue
+		var warnings1 *[]Warn
+		// We may have several symbols with the same name (they frequently have internal linking),
+		// in such case we choose the one that produces fewer warnings.
+		for _, symb := range ss {
+			if symb.Size == 0 || symb.Size%int(unsafe.Sizeof(nlaPolicy{})) != 0 {
+				warn(astStruct.Pos, WarnNetlinkBadSize, "%v (%v), size %v",
+					kernelName, name, ss[0].Size)
+				continue
+			}
+			binary := make([]byte, symb.Size)
+			addr := symb.Addr - rodata.Addr
+			if _, err := rodata.ReadAt(binary, int64(addr)); err != nil {
+				return nil, fmt.Errorf("failed to read policy %v (%v) at %v: %v",
+					kernelName, name, symb.Addr, err)
+			}
+			policy := (*[1e6]nlaPolicy)(unsafe.Pointer(&binary[0]))[:symb.Size/int(unsafe.Sizeof(nlaPolicy{}))]
+			warnings2, err := checkNetlinkPolicy(structMap, typ, astStruct, policy)
+			if err != nil {
+				return nil, err
+			}
+			if warnings1 == nil || len(*warnings1) > len(warnings2) {
+				warnings1 = &warnings2
+			}
 		}
-		if ss[0].Size == 0 || ss[0].Size%int(unsafe.Sizeof(nlaPolicy{})) != 0 {
-			warn(astStruct.Pos, WarnNetlinkBadSize, "%v, size %v", name, ss[0].Size)
+		if warnings1 != nil {
+			warnings = append(warnings, *warnings1...)
 		}
-		binary := make([]byte, ss[0].Size)
-		addr := ss[0].Addr - rodata.Addr
-		if _, err := rodata.ReadAt(binary, int64(addr)); err != nil {
-			return nil, fmt.Errorf("failed to read policy %v at %v: %v", name, ss[0].Addr, err)
-		}
-		policy := (*[1e6]nlaPolicy)(unsafe.Pointer(&binary[0]))[:ss[0].Size/int(unsafe.Sizeof(nlaPolicy{}))]
-		warnings1, err := checkNetlinkPolicy(structMap, typ, astStruct, policy)
-		if err != nil {
-			return nil, err
-		}
-		warnings = append(warnings, warnings1...)
 	}
 	return warnings, nil
 }
 
 func isNetlinkPolicy(typ *prog.StructDesc) bool {
+	haveAttr := false
 	for _, field := range typ.Fields {
 		if prog.IsPad(field) {
 			continue
 		}
-		name := field.TemplateName()
-		if name != "nlattr_t" && name != "nlattr_tt" {
-			return false
+		if isNlattr(field) {
+			haveAttr = true
+			continue
 		}
+		if arr, ok := field.(*prog.ArrayType); ok {
+			field = arr.Type
+		}
+		if field1, ok := field.(*prog.StructType); ok {
+			if isNetlinkPolicy(field1.StructDesc) {
+				continue
+			}
+		}
+		if field1, ok := field.(*prog.UnionType); ok {
+			if isNetlinkPolicy(field1.StructDesc) {
+				continue
+			}
+		}
+		return false
 	}
-	return true
+	return haveAttr
+}
+
+func isNlattr(typ prog.Type) bool {
+	name := typ.TemplateName()
+	return name == "nlattr_t" || name == "nlattr_tt"
 }
 
 func checkNetlinkPolicy(structMap map[string]*prog.StructDesc, typ *prog.StructDesc,
@@ -439,11 +489,15 @@ func checkNetlinkPolicy(structMap map[string]*prog.StructDesc, typ *prog.StructD
 		}
 		fld := astStruct.Fields[ai]
 		ai++
+		if !isNlattr(field) {
+			continue
+		}
 		ft := structMap[field.Name()]
 		attr := int(ft.Fields[1].(*prog.ConstType).Val)
 		if attr >= len(policy) {
 			warn(fld.Pos, WarnNetlinkBadAttrType, "%v.%v: type %v, kernel policy size %v",
 				typ.TemplateName(), field.FieldName(), attr, len(policy))
+			continue
 		}
 		w := checkNetlinkAttr(ft, policy[attr])
 		if w != "" {

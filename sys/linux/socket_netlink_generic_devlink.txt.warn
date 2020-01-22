@@ -1,4 +1,4 @@
 no-such-struct: devlink_devname
-no-such-netlink-policy: devlink_handle_nsim
-no-such-netlink-policy: devlink_handle_pci
-no-such-netlink-policy: devlink_reload_arg [amd64]
+no-such-struct: devlink_nl_policy_nsim
+bad-netlink-attr: devlink_nl_policy_nsim.DEVLINK_ATTR_DEV_NAME: expect string
+no-such-struct: devlink_nl_policy_pci

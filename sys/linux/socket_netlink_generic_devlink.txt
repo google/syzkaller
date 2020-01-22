@@ -18,22 +18,20 @@ devlink_devname {
 	z	const[0, int8]
 } [packed]
 
-# devlink_nl_policy in kernel
-devlink_handle_nsim {
+devlink_nl_policy_nsim {
 	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["netdevsim"]]
 	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, devlink_devname]
 } [packed, align_4]
 
-# devlink_nl_policy in kernel
-devlink_handle_pci {
+devlink_nl_policy_pci {
 	DEVLINK_ATTR_BUS_NAME	nlattr[DEVLINK_ATTR_BUS_NAME, string["pci"]]
 # 0000:00:10.0 is a fixed pci address what is moved from initial network namespace by initialize_devlink()
 	DEVLINK_ATTR_DEV_NAME	nlattr[DEVLINK_ATTR_DEV_NAME, string["0000:00:10.0"]]
 } [packed, align_4]
 
 devlink_handle [
-	nsim	devlink_handle_nsim
-	pci	devlink_handle_pci
+	nsim	devlink_nl_policy_nsim
+	pci	devlink_nl_policy_pci
 ] [varlen]
 
 devlink_port_handle {
@@ -48,7 +46,7 @@ sendmsg$DEVLINK_CMD_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink[DEVLIN
 type msghdr_nl_devlink_reload msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_RELOAD], devlink_reload]]
 sendmsg$DEVLINK_CMD_RELOAD(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_reload], f flags[send_flags])
 
-devlink_reload_arg [
+devlink_nl_policy_reload [
 	DEVLINK_ATTR_NETNS_PID	nlattr[DEVLINK_ATTR_NETNS_PID, pid]
 	DEVLINK_ATTR_NETNS_FD	nlattr[DEVLINK_ATTR_NETNS_FD, fd_namespace]
 	DEVLINK_ATTR_NETNS_ID	nlattr[DEVLINK_ATTR_NETNS_ID, netns_id]
@@ -56,7 +54,7 @@ devlink_reload_arg [
 
 devlink_reload {
 	handle	devlink_handle
-	arg	devlink_reload_arg
+	arg	devlink_nl_policy_reload
 } [packed, align_4]
 
 type msghdr_nl_devlink_port_get msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_PORT_GET], devlink_port_get]]

@@ -135,7 +135,7 @@ tipc_nl_bearer_policy [
 	TIPC_NLA_BEARER_NAME		nlattr[TIPC_NLA_BEARER_NAME, tipc_bearer_name]
 	TIPC_NLA_BEARER_PROP		nlattr[TIPC_NLA_BEARER_PROP, array[tipc_nl_prop_policy]]
 	TIPC_NLA_BEARER_DOMAIN		nlattr[TIPC_NLA_BEARER_DOMAIN, int32]
-	TIPC_NLA_BEARER_UDP_OPTS	nlattr[TIPC_NLA_BEARER_UDP_OPTS, tipc_bearer_udp]
+	TIPC_NLA_BEARER_UDP_OPTS	nlattr[TIPC_NLA_BEARER_UDP_OPTS, tipc_nl_udp_policy]
 ] [varlen]
 
 tipc_nl_sock_policy [
@@ -178,7 +178,7 @@ tipc_nl_prop_policy [
 	TIPC_NLA_PROP_MTU	nlattr[TIPC_NLA_PROP_MTU, int32]
 ] [varlen]
 
-tipc_bearer_udp {
+tipc_nl_udp_policy {
 	TIPC_NLA_UDP_LOCAL	nlattr[TIPC_NLA_UDP_LOCAL, sockaddr_tipc_udp]
 	TIPC_NLA_UDP_REMOTE	nlattr[TIPC_NLA_UDP_REMOTE, sockaddr_tipc_udp]
 } [packed]

@@ -1,5 +1,3 @@
-bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_TAGLST: should be nlnest [amd64]
-bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_MLSLVLLST: should be nlnest [amd64]
-bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_MLSCATLST: should be nlnest [amd64]
-no-such-netlink-policy: netlbl_cipsov4_mlslvl_policy [amd64]
-no-such-netlink-policy: netlbl_cipsov4_mlscat_policy [amd64]
+bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_TAGLST: should be nlnest
+bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_MLSLVLLST: should be nlnest
+bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_MLSCATLST: should be nlnest
