@@ -1,3 +1,0 @@
-bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_TAGLST: should be nlnest
-bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_MLSLVLLST: should be nlnest
-bad-netlink-attr: netlbl_cipsov4_genl_policy.NLBL_CIPSOV4_A_MLSCATLST: should be nlnest

@@ -15,22 +15,22 @@ sendmsg$IPCTNL_MSG_EXP_DELETE(fd sock_nl_netfilter, msg ptr[in, msghdr_conntrack
 sendmsg$IPCTNL_MSG_EXP_GET_STATS_CPU(fd sock_nl_netfilter, msg ptr[in, msghdr_conntrack_exp[IPCTNL_MSG_EXP_GET_STATS_CPU, void]], f flags[send_flags])
 
 exp_nla_policy [
-	CTA_EXPECT_MASTER	nlattr[CTA_EXPECT_MASTER, array[tuple_nla_policy]]
-	CTA_EXPECT_TUPLE	nlattr[CTA_EXPECT_TUPLE, array[tuple_nla_policy]]
-	CTA_EXPECT_MASK		nlattr[CTA_EXPECT_MASK, array[tuple_nla_policy]]
+	CTA_EXPECT_MASTER	nlnest[CTA_EXPECT_MASTER, array[tuple_nla_policy]]
+	CTA_EXPECT_TUPLE	nlnest[CTA_EXPECT_TUPLE, array[tuple_nla_policy]]
+	CTA_EXPECT_MASK		nlnest[CTA_EXPECT_MASK, array[tuple_nla_policy]]
 	CTA_EXPECT_TIMEOUT	nlattr[CTA_EXPECT_TIMEOUT, int32be]
 	CTA_EXPECT_ID		nlattr[CTA_EXPECT_ID, int32be]
 	CTA_EXPECT_HELP_NAME	nlattr[CTA_EXPECT_HELP_NAME, string[xt_helper_names]]
 	CTA_EXPECT_ZONE		nlattr[CTA_EXPECT_ZONE, conntrack_zone]
 	CTA_EXPECT_FLAGS	nlattr[CTA_EXPECT_FLAGS, flags[conntrack_exp_flags, int32be]]
 	CTA_EXPECT_CLASS	nlattr[CTA_EXPECT_CLASS, int32be]
-	CTA_EXPECT_NAT		nlattr[CTA_EXPECT_NAT, array[exp_nat_nla_policy]]
+	CTA_EXPECT_NAT		nlnest[CTA_EXPECT_NAT, array[exp_nat_nla_policy]]
 	CTA_EXPECT_FN		nlattr[CTA_EXPECT_FN, string[conntrack_exp_func]]
 ] [varlen]
 
 exp_nat_nla_policy [
 	CTA_EXPECT_NAT_DIR	nlattr[CTA_EXPECT_NAT_DIR, int32be[0:1]]
-	CTA_EXPECT_NAT_TUPLE	nlattr[CTA_EXPECT_NAT_TUPLE, array[tuple_nla_policy]]
+	CTA_EXPECT_NAT_TUPLE	nlnest[CTA_EXPECT_NAT_TUPLE, array[tuple_nla_policy]]
 ] [varlen]
 
 conntrack_exp_flags = NF_CT_EXPECT_PERMANENT, NF_CT_EXPECT_INACTIVE

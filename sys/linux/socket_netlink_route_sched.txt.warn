@@ -1,29 +1,14 @@
 no-such-struct: tcm_handle
-bad-netlink-attr: rtm_tca_policy.TCA_STAB: should be nlnest
 no-such-netlink-policy: tca_kind_options_t
 no-such-netlink-policy: qdisc_kind_options
 bad-netlink-attr: mqprio_policy.TCA_MQPRIO_MODE: bad size 4, expect 2
 bad-netlink-attr: mqprio_policy.TCA_MQPRIO_SHAPER: bad size 4, expect 2
-bad-netlink-attr: mqprio_policy.TCA_MQPRIO_MIN_RATE64: should be nlnest
-bad-netlink-attr: mqprio_policy.TCA_MQPRIO_MAX_RATE64: should be nlnest
-bad-netlink-attr: netem_policy.TCA_NETEM_LOSS: should be nlnest
 no-such-netlink-policy: netem_loss_policy
-bad-netlink-attr: taprio_policy.TCA_TAPRIO_ATTR_SCHED_ENTRY_LIST: should be nlnest
 no-such-netlink-policy: tclass_kind_options
 bad-netlink-attr-type: c_dsmark_options.TCA_DSMARK_VALUE: type 5, kernel policy size 5
 bad-netlink-attr-type: c_htb_options.TCA_HTB_RATE64: type 6, kernel policy size 5
 bad-netlink-attr-type: c_htb_options.TCA_HTB_CEIL64: type 7, kernel policy size 5
-bad-netlink-attr: basic_policy.TCA_BASIC_EMATCHES: should be nlnest
 bad-netlink-attr: bpf_policy.TCA_BPF_NAME: expect string
-bad-netlink-attr: cgroup_policy.TCA_CGROUP_EMATCHES: should be nlnest
-bad-netlink-attr: flow_policy.TCA_FLOW_ACT: should be nlnest
-bad-netlink-attr: flow_policy.TCA_FLOW_POLICE: should be nlnest
-bad-netlink-attr: flow_policy.TCA_FLOW_EMATCHES: should be nlnest
-bad-netlink-attr: fl_policy.TCA_FLOWER_KEY_ENC_OPTS: should be nlnest
-bad-netlink-attr: fl_policy.TCA_FLOWER_KEY_ENC_OPTS_MASK: should be nlnest
-bad-netlink-attr: enc_opts_policy.TCA_FLOWER_KEY_ENC_OPTS_GENEVE: should be nlnest
-bad-netlink-attr: enc_opts_policy.TCA_FLOWER_KEY_ENC_OPTS_VXLAN: should be nlnest
-bad-netlink-attr: enc_opts_policy.TCA_FLOWER_KEY_ENC_OPTS_ERSPAN: should be nlnest
 bad-netlink-attr: route4_policy.TCA_ROUTE4_IIF: bad size 16, expect 4
 bad-netlink-attr: u32_policy.TCA_U32_SEL: bad size -1, expect 16
 no-such-netlink-policy: tca_actions
@@ -32,7 +17,6 @@ no-such-netlink-policy: tca_ife_meta_policy
 bad-netlink-attr: ipt_policy.TCA_IPT_TARG: bad size -1, expect 32
 bad-netlink-attr: mpls_policy.TCA_MPLS_TTL: bad min value 0, expect 1
 bad-netlink-attr: pedit_policy.TCA_PEDIT_PARMS: bad size -1, expect 24
-bad-netlink-attr: pedit_policy.TCA_PEDIT_KEYS_EX: should be nlnest
 no-such-netlink-policy: action_gd_policy
 bad-netlink-attr: tcaa_policy.TCA_ROOT_FLAGS: unhandled type 16
 no-such-struct: tc_gen
@@ -72,7 +56,6 @@ bad-field-offset: tc_tunnel_key.t_action/capab: syz=20 kernel=4
 bad-field-number: tc_vlan: syz=2 kernel=6
 bad-field-size: tc_vlan.tc_gen/index: syz=20 kernel=4
 bad-field-offset: tc_vlan.v_action/capab: syz=20 kernel=4
-bad-netlink-attr: em_policy.TCA_EMATCH_TREE_LIST: should be nlnest
 no-such-netlink-policy: tca_ematch_tree_list
 no-such-struct: tcf_ematch_hdr_t
 no-such-struct: tc_estimator
