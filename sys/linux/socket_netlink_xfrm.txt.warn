@@ -1,1 +1,2 @@
+no-such-netlink-policy: xfrm_attrs [amd64]
 no-such-struct: xfrm_filter

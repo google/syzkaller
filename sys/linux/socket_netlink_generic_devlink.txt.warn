@@ -1,3 +1,4 @@
 no-such-struct: devlink_devname
-no-such-struct: devlink_handle_nsim
-no-such-struct: devlink_handle_pci
+no-such-netlink-policy: devlink_handle_nsim
+no-such-netlink-policy: devlink_handle_pci
+no-such-netlink-policy: devlink_reload_arg [amd64]
