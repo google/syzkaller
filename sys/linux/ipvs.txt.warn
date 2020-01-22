@@ -1,2 +1,1 @@
-bad-netlink-attr: ip_vs_dest_policy.IPVS_DEST_ATTR_FWD_METHOD: bad size 2, expect 4
 no-such-struct: ip_vs_svcdest_user

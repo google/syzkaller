@@ -1,43 +1,6 @@
-bad-netlink-attr: ifla_policy.IFLA_MTU: bad size 4, expect 32
 no-such-netlink-policy: ifla_af_spec_policy
 no-such-struct: ifla_info_policy_t
-bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_INACTIVITY_TOUT: bad size 2, expect 4
-bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_AGGREGATION_TOUT: bad size 2, expect 4
-bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_HEAD_ALIGN: bad size 2, expect 4
-bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_TAIL_ALIGN: bad size 2, expect 4
-bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_QHIGH_WATERMARK: bad size 2, expect 4
-bad-netlink-attr: caif_hsi_policy.__IFLA_CAIF_HSI_QLOW_WATERMARK: bad size 2, expect 4
-bad-netlink-attr: macsec_rtnl_policy.IFLA_MACSEC_VALIDATION: bad size 1, expect 8
-bad-netlink-attr: br_policy.IFLA_BR_VLAN_PROTOCOL: bad size 4, expect 2
-bad-netlink-attr: br_policy.IFLA_BR_GROUP_FWD_MASK: bad size 4, expect 2
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_ROUTER: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_SNOOPING: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_QUERY_USE_IFADDR: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_QUERIER: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_LAST_MEMBER_INTVL: bad size 4, expect 8
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_MEMBERSHIP_INTVL: bad size 4, expect 8
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_QUERIER_INTVL: bad size 4, expect 8
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_QUERY_INTVL: bad size 4, expect 8
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_QUERY_RESPONSE_INTVL: bad size 4, expect 8
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_STARTUP_QUERY_INTVL: bad size 4, expect 8
-bad-netlink-attr: br_policy.IFLA_BR_NF_CALL_IPTABLES: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_NF_CALL_IP6TABLES: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_NF_CALL_ARPTABLES: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_VLAN_DEFAULT_PVID: bad size 4, expect 2
-bad-netlink-attr: br_policy.IFLA_BR_VLAN_STATS_ENABLED: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_STATS_ENABLED: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_IGMP_VERSION: bad size 4, expect 1
-bad-netlink-attr: br_policy.IFLA_BR_MCAST_MLD_VERSION: bad size 4, expect 1
-bad-netlink-attr: ipgre_policy_ipv6.IFLA_GRE_LOCAL: bad size 16, expect 4
-bad-netlink-attr: ipgre_policy_ipv6.IFLA_GRE_REMOTE: bad size 16, expect 4
 no-such-struct: peer_info
-bad-netlink-attr: ipip6_policy_common.IFLA_IPTUN_LOCAL: bad size 16, expect 4
-bad-netlink-attr: ipip6_policy_common.IFLA_IPTUN_REMOTE: bad size 16, expect 4
-bad-netlink-attr: ipip6_policy_common.IFLA_IPTUN_FLAGS: bad size 4, expect 2
-bad-netlink-attr: ipip6_policy_sit.IFLA_IPTUN_LOCAL: bad size 16, expect 4
-bad-netlink-attr: ipip6_policy_sit.IFLA_IPTUN_REMOTE: bad size 16, expect 4
-bad-netlink-attr: ipip6_policy_sit.IFLA_IPTUN_FLAGS: bad size 4, expect 2
 bad-field-number: ifla_vf_mac: syz=3 kernel=2
 bad-field-size: ifla_vf_mac.mac: syz=6 kernel=32
 bad-netlink-attr: ifla_port_policy.IFLA_PORT_HOST_UUID: expect string
-bad-netlink-attr: ifla_xdp_policy.IFLA_XDP_FD: bad size 120, expect 4

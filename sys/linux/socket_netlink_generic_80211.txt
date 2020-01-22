@@ -125,7 +125,7 @@ nl80211_policy_cmd_key [
 	NL80211_ATTR_KEY_SEQ		nlattr[NL80211_ATTR_KEY_SEQ, array[int8, 0:16]]
 	NL80211_ATTR_MAC		nlattr[NL80211_ATTR_MAC, mac_addr]
 	NL80211_ATTR_KEY_DEFAULT_TYPES	nlnest[NL80211_ATTR_KEY_DEFAULT_TYPES, array[nl80211_key_default_policy]]
-	NL80211_ATTR_KEY		nlnest[NL80211_ATTR_KEY, array[nl80211_policy_key]]
+	NL80211_ATTR_KEY		nlnest[NL80211_ATTR_KEY, array[nl80211_key_policy]]
 ] [varlen]
 
 nl80211_key_default_policy [
@@ -133,7 +133,7 @@ nl80211_key_default_policy [
 	NL80211_KEY_DEFAULT_TYPE_MULTICAST	nlattr[NL80211_KEY_DEFAULT_TYPE_MULTICAST, void]
 ] [varlen]
 
-nl80211_policy_key [
+nl80211_key_policy [
 	NL80211_KEY_DATA_WEP40		nlattr[NL80211_KEY_DATA, array[int8, WLAN_KEY_LEN_WEP40]]
 	NL80211_KEY_DATA_WEP104		nlattr[NL80211_KEY_DATA, array[int8, WLAN_KEY_LEN_WEP104]]
 	NL80211_KEY_IDX			nlattr[NL80211_KEY_IDX, int8[0:5]]
@@ -142,7 +142,7 @@ nl80211_policy_key [
 	NL80211_KEY_DEFAULT		nlattr[NL80211_KEY_DEFAULT, void]
 	NL80211_KEY_DEFAULT_MGMT	nlattr[NL80211_KEY_DEFAULT_MGMT, void]
 	NL80211_KEY_TYPE		nlattr[NL80211_KEY_TYPE, flags[nl80211_key_type, int32]]
-	NL80211_KEY_DEFAULT_TYPES	nlattr[NL80211_KEY_DEFAULT_TYPES, array[nl80211_key_default_policy]]
+	NL80211_KEY_DEFAULT_TYPES	nlnest[NL80211_KEY_DEFAULT_TYPES, array[nl80211_key_default_policy]]
 	NL80211_KEY_MODE		nlattr[NL80211_KEY_MODE, int8[0:NL80211_KEY_SET_TX]]
 ] [varlen]
 

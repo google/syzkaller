@@ -88,7 +88,7 @@ ip_vs_daemon_policy [
 ip_vs_dest_policy [
 	IPVS_DEST_ATTR_ADDR		nlattr[IPVS_DEST_ATTR_ADDR, nf_inet_addr]
 	IPVS_DEST_ATTR_PORT		nlattr[IPVS_DEST_ATTR_PORT, sock_port]
-	IPVS_DEST_ATTR_FWD_METHOD	nlattr[IPVS_DEST_ATTR_FWD_METHOD, flags[ipvs_fwd_methods, int16]]
+	IPVS_DEST_ATTR_FWD_METHOD	nlattr[IPVS_DEST_ATTR_FWD_METHOD, flags[ipvs_fwd_methods, int32]]
 	IPVS_DEST_ATTR_WEIGHT		nlattr[IPVS_DEST_ATTR_WEIGHT, int32]
 	IPVS_DEST_ATTR_U_THRESH		nlattr[IPVS_DEST_ATTR_U_THRESH, int32]
 	IPVS_DEST_ATTR_L_THRESH		nlattr[IPVS_DEST_ATTR_L_THRESH, int32]
