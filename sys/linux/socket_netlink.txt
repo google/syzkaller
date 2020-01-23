@@ -138,6 +138,11 @@ nl_generic_attr_data [
 	binary	array[int8]
 ] [varlen]
 
+type nla_bitfield32[FLAGS] {
+	value		flags[FLAGS, int32]
+	selector	flags[FLAGS, int32]
+}
+
 nl_mmap_req {
 	bsize	int32
 	bnumber	int32

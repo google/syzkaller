@@ -1,21 +1,3 @@
 no-such-struct: nl80211_wdev
-bad-netlink-attr: nl80211_policy_wiphy.NL80211_ATTR_WIPHY_RETRY_SHORT: bad min value 0, expect 1
-bad-netlink-attr: nl80211_policy_wiphy.NL80211_ATTR_WIPHY_RETRY_LONG: bad min value 0, expect 1
 no-such-netlink-policy: nl80211_tx_rates_policy
-bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_VLAN_ID: bad min value 0, expect 1
-bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_STA_SUPPORT_P2P_PS: bad max value 2, expect 1
-bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_STA_PLINK_ACTION: bad max value 3, expect 2
-bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_STA_PLINK_STATE: bad max value 7, expect 6
-bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_LOCAL_MESH_POWER_MODE: bad min value 0, expect 1
-bad-netlink-attr: nl80211_policy_station.NL80211_ATTR_AIRTIME_WEIGHT: bad min value 0, expect 1
-bad-netlink-attr: nl80211_policy_bss.NL80211_STA_WME_MAX_SP: expect string
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_TTL: bad min value 0, expect 1
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_ELEMENT_TTL: bad min value 0, expect 1
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_MIN_DISCOVERY_TIMEOUT: bad min value 0, expect 1
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_PREQ_MIN_INTERVAL: bad min value 0, expect 1
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_PERR_MIN_INTERVAL: bad min value 0, expect 1
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_NET_DIAM_TRVS_TIME: bad min value 0, expect 1
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_RANN_INTERVAL: bad min value 0, expect 1
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_ROOT_INTERVAL: bad min value 0, expect 1
-bad-netlink-attr: nl80211_meshconf_params_policy.NL80211_MESHCONF_HWMP_CONFIRMATION_INTERVAL: bad min value 0, expect 1
 no-such-netlink-policy: nl80211_rates_policy
