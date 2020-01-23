@@ -10,7 +10,7 @@
 package build
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"debug/elf"
 	"encoding/hex"
 	"fmt"
@@ -164,7 +164,7 @@ func elfBinarySignature(bin string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to open elf binary: %v", err)
 	}
-	hasher := sha1.New()
+	hasher := sha256.New()
 	for _, sec := range ef.Sections {
 		// Hash allocated sections (e.g. no debug info as it's not allocated)
 		// with file data (e.g. no bss). We also ignore .notes section as it
