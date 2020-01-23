@@ -517,10 +517,7 @@ func checkNetlinkAttr(typ *prog.StructDesc, policy nlaPolicy) string {
 		return warn
 	}
 	size, minSize, maxSize := attrSize(policy)
-	payloadSize := -1
-	if !payload.Varlen() {
-		payloadSize = int(payload.Size())
-	}
+	payloadSize := minTypeSize(payload)
 	if size != -1 && size != payloadSize {
 		return fmt.Sprintf("bad size %v, expect %v", payloadSize, size)
 	}
@@ -535,8 +532,13 @@ func checkNetlinkAttr(typ *prog.StructDesc, policy nlaPolicy) string {
 	if haveVal {
 		if policy.validation == NLA_VALIDATE_RANGE || policy.validation == NLA_VALIDATE_MIN {
 			if int64(valMin) < int64(policy.minVal) {
-				return fmt.Sprintf("bad min value %v, expect %v",
-					int64(valMin), policy.minVal)
+				// This is a common case that occurs several times: limit on min value of 1.
+				// Not worth fixing (at least not in initial batch), it just crosses out a
+				// single value of 0, which we shuold test anyway.
+				if !(policy.validation == NLA_VALIDATE_MIN && policy.minVal == 1) {
+					return fmt.Sprintf("bad min value %v, expect %v",
+						int64(valMin), policy.minVal)
+				}
 			}
 		}
 		if policy.validation == NLA_VALIDATE_RANGE || policy.validation == NLA_VALIDATE_MAX {
@@ -549,17 +551,44 @@ func checkNetlinkAttr(typ *prog.StructDesc, policy nlaPolicy) string {
 	return ""
 }
 
+func minTypeSize(typ prog.Type) int {
+	if !typ.Varlen() {
+		return int(typ.Size())
+	}
+	if str, ok := typ.(*prog.StructType); ok {
+		// Some struct args has trailing arrays, but are only checked for min size.
+		// Try to get some estimation for min size of this struct.
+		size := 0
+		for _, field := range str.Fields {
+			if !field.Varlen() {
+				size += int(field.Size())
+			}
+		}
+		return size
+	}
+	if arr, ok := typ.(*prog.ArrayType); ok {
+		if arr.Kind == prog.ArrayRangeLen && !arr.Type.Varlen() {
+			return int(arr.RangeBegin * arr.Type.Size())
+		}
+	}
+	return -1
+}
+
 func checkAttrType(typ *prog.StructDesc, payload prog.Type, policy nlaPolicy) string {
 	switch policy.typ {
 	case NLA_STRING, NLA_NUL_STRING:
-		if payload.Name() != "string" {
+		if _, ok := payload.(*prog.BufferType); !ok {
 			return fmt.Sprintf("expect string")
 		}
 	case NLA_NESTED:
 		if typ.TemplateName() != "nlattr_tt" || typ.Fields[3].(*prog.ConstType).Val != 1 {
 			return fmt.Sprintf("should be nlnest")
 		}
-	case NLA_NESTED_ARRAY, NLA_BITFIELD32, NLA_REJECT:
+	case NLA_BITFIELD32:
+		if typ.TemplateName() != "nlattr_t" || payload.TemplateName() != "nla_bitfield32" {
+			return fmt.Sprintf("should be nlattr[nla_bitfield32]")
+		}
+	case NLA_NESTED_ARRAY, NLA_REJECT:
 		return fmt.Sprintf("unhandled type %v", policy.typ)
 	}
 	return ""
@@ -569,7 +598,7 @@ func attrSize(policy nlaPolicy) (int, int, int) {
 	switch policy.typ {
 	case NLA_UNSPEC:
 		if policy.len != 0 {
-			return int(policy.len), -1, -1
+			return -1, int(policy.len), -1
 		}
 	case NLA_MIN_LEN:
 		return -1, int(policy.len), -1

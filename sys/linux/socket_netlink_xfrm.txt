@@ -135,11 +135,11 @@ xfrma_policy [
 	offload			nlattr[XFRMA_OFFLOAD_DEV, xfrm_user_offload]
 	sec_ctx			nlattr[XFRMA_SEC_CTX, xfrm_user_sec_ctx]
 	lifetime_val		nlattr[XFRMA_LTIME_VAL, xfrm_lifetime_cur]
-	tmpl			nlattr[XFRMA_TMPL, array[xfrm_user_tmpl]]
+	tmpl			nlattr[XFRMA_TMPL, array[xfrm_user_tmpl, 1:XFRM_MAX_DEPTH]]
 	replay_val		nlattr[XFRMA_REPLAY_VAL, xfrm_replay_state]
 	replay_esn_val		nlattr[XFRMA_REPLAY_ESN_VAL, xfrm_replay_state_esn]
 	policy_type		nlattr[XFRMA_POLICY_TYPE, xfrm_userpolicy_type]
-	migrate			nlattr[XFRMA_MIGRATE, array[xfrm_user_migrate]]
+	migrate			nlattr[XFRMA_MIGRATE, array[xfrm_user_migrate, 1:XFRM_MAX_DEPTH]]
 	user_kmaddress		nlattr[XFRMA_KMADDRESS, xfrm_user_kmaddress]
 	mark			nlattr[XFRMA_MARK, xfrm_mark]
 	proto			nlattr[XFRMA_PROTO, flags[xfrm_proto, int8]]
@@ -148,6 +148,8 @@ xfrma_policy [
 	XFRMA_SET_MARK_MASK	nlattr[XFRMA_SET_MARK_MASK, int32]
 	XFRMA_IF_ID		nlattr[XFRMA_IF_ID, ifindex]
 ] [varlen]
+
+define XFRM_MAX_DEPTH	6
 
 xfrma_spd_policy [
 	XFRMA_SPD_IPV4_HTHRESH	nlattr[XFRMA_SPD_IPV4_HTHRESH, xfrmu_spdhthresh[32]]

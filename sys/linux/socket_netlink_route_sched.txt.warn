@@ -3,16 +3,9 @@ no-such-netlink-policy: tca_kind_options_t
 no-such-netlink-policy: qdisc_kind_options
 no-such-netlink-policy: netem_loss_policy
 no-such-netlink-policy: tclass_kind_options
-bad-netlink-attr: bpf_policy.TCA_BPF_NAME: expect string
-bad-netlink-attr: u32_policy.TCA_U32_SEL: bad size -1, expect 16
 no-such-netlink-policy: tca_actions
-bad-netlink-attr: act_bpf_policy.TCA_ACT_BPF_NAME: expect string
 no-such-netlink-policy: tca_ife_meta_policy
-bad-netlink-attr: ipt_policy.TCA_IPT_TARG: bad size -1, expect 32
-bad-netlink-attr: mpls_policy.TCA_MPLS_TTL: bad min value 0, expect 1
-bad-netlink-attr: pedit_policy.TCA_PEDIT_PARMS: bad size -1, expect 24
 no-such-netlink-policy: action_gd_policy
-bad-netlink-attr: tcaa_policy.TCA_ROOT_FLAGS: unhandled type 16
 no-such-struct: tc_gen
 bad-field-number: tc_connmark: syz=2 kernel=6
 bad-field-size: tc_connmark.tc_gen/index: syz=20 kernel=4

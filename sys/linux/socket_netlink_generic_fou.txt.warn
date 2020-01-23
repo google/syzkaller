@@ -1,2 +1,0 @@
-bad-netlink-attr: fou_nl_policy.FOU_ATTR_LOCAL_V6: unhandled type 16
-bad-netlink-attr: fou_nl_policy.FOU_ATTR_PEER_V6: unhandled type 16

@@ -898,7 +898,7 @@ tc_u32_sel {
 	off		int16
 	offoff		int16
 	hoff		int16
-	hmast		int32be
+	hmask		int32be
 	keys		array[tc_u32_key, 0:128]
 }
 
@@ -1099,9 +1099,11 @@ tcf_action_policy_kind_index [
 ] [varlen]
 
 tcaa_policy [
-	TCA_ROOT_FLAGS		nlattr[TCA_ROOT_FLAGS, nla_bitfield32]
+	TCA_ROOT_FLAGS		nlattr[TCA_ROOT_FLAGS, nla_bitfield32[tcaa_policy_root_flags]]
 	TCA_ROOT_TIME_DELTA	nlattr[TCA_ROOT_TIME_DELTA, int32]
 ] [varlen]
+
+tcaa_policy_root_flags = TCA_FLAG_LARGE_DUMP_ON
 
 action_dump_policy [
 	action_gd		action_gd_policy
@@ -1121,11 +1123,6 @@ type tc_act_bpf tc_gen
 tc_connmark {
 	tc_gen	tc_gen
 	zone	int16
-}
-
-nla_bitfield32 {
-	value		int32[0:1]
-	selector	int32[0:1]
 }
 
 tc_csum {

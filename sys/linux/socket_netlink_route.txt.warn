@@ -3,4 +3,3 @@ no-such-struct: ifla_info_policy_t
 no-such-struct: peer_info
 bad-field-number: ifla_vf_mac: syz=3 kernel=2
 bad-field-size: ifla_vf_mac.mac: syz=6 kernel=32
-bad-netlink-attr: ifla_port_policy.IFLA_PORT_HOST_UUID: expect string
