@@ -13,6 +13,13 @@ compiler: len target caps refer to an array with variable-size elements (do you 
 no-such-struct: usb_wireless_cap_descriptor
 bad-field-number: usb_ext_cap_descriptor: syz=7 kernel=4
 bad-bitfield: usb_ext_cap_descriptor.bmAttributes1/bmAttributes: size/offset: syz=8/0 kernel=0/0
+bad-bitfield: usb_ssp_cap_descriptor.bmAttributesSublinkSpeeds/bmAttributes: size/offset: syz=5/0 kernel=0/0
+bad-bitfield: usb_ssp_cap_descriptor.bmAttributesSpeedIDs/wFunctionalitySupport: size/offset: syz=27/5 kernel=0/0
+bad-field-offset: usb_ssp_cap_descriptor.bmAttributesSpeedIDs/wFunctionalitySupport: syz=4 kernel=8
+bad-field-size: usb_ssp_cap_descriptor.bmAttributesSpeedIDs/wFunctionalitySupport: syz=4 kernel=2
+bad-field-offset: usb_ssp_cap_descriptor.wFunctionalitySupport/wReserved: syz=8 kernel=10
+bad-field-offset: usb_ssp_cap_descriptor.wReserved/bmSublinkSpeedAttr: syz=10 kernel=12
+bad-field-size: usb_ssp_cap_descriptor.wReserved/bmSublinkSpeedAttr: syz=2 kernel=4
 no-such-struct: usb_hub_descriptor_hs
 no-such-struct: usb_hub_descriptor_ss
 no-such-struct: usb_endpoint_descriptor_hid_in

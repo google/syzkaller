@@ -16,15 +16,6 @@ bad-field-offset: binder_transaction_data.data_size/offsets_size: syz=32 kernel=
 bad-field-offset: binder_transaction_data.offsets_size/data: syz=40 kernel=48
 bad-field-size: binder_transaction_data.offsets_size/data: syz=8 kernel=16
 no-such-struct: binder_offsets
-bad-field-size: flat_binder_object.binder/hdr: syz=24 kernel=4
-bad-field-offset: flat_binder_object.weak_binder/flags: syz=24 kernel=4
-bad-field-offset: flat_binder_object.handle/: syz=48 kernel=8
-bad-field-size: flat_binder_object.handle/: syz=20 kernel=8 [386]
-bad-field-size: flat_binder_object.handle/: syz=24 kernel=8 [amd64,arm,arm64]
-bad-field-offset: flat_binder_object.weak_handle/cookie: syz=68 kernel=16 [386]
-bad-field-offset: flat_binder_object.weak_handle/cookie: syz=72 kernel=16 [amd64,arm,arm64]
-bad-field-size: flat_binder_object.weak_handle/cookie: syz=20 kernel=8 [386]
-bad-field-size: flat_binder_object.weak_handle/cookie: syz=24 kernel=8 [amd64,arm,arm64]
 no-such-struct: flat_binder_object_t
 bad-field-number: binder_fd_object: syz=5 kernel=4
 bad-field-size: binder_fd_object.fd/: syz=4 kernel=8

@@ -1,7 +1,4 @@
 no-such-struct: sockaddr_storage_tcp
-bad-field-number: tcp_repair_opt: syz=4 kernel=2
-bad-field-size: tcp_repair_opt.mss/opt_code: syz=8 kernel=4
-bad-field-offset: tcp_repair_opt.window/opt_val: syz=8 kernel=4
 no-such-struct: tcp_repair_opt_mss
 no-such-struct: tcp_repair_opt_window
 no-such-struct: tcp_repair_opt_sack_perm

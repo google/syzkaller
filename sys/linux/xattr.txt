@@ -126,7 +126,7 @@ signature_v2_hdr {
 	keyid		int32be
 	sig_size	bytesize[sig, int16be]
 	sig		array[int8]
-}
+} [packed]
 
 evm_xattr_type = EVM_IMA_XATTR_DIGSIG, EVM_XATTR_PORTABLE_DIGSIG
 
@@ -162,9 +162,9 @@ setxattr$trusted_overlay_nlink(path ptr[in, filename], name ptr[in, string["trus
 lsetxattr$trusted_overlay_nlink(path ptr[in, filename], name ptr[in, string["trusted.overlay.nlink"]], val ptr[in, xattr_overlay_nlink], size len[val], flags flags[setxattr_flags])
 fsetxattr$trusted_overlay_nlink(fd fd, name ptr[in, string["trusted.overlay.nlink"]], val ptr[in, xattr_overlay_nlink], size len[val], flags flags[setxattr_flags])
 
-setxattr$trusted_overlay_upper(path ptr[in, filename], name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fh], size len[val], flags flags[setxattr_flags])
-lsetxattr$trusted_overlay_upper(path ptr[in, filename], name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fh], size len[val], flags flags[setxattr_flags])
-fsetxattr$trusted_overlay_upper(fd fd, name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fh], size len[val], flags flags[setxattr_flags])
+setxattr$trusted_overlay_upper(path ptr[in, filename], name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fb], size len[val], flags flags[setxattr_flags])
+lsetxattr$trusted_overlay_upper(path ptr[in, filename], name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fb], size len[val], flags flags[setxattr_flags])
+fsetxattr$trusted_overlay_upper(fd fd, name ptr[in, string["trusted.overlay.upper"]], val ptr[in, ovl_fb], size len[val], flags flags[setxattr_flags])
 
 xattr_overlay_nlink {
 	prefix	stringnoz[xattr_overlay_nlink_prefix]
@@ -173,11 +173,12 @@ xattr_overlay_nlink {
 
 xattr_overlay_nlink_prefix = "U+", "U-", "L+", "L-"
 
-ovl_fh {
+# TODO: do these attrs accept ovl_fb or ovl_fh?..
+ovl_fb {
 	version	const[0, int8]
 	magic	const[OVL_FH_MAGIC, int8]
 	len	bytesize[parent, int8]
-	flags	flags[ovl_fh_flags, int8]
+	flags	flags[ovl_fb_flags, int8]
 	type	int8
 	uuid	uuid_t
 	fid	array[int8]
@@ -185,4 +186,4 @@ ovl_fh {
 
 type uuid_t array[int8, UUID_SIZE]
 
-ovl_fh_flags = OVL_FH_FLAG_BIG_ENDIAN, OVL_FH_FLAG_ANY_ENDIAN, OVL_FH_FLAG_PATH_UPPER
+ovl_fb_flags = OVL_FH_FLAG_BIG_ENDIAN, OVL_FH_FLAG_ANY_ENDIAN, OVL_FH_FLAG_PATH_UPPER

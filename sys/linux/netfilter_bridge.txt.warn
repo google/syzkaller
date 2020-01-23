@@ -1,5 +1,8 @@
 no-such-struct: ebt_replace_t
 compiler: len target entries refer to an array with variable-size elements (do you mean bytesize?)
+bad-field-offset: ebt_entry.watchers_offset: syz=98 kernel=100
+bad-field-offset: ebt_entry.target_offset: syz=102 kernel=104
+bad-field-offset: ebt_entry.next_offset: syz=106 kernel=108
 no-such-struct: ebt_getinfo
 no-such-struct: ebt_get_entries
 bad-field-size: ebt_entry_match.name/u: syz=31 kernel=32

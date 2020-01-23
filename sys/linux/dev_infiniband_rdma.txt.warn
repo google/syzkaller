@@ -114,6 +114,12 @@ bad-field-size: ib_uverbs_flow_spec_action_count.size/handle: syz=2 kernel=4
 bad-field-offset: ib_uverbs_flow_spec_action_count.reserved0/reserved1: syz=6 kernel=12
 bad-field-size: ib_uverbs_flow_spec_action_count.reserved0/reserved1: syz=2 kernel=4
 no-such-struct: union_ib_flow_spec
+bad-field-size: ib_uverbs_flow_attr.reserved1/reserved: syz=1 kernel=2
+bad-field-offset: ib_uverbs_flow_attr.reserved2/port: syz=10 kernel=11
+bad-field-offset: ib_uverbs_flow_attr.port/flags: syz=11 kernel=12
+bad-field-size: ib_uverbs_flow_attr.port/flags: syz=1 kernel=4
+bad-field-offset: ib_uverbs_flow_attr.flags/flow_specs: syz=12 kernel=16
+bad-field-size: ib_uverbs_flow_attr.flags/flow_specs: syz=4 kernel=0
 no-such-struct: create_flow_resp
 no-such-struct: destroy_flow_cmd
 no-such-struct: ib_uverbs_create_counters_cmd
