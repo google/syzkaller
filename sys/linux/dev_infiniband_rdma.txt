@@ -73,7 +73,7 @@ create_srq_ex_flags = MLX5_SRQ_FLAG_SIGNATURE
 # ===========
 
 mlx5_get_context_cmd_resp {
-	async_fd			int32
+	async_fd			fd
 	num_comp_vectors		int32
 	qp_tab_size			int32
 	bf_reg_size			int32
@@ -98,7 +98,9 @@ mlx5_get_context_cmd_resp {
 }
 
 mlx5_get_context_cmd {
+# TODO: are there named consts for commands?
 	command			const[0x0, int32]
+# TODO: these probably should be replaced with bytesize8 of something.
 	in_words		const[0xc, int16]
 	out_words		const[0x12, int16]
 	response		ptr[out, mlx5_get_context_cmd_resp]
@@ -357,7 +359,7 @@ dealloc_mw_cmd {
 # ==================
 
 create_comp_channel_resp {
-	fd	int32
+	fd	fd
 }
 
 create_comp_channel_cmd {
@@ -1098,10 +1100,12 @@ open_xrcd_cmd {
 	in_words	const[0x6, int16]
 	out_words	const[0x1, int16]
 	response	ptr[out, open_xrcd_resp]
-	fd		int32
-	oflags		int32
+	fd		fd[opt]
+	oflags		flags[xrcd_flags, int32]
 	driver_data	array[int64]
 }
+
+xrcd_flags = O_CREAT, O_EXCL
 
 close_xrcd_cmd {
 	command		const[0x26, int32]
@@ -1114,24 +1118,24 @@ close_xrcd_cmd {
 # ===============
 
 ib_flow_eth_filter {
-	dst_mac		array[int8, 0x6]
-	src_mac		array[int8, 0x6]
-	ether_type	int16
+	dst_mac		mac_addr
+	src_mac		mac_addr
+	ether_type	flags[ether_types, int16be]
 	vlan_tag	int16
 }
 
 ib_flow_spec_eth {
 	type		const[IB_FLOW_SPEC_ETH, int32]
-	size		const[0x10, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_eth_filter
 	mask		ib_flow_eth_filter
 }
 
 ib_flow_ipv4_filter {
-	src_ip	int32
-	dst_ip	int32
-	proto	int8
+	src_ip	ipv4_addr
+	dst_ip	ipv4_addr
+	proto	flags[ipv4_types, int8]
 	tos	int8
 	ttl	int8
 	flags	flags[ib_ipv4_flags, int8]
@@ -1139,17 +1143,17 @@ ib_flow_ipv4_filter {
 
 ib_flow_spec_ipv4 {
 	type		const[IB_FLOW_SPEC_IPV4, int32]
-	size		const[0x20, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_ipv4_filter
 	mask		ib_flow_ipv4_filter
 }
 
 ib_flow_ipv6_filter {
-	src_ip		array[int8, 0x10]
-	dst_ip		array[int8, 0x10]
+	src_ip		ipv6_addr
+	dst_ip		ipv6_addr
 	flow_label	int32
-	next_hdr	int8
+	next_hdr	flags[ipv6_types, int8]
 	traffic_class	int8
 	hop_limit	int8
 	reserved	const[0x0, int8]
@@ -1157,20 +1161,20 @@ ib_flow_ipv6_filter {
 
 ib_flow_spec_ipv6 {
 	type		const[IB_FLOW_SPEC_IPV6, int32]
-	size		const[0x58, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_ipv6_filter
 	mask		ib_flow_ipv6_filter
 }
 
 ib_flow_tcp_udp_filter {
-	dst_port	int16
-	src_port	int16
+	dst_port	sock_port
+	src_port	sock_port
 }
 
 ib_flow_spec_tcp_udp {
 	type		int32[0x40:0x41]
-	size		const[0x10, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_tcp_udp_filter
 	mask		ib_flow_tcp_udp_filter
@@ -1183,7 +1187,7 @@ ib_flow_esp_filter {
 
 ib_flow_spec_esp {
 	type		const[IB_FLOW_SPEC_ESP, int32]
-	size		const[0x18, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_esp_filter
 	mask		ib_flow_esp_filter
@@ -1195,7 +1199,7 @@ ib_flow_tunnel_filter {
 
 ib_flow_spec_tunnel {
 	type		const[IB_FLOW_SPEC_VXLAN_TUNNEL, int32]
-	size		const[0x10, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_tunnel_filter
 	mask		ib_flow_tunnel_filter
@@ -1209,7 +1213,7 @@ ib_flow_gre_filter {
 
 ib_flow_spec_gre {
 	type		const[IB_FLOW_SPEC_GRE, int32]
-	size		const[0x18, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_gre_filter
 	mask		ib_flow_gre_filter
@@ -1221,7 +1225,7 @@ ib_flow_mpls_filter {
 
 ib_flow_spec_mpls {
 	type		const[IB_FLOW_SPEC_MPLS, int32]
-	size		const[0x10, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	val		ib_flow_mpls_filter
 	mask		ib_flow_mpls_filter
@@ -1229,7 +1233,7 @@ ib_flow_spec_mpls {
 
 ib_flow_spec_action_tag {
 	type		const[IB_FLOW_SPEC_ACTION_TAG, int32]
-	size		const[0x10, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 	tag_id		int32
 	reserved2	const[0x0, int32]
@@ -1237,14 +1241,14 @@ ib_flow_spec_action_tag {
 
 ib_flow_spec_action_drop {
 	type		const[IB_FLOW_SPEC_ACTION_DROP, int32]
-	size		const[0x8, int16]
+	size		bytesize[parent, int16]
 	reserved	const[0x0, int16]
 }
 
 ib_uverbs_flow_spec_action_count {
 	type		const[IB_FLOW_SPEC_ACTION_COUNT, int32]
-	size		const[0x10, int16]
-	reserved0	const[0x0, int16]
+	size		bytesize[parent, int16]
+	reserved	const[0x0, int16]
 	handle		vcontext_handle
 	reserved1	const[0x0, int32]
 }
