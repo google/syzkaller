@@ -19,15 +19,6 @@ More details can be found:
 ([slides](https://docs.google.com/presentation/d/1z-giB9kom17Lk21YEjmceiNUVYeI6yIaG5_gZ3vKC-M/edit?usp=sharing), [video](https://www.youtube.com/watch?v=1MD5JV6LfxA)).
 2. In [this](https://marc.info/?l=linux-usb&m=155551883403285&w=2) email.
 
-A few major things that need to be done:
-
-1. Upstream KCOV changes that allow to collect coverage from interrupts.
-2. Upstream the kernel interface for USB device emulation.
-3. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
-4. Add descriptions for all relevant USB classes and drivers.
-
-The work on points 1 and 2 has started:
-
 Kernel patches in mainline:
 
 - [kcov: remote coverage support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eec028c9386ed1a692aa01a85b55952202b41619)
@@ -35,12 +26,22 @@ Kernel patches in mainline:
 - [usb, kcov: collect coverage from hub_event](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=95d23dc27bde0ab4b25f7ade5e2fddc08dd97d9b)
 - [USB: dummy-hcd: use usb_urb_dir_in instead of usb_pipein](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6dabeb891c001c592645df2f477fed9f5d959987)
 - [USB: dummy-hcd: increase max number of devices to 32](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8442b02bf3c6770e0d7e7ea17be36c30e95987b6)
-- (All other patches that touch drivers/usb/gadget/udc/dummy_hcd.c are recommended.)
+- (All other patches that touch `drivers/usb/gadget/udc/dummy_hcd.c` are recommended.)
 
 Kernel patches in review:
 
-- [[v4] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/cover/11301723/)
+- [[v5] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/cover/11332295/)
 - [[RFC] kcov: collect coverage from usbhid interrupts](https://patchwork.kernel.org/cover/11288771/)
+
+
+## TODO
+
+A few major things that need to be done:
+
+1. Upstream KCOV changes that allow to collect coverage from interrupts.
+2. Upstream the kernel interface for USB device emulation.
+3. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
+4. Add descriptions for all relevant USB classes and drivers.
 
 Some ideas for things that can be done:
 
@@ -63,6 +64,12 @@ Currently syzkaller defines 5 USB syzcalls (see [this](/sys/linux/vusb.txt) and 
 
 Syzkaller descriptions for USB fuzzing can be found [here](/sys/linux/vusb.txt).
 
+The correspoding runtests are [here](/sys/linux/test/) and start with `vusb` prefix. To run:
+
+```
+./bin/syz-runtest -config=usb-manager.cfg -tests=vusb
+```
+
 
 ## Setting up
 
@@ -79,7 +86,7 @@ Syzkaller descriptions for USB fuzzing can be found [here](/sys/linux/vusb.txt).
     ``` bash
     cd ./dashboard/config/
     # Put relevant .configs into ./distros/
-    CC=$COMPILER_BINARY_PATH SOURCEDIR=$KERNEL_SOURCE_PATH ./generate-config-usb.sh
+    CC=$COMPILER_BINARY_PATH KERNEL_SOURCE=$KERNEL_SOURCE_PATH ./generate-config-usb.sh
     ```
 
 3. Build the kernel.
@@ -110,7 +117,7 @@ The instructions below describe a hackish way to generate syzkaller USB IDs for 
 4. Use [syz-usbgen](/tools/syz-usbgen/usbgen.go) script to update [syzkaller descriptions](/sys/linux/init_vusb_ids.go):
 
     ```
-    ./bin/syz-usbgen KERNEL_LOG ./sys/linux/init_vusb_ids.go
+    ./bin/syz-usbgen $KERNEL_LOG ./sys/linux/init_vusb_ids.go
     ```
 
 5. Don't forget to revert the applied patch and rebuild the kernel before doing actual fuzzing.
