@@ -44,3 +44,4 @@ bad-field-offset: sg_io_hdr.info/resid: syz=76 kernel=72 [amd64,arm64]
 no-such-struct: sg_io_hdr_data
 no-such-struct: sg_io_hdr_data_buffer
 no-such-struct: sg_io_hdr_data_scatter
+bad-field-size: scsi_ioctl_command.opcode/data: syz=4 kernel=0

@@ -1,3 +1,2 @@
-bad-field-number: rose_address: syz=2 kernel=1
 no-such-struct: rose_address_remote
 no-such-struct: rose_address_dev

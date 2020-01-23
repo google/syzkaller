@@ -92,6 +92,9 @@ func main() {
 
 func check(OS, arch, obj string, dwarf, netlink bool) ([]Warn, error) {
 	var warnings []Warn
+	if obj == "" {
+		return nil, fmt.Errorf("no object file in -obj-%v flag", arch)
+	}
 	structDescs, locs, warnings1, err := parseDescriptions(OS, arch)
 	if err != nil {
 		return nil, err
@@ -206,9 +209,6 @@ func checkImpl(structs map[string]*dwarf.StructType, structDescs []*prog.KeyedSt
 	checked := make(map[string]bool)
 	for _, str := range structDescs {
 		typ := str.Desc
-		if typ.Varlen() {
-			continue
-		}
 		if checked[typ.Name()] {
 			continue
 		}
@@ -234,14 +234,17 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 	}
 	name := typ.TemplateName()
 	if str == nil {
-		warn(astStruct.Pos, WarnNoSuchStruct, "%v", name)
+		// Varlen structs are frequently not described in kernel (not possible in C).
+		if !typ.Varlen() {
+			warn(astStruct.Pos, WarnNoSuchStruct, "%v", name)
+		}
 		return warnings, nil
 	}
-	if typ.Size() != uint64(str.ByteSize) {
+	if !typ.Varlen() && typ.Size() != uint64(str.ByteSize) {
 		warn(astStruct.Pos, WarnBadStructSize, "%v: syz=%v kernel=%v", name, typ.Size(), str.ByteSize)
 	}
 	// TODO: handle unions, currently we should report some false errors.
-	if str.Kind == "union" {
+	if str.Kind == "union" || astStruct.IsUnion {
 		return warnings, nil
 	}
 	// TODO: we could also check enums (elements match corresponding flags in syzkaller).
@@ -261,6 +264,10 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 	ai := 0
 	offset := uint64(0)
 	for _, field := range typ.Fields {
+		if field.Varlen() {
+			ai = len(str.Field)
+			break
+		}
 		if prog.IsPad(field) {
 			offset += field.Size()
 			continue

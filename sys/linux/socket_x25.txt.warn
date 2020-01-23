@@ -1,2 +1,1 @@
-bad-field-number: x25_address: syz=2 kernel=1
 no-such-struct: x25_address_remote

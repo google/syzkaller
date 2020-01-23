@@ -1,3 +1,2 @@
 no-such-struct: vhci_command_vendor_pkt
-bad-field-number: bdaddr_t: syz=3 kernel=1
 no-such-struct: bdaddr_fixed

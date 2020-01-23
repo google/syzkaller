@@ -13,6 +13,9 @@ no-such-netlink-policy: tclass_kind_options
 no-such-netlink-policy: tca_actions
 bad-netlink-attr: tcf_action_policy: missing attributes: [7]
 no-such-netlink-policy: tca_ife_meta_policy
+bad-field-size: xt_entry_target.u_target_size/u: syz=2 kernel=32
+bad-field-offset: xt_entry_target.name/data: syz=2 kernel=32
+bad-field-size: xt_entry_target.name/data: syz=32 kernel=0
 bad-netlink-attr: skbedit_policy: missing attributes: [8 9]
 bad-netlink-attr: tunnel_key_policy: missing attributes: [11 12 13]
 no-such-netlink-policy: action_gd_policy
@@ -41,6 +44,11 @@ bad-field-offset: tc_nat.old_addr/capab: syz=20 kernel=4
 bad-field-offset: tc_nat.new_addr/action: syz=24 kernel=8
 bad-field-offset: tc_nat.mask/refcnt: syz=28 kernel=12
 bad-field-offset: tc_nat.flags/bindcnt: syz=32 kernel=16
+bad-field-size: tc_pedit_sel.tc_gen/index: syz=20 kernel=4
+bad-field-offset: tc_pedit_sel.nkeys/capab: syz=20 kernel=4
+bad-field-size: tc_pedit_sel.nkeys/capab: syz=1 kernel=4
+bad-field-offset: tc_pedit_sel.flags/action: syz=21 kernel=8
+bad-field-size: tc_pedit_sel.flags/action: syz=1 kernel=4
 no-such-struct: m_pedit_key_ex
 bad-field-number: tc_skbmod: syz=2 kernel=6
 bad-field-size: tc_skbmod.tc_gen/index: syz=20 kernel=4
@@ -55,4 +63,7 @@ bad-field-size: tc_vlan.tc_gen/index: syz=20 kernel=4
 bad-field-offset: tc_vlan.v_action/capab: syz=20 kernel=4
 no-such-netlink-policy: tca_ematch_tree_list
 no-such-struct: tcf_ematch_hdr_t
+bad-field-size: tcf_em_nbyte.off: syz=4 kernel=2
+bad-field-offset: tcf_em_nbyte.len: syz=4 kernel=2
+bad-field-offset: tcf_em_nbyte.layer: syz=5 kernel=3
 no-such-struct: tc_estimator

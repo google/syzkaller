@@ -1,7 +1,4 @@
 no-such-struct: unix_pair
-bad-field-size: sockaddr_un.file/sun_family: syz=110 kernel=2
-bad-field-offset: sockaddr_un.abs/sun_path: syz=110 kernel=2
-bad-field-size: sockaddr_un.abs/sun_path: syz=8 kernel=108
 no-such-struct: sockaddr_un_file
 no-such-struct: sockaddr_un_abstract
 no-such-struct: msghdr_un

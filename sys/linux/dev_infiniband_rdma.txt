@@ -1268,8 +1268,7 @@ ib_uverbs_flow_attr {
 	size		bytesize[flow_specs, int16]
 	priority	int16[0:7]
 	num_of_specs	len[flow_specs, int8]
-	reserved1	const[0x0, int8]
-	reserved2	const[0x0, int8]
+	reserved	array[const[0x0, int8], 2]
 	port		int8
 	flags		flags[ib_flow_flags, int32]
 	flow_specs	array[union_ib_flow_spec]

@@ -1,10 +1,4 @@
 no-such-struct: tipc_pair
-bad-field-number: sockaddr_tipc: syz=3 kernel=4
-bad-field-size: sockaddr_tipc.nameseq/family: syz=16 kernel=2
-bad-field-offset: sockaddr_tipc.name/addrtype: syz=16 kernel=2
-bad-field-size: sockaddr_tipc.name/addrtype: syz=16 kernel=1
-bad-field-offset: sockaddr_tipc.id/scope: syz=32 kernel=3
-bad-field-size: sockaddr_tipc.id/scope: syz=12 kernel=1
 no-such-struct: sockaddr_tipc_t
 no-such-struct: msghdr_tipc
 no-such-struct: tipc_address_name

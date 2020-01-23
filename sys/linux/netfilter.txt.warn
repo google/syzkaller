@@ -9,11 +9,6 @@ bad-field-size: xt_cgroup_info_v1.priv: syz=8 kernel=4 [386,arm]
 bad-field-size: xt_rateest_match_info.est1: syz=8 kernel=4 [386,arm]
 bad-field-size: xt_rateest_match_info.est2: syz=8 kernel=4 [386,arm]
 bad-field-size: xt_bpf_info.filter: syz=8 kernel=4 [386,arm]
-bad-field-number: xt_bpf_info_v1: syz=3 kernel=5
-bad-field-size: xt_bpf_info_v1.bytecode/mode: syz=528 kernel=2
-bad-field-offset: xt_bpf_info_v1.pinned/bpf_program_num_elem: syz=528 kernel=2
-bad-field-offset: xt_bpf_info_v1.fd: syz=1056 kernel=4
-bad-field-size: xt_bpf_info_v1.fd: syz=8 kernel=4
 no-such-struct: xt_bpf_info_bytecode
 no-such-struct: xt_bpf_info_pinned
 no-such-struct: xt_bpf_info_fd

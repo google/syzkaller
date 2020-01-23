@@ -2,7 +2,6 @@ no-such-struct: vnet_fragmentation
 no-such-struct: tcp_resources
 no-such-struct: mac_addr_t
 no-such-struct: mac_addr_link_local
-bad-field-number: mac_addr: syz=7 kernel=1
 no-such-struct: vlan_tag_ad
 no-such-struct: vlan_tag_q
 no-such-struct: eth2_packet_t
@@ -39,6 +38,8 @@ no-such-struct: tcp_sack_perm_option
 no-such-struct: tcp_timestamp_option
 no-such-struct: tcp_md5sig_option
 no-such-struct: tcp_exp_smc_option
+bad-bitfield: guehdr.hlen/: size/offset: syz=5/0 kernel=0/0
+bad-field-size: guehdr.hlen/: syz=1 kernel=4
 no-such-struct: gre_packet_erspan
 no-such-struct: erspan_md1
 no-such-struct: erspan_md1_msg

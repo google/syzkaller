@@ -1,6 +1,3 @@
-bad-field-number: sockaddr_caif: syz=5 kernel=2
-bad-field-size: sockaddr_caif.at/family: syz=4 kernel=2
-bad-field-size: sockaddr_caif.util/u: syz=18 kernel=20
 no-such-struct: sockaddr_caif_at
 no-such-struct: sockaddr_caif_util
 no-such-struct: sockaddr_caif_dgm
