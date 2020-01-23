@@ -129,6 +129,13 @@ tipc_nl_policy [
 	TIPC_NLA_NODE	nlnest[TIPC_NLA_NODE, array[tipc_nl_node_policy]]
 	TIPC_NLA_NET	nlnest[TIPC_NLA_NET, array[tipc_nl_net_policy]]
 	TIPC_NLA_MON	nlnest[TIPC_NLA_MON, array[tipc_nl_monitor_policy]]
+	TIPC_NLA_PUBL	nlnest[TIPC_NLA_PUBL, array[tipc_nl_publ_policy]]
+] [varlen]
+
+tipc_nl_publ_policy [
+	TIPC_NLA_PUBL_TYPE	nlattr[TIPC_NLA_PUBL_TYPE, int32]
+	TIPC_NLA_PUBL_LOWER	nlattr[TIPC_NLA_PUBL_LOWER, int32]
+	TIPC_NLA_PUBL_UPPER	nlattr[TIPC_NLA_PUBL_UPPER, int32]
 ] [varlen]
 
 tipc_nl_bearer_policy [
@@ -142,6 +149,12 @@ tipc_nl_sock_policy [
 	TIPC_NLA_SOCK_ADDR	nlattr[TIPC_NLA_SOCK_ADDR, int32]
 	TIPC_NLA_SOCK_REF	nlattr[TIPC_NLA_SOCK_REF, int32]
 	TIPC_NLA_SOCK_HAS_PUBL	nlattr[TIPC_NLA_SOCK_HAS_PUBL, void]
+	TIPC_NLA_SOCK_CON	nlnest[TIPC_NLA_SOCK_CON, array[tipc_nl_sock_con_policy]]
+] [varlen]
+
+tipc_nl_sock_con_policy [
+	TIPC_NLA_CON_NODE	nlattr[TIPC_NLA_CON_NODE, int32]
+	TIPC_NLA_CON_FLAG	nlattr[TIPC_NLA_CON_FLAG, int32]
 ] [varlen]
 
 tipc_nl_link_policy [

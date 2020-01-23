@@ -188,7 +188,6 @@ ifla_policy [
 	IFLA_XDP		nlnest[IFLA_XDP, array[ifla_xdp_policy]]
 	IFLA_EVENT		nlattr[IFLA_EVENT, int32]
 	IFLA_GROUP		nlattr[IFLA_GROUP, int32]
-	IFLA_IF_NETNSID		nlattr[IFLA_IF_NETNSID, netns_id]
 	IFLA_TARGET_NETNSID	nlattr[IFLA_TARGET_NETNSID, netns_id]
 	IFLA_PROP_LIST		nlnest[IFLA_PROP_LIST, array[nlattr[IFLA_ALT_IFNAME, devname]]]
 	IFLA_ALT_IFNAME		nlattr[IFLA_ALT_IFNAME, devname]
@@ -233,7 +232,8 @@ ifla_info_policy [
 	ip6vti		ifla_info_policy_t["ip6vti", IFLA_INFO_DATA, array[vti6_policy]]
 # TODO: this should be a net device fd. How does one even obtain these?
 	ppp		ifla_info_policy_t["ppp", IFLA_INFO_DATA, nlattr[IFLA_PPP_DEV_FD, fd]]
-	gtp		ifla_info_policy_t["gtp", IFLA_INFO_DATA, array[gtp_policy]]
+# This is not an array[gtp_policy] intentionally, gtp_policy is a struct.
+	gtp		ifla_info_policy_t["gtp", IFLA_INFO_DATA, gtp_policy]
 	hsr		ifla_info_policy_t["hsr", IFLA_INFO_DATA, array[hsr_policy]]
 	xfrm		ifla_info_policy_t["xfrm", IFLA_INFO_DATA, array[xfrmi_policy]]
 	vcan		ifla_info_policy_t["vcan", IFLA_INFO_DATA, void]
@@ -595,7 +595,7 @@ ifa_ipv6_policy [
 rtm_ipv4_policy [
 	RTA_DST		nlattr[RTA_DST, ipv4_addr]
 	RTA_SRC		nlattr[RTA_SRC, ipv4_addr]
-	RTA_IIF		nlattr[RTA_DST, ifindex]
+	RTA_IIF		nlattr[RTA_IIF, ifindex]
 	RTA_OIF		nlattr[RTA_OIF, ifindex]
 	RTA_GATEWAY	nlattr[RTA_GATEWAY, ipv4_addr]
 	RTA_PRIORITY	nlattr[RTA_PRIORITY, int32]
@@ -613,7 +613,7 @@ rtm_ipv4_policy [
 
 rtm_ipv6_policy [
 	RTA_GATEWAY	nlattr[RTA_GATEWAY, ipv6_addr]
-	RTA_IIF		nlattr[RTA_DST, ifindex]
+	RTA_IIF		nlattr[RTA_IIF, ifindex]
 	RTA_OIF		nlattr[RTA_OIF, ifindex]
 	RTA_PRIORITY	nlattr[RTA_PRIORITY, int32]
 # TODO: what's this? is this interesting?
