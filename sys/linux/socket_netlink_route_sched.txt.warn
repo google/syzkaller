@@ -1,10 +1,20 @@
 no-such-struct: tcm_handle
+bad-netlink-attr: rtm_tca_policy: missing attributes: [1 10 11]
 no-such-netlink-policy: tca_kind_options_t
 no-such-netlink-policy: qdisc_kind_options
+bad-netlink-attr: cbq_policy: missing attributes: [4 7]
+bad-netlink-attr: fq_policy: missing attributes: [12]
+bad-netlink-attr: gred_policy: missing attributes: [6]
 no-such-netlink-policy: netem_loss_policy
+bad-netlink-attr: pie_policy: missing attributes: [8]
+bad-netlink-attr: entry_policy_taprio: missing attributes: [1]
+bad-netlink-attr: taprio_policy: missing attributes: [4]
 no-such-netlink-policy: tclass_kind_options
 no-such-netlink-policy: tca_actions
+bad-netlink-attr: tcf_action_policy: missing attributes: [7]
 no-such-netlink-policy: tca_ife_meta_policy
+bad-netlink-attr: skbedit_policy: missing attributes: [8 9]
+bad-netlink-attr: tunnel_key_policy: missing attributes: [11 12 13]
 no-such-netlink-policy: action_gd_policy
 no-such-struct: tc_gen
 bad-field-number: tc_connmark: syz=2 kernel=6

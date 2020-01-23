@@ -25,27 +25,35 @@ sendmsg$IPCTNL_MSG_CT_GET_UNCONFIRMED(fd sock_nl_netfilter, msg ptr[in, msghdr_c
 ct_nla_policy [
 	CTA_TUPLE_ORIG		nlnest[CTA_TUPLE_ORIG, array[tuple_nla_policy]]
 	CTA_TUPLE_REPLY		nlnest[CTA_TUPLE_REPLY, array[tuple_nla_policy]]
-	CTA_STATUS		nlattr[CTA_STATUS, flags[ip_conntrack_status, int32be]]
+	CTA_STATUS		nlnetw[CTA_STATUS, flags[ip_conntrack_status, int32be]]
 	CTA_PROTOINFO		nlnest[CTA_PROTOINFO, protoinfo_policy]
 # The policy may also contain CTA_HELP_INFO, but I don't see any of the helpers use it.
 	CTA_HELP		nlnest[CTA_HELP, nlattr[CTA_HELP_NAME, string[xt_helper_names]]]
 	CTA_NAT_SRC		nlnest[CTA_NAT_SRC, array[nat_nla_policy]]
-	CTA_TIMEOUT		nlattr[CTA_TIMEOUT, int32be]
-	CTA_MARK		nlattr[CTA_MARK, int32be]
-	CTA_ID			nlattr[CTA_ID, conntrack_id]
+	CTA_TIMEOUT		nlnetw[CTA_TIMEOUT, int32be]
+	CTA_MARK		nlnetw[CTA_MARK, int32be]
+	CTA_ID			nlnetw[CTA_ID, conntrack_id]
 	CTA_NAT_DST		nlnest[CTA_NAT_DST, array[nat_nla_policy]]
 	CTA_TUPLE_MASTER	nlnest[CTA_TUPLE_MASTER, array[tuple_nla_policy]]
-	CTA_ZONE		nlattr[CTA_ZONE, conntrack_zone]
-	CTA_MARK_MASK		nlattr[CTA_MARK_MASK, conntrack_id]
-	CTA_LABELS		nlattr[CTA_LABELS, array[int32be]]
+	CTA_ZONE		nlnetw[CTA_ZONE, conntrack_zone]
+	CTA_MARK_MASK		nlnetw[CTA_MARK_MASK, conntrack_id]
+	CTA_LABELS		nlnetw[CTA_LABELS, array[int32be]]
 # NEED: CTA_LABELS_MASK should be of the same size as CTA_LABELS.
 	CTA_LABELS_MASK		nlattr[CTA_LABELS_MASK, array[int32be]]
+	CTA_SEQ_ADJ_ORIG	nlnest[CTA_SEQ_ADJ_ORIG, array[seqadj_policy]]
+	CTA_SEQ_ADJ_REPLY	nlnest[CTA_SEQ_ADJ_REPLY, array[seqadj_policy]]
+] [varlen]
+
+seqadj_policy [
+	CTA_SEQADJ_CORRECTION_POS	nlnetw[CTA_SEQADJ_CORRECTION_POS, int32be]
+	CTA_SEQADJ_OFFSET_BEFORE	nlnetw[CTA_SEQADJ_OFFSET_BEFORE, int32be]
+	CTA_SEQADJ_OFFSET_AFTER		nlnetw[CTA_SEQADJ_OFFSET_AFTER, int32be]
 ] [varlen]
 
 tuple_nla_policy [
 	CTA_TUPLE_IP	nlnest[CTA_TUPLE_IP, cta_ip_nla_policy]
 	CTA_TUPLE_PROTO	nlnest[CTA_TUPLE_PROTO, nlattr[CTA_PROTO_NUM, flags[conntrack_proto, int8]]]
-	CTA_TUPLE_ZONE	nlattr[CTA_TUPLE_ZONE, conntrack_zone]
+	CTA_TUPLE_ZONE	nlnetw[CTA_TUPLE_ZONE, conntrack_zone]
 ] [varlen]
 
 cta_ip_nla_policy [
@@ -85,13 +93,13 @@ nf_ct_tcp_flags {
 dccp_nla_policy [
 	CTA_PROTOINFO_DCCP_STATE		nlattr[CTA_PROTOINFO_DCCP_STATE, int8]
 	CTA_PROTOINFO_DCCP_ROLE			nlattr[CTA_PROTOINFO_DCCP_ROLE, int8]
-	CTA_PROTOINFO_DCCP_HANDSHAKE_SEQ	nlattr[CTA_PROTOINFO_DCCP_HANDSHAKE_SEQ, int64be]
+	CTA_PROTOINFO_DCCP_HANDSHAKE_SEQ	nlnetw[CTA_PROTOINFO_DCCP_HANDSHAKE_SEQ, int64be]
 ] [varlen]
 
 sctp_nla_policy [
 	CTA_PROTOINFO_SCTP_STATE		nlattr[CTA_PROTOINFO_SCTP_STATE, int8]
-	CTA_PROTOINFO_SCTP_VTAG_ORIGINAL	nlattr[CTA_PROTOINFO_SCTP_VTAG_ORIGINAL, int32be]
-	CTA_PROTOINFO_SCTP_VTAG_REPLY		nlattr[CTA_PROTOINFO_SCTP_VTAG_REPLY, int32be]
+	CTA_PROTOINFO_SCTP_VTAG_ORIGINAL	nlnetw[CTA_PROTOINFO_SCTP_VTAG_ORIGINAL, int32be]
+	CTA_PROTOINFO_SCTP_VTAG_REPLY		nlnetw[CTA_PROTOINFO_SCTP_VTAG_REPLY, int32be]
 ] [varlen]
 
 nat_nla_policy [

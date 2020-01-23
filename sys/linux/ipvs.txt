@@ -98,6 +98,7 @@ ip_vs_dest_policy [
 	IPVS_DEST_ATTR_ADDR_FAMILY	nlattr[IPVS_DEST_ATTR_ADDR_FAMILY, flags[ip_vs_af, int16]]
 	IPVS_DEST_ATTR_TUN_TYPE		nlattr[IPVS_DEST_ATTR_TUN_TYPE, flags[ipvs_tun_type, int8]]
 	IPVS_DEST_ATTR_TUN_PORT		nlattr[IPVS_DEST_ATTR_TUN_PORT, sock_port]
+	IPVS_DEST_ATTR_TUN_FLAGS	nlattr[IPVS_DEST_ATTR_TUN_FLAGS, int16]
 ] [varlen]
 
 ipvs_tun_type = IP_VS_CONN_F_TUNNEL_TYPE_IPIP, IP_VS_CONN_F_TUNNEL_TYPE_GUE

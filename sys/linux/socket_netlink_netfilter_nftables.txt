@@ -457,8 +457,8 @@ nft_dynset_policy [
 	NFTA_DYNSET_SREG_KEY	nlnetw[NFTA_DYNSET_SREG_KEY, flags[nft_registers, int32be]]
 	NFTA_DYNSET_SREG_DATA	nlnetw[NFTA_DYNSET_SREG_DATA, flags[nft_registers, int32be]]
 	NFTA_DYNSET_TIMEOUT	nlnetw[NFTA_DYNSET_TIMEOUT, int64be]
-# TODO: would be nice to support, but the naive version leads to recursion.
-#	NFTA_DYNSET_EXPR	nlnest[NFTA_DYNSET_EXPR, nft_expr_policy]
+# TODO: we need whole nft_expr_policy here instead of just lookup, but it will lead to recursion.
+	NFTA_DYNSET_EXPR	nlnest[NFTA_DYNSET_EXPR, nft_expr_policy_t["lookup", nft_lookup_policy]]
 	NFTA_DYNSET_FLAGS	nlnetw[NFTA_DYNSET_FLAGS, flags[nft_dynset_flags, int32be]]
 ] [varlen]
 

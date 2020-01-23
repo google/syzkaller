@@ -378,6 +378,7 @@ func checkNetlink(OS, arch, obj string, structDescs []*prog.KeyedStruct,
 		structMap[str.Desc.Name()] = str.Desc
 	}
 	checked := make(map[string]bool)
+	checkedAttrs := make(map[string]*checkAttr)
 	for _, str := range structDescs {
 		typ := str.Desc
 		if checked[typ.Name()] {
@@ -413,6 +414,8 @@ func checkNetlink(OS, arch, obj string, structDescs []*prog.KeyedStruct,
 			continue
 		}
 		var warnings1 *[]Warn
+		var policy1 []nlaPolicy
+		var attrs1 map[int]bool
 		// We may have several symbols with the same name (they frequently have internal linking),
 		// in such case we choose the one that produces fewer warnings.
 		for _, symb := range ss {
@@ -428,19 +431,71 @@ func checkNetlink(OS, arch, obj string, structDescs []*prog.KeyedStruct,
 					kernelName, name, symb.Addr, err)
 			}
 			policy := (*[1e6]nlaPolicy)(unsafe.Pointer(&binary[0]))[:symb.Size/int(unsafe.Sizeof(nlaPolicy{}))]
-			warnings2, err := checkNetlinkPolicy(structMap, typ, astStruct, policy)
+			warnings2, attrs2, err := checkNetlinkPolicy(structMap, typ, astStruct, policy)
 			if err != nil {
 				return nil, err
 			}
 			if warnings1 == nil || len(*warnings1) > len(warnings2) {
 				warnings1 = &warnings2
+				policy1 = policy
+				attrs1 = attrs2
 			}
 		}
 		if warnings1 != nil {
 			warnings = append(warnings, *warnings1...)
+			ca := checkedAttrs[kernelName]
+			if ca == nil {
+				ca = &checkAttr{
+					pos:    astStruct.Pos,
+					name:   name,
+					policy: policy1,
+					attrs:  make(map[int]bool),
+				}
+				checkedAttrs[kernelName] = ca
+			}
+			for attr := range attrs1 {
+				ca.attrs[attr] = true
+			}
 		}
 	}
+	warnings = append(warnings, checkMissingAttrs(checkedAttrs)...)
 	return warnings, nil
+}
+
+type checkAttr struct {
+	pos    ast.Pos
+	name   string
+	policy []nlaPolicy
+	attrs  map[int]bool
+}
+
+func checkMissingAttrs(checkedAttrs map[string]*checkAttr) []Warn {
+	// Missing attribute checking is a bit tricky because we may split a single
+	// kernel policy into several policies for better precision.
+	// They have different names, but map to the same kernel policy.
+	// We want to report a missing attribute iff it's missing in all copies of the policy.
+	var warnings []Warn
+	for _, ca := range checkedAttrs {
+		var missing []int
+		for i, pol := range ca.policy {
+			// Ignore attributes that are not described in the policy
+			// (some of them are unused at all, however there are cases where
+			// they are not described but used as inputs, and these are actually
+			// the worst ones).
+			if !ca.attrs[i] && (pol.typ != NLA_UNSPEC || pol.len != 0) {
+				missing = append(missing, i)
+			}
+		}
+		// If we miss too many, there is probably something else going on.
+		if len(missing) != 0 && len(missing) <= 5 {
+			warnings = append(warnings, Warn{
+				pos: ca.pos,
+				typ: WarnNetlinkBadAttr,
+				msg: fmt.Sprintf("%v: missing attributes: %v", ca.name, missing),
+			})
+		}
+	}
+	return warnings
 }
 
 func isNetlinkPolicy(typ *prog.StructDesc) bool {
@@ -477,11 +532,12 @@ func isNlattr(typ prog.Type) bool {
 }
 
 func checkNetlinkPolicy(structMap map[string]*prog.StructDesc, typ *prog.StructDesc,
-	astStruct *ast.Struct, policy []nlaPolicy) ([]Warn, error) {
+	astStruct *ast.Struct, policy []nlaPolicy) ([]Warn, map[int]bool, error) {
 	var warnings []Warn
 	warn := func(pos ast.Pos, typ, msg string, args ...interface{}) {
 		warnings = append(warnings, Warn{pos: pos, typ: typ, msg: fmt.Sprintf(msg, args...)})
 	}
+	checked := make(map[int]bool)
 	ai := 0
 	for _, field := range typ.Fields {
 		if prog.IsPad(field) {
@@ -499,13 +555,18 @@ func checkNetlinkPolicy(structMap map[string]*prog.StructDesc, typ *prog.StructD
 				typ.TemplateName(), field.FieldName(), attr, len(policy))
 			continue
 		}
+		if checked[attr] {
+			warn(fld.Pos, WarnNetlinkBadAttr, "%v.%v: duplicate attribute",
+				typ.TemplateName(), field.FieldName())
+		}
+		checked[attr] = true
 		w := checkNetlinkAttr(ft, policy[attr])
 		if w != "" {
 			warn(fld.Pos, WarnNetlinkBadAttr, "%v.%v: %v",
 				typ.TemplateName(), field.FieldName(), w)
 		}
 	}
-	return warnings, nil
+	return warnings, checked, nil
 }
 
 func checkNetlinkAttr(typ *prog.StructDesc, policy nlaPolicy) string {

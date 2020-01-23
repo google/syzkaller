@@ -1,3 +1,5 @@
+bad-netlink-attr: team_nl_policy: missing attributes: [3]
+bad-netlink-attr: team_nl_option_policy: missing attributes: [2]
 no-such-struct: team_nl_option_policy
 no-such-struct: team_nl_option_policy_per_port
 no-such-struct: team_nl_option_policy_array

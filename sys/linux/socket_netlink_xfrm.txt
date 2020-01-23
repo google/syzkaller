@@ -130,7 +130,6 @@ xfrma_policy [
 	tfcpad			nlattr[XFRMA_TFCPAD, int32]
 	replay_thresh		nlattr[XFRMA_REPLAY_THRESH, int32]
 	etimer_thresh		nlattr[XFRMA_ETIMER_THRESH, int32]
-	output_mark		nlattr[XFRMA_OUTPUT_MARK, int32]
 	encap			nlattr[XFRMA_ENCAP, xfrm_encap_tmpl]
 	offload			nlattr[XFRMA_OFFLOAD_DEV, xfrm_user_offload]
 	sec_ctx			nlattr[XFRMA_SEC_CTX, xfrm_user_sec_ctx]

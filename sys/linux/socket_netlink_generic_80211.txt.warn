@@ -1,3 +1,5 @@
 no-such-struct: nl80211_wdev
+bad-netlink-attr: nl80211_policy_cmd_key.NL80211_ATTR_KEY_DATA_WEP104: duplicate attribute
+bad-netlink-attr: nl80211_key_policy.NL80211_KEY_DATA_WEP104: duplicate attribute
 no-such-netlink-policy: nl80211_tx_rates_policy
 no-such-netlink-policy: nl80211_rates_policy

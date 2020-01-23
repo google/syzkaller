@@ -16,10 +16,10 @@ sendmsg$NFNL_MSG_CTHELPER_DEL(fd sock_nl_netfilter, msg ptr[in, msghdr_cthelper[
 nfnl_cthelper_policy [
 	NFCTH_NAME		nlattr[NFCTH_NAME, string[cthelper_name]]
 	NFCTH_TUPLE		nlattr[NFCTH_TUPLE, array[tuple_nla_policy]]
-	NFCTH_QUEUE_NUM		nlattr[NFCTH_QUEUE_NUM, int32be]
-	NFCTH_POLICY		nlattr[NFCTH_POLICY, nlattr[NFCTH_POLICY_SET_MAX, int32be]]
-	NFCTH_PRIV_DATA_LEN	nlattr[NFCTH_PRIV_DATA_LEN, int32be[0:32]]
-	NFCTH_STATUS		nlattr[NFCTH_STATUS, int32be[0:1]]
+	NFCTH_QUEUE_NUM		nlnetw[NFCTH_QUEUE_NUM, int32be]
+	NFCTH_POLICY		nlnest[NFCTH_POLICY, nlnetw[NFCTH_POLICY_SET_NUM, int32be]]
+	NFCTH_PRIV_DATA_LEN	nlnetw[NFCTH_PRIV_DATA_LEN, int32be[0:32]]
+	NFCTH_STATUS		nlnetw[NFCTH_STATUS, int32be[0:1]]
 ] [varlen]
 
 cthelper_name = "syz0", "syz1"
