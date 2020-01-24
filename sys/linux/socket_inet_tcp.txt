@@ -12,6 +12,7 @@ include <uapi/linux/tls.h>
 resource sock_tcp[sock_in]
 
 socket$inet_tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0]) sock_tcp
+socket$inet_mptcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[262]) sock_tcp
 
 # From interface point of view SMC sockets seem to be the same as TCP.
 socket$inet_smc(domain const[AF_SMC], type const[SOCK_STREAM], proto const[0]) sock_tcp
@@ -19,6 +20,7 @@ socket$inet_smc(domain const[AF_SMC], type const[SOCK_STREAM], proto const[0]) s
 resource sock_tcp6[sock_in6]
 
 socket$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]) sock_tcp6
+socket$inet6_mptcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[262]) sock_tcp6
 
 # Generic TCP socket options
 
