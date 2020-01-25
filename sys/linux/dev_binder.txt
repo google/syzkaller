@@ -20,9 +20,9 @@ type binder_handle int32[0:3]
 type binder_cookie const[0, int64]
 
 syz_open_dev$binderN(dev ptr[in, string["/dev/binder#"]], id proc[0, 1], flags flags[binder_open_flags]) fd_binder
-syz_open_dev$binder(dev ptr[in, string["/dev/binder"]], id intptr, flags flags[binder_open_flags]) fd_binder
-syz_open_dev$hwbinder(dev ptr[in, string["/dev/hwbinder"]], id intptr, flags flags[binder_open_flags]) fd_binder
-syz_open_dev$vndbinder(dev ptr[in, string["/dev/vndbinder"]], id intptr, flags flags[binder_open_flags]) fd_binder
+openat$binder(fd const[AT_FDCWD], file ptr[in, string["/dev/binder"]], flags flags[binder_open_flags], mode const[0]) fd_binder
+openat$hwbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/hwbinder"]], flags flags[binder_open_flags], mode const[0]) fd_binder
+openat$vndbinder(fd const[AT_FDCWD], file ptr[in, string["/dev/vndbinder"]], flags flags[binder_open_flags], mode const[0]) fd_binder
 
 mmap$binder(addr vma, len len[addr], prot const[PROT_READ], flags const[MAP_SHARED], fd fd_binder, offset fileoff) binder_ptr
 
@@ -33,6 +33,10 @@ ioctl$BINDER_THREAD_EXIT(fd fd_binder, cmd const[BINDER_THREAD_EXIT], arg const[
 ioctl$BINDER_GET_NODE_DEBUG_INFO(fd fd_binder, cmd const[BINDER_GET_NODE_DEBUG_INFO], arg ptr[inout, binder_node_debug_info])
 ioctl$BINDER_WRITE_READ(fd fd_binder, cmd const[BINDER_WRITE_READ], arg ptr[in, binder_write_read])
 ioctl$BINDER_GET_NODE_INFO_FOR_REF(fd fd_binder, cmd const[BINDER_GET_NODE_INFO_FOR_REF], arg ptr[in, binder_node_info_for_ref])
+
+openat$binder_debug(fd const[AT_FDCWD], file ptr[in, string[binder_debug_file]], flags const[O_RDONLY], mode const[0]) fd
+
+binder_debug_file = "/sys/kernel/debug/binder/failed_transaction_log", "/sys/kernel/debug/binder/state", "/sys/kernel/debug/binder/stats", "/sys/kernel/debug/binder/transaction_log", "/sys/kernel/debug/binder/transactions"
 
 binder_open_flags = O_RDWR, O_NONBLOCK
 _ = __NR_mmap2

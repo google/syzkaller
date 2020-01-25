@@ -130,12 +130,12 @@ getsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCV
 
 bt_voice_settings = BT_VOICE_TRANSPARENT, BT_VOICE_CVSD_16BIT
 
-type hci_dev_t int16[-1:10]
+type hci_dev_t int16[-1:4]
 
 sockaddr_hci {
-	fam	const[AF_BLUETOOTH, int16]
-	dev	hci_dev_t
-	chan	flags[bt_chi_chan, int16]
+	hci_family	const[AF_BLUETOOTH, int16]
+	hci_dev		hci_dev_t
+	hci_channel	flags[bt_hci_chan, int16]
 }
 
 hci_inquiry_req {
@@ -293,7 +293,7 @@ bnep_connlist_req {
 	ci	ptr[out, array[bnep_conninfo]]
 }
 
-bt_chi_chan = HCI_CHANNEL_RAW, HCI_CHANNEL_USER, HCI_CHANNEL_MONITOR, HCI_CHANNEL_CONTROL
+bt_hci_chan = HCI_CHANNEL_RAW, HCI_CHANNEL_USER, HCI_CHANNEL_MONITOR, HCI_CHANNEL_CONTROL, HCI_CHANNEL_LOGGING
 bt_hci_ioctl = HCIDEVUP, HCIDEVDOWN, HCIDEVRESET, HCIDEVRESTAT, HCIGETDEVLIST, HCIGETDEVINFO, HCIGETCONNLIST, HCIGETCONNINFO, HCIGETAUTHINFO, HCISETRAW, HCISETSCAN, HCISETAUTH, HCISETENCRYPT, HCISETPTYPE, HCISETLINKPOL, HCISETLINKMODE, HCISETACLMTU, HCISETSCOMTU, HCIBLOCKADDR, HCIUNBLOCKADDR, HCIINQUIRY
 bt_hci_sockopt = HCI_DATA_DIR, HCI_TIME_STAMP, HCI_FILTER
 bt_l2cap_type = SOCK_SEQPACKET, SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
