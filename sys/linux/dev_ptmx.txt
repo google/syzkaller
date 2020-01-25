@@ -45,7 +45,7 @@ ioctl$TCSBRK(fd fd_tty, cmd const[TCSBRK], arg intptr)
 ioctl$TCSBRKP(fd fd_tty, cmd const[TCSBRKP], arg intptr)
 ioctl$TIOCSBRK(fd fd_tty, cmd const[TIOCSBRK])
 ioctl$TIOCCBRK(fd fd_tty, cmd const[TIOCCBRK])
-ioctl$TCXONC(fd fd_tty, cmd const[TCXONC], arg intptr)
+ioctl$TCXONC(fd fd_tty, cmd const[TCXONC], arg flags[tcxonc_arg])
 ioctl$FIONREAD(fd fd_tty, cmd const[FIONREAD], arg ptr[out, int32])
 ioctl$TIOCOUTQ(fd fd_tty, cmd const[TIOCOUTQ], arg ptr[out, int32])
 ioctl$TCFLSH(fd fd_tty, cmd const[TCFLSH], arg intptr[TCIFLUSH:TCIOFLUSH])
@@ -140,6 +140,8 @@ ioctl$TIOCGSERIAL(fd fd_tty, cmd const[TIOCGSERIAL], arg ptr[out, serial_struct]
 ioctl$TIOCSSERIAL(fd fd_tty, cmd const[TIOCSSERIAL], arg ptr[in, serial_struct])
 ioctl$TCGETS2(fd fd_tty, cmd const[TCGETS2], arg ptr[out, termios2])
 ioctl$TCSETS2(fd fd_tty, cmd const[TCSETS2], arg ptr[in, termios2])
+ioctl$TCSETSF2(fd fd_tty, cmd const[TCSETSF2], arg ptr[in, termios2])
+ioctl$TCSETSW2(fd fd_tty, cmd const[TCSETSW2], arg ptr[in, termios2])
 ioctl$TIOCSERGETLSR(fd fd_tty, cmd const[TIOCSERGETLSR], arg ptr[out, int32])
 ioctl$TIOCGRS485(fd fd_tty, cmd const[TIOCGRS485], arg ptr[out, serial_rs485])
 ioctl$TIOCSRS485(fd fd_tty, cmd const[TIOCSRS485], arg ptr[in, serial_rs485])
@@ -157,6 +159,24 @@ ioctl$TCSETXF(fd fd_tty, cmd const[TCSETXF], arg ptr[in, termiox])
 ioctl$TCSETXW(fd fd_tty, cmd const[TCSETXW], arg ptr[in, termiox])
 ioctl$TIOCMIWAIT(fd fd_tty, cmd const[TIOCMIWAIT], arg const[0])
 ioctl$TIOCGICOUNT(fd fd_tty, cmd const[TIOCGICOUNT], arg const[0])
+
+# See tty_mode_ioctl.
+ioctl$TIOCGETP(fd fd_tty, cmd const[TIOCGETP], arg ptr[out, sgttyb])
+ioctl$TIOCSETP(fd fd_tty, cmd const[TIOCSETP], arg ptr[in, sgttyb])
+ioctl$TIOCGETC(fd fd_tty, cmd const[TIOCGETC], arg ptr[out, array[int8]])
+ioctl$TIOCSETC(fd fd_tty, cmd const[TIOCSETC], arg ptr[in, array[int8]])
+ioctl$TIOCGLTC(fd fd_tty, cmd const[TIOCGLTC], arg ptr[out, array[int8]])
+ioctl$TIOCSLTC(fd fd_tty, cmd const[TIOCSLTC], arg ptr[in, array[int8]])
+
+sgttyb {
+	sg_ispeed	int8
+	sg_ospeed	int8
+	sg_erase	int8
+	sg_kill		int8
+	sg_flags	int16
+}
+
+tcxonc_arg = TCOOFF, TCOON, TCIOFF, TCION
 
 termiox {
 	x_hflag	int16
