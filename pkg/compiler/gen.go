@@ -31,17 +31,14 @@ func (comp *compiler) genResource(n *ast.Resource) *prog.ResourceDesc {
 	res := &prog.ResourceDesc{
 		Name: n.Name.Name,
 	}
-	var base *ast.Type
 	for n != nil {
 		res.Values = append(genIntArray(n.Values), res.Values...)
 		res.Kind = append([]string{n.Name.Name}, res.Kind...)
-		base = n.Base
 		n = comp.resources[n.Base.Ident]
 	}
 	if len(res.Values) == 0 {
 		res.Values = []uint64{0}
 	}
-	res.Type = comp.genType(base, "", prog.DirIn, false)
 	return res
 }
 

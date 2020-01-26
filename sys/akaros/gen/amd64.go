@@ -12,8 +12,8 @@ func init() {
 }
 
 var resources_amd64 = []*ResourceDesc{
-	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "pid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"pid"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "fd", Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "pid", Kind: []string{"pid"}, Values: []uint64{0, 18446744073709551615}},
 }
 
 var structDescs_amd64 = []*KeyedStruct{
@@ -1530,4 +1530,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "0fa50af9f3d428b1b04962d14198d35249960f43"
+const revision_amd64 = "54da621788511c6f2dabc84d6fc082790734382c"

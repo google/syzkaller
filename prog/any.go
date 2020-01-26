@@ -85,14 +85,6 @@ func initAnyTypes(target *Target) {
 				Name:   name,
 				Kind:   []string{name},
 				Values: []uint64{^uint64(0), 0},
-				Type: &IntType{
-					IntTypeCommon: IntTypeCommon{
-						TypeCommon: TypeCommon{
-							TypeName: base,
-							TypeSize: size,
-						},
-					},
-				},
 			},
 		}
 	}

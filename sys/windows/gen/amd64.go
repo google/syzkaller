@@ -12,8 +12,8 @@ func init() {
 }
 
 var resources_amd64 = []*ResourceDesc{
-	{Name: "HANDLE", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"HANDLE"}, Values: []uint64{18446744073709551615}},
-	{Name: "hFile", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"HANDLE", "hFile"}, Values: []uint64{18446744073709551615}},
+	{Name: "HANDLE", Kind: []string{"HANDLE"}, Values: []uint64{18446744073709551615}},
+	{Name: "hFile", Kind: []string{"HANDLE", "hFile"}, Values: []uint64{18446744073709551615}},
 }
 
 var structDescs_amd64 = []*KeyedStruct{
@@ -14619,4 +14619,4 @@ var consts_amd64 = []ConstValue{
 	{"WRITE_OWNER", 524288},
 }
 
-const revision_amd64 = "febd5b4c558e1e6ca01ac5464481f2aac3af4ec9"
+const revision_amd64 = "8abbc3bbeed569df97a052bcc55c70291a9814b8"

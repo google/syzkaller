@@ -12,13 +12,13 @@ func init() {
 }
 
 var resources_64 = []*ResourceDesc{
-	{Name: "anyres32", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"anyres32"}, Values: []uint64{0}},
-	{Name: "anyres64", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, Kind: []string{"anyres64"}, Values: []uint64{0}},
-	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 999}},
-	{Name: "r_any", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"r_any"}, Values: []uint64{0}},
-	{Name: "syz_missing_const_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_missing_const_res"}, Values: []uint64{1}},
-	{Name: "syz_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_res"}, Values: []uint64{65535}},
-	{Name: "unsupported", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"unsupported"}, Values: []uint64{0}},
+	{Name: "anyres32", Kind: []string{"anyres32"}, Values: []uint64{0}},
+	{Name: "anyres64", Kind: []string{"anyres64"}, Values: []uint64{0}},
+	{Name: "fd", Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 999}},
+	{Name: "r_any", Kind: []string{"r_any"}, Values: []uint64{0}},
+	{Name: "syz_missing_const_res", Kind: []string{"syz_missing_const_res"}, Values: []uint64{1}},
+	{Name: "syz_res", Kind: []string{"syz_res"}, Values: []uint64{65535}},
+	{Name: "unsupported", Kind: []string{"unsupported"}, Values: []uint64{0}},
 }
 
 var structDescs_64 = []*KeyedStruct{
@@ -1442,4 +1442,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "4b2d4ec46b6bfa6f9f26ff3103ce1796d6c1476b"
+const revision_64 = "11680783018363ee3ca3e0a484f2487a560a21d1"
