@@ -12,22 +12,22 @@ func init() {
 }
 
 var resources_amd64 = []*ResourceDesc{
-	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "fd_dir", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_dir"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "gid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"gid"}, Values: []uint64{0, 18446744073709551615}},
-	{Name: "ipc", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ipc"}, Values: []uint64{0, 18446744073709551615}},
-	{Name: "ipc_msq", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ipc", "ipc_msq"}, Values: []uint64{0, 18446744073709551615}},
-	{Name: "ipc_sem", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ipc", "ipc_sem"}, Values: []uint64{0, 18446744073709551615}},
-	{Name: "ipc_shm", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ipc", "ipc_shm"}, Values: []uint64{0, 18446744073709551615}},
-	{Name: "lwpid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"lwpid"}, Values: []uint64{0, 18446744073709551615}},
-	{Name: "pid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"pid"}, Values: []uint64{0, 18446744073709551615}},
-	{Name: "shmaddr", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"shmaddr"}, Values: []uint64{0}},
-	{Name: "sock", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "sock_in", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_in"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "sock_in6", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_in6"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "sock_unix", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_unix"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "tcp_seq_num", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"tcp_seq_num"}, Values: []uint64{1094861636}},
-	{Name: "uid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"uid"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "fd", Kind: []string{"fd"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "fd_dir", Kind: []string{"fd", "fd_dir"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "gid", Kind: []string{"gid"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "ipc", Kind: []string{"ipc"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "ipc_msq", Kind: []string{"ipc", "ipc_msq"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "ipc_sem", Kind: []string{"ipc", "ipc_sem"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "ipc_shm", Kind: []string{"ipc", "ipc_shm"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "lwpid", Kind: []string{"lwpid"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "pid", Kind: []string{"pid"}, Values: []uint64{0, 18446744073709551615}},
+	{Name: "shmaddr", Kind: []string{"shmaddr"}, Values: []uint64{0}},
+	{Name: "sock", Kind: []string{"fd", "sock"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "sock_in", Kind: []string{"fd", "sock", "sock_in"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "sock_in6", Kind: []string{"fd", "sock", "sock_in6"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "sock_unix", Kind: []string{"fd", "sock", "sock_unix"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "tcp_seq_num", Kind: []string{"tcp_seq_num"}, Values: []uint64{1094861636}},
+	{Name: "uid", Kind: []string{"uid"}, Values: []uint64{0, 18446744073709551615}},
 }
 
 var structDescs_amd64 = []*KeyedStruct{
@@ -1882,4 +1882,4 @@ var consts_amd64 = []ConstValue{
 	{"_UC_STACK", 2},
 }
 
-const revision_amd64 = "d530bf870881250cc771469a14b2ea5272b6faf2"
+const revision_amd64 = "bbc680b1463b0b97b961862c4857913ea79ceabb"

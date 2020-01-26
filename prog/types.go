@@ -162,7 +162,6 @@ func (t TypeCommon) Dir() Dir {
 
 type ResourceDesc struct {
 	Name   string
-	Type   Type
 	Kind   []string
 	Values []uint64
 	Ctors  []ResourceCtor
