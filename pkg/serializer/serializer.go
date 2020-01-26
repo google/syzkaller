@@ -57,7 +57,10 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 	case reflect.String:
 		fmt.Fprintf(w.w, "%q", v.String())
 	case reflect.Func:
-		// Skip, no way to serialize this.
+		if !v.IsNil() {
+			panic("no way to serialize funcs")
+		}
+		fmt.Fprintf(w.w, "nil")
 	default:
 		panic(fmt.Sprintf("unsupported type: %#v", v.Type().String()))
 	}
@@ -111,17 +114,27 @@ func (w *writer) doStruct(v reflect.Value, sliceElem bool) {
 		w.string(v.Type().Name())
 	}
 	w.byte('{')
+	fieldNames := false
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Field(i)
+		if isDefaultValue(f) || !f.CanSet() {
+			fieldNames = true
+			break
+		}
+	}
 	needComma := false
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
-		if isDefaultValue(f) {
+		if fieldNames && (isDefaultValue(f) || !f.CanSet()) {
 			continue
 		}
 		if needComma {
 			w.byte(',')
 		}
-		w.string(v.Type().Field(i).Name)
-		w.byte(':')
+		if fieldNames {
+			w.string(v.Type().Field(i).Name)
+			w.byte(':')
+		}
 		w.do(f, false)
 		needComma = true
 	}
@@ -177,7 +190,7 @@ func isDefaultValue(v reflect.Value) bool {
 	case reflect.String:
 		return v.String() == ""
 	case reflect.Func:
-		return true
+		return false
 	default:
 		return false
 	}
