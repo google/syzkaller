@@ -13,9 +13,10 @@ func TestSerializer(t *testing.T) {
 		Y: Y{1},
 		P: &Y{2},
 		A: []Y{{3}, {4}},
-		F: true,
+		B: true,
 		S: "a\x09b",
 		T: T1,
+		F: nil,
 	}
 	buf := new(bytes.Buffer)
 	Write(buf, x)
@@ -27,9 +28,10 @@ type X struct {
 	Y Y
 	P *Y
 	A []Y
-	F bool
+	B bool
 	S string
 	T T
+	F func()
 }
 
 type Y struct {
