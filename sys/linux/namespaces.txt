@@ -16,7 +16,7 @@ ioctl$NS_GET_PARENT(fd fd_namespace, cmd const[NS_GET_PARENT], arg const[0]) fd_
 ioctl$NS_GET_NSTYPE(fd fd_namespace, cmd const[NS_GET_NSTYPE], arg const[0])
 ioctl$NS_GET_OWNER_UID(fd fd_namespace, cmd const[NS_GET_OWNER_UID], arg ptr[out, uid])
 
-procfs_namespace_file = "ns/cgroup", "ns/ipc", "ns/mnt", "ns/net", "ns/pid", "ns/user", "ns/uts", "ns/pid_for_children"
+procfs_namespace_file = "ns/cgroup", "ns/ipc", "ns/mnt", "ns/net", "ns/pid", "ns/user", "ns/uts", "ns/pid_for_children", "ns/time", "ns/time_for_children"
 
-unshare_flags = CLONE_FILES, CLONE_FS, CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS, CLONE_SYSVSEM, CLONE_THREAD, CLONE_SIGHAND, CLONE_VM
-ns_type = 0, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWUTS, CLONE_NEWCGROUP, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER
+unshare_flags = CLONE_FILES, CLONE_FS, CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS, CLONE_SYSVSEM, CLONE_THREAD, CLONE_SIGHAND, CLONE_VM, CLONE_NEWTIME
+ns_type = 0, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWUTS, CLONE_NEWCGROUP, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWTIME
