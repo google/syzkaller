@@ -29,5 +29,4 @@ no-such-struct: ethtool_flow_union
 no-such-struct: ethtool_rx_ntuple
 no-such-struct: ethtool_rx_ntuple_flow_spec
 no-such-struct: ethtool_rx_ntuple_flow_spec_union
-bad-field-size: ethtool_per_queue_op.queue_mask: syz=16384 kernel=512
 bad-field-size: ethtool_link_settings.reserved/transceiver: syz=32 kernel=1

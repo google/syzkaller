@@ -1,3 +1,8 @@
+bad-field-number: io_uring_params: syz=9 kernel=10 [amd64]
+bad-field-size: io_uring_params.resv/id: syz=16 kernel=4 [amd64]
+bad-field-offset: io_uring_params.sq_off/resv: syz=40 kernel=28 [amd64]
+bad-field-size: io_uring_params.sq_off/resv: syz=40 kernel=12 [amd64]
+bad-field-offset: io_uring_params.cq_off/sq_off: syz=80 kernel=40 [amd64]
 bad-field-number: io_uring_files_update: syz=2 kernel=3 [amd64,arm,arm64]
 bad-struct-size: io_uring_files_update: syz=8 kernel=16 [arm]
 bad-field-offset: io_uring_files_update.fds/resv: syz=8 kernel=4

@@ -489,7 +489,7 @@ func checkMissingAttrs(checkedAttrs map[string]*checkAttr) []Warn {
 			// (some of them are unused at all, however there are cases where
 			// they are not described but used as inputs, and these are actually
 			// the worst ones).
-			if !ca.attrs[i] && (pol.typ != NLA_UNSPEC || pol.len != 0) {
+			if !ca.attrs[i] && (pol.typ != NLA_UNSPEC && pol.typ != NLA_REJECT || pol.len != 0) {
 				missing = append(missing, i)
 			}
 		}
