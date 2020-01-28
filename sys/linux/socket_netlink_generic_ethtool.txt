@@ -1,0 +1,78 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/ethtool_netlink.h>
+
+resource genl_ethtool_family_id[int16]
+type msghdr_ethtool[CMD, POLICY] msghdr_netlink[netlink_msg_t[genl_ethtool_family_id, genlmsghdr_t[CMD], POLICY]]
+
+syz_genetlink_get_family_id$ethtool(name ptr[in, string["ethtool"]]) genl_ethtool_family_id
+
+sendmsg$ETHTOOL_MSG_STRSET_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_STRSET_GET, strset_get_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_LINKINFO_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKINFO_GET, linkinfo_get_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_LINKMODES_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKMODES_GET, linkmodes_get_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_LINKSTATE_GET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKSTATE_GET, linkstate_get_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_LINKINFO_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKINFO_SET, linkinfo_set_policy]], f flags[send_flags])
+sendmsg$ETHTOOL_MSG_LINKMODES_SET(fd sock_nl_generic, msg ptr[in, msghdr_ethtool[ETHTOOL_MSG_LINKMODES_SET, linkmodes_set_policy]], f flags[send_flags])
+
+ethnl_header_policy [
+	ETHTOOL_A_HEADER_DEV_INDEX	nlattr[ETHTOOL_A_HEADER_DEV_INDEX, ifindex]
+	ETHTOOL_A_HEADER_DEV_NAME	nlattr[ETHTOOL_A_HEADER_DEV_NAME, devname]
+	ETHTOOL_A_HEADER_FLAGS		nlattr[ETHTOOL_A_HEADER_FLAGS, flags[ethnl_flags, int32]]
+] [varlen]
+
+ethnl_flags = ETHTOOL_FLAG_COMPACT_BITSETS, ETHTOOL_FLAG_OMIT_REPLY
+
+strset_get_policy [
+	ETHTOOL_A_STRSET_HEADER		nlnest[ETHTOOL_A_STRSET_HEADER, array[ethnl_header_policy]]
+	ETHTOOL_A_STRSET_STRINGSETS	nlnest[ETHTOOL_A_STRSET_STRINGSETS, array[nlnest[ETHTOOL_A_STRINGSETS_STRINGSET, array[get_stringset_policy]]]]
+	ETHTOOL_A_STRSET_COUNTS_ONLY	nlattr[ETHTOOL_A_STRSET_COUNTS_ONLY, void]
+] [varlen]
+
+get_stringset_policy [
+	ETHTOOL_A_STRINGSET_ID	nlattr[ETHTOOL_A_STRINGSET_ID, flags[ethtool_stringset, int32]]
+] [varlen]
+
+linkinfo_get_policy [
+	ETHTOOL_A_LINKINFO_HEADER	nlnest[ETHTOOL_A_LINKINFO_HEADER, array[ethnl_header_policy]]
+] [varlen]
+
+linkmodes_get_policy [
+	ETHTOOL_A_LINKMODES_HEADER	nlnest[ETHTOOL_A_LINKMODES_HEADER, array[ethnl_header_policy]]
+] [varlen]
+
+linkstate_get_policy [
+	ETHTOOL_A_LINKSTATE_HEADER	nlnest[ETHTOOL_A_LINKSTATE_HEADER, array[ethnl_header_policy]]
+] [varlen]
+
+linkinfo_set_policy [
+	ETHTOOL_A_LINKINFO_HEADER	nlnest[ETHTOOL_A_LINKINFO_HEADER, array[ethnl_header_policy]]
+	ETHTOOL_A_LINKINFO_PORT		nlattr[ETHTOOL_A_LINKINFO_PORT, int8]
+	ETHTOOL_A_LINKINFO_PHYADDR	nlattr[ETHTOOL_A_LINKINFO_PHYADDR, int8]
+	ETHTOOL_A_LINKINFO_TP_MDIX_CTRL	nlattr[ETHTOOL_A_LINKINFO_TP_MDIX_CTRL, int8]
+] [varlen]
+
+linkmodes_set_policy [
+	ETHTOOL_A_LINKMODES_HEADER	nlnest[ETHTOOL_A_LINKMODES_HEADER, array[ethnl_header_policy]]
+	ETHTOOL_A_LINKMODES_AUTONEG	nlattr[ETHTOOL_A_LINKMODES_AUTONEG, int8]
+	ETHTOOL_A_LINKMODES_DUPLEX	nlattr[ETHTOOL_A_LINKMODES_DUPLEX, int8]
+	ETHTOOL_A_LINKMODES_SPEED	nlattr[ETHTOOL_A_LINKMODES_SPEED, int32]
+	ETHTOOL_A_LINKMODES_OURS	nlnest[ETHTOOL_A_LINKMODES_OURS, array[bitset_policy]]
+] [varlen]
+
+bitset_policy [
+	ETHTOOL_A_BITSET_NOMASK	nlattr[ETHTOOL_A_BITSET_NOMASK, void]
+	ETHTOOL_A_BITSET_SIZE	nlattr[ETHTOOL_A_BITSET_SIZE, int32]
+	ETHTOOL_A_BITSET_BITS	nlnest[ETHTOOL_A_BITSET_BITS, array[nlnest[ETHTOOL_A_BITSET_BITS_BIT, array[bit_policy]]]]
+	ETHTOOL_A_BITSET_VALUE	nlattr[ETHTOOL_A_BITSET_VALUE, array[int8]]
+	ETHTOOL_A_BITSET_MASK	nlattr[ETHTOOL_A_BITSET_MASK, array[int8]]
+] [varlen]
+
+bit_policy [
+	ETHTOOL_A_BITSET_BIT_INDEX	nlattr[ETHTOOL_A_BITSET_BIT_INDEX, int32]
+	ETHTOOL_A_BITSET_BIT_VALUE	nlattr[ETHTOOL_A_BITSET_BIT_VALUE, void]
+	ETHTOOL_A_BITSET_BIT_NAME	nlattr[ETHTOOL_A_BITSET_BIT_NAME, string]
+] [varlen]
