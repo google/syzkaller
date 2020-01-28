@@ -1,7 +1,3 @@
-bad-struct-size: drm_mode_fb_cmd2: syz=84 kernel=100 [386]
-bad-struct-size: drm_mode_fb_cmd2: syz=84 kernel=104 [amd64,arm,arm64]
-bad-field-offset: drm_mode_fb_cmd2.modifier: syz=68 kernel=72 [amd64,arm,arm64]
-bad-field-size: drm_mode_fb_cmd2.modifier: syz=16 kernel=32
 no-such-struct: drm_unique_in
 no-such-struct: drm_unique_out
 no-such-struct: drm_map

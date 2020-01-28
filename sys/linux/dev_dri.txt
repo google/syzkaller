@@ -280,7 +280,7 @@ drm_mode_fb_cmd2 {
 	handles		array[int32, 4]
 	pitches		array[int32, 4]
 	offsets		array[int32, 4]
-	modifier	array[int32, 4]
+	modifier	array[int64, 4]
 }
 
 drm_mode_fb_flags = DRM_MODE_FB_INTERLACED, DRM_MODE_FB_MODIFIERS
