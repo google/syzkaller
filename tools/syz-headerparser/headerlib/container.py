@@ -108,7 +108,7 @@ class StructRepr(object):
 
     def set_global_hierarchy(self, global_hierarchy):
         '''
-        Set a reference to the global heirarchy of structs. This is useful when unrolling
+        Set a reference to the global hierarchy of structs. This is useful when unrolling
         structs.
         '''
         self.global_hierarchy = global_hierarchy
