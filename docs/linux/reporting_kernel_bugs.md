@@ -4,7 +4,7 @@ Before reporting a bug make sure nobody else already reported it. The easiest wa
 
 Please report found bugs to the Linux kernel maintainers.
 To find out the list of maintainers responsible for a particular kernel subsystem, use the [get_maintainer.pl](https://github.com/torvalds/linux/blob/master/scripts/get_maintainer.pl) script: `./scripts/get_maintainer.pl -f guilty_file.c`. Please add `syzkaller@googlegroups.com` to the CC list.
-Make sure to mention the exact kernel branch and revision where the bug occured.
+Make sure to mention the exact kernel branch and revision where the bug occurred.
 Many kernel mailing lists reject HTML formatted messages, so use the plain text mode when sending the report.
 
 Bugs without reproducers are way less likely to be triaged and fixed.
@@ -75,4 +75,4 @@ A few notes:
 * There should ideally be no delay between CVE description publication, distros' updates, upstream commit and notification to `oss-security@lists.openwall.com`. All of these should be on the same day, at worst.
 * The moment the issue is made public (e.g. patch is submitted upstream, CVE description published, etc.) it must be reported to `oss-security@lists.openwall.com` right away.
 
-A good example of an LPE announcement structure on `oss-security@lists.openwall.com` can be found [here](http://seclists.org/oss-sec/2016/q4/607), however the timeline doesn't look right there: public announcement should have occured right after the patch was submitted to netdev.
+A good example of an LPE announcement structure on `oss-security@lists.openwall.com` can be found [here](http://seclists.org/oss-sec/2016/q4/607), however the timeline doesn't look right there: public announcement should have occurred right after the patch was submitted to netdev.
