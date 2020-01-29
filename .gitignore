@@ -4,6 +4,7 @@
 workdir*
 
 bin/
+dashboard/app/config_prod.go
 
 # jetbrains goland
 .idea

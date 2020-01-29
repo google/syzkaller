@@ -8,5 +8,6 @@ import (
 )
 
 func main() {
+	installConfig(mainConfig)
 	appengine.Main()
 }

@@ -1,8 +1,6 @@
 // Copyright 2019 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// +build aetest
-
 package main
 
 import (
@@ -219,6 +217,7 @@ func TestEmailNotifObsoleted(t *testing.T) {
 	report = c.pollEmailBug()
 	c.incomingEmail(report.Sender, "#syz upstream")
 	report = c.pollEmailBug()
+	_ = report
 
 	c.advanceTime(101 * 24 * time.Hour)
 	notif = c.pollEmailBug()
@@ -242,6 +241,7 @@ func TestEmailNotifNotObsoleted(t *testing.T) {
 	report1 := c.pollEmailBug()
 	c.incomingEmail(report1.Sender, "#syz upstream")
 	report1 = c.pollEmailBug()
+	_ = report1
 
 	// This crash will get another crash later.
 	crash2 := testCrash(build, 2)
@@ -249,6 +249,7 @@ func TestEmailNotifNotObsoleted(t *testing.T) {
 	report2 := c.pollEmailBug()
 	c.incomingEmail(report2.Sender, "#syz upstream")
 	report2 = c.pollEmailBug()
+	_ = report2
 
 	// This crash will get some activity later.
 	crash3 := testCrash(build, 3)
@@ -296,6 +297,7 @@ func TestEmailNotifObsoletedManager(t *testing.T) {
 	report := c.pollEmailBug()
 	c.incomingEmail(report.Sender, "#syz upstream")
 	report = c.pollEmailBug()
+	_ = report
 	c.advanceTime(200 * 24 * time.Hour)
 	notif := c.pollEmailBug()
 	c.expectTrue(strings.Contains(notif.Body, "Auto-closing this bug as obsolete"))

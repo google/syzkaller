@@ -1,8 +1,6 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// +build aetest
-
 package main
 
 import (
@@ -18,6 +16,9 @@ import (
 )
 
 func init() {
+	isBrokenAuthDomainInTest = true
+	obsoleteWhatWontBeFixBisected = true
+	notifyAboutUnsuccessfulBisections = true
 	initMocks()
 	installConfig(testConfig)
 }
@@ -388,7 +389,7 @@ func checkLoginRedirect(c *Ctx, accessLevel AccessLevel, url string) {
 func checkRedirect(c *Ctx, accessLevel AccessLevel, from, to string, status int) {
 	_, err := c.httpRequest("GET", from, "", accessLevel)
 	c.expectNE(err, nil)
-	httpErr, ok := err.(HttpError)
+	httpErr, ok := err.(HTTPError)
 	c.expectTrue(ok)
 	c.expectEQ(httpErr.Code, status)
 	c.expectEQ(httpErr.Headers["Location"], []string{to})

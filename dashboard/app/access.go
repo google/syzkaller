@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"golang.org/x/net/context"
-	"google.golang.org/appengine"
 	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/user"
@@ -46,6 +45,9 @@ func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) err
 	return ErrAccess
 }
 
+// AuthDomain is broken in AppEngine tests.
+var isBrokenAuthDomainInTest = false
+
 func accessLevel(c context.Context, r *http.Request) AccessLevel {
 	if user.IsAdmin(c) {
 		switch r.FormValue("access") {
@@ -59,7 +61,7 @@ func accessLevel(c context.Context, r *http.Request) AccessLevel {
 	u := user.Current(c)
 	if u == nil ||
 		// devappserver is broken
-		u.AuthDomain != "gmail.com" && !appengine.IsDevAppServer() ||
+		u.AuthDomain != "gmail.com" && !isBrokenAuthDomainInTest ||
 		!strings.HasSuffix(u.Email, config.AuthDomain) {
 		return AccessPublic
 	}

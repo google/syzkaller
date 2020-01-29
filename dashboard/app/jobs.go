@@ -14,7 +14,6 @@ import (
 	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/vcs"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine"
 	db "google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
@@ -558,6 +557,11 @@ func updateBugBisection(c context.Context, job *Job, jobKey *db.Key, req *dashap
 	return nil
 }
 
+// TODO: this is temporal for gradual bisection rollout.
+// Notify only about successful cause bisection for now.
+// For now we only enable this in tests.
+var notifyAboutUnsuccessfulBisections = false
+
 func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, error) {
 	var jobs []*Job
 	keys, err := db.NewQuery("Job").
@@ -577,9 +581,7 @@ func pollCompletedJobs(c context.Context, typ string) ([]*dashapi.BugReport, err
 		if reporting.Config.Type() != typ {
 			continue
 		}
-		// TODO: this is temporal for gradual bisection rollout.
-		// Notify only about successful cause bisection for now.
-		if !appengine.IsDevAppServer() && job.Type == JobBisectCause && len(job.Commits) != 1 {
+		if !notifyAboutUnsuccessfulBisections && job.Type == JobBisectCause && len(job.Commits) != 1 {
 			continue
 		}
 		// If BisectFix results in a crash on HEAD, no notification is sent out.

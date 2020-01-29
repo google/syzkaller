@@ -17,14 +17,6 @@ import (
 // The external system is meant to poll for new bugs with apiReportingPoll,
 // and report back bug status updates with apiReportingUpdate.
 
-type ExternalConfig struct {
-	ID string
-}
-
-func (cfg *ExternalConfig) Type() string {
-	return cfg.ID
-}
-
 func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.PollBugsRequest)
 	if err := json.Unmarshal(payload, req); err != nil {
