@@ -22,10 +22,9 @@
 package metadata
 
 import (
+	"context"
 	"fmt"
 	"strings"
-
-	"golang.org/x/net/context"
 )
 
 // DecodeKeyValue returns k, v, nil.
