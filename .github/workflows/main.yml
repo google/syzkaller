@@ -12,7 +12,7 @@ jobs:
       uses: Leo-Neat/oss-fuzz/infra/cifuzz/actions@master
       with:
         project-name: 'syzkaller'
-        fuzz-time: 360
+        fuzz-time: 3600
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
