@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -41,6 +42,9 @@ type Ctx struct {
 }
 
 func NewCtx(t *testing.T) *Ctx {
+	if os.Getenv("TRAVIS") != "" {
+		t.Skip("skipping test on Travis (no dev_appserver.py)")
+	}
 	t.Parallel()
 	inst, err := aetest.NewInstance(&aetest.Options{
 		// Without this option datastore queries return data with slight delay,
