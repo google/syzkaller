@@ -10,9 +10,9 @@ and in particular [support package docs](https://cloud.google.com/appengine/docs
 
 **Note**: The app is not stable and is not officially supported. It's here only to power the main deployment.
 
-To test the app one needs to install the SDK and add the `goapp` binary to `$PATH`, then run:
+To test the app one needs to install the SDK and add the `dev_appserver.py` binary to `$PATH`, then run:
 ```
-goapp test -tags=aetest github.com/google/syzkaller/dashboard/app
+go test github.com/google/syzkaller/dashboard/app
 ```
 During development it's handy to use `-short` flag to not run the longest tests.
 

@@ -193,22 +193,18 @@ func (cfg *Config) ReportingByName(name string) *Reporting {
 	return nil
 }
 
-// config is populated by installConfig which should be called either from tests
-// or from a separate file that provides actual production config.
-var config *GlobalConfig
-
-func init() {
-	// Prevents gometalinter from considering everything as dead code.
-	if false && isAppEngineTest {
-		installConfig(nil)
-	}
-}
+// config is installed either by tests or from mainConfig in main function
+// (a separate file should install mainConfig in an init function).
+var (
+	config     *GlobalConfig
+	mainConfig *GlobalConfig
+)
 
 func installConfig(cfg *GlobalConfig) {
+	checkConfig(cfg)
 	if config != nil {
 		panic("another config is already installed")
 	}
-	checkConfig(cfg)
 	config = cfg
 	initEmailReporting()
 	initHTTPHandlers()
@@ -216,6 +212,9 @@ func installConfig(cfg *GlobalConfig) {
 }
 
 func checkConfig(cfg *GlobalConfig) {
+	if cfg == nil {
+		panic("installing nil config")
+	}
 	if len(cfg.Namespaces) == 0 {
 		panic("no namespaces found")
 	}

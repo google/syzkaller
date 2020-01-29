@@ -3,10 +3,6 @@
 
 // The test uses aetest package that starts local dev_appserver and handles all requests locally:
 // https://cloud.google.com/appengine/docs/standard/go/tools/localunittesting/reference
-// The test requires installed appengine SDK (dev_appserver), so we guard it by aetest tag.
-// Run the test with: goapp test -tags=aetest
-
-// +build aetest
 
 package main
 
@@ -90,7 +86,7 @@ func (c *Ctx) expectForbidden(err error) {
 	if err == nil {
 		c.t.Fatalf("\n%v: expected to fail as 403, but it does not", caller(0))
 	}
-	httpErr, ok := err.(HttpError)
+	httpErr, ok := err.(HTTPError)
 	if !ok || httpErr.Code != http.StatusForbidden {
 		c.t.Fatalf("\n%v: expected to fail as 403, but it failed as %v", caller(0), err)
 	}
@@ -209,18 +205,18 @@ func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) ([]byte,
 	http.DefaultServeMux.ServeHTTP(w, r)
 	c.t.Logf("REPLY: %v", w.Code)
 	if w.Code != http.StatusOK {
-		return nil, HttpError{w.Code, w.Body.String(), w.HeaderMap}
+		return nil, HTTPError{w.Code, w.Body.String(), w.Result().Header}
 	}
 	return w.Body.Bytes(), nil
 }
 
-type HttpError struct {
+type HTTPError struct {
 	Code    int
 	Body    string
 	Headers http.Header
 }
 
-func (err HttpError) Error() string {
+func (err HTTPError) Error() string {
 	return fmt.Sprintf("%v: %v", err.Code, err.Body)
 }
 
@@ -376,10 +372,6 @@ func (client *apiClient) pollNotifs(expect int) []*dashapi.BugNotification {
 		client.t.Fatalf("\n%v: want %v notifs, got %v", caller(0), expect, len(resp.Notifications))
 	}
 	return resp.Notifications
-}
-
-func (client *apiClient) pollNotif() *dashapi.BugNotification {
-	return client.pollNotifs(1)[0]
 }
 
 func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup string) {

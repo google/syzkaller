@@ -1,8 +1,6 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// +build aetest
-
 package main
 
 import (
@@ -327,7 +325,7 @@ func TestAccess(t *testing.T) {
 				t.Fatal(err1)
 			}
 			c.expectNE(err, nil)
-			httpErr, ok := err.(HttpError)
+			httpErr, ok := err.(HTTPError)
 			c.expectTrue(ok)
 			c.expectEQ(httpErr.Code, http.StatusTemporaryRedirect)
 			c.expectEQ(httpErr.Headers["Location"], []string{loginURL})
