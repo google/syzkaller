@@ -1,0 +1,72 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/if.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/wireguard.h>
+include <drivers/net/wireguard/messages.h>
+
+resource wireguard_ifindex[ifindex]
+resource genl_wireguard_family_id[int16]
+
+type msghdr_wireguard[CMD] msghdr_netlink[netlink_msg_t[genl_wireguard_family_id, genlmsghdr_t[CMD], device_policy]]
+
+syz_genetlink_get_family_id$wireguard(name ptr[in, string["wireguard"]]) genl_wireguard_family_id
+
+sendmsg$WG_CMD_GET_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_wireguard[WG_CMD_GET_DEVICE]], f flags[send_flags])
+sendmsg$WG_CMD_SET_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_wireguard[WG_CMD_SET_DEVICE]], f flags[send_flags])
+
+ioctl$ifreq_SIOCGIFINDEX_wireguard(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[wireguard_devname, wireguard_ifindex[opt]]])
+
+device_policy [
+	WGDEVICE_A_IFINDEX	nlattr[WGDEVICE_A_IFINDEX, wireguard_ifindex]
+	WGDEVICE_A_IFNAME	nlattr[WGDEVICE_A_IFNAME, string[wireguard_devname, IFNAMSIZ]]
+	WGDEVICE_A_PRIVATE_KEY	nlattr[WGDEVICE_A_PRIVATE_KEY, wireguard_key]
+	WGDEVICE_A_FLAGS	nlattr[WGDEVICE_A_FLAGS, flags[wgdevice_flag, int32]]
+	WGDEVICE_A_LISTEN_PORT	nlattr[WGDEVICE_A_LISTEN_PORT, sock_port]
+	WGDEVICE_A_FWMARK	nlattr[WGDEVICE_A_FWMARK, int32]
+	WGDEVICE_A_PEERS	nlnest[WGDEVICE_A_PEERS, array[nlnest[0, array[peer_policy]]]]
+] [varlen]
+
+peer_policy [
+	WGPEER_A_PUBLIC_KEY			nlattr[WGPEER_A_PUBLIC_KEY, wireguard_key]
+	WGPEER_A_PRESHARED_KEY			nlattr[WGPEER_A_PRESHARED_KEY, array[int8, NOISE_SYMMETRIC_KEY_LEN]]
+	WGPEER_A_FLAGS				nlattr[WGPEER_A_FLAGS, flags[wgpeer_flag, int32]]
+	WGPEER_A_ENDPOINT4			nlattr[WGPEER_A_ENDPOINT, sockaddr_in]
+	WGPEER_A_ENDPOINT6			nlattr[WGPEER_A_ENDPOINT, sockaddr_in6]
+	WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL	nlattr[WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, int16]
+	WGPEER_A_ALLOWEDIPS			nlnest[WGPEER_A_ALLOWEDIPS, array[nlnest[0, array[allowedip_policy]]]]
+	WGPEER_A_PROTOCOL_VERSION		nlattr[WGPEER_A_PROTOCOL_VERSION, const[1, int32]]
+] [varlen]
+
+allowedip_policy [
+	ipv4	allowedip_policy_ipv4
+	ipv6	allowedip_policy_ipv6
+] [varlen]
+
+allowedip_policy_ipv4 {
+	WGALLOWEDIP_A_FAMILY	nlattr[WGALLOWEDIP_A_FAMILY, const[AF_INET, int16]]
+	WGALLOWEDIP_A_IPADDR	nlattr[WGALLOWEDIP_A_IPADDR, ipv4_addr]
+	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:32]]
+} [packed]
+
+allowedip_policy_ipv6 {
+	WGALLOWEDIP_A_FAMILY	nlattr[WGALLOWEDIP_A_FAMILY, const[AF_INET6, int16]]
+	WGALLOWEDIP_A_IPADDR	nlattr[WGALLOWEDIP_A_IPADDR, ipv6_addr]
+	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:128]]
+} [packed]
+
+# Limit number of keys to 5 to reduce search space.
+wireguard_key [
+	z	array[const[0, int8], NOISE_PUBLIC_KEY_LEN]
+	a	array[const[0xaa, int8], NOISE_PUBLIC_KEY_LEN]
+	b	array[const[0xbb, int8], NOISE_PUBLIC_KEY_LEN]
+	c	array[const[0xcc, int8], NOISE_PUBLIC_KEY_LEN]
+	d	array[const[0xdd, int8], NOISE_PUBLIC_KEY_LEN]
+]
+
+wgdevice_flag = WGDEVICE_F_REPLACE_PEERS
+wgpeer_flag = WGPEER_F_REMOVE_ME, WGPEER_F_REPLACE_ALLOWEDIPS, WGPEER_F_UPDATE_ONLY
+wireguard_devname = "wireguard0", "wireguard1"

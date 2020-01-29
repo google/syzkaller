@@ -247,6 +247,7 @@ ifla_info_policy [
 	ipoib		ifla_info_policy_t["ipoib", IFLA_INFO_DATA, array[ipoib_policy]]
 	cfhsi		ifla_info_policy_t["cfhsi", IFLA_INFO_DATA, array[caif_hsi_policy]]
 	geneve		ifla_info_policy_t["geneve", IFLA_INFO_DATA, array[geneve_policy]]
+	wireguard	ifla_info_policy_t["wireguard", IFLA_INFO_DATA, void]
 ] [varlen]
 
 geneve_policy [
