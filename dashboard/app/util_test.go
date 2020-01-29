@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -42,8 +42,8 @@ type Ctx struct {
 }
 
 func NewCtx(t *testing.T) *Ctx {
-	if os.Getenv("TRAVIS") != "" {
-		t.Skip("skipping test on Travis (no dev_appserver.py)")
+	if _, err := exec.LookPath("dev_appserver.py"); err != nil {
+		t.Skip("skipping test (no dev_appserver.py)")
 	}
 	t.Parallel()
 	inst, err := aetest.NewInstance(&aetest.Options{
