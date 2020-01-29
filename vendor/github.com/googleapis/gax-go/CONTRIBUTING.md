@@ -20,6 +20,11 @@ frustration later on.
 All submissions, including submissions by project members, require review. We
 use Github pull requests for this purpose.
 
+### Breaking code changes
+When a breaking change is added, CI/CD will fail. If the change is expected,
+add a BREAKING_CHANGE_ACCEPTABLE=<reason> line to the CL description. This will
+cause CI/CD to skip checking breaking changes.
+
 ### The small print
 Contributions made by corporations are covered by a different agreement than
 the one above, the

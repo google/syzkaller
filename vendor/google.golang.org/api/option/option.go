@@ -1,16 +1,6 @@
-// Copyright 2017 Google Inc. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright 2017 Google LLC.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 // Package option contains options for Google API clients.
 package option
@@ -61,6 +51,20 @@ func WithServiceAccountFile(filename string) ClientOption {
 	return WithCredentialsFile(filename)
 }
 
+// WithCredentialsJSON returns a ClientOption that authenticates
+// API calls with the given service account or refresh token JSON
+// credentials.
+func WithCredentialsJSON(p []byte) ClientOption {
+	return withCredentialsJSON(p)
+}
+
+type withCredentialsJSON []byte
+
+func (w withCredentialsJSON) Apply(o *internal.DialSettings) {
+	o.CredentialsJSON = make([]byte, len(w))
+	copy(o.CredentialsJSON, w)
+}
+
 // WithEndpoint returns a ClientOption that overrides the default endpoint
 // to be used for a service.
 func WithEndpoint(url string) ClientOption {
@@ -82,9 +86,8 @@ func WithScopes(scope ...string) ClientOption {
 type withScopes []string
 
 func (w withScopes) Apply(o *internal.DialSettings) {
-	s := make([]string, len(w))
-	copy(s, w)
-	o.Scopes = s
+	o.Scopes = make([]string, len(w))
+	copy(o.Scopes, w)
 }
 
 // WithUserAgent returns a ClientOption that sets the User-Agent.
@@ -111,7 +114,7 @@ func (w withHTTPClient) Apply(o *internal.DialSettings) {
 }
 
 // WithGRPCConn returns a ClientOption that specifies the gRPC client
-// connection to use as the basis of communications. This option many only be
+// connection to use as the basis of communications. This option may only be
 // used with services that support gRPC as their communication transport. When
 // used, the WithGRPCConn option takes precedent over all other supplied
 // options.
@@ -147,12 +150,14 @@ func WithGRPCConnectionPool(size int) ClientOption {
 type withGRPCConnectionPool int
 
 func (w withGRPCConnectionPool) Apply(o *internal.DialSettings) {
-	balancer := grpc.RoundRobin(internal.NewPoolResolver(int(w), o))
-	o.GRPCDialOpts = append(o.GRPCDialOpts, grpc.WithBalancer(balancer))
+	o.GRPCConnPool = int(w)
 }
 
 // WithAPIKey returns a ClientOption that specifies an API key to be used
 // as the basis for authentication.
+//
+// API Keys can only be used for JSON-over-HTTP APIs, including those under
+// the import path google.golang.org/api/....
 func WithAPIKey(apiKey string) ClientOption {
 	return withAPIKey(apiKey)
 }
@@ -160,3 +165,73 @@ func WithAPIKey(apiKey string) ClientOption {
 type withAPIKey string
 
 func (w withAPIKey) Apply(o *internal.DialSettings) { o.APIKey = string(w) }
+
+// WithAudiences returns a ClientOption that specifies an audience to be used
+// as the audience field ("aud") for the JWT token authentication.
+func WithAudiences(audience ...string) ClientOption {
+	return withAudiences(audience)
+}
+
+type withAudiences []string
+
+func (w withAudiences) Apply(o *internal.DialSettings) {
+	o.Audiences = make([]string, len(w))
+	copy(o.Audiences, w)
+}
+
+// WithoutAuthentication returns a ClientOption that specifies that no
+// authentication should be used. It is suitable only for testing and for
+// accessing public resources, like public Google Cloud Storage buckets.
+// It is an error to provide both WithoutAuthentication and any of WithAPIKey,
+// WithTokenSource, WithCredentialsFile or WithServiceAccountFile.
+func WithoutAuthentication() ClientOption {
+	return withoutAuthentication{}
+}
+
+type withoutAuthentication struct{}
+
+func (w withoutAuthentication) Apply(o *internal.DialSettings) { o.NoAuth = true }
+
+// WithQuotaProject returns a ClientOption that specifies the project used
+// for quota and billing purposes.
+//
+// For more information please read:
+// https://cloud.google.com/apis/docs/system-parameters
+func WithQuotaProject(quotaProject string) ClientOption {
+	return withQuotaProject(quotaProject)
+}
+
+type withQuotaProject string
+
+func (w withQuotaProject) Apply(o *internal.DialSettings) {
+	o.QuotaProject = string(w)
+}
+
+// WithRequestReason returns a ClientOption that specifies a reason for
+// making the request, which is intended to be recorded in audit logging.
+// An example reason would be a support-case ticket number.
+//
+// For more information please read:
+// https://cloud.google.com/apis/docs/system-parameters
+func WithRequestReason(requestReason string) ClientOption {
+	return withRequestReason(requestReason)
+}
+
+type withRequestReason string
+
+func (w withRequestReason) Apply(o *internal.DialSettings) {
+	o.RequestReason = string(w)
+}
+
+// WithTelemetryDisabled returns a ClientOption that disables default telemetry (OpenCensus)
+// settings on gRPC and HTTP clients.
+// An example reason would be to bind custom telemetry that overrides the defaults.
+func WithTelemetryDisabled() ClientOption {
+	return withTelemetryDisabledOption{}
+}
+
+type withTelemetryDisabledOption struct{}
+
+func (w withTelemetryDisabledOption) Apply(o *internal.DialSettings) {
+	o.TelemetryDisabled = true
+}
