@@ -53,6 +53,11 @@ func NewContext() (*Context, error) {
 		return nil, fmt.Errorf("failed to get a token source: %v", err)
 	}
 	httpClient := oauth2.NewClient(background, tokenSource)
+	// nolint
+	// compute.New is deprecated: please use NewService instead.
+	// To provide a custom HTTP client, use option.WithHTTPClient.
+	// If you are using google.golang.org/api/googleapis/transport.APIKey,
+	// use option.WithAPIKey with NewService instead.
 	ctx.computeService, _ = compute.New(httpClient)
 	// Obtain project name, zone and current instance IP address.
 	ctx.ProjectID, err = ctx.getMeta("project/project-id")

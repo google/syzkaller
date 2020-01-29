@@ -1,8 +1,6 @@
 // Copyright 2019 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// +build aetest
-
 package main
 
 import (
@@ -372,12 +370,11 @@ https://goo.gl/tpsmEJ#testing-patches`,
 	dbBug, dbCrash, _ = c.loadBug(extBugID)
 	reproSyzLink = externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
 	reproCLink = externalLink(c.ctx, textReproC, dbCrash.ReproC)
-	dbJob, dbBuild, dbJobCrash = c.loadJob(jobID)
+	dbJob, dbBuild, _ = c.loadJob(jobID)
 	kernelConfigLink = externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 	bisectCrashReportLink = externalLink(c.ctx, textCrashReport, dbJob.CrashReport)
 	bisectCrashLogLink = externalLink(c.ctx, textCrashLog, dbJob.CrashLog)
 	bisectLogLink = externalLink(c.ctx, textLog, dbJob.Log)
-	crashLogLink = externalLink(c.ctx, textCrashLog, dbJobCrash.Log)
 
 	{
 		msg := c.pollEmailBug()
