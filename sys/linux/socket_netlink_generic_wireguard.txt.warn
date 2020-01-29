@@ -1,0 +1,5 @@
+bad-netlink-attr: device_policy: missing attributes: [4]
+bad-netlink-attr: peer_policy: missing attributes: [6 7 8]
+bad-netlink-attr: peer_policy.WGPEER_A_ENDPOINT6: duplicate attribute
+no-such-struct: allowedip_policy_ipv4
+no-such-struct: allowedip_policy_ipv6
