@@ -1,0 +1,40 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_GENERIC/mptcp support.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/mptcp.h>
+
+resource genl_mptcp_family_id[int16]
+type msghdr_nl_mptcp[CMD] msghdr_netlink[netlink_msg_t[genl_mptcp_family_id, genlmsghdr_t[CMD], mptcp_pm_policy]]
+
+syz_genetlink_get_family_id$mptcp(name ptr[in, string["mptcp_pm"]]) genl_mptcp_family_id
+
+sendmsg$MPTCP_PM_CMD_ADD_ADDR(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_ADD_ADDR]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_DEL_ADDR(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_DEL_ADDR]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_GET_ADDR(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_GET_ADDR]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_FLUSH_ADDRS(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_FLUSH_ADDRS]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_SET_LIMITS(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_SET_LIMITS]], f flags[send_flags])
+sendmsg$MPTCP_PM_CMD_GET_LIMITS(fd sock_nl_generic, msg ptr[in, msghdr_nl_mptcp[MPTCP_PM_CMD_GET_LIMITS]], f flags[send_flags])
+
+mptcp_pm_policy [
+	MPTCP_PM_ATTR_ADDR		nlnest[MPTCP_PM_ATTR_ADDR, array[mptcp_pm_addr_policy, 0:7]]
+	MPTCP_PM_ATTR_RCV_ADD_ADDRS	nlattr[MPTCP_PM_ATTR_RCV_ADD_ADDRS, int32[0:8]]
+	MPTCP_PM_ATTR_SUBFLOWS		nlattr[MPTCP_PM_ATTR_SUBFLOWS, int32[0:8]]
+] [varlen]
+
+mptcp_pm_addr_policy [
+	MPTCP_PM_ADDR_ATTR_FAMILY	nlattr[MPTCP_PM_ADDR_ATTR_FAMILY, flags[mptcp_families, int16]]
+	MPTCP_PM_ADDR_ATTR_ID		nlattr[MPTCP_PM_ADDR_ATTR_ID, int8]
+	MPTCP_PM_ADDR_ATTR_ADDR4	nlattr[MPTCP_PM_ADDR_ATTR_ADDR4, ipv4_addr]
+	MPTCP_PM_ADDR_ATTR_ADDR6	nlattr[MPTCP_PM_ADDR_ATTR_ADDR6, ipv6_addr]
+	MPTCP_PM_ADDR_ATTR_PORT		nlattr[MPTCP_PM_ADDR_ATTR_PORT, sock_port]
+	MPTCP_PM_ADDR_ATTR_FLAGS	nlattr[MPTCP_PM_ADDR_ATTR_FLAGS, flags[mptcp_pm_addr_flags, int32]]
+	MPTCP_PM_ADDR_ATTR_IF_IDX	nlattr[MPTCP_PM_ADDR_ATTR_IF_IDX, ifindex]
+] [varlen]
+
+mptcp_families = AF_INET, AF_INET6
+mptcp_pm_addr_flags = MPTCP_PM_ADDR_FLAG_SIGNAL, MPTCP_PM_ADDR_FLAG_SUBFLOW, MPTCP_PM_ADDR_FLAG_BACKUP
