@@ -1,0 +1,88 @@
+TITLE: possible deadlock in peer_remove_after_dead
+
+[ 1319.864586][   T43] ======================================================
+[ 1319.865875][   T43] WARNING: possible circular locking dependency detected
+[ 1319.870353][   T43] 5.5.0-rc7-next-20200124+ #10 Not tainted
+[ 1319.872392][   T43] ------------------------------------------------------
+[ 1319.874831][ T5878] netlink: 44 bytes leftover after parsing attributes in process `syz-executor.0'.
+[ 1319.875308][   T43] kworker/u8:2/43 is trying to acquire lock:
+[ 1319.879142][   T43] ffffc9000027fdf0 ((work_completion)(&peer->transmit_handshake_work)){+.+.}, at: process_one_work+0x8c0/0x17b0
+[ 1319.886943][   T43] 
+[ 1319.886943][   T43] but task is already holding lock:
+[ 1319.889733][   T43] ffff8880649b0d28 ((wq_completion)wg-kex-wireguard1#8){+.+.}, at: process_one_work+0x88b/0x17b0
+[ 1319.895722][   T43] 
+[ 1319.895722][   T43] which lock already depends on the new lock.
+[ 1319.895722][   T43] 
+[ 1319.898798][   T43] 
+[ 1319.898798][   T43] the existing dependency chain (in reverse order) is:
+[ 1319.919496][   T43] 
+[ 1319.919496][   T43] -> #2 ((wq_completion)wg-kex-wireguard1#8){+.+.}:
+[ 1319.921136][   T43]        flush_workqueue+0x115/0x1520
+[ 1319.922126][   T43]        peer_remove_after_dead+0x16a/0x230
+[ 1319.923180][   T43]        wg_peer_remove+0x23f/0x340
+[ 1319.924722][   T43]        wg_set_device+0x10a4/0x1490
+[ 1319.925662][   T43]        genl_rcv_msg+0xb55/0xf00
+[ 1319.926517][   T43]        netlink_rcv_skb+0x172/0x460
+[ 1319.928067][   T43]        genl_rcv+0x28/0x40
+[ 1319.929463][   T43]        netlink_unicast+0x5d6/0x7f0
+[ 1319.931066][   T43]        netlink_sendmsg+0x915/0xea0
+[ 1319.935255][   T43]        sock_sendmsg+0xd2/0x120
+[ 1319.936191][   T43]        ____sys_sendmsg+0x744/0x870
+[ 1319.937182][   T43]        ___sys_sendmsg+0x10a/0x180
+[ 1319.938128][   T43]        __sys_sendmsg+0x110/0x1f0
+[ 1319.943256][   T43]        __x64_sys_sendmsg+0x78/0xb0
+[ 1319.944234][   T43]        do_syscall_64+0xfa/0x780
+[ 1319.944969][   T43]        entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1319.945898][   T43] 
+[ 1319.945898][   T43] -> #1 (&wg->static_identity.lock){++++}:
+[ 1319.947070][   T43]        down_read+0x95/0x430
+[ 1319.947703][   T43]        wg_noise_handshake_create_initiation+0xca/0x680
+[ 1319.948636][   T43]        wg_packet_send_handshake_initiation+0x169/0x230
+[ 1319.949643][   T43]        wg_packet_handshake_send_worker+0x1c/0x30
+[ 1319.950584][   T43]        process_one_work+0x9b5/0x17b0
+[ 1319.951401][   T43]        worker_thread+0x8b/0xd20
+[ 1319.952152][   T43]        kthread+0x365/0x450
+[ 1319.952813][   T43]        ret_from_fork+0x24/0x30
+[ 1319.953552][   T43] 
+[ 1319.953552][   T43] -> #0 ((work_completion)(&peer->transmit_handshake_work)){+.+.}:
+[ 1319.955063][   T43]        __lock_acquire+0x2899/0x4ef0
+[ 1319.955855][   T43]        lock_acquire+0x194/0x410
+[ 1319.956582][   T43]        process_one_work+0x91b/0x17b0
+[ 1319.957506][   T43]        worker_thread+0x8b/0xd20
+[ 1319.958599][   T43]        kthread+0x365/0x450
+[ 1319.959550][   T43]        ret_from_fork+0x24/0x30
+[ 1319.960545][   T43] 
+[ 1319.960545][   T43] other info that might help us debug this:
+[ 1319.960545][   T43] 
+[ 1319.963085][   T43] Chain exists of:
+[ 1319.963085][   T43]   (work_completion)(&peer->transmit_handshake_work) --> &wg->static_identity.lock --> (wq_completion)wg-kex-wireguard1#8
+[ 1319.963085][   T43] 
+[ 1319.966459][   T43]  Possible unsafe locking scenario:
+[ 1319.966459][   T43] 
+[ 1319.967772][   T43]        CPU0                    CPU1
+[ 1319.968732][   T43]        ----                    ----
+[ 1319.969629][   T43]   lock((wq_completion)wg-kex-wireguard1#8);
+[ 1319.970679][   T43]                                lock(&wg->static_identity.lock);
+[ 1319.972304][   T43]                                lock((wq_completion)wg-kex-wireguard1#8);
+[ 1319.974261][   T43]   lock((work_completion)(&peer->transmit_handshake_work));
+[ 1319.976013][   T43] 
+[ 1319.976013][   T43]  *** DEADLOCK ***
+[ 1319.976013][   T43] 
+[ 1319.977730][   T43] 1 lock held by kworker/u8:2/43:
+[ 1319.978646][   T43]  #0: ffff8880649b0d28 ((wq_completion)wg-kex-wireguard1#8){+.+.}, at: process_one_work+0x88b/0x17b0
+[ 1319.981501][   T43] 
+[ 1319.981501][   T43] stack backtrace:
+[ 1319.982798][   T43] CPU: 1 PID: 43 Comm: kworker/u8:2 Not tainted 5.5.0-rc7-next-20200124+ #10
+[ 1319.984964][   T43] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[ 1319.986665][   T43] Workqueue: wg-kex-wireguard1 wg_packet_handshake_send_worker
+[ 1319.988140][   T43] Call Trace:
+[ 1319.988740][   T43]  dump_stack+0x199/0x216
+[ 1319.989767][   T43]  print_circular_bug.isra.40.cold.57+0x15a/0x169
+[ 1319.991188][   T43]  check_noncircular+0x349/0x400
+[ 1319.995482][   T43]  __lock_acquire+0x2899/0x4ef0
+[ 1319.998803][   T43]  lock_acquire+0x194/0x410
+[ 1320.001016][   T43]  process_one_work+0x91b/0x17b0
+[ 1320.004826][   T43]  worker_thread+0x8b/0xd20
+[ 1320.006853][   T43]  kthread+0x365/0x450
+[ 1320.009234][   T43]  ret_from_fork+0x24/0x30
+

@@ -1156,8 +1156,20 @@ var linuxOopses = append([]*oops{
 			},
 			{
 				title:  compile("WARNING: possible circular locking dependency detected"),
-				report: compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
+				report: compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock"),
 				fmt:    "possible deadlock in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("at: (?:{{PC}} +)?{{FUNC}}"),
+						compile("at: (?:{{PC}} +)?{{FUNC}}"),
+						parseStackTrace,
+					},
+					// These workqueue functions take locks associated with work items.
+					// All deadlocks observed in these functions are
+					// work-item-subsystem-related.
+					skip: []string{"process_one_work", "flush_workqueue",
+						"drain_workqueue", "destroy_workqueue"},
+				},
 			},
 			{
 				title:  compile("WARNING: possible irq lock inversion dependency detected"),
