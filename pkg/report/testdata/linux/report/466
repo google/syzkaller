@@ -1,0 +1,110 @@
+TITLE: possible deadlock in wg_set_device
+
+[ 2718.379077][ T3699] ======================================================
+[ 2718.380180][ T3699] WARNING: possible circular locking dependency detected
+[ 2718.381397][ T3699] 5.5.0-rc7-next-20200124+ #10 Not tainted
+[ 2718.382451][ T3699] ------------------------------------------------------
+[ 2718.383687][ T3699] syz-executor.5/3699 is trying to acquire lock:
+[ 2718.391311][ T3699] ffff88803d3d5d28 ((wq_completion)wg-kex-wireguard1){+.+.}, at: flush_workqueue+0xe6/0x1520
+[ 2718.393106][ T3699] 
+[ 2718.393106][ T3699] but task is already holding lock:
+[ 2718.394379][ T3699] ffff88805ffdce80 (&wg->static_identity.lock){++++}, at: wg_set_device+0xfb7/0x1490
+[ 2718.396235][ T3699] 
+[ 2718.396235][ T3699] which lock already depends on the new lock.
+[ 2718.396235][ T3699] 
+[ 2718.397960][ T3699] 
+[ 2718.397960][ T3699] the existing dependency chain (in reverse order) is:
+[ 2718.399793][ T3699] 
+[ 2718.399793][ T3699] -> #2 (&wg->static_identity.lock){++++}:
+[ 2718.401246][ T3699]        down_read+0x95/0x430
+[ 2718.402516][ T3699]        wg_noise_handshake_create_initiation+0xca/0x680
+[ 2718.403775][ T3699]        wg_packet_send_handshake_initiation+0x169/0x230
+[ 2718.404963][ T3699]        wg_packet_handshake_send_worker+0x1c/0x30
+[ 2718.406069][ T3699]        process_one_work+0x9b5/0x17b0
+[ 2718.407014][ T3699]        worker_thread+0x8b/0xd20
+[ 2718.407783][ T3699]        kthread+0x365/0x450
+[ 2718.408557][ T3699]        ret_from_fork+0x24/0x30
+[ 2718.409417][ T3699] 
+[ 2718.409417][ T3699] -> #1 ((work_completion)(&peer->transmit_handshake_work)){+.+.}:
+[ 2718.411469][ T3699]        process_one_work+0x91b/0x17b0
+[ 2718.412590][ T3699]        worker_thread+0x8b/0xd20
+[ 2718.413967][ T3699]        kthread+0x365/0x450
+[ 2718.415004][ T3699]        ret_from_fork+0x24/0x30
+[ 2718.415702][ T3699] 
+[ 2718.415702][ T3699] -> #0 ((wq_completion)wg-kex-wireguard1){+.+.}:
+[ 2718.417016][ T3699]        __lock_acquire+0x2899/0x4ef0
+[ 2718.417907][ T3699]        lock_acquire+0x194/0x410
+[ 2718.418715][ T3699]        flush_workqueue+0x115/0x1520
+[ 2718.419711][ T3699]        peer_remove_after_dead+0x16a/0x230
+[ 2718.420689][ T3699]        wg_peer_remove+0x23f/0x340
+[ 2718.421577][ T3699]        wg_set_device+0x10a4/0x1490
+[ 2718.422561][ T3699]        genl_rcv_msg+0xb55/0xf00
+[ 2718.423730][ T3699]        netlink_rcv_skb+0x172/0x460
+[ 2718.424808][ T3699]        genl_rcv+0x28/0x40
+[ 2718.425809][ T3699]        netlink_unicast+0x5d6/0x7f0
+[ 2718.426761][ T3699]        netlink_sendmsg+0x915/0xea0
+[ 2718.428056][ T3699]        sock_sendmsg+0xd2/0x120
+[ 2718.429349][ T3699]        ____sys_sendmsg+0x744/0x870
+[ 2718.430886][ T3699]        ___sys_sendmsg+0x10a/0x180
+[ 2718.431963][ T3699]        __sys_sendmsg+0x110/0x1f0
+[ 2718.432960][ T3699]        __x64_sys_sendmsg+0x78/0xb0
+[ 2718.434080][ T3699]        do_syscall_64+0xfa/0x780
+[ 2718.435250][ T3699]        entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 2718.436737][ T3699] 
+[ 2718.436737][ T3699] other info that might help us debug this:
+[ 2718.436737][ T3699] 
+[ 2718.438934][ T3699] Chain exists of:
+[ 2718.438934][ T3699]   (wq_completion)wg-kex-wireguard1 --> (work_completion)(&peer->transmit_handshake_work) --> &wg->static_identity.lock
+[ 2718.438934][ T3699] 
+[ 2718.441998][ T3699]  Possible unsafe locking scenario:
+[ 2718.441998][ T3699] 
+[ 2718.443260][ T3699]        CPU0                    CPU1
+[ 2718.444141][ T3699]        ----                    ----
+[ 2718.445065][ T3699]   lock(&wg->static_identity.lock);
+[ 2718.445955][ T3699]                                lock((work_completion)(&peer->transmit_handshake_work));
+[ 2718.448423][ T3699]                                lock(&wg->static_identity.lock);
+[ 2718.449937][ T3699]   lock((wq_completion)wg-kex-wireguard1);
+[ 2718.450970][ T3699] 
+[ 2718.450970][ T3699]  *** DEADLOCK ***
+[ 2718.450970][ T3699] 
+[ 2718.453030][ T3699] 5 locks held by syz-executor.5/3699:
+[ 2718.454151][ T3699]  #0: ffffffff8a79dbe8 (cb_lock){++++}, at: genl_rcv+0x19/0x40
+[ 2718.455631][ T3699]  #1: ffffffff8a79dca0 (genl_mutex){+.+.}, at: genl_rcv_msg+0x62a/0xf00
+[ 2718.457087][ T3699]  #2: ffffffff8a7482c0 (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[ 2718.458502][ T3699]  #3: ffff88805ffdd0a0 (&wg->device_update_lock){+.+.}, at: wg_set_device+0x2be/0x1490
+[ 2718.459921][ T3699]  #4: ffff88805ffdce80 (&wg->static_identity.lock){++++}, at: wg_set_device+0xfb7/0x1490
+[ 2718.461370][ T3699] 
+[ 2718.461370][ T3699] stack backtrace:
+[ 2718.462299][ T3699] CPU: 0 PID: 3699 Comm: syz-executor.5 Not tainted 5.5.0-rc7-next-20200124+ #10
+[ 2718.463778][ T3699] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[ 2718.465344][ T3699] Call Trace:
+[ 2718.465959][ T3699]  dump_stack+0x199/0x216
+[ 2718.466751][ T3699]  print_circular_bug.isra.40.cold.57+0x15a/0x169
+[ 2718.467961][ T3699]  check_noncircular+0x349/0x400
+[ 2718.474742][ T3699]  __lock_acquire+0x2899/0x4ef0
+[ 2718.479141][ T3699]  lock_acquire+0x194/0x410
+[ 2718.480631][ T3699]  flush_workqueue+0x115/0x1520
+[ 2718.489053][ T3699]  peer_remove_after_dead+0x16a/0x230
+[ 2718.490928][ T3699]  wg_peer_remove+0x23f/0x340
+[ 2718.491706][ T3699]  wg_set_device+0x10a4/0x1490
+[ 2718.497711][ T3699]  genl_rcv_msg+0xb55/0xf00
+[ 2718.499471][ T3699]  netlink_rcv_skb+0x172/0x460
+[ 2718.502646][ T3699]  genl_rcv+0x28/0x40
+[ 2718.503239][ T3699]  netlink_unicast+0x5d6/0x7f0
+[ 2718.506377][ T3699]  netlink_sendmsg+0x915/0xea0
+[ 2718.511013][ T3699]  sock_sendmsg+0xd2/0x120
+[ 2718.511797][ T3699]  ____sys_sendmsg+0x744/0x870
+[ 2718.514230][ T3699]  ___sys_sendmsg+0x10a/0x180
+[ 2718.522906][ T3699]  __sys_sendmsg+0x110/0x1f0
+[ 2718.528155][ T3699]  __x64_sys_sendmsg+0x78/0xb0
+[ 2718.528949][ T3699]  do_syscall_64+0xfa/0x780
+[ 2718.529795][ T3699]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 2718.530816][ T3699] RIP: 0033:0x466c59
+[ 2718.531471][ T3699] Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+[ 2718.534739][ T3699] RSP: 002b:00007fbd90f33c68 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[ 2718.536107][ T3699] RAX: ffffffffffffffda RBX: 000000000052bf00 RCX: 0000000000466c59
+[ 2718.537427][ T3699] RDX: 0000000000000000 RSI: 0000000020000100 RDI: 0000000000000003
+[ 2718.538789][ T3699] RBP: 00000000ffffffff R08: 0000000000000000 R09: 0000000000000000
+[ 2718.540139][ T3699] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fbd90f346bc
+[ 2718.541455][ T3699] R13: 00000000000009ba R14: 00000000004b13ad R15: 00000000004e7b20
+
