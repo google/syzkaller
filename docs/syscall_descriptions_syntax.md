@@ -1,4 +1,4 @@
-# Syscall descriptions syntax
+# Syscall description language (aka `syzlang`)
 
 Pseudo-formal grammar of syscall description:
 
