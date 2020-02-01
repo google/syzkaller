@@ -1,2 +1,3 @@
-executor/defs.h linguist-generated
-sys/*/gen/*.go  linguist-generated
+executor/defs.h     linguist-generated
+executor/syscalls.h linguist-generated
+sys/*/gen/*.go      linguist-generated
