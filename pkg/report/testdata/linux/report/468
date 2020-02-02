@@ -1,0 +1,52 @@
+TITLE: INFO: rcu detected stall in kvm_vcpu_ioctl
+TYPE: HANG
+
+[  839.223284][    C1] rcu: INFO: rcu_preempt detected stalls on CPUs/tasks:
+[  839.230397][    C1] 	(detected by 1, t=10502 jiffies, g=10641, q=2)
+[  839.236842][    C1] rcu: All QSes seen, last rcu_preempt kthread activity 10503 (4295021069-4295010566), jiffies_till_next_fqs=1, root ->qsmask 0x0
+[  839.250308][    C1] syz-executor543 R  running task    27000 10496  10495 0x00000000
+[  839.258215][    C1] Call Trace:
+[  839.261494][    C1]  <IRQ>
+[  839.264483][    C1]  sched_show_task.cold+0x2ee/0x35d
+[  839.274562][    C1]  rcu_sched_clock_irq.cold+0xb23/0xc37
+[  839.280179][    C1]  update_process_times+0x2d/0x70
+[  839.285257][    C1]  tick_sched_handle+0xa2/0x190
+[  839.290123][    C1]  tick_sched_timer+0x53/0x140
+[  839.294896][    C1]  __hrtimer_run_queues+0x364/0xe40
+[  839.321988][    C1]  hrtimer_interrupt+0x314/0x770
+[  839.327058][    C1]  smp_apic_timer_interrupt+0x160/0x610
+[  839.332644][    C1]  apic_timer_interrupt+0xf/0x20
+[  839.337576][    C1]  </IRQ>
+[  839.340603][    C1] RIP: 0010:lock_acquire+0x20b/0x410
+[  839.345915][    C1] Code: 94 08 00 00 00 00 00 00 48 c1 e8 03 80 3c 10 00 0f 85 d3 01 00 00 48 83 3d 19 cf 58 08 00 0f 84 53 01 00 00 48 8b 7d c8 57 9d <0f> 1f 44 00 00 48 8d 65 d8 5b 41 5c 41 5d 41 5e 41 5f 5d c3 65 8b
+[  839.365614][    C1] RSP: 0018:ffffc90001f57ad0 EFLAGS: 00000286 ORIG_RAX: ffffffffffffff13
+[  839.374038][    C1] RAX: 1ffffffff136753f RBX: ffff888089b4a140 RCX: ffffffff815a7ff0
+[  839.382029][    C1] RDX: dffffc0000000000 RSI: 0000000000000008 RDI: 0000000000000286
+[  839.390008][    C1] RBP: ffffc90001f57b18 R08: 1ffffffff16a137b R09: fffffbfff16a137c
+[  839.397984][    C1] R10: ffff888089b4aa00 R11: ffff888089b4a140 R12: ffffc90001fcae18
+[  839.405963][    C1] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000002
+[  839.419020][    C1]  vcpu_enter_guest+0x323d/0x6100
+[  839.478770][    C1]  kvm_arch_vcpu_ioctl_run+0x430/0x17b0
+[  839.490122][    C1]  kvm_vcpu_ioctl+0x4dc/0xfc0
+[  839.531883][    C1]  ksys_ioctl+0x123/0x180
+[  839.536230][    C1]  __x64_sys_ioctl+0x73/0xb0
+[  839.545542][    C1]  do_syscall_64+0xfa/0x790
+[  839.550066][    C1]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  839.555962][    C1] RIP: 0033:0x4478a9
+[  839.559874][    C1] Code: e8 8c e8 ff ff 48 83 c4 18 c3 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 cb c4 fb ff c3 66 2e 0f 1f 84 00 00 00 00
+[  839.579480][    C1] RSP: 002b:00007ffdda97c7c8 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+[  839.587891][    C1] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00000000004478a9
+[  839.595860][    C1] RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000009
+[  839.603843][    C1] RBP: 00000000006d2018 R08: 00000000004002e0 R09: 00000000004002e0
+[  839.611829][    C1] R10: 00000000004002e0 R11: 0000000000000246 R12: 0000000000404200
+[  839.619804][    C1] R13: 0000000000404290 R14: 0000000000000000 R15: 0000000000000000
+[  839.627819][    C1] rcu: rcu_preempt kthread starved for 10542 jiffies! g10641 f0x2 RCU_GP_WAIT_FQS(5) ->state=0x0 ->cpu=1
+[  839.638999][    C1] rcu: RCU grace-period kthread stack dump:
+[  839.644922][    C1] rcu_preempt     R  running task    29224    10      2 0x80004000
+[  839.652821][    C1] Call Trace:
+[  839.656122][    C1]  __schedule+0x934/0x1f90
+[  839.681553][    C1]  schedule+0xdc/0x2b0
+[  839.685643][    C1]  schedule_timeout+0x486/0xc50
+[  839.716370][    C1]  rcu_gp_kthread+0xa10/0x1940
+[  839.748441][    C1]  kthread+0x361/0x430
+[  839.764055][    C1]  ret_from_fork+0x24/0x30

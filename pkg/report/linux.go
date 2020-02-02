@@ -635,6 +635,7 @@ var linuxStallAnchorFrames = []*regexp.Regexp{
 	compile("do_iter_read"),
 	compile("do_iter_write"),
 	compile("vfs_ioctl"),
+	compile("ksys_ioctl"), // vfs_ioctl may be inlined
 	compile("blkdev_driver_ioctl"),
 	compile("blkdev_ioctl"),
 	compile("^call_read_iter"),
