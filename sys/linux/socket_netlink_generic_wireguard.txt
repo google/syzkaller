@@ -61,9 +61,9 @@ allowedip_policy_ipv6 {
 # Limit number of keys to 5 to reduce search space.
 wireguard_key [
 	z	array[const[0, int8], NOISE_PUBLIC_KEY_LEN]
-	a	array[const[0xaa, int8], NOISE_PUBLIC_KEY_LEN]
-	b	array[const[0xbb, int8], NOISE_PUBLIC_KEY_LEN]
-	c	array[const[0xcc, int8], NOISE_PUBLIC_KEY_LEN]
+	a	array[const[0x11, int8], NOISE_PUBLIC_KEY_LEN]
+	b	array[const[0x22, int8], NOISE_PUBLIC_KEY_LEN]
+	c	array[const[0x33, int8], NOISE_PUBLIC_KEY_LEN]
 	d	array[const[0xdd, int8], NOISE_PUBLIC_KEY_LEN]
 ]
 
