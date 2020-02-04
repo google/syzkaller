@@ -109,7 +109,7 @@ func (ctx *linux) EnvForCommit(binDir, commit string, kernelConfig []byte) (*Bis
 	}
 	env := &BisectEnv{
 		Compiler:     filepath.Join(binDir, "gcc-"+linuxCompilerVersion(tags), "bin", "gcc"),
-		KernelConfig: linuxDisableConfigs(kernelConfig, tags),
+		KernelConfig: linuxAlterConfigs(kernelConfig, tags),
 	}
 	// v4.0 doesn't boot with our config nor with defconfig, it halts on an interrupt in x86_64_start_kernel.
 	if !tags["v4.1"] {
@@ -132,8 +132,8 @@ func linuxCompilerVersion(tags map[string]bool) string {
 	}
 }
 
-func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
-	prereq := map[string]string{
+func linuxAlterConfigs(config []byte, tags map[string]bool) []byte {
+	disable := map[string]string{
 		// 5.2 has CONFIG_SECURITY_TOMOYO_INSECURE_BUILTIN_SETTING which allows to test tomoyo better.
 		// This config also enables CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
 		// but we need it disabled to boot older kernels.
@@ -176,9 +176,24 @@ func linuxDisableConfigs(config []byte, tags map[string]bool) []byte {
 		// which makes bisections take weeks.
 		"CONFIG_DEBUG_KOBJECT": "disable-always",
 	}
-	for cfg, tag := range prereq {
+	for cfg, tag := range disable {
 		if !tags[tag] {
 			config = bytes.Replace(config, []byte(cfg+"=y"), []byte("# "+cfg+" is not set"), -1)
+		}
+	}
+	alter := []struct {
+		From string
+		To   string
+		Tag  string
+	}{
+		// Even though ORC unwinder was introduced a long time ago, it might have been broken for
+		// some time. 5.4 is chosen as a version tag, where ORC unwinder seems to work properly.
+		{"CONFIG_UNWINDER_ORC", "CONFIG_UNWINDER_FRAME_POINTER", "v5.4"},
+	}
+	for _, a := range alter {
+		if !tags[a.Tag] {
+			config = bytes.Replace(config, []byte(a.From+"=y"), []byte("# "+a.From+" is not set"), -1)
+			config = bytes.Replace(config, []byte("# "+a.To+" is not set"), []byte(a.To+"=y"), -1)
 		}
 	}
 	return config
