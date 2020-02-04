@@ -69,3 +69,7 @@ However, frequently they mean a kernel lockup or something similarly bad (here a
 [1](https://groups.google.com/d/msg/syzkaller/zfuHHRXL7Zg/Tc5rK8bdCAAJ),
 [2](https://groups.google.com/d/msg/syzkaller/kY_ml6TCm9A/wDd5fYFXBQAJ),
 [3](https://groups.google.com/d/msg/syzkaller/OM7CXieBCoY/etzvFPX3AQAJ)).
+
+## Coverage
+
+Syzkaller coverage description can be found from [here](coverage.md).
