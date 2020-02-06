@@ -220,74 +220,18 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 
 13. Get Linux kernel headers following [this](https://github.com/notro/rpi-source/wiki).
 
-14. Download the USB Raw Gadget module:
+14. Download and build the USB Raw Gadget module following [this](https://github.com/xairy/raw-gadget/tree/master/raw_gadget).
+
+15. Insert the module with `sudo insmod raw_gadget.ko`.
+
+16. [Download](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/keyboard.c), [patch](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/rpi_zero.patch), build and test the [keyboard emulator program](https://github.com/xairy/raw-gadget/tree/master/examples):
 
     ``` bash
-    mkdir module
-    cd module
-    wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/drivers/usb/gadget/raw.c
-    wget https://raw.githubusercontent.com/google/kasan/usb-fuzzer/include/uapi/linux/usb/raw-gadget.h
-    ```
-
-    Apply the following change:
-
-    ``` c
-    diff --git a/raw.c b/raw.c
-    index 308c540..68d43b9 100644
-    --- a/raw.c
-    +++ b/raw.c
-    @@ -17,7 +17,7 @@
-     #include <linux/usb/gadgetfs.h>
-     #include <linux/usb/gadget.h>
-     
-    -#include <uapi/linux/usb/raw-gadget.h>
-    +#include "raw-gadget.h"
-     
-     #define        DRIVER_DESC "USB Raw Gadget"
-     #define DRIVER_NAME "raw-gadget"
-    ```
-
-    Add a `Makefile`:
-
-    ``` make
-    obj-m := raw.o
-    KDIR := /lib/modules/$(shell uname -r)/build
-    PWD := $(shell pwd)
-    default:
-    	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
-    ```
-
-    And build with `make`.
-
-15. Insert the module with `sudo insmod raw.ko`.
-
-16. Build and test the [keyboard emulator program](/tools/syz-usbgen/keyboard.c):
-
-    ``` bash
-    # Connect the board to some USB host.
-    wget https://raw.githubusercontent.com/google/syzkaller/master/tools/syz-usbgen/keyboard.c
-    # Apply the patch below.
+    # Get keyboard.c
+    # Apply rpi_zero.patch
     gcc keyboard.c -o keyboard
     sudo ./keyboard
     # Make sure you see the letter 'x' being entered on the host.
-    ```
-
-    ``` c
-    diff --git a/tools/syz-usbgen/keyboard.c b/tools/syz-usbgen/keyboard.c
-    index 2a6015d4..3ebd1e03 100644
-    --- a/tools/syz-usbgen/keyboard.c
-    +++ b/tools/syz-usbgen/keyboard.c
-    @@ -95,8 +95,8 @@ int usb_raw_open() {
-     void usb_raw_init(int fd, enum usb_device_speed speed) {
-            struct usb_raw_init arg;
-            arg.speed = speed;
-    -       arg.driver_name = "dummy_udc";
-    -       arg.device_name = "dummy_udc.0";
-    +       arg.driver_name = "20980000.usb";
-    +       arg.device_name = "20980000.usb";
-            int rv = ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
-            if (rv != 0) {
-                    perror("ioctl(USB_RAW_IOCTL_INIT)");
     ```
 
 17. You should now be able to execute syzkaller USB programs:
