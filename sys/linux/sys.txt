@@ -478,6 +478,7 @@ openat$pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/self"]], flags flags
 openat$thread_pidfd(fd const[AT_FDCWD], file ptr[in, string["/proc/thread-self"]], flags flags[open_flags], mode const[0]) fd_pidfd
 pidfd_send_signal(fd fd_pidfd, sig signalno, info ptr[in, siginfo], flags const[0])
 pidfd_open(pid pid, flags const[0]) fd_pidfd
+pidfd_getfd(pidfd fd_pidfd, fd fd, flags const[0]) fd
 
 # Uncomment on your own account.
 #syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
