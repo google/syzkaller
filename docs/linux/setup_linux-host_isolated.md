@@ -53,6 +53,17 @@ Host *
 Before fuzzing, connect to the machine and keep the connection open so all scp
 and ssh usage will reuse it.
 
+# Optional: Pstore support
+
+If the device under test (DUT) has Pstore support, it is possible to configure syzkaller to
+fetch crashlogs from /sys/fs/pstore. You can do this by setting `"pstore": true` within
+the `vm` section of the syzkaller configuration file.
+
+# Optional: Startup script
+
+To execute commands on the DUT before fuzzing (re-)starts,
+`startup_script` can be used.
+
 ## Syzkaller
 
 Build syzkaller as described [here](/docs/contributing.md).
@@ -71,6 +82,7 @@ Use the following config:
 	"type": "isolated",
 	"vm": {
 		"targets" : [ "10.0.0.1" ],
+		"pstore": false,
 		"target_dir" : "/home/user/tmp/syzkaller",
                 "target_reboot" : false
 	}
