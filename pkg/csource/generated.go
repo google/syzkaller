@@ -1793,8 +1793,9 @@ static void initialize_netdevices(void)
 	    {"netdevsim", netdevsim},
 	    {"veth", 0},
 	    {"xfrm", "xfrm0"},
-	    {"wireguard", "wireguard0"},
-	    {"wireguard", "wireguard1"},
+	    {"wireguard", "wg0"},
+	    {"wireguard", "wg1"},
+	    {"wireguard", "wg2"},
 	};
 	const char* devmasters[] = {"bridge", "bond", "team", "batadv"};
 	struct {
@@ -1857,8 +1858,9 @@ static void initialize_netdevices(void)
 	    {"batadv_slave_1", ETH_ALEN},
 	    {"geneve0", ETH_ALEN},
 	    {"geneve1", ETH_ALEN},
-	    {"wireguard0", 0},
-	    {"wireguard1", 0},
+	    {"wg0", 0},
+	    {"wg1", 0},
+	    {"wg2", 0},
 	};
 	int sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sock == -1)

@@ -75,4 +75,4 @@ wireguard_public_key [
 
 wgdevice_flag = WGDEVICE_F_REPLACE_PEERS
 wgpeer_flag = WGPEER_F_REMOVE_ME, WGPEER_F_REPLACE_ALLOWEDIPS, WGPEER_F_UPDATE_ONLY
-wireguard_devname = "wireguard0", "wireguard1"
+wireguard_devname = "wg0", "wg1", "wg2"
