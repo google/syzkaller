@@ -23,7 +23,7 @@ ioctl$ifreq_SIOCGIFINDEX_wireguard(fd sock, cmd const[SIOCGIFINDEX], arg ptr[ino
 device_policy [
 	WGDEVICE_A_IFINDEX	nlattr[WGDEVICE_A_IFINDEX, wireguard_ifindex]
 	WGDEVICE_A_IFNAME	nlattr[WGDEVICE_A_IFNAME, string[wireguard_devname, IFNAMSIZ]]
-	WGDEVICE_A_PRIVATE_KEY	nlattr[WGDEVICE_A_PRIVATE_KEY, wireguard_key]
+	WGDEVICE_A_PRIVATE_KEY	nlattr[WGDEVICE_A_PRIVATE_KEY, wireguard_private_key]
 	WGDEVICE_A_FLAGS	nlattr[WGDEVICE_A_FLAGS, flags[wgdevice_flag, int32]]
 	WGDEVICE_A_LISTEN_PORT	nlattr[WGDEVICE_A_LISTEN_PORT, sock_port]
 	WGDEVICE_A_FWMARK	nlattr[WGDEVICE_A_FWMARK, int32]
@@ -31,7 +31,7 @@ device_policy [
 ] [varlen]
 
 peer_policy [
-	WGPEER_A_PUBLIC_KEY			nlattr[WGPEER_A_PUBLIC_KEY, wireguard_key]
+	WGPEER_A_PUBLIC_KEY			nlattr[WGPEER_A_PUBLIC_KEY, wireguard_public_key]
 	WGPEER_A_PRESHARED_KEY			nlattr[WGPEER_A_PRESHARED_KEY, array[int8, NOISE_SYMMETRIC_KEY_LEN]]
 	WGPEER_A_FLAGS				nlattr[WGPEER_A_FLAGS, flags[wgpeer_flag, int32]]
 	WGPEER_A_ENDPOINT4			nlattr[WGPEER_A_ENDPOINT, sockaddr_in]
@@ -58,13 +58,19 @@ allowedip_policy_ipv6 {
 	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:128]]
 } [packed]
 
-# Limit number of keys to 5 to reduce search space.
-wireguard_key [
-	z	array[const[0, int8], NOISE_PUBLIC_KEY_LEN]
-	a	array[const[0xaa, int8], NOISE_PUBLIC_KEY_LEN]
-	b	array[const[0xbb, int8], NOISE_PUBLIC_KEY_LEN]
-	c	array[const[0xcc, int8], NOISE_PUBLIC_KEY_LEN]
-	d	array[const[0xdd, int8], NOISE_PUBLIC_KEY_LEN]
+wireguard_private_key [
+	zero	stringnoz["\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"]
+	a	stringnoz["\xa0\x5c\xa8\x4f\x6c\x9c\x8e\x38\x53\xe2\xfd\x7a\x70\xae\x0f\xb2\x0f\xa1\x52\x60\x0c\xb0\x08\x45\x17\x4f\x08\x07\x6f\x8d\x78\x43"]
+	b	stringnoz["\xb0\x80\x73\xe8\xd4\x4e\x91\xe3\xda\x92\x2c\x22\x43\x82\x44\xbb\x88\x5c\x69\xe2\x69\xc8\xe9\xd8\x35\xb1\x14\x29\x3a\x4d\xdc\x6e"]
+	c	stringnoz["\xa0\xcb\x87\x9a\x47\xf5\xbc\x64\x4c\x0e\x69\x3f\xa6\xd0\x31\xc7\x4a\x15\x53\xb6\xe9\x01\xb9\xff\x2f\x51\x8c\x78\x04\x2f\xb5\x42"]
+]
+
+wireguard_public_key [
+	zero	stringnoz["\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"]
+	neg	stringnoz["\xdb\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"]
+	a_g	stringnoz["\x97\x5c\x9d\x81\xc9\x83\xc8\x20\x9e\xe7\x81\x25\x4b\x89\x9f\x8e\xd9\x25\xae\x9f\x09\x23\xc2\x3c\x62\xf5\x3c\x57\xcd\xbf\x69\x1c"]
+	b_g	stringnoz["\xd1\x73\x28\x99\xf6\x11\xcd\x89\x94\x03\x4d\x7f\x41\x3d\xc9\x57\x63\x0e\x54\x93\xc2\x85\xac\xa4\x00\x65\xcb\x63\x11\xbe\x69\x6b"]
+	c_g	stringnoz["\xf4\x4d\xa3\x67\xa8\x8e\xe6\x56\x4f\x02\x02\x11\x45\x67\x27\x08\x2f\x5c\xeb\xee\x8b\x1b\xf5\xeb\x73\x37\x34\x1b\x45\x9b\x39\x22"]
 ]
 
 wgdevice_flag = WGDEVICE_F_REPLACE_PEERS
