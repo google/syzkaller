@@ -4,12 +4,14 @@
 package ipc
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -437,7 +439,7 @@ func readUint32(outp *[]byte) (uint32, bool) {
 	if len(out) < 4 {
 		return 0, false
 	}
-	v := *(*uint32)(unsafe.Pointer(&out[0]))
+	v := binary.LittleEndian.Uint32(out)
 	*outp = out[4:]
 	return v, true
 }
@@ -447,18 +449,25 @@ func readUint64(outp *[]byte) (uint64, bool) {
 	if len(out) < 8 {
 		return 0, false
 	}
-	v := *(*uint64)(unsafe.Pointer(&out[0]))
+	v := binary.LittleEndian.Uint64(out)
 	*outp = out[8:]
 	return v, true
 }
 
 func readUint32Array(outp *[]byte, size uint32) ([]uint32, bool) {
+	if size == 0 {
+		return nil, true
+	}
 	out := *outp
 	if int(size)*4 > len(out) {
 		return nil, false
 	}
-	arr := ((*[1 << 28]uint32)(unsafe.Pointer(&out[0])))
-	res := arr[:size:size]
+	hdr := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&out[0])),
+		Len:  int(size),
+		Cap:  int(size),
+	}
+	res := *(*[]uint32)(unsafe.Pointer(&hdr))
 	*outp = out[size*4:]
 	return res, true
 }
