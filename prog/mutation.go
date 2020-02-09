@@ -4,11 +4,11 @@
 package prog
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"math/rand"
 	"sort"
-	"unsafe"
 )
 
 // Maximum length of generated binary blobs inserted into the program.
@@ -840,32 +840,30 @@ func swapInt(v uint64, size int) uint64 {
 }
 
 func loadInt(data []byte, size int) uint64 {
-	p := unsafe.Pointer(&data[0])
 	switch size {
 	case 1:
-		return uint64(*(*uint8)(p))
+		return uint64(data[0])
 	case 2:
-		return uint64(*(*uint16)(p))
+		return uint64(binary.LittleEndian.Uint16(data))
 	case 4:
-		return uint64(*(*uint32)(p))
+		return uint64(binary.LittleEndian.Uint32(data))
 	case 8:
-		return *(*uint64)(p)
+		return binary.LittleEndian.Uint64(data)
 	default:
 		panic(fmt.Sprintf("loadInt: bad size %v", size))
 	}
 }
 
 func storeInt(data []byte, v uint64, size int) {
-	p := unsafe.Pointer(&data[0])
 	switch size {
 	case 1:
-		*(*uint8)(p) = uint8(v)
+		data[0] = uint8(v)
 	case 2:
-		*(*uint16)(p) = uint16(v)
+		binary.LittleEndian.PutUint16(data, uint16(v))
 	case 4:
-		*(*uint32)(p) = uint32(v)
+		binary.LittleEndian.PutUint32(data, uint32(v))
 	case 8:
-		*(*uint64)(p) = v
+		binary.LittleEndian.PutUint64(data, v)
 	default:
 		panic(fmt.Sprintf("storeInt: bad size %v", size))
 	}

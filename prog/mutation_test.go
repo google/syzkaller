@@ -494,3 +494,21 @@ func buildTestContext(test [2]string, target *Target) (rs rand.Source, ct *Choic
 	rs = rand.NewSource(0)
 	return
 }
+
+func BenchmarkStoreLoadInt(b *testing.B) {
+	// To get unaligned data on heap (compiler manages to align it on stack).
+	data := make([]byte, 9)
+	sink = data
+	data = sink.([]byte)[1:]
+	for i := 0; i < b.N; i++ {
+		for size := 1; size <= 8; size *= 2 {
+			storeInt(data, uint64(i), size)
+			v := loadInt(data, size)
+			if uint8(v) != uint8(i) {
+				panic("bad")
+			}
+		}
+	}
+}
+
+var sink interface{}
