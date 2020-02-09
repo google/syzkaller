@@ -112,7 +112,8 @@ The instructions below describe a hackish way to generate syzkaller USB IDs for 
 
 2. Build and boot the kernel.
 
-3. Connect a USB HID device. In case you're using a `CONFIG_USB_RAW_GADGET=y` kernel, use the provided [keyboard emulation program](/tools/syz-usbgen/keyboard.c).
+3. Connect a USB HID device. In case you're using a `CONFIG_USB_RAW_GADGET=y` kernel, use the
+[keyboard emulation program](https://raw.githubusercontent.com/xairy/raw-gadget/master/examples/keyboard.c).
 
 4. Use [syz-usbgen](/tools/syz-usbgen/usbgen.go) script to update [syzkaller descriptions](/sys/linux/init_vusb_ids.go):
 
