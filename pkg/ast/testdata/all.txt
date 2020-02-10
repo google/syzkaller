@@ -17,15 +17,14 @@ int_flags4 = 1, -2-			### bad integer "-2-"
 str_flags0 = "foo", "bar"
 str_flags1 = "non terminated		### string literal is not terminated
 str_flags2 = "bad chars здесь"		### illegal character U+00D0 'Ð' in string literal
-str_flags3 = "string", not a string	### unexpected identifier, expecting string
-str_flags4 = "string", 42		### unexpected int, expecting string
+str_flags3 = "string", not a string	### unexpected identifier, expecting string, hex string
+str_flags4 = "string", 42		### unexpected int, expecting string, hex string
 
 call(foo ,int32 , bar int32)		### unexpected ',', expecting int, identifier, string
 call(foo int32:"bar")			### unexpected string, expecting int, identifier
 call(a int32, b len[a:"bar"])		### unexpected string, expecting int, identifier
 
-define FOO `bar`
-define FOO `bar				### C expression is not terminated
+define FOO bar
 
 foo(x int32[1:2:3, opt])
 foo2(x int32[1[2]:2])			### unexpected ':', expecting ']'

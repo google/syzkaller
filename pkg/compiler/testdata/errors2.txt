@@ -267,6 +267,7 @@ foo$525(a int8[-256:256])		### int range [18446744073709551360:256] is too large
 foo$526(a int8[-255:255])		### int range [18446744073709551361:255] is too large for base type of size 8
 foo$527(a int16[-40000:40000])		### int range [18446744073709511616:40000] is too large for base type of size 16
 foo$528(a ptr[in, s405])
+foo$529(a ptr[in, string[`abcdde`, 3]])	### string value "\xab\xcd\xde\x00" exceeds buffer length 3
 
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
 type type501 int8		### unused type type501

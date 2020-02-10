@@ -134,6 +134,7 @@ func (n *String) Clone() Node {
 	return &String{
 		Pos:   n.Pos,
 		Value: n.Value,
+		Fmt:   n.Fmt,
 	}
 }
 
@@ -154,6 +155,7 @@ func (n *Type) Clone() Node {
 		ValueFmt:  n.ValueFmt,
 		Ident:     n.Ident,
 		String:    n.String,
+		StringFmt: n.StringFmt,
 		HasString: n.HasString,
 		Colon:     cloneTypes(n.Colon),
 		Args:      cloneTypes(n.Args),

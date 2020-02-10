@@ -50,6 +50,17 @@ func FormatInt(v uint64, format IntFmt) string {
 	}
 }
 
+func FormatStr(v string, format StrFmt) string {
+	switch format {
+	case StrFmtRaw:
+		return fmt.Sprintf(`"%v"`, v)
+	case StrFmtHex:
+		return fmt.Sprintf("`%x`", v)
+	default:
+		panic(fmt.Sprintf("unknown str format %v", format))
+	}
+}
+
 type serializer interface {
 	serialize(w io.Writer)
 }
@@ -153,7 +164,7 @@ func (flags *IntFlags) serialize(w io.Writer) {
 func (flags *StrFlags) serialize(w io.Writer) {
 	fmt.Fprintf(w, "%v = ", flags.Name.Name)
 	for i, v := range flags.Values {
-		fmt.Fprintf(w, "%v\"%v\"", comma(i, ""), v.Value)
+		fmt.Fprintf(w, "%v%v", comma(i, ""), FormatStr(v.Value, v.Fmt))
 	}
 	fmt.Fprintf(w, "\n")
 }
@@ -172,7 +183,7 @@ func fmtType(t *Type) string {
 	case t.Ident != "":
 		v = t.Ident
 	case t.HasString:
-		v = fmt.Sprintf("\"%v\"", t.String)
+		v = FormatStr(t.String, t.StringFmt)
 	default:
 		v = FormatInt(t.Value, t.ValueFmt)
 	}

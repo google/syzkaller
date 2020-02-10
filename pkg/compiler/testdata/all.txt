@@ -40,10 +40,13 @@ strings {
 	f11	stringnoz[string_flags1]
 	f12	string[string_flags2]
 	f13	stringnoz[string_flags2]
+	f14	string[`abcdef`, 4]
+	f15	string[string_flags3, 4]
 } [packed]
 
 string_flags1 = "foo", "barbaz"
 string_flags2 = ""
+string_flags3 = "ab", `010203`, `de`
 int_flags = 0, 1, 0xabc, 'x', -11
 _ = 1, 2
 _ = C1, C2
