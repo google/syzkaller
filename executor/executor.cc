@@ -132,8 +132,8 @@ static int flag_fault_nth;
 #define SYZ_EXECUTOR 1
 #include "common.h"
 
+const int kMaxInput = 4 << 20; // keep in sync with prog.ExecBufferSize
 const int kMaxCommands = 1000;
-const int kMaxInput = 2 << 20;
 
 const uint64 instr_eof = -1;
 const uint64 instr_copyin = -2;

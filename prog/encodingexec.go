@@ -49,7 +49,7 @@ const (
 )
 
 const (
-	ExecBufferSize = 4 << 20
+	ExecBufferSize = 4 << 20 // keep in sync with kMaxInput in executor.cc
 	ExecNoCopyout  = ^uint64(0)
 )
 
