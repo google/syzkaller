@@ -514,12 +514,11 @@ func genTextType(t *ast.Type) prog.TextKind {
 }
 
 const (
-	stringnoz        = "stringnoz"
-	stringnozescapes = "stringnozescapes"
+	stringnoz = "stringnoz"
 )
 
 var typeString = &typeDesc{
-	Names:        []string{"string", stringnoz, stringnozescapes},
+	Names:        []string{"string", stringnoz},
 	CanBeTypedef: true,
 	OptArgs:      2,
 	Args: []namedArg{
@@ -527,7 +526,7 @@ var typeString = &typeDesc{
 		{Name: "size", Type: typeArgInt},
 	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
-		if (t.Ident == stringnoz || t.Ident == stringnozescapes) && len(args) > 1 {
+		if t.Ident == stringnoz && len(args) > 1 {
 			comp.error(args[0].Pos, "fixed-size string can't be non-zero-terminated")
 		}
 	},
@@ -559,7 +558,7 @@ var typeString = &typeDesc{
 			return &prog.BufferType{
 				TypeCommon: base.TypeCommon,
 				Kind:       prog.BufferFilename,
-				NoZ:        t.Ident == stringnoz || t.Ident == stringnozescapes,
+				NoZ:        t.Ident == stringnoz,
 			}
 		}
 		subkind := ""
@@ -576,7 +575,7 @@ var typeString = &typeDesc{
 			Kind:       prog.BufferString,
 			SubKind:    subkind,
 			Values:     vals,
-			NoZ:        t.Ident == stringnoz || t.Ident == stringnozescapes,
+			NoZ:        t.Ident == stringnoz,
 		}
 	},
 }
@@ -591,16 +590,6 @@ func (comp *compiler) genStrings(t *ast.Type, args []*ast.Type) []string {
 		}
 	}
 	if t.Ident == stringnoz {
-		return vals
-	} else if t.Ident == stringnozescapes {
-		for i := range vals {
-			unquote, err := strconv.Unquote(`"` + vals[i] + `"`)
-			if err != nil {
-				comp.error(args[0].Pos, fmt.Sprintf("unable to unquote stringnozescapes %q: %v", vals[i], err))
-			} else {
-				vals[i] = unquote
-			}
-		}
 		return vals
 	}
 	var size uint64

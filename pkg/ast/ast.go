@@ -163,6 +163,7 @@ func (n *Ident) Info() (Pos, string, string) {
 type String struct {
 	Pos   Pos
 	Value string
+	Fmt   StrFmt
 }
 
 func (n *String) Info() (Pos, string, string) {
@@ -176,6 +177,13 @@ const (
 	IntFmtNeg
 	IntFmtHex
 	IntFmtChar
+)
+
+type StrFmt int
+
+const (
+	StrFmtRaw StrFmt = iota
+	StrFmtHex
 )
 
 type Int struct {
@@ -198,6 +206,7 @@ type Type struct {
 	ValueFmt  IntFmt
 	Ident     string
 	String    string
+	StringFmt StrFmt
 	HasString bool
 	// Parts after COLON (for ranges and bitfields).
 	Colon []*Type

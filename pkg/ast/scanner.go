@@ -4,6 +4,7 @@
 package ast
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strconv"
@@ -20,6 +21,7 @@ const (
 	tokDefine
 	tokResource
 	tokString
+	tokStringHex
 	tokCExpr
 	tokInt
 
@@ -51,18 +53,19 @@ var punctuation = [256]token{
 }
 
 var tok2str = [...]string{
-	tokIllegal:  "ILLEGAL",
-	tokComment:  "comment",
-	tokIdent:    "identifier",
-	tokInclude:  "include",
-	tokIncdir:   "incdir",
-	tokDefine:   "define",
-	tokResource: "resource",
-	tokString:   "string",
-	tokCExpr:    "CEXPR",
-	tokInt:      "int",
-	tokNewLine:  "NEWLINE",
-	tokEOF:      "EOF",
+	tokIllegal:   "ILLEGAL",
+	tokComment:   "comment",
+	tokIdent:     "identifier",
+	tokInclude:   "include",
+	tokIncdir:    "incdir",
+	tokDefine:    "define",
+	tokResource:  "resource",
+	tokString:    "string",
+	tokStringHex: "hex string",
+	tokCExpr:     "CEXPR",
+	tokInt:       "int",
+	tokNewLine:   "NEWLINE",
+	tokEOF:       "EOF",
 }
 
 func init() {
@@ -132,12 +135,7 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 	case s.ch == 0:
 		tok = tokEOF
 		s.next()
-	case s.ch == '`':
-		tok = tokCExpr
-		lit = s.scanCExpr(pos)
 	case s.prev2 == tokDefine && s.prev1 == tokIdent:
-		// Note: the old form for C expressions, not really lexable.
-		// TODO(dvyukov): get rid of this eventually.
 		tok = tokCExpr
 		for ; s.ch != '\n'; s.next() {
 		}
@@ -149,6 +147,9 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		lit = string(s.data[pos.Off+1 : s.off])
 	case s.ch == '"' || s.ch == '<':
 		tok = tokString
+		lit = s.scanStr(pos)
+	case s.ch == '`':
+		tok = tokStringHex
 		lit = s.scanStr(pos)
 	case s.ch >= '0' && s.ch <= '9' || s.ch == '-':
 		tok = tokInt
@@ -170,21 +171,9 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 	return
 }
 
-func (s *scanner) scanCExpr(pos Pos) string {
-	for s.next(); s.ch != '`' && s.ch != '\n'; s.next() {
-	}
-	if s.ch == '\n' {
-		s.Error(pos, "C expression is not terminated")
-		return ""
-	}
-	lit := string(s.data[pos.Off+1 : s.off])
-	s.next()
-	return lit
-}
-
 func (s *scanner) scanStr(pos Pos) string {
 	// TODO(dvyukov): get rid of <...> strings, that's only includes
-	closing := byte('"')
+	closing := s.ch
 	if s.ch == '<' {
 		closing = '>'
 	}
@@ -196,7 +185,6 @@ func (s *scanner) scanStr(pos Pos) string {
 	}
 	lit := string(s.data[pos.Off+1 : s.off])
 	for i := 0; i < len(lit); i++ {
-		//lit[i]
 		if lit[i] < 0x20 || lit[i] >= 0x80 {
 			pos1 := pos
 			pos1.Col += i + 1
@@ -206,7 +194,14 @@ func (s *scanner) scanStr(pos Pos) string {
 		}
 	}
 	s.next()
-	return lit
+	if closing != '`' {
+		return lit
+	}
+	decoded, err := hex.DecodeString(lit)
+	if err != nil {
+		s.Error(pos, "bad hex string literal: %v", err)
+	}
+	return string(decoded)
 }
 
 func (s *scanner) scanInt(pos Pos) string {

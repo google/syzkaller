@@ -314,7 +314,7 @@ func (p *parser) parseFlags(name *Ident) Node {
 	switch p.tok {
 	case tokInt, tokIdent:
 		return p.parseIntFlags(name)
-	case tokString:
+	case tokString, tokStringHex:
 		return p.parseStrFlags(name)
 	default:
 		p.expect(tokInt, tokIdent, tokString)
@@ -417,9 +417,10 @@ func (p *parser) parseType() *Type {
 	case tokIdent:
 		allowColon = true
 		arg.Ident = p.lit
-	case tokString:
+	case tokString, tokStringHex:
 		arg.String = p.lit
 		arg.HasString = true
+		arg.StringFmt = strTokToFmt(p.tok)
 	default:
 		p.expect(tokInt, tokIdent, tokString)
 	}
@@ -468,13 +469,25 @@ func (p *parser) parseIdent() *Ident {
 }
 
 func (p *parser) parseString() *String {
-	p.expect(tokString)
+	p.expect(tokString, tokStringHex)
 	str := &String{
 		Pos:   p.pos,
 		Value: p.lit,
+		Fmt:   strTokToFmt(p.tok),
 	}
 	p.next()
 	return str
+}
+
+func strTokToFmt(tok token) StrFmt {
+	switch tok {
+	case tokString:
+		return StrFmtRaw
+	case tokStringHex:
+		return StrFmtHex
+	default:
+		panic("bad string token")
+	}
 }
 
 func (p *parser) parseInt() *Int {

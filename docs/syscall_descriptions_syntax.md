@@ -35,14 +35,12 @@ rest of the type-options are type-specific:
 	direction (in/out/inout); type of the object
 	ptr64 has size of 8 bytes regardless of target pointer size
 "string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
-	either a string value in quotes for constant strings (e.g. "foo"),
+	either a string value in quotes for constant strings (e.g. "foo" or `deadbeef` for hex literal),
 	or a reference to string flags (special value `filename` produces file names),
 	optionally followed by a buffer size (string values will be padded with \x00 to that size)
 "stringnoz": a non-zero-terminated memory buffer (no pointer indirection implied), type-options:
-	either a string value in quotes for constant strings (e.g. "foo"),
+	either a string value in quotes for constant strings (e.g. "foo" or `deadbeef` for hex literal),
 	or a reference to string flags,
-"stringnozescapes": same as "stringnoz", except escape sequences are respected, in order to have
-	binary strings such as "\x12\x34\x56".
 "fmt": a string representation of an integer (not zero-terminated), type-options:
 	format (one of "dec", "hex", "oct") and the value (a resource, int, flags, const or proc)
 	the resulting data is always fixed-size (formatted as "%020llu", "0x%016llx" or "%023llo", respectively)
