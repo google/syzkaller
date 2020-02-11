@@ -49,13 +49,13 @@ allowedip_policy [
 allowedip_policy_ipv4 {
 	WGALLOWEDIP_A_FAMILY	nlattr[WGALLOWEDIP_A_FAMILY, const[AF_INET, int16]]
 	WGALLOWEDIP_A_IPADDR	nlattr[WGALLOWEDIP_A_IPADDR, ipv4_addr]
-	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:32]]
+	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:3]]
 } [packed]
 
 allowedip_policy_ipv6 {
 	WGALLOWEDIP_A_FAMILY	nlattr[WGALLOWEDIP_A_FAMILY, const[AF_INET6, int16]]
 	WGALLOWEDIP_A_IPADDR	nlattr[WGALLOWEDIP_A_IPADDR, ipv6_addr]
-	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:128]]
+	WGALLOWEDIP_A_CIDR_MASK	nlattr[WGALLOWEDIP_A_CIDR_MASK, int8[0:3]]
 } [packed]
 
 wireguard_private_key [
