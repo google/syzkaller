@@ -12,7 +12,10 @@ syzkaller to `Darwin/XNU` and that has found more than
 [Apple security updates](https://support.apple.com/en-us/HT209341).
 
 `Darwin/XNU` is [open-source](https://github.com/opensource-apple/xnu) and has
-[KASAN](https://github.com/apple/darwin-xnu/blob/master/san/kasan.c),
-but no KCOV at the moment (though not required for intial support).
+[KASAN](https://github.com/apple/darwin-xnu/blob/master/san/kasan.c).
+Latest versions also contain KCOV-like support for coverage;
+it's not uploaded to github mirror yet, but this
+[tarball](https://opensource.apple.com/tarballs/xnu/xnu-6153.11.26.tar.gz)
+contains `san/ksancov.{h,c}`.
 
 [PureDarwin](http://www.puredarwin.org/) may be used to create VM images suitable for fuzzing.
