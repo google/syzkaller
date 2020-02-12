@@ -18,6 +18,8 @@ syz_genetlink_get_family_id$wireguard(name ptr[in, string["wireguard"]]) genl_wi
 sendmsg$WG_CMD_GET_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_wireguard[WG_CMD_GET_DEVICE]], f flags[send_flags])
 sendmsg$WG_CMD_SET_DEVICE(fd sock_nl_generic, msg ptr[in, msghdr_wireguard[WG_CMD_SET_DEVICE]], f flags[send_flags])
 
+setsockopt$SO_BINDTODEVICE_wg(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[in, string[wireguard_devname]], optlen len[optval])
+
 ioctl$ifreq_SIOCGIFINDEX_wireguard(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_dev_t[wireguard_devname, wireguard_ifindex[opt]]])
 
 device_policy [
