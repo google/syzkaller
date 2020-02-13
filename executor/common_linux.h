@@ -918,8 +918,9 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err)
+	if (err) {
 		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
 
 	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(&nlmsg, WGDEVICE_A_IFNAME, ifname_b, strlen(ifname_b) + 1);
@@ -962,8 +963,9 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err)
+	if (err) {
 		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
 
 	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(&nlmsg, WGDEVICE_A_IFNAME, ifname_c, strlen(ifname_c) + 1);
@@ -1006,8 +1008,9 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err)
+	if (err) {
 		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
 
 error:
 	close(sock);
