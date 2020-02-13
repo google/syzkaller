@@ -1768,6 +1768,276 @@ static void netdevsim_add(unsigned int addr, unsigned int port_count)
 		initialize_devlink_ports("netdevsim", buf, "netdevsim");
 	}
 }
+
+#define WG_GENL_NAME "wireguard"
+enum wg_cmd {
+	WG_CMD_GET_DEVICE,
+	WG_CMD_SET_DEVICE,
+};
+enum wgdevice_attribute {
+	WGDEVICE_A_UNSPEC,
+	WGDEVICE_A_IFINDEX,
+	WGDEVICE_A_IFNAME,
+	WGDEVICE_A_PRIVATE_KEY,
+	WGDEVICE_A_PUBLIC_KEY,
+	WGDEVICE_A_FLAGS,
+	WGDEVICE_A_LISTEN_PORT,
+	WGDEVICE_A_FWMARK,
+	WGDEVICE_A_PEERS,
+};
+enum wgpeer_attribute {
+	WGPEER_A_UNSPEC,
+	WGPEER_A_PUBLIC_KEY,
+	WGPEER_A_PRESHARED_KEY,
+	WGPEER_A_FLAGS,
+	WGPEER_A_ENDPOINT,
+	WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL,
+	WGPEER_A_LAST_HANDSHAKE_TIME,
+	WGPEER_A_RX_BYTES,
+	WGPEER_A_TX_BYTES,
+	WGPEER_A_ALLOWEDIPS,
+	WGPEER_A_PROTOCOL_VERSION,
+};
+enum wgallowedip_attribute {
+	WGALLOWEDIP_A_UNSPEC,
+	WGALLOWEDIP_A_FAMILY,
+	WGALLOWEDIP_A_IPADDR,
+	WGALLOWEDIP_A_CIDR_MASK,
+};
+
+static int netlink_wireguard_id_get(struct nlmsg* nlmsg, int sock)
+{
+	struct genlmsghdr genlhdr;
+	struct nlattr* attr;
+	int err, n;
+	uint16 id = 0;
+
+	memset(&genlhdr, 0, sizeof(genlhdr));
+	genlhdr.cmd = CTRL_CMD_GETFAMILY;
+	netlink_init(nlmsg, GENL_ID_CTRL, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(nlmsg, CTRL_ATTR_FAMILY_NAME, WG_GENL_NAME, strlen(WG_GENL_NAME) + 1);
+	err = netlink_send_ext(nlmsg, sock, GENL_ID_CTRL, &n);
+	if (err) {
+		debug("netlink: failed to get wireguard family id: %s\n", strerror(err));
+		return -1;
+	}
+	attr = (struct nlattr*)(nlmsg->buf + NLMSG_HDRLEN + NLMSG_ALIGN(sizeof(genlhdr)));
+	for (; (char*)attr < nlmsg->buf + n; attr = (struct nlattr*)((char*)attr + NLMSG_ALIGN(attr->nla_len))) {
+		if (attr->nla_type == CTRL_ATTR_FAMILY_ID) {
+			id = *(uint16*)(attr + 1);
+			break;
+		}
+	}
+	if (!id) {
+		debug("netlink: failed to parse message for wireguard family id\n");
+		return -1;
+	}
+	recv(sock, nlmsg->buf, sizeof(nlmsg->buf), 0); /* recv ack */
+
+	return id;
+}
+
+static void netlink_wireguard_setup(void)
+{
+	const char ifname_a[] = "wg0";
+	const char ifname_b[] = "wg1";
+	const char ifname_c[] = "wg2";
+	const char private_a[] = "\xa0\x5c\xa8\x4f\x6c\x9c\x8e\x38\x53\xe2\xfd\x7a\x70\xae\x0f\xb2\x0f\xa1\x52\x60\x0c\xb0\x08\x45\x17\x4f\x08\x07\x6f\x8d\x78\x43";
+	const char private_b[] = "\xb0\x80\x73\xe8\xd4\x4e\x91\xe3\xda\x92\x2c\x22\x43\x82\x44\xbb\x88\x5c\x69\xe2\x69\xc8\xe9\xd8\x35\xb1\x14\x29\x3a\x4d\xdc\x6e";
+	const char private_c[] = "\xa0\xcb\x87\x9a\x47\xf5\xbc\x64\x4c\x0e\x69\x3f\xa6\xd0\x31\xc7\x4a\x15\x53\xb6\xe9\x01\xb9\xff\x2f\x51\x8c\x78\x04\x2f\xb5\x42";
+	const char public_a[] = "\x97\x5c\x9d\x81\xc9\x83\xc8\x20\x9e\xe7\x81\x25\x4b\x89\x9f\x8e\xd9\x25\xae\x9f\x09\x23\xc2\x3c\x62\xf5\x3c\x57\xcd\xbf\x69\x1c";
+	const char public_b[] = "\xd1\x73\x28\x99\xf6\x11\xcd\x89\x94\x03\x4d\x7f\x41\x3d\xc9\x57\x63\x0e\x54\x93\xc2\x85\xac\xa4\x00\x65\xcb\x63\x11\xbe\x69\x6b";
+	const char public_c[] = "\xf4\x4d\xa3\x67\xa8\x8e\xe6\x56\x4f\x02\x02\x11\x45\x67\x27\x08\x2f\x5c\xeb\xee\x8b\x1b\xf5\xeb\x73\x37\x34\x1b\x45\x9b\x39\x22";
+	const uint16 listen_a = 20001;
+	const uint16 listen_b = 20002;
+	const uint16 listen_c = 20003;
+	const uint16 af_inet = AF_INET;
+	const uint16 af_inet6 = AF_INET6;
+	/* Unused, but useful in case we change this:
+	const struct sockaddr_in endpoint_a_v4 = {
+	    .sin_family = AF_INET,
+	    .sin_port = htons(listen_a),
+	    .sin_addr = {htonl(INADDR_LOOPBACK)}};*/
+	const struct sockaddr_in endpoint_b_v4 = {
+	    .sin_family = AF_INET,
+	    .sin_port = htons(listen_b),
+	    .sin_addr = {htonl(INADDR_LOOPBACK)}};
+	const struct sockaddr_in endpoint_c_v4 = {
+	    .sin_family = AF_INET,
+	    .sin_port = htons(listen_c),
+	    .sin_addr = {htonl(INADDR_LOOPBACK)}};
+	struct sockaddr_in6 endpoint_a_v6 = {
+	    .sin6_family = AF_INET6,
+	    .sin6_port = htons(listen_a)};
+	endpoint_a_v6.sin6_addr = in6addr_loopback;
+	/* Unused, but useful in case we change this:
+	const struct sockaddr_in6 endpoint_b_v6 = {
+	    .sin6_family = AF_INET6,
+	    .sin6_port = htons(listen_b)};
+	endpoint_b_v6.sin6_addr = in6addr_loopback; */
+	struct sockaddr_in6 endpoint_c_v6 = {
+	    .sin6_family = AF_INET6,
+	    .sin6_port = htons(listen_c)};
+	endpoint_c_v6.sin6_addr = in6addr_loopback;
+	const struct in_addr first_half_v4 = {0};
+	const struct in_addr second_half_v4 = {htonl(128 << 24)};
+	const struct in6_addr first_half_v6 = {{{0}}};
+	const struct in6_addr second_half_v6 = {{{0x80}}};
+	const uint8 half_cidr = 1;
+	const uint16 persistent_keepalives[] = {1, 3, 7, 9, 14, 19};
+
+	struct genlmsghdr genlhdr = {
+	    .cmd = WG_CMD_SET_DEVICE,
+	    .version = 1};
+	int sock;
+	int id, err;
+
+	sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
+	if (sock == -1)
+		fail("socket(AF_NETLINK) failed\n");
+
+	id = netlink_wireguard_id_get(&nlmsg, sock);
+	if (id == -1)
+		goto error;
+
+	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(&nlmsg, WGDEVICE_A_IFNAME, ifname_a, strlen(ifname_a) + 1);
+	netlink_attr(&nlmsg, WGDEVICE_A_PRIVATE_KEY, private_a, 32);
+	netlink_attr(&nlmsg, WGDEVICE_A_LISTEN_PORT, &listen_a, 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGDEVICE_A_PEERS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_b, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_b_v4, sizeof(endpoint_b_v4));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[0], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_c, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_c_v6, sizeof(endpoint_c_v6));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[1], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	err = netlink_send(&nlmsg, sock);
+	if (err) {
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
+
+	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(&nlmsg, WGDEVICE_A_IFNAME, ifname_b, strlen(ifname_b) + 1);
+	netlink_attr(&nlmsg, WGDEVICE_A_PRIVATE_KEY, private_b, 32);
+	netlink_attr(&nlmsg, WGDEVICE_A_LISTEN_PORT, &listen_b, 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGDEVICE_A_PEERS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_a, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_a_v6, sizeof(endpoint_a_v6));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[2], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_c, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_c_v4, sizeof(endpoint_c_v4));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[3], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	err = netlink_send(&nlmsg, sock);
+	if (err) {
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
+
+	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
+	netlink_attr(&nlmsg, WGDEVICE_A_IFNAME, ifname_c, strlen(ifname_c) + 1);
+	netlink_attr(&nlmsg, WGDEVICE_A_PRIVATE_KEY, private_c, 32);
+	netlink_attr(&nlmsg, WGDEVICE_A_LISTEN_PORT, &listen_c, 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGDEVICE_A_PEERS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_a, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_a_v6, sizeof(endpoint_a_v6));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[4], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_b, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_b_v4, sizeof(endpoint_b_v4));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[5], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	err = netlink_send(&nlmsg, sock);
+	if (err) {
+		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
+
+error:
+	close(sock);
+}
 static void initialize_netdevices(void)
 {
 #if SYZ_EXECUTOR
@@ -1915,6 +2185,8 @@ static void initialize_netdevices(void)
 	netlink_add_geneve(&nlmsg, sock, "geneve1", 1, 0, &geneve_addr6);
 
 	netdevsim_add((int)procid, 4);
+
+	netlink_wireguard_setup();
 
 	for (i = 0; i < sizeof(devices) / (sizeof(devices[0])); i++) {
 		char addr[32];
