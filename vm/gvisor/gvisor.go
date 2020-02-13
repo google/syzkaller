@@ -338,7 +338,9 @@ func (inst *instance) Diagnose() ([]byte, bool) {
 func init() {
 	if os.Getenv("SYZ_GVISOR_PROXY") != "" {
 		fmt.Fprint(os.Stderr, initStartMsg)
-		select {}
+		// If we do select{}, we can get a deadlock panic.
+		for range time.NewTicker(time.Hour).C {
+		}
 	}
 }
 
