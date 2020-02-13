@@ -843,19 +843,19 @@ static void netlink_wireguard_setup(void)
 	    .sin_family = AF_INET,
 	    .sin_port = htons(listen_c),
 	    .sin_addr = {htonl(INADDR_LOOPBACK)}};
-	const struct sockaddr_in6 endpoint_a_v6 = {
+	struct sockaddr_in6 endpoint_a_v6 = {
 	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_a),
-	    .sin6_addr = IN6ADDR_LOOPBACK_INIT};
+	    .sin6_port = htons(listen_a)};
+	endpoint_a_v6.sin6_addr = in6addr_loopback;
 	/* Unused, but useful in case we change this:
 	const struct sockaddr_in6 endpoint_b_v6 = {
 	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_b),
-	    .sin6_addr = IN6ADDR_LOOPBACK_INIT}; */
-	const struct sockaddr_in6 endpoint_c_v6 = {
+	    .sin6_port = htons(listen_b)};
+	endpoint_b_v6.sin6_addr = in6addr_loopback; */
+	struct sockaddr_in6 endpoint_c_v6 = {
 	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_c),
-	    .sin6_addr = IN6ADDR_LOOPBACK_INIT};
+	    .sin6_port = htons(listen_c)};
+	endpoint_c_v6.sin6_addr = in6addr_loopback;
 	const struct in_addr first_half_v4 = {0};
 	const struct in_addr second_half_v4 = {htonl(128 << 24)};
 	const struct in6_addr first_half_v6 = {{{0}}};
