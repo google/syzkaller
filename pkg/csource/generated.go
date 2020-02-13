@@ -1853,10 +1853,11 @@ static void netlink_wireguard_setup(void)
 	const uint16 listen_c = 20003;
 	const uint16 af_inet = AF_INET;
 	const uint16 af_inet6 = AF_INET6;
+	/* Unused, but useful in case we change this:
 	const struct sockaddr_in endpoint_a_v4 = {
 	    .sin_family = AF_INET,
 	    .sin_port = htons(listen_a),
-	    .sin_addr = {htonl(INADDR_LOOPBACK)}};
+	    .sin_addr = {htonl(INADDR_LOOPBACK)}};*/
 	const struct sockaddr_in endpoint_b_v4 = {
 	    .sin_family = AF_INET,
 	    .sin_port = htons(listen_b),
@@ -1865,18 +1866,19 @@ static void netlink_wireguard_setup(void)
 	    .sin_family = AF_INET,
 	    .sin_port = htons(listen_c),
 	    .sin_addr = {htonl(INADDR_LOOPBACK)}};
-	const struct sockaddr_in6 endpoint_a_v6 = {
+	struct sockaddr_in6 endpoint_a_v6 = {
 	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_a),
-	    .sin6_addr = IN6ADDR_LOOPBACK_INIT};
+	    .sin6_port = htons(listen_a)};
+	endpoint_a_v6.sin6_addr = in6addr_loopback;
+	/* Unused, but useful in case we change this:
 	const struct sockaddr_in6 endpoint_b_v6 = {
 	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_b),
-	    .sin6_addr = IN6ADDR_LOOPBACK_INIT};
-	const struct sockaddr_in6 endpoint_c_v6 = {
+	    .sin6_port = htons(listen_b)};
+	endpoint_b_v6.sin6_addr = in6addr_loopback; */
+	struct sockaddr_in6 endpoint_c_v6 = {
 	    .sin6_family = AF_INET6,
-	    .sin6_port = htons(listen_c),
-	    .sin6_addr = IN6ADDR_LOOPBACK_INIT};
+	    .sin6_port = htons(listen_c)};
+	endpoint_c_v6.sin6_addr = in6addr_loopback;
 	const struct in_addr first_half_v4 = {0};
 	const struct in_addr second_half_v4 = {htonl(128 << 24)};
 	const struct in6_addr first_half_v6 = {{{0}}};
@@ -1939,8 +1941,9 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err)
+	if (err) {
 		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
 
 	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(&nlmsg, WGDEVICE_A_IFNAME, ifname_b, strlen(ifname_b) + 1);
@@ -1983,8 +1986,9 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err)
+	if (err) {
 		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
 
 	netlink_init(&nlmsg, id, 0, &genlhdr, sizeof(genlhdr));
 	netlink_attr(&nlmsg, WGDEVICE_A_IFNAME, ifname_c, strlen(ifname_c) + 1);
@@ -2027,8 +2031,9 @@ static void netlink_wireguard_setup(void)
 	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
-	if (err)
+	if (err) {
 		debug("netlink: failed to setup wireguard instance: %s\n", strerror(err));
+	}
 
 error:
 	close(sock);
