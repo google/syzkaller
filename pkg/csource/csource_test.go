@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -108,14 +109,32 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 	}
 }
 
+var failedTests uint32
+
 func testOne(t *testing.T, p *prog.Prog, opts Options) {
+	// Each failure produces lots of output (including full C source).
+	// Frequently lots of tests fail at the same, which produces/tmp/log
+	// tens of thounds of lines of output. Limit amount of output.
+	maxFailures := uint32(10)
+	if os.Getenv("TRAVIS") != "" {
+		maxFailures = 1
+	}
+	if atomic.LoadUint32(&failedTests) > maxFailures {
+		return
+	}
 	src, err := Write(p, opts)
 	if err != nil {
+		if atomic.AddUint32(&failedTests, 1) > maxFailures {
+			t.Fatal()
+		}
 		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	bin, err := Build(p.Target, src)
 	if err != nil {
+		if atomic.AddUint32(&failedTests, 1) > maxFailures {
+			t.Fatal()
+		}
 		t.Logf("opts: %+v\nprogram:\n%s\n", opts, p.Serialize())
 		t.Fatalf("%v", err)
 	}
