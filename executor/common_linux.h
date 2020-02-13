@@ -831,46 +831,39 @@ static void netlink_wireguard_setup(void)
 	const uint16 af_inet = AF_INET;
 	const uint16 af_inet6 = AF_INET6;
 	const struct sockaddr_in endpoint_a_v4 = {
-		.sin_family = AF_INET,
-		.sin_port = htons(listen_a),
-		.sin_addr = { htonl(INADDR_LOOPBACK) }
-	};
+	    .sin_family = AF_INET,
+	    .sin_port = htons(listen_a),
+	    .sin_addr = {htonl(INADDR_LOOPBACK)}};
 	const struct sockaddr_in endpoint_b_v4 = {
-		.sin_family = AF_INET,
-		.sin_port = htons(listen_b),
-		.sin_addr = { htonl(INADDR_LOOPBACK) }
-	};
+	    .sin_family = AF_INET,
+	    .sin_port = htons(listen_b),
+	    .sin_addr = {htonl(INADDR_LOOPBACK)}};
 	const struct sockaddr_in endpoint_c_v4 = {
-		.sin_family = AF_INET,
-		.sin_port = htons(listen_c),
-		.sin_addr = { htonl(INADDR_LOOPBACK) }
-	};
+	    .sin_family = AF_INET,
+	    .sin_port = htons(listen_c),
+	    .sin_addr = {htonl(INADDR_LOOPBACK)}};
 	const struct sockaddr_in6 endpoint_a_v6 = {
-		.sin6_family = AF_INET6,
-		.sin6_port = htons(listen_a),
-		.sin6_addr = IN6ADDR_LOOPBACK_INIT
-	};
+	    .sin6_family = AF_INET6,
+	    .sin6_port = htons(listen_a),
+	    .sin6_addr = IN6ADDR_LOOPBACK_INIT};
 	const struct sockaddr_in6 endpoint_b_v6 = {
-		.sin6_family = AF_INET6,
-		.sin6_port = htons(listen_b),
-		.sin6_addr = IN6ADDR_LOOPBACK_INIT
-	};
+	    .sin6_family = AF_INET6,
+	    .sin6_port = htons(listen_b),
+	    .sin6_addr = IN6ADDR_LOOPBACK_INIT};
 	const struct sockaddr_in6 endpoint_c_v6 = {
-		.sin6_family = AF_INET6,
-		.sin6_port = htons(listen_c),
-		.sin6_addr = IN6ADDR_LOOPBACK_INIT
-	};
-	const struct in_addr first_half_v4 = { 0 };
-	const struct in_addr second_half_v4 = { htonl(128 << 24) };
-	const struct in6_addr first_half_v6 = {{{ 0 }}};
-	const struct in6_addr second_half_v6 = {{{ 0x80 }}};
+	    .sin6_family = AF_INET6,
+	    .sin6_port = htons(listen_c),
+	    .sin6_addr = IN6ADDR_LOOPBACK_INIT};
+	const struct in_addr first_half_v4 = {0};
+	const struct in_addr second_half_v4 = {htonl(128 << 24)};
+	const struct in6_addr first_half_v6 = {{{0}}};
+	const struct in6_addr second_half_v6 = {{{0x80}}};
 	const uint8 half_cidr = 1;
-	const uint16 persistent_keepalives[] = { 1, 3, 7, 9, 14, 19 };
+	const uint16 persistent_keepalives[] = {1, 3, 7, 9, 14, 19};
 
 	struct genlmsghdr genlhdr = {
-		.cmd = WG_CMD_SET_DEVICE,
-		.version = 1
-	};
+	    .cmd = WG_CMD_SET_DEVICE,
+	    .version = 1};
 	int sock;
 	int id, err;
 
@@ -887,40 +880,40 @@ static void netlink_wireguard_setup(void)
 	netlink_attr(&nlmsg, WGDEVICE_A_PRIVATE_KEY, private_a, 32);
 	netlink_attr(&nlmsg, WGDEVICE_A_LISTEN_PORT, &listen_a, 2);
 	netlink_nest(&nlmsg, NLA_F_NESTED | WGDEVICE_A_PEERS);
-		netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-			netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_b, 32);
-			netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_b_v4, sizeof(endpoint_b_v4));
-			netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[0], 2);
-			netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-			netlink_done(&nlmsg);
-		netlink_done(&nlmsg);
-		netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-			netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_c, 32);
-			netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_c_v6, sizeof(endpoint_c_v6));
-			netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[1], 2);
-			netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-			netlink_done(&nlmsg);
-		netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_b, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_b_v4, sizeof(endpoint_b_v4));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[0], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_c, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_c_v6, sizeof(endpoint_c_v6));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[1], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
 	if (err)
@@ -931,40 +924,40 @@ static void netlink_wireguard_setup(void)
 	netlink_attr(&nlmsg, WGDEVICE_A_PRIVATE_KEY, private_b, 32);
 	netlink_attr(&nlmsg, WGDEVICE_A_LISTEN_PORT, &listen_b, 2);
 	netlink_nest(&nlmsg, NLA_F_NESTED | WGDEVICE_A_PEERS);
-		netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-			netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_a, 32);
-			netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_a_v6, sizeof(endpoint_a_v6));
-			netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[2], 2);
-			netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-			netlink_done(&nlmsg);
-		netlink_done(&nlmsg);
-		netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-			netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_c, 32);
-			netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_c_v4, sizeof(endpoint_c_v4));
-			netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[3], 2);
-			netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-			netlink_done(&nlmsg);
-		netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_a, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_a_v6, sizeof(endpoint_a_v6));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[2], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_c, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_c_v4, sizeof(endpoint_c_v4));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[3], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
 	if (err)
@@ -975,40 +968,40 @@ static void netlink_wireguard_setup(void)
 	netlink_attr(&nlmsg, WGDEVICE_A_PRIVATE_KEY, private_c, 32);
 	netlink_attr(&nlmsg, WGDEVICE_A_LISTEN_PORT, &listen_c, 2);
 	netlink_nest(&nlmsg, NLA_F_NESTED | WGDEVICE_A_PEERS);
-		netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-			netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_a, 32);
-			netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_a_v6, sizeof(endpoint_a_v6));
-			netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[4], 2);
-			netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-			netlink_done(&nlmsg);
-		netlink_done(&nlmsg);
-		netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-			netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_b, 32);
-			netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_b_v4, sizeof(endpoint_b_v4));
-			netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[5], 2);
-			netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-				netlink_nest(&nlmsg, NLA_F_NESTED | 0);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
-					netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
-				netlink_done(&nlmsg);
-			netlink_done(&nlmsg);
-		netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_a, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_a_v6, sizeof(endpoint_a_v6));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[4], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v4, sizeof(first_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &first_half_v6, sizeof(first_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGPEER_A_PUBLIC_KEY, public_b, 32);
+	netlink_attr(&nlmsg, WGPEER_A_ENDPOINT, &endpoint_b_v4, sizeof(endpoint_b_v4));
+	netlink_attr(&nlmsg, WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL, &persistent_keepalives[5], 2);
+	netlink_nest(&nlmsg, NLA_F_NESTED | WGPEER_A_ALLOWEDIPS);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v4, sizeof(second_half_v4));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_nest(&nlmsg, NLA_F_NESTED | 0);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_FAMILY, &af_inet6, 2);
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_IPADDR, &second_half_v6, sizeof(second_half_v6));
+	netlink_attr(&nlmsg, WGALLOWEDIP_A_CIDR_MASK, &half_cidr, 1);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
+	netlink_done(&nlmsg);
 	netlink_done(&nlmsg);
 	err = netlink_send(&nlmsg, sock);
 	if (err)
