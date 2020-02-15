@@ -53,6 +53,10 @@ bpf$BPF_BTF_GET_FD_BY_ID(cmd const[BPF_BTF_GET_FD_BY_ID], arg ptr[in, bpf_btf_id
 bpf$BPF_TASK_FD_QUERY(cmd const[BPF_TASK_FD_QUERY], arg ptr[inout, bpf_task_fd_query], size len[arg])
 bpf$BPF_MAP_LOOKUP_AND_DELETE_ELEM(cmd const[BPF_MAP_LOOKUP_AND_DELETE_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$BPF_MAP_FREEZE(cmd const[BPF_MAP_FREEZE], arg ptr[in, fd_bpf_map], size len[arg])
+bpf$MAP_LOOKUP_BATCH(cmd const[BPF_MAP_LOOKUP_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
+bpf$MAP_UPDATE_BATCH(cmd const[BPF_MAP_UPDATE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
+bpf$MAP_DELETE_BATCH(cmd const[BPF_MAP_DELETE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
+bpf$BPF_MAP_LOOKUP_AND_DELETE_BATCH(cmd const[BPF_MAP_LOOKUP_AND_DELETE_BATCH], arg ptr[in, bpf_map_batch_arg], size len[arg])
 
 bpf_map_create_arg {
 	type			flags[bpf_map_type, int32]
@@ -103,6 +107,19 @@ bpf_map_get_next_arg {
 	next	ptr64[out, array[int8]]
 	flags	const[0, int64]
 }
+
+bpf_map_batch_arg {
+	in_batch	ptr64[in, array[int8]]
+	out_batch	ptr64[out, array[int8]]
+	key		ptr64[in, array[int8]]
+	val		ptr64[in, array[int8]]
+	count		int32
+	map_fd		fd_bpf_map
+	elem_flags	flags[bpf_batch_flags, int64]
+	flags		const[0, int64]
+}
+
+bpf_batch_flags = BPF_F_LOCK
 
 define BPF_LINE_INFO_SIZE	sizeof(struct bpf_line_info)
 define BPF_FUNC_INFO_SIZE	sizeof(struct bpf_func_info)
