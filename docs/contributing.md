@@ -76,7 +76,7 @@ or `make format`, you may be using Go 1.10 or older. In such case update to Go 1
 ## How to create a pull request
 
 - First, you need an own git fork of syzkaller repository. Nagivate to [github.com/google/syzkaller](https://github.com/google/syzkaller) and press `Fork` button in the top-right corner of the page. This will create `https://github.com/YOUR_GITHUB_USERNAME/syzkaller` repository.
-- Checkout main syzkaller repository if you have not already. To work with `go` command the checkout must be under `$GOPATH`. The simplest way to do it is to run `go get github.com/google/syzkaller`, this will checkout the repository in `$GOPATH/src/github.com/google/syzkaller`.
+- Checkout main syzkaller repository if you have not already. To work with `go` command the checkout must be under `$GOPATH`. The simplest way to do it is to run `go get -u -d github.com/google/syzkaller/...`, this will checkout the repository in `$GOPATH/src/github.com/google/syzkaller`.
 - Remember to `export PATH=$GOPATH/bin:$PATH` if you have not already.
 - Then add your repository as an additional origin:
 
