@@ -108,15 +108,6 @@ FIONBIO = 2147772030
 FIONCLEX = 536897026
 FIOQSIZE = 1074292352
 FITHAW = 3221510264
-FUTEX_CMP_REQUEUE = 4
-FUTEX_CMP_REQUEUE_PI_PRIVATE = 140
-FUTEX_REQUEUE = 3
-FUTEX_WAIT = 0
-FUTEX_WAIT_BITSET = 9
-FUTEX_WAIT_PRIVATE = 128
-FUTEX_WAIT_REQUEUE_PI_PRIVATE = 139
-FUTEX_WAKE = 1
-FUTEX_WAKE_PRIVATE = 129
 F_ADD_SEALS = 1033
 F_DUPFD = 0
 F_DUPFD_CLOEXEC = 1030
@@ -599,10 +590,8 @@ __NR_fstat = 108
 __NR_fstatfs = 100
 __NR_fsync = 118
 __NR_ftruncate = 93
-__NR_futex = 221
 __NR_futimesat = 290
 __NR_get_mempolicy = 260
-__NR_get_robust_list = 299
 # __NR_get_thread_area is not set
 __NR_getcwd = 182
 __NR_getdents = 141
@@ -730,7 +719,6 @@ __NR_select = 82
 __NR_sendfile = 186
 # __NR_sendfile64 is not set
 __NR_set_mempolicy = 261
-__NR_set_robust_list = 300
 # __NR_set_thread_area is not set
 __NR_set_tid_address = 232
 __NR_setfsgid = 139
