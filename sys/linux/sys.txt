@@ -22,7 +22,6 @@ include <linux/un.h>
 include <linux/ioctl.h>
 include <linux/fadvise.h>
 include <linux/falloc.h>
-include <linux/futex.h>
 include <linux/kexec.h>
 include <linux/elf.h>
 include <linux/fiemap.h>
@@ -177,9 +176,6 @@ pkey_free(key pkey)
 pkey_mprotect(addr vma, len len[addr], prot flags[mmap_prot], key pkey)
 pkey_flags = PKEY_DISABLE_ACCESS, PKEY_DISABLE_WRITE
 
-futex(addr ptr[in, int32[0:2]], op flags[futex_op], val int32[0:2], timeout ptr[in, timespec], addr2 ptr[in, int32[0:2]], val3 int32[0:2])
-set_robust_list(head ptr[in, robust_list_head], len len[head])
-get_robust_list(pid pid, head ptr[in, ptr[out, robust_list_head]], len ptr[inout, len[head, intptr]])
 restart_syscall()
 
 # Almighty!
@@ -738,16 +734,6 @@ kexec_segment {
 	memsz	intptr
 }
 
-robust_list_head {
-	list		ptr[in, robust_list, opt]
-	futex_offset	intptr
-	list_op_pending	ptr[in, robust_list, opt]
-}
-
-robust_list {
-	next	ptr[in, robust_list, opt]
-}
-
 rusage {
 	utime	timeval
 	stime	timeval
@@ -931,7 +917,6 @@ finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
 delete_module_flags = O_NONBLOCK, O_TRUNC
 kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390, KEXEC_ARCH_SH, KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE, KEXEC_ARCH_DEFAULT
 faccessat_flags = 0x100, 0x200, 0x400, 0x800, 0x1000
-futex_op = FUTEX_WAIT, FUTEX_WAIT_BITSET, FUTEX_WAKE, FUTEX_REQUEUE, FUTEX_CMP_REQUEUE, FUTEX_WAIT_PRIVATE, FUTEX_WAKE_PRIVATE, FUTEX_WAIT_REQUEUE_PI_PRIVATE, FUTEX_CMP_REQUEUE_PI_PRIVATE
 sync_file_flags = SYNC_FILE_RANGE_WAIT_BEFORE, SYNC_FILE_RANGE_WRITE, SYNC_FILE_RANGE_WAIT_AFTER
 kcmp_flags = KCMP_FILE, KCMP_FILES, KCMP_FS, KCMP_IO, KCMP_SIGHAND, KCMP_SYSVSEM, KCMP_VM
 rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD

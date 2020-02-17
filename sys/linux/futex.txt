@@ -1,0 +1,27 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/futex.h>
+
+futex(addr ptr[in, int32[0:2]], op flags[futex_op], val int32[0:2], timeout ptr[in, timespec], addr2 ptr[in, int32[0:2]], val3 int32[0:2])
+futex$FUTEX_WAIT_MULTIPLE(addr ptr[in, array[futex_wait_block, 0:129]], op const[FUTEX_WAIT_MULTIPLE], val len[addr], timeout ptr[in, timespec], addr2 const[0], val3 const[0])
+set_robust_list(head ptr[in, robust_list_head], len len[head])
+get_robust_list(pid pid, head ptr[in, ptr[out, robust_list_head]], len ptr[inout, len[head, intptr]])
+
+robust_list_head {
+	list		ptr[in, robust_list, opt]
+	futex_offset	intptr
+	list_op_pending	ptr[in, robust_list, opt]
+}
+
+robust_list {
+	next	ptr[in, robust_list, opt]
+}
+
+futex_wait_block {
+	uaddr	ptr[in, int32[0:2]]
+	val	int32[0:2]
+	bitset	const[4294967295, int32]
+}
+
+futex_op = FUTEX_WAIT, FUTEX_WAIT_BITSET, FUTEX_WAKE, FUTEX_REQUEUE, FUTEX_CMP_REQUEUE, FUTEX_WAIT_MULTIPLE, FUTEX_WAIT_PRIVATE, FUTEX_WAKE_PRIVATE, FUTEX_WAIT_REQUEUE_PI_PRIVATE, FUTEX_CMP_REQUEUE_PI_PRIVATE, FUTEX_WAIT_MULTIPLE_PRIVATE
