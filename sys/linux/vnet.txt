@@ -62,6 +62,7 @@ mac_addr [
 	remote		mac_addr_t[const[0xbb, int8]]
 	dev		mac_addr_t[netdev_addr_id]
 	broadcast	array[const[0xff, int8], 6]
+	multicast	array[const[0xbb, int8], 6]
 	link_local	mac_addr_link_local
 	random		array[int8, 6]
 ]
