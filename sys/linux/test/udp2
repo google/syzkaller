@@ -1,8 +1,6 @@
-# This creates a UDP socket and tries to inject a packet to the socket.
-# The injection is currently wrong (or we miss some setup in executor, or something else),
-# so the recvfrom is disabled for now. But we need to get it working.
+# This creates a UDP socket and injects a packet to the socket.
 
 r0 = socket$inet_udp(AUTO, AUTO, AUTO)
 bind$inet(r0, &AUTO={AUTO, 0x4e20, @empty}, AUTO)
-syz_emit_ethernet(AUTO, &AUTO={@empty, @empty, @void, {@ipv4={AUTO, @udp={{AUTO, AUTO, 0x0, 0x0, AUTO, 0x64, 0x0, 0x1, AUTO, 0x0, @empty, @empty, {[]}}, {0x4e21, 0x4e20, AUTO, 0x0, [], ""/10}}}}}, 0x0)
-#recvfrom(r0, &AUTO=""/10, AUTO, 0x0, 0x0, 0x0)
+syz_emit_ethernet(AUTO, &AUTO={@local, @empty, @void, {@ipv4={AUTO, @udp={{AUTO, AUTO, 0x0, 0x0, AUTO, 0x0, 0x0, 0x0, AUTO, 0x0, @empty, @empty, {[]}}, {0x0, 0x4e20, AUTO, 0x0, [], ""/10}}}}}, 0x0)
+recvfrom(r0, &AUTO=""/10, AUTO, 0x0, 0x0, 0x0)
