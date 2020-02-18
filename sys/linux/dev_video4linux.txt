@@ -1,5 +1,5 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
-# # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # Constants for this descriptions were generated on the following tree:
 # https://source.codeaurora.org/quic/la/kernel/msm-4.9 msm-4.9
