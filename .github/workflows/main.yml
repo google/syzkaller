@@ -1,7 +1,7 @@
-name: CIFuzz
-on: [pull_request]
+name: Testing
+on: [push, pull_request]
 jobs:
-  Fuzzing:
+  CIFuzz:
     runs-on: ubuntu-latest
     steps:
     - name: Build Fuzzers
@@ -20,4 +20,26 @@ jobs:
       with:
         name: artifacts
         path: ./out/artifacts
-
+  golangci-lint:
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: /home/runner/work/syzkaller/syzkaller/go
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: 'go/src/github.com/google/syzkaller'
+    - name: Run
+      uses: actions-contrib/golangci-lint@v1
+  golangci-lint2:
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: /home/runner/work/syzkaller/syzkaller/go
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: 'go/src/github.com/google/syzkaller'
+    - name: golangci-lint
+      uses: reviewdog/action-golangci-lint@v1
+      with:
+        github_token: ${{ secrets.github_token }}
+        golangci_lint_flags: "github.com/google/syzkaller/..."
