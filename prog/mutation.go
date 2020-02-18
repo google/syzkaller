@@ -539,21 +539,23 @@ func (t *IntType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (
 		} else {
 			size = (t.RangeEnd-t.RangeBegin)/t.Align + 1
 		}
+	} else {
+		switch {
+		case size <= 15:
+			// For a small range, we assume that it is effectively
+			// similar with FlagsType and we need to try all possible values.
+			prio = rangeSizePrio(size)
+		case size <= 256:
+			// We consider that a relevant range has at most 256
+			// values (the number of values that can be represented on a byte).
+			prio = maxPriority
+		default:
+			// Ranges larger than 256 are equivalent with a plain integer.
+			prio = plainPrio
+		}
+		return prio, false
 	}
-	switch {
-	case size <= 15:
-		// For a small range, we assume that it is effectively
-		// similar with FlagsType and we need to try all possible values.
-		prio = rangeSizePrio(size)
-	case size <= 256:
-		// We consider that a relevant range has at most 256
-		// values (the number of values that can be represented on a byte).
-		prio = maxPriority
-	default:
-		// Ranges larger than 256 are equivalent with a plain integer.
-		prio = plainPrio
-	}
-	return prio, false
+	return 0, false
 }
 
 func (t *StructType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool) {

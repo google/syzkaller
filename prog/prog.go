@@ -208,6 +208,106 @@ func (arg *GroupArg) Size() uint64 {
 	default:
 		panic(fmt.Sprintf("bad group arg type %v", typ))
 	}
+	{
+		typ0 := arg.Type()
+		if !typ0.Varlen() {
+			return typ0.Size()
+		}
+		switch typ := typ0.(type) {
+		case *StructType:
+			var size uint64
+			for _, fld := range arg.Inner {
+				size += fld.Size()
+			}
+			if typ.AlignAttr != 0 && size%typ.AlignAttr != 0 {
+				size += typ.AlignAttr - size%typ.AlignAttr
+			}
+			return size
+		case *ArrayType:
+			var size uint64
+			for _, elem := range arg.Inner {
+				size += elem.Size()
+			}
+			return size
+		default:
+			panic(fmt.Sprintf("bad group arg type %v", typ))
+		}
+	}
+	{
+		typ0 := arg.Type()
+		if !typ0.Varlen() {
+			return typ0.Size()
+		}
+		switch typ := typ0.(type) {
+		case *StructType:
+			var size uint64
+			for _, fld := range arg.Inner {
+				size += fld.Size()
+			}
+			if typ.AlignAttr != 0 && size%typ.AlignAttr != 0 {
+				size += typ.AlignAttr - size%typ.AlignAttr
+			}
+			return size
+		case *ArrayType:
+			var size uint64
+			for _, elem := range arg.Inner {
+				size += elem.Size()
+			}
+			return size
+		default:
+			panic(fmt.Sprintf("bad group arg type %v", typ))
+		}
+	}
+	{
+		typ0 := arg.Type()
+		if !typ0.Varlen() {
+			return typ0.Size()
+		}
+		switch typ := typ0.(type) {
+		case *StructType:
+			var size uint64
+			for _, fld := range arg.Inner {
+				size += fld.Size()
+			}
+			if typ.AlignAttr != 0 && size%typ.AlignAttr != 0 {
+				size += typ.AlignAttr - size%typ.AlignAttr
+			}
+			return size
+		case *ArrayType:
+			var size uint64
+			for _, elem := range arg.Inner {
+				size += elem.Size()
+			}
+			return size
+		default:
+			panic(fmt.Sprintf("bad group arg type %v", typ))
+		}
+	}
+	{
+		typ0 := arg.Type()
+		if !typ0.Varlen() {
+			return typ0.Size()
+		}
+		switch typ := typ0.(type) {
+		case *StructType:
+			var size uint64
+			for _, fld := range arg.Inner {
+				size += fld.Size()
+			}
+			if typ.AlignAttr != 0 && size%typ.AlignAttr != 0 {
+				size += typ.AlignAttr - size%typ.AlignAttr
+			}
+			return size
+		case *ArrayType:
+			var size uint64
+			for _, elem := range arg.Inner {
+				size += elem.Size()
+			}
+			return size
+		default:
+			panic(fmt.Sprintf("bad group arg type %v", typ))
+		}
+	}
 }
 
 func (arg *GroupArg) fixedInnerSize() bool {
