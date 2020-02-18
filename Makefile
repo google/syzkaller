@@ -94,7 +94,7 @@ endif
 	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
 	extract generate generate_go generate_sys \
 	format format_go format_cpp format_sys \
-	tidy test test_race check_links check_diff \
+	tidy test test_race check_copyright check_links check_diff \
 	arch arch_darwin_amd64_host arch_linux_amd64_host \
 	arch_freebsd_amd64_host arch_netbsd_amd64_host \
 	arch_linux_amd64_target arch_linux_386_target \
@@ -307,11 +307,13 @@ presubmit:
 	$(MAKE) generate
 	$(MAKE) check_diff
 	$(GO) install ./...
-	$(MAKE) presubmit_parallel
+	$(MAKE) check_copyright 
+	$(MAKE) check_links
 	$(MAKE) lint
+	$(MAKE) presubmit_parallel
 	echo LGTM
 
-presubmit_parallel: test test_race arch check_links
+presubmit_parallel: test test_race arch
 
 test:
 ifeq ("$(TRAVIS)$(shell go version | grep 1.11)", "true")
@@ -346,6 +348,9 @@ install_prerequisites:
 	go get -u golang.org/x/tools/cmd/goyacc \
 		github.com/golangci/golangci-lint/cmd/golangci-lint \
 		github.com/dvyukov/go-fuzz/go-fuzz-build
+
+check_copyright:
+	./tools/check-copyright.sh
 
 check_links:
 	python ./tools/check_links.py $$(pwd) $$(ls ./*.md; find ./docs/ -name '*.md')
