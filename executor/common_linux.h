@@ -502,19 +502,30 @@ static void initialize_tun(void)
 	struct ifreq ifr;
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, TUN_IFACE, IFNAMSIZ);
-	ifr.ifr_flags = IFF_TAP | IFF_NO_PI | IFF_NAPI | IFF_NAPI_FRAGS;
+	ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+	// Note: SYZ_ENABLE_NAPI_FRAGS is never enabled. This is code is only for reference
+	// in case we figure out how IFF_NAPI_FRAGS works. With IFF_NAPI_FRAGS packets
+	// don't reach destinations and bail out in udp_gro_receive (see #1594).
+	// Also IFF_NAPI_FRAGS does not work with sandbox_namespace (see comment there).
+#if ENABLE_NAPI_FRAGS
+	ifr.ifr_flags |= IFF_NAPI | IFF_NAPI_FRAGS;
+#endif
 	if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0) {
+#if ENABLE_NAPI_FRAGS
 		// IFF_NAPI_FRAGS requires root, so try without it.
 		ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
 		if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0)
+#endif
 			fail("tun: ioctl(TUNSETIFF) failed");
 	}
+#if ENABLE_NAPI_FRAGS
 	// If IFF_NAPI_FRAGS is not supported it will be silently dropped,
 	// so query the effective flags.
 	if (ioctl(tunfd, TUNGETIFF, (void*)&ifr) < 0)
 		fail("tun: ioctl(TUNGETIFF) failed");
 	tun_frags_enabled = (ifr.ifr_flags & IFF_NAPI_FRAGS) != 0;
 	debug("tun_frags_enabled=%d\n", tun_frags_enabled);
+#endif
 
 	// Disable IPv6 DAD, otherwise the address remains unusable until DAD completes.
 	// Don't panic because this is an optional config.
