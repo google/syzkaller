@@ -221,6 +221,7 @@ func checkUnsupportedCalls(arches []*Arch) bool {
 }
 
 func archFileList(os, arch string, files []string) (string, []string, []string, error) {
+	// Note: this is linux-specific and should be part of Extractor and moved to linux.go.
 	android := false
 	if os == "android" {
 		android = true
@@ -246,6 +247,10 @@ func archFileList(os, arch string, files []string) (string, []string, []string, 
 		manualFiles := map[string]bool{
 			// Not upstream, generated on https://github.com/multipath-tcp/mptcp_net-next
 			"mptcp.txt": true,
+			// Not upstream, generated on unknown tree.
+			"futex.txt": true,
+			// Was in linux-next, but then was removed, fate is unknown.
+			"watch_queue.txt": true,
 		}
 		androidFiles := map[string]bool{
 			"dev_tlk_device.txt": true,
