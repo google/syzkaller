@@ -1,0 +1,2 @@
+syz_emit_ethernet(AUTO, &AUTO={@local, @empty, @void, {@ipv4={AUTO, @udp={{AUTO, AUTO, 0x0, 0x0, AUTO, 0x0, 0x0, 0x0, AUTO, 0x0, @empty, @empty, {[]}}, {0x0, 0x4e22, AUTO, 0x0, @wg=@initiation={AUTO, 0x0, "", "", "", {"", ""}}}}}}}, 0x0)
+syz_emit_ethernet(AUTO, &AUTO={@local, @empty, @void, {@ipv4={AUTO, @udp={{AUTO, AUTO, 0x0, 0x0, AUTO, 0x0, 0x0, 0x0, AUTO, 0x0, @empty, @empty, {[]}}, {0x0, 0x4e22, AUTO, 0x0, @wg=@data={AUTO, 0x0, 0x0, ""/100}}}}}}, 0x0)
