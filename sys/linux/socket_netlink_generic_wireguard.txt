@@ -2,6 +2,8 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <linux/net.h>
+include <linux/socket.h>
+include <uapi/asm-generic/socket.h>
 include <uapi/linux/if.h>
 include <uapi/linux/netlink.h>
 include <uapi/linux/genetlink.h>
@@ -78,3 +80,55 @@ wireguard_public_key [
 wgdevice_flag = WGDEVICE_F_REPLACE_PEERS
 wgpeer_flag = WGPEER_F_REMOVE_ME, WGPEER_F_REPLACE_ALLOWEDIPS, WGPEER_F_UPDATE_ONLY
 wireguard_devname = "wg0", "wg1", "wg2"
+
+wg_packet [
+	initiation	message_handshake_initiation
+	response	message_handshake_response
+	cookie		message_handshake_cookie
+	data		message_data
+] [varlen]
+
+message_handshake_initiation {
+	type			const[MESSAGE_HANDSHAKE_INITIATION, int32]
+# Not clear if these indexes are also generated randomly and we need to guess them or not.
+	sender_index		int32[0:4]
+	unencrypted_ephemeral	array[int8, NOISE_PUBLIC_KEY_LEN]
+	encrypted_static	array[int8, NOISE_PUBLIC_KEY_ENCRYPTED_LEN]
+	encrypted_timestamp	array[int8, NOISE_TIMESTAMP_ENCRYPTED_LEN]
+	macs			message_macs
+}
+
+message_handshake_response {
+	type			const[MESSAGE_HANDSHAKE_RESPONSE, int32]
+	sender_index		int32[0:4]
+	receiver_index		int32[0:4]
+	unencrypted_ephemeral	array[int8, NOISE_PUBLIC_KEY_LEN]
+	encrypted_nothing	array[int8, NOISE_NOTHING_ENCRYPTED_LEN]
+	macs			message_macs
+}
+
+message_handshake_cookie {
+	type			const[MESSAGE_HANDSHAKE_COOKIE, int32]
+	receiver_index		int32[0:4]
+	nonce			array[int8, COOKIE_NONCE_LEN]
+	encrypted_cookie	array[int8, NOISE_COOKIE_ENCRYPTED_LEN]
+}
+
+message_data {
+	type		const[MESSAGE_DATA, int32]
+# These are allocated randomly, so little chances guessing.
+	key_idx		int32
+# This is used as chacha20poly1305 decryption nonce.
+	counter		int64
+	encrypted_data	array[int8]
+}
+
+message_macs {
+	mac1	array[int8, COOKIE_LEN]
+	mac2	array[int8, COOKIE_LEN]
+}
+
+define NOISE_PUBLIC_KEY_ENCRYPTED_LEN	noise_encrypted_len(NOISE_PUBLIC_KEY_LEN)
+define NOISE_TIMESTAMP_ENCRYPTED_LEN	noise_encrypted_len(NOISE_TIMESTAMP_LEN)
+define NOISE_COOKIE_ENCRYPTED_LEN	noise_encrypted_len(COOKIE_LEN)
+define NOISE_NOTHING_ENCRYPTED_LEN	noise_encrypted_len(0)

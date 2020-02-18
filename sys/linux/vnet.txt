@@ -845,13 +845,19 @@ udp_packet {
 	dst_port	sock_port
 	length		len[parent, int16be]
 	csum		csum[parent, pseudo, IPPROTO_UDP, int16be]
-	extensions	array[udp_extensions]
-	data		array[int8]
+	payload		udp_payload
 } [packed]
 
-udp_extensions [
-	guehdr	guehdr
+udp_payload [
+	opaque	array[int8]
+	gue	gue_packet
+	wg	wg_packet
 ] [varlen]
+
+gue_packet {
+	hdr	guehdr
+	opaque	array[int8]
+} [packed]
 
 guehdr {
 	hlen		bytesize4[parent, int8:5]
