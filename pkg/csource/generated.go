@@ -1536,16 +1536,23 @@ static void initialize_tun(void)
 	struct ifreq ifr;
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, TUN_IFACE, IFNAMSIZ);
-	ifr.ifr_flags = IFF_TAP | IFF_NO_PI | IFF_NAPI | IFF_NAPI_FRAGS;
+	ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+#if ENABLE_NAPI_FRAGS
+	ifr.ifr_flags |= IFF_NAPI | IFF_NAPI_FRAGS;
+#endif
 	if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0) {
+#if ENABLE_NAPI_FRAGS
 		ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
 		if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0)
+#endif
 			fail("tun: ioctl(TUNSETIFF) failed");
 	}
+#if ENABLE_NAPI_FRAGS
 	if (ioctl(tunfd, TUNGETIFF, (void*)&ifr) < 0)
 		fail("tun: ioctl(TUNGETIFF) failed");
 	tun_frags_enabled = (ifr.ifr_flags & IFF_NAPI_FRAGS) != 0;
 	debug("tun_frags_enabled=%d\n", tun_frags_enabled);
+#endif
 	char sysctl[64];
 	sprintf(sysctl, "/proc/sys/net/ipv6/conf/%s/accept_dad", TUN_IFACE);
 	write_file(sysctl, "0");
