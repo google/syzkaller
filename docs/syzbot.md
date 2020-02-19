@@ -85,7 +85,7 @@ After sending an email you should get a reply email with results within an hour.
 **Note**: you may send the request only to `syzbot` email address, as patches sent
 to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 
-**Note**: when testing a patch, syzbot uses the kernel config and reproducer that are specified a the initial bug report. As a result, specifying a repo, branch or commit id that are different from the ones that were used for reproducing, can result in false-positive Tested-by responses.
+**Note**: when testing a patch, syzbot uses the kernel config and reproducer that are specified a the initial bug report. As a result, specifying a repo, branch or commit id that are different from the ones that were used for reproducing, can result in false-positive Tested-by responses. For example this happens, when the bug is no longer reproducible on a specified kernel tree, with or without the supplied patch.
 
 **Note**: see [below](#kmsan-bugs) for `KMSAN` bugs testing.
 
