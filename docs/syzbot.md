@@ -82,12 +82,14 @@ or to check if the bug is already fixed by some recent commit.
 
 After sending an email you should get a reply email with results within an hour.
 
-Note: you may send the request only to `syzbot` email address, as patches sent
+**Note**: you may send the request only to `syzbot` email address, as patches sent
 to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 
-Note: see [below](#kmsan-bugs) for `KMSAN` bugs testing.
+**Note**: when testing a patch, syzbot uses the kernel config and reproducer that are specified a the initial bug report. As a result, specifying a repo, branch or commit id that are different from the ones that were used for reproducing, can result in false-positive Tested-by responses.
 
-Note: see [below](#usb-bugs) for `USB` bugs testing.
+**Note**: see [below](#kmsan-bugs) for `KMSAN` bugs testing.
+
+**Note**: see [below](#usb-bugs) for `USB` bugs testing.
 
 <div id="amend"/>
 <div id="linux-next"/>
