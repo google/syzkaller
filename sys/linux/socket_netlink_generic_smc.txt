@@ -1,0 +1,28 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/smc.h>
+
+resource genl_smc_family_id[int16]
+type msghdr_nl_smc[CMD] msghdr_netlink[netlink_msg_t[genl_smc_family_id, genlmsghdr_t[CMD], smc_pnet_policy]]
+
+syz_genetlink_get_family_id$smc(name ptr[in, string["SMC_PNETID"]]) genl_smc_family_id
+
+sendmsg$SMC_PNETID_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_smc[SMC_PNETID_GET]], f flags[send_flags])
+sendmsg$SMC_PNETID_ADD(fd sock_nl_generic, msg ptr[in, msghdr_nl_smc[SMC_PNETID_ADD]], f flags[send_flags])
+sendmsg$SMC_PNETID_DEL(fd sock_nl_generic, msg ptr[in, msghdr_nl_smc[SMC_PNETID_DEL]], f flags[send_flags])
+sendmsg$SMC_PNETID_FLUSH(fd sock_nl_generic, msg ptr[in, msghdr_nl_smc[SMC_PNETID_FLUSH]], f flags[send_flags])
+
+smc_pnet_policy [
+	SMC_PNETID_NAME		nlattr[SMC_PNETID_NAME, string[smc_pnetid_name]]
+	SMC_PNETID_ETHNAME	nlattr[SMC_PNETID_ETHNAME, devname]
+	SMC_PNETID_IBNAME	nlattr[SMC_PNETID_IBNAME, string[smc_pnetid_ibname]]
+	SMC_PNETID_IBPORT	nlattr[SMC_PNETID_IBPORT, int8[1:2]]
+] [varlen]
+
+smc_pnetid_name = "syz0", "syz1", "syz2"
+# TODO: unclear where do these come from? do we have any of these smcd/smcib things? can we add/create them?
+smc_pnetid_ibname = "syz0", "syz1", "syz2"
