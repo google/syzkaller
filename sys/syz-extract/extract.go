@@ -128,7 +128,7 @@ func main() {
 		<-arch.done
 		if arch.err != nil {
 			failed = true
-			fmt.Printf("	%v\n", arch.err)
+			fmt.Printf("%v\n", arch.err)
 			continue
 		}
 		for _, f := range arch.files {
