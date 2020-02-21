@@ -9,7 +9,7 @@ resource sock_nl_audit[sock_netlink]
 
 socket$nl_audit(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_AUDIT]) sock_nl_audit
 
-type nl_audit_msg[CMD, DATA] ptr[in, netlink_msg[CMD, DATA, void]]
+type nl_audit_msg[CMD, DATA] ptr[in, msghdr_netlink[netlink_msg[CMD, DATA, void]]]
 
 sendmsg$AUDIT_GET(fd sock_nl_audit, msg nl_audit_msg[AUDIT_GET, void], f flags[send_flags])
 sendmsg$AUDIT_SET(fd sock_nl_audit, msg nl_audit_msg[AUDIT_SET, audit_status], f flags[send_flags])

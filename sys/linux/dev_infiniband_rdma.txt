@@ -45,7 +45,6 @@ define EX_CREATE_CQ_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_CMD_CREA
 define EX_CREATE_QP_CMD	IB_USER_VERBS_CMD_FLAG_EXTENDED | IB_USER_VERBS_CMD_CREATE_QP
 
 # flags
-rdma_dev_open_flags = O_RDWR, O_CLOEXEC
 ib_access_flags = IB_ACCESS_LOCAL_WRITE, IB_ACCESS_REMOTE_WRITE, IB_ACCESS_REMOTE_READ, IB_ACCESS_REMOTE_ATOMIC, IB_ACCESS_MW_BIND, IB_ZERO_BASED, IB_ACCESS_ON_DEMAND
 ib_mr_rereg_flags = IB_MR_REREG_TRANS, IB_MR_REREG_PD, IB_MR_REREG_ACCESS, IB_MR_REREG_SUPPORTED
 ib_qp_type = IB_QPT_SMI, IB_QPT_GSI, IB_QPT_RC, IB_QPT_UC, IB_QPT_UD, IB_QPT_RAW_IPV6, IB_QPT_RAW_ETHERTYPE, IB_QPT_RAW_PACKET, IB_QPT_XRC_INI, IB_QPT_XRC_TGT
@@ -1392,7 +1391,7 @@ ioctl$DESTROY_COUNTERS(fd fd_rdma, cmd const[RDMA_VERBS_IOCTL], arg ptr[in, ib_u
 ioctl$READ_COUNTERS(fd fd_rdma, cmd const[RDMA_VERBS_IOCTL], arg ptr[inout, ib_uverbs_read_counters_cmd])
 
 # device
-syz_open_dev$ibv_device(dev ptr[in, string["/dev/infiniband/uverbs0"]], id intptr, flags flags[rdma_dev_open_flags]) fd_rdma
+openat$uverbs0(fd const[AT_FDCWD], file ptr[in, string["/dev/infiniband/uverbs0"]], flags const[O_RDWR], mode const[0]) fd_rdma
 write$MLX5_GET_CONTEXT(fd fd_rdma, buf ptr[inout, mlx5_get_context_cmd], len len[buf])
 close$ibv_device(fd fd_rdma)
 write$QUERY_DEVICE_EX(fd fd_rdma, buf ptr[inout, query_device_cmd_ex], len len[buf])
