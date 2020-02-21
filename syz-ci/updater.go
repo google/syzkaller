@@ -17,7 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
 )
 
 const (
@@ -119,7 +119,7 @@ func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 		if st, err := os.Stat(upd.exe); err == nil {
 			exeMod = st.ModTime()
 		}
-		uptodate := sys.GitRevisionBase == latestTag && time.Since(exeMod) < time.Minute
+		uptodate := prog.GitRevisionBase == latestTag && time.Since(exeMod) < time.Minute
 		if uptodate || !autoupdate {
 			if uptodate {
 				// Have a fresh up-to-date build, probably just restarted.
@@ -133,11 +133,11 @@ func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 			return
 		}
 	}
-	log.Logf(0, "current executable is on %v", sys.GitRevision)
+	log.Logf(0, "current executable is on %v", prog.GitRevision)
 	log.Logf(0, "latest syzkaller build is on %v", latestTag)
 
 	// No syzkaller build or executable is stale.
-	lastCommit := sys.GitRevisionBase
+	lastCommit := prog.GitRevisionBase
 	for {
 		lastCommit = upd.pollAndBuild(lastCommit)
 		latestTag := upd.checkLatest()
@@ -148,7 +148,7 @@ func (upd *SyzUpdater) UpdateOnStart(autoupdate bool, shutdown chan struct{}) {
 			if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
 				log.Fatal(err)
 			}
-			if autoupdate && sys.GitRevisionBase != latestTag {
+			if autoupdate && prog.GitRevisionBase != latestTag {
 				upd.UpdateAndRestart()
 			}
 			return

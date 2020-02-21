@@ -33,7 +33,6 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
@@ -112,7 +111,7 @@ type Crash struct {
 }
 
 func main() {
-	if sys.GitRevision == "" {
+	if prog.GitRevision == "" {
 		log.Fatalf("Bad syz-manager build. Build with make, run bin/syz-manager.")
 	}
 	flag.Parse()

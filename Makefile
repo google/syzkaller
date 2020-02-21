@@ -58,7 +58,7 @@ GITREVDATE=$(shell git log -n 1 --format="%ad")
 # Reduces build time and binary sizes considerably.
 # That's only needed if you use gdb or nm.
 # If you need that, build manually without these flags.
-GOFLAGS := "-ldflags=-s -w -X github.com/google/syzkaller/sys.GitRevision=$(REV) -X 'github.com/google/syzkaller/sys.gitRevisionDate=$(GITREVDATE)'"
+GOFLAGS := "-ldflags=-s -w -X github.com/google/syzkaller/prog.GitRevision=$(REV) -X 'github.com/google/syzkaller/prog.gitRevisionDate=$(GITREVDATE)'"
 
 GOHOSTFLAGS := $(GOFLAGS)
 GOTARGETFLAGS := $(GOFLAGS)

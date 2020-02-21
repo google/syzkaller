@@ -27,7 +27,6 @@ import (
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/pkg/vcs"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
 )
 
 func (mgr *Manager) initHTTP() {
@@ -112,7 +111,7 @@ func (mgr *Manager) collectStats() []UIStat {
 	defer mgr.mu.Unlock()
 
 	rawStats := mgr.stats.all()
-	head := sys.GitRevisionBase
+	head := prog.GitRevisionBase
 	stats := []UIStat{
 		{Name: "revision", Value: fmt.Sprint(head[:8]), Link: vcs.LogLink(vcs.SyzkallerRepo, head)},
 		{Name: "config", Value: mgr.cfg.Name, Link: "/config"},

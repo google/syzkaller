@@ -15,7 +15,6 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
 )
 
 type RPCServer struct {
@@ -97,7 +96,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
 	r.DataRaceFrames = bugFrames.dataRaces
 	r.EnabledCalls = serv.enabledSyscalls
-	r.GitRevision = sys.GitRevision
+	r.GitRevision = prog.GitRevision
 	r.TargetRevision = serv.target.Revision
 	// TODO: temporary disabled b/c we suspect this negatively affects fuzzing.
 	if false && serv.mgr.rotateCorpus() && serv.rnd.Intn(3) != 0 {
