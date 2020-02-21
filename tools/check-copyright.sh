@@ -4,7 +4,8 @@
 
 FILES=0
 FAILED=""
-for F in $(find -name "*.go" -o -name "*.sh" -o \( -path "./sys/*/*.txt" \) | egrep -v "/vendor/|/gen/"); do
+for F in $(find -name "*.go" -o -name "*.sh" -o -name "*.cc" -o -name "*.h" \
+	-o -name "*.S" -o \( -path "./sys/*/*.txt" \) | egrep -v "/vendor/|/gen/"); do
 	((FILES+=1))
 	cat $F | tr '\n' '_' | egrep "(//|#) Copyright 20[0-9]{2}(/20[0-9]{2})? syzkaller project authors\. All rights reserved\._(//|#) Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file\." >/dev/null
 	if [ $? -eq 0 ]; then continue; fi
