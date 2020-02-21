@@ -23,7 +23,8 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/vcs"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
@@ -530,7 +531,7 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 	// Also mix in build type, so that image error builds are not merged into normal builds.
 	var tagData []byte
 	tagData = append(tagData, info.Tag...)
-	tagData = append(tagData, sys.GitRevisionBase...)
+	tagData = append(tagData, prog.GitRevisionBase...)
 	tagData = append(tagData, typ...)
 	build := &dashapi.Build{
 		Manager:             mgr.name,
@@ -538,8 +539,8 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 		OS:                  mgr.managercfg.TargetOS,
 		Arch:                mgr.managercfg.TargetArch,
 		VMArch:              mgr.managercfg.TargetVMArch,
-		SyzkallerCommit:     sys.GitRevisionBase,
-		SyzkallerCommitDate: sys.GitRevisionDate,
+		SyzkallerCommit:     prog.GitRevisionBase,
+		SyzkallerCommitDate: prog.GitRevisionDate,
 		CompilerID:          info.CompilerID,
 		KernelRepo:          info.KernelRepo,
 		KernelBranch:        info.KernelBranch,

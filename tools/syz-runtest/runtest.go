@@ -26,7 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/targets"
 	"github.com/google/syzkaller/vm"
 )
@@ -213,7 +213,7 @@ func (mgr *Manager) finishRequest(name string, rep *report.Report) error {
 }
 
 func (mgr *Manager) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {
-	r.GitRevision = sys.GitRevision
+	r.GitRevision = prog.GitRevision
 	r.TargetRevision = mgr.target.Revision
 	r.AllSandboxes = true
 	select {

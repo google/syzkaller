@@ -17,7 +17,6 @@ import (
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/runtest"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
 )
 
 type checkArgs struct {
@@ -203,13 +202,13 @@ func checkRevisions(args *checkArgs) error {
 	if args.target.Arch != vers[1] {
 		return fmt.Errorf("mismatching target/executor arches: %v vs %v", args.target.Arch, vers[1])
 	}
-	if sys.GitRevision != vers[3] {
+	if prog.GitRevision != vers[3] {
 		return fmt.Errorf("mismatching fuzzer/executor git revisions: %v vs %v",
-			sys.GitRevision, vers[3])
+			prog.GitRevision, vers[3])
 	}
-	if args.gitRevision != "" && args.gitRevision != sys.GitRevision {
+	if args.gitRevision != "" && args.gitRevision != prog.GitRevision {
 		return fmt.Errorf("mismatching manager/fuzzer git revisions: %v vs %v",
-			args.gitRevision, sys.GitRevision)
+			args.gitRevision, prog.GitRevision)
 	}
 	if args.target.Revision != vers[2] {
 		return fmt.Errorf("mismatching fuzzer/executor system call descriptions: %v vs %v",

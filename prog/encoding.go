@@ -204,6 +204,12 @@ const (
 )
 
 func (target *Target) Deserialize(data []byte, mode DeserializeMode) (*Prog, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			panic(fmt.Errorf("%v\ntarget: %v/%v, rev: %v, mode=%v, prog:\n%q",
+				err, target.OS, target.Arch, GitRevision, mode, data))
+		}
+	}()
 	p := newParser(target, data, mode == Strict)
 	prog, err := p.parseProg()
 	if err := p.Err(); err != nil {
