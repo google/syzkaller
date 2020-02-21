@@ -1,0 +1,149 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/rdma/rdma_netlink.h>
+
+resource sock_nl_rdma[sock_netlink]
+
+socket$nl_rdma(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_RDMA]) sock_nl_rdma
+# Some messages onl work in init namespace.
+syz_init_net_socket$nl_rdma(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_RDMA]) sock_nl_rdma
+
+type msg_nl_rdma[CMD, POLICY] ptr[in, msghdr_netlink[netlink_msg[CMD, void, POLICY]]]
+
+sendmsg$RDMA_NLDEV_CMD_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_GET, nldev_policy_DEV], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_SET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_SET, nldev_policy_SET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_NEWLINK(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_NEWLINK, nldev_policy_NEWLINK], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_DELLINK(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_DELLINK, nldev_policy_DEV], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_PORT_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_PORT_GET, nldev_policy_PORT_GET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_SYS_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_SYS_GET, nldev_policy_DEV], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_SYS_SET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_SYS_SET, nldev_policy_SET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_RES_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_RES_GET, nldev_policy_DEV], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_RES_QP_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_RES_QP_GET, nldev_policy_RES_QP_GET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_RES_CM_ID_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_RES_CM_ID_GET, nldev_policy_RES_CM_ID_GET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_RES_CQ_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_RES_CQ_GET, nldev_policy_RES_CQ_GET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_RES_MR_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_RES_MR_GET, nldev_policy_RES_MR_GET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_RES_PD_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_RES_PD_GET, nldev_policy_RES_PD_GET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_GET_CHARDEV(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_GET_CHARDEV, nldev_policy_GET_CHARDEV], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_STAT_SET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_STAT_SET, nldev_policy_STAT_SET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_STAT_GET(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_STAT_GET, nldev_policy_STAT_GET], f flags[send_flags])
+sendmsg$RDMA_NLDEV_CMD_STAT_DEL(fd sock_nl_rdma, msg msg_nl_rdma[RDMA_NLDEV_STAT_DEL, nldev_policy_STAT_DEL], f flags[send_flags])
+
+define RDMA_NLDEV_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_GET)
+define RDMA_NLDEV_SET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_SET)
+define RDMA_NLDEV_NEWLINK	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_NEWLINK)
+define RDMA_NLDEV_DELLINK	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_DELLINK)
+define RDMA_NLDEV_PORT_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_PORT_GET)
+define RDMA_NLDEV_SYS_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_SYS_GET)
+define RDMA_NLDEV_SYS_SET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_SYS_SET)
+define RDMA_NLDEV_RES_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_RES_GET)
+define RDMA_NLDEV_RES_QP_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_RES_QP_GET)
+define RDMA_NLDEV_RES_CM_ID_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_RES_CM_ID_GET)
+define RDMA_NLDEV_RES_CQ_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_RES_CQ_GET)
+define RDMA_NLDEV_RES_MR_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_RES_MR_GET)
+define RDMA_NLDEV_RES_PD_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_RES_PD_GET)
+define RDMA_NLDEV_GET_CHARDEV	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_GET_CHARDEV)
+define RDMA_NLDEV_STAT_SET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_STAT_SET)
+define RDMA_NLDEV_STAT_GET	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_STAT_GET)
+define RDMA_NLDEV_STAT_DEL	RDMA_NL_GET_TYPE(RDMA_NL_NLDEV, RDMA_NLDEV_CMD_STAT_DEL)
+
+nldev_name = "syz0", "syz1", "syz2"
+nldev_type = "siw", "rxe"
+
+nldev_policy_DEV [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+] [varlen]
+
+nldev_policy_SET [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_DEV_NAME	nlattr[RDMA_NLDEV_ATTR_DEV_NAME, string[nldev_name]]
+	RDMA_NLDEV_NET_NS_FD		nlattr[RDMA_NLDEV_NET_NS_FD, fd_namespace]
+	RDMA_NLDEV_ATTR_DEV_DIM		nlattr[RDMA_NLDEV_ATTR_DEV_DIM, bool8]
+] [varlen]
+
+nldev_policy_NEWLINK {
+	RDMA_NLDEV_ATTR_DEV_NAME	nlattr[RDMA_NLDEV_ATTR_DEV_NAME, string[nldev_name]]
+	RDMA_NLDEV_ATTR_LINK_TYPE	nlattr[RDMA_NLDEV_ATTR_LINK_TYPE, string[nldev_type]]
+	RDMA_NLDEV_ATTR_NDEV_NAME	nlattr[RDMA_NLDEV_ATTR_NDEV_NAME, devname]
+} [packed]
+
+nldev_policy_PORT_GET {
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+} [packed]
+
+nldev_policy_RES_QP_GET [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_RES_LQPN	nlattr[RDMA_NLDEV_ATTR_RES_LQPN, int32[0:5]]
+] [varlen]
+
+nldev_policy_RES_CM_ID_GET [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_RES_CM_IDN	nlattr[RDMA_NLDEV_ATTR_RES_CM_IDN, int32[0:5]]
+] [varlen]
+
+nldev_policy_RES_CQ_GET [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_RES_CQN		nlattr[RDMA_NLDEV_ATTR_RES_CQN, int32[0:5]]
+] [varlen]
+
+nldev_policy_RES_MR_GET [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_RES_MRN		nlattr[RDMA_NLDEV_ATTR_RES_MRN, int32[0:5]]
+] [varlen]
+
+nldev_policy_RES_PD_GET [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_RES_PDN		nlattr[RDMA_NLDEV_ATTR_RES_PDN, int32[0:5]]
+] [varlen]
+
+nldev_policy_GET_CHARDEV [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_CHARDEV_TYPE	nlattr[RDMA_NLDEV_ATTR_CHARDEV_TYPE, string[nldev_chardev_type]]
+] [varlen]
+
+nldev_chardev_type = "ib_multicast", "sa", "umad", "issm", "rdma_cm", "cma", "mad", "uverbs", "cm", "ib_srpt", "ipoib", "opa_vnic", "srp", "smc_ib"
+
+nldev_policy_STAT_SET [
+	RDMA_NLDEV_ATTR_DEV_INDEX		nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX		nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_STAT_RES		nlattr[RDMA_NLDEV_ATTR_STAT_RES, const[RDMA_NLDEV_ATTR_RES_QP, int32]]
+	RDMA_NLDEV_ATTR_STAT_MODE		nlattr[RDMA_NLDEV_ATTR_STAT_MODE, flags[rdma_nl_counter_mode, int32]]
+	RDMA_NLDEV_ATTR_STAT_AUTO_MODE_MASK	nlattr[RDMA_NLDEV_ATTR_STAT_AUTO_MODE_MASK, bool32]
+	RDMA_NLDEV_ATTR_RES_LQPN		nlattr[RDMA_NLDEV_ATTR_RES_LQPN, int32[0:5]]
+	RDMA_NLDEV_ATTR_STAT_COUNTER_ID		nlattr[RDMA_NLDEV_ATTR_STAT_COUNTER_ID, int32[0:5]]
+] [varlen]
+
+rdma_nl_counter_mode = RDMA_COUNTER_MODE_NONE, RDMA_COUNTER_MODE_AUTO, RDMA_COUNTER_MODE_MANUAL
+
+nldev_policy_STAT_GET [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_STAT_RES	nlattr[RDMA_NLDEV_ATTR_STAT_RES, flags[nldev_stat_res, int32]]
+	RDMA_NLDEV_ATTR_RES_MRN		nlattr[RDMA_NLDEV_ATTR_RES_MRN, int32[0:5]]
+	RDMA_NLDEV_ATTR_STAT_COUNTER_ID	nlattr[RDMA_NLDEV_ATTR_STAT_COUNTER_ID, int32[0:5]]
+	RDMA_NLDEV_ATTR_STAT_MODE	nlattr[RDMA_NLDEV_ATTR_STAT_MODE, flags[rdma_nl_counter_mode, int32]]
+] [varlen]
+
+nldev_stat_res = RDMA_NLDEV_ATTR_RES_QP, RDMA_NLDEV_ATTR_RES_MR
+
+nldev_policy_STAT_DEL [
+	RDMA_NLDEV_ATTR_DEV_INDEX	nlattr[RDMA_NLDEV_ATTR_DEV_INDEX, int32[0:2]]
+	RDMA_NLDEV_ATTR_PORT_INDEX	nlattr[RDMA_NLDEV_ATTR_PORT_INDEX, int32[0:4]]
+	RDMA_NLDEV_ATTR_STAT_RES	nlattr[RDMA_NLDEV_ATTR_STAT_RES, const[RDMA_NLDEV_ATTR_RES_QP, int32]]
+	RDMA_NLDEV_ATTR_STAT_COUNTER_ID	nlattr[RDMA_NLDEV_ATTR_STAT_COUNTER_ID, int32[0:5]]
+	RDMA_NLDEV_ATTR_RES_LQPN	nlattr[RDMA_NLDEV_ATTR_RES_LQPN, int32[0:5]]
+] [varlen]
+
+#	RDMA_NL_IWCM = 2,
+#	RDMA_NL_RSVD,
+#	RDMA_NL_LS,	/* RDMA Local Services */
+#	RDMA_NL_NLDEV,	/* RDMA device interface */

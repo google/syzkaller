@@ -5693,9 +5693,6 @@ static void drop_caps(void)
 
 static int do_sandbox_none(void)
 {
-	if (unshare(CLONE_NEWPID)) {
-		debug("unshare(CLONE_NEWPID): %d\n", errno);
-	}
 	int pid = fork();
 	if (pid != 0)
 		return wait_for_loop(pid);

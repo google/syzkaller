@@ -2661,9 +2661,9 @@ static int do_sandbox_none(void)
 	// and they are usually run under non-root.
 	// Also since debug is stripped by pkg/csource, we need to do {}
 	// even though we generally don't do {} around single statements.
-	if (unshare(CLONE_NEWPID)) {
-		debug("unshare(CLONE_NEWPID): %d\n", errno);
-	}
+	//if (unshare(CLONE_NEWPID)) {
+	//		debug("unshare(CLONE_NEWPID): %d\n", errno);
+	//}
 	int pid = fork();
 	if (pid != 0)
 		return wait_for_loop(pid);
