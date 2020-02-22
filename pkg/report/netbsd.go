@@ -180,6 +180,11 @@ var netbsdOopses = append([]*oops{
 				report: compile(`MSan: Uninitialized (?:.*\n)+(?:kmsan|__msan).*\n(.*)\(`),
 				fmt:    "MSan: Uninitialized Memory in %[1]v",
 			},
+			{
+				title:  compile("UBSan: Undefined Behavior"),
+				report: compile(`UBSan: Undefined Behavior (?:.*\n)+__ubsan.*\n(.*)\(`),
+				fmt:    "UBSan: Undefined Behavior in %[1]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
