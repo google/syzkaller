@@ -31,7 +31,7 @@ func (ctx netbsd) build(params *Params) error {
 
 	if strings.HasSuffix(params.Compiler, "clang++") {
 		// Build tools before building kernel
-		if _, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
+		if _, err := osutil.RunCmd(30*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
 			"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
 			"-V", "MKLLVM=yes", "-V", "MKGCC=no", "-V", "HAVE_LLVM=yes", "tools"); err != nil {
 			return err
