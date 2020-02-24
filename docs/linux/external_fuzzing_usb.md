@@ -30,7 +30,7 @@ Kernel patches in mainline:
 
 Kernel patches in review:
 
-- [[v5] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/cover/11332295/)
+- [[v6] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/cover/11400917/)
 - [[RFC] kcov: collect coverage from usbhid interrupts](https://patchwork.kernel.org/cover/11288771/)
 
 
