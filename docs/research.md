@@ -1,5 +1,6 @@
 # Research work based on syzkaller
 
+* [Task selection and seed selection for Syzkaller using reinforcement learning](https://groups.google.com/g/syzkaller/c/eKPD4ZpJ66o/m/UqO_K-SMFwAJ) (announce only)
 * [Empirical Notes on the Interaction Between Continuous Kernel Fuzzing and Development](http://users.utu.fi/kakrind/publications/19/vulnfuzz_camera.pdf)
 * [FastSyzkaller: Improving Fuzz Efficiency for Linux Kernel Fuzzing](https://iopscience.iop.org/article/10.1088/1742-6596/1176/2/022013)
 * [Charm: Facilitating Dynamic Analysis of Device Drivers of Mobile Systems](https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-talebi.pdf)
