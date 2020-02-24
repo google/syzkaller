@@ -2,6 +2,8 @@
 
 `Windows` support is very raw and preliminary (read, non-working).
 
+There is a [closed-source port at Microsoft](https://github.com/dwizzzle/Presentations/blob/master/David%20Weston%20-%20Keeping%20Windows%20Secure%20-%20Bluehat%20IL%202019.pdf).
+
 There is a more complete
 [closed-source Windows port](https://www.slideshare.net/AnthonyLAOUHINETSUEI/wsl-reloaded)
 done by [Fritz](https://twitter.com/anarcheuz) and [zer0mem](https://twitter.com/zer0mem).
@@ -9,6 +11,7 @@ The port has found 6 bugs including
 [CVE-2018-8441](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8441).
 
 Also, BSoDs in WSL: [1](https://twitter.com/yoavalon/status/1102563655743406082), [2](https://twitter.com/NetanelBenSimon/status/1102563950221316096).
+See [BUGS ON THE WINDSHIELD: FUZZING THE WINDOWS KERNEL](https://www.offensivecon.org/speakers/2020/netanel-ben-simon-yoav-alon.html) presentation.
 
 To update descriptions run (assumes `cl` cross-compiler is in PATH):
 ```
