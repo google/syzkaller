@@ -58,8 +58,8 @@ mv go goroot
 mkdir gopath
 export GOPATH=`pwd`/gopath
 export GOROOT=`pwd`/goroot
-export PATH=`pwd`/goroot/bin:$PATH
-export PATH=`pwd`/gopath/bin:$PATH
+export PATH=$GOPATH/bin:$PATH
+export PATH=$GOROOT/bin:$PATH
 ```
 
 Then get and build `syzkaller`:
