@@ -48,8 +48,8 @@ so that there is agreement on high level approach and no duplication of work bet
 
 ## Go
 
-`syzkaller` is written in [Go](https://golang.org), and a `Go 1.11`, `Go 1.12`
-or `Go 1.13` toolchain is required for build. The toolchain can be installed with:
+`syzkaller` is written in [Go](https://golang.org), and `Go 1.11+`
+toolchain is required for build. The toolchain can be installed with:
 
 ```
 wget https://dl.google.com/go/go1.13.8.linux-amd64.tar.gz
@@ -70,10 +70,17 @@ cd gopath/src/github.com/google/syzkaller/
 make
 ```
 
+As the result compiled binaries should appear in the `bin/` dir.
+
+Also see [Go Getting Started](https://golang.org/doc/install) for more details.
+
+Note: if you want to do cross-OS/arch testing, you need to specify `TARGETOS`,
+`TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](/Makefile) for details.
+
 Note: older versions of Go toolchain formatted code in a slightly
 [different way](https://github.com/golang/go/issues/25161).
 So if you are seeing unrelated code formatting diffs after running `make generate`
-or `make format`, you may be using Go 1.10 or older. In such case update to Go 1.11+.
+or `make format`, you may be using `Go 1.10` or older. In such case update to `Go 1.11+`.
 
 ## How to create a pull request
 
