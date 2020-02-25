@@ -48,23 +48,25 @@ so that there is agreement on high level approach and no duplication of work bet
 
 ## Go
 
-`syzkaller` is written in [Go](https://golang.org), and a `Go 1.11` or `Go 1.12`
-toolchain is required for build. The toolchain can be installed with:
+`syzkaller` is written in [Go](https://golang.org), and a `Go 1.11`, `Go 1.12`
+or `Go 1.13` toolchain is required for build. The toolchain can be installed with:
 
 ```
-go get golang.org/dl/go1.12
-go1.12 download
-# Default download path is here.
-~/sdk/go1.12/bin/go version
-export GOROOT=$HOME/sdk/go1.12
-export PATH=$HOME/sdk/go1.12/bin:$PATH
+wget https://dl.google.com/go/go1.13.8.linux-amd64.tar.gz
+tar -xf go1.13.8.linux-amd64.tar.gz
+mv go goroot
+mkdir gopath
+export GOPATH=`pwd`/gopath
+export GOROOT=`pwd`/goroot
+export PATH=`pwd`/goroot/bin:$PATH
+export PATH=`pwd`/gopath/bin:$PATH
 ```
 
 Then get and build `syzkaller`:
 
 ``` bash
 go get -u -d github.com/google/syzkaller/...
-cd $HOME?/go/src/github.com/google/syzkaller/
+cd gopath/src/github.com/google/syzkaller/
 make
 ```
 
