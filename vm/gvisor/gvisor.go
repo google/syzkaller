@@ -104,8 +104,28 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 
+	panicLog := filepath.Join(bundleDir, "panic.fifo")
+	if err := syscall.Mkfifo(panicLog, 0666); err != nil {
+		return nil, err
+	}
+	defer syscall.Unlink(panicLog)
+
+	// Open the fifo for read-write to be able to open for read-only
+	// without blocking.
+	panicLogWriteFD, err := os.OpenFile(panicLog, os.O_RDWR, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer panicLogWriteFD.Close()
+
+	panicLogReadFD, err := os.Open(panicLog)
+	if err != nil {
+		return nil, err
+	}
+
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
+		panicLogReadFD.Close()
 		return nil, err
 	}
 	var tee io.Writer
@@ -114,6 +134,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	merger := vmimpl.NewOutputMerger(tee)
 	merger.Add("gvisor", rpipe)
+	merger.Add("gvisor-goruntime", panicLogReadFD)
 
 	inst := &instance{
 		cfg:      pool.cfg,
@@ -129,11 +150,12 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	osutil.Run(time.Minute, inst.runscCmd("delete", "-force", inst.name))
 	time.Sleep(3 * time.Second)
 
-	cmd := inst.runscCmd("run", "-bundle", bundleDir, inst.name)
+	cmd := inst.runscCmd("--panic-log", panicLog, "run", "-bundle", bundleDir, inst.name)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
 		wpipe.Close()
+		panicLogWriteFD.Close()
 		merger.Wait()
 		return nil, err
 	}
@@ -141,6 +163,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	wpipe.Close()
 
 	if err := inst.waitBoot(); err != nil {
+		panicLogWriteFD.Close()
 		inst.Close()
 		return nil, err
 	}
@@ -332,6 +355,11 @@ func (inst *instance) Diagnose() ([]byte, bool) {
 	if err != nil {
 		b = append(b, []byte(fmt.Sprintf("\n\nError collecting stacks: %v", err))...)
 	}
+	b1, err := osutil.Run(time.Minute, osutil.Command("dmesg"))
+	if err != nil {
+		b = append(b, []byte(fmt.Sprintf("\n\nError collecting kernel logs: %v", err))...)
+	}
+	b = append(b, b1...)
 	return b, false
 }
 
