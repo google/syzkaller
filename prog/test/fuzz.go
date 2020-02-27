@@ -12,8 +12,12 @@ import (
 	_ "github.com/google/syzkaller/sys/test/gen" // import the target we use for fuzzing
 )
 
+var count = 0
 func FuzzDeserialize(data []byte) int {
-	fuzzBuffer[100000000] = 1
+	count++
+	if count > 10000 {
+		panic('CIFuzz test crash')
+	}
 	p0, err0 := fuzzTarget.Deserialize(data, prog.NonStrict)
 	p1, err1 := fuzzTarget.Deserialize(data, prog.Strict)
 	if p0 == nil {
