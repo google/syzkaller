@@ -13,6 +13,7 @@ import (
 )
 
 func FuzzDeserialize(data []byte) int {
+	asdfasdf
 	p0, err0 := fuzzTarget.Deserialize(data, prog.NonStrict)
 	p1, err1 := fuzzTarget.Deserialize(data, prog.Strict)
 	fuzzBuffer[100000000] = 1
