@@ -5,12 +5,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Build Fuzzers
-      uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@master
+      uses: google/Leo-Neat/infra/cifuzz/actions/build_fuzzers@master
       with:
         oss-fuzz-project-name: 'syzkaller'
         dry-run: false
     - name: Run Fuzzers
-      uses: google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@master
+      uses: google/Leo-Neat/infra/cifuzz/actions/run_fuzzers@master
       with:
         oss-fuzz-project-name: 'syzkaller'
         fuzz-seconds: 600
