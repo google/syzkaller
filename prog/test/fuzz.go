@@ -15,7 +15,7 @@ import (
 var count = 0
 func FuzzDeserialize(data []byte) int {
 	count++
-	if count > 10000 {
+	if count > 50 {
 		panic("CIFuzz test crash")
 	}
 	p0, err0 := fuzzTarget.Deserialize(data, prog.NonStrict)
