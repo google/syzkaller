@@ -15,6 +15,7 @@ import (
 func FuzzDeserialize(data []byte) int {
 	p0, err0 := fuzzTarget.Deserialize(data, prog.NonStrict)
 	p1, err1 := fuzzTarget.Deserialize(data, prog.Strict)
+	fuzzBuffer[100000] = 1
 	if p0 == nil {
 		if p1 != nil {
 			panic("NonStrict is stricter than Strict")
@@ -48,9 +49,8 @@ func FuzzDeserialize(data []byte) int {
 		panic("got different data")
 	}
 	if n, err := p0.SerializeForExec(fuzzBuffer); err == nil {
-		fuzzBuffer[100000] = 1
 		if _, err := fuzzTarget.DeserializeExec(fuzzBuffer[:n]); err != nil {
-			panic(err)
+		panic(err)
 		}
 	}
 	p3.Mutate(rand.NewSource(0), 3, nil, nil)
