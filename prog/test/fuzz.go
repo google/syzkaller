@@ -12,9 +12,10 @@ import (
 	_ "github.com/google/syzkaller/sys/test/gen" // import the target we use for fuzzing
 )
 
+func FuzzDeserialize(data []byte) int {
+	fuzzBuffer[100000000] = 1
 	p0, err0 := fuzzTarget.Deserialize(data, prog.NonStrict)
 	p1, err1 := fuzzTarget.Deserialize(data, prog.Strict)
-	fuzzBuffer[100000000] = 1
 	if p0 == nil {
 		if p1 != nil {
 			panic("NonStrict is stricter than Strict")
@@ -49,7 +50,7 @@ import (
 	}
 	if n, err := p0.SerializeForExec(fuzzBuffer); err == nil {
 		if _, err := fuzzTarget.DeserializeExec(fuzzBuffer[:n]); err != nil {
-		panic(err)
+			panic(err)
 		}
 	}
 	p3.Mutate(rand.NewSource(0), 3, nil, nil)
