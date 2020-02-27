@@ -190,6 +190,10 @@ var openbsdOopses = append([]*oops{
 				title: compile("panic: (kqueue|knote).* ([a-z]+ .*)"),
 				fmt:   "kqueue: %[2]v",
 			},
+			{
+				title: compile("panic: receive ([0-9][a-z]*):"),
+				fmt:   "soreceive %[1]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
