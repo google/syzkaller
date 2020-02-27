@@ -881,8 +881,10 @@ static void netlink_wireguard_setup(void)
 	int id, err;
 
 	sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-	if (sock == -1)
-		fail("socket(AF_NETLINK) failed\n");
+	if (sock == -1) {
+		debug("socket(AF_NETLINK) failed: %s\n", strerror(errno));
+		return;
+	}
 
 	id = netlink_wireguard_id_get(&nlmsg, sock);
 	if (id == -1)
