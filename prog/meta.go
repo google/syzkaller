@@ -19,7 +19,7 @@ func init() {
 	GitRevisionBase = strings.Replace(GitRevision, "+", "", -1)
 	if gitRevisionDate != "" {
 		var err error
-		if GitRevisionDate, err = time.Parse("Mon Jan 2 15:04:05 2006 -0700", gitRevisionDate); err != nil {
+		if GitRevisionDate, err = time.Parse("Mon, 2 Jan 2006 15:04:05 -0700", gitRevisionDate); err != nil {
 			panic(err)
 		}
 	}
