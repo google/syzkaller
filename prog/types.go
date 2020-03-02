@@ -21,6 +21,21 @@ type Syscall struct {
 	outputResources []*ResourceDesc
 }
 
+type BySyscallID []*Syscall
+
+func (s BySyscallID) Len() int {
+	return len(s)
+}
+
+func (s BySyscallID) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s BySyscallID) Less(i, j int) bool {
+	return s[i].ID < s[j].ID
+}
+
+
 type Dir int
 
 const (
