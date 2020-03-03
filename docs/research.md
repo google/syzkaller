@@ -1,5 +1,6 @@
 # Research work based on syzkaller
 
+_newer first_
 * [Task selection and seed selection for Syzkaller using reinforcement learning](https://groups.google.com/g/syzkaller/c/eKPD4ZpJ66o/m/UqO_K-SMFwAJ) (announce only)
 * [Empirical Notes on the Interaction Between Continuous Kernel Fuzzing and Development](http://users.utu.fi/kakrind/publications/19/vulnfuzz_camera.pdf)
 * [FastSyzkaller: Improving Fuzz Efficiency for Linux Kernel Fuzzing](https://iopscience.iop.org/article/10.1088/1742-6596/1176/2/022013)
@@ -24,3 +25,5 @@
 * [kernel-fuzzing](https://github.com/oracle/kernel-fuzzing) (bridges AFL and KCOV)
 * [A gentle introduction to Linux Kernel fuzzing](https://blog.cloudflare.com/a-gentle-introduction-to-linux-kernel-fuzzing/) (bridges AFL and KCOV)
 * [IMF: Inferred Model-based Fuzzer](https://acmccs.github.io/papers/p2345-hanA.pdf)
+
+Also see [tech talks page](/docs/talks.md).
