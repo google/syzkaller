@@ -57,6 +57,10 @@ func main() {
 				log.Printf("%v: no repro (cached)", id)
 				continue
 			}
+			if _, err := os.Stat(filepath.Join(*flagOutputDir, id+".error")); err == nil {
+				log.Printf("%v: error (cached)", id)
+				continue
+			}
 			idchan <- id
 		}
 		close(idchan)
@@ -100,6 +104,11 @@ func writeRepros(bugchan chan *dashapi.LoadBugResp) {
 			log.Printf("%v: %v: syz repro on %v", bug.ID, bug.Status, bug.SyzkallerCommit)
 			if err := createCRepro(bug); err != nil {
 				log.Print(err)
+				errText := []byte(err.Error())
+				file := filepath.Join(*flagOutputDir, bug.ID+".error")
+				if err := ioutil.WriteFile(file, errText, 0644); err != nil {
+					log.Fatalf("failed to write file: %v", err)
+				}
 				continue
 			}
 		}
