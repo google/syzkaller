@@ -353,13 +353,13 @@ func (inst *instance) guestProxy() (*os.File, error) {
 func (inst *instance) Diagnose() ([]byte, bool) {
 	b, err := osutil.Run(time.Minute, inst.runscCmd("debug", "-stacks", "--ps", inst.name))
 	if err != nil {
-		b = append(b, []byte(fmt.Sprintf("\n\nError collecting stacks: %v", err))...)
+		b = append(b, fmt.Sprintf("\n\nError collecting stacks: %v", err)...)
 	}
-	b1, err := osutil.Run(time.Minute, osutil.Command("dmesg"))
-	if err != nil {
-		b = append(b, []byte(fmt.Sprintf("\n\nError collecting kernel logs: %v", err))...)
-	}
+	b1, err := osutil.RunCmd(time.Minute, "", "dmesg")
 	b = append(b, b1...)
+	if err != nil {
+		b = append(b, fmt.Sprintf("\n\nError collecting kernel logs: %v", err)...)
+	}
 	return b, false
 }
 
