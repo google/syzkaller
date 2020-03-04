@@ -13,9 +13,10 @@ import (
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
-		unix:    targets.MakeUnixSanitizer(target),
-		S_IFMT:  target.GetConst("S_IFMT"),
-		S_IFCHR: target.GetConst("S_IFCHR"),
+		unix:           targets.MakeUnixSanitizer(target),
+		DIOCKILLSTATES: target.GetConst("DIOCKILLSTATES"),
+		S_IFMT:         target.GetConst("S_IFMT"),
+		S_IFCHR:        target.GetConst("S_IFCHR"),
 	}
 
 	target.MakeMmap = targets.MakePosixMmap(target)
@@ -24,9 +25,10 @@ func InitTarget(target *prog.Target) {
 }
 
 type arch struct {
-	unix    *targets.UnixSanitizer
-	S_IFMT  uint64
-	S_IFCHR uint64
+	unix           *targets.UnixSanitizer
+	DIOCKILLSTATES uint64
+	S_IFMT         uint64
+	S_IFCHR        uint64
 }
 
 const (
@@ -90,6 +92,14 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 		}
 		for _, f := range badflags {
 			flags.Val &= ^f
+		}
+	case "ioctl":
+		// Performing the following ioctl on a /dev/pf file descriptor
+		// causes the ssh VM connection to die. For now, just rewire it
+		// to an invalid command.
+		request := c.Args[1].(*prog.ConstArg)
+		if request.Val == arch.DIOCKILLSTATES {
+			request.Val = 0
 		}
 	case "mknodat":
 		argStart = 2
