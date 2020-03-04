@@ -57,21 +57,26 @@ func (*openbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 			args = append(args, "-I"+dir)
 		}
 	}
-	// Syscall consts on openbsd have weird prefixes sometimes,
-	// try to extract consts with these prefixes as well.
+	// Some syscalls on OpenBSD are prefixed with `SYS___' as opposed of the
+	// more common `SYS_' prefix.
+	syscallsQuirks := map[string]bool{
+		"SYS_get_tcb":      true,
+		"SYS_getcwd":       true,
+		"SYS_realpath":     true,
+		"SYS_semctl":       true,
+		"SYS_set_tcb":      true,
+		"SYS_syscall":      true,
+		"SYS_tfork":        true,
+		"SYS_threxit":      true,
+		"SYS_thrsigdivert": true,
+		"SYS_thrsleep":     true,
+		"SYS_thrwakeup":    true,
+		"SYS_tmpfd":        true,
+	}
 	compatNames := make(map[string][]string)
 	for _, val := range info.Consts {
-		const SYS = "SYS_"
-		if strings.HasPrefix(val, SYS) {
-			for _, prefix := range []string{"_", "__", "___"} {
-				for _, suffix := range []string{"30", "50"} {
-					compat := SYS + prefix + val[len(SYS):] + suffix
-					compatNames[val] = append(compatNames[val], compat)
-					info.Consts = append(info.Consts, compat)
-				}
-			}
-		} else {
-			compat := "LINUX_" + val
+		if _, ok := syscallsQuirks[val]; ok {
+			compat := "SYS___" + val[len("SYS_"):]
 			compatNames[val] = append(compatNames[val], compat)
 			info.Consts = append(info.Consts, compat)
 		}
