@@ -16,7 +16,7 @@ include <linux/interrupt.h>
 include <linux/usb/cdc_ncm.h>
 include <drivers/net/usb/asix.h>
 
-# This is a special fd for USB fuzzing and should only be used with syz_usb_* syzcalls.
+# This is a special fd for USB fuzzing and should only be used with syz_usb_* pseudo-syscalls.
 # We don't inherit it from the fd resource, to discourage syzkaller calling raw ioctls on it.
 resource fd_usb[int32]: -1
 resource fd_usb_hid[fd_usb]
@@ -25,7 +25,7 @@ resource fd_usb_cdc_ecm[fd_usb]
 resource fd_usb_cdc_ncm[fd_usb]
 resource fd_usb_uac1[fd_usb]
 
-# These are generic syzcalls for emulating arbitrary USB devices.
+# These are generic pseudo-syscalls for emulating arbitrary USB devices.
 # They are mostly targeted to cover the enumeration process.
 syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb
 syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
@@ -33,23 +33,23 @@ syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data buffer[in])
 syz_usb_ep_read(fd fd_usb, ep int16[0:31], len len[data], data buffer[out])
 syz_usb_disconnect(fd fd_usb)
 
-# These syzcalls specifically target the HID device class.
+# These pseudo-syscalls specifically target the HID device class.
 syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
 syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid])
 
-# These syzcalls specifically target the PRINTER device class.
+# These pseudo-syscalls specifically target the PRINTER device class.
 syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer
 syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer])
 
-# These syzcalls specifically target the CDC ECM (Ethernet) device class.
+# These pseudo-syscalls specifically target the CDC ECM (Ethernet) device class.
 syz_usb_connect$cdc_ecm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ecm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ecm
 syz_usb_control_io$cdc_ecm(fd fd_usb_cdc_ecm, descs ptr[in, vusb_descriptors_cdc_ecm], resps ptr[in, vusb_responses_cdc_ecm])
 
-# These syzcalls specifically target the CDC NCM device class.
+# These pseudo-syscalls specifically target the CDC NCM device class.
 syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm
 syz_usb_control_io$cdc_ncm(fd fd_usb_cdc_ncm, descs ptr[in, vusb_descriptors_cdc_ncm], resps ptr[in, vusb_responses_cdc_ncm])
 
-# These syzcalls specifically target the UAC1 device class.
+# These pseudo-syscalls specifically target the UAC1 device class.
 syz_usb_connect$uac1(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac1], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_uac1
 syz_usb_control_io$uac1(fd fd_usb_uac1, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1])
 

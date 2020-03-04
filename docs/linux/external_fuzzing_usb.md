@@ -54,7 +54,7 @@ c. making UDC driver name configurable for syz-execprog and syz-prog2c.
 
 ## Internals
 
-Currently syzkaller defines 5 USB syzcalls (see [this](/sys/linux/vusb.txt) and [this](/executor/common_usb.h)):
+Currently syzkaller defines 5 USB pseudo-syscalls (see [this](/sys/linux/vusb.txt) and [this](/executor/common_usb.h)):
 
 1. `syz_usb_connect` - connects a USB device.
 2. `syz_usb_disconnect` - disconnects a USB device.
@@ -93,7 +93,7 @@ The correspoding runtests are [here](/sys/linux/test/) and start with `vusb` pre
 
 4. Optionally update syzkaller descriptions by extracting USB IDs using the instructions below.
 
-5. Enable `syz_usb_connect`, `syz_usb_disconnect`, `syz_usb_control_io`, `syz_usb_ep_write` and `syz_usb_ep_read` syzcalls in the manager config.
+5. Enable `syz_usb_connect`, `syz_usb_disconnect`, `syz_usb_control_io`, `syz_usb_ep_write` and `syz_usb_ep_read` pseudo-syscalls in the manager config.
 
 6. Set `sandbox` to `none` in the manager config.
 
@@ -104,7 +104,7 @@ The correspoding runtests are [here](/sys/linux/test/) and start with `vusb` pre
 
 ## Updating syzkaller USB IDs
 
-Syzkaller uses a list of hardcoded [USB IDs](/sys/linux/init_vusb_ids.go) that are [patched](/sys/linux/init_vusb.go) into the `syz_usb_connect` syzcall by syzkaller runtime.
+Syzkaller uses a list of hardcoded [USB IDs](/sys/linux/init_vusb_ids.go) that are [patched](/sys/linux/init_vusb.go) into the `syz_usb_connect` pseudo-syscall by syzkaller runtime.
 One of the ways to make syzkaller target only particular USB drivers is to alter that list.
 The instructions below describe a hackish way to generate syzkaller USB IDs for all USB drivers enabled in your .config.
 
