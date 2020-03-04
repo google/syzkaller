@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 )
 
@@ -19,6 +22,7 @@ var (
 	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
 	flagKernelObj = flag.String("kernel_obj", ".", "path to kernel build/obj dir")
 	flagKernelSrc = flag.String("kernel_src", "", "path to kernel sources (defaults to kernel_obj)")
+	flagOutDir    = flag.String("outdir", "", "output directory")
 )
 
 func main() {
@@ -49,6 +53,8 @@ func main() {
 	rep := reporter.Parse(text)
 	if rep == nil {
 		rep = &report.Report{Report: text}
+	} else if *flagOutDir != "" {
+		saveCrash(rep, *flagOutDir)
 	}
 	if err := reporter.Symbolize(rep); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
@@ -59,4 +65,27 @@ func main() {
 	fmt.Printf("MAINTAINERS: %v\n", rep.Maintainers)
 	fmt.Printf("\n")
 	os.Stdout.Write(rep.Report)
+}
+
+func saveCrash(rep *report.Report, path string) {
+	sig := hash.Hash([]byte(rep.Title))
+	id := sig.String()
+	dir := filepath.Join(path, id)
+	osutil.MkdirAll(dir)
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to write description: %v", err)
+		os.Exit(1)
+	}
+
+	if err := osutil.WriteFile(filepath.Join(dir, "log"), rep.Output); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to write log: %v", err)
+		os.Exit(1)
+	}
+
+	if len(rep.Report) > 0 {
+		if err := osutil.WriteFile(filepath.Join(dir, "report"), rep.Report); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to write report: %v", err)
+			os.Exit(1)
+		}
+	}
 }
