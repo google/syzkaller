@@ -19,6 +19,7 @@ var resources_amd64 = []*ResourceDesc{
 	{Name: "fd_klog", Kind: []string{"fd", "fd_klog"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_kqueue", Kind: []string{"fd", "fd_kqueue"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_pci", Kind: []string{"fd", "fd_pci"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "fd_pf", Kind: []string{"fd", "fd_pf"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_speaker", Kind: []string{"fd", "fd_speaker"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_tty", Kind: []string{"fd", "fd_tty"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_vmm", Kind: []string{"fd", "fd_vmm"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -1897,6 +1898,12 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 8, 16, 32, 64, 128, 128, 128, 256, 512, 1024, 2048, 32768, 65536, 131072}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_pci", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 321, Name: "openat$pf", CallName: "openat", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 8}, Kind: 2, Values: []string{"/dev/pf\x00"}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 8, 16, 32, 64, 128, 128, 128, 256, 512, 1024, 2048, 32768, 65536, 131072}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_pf", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 321, Name: "openat$speaker", CallName: "openat", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/speaker\x00"}}},
@@ -2491,6 +2498,7 @@ var consts_amd64 = []ConstValue{
 	{"CLOCK_PROCESS_CPUTIME_ID", 2},
 	{Name: "CLOCK_REALTIME"},
 	{"CLOCK_THREAD_CPUTIME_ID", 4},
+	{"DIOCKILLSTATES", 3235922985},
 	{"DIOCMAP", 3222299767},
 	{"DM_OPENBLCK", 2},
 	{"DM_OPENPART", 1},
@@ -3050,4 +3058,4 @@ var consts_amd64 = []ConstValue{
 	{"__MAP_NOREPLACE", 2048},
 }
 
-const revision_amd64 = "361f7adfaff69eb683f0c63eb1cb1a0d4fdd1ca5"
+const revision_amd64 = "6c58885985007c08bbc08a61d5fcdf22ae662d55"

@@ -1,0 +1,17 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/time.h>
+include <sys/fcntl.h>
+include <sys/ioctl.h>
+include <net/if.h>
+
+include <net/pfvar.h>
+
+# This ioctl is restricted in SanitizeCall(), see init.go.
+_ = DIOCKILLSTATES
+
+resource fd_pf[fd]
+
+openat$pf(fd const[AT_FDCWD], file ptr[in, string["/dev/pf"]], flags flags[open_flags], mode const[0]) fd_pf

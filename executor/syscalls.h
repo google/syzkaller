@@ -22281,6 +22281,7 @@ const call_t syscalls[] = {
     {"openat$klog", 321},
     {"openat$null", 321},
     {"openat$pci", 321},
+    {"openat$pf", 321},
     {"openat$speaker", 321},
     {"openat$tty", 321},
     {"openat$vmm", 321},
