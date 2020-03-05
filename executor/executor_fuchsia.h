@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <zircon/status.h>
 #include <zircon/syscalls.h>
 
 #include "nocover.h"
@@ -14,7 +15,7 @@ static void os_init(int argc, char** argv, void* data, size_t data_size)
 {
 	zx_status_t status = syz_mmap((size_t)data, data_size);
 	if (status != ZX_OK)
-		fail("mmap of data segment failed with: %d", status);
+		fail("mmap of data segment failed: %s (%d)", zx_status_get_string(status), status);
 }
 
 static intptr_t execute_syscall(const call_t* c, intptr_t a[kMaxArgs])
