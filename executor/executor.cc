@@ -1404,6 +1404,10 @@ void setup_features(char** enable, int n)
 {
 	// This does any one-time setup for the requested features on the machine.
 	// Note: this can be called multiple times and must be idempotent.
+#if SYZ_HAVE_FEATURES
+	// Note: this is not executed in C reproducers.
+	setup_machine();
+#endif
 	for (int i = 0; i < n; i++) {
 		bool found = false;
 #if SYZ_HAVE_FEATURES

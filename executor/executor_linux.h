@@ -225,3 +225,15 @@ static feature_t features[] = {
     {"binfmt_misc", setup_binfmt_misc},
     {"kcsan", setup_kcsan},
 };
+
+static void setup_machine()
+{
+	// nmi_check_duration() prints "INFO: NMI handler took too long" on slow debug kernels.
+	// It happens a lot in qemu, and the messages are frequently corrupted
+	// (intermixed with other kernel output as they are printed from NMI)
+	// and are not matched against the suppression in pkg/report.
+	// This write prevents these messages from being printed.
+	// Note: this is not executed in C reproducers.
+	if (!write_file("/sys/kernel/debug/x86/nmi_longest_ns", "10000000000"))
+		printf("write to /sys/kernel/debug/x86/nmi_longest_ns failed: %s\n", strerror(errno));
+}

@@ -1341,13 +1341,6 @@ var linuxOopses = append([]*oops{
 		[]*regexp.Regexp{
 			compile("INFO: lockdep is turned off"),
 			compile("INFO: Stall ended before state dump start"),
-			// This is printed by nmi_check_duration(), the message simply states
-			// that an interrupt took too long. It happens a lot in qemu,
-			// and the messages are frequently corrupted (intermixed with other
-			// kernel output as they are printed from NMI) and are not matched
-			// against this suppression. There is a debug var that holds the current
-			// max duration, so potentially this can be fixed with:
-			// echo 10000000000 > /sys/kernel/debug/x86/nmi_longest_ns
 			compile("INFO: NMI handler"),
 			compile("INFO: recovery required on readonly filesystem"),
 			compile("(handler|interrupt).*took too long"),
