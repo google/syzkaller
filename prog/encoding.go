@@ -1130,8 +1130,9 @@ func (p *parser) strictFailf(msg string, args ...interface{}) {
 
 // CallSet returns a set of all calls in the program.
 // It does very conservative parsing and is intended to parse past/future serialization formats.
-func CallSet(data []byte) (map[string]struct{}, error) {
+func CallSet(data []byte) (map[string]struct{}, int, error) {
 	calls := make(map[string]struct{})
+	ncalls := 0
 	s := bufio.NewScanner(bytes.NewReader(data))
 	s.Buffer(nil, maxLineLen)
 	for s.Scan() {
@@ -1141,7 +1142,7 @@ func CallSet(data []byte) (map[string]struct{}, error) {
 		}
 		bracket := bytes.IndexByte(ln, '(')
 		if bracket == -1 {
-			return nil, fmt.Errorf("line does not contain opening bracket")
+			return nil, 0, fmt.Errorf("line does not contain opening bracket")
 		}
 		call := ln[:bracket]
 		if eq := bytes.IndexByte(call, '='); eq != -1 {
@@ -1152,15 +1153,16 @@ func CallSet(data []byte) (map[string]struct{}, error) {
 			call = call[eq:]
 		}
 		if len(call) == 0 {
-			return nil, fmt.Errorf("call name is empty")
+			return nil, 0, fmt.Errorf("call name is empty")
 		}
 		calls[string(call)] = struct{}{}
+		ncalls++
 	}
 	if err := s.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if len(calls) == 0 {
-		return nil, fmt.Errorf("program does not contain any calls")
+		return nil, 0, fmt.Errorf("program does not contain any calls")
 	}
-	return calls, nil
+	return calls, ncalls, nil
 }

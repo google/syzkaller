@@ -102,7 +102,7 @@ const (
 	phaseTriagedHub
 )
 
-const currentDBVersion = 3
+const currentDBVersion = 4
 
 type Crash struct {
 	vmIndex int
@@ -463,23 +463,30 @@ func (mgr *Manager) loadCorpus() {
 		// Version 2->3: big-endian hints.
 		smashed = false
 		fallthrough
+	case 3:
+		// Version 3->4: to shake things up.
+		minimized = false
+		fallthrough
 	case currentDBVersion:
 	}
 	syscalls := make(map[int]bool)
 	for _, id := range mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox] {
 		syscalls[id] = true
 	}
-	deleted := 0
+	broken, tooLong := 0, 0
 	for key, rec := range mgr.corpusDB.Records {
 		p, err := mgr.target.Deserialize(rec.Val, prog.NonStrict)
 		if err != nil {
-			if deleted < 10 {
-				log.Logf(0, "deleting broken program: %v\n%s", err, rec.Val)
-			}
 			mgr.corpusDB.Delete(key)
-			deleted++
+			broken++
 			continue
 		}
+		if len(p.Calls) > prog.MaxCalls {
+			mgr.corpusDB.Delete(key)
+			tooLong++
+			continue
+		}
+
 		disabled := false
 		for _, c := range p.Calls {
 			if !syscalls[c.Meta.ID] {
@@ -501,7 +508,8 @@ func (mgr *Manager) loadCorpus() {
 		})
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	log.Logf(0, "%-24v: %v (%v deleted)", "corpus", len(mgr.candidates), deleted)
+	log.Logf(0, "%-24v: %v (deleted %v broken, %v too long)",
+		"corpus", len(mgr.candidates), broken, tooLong)
 
 	// Now this is ugly.
 	// We duplicate all inputs in the corpus and shuffle the second part.

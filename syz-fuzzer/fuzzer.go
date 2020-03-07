@@ -368,21 +368,7 @@ func (fuzzer *Fuzzer) poll(needCandidates bool, stats map[string]uint64) bool {
 		fuzzer.addInputFromAnotherFuzzer(inp)
 	}
 	for _, candidate := range r.Candidates {
-		p, err := fuzzer.target.Deserialize(candidate.Prog, prog.NonStrict)
-		if err != nil {
-			log.Fatalf("failed to parse program from manager: %v", err)
-		}
-		flags := ProgCandidate
-		if candidate.Minimized {
-			flags |= ProgMinimized
-		}
-		if candidate.Smashed {
-			flags |= ProgSmashed
-		}
-		fuzzer.workQueue.enqueue(&WorkCandidate{
-			p:     p,
-			flags: flags,
-		})
+		fuzzer.addCandidateInput(candidate)
 	}
 	if needCandidates && len(r.Candidates) == 0 && atomic.LoadUint32(&fuzzer.triagedCandidates) == 0 {
 		atomic.StoreUint32(&fuzzer.triagedCandidates, 1)
@@ -401,13 +387,42 @@ func (fuzzer *Fuzzer) sendInputToManager(inp rpctype.RPCInput) {
 }
 
 func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp rpctype.RPCInput) {
-	p, err := fuzzer.target.Deserialize(inp.Prog, prog.NonStrict)
-	if err != nil {
-		log.Fatalf("failed to deserialize prog from another fuzzer: %v", err)
+	p := fuzzer.deserializeInput(inp.Prog)
+	if p == nil {
+		return
 	}
 	sig := hash.Hash(inp.Prog)
 	sign := inp.Signal.Deserialize()
 	fuzzer.addInputToCorpus(p, sign, sig)
+}
+
+func (fuzzer *Fuzzer) addCandidateInput(candidate rpctype.RPCCandidate) {
+	p := fuzzer.deserializeInput(candidate.Prog)
+	if p == nil {
+		return
+	}
+	flags := ProgCandidate
+	if candidate.Minimized {
+		flags |= ProgMinimized
+	}
+	if candidate.Smashed {
+		flags |= ProgSmashed
+	}
+	fuzzer.workQueue.enqueue(&WorkCandidate{
+		p:     p,
+		flags: flags,
+	})
+}
+
+func (fuzzer *Fuzzer) deserializeInput(inp []byte) *prog.Prog {
+	p, err := fuzzer.target.Deserialize(inp, prog.NonStrict)
+	if err != nil {
+		log.Fatalf("failed to deserialize prog: %v\n%s", err, inp)
+	}
+	if len(p.Calls) > prog.MaxCalls {
+		return nil
+	}
+	return p
 }
 
 func (fuzzer *FuzzerSnapshot) chooseProgram(r *rand.Rand) *prog.Prog {
