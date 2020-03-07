@@ -24,7 +24,7 @@ var (
 	flagOS     = flag.String("os", runtime.GOOS, "target os")
 	flagArch   = flag.String("arch", runtime.GOARCH, "target arch")
 	flagSeed   = flag.Int("seed", -1, "prng seed")
-	flagLen    = flag.Int("len", 30, "number of calls in programs")
+	flagLen    = flag.Int("len", prog.RecommendedCalls, "number of calls in programs")
 	flagEnable = flag.String("enable", "", "comma-separated list of enabled syscalls")
 	flagCorpus = flag.String("corpus", "", "name of the corpus file")
 )

@@ -165,7 +165,7 @@ func (serv *RPCServer) selectInputs(enabled map[string]bool, inputs0 []rpctype.R
 	inputs []rpctype.RPCInput, signal signal.Signal) {
 	signal = signal0.Copy()
 	for _, inp := range inputs0 {
-		calls, err := prog.CallSet(inp.Prog)
+		calls, _, err := prog.CallSet(inp.Prog)
 		if err != nil {
 			panic(fmt.Sprintf("rotateInputs: CallSet failed: %v\n%s", err, inp.Prog))
 		}
@@ -210,9 +210,14 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	inputSignal := a.Signal.Deserialize()
 	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
 		a.Name, a.Call, inputSignal.Len(), len(a.Cover))
-	if _, err := serv.target.Deserialize(a.RPCInput.Prog, prog.NonStrict); err != nil {
-		// This should not happen, but we see such cases episodically, reason unknown.
+	p, err := serv.target.Deserialize(a.RPCInput.Prog, prog.NonStrict)
+	if err != nil {
+		// This should not happen, but we see such cases episodically (probably corrupted VM memory).
 		log.Logf(0, "failed to deserialize program from fuzzer: %v\n%s", err, a.RPCInput.Prog)
+		return nil
+	}
+	if len(p.Calls) > prog.MaxCalls {
+		log.Logf(0, "rejecting too long program from fuzzer: %v calls\n%s", len(p.Calls), a.RPCInput.Prog)
 		return nil
 	}
 	serv.mu.Lock()

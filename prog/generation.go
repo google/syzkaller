@@ -7,8 +7,8 @@ import (
 	"math/rand"
 )
 
-// Generate generates a random program of length ~ncalls.
-// calls is a set of allowed syscalls, if nil all syscalls are used.
+// Generate generates a random program with ncalls calls.
+// ct contains a set of allowed syscalls, if nil all syscalls are used.
 func (target *Target) Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Prog {
 	p := &Prog{
 		Target: target,
@@ -21,6 +21,13 @@ func (target *Target) Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Pro
 			s.analyze(c)
 			p.Calls = append(p.Calls, c)
 		}
+	}
+	// For the last generated call we could get additional calls that create
+	// resources and overflow ncalls. Remove some of these calls.
+	// The resources in the last call will be replaced with the default values,
+	// which is exactly what we want.
+	for len(p.Calls) > ncalls {
+		p.removeCall(ncalls - 1)
 	}
 	p.debugValidate()
 	return p

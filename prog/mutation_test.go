@@ -136,7 +136,7 @@ func TestMutateArgument(t *testing.T) {
 				ctx := &mutator{
 					p:      p1,
 					r:      newRand(p1.Target, rs),
-					ncalls: 0,
+					ncalls: 2 * len(p.Calls),
 					ct:     ct,
 					corpus: nil,
 				}
@@ -163,7 +163,7 @@ func TestSizeMutateArg(t *testing.T) {
 			ctx := &mutator{
 				p:      p1,
 				r:      r,
-				ncalls: 10,
+				ncalls: 2 * len(p.Calls),
 				ct:     ct,
 				corpus: nil,
 			}
@@ -451,7 +451,7 @@ func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 				t.Fatalf("failed to deserialize the program: %v", err)
 			}
 			want := goal.Serialize()
-			iters := int(1e5)
+			iters := int(1e6)
 			if !valid {
 				iters /= 10
 			}
