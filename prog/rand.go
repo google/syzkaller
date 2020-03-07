@@ -16,6 +16,14 @@ import (
 	_ "github.com/google/syzkaller/pkg/ifuzz/generated" // pull in generated instruction descriptions
 )
 
+const (
+	// "Recommended" number of calls in programs that we try to aim at during fuzzing.
+	RecommendedCalls = 20
+	// "Recommended" max number of calls in programs.
+	// If we receive longer programs from hub/corpus we discard them.
+	MaxCalls = 40
+)
+
 type randGen struct {
 	*rand.Rand
 	target           *Target
@@ -344,8 +352,7 @@ func (r *randGen) allocVMA(s *state, typ Type, numPages uint64) *PointerArg {
 
 func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []*Call) {
 	if r.inCreateResource {
-		special := res.SpecialValues()
-		return MakeResultArg(res, nil, special[r.Intn(len(special))]), nil
+		return nil, nil
 	}
 	r.inCreateResource = true
 	defer func() { r.inCreateResource = false }()
@@ -675,44 +682,27 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 }
 
 func (a *ResourceType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	switch {
-	case r.nOutOf(2, 5):
-		var res *ResultArg
-		res, calls = resourceCentric(a, s, r)
-		if res == nil {
-			return r.createResource(s, a)
+	if r.oneOf(3) {
+		arg = r.existingResource(s, a)
+		if arg != nil {
+			return
 		}
-		arg = MakeResultArg(a, res, 0)
-	case r.nOutOf(1, 2):
-		// Get an existing resource.
-		alltypes := make([][]*ResultArg, 0, len(s.resources))
-		for _, res1 := range s.resources {
-			alltypes = append(alltypes, res1)
-		}
-		sort.Slice(alltypes, func(i, j int) bool {
-			return alltypes[i][0].Type().Name() < alltypes[j][0].Type().Name()
-		})
-		var allres []*ResultArg
-		for _, res1 := range alltypes {
-			name1 := res1[0].Type().Name()
-			if r.target.isCompatibleResource(a.Desc.Name, name1) ||
-				r.oneOf(20) && r.target.isCompatibleResource(a.Desc.Kind[0], name1) {
-				allres = append(allres, res1...)
-			}
-		}
-		if len(allres) != 0 {
-			arg = MakeResultArg(a, allres[r.Intn(len(allres))], 0)
-		} else {
-			arg, calls = r.createResource(s, a)
-		}
-	case r.nOutOf(2, 3):
-		// Create a new resource.
-		arg, calls = r.createResource(s, a)
-	default:
-		special := a.SpecialValues()
-		arg = MakeResultArg(a, nil, special[r.Intn(len(special))])
 	}
-	return arg, calls
+	if r.nOutOf(2, 3) {
+		arg, calls = r.resourceCentric(s, a)
+		if arg != nil {
+			return
+		}
+	}
+	if r.nOutOf(4, 5) {
+		arg, calls = r.createResource(s, a)
+		if arg != nil {
+			return
+		}
+	}
+	special := a.SpecialValues()
+	arg = MakeResultArg(a, nil, special[r.Intn(len(special))])
+	return
 }
 
 func (a *BufferType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
@@ -841,9 +831,32 @@ func (a *CsumType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 	return MakeConstArg(a, 0), nil
 }
 
+func (r *randGen) existingResource(s *state, res *ResourceType) Arg {
+	alltypes := make([][]*ResultArg, 0, len(s.resources))
+	for _, res1 := range s.resources {
+		alltypes = append(alltypes, res1)
+	}
+	sort.Slice(alltypes, func(i, j int) bool {
+		return alltypes[i][0].Type().Name() < alltypes[j][0].Type().Name()
+	})
+	var allres []*ResultArg
+	for _, res1 := range alltypes {
+		name1 := res1[0].Type().Name()
+		if r.target.isCompatibleResource(res.Desc.Name, name1) ||
+			r.oneOf(50) && r.target.isCompatibleResource(res.Desc.Kind[0], name1) {
+			allres = append(allres, res1...)
+		}
+	}
+	if len(allres) == 0 {
+		return nil
+	}
+	return MakeResultArg(res, allres[r.Intn(len(allres))], 0)
+}
+
 // Finds a compatible resource with the type `t` and the calls that initialize that resource.
-func resourceCentric(t *ResourceType, s *state, r *randGen) (resource *ResultArg, calls []*Call) {
+func (r *randGen) resourceCentric(s *state, t *ResourceType) (arg Arg, calls []*Call) {
 	var p *Prog
+	var resource *ResultArg
 	for idx := range r.Perm(len(s.corpus)) {
 		p = s.corpus[idx].Clone()
 		resources := getCompatibleResources(p, t.TypeName, r)
@@ -893,7 +906,7 @@ func resourceCentric(t *ResourceType, s *state, r *randGen) (resource *ResultArg
 		p.removeCall(i)
 	}
 
-	return resource, p.Calls
+	return MakeResultArg(t, resource, 0), p.Calls
 }
 
 func getCompatibleResources(p *Prog, resourceType string, r *randGen) (resources []*ResultArg) {

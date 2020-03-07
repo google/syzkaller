@@ -171,7 +171,8 @@ func (hc *HubConnector) processProgs(progs [][]byte) int {
 	dropped := 0
 	candidates := make([][]byte, 0, len(progs))
 	for _, inp := range progs {
-		if _, err := hc.target.Deserialize(inp, prog.NonStrict); err != nil {
+		p, err := hc.target.Deserialize(inp, prog.NonStrict)
+		if err != nil || len(p.Calls) > prog.MaxCalls {
 			dropped++
 			continue
 		}

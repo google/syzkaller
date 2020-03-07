@@ -41,8 +41,6 @@ var (
 	gate     *ipc.Gate
 )
 
-const programLength = 30
-
 func main() {
 	flag.Usage = func() {
 		flag.PrintDefaults()
@@ -99,15 +97,15 @@ func main() {
 			for i := 0; ; i++ {
 				var p *prog.Prog
 				if *flagGenerate && len(corpus) == 0 || i%4 != 0 {
-					p = target.Generate(rs, programLength, ct)
+					p = target.Generate(rs, prog.RecommendedCalls, ct)
 					execute(pid, env, execOpts, p)
-					p.Mutate(rs, programLength, ct, corpus)
+					p.Mutate(rs, prog.RecommendedCalls, ct, corpus)
 					execute(pid, env, execOpts, p)
 				} else {
 					p = corpus[rnd.Intn(len(corpus))].Clone()
-					p.Mutate(rs, programLength, ct, corpus)
+					p.Mutate(rs, prog.RecommendedCalls, ct, corpus)
 					execute(pid, env, execOpts, p)
-					p.Mutate(rs, programLength, ct, corpus)
+					p.Mutate(rs, prog.RecommendedCalls, ct, corpus)
 					execute(pid, env, execOpts, p)
 				}
 			}

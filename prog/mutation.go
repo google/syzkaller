@@ -23,6 +23,9 @@ const maxBlobLen = uint64(100 << 10)
 // corpus:  The entire corpus, including original program p.
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
 	r := newRand(p.Target, rs)
+	if ncalls < len(p.Calls) {
+		ncalls = len(p.Calls)
+	}
 	ctx := &mutator{
 		p:      p,
 		r:      r,
@@ -30,7 +33,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 		ct:     ct,
 		corpus: corpus,
 	}
-	for stop, ok := false, false; !stop; stop = ok && r.oneOf(3) {
+	for stop, ok := false, false; !stop; stop = ok && len(p.Calls) != 0 && r.oneOf(3) {
 		switch {
 		case r.oneOf(5):
 			// Not all calls have anything squashable,
@@ -50,6 +53,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 		p.Target.SanitizeCall(c)
 	}
 	p.debugValidate()
+	if got := len(p.Calls); got < 1 || got > ncalls {
+		panic(fmt.Sprintf("bad number of calls after mutation: %v, want [1, %v]", got, ncalls))
+	}
 }
 
 // Internal state required for performing mutations -- currently this matches
@@ -67,7 +73,7 @@ type mutator struct {
 // (exclusive) concatenated with p0's calls from index i (inclusive).
 func (ctx *mutator) splice() bool {
 	p, r := ctx.p, ctx.r
-	if len(ctx.corpus) == 0 || len(p.Calls) == 0 {
+	if len(ctx.corpus) == 0 || len(p.Calls) == 0 || len(p.Calls) >= ctx.ncalls {
 		return false
 	}
 	p0 := ctx.corpus[r.Intn(len(ctx.corpus))]
@@ -135,8 +141,10 @@ func (ctx *mutator) insertCall() bool {
 	}
 	s := analyze(ctx.ct, ctx.corpus, p, c)
 	calls := r.generateCall(s, p, idx)
-	// TODO: the program might have more than ncalls
 	p.insertBefore(c, calls)
+	for len(p.Calls) > ctx.ncalls {
+		p.removeCall(idx)
+	}
 	return true
 }
 
@@ -158,11 +166,11 @@ func (ctx *mutator) mutateArg() bool {
 		return false
 	}
 
-	c, ok := chooseCall(p, r)
-	if !ok {
+	idx := chooseCall(p, r)
+	if idx < 0 {
 		return false
 	}
-	s := analyze(ctx.ct, ctx.corpus, p, c)
+	c := p.Calls[idx]
 	updateSizes := true
 	for stop, ok := false, false; !stop; stop = ok && r.oneOf(3) {
 		ok = true
@@ -171,24 +179,33 @@ func (ctx *mutator) mutateArg() bool {
 		if len(ma.args) == 0 {
 			return false
 		}
+		s := analyze(ctx.ct, ctx.corpus, p, c)
 		chosenIdx := randomChoice(ma.priorities, r)
-		arg, ctx := ma.args[chosenIdx], ma.ctxes[chosenIdx]
-		calls, ok1 := p.Target.mutateArg(r, s, arg, ctx, &updateSizes)
+		arg, argCtx := ma.args[chosenIdx], ma.ctxes[chosenIdx]
+		calls, ok1 := p.Target.mutateArg(r, s, arg, argCtx, &updateSizes)
 		if !ok1 {
 			ok = false
 			continue
 		}
 		p.insertBefore(c, calls)
+		idx += len(calls)
+		for len(p.Calls) > ctx.ncalls {
+			idx--
+			p.removeCall(idx)
+		}
+		if idx < 0 || idx >= len(p.Calls) || p.Calls[idx] != c {
+			panic(fmt.Sprintf("wrong call index: idx=%v calls=%v p.Calls=%v ncalls=%v",
+				idx, len(calls), len(p.Calls), ctx.ncalls))
+		}
 		if updateSizes {
 			p.Target.assignSizesCall(c)
 		}
-		p.Target.SanitizeCall(c)
 	}
 	return true
 }
 
 // Select a call based on the complexity of the arguments.
-func chooseCall(p *Prog, r *randGen) (*Call, bool) {
+func chooseCall(p *Prog, r *randGen) int {
 	var callPriorities []float64
 	noArgs := true
 
@@ -207,10 +224,9 @@ func chooseCall(p *Prog, r *randGen) (*Call, bool) {
 
 	// Calls without arguments.
 	if noArgs {
-		return nil, false
+		return -1
 	}
-
-	return p.Calls[randomChoice(callPriorities, r)], true
+	return randomChoice(callPriorities, r)
 }
 
 // Generate a random index from a given 1-D array of priorities.
@@ -240,9 +256,6 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 	if base := ctx.Base; base != nil && baseSize < base.Res.Size() {
 		newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
 		replaceArg(base, newArg)
-	}
-	for _, c := range calls {
-		target.SanitizeCall(c)
 	}
 	return calls, true
 }

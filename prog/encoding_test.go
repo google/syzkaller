@@ -53,29 +53,34 @@ func TestSerializeData(t *testing.T) {
 func TestCallSet(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		prog  string
-		ok    bool
-		calls []string
+		prog   string
+		ok     bool
+		calls  []string
+		ncalls int
 	}{
 		{
 			"",
 			false,
 			[]string{},
+			0,
 		},
 		{
 			"r0 =  (foo)",
 			false,
 			[]string{},
+			0,
 		},
 		{
 			"getpid()",
 			true,
 			[]string{"getpid"},
+			1,
 		},
 		{
 			"r11 =  getpid()",
 			true,
 			[]string{"getpid"},
+			1,
 		},
 		{
 			"getpid()\n" +
@@ -86,11 +91,12 @@ func TestCallSet(t *testing.T) {
 				"close$foo(&(0x0000) = {})\n",
 			true,
 			[]string{"getpid", "open", "close$foo"},
+			4,
 		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			calls, err := CallSet([]byte(test.prog))
+			calls, ncalls, err := CallSet([]byte(test.prog))
 			if err != nil && test.ok {
 				t.Fatalf("parsing failed: %v", err)
 			}
@@ -102,6 +108,9 @@ func TestCallSet(t *testing.T) {
 			if !reflect.DeepEqual(callArray, test.calls) {
 				t.Fatalf("got call set %+v, expect %+v", callArray, test.calls)
 			}
+			if ncalls != test.ncalls {
+				t.Fatalf("got %v calls, expect %v", ncalls, test.ncalls)
+			}
 		})
 	}
 }
@@ -109,12 +118,13 @@ func TestCallSet(t *testing.T) {
 func TestCallSetRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 10, nil)
+		const ncalls = 10
+		p := target.Generate(rs, ncalls, nil)
 		calls0 := make(map[string]struct{})
 		for _, c := range p.Calls {
 			calls0[c.Meta.Name] = struct{}{}
 		}
-		calls1, err := CallSet(p.Serialize())
+		calls1, ncalls1, err := CallSet(p.Serialize())
 		if err != nil {
 			t.Fatalf("CallSet failed: %v", err)
 		}
@@ -122,6 +132,9 @@ func TestCallSetRandom(t *testing.T) {
 		callArray1 := setToArray(calls1)
 		if !reflect.DeepEqual(callArray0, callArray1) {
 			t.Fatalf("got call set:\n%+v\nexpect:\n%+v", callArray1, callArray0)
+		}
+		if ncalls1 != ncalls {
+			t.Fatalf("got %v calls, expect %v", ncalls1, ncalls)
 		}
 	}
 }

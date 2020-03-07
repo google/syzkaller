@@ -58,8 +58,15 @@ func Make(dir string) (*State, error) {
 	}
 
 	osutil.MkdirAll(st.dir)
-	st.Corpus, st.corpusSeq = loadDB(filepath.Join(st.dir, "corpus.db"), "corpus")
-	st.Repros, st.reproSeq = loadDB(filepath.Join(st.dir, "repro.db"), "repro")
+	var err error
+	st.Corpus, st.corpusSeq, err = loadDB(filepath.Join(st.dir, "corpus.db"), "corpus")
+	if err != nil {
+		log.Fatal(err)
+	}
+	st.Repros, st.reproSeq, err = loadDB(filepath.Join(st.dir, "repro.db"), "repro")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	managersDir := filepath.Join(st.dir, "manager")
 	osutil.MkdirAll(managersDir)
@@ -80,17 +87,23 @@ func Make(dir string) (*State, error) {
 	return st, err
 }
 
-func loadDB(file, name string) (*db.DB, uint64) {
+func loadDB(file, name string) (*db.DB, uint64, error) {
 	log.Logf(0, "reading %v...", name)
 	db, err := db.Open(file)
 	if err != nil {
-		log.Fatalf("failed to open %v database: %v", name, err)
+		return nil, 0, fmt.Errorf("failed to open %v database: %v", name, err)
 	}
 	log.Logf(0, "read %v programs", len(db.Records))
 	var maxSeq uint64
 	for key, rec := range db.Records {
-		if _, err := prog.CallSet(rec.Val); err != nil {
+		_, ncalls, err := prog.CallSet(rec.Val)
+		if err != nil {
 			log.Logf(0, "bad file: can't parse call set: %v", err)
+			db.Delete(key)
+			continue
+		}
+		if ncalls > prog.MaxCalls {
+			log.Logf(0, "bad file: too many calls: %v", ncalls)
 			db.Delete(key)
 			continue
 		}
@@ -104,9 +117,9 @@ func loadDB(file, name string) (*db.DB, uint64) {
 		}
 	}
 	if err := db.Flush(); err != nil {
-		log.Fatalf("failed to flush corpus database: %v", err)
+		return nil, 0, fmt.Errorf("failed to flush corpus database: %v", err)
 	}
-	return db, maxSeq
+	return db, maxSeq, nil
 }
 
 func (st *State) createManager(name string) (*Manager, error) {
@@ -130,11 +143,11 @@ func (st *State) createManager(name string) (*Manager, error) {
 	if st.reproSeq < mgr.reproSeq {
 		st.reproSeq = mgr.reproSeq
 	}
-	var err error
-	mgr.Corpus, err = db.Open(mgr.corpusFile)
+	corpus, _, err := loadDB(mgr.corpusFile, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open manager corpus %v: %v", mgr.corpusFile, err)
 	}
+	mgr.Corpus = corpus
 	log.Logf(0, "created manager %v: corpus=%v, corpusSeq=%v, reproSeq=%v",
 		mgr.name, len(mgr.Corpus.Records), mgr.corpusSeq, mgr.reproSeq)
 	st.Managers[name] = mgr
@@ -202,7 +215,7 @@ func (st *State) AddRepro(name string, repro []byte) error {
 	if mgr == nil || mgr.Connected.IsZero() {
 		return fmt.Errorf("unconnected manager %v", name)
 	}
-	if _, err := prog.CallSet(repro); err != nil {
+	if _, _, err := prog.CallSet(repro); err != nil {
 		log.Logf(0, "manager %v: failed to extract call set: %v, program:\n%v",
 			mgr.name, err, string(repro))
 		return nil
@@ -242,7 +255,7 @@ func (st *State) PendingRepro(name string) ([]byte, error) {
 		if mgr.ownRepros[key] {
 			continue
 		}
-		calls, err := prog.CallSet(rec.Val)
+		calls, _, err := prog.CallSet(rec.Val)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
 		}
@@ -277,7 +290,7 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
 		if _, ok := mgr.Corpus.Records[key]; ok {
 			continue
 		}
-		calls, err := prog.CallSet(rec.Val)
+		calls, _, err := prog.CallSet(rec.Val)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
 		}
@@ -338,8 +351,13 @@ func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
 }
 
 func (st *State) addInput(mgr *Manager, input []byte) {
-	if _, err := prog.CallSet(input); err != nil {
+	_, ncalls, err := prog.CallSet(input)
+	if err != nil {
 		log.Logf(0, "manager %v: failed to extract call set: %v, program:\n%v", mgr.name, err, string(input))
+		return
+	}
+	if want := prog.MaxCalls; ncalls > want {
+		log.Logf(0, "manager %v: too long program, ignoring (%v/%v)", mgr.name, ncalls, want)
 		return
 	}
 	sig := hash.String(input)
