@@ -1,0 +1,167 @@
+TITLE: KASAN: slab-out-of-bounds Read in dlfb_usb_probe
+
+0.337143][   T95] ==================================================================
+[   40.337147][   T95] BUG: KASAN: slab-out-of-bounds in hex_string+0x439/0x4c0
+[   40.337149][   T95] Read of size 1 at addr ffff8881d4fa319b by task kworker/1:2/95
+[   40.337151][   T95]
+[   40.337154][   T95] CPU: 1 PID: 95 Comm: kworker/1:2 Not tainted 5.6.0-rc3-syzkaller #0
+[   40.337157][   T95] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   40.337159][   T95] Workqueue: usb_hub_wq hub_event
+[   40.337162][   T95] Call Trace:
+[   40.337163][   T95]  dump_stack+0xef/0x16e
+[   40.337165][   T95]  ? hex_string+0x439/0x4c0
+[   40.337167][   T95]  ? hex_string+0x439/0x4c0
+[   40.337170][   T95]  print_address_description.constprop.0.cold+0xd3/0x314
+[   40.337171][   T95]  ? hex_string+0x439/0x4c0
+[   40.337173][   T95]  ? hex_string+0x439/0x4c0
+[   40.337175][   T95]  __kasan_report.cold+0x37/0x77
+[   40.337177][   T95]  ? hex_string+0x439/0x4c0
+[   40.337178][   T95]  kasan_report+0xe/0x20
+[   40.337180][   T95]  hex_string+0x439/0x4c0
+[   40.337182][   T95]  ? check_pointer+0x210/0x210
+[   40.337183][   T95]  ? number+0x82a/0xb00
+[   40.337185][   T95]  ? mark_lock+0xbc/0x1160
+[   40.337186][   T95]  pointer+0x45b/0x680
+[   40.337188][   T95]  ? file_dentry_name+0x120/0x120
+[   40.337190][   T95]  vsnprintf+0x5ac/0x14f0
+[   40.337192][   T95]  ? pointer+0x680/0x680
+[   40.337193][   T95]  ? lockdep_on+0x50/0x50
+[   40.337195][   T95]  ? set_precision+0x170/0x170
+[   40.337197][   T95]  va_format.isra.0+0x129/0x1b0
+[   40.337199][   T95]  ? vsnprintf+0x14f0/0x14f0
+[   40.337200][   T95]  ? string_nocheck+0x1a9/0x220
+[   40.337202][   T95]  ? widen_string+0x2a0/0x2a0
+[   40.337204][   T95]  pointer+0x4bf/0x680
+[   40.337206][   T95]  ? file_dentry_name+0x120/0x120
+[   40.337207][   T95]  ? hex_string+0x4c0/0x4c0
+[   40.337209][   T95]  ? __lock_acquire+0x2324/0x3b60
+[   40.337211][   T95]  vsnprintf+0x5ac/0x14f0
+[   40.337212][   T95]  ? pointer+0x680/0x680
+[   40.337214][   T95]  vscnprintf+0x29/0x80
+[   40.337216][   T95]  vprintk_store+0x40/0x4b0
+[   40.337217][   T95]  vprintk_emit+0xc8/0x3d0
+[   40.337219][   T95]  dev_vprintk_emit+0x4fc/0x541
+[   40.337221][   T95]  ? dev_attr_show.cold+0x3a/0x3a
+[   40.337223][   T95]  ? usb_set_configuration+0xe47/0x17d0
+[   40.337225][   T95]  ? driver_bound+0x140/0x2f0
+[   40.337227][   T95]  ? bus_for_each_drv+0x162/0x1e0
+[   40.337229][   T95]  ? __device_attach+0x217/0x390
+[   40.337230][   T95]  ? bus_probe_device+0x1e4/0x290
+[   40.337232][   T95]  ? device_add+0x1459/0x1bf0
+[   40.337234][   T95]  ? usb_new_device.cold+0x540/0xcd0
+[   40.337236][   T95]  ? hub_event+0x21cb/0x4300
+[   40.337238][   T95]  ? process_one_work+0x94b/0x1620
+[   40.337239][   T95]  ? worker_thread+0x96/0xe20
+[   40.337241][   T95]  ? kthread+0x318/0x420
+[   40.337243][   T95]  ? ret_from_fork+0x24/0x30
+[   40.337244][   T95]  ? mark_lock+0xbc/0x1160
+[   40.337246][   T95]  ? mark_lock+0xbc/0x1160
+[   40.337248][   T95]  dev_printk_emit+0xba/0xf1
+[   40.337250][   T95]  ? dev_vprintk_emit+0x541/0x541
+[   40.337252][   T95]  ? lockdep_hardirqs_on+0x382/0x580
+[   40.337253][   T95]  __dev_printk+0x1db/0x203
+[   40.337255][   T95]  _dev_info+0xd7/0x109
+[   40.337257][   T95]  ? _dev_notice+0x109/0x109
+[   40.337259][   T95]  ? dlfb_usb_probe+0x21a/0x450
+[   40.337260][   T95]  ? usb_get_descriptor+0xcd/0x1b0
+[   40.337262][   T95]  ? usb_get_descriptor+0x13d/0x1b0
+[   40.337264][   T95]  ? __usb_get_extra_descriptor+0x15d/0x1a0
+[   40.337266][   T95]  dlfb_usb_probe.cold+0xfd9/0x1ba3
+[   40.337268][   T95]  ? mark_held_locks+0x9f/0xe0
+[   40.337270][   T95]  ? _raw_spin_unlock_irqrestore+0x39/0x40
+[   40.337272][   T95]  ? lockdep_hardirqs_on+0x382/0x580
+[   40.337274][   T95]  ? __pm_runtime_set_status+0x5d5/0xa10
+[   40.337276][   T95]  ? edid_store+0x180/0x180
+[   40.337278][   T95]  ? __pm_runtime_resume+0x111/0x180
+[   40.337280][   T95]  usb_probe_interface+0x310/0x800
+[   40.337282][   T95]  ? usb_probe_device+0x230/0x230
+[   40.337284][   T95]  really_probe+0x290/0xac0
+[   40.337285][   T95]  driver_probe_device+0x223/0x350
+[   40.337287][   T95]  __device_attach_driver+0x1d1/0x290
+[   40.337290][   T95]  ? driver_allows_async_probing+0x160/0x160
+[   40.337291][   T95]  bus_for_each_drv+0x162/0x1e0
+[   40.337293][   T95]  ? bus_rescan_devices+0x20/0x20
+[   40.337295][   T95]  ? _raw_spin_unlock_irqrestore+0x39/0x40
+[   40.337303][   T95]  ? lockdep_hardirqs_on+0x382/0x580
+[   40.337305][   T95]  __device_attach+0x217/0x390
+[   40.337307][   T95]  ? device_bind_driver+0xd0/0xd0
+[   40.337309][   T95]  bus_probe_device+0x1e4/0x290
+[   40.337311][   T95]  device_add+0x1459/0x1bf0
+[   40.337313][   T95]  ? wait_for_completion+0x3c0/0x3c0
+[   40.337315][   T95]  ? device_link_remove+0x110/0x110
+[   40.337317][   T95]  ? _raw_spin_unlock_irqrestore+0x39/0x40
+[   40.337319][   T95]  usb_set_configuration+0xe47/0x17d0
+[   40.337322][   T95]  usb_generic_driver_probe+0x9d/0xe0
+[   40.337325][   T95]  usb_probe_device+0xd9/0x230
+[   40.337327][   T95]  ? usb_suspend+0x5f0/0x5f0
+[   40.337329][   T95]  really_probe+0x290/0xac0
+[   40.337331][   T95]  driver_probe_device+0x223/0x350
+[   40.337333][   T95]  __device_attach_driver+0x1d1/0x290
+[   40.337335][   T95]  ? driver_allows_async_probing+0x160/0x160
+[   40.337337][   T95]  bus_for_each_drv+0x162/0x1e0
+[   40.337338][   T95]  ? bus_rescan_devices+0x20/0x20
+[   40.337341][   T95]  ? _raw_spin_unlock_irqrestore+0x39/0x40
+[   40.337342][   T95]  ? lockdep_hardirqs_on+0x382/0x580
+[   40.337344][   T95]  __device_attach+0x217/0x390
+[   40.337346][   T95]  ? device_bind_driver+0xd0/0xd0
+[   40.337348][   T95]  bus_probe_device+0x1e4/0x290
+[   40.337350][   T95]  device_add+0x1459/0x1bf0
+[   40.337352][   T95]  ? device_link_remove+0x110/0x110
+[   40.337353][   T95]  usb_new_device.cold+0x540/0xcd0
+[   40.337355][   T95]  hub_event+0x21cb/0x4300
+[   40.337357][   T95]  ? hub_port_debounce+0x350/0x350
+[   40.337359][   T95]  ? find_held_lock+0x2d/0x110
+[   40.337361][   T95]  ? mark_held_locks+0xe0/0xe0
+[   40.337363][   T95]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[   40.337365][   T95]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[   40.337366][   T95]  process_one_work+0x94b/0x1620
+[   40.337368][   T95]  ? pwq_dec_nr_in_flight+0x310/0x310
+[   40.337370][   T95]  ? do_raw_spin_lock+0x129/0x290
+[   40.337372][   T95]  worker_thread+0x96/0xe20
+[   40.337374][   T95]  ? process_one_work+0x1620/0x1620
+[   40.337375][   T95]  kthread+0x318/0x420
+[   40.337377][   T95]  ? kthread_create_on_node+0xf0/0xf0
+[   40.337379][   T95]  ret_from_fork+0x24/0x30
+[   40.337380][   T95]
+[   40.337382][   T95] Allocated by task 95:
+[   40.337384][   T95]  save_stack+0x1b/0x80
+[   40.337386][   T95]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[   40.337388][   T95]  usb_get_configuration+0x311/0x3a20
+[   40.337389][   T95]  usb_new_device+0x2f9/0x450
+[   40.337391][   T95]  hub_event+0x21cb/0x4300
+[   40.337393][   T95]  process_one_work+0x94b/0x1620
+[   40.337395][   T95]  worker_thread+0x96/0xe20
+[   40.337396][   T95]  kthread+0x318/0x420
+[   40.337398][   T95]  ret_from_fork+0x24/0x30
+[   40.337399][   T95]
+[   40.337401][   T95] Freed by task 1:
+[   40.337402][   T95]  save_stack+0x1b/0x80
+[   40.337404][   T95]  __kasan_slab_free+0x117/0x160
+[   40.337406][   T95]  kfree+0xd5/0x300
+[   40.337407][   T95]  kobject_uevent_env+0x2a3/0x1470
+[   40.337409][   T95]  driver_register+0x27f/0x330
+[   40.337411][   T95]  i2c_register_driver+0xd8/0x1a0
+[   40.337413][   T95]  do_one_initcall+0x10a/0x6b0
+[   40.337415][   T95]  kernel_init_freeable+0x4e6/0x593
+[   40.337416][   T95]  kernel_init+0xd/0x1b9
+[   40.337418][   T95]  ret_from_fork+0x24/0x30
+[   40.337420][   T95]
+[   40.337424][   T95] The buggy address belongs to the object at ffff8881d4fa3180
+[   40.337427][   T95]  which belongs to the cache kmalloc-32 of size 32
+[   40.337429][   T95] The buggy address is located 27 bytes inside of
+[   40.337432][   T95]  32-byte region [ffff8881d4fa3180, ffff8881d4fa31a0)
+[   40.337434][   T95] The buggy address belongs to the page:
+[   40.337437][   T95] page:ffffea000753e8c0 refcount:1 mapcount:0 mapping:ffff8881da003400 index:0x0
+[   40.337439][   T95] flags: 0x200000000000200(slab)
+[   40.337442][   T95] raw: 0200000000000200 ffffea000754d240 0000001000000010 ffff8881da003400
+[   40.337445][   T95] raw: 0000000000000000 0000000080400040 00000001ffffffff 0000000000000000
+[   40.337448][   T95] page dumped because: kasan: bad access detected
+[   40.337449][   T95]
+[   40.337451][   T95] Memory state around the buggy address:
+[   40.337454][   T95]  ffff8881d4fa3080: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[   40.337457][   T95]  ffff8881d4fa3100: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[   40.337460][   T95] >ffff8881d4fa3180: 00 00 00 03 fc fc fc fc fb fb fb fb fc fc fc fc
+[   40.337462][   T95]                             ^
+[   40.337465][   T95]  ffff8881d4fa3200: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[   40.337468][   T95]  ffff8881d4fa3280: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[   40.337471][   T95] ==================================================================
