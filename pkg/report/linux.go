@@ -792,6 +792,7 @@ var linuxStackParams = &stackParams{
 		"kasprintf",
 		"kvasprintf",
 		"printk",
+		"va_format",
 		"dev_info",
 		"dev_notice",
 		"dev_warn",
