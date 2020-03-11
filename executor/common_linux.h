@@ -2620,7 +2620,7 @@ int wait_for_loop(int pid)
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID
 #include <linux/capability.h>
 
 static void drop_caps(void)
@@ -2857,6 +2857,20 @@ static int do_sandbox_namespace(void)
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_ANDROID
+// seccomp only supported for Arm, Arm64, X86, and X86_64 archs
+#if GOARCH_arm || GOARCH_arm64 || GOARCH_386 || GOARCH_amd64
+#include <assert.h>
+#include <errno.h>
+#include <linux/audit.h>
+#include <linux/filter.h>
+#include <linux/seccomp.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <sys/prctl.h>
+#include <sys/syscall.h>
+
+#include "android/android_seccomp.h"
+#endif
 #include <fcntl.h> // open(2)
 #include <grp.h> // setgroups
 #include <sys/xattr.h> // setxattr, getxattr
@@ -2969,6 +2983,20 @@ static int do_sandbox_android(void)
 {
 	setup_common();
 	sandbox_common();
+	drop_caps();
+
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
+	initialize_netdevices_init();
+#endif
+#if SYZ_EXECUTOR || SYZ_DEVLINK_PCI
+	initialize_devlink_pci();
+#endif
+#if SYZ_EXECUTOR || SYZ_NET_INJECTION
+	initialize_tun();
+#endif
+#if SYZ_EXECUTOR || SYZ_NET_DEVICES
+	initialize_netdevices();
+#endif
 
 	if (chown(".", UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
 		fail("chmod failed");
@@ -2979,20 +3007,18 @@ static int do_sandbox_android(void)
 	if (setresgid(UNTRUSTED_APP_GID, UNTRUSTED_APP_GID, UNTRUSTED_APP_GID) != 0)
 		fail("setresgid failed");
 
+#if GOARCH_arm || GOARCH_arm64 || GOARCH_386 || GOARCH_amd64
+	// Will fail() if anything fails.
+	// Must be called when the new process still has CAP_SYS_ADMIN, in this case,
+	// before changing uid from 0, which clears capabilities.
+	set_app_seccomp_filter();
+#endif
+
 	if (setresuid(UNTRUSTED_APP_UID, UNTRUSTED_APP_UID, UNTRUSTED_APP_UID) != 0)
 		fail("setresuid failed");
 
 	syz_setfilecon(".", SELINUX_LABEL_APP_DATA_FILE);
 	syz_setcon(SELINUX_CONTEXT_UNTRUSTED_APP);
-
-#if SYZ_EXECUTOR || SYZ_NET_INJECTION
-	initialize_tun();
-#endif
-#if SYZ_EXECUTOR || SYZ_NET_DEVICES
-	// Note: sandbox_android does not unshare net namespace.
-	initialize_netdevices_init();
-	initialize_netdevices();
-#endif
 
 	loop();
 	doexit(1);
@@ -3019,9 +3045,13 @@ static void remove_dir(const char* dir)
 	struct dirent* ep;
 	int iter = 0;
 retry:
-	while (umount2(dir, MNT_DETACH) == 0) {
-		debug("umount(%s)\n", dir);
+#if not SYZ_SANDBOX_ANDROID
+	if (!flag_sandbox_android) {
+		while (umount2(dir, MNT_DETACH) == 0) {
+			debug("umount(%s)\n", dir);
+		}
 	}
+#endif
 	dp = opendir(dir);
 	if (dp == NULL) {
 		if (errno == EMFILE) {
@@ -3039,9 +3069,13 @@ retry:
 		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
 		// If it's 9p mount with broken transport, lstat will fail.
 		// So try to umount first.
-		while (umount2(filename, MNT_DETACH) == 0) {
-			debug("umount(%s)\n", filename);
+#if not SYZ_SANDBOX_ANDROID
+		if (!flag_sandbox_android) {
+			while (umount2(filename, MNT_DETACH) == 0) {
+				debug("umount(%s)\n", filename);
+			}
 		}
+#endif
 		struct stat st;
 		if (lstat(filename, &st))
 			exitf("lstat(%s) failed", filename);
@@ -3071,9 +3105,13 @@ retry:
 			}
 			if (errno != EBUSY || i > 100)
 				exitf("unlink(%s) failed", filename);
-			debug("umount(%s)\n", filename);
-			if (umount2(filename, MNT_DETACH))
-				exitf("umount(%s) failed", filename);
+#if not SYZ_SANDBOX_ANDROID
+			if (!flag_sandbox_android) {
+				debug("umount(%s)\n", filename);
+				if (umount2(filename, MNT_DETACH))
+					exitf("umount(%s) failed", filename);
+			}
+#endif
 		}
 	}
 	closedir(dp);
@@ -3099,9 +3137,13 @@ retry:
 				break;
 			}
 			if (errno == EBUSY) {
-				debug("umount(%s)\n", dir);
-				if (umount2(dir, MNT_DETACH))
-					exitf("umount(%s) failed", dir);
+#if not SYZ_SANDBOX_ANDROID
+				if (!flag_sandbox_android) {
+					debug("umount(%s)\n", dir);
+					if (umount2(dir, MNT_DETACH))
+						exitf("umount(%s) failed", dir);
+				}
+#endif
 				continue;
 			}
 			if (errno == ENOTEMPTY) {
