@@ -36,7 +36,7 @@ NORETURN void doexit(int status)
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
     SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table || \
     __NR_syz_usb_connect || (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
-unsigned long long procid;
+static unsigned long long procid;
 #endif
 
 #if !GOOS_fuchsia && !GOOS_windows
@@ -5541,7 +5541,7 @@ static void setup_cgroups_test()
 #endif
 
 #if SYZ_EXECUTOR || SYZ_SANDBOX_NAMESPACE
-void initialize_cgroups()
+static void initialize_cgroups()
 {
 #if SYZ_EXECUTOR
 	if (!flag_cgroups)
@@ -5656,8 +5656,10 @@ static void sandbox_common()
 	for (i = 0; i < sizeof(sysctls) / sizeof(sysctls[0]); i++)
 		write_file(sysctls[i].name, sysctls[i].value);
 }
+#endif
 
-int wait_for_loop(int pid)
+#if SYZ_EXECUTOR || SYZ_SANDBOX_NONE || SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE
+static int wait_for_loop(int pid)
 {
 	if (pid < 0)
 		fail("sandbox fork failed");

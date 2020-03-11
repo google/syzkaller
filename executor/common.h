@@ -42,7 +42,7 @@ NORETURN void doexit(int status)
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
     SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table || \
     __NR_syz_usb_connect || (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
-unsigned long long procid;
+static unsigned long long procid;
 #endif
 
 #if !GOOS_fuchsia && !GOOS_windows

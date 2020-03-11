@@ -206,7 +206,7 @@ static struct {
 #endif
 };
 
-int run_tests()
+static int run_tests()
 {
 	int ret = 0;
 	for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
