@@ -6354,23 +6354,21 @@ static const size_t primary_app_filter_size = x86_app_filter_size;
 #endif
 
 #define syscall_nr (offsetof(struct seccomp_data, nr))
-#define syscall_arg(_n) (offsetof(struct seccomp_data, args[_n]))
 #define arch_nr (offsetof(struct seccomp_data, arch))
-
 
 typedef struct Filter_t {
 	struct sock_filter data[kFilterMaxSize];
 	size_t count;
 } Filter;
 
-inline void push_back(Filter* filter_array, struct sock_filter filter)
+static void push_back(Filter* filter_array, struct sock_filter filter)
 {
 	if (filter_array->count == kFilterMaxSize)
-		fail("Can't add another syscall to seccomp filter: count %zu.", filter_array->count);
+		fail("can't add another syscall to seccomp filter: count %zu", filter_array->count);
 	filter_array->data[filter_array->count++] = filter;
 }
 
-inline void Disallow(Filter* f)
+static void Disallow(Filter* f)
 {
 	struct sock_filter filter = BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP);
 	push_back(f, filter);
@@ -6378,14 +6376,14 @@ inline void Disallow(Filter* f)
 
 static void ExamineSyscall(Filter* f)
 {
-    struct sock_filter filter = BPF_STMT(BPF_LD | BPF_W | BPF_ABS, syscall_nr);
+	struct sock_filter filter = BPF_STMT(BPF_LD | BPF_W | BPF_ABS, syscall_nr);
 	push_back(f, filter);
 }
 
 static void ValidateArchitecture(Filter* f)
 {
-    struct sock_filter filter1 = BPF_STMT(BPF_LD | BPF_W | BPF_ABS, arch_nr);
-    struct sock_filter filter2 = BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, PRIMARY_ARCH, 1, 0);
+	struct sock_filter filter1 = BPF_STMT(BPF_LD | BPF_W | BPF_ABS, arch_nr);
+	struct sock_filter filter2 = BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, PRIMARY_ARCH, 1, 0);
 	push_back(f, filter1);
 	push_back(f, filter2);
 	Disallow(f);
@@ -6393,30 +6391,25 @@ static void ValidateArchitecture(Filter* f)
 static void install_filter(const Filter* f)
 {
 	struct sock_fprog prog = {
-		(unsigned short)f->count,
-		(struct sock_filter*)&f->data[0],
+	    (unsigned short)f->count,
+	    (struct sock_filter*)&f->data[0],
 	};
 	if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog) < 0) {
 		fail("Could not set seccomp filter of size %zu", f->count);
 	}
 }
-void set_app_seccomp_filter()
+static void set_app_seccomp_filter()
 {
-	const struct sock_filter *p;
-	size_t p_size;
+	const struct sock_filter* p = primary_app_filter;
+	size_t p_size = primary_app_filter_size;
+
 	Filter f;
 	f.count = 0;
-
-	p = primary_app_filter;
-	p_size = primary_app_filter_size;
-
 	ValidateArchitecture(&f);
-
 	ExamineSyscall(&f);
 
-	for (size_t i = 0; i < p_size; ++i) {
+	for (size_t i = 0; i < p_size; ++i)
 		push_back(&f, p[i]);
-	}
 	Disallow(&f);
 	install_filter(&f);
 }
@@ -6435,10 +6428,10 @@ void set_app_seccomp_filter()
 #define UNTRUSTED_APP_UID AID_APP + 999
 #define UNTRUSTED_APP_GID AID_APP + 999
 
-const char* SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
-const char* SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
-const char* SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
-const char* SELINUX_XATTR_NAME = "security.selinux";
+const char* const SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
+const char* const SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
+const char* const SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
+const char* const SELINUX_XATTR_NAME = "security.selinux";
 
 const gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
 const size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
