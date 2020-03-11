@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		failf("%v", err)
 	}
-	for _, include := range []string{
+	executorFilenames := []string{
 		"common_linux.h",
 		"common_akaros.h",
 		"common_bsd.h",
@@ -33,19 +33,18 @@ func main() {
 		"common_kvm_amd64.h",
 		"common_kvm_arm64.h",
 		"common_usb.h",
+		"android/android_seccomp.h",
 		"kvm.h",
 		"kvm.S.h",
-	} {
-		contents, err := ioutil.ReadFile("../../executor/" + include)
-		if err != nil {
-			failf("%v", err)
-		}
-		replace := []byte("#include \"" + include + "\"")
-		if bytes.Index(data, replace) == -1 {
-			failf("can't fine %v include", include)
-		}
-		data = bytes.Replace(data, replace, contents, -1)
 	}
+	data = replaceIncludes(executorFilenames, "../../executor/", data)
+	androidFilenames := []string{
+		"arm64_app_policy.h",
+		"arm_app_policy.h",
+		"x86_64_app_policy.h",
+		"x86_app_policy.h",
+	}
+	data = replaceIncludes(androidFilenames, "../../executor/android/", data)
 	for _, remove := range []string{
 		"(\n|^)\\s*//.*",
 		"\\s*//.*",
@@ -61,4 +60,19 @@ func main() {
 func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
+}
+
+func replaceIncludes(filenames []string, location string, data []byte) []byte {
+	for _, include := range filenames {
+		contents, err := ioutil.ReadFile(location + include)
+		if err != nil {
+			failf("%v", err)
+		}
+		replace := []byte("#include \"" + include + "\"")
+		if bytes.Index(data, replace) == -1 {
+			failf("can't find %v include", include)
+		}
+		data = bytes.Replace(data, replace, contents, -1)
+	}
+	return data
 }
