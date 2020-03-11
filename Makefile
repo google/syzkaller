@@ -221,6 +221,7 @@ format_go:
 
 format_cpp:
 	clang-format --style=file -i executor/*.cc executor/*.h \
+		executor/android/android_seccomp.h \
 		tools/kcovtrace/*.c tools/kcovfuzzer/*.c tools/fops_probe/*.cc
 
 format_sys: bin/syz-fmt

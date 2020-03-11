@@ -2886,10 +2886,10 @@ static int do_sandbox_namespace(void)
 #define UNTRUSTED_APP_UID AID_APP + 999
 #define UNTRUSTED_APP_GID AID_APP + 999
 
-const char* SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
-const char* SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
-const char* SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
-const char* SELINUX_XATTR_NAME = "security.selinux";
+const char* const SELINUX_CONTEXT_UNTRUSTED_APP = "u:r:untrusted_app:s0:c512,c768";
+const char* const SELINUX_LABEL_APP_DATA_FILE = "u:object_r:app_data_file:s0:c512,c768";
+const char* const SELINUX_CONTEXT_FILE = "/proc/thread-self/attr/current";
+const char* const SELINUX_XATTR_NAME = "security.selinux";
 
 const gid_t UNTRUSTED_APP_GROUPS[] = {UNTRUSTED_APP_GID, AID_NET_BT_ADMIN, AID_NET_BT, AID_INET, AID_EVERYBODY};
 const size_t UNTRUSTED_APP_NUM_GROUPS = sizeof(UNTRUSTED_APP_GROUPS) / sizeof(UNTRUSTED_APP_GROUPS[0]);
@@ -2997,6 +2997,10 @@ static int do_sandbox_android(void)
 	initialize_tun();
 #endif
 #if SYZ_EXECUTOR || SYZ_NET_DEVICES
+	// TODO(dvyukov): unshare net namespace.
+	// Currently all netdev setup happens in init namespace.
+	// It will lead to some mess, all test process will use the same devices
+	// and try to reinitialize them as other test processes use them.
 	initialize_netdevices();
 #endif
 
