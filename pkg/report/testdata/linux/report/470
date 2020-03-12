@@ -1,0 +1,102 @@
+TITLE: KASAN: use-after-free Read in bcsp_close
+
+[ 1018.906812][ T7994] ==================================================================
+[ 1018.915133][ T7994] BUG: KASAN: use-after-free in kfree_skb+0x2a/0xb0
+[ 1018.915147][ T7994] Read of size 4 at addr ffff8880a0ee3c54 by task syz-executor933/7994
+[ 1018.929982][ T7994] 
+[ 1018.929996][ T7994] CPU: 1 PID: 7994 Comm: syz-executor933 Not tainted 5.4.0-rc6 #0
+[ 1018.930001][ T7994] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1018.930005][ T7994] Call Trace:
+executing program
+[ 1018.930080][ T7994]  dump_stack+0x1d8/0x2f8
+[ 1018.930133][ T7994]  print_address_description+0x75/0x5c0
+[ 1018.940263][ T7994]  ? vprintk_func+0x158/0x170
+[ 1018.940275][ T7994]  ? printk+0x62/0x8d
+[ 1018.953587][ T7994]  ? vprintk_emit+0x2d4/0x3a0
+[ 1018.963430][ T7994]  __kasan_report+0x14b/0x1c0
+[ 1018.972106][ T7994]  ? _raw_spin_unlock+0x50/0x50
+[ 1018.972119][ T7994]  ? kfree_skb+0x2a/0xb0
+[ 1018.981417][ T7994]  kasan_report+0x26/0x50
+[ 1018.981429][ T7994]  check_memory_region+0x2cf/0x2e0
+[ 1018.981438][ T7994]  __kasan_check_read+0x11/0x20
+[ 1018.981449][ T7994]  kfree_skb+0x2a/0xb0
+[ 1018.999966][ T7994]  bcsp_close+0xb1/0xf0
+[ 1018.999979][ T7994]  hci_uart_tty_close+0x201/0x240
+[ 1019.013008][ T7994]  ? hci_uart_tty_open+0x340/0x340
+[ 1019.013086][ T7994]  tty_ldisc_close+0x126/0x180
+[ 1019.013099][ T7994]  tty_ldisc_release+0x248/0x5a0
+[ 1019.023214][ T7994]  tty_release_struct+0x2a/0xe0
+[ 1019.023225][ T7994]  tty_release+0xce9/0xfa0
+[ 1019.023241][ T7994]  ? tty_release_struct+0xe0/0xe0
+[ 1019.023288][ T7994]  __fput+0x2e4/0x740
+[ 1019.032934][ T7994]  ____fput+0x15/0x20
+[ 1019.033003][ T7994]  task_work_run+0x17e/0x1b0
+[ 1019.033038][ T7994]  prepare_exit_to_usermode+0x459/0x580
+[ 1019.042253][ T7994]  syscall_return_slowpath+0x113/0x4a0
+[ 1019.042267][ T7994]  do_syscall_64+0x11f/0x1c0
+[ 1019.042280][ T7994]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[ 1019.042292][ T7994] RIP: 0033:0x4076d1
+[ 1019.055215][ T7994] Code: 75 14 b8 03 00 00 00 0f 05 48 3d 01 f0 ff ff 0f 83 24 1a 00 00 c3 48 83 ec 08 e8 0a fc ff ff 48 89 04 24 b8 03 00 00 00 0f 05 <48> 8b 3c 24 48 89 c2 e8 53 fc ff ff 48 89 d0 48 83 c4 08 48 3d 01
+[ 1019.065312][ T7994] RSP: 002b:00007ffe59a19680 EFLAGS: 00000293 ORIG_RAX: 0000000000000003
+[ 1019.065321][ T7994] RAX: 0000000000000000 RBX: 0000000000000004 RCX: 00000000004076d1
+[ 1019.065326][ T7994] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000003
+[ 1019.065331][ T7994] RBP: 00000000006dec4c R08: 00000000004b1469 R09: 00000000004b1469
+[ 1019.065336][ T7994] R10: 00007ffe59a196a0 R11: 0000000000000293 R12: 00000000006dec50
+[ 1019.065341][ T7994] R13: 0000000000000000 R14: 20c49ba5e353f7cf R15: 0000000000000009
+[ 1019.065356][ T7994] 
+executing program
+[ 1019.075342][ T7994] Allocated by task 7:
+[ 1019.075356][ T7994]  __kasan_kmalloc+0x11c/0x1b0
+[ 1019.075363][ T7994]  kasan_slab_alloc+0xf/0x20
+[ 1019.075430][ T7994]  kmem_cache_alloc_node+0x235/0x280
+[ 1019.104717][ T7994]  __alloc_skb+0x9f/0x500
+[ 1019.104727][ T7994]  bcsp_recv+0x12e7/0x1720
+[ 1019.104734][ T7994]  hci_uart_tty_receive+0x16b/0x470
+[ 1019.104743][ T7994]  tty_ldisc_receive_buf+0x12e/0x170
+[ 1019.104749][ T7994]  tty_port_default_receive_buf+0x82/0xb0
+[ 1019.104756][ T7994]  flush_to_ldisc+0x328/0x550
+[ 1019.104771][ T7994]  process_one_work+0x7ef/0x10e0
+[ 1019.121132][ T7994]  worker_thread+0xc01/0x1630
+[ 1019.121141][ T7994]  kthread+0x332/0x350
+[ 1019.121151][ T7994]  ret_from_fork+0x24/0x30
+[ 1019.121154][ T7994] 
+[ 1019.121160][ T7994] Freed by task 7:
+[ 1019.121168][ T7994]  __kasan_slab_free+0x12a/0x1e0
+[ 1019.121178][ T7994]  kasan_slab_free+0xe/0x10
+[ 1019.121185][ T7994]  kmem_cache_free+0x81/0xf0
+[ 1019.121192][ T7994]  __kfree_skb+0x118/0x170
+[ 1019.138505][ T8019] kobject: 'rfkill11' (00000000bd5981f2): kobject_uevent_env
+[ 1019.145183][ T7994]  kfree_skb+0x6f/0xb0
+[ 1019.145194][ T7994]  bcsp_recv+0x99c/0x1720
+[ 1019.145201][ T7994]  hci_uart_tty_receive+0x16b/0x470
+[ 1019.145211][ T7994]  tty_ldisc_receive_buf+0x12e/0x170
+[ 1019.145217][ T7994]  tty_port_default_receive_buf+0x82/0xb0
+[ 1019.145224][ T7994]  flush_to_ldisc+0x328/0x550
+[ 1019.145237][ T7994]  process_one_work+0x7ef/0x10e0
+[ 1019.177952][ T8023] kobject: 'hci2' (00000000bca42fba): kobject_add_internal: parent: 'bluetooth', set: 'devices'
+[ 1019.178547][ T7994]  worker_thread+0xc01/0x1630
+[ 1019.178555][ T7994]  kthread+0x332/0x350
+[ 1019.178568][ T7994]  ret_from_fork+0x24/0x30
+[ 1019.183207][ T8019] kobject: 'rfkill11' (00000000bd5981f2): fill_kobj_path: path = '/devices/virtual/bluetooth/hci0/rfkill11'
+[ 1019.188133][ T7994] 
+[ 1019.188142][ T7994] The buggy address belongs to the object at ffff8880a0ee3b80
+[ 1019.188142][ T7994]  which belongs to the cache skbuff_head_cache of size 224
+[ 1019.188150][ T7994] The buggy address is located 212 bytes inside of
+[ 1019.188150][ T7994]  224-byte region [ffff8880a0ee3b80, ffff8880a0ee3c60)
+[ 1019.188154][ T7994] The buggy address belongs to the page:
+[ 1019.188163][ T7994] page:ffffea000283b8c0 refcount:1 mapcount:0 mapping:ffff8880a99baa80 index:0x0
+[ 1019.188171][ T7994] flags: 0x1fffc0000000200(slab)
+[ 1019.188182][ T7994] raw: 01fffc0000000200 ffffea0002284008 ffffea0002299d48 ffff8880a99baa80
+[ 1019.193647][ T8023] kobject: 'hci2' (00000000bca42fba): kobject_uevent_env
+[ 1019.199152][ T7994] raw: 0000000000000000 ffff8880a0ee3040 000000010000000c 0000000000000000
+[ 1019.199156][ T7994] page dumped because: kasan: bad access detected
+[ 1019.199160][ T7994] 
+[ 1019.199163][ T7994] Memory state around the buggy address:
+[ 1019.199173][ T7994]  ffff8880a0ee3b00: fb fb fb fb fc fc fc fc fc fc fc fc fc fc fc fc
+[ 1019.205957][ T8023] kobject: 'hci2' (00000000bca42fba): fill_kobj_path: path = '/devices/virtual/bluetooth/hci2'
+[ 1019.208739][ T7994]  ffff8880a0ee3b80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1019.208747][ T7994] >ffff8880a0ee3c00: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[ 1019.208752][ T7994]                                                  ^
+[ 1019.208759][ T7994]  ffff8880a0ee3c80: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+[ 1019.208765][ T7994]  ffff8880a0ee3d00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[ 1019.208769][ T7994] ==================================================================
