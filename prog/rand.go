@@ -553,7 +553,7 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 		Ret:  MakeReturnArg(meta.Ret),
 	}
 	c.Args, calls = r.generateArgs(s, meta.Args)
-	r.target.assignSizesCall(c)
+	r.target.AssignSizesCall(c)
 	calls = append(calls, c)
 	for _, c1 := range calls {
 		r.target.SanitizeCall(c1)
@@ -832,7 +832,7 @@ func (a *PtrType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 }
 
 func (a *LenType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	// Updated later in assignSizesCall.
+	// Updated later in AssignSizesCall.
 	return MakeConstArg(a, 0), nil
 }
 

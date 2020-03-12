@@ -180,7 +180,7 @@ func (ctx *mutator) mutateArg() bool {
 		}
 		p.insertBefore(c, calls)
 		if updateSizes {
-			p.Target.assignSizesCall(c)
+			p.Target.AssignSizesCall(c)
 		}
 		p.Target.SanitizeCall(c)
 	}

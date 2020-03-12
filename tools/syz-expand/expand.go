@@ -21,6 +21,7 @@ var (
 	flagArch   = flag.String("arch", runtime.GOARCH, "target arch")
 	flagProg   = flag.String("prog", "", "file with program to expand")
 	flagStrict = flag.Bool("strict", false, "parse input program in strict mode")
+	flagSizes  = flag.Bool("sizes", false, "assign proper sizes after parsing")
 )
 
 func main() {
@@ -47,6 +48,11 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 		os.Exit(1)
+	}
+	if *flagSizes {
+		for _, c := range p.Calls {
+			target.AssignSizesCall(c)
+		}
 	}
 	fmt.Printf("%s", p.SerializeVerbose())
 }

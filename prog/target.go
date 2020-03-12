@@ -276,7 +276,7 @@ func MakeProgGen(target *Target) *Builder {
 }
 
 func (pg *Builder) Append(c *Call) error {
-	pg.target.assignSizesCall(c)
+	pg.target.AssignSizesCall(c)
 	pg.target.SanitizeCall(c)
 	pg.p.Calls = append(pg.p.Calls, c)
 	return nil

@@ -136,7 +136,7 @@ func (target *Target) assignSizesArray(args []Arg, autos map[Arg]bool) {
 	}
 }
 
-func (target *Target) assignSizesCall(c *Call) {
+func (target *Target) AssignSizesCall(c *Call) {
 	target.assignSizesArray(c.Args, nil)
 }
 

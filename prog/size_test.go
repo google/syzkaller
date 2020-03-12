@@ -15,7 +15,7 @@ func TestAssignSizeRandom(t *testing.T) {
 		p := target.Generate(rs, 10, nil)
 		data0 := p.Serialize()
 		for _, call := range p.Calls {
-			target.assignSizesCall(call)
+			target.AssignSizesCall(call)
 		}
 		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
 			t.Fatalf("different lens assigned, initial:\n%s\nnew:\n%s\n", data0, data1)
@@ -23,7 +23,7 @@ func TestAssignSizeRandom(t *testing.T) {
 		p.Mutate(rs, 10, nil, nil)
 		p.Serialize()
 		for _, call := range p.Calls {
-			target.assignSizesCall(call)
+			target.AssignSizesCall(call)
 		}
 	}
 }
@@ -166,7 +166,7 @@ func TestAssignSize(t *testing.T) {
 			t.Fatalf("failed to deserialize prog %v: %v", i, err)
 		}
 		for _, call := range p.Calls {
-			target.assignSizesCall(call)
+			target.AssignSizesCall(call)
 		}
 		p1 := strings.TrimSpace(string(p.Serialize()))
 		if p1 != test.sizedProg {
