@@ -41,7 +41,8 @@ NORETURN void doexit(int status)
 
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
     SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table || \
-    __NR_syz_usb_connect || (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k ||                  \
+    (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
 static unsigned long long procid;
 #endif
 
@@ -138,7 +139,7 @@ static void kill_and_wait(int pid, int* status)
 
 #if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER || \
-    __NR_syz_usb_connect
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);

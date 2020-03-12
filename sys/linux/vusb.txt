@@ -19,39 +19,14 @@ include <drivers/net/usb/asix.h>
 # This is a special fd for USB fuzzing and should only be used with syz_usb_* pseudo-syscalls.
 # We don't inherit it from the fd resource, to discourage syzkaller calling raw ioctls on it.
 resource fd_usb[int32]: -1
-resource fd_usb_hid[fd_usb]
-resource fd_usb_printer[fd_usb]
-resource fd_usb_cdc_ecm[fd_usb]
-resource fd_usb_cdc_ncm[fd_usb]
-resource fd_usb_uac1[fd_usb]
 
 # These are generic pseudo-syscalls for emulating arbitrary USB devices.
 # They are mostly targeted to cover the enumeration process.
 syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb
 syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses])
-syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data buffer[in])
+syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data ptr[in, array[int8, 0:256]])
 syz_usb_ep_read(fd fd_usb, ep int16[0:31], len len[data], data buffer[out])
 syz_usb_disconnect(fd fd_usb)
-
-# These pseudo-syscalls specifically target the HID device class.
-syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
-syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid])
-
-# These pseudo-syscalls specifically target the PRINTER device class.
-syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer
-syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer])
-
-# These pseudo-syscalls specifically target the CDC ECM (Ethernet) device class.
-syz_usb_connect$cdc_ecm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ecm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ecm
-syz_usb_control_io$cdc_ecm(fd fd_usb_cdc_ecm, descs ptr[in, vusb_descriptors_cdc_ecm], resps ptr[in, vusb_responses_cdc_ecm])
-
-# These pseudo-syscalls specifically target the CDC NCM device class.
-syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm
-syz_usb_control_io$cdc_ncm(fd fd_usb_cdc_ncm, descs ptr[in, vusb_descriptors_cdc_ncm], resps ptr[in, vusb_responses_cdc_ncm])
-
-# These pseudo-syscalls specifically target the UAC1 device class.
-syz_usb_connect$uac1(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac1], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_uac1
-syz_usb_control_io$uac1(fd fd_usb_uac1, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1])
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
 
@@ -63,15 +38,15 @@ usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_H
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE, CFS] {
+type usb_device_descriptor_verbose_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VENDOR, PRODUCT, DEVICE, CFS] {
 	bLength			const[USB_DT_DEVICE_SIZE, int8]
 	bDescriptorType		const[USB_DT_DEVICE, int8]
 
-	bcdUSB			flags[usb_versions, int16]
+	bcdUSB			USB
 	bDeviceClass		const[CLASS, int8]
 	bDeviceSubClass		const[SUBCLASS, int8]
 	bDeviceProtocol		const[PROTOCOL, int8]
-	bMaxPacketSize0		flags[usb_device_max_packet_sizes, int8]
+	bMaxPacketSize0		PACKET
 	idVendor		const[VENDOR, int16]
 	idProduct		const[PRODUCT, int16]
 	bcdDevice		const[DEVICE, int16]
@@ -83,28 +58,33 @@ type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE,
 	configs			CFS
 } [packed]
 
+type usb_device_descriptor_t[CLASS, SUBCLASS, PROTOCOL, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[flags[usb_versions, int16], CLASS, SUBCLASS, PROTOCOL, flags[usb_device_max_packet_sizes, int8], VENDOR, PRODUCT, DEVICE, CFS]
+type usb_device_descriptor_fixed_t[USB, CLASS, SUBCLASS, PROTOCOL, PACKET, VENDOR, PRODUCT, DEVICE, CFS] usb_device_descriptor_verbose_t[const[USB, int16], CLASS, SUBCLASS, PROTOCOL, const[PACKET, int8], VENDOR, PRODUCT, DEVICE, CFS]
+
 usb_versions = 0x110, 0x200, 0x201, 0x250, 0x300, 0x310
 
 # https://elixir.bootlin.com/linux/v5.1.7/source/drivers/usb/core/hub.c#L4661
 usb_device_max_packet_sizes = 8, 16, 32, 64, 255
 
-type usb_config_descriptor_t[NUM, IFSNUM, ATTRS, IFS] {
+type usb_config_descriptor_verbose_t[NUM, IFSNUM, ICONFIG, ATTRS, POWER, IFS] {
 	bLength			const[USB_DT_CONFIG_SIZE, int8]
 	bDescriptorType		const[USB_DT_CONFIG, int8]
 
 	wTotalLength		len[parent, int16]
 	bNumInterfaces		IFSNUM
 	bConfigurationValue	NUM
-	iConfiguration		int8
+	iConfiguration		ICONFIG
 	bmAttributes		ATTRS
-	bMaxPower		int8
+	bMaxPower		POWER
 
 	interfaces		IFS
 } [packed]
 
-type usb_config_descriptor_ifaces_array_t[NUM, ATTRS, IFS] usb_config_descriptor_t[NUM, len[interfaces, int8], ATTRS, IFS]
+type usb_config_descriptor_t[NUM, IFSNUM, IFS] usb_config_descriptor_verbose_t[NUM, IFSNUM, int8, flags[usb_config_attributes, int8], int8, IFS]
+type usb_config_descriptor_ifaces_array_t[NUM, IFS] usb_config_descriptor_t[NUM, len[interfaces, int8], IFS]
+type usb_config_descriptor_fixed_t[NUM, IFSNUM, ATTRS, POWER, IFS] usb_config_descriptor_verbose_t[const[NUM, int8], const[IFSNUM, int8], const[0, int8], const[ATTRS, int8], const[POWER, int8], IFS]
 
-type usb_interface_descriptor_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] {
+type usb_interface_descriptor_verbose_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, IIF, EXTRA, EPS] {
 	bLength			const[USB_DT_INTERFACE_SIZE, int8]
 	bDescriptorType		const[USB_DT_INTERFACE, int8]
 
@@ -114,30 +94,34 @@ type usb_interface_descriptor_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL
 	bInterfaceClass		CLASS
 	bInterfaceSubClass	SUBCLASS
 	bInterfaceProtocol	PROTOCOL
-	iInterface		int8
+	iInterface		IIF
 
 	extra			EXTRA
 	endpoints		EPS
 } [packed]
 
+type usb_interface_descriptor_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] usb_interface_descriptor_verbose_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, int8, EXTRA, EPS]
 type usb_interface_descriptor_eps_array_t[IFNUM, ALTNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] usb_interface_descriptor_t[IFNUM, ALTNUM, len[endpoints, int8], CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS]
-type usb_interface_descriptor_consts_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] usb_interface_descriptor_t[const[IFNUM, int8], const[ALTNUM, int8], const[EPSNUM, int8], const[CLASS, int8], const[SUBCLASS, int8], const[PROTOCOL, int8], EXTRA, EPS]
+type usb_interface_descriptor_fixed_t[IFNUM, ALTNUM, EPSNUM, CLASS, SUBCLASS, PROTOCOL, EXTRA, EPS] usb_interface_descriptor_verbose_t[const[IFNUM, int8], const[ALTNUM, int8], const[EPSNUM, int8], const[CLASS, int8], const[SUBCLASS, int8], const[PROTOCOL, int8], const[0, int8], EXTRA, EPS]
 
 # TODO: non-audio endpoints have USB_DT_ENDPOINT_SIZE.
-type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] {
+type usb_endpoint_descriptor_verbose_t[ADDR, ATTRS, PACKET, INTERVAL, REFRESH, SYNCH, EXTRA] {
 	bLength			const[USB_DT_ENDPOINT_AUDIO_SIZE, int8]
 	bDescriptorType		const[USB_DT_ENDPOINT, int8]
 
 	bEndpointAddress	ADDR
 	bmAttributes		ATTRS
-	wMaxPacketSize		flags[usb_endpoint_max_packet_sizes, int16]
-	bInterval		int8
+	wMaxPacketSize		PACKET
+	bInterval		INTERVAL
 
-	bRefresh		int8
-	bSynchAddress		int8
+	bRefresh		REFRESH
+	bSynchAddress		SYNCH
 
 	extra			EXTRA
 } [packed]
+
+type usb_endpoint_descriptor_t[ADDR, ATTRS, EXTRA] usb_endpoint_descriptor_verbose_t[ADDR, ATTRS, flags[usb_endpoint_max_packet_sizes, int16], int8, int8, int8, EXTRA]
+type usb_endpoint_descriptor_fixed_t[ADDR, ATTRS, PACKET, INTERVAL, EXTRA] usb_endpoint_descriptor_verbose_t[const[ADDR, int8], const[ATTRS, int8], const[PACKET, int16], const[INTERVAL, int8], const[0, int8], const[0, int8], EXTRA]
 
 # TODO: dummy driver has complex requirements for packet sizes, account for those:
 # https://elixir.bootlin.com/linux/v5.3.6/source/drivers/usb/gadget/udc/dummy_hcd.c#L497
@@ -157,7 +141,7 @@ usb_device_descriptor {
 } [packed]
 
 usb_config_descriptor {
-	inner	usb_config_descriptor_ifaces_array_t[int8, flags[usb_config_attributes, int8], array[usb_interface_descriptor, 1:4]]
+	inner	usb_config_descriptor_ifaces_array_t[int8, array[usb_interface_descriptor, 1:4]]
 } [packed]
 
 usb_config_attributes = USB_CONFIG_ATT_ONE, USB_CONFIG_ATT_SELFPOWER, USB_CONFIG_ATT_WAKEUP, USB_CONFIG_ATT_BATTERY
@@ -247,7 +231,7 @@ vusb_response_generic {
 	type	flags[usb_request_types, int8]
 	req	flags[usb_requests, int8]
 	len	bytesize[data, int32]
-	data	array[int8]
+	data	array[int8, 0:256]
 } [packed]
 
 usb_requests = USB_REQ_GET_STATUS, USB_REQ_CLEAR_FEATURE, USB_REQ_SET_FEATURE, USB_REQ_SET_ADDRESS, USB_REQ_GET_DESCRIPTOR, USB_REQ_SET_DESCRIPTOR, USB_REQ_GET_CONFIGURATION, USB_REQ_SET_CONFIGURATION, USB_REQ_GET_INTERFACE, USB_REQ_SET_INTERFACE, USB_REQ_SYNCH_FRAME, USB_REQ_SET_SEL, USB_REQ_SET_ISOCH_DELAY, USB_REQ_SET_ENCRYPTION, USB_REQ_GET_ENCRYPTION, USB_REQ_RPIPE_ABORT, USB_REQ_SET_HANDSHAKE, USB_REQ_RPIPE_RESET, USB_REQ_GET_HANDSHAKE, USB_REQ_SET_CONNECTION, USB_REQ_SET_SECURITY_DATA, USB_REQ_GET_SECURITY_DATA, USB_REQ_SET_WUSB_DATA, USB_REQ_LOOPBACK_DATA_WRITE, USB_REQ_LOOPBACK_DATA_READ, USB_REQ_SET_INTERFACE_DS, USB_REQ_GET_PARTNER_PDO, USB_REQ_GET_BATTERY_STATUS, USB_REQ_SET_PDO, USB_REQ_GET_VDM, USB_REQ_SEND_VDM
@@ -278,7 +262,7 @@ type usb_string_descriptor_t[DATA] {
 
 usb_string_descriptor [
 	lang_id	usb_string_descriptor_t[flags[usb_lang_ids, int16]]
-	string	usb_string_descriptor_t[array[int8]]
+	string	usb_string_descriptor_t[array[int8, 0:256]]
 ] [varlen]
 
 usb_lang_ids = 0x436, 0x41c, 0x401, 0x801, 0xc01, 0x1001, 0x1401, 0x1801, 0x1c01, 0x2001, 0x2401, 0x2801, 0x2c01, 0x3001, 0x3401, 0x3801, 0x3c01, 0x4001, 0x42b, 0x44d, 0x42c, 0x82c, 0x42d, 0x423, 0x445, 0x402, 0x455, 0x403, 0x404, 0x804, 0xc04, 0x1004, 0x1404, 0x41a, 0x405, 0x406, 0x413, 0x813, 0x409, 0x809, 0xc09, 0x1009, 0x1409, 0x1809, 0x1c09, 0x2009, 0x2409, 0x2809, 0x2c09, 0x3009, 0x3409, 0x425, 0x438, 0x429, 0x40b, 0x40c, 0x80c, 0xc0c, 0x100c, 0x140c, 0x180c, 0x437, 0x407, 0x807, 0xc07, 0x1007, 0x1407, 0x408, 0x447, 0x40d, 0x439, 0x40e, 0x40f, 0x421, 0x410, 0x810, 0x411, 0x44b, 0x860, 0x43f, 0x457, 0x412, 0x812, 0x426, 0x427, 0x827, 0x42f, 0x43e, 0x83e, 0x44c, 0x458, 0x44e, 0x861, 0x414, 0x814, 0x448, 0x415, 0x416, 0x816, 0x446, 0x418, 0x419, 0x44f, 0xc1a, 0x81a, 0x459, 0x41b, 0x424, 0x40a, 0x80a, 0xc0a, 0x100a, 0x140a, 0x180a, 0x1c0a, 0x200a, 0x240a, 0x280a, 0x2c0a, 0x300a, 0x340a, 0x380a, 0x3c0a, 0x400a, 0x440a, 0x480a, 0x4c0a, 0x500a, 0x430, 0x441, 0x41d, 0x81d, 0x449, 0x444, 0x44a, 0x41e, 0x41f, 0x422, 0x420, 0x820, 0x443, 0x843, 0x42a, 0x4ff, 0xf0ff, 0xf4ff, 0xf8ff, 0xfcff
@@ -321,7 +305,7 @@ usb_generic_cap_descriptor {
 	bDescriptorType		const[USB_DT_DEVICE_CAPABILITY, int8]
 	bDevCapabilityType	flags[usb_capability_types, int8]
 
-	data			array[int8]
+	data			array[int8, 0:256]
 } [packed]
 
 usb_capability_types = USB_CAP_TYPE_WIRELESS_USB, USB_CAP_TYPE_EXT, USB_SS_CAP_TYPE, USB_SSP_CAP_TYPE, CONTAINER_ID_TYPE, USB_PTM_CAP_TYPE
@@ -429,7 +413,7 @@ usb_generic_descriptor {
 	bLength		len[parent, int8]
 	bDescriptorType	flags[usb_descriptor_types, int8]
 
-	data		array[int8]
+	data		array[int8, 0:256]
 } [packed]
 
 usb_descriptor_types = USB_DT_DEVICE, USB_DT_CONFIG, USB_DT_STRING, USB_DT_INTERFACE, USB_DT_ENDPOINT, USB_DT_DEVICE_QUALIFIER, USB_DT_OTHER_SPEED_CONFIG, USB_DT_INTERFACE_POWER, USB_DT_OTG, USB_DT_DEBUG, USB_DT_INTERFACE_ASSOCIATION, USB_DT_SECURITY, USB_DT_KEY, USB_DT_ENCRYPTION_TYPE, USB_DT_BOS, USB_DT_DEVICE_CAPABILITY, USB_DT_WIRELESS_ENDPOINT_COMP, USB_DT_WIRE_ADAPTER, USB_DT_RPIPE, USB_DT_CS_RADIO_CONTROL, USB_DT_PIPE_USAGE, USB_DT_SS_ENDPOINT_COMP, USB_DT_SSP_ISOC_ENDPOINT_COMP, HID_DT_HID, HID_DT_REPORT, HID_DT_PHYSICAL
@@ -512,13 +496,18 @@ usb_hub_change_flags = HUB_CHANGE_LOCAL_POWER, HUB_CHANGE_OVERCURRENT
 # Connected HID devices are known to create the following /dev/ files:
 # /dev/hidraw#, /dev/usb/hiddev# and /dev/input/event#.
 
+resource fd_usb_hid[fd_usb]
+
+syz_usb_connect$hid(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_hid], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_hid
+syz_usb_control_io$hid(fd fd_usb_hid, descs ptr[in, vusb_descriptors_hid], resps ptr[in, vusb_responses_hid])
+
 # idVendor and idProduct are patched by Go code, see sys/linux/init_vusb.go.
 usb_device_descriptor_hid {
 	inner	usb_device_descriptor_t[0, 0, 0, 0, 0, 64, array[usb_config_descriptor_hid, 1]]
 } [packed]
 
 usb_config_descriptor_hid {
-	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_hid, 1]]
+	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], array[usb_interface_descriptor_hid, 1]]
 } [packed]
 
 usb_interface_descriptor_hid {
@@ -563,7 +552,7 @@ vusb_responses_hid {
 	USB_REQ_GET_INTERFACE		ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_INTERFACE, int8]]
 	USB_REQ_GET_CONFIGURATION	ptr[in, vusb_response_t[USB_TYPE_STANDARD, USB_REQ_GET_CONFIGURATION, int8]]
 
-	HID_REQ_GET_REPORT		ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_GET_REPORT, array[int8]]]
+	HID_REQ_GET_REPORT		ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_GET_REPORT, array[int8, 0:256]]]
 	HID_REQ_GET_PROTOCOL		ptr[in, vusb_response_t[USB_TYPE_CLASS, HID_REQ_GET_PROTOCOL, int8]]
 } [packed]
 
@@ -647,12 +636,17 @@ define USBLP_REQ_HP_CHANNEL_CHANGE_REQUEST	0x00
 define USBLP_FIRST_PROTOCOL	1
 define USBLP_LAST_PROTOCOL	3
 
+resource fd_usb_printer[fd_usb]
+
+syz_usb_connect$printer(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_printer], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_printer
+syz_usb_control_io$printer(fd fd_usb_printer, descs ptr[in, vusb_descriptors_printer], resps ptr[in, vusb_responses_printer])
+
 usb_device_descriptor_printer {
 	inner	usb_device_descriptor_t[0, 0, 0, 0x525, 0xa4a8, 64, array[usb_config_descriptor_printer, 1]]
 } [packed]
 
 usb_config_descriptor_printer {
-	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_printer, 1]]
+	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], array[usb_interface_descriptor_printer, 1]]
 } [packed]
 
 usb_interface_descriptor_printer {
@@ -697,7 +691,7 @@ vusb_responses_printer {
 
 usb_printer_get_id_response {
 	length	len[id, int16be]
-	id	array[int8]
+	id	array[int8, 0:256]
 } [packed]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -715,12 +709,17 @@ usb_printer_get_id_response {
 # Connected CDC ECM devices are known to create usbN network interfaces.
 # TODO: write descriptions for those.
 
+resource fd_usb_cdc_ecm[fd_usb]
+
+syz_usb_connect$cdc_ecm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ecm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ecm
+syz_usb_control_io$cdc_ecm(fd fd_usb_cdc_ecm, descs ptr[in, vusb_descriptors_cdc_ecm], resps ptr[in, vusb_responses_cdc_ecm])
+
 usb_device_descriptor_cdc_ecm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ecm, 1]]
 } [packed]
 
 usb_config_descriptor_cdc_ecm {
-	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], flags[usb_config_attributes, int8], array[usb_interface_descriptor_cdc_ecm, 1]]
+	inner	usb_config_descriptor_ifaces_array_t[const[1, int8], array[usb_interface_descriptor_cdc_ecm, 1]]
 } [packed]
 
 # Per specification CDC ECM devices have two interfaces (control and data),
@@ -879,7 +878,7 @@ usb_cdc_mdlm_detail_desc {
 	bDescriptorSubType	const[USB_CDC_MDLM_DETAIL_TYPE, int8]
 
 	bGuidDescriptorType	int8
-	bDetailData		array[int8]
+	bDetailData		array[int8, 0:256]
 } [packed]
 
 usb_cdc_obex_desc {
@@ -959,18 +958,23 @@ vusb_responses_cdc_ecm {
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/legacy/ncm.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_ncm.c
 
+resource fd_usb_cdc_ncm[fd_usb]
+
+syz_usb_connect$cdc_ncm(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_cdc_ncm], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_cdc_ncm
+syz_usb_control_io$cdc_ncm(fd fd_usb_cdc_ncm, descs ptr[in, vusb_descriptors_cdc_ncm], resps ptr[in, vusb_responses_cdc_ncm])
+
 usb_device_descriptor_cdc_ncm {
 	inner	usb_device_descriptor_t[USB_CLASS_COMM, 0, 0, 0x525, 0xa4a1, 64, array[usb_config_descriptor_cdc_ncm, 1]]
 } [packed]
 
 usb_config_descriptor_cdc_ncm {
-	inner	usb_config_descriptor_t[const[1, int8], const[2, int8], flags[usb_config_attributes, int8], usb_interface_descriptors_cdc_ncm]
+	inner	usb_config_descriptor_t[const[1, int8], const[2, int8], usb_interface_descriptors_cdc_ncm]
 } [packed]
 
 usb_interface_descriptors_cdc_ncm {
-	control		usb_interface_descriptor_consts_t[0, CDC_NCM_COMM_ALTSETTING_NCM, 1, USB_CLASS_COMM, USB_CDC_SUBCLASS_NCM, USB_CDC_PROTO_NONE, usb_cdc_header_ncm, usb_endpoint_descriptor_cdc_ecm_notify]
-	data_nop	usb_interface_descriptor_consts_t[1, 0, 0, USB_CLASS_COMM, USB_CDC_SUBCLASS_NCM, USB_CDC_PROTO_NONE, void, void]
-	data		usb_interface_descriptor_consts_t[1, CDC_NCM_DATA_ALTSETTING_NCM, 2, USB_CLASS_COMM, USB_CDC_SUBCLASS_NCM, USB_CDC_PROTO_NONE, void, usb_endpoint_descriptors_cdc_ncm_data]
+	control		usb_interface_descriptor_fixed_t[0, CDC_NCM_COMM_ALTSETTING_NCM, 1, USB_CLASS_COMM, USB_CDC_SUBCLASS_NCM, USB_CDC_PROTO_NONE, usb_cdc_header_ncm, usb_endpoint_descriptor_cdc_ecm_notify]
+	data_nop	usb_interface_descriptor_fixed_t[1, 0, 0, USB_CLASS_COMM, USB_CDC_SUBCLASS_NCM, USB_CDC_PROTO_NONE, void, void]
+	data		usb_interface_descriptor_fixed_t[1, CDC_NCM_DATA_ALTSETTING_NCM, 2, USB_CLASS_COMM, USB_CDC_SUBCLASS_NCM, USB_CDC_PROTO_NONE, void, usb_endpoint_descriptors_cdc_ncm_data]
 } [packed]
 
 usb_endpoint_descriptors_cdc_ncm_data {
@@ -1052,21 +1056,26 @@ usb_cdc_ncm_ntb_parameters {
 
 # TODO: find out which /dev/ files are created by connected UAC1 devices and add descriptions for those.
 
+resource fd_usb_uac1[fd_usb]
+
+syz_usb_connect$uac1(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor_uac1], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb_uac1
+syz_usb_control_io$uac1(fd fd_usb_uac1, descs ptr[in, vusb_descriptors_uac1], resps ptr[in, vusb_responses_uac1])
+
 usb_device_descriptor_uac1 {
 	inner	usb_device_descriptor_t[0, 0, 0, 0x1d6b, 0x101, 64, array[usb_config_descriptor_uac1, 1]]
 } [packed]
 
 usb_config_descriptor_uac1 {
-	inner	usb_config_descriptor_t[const[1, int8], const[3, int8], flags[usb_config_attributes, int8], usb_interface_descriptors_uac1]
+	inner	usb_config_descriptor_t[const[1, int8], const[3, int8], usb_interface_descriptors_uac1]
 } [packed]
 
 # TODO: control interface might have and optional interrupt endpoint.
 usb_interface_descriptors_uac1 {
-	control		usb_interface_descriptor_consts_t[0, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOCONTROL, 0, uac_control_iface_extra_descriptors, void]
-	as_out_alt_0	usb_interface_descriptor_consts_t[1, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, void, void]
-	as_out_alt_1	usb_interface_descriptor_consts_t[1, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, uac_as_iface_extra_descriptors, uac_as_out_endpoint_descriptor]
-	as_in_alt_0	usb_interface_descriptor_consts_t[2, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, void, void]
-	as_in_alt_1	usb_interface_descriptor_consts_t[2, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, uac_as_iface_extra_descriptors, uac_as_in_endpoint_descriptor]
+	control		usb_interface_descriptor_fixed_t[0, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOCONTROL, 0, uac_control_iface_extra_descriptors, void]
+	as_out_alt_0	usb_interface_descriptor_fixed_t[1, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, void, void]
+	as_out_alt_1	usb_interface_descriptor_fixed_t[1, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, uac_as_iface_extra_descriptors, uac_as_out_endpoint_descriptor]
+	as_in_alt_0	usb_interface_descriptor_fixed_t[2, 0, 0, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, void, void]
+	as_in_alt_1	usb_interface_descriptor_fixed_t[2, 1, 1, USB_CLASS_AUDIO, USB_SUBCLASS_AUDIOSTREAMING, 0, uac_as_iface_extra_descriptors, uac_as_in_endpoint_descriptor]
 } [packed]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1315,6 +1324,116 @@ vusb_responses_uac1 {
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_midi.c
 # https://elixir.bootlin.com/linux/latest/source/drivers/usb/gadget/function/f_uac2.c
 # https://elixir.bootlin.com/linux/latest/source/include/linux/usb/audio-v2.h
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# ath9k driver specific descriptions.
+
+include <drivers/net/wireless/ath/ath9k/htc_hst.h>
+include <drivers/net/wireless/ath/ath9k/hif_usb.h>
+
+resource fd_usb_ath9k[fd_usb]
+
+syz_usb_connect_ath9k(speed const[USB_SPEED_HIGH], dev_len len[dev], dev ptr[in, usb_device_descriptor_ath9k], conn_descs const[0]) fd_usb_ath9k
+syz_usb_ep_write$ath9k_ep1(fd fd_usb_ath9k, ep const[0x1], len bytesize[data], data ptr[in, ath9k_bulk_frame])
+syz_usb_ep_write$ath9k_ep2(fd fd_usb_ath9k, ep const[0x2], len bytesize[data], data ptr[in, htc_frame])
+
+usb_device_descriptor_ath9k {
+	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0xcf3, 0x9271, 0x108, array[usb_config_descriptor_ath9k, 1]]
+} [packed]
+
+usb_config_descriptor_ath9k {
+	inner	usb_config_descriptor_fixed_t[1, 1, USB_CONFIG_ATT_ONE, 250, usb_interface_descriptor_ath9k]
+} [packed]
+
+usb_interface_descriptor_ath9k {
+	iface	usb_interface_descriptor_fixed_t[0, 0, 6, USB_CLASS_VENDOR_SPEC, 0, 0, void, usb_endpoint_descriptors_ath9k]
+} [packed]
+
+usb_endpoint_descriptors_ath9k {
+	bulk_out	usb_endpoint_descriptor_fixed_t[USB_ENDPOINT_ATH9K_BULK_OUT_ADDRESS, USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES, 512, 0, void]
+	bulk_in		usb_endpoint_descriptor_fixed_t[USB_ENDPOINT_ATH9K_BULK_IN_ADDRESS, USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES, 512, 0, void]
+	int_in		usb_endpoint_descriptor_fixed_t[USB_ENDPOINT_ATH9K_INT_IN_ADDRESS, USB_ENDPOINT_ATH9K_INT_ATTRIBUTES, 64, 1, void]
+	int_out		usb_endpoint_descriptor_fixed_t[USB_ENDPOINT_ATH9K_INT_OUT_ADDRESS, USB_ENDPOINT_ATH9K_INT_ATTRIBUTES, 64, 1, void]
+	bulk_extra1	usb_endpoint_descriptor_fixed_t[USB_ENDPOINT_ATH9K_BULK_EXTRA1_ADDRESS, USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES, 512, 0, void]
+	bulk_extra2	usb_endpoint_descriptor_fixed_t[USB_ENDPOINT_ATH9K_BULK_EXTRA2_ADDRESS, USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES, 512, 0, void]
+} [packed]
+
+define USB_ENDPOINT_ATH9K_BULK_OUT_ADDRESS	(1)
+define USB_ENDPOINT_ATH9K_BULK_IN_ADDRESS	(2 | USB_DIR_IN)
+define USB_ENDPOINT_ATH9K_INT_IN_ADDRESS	(3 | USB_DIR_IN)
+define USB_ENDPOINT_ATH9K_INT_OUT_ADDRESS	(4)
+define USB_ENDPOINT_ATH9K_BULK_EXTRA1_ADDRESS	(5)
+define USB_ENDPOINT_ATH9K_BULK_EXTRA2_ADDRESS	(6)
+
+define USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK)
+define USB_ENDPOINT_ATH9K_INT_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)
+
+ath9k_bulk_frame {
+	packets	array[ath9k_bulk_packet]
+} [packed]
+
+ath9k_bulk_packet {
+	pkt_len	len[data, int16]
+	pkt_tag	const[ATH_USB_RX_STREAM_MODE_TAG, int16]
+	data	array[int8]
+} [packed, align_4]
+
+htc_frame [
+	ready		htc_ready_frame
+	conn_svc_rsp	htc_conn_svc_rsp_frame
+	generic		htc_generic_frame
+] [varlen]
+
+# This is actually wrong, as the driver is buggy and doesn't skip the header
+# before processing the frame payload, but let's leave it like thise for now.
+htc_ready_frame {
+	endpoint_id	const[0, int8]
+	flags		const[0, int8]
+	payload_len	len[payload, int16be]
+	control		array[int8, 4]
+	payload		htc_ready_msg
+} [packed]
+
+htc_ready_msg {
+	message_id	const[HTC_MSG_READY_ID, int16be]
+	credits		int16be
+	credit_size	int16be
+	max_endpoints	int8
+	pad		int8
+} [packed]
+
+htc_conn_svc_rsp_frame {
+	endpoint_id	const[0, int8]
+	flags		const[0, int8]
+	payload_len	len[payload, int16be]
+	control		array[int8, 4]
+	payload		htc_conn_svc_rspmsg
+} [packed]
+
+htc_conn_svc_rspmsg {
+	message_id	const[HTC_MSG_CONNECT_SERVICE_RESPONSE_ID, int16be]
+	service_id	flags[htc_svcs, int16be]
+	status		const[HTC_SERVICE_SUCCESS, int8]
+	endpoint_id	int8
+	max_msg_len	int16be
+	svc_meta_len	int8
+	pad		int8
+} [packed]
+
+htc_svcs = HTC_CTRL_RSVD_SVC, HTC_LOOPBACK_RSVD_SVC, WMI_CONTROL_SVC, WMI_BEACON_SVC, WMI_CAB_SVC, WMI_UAPSD_SVC, WMI_MGMT_SVC, WMI_DATA_VO_SVC, WMI_DATA_VI_SVC, WMI_DATA_BE_SVC, WMI_DATA_BE_SVC
+
+htc_generic_frame {
+	endpoint_id	int8[0:8]
+	flags		flags[htc_frame_flags, int8]
+	payload_len	len[payload, int16be]
+	control		array[int8, 4]
+	payload		array[int8, 0:256]
+} [packed]
+
+htc_frame_flags = HTC_FLAGS_RECV_TRAILER
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

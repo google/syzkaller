@@ -35,7 +35,8 @@ NORETURN void doexit(int status)
 
 #if SYZ_EXECUTOR || SYZ_MULTI_PROC || SYZ_REPEAT && SYZ_CGROUPS ||         \
     SYZ_NET_DEVICES || __NR_syz_mount_image || __NR_syz_read_part_table || \
-    __NR_syz_usb_connect || (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k ||                  \
+    (GOOS_freebsd || GOOS_openbsd || GOOS_netbsd) && SYZ_NET_INJECTION
 static unsigned long long procid;
 #endif
 
@@ -123,7 +124,7 @@ static void kill_and_wait(int pid, int* status)
 
 #if !GOOS_windows
 #if SYZ_EXECUTOR || SYZ_THREADED || SYZ_REPEAT && SYZ_EXECUTOR_USES_FORK_SERVER || \
-    __NR_syz_usb_connect
+    __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);
@@ -1108,7 +1109,8 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 
 #if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_NET_INJECTION || SYZ_FAULT || SYZ_SANDBOX_NONE || \
     SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
-    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC || (__NR_syz_usb_connect && USB_DEBUG)
+    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC ||                                         \
+    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG)
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -2405,11 +2407,11 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_CLOSE_FDS || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || SYZ_CLOSE_FDS || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 #define MAX_FDS 30
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/usb/ch9.h>
@@ -2444,7 +2446,7 @@ struct usb_device_index {
 	int iface_cur;
 };
 
-static bool parse_usb_descriptor(char* buffer, size_t length, struct usb_device_index* index)
+static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_device_index* index)
 {
 	if (length < sizeof(*index->dev) + sizeof(*index->config))
 		return false;
@@ -2609,7 +2611,7 @@ struct usb_info {
 static struct usb_info usb_devices[MAX_USB_FDS];
 static int usb_devices_num;
 
-static struct usb_device_index* add_usb_index(int fd, char* dev, size_t dev_len)
+static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t dev_len)
 {
 	int i = __atomic_fetch_add(&usb_devices_num, 1, __ATOMIC_RELAXED);
 	if (i >= MAX_USB_FDS)
@@ -3118,7 +3120,7 @@ static void analyze_control_request(int fd, struct usb_ctrlrequest* ctrl)
 
 #endif
 
-#define USB_MAX_PACKET_SIZE 1024
+#define USB_MAX_PACKET_SIZE 4096
 
 struct usb_raw_control_event {
 	struct usb_raw_event inner;
@@ -3155,8 +3157,8 @@ static const char default_lang_id[] = {
     0x09, 0x04
 };
 
-static bool lookup_connect_response(int fd, struct vusb_connect_descriptors* descs, struct usb_ctrlrequest* ctrl,
-				    char** response_data, uint32* response_length)
+static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs, const struct usb_ctrlrequest* ctrl,
+				       char** response_data, uint32* response_length)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
 	uint8 str_idx;
@@ -3216,30 +3218,83 @@ static bool lookup_connect_response(int fd, struct vusb_connect_descriptors* des
 				*response_length = descs->qual_len;
 				return true;
 			default:
-				fail("lookup_connect_response: no response");
-				return false;
+				break;
 			}
 			break;
 		default:
-			fail("lookup_connect_response: no response");
-			return false;
+			break;
 		}
 		break;
 	default:
-		fail("lookup_connect_response: no response");
-		return false;
+		break;
 	}
 
+	fail("lookup_connect_response_in: unknown request");
 	return false;
 }
 
-static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
+static bool lookup_connect_response_out_generic(int fd, const struct vusb_connect_descriptors* descs,
+						const struct usb_ctrlrequest* ctrl, bool* done)
 {
-	uint64 speed = a0;
-	uint64 dev_len = a1;
-	char* dev = (char*)a2;
-	struct vusb_connect_descriptors* descs = (struct vusb_connect_descriptors*)a3;
+	switch (ctrl->bRequestType & USB_TYPE_MASK) {
+	case USB_TYPE_STANDARD:
+		switch (ctrl->bRequest) {
+		case USB_REQ_SET_CONFIGURATION:
+			*done = true;
+			return true;
+		default:
+			break;
+		}
+		break;
+	}
 
+	fail("lookup_connect_response_out: unknown request");
+	return false;
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
+#define ATH9K_FIRMWARE_DOWNLOAD 0x30
+#define ATH9K_FIRMWARE_DOWNLOAD_COMP 0x31
+
+static bool lookup_connect_response_out_ath9k(int fd, const struct vusb_connect_descriptors* descs,
+					      const struct usb_ctrlrequest* ctrl, bool* done)
+{
+	switch (ctrl->bRequestType & USB_TYPE_MASK) {
+	case USB_TYPE_STANDARD:
+		switch (ctrl->bRequest) {
+		case USB_REQ_SET_CONFIGURATION:
+			return true;
+		default:
+			break;
+		}
+		break;
+	case USB_TYPE_VENDOR:
+		switch (ctrl->bRequest) {
+		case ATH9K_FIRMWARE_DOWNLOAD:
+			return true;
+		case ATH9K_FIRMWARE_DOWNLOAD_COMP:
+			*done = true;
+			return true;
+		default:
+			break;
+		}
+		break;
+	}
+
+	fail("lookup_connect_response_out_ath9k: unknown request");
+	return false;
+}
+
+#endif
+
+typedef bool (*lookup_connect_response_t)(int fd, const struct vusb_connect_descriptors* descs,
+					  const struct usb_ctrlrequest* ctrl, bool* done);
+
+static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const char* dev,
+					  const struct vusb_connect_descriptors* descs, lookup_connect_response_t lookup_connect_response_out)
+{
 	debug("syz_usb_connect: dev: %p\n", dev);
 	if (!dev) {
 		debug("syz_usb_connect: dev is null\n");
@@ -3308,26 +3363,27 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 		analyze_control_request(fd, &event.ctrl);
 #endif
 
-		bool response_found = false;
 		char* response_data = NULL;
 		uint32 response_length = 0;
 
 		if (event.ctrl.bRequestType & USB_DIR_IN) {
-			NONFAILING(response_found = lookup_connect_response(fd, descs, &event.ctrl, &response_data, &response_length));
+			bool response_found = false;
+			NONFAILING(response_found = lookup_connect_response_in(fd, descs, &event.ctrl, &response_data, &response_length));
 			if (!response_found) {
 				debug("syz_usb_connect: unknown control IN request\n");
 				return -1;
 			}
 		} else {
-			if ((event.ctrl.bRequestType & USB_TYPE_MASK) != USB_TYPE_STANDARD ||
-			    event.ctrl.bRequest != USB_REQ_SET_CONFIGURATION) {
-				fail("syz_usb_connect: unknown control OUT request");
+			if (!lookup_connect_response_out(fd, descs, &event.ctrl, &done)) {
+				debug("syz_usb_connect: unknown control OUT request\n");
 				return -1;
 			}
-			done = true;
+			response_data = NULL;
+			response_length = event.ctrl.wLength;
 		}
 
-		if (done) {
+		if ((event.ctrl.bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
+		    event.ctrl.bRequest == USB_REQ_SET_CONFIGURATION) {
 			rv = configure_device(fd);
 			if (rv < 0) {
 				debug("syz_usb_connect: configure_device failed with %d\n", rv);
@@ -3369,6 +3425,30 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatil
 	return fd;
 }
 
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
+static volatile long syz_usb_connect(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	uint64 speed = a0;
+	uint64 dev_len = a1;
+	const char* dev = (const char*)a2;
+	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a3;
+
+	return syz_usb_connect_impl(speed, dev_len, dev, descs, &lookup_connect_response_out_generic);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
+static volatile long syz_usb_connect_ath9k(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
+{
+	uint64 speed = a0;
+	uint64 dev_len = a1;
+	const char* dev = (const char*)a2;
+	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a3;
+
+	return syz_usb_connect_impl(speed, dev_len, dev, descs, &lookup_connect_response_out_ath9k);
+}
+#endif
+
 #if SYZ_EXECUTOR || __NR_syz_usb_control_io
 struct vusb_descriptor {
 	uint8 req_type;
@@ -3396,7 +3476,7 @@ struct vusb_responses {
 	struct vusb_response* resps[0];
 } __attribute__((packed));
 
-static bool lookup_control_response(struct vusb_descriptors* descs, struct vusb_responses* resps,
+static bool lookup_control_response(const struct vusb_descriptors* descs, const struct vusb_responses* resps,
 				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
 {
 	int descs_num = 0;
@@ -3463,8 +3543,8 @@ static bool lookup_control_response(struct vusb_descriptors* descs, struct vusb_
 static volatile long syz_usb_control_io(volatile long a0, volatile long a1, volatile long a2)
 {
 	int fd = a0;
-	struct vusb_descriptors* descs = (struct vusb_descriptors*)a1;
-	struct vusb_responses* resps = (struct vusb_responses*)a2;
+	const struct vusb_descriptors* descs = (const struct vusb_descriptors*)a1;
+	const struct vusb_responses* resps = (const struct vusb_responses*)a2;
 
 	struct usb_raw_control_event event;
 	event.inner.type = 0;

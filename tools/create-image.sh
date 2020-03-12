@@ -8,7 +8,7 @@ set -eux
 
 # Create a minimal Debian distribution in a directory.
 DIR=chroot
-PREINSTALL_PKGS=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default
+PREINSTALL_PKGS=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default,firmware-atheros
 
 # If ADD_PACKAGE is not defined as an external environment variable, use our default packages
 if [ -z ${ADD_PACKAGE+x} ]; then
@@ -82,7 +82,7 @@ fi
 
 sudo rm -rf $DIR
 mkdir -p $DIR
-sudo debootstrap --include=$PREINSTALL_PKGS $RELEASE $DIR
+sudo debootstrap --include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $DIR
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' $DIR/etc/passwd
