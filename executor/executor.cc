@@ -692,8 +692,8 @@ retry:
 		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0)
 			prog_extra_cover_timeout = 500;
 		if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
-			prog_extra_timeout = 2000;
-			call_extra_timeout = 2000;
+			prog_extra_timeout = 3000;
+			call_extra_timeout = 3000;
 		}
 		if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0)
 			call_extra_timeout = 300;

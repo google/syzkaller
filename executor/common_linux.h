@@ -72,7 +72,8 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 
 #if SYZ_EXECUTOR || SYZ_REPEAT || SYZ_NET_INJECTION || SYZ_FAULT || SYZ_SANDBOX_NONE || \
     SYZ_SANDBOX_SETUID || SYZ_SANDBOX_NAMESPACE || SYZ_SANDBOX_ANDROID ||               \
-    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC || (__NR_syz_usb_connect && USB_DEBUG)
+    SYZ_FAULT || SYZ_LEAK || SYZ_BINFMT_MISC ||                                         \
+    ((__NR_syz_usb_connect || __NR_syz_usb_connect_ath9k) && USB_DEBUG)
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -1443,11 +1444,11 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 }
 #endif
 
-#if SYZ_EXECUTOR || SYZ_CLOSE_FDS || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || SYZ_CLOSE_FDS || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 #define MAX_FDS 30
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || __NR_syz_usb_connect || __NR_syz_usb_connect_ath9k
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/usb/ch9.h>
