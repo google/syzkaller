@@ -877,6 +877,7 @@ var linuxOopses = append([]*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
+					skip: []string{"kfree"},
 				},
 			},
 			{
