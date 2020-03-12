@@ -413,7 +413,7 @@ var (
 		"-Werror",
 		"-Wparentheses",
 		"-Wunused-const-variable",
-		"-Wframe-larger-than=8192",
+		"-Wframe-larger-than=16384",
 	}
 	optionalCFlags = map[string]bool{
 		"-static":                 true, // some distributions don't have static libraries

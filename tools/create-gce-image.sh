@@ -7,7 +7,7 @@
 #
 # Prerequisites:
 # - you need a user-space system, a basic Debian system can be created with:
-#   sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default stable debian
+#   sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default,firmware-atheros --components=main,contrib,non-free stable debian
 # - you need kernel to use with image (e.g. arch/x86/boot/bzImage)
 #   note: kernel modules are not supported
 # - you need grub:
