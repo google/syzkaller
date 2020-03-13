@@ -894,8 +894,20 @@ void handle_completion(thread_t* th)
 	}
 	th->executing = false;
 	running--;
-	if (running < 0)
+	if (running < 0) {
+		// This fires periodically for the past 2 years (see issue #502).
+		fprintf(stderr, "running=%d collide=%d completed=%d flag_threaded=%d flag_collide=%d current=%d\n",
+			running, collide, completed, flag_threaded, flag_collide, th->id);
+		for (int i = 0; i < kMaxThreads; i++) {
+			thread_t* th1 = &threads[i];
+			fprintf(stderr, "th #%2d: created=%d executing=%d colliding=%d"
+					" ready=%d done=%d call_index=%d res=%ld reserrno=%d\n",
+				i, th1->created, th1->executing, th1->colliding,
+				event_isset(&th1->ready), event_isset(&th1->done),
+				th1->call_index, th1->res, th1->reserrno);
+		}
 		fail("running = %d", running);
+	}
 }
 
 void copyout_call_results(thread_t* th)
