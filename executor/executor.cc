@@ -901,10 +901,10 @@ void handle_completion(thread_t* th)
 		for (int i = 0; i < kMaxThreads; i++) {
 			thread_t* th1 = &threads[i];
 			fprintf(stderr, "th #%2d: created=%d executing=%d colliding=%d"
-					" ready=%d done=%d call_index=%d res=%ld reserrno=%d\n",
+					" ready=%d done=%d call_index=%d res=%lld reserrno=%d\n",
 				i, th1->created, th1->executing, th1->colliding,
 				event_isset(&th1->ready), event_isset(&th1->done),
-				th1->call_index, th1->res, th1->reserrno);
+				th1->call_index, (uint64)th1->res, th1->reserrno);
 		}
 		fail("running = %d", running);
 	}
