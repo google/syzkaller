@@ -1098,7 +1098,7 @@ static int event_timedwait(event_t* ev, uint64 timeout)
 		ts.tv_sec = remain / 1000;
 		ts.tv_nsec = (remain % 1000) * 1000 * 1000;
 		syscall(SYS_futex, &ev->state, FUTEX_WAIT | FUTEX_PRIVATE_FLAG, 0, &ts);
-		if (__atomic_load_n(&ev->state, __ATOMIC_RELAXED))
+		if (__atomic_load_n(&ev->state, __ATOMIC_ACQUIRE))
 			return 1;
 		now = current_time_ms();
 		if (now - start > timeout)
