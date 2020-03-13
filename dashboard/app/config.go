@@ -236,25 +236,25 @@ func checkConfig(cfg *GlobalConfig) {
 
 func checkObsoleting(o ObsoletingConfig) {
 	if (o.MinPeriod == 0) != (o.MaxPeriod == 0) {
-		panic(fmt.Sprintf("obsoleting: both or none of Min/MaxPeriod must be specified"))
+		panic("obsoleting: both or none of Min/MaxPeriod must be specified")
 	}
 	if o.MinPeriod > o.MaxPeriod {
-		panic(fmt.Sprintf("obsoleting: Min > MaxPeriod"))
+		panic(fmt.Sprintf("obsoleting: Min > MaxPeriod (%v > %v)", o.MinPeriod, o.MaxPeriod))
 	}
 	if o.MinPeriod != 0 && o.MinPeriod < 24*time.Hour {
-		panic(fmt.Sprintf("obsoleting: too low MinPeriod"))
+		panic(fmt.Sprintf("obsoleting: too low MinPeriod: %v, want at least %v", o.MinPeriod, 24*time.Hour))
 	}
 	if (o.NonFinalMinPeriod == 0) != (o.NonFinalMaxPeriod == 0) {
-		panic(fmt.Sprintf("obsoleting: both or none of NonFinalMin/MaxPeriod must be specified"))
+		panic("obsoleting: both or none of NonFinalMin/MaxPeriod must be specified")
 	}
 	if o.NonFinalMinPeriod > o.NonFinalMaxPeriod {
-		panic(fmt.Sprintf("obsoleting: NonFinalMin > MaxPeriod"))
+		panic(fmt.Sprintf("obsoleting: NonFinalMin > MaxPeriod (%v > %v)", o.NonFinalMinPeriod, o.NonFinalMaxPeriod))
 	}
 	if o.NonFinalMinPeriod != 0 && o.NonFinalMinPeriod < 24*time.Hour {
-		panic(fmt.Sprintf("obsoleting: too low MinPeriod"))
+		panic(fmt.Sprintf("obsoleting: too low MinPeriod: %v, want at least %v", o.NonFinalMinPeriod, 24*time.Hour))
 	}
 	if o.MinPeriod == 0 && o.NonFinalMinPeriod != 0 {
-		panic(fmt.Sprintf("obsoleting: NonFinalMinPeriod without MinPeriod"))
+		panic("obsoleting: NonFinalMinPeriod without MinPeriod")
 	}
 }
 

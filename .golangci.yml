@@ -12,6 +12,9 @@ run:
   build-tags:
     - codeanalysis
 
+output:
+  print-linter-name: false
+
 linters:
   enable:
     - lll
@@ -55,6 +58,7 @@ linters-settings:
 
 issues:
   exclude-use-default: false
+  max-same-issues: 0
   exclude:
     - "exported .* should have comment"
     - "comment on .* should be of the form"
