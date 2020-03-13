@@ -308,12 +308,12 @@ func incomingMail(c context.Context, r *http.Request) error {
 	case email.CmdNone, email.CmdUpstream, email.CmdInvalid, email.CmdUnDup:
 	case email.CmdFix:
 		if msg.CommandArgs == "" {
-			return replyTo(c, msg, fmt.Sprintf("no commit title"), nil)
+			return replyTo(c, msg, "no commit title", nil)
 		}
 		cmd.FixCommits = []string{msg.CommandArgs}
 	case email.CmdDup:
 		if msg.CommandArgs == "" {
-			return replyTo(c, msg, fmt.Sprintf("no dup title"), nil)
+			return replyTo(c, msg, "no dup title", nil)
 		}
 		cmd.DupOf = msg.CommandArgs
 	case email.CmdUnCC:

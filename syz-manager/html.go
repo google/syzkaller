@@ -165,7 +165,7 @@ func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
 	crashID := r.FormValue("id")
 	crash := readCrash(mgr.cfg.Workdir, crashID, nil, mgr.startTime, true)
 	if crash == nil {
-		http.Error(w, fmt.Sprintf("failed to read crash info"), http.StatusInternalServerError)
+		http.Error(w, "failed to read crash info", http.StatusInternalServerError)
 		return
 	}
 	if err := crashTemplate.Execute(w, crash); err != nil {

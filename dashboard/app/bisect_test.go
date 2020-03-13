@@ -591,7 +591,7 @@ func TestBisectWrong(t *testing.T) {
 			c.expectOK(c.client2.JobDone(done))
 			if i == 0 {
 				msg := c.pollEmailBug()
-				c.expectTrue(strings.Contains(msg.Body, fmt.Sprintf("syzbot has bisected this bug to:")))
+				c.expectTrue(strings.Contains(msg.Body, "syzbot has bisected this bug to:"))
 			} else {
 				c.expectNoEmail()
 			}

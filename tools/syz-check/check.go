@@ -646,15 +646,15 @@ func checkAttrType(typ *prog.StructDesc, payload prog.Type, policy nlaPolicy) st
 	switch policy.typ {
 	case NLA_STRING, NLA_NUL_STRING:
 		if _, ok := payload.(*prog.BufferType); !ok {
-			return fmt.Sprintf("expect string")
+			return "expect string"
 		}
 	case NLA_NESTED:
 		if typ.TemplateName() != "nlattr_tt" || typ.Fields[3].(*prog.ConstType).Val != 1 {
-			return fmt.Sprintf("should be nlnest")
+			return "should be nlnest"
 		}
 	case NLA_BITFIELD32:
 		if typ.TemplateName() != "nlattr_t" || payload.TemplateName() != "nla_bitfield32" {
-			return fmt.Sprintf("should be nlattr[nla_bitfield32]")
+			return "should be nlattr[nla_bitfield32]"
 		}
 	case NLA_NESTED_ARRAY, NLA_REJECT:
 		return fmt.Sprintf("unhandled type %v", policy.typ)
