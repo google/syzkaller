@@ -10,13 +10,13 @@ import (
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
-		unix: targets.MakeUnixSanitizer(target),
+		unix: targets.MakeUnixNeutralizer(target),
 	}
 
 	target.MakeMmap = targets.MakePosixMmap(target)
-	target.SanitizeCall = arch.unix.SanitizeCall
+	target.Neutralize = arch.unix.Neutralize
 }
 
 type arch struct {
-	unix *targets.UnixSanitizer
+	unix *targets.UnixNeutralizer
 }

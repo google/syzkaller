@@ -8,14 +8,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type arch struct {
-}
-
 func InitTarget(target *prog.Target) {
-	arch := &arch{}
 	target.MakeMmap = targets.MakeSyzMmap(target)
-	target.SanitizeCall = arch.sanitizeCall
-}
-
-func (arch *arch) sanitizeCall(c *prog.Call) {
 }

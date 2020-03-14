@@ -17,10 +17,10 @@ func InitTarget(target *prog.Target) {
 		MAP_FIXED: target.GetConst("MAP_FIXED"),
 	}
 	target.MakeMmap = targets.MakePosixMmap(target)
-	target.SanitizeCall = arch.sanitizeCall
+	target.Neutralize = arch.Neutralize
 }
 
-func (arch *arch) sanitizeCall(c *prog.Call) {
+func (arch *arch) Neutralize(c *prog.Call) {
 	switch c.Meta.CallName {
 	case "mmap":
 		c.Args[3].(*prog.ConstArg).Val |= arch.MAP_FIXED

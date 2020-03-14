@@ -441,9 +441,7 @@ func TestSanitizeRandom(t *testing.T) {
 		for i := 0; i < iters; i++ {
 			p := target.Generate(rs, 10, nil)
 			s0 := string(p.Serialize())
-			for _, c := range p.Calls {
-				target.SanitizeCall(c)
-			}
+			p.sanitizeFix()
 			s1 := string(p.Serialize())
 			if s0 != s1 {
 				t.Fatalf("non-sanitized program or non-idempotent sanitize\nwas: %v\ngot: %v", s0, s1)
