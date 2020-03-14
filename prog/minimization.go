@@ -13,9 +13,7 @@ import (
 // the simplification attempt is committed and the process continues.
 func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool) (*Prog, int) {
 	pred := func(p *Prog, callIndex int) bool {
-		for _, call := range p.Calls {
-			p.Target.SanitizeCall(call)
-		}
+		p.sanitizeFix()
 		p.debugValidate()
 		return pred0(p, callIndex)
 	}

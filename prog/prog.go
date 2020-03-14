@@ -387,3 +387,18 @@ func (p *Prog) removeCall(idx int) {
 	copy(p.Calls[idx:], p.Calls[idx+1:])
 	p.Calls = p.Calls[:len(p.Calls)-1]
 }
+
+func (p *Prog) sanitizeFix() {
+	if err := p.sanitize(true); err != nil {
+		panic(err)
+	}
+}
+
+func (p *Prog) sanitize(fix bool) error {
+	for _, c := range p.Calls {
+		if err := p.Target.sanitize(c, fix); err != nil {
+			return err
+		}
+	}
+	return nil
+}

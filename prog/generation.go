@@ -29,6 +29,7 @@ func (target *Target) Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Pro
 	for len(p.Calls) > ncalls {
 		p.removeCall(ncalls - 1)
 	}
+	p.sanitizeFix()
 	p.debugValidate()
 	return p
 }

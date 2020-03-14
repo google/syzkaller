@@ -28,8 +28,9 @@ type Target struct {
 	// MakeMmap creates call that maps [addr, addr+size) memory range.
 	MakeMmap func(addr, size uint64) *Call
 
-	// SanitizeCall neutralizes harmful calls.
-	SanitizeCall func(c *Call)
+	// Neutralize neutralizes harmful calls by transforming them into non-harmful ones
+	// (e.g. an ioctl that turns off console output is turned into ioctl that turns on output).
+	Neutralize func(c *Call)
 
 	// AnnotateCall annotates a syscall invocation in C reproducers.
 	// The returned string will be placed inside a comment except for the
@@ -113,7 +114,7 @@ func AllTargets() []*Target {
 }
 
 func (target *Target) lazyInit() {
-	target.SanitizeCall = func(c *Call) {}
+	target.Neutralize = func(c *Call) {}
 	target.AnnotateCall = func(c ExecCall) string { return "" }
 	target.initTarget()
 	target.initArch(target)
@@ -163,6 +164,11 @@ func (target *Target) GetConst(name string) uint64 {
 		panic(fmt.Sprintf("const %v is not defined for %v/%v", name, target.OS, target.Arch))
 	}
 	return v
+}
+
+func (target *Target) sanitize(c *Call, fix bool) error {
+	target.Neutralize(c)
+	return nil
 }
 
 func RestoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*KeyedStruct) {
@@ -277,7 +283,7 @@ func MakeProgGen(target *Target) *Builder {
 
 func (pg *Builder) Append(c *Call) error {
 	pg.target.assignSizesCall(c)
-	pg.target.SanitizeCall(c)
+	pg.target.sanitize(c, true)
 	pg.p.Calls = append(pg.p.Calls, c)
 	return nil
 }
