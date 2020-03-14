@@ -10,7 +10,7 @@ import (
 	_ "github.com/google/syzkaller/sys/linux/gen"
 )
 
-func TestSanitize(t *testing.T) {
+func TestNeutralize(t *testing.T) {
 	prog.TestDeserializeHelper(t, "linux", "amd64", nil, []prog.DeserializeTest{
 		{
 			In:  `syslog(0x10000000006, 0x0, 0x0)`,

@@ -12,7 +12,7 @@ import (
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
-		unix:                        targets.MakeUnixSanitizer(target),
+		unix:                        targets.MakeUnixNeutralizer(target),
 		clockGettimeSyscall:         target.SyscallMap["clock_gettime"],
 		MREMAP_MAYMOVE:              target.GetConst("MREMAP_MAYMOVE"),
 		MREMAP_FIXED:                target.GetConst("MREMAP_FIXED"),
@@ -49,7 +49,7 @@ func InitTarget(target *prog.Target) {
 	}
 
 	target.MakeMmap = targets.MakePosixMmap(target)
-	target.SanitizeCall = arch.sanitizeCall
+	target.Neutralize = arch.neutralize
 	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, old prog.Arg) (
 		prog.Arg, []*prog.Call){
 		"timespec":                  arch.generateTimespec,
@@ -118,7 +118,7 @@ var (
 )
 
 type arch struct {
-	unix *targets.UnixSanitizer
+	unix *targets.UnixNeutralizer
 
 	clockGettimeSyscall *prog.Syscall
 
@@ -155,8 +155,8 @@ type arch struct {
 	TIOCGSERIAL                 uint64
 }
 
-func (arch *arch) sanitizeCall(c *prog.Call) {
-	arch.unix.SanitizeCall(c)
+func (arch *arch) neutralize(c *prog.Call) {
+	arch.unix.Neutralize(c)
 	switch c.Meta.CallName {
 	case "mremap":
 		// Add MREMAP_FIXED flag, otherwise it produces non-deterministic results.
@@ -175,7 +175,7 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 			cmd.Val = arch.SYSLOG_ACTION_SIZE_UNREAD
 		}
 	case "ioctl":
-		arch.sanitizeIoctl(c)
+		arch.neutralizeIoctl(c)
 	case "fanotify_mark":
 		// FAN_*_PERM require the program to reply to open requests.
 		// If that does not happen, the program will hang in an unkillable state forever.
@@ -222,7 +222,7 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 
 	switch c.Meta.Name {
 	case "setsockopt$EBT_SO_SET_ENTRIES":
-		arch.sanitizeEbtables(c)
+		arch.neutralizeEbtables(c)
 	}
 }
 
@@ -241,7 +241,7 @@ func enforceIntArg(a prog.Arg) {
 	}
 }
 
-func (arch *arch) sanitizeIoctl(c *prog.Call) {
+func (arch *arch) neutralizeIoctl(c *prog.Call) {
 	cmd := c.Args[1].(*prog.ConstArg)
 	switch uint64(uint32(cmd.Val)) {
 	case arch.FIFREEZE:
@@ -270,7 +270,7 @@ func (arch *arch) sanitizeIoctl(c *prog.Call) {
 		// https://groups.google.com/g/syzkaller-bugs/c/1rVENJf9P4U/m/QtGpapRxAgAJ
 		// https://syzkaller.appspot.com/bug?extid=f4f1e871965064ae689e
 		// TODO: TIOCSSERIAL does some other things that are not dangerous
-		// and would be nice to test, if/when we can sanitize based on sandbox value
+		// and would be nice to test, if/when we can neutralize based on sandbox value
 		// we could prohibit it only under sandbox=none.
 		cmd.Val = arch.TIOCGSERIAL
 	}

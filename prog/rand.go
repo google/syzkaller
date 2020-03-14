@@ -561,11 +561,7 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 	}
 	c.Args, calls = r.generateArgs(s, meta.Args)
 	r.target.assignSizesCall(c)
-	calls = append(calls, c)
-	for _, c1 := range calls {
-		r.target.SanitizeCall(c1)
-	}
-	return calls
+	return append(calls, c)
 }
 
 // GenerateAllSyzProg generates a program that contains all pseudo syz_ calls for testing.

@@ -13,19 +13,19 @@ import (
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
-		unix:           targets.MakeUnixSanitizer(target),
+		unix:           targets.MakeUnixNeutralizer(target),
 		DIOCKILLSTATES: target.GetConst("DIOCKILLSTATES"),
 		S_IFMT:         target.GetConst("S_IFMT"),
 		S_IFCHR:        target.GetConst("S_IFCHR"),
 	}
 
 	target.MakeMmap = targets.MakePosixMmap(target)
-	target.SanitizeCall = arch.SanitizeCall
+	target.Neutralize = arch.neutralize
 	target.AnnotateCall = arch.annotateCall
 }
 
 type arch struct {
-	unix           *targets.UnixSanitizer
+	unix           *targets.UnixNeutralizer
 	DIOCKILLSTATES uint64
 	S_IFMT         uint64
 	S_IFCHR        uint64
@@ -72,7 +72,7 @@ func isKcovFd(dev uint64) bool {
 	return major == devFdMajor && minor >= kcovFdMinorMin && minor < kcovFdMinorMax
 }
 
-func (arch *arch) SanitizeCall(c *prog.Call) {
+func (arch *arch) neutralize(c *prog.Call) {
 	argStart := 1
 	switch c.Meta.CallName {
 	case "chflagsat":
@@ -169,7 +169,7 @@ func (arch *arch) SanitizeCall(c *prog.Call) {
 			}
 		}
 	default:
-		arch.unix.SanitizeCall(c)
+		arch.unix.Neutralize(c)
 	}
 }
 

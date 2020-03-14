@@ -164,7 +164,7 @@ func (arch *arch) generateEbtables(g *prog.Gen, typ prog.Type, old prog.Arg) (
 	return
 }
 
-func (arch *arch) sanitizeEbtables(c *prog.Call) {
+func (arch *arch) neutralizeEbtables(c *prog.Call) {
 	// This is very hacky... just as netfilter interfaces.
 	// setsockopt's len argument must be equal to size of ebt_replace + entries size.
 	lenArg := c.Args[4].(*prog.ConstArg)

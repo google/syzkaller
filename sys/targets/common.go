@@ -51,7 +51,7 @@ func MakeSyzMmap(target *prog.Target) func(addr, size uint64) *prog.Call {
 	}
 }
 
-type UnixSanitizer struct {
+type UnixNeutralizer struct {
 	MAP_FIXED uint64
 	S_IFREG   uint64
 	S_IFCHR   uint64
@@ -60,8 +60,8 @@ type UnixSanitizer struct {
 	S_IFSOCK  uint64
 }
 
-func MakeUnixSanitizer(target *prog.Target) *UnixSanitizer {
-	return &UnixSanitizer{
+func MakeUnixNeutralizer(target *prog.Target) *UnixNeutralizer {
+	return &UnixNeutralizer{
 		MAP_FIXED: target.GetConst("MAP_FIXED"),
 		S_IFREG:   target.GetConst("S_IFREG"),
 		S_IFCHR:   target.GetConst("S_IFCHR"),
@@ -71,7 +71,7 @@ func MakeUnixSanitizer(target *prog.Target) *UnixSanitizer {
 	}
 }
 
-func (arch *UnixSanitizer) SanitizeCall(c *prog.Call) {
+func (arch *UnixNeutralizer) Neutralize(c *prog.Call) {
 	switch c.Meta.CallName {
 	case "mmap":
 		// Add MAP_FIXED flag, otherwise it produces non-deterministic results.

@@ -10,7 +10,7 @@ import (
 	_ "github.com/google/syzkaller/sys/openbsd/gen"
 )
 
-func TestSanitizeCall(t *testing.T) {
+func TestNeutralize(t *testing.T) {
 	prog.TestDeserializeHelper(t, "openbsd", "amd64", nil, []prog.DeserializeTest{
 		{
 			In:  `chflagsat(0x0, 0x0, 0x60004, 0x0)`,

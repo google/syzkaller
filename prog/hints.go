@@ -66,7 +66,12 @@ func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog))
 	p = p.Clone()
 	c := p.Calls[callIndex]
 	execValidate := func() {
-		p.Target.SanitizeCall(c)
+		// Don't try to fix the candidate program.
+		// Assuming the original call was sanitized, we've got a bad call
+		// as the result of hint substitution, so just throw it away.
+		if p.Target.sanitize(c, false) != nil {
+			return
+		}
 		p.debugValidate()
 		exec(p)
 	}

@@ -49,9 +49,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 			ok = ctx.removeCall()
 		}
 	}
-	for _, c := range p.Calls {
-		p.Target.SanitizeCall(c)
-	}
+	p.sanitizeFix()
 	p.debugValidate()
 	if got := len(p.Calls); got < 1 || got > ncalls {
 		panic(fmt.Sprintf("bad number of calls after mutation: %v, want [1, %v]", got, ncalls))
