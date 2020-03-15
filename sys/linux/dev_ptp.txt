@@ -19,7 +19,7 @@ ioctl$PTP_EXTTS_REQUEST(fd fd_ptp, cmd const[PTP_EXTTS_REQUEST], arg ptr[in, ptp
 ioctl$PTP_EXTTS_REQUEST2(fd fd_ptp, cmd const[PTP_EXTTS_REQUEST2], arg ptr[in, ptp_extts_request])
 ioctl$PTP_PEROUT_REQUEST(fd fd_ptp, cmd const[PTP_PEROUT_REQUEST], arg ptr[in, ptp_perout_request])
 ioctl$PTP_PEROUT_REQUEST2(fd fd_ptp, cmd const[PTP_PEROUT_REQUEST2], arg ptr[in, ptp_perout_request])
-ioctl$PTP_ENABLE_PPS(fd fd_ptp, cmd const[PTP_ENABLE_PPS], arg bool32)
+ioctl$PTP_ENABLE_PPS(fd fd_ptp, cmd const[PTP_ENABLE_PPS], arg boolptr)
 ioctl$PTP_SYS_OFFSET(fd fd_ptp, cmd const[PTP_SYS_OFFSET], arg ptr[in, ptp_sys_offset])
 ioctl$PTP_SYS_OFFSET_PRECISE(fd fd_ptp, cmd const[PTP_SYS_OFFSET_PRECISE], arg ptr[out, array[int8, PTP_SYS_OFFSET_PRECISE_SIZE]])
 ioctl$PTP_SYS_OFFSET_EXTENDED(fd fd_ptp, cmd const[PTP_SYS_OFFSET_EXTENDED], arg ptr[in, ptp_sys_offset_extended])

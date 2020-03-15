@@ -162,19 +162,19 @@ func TestDeserialize(t *testing.T) {
 			input: `test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
 		},
 		{
-			input:     `test$excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
+			input:     `test_excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
 			strictErr: "excessive syscall arguments",
 		},
 		{
-			input:     `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
+			input:     `test_excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
 			strictErr: "excessive syscall arguments",
 		},
 		{
-			input:     `test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
+			input:     `test_excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
 			strictErr: "excessive syscall arguments",
 		},
 		{
-			input:     `test$excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
+			input:     `test_excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
 			strictErr: "excessive syscall arguments",
 		},
 		{
@@ -191,38 +191,38 @@ func TestDeserialize(t *testing.T) {
 			strictErr: "undeclared variable r0",
 		},
 		{
-			input:     `test$excessive_args2(r1)`,
-			output:    `test$excessive_args2(0x0)`,
+			input:     `test_excessive_args2(r1)`,
+			output:    `test_excessive_args2(0x0)`,
 			strictErr: "undeclared variable r1",
 		},
 		{
-			input:     `test$excessive_args2({0x0, 0x1})`,
-			output:    `test$excessive_args2(0x0)`,
+			input:     `test_excessive_args2({0x0, 0x1})`,
+			output:    `test_excessive_args2(0x0)`,
 			strictErr: "wrong struct arg",
 		},
 		{
-			input:     `test$excessive_args2([0x0], 0x0)`,
-			output:    `test$excessive_args2(0x0)`,
+			input:     `test_excessive_args2([0x0], 0x0)`,
+			output:    `test_excessive_args2(0x0)`,
 			strictErr: "wrong array arg",
 		},
 		{
-			input:     `test$excessive_args2(@foo)`,
-			output:    `test$excessive_args2(0x0)`,
+			input:     `test_excessive_args2(@foo)`,
+			output:    `test_excessive_args2(0x0)`,
 			strictErr: "wrong union arg",
 		},
 		{
-			input:     `test$excessive_args2('foo')`,
-			output:    `test$excessive_args2(0x0)`,
+			input:     `test_excessive_args2('foo')`,
+			output:    `test_excessive_args2(0x0)`,
 			strictErr: "wrong string arg",
 		},
 		{
-			input:     `test$excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
-			output:    `test$excessive_args2(0x0)`,
+			input:     `test_excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
+			output:    `test_excessive_args2(0x0)`,
 			strictErr: "wrong addr arg",
 		},
 		{
-			input:  `test$excessive_args2(nil)`,
-			output: `test$excessive_args2(0x0)`,
+			input:  `test_excessive_args2(nil)`,
+			output: `test_excessive_args2(0x0)`,
 		},
 		{
 			input:     `test$type_confusion1(&(0x7f0000000000)=@unknown)`,

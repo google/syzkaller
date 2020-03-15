@@ -58,13 +58,25 @@ type OSData struct {
 func main() {
 	flag.Parse()
 
+	var OSList []string
+	for OS := range targets.List {
+		OSList = append(OSList, OS)
+	}
+	sort.Strings(OSList)
+
 	var oses []OSData
-	for OS, archs := range targets.List {
+	for _, OS := range OSList {
 		top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), nil)
 		if top == nil {
 			os.Exit(1)
 		}
 		osutil.MkdirAll(filepath.Join("sys", OS, "gen"))
+
+		var archs []string
+		for arch := range targets.List[OS] {
+			archs = append(archs, arch)
+		}
+		sort.Strings(archs)
 
 		type Job struct {
 			Target      *targets.Target
@@ -74,9 +86,9 @@ func main() {
 			ArchData    ArchData
 		}
 		var jobs []*Job
-		for _, target := range archs {
+		for _, arch := range archs {
 			jobs = append(jobs, &Job{
-				Target: target,
+				Target: targets.List[OS][arch],
 			})
 		}
 		sort.Slice(jobs, func(i, j int) bool {

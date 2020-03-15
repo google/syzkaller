@@ -12,7 +12,7 @@ read$hiddev(fd fd_hiddev, data buffer[out], len bytesize[data])
 
 # https://elixir.bootlin.com/linux/v5.1.7/source/include/uapi/linux/hiddev.h#L155
 ioctl$HIDIOCGVERSION(fd fd_hiddev, cmd const[HIDIOCGVERSION], arg ptr[out, int32])
-ioctl$HIDIOCAPPLICATION(fd fd_hiddev, cmd const[HIDIOCAPPLICATION], arg int32)
+ioctl$HIDIOCAPPLICATION(fd fd_hiddev, cmd const[HIDIOCAPPLICATION], arg intptr)
 ioctl$HIDIOCGDEVINFO(fd fd_hiddev, cmd const[HIDIOCGDEVINFO], arg buffer[out])
 ioctl$HIDIOCGSTRING(fd fd_hiddev, cmd const[HIDIOCGSTRING], arg ptr[inout, hiddev_ioctl_string_arg])
 ioctl$HIDIOCINITREPORT(fd fd_hiddev, cmd const[HIDIOCINITREPORT], arg const[0])

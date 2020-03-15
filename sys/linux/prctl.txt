@@ -9,7 +9,7 @@ include <uapi/linux/capability.h>
 include <uapi/linux/securebits.h>
 include <asm/prctl.h>
 
-prctl$PR_SET_PDEATHSIG(option const[PR_SET_PDEATHSIG], arg signalno)
+prctl$PR_SET_PDEATHSIG(option const[PR_SET_PDEATHSIG], arg signalnoptr)
 prctl$PR_GET_PDEATHSIG(option const[PR_GET_PDEATHSIG], arg ptr[out, int32])
 
 prctl$PR_GET_DUMPABLE(option const[PR_GET_DUMPABLE])
@@ -51,8 +51,8 @@ prctl$PR_SET_SECCOMP(option const[PR_SET_SECCOMP], mode flags[prctl_seccomp_mode
 
 prctl_seccomp_mode = SECCOMP_MODE_DISABLED, SECCOMP_MODE_STRICT, SECCOMP_MODE_FILTER
 
-prctl$PR_CAPBSET_READ(option const[PR_CAPBSET_READ], arg int32[0:CAP_LAST_CAP])
-prctl$PR_CAPBSET_DROP(option const[PR_CAPBSET_DROP], arg int32[0:CAP_LAST_CAP])
+prctl$PR_CAPBSET_READ(option const[PR_CAPBSET_READ], arg intptr[0:CAP_LAST_CAP])
+prctl$PR_CAPBSET_DROP(option const[PR_CAPBSET_DROP], arg intptr[0:CAP_LAST_CAP])
 
 prctl$PR_GET_TSC(option const[PR_GET_TSC], arg ptr[out, int32])
 prctl$PR_SET_TSC(option const[PR_SET_TSC], arg flags[prctl_tsc_mode])

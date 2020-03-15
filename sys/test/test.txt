@@ -236,7 +236,7 @@ test$length11(a0 ptr[in, syz_length_large_struct], a1 len[a0])
 test$length12(a0 ptr[in, syz_length_large_struct, opt], a1 len[a0])
 test$length13(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64]])
 test$length14(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64], opt])
-test$length15(a0 int16, a1 len[a0])
+test_length15(a0 int16, a1 len[a0])
 
 test$length16(a0 ptr[in, syz_length_bytesize_struct])
 test$length17(a0 ptr[in, syz_length_bytesize2_struct])
@@ -541,8 +541,8 @@ type_confusion [
 	f1	int8
 ]
 
-test$excessive_args1()
-test$excessive_args2(a1 int8)
+test_excessive_args1()
+test_excessive_args2(a1 int8)
 test$excessive_fields1(a1 ptr[in, excessive_fields])
 test$type_confusion1(a1 ptr[in, type_confusion])
 test$out_const(a1 ptr[out, const[1, int32]])
@@ -740,16 +740,16 @@ mutate7(a0 ptr[in, string], a1 len[a0])
 mutate8(a0 proc[100, 4, opt])
 
 # Test for arguments mutation
-mutate$integer(b1 bool8, b2 bool8, b3 bool8, b4 bool8, b5 bool8, b6 bool8, b7 bool8, b8 bool8, i9 int64)
-mutate$integer2(b1 bool64, i1 int64, i2 int32, i3 int16[0x0:0x8], i4 int8[0x0:0x8])
-mutate$flags(filename ptr[in, filename], i1 int64, b1 bool16, flags flags[bitmask_flags])
-mutate$flags2(filename ptr[in, filename], flags flags[bitmask_flags2])
-mutate$flags3(filename ptr[in, filename], flags flags[open_flags2])
-mutate$array(i1 int64, i2 int64[0x0:0x1fffffff], vec ptr[in, array[int32[0:1]]])
-mutate$array2(vec ptr[in, array[syz_struct1]])
-mutate$union(p ptr[in, syz_union0])
-mutate$buffer(p buffer[out])
-mutate$rangedbuffer(p ptr[out, array[int8, 5:10]])
+mutate_integer(b1 bool8, b2 bool8, b3 bool8, b4 bool8, b5 bool8, b6 bool8, b7 bool8, b8 bool8, i9 int64)
+mutate_integer2(b1 bool64, i1 int64, i2 int32, i3 int16[0x0:0x8], i4 int8[0x0:0x8])
+mutate_flags(filename ptr[in, filename], i1 int64, b1 bool16, flags flags[bitmask_flags])
+mutate_flags2(filename ptr[in, filename], flags flags[bitmask_flags2])
+mutate_flags3(filename ptr[in, filename], flags flags[open_flags2])
+mutate_array(i1 int64, i2 int64[0x0:0x1fffffff], vec ptr[in, array[int32[0:1]]])
+mutate_array2(vec ptr[in, array[syz_struct1]])
+mutate_union(p ptr[in, syz_union0])
+mutate_buffer(p buffer[out])
+mutate_rangedbuffer(p ptr[out, array[int8, 5:10]])
 
 open_flags = 0xabababababababab, 0xcdcdcdcdcdcdcdcd
 open_flags2 = 0xaaaaaaaaaaaaaaaa, 0xaaaaaaaabbbbbbbb, 0xbbbbbbbbbbbbbbbb, 0xbbbbbbbbcccccccc, 0xcccccccccccccccc, 0xccccccccdddddddd, 0xdddddddddddddddd, 0xddddddddeeeeeeee, 0xeeeeeeeeeeeeeeee, 0xeeeeeeeeffffffff, 0xffffffffffffffff

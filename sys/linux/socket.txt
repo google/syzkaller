@@ -303,8 +303,8 @@ define SIOCDEVPRIVATE_END	(SIOCDEVPRIVATE + 15)
 define SIOCPROTOPRIVATE_BEG	(SIOCPROTOPRIVATE)
 define SIOCPROTOPRIVATE_END	(SIOCPROTOPRIVATE + 15)
 
-ioctl$sock_netdev_private(fd sock, cmd int16[SIOCDEVPRIVATE_BEG:SIOCDEVPRIVATE_END], arg ptr[in, array[int8]])
-ioctl$sock_proto_private(fd sock, cmd int16[SIOCPROTOPRIVATE_BEG:SIOCPROTOPRIVATE_END], arg ptr[in, array[int8]])
+ioctl$sock_netdev_private(fd sock, cmd int32[SIOCDEVPRIVATE_BEG:SIOCDEVPRIVATE_END], arg ptr[in, array[int8]])
+ioctl$sock_proto_private(fd sock, cmd int32[SIOCPROTOPRIVATE_BEG:SIOCPROTOPRIVATE_END], arg ptr[in, array[int8]])
 
 ioctl$sock_FIOSETOWN(fd sock, cmd const[FIOSETOWN], arg ptr[in, pid])
 ioctl$sock_SIOCSPGRP(fd sock, cmd const[SIOCSPGRP], arg ptr[in, pid])
