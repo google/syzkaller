@@ -36,8 +36,8 @@ _ = __NR_mmap2
 
 ioctl$MON_IOCQ_URB_LEN(fd fd_usbmon, cmd const[MON_IOCQ_URB_LEN])
 ioctl$MON_IOCQ_RING_SIZE(fd fd_usbmon, cmd const[MON_IOCQ_RING_SIZE])
-ioctl$MON_IOCT_RING_SIZE(fd fd_usbmon, cmd const[MON_IOCT_RING_SIZE], arg int32[BUFF_MIN:BUFF_MAX])
-ioctl$MON_IOCH_MFLUSH(fd fd_usbmon, cmd const[MON_IOCH_MFLUSH], arg int32)
+ioctl$MON_IOCT_RING_SIZE(fd fd_usbmon, cmd const[MON_IOCT_RING_SIZE], arg intptr[BUFF_MIN:BUFF_MAX])
+ioctl$MON_IOCH_MFLUSH(fd fd_usbmon, cmd const[MON_IOCH_MFLUSH], arg intptr)
 ioctl$MON_IOCX_GET(fd fd_usbmon, cmd const[MON_IOCX_GET], arg ptr[in, mon_bin_get])
 ioctl$MON_IOCX_GETX(fd fd_usbmon, cmd const[MON_IOCX_GETX], arg ptr[in, mon_bin_get])
 

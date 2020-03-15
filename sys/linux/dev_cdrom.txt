@@ -49,8 +49,8 @@ ioctl$CDROMPLAYBLK(fd fd_cdrom, cmd const[CDROMPLAYBLK], arg ptr[in, cdrom_blk])
 
 ioctl$CDROMREADALL(fd fd_cdrom, cmd const[CDROMREADALL], arg ptr[out, cdrom_output_buffer])
 
-ioctl$CDROMGETSPINDOWN(fd fd_cdrom, cmd const[CDROMGETSPINDOWN], arg int8)
-ioctl$CDROMSETSPINDOWN(fd fd_cdrom, cmd const[CDROMSETSPINDOWN], arg int8)
+ioctl$CDROMGETSPINDOWN(fd fd_cdrom, cmd const[CDROMGETSPINDOWN], arg ptr[out, int8])
+ioctl$CDROMSETSPINDOWN(fd fd_cdrom, cmd const[CDROMSETSPINDOWN], arg ptr[in, int8[0:15]])
 
 ioctl$CDROMCLOSETRAY(fd fd_cdrom, cmd const[CDROMCLOSETRAY])
 
@@ -64,8 +64,6 @@ ioctl$CDROM_CHANGER_NSLOTS(fd fd_cdrom, cmd const[CDROM_CHANGER_NSLOTS])
 ioctl$CDROM_LOCKDOOR(fd fd_cdrom, cmd const[CDROM_LOCKDOOR], lock boolptr)
 ioctl$CDROM_DEBUG(fd fd_cdrom, cmd const[CDROM_DEBUG], debug boolptr)
 ioctl$CDROM_GET_CAPABILITY(fd fd_cdrom, cmd const[CDROM_GET_CAPABILITY])
-
-ioctl$CDROMAUDIOBUFSIZ(fd fd_cdrom, cmd const[CDROMAUDIOBUFSIZ], val int32)
 
 ioctl$DVD_READ_STRUCT(fd fd_cdrom, cmd const[DVD_READ_STRUCT], arg ptr[inout, dvd_struct])
 ioctl$DVD_WRITE_STRUCT(fd fd_cdrom, cmd const[DVD_READ_STRUCT], arg ptr[in, dvd_struct])

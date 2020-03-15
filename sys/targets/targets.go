@@ -40,6 +40,8 @@ type osCommon struct {
 	BuildOS string
 	// Does the OS use syscall numbers (e.g. Linux) or has interface based on functions (e.g. fuchsia).
 	SyscallNumbers bool
+	// Syscalls accept int64 arguments (>sizeof(void*)).
+	Int64SyscallArgs bool
 	// E.g. "__NR_" or "SYS_".
 	SyscallPrefix string
 	// ipc<->executor communication tuning.
@@ -113,6 +115,7 @@ var List = map[string]map[string]*Target{
 			CrossCFlags:    []string{"-m32", "-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
+				Int64SyscallArgs:       true,
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      true,
 				ExecutorUsesForkServer: false,
@@ -126,6 +129,7 @@ var List = map[string]map[string]*Target{
 			CrossCFlags: []string{"-m32", "-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
+				Int64SyscallArgs:       true,
 				SyscallPrefix:          "SYS_",
 				ExecutorUsesShmem:      true,
 				ExecutorUsesForkServer: true,
@@ -352,6 +356,7 @@ var oses = map[string]osCommon{
 	},
 	"freebsd": {
 		SyscallNumbers:         true,
+		Int64SyscallArgs:       true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
@@ -400,8 +405,9 @@ var oses = map[string]osCommon{
 		KernelObject:           "akaros-kernel-64b",
 	},
 	"trusty": {
-		SyscallNumbers: true,
-		SyscallPrefix:  "__NR_",
+		SyscallNumbers:   true,
+		Int64SyscallArgs: true,
+		SyscallPrefix:    "__NR_",
 	},
 }
 

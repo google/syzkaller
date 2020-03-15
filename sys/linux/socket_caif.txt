@@ -7,8 +7,8 @@ include <uapi/linux/caif/caif_socket.h>
 
 resource sock_caif[sock]
 
-socket$caif_seqpacket(domain const[AF_CAIF], type const[SOCK_SEQPACKET], proto int32[CAIFPROTO_AT:CAIFPROTO_DEBUG]) sock_caif
-socket$caif_stream(domain const[AF_CAIF], type const[SOCK_STREAM], proto int32[CAIFPROTO_AT:CAIFPROTO_DEBUG]) sock_caif
+socket$caif_seqpacket(domain const[AF_CAIF], type const[SOCK_SEQPACKET], proto int8[CAIFPROTO_AT:CAIFPROTO_DEBUG]) sock_caif
+socket$caif_stream(domain const[AF_CAIF], type const[SOCK_STREAM], proto int8[CAIFPROTO_AT:CAIFPROTO_DEBUG]) sock_caif
 connect$caif(fd sock_caif, addr ptr[in, sockaddr_caif], addrlen len[addr])
 setsockopt$CAIFSO_LINK_SELECT(fd sock_caif, level const[SOL_CAIF], opt const[CAIFSO_LINK_SELECT], arg ptr[in, int32], arglen len[arg])
 setsockopt$CAIFSO_REQ_PARAM(fd sock_caif, level const[SOL_CAIF], opt const[CAIFSO_REQ_PARAM], arg ptr[in, array[int8, 0:256]], arglen len[arg])
