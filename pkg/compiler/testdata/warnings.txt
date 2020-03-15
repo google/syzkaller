@@ -15,7 +15,7 @@ type suspicious_len_template[T] {
 	b	ptr[in, array[T]]
 }
 
-bar()						### unsupported syscall: bar due to missing const SYS_bar
-bar$1()
+unsupported()						### unsupported syscall: unsupported due to missing const SYS_unsupported
+unsupported$1()
 foo(a const[NO_SUCH_CONST], b r0)		### unsupported syscall: foo due to missing const NO_SUCH_CONST
 resource r0[int32]: NO_EITHER			### unsupported resource: r0 due to missing const NO_EITHER

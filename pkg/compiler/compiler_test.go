@@ -53,12 +53,6 @@ func TestCompileAll(t *testing.T) {
 
 func TestNoErrors(t *testing.T) {
 	t.Parallel()
-	consts := map[string]uint64{
-		"SYS_foo": 1,
-		"C0":      0,
-		"C1":      1,
-		"C2":      2,
-	}
 	for _, name := range []string{"all.txt"} {
 		for _, arch := range []string{"32_shmem", "64"} {
 			name, arch := name, arch
@@ -88,6 +82,12 @@ func TestNoErrors(t *testing.T) {
 				if constInfo == nil {
 					t.Fatalf("const extraction failed")
 				}
+				consts := map[string]uint64{
+					"C0": 0,
+					"C1": 1,
+					"C2": 2,
+				}
+				FabricateSyscallConsts(target, constInfo, consts)
 				desc := Compile(astDesc, consts, target, eh)
 				if desc == nil {
 					t.Fatalf("compilation failed")
