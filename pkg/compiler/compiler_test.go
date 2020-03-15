@@ -230,11 +230,14 @@ s2 {
 	f3	array[array[s1, 2], 2]
 }
 	`
-	desc := ast.Parse([]byte(input), "input", nil)
+	eh := func(pos ast.Pos, msg string) {
+		t.Errorf("%v: %v", pos, msg)
+	}
+	desc := ast.Parse([]byte(input), "input", eh)
 	if desc == nil {
 		t.Fatal("failed to parse")
 	}
-	p := Compile(desc, map[string]uint64{"SYS_foo": 1}, targets.List["test"]["64"], nil)
+	p := Compile(desc, map[string]uint64{"SYS_foo": 1}, targets.List["test"]["64"], eh)
 	if p == nil {
 		t.Fatal("failed to compile")
 	}
