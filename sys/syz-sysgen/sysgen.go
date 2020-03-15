@@ -96,6 +96,10 @@ func main() {
 				if consts == nil {
 					return
 				}
+				if OS == "test" {
+					constInfo := compiler.ExtractConsts(top, job.Target, eh)
+					compiler.FabricateSyscallConsts(job.Target, constInfo, consts)
+				}
 				prog := compiler.Compile(top, consts, job.Target, eh)
 				if prog == nil {
 					return
