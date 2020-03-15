@@ -33,6 +33,21 @@ func ExtractConsts(desc *ast.Description, target *targets.Target, eh ast.ErrorHa
 	return res.fileConsts
 }
 
+// FabricateSyscallConsts adds syscall number constants to consts map.
+// Used for test OS to not bother specifying consts for all syscalls.
+func FabricateSyscallConsts(target *targets.Target, constInfo map[string]*ConstInfo, consts map[string]uint64) {
+	if !target.SyscallNumbers {
+		return
+	}
+	for _, info := range constInfo {
+		for _, name := range info.Consts {
+			if strings.HasPrefix(name, target.SyscallPrefix) {
+				consts[name] = 0
+			}
+		}
+	}
+}
+
 // extractConsts returns list of literal constants and other info required for const value extraction.
 func (comp *compiler) extractConsts() map[string]*ConstInfo {
 	infos := make(map[string]*constInfo)
