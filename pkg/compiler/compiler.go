@@ -99,9 +99,6 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 	if comp.errors != 0 {
 		return nil
 	}
-	for _, w := range comp.warnings {
-		eh(w.pos, w.msg)
-	}
 	syscalls := comp.genSyscalls()
 	prg := &Prog{
 		Resources:   comp.genResources(),
@@ -111,6 +108,9 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 	}
 	if comp.errors != 0 {
 		return nil
+	}
+	for _, w := range comp.warnings {
+		eh(w.pos, w.msg)
 	}
 	return prg
 }
