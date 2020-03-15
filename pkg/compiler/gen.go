@@ -42,19 +42,62 @@ func (comp *compiler) genResource(n *ast.Resource) *prog.ResourceDesc {
 	return res
 }
 
-func (comp *compiler) genSyscalls() []*prog.Syscall {
-	var calls []*prog.Syscall
-	callArgs := make(map[string]int)
+func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
+	argPos := make(map[string]ast.Pos)
+	callArgSizes := make(map[string][]uint64)
 	for _, decl := range comp.desc.Nodes {
-		if n, ok := decl.(*ast.Call); ok {
-			if callArgs[n.CallName] < len(n.Args) {
-				callArgs[n.CallName] = len(n.Args)
+		n, ok := decl.(*ast.Call)
+		if !ok {
+			continue
+		}
+		// Figure out number of arguments and their sizes for each syscall.
+		// For example, we may have:
+		// ioctl(fd fd, cmd int32, arg intptr)
+		// ioctl$FOO(fd fd, cmd const[FOO])
+		// Here we will figure out that ioctl$FOO have 3 args, even that
+		// only 2 are specified and that size of cmd is 4 even that
+		// normally we would assume it's 8 (intptr).
+		argSizes := callArgSizes[n.CallName]
+		for i, arg := range n.Args {
+			if len(argSizes) <= i {
+				argSizes = append(argSizes, 0)
+			}
+			desc, _, _ := comp.getArgsBase(arg.Type, arg.Name.Name, prog.DirIn, true)
+			typ := comp.genField(arg, prog.DirIn, true)
+			// Ignore all types with base (const, flags). We don't have base in syscall args.
+			// Also ignore resources and pointers because fd can be 32-bits and pointer 64-bits,
+			// and then there is no way to fix this.
+			// The only relevant types left is plain int types.
+			if desc != typeInt {
+				continue
+			}
+			if !comp.target.Int64SyscallArgs && typ.Size() > comp.ptrSize {
+				comp.error(arg.Pos, "%v arg %v is larger than pointer size", n.Name.Name, arg.Name.Name)
+				continue
+			}
+			argID := fmt.Sprintf("%v|%v", n.CallName, i)
+			if argSizes[i] == 0 {
+				argSizes[i] = typ.Size()
+				argPos[argID] = arg.Pos
+				continue
+			}
+			if argSizes[i] != typ.Size() {
+				comp.error(arg.Pos, "%v arg %v is redeclared with size %v, previously declared with size %v at %v",
+					n.Name.Name, arg.Name.Name, typ.Size(), argSizes[i], argPos[argID])
+				continue
 			}
 		}
+		callArgSizes[n.CallName] = argSizes
 	}
+	return callArgSizes
+}
+
+func (comp *compiler) genSyscalls() []*prog.Syscall {
+	callArgSizes := comp.collectCallArgSizes()
+	var calls []*prog.Syscall
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Call); ok && n.NR != ^uint64(0) {
-			calls = append(calls, comp.genSyscall(n, callArgs[n.CallName]))
+			calls = append(calls, comp.genSyscall(n, len(callArgSizes[n.CallName])))
 		}
 	}
 	sort.Slice(calls, func(i, j int) bool {

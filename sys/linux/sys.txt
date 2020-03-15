@@ -71,6 +71,7 @@ type align64[T] {
 } [align_8]
 
 type signalno int32[0:65]
+type signalnoptr intptr[0:65]
 
 syz_execute_func(text ptr[in, text[target]])
 
@@ -142,7 +143,7 @@ eventfd2(initval int32, flags flags[eventfd_flags]) fd_event
 read$eventfd(fd fd_event, val ptr[out, int64], len len[val])
 write$eventfd(fd fd_event, val ptr[in, int64], len len[val])
 
-mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset int32[0:0xffffffff, 0x1000])
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset intptr[0:0xffffffff, 0x1000])
 munmap(addr vma, len len[addr])
 mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma)
 remap_file_pages(addr vma, size len[addr], prot flags[mmap_prot], pgoff intptr, flags flags[mmap_flags])
@@ -179,7 +180,7 @@ pkey_flags = PKEY_DISABLE_ACCESS, PKEY_DISABLE_WRITE
 restart_syscall()
 
 # Almighty!
-ioctl(fd fd, cmd intptr, arg buffer[in])
+ioctl(fd fd, cmd int32, arg buffer[in])
 
 ioctl$void(fd fd, cmd flags[ioctl_void])
 ioctl$int_in(fd fd, cmd flags[ioctl_int_in], v ptr[in, int64])
@@ -194,7 +195,7 @@ fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
 fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
 fcntl$getownex(fd fd, cmd const[F_GETOWN_EX], arg ptr[out, f_owner_ex])
 fcntl$setownex(fd fd, cmd const[F_SETOWN_EX], arg ptr[in, f_owner_ex])
-fcntl$setsig(fd fd, cmd const[F_SETSIG], sig signalno)
+fcntl$setsig(fd fd, cmd const[F_SETSIG], sig signalnoptr)
 fcntl$setlease(fd fd, cmd const[F_SETLEASE], typ flags[flock_type])
 fcntl$notify(fd fd, cmd const[F_NOTIFY], typ flags[fcntl_notify])
 fcntl$setpipe(fd fd, cmd const[F_SETPIPE_SZ], sz intptr)
@@ -332,7 +333,7 @@ fdatasync(fd fd)
 sync()
 syncfs(fd fd)
 sync_file_range(fd fd, off intptr, nbytes intptr, flags flags[sync_file_flags])
-lookup_dcookie(cookie int64, buf buffer[out], len len[buf])
+lookup_dcookie(cookie intptr, buf buffer[out], len len[buf])
 getdents(fd fd_dir, ent buffer[out], count len[ent])
 getdents64(fd fd_dir, ent buffer[out], count len[ent])
 name_to_handle_at(fd fd_dir, file ptr[in, filename], handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])

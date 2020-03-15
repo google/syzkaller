@@ -1,19 +1,19 @@
 # Copyright 2018 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-foo$0(a int8)
-foo$1(a int8[C1:C2])
-foo$2(a ptr[out, array[int32]])
-foo$3(a union_arg)
-foo$4() r0
-foo$5(a int8['a':'z'])
-foo$6(a int8[-20:-10])
-foo$7(a int8[-20:20])
-foo$8(a ptr[in, strings])
-foo$9(a ptr[out, ptr[in, string]])
-foo$10(a ptr[out, buffer[in]])
-foo$11(a int64[1:100, 2])
-foo$12(a int64[0:-1, 0x1000])
+foo_0(a int8)
+foo_1(a int8[C1:C2])
+foo_2(a ptr[out, array[int32]])
+foo_3(a union_arg)
+foo_4() r0
+foo_5(a int8['a':'z'])
+foo_6(a int8[-20:-10])
+foo_7(a int8[-20:20])
+foo_8(a ptr[in, strings])
+foo_9(a ptr[out, ptr[in, string]])
+foo_10(a ptr[out, buffer[in]])
+foo_11(a int64[1:100, 2])
+foo_12(a int64[0:-1, 0x1000])
 
 resource r0[intptr]
 
@@ -57,7 +57,7 @@ proc_struct1 {
 	f1	proc[C0, 8, int8]
 }
 
-foo$proc1(a ptr[in, proc_struct1])
+foo_proc1(a ptr[in, proc_struct1])
 
 # Len/bytesize types.
 
@@ -71,9 +71,9 @@ type len_temp2[DATA] {
 	len	len[len_templ1, int8]
 }
 
-foo$len_templ(a ptr[in, len_templ1[int8, int16]])
-foo$len_var0(a ptr[in, array[string]], b len[a])
-foo$len_var1(a ptr[in, array[string]], b ptr[in, len[a, int32]])
+foo_len_templ(a ptr[in, len_templ1[int8, int16]])
+foo_len_var0(a ptr[in, array[string]], b len[a])
+foo_len_var1(a ptr[in, array[string]], b ptr[in, len[a, int32]])
 
 len_expr1 {
 	f11	len_expr2
@@ -103,14 +103,14 @@ len_expr4 {
 	f41	int32
 }
 
-foo$len_expr(a ptr[in, len_expr1], b ptr[in, array[int8, 3]])
+foo_len_expr(a ptr[in, len_expr1], b ptr[in, array[int8, 3]])
 
 # Pointer type.
 
-foo$ptr(a ptr[in, int64])
-foo$ptr64(a ptr64[in, int64])
-foo$vma(a vma)
-foo$vma64(a vma64)
+foo_ptr(a ptr[in, int64])
+foo_ptr64(a ptr64[in, int64])
+foo_vma(a vma)
+foo_vma64(a vma64)
 
 # Void type.
 
@@ -156,15 +156,15 @@ struct_with_void1 {
 	f4	optional[int8]
 }
 
-foo$void0(a ptr[in, void0])
-foo$void1(a ptr[in, void1])
-foo$void2(a ptr[in, void2])
-foo$void3(a ptr[in, void3])
-foo$void4(a ptr[in, void4])
-foo$void5(a ptr[in, void5])
-foo$void6(a ptr[in, struct_with_void0])
-foo$void7(a ptr[in, struct_with_void1])
-foo$void8(a ptr[in, void])
+foo_void0(a ptr[in, void0])
+foo_void1(a ptr[in, void1])
+foo_void2(a ptr[in, void2])
+foo_void3(a ptr[in, void3])
+foo_void4(a ptr[in, void4])
+foo_void5(a ptr[in, void5])
+foo_void6(a ptr[in, struct_with_void0])
+foo_void7(a ptr[in, struct_with_void1])
+foo_void8(a ptr[in, void])
 
 # Bitfields.
 
@@ -176,7 +176,7 @@ bitfield0 {
 	f5	int64:64[-1:1]
 }
 
-foo$bitfield0(a ptr[in, bitfield0])
+foo_bitfield0(a ptr[in, bitfield0])
 
 # Type templates.
 
@@ -236,18 +236,18 @@ type templ_base3[BASE] BASE
 type templ_base4[BASE] const[0, BASE]
 type templ_base5[VAL, BASE] const[VAL, BASE]
 
-foo$templ0(a templ0[42, int8])
-foo$templ1(a ptr[in, templ_struct0[C2, int8]])
-foo$templ2(a ptr[in, union_with_templ_struct])
-foo$templ3(a ptr[in, templ_struct1[1]], b ptr[in, templ_struct1[2]])
-foo$templ4(a ptr[in, templ_struct1[3]])
-foo$templ5(a ptr[in, templ_struct1[3]])
-foo$templ6(a ptr[in, templ_struct4])
-foo$templ7(a ptr[in, templ_struct5], b ptr[in, templ_struct6], c ptr[in, templ_union], d ptr[in, type3])
-foo$templ8(a ptr[in, templ_templ_use])
-foo$templ9(a ptr[in, templ_base3[int64]])
-foo$templ10(a ptr[in, templ_base4[int8]])
-foo$templ11(a ptr[in, templ_base5[42, int8]])
+foo_templ0(a templ0[42, int8])
+foo_templ1(a ptr[in, templ_struct0[C2, int8]])
+foo_templ2(a ptr[in, union_with_templ_struct])
+foo_templ3(a ptr[in, templ_struct1[1]], b ptr[in, templ_struct1[2]])
+foo_templ4(a ptr[in, templ_struct1[3]])
+foo_templ5(a ptr[in, templ_struct1[3]])
+foo_templ6(a ptr[in, templ_struct4])
+foo_templ7(a ptr[in, templ_struct5], b ptr[in, templ_struct6], c ptr[in, templ_union], d ptr[in, type3])
+foo_templ8(a ptr[in, templ_templ_use])
+foo_templ9(a ptr[in, templ_base3[int64]])
+foo_templ10(a ptr[in, templ_base4[int8]])
+foo_templ11(a ptr[in, templ_base5[42, int8]])
 
 # Structs.
 
@@ -273,7 +273,7 @@ s4 {
 	f2	int8
 } [size[19]]
 
-foo$s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2], d ptr[in, s4])
+foo_s0(a ptr[in, s0], b ptr[in, s1], c ptr[in, s2], d ptr[in, s4])
 
 # Unions.
 
@@ -281,16 +281,16 @@ u0 [
 	f1	int32
 ]
 
-foo$u0(a ptr[in, u0])
+foo_u0(a ptr[in, u0])
 
 # fmt
 
-foo$fmt0(a ptr[in, fmt[dec, int32[1:10]]])
-foo$fmt1(a ptr[in, fmt[hex, flags[int_flags]]])
-foo$fmt2(a ptr[in, fmt[oct, len[b]]], b ptr[in, array[int8]])
-foo$fmt3(a ptr[in, fmt[dec, proc[10, 20]]])
-foo$fmt4(a ptr[in, fmt[dec, r0]])
-foo$fmt5(a ptr[in, struct$fmt0])
+foo_fmt0(a ptr[in, fmt[dec, int32[1:10]]])
+foo_fmt1(a ptr[in, fmt[hex, flags[int_flags]]])
+foo_fmt2(a ptr[in, fmt[oct, len[b]]], b ptr[in, array[int8]])
+foo_fmt3(a ptr[in, fmt[dec, proc[10, 20]]])
+foo_fmt4(a ptr[in, fmt[dec, r0]])
+foo_fmt5(a ptr[in, struct$fmt0])
 
 struct$fmt0 {
 	f0	fmt[dec, int8]

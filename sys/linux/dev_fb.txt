@@ -13,7 +13,7 @@ openat$fb1(fd const[AT_FDCWD], file ptr[in, string["/dev/fb1"]], flags flags[ope
 
 write$fb(fd fd_fb, data ptr[in, array[int8]], len bytesize[data])
 read$fb(fd fd_fb, data ptr[out, array[int8]], len bytesize[data])
-mmap$fb(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_fb, off int64[0:0x100000, 0x1000])
+mmap$fb(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_fb, off intptr[0:0x100000, 0x1000])
 
 ioctl$FBIOGET_VSCREENINFO(fd fd_fb, cmd const[FBIOGET_VSCREENINFO], arg ptr[out, array[int8, FB_VAR_SCREENINFO_SIZE]])
 ioctl$FBIOPUT_VSCREENINFO(fd fd_fb, cmd const[FBIOPUT_VSCREENINFO], arg ptr[in, fb_var_screeninfo])
