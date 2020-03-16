@@ -140,13 +140,7 @@ func TestCallSetRandom(t *testing.T) {
 }
 
 func TestDeserialize(t *testing.T) {
-	target := initTargetTest(t, "test", "64")
-	tests := []struct {
-		input     string
-		output    string
-		err       string
-		strictErr string
-	}{
+	testDeserialize(t, nil, []deserializeTest{
 		{
 			input: `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
 		},
@@ -302,74 +296,73 @@ func TestDeserialize(t *testing.T) {
 			output:    `test$str2(&(0x7f0000000000)='foo\x00')`,
 			strictErr: `bad string value "baz\x00", expect ["foo\x00" "bar\x00"]`,
 		},
-	}
+	})
+}
+
+type deserializeTest struct {
+	input     string
+	output    string
+	err       string
+	strictErr string
+}
+
+func testDeserialize(t *testing.T, transform func(*Target, *Prog), tests []deserializeTest) {
+	target := initTargetTest(t, "test", "64")
 	buf := make([]byte, ExecBufferSize)
-	for _, test := range tests {
-		if test.strictErr == "" {
-			test.strictErr = test.err
-		}
-		if test.err != "" && test.output != "" {
-			t.Errorf("both err and output are set")
-			continue
-		}
-		for _, mode := range []DeserializeMode{NonStrict, Strict} {
-			p, err := target.Deserialize([]byte(test.input), mode)
-			wantErr := test.err
-			if mode == Strict {
-				wantErr = test.strictErr
+	for testidx, test := range tests {
+		t.Run(fmt.Sprint(testidx), func(t *testing.T) {
+			if test.strictErr == "" {
+				test.strictErr = test.err
 			}
-			if err != nil {
-				if wantErr == "" {
-					t.Errorf("deserialization failed with\n%s\ndata:\n%s\n",
-						err, test.input)
-					continue
-				}
-				if !strings.Contains(err.Error(), wantErr) {
-					t.Errorf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s",
-						err, wantErr, test.input)
-					continue
-				}
-			} else {
-				if wantErr != "" {
-					t.Errorf("deserialization should have failed with:\n%s\ndata:\n%s\n",
-						wantErr, test.input)
-					continue
-				}
-				output := strings.TrimSpace(string(p.Serialize()))
-				if test.output != "" && test.output != output {
-					t.Errorf("wrong serialized data:\n%s\nexpect:\n%s\n",
-						output, test.output)
-					continue
-				}
-				p.SerializeForExec(buf)
+			if test.err != "" && test.output != "" {
+				t.Fatalf("both err and output are set")
 			}
-		}
+			for _, mode := range []DeserializeMode{NonStrict, Strict} {
+				p, err := target.Deserialize([]byte(test.input), mode)
+				wantErr := test.err
+				if mode == Strict {
+					wantErr = test.strictErr
+				}
+				if err != nil {
+					if wantErr == "" {
+						t.Fatalf("deserialization failed with\n%s\ndata:\n%s\n",
+							err, test.input)
+					}
+					if !strings.Contains(err.Error(), wantErr) {
+						t.Fatalf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s",
+							err, wantErr, test.input)
+					}
+				} else {
+					if wantErr != "" {
+						t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n",
+							wantErr, test.input)
+					}
+					if transform != nil {
+						transform(target, p)
+					}
+					output := strings.TrimSpace(string(p.Serialize()))
+					if test.output != "" && test.output != output {
+						t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n",
+							output, test.output)
+					}
+					p.SerializeForExec(buf)
+				}
+			}
+		})
 	}
 }
 
 func TestSerializeDeserialize(t *testing.T) {
-	target := initTargetTest(t, "test", "64")
-	tests := [][2]string{
+	testDeserialize(t, nil, []deserializeTest{
 		{
-			`serialize0(&(0x7f0000408000)={"6861736800000000000000000000", "48490000"})`,
-			`serialize0(&(0x7f0000408000)={'hash\x00', 'HI\x00'})`,
+			input:  `serialize0(&(0x7f0000408000)={"6861736800000000000000000000", "48490000"})`,
+			output: `serialize0(&(0x7f0000408000)={'hash\x00', 'HI\x00'})`,
 		},
 		{
-			`serialize1(&(0x7f0000000000)="0000000000000000", 0x8)`,
-			`serialize1(&(0x7f0000000000)=""/8, 0x8)`,
+			input:  `serialize1(&(0x7f0000000000)="0000000000000000", 0x8)`,
+			output: `serialize1(&(0x7f0000000000)=""/8, 0x8)`,
 		},
-	}
-	for _, test := range tests {
-		p, err := target.Deserialize([]byte(test[0]), Strict)
-		if err != nil {
-			t.Fatal(err)
-		}
-		data := p.Serialize()
-		test[1] += "\n"
-		if string(data) != test[1] {
-			t.Fatalf("\ngot : %s\nwant: %s", data, test[1])
-		}
-	}
+	})
 }
 
 func TestSerializeDeserializeRandom(t *testing.T) {
