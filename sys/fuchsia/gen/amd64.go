@@ -7089,7 +7089,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_thread_read_state$0", CallName: "zx_thread_read_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "kind", TypeSize: 8}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "kind", TypeSize: 4}}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, &ArrayType{TypeCommon{TypeName: "array", TypeSize: 144, ArgDir: 1}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}, 1, 18, 18}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Path: []string{"buffer"}},
 	}},
@@ -7108,7 +7108,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_thread_write_state$0", CallName: "zx_thread_write_state", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "handle", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "kind", TypeSize: 8}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "kind", TypeSize: 4}}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, &ArrayType{TypeCommon{TypeName: "array", TypeSize: 144}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, 1, 18, 18}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Path: []string{"buffer"}},
 	}},
@@ -7475,4 +7475,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "0246d352fea863da96a885f340a5b13a9b741cdd"
+const revision_amd64 = "01d1f2350d7c83f7ad219975ca337bfad4aaadf5"
