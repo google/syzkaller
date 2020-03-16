@@ -97,7 +97,7 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 	var calls []*prog.Syscall
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Call); ok && n.NR != ^uint64(0) {
-			calls = append(calls, comp.genSyscall(n, len(callArgSizes[n.CallName])))
+			calls = append(calls, comp.genSyscall(n, callArgSizes[n.CallName]))
 		}
 	}
 	sort.Slice(calls, func(i, j int) bool {
@@ -106,18 +106,45 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 	return calls
 }
 
-func (comp *compiler) genSyscall(n *ast.Call, maxArgs int) *prog.Syscall {
+func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 	var ret prog.Type
 	if n.Ret != nil {
 		ret = comp.genType(n.Ret, "ret", prog.DirOut, true)
+	}
+	args := comp.genFieldArray(n.Args, prog.DirIn, true)
+	for i, arg := range args {
+		// Now that we know a more precise size, patch the type.
+		// This is somewhat hacky. Ideally we figure out the size earlier,
+		// store it somewhere and use during generation of the arg base type.
+		if argSizes[i] != 0 {
+			patchArgBaseSize(arg, argSizes[i])
+		}
 	}
 	return &prog.Syscall{
 		Name:        n.Name.Name,
 		CallName:    n.CallName,
 		NR:          n.NR,
-		MissingArgs: maxArgs - len(n.Args),
-		Args:        comp.genFieldArray(n.Args, prog.DirIn, true),
+		MissingArgs: len(argSizes) - len(n.Args),
+		Args:        args,
 		Ret:         ret,
+	}
+}
+
+func patchArgBaseSize(t0 prog.Type, size uint64) {
+	// We only need types that (1) can be arg, (2) have base type.
+	switch t := t0.(type) {
+	case *prog.ConstType:
+		t.TypeSize = size
+	case *prog.LenType:
+		t.TypeSize = size
+	case *prog.FlagsType:
+		t.TypeSize = size
+	case *prog.ProcType:
+		t.TypeSize = size
+	case *prog.IntType, *prog.ResourceType, *prog.PtrType, *prog.VmaType, *prog.UnionType:
+		// These don't have base.
+	default:
+		panic(fmt.Sprintf("type %#v can't be an arg", t))
 	}
 }
 

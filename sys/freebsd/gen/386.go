@@ -4548,67 +4548,67 @@ var syscalls_386 = []*Syscall{
 	{NR: 97, Name: "socket$inet6_icmp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 28},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}, Val: 58},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}, Val: 58},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp6", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet6_icmp_raw", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 28},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 3},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}, Val: 58},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}, Val: 58},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp6", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet6_sctp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 28},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sctp_socket_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{1, 5}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}, Val: 132},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}, Val: 132},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet6_tcp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 28},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 1},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet6_udp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 28},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp6", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet6_udplite", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 28},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}, Val: 136},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}, Val: 136},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udplite6", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet_icmp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 2},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}, Val: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet_icmp_raw", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 2},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 3},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}, Val: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet_sctp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 2},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sctp_socket_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{1, 5}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}, Val: 132},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}, Val: 132},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet_tcp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 2},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 1},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet_udp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 2},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$inet_udplite", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 2},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 2},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}, Val: 136},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}, Val: 136},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udplite", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 97, Name: "socket$unix", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 1},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{1, 2, 5}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 135, Name: "socketpair", CallName: "socketpair", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_domain", FldName: "domain", TypeSize: 4}}, Vals: []uint64{1, 2, 16, 23, 28}},
@@ -4619,7 +4619,7 @@ var syscalls_386 = []*Syscall{
 	{NR: 135, Name: "socketpair$unix", CallName: "socketpair", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 4}}, Val: 1},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{1, 2, 5}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 1}}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 4}, &StructType{Key: StructKey{"unix_pair", 1}}},
 	}},
 	{NR: 57, Name: "symlink", CallName: "symlink", Args: []Type{
@@ -5703,4 +5703,4 @@ var consts_386 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_386 = "ddcacbae3d419b32ec06bf24a4db14e50b83b67b"
+const revision_386 = "a058071358d12c6aa438b9543e30638f63dd8b9d"
