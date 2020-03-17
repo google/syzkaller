@@ -60,10 +60,10 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 		argSizes := callArgSizes[n.CallName]
 		for i, arg := range n.Args {
 			if len(argSizes) <= i {
-				argSizes = append(argSizes, 0)
+				argSizes = append(argSizes, comp.ptrSize)
 			}
 			desc, _, _ := comp.getArgsBase(arg.Type, arg.Name.Name, prog.DirIn, true)
-			typ := comp.genField(arg, prog.DirIn, true)
+			typ := comp.genField(arg, prog.DirIn, comp.ptrSize)
 			// Ignore all types with base (const, flags). We don't have base in syscall args.
 			// Also ignore resources and pointers because fd can be 32-bits and pointer 64-bits,
 			// and then there is no way to fix this.
@@ -76,7 +76,7 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 				continue
 			}
 			argID := fmt.Sprintf("%v|%v", n.CallName, i)
-			if argSizes[i] == 0 {
+			if _, ok := argPos[argID]; !ok {
 				argSizes[i] = typ.Size()
 				argPos[argID] = arg.Pos
 				continue
@@ -109,42 +109,15 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 	var ret prog.Type
 	if n.Ret != nil {
-		ret = comp.genType(n.Ret, "ret", prog.DirOut, true)
-	}
-	args := comp.genFieldArray(n.Args, prog.DirIn, true)
-	for i, arg := range args {
-		// Now that we know a more precise size, patch the type.
-		// This is somewhat hacky. Ideally we figure out the size earlier,
-		// store it somewhere and use during generation of the arg base type.
-		if argSizes[i] != 0 {
-			patchArgBaseSize(arg, argSizes[i])
-		}
+		ret = comp.genType(n.Ret, "ret", prog.DirOut, comp.ptrSize)
 	}
 	return &prog.Syscall{
 		Name:        n.Name.Name,
 		CallName:    n.CallName,
 		NR:          n.NR,
 		MissingArgs: len(argSizes) - len(n.Args),
-		Args:        args,
+		Args:        comp.genFieldArray(n.Args, prog.DirIn, argSizes),
 		Ret:         ret,
-	}
-}
-
-func patchArgBaseSize(t0 prog.Type, size uint64) {
-	// We only need types that (1) can be arg, (2) have base type.
-	switch t := t0.(type) {
-	case *prog.ConstType:
-		t.TypeSize = size
-	case *prog.LenType:
-		t.TypeSize = size
-	case *prog.FlagsType:
-		t.TypeSize = size
-	case *prog.ProcType:
-		t.TypeSize = size
-	case *prog.IntType, *prog.ResourceType, *prog.PtrType, *prog.VmaType, *prog.UnionType:
-		// These don't have base.
-	default:
-		panic(fmt.Sprintf("type %#v can't be an arg", t))
 	}
 }
 
@@ -321,7 +294,7 @@ func (comp *compiler) genStructDesc(res *prog.StructDesc, n *ast.Struct, dir pro
 	common.IsVarlen = varlen
 	*res = prog.StructDesc{
 		TypeCommon: common,
-		Fields:     comp.genFieldArray(n.Fields, dir, false),
+		Fields:     comp.genFieldArray(n.Fields, dir, make([]uint64, len(n.Fields))),
 	}
 }
 
@@ -517,22 +490,31 @@ func genPad(size uint64) prog.Type {
 	}
 }
 
-func (comp *compiler) genField(f *ast.Field, dir prog.Dir, isArg bool) prog.Type {
-	return comp.genType(f.Type, f.Name.Name, dir, isArg)
-}
-
-func (comp *compiler) genFieldArray(fields []*ast.Field, dir prog.Dir, isArg bool) []prog.Type {
+func (comp *compiler) genFieldArray(fields []*ast.Field, dir prog.Dir, argSizes []uint64) []prog.Type {
 	var res []prog.Type
-	for _, f := range fields {
-		res = append(res, comp.genField(f, dir, isArg))
+	for i, f := range fields {
+		res = append(res, comp.genField(f, dir, argSizes[i]))
 	}
 	return res
 }
 
-func (comp *compiler) genType(t *ast.Type, field string, dir prog.Dir, isArg bool) prog.Type {
-	desc, args, base := comp.getArgsBase(t, field, dir, isArg)
+func (comp *compiler) genField(f *ast.Field, dir prog.Dir, argSize uint64) prog.Type {
+	return comp.genType(f.Type, f.Name.Name, dir, argSize)
+}
+
+func (comp *compiler) genType(t *ast.Type, field string, dir prog.Dir, argSize uint64) prog.Type {
+	desc, args, base := comp.getArgsBase(t, field, dir, argSize != 0)
 	if desc.Gen == nil {
 		panic(fmt.Sprintf("no gen for %v %#v", field, t))
+	}
+	if argSize != 0 {
+		// Now that we know a more precise size, patch the type.
+		// This is somewhat hacky. Ideally we figure out the size earlier,
+		// store it somewhere and use during generation of the arg base type.
+		base.TypeSize = argSize
+		if desc.CheckConsts != nil {
+			desc.CheckConsts(comp, t, args, base)
+		}
 	}
 	base.IsVarlen = desc.Varlen != nil && desc.Varlen(comp, t, args)
 	return desc.Gen(comp, t, args, base)

@@ -491,7 +491,7 @@ var structDescs_32_fork_shmem = []*KeyedStruct{
 	{StructKey{Name: "syz_bf_struct0"}, &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_bf_struct0", TypeSize: 32}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_bf_flags", FldName: "f0", TypeSize: 8}, BitfieldLen: 10, BitfieldUnit: 2}, Vals: []uint64{0, 1, 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f1", TypeSize: 8}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f2"}, BitfieldLen: 5, BitfieldUnit: 2}, Val: 66},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f2"}, BitfieldLen: 5, BitfieldUnit: 2}, Val: 2},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f3"}, BitfieldOff: 5, BitfieldLen: 6, BitfieldUnit: 2}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f4", TypeSize: 4}, BitfieldOff: 11, BitfieldLen: 15, BitfieldUnit: 4}, Val: 66},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f5", TypeSize: 2}, BitfieldLen: 11, BitfieldUnit: 2}, Path: []string{"parent"}},
@@ -1450,4 +1450,4 @@ var consts_32_fork_shmem = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_32_fork_shmem = "8b0c7eb98cd401cc01c2beb956ae849009a1d2d1"
+const revision_32_fork_shmem = "1fba2cda053fcdf6511d4db184743d65230f9315"
