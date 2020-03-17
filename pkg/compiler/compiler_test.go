@@ -51,46 +51,61 @@ func TestCompileAll(t *testing.T) {
 	}
 }
 
-func TestNoErrors(t *testing.T) {
+func TestData(t *testing.T) {
 	t.Parallel()
-	for _, name := range []string{"all.txt"} {
+	// Compile the canned descriptions in testdata and match expected errors.
+	// Errors are produced in batches in different compilation phases.
+	// If one phase produces errors, subsequent phases are not executed.
+	// E.g. if we failed to parse descriptions, we won't run type checking at all.
+	// Because of this we have one file per phase.
+	for _, name := range []string{"errors.txt", "errors2.txt", "errors3.txt", "warnings.txt", "all.txt"} {
 		for _, arch := range []string{"32_shmem", "64"} {
 			name, arch := name, arch
 			t.Run(fmt.Sprintf("%v/%v", name, arch), func(t *testing.T) {
 				t.Parallel()
 				target := targets.List["test"][arch]
-				eh := func(pos ast.Pos, msg string) {
-					t.Logf("%v: %v", pos, msg)
-				}
 				fileName := filepath.Join("testdata", name)
-				data, err := ioutil.ReadFile(fileName)
-				if err != nil {
-					t.Fatal(err)
-				}
-				astDesc := ast.Parse(data, name, eh)
+				em := ast.NewErrorMatcher(t, fileName)
+				astDesc := ast.Parse(em.Data, name, em.ErrorHandler)
 				if astDesc == nil {
+					em.DumpErrors()
 					t.Fatalf("parsing failed")
 				}
-				formatted := ast.Format(astDesc)
-				if !bytes.Equal(data, formatted) {
+				constInfo := ExtractConsts(astDesc, target, em.ErrorHandler)
+				if name == "errors.txt" {
+					em.Check()
+					return
+				}
+				if constInfo == nil {
+					em.DumpErrors()
+					t.Fatalf("const extraction failed")
+				}
+				consts := map[string]uint64{
+					"SYS_foo": 1,
+					"C0":      0,
+					"C1":      1,
+					"C2":      2,
+				}
+				FabricateSyscallConsts(target, constInfo, consts)
+				delete(consts, "SYS_unsupported")
+				desc := Compile(astDesc, consts, target, em.ErrorHandler)
+				if name == "errors2.txt" || name == "errors3.txt" {
+					em.Check()
+					return
+				}
+				if desc == nil {
+					em.DumpErrors()
+					t.Fatalf("compilation failed")
+				}
+				if name == "warnings.txt" {
+					em.Check()
+					return
+				}
+				if formatted := ast.Format(astDesc); !bytes.Equal(em.Data, formatted) {
 					if *flagUpdate {
 						ioutil.WriteFile(fileName, formatted, 0644)
 					}
 					t.Fatalf("description is not formatted")
-				}
-				constInfo := ExtractConsts(astDesc, target, eh)
-				if constInfo == nil {
-					t.Fatalf("const extraction failed")
-				}
-				consts := map[string]uint64{
-					"C0": 0,
-					"C1": 1,
-					"C2": 2,
-				}
-				FabricateSyscallConsts(target, constInfo, consts)
-				desc := Compile(astDesc, consts, target, eh)
-				if desc == nil {
-					t.Fatalf("compilation failed")
 				}
 				if len(desc.Unsupported) != 0 {
 					t.Fatalf("something is unsupported:\n%+v", desc.Unsupported)
@@ -107,83 +122,6 @@ func TestNoErrors(t *testing.T) {
 				}
 			})
 		}
-	}
-}
-
-func TestErrors(t *testing.T) {
-	t.Parallel()
-	for _, arch := range []string{"32_shmem", "64"} {
-		target := targets.List["test"][arch]
-		t.Run(arch, func(t *testing.T) {
-			t.Parallel()
-			em := ast.NewErrorMatcher(t, filepath.Join("testdata", "errors.txt"))
-			desc := ast.Parse(em.Data, "errors.txt", em.ErrorHandler)
-			if desc == nil {
-				em.DumpErrors(t)
-				t.Fatalf("parsing failed")
-			}
-			ExtractConsts(desc, target, em.ErrorHandler)
-			em.Check(t)
-		})
-	}
-}
-
-func TestErrors2(t *testing.T) {
-	t.Parallel()
-	consts := map[string]uint64{
-		"SYS_foo": 1,
-		"C0":      0,
-		"C1":      1,
-		"C2":      2,
-	}
-	for _, arch := range []string{"32_shmem", "64"} {
-		target := targets.List["test"][arch]
-		t.Run(arch, func(t *testing.T) {
-			t.Parallel()
-			em := ast.NewErrorMatcher(t, filepath.Join("testdata", "errors2.txt"))
-			desc := ast.Parse(em.Data, "errors2.txt", em.ErrorHandler)
-			if desc == nil {
-				em.DumpErrors(t)
-				t.Fatalf("parsing failed")
-			}
-			info := ExtractConsts(desc, target, em.ErrorHandler)
-			if info == nil {
-				em.DumpErrors(t)
-				t.Fatalf("const extraction failed")
-			}
-			Compile(desc, consts, target, em.ErrorHandler)
-			em.Check(t)
-		})
-	}
-}
-
-func TestWarnings(t *testing.T) {
-	t.Parallel()
-	consts := map[string]uint64{
-		"SYS_foo": 1,
-	}
-	for _, arch := range []string{"32_shmem", "64"} {
-		target := targets.List["test"][arch]
-		t.Run(arch, func(t *testing.T) {
-			t.Parallel()
-			em := ast.NewErrorMatcher(t, filepath.Join("testdata", "warnings.txt"))
-			desc := ast.Parse(em.Data, "warnings.txt", em.ErrorHandler)
-			if desc == nil {
-				em.DumpErrors(t)
-				t.Fatalf("parsing failed")
-			}
-			info := ExtractConsts(desc, target, em.ErrorHandler)
-			if info == nil {
-				em.DumpErrors(t)
-				t.Fatalf("const extraction failed")
-			}
-			p := Compile(desc, consts, target, em.ErrorHandler)
-			if p == nil {
-				em.DumpErrors(t)
-				t.Fatalf("compilation failed")
-			}
-			em.Check(t)
-		})
 	}
 }
 
