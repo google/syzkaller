@@ -996,7 +996,7 @@ var syscalls_64 = []*Syscall{
 	}},
 	{Name: "mutate5", CallName: "mutate5", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{12370169555311111083, 14829735431805717965}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2880154539, 3452816845}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "mutate6", CallName: "mutate6", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -1033,7 +1033,7 @@ var syscalls_64 = []*Syscall{
 	}},
 	{Name: "mutate_flags3", CallName: "mutate_flags3", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags2", FldName: "flags", TypeSize: 8}}, Vals: []uint64{12297829382473034410, 12297829382759365563, 13527612320720337851, 13527612321006669004, 14757395258967641292, 14757395259253972445, 15987178197214944733, 15987178197501275886, 17216961135462248174, 17216961135748579327, 18446744073709551615}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags2", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2863311530, 2863315899, 3149642683, 3149647052, 3435973836, 3435978205, 3722304989, 3722309358, 4008636142, 4008640511, 4294967295}},
 	}},
 	{Name: "mutate_integer", CallName: "mutate_integer", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "b1", TypeSize: 1}}, Kind: 1, RangeEnd: 1},
@@ -1454,4 +1454,4 @@ var consts_64 = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64 = "78250fee4c7d10cc2980a171ea9a5eabfbc64b69"
+const revision_64 = "5ebd7e76e815125be242b5a31d8ab9a335aab451"

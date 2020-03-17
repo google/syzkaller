@@ -274,6 +274,9 @@ foo$530(a ptr[in, const[0x1ab, int8]])	### const val 0x1ab does not fit into 8 b
 foo$531(a ptr[in, const[0xffffffffffffffab, int8]])
 foo$532(a ptr[in, const[0x7234567812345678, int64]])
 foo$533(a ptr[in, const[0x12, int8:4]])	### const val 0x12 does not fit into 4 bits
+foo$534(a ptr[in, flags[large_flags, int8]])	### large_flags U16_MAX=0xffff doesn't fit into 8 bits
+
+large_flags = U8_MAX, U16_MAX
 
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
 type type501 int8		### unused type type501
