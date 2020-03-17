@@ -187,7 +187,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			n := decl.(*ast.IntFlags)
 			var values []*ast.Int
 			for _, v := range n.Values {
-				if comp.patchIntConst(&v.Value, &v.Ident, consts, nil) {
+				if comp.patchIntConst(v, consts, nil) {
 					values = append(values, v)
 				}
 			}
@@ -199,24 +199,19 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				args []*ast.Type, _ prog.IntTypeCommon) {
 				for i, arg := range args {
 					if desc.Args[i].Type.Kind == kindInt {
-						comp.patchIntConst(&arg.Value, &arg.Ident, consts, &missing)
-						for _, col := range arg.Colon {
-							comp.patchIntConst(&col.Value,
-								&col.Ident, consts, &missing)
-						}
+						comp.patchTypeConst(arg, consts, &missing)
 					}
 				}
 			})
 			if n, ok := decl.(*ast.Resource); ok {
 				for _, v := range n.Values {
-					comp.patchIntConst(&v.Value, &v.Ident, consts, &missing)
+					comp.patchIntConst(v, consts, &missing)
 				}
 			}
 			if n, ok := decl.(*ast.Struct); ok {
 				for _, attr := range n.Attrs {
 					if attr.Ident == "size" {
-						sz := attr.Args[0]
-						comp.patchIntConst(&sz.Value, &sz.Ident, consts, &missing)
+						comp.patchTypeConst(attr.Args[0], consts, &missing)
 					}
 				}
 			}
@@ -244,12 +239,25 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 	}
 }
 
-func (comp *compiler) patchIntConst(val *uint64, id *string, consts map[string]uint64, missing *string) bool {
+func (comp *compiler) patchIntConst(n *ast.Int, consts map[string]uint64, missing *string) bool {
+	return comp.patchConst(&n.Value, &n.Ident, consts, missing, false)
+}
+
+func (comp *compiler) patchTypeConst(n *ast.Type, consts map[string]uint64, missing *string) {
+	comp.patchConst(&n.Value, &n.Ident, consts, missing, true)
+	for _, col := range n.Colon {
+		comp.patchConst(&col.Value, &col.Ident, consts, missing, true)
+	}
+}
+
+func (comp *compiler) patchConst(val *uint64, id *string, consts map[string]uint64, missing *string, reset bool) bool {
 	if *id == "" {
 		return true
 	}
 	if v, ok := consts[*id]; ok {
-		*id = ""
+		if reset {
+			*id = ""
+		}
 		*val = v
 		return true
 	}
