@@ -19,8 +19,8 @@ type sock_port int16be[20000:20004]
 
 # TODO: describe socketcall syscall
 
-socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
-socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, sock_pair])
+socket(domain flags[socket_domain], type flags[socket_type], proto int32) sock
+socketpair(domain flags[socket_domain], type flags[socket_type], proto int32, fds ptr[out, sock_pair])
 bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
 accept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]]) sock

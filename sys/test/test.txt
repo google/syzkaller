@@ -554,7 +554,7 @@ syz_bf_flags = 0, 1, 2
 syz_bf_struct0 {
 	f0	flags[syz_bf_flags, int16:10]
 	f1	int64
-	f2	const[0x42, int16:5]
+	f2	const[0x2, int16:5]
 	f3	int16:6
 	f4	const[0x42, int32:15]
 	f5	len[parent, int16:11]

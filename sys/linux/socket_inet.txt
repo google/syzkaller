@@ -23,7 +23,7 @@ sockaddr_storage_in {
 	addr	sockaddr_in
 } [size[SOCKADDR_STORAGE_SIZE], align_ptr]
 
-socket$inet(domain const[AF_INET], type flags[socket_type], proto int8) sock_in
+socket$inet(domain const[AF_INET], type flags[socket_type], proto int32) sock_in
 accept$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]]) sock_in
 accept4$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_in
 bind$inet(fd sock_in, addr ptr[in, sockaddr_in], addrlen len[addr])

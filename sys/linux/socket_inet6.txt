@@ -25,7 +25,7 @@ sockaddr_storage_in6 {
 	addr	sockaddr_in6
 } [size[SOCKADDR_STORAGE_SIZE], align_ptr]
 
-socket$inet6(domain const[AF_INET6], type flags[socket_type], proto int8) sock_in6
+socket$inet6(domain const[AF_INET6], type flags[socket_type], proto int32) sock_in6
 accept$inet6(fd sock_in6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_in6
 accept4$inet6(fd sock_in6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_in6
 bind$inet6(fd sock_in6, addr ptr[in, sockaddr_in6], addrlen len[addr])

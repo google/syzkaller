@@ -270,6 +270,10 @@ foo$526(a int8[-255:255])		### int range [18446744073709551361:255] is too large
 foo$527(a int16[-40000:40000])		### int range [18446744073709511616:40000] is too large for base type of size 16
 foo$528(a ptr[in, s405])
 foo$529(a ptr[in, string[`abcdde`, 3]])	### string value "\xab\xcd\xde\x00" exceeds buffer length 3
+foo$530(a ptr[in, const[0x1ab, int8]])	### const val 0x1ab does not fit into 8 bits
+foo$531(a ptr[in, const[0xffffffffffffffab, int8]])
+foo$532(a ptr[in, const[0x7234567812345678, int64]])
+foo$533(a ptr[in, const[0x12, int8:4]])	### const val 0x12 does not fit into 4 bits
 
 type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
 type type501 int8		### unused type type501
