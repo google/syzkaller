@@ -37,6 +37,9 @@ func TestCompileAll(t *testing.T) {
 				arch, target := arch, target
 				t.Run(arch, func(t *testing.T) {
 					t.Parallel()
+					eh := func(pos ast.Pos, msg string) {
+						t.Logf("%v: %v", pos, msg)
+					}
 					consts := DeserializeConstsGlob(filepath.Join(path, "*_"+arch+".const"), eh)
 					if consts == nil {
 						t.Fatalf("reading consts failed")
