@@ -92,6 +92,8 @@ func TestData(t *testing.T) {
 					"C0":      0,
 					"C1":      1,
 					"C2":      2,
+					"U8_MAX":  0xff,
+					"U16_MAX": 0xffff,
 				}
 				FabricateSyscallConsts(target, constInfo, consts)
 				delete(consts, "SYS_unsupported")
