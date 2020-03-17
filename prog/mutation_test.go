@@ -26,11 +26,11 @@ func TestMutationFlags(t *testing.T) {
 		// Mutate flags (bitmask = false).
 		{
 			`r0 = mutate_flags3(&(0x7f0000000000)="2e2f66696c653000", 0x0)`,
-			`r0 = mutate_flags3(&(0x7f0000000000)="2e2f66696c653000", 0xddddddddeeeeeeee)`,
+			`r0 = mutate_flags3(&(0x7f0000000000)="2e2f66696c653000", 0xddddeeee)`,
 		},
 		{
-			`r0 = mutate_flags3(&(0x7f0000000000)="2e2f66696c653000", 0xddddddddeeeeeeee)`,
-			`r0 = mutate_flags3(&(0x7f0000000000)="2e2f66696c653000", 0xaaaaaaaaaaaaaaaa)`,
+			`r0 = mutate_flags3(&(0x7f0000000000)="2e2f66696c653000", 0xddddeeee)`,
+			`r0 = mutate_flags3(&(0x7f0000000000)="2e2f66696c653000", 0xaaaaaaaa)`,
 		},
 	}
 	runMutationTests(t, tests, true)
@@ -300,7 +300,7 @@ mutate0()
 mutate6(r0, &(0x7f0000000000)="00", 0x1)
 mutate1()
 `, `
-r0 = mutate5(&(0x7f0000000000)="2e2f66696c653000", 0xcdcdcdcdcdcdcdcd)
+r0 = mutate5(&(0x7f0000000000)="2e2f66696c653000", 0xcdcdcdcd)
 mutate0()
 mutate6(r0, &(0x7f0000000000)="00", 0x1)
 mutate1()

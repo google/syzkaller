@@ -654,7 +654,7 @@ kvm_segment {
 
 kvm_dtable {
 	base	flags[kvm_guest_addrs, int64]
-	limit	flags[kvm_guest_addrs, int16]
+	limit	int16
 	pad	array[const[0, int16], 3]
 }
 

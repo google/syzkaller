@@ -25,7 +25,10 @@ tcp_mptcp_option [
 	remove_addr	mptcp_remove_addr_option
 ] [varlen]
 
-mptcp_sub_types = OPTION_TYPE_SYN, OPTION_TYPE_SYNACK, OPTION_TYPE_ACK, OPTION_MP_CAPABLE, OPTION_ADD_ADDR, OPTION_MP_JOIN, OPTION_MP_FCLOSE, OPTION_REMOVE_ADDR
+mptcp_sub_types = OPTION_TYPE_SYN, OPTION_TYPE_SYNACK, OPTION_TYPE_ACK, OPTION_MP_CAPABLE, OPTION_ADD_ADDR, OPTION_MP_JOIN, OPTION_MP_FCLOSE
+
+# TODO: OPTION_REMOVE_ADDR was listed in mptcp_sub_types, but it does not fit into int8 below...
+_ = OPTION_REMOVE_ADDR
 
 mptcp_generic_option {
 	type	flags[mptcp_sub_types, int8]
