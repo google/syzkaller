@@ -25,7 +25,8 @@ type fidl_message_header[METHOD_ORDINAL] {
 	txid		const[0, int32]
 	reserved	const[0, int32]
 	flags		const[0, int32]
-	ordinal		const[METHOD_ORDINAL, int32]
+# TODO: this should be int32, but the consts passed here don't fit into 32 bits.
+	ordinal		const[METHOD_ORDINAL, int64]
 }
 
 fidl_string {

@@ -163,7 +163,7 @@ var typePtr = &typeDesc{
 		}
 		return &prog.PtrType{
 			TypeCommon: base.TypeCommon,
-			Type:       comp.genType(args[1], "", genDir(args[0]), false),
+			Type:       comp.genType(args[1], "", genDir(args[0]), 0),
 		}
 	},
 }
@@ -212,7 +212,7 @@ var typeArray = &typeDesc{
 		return comp.isZeroSize(args[0])
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		elemType := comp.genType(args[0], "", base.ArgDir, false)
+		elemType := comp.genType(args[0], "", base.ArgDir, 0)
 		kind, begin, end := prog.ArrayRandLen, uint64(0), uint64(0)
 		if len(args) > 1 {
 			kind, begin, end = prog.ArrayRangeLen, args[1].Value, args[1].Value
@@ -289,6 +289,24 @@ var typeConst = &typeDesc{
 	CantBeOpt:    true,
 	NeedBase:     true,
 	Args:         []namedArg{{Name: "value", Type: typeArgInt}},
+	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+		size := base.BitfieldLen
+		if size == 0 {
+			size = base.TypeSize * 8
+		}
+		if size == 64 {
+			return
+		}
+		v0 := args[0].Value
+		mask := uint64(1)<<size - 1
+		v := v0 & mask
+		if int64(v<<(64-size)) < 0 && int64(v0) < 0 {
+			v |= ^mask
+		}
+		if v0 != v {
+			comp.error(args[0].Pos, "const val 0x%x does not fit into %v bits", v0, size)
+		}
+	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		return &prog.ConstType{
 			IntTypeCommon: base,
@@ -681,7 +699,7 @@ var typeFmt = &typeDesc{
 			format = prog.FormatStrOct
 			size = 23
 		}
-		typ := comp.genType(args[1], "", base.TypeCommon.ArgDir, true)
+		typ := comp.genType(args[1], "", base.TypeCommon.ArgDir, comp.ptrSize)
 		switch t := typ.(type) {
 		case *prog.ResourceType:
 			t.ArgFormat = format
@@ -730,7 +748,7 @@ func init() {
 			baseType = r.Base
 			r = comp.resources[r.Base.Ident]
 		}
-		baseProgType := comp.genType(baseType, "", prog.DirIn, false)
+		baseProgType := comp.genType(baseType, "", prog.DirIn, 0)
 		base.TypeSize = baseProgType.Size()
 		return &prog.ResourceType{
 			TypeCommon: base.TypeCommon,

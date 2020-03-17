@@ -46,7 +46,8 @@ mptcp_capable_option {
 mptcp_add_addr_option {
 	type	const[TCPOPT_MPTCP, int8]
 	length	len[parent, int8]
-	subtype	const[OPTION_ADD_ADDR, int8:4]
+# TODO: this was OPTION_ADD_ADDR, but it does not fit into 4 bits.
+	subtype	const[0, int8:4]
 	version	len[parent, int8:4]
 	addr_id	int8
 	address	ipv4_addr
@@ -54,12 +55,17 @@ mptcp_add_addr_option {
 	mac	array[int8, 0:8]
 } [packed]
 
+_ = OPTION_ADD_ADDR
+
 mptcp_mp_join_option {
 	type	const[TCPOPT_MPTCP, int8]
 	length	len[parent, int8]
 	flags	int8:4
-	subtype	const[OPTION_MP_JOIN, int8:4]
+# TODO: this was OPTION_MP_JOIN, but it does not fit into 4 bits.
+	subtype	const[0, int8:4]
 } [packed]
+
+_ = OPTION_MP_JOIN
 
 mptcp_syn_option {
 	type	const[TCPOPT_MPTCP, int8]
@@ -93,14 +99,20 @@ mptcp_mp_fclose_option {
 	type		const[TCPOPT_MPTCP, int8]
 	length		len[parent, int8]
 	reserved	int16:12
-	subtype		const[OPTION_MP_FCLOSE, int16:4]
+# TODO: this was OPTION_MP_FCLOSE, but it does not fit into 4 bits.
+	subtype		const[0, int16:4]
 	key		int64
 } [packed]
+
+_ = OPTION_MP_FCLOSE
 
 mptcp_remove_addr_option {
 	type		const[TCPOPT_MPTCP, int8]
 	length		len[parent, int8]
 	reserved	int8:4
-	subtype		const[OPTION_REMOVE_ADDR, int8:4]
+# TODO: this was OPTION_REMOVE_ADDR, but it does not fit into 4 bits.
+	subtype		const[0, int8:4]
 	addrs_id	array[int8]
 } [packed]
+
+_ = OPTION_REMOVE_ADDR
