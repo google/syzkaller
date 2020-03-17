@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -140,227 +139,174 @@ func TestCallSetRandom(t *testing.T) {
 }
 
 func TestDeserialize(t *testing.T) {
-	testDeserialize(t, nil, []deserializeTest{
+	TestDeserializeHelper(t, "test", "64", nil, []DeserializeTest{
 		{
-			input: `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
+			In: `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
 		},
 		{
-			input:     `test$struct(&(0x7f0000000000)=0x0)`,
-			output:    `test$struct(&(0x7f0000000000))`,
-			strictErr: "wrong int arg",
+			In:        `test$struct(&(0x7f0000000000)=0x0)`,
+			Out:       `test$struct(&(0x7f0000000000))`,
+			StrictErr: "wrong int arg",
 		},
 		{
-			input: `test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
+			In: `test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
 		},
 		{
-			input: `test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
+			In: `test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
 		},
 		{
-			input:     `test_excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
-			strictErr: "excessive syscall arguments",
+			In:        `test_excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
+			StrictErr: "excessive syscall arguments",
 		},
 		{
-			input:     `test_excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
-			strictErr: "excessive syscall arguments",
+			In:        `test_excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
+			StrictErr: "excessive syscall arguments",
 		},
 		{
-			input:     `test_excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
-			strictErr: "excessive syscall arguments",
+			In:        `test_excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
+			StrictErr: "excessive syscall arguments",
 		},
 		{
-			input:     `test_excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
-			strictErr: "excessive syscall arguments",
+			In:        `test_excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
+			StrictErr: "excessive syscall arguments",
 		},
 		{
-			input:     `test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
-			strictErr: "excessive struct excessive_fields fields",
+			In:        `test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
+			StrictErr: "excessive struct excessive_fields fields",
 		},
 		{
-			input:  `test$excessive_fields1(0x0)`,
-			output: `test$excessive_fields1(0x0)`,
+			In:  `test$excessive_fields1(0x0)`,
+			Out: `test$excessive_fields1(0x0)`,
 		},
 		{
-			input:     `test$excessive_fields1(r0)`,
-			output:    `test$excessive_fields1(&(0x7f0000000000))`,
-			strictErr: "undeclared variable r0",
+			In:        `test$excessive_fields1(r0)`,
+			Out:       `test$excessive_fields1(&(0x7f0000000000))`,
+			StrictErr: "undeclared variable r0",
 		},
 		{
-			input:     `test_excessive_args2(r1)`,
-			output:    `test_excessive_args2(0x0)`,
-			strictErr: "undeclared variable r1",
+			In:        `test_excessive_args2(r1)`,
+			Out:       `test_excessive_args2(0x0)`,
+			StrictErr: "undeclared variable r1",
 		},
 		{
-			input:     `test_excessive_args2({0x0, 0x1})`,
-			output:    `test_excessive_args2(0x0)`,
-			strictErr: "wrong struct arg",
+			In:        `test_excessive_args2({0x0, 0x1})`,
+			Out:       `test_excessive_args2(0x0)`,
+			StrictErr: "wrong struct arg",
 		},
 		{
-			input:     `test_excessive_args2([0x0], 0x0)`,
-			output:    `test_excessive_args2(0x0)`,
-			strictErr: "wrong array arg",
+			In:        `test_excessive_args2([0x0], 0x0)`,
+			Out:       `test_excessive_args2(0x0)`,
+			StrictErr: "wrong array arg",
 		},
 		{
-			input:     `test_excessive_args2(@foo)`,
-			output:    `test_excessive_args2(0x0)`,
-			strictErr: "wrong union arg",
+			In:        `test_excessive_args2(@foo)`,
+			Out:       `test_excessive_args2(0x0)`,
+			StrictErr: "wrong union arg",
 		},
 		{
-			input:     `test_excessive_args2('foo')`,
-			output:    `test_excessive_args2(0x0)`,
-			strictErr: "wrong string arg",
+			In:        `test_excessive_args2('foo')`,
+			Out:       `test_excessive_args2(0x0)`,
+			StrictErr: "wrong string arg",
 		},
 		{
-			input:     `test_excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
-			output:    `test_excessive_args2(0x0)`,
-			strictErr: "wrong addr arg",
+			In:        `test_excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
+			Out:       `test_excessive_args2(0x0)`,
+			StrictErr: "wrong addr arg",
 		},
 		{
-			input:  `test_excessive_args2(nil)`,
-			output: `test_excessive_args2(0x0)`,
+			In:  `test_excessive_args2(nil)`,
+			Out: `test_excessive_args2(0x0)`,
 		},
 		{
-			input:     `test$type_confusion1(&(0x7f0000000000)=@unknown)`,
-			output:    `test$type_confusion1(&(0x7f0000000000))`,
-			strictErr: "wrong union option",
+			In:        `test$type_confusion1(&(0x7f0000000000)=@unknown)`,
+			Out:       `test$type_confusion1(&(0x7f0000000000))`,
+			StrictErr: "wrong union option",
 		},
 		{
-			input:     `test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
-			output:    `test$type_confusion1(&(0x7f0000000000))`,
-			strictErr: "wrong union option",
+			In:        `test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
+			Out:       `test$type_confusion1(&(0x7f0000000000))`,
+			StrictErr: "wrong union option",
 		},
 		{
-			input:     `test$excessive_fields1(&(0x7f0000000000)=0x0)`,
-			output:    `test$excessive_fields1(&(0x7f0000000000))`,
-			strictErr: "wrong int arg",
+			In:        `test$excessive_fields1(&(0x7f0000000000)=0x0)`,
+			Out:       `test$excessive_fields1(&(0x7f0000000000))`,
+			StrictErr: "wrong int arg",
 		},
 		{
-			input:  `test$excessive_fields1(0x0)`,
-			output: `test$excessive_fields1(0x0)`,
+			In:  `test$excessive_fields1(0x0)`,
+			Out: `test$excessive_fields1(0x0)`,
 		},
 		{
-			input:  `test$excessive_fields1(0xffffffffffffffff)`,
-			output: `test$excessive_fields1(0xffffffffffffffff)`,
+			In:  `test$excessive_fields1(0xffffffffffffffff)`,
+			Out: `test$excessive_fields1(0xffffffffffffffff)`,
 		},
 		{
-			input:  `test$excessive_fields1(0xfffffffffffffffe)`,
-			output: `test$excessive_fields1(0xfffffffffffffffe)`,
+			In:  `test$excessive_fields1(0xfffffffffffffffe)`,
+			Out: `test$excessive_fields1(0xfffffffffffffffe)`,
 		},
 		{
-			input:  `test$excessive_fields1(0xfffffffffffffffd)`,
-			output: `test$excessive_fields1(0x0)`,
+			In:  `test$excessive_fields1(0xfffffffffffffffd)`,
+			Out: `test$excessive_fields1(0x0)`,
 		},
 		{
-			input:  `test$excessive_fields1(0xfffffffffffffffc)`,
-			output: `test$excessive_fields1(0xffffffffffffffff)`,
+			In:  `test$excessive_fields1(0xfffffffffffffffc)`,
+			Out: `test$excessive_fields1(0xffffffffffffffff)`,
 		},
 		{
-			input:  `test$auto0(AUTO, &AUTO={AUTO, AUTO, 0x1}, AUTO, 0x0)`,
-			output: `test$auto0(0x42, &(0x7f0000000040)={0xc, 0x43, 0x1}, 0xc, 0x0)`,
+			In:  `test$auto0(AUTO, &AUTO={AUTO, AUTO, 0x1}, AUTO, 0x0)`,
+			Out: `test$auto0(0x42, &(0x7f0000000040)={0xc, 0x43, 0x1}, 0xc, 0x0)`,
 		},
 		{
-			input: `test$auto0(AUTO, &AUTO={AUTO, AUTO, AUTO}, AUTO, 0x0)`,
-			err:   `wrong type *prog.IntType for AUTO`,
+			In:  `test$auto0(AUTO, &AUTO={AUTO, AUTO, AUTO}, AUTO, 0x0)`,
+			Err: `wrong type *prog.IntType for AUTO`,
 		},
 		{
-			input:  `test$str0(&AUTO="303100090a0d7022273a")`,
-			output: `test$str0(&(0x7f0000000040)='01\x00\t\n\rp\"\':')`,
+			In:  `test$str0(&AUTO="303100090a0d7022273a")`,
+			Out: `test$str0(&(0x7f0000000040)='01\x00\t\n\rp\"\':')`,
 		},
 		{
-			input:  `test$blob0(&AUTO="303100090a0d7022273a")`,
-			output: `test$blob0(&(0x7f0000000040)='01\x00\t\n\rp\"\':')`,
+			In:  `test$blob0(&AUTO="303100090a0d7022273a")`,
+			Out: `test$blob0(&(0x7f0000000040)='01\x00\t\n\rp\"\':')`,
 		},
 		{
-			input:  `test$blob0(&AUTO="3031000a0d7022273a01")`,
-			output: `test$blob0(&(0x7f0000000040)="3031000a0d7022273a01")`,
+			In:  `test$blob0(&AUTO="3031000a0d7022273a01")`,
+			Out: `test$blob0(&(0x7f0000000040)="3031000a0d7022273a01")`,
 		},
 		{
-			input:     `test$out_const(&(0x7f0000000000)=0x2)`,
-			output:    `test$out_const(&(0x7f0000000000))`,
-			strictErr: `out arg const[1, const] has non-default value: 2`,
+			In:        `test$out_const(&(0x7f0000000000)=0x2)`,
+			Out:       `test$out_const(&(0x7f0000000000))`,
+			StrictErr: `out arg const[1, const] has non-default value: 2`,
 		},
 		{
-			input:  `test$str1(&(0x7f0000000000)='foo\x00')`,
-			output: `test$str1(&(0x7f0000000000)='foo\x00')`,
+			In:  `test$str1(&(0x7f0000000000)='foo\x00')`,
+			Out: `test$str1(&(0x7f0000000000)='foo\x00')`,
 		},
 		{
-			input:     `test$str1(&(0x7f0000000000)='bar\x00')`,
-			output:    `test$str1(&(0x7f0000000000)='foo\x00')`,
-			strictErr: `bad string value "bar\x00", expect ["foo\x00"]`,
+			In:        `test$str1(&(0x7f0000000000)='bar\x00')`,
+			Out:       `test$str1(&(0x7f0000000000)='foo\x00')`,
+			StrictErr: `bad string value "bar\x00", expect ["foo\x00"]`,
 		},
 		{
-			input:  `test$str2(&(0x7f0000000000)='bar\x00')`,
-			output: `test$str2(&(0x7f0000000000)='bar\x00')`,
+			In:  `test$str2(&(0x7f0000000000)='bar\x00')`,
+			Out: `test$str2(&(0x7f0000000000)='bar\x00')`,
 		},
 		{
-			input:     `test$str2(&(0x7f0000000000)='baz\x00')`,
-			output:    `test$str2(&(0x7f0000000000)='foo\x00')`,
-			strictErr: `bad string value "baz\x00", expect ["foo\x00" "bar\x00"]`,
+			In:        `test$str2(&(0x7f0000000000)='baz\x00')`,
+			Out:       `test$str2(&(0x7f0000000000)='foo\x00')`,
+			StrictErr: `bad string value "baz\x00", expect ["foo\x00" "bar\x00"]`,
 		},
 	})
 }
 
-type deserializeTest struct {
-	input     string
-	output    string
-	err       string
-	strictErr string
-}
-
-func testDeserialize(t *testing.T, transform func(*Target, *Prog), tests []deserializeTest) {
-	target := initTargetTest(t, "test", "64")
-	buf := make([]byte, ExecBufferSize)
-	for testidx, test := range tests {
-		t.Run(fmt.Sprint(testidx), func(t *testing.T) {
-			if test.strictErr == "" {
-				test.strictErr = test.err
-			}
-			if test.err != "" && test.output != "" {
-				t.Fatalf("both err and output are set")
-			}
-			for _, mode := range []DeserializeMode{NonStrict, Strict} {
-				p, err := target.Deserialize([]byte(test.input), mode)
-				wantErr := test.err
-				if mode == Strict {
-					wantErr = test.strictErr
-				}
-				if err != nil {
-					if wantErr == "" {
-						t.Fatalf("deserialization failed with\n%s\ndata:\n%s\n",
-							err, test.input)
-					}
-					if !strings.Contains(err.Error(), wantErr) {
-						t.Fatalf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s",
-							err, wantErr, test.input)
-					}
-				} else {
-					if wantErr != "" {
-						t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n",
-							wantErr, test.input)
-					}
-					if transform != nil {
-						transform(target, p)
-					}
-					output := strings.TrimSpace(string(p.Serialize()))
-					if test.output != "" && test.output != output {
-						t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n",
-							output, test.output)
-					}
-					p.SerializeForExec(buf)
-				}
-			}
-		})
-	}
-}
-
 func TestSerializeDeserialize(t *testing.T) {
-	testDeserialize(t, nil, []deserializeTest{
+	TestDeserializeHelper(t, "test", "64", nil, []DeserializeTest{
 		{
-			input:  `serialize0(&(0x7f0000408000)={"6861736800000000000000000000", "48490000"})`,
-			output: `serialize0(&(0x7f0000408000)={'hash\x00', 'HI\x00'})`,
+			In:  `serialize0(&(0x7f0000408000)={"6861736800000000000000000000", "48490000"})`,
+			Out: `serialize0(&(0x7f0000408000)={'hash\x00', 'HI\x00'})`,
 		},
 		{
-			input:  `serialize1(&(0x7f0000000000)="0000000000000000", 0x8)`,
-			output: `serialize1(&(0x7f0000000000)=""/8, 0x8)`,
+			In:  `serialize1(&(0x7f0000000000)="0000000000000000", 0x8)`,
+			Out: `serialize1(&(0x7f0000000000)=""/8, 0x8)`,
 		},
 	})
 }

@@ -20,16 +20,8 @@ func init() {
 var (
 	CalcChecksumsCall = calcChecksumsCall
 	InitTest          = initTest
+	initTargetTest    = InitTargetTest
 )
-
-func initTargetTest(t *testing.T, os, arch string) *Target {
-	t.Parallel()
-	target, err := GetTarget(os, arch)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return target
-}
 
 func randSource(t *testing.T) rand.Source {
 	seed := time.Now().UnixNano()
