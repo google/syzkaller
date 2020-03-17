@@ -249,7 +249,7 @@ func (ctx *structGen) walkStruct(t *prog.StructType) {
 		}
 		if sizeAttr != sizeUnassigned {
 			if t.TypeSize > sizeAttr {
-				comp.error(structNode.Pos, "struct %v has size attribute %v"+
+				comp.error(structNode.Attrs[0].Pos, "struct %v has size attribute %v"+
 					" which is less than struct size %v",
 					structNode.Name.Name, sizeAttr, t.TypeSize)
 			}
@@ -270,10 +270,10 @@ func (ctx *structGen) walkUnion(t *prog.UnionType) {
 	varlen, sizeAttr := comp.parseUnionAttrs(structNode)
 	t.TypeSize = 0
 	if !varlen {
-		for _, fld := range t.Fields {
+		for i, fld := range t.Fields {
 			sz := fld.Size()
 			if sizeAttr != sizeUnassigned && sz > sizeAttr {
-				comp.error(structNode.Pos, "union %v has size attribute %v"+
+				comp.error(structNode.Fields[i].Pos, "union %v has size attribute %v"+
 					" which is less than field %v size %v",
 					structNode.Name.Name, sizeAttr, fld.Name(), sz)
 			}

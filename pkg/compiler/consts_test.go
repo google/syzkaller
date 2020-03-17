@@ -66,10 +66,10 @@ func TestConstErrors(t *testing.T) {
 	em := ast.NewErrorMatcher(t, filepath.Join("testdata", name))
 	desc := ast.Parse(em.Data, name, em.ErrorHandler)
 	if desc == nil {
-		em.DumpErrors(t)
+		em.DumpErrors()
 		t.Fatalf("parsing failed")
 	}
 	target := targets.List["linux"]["amd64"]
 	ExtractConsts(desc, target, em.ErrorHandler)
-	em.Check(t)
+	em.Check()
 }

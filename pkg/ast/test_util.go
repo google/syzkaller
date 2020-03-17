@@ -14,6 +14,7 @@ import (
 )
 
 type ErrorMatcher struct {
+	t      *testing.T
 	Data   []byte
 	expect []*errorDesc
 	got    []*errorDesc
@@ -56,6 +57,7 @@ func NewErrorMatcher(t *testing.T, file string) *ErrorMatcher {
 		t.Fatalf("failed to scan input file: %v", err)
 	}
 	return &ErrorMatcher{
+		t:      t,
 		Data:   stripped,
 		expect: errors,
 	}
@@ -79,7 +81,7 @@ func (em *ErrorMatcher) Count() int {
 	return len(em.got)
 }
 
-func (em *ErrorMatcher) Check(t *testing.T) {
+func (em *ErrorMatcher) Check() {
 nextErr:
 	for _, e := range em.got {
 		for _, want := range em.expect {
@@ -89,18 +91,18 @@ nextErr:
 			want.matched = true
 			continue nextErr
 		}
-		t.Errorf("unexpected error:\n%v:%v:%v: %v", e.file, e.line, e.col, e.text)
+		em.t.Errorf("unexpected error:\n%v:%v:%v: %v", e.file, e.line, e.col, e.text)
 	}
 	for _, want := range em.expect {
 		if want.matched {
 			continue
 		}
-		t.Errorf("unmatched error:\n%v:%v: %v", want.file, want.line, want.text)
+		em.t.Errorf("unmatched error:\n%v:%v: %v", want.file, want.line, want.text)
 	}
 }
 
-func (em *ErrorMatcher) DumpErrors(t *testing.T) {
+func (em *ErrorMatcher) DumpErrors() {
 	for _, e := range em.got {
-		t.Logf("%v:%v:%v: %v", e.file, e.line, e.col, e.text)
+		em.t.Logf("%v:%v:%v: %v", e.file, e.line, e.col, e.text)
 	}
 }

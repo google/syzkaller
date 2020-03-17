@@ -108,13 +108,13 @@ func TestErrors(t *testing.T) {
 			em := NewErrorMatcher(t, filepath.Join("testdata", name))
 			desc := Parse(em.Data, name, em.ErrorHandler)
 			if desc != nil && em.Count() != 0 {
-				em.DumpErrors(t)
+				em.DumpErrors()
 				t.Fatalf("parsing succeed, but got errors")
 			}
 			if desc == nil && em.Count() == 0 {
 				t.Fatalf("parsing failed, but got no errors")
 			}
-			em.Check(t)
+			em.Check()
 		})
 	}
 }
