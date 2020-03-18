@@ -1,0 +1,145 @@
+TITLE: KASAN: use-after-free Read in pn533_send_complete
+
+[   50.500958][    C1] ==================================================================
+[   50.509230][    C1] BUG: KASAN: use-after-free in pn533_send_complete.cold+0x47/0x6c
+[   50.517125][    C1] Read of size 8 at addr ffff8881d411fca8 by task swapper/1/0
+[   50.524551][    C1] 
+[   50.526862][    C1] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 5.4.0-rc1+ #0
+[   50.533944][    C1] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   50.543975][    C1] Call Trace:
+[   50.547234][    C1]  <IRQ>
+[   50.550069][    C1]  dump_stack+0xca/0x13e
+[   50.554292][    C1]  ? pn533_send_complete.cold+0x47/0x6c
+[   50.560508][    C1]  ? pn533_send_complete.cold+0x47/0x6c
+[   50.566042][    C1]  print_address_description.constprop.0+0x36/0x50
+[   50.572535][    C1]  ? pn533_send_complete.cold+0x47/0x6c
+[   50.578057][    C1]  ? pn533_send_complete.cold+0x47/0x6c
+[   50.583580][    C1]  __kasan_report.cold+0x1a/0x33
+[   50.588500][    C1]  ? pn533_send_complete.cold+0x47/0x6c
+[   50.594031][    C1]  kasan_report+0xe/0x20
+[   50.598251][    C1]  pn533_send_complete.cold+0x47/0x6c
+[   50.603601][    C1]  __usb_hcd_giveback_urb+0x1f2/0x470
+[   50.609043][    C1]  usb_hcd_giveback_urb+0x368/0x420
+[   50.614220][    C1]  dummy_timer+0x120f/0x2fa2
+[   50.618787][    C1]  ? __lock_acquire+0x145e/0x3b60
+[   50.623876][    C1]  ? find_held_lock+0x2d/0x110
+[   50.628617][    C1]  ? debug_object_deactivate+0x1d9/0x320
+[   50.634220][    C1]  ? mark_held_locks+0xe0/0xe0
+[   50.638956][    C1]  ? dummy_udc_probe+0x930/0x930
+[   50.643868][    C1]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[   50.649385][    C1]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[   50.654652][    C1]  call_timer_fn+0x179/0x650
+[   50.659217][    C1]  ? dummy_udc_probe+0x930/0x930
+[   50.664129][    C1]  ? msleep_interruptible+0x130/0x130
+[   50.669484][    C1]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[   50.675006][    C1]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[   50.680262][    C1]  ? _raw_spin_unlock_irq+0x24/0x30
+[   50.685444][    C1]  ? dummy_udc_probe+0x930/0x930
+[   50.690359][    C1]  run_timer_softirq+0x5e3/0x1490
+[   50.695384][    C1]  ? add_timer+0x7a0/0x7a0
+[   50.699787][    C1]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[   50.705390][    C1]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[   50.710655][    C1]  __do_softirq+0x221/0x912
+[   50.715148][    C1]  irq_exit+0x178/0x1a0
+[   50.719288][    C1]  smp_apic_timer_interrupt+0x12f/0x500
+[   50.724805][    C1]  apic_timer_interrupt+0xf/0x20
+[   50.729713][    C1]  </IRQ>
+[   50.732640][    C1] RIP: 0010:default_idle+0x28/0x2e0
+[   50.737904][    C1] Code: 90 90 41 56 41 55 65 44 8b 2d 44 3a 8f 7a 41 54 55 53 0f 1f 44 00 00 e8 36 ee d0 fb e9 07 00 00 00 0f 00 2d fa dd 4f 00 fb f4 <65> 44 8b 2d 20 3a 8f 7a 0f 1f 44 00 00 5b 5d 41 5c 41 5d 41 5e c3
+[   50.757500][    C1] RSP: 0018:ffff8881da217dc8 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[   50.765887][    C1] RAX: 0000000000000007 RBX: ffff8881da1fb000 RCX: 0000000000000000
+[   50.773838][    C1] RDX: 0000000000000000 RSI: 0000000000000006 RDI: ffff8881da1fb84c
+[   50.781879][    C1] RBP: ffffed103b43f600 R08: ffff8881da1fb000 R09: 0000000000000000
+[   50.789828][    C1] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000001
+[   50.797774][    C1] R13: 0000000000000001 R14: 0000000000000000 R15: 0000000000000000
+[   50.805922][    C1]  ? default_idle+0x1a/0x2e0
+[   50.810959][    C1]  do_idle+0x3b6/0x500
+[   50.815014][    C1]  ? __wake_up_common+0x147/0x650
+[   50.820011][    C1]  ? arch_cpu_idle_exit+0x40/0x40
+[   50.825039][    C1]  ? _raw_spin_unlock_irqrestore+0x3e/0x50
+[   50.830826][    C1]  ? lockdep_hardirqs_on+0x382/0x580
+[   50.836084][    C1]  cpu_startup_entry+0x14/0x20
+[   50.840825][    C1]  start_secondary+0x27d/0x330
+[   50.845572][    C1]  ? set_cpu_sibling_map+0x1ff0/0x1ff0
+[   50.851018][    C1]  secondary_startup_64+0xa4/0xb0
+[   50.856021][    C1] 
+[   50.859296][    C1] Allocated by task 22:
+[   50.863440][    C1]  save_stack+0x1b/0x80
+[   50.867583][    C1]  __kasan_kmalloc.constprop.0+0xbf/0xd0
+[   50.873199][    C1]  __kmalloc_node_track_caller+0xfc/0x3d0
+[   50.878992][    C1]  devm_kmalloc+0x87/0x190
+[   50.883386][    C1]  pn533_usb_probe+0x3b/0xd75
+[   50.888047][    C1]  usb_probe_interface+0x305/0x7a0
+[   50.893138][    C1]  really_probe+0x281/0x6d0
+[   50.897615][    C1]  driver_probe_device+0x104/0x210
+[   50.902700][    C1]  __device_attach_driver+0x1c2/0x220
+[   50.908054][    C1]  bus_for_each_drv+0x162/0x1e0
+[   50.912879][    C1]  __device_attach+0x217/0x360
+[   50.917791][    C1]  bus_probe_device+0x1e4/0x290
+[   50.922616][    C1]  device_add+0xae6/0x16f0
+[   50.927103][    C1]  usb_set_configuration+0xdf6/0x1670
+[   50.932450][    C1]  generic_probe+0x9d/0xd5
+[   50.936841][    C1]  usb_probe_device+0x99/0x100
+[   50.941590][    C1]  really_probe+0x281/0x6d0
+[   50.946068][    C1]  driver_probe_device+0x104/0x210
+[   50.951154][    C1]  __device_attach_driver+0x1c2/0x220
+[   50.956496][    C1]  bus_for_each_drv+0x162/0x1e0
+[   50.961320][    C1]  __device_attach+0x217/0x360
+[   50.966065][    C1]  bus_probe_device+0x1e4/0x290
+[   50.970913][    C1]  device_add+0xae6/0x16f0
+[   50.975307][    C1]  usb_new_device.cold+0x6a4/0xe79
+[   50.980390][    C1]  hub_event+0x1b5c/0x3640
+[   50.984785][    C1]  process_one_work+0x92b/0x1530
+[   50.989694][    C1]  worker_thread+0x96/0xe20
+[   50.994175][    C1]  kthread+0x318/0x420
+[   50.998224][    C1]  ret_from_fork+0x24/0x30
+[   51.002619][    C1] 
+[   51.004923][    C1] Freed by task 22:
+[   51.008713][    C1]  save_stack+0x1b/0x80
+[   51.012852][    C1]  __kasan_slab_free+0x130/0x180
+[   51.017766][    C1]  kfree+0xe4/0x2f0
+[   51.021552][    C1]  release_nodes+0x4a1/0x910
+[   51.026116][    C1]  devres_release_all+0x74/0xc3
+[   51.031030][    C1]  really_probe+0x42f/0x6d0
+[   51.035516][    C1]  driver_probe_device+0x104/0x210
+[   51.040610][    C1]  __device_attach_driver+0x1c2/0x220
+[   51.045955][    C1]  bus_for_each_drv+0x162/0x1e0
+[   51.050778][    C1]  __device_attach+0x217/0x360
+[   51.055515][    C1]  bus_probe_device+0x1e4/0x290
+[   51.060338][    C1]  device_add+0xae6/0x16f0
+[   51.064734][    C1]  usb_set_configuration+0xdf6/0x1670
+[   51.070089][    C1]  generic_probe+0x9d/0xd5
+[   51.074499][    C1]  usb_probe_device+0x99/0x100
+[   51.079236][    C1]  really_probe+0x281/0x6d0
+[   51.083719][    C1]  driver_probe_device+0x104/0x210
+[   51.088805][    C1]  __device_attach_driver+0x1c2/0x220
+[   51.094153][    C1]  bus_for_each_drv+0x162/0x1e0
+[   51.098977][    C1]  __device_attach+0x217/0x360
+[   51.103712][    C1]  bus_probe_device+0x1e4/0x290
+[   51.108543][    C1]  device_add+0xae6/0x16f0
+[   51.112940][    C1]  usb_new_device.cold+0x6a4/0xe79
+[   51.118023][    C1]  hub_event+0x1b5c/0x3640
+[   51.122413][    C1]  process_one_work+0x92b/0x1530
+[   51.127321][    C1]  worker_thread+0x96/0xe20
+[   51.131821][    C1]  kthread+0x318/0x420
+[   51.135875][    C1]  ret_from_fork+0x24/0x30
+[   51.140278][    C1] 
+[   51.142582][    C1] The buggy address belongs to the object at ffff8881d411fc80
+[   51.142582][    C1]  which belongs to the cache kmalloc-96 of size 96
+[   51.156435][    C1] The buggy address is located 40 bytes inside of
+[   51.156435][    C1]  96-byte region [ffff8881d411fc80, ffff8881d411fce0)
+[   51.169501][    C1] The buggy address belongs to the page:
+[   51.175108][    C1] page:ffffea00075047c0 refcount:1 mapcount:0 mapping:ffff8881da002f00 index:0x0
+[   51.184193][    C1] flags: 0x200000000000200(slab)
+[   51.189107][    C1] raw: 0200000000000200 ffffea000754b380 0000001500000015 ffff8881da002f00
+[   51.197665][    C1] raw: 0000000000000000 0000000080200020 00000001ffffffff 0000000000000000
+[   51.206229][    C1] page dumped because: kasan: bad access detected
+[   51.212611][    C1] 
+[   51.214910][    C1] Memory state around the buggy address:
+[   51.220522][    C1]  ffff8881d411fb80: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[   51.228568][    C1]  ffff8881d411fc00: 00 00 00 00 00 00 00 00 00 fc fc fc fc fc fc fc
+[   51.236692][    C1] >ffff8881d411fc80: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[   51.244740][    C1]                                   ^
+[   51.250128][    C1]  ffff8881d411fd00: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[   51.258187][    C1]  ffff8881d411fd80: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[   51.266237][    C1] ==================================================================
