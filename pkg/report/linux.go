@@ -836,6 +836,7 @@ var linuxStackParams = &stackParams{
 		"usb_control_msg",
 		"usb_hcd_submit_urb",
 		"usb_submit_urb",
+		"^complete$",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.

@@ -1,0 +1,67 @@
+TITLE: INFO: trying to register non-static key in ath9k_htc_rx_msg
+
+[  118.154649][    C0] INFO: trying to register non-static key.
+[  118.156165][    C0] the code is fine but needs lockdep annotation.
+[  118.157689][    C0] turning off the locking correctness validator.
+[  118.158888][    C0] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 5.6.0-rc5+ #124
+[  118.160202][    C0] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  118.161871][    C0] Call Trace:
+[  118.162493][    C0]  <IRQ>
+[  118.163041][    C0]  dump_stack+0xef/0x16e
+[  118.163848][    C0]  register_lock_class+0x102a/0x11c0
+[  118.164829][    C0]  ? arch_stack_walk+0x74/0xd0
+[  118.165709][    C0]  ? is_dynamic_key+0x1b0/0x1b0
+[  118.166616][    C0]  ? secondary_startup_64+0xb6/0xc0
+[  118.167555][    C0]  __lock_acquire+0xfe/0x49d0
+[  118.168413][    C0]  ? __lock_acquire+0x14e0/0x49d0
+[  118.169348][    C0]  ? mark_held_locks+0xe0/0xe0
+[  118.170009][    C0]  ? apic_timer_interrupt+0xf/0x20
+[  118.170583][    C0]  ? default_idle+0x28/0x300
+[  118.171097][    C0]  lock_acquire+0x130/0x340
+[  118.171632][    C0]  ? complete+0x13/0x70
+[  118.172109][    C0]  _raw_spin_lock_irqsave+0x32/0x50
+[  118.172692][    C0]  ? complete+0x13/0x70
+[  118.173184][    C0]  complete+0x13/0x70
+[  118.173672][    C0]  ath9k_htc_rx_msg+0x7c7/0xae0
+[  118.174264][    C0]  ath9k_hif_usb_reg_in_cb+0x1ba/0x630
+[  118.174924][    C0]  ? _raw_read_unlock+0x1a/0x30
+[  118.175488][    C0]  ? led_trigger_blink_oneshot+0xb4/0xe0
+[  118.176123][    C0]  __usb_hcd_giveback_urb+0x1f2/0x470
+[  118.176737][    C0]  usb_hcd_giveback_urb+0x367/0x410
+[  118.177364][    C0]  dummy_timer+0x1254/0x32b2
+[  118.177932][    C0]  ? dummy_dequeue+0x490/0x490
+[  118.178506][    C0]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  118.179164][    C0]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  118.179757][    C0]  ? find_held_lock+0x2d/0x110
+[  118.180323][    C0]  call_timer_fn+0x195/0x6f0
+[  118.180838][    C0]  ? dummy_dequeue+0x490/0x490
+[  118.181375][    C0]  ? timer_fixup_init+0x60/0x60
+[  118.181931][    C0]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  118.182584][    C0]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  118.183228][    C0]  ? _raw_spin_unlock_irq+0x1f/0x30
+[  118.183860][    C0]  ? dummy_dequeue+0x490/0x490
+[  118.184399][    C0]  run_timer_softirq+0x5f9/0x1500
+[  118.184951][    C0]  ? call_timer_fn+0x6f0/0x6f0
+[  118.185524][    C0]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  118.186242][    C0]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  118.186903][    C0]  __do_softirq+0x21e/0x94b
+[  118.187460][    C0]  irq_exit+0x178/0x1a0
+[  118.187975][    C0]  smp_apic_timer_interrupt+0x141/0x540
+[  118.188645][    C0]  apic_timer_interrupt+0xf/0x20
+[  118.189232][    C0]  </IRQ>
+[  118.189587][    C0] RIP: 0010:default_idle+0x28/0x300
+[  118.190215][    C0] Code: cc cc 41 56 41 55 65 44 8b 2d c4 f2 6f 7a 41 54 55 53 0f 1f 44 00 00 e8 66 0a b3 fb e9 07 00 00 00 0f 00 2d 6a 88 50 00 fb f4 <65> 44 8b 2d a0 f2 6f 7a 0f 1f 44 00 00 5b 5d 41 5c 41 5d 41 5e c3
+[  118.192484][    C0] RSP: 0018:ffffffff87007d80 EFLAGS: 00000246 ORIG_RAX: ffffffffffffff13
+[  118.193405][    C0] RAX: 0000000000000007 RBX: ffffffff8702cc40 RCX: 0000000000000000
+[  118.194262][    C0] RDX: 0000000000000000 RSI: 0000000000000006 RDI: ffffffff8702d48c
+[  118.195210][    C0] RBP: fffffbfff0e05988 R08: ffffffff8702cc40 R09: 0000000000000000
+[  118.196163][    C0] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  118.197040][    C0] R13: 0000000000000000 R14: ffffffff87e5c340 R15: 0000000000000000
+[  118.198004][    C0]  do_idle+0x3ec/0x510
+[  118.198474][    C0]  ? arch_cpu_idle_exit+0x40/0x40
+[  118.199075][    C0]  cpu_startup_entry+0x14/0x20
+[  118.199650][    C0]  start_kernel+0xe16/0xe5a
+[  118.200189][    C0]  ? mem_encrypt_init+0x5/0x5
+[  118.200726][    C0]  ? x86_family+0x3d/0x50
+[  118.201214][    C0]  ? load_ucode_bsp+0x239/0x279
+[  118.201778][    C0]  secondary_startup_64+0xb6/0xc0
