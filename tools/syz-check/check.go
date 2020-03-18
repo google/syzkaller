@@ -4,12 +4,22 @@
 // syz-check does best-effort static correctness checking of the syscall descriptions in sys/os/*.txt.
 // Use:
 //	$ go install ./tools/syz-check
-//	$ syz-check -obj /linux/vmlinux
-// Currently it works only for linux and only for one arch at a time.
+//	$ syz-check -obj-amd64 /linux_amd64/vmlinux -obj-arm64 /linux_arm64/vmlinux \
+//		-obj-386 /linux_386/vmlinux -obj-arm /linux_arm/vmlinux
+//
 // The vmlinux files should include debug info and enable all relevant configs (since we parse dwarf).
+// You may check only one arch as well (but then don't commit changes to warn files):
+//
+//	$ syz-check -obj-amd64 /linux_amd64/vmlinux
+//
+// You may also disable dwarf or netlink checks with the corresponding flags.
+// E.g. -dwarf=0 greatly speeds up checking if you are only interested in netlink warnings
+// (but then again don't commit changes).
+//
 // The results are produced in sys/os/*.warn files.
 // On implementation level syz-check parses vmlinux dwarf, extracts struct descriptions
-// and compares them with what we have (size, fields, alignment, etc).
+// and compares them with what we have (size, fields, alignment, etc). Netlink checking extracts policy symbols
+// from the object files and parses them.
 package main
 
 import (
@@ -77,12 +87,21 @@ func main() {
 	}
 	var warnings []Warn
 	for arch, obj := range arches {
+		if *obj == "" {
+			delete(arches, arch)
+			continue
+		}
 		warnings1, err := check(*flagOS, arch, *obj, *flagDWARF, *flagNetlink)
 		if err != nil {
 			failf("%v", err)
 		}
 		warnings = append(warnings, warnings1...)
 		runtime.GC()
+	}
+	if len(arches) == 0 {
+		fmt.Fprintf(os.Stderr, "specify at least one -obj-arch flag\n")
+		flag.PrintDefaults()
+		os.Exit(1)
 	}
 	if err := writeWarnings(*flagOS, len(arches), warnings); err != nil {
 		fmt.Fprintln(os.Stderr, err)
