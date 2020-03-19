@@ -837,6 +837,9 @@ var linuxStackParams = &stackParams{
 		"usb_hcd_submit_urb",
 		"usb_submit_urb",
 		"^complete$",
+		"wait_for_completion",
+		"^kfree$",
+		"kfree_skb",
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
@@ -878,7 +881,6 @@ var linuxOopses = append([]*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
-					skip: []string{"kfree"},
 				},
 			},
 			{

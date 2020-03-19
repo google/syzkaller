@@ -1,0 +1,93 @@
+TITLE: BUG: unable to handle kernel paging request in audit_data_to_entry
+
+[   17.577241][ T1878] BUG: unable to handle page fault for address: ffffebde00002008
+[   17.586014][ T1878] #PF: supervisor read access in kernel mode
+[   17.587766][ T1878] #PF: error_code(0x0000) - not-present page
+[   17.590010][ T1878] PGD 0 P4D 0
+[   17.591204][ T1878] Oops: 0000 [#1] PREEMPT SMP KASAN
+[   17.592783][ T1878] CPU: 0 PID: 1878 Comm: syz-executor105 Not tainted 5.4.22-syzkaller-01097-gc6059ac63293 #0
+[   17.595604][ T1878] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   17.605746][ T1878] RIP: 0010:kfree+0xd6/0x6d0
+[   17.610325][ T1878] Code: f0 02 eb 0a 48 bb 00 00 00 80 7f 77 00 00 4c 01 e3 48 81 eb 00 00 00 80 48 c1 eb 06 48 83 e3 c0 48 b9 00 00 00 00 00 ea ff ff <48> 8b 44 0b 08 a8 01 0f 85 a9 01 00 00 48 01 cb 48 8b 43 08 48 89
+[   17.630106][ T1878] RSP: 0018:ffff8881d0dc7278 EFLAGS: 00010206
+[   17.636288][ T1878] RAX: ffffffff7fffffff RBX: 000001de00002000 RCX: ffffea0000000000
+[   17.644368][ T1878] RDX: 0000000000000000 RSI: ffffffff84648d30 RDI: 0000000000080000
+[   17.652425][ T1878] RBP: ffff8881d0dc72f0 R08: 0000000000000005 R09: ffffffff8140b355
+[   17.660392][ T1878] R10: ffff8881d1868000 R11: 000000000000000a R12: 0000000000080000
+[   17.668379][ T1878] R13: ffff8881d310e000 R14: ffffffff8140b3ec R15: 0000000000000001
+[   17.676486][ T1878] FS:  000000000104c880(0000) GS:ffff8881dba00000(0000) knlGS:0000000000000000
+[   17.685504][ T1878] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   17.692079][ T1878] CR2: ffffebde00002008 CR3: 00000001d4f89002 CR4: 00000000001606f0
+[   17.700191][ T1878] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   17.708170][ T1878] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   17.716210][ T1878] Call Trace:
+[   17.719613][ T1878]  ? audit_data_to_entry+0x225c/0x26c0
+[   17.725080][ T1878]  ? audit_unpack_string+0x92/0x1b0
+[   17.730268][ T1878]  audit_data_to_entry+0x225c/0x26c0
+[   17.735536][ T1878]  ? audit_rule_change+0x1110/0x1110
+[   17.740968][ T1878]  ? unwind_next_frame+0x415/0x870
+[   17.746084][ T1878]  audit_rule_change+0xbe/0x1110
+[   17.751026][ T1878]  ? selinux_capable+0x39/0x50
+[   17.755800][ T1878]  ? security_capable+0xb2/0xd0
+[   17.760660][ T1878]  ? audit_match_signal+0xc70/0xc70
+[   17.765994][ T1878]  ? ns_capable+0x8c/0xe0
+[   17.770308][ T1878]  audit_receive+0xe73/0x3750
+[   17.774976][ T1878]  ? jhash+0x750/0x750
+[   17.779560][ T1878]  ? audit_net_exit+0x90/0x90
+[   17.784250][ T1878]  ? __alloc_skb+0x109/0x540
+[   17.788835][ T1878]  ? jhash+0x750/0x750
+[   17.793038][ T1878]  ? avc_has_perm+0x15f/0x260
+[   17.798006][ T1878]  ? __rcu_read_lock+0x50/0x50
+[   17.802809][ T1878]  ? __rcu_read_lock+0x50/0x50
+[   17.807647][ T1878]  ? __netlink_lookup+0x585/0x600
+[   17.812863][ T1878]  ? netlink_deliver_tap+0xa4/0x7e0
+[   17.818136][ T1878]  ? netlink_autobind+0x1c0/0x1c0
+[   17.823450][ T1878]  ? __rcu_read_lock+0x50/0x50
+[   17.829087][ T1878]  ? selinux_vm_enough_memory+0x160/0x160
+[   17.834803][ T1878]  netlink_unicast+0x87c/0xa20
+[   17.839763][ T1878]  ? netlink_detachskb+0x60/0x60
+[   17.844703][ T1878]  ? security_netlink_send+0xab/0xc0
+[   17.849985][ T1878]  netlink_sendmsg+0x9a7/0xd40
+[   17.854744][ T1878]  ? netlink_getsockopt+0x900/0x900
+[   17.859937][ T1878]  ? security_socket_sendmsg+0xad/0xc0
+[   17.865391][ T1878]  ? netlink_getsockopt+0x900/0x900
+[   17.870570][ T1878]  ____sys_sendmsg+0x56f/0x860
+[   17.875379][ T1878]  ? __sys_sendmsg_sock+0x2a0/0x2a0
+[   17.880712][ T1878]  ? __kasan_check_read+0x11/0x20
+[   17.885726][ T1878]  ? __kasan_check_read+0x11/0x20
+[   17.891785][ T1878]  ? __fdget+0x156/0x200
+[   17.896018][ T1878]  __sys_sendmsg+0x26a/0x350
+[   17.900641][ T1878]  ? ____sys_sendmsg+0x860/0x860
+[   17.905653][ T1878]  ? finish_fault+0x230/0x230
+[   17.910332][ T1878]  ? __up_read+0x6f/0x1b0
+[   17.914668][ T1878]  ? __down_read+0x240/0x240
+[   17.919251][ T1878]  __x64_sys_sendmsg+0x7f/0x90
+[   17.924185][ T1878]  do_syscall_64+0xc0/0x100
+[   17.928682][ T1878]  entry_SYSCALL_64_after_hwframe+0x44/0xa9
+[   17.934556][ T1878] RIP: 0033:0x440cf9
+[   17.938468][ T1878] Code: 18 89 d0 c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 fb 13 fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[   17.958392][ T1878] RSP: 002b:00007fff5acb9b08 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[   17.966986][ T1878] RAX: ffffffffffffffda RBX: 00000000004002c8 RCX: 0000000000440cf9
+[   17.974945][ T1878] RDX: 0000000000000000 RSI: 00000000200004c0 RDI: 0000000000000003
+[   17.983107][ T1878] RBP: 00000000006cb018 R08: 0000000000000000 R09: 00000000004002c8
+[   17.991069][ T1878] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000402580
+[   17.999032][ T1878] R13: 0000000000402610 R14: 0000000000000000 R15: 0000000000000000
+[   18.006997][ T1878] Modules linked in:
+[   18.010888][ T1878] CR2: ffffebde00002008
+[   18.015021][ T1878] ---[ end trace f6042e9bcc2fc7f0 ]---
+[   18.020561][ T1878] RIP: 0010:kfree+0xd6/0x6d0
+[   18.025157][ T1878] Code: f0 02 eb 0a 48 bb 00 00 00 80 7f 77 00 00 4c 01 e3 48 81 eb 00 00 00 80 48 c1 eb 06 48 83 e3 c0 48 b9 00 00 00 00 00 ea ff ff <48> 8b 44 0b 08 a8 01 0f 85 a9 01 00 00 48 01 cb 48 8b 43 08 48 89
+[   18.044869][ T1878] RSP: 0018:ffff8881d0dc7278 EFLAGS: 00010206
+[   18.051280][ T1878] RAX: ffffffff7fffffff RBX: 000001de00002000 RCX: ffffea0000000000
+[   18.059262][ T1878] RDX: 0000000000000000 RSI: ffffffff84648d30 RDI: 0000000000080000
+[   18.067221][ T1878] RBP: ffff8881d0dc72f0 R08: 0000000000000005 R09: ffffffff8140b355
+[   18.075333][ T1878] R10: ffff8881d1868000 R11: 000000000000000a R12: 0000000000080000
+[   18.083397][ T1878] R13: ffff8881d310e000 R14: ffffffff8140b3ec R15: 0000000000000001
+[   18.091360][ T1878] FS:  000000000104c880(0000) GS:ffff8881dba00000(0000) knlGS:0000000000000000
+[   18.101368][ T1878] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   18.108044][ T1878] CR2: ffffebde00002008 CR3: 00000001d4f89002 CR4: 00000000001606f0
+[   18.116013][ T1878] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   18.123982][ T1878] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   18.131942][ T1878] Kernel panic - not syncing: Fatal exception
+[   18.138889][ T1878] Kernel Offset: disabled
+[   18.143483][ T1878] Rebooting in 86400 seconds..
