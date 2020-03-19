@@ -1,0 +1,144 @@
+TITLE: KASAN: use-after-free Read in ip6_fragment
+
+[   78.614475][ T8947] ==================================================================
+[   78.622699][ T8947] BUG: KASAN: use-after-free in kfree_skb_list+0x5d/0x60
+[   78.629722][ T8947] Read of size 8 at addr ffff888085a3cbc0 by task syz-executor303/8947
+[   78.637952][ T8947]
+[   78.640287][ T8947] CPU: 0 PID: 8947 Comm: syz-executor303 Not tainted 5.2.0-rc2+ #12
+[   78.648280][ T8947] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   78.658341][ T8947] Call Trace:
+[   78.661643][ T8947]  dump_stack+0x172/0x1f0
+[   78.665982][ T8947]  ? kfree_skb_list+0x5d/0x60
+[   78.670671][ T8947]  print_address_description.cold+0x7c/0x20d
+[   78.676659][ T8947]  ? kfree_skb_list+0x5d/0x60
+[   78.681387][ T8947]  ? kfree_skb_list+0x5d/0x60
+[   78.686072][ T8947]  __kasan_report.cold+0x1b/0x40
+[   78.691009][ T8947]  ? lockdep_hardirqs_on+0x3d0/0x5d0
+[   78.696297][ T8947]  ? kfree_skb_list+0x5d/0x60
+[   78.700988][ T8947]  kasan_report+0x12/0x20
+[   78.705327][ T8947]  __asan_report_load8_noabort+0x14/0x20
+[   78.710965][ T8947]  kfree_skb_list+0x5d/0x60
+[   78.715481][ T8947]  ip6_fragment+0x1ef4/0x2680
+[   78.720201][ T8947]  ? mark_held_locks+0xf0/0xf0
+[   78.725014][ T8947]  ? ip6_forward_finish+0x570/0x570
+[   78.730245][ T8947]  ? ip6_forward+0x3870/0x3870
+[   78.735019][ T8947]  ? ip6_mtu+0x2e6/0x460
+[   78.739280][ T8947]  ? lock_downgrade+0x880/0x880
+[   78.744150][ T8947]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[   78.750435][ T8947]  ? kasan_check_read+0x11/0x20
+[   78.755310][ T8947]  __ip6_finish_output+0x577/0xaa0
+[   78.760450][ T8947]  ip6_finish_output+0x38/0x1f0
+[   78.765319][ T8947]  ip6_output+0x235/0x7f0
+[   78.769660][ T8947]  ? ip6_finish_output+0x1f0/0x1f0
+[   78.774785][ T8947]  ? __ip6_finish_output+0xaa0/0xaa0
+[   78.780083][ T8947]  ? ip6_autoflowlabel.part.0+0x70/0x70
+[   78.785636][ T8947]  ip6_local_out+0xbb/0x1b0
+[   78.790178][ T8947]  ip6_send_skb+0xbb/0x350
+[   78.794614][ T8947]  ip6_push_pending_frames+0xc8/0xf0
+[   78.799906][ T8947]  rawv6_sendmsg+0x2993/0x35e0
+[   78.804687][ T8947]  ? rawv6_getsockopt+0x150/0x150
+[   78.809713][ T8947]  ? aa_profile_af_perm+0x320/0x320
+[   78.814913][ T8947]  ? tomoyo_check_inet_address+0xf7/0x740
+[   78.820640][ T8947]  ? tomoyo_unix_entry+0x5d0/0x5d0
+[   78.825757][ T8947]  ? __sanitizer_cov_trace_cmp8+0x18/0x20
+[   78.831481][ T8947]  ? rw_copy_check_uvector+0x2a6/0x330
+[   78.836969][ T8947]  ? ___might_sleep+0x163/0x280
+[   78.841843][ T8947]  ? __might_sleep+0x95/0x190
+[   78.846544][ T8947]  ? aa_sock_msg_perm.isra.0+0xba/0x170
+[   78.852100][ T8947]  inet_sendmsg+0x141/0x5d0
+[   78.856601][ T8947]  ? inet_sendmsg+0x141/0x5d0
+[   78.861285][ T8947]  ? ipip_gro_receive+0x100/0x100
+[   78.866319][ T8947]  sock_sendmsg+0xd7/0x130
+[   78.870748][ T8947]  ___sys_sendmsg+0x803/0x920
+[   78.875431][ T8947]  ? copy_msghdr_from_user+0x430/0x430
+[   78.880909][ T8947]  ? lock_downgrade+0x880/0x880
+[   78.885770][ T8947]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[   78.892022][ T8947]  ? kasan_check_read+0x11/0x20
+[   78.896881][ T8947]  ? __fget+0x381/0x550
+[   78.901060][ T8947]  ? __fget_light+0x1a9/0x230
+[   78.905757][ T8947]  ? __fdget+0x1b/0x20
+[   78.909838][ T8947]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20
+[   78.916093][ T8947]  __sys_sendmsg+0x105/0x1d0
+[   78.920694][ T8947]  ? __ia32_sys_shutdown+0x80/0x80
+[   78.925811][ T8947]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[   78.932068][ T8947]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   78.937541][ T8947]  ? do_syscall_64+0x26/0x680
+[   78.942233][ T8947]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   78.948328][ T8947]  ? do_syscall_64+0x26/0x680
+[   78.953042][ T8947]  __x64_sys_sendmsg+0x78/0xb0
+[   78.957841][ T8947]  do_syscall_64+0xfd/0x680
+[   78.962358][ T8947]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   78.968274][ T8947] RIP: 0033:0x44add9
+[   78.972197][ T8947] Code: e8 7c e6 ff ff 48 83 c4 18 c3 0f 1f 80 00 00 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 0f 83 1b 05 fc ff c3 66 2e 0f 1f 84 00 00 00 00
+[   78.991824][ T8947] RSP: 002b:00007f826f33bce8 EFLAGS: 00000246 ORIG_RAX: 000000000000002e
+[   79.000241][ T8947] RAX: ffffffffffffffda RBX: 00000000006e7a18 RCX: 000000000044add9
+executing program
+[   79.009736][ T8947] RDX: 0000000000000000 RSI: 0000000020000240 RDI: 0000000000000005
+[   79.017709][ T8947] RBP: 00000000006e7a10 R08: 0000000000000000 R09: 0000000000000000
+[   79.025681][ T8947] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006e7a1c
+[   79.033654][ T8947] R13: 00007ffcec4f7ebf R14: 00007f826f33c9c0 R15: 20c49ba5e353f7cf
+[   79.041641][ T8947]
+[   79.043974][ T8947] Allocated by task 8947:
+[   79.048324][ T8947]  save_stack+0x23/0x90
+[   79.052482][ T8947]  __kasan_kmalloc.constprop.0+0xcf/0xe0
+[   79.058114][ T8947]  kasan_slab_alloc+0xf/0x20
+[   79.062719][ T8947]  kmem_cache_alloc_node+0x131/0x710
+[   79.068123][ T8947]  __alloc_skb+0xd5/0x5e0
+[   79.072468][ T8947]  __ip6_append_data.isra.0+0x2a24/0x3640
+[   79.078199][ T8947]  ip6_append_data+0x1e5/0x320
+[   79.082964][ T8947]  rawv6_sendmsg+0x1467/0x35e0
+[   79.087730][ T8947]  inet_sendmsg+0x141/0x5d0
+[   79.092237][ T8947]  sock_sendmsg+0xd7/0x130
+[   79.096674][ T8947]  ___sys_sendmsg+0x803/0x920
+[   79.101353][ T8947]  __sys_sendmsg+0x105/0x1d0
+[   79.105947][ T8947]  __x64_sys_sendmsg+0x78/0xb0
+[   79.110736][ T8947]  do_syscall_64+0xfd/0x680
+[   79.115240][ T8947]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   79.121132][ T8947]
+[   79.123465][ T8947] Freed by task 8947:
+[   79.127452][ T8947]  save_stack+0x23/0x90
+[   79.131600][ T8947]  __kasan_slab_free+0x102/0x150
+[   79.136574][ T8947]  kasan_slab_free+0xe/0x10
+[   79.141067][ T8947]  kmem_cache_free+0x86/0x260
+[   79.145724][ T8947]  kfree_skbmem+0xc5/0x150
+[   79.150134][ T8947]  kfree_skb+0xf0/0x390
+[   79.154298][ T8947]  kfree_skb_list+0x44/0x60
+[   79.158808][ T8947]  __dev_queue_xmit+0x3034/0x36b0
+[   79.163835][ T8947]  dev_queue_xmit+0x18/0x20
+[   79.168348][ T8947]  neigh_direct_output+0x16/0x20
+[   79.173293][ T8947]  ip6_finish_output2+0x1034/0x2550
+[   79.178498][ T8947]  ip6_fragment+0x1ebb/0x2680
+[   79.183190][ T8947]  __ip6_finish_output+0x577/0xaa0
+[   79.188297][ T8947]  ip6_finish_output+0x38/0x1f0
+[   79.193160][ T8947]  ip6_output+0x235/0x7f0
+[   79.197491][ T8947]  ip6_local_out+0xbb/0x1b0
+[   79.201985][ T8947]  ip6_send_skb+0xbb/0x350
+[   79.206400][ T8947]  ip6_push_pending_frames+0xc8/0xf0
+[   79.211675][ T8947]  rawv6_sendmsg+0x2993/0x35e0
+[   79.216447][ T8947]  inet_sendmsg+0x141/0x5d0
+[   79.220940][ T8947]  sock_sendmsg+0xd7/0x130
+[   79.225384][ T8947]  ___sys_sendmsg+0x803/0x920
+[   79.230049][ T8947]  __sys_sendmsg+0x105/0x1d0
+[   79.234632][ T8947]  __x64_sys_sendmsg+0x78/0xb0
+[   79.239410][ T8947]  do_syscall_64+0xfd/0x680
+[   79.243915][ T8947]  entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[   79.249798][ T8947]
+[   79.252118][ T8947] The buggy address belongs to the object at ffff888085a3cbc0
+[   79.252118][ T8947]  which belongs to the cache skbuff_head_cache of size 224
+[   79.266696][ T8947] The buggy address is located 0 bytes inside of
+[   79.266696][ T8947]  224-byte region [ffff888085a3cbc0, ffff888085a3cca0)
+[   79.279789][ T8947] The buggy address belongs to the page:
+[   79.285404][ T8947] page:ffffea0002168f00 refcount:1 mapcount:0 mapping:ffff88821b6f63c0 index:0x0
+[   79.294499][ T8947] flags: 0x1fffc0000000200(slab)
+[   79.299476][ T8947] raw: 01fffc0000000200 ffffea00027bbf88 ffffea0002105b88 ffff88821b6f63c0
+[   79.308061][ T8947] raw: 0000000000000000 ffff888085a3c080 000000010000000c 0000000000000000
+[   79.316644][ T8947] page dumped because: kasan: bad access detected
+[   79.323037][ T8947]
+[   79.325351][ T8947] Memory state around the buggy address:
+[   79.330975][ T8947]  ffff888085a3ca80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   79.339204][ T8947]  ffff888085a3cb00: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[   79.347245][ T8947] >ffff888085a3cb80: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+[   79.355321][ T8947]                                            ^
+[   79.361473][ T8947]  ffff888085a3cc00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   79.369580][ T8947]  ffff888085a3cc80: fb fb fb fb fc fc fc fc fc fc fc fc fc fc fc fc
+[   79.377631][ T8947] ==================================================================

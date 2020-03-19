@@ -1,0 +1,73 @@
+TITLE: BUG: corrupted list in ath9k_htc_wait_for_target
+
+[  348.947111][ T4333] ------------[ cut here ]------------
+[  348.947754][ T4333] kernel BUG at lib/list_debug.c:51!
+[  348.950815][ T4333] invalid opcode: 0000 [#1] SMP KASAN
+[  348.951779][ T4333] CPU: 0 PID: 4333 Comm: kworker/0:9 Not tainted 5.6.0-rc6+ #156
+[  348.952713][ T4333] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-1 04/01/2014
+[  348.953769][ T4333] Workqueue: events request_firmware_work_func
+[  348.954476][ T4333] RIP: 0010:__list_del_entry_valid.cold+0xf/0x55
+[  348.955215][ T4333] Code: e8 e4 41 3e ff 0f 0b 48 89 f1 48 c7 c7 c0 27 fc 85 4c 89 e6 e8 d0 41 3e ff 0f 0b 48 89 ee 48 c7 c7 60 29 fc 85 e8 bf 41 3e ff <0f> 0b 4c 89 ea 48 89 ee 48 c7 c7 a0 28 fc 85 e8 ab 41 3e ff 0f 0b
+[  348.965784][ T4333] RSP: 0018:ffff888040e8f9b0 EFLAGS: 00010086
+[  348.966476][ T4333] RAX: 0000000000000054 RBX: ffff88805b72a440 RCX: 0000000000000000
+[  348.967431][ T4333] RDX: 0000000000000000 RSI: ffffffff812975ed RDI: ffffed10081d1f28
+[  348.968357][ T4333] RBP: ffff888040e8fa38 R08: 0000000000000054 R09: ffffed100d946250
+[  348.969334][ T4333] R10: ffffed100d94624f R11: ffff88806ca3127f R12: ffff88805b72a480
+[  348.970246][ T4333] R13: ffff88805b72a480 R14: dffffc0000000000 R15: ffff888040e8fa38
+[  348.971174][ T4333] FS:  0000000000000000(0000) GS:ffff88806ca00000(0000) knlGS:0000000000000000
+[  348.972229][ T4333] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  348.972983][ T4333] CR2: 000055b4f6c78d90 CR3: 00000000664d3001 CR4: 0000000000760ef0
+[  348.973909][ T4333] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  348.974790][ T4333] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  348.975705][ T4333] PKRU: 55555554
+[  348.976109][ T4333] Call Trace:
+[  348.976501][ T4333]  wait_for_completion_timeout+0x2b7/0x3e0
+[  348.977182][ T4333]  ? debug_object_fixup+0x20/0x20
+[  348.977777][ T4333]  ? wait_for_completion_io_timeout+0x3e0/0x3e0
+[  348.978474][ T4333]  ? wake_up_q+0x140/0x140
+[  348.979001][ T4333]  ? lockdep_init_map+0x1b0/0x5e0
+[  348.979583][ T4333]  ? ieee80211_roc_setup+0x2b8/0x3a0
+[  348.980237][ T4333]  ath9k_htc_wait_for_target.isra.0+0xb9/0x1b0
+[  348.981712][ T4333]  ath9k_htc_probe_device+0x1a4/0x1d80
+[  348.982567][ T4333]  ? ath9k_init_htc_services.constprop.0+0x650/0x650
+[  348.983654][ T4333]  ? usb_submit_urb+0x6ed/0x1460
+[  348.984239][ T4333]  ? usb_free_urb.part.0+0x52/0x110
+[  348.984925][ T4333]  ? usb_free_urb+0x1b/0x30
+[  348.985451][ T4333]  ath9k_htc_hw_init+0x31/0x60
+[  348.985996][ T4333]  ath9k_hif_usb_firmware_cb+0x26b/0x500
+[  348.986811][ T4333]  ? ath9k_hif_usb_resume+0x320/0x320
+[  348.987442][ T4333]  request_firmware_work_func+0x126/0x242
+[  348.988100][ T4333]  ? request_firmware_into_buf+0x90/0x90
+[  348.988750][ T4333]  ? rcu_read_lock_sched_held+0x9c/0xd0
+[  348.989392][ T4333]  ? rcu_read_lock_bh_held+0xb0/0xb0
+[  348.989997][ T4333]  process_one_work+0x94b/0x1620
+[  348.990715][ T4333]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  348.991311][ T4333]  ? do_raw_spin_lock+0x129/0x290
+[  348.991892][ T4333]  worker_thread+0x96/0xe20
+[  348.992432][ T4333]  ? process_one_work+0x1620/0x1620
+[  348.993028][ T4333]  kthread+0x318/0x420
+[  348.993507][ T4333]  ? kthread_create_on_node+0xf0/0xf0
+[  348.994258][ T4333]  ret_from_fork+0x24/0x30
+[  348.994818][ T4333] Modules linked in:
+[  348.995262][ T4333] Dumping ftrace buffer:
+[  348.995744][ T4333]    (ftrace buffer empty)
+[  348.996257][ T4333] ---[ end trace ccd500e929f6e52d ]---
+[  348.996945][ T4333] RIP: 0010:__list_del_entry_valid.cold+0xf/0x55
+[  348.997679][ T4333] Code: e8 e4 41 3e ff 0f 0b 48 89 f1 48 c7 c7 c0 27 fc 85 4c 89 e6 e8 d0 41 3e ff 0f 0b 48 89 ee 48 c7 c7 60 29 fc 85 e8 bf 41 3e ff <0f> 0b 4c 89 ea 48 89 ee 48 c7 c7 a0 28 fc 85 e8 ab 41 3e ff 0f 0b
+[  349.000028][ T4333] RSP: 0018:ffff888040e8f9b0 EFLAGS: 00010086
+[  349.000727][ T4333] RAX: 0000000000000054 RBX: ffff88805b72a440 RCX: 0000000000000000
+[  349.001669][ T4333] RDX: 0000000000000000 RSI: ffffffff812975ed RDI: ffffed10081d1f28
+[  349.002783][ T4333] RBP: ffff888040e8fa38 R08: 0000000000000054 R09: ffffed100d946250
+[  349.003677][ T4333] R10: ffffed100d94624f R11: ffff88806ca3127f R12: ffff88805b72a480
+[  349.004578][ T4333] R13: ffff88805b72a480 R14: dffffc0000000000 R15: ffff888040e8fa38
+[  349.005549][ T4333] FS:  0000000000000000(0000) GS:ffff88806ca00000(0000) knlGS:0000000000000000
+[  349.006569][ T4333] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  349.007310][ T4333] CR2: 000055b4f6c78d90 CR3: 00000000664d3001 CR4: 0000000000760ef0
+[  349.008249][ T4333] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  349.009174][ T4333] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  349.010113][ T4333] PKRU: 55555554
+[  349.010949][ T4333] Kernel panic - not syncing: Fatal exception
+[  349.012076][ T4333] Dumping ftrace buffer:
+[  349.012572][ T4333]    (ftrace buffer empty)
+[  349.013132][ T4333] Kernel Offset: disabled
+[  349.013724][ T4333] Rebooting in 1 seconds..
