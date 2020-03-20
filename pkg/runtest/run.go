@@ -291,6 +291,9 @@ func parseProg(target *prog.Target, dir, filename string) (*prog.Prog, map[strin
 		"EINVAL":     22,
 		"ENOTTY":     25,
 		"EOPNOTSUPP": 95,
+
+		// Fuchsia specific errors.
+		"ZX_ERR_BAD_HANDLE": 11,
 	}
 	info := &ipc.ProgInfo{Calls: make([]ipc.CallInfo, len(p.Calls))}
 	for i, call := range p.Calls {
