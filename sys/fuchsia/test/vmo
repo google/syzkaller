@@ -1,0 +1,5 @@
+zx_vmo_create(0x100, 0x0, &AUTO=<r0=>0x0)
+zx_vmo_write(r0, &AUTO="010101", 0x01, 0x4)
+zx_handle_close(r0)
+zx_vmo_write(r0, &AUTO="010101", 0x01, 0x4) # ZX_ERR_BAD_HANDLE
+zx_handle_close(r0) # ZX_ERR_BAD_HANDLE
