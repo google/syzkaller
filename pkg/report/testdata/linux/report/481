@@ -1,0 +1,59 @@
+TITLE: BUG: unable to handle kernel NULL pointer dereference in handle_external_interrupt_irqoff
+
+[  418.945118][T17277] BUG: kernel NULL pointer dereference, address: 0000000000000086
+[  418.953273][T17277] #PF: supervisor instruction fetch in kernel mode
+[  418.959840][T17277] #PF: error_code(0x0010) - not-present page
+[  418.965805][T17277] PGD 8ae6c067 P4D 8ae6c067 PUD 9f526067 PMD 0 
+[  418.972059][T17277] Oops: 0010 [#1] PREEMPT SMP KASAN
+[  418.977254][T17277] CPU: 0 PID: 17277 Comm: syz-executor.5 Not tainted 5.6.0-rc6-syzkaller #0
+[  418.986036][T17277] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  418.996104][T17277] RIP: 0010:0x86
+[  418.999641][T17277] Code: Bad RIP value.
+[  419.003683][T17277] RSP: 0018:ffffc90004b67998 EFLAGS: 00010086
+[  419.009742][T17277] RAX: ffffc90004b679c8 RBX: fffffe0000000000 RCX: 0000000000040000
+[  419.017735][T17277] RDX: ffffc90015729000 RSI: 0000000000003ac8 RDI: 0000000000003ac9
+[  419.025704][T17277] RBP: 0000000000000fd0 R08: ffffffff839870a3 R09: ffffffff811c7eca
+[  419.034180][T17277] R10: ffff88809744e200 R11: 0000000000000002 R12: dffffc0000000000
+[  419.042315][T17277] R13: fffffe0000000fd8 R14: ffffffff880017d0 R15: fffffe0000000fdb
+[  419.050284][T17277] FS:  00007f12dcc21700(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[  419.059197][T17277] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  419.065767][T17277] CR2: 000000000000005c CR3: 0000000096823000 CR4: 00000000001426f0
+[  419.073802][T17277] Call Trace:
+[  419.077167][T17277]  ? handle_external_interrupt_irqoff+0x154/0x280
+[  419.083678][T17277]  ? handle_external_interrupt_irqoff+0x132/0x280
+[  419.090088][T17277]  ? call_function_interrupt+0x20/0x20
+[  419.095610][T17277]  ? vcpu_enter_guest+0x6c77/0x9290
+[  419.100811][T17277]  ? __kasan_slab_free+0x12e/0x1e0
+[  419.105914][T17277]  ? kfree+0x10a/0x220
+[  419.109968][T17277]  ? tomoyo_path_number_perm+0x525/0x690
+[  419.115708][T17277]  ? security_file_ioctl+0x55/0xb0
+[  419.120815][T17277]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  419.126880][T17277]  ? __lock_acquire+0xc5a/0x1bc0
+[  419.131821][T17277]  ? mark_lock+0x107/0x1650
+[  419.136307][T17277]  ? lock_acquire+0x154/0x250
+[  419.140960][T17277]  ? rcu_lock_acquire+0x9/0x30
+[  419.145754][T17277]  ? kvm_check_async_pf_completion+0x34e/0x360
+[  419.151889][T17277]  ? vcpu_run+0x3a3/0xd50
+[  419.156223][T17277]  ? kvm_arch_vcpu_ioctl_run+0x419/0x880
+[  419.161831][T17277]  ? kvm_vcpu_ioctl+0x67c/0xa80
+[  419.166672][T17277]  ? kvm_vm_release+0x50/0x50
+[  419.171334][T17277]  ? __se_sys_ioctl+0xf9/0x160
+[  419.176101][T17277]  ? do_syscall_64+0xf3/0x1b0
+[  419.181374][T17277]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe
+[  419.187428][T17277] Modules linked in:
+[  419.191318][T17277] CR2: 0000000000000086
+[  419.195478][T17277] ---[ end trace 4c5f669c48269d7c ]---
+[  419.200915][T17277] RIP: 0010:0x86
+[  419.204453][T17277] Code: Bad RIP value.
+[  419.208503][T17277] RSP: 0018:ffffc90004b67998 EFLAGS: 00010086
+[  419.214549][T17277] RAX: ffffc90004b679c8 RBX: fffffe0000000000 RCX: 0000000000040000
+[  419.222523][T17277] RDX: ffffc90015729000 RSI: 0000000000003ac8 RDI: 0000000000003ac9
+[  419.230473][T17277] RBP: 0000000000000fd0 R08: ffffffff839870a3 R09: ffffffff811c7eca
+[  419.238425][T17277] R10: ffff88809744e200 R11: 0000000000000002 R12: dffffc0000000000
+[  419.248025][T17277] R13: fffffe0000000fd8 R14: ffffffff880017d0 R15: fffffe0000000fdb
+[  419.255992][T17277] FS:  00007f12dcc21700(0000) GS:ffff8880ae800000(0000) knlGS:0000000000000000
+[  419.264907][T17277] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  419.271465][T17277] CR2: 000000000000005c CR3: 0000000096823000 CR4: 00000000001426f0
+[  419.279510][T17277] Kernel panic - not syncing: Fatal exception
+[  419.287150][T17277] Kernel Offset: disabled
+[  419.291486][T17277] Rebooting in 86400 seconds..

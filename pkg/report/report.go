@@ -123,6 +123,7 @@ const (
 	unexpectedKernelReboot = "unexpected kernel reboot"
 	memoryLeakPrefix       = "memory leak in "
 	dataRacePrefix         = "KCSAN: data-race"
+	corruptedNoFrames      = "extracted no frames"
 )
 
 var ctors = map[string]fn{
@@ -511,7 +512,7 @@ nextPart:
 		}
 	}
 	if len(frames) == 0 {
-		return "", "extracted no frames"
+		return "", corruptedNoFrames
 	}
 	return extractor(frames)
 }
