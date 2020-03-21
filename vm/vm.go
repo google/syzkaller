@@ -279,13 +279,16 @@ type monitor struct {
 }
 
 func (mon *monitor) extractError(defaultError string) *report.Report {
+	var diagOutput []byte
+	appendDiagOutput := func() {
+		if len(diagOutput) > 0 {
+			mon.output = append(mon.output, report.VMDiagnosisStart...)
+			mon.output = append(mon.output, diagOutput...)
+		}
+	}
 	if defaultError != "" {
 		// N.B. we always wait below for other errors.
-		diag, _ := mon.inst.Diagnose()
-		if len(diag) > 0 {
-			mon.output = append(mon.output, "DIAGNOSIS:\n"...)
-			mon.output = append(mon.output, diag...)
-		}
+		diagOutput, _ = mon.inst.Diagnose()
 	}
 	// Give it some time to finish writing the error message.
 	mon.waitForOutput()
@@ -296,6 +299,7 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 		if defaultError == "" {
 			return nil
 		}
+		appendDiagOutput()
 		rep := &report.Report{
 			Title:      defaultError,
 			Output:     mon.output,
@@ -304,15 +308,13 @@ func (mon *monitor) extractError(defaultError string) *report.Report {
 		return rep
 	}
 	if defaultError == "" {
-		diag, wait := mon.inst.Diagnose()
-		if len(diag) > 0 {
-			mon.output = append(mon.output, "DIAGNOSIS:\n"...)
-			mon.output = append(mon.output, diag...)
-		}
+		wait := false
+		diagOutput, wait = mon.inst.Diagnose()
 		if wait {
 			mon.waitForOutput()
 		}
 	}
+	appendDiagOutput()
 	rep := mon.reporter.Parse(mon.output[mon.matchPos:])
 	if rep == nil {
 		panic(fmt.Sprintf("reporter.ContainsCrash/Parse disagree:\n%s", mon.output[mon.matchPos:]))
