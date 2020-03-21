@@ -23,7 +23,6 @@ type linux struct {
 	vmlinux               string
 	symbols               map[string][]symbolizer.Symbol
 	consoleOutputRe       *regexp.Regexp
-	questionableRes       []*regexp.Regexp
 	taskContext           *regexp.Regexp
 	cpuContext            *regexp.Regexp
 	guiltyFileBlacklist   []*regexp.Regexp
@@ -49,10 +48,6 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 		symbols: symbols,
 	}
 	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
-	ctx.questionableRes = []*regexp.Regexp{
-		regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`),
-		regexp.MustCompile(`\(unreliable\)`), // powerpc
-	}
 	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
 	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
 	ctx.eoi = []byte("<EOI>")
@@ -124,6 +119,8 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 	return ctx, suppressions, nil
 }
 
+const contextConsole = "console"
+
 func (ctx *linux) ContainsCrash(output []byte) bool {
 	return containsCrash(output, linuxOopses, ctx.ignores)
 }
@@ -133,35 +130,46 @@ func (ctx *linux) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	rep := &Report{
-		Output:   output,
-		StartPos: startPos,
-	}
-	endPos, reportEnd, report, prefix := ctx.findReport(output, oops, startPos, context)
-	rep.EndPos = endPos
-	title, corrupted, format := extractDescription(report[:reportEnd], oops, linuxStackParams)
-	if title == "" {
-		prefix = nil
-		report = output[rep.StartPos:rep.EndPos]
-		title, corrupted, format = extractDescription(report, oops, linuxStackParams)
-		if title == "" {
-			panic(fmt.Sprintf("non matching oops for %q context=%q in:\n%s\n",
-				oops.header, context, report))
+	for questionable := false; ; questionable = true {
+		rep := &Report{
+			Output:   output,
+			StartPos: startPos,
 		}
+		endPos, reportEnd, report, prefix := ctx.findReport(output, oops, startPos, context, questionable)
+		rep.EndPos = endPos
+		title, corrupted, format := extractDescription(report[:reportEnd], oops, linuxStackParams)
+		if title == "" {
+			prefix = nil
+			report = output[rep.StartPos:rep.EndPos]
+			title, corrupted, format = extractDescription(report, oops, linuxStackParams)
+			if title == "" {
+				panic(fmt.Sprintf("non matching oops for %q context=%q in:\n%s\n",
+					oops.header, context, report))
+			}
+		}
+		rep.Title = title
+		rep.Corrupted = corrupted != ""
+		rep.CorruptedReason = corrupted
+		for _, line := range prefix {
+			rep.Report = append(rep.Report, line...)
+			rep.Report = append(rep.Report, '\n')
+		}
+		rep.reportPrefixLen = len(rep.Report)
+		rep.Report = append(rep.Report, report...)
+		if !rep.Corrupted {
+			rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
+		}
+		if rep.CorruptedReason == corruptedNoFrames && context != contextConsole && !questionable {
+			// Some crash reports have all frames questionable.
+			// So if we get a corrupted report because there are no frames,
+			// try again now looking at questionable frames.
+			// Only do this if we have a real context (CONFIG_PRINTK_CALLER=y),
+			// to be on the safer side. Without context it's too easy to use
+			// a stray frame from a wrong context.
+			continue
+		}
+		return rep
 	}
-	rep.Title = title
-	rep.Corrupted = corrupted != ""
-	rep.CorruptedReason = corrupted
-	for _, line := range prefix {
-		rep.Report = append(rep.Report, line...)
-		rep.Report = append(rep.Report, '\n')
-	}
-	rep.reportPrefixLen = len(rep.Report)
-	rep.Report = append(rep.Report, report...)
-	if !rep.Corrupted {
-		rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
-	}
-	return rep
 }
 
 func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, context string) {
@@ -187,7 +195,7 @@ func (ctx *linux) findFirstOops(output []byte) (oops *oops, startPos int, contex
 
 // Yes, it is complex, but all state and logic are tightly coupled. It's unclear how to simplify it.
 // nolint: gocyclo
-func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context string) (
+func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context string, useQuestionable bool) (
 	endPos, reportEnd int, report []byte, prefix [][]byte) {
 	// Prepend 5 lines preceding start of the report,
 	// they can contain additional info related to the report.
@@ -208,7 +216,7 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 		}
 		line := output[pos:next]
 		context1 := ctx.extractContext(line)
-		stripped, questionable := ctx.stripLinePrefix(line, context1)
+		stripped, questionable := ctx.stripLinePrefix(line, context1, useQuestionable)
 		if pos < startPos {
 			if context1 == context && len(stripped) != 0 && !questionable {
 				prefix = append(prefix, append([]byte{}, stripped...))
@@ -274,27 +282,33 @@ func (ctx *linux) findReport(output []byte, oops *oops, startPos int, context st
 		}
 		report = append(report, stripped...)
 		report = append(report, '\n')
-		if secondReportPos == 0 || context != "" && context != "console" {
+		if secondReportPos == 0 || context != "" && context != contextConsole {
 			reportEnd = len(report)
 		}
 	}
 	return
 }
 
-func (ctx *linux) stripLinePrefix(line []byte, context string) ([]byte, bool) {
+func (ctx *linux) stripLinePrefix(line []byte, context string, useQuestionable bool) ([]byte, bool) {
 	if last := len(line) - 1; last >= 0 && line[last] == '\r' {
 		line = line[:last]
 	}
 	if context == "" {
 		return line, false
 	}
-	start := bytes.Index(line, []byte("] ")) + 2
-	for _, re := range ctx.questionableRes {
-		if re.Match(line) && !bytes.Contains(line, ctx.eoi) {
-			return line[start:], true
+	start := bytes.Index(line, []byte("] "))
+	line = line[start+2:]
+	if !bytes.Contains(line, ctx.eoi) {
+		// x86_64 prefix.
+		if bytes.HasPrefix(line, []byte(" ? ")) {
+			return line[2:], !useQuestionable
+		}
+		// powerpc suffix.
+		if bytes.HasSuffix(line, []byte(" (unreliable)")) {
+			return line[:len(line)-13], !useQuestionable
 		}
 	}
-	return line[start:], false
+	return line, false
 }
 
 func (ctx *linux) extractContext(line []byte) string {
@@ -303,7 +317,7 @@ func (ctx *linux) extractContext(line []byte) string {
 		return ""
 	}
 	if match[2] == -1 {
-		return "console"
+		return contextConsole
 	}
 	return string(line[match[2]:match[3]])
 }

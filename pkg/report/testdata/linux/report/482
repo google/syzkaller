@@ -1,0 +1,21 @@
+TITLE: INFO: task syz-executor can't die for more than 143 seconds.
+
+[  440.207852][ T1045] INFO: task syz-executor.1:12632 can't die for more than 143 seconds. 
+[  440.216128][ T1045] syz-executor.1  R  running task    29600 12632   8638 0x00004006 
+[  440.235983][ T1045] Call Trace: 
+[  440.239833][ T1045]  ? rcu_read_lock_sched_held+0x110/0x130 
+[  440.245566][ T1045]  ? __alloc_pages_nodemask+0x61b/0x8d0 
+[  440.257859][ T1045]  ? trace_hardirqs_on_thunk+0x1a/0x1c 
+[  440.263355][ T1045]  ? __alloc_pages_slowpath+0x28b0/0x28b0 
+[  440.275132][ T1045]  ? __sanitizer_cov_trace_const_cmp2+0x18/0x20 
+[  440.281816][ T1045]  ? alloc_pages_current+0x10f/0x210 
+[  440.287141][ T1045]  ? set_memory_decrypted+0x9/0x10 
+[  440.299038][ T1045]  ? arch_kexec_post_alloc_pages+0x9/0x10 
+[  440.304777][ T1045]  ? kimage_alloc_pages+0x1bc/0x210 
+[  440.314088][ T1045]  ? __sanitizer_cov_trace_const_cmp8+0x18/0x20 
+[  440.322492][ T1045]  ? kimage_alloc_page+0x2c7/0x9f0 
+[  440.331622][ T1045]  ? kimage_load_segment+0x25d/0x740 
+[  440.336952][ T1045]  ? do_kexec_load+0x41a/0x600 
+[  440.343957][ T1045]  ? __x64_sys_kexec_load+0x1d5/0x260 
+[  440.353432][ T1045]  ? do_syscall_64+0xfd/0x680 
+[  440.360289][ T1045]  ? entry_SYSCALL_64_after_hwframe+0x49/0xbe 
