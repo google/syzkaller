@@ -346,7 +346,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	return nil, vmimpl.DiagnoseFreeBSD(inst.consolew)
+	return vmimpl.DiagnoseFreeBSD(inst.consolew)
 }
 
 func parseIP(output []byte) string {

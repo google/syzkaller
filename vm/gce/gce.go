@@ -371,10 +371,10 @@ func waitForConsoleConnect(merger *vmimpl.OutputMerger) error {
 
 func (inst *instance) Diagnose() ([]byte, bool) {
 	if inst.env.OS == "freebsd" {
-		return nil, vmimpl.DiagnoseFreeBSD(inst.consolew)
+		return vmimpl.DiagnoseFreeBSD(inst.consolew)
 	}
 	if inst.env.OS == "openbsd" {
-		return nil, vmimpl.DiagnoseOpenBSD(inst.consolew)
+		return vmimpl.DiagnoseOpenBSD(inst.consolew)
 	}
 	return nil, false
 }
