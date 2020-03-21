@@ -311,7 +311,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) Diagnose() ([]byte, bool) {
-	return nil, vmimpl.DiagnoseOpenBSD(inst.consolew)
+	return vmimpl.DiagnoseOpenBSD(inst.consolew)
 }
 
 // Run the given vmctl(8) command and wait for it to finish.

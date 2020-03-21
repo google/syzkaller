@@ -12,7 +12,7 @@ import (
 // is expected to be connected to a paniced openbsd kernel.  If kernel
 // just hanged, we've lost connection or detected some non-panic
 // error, console still shows normal login prompt.
-func DiagnoseOpenBSD(w io.Writer) bool {
+func DiagnoseOpenBSD(w io.Writer) ([]byte, bool) {
 	commands := []string{
 		"",
 		"set $lines = 0",    // disable pagination
@@ -30,5 +30,5 @@ func DiagnoseOpenBSD(w io.Writer) bool {
 		w.Write([]byte(c + "\n"))
 		time.Sleep(1 * time.Second)
 	}
-	return true
+	return nil, true
 }
