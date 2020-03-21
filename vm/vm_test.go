@@ -138,7 +138,32 @@ var tests = []*Test{
 		Report: &report.Report{
 			Title: lostConnectionCrash,
 			Output: []byte(
-				"DIAGNOSIS:\nDIAGNOSE\n",
+				"\n" +
+					"VM DIAGNOSIS:\n" +
+					"DIAGNOSE\n",
+			),
+		},
+	},
+	{
+		Name: "diagnose-bug-no-wait",
+		Body: func(outc chan []byte, errc chan error) {
+			outc <- []byte("BUG: bad\n")
+			time.Sleep(time.Second)
+			outc <- []byte("other output\n")
+		},
+		DiagnoseNoWait: true,
+		Report: &report.Report{
+			Title: "BUG: bad",
+			Report: []byte(
+				"BUG: bad\n" +
+					"other output\n",
+			),
+			Output: []byte(
+				"BUG: bad\n" +
+					"other output\n" +
+					"\n" +
+					"VM DIAGNOSIS:\n" +
+					"DIAGNOSE\n",
 			),
 		},
 	},
