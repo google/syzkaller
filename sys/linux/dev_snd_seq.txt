@@ -9,7 +9,7 @@ include <uapi/sound/asequencer.h>
 
 resource fd_sndseq[fd]
 
-syz_open_dev$sndseq(dev ptr[in, string["/dev/snd/seq"]], id const[0], flags flags[open_flags]) fd_sndseq
+openat$sndseq(fd const[AT_FDCWD], file ptr[in, string["/dev/snd/seq"]], flags flags[open_flags]) fd_sndseq
 write$sndseq(fd fd_sndseq, data ptr[in, array[snd_seq_event]], len bytesize[data])
 
 ioctl$SNDRV_SEQ_IOCTL_PVERSION(fd fd_sndseq, cmd const[SNDRV_SEQ_IOCTL_PVERSION], arg ptr[out, int32])

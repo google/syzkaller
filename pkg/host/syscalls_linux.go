@@ -168,12 +168,14 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	case "syz_open_dev":
 		if _, ok := c.Args[0].(*prog.ConstType); ok {
 			// This is for syz_open_dev$char/block.
-			// They are currently commented out, but in case one enables them.
 			return true, ""
 		}
 		fname, ok := extractStringConst(c.Args[0])
 		if !ok {
 			panic("first open arg is not a pointer to string const")
+		}
+		if !strings.Contains(fname, "#") {
+			panic(fmt.Sprintf("%v does not contain # in the file name (should be openat)", c.Name))
 		}
 		if checkUSBInjection() == "" {
 			// These entries might not be available at boot time,

@@ -12,7 +12,7 @@ include <security/tlk_driver/ote_protocol.h>
 resource fd_tlk[fd]
 resource te_session_id[int32]
 
-syz_open_dev$tlk_device(dev ptr[in, string["/dev/tlk_device"]], id const[0], flags flags[open_flags]) fd_tlk
+openat$tlk_device(fd const[AT_FDCWD], file ptr[in, string["/dev/tlk_device"]], flags flags[open_flags]) fd_tlk
 
 ioctl$TE_IOCTL_OPEN_CLIENT_SESSION(fd fd_tlk, cmd const[TE_IOCTL_OPEN_CLIENT_SESSION], arg ptr[inout, te_opensession])
 ioctl$TE_IOCTL_CLOSE_CLIENT_SESSION(fd fd_tlk, cmd const[TE_IOCTL_CLOSE_CLIENT_SESSION], arg ptr[inout, te_closesession])

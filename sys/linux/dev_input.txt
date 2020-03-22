@@ -7,7 +7,7 @@ resource fd_evdev[fd]
 
 # There seems to be nothing special we can do with this fd.
 syz_open_dev$mouse(dev ptr[in, string["/dev/input/mouse#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$mice(dev ptr[in, string["/dev/input/mice"]], id const[0], flags flags[open_flags]) fd
+openat$mice(fd const[AT_FDCWD], file ptr[in, string["/dev/input/mice"]], flags flags[open_flags]) fd
 
 syz_open_dev$evdev(dev ptr[in, string["/dev/input/event#"]], id intptr, flags flags[open_flags]) fd_evdev
 
