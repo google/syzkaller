@@ -34,7 +34,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 	t.Parallel()
 	var tests = []ConstArgTest{
 		{
-			name:  "One replacer test",
+			name:  "one-replacer-test",
 			in:    0xdeadbeef,
 			size:  4,
 			comps: CompMap{0xdeadbeef: compSet(0xdeadbeef, 0xcafebabe)},
@@ -43,7 +43,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 		// Test for cases when there's multiple comparisons (op1, op2), (op1, op3), ...
 		// Checks that for every such operand a program is generated.
 		{
-			name:  "Multiple replacers test",
+			name:  "multiple-replacers-test",
 			in:    0xabcd,
 			size:  2,
 			comps: CompMap{0xabcd: compSet(0x2, 0x3)},
@@ -51,7 +51,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 		},
 		// Checks that special ints are not used.
 		{
-			name:  "Special ints test",
+			name:  "special-ints-test",
 			in:    0xabcd,
 			size:  2,
 			comps: CompMap{0xabcd: compSet(0x1, 0x2)},
@@ -61,7 +61,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 		// The following tests check the size limits for each replacer and for the initial value
 		// of the argument. The checks are made for positive and negative values and also for bitfields.
 		{
-			name: "Int8 invalid value (positive)",
+			name: "int8-invalid-positive-value",
 			in:   0x1234,
 			size: 1,
 			comps: CompMap{
@@ -79,7 +79,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			res: []uint64{0x88, 0xfe},
 		},
 		{
-			name: "Int8 invalid value (negative)",
+			name: "int8-invalid-negative-value",
 			in:   0x12ab,
 			size: 1,
 			comps: CompMap{
@@ -89,7 +89,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			res: []uint64{0x11, 0x22, 0xac},
 		},
 		{
-			name:    "Int16 valid value (bitsize=12)",
+			name:    "int16-valid-value-bitsize-12",
 			in:      0x3ab,
 			size:    2,
 			bitsize: 12,
@@ -102,7 +102,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			res: []uint64{0x11, 0x3f1, 0xffe},
 		},
 		{
-			name:    "Int16 invalid value (bitsize=12)",
+			name:    "int16-invalid-value-bitsize-12",
 			in:      0x71ab,
 			size:    2,
 			bitsize: 12,
@@ -112,7 +112,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			res: []uint64{0x11, 0xffe},
 		},
 		{
-			name:    "Int16 negative valid value (bitsize=12)",
+			name:    "int16-negative-valid-value-bitsize-12",
 			in:      0x8ab,
 			size:    2,
 			bitsize: 12,
@@ -124,7 +124,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			res: []uint64{0x11, 0x13, 0x80a, 0x812, 0xf00},
 		},
 		{
-			name:    "Int16 negative invalid value (bitsize=12)",
+			name:    "int16-negative-invalid-value-bitsize-12",
 			in:      0x88ab,
 			size:    2,
 			bitsize: 12,
@@ -135,7 +135,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			res: []uint64{0x11, 0x13, 0xf11},
 		},
 		{
-			name: "Int32 invalid value",
+			name: "int32-invalid-value",
 			in:   0xaabaddcafe,
 			size: 4,
 			comps: CompMap{0xbaddcafe: compSet(0xab, 0xabcd, 0xbaddcafe,
@@ -143,7 +143,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			res: []uint64{0xab, 0xabcd, 0xdeadbeef},
 		},
 		{
-			name:  "Int64 valid value",
+			name:  "int64-valid-value",
 			in:    0xdeadc0debaddcafe,
 			size:  8,
 			comps: CompMap{0xdeadc0debaddcafe: compSet(0xab, 0xabcd, 0xdeadbeef, 0xdeadbeefdeadbeef)},
@@ -175,7 +175,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 	// All inputs are in Little-Endian.
 	var tests = []DataArgTest{
 		{
-			"One replacer test",
+			"one-replacer-test",
 			"\xef\xbe\xad\xde",
 			CompMap{
 				0xdeadbeef: compSet(0xcafebabe, 0xdeadbeef),
@@ -189,7 +189,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		// Test for cases when there's multiple comparisons (op1, op2), (op1, op3), ...
 		// Checks that for every such operand a program is generated.
 		{
-			"Multiple replacers test",
+			"multiple-replacers-test",
 			"\xcd\xab",
 			CompMap{0xabcd: compSet(0x2, 0x3)},
 			map[string]bool{
@@ -198,7 +198,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		},
 		// Checks that special ints are not used.
 		{
-			"Special ints test",
+			"special-ints-test",
 			"\xcd\xab",
 			CompMap{0xabcd: compSet(0x1, 0x2)},
 			map[string]bool{
@@ -207,7 +207,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		},
 		// Checks that ints of various sizes are extracted.
 		{
-			"Different sizes test",
+			"different-sizes-test",
 			"\xef\xcd\xab\x90\x78\x56\x34\x12",
 			CompMap{
 				0xef:               compSet(0x11),
@@ -224,7 +224,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		},
 		// Checks that values with different offsets are extracted.
 		{
-			"Different offsets test",
+			"different-offsets-test",
 			"\xab\xab\xab\xab\xab\xab\xab\xab\xab",
 			CompMap{
 				0xab:               compSet(0x11),
@@ -261,7 +261,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 			},
 		},
 		{
-			"Replace in the middle of a larger blob",
+			"replace-in-the-middle-of-a-larger-blob",
 			"\xef\xcd\xab\x90\x78\x56\x34\x12",
 			CompMap{0xffffffffffff90ab: compSet(0xffffffffffffaabb)},
 			map[string]bool{
@@ -270,7 +270,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		},
 		{
 
-			"Big-endian replace",
+			"big-endian-replace",
 			"\xef\xcd\xab\x90\x78\x56\x34\x12",
 			CompMap{
 				// 0xff07 is reversed special int.
@@ -333,7 +333,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		if (b == 0xab) {...}
 			//		if (w == 0xcdcd) {...}
 			//  }; f(0x1234);
-			name: "Shrink 16 test",
+			name: "shrink-16-test",
 			in:   0x1234,
 			comps: CompMap{
 				0x34:   compSet(0xab),
@@ -350,7 +350,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		if (w == 0xcdcd) {...}
 			//		if (dw == 0xefefefef) {...}
 			//  }; f(0x12345678);
-			name: "Shrink 32 test",
+			name: "shrink-32-test",
 			in:   0x12345678,
 			comps: CompMap{
 				0x78:       compSet(0xab),
@@ -370,7 +370,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		if (dw == 0xefefefef) {...}
 			//		if (qw == 0x0101010101010101) {...}
 			//  }; f(0x1234567890abcdef);
-			name: "Shrink 64 test",
+			name: "shrink-64-test",
 			in:   0x1234567890abcdef,
 			comps: CompMap{
 				0xef:               compSet(0xab, 0xef),
@@ -394,7 +394,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//  }; f(0x1234);
 			// In such code the comparison will never be true, so we don't
 			// generate a hint for it.
-			name:  "Shrink with a wider replacer test1",
+			name:  "shrink-with-a-wider-replacer-test1",
 			in:    0x1234,
 			comps: CompMap{0x34: compSet(0x1bab)},
 			res:   nil,
@@ -410,7 +410,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// the lower byte, then the if statement will be true.
 			// Note that executor sign extends all the comparison operands to
 			// int64, so we model this accordingly.
-			name:  "Shrink with a wider replacer test2",
+			name:  "shrink-with-a-wider-replacer-test2",
 			in:    0x1234,
 			comps: CompMap{0x34: compSet(0xfffffffffffffffd)},
 			res:   []uint64{0x12fd},
@@ -425,7 +425,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		i64 qw = (i64) b;
 			//		if (qw == -2) {...};
 			// }; f(-1);
-			name:  "Extend 8 test",
+			name:  "extend-8-test",
 			in:    0xff,
 			comps: CompMap{0xffffffffffffffff: compSet(0xfffffffffffffffe)},
 			res:   []uint64{0xfe},
@@ -436,7 +436,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		i64 qw = (i64) w;
 			//		if (qw == -2) {...};
 			// }; f(-1);
-			name:  "Extend 16 test",
+			name:  "extend-16-test",
 			in:    0xffff,
 			comps: CompMap{0xffffffffffffffff: compSet(0xfffffffffffffffe)},
 			res:   []uint64{0xfffe},
@@ -447,7 +447,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			//		i64 qw = (i32) dw;
 			//		if (qw == -2) {...};
 			// }; f(-1);
-			name:  "Extend 32 test",
+			name:  "extend-32-test",
 			in:    0xffffffff,
 			comps: CompMap{0xffffffffffffffff: compSet(0xfffffffffffffffe)},
 			res:   []uint64{0xfffffffe},
@@ -460,7 +460,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// }; f(-1);
 			// There's no value for b that will make the comparison true,
 			// so we don't generate hints.
-			name:  "Extend with a wider replacer test",
+			name:  "extend-with-a-wider-replacer-test",
 			in:    0xff,
 			comps: CompMap{0xffffffffffffffff: compSet(0xfffffffffffffeff)},
 			res:   nil,
