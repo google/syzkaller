@@ -171,3 +171,24 @@ func TestFlags(t *testing.T) {
 			test.vv, test.bitmask, test.old, throws, buf.String())
 	}
 }
+
+func TestTruncateToBitSize(t *testing.T) {
+	tests := []struct{ v, bits, res uint64 }{
+		{0, 1, 0},
+		{1, 1, 1},
+		{0x123, 4, 0x3},
+		{0xabc, 4, 0xc},
+		{0x123, 8, 0x23},
+		{0xabc, 8, 0xbc},
+		{0x12345678abcdabcd, 64, 0x12345678abcdabcd},
+		{0xf2345678abcdabcd, 64, 0xf2345678abcdabcd},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			res := truncateToBitSize(test.v, test.bits)
+			if res != test.res {
+				t.Fatalf("truncateToBitSize(0x%x, %v)=0x%x, want 0x%x", test.v, test.bits, res, test.res)
+			}
+		})
+	}
+}
