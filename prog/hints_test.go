@@ -12,8 +12,6 @@ import (
 	"testing"
 )
 
-type uint64Set map[uint64]bool
-
 type ConstArgTest struct {
 	name    string
 	in      uint64
@@ -39,7 +37,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			name:  "One replacer test",
 			in:    0xdeadbeef,
 			size:  4,
-			comps: CompMap{0xdeadbeef: uint64Set{0xdeadbeef: true, 0xcafebabe: true}},
+			comps: CompMap{0xdeadbeef: compSet(0xdeadbeef, 0xcafebabe)},
 			res:   []uint64{0xcafebabe},
 		},
 		// Test for cases when there's multiple comparisons (op1, op2), (op1, op3), ...
@@ -48,7 +46,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			name:  "Multiple replacers test",
 			in:    0xabcd,
 			size:  2,
-			comps: CompMap{0xabcd: uint64Set{0x2: true, 0x3: true}},
+			comps: CompMap{0xabcd: compSet(0x2, 0x3)},
 			res:   []uint64{0x2, 0x3},
 		},
 		// Checks that special ints are not used.
@@ -56,7 +54,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			name:  "Special ints test",
 			in:    0xabcd,
 			size:  2,
-			comps: CompMap{0xabcd: uint64Set{0x1: true, 0x2: true}},
+			comps: CompMap{0xabcd: compSet(0x1, 0x2)},
 			res:   []uint64{0x2},
 		},
 
@@ -73,10 +71,10 @@ func TestHintsCheckConstArg(t *testing.T) {
 				//		i16 other = 0xfffe
 				// 		if (w == other)
 				//  }; test8(i8(0x1234));
-				0x34: uint64Set{0x88: true, 0x1122: true, 0xfffffffffffffffe: true, 0xffffffffffffff0a: true},
+				0x34: compSet(0x88, 0x1122, 0xfffffffffffffffe, 0xffffffffffffff0a),
 				// This following args should be iggnored.
-				0x1234:             uint64Set{0xa1: true},
-				0xffffffffffffff34: uint64Set{0xaa: true},
+				0x1234:             compSet(0xa1),
+				0xffffffffffffff34: compSet(0xaa),
 			},
 			res: []uint64{0x88, 0xfe},
 		},
@@ -85,8 +83,8 @@ func TestHintsCheckConstArg(t *testing.T) {
 			in:   0x12ab,
 			size: 1,
 			comps: CompMap{
-				0xab:               uint64Set{0xab: true, 0xac: true, 0xabcd: true},
-				0xffffffffffffffab: uint64Set{0x11: true, 0x22: true, 0xffffffffffffff34: true},
+				0xab:               compSet(0xab, 0xac, 0xabcd),
+				0xffffffffffffffab: compSet(0x11, 0x22, 0xffffffffffffff34),
 			},
 			res: []uint64{0x11, 0x22, 0xac},
 		},
@@ -96,10 +94,10 @@ func TestHintsCheckConstArg(t *testing.T) {
 			size:    2,
 			bitsize: 12,
 			comps: CompMap{
-				0x3ab:              uint64Set{0x11: true, 0x1234: true, 0xfffffffffffffffe: true},
-				0x13ab:             uint64Set{0xab: true, 0xffa: true},
-				0xffffffffffffffab: uint64Set{0xfffffffffffffff1: true},
-				0xfffffffffffff3ab: uint64Set{0xff1: true, 0x12: true},
+				0x3ab:              compSet(0x11, 0x1234, 0xfffffffffffffffe),
+				0x13ab:             compSet(0xab, 0xffa),
+				0xffffffffffffffab: compSet(0xfffffffffffffff1),
+				0xfffffffffffff3ab: compSet(0xff1, 0x12),
 			},
 			res: []uint64{0x11, 0x3f1, 0xffe},
 		},
@@ -109,7 +107,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			size:    2,
 			bitsize: 12,
 			comps: CompMap{
-				0x1ab: uint64Set{0x11: true, 0x1234: true, 0xfffffffffffffffe: true},
+				0x1ab: compSet(0x11, 0x1234, 0xfffffffffffffffe),
 			},
 			res: []uint64{0x11, 0xffe},
 		},
@@ -119,9 +117,9 @@ func TestHintsCheckConstArg(t *testing.T) {
 			size:    2,
 			bitsize: 12,
 			comps: CompMap{
-				0x8ab:              uint64Set{0x11: true},
-				0xffffffffffffffab: uint64Set{0x12: true, 0xffffffffffffff0a: true},
-				0xfffffffffffff8ab: uint64Set{0x13: true, 0xffffffffffffff00: true},
+				0x8ab:              compSet(0x11),
+				0xffffffffffffffab: compSet(0x12, 0xffffffffffffff0a),
+				0xfffffffffffff8ab: compSet(0x13, 0xffffffffffffff00),
 			},
 			res: []uint64{0x11, 0x13, 0x80a, 0x812, 0xf00},
 		},
@@ -131,8 +129,8 @@ func TestHintsCheckConstArg(t *testing.T) {
 			size:    2,
 			bitsize: 12,
 			comps: CompMap{
-				0x8ab:              uint64Set{0x13: true},
-				0xfffffffffffff8ab: uint64Set{0x11: true, 0xffffffffffffff11: true},
+				0x8ab:              compSet(0x13),
+				0xfffffffffffff8ab: compSet(0x11, 0xffffffffffffff11),
 			},
 			res: []uint64{0x11, 0x13, 0xf11},
 		},
@@ -140,15 +138,15 @@ func TestHintsCheckConstArg(t *testing.T) {
 			name: "Int32 invalid value",
 			in:   0xaabaddcafe,
 			size: 4,
-			comps: CompMap{0xbaddcafe: uint64Set{0xab: true, 0xabcd: true, 0xbaddcafe: true,
-				0xdeadbeef: true, 0xaabbccddeeff1122: true}},
+			comps: CompMap{0xbaddcafe: compSet(0xab, 0xabcd, 0xbaddcafe,
+				0xdeadbeef, 0xaabbccddeeff1122)},
 			res: []uint64{0xab, 0xabcd, 0xdeadbeef},
 		},
 		{
 			name:  "Int64 valid value",
 			in:    0xdeadc0debaddcafe,
 			size:  8,
-			comps: CompMap{0xdeadc0debaddcafe: uint64Set{0xab: true, 0xabcd: true, 0xdeadbeef: true, 0xdeadbeefdeadbeef: true}},
+			comps: CompMap{0xdeadc0debaddcafe: compSet(0xab, 0xabcd, 0xdeadbeef, 0xdeadbeefdeadbeef)},
 			res:   []uint64{0xab, 0xabcd, 0xdeadbeef, 0xdeadbeefdeadbeef},
 		},
 	}
@@ -180,9 +178,9 @@ func TestHintsCheckDataArg(t *testing.T) {
 			"One replacer test",
 			"\xef\xbe\xad\xde",
 			CompMap{
-				0xdeadbeef: uint64Set{0xcafebabe: true, 0xdeadbeef: true},
-				0xbeef:     uint64Set{0xbeef: true},
-				0xef:       uint64Set{0xef: true},
+				0xdeadbeef: compSet(0xcafebabe, 0xdeadbeef),
+				0xbeef:     compSet(0xbeef),
+				0xef:       compSet(0xef),
 			},
 			map[string]bool{
 				"\xbe\xba\xfe\xca": true,
@@ -193,7 +191,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		{
 			"Multiple replacers test",
 			"\xcd\xab",
-			CompMap{0xabcd: uint64Set{0x2: true, 0x3: true}},
+			CompMap{0xabcd: compSet(0x2, 0x3)},
 			map[string]bool{
 				"\x02\x00": true, "\x03\x00": true,
 			},
@@ -202,7 +200,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		{
 			"Special ints test",
 			"\xcd\xab",
-			CompMap{0xabcd: uint64Set{0x1: true, 0x2: true}},
+			CompMap{0xabcd: compSet(0x1, 0x2)},
 			map[string]bool{
 				"\x02\x00": true,
 			},
@@ -212,10 +210,10 @@ func TestHintsCheckDataArg(t *testing.T) {
 			"Different sizes test",
 			"\xef\xcd\xab\x90\x78\x56\x34\x12",
 			CompMap{
-				0xef:               uint64Set{0x11: true},
-				0xcdef:             uint64Set{0x2222: true},
-				0x90abcdef:         uint64Set{0x33333333: true},
-				0x1234567890abcdef: uint64Set{0x4444444444444444: true},
+				0xef:               compSet(0x11),
+				0xcdef:             compSet(0x2222),
+				0x90abcdef:         compSet(0x33333333),
+				0x1234567890abcdef: compSet(0x4444444444444444),
 			},
 			map[string]bool{
 				"\x11\xcd\xab\x90\x78\x56\x34\x12": true,
@@ -229,10 +227,10 @@ func TestHintsCheckDataArg(t *testing.T) {
 			"Different offsets test",
 			"\xab\xab\xab\xab\xab\xab\xab\xab\xab",
 			CompMap{
-				0xab:               uint64Set{0x11: true},
-				0xabab:             uint64Set{0x2222: true},
-				0xabababab:         uint64Set{0x33333333: true},
-				0xabababababababab: uint64Set{0x4444444444444444: true},
+				0xab:               compSet(0x11),
+				0xabab:             compSet(0x2222),
+				0xabababab:         compSet(0x33333333),
+				0xabababababababab: compSet(0x4444444444444444),
 			},
 			map[string]bool{
 				"\x11\xab\xab\xab\xab\xab\xab\xab\xab": true,
@@ -265,7 +263,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		{
 			"Replace in the middle of a larger blob",
 			"\xef\xcd\xab\x90\x78\x56\x34\x12",
-			CompMap{0xffffffffffff90ab: uint64Set{0xffffffffffffaabb: true}},
+			CompMap{0xffffffffffff90ab: compSet(0xffffffffffffaabb)},
 			map[string]bool{
 				"\xef\xcd\xbb\xaa\x78\x56\x34\x12": true,
 			},
@@ -276,11 +274,11 @@ func TestHintsCheckDataArg(t *testing.T) {
 			"\xef\xcd\xab\x90\x78\x56\x34\x12",
 			CompMap{
 				// 0xff07 is reversed special int.
-				0xefcd:             uint64Set{0xaabb: true, 0xff07: true},
-				0x3412:             uint64Set{0xaabb: true, 0xff07: true},
-				0x9078:             uint64Set{0xaabb: true, 0x11223344: true, 0xff07: true},
-				0x90785634:         uint64Set{0xaabbccdd: true, 0x11223344: true},
-				0xefcdab9078563412: uint64Set{0x1122334455667788: true},
+				0xefcd:             compSet(0xaabb, 0xff07),
+				0x3412:             compSet(0xaabb, 0xff07),
+				0x9078:             compSet(0xaabb, 0x11223344, 0xff07),
+				0x90785634:         compSet(0xaabbccdd, 0x11223344),
+				0xefcdab9078563412: compSet(0x1122334455667788),
 			},
 			map[string]bool{
 				"\xaa\xbb\xab\x90\x78\x56\x34\x12": true,
@@ -338,8 +336,8 @@ func TestHintsShrinkExpand(t *testing.T) {
 			name: "Shrink 16 test",
 			in:   0x1234,
 			comps: CompMap{
-				0x34:   uint64Set{0xab: true},
-				0x1234: uint64Set{0xcdcd: true},
+				0x34:   compSet(0xab),
+				0x1234: compSet(0xcdcd),
 			},
 			res: []uint64{0x12ab, 0xcdcd},
 		},
@@ -355,9 +353,9 @@ func TestHintsShrinkExpand(t *testing.T) {
 			name: "Shrink 32 test",
 			in:   0x12345678,
 			comps: CompMap{
-				0x78:       uint64Set{0xab: true},
-				0x5678:     uint64Set{0xcdcd: true},
-				0x12345678: uint64Set{0xefefefef: true},
+				0x78:       compSet(0xab),
+				0x5678:     compSet(0xcdcd),
+				0x12345678: compSet(0xefefefef),
 			},
 			res: []uint64{0x123456ab, 0x1234cdcd, 0xefefefef},
 		},
@@ -375,10 +373,10 @@ func TestHintsShrinkExpand(t *testing.T) {
 			name: "Shrink 64 test",
 			in:   0x1234567890abcdef,
 			comps: CompMap{
-				0xef:               uint64Set{0xab: true, 0xef: true},
-				0xcdef:             uint64Set{0xcdcd: true},
-				0x90abcdef:         uint64Set{0xefefefef: true},
-				0x1234567890abcdef: uint64Set{0x0101010101010101: true},
+				0xef:               compSet(0xab, 0xef),
+				0xcdef:             compSet(0xcdcd),
+				0x90abcdef:         compSet(0xefefefef),
+				0x1234567890abcdef: compSet(0x0101010101010101),
 			},
 			res: []uint64{
 				0x0101010101010101,
@@ -398,7 +396,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// generate a hint for it.
 			name:  "Shrink with a wider replacer test1",
 			in:    0x1234,
-			comps: CompMap{0x34: uint64Set{0x1bab: true}},
+			comps: CompMap{0x34: compSet(0x1bab)},
 			res:   nil,
 		},
 		{
@@ -414,7 +412,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// int64, so we model this accordingly.
 			name:  "Shrink with a wider replacer test2",
 			in:    0x1234,
-			comps: CompMap{0x34: uint64Set{0xfffffffffffffffd: true}},
+			comps: CompMap{0x34: compSet(0xfffffffffffffffd)},
 			res:   []uint64{0x12fd},
 		},
 		// -----------------------------------------------------------------
@@ -429,7 +427,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// }; f(-1);
 			name:  "Extend 8 test",
 			in:    0xff,
-			comps: CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
+			comps: CompMap{0xffffffffffffffff: compSet(0xfffffffffffffffe)},
 			res:   []uint64{0xfe},
 		},
 		{
@@ -440,7 +438,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// }; f(-1);
 			name:  "Extend 16 test",
 			in:    0xffff,
-			comps: CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
+			comps: CompMap{0xffffffffffffffff: compSet(0xfffffffffffffffe)},
 			res:   []uint64{0xfffe},
 		},
 		{
@@ -451,7 +449,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// }; f(-1);
 			name:  "Extend 32 test",
 			in:    0xffffffff,
-			comps: CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffffe: true}},
+			comps: CompMap{0xffffffffffffffff: compSet(0xfffffffffffffffe)},
 			res:   []uint64{0xfffffffe},
 		},
 		{
@@ -464,7 +462,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			// so we don't generate hints.
 			name:  "Extend with a wider replacer test",
 			in:    0xff,
-			comps: CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffeff: true}},
+			comps: CompMap{0xffffffffffffffff: compSet(0xfffffffffffffeff)},
 			res:   nil,
 		},
 	}
@@ -544,7 +542,7 @@ func TestHintsData(t *testing.T) {
 	tests := []Test{
 		{
 			in:    "0809101112131415",
-			comps: CompMap{0x12111009: uint64Set{0x10: true}},
+			comps: CompMap{0x12111009: compSet(0x10)},
 			out:   []string{"0810000000131415"},
 		},
 	}
@@ -604,4 +602,12 @@ func BenchmarkHints(b *testing.B) {
 			}
 		}
 	})
+}
+
+func compSet(vals ...uint64) map[uint64]bool {
+	m := make(map[uint64]bool)
+	for _, v := range vals {
+		m[v] = true
+	}
+	return m
 }
