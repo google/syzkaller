@@ -3369,7 +3369,7 @@ var syscalls_386 = []*Syscall{
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 499, Name: "openat$ptmx", CallName: "openat", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 4}}, Val: 18446744073709551516},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 4}}, Val: 4294967196},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 8}, Kind: 2, Values: []string{"/dev/pf\x00"}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 1048576}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 4}}},
@@ -5703,4 +5703,4 @@ var consts_386 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_386 = "a058071358d12c6aa438b9543e30638f63dd8b9d"
+const revision_386 = "0f19b2f5552656baf8ed0bcfa136c87402cd6a60"
