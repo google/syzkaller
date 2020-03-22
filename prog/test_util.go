@@ -20,9 +20,9 @@ func InitTargetTest(t *testing.T, os, arch string) *Target {
 
 type DeserializeTest struct {
 	In        string
-	Out       string
+	Out       string // if not set, equals to In
 	Err       string
-	StrictErr string
+	StrictErr string // if not set, equals to Err
 }
 
 func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target, *Prog), tests []DeserializeTest) {
@@ -35,6 +35,12 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 			}
 			if test.Err != "" && test.Out != "" {
 				t.Fatalf("both Err and Out are set")
+			}
+			if test.In == test.Out {
+				t.Fatalf("In and Out are equal, remove Out in such case\n%v", test.In)
+			}
+			if test.Out == "" {
+				test.Out = test.In
 			}
 			for _, mode := range []DeserializeMode{NonStrict, Strict} {
 				p, err := target.Deserialize([]byte(test.In), mode)
@@ -61,7 +67,7 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 					}
 					output := strings.TrimSpace(string(p.Serialize()))
 					want := strings.TrimSpace(test.Out)
-					if want != "" && want != output {
+					if want != output {
 						t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n", output, want)
 					}
 					p.SerializeForExec(buf)

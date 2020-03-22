@@ -36,13 +36,11 @@ func TestNeutralize(t *testing.T) {
 		},
 		{
 			// major=22, minor=0
-			In:  `mknod(0x0, 0x0, 0x1600)`,
-			Out: `mknod(0x0, 0x0, 0x1600)`,
+			In: `mknod(0x0, 0x0, 0x1600)`,
 		},
 		{
 			// major=4, minor=0
-			In:  `mknod(0x0, 0x0, 0x400)`,
-			Out: `mknod(0x0, 0x0, 0x400)`,
+			In: `mknod(0x0, 0x0, 0x400)`,
 		},
 		{
 			// major=4, minor=1
@@ -76,8 +74,7 @@ func TestNeutralize(t *testing.T) {
 		},
 		{
 			// RLIMIT_CPU
-			In:  `setrlimit(0x0, &(0x7f0000cc0ff0)={0x1, 0x1})`,
-			Out: `setrlimit(0x0, &(0x7f0000cc0ff0)={0x1, 0x1})`,
+			In: `setrlimit(0x0, &(0x7f0000cc0ff0)={0x1, 0x1})`,
 		},
 	})
 }
