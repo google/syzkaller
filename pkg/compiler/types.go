@@ -291,9 +291,11 @@ var typeConst = &typeDesc{
 	Args:         []namedArg{{Name: "value", Type: typeArgInt}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		v := args[0].Value
+		bitSize := base.TypeBitSize()
 		if constOverflowsBase(v, base) {
-			comp.error(args[0].Pos, "const val 0x%x does not fit into %v bits", v, base.TypeBitSize())
+			comp.error(args[0].Pos, "const val 0x%x does not fit into %v bits", v, bitSize)
 		}
+		args[0].Value = v & (uint64(1)<<bitSize - 1)
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		return &prog.ConstType{
