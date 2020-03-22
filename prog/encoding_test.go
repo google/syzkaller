@@ -141,7 +141,8 @@ func TestCallSetRandom(t *testing.T) {
 func TestDeserialize(t *testing.T) {
 	TestDeserializeHelper(t, "test", "64", nil, []DeserializeTest{
 		{
-			In: `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
+			In:  `test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
+			Out: `test$struct(&(0x7f0000000000))`,
 		},
 		{
 			In:        `test$struct(&(0x7f0000000000)=0x0)`,
@@ -149,34 +150,40 @@ func TestDeserialize(t *testing.T) {
 			StrictErr: "wrong int arg",
 		},
 		{
-			In: `test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
+			In:  `test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
+			Out: `test$regression1(&(0x7f0000000000)=[{}, {}])`,
 		},
 		{
-			In: `test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
+			In:  `test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
+			Out: `test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4])`,
 		},
 		{
 			In:        `test_excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
+			Out:       `test_excessive_args1()`,
 			StrictErr: "excessive syscall arguments",
 		},
 		{
 			In:        `test_excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
+			Out:       `test_excessive_args2(0x0)`,
 			StrictErr: "excessive syscall arguments",
 		},
 		{
 			In:        `test_excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
+			Out:       `test_excessive_args2(0x0)`,
 			StrictErr: "excessive syscall arguments",
 		},
 		{
 			In:        `test_excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
+			Out:       `test_excessive_args2(0x0)`,
 			StrictErr: "excessive syscall arguments",
 		},
 		{
 			In:        `test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
+			Out:       `test$excessive_fields1(&(0x7f0000000000)={0x1})`,
 			StrictErr: "excessive struct excessive_fields fields",
 		},
 		{
-			In:  `test$excessive_fields1(0x0)`,
-			Out: `test$excessive_fields1(0x0)`,
+			In: `test$excessive_fields1(0x0)`,
 		},
 		{
 			In:        `test$excessive_fields1(r0)`,
@@ -233,16 +240,10 @@ func TestDeserialize(t *testing.T) {
 			StrictErr: "wrong int arg",
 		},
 		{
-			In:  `test$excessive_fields1(0x0)`,
-			Out: `test$excessive_fields1(0x0)`,
+			In: `test$excessive_fields1(0xffffffffffffffff)`,
 		},
 		{
-			In:  `test$excessive_fields1(0xffffffffffffffff)`,
-			Out: `test$excessive_fields1(0xffffffffffffffff)`,
-		},
-		{
-			In:  `test$excessive_fields1(0xfffffffffffffffe)`,
-			Out: `test$excessive_fields1(0xfffffffffffffffe)`,
+			In: `test$excessive_fields1(0xfffffffffffffffe)`,
 		},
 		{
 			In:  `test$excessive_fields1(0xfffffffffffffffd)`,
@@ -278,8 +279,7 @@ func TestDeserialize(t *testing.T) {
 			StrictErr: `out arg const[1, const] has non-default value: 2`,
 		},
 		{
-			In:  `test$str1(&(0x7f0000000000)='foo\x00')`,
-			Out: `test$str1(&(0x7f0000000000)='foo\x00')`,
+			In: `test$str1(&(0x7f0000000000)='foo\x00')`,
 		},
 		{
 			In:        `test$str1(&(0x7f0000000000)='bar\x00')`,
@@ -287,8 +287,7 @@ func TestDeserialize(t *testing.T) {
 			StrictErr: `bad string value "bar\x00", expect ["foo\x00"]`,
 		},
 		{
-			In:  `test$str2(&(0x7f0000000000)='bar\x00')`,
-			Out: `test$str2(&(0x7f0000000000)='bar\x00')`,
+			In: `test$str2(&(0x7f0000000000)='bar\x00')`,
 		},
 		{
 			In:        `test$str2(&(0x7f0000000000)='baz\x00')`,
