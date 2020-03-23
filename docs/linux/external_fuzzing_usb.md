@@ -46,7 +46,16 @@ Currently syzkaller defines 6 USB pseudo-syscalls (see [this](/sys/linux/vusb.tx
 5. `syz_usb_ep_write` - sends a message to a non-control endpoint.
 6. `syz_usb_ep_read` - receives a message from a non-control endpoint.
 
-The correspoding runtests are [here](/sys/linux/test/) and start with `vusb` prefix. To run:
+Current USB descriptions are targeted at a few different layers:
+
+1. USB core enumeration process is targeted by the generic `syz_usb_connect` pseudo-syscall. As the USB device descriptor fields for this pseudo-syscall get [patched](/sys/linux/init_vusb.go) by syzkaller runtime, `syz_usb_connect` also briefly targets enumaration process of various USB drivers.
+2. Enumeration process for class-specific drivers is targeted by `syz_usb_connect$hid`, `syz_usb_connect$cdc_ecm`, etc. pseudo-syscalls (the device descriptors provided to them have fixed identifying USB IDs to always match to the same USB class driver) accompanied by matching `syz_usb_control_io$*` pseudo-syscalls.
+3. Subsequent communication through non-control endpoints for class-specific drivers is not targeted by existing descriptions yet for any of the supported classes, but can be triggered through generic `syz_usb_ep_write` and `syz_usb_ep_read` pseudo-syscalls.
+4. Enumeration process for device-specific drivers is not covered by existing descriptions yet.
+5. Subsequent communication through non-control endpoints for device-specific drivers is partially described only for `ath9k` driver via `syz_usb_connect_ath9k`, `syz_usb_ep_write$ath9k_ep1` and `syz_usb_ep_write$ath9k_ep2` pseudo-syscalls.
+
+
+syzkaller USB runtests are [here](/sys/linux/test/) and start with `vusb` prefix. To run:
 
 ```
 ./bin/syz-runtest -config=usb-manager.cfg -tests=vusb
