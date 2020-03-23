@@ -8,10 +8,10 @@ This is still in development and things might change.
 
 USB fuzzing support consists of 3 parts:
 
-1. Syzkaller changes that are now upstream.
-2. Kernel interface for USB device emulation, which can be found [here](https://github.com/google/kasan/commits/usb-fuzzer) and is now being upstreamed.
+1. Syzkaller changes that are now upstream, see the [Internals](/docs/linux/external_fuzzing_usb.md#Internals) section for details.
+2. Kernel interface for USB device emulation called Raw Gadget, see the patch list below.
 3. KCOV changes that allow to collect coverage from background threads and interrupts
-(the former is now upstream, the latter can be found [here](https://github.com/google/kasan/commits/usb-fuzzer) and is now being upstreamed).
+(the former is now upstream, the latter is now being upstreamed, see the patch list below).
 
 More details can be found:
 
@@ -26,12 +26,31 @@ Kernel patches in mainline:
 - [usb, kcov: collect coverage from hub_event](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=95d23dc27bde0ab4b25f7ade5e2fddc08dd97d9b)
 - [USB: dummy-hcd: use usb_urb_dir_in instead of usb_pipein](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6dabeb891c001c592645df2f477fed9f5d959987)
 - [USB: dummy-hcd: increase max number of devices to 32](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8442b02bf3c6770e0d7e7ea17be36c30e95987b6)
-- (All other patches that touch `drivers/usb/gadget/udc/dummy_hcd.c` are recommended.)
+- (All other patches that touch `drivers/usb/gadget/udc/dummy_hcd.c` and `kernel/kcov.c` are recommended.)
 
 Kernel patches in review:
 
 - [[v6] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/cover/11400917/)
-- [[RFC] kcov: collect coverage from usbhid interrupts](https://patchwork.kernel.org/cover/11288771/)
+- [[USB] usb: raw_gadget: fix compilation warnings in uapi headers](https://patchwork.kernel.org/patch/11443077/)
+- [[v3] kcov: collect coverage from usbhid interrupts](https://patchwork.kernel.org/cover/11448129/)
+
+
+## Internals
+
+Currently syzkaller defines 6 USB pseudo-syscalls (see [this](/sys/linux/vusb.txt) for syzkaller descriptions of these pseudo-syscalls and [this](/executor/common_usb.h) for their implementation; the descriptions and the implementation use the Raw Gadget interface, linked in the patch list above):
+
+1. `syz_usb_connect` - connects a USB device. Handles all requests to the control endpoint until a `SET_CONFIGURATION` request is received.
+2. `syz_usb_connect_ath9k` - connects an `ath9k` USB device. Compared to `syz_usb_connect` this syscalls also handles firmware download requests that happen after the `SET_CONFIGURATION` for the `ath9k` driver.
+3. `syz_usb_disconnect` - disconnects a USB device.
+4. `syz_usb_control_io` - sends or receives a control message over endpoint 0.
+5. `syz_usb_ep_write` - sends a message to a non-control endpoint.
+6. `syz_usb_ep_read` - receives a message from a non-control endpoint.
+
+The correspoding runtests are [here](/sys/linux/test/) and start with `vusb` prefix. To run:
+
+```
+./bin/syz-runtest -config=usb-manager.cfg -tests=vusb
+```
 
 
 ## TODO
@@ -48,27 +67,8 @@ Some ideas for things that can be done:
 1. Add a mode for standalone fuzzing of physical USB hosts (by using e.g. Raspberry Pi Zero, see below).
 This includes at least: a. making sure that current USB emulation implementation works properly on different OSes (there are some differences);
 b. using USB requests coming from the host as a signal (like coverage) to enable "signal-driven" fuzzing,
-c. making UDC driver name configurable for syz-execprog and syz-prog2c.
+c. making UDC driver name configurable for `syz-execprog` and `syz-prog2c`.
 2. Generate syzkaller programs from usbmon trace that is produced by actual USB devices (this should make the fuzzer to go significantly deeper into the USB drivers code).
-
-
-## Internals
-
-Currently syzkaller defines 5 USB pseudo-syscalls (see [this](/sys/linux/vusb.txt) and [this](/executor/common_usb.h)):
-
-1. `syz_usb_connect` - connects a USB device.
-2. `syz_usb_disconnect` - disconnects a USB device.
-3. `syz_usb_control_io` - sends or receives a control message over endpoint 0.
-4. `syz_usb_ep_write` - sends a message to an endpoint.
-4. `syz_usb_ep_read` - receives a message from an endpoint.
-
-Syzkaller descriptions for USB fuzzing can be found [here](/sys/linux/vusb.txt).
-
-The correspoding runtests are [here](/sys/linux/test/) and start with `vusb` prefix. To run:
-
-```
-./bin/syz-runtest -config=usb-manager.cfg -tests=vusb
-```
 
 
 ## Setting up
