@@ -6,6 +6,16 @@ mailing list and are listed on the [dashboard](https://syzkaller.appspot.com/ope
 
 Newer bugs comes first.
 
+- [wsmux(4): use-after-free](https://marc.info/?l=openbsd-cvs&m=158503642507991&w=2)
+
+- [sosplice(9): unbound recursion](https://marc.info/?l=openbsd-cvs&m=158396530407996&w=2)
+
+- [shmctl: use-after-free due to sleeping](https://marc.info/?l=openbsd-cvs&m=158330910903824&w=2)
+
+- [kqueue: interrupt race](https://marc.info/?l=openbsd-cvs&m=158191244405065&w=2)
+
+- [pf(4): unhandled address families](https://marc.info/?l=openbsd-cvs&m=157852015714603&w=2)
+
 - [uvm(9): incorrect offset calculation in `uvm_share(9)`](https://marc.info/?l=openbsd-cvs&m=157544812928708&w=2)
 
 - [vmm(4): wrong virtual memory structure type](https://marc.info/?l=openbsd-cvs&m=157544746828404&w=2)
