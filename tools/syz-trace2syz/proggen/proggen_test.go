@@ -162,7 +162,7 @@ connect$inet(r0, &(0x7f0000000000)={0x2, 0x4594}, 0x10)
 open("\x2f\x64\x65\x76\x2f\x73\x6e\x64\x2f\x73\x65\x71", 0) = 3
 fsetxattr(3, "\x73\x65\x63\x75\x72\x69\x74\x79\x2e\x73\x65\x6c\x69\x6e\x75\x78","\x73\x79\x73", 4, 0) = 0
 `, `
-r0 = syz_open_dev$sndseq(&(0x7f0000000000)='/dev/snd/seq\x00', 0x0, 0x0)
+r0 = openat$sndseq(0xffffffffffffff9c, &(0x7f0000000000)='/dev/snd/seq\x00', 0x0)
 fsetxattr(r0, &(0x7f0000000040)=@known='security.selinux\x00', &(0x7f0000000080)='sys\x00', 0x4, 0x0)
 `,
 		}, {`
