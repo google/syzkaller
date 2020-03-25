@@ -239,7 +239,7 @@ Exact compilers used by `syzbot` can be found here:
 - [clang 7.0.0 (trunk 334104)](https://storage.googleapis.com/syzkaller/clang-kmsan-334104.tar.gz) (44MB)
 - [clang 8.0.0 (trunk 343298)](https://storage.googleapis.com/syzkaller/clang-kmsan-343298.tar.gz) (45MB)
 
-A qemu-suitable Debian/wheezy image can be found [here](https://storage.googleapis.com/syzkaller/wheezy.img) (1GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key)
+A qemu-suitable Debian/stretch image can be found [here](https://storage.googleapis.com/syzkaller/stretch.img) (2 GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/stretch.img.key)
 (do `chmod 0600` on it). A reference `qemu` command line to run it is as follows:
 ```
 qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
@@ -247,7 +247,7 @@ qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
     -kernel arch/x86/boot/bzImage -nographic \
     -device virtio-scsi-pci,id=scsi \
     -device scsi-hd,bus=scsi.0,drive=d0 \
-    -drive file=wheezy.img,format=raw,if=none,id=d0 \
+    -drive file=stretch.img,format=raw,if=none,id=d0 \
     -append "root=/dev/sda console=ttyS0 earlyprintk=serial rodata=n \
       oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 \      
       security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
@@ -259,7 +259,7 @@ qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
 ```
 And then you can ssh into it using:
 ```
-ssh -p 10022 -i wheezy.id_rsa root@localhost
+ssh -p 10022 -i stretch.img.key root@localhost
 ```
 
 ## No reproducer at all?
