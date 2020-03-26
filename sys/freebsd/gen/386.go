@@ -1986,6 +1986,18 @@ var syscalls_386 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Path: []string{"addr"}},
 	}},
+	{NR: 539, Name: "connectat", CallName: "connectat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "dirfd", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, &UnionType{Key: StructKey{Name: "sockaddr_storage"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Path: []string{"addr"}},
+	}},
+	{NR: 539, Name: "connectat$unix", CallName: "connectat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "dirfd", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Path: []string{"addr"}},
+	}},
 	{NR: 569, Name: "copy_file_range", CallName: "copy_file_range", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "infd", TypeSize: 4}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "inoffp", TypeSize: 4}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
@@ -5595,6 +5607,7 @@ var consts_386 = []ConstValue{
 	{"SYS_clock_settime", 233},
 	{"SYS_close", 6},
 	{"SYS_connect", 98},
+	{"SYS_connectat", 539},
 	{"SYS_copy_file_range", 569},
 	{"SYS_dup", 41},
 	{"SYS_dup2", 90},
@@ -5797,4 +5810,4 @@ var consts_386 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_386 = "ce7560b0a32eb01017cb21cee645788bf75a7ed9"
+const revision_386 = "9aa913dd00fd9a77ce8244e6e146d09fdad95e8f"
