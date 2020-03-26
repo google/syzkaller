@@ -73,6 +73,7 @@ SYS_clock_getres = 234
 SYS_clock_gettime = 232
 SYS_clock_nanosleep = 244
 SYS_clock_settime = 233
+SYS_copy_file_range = 569
 SYS_execve = 59
 SYS_exit = 1
 SYS_faccessat = 489

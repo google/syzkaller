@@ -104,6 +104,7 @@ chroot(dir ptr[in, filename])
 __getcwd(buf buffer[out], size len[buf])
 chdir(dir ptr[in, filename])
 fchdir(fd fd)
+copy_file_range(infd fd, inoffp ptr[inout, fileoff[int64]], outfd fd, outoffp ptr[inout, fileoff[int64]], len int64, flags flags[copy_file_range_flags])
 
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
@@ -215,3 +216,4 @@ fcntl_flags = FD_CLOEXEC
 fcntl_status = O_APPEND, FASYNC, O_DIRECT, O_NONBLOCK
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 minherit_flags = INHERIT_SHARE, INHERIT_NONE, INHERIT_COPY, INHERIT_ZERO
+copy_file_range_flags = 0

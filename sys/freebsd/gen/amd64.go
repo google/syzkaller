@@ -2003,6 +2003,14 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 8}}, Path: []string{"addr"}},
 	}},
+	{NR: 569, Name: "copy_file_range", CallName: "copy_file_range", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "infd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "inoffp", TypeSize: 8}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "outfd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "outoffp", TypeSize: 8}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "len", TypeSize: 8}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "copy_file_range_flags", FldName: "flags", TypeSize: 8}}},
+	}},
 	{NR: 41, Name: "dup", CallName: "dup", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "oldfd", TypeSize: 4}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -5562,6 +5570,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_clock_settime", 233},
 	{"SYS_close", 6},
 	{"SYS_connect", 98},
+	{"SYS_copy_file_range", 569},
 	{"SYS_dup", 41},
 	{"SYS_dup2", 90},
 	{"SYS_execve", 59},
@@ -5746,4 +5755,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "4475df7310d3645fe3e88ec5e3759ec0cc90ec24"
+const revision_amd64 = "16e8d525d1a67c5f707e87016e26cf35faa18cbe"
