@@ -1950,6 +1950,16 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 12, Name: "chdir", CallName: "chdir", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
+	{NR: 34, Name: "chflags", CallName: "chflags", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 128, 256, 512, 1024, 2048, 4096, 32768, 65536, 131072, 262144, 1048576, 2097152}, true},
+	}},
+	{NR: 540, Name: "chflagsat", CallName: "chflagsat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 128, 256, 512, 1024, 2048, 4096, 32768, 65536, 131072, 262144, 1048576, 2097152}, true},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "at_flags", FldName: "atflag", TypeSize: 8}}, []uint64{512, 1024}, true},
+	}},
 	{NR: 15, Name: "chmod", CallName: "chmod", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
@@ -2034,6 +2044,10 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{NR: 13, Name: "fchdir", CallName: "fchdir", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+	}},
+	{NR: 35, Name: "fchflags", CallName: "fchflags", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 128, 256, 512, 1024, 2048, 4096, 32768, 65536, 131072, 262144, 1048576, 2097152}, true},
 	}},
 	{NR: 124, Name: "fchmod", CallName: "fchmod", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -3258,6 +3272,10 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_pf", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 3222291539},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+	}},
+	{NR: 391, Name: "lchflags", CallName: "lchflags", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 128, 256, 512, 1024, 2048, 4096, 32768, 65536, 131072, 262144, 1048576, 2097152}, true},
 	}},
 	{NR: 274, Name: "lchmod", CallName: "lchmod", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -5496,8 +5514,13 @@ var consts_amd64 = []ConstValue{
 	{"SEM_UNDO", 4096},
 	{"SETALL", 9},
 	{"SETVAL", 8},
+	{"SF_APPEND", 262144},
+	{"SF_ARCHIVED", 65536},
+	{"SF_IMMUTABLE", 131072},
 	{"SF_NOCACHE", 16},
 	{"SF_NODISKIO", 1},
+	{"SF_NOUNLINK", 1048576},
+	{"SF_SNAPSHOT", 2097152},
 	{"SF_SYNC", 4},
 	{"SF_USER_READAHEAD", 8},
 	{"SHM_INFO", 14},
@@ -5565,6 +5588,8 @@ var consts_amd64 = []ConstValue{
 	{"SYS_accept4", 541},
 	{"SYS_bind", 104},
 	{"SYS_chdir", 12},
+	{"SYS_chflags", 34},
+	{"SYS_chflagsat", 540},
 	{"SYS_chmod", 15},
 	{"SYS_chown", 16},
 	{"SYS_chroot", 61},
@@ -5581,6 +5606,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_exit", 1},
 	{"SYS_faccessat", 489},
 	{"SYS_fchdir", 13},
+	{"SYS_fchflags", 35},
 	{"SYS_fchmod", 124},
 	{"SYS_fchmodat", 490},
 	{"SYS_fchown", 123},
@@ -5616,6 +5642,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_getsockopt", 118},
 	{"SYS_getuid", 24},
 	{"SYS_ioctl", 54},
+	{"SYS_lchflags", 391},
 	{"SYS_lchmod", 274},
 	{"SYS_lchown", 254},
 	{"SYS_link", 9},
@@ -5752,6 +5779,18 @@ var consts_amd64 = []ConstValue{
 	{"UDPLITE_RECV_CSCOV", 4},
 	{"UDPLITE_SEND_CSCOV", 2},
 	{"UDP_ENCAP", 1},
+	{"UF_APPEND", 4},
+	{"UF_ARCHIVE", 2048},
+	{"UF_HIDDEN", 32768},
+	{"UF_IMMUTABLE", 2},
+	{"UF_NODUMP", 1},
+	{"UF_NOUNLINK", 16},
+	{"UF_OFFLINE", 512},
+	{"UF_OPAQUE", 8},
+	{"UF_READONLY", 4096},
+	{"UF_REPARSE", 1024},
+	{"UF_SPARSE", 256},
+	{"UF_SYSTEM", 128},
 	{"WCONTINUED", 4},
 	{"WEXITED", 16},
 	{"WNOHANG", 1},
@@ -5760,4 +5799,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "99988fd78c6400ce0ba24ed2e97bb131b5f223e9"
+const revision_amd64 = "cf77f77cf0e11abd3b2b8401db8fb233d0225f0a"
