@@ -226,6 +226,7 @@ const call_t syscalls[] = {
 
 #if GOARCH_386
 const call_t syscalls[] = {
+    {"__cap_rights_get", 515},
     {"__getcwd", 326},
     {"__realpathat", 574},
     {"__semctl$GETALL", 510},
@@ -255,6 +256,13 @@ const call_t syscalls[] = {
     {"bind$unix", 104},
     {"bindat", 538},
     {"bindat$unix", 538},
+    {"cap_enter", 516},
+    {"cap_fcntls_get", 537},
+    {"cap_fcntls_limit", 536},
+    {"cap_getmode", 517},
+    {"cap_ioctls_get", 535},
+    {"cap_ioctls_limit", 534},
+    {"cap_rights_limit", 533},
     {"chdir", 12},
     {"chflags", 34},
     {"chflagsat", 540},
@@ -747,6 +755,7 @@ const call_t syscalls[] = {
 
 #if GOARCH_amd64
 const call_t syscalls[] = {
+    {"__cap_rights_get", 515},
     {"__getcwd", 326},
     {"__realpathat", 574},
     {"__semctl$GETALL", 510},
@@ -776,6 +785,13 @@ const call_t syscalls[] = {
     {"bind$unix", 104},
     {"bindat", 538},
     {"bindat$unix", 538},
+    {"cap_enter", 516},
+    {"cap_fcntls_get", 537},
+    {"cap_fcntls_limit", 536},
+    {"cap_getmode", 517},
+    {"cap_ioctls_get", 535},
+    {"cap_ioctls_limit", 534},
+    {"cap_rights_limit", 533},
     {"chdir", 12},
     {"chflags", 34},
     {"chflagsat", 540},
