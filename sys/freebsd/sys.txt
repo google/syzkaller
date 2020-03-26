@@ -34,6 +34,7 @@ ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask 
 select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
 
 mincore(addr vma, size len[addr], vec buffer[out])
+minherit(addr vma, len len[addr], inherit flags[minherit_flags])
 
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
@@ -213,3 +214,4 @@ fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
 fcntl_flags = FD_CLOEXEC
 fcntl_status = O_APPEND, FASYNC, O_DIRECT, O_NONBLOCK
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
+minherit_flags = INHERIT_SHARE, INHERIT_NONE, INHERIT_COPY, INHERIT_ZERO
