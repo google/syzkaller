@@ -1,0 +1,16 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+#include <sys/types.h>
+#include <sys/capsicum.h>
+
+cap_enter()
+cap_getmode(mode ptr[out, int32])
+cap_rights_limit(fd fd, rights ptr[in, array[int64, 2]])
+__cap_rights_get(version int32, fd fd, rightsp ptr[out, array[int64, 2]])
+
+cap_fcntls_limit(fd fd, rights int32)
+cap_fcntls_get(fd fd, rightsp ptr[out, array[int32]])
+
+cap_ioctls_limit(fd fd, cmds ptr[in, array[intptr]])
+cap_ioctls_get(fd fd, cmds ptr[out, array[intptr]], maxcmds len[cmds])
