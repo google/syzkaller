@@ -72,6 +72,7 @@ SF_SNAPSHOT = 2097152
 SF_SYNC = 4
 SF_USER_READAHEAD = 8
 SYS___getcwd = 326
+SYS___realpathat = 574
 SYS_chdir = 12
 SYS_chflags = 34
 SYS_chflagsat = 540
