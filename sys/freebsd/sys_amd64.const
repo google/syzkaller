@@ -104,6 +104,7 @@ SYS_getresuid = 360
 SYS_getrlimit = 194
 SYS_getrusage = 117
 SYS_getuid = 24
+SYS_lchmod = 274
 SYS_lchown = 254
 SYS_link = 9
 SYS_linkat = 495
