@@ -2013,6 +2013,18 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 8}}, Path: []string{"addr"}},
 	}},
+	{NR: 539, Name: "connectat", CallName: "connectat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "dirfd", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, &UnionType{Key: StructKey{Name: "sockaddr_storage"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 8}}, Path: []string{"addr"}},
+	}},
+	{NR: 539, Name: "connectat$unix", CallName: "connectat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "dirfd", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 8}}, Path: []string{"addr"}},
+	}},
 	{NR: 569, Name: "copy_file_range", CallName: "copy_file_range", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "infd", TypeSize: 4}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "inoffp", TypeSize: 8}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
@@ -5622,6 +5634,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_clock_settime", 233},
 	{"SYS_close", 6},
 	{"SYS_connect", 98},
+	{"SYS_connectat", 539},
 	{"SYS_copy_file_range", 569},
 	{"SYS_dup", 41},
 	{"SYS_dup2", 90},
@@ -5824,4 +5837,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "649ca6e7f658089a75150592b5117517423f96be"
+const revision_amd64 = "d6baa2c780ceca787d2bfc2b770607581ff9e055"
