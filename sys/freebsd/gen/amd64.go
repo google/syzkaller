@@ -3445,6 +3445,17 @@ var syscalls_amd64 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfds", TypeSize: 8}}, Path: []string{"fds"}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4}}},
 	}},
+	{NR: 531, Name: "posix_fadvise", CallName: "posix_fadvise", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "offset", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fadvise_advice", FldName: "advice", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 3, 4, 5}},
+	}},
+	{NR: 530, Name: "posix_fallocate", CallName: "posix_fallocate", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "offset", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
+	}},
 	{NR: 545, Name: "ppoll", CallName: "ppoll", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "pollfd"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfds", TypeSize: 8}}, Path: []string{"fds"}},
@@ -5405,6 +5416,12 @@ var consts_amd64 = []ConstValue{
 	{"POLLRDNORM", 64},
 	{"POLLWRBAND", 256},
 	{"POLLWRNORM", 4},
+	{"POSIX_FADV_DONTNEED", 4},
+	{"POSIX_FADV_NOREUSE", 5},
+	{Name: "POSIX_FADV_NORMAL"},
+	{"POSIX_FADV_RANDOM", 1},
+	{"POSIX_FADV_SEQUENTIAL", 2},
+	{"POSIX_FADV_WILLNEED", 3},
 	{"PROT_EXEC", 4},
 	{"PROT_READ", 1},
 	{"PROT_WRITE", 2},
@@ -5678,6 +5695,8 @@ var consts_amd64 = []ConstValue{
 	{"SYS_openat", 499},
 	{"SYS_pipe2", 542},
 	{"SYS_poll", 209},
+	{"SYS_posix_fadvise", 531},
+	{"SYS_posix_fallocate", 530},
 	{"SYS_ppoll", 545},
 	{"SYS_preadv", 289},
 	{"SYS_pwritev", 290},
@@ -5805,4 +5824,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "2eac7eb52a6f14fbda41ca51d881aaddb9a442d4"
+const revision_amd64 = "649ca6e7f658089a75150592b5117517423f96be"
