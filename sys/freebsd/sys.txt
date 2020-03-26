@@ -55,6 +55,10 @@ chown(file ptr[in, filename], uid uid, gid gid)
 lchown(file ptr[in, filename], uid uid, gid gid)
 fchown(fd fd, uid uid, gid gid)
 fchownat(dirfd fd_dir, file ptr[in, filename], uid uid, gid gid, flags flags[at_flags])
+chflags(file ptr[in, filename], flags flags[chflags_flags])
+chflagsat(fd fd, file ptr[in, filename], flags flags[chflags_flags], atflag flags[at_flags])
+fchflags(fd fd, flags flags[chflags_flags])
+lchflags(file ptr[in, filename], flags flags[chflags_flags])
 faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[open_mode], flags flags[faccessat_flags])
 utimes(filename ptr[in, filename], times ptr[in, itimerval])
 futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
@@ -218,3 +222,4 @@ fcntl_status = O_APPEND, FASYNC, O_DIRECT, O_NONBLOCK
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 minherit_flags = INHERIT_SHARE, INHERIT_NONE, INHERIT_COPY, INHERIT_ZERO
 copy_file_range_flags = 0
+chflags_flags = SF_APPEND, SF_ARCHIVED, SF_IMMUTABLE, SF_NOUNLINK, SF_SNAPSHOT, UF_APPEND, UF_ARCHIVE, UF_HIDDEN, UF_IMMUTABLE, UF_NODUMP, UF_NOUNLINK, UF_OFFLINE, UF_OPAQUE, UF_READONLY, UF_REPARSE, UF_SPARSE, UF_SYSTEM
