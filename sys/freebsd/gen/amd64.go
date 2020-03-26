@@ -1806,6 +1806,13 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Path: []string{"buf"}},
 	}},
+	{NR: 574, Name: "__realpathat", CallName: "__realpathat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "dirfd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "string", ArgDir: 1, IsVarlen: true}, Kind: 2}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Path: []string{"buf"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "realpathat_flags", FldName: "flags", TypeSize: 8}}},
+	}},
 	{NR: 510, Name: "__semctl$GETALL", CallName: "__semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "semnum", TypeSize: 8}}},
@@ -5653,6 +5660,7 @@ var consts_amd64 = []ConstValue{
 	{"SPP_PMTUD_DISABLE", 16},
 	{"SPP_PMTUD_ENABLE", 8},
 	{"SYS___getcwd", 326},
+	{"SYS___realpathat", 574},
 	{"SYS___semctl", 510},
 	{"SYS_accept", 30},
 	{"SYS_accept4", 541},
@@ -5877,4 +5885,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "b3574571fbfa175bbf91c857af8d5e6db2d92ccf"
+const revision_amd64 = "5d7c29fe9b21a5007b1d3b4f13d51931ecd5d703"

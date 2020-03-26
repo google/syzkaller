@@ -227,6 +227,7 @@ const call_t syscalls[] = {
 #if GOARCH_386
 const call_t syscalls[] = {
     {"__getcwd", 326},
+    {"__realpathat", 574},
     {"__semctl$GETALL", 510},
     {"__semctl$GETNCNT", 510},
     {"__semctl$GETPID", 510},
@@ -747,6 +748,7 @@ const call_t syscalls[] = {
 #if GOARCH_amd64
 const call_t syscalls[] = {
     {"__getcwd", 326},
+    {"__realpathat", 574},
     {"__semctl$GETALL", 510},
     {"__semctl$GETNCNT", 510},
     {"__semctl$GETPID", 510},
