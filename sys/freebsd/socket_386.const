@@ -70,6 +70,7 @@ SYS_accept = 30
 SYS_accept4 = 541
 SYS_bind = 104
 SYS_connect = 98
+SYS_connectat = 539
 SYS_getpeername = 31
 SYS_getsockname = 32
 SYS_getsockopt = 118
