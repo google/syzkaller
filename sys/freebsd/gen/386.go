@@ -3418,6 +3418,17 @@ var syscalls_386 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfds", TypeSize: 4}}, Path: []string{"fds"}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4}}},
 	}},
+	{NR: 531, Name: "posix_fadvise", CallName: "posix_fadvise", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "offset", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 4}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fadvise_advice", FldName: "advice", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5}},
+	}},
+	{NR: 530, Name: "posix_fallocate", CallName: "posix_fallocate", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "offset", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 4}}},
+	}},
 	{NR: 545, Name: "ppoll", CallName: "ppoll", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 4}, &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "pollfd"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfds", TypeSize: 4}}, Path: []string{"fds"}},
@@ -5378,6 +5389,12 @@ var consts_386 = []ConstValue{
 	{"POLLRDNORM", 64},
 	{"POLLWRBAND", 256},
 	{"POLLWRNORM", 4},
+	{"POSIX_FADV_DONTNEED", 4},
+	{"POSIX_FADV_NOREUSE", 5},
+	{Name: "POSIX_FADV_NORMAL"},
+	{"POSIX_FADV_RANDOM", 1},
+	{"POSIX_FADV_SEQUENTIAL", 2},
+	{"POSIX_FADV_WILLNEED", 3},
 	{"PROT_EXEC", 4},
 	{"PROT_READ", 1},
 	{"PROT_WRITE", 2},
@@ -5651,6 +5668,8 @@ var consts_386 = []ConstValue{
 	{"SYS_openat", 499},
 	{"SYS_pipe2", 542},
 	{"SYS_poll", 209},
+	{"SYS_posix_fadvise", 531},
+	{"SYS_posix_fallocate", 530},
 	{"SYS_ppoll", 545},
 	{"SYS_preadv", 289},
 	{"SYS_pwritev", 290},
@@ -5778,4 +5797,4 @@ var consts_386 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_386 = "55084199fb3df403fce43c2d2a214d5c4737485a"
+const revision_386 = "ce7560b0a32eb01017cb21cee645788bf75a7ed9"

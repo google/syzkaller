@@ -33,6 +33,8 @@ fstat(fd fd, statbuf ptr[out, stat])
 freebsd11_stat(file ptr[in, filename], statbuf ptr[out, freebsd11_stat])
 freebsd11_fstat(fd fd, statbuf ptr[out, freebsd11_stat])
 freebsd11_lstat(file ptr[in, filename], statbuf ptr[out, freebsd11_stat])
+posix_fallocate(fd fd, offset fileoff, len intptr)
+posix_fadvise(fd fd, offset fileoff, len intptr, advice flags[fadvise_advice])
 
 pipefd {
 	rfd	fd
@@ -103,3 +105,4 @@ open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 seek_whence = SEEK_SET, SEEK_CUR, SEEK_END, SEEK_DATA, SEEK_HOLE
 pipe_flags = O_NONBLOCK, O_CLOEXEC
+fadvise_advice = POSIX_FADV_NORMAL, POSIX_FADV_RANDOM, POSIX_FADV_SEQUENTIAL, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED, POSIX_FADV_NOREUSE
