@@ -14,6 +14,7 @@ resource sock_unix[sock]
 socket$unix(domain const[AF_UNIX], type flags[unix_socket_type], proto const[0]) sock_unix
 socketpair$unix(domain const[AF_UNIX], type flags[unix_socket_type], proto const[0], fds ptr[out, unix_pair])
 bind$unix(fd sock_unix, addr ptr[in, sockaddr_un], addrlen len[addr])
+bindat$unix(dirfd fd, fd sock_unix, addr ptr[in, sockaddr_un], addrlen len[addr])
 connect$unix(fd sock_unix, addr ptr[in, sockaddr_un], addrlen len[addr])
 connectat$unix(dirfd fd, fd sock_unix, addr ptr[in, sockaddr_un], addrlen len[addr])
 accept$unix(fd sock_unix, peer ptr[out, sockaddr_un, opt], peerlen ptr[inout, len[peer, int32]]) sock_unix

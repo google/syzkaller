@@ -1947,6 +1947,18 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 8}}, Path: []string{"addr"}},
 	}},
+	{NR: 538, Name: "bindat", CallName: "bindat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "dirfd", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, &UnionType{Key: StructKey{Name: "sockaddr_storage"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 8}}, Path: []string{"addr"}},
+	}},
+	{NR: 538, Name: "bindat$unix", CallName: "bindat", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "dirfd", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 8}}, Path: []string{"addr"}},
+	}},
 	{NR: 12, Name: "chdir", CallName: "chdir", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
@@ -5645,6 +5657,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_accept", 30},
 	{"SYS_accept4", 541},
 	{"SYS_bind", 104},
+	{"SYS_bindat", 538},
 	{"SYS_chdir", 12},
 	{"SYS_chflags", 34},
 	{"SYS_chflagsat", 540},
@@ -5864,4 +5877,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "240c65c5b7b17b0d4a6d7365323733dd48fc9118"
+const revision_amd64 = "b3574571fbfa175bbf91c857af8d5e6db2d92ccf"
