@@ -3252,7 +3252,7 @@ var syscalls_386 = []*Syscall{
 	{NR: 75, Name: "madvise", CallName: "madvise", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Path: []string{"addr"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "madvise_flags", FldName: "advice", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "madvise_flags", FldName: "advice", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 	}},
 	{NR: 78, Name: "mincore", CallName: "mincore", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
@@ -5244,8 +5244,14 @@ var consts_386 = []ConstValue{
 	{"LOCK_NB", 4},
 	{"LOCK_SH", 1},
 	{"LOCK_UN", 8},
+	{"MADV_AUTOSYNC", 7},
+	{"MADV_CORE", 9},
 	{"MADV_DONTNEED", 4},
+	{"MADV_FREE", 5},
+	{"MADV_NOCORE", 8},
 	{Name: "MADV_NORMAL"},
+	{"MADV_NOSYNC", 6},
+	{"MADV_PROTECT", 10},
 	{"MADV_RANDOM", 1},
 	{"MADV_SEQUENTIAL", 2},
 	{"MADV_WILLNEED", 3},
@@ -5703,4 +5709,4 @@ var consts_386 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_386 = "0f19b2f5552656baf8ed0bcfa136c87402cd6a60"
+const revision_386 = "859d11e279ca221ebc432c9bd70aed2df0de00ae"
