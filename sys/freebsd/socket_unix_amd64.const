@@ -10,6 +10,7 @@ SOL_SOCKET = 65535
 SYS_accept = 30
 SYS_accept4 = 541
 SYS_bind = 104
+SYS_bindat = 538
 SYS_connect = 98
 SYS_connectat = 539
 SYS_getpeername = 31
