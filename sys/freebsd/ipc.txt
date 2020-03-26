@@ -3,11 +3,12 @@
 
 include <sys/types.h>
 include <sys/fcntl.h>
-include <sys/stat.h>
 include <sys/ipc.h>
-include <sys/shm.h>
+include <sys/mman.h>
 include <sys/msg.h>
 include <sys/sem.h>
+include <sys/shm.h>
+include <sys/stat.h>
 
 resource ipc[int32]: 0, 0xffffffffffffffff
 
@@ -60,6 +61,11 @@ shmctl$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
 shmctl$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
 shmdt(addr shmaddr)
 
+freebsd12_shm_open(path ptr[in, filename], flags flags[shm_open_flags], mode flags[open_mode])
+shm_open2(path ptr[in, filename], flags flags[shm_open_flags], mode flags[open_mode], shmflags flags[shm_open2_flags], name ptr[in, string])
+shm_rename(from ptr[in, filename], to ptr[in, filename], flags flags[shm_rename_flags])
+shm_unlink(path ptr[in, filename])
+
 msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 msgbuf_type = 0, 1, 2, 3
 msgsnd_flags = IPC_NOWAIT
@@ -69,6 +75,9 @@ semop_flags = IPC_NOWAIT, SEM_UNDO
 sem_sem_id = 0, 1, 2, 3, 4
 shmget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 shmat_flags = SHM_RND, SHM_RDONLY
+shm_open_flags = O_RDONLY, O_RDWR, O_CREAT, O_EXCL, O_TRUNC
+shm_open2_flags = SHM_ALLOW_SEALING
+shm_rename_flags = SHM_RENAME_EXCHANGE, SHM_RENAME_NOREPLACE
 
 ipc_perm {
 	key	int32
