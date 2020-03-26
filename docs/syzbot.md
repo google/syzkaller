@@ -239,7 +239,7 @@ Exact compilers used by `syzbot` can be found here:
 - [clang 7.0.0 (trunk 334104)](https://storage.googleapis.com/syzkaller/clang-kmsan-334104.tar.gz) (44MB)
 - [clang 8.0.0 (trunk 343298)](https://storage.googleapis.com/syzkaller/clang-kmsan-343298.tar.gz) (45MB)
 
-A qemu-suitable Debian/stretch image can be found [here](https://storage.googleapis.com/syzkaller/stretch.img) (2 GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/stretch.img.key)
+A QEMU-suitable Debian Stretch image can be found [here](https://storage.googleapis.com/syzkaller/stretch.img) (2 GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/stretch.img.key)
 (do `chmod 0600` on it). A reference `qemu` command line to run it is as follows:
 ```
 qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
@@ -261,6 +261,8 @@ And then you can ssh into it using:
 ```
 ssh -p 10022 -i stretch.img.key root@localhost
 ```
+
+Note: before March 25th 2020 Debian Wheezy image was used for testing, so some of the bugs reported before that date might only be reproducible on Wheezy. That image is [here](https://storage.googleapis.com/syzkaller/wheezy.img) and the key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key).
 
 ## No reproducer at all?
 
