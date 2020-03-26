@@ -2153,6 +2153,11 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "statbuf", TypeSize: 8}, &StructType{Key: StructKey{"freebsd11_stat", 1}}},
 	}},
+	{NR: 482, Name: "freebsd12_shm_open", CallName: "freebsd12_shm_open", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shm_open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 2, 512, 1024, 2048}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
+	}},
 	{NR: 551, Name: "fstat", CallName: "fstat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "statbuf", TypeSize: 8}, &StructType{Key: StructKey{"stat", 1}}},
@@ -4550,6 +4555,21 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 23, Name: "setuid", CallName: "setuid", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
 	}},
+	{NR: 571, Name: "shm_open2", CallName: "shm_open2", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shm_open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 2, 512, 1024, 2048}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shm_open2_flags", FldName: "shmflags", TypeSize: 8}}, []uint64{1}, true},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
+	}},
+	{NR: 572, Name: "shm_rename", CallName: "shm_rename", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "from", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "to", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shm_rename_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2}, true},
+	}},
+	{NR: 483, Name: "shm_unlink", CallName: "shm_unlink", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+	}},
 	{NR: 228, Name: "shmat", CallName: "shmat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
@@ -5558,9 +5578,12 @@ var consts_amd64 = []ConstValue{
 	{"SF_SNAPSHOT", 2097152},
 	{"SF_SYNC", 4},
 	{"SF_USER_READAHEAD", 8},
+	{"SHM_ALLOW_SEALING", 1},
 	{"SHM_INFO", 14},
 	{"SHM_LOCK", 11},
 	{"SHM_RDONLY", 4096},
+	{"SHM_RENAME_EXCHANGE", 2},
+	{"SHM_RENAME_NOREPLACE", 1},
 	{"SHM_RND", 8192},
 	{"SHM_STAT", 13},
 	{"SHM_UNLOCK", 12},
@@ -5657,6 +5680,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_freebsd11_mknod", 14},
 	{"SYS_freebsd11_mknodat", 498},
 	{"SYS_freebsd11_stat", 188},
+	{"SYS_freebsd12_shm_open", 482},
 	{"SYS_fstat", 551},
 	{"SYS_fsync", 95},
 	{"SYS_ftruncate", 480},
@@ -5739,6 +5763,9 @@ var consts_amd64 = []ConstValue{
 	{"SYS_setrlimit", 195},
 	{"SYS_setsockopt", 105},
 	{"SYS_setuid", 23},
+	{"SYS_shm_open2", 571},
+	{"SYS_shm_rename", 572},
+	{"SYS_shm_unlink", 483},
 	{"SYS_shmat", 228},
 	{"SYS_shmctl", 512},
 	{"SYS_shmdt", 230},
@@ -5837,4 +5864,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "d6baa2c780ceca787d2bfc2b770607581ff9e055"
+const revision_amd64 = "240c65c5b7b17b0d4a6d7365323733dd48fc9118"
