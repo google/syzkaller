@@ -4742,6 +4742,8 @@ var consts_386 = []ConstValue{
 	{"ARPOP_REQUEST", 1},
 	{"ARPOP_REVREPLY", 4},
 	{"ARPOP_REVREQUEST", 3},
+	{"AT_BENEATH", 4096},
+	{"AT_EACCESS", 256},
 	{"AT_FDCWD", 18446744073709551516},
 	{"AT_REMOVEDIR", 2048},
 	{"AT_SYMLINK_FOLLOW", 1024},
@@ -5772,4 +5774,4 @@ var consts_386 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_386 = "bec2bb68e24b8b7d30e01c15d3c17e3f3c8bd820"
+const revision_386 = "372a4bb9b5ca49310f3f8ee55dd6ff6ebdf1368c"

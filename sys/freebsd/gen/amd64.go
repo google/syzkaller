@@ -4769,6 +4769,8 @@ var consts_amd64 = []ConstValue{
 	{"ARPOP_REQUEST", 1},
 	{"ARPOP_REVREPLY", 4},
 	{"ARPOP_REVREQUEST", 3},
+	{"AT_BENEATH", 4096},
+	{"AT_EACCESS", 256},
 	{"AT_FDCWD", 18446744073709551516},
 	{"AT_REMOVEDIR", 2048},
 	{"AT_SYMLINK_FOLLOW", 1024},
@@ -5799,4 +5801,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "cf77f77cf0e11abd3b2b8401db8fb233d0225f0a"
+const revision_amd64 = "54931bea91352be558ed54f53dcfa823ab44baac"
