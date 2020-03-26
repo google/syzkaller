@@ -50,6 +50,7 @@ freebsd11_mknodat(dirfd fd_dir, file ptr[in, filename], mod flags[mknod_mode], d
 chmod(file ptr[in, filename], mode flags[open_mode])
 fchmod(fd fd, mode flags[open_mode])
 fchmodat(dirfd fd_dir, file ptr[in, filename], mode flags[open_mode])
+lchmod(file ptr[in, filename], mode flags[open_mode])
 chown(file ptr[in, filename], uid uid, gid gid)
 lchown(file ptr[in, filename], uid uid, gid gid)
 fchown(fd fd, uid uid, gid gid)
