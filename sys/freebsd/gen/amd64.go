@@ -3416,24 +3416,24 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{NR: 5, Name: "open", CallName: "open", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 1048576}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 5, Name: "open$dir", CallName: "open", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 1048576}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 499, Name: "openat", CallName: "openat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4, IsOptional: true}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 1048576}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 499, Name: "openat$ptmx", CallName: "openat", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 8}, Kind: 2, Values: []string{"/dev/pf\x00"}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 1048576}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 64, 128, 256, 512, 1024, 2048, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_pf", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 542, Name: "pipe2", CallName: "pipe2", Args: []Type{
@@ -5376,11 +5376,13 @@ var consts_amd64 = []ConstValue{
 	{"ND_ROUTER_ADVERT", 134},
 	{"ND_ROUTER_SOLICIT", 133},
 	{"O_APPEND", 8},
+	{"O_BENEATH", 4194304},
 	{"O_CLOEXEC", 1048576},
 	{"O_CREAT", 512},
 	{"O_DIRECT", 65536},
 	{"O_DIRECTORY", 131072},
 	{"O_EXCL", 2048},
+	{"O_EXEC", 262144},
 	{"O_NOCTTY", 32768},
 	{"O_NOFOLLOW", 256},
 	{"O_NONBLOCK", 4},
@@ -5388,6 +5390,8 @@ var consts_amd64 = []ConstValue{
 	{"O_RDWR", 2},
 	{"O_SYNC", 128},
 	{"O_TRUNC", 1024},
+	{"O_TTY_INIT", 524288},
+	{"O_VERIFY", 2097152},
 	{"O_WRONLY", 1},
 	{"PF_TABLE_NAME_SIZE", 32},
 	{"POLLERR", 8},
@@ -5801,4 +5805,4 @@ var consts_amd64 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_amd64 = "54931bea91352be558ed54f53dcfa823ab44baac"
+const revision_amd64 = "2eac7eb52a6f14fbda41ca51d881aaddb9a442d4"
