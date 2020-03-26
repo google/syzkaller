@@ -3259,6 +3259,11 @@ var syscalls_386 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Path: []string{"addr"}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 	}},
+	{NR: 250, Name: "minherit", CallName: "minherit", Args: []Type{
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Path: []string{"addr"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "minherit_flags", FldName: "inherit", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3}},
+	}},
 	{NR: 136, Name: "mkdir", CallName: "mkdir", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
@@ -5045,6 +5050,10 @@ var consts_386 = []ConstValue{
 	{"ICMP_UNREACH_TOSHOST", 12},
 	{"ICMP_UNREACH_TOSNET", 11},
 	{"IFNAMSIZ", 16},
+	{"INHERIT_COPY", 1},
+	{"INHERIT_NONE", 2},
+	{Name: "INHERIT_SHARE"},
+	{"INHERIT_ZERO", 3},
 	{"IP6OPT_JUMBO", 194},
 	{Name: "IP6OPT_PAD1"},
 	{"IP6OPT_PADN", 1},
@@ -5574,6 +5583,7 @@ var consts_386 = []ConstValue{
 	{"SYS_lseek", 478},
 	{"SYS_madvise", 75},
 	{"SYS_mincore", 78},
+	{"SYS_minherit", 250},
 	{"SYS_mkdir", 136},
 	{"SYS_mkdirat", 496},
 	{"SYS_mknodat", 559},
@@ -5709,4 +5719,4 @@ var consts_386 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_386 = "859d11e279ca221ebc432c9bd70aed2df0de00ae"
+const revision_386 = "543e680b034e0f8ba667a876dd8e62433e42847e"
