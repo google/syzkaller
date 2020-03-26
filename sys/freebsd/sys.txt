@@ -110,6 +110,7 @@ __getcwd(buf buffer[out], size len[buf])
 chdir(dir ptr[in, filename])
 fchdir(fd fd)
 copy_file_range(infd fd, inoffp ptr[inout, fileoff[int64]], outfd fd, outoffp ptr[inout, fileoff[int64]], len int64, flags flags[copy_file_range_flags])
+__realpathat(dirfd fd, path ptr[in, filename], buf ptr[out, string], size len[buf], flags flags[realpathat_flags])
 
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
@@ -222,4 +223,5 @@ fcntl_status = O_APPEND, FASYNC, O_DIRECT, O_NONBLOCK
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 minherit_flags = INHERIT_SHARE, INHERIT_NONE, INHERIT_COPY, INHERIT_ZERO
 copy_file_range_flags = 0
+realpathat_flags = 0
 chflags_flags = SF_APPEND, SF_ARCHIVED, SF_IMMUTABLE, SF_NOUNLINK, SF_SNAPSHOT, UF_APPEND, UF_ARCHIVE, UF_HIDDEN, UF_IMMUTABLE, UF_NODUMP, UF_NOUNLINK, UF_OFFLINE, UF_OPAQUE, UF_READONLY, UF_REPARSE, UF_SPARSE, UF_SYSTEM
