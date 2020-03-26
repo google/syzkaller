@@ -1775,6 +1775,11 @@ var structDescs_386 = []*KeyedStruct{
 }
 
 var syscalls_386 = []*Syscall{
+	{NR: 515, Name: "__cap_rights_get", CallName: "__cap_rights_get", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "version", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "rightsp", TypeSize: 4}, &ArrayType{TypeCommon{TypeName: "array", TypeSize: 16, ArgDir: 1}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}, 1, 2, 2}},
+	}},
 	{NR: 326, Name: "__getcwd", CallName: "__getcwd", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 4}, &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Path: []string{"buf"}},
@@ -1938,6 +1943,31 @@ var syscalls_386 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Path: []string{"addr"}},
+	}},
+	{NR: 516, Name: "cap_enter", CallName: "cap_enter"},
+	{NR: 537, Name: "cap_fcntls_get", CallName: "cap_fcntls_get", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "rightsp", TypeSize: 4}, &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
+	}},
+	{NR: 536, Name: "cap_fcntls_limit", CallName: "cap_fcntls_limit", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "rights", TypeSize: 4}}},
+	}},
+	{NR: 517, Name: "cap_getmode", CallName: "cap_getmode", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "mode", TypeSize: 4}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
+	}},
+	{NR: 535, Name: "cap_ioctls_get", CallName: "cap_ioctls_get", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "cmds", TypeSize: 4}, &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 4, ArgDir: 1}}}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "maxcmds", TypeSize: 4}}, Path: []string{"cmds"}},
+	}},
+	{NR: 534, Name: "cap_ioctls_limit", CallName: "cap_ioctls_limit", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "cmds", TypeSize: 4}, &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 4}}}}},
+	}},
+	{NR: 533, Name: "cap_rights_limit", CallName: "cap_rights_limit", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "rights", TypeSize: 4}, &ArrayType{TypeCommon{TypeName: "array", TypeSize: 16}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, 1, 2, 2}},
 	}},
 	{NR: 12, Name: "chdir", CallName: "chdir", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -5632,6 +5662,7 @@ var consts_386 = []ConstValue{
 	{"SPP_IPV6_FLOWLABEL", 256},
 	{"SPP_PMTUD_DISABLE", 16},
 	{"SPP_PMTUD_ENABLE", 8},
+	{"SYS___cap_rights_get", 515},
 	{"SYS___getcwd", 326},
 	{"SYS___realpathat", 574},
 	{"SYS___semctl", 510},
@@ -5639,6 +5670,13 @@ var consts_386 = []ConstValue{
 	{"SYS_accept4", 541},
 	{"SYS_bind", 104},
 	{"SYS_bindat", 538},
+	{"SYS_cap_enter", 516},
+	{"SYS_cap_fcntls_get", 537},
+	{"SYS_cap_fcntls_limit", 536},
+	{"SYS_cap_getmode", 517},
+	{"SYS_cap_ioctls_get", 535},
+	{"SYS_cap_ioctls_limit", 534},
+	{"SYS_cap_rights_limit", 533},
 	{"SYS_chdir", 12},
 	{"SYS_chflags", 34},
 	{"SYS_chflagsat", 540},
@@ -5858,4 +5896,4 @@ var consts_386 = []ConstValue{
 	{"WUNTRACED", 2},
 }
 
-const revision_386 = "27b0c289c0d78fe767ad2fbe062383e89cef0180"
+const revision_386 = "d737bca3a95d7c1527152553af5fd06ed07e0240"
