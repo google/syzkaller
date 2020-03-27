@@ -32,4 +32,23 @@ TITLE: BUG: spinlock already unlocked in synchronize_sched_expedited_cpu_stop
 [  108.804399]  [<ffffffff81338300>] ? kthread_create_on_node+0x460/0x460
 [  108.811031]  [<ffffffff82d2fbac>] ret_from_fork+0x5c/0x90
 [  108.816532]  [<ffffffff81338300>] ? kthread_create_on_node+0x460/0x460
- 
+
+REPORT:
+BUG: spinlock already unlocked on CPU#1, migration/1/12
+ lock: rcu_sched_state+0xb40/0xc20, .magic: dead4ead, .owner: <none>/-1, .owner_cpu: -1
+CPU: 1 PID: 12 Comm: migration/1 Not tainted 4.3.5+ #6
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+ 0000000000000001 ffff8801d8f6fb30 ffffffff81d0010d ffffffff837b69c0
+ ffff8801d8f68340 0000000000000003 0000000000000001 0000000000000000
+ ffff8801d8f6fb70 ffffffff813fba22 0000000000000046 ffff8801d8f68b80
+Call Trace:
+ [<ffffffff81d0010d>] dump_stack+0xc1/0x124
+ [<ffffffff813fba22>] spin_dump+0x152/0x280
+ [<ffffffff813fc152>] do_raw_spin_unlock+0x1e2/0x240
+ [<ffffffff810108ec>] _raw_spin_unlock_irqrestore+0x2c/0x60
+ [<ffffffff813cd204>] __wake_up+0x44/0x50
+ [<ffffffff8142958a>] synchronize_sched_expedited_cpu_stop+0x8a/0xa0
+ [<ffffffff814dbfe8>] cpu_stopper_thread+0x1f8/0x400
+ [<ffffffff8134237c>] smpboot_thread_fn+0x47c/0x880
+ [<ffffffff81338531>] kthread+0x231/0x2c0
+ [<ffffffff82d2fbac>] ret_from_fork+0x5c/0x90

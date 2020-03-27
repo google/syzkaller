@@ -25,6 +25,7 @@ type linux struct {
 	consoleOutputRe       *regexp.Regexp
 	taskContext           *regexp.Regexp
 	cpuContext            *regexp.Regexp
+	questionableFrame     *regexp.Regexp
 	guiltyFileBlacklist   []*regexp.Regexp
 	reportStartIgnores    []*regexp.Regexp
 	infoMessagesWithStack [][]byte
@@ -50,6 +51,7 @@ func ctorLinux(cfg *config) (Reporter, []string, error) {
 	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:.* login: )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\](\[ *(?:C|T)[0-9]+\])? `)
 	ctx.taskContext = regexp.MustCompile(`\[ *T[0-9]+\]`)
 	ctx.cpuContext = regexp.MustCompile(`\[ *C[0-9]+\]`)
+	ctx.questionableFrame = regexp.MustCompile(`(\[\<[0-9a-f]+\>\])? \? `)
 	ctx.eoi = []byte("<EOI>")
 	ctx.guiltyFileBlacklist = []*regexp.Regexp{
 		regexp.MustCompile(`.*\.h`),
@@ -300,8 +302,9 @@ func (ctx *linux) stripLinePrefix(line []byte, context string, useQuestionable b
 	line = line[start+2:]
 	if !bytes.Contains(line, ctx.eoi) {
 		// x86_64 prefix.
-		if bytes.HasPrefix(line, []byte(" ? ")) {
-			return line[2:], !useQuestionable
+		if ctx.questionableFrame.Match(line) {
+			pos := bytes.Index(line, []byte(" ? "))
+			return line[pos+2:], !useQuestionable
 		}
 		// powerpc suffix.
 		if bytes.HasSuffix(line, []byte(" (unreliable)")) {
