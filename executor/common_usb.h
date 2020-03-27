@@ -85,6 +85,9 @@ static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_d
 	return true;
 }
 
+// add_usb_index() and lookup_usb_index() helper functions allow to store and lookup per-device metadata
+// associated with a file descriptor that is used to comminicate with a particular emulated device.
+
 static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t dev_len)
 {
 	int i = __atomic_fetch_add(&usb_devices_num, 1, __ATOMIC_RELAXED);
@@ -554,6 +557,11 @@ static const char default_lang_id[] = {
     0x09, 0x04 // English (United States)
 };
 
+// lookup_connect_response_in() is a helper function that returns a response to a USB IN request
+// based on syzkaller-generated arguments provided to syz_usb_connect* pseudo-syscalls. The data
+// and its length to be used as a response are returned in *response_data and *response_length.
+// The return value of this function indicates whether the request is known to syzkaller.
+
 static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs,
 				       const struct usb_ctrlrequest* ctrl,
 				       char** response_data, uint32* response_length)
@@ -631,6 +639,9 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 	fail("lookup_connect_response_in: unknown request");
 	return false;
 }
+
+// lookup_connect_response_out() functions process a USB OUT request and return in *done
+// whether this is the last request that must be handled by syz_usb_connect* pseudo-syscalls.
 
 typedef bool (*lookup_connect_out_response_t)(int fd, const struct vusb_connect_descriptors* descs,
 					      const struct usb_ctrlrequest* ctrl, bool* done);
@@ -720,6 +731,12 @@ struct vusb_responses {
 	struct vusb_response* generic;
 	struct vusb_response* resps[0];
 } __attribute__((packed));
+
+// lookup_control_response() is a helper function that returns a response to a USB IN request based
+// on syzkaller-generated arguments provided to syz_usb_control_io* pseudo-syscalls. The data and its
+// length to be used as a response are returned in *response_data and *response_length. The return
+// value of this function indicates whether the response for this request is provided in
+// syz_usb_control_io* arguments.
 
 static bool lookup_control_response(const struct vusb_descriptors* descs, const struct vusb_responses* resps,
 				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
