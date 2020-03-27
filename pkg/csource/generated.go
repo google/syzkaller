@@ -2425,6 +2425,7 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 
 #define USB_MAX_IFACE_NUM 4
 #define USB_MAX_EP_NUM 32
+#define USB_MAX_FDS 6
 
 struct usb_iface_index {
 	struct usb_interface_descriptor* iface;
@@ -2445,6 +2446,14 @@ struct usb_device_index {
 	int ifaces_num;
 	int iface_cur;
 };
+
+struct usb_info {
+	int fd;
+	struct usb_device_index index;
+};
+
+static struct usb_info usb_devices[USB_MAX_FDS];
+static int usb_devices_num;
 
 static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_device_index* index)
 {
@@ -2494,127 +2503,10 @@ static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_d
 	return true;
 }
 
-#define UDC_NAME_LENGTH_MAX 128
-
-struct usb_raw_init {
-	__u8 driver_name[UDC_NAME_LENGTH_MAX];
-	__u8 device_name[UDC_NAME_LENGTH_MAX];
-	__u8 speed;
-};
-
-enum usb_raw_event_type {
-	USB_RAW_EVENT_INVALID = 0,
-	USB_RAW_EVENT_CONNECT = 1,
-	USB_RAW_EVENT_CONTROL = 2,
-};
-
-struct usb_raw_event {
-	__u32 type;
-	__u32 length;
-	__u8 data[0];
-};
-
-struct usb_raw_ep_io {
-	__u16 ep;
-	__u16 flags;
-	__u32 length;
-	__u8 data[0];
-};
-
-#define USB_RAW_IOCTL_INIT _IOW('U', 0, struct usb_raw_init)
-#define USB_RAW_IOCTL_RUN _IO('U', 1)
-#define USB_RAW_IOCTL_EVENT_FETCH _IOR('U', 2, struct usb_raw_event)
-#define USB_RAW_IOCTL_EP0_WRITE _IOW('U', 3, struct usb_raw_ep_io)
-#define USB_RAW_IOCTL_EP0_READ _IOWR('U', 4, struct usb_raw_ep_io)
-#define USB_RAW_IOCTL_EP_ENABLE _IOW('U', 5, struct usb_endpoint_descriptor)
-#define USB_RAW_IOCTL_EP_DISABLE _IOW('U', 6, __u32)
-#define USB_RAW_IOCTL_EP_WRITE _IOW('U', 7, struct usb_raw_ep_io)
-#define USB_RAW_IOCTL_EP_READ _IOWR('U', 8, struct usb_raw_ep_io)
-#define USB_RAW_IOCTL_CONFIGURE _IO('U', 9)
-#define USB_RAW_IOCTL_VBUS_DRAW _IOW('U', 10, __u32)
-
-static int usb_raw_open()
-{
-	return open("/dev/raw-gadget", O_RDWR);
-}
-
-static int usb_raw_init(int fd, uint32 speed, const char* driver, const char* device)
-{
-	struct usb_raw_init arg;
-	strncpy((char*)&arg.driver_name[0], driver, sizeof(arg.driver_name));
-	strncpy((char*)&arg.device_name[0], device, sizeof(arg.device_name));
-	arg.speed = speed;
-	return ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
-}
-
-static int usb_raw_run(int fd)
-{
-	return ioctl(fd, USB_RAW_IOCTL_RUN, 0);
-}
-
-static int usb_raw_event_fetch(int fd, struct usb_raw_event* event)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EVENT_FETCH, event);
-}
-
-static int usb_raw_ep0_write(int fd, struct usb_raw_ep_io* io)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
-}
-
-static int usb_raw_ep0_read(int fd, struct usb_raw_ep_io* io)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP0_READ, io);
-}
-
-#if SYZ_EXECUTOR || __NR_syz_usb_ep_write
-static int usb_raw_ep_write(int fd, struct usb_raw_ep_io* io)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP_WRITE, io);
-}
-#endif
-
-#if SYZ_EXECUTOR || __NR_syz_usb_ep_read
-static int usb_raw_ep_read(int fd, struct usb_raw_ep_io* io)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP_READ, io);
-}
-#endif
-
-static int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP_ENABLE, desc);
-}
-
-static int usb_raw_ep_disable(int fd, int ep)
-{
-	return ioctl(fd, USB_RAW_IOCTL_EP_DISABLE, ep);
-}
-
-static int usb_raw_configure(int fd)
-{
-	return ioctl(fd, USB_RAW_IOCTL_CONFIGURE, 0);
-}
-
-static int usb_raw_vbus_draw(int fd, uint32 power)
-{
-	return ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW, power);
-}
-
-#define MAX_USB_FDS 6
-
-struct usb_info {
-	int fd;
-	struct usb_device_index index;
-};
-
-static struct usb_info usb_devices[MAX_USB_FDS];
-static int usb_devices_num;
-
 static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t dev_len)
 {
 	int i = __atomic_fetch_add(&usb_devices_num, 1, __ATOMIC_RELAXED);
-	if (i >= MAX_USB_FDS)
+	if (i >= USB_MAX_FDS)
 		return NULL;
 
 	int rv = 0;
@@ -2629,82 +2521,12 @@ static struct usb_device_index* add_usb_index(int fd, const char* dev, size_t de
 static struct usb_device_index* lookup_usb_index(int fd)
 {
 	int i;
-	for (i = 0; i < MAX_USB_FDS; i++) {
+	for (i = 0; i < USB_MAX_FDS; i++) {
 		if (__atomic_load_n(&usb_devices[i].fd, __ATOMIC_ACQUIRE) == fd) {
 			return &usb_devices[i].index;
 		}
 	}
 	return NULL;
-}
-
-#if SYZ_EXECUTOR || __NR_syz_usb_control_io
-static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
-{
-	struct usb_device_index* index = lookup_usb_index(fd);
-	int i;
-
-	if (!index)
-		return -1;
-
-	for (i = 0; i < index->ifaces_num; i++) {
-		if (index->ifaces[i].bInterfaceNumber == bInterfaceNumber &&
-		    index->ifaces[i].bAlternateSetting == bAlternateSetting)
-			return i;
-	}
-	return -1;
-}
-#endif
-
-static void set_interface(int fd, int n)
-{
-	struct usb_device_index* index = lookup_usb_index(fd);
-	int ep;
-
-	if (!index)
-		return;
-
-	if (index->iface_cur >= 0 && index->iface_cur < index->ifaces_num) {
-		for (ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++) {
-			int rv = usb_raw_ep_disable(fd, ep);
-			if (rv < 0) {
-				debug("set_interface: failed to disable endpoint %d\n", ep);
-			} else {
-				debug("set_interface: endpoint %d disabled\n", ep);
-			}
-		}
-	}
-	if (n >= 0 && n < index->ifaces_num) {
-		for (ep = 0; ep < index->ifaces[n].eps_num; ep++) {
-			int rv = usb_raw_ep_enable(fd, &index->ifaces[n].eps[ep]);
-			if (rv < 0) {
-				debug("set_interface: failed to enable endpoint %d\n", ep);
-			} else {
-				debug("set_interface: endpoint %d enabled as %d\n", ep, rv);
-			}
-		}
-		index->iface_cur = n;
-	}
-}
-
-static int configure_device(int fd)
-{
-	struct usb_device_index* index = lookup_usb_index(fd);
-
-	if (!index)
-		return -1;
-
-	int rv = usb_raw_vbus_draw(fd, index->bMaxPower);
-	if (rv < 0) {
-		debug("configure_device: usb_raw_vbus_draw failed with %d\n", rv);
-		return rv;
-	}
-	rv = usb_raw_configure(fd);
-	if (rv < 0) {
-		debug("configure_device: usb_raw_configure failed with %d\n", rv);
-		return rv;
-	}
-	set_interface(fd, 0);
-	return 0;
 }
 
 #if USB_DEBUG
@@ -3120,19 +2942,6 @@ static void analyze_control_request(int fd, struct usb_ctrlrequest* ctrl)
 
 #endif
 
-#define USB_MAX_PACKET_SIZE 4096
-
-struct usb_raw_control_event {
-	struct usb_raw_event inner;
-	struct usb_ctrlrequest ctrl;
-	char data[USB_MAX_PACKET_SIZE];
-};
-
-struct usb_raw_ep_io_data {
-	struct usb_raw_ep_io inner;
-	char data[USB_MAX_PACKET_SIZE];
-};
-
 struct vusb_connect_string_descriptor {
 	uint32 len;
 	char* str;
@@ -3157,7 +2966,8 @@ static const char default_lang_id[] = {
     0x09, 0x04
 };
 
-static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs, const struct usb_ctrlrequest* ctrl,
+static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs,
+				       const struct usb_ctrlrequest* ctrl,
 				       char** response_data, uint32* response_length)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -3233,6 +3043,9 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 	return false;
 }
 
+typedef bool (*lookup_connect_out_response_t)(int fd, const struct vusb_connect_descriptors* descs,
+					      const struct usb_ctrlrequest* ctrl, bool* done);
+
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 static bool lookup_connect_response_out_generic(int fd, const struct vusb_connect_descriptors* descs,
 						const struct usb_ctrlrequest* ctrl, bool* done)
@@ -3289,11 +3102,295 @@ static bool lookup_connect_response_out_ath9k(int fd, const struct vusb_connect_
 
 #endif
 
-typedef bool (*lookup_connect_response_t)(int fd, const struct vusb_connect_descriptors* descs,
-					  const struct usb_ctrlrequest* ctrl, bool* done);
+#if SYZ_EXECUTOR || __NR_syz_usb_control_io
+
+struct vusb_descriptor {
+	uint8 req_type;
+	uint8 desc_type;
+	uint32 len;
+	char data[0];
+} __attribute__((packed));
+
+struct vusb_descriptors {
+	uint32 len;
+	struct vusb_descriptor* generic;
+	struct vusb_descriptor* descs[0];
+} __attribute__((packed));
+
+struct vusb_response {
+	uint8 type;
+	uint8 req;
+	uint32 len;
+	char data[0];
+} __attribute__((packed));
+
+struct vusb_responses {
+	uint32 len;
+	struct vusb_response* generic;
+	struct vusb_response* resps[0];
+} __attribute__((packed));
+
+static bool lookup_control_response(const struct vusb_descriptors* descs, const struct vusb_responses* resps,
+				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
+{
+	int descs_num = 0;
+	int resps_num = 0;
+
+	if (descs)
+		descs_num = (descs->len - offsetof(struct vusb_descriptors, descs)) / sizeof(descs->descs[0]);
+	if (resps)
+		resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
+
+	uint8 req = ctrl->bRequest;
+	uint8 req_type = ctrl->bRequestType & USB_TYPE_MASK;
+	uint8 desc_type = ctrl->wValue >> 8;
+
+	if (req == USB_REQ_GET_DESCRIPTOR) {
+		int i;
+
+		for (i = 0; i < descs_num; i++) {
+			struct vusb_descriptor* desc = descs->descs[i];
+			if (!desc)
+				continue;
+			if (desc->req_type == req_type && desc->desc_type == desc_type) {
+				*response_length = desc->len;
+				if (*response_length != 0)
+					*response_data = &desc->data[0];
+				else
+					*response_data = NULL;
+				return true;
+			}
+		}
+
+		if (descs && descs->generic) {
+			*response_data = &descs->generic->data[0];
+			*response_length = descs->generic->len;
+			return true;
+		}
+	} else {
+		int i;
+
+		for (i = 0; i < resps_num; i++) {
+			struct vusb_response* resp = resps->resps[i];
+			if (!resp)
+				continue;
+			if (resp->type == req_type && resp->req == req) {
+				*response_length = resp->len;
+				if (*response_length != 0)
+					*response_data = &resp->data[0];
+				else
+					*response_data = NULL;
+				return true;
+			}
+		}
+
+		if (resps && resps->generic) {
+			*response_data = &resps->generic->data[0];
+			*response_length = resps->generic->len;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+#endif
+
+#if GOOS_linux
+
+#define UDC_NAME_LENGTH_MAX 128
+
+struct usb_raw_init {
+	__u8 driver_name[UDC_NAME_LENGTH_MAX];
+	__u8 device_name[UDC_NAME_LENGTH_MAX];
+	__u8 speed;
+};
+
+enum usb_raw_event_type {
+	USB_RAW_EVENT_INVALID = 0,
+	USB_RAW_EVENT_CONNECT = 1,
+	USB_RAW_EVENT_CONTROL = 2,
+};
+
+struct usb_raw_event {
+	__u32 type;
+	__u32 length;
+	__u8 data[0];
+};
+
+struct usb_raw_ep_io {
+	__u16 ep;
+	__u16 flags;
+	__u32 length;
+	__u8 data[0];
+};
+
+#define USB_RAW_IOCTL_INIT _IOW('U', 0, struct usb_raw_init)
+#define USB_RAW_IOCTL_RUN _IO('U', 1)
+#define USB_RAW_IOCTL_EVENT_FETCH _IOR('U', 2, struct usb_raw_event)
+#define USB_RAW_IOCTL_EP0_WRITE _IOW('U', 3, struct usb_raw_ep_io)
+#define USB_RAW_IOCTL_EP0_READ _IOWR('U', 4, struct usb_raw_ep_io)
+#define USB_RAW_IOCTL_EP_ENABLE _IOW('U', 5, struct usb_endpoint_descriptor)
+#define USB_RAW_IOCTL_EP_DISABLE _IOW('U', 6, __u32)
+#define USB_RAW_IOCTL_EP_WRITE _IOW('U', 7, struct usb_raw_ep_io)
+#define USB_RAW_IOCTL_EP_READ _IOWR('U', 8, struct usb_raw_ep_io)
+#define USB_RAW_IOCTL_CONFIGURE _IO('U', 9)
+#define USB_RAW_IOCTL_VBUS_DRAW _IOW('U', 10, __u32)
+
+static int usb_raw_open()
+{
+	return open("/dev/raw-gadget", O_RDWR);
+}
+
+static int usb_raw_init(int fd, uint32 speed, const char* driver, const char* device)
+{
+	struct usb_raw_init arg;
+	strncpy((char*)&arg.driver_name[0], driver, sizeof(arg.driver_name));
+	strncpy((char*)&arg.device_name[0], device, sizeof(arg.device_name));
+	arg.speed = speed;
+	return ioctl(fd, USB_RAW_IOCTL_INIT, &arg);
+}
+
+static int usb_raw_run(int fd)
+{
+	return ioctl(fd, USB_RAW_IOCTL_RUN, 0);
+}
+
+static int usb_raw_event_fetch(int fd, struct usb_raw_event* event)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EVENT_FETCH, event);
+}
+
+static int usb_raw_ep0_write(int fd, struct usb_raw_ep_io* io)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP0_WRITE, io);
+}
+
+static int usb_raw_ep0_read(int fd, struct usb_raw_ep_io* io)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP0_READ, io);
+}
+
+#if SYZ_EXECUTOR || __NR_syz_usb_ep_write
+static int usb_raw_ep_write(int fd, struct usb_raw_ep_io* io)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP_WRITE, io);
+}
+#endif
+
+#if SYZ_EXECUTOR || __NR_syz_usb_ep_read
+static int usb_raw_ep_read(int fd, struct usb_raw_ep_io* io)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP_READ, io);
+}
+#endif
+
+static int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor* desc)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP_ENABLE, desc);
+}
+
+static int usb_raw_ep_disable(int fd, int ep)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP_DISABLE, ep);
+}
+
+static int usb_raw_configure(int fd)
+{
+	return ioctl(fd, USB_RAW_IOCTL_CONFIGURE, 0);
+}
+
+static int usb_raw_vbus_draw(int fd, uint32 power)
+{
+	return ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW, power);
+}
+
+#if SYZ_EXECUTOR || __NR_syz_usb_control_io
+static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSetting)
+{
+	struct usb_device_index* index = lookup_usb_index(fd);
+	int i;
+
+	if (!index)
+		return -1;
+
+	for (i = 0; i < index->ifaces_num; i++) {
+		if (index->ifaces[i].bInterfaceNumber == bInterfaceNumber &&
+		    index->ifaces[i].bAlternateSetting == bAlternateSetting)
+			return i;
+	}
+	return -1;
+}
+#endif
+
+static void set_interface(int fd, int n)
+{
+	struct usb_device_index* index = lookup_usb_index(fd);
+	int ep;
+
+	if (!index)
+		return;
+
+	if (index->iface_cur >= 0 && index->iface_cur < index->ifaces_num) {
+		for (ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++) {
+			int rv = usb_raw_ep_disable(fd, ep);
+			if (rv < 0) {
+				debug("set_interface: failed to disable endpoint %d\n", ep);
+			} else {
+				debug("set_interface: endpoint %d disabled\n", ep);
+			}
+		}
+	}
+	if (n >= 0 && n < index->ifaces_num) {
+		for (ep = 0; ep < index->ifaces[n].eps_num; ep++) {
+			int rv = usb_raw_ep_enable(fd, &index->ifaces[n].eps[ep]);
+			if (rv < 0) {
+				debug("set_interface: failed to enable endpoint %d\n", ep);
+			} else {
+				debug("set_interface: endpoint %d enabled as %d\n", ep, rv);
+			}
+		}
+		index->iface_cur = n;
+	}
+}
+
+static int configure_device(int fd)
+{
+	struct usb_device_index* index = lookup_usb_index(fd);
+
+	if (!index)
+		return -1;
+
+	int rv = usb_raw_vbus_draw(fd, index->bMaxPower);
+	if (rv < 0) {
+		debug("configure_device: usb_raw_vbus_draw failed with %d\n", rv);
+		return rv;
+	}
+	rv = usb_raw_configure(fd);
+	if (rv < 0) {
+		debug("configure_device: usb_raw_configure failed with %d\n", rv);
+		return rv;
+	}
+	set_interface(fd, 0);
+	return 0;
+}
+
+#define USB_MAX_PACKET_SIZE 4096
+
+struct usb_raw_control_event {
+	struct usb_raw_event inner;
+	struct usb_ctrlrequest ctrl;
+	char data[USB_MAX_PACKET_SIZE];
+};
+
+struct usb_raw_ep_io_data {
+	struct usb_raw_ep_io inner;
+	char data[USB_MAX_PACKET_SIZE];
+};
 
 static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const char* dev,
-					  const struct vusb_connect_descriptors* descs, lookup_connect_response_t lookup_connect_response_out)
+					  const struct vusb_connect_descriptors* descs,
+					  lookup_connect_out_response_t lookup_connect_response_out)
 {
 	debug("syz_usb_connect: dev: %p\n", dev);
 	if (!dev) {
@@ -3450,96 +3547,6 @@ static volatile long syz_usb_connect_ath9k(volatile long a0, volatile long a1, v
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_usb_control_io
-struct vusb_descriptor {
-	uint8 req_type;
-	uint8 desc_type;
-	uint32 len;
-	char data[0];
-} __attribute__((packed));
-
-struct vusb_descriptors {
-	uint32 len;
-	struct vusb_descriptor* generic;
-	struct vusb_descriptor* descs[0];
-} __attribute__((packed));
-
-struct vusb_response {
-	uint8 type;
-	uint8 req;
-	uint32 len;
-	char data[0];
-} __attribute__((packed));
-
-struct vusb_responses {
-	uint32 len;
-	struct vusb_response* generic;
-	struct vusb_response* resps[0];
-} __attribute__((packed));
-
-static bool lookup_control_response(const struct vusb_descriptors* descs, const struct vusb_responses* resps,
-				    struct usb_ctrlrequest* ctrl, char** response_data, uint32* response_length)
-{
-	int descs_num = 0;
-	int resps_num = 0;
-
-	if (descs)
-		descs_num = (descs->len - offsetof(struct vusb_descriptors, descs)) / sizeof(descs->descs[0]);
-	if (resps)
-		resps_num = (resps->len - offsetof(struct vusb_responses, resps)) / sizeof(resps->resps[0]);
-
-	uint8 req = ctrl->bRequest;
-	uint8 req_type = ctrl->bRequestType & USB_TYPE_MASK;
-	uint8 desc_type = ctrl->wValue >> 8;
-
-	if (req == USB_REQ_GET_DESCRIPTOR) {
-		int i;
-
-		for (i = 0; i < descs_num; i++) {
-			struct vusb_descriptor* desc = descs->descs[i];
-			if (!desc)
-				continue;
-			if (desc->req_type == req_type && desc->desc_type == desc_type) {
-				*response_length = desc->len;
-				if (*response_length != 0)
-					*response_data = &desc->data[0];
-				else
-					*response_data = NULL;
-				return true;
-			}
-		}
-
-		if (descs && descs->generic) {
-			*response_data = &descs->generic->data[0];
-			*response_length = descs->generic->len;
-			return true;
-		}
-	} else {
-		int i;
-
-		for (i = 0; i < resps_num; i++) {
-			struct vusb_response* resp = resps->resps[i];
-			if (!resp)
-				continue;
-			if (resp->type == req_type && resp->req == req) {
-				*response_length = resp->len;
-				if (*response_length != 0)
-					*response_data = &resp->data[0];
-				else
-					*response_data = NULL;
-				return true;
-			}
-		}
-
-		if (resps && resps->generic) {
-			*response_data = &resps->generic->data[0];
-			*response_length = resps->generic->len;
-			return true;
-		}
-	}
-
-	return false;
-}
-
 static volatile long syz_usb_control_io(volatile long a0, volatile long a1, volatile long a2)
 {
 	int fd = a0;
@@ -3702,6 +3709,10 @@ static volatile long syz_usb_disconnect(volatile long a0)
 
 	return rv;
 }
+#endif
+
+#else
+#error "unknown OS"
 #endif
 
 #endif
