@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -16,6 +17,14 @@ import (
 )
 
 func init() {
+	// This is ugly but without this go test hangs with:
+	// panic: Metadata fetch failed for 'instance/attributes/gae_backend_version':
+	//	Get http://metadata/computeMetadata/v1/instance/attributes/gae_backend_version:
+	//	dial tcp: lookup metadata on 127.0.0.1:53: no such host
+	// It's unclear what's the proper fix for this.
+	os.Setenv("GAE_MODULE_VERSION", "1")
+	os.Setenv("GAE_MINOR_VERSION", "1")
+
 	isBrokenAuthDomainInTest = true
 	obsoleteWhatWontBeFixBisected = true
 	notifyAboutUnsuccessfulBisections = true
