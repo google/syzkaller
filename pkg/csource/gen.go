@@ -33,6 +33,7 @@ func main() {
 		"common_kvm_amd64.h",
 		"common_kvm_arm64.h",
 		"common_usb.h",
+		"common_usb_linux.h",
 		"android/android_seccomp.h",
 		"kvm.h",
 		"kvm.S.h",
