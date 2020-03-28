@@ -21920,6 +21920,7 @@ const call_t syscalls[] = {
     {"clock_settime", 428},
     {"close", 6},
     {"compat_50__lwp_park", 320},
+    {"compat_60__lwp_park", 434},
     {"connect", 98},
     {"connect$inet", 98},
     {"connect$inet6", 98},
