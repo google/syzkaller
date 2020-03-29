@@ -20,6 +20,7 @@ SYS__lwp_unpark_all = 322
 SYS__lwp_wait = 312
 SYS__lwp_wakeup = 315
 SYS_compat_50__lwp_park = 320
+SYS_compat_60__lwp_park = 434
 _UC_CPU = 4
 _UC_FPU = 8
 _UC_MD = 1074724896
