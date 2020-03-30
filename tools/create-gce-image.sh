@@ -148,6 +148,7 @@ done
 # sysctls
 echo "kernel.printk = 7 4 1 3" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
+echo "sysctl.kernel.hung_task_all_cpu_backtrace = 1" | sudo tee -a disk.mnt/etc/sysctl.conf
 SYZ_SYSCTL_FILE="${SYZ_SYSCTL_FILE:-}"
 if [ "$SYZ_SYSCTL_FILE" != "" ]; then
 	cat $SYZ_SYSCTL_FILE | sudo tee -a disk.mnt/etc/sysctl.conf
