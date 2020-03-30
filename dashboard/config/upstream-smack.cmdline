@@ -17,4 +17,3 @@ numa=fake=2
 nopcid
 dummy_hcd.num=8
 binder.debug_mask=0
-hung_task_all_cpu_backtrace=1
