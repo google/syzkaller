@@ -35,6 +35,7 @@ esac
 cd ${KERNEL_SOURCE}
 cp $DEFCONFIG .config
 
+util_add_usb_bits "android"
 util_add_syzbot_bits
 
 scripts/kconfig/merge_config.sh -m .config ${SCRIPT_DIR}/config-bits
