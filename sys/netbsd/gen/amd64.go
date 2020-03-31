@@ -402,6 +402,11 @@ var structDescs_amd64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "sec", TypeSize: 8, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "nsec", TypeSize: 8, ArgDir: 1}}},
 	}}},
+	{StructKey{Name: "timespec50"}, &StructDesc{TypeCommon: TypeCommon{TypeName: "timespec50", TypeSize: 16}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sec", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "nsec", TypeSize: 8}}},
+	}}},
 	{StructKey{Name: "timeval"}, &StructDesc{TypeCommon: TypeCommon{TypeName: "timeval", TypeSize: 16}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "sec", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "usec", TypeSize: 8}}},
@@ -574,6 +579,12 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 	}},
 	{NR: 320, Name: "compat_50__lwp_park", CallName: "compat_50__lwp_park", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "ts", TypeSize: 8}, &StructType{Key: StructKey{Name: "timespec50"}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "unpark", TypeSize: 4}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "hint", TypeSize: 8, IsOptional: true}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "unparkhint", TypeSize: 8, IsOptional: true}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
+	}},
+	{NR: 434, Name: "compat_60__lwp_park", CallName: "compat_60__lwp_park", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "ts", TypeSize: 8}, &StructType{Key: StructKey{Name: "timespec"}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "lwpid", FldName: "unpark", TypeSize: 4}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "hint", TypeSize: 8, IsOptional: true}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}},
@@ -1735,6 +1746,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_clock_settime", 428},
 	{"SYS_close", 6},
 	{"SYS_compat_50__lwp_park", 320},
+	{"SYS_compat_60__lwp_park", 434},
 	{"SYS_connect", 98},
 	{"SYS_dup", 41},
 	{"SYS_dup2", 90},
@@ -1882,4 +1894,4 @@ var consts_amd64 = []ConstValue{
 	{"_UC_STACK", 2},
 }
 
-const revision_amd64 = "d3d1420e857d9c56cae851245e2205da52b99f68"
+const revision_amd64 = "a99885ca1ee8b334947a9227591964a15f788ff0"
