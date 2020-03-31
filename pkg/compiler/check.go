@@ -146,7 +146,6 @@ func (comp *compiler) checkNames() {
 }
 
 func (comp *compiler) checkFields() {
-	const maxArgs = 9 // executor does not support more
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.Struct:
@@ -160,9 +159,9 @@ func (comp *compiler) checkFields() {
 		case *ast.Call:
 			name := n.Name.Name
 			comp.checkFieldGroup(n.Args, "argument", "syscall "+name)
-			if len(n.Args) > maxArgs {
+			if len(n.Args) > prog.MaxArgs {
 				comp.error(n.Pos, "syscall %v has %v arguments, allowed maximum is %v",
-					name, len(n.Args), maxArgs)
+					name, len(n.Args), prog.MaxArgs)
 			}
 		}
 	}

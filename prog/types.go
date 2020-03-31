@@ -21,6 +21,10 @@ type Syscall struct {
 	outputResources []*ResourceDesc
 }
 
+// MaxArgs is maximum number of syscall arguments.
+// Executor also knows about this value.
+const MaxArgs = 9
+
 type Dir int
 
 const (
