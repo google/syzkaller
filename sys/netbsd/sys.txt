@@ -131,6 +131,11 @@ timespec {
 	nsec	intptr
 }
 
+timespec50 {
+	sec	int32
+	nsec	intptr
+}
+
 timeval {
 	sec	intptr
 	usec	intptr
