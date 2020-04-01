@@ -708,6 +708,9 @@ int main(void)
 #if SYZ_KCSAN
 	setup_kcsan();
 #endif
+#if SYZ_USB
+	setup_usb();
+#endif
 
 #if SYZ_HANDLE_SEGV
 	install_segv_handler();

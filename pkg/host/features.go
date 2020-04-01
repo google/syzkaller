@@ -25,6 +25,7 @@ const (
 	FeatureNetDevices
 	FeatureKCSAN
 	FeatureDevlinkPCI
+	FeatureUSBEmulation
 	numFeatures
 )
 
@@ -62,6 +63,7 @@ func Check(target *prog.Target) (*Features, error) {
 		FeatureNetDevices:       {Name: "net device setup", Reason: unsupported},
 		FeatureKCSAN:            {Name: "concurrency sanitizer", Reason: unsupported},
 		FeatureDevlinkPCI:       {Name: "devlink PCI setup", Reason: unsupported},
+		FeatureUSBEmulation:     {Name: "USB emulation", Reason: unsupported},
 	}
 	if targets.Get(target.OS, target.Arch).HostFuzzer {
 		return res, nil
@@ -98,6 +100,9 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	}
 	if features[FeatureKCSAN].Enabled {
 		args = append(args, "kcsan")
+	}
+	if features[FeatureUSBEmulation].Enabled {
+		args = append(args, "usb")
 	}
 	_, err := osutil.RunCmd(time.Minute, "", executor, args...)
 	return err

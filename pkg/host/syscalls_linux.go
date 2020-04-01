@@ -177,7 +177,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		if !strings.Contains(fname, "#") {
 			panic(fmt.Sprintf("%v does not contain # in the file name (should be openat)", c.Name))
 		}
-		if checkUSBInjection() == "" {
+		if checkUSBEmulation() == "" {
 			// These entries might not be available at boot time,
 			// but will be created by connected USB devices.
 			USBDevicePrefixes := []string{
@@ -215,7 +215,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		return reason == "", reason
 	case "syz_usb_connect", "syz_usb_connect_ath9k", "syz_usb_disconnect",
 		"syz_usb_control_io", "syz_usb_ep_write", "syz_usb_ep_read":
-		reason := checkUSBInjection()
+		reason := checkUSBEmulation()
 		return reason == "", reason
 	case "syz_kvm_setup_cpu":
 		switch c.Name {

@@ -89,6 +89,7 @@ func main() {
 		CloseFDs:     features["close_fds"].Enabled,
 		KCSAN:        features["kcsan"].Enabled,
 		DevlinkPCI:   features["devlink_pci"].Enabled,
+		USB:          features["usb"].Enabled,
 		UseTmpDir:    *flagUseTmpDir,
 		HandleSegv:   *flagHandleSegv,
 		Repro:        false,
