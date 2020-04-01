@@ -152,12 +152,16 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 	}
 	sandboxes := []string{args.sandbox}
 	if args.allSandboxes {
-		if features[host.FeatureSandboxSetuid].Enabled {
+		if args.sandbox != "none" {
+			sandboxes = append(sandboxes, "none")
+		}
+		if args.sandbox != "setuid" && features[host.FeatureSandboxSetuid].Enabled {
 			sandboxes = append(sandboxes, "setuid")
 		}
-		if features[host.FeatureSandboxNamespace].Enabled {
+		if args.sandbox != "namespace" && features[host.FeatureSandboxNamespace].Enabled {
 			sandboxes = append(sandboxes, "namespace")
 		}
+		// TODO: Add "android" sandbox here when needed. Will require fixing runtests.
 	}
 	for _, sandbox := range sandboxes {
 		enabledCalls, disabledCalls, err := buildCallList(args.target, args.enabledCalls, sandbox)

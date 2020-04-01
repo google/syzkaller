@@ -115,6 +115,9 @@ func main() {
 		fmt.Printf("%-24v: %v\n", feat.Name, feat.Reason)
 	}
 	for sandbox, calls := range enabledCalls {
+		if sandbox == "" {
+			sandbox = "no"
+		}
 		fmt.Printf("%-24v: %v calls enabled\n", sandbox+" sandbox", len(calls))
 	}
 	ctx := &runtest.Context{
