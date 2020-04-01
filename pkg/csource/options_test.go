@@ -220,6 +220,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": true,
 			"close_fds":   true,
 			"devlink_pci": true,
+			"usb":         true,
 		}},
 		{"none", "none", false, map[string]bool{
 			"tun":         false,
@@ -229,6 +230,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": false,
 			"close_fds":   false,
 			"devlink_pci": false,
+			"usb":         false,
 		}},
 		{"all", "none", true, map[string]bool{
 			"tun":         true,
@@ -238,6 +240,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": true,
 			"close_fds":   true,
 			"devlink_pci": true,
+			"usb":         true,
 		}},
 		{"", "none", true, map[string]bool{
 			"tun":         false,
@@ -247,6 +250,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": false,
 			"close_fds":   false,
 			"devlink_pci": false,
+			"usb":         false,
 		}},
 		{"none", "all", true, map[string]bool{
 			"tun":         false,
@@ -256,6 +260,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": false,
 			"close_fds":   false,
 			"devlink_pci": false,
+			"usb":         false,
 		}},
 		{"none", "", true, map[string]bool{
 			"tun":         true,
@@ -265,6 +270,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": true,
 			"close_fds":   true,
 			"devlink_pci": true,
+			"usb":         true,
 		}},
 		{"tun,net_dev", "none", true, map[string]bool{
 			"tun":         true,
@@ -274,6 +280,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": false,
 			"close_fds":   false,
 			"devlink_pci": false,
+			"usb":         false,
 		}},
 		{"none", "cgroups,net_dev", true, map[string]bool{
 			"tun":         true,
@@ -283,6 +290,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": true,
 			"close_fds":   true,
 			"devlink_pci": true,
+			"usb":         true,
 		}},
 		{"close_fds", "none", true, map[string]bool{
 			"tun":         false,
@@ -292,6 +300,7 @@ func TestParseFeaturesFlags(t *testing.T) {
 			"binfmt_misc": false,
 			"close_fds":   true,
 			"devlink_pci": false,
+			"usb":         false,
 		}},
 	}
 	for i, test := range tests {

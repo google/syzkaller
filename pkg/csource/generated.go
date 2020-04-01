@@ -7066,6 +7066,14 @@ static void setup_kcsan_filterlist(char** frames, int nframes, bool blacklist)
 #endif
 #endif
 
+#if SYZ_EXECUTOR || SYZ_USB
+static void setup_usb()
+{
+	if (chmod("/dev/raw-gadget", 0666))
+		fail("failed to chmod /dev/raw-gadget");
+}
+#endif
+
 #elif GOOS_test
 
 #include <stdlib.h>
@@ -7548,6 +7556,9 @@ int main(void)
 #endif
 #if SYZ_KCSAN
 	setup_kcsan();
+#endif
+#if SYZ_USB
+	setup_usb();
 #endif
 
 #if SYZ_HANDLE_SEGV

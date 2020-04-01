@@ -844,6 +844,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		opts.BinfmtMisc = false
 		opts.CloseFDs = false
 		opts.DevlinkPCI = false
+		opts.USB = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -895,6 +896,13 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.DevlinkPCI = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.USB {
+			return false
+		}
+		opts.USB = false
 		return true
 	},
 	func(opts *csource.Options) bool {

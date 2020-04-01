@@ -39,6 +39,7 @@ type Options struct {
 	CloseFDs     bool `json:"close_fds"`
 	KCSAN        bool `json:"kcsan,omitempty"`
 	DevlinkPCI   bool `json:"devlinkpci,omitempty"`
+	USB          bool `json:"usb,omitempty"`
 
 	UseTmpDir  bool `json:"tmpdir,omitempty"`
 	HandleSegv bool `json:"segv,omitempty"`
@@ -131,6 +132,9 @@ func (opts Options) checkLinuxOnly(OS string) error {
 	if opts.DevlinkPCI {
 		return fmt.Errorf("option DevlinkPCI is not supported on %v", OS)
 	}
+	if opts.USB {
+		return fmt.Errorf("option USB is not supported on %v", OS)
+	}
 	if opts.Sandbox == sandboxNamespace ||
 		(opts.Sandbox == sandboxSetuid && !(OS == openbsd || OS == freebsd || OS == netbsd)) ||
 		opts.Sandbox == sandboxAndroid {
@@ -171,6 +175,7 @@ func DefaultOpts(cfg *mgrconfig.Config) Options {
 		opts.BinfmtMisc = false
 		opts.CloseFDs = false
 		opts.DevlinkPCI = false
+		opts.USB = false
 	}
 	if cfg.Sandbox == "" || cfg.Sandbox == "setuid" {
 		opts.NetReset = false
@@ -250,6 +255,7 @@ func defaultFeatures(value bool) Features {
 		"binfmt_misc": {"setup binfmt_misc for testing", value},
 		"close_fds":   {"close fds after each program", value},
 		"devlink_pci": {"setup devlink PCI device", value},
+		"usb":         {"setup and use /dev/raw-gadget for USB emulation", value},
 	}
 }
 
