@@ -93,6 +93,7 @@ echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a $DIR/etc/fst
 echo 'securityfs /sys/kernel/security securityfs defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo 'configfs /sys/kernel/config/ configfs defaults 0 0' | sudo tee -a $DIR/etc/fstab
 echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee -a $DIR/etc/fstab
+printf 'KERNEL=="raw-gadget"\t\tMODE="0666"' | sudo tee $DIR/etc/udev/rules.d/99-raw-gadget.rules
 echo "kernel.printk = 7 4 1 3" | sudo tee -a $DIR/etc/sysctl.conf
 echo 'debug.exception-trace = 0' | sudo tee -a $DIR/etc/sysctl.conf
 echo "net.core.bpf_jit_enable = 1" | sudo tee -a $DIR/etc/sysctl.conf
