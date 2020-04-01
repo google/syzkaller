@@ -27,6 +27,7 @@ func init() {
 	checkFeature[FeatureNetDevices] = unconditionallyEnabled
 	checkFeature[FeatureKCSAN] = checkKCSAN
 	checkFeature[FeatureDevlinkPCI] = checkDevlinkPCI
+	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
 }
 
 func checkCoverage() string {
@@ -183,7 +184,7 @@ func checkNetInjection() string {
 	return ""
 }
 
-func checkUSBInjection() string {
+func checkUSBEmulation() string {
 	if err := osutil.IsAccessible("/dev/raw-gadget"); err != nil {
 		return err.Error()
 	}

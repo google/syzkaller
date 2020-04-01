@@ -3514,3 +3514,11 @@ static void setup_kcsan_filterlist(char** frames, int nframes, bool blacklist)
 #define SYZ_HAVE_KCSAN 1
 #endif
 #endif
+
+#if SYZ_EXECUTOR || SYZ_USB
+static void setup_usb()
+{
+	if (chmod("/dev/raw-gadget", 0666))
+		fail("failed to chmod /dev/raw-gadget");
+}
+#endif
