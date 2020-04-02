@@ -7,6 +7,9 @@ It is so-called [Standard environment](https://cloud.google.com/appengine/docs/s
 To deploy and manage the app you need to install [Google Cloud SDK](https://cloud.google.com/sdk/install).\
 For more details about App Engine refer to the [docs](https://cloud.google.com/appengine/docs/standard/go/).
 
+Here is "big" picture of possible setup:
+![Overall picture of syzbot setup](/docs/syzbot_architecture.png)
+
 **Note**: The app is not stable and is not officially supported. It's here only to power the main deployment.
 
 To deploy the app you need to add a `.go` file with production config. The config specifies kernel namespaces,
