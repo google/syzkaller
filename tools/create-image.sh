@@ -81,7 +81,8 @@ if [ $FEATURE = "full" ]; then
 fi
 
 sudo rm -rf $DIR
-mkdir -p $DIR
+sudo mkdir -p $DIR
+sudo chmod 0755 $DIR
 sudo debootstrap --include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $DIR
 
 # Set some defaults and enable promtless ssh to the machine for root.
