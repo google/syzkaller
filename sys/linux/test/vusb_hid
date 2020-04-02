@@ -1,4 +1,4 @@
-# requires: -sandbox=setuid -sandbox=namespace -repeat
+# requires: -repeat
 
 r0 = syz_usb_connect$hid(0x0, 0x36, &(0x7f0000000040)=ANY=[@ANYBLOB="12010000000018105e04da07000000000001090224000100000000090400000903000000092100000001222200090581030800000000"], 0x0)
 syz_usb_control_io$hid(r0, 0x0, 0x0)
