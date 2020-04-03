@@ -545,6 +545,10 @@ var syscalls_amd64 = []*Syscall{
 	{NR: 12, Name: "chdir", CallName: "chdir", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
+	{NR: 34, Name: "chflags", CallName: "chflags", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2, 4, 8, 65536, 131072, 262144}, true},
+	}},
 	{NR: 15, Name: "chmod", CallName: "chmod", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
@@ -633,6 +637,10 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{NR: 13, Name: "fchdir", CallName: "fchdir", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+	}},
+	{NR: 35, Name: "fchflags", CallName: "fchflags", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2, 4, 8, 65536, 131072, 262144}, true},
 	}},
 	{NR: 124, Name: "fchmod", CallName: "fchmod", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -827,6 +835,10 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 8}, &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Path: []string{"optval"}}},
 	}},
 	{NR: 24, Name: "getuid", CallName: "getuid", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 304, Name: "lchflags", CallName: "lchflags", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2, 4, 8, 65536, 131072, 262144}, true},
+	}},
 	{NR: 275, Name: "lchown", CallName: "lchown", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
@@ -1678,6 +1690,9 @@ var consts_amd64 = []ConstValue{
 	{"SEM_UNDO", 4096},
 	{"SETALL", 9},
 	{"SETVAL", 8},
+	{"SF_APPEND", 262144},
+	{"SF_ARCHIVED", 65536},
+	{"SF_IMMUTABLE", 131072},
 	{"SHM_LOCK", 3},
 	{"SHM_RDONLY", 4096},
 	{"SHM_RND", 8192},
@@ -1737,6 +1752,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_accept", 30},
 	{"SYS_bind", 104},
 	{"SYS_chdir", 12},
+	{"SYS_chflags", 34},
 	{"SYS_chmod", 15},
 	{"SYS_chown", 16},
 	{"SYS_chroot", 61},
@@ -1754,6 +1770,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_exit", 1},
 	{"SYS_faccessat", 462},
 	{"SYS_fchdir", 13},
+	{"SYS_fchflags", 35},
 	{"SYS_fchmod", 124},
 	{"SYS_fchmodat", 463},
 	{"SYS_fchown", 123},
@@ -1781,6 +1798,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_getsockname", 32},
 	{"SYS_getsockopt", 118},
 	{"SYS_getuid", 24},
+	{"SYS_lchflags", 304},
 	{"SYS_lchown", 275},
 	{"SYS_link", 9},
 	{"SYS_linkat", 457},
@@ -1878,6 +1896,10 @@ var consts_amd64 = []ConstValue{
 	{"S_IXOTH", 1},
 	{"S_IXUSR", 64},
 	{"TIMER_ABSTIME", 1},
+	{"UF_APPEND", 4},
+	{"UF_IMMUTABLE", 2},
+	{"UF_NODUMP", 1},
+	{"UF_OPAQUE", 8},
 	{"WALLSIG", 8},
 	{"WALTSIG", 4},
 	{"WCONTINUED", 16},
@@ -1894,4 +1916,4 @@ var consts_amd64 = []ConstValue{
 	{"_UC_STACK", 2},
 }
 
-const revision_amd64 = "a99885ca1ee8b334947a9227591964a15f788ff0"
+const revision_amd64 = "02007478c36366bd9b420e8c59574fd04a9a8014"

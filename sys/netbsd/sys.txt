@@ -50,6 +50,9 @@ chown(file ptr[in, filename], uid uid, gid gid)
 lchown(file ptr[in, filename], uid uid, gid gid)
 fchown(fd fd, uid uid, gid gid)
 fchownat(dirfd fd_dir, file ptr[in, filename], uid uid, gid gid, flags flags[at_flags])
+chflags(file ptr[in, filename], flags flags[chflags_flags])
+fchflags(fd fd, flags flags[chflags_flags])
+lchflags(file ptr[in, filename], flags flags[chflags_flags])
 faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[open_mode], flags flags[faccessat_flags])
 utimes(filename ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
@@ -262,5 +265,6 @@ fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
 fcntl_flags = FD_CLOEXEC
 fcntl_status = O_APPEND, O_ASYNC, O_NONBLOCK, O_DSYNC, O_RSYNC, O_ALT_IO, O_DIRECT, O_NOSIGPIPE
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
+chflags_flags = SF_APPEND, SF_IMMUTABLE, SF_ARCHIVED, UF_OPAQUE, UF_APPEND, UF_IMMUTABLE, UF_NODUMP
 clone_flags = CLONE_CSIGNAL, CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PID, CLONE_PTRACE, CLONE_VFORK
 sa_flags = SA_ONSTACK, SA_RESTART, SA_RESETHAND, SA_NODEFER, SA_NOCLDSTOP, SA_NOCLDWAIT, SA_SIGINFO, SA_NOKERNINFO, SA_ALLBITS
