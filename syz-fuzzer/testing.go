@@ -147,6 +147,10 @@ func checkMachine(args *checkArgs) (*rpctype.CheckArgs, error) {
 	if err := checkSimpleProgram(args, features); err != nil {
 		return nil, err
 	}
+	return checkCalls(args, features)
+}
+
+func checkCalls(args *checkArgs, features *host.Features) (*rpctype.CheckArgs, error) {
 	res := &rpctype.CheckArgs{
 		Features:      features,
 		EnabledCalls:  make(map[string][]int),
