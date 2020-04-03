@@ -7,10 +7,13 @@ It is so-called [Standard environment](https://cloud.google.com/appengine/docs/s
 To deploy and manage the app you need to install [Google Cloud SDK](https://cloud.google.com/sdk/install).\
 For more details about App Engine refer to the [docs](https://cloud.google.com/appengine/docs/standard/go/).
 
-Here is "big" picture of possible setup:
+**Note**: The app is not stable and is not officially supported. It's here only to power the main deployment.
+
+Here is "big" picture of a possible setup:
 ![Overall picture of syzbot setup](/docs/syzbot_architecture.png)
 
-**Note**: The app is not stable and is not officially supported. It's here only to power the main deployment.
+**Note**: the vector source is [here](https://docs.google.com/drawings/d/16EdqYrWD4PWD2nV_PoDPvC5VPry2H40Sm8Min-RtDdA);
+to update: make a copy of the source, edit, download a png, update the png and include a link to your vector copy into the PR.
 
 To deploy the app you need to add a `.go` file with production config. The config specifies kernel namespaces,
 bug reporting details, API keys, etc. Tests contain a [config example](app_test.go), but it's not ready for
