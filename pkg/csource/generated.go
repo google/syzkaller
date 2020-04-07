@@ -3096,7 +3096,7 @@ static bool lookup_connect_response_out_ath9k(int fd, const struct vusb_connect_
 		break;
 	}
 
-	fail("lookup_connect_response_out_ath9k: unknown request");
+	debug("lookup_connect_response_out_ath9k: unknown request");
 	return false;
 }
 
