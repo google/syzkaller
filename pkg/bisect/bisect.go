@@ -29,13 +29,14 @@ type Config struct {
 }
 
 type KernelConfig struct {
-	Repo      string
-	Branch    string
-	Commit    string
-	Cmdline   string
-	Sysctl    string
-	Config    []byte
-	Userspace string
+	Repo           string
+	Branch         string
+	Commit         string
+	Cmdline        string
+	Sysctl         string
+	Config         []byte
+	BaselineConfig []byte
+	Userspace      string
 }
 
 type SyzkallerConfig struct {

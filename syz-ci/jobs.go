@@ -370,6 +370,16 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 	if err := instance.OverrideVMCount(mgrcfg, bisect.NumTests); err != nil {
 		return err
 	}
+
+	var baseline []byte
+	var err error
+	// Read possible baseline for config minimization
+	if len(mgr.mgrcfg.KernelBaselineConfig) != 0 {
+		baseline, err = ioutil.ReadFile(mgr.mgrcfg.KernelBaselineConfig)
+		if err != nil {
+			return err
+		}
+	}
 	trace := new(bytes.Buffer)
 	cfg := &bisect.Config{
 		Trace:    io.MultiWriter(trace, log.VerboseWriter(3)),
@@ -377,13 +387,14 @@ func (jp *JobProcessor) bisect(job *Job, mgrcfg *mgrconfig.Config) error {
 		Fix:      req.Type == dashapi.JobBisectFix,
 		BinDir:   jp.cfg.BisectBinDir,
 		Kernel: bisect.KernelConfig{
-			Repo:      mgr.mgrcfg.Repo,
-			Branch:    mgr.mgrcfg.Branch,
-			Commit:    req.KernelCommit,
-			Cmdline:   mgr.mgrcfg.KernelCmdline,
-			Sysctl:    mgr.mgrcfg.KernelSysctl,
-			Config:    req.KernelConfig,
-			Userspace: mgr.mgrcfg.Userspace,
+			Repo:           mgr.mgrcfg.Repo,
+			Branch:         mgr.mgrcfg.Branch,
+			Commit:         req.KernelCommit,
+			Cmdline:        mgr.mgrcfg.KernelCmdline,
+			Sysctl:         mgr.mgrcfg.KernelSysctl,
+			Config:         req.KernelConfig,
+			BaselineConfig: baseline,
+			Userspace:      mgr.mgrcfg.Userspace,
 		},
 		Syzkaller: bisect.SyzkallerConfig{
 			Repo:   jp.syzkallerRepo,
