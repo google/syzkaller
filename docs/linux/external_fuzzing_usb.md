@@ -26,13 +26,14 @@ Kernel patches in mainline:
 - [usb, kcov: collect coverage from hub_event](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=95d23dc27bde0ab4b25f7ade5e2fddc08dd97d9b)
 - [USB: dummy-hcd: use usb_urb_dir_in instead of usb_pipein](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6dabeb891c001c592645df2f477fed9f5d959987)
 - [USB: dummy-hcd: increase max number of devices to 32](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8442b02bf3c6770e0d7e7ea17be36c30e95987b6)
-- (All other patches that touch `drivers/usb/gadget/udc/dummy_hcd.c` and `kernel/kcov.c` are recommended.)
+- [usb: gadget: add raw-gadget interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10)
+- [usb: raw_gadget: fix compilation warnings in uapi headers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=956ae8df7fed0a2acc7ae934f24493eaeb031f62)
+- (All other patches that touch `drivers/usb/gadget/udc/dummy_hcd.c`, `drivers/usb/gadget/legacy/raw_gadget.c` and `kernel/kcov.c` are recommended.)
 
 Kernel patches in review:
 
-- [[v6] usb: gadget: add raw-gadget interface](https://patchwork.kernel.org/cover/11400917/)
-- [[USB] usb: raw_gadget: fix compilation warnings in uapi headers](https://patchwork.kernel.org/patch/11443077/)
-- [[v3] kcov: collect coverage from usbhid interrupts](https://patchwork.kernel.org/cover/11448129/)
+- [[v1] usb: raw-gadget: Fix copy_to/from_user() checks](https://patchwork.kernel.org/patch/11475641/)
+- [[v3] usb: raw-gadget: fix raw_event_queue_fetch locking](https://patchwork.kernel.org/patch/11478261/)
 
 
 ## Internals
