@@ -200,7 +200,7 @@ connect(-1, {sa_family=0xa, sin6_port="\x30\x39",` +
 			`sin6_scope_id=4207869677}, 28) = -1
 `, `
 connect(0xffffffffffffffff, &(0x7f0000000000)=` +
-			`@in6={0xa, 0x3039, 0x75bcd7a, @rand_addr="00000000000000000000000000000001",` +
+			`@in6={0xa, 0x3039, 0x75bcd7a, @rand_addr='\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01',` +
 			` 0xfacefeed}, 0x80)
 `,
 		}, {`
@@ -210,7 +210,7 @@ connect(-1, {sa_family=0xa, sin6_port="\x30\x39",` +
 			` sin6_scope_id=4207869677}, 28) = -1
 `, `
 connect(0xffffffffffffffff, &(0x7f0000000000)=` +
-			`@in6={0xa, 0x3039, 0x75bcd7a, @rand_addr="0012003400560078009000ab00cd00ef",` +
+			`@in6={0xa, 0x3039, 0x75bcd7a, @rand_addr='\x00\x12\x004\x00V\x00x\x00\x90\x00\xab\x00\xcd\x00\xef',` +
 			` 0xfacefeed}, 0x80)
 `,
 		}, {`
@@ -254,7 +254,7 @@ setsockopt(3, 0x29, 0x2a, {gr_interface=0, gr_group={sa_family=0xa, sin6_port="\
 `, `
 r0 = socket$inet6_tcp(0xa, 0x1, 0x0)
 setsockopt$inet6_MCAST_JOIN_GROUP(r0, 0x29, 0x2a, ` +
-			`&(0x7f0000000000)={0x0, {{0xa, 0x0, 0x0, @rand_addr="ff020000000000000000000000000001"}}}, 0x88)`,
+			`&(0x7f0000000000)={0x0, {{0xa, 0x0, 0x0, @rand_addr='\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01'}}}, 0x88)`,
 		}, {
 			`
 openat(-100, "\x2f\x64\x65\x76\x2f\x72\x74\x63\x30", 0) = 3

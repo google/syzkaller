@@ -300,8 +300,8 @@ ipv4_addr_initdev {
 }
 
 ipv4_addr [
-# random
-	rand_addr	int32be
+# Few public random addresses 100.1.1.[0-2]
+	rand_addr	int32be[0x64010100:0x64010102]
 # 0.0.0.0
 	empty		const[0x0, int32be]
 # These correspond to LOCAL_IPV4/REMOTE_IPV4/DEV_IPV4 in executor/common_linux.h
@@ -317,6 +317,8 @@ ipv4_addr [
 	multicast2	const[0xe0000002, int32be]
 # 255.255.255.255
 	broadcast	const[0xffffffff, int32be]
+# 10.1.1.[0-2] can be used for custom things within the image
+	private		int32be[0xa010100:0xa010102]
 ] [size[4]]
 
 type ipv4_addr_mask flags[ipv4_addr_mask_vals, int32be]
@@ -465,14 +467,14 @@ ipv6_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, 
 
 ipv6_addr_empty {
 	a0	array[const[0x0, int8], 16]
-}
+} [packed, align_4]
 
 type ipv6_addr_t[LAST] {
 	a0	const[0xfe, int8]
 	a1	const[0x80, int8]
 	a2	array[const[0x0, int8], 13]
 	a3	LAST
-} [packed]
+} [packed, align_4]
 
 ipv6_addr_initdev {
 	a0	const[0xfe, int8]
@@ -480,7 +482,7 @@ ipv6_addr_initdev {
 	a2	array[const[0x0, int8], 12]
 	a3	int8[0:1]
 	a4	proc[1, 1, int8]
-}
+} [packed, align_4]
 
 ipv6_addr_loopback {
 	a0	const[0, int64be]
@@ -491,34 +493,50 @@ ipv6_addr_ipv4 {
 	a0	array[const[0x0, int8], 10]
 	a1	array[const[0xff, int8], 2]
 	a3	ipv4_addr
-} [packed]
+} [packed, align_4]
 
 ipv6_addr_multicast1 {
 	a0	const[0xff, int8]
 	a1	const[0x1, int8]
 	a2	array[const[0x0, int8], 13]
 	a3	const[0x1, int8]
-} [packed]
+} [packed, align_4]
 
 ipv6_addr_multicast2 {
 	a0	const[0xff, int8]
 	a1	const[0x2, int8]
 	a2	array[const[0x0, int8], 13]
 	a3	const[0x1, int8]
-} [packed]
+} [packed, align_4]
+
+type ipv6_addr_private[BYTE2] {
+	a0	const[0xfc, int8]
+	a1	const[BYTE2, int8]
+	a2	array[const[0x0, int8], 13]
+	a3	int8[0:1]
+} [packed, align_4]
+
+ipv6_addr_random = `20010000000000000000000000000000`, `20010000000000000000000000000001`, `20010000000000000000000000000002`
 
 ipv6_addr [
-	rand_addr	array[int8, 16]
+# Few public random addresses
+	rand_addr	stringnoz[ipv6_addr_random]
 	empty		ipv6_addr_empty
 # These correspond to LOCAL_IPV6/REMOTE_IPV6/DEV_IPV6 in executor/common_linux.h
 	local		ipv6_addr_t[const[0xaa, int8]]
 	remote		ipv6_addr_t[const[0xbb, int8]]
 	dev		ipv6_addr_t[netdev_addr_id]
 	initdev		ipv6_addr_initdev
+# Some special addresses:
 	loopback	ipv6_addr_loopback
 	ipv4		ipv6_addr_ipv4
 	mcast1		ipv6_addr_multicast1
 	mcast2		ipv6_addr_multicast2
+# Several custom private ranges with 2 addresses each: fc0X::/127.
+# Can be used for custom things within the tested image.
+	private0	ipv6_addr_private[0]
+	private1	ipv6_addr_private[1]
+	private2	ipv6_addr_private[2]
 ] [size[16]]
 
 type ipv6_addr_mask array[flags[ipv4_addr_mask_vals, int32be], 4]
