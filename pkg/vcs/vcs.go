@@ -69,6 +69,10 @@ type Bisecter interface {
 	EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error)
 }
 
+type ConfigMinimizer interface {
+	Minimize(original, baseline []byte, trace io.Writer, pred func(test []byte) (BisectResult, error)) ([]byte, error)
+}
+
 type Commit struct {
 	Hash       string
 	Title      string
