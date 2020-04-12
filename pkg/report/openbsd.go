@@ -226,7 +226,7 @@ var openbsdOopses = append([]*oops{
 		[]*regexp.Regexp{},
 	},
 	{
-		[]byte("uvm_fault"),
+		[]byte("uvm_fault("),
 		[]oopsFormat{
 			{
 				title: compile("uvm_fault\\((?:.*\\n)+?.*Stopped at[ ]+{{ADDR}}"),
