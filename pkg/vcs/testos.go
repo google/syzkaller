@@ -3,9 +3,16 @@
 
 package vcs
 
+import (
+	"fmt"
+	"io"
+)
+
 type testos struct {
 	*git
 }
+
+var _ ConfigMinimizer = new(testos)
 
 func newTestos(dir string) *testos {
 	return &testos{
@@ -18,5 +25,13 @@ func (ctx *testos) PreviousReleaseTags(commit string) ([]string, error) {
 }
 
 func (ctx *testos) EnvForCommit(binDir, commit string, kernelConfig []byte) (*BisectEnv, error) {
-	return &BisectEnv{}, nil
+	return &BisectEnv{KernelConfig: kernelConfig}, nil
+}
+
+func (ctx *testos) Minimize(original, baseline []byte, trace io.Writer,
+	pred func(test []byte) (BisectResult, error)) ([]byte, error) {
+	if string(baseline) == "minimize-fails" {
+		return nil, fmt.Errorf("minimization failure")
+	}
+	return original, nil
 }
