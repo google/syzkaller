@@ -102,9 +102,11 @@ func main() {
 	loadString("syzkaller.commit", &cfg.Syzkaller.Commit)
 	loadString("kernel.commit", &cfg.Kernel.Commit)
 	loadFile("kernel.config", &cfg.Kernel.Config, true)
+	loadFile("kernel.baseline_config", &cfg.Kernel.BaselineConfig, false)
 	loadFile("repro.syz", &cfg.Repro.Syz, false)
 	loadFile("repro.c", &cfg.Repro.C, false)
 	loadFile("repro.opts", &cfg.Repro.Opts, true)
+
 	if _, err := bisect.Run(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "bisection failed: %v\n", err)
 		os.Exit(1)

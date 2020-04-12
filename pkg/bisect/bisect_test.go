@@ -20,9 +20,11 @@ import (
 // testEnv will implement instance.BuilderTester. This allows us to
 // set bisect.env.inst to a testEnv object.
 type testEnv struct {
-	t    *testing.T
-	r    vcs.Repo
-	test BisectionTest
+	t *testing.T
+	r vcs.Repo
+	// Kernel config used in "build"
+	config string
+	test   BisectionTest
 }
 
 func (env *testEnv) BuildSyzkaller(repo, commit string) error {
@@ -36,17 +38,25 @@ func (env *testEnv) BuildKernel(compilerBin, userspaceDir, cmdlineFile, sysctlFi
 	if commit >= env.test.sameBinaryStart && commit <= env.test.sameBinaryEnd {
 		kernelSign = "same-sign"
 	}
+	env.config = string(kernelConfig)
+	if env.config == "baseline-fails" {
+		return "", kernelSign, fmt.Errorf("Failure")
+	}
 	return "", kernelSign, nil
 }
 
 func (env *testEnv) Test(numVMs int, reproSyz, reproOpts, reproC []byte) ([]error, error) {
 	commit := env.headCommit()
-	if commit >= env.test.brokenStart && commit <= env.test.brokenEnd {
+	if commit >= env.test.brokenStart && commit <= env.test.brokenEnd ||
+		env.config == "baseline-skip" {
 		return nil, fmt.Errorf("broken build")
 	}
-	if !env.test.fix && commit >= env.test.culprit || env.test.fix && commit < env.test.culprit {
+	if (env.config == "baseline-repro" || env.config == "original config") &&
+		(!env.test.fix && commit >= env.test.culprit || env.test.fix &&
+			commit < env.test.culprit) {
 		return crashErrors(numVMs, "crash occurs"), nil
 	}
+
 	return make([]error, numVMs), nil
 }
 
@@ -114,8 +124,10 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 			KernelSrc:    baseDir,
 		},
 		Kernel: KernelConfig{
-			Repo:   baseDir,
-			Commit: sc.Hash,
+			Repo:           baseDir,
+			Commit:         sc.Hash,
+			Config:         []byte("original config"),
+			BaselineConfig: []byte(test.baselineConfig),
 		},
 	}
 	inst := &testEnv{
@@ -123,7 +135,7 @@ func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, er
 		r:    r,
 		test: test,
 	}
-	res, err := runImpl(cfg, r, r.(vcs.Bisecter), inst)
+	res, err := runImpl(cfg, r, r.(vcs.Bisecter), r.(vcs.ConfigMinimizer), inst)
 	t.Log(trace.String())
 	return res, err
 }
@@ -146,7 +158,8 @@ type BisectionTest struct {
 	commitLen    int
 	oldestLatest int
 	// input and output
-	culprit int
+	culprit        int
+	baselineConfig string
 }
 
 var bisectionTests = []BisectionTest{
@@ -157,6 +170,56 @@ var bisectionTests = []BisectionTest{
 		commitLen:   1,
 		expectRep:   true,
 		culprit:     602,
+	},
+	// Test bisection returns correct cause with different baseline/config
+	// combinations
+	{
+		name:           "cause-finds-cause-baseline-repro",
+		startCommit:    905,
+		commitLen:      1,
+		expectRep:      true,
+		culprit:        602,
+		baselineConfig: "baseline-repro",
+	},
+	{
+		name:           "cause-finds-cause-baseline-does-not-repro",
+		startCommit:    905,
+		commitLen:      1,
+		expectRep:      true,
+		culprit:        602,
+		baselineConfig: "baseline-not-reproducing",
+	},
+	{
+		name:           "cause-finds-cause-baseline-fails",
+		startCommit:    905,
+		commitLen:      1,
+		expectRep:      true,
+		culprit:        602,
+		baselineConfig: "baseline-fails",
+	},
+	{
+		name:           "cause-finds-cause-baseline-skip",
+		startCommit:    905,
+		commitLen:      1,
+		expectRep:      true,
+		culprit:        602,
+		baselineConfig: "baseline-skip",
+	},
+	{
+		name:           "cause-finds-cause-minimize_succeeds",
+		startCommit:    905,
+		commitLen:      1,
+		expectRep:      true,
+		culprit:        602,
+		baselineConfig: "minimize-succeeds",
+	},
+	{
+		name:           "cause-finds-cause-minimize_fails",
+		startCommit:    905,
+		commitLen:      1,
+		expectRep:      true,
+		culprit:        602,
+		baselineConfig: "minimize-fails",
 	},
 	// Tests that cause bisection returns error when crash does not reproduce
 	// on the original commit.
