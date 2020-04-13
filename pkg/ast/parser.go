@@ -295,8 +295,15 @@ func (p *parser) parseCall(name *Ident) *Call {
 		p.tryConsume(tokComma)
 	}
 	p.consume(tokRParen)
-	if p.tok != tokNewLine {
+	if p.tok != tokNewLine && p.tok != tokLParen {
 		c.Ret = p.parseType()
+	}
+	if p.tryConsume(tokLParen) {
+		c.Attrs = append(c.Attrs, p.parseType())
+		for p.tryConsume(tokComma) {
+			c.Attrs = append(c.Attrs, p.parseType())
+		}
+		p.consume(tokRParen)
 	}
 	return c
 }
