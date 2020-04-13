@@ -89,6 +89,7 @@ func (n *Call) Clone() Node {
 		NR:       n.NR,
 		Args:     cloneFields(n.Args),
 		Ret:      ret,
+		Attrs:    cloneTypes(n.Attrs),
 	}
 }
 

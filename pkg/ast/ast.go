@@ -92,6 +92,7 @@ type Call struct {
 	NR       uint64
 	Args     []*Field
 	Ret      *Type
+	Attrs    []*Type
 }
 
 func (n *Call) Info() (Pos, string, string) {

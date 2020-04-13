@@ -112,6 +112,13 @@ func (c *Call) serialize(w io.Writer) {
 	if c.Ret != nil {
 		fmt.Fprintf(w, " %v", fmtType(c.Ret))
 	}
+	if len(c.Attrs) != 0 {
+		fmt.Fprintf(w, " (")
+		for i, t := range c.Attrs {
+			fmt.Fprintf(w, "%v%v", comma(i, ""), fmtType(t))
+		}
+		fmt.Fprintf(w, ")")
+	}
 	fmt.Fprintf(w, "\n")
 }
 

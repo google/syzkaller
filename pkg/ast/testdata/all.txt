@@ -23,6 +23,12 @@ str_flags4 = "string", 42		### unexpected int, expecting string, hex string
 call(foo ,int32 , bar int32)		### unexpected ',', expecting int, identifier, string
 call(foo int32:"bar")			### unexpected string, expecting int, identifier
 call(a int32, b len[a:"bar"])		### unexpected string, expecting int, identifier
+call() (attr)
+call() (attr1, attr2[arg1, "arg2"])
+call() ("attr1")
+call() (42)
+call() (				### unexpected '\n', expecting int, identifier, string
+call() ()				### unexpected ')', expecting int, identifier, string
 
 define FOO bar
 
