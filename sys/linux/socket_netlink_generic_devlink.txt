@@ -71,3 +71,103 @@ devlink_port_set {
 	port_handle		devlink_port_handle
 	DEVLINK_ATTR_PORT_TYPE	nlattr[DEVLINK_ATTR_PORT_TYPE, int16[DEVLINK_PORT_TYPE_NOTSET:DEVLINK_PORT_TYPE_IB]]
 } [packed, align_4]
+
+type msghdr_nl_devlink_port_split msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_PORT_SPLIT], devlink_port_split]]
+sendmsg$DEVLINK_CMD_PORT_SPLIT(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_port_split], f flags[send_flags])
+
+devlink_port_split {
+	port_handle			devlink_port_handle
+	DEVLINK_ATTR_PORT_SPLIT_COUNT	nlattr[DEVLINK_ATTR_PORT_SPLIT_COUNT, int32[0:8]]
+} [packed, align_4]
+
+type msghdr_nl_devlink_port_unsplit msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_PORT_UNSPLIT], devlink_port_unsplit]]
+sendmsg$DEVLINK_CMD_PORT_UNSPLIT(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_port_unsplit], f flags[send_flags])
+
+devlink_port_unsplit {
+	port_handle	devlink_port_handle
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_get msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_GET], devlink_sb_get]]
+sendmsg$DEVLINK_CMD_SB_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_get], f flags[send_flags])
+
+devlink_sb_get {
+	handle			devlink_handle
+	DEVLINK_ATTR_SB_INDEX	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_pool_get msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_POOL_GET], devlink_sb_pool_get]]
+sendmsg$DEVLINK_CMD_SB_POOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_pool_get], f flags[send_flags])
+
+devlink_sb_pool_get {
+	handle				devlink_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_POOL_INDEX	nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_pool_set msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_POOL_SET], devlink_sb_pool_set]]
+sendmsg$DEVLINK_CMD_SB_POOL_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_pool_set], f flags[send_flags])
+
+devlink_sb_pool_set {
+	handle					devlink_handle
+	DEVLINK_ATTR_SB_INDEX			nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_POOL_INDEX		nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+	DEVLINK_ATTR_SB_POOL_SIZE		nlattr[DEVLINK_ATTR_SB_POOL_SIZE, int32]
+	DEVLINK_ATTR_SB_POOL_THRESHOLD_TYPE	nlattr[DEVLINK_ATTR_SB_POOL_THRESHOLD_TYPE, int8[DEVLINK_SB_THRESHOLD_TYPE_STATIC:DEVLINK_SB_THRESHOLD_TYPE_DYNAMIC]]
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_port_pool_get msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_PORT_POOL_GET], devlink_sb_port_pool_get]]
+sendmsg$DEVLINK_CMD_SB_PORT_POOL_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_port_pool_get], f flags[send_flags])
+
+devlink_sb_port_pool_get {
+	handle				devlink_port_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_POOL_INDEX	nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_port_pool_set msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_PORT_POOL_SET], devlink_sb_port_pool_set]]
+sendmsg$DEVLINK_CMD_SB_PORT_POOL_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_port_pool_set], f flags[send_flags])
+
+devlink_sb_port_pool_set {
+	port_handle			devlink_port_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_POOL_INDEX	nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+	DEVLINK_ATTR_SB_THRESHOLD	nlattr[DEVLINK_ATTR_SB_THRESHOLD, int32]
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_tc_pool_bind_get msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_TC_POOL_BIND_GET], devlink_sb_tc_pool_bind_get]]
+sendmsg$DEVLINK_CMD_SB_TC_POOL_BIND_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_tc_pool_bind_get], f flags[send_flags])
+
+devlink_sb_tc_pool_bind_get {
+	handle				devlink_port_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_TC_INDEX	nlattr[DEVLINK_ATTR_SB_TC_INDEX, int16]
+	DEVLINK_ATTR_SB_POOL_TYPE	nlattr[DEVLINK_ATTR_SB_POOL_TYPE, int8[DEVLINK_SB_POOL_TYPE_INGRESS:DEVLINK_SB_POOL_TYPE_EGRESS]]
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_tc_pool_bind_set msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_TC_POOL_BIND_SET], devlink_sb_tc_pool_bind_set]]
+sendmsg$DEVLINK_CMD_SB_TC_POOL_BIND_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_tc_pool_bind_set], f flags[send_flags])
+
+devlink_sb_tc_pool_bind_set {
+	port_handle			devlink_port_handle
+	DEVLINK_ATTR_SB_INDEX		nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+	DEVLINK_ATTR_SB_TC_INDEX	nlattr[DEVLINK_ATTR_SB_TC_INDEX, int16]
+	DEVLINK_ATTR_SB_POOL_TYPE	nlattr[DEVLINK_ATTR_SB_POOL_TYPE, int8[DEVLINK_SB_POOL_TYPE_INGRESS:DEVLINK_SB_POOL_TYPE_EGRESS]]
+	DEVLINK_ATTR_SB_POOL_INDEX	nlattr[DEVLINK_ATTR_SB_POOL_INDEX, int16]
+	DEVLINK_ATTR_SB_THRESHOLD	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_occ_snapshot msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_OCC_SNAPSHOT], devlink_sb_occ_snapshot]]
+sendmsg$DEVLINK_CMD_SB_OCC_SNAPSHOT(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_occ_snapshot], f flags[send_flags])
+
+devlink_sb_occ_snapshot {
+	handle			devlink_handle
+	DEVLINK_ATTR_SB_INDEX	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+} [packed, align_4]
+
+type msghdr_nl_devlink_sb_occ_max_clear msghdr_netlink[netlink_msg_t[genl_devlink_family_id, genlmsghdr_t[DEVLINK_CMD_SB_OCC_MAX_CLEAR], devlink_sb_occ_max_clear]]
+sendmsg$DEVLINK_CMD_SB_OCC_MAX_CLEAR(fd sock_nl_generic, msg ptr[in, msghdr_nl_devlink_sb_occ_max_clear], f flags[send_flags])
+
+devlink_sb_occ_max_clear {
+	handle			devlink_handle
+	DEVLINK_ATTR_SB_INDEX	nlattr[DEVLINK_ATTR_SB_INDEX, int32]
+} [packed, align_4]
