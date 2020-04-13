@@ -77,6 +77,9 @@ func (n *Call) walk(cb func(Node)) {
 	if n.Ret != nil {
 		cb(n.Ret)
 	}
+	for _, a := range n.Attrs {
+		cb(a)
+	}
 }
 
 func (n *Struct) walk(cb func(Node)) {
