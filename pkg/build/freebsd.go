@@ -29,6 +29,9 @@ ident		SYZKALLER
 options 	COVERAGE
 options 	KCOV
 
+options 	KERN_TLS
+options 	TCPHPTS
+
 options 	DEBUG_VFS_LOCKS
 options 	DIAGNOSTIC
 `)
@@ -41,7 +44,8 @@ options 	DIAGNOSTIC
 	if err := ctx.make(params.KernelDir, objPrefix, "kernel-toolchain", "-DNO_CLEAN"); err != nil {
 		return err
 	}
-	if err := ctx.make(params.KernelDir, objPrefix, "buildkernel", fmt.Sprintf("KERNCONF=%v", confFile)); err != nil {
+	if err := ctx.make(params.KernelDir, objPrefix, "buildkernel", "WITH_EXTRA_TCP_STACKS=",
+		fmt.Sprintf("KERNCONF=%v", confFile)); err != nil {
 		return err
 	}
 
@@ -66,9 +70,13 @@ partn=$(gpart show /dev/${md} | awk '/freebsd-ufs/{print $3}' | head -n 1)
 tmpdir=$(mktemp -d)
 sudo mount /dev/${md}p${partn} $tmpdir
 
-sudo MAKEOBJDIRPREFIX=%s make -C %s installkernel KERNCONF=%s DESTDIR=$tmpdir
+sudo MAKEOBJDIRPREFIX=%s make -C %s installkernel WITH_EXTRA_TCP_STACKS= KERNCONF=%s DESTDIR=$tmpdir
 
-echo 'pf_load="YES"' | sudo tee -a ${tmpdir}/boot/loader.conf
+cat | sudo tee -a ${tmpdir}/boot/loader.conf <<__EOF__
+pf_load="YES"
+tcp_bbr_load="YES"
+tcp_rack_load="YES"
+__EOF__
 
 sudo umount $tmpdir
 sudo mdconfig -d -u ${md#md}
