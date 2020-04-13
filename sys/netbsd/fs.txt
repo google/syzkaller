@@ -13,6 +13,11 @@ resource pid[int32]: 0, 0xffffffffffffffff
 resource uid[int32]: 0, 0xffffffffffffffff
 resource gid[int32]: 0, 0xffffffffffffffff
 
+resource dev[int64]: 0, 0xffffffffffffffff
+resource mode[int32]: 0, 0xffffffffffffffff
+resource ino[int64]: 0, 0xffffffffffffffff
+resource nlink[int32]: 0, 0xffffffffffffffff
+
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 # Just so that we have something that creates fd_dir resources.
 open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
@@ -47,22 +52,24 @@ iovec_out {
 }
 
 stat {
-	dev	int64
-	ino	int64
-	mode	int32
-	nlink	int32
-	rdev	int64
-	size	int64
-	blksize	int32
-	blocks	int64
-	atime	int64
-	ansec	int64
-	mtime	int64
-	mnsec	int64
-	ctime	int64
-	cnsec	int64
-	pad1	const[0, int32]
-	pad2	const[0, int32]
+	dev		dev
+	mode		mode
+	ino		ino
+	nlink		nlink
+	uid		uid
+	gid		gid
+	rdev		dev
+	atim		timespec
+	mtim		timespec
+	ctim		timespec
+	birthtim	timespec
+	size		int64
+	blocks		int64
+	blksize		int32
+	flags		int32
+	gen		int32
+	spare1		int32
+	spare2		int32
 }
 
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_CREAT, O_TRUNC, O_EXCL, O_SHLOCK, O_EXLOCK, O_NOFOLLOW, O_CLOEXEC, O_NOSIGPIPE, O_DSYNC, O_SYNC, O_RSYNC, O_ALT_IO, O_NOCTTY, O_DIRECT, O_DIRECTORY, O_ASYNC
