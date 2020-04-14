@@ -43,19 +43,27 @@ func (*linux) prepare(sourcedir string, build bool, arches []string) error {
 }
 
 func (*linux) prepareArch(arch *Arch) error {
-	// Kernel misses these headers on all arches.
+	// Kernel misses these headers on some arches.
 	// So we create empty stubs in buildDir/syzkaller and add -IbuildDir/syzkaller
 	// as the last flag so it won't override real kernel headers.
-	for _, hdr := range []string{
-		"asm/a.out.h",
-		"asm/prctl.h",
-		"asm/mce.h",
+	for hdr, data := range map[string]string{
+		"asm/a.out.h": "",
+		"asm/prctl.h": "",
+		"asm/mce.h":   "",
+		"asm/kvm_host.h": `
+#define KVM_USER_MEM_SLOTS 1
+#define KVM_MAX_VCPUS 1
+struct kvm_vm_stat {};
+struct kvm_vcpu_stat {};
+struct kvm_arch {};
+struct kvm_vcpu_arch {};
+`,
 	} {
 		fullPath := filepath.Join(arch.buildDir, "syzkaller", hdr)
 		if err := osutil.MkdirAll(filepath.Dir(fullPath)); err != nil {
 			return err
 		}
-		if err := osutil.WriteFile(fullPath, nil); err != nil {
+		if err := osutil.WriteFile(fullPath, []byte(data)); err != nil {
 			return nil
 		}
 	}
