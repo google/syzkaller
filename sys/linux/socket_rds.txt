@@ -50,7 +50,7 @@ type cmsghdr_rds_t[TYPE, DATA] {
 	cmsg_level	const[SOL_RDS, int32]
 	cmsg_type	const[TYPE, int32]
 	data		DATA
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 rds_rdma_args {
 	cookie		rds_rdma_cookie_t
@@ -105,7 +105,7 @@ rds_rdma_cookie_t {
 # This should be a resource, but it's unclear how to obtain it.
 	key	int32
 	off	int32
-} [align_8]
+} [align[8]]
 
 rds_transport = RDS_TRANS_IB, RDS_TRANS_IWARP, RDS_TRANS_TCP, RDS_TRANS_NONE
 rds_rdma_flags = RDS_RDMA_READWRITE, RDS_RDMA_FENCE, RDS_RDMA_INVALIDATE, RDS_RDMA_USE_ONCE, RDS_RDMA_DONTWAIT, RDS_RDMA_NOTIFY_ME, RDS_RDMA_SILENT

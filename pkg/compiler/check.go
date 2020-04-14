@@ -235,12 +235,7 @@ func (comp *compiler) checkTypes() {
 		case *ast.Struct:
 			comp.checkStruct(checkCtx{}, n)
 		case *ast.Call:
-			for _, a := range n.Args {
-				comp.checkType(checkCtx{}, a.Type, checkIsArg)
-			}
-			if n.Ret != nil {
-				comp.checkType(checkCtx{}, n.Ret, checkIsArg|checkIsRet)
-			}
+			comp.checkCall(n)
 		}
 	}
 }
@@ -269,17 +264,9 @@ func (comp *compiler) checkAttributeValues() {
 		switch n := decl.(type) {
 		case *ast.Struct:
 			for _, attr := range n.Attrs {
-				if attr.Ident == "size" {
-					_, typ, name := n.Info()
-					if comp.structIsVarlen(n.Name.Name) {
-						comp.error(attr.Pos, "varlen %v %v has size attribute",
-							typ, name)
-					}
-					sz := attr.Args[0].Value
-					if sz == 0 || sz > 1<<20 {
-						comp.error(attr.Args[0].Pos, "size attribute has bad value %v"+
-							", expect [1, 1<<20]", sz)
-					}
+				desc := structOrUnionAttrs(n)[attr.Ident]
+				if desc.CheckConsts != nil {
+					desc.CheckConsts(comp, n, attr)
 				}
 			}
 		}
@@ -716,20 +703,15 @@ func (comp *compiler) checkStruct(ctx checkCtx, n *ast.Struct) {
 	for _, f := range n.Fields {
 		comp.checkType(ctx, f.Type, flags)
 	}
-	for _, attr := range n.Attrs {
-		if unexpected, _, ok := checkTypeKind(attr, kindIdent); !ok {
-			comp.error(attr.Pos, "unexpected %v, expect attribute", unexpected)
-			return
-		}
-		if len(attr.Colon) != 0 {
-			comp.error(attr.Colon[0].Pos, "unexpected ':'")
-			return
-		}
+	comp.parseAttrs(structOrUnionAttrs(n), n, n.Attrs)
+}
+
+func (comp *compiler) checkCall(n *ast.Call) {
+	for _, a := range n.Args {
+		comp.checkType(checkCtx{}, a.Type, checkIsArg)
 	}
-	if n.IsUnion {
-		comp.parseUnionAttrs(n)
-	} else {
-		comp.parseStructAttrs(n)
+	if n.Ret != nil {
+		comp.checkType(checkCtx{}, n.Ret, checkIsArg|checkIsRet)
 	}
 }
 
@@ -1128,11 +1110,13 @@ func (comp *compiler) checkVarlen(n *ast.Struct) {
 	// Non-varlen unions can't have varlen fields.
 	// Non-packed structs can't have varlen fields in the middle.
 	if n.IsUnion {
-		if varlen, _ := comp.parseUnionAttrs(n); varlen {
+		attrs := comp.parseAttrs(unionAttrs, n, n.Attrs)
+		if attrs[attrVarlen] != 0 {
 			return
 		}
 	} else {
-		if packed, _, _ := comp.parseStructAttrs(n); packed {
+		attrs := comp.parseAttrs(structAttrs, n, n.Attrs)
+		if attrs[attrPacked] != 0 {
 			return
 		}
 	}

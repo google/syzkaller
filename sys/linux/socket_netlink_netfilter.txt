@@ -26,7 +26,7 @@ netlink_msg_netfilter {
 	hdr	nfgenmsg
 # No body. Generic attribute can represent a random body.
 	attrs	array[nl_generic_attr]
-} [align_4]
+} [align[4]]
 
 type netlink_msg_netfilter_t[SUBSYS, CMD, POLICY] netlink_msg_netfilter_tt[SUBSYS, CMD, array[POLICY]]
 
@@ -39,14 +39,14 @@ type netlink_msg_netfilter_tt[SUBSYS, CMD, POLICY] {
 	pid	const[0, int32]
 	hdr	nfgenmsg
 	attrs	POLICY
-} [align_4]
+} [align[4]]
 
 nfgenmsg {
 	nfgen_family	flags[nfproto, int8]
 	version		const[NFNETLINK_V0, int8]
 # res_id seems to mean things like cpu/queue/group number, so prefer small values.
 	res_id		int16be[0:10]
-} [align_4]
+} [align[4]]
 
 nfnl_subsys = NFNL_SUBSYS_CTNETLINK, NFNL_SUBSYS_CTNETLINK_EXP, NFNL_SUBSYS_QUEUE, NFNL_SUBSYS_ULOG, NFNL_SUBSYS_OSF, NFNL_SUBSYS_IPSET, NFNL_SUBSYS_ACCT, NFNL_SUBSYS_CTNETLINK_TIMEOUT, NFNL_SUBSYS_CTHELPER, NFNL_SUBSYS_NFTABLES, NFNL_SUBSYS_NFT_COMPAT
 nfproto = NFPROTO_UNSPEC, NFPROTO_INET, NFPROTO_IPV4, NFPROTO_ARP, NFPROTO_NETDEV, NFPROTO_BRIDGE, NFPROTO_IPV6, NFPROTO_DECNET

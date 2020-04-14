@@ -45,28 +45,28 @@ cmsghdr_sctp_init {
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_INIT, int32]
 	msg	sctp_initmsg
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 cmsghdr_sctp_sndrcv {
 	len	len[parent, intptr]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_SNDRCV, int32]
 	msg	sctp_sndrcvinfo
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 cmsghdr_sctp_sndinfo {
 	len	len[parent, intptr]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_SNDINFO, int32]
 	msg	sctp_sndinfo
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 cmsghdr_sctp_prinfo {
 	len	len[parent, intptr]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_PRINFO, int32]
 	msg	sctp_prinfo
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 sctp_prinfo {
 	pr_policy	flags[sctp_pr_policies, int16]
@@ -78,7 +78,7 @@ cmsghdr_sctp_authinfo {
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_AUTHINFO, int32]
 	msg	sctp_authinfo
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 sctp_authinfo {
 	auth_keynumber	int16
@@ -89,14 +89,14 @@ cmsghdr_sctp_dstaddrv4 {
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_DSTADDRV4, int32]
 	msg	ipv4_addr
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 cmsghdr_sctp_dstaddrv6 {
 	len	len[parent, intptr]
 	level	const[IPPROTO_SCTP, int32]
 	type	const[SCTP_DSTADDRV6, int32]
 	msg	ipv6_addr
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 # Specific SCTP socket options
 
@@ -360,7 +360,7 @@ sctp_initmsg {
 sctp_prim {
 	ssp_assoc_id	assoc_id
 	ssp_addr	sockaddr_storage_sctp
-} [packed, align_4]
+} [packed, align[4]]
 
 sockaddr_storage_sctp [
 	in	sockaddr_storage_in
@@ -381,7 +381,7 @@ sctp_paddrparams {
 	spp_flags		flags[sctp_spp_flags, int32]
 	spp_ipv6_flowlabel	int32
 	spp_dscp		int8
-} [packed, align_4]
+} [packed, align[4]]
 
 sctp_spp_flags = SPP_HB_ENABLE, SPP_HB_DISABLE, SPP_HB_DEMAND, SPP_HB_TIME_IS_ZERO, SPP_PMTUD_ENABLE, SPP_PMTUD_DISABLE, SPP_SACKDELAY_ENABLE, SPP_SACKDELAY_DISABLE
 
@@ -459,7 +459,7 @@ sctp_paddrinfo {
 	spinfo_srtt	int32
 	spinfo_rto	int32
 	spinfo_mtu	int32
-} [packed, align_4]
+} [packed, align[4]]
 
 sctp_delayed_sack [
 	sack_info	sctp_sack_info

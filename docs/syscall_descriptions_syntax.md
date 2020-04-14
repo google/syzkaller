@@ -116,8 +116,8 @@ Attributes are:
 
 ```
 "packed": the struct does not have paddings and has default alignment 1
-"align_N": the struct has alignment N
-"size": the struct is padded up to the specified size
+"align[N]": the struct has alignment N
+"size[N]": the struct is padded up to the specified size N
 ```
 
 ## Unions
@@ -135,7 +135,7 @@ Attributes are:
 
 ```
 "varlen": union size is not maximum of all option but rather length of a particular chosen option
-"size": the union is padded up to the specified size
+"size[N]": the union is padded up to the specified size N
 ```
 
 ## Resources

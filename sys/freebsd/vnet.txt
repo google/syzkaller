@@ -265,7 +265,7 @@ ipv4_option_ra {
 
 ipv4_options {
 	options	array[ipv4_option]
-} [packed, align_4]
+} [packed, align[4]]
 
 ipv4_types = IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPV4, IPPROTO_TCP, IPPROTO_ST, IPPROTO_EGP, IPPROTO_PIGP, IPPROTO_RCCMON, IPPROTO_NVPII, IPPROTO_PUP, IPPROTO_ARGUS, IPPROTO_EMCON, IPPROTO_XNET, IPPROTO_CHAOS, IPPROTO_UDP, IPPROTO_MUX, IPPROTO_MEAS, IPPROTO_HMP, IPPROTO_PRM, IPPROTO_IDP, IPPROTO_TRUNK1, IPPROTO_TRUNK2, IPPROTO_LEAF1, IPPROTO_LEAF2, IPPROTO_RDP, IPPROTO_IRTP, IPPROTO_TP, IPPROTO_BLT, IPPROTO_NSP, IPPROTO_INP, IPPROTO_DCCP, IPPROTO_3PC, IPPROTO_IDPR, IPPROTO_XTP, IPPROTO_DDP, IPPROTO_CMTP, IPPROTO_TPXX, IPPROTO_IL, IPPROTO_SDRP, IPPROTO_IDRP, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_MHRP, IPPROTO_BHA, IPPROTO_ESP, IPPROTO_AH, IPPROTO_INLSP, IPPROTO_SWIPE, IPPROTO_NHRP, IPPROTO_MOBILE, IPPROTO_TLSP, IPPROTO_SKIP, IPPROTO_AHIP, IPPROTO_CFTP, IPPROTO_HELLO, IPPROTO_SATEXPAK, IPPROTO_KRYPTOLAN, IPPROTO_RVD, IPPROTO_IPPC, IPPROTO_ADFS, IPPROTO_SATMON, IPPROTO_VISA, IPPROTO_IPCV, IPPROTO_CPNX, IPPROTO_CPHB, IPPROTO_WSN, IPPROTO_PVP, IPPROTO_BRSATMON, IPPROTO_ND, IPPROTO_WBMON, IPPROTO_WBEXPAK, IPPROTO_EON, IPPROTO_VMTP, IPPROTO_SVMTP, IPPROTO_VINES, IPPROTO_TTP, IPPROTO_IGP, IPPROTO_DGP, IPPROTO_TCF, IPPROTO_IGRP, IPPROTO_OSPFIGP, IPPROTO_SRPC, IPPROTO_LARP, IPPROTO_MTP, IPPROTO_AX25, IPPROTO_IPEIP, IPPROTO_MICP, IPPROTO_SCCSP, IPPROTO_ETHERIP, IPPROTO_ENCAP, IPPROTO_APES, IPPROTO_GMTP, IPPROTO_IPCOMP, IPPROTO_IPCOMP, IPPROTO_MH, IPPROTO_UDPLITE, IPPROTO_HIP, IPPROTO_SHIM6, IPPROTO_PIM, IPPROTO_CARP, IPPROTO_PGM, IPPROTO_MPLS, IPPROTO_PFSYNC
 
@@ -564,7 +564,7 @@ ipv6_hopots_ext_header {
 	length		bytesize8[options, int8]
 	pad		array[const[0, int8], 6]
 	options		array[ipv6_tlv_option]
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_routing_types = IPV6_RTHDR_LOOSE, IPV6_RTHDR_STRICT, IPV6_RTHDR_TYPE_0
 
@@ -575,7 +575,7 @@ ipv6_rt_hdr {
 	segments_left	int8
 	reserved	const[0, int32]
 	data		array[ipv6_addr]
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_fragment_ext_header {
 	next_header	flags[ipv6_types, int8]
@@ -585,14 +585,14 @@ ipv6_fragment_ext_header {
 	reserved2	const[0, int8:2]
 	fragment_off_lo	int8:5
 	identification	int32[100:104]
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_dstopts_ext_header {
 	next_header	flags[ipv6_types, int8]
 	length		bytesize8[options, int8]
 	pad		array[const[0, int8], 6]
 	options		array[ipv6_tlv_option]
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_tlv_option [
 	generic	ipv6_tlv_generic
@@ -938,7 +938,7 @@ tcp_fastopen_option {
 
 tcp_options {
 	options	array[tcp_option]
-} [packed, align_4]
+} [packed, align[4]]
 
 tcp_flags = 0, TH_FIN, TH_SYN, TH_RST, TH_PUSH, TH_ACK, TH_URG, TH_ECE, TH_CWR
 

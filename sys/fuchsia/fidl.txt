@@ -41,7 +41,7 @@ fidl_vector {
 
 type fidl_aligned[T] {
 	var	T
-} [align_8]
+} [align[8]]
 
 type parallel_array[A, B] {
 	a	array[A]

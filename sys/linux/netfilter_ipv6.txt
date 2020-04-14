@@ -52,12 +52,12 @@ type ip6t_replace_t[NAME, NENTRIES, NHOOKS, HOOKS, MATCHES, TARGETS, H0, H1, H2,
 type ip6t_replace_entries[NENTRIES, MATCHES, TARGETS] {
 	entries		array[ip6t_entry[MATCHES, TARGETS], NENTRIES]
 	underflow	ip6t_entry_underflow
-} [packed, align_ptr]
+} [packed, align[PTR_SIZE]]
 
 type ip6t_entry[MATCHES, TARGETS] {
 	matches	ip6t_entry_matches[MATCHES]
 	target	TARGETS
-} [packed, align_ptr]
+} [packed, align[PTR_SIZE]]
 
 type ip6t_entry_matches[MATCHES] {
 	ipv6		ip6t_ip6_or_uncond
@@ -67,12 +67,12 @@ type ip6t_entry_matches[MATCHES] {
 	comefrom	const[0, int32]
 	counters	xt_counters
 	matches		array[MATCHES, 0:2]
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 ip6t_entry_underflow {
 	matches	ip6t_entry_underflow_matches
 	target	xt_target_t["", const[NF_ACCEPT_VERDICT, int32], 0]
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 ip6t_entry_underflow_matches {
 	ipv6		ip6t_ip6_uncond

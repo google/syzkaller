@@ -239,15 +239,16 @@ func (ctx *structGen) walkStruct(t *prog.StructType) {
 			varlen = true
 		}
 	}
-	packed, sizeAttr, alignAttr := comp.parseStructAttrs(structNode)
-	t.AlignAttr = alignAttr
-	comp.layoutStruct(t, varlen, packed)
+	attrs := comp.parseAttrs(structAttrs, structNode, structNode.Attrs)
+	t.AlignAttr = attrs[attrAlign]
+	comp.layoutStruct(t, varlen, attrs[attrPacked] != 0)
 	t.TypeSize = 0
 	if !varlen {
 		for _, f := range t.Fields {
 			t.TypeSize += f.Size()
 		}
-		if sizeAttr != sizeUnassigned {
+		sizeAttr, hasSize := attrs[attrSize]
+		if hasSize {
 			if t.TypeSize > sizeAttr {
 				comp.error(structNode.Attrs[0].Pos, "struct %v has size attribute %v"+
 					" which is less than struct size %v",
@@ -267,23 +268,25 @@ func (ctx *structGen) walkUnion(t *prog.UnionType) {
 	}
 	comp := ctx.comp
 	structNode := comp.structNodes[t.StructDesc]
-	varlen, sizeAttr := comp.parseUnionAttrs(structNode)
+	attrs := comp.parseAttrs(unionAttrs, structNode, structNode.Attrs)
 	t.TypeSize = 0
-	if !varlen {
-		for i, fld := range t.Fields {
-			sz := fld.Size()
-			if sizeAttr != sizeUnassigned && sz > sizeAttr {
-				comp.error(structNode.Fields[i].Pos, "union %v has size attribute %v"+
-					" which is less than field %v size %v",
-					structNode.Name.Name, sizeAttr, fld.Name(), sz)
-			}
-			if t.TypeSize < sz {
-				t.TypeSize = sz
-			}
+	if attrs[attrVarlen] != 0 {
+		return
+	}
+	sizeAttr, hasSize := attrs[attrSize]
+	for i, fld := range t.Fields {
+		sz := fld.Size()
+		if hasSize && sz > sizeAttr {
+			comp.error(structNode.Fields[i].Pos, "union %v has size attribute %v"+
+				" which is less than field %v size %v",
+				structNode.Name.Name, sizeAttr, fld.Name(), sz)
 		}
-		if sizeAttr != sizeUnassigned {
-			t.TypeSize = sizeAttr
+		if t.TypeSize < sz {
+			t.TypeSize = sz
 		}
+	}
+	if hasSize {
+		t.TypeSize = sizeAttr
 	}
 }
 
@@ -456,11 +459,12 @@ func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
 	case *prog.ArrayType:
 		return comp.typeAlign(t.Type)
 	case *prog.StructType:
-		packed, _, alignAttr := comp.parseStructAttrs(comp.structNodes[t.StructDesc])
-		if alignAttr != 0 {
-			return alignAttr // overrided by user attribute
+		n := comp.structNodes[t.StructDesc]
+		attrs := comp.parseAttrs(structAttrs, n, n.Attrs)
+		if align := attrs[attrAlign]; align != 0 {
+			return align // overrided by user attribute
 		}
-		if packed {
+		if attrs[attrPacked] != 0 {
 			return 1
 		}
 		align := uint64(0)

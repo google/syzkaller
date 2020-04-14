@@ -1379,7 +1379,7 @@ ath9k_bulk_packet {
 	pkt_len	len[data, int16]
 	pkt_tag	const[ATH_USB_RX_STREAM_MODE_TAG, int16]
 	data	array[int8]
-} [packed, align_4]
+} [packed, align[4]]
 
 htc_frame [
 	ready		htc_ready_frame

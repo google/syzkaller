@@ -130,7 +130,7 @@ binder_objects {
 	obj0	binder_object
 	obj1	binder_object
 	obj2	binder_object
-} [packed, align_8]
+} [packed, align[8]]
 
 binder_offsets {
 	off0	offsetof[binder_transaction_data:buffer:obj0, int64]
