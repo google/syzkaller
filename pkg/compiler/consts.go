@@ -68,11 +68,14 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 				v = n.Value.Ident
 			}
 			name := n.Name.Name
+			if _, builtin := comp.builtinConsts[name]; builtin {
+				comp.error(pos, "redefining builtin const %v", name)
+			}
 			info.defines[name] = v
-			info.consts[name] = true
+			comp.addConst(infos, pos, name)
 		case *ast.Call:
 			if comp.target.SyscallNumbers && !strings.HasPrefix(n.CallName, "syz_") {
-				info.consts[comp.target.SyscallPrefix+n.CallName] = true
+				comp.addConst(infos, pos, comp.target.SyscallPrefix+n.CallName)
 			}
 		}
 	}
@@ -85,13 +88,11 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 				for i, arg := range args {
 					if desc.Args[i].Type.Kind == kindInt {
 						if arg.Ident != "" {
-							info := getConstInfo(infos, arg.Pos)
-							info.consts[arg.Ident] = true
+							comp.addConst(infos, arg.Pos, arg.Ident)
 						}
 						for _, col := range arg.Colon {
 							if col.Ident != "" {
-								info := getConstInfo(infos, col.Pos)
-								info.consts[col.Ident] = true
+								comp.addConst(infos, col.Pos, col.Ident)
 							}
 						}
 					}
@@ -104,9 +105,8 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 		switch n := decl.(type) {
 		case *ast.Struct:
 			for _, attr := range n.Attrs {
-				if attr.Ident == "size" {
-					info := getConstInfo(infos, attr.Pos)
-					info.consts[attr.Args[0].Ident] = true
+				if structOrUnionAttrs(n)[attr.Ident].HasArg {
+					comp.addConst(infos, attr.Pos, attr.Args[0].Ident)
 				}
 			}
 		}
@@ -114,12 +114,19 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 
 	comp.desc.Walk(ast.Recursive(func(n0 ast.Node) {
 		if n, ok := n0.(*ast.Int); ok {
-			info := getConstInfo(infos, n.Pos)
-			info.consts[n.Ident] = true
+			comp.addConst(infos, n.Pos, n.Ident)
 		}
 	}))
 
 	return convertConstInfo(infos)
+}
+
+func (comp *compiler) addConst(infos map[string]*constInfo, pos ast.Pos, name string) {
+	if _, builtin := comp.builtinConsts[name]; builtin {
+		return
+	}
+	info := getConstInfo(infos, pos)
+	info.consts[name] = true
 }
 
 type constInfo struct {
@@ -179,7 +186,17 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 
 // patchConsts replaces all symbolic consts with their numeric values taken from consts map.
 // Updates desc and returns set of unsupported syscalls and flags.
-func (comp *compiler) patchConsts(consts map[string]uint64) {
+func (comp *compiler) patchConsts(consts0 map[string]uint64) {
+	consts := make(map[string]uint64)
+	for name, val := range consts0 {
+		consts[name] = val
+	}
+	for name, val := range comp.builtinConsts {
+		if _, ok := consts[name]; ok {
+			panic(fmt.Sprintf("builtin const %v already defined", name))
+		}
+		consts[name] = val
+	}
 	for _, decl := range comp.desc.Nodes {
 		switch decl.(type) {
 		case *ast.IntFlags:
@@ -210,7 +227,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			}
 			if n, ok := decl.(*ast.Struct); ok {
 				for _, attr := range n.Attrs {
-					if attr.Ident == "size" {
+					if structOrUnionAttrs(n)[attr.Ident].HasArg {
 						comp.patchTypeConst(attr.Args[0], consts, &missing)
 					}
 				}

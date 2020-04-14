@@ -24,23 +24,23 @@ sendmsg$TEAM_CMD_PORT_LIST_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TE
 team_nl_policy {
 	TEAM_ATTR_TEAM_IFINDEX	nlattr[TEAM_ATTR_TEAM_IFINDEX, ifindex_team]
 	TEAM_ATTR_LIST_OPTION	nlnest[TEAM_ATTR_LIST_OPTION, array[nlattr[TEAM_ATTR_ITEM_OPTION, team_attr_option]]]
-} [packed, align_4]
+} [packed, align[4]]
 
 type team_nl_option_policy[NAME, TYPE, DATA] {
 	TEAM_ATTR_OPTION_NAME	nlattr[TEAM_ATTR_OPTION_NAME, string[NAME, TEAM_STRING_MAX_LEN]]
 	TEAM_ATTR_OPTION_TYPE	nlattr[TEAM_ATTR_OPTION_TYPE, const[TYPE, int8]]
 	TEAM_ATTR_OPTION_DATA	nlattr[TEAM_ATTR_OPTION_DATA, DATA]
-} [packed, align_4]
+} [packed, align[4]]
 
 type team_nl_option_policy_per_port[NAME, TYPE, DATA] {
 	opt				team_nl_option_policy[NAME, TYPE, DATA]
 	TEAM_ATTR_OPTION_PORT_IFINDEX	nlattr[TEAM_ATTR_OPTION_PORT_IFINDEX, ifindex]
-} [packed, align_4]
+} [packed, align[4]]
 
 type team_nl_option_policy_array[NAME, TYPE, DATA, SIZE] {
 	opt				team_nl_option_policy[NAME, TYPE, DATA]
 	TEAM_ATTR_OPTION_ARRAY_INDEX	nlattr[TEAM_ATTR_OPTION_ARRAY_INDEX, int32[0:SIZE]]
-} [packed, align_4]
+} [packed, align[4]]
 
 team_attr_option [
 	name				team_nl_option_policy["mode", NLA_STRING, string[team_attr_option_mode]]

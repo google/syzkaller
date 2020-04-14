@@ -87,7 +87,7 @@ type netlink_msg_t[TYPE, PAYLOAD, ATTRS] {
 	pid	netlink_port_id
 	payload	PAYLOAD
 	attrs	array[ATTRS]
-} [packed, align_4]
+} [packed, align[4]]
 
 type netlink_msg[TYPE, PAYLOAD, ATTRS] netlink_msg_t[const[TYPE, int16], PAYLOAD, ATTRS]
 
@@ -96,7 +96,7 @@ type nlattr_t[TYPE, PAYLOAD] {
 	nla_type	TYPE
 	payload		PAYLOAD
 	size		void
-} [packed, align_4]
+} [packed, align[4]]
 
 type nlattr_tt[TYPE, NETORDER, NESTED, PAYLOAD] {
 	nla_len			offsetof[size, int16]
@@ -105,7 +105,7 @@ type nlattr_tt[TYPE, NETORDER, NESTED, PAYLOAD] {
 	NLA_F_NESTED		const[NESTED, int16:1]
 	payload			PAYLOAD
 	size			void
-} [packed, align_4]
+} [packed, align[4]]
 
 type nlattr[TYPE, PAYLOAD] nlattr_t[const[TYPE, int16], PAYLOAD]
 # nlattr with NLA_F_NESTED set.

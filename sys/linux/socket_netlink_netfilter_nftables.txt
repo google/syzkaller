@@ -43,13 +43,13 @@ type nft_nlmsghdr[CMD] {
 	nlmsg_seq	const[0, int32]
 	nlmsg_pid	const[0, int32]
 	hdr		nfgenmsg_nft
-} [align_4]
+} [align[4]]
 
 nfgenmsg_nft {
 	nfgen_family	const[0, int8]
 	version		const[NFNETLINK_V0, int8]
 	res_id		const[NFNL_SUBSYS_NFTABLES, int16be]
-} [align_4]
+} [align[4]]
 
 nft_batch_message [
 	NFT_MSG_NEWTABLE	netlink_msg_netfilter_t[NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWTABLE, nft_table_policy]

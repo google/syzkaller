@@ -60,7 +60,7 @@ type nlattr_t[TYPE, PAYLOAD] {
 	nla_type	TYPE
 	payload		PAYLOAD
 	size		void
-} [packed, align_4]
+} [packed, align[4]]
 
 type nlattr_tt[TYPE, NETORDER, NESTED, PAYLOAD] {
 	nla_len			offsetof[size, int16]
@@ -69,7 +69,7 @@ type nlattr_tt[TYPE, NETORDER, NESTED, PAYLOAD] {
 	NLA_F_NESTED		const[NESTED, int16:1]
 	payload			PAYLOAD
 	size			void
-} [packed, align_4]
+} [packed, align[4]]
 
 type nlattr[TYPE, PAYLOAD] nlattr_t[const[TYPE, int16], PAYLOAD]
 type nlnest[TYPE, PAYLOAD] nlattr_tt[const[TYPE, int16:14], 0, 1, PAYLOAD]
@@ -228,7 +228,7 @@ syz_bf_struct25 {
 	f3	int16:1
 	f4	int16
 	f5	void
-} [packed, align_4]
+} [packed, align[4]]
 
 type syz_bf_align[T] {
 	f0	int8

@@ -68,7 +68,7 @@ sadb_sa {
 	sadb_sa_auth	int8[SADB_AALG_NONE:SADB_AALG_MAX]
 	sadb_sa_encrypt	int8[SADB_X_CALG_NONE:SADB_X_CALG_MAX]
 	sadb_sa_flags	flags[sadb_sa_flags, int32]
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_sa_flags = SADB_SAFLAGS_PFS, SADB_SAFLAGS_NOPMTUDISC, SADB_SAFLAGS_DECAP_DSCP, SADB_SAFLAGS_NOECN
 
@@ -79,7 +79,7 @@ sadb_lifetime {
 	sadb_lifetime_bytes		int64
 	sadb_lifetime_addtime		int64
 	sadb_lifetime_usetime		int64
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_address {
 	sadb_len		bytesize8[parent, int16]
@@ -88,7 +88,7 @@ sadb_address {
 	sadb_address_prefixlen	flags[xfrm_prefixlens, int8]
 	sadb_address_reserved	const[0, int16]
 	addr			sadb_address_addr
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_address_addr [
 	in	sockaddr_in
@@ -101,7 +101,7 @@ sadb_key {
 	sadb_key_bits		bitsize[key, int16]
 	sadb_key_reserved	const[0, int16]
 	key			array[int8]
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_ident {
 	sadb_len		bytesize8[parent, int16]
@@ -109,7 +109,7 @@ sadb_ident {
 	sadb_ident_type		int16
 	sadb_ident_reserved	const[0, int16]
 	sadb_ident_id		int64
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_spirange {
 	sadb_len		bytesize8[parent, int16]
@@ -117,7 +117,7 @@ sadb_spirange {
 	sadb_spirange_min	xfrm_spi
 	sadb_spirange_max	xfrm_spi
 	sadb_spirange_reserved	const[0, int32]
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_x_policy {
 	sadb_len		bytesize8[parent, int16]
@@ -128,7 +128,7 @@ sadb_x_policy {
 	sadb_x_policy_id	xfrm_policy_index
 	sadb_x_policy_priority	int32
 	policy			sadb_x_ipsecrequest
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_x_ipsecrequest {
 	sadb_x_ipsecrequest_len		bytesize8[parent, int16]
@@ -140,7 +140,7 @@ sadb_x_ipsecrequest {
 	sadb_x_ipsecrequest_reserved2	const[0, int32]
 	saddr				sadb_filter_addr
 	daddr				sadb_filter_addr
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_x_sa2 {
 	sadb_len		bytesize8[parent, int16]
@@ -150,21 +150,21 @@ sadb_x_sa2 {
 	sadb_x_sa2_reserved2	const[0, int16]
 	sadb_x_sa2_sequence	netlink_seq
 	sadb_x_sa2_reqid	xfrm_req_id
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_x_nat_t_type {
 	sadb_len			bytesize8[parent, int16]
 	sadb_exttype			const[SADB_X_EXT_NAT_T_TYPE, int16]
 	sadb_x_nat_t_type_type		int8
 	sadb_x_nat_t_type_reserved	array[const[0, int8], 3]
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_x_nat_t_port {
 	sadb_len			bytesize8[parent, int16]
 	sadb_exttype			flags[sadb_nat_port_type, int16]
 	sadb_x_nat_t_port_port		sock_port
 	sadb_x_nat_t_port_reserved	const[0, int16]
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_x_sec_ctx {
 	sadb_len	bytesize8[parent, int16]
@@ -173,7 +173,7 @@ sadb_x_sec_ctx {
 	sadb_x_ctx_doi	int8
 	sadb_x_ctx_len	bytesize[ctx, int16]
 	ctx		array[int8]
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_x_kmaddress {
 	sadb_len			bytesize8[parent, int16]
@@ -181,7 +181,7 @@ sadb_x_kmaddress {
 	sadb_x_kmaddress_reserved	const[0, int32]
 	src				sadb_address_addr
 	dst				sadb_address_addr
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_x_filter {
 	sadb_len		bytesize8[parent, int16]
@@ -191,7 +191,7 @@ sadb_x_filter {
 	sadb_x_filter_family	flags[socket_domain, int16]
 	sadb_x_filter_splen	flags[sadb_filter_addr_len, int8]
 	sadb_x_filter_dplen	flags[sadb_filter_addr_len, int8]
-} [packed, align_8]
+} [packed, align[8]]
 
 sadb_filter_addr [
 	in	ipv4_addr

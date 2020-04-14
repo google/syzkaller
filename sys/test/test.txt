@@ -74,7 +74,7 @@ syz_align3_noalign {
 
 syz_align3_align4 {
 	f0	int8
-} [align_4]
+} [align[4]]
 
 syz_align3 {
 	f0	int8
@@ -85,7 +85,7 @@ syz_align3 {
 syz_align4_internal {
 	f0	int8
 	f1	int16
-} [packed, align_4]
+} [packed, align[4]]
 
 syz_align4 {
 	f0	syz_align4_internal
@@ -120,7 +120,7 @@ syz_align8 {
 	f3	int16:1
 	f4	int16:1
 	f5	int16:1
-} [packed, align_8]
+} [packed, align[8]]
 
 # Structs
 

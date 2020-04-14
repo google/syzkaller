@@ -63,6 +63,7 @@ use_sr {
 	s3	s3
 	s4	s4
 	s6	s6
+	s8	s8
 	sr1 sr1
 	sr2	sr2
 	sr5	sr5
@@ -115,6 +116,10 @@ s7 {
 	f1	int32
 	f2	u0
 }
+
+s8 {
+	f1	int8
+} [align[7]]			###  bad struct s8 alignment 7 (must be a sane power of 2)
 
 u0 [
 	f	len[f1, int32]	### len target f1 does not exist

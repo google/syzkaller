@@ -32,12 +32,12 @@ define ARPT_FILTER_VALID_HOOKS	(1 << NF_ARP_IN) | (1 << NF_ARP_OUT) | (1 << NF_A
 arpt_replace_entries {
 	entries		array[arpt_entry, 3]
 	underflow	arpt_entry_underflow
-} [packed, align_ptr]
+} [packed, align[PTR_SIZE]]
 
 arpt_entry {
 	matches	arpt_entry_matches
 	target	arpt_targets
-} [packed, align_ptr]
+} [packed, align[PTR_SIZE]]
 
 arpt_entry_matches {
 	arp		arpt_arp_or_uncond
@@ -46,12 +46,12 @@ arpt_entry_matches {
 	comefrom	const[0, int32]
 	counters	xt_counters
 # Note: matches should go here, but they seem to be unused in arp tables.
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 arpt_entry_underflow {
 	matches	arpt_entry_underflow_matches
 	target	xt_target_t["", const[NF_ACCEPT_VERDICT, int32], 0]
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 arpt_entry_underflow_matches {
 	arp		arpt_arp_uncond

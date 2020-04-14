@@ -15,7 +15,7 @@ any0 {
 	f4	int64
 	f5	anybitfields
 	f6	array[any1]
-} [align_8]
+} [align[8]]
 
 any1 {
 	f1	ptr[in, int8, opt]
@@ -23,7 +23,7 @@ any1 {
 	f3	ptr64[in, int8, opt]
 	f4	anyunion1
 	f5	array[int8]
-} [packed, align_2]
+} [packed, align[2]]
 
 anyunion0 [
 	res32	anyres32

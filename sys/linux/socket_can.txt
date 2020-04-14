@@ -74,7 +74,7 @@ can_j1939_pgn {
 	pgn_pf		flags[can_j1939_pgn_pf, int8]
 	pgn_flags	flags[can_j1939_pgn_flags, int8]
 	pgn_unused	const[0, int8]
-} [align_4]
+} [align[4]]
 
 can_j1939_pgn_ps = 0, 1, 2
 can_j1939_pgn_pf = 0, 1, 0xf0, 0xff

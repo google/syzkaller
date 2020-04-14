@@ -152,19 +152,11 @@ s3 {
 	f7	int32:33	### bitfield of size 33 is too large for base type of size 32
 	f8	const[0, int32:C1]	### literal const bitfield sizes are not supported
 	f9	const[0]	### wrong number of arguments for type const, expect value, base type
-} [packed, align_4]
-
-s4 {
-	f1	int8
-} [align_7]			###  bad struct s4 alignment 7 (must be a sane power of 2)
+} [packed, align[4]]
 
 s5 {
 	f1	int8
 } [varlen]			### unknown struct s5 attribute varlen
-
-s6 {
-	f1	int8
-} [align_foo]			### bad struct s6 alignment foo
 
 s7 {
 	f1	ptr64[in, int32]
@@ -298,7 +290,7 @@ type templ_struct0[A, B] {
 	len	len[parent, int16]
 	typ	const[A, int16]
 	data	B
-} [align_4]
+} [align[4]]
 
 type templ_struct1[STR] {
 	f	string[STR, 40]

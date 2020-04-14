@@ -35,7 +35,7 @@ type xt_target_t[NAME, DATA, REV] {
 	name		string[NAME, XT_EXTENSION_MAXNAMELEN]
 	revision	const[REV, int8]
 	data		DATA
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 xt_unspec_targets [
 	STANDARD	xt_target_t["", flags[nf_verdicts, int32], 0]

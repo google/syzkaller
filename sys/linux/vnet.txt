@@ -410,7 +410,7 @@ ipv4_option_ra {
 
 ipv4_options {
 	options	array[ipv4_option]
-} [packed, align_4]
+} [packed, align[4]]
 
 ipv4_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW, IPPROTO_L2TP
 
@@ -467,14 +467,14 @@ ipv6_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, 
 
 ipv6_addr_empty {
 	a0	array[const[0x0, int8], 16]
-} [packed, align_4]
+} [packed, align[4]]
 
 type ipv6_addr_t[LAST] {
 	a0	const[0xfe, int8]
 	a1	const[0x80, int8]
 	a2	array[const[0x0, int8], 13]
 	a3	LAST
-} [packed, align_4]
+} [packed, align[4]]
 
 ipv6_addr_initdev {
 	a0	const[0xfe, int8]
@@ -482,39 +482,39 @@ ipv6_addr_initdev {
 	a2	array[const[0x0, int8], 12]
 	a3	int8[0:1]
 	a4	proc[1, 1, int8]
-} [packed, align_4]
+} [packed, align[4]]
 
 ipv6_addr_loopback {
 	a0	const[0, int64be]
 	a1	const[1, int64be]
-} [packed, align_4]
+} [packed, align[4]]
 
 ipv6_addr_ipv4 {
 	a0	array[const[0x0, int8], 10]
 	a1	array[const[0xff, int8], 2]
 	a3	ipv4_addr
-} [packed, align_4]
+} [packed, align[4]]
 
 ipv6_addr_multicast1 {
 	a0	const[0xff, int8]
 	a1	const[0x1, int8]
 	a2	array[const[0x0, int8], 13]
 	a3	const[0x1, int8]
-} [packed, align_4]
+} [packed, align[4]]
 
 ipv6_addr_multicast2 {
 	a0	const[0xff, int8]
 	a1	const[0x2, int8]
 	a2	array[const[0x0, int8], 13]
 	a3	const[0x1, int8]
-} [packed, align_4]
+} [packed, align[4]]
 
 type ipv6_addr_private[BYTE2] {
 	a0	const[0xfc, int8]
 	a1	const[BYTE2, int8]
 	a2	array[const[0x0, int8], 13]
 	a3	int8[0:1]
-} [packed, align_4]
+} [packed, align[4]]
 
 ipv6_addr_random = `20010000000000000000000000000000`, `20010000000000000000000000000001`, `20010000000000000000000000000002`
 
@@ -563,7 +563,7 @@ ipv6_hopots_ext_header {
 	length		bytesize8[options, int8]
 	pad		array[const[0, int8], 6]
 	options		array[ipv6_tlv_option]
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_routing_types = IPV6_SRCRT_STRICT, IPV6_SRCRT_TYPE_0, IPV6_SRCRT_TYPE_2
 
@@ -574,7 +574,7 @@ ipv6_rt_hdr {
 	segments_left	int8
 	reserved	const[0, int32]
 	data		array[ipv6_addr]
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_sr_hdr {
 	nexthdr		flags[ipv6_types, int8]
@@ -591,7 +591,7 @@ ipv6_sr_hdr {
 # we won't be able to calculate segments_left because it will need to
 # refer to a field of a subobject. What may help is allowing specifying
 # subfields as len/bytesize targets, e.g. "len[payload.segments]", or "bytesize[parent_struct.foo]".
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_sr_flags = SR6_FLAG1_PROTECTED, SR6_FLAG1_OAM, SR6_FLAG1_ALERT, SR6_FLAG1_HMAC
 
@@ -603,14 +603,14 @@ ipv6_fragment_ext_header {
 	reserved2	const[0, int8:2]
 	fragment_off_lo	int8:5
 	identification	int32[100:104]
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_dstopts_ext_header {
 	next_header	flags[ipv6_types, int8]
 	length		bytesize8[options, int8]
 	pad		array[const[0, int8], 6]
 	options		array[ipv6_tlv_option]
-} [packed, align_8]
+} [packed, align[8]]
 
 ipv6_tlv_option [
 	generic	ipv6_tlv_generic
@@ -821,7 +821,7 @@ tcp_exp_smc_option {
 
 tcp_options {
 	options	array[tcp_option]
-} [packed, align_4]
+} [packed, align[4]]
 
 tcp_flags = TCPHDR_FIN, TCPHDR_SYN, TCPHDR_RST, TCPHDR_PSH, TCPHDR_ACK, TCPHDR_URG, TCPHDR_ECE, TCPHDR_CWR, TCPHDR_SYN_ECN
 

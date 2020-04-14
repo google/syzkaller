@@ -82,7 +82,7 @@ cmsghdr {
 	cmsg_level	flags[cmsg_levels, int32]
 	cmsg_type	int32
 	data		array[int8]
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 accept_filter {
 	af_name	string[accept_filter_names, 16]
