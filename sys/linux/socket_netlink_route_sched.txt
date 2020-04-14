@@ -939,7 +939,7 @@ type tcf_action_policy[NAME, VALUES] {
 	TCA_ACT_KIND	nlattr[TCA_ACT_KIND, string[NAME]]
 	TCA_ACT_OPTIONS	nlnest[TCA_ACT_OPTIONS, array[VALUES]]
 	TCA_ACT_COOKIE	nlattr[TCA_ACT_COOKIE, array[int8]]
-} [packed, align_4]
+} [packed, align[4]]
 
 act_bpf_policy [
 	TCA_ACT_BPF_PARMS	nlattr[TCA_ACT_BPF_PARMS, tc_act_bpf]
@@ -1165,7 +1165,7 @@ m_pedit_sel {
 	keys		array[tc_pedit_key, 128]
 	keys_ex		array[m_pedit_key_ex, 128]
 	extended	bool8
-} [packed, align_4]
+} [packed, align[4]]
 
 tc_pedit_sel {
 	tc_gen	tc_gen
@@ -1265,12 +1265,12 @@ type tcf_ematch_hdr[KIND] {
 	kind	const[KIND, int16]
 	flags	int16
 	pad	const[0, int16]
-} [align_4]
+} [align[4]]
 
 type tcf_ematch_hdr_t[KIND, PAYLOAD] {
 	header	tcf_ematch_hdr[KIND]
 	payload	PAYLOAD
-} [align_4]
+} [align[4]]
 
 tcf_em_cmp {
 	val	int32
@@ -1287,7 +1287,7 @@ tcf_em_nbyte {
 	len	bytesize[payload, int16:12]
 	layer	flags[tcf_layers, int8:4]
 	payload	array[int8, 0:10]
-} [align_4]
+} [align[4]]
 
 tc_u32_key {
 	mask	int32be

@@ -63,6 +63,9 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 		structDescs:  make(map[prog.StructKey]*prog.StructDesc),
 		structNodes:  make(map[*prog.StructDesc]*ast.Struct),
 		structVarlen: make(map[string]bool),
+		builtinConsts: map[string]uint64{
+			"PTR_SIZE": target.PtrSize,
+		},
 	}
 	for name, n := range builtinTypedefs {
 		comp.typedefs[name] = n
@@ -132,9 +135,10 @@ type compiler struct {
 	used         map[string]bool // contains used structs/resources
 	usedTypedefs map[string]bool
 
-	structDescs  map[prog.StructKey]*prog.StructDesc
-	structNodes  map[*prog.StructDesc]*ast.Struct
-	structVarlen map[string]bool
+	structDescs   map[prog.StructKey]*prog.StructDesc
+	structNodes   map[*prog.StructDesc]*ast.Struct
+	structVarlen  map[string]bool
+	builtinConsts map[string]uint64
 }
 
 type warn struct {
@@ -157,7 +161,8 @@ func (comp *compiler) structIsVarlen(name string) bool {
 	}
 	s := comp.structs[name]
 	if s.IsUnion {
-		if varlen, _ := comp.parseUnionAttrs(s); varlen {
+		res := comp.parseAttrs(unionAttrs, s, s.Attrs)
+		if res[attrVarlen] != 0 {
 			comp.structVarlen[name] = true
 			return true
 		}
@@ -174,77 +179,48 @@ func (comp *compiler) structIsVarlen(name string) bool {
 	return varlen
 }
 
-func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool, size uint64) {
-	size = sizeUnassigned
-	for _, attr := range n.Attrs {
-		switch attr.Ident {
-		case "varlen":
-			if len(attr.Args) != 0 {
-				comp.error(attr.Pos, "%v attribute has args", attr.Ident)
-			}
-			varlen = true
-		case "size":
-			size = comp.parseSizeAttr(attr)
-		default:
-			comp.error(attr.Pos, "unknown union %v attribute %v",
-				n.Name.Name, attr.Ident)
+func (comp *compiler) parseAttrs(descs map[string]*attrDesc, parent ast.Node, attrs []*ast.Type) (res map[*attrDesc]uint64) {
+	_, parentType, parentName := parent.Info()
+	res = make(map[*attrDesc]uint64)
+	for _, attr := range attrs {
+		if unexpected, _, ok := checkTypeKind(attr, kindIdent); !ok {
+			comp.error(attr.Pos, "unexpected %v, expect attribute", unexpected)
+			return
 		}
+		if len(attr.Colon) != 0 {
+			comp.error(attr.Colon[0].Pos, "unexpected ':'")
+			return
+		}
+		desc := descs[attr.Ident]
+		if desc == nil {
+			comp.error(attr.Pos, "unknown %v %v attribute %v", parentType, parentName, attr.Ident)
+			return
+		}
+		val := uint64(1)
+		if desc.HasArg {
+			val = comp.parseAttrArg(attr)
+		} else if len(attr.Args) != 0 {
+			comp.error(attr.Pos, "%v attribute has args", attr.Ident)
+			return
+		}
+		res[desc] = val
 	}
 	return
 }
 
-func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, size, align uint64) {
-	size = sizeUnassigned
-	for _, attr := range n.Attrs {
-		switch {
-		case attr.Ident == "packed":
-			if len(attr.Args) != 0 {
-				comp.error(attr.Pos, "%v attribute has args", attr.Ident)
-			}
-			packed = true
-		case attr.Ident == "align_ptr":
-			if len(attr.Args) != 0 {
-				comp.error(attr.Pos, "%v attribute has args", attr.Ident)
-			}
-			align = comp.ptrSize
-		case strings.HasPrefix(attr.Ident, "align_"):
-			if len(attr.Args) != 0 {
-				comp.error(attr.Pos, "%v attribute has args", attr.Ident)
-			}
-			a, err := strconv.ParseUint(attr.Ident[6:], 10, 64)
-			if err != nil {
-				comp.error(attr.Pos, "bad struct %v alignment %v",
-					n.Name.Name, attr.Ident[6:])
-				continue
-			}
-			if a&(a-1) != 0 || a == 0 || a > 1<<30 {
-				comp.error(attr.Pos, "bad struct %v alignment %v (must be a sane power of 2)",
-					n.Name.Name, a)
-			}
-			align = a
-		case attr.Ident == "size":
-			size = comp.parseSizeAttr(attr)
-		default:
-			comp.error(attr.Pos, "unknown struct %v attribute %v",
-				n.Name.Name, attr.Ident)
-		}
-	}
-	return
-}
-
-func (comp *compiler) parseSizeAttr(attr *ast.Type) uint64 {
+func (comp *compiler) parseAttrArg(attr *ast.Type) uint64 {
 	if len(attr.Args) != 1 {
 		comp.error(attr.Pos, "%v attribute is expected to have 1 argument", attr.Ident)
-		return sizeUnassigned
+		return 0
 	}
 	sz := attr.Args[0]
 	if unexpected, _, ok := checkTypeKind(sz, kindInt); !ok {
 		comp.error(sz.Pos, "unexpected %v, expect int", unexpected)
-		return sizeUnassigned
+		return 0
 	}
 	if len(sz.Colon) != 0 || len(sz.Args) != 0 {
-		comp.error(sz.Pos, "size attribute has colon or args")
-		return sizeUnassigned
+		comp.error(sz.Pos, "%v attribute has colon or args", attr.Ident)
+		return 0
 	}
 	return sz.Value
 }

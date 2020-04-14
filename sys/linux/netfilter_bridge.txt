@@ -139,7 +139,7 @@ type ebt_entry_match[NAME] {
 	name		string[NAME, EBT_EXTENSION_MAXNAMELEN]
 	revision	const[0, int8]
 	match_size	bytesize[ebt_entry_match_t:data, int32]
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 type ebt_entry_match_t[NAME, DATA] {
 	header	ebt_entry_match[NAME]
@@ -148,7 +148,7 @@ type ebt_entry_match_t[NAME, DATA] {
 
 type xt_padded[TYPE] {
 	data	TYPE
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 ebt_matches [
 	m802_3		ebt_entry_match_t["802_3", ebt_802_3_info]

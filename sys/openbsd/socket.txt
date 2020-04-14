@@ -77,7 +77,7 @@ cmsghdr {
 	cmsg_level	flags[cmsg_levels, int32]
 	cmsg_type	int32
 	data		array[int8]
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 # Socket options
 

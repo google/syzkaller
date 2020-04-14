@@ -351,7 +351,7 @@ sctp_initmsg {
 sctp_prim {
 	ssp_addr	sockaddr_storage_sctp
 	ssp_assoc_id	assoc_id
-} [packed, align_4]
+} [packed, align[4]]
 
 sockaddr_sctp [
 	in	sockaddr_in
@@ -376,7 +376,7 @@ sctp_paddrparams {
 	spp_ipv6_flowlabel	int32
 	spp_pathmaxrxt		int16
 	spp_dscp		int8
-} [packed, align_4]
+} [packed, align[4]]
 
 sctp_spp_flags = SPP_HB_ENABLE, SPP_HB_DISABLE, SPP_HB_DEMAND, SPP_PMTUD_ENABLE, SPP_PMTUD_DISABLE, SPP_HB_TIME_IS_ZERO, SPP_IPV6_FLOWLABEL, SPP_DSCP
 
@@ -440,7 +440,7 @@ sctp_paddrinfo {
 	spinfo_srtt	int32
 	spinfo_rto	int32
 	spinfo_mtu	int32
-} [packed, align_4]
+} [packed, align[4]]
 
 sctp_sack_info {
 	sack_assoc_id	assoc_id
@@ -494,7 +494,7 @@ sctp_paddrthlds {
 	spt_pathmaxrxt	int16
 	spt_pathpfthld	int16
 	spt_pathcpthld	int16
-} [packed, align_4]
+} [packed, align[4]]
 
 sctp_sndinfo {
 	snd_sid		int16

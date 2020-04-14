@@ -49,7 +49,7 @@ type ipt_replace_t[NAME, NENTRIES, NHOOKS, HOOKS, MATCHES, TARGETS, H0, H1, H2, 
 type ipt_replace_entries[NENTRIES, MATCHES, TARGETS] {
 	entries		array[ipt_entry[MATCHES, TARGETS], NENTRIES]
 	underflow	ipt_entry_underflow
-} [packed, align_ptr]
+} [packed, align[PTR_SIZE]]
 
 type ipt_hook const[0, int32]
 type ipt_unused const[-1, int32]
@@ -57,7 +57,7 @@ type ipt_unused const[-1, int32]
 type ipt_entry[MATCHES, TARGETS] {
 	matches	ipt_entry_matches[MATCHES]
 	target	TARGETS
-} [packed, align_ptr]
+} [packed, align[PTR_SIZE]]
 
 type ipt_entry_matches[MATCHES] {
 	ip		ipt_ip_or_uncond
@@ -67,12 +67,12 @@ type ipt_entry_matches[MATCHES] {
 	comefrom	const[0, int32]
 	counters	xt_counters
 	matches		array[MATCHES, 0:2]
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 ipt_entry_underflow {
 	matches	ipt_entry_underflow_matches
 	target	xt_target_t["", const[NF_ACCEPT_VERDICT, int32], 0]
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 ipt_entry_underflow_matches {
 	ip		ipt_ip_uncond

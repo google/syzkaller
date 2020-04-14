@@ -189,7 +189,7 @@ type templ_struct0[A, B] {
 	len	len[parent, int16]
 	typ	const[A, int16]
 	data	B
-} [align_4]
+} [align[4]]
 
 type templ_struct1[C] {
 	f1	const[C, int8]

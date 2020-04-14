@@ -466,7 +466,7 @@ bpf_prog_info {
 	jited_line_info_rec_size	int32
 	nr_prog_tags			int32
 	prog_tags			ptr64[in, int64]
-} [align_8]
+} [align[8]]
 
 bpf_get_map_info_arg {
 	prog	fd_bpf_map
@@ -482,7 +482,7 @@ bpf_map_info {
 	max_entries	int32
 	map_flags	int32
 	name		array[int8, BPF_OBJ_NAME_LEN]
-} [align_8]
+} [align[8]]
 
 bpf_get_btf_info_arg {
 	btf	fd_btf
@@ -494,7 +494,7 @@ bpf_btf_info {
 	btf		ptr64[out, array[int8]]
 	btf_size	bytesize[btf, int32]
 	id		bpf_btf_id[opt]
-} [align_8]
+} [align[8]]
 
 bpf_prog_query {
 	target_fd	fd_cgroup
@@ -503,12 +503,12 @@ bpf_prog_query {
 	attach_flags	int32
 	prog_ids	ptr64[out, array[int32]]
 	prog_cnt	len[prog_ids, int32]
-} [align_8]
+} [align[8]]
 
 bpf_raw_tracepoint {
 	name	ptr64[in, string]
 	prog_fd	fd_bpf_prog
-} [align_8]
+} [align[8]]
 
 bpf_btf_load {
 	btf		ptr64[in, bpf_btf_program]
@@ -516,7 +516,7 @@ bpf_btf_load {
 	btf_size	bytesize[btf, int32]
 	btf_log_size	bytesize[btf_log_buf, int32]
 	btf_log_level	bool32
-} [align_8]
+} [align[8]]
 
 bpf_btf_program {
 	header	btf_header
@@ -533,7 +533,7 @@ btf_header {
 	str_off		bytesize[types, int32]
 	str_len		bytesize[bpf_btf_program:strings, int32]
 	types		array[btf_type]
-} [align_4]
+} [align[4]]
 
 btf_type [
 	int		btf_type_int

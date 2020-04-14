@@ -197,7 +197,7 @@ fuse_dirent {
 	namelen	len[name, int32]
 	type	int32
 	name	stringnoz
-} [align_8]
+} [align[8]]
 
 fuse_direntplus {
 	entry	fuse_entry_out

@@ -101,7 +101,7 @@ type xt_entry_match[NAME, REV] {
 type xt_entry_match_t[NAME, DATA, REV] {
 	header	xt_entry_match[NAME, REV]
 	data	DATA
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 xt_unspec_matches [
 	cgroup0		xt_entry_match_t["cgroup", xt_cgroup_info_v0, 0]
@@ -318,13 +318,13 @@ xt_conntrack_mtinfo1 {
 	common		xt_conntrack_mtinfo_common
 	state_mask	flags[xt_conntrack_state8, int8]
 	status_mask	flags[xt_conntrack_status8, int8]
-} [align_4]
+} [align[4]]
 
 xt_conntrack_mtinfo2 {
 	common		xt_conntrack_mtinfo_common
 	state_mask	flags[xt_conntrack_state, int16]
 	status_mask	flags[xt_conntrack_status, int16]
-} [align_4]
+} [align[4]]
 
 xt_conntrack_mtinfo3 {
 	common			xt_conntrack_mtinfo_common
@@ -334,7 +334,7 @@ xt_conntrack_mtinfo3 {
 	origdst_port_high	sock_port
 	replsrc_port_high	sock_port
 	repldst_port_high	sock_port
-} [align_4]
+} [align[4]]
 
 xt_conntrack_flags = XT_CONNTRACK_STATE, XT_CONNTRACK_PROTO, XT_CONNTRACK_ORIGSRC, XT_CONNTRACK_ORIGDST, XT_CONNTRACK_REPLSRC, XT_CONNTRACK_REPLDST, XT_CONNTRACK_STATUS, XT_CONNTRACK_EXPIRES, XT_CONNTRACK_ORIGSRC_PORT, XT_CONNTRACK_ORIGDST_PORT, XT_CONNTRACK_REPLSRC_PORT, XT_CONNTRACK_REPLDST_PORT, XT_CONNTRACK_DIRECTION, XT_CONNTRACK_STATE_ALIAS
 xt_conntrack_state8 = XT_CONNTRACK_STATE_INVALID, XT_CONNTRACK_STATE_SNAT, XT_CONNTRACK_STATE_DNAT

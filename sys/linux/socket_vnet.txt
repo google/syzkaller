@@ -81,7 +81,7 @@ vmaddr_cid [
 vmaddr_cid64 {
 	cid	vmaddr_cid
 	pad	const[0, int32]
-} [align_8]
+} [align[8]]
 
 vhost_memory {
 	nregions	len[regions, int32]

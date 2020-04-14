@@ -60,15 +60,15 @@ resource fd_dir[fd]: AT_FDCWD
 # E.g. pid/uid stored as intptr/int64.
 type alignptr[T] {
 	v	T
-} [align_ptr]
+} [align[PTR_SIZE]]
 
 type align32[T] {
 	v	T
-} [align_4]
+} [align[4]]
 
 type align64[T] {
 	v	T
-} [align_8]
+} [align[8]]
 
 type signalno int32[0:65]
 type signalnoptr intptr[0:65]
@@ -446,7 +446,7 @@ rseq {
 	cpu_id		const[0, int32]
 	rseq_cs		ptr64[in, rseq_cs, opt]
 	flags		flags[rseq_cs_flags, int32]
-} [align_32]
+} [align[32]]
 
 rseq_cs {
 	version			const[0, int32]
@@ -454,7 +454,7 @@ rseq_cs {
 	start_ip		int64
 	post_commit_offset	int64
 	abort_ip		int64
-} [align_32]
+} [align[32]]
 
 rseq_cs_flags = RSEQ_CS_FLAG_NO_RESTART_ON_PREEMPT, RSEQ_CS_FLAG_NO_RESTART_ON_SIGNAL, RSEQ_CS_FLAG_NO_RESTART_ON_MIGRATE
 

@@ -49,7 +49,7 @@ type tipc_tlv_desc[TYP, DATA] {
 	tlv_len		bytesize[parent, int16be]
 	tlv_type	const[TYP, int16be]
 	data		DATA
-} [align_4]
+} [align[4]]
 
 tipc_link_config {
 	value	int32be
