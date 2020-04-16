@@ -4,7 +4,10 @@
 package compiler
 
 import (
+	"reflect"
+
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/prog"
 )
 
 type attrDesc struct {
@@ -23,9 +26,12 @@ var (
 
 	structAttrs = makeAttrs(attrPacked, attrSize, attrAlign)
 	unionAttrs  = makeAttrs(attrVarlen, attrSize)
+	callAttrs   = make(map[string]*attrDesc)
 )
 
 func init() {
+	initCallAttrs()
+
 	attrSize.CheckConsts = func(comp *compiler, parent ast.Node, attr *ast.Type) {
 		_, typ, name := parent.Info()
 		if comp.structIsVarlen(name) {
@@ -43,6 +49,22 @@ func init() {
 		if a&(a-1) != 0 || a == 0 || a > 1<<30 {
 			comp.error(attr.Pos, "bad struct %v alignment %v (must be a sane power of 2)", name, a)
 		}
+	}
+}
+
+func initCallAttrs() {
+	attrs := reflect.TypeOf(prog.SyscallAttrs{})
+	for i := 0; i < attrs.NumField(); i++ {
+		attr := attrs.Field(i)
+		desc := &attrDesc{Name: attr.Name}
+		switch attr.Type.Kind() {
+		case reflect.Bool:
+		case reflect.Uint64:
+			desc.HasArg = true
+		default:
+			panic("unsupported syscall attribute type")
+		}
+		callAttrs[prog.CppName(desc.Name)] = desc
 	}
 }
 

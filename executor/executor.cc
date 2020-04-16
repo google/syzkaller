@@ -172,6 +172,7 @@ typedef intptr_t(SYSCALLAPI* syscall_t)(intptr_t, intptr_t, intptr_t, intptr_t, 
 struct call_t {
 	const char* name;
 	int sys_nr;
+	call_attrs_t attrs;
 	syscall_t call;
 };
 
@@ -686,6 +687,9 @@ retry:
 		// Normal syscall.
 		if (call_num >= ARRAY_SIZE(syscalls))
 			fail("invalid command number %llu", call_num);
+		const call_t* call = &syscalls[call_num];
+		if (call->attrs.disabled)
+			fail("executing disabled syscall %s", call->name);
 		// call_extra_timeout must match timeout in pkg/csource/csource.go.
 		int call_extra_timeout = 0;
 		// TODO: find a way to tune timeout values.
