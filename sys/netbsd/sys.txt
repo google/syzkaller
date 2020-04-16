@@ -31,6 +31,7 @@ poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
 select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
 
 mincore(addr vma, size len[addr], vec buffer[out])
+minherit(addr vma, len len[addr], inherit flags[minherit_flags])
 
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
@@ -264,6 +265,7 @@ fcntl_getflags = F_GETFD, F_GETFL
 fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
 fcntl_flags = FD_CLOEXEC
 fcntl_status = O_APPEND, O_ASYNC, O_NONBLOCK, O_DSYNC, O_RSYNC, O_ALT_IO, O_DIRECT, O_NOSIGPIPE
+minherit_flags = MAP_INHERIT_COPY, MAP_INHERIT_NONE, MAP_INHERIT_SHARE, MAP_INHERIT_ZERO
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 chflags_flags = SF_APPEND, SF_IMMUTABLE, SF_ARCHIVED, UF_OPAQUE, UF_APPEND, UF_IMMUTABLE, UF_NODUMP
 clone_flags = CLONE_CSIGNAL, CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PID, CLONE_PTRACE, CLONE_VFORK
