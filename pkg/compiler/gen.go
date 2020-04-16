@@ -5,6 +5,7 @@ package compiler
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -111,6 +112,16 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 	if n.Ret != nil {
 		ret = comp.genType(n.Ret, "ret", prog.DirOut, comp.ptrSize)
 	}
+	var attrs prog.SyscallAttrs
+	descAttrs := comp.parseAttrs(callAttrs, n, n.Attrs)
+	for desc, val := range descAttrs {
+		fld := reflect.ValueOf(&attrs).Elem().FieldByName(desc.Name)
+		if desc.HasArg {
+			fld.SetUint(val)
+		} else {
+			fld.SetBool(val != 0)
+		}
+	}
 	return &prog.Syscall{
 		Name:        n.Name.Name,
 		CallName:    n.CallName,
@@ -118,6 +129,7 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		MissingArgs: len(argSizes) - len(n.Args),
 		Args:        comp.genFieldArray(n.Args, prog.DirIn, argSizes),
 		Ret:         ret,
+		Attrs:       attrs,
 	}
 }
 

@@ -77,32 +77,11 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 			if comp.target.SyscallNumbers && !strings.HasPrefix(n.CallName, "syz_") {
 				comp.addConst(infos, pos, comp.target.SyscallPrefix+n.CallName)
 			}
-		}
-	}
-
-	for _, decl := range comp.desc.Nodes {
-		switch decl.(type) {
-		case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
-			comp.foreachType(decl, func(t *ast.Type, desc *typeDesc,
-				args []*ast.Type, _ prog.IntTypeCommon) {
-				for i, arg := range args {
-					if desc.Args[i].Type.Kind == kindInt {
-						if arg.Ident != "" {
-							comp.addConst(infos, arg.Pos, arg.Ident)
-						}
-						for _, col := range arg.Colon {
-							if col.Ident != "" {
-								comp.addConst(infos, col.Pos, col.Ident)
-							}
-						}
-					}
+			for _, attr := range n.Attrs {
+				if callAttrs[attr.Ident].HasArg {
+					comp.addConst(infos, attr.Pos, attr.Args[0].Ident)
 				}
-			})
-		}
-	}
-
-	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
+			}
 		case *ast.Struct:
 			for _, attr := range n.Attrs {
 				if structOrUnionAttrs(n)[attr.Ident].HasArg {
@@ -110,15 +89,34 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 				}
 			}
 		}
+		switch decl.(type) {
+		case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
+			comp.extractTypeConsts(infos, decl)
+		}
 	}
-
 	comp.desc.Walk(ast.Recursive(func(n0 ast.Node) {
 		if n, ok := n0.(*ast.Int); ok {
 			comp.addConst(infos, n.Pos, n.Ident)
 		}
 	}))
-
 	return convertConstInfo(infos)
+}
+
+func (comp *compiler) extractTypeConsts(infos map[string]*constInfo, n ast.Node) {
+	comp.foreachType(n, func(t *ast.Type, desc *typeDesc, args []*ast.Type, _ prog.IntTypeCommon) {
+		for i, arg := range args {
+			if desc.Args[i].Type.Kind == kindInt {
+				if arg.Ident != "" {
+					comp.addConst(infos, arg.Pos, arg.Ident)
+				}
+				for _, col := range arg.Colon {
+					if col.Ident != "" {
+						comp.addConst(infos, col.Pos, col.Ident)
+					}
+				}
+			}
+		}
+	})
 }
 
 func (comp *compiler) addConst(infos map[string]*constInfo, pos ast.Pos, name string) {
@@ -220,12 +218,18 @@ func (comp *compiler) patchConsts(consts0 map[string]uint64) {
 					}
 				}
 			})
-			if n, ok := decl.(*ast.Resource); ok {
+			switch n := decl.(type) {
+			case *ast.Resource:
 				for _, v := range n.Values {
 					comp.patchIntConst(v, consts, &missing)
 				}
-			}
-			if n, ok := decl.(*ast.Struct); ok {
+			case *ast.Call:
+				for _, attr := range n.Attrs {
+					if callAttrs[attr.Ident].HasArg {
+						comp.patchTypeConst(attr.Args[0], consts, &missing)
+					}
+				}
+			case *ast.Struct:
 				for _, attr := range n.Attrs {
 					if structOrUnionAttrs(n)[attr.Ident].HasArg {
 						comp.patchTypeConst(attr.Args[0], consts, &missing)
