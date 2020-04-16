@@ -886,6 +886,11 @@ var syscalls_amd64 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Path: []string{"addr"}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 	}},
+	{NR: 273, Name: "minherit", CallName: "minherit", Args: []Type{
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Path: []string{"addr"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "minherit_flags", FldName: "inherit", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4}},
+	}},
 	{NR: 136, Name: "mkdir", CallName: "mkdir", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
@@ -1616,6 +1621,10 @@ var consts_amd64 = []ConstValue{
 	{"MAP_FIXED", 16},
 	{"MAP_HASSEMAPHORE", 512},
 	{"MAP_INHERIT", 128},
+	{"MAP_INHERIT_COPY", 1},
+	{"MAP_INHERIT_NONE", 2},
+	{Name: "MAP_INHERIT_SHARE"},
+	{"MAP_INHERIT_ZERO", 4},
 	{"MAP_PRIVATE", 2},
 	{"MAP_SHARED", 1},
 	{"MAP_TRYFIXED", 1024},
@@ -1815,6 +1824,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_lstat", 441},
 	{"SYS_madvise", 75},
 	{"SYS_mincore", 78},
+	{"SYS_minherit", 273},
 	{"SYS_mkdir", 136},
 	{"SYS_mkdirat", 461},
 	{"SYS_mknod", 450},
@@ -1924,4 +1934,4 @@ var consts_amd64 = []ConstValue{
 	{"_UC_STACK", 2},
 }
 
-const revision_amd64 = "51b70eb87003d3d037d34829e3adcf7145b0cf87"
+const revision_amd64 = "349aaeb62f14cb232ec4fa613f52453c7c3a19e4"
