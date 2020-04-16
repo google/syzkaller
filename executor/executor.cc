@@ -591,8 +591,8 @@ retry:
 	}
 
 	int call_index = 0;
-	int prog_extra_timeout = 0;
-	int prog_extra_cover_timeout = 0;
+	uint64 prog_extra_timeout = 0;
+	uint64 prog_extra_cover_timeout = 0;
 	for (;;) {
 		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
@@ -690,27 +690,10 @@ retry:
 		const call_t* call = &syscalls[call_num];
 		if (call->attrs.disabled)
 			fail("executing disabled syscall %s", call->name);
-		// call_extra_timeout must match timeout in pkg/csource/csource.go.
-		int call_extra_timeout = 0;
-		// TODO: find a way to tune timeout values.
+		if (prog_extra_timeout < call->attrs.prog_timeout)
+			prog_extra_timeout = call->attrs.prog_timeout;
 		if (strncmp(syscalls[call_num].name, "syz_usb", strlen("syz_usb")) == 0)
 			prog_extra_cover_timeout = 500;
-		if (strncmp(syscalls[call_num].name, "syz_usb_connect", strlen("syz_usb_connect")) == 0) {
-			prog_extra_timeout = 3000;
-			call_extra_timeout = 3000;
-		}
-		if (strncmp(syscalls[call_num].name, "syz_usb_control_io", strlen("syz_usb_control_io")) == 0)
-			call_extra_timeout = 300;
-		if (strncmp(syscalls[call_num].name, "syz_usb_ep_write", strlen("syz_usb_ep_write")) == 0)
-			call_extra_timeout = 300;
-		if (strncmp(syscalls[call_num].name, "syz_usb_ep_read", strlen("syz_usb_ep_read")) == 0)
-			call_extra_timeout = 300;
-		if (strncmp(syscalls[call_num].name, "syz_usb_disconnect", strlen("syz_usb_disconnect")) == 0)
-			call_extra_timeout = 300;
-		if (strncmp(syscalls[call_num].name, "syz_open_dev$hiddev", strlen("syz_open_dev$hiddev")) == 0)
-			call_extra_timeout = 50;
-		if (strncmp(syscalls[call_num].name, "syz_mount_image", strlen("syz_mount_image")) == 0)
-			call_extra_timeout = 50;
 		uint64 copyout_index = read_input(&input_pos);
 		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
@@ -729,7 +712,7 @@ retry:
 		} else if (flag_threaded) {
 			// Wait for call completion.
 			// Note: sys knows about this 25ms timeout when it generates timespec/timeval values.
-			uint64 timeout_ms = 45 + call_extra_timeout;
+			uint64 timeout_ms = 45 + call->attrs.timeout;
 			if (flag_debug && timeout_ms < 1000)
 				timeout_ms = 1000;
 			if (event_timedwait(&th->done, timeout_ms))
@@ -791,8 +774,8 @@ retry:
 		// Check for new extra coverage in small intervals to avoid situation
 		// that we were killed on timeout before we write any.
 		// Check for extra coverage is very cheap, effectively a memory load.
-		const int kSleepMs = 100;
-		for (int i = 0; i < prog_extra_cover_timeout / kSleepMs; i++) {
+		const uint64 kSleepMs = 100;
+		for (uint64 i = 0; i < prog_extra_cover_timeout / kSleepMs; i++) {
 			sleep_ms(kSleepMs);
 			write_extra_output();
 		}

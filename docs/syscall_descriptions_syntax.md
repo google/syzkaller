@@ -4,7 +4,7 @@ aka `syzlang` (`[siːzˈlæŋg]`)
 Pseudo-formal grammar of syscall description:
 
 ```
-syscallname "(" [arg ["," arg]*] ")" [type]
+syscallname "(" [arg ["," arg]*] ")" [type] ["(" attribute* ")"]
 arg = argname type
 argname = identifier
 type = typename [ "[" type-options "]" ]
@@ -76,6 +76,15 @@ or for string flags as:
 
 ```
 flagname = "\"" literal "\"" ["," "\"" literal "\""]*
+```
+
+Call attributes are:
+
+```
+"disabled": the call will not be used in fuzzing
+"timeout[N]": additional execution timeout (in ms) for the call on top of some default value
+"prog_timeout[N]": additional execution timeout (in ms) for the whole program if it contains this call;
+	if a program contains several such calls, the max value is used
 ```
 
 ## Ints
