@@ -6,6 +6,7 @@ package prog
 import (
 	"fmt"
 	"strings"
+	"unicode"
 )
 
 type Syscall struct {
@@ -16,9 +17,27 @@ type Syscall struct {
 	MissingArgs int // number of trailing args that should be zero-filled
 	Args        []Type
 	Ret         Type
+	Attrs       SyscallAttrs
 
 	inputResources  []*ResourceDesc
 	outputResources []*ResourceDesc
+}
+
+// SyscallAttrs represents call attributes in syzlang.
+//
+// This structure is the source of truth for the all other parts of the system.
+// pkg/compiler uses this structure to parse descriptions.
+// syz-sysgen uses this structure to generate code for executor.
+//
+// Only bool's and uint64's are currently supported.
+type SyscallAttrs struct {
+	// Never enable this system call in fuzzing.
+	Disabled bool
+	// Additional execution timeout (in ms) for the call on top of some default value.
+	Timeout uint64
+	// Additional execution timeout (in ms) for the whole program if it contains this call.
+	// If a program contains several such calls, the max value is used.
+	ProgTimeout uint64
 }
 
 // MaxArgs is maximum number of syscall arguments.
@@ -652,4 +671,17 @@ func ForeachType(meta *Syscall, f func(Type)) {
 	if meta.Ret != nil {
 		rec(meta.Ret)
 	}
+}
+
+// CppName transforms PascalStyleNames to cpp_style_names.
+func CppName(name string) string {
+	var res []byte
+	for i := range name {
+		c := rune(name[i])
+		if unicode.IsUpper(c) && i != 0 && !unicode.IsUpper(rune(name[i-1])) {
+			res = append(res, '_')
+		}
+		res = append(res, byte(unicode.ToLower(c)))
+	}
+	return string(res)
 }

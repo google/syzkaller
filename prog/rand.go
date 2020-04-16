@@ -555,6 +555,9 @@ func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
 }
 
 func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call) {
+	if meta.Attrs.Disabled {
+		panic(fmt.Sprintf("generating disabled call %v", meta.Name))
+	}
 	c := &Call{
 		Meta: meta,
 		Ret:  MakeReturnArg(meta.Ret),

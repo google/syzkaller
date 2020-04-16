@@ -125,6 +125,9 @@ foo$65(a int32, b len[1])	### unexpected int 1 for len target argument of len ty
 foo$66(a int32, b len[a:1])	### unexpected int 1 after colon, expect identifier
 foo$67(x int32[1:2:3, opt])	### unexpected ':'
 foo$68(a int32[15, 2])		### first argument of int32 needs to be a range
+foo$69() (foo)			### unknown syscall foo$69 attribute foo
+foo$70() ("foo")		### unexpected string "foo", expect attribute
+foo$71() (42)			### unexpected int 42, expect attribute
 
 opt {				### struct uses reserved name opt
 	f1	int32

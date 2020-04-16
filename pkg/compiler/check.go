@@ -713,6 +713,7 @@ func (comp *compiler) checkCall(n *ast.Call) {
 	if n.Ret != nil {
 		comp.checkType(checkCtx{}, n.Ret, checkIsArg|checkIsRet)
 	}
+	comp.parseAttrs(callAttrs, n, n.Attrs)
 }
 
 type checkFlags int
