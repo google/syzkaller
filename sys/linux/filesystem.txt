@@ -63,56 +63,33 @@ loop_filename {
 
 syz_read_part_table(size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]])
 
-syz_mount_image$vfat(fs ptr[in, string["vfat"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
+define SYZ_MOUNT_IMAGE_TIMEOUT	50
 
-syz_mount_image$msdos(fs ptr[in, string["msdos"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[msdos_options]])
-
-syz_mount_image$bfs(fs ptr[in, string["bfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts const[0])
-
-syz_mount_image$xfs(fs ptr[in, string["xfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[xfs_options]])
-
-syz_mount_image$minix(fs ptr[in, string["minix"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts const[0])
-
-syz_mount_image$reiserfs(fs ptr[in, string["reiserfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[reiserfs_options]])
-
-syz_mount_image$hfs(fs ptr[in, string["hfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[hfs_options]])
-
-syz_mount_image$hfsplus(fs ptr[in, string["hfsplus"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[hfsplus_options]])
-
-syz_mount_image$iso9660(fs ptr[in, string["iso9660"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[iso9660_options]])
-
-syz_mount_image$gfs2(fs ptr[in, string["gfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[gfs2_options]])
-
-syz_mount_image$jfs(fs ptr[in, string["jfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[jfs_options]])
-
-syz_mount_image$btrfs(fs ptr[in, string["btrfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[btrfs_options]])
-
-syz_mount_image$ntfs(fs ptr[in, string["ntfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[ntfs_options]])
-
-syz_mount_image$ext4(fs ptr[in, string[ext4_types]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[ext4_options]])
-
-ext4_types = "ext4", "ext3", "ext2"
-
-syz_mount_image$f2fs(fs ptr[in, string["f2fs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[f2fs_options]])
-
-syz_mount_image$ocfs2(fs ptr[in, string["ocfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
-
-syz_mount_image$nfs(fs ptr[in, string["nfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
-
-syz_mount_image$nfs4(fs ptr[in, string["nfs4"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
-
-syz_mount_image$cifs(fs ptr[in, string["cifs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
-
-syz_mount_image$ceph(fs ptr[in, string["ceph"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string])
-
-syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[erofs_options]])
-
-syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[exfat_options]])
-
-syz_mount_image$afs(fs ptr[in, string["afs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[afs_options]])
-
+syz_mount_image$vfat(fs ptr[in, string["vfat"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$msdos(fs ptr[in, string["msdos"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[msdos_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$bfs(fs ptr[in, string["bfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts const[0]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$xfs(fs ptr[in, string["xfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[xfs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$minix(fs ptr[in, string["minix"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts const[0]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$reiserfs(fs ptr[in, string["reiserfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[reiserfs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$hfs(fs ptr[in, string["hfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[hfs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$hfsplus(fs ptr[in, string["hfsplus"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[hfsplus_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$iso9660(fs ptr[in, string["iso9660"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[iso9660_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$gfs2(fs ptr[in, string["gfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[gfs2_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$jfs(fs ptr[in, string["jfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[jfs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$btrfs(fs ptr[in, string["btrfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[btrfs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ntfs(fs ptr[in, string["ntfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[ntfs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ext4(fs ptr[in, string[ext4_types]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[ext4_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$f2fs(fs ptr[in, string["f2fs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[f2fs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ocfs2(fs ptr[in, string["ocfs2"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$nfs(fs ptr[in, string["nfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$nfs4(fs ptr[in, string["nfs4"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$cifs(fs ptr[in, string["cifs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$ceph(fs ptr[in, string["ceph"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, string]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$erofs(fs ptr[in, string["erofs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[erofs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$exfat(fs ptr[in, string["exfat"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[exfat_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
+syz_mount_image$afs(fs ptr[in, string["afs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[afs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
 # Note: tmpfs does not need an image, but we use this in tests.
-syz_mount_image$tmpfs(fs ptr[in, string["tmpfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]])
+syz_mount_image$tmpfs(fs ptr[in, string["tmpfs"]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[tmpfs_options]]) (timeout[SYZ_MOUNT_IMAGE_TIMEOUT])
 
 fs_image_segment {
 	data	ptr[in, array[int8]]
@@ -635,6 +612,7 @@ ext4_options [
 	usrjquota_path		fs_opt_filename["usrjquota"]
 ] [varlen]
 
+ext4_types = "ext4", "ext3", "ext2"
 ext4_inode_readahead_blks = 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000
 
 f2fs_options [

@@ -6,7 +6,7 @@ include <uapi/linux/hiddev.h>
 
 resource fd_hiddev[fd]
 
-syz_open_dev$hiddev(dev ptr[in, string["/dev/usb/hiddev#"]], id intptr, flags flags[open_flags]) fd_hiddev
+syz_open_dev$hiddev(dev ptr[in, string["/dev/usb/hiddev#"]], id intptr, flags flags[open_flags]) fd_hiddev (timeout[50])
 
 read$hiddev(fd fd_hiddev, data buffer[out], len bytesize[data])
 
