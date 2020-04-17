@@ -711,7 +711,8 @@ retry:
 			// We already have results from the previous execution.
 		} else if (flag_threaded) {
 			// Wait for call completion.
-			// Note: sys knows about this 25ms timeout when it generates timespec/timeval values.
+			// Note: sys/linux knows about this 45 ms timeout when it generates timespec/timeval values.
+			// Note: pkg/csource also knows about this 45 ms per-call timeout.
 			uint64 timeout_ms = 45 + call->attrs.timeout;
 			if (flag_debug && timeout_ms < 1000)
 				timeout_ms = 1000;
