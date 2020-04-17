@@ -4,6 +4,7 @@
 package host
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
@@ -88,7 +89,9 @@ func Setup(target *prog.Target, features *Features, featureFlags csource.Feature
 	if targets.Get(target.OS, target.Arch).HostFuzzer {
 		return nil
 	}
-	args := []string{"setup"}
+	args := strings.Split(executor, " ")
+	executor = args[0]
+	args = append(args[1:], "setup")
 	if features[FeatureLeak].Enabled {
 		args = append(args, "leak")
 	}
