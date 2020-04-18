@@ -59,12 +59,21 @@ static inline __u64 kcov_remote_handle(__u64 subsys, __u64 inst)
 
 static bool detect_kernel_bitness();
 
-static void os_init(int argc, char** argv, void* data, size_t data_size)
+static void os_init(int argc, char** argv, char* data, size_t data_size)
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	is_kernel_64_bit = detect_kernel_bitness();
+	// Surround the main data mapping with PROT_NONE pages to make virtual address layout more consistent
+	// across different configurations (static/non-static build) and C repros.
+	// One observed case before: executor had a mapping above the data mapping (output region),
+	// while C repros did not have that mapping above, as the result in one case VMA had next link,
+	// while in the other it didn't and it caused a bug to not reproduce with the C repro.
+	if (mmap(data - SYZ_PAGE_SIZE, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data - SYZ_PAGE_SIZE)
+		fail("mmap of left data PROT_NONE page failed");
 	if (mmap(data, data_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data)
 		fail("mmap of data segment failed");
+	if (mmap(data + data_size, SYZ_PAGE_SIZE, PROT_NONE, MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != data + data_size)
+		fail("mmap of right data PROT_NONE page failed");
 }
 
 static __thread cover_t* current_cover;

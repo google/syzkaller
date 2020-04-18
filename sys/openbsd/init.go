@@ -19,7 +19,7 @@ func InitTarget(target *prog.Target) {
 		S_IFCHR:        target.GetConst("S_IFCHR"),
 	}
 
-	target.MakeDataMmap = targets.MakePosixMmap(target, false)
+	target.MakeDataMmap = targets.MakePosixMmap(target, false, false)
 	target.Neutralize = arch.neutralize
 	target.AnnotateCall = arch.annotateCall
 }
