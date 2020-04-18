@@ -128,6 +128,7 @@ foo$68(a int32[15, 2])		### first argument of int32 needs to be a range
 foo$69() (foo)			### unknown syscall foo$69 attribute foo
 foo$70() ("foo")		### unexpected string "foo", expect attribute
 foo$71() (42)			### unexpected int 42, expect attribute
+foo$72() (disabled, disabled)	### duplicate syscall foo$72 attribute disabled
 
 opt {				### struct uses reserved name opt
 	f1	int32
