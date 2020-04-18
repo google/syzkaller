@@ -44,7 +44,7 @@ func MakePosixMmap(target *prog.Target, exec, contain bool) func() []*prog.Call 
 	return func() []*prog.Call {
 		if contain {
 			return []*prog.Call{
-				makeMmap(^uint64(target.PageSize)+1, target.PageSize, 0),
+				makeMmap(^target.PageSize+1, target.PageSize, 0),
 				makeMmap(0, size, protRW),
 				makeMmap(size, target.PageSize, 0),
 			}
@@ -58,7 +58,7 @@ func MakeSyzMmap(target *prog.Target) func() []*prog.Call {
 	size := target.NumPages * target.PageSize
 	return func() []*prog.Call {
 		return []*prog.Call{
-			&prog.Call{
+			{
 				Meta: meta,
 				Args: []prog.Arg{
 					prog.MakeVmaPointerArg(meta.Args[0], 0, size),
