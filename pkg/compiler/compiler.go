@@ -196,6 +196,10 @@ func (comp *compiler) parseAttrs(descs map[string]*attrDesc, parent ast.Node, at
 			comp.error(attr.Pos, "unknown %v %v attribute %v", parentType, parentName, attr.Ident)
 			return
 		}
+		if _, ok := res[desc]; ok {
+			comp.error(attr.Pos, "duplicate %v %v attribute %v", parentType, parentName, attr.Ident)
+			return
+		}
 		val := uint64(1)
 		if desc.HasArg {
 			val = comp.parseAttrArg(attr)
