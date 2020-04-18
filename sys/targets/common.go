@@ -8,18 +8,21 @@ import (
 )
 
 // MakePosixMmap creates a "normal" posix mmap call that maps the target data range.
-func MakePosixMmap(target *prog.Target, exec bool) func() []*prog.Call {
+// If exec is set, the mapping is mapped as PROT_EXEC.
+// If contain is set, the mapping is surrounded by PROT_NONE pages.
+// These flags should be in sync with what executor.
+func MakePosixMmap(target *prog.Target, exec, contain bool) func() []*prog.Call {
 	meta := target.SyscallMap["mmap"]
-	prot := target.GetConst("PROT_READ") | target.GetConst("PROT_WRITE")
+	protRW := target.GetConst("PROT_READ") | target.GetConst("PROT_WRITE")
 	if exec {
-		prot |= target.GetConst("PROT_EXEC")
+		protRW |= target.GetConst("PROT_EXEC")
 	}
 	flags := target.GetConst("MAP_ANONYMOUS") | target.GetConst("MAP_PRIVATE") | target.GetConst("MAP_FIXED")
-	const invalidFD = ^uint64(0)
 	size := target.NumPages * target.PageSize
-	return func() []*prog.Call {
+	const invalidFD = ^uint64(0)
+	makeMmap := func(addr, size, prot uint64) *prog.Call {
 		args := []prog.Arg{
-			prog.MakeVmaPointerArg(meta.Args[0], 0, size),
+			prog.MakeVmaPointerArg(meta.Args[0], addr, size),
 			prog.MakeConstArg(meta.Args[1], size),
 			prog.MakeConstArg(meta.Args[2], prot),
 			prog.MakeConstArg(meta.Args[3], flags),
@@ -32,13 +35,21 @@ func MakePosixMmap(target *prog.Target, exec bool) func() []*prog.Call {
 			i++
 		}
 		args = append(args, prog.MakeConstArg(meta.Args[i], 0))
-
-		mmapCall := &prog.Call{
+		return &prog.Call{
 			Meta: meta,
 			Args: args,
 			Ret:  prog.MakeReturnArg(meta.Ret),
 		}
-		return []*prog.Call{mmapCall}
+	}
+	return func() []*prog.Call {
+		if contain {
+			return []*prog.Call{
+				makeMmap(^uint64(target.PageSize)+1, target.PageSize, 0),
+				makeMmap(0, size, protRW),
+				makeMmap(size, target.PageSize, 0),
+			}
+		}
+		return []*prog.Call{makeMmap(0, size, protRW)}
 	}
 }
 

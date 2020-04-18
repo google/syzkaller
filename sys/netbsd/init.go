@@ -13,7 +13,7 @@ func InitTarget(target *prog.Target) {
 		unix: targets.MakeUnixNeutralizer(target),
 	}
 
-	target.MakeDataMmap = targets.MakePosixMmap(target, false)
+	target.MakeDataMmap = targets.MakePosixMmap(target, false, false)
 	target.Neutralize = arch.unix.Neutralize
 }
 

@@ -16,7 +16,7 @@ func InitTarget(target *prog.Target) {
 	arch := &arch{
 		MAP_FIXED: target.GetConst("MAP_FIXED"),
 	}
-	target.MakeDataMmap = targets.MakePosixMmap(target, true)
+	target.MakeDataMmap = targets.MakePosixMmap(target, true, false)
 	target.Neutralize = arch.Neutralize
 }
 
