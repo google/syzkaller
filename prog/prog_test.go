@@ -328,9 +328,9 @@ fallback$1(0x0)
 			`
 fallback$0()
 fallback$0()
-seccomp()
+breaks_returns()
 fallback$0()
-seccomp()
+breaks_returns()
 fallback$0()
 fallback$0()
 `,
@@ -369,9 +369,9 @@ fallback$0()
 		{
 			`
 fallback$0()
-prctl$PR_SET_SECCOMP()
+breaks_returns()
 fallback$0()
-prctl$PR_SET_SECCOMP()
+breaks_returns()
 fallback$0()
 `,
 			[]CallInfo{

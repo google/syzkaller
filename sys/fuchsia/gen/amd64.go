@@ -6754,8 +6754,8 @@ var syscalls_amd64 = []*Syscall{
 	{Name: "zx_clock_get", CallName: "zx_clock_get", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clock_id", FldName: "clock_id", TypeSize: 8}}, Vals: []uint64{0, 1, 2}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "zx_time", TypeSize: 8}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
-	}},
-	{Name: "zx_clock_get_monotonic", CallName: "zx_clock_get_monotonic"},
+	}, Attrs: SyscallAttrs{IgnoreReturn: true}},
+	{Name: "zx_clock_get_monotonic", CallName: "zx_clock_get_monotonic", Attrs: SyscallAttrs{IgnoreReturn: true}},
 	{Name: "zx_cprng_add_entropy", CallName: "zx_cprng_add_entropy", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Path: []string{"buffer"}},
@@ -6766,7 +6766,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{Name: "zx_deadline_after", CallName: "zx_deadline_after", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ns", TypeSize: 8}}},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "ret", TypeSize: 8, ArgDir: 1}}, Attrs: SyscallAttrs{IgnoreReturn: true}},
 	{Name: "zx_debuglog_create", CallName: "zx_debuglog_create", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_root_resource", FldName: "root_resource", TypeSize: 4}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "log_create_options", FldName: "options", TypeSize: 8}}, []uint64{1073741824}, true},
@@ -6777,7 +6777,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "ptr", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Path: []string{"ptr"}},
-	}},
+	}, Attrs: SyscallAttrs{IgnoreReturn: true}},
 	{Name: "zx_debuglog_write", CallName: "zx_debuglog_write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_debug_log", FldName: "handle", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "options", TypeSize: 4}}},
@@ -7227,7 +7227,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "buffer", TypeSize: 8}, &ArrayType{TypeCommon{TypeName: "array", TypeSize: 144}, &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, 1, 18, 18}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 8}}, BitSize: 8, Path: []string{"buffer"}},
 	}},
-	{Name: "zx_ticks_get", CallName: "zx_ticks_get"},
+	{Name: "zx_ticks_get", CallName: "zx_ticks_get", Attrs: SyscallAttrs{IgnoreReturn: true}},
 	{Name: "zx_ticks_per_second", CallName: "zx_ticks_per_second"},
 	{Name: "zx_timer_cancel", CallName: "zx_timer_cancel", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_timer", FldName: "handle", TypeSize: 4}},
@@ -7590,4 +7590,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "fuchsia_power_Status_OK"},
 }
 
-const revision_amd64 = "affb41e7463b2c8dbaf4456cc5c1135057b68e70"
+const revision_amd64 = "296a2146dc159a2236ebb2611b4738dfb8eb8cca"
