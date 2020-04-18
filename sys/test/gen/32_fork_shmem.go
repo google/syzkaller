@@ -945,6 +945,7 @@ var structDescs_32_fork_shmem = []*KeyedStruct{
 }
 
 var syscalls_32_fork_shmem = []*Syscall{
+	{Name: "breaks_returns", CallName: "breaks_returns", Attrs: SyscallAttrs{BreaksReturns: true}},
 	{Name: "fallback$0", CallName: "fallback", MissingArgs: 1, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "fallback$1", CallName: "fallback", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "a", TypeSize: 4}},
@@ -1055,8 +1056,6 @@ var syscalls_32_fork_shmem = []*Syscall{
 	{Name: "mutate_union", CallName: "mutate_union", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "p", TypeSize: 4}, &UnionType{Key: StructKey{Name: "syz_union0"}}},
 	}},
-	{Name: "prctl$PR_SET_SECCOMP", CallName: "prctl"},
-	{Name: "seccomp", CallName: "seccomp"},
 	{Name: "serialize0", CallName: "serialize0", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 4}, &StructType{Key: StructKey{Name: "serialize0_struct"}}},
 	}},
@@ -1417,6 +1416,7 @@ var consts_32_fork_shmem = []ConstValue{
 	{"IPPROTO_TCP", 6},
 	{"IPPROTO_UDP", 17},
 	{"ONLY_32BITS_CONST", 1},
+	{Name: "SYS_breaks_returns"},
 	{Name: "SYS_fallback"},
 	{Name: "SYS_foo"},
 	{Name: "SYS_minimize"},
@@ -1439,8 +1439,6 @@ var consts_32_fork_shmem = []ConstValue{
 	{Name: "SYS_mutate_integer2"},
 	{Name: "SYS_mutate_rangedbuffer"},
 	{Name: "SYS_mutate_union"},
-	{Name: "SYS_prctl"},
-	{Name: "SYS_seccomp"},
 	{Name: "SYS_serialize0"},
 	{Name: "SYS_serialize1"},
 	{Name: "SYS_test"},
@@ -1450,4 +1448,4 @@ var consts_32_fork_shmem = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_32_fork_shmem = "42febc260062ff9c4c73371e46dcc2ade4e32b36"
+const revision_32_fork_shmem = "ab8275b5cfc2a37c9a8ab35108e25a9998325f38"

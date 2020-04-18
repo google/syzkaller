@@ -81,10 +81,14 @@ flagname = "\"" literal "\"" ["," "\"" literal "\""]*
 Call attributes are:
 
 ```
-"disabled": the call will not be used in fuzzing
+"disabled": the call will not be used in fuzzing; useful to temporary disable some calls
+	or prohibit particular argument combinations.
 "timeout[N]": additional execution timeout (in ms) for the call on top of some default value
 "prog_timeout[N]": additional execution timeout (in ms) for the whole program if it contains this call;
-	if a program contains several such calls, the max value is used
+	if a program contains several such calls, the max value is used.
+"ignore_return": ignore return value of this syscall in fallback feedback; need to be used for calls
+	that don't return fixed error codes but rather something else (e.g. the current time).
+"breaks_returns": ignore return values of all subsequent calls in the program in fallback feedback (can't be trusted).
 ```
 
 ## Ints

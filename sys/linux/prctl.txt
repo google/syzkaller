@@ -9,78 +9,80 @@ include <uapi/linux/capability.h>
 include <uapi/linux/securebits.h>
 include <asm/prctl.h>
 
-prctl$PR_SET_PDEATHSIG(option const[PR_SET_PDEATHSIG], arg signalnoptr)
-prctl$PR_GET_PDEATHSIG(option const[PR_GET_PDEATHSIG], arg ptr[out, int32])
+# Only some commands break return values.
+# When/if we have stricter enforcement of arguments, we may remove some of breaks_returns attributes.
+prctl$PR_SET_PDEATHSIG(option const[PR_SET_PDEATHSIG], arg signalnoptr) (breaks_returns)
+prctl$PR_GET_PDEATHSIG(option const[PR_GET_PDEATHSIG], arg ptr[out, int32]) (breaks_returns)
 
-prctl$PR_GET_DUMPABLE(option const[PR_GET_DUMPABLE])
-prctl$PR_SET_DUMPABLE(option const[PR_SET_DUMPABLE], arg flags[prctl_dump_mode])
+prctl$PR_GET_DUMPABLE(option const[PR_GET_DUMPABLE]) (breaks_returns)
+prctl$PR_SET_DUMPABLE(option const[PR_SET_DUMPABLE], arg flags[prctl_dump_mode]) (breaks_returns)
 
 prctl_dump_mode = SUID_DUMP_USER, SUID_DUMP_ROOT
 
-prctl$PR_GET_UNALIGN(option const[PR_GET_UNALIGN], arg ptr[out, int32])
-prctl$PR_SET_UNALIGN(option const[PR_SET_UNALIGN], arg flags[prctl_align_mode])
+prctl$PR_GET_UNALIGN(option const[PR_GET_UNALIGN], arg ptr[out, int32]) (breaks_returns)
+prctl$PR_SET_UNALIGN(option const[PR_SET_UNALIGN], arg flags[prctl_align_mode]) (breaks_returns)
 
 prctl_align_mode = PR_UNALIGN_NOPRINT, PR_UNALIGN_SIGBUS
 
-prctl$PR_GET_KEEPCAPS(option const[PR_GET_KEEPCAPS])
-prctl$PR_SET_KEEPCAPS(option const[PR_SET_KEEPCAPS], arg boolptr)
+prctl$PR_GET_KEEPCAPS(option const[PR_GET_KEEPCAPS]) (breaks_returns)
+prctl$PR_SET_KEEPCAPS(option const[PR_SET_KEEPCAPS], arg boolptr) (breaks_returns)
 
-prctl$PR_GET_FPEMU(option const[PR_GET_FPEMU], arg ptr[out, int32])
-prctl$PR_SET_FPEMU(option const[PR_SET_FPEMU], arg flags[prctl_fpemu_mode])
+prctl$PR_GET_FPEMU(option const[PR_GET_FPEMU], arg ptr[out, int32]) (breaks_returns)
+prctl$PR_SET_FPEMU(option const[PR_SET_FPEMU], arg flags[prctl_fpemu_mode]) (breaks_returns)
 
 prctl_fpemu_mode = PR_FPEMU_NOPRINT, PR_FPEMU_SIGFPE
 
-prctl$PR_GET_FPEXC(option const[PR_GET_FPEXC], arg ptr[out, int32])
-prctl$PR_SET_FPEXC(option const[PR_SET_FPEXC], arg flags[prctl_fpexc_mode])
+prctl$PR_GET_FPEXC(option const[PR_GET_FPEXC], arg ptr[out, int32]) (breaks_returns)
+prctl$PR_SET_FPEXC(option const[PR_SET_FPEXC], arg flags[prctl_fpexc_mode]) (breaks_returns)
 
 prctl_fpexc_mode = PR_FP_EXC_SW_ENABLE, PR_FP_EXC_DIV, PR_FP_EXC_OVF, PR_FP_EXC_UND, PR_FP_EXC_RES, PR_FP_EXC_INV, PR_FP_EXC_DISABLED, PR_FP_EXC_NONRECOV, PR_FP_EXC_ASYNC, PR_FP_EXC_PRECISE
 
 # These are not implemented.
 _ = PR_GET_TIMING, PR_SET_TIMING
 
-prctl$PR_SET_NAME(option const[PR_SET_NAME], name ptr[in, string])
-prctl$PR_GET_NAME(option const[PR_GET_NAME], name ptr[out, array[int8]])
+prctl$PR_SET_NAME(option const[PR_SET_NAME], name ptr[in, string]) (breaks_returns)
+prctl$PR_GET_NAME(option const[PR_GET_NAME], name ptr[out, array[int8]]) (breaks_returns)
 
-prctl$PR_GET_ENDIAN(option const[PR_GET_ENDIAN], arg ptr[out, int32])
-prctl$PR_SET_ENDIAN(option const[PR_SET_ENDIAN], arg flags[prctl_endian_mode])
+prctl$PR_GET_ENDIAN(option const[PR_GET_ENDIAN], arg ptr[out, int32]) (breaks_returns)
+prctl$PR_SET_ENDIAN(option const[PR_SET_ENDIAN], arg flags[prctl_endian_mode]) (breaks_returns)
 
 prctl_endian_mode = PR_ENDIAN_BIG, PR_ENDIAN_LITTLE, PR_ENDIAN_PPC_LITTLE
 
-prctl$PR_GET_SECCOMP(option const[PR_GET_SECCOMP])
-prctl$PR_SET_SECCOMP(option const[PR_SET_SECCOMP], mode flags[prctl_seccomp_mode], prog ptr[in, sock_fprog])
+prctl$PR_GET_SECCOMP(option const[PR_GET_SECCOMP]) (breaks_returns)
+prctl$PR_SET_SECCOMP(option const[PR_SET_SECCOMP], mode flags[prctl_seccomp_mode], prog ptr[in, sock_fprog]) (breaks_returns)
 
 prctl_seccomp_mode = SECCOMP_MODE_DISABLED, SECCOMP_MODE_STRICT, SECCOMP_MODE_FILTER
 
-prctl$PR_CAPBSET_READ(option const[PR_CAPBSET_READ], arg intptr[0:CAP_LAST_CAP])
-prctl$PR_CAPBSET_DROP(option const[PR_CAPBSET_DROP], arg intptr[0:CAP_LAST_CAP])
+prctl$PR_CAPBSET_READ(option const[PR_CAPBSET_READ], arg intptr[0:CAP_LAST_CAP]) (breaks_returns)
+prctl$PR_CAPBSET_DROP(option const[PR_CAPBSET_DROP], arg intptr[0:CAP_LAST_CAP]) (breaks_returns)
 
-prctl$PR_GET_TSC(option const[PR_GET_TSC], arg ptr[out, int32])
-prctl$PR_SET_TSC(option const[PR_SET_TSC], arg flags[prctl_tsc_mode])
+prctl$PR_GET_TSC(option const[PR_GET_TSC], arg ptr[out, int32]) (breaks_returns)
+prctl$PR_SET_TSC(option const[PR_SET_TSC], arg flags[prctl_tsc_mode]) (breaks_returns)
 
 prctl_tsc_mode = PR_TSC_ENABLE, PR_TSC_SIGSEGV
 
-prctl$PR_GET_SECUREBITS(option const[PR_GET_SECUREBITS])
-prctl$PR_SET_SECUREBITS(option const[PR_SET_SECUREBITS], arg flags[prctl_securebits])
+prctl$PR_GET_SECUREBITS(option const[PR_GET_SECUREBITS]) (breaks_returns)
+prctl$PR_SET_SECUREBITS(option const[PR_SET_SECUREBITS], arg flags[prctl_securebits]) (breaks_returns)
 
 prctl_securebits = SECBIT_NOROOT, SECBIT_NOROOT_LOCKED, SECBIT_NO_SETUID_FIXUP, SECBIT_NO_SETUID_FIXUP_LOCKED, SECBIT_KEEP_CAPS, SECBIT_KEEP_CAPS_LOCKED
 
-prctl$PR_SET_TIMERSLACK(option const[PR_SET_TIMERSLACK], arg intptr)
-prctl$PR_GET_TIMERSLACK(option const[PR_GET_TIMERSLACK])
+prctl$PR_SET_TIMERSLACK(option const[PR_SET_TIMERSLACK], arg intptr) (breaks_returns)
+prctl$PR_GET_TIMERSLACK(option const[PR_GET_TIMERSLACK]) (breaks_returns)
 
-prctl$PR_TASK_PERF_EVENTS_DISABLE(option const[PR_TASK_PERF_EVENTS_DISABLE])
-prctl$PR_TASK_PERF_EVENTS_ENABLE(option const[PR_TASK_PERF_EVENTS_ENABLE])
+prctl$PR_TASK_PERF_EVENTS_DISABLE(option const[PR_TASK_PERF_EVENTS_DISABLE]) (breaks_returns)
+prctl$PR_TASK_PERF_EVENTS_ENABLE(option const[PR_TASK_PERF_EVENTS_ENABLE]) (breaks_returns)
 
-prctl$PR_MCE_KILL(option const[PR_MCE_KILL], arg2 flags[prctl_mce_kill_mode], arg3 flags[prctl_mce_kill_submode])
-prctl$PR_MCE_KILL_GET(option const[PR_MCE_KILL_GET])
+prctl$PR_MCE_KILL(option const[PR_MCE_KILL], arg2 flags[prctl_mce_kill_mode], arg3 flags[prctl_mce_kill_submode]) (breaks_returns)
+prctl$PR_MCE_KILL_GET(option const[PR_MCE_KILL_GET]) (breaks_returns)
 
 prctl_mce_kill_mode = PR_MCE_KILL_CLEAR, PR_MCE_KILL_SET
 prctl_mce_kill_submode = PR_MCE_KILL_LATE, PR_MCE_KILL_EARLY, PR_MCE_KILL_DEFAULT
 
-prctl$PR_SET_MM(option const[PR_SET_MM], opt flags[prctl_mm_option], arg vma)
-prctl$PR_SET_MM_EXE_FILE(option const[PR_SET_MM], opt const[PR_SET_MM_EXE_FILE], arg fd)
-prctl$PR_SET_MM_AUXV(option const[PR_SET_MM], opt const[PR_SET_MM_AUXV], arg ptr[in, array[int8]], len bytesize[arg])
-prctl$PR_SET_MM_MAP(option const[PR_SET_MM], opt const[PR_SET_MM_MAP], arg ptr[in, prctl_mm_map], len bytesize[arg])
-prctl$PR_SET_MM_MAP_SIZE(option const[PR_SET_MM], opt const[PR_SET_MM_MAP_SIZE], arg ptr[out, int32])
+prctl$PR_SET_MM(option const[PR_SET_MM], opt flags[prctl_mm_option], arg vma) (breaks_returns)
+prctl$PR_SET_MM_EXE_FILE(option const[PR_SET_MM], opt const[PR_SET_MM_EXE_FILE], arg fd) (breaks_returns)
+prctl$PR_SET_MM_AUXV(option const[PR_SET_MM], opt const[PR_SET_MM_AUXV], arg ptr[in, array[int8]], len bytesize[arg]) (breaks_returns)
+prctl$PR_SET_MM_MAP(option const[PR_SET_MM], opt const[PR_SET_MM_MAP], arg ptr[in, prctl_mm_map], len bytesize[arg]) (breaks_returns)
+prctl$PR_SET_MM_MAP_SIZE(option const[PR_SET_MM], opt const[PR_SET_MM_MAP_SIZE], arg ptr[out, int32]) (breaks_returns)
 
 prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA, PR_SET_MM_END_DATA, PR_SET_MM_START_STACK, PR_SET_MM_START_BRK, PR_SET_MM_BRK, PR_SET_MM_ARG_START, PR_SET_MM_ARG_END, PR_SET_MM_ENV_START, PR_SET_MM_ENV_END
 
@@ -101,36 +103,36 @@ prctl_mm_map {
 	exe_fd		fd
 }
 
-prctl$PR_SET_PTRACER(option const[PR_SET_PTRACER], pid pid)
+prctl$PR_SET_PTRACER(option const[PR_SET_PTRACER], pid pid) (breaks_returns)
 
-prctl$PR_SET_CHILD_SUBREAPER(option const[PR_SET_CHILD_SUBREAPER], arg boolptr)
-prctl$PR_GET_CHILD_SUBREAPER(option const[PR_GET_CHILD_SUBREAPER])
+prctl$PR_SET_CHILD_SUBREAPER(option const[PR_SET_CHILD_SUBREAPER], arg boolptr) (breaks_returns)
+prctl$PR_GET_CHILD_SUBREAPER(option const[PR_GET_CHILD_SUBREAPER]) (breaks_returns)
 
-prctl$PR_SET_NO_NEW_PRIVS(option const[PR_SET_NO_NEW_PRIVS], arg const[1])
-prctl$PR_GET_NO_NEW_PRIVS(option const[PR_GET_NO_NEW_PRIVS])
+prctl$PR_SET_NO_NEW_PRIVS(option const[PR_SET_NO_NEW_PRIVS], arg const[1]) (breaks_returns)
+prctl$PR_GET_NO_NEW_PRIVS(option const[PR_GET_NO_NEW_PRIVS]) (breaks_returns)
 
-prctl$PR_GET_TID_ADDRESS(option const[PR_GET_TID_ADDRESS], arg ptr[out, intptr])
+prctl$PR_GET_TID_ADDRESS(option const[PR_GET_TID_ADDRESS], arg ptr[out, intptr]) (breaks_returns)
 
-prctl$PR_SET_THP_DISABLE(option const[PR_SET_THP_DISABLE], arg boolptr)
-prctl$PR_GET_THP_DISABLE(option const[PR_GET_THP_DISABLE])
+prctl$PR_SET_THP_DISABLE(option const[PR_SET_THP_DISABLE], arg boolptr) (breaks_returns)
+prctl$PR_GET_THP_DISABLE(option const[PR_GET_THP_DISABLE]) (breaks_returns)
 
-prctl$PR_MPX_ENABLE_MANAGEMENT(option const[PR_MPX_ENABLE_MANAGEMENT])
-prctl$PR_MPX_DISABLE_MANAGEMENT(option const[PR_MPX_DISABLE_MANAGEMENT])
+prctl$PR_MPX_ENABLE_MANAGEMENT(option const[PR_MPX_ENABLE_MANAGEMENT]) (breaks_returns)
+prctl$PR_MPX_DISABLE_MANAGEMENT(option const[PR_MPX_DISABLE_MANAGEMENT]) (breaks_returns)
 
-prctl$PR_SET_FP_MODE(option const[PR_SET_FP_MODE], arg flags[prctl_fp_mode])
-prctl$PR_GET_FP_MODE(option const[PR_GET_FP_MODE])
+prctl$PR_SET_FP_MODE(option const[PR_SET_FP_MODE], arg flags[prctl_fp_mode]) (breaks_returns)
+prctl$PR_GET_FP_MODE(option const[PR_GET_FP_MODE]) (breaks_returns)
 
 prctl_fp_mode = PR_FP_MODE_FR, PR_FP_MODE_FRE
 
-prctl$PR_CAP_AMBIENT(option const[PR_CAP_AMBIENT], arg2 flags[prctl_cap_ambient], arg3 int32[0:CAP_LAST_CAP])
+prctl$PR_CAP_AMBIENT(option const[PR_CAP_AMBIENT], arg2 flags[prctl_cap_ambient], arg3 int32[0:CAP_LAST_CAP]) (breaks_returns)
 
 prctl_cap_ambient = PR_CAP_AMBIENT_IS_SET, PR_CAP_AMBIENT_RAISE, PR_CAP_AMBIENT_LOWER, PR_CAP_AMBIENT_CLEAR_ALL
 
-prctl$PR_SVE_SET_VL(option const[PR_SVE_SET_VL], arg intptr[0:PR_SVE_SET_VL_ONEXEC])
-prctl$PR_SVE_GET_VL(option const[PR_SVE_GET_VL], arg intptr[0:PR_SVE_VL_INHERIT])
+prctl$PR_SVE_SET_VL(option const[PR_SVE_SET_VL], arg intptr[0:PR_SVE_SET_VL_ONEXEC]) (breaks_returns)
+prctl$PR_SVE_GET_VL(option const[PR_SVE_GET_VL], arg intptr[0:PR_SVE_VL_INHERIT]) (breaks_returns)
 
-prctl$PR_GET_SPECULATION_CTRL(option const[PR_GET_SPECULATION_CTRL], arg2 const[PR_SPEC_STORE_BYPASS], arg3 flags[pr_spec_mode])
-prctl$PR_SET_SPECULATION_CTRL(option const[PR_SET_SPECULATION_CTRL], arg2 const[PR_SPEC_STORE_BYPASS])
+prctl$PR_GET_SPECULATION_CTRL(option const[PR_GET_SPECULATION_CTRL], arg2 const[PR_SPEC_STORE_BYPASS], arg3 flags[pr_spec_mode]) (breaks_returns)
+prctl$PR_SET_SPECULATION_CTRL(option const[PR_SET_SPECULATION_CTRL], arg2 const[PR_SPEC_STORE_BYPASS]) (breaks_returns)
 
 pr_spec_mode = PR_SPEC_ENABLE, PR_SPEC_DISABLE, PR_SPEC_FORCE_DISABLE
 

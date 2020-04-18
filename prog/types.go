@@ -30,14 +30,14 @@ type Syscall struct {
 // syz-sysgen uses this structure to generate code for executor.
 //
 // Only bool's and uint64's are currently supported.
+//
+// See docs/syscall_descriptions_syntax.md for description of individual attributes.
 type SyscallAttrs struct {
-	// Never enable this system call in fuzzing.
-	Disabled bool
-	// Additional execution timeout (in ms) for the call on top of some default value.
-	Timeout uint64
-	// Additional execution timeout (in ms) for the whole program if it contains this call.
-	// If a program contains several such calls, the max value is used.
-	ProgTimeout uint64
+	Disabled      bool
+	Timeout       uint64
+	ProgTimeout   uint64
+	IgnoreReturn  bool
+	BreaksReturns bool
 }
 
 // MaxArgs is maximum number of syscall arguments.

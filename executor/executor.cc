@@ -1078,6 +1078,10 @@ void execute_call(thread_t* th)
 	th->reserrno = errno;
 	if (th->res == -1 && th->reserrno == 0)
 		th->reserrno = EINVAL; // our syz syscalls may misbehave
+	if (call->attrs.ignore_return) {
+		th->res = 0;
+		th->reserrno = 0;
+	}
 	if (flag_coverage) {
 		cover_collect(&th->cov);
 		if (th->cov.size >= kCoverSize)
