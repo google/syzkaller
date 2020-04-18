@@ -104,14 +104,8 @@ endif
 	arch_test presubmit presubmit_parallel clean
 
 all: host target
-
-host:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) install ./syz-manager
-	$(MAKE) manager runtest repro mutate prog2c db upgrade
-
-target:
-	GOOS=$(TARGETGOOS) GOARCH=$(TARGETGOARCH) $(GO) install ./syz-fuzzer
-	$(MAKE) fuzzer execprog stress executor
+host: manager runtest repro mutate prog2c db upgrade
+target: fuzzer execprog stress executor
 
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
@@ -295,7 +289,6 @@ arch_openbsd_amd64_target:
 	env TARGETOS=openbsd TARGETARCH=amd64 $(MAKE) target
 
 arch_windows_amd64_target:
-	env GOOG=windows GOARCH=amd64 $(GO) install ./syz-fuzzer
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) target
 
 arch_test:
@@ -307,7 +300,6 @@ arch_test:
 presubmit:
 	$(MAKE) generate
 	$(MAKE) check_diff
-	$(GO) install ./...
 	$(MAKE) check_copyright 
 	$(MAKE) check_links
 	$(MAKE) lint
