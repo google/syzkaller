@@ -32,7 +32,7 @@ func (arch *arch) makeMmap() []*prog.Call {
 	meta := arch.virtualAllocSyscall
 	size := arch.target.NumPages * arch.target.PageSize
 	return []*prog.Call{
-		&prog.Call{
+		{
 			Meta: meta,
 			Args: []prog.Arg{
 				prog.MakeVmaPointerArg(meta.Args[0], 0, size),
