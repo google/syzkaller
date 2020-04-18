@@ -589,19 +589,12 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 	return p
 }
 
-// GenerateSimpleProg generates the simplest non-empty program for testing
-// (e.g. containing a single mmap).
-func (target *Target) GenerateSimpleProg() *Prog {
+// DataMmapProg creates program that maps data segment.
+// Also used for testing as the simplest program.
+func (target *Target) DataMmapProg() *Prog {
 	return &Prog{
 		Target: target,
-		Calls:  []*Call{target.MakeMmap(0, target.PageSize)},
-	}
-}
-
-func (target *Target) GenerateUberMmapProg() *Prog {
-	return &Prog{
-		Target: target,
-		Calls:  []*Call{target.MakeMmap(0, target.NumPages*target.PageSize)},
+		Calls:  target.MakeDataMmap(),
 	}
 }
 

@@ -25,8 +25,8 @@ type Target struct {
 	Structs   []*KeyedStruct
 	Consts    []ConstValue
 
-	// MakeMmap creates call that maps [addr, addr+size) memory range.
-	MakeMmap func(addr, size uint64) *Call
+	// MakeDataMmap creates calls that mmaps target data memory range.
+	MakeDataMmap func() []*Call
 
 	// Neutralize neutralizes harmful calls by transforming them into non-harmful ones
 	// (e.g. an ioctl that turns off console output is turned into ioctl that turns on output).

@@ -7,8 +7,8 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-// MakePosixMmap creates a "normal" posix mmap call that maps [addr, addr+size) range.
-func MakePosixMmap(target *prog.Target, exec bool) func(addr, size uint64) *prog.Call {
+// MakePosixMmap creates a "normal" posix mmap call that maps the target data range.
+func MakePosixMmap(target *prog.Target, exec bool) func() []*prog.Call {
 	meta := target.SyscallMap["mmap"]
 	prot := target.GetConst("PROT_READ") | target.GetConst("PROT_WRITE")
 	if exec {
@@ -16,9 +16,10 @@ func MakePosixMmap(target *prog.Target, exec bool) func(addr, size uint64) *prog
 	}
 	flags := target.GetConst("MAP_ANONYMOUS") | target.GetConst("MAP_PRIVATE") | target.GetConst("MAP_FIXED")
 	const invalidFD = ^uint64(0)
-	return func(addr, size uint64) *prog.Call {
+	size := target.NumPages * target.PageSize
+	return func() []*prog.Call {
 		args := []prog.Arg{
-			prog.MakeVmaPointerArg(meta.Args[0], addr, size),
+			prog.MakeVmaPointerArg(meta.Args[0], 0, size),
 			prog.MakeConstArg(meta.Args[1], size),
 			prog.MakeConstArg(meta.Args[2], prot),
 			prog.MakeConstArg(meta.Args[3], flags),
@@ -32,24 +33,28 @@ func MakePosixMmap(target *prog.Target, exec bool) func(addr, size uint64) *prog
 		}
 		args = append(args, prog.MakeConstArg(meta.Args[i], 0))
 
-		return &prog.Call{
+		mmapCall := &prog.Call{
 			Meta: meta,
 			Args: args,
 			Ret:  prog.MakeReturnArg(meta.Ret),
 		}
+		return []*prog.Call{mmapCall}
 	}
 }
 
-func MakeSyzMmap(target *prog.Target) func(addr, size uint64) *prog.Call {
+func MakeSyzMmap(target *prog.Target) func() []*prog.Call {
 	meta := target.SyscallMap["syz_mmap"]
-	return func(addr, size uint64) *prog.Call {
-		return &prog.Call{
-			Meta: meta,
-			Args: []prog.Arg{
-				prog.MakeVmaPointerArg(meta.Args[0], addr, size),
-				prog.MakeConstArg(meta.Args[1], size),
+	size := target.NumPages * target.PageSize
+	return func() []*prog.Call {
+		return []*prog.Call{
+			&prog.Call{
+				Meta: meta,
+				Args: []prog.Arg{
+					prog.MakeVmaPointerArg(meta.Args[0], 0, size),
+					prog.MakeConstArg(meta.Args[1], size),
+				},
+				Ret: prog.MakeReturnArg(meta.Ret),
 			},
-			Ret: prog.MakeReturnArg(meta.Ret),
 		}
 	}
 }
