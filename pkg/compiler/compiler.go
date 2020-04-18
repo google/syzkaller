@@ -179,37 +179,37 @@ func (comp *compiler) structIsVarlen(name string) bool {
 	return varlen
 }
 
-func (comp *compiler) parseAttrs(descs map[string]*attrDesc, parent ast.Node, attrs []*ast.Type) (res map[*attrDesc]uint64) {
+func (comp *compiler) parseAttrs(descs map[string]*attrDesc, parent ast.Node, attrs []*ast.Type) map[*attrDesc]uint64 {
 	_, parentType, parentName := parent.Info()
-	res = make(map[*attrDesc]uint64)
+	res := make(map[*attrDesc]uint64)
 	for _, attr := range attrs {
 		if unexpected, _, ok := checkTypeKind(attr, kindIdent); !ok {
 			comp.error(attr.Pos, "unexpected %v, expect attribute", unexpected)
-			return
+			return res
 		}
 		if len(attr.Colon) != 0 {
 			comp.error(attr.Colon[0].Pos, "unexpected ':'")
-			return
+			return res
 		}
 		desc := descs[attr.Ident]
 		if desc == nil {
 			comp.error(attr.Pos, "unknown %v %v attribute %v", parentType, parentName, attr.Ident)
-			return
+			return res
 		}
 		if _, ok := res[desc]; ok {
 			comp.error(attr.Pos, "duplicate %v %v attribute %v", parentType, parentName, attr.Ident)
-			return
+			return res
 		}
 		val := uint64(1)
 		if desc.HasArg {
 			val = comp.parseAttrArg(attr)
 		} else if len(attr.Args) != 0 {
 			comp.error(attr.Pos, "%v attribute has args", attr.Ident)
-			return
+			return res
 		}
 		res[desc] = val
 	}
-	return
+	return res
 }
 
 func (comp *compiler) parseAttrArg(attr *ast.Type) uint64 {
