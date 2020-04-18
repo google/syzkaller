@@ -92,7 +92,7 @@ func TestExecute(t *testing.T) {
 		defer env.Close()
 
 		for i := 0; i < 10; i++ {
-			p := target.GenerateSimpleProg()
+			p := target.DataMmapProg()
 			opts := &ExecOpts{
 				Flags: flag,
 			}
@@ -139,7 +139,7 @@ func TestParallel(t *testing.T) {
 				env.Close()
 				errs <- err
 			}()
-			p := target.GenerateSimpleProg()
+			p := target.DataMmapProg()
 			opts := &ExecOpts{}
 			output, info, hanged, err := env.Exec(opts, p)
 			if err != nil {

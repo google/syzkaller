@@ -9,16 +9,18 @@ import (
 
 func InitTarget(target *prog.Target) {
 	arch := &arch{
+		target:                 target,
 		virtualAllocSyscall:    target.SyscallMap["VirtualAlloc"],
 		MEM_COMMIT:             target.GetConst("MEM_COMMIT"),
 		MEM_RESERVE:            target.GetConst("MEM_RESERVE"),
 		PAGE_EXECUTE_READWRITE: target.GetConst("PAGE_EXECUTE_READWRITE"),
 	}
 
-	target.MakeMmap = arch.makeMmap
+	target.MakeDataMmap = arch.makeMmap
 }
 
 type arch struct {
+	target              *prog.Target
 	virtualAllocSyscall *prog.Syscall
 
 	MEM_COMMIT             uint64
@@ -26,16 +28,19 @@ type arch struct {
 	PAGE_EXECUTE_READWRITE uint64
 }
 
-func (arch *arch) makeMmap(addr, size uint64) *prog.Call {
+func (arch *arch) makeMmap() []*prog.Call {
 	meta := arch.virtualAllocSyscall
-	return &prog.Call{
-		Meta: meta,
-		Args: []prog.Arg{
-			prog.MakeVmaPointerArg(meta.Args[0], addr, size),
-			prog.MakeConstArg(meta.Args[1], size),
-			prog.MakeConstArg(meta.Args[2], arch.MEM_COMMIT|arch.MEM_RESERVE),
-			prog.MakeConstArg(meta.Args[3], arch.PAGE_EXECUTE_READWRITE),
+	size := arch.target.NumPages * arch.target.PageSize
+	return []*prog.Call{
+		&prog.Call{
+			Meta: meta,
+			Args: []prog.Arg{
+				prog.MakeVmaPointerArg(meta.Args[0], 0, size),
+				prog.MakeConstArg(meta.Args[1], size),
+				prog.MakeConstArg(meta.Args[2], arch.MEM_COMMIT|arch.MEM_RESERVE),
+				prog.MakeConstArg(meta.Args[3], arch.PAGE_EXECUTE_READWRITE),
+			},
+			Ret: prog.MakeReturnArg(meta.Ret),
 		},
-		Ret: prog.MakeReturnArg(meta.Ret),
 	}
 }

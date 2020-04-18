@@ -32,7 +32,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		return nil, err
 	}
 
-	mmapProg := p.Target.GenerateUberMmapProg()
+	mmapProg := p.Target.DataMmapProg()
 	mmapCalls, _, err := ctx.generateProgCalls(mmapProg, false)
 	if err != nil {
 		return nil, err

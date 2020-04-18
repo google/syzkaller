@@ -241,7 +241,7 @@ func checkSimpleProgram(args *checkArgs, features *host.Features) error {
 		return fmt.Errorf("failed to create ipc env: %v", err)
 	}
 	defer env.Close()
-	p := args.target.GenerateSimpleProg()
+	p := args.target.DataMmapProg()
 	output, info, hanged, err := env.Exec(args.ipcExecOpts, p)
 	if err != nil {
 		return fmt.Errorf("program execution failed: %v\n%s", err, output)
