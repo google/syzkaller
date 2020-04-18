@@ -946,6 +946,7 @@ var structDescs_64_fork = []*KeyedStruct{
 }
 
 var syscalls_64_fork = []*Syscall{
+	{Name: "breaks_returns", CallName: "breaks_returns", Attrs: SyscallAttrs{BreaksReturns: true}},
 	{Name: "fallback$0", CallName: "fallback", MissingArgs: 1, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "fallback$1", CallName: "fallback", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "a", TypeSize: 4}},
@@ -1056,8 +1057,6 @@ var syscalls_64_fork = []*Syscall{
 	{Name: "mutate_union", CallName: "mutate_union", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "p", TypeSize: 8}, &UnionType{Key: StructKey{Name: "syz_union0"}}},
 	}},
-	{Name: "prctl$PR_SET_SECCOMP", CallName: "prctl"},
-	{Name: "seccomp", CallName: "seccomp"},
 	{Name: "serialize0", CallName: "serialize0", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, &StructType{Key: StructKey{Name: "serialize0_struct"}}},
 	}},
@@ -1417,6 +1416,7 @@ var consts_64_fork = []ConstValue{
 	{"IPPROTO_ICMPV6", 58},
 	{"IPPROTO_TCP", 6},
 	{"IPPROTO_UDP", 17},
+	{Name: "SYS_breaks_returns"},
 	{Name: "SYS_fallback"},
 	{Name: "SYS_foo"},
 	{Name: "SYS_minimize"},
@@ -1439,8 +1439,6 @@ var consts_64_fork = []ConstValue{
 	{Name: "SYS_mutate_integer2"},
 	{Name: "SYS_mutate_rangedbuffer"},
 	{Name: "SYS_mutate_union"},
-	{Name: "SYS_prctl"},
-	{Name: "SYS_seccomp"},
 	{Name: "SYS_serialize0"},
 	{Name: "SYS_serialize1"},
 	{Name: "SYS_test"},
@@ -1450,4 +1448,4 @@ var consts_64_fork = []ConstValue{
 	{Name: "SYS_unsupported"},
 }
 
-const revision_64_fork = "4c2768ec4faaf99b5ed9e013acab8304244e4262"
+const revision_64_fork = "eb6f5aaad384aba1748935015c3b4d25fb43f0a1"
