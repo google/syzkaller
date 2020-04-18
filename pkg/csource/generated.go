@@ -1493,24 +1493,23 @@ static void netlink_add_neigh(struct nlmsg* nlmsg, int sock, const char* name,
 #include <linux/tcp.h>
 
 static int tunfd = -1;
-static int tun_frags_enabled;
 
 #define TUN_IFACE "syz_tun"
-
 #define LOCAL_MAC 0xaaaaaaaaaaaa
 #define REMOTE_MAC 0xaaaaaaaaaabb
-
 #define LOCAL_IPV4 "172.20.20.170"
 #define REMOTE_IPV4 "172.20.20.187"
-
 #define LOCAL_IPV6 "fe80::aa"
 #define REMOTE_IPV6 "fe80::bb"
 
 #ifndef IFF_NAPI
 #define IFF_NAPI 0x0010
 #endif
+#if ENABLE_NAPI_FRAGS
+static int tun_frags_enabled;
 #ifndef IFF_NAPI_FRAGS
 #define IFF_NAPI_FRAGS 0x0020
+#endif
 #endif
 
 static void initialize_tun(void)
@@ -2259,9 +2258,7 @@ static int read_tun(char* data, int size)
 
 	int rv = read(tunfd, data, size);
 	if (rv < 0) {
-		if (errno == EAGAIN)
-			return -1;
-		if (errno == EBADFD)
+		if (errno == EAGAIN || errno == EBADFD)
 			return -1;
 		fail("tun: read failed with %d", rv);
 	}
@@ -2273,12 +2270,14 @@ static int read_tun(char* data, int size)
 #include <stdbool.h>
 #include <sys/uio.h>
 
+#if ENABLE_NAPI_FRAGS
 #define MAX_FRAGS 4
 struct vnet_fragmentation {
 	uint32 full;
 	uint32 count;
 	uint32 frags[MAX_FRAGS];
 };
+#endif
 
 static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long a2)
 {
@@ -2289,6 +2288,7 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 	char* data = (char*)a1;
 	debug_dump_data(data, length);
 
+#if ENABLE_NAPI_FRAGS
 	struct vnet_fragmentation* frags = (struct vnet_fragmentation*)a2;
 	struct iovec vecs[MAX_FRAGS + 1];
 	uint32 nfrags = 0;
@@ -2321,6 +2321,9 @@ static long syz_emit_ethernet(volatile long a0, volatile long a1, volatile long 
 		}
 	}
 	return writev(tunfd, vecs, nfrags);
+#else
+	return write(tunfd, data, length);
+#endif
 }
 #endif
 
