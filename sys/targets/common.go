@@ -8,9 +8,12 @@ import (
 )
 
 // MakePosixMmap creates a "normal" posix mmap call that maps [addr, addr+size) range.
-func MakePosixMmap(target *prog.Target) func(addr, size uint64) *prog.Call {
+func MakePosixMmap(target *prog.Target, exec bool) func(addr, size uint64) *prog.Call {
 	meta := target.SyscallMap["mmap"]
 	prot := target.GetConst("PROT_READ") | target.GetConst("PROT_WRITE")
+	if exec {
+		prot |= target.GetConst("PROT_EXEC")
+	}
 	flags := target.GetConst("MAP_ANONYMOUS") | target.GetConst("MAP_PRIVATE") | target.GetConst("MAP_FIXED")
 	const invalidFD = ^uint64(0)
 	return func(addr, size uint64) *prog.Call {

@@ -48,7 +48,7 @@ func InitTarget(target *prog.Target) {
 		ARCH_SET_GS: target.ConstMap["ARCH_SET_GS"],
 	}
 
-	target.MakeMmap = targets.MakePosixMmap(target)
+	target.MakeMmap = targets.MakePosixMmap(target, true)
 	target.Neutralize = arch.neutralize
 	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, old prog.Arg) (
 		prog.Arg, []*prog.Call){
