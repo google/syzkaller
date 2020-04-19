@@ -1,4 +1,4 @@
-TITLE: INFO: rcu detected stall in lo_compat_ioctl
+TITLE: INFO: rcu detected stall in lo_ioctl
 TYPE: HANG
 
 [  480.801028] INFO: rcu_sched self-detected stall on CPU
