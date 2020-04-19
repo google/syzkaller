@@ -1178,11 +1178,11 @@ func (mgr *Manager) dashboardReporter() {
 func publicWebAddr(addr string) string {
 	_, port, err := net.SplitHostPort(addr)
 	if err == nil && port != "" {
-		if GCE, err := gce.NewContext(); err == nil {
-			addr = net.JoinHostPort(GCE.ExternalIP, port)
-		}
 		if host, err := os.Hostname(); err == nil {
 			addr = net.JoinHostPort(host, port)
+		}
+		if GCE, err := gce.NewContext(); err == nil {
+			addr = net.JoinHostPort(GCE.ExternalIP, port)
 		}
 	}
 	return "http://" + addr
