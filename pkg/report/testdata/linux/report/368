@@ -1,4 +1,4 @@
-TITLE: INFO: rcu detected stall in kvm_vm_compat_ioctl
+TITLE: INFO: rcu detected stall in kvm_vm_ioctl
 TYPE: HANG
 
 [  804.522871] INFO: rcu_sched self-detected stall on CPU
