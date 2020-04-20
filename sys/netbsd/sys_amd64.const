@@ -131,6 +131,7 @@ SYS_getrlimit = 194
 SYS_getrusage = 445
 SYS_getuid = 24
 SYS_lchflags = 304
+SYS_lchmod = 274
 SYS_lchown = 275
 SYS_link = 9
 SYS_linkat = 457
