@@ -31,26 +31,26 @@ func (ctx netbsd) build(params *Params) error {
 
 	if strings.HasSuffix(params.Compiler, "clang++") {
 		// Build tools before building kernel
-		if _, err := osutil.RunCmd(30*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
-			"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
+		if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
+			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
 			"-V", "MKLLVM=yes", "-V", "MKGCC=no", "-V", "HAVE_LLVM=yes", "tools"); err != nil {
 			return err
 		}
 
 		// Build kernel
-		if _, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
-			"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
+		if _, err := osutil.RunCmd(20*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
+			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no",
 			"-V", "MKLLVM=yes", "-V", "MKGCC=no", "-V", "HAVE_LLVM=yes", "kernel="+kernelName); err != nil {
 			return err
 		}
 	} else if strings.HasSuffix(params.Compiler, "g++") {
-		if _, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
-			"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "tools"); err != nil {
+		if _, err := osutil.RunCmd(30*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
+			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "tools"); err != nil {
 			return err
 		}
 
-		if _, err := osutil.RunCmd(10*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
-			"-U", "-u", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "kernel="+kernelName); err != nil {
+		if _, err := osutil.RunCmd(20*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
+			"-U", "-j"+strconv.Itoa(runtime.NumCPU()), "-V", "MKCTF=no", "kernel="+kernelName); err != nil {
 			return err
 		}
 	}
