@@ -167,11 +167,11 @@ func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStru
 	}
 
 	sort.Slice(ctx.structs, func(i, j int) bool {
-		si, sj := ctx.structs[i], ctx.structs[j]
-		if si.Key.Name != sj.Key.Name {
-			return si.Key.Name < sj.Key.Name
+		si, sj := ctx.structs[i].Key, ctx.structs[j].Key
+		if si.Name != sj.Name {
+			return si.Name < sj.Name
 		}
-		return si.Key.Dir < sj.Key.Dir
+		return si.Dir < sj.Dir
 	})
 	return ctx.structs
 }
