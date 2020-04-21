@@ -29,6 +29,16 @@ func (ctx netbsd) build(params *Params) error {
 		return err
 	}
 
+	// Clear the tools
+	if _, err := osutil.RunCmd(5*time.Minute, params.KernelDir, "rm", "-rf", "obj/"); err != nil {
+		return err
+	}
+
+	// Clear the build files
+	if _, err := osutil.RunCmd(5*time.Minute, params.KernelDir, "rm", "-rf", compileDir); err != nil {
+		return err
+	}
+
 	if strings.HasSuffix(params.Compiler, "clang++") {
 		// Build tools before building kernel
 		if _, err := osutil.RunCmd(60*time.Minute, params.KernelDir, "./build.sh", "-m", params.TargetArch,
