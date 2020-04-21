@@ -847,6 +847,10 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "chflags_flags", FldName: "flags", TypeSize: 8}}, []uint64{1, 2, 4, 8, 65536, 131072, 262144}, true},
 	}},
+	{NR: 274, Name: "lchmod", CallName: "lchmod", Args: []Type{
+		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&FlagsType{IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256}, true},
+	}},
 	{NR: 275, Name: "lchown", CallName: "lchown", Args: []Type{
 		&PtrType{TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
@@ -1816,6 +1820,7 @@ var consts_amd64 = []ConstValue{
 	{"SYS_getsockopt", 118},
 	{"SYS_getuid", 24},
 	{"SYS_lchflags", 304},
+	{"SYS_lchmod", 274},
 	{"SYS_lchown", 275},
 	{"SYS_link", 9},
 	{"SYS_linkat", 457},
@@ -1934,4 +1939,4 @@ var consts_amd64 = []ConstValue{
 	{"_UC_STACK", 2},
 }
 
-const revision_amd64 = "349aaeb62f14cb232ec4fa613f52453c7c3a19e4"
+const revision_amd64 = "f2becd7444a1275207a36e0139d39ecbd3806cb4"

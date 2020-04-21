@@ -21981,6 +21981,7 @@ const call_t syscalls[] = {
     {"getsockopt$sock_timeval", 118},
     {"getuid", 24},
     {"lchflags", 304},
+    {"lchmod", 274},
     {"lchown", 275},
     {"link", 9},
     {"linkat", 457},
