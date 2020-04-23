@@ -44,10 +44,6 @@ function util_add_usb_bits {
   git checkout ./scripts/kconfig/Makefile
   rm -rf ./Kconfiglib
 
-  scripts/config -d CONFIG_USB_CONFIGFS
-  scripts/config -d CONFIG_USB_LIBCOMPOSITE
-  scripts/config -d CONFIG_USB_GADGETFS
-
   scripts/config -d CONFIG_USB_G_NCM
   scripts/config -d CONFIG_USB_G_SERIAL
   scripts/config -d CONFIG_USB_G_PRINTER
@@ -57,6 +53,19 @@ function util_add_usb_bits {
   scripts/config -d CONFIG_USB_G_HID
   scripts/config -d CONFIG_USB_G_DBGP
   scripts/config -d CONFIG_USB_G_WEBCAM
+
+  scripts/config -d CONFIG_USB_ZERO
+  scripts/config -d CONFIG_USB_AUDIO
+  scripts/config -d CONFIG_USB_ETH
+  scripts/config -d CONFIG_USB_FUNCTIONFS
+  scripts/config -d CONFIG_USB_MASS_STORAGE
+  scripts/config -d CONFIG_USB_GADGET_TARGET
+  scripts/config -d CONFIG_USB_MIDI_GADGET
+  scripts/config -d CONFIG_USB_CDC_COMPOSITE
+
+  scripts/config -d CONFIG_USB_GADGETFS
+  scripts/config -d CONFIG_USB_LIBCOMPOSITE
+  scripts/config -d CONFIG_USB_CONFIGFS
   
   scripts/config -e CONFIG_USB_GADGET
   scripts/config -e CONFIG_USB_DUMMY_HCD
