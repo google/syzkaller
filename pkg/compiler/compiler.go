@@ -37,6 +37,7 @@ type Prog struct {
 	Resources   []*prog.ResourceDesc
 	Syscalls    []*prog.Syscall
 	StructDescs []*prog.KeyedStruct
+	Types       []prog.Type
 	// Set of unsupported syscalls/flags.
 	Unsupported map[string]bool
 	// Returned if consts was nil.
@@ -103,10 +104,13 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		return nil
 	}
 	syscalls := comp.genSyscalls()
+	structs := comp.genStructDescs(syscalls)
+	types := comp.generateTypes(syscalls, structs)
 	prg := &Prog{
 		Resources:   comp.genResources(),
 		Syscalls:    syscalls,
-		StructDescs: comp.genStructDescs(syscalls),
+		StructDescs: structs,
+		Types:       types,
 		Unsupported: comp.unsupported,
 	}
 	if comp.errors != 0 {

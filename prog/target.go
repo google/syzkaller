@@ -24,6 +24,7 @@ type Target struct {
 	Resources []*ResourceDesc
 	Structs   []*KeyedStruct
 	Consts    []ConstValue
+	Types     []Type
 
 	// MakeDataMmap creates calls that mmaps target data memory range.
 	MakeDataMmap func() []*Call
@@ -136,8 +137,9 @@ func (target *Target) initTarget() {
 		target.ConstMap[c.Name] = c.Value
 	}
 
-	target.resourceMap = restoreLinks(target.Syscalls, target.Resources, target.Structs)
+	target.resourceMap = restoreLinks(target.Syscalls, target.Resources, target.Structs, target.Types)
 	target.Structs = nil
+	target.Types = nil
 
 	target.SyscallMap = make(map[string]*Syscall)
 	for i, c := range target.Syscalls {
@@ -171,11 +173,12 @@ func (target *Target) sanitize(c *Call, fix bool) error {
 	return nil
 }
 
-func RestoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*KeyedStruct) {
-	restoreLinks(syscalls, resources, structs)
+func RestoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*KeyedStruct, types []Type) {
+	restoreLinks(syscalls, resources, structs, types)
 }
 
-func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*KeyedStruct) map[string]*ResourceDesc {
+func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*KeyedStruct,
+	types []Type) map[string]*ResourceDesc {
 	resourceMap := make(map[string]*ResourceDesc)
 	for _, res := range resources {
 		resourceMap[res.Name] = res
@@ -183,10 +186,23 @@ func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*Key
 	keyedStructs := make(map[StructKey]*StructDesc)
 	for _, desc := range structs {
 		keyedStructs[desc.Key] = desc.Desc
+		for i := range desc.Desc.Fields {
+			unref(&desc.Desc.Fields[i], types)
+		}
 	}
 	for _, c := range syscalls {
+		for i := range c.Args {
+			unref(&c.Args[i], types)
+		}
+		if c.Ret != nil {
+			unref(&c.Ret, types)
+		}
 		ForeachType(c, func(t0 Type) {
 			switch t := t0.(type) {
+			case *PtrType:
+				unref(&t.Type, types)
+			case *ArrayType:
+				unref(&t.Type, types)
 			case *ResourceType:
 				t.Desc = resourceMap[t.TypeName]
 				if t.Desc == nil {
@@ -206,6 +222,12 @@ func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*Key
 		})
 	}
 	return resourceMap
+}
+
+func unref(tp *Type, types []Type) {
+	if ref, ok := (*tp).(Ref); ok {
+		*tp = types[ref]
+	}
 }
 
 type Gen struct {

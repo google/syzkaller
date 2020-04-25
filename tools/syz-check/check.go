@@ -351,7 +351,7 @@ func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.St
 	if prg == nil {
 		return nil, nil, nil, fmt.Errorf("failed to compile descriptions:\n%s", errorBuf.Bytes())
 	}
-	prog.RestoreLinks(prg.Syscalls, prg.Resources, prg.StructDescs)
+	prog.RestoreLinks(prg.Syscalls, prg.Resources, prg.StructDescs, prg.Types)
 	locs := make(map[string]*ast.Struct)
 	for _, decl := range top.Nodes {
 		switch n := decl.(type) {
