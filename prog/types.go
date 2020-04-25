@@ -104,6 +104,8 @@ type Type interface {
 	mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool)
 	getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool)
 	minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
+	ref() Ref
+	setRef(ref Ref)
 }
 
 type Ref uint32
@@ -135,6 +137,8 @@ func (ti Ref) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (floa
 func (ti Ref) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	panic("prog.Ref method called")
 }
+func (ti Ref) ref() Ref       { panic("prog.Ref method called") }
+func (ti Ref) setRef(ref Ref) { panic("prog.Ref method called") }
 
 func IsPad(t Type) bool {
 	if ct, ok := t.(*ConstType); ok && ct.IsPad {
@@ -149,6 +153,8 @@ type TypeCommon struct {
 	TypeSize   uint64
 	IsOptional bool
 	IsVarlen   bool
+
+	self Ref
 }
 
 func (t *TypeCommon) Name() string {
@@ -204,6 +210,17 @@ func (t *TypeCommon) UnitOffset() uint64 {
 
 func (t *TypeCommon) IsBitfield() bool {
 	return false
+}
+
+func (t *TypeCommon) ref() Ref {
+	if t.self == 0 {
+		panic("ref is not assigned yet")
+	}
+	return t.self
+}
+
+func (t *TypeCommon) setRef(ref Ref) {
+	t.self = ref
 }
 
 type ResourceDesc struct {

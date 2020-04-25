@@ -135,8 +135,9 @@ func (target *Target) squashPtr(arg *PointerArg) {
 	size0 := res0.Size()
 	var elems []Arg
 	target.squashPtrImpl(arg.Res, &elems)
-	arg.typ = target.getAnyPtrType(arg.Type().Size())
-	arg.Res = MakeGroupArg(arg.typ.(*PtrType).Elem, DirIn, elems)
+	newType := target.getAnyPtrType(arg.Type().Size())
+	arg.ref = newType.ref()
+	arg.Res = MakeGroupArg(newType.Elem, DirIn, elems)
 	if size := arg.Res.Size(); size != size0 {
 		panic(fmt.Sprintf("squash changed size %v->%v for %v", size0, size, res0.Type()))
 	}
@@ -206,28 +207,30 @@ func (target *Target) squashConst(arg *ConstArg, elems *[]Arg) {
 }
 
 func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
+	var typ *ResourceType
 	index := -1
 	switch arg.Type().Format() {
 	case FormatNative, FormatBigEndian:
 		switch arg.Size() {
 		case 2:
-			arg.typ, index = target.any.res16, 1
+			typ, index = target.any.res16, 1
 		case 4:
-			arg.typ, index = target.any.res32, 2
+			typ, index = target.any.res32, 2
 		case 8:
-			arg.typ, index = target.any.res64, 3
+			typ, index = target.any.res64, 3
 		default:
 			panic("bad size")
 		}
 	case FormatStrDec:
-		arg.typ, index = target.any.resdec, 4
+		typ, index = target.any.resdec, 4
 	case FormatStrHex:
-		arg.typ, index = target.any.reshex, 5
+		typ, index = target.any.reshex, 5
 	case FormatStrOct:
-		arg.typ, index = target.any.resoct, 6
+		typ, index = target.any.resoct, 6
 	default:
 		panic("bad")
 	}
+	arg.ref = typ.ref()
 	arg.dir = DirIn
 	*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, arg, index))
 }
