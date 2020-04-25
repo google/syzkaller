@@ -901,7 +901,7 @@ func getCompatibleResources(p *Prog, resourceType string, r *randGen) (resources
 			if !ok || len(a.uses) == 0 || a.Dir() != DirOut {
 				return
 			}
-			if !r.target.isCompatibleResource(resourceType, a.typ.Name()) {
+			if !r.target.isCompatibleResource(resourceType, a.Type().Name()) {
 				return
 			}
 			resources = append(resources, a)

@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"sort"
 	"sync"
+	"sync/atomic"
 )
 
 // Target describes target OS/arch pair.
@@ -182,16 +183,35 @@ func RestoreLinks(syscalls []*Syscall, resources []*ResourceDesc, types []Type) 
 	restoreLinks(syscalls, resources, types)
 }
 
+var (
+	typeRefMu sync.Mutex
+	typeRefs  atomic.Value // []Type
+)
+
 func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, types []Type) map[string]*ResourceDesc {
+	typeRefMu.Lock()
+	defer typeRefMu.Unlock()
+	refs := []Type{nil}
+	if old := typeRefs.Load(); old != nil {
+		refs = old.([]Type)
+	}
+	for _, typ := range types {
+		typ.setRef(Ref(len(refs)))
+		refs = append(refs, typ)
+	}
+	typeRefs.Store(refs)
+
 	resourceMap := make(map[string]*ResourceDesc)
 	for _, res := range resources {
 		resourceMap[res.Name] = res
 	}
-	ForeachType(syscalls, func(_ Type, ctx TypeCtx) {
-		if ref, ok := (*ctx.Ptr).(Ref); ok {
-			*ctx.Ptr = types[ref]
+
+	ForeachType(syscalls, func(typ Type, ctx TypeCtx) {
+		if ref, ok := typ.(Ref); ok {
+			typ = types[ref]
+			*ctx.Ptr = typ
 		}
-		switch t := (*ctx.Ptr).(type) {
+		switch t := typ.(type) {
 		case *ResourceType:
 			t.Desc = resourceMap[t.TypeName]
 			if t.Desc == nil {
