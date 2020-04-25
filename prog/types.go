@@ -103,6 +103,37 @@ type Type interface {
 	minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 }
 
+type Ref uint32
+
+func (ti Ref) String() string                               { panic("prog.Ref method called") }
+func (ti Ref) Name() string                                 { panic("prog.Ref method called") }
+func (ti Ref) FieldName() string                            { panic("prog.Ref method called") }
+func (ti Ref) TemplateName() string                         { panic("prog.Ref method called") }
+func (ti Ref) Dir() Dir                                     { panic("prog.Ref method called") }
+func (ti Ref) Optional() bool                               { panic("prog.Ref method called") }
+func (ti Ref) Varlen() bool                                 { panic("prog.Ref method called") }
+func (ti Ref) Size() uint64                                 { panic("prog.Ref method called") }
+func (ti Ref) TypeBitSize() uint64                          { panic("prog.Ref method called") }
+func (ti Ref) Format() BinaryFormat                         { panic("prog.Ref method called") }
+func (ti Ref) BitfieldOffset() uint64                       { panic("prog.Ref method called") }
+func (ti Ref) BitfieldLength() uint64                       { panic("prog.Ref method called") }
+func (ti Ref) IsBitfield() bool                             { panic("prog.Ref method called") }
+func (ti Ref) UnitSize() uint64                             { panic("prog.Ref method called") }
+func (ti Ref) UnitOffset() uint64                           { panic("prog.Ref method called") }
+func (ti Ref) DefaultArg() Arg                              { panic("prog.Ref method called") }
+func (ti Ref) Clone() Type                                  { panic("prog.Ref method called") }
+func (ti Ref) isDefaultArg(arg Arg) bool                    { panic("prog.Ref method called") }
+func (ti Ref) generate(r *randGen, s *state) (Arg, []*Call) { panic("prog.Ref method called") }
+func (ti Ref) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) ([]*Call, bool, bool) {
+	panic("prog.Ref method called")
+}
+func (ti Ref) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (float64, bool) {
+	panic("prog.Ref method called")
+}
+func (ti Ref) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
+	panic("prog.Ref method called")
+}
+
 func IsPad(t Type) bool {
 	if ct, ok := t.(*ConstType); ok && ct.IsPad {
 		return true
