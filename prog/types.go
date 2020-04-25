@@ -634,8 +634,17 @@ type ConstValue struct {
 }
 
 func ForeachType(meta *Syscall, f func(Type)) {
-	seen := make(map[*StructDesc]bool)
 	var rec func(t Type)
+	seen := make(map[*StructDesc]bool)
+	recStruct := func(desc *StructDesc) {
+		if seen[desc] {
+			return // prune recursion via pointers to structs/unions
+		}
+		seen[desc] = true
+		for _, f := range desc.Fields {
+			rec(f)
+		}
+	}
 	rec = func(t Type) {
 		f(t)
 		switch a := t.(type) {
@@ -644,21 +653,9 @@ func ForeachType(meta *Syscall, f func(Type)) {
 		case *ArrayType:
 			rec(a.Type)
 		case *StructType:
-			if seen[a.StructDesc] {
-				return // prune recursion via pointers to structs/unions
-			}
-			seen[a.StructDesc] = true
-			for _, f := range a.Fields {
-				rec(f)
-			}
+			recStruct(a.StructDesc)
 		case *UnionType:
-			if seen[a.StructDesc] {
-				return // prune recursion via pointers to structs/unions
-			}
-			seen[a.StructDesc] = true
-			for _, opt := range a.Fields {
-				rec(opt)
-			}
+			recStruct(a.StructDesc)
 		case *ResourceType, *BufferType, *VmaType, *LenType,
 			*FlagsType, *ConstType, *IntType, *ProcType, *CsumType:
 		default:
