@@ -339,8 +339,14 @@ install_prerequisites:
 	sudo apt-get install -y -q g++-mips64el-linux-gnuabi64 || true
 	sudo apt-get install -y -q ragel clang-format
 	go get -u golang.org/x/tools/cmd/goyacc \
-		github.com/golangci/golangci-lint/cmd/golangci-lint \
 		github.com/dvyukov/go-fuzz/go-fuzz-build
+	# Runs golangci-lint when go is new enough. Old versions get a
+	# free pass (except on CI which has newer go version).
+	if [ "$$(go version)" \> "go version go1.12" ]; then \
+		GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.25.0 ; \
+	else \
+		ln -sf /bin/true $$(go env GOPATH)/bin/golangci-lint ; \
+	fi
 
 check_copyright:
 	./tools/check-copyright.sh
