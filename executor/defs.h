@@ -158,7 +158,7 @@ struct call_attrs_t {
 
 #if GOARCH_amd64
 #define GOARCH "amd64"
-#define SYZ_REVISION "a570b2d3d9a419936727c8cd0987ecf9172f7ef7"
+#define SYZ_REVISION "ac9b6f8078c1ecfe0d04ae960aa55911b242da3f"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
