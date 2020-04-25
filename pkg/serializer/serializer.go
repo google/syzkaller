@@ -5,6 +5,7 @@ package serializer
 
 import (
 	"reflect"
+	"strings"
 
 	"fmt"
 	"io"
@@ -35,11 +36,7 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 	case reflect.Ptr:
 		w.doPtr(v, sliceElem)
 	case reflect.Interface:
-		if v.IsNil() {
-			w.string("nil")
-		} else {
-			w.do(v.Elem(), false)
-		}
+		w.doInterface(v)
 	case reflect.Slice:
 		w.doSlice(v)
 	case reflect.Struct:
@@ -79,6 +76,29 @@ func (w *writer) doPtr(v reflect.Value, sliceElem bool) {
 			v.Type().Name()))
 	}
 	w.do(v.Elem(), sliceElem)
+}
+
+func (w *writer) doInterface(v reflect.Value) {
+	if v.IsNil() {
+		w.string("nil")
+		return
+	}
+	elem := v.Elem()
+	// Handling of user types that has underlying primitive types. Consider:
+	//	type T int
+	//	var obj interface{} = T(42)
+	// T has kind reflect.Int. But if we serialize obj as just "42", it will be turned into plain int.
+	// Detect this case and serialize obj as "T(42)".
+	if (elem.Kind() == reflect.Bool || elem.Kind() == reflect.String ||
+		elem.Type().ConvertibleTo(reflect.TypeOf(0))) &&
+		strings.Contains(elem.Type().String(), ".") {
+		w.string(elem.Type().Name())
+		w.byte('(')
+		w.do(elem, false)
+		w.byte(')')
+		return
+	}
+	w.do(elem, false)
 }
 
 func (w *writer) doSlice(v reflect.Value) {
