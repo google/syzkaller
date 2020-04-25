@@ -205,11 +205,11 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 	fmt.Fprintf(out, "\tRegisterTarget(&Target{"+
 		"OS: %q, Arch: %q, Revision: revision_%v, PtrSize: %v, "+
 		"PageSize: %v, NumPages: %v, DataOffset: %v, Syscalls: syscalls_%v, "+
-		"Resources: resources_%v, Structs: structDescs_%v, Consts: consts_%v}, "+
+		"Resources: resources_%v, Structs: structDescs_%v, Types: types_%v, Consts: consts_%v}, "+
 		"InitTarget)\n}\n\n",
 		target.OS, target.Arch, target.Arch, target.PtrSize,
 		target.PageSize, target.NumPages, target.DataOffset,
-		target.Arch, target.Arch, target.Arch, target.Arch)
+		target.Arch, target.Arch, target.Arch, target.Arch, target.Arch)
 
 	fmt.Fprintf(out, "var resources_%v = ", target.Arch)
 	serializer.Write(out, prg.Resources)
@@ -221,6 +221,10 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 
 	fmt.Fprintf(out, "var syscalls_%v = ", target.Arch)
 	serializer.Write(out, prg.Syscalls)
+	fmt.Fprintf(out, "\n\n")
+
+	fmt.Fprintf(out, "var types_%v = ", target.Arch)
+	serializer.Write(out, prg.Types)
 	fmt.Fprintf(out, "\n\n")
 
 	constArr := make([]prog.ConstValue, 0, len(consts))

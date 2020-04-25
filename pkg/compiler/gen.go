@@ -4,11 +4,13 @@
 package compiler
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/serializer"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -131,6 +133,73 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		Ret:         ret,
 		Attrs:       attrs,
 	}
+}
+
+type typeProxy struct {
+	typ       prog.Type
+	id        string
+	locations []*prog.Type
+}
+
+func (comp *compiler) generateTypes(syscalls []*prog.Syscall, structs []*prog.KeyedStruct) []prog.Type {
+	// Replace all Type's in the descriptions with Ref's
+	// and prepare a sorted array of corresponding real types.
+	proxies := make(map[string]*typeProxy)
+	for _, call := range syscalls {
+		for i := range call.Args {
+			comp.collectTypes(proxies, &call.Args[i])
+		}
+		if call.Ret != nil {
+			comp.collectTypes(proxies, &call.Ret)
+		}
+	}
+	for _, str := range structs {
+		for i := range str.Desc.Fields {
+			comp.collectTypes(proxies, &str.Desc.Fields[i])
+		}
+	}
+	array := make([]*typeProxy, 0, len(proxies))
+	for _, proxy := range proxies {
+		array = append(array, proxy)
+	}
+	sort.Slice(array, func(i, j int) bool {
+		return array[i].id < array[j].id
+	})
+	types := make([]prog.Type, len(array))
+	for i, proxy := range array {
+		types[i] = proxy.typ
+		for _, loc := range proxy.locations {
+			*loc = prog.Ref(i)
+		}
+	}
+	return types
+}
+
+func (comp *compiler) collectTypes(proxies map[string]*typeProxy, tptr *prog.Type) {
+	typ := *tptr
+	switch t := typ.(type) {
+	case *prog.PtrType:
+		comp.collectTypes(proxies, &t.Type)
+	case *prog.ArrayType:
+		comp.collectTypes(proxies, &t.Type)
+	case *prog.ResourceType, *prog.BufferType, *prog.VmaType, *prog.LenType,
+		*prog.FlagsType, *prog.ConstType, *prog.IntType, *prog.ProcType,
+		*prog.CsumType, *prog.StructType, *prog.UnionType:
+	default:
+		panic("unknown type")
+	}
+	buf := new(bytes.Buffer)
+	serializer.Write(buf, typ)
+	id := buf.String()
+	proxy := proxies[id]
+	if proxy == nil {
+		proxy = &typeProxy{
+			typ: typ,
+			id:  id,
+		}
+		proxies[id] = proxy
+	}
+	proxy.locations = append(proxy.locations, tptr)
 }
 
 func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStruct {
