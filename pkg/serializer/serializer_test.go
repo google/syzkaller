@@ -6,6 +6,8 @@ package serializer
 import (
 	"bytes"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestSerializer(t *testing.T) {
@@ -16,12 +18,50 @@ func TestSerializer(t *testing.T) {
 		B: true,
 		S: "a\x09b",
 		T: T1,
+		I: []interface{}{
+			nil,
+			Y{V: 42},
+			new(Y),
+			(*Y)(nil),
+			0,
+			42,
+			T(0),
+			T(42),
+			U(96),
+			false,
+			B(false),
+			"",
+			"foo",
+			S(""),
+			S("foo"),
+		},
 		F: nil,
 	}
+	want := `&X{Y{1},&Y{2},[]Y{
+{3},
+{4},
+},true,"a\tb",1,[]{
+nil,
+Y{},
+&Y{},
+nil,
+0,
+42,
+0,
+42,
+96,
+false,
+false,
+"",
+"foo",
+"",
+"foo",
+},nil}`
 	buf := new(bytes.Buffer)
 	Write(buf, x)
-	t.Logf("\n%s", buf.String())
-	t.Logf("\n%#v", x)
+	if diff := cmp.Diff(want, buf.String()); diff != "" {
+		t.Fatal(diff)
+	}
 }
 
 type X struct {
@@ -31,6 +71,7 @@ type X struct {
 	B bool
 	S string
 	T T
+	I []interface{}
 	F func()
 }
 
@@ -38,7 +79,12 @@ type Y struct {
 	V int
 }
 
-type T int
+type (
+	S string
+	B bool
+	T int
+	U uint16
+)
 
 const (
 	_ T = iota
