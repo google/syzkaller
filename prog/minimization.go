@@ -137,7 +137,7 @@ func (typ *PtrType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	}
 	if !ctx.triedPaths[path+"->"] {
 		removeArg(a.Res)
-		replaceArg(a, MakeSpecialPointerArg(a.Type(), 0))
+		replaceArg(a, MakeSpecialPointerArg(a.Type(), a.Dir(), 0))
 		ctx.target.assignSizesCall(ctx.call)
 		if ctx.pred(ctx.p, ctx.callIndex0) {
 			*ctx.p0 = ctx.p
@@ -201,7 +201,7 @@ func minimizeInt(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 		return false
 	}
 	a := arg.(*ConstArg)
-	def := arg.Type().DefaultArg().(*ConstArg)
+	def := arg.Type().DefaultArg(arg.Dir()).(*ConstArg)
 	if a.Val == def.Val {
 		return false
 	}
@@ -239,7 +239,7 @@ func (typ *ResourceType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bo
 
 func (typ *BufferType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	// TODO: try to set individual bytes to 0
-	if typ.Kind != BufferBlobRand && typ.Kind != BufferBlobRange || typ.Dir() == DirOut {
+	if typ.Kind != BufferBlobRand && typ.Kind != BufferBlobRange || arg.Dir() == DirOut {
 		return false
 	}
 	a := arg.(*DataArg)

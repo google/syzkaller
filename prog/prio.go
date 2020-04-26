@@ -65,11 +65,11 @@ func (target *Target) calcStaticPriorities() [][]float32 {
 func (target *Target) calcResourceUsage() map[string]map[int]weights {
 	uses := make(map[string]map[int]weights)
 	for _, c := range target.Syscalls {
-		ForeachType(c, func(t Type) {
+		foreachType(c, func(t Type, ctx typeCtx) {
 			switch a := t.(type) {
 			case *ResourceType:
 				if target.AuxResources[a.Desc.Name] {
-					noteUsage(uses, c, 0.1, a.Dir(), "res%v", a.Desc.Name)
+					noteUsage(uses, c, 0.1, ctx.Dir, "res%v", a.Desc.Name)
 				} else {
 					str := "res"
 					for i, k := range a.Desc.Kind {
@@ -78,25 +78,25 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 						if i < len(a.Desc.Kind)-1 {
 							w = 0.2
 						}
-						noteUsage(uses, c, float32(w), a.Dir(), str)
+						noteUsage(uses, c, float32(w), ctx.Dir, str)
 					}
 				}
 			case *PtrType:
 				if _, ok := a.Type.(*StructType); ok {
-					noteUsage(uses, c, 1.0, a.Dir(), "ptrto-%v", a.Type.Name())
+					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Type.Name())
 				}
 				if _, ok := a.Type.(*UnionType); ok {
-					noteUsage(uses, c, 1.0, a.Dir(), "ptrto-%v", a.Type.Name())
+					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Type.Name())
 				}
 				if arr, ok := a.Type.(*ArrayType); ok {
-					noteUsage(uses, c, 1.0, a.Dir(), "ptrto-%v", arr.Type.Name())
+					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", arr.Type.Name())
 				}
 			case *BufferType:
 				switch a.Kind {
 				case BufferBlobRand, BufferBlobRange, BufferText:
 				case BufferString:
 					if a.SubKind != "" {
-						noteUsage(uses, c, 0.2, a.Dir(), fmt.Sprintf("str-%v", a.SubKind))
+						noteUsage(uses, c, 0.2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))
 					}
 				case BufferFilename:
 					noteUsage(uses, c, 1.0, DirIn, "filename")
@@ -104,7 +104,7 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 					panic("unknown buffer kind")
 				}
 			case *VmaType:
-				noteUsage(uses, c, 0.5, a.Dir(), "vma")
+				noteUsage(uses, c, 0.5, ctx.Dir, "vma")
 			case *IntType:
 				switch a.Kind {
 				case IntPlain, IntRange:

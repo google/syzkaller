@@ -157,7 +157,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 			typ := &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{
 				TypeSize: test.size},
 				BitfieldLen: test.bitsize}}
-			constArg := MakeConstArg(typ, test.in)
+			constArg := MakeConstArg(typ, DirIn, test.in)
 			checkConstArg(constArg, test.comps, func() {
 				res = append(res, constArg.Val)
 			})
@@ -295,8 +295,8 @@ func TestHintsCheckDataArg(t *testing.T) {
 			res := make(map[string]bool)
 			// Whatever type here. It's just needed to pass the
 			// dataArg.Type().Dir() == DirIn check.
-			typ := &ArrayType{TypeCommon{"", "", 0, DirIn, false, true}, nil, 0, 0, 0}
-			dataArg := MakeDataArg(typ, []byte(test.in))
+			typ := &ArrayType{TypeCommon{"", "", 0, false, true}, nil, 0, 0, 0}
+			dataArg := MakeDataArg(typ, DirIn, []byte(test.in))
 			checkDataArg(dataArg, test.comps, func() {
 				res[string(dataArg.Data())] = true
 			})
@@ -499,7 +499,7 @@ func TestHintsRandom(t *testing.T) {
 func extractValues(c *Call) map[uint64]bool {
 	vals := make(map[uint64]bool)
 	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
-		if typ := arg.Type(); typ == nil || typ.Dir() == DirOut {
+		if arg.Dir() == DirOut {
 			return
 		}
 		switch a := arg.(type) {

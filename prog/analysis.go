@@ -69,13 +69,13 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 		switch typ := arg.Type().(type) {
 		case *ResourceType:
 			a := arg.(*ResultArg)
-			if resources && typ.Dir() != DirIn {
+			if resources && a.Dir() != DirIn {
 				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], a)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
 		case *BufferType:
 			a := arg.(*DataArg)
-			if typ.Dir() != DirOut && len(a.Data()) != 0 {
+			if a.Dir() != DirOut && len(a.Data()) != 0 {
 				val := string(a.Data())
 				// Remove trailing zero padding.
 				for len(val) >= 2 && val[len(val)-1] == 0 && val[len(val)-2] == 0 {

@@ -65,8 +65,8 @@ func (comp *compiler) collectCallArgSizes() map[string][]uint64 {
 			if len(argSizes) <= i {
 				argSizes = append(argSizes, comp.ptrSize)
 			}
-			desc, _, _ := comp.getArgsBase(arg.Type, arg.Name.Name, prog.DirIn, true)
-			typ := comp.genField(arg, prog.DirIn, comp.ptrSize)
+			desc, _, _ := comp.getArgsBase(arg.Type, arg.Name.Name, true)
+			typ := comp.genField(arg, comp.ptrSize)
 			// Ignore all types with base (const, flags). We don't have base in syscall args.
 			// Also ignore resources and pointers because fd can be 32-bits and pointer 64-bits,
 			// and then there is no way to fix this.
@@ -112,7 +112,7 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 	var ret prog.Type
 	if n.Ret != nil {
-		ret = comp.genType(n.Ret, "ret", prog.DirOut, comp.ptrSize)
+		ret = comp.genType(n.Ret, "ret", comp.ptrSize)
 	}
 	var attrs prog.SyscallAttrs
 	descAttrs := comp.parseAttrs(callAttrs, n, n.Attrs)
@@ -129,7 +129,7 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 		CallName:    n.CallName,
 		NR:          n.NR,
 		MissingArgs: len(argSizes) - len(n.Args),
-		Args:        comp.genFieldArray(n.Args, prog.DirIn, argSizes),
+		Args:        comp.genFieldArray(n.Args, argSizes),
 		Ret:         ret,
 		Attrs:       attrs,
 	}
@@ -237,10 +237,7 @@ func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStru
 
 	sort.Slice(ctx.structs, func(i, j int) bool {
 		si, sj := ctx.structs[i].Key, ctx.structs[j].Key
-		if si.Name != sj.Name {
-			return si.Name < sj.Name
-		}
-		return si.Dir < sj.Dir
+		return si.Name < sj.Name
 	})
 	return ctx.structs
 }
@@ -371,14 +368,14 @@ func (ctx *structGen) walkUnion(t *prog.UnionType) {
 	}
 }
 
-func (comp *compiler) genStructDesc(res *prog.StructDesc, n *ast.Struct, dir prog.Dir, varlen bool) {
+func (comp *compiler) genStructDesc(res *prog.StructDesc, n *ast.Struct, varlen bool) {
 	// Leave node for genStructDescs to calculate size/padding.
 	comp.structNodes[res] = n
-	common := genCommon(n.Name.Name, "", sizeUnassigned, dir, false)
+	common := genCommon(n.Name.Name, "", sizeUnassigned, false)
 	common.IsVarlen = varlen
 	*res = prog.StructDesc{
 		TypeCommon: common,
-		Fields:     comp.genFieldArray(n.Fields, dir, make([]uint64, len(n.Fields))),
+		Fields:     comp.genFieldArray(n.Fields, make([]uint64, len(n.Fields))),
 	}
 }
 
@@ -570,25 +567,25 @@ func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
 
 func genPad(size uint64) prog.Type {
 	return &prog.ConstType{
-		IntTypeCommon: genIntCommon(genCommon("pad", "", size, prog.DirIn, false), 0, false),
+		IntTypeCommon: genIntCommon(genCommon("pad", "", size, false), 0, false),
 		IsPad:         true,
 	}
 }
 
-func (comp *compiler) genFieldArray(fields []*ast.Field, dir prog.Dir, argSizes []uint64) []prog.Type {
+func (comp *compiler) genFieldArray(fields []*ast.Field, argSizes []uint64) []prog.Type {
 	var res []prog.Type
 	for i, f := range fields {
-		res = append(res, comp.genField(f, dir, argSizes[i]))
+		res = append(res, comp.genField(f, argSizes[i]))
 	}
 	return res
 }
 
-func (comp *compiler) genField(f *ast.Field, dir prog.Dir, argSize uint64) prog.Type {
-	return comp.genType(f.Type, f.Name.Name, dir, argSize)
+func (comp *compiler) genField(f *ast.Field, argSize uint64) prog.Type {
+	return comp.genType(f.Type, f.Name.Name, argSize)
 }
 
-func (comp *compiler) genType(t *ast.Type, field string, dir prog.Dir, argSize uint64) prog.Type {
-	desc, args, base := comp.getArgsBase(t, field, dir, argSize != 0)
+func (comp *compiler) genType(t *ast.Type, field string, argSize uint64) prog.Type {
+	desc, args, base := comp.getArgsBase(t, field, argSize != 0)
 	if desc.Gen == nil {
 		panic(fmt.Sprintf("no gen for %v %#v", field, t))
 	}
@@ -605,12 +602,11 @@ func (comp *compiler) genType(t *ast.Type, field string, dir prog.Dir, argSize u
 	return desc.Gen(comp, t, args, base)
 }
 
-func genCommon(name, field string, size uint64, dir prog.Dir, opt bool) prog.TypeCommon {
+func genCommon(name, field string, size uint64, opt bool) prog.TypeCommon {
 	return prog.TypeCommon{
 		TypeName:   name,
 		TypeSize:   size,
 		FldName:    field,
-		ArgDir:     dir,
 		IsOptional: opt,
 	}
 }

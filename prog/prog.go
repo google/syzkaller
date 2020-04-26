@@ -22,6 +22,7 @@ type Call struct {
 
 type Arg interface {
 	Type() Type
+	Dir() Dir
 	Size() uint64
 
 	validate(ctx *validCtx) error
@@ -30,10 +31,15 @@ type Arg interface {
 
 type ArgCommon struct {
 	typ Type
+	dir Dir
 }
 
 func (arg *ArgCommon) Type() Type {
 	return arg.typ
+}
+
+func (arg *ArgCommon) Dir() Dir {
+	return arg.dir
 }
 
 // Used for ConstType, IntType, FlagsType, LenType, ProcType and CsumType.
@@ -42,8 +48,8 @@ type ConstArg struct {
 	Val uint64
 }
 
-func MakeConstArg(t Type, v uint64) *ConstArg {
-	return &ConstArg{ArgCommon: ArgCommon{typ: t}, Val: v}
+func MakeConstArg(t Type, dir Dir, v uint64) *ConstArg {
+	return &ConstArg{ArgCommon: ArgCommon{typ: t, dir: dir}, Val: v}
 }
 
 func (arg *ConstArg) Size() uint64 {
@@ -84,34 +90,37 @@ type PointerArg struct {
 	Res     Arg    // pointee (nil for vma)
 }
 
-func MakePointerArg(t Type, addr uint64, data Arg) *PointerArg {
+func MakePointerArg(t Type, dir Dir, addr uint64, data Arg) *PointerArg {
 	if data == nil {
 		panic("nil pointer data arg")
 	}
 	return &PointerArg{
-		ArgCommon: ArgCommon{typ: t},
+		ArgCommon: ArgCommon{typ: t, dir: DirIn}, // pointers are always in
 		Address:   addr,
 		Res:       data,
 	}
 }
 
-func MakeVmaPointerArg(t Type, addr, size uint64) *PointerArg {
+func MakeVmaPointerArg(t Type, dir Dir, addr, size uint64) *PointerArg {
 	if addr%1024 != 0 {
 		panic("unaligned vma address")
 	}
 	return &PointerArg{
-		ArgCommon: ArgCommon{typ: t},
+		ArgCommon: ArgCommon{typ: t, dir: dir},
 		Address:   addr,
 		VmaSize:   size,
 	}
 }
 
-func MakeSpecialPointerArg(t Type, index uint64) *PointerArg {
+func MakeSpecialPointerArg(t Type, dir Dir, index uint64) *PointerArg {
 	if index >= maxSpecialPointers {
 		panic("bad special pointer index")
 	}
+	if _, ok := t.(*PtrType); ok {
+		dir = DirIn // pointers are always in
+	}
 	return &PointerArg{
-		ArgCommon: ArgCommon{typ: t},
+		ArgCommon: ArgCommon{typ: t, dir: dir},
 		Address:   -index,
 	}
 }
@@ -138,18 +147,18 @@ type DataArg struct {
 	size uint64 // for out Args
 }
 
-func MakeDataArg(t Type, data []byte) *DataArg {
-	if t.Dir() == DirOut {
+func MakeDataArg(t Type, dir Dir, data []byte) *DataArg {
+	if dir == DirOut {
 		panic("non-empty output data arg")
 	}
-	return &DataArg{ArgCommon: ArgCommon{typ: t}, data: append([]byte{}, data...)}
+	return &DataArg{ArgCommon: ArgCommon{typ: t, dir: dir}, data: append([]byte{}, data...)}
 }
 
-func MakeOutDataArg(t Type, size uint64) *DataArg {
-	if t.Dir() != DirOut {
+func MakeOutDataArg(t Type, dir Dir, size uint64) *DataArg {
+	if dir != DirOut {
 		panic("empty input data arg")
 	}
-	return &DataArg{ArgCommon: ArgCommon{typ: t}, size: size}
+	return &DataArg{ArgCommon: ArgCommon{typ: t, dir: dir}, size: size}
 }
 
 func (arg *DataArg) Size() uint64 {
@@ -160,14 +169,14 @@ func (arg *DataArg) Size() uint64 {
 }
 
 func (arg *DataArg) Data() []byte {
-	if arg.Type().Dir() == DirOut {
+	if arg.Dir() == DirOut {
 		panic("getting data of output data arg")
 	}
 	return arg.data
 }
 
 func (arg *DataArg) SetData(data []byte) {
-	if arg.Type().Dir() == DirOut {
+	if arg.Dir() == DirOut {
 		panic("setting data of output data arg")
 	}
 	arg.data = append([]byte{}, data...)
@@ -180,8 +189,8 @@ type GroupArg struct {
 	Inner []Arg
 }
 
-func MakeGroupArg(t Type, inner []Arg) *GroupArg {
-	return &GroupArg{ArgCommon: ArgCommon{typ: t}, Inner: inner}
+func MakeGroupArg(t Type, dir Dir, inner []Arg) *GroupArg {
+	return &GroupArg{ArgCommon: ArgCommon{typ: t, dir: dir}, Inner: inner}
 }
 
 func (arg *GroupArg) Size() uint64 {
@@ -227,8 +236,8 @@ type UnionArg struct {
 	Option Arg
 }
 
-func MakeUnionArg(t Type, opt Arg) *UnionArg {
-	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt}
+func MakeUnionArg(t Type, dir Dir, opt Arg) *UnionArg {
+	return &UnionArg{ArgCommon: ArgCommon{typ: t, dir: dir}, Option: opt}
 }
 
 func (arg *UnionArg) Size() uint64 {
@@ -250,8 +259,8 @@ type ResultArg struct {
 	uses  map[*ResultArg]bool // ArgResult args that use this arg
 }
 
-func MakeResultArg(t Type, r *ResultArg, v uint64) *ResultArg {
-	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
+func MakeResultArg(t Type, dir Dir, r *ResultArg, v uint64) *ResultArg {
+	arg := &ResultArg{ArgCommon: ArgCommon{typ: t, dir: dir}, Res: r, Val: v}
 	if r == nil {
 		return arg
 	}
@@ -266,10 +275,7 @@ func MakeReturnArg(t Type) *ResultArg {
 	if t == nil {
 		return nil
 	}
-	if t.Dir() != DirOut {
-		panic("return arg is not out")
-	}
-	return &ResultArg{ArgCommon: ArgCommon{typ: t}}
+	return &ResultArg{ArgCommon: ArgCommon{typ: t, dir: DirOut}}
 }
 
 func (arg *ResultArg) Size() uint64 {
@@ -369,7 +375,7 @@ func removeArg(arg0 Arg) {
 			delete(uses, a)
 		}
 		for arg1 := range a.uses {
-			arg2 := arg1.Type().DefaultArg().(*ResultArg)
+			arg2 := arg1.Type().DefaultArg(arg1.Dir()).(*ResultArg)
 			replaceResultArg(arg1, arg2)
 		}
 	})

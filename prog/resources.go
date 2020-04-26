@@ -46,10 +46,10 @@ func (target *Target) populateResourceCtors() {
 	// Find resources that are created by each call.
 	callsResources := make([][]*ResourceDesc, len(target.Syscalls))
 	for call, meta := range target.Syscalls {
-		ForeachType(meta, func(typ Type) {
+		foreachType(meta, func(typ Type, ctx typeCtx) {
 			switch typ1 := typ.(type) {
 			case *ResourceType:
-				if typ1.Dir() != DirIn {
+				if ctx.Dir != DirIn {
 					callsResources[call] = append(callsResources[call], typ1.Desc)
 				}
 			}
@@ -84,21 +84,19 @@ func (target *Target) populateResourceCtors() {
 
 // isCompatibleResource returns true if resource of kind src can be passed as an argument of kind dst.
 func (target *Target) isCompatibleResource(dst, src string) bool {
-	if dst == target.any.res16.TypeName ||
-		dst == target.any.res32.TypeName ||
-		dst == target.any.res64.TypeName ||
-		dst == target.any.resdec.TypeName ||
-		dst == target.any.reshex.TypeName ||
-		dst == target.any.resoct.TypeName {
+	if target.isAnyRes(dst) {
 		return true
+	}
+	if target.isAnyRes(src) {
+		return false
 	}
 	dstRes := target.resourceMap[dst]
 	if dstRes == nil {
-		panic(fmt.Sprintf("unknown resource '%v'", dst))
+		panic(fmt.Sprintf("unknown resource %q", dst))
 	}
 	srcRes := target.resourceMap[src]
 	if srcRes == nil {
-		panic(fmt.Sprintf("unknown resource '%v'", src))
+		panic(fmt.Sprintf("unknown resource %q", src))
 	}
 	return isCompatibleResourceImpl(dstRes.Kind, srcRes.Kind, false)
 }
@@ -128,8 +126,8 @@ func isCompatibleResourceImpl(dst, src []string, precise bool) bool {
 
 func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 	var resources []*ResourceDesc
-	ForeachType(c, func(typ Type) {
-		if typ.Dir() == DirOut {
+	foreachType(c, func(typ Type, ctx typeCtx) {
+		if ctx.Dir == DirOut {
 			return
 		}
 		switch typ1 := typ.(type) {
@@ -148,10 +146,10 @@ func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 
 func (target *Target) getOutputResources(c *Syscall) []*ResourceDesc {
 	var resources []*ResourceDesc
-	ForeachType(c, func(typ Type) {
+	foreachType(c, func(typ Type, ctx typeCtx) {
 		switch typ1 := typ.(type) {
 		case *ResourceType:
-			if typ1.Dir() != DirIn {
+			if ctx.Dir != DirIn {
 				resources = append(resources, typ1.Desc)
 			}
 		}
