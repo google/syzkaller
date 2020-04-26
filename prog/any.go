@@ -54,7 +54,8 @@ func initAnyTypes(target *Target) {
 			TypeSize:   target.PtrSize,
 			IsOptional: true,
 		},
-		Type: target.any.array,
+		Type:    target.any.array,
+		ElemDir: DirIn,
 	}
 	target.any.ptr64 = &PtrType{
 		TypeCommon: TypeCommon{
@@ -63,7 +64,8 @@ func initAnyTypes(target *Target) {
 			TypeSize:   8,
 			IsOptional: true,
 		},
-		Type: target.any.array,
+		Type:    target.any.array,
+		ElemDir: DirIn,
 	}
 	target.any.blob = &BufferType{
 		TypeCommon: TypeCommon{
@@ -77,7 +79,6 @@ func initAnyTypes(target *Target) {
 			TypeCommon: TypeCommon{
 				TypeName:   name,
 				FldName:    name,
-				ArgDir:     DirIn,
 				TypeSize:   size,
 				IsOptional: true,
 			},
@@ -100,7 +101,6 @@ func initAnyTypes(target *Target) {
 			TypeName: "ANYUNION",
 			FldName:  "ANYUNION",
 			IsVarlen: true,
-			ArgDir:   DirIn,
 		},
 		Fields: []Type{
 			target.any.blob,
@@ -150,7 +150,7 @@ func (p *Prog) complexPtrs() (res []*PointerArg) {
 }
 
 func (target *Target) isComplexPtr(arg *PointerArg) bool {
-	if arg.Res == nil || arg.Type().Dir() != DirIn {
+	if arg.Res == nil || arg.Dir() != DirIn {
 		return false
 	}
 	if target.isAnyPtr(arg.Type()) {
@@ -173,6 +173,15 @@ func (target *Target) isComplexPtr(arg *PointerArg) bool {
 		}
 	})
 	return complex && !hasPtr
+}
+
+func (target *Target) isAnyRes(name string) bool {
+	return name == target.any.res16.TypeName ||
+		name == target.any.res32.TypeName ||
+		name == target.any.res64.TypeName ||
+		name == target.any.resdec.TypeName ||
+		name == target.any.reshex.TypeName ||
+		name == target.any.resoct.TypeName
 }
 
 func (target *Target) CallContainsAny(c *Call) (res bool) {
@@ -208,7 +217,7 @@ func (target *Target) squashPtr(arg *PointerArg, preserveField bool) {
 		field = arg.Type().FieldName()
 	}
 	arg.typ = target.makeAnyPtrType(arg.Type().Size(), field)
-	arg.Res = MakeGroupArg(arg.typ.(*PtrType).Type, elems)
+	arg.Res = MakeGroupArg(arg.typ.(*PtrType).Type, DirIn, elems)
 	if size := arg.Res.Size(); size != size0 {
 		panic(fmt.Sprintf("squash changed size %v->%v for %v", size0, size, res0.Type()))
 	}
@@ -230,7 +239,7 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 		}
 		target.squashPtrImpl(arg.Option, elems)
 	case *DataArg:
-		if arg.Type().Dir() == DirOut {
+		if arg.Dir() == DirOut {
 			pad = arg.Size()
 		} else {
 			elem := target.ensureDataElem(elems)
@@ -299,7 +308,8 @@ func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
 	default:
 		panic("bad")
 	}
-	*elems = append(*elems, MakeUnionArg(target.any.union, arg))
+	arg.dir = DirIn
+	*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, arg))
 }
 
 func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
@@ -375,14 +385,14 @@ func (target *Target) squashedValue(arg *ConstArg) (uint64, BinaryFormat) {
 
 func (target *Target) ensureDataElem(elems *[]Arg) *DataArg {
 	if len(*elems) == 0 {
-		res := MakeDataArg(target.any.blob, nil)
-		*elems = append(*elems, MakeUnionArg(target.any.union, res))
+		res := MakeDataArg(target.any.blob, DirIn, nil)
+		*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, res))
 		return res
 	}
 	res, ok := (*elems)[len(*elems)-1].(*UnionArg).Option.(*DataArg)
 	if !ok {
-		res = MakeDataArg(target.any.blob, nil)
-		*elems = append(*elems, MakeUnionArg(target.any.union, res))
+		res = MakeDataArg(target.any.blob, DirIn, nil)
+		*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, res))
 	}
 	return res
 }

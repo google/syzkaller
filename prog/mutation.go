@@ -99,7 +99,7 @@ func (ctx *mutator) squashAny() bool {
 	var blobs []*DataArg
 	var bases []*PointerArg
 	ForeachSubArg(ptr, func(arg Arg, ctx *ArgCtx) {
-		if data, ok := arg.(*DataArg); ok && arg.Type().Dir() != DirOut {
+		if data, ok := arg.(*DataArg); ok && arg.Dir() != DirOut {
 			blobs = append(blobs, data)
 			bases = append(bases, ctx.Base)
 		}
@@ -119,7 +119,7 @@ func (ctx *mutator) squashAny() bool {
 	// Update base pointer if size has increased.
 	if baseSize < base.Res.Size() {
 		s := analyze(ctx.ct, ctx.corpus, p, p.Calls[0])
-		newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
+		newArg := r.allocAddr(s, base.Type(), base.Dir(), base.Res.Size(), base.Res)
 		*base = *newArg
 	}
 	return true
@@ -252,7 +252,7 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 	}
 	// Update base pointer if size has increased.
 	if base := ctx.Base; base != nil && baseSize < base.Res.Size() {
-		newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
+		newArg := r.allocAddr(s, base.Type(), base.Dir(), base.Res.Size(), base.Res)
 		replaceArg(base, newArg)
 	}
 	return calls, true
@@ -260,7 +260,7 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 
 func regenerate(r *randGen, s *state, arg Arg) (calls []*Call, retry, preserve bool) {
 	var newArg Arg
-	newArg, calls = r.generateArg(s, arg.Type())
+	newArg, calls = r.generateArg(s, arg.Type(), arg.Dir())
 	replaceArg(arg, newArg)
 	return
 }
@@ -346,7 +346,7 @@ func (t *BufferType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 		minLen, maxLen = t.RangeBegin, t.RangeEnd
 	}
 	a := arg.(*DataArg)
-	if t.Dir() == DirOut {
+	if a.Dir() == DirOut {
 		mutateBufferSize(r, a, minLen, maxLen)
 		return
 	}
@@ -412,7 +412,7 @@ func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 	}
 	if count > uint64(len(a.Inner)) {
 		for count > uint64(len(a.Inner)) {
-			newArg, newCalls := r.generateArg(s, t.Type)
+			newArg, newCalls := r.generateArg(s, t.Type, a.Dir())
 			a.Inner = append(a.Inner, newArg)
 			calls = append(calls, newCalls...)
 			for _, c := range newCalls {
@@ -433,11 +433,11 @@ func (t *PtrType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Ca
 	if r.oneOf(1000) {
 		removeArg(a.Res)
 		index := r.rand(len(r.target.SpecialPointers))
-		newArg := MakeSpecialPointerArg(t, index)
+		newArg := MakeSpecialPointerArg(t, a.Dir(), index)
 		replaceArg(arg, newArg)
 		return
 	}
-	newArg := r.allocAddr(s, t, a.Res.Size(), a.Res)
+	newArg := r.allocAddr(s, t, a.Dir(), a.Res.Size(), a.Res)
 	replaceArg(arg, newArg)
 	return
 }
@@ -448,7 +448,7 @@ func (t *StructType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 		panic("bad arg returned by mutationArgs: StructType")
 	}
 	var newArg Arg
-	newArg, calls = gen(&Gen{r, s}, t, arg)
+	newArg, calls = gen(&Gen{r, s}, t, arg.Dir(), arg)
 	a := arg.(*GroupArg)
 	for i, f := range newArg.(*GroupArg).Inner {
 		replaceArg(a.Inner[i], f)
@@ -459,7 +459,7 @@ func (t *StructType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []
 func (t *UnionType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
 	if gen := r.target.SpecialTypes[t.Name()]; gen != nil {
 		var newArg Arg
-		newArg, calls = gen(&Gen{r, s}, t, arg)
+		newArg, calls = gen(&Gen{r, s}, t, arg.Dir(), arg)
 		replaceArg(arg, newArg)
 		return
 	}
@@ -481,8 +481,8 @@ func (t *UnionType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 	optType := t.Fields[newIdx]
 	removeArg(a.Option)
 	var newOpt Arg
-	newOpt, calls = r.generateArg(s, optType)
-	replaceArg(arg, MakeUnionArg(t, newOpt))
+	newOpt, calls = r.generateArg(s, optType, a.Dir())
+	replaceArg(arg, MakeUnionArg(t, a.Dir(), newOpt))
 	return
 }
 
@@ -522,7 +522,7 @@ func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
 
 	_, isArrayTyp := typ.(*ArrayType)
 	_, isBufferTyp := typ.(*BufferType)
-	if !isBufferTyp && !isArrayTyp && typ.Dir() == DirOut || !typ.Varlen() && typ.Size() == 0 {
+	if !isBufferTyp && !isArrayTyp && arg.Dir() == DirOut || !typ.Varlen() && typ.Size() == 0 {
 		return
 	}
 
@@ -645,7 +645,7 @@ func (t *LenType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (
 }
 
 func (t *BufferType) getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool) {
-	if t.Dir() == DirOut && !t.Varlen() {
+	if arg.Dir() == DirOut && !t.Varlen() {
 		return dontMutate, false
 	}
 	if t.Kind == BufferString && len(t.Values) == 1 {

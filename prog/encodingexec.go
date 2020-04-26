@@ -134,7 +134,7 @@ func (w *execContext) writeCopyin(c *Call) {
 			return
 		}
 		typ := arg.Type()
-		if typ.Dir() == DirOut || IsPad(typ) || (arg.Size() == 0 && !typ.IsBitfield()) {
+		if arg.Dir() == DirOut || IsPad(typ) || (arg.Size() == 0 && !typ.IsBitfield()) {
 			return
 		}
 		w.write(execInstrCopyin)

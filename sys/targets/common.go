@@ -22,19 +22,19 @@ func MakePosixMmap(target *prog.Target, exec, contain bool) func() []*prog.Call 
 	const invalidFD = ^uint64(0)
 	makeMmap := func(addr, size, prot uint64) *prog.Call {
 		args := []prog.Arg{
-			prog.MakeVmaPointerArg(meta.Args[0], addr, size),
-			prog.MakeConstArg(meta.Args[1], size),
-			prog.MakeConstArg(meta.Args[2], prot),
-			prog.MakeConstArg(meta.Args[3], flags),
-			prog.MakeResultArg(meta.Args[4], nil, invalidFD),
+			prog.MakeVmaPointerArg(meta.Args[0], prog.DirIn, addr, size),
+			prog.MakeConstArg(meta.Args[1], prog.DirIn, size),
+			prog.MakeConstArg(meta.Args[2], prog.DirIn, prot),
+			prog.MakeConstArg(meta.Args[3], prog.DirIn, flags),
+			prog.MakeResultArg(meta.Args[4], prog.DirIn, nil, invalidFD),
 		}
 		i := len(args)
 		// Some targets have a padding argument between fd and offset.
 		if len(meta.Args) > 6 {
-			args = append(args, prog.MakeConstArg(meta.Args[i], 0))
+			args = append(args, prog.MakeConstArg(meta.Args[i], prog.DirIn, 0))
 			i++
 		}
-		args = append(args, prog.MakeConstArg(meta.Args[i], 0))
+		args = append(args, prog.MakeConstArg(meta.Args[i], prog.DirIn, 0))
 		return &prog.Call{
 			Meta: meta,
 			Args: args,
@@ -61,8 +61,8 @@ func MakeSyzMmap(target *prog.Target) func() []*prog.Call {
 			{
 				Meta: meta,
 				Args: []prog.Arg{
-					prog.MakeVmaPointerArg(meta.Args[0], 0, size),
-					prog.MakeConstArg(meta.Args[1], size),
+					prog.MakeVmaPointerArg(meta.Args[0], prog.DirIn, 0, size),
+					prog.MakeConstArg(meta.Args[1], prog.DirIn, size),
 				},
 				Ret: prog.MakeReturnArg(meta.Ret),
 			},

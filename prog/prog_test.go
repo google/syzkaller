@@ -21,8 +21,8 @@ func TestGeneration(t *testing.T) {
 func TestDefault(t *testing.T) {
 	target, _, _ := initTest(t)
 	for _, meta := range target.Syscalls {
-		ForeachType(meta, func(typ Type) {
-			arg := typ.DefaultArg()
+		foreachType(meta, func(typ Type, ctx typeCtx) {
+			arg := typ.DefaultArg(ctx.Dir)
 			if !isDefault(arg) {
 				t.Errorf("default arg is not default: %s\ntype: %#v\narg: %#v",
 					typ, typ, arg)
@@ -203,8 +203,8 @@ func TestSpecialStructs(t *testing.T) {
 			t.Run(special, func(t *testing.T) {
 				var typ Type
 				for i := 0; i < len(target.Syscalls) && typ == nil; i++ {
-					ForeachType(target.Syscalls[i], func(t Type) {
-						if t.Dir() == DirOut {
+					foreachType(target.Syscalls[i], func(t Type, ctx typeCtx) {
+						if ctx.Dir == DirOut {
 							return
 						}
 						if s, ok := t.(*StructType); ok && s.Name() == special {
@@ -220,8 +220,13 @@ func TestSpecialStructs(t *testing.T) {
 				}
 				g := &Gen{newRand(target, rs), newState(target, nil, nil)}
 				for i := 0; i < iters/len(target.SpecialTypes); i++ {
-					arg, _ := gen(g, typ, nil)
-					gen(g, typ, arg)
+					var arg Arg
+					for i := 0; i < 2; i++ {
+						arg, _ = gen(g, typ, DirInOut, arg)
+						if arg.Dir() != DirInOut {
+							t.Fatalf("got wrong arg dir %v", arg.Dir())
+						}
+					}
 				}
 			})
 		}
