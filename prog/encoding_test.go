@@ -10,8 +10,6 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func setToArray(s map[string]struct{}) []string {
@@ -294,6 +292,24 @@ func TestDeserialize(t *testing.T) {
 			Out:       `test$str2(&(0x7f0000000000)='foo\x00')`,
 			StrictErr: `bad string value "baz\x00", expect ["foo\x00" "bar\x00"]`,
 		},
+		{
+			In:  `test$opt2(&(0x7f0000000000))`,
+			Out: `test$opt2(0x0)`,
+		},
+		{
+			In:        `test$opt2(&(0x7f0000000001))`,
+			Out:       `test$opt2(0x0)`,
+			StrictErr: `unaligned vma address 0x1`,
+		},
+		{
+			In:  `test$opt2(&(0x7f0000000000)=nil)`,
+			Out: `test$opt2(0x0)`,
+		},
+		{
+			In:        `test$opt2(&(0x7f0000000000)='foo')`,
+			Out:       `test$opt2(0x0)`,
+			StrictErr: `non-nil argument for nil type`,
+		},
 	})
 }
 
@@ -335,8 +351,8 @@ func TestSerializeDeserializeRandom(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			diff := cmp.Diff(decoded0, decoded1)
-			t.Logf("decoded diff: %v", diff)
+			t.Logf("decoded0: %+v", decoded0)
+			t.Logf("decoded1: %+v", decoded1)
 			t.Fatalf("was: %q\ngot: %q\nprogram:\n%s",
 				data0[:n0], data1[:n1], p0.Serialize())
 		}
@@ -358,6 +374,8 @@ func testSerializeDeserialize(t *testing.T, p0 *Prog, data0, data1 []byte) (bool
 		t.Fatal(err)
 	}
 	if !bytes.Equal(data0[:n0], data1[:n1]) {
+		t.Logf("PROG0:\n%s\n", p0.Serialize())
+		t.Logf("PROG1:\n%s\n", p1.Serialize())
 		return false, n0, n1
 	}
 	return true, 0, 0

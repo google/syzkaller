@@ -347,7 +347,8 @@ func (p *parser) parseArg(typ Type) (Arg, error) {
 
 func (p *parser) parseArgImpl(typ Type) (Arg, error) {
 	if typ == nil && p.Char() != 'n' {
-		return nil, fmt.Errorf("non-nil argument for nil type")
+		p.eatExcessive(true, "non-nil argument for nil type")
+		return nil, nil
 	}
 	switch p.Char() {
 	case '0':
