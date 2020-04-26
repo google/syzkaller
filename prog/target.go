@@ -45,7 +45,7 @@ type Target struct {
 	// allocate memory, etc. typ is the struct/union type. old is the old value of the struct/union
 	// for mutation, or nil for generation. The function returns a new value of the struct/union,
 	// and optionally any calls that need to be inserted before the arg reference.
-	SpecialTypes map[string]func(g *Gen, typ Type, old Arg) (Arg, []*Call)
+	SpecialTypes map[string]func(g *Gen, typ Type, dir Dir, old Arg) (Arg, []*Call)
 
 	// Special strings that can matter for the target.
 	// Used as fallback when string type does not have own dictionary.
@@ -197,7 +197,7 @@ func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*Key
 		if c.Ret != nil {
 			unref(&c.Ret, types)
 		}
-		ForeachType(c, func(t0 Type) {
+		foreachType(c, func(t0 Type, _ typeCtx) {
 			switch t := t0.(type) {
 			case *PtrType:
 				unref(&t.Type, types)
@@ -247,20 +247,20 @@ func (g *Gen) NOutOf(n, outOf int) bool {
 	return g.r.nOutOf(n, outOf)
 }
 
-func (g *Gen) Alloc(ptrType Type, data Arg) (Arg, []*Call) {
-	return g.r.allocAddr(g.s, ptrType, data.Size(), data), nil
+func (g *Gen) Alloc(ptrType Type, dir Dir, data Arg) (Arg, []*Call) {
+	return g.r.allocAddr(g.s, ptrType, dir, data.Size(), data), nil
 }
 
-func (g *Gen) GenerateArg(typ Type, pcalls *[]*Call) Arg {
-	return g.generateArg(typ, pcalls, false)
+func (g *Gen) GenerateArg(typ Type, dir Dir, pcalls *[]*Call) Arg {
+	return g.generateArg(typ, dir, pcalls, false)
 }
 
-func (g *Gen) GenerateSpecialArg(typ Type, pcalls *[]*Call) Arg {
-	return g.generateArg(typ, pcalls, true)
+func (g *Gen) GenerateSpecialArg(typ Type, dir Dir, pcalls *[]*Call) Arg {
+	return g.generateArg(typ, dir, pcalls, true)
 }
 
-func (g *Gen) generateArg(typ Type, pcalls *[]*Call, ignoreSpecial bool) Arg {
-	arg, calls := g.r.generateArgImpl(g.s, typ, ignoreSpecial)
+func (g *Gen) generateArg(typ Type, dir Dir, pcalls *[]*Call, ignoreSpecial bool) Arg {
+	arg, calls := g.r.generateArgImpl(g.s, typ, dir, ignoreSpecial)
 	*pcalls = append(*pcalls, calls...)
 	g.r.target.assignSizesArray([]Arg{arg}, nil)
 	return arg

@@ -341,16 +341,16 @@ func (r *randGen) randString(s *state, t *BufferType) []byte {
 	return buf.Bytes()
 }
 
-func (r *randGen) allocAddr(s *state, typ Type, size uint64, data Arg) *PointerArg {
-	return MakePointerArg(typ, s.ma.alloc(r, size), data)
+func (r *randGen) allocAddr(s *state, typ Type, dir Dir, size uint64, data Arg) *PointerArg {
+	return MakePointerArg(typ, dir, s.ma.alloc(r, size), data)
 }
 
-func (r *randGen) allocVMA(s *state, typ Type, numPages uint64) *PointerArg {
+func (r *randGen) allocVMA(s *state, typ Type, dir Dir, numPages uint64) *PointerArg {
 	page := s.va.alloc(r, numPages)
-	return MakeVmaPointerArg(typ, page*r.target.PageSize, numPages*r.target.PageSize)
+	return MakeVmaPointerArg(typ, dir, page*r.target.PageSize, numPages*r.target.PageSize)
 }
 
-func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []*Call) {
+func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg, calls []*Call) {
 	if r.inCreateResource {
 		return nil, nil
 	}
@@ -385,7 +385,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		metas = append(metas, meta)
 	}
 	if len(metas) == 0 {
-		return res.DefaultArg(), nil
+		return res.DefaultArg(dir), nil
 	}
 
 	// Now we have a set of candidate calls that can create the necessary resource.
@@ -404,7 +404,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		}
 		if len(allres) != 0 {
 			// Bingo!
-			arg := MakeResultArg(res, allres[r.Intn(len(allres))], 0)
+			arg := MakeResultArg(res, dir, allres[r.Intn(len(allres))], 0)
 			return arg, calls
 		}
 		// Discard unsuccessful calls.
@@ -562,7 +562,7 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 		Meta: meta,
 		Ret:  MakeReturnArg(meta.Ret),
 	}
-	c.Args, calls = r.generateArgs(s, meta.Args)
+	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
 	r.target.assignSizesCall(c)
 	return append(calls, c)
 }
@@ -601,13 +601,13 @@ func (target *Target) DataMmapProg() *Prog {
 	}
 }
 
-func (r *randGen) generateArgs(s *state, types []Type) ([]Arg, []*Call) {
+func (r *randGen) generateArgs(s *state, types []Type, dir Dir) ([]Arg, []*Call) {
 	var calls []*Call
 	args := make([]Arg, len(types))
 
 	// Generate all args. Size args have the default value 0 for now.
 	for i, typ := range types {
-		arg, calls1 := r.generateArg(s, typ)
+		arg, calls1 := r.generateArg(s, typ, dir)
 		if arg == nil {
 			panic(fmt.Sprintf("generated arg is nil for type '%v', types: %+v", typ.Name(), types))
 		}
@@ -618,29 +618,28 @@ func (r *randGen) generateArgs(s *state, types []Type) ([]Arg, []*Call) {
 	return args, calls
 }
 
-func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
-	return r.generateArgImpl(s, typ, false)
+func (r *randGen) generateArg(s *state, typ Type, dir Dir) (arg Arg, calls []*Call) {
+	return r.generateArgImpl(s, typ, dir, false)
 }
 
-func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg Arg, calls []*Call) {
-	if typ.Dir() == DirOut {
+func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial bool) (arg Arg, calls []*Call) {
+	if dir == DirOut {
 		// No need to generate something interesting for output scalar arguments.
 		// But we still need to generate the argument itself so that it can be referenced
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case *IntType, *FlagsType, *ConstType, *ProcType,
-			*VmaType, *ResourceType:
-			return typ.DefaultArg(), nil
+		case *IntType, *FlagsType, *ConstType, *ProcType, *VmaType, *ResourceType:
+			return typ.DefaultArg(dir), nil
 		}
 	}
 
 	if typ.Optional() && r.oneOf(5) {
 		if res, ok := typ.(*ResourceType); ok {
 			v := res.Desc.Values[r.Intn(len(res.Desc.Values))]
-			return MakeResultArg(typ, nil, v), nil
+			return MakeResultArg(typ, dir, nil, v), nil
 		}
-		return typ.DefaultArg(), nil
+		return typ.DefaultArg(dir), nil
 	}
 
 	// Allow infinite recursion for optional pointers.
@@ -656,70 +655,70 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 				}
 			}()
 			if r.recDepth[name] >= 3 {
-				return MakeSpecialPointerArg(typ, 0), nil
+				return MakeSpecialPointerArg(typ, dir, 0), nil
 			}
 		}
 	}
 
-	if !ignoreSpecial && typ.Dir() != DirOut {
+	if !ignoreSpecial && dir != DirOut {
 		switch typ.(type) {
 		case *StructType, *UnionType:
 			if gen := r.target.SpecialTypes[typ.Name()]; gen != nil {
-				return gen(&Gen{r, s}, typ, nil)
+				return gen(&Gen{r, s}, typ, dir, nil)
 			}
 		}
 	}
 
-	return typ.generate(r, s)
+	return typ.generate(r, s, dir)
 }
 
-func (a *ResourceType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *ResourceType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	if r.oneOf(3) {
-		arg = r.existingResource(s, a)
+		arg = r.existingResource(s, a, dir)
 		if arg != nil {
 			return
 		}
 	}
 	if r.nOutOf(2, 3) {
-		arg, calls = r.resourceCentric(s, a)
+		arg, calls = r.resourceCentric(s, a, dir)
 		if arg != nil {
 			return
 		}
 	}
 	if r.nOutOf(4, 5) {
-		arg, calls = r.createResource(s, a)
+		arg, calls = r.createResource(s, a, dir)
 		if arg != nil {
 			return
 		}
 	}
 	special := a.SpecialValues()
-	arg = MakeResultArg(a, nil, special[r.Intn(len(special))])
+	arg = MakeResultArg(a, dir, nil, special[r.Intn(len(special))])
 	return
 }
 
-func (a *BufferType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *BufferType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	switch a.Kind {
 	case BufferBlobRand, BufferBlobRange:
 		sz := r.randBufLen()
 		if a.Kind == BufferBlobRange {
 			sz = r.randRange(a.RangeBegin, a.RangeEnd)
 		}
-		if a.Dir() == DirOut {
-			return MakeOutDataArg(a, sz), nil
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, sz), nil
 		}
 		data := make([]byte, sz)
 		for i := range data {
 			data[i] = byte(r.Intn(256))
 		}
-		return MakeDataArg(a, data), nil
+		return MakeDataArg(a, dir, data), nil
 	case BufferString:
 		data := r.randString(s, a)
-		if a.Dir() == DirOut {
-			return MakeOutDataArg(a, uint64(len(data))), nil
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, uint64(len(data))), nil
 		}
-		return MakeDataArg(a, data), nil
+		return MakeDataArg(a, dir, data), nil
 	case BufferFilename:
-		if a.Dir() == DirOut {
+		if dir == DirOut {
 			var sz uint64
 			switch {
 			case !a.Varlen():
@@ -731,50 +730,50 @@ func (a *BufferType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 			default:
 				sz = 4096 // PATH_MAX
 			}
-			return MakeOutDataArg(a, sz), nil
+			return MakeOutDataArg(a, dir, sz), nil
 		}
-		return MakeDataArg(a, []byte(r.filename(s, a))), nil
+		return MakeDataArg(a, dir, []byte(r.filename(s, a))), nil
 	case BufferText:
-		if a.Dir() == DirOut {
-			return MakeOutDataArg(a, uint64(r.Intn(100))), nil
+		if dir == DirOut {
+			return MakeOutDataArg(a, dir, uint64(r.Intn(100))), nil
 		}
-		return MakeDataArg(a, r.generateText(a.Text)), nil
+		return MakeDataArg(a, dir, r.generateText(a.Text)), nil
 	default:
 		panic("unknown buffer kind")
 	}
 }
 
-func (a *VmaType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *VmaType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	npages := r.randPageCount()
 	if a.RangeBegin != 0 || a.RangeEnd != 0 {
 		npages = a.RangeBegin + uint64(r.Intn(int(a.RangeEnd-a.RangeBegin+1)))
 	}
-	return r.allocVMA(s, a, npages), nil
+	return r.allocVMA(s, a, dir, npages), nil
 }
 
-func (a *FlagsType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	return MakeConstArg(a, r.flags(a.Vals, a.BitMask, 0)), nil
+func (a *FlagsType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	return MakeConstArg(a, dir, r.flags(a.Vals, a.BitMask, 0)), nil
 }
 
-func (a *ConstType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	return MakeConstArg(a, a.Val), nil
+func (a *ConstType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	return MakeConstArg(a, dir, a.Val), nil
 }
 
-func (a *IntType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *IntType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	bits := a.TypeBitSize()
 	v := r.randInt(bits)
 	switch a.Kind {
 	case IntRange:
 		v = r.randRangeInt(a.RangeBegin, a.RangeEnd, bits, a.Align)
 	}
-	return MakeConstArg(a, v), nil
+	return MakeConstArg(a, dir, v), nil
 }
 
-func (a *ProcType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	return MakeConstArg(a, r.rand(int(a.ValuesPerProc))), nil
+func (a *ProcType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	return MakeConstArg(a, dir, r.rand(int(a.ValuesPerProc))), nil
 }
 
-func (a *ArrayType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *ArrayType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	var count uint64
 	switch a.Kind {
 	case ArrayRandLen:
@@ -784,46 +783,46 @@ func (a *ArrayType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
 	}
 	var inner []Arg
 	for i := uint64(0); i < count; i++ {
-		arg1, calls1 := r.generateArg(s, a.Type)
+		arg1, calls1 := r.generateArg(s, a.Type, dir)
 		inner = append(inner, arg1)
 		calls = append(calls, calls1...)
 	}
-	return MakeGroupArg(a, inner), calls
+	return MakeGroupArg(a, dir, inner), calls
 }
 
-func (a *StructType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
-	args, calls := r.generateArgs(s, a.Fields)
-	group := MakeGroupArg(a, args)
+func (a *StructType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
+	args, calls := r.generateArgs(s, a.Fields, dir)
+	group := MakeGroupArg(a, dir, args)
 	return group, calls
 }
 
-func (a *UnionType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	optType := a.Fields[r.Intn(len(a.Fields))]
-	opt, calls := r.generateArg(s, optType)
-	return MakeUnionArg(a, opt), calls
+	opt, calls := r.generateArg(s, optType, dir)
+	return MakeUnionArg(a, dir, opt), calls
 }
 
-func (a *PtrType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	if r.oneOf(1000) {
 		index := r.rand(len(r.target.SpecialPointers))
-		return MakeSpecialPointerArg(a, index), nil
+		return MakeSpecialPointerArg(a, dir, index), nil
 	}
-	inner, calls := r.generateArg(s, a.Type)
-	arg = r.allocAddr(s, a, inner.Size(), inner)
+	inner, calls := r.generateArg(s, a.Type, a.ElemDir)
+	arg = r.allocAddr(s, a, dir, inner.Size(), inner)
 	return arg, calls
 }
 
-func (a *LenType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *LenType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	// Updated later in assignSizesCall.
-	return MakeConstArg(a, 0), nil
+	return MakeConstArg(a, dir, 0), nil
 }
 
-func (a *CsumType) generate(r *randGen, s *state) (arg Arg, calls []*Call) {
+func (a *CsumType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
 	// Filled at runtime by executor.
-	return MakeConstArg(a, 0), nil
+	return MakeConstArg(a, dir, 0), nil
 }
 
-func (r *randGen) existingResource(s *state, res *ResourceType) Arg {
+func (r *randGen) existingResource(s *state, res *ResourceType, dir Dir) Arg {
 	alltypes := make([][]*ResultArg, 0, len(s.resources))
 	for _, res1 := range s.resources {
 		alltypes = append(alltypes, res1)
@@ -842,11 +841,11 @@ func (r *randGen) existingResource(s *state, res *ResourceType) Arg {
 	if len(allres) == 0 {
 		return nil
 	}
-	return MakeResultArg(res, allres[r.Intn(len(allres))], 0)
+	return MakeResultArg(res, dir, allres[r.Intn(len(allres))], 0)
 }
 
 // Finds a compatible resource with the type `t` and the calls that initialize that resource.
-func (r *randGen) resourceCentric(s *state, t *ResourceType) (arg Arg, calls []*Call) {
+func (r *randGen) resourceCentric(s *state, t *ResourceType, dir Dir) (arg Arg, calls []*Call) {
 	var p *Prog
 	var resource *ResultArg
 	for idx := range r.Perm(len(s.corpus)) {
@@ -898,7 +897,7 @@ func (r *randGen) resourceCentric(s *state, t *ResourceType) (arg Arg, calls []*
 		p.removeCall(i)
 	}
 
-	return MakeResultArg(t, resource, 0), p.Calls
+	return MakeResultArg(t, dir, resource, 0), p.Calls
 }
 
 func getCompatibleResources(p *Prog, resourceType string, r *randGen) (resources []*ResultArg) {
@@ -906,7 +905,7 @@ func getCompatibleResources(p *Prog, resourceType string, r *randGen) (resources
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			// Collect only initialized resources (the ones that are already used in other calls).
 			a, ok := arg.(*ResultArg)
-			if !ok || len(a.uses) == 0 || a.typ.Dir() != DirOut {
+			if !ok || len(a.uses) == 0 || a.Dir() != DirOut {
 				return
 			}
 			if !r.target.isCompatibleResource(resourceType, a.typ.Name()) {

@@ -55,7 +55,7 @@ func (ctx *validCtx) validateCall(c *Call) error {
 			len(c.Meta.Args), len(c.Args))
 	}
 	for i, arg := range c.Args {
-		if err := ctx.validateArg(arg, c.Meta.Args[i]); err != nil {
+		if err := ctx.validateArg(arg, c.Meta.Args[i], DirIn); err != nil {
 			return err
 		}
 	}
@@ -72,16 +72,13 @@ func (ctx *validCtx) validateRet(c *Call) error {
 	if c.Ret == nil {
 		return fmt.Errorf("return value is absent")
 	}
-	if c.Ret.Type().Dir() != DirOut {
-		return fmt.Errorf("return value %v is not output", c.Ret)
-	}
 	if c.Ret.Res != nil || c.Ret.Val != 0 || c.Ret.OpDiv != 0 || c.Ret.OpAdd != 0 {
 		return fmt.Errorf("return value %v is not empty", c.Ret)
 	}
-	return ctx.validateArg(c.Ret, c.Meta.Ret)
+	return ctx.validateArg(c.Ret, c.Meta.Ret, DirOut)
 }
 
-func (ctx *validCtx) validateArg(arg Arg, typ Type) error {
+func (ctx *validCtx) validateArg(arg Arg, typ Type, dir Dir) error {
 	if arg == nil {
 		return fmt.Errorf("nil arg")
 	}
@@ -90,6 +87,12 @@ func (ctx *validCtx) validateArg(arg Arg, typ Type) error {
 	}
 	if arg.Type() == nil {
 		return fmt.Errorf("no arg type")
+	}
+	if _, ok := typ.(*PtrType); ok {
+		dir = DirIn // pointers are always in
+	}
+	if arg.Dir() != dir {
+		return fmt.Errorf("arg %#v type %v has wrong dir %v, expect %v", arg, arg.Type(), arg.Dir(), dir)
 	}
 	if !ctx.target.isAnyPtr(arg.Type()) && arg.Type() != typ {
 		return fmt.Errorf("bad arg type %#v, expect %#v", arg.Type(), typ)
@@ -101,7 +104,7 @@ func (ctx *validCtx) validateArg(arg Arg, typ Type) error {
 func (arg *ConstArg) validate(ctx *validCtx) error {
 	switch typ := arg.Type().(type) {
 	case *IntType:
-		if typ.Dir() == DirOut && !isDefault(arg) {
+		if arg.Dir() == DirOut && !isDefault(arg) {
 			return fmt.Errorf("out int arg '%v' has bad const value %v", typ.Name(), arg.Val)
 		}
 	case *ProcType:
@@ -116,9 +119,10 @@ func (arg *ConstArg) validate(ctx *validCtx) error {
 	default:
 		return fmt.Errorf("const arg %v has bad type %v", arg, typ.Name())
 	}
-	if typ := arg.Type(); typ.Dir() == DirOut {
+	if arg.Dir() == DirOut {
 		// We generate output len arguments, which makes sense since it can be
 		// a length of a variable-length array which is not known otherwise.
+		typ := arg.Type()
 		if _, isLen := typ.(*LenType); !isLen {
 			if !typ.isDefaultArg(arg) {
 				return fmt.Errorf("output arg '%v'/'%v' has non default value '%+v'",
@@ -143,7 +147,7 @@ func (arg *ResultArg) validate(ctx *validCtx) error {
 		}
 		ctx.uses[u] = arg
 	}
-	if typ.Dir() == DirOut && arg.Val != 0 && arg.Val != typ.Default() {
+	if arg.Dir() == DirOut && arg.Val != 0 && arg.Val != typ.Default() {
 		return fmt.Errorf("out resource arg '%v' has bad const value %v", typ.Name(), arg.Val)
 	}
 	if arg.Res != nil {
@@ -163,7 +167,7 @@ func (arg *DataArg) validate(ctx *validCtx) error {
 	if !ok {
 		return fmt.Errorf("data arg %v has bad type %v", arg, arg.Type().Name())
 	}
-	if typ.Dir() == DirOut && len(arg.data) != 0 {
+	if arg.Dir() == DirOut && len(arg.data) != 0 {
 		return fmt.Errorf("output arg '%v' has data", typ.Name())
 	}
 	if !typ.Varlen() && typ.Size() != arg.Size() {
@@ -188,7 +192,7 @@ func (arg *GroupArg) validate(ctx *validCtx) error {
 				typ.Name(), len(typ.Fields), len(arg.Inner))
 		}
 		for i, field := range arg.Inner {
-			if err := ctx.validateArg(field, typ.Fields[i]); err != nil {
+			if err := ctx.validateArg(field, typ.Fields[i], arg.Dir()); err != nil {
 				return err
 			}
 		}
@@ -199,7 +203,7 @@ func (arg *GroupArg) validate(ctx *validCtx) error {
 				typ.Name(), len(arg.Inner), typ.RangeBegin)
 		}
 		for _, elem := range arg.Inner {
-			if err := ctx.validateArg(elem, typ.Type); err != nil {
+			if err := ctx.validateArg(elem, typ.Type, arg.Dir()); err != nil {
 				return err
 			}
 		}
@@ -224,7 +228,7 @@ func (arg *UnionArg) validate(ctx *validCtx) error {
 	if optType == nil {
 		return fmt.Errorf("union arg '%v' has bad option", typ.Name())
 	}
-	return ctx.validateArg(arg.Option, optType)
+	return ctx.validateArg(arg.Option, optType, arg.Dir())
 }
 
 func (arg *PointerArg) validate(ctx *validCtx) error {
@@ -235,14 +239,14 @@ func (arg *PointerArg) validate(ctx *validCtx) error {
 		}
 	case *PtrType:
 		if arg.Res != nil {
-			if err := ctx.validateArg(arg.Res, typ.Type); err != nil {
+			if err := ctx.validateArg(arg.Res, typ.Type, typ.ElemDir); err != nil {
 				return err
 			}
 		}
 		if arg.VmaSize != 0 {
 			return fmt.Errorf("pointer arg '%v' has nonzero size", typ.Name())
 		}
-		if typ.Dir() == DirOut {
+		if arg.Dir() == DirOut {
 			return fmt.Errorf("pointer arg '%v' has output direction", typ.Name())
 		}
 	default:

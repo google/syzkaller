@@ -11,7 +11,7 @@ import (
 	"github.com/google/syzkaller/tools/syz-trace2syz/parser"
 )
 
-func (ctx *context) genSockaddrStorage(syzType *prog.UnionType, straceType parser.IrType) prog.Arg {
+func (ctx *context) genSockaddrStorage(syzType *prog.UnionType, dir prog.Dir, straceType parser.IrType) prog.Arg {
 	field2Opt := make(map[string]int)
 	for i, field := range syzType.Fields {
 		field2Opt[field.FieldName()] = i
@@ -44,10 +44,10 @@ func (ctx *context) genSockaddrStorage(syzType *prog.UnionType, straceType parse
 	default:
 		log.Fatalf("unable to parse sockaddr_storage. Unsupported type: %#v", strType)
 	}
-	return prog.MakeUnionArg(syzType, ctx.genArgs(syzType.Fields[idx], straceType))
+	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx], dir, straceType))
 }
 
-func (ctx *context) genSockaddrNetlink(syzType *prog.UnionType, straceType parser.IrType) prog.Arg {
+func (ctx *context) genSockaddrNetlink(syzType *prog.UnionType, dir prog.Dir, straceType parser.IrType) prog.Arg {
 	var idx = 2
 	field2Opt := make(map[string]int)
 	for i, field := range syzType.Fields {
@@ -74,14 +74,14 @@ func (ctx *context) genSockaddrNetlink(syzType *prog.UnionType, straceType parse
 			}
 		}
 	}
-	return prog.MakeUnionArg(syzType, ctx.genArgs(syzType.Fields[idx], straceType))
+	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx], dir, straceType))
 }
 
-func (ctx *context) genIfrIfru(syzType *prog.UnionType, straceType parser.IrType) prog.Arg {
+func (ctx *context) genIfrIfru(syzType *prog.UnionType, dir prog.Dir, straceType parser.IrType) prog.Arg {
 	idx := 0
 	switch straceType.(type) {
 	case parser.Constant:
 		idx = 2
 	}
-	return prog.MakeUnionArg(syzType, ctx.genArgs(syzType.Fields[idx], straceType))
+	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx], dir, straceType))
 }

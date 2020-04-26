@@ -9,58 +9,59 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-func (arch *arch) generateSockaddrAlg(g *prog.Gen, typ0 prog.Type, old prog.Arg) (
+func (arch *arch) generateSockaddrAlg(g *prog.Gen, typ0 prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
 	typ := typ0.(*prog.StructType)
-	family := g.GenerateArg(typ.Fields[0], &calls)
+	family := g.GenerateArg(typ.Fields[0], dir, &calls)
 	// There is very little point in generating feat/mask,
 	// because that can only fail otherwise correct bind.
-	feat := prog.MakeConstArg(typ.Fields[2], 0)
-	mask := prog.MakeConstArg(typ.Fields[3], 0)
+	feat := prog.MakeConstArg(typ.Fields[2], dir, 0)
+	mask := prog.MakeConstArg(typ.Fields[3], dir, 0)
 	if g.NOutOf(1, 1000) {
-		feat = g.GenerateArg(typ.Fields[2], &calls).(*prog.ConstArg)
-		mask = g.GenerateArg(typ.Fields[3], &calls).(*prog.ConstArg)
+		feat = g.GenerateArg(typ.Fields[2], dir, &calls).(*prog.ConstArg)
+		mask = g.GenerateArg(typ.Fields[3], dir, &calls).(*prog.ConstArg)
 	}
 	algType, algName := generateAlgName(g.Rand())
 	// Extend/truncate type/name to their fixed sizes.
 	algTypeData := fixedSizeData(algType, typ.Fields[1].Size())
 	algNameData := fixedSizeData(algName, typ.Fields[4].Size())
-	arg = prog.MakeGroupArg(typ, []prog.Arg{
+	arg = prog.MakeGroupArg(typ, dir, []prog.Arg{
 		family,
-		prog.MakeDataArg(typ.Fields[1], algTypeData),
+		prog.MakeDataArg(typ.Fields[1], dir, algTypeData),
 		feat,
 		mask,
-		prog.MakeDataArg(typ.Fields[4], algNameData),
+		prog.MakeDataArg(typ.Fields[4], dir, algNameData),
 	})
 	return
 }
 
-func (arch *arch) generateAlgName(g *prog.Gen, typ prog.Type, old prog.Arg) (
+func (arch *arch) generateAlgName(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return generateAlgNameStruct(g, typ, allTypes[g.Rand().Intn(len(allTypes))].typ)
+	return generateAlgNameStruct(g, typ, dir, allTypes[g.Rand().Intn(len(allTypes))].typ)
 }
 
-func (arch *arch) generateAlgAeadName(g *prog.Gen, typ prog.Type, old prog.Arg) (
+func (arch *arch) generateAlgAeadName(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return generateAlgNameStruct(g, typ, ALG_AEAD)
+	return generateAlgNameStruct(g, typ, dir, ALG_AEAD)
 }
 
-func (arch *arch) generateAlgHashName(g *prog.Gen, typ prog.Type, old prog.Arg) (
+func (arch *arch) generateAlgHashName(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return generateAlgNameStruct(g, typ, ALG_HASH)
+	return generateAlgNameStruct(g, typ, dir, ALG_HASH)
 }
 
-func (arch *arch) generateAlgSkcipherhName(g *prog.Gen, typ prog.Type, old prog.Arg) (
+func (arch *arch) generateAlgSkcipherhName(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return generateAlgNameStruct(g, typ, ALG_SKCIPHER)
+	return generateAlgNameStruct(g, typ, dir, ALG_SKCIPHER)
 }
 
-func generateAlgNameStruct(g *prog.Gen, typ0 prog.Type, algTyp int) (arg prog.Arg, calls []*prog.Call) {
+func generateAlgNameStruct(g *prog.Gen, typ0 prog.Type, dir prog.Dir, algTyp int) (
+	arg prog.Arg, calls []*prog.Call) {
 	typ := typ0.(*prog.StructType)
 	algName := generateAlg(g.Rand(), algTyp)
 	algNameData := fixedSizeData(algName, typ.Fields[0].Size())
-	arg = prog.MakeGroupArg(typ, []prog.Arg{
-		prog.MakeDataArg(typ.Fields[0], algNameData),
+	arg = prog.MakeGroupArg(typ, dir, []prog.Arg{
+		prog.MakeDataArg(typ.Fields[0], dir, algNameData),
 	})
 	return
 }

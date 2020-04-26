@@ -44,7 +44,7 @@ type SyscallAttrs struct {
 // Executor also knows about this value.
 const MaxArgs = 9
 
-type Dir int
+type Dir uint8
 
 const (
 	DirIn Dir = iota
@@ -80,7 +80,6 @@ type Type interface {
 	Name() string
 	FieldName() string
 	TemplateName() string // for template structs name without arguments
-	Dir() Dir
 	Optional() bool
 	Varlen() bool
 	Size() uint64
@@ -95,9 +94,9 @@ type Type interface {
 	UnitSize() uint64
 	UnitOffset() uint64
 
-	DefaultArg() Arg
+	DefaultArg(dir Dir) Arg
 	isDefaultArg(arg Arg) bool
-	generate(r *randGen, s *state) (arg Arg, calls []*Call)
+	generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call)
 	mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool)
 	getMutationPrio(target *Target, arg Arg, ignoreSpecial bool) (prio float64, stopRecursion bool)
 	minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
@@ -105,25 +104,25 @@ type Type interface {
 
 type Ref uint32
 
-func (ti Ref) String() string                               { panic("prog.Ref method called") }
-func (ti Ref) Name() string                                 { panic("prog.Ref method called") }
-func (ti Ref) FieldName() string                            { panic("prog.Ref method called") }
-func (ti Ref) TemplateName() string                         { panic("prog.Ref method called") }
-func (ti Ref) Dir() Dir                                     { panic("prog.Ref method called") }
-func (ti Ref) Optional() bool                               { panic("prog.Ref method called") }
-func (ti Ref) Varlen() bool                                 { panic("prog.Ref method called") }
-func (ti Ref) Size() uint64                                 { panic("prog.Ref method called") }
-func (ti Ref) TypeBitSize() uint64                          { panic("prog.Ref method called") }
-func (ti Ref) Format() BinaryFormat                         { panic("prog.Ref method called") }
-func (ti Ref) BitfieldOffset() uint64                       { panic("prog.Ref method called") }
-func (ti Ref) BitfieldLength() uint64                       { panic("prog.Ref method called") }
-func (ti Ref) IsBitfield() bool                             { panic("prog.Ref method called") }
-func (ti Ref) UnitSize() uint64                             { panic("prog.Ref method called") }
-func (ti Ref) UnitOffset() uint64                           { panic("prog.Ref method called") }
-func (ti Ref) DefaultArg() Arg                              { panic("prog.Ref method called") }
-func (ti Ref) Clone() Type                                  { panic("prog.Ref method called") }
-func (ti Ref) isDefaultArg(arg Arg) bool                    { panic("prog.Ref method called") }
-func (ti Ref) generate(r *randGen, s *state) (Arg, []*Call) { panic("prog.Ref method called") }
+func (ti Ref) String() string       { panic("prog.Ref method called") }
+func (ti Ref) Name() string         { panic("prog.Ref method called") }
+func (ti Ref) FieldName() string    { panic("prog.Ref method called") }
+func (ti Ref) TemplateName() string { panic("prog.Ref method called") }
+
+func (ti Ref) Optional() bool                                        { panic("prog.Ref method called") }
+func (ti Ref) Varlen() bool                                          { panic("prog.Ref method called") }
+func (ti Ref) Size() uint64                                          { panic("prog.Ref method called") }
+func (ti Ref) TypeBitSize() uint64                                   { panic("prog.Ref method called") }
+func (ti Ref) Format() BinaryFormat                                  { panic("prog.Ref method called") }
+func (ti Ref) BitfieldOffset() uint64                                { panic("prog.Ref method called") }
+func (ti Ref) BitfieldLength() uint64                                { panic("prog.Ref method called") }
+func (ti Ref) IsBitfield() bool                                      { panic("prog.Ref method called") }
+func (ti Ref) UnitSize() uint64                                      { panic("prog.Ref method called") }
+func (ti Ref) UnitOffset() uint64                                    { panic("prog.Ref method called") }
+func (ti Ref) DefaultArg(dir Dir) Arg                                { panic("prog.Ref method called") }
+func (ti Ref) Clone() Type                                           { panic("prog.Ref method called") }
+func (ti Ref) isDefaultArg(arg Arg) bool                             { panic("prog.Ref method called") }
+func (ti Ref) generate(r *randGen, s *state, dir Dir) (Arg, []*Call) { panic("prog.Ref method called") }
 func (ti Ref) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) ([]*Call, bool, bool) {
 	panic("prog.Ref method called")
 }
@@ -146,7 +145,6 @@ type TypeCommon struct {
 	FldName  string // for struct fields and named args
 	// Static size of the type, or 0 for variable size types and all but last bitfields in the group.
 	TypeSize   uint64
-	ArgDir     Dir
 	IsOptional bool
 	IsVarlen   bool
 }
@@ -210,10 +208,6 @@ func (t *TypeCommon) IsBitfield() bool {
 	return false
 }
 
-func (t TypeCommon) Dir() Dir {
-	return t.ArgDir
-}
-
 type ResourceDesc struct {
 	Name   string
 	Kind   []string
@@ -236,8 +230,8 @@ func (t *ResourceType) String() string {
 	return t.Name()
 }
 
-func (t *ResourceType) DefaultArg() Arg {
-	return MakeResultArg(t, nil, t.Default())
+func (t *ResourceType) DefaultArg(dir Dir) Arg {
+	return MakeResultArg(t, dir, nil, t.Default())
 }
 
 func (t *ResourceType) isDefaultArg(arg Arg) bool {
@@ -317,8 +311,8 @@ type ConstType struct {
 	IsPad bool
 }
 
-func (t *ConstType) DefaultArg() Arg {
-	return MakeConstArg(t, t.Val)
+func (t *ConstType) DefaultArg(dir Dir) Arg {
+	return MakeConstArg(t, dir, t.Val)
 }
 
 func (t *ConstType) isDefaultArg(arg Arg) bool {
@@ -347,8 +341,8 @@ type IntType struct {
 	Align      uint64
 }
 
-func (t *IntType) DefaultArg() Arg {
-	return MakeConstArg(t, 0)
+func (t *IntType) DefaultArg(dir Dir) Arg {
+	return MakeConstArg(t, dir, 0)
 }
 
 func (t *IntType) isDefaultArg(arg Arg) bool {
@@ -361,8 +355,8 @@ type FlagsType struct {
 	BitMask bool
 }
 
-func (t *FlagsType) DefaultArg() Arg {
-	return MakeConstArg(t, 0)
+func (t *FlagsType) DefaultArg(dir Dir) Arg {
+	return MakeConstArg(t, dir, 0)
 }
 
 func (t *FlagsType) isDefaultArg(arg Arg) bool {
@@ -376,8 +370,8 @@ type LenType struct {
 	Path    []string
 }
 
-func (t *LenType) DefaultArg() Arg {
-	return MakeConstArg(t, 0)
+func (t *LenType) DefaultArg(dir Dir) Arg {
+	return MakeConstArg(t, dir, 0)
 }
 
 func (t *LenType) isDefaultArg(arg Arg) bool {
@@ -395,8 +389,8 @@ const (
 	procDefaultValue = 0xffffffffffffffff // special value denoting 0 for all procs
 )
 
-func (t *ProcType) DefaultArg() Arg {
-	return MakeConstArg(t, procDefaultValue)
+func (t *ProcType) DefaultArg(dir Dir) Arg {
+	return MakeConstArg(t, dir, procDefaultValue)
 }
 
 func (t *ProcType) isDefaultArg(arg Arg) bool {
@@ -421,8 +415,8 @@ func (t *CsumType) String() string {
 	return "csum"
 }
 
-func (t *CsumType) DefaultArg() Arg {
-	return MakeConstArg(t, 0)
+func (t *CsumType) DefaultArg(dir Dir) Arg {
+	return MakeConstArg(t, dir, 0)
 }
 
 func (t *CsumType) isDefaultArg(arg Arg) bool {
@@ -439,8 +433,8 @@ func (t *VmaType) String() string {
 	return "vma"
 }
 
-func (t *VmaType) DefaultArg() Arg {
-	return MakeSpecialPointerArg(t, 0)
+func (t *VmaType) DefaultArg(dir Dir) Arg {
+	return MakeSpecialPointerArg(t, dir, 0)
 }
 
 func (t *VmaType) isDefaultArg(arg Arg) bool {
@@ -484,19 +478,19 @@ func (t *BufferType) String() string {
 	return "buffer"
 }
 
-func (t *BufferType) DefaultArg() Arg {
-	if t.Dir() == DirOut {
+func (t *BufferType) DefaultArg(dir Dir) Arg {
+	if dir == DirOut {
 		var sz uint64
 		if !t.Varlen() {
 			sz = t.Size()
 		}
-		return MakeOutDataArg(t, sz)
+		return MakeOutDataArg(t, dir, sz)
 	}
 	var data []byte
 	if !t.Varlen() {
 		data = make([]byte, t.Size())
 	}
-	return MakeDataArg(t, data)
+	return MakeDataArg(t, dir, data)
 }
 
 func (t *BufferType) isDefaultArg(arg Arg) bool {
@@ -507,7 +501,7 @@ func (t *BufferType) isDefaultArg(arg Arg) bool {
 	if a.Type().Varlen() {
 		return false
 	}
-	if a.Type().Dir() == DirOut {
+	if a.Dir() == DirOut {
 		return true
 	}
 	for _, v := range a.Data() {
@@ -537,14 +531,14 @@ func (t *ArrayType) String() string {
 	return fmt.Sprintf("array[%v]", t.Type.String())
 }
 
-func (t *ArrayType) DefaultArg() Arg {
+func (t *ArrayType) DefaultArg(dir Dir) Arg {
 	var elems []Arg
 	if t.Kind == ArrayRangeLen && t.RangeBegin == t.RangeEnd {
 		for i := uint64(0); i < t.RangeBegin; i++ {
-			elems = append(elems, t.Type.DefaultArg())
+			elems = append(elems, t.Type.DefaultArg(dir))
 		}
 	}
-	return MakeGroupArg(t, elems)
+	return MakeGroupArg(t, dir, elems)
 }
 
 func (t *ArrayType) isDefaultArg(arg Arg) bool {
@@ -562,18 +556,19 @@ func (t *ArrayType) isDefaultArg(arg Arg) bool {
 
 type PtrType struct {
 	TypeCommon
-	Type Type
+	Type    Type
+	ElemDir Dir
 }
 
 func (t *PtrType) String() string {
-	return fmt.Sprintf("ptr[%v, %v]", t.Dir(), t.Type.String())
+	return fmt.Sprintf("ptr[%v, %v]", t.ElemDir, t.Type.String())
 }
 
-func (t *PtrType) DefaultArg() Arg {
+func (t *PtrType) DefaultArg(dir Dir) Arg {
 	if t.Optional() {
-		return MakeSpecialPointerArg(t, 0)
+		return MakeSpecialPointerArg(t, dir, 0)
 	}
-	return MakePointerArg(t, 0, t.Type.DefaultArg())
+	return MakePointerArg(t, dir, 0, t.Type.DefaultArg(t.ElemDir))
 }
 
 func (t *PtrType) isDefaultArg(arg Arg) bool {
@@ -598,12 +593,12 @@ func (t *StructType) FieldName() string {
 	return t.FldName
 }
 
-func (t *StructType) DefaultArg() Arg {
+func (t *StructType) DefaultArg(dir Dir) Arg {
 	inner := make([]Arg, len(t.Fields))
 	for i, field := range t.Fields {
-		inner[i] = field.DefaultArg()
+		inner[i] = field.DefaultArg(dir)
 	}
-	return MakeGroupArg(t, inner)
+	return MakeGroupArg(t, dir, inner)
 }
 
 func (t *StructType) isDefaultArg(arg Arg) bool {
@@ -630,8 +625,8 @@ func (t *UnionType) FieldName() string {
 	return t.FldName
 }
 
-func (t *UnionType) DefaultArg() Arg {
-	return MakeUnionArg(t, t.Fields[0].DefaultArg())
+func (t *UnionType) DefaultArg(dir Dir) Arg {
+	return MakeUnionArg(t, dir, t.Fields[0].DefaultArg(dir))
 }
 
 func (t *UnionType) isDefaultArg(arg Arg) bool {
@@ -651,7 +646,6 @@ func (t *StructDesc) FieldName() string {
 
 type StructKey struct {
 	Name string
-	Dir  Dir
 }
 
 type KeyedStruct struct {
@@ -664,29 +658,33 @@ type ConstValue struct {
 	Value uint64
 }
 
-func ForeachType(meta *Syscall, f func(Type)) {
-	var rec func(t Type)
+type typeCtx struct {
+	Dir Dir
+}
+
+func foreachType(meta *Syscall, f func(t Type, ctx typeCtx)) {
+	var rec func(t Type, dir Dir)
 	seen := make(map[*StructDesc]bool)
-	recStruct := func(desc *StructDesc) {
+	recStruct := func(desc *StructDesc, dir Dir) {
 		if seen[desc] {
 			return // prune recursion via pointers to structs/unions
 		}
 		seen[desc] = true
 		for _, f := range desc.Fields {
-			rec(f)
+			rec(f, dir)
 		}
 	}
-	rec = func(t Type) {
-		f(t)
+	rec = func(t Type, dir Dir) {
+		f(t, typeCtx{Dir: dir})
 		switch a := t.(type) {
 		case *PtrType:
-			rec(a.Type)
+			rec(a.Type, a.ElemDir)
 		case *ArrayType:
-			rec(a.Type)
+			rec(a.Type, dir)
 		case *StructType:
-			recStruct(a.StructDesc)
+			recStruct(a.StructDesc, dir)
 		case *UnionType:
-			recStruct(a.StructDesc)
+			recStruct(a.StructDesc, dir)
 		case *ResourceType, *BufferType, *VmaType, *LenType,
 			*FlagsType, *ConstType, *IntType, *ProcType, *CsumType:
 		default:
@@ -694,10 +692,10 @@ func ForeachType(meta *Syscall, f func(Type)) {
 		}
 	}
 	for _, t := range meta.Args {
-		rec(t)
+		rec(t, DirIn)
 	}
 	if meta.Ret != nil {
-		rec(meta.Ret)
+		rec(meta.Ret, DirOut)
 	}
 }
 

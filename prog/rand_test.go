@@ -102,14 +102,14 @@ func TestSizeGenerateConstArg(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
 	for _, c := range target.Syscalls {
-		ForeachType(c, func(typ Type) {
+		foreachType(c, func(typ Type, ctx typeCtx) {
 			if _, ok := typ.(*IntType); !ok {
 				return
 			}
 			bits := typ.TypeBitSize()
 			limit := uint64(1<<bits - 1)
 			for i := 0; i < iters; i++ {
-				newArg, _ := typ.generate(r, nil)
+				newArg, _ := typ.generate(r, nil, ctx.Dir)
 				newVal := newArg.(*ConstArg).Val
 				if newVal > limit {
 					t.Fatalf("invalid generated value: %d. (arg bitsize: %d; max value: %d)", newVal, bits, limit)

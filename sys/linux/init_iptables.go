@@ -9,17 +9,17 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-func (arch *arch) generateIptables(g *prog.Gen, typ prog.Type, old prog.Arg) (
+func (arch *arch) generateIptables(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return arch.generateNetfilterTable(g, typ, old, true, 5)
+	return arch.generateNetfilterTable(g, typ, dir, old, true, 5)
 }
 
-func (arch *arch) generateArptables(g *prog.Gen, typ prog.Type, old prog.Arg) (
+func (arch *arch) generateArptables(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return arch.generateNetfilterTable(g, typ, old, false, 3)
+	return arch.generateNetfilterTable(g, typ, dir, old, false, 3)
 }
 
-func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, old prog.Arg,
+func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg,
 	hasUnion bool, hookCount int) (arg prog.Arg, calls []*prog.Call) {
 	const (
 		hookStart     = 4
@@ -27,7 +27,7 @@ func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, old prog.Ar
 		unused        = uint64(^uint32(0))
 	)
 	if old == nil {
-		arg = g.GenerateSpecialArg(typ, &calls)
+		arg = g.GenerateSpecialArg(typ, dir, &calls)
 	} else {
 		// TODO(dvyukov): try to restore original hook order after mutation
 		// instead of assigning brand new offsets.
@@ -106,10 +106,10 @@ func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, old prog.Ar
 	return
 }
 
-func (arch *arch) generateEbtables(g *prog.Gen, typ prog.Type, old prog.Arg) (
+func (arch *arch) generateEbtables(g *prog.Gen, typ prog.Type, dir prog.Dir, old prog.Arg) (
 	arg prog.Arg, calls []*prog.Call) {
 	if old == nil {
-		arg = g.GenerateSpecialArg(typ, &calls)
+		arg = g.GenerateSpecialArg(typ, dir, &calls)
 	} else {
 		// TODO(dvyukov): try to restore original hook order after mutation
 		// instead of assigning brand new offsets.
