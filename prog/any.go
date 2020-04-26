@@ -28,8 +28,6 @@ type anyTypes struct {
 // resource ANYRES64[int64]: 0xffffffffffffffff, 0
 // ANY [
 // 	bin	array[int8]
-// 	ptr	ptr[in, array[ANY], opt]
-// 	ptr64	ptr64[in, array[ANY], opt]
 // 	res16	ANYRES16
 // 	res32	ANYRES32
 // 	res64	ANYRES64
@@ -106,8 +104,6 @@ func initAnyTypes(target *Target) {
 		},
 		Fields: []Type{
 			target.any.blob,
-			target.any.ptrPtr,
-			target.any.ptr64,
 			target.any.res16,
 			target.any.res32,
 			target.any.res64,
@@ -160,26 +156,23 @@ func (target *Target) isComplexPtr(arg *PointerArg) bool {
 	if target.isAnyPtr(arg.Type()) {
 		return true
 	}
-	res := false
+	complex, hasPtr := false, false
 	ForeachSubArg(arg.Res, func(a1 Arg, ctx *ArgCtx) {
 		switch typ := a1.Type().(type) {
 		case *StructType:
 			if typ.Varlen() {
-				res = true
-				ctx.Stop = true
+				complex = true
 			}
 		case *UnionType:
 			if typ.Varlen() && len(typ.Fields) > 5 {
-				res = true
-				ctx.Stop = true
+				complex = true
 			}
 		case *PtrType:
-			if a1 != arg {
-				ctx.Stop = true
-			}
+			hasPtr = true
+			ctx.Stop = true
 		}
 	})
-	return res
+	return complex && !hasPtr
 }
 
 func (target *Target) CallContainsAny(c *Call) (res bool) {
@@ -231,18 +224,6 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 		target.squashConst(arg, elems)
 	case *ResultArg:
 		target.squashResult(arg, elems)
-	case *PointerArg:
-		if arg.Res != nil {
-			target.squashPtr(arg, false)
-			*elems = append(*elems, MakeUnionArg(target.any.union, arg))
-		} else {
-			elem := target.ensureDataElem(elems)
-			addr := target.PhysicalAddr(arg)
-			for i := uint64(0); i < arg.Size(); i++ {
-				elem.data = append(elem.Data(), byte(addr))
-				addr >>= 8
-			}
-		}
 	case *UnionArg:
 		if !arg.Type().Varlen() {
 			pad = arg.Size() - arg.Option.Size()
