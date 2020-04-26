@@ -18,11 +18,9 @@ any0 {
 } [align[8]]
 
 any1 {
-	f1	ptr[in, int8, opt]
-	f2	anyunion0
-	f3	ptr64[in, int8, opt]
-	f4	anyunion1
-	f5	array[int8]
+	f1	anyunion0
+	f2	anyunion1
+	f3	array[int8]
 } [packed, align[2]]
 
 anyunion0 [
