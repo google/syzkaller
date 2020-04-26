@@ -546,22 +546,9 @@ func TestHintsData(t *testing.T) {
 			out:   []string{"0810000000131415"},
 		},
 	}
-	call := target.SyscallMap["test$hint_data"]
 	for _, test := range tests {
-		input, err := hex.DecodeString(test.in)
+		p, err := target.Deserialize([]byte(fmt.Sprintf("test$hint_data(&AUTO=\"%v\")", test.in)), Strict)
 		if err != nil {
-			t.Fatal(err)
-		}
-		p := &Prog{
-			Target: target,
-			Calls: []*Call{{
-				Meta: call,
-				Args: []Arg{MakePointerArg(call.Args[0], 0,
-					MakeDataArg(call.Args[0].(*PtrType).Type, input))},
-				Ret: MakeReturnArg(call.Ret),
-			}},
-		}
-		if err := p.validate(); err != nil {
 			t.Fatal(err)
 		}
 		var got []string
