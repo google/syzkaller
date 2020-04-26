@@ -271,7 +271,7 @@ func (inst *inst) test() error {
 	if err := inst.testInstance(); err != nil {
 		return err
 	}
-	if len(inst.reproSyz) != 0 {
+	if len(inst.reproSyz) != 0 || len(inst.reproC) != 0 {
 		if err := inst.testRepro(); err != nil {
 			return err
 		}
@@ -343,45 +343,47 @@ func (inst *inst) testInstance() error {
 
 func (inst *inst) testRepro() error {
 	cfg := inst.cfg
-	execprogBin, err := inst.vm.Copy(cfg.SyzExecprogBin)
-	if err != nil {
-		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
-	}
-	// If SyzExecutorCmd is provided, it means that syz-executor is already in
-	// the image, so no need to copy it.
-	executorCmd := targets.Get(cfg.TargetOS, cfg.TargetArch).SyzExecutorCmd
-	if executorCmd == "" {
-		executorCmd, err = inst.vm.Copy(inst.cfg.SyzExecutorBin)
+	if len(inst.reproSyz) > 0 {
+		execprogBin, err := inst.vm.Copy(cfg.SyzExecprogBin)
 		if err != nil {
 			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
 		}
-	}
-	progFile := filepath.Join(cfg.Workdir, "repro.prog")
-	if err := osutil.WriteFile(progFile, inst.reproSyz); err != nil {
-		return fmt.Errorf("failed to write temp file: %v", err)
-	}
-	vmProgFile, err := inst.vm.Copy(progFile)
-	if err != nil {
-		return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
-	}
-	opts, err := csource.DeserializeOptions(inst.reproOpts)
-	if err != nil {
-		return err
-	}
-	// Combine repro options and default options in a way that increases chances to reproduce the crash.
-	// First, we always enable threaded/collide as it should be [almost] strictly better.
-	// Executor does not support empty sandbox, so we use none instead.
-	// Finally, always use repeat and multiple procs.
-	if opts.Sandbox == "" {
-		opts.Sandbox = "none"
-	}
-	if !opts.Fault {
-		opts.FaultCall = -1
-	}
-	cmdSyz := ExecprogCmd(execprogBin, executorCmd, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
-		true, true, true, cfg.Procs, opts.FaultCall, opts.FaultNth, vmProgFile)
-	if err := inst.testProgram(cmdSyz, 7*time.Minute); err != nil {
-		return err
+		// If SyzExecutorCmd is provided, it means that syz-executor is already in
+		// the image, so no need to copy it.
+		executorCmd := targets.Get(cfg.TargetOS, cfg.TargetArch).SyzExecutorCmd
+		if executorCmd == "" {
+			executorCmd, err = inst.vm.Copy(inst.cfg.SyzExecutorBin)
+			if err != nil {
+				return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
+			}
+		}
+		progFile := filepath.Join(cfg.Workdir, "repro.prog")
+		if err := osutil.WriteFile(progFile, inst.reproSyz); err != nil {
+			return fmt.Errorf("failed to write temp file: %v", err)
+		}
+		vmProgFile, err := inst.vm.Copy(progFile)
+		if err != nil {
+			return &TestError{Title: fmt.Sprintf("failed to copy test binary to VM: %v", err)}
+		}
+		opts, err := csource.DeserializeOptions(inst.reproOpts)
+		if err != nil {
+			return err
+		}
+		// Combine repro options and default options in a way that increases chances to reproduce the crash.
+		// First, we always enable threaded/collide as it should be [almost] strictly better.
+		// Executor does not support empty sandbox, so we use none instead.
+		// Finally, always use repeat and multiple procs.
+		if opts.Sandbox == "" {
+			opts.Sandbox = "none"
+		}
+		if !opts.Fault {
+			opts.FaultCall = -1
+		}
+		cmdSyz := ExecprogCmd(execprogBin, executorCmd, cfg.TargetOS, cfg.TargetArch, opts.Sandbox,
+			true, true, true, cfg.Procs, opts.FaultCall, opts.FaultNth, vmProgFile)
+		if err := inst.testProgram(cmdSyz, 7*time.Minute); err != nil {
+			return err
+		}
 	}
 	if len(inst.reproC) == 0 {
 		return nil
