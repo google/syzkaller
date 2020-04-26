@@ -461,28 +461,28 @@ func (t *UnionType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 		var newArg Arg
 		newArg, calls = gen(&Gen{r, s}, t, arg)
 		replaceArg(arg, newArg)
-	} else {
-		a := arg.(*UnionArg)
-		current := -1
-		for i, option := range t.Fields {
-			if a.Option.Type().FieldName() == option.FieldName() {
-				current = i
-				break
-			}
-		}
-		if current == -1 {
-			panic("can't find current option in union")
-		}
-		newIdx := r.Intn(len(t.Fields) - 1)
-		if newIdx >= current {
-			newIdx++
-		}
-		optType := t.Fields[newIdx]
-		removeArg(a.Option)
-		var newOpt Arg
-		newOpt, calls = r.generateArg(s, optType)
-		replaceArg(arg, MakeUnionArg(t, newOpt))
+		return
 	}
+	a := arg.(*UnionArg)
+	current := -1
+	for i, option := range t.Fields {
+		if a.Option.Type().FieldName() == option.FieldName() {
+			current = i
+			break
+		}
+	}
+	if current == -1 {
+		panic("can't find current option in union")
+	}
+	newIdx := r.Intn(len(t.Fields) - 1)
+	if newIdx >= current {
+		newIdx++
+	}
+	optType := t.Fields[newIdx]
+	removeArg(a.Option)
+	var newOpt Arg
+	newOpt, calls = r.generateArg(s, optType)
+	replaceArg(arg, MakeUnionArg(t, newOpt))
 	return
 }
 
