@@ -127,11 +127,9 @@ structname "{" "\n"
 Structs can have attributes specified in square brackets after the struct.
 Attributes are:
 
-```
-"packed": the struct does not have paddings and has default alignment 1
-"align[N]": the struct has alignment N
-"size[N]": the struct is padded up to the specified size N
-```
+- `packed`: the struct does not have paddings between fields and has alignment 1; this is similar to GNU C `__attribute__((packed))`; struct alignment can be overriden with `align` attribute
+- `align[N]`: the struct has alignment N and padded up to multiple of `N`; contents of the padding are unspecified (though, frequently are zeros); similar to GNU C `__attribute__((aligned(N)))`
+- `size[N]`: the struct is padded up to the specified size `N`; contents of the padding are unspecified (though, frequently are zeros)
 
 ## Unions
 
@@ -146,10 +144,8 @@ unionname "[" "\n"
 Unions can have attributes specified in square brackets after the union.
 Attributes are:
 
-```
-"varlen": union size is not maximum of all option but rather length of a particular chosen option
-"size[N]": the union is padded up to the specified size N
-```
+- `varlen`: union size is the size of the particular chosen option (not statically known); without this attribute unions are statically sized as maximum of all options (similar to C unions)
+- `size[N]`: the union is padded up to the specified size `N`; contents of the padding are unspecified (though, frequently are zeros)
 
 ## Resources
 
