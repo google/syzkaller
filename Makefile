@@ -24,13 +24,16 @@ define newline
 
 
 endef
-ENV := $(subst \n,$(newline),$(shell \
+ENV := $(subst \n,$(newline),$(shell TRAVIS=$(TRAVIS)\
 	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
 	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
 	go run tools/syz-env/env.go))
 # Uncomment in case of emergency.
 # $(info $(ENV))
 $(eval $(ENV))
+ifneq ("$(SYZERROR)", "")
+$(error $(SYZERROR))
+endif
 ifeq ("$(NCORES)", "")
 $(error syz-env failed)
 endif
@@ -111,12 +114,15 @@ target: fuzzer execprog stress executor
 executor:
 ifneq ("$(BUILDOS)", "$(NATIVEBUILDOS)")
 	$(info ************************************************************************************)
-	$(info Building executor for ${TARGETOS} is not supported on ${BUILDOS}. Executor will not be built.)
+	$(info Executor will not be built)
+	$(info Building executor for ${TARGETOS} is not supported on ${BUILDOS})
 	$(info ************************************************************************************)
 else
 ifneq ("$(NO_CROSS_COMPILER)", "")
 	$(info ************************************************************************************)
-	$(info Native cross-compiler $(CC) is missing. Executor will not be built.)
+	$(info Executor will not be built)
+	$(info Native cross-compiler is missing/broken:)
+	$(info $(NO_CROSS_COMPILER))
 	$(info ************************************************************************************)
 else
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)

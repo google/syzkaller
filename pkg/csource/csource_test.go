@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -33,26 +32,9 @@ func TestGenerate(t *testing.T) {
 			continue
 		}
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
-			if target.OS == "linux" && target.Arch == "arm64" {
-				// Episodically fails on travis with:
-				// collect2: error: ld terminated with signal 11 [Segmentation fault]
-				t.Skip("broken")
-			}
-			if target.OS == "test" && target.PtrSize == 4 {
-				// The same reason as linux/32.
-				t.Skip("broken")
-			}
-			if _, err := exec.LookPath(sysTarget.CCompiler); err != nil {
-				t.Skipf("no target compiler %v", sysTarget.CCompiler)
-			}
-			bin, err := Build(target, []byte(`
-#include <stdio.h>
-int main() { printf("Hello, World!\n"); }
-`))
-			if err != nil {
+			if err := sysTarget.BrokenCrossCompiler; err != "" {
 				t.Skipf("target compiler is broken: %v", err)
 			}
-			os.Remove(bin)
 			full := !checked[target.OS]
 			checked[target.OS] = true
 			t.Parallel()
