@@ -28,7 +28,7 @@ struct call_attrs_t {
 
 #if GOARCH_386
 #define GOARCH "386"
-#define SYZ_REVISION "08f9bdfe6e8f51fc8ee4871827a0f603e2fd306c"
+#define SYZ_REVISION "ac06e11a108dfbbe2d6a12194cc35f0298fb47ba"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
@@ -38,7 +38,7 @@ struct call_attrs_t {
 
 #if GOARCH_amd64
 #define GOARCH "amd64"
-#define SYZ_REVISION "62d7c6f214680d5bc71d7d86d5b132e7ca9c49ed"
+#define SYZ_REVISION "76947a6bafec2644eaec0a494e1eca3578d998c4"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
@@ -78,7 +78,7 @@ struct call_attrs_t {
 
 #if GOARCH_386
 #define GOARCH "386"
-#define SYZ_REVISION "b4ba00c2f163a89fc7aa00886dbb76ffa58ab67f"
+#define SYZ_REVISION "6064ea835a4ea92517d251a61ff249517423223b"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
@@ -88,7 +88,7 @@ struct call_attrs_t {
 
 #if GOARCH_amd64
 #define GOARCH "amd64"
-#define SYZ_REVISION "f5d01c70c77ca1c78caec4d8bd94844f86780ec1"
+#define SYZ_REVISION "ed32628b2c2abd891176a628d5d16bbdf052fc6a"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
@@ -98,7 +98,7 @@ struct call_attrs_t {
 
 #if GOARCH_arm
 #define GOARCH "arm"
-#define SYZ_REVISION "4dddcde58661e583b933017e75f618263bf877e2"
+#define SYZ_REVISION "004efa6b27da56ec9d9c4d96d270f9154fb04534"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
@@ -108,7 +108,7 @@ struct call_attrs_t {
 
 #if GOARCH_arm64
 #define GOARCH "arm64"
-#define SYZ_REVISION "1bbebaf63e8e4b483d832bc41d8d349b930c0264"
+#define SYZ_REVISION "ffc4ad8339be183e5b7009875fe88fe8c3715b49"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
@@ -118,7 +118,7 @@ struct call_attrs_t {
 
 #if GOARCH_mips64le
 #define GOARCH "mips64le"
-#define SYZ_REVISION "7e6ebf1ab9c4d17e53455c5296d82f4fce2e4c5a"
+#define SYZ_REVISION "f333f6bcc15a760215f65a35410c9a862ff39e12"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
@@ -128,7 +128,7 @@ struct call_attrs_t {
 
 #if GOARCH_ppc64le
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "f6189768c604eba33b2d3b29c69fcf6c2c44f71e"
+#define SYZ_REVISION "c1f3e6a86a3c0b159db617875163292561b2edb7"
 #define SYZ_EXECUTOR_USES_FORK_SERVER 1
 #define SYZ_EXECUTOR_USES_SHMEM 1
 #define SYZ_PAGE_SIZE 4096
