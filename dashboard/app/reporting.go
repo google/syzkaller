@@ -161,6 +161,9 @@ func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNot
 	log.Infof(c, "fetched %v bugs", len(bugs))
 	var notifs []*dashapi.BugNotification
 	for _, bug := range bugs {
+		if config.Namespaces[bug.Namespace].Decommissioned {
+			continue
+		}
 		notif, err := handleReportNotif(c, typ, bug)
 		if err != nil {
 			log.Errorf(c, "%v: failed to create bug notif %v: %v", bug.Namespace, bug.Title, err)
@@ -178,9 +181,6 @@ func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNot
 }
 
 func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNotification, error) {
-	if config.Namespaces[bug.Namespace].Decommissioned {
-		return nil, nil
-	}
 	reporting, bugReporting, _, _, err := currentReporting(c, bug)
 	if err != nil || reporting == nil {
 		return nil, nil
