@@ -15,20 +15,21 @@ import (
 type Target struct {
 	init sync.Once
 	osCommon
-	OS               string
-	Arch             string
-	VMArch           string // e.g. amd64 for 386, or arm64 for arm
-	PtrSize          uint64
-	PageSize         uint64
-	NumPages         uint64
-	DataOffset       uint64
-	Int64Alignment   uint64
-	CFlags           []string
-	CrossCFlags      []string
-	CCompilerPrefix  string
-	CCompiler        string
-	KernelArch       string
-	KernelHeaderArch string
+	OS                  string
+	Arch                string
+	VMArch              string // e.g. amd64 for 386, or arm64 for arm
+	PtrSize             uint64
+	PageSize            uint64
+	NumPages            uint64
+	DataOffset          uint64
+	Int64Alignment      uint64
+	CFlags              []string
+	CrossCFlags         []string
+	CCompilerPrefix     string
+	CCompiler           string
+	KernelArch          string
+	KernelHeaderArch    string
+	BrokenCrossCompiler string
 	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
 	NeedSyscallDefine func(nr uint64) bool
 }
@@ -70,9 +71,7 @@ func Get(OS, arch string) *Target {
 	if target == nil {
 		return nil
 	}
-	target.init.Do(func() {
-		checkOptionalFlags(target)
-	})
+	target.init.Do(target.lazyInit)
 	return target
 }
 
@@ -490,9 +489,16 @@ func initTarget(target *Target, OS, arch string) {
 	target.CrossCFlags = append(append([]string{}, commonCFlags...), target.CrossCFlags...)
 }
 
-func checkOptionalFlags(target *Target) {
+func (target *Target) lazyInit() {
 	if runtime.GOOS != target.BuildOS {
 		return
+	}
+	if target.OS != runtime.GOOS || !runningOnCI {
+		// On CI we want to fail loudly if cross-compilation breaks.
+		if _, err := exec.LookPath(target.CCompiler); err != nil {
+			target.BrokenCrossCompiler = fmt.Sprintf("%v is missing", target.CCompiler)
+			return
+		}
 	}
 	flags := make(map[string]*bool)
 	var wg sync.WaitGroup
@@ -516,13 +522,39 @@ func checkOptionalFlags(target *Target) {
 			i--
 		}
 	}
+	// Check that the compiler is actually functioning. It may be present, but still broken.
+	// Common for Linux distros, over time we've seen:
+	//	Error: alignment too large: 15 assumed
+	//	fatal error: asm/unistd.h: No such file or directory
+	//	fatal error: asm/errno.h: No such file or directory
+	//	collect2: error: ld terminated with signal 11 [Segmentation fault]
+	if runningOnCI {
+		return // On CI all compilers are expected to work, so we don't do the following check.
+	}
+	args := []string{"-x", "c++", "-", "-o", "/dev/null"}
+	args = append(args, target.CrossCFlags...)
+	cmd := exec.Command(target.CCompiler, args...)
+	cmd.Stdin = strings.NewReader(simpleProg)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		target.BrokenCrossCompiler = string(out)
+		return
+	}
 }
 
 func checkFlagSupported(target *Target, flag string) bool {
 	cmd := exec.Command(target.CCompiler, "-x", "c", "-", "-o", "/dev/null", flag)
-	cmd.Stdin = strings.NewReader("int main(){}")
+	cmd.Stdin = strings.NewReader(simpleProg)
 	return cmd.Run() == nil
 }
+
+var runningOnCI = os.Getenv("TRAVIS") != ""
+
+// <algorithm> is included by executor, so we test is as well.
+const simpleProg = `
+#include <stdio.h>
+#include <algorithm>
+int main() { printf("Hello, World!\n"); }
+`
 
 func needSyscallDefine(nr uint64) bool {
 	return true

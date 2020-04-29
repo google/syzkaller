@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"runtime"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -37,9 +36,6 @@ func BuildFile(target *prog.Target, src string) (string, error) {
 func build(target *prog.Target, src []byte, file string, warn bool) (string, error) {
 	sysTarget := targets.Get(target.OS, target.Arch)
 	compiler := sysTarget.CCompiler
-	if _, err := exec.LookPath(compiler); err != nil {
-		return "", fmt.Errorf("no target compiler %v", compiler)
-	}
 	// We call the binary syz-executor because it sometimes shows in bug titles,
 	// and we don't want 2 different bugs for when a crash is triggered during fuzzing and during repro.
 	bin, err := osutil.TempFile("syz-executor")
