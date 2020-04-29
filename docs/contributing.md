@@ -30,10 +30,9 @@ Also:
 (where `NNN` is issue number). This will auto-close the issue. If you need to mention
 an issue without closing it, add `Update #NNN`.
 - The pull request text is mostly irrelevant.
-- Run `make presubmit` and ensure that it passes before sending a PR. It may require some additional packages to be installed (try `sudo make install_prerequisites`).
-- _All_ generated files (`*.const`, `*.go`, `*.h`) are checked-in with the
-`*.txt` changes in the same commit. Namely, `make generate` must not produce
-_any_ diff in the tree.
+- Run `make presubmit` and ensure that it passes before sending a PR.
+  It may require some additional packages to be installed (try `sudo make install_prerequisites`).
+- `*.const` files are checked-in with the `*.txt` changes in the same commit.
 - Rebase your pull request onto the master branch before submitting.
 - If you're asked to add some fixes to your pull requested, please squash the new commits with the old ones.
 

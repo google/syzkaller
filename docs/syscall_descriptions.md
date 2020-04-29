@@ -76,16 +76,14 @@ so if `make extract` complains about missing header files or constants undefined
 try to use the latest [linux-next](https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/log/)
 tree (or if it happens to be broken at the moment, try a slightly older linux-next tree).\
 _Note_: `make extract` overwrites `.config` in `$KSRC` and `mrproper`'s it.
+_Note_: `*.const` files are checked-in with the `*.txt` changes in the same commit.
 
 Then `make generate` updates generated code and `make` rebuilds binaries.\
 Note: `make generate` does not require any kernel sources, native compilers, etc
 and is pure text processing.
-Note: `make generate` also updates the SYZ_REVISION under executor/defs.h, which
+Note: `make generate` also updates the SYZ_REVISION under `executor/defs.h`, which
 is required for machine check while running syz-manager. This should be taken care
 of especially if you are trying to rebase with your own change on syscall description.
-
-Note: _all_ generated files (`*.const`, `*.go`, `*.h`) are checked-in with the
-`*.txt` changes in the same commit.
 
 Note: `make extract` extracts constants for all architectures which requires
 installed cross-compilers. If you get errors about missing compilers/libraries,
@@ -121,9 +119,8 @@ The second step is translation of descriptions into Go code using
 [pkg/ast](/pkg/ast/) and [pkg/compiler](/pkg/compiler/)).
 This step uses syscall descriptions and the const files generated during the first step
 and produces instantiations of `Syscall` and `Type` types defined in [prog/types.go](/prog/types.go).
-Here is an [example](/sys/akaros/gen/amd64.go) of the compiler output for Akaros.
-This step also generates some minimal syscall metadata for C++ code in
-[executor/syscalls.h](/executor/syscalls.h).
+You can see an example of the compiler output for Akaros in `sys/akaros/gen/amd64.go`.
+This step also generates some minimal syscall metadata for C++ code in `executor/syscalls.h`.
 
 ## Non-mainline subsystems
 
