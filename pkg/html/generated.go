@@ -176,6 +176,11 @@ textarea {
 .mono {
 	font-family: monospace;
 }
+
+.info_link {
+	color: #25a7db;
+	text-decoration: none;
+}
 `
 const js = `
 // Copyright 2018 syzkaller project authors. All rights reserved.
