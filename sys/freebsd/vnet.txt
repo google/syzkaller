@@ -553,13 +553,13 @@ ipv6_addr [
 # length of the header in 8-octet units not including the first 8 octets.
 
 ipv6_ext_header [
-	hopopts		ipv6_hopots_ext_header
+	hopopts		ipv6_hopopts_ext_header
 	routing		ipv6_rt_hdr
 	fragment	ipv6_fragment_ext_header
 	dstopts		ipv6_dstopts_ext_header
 ] [varlen]
 
-ipv6_hopots_ext_header {
+ipv6_hopopts_ext_header {
 	next_header	flags[ipv6_types, int8]
 	length		bytesize8[options, int8]
 	pad		array[const[0, int8], 6]
