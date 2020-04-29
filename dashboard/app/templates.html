@@ -3,6 +3,11 @@ Copyright 2017 syzkaller project authors. All rights reserved.
 Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 */}}
 
+{{/* Info icon with a link, invoked with an URL string */}}
+{{define "info_link"}}
+<a href="{{.}}" title="help" target="_blank" class="info_link">🛈</a>
+{{end}}
+
 {{/* Common page head part, invoked with *uiHeader */}}
 {{define "head"}}
 	<link rel="stylesheet" href="/static/style.css"/>
@@ -154,7 +159,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th>Active</th>
 		<th>Uptime</th>
 		<th>Corpus</th>
-		<th>Coverage</th>
+		<th>Coverage {{template "info_link" "https://github.com/google/syzkaller/blob/master/docs/coverage.md"}}</th>
 		<th>Crashes</th>
 		<th>Execs</th>
 		<th colspan="3">Kernel build</th>
@@ -286,6 +291,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		{{optlink .Crash.ReproSyzLink "syz"}}
 		{{optlink .Crash.KernelConfigLink ".config"}}<br>
 	{{end}}
+
 	{{if not .Reported}}[report pending]<br>{{end}}
 {{end}}
 {{end}}
