@@ -25,6 +25,10 @@ func DiagnoseOpenBSD(w io.Writer) ([]byte, bool) {
 		"show all locks",
 		"show malloc",
 		"show all pools",
+		"machine ddbcpu 0", // Traces a couple of first CPUs (enough on GCE farm).
+		"trace",
+		"machine ddbcpu 1", // One of these is likely a dup of the very first trace.
+		"trace",
 	}
 	for _, c := range commands {
 		w.Write([]byte(c + "\n"))
