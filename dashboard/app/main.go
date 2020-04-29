@@ -44,12 +44,13 @@ func initHTTPHandlers() {
 }
 
 type uiMainPage struct {
-	Header     *uiHeader
-	Now        time.Time
-	FixedLink  string
-	FixedCount int
-	Managers   []*uiManager
-	Groups     []*uiBugGroup
+	Header         *uiHeader
+	Now            time.Time
+	Decommissioned bool
+	FixedLink      string
+	FixedCount     int
+	Managers       []*uiManager
+	Groups         []*uiBugGroup
 }
 
 type uiTerminalPage struct {
@@ -75,13 +76,14 @@ type uiManager struct {
 	FailedBuildBugLink    string
 	FailedSyzBuildBugLink string
 	LastActive            time.Time
-	LastActiveBad         bool
+	LastActiveBad         bool // highlight LastActive in red
 	CurrentUpTime         time.Duration
 	MaxCorpus             int64
 	MaxCover              int64
 	TotalFuzzingTime      time.Duration
 	TotalCrashes          int64
 	TotalExecs            int64
+	TotalExecsBad         bool // highlight TotalExecs in red
 }
 
 type uiBuild struct {
@@ -223,12 +225,13 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		fixedLink = fmt.Sprintf("%v?manager=%v", fixedLink, manager)
 	}
 	data := &uiMainPage{
-		Header:     hdr,
-		Now:        timeNow(c),
-		FixedCount: fixedCount,
-		FixedLink:  fixedLink,
-		Groups:     groups,
-		Managers:   managers,
+		Header:         hdr,
+		Decommissioned: config.Namespaces[hdr.Namespace].Decommissioned,
+		Now:            timeNow(c),
+		FixedCount:     fixedCount,
+		FixedLink:      fixedLink,
+		Groups:         groups,
+		Managers:       managers,
 	}
 	return serveTemplate(w, "main.html", data)
 }
@@ -939,20 +942,9 @@ func makeUIBuild(build *Build) *uiBuild {
 func loadManagers(c context.Context, accessLevel AccessLevel, ns string) ([]*uiManager, error) {
 	now := timeNow(c)
 	date := timeDate(now)
-	managers, managerKeys, err := loadAllManagers(c, ns)
+	managers, managerKeys, err := loadManagerList(c, accessLevel, ns)
 	if err != nil {
 		return nil, err
-	}
-	for i := 0; i < len(managers); i++ {
-		if accessLevel >= config.Namespaces[managers[i].Namespace].AccessLevel {
-			continue
-		}
-		last := len(managers) - 1
-		managers[i] = managers[last]
-		managers = managers[:last]
-		managerKeys[i] = managerKeys[last]
-		managerKeys = managerKeys[:last]
-		i--
 	}
 	var buildKeys []*db.Key
 	var statsKeys []*db.Key
@@ -993,7 +985,7 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string) ([]*uiM
 		if accessLevel < AccessUser {
 			link = ""
 		}
-		results = append(results, &uiManager{
+		ui := &uiManager{
 			Now:                   timeNow(c),
 			Namespace:             mgr.Namespace,
 			Name:                  mgr.Name,
@@ -1010,7 +1002,18 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string) ([]*uiM
 			TotalFuzzingTime:      stats.TotalFuzzingTime,
 			TotalCrashes:          stats.TotalCrashes,
 			TotalExecs:            stats.TotalExecs,
-		})
+			TotalExecsBad:         stats.TotalExecs == 0,
+		}
+		if config.Namespaces[mgr.Namespace].Decommissioned {
+			// Don't show bold red highlight for decommissioned namespaces.
+			ui.Link = ""
+			ui.FailedBuildBugLink = ""
+			ui.FailedSyzBuildBugLink = ""
+			ui.CurrentUpTime = 0
+			ui.LastActiveBad = false
+			ui.TotalExecsBad = false
+		}
+		results = append(results, ui)
 	}
 	sort.Slice(results, func(i, j int) bool {
 		if results[i].Namespace != results[j].Namespace {
@@ -1019,6 +1022,27 @@ func loadManagers(c context.Context, accessLevel AccessLevel, ns string) ([]*uiM
 		return results[i].Name < results[j].Name
 	})
 	return results, nil
+}
+
+func loadManagerList(c context.Context, accessLevel AccessLevel, ns string) ([]*Manager, []*db.Key, error) {
+	managers, keys, err := loadAllManagers(c, ns)
+	if err != nil {
+		return nil, nil, err
+	}
+	var filtered []*Manager
+	var filteredKeys []*db.Key
+	for i, mgr := range managers {
+		cfg := config.Namespaces[mgr.Namespace]
+		if accessLevel < cfg.AccessLevel {
+			continue
+		}
+		if ns == "" && cfg.Decommissioned {
+			continue
+		}
+		filtered = append(filtered, mgr)
+		filteredKeys = append(filteredKeys, keys[i])
+	}
+	return filtered, filteredKeys, nil
 }
 
 func loadRecentJobs(c context.Context) ([]*uiJob, error) {

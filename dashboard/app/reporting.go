@@ -178,6 +178,9 @@ func reportingPollNotifications(c context.Context, typ string) []*dashapi.BugNot
 }
 
 func handleReportNotif(c context.Context, typ string, bug *Bug) (*dashapi.BugNotification, error) {
+	if config.Namespaces[bug.Namespace].Decommissioned {
+		return nil, nil
+	}
 	reporting, bugReporting, _, _, err := currentReporting(c, bug)
 	if err != nil || reporting == nil {
 		return nil, nil

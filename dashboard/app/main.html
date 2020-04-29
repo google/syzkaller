@@ -13,7 +13,7 @@ Main page.
 </head>
 <body>
 	{{template "header" .Header}}
-
+	{{if $.Decommissioned}}<h1>This kernel is DECOMMISSIONED</h1>{{end}}
 	{{if $.FixedLink}}
 		<a href="{{$.FixedLink}}">fixed bugs ({{$.FixedCount}})</a>
 	{{end}}

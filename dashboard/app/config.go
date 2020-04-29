@@ -49,6 +49,9 @@ type GlobalConfig struct {
 type Config struct {
 	// See GlobalConfig.AccessLevel.
 	AccessLevel AccessLevel
+	// If set, this namespace is not actively tested, no notifications are sent, etc.
+	// It's kept mostly read-only for historical reference.
+	Decommissioned bool
 	// Name used in UI.
 	DisplayTitle string
 	// Unique string that allows to show "similar bugs" across different namespaces.

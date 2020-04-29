@@ -189,10 +189,10 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				{{end}}
 			</td>
 			<td class="stat">{{formatStat $mgr.TotalCrashes}}</td>
-			{{if $mgr.TotalExecs}}
-				<td class="stat">{{formatStat $mgr.TotalExecs}}</td>
-			{{else}}
+			{{if $mgr.TotalExecsBad}}
 				<td class="stat bad">broken</td>
+			{{else}}
+				<td class="stat">{{formatStat $mgr.TotalExecs}}</td>
 			{{end}}
 			{{with $build := $mgr.CurrentBuild}}
 				<td class="stat" title="[{{$build.KernelAlias}}] {{$build.KernelCommitTitle}}">{{link $build.KernelCommitLink (formatShortHash $build.KernelCommit)}}</td>
