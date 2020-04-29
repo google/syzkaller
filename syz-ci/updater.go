@@ -232,6 +232,7 @@ func (upd *SyzUpdater) build(commit *vcs.Commit) error {
 			return osutil.PrependContext("generate failed", err)
 		}
 	}
+	// This will also generate descriptions and should go before the 'go test' below.
 	cmd := osutil.Command(instance.MakeBin, "host", "ci")
 	cmd.Dir = upd.syzkallerDir
 	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
