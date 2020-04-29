@@ -15,6 +15,8 @@ include <netinet/tcp.h>
 
 syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
 
+hop_limits = 0, 1, 255
+
 resource tcp_seq_num[int32]: 0x41424344
 
 tcp_resources {
@@ -646,7 +648,7 @@ ipv6_packet_t {
 # TODO: flow_label is actually 20 bits, 4 bits are part of priority
 	length		len[payload, int16be]
 	next_header	flags[ipv6_types, int8]
-	hop_limit	int8
+	hop_limit	flags[hop_limits, int8]
 	src_ip		ipv6_addr
 	dst_ip		ipv6_addr
 	payload		ipv6_packet_payload
@@ -677,7 +679,7 @@ icmpv6_ipv6_packet {
 	flow_label	array[int8, 3]
 	length		int16be
 	next_header	flags[ipv6_types, int8]
-	hop_limit	int8
+	hop_limit	flags[hop_limits, int8]
 	src_ip		ipv6_addr
 	dst_ip		ipv6_addr
 	ext_headers	array[ipv6_ext_header]
@@ -754,6 +756,41 @@ icmpv6_mld_packet {
 	addr	ipv6_addr
 } [packed]
 
+# https://tools.ietf.org/html/rfc3810#section-5.1
+icmpv6_mldv2_listener_query_packet {
+	type		const[MLD_LISTENER_QUERY, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	mrd		int16be
+	unused		int16
+	mca		ipv6_addr
+	qrv		int8:3
+	suppress	int8:1
+	resv2		int8:4
+	qqic		int8
+	nsrcs		len[srcs, int16be]
+	srcs		array[ipv6_addr]
+} [packed]
+
+icmpv6_mldv2_grec {
+	type		int8
+	auxwords	len[aux, int8]
+	nsrcs		len[srcs, int16be]
+	mca		ipv6_addr
+	srcs		array[ipv6_addr]
+	aux		array[int32]
+} [packed]
+
+# https://tools.ietf.org/html/rfc3810#section-5.2
+icmpv6_mldv2_listener_report_packet {
+	type	const[MLDV2_LISTENER_REPORT, int8]
+	code	const[0, int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	unused	int16
+	ngrec	len[grec, int16be]
+	grec	array[icmpv6_mldv2_grec]
+} [packed]
+
 icmpv6_ni_types = ICMP6_NI_QUERY, ICMP6_NI_REPLY
 
 # https://tools.ietf.org/html/rfc4620#section-4
@@ -791,7 +828,7 @@ icmpv6_ndisc_router_advert_packet {
 	type		const[ND_ROUTER_ADVERT, int8]
 	code		const[0, int8]
 	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
-	cur_hop_limit	int8
+	cur_hop_limit	flags[hop_limits, int8]
 # TODO: Implement bitflags for the router advert flags
 	router_flags	int8
 	router_lifetime	int16
@@ -840,6 +877,8 @@ icmpv6_packet [
 	echo_request	icmpv6_echo_request_packet
 	echo_reply	icmpv6_echo_reply_packet
 	mld		icmpv6_mld_packet
+	mlv2_query	icmpv6_mldv2_listener_query_packet
+	mlv2_report	icmpv6_mldv2_listener_report_packet
 	ni		icmpv6_ni_packet
 	ndisc_rs	icmpv6_ndisc_router_solicit_packet
 	ndisc_ra	icmpv6_ndisc_router_advert_packet
