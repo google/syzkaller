@@ -31,6 +31,7 @@ import (
 	"github.com/google/syzkaller/pkg/bisect"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/mgrconfig"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 var (
@@ -100,14 +101,10 @@ func main() {
 	}
 	loadString("syzkaller.commit", &cfg.Syzkaller.Commit)
 	loadString("kernel.commit", &cfg.Kernel.Commit)
-	loadFile("kernel.config", &cfg.Kernel.Config)
-	if _, err := os.Stat("repro.syz"); err == nil {
-		loadFile("repro.syz", &cfg.Repro.Syz)
-	}
-	if _, err := os.Stat("repro.c"); err == nil {
-		loadFile("repro.c", &cfg.Repro.C)
-	}
-	loadFile("repro.opts", &cfg.Repro.Opts)
+	loadFile("kernel.config", &cfg.Kernel.Config, true)
+	loadFile("repro.syz", &cfg.Repro.Syz, false)
+	loadFile("repro.c", &cfg.Repro.C, false)
+	loadFile("repro.opts", &cfg.Repro.Opts, true)
 	if _, err := bisect.Run(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "bisection failed: %v\n", err)
 		os.Exit(1)
@@ -123,8 +120,12 @@ func loadString(file string, dst *string) {
 	*dst = strings.TrimSpace(string(data))
 }
 
-func loadFile(file string, dst *[]byte) {
-	data, err := ioutil.ReadFile(filepath.Join(*flagCrash, file))
+func loadFile(file string, dst *[]byte, mandatory bool) {
+	filename := filepath.Join(*flagCrash, file)
+	if !mandatory && !osutil.IsExist(filename) {
+		return
+	}
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
