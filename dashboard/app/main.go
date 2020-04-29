@@ -204,10 +204,6 @@ type uiJob struct {
 
 // handleMain serves main page.
 func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	if ns := r.FormValue("fixed"); ns != "" {
-		http.Redirect(w, r, fmt.Sprintf("/%v/fixed", ns), http.StatusFound)
-		return nil
-	}
 	hdr, err := commonHeader(c, r, w, "")
 	if err != nil {
 		return err

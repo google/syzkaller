@@ -11,15 +11,6 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{/* Common page head part, invoked with *uiHeader */}}
 {{define "head"}}
 	<link rel="stylesheet" href="/static/style.css"/>
-	{{if .Redirects}}
-		<script>
-			{{range $redir := .Redirects}}
-				if (window.location.hash == "{{$redir.From}}") {
-					window.location.href = "{{$redir.To}}";
-				}
-			{{end}}
-		</script>
-	{{end}}
 	<script src="/static/common.js"></script>
 	{{if .AnalyticsTrackingID}}
 		<script async src="https://www.googletagmanager.com/gtag/js?id={{.AnalyticsTrackingID}}"></script>
@@ -40,11 +31,11 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 				<td>
 					<h1><a href="/{{$.Namespace}}">syzbot</a></h1>
 					<select class="namespace" onchange="window.location.href = '/' + this.value + '{{.Subpage}}';">
-						{{range $ns := .Namespaces}}
+						{{- range $ns := .Namespaces}}
 							<option value="{{$ns.Name}}" {{if eq $.Namespace $ns.Name}}selected="1"{{end}}>
-								{{$ns.Caption}}
+								{{- $ns.Caption -}}
 							</option>
-						{{end}}
+						{{- end -}}
 					</select>
 				</td>
 				<td class="search">
