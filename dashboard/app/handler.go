@@ -104,11 +104,6 @@ type uiNamespace struct {
 	Caption string
 }
 
-type uiRedirect struct {
-	From string
-	To   string
-}
-
 type cookieData struct {
 	Namespace string `json:"namespace"`
 }
