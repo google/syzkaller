@@ -97,7 +97,6 @@ type uiHeader struct {
 	Subpage             string
 	Namespace           string
 	Namespaces          []uiNamespace
-	Redirects           []uiRedirect
 }
 
 type uiNamespace struct {
@@ -139,7 +138,6 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 	h := commonHeaderRaw(c, r)
 	const adminPage = "admin"
 	isAdminPage := r.URL.Path == "/"+adminPage
-	isBugPage := r.URL.Path == "/bug"
 	found := false
 	for ns1, cfg := range config.Namespaces {
 		if accessLevel < cfg.AccessLevel {
@@ -155,29 +153,6 @@ func commonHeader(c context.Context, r *http.Request, w http.ResponseWriter, ns 
 			Name:    ns1,
 			Caption: cfg.DisplayTitle,
 		})
-		// This handles redirects from old URL scheme to new scheme.
-		// This this should be removed at some point (Apr 5, 2019).
-		// Also see handling of "fixed" parameter in handleMain.
-		if isBugPage {
-			continue
-		}
-		h.Redirects = append(h.Redirects, uiRedirect{
-			From: "#" + ns1,
-			To:   "/" + ns1,
-		})
-		fragments := []string{"managers", "open", "pending"}
-		for _, reporting := range cfg.Reporting {
-			if !reporting.moderation || accessLevel < reporting.AccessLevel {
-				continue
-			}
-			fragments = append(fragments, reporting.Name)
-		}
-		for _, frag := range fragments {
-			h.Redirects = append(h.Redirects, uiRedirect{
-				From: "#" + ns1 + "-" + frag,
-				To:   "/" + ns1 + "#" + frag,
-			})
-		}
 	}
 	sort.Slice(h.Namespaces, func(i, j int) bool {
 		return h.Namespaces[i].Caption < h.Namespaces[j].Caption
