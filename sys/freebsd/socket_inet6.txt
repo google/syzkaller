@@ -60,8 +60,11 @@ sockopt_opt_ipv6_group_source_req = MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_
 setsockopt$inet6_group_source_req(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_group_source_req], optval ptr[in, group_source_req_in6], optlen len[optval])
 
 setsockopt$inet6_IPV6_PKTINFO(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_PKTINFO], optval ptr[in, in6_pktinfo], optlen len[optval])
+setsockopt$inet6_IPV6_HOPOPTS(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_HOPOPTS], optval ptr[in, ipv6_hopopts_ext_header], optlen len[optval])
+setsockopt$inet6_IPV6_RTHDR(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_RTHDR], optval ptr[in, ipv6_rt_hdr], optlen len[optval])
+setsockopt$inet6_IPV6_RTHDRDSTOPTS(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_RTHDRDSTOPTS], optval ptr[in, ipv6_dstopts_ext_header], optlen len[optval])
+setsockopt$inet6_IPV6_DSTOPTS(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_DSTOPTS], optval ptr[in, ipv6_dstopts_ext_header], optlen len[optval])
 
-# TODO: IPV6_HOPOPTS, IPV6_RTHDRDSTOPTS, IPV6_RTHDR, IPV6_DSTOPTS
 # TODO: IPV6_PATHMTU
 # TODO: IP6T_SO_GET_REVISION_MATCH, IP6T_SO_GET_REVISION_TARGET
 
