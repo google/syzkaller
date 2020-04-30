@@ -31,12 +31,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/pprof"
 	"sort"
 	"strings"
 	"unsafe"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/cmdprof"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
@@ -46,11 +46,9 @@ import (
 
 func main() {
 	var (
-		flagOS         = flag.String("os", runtime.GOOS, "OS")
-		flagCPUProfile = flag.String("cpuprofile", "", "write CPU profile to this file")
-		flagMEMProfile = flag.String("memprofile", "", "write memory profile to this file")
-		flagDWARF      = flag.Bool("dwarf", true, "do checking based on DWARF")
-		flagNetlink    = flag.Bool("netlink", true, "do checking of netlink policies")
+		flagOS      = flag.String("os", runtime.GOOS, "OS")
+		flagDWARF   = flag.Bool("dwarf", true, "do checking based on DWARF")
+		flagNetlink = flag.Bool("netlink", true, "do checking of netlink policies")
 	)
 	arches := map[string]*string{"amd64": nil, "386": nil, "arm64": nil, "arm": nil}
 	for arch := range arches {
@@ -61,30 +59,7 @@ func main() {
 		os.Exit(1)
 	}
 	flag.Parse()
-	if *flagCPUProfile != "" {
-		f, err := os.Create(*flagCPUProfile)
-		if err != nil {
-			failf("failed to create cpuprofile file: %v", err)
-		}
-		defer f.Close()
-		if err := pprof.StartCPUProfile(f); err != nil {
-			failf("failed to start cpu profile: %v", err)
-		}
-		defer pprof.StopCPUProfile()
-	}
-	if *flagMEMProfile != "" {
-		defer func() {
-			f, err := os.Create(*flagMEMProfile)
-			if err != nil {
-				failf("failed to create memprofile file: %v", err)
-			}
-			defer f.Close()
-			runtime.GC()
-			if err := pprof.WriteHeapProfile(f); err != nil {
-				failf("failed to write mem profile: %v", err)
-			}
-		}()
-	}
+	defer cmdprof.Install()()
 	var warnings []Warn
 	for arch, obj := range arches {
 		if *obj == "" {
