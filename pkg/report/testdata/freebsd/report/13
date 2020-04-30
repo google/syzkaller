@@ -1,0 +1,23 @@
+TITLE: panic: pfi_dynaddr_setup: non-NULL dyn
+
+panic: pfi_dynaddr_setup: dyn is 0x8000
+cpuid = 1
+time = 1588237242
+KDB: stack backtrace:
+db_trace_self_wrapper() at db_trace_self_wrapper+0x47/frame 0xfffffe0025a36110
+vpanic() at vpanic+0x1c7/frame 0xfffffe0025a36170
+panic() at panic+0x43/frame 0xfffffe0025a361d0
+pfi_dynaddr_setup() at pfi_dynaddr_setup+0x590/frame 0xfffffe0025a36260
+pfioctl() at pfioctl+0x6e4f/frame 0xfffffe0025a36790
+devfs_ioctl() at devfs_ioctl+0x14e/frame 0xfffffe0025a367f0
+VOP_IOCTL_APV() at VOP_IOCTL_APV+0x78/frame 0xfffffe0025a36820
+vn_ioctl() at vn_ioctl+0x27c/frame 0xfffffe0025a36940
+devfs_ioctl_f() at devfs_ioctl_f+0x47/frame 0xfffffe0025a36980
+kern_ioctl() at kern_ioctl+0x3d4/frame 0xfffffe0025a369f0
+sys_ioctl() at sys_ioctl+0x22b/frame 0xfffffe0025a36ac0
+amd64_syscall() at amd64_syscall+0x262/frame 0xfffffe0025a36bf0
+fast_syscall_common() at fast_syscall_common+0x101/frame 0xfffffe0025a36bf0
+--- syscall (198, FreeBSD ELF64, nosys), rip = 0x80071d48a, rsp = 0x7fffdfffdf38, rbp = 0x3 ---
+KDB: enter: panic
+[ thread pid 1104 tid 100601 ]
+Stopped at      kdb_enter+0x67: movq    $0,0x14a96a6(%rip)

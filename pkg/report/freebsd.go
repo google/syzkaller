@@ -128,6 +128,10 @@ var freebsdOopses = append([]*oops{
 					"([a-zA-Z0-9_]+)\\(\\) at [a-zA-Z0-9_+/ ]+\\+0x.*\\r?\\n"),
 				fmt: "%[1]v in %[2]v",
 			},
+			{
+				title: compile("panic: pfi_dynaddr_setup: dyn is 0x[0-9a-f]+\\r?\\n"),
+				fmt:   "panic: pfi_dynaddr_setup: non-NULL dyn",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
