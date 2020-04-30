@@ -13,24 +13,19 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
-	"runtime/pprof"
 	"sort"
 	"strings"
 	"sync"
 	"text/template"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/cmdprof"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/serializer"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
-)
-
-var (
-	flagMemProfile = flag.String("memprofile", "", "write a memory profile to the file")
 )
 
 type SyscallData struct {
@@ -64,6 +59,7 @@ type ExecutorData struct {
 
 func main() {
 	flag.Parse()
+	defer cmdprof.Install()()
 
 	var OSList []string
 	for OS := range targets.List {
@@ -175,18 +171,6 @@ func main() {
 	}
 
 	writeExecutorSyscalls(data)
-
-	if *flagMemProfile != "" {
-		f, err := os.Create(*flagMemProfile)
-		if err != nil {
-			failf("could not create memory profile: ", err)
-		}
-		runtime.GC() // get up-to-date statistics
-		if err := pprof.WriteHeapProfile(f); err != nil {
-			failf("could not write memory profile: ", err)
-		}
-		f.Close()
-	}
 }
 
 func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint64, out io.Writer) {
