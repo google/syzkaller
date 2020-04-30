@@ -6,16 +6,26 @@
 package rpctype
 
 import (
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
+	"github.com/google/syzkaller/pkg/mab"
 	"github.com/google/syzkaller/pkg/signal"
 )
+
+type RPCMABStatus struct {
+	Round        int
+	Exp31Round   int
+	Reward       mab.TotalReward
+	CorpusReward map[hash.Sig]mab.CorpusReward
+}
 
 type RPCInput struct {
 	Call   string
 	Prog   []byte
 	Signal signal.Serial
 	Cover  []uint32
+	Reward mab.CorpusReward
 }
 
 type RPCCandidate struct {
@@ -61,12 +71,14 @@ type PollArgs struct {
 	NeedCandidates bool
 	MaxSignal      signal.Serial
 	Stats          map[string]uint64
+	RPCMABStatus
 }
 
 type PollRes struct {
 	Candidates []RPCCandidate
 	NewInputs  []RPCInput
 	MaxSignal  signal.Serial
+	RPCMABStatus
 }
 
 type HubConnectArgs struct {

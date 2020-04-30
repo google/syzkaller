@@ -114,4 +114,8 @@ type Config struct {
 	SyzFuzzerBin   string `json:"-"`
 	SyzExecprogBin string `json:"-"`
 	SyzExecutorBin string `json:"-"`
+
+	// MAB task selection and seed selection
+	MABTS bool `json:"mabts"`
+	MABSS bool `json:"mabss"`
 }

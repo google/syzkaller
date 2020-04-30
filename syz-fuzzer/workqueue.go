@@ -87,29 +87,41 @@ func (wq *WorkQueue) enqueue(item interface{}) {
 	}
 }
 
-func (wq *WorkQueue) dequeue() (item interface{}) {
+const (
+	DequeueOptionAny        = 0
+	DequeueOptionNoTriage   = 1
+	DequeueOptionTriageOnly = 2
+)
+
+func (wq *WorkQueue) dequeue(option int) (item interface{}) {
 	wq.mu.RLock()
-	if len(wq.triageCandidate)+len(wq.candidate)+len(wq.triage)+len(wq.smash) == 0 {
+	if option == DequeueOptionAny && len(wq.triageCandidate)+len(wq.candidate)+len(wq.triage)+len(wq.smash) == 0 {
+		wq.mu.RUnlock()
+		return nil
+	} else if option == DequeueOptionNoTriage && len(wq.triageCandidate)+len(wq.candidate)+len(wq.smash) == 0 {
+		wq.mu.RUnlock()
+		return nil
+	} else if option == DequeueOptionTriageOnly && len(wq.triage) == 0 {
 		wq.mu.RUnlock()
 		return nil
 	}
 	wq.mu.RUnlock()
 	wq.mu.Lock()
 	wantCandidates := false
-	if len(wq.triageCandidate) != 0 {
+	if len(wq.triageCandidate) != 0 && option != DequeueOptionTriageOnly {
 		last := len(wq.triageCandidate) - 1
 		item = wq.triageCandidate[last]
 		wq.triageCandidate = wq.triageCandidate[:last]
-	} else if len(wq.candidate) != 0 {
+	} else if len(wq.candidate) != 0 && option != DequeueOptionTriageOnly {
 		last := len(wq.candidate) - 1
 		item = wq.candidate[last]
 		wq.candidate = wq.candidate[:last]
 		wantCandidates = len(wq.candidate) < wq.procs
-	} else if len(wq.triage) != 0 {
+	} else if len(wq.triage) != 0 && option != DequeueOptionNoTriage {
 		last := len(wq.triage) - 1
 		item = wq.triage[last]
 		wq.triage = wq.triage[:last]
-	} else if len(wq.smash) != 0 {
+	} else if len(wq.smash) != 0 && option != DequeueOptionTriageOnly {
 		last := len(wq.smash) - 1
 		item = wq.smash[last]
 		wq.smash = wq.smash[:last]

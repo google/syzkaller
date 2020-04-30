@@ -5,12 +5,16 @@ package prog
 
 import (
 	"fmt"
+	"github.com/google/syzkaller/pkg/mab"
 )
 
 type Prog struct {
 	Target   *Target
 	Calls    []*Call
 	Comments []string
+
+	Source       int // Gen: 0, Mut: 1, Tri: 2
+	CorpusReward mab.CorpusReward
 }
 
 type Call struct {
@@ -396,6 +400,10 @@ func (p *Prog) removeCall(idx int) {
 	}
 	copy(p.Calls[idx:], p.Calls[idx+1:])
 	p.Calls = p.Calls[:len(p.Calls)-1]
+}
+
+func (p *Prog) ResetReward() {
+	p.CorpusReward = mab.CorpusReward{}
 }
 
 func (p *Prog) sanitizeFix() {

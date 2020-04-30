@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/mab"
 	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
@@ -59,6 +60,31 @@ func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
 	return proc, nil
 }
 
+func (proc *Proc) ProcessItem(item interface{}) *mab.TriageResult {
+	if item != nil {
+		switch item := item.(type) {
+		case *WorkTriage:
+			{
+				res := proc.triageInput(item)
+				return &res
+			}
+		case *WorkCandidate:
+			{
+				proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
+				return nil
+			}
+		case *WorkSmash:
+			{
+				proc.smashInput(item)
+				return nil
+			}
+		default:
+			log.Fatalf("unknown work type: %#v", item)
+		}
+	}
+	return nil
+}
+
 func (proc *Proc) loop() {
 	generatePeriod := 100
 	if proc.fuzzer.config.Flags&ipc.FlagSignal == 0 {
@@ -67,17 +93,22 @@ func (proc *Proc) loop() {
 		generatePeriod = 2
 	}
 	for i := 0; ; i++ {
-		item := proc.fuzzer.workQueue.dequeue()
+		// Could have race condition. However, this parameter
+		// is not that important
+		proc.fuzzer.MABStatus.Round++
+
+		// If we use MAB for task selection
+		if proc.fuzzer.MABStatus.TSEnabled {
+			proc.clearQueue()
+			proc.MABLoop()
+			continue
+		}
+
+		item := proc.fuzzer.workQueue.dequeue(DequeueOptionAny)
 		if item != nil {
-			switch item := item.(type) {
-			case *WorkTriage:
-				proc.triageInput(item)
-			case *WorkCandidate:
-				proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
-			case *WorkSmash:
-				proc.smashInput(item)
-			default:
-				log.Fatalf("unknown work type: %#v", item)
+			r := proc.ProcessItem(item)
+			if r != nil {
+				log.Logf(0, "Work Type: 2, Result: %+v\n", r)
 			}
 			continue
 		}
@@ -86,27 +117,55 @@ func (proc *Proc) loop() {
 		fuzzerSnapshot := proc.fuzzer.snapshot()
 		if len(fuzzerSnapshot.corpus) == 0 || i%generatePeriod == 0 {
 			// Generate a new prog.
+			ts0 := time.Now().UnixNano()
 			p := proc.fuzzer.target.Generate(proc.rnd, prog.RecommendedCalls, ct)
 			log.Logf(1, "#%v: generated", proc.pid)
-			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
+			_, r := proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
+			r.TimeTotal = float64(time.Now().UnixNano()-ts0) / MABTimeUnit
+			log.Logf(0, "Work Type: 0, Result: %+v\n", r)
 		} else {
 			// Mutate an existing prog.
-			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
+			ts0 := time.Now().UnixNano()
+			pidx, p := fuzzerSnapshot.chooseProgram(proc.rnd)
+			p = p.Clone()
+			p.ResetReward()
 			p.Mutate(proc.rnd, prog.RecommendedCalls, ct, fuzzerSnapshot.corpus)
 			log.Logf(1, "#%v: mutated", proc.pid)
-			proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
+			_, r := proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
+			r.Pidx = pidx
+			r.TimeTotal = float64(time.Now().UnixNano()-ts0) / MABTimeUnit
+			if proc.fuzzer.MABStatus.SSEnabled {
+				proc.fuzzer.MABStatus.UpdateWeight(1, r, []float64{1.0, 1.0, 1.0})
+			}
+			log.Logf(0, "Work Type: 1, Result: %+v\n", r)
 		}
 	}
 }
 
-func (proc *Proc) triageInput(item *WorkTriage) {
+func (proc *Proc) triageInput(item *WorkTriage) mab.TriageResult {
 	log.Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
+	tsBgn := time.Now().UnixNano()
+	sourceData := item.p.Serialize()
+	sourceSig := hash.Hash(sourceData)
+	ret := mab.TriageResult{
+		CorpusCov:        0,
+		SourceExecTime:   0.0,
+		MinimizeCov:      0,
+		VerifyTime:       0.0,
+		MinimizeTime:     0.0,
+		Source:           item.p.Source,
+		SourceSig:        sourceSig,
+		MinimizeTimeSave: 0.0,
+		Pidx:             -1,
+		Success:          false,
+		TimeTotal:        0.0,
+	}
 
 	prio := signalPrio(item.p, &item.info, item.call)
 	inputSignal := signal.FromRaw(item.info.Signal, prio)
 	newSignal := proc.fuzzer.corpusSignalDiff(inputSignal)
 	if newSignal.Empty() {
-		return
+		return ret
 	}
 	callName := ".extra"
 	logCallName := "extra"
@@ -123,12 +182,15 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	// Compute input coverage and non-flaky signal for minimization.
 	notexecuted := 0
 	for i := 0; i < signalRuns; i++ {
-		info := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
+		info, timeExec := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
+		ret.VerifyTime += timeExec
 		if !reexecutionSuccess(info, &item.info, item.call) {
 			// The call was not executed or failed.
 			notexecuted++
 			if notexecuted > signalRuns/2+1 {
-				return // if happens too often, give up
+				ret.TimeTotal = float64(time.Now().UnixNano()-tsBgn) / MABTimeUnit
+				ret.CorpusCov = 0.0
+				return ret // if happens too often, give up
 			}
 			continue
 		}
@@ -137,30 +199,53 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		// Without !minimized check manager starts losing some considerable amount
 		// of coverage after each restart. Mechanics of this are not completely clear.
 		if newSignal.Empty() && item.flags&ProgMinimized == 0 {
-			return
+			ret.TimeTotal = float64(time.Now().UnixNano()-tsBgn) / MABTimeUnit
+			return ret
 		}
 		inputCover.Merge(thisCover)
 	}
+	minimizeTimeBefore := ret.VerifyTime / float64(signalRuns)
+	ret.SourceExecTime = minimizeTimeBefore
+	minimizeTimeAfter := minimizeTimeBefore
 	if item.flags&ProgMinimized == 0 {
 		item.p, item.call = prog.Minimize(item.p, item.call, false,
 			func(p1 *prog.Prog, call1 int) bool {
+				p1.Source = 2
+				timeAverage := 0.0
+
 				for i := 0; i < minimizeAttempts; i++ {
-					info := proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
+					var info *ipc.ProgInfo
+					var r mab.ExecResult
+					info, r = proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
+					ret.MinimizeCov += r.Cov
+					ret.MinimizeTime += r.TimeExec
+					timeAverage += r.TimeExec
+
 					if !reexecutionSuccess(info, &item.info, call1) {
 						// The call was not executed or failed.
 						continue
 					}
 					thisSignal, _ := getSignalAndCover(p1, info, call1)
 					if newSignal.Intersection(thisSignal).Len() == newSignal.Len() {
+						timeAverage = timeAverage / float64(i+1)
+						minimizeTimeAfter = timeAverage
 						return true
 					}
 				}
 				return false
 			})
 	}
+	ret.MinimizeTimeSave = minimizeTimeBefore - minimizeTimeAfter
 
 	data := item.p.Serialize()
 	sig := hash.Hash(data)
+
+	item.p.CorpusReward = mab.CorpusReward{
+		VerifyTime:       ret.VerifyTime,
+		MinimizeCov:      float64(ret.MinimizeCov),
+		MinimizeTime:     ret.MinimizeTime,
+		MinimizeTimeSave: ret.MinimizeTimeSave,
+	}
 
 	log.Logf(2, "added new input for %v to corpus:\n%s", logCallName, data)
 	proc.fuzzer.sendInputToManager(rpctype.RPCInput{
@@ -168,13 +253,20 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		Prog:   data,
 		Signal: inputSignal.Serialize(),
 		Cover:  inputCover.Serialize(),
+		Reward: item.p.CorpusReward,
 	})
 
-	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
+	ret.Pidx = proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
+	ret.CorpusCov = len(inputSignal)
 
 	if item.flags&ProgSmashed == 0 {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
 	}
+
+	tsEnd := time.Now().UnixNano()
+	ret.TimeTotal = float64(tsEnd-tsBgn) / MABTimeUnit
+	ret.Success = true
+	return ret
 }
 
 func reexecutionSuccess(info *ipc.ProgInfo, oldInfo *ipc.CallInfo, call int) bool {
@@ -201,14 +293,20 @@ func getSignalAndCover(p *prog.Prog, info *ipc.ProgInfo, call int) (signal.Signa
 }
 
 func (proc *Proc) smashInput(item *WorkSmash) {
+	// If MABSS enabled, only do this for first-timers
 	if proc.fuzzer.faultInjectionEnabled && item.call != -1 {
 		proc.failCall(item.p, item.call)
 	}
 	if proc.fuzzer.comparisonTracingEnabled && item.call != -1 {
 		proc.executeHintSeed(item.p, item.call)
 	}
+	// If MABSS or MABTS enabled, do not mutate at all
+	if proc.fuzzer.MABStatus.SSEnabled || proc.fuzzer.MABStatus.TSEnabled {
+		return
+	}
 	fuzzerSnapshot := proc.fuzzer.snapshot()
-	for i := 0; i < 100; i++ {
+	smashCount := 100
+	for i := 0; i < smashCount; i++ {
 		p := item.p.Clone()
 		p.Mutate(proc.rnd, prog.RecommendedCalls, proc.fuzzer.choiceTable, fuzzerSnapshot.corpus)
 		log.Logf(1, "#%v: smash mutated", proc.pid)
@@ -223,7 +321,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 		opts.Flags |= ipc.FlagInjectFault
 		opts.FaultCall = call
 		opts.FaultNth = nth
-		info := proc.executeRaw(&opts, p, StatSmash)
+		info, _ := proc.executeRaw(&opts, p, StatSmash)
 		if info != nil && len(info.Calls) > call && info.Calls[call].Flags&ipc.CallFaultInjected == 0 {
 			break
 		}
@@ -233,7 +331,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	log.Logf(1, "#%v: collecting comparisons", proc.pid)
 	// First execute the original program to dump comparisons from KCOV.
-	info := proc.execute(proc.execOptsComps, p, ProgNormal, StatSeed)
+	info, _ := proc.execute(proc.execOptsComps, p, ProgNormal, StatSeed)
 	if info == nil {
 		return
 	}
@@ -247,16 +345,26 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	})
 }
 
-func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
-	info := proc.executeRaw(execOpts, p, stat)
-	calls, extra := proc.fuzzer.checkNewSignal(p, info)
+func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes,
+	stat Stat) (*ipc.ProgInfo, mab.ExecResult) {
+	ret := mab.ExecResult{
+		Cov:       0,
+		TimeExec:  0.0,
+		TimeTotal: 0.0,
+		Pidx:      -1,
+	}
+	info, time := proc.executeRaw(execOpts, p, stat)
+	ret.TimeExec = time
+	p.CorpusReward.ExecTime = time
+	calls, extra, cov := proc.fuzzer.checkNewSignal(p, info)
+	ret.Cov = cov
 	for _, callIndex := range calls {
 		proc.enqueueCallTriage(p, flags, callIndex, info.Calls[callIndex])
 	}
 	if extra {
 		proc.enqueueCallTriage(p, flags, -1, info.Extra)
 	}
-	return info
+	return info, ret
 }
 
 func (proc *Proc) enqueueCallTriage(p *prog.Prog, flags ProgTypes, callIndex int, info ipc.CallInfo) {
@@ -273,7 +381,7 @@ func (proc *Proc) enqueueCallTriage(p *prog.Prog, flags ProgTypes, callIndex int
 	})
 }
 
-func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {
+func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) (*ipc.ProgInfo, float64) {
 	if opts.Flags&ipc.FlagDedupCover == 0 {
 		log.Fatalf("dedup cover is not enabled")
 	}
@@ -288,6 +396,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	defer proc.fuzzer.gate.Leave(ticket)
 
 	proc.logProgram(opts, p)
+	ts := time.Now().UnixNano()
 	for try := 0; ; try++ {
 		atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
 		output, info, hanged, err := proc.env.Exec(opts, p)
@@ -301,7 +410,8 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 			continue
 		}
 		log.Logf(2, "result hanged=%v: %s", hanged, output)
-		return info
+		tsEnd := time.Now().UnixNano()
+		return info, float64(tsEnd-ts) / MABTimeUnit
 	}
 }
 

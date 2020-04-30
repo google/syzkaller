@@ -22,6 +22,7 @@ const maxBlobLen = uint64(100 << 10)
 // ct:      ChoiceTable for syscalls.
 // corpus:  The entire corpus, including original program p.
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
+	p.Source = 1
 	r := newRand(p.Target, rs)
 	if ncalls < len(p.Calls) {
 		ncalls = len(p.Calls)
