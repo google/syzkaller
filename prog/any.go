@@ -49,7 +49,7 @@ func initAnyTypes(target *Target) {
 	}
 	target.any.ptrPtr = &PtrType{
 		TypeCommon: TypeCommon{
-			TypeName:   "ptr",
+			TypeName:   "ANYPTR",
 			FldName:    "ANYPTR",
 			TypeSize:   target.PtrSize,
 			IsOptional: true,
@@ -58,7 +58,7 @@ func initAnyTypes(target *Target) {
 	}
 	target.any.ptr64 = &PtrType{
 		TypeCommon: TypeCommon{
-			TypeName:   "ptr64",
+			TypeName:   "ANYPTR64",
 			FldName:    "ANYPTR64",
 			TypeSize:   8,
 			IsOptional: true,
