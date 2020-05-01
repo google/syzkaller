@@ -136,7 +136,7 @@ endif
 # syz-sysgen generates them all at once, so we can't make each of them an independent target.
 .PHONY: descriptions
 descriptions:
-	export GOBIN=$(PWD)/bin; go list -f '{{.Stale}}' ./sys/syz-sysgen | grep -q false || go install ./sys/syz-sysgen
+	export GOBIN="$(realpath .)/bin"; go list -f '{{.Stale}}' ./sys/syz-sysgen | grep -q false || go install ./sys/syz-sysgen
 	$(MAKE) .descriptions
 
 .descriptions: sys/*/*.txt sys/*/*.const bin/syz-sysgen
