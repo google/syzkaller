@@ -1,6 +1,6 @@
 # syzkaller - kernel fuzzer
 
-[![Build Status](https://travis-ci.org/google/syzkaller.svg?branch=master)](https://travis-ci.org/google/syzkaller)
+[![Build Status](https://travis-ci.org/google/syzkaller.svg?branch=master)](https://travis-ci.org/github/google/syzkaller/branches)
 [![fuzzit](https://app.fuzzit.dev/badge?org_id=syzkaller=master)](https://fuzzit.dev)
 [![Go Report Card](https://goreportcard.com/badge/github.com/google/syzkaller)](https://goreportcard.com/report/github.com/google/syzkaller)
 [![Coverage Status](https://codecov.io/gh/google/syzkaller/graph/badge.svg)](https://codecov.io/gh/google/syzkaller)
