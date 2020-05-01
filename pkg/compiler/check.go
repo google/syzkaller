@@ -323,7 +323,7 @@ func (comp *compiler) checkLenType(t0, t *ast.Type, parents []parentDesc,
 		warned[parentName] = true
 		return
 	}
-	_, args, _ := comp.getArgsBase(t, "", isArg)
+	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
 		argDesc := desc.Args[i]
 		if argDesc.Type == typeArgLenTarget {
@@ -522,7 +522,7 @@ func (comp *compiler) collectUsedType(structs, flags, strflags map[string]bool, 
 		}
 		return
 	}
-	_, args, _ := comp.getArgsBase(t, "", isArg)
+	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
 			comp.collectUsedType(structs, flags, strflags, arg, desc.Args[i].IsArg)
@@ -603,7 +603,7 @@ func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 	if desc == typePtr {
 		dir = genDir(t.Args[0])
 	}
-	_, args, _ := comp.getArgsBase(t, "", isArg)
+	_, args, _ := comp.getArgsBase(t, isArg)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
 			comp.checkTypeCtors(arg, dir, desc.Args[i].IsArg, ctors, checked)
@@ -684,7 +684,7 @@ func (comp *compiler) recurseField(checked map[string]bool, t *ast.Type, path []
 		comp.checkStructRecursion(checked, comp.structs[t.Ident], path)
 		return
 	}
-	_, args, base := comp.getArgsBase(t, "", false)
+	_, args, base := comp.getArgsBase(t, false)
 	if desc == typePtr && base.IsOptional {
 		return // optional pointers prune recursion
 	}
@@ -774,7 +774,7 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 		return
 	}
 	if desc.Check != nil {
-		_, args, base := comp.getArgsBase(t, "", flags&checkIsArg != 0)
+		_, args, base := comp.getArgsBase(t, flags&checkIsArg != 0)
 		desc.Check(comp, t, args, base)
 	}
 }
@@ -1098,12 +1098,12 @@ func (comp *compiler) checkVarlens() {
 }
 
 func (comp *compiler) isVarlen(t *ast.Type) bool {
-	desc, args, _ := comp.getArgsBase(t, "", false)
+	desc, args, _ := comp.getArgsBase(t, false)
 	return desc.Varlen != nil && desc.Varlen(comp, t, args)
 }
 
 func (comp *compiler) isZeroSize(t *ast.Type) bool {
-	desc, args, _ := comp.getArgsBase(t, "", false)
+	desc, args, _ := comp.getArgsBase(t, false)
 	return desc.ZeroSize != nil && desc.ZeroSize(comp, t, args)
 }
 

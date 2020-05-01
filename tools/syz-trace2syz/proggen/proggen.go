@@ -115,7 +115,7 @@ func (ctx *context) genCall() *prog.Call {
 		if i < len(straceCall.Args) {
 			strArg = straceCall.Args[i]
 		}
-		res := ctx.genArg(syzCall.Meta.Args[i], prog.DirIn, strArg)
+		res := ctx.genArg(syzCall.Meta.Args[i].Type, prog.DirIn, strArg)
 		syzCall.Args = append(syzCall.Args, res)
 	}
 	ctx.genResult(syzCall.Meta.Ret, straceCall.Ret)
@@ -218,7 +218,7 @@ func (ctx *context) genStruct(syzType *prog.StructType, dir prog.Dir, traceType 
 			return ret
 		}
 		for i := range syzType.Fields {
-			if prog.IsPad(syzType.Fields[i]) {
+			if prog.IsPad(syzType.Fields[i].Type) {
 				args = append(args, syzType.Fields[i].DefaultArg(dir))
 				continue
 			}
@@ -228,7 +228,7 @@ func (ctx *context) genStruct(syzType *prog.StructType, dir prog.Dir, traceType 
 			if j >= len(a.Elems) {
 				args = append(args, syzType.Fields[i].DefaultArg(dir))
 			} else {
-				args = append(args, ctx.genArg(syzType.Fields[i], dir, a.Elems[j]))
+				args = append(args, ctx.genArg(syzType.Fields[i].Type, dir, a.Elems[j]))
 			}
 			j++
 		}
@@ -253,7 +253,7 @@ func (ctx *context) recurseStructs(syzType *prog.StructType, dir prog.Dir, trace
 	// only consider structs with one non-padded field
 	numFields := 0
 	for _, field := range syzType.Fields {
-		if prog.IsPad(field) {
+		if prog.IsPad(field.Type) {
 			continue
 		}
 		numFields++
@@ -266,7 +266,7 @@ func (ctx *context) recurseStructs(syzType *prog.StructType, dir prog.Dir, trace
 		return nil, false
 	}
 	// first field needs to be a struct
-	switch t := syzType.Fields[0].(type) {
+	switch t := syzType.Fields[0].Type.(type) {
 	case *prog.StructType:
 		var args []prog.Arg
 		// first element and traceType should have the same number of elements
@@ -301,7 +301,7 @@ func (ctx *context) genUnionArg(syzType *prog.UnionType, dir prog.Dir, straceTyp
 	case "ifr_ifru":
 		return ctx.genIfrIfru(syzType, dir, straceType)
 	}
-	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[0], dir, straceType))
+	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[0].Type, dir, straceType), 0)
 }
 
 func (ctx *context) genBuffer(syzType *prog.BufferType, dir prog.Dir, traceType parser.IrType) prog.Arg {

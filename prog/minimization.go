@@ -41,8 +41,8 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 	again:
 		ctx.p = p0.Clone()
 		ctx.call = ctx.p.Calls[i]
-		for j, arg := range ctx.call.Args {
-			if ctx.do(arg, fmt.Sprintf("%v", j)) {
+		for j, field := range ctx.call.Meta.Args {
+			if ctx.do(ctx.call.Args[j], field.Name, "") {
 				goto again
 			}
 		}
@@ -88,8 +88,8 @@ type minimizeArgsCtx struct {
 	triedPaths map[string]bool
 }
 
-func (ctx *minimizeArgsCtx) do(arg Arg, path string) bool {
-	path += fmt.Sprintf("-%v", arg.Type().FieldName())
+func (ctx *minimizeArgsCtx) do(arg Arg, field, path string) bool {
+	path += fmt.Sprintf("-%v", field)
 	if ctx.triedPaths[path] {
 		return false
 	}
@@ -118,8 +118,8 @@ func (typ *TypeCommon) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 
 func (typ *StructType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	a := arg.(*GroupArg)
-	for _, innerArg := range a.Inner {
-		if ctx.do(innerArg, path) {
+	for i, innerArg := range a.Inner {
+		if ctx.do(innerArg, typ.Fields[i].Name, path) {
 			return true
 		}
 	}
@@ -127,7 +127,8 @@ func (typ *StructType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool
 }
 
 func (typ *UnionType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
-	return ctx.do(arg.(*UnionArg).Option, path)
+	a := arg.(*UnionArg)
+	return ctx.do(a.Option, typ.Fields[a.Index].Name, path)
 }
 
 func (typ *PtrType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
@@ -135,17 +136,17 @@ func (typ *PtrType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
 	if a.Res == nil {
 		return false
 	}
-	if !ctx.triedPaths[path+"->"] {
+	if path1 := path + ">"; !ctx.triedPaths[path1] {
 		removeArg(a.Res)
 		replaceArg(a, MakeSpecialPointerArg(a.Type(), a.Dir(), 0))
 		ctx.target.assignSizesCall(ctx.call)
 		if ctx.pred(ctx.p, ctx.callIndex0) {
 			*ctx.p0 = ctx.p
 		}
-		ctx.triedPaths[path+"->"] = true
+		ctx.triedPaths[path1] = true
 		return true
 	}
-	return ctx.do(a.Res, path)
+	return ctx.do(a.Res, "", path)
 }
 
 func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool {
@@ -167,7 +168,7 @@ func (typ *ArrayType) minimize(ctx *minimizeArgsCtx, arg Arg, path string) bool 
 			}
 			return true
 		}
-		if ctx.do(elem, elemPath) {
+		if ctx.do(elem, "", elemPath) {
 			return true
 		}
 	}

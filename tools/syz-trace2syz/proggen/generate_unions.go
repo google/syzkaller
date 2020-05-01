@@ -14,7 +14,7 @@ import (
 func (ctx *context) genSockaddrStorage(syzType *prog.UnionType, dir prog.Dir, straceType parser.IrType) prog.Arg {
 	field2Opt := make(map[string]int)
 	for i, field := range syzType.Fields {
-		field2Opt[field.FieldName()] = i
+		field2Opt[field.Name] = i
 	}
 	idx := 0
 	switch strType := straceType.(type) {
@@ -44,14 +44,14 @@ func (ctx *context) genSockaddrStorage(syzType *prog.UnionType, dir prog.Dir, st
 	default:
 		log.Fatalf("unable to parse sockaddr_storage. Unsupported type: %#v", strType)
 	}
-	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx], dir, straceType))
+	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx].Type, dir, straceType), idx)
 }
 
 func (ctx *context) genSockaddrNetlink(syzType *prog.UnionType, dir prog.Dir, straceType parser.IrType) prog.Arg {
 	var idx = 2
 	field2Opt := make(map[string]int)
 	for i, field := range syzType.Fields {
-		field2Opt[field.FieldName()] = i
+		field2Opt[field.Name] = i
 	}
 	switch a := straceType.(type) {
 	case *parser.GroupType:
@@ -74,7 +74,7 @@ func (ctx *context) genSockaddrNetlink(syzType *prog.UnionType, dir prog.Dir, st
 			}
 		}
 	}
-	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx], dir, straceType))
+	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx].Type, dir, straceType), idx)
 }
 
 func (ctx *context) genIfrIfru(syzType *prog.UnionType, dir prog.Dir, straceType parser.IrType) prog.Arg {
@@ -83,5 +83,5 @@ func (ctx *context) genIfrIfru(syzType *prog.UnionType, dir prog.Dir, straceType
 	case parser.Constant:
 		idx = 2
 	}
-	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx], dir, straceType))
+	return prog.MakeUnionArg(syzType, dir, ctx.genArg(syzType.Fields[idx].Type, dir, straceType), idx)
 }

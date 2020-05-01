@@ -166,11 +166,11 @@ var (
 func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 	switch c.CallName {
 	case "syz_open_dev":
-		if _, ok := c.Args[0].(*prog.ConstType); ok {
+		if _, ok := c.Args[0].Type.(*prog.ConstType); ok {
 			// This is for syz_open_dev$char/block.
 			return true, ""
 		}
-		fname, ok := extractStringConst(c.Args[0])
+		fname, ok := extractStringConst(c.Args[0].Type)
 		if !ok {
 			panic("first open arg is not a pointer to string const")
 		}
@@ -249,7 +249,7 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		if ok, reason := onlySandboxNone(sandbox); !ok {
 			return ok, reason
 		}
-		fstype, ok := extractStringConst(c.Args[0])
+		fstype, ok := extractStringConst(c.Args[0].Type)
 		if !ok {
 			panic("syz_mount_image arg is not string")
 		}
@@ -306,7 +306,7 @@ func onlySandboxNoneOrNamespace(sandbox string) (bool, string) {
 }
 
 func isSupportedSocket(c *prog.Syscall) (bool, string) {
-	af, ok := c.Args[0].(*prog.ConstType)
+	af, ok := c.Args[0].Type.(*prog.ConstType)
 	if !ok {
 		panic("socket family is not const")
 	}
@@ -320,14 +320,14 @@ func isSupportedSocket(c *prog.Syscall) (bool, string) {
 	if err == syscall.EAFNOSUPPORT {
 		return false, "socket family is not supported (EAFNOSUPPORT)"
 	}
-	proto, ok := c.Args[2].(*prog.ConstType)
+	proto, ok := c.Args[2].Type.(*prog.ConstType)
 	if !ok {
 		return true, ""
 	}
 	var typ uint64
-	if arg, ok := c.Args[1].(*prog.ConstType); ok {
+	if arg, ok := c.Args[1].Type.(*prog.ConstType); ok {
 		typ = arg.Val
-	} else if arg, ok := c.Args[1].(*prog.FlagsType); ok {
+	} else if arg, ok := c.Args[1].Type.(*prog.FlagsType); ok {
 		typ = arg.Vals[0]
 	} else {
 		return true, ""
@@ -344,7 +344,7 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 	var fd int
 	var err error
 
-	fname, ok := extractStringConst(c.Args[1])
+	fname, ok := extractStringConst(c.Args[1].Type)
 	if !ok || len(fname) == 0 || fname[0] != '/' {
 		return true, ""
 	}
@@ -352,7 +352,7 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 	modes := []int{syscall.O_RDONLY, syscall.O_WRONLY, syscall.O_RDWR}
 
 	// Attempt to extract flags from the syscall description
-	if mode, ok := c.Args[2].(*prog.ConstType); ok {
+	if mode, ok := c.Args[2].Type.(*prog.ConstType); ok {
 		modes = []int{int(mode.Val)}
 	}
 
@@ -370,7 +370,7 @@ func isSupportedOpenAt(c *prog.Syscall) (bool, string) {
 }
 
 func isSupportedMount(c *prog.Syscall, sandbox string) (bool, string) {
-	fstype, ok := extractStringConst(c.Args[2])
+	fstype, ok := extractStringConst(c.Args[2].Type)
 	if !ok {
 		panic(fmt.Sprintf("%v: filesystem is not string const", c.Name))
 	}

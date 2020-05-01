@@ -249,13 +249,13 @@ func (comp *compiler) getTypeDesc(t *ast.Type) *typeDesc {
 	return nil
 }
 
-func (comp *compiler) getArgsBase(t *ast.Type, field string, isArg bool) (*typeDesc, []*ast.Type, prog.IntTypeCommon) {
+func (comp *compiler) getArgsBase(t *ast.Type, isArg bool) (*typeDesc, []*ast.Type, prog.IntTypeCommon) {
 	desc := comp.getTypeDesc(t)
 	if desc == nil {
 		panic(fmt.Sprintf("no type desc for %#v", *t))
 	}
 	args, opt := removeOpt(t)
-	com := genCommon(t.Ident, field, sizeUnassigned, opt != nil)
+	com := genCommon(t.Ident, sizeUnassigned, opt != nil)
 	base := genIntCommon(com, 0, false)
 	if desc.NeedBase {
 		base.TypeSize = comp.ptrSize
@@ -305,7 +305,7 @@ func (comp *compiler) foreachType(n0 ast.Node,
 
 func (comp *compiler) foreachSubType(t *ast.Type, isArg bool,
 	cb func(*ast.Type, *typeDesc, []*ast.Type, prog.IntTypeCommon)) {
-	desc, args, base := comp.getArgsBase(t, "", isArg)
+	desc, args, base := comp.getArgsBase(t, isArg)
 	cb(t, desc, args, base)
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {

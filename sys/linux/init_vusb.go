@@ -171,9 +171,10 @@ func (arch *arch) generateUsbHidDeviceDescriptor(g *prog.Gen, typ0 prog.Type, di
 }
 
 func patchGroupArg(arg prog.Arg, index int, field string, value uint64) {
-	fieldArg := arg.(*prog.GroupArg).Inner[index].(*prog.ConstArg)
-	if fieldArg.Type().FieldName() != field {
-		panic(fmt.Sprintf("bad field, expected %v, found %v", field, fieldArg.Type().FieldName()))
+	a := arg.(*prog.GroupArg)
+	typ := a.Type().(*prog.StructType)
+	if field != typ.Fields[index].Name {
+		panic(fmt.Sprintf("bad field, expected %v, found %v", field, typ.Fields[index].Name))
 	}
-	fieldArg.Val = value
+	a.Inner[index].(*prog.ConstArg).Val = value
 }
