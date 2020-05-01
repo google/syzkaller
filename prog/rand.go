@@ -644,9 +644,9 @@ func (r *randGen) generateArgImpl(s *state, typ Type, dir Dir, ignoreSpecial boo
 
 	// Allow infinite recursion for optional pointers.
 	if pt, ok := typ.(*PtrType); ok && typ.Optional() {
-		switch pt.Type.(type) {
+		switch pt.Elem.(type) {
 		case *StructType, *ArrayType, *UnionType:
-			name := pt.Type.Name()
+			name := pt.Elem.Name()
 			r.recDepth[name]++
 			defer func() {
 				r.recDepth[name]--
@@ -783,7 +783,7 @@ func (a *ArrayType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*C
 	}
 	var inner []Arg
 	for i := uint64(0); i < count; i++ {
-		arg1, calls1 := r.generateArg(s, a.Type, dir)
+		arg1, calls1 := r.generateArg(s, a.Elem, dir)
 		inner = append(inner, arg1)
 		calls = append(calls, calls1...)
 	}
@@ -807,7 +807,7 @@ func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Cal
 		index := r.rand(len(r.target.SpecialPointers))
 		return MakeSpecialPointerArg(a, dir, index), nil
 	}
-	inner, calls := r.generateArg(s, a.Type, a.ElemDir)
+	inner, calls := r.generateArg(s, a.Elem, a.ElemDir)
 	arg = r.allocAddr(s, a, dir, inner.Size(), inner)
 	return arg, calls
 }

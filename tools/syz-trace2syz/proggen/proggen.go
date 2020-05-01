@@ -201,7 +201,7 @@ func (ctx *context) genArray(syzType *prog.ArrayType, dir prog.Dir, traceType pa
 	switch a := traceType.(type) {
 	case *parser.GroupType:
 		for i := 0; i < len(a.Elems); i++ {
-			args = append(args, ctx.genArg(syzType.Type, dir, a.Elems[i]))
+			args = append(args, ctx.genArg(syzType.Elem, dir, a.Elems[i]))
 		}
 	default:
 		log.Fatalf("unsupported type for array: %#v", traceType)
@@ -361,10 +361,10 @@ func (ctx *context) genPtr(syzType *prog.PtrType, dir prog.Dir, traceType parser
 			return prog.MakeSpecialPointerArg(syzType, dir, 0)
 		}
 		// Likely have a type of the form bind(3, 0xfffffffff, [3]);
-		res := syzType.Type.DefaultArg(syzType.ElemDir)
+		res := syzType.Elem.DefaultArg(syzType.ElemDir)
 		return ctx.addr(syzType, dir, res.Size(), res)
 	default:
-		res := ctx.genArg(syzType.Type, syzType.ElemDir, a)
+		res := ctx.genArg(syzType.Elem, syzType.ElemDir, a)
 		return ctx.addr(syzType, dir, res.Size(), res)
 	}
 }

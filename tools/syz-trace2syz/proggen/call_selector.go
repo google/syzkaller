@@ -145,7 +145,7 @@ func (cs *openCallSelector) matchOpen(meta *prog.Syscall, call *parser.Syscall) 
 	if _, ok := syzFileArg.(*prog.PtrType); !ok {
 		return false, -1
 	}
-	syzBuf := syzFileArg.(*prog.PtrType).Type.(*prog.BufferType)
+	syzBuf := syzFileArg.(*prog.PtrType).Elem.(*prog.BufferType)
 	if syzBuf.Kind != prog.BufferString {
 		return false, -1
 	}
@@ -228,7 +228,7 @@ func (cs *defaultCallSelector) matchCall(meta *prog.Syscall, call *parser.Syscal
 				return -1
 			}
 		case *prog.PtrType:
-			switch r := t.Type.(type) {
+			switch r := t.Elem.(type) {
 			case *prog.BufferType:
 				matched := false
 				buffer, ok := arg.(*parser.BufferType)

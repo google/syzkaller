@@ -403,7 +403,7 @@ func extractStringConst(typ prog.Type) (string, bool) {
 	if !ok {
 		panic("first open arg is not a pointer to string const")
 	}
-	str, ok := ptr.Type.(*prog.BufferType)
+	str, ok := ptr.Elem.(*prog.BufferType)
 	if !ok || str.Kind != prog.BufferString || len(str.Values) == 0 {
 		return "", false
 	}

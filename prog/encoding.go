@@ -451,12 +451,11 @@ func (p *parser) parseArgRes(typ Type, dir Dir) (Arg, error) {
 }
 
 func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
-	var typ1 Type
+	var elem Type
 	elemDir := DirInOut
 	switch t1 := typ.(type) {
 	case *PtrType:
-		typ1 = t1.Type
-		elemDir = t1.ElemDir
+		elem, elemDir = t1.Elem, t1.ElemDir
 	case *VmaType:
 	default:
 		p.eatExcessive(true, "wrong addr arg")
@@ -470,7 +469,7 @@ func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 		p.Parse('U')
 		p.Parse('T')
 		p.Parse('O')
-		if typ1 == nil {
+		if elem == nil {
 			return nil, fmt.Errorf("vma type can't be AUTO")
 		}
 		auto = true
@@ -490,15 +489,15 @@ func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 			p.Parse('Y')
 			p.Parse('=')
 			anyPtr := p.target.makeAnyPtrType(typ.Size(), typ.FieldName())
-			typ, typ1, elemDir = anyPtr, anyPtr.Type, anyPtr.ElemDir
+			typ, elem, elemDir = anyPtr, anyPtr.Elem, anyPtr.ElemDir
 		}
 		var err error
-		inner, err = p.parseArg(typ1, elemDir)
+		inner, err = p.parseArg(elem, elemDir)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if typ1 == nil {
+	if elem == nil {
 		if addr%p.target.PageSize != 0 {
 			p.strictFailf("unaligned vma address 0x%x", addr)
 			addr &= ^(p.target.PageSize - 1)
@@ -506,7 +505,7 @@ func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 		return MakeVmaPointerArg(typ, dir, addr, vmaSize), nil
 	}
 	if inner == nil {
-		inner = typ1.DefaultArg(elemDir)
+		inner = elem.DefaultArg(elemDir)
 	}
 	arg := MakePointerArg(typ, dir, addr, inner)
 	if auto {
@@ -618,7 +617,7 @@ func (p *parser) parseArgArray(typ Type, dir Dir) (Arg, error) {
 	}
 	var inner []Arg
 	for i := 0; p.Char() != ']'; i++ {
-		arg, err := p.parseArg(t1.Type, dir)
+		arg, err := p.parseArg(t1.Elem, dir)
 		if err != nil {
 			return nil, err
 		}
@@ -631,7 +630,7 @@ func (p *parser) parseArgArray(typ Type, dir Dir) (Arg, error) {
 	if t1.Kind == ArrayRangeLen && t1.RangeBegin == t1.RangeEnd {
 		for uint64(len(inner)) < t1.RangeBegin {
 			p.strictFailf("missing array elements")
-			inner = append(inner, t1.Type.DefaultArg(dir))
+			inner = append(inner, t1.Elem.DefaultArg(dir))
 		}
 		inner = inner[:t1.RangeBegin]
 	}

@@ -321,7 +321,7 @@ func (arch *arch) generateTimespec(g *prog.Gen, typ0 prog.Type, dir prog.Dir, ol
 		// Few ms ahead for absolute.
 		meta := arch.clockGettimeSyscall
 		ptrArgType := meta.Args[1].(*prog.PtrType)
-		argType := ptrArgType.Type.(*prog.StructType)
+		argType := ptrArgType.Elem.(*prog.StructType)
 		tp := prog.MakeGroupArg(argType, prog.DirOut, []prog.Arg{
 			prog.MakeResultArg(argType.Fields[0], prog.DirOut, nil, 0),
 			prog.MakeResultArg(argType.Fields[1], prog.DirOut, nil, 0),

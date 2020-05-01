@@ -203,7 +203,7 @@ func (arg *GroupArg) validate(ctx *validCtx) error {
 				typ.Name(), len(arg.Inner), typ.RangeBegin)
 		}
 		for _, elem := range arg.Inner {
-			if err := ctx.validateArg(elem, typ.Type, arg.Dir()); err != nil {
+			if err := ctx.validateArg(elem, typ.Elem, arg.Dir()); err != nil {
 				return err
 			}
 		}
@@ -239,7 +239,7 @@ func (arg *PointerArg) validate(ctx *validCtx) error {
 		}
 	case *PtrType:
 		if arg.Res != nil {
-			if err := ctx.validateArg(arg.Res, typ.Type, typ.ElemDir); err != nil {
+			if err := ctx.validateArg(arg.Res, typ.Elem, typ.ElemDir); err != nil {
 				return err
 			}
 		}
