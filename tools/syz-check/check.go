@@ -258,26 +258,26 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 	ai := 0
 	offset := uint64(0)
 	for _, field := range typ.Fields {
-		if field.Varlen() {
+		if field.Type.Varlen() {
 			ai = len(str.Field)
 			break
 		}
-		if prog.IsPad(field) {
-			offset += field.Size()
+		if prog.IsPad(field.Type) {
+			offset += field.Type.Size()
 			continue
 		}
 		if ai < len(str.Field) {
 			fld := str.Field[ai]
 			pos := astStruct.Fields[ai].Pos
-			desc := fmt.Sprintf("%v.%v", name, field.FieldName())
-			if field.FieldName() != fld.Name {
+			desc := fmt.Sprintf("%v.%v", name, fld.Name)
+			if field.Name != fld.Name {
 				desc += "/" + fld.Name
 			}
-			if field.UnitSize() != uint64(fld.Type.Size()) {
+			if field.Type.UnitSize() != uint64(fld.Type.Size()) {
 				warn(pos, WarnBadFieldSize, "%v: syz=%v kernel=%v",
-					desc, field.UnitSize(), fld.Type.Size())
+					desc, field.Type.UnitSize(), fld.Type.Size())
 			}
-			byteOffset := offset - field.UnitOffset()
+			byteOffset := offset - field.Type.UnitOffset()
 			if byteOffset != uint64(fld.ByteOffset) {
 				warn(pos, WarnBadFieldOffset, "%v: syz=%v kernel=%v",
 					desc, byteOffset, fld.ByteOffset)
@@ -291,10 +291,10 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 				// does not work for normal variables.
 				bitOffset = 0
 			}
-			if field.BitfieldLength() != uint64(fld.BitSize) ||
-				field.BitfieldOffset() != uint64(bitOffset) {
+			if field.Type.BitfieldLength() != uint64(fld.BitSize) ||
+				field.Type.BitfieldOffset() != uint64(bitOffset) {
 				warn(pos, WarnBadBitfield, "%v: size/offset: syz=%v/%v kernel=%v/%v",
-					desc, field.BitfieldLength(), field.BitfieldOffset(),
+					desc, field.Type.BitfieldLength(), field.Type.BitfieldOffset(),
 					fld.BitSize, bitOffset)
 			}
 		}
@@ -501,7 +501,8 @@ func checkMissingAttrs(checkedAttrs map[string]*checkAttr) []Warn {
 
 func isNetlinkPolicy(typ *prog.StructDesc) bool {
 	haveAttr := false
-	for _, field := range typ.Fields {
+	for _, fld := range typ.Fields {
+		field := fld.Type
 		if prog.IsPad(field) {
 			continue
 		}
@@ -541,39 +542,39 @@ func checkNetlinkPolicy(structMap map[string]*prog.StructDesc, typ *prog.StructD
 	checked := make(map[int]bool)
 	ai := 0
 	for _, field := range typ.Fields {
-		if prog.IsPad(field) {
+		if prog.IsPad(field.Type) {
 			continue
 		}
 		fld := astStruct.Fields[ai]
 		ai++
-		if !isNlattr(field) {
+		if !isNlattr(field.Type) {
 			continue
 		}
-		ft := structMap[field.Name()]
-		attr := int(ft.Fields[1].(*prog.ConstType).Val)
+		ft := structMap[field.Type.Name()]
+		attr := int(ft.Fields[1].Type.(*prog.ConstType).Val)
 		if attr >= len(policy) {
 			warn(fld.Pos, WarnNetlinkBadAttrType, "%v.%v: type %v, kernel policy size %v",
-				typ.TemplateName(), field.FieldName(), attr, len(policy))
+				typ.TemplateName(), field.Name, attr, len(policy))
 			continue
 		}
 		if checked[attr] {
 			warn(fld.Pos, WarnNetlinkBadAttr, "%v.%v: duplicate attribute",
-				typ.TemplateName(), field.FieldName())
+				typ.TemplateName(), field.Name)
 		}
 		checked[attr] = true
 		w := checkNetlinkAttr(ft, policy[attr])
 		if w != "" {
 			warn(fld.Pos, WarnNetlinkBadAttr, "%v.%v: %v",
-				typ.TemplateName(), field.FieldName(), w)
+				typ.TemplateName(), field.Name, w)
 		}
 	}
 	return warnings, checked, nil
 }
 
 func checkNetlinkAttr(typ *prog.StructDesc, policy nlaPolicy) string {
-	payload := typ.Fields[2]
+	payload := typ.Fields[2].Type
 	if typ.TemplateName() == "nlattr_tt" {
-		payload = typ.Fields[4]
+		payload = typ.Fields[4].Type
 	}
 	if warn := checkAttrType(typ, payload, policy); warn != "" {
 		return warn
@@ -643,7 +644,7 @@ func checkAttrType(typ *prog.StructDesc, payload prog.Type, policy nlaPolicy) st
 			return "expect string"
 		}
 	case NLA_NESTED:
-		if typ.TemplateName() != "nlattr_tt" || typ.Fields[3].(*prog.ConstType).Val != 1 {
+		if typ.TemplateName() != "nlattr_tt" || typ.Fields[3].Type.(*prog.ConstType).Val != 1 {
 			return "should be nlnest"
 		}
 	case NLA_BITFIELD32:

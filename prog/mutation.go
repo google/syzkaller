@@ -94,7 +94,7 @@ func (ctx *mutator) squashAny() bool {
 	}
 	ptr := complexPtrs[r.Intn(len(complexPtrs))]
 	if !p.Target.isAnyPtr(ptr.Type()) {
-		p.Target.squashPtr(ptr, true)
+		p.Target.squashPtr(ptr)
 	}
 	var blobs []*DataArg
 	var bases []*PointerArg
@@ -320,7 +320,7 @@ func (t *FlagsType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 }
 
 func (t *LenType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*Call, retry, preserve bool) {
-	if !r.mutateSize(arg.(*ConstArg), *ctx.Parent) {
+	if !r.mutateSize(arg.(*ConstArg), *ctx.Parent, ctx.Fields) {
 		retry = true
 		return
 	}
@@ -464,25 +464,15 @@ func (t *UnionType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 		return
 	}
 	a := arg.(*UnionArg)
-	current := -1
-	for i, option := range t.Fields {
-		if a.Option.Type().FieldName() == option.FieldName() {
-			current = i
-			break
-		}
+	index := r.Intn(len(t.Fields) - 1)
+	if index >= a.Index {
+		index++
 	}
-	if current == -1 {
-		panic("can't find current option in union")
-	}
-	newIdx := r.Intn(len(t.Fields) - 1)
-	if newIdx >= current {
-		newIdx++
-	}
-	optType := t.Fields[newIdx]
+	optType := t.Fields[index].Type
 	removeArg(a.Option)
 	var newOpt Arg
 	newOpt, calls = r.generateArg(s, optType, a.Dir())
-	replaceArg(arg, MakeUnionArg(t, a.Dir(), newOpt))
+	replaceArg(arg, MakeUnionArg(t, a.Dir(), newOpt, index))
 	return
 }
 

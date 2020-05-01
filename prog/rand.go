@@ -601,15 +601,15 @@ func (target *Target) DataMmapProg() *Prog {
 	}
 }
 
-func (r *randGen) generateArgs(s *state, types []Type, dir Dir) ([]Arg, []*Call) {
+func (r *randGen) generateArgs(s *state, fields []Field, dir Dir) ([]Arg, []*Call) {
 	var calls []*Call
-	args := make([]Arg, len(types))
+	args := make([]Arg, len(fields))
 
 	// Generate all args. Size args have the default value 0 for now.
-	for i, typ := range types {
-		arg, calls1 := r.generateArg(s, typ, dir)
+	for i, field := range fields {
+		arg, calls1 := r.generateArg(s, field.Type, dir)
 		if arg == nil {
-			panic(fmt.Sprintf("generated arg is nil for type '%v', types: %+v", typ.Name(), types))
+			panic(fmt.Sprintf("generated arg is nil for field '%v', fields: %+v", field.Type.Name(), fields))
 		}
 		args[i] = arg
 		calls = append(calls, calls1...)
@@ -797,9 +797,10 @@ func (a *StructType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*
 }
 
 func (a *UnionType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {
-	optType := a.Fields[r.Intn(len(a.Fields))]
+	index := r.Intn(len(a.Fields))
+	optType := a.Fields[index].Type
 	opt, calls := r.generateArg(s, optType, dir)
-	return MakeUnionArg(a, dir, opt), calls
+	return MakeUnionArg(a, dir, opt, index), calls
 }
 
 func (a *PtrType) generate(r *randGen, s *state, dir Dir) (arg Arg, calls []*Call) {

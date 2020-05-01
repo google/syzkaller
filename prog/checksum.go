@@ -115,19 +115,19 @@ func calcChecksumsCall(c *Call) (map[Arg]CsumInfo, map[Arg]struct{}) {
 
 func findCsummedArg(arg Arg, typ *CsumType, parentsMap map[Arg]Arg) Arg {
 	if typ.Buf == ParentRef {
-		if csummedArg, ok := parentsMap[arg]; ok {
-			return csummedArg
+		csummedArg := parentsMap[arg]
+		if csummedArg == nil {
+			panic(fmt.Sprintf("%q for %q is not in parents map", ParentRef, typ.Name()))
 		}
-		panic(fmt.Sprintf("%v for %v is not in parents map", ParentRef, typ.Name()))
-	} else {
-		for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
-			// TODO(dvyukov): support template argument names as in size calculation.
-			if typ.Buf == parent.Type().Name() {
-				return parent
-			}
+		return csummedArg
+	}
+	for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
+		// TODO(dvyukov): support template argument names as in size calculation.
+		if typ.Buf == parent.Type().Name() {
+			return parent
 		}
 	}
-	panic(fmt.Sprintf("csum field '%v' references non existent field '%v'", typ.FieldName(), typ.Buf))
+	panic(fmt.Sprintf("csum field %q references non existent field %q", typ.Name(), typ.Buf))
 }
 
 func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr Arg, protocol uint8) CsumInfo {
@@ -160,8 +160,9 @@ func extractHeaderParams(arg *GroupArg, size uint64) (Arg, Arg) {
 }
 
 func getFieldByName(arg *GroupArg, name string) Arg {
-	for _, field := range arg.Inner {
-		if field.Type().FieldName() == name {
+	typ := arg.Type().(*StructType)
+	for i, field := range arg.Inner {
+		if typ.Fields[i].Name == name {
 			return field
 		}
 	}

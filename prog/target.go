@@ -187,12 +187,12 @@ func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*Key
 	for _, desc := range structs {
 		keyedStructs[desc.Key] = desc.Desc
 		for i := range desc.Desc.Fields {
-			unref(&desc.Desc.Fields[i], types)
+			unref(&desc.Desc.Fields[i].Type, types)
 		}
 	}
 	for _, c := range syscalls {
 		for i := range c.Args {
-			unref(&c.Args[i], types)
+			unref(&c.Args[i].Type, types)
 		}
 		if c.Ret != nil {
 			unref(&c.Ret, types)
@@ -262,7 +262,7 @@ func (g *Gen) GenerateSpecialArg(typ Type, dir Dir, pcalls *[]*Call) Arg {
 func (g *Gen) generateArg(typ Type, dir Dir, pcalls *[]*Call, ignoreSpecial bool) Arg {
 	arg, calls := g.r.generateArgImpl(g.s, typ, dir, ignoreSpecial)
 	*pcalls = append(*pcalls, calls...)
-	g.r.target.assignSizesArray([]Arg{arg}, nil)
+	g.r.target.assignSizesArray([]Arg{arg}, []Field{{Name: "", Type: arg.Type()}}, nil)
 	return arg
 }
 

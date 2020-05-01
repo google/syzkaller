@@ -61,12 +61,12 @@ func TestSquash(t *testing.T) {
 			if target.ArgContainsAny(ptrArg) {
 				t.Fatalf("arg is already squashed")
 			}
-			target.squashPtr(ptrArg, true)
+			target.squashPtr(ptrArg)
 			if !target.ArgContainsAny(ptrArg) {
 				t.Fatalf("arg is not squashed")
 			}
 			p1 := strings.TrimSpace(string(p.Serialize()))
-			target.squashPtr(ptrArg, true)
+			target.squashPtr(ptrArg)
 			p2 := strings.TrimSpace(string(p.Serialize()))
 			if p1 != p2 {
 				t.Fatalf("double squash changed program:\n%v\nvs:\n%v", p1, p2)

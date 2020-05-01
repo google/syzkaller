@@ -167,7 +167,8 @@ func (a *GroupArg) serialize(ctx *serializer) {
 }
 
 func (a *UnionArg) serialize(ctx *serializer) {
-	ctx.printf("@%v", a.Option.Type().FieldName())
+	typ := a.Type().(*UnionType)
+	ctx.printf("@%v", typ.Fields[a.Index].Name)
 	if !ctx.verbose && isDefault(a.Option) {
 		return
 	}
@@ -276,11 +277,11 @@ func (p *parser) parseProg() (*Prog, error) {
 				p.eatExcessive(false, "excessive syscall arguments")
 				break
 			}
-			typ := meta.Args[i]
-			if IsPad(typ) {
+			field := meta.Args[i]
+			if IsPad(field.Type) {
 				return nil, fmt.Errorf("padding in syscall %v arguments", name)
 			}
-			arg, err := p.parseArg(typ, DirIn)
+			arg, err := p.parseArg(field.Type, DirIn)
 			if err != nil {
 				return nil, err
 			}
@@ -488,7 +489,7 @@ func (p *parser) parseArgAddr(typ Type, dir Dir) (Arg, error) {
 			p.Parse('N')
 			p.Parse('Y')
 			p.Parse('=')
-			anyPtr := p.target.makeAnyPtrType(typ.Size(), typ.FieldName())
+			anyPtr := p.target.getAnyPtrType(typ.Size())
 			typ, elem, elemDir = anyPtr, anyPtr.Elem, anyPtr.ElemDir
 		}
 		var err error
@@ -582,11 +583,11 @@ func (p *parser) parseArgStruct(typ Type, dir Dir) (Arg, error) {
 			p.eatExcessive(false, "excessive struct %v fields", typ.Name())
 			break
 		}
-		fld := t1.Fields[i]
-		if IsPad(fld) {
-			inner = append(inner, MakeConstArg(fld, dir, 0))
+		field := t1.Fields[i]
+		if IsPad(field.Type) {
+			inner = append(inner, MakeConstArg(field.Type, dir, 0))
 		} else {
-			arg, err := p.parseArg(fld, dir)
+			arg, err := p.parseArg(field.Type, dir)
 			if err != nil {
 				return nil, err
 			}
@@ -598,11 +599,11 @@ func (p *parser) parseArgStruct(typ Type, dir Dir) (Arg, error) {
 	}
 	p.Parse('}')
 	for len(inner) < len(t1.Fields) {
-		fld := t1.Fields[len(inner)]
-		if !IsPad(fld) {
+		field := t1.Fields[len(inner)]
+		if !IsPad(field.Type) {
 			p.strictFailf("missing struct %v fields %v/%v", typ.Name(), len(inner), len(t1.Fields))
 		}
-		inner = append(inner, fld.DefaultArg(dir))
+		inner = append(inner, field.Type.DefaultArg(dir))
 	}
 	return MakeGroupArg(typ, dir, inner), nil
 }
@@ -646,9 +647,10 @@ func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 	p.Parse('@')
 	name := p.Ident()
 	var optType Type
-	for _, t2 := range t1.Fields {
-		if name == t2.FieldName() {
-			optType = t2
+	index := -1
+	for i, field := range t1.Fields {
+		if name == field.Name {
+			optType, index = field.Type, i
 			break
 		}
 	}
@@ -667,7 +669,7 @@ func (p *parser) parseArgUnion(typ Type, dir Dir) (Arg, error) {
 	} else {
 		opt = optType.DefaultArg(dir)
 	}
-	return MakeUnionArg(typ, dir, opt), nil
+	return MakeUnionArg(typ, dir, opt, index), nil
 }
 
 // Eats excessive call arguments and struct fields to recover after description changes.
@@ -1004,7 +1006,7 @@ func (p *parser) auto(arg Arg) Arg {
 func (p *parser) fixupAutos(prog *Prog) {
 	s := analyze(nil, nil, prog, nil)
 	for _, c := range prog.Calls {
-		p.target.assignSizesArray(c.Args, p.autos)
+		p.target.assignSizesArray(c.Args, c.Meta.Args, p.autos)
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if !p.autos[arg] {
 				return
