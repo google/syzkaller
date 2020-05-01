@@ -17,6 +17,7 @@ func TestParseAll(t *testing.T) {
 	if err != nil || len(files) == 0 {
 		t.Fatalf("failed to read sys dir: %v", err)
 	}
+	files = append(files, filepath.FromSlash("testdata/all.txt"))
 	for _, file := range files {
 		data, err := ioutil.ReadFile(file)
 		if err != nil {
@@ -51,6 +52,35 @@ func TestParseAll(t *testing.T) {
 			data3 := Format(desc.Clone())
 			if !bytes.Equal(data, data3) {
 				t.Fatalf("Clone lost data")
+			}
+			nodes0 := 0
+			desc.Walk(func(n Node) {
+				nodes0++
+				if SerializeNode(n) == "" {
+					t.Fatalf("empty serialized node: %#v", n)
+				}
+			})
+			nodes1 := 0
+			desc.Walk(Recursive(func(n Node) {
+				nodes1++
+				pos, typ, _ := n.Info()
+				if typ == "" {
+					t.Fatalf("%v: node has empty typ=%q: %#v", pos, typ, n)
+				}
+			}))
+			nodes2 := 0
+			desc.Walk(PostRecursive(func(n Node) {
+				nodes2++
+			}))
+			if nodes0 != len(desc.Nodes) || nodes1 <= len(desc.Nodes) || nodes1 != nodes2 {
+				t.Fatalf("bad walk: desc=%v, top=%v recursive=%v, postrecursive=%v",
+					len(desc.Nodes), nodes0, nodes1, nodes2)
+			}
+			desc4 := desc.Filter(func(n Node) bool { return true })
+			desc5 := desc.Filter(func(n Node) bool { return false })
+			if len(desc4.Nodes) != len(desc.Nodes) || len(desc5.Nodes) != 0 {
+				t.Fatalf("Filter is broken: desc=%v desc4=%v desc5=%v",
+					len(desc.Nodes), len(desc4.Nodes), len(desc5.Nodes))
 			}
 		})
 	}
