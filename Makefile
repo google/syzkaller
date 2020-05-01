@@ -315,7 +315,20 @@ presubmit: descriptions
 	$(MAKE) check_copyright 
 	$(MAKE) check_links
 	$(MAKE) lint
-	$(MAKE) presubmit_parallel
+	# We used to run presubmit_parallel instead of the following,
+	# but currently it OOMs on CI (see #1699).
+	# $(MAKE) presubmit_parallel
+	$(MAKE) test
+	$(MAKE) arch_linux_amd64_host
+	$(MAKE) arch_freebsd_amd64_host
+	$(MAKE) arch_netbsd_amd64_host
+	$(MAKE) arch_openbsd_amd64_host
+	$(MAKE) arch_linux_amd64_target
+	$(MAKE) arch_linux_arm64_target
+	$(MAKE) arch_freebsd_amd64_target
+	$(MAKE) arch_netbsd_amd64_target
+	$(MAKE) arch_openbsd_amd64_target
+	$(MAKE) arch_test
 	echo LGTM
 
 presubmit_parallel: test test_race arch
