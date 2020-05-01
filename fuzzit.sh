@@ -19,6 +19,7 @@ go get -u github.com/dvyukov/go-fuzz/go-fuzz-build
 wget -q -O fuzzit https://github.com/fuzzitdev/fuzzit/releases/download/v2.4.46/fuzzit_Linux_x86_64
 chmod a+x fuzzit
 
+make descriptions
 target syzkaller-prog-deserialize ./prog/test FuzzDeserialize
 target syzkaller-prog-parselog ./prog/test FuzzParseLog
 target syzkaller-compiler ./pkg/compiler Fuzz
