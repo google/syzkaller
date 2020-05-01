@@ -45,7 +45,7 @@ func initAnyTypes(target *Target) {
 			FldName:  "ANYARRAY",
 			IsVarlen: true,
 		},
-		Type: target.any.union,
+		Elem: target.any.union,
 	}
 	target.any.ptrPtr = &PtrType{
 		TypeCommon: TypeCommon{
@@ -54,7 +54,7 @@ func initAnyTypes(target *Target) {
 			TypeSize:   target.PtrSize,
 			IsOptional: true,
 		},
-		Type:    target.any.array,
+		Elem:    target.any.array,
 		ElemDir: DirIn,
 	}
 	target.any.ptr64 = &PtrType{
@@ -64,7 +64,7 @@ func initAnyTypes(target *Target) {
 			TypeSize:   8,
 			IsOptional: true,
 		},
-		Type:    target.any.array,
+		Elem:    target.any.array,
 		ElemDir: DirIn,
 	}
 	target.any.blob = &BufferType{
@@ -134,7 +134,7 @@ func (target *Target) makeAnyPtrType(size uint64, field string) *PtrType {
 
 func (target *Target) isAnyPtr(typ Type) bool {
 	ptr, ok := typ.(*PtrType)
-	return ok && ptr.Type == target.any.array
+	return ok && ptr.Elem == target.any.array
 }
 
 func (p *Prog) complexPtrs() (res []*PointerArg) {
@@ -217,7 +217,7 @@ func (target *Target) squashPtr(arg *PointerArg, preserveField bool) {
 		field = arg.Type().FieldName()
 	}
 	arg.typ = target.makeAnyPtrType(arg.Type().Size(), field)
-	arg.Res = MakeGroupArg(arg.typ.(*PtrType).Type, DirIn, elems)
+	arg.Res = MakeGroupArg(arg.typ.(*PtrType).Elem, DirIn, elems)
 	if size := arg.Res.Size(); size != size0 {
 		panic(fmt.Sprintf("squash changed size %v->%v for %v", size0, size, res0.Type()))
 	}

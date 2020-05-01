@@ -179,9 +179,9 @@ func (comp *compiler) collectTypes(proxies map[string]*typeProxy, tptr *prog.Typ
 	typ := *tptr
 	switch t := typ.(type) {
 	case *prog.PtrType:
-		comp.collectTypes(proxies, &t.Type)
+		comp.collectTypes(proxies, &t.Elem)
 	case *prog.ArrayType:
-		comp.collectTypes(proxies, &t.Type)
+		comp.collectTypes(proxies, &t.Elem)
 	case *prog.ResourceType, *prog.BufferType, *prog.VmaType, *prog.LenType,
 		*prog.FlagsType, *prog.ConstType, *prog.IntType, *prog.ProcType,
 		*prog.CsumType, *prog.StructType, *prog.UnionType:
@@ -277,7 +277,7 @@ func (ctx *structGen) check(key prog.StructKey, descp **prog.StructDesc) bool {
 func (ctx *structGen) walk(t0 prog.Type) {
 	switch t := t0.(type) {
 	case *prog.PtrType:
-		ctx.walk(t.Type)
+		ctx.walk(t.Elem)
 	case *prog.ArrayType:
 		ctx.walkArray(t)
 	case *prog.StructType:
@@ -291,16 +291,16 @@ func (ctx *structGen) walkArray(t *prog.ArrayType) {
 	if ctx.padded[t] {
 		return
 	}
-	ctx.walk(t.Type)
-	if !t.Type.Varlen() && t.Type.Size() == sizeUnassigned {
+	ctx.walk(t.Elem)
+	if !t.Elem.Varlen() && t.Elem.Size() == sizeUnassigned {
 		// An inner struct is not padded yet.
 		// Leave this array for next iteration.
 		return
 	}
 	ctx.padded[t] = true
 	t.TypeSize = 0
-	if t.Kind == prog.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Type.Varlen() {
-		t.TypeSize = t.RangeBegin * t.Type.Size()
+	if t.Kind == prog.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Elem.Varlen() {
+		t.TypeSize = t.RangeBegin * t.Elem.Size()
 	}
 }
 
@@ -535,7 +535,7 @@ func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
 	case *prog.BufferType:
 		return 1
 	case *prog.ArrayType:
-		return comp.typeAlign(t.Type)
+		return comp.typeAlign(t.Elem)
 	case *prog.StructType:
 		n := comp.structNodes[t.StructDesc]
 		attrs := comp.parseAttrs(structAttrs, n, n.Attrs)

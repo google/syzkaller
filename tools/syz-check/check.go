@@ -510,7 +510,7 @@ func isNetlinkPolicy(typ *prog.StructDesc) bool {
 			continue
 		}
 		if arr, ok := field.(*prog.ArrayType); ok {
-			field = arr.Type
+			field = arr.Elem
 		}
 		if field1, ok := field.(*prog.StructType); ok {
 			if isNetlinkPolicy(field1.StructDesc) {
@@ -629,8 +629,8 @@ func minTypeSize(typ prog.Type) int {
 		return size
 	}
 	if arr, ok := typ.(*prog.ArrayType); ok {
-		if arr.Kind == prog.ArrayRangeLen && !arr.Type.Varlen() {
-			return int(arr.RangeBegin * arr.Type.Size())
+		if arr.Kind == prog.ArrayRangeLen && !arr.Elem.Varlen() {
+			return int(arr.RangeBegin * arr.Elem.Size())
 		}
 	}
 	return -1

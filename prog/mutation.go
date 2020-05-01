@@ -412,7 +412,7 @@ func (t *ArrayType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 	}
 	if count > uint64(len(a.Inner)) {
 		for count > uint64(len(a.Inner)) {
-			newArg, newCalls := r.generateArg(s, t.Type, a.Dir())
+			newArg, newCalls := r.generateArg(s, t.Elem, a.Dir())
 			a.Inner = append(a.Inner, newArg)
 			calls = append(calls, newCalls...)
 			for _, c := range newCalls {

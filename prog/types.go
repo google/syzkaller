@@ -521,21 +521,21 @@ const (
 
 type ArrayType struct {
 	TypeCommon
-	Type       Type
+	Elem       Type
 	Kind       ArrayKind
 	RangeBegin uint64
 	RangeEnd   uint64
 }
 
 func (t *ArrayType) String() string {
-	return fmt.Sprintf("array[%v]", t.Type.String())
+	return fmt.Sprintf("array[%v]", t.Elem.String())
 }
 
 func (t *ArrayType) DefaultArg(dir Dir) Arg {
 	var elems []Arg
 	if t.Kind == ArrayRangeLen && t.RangeBegin == t.RangeEnd {
 		for i := uint64(0); i < t.RangeBegin; i++ {
-			elems = append(elems, t.Type.DefaultArg(dir))
+			elems = append(elems, t.Elem.DefaultArg(dir))
 		}
 	}
 	return MakeGroupArg(t, dir, elems)
@@ -556,19 +556,19 @@ func (t *ArrayType) isDefaultArg(arg Arg) bool {
 
 type PtrType struct {
 	TypeCommon
-	Type    Type
+	Elem    Type
 	ElemDir Dir
 }
 
 func (t *PtrType) String() string {
-	return fmt.Sprintf("ptr[%v, %v]", t.ElemDir, t.Type.String())
+	return fmt.Sprintf("ptr[%v, %v]", t.ElemDir, t.Elem.String())
 }
 
 func (t *PtrType) DefaultArg(dir Dir) Arg {
 	if t.Optional() {
 		return MakeSpecialPointerArg(t, dir, 0)
 	}
-	return MakePointerArg(t, dir, 0, t.Type.DefaultArg(t.ElemDir))
+	return MakePointerArg(t, dir, 0, t.Elem.DefaultArg(t.ElemDir))
 }
 
 func (t *PtrType) isDefaultArg(arg Arg) bool {
@@ -678,9 +678,9 @@ func foreachType(meta *Syscall, f func(t Type, ctx typeCtx)) {
 		f(t, typeCtx{Dir: dir})
 		switch a := t.(type) {
 		case *PtrType:
-			rec(a.Type, a.ElemDir)
+			rec(a.Elem, a.ElemDir)
 		case *ArrayType:
-			rec(a.Type, dir)
+			rec(a.Elem, dir)
 		case *StructType:
 			recStruct(a.StructDesc, dir)
 		case *UnionType:
