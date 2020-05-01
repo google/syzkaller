@@ -36,13 +36,10 @@ type anyTypes struct {
 //	resoct	fmt[oct, ANYRES64]
 // ] [varlen]
 func initAnyTypes(target *Target) {
-	target.any.union = &UnionType{
-		FldName: "ANYUNION",
-	}
+	target.any.union = &UnionType{}
 	target.any.array = &ArrayType{
 		TypeCommon: TypeCommon{
 			TypeName: "ANYARRAY",
-			FldName:  "ANYARRAY",
 			IsVarlen: true,
 		},
 		Elem: target.any.union,
@@ -50,7 +47,6 @@ func initAnyTypes(target *Target) {
 	target.any.ptrPtr = &PtrType{
 		TypeCommon: TypeCommon{
 			TypeName:   "ANYPTR",
-			FldName:    "ANYPTR",
 			TypeSize:   target.PtrSize,
 			IsOptional: true,
 		},
@@ -60,7 +56,6 @@ func initAnyTypes(target *Target) {
 	target.any.ptr64 = &PtrType{
 		TypeCommon: TypeCommon{
 			TypeName:   "ANYPTR64",
-			FldName:    "ANYPTR64",
 			TypeSize:   8,
 			IsOptional: true,
 		},
@@ -70,7 +65,6 @@ func initAnyTypes(target *Target) {
 	target.any.blob = &BufferType{
 		TypeCommon: TypeCommon{
 			TypeName: "ANYBLOB",
-			FldName:  "ANYBLOB",
 			IsVarlen: true,
 		},
 	}
@@ -78,7 +72,6 @@ func initAnyTypes(target *Target) {
 		return &ResourceType{
 			TypeCommon: TypeCommon{
 				TypeName:   name,
-				FldName:    name,
 				TypeSize:   size,
 				IsOptional: true,
 			},
@@ -99,37 +92,27 @@ func initAnyTypes(target *Target) {
 	target.any.union.StructDesc = &StructDesc{
 		TypeCommon: TypeCommon{
 			TypeName: "ANYUNION",
-			FldName:  "ANYUNION",
 			IsVarlen: true,
 		},
-		Fields: []Type{
-			target.any.blob,
-			target.any.res16,
-			target.any.res32,
-			target.any.res64,
-			target.any.resdec,
-			target.any.reshex,
-			target.any.resoct,
+		Fields: []Field{
+			{Name: "ANYBLOB", Type: target.any.blob},
+			{Name: "ANYRES16", Type: target.any.res16},
+			{Name: "ANYRES32", Type: target.any.res32},
+			{Name: "ANYRES64", Type: target.any.res64},
+			{Name: "ANYRESDEC", Type: target.any.resdec},
+			{Name: "ANYRESHEX", Type: target.any.reshex},
+			{Name: "ANYRESOCT", Type: target.any.resoct},
 		},
 	}
 }
 
-func (target *Target) makeAnyPtrType(size uint64, field string) *PtrType {
-	// We need to make a copy because type holds field name,
-	// and field names are used as len target.
-	var typ PtrType
+func (target *Target) getAnyPtrType(size uint64) *PtrType {
 	if size == target.PtrSize {
-		typ = *target.any.ptrPtr
+		return target.any.ptrPtr
 	} else if size == 8 {
-		typ = *target.any.ptr64
-	} else {
-		panic(fmt.Sprintf("bad pointer size %v", size))
+		return target.any.ptr64
 	}
-	typ.TypeSize = size
-	if field != "" {
-		typ.FldName = field
-	}
-	return &typ
+	panic(fmt.Sprintf("bad pointer size %v", size))
 }
 
 func (target *Target) isAnyPtr(typ Type) bool {
@@ -204,7 +187,7 @@ func (target *Target) ArgContainsAny(arg0 Arg) (res bool) {
 	return
 }
 
-func (target *Target) squashPtr(arg *PointerArg, preserveField bool) {
+func (target *Target) squashPtr(arg *PointerArg) {
 	if arg.Res == nil || arg.VmaSize != 0 {
 		panic("bad ptr arg")
 	}
@@ -212,11 +195,7 @@ func (target *Target) squashPtr(arg *PointerArg, preserveField bool) {
 	size0 := res0.Size()
 	var elems []Arg
 	target.squashPtrImpl(arg.Res, &elems)
-	field := ""
-	if preserveField {
-		field = arg.Type().FieldName()
-	}
-	arg.typ = target.makeAnyPtrType(arg.Type().Size(), field)
+	arg.typ = target.getAnyPtrType(arg.Type().Size())
 	arg.Res = MakeGroupArg(arg.typ.(*PtrType).Elem, DirIn, elems)
 	if size := arg.Res.Size(); size != size0 {
 		panic(fmt.Sprintf("squash changed size %v->%v for %v", size0, size, res0.Type()))
@@ -287,29 +266,30 @@ func (target *Target) squashConst(arg *ConstArg, elems *[]Arg) {
 }
 
 func (target *Target) squashResult(arg *ResultArg, elems *[]Arg) {
+	index := -1
 	switch arg.Type().Format() {
 	case FormatNative, FormatBigEndian:
 		switch arg.Size() {
 		case 2:
-			arg.typ = target.any.res16
+			arg.typ, index = target.any.res16, 1
 		case 4:
-			arg.typ = target.any.res32
+			arg.typ, index = target.any.res32, 2
 		case 8:
-			arg.typ = target.any.res64
+			arg.typ, index = target.any.res64, 3
 		default:
 			panic("bad size")
 		}
 	case FormatStrDec:
-		arg.typ = target.any.resdec
+		arg.typ, index = target.any.resdec, 4
 	case FormatStrHex:
-		arg.typ = target.any.reshex
+		arg.typ, index = target.any.reshex, 5
 	case FormatStrOct:
-		arg.typ = target.any.resoct
+		arg.typ, index = target.any.resoct, 6
 	default:
 		panic("bad")
 	}
 	arg.dir = DirIn
-	*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, arg))
+	*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, arg, index))
 }
 
 func (target *Target) squashGroup(arg *GroupArg, elems *[]Arg) {
@@ -386,13 +366,13 @@ func (target *Target) squashedValue(arg *ConstArg) (uint64, BinaryFormat) {
 func (target *Target) ensureDataElem(elems *[]Arg) *DataArg {
 	if len(*elems) == 0 {
 		res := MakeDataArg(target.any.blob, DirIn, nil)
-		*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, res))
+		*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, res, 0))
 		return res
 	}
 	res, ok := (*elems)[len(*elems)-1].(*UnionArg).Option.(*DataArg)
 	if !ok {
 		res = MakeDataArg(target.any.blob, DirIn, nil)
-		*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, res))
+		*elems = append(*elems, MakeUnionArg(target.any.union, DirIn, res, 0))
 	}
 	return res
 }

@@ -141,7 +141,7 @@ func (cs *openCallSelector) Select(call *parser.Syscall) *prog.Syscall {
 func (cs *openCallSelector) matchOpen(meta *prog.Syscall, call *parser.Syscall) (bool, int) {
 	straceFileArg := call.Args[openDiscriminatorArgs[call.CallName]]
 	straceBuf := straceFileArg.(*parser.BufferType).Val
-	syzFileArg := meta.Args[openDiscriminatorArgs[meta.CallName]]
+	syzFileArg := meta.Args[openDiscriminatorArgs[meta.CallName]].Type
 	if _, ok := syzFileArg.(*prog.PtrType); !ok {
 		return false, -1
 	}
@@ -186,7 +186,7 @@ func (cs *defaultCallSelector) matchCall(meta *prog.Syscall, call *parser.Syscal
 		if i >= len(meta.Args) || i >= len(call.Args) {
 			return -1
 		}
-		typ := meta.Args[i]
+		typ := meta.Args[i].Type
 		arg := call.Args[i]
 		switch t := typ.(type) {
 		case *prog.ConstType:

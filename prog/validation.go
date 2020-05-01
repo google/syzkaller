@@ -55,7 +55,7 @@ func (ctx *validCtx) validateCall(c *Call) error {
 			len(c.Meta.Args), len(c.Args))
 	}
 	for i, arg := range c.Args {
-		if err := ctx.validateArg(arg, c.Meta.Args[i], DirIn); err != nil {
+		if err := ctx.validateArg(arg, c.Meta.Args[i].Type, DirIn); err != nil {
 			return err
 		}
 	}
@@ -125,8 +125,7 @@ func (arg *ConstArg) validate(ctx *validCtx) error {
 		typ := arg.Type()
 		if _, isLen := typ.(*LenType); !isLen {
 			if !typ.isDefaultArg(arg) {
-				return fmt.Errorf("output arg '%v'/'%v' has non default value '%+v'",
-					typ.FieldName(), typ.Name(), arg)
+				return fmt.Errorf("output arg %q has non default value %+v", typ.Name(), arg)
 			}
 		}
 	}
@@ -192,7 +191,7 @@ func (arg *GroupArg) validate(ctx *validCtx) error {
 				typ.Name(), len(typ.Fields), len(arg.Inner))
 		}
 		for i, field := range arg.Inner {
-			if err := ctx.validateArg(field, typ.Fields[i], arg.Dir()); err != nil {
+			if err := ctx.validateArg(field, typ.Fields[i].Type, arg.Dir()); err != nil {
 				return err
 			}
 		}
@@ -218,16 +217,10 @@ func (arg *UnionArg) validate(ctx *validCtx) error {
 	if !ok {
 		return fmt.Errorf("union arg %v has bad type %v", arg, arg.Type().Name())
 	}
-	var optType Type
-	for _, typ1 := range typ.Fields {
-		if arg.Option.Type().FieldName() == typ1.FieldName() {
-			optType = typ1
-			break
-		}
+	if arg.Index < 0 || arg.Index >= len(typ.Fields) {
+		return fmt.Errorf("union arg %v has bad index %v/%v", arg, arg.Index, len(typ.Fields))
 	}
-	if optType == nil {
-		return fmt.Errorf("union arg '%v' has bad option", typ.Name())
-	}
+	optType := typ.Fields[arg.Index].Type
 	return ctx.validateArg(arg.Option, optType, arg.Dir())
 }
 

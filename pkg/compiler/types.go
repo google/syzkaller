@@ -162,7 +162,7 @@ var typePtr = &typeDesc{
 		}
 		return &prog.PtrType{
 			TypeCommon: base.TypeCommon,
-			Elem:       comp.genType(args[1], "", 0),
+			Elem:       comp.genType(args[1], 0),
 			ElemDir:    genDir(args[0]),
 		}
 	},
@@ -212,7 +212,7 @@ var typeArray = &typeDesc{
 		return comp.isZeroSize(args[0])
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		elemType := comp.genType(args[0], "", 0)
+		elemType := comp.genType(args[0], 0)
 		kind, begin, end := prog.ArrayRandLen, uint64(0), uint64(0)
 		if len(args) > 1 {
 			kind, begin, end = prog.ArrayRangeLen, args[1].Value, args[1].Value
@@ -696,7 +696,7 @@ var typeFmt = &typeDesc{
 		{Name: "value", Type: typeArgType, IsArg: true},
 	},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
-		desc, _, _ := comp.getArgsBase(args[1], "", true)
+		desc, _, _ := comp.getArgsBase(args[1], true)
 		switch desc {
 		case typeResource, typeInt, typeLen, typeFlags, typeProc:
 		default:
@@ -718,7 +718,7 @@ var typeFmt = &typeDesc{
 			format = prog.FormatStrOct
 			size = 23
 		}
-		typ := comp.genType(args[1], "", comp.ptrSize)
+		typ := comp.genType(args[1], comp.ptrSize)
 		switch t := typ.(type) {
 		case *prog.ResourceType:
 			t.ArgFormat = format
@@ -767,7 +767,7 @@ func init() {
 			baseType = r.Base
 			r = comp.resources[r.Base.Ident]
 		}
-		baseProgType := comp.genType(baseType, "", 0)
+		baseProgType := comp.genType(baseType, 0)
 		base.TypeSize = baseProgType.Size()
 		return &prog.ResourceType{
 			TypeCommon: base.TypeCommon,
@@ -829,13 +829,11 @@ func init() {
 		if s.IsUnion {
 			return &prog.UnionType{
 				Key:        key,
-				FldName:    base.FldName,
 				StructDesc: desc,
 			}
 		}
 		return &prog.StructType{
 			Key:        key,
-			FldName:    base.FldName,
 			StructDesc: desc,
 		}
 	}

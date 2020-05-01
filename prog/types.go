@@ -15,7 +15,7 @@ type Syscall struct {
 	Name        string
 	CallName    string
 	MissingArgs int // number of trailing args that should be zero-filled
-	Args        []Type
+	Args        []Field
 	Ret         Type
 	Attrs       SyscallAttrs
 
@@ -65,6 +65,11 @@ func (dir Dir) String() string {
 	}
 }
 
+type Field struct {
+	Name string
+	Type
+}
+
 type BinaryFormat int
 
 const (
@@ -78,7 +83,6 @@ const (
 type Type interface {
 	String() string
 	Name() string
-	FieldName() string
 	TemplateName() string // for template structs name without arguments
 	Optional() bool
 	Varlen() bool
@@ -142,7 +146,6 @@ func IsPad(t Type) bool {
 
 type TypeCommon struct {
 	TypeName string
-	FldName  string // for struct fields and named args
 	// Static size of the type, or 0 for variable size types and all but last bitfields in the group.
 	TypeSize   uint64
 	IsOptional bool
@@ -151,10 +154,6 @@ type TypeCommon struct {
 
 func (t *TypeCommon) Name() string {
 	return t.TypeName
-}
-
-func (t *TypeCommon) FieldName() string {
-	return t.FldName
 }
 
 func (t *TypeCommon) TemplateName() string {
@@ -580,17 +579,12 @@ func (t *PtrType) isDefaultArg(arg Arg) bool {
 }
 
 type StructType struct {
-	Key     StructKey
-	FldName string
+	Key StructKey
 	*StructDesc
 }
 
 func (t *StructType) String() string {
 	return t.Name()
-}
-
-func (t *StructType) FieldName() string {
-	return t.FldName
 }
 
 func (t *StructType) DefaultArg(dir Dir) Arg {
@@ -612,8 +606,7 @@ func (t *StructType) isDefaultArg(arg Arg) bool {
 }
 
 type UnionType struct {
-	Key     StructKey
-	FldName string
+	Key StructKey
 	*StructDesc
 }
 
@@ -621,27 +614,19 @@ func (t *UnionType) String() string {
 	return t.Name()
 }
 
-func (t *UnionType) FieldName() string {
-	return t.FldName
-}
-
 func (t *UnionType) DefaultArg(dir Dir) Arg {
-	return MakeUnionArg(t, dir, t.Fields[0].DefaultArg(dir))
+	return MakeUnionArg(t, dir, t.Fields[0].DefaultArg(dir), 0)
 }
 
 func (t *UnionType) isDefaultArg(arg Arg) bool {
 	a := arg.(*UnionArg)
-	return a.Option.Type().FieldName() == t.Fields[0].FieldName() && isDefault(a.Option)
+	return a.Index == 0 && isDefault(a.Option)
 }
 
 type StructDesc struct {
 	TypeCommon
-	Fields    []Type
+	Fields    []Field
 	AlignAttr uint64
-}
-
-func (t *StructDesc) FieldName() string {
-	panic("must not be called")
 }
 
 type StructKey struct {
@@ -671,7 +656,7 @@ func foreachType(meta *Syscall, f func(t Type, ctx typeCtx)) {
 		}
 		seen[desc] = true
 		for _, f := range desc.Fields {
-			rec(f, dir)
+			rec(f.Type, dir)
 		}
 	}
 	rec = func(t Type, dir Dir) {
@@ -691,8 +676,8 @@ func foreachType(meta *Syscall, f func(t Type, ctx typeCtx)) {
 			panic("unknown type")
 		}
 	}
-	for _, t := range meta.Args {
-		rec(t, DirIn)
+	for _, field := range meta.Args {
+		rec(field.Type, DirIn)
 	}
 	if meta.Ret != nil {
 		rec(meta.Ret, DirOut)

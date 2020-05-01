@@ -234,10 +234,11 @@ func (arg *GroupArg) fixedInnerSize() bool {
 type UnionArg struct {
 	ArgCommon
 	Option Arg
+	Index  int // Index of the selected option in the union type.
 }
 
-func MakeUnionArg(t Type, dir Dir, opt Arg) *UnionArg {
-	return &UnionArg{ArgCommon: ArgCommon{typ: t, dir: dir}, Option: opt}
+func MakeUnionArg(t Type, dir Dir, opt Arg, index int) *UnionArg {
+	return &UnionArg{ArgCommon: ArgCommon{typ: t, dir: dir}, Option: opt, Index: index}
 }
 
 func (arg *UnionArg) Size() uint64 {
