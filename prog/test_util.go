@@ -34,10 +34,10 @@ func TestDeserializeHelper(t *testing.T, OS, arch string, transform func(*Target
 				test.StrictErr = test.Err
 			}
 			if test.Err != "" && test.Out != "" {
-				t.Fatalf("both Err and Out are set")
+				t.Errorf("both Err and Out are set")
 			}
 			if test.In == test.Out {
-				t.Fatalf("In and Out are equal, remove Out in such case\n%v", test.In)
+				t.Errorf("In and Out are equal, remove Out in such case\n%v", test.In)
 			}
 			if test.Out == "" {
 				test.Out = test.In

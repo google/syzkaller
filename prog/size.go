@@ -47,6 +47,12 @@ func (target *Target) assignSize(dst *ConstArg, pos Arg, path []string, args []A
 			offset += buf.Size()
 			continue
 		}
+		if typ := buf.Type().Name(); typ == target.any.ptrPtr.Name() || typ == target.any.ptr64.Name() {
+			// If path points into squashed argument, we don't have the target argument.
+			// In such case we simply leave size argument as is. It can't happen during generation,
+			// only during mutation and mutation can set size to random values, so it should be fine.
+			return
+		}
 		buf = InnerArg(buf)
 		if buf == nil {
 			dst.Val = 0 // target is an optional pointer
