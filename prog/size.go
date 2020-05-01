@@ -162,10 +162,10 @@ func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
 					case *VmaType:
 						return false
 					case *ArrayType:
-						if targetType.Type.Varlen() {
+						if targetType.Elem.Varlen() {
 							return false
 						}
-						elemSize = targetType.Type.Size()
+						elemSize = targetType.Elem.Size()
 					}
 				}
 				break

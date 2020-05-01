@@ -82,14 +82,14 @@ func (target *Target) calcResourceUsage() map[string]map[int]weights {
 					}
 				}
 			case *PtrType:
-				if _, ok := a.Type.(*StructType); ok {
-					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Type.Name())
+				if _, ok := a.Elem.(*StructType); ok {
+					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Elem.Name())
 				}
-				if _, ok := a.Type.(*UnionType); ok {
-					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Type.Name())
+				if _, ok := a.Elem.(*UnionType); ok {
+					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Elem.Name())
 				}
-				if arr, ok := a.Type.(*ArrayType); ok {
-					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", arr.Type.Name())
+				if arr, ok := a.Elem.(*ArrayType); ok {
+					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", arr.Elem.Name())
 				}
 			case *BufferType:
 				switch a.Kind {

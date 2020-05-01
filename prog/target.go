@@ -200,9 +200,9 @@ func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*Key
 		foreachType(c, func(t0 Type, _ typeCtx) {
 			switch t := t0.(type) {
 			case *PtrType:
-				unref(&t.Type, types)
+				unref(&t.Elem, types)
 			case *ArrayType:
-				unref(&t.Type, types)
+				unref(&t.Elem, types)
 			case *ResourceType:
 				t.Desc = resourceMap[t.TypeName]
 				if t.Desc == nil {
