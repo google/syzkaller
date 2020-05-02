@@ -202,7 +202,7 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
     ```
 
     ``` bash
-    go get -u -d github.com/google/syzkaller/...
+    go get -u -d github.com/google/syzkaller/prog
     cd ~/gopath-1.10.8/src/github.com/google/syzkaller
     # Put the patch above into ./syzkaller.patch
     git apply ./syzkaller.patch
