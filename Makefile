@@ -335,7 +335,7 @@ presubmit_parallel: test test_race arch
 
 test: descriptions
 ifeq ("$(TRAVIS)$(shell go version | grep 1.13)", "true")
-	# Collect coverage report for codecov.io when testing Go 1.12 on travis (uploaded in .travis.yml).
+	# Collect coverage report for codecov.io when testing Go 1.14 on travis (uploaded in .travis.yml).
 	env CGO_ENABLED=1 $(GO) test -short -coverprofile=coverage.txt ./...
 else
 	# Executor tests use cgo.
