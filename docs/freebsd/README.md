@@ -22,7 +22,7 @@ When using bhyve as the VM backend, a DHCP server must also be installed:
 ```
 To checkout the syzkaller sources, run:
 ```console
-$ go get -u -d github.com/google/syzkaller/...
+$ go get -u -d github.com/google/syzkaller/prog
 ```
 and the binaries can be built by running:
 ```console

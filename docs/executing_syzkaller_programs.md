@@ -13,7 +13,7 @@ $ export GOPATH=$HOME/gopath
 
 2. Download syzkaller sources:
 ``` bash
-$ go get -u -d github.com/google/syzkaller/...
+$ go get -u -d github.com/google/syzkaller/prog
 ```
 
 3. Build necessary syzkaller binaries:
