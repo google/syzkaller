@@ -1,0 +1,13 @@
+# See https://docs.codecov.io/docs/codecovyml-reference
+# Validate with curl --data-binary @tools/codecov.yml https://codecov.io/validate
+
+coverage:
+  precision: 0
+  round: nearest
+  range: "50...75"
+
+coverage:
+  status:
+    project:
+      default:
+        threshold: 1%
