@@ -568,7 +568,7 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 	s := newState(target, target.DefaultChoiceTable(), nil)
 	handled := make(map[string]bool)
 	for _, meta := range target.Syscalls {
-		if !strings.HasPrefix(meta.CallName, "syz_") || handled[meta.CallName] {
+		if !strings.HasPrefix(meta.CallName, "syz_") || handled[meta.CallName] || meta.Attrs.Disabled {
 			continue
 		}
 		handled[meta.CallName] = true

@@ -189,8 +189,8 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 	fmt.Fprintf(out, "\tRegisterTarget(&Target{"+
 		"OS: %q, Arch: %q, Revision: revision_%v, PtrSize: %v, "+
 		"PageSize: %v, NumPages: %v, DataOffset: %v, Syscalls: syscalls_%v, "+
-		"Resources: resources_%v, Types: types_%v, Consts: consts_%v}, "+
-		"InitTarget)\n}\n\n",
+		"Resources: resources_%v, Consts: consts_%v}, "+
+		"types_%v, InitTarget)\n}\n\n",
 		target.OS, target.Arch, target.Arch, target.PtrSize,
 		target.PageSize, target.NumPages, target.DataOffset,
 		target.Arch, target.Arch, target.Arch, target.Arch)
@@ -267,7 +267,7 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 			Name:     c.Name,
 			CallName: c.CallName,
 			NR:       int32(c.NR),
-			NeedCall: !target.SyscallNumbers || strings.HasPrefix(c.CallName, "syz_"),
+			NeedCall: (!target.SyscallNumbers || strings.HasPrefix(c.CallName, "syz_")) && !c.Attrs.Disabled,
 			Attrs:    attrVals[:last+1],
 		})
 	}
