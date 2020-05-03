@@ -124,8 +124,30 @@ func LoggingHandler(pos Pos, msg string) {
 	fmt.Fprintf(os.Stderr, "%v: %v\n", pos, msg)
 }
 
+const BuiltinFile = "BUILTINS"
+
+func (pos Pos) Builtin() bool {
+	return pos.File == BuiltinFile
+}
+
 func (pos Pos) String() string {
+	if pos.Builtin() {
+		return "builtins"
+	}
+	if pos.Col == 0 {
+		return fmt.Sprintf("%v:%v", pos.File, pos.Line)
+	}
 	return fmt.Sprintf("%v:%v:%v", pos.File, pos.Line, pos.Col)
+}
+
+func (pos Pos) less(other Pos) bool {
+	if pos.File != other.File {
+		return pos.File < other.File
+	}
+	if pos.Line != other.Line {
+		return pos.Line < other.Line
+	}
+	return pos.Col < other.Col
 }
 
 func (s *scanner) Scan() (tok token, lit string, pos Pos) {
