@@ -934,9 +934,8 @@ var typeArgBase = namedArg{
 }
 
 var (
-	builtinTypes    = make(map[string]*typeDesc)
-	builtinTypedefs = make(map[string]*ast.TypeDef)
-	builtinStrFlags = make(map[string]*ast.StrFlags)
+	builtinTypes = make(map[string]*typeDesc)
+	builtinDescs *ast.Description
 
 	// To avoid weird cases like ptr[in, in] and ptr[out, opt].
 	reservedName = map[string]bool{
@@ -991,18 +990,7 @@ func init() {
 			builtinTypes[name] = desc
 		}
 	}
-	builtinDesc := ast.Parse([]byte(builtinDefs), "builtins", func(pos ast.Pos, msg string) {
+	builtinDescs = ast.Parse([]byte(builtinDefs), ast.BuiltinFile, func(pos ast.Pos, msg string) {
 		panic(fmt.Sprintf("failed to parse builtins: %v: %v", pos, msg))
 	})
-	for _, decl := range builtinDesc.Nodes {
-		switch n := decl.(type) {
-		case *ast.TypeDef:
-			builtinTypedefs[n.Name.Name] = n
-		case *ast.StrFlags:
-			builtinStrFlags[n.Name.Name] = n
-		case *ast.NewLine:
-		default:
-			panic(fmt.Sprintf("unexpected node in builtins: %#v", n))
-		}
-	}
 }

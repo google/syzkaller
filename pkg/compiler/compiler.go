@@ -47,6 +47,7 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 	if eh == nil {
 		eh = ast.LoggingHandler
 	}
+	desc.Nodes = append(builtinDescs.Clone().Nodes, desc.Nodes...)
 	comp := &compiler{
 		desc:         desc,
 		target:       target,
@@ -65,13 +66,6 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 		builtinConsts: map[string]uint64{
 			"PTR_SIZE": target.PtrSize,
 		},
-	}
-	for name, n := range builtinTypedefs {
-		comp.typedefs[name] = n
-		comp.usedTypedefs[name] = true
-	}
-	for name, n := range builtinStrFlags {
-		comp.strFlags[name] = n
 	}
 	return comp
 }
