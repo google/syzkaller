@@ -34,10 +34,9 @@ import (
 
 // Prog is description compilation result.
 type Prog struct {
-	Resources   []*prog.ResourceDesc
-	Syscalls    []*prog.Syscall
-	StructDescs []*prog.KeyedStruct
-	Types       []prog.Type
+	Resources []*prog.ResourceDesc
+	Syscalls  []*prog.Syscall
+	Types     []prog.Type
 	// Set of unsupported syscalls/flags.
 	Unsupported map[string]bool
 	// Returned if consts was nil.
@@ -61,9 +60,8 @@ func createCompiler(desc *ast.Description, target *targets.Target, eh ast.ErrorH
 		strFlags:     make(map[string]*ast.StrFlags),
 		used:         make(map[string]bool),
 		usedTypedefs: make(map[string]bool),
-		structDescs:  make(map[prog.StructKey]*prog.StructDesc),
-		structNodes:  make(map[*prog.StructDesc]*ast.Struct),
 		structVarlen: make(map[string]bool),
+		structTypes:  make(map[string]prog.Type),
 		builtinConsts: map[string]uint64{
 			"PTR_SIZE": target.PtrSize,
 		},
@@ -104,12 +102,11 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		return nil
 	}
 	syscalls := comp.genSyscalls()
-	structs := comp.genStructDescs(syscalls)
-	types := comp.generateTypes(syscalls, structs)
+	comp.layoutTypes(syscalls)
+	types := comp.generateTypes(syscalls)
 	prg := &Prog{
 		Resources:   comp.genResources(),
 		Syscalls:    syscalls,
-		StructDescs: structs,
 		Types:       types,
 		Unsupported: comp.unsupported,
 	}
@@ -139,9 +136,8 @@ type compiler struct {
 	used         map[string]bool // contains used structs/resources
 	usedTypedefs map[string]bool
 
-	structDescs   map[prog.StructKey]*prog.StructDesc
-	structNodes   map[*prog.StructDesc]*ast.Struct
 	structVarlen  map[string]bool
+	structTypes   map[string]prog.Type
 	builtinConsts map[string]uint64
 }
 

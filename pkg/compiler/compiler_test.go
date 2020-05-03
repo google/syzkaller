@@ -122,8 +122,6 @@ func TestData(t *testing.T) {
 				out := new(bytes.Buffer)
 				fmt.Fprintf(out, "\n\nRESOURCES:\n")
 				serializer.Write(out, desc.Resources)
-				fmt.Fprintf(out, "\n\nSTRUCTS:\n")
-				serializer.Write(out, desc.StructDescs)
 				fmt.Fprintf(out, "\n\nSYSCALLS:\n")
 				serializer.Write(out, desc.Syscalls)
 				if false {
@@ -188,8 +186,6 @@ s2 {
 	if p == nil {
 		t.Fatal("failed to compile")
 	}
-	got := p.StructDescs[0].Desc
-	t.Logf("got: %#v", got)
 }
 
 func TestCollectUnusedError(t *testing.T) {
