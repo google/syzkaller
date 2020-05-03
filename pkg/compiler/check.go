@@ -75,7 +75,7 @@ func (comp *compiler) checkNames() {
 				comp.error(pos, "%v uses reserved name %v", typ, name)
 				continue
 			}
-			if builtinTypes[name] != nil || builtinTypedefs[name] != nil {
+			if builtinTypes[name] != nil {
 				comp.error(pos, "%v name %v conflicts with builtin type", typ, name)
 				continue
 			}
@@ -122,10 +122,6 @@ func (comp *compiler) checkNames() {
 			name := n.Name.Name
 			if reservedName[name] {
 				comp.error(n.Pos, "string flags uses reserved name %v", name)
-				continue
-			}
-			if builtinStrFlags[name] != nil {
-				comp.error(n.Pos, "string flags %v conflicts with builtin flags", name)
 				continue
 			}
 			if prev := comp.strFlags[name]; prev != nil {
@@ -441,29 +437,36 @@ func (comp *compiler) collectUnused() []ast.Node {
 	structs, flags, strflags := comp.collectUsed(true)
 	_, _, _ = structs, flags, strflags
 
+	note := func(n ast.Node) {
+		if pos, _, _ := n.Info(); pos.Builtin() {
+			return
+		}
+		unused = append(unused, n)
+	}
+
 	for name, n := range comp.intFlags {
 		if !flags[name] {
-			unused = append(unused, n)
+			note(n)
 		}
 	}
 	for name, n := range comp.strFlags {
-		if !strflags[name] && builtinStrFlags[name] == nil {
-			unused = append(unused, n)
+		if !strflags[name] {
+			note(n)
 		}
 	}
 	for name, n := range comp.resources {
 		if !structs[name] {
-			unused = append(unused, n)
+			note(n)
 		}
 	}
 	for name, n := range comp.structs {
 		if !structs[name] {
-			unused = append(unused, n)
+			note(n)
 		}
 	}
 	for name, n := range comp.typedefs {
 		if !comp.usedTypedefs[name] {
-			unused = append(unused, n)
+			note(n)
 		}
 	}
 

@@ -149,6 +149,9 @@ func getConstInfo(infos map[string]*constInfo, pos ast.Pos) *constInfo {
 func convertConstInfo(infos map[string]*constInfo) map[string]*ConstInfo {
 	res := make(map[string]*ConstInfo)
 	for file, info := range infos {
+		if file == ast.BuiltinFile {
+			continue
+		}
 		res[file] = &ConstInfo{
 			Consts:   toArray(info.consts),
 			Includes: info.includeArray,

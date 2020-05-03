@@ -12,7 +12,7 @@ resource r0[int32]: 0, 0x1
 resource r1[string["foo"]]	### string can't be resource base (int types can)
 resource r1[int32]		### type r1 redeclared, previously declared as resource at LOCATION
 resource int32[int32]		### resource name int32 conflicts with builtin type
-resource fileoff[intptr]	### resource name fileoff conflicts with builtin type
+resource fileoff[intptr]	### type fileoff redeclared, previously declared as type alias at builtins
 
 s1 {
 	f1	int32
@@ -247,7 +247,7 @@ type type12 proc[123, 2, int16, opt]
 type type13 ptr[in, typestruct13]
 type type14 flags[type0, int32]
 type type15 const[0, type0]	### unexpected value type0 for base type argument of const type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
-type bool8 int8[0:1]		### type name bool8 conflicts with builtin type
+type bool8 int8[0:1]		### type bool8 redeclared, previously declared as type alias at builtins
 
 typestruct11 {
 	f	type11		### unknown type type11
