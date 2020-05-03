@@ -138,26 +138,42 @@ func (comp *compiler) genSyscall(n *ast.Call, argSizes []uint64) *prog.Syscall {
 type typeProxy struct {
 	typ       prog.Type
 	id        string
+	ref       prog.Ref
 	locations []*prog.Type
 }
 
-func (comp *compiler) generateTypes(syscalls []*prog.Syscall, structs []*prog.KeyedStruct) []prog.Type {
+func (comp *compiler) generateTypes(syscalls []*prog.Syscall) []prog.Type {
 	// Replace all Type's in the descriptions with Ref's
 	// and prepare a sorted array of corresponding real types.
 	proxies := make(map[string]*typeProxy)
-	for _, call := range syscalls {
-		for i := range call.Args {
-			comp.collectTypes(proxies, &call.Args[i].Type)
+	prog.ForeachTypePost(syscalls, func(typ prog.Type, ctx prog.TypeCtx) {
+		if _, ok := typ.(prog.Ref); ok {
+			return
 		}
-		if call.Ret != nil {
-			comp.collectTypes(proxies, &call.Ret)
+		if !typ.Varlen() && typ.Size() == sizeUnassigned {
+			panic("unassigned size")
 		}
-	}
-	for _, str := range structs {
-		for i := range str.Desc.Fields {
-			comp.collectTypes(proxies, &str.Desc.Fields[i].Type)
+		id := typ.Name()
+		switch typ.(type) {
+		case *prog.StructType, *prog.UnionType:
+			// There types can be uniquely identified with the name.
+		default:
+			buf := new(bytes.Buffer)
+			serializer.Write(buf, typ)
+			id = buf.String()
 		}
-	}
+		proxy := proxies[id]
+		if proxy == nil {
+			proxy = &typeProxy{
+				typ: typ,
+				id:  id,
+				ref: prog.Ref(len(proxies)),
+			}
+			proxies[id] = proxy
+		}
+		*ctx.Ptr = proxy.ref
+		proxy.locations = append(proxy.locations, ctx.Ptr)
+	})
 	array := make([]*typeProxy, 0, len(proxies))
 	for _, proxy := range proxies {
 		array = append(array, proxy)
@@ -175,177 +191,50 @@ func (comp *compiler) generateTypes(syscalls []*prog.Syscall, structs []*prog.Ke
 	return types
 }
 
-func (comp *compiler) collectTypes(proxies map[string]*typeProxy, tptr *prog.Type) {
-	typ := *tptr
-	switch t := typ.(type) {
-	case *prog.PtrType:
-		comp.collectTypes(proxies, &t.Elem)
-	case *prog.ArrayType:
-		comp.collectTypes(proxies, &t.Elem)
-	case *prog.ResourceType, *prog.BufferType, *prog.VmaType, *prog.LenType,
-		*prog.FlagsType, *prog.ConstType, *prog.IntType, *prog.ProcType,
-		*prog.CsumType, *prog.StructType, *prog.UnionType:
-	default:
-		panic("unknown type")
-	}
-	buf := new(bytes.Buffer)
-	serializer.Write(buf, typ)
-	id := buf.String()
-	proxy := proxies[id]
-	if proxy == nil {
-		proxy = &typeProxy{
-			typ: typ,
-			id:  id,
-		}
-		proxies[id] = proxy
-	}
-	proxy.locations = append(proxy.locations, tptr)
-}
-
-func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStruct {
-	// Calculate struct/union/array sizes, add padding to structs and detach
-	// StructDesc's from StructType's. StructType's can be recursive so it's
-	// not possible to write them out inline as other types. To break the
-	// recursion detach them, and write StructDesc's out as separate array
-	// of KeyedStruct's. prog package will reattach them during init.
-	ctx := &structGen{
-		comp:   comp,
-		padded: make(map[interface{}]bool),
-		detach: make(map[**prog.StructDesc]bool),
-	}
-	// We have to do this in the loop until we pad nothing new
-	// due to recursive structs.
-	for {
-		start := len(ctx.padded)
-		for _, c := range syscalls {
-			for _, a := range c.Args {
-				ctx.walk(a.Type)
-			}
-			if c.Ret != nil {
-				ctx.walk(c.Ret)
-			}
-		}
-		if start == len(ctx.padded) {
-			break
-		}
-	}
-
-	// Detach StructDesc's from StructType's. prog will reattach them again.
-	for descp := range ctx.detach {
-		*descp = nil
-	}
-
-	sort.Slice(ctx.structs, func(i, j int) bool {
-		si, sj := ctx.structs[i].Key, ctx.structs[j].Key
-		return si.Name < sj.Name
+func (comp *compiler) layoutTypes(syscalls []*prog.Syscall) {
+	// Calculate struct/union/array sizes, add padding to structs, mark bitfields.
+	padded := make(map[prog.Type]bool)
+	prog.ForeachTypePost(syscalls, func(typ prog.Type, _ prog.TypeCtx) {
+		comp.layoutType(typ, padded)
 	})
-	return ctx.structs
 }
 
-type structGen struct {
-	comp    *compiler
-	padded  map[interface{}]bool
-	detach  map[**prog.StructDesc]bool
-	structs []*prog.KeyedStruct
-}
-
-func (ctx *structGen) check(key prog.StructKey, descp **prog.StructDesc) bool {
-	ctx.detach[descp] = true
-	desc := *descp
-	if ctx.padded[desc] {
-		return false
+func (comp *compiler) layoutType(typ prog.Type, padded map[prog.Type]bool) {
+	if padded[typ] {
+		return
 	}
-	ctx.padded[desc] = true
-	for _, f := range desc.Fields {
-		ctx.walk(f.Type)
-		if !f.Varlen() && f.Size() == sizeUnassigned {
-			// An inner struct is not padded yet.
-			// Leave this struct for next iteration.
-			delete(ctx.padded, desc)
-			return false
-		}
-	}
-	if ctx.comp.used[key.Name] {
-		ctx.structs = append(ctx.structs, &prog.KeyedStruct{
-			Key:  key,
-			Desc: desc,
-		})
-	}
-	return true
-}
-
-func (ctx *structGen) walk(t0 prog.Type) {
-	switch t := t0.(type) {
-	case *prog.PtrType:
-		ctx.walk(t.Elem)
+	switch t := typ.(type) {
 	case *prog.ArrayType:
-		ctx.walkArray(t)
+		comp.layoutType(t.Elem, padded)
+		comp.layoutArray(t)
 	case *prog.StructType:
-		ctx.walkStruct(t)
+		for _, f := range t.Fields {
+			comp.layoutType(f.Type, padded)
+		}
+		comp.layoutStruct(t)
 	case *prog.UnionType:
-		ctx.walkUnion(t)
+		for _, f := range t.Fields {
+			comp.layoutType(f.Type, padded)
+		}
+		comp.layoutUnion(t)
+	default:
+		return
 	}
+	if !typ.Varlen() && typ.Size() == sizeUnassigned {
+		panic("size unassigned")
+	}
+	padded[typ] = true
 }
 
-func (ctx *structGen) walkArray(t *prog.ArrayType) {
-	if ctx.padded[t] {
-		return
-	}
-	ctx.walk(t.Elem)
-	if !t.Elem.Varlen() && t.Elem.Size() == sizeUnassigned {
-		// An inner struct is not padded yet.
-		// Leave this array for next iteration.
-		return
-	}
-	ctx.padded[t] = true
+func (comp *compiler) layoutArray(t *prog.ArrayType) {
 	t.TypeSize = 0
 	if t.Kind == prog.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Elem.Varlen() {
 		t.TypeSize = t.RangeBegin * t.Elem.Size()
 	}
 }
 
-func (ctx *structGen) walkStruct(t *prog.StructType) {
-	if !ctx.check(t.Key, &t.StructDesc) {
-		return
-	}
-	comp := ctx.comp
-	structNode := comp.structNodes[t.StructDesc]
-	// Add paddings, calculate size, mark bitfields.
-	varlen := false
-	for _, f := range t.Fields {
-		if f.Varlen() {
-			varlen = true
-		}
-	}
-	attrs := comp.parseAttrs(structAttrs, structNode, structNode.Attrs)
-	t.AlignAttr = attrs[attrAlign]
-	comp.layoutStruct(t, varlen, attrs[attrPacked] != 0)
-	t.TypeSize = 0
-	if !varlen {
-		for _, f := range t.Fields {
-			t.TypeSize += f.Size()
-		}
-		sizeAttr, hasSize := attrs[attrSize]
-		if hasSize {
-			if t.TypeSize > sizeAttr {
-				comp.error(structNode.Attrs[0].Pos, "struct %v has size attribute %v"+
-					" which is less than struct size %v",
-					structNode.Name.Name, sizeAttr, t.TypeSize)
-			}
-			if pad := sizeAttr - t.TypeSize; pad != 0 {
-				t.Fields = append(t.Fields, genPad(pad))
-			}
-			t.TypeSize = sizeAttr
-		}
-	}
-}
-
-func (ctx *structGen) walkUnion(t *prog.UnionType) {
-	if !ctx.check(t.Key, &t.StructDesc) {
-		return
-	}
-	comp := ctx.comp
-	structNode := comp.structNodes[t.StructDesc]
+func (comp *compiler) layoutUnion(t *prog.UnionType) {
+	structNode := comp.structs[t.TypeName]
 	attrs := comp.parseAttrs(unionAttrs, structNode, structNode.Attrs)
 	t.TypeSize = 0
 	if attrs[attrVarlen] != 0 {
@@ -368,18 +257,39 @@ func (ctx *structGen) walkUnion(t *prog.UnionType) {
 	}
 }
 
-func (comp *compiler) genStructDesc(res *prog.StructDesc, n *ast.Struct, varlen bool) {
-	// Leave node for genStructDescs to calculate size/padding.
-	comp.structNodes[res] = n
-	common := genCommon(n.Name.Name, sizeUnassigned, false)
-	common.IsVarlen = varlen
-	*res = prog.StructDesc{
-		TypeCommon: common,
-		Fields:     comp.genFieldArray(n.Fields, make([]uint64, len(n.Fields))),
+func (comp *compiler) layoutStruct(t *prog.StructType) {
+	// Add paddings, calculate size, mark bitfields.
+	structNode := comp.structs[t.TypeName]
+	varlen := false
+	for _, f := range t.Fields {
+		if f.Varlen() {
+			varlen = true
+		}
+	}
+	attrs := comp.parseAttrs(structAttrs, structNode, structNode.Attrs)
+	t.AlignAttr = attrs[attrAlign]
+	comp.layoutStructFields(t, varlen, attrs[attrPacked] != 0)
+	t.TypeSize = 0
+	if !varlen {
+		for _, f := range t.Fields {
+			t.TypeSize += f.Size()
+		}
+		sizeAttr, hasSize := attrs[attrSize]
+		if hasSize {
+			if t.TypeSize > sizeAttr {
+				comp.error(structNode.Attrs[0].Pos, "struct %v has size attribute %v"+
+					" which is less than struct size %v",
+					structNode.Name.Name, sizeAttr, t.TypeSize)
+			}
+			if pad := sizeAttr - t.TypeSize; pad != 0 {
+				t.Fields = append(t.Fields, genPad(pad))
+			}
+			t.TypeSize = sizeAttr
+		}
 	}
 }
 
-func (comp *compiler) layoutStruct(t *prog.StructType, varlen, packed bool) {
+func (comp *compiler) layoutStructFields(t *prog.StructType, varlen, packed bool) {
 	var newFields []prog.Field
 	var structAlign, byteOffset, bitOffset uint64
 	for i, field := range t.Fields {
@@ -538,7 +448,7 @@ func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
 	case *prog.ArrayType:
 		return comp.typeAlign(t.Elem)
 	case *prog.StructType:
-		n := comp.structNodes[t.StructDesc]
+		n := comp.structs[t.TypeName]
 		attrs := comp.parseAttrs(structAttrs, n, n.Attrs)
 		if align := attrs[attrAlign]; align != 0 {
 			return align // overrided by user attribute

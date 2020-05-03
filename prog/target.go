@@ -22,7 +22,6 @@ type Target struct {
 
 	Syscalls  []*Syscall
 	Resources []*ResourceDesc
-	Structs   []*KeyedStruct
 	Consts    []ConstValue
 	Types     []Type
 
@@ -137,8 +136,7 @@ func (target *Target) initTarget() {
 		target.ConstMap[c.Name] = c.Value
 	}
 
-	target.resourceMap = restoreLinks(target.Syscalls, target.Resources, target.Structs, target.Types)
-	target.Structs = nil
+	target.resourceMap = restoreLinks(target.Syscalls, target.Resources, target.Types)
 	target.Types = nil
 
 	target.SyscallMap = make(map[string]*Syscall)
@@ -173,61 +171,28 @@ func (target *Target) sanitize(c *Call, fix bool) error {
 	return nil
 }
 
-func RestoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*KeyedStruct, types []Type) {
-	restoreLinks(syscalls, resources, structs, types)
+func RestoreLinks(syscalls []*Syscall, resources []*ResourceDesc, types []Type) {
+	restoreLinks(syscalls, resources, types)
 }
 
-func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, structs []*KeyedStruct,
-	types []Type) map[string]*ResourceDesc {
+func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, types []Type) map[string]*ResourceDesc {
 	resourceMap := make(map[string]*ResourceDesc)
 	for _, res := range resources {
 		resourceMap[res.Name] = res
 	}
-	keyedStructs := make(map[StructKey]*StructDesc)
-	for _, desc := range structs {
-		keyedStructs[desc.Key] = desc.Desc
-		for i := range desc.Desc.Fields {
-			unref(&desc.Desc.Fields[i].Type, types)
+	ForeachType(syscalls, func(_ Type, ctx TypeCtx) {
+		if ref, ok := (*ctx.Ptr).(Ref); ok {
+			*ctx.Ptr = types[ref]
 		}
-	}
-	for _, c := range syscalls {
-		for i := range c.Args {
-			unref(&c.Args[i].Type, types)
-		}
-		if c.Ret != nil {
-			unref(&c.Ret, types)
-		}
-		foreachType(c, func(t0 Type, _ typeCtx) {
-			switch t := t0.(type) {
-			case *PtrType:
-				unref(&t.Elem, types)
-			case *ArrayType:
-				unref(&t.Elem, types)
-			case *ResourceType:
-				t.Desc = resourceMap[t.TypeName]
-				if t.Desc == nil {
-					panic("no resource desc")
-				}
-			case *StructType:
-				t.StructDesc = keyedStructs[t.Key]
-				if t.StructDesc == nil {
-					panic("no struct desc")
-				}
-			case *UnionType:
-				t.StructDesc = keyedStructs[t.Key]
-				if t.StructDesc == nil {
-					panic("no union desc")
-				}
+		switch t := (*ctx.Ptr).(type) {
+		case *ResourceType:
+			t.Desc = resourceMap[t.TypeName]
+			if t.Desc == nil {
+				panic("no resource desc")
 			}
-		})
-	}
+		}
+	})
 	return resourceMap
-}
-
-func unref(tp *Type, types []Type) {
-	if ref, ok := (*tp).(Ref); ok {
-		*tp = types[ref]
-	}
 }
 
 type Gen struct {

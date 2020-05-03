@@ -20,15 +20,13 @@ func TestGeneration(t *testing.T) {
 
 func TestDefault(t *testing.T) {
 	target, _, _ := initTest(t)
-	for _, meta := range target.Syscalls {
-		foreachType(meta, func(typ Type, ctx typeCtx) {
-			arg := typ.DefaultArg(ctx.Dir)
-			if !isDefault(arg) {
-				t.Errorf("default arg is not default: %s\ntype: %#v\narg: %#v",
-					typ, typ, arg)
-			}
-		})
-	}
+	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+		arg := typ.DefaultArg(ctx.Dir)
+		if !isDefault(arg) {
+			t.Errorf("default arg is not default: %s\ntype: %#v\narg: %#v",
+				typ, typ, arg)
+		}
+	})
 }
 
 func TestDefaultCallArgs(t *testing.T) {
@@ -203,7 +201,7 @@ func TestSpecialStructs(t *testing.T) {
 			t.Run(special, func(t *testing.T) {
 				var typ Type
 				for i := 0; i < len(target.Syscalls) && typ == nil; i++ {
-					foreachType(target.Syscalls[i], func(t Type, ctx typeCtx) {
+					ForeachCallType(target.Syscalls[i], func(t Type, ctx TypeCtx) {
 						if ctx.Dir == DirOut {
 							return
 						}

@@ -89,7 +89,7 @@ func check(OS, arch, obj string, dwarf, netlink bool) ([]Warn, error) {
 	if obj == "" {
 		return nil, fmt.Errorf("no object file in -obj-%v flag", arch)
 	}
-	structDescs, locs, warnings1, err := parseDescriptions(OS, arch)
+	structTypes, locs, warnings1, err := parseDescriptions(OS, arch)
 	if err != nil {
 		return nil, err
 	}
@@ -99,14 +99,14 @@ func check(OS, arch, obj string, dwarf, netlink bool) ([]Warn, error) {
 		if err != nil {
 			return nil, err
 		}
-		warnings2, err := checkImpl(structs, structDescs, locs)
+		warnings2, err := checkImpl(structs, structTypes, locs)
 		if err != nil {
 			return nil, err
 		}
 		warnings = append(warnings, warnings2...)
 	}
 	if netlink {
-		warnings3, err := checkNetlink(OS, arch, obj, structDescs, locs)
+		warnings3, err := checkNetlink(OS, arch, obj, structTypes, locs)
 		if err != nil {
 			return nil, err
 		}
@@ -197,16 +197,10 @@ func writeWarnings(OS string, narches int, warnings []Warn) error {
 	return nil
 }
 
-func checkImpl(structs map[string]*dwarf.StructType, structDescs []*prog.KeyedStruct,
+func checkImpl(structs map[string]*dwarf.StructType, structTypes []*prog.StructType,
 	locs map[string]*ast.Struct) ([]Warn, error) {
 	var warnings []Warn
-	checked := make(map[string]bool)
-	for _, str := range structDescs {
-		typ := str.Desc
-		if checked[typ.Name()] {
-			continue
-		}
-		checked[typ.Name()] = true
+	for _, typ := range structTypes {
 		name := typ.TemplateName()
 		astStruct := locs[name]
 		if astStruct == nil {
@@ -221,7 +215,7 @@ func checkImpl(structs map[string]*dwarf.StructType, structDescs []*prog.KeyedSt
 	return warnings, nil
 }
 
-func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructType) ([]Warn, error) {
+func checkStruct(typ *prog.StructType, astStruct *ast.Struct, str *dwarf.StructType) ([]Warn, error) {
 	var warnings []Warn
 	warn := func(pos ast.Pos, typ, msg string, args ...interface{}) {
 		warnings = append(warnings, Warn{pos: pos, typ: typ, msg: fmt.Sprintf(msg, args...)})
@@ -307,7 +301,7 @@ func checkStruct(typ *prog.StructDesc, astStruct *ast.Struct, str *dwarf.StructT
 	return warnings, nil
 }
 
-func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.Struct, []Warn, error) {
+func parseDescriptions(OS, arch string) ([]*prog.StructType, map[string]*ast.Struct, []Warn, error) {
 	errorBuf := new(bytes.Buffer)
 	var warnings []Warn
 	eh := func(pos ast.Pos, msg string) {
@@ -326,7 +320,7 @@ func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.St
 	if prg == nil {
 		return nil, nil, nil, fmt.Errorf("failed to compile descriptions:\n%s", errorBuf.Bytes())
 	}
-	prog.RestoreLinks(prg.Syscalls, prg.Resources, prg.StructDescs, prg.Types)
+	prog.RestoreLinks(prg.Syscalls, prg.Resources, prg.Types)
 	locs := make(map[string]*ast.Struct)
 	for _, decl := range top.Nodes {
 		switch n := decl.(type) {
@@ -338,7 +332,13 @@ func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.St
 			}
 		}
 	}
-	return prg.StructDescs, locs, warnings, nil
+	var structs []*prog.StructType
+	for _, typ := range prg.Types {
+		if t, ok := typ.(*prog.StructType); ok {
+			structs = append(structs, t)
+		}
+	}
+	return structs, locs, warnings, nil
 }
 
 // Overall idea of netlink checking.
@@ -350,7 +350,7 @@ func parseDescriptions(OS, arch string) ([]*prog.KeyedStruct, map[string]*ast.St
 // Then read in the symbol data, which is an array of nla_policy structs.
 // These structs allow to easily figure out type/size of attributes.
 // Finally we compare our descriptions with the kernel policy description.
-func checkNetlink(OS, arch, obj string, structDescs []*prog.KeyedStruct,
+func checkNetlink(OS, arch, obj string, structTypes []*prog.StructType,
 	locs map[string]*ast.Struct) ([]Warn, error) {
 	if arch != "amd64" {
 		// Netlink policies are arch-independent (?),
@@ -374,24 +374,18 @@ func checkNetlink(OS, arch, obj string, structDescs []*prog.KeyedStruct,
 	warn := func(pos ast.Pos, typ, msg string, args ...interface{}) {
 		warnings = append(warnings, Warn{pos: pos, typ: typ, msg: fmt.Sprintf(msg, args...)})
 	}
-	structMap := make(map[string]*prog.StructDesc)
-	for _, str := range structDescs {
-		structMap[str.Desc.Name()] = str.Desc
+	structMap := make(map[string]*prog.StructType)
+	for _, typ := range structTypes {
+		structMap[typ.Name()] = typ
 	}
-	checked := make(map[string]bool)
 	checkedAttrs := make(map[string]*checkAttr)
-	for _, str := range structDescs {
-		typ := str.Desc
-		if checked[typ.Name()] {
-			continue
-		}
-		checked[typ.Name()] = true
+	for _, typ := range structTypes {
 		name := typ.TemplateName()
 		astStruct := locs[name]
 		if astStruct == nil {
 			continue
 		}
-		if !isNetlinkPolicy(typ) {
+		if !isNetlinkPolicy(typ.Fields) {
 			continue
 		}
 		kernelName := name
@@ -499,9 +493,9 @@ func checkMissingAttrs(checkedAttrs map[string]*checkAttr) []Warn {
 	return warnings
 }
 
-func isNetlinkPolicy(typ *prog.StructDesc) bool {
+func isNetlinkPolicy(fields []prog.Field) bool {
 	haveAttr := false
-	for _, fld := range typ.Fields {
+	for _, fld := range fields {
 		field := fld.Type
 		if prog.IsPad(field) {
 			continue
@@ -514,12 +508,12 @@ func isNetlinkPolicy(typ *prog.StructDesc) bool {
 			field = arr.Elem
 		}
 		if field1, ok := field.(*prog.StructType); ok {
-			if isNetlinkPolicy(field1.StructDesc) {
+			if isNetlinkPolicy(field1.Fields) {
 				continue
 			}
 		}
 		if field1, ok := field.(*prog.UnionType); ok {
-			if isNetlinkPolicy(field1.StructDesc) {
+			if isNetlinkPolicy(field1.Fields) {
 				continue
 			}
 		}
@@ -533,7 +527,7 @@ func isNlattr(typ prog.Type) bool {
 	return name == "nlattr_t" || name == "nlattr_tt"
 }
 
-func checkNetlinkPolicy(structMap map[string]*prog.StructDesc, typ *prog.StructDesc,
+func checkNetlinkPolicy(structMap map[string]*prog.StructType, typ *prog.StructType,
 	astStruct *ast.Struct, policy []nlaPolicy) ([]Warn, map[int]bool, error) {
 	var warnings []Warn
 	warn := func(pos ast.Pos, typ, msg string, args ...interface{}) {
@@ -571,7 +565,7 @@ func checkNetlinkPolicy(structMap map[string]*prog.StructDesc, typ *prog.StructD
 	return warnings, checked, nil
 }
 
-func checkNetlinkAttr(typ *prog.StructDesc, policy nlaPolicy) string {
+func checkNetlinkAttr(typ *prog.StructType, policy nlaPolicy) string {
 	payload := typ.Fields[2].Type
 	if typ.TemplateName() == "nlattr_tt" {
 		payload = typ.Fields[4].Type
@@ -637,7 +631,7 @@ func minTypeSize(typ prog.Type) int {
 	return -1
 }
 
-func checkAttrType(typ *prog.StructDesc, payload prog.Type, policy nlaPolicy) string {
+func checkAttrType(typ *prog.StructType, payload prog.Type, policy nlaPolicy) string {
 	switch policy.typ {
 	case NLA_STRING, NLA_NUL_STRING:
 		if _, ok := payload.(*prog.BufferType); !ok {

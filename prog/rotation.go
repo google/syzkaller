@@ -50,7 +50,7 @@ func MakeRotator(target *Target, calls map[*Syscall]bool, rnd *rand.Rand) *Rotat
 		}
 		// VMAs and filenames are effectively resources for our purposes
 		// (but they don't have ctors).
-		foreachType(call, func(t Type, _ typeCtx) {
+		ForeachCallType(call, func(t Type, _ TypeCtx) {
 			switch a := t.(type) {
 			case *BufferType:
 				switch a.Kind {

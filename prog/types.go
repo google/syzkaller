@@ -110,7 +110,6 @@ type Ref uint32
 
 func (ti Ref) String() string       { panic("prog.Ref method called") }
 func (ti Ref) Name() string         { panic("prog.Ref method called") }
-func (ti Ref) FieldName() string    { panic("prog.Ref method called") }
 func (ti Ref) TemplateName() string { panic("prog.Ref method called") }
 
 func (ti Ref) Optional() bool                                        { panic("prog.Ref method called") }
@@ -579,8 +578,9 @@ func (t *PtrType) isDefaultArg(arg Arg) bool {
 }
 
 type StructType struct {
-	Key StructKey
-	*StructDesc
+	TypeCommon
+	Fields    []Field
+	AlignAttr uint64
 }
 
 func (t *StructType) String() string {
@@ -606,8 +606,8 @@ func (t *StructType) isDefaultArg(arg Arg) bool {
 }
 
 type UnionType struct {
-	Key StructKey
-	*StructDesc
+	TypeCommon
+	Fields []Field
 }
 
 func (t *UnionType) String() string {
@@ -623,64 +623,80 @@ func (t *UnionType) isDefaultArg(arg Arg) bool {
 	return a.Index == 0 && isDefault(a.Option)
 }
 
-type StructDesc struct {
-	TypeCommon
-	Fields    []Field
-	AlignAttr uint64
-}
-
-type StructKey struct {
-	Name string
-}
-
-type KeyedStruct struct {
-	Key  StructKey
-	Desc *StructDesc
-}
-
 type ConstValue struct {
 	Name  string
 	Value uint64
 }
 
-type typeCtx struct {
-	Dir Dir
+type TypeCtx struct {
+	Meta *Syscall
+	Dir  Dir
+	Ptr  *Type
 }
 
-func foreachType(meta *Syscall, f func(t Type, ctx typeCtx)) {
-	var rec func(t Type, dir Dir)
-	seen := make(map[*StructDesc]bool)
-	recStruct := func(desc *StructDesc, dir Dir) {
-		if seen[desc] {
-			return // prune recursion via pointers to structs/unions
-		}
-		seen[desc] = true
-		for _, f := range desc.Fields {
-			rec(f.Type, dir)
-		}
+func ForeachType(syscalls []*Syscall, f func(t Type, ctx TypeCtx)) {
+	for _, meta := range syscalls {
+		foreachTypeImpl(meta, true, f)
 	}
-	rec = func(t Type, dir Dir) {
-		f(t, typeCtx{Dir: dir})
-		switch a := t.(type) {
+}
+
+func ForeachTypePost(syscalls []*Syscall, f func(t Type, ctx TypeCtx)) {
+	for _, meta := range syscalls {
+		foreachTypeImpl(meta, false, f)
+	}
+}
+
+func ForeachCallType(meta *Syscall, f func(t Type, ctx TypeCtx)) {
+	foreachTypeImpl(meta, true, f)
+}
+
+func foreachTypeImpl(meta *Syscall, preorder bool, f func(t Type, ctx TypeCtx)) {
+	// Note: we specifically don't create seen in ForeachType.
+	// It would prune recursion more (across syscalls), but lots of users need to
+	// visit each struct per-syscall (e.g. prio, used resources).
+	seen := make(map[Type]bool)
+	var rec func(*Type, Dir)
+	rec = func(ptr *Type, dir Dir) {
+		if preorder {
+			f(*ptr, TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+		}
+		switch a := (*ptr).(type) {
 		case *PtrType:
-			rec(a.Elem, a.ElemDir)
+			rec(&a.Elem, a.ElemDir)
 		case *ArrayType:
-			rec(a.Elem, dir)
+			rec(&a.Elem, dir)
 		case *StructType:
-			recStruct(a.StructDesc, dir)
+			if seen[a] {
+				break // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
+			for i := range a.Fields {
+				rec(&a.Fields[i].Type, dir)
+			}
 		case *UnionType:
-			recStruct(a.StructDesc, dir)
-		case *ResourceType, *BufferType, *VmaType, *LenType,
-			*FlagsType, *ConstType, *IntType, *ProcType, *CsumType:
+			if seen[a] {
+				break // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
+			for i := range a.Fields {
+				rec(&a.Fields[i].Type, dir)
+			}
+		case *ResourceType, *BufferType, *VmaType, *LenType, *FlagsType,
+			*ConstType, *IntType, *ProcType, *CsumType:
+		case Ref:
+			// This is only needed for pkg/compiler.
 		default:
 			panic("unknown type")
 		}
+		if !preorder {
+			f(*ptr, TypeCtx{Meta: meta, Dir: dir, Ptr: ptr})
+		}
 	}
-	for _, field := range meta.Args {
-		rec(field.Type, DirIn)
+	for i := range meta.Args {
+		rec(&meta.Args[i].Type, DirIn)
 	}
 	if meta.Ret != nil {
-		rec(meta.Ret, DirOut)
+		rec(&meta.Ret, DirOut)
 	}
 }
 

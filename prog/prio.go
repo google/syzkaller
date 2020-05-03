@@ -64,56 +64,55 @@ func (target *Target) calcStaticPriorities() [][]float32 {
 
 func (target *Target) calcResourceUsage() map[string]map[int]weights {
 	uses := make(map[string]map[int]weights)
-	for _, c := range target.Syscalls {
-		foreachType(c, func(t Type, ctx typeCtx) {
-			switch a := t.(type) {
-			case *ResourceType:
-				if target.AuxResources[a.Desc.Name] {
-					noteUsage(uses, c, 0.1, ctx.Dir, "res%v", a.Desc.Name)
-				} else {
-					str := "res"
-					for i, k := range a.Desc.Kind {
-						str += "-" + k
-						w := 1.0
-						if i < len(a.Desc.Kind)-1 {
-							w = 0.2
-						}
-						noteUsage(uses, c, float32(w), ctx.Dir, str)
+	ForeachType(target.Syscalls, func(t Type, ctx TypeCtx) {
+		c := ctx.Meta
+		switch a := t.(type) {
+		case *ResourceType:
+			if target.AuxResources[a.Desc.Name] {
+				noteUsage(uses, c, 0.1, ctx.Dir, "res%v", a.Desc.Name)
+			} else {
+				str := "res"
+				for i, k := range a.Desc.Kind {
+					str += "-" + k
+					w := 1.0
+					if i < len(a.Desc.Kind)-1 {
+						w = 0.2
 					}
-				}
-			case *PtrType:
-				if _, ok := a.Elem.(*StructType); ok {
-					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Elem.Name())
-				}
-				if _, ok := a.Elem.(*UnionType); ok {
-					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Elem.Name())
-				}
-				if arr, ok := a.Elem.(*ArrayType); ok {
-					noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", arr.Elem.Name())
-				}
-			case *BufferType:
-				switch a.Kind {
-				case BufferBlobRand, BufferBlobRange, BufferText:
-				case BufferString:
-					if a.SubKind != "" {
-						noteUsage(uses, c, 0.2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))
-					}
-				case BufferFilename:
-					noteUsage(uses, c, 1.0, DirIn, "filename")
-				default:
-					panic("unknown buffer kind")
-				}
-			case *VmaType:
-				noteUsage(uses, c, 0.5, ctx.Dir, "vma")
-			case *IntType:
-				switch a.Kind {
-				case IntPlain, IntRange:
-				default:
-					panic("unknown int kind")
+					noteUsage(uses, c, float32(w), ctx.Dir, str)
 				}
 			}
-		})
-	}
+		case *PtrType:
+			if _, ok := a.Elem.(*StructType); ok {
+				noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Elem.Name())
+			}
+			if _, ok := a.Elem.(*UnionType); ok {
+				noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", a.Elem.Name())
+			}
+			if arr, ok := a.Elem.(*ArrayType); ok {
+				noteUsage(uses, c, 1.0, ctx.Dir, "ptrto-%v", arr.Elem.Name())
+			}
+		case *BufferType:
+			switch a.Kind {
+			case BufferBlobRand, BufferBlobRange, BufferText:
+			case BufferString:
+				if a.SubKind != "" {
+					noteUsage(uses, c, 0.2, ctx.Dir, fmt.Sprintf("str-%v", a.SubKind))
+				}
+			case BufferFilename:
+				noteUsage(uses, c, 1.0, DirIn, "filename")
+			default:
+				panic("unknown buffer kind")
+			}
+		case *VmaType:
+			noteUsage(uses, c, 0.5, ctx.Dir, "vma")
+		case *IntType:
+			switch a.Kind {
+			case IntPlain, IntRange:
+			default:
+				panic("unknown int kind")
+			}
+		}
+	})
 	return uses
 }
 
