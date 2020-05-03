@@ -6,9 +6,11 @@ package ast
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -21,9 +23,7 @@ type ErrorMatcher struct {
 }
 
 type errorDesc struct {
-	file    string
-	line    int
-	col     int
+	pos     Pos
 	text    string
 	matched bool
 }
@@ -44,8 +44,7 @@ func NewErrorMatcher(t *testing.T, file string) *ErrorMatcher {
 				break
 			}
 			errors = append(errors, &errorDesc{
-				file: filepath.Base(file),
-				line: i,
+				pos:  Pos{File: filepath.Base(file), Line: i},
 				text: strings.TrimSpace(string(ln[pos+3:])),
 			})
 			ln = ln[:pos]
@@ -70,9 +69,7 @@ func (em *ErrorMatcher) ErrorHandler(pos Pos, msg string) {
 		msg = msg[0:match[0]] + "at LOCATION" + msg[match[1]:]
 	}
 	em.got = append(em.got, &errorDesc{
-		file: pos.File,
-		line: pos.Line,
-		col:  pos.Col,
+		pos:  pos,
 		text: msg,
 	})
 }
@@ -82,27 +79,58 @@ func (em *ErrorMatcher) Count() int {
 }
 
 func (em *ErrorMatcher) Check() {
+	em.t.Helper()
+	errors := make(map[Pos][]string)
 nextErr:
 	for _, e := range em.got {
 		for _, want := range em.expect {
-			if want.matched || want.line != e.line || want.text != e.text {
+			if want.matched || want.pos.Line != e.pos.Line || want.text != e.text {
 				continue
 			}
 			want.matched = true
 			continue nextErr
 		}
-		em.t.Errorf("unexpected error:\n%v:%v:%v: %v", e.file, e.line, e.col, e.text)
+		pos := e.pos
+		pos.Col = 0
+		pos.Off = 0
+		errors[pos] = append(errors[pos], fmt.Sprintf("unexpected: %v", e.text))
 	}
 	for _, want := range em.expect {
 		if want.matched {
 			continue
 		}
-		em.t.Errorf("unmatched error:\n%v:%v: %v", want.file, want.line, want.text)
+		errors[want.pos] = append(errors[want.pos], fmt.Sprintf("unmatched : %v", want.text))
 	}
+
+	if len(errors) == 0 {
+		return
+	}
+	type Sorted struct {
+		pos  Pos
+		msgs []string
+	}
+	sorted := []Sorted{}
+	for pos, msgs := range errors {
+		sorted = append(sorted, Sorted{pos, msgs})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].pos.less(sorted[j].pos)
+	})
+	buf := new(bytes.Buffer)
+	for _, err := range sorted {
+		if len(err.msgs) == 1 {
+			fmt.Fprintf(buf, "%v: %v\n", err.pos, err.msgs[0])
+			continue
+		}
+		sort.Strings(err.msgs)
+		fmt.Fprintf(buf, "%v:\n\t%v\n", err.pos, strings.Join(err.msgs, "\n\t"))
+	}
+	em.t.Errorf("\n%s", buf.Bytes())
 }
 
 func (em *ErrorMatcher) DumpErrors() {
+	em.t.Helper()
 	for _, e := range em.got {
-		em.t.Logf("%v:%v:%v: %v", e.file, e.line, e.col, e.text)
+		em.t.Logf("%v: %v", e.pos, e.text)
 	}
 }
