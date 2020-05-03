@@ -45,16 +45,14 @@ func (target *Target) calcResourceCtors(res *ResourceDesc, precise bool) []*Sysc
 func (target *Target) populateResourceCtors() {
 	// Find resources that are created by each call.
 	callsResources := make([][]*ResourceDesc, len(target.Syscalls))
-	for call, meta := range target.Syscalls {
-		foreachType(meta, func(typ Type, ctx typeCtx) {
-			switch typ1 := typ.(type) {
-			case *ResourceType:
-				if ctx.Dir != DirIn {
-					callsResources[call] = append(callsResources[call], typ1.Desc)
-				}
+	ForeachType(target.Syscalls, func(typ Type, ctx TypeCtx) {
+		switch typ1 := typ.(type) {
+		case *ResourceType:
+			if ctx.Dir != DirIn {
+				callsResources[ctx.Meta.ID] = append(callsResources[ctx.Meta.ID], typ1.Desc)
 			}
-		})
-	}
+		}
+	})
 
 	// Populate resource ctors accounting for resource compatibility.
 	for _, res := range target.Resources {
@@ -126,7 +124,7 @@ func isCompatibleResourceImpl(dst, src []string, precise bool) bool {
 
 func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 	var resources []*ResourceDesc
-	foreachType(c, func(typ Type, ctx typeCtx) {
+	ForeachCallType(c, func(typ Type, ctx TypeCtx) {
 		if ctx.Dir == DirOut {
 			return
 		}
@@ -146,7 +144,7 @@ func (target *Target) getInputResources(c *Syscall) []*ResourceDesc {
 
 func (target *Target) getOutputResources(c *Syscall) []*ResourceDesc {
 	var resources []*ResourceDesc
-	foreachType(c, func(typ Type, ctx typeCtx) {
+	ForeachCallType(c, func(typ Type, ctx TypeCtx) {
 		switch typ1 := typ.(type) {
 		case *ResourceType:
 			if ctx.Dir != DirIn {

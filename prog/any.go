@@ -36,7 +36,12 @@ type anyTypes struct {
 //	resoct	fmt[oct, ANYRES64]
 // ] [varlen]
 func initAnyTypes(target *Target) {
-	target.any.union = &UnionType{}
+	target.any.union = &UnionType{
+		TypeCommon: TypeCommon{
+			TypeName: "ANYUNION",
+			IsVarlen: true,
+		},
+	}
 	target.any.array = &ArrayType{
 		TypeCommon: TypeCommon{
 			TypeName: "ANYARRAY",
@@ -89,20 +94,14 @@ func initAnyTypes(target *Target) {
 	target.any.resdec = createResource("ANYRESDEC", "int64", FormatStrDec, 20)
 	target.any.reshex = createResource("ANYRESHEX", "int64", FormatStrHex, 18)
 	target.any.resoct = createResource("ANYRESOCT", "int64", FormatStrOct, 23)
-	target.any.union.StructDesc = &StructDesc{
-		TypeCommon: TypeCommon{
-			TypeName: "ANYUNION",
-			IsVarlen: true,
-		},
-		Fields: []Field{
-			{Name: "ANYBLOB", Type: target.any.blob},
-			{Name: "ANYRES16", Type: target.any.res16},
-			{Name: "ANYRES32", Type: target.any.res32},
-			{Name: "ANYRES64", Type: target.any.res64},
-			{Name: "ANYRESDEC", Type: target.any.resdec},
-			{Name: "ANYRESHEX", Type: target.any.reshex},
-			{Name: "ANYRESOCT", Type: target.any.resoct},
-		},
+	target.any.union.Fields = []Field{
+		{Name: "ANYBLOB", Type: target.any.blob},
+		{Name: "ANYRES16", Type: target.any.res16},
+		{Name: "ANYRES32", Type: target.any.res32},
+		{Name: "ANYRES64", Type: target.any.res64},
+		{Name: "ANYRESDEC", Type: target.any.resdec},
+		{Name: "ANYRESHEX", Type: target.any.reshex},
+		{Name: "ANYRESOCT", Type: target.any.resoct},
 	}
 }
 

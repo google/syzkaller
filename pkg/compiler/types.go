@@ -237,7 +237,7 @@ var typeArray = &typeDesc{
 				RangeEnd:   end,
 			}
 		}
-		// TypeSize is assigned later in genStructDescs.
+		// TypeSize is assigned later in layoutArray.
 		return &prog.ArrayType{
 			TypeCommon: base.TypeCommon,
 			Elem:       elemType,
@@ -815,27 +815,31 @@ func init() {
 		return true
 	}
 	typeStruct.Gen = func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		if typ := comp.structTypes[t.Ident]; typ != nil {
+			return typ
+		}
 		s := comp.structs[t.Ident]
-		key := prog.StructKey{
-			Name: t.Ident,
-		}
-		desc := comp.structDescs[key]
-		if desc == nil {
-			// Need to assign to structDescs before calling genStructDesc to break recursion.
-			desc = new(prog.StructDesc)
-			comp.structDescs[key] = desc
-			comp.genStructDesc(desc, s, typeStruct.Varlen(comp, t, args))
-		}
+		common := genCommon(t.Ident, sizeUnassigned, false)
+		common.IsVarlen = typeStruct.Varlen(comp, t, args)
+		var typ prog.Type
 		if s.IsUnion {
-			return &prog.UnionType{
-				Key:        key,
-				StructDesc: desc,
+			typ = &prog.UnionType{
+				TypeCommon: common,
+			}
+		} else {
+			typ = &prog.StructType{
+				TypeCommon: common,
 			}
 		}
-		return &prog.StructType{
-			Key:        key,
-			StructDesc: desc,
+		// Need to cache type in structTypes before generating fields to break recursion.
+		comp.structTypes[t.Ident] = typ
+		fields := comp.genFieldArray(s.Fields, make([]uint64, len(s.Fields)))
+		if s.IsUnion {
+			typ.(*prog.UnionType).Fields = fields
+		} else {
+			typ.(*prog.StructType).Fields = fields
 		}
+		return typ
 	}
 }
 
