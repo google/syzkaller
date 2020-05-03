@@ -13,9 +13,8 @@ func TestResourceCtors(t *testing.T) {
 		t.Skip("too slow")
 	}
 	testEachTarget(t, func(t *testing.T, target *Target) {
-		expectFail := false
 		for _, res := range target.Resources {
-			if len(target.calcResourceCtors(res, true)) == 0 != expectFail {
+			if len(target.calcResourceCtors(res, true)) == 0 && !strings.HasPrefix(res.Name, "ANY") {
 				t.Errorf("resource %v can't be created", res.Name)
 			}
 		}

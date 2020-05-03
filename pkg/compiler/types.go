@@ -964,6 +964,29 @@ type optional[T] [
 	val	T
 	void	void
 ] [varlen]
+
+# prog/any.go knows layout of these types.
+ANYUNION [
+	ANYBLOB		array[int8]
+	ANYRES16	ANYRES16
+	ANYRES32	ANYRES32
+	ANYRES64	ANYRES64
+	ANYRESDEC	fmt[dec, ANYRES64]
+	ANYRESHEX	fmt[hex, ANYRES64]
+	ANYRESOCT	fmt[oct, ANYRES64]
+] [varlen]
+
+ANYPTRS [
+	ANYPTR		ptr[in, array[ANYUNION]]
+	ANYPTR64	ptr64[in, array[ANYUNION]]
+]
+
+resource ANYRES16[int16]: -1, 0
+resource ANYRES32[int32]: -1, 0
+resource ANYRES64[int64]: -1, 0
+
+syz_builtin0(a ptr[in, ANYPTRS]) (disabled)
+syz_builtin1(a ptr[out, ANYUNION]) (disabled)
 `
 
 func init() {
