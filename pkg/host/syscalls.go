@@ -16,16 +16,24 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 	log.Logf(1, "detecting supported syscalls")
 	supported := make(map[*prog.Syscall]bool)
 	unsupported := make(map[*prog.Syscall]string)
+	const disabledAttribute = "has disabled attribute in descriptions"
 	// These do not have own host and parasitize on some other OS.
 	if targets.Get(target.OS, target.Arch).HostFuzzer {
 		for _, c := range target.Syscalls {
-			supported[c] = true
+			if c.Attrs.Disabled {
+				unsupported[c] = disabledAttribute
+			} else {
+				supported[c] = true
+			}
 		}
 	} else {
 		for _, c := range target.Syscalls {
 			ok, reason := false, ""
-			switch c.CallName {
-			case "syz_execute_func":
+			switch {
+			case c.Attrs.Disabled:
+				ok = false
+				reason = disabledAttribute
+			case c.CallName == "syz_execute_func":
 				// syz_execute_func caused multiple problems:
 				// 1. First it lead to corpus exploision. The program used existing values in registers
 				// to pollute output area. We tried to zero registers (though, not reliably).
@@ -53,12 +61,6 @@ func DetectSupportedSyscalls(target *prog.Target, sandbox string) (
 				}
 				unsupported[c] = reason
 			}
-		}
-	}
-	for c := range supported {
-		if c.Attrs.Disabled {
-			delete(supported, c)
-			unsupported[c] = "has disabled attribute in descriptions"
 		}
 	}
 	return supported, unsupported, nil

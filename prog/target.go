@@ -23,7 +23,6 @@ type Target struct {
 	Syscalls  []*Syscall
 	Resources []*ResourceDesc
 	Consts    []ConstValue
-	Types     []Type
 
 	// MakeDataMmap creates calls that mmaps target data memory range.
 	MakeDataMmap func() []*Call
@@ -57,10 +56,12 @@ type Target struct {
 	SpecialPointers []uint64
 
 	// Filled by prog package:
+	SyscallMap map[string]*Syscall
+	ConstMap   map[string]uint64
+
 	init        sync.Once
 	initArch    func(target *Target)
-	SyscallMap  map[string]*Syscall
-	ConstMap    map[string]uint64
+	types       []Type
 	resourceMap map[string]*ResourceDesc
 	// Maps resource name to a list of calls that can create the resource.
 	resourceCtors map[string][]*Syscall
@@ -75,12 +76,13 @@ const maxSpecialPointers = 16
 
 var targets = make(map[string]*Target)
 
-func RegisterTarget(target *Target, initArch func(target *Target)) {
+func RegisterTarget(target *Target, types []Type, initArch func(target *Target)) {
 	key := target.OS + "/" + target.Arch
 	if targets[key] != nil {
 		panic(fmt.Sprintf("duplicate target %v", key))
 	}
 	target.initArch = initArch
+	target.types = types
 	targets[key] = target
 }
 
@@ -122,7 +124,6 @@ func (target *Target) lazyInit() {
 	target.AnnotateCall = func(c ExecCall) string { return "" }
 	target.initTarget()
 	target.initArch(target)
-	target.ConstMap = nil // currently used only by initArch
 	// Give these 2 known addresses fixed positions and prepend target-specific ones at the end.
 	target.SpecialPointers = append([]uint64{
 		0x0000000000000000, // NULL pointer (keep this first because code uses special index=0 as NULL)
@@ -132,6 +133,9 @@ func (target *Target) lazyInit() {
 	if len(target.SpecialPointers) > maxSpecialPointers {
 		panic("too many special pointers")
 	}
+	// These are used only during lazyInit.
+	target.ConstMap = nil
+	target.types = nil
 }
 
 func (target *Target) initTarget() {
@@ -140,8 +144,8 @@ func (target *Target) initTarget() {
 		target.ConstMap[c.Name] = c.Value
 	}
 
-	target.resourceMap = restoreLinks(target.Syscalls, target.Resources, target.Types)
-	target.Types = nil
+	target.resourceMap = restoreLinks(target.Syscalls, target.Resources, target.types)
+	target.initAnyTypes()
 
 	target.SyscallMap = make(map[string]*Syscall)
 	for i, c := range target.Syscalls {
@@ -156,7 +160,6 @@ func (target *Target) initTarget() {
 	for _, res := range target.Resources {
 		target.resourceCtors[res.Name] = target.calcResourceCtors(res, false)
 	}
-	initAnyTypes(target)
 }
 
 func (target *Target) GetConst(name string) uint64 {
