@@ -56,7 +56,7 @@ func (arg *ConstArg) Size() uint64 {
 	return arg.typ.Size()
 }
 
-// Value returns value, pid stride and endianness.
+// Value returns value and pid stride.
 func (arg *ConstArg) Value() (uint64, uint64) {
 	switch typ := (*arg).Type().(type) {
 	case *IntType:
