@@ -114,9 +114,10 @@ func TestCallSet(t *testing.T) {
 
 func TestCallSetRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	for i := 0; i < iters; i++ {
 		const ncalls = 10
-		p := target.Generate(rs, ncalls, nil)
+		p := target.Generate(rs, ncalls, ct)
 		calls0 := make(map[string]struct{})
 		for _, c := range p.Calls {
 			calls0[c.Meta.Name] = struct{}{}
@@ -328,10 +329,11 @@ func TestSerializeDeserialize(t *testing.T) {
 
 func TestSerializeDeserializeRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
+		ct := target.DefaultChoiceTable()
 		data0 := make([]byte, ExecBufferSize)
 		data1 := make([]byte, ExecBufferSize)
 		for i := 0; i < iters; i++ {
-			p0 := target.Generate(rs, 10, nil)
+			p0 := target.Generate(rs, 10, ct)
 			if ok, _, _ := testSerializeDeserialize(t, p0, data0, data1); ok {
 				continue
 			}

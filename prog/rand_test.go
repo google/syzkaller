@@ -31,13 +31,14 @@ func TestNotEscaping(t *testing.T) {
 func TestDeterminism(t *testing.T) {
 	target, rs, iters := initTest(t)
 	iters /= 10 // takes too long
+	ct := target.DefaultChoiceTable()
 	var corpus []*Prog
 	for i := 0; i < iters; i++ {
 		seed := rs.Int63()
 		rs1 := rand.NewSource(seed)
-		p1 := generateProg(t, target, rs1, corpus)
+		p1 := generateProg(t, target, rs1, ct, corpus)
 		rs2 := rand.NewSource(seed)
-		p2 := generateProg(t, target, rs2, corpus)
+		p2 := generateProg(t, target, rs2, ct, corpus)
 		ps1 := string(p1.Serialize())
 		ps2 := string(p2.Serialize())
 		r1 := rs1.Int63()
@@ -49,9 +50,9 @@ func TestDeterminism(t *testing.T) {
 	}
 }
 
-func generateProg(t *testing.T, target *Target, rs rand.Source, corpus []*Prog) *Prog {
-	p := target.Generate(rs, 5, nil)
-	p.Mutate(rs, 10, nil, corpus)
+func generateProg(t *testing.T, target *Target, rs rand.Source, ct *ChoiceTable, corpus []*Prog) *Prog {
+	p := target.Generate(rs, 5, ct)
+	p.Mutate(rs, 10, ct, corpus)
 	for i, c := range p.Calls {
 		comps := make(CompMap)
 		for v := range extractValues(c) {

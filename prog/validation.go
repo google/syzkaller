@@ -50,6 +50,9 @@ func (p *Prog) validate() error {
 }
 
 func (ctx *validCtx) validateCall(c *Call) error {
+	if c.Meta.Attrs.Disabled {
+		return fmt.Errorf("use of a disabled call")
+	}
 	if len(c.Args) != len(c.Meta.Args) {
 		return fmt.Errorf("wrong number of arguments, want %v, got %v",
 			len(c.Meta.Args), len(c.Args))

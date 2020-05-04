@@ -12,6 +12,7 @@ import (
 
 func TestIsComplexPtr(t *testing.T) {
 	target, rs, _ := initRandomTargetTest(t, "linux", "amd64")
+	ct := target.DefaultChoiceTable()
 	iters := 10
 	if testing.Short() {
 		iters = 1
@@ -19,8 +20,11 @@ func TestIsComplexPtr(t *testing.T) {
 	r := newRand(target, rs)
 	compl := make(map[string]bool)
 	for _, meta := range target.Syscalls {
+		if meta.Attrs.Disabled {
+			continue
+		}
 		for i := 0; i < iters; i++ {
-			s := newState(target, nil, nil)
+			s := newState(target, ct, nil)
 			calls := r.generateParticularCall(s, meta)
 			p := &Prog{Target: target, Calls: calls}
 			for _, arg := range p.complexPtrs() {

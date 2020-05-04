@@ -64,8 +64,7 @@ func main() {
 		os.Exit(1)
 	}
 	rs := rand.NewSource(seed)
-	prios := target.CalculatePriorities(corpus)
-	ct := target.BuildChoiceTable(prios, syscalls)
+	ct := target.BuildChoiceTable(corpus, syscalls)
 	var p *prog.Prog
 	if flag.NArg() == 0 {
 		p = target.Generate(rs, *flagLen, ct)
