@@ -16,8 +16,15 @@ ioctl$EXT4_IOC_PRECACHE_EXTENTS(fd fd, cmd const[EXT4_IOC_PRECACHE_EXTENTS])
 
 ext4_inode_flags = EXT4_SECRM_FL, EXT4_UNRM_FL, EXT4_COMPR_FL, EXT4_SYNC_FL, EXT4_IMMUTABLE_FL, EXT4_APPEND_FL, EXT4_NODUMP_FL, EXT4_NOATIME_FL, EXT4_PROJINHERIT_FL, EXT4_JOURNAL_DATA_FL, EXT4_NOTAIL_FL, EXT4_DIRSYNC_FL, EXT4_TOPDIR_FL, EXT4_EXTENTS_FL
 
-# See comments in init.go.
-_ = EXT4_IOC_SHUTDOWN, EXT4_IOC_RESIZE_FS
+# EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
+# Fortunately, the value does not conflict with any other ioctl commands for now.
+ioctl$EXT4_IOC_SHUTDOWN(fd fd, cmd const[EXT4_IOC_SHUTDOWN]) (disabled)
+
+# EXT4_IOC_RESIZE_FS on root fs can shrink it to 0 (or whatever is the minimum size)
+# and then creation of new temp dirs for tests will fail.
+# TODO: not necessary for sandbox=namespace as it tests in a tmpfs
+# and/or if we mount tmpfs for sandbox=none (#971).
+ioctl$EXT4_IOC_RESIZE_FS(fd fd, cmd const[EXT4_IOC_RESIZE_FS]) (disabled)
 
 ext4_new_group_input {
 	group		int32

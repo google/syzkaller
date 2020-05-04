@@ -182,9 +182,15 @@ restart_syscall()
 # Almighty!
 ioctl(fd fd, cmd int32, arg buffer[in])
 
-ioctl$void(fd fd, cmd flags[ioctl_void])
 ioctl$int_in(fd fd, cmd flags[ioctl_int_in], v ptr[in, int64])
 ioctl$int_out(fd fd, cmd flags[ioctl_int_out], v ptr[out, intptr])
+
+ioctl$FIOCLEX(fd fd, cmd const[FIOCLEX])
+ioctl$FIONCLEX(fd fd, cmd const[FIONCLEX])
+ioctl$FITHAW(fd fd, cmd const[FITHAW])
+
+# FIFREEZE is disabled because it can easily kill the machine.
+ioctl$FIFREEZE(fd fd, cmd const[FIFREEZE]) (disabled)
 
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
@@ -534,7 +540,9 @@ openat$nvme_fabrics(fd const[AT_FDCWD], file ptr[in, string["/dev/nvme-fabrics"]
 openat$bsg(fd const[AT_FDCWD], file ptr[in, string["/dev/bsg"]], flags flags[open_flags], mode const[0]) fd
 
 openat$snapshot(fd const[AT_FDCWD], file ptr[in, string["/dev/snapshot"]], flags flags[open_flags], mode const[0]) fd
-_ = SNAPSHOT_FREEZE, SNAPSHOT_UNFREEZE
+
+# SNAPSHOT_FREEZE is disabled because it can easily kill the machine.
+ioctl$SNAPSHOT_FREEZE(fd fd, cmd const[SNAPSHOT_FREEZE]) (disabled)
 
 pipefd {
 	rfd	fd
@@ -957,7 +965,6 @@ flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 f_owner_type = F_OWNER_TID, F_OWNER_PID, F_OWNER_PGRP
 fcntl_notify = DN_MULTISHOT, DN_ACCESS, DN_MODIFY, DN_CREATE, DN_DELETE, DN_RENAME, DN_ATTRIB
 seal_types = F_SEAL_SEAL, F_SEAL_SHRINK, F_SEAL_GROW, F_SEAL_WRITE
-ioctl_void = FIOCLEX, FIONCLEX, FITHAW
 ioctl_int_in = FIONBIO, FIOASYNC
 ioctl_int_out = FIOQSIZE, FIGETBSZ
 fcntl_rw_hint = RWF_WRITE_LIFE_NOT_SET, RWH_WRITE_LIFE_NONE, RWH_WRITE_LIFE_SHORT, RWH_WRITE_LIFE_MEDIUM, RWH_WRITE_LIFE_LONG, RWH_WRITE_LIFE_EXTREME
@@ -973,7 +980,7 @@ _ = STA_PLL, STA_PPSFREQ, STA_PPSTIME, STA_FLL, STA_INS, STA_DEL, STA_UNSYNC, ST
 _ = ADJ_OFFSET, ADJ_FREQUENCY, ADJ_MAXERROR, ADJ_ESTERROR, ADJ_STATUS, ADJ_TIMECONST, ADJ_TAI, ADJ_SETOFFSET, ADJ_MICRO, ADJ_NANO, ADJ_TICK, ADJ_OFFSET_SINGLESHOT
 
 # misc
-_ = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE, KCOV_TRACE_PC, KCOV_TRACE_CMP, FIFREEZE, PTRACE_TRACEME, SYSLOG_ACTION_CONSOLE_ON, SYSLOG_ACTION_CONSOLE_OFF, SYSLOG_ACTION_CONSOLE_LEVEL, SYSLOG_ACTION_CLEAR, __NR_mmap2
+_ = KCOV_INIT_TRACE, KCOV_ENABLE, KCOV_DISABLE, KCOV_TRACE_PC, KCOV_TRACE_CMP, PTRACE_TRACEME, SYSLOG_ACTION_CONSOLE_ON, SYSLOG_ACTION_CONSOLE_OFF, SYSLOG_ACTION_CONSOLE_LEVEL, SYSLOG_ACTION_CLEAR, __NR_mmap2
 
 # Hardcode KCOV_REMOTE_ENABLE value for amd64 until new kcov patches reach mainline.
 define KCOV_REMOTE_ENABLE	1075340134
