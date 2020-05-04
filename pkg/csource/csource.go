@@ -116,7 +116,7 @@ func (ctx *context) generateSyscalls(calls []string, hasVars bool) string {
 		}
 	} else {
 		if hasVars || opts.Trace {
-			fmt.Fprintf(buf, "\tintptr_t res;")
+			fmt.Fprintf(buf, "\tintptr_t res = 0;\n")
 		}
 		fmt.Fprintf(buf, "\tswitch (call) {\n")
 		for i, c := range calls {
