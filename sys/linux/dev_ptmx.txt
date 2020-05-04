@@ -136,8 +136,17 @@ ioctl$TIOCL_GETKMSGREDIRECT(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[T
 ioctl$TIOCL_SCROLLCONSOLE(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, tioctl_scroll_console])
 ioctl$TIOCL_BLANKSCREEN(fd fd_tty, cmd const[TIOCLINUX], arg ptr[in, const[TIOCL_BLANKSCREEN, int8]])
 
+# TIOCSSERIAL can do nasty things under root, like causing writes to random memory
+# pretty much like /dev/mem, but this is also working as intended.
+# For details see:
+# https://groups.google.com/g/syzkaller-bugs/c/1rVENJf9P4U/m/QtGpapRxAgAJ
+# https://syzkaller.appspot.com/bug?extid=f4f1e871965064ae689e
+# TODO: TIOCSSERIAL does some other things that are not dangerous
+# and would be nice to test, if/when we can neutralize based on sandbox value
+# we could prohibit it only under sandbox=none.
+ioctl$TIOCSSERIAL(fd fd, cmd const[TIOCSSERIAL], arg ptr[in, serial_struct]) (disabled)
+
 ioctl$TIOCGSERIAL(fd fd_tty, cmd const[TIOCGSERIAL], arg ptr[out, serial_struct])
-ioctl$TIOCSSERIAL(fd fd_tty, cmd const[TIOCSSERIAL], arg ptr[in, serial_struct])
 ioctl$TCGETS2(fd fd_tty, cmd const[TCGETS2], arg ptr[out, termios2])
 ioctl$TCSETS2(fd fd_tty, cmd const[TCSETS2], arg ptr[in, termios2])
 ioctl$TCSETSF2(fd fd_tty, cmd const[TCSETSF2], arg ptr[in, termios2])
