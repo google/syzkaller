@@ -24,7 +24,6 @@ func InitTarget(target *prog.Target) {
 		FIFREEZE:                    target.GetConst("FIFREEZE"),
 		FITHAW:                      target.GetConst("FITHAW"),
 		SNAPSHOT_FREEZE:             target.GetConst("SNAPSHOT_FREEZE"),
-		SNAPSHOT_UNFREEZE:           target.GetConst("SNAPSHOT_UNFREEZE"),
 		EXT4_IOC_SHUTDOWN:           target.GetConst("EXT4_IOC_SHUTDOWN"),
 		EXT4_IOC_RESIZE_FS:          target.GetConst("EXT4_IOC_RESIZE_FS"),
 		EXT4_IOC_MIGRATE:            target.GetConst("EXT4_IOC_MIGRATE"),
@@ -132,7 +131,6 @@ type arch struct {
 	FIFREEZE                    uint64
 	FITHAW                      uint64
 	SNAPSHOT_FREEZE             uint64
-	SNAPSHOT_UNFREEZE           uint64
 	EXT4_IOC_SHUTDOWN           uint64
 	EXT4_IOC_RESIZE_FS          uint64
 	EXT4_IOC_MIGRATE            uint64
@@ -252,7 +250,7 @@ func (arch *arch) neutralizeIoctl(c *prog.Call) {
 		cmd.Val = arch.FITHAW
 	case arch.SNAPSHOT_FREEZE:
 		// SNAPSHOT_FREEZE freezes all processes and leaves the machine dead.
-		cmd.Val = arch.SNAPSHOT_UNFREEZE
+		cmd.Val = arch.FITHAW
 	case arch.EXT4_IOC_SHUTDOWN:
 		// EXT4_IOC_SHUTDOWN on root fs effectively brings the machine down in weird ways.
 		// Fortunately, the value does not conflict with any other ioctl commands for now.
