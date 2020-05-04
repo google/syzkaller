@@ -52,7 +52,7 @@ func FuzzDeserialize(data []byte) int {
 			panic(err)
 		}
 	}
-	p3.Mutate(rand.NewSource(0), 3, nil, nil)
+	p3.Mutate(rand.NewSource(0), 3, fuzzChoiceTable, nil)
 	return 0
 }
 
@@ -64,11 +64,11 @@ func FuzzParseLog(data []byte) int {
 }
 
 var fuzzBuffer = make([]byte, prog.ExecBufferSize)
-var fuzzTarget = func() *prog.Target {
+var fuzzTarget, fuzzChoiceTable = func() (*prog.Target, *prog.ChoiceTable) {
 	prog.Debug()
 	target, err := prog.GetTarget("test", "64")
 	if err != nil {
 		panic(err)
 	}
-	return target
+	return target, target.DefaultChoiceTable()
 }()

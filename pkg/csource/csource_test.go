@@ -62,7 +62,7 @@ func testTarget(t *testing.T, target *prog.Target, full bool) {
 	}
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
-	p := target.Generate(rs, 10, nil)
+	p := target.Generate(rs, 10, target.DefaultChoiceTable())
 	// Turns out that fully minimized program can trigger new interesting warnings,
 	// e.g. about NULL arguments for functions that require non-NULL arguments in syz_ functions.
 	// We could append both AllSyzProg as-is and a minimized version of it,
@@ -166,7 +166,7 @@ func TestSysTests(t *testing.T) {
 func TestExecutorMacros(t *testing.T) {
 	// Ensure that executor does not mis-spell any of the SYZ_* macros.
 	target, _ := prog.GetTarget("test", "64")
-	p := target.Generate(rand.NewSource(0), 1, nil)
+	p := target.Generate(rand.NewSource(0), 1, target.DefaultChoiceTable())
 	expected := commonDefines(p, Options{})
 	expected["SYZ_EXECUTOR"] = true
 	expected["SYZ_HAVE_SETUP_LOOP"] = true

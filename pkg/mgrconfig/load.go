@@ -216,6 +216,11 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) ([]in
 			syscalls[call.ID] = true
 		}
 	}
+	for call := range syscalls {
+		if target.Syscalls[call].Attrs.Disabled {
+			delete(syscalls, call)
+		}
+	}
 	for _, c := range disabled {
 		n := 0
 		for _, call := range target.Syscalls {

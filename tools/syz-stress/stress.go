@@ -74,8 +74,7 @@ func main() {
 		syscalls = strings.Split(*flagSyscalls, ",")
 	}
 	calls := buildCallList(target, syscalls)
-	prios := target.CalculatePriorities(corpus)
-	ct := target.BuildChoiceTable(prios, calls)
+	ct := target.BuildChoiceTable(corpus, calls)
 
 	config, execOpts, err := createIPCConfig(target, features, featuresFlags)
 	if err != nil {

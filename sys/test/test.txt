@@ -797,3 +797,11 @@ auto_struct0 {
 	f1	const[0x43, int32]
 	f2	int32
 }
+
+# Attributes
+
+resource disabled_resource[int32]
+
+disabled0() (disabled)
+disabled1() disabled_resource (disabled)
+disabled2(a disabled_resource) (disabled)

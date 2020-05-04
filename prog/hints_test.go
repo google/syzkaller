@@ -478,10 +478,11 @@ func TestHintsShrinkExpand(t *testing.T) {
 
 func TestHintsRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	iters /= 10 // the test takes long
 	r := newRand(target, rs)
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 5, nil)
+		p := target.Generate(rs, 5, ct)
 		for i, c := range p.Calls {
 			vals := extractValues(c)
 			for j := 0; j < 5; j++ {
@@ -570,7 +571,8 @@ func BenchmarkHints(b *testing.B) {
 	defer cleanup()
 	rs := rand.NewSource(0)
 	r := newRand(target, rs)
-	p := target.Generate(rs, 30, nil)
+	ct := target.DefaultChoiceTable()
+	p := target.Generate(rs, 30, ct)
 	comps := make([]CompMap, len(p.Calls))
 	for i, c := range p.Calls {
 		vals := extractValues(c)
