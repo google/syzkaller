@@ -176,10 +176,11 @@ func TestMinimize(t *testing.T) {
 func TestMinimizeRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 	iters /= 10 // Long test.
+	ct := target.DefaultChoiceTable()
 	r := rand.New(rs)
 	for i := 0; i < iters; i++ {
 		for _, crash := range []bool{false, true} {
-			p := target.Generate(rs, 5, nil)
+			p := target.Generate(rs, 5, ct)
 			copyP := p.Clone()
 			minP, _ := Minimize(p, len(p.Calls)-1, crash, func(p1 *Prog, callIndex int) bool {
 				if r.Intn(2) == 0 {
@@ -199,9 +200,10 @@ func TestMinimizeRandom(t *testing.T) {
 
 func TestMinimizeCallIndex(t *testing.T) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	r := rand.New(rs)
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 5, nil)
+		p := target.Generate(rs, 5, ct)
 		ci := r.Intn(len(p.Calls))
 		p1, ci1 := Minimize(p, ci, r.Intn(2) == 0, func(p1 *Prog, callIndex int) bool {
 			return r.Intn(2) == 0

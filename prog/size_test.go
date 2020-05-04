@@ -10,8 +10,9 @@ import (
 
 func TestAssignSizeRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, ct)
 		data0 := p.Serialize()
 		for _, call := range p.Calls {
 			target.assignSizesCall(call)
@@ -19,7 +20,7 @@ func TestAssignSizeRandom(t *testing.T) {
 		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
 			t.Fatalf("different lens assigned, initial:\n%s\nnew:\n%s\n", data0, data1)
 		}
-		p.Mutate(rs, 10, nil, nil)
+		p.Mutate(rs, 10, ct, nil)
 		p.Serialize()
 		for _, call := range p.Calls {
 			target.assignSizesCall(call)

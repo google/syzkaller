@@ -79,7 +79,7 @@ func TestAddInputConcurrency(t *testing.T) {
 }
 
 func generateInput(target *prog.Target, rs rand.Source, ncalls int, sizeSig int) (inp InputTest) {
-	inp.p = target.Generate(rs, ncalls, nil)
+	inp.p = target.Generate(rs, ncalls, target.DefaultChoiceTable())
 	var raw []uint32
 	for i := 1; i <= sizeSig; i++ {
 		raw = append(raw, uint32(i))

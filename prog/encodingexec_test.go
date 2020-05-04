@@ -13,9 +13,10 @@ import (
 
 func TestSerializeForExecRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	buf := make([]byte, ExecBufferSize)
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, ct)
 		n, err := p.SerializeForExec(buf)
 		if err != nil {
 			t.Fatalf("failed to serialize: %v", err)

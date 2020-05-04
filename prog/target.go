@@ -65,6 +65,10 @@ type Target struct {
 	// Maps resource name to a list of calls that can create the resource.
 	resourceCtors map[string][]*Syscall
 	any           anyTypes
+
+	// The default ChoiceTable is used only by tests and utilities, so we initialize it lazily.
+	defaultOnce        sync.Once
+	defaultChoiceTable *ChoiceTable
 }
 
 const maxSpecialPointers = 16
@@ -193,6 +197,13 @@ func restoreLinks(syscalls []*Syscall, resources []*ResourceDesc, types []Type) 
 		}
 	})
 	return resourceMap
+}
+
+func (target *Target) DefaultChoiceTable() *ChoiceTable {
+	target.defaultOnce.Do(func() {
+		target.defaultChoiceTable = target.BuildChoiceTable(nil, nil)
+	})
+	return target.defaultChoiceTable
 }
 
 type Gen struct {

@@ -379,10 +379,9 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg,
 	// TODO: reduce priority of less specialized ctors.
 	var metas []*Syscall
 	for _, meta := range metas0 {
-		if s.ct == nil || s.ct.run[meta.ID] == nil {
-			continue
+		if s.ct.enabled(meta.ID) {
+			metas = append(metas, meta)
 		}
-		metas = append(metas, meta)
 	}
 	if len(metas) == 0 {
 		return res.DefaultArg(dir), nil
@@ -537,19 +536,12 @@ func (r *randGen) nOutOf(n, outOf int) bool {
 }
 
 func (r *randGen) generateCall(s *state, p *Prog, insertionPoint int) []*Call {
-	idx := 0
-	if s.ct == nil {
-		idx = r.Intn(len(r.target.Syscalls))
-	} else if insertionPoint <= 0 {
-		idx = s.ct.enabledCalls[r.Intn(len(s.ct.enabledCalls))].ID
-	} else {
-		call := -1
-		if len(p.Calls) != 0 {
-			// Choosing the base call is based on the insertion point of the new calls sequence.
-			call = p.Calls[r.Intn(insertionPoint)].Meta.ID
-		}
-		idx = s.ct.Choose(r.Rand, call)
+	biasCall := -1
+	if insertionPoint > 0 {
+		// Choosing the base call is based on the insertion point of the new calls sequence.
+		biasCall = p.Calls[r.Intn(insertionPoint)].Meta.ID
 	}
+	idx := s.ct.choose(r.Rand, biasCall)
 	meta := r.target.Syscalls[idx]
 	return r.generateParticularCall(s, meta)
 }
@@ -573,7 +565,7 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 		Target: target,
 	}
 	r := newRand(target, rs)
-	s := newState(target, nil, nil)
+	s := newState(target, target.DefaultChoiceTable(), nil)
 	handled := make(map[string]bool)
 	for _, meta := range target.Syscalls {
 		if !strings.HasPrefix(meta.CallName, "syz_") || handled[meta.CallName] {

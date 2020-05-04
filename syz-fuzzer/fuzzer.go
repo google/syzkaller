@@ -247,8 +247,7 @@ func main() {
 	for _, id := range r.CheckResult.EnabledCalls[sandbox] {
 		calls[target.Syscalls[id]] = true
 	}
-	prios := target.CalculatePriorities(fuzzer.corpus)
-	fuzzer.choiceTable = target.BuildChoiceTable(prios, calls)
+	fuzzer.choiceTable = target.BuildChoiceTable(fuzzer.corpus, calls)
 
 	for pid := 0; pid < *flagProcs; pid++ {
 		proc, err := newProc(fuzzer, pid)

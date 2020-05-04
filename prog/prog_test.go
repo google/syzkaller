@@ -13,8 +13,9 @@ import (
 
 func TestGeneration(t *testing.T) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	for i := 0; i < iters; i++ {
-		target.Generate(rs, 20, nil)
+		target.Generate(rs, 20, ct)
 	}
 }
 
@@ -32,6 +33,9 @@ func TestDefault(t *testing.T) {
 func TestDefaultCallArgs(t *testing.T) {
 	target, _, _ := initTest(t)
 	for _, meta := range target.SyscallMap {
+		if meta.Attrs.Disabled {
+			continue
+		}
 		// Ensure that we can restore all arguments of all calls.
 		prog := fmt.Sprintf("%v()", meta.Name)
 		p, err := target.Deserialize([]byte(prog), NonStrict)
@@ -46,8 +50,9 @@ func TestDefaultCallArgs(t *testing.T) {
 
 func testSerialize(t *testing.T, verbose bool) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, ct)
 		var data []byte
 		mode := NonStrict
 		if verbose {
@@ -88,11 +93,12 @@ func TestSerializeVerbose(t *testing.T) {
 
 func TestVmaType(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
+	ct := target.DefaultChoiceTable()
 	meta := target.SyscallMap["test$vma0"]
 	r := newRand(target, rs)
 	pageSize := target.PageSize
 	for i := 0; i < iters; i++ {
-		s := newState(target, nil, nil)
+		s := newState(target, ct, nil)
 		calls := r.generateParticularCall(s, meta)
 		c := calls[len(calls)-1]
 		if c.Meta.Name != "test$vma0" {
@@ -161,20 +167,21 @@ func TestCrossTarget(t *testing.T) {
 }
 
 func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
+	ct := target.DefaultChoiceTable()
 	rs := randSource(t)
 	iters := 100
 	if testing.Short() {
 		iters /= 10
 	}
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 20, nil)
+		p := target.Generate(rs, 20, ct)
 		testCrossArchProg(t, p, crossTargets)
 		p, err := target.Deserialize(p.Serialize(), NonStrict)
 		if err != nil {
 			t.Fatal(err)
 		}
 		testCrossArchProg(t, p, crossTargets)
-		p.Mutate(rs, 20, nil, nil)
+		p.Mutate(rs, 20, ct, nil)
 		testCrossArchProg(t, p, crossTargets)
 		p, _ = Minimize(p, -1, false, func(*Prog, int) bool {
 			return rs.Int63()%2 == 0
@@ -197,6 +204,8 @@ func testCrossArchProg(t *testing.T, p *Prog, crossTargets []*Target) {
 
 func TestSpecialStructs(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
+		_ = target.GenerateAllSyzProg(rs)
+		ct := target.DefaultChoiceTable()
 		for special, gen := range target.SpecialTypes {
 			t.Run(special, func(t *testing.T) {
 				var typ Type
@@ -216,7 +225,7 @@ func TestSpecialStructs(t *testing.T) {
 				if typ == nil {
 					t.Fatal("can't find struct description")
 				}
-				g := &Gen{newRand(target, rs), newState(target, nil, nil)}
+				g := &Gen{newRand(target, rs), newState(target, ct, nil)}
 				for i := 0; i < iters/len(target.SpecialTypes); i++ {
 					var arg Arg
 					for i := 0; i < 2; i++ {
@@ -441,8 +450,9 @@ fallback$0()
 
 func TestSanitizeRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
+		ct := target.DefaultChoiceTable()
 		for i := 0; i < iters; i++ {
-			p := target.Generate(rs, 10, nil)
+			p := target.Generate(rs, 10, ct)
 			s0 := string(p.Serialize())
 			p.sanitizeFix()
 			s1 := string(p.Serialize())

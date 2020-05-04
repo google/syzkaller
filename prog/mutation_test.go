@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"sync"
 	"testing"
 )
 
@@ -155,9 +154,9 @@ func TestMutateArgument(t *testing.T) {
 func TestSizeMutateArg(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
-	ct := target.BuildChoiceTable(nil, nil)
+	ct := target.DefaultChoiceTable()
 	for i := 0; i < 100; i++ {
-		p := target.Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, ct)
 		for it := 0; it < iters; it++ {
 			p1 := p.Clone()
 			ctx := &mutator{
@@ -217,8 +216,9 @@ func TestRandomChoice(t *testing.T) {
 
 func TestClone(t *testing.T) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, ct)
 		p1 := p.Clone()
 		data := p.Serialize()
 		data1 := p1.Serialize()
@@ -230,15 +230,16 @@ func TestClone(t *testing.T) {
 
 func TestMutateRandom(t *testing.T) {
 	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
+		ct := target.DefaultChoiceTable()
 	next:
 		for i := 0; i < iters; i++ {
-			p := target.Generate(rs, 10, nil)
+			p := target.Generate(rs, 10, ct)
 			data0 := p.Serialize()
 			p1 := p.Clone()
 			// There is a chance that mutation will produce the same program.
 			// So we check that at least 1 out of 20 mutations actually change the program.
 			for try := 0; try < 20; try++ {
-				p1.Mutate(rs, 10, nil, nil)
+				p1.Mutate(rs, 10, ct, nil)
 				data := p.Serialize()
 				if !bytes.Equal(data0, data) {
 					t.Fatalf("program changed after mutate\noriginal:\n%s\n\nnew:\n%s\n",
@@ -260,14 +261,15 @@ func TestMutateRandom(t *testing.T) {
 
 func TestMutateCorpus(t *testing.T) {
 	target, rs, iters := initTest(t)
+	ct := target.DefaultChoiceTable()
 	var corpus []*Prog
 	for i := 0; i < 100; i++ {
-		p := target.Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, ct)
 		corpus = append(corpus, p)
 	}
 	for i := 0; i < iters; i++ {
-		p1 := target.Generate(rs, 10, nil)
-		p1.Mutate(rs, 10, nil, corpus)
+		p1 := target.Generate(rs, 10, ct)
+		p1.Mutate(rs, 10, ct, corpus)
 	}
 }
 
@@ -402,9 +404,9 @@ mutate_rangedbuffer(&(0x7f00000000c0)=""/11)
 func BenchmarkMutate(b *testing.B) {
 	target, cleanup := initBench(b)
 	defer cleanup()
-	ct := linuxAmd64ChoiceTable(target)
+	ct := target.DefaultChoiceTable()
 	const progLen = 30
-	p := target.Generate(rand.NewSource(0), progLen, nil)
+	p := target.Generate(rand.NewSource(0), progLen, ct)
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		rs := rand.NewSource(0)
@@ -417,7 +419,7 @@ func BenchmarkMutate(b *testing.B) {
 func BenchmarkGenerate(b *testing.B) {
 	target, cleanup := initBench(b)
 	defer cleanup()
-	ct := linuxAmd64ChoiceTable(target)
+	ct := target.DefaultChoiceTable()
 	const progLen = 30
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -426,18 +428,6 @@ func BenchmarkGenerate(b *testing.B) {
 			target.Generate(rs, progLen, ct)
 		}
 	})
-}
-
-var (
-	linuxCTOnce sync.Once
-	linuxCT     *ChoiceTable
-)
-
-func linuxAmd64ChoiceTable(target *Target) *ChoiceTable {
-	linuxCTOnce.Do(func() {
-		linuxCT = target.BuildChoiceTable(target.CalculatePriorities(nil), nil)
-	})
-	return linuxCT
 }
 
 func runMutationTests(t *testing.T, tests [][2]string, valid bool) {

@@ -26,13 +26,15 @@ import (
 
 func (target *Target) CalculatePriorities(corpus []*Prog) [][]float32 {
 	static := target.calcStaticPriorities()
-	dynamic := target.calcDynamicPrio(corpus)
-	for i, prios := range static {
-		for j, p := range prios {
-			dynamic[i][j] *= p
+	if len(corpus) != 0 {
+		dynamic := target.calcDynamicPrio(corpus)
+		for i, prios := range dynamic {
+			for j, p := range prios {
+				static[i][j] *= p
+			}
 		}
 	}
-	return dynamic
+	return static
 }
 
 func (target *Target) calcStaticPriorities() [][]float32 {
@@ -200,17 +202,21 @@ func normalizePrio(prios [][]float32) {
 // ChooseTable allows to do a weighted choice of a syscall for a given syscall
 // based on call-to-call priorities and a set of enabled syscalls.
 type ChoiceTable struct {
-	target       *Target
-	run          [][]int
-	enabledCalls []*Syscall
-	enabled      map[*Syscall]bool
+	target *Target
+	runs   [][]int
+	calls  []*Syscall
 }
 
-func (target *Target) BuildChoiceTable(prios [][]float32, enabled map[*Syscall]bool) *ChoiceTable {
+func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool) *ChoiceTable {
 	if enabled == nil {
 		enabled = make(map[*Syscall]bool)
 		for _, c := range target.Syscalls {
 			enabled[c] = true
+		}
+	}
+	for call := range enabled {
+		if call.Attrs.Disabled {
+			delete(enabled, call)
 		}
 	}
 	var enabledCalls []*Syscall
@@ -218,11 +224,19 @@ func (target *Target) BuildChoiceTable(prios [][]float32, enabled map[*Syscall]b
 		enabledCalls = append(enabledCalls, c)
 	}
 	if len(enabledCalls) == 0 {
-		panic(fmt.Sprintf("empty enabledCalls, len(target.Syscalls)=%v", len(target.Syscalls)))
+		panic("no syscalls enabled")
 	}
 	sort.Slice(enabledCalls, func(i, j int) bool {
 		return enabledCalls[i].ID < enabledCalls[j].ID
 	})
+	for _, p := range corpus {
+		for _, call := range p.Calls {
+			if !enabled[call.Meta] {
+				panic(fmt.Sprintf("corpus contains disabled syscall %v", call.Meta.Name))
+			}
+		}
+	}
+	prios := target.CalculatePriorities(corpus)
 	run := make([][]int, len(target.Syscalls))
 	for i := range run {
 		if !enabled[target.Syscalls[i]] {
@@ -232,31 +246,30 @@ func (target *Target) BuildChoiceTable(prios [][]float32, enabled map[*Syscall]b
 		sum := 0
 		for j := range run[i] {
 			if enabled[target.Syscalls[j]] {
-				w := 1
-				if prios != nil {
-					w = int(prios[i][j] * 1000)
-				}
-				sum += w
+				sum += int(prios[i][j] * 1000)
 			}
 			run[i][j] = sum
 		}
 	}
-	return &ChoiceTable{target, run, enabledCalls, enabled}
+	return &ChoiceTable{target, run, enabledCalls}
 }
 
-func (ct *ChoiceTable) Choose(r *rand.Rand, call int) int {
-	if call < 0 {
-		return ct.enabledCalls[r.Intn(len(ct.enabledCalls))].ID
+func (ct *ChoiceTable) enabled(call int) bool {
+	return ct.runs[call] != nil
+}
+
+func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
+	if bias < 0 {
+		bias = ct.calls[r.Intn(len(ct.calls))].ID
 	}
-	run := ct.run[call]
-	if run == nil {
-		return ct.enabledCalls[r.Intn(len(ct.enabledCalls))].ID
+	if !ct.enabled(bias) {
+		panic("bias to disabled syscall")
 	}
-	for {
-		x := r.Intn(run[len(run)-1]) + 1
-		i := sort.SearchInts(run, x)
-		if ct.enabled[ct.target.Syscalls[i]] {
-			return i
-		}
+	run := ct.runs[bias]
+	x := r.Intn(run[len(run)-1]) + 1
+	res := sort.SearchInts(run, x)
+	if !ct.enabled(res) {
+		panic("selected disabled syscall")
 	}
+	return res
 }
