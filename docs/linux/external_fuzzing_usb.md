@@ -9,36 +9,19 @@ This is still in development and things might change.
 USB fuzzing support consists of 3 parts:
 
 1. Syzkaller changes that are now upstream, see the [Internals](/docs/linux/external_fuzzing_usb.md#Internals) section for details.
-2. Kernel interface for USB device emulation called Raw Gadget, see the patch list below.
+2. Kernel interface for USB device emulation called [Raw Gadget](https://github.com/xairy/raw-gadget), which is now upstream.
 3. KCOV changes that allow to collect coverage from background threads and interrupts
-(the former is now upstream, the latter is now being upstreamed, see the patch list below).
+(the former is now upstream, the latter part is optional and is currently in development).
 
-More details can be found:
-
-1. In the OffensiveCon 2019 "Coverage-Guided USB Fuzzing with Syzkaller" talk
+Some (partly outdated) details can be found in the OffensiveCon 2019 "Coverage-Guided USB Fuzzing with Syzkaller" talk
 ([slides](https://docs.google.com/presentation/d/1z-giB9kom17Lk21YEjmceiNUVYeI6yIaG5_gZ3vKC-M/edit?usp=sharing), [video](https://www.youtube.com/watch?v=1MD5JV6LfxA)).
-2. In [this](https://marc.info/?l=linux-usb&m=155551883403285&w=2) email.
 
-Kernel patches in mainline:
-
-- [kcov: remote coverage support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eec028c9386ed1a692aa01a85b55952202b41619)
-- [kcov: fix struct layout for kcov_remote_arg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a69b83e1ae7f6c5ff2cc310870c1708405d86be2)
-- [usb, kcov: collect coverage from hub_event](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=95d23dc27bde0ab4b25f7ade5e2fddc08dd97d9b)
-- [USB: dummy-hcd: use usb_urb_dir_in instead of usb_pipein](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6dabeb891c001c592645df2f477fed9f5d959987)
-- [USB: dummy-hcd: increase max number of devices to 32](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8442b02bf3c6770e0d7e7ea17be36c30e95987b6)
-- [usb: gadget: add raw-gadget interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f2c2e717642c66f7fe7e5dd69b2e8ff5849f4d10)
-- [usb: raw_gadget: fix compilation warnings in uapi headers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=956ae8df7fed0a2acc7ae934f24493eaeb031f62)
-- (All other patches that touch `drivers/usb/gadget/udc/dummy_hcd.c`, `drivers/usb/gadget/legacy/raw_gadget.c` and `kernel/kcov.c` are recommended.)
-
-Kernel patches in review:
-
-- [[v1] usb: raw-gadget: Fix copy_to/from_user() checks](https://patchwork.kernel.org/patch/11475641/)
-- [[v3] usb: raw-gadget: fix raw_event_queue_fetch locking](https://patchwork.kernel.org/patch/11478261/)
+As USB fuzzing requires kernel side support, for non-mainline kernels you need all mainline patches that touch `drivers/usb/gadget/udc/dummy_hcd.c`, `drivers/usb/gadget/legacy/raw_gadget.c` and `kernel/kcov.c`.
 
 
 ## Internals
 
-Currently syzkaller defines 6 USB pseudo-syscalls (see [this](/sys/linux/vusb.txt) for syzkaller descriptions of these pseudo-syscalls and [this](/executor/common_usb.h) for their implementation; the descriptions and the implementation use the Raw Gadget interface, linked in the patch list above):
+Currently syzkaller defines 6 USB pseudo-syscalls (see [this](/sys/linux/vusb.txt) for syzkaller descriptions of these pseudo-syscalls and [this](/executor/common_usb.h) for their implementation; the implementation relies on the Raw Gadget interface linked above):
 
 1. `syz_usb_connect` - connects a USB device. Handles all requests to the control endpoint until a `SET_CONFIGURATION` request is received.
 2. `syz_usb_connect_ath9k` - connects an `ath9k` USB device. Compared to `syz_usb_connect` this syscalls also handles firmware download requests that happen after the `SET_CONFIGURATION` for the `ath9k` driver.
@@ -55,7 +38,6 @@ Current USB descriptions are targeted at a few different layers:
 4. Enumeration process for device-specific drivers is not covered by existing descriptions yet.
 5. Subsequent communication through non-control endpoints for device-specific drivers is partially described only for `ath9k` driver via `syz_usb_connect_ath9k`, `syz_usb_ep_write$ath9k_ep1` and `syz_usb_ep_write$ath9k_ep2` pseudo-syscalls.
 
-
 syzkaller USB runtests are [here](/sys/linux/test/) and start with `vusb` prefix. To run:
 
 ```
@@ -63,14 +45,13 @@ syzkaller USB runtests are [here](/sys/linux/test/) and start with `vusb` prefix
 ```
 
 
-## TODO
+## TODO list
 
 A few major things that need to be done:
 
 1. Upstream KCOV changes that allow to collect coverage from interrupts.
-2. Upstream the kernel interface for USB device emulation.
-3. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
-4. Add descriptions for all relevant USB classes and drivers.
+2. Implement a proper way for extracting relevant USB ids from the kernel ([discussion](https://www.spinics.net/lists/linux-usb/msg187915.html) is ongoing).
+3. Add descriptions for all relevant USB classes and drivers.
 
 Some ideas for things that can be done:
 
@@ -107,7 +88,7 @@ c. making UDC driver name configurable for `syz-execprog` and `syz-prog2c`.
 
 6. Set `sandbox` to `none` in the manager config.
 
-7. Pass `dummy_hcd.num=8` to the kernel command line in the maganer config.
+7. Pass `dummy_hcd.num=8` (or whatever number you use for `procs`) to the kernel command line in the maganer config.
 
 8. Run.
 
