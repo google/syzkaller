@@ -9,8 +9,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
@@ -27,6 +29,20 @@ func main() {
 	)
 	flag.Parse()
 	args := flag.Args()
+	if len(args) == 0 {
+		usage()
+	}
+	if args[0] == "bench" {
+		if len(args) != 2 {
+			usage()
+		}
+		target, err := prog.GetTarget(*flagOS, *flagArch)
+		if err != nil {
+			failf("failed to find target: %v", err)
+		}
+		bench(target, args[1])
+		return
+	}
 	if len(args) != 3 {
 		usage()
 	}
@@ -52,6 +68,7 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "usage:\n")
 	fmt.Fprintf(os.Stderr, "  syz-db pack dir corpus.db\n")
 	fmt.Fprintf(os.Stderr, "  syz-db unpack corpus.db dir\n")
+	fmt.Fprintf(os.Stderr, "  syz-db bench corpus.db\n")
 	os.Exit(1)
 }
 
@@ -112,6 +129,37 @@ func unpack(file, dir string) {
 		}
 	}
 }
+
+func bench(target *prog.Target, file string) {
+	start := time.Now()
+	db, err := db.Open(file)
+	if err != nil {
+		failf("failed to open database: %v", err)
+	}
+	var corpus []*prog.Prog
+	for _, rec := range db.Records {
+		p, err := target.Deserialize(rec.Val, prog.NonStrict)
+		if err != nil {
+			failf("failed to deserialize: %v\n%s", err, rec.Val)
+		}
+		corpus = append(corpus, p)
+	}
+	runtime.GC()
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	fmt.Printf("allocs %v MB (%v M), next GC %v MB, sys heap %v MB, live allocs %v MB (%v M), time %v\n",
+		stats.TotalAlloc>>20,
+		stats.Mallocs>>20,
+		stats.NextGC>>20,
+		stats.HeapSys>>20,
+		stats.Alloc>>20,
+		(stats.Mallocs-stats.Frees)>>20,
+		time.Since(start))
+	sink = corpus
+	_ = sink
+}
+
+var sink interface{}
 
 func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
