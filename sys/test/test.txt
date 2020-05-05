@@ -725,7 +725,16 @@ syz_use_missing {
 
 # Hints tests.
 
+test$hint_int(a0 ptr[in, hint_ints])
 test$hint_data(a0 ptr[in, array[int8]])
+
+hint_ints {
+	int1_0	int8
+	int2_0	int16
+	int4_0	int32
+	int8_0	int64
+	int2_12	int16:12
+}
 
 # Mutation tests.
 

@@ -31,7 +31,7 @@ type DataArgTest struct {
 // Tests checkConstArg(). Is not intended to check correctness of any mutations.
 // Mutation are checked in their own tests.
 func TestHintsCheckConstArg(t *testing.T) {
-	t.Parallel()
+	target := initTargetTest(t, "test", "64")
 	var tests = []ConstArgTest{
 		{
 			name:  "one-replacer-test",
@@ -150,13 +150,16 @@ func TestHintsCheckConstArg(t *testing.T) {
 			res:   []uint64{0xab, 0xabcd, 0xdeadbeef, 0xdeadbeefdeadbeef},
 		},
 	}
-
+	meta := target.SyscallMap["test$hint_int"]
+	structType := meta.Args[0].Type.(*PtrType).Elem.(*StructType)
+	types := make(map[string]Type)
+	for _, field := range structType.Fields {
+		types[field.Name] = field.Type
+	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
 			var res []uint64
-			typ := &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{
-				TypeSize: test.size},
-				BitfieldLen: test.bitsize}}
+			typ := types[fmt.Sprintf("int%v_%v", test.size, test.bitsize)]
 			constArg := MakeConstArg(typ, DirIn, test.in)
 			checkConstArg(constArg, test.comps, func() {
 				res = append(res, constArg.Val)
@@ -171,7 +174,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 // Tests checkDataArg(). Is not intended to check correctness of any mutations.
 // Mutation are checked in their own tests.
 func TestHintsCheckDataArg(t *testing.T) {
-	t.Parallel()
+	target := initTargetTest(t, "test", "64")
 	// All inputs are in Little-Endian.
 	var tests = []DataArgTest{
 		{
@@ -290,12 +293,11 @@ func TestHintsCheckDataArg(t *testing.T) {
 			},
 		},
 	}
+	meta := target.SyscallMap["test$hint_data"]
+	typ := meta.Args[0].Type.(*PtrType).Elem // array[int8]
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
 			res := make(map[string]bool)
-			// Whatever type here. It's just needed to pass the
-			// dataArg.Type().Dir() == DirIn check.
-			typ := &ArrayType{TypeCommon{"", 0, false, true}, nil, 0, 0, 0}
 			dataArg := MakeDataArg(typ, DirIn, []byte(test.in))
 			checkDataArg(dataArg, test.comps, func() {
 				res[string(dataArg.Data())] = true
