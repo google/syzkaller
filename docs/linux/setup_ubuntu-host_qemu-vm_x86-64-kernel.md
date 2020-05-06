@@ -30,24 +30,26 @@ make CC="$GCC/bin/gcc" defconfig
 make CC="$GCC/bin/gcc" kvmconfig
 ```
 
-Now we need to enable some config options required for syzkaller.
-Edit `.config` file manually and enable:
+Enable kernel config options required for syzkaller as described [here](kernel_configs.md).
+It's not required to enable all of them, but at the very least you need:
 
 ```
+# Coverage collection.
 CONFIG_KCOV=y
+
+# Debug info for symbolization.
 CONFIG_DEBUG_INFO=y
+
+# Memory bug detector
 CONFIG_KASAN=y
 CONFIG_KASAN_INLINE=y
-```
 
-You may also need the following for a recent linux image:
-
-```
+# Required for Debian Stretch
 CONFIG_CONFIGFS_FS=y
 CONFIG_SECURITYFS=y
 ```
 
-You might also want to enable some other kernel configs as described [here](kernel_configs.md).
+Edit `.config` file manually and enable them (or do that through `make menuconfig` if you prefer).
 
 Since enabling these options results in more sub options being available, we need to regenerate config:
 
@@ -121,16 +123,17 @@ Make sure the kernel boots and `sshd` starts:
 
 ``` bash
 qemu-system-x86_64 \
-  -kernel $KERNEL/arch/x86/boot/bzImage \
-  -append "console=ttyS0 root=/dev/sda earlyprintk=serial"\
-  -hda $IMAGE/stretch.img \
-  -net user,hostfwd=tcp::10021-:22 -net nic \
-  -enable-kvm \
-  -nographic \
-  -m 2G \
-  -smp 2 \
-  -pidfile vm.pid \
-  2>&1 | tee vm.log
+	-m 2G \
+	-smp 2 \
+	-kernel $KERNEL/arch/x86/boot/bzImage \
+	-append "console=ttyS0 root=/dev/sda earlyprintk=serial"\
+	-drive file=$IMAGE/stretch.img,format=raw
+	-net -net user,host=10.0.2.10,hostfwd=tcp:127.0.0.1:10021-:22 \
+	-net nic,model=e1000 \
+	-enable-kvm \
+	-nographic \
+	-pidfile vm.pid \
+	2>&1 | tee vm.log
 ```
 
 ```
