@@ -4,10 +4,10 @@ This page describes how to execute existing syzkaller programs for the purpose
 of bug reproduction. This way you can replay a single program or a whole
 execution log with several programs.
 
-1. Setup Go toolchain (if you don't yet have it, you need version 1.11 or higher):
-Download latest Go distribution from (https://golang.org/dl/). Unpack it to `$HOME/go1.11`.
+1. Setup Go toolchain (if you don't yet have it, you need version 1.13 or higher):
+Download latest Go distribution from (https://golang.org/dl/). Unpack it to `$HOME/goroot`.
 ``` bash
-$ export GOROOT=$HOME/go1.11
+$ export GOROOT=$HOME/goroot
 $ export GOPATH=$HOME/gopath
 ```
 

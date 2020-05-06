@@ -137,14 +137,14 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 8. Download and install Go:
 
     ``` bash
-    curl https://dl.google.com/go/go1.10.8.linux-armv6l.tar.gz -o go1.10.8.linux-armv6l.tar.gz
-    tar -xf go1.10.8.linux-armv6l.tar.gz
-    mv go goroot-1.10.8
-    mkdir gopath-1.10.8
-    export GOPATH=~/gopath-1.10.8
-    export GOROOT=~/goroot-1.10.8
-    export PATH=~/goroot-1.10.8/bin:$PATH
-    export PATH=~/gopath-1.10.8/bin:$PATH
+    curl https://dl.google.com/go/go1.14.2.linux-armv6l.tar.gz -o go.linux-armv6l.tar.gz
+    tar -xf go.linux-armv6l.tar.gz
+    mv go goroot
+    mkdir gopath
+    export GOPATH=~/gopath
+    export GOROOT=~/goroot
+    export PATH=~/goroot/bin:$PATH
+    export PATH=~/gopath/bin:$PATH
     ```
 
 9. Download syzkaller, apply the patch below and build `syz-executor`:
@@ -184,7 +184,7 @@ These instructions describe how to set this up on a Raspberry Pi Zero W, but any
 
     ``` bash
     go get -u -d github.com/google/syzkaller/prog
-    cd ~/gopath-1.10.8/src/github.com/google/syzkaller
+    cd ~/gopath/src/github.com/google/syzkaller
     # Put the patch above into ./syzkaller.patch
     git apply ./syzkaller.patch
     make executor

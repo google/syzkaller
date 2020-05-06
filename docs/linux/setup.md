@@ -15,14 +15,50 @@ Instructions for a particular VM type or kernel arch can be found on these pages
 
 The following components are needed to use syzkaller:
 
+ - Go compiler and syzkaller itself
  - C compiler with coverage support
  - Linux kernel with coverage additions
  - Virtual machine or a physical device
- - syzkaller itself
 
 Generic steps to set up syzkaller are described below.
 
 If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting.md) page.
+
+### Go and syzkaller
+
+`syzkaller` is written in [Go](https://golang.org), and `Go 1.13+`
+toolchain is required for build. The toolchain can be installed with:
+
+```
+wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
+tar -xf go1.14.2.linux-amd64.tar.gz
+mv go goroot
+mkdir gopath
+export GOPATH=`pwd`/gopath
+export GOROOT=`pwd`/goroot
+export PATH=$GOPATH/bin:$PATH
+export PATH=$GOROOT/bin:$PATH
+```
+
+Then get and build `syzkaller`:
+
+``` bash
+go get -u -d github.com/google/syzkaller/prog
+cd gopath/src/github.com/google/syzkaller/
+make
+```
+
+As the result compiled binaries should appear in the `bin/` dir.
+
+Also see [Go Getting Started](https://golang.org/doc/install) for more details.
+
+Note: if you want to do cross-OS/arch testing, you need to specify `TARGETOS`,
+`TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](/Makefile) for details.
+
+Note: older versions of Go toolchain formatted code in a slightly
+[different way](https://github.com/golang/go/issues/25161).
+So if you are seeing unrelated code formatting diffs after running `make generate`
+or `make format`, you may be using `Go 1.10` or older. In such case update to `Go 1.13+`.
 
 ### C Compiler
 
@@ -63,8 +99,3 @@ The [create-image.sh](/tools/create-image.sh) script can be used to create a sui
 Detailed steps for setting up syzkaller with QEMU on a Linux host are avaialble for [x86-64](setup_ubuntu-host_qemu-vm_x86-64-kernel.md) and [arm64](setup_linux-host_qemu-vm_arm64-kernel.md) kernels.
 
 For some details on fuzzing the kernel on an Android device check out [this page](setup_linux-host_android-device_arm64-kernel.md) and the explicit instructions for an Odroid C2 board are available [here](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md).
-
-### Syzkaller
-
-`syzkaller` is written in [Go](https://golang.org), a `Go 1.11+` toolchain is required for build.
-See [this](/docs/contributing.md#go) for instructions on how to install Go and build syzkaller.
