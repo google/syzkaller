@@ -1,11 +1,9 @@
-language: go
 dist: xenial
-services:
-  - docker
+language: go
+go_import_path: github.com/google/syzkaller
 go:
   - "1.13"
   - "1.14"
-go_import_path: github.com/google/syzkaller
 
 cache:
   directories:
@@ -20,7 +18,8 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -y -q linux-libc-dev:i386 lib32gcc-5-dev lib32stdc++-5-dev
 
-install: true
+install:
+  - make install_prerequisites
 
 script:
   - make install_prerequisites
