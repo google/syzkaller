@@ -29,11 +29,6 @@ script:
 after_success:
   - curl -s https://codecov.io/bash | bash -s - -y tools/codecov.yml
 
-# If the build fails because some code in not formatted, it's nice to see the diffs after formatting.
-after_failure:
-  - git diff --name-only
-  - git diff
-
 jobs:
   include:
     - stage: fuzzit.dev (regression)
