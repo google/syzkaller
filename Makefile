@@ -208,7 +208,8 @@ bin/syz-extract:
 
 # `generate` does *not* depend on any kernel sources, and generates everything
 # in one pass, for all arches. It can be run on a bare syzkaller checkout.
-generate: descriptions
+generate:
+	$(MAKE) descriptions
 	$(MAKE) generate_go
 	$(MAKE) format
 
@@ -247,19 +248,9 @@ tidy:
 	clang-tidy -quiet -header-filter=.* -checks=-*,misc-definitions-in-headers -warnings-as-errors=* \
 		-extra-arg=-DGOOS_$(TARGETOS)=1 -extra-arg=-DGOARCH_$(TARGETARCH)=1 \
 		executor/*.cc
-	# Just check for compiler warnings.
-	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
 lint:
 	golangci-lint run ./...
-
-arch: arch_darwin_amd64_host arch_linux_amd64_host arch_freebsd_amd64_host \
-	arch_netbsd_amd64_host arch_openbsd_amd64_host \
-	arch_linux_amd64_target arch_linux_386_target \
-	arch_linux_arm64_target arch_linux_arm_target arch_linux_ppc64le_target arch_linux_mips64le_target \
-	arch_freebsd_amd64_target arch_freebsd_386_target \
-	arch_netbsd_amd64_target arch_openbsd_amd64_target \
-	arch_windows_amd64_target arch_test
 
 arch_darwin_amd64_host:
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
@@ -315,40 +306,46 @@ arch_test:
 	env TARGETOS=test TARGETARCH=32_shmem $(MAKE) executor
 	env TARGETOS=test TARGETARCH=32_fork_shmem $(MAKE) executor
 
-presubmit: descriptions
+presubmit:
+	$(MAKE) presubmit_smoke
+	$(MAKE) presubmit_arch
+
+presubmit_smoke:
 	$(MAKE) generate
-	$(MAKE) check_diff
-	$(MAKE) check_copyright 
-	$(MAKE) check_links
-	$(MAKE) lint
-	# We used to run presubmit_parallel instead of the following,
-	# but currently it OOMs on CI (see #1699).
-	# $(MAKE) presubmit_parallel
+	$(MAKE) -j100 check_diff check_copyright check_links presubmit_build
 	$(MAKE) test
+
+presubmit_build:
+	# Run go install before lint for better error messages if build is broken.
+	# This does not check build of test files, but running go test takes too long (even for building).
+	$(GO) install ./...
+	$(MAKE) lint
+
+presubmit_arch:
 	$(MAKE) arch_linux_amd64_host
 	$(MAKE) arch_freebsd_amd64_host
 	$(MAKE) arch_netbsd_amd64_host
 	$(MAKE) arch_openbsd_amd64_host
 	$(MAKE) arch_linux_amd64_target
+	$(MAKE) arch_linux_386_target
 	$(MAKE) arch_linux_arm64_target
+	$(MAKE) arch_linux_arm_target
+	$(MAKE) arch_linux_ppc64le_target
+	$(MAKE) arch_linux_mips64le_target
 	$(MAKE) arch_freebsd_amd64_target
+	$(MAKE) arch_freebsd_386_target
 	$(MAKE) arch_netbsd_amd64_target
 	$(MAKE) arch_openbsd_amd64_target
+	$(MAKE) arch_darwin_amd64_host
+	$(MAKE) arch_windows_amd64_target
 	$(MAKE) arch_test
-	echo LGTM
-
-presubmit_parallel: test test_race arch
+	$(MAKE) test_race
 
 test: descriptions
-ifeq ("$(CI)$(shell go version | grep 1.13)", "true")
-	# Collect coverage report for codecov.io when testing Go 1.14 on CI (uploaded in .travis.yml).
-	env CGO_ENABLED=1 $(GO) test -short -coverprofile=coverage.txt ./...
-else
-	# Executor tests use cgo.
-	env CGO_ENABLED=1 $(GO) test -short ./...
-endif
+	$(GO) test -short -coverprofile=.coverage.txt ./...
 
 test_race: descriptions
+	# -race requires cgo
 	env CGO_ENABLED=1 $(GO) test -race; if test $$? -ne 2; then \
 	env CGO_ENABLED=1 $(GO) test -race -short -bench=.* -benchtime=.2s ./... ;\
 	fi
