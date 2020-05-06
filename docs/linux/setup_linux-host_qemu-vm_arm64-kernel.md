@@ -128,7 +128,7 @@ Reboot the machine, and ensure that you can ssh from host to guest as.
 
 ## Build syzkaller
 
-Build syzkaller as described [here](/docs/contributing.md), with `arm64` target:
+Build syzkaller as described [here](/docs/linux/setup.md#go-and-syzkaller), with `arm64` target:
 
 ```
 CC=gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++
