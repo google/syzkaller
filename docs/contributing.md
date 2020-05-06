@@ -42,44 +42,10 @@ Extending/improving [system call descriptions](syscall_descriptions.md) is alway
 
 Unassigned issues from the [bug tracker](https://github.com/google/syzkaller/issues) are worth doing, but some of them might be complicated.
 
+If you want to contribute code or syscall descriptions, at the very least you need to be able to build and run syzkaller, see the instructions [here](/docs/setup.md).
+
 If you want to work on something non-trivial, please briefly describe it on the [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller) mailing list first,
 so that there is agreement on high level approach and no duplication of work between contributors.
-
-## Go
-
-`syzkaller` is written in [Go](https://golang.org), and `Go 1.11+`
-toolchain is required for build. The toolchain can be installed with:
-
-```
-wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
-tar -xf go1.14.2.linux-amd64.tar.gz
-mv go goroot
-mkdir gopath
-export GOPATH=`pwd`/gopath
-export GOROOT=`pwd`/goroot
-export PATH=$GOPATH/bin:$PATH
-export PATH=$GOROOT/bin:$PATH
-```
-
-Then get and build `syzkaller`:
-
-``` bash
-go get -u -d github.com/google/syzkaller/prog
-cd gopath/src/github.com/google/syzkaller/
-make
-```
-
-As the result compiled binaries should appear in the `bin/` dir.
-
-Also see [Go Getting Started](https://golang.org/doc/install) for more details.
-
-Note: if you want to do cross-OS/arch testing, you need to specify `TARGETOS`,
-`TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](/Makefile) for details.
-
-Note: older versions of Go toolchain formatted code in a slightly
-[different way](https://github.com/golang/go/issues/25161).
-So if you are seeing unrelated code formatting diffs after running `make generate`
-or `make format`, you may be using `Go 1.10` or older. In such case update to `Go 1.11+`.
 
 ## How to create a pull request
 
