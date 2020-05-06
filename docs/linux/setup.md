@@ -4,12 +4,12 @@ Below are the generic instructions for how to set up syzkaller to fuzz the Linux
 Instructions for a particular VM type or kernel arch can be found on these pages:
 
 - [Setup: Ubuntu host, QEMU vm, x86-64 kernel](setup_ubuntu-host_qemu-vm_x86-64-kernel.md)
-- [Setup: Ubuntu host, Odroid C2 board, arm64 kernel](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md)
 - [Setup: Linux host, QEMU vm, arm64 kernel](setup_linux-host_qemu-vm_arm64-kernel.md)
 - [Setup: Linux host, QEMU vm, arm kernel](setup_linux-host_qemu-vm_arm-kernel.md)
 - [Setup: Linux host, Android device, arm64 kernel](setup_linux-host_android-device_arm64-kernel.md)
 - [Setup: Ubuntu host, Android device, arm32 kernel](setup_ubuntu-host_android-device_arm32-kernel.md)
 - [Setup: Linux isolated host](setup_linux-host_isolated.md)
+- [Setup: Ubuntu host, Odroid C2 board, arm64 kernel](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md)
 
 ## Install
 
@@ -19,8 +19,6 @@ The following components are needed to use syzkaller:
  - C compiler with coverage support
  - Linux kernel with coverage additions
  - Virtual machine or a physical device
-
-Generic steps to set up syzkaller are described below.
 
 If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting.md) page.
 
@@ -40,7 +38,7 @@ export PATH=$GOPATH/bin:$PATH
 export PATH=$GOROOT/bin:$PATH
 ```
 
-Then get and build `syzkaller`:
+To download and build `syzkaller`:
 
 ``` bash
 go get -u -d github.com/google/syzkaller/prog
@@ -64,12 +62,14 @@ or `make format`, you may be using `Go 1.10` or older. In such case update to `G
 
 Syzkaller is a coverage-guided fuzzer and therefore it needs the kernel to be built with coverage support, which requires a recent GCC version.
 Coverage support was submitted to GCC, released in GCC 6.1.0 or later.
+Make sure that your GCC meets this requirement, or get a GCC that [syzbot](/docs/syzbot.md) uses [here](/docs/syzbot.md#crash-does-not-reproduce).
 
 ### Linux Kernel
 
 Besides coverage support in GCC, you also need support for it on the kernel side.
-KCOV was committed upstream in Linux kernel version 4.6 and can be enabled by configuring the kernel with `CONFIG_KCOV=y`.
-For older kernels you need to backport commit [kernel: add kcov code coverage](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593).
+KCOV was added into mainline Linux kernel in version 4.6 and is be enabled by `CONFIG_KCOV=y` kernel configation option.
+For older kernels you need to at least backport commit [kernel: add kcov code coverage](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593).
+Besides that, it's recomended to backport all kernel patches that touch `kernel/kcov.c`.
 
 To enable more syzkaller features and improve bug detection abilities, it's recommended to use additional config options.
 See [this page](kernel_configs.md) for details.
@@ -96,6 +96,5 @@ These are the generic requirements for a syzkaller VM:
 
 To use QEMU syzkaller VMs you have to install QEMU on your host system, see [QEMU docs](http://wiki.qemu.org/Manual) for details.
 The [create-image.sh](/tools/create-image.sh) script can be used to create a suitable Linux image.
-Detailed steps for setting up syzkaller with QEMU on a Linux host are avaialble for [x86-64](setup_ubuntu-host_qemu-vm_x86-64-kernel.md) and [arm64](setup_linux-host_qemu-vm_arm64-kernel.md) kernels.
 
-For some details on fuzzing the kernel on an Android device check out [this page](setup_linux-host_android-device_arm64-kernel.md) and the explicit instructions for an Odroid C2 board are available [here](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md).
+See the links at the top of the document for instructions on setting up syzkaller for QEMU, Android and some other types of VMs.

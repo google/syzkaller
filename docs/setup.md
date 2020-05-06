@@ -1,7 +1,8 @@
 # How to set up syzkaller
 
 Generic setup instructions for fuzzing Linux kernel are outlined [here](linux/setup.md).
-For other OS kernels check:
+
+For other kernels see:
 [Akaros](/docs/akaros/README.md),
 [FreeBSD](/docs/freebsd/README.md),
 [Fuchsia](/docs/fuchsia/README.md),
