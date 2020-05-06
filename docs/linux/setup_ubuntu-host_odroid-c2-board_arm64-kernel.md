@@ -278,7 +278,7 @@ Now make sure you can ssh with the key:
 ssh -i ./ssh/id_rsa root@172.16.0.31
 ```
 
-Build syzkaller as described [here](/docs/contributing.md), with `odroid` build tag:
+Build syzkaller as described [here](/docs/linux/setup.md#go-and-syzkaller), with `odroid` build tag:
 
 ``` bash
 make GOTAGS=odroid TARGETARCH=arm64
