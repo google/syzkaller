@@ -17,7 +17,7 @@ If feasible, recompile and reinstall the Linux kernel with any debugging options
 
 ## Build syzkaller executables
 
-Build syzkaller as described [here](/docs/contributing.md), with `arm` target:
+Build syzkaller as described [here](/docs/linux/setup.md#go-and-syzkaller), with `arm` target:
 
 ```
 make TARGETOS=linux TARGETARCH=arm

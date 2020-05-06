@@ -66,7 +66,7 @@ To execute commands on the DUT before fuzzing (re-)starts,
 
 ## Syzkaller
 
-Build syzkaller as described [here](/docs/contributing.md).
+Build syzkaller as described [here](/docs/linux/setup.md#go-and-syzkaller).
 
 Use the following config:
 ```
