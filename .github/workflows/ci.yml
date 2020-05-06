@@ -1,0 +1,71 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# GitHub workflow reference:
+# https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions
+
+name: ci
+on: [push, pull_request]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks out syzkaller repo at the path.
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      # Caches everything in .cache dir, in partiuclar we want to cache go-build and golangci-lint stuff.
+      # For reference see:
+      # https://help.github.com/en/actions/configuring-and-managing-workflows/caching-dependencies-to-speed-up-workflows#using-the-cache-action
+      - name: cache
+        uses: actions/cache@v1
+        with:
+          path: .cache
+          key: cache
+      # Run make presubmit_smoke.
+      - name: run
+        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh make presubmit_smoke
+      # Upload coverage report to codecov.io.
+      - name: codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: gopath/src/github.com/google/syzkaller/.coverage.txt
+  arch:
+    runs-on: ubuntu-latest
+    needs: [smoke]
+    if: ${{ needs.smoke.result == 'success' }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      - name: cache
+        uses: actions/cache@v1
+        with:
+          path: .cache
+          key: cache
+      - name: run
+        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh make presubmit_arch
+  fuzzit:
+    runs-on: ubuntu-latest
+    needs: [smoke]
+    if: ${{ needs.smoke.result == 'success' }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          path: gopath/src/github.com/google/syzkaller
+      - name: cache
+        uses: actions/cache@v1
+        with:
+          path: .cache
+          key: cache
+      - name: regression
+        if: ${{ github.event_name == 'pull_request' }}
+        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh tools/fuzzit.sh local-regression
+      - name: fuzzing
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        env:
+          FUZZIT_API_KEY: ${{ secrets.FUZZIT_API_KEY }}
+        run: gopath/src/github.com/google/syzkaller/.github/workflows/run.sh tools/fuzzit.sh fuzzing
