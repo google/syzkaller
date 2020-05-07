@@ -8,7 +8,7 @@ Start the `syz-manager` process as:
 ```
 
 The `syz-manager` process will wind up VMs and start fuzzing in them.
-The `-config` command line option gives the location of the configuration file, which is [described here](configuration.md).
+The `-config` command line option gives the location of the configuration file, which is described [here](configuration.md).
 Found crashes, statistics and other information is exposed on the HTTP address specified in the manager config.
 
 ## Crashes
@@ -24,10 +24,10 @@ If a reproducer is successfully found, it can be generated in one of the two for
 Syzkaller always tries to generate a more user-friendly C reproducer, but sometimes fails for various reasons (for example slightly different timings).
 In case syzkaller only generated a syzkaller program, there's [a way to execute them](reproducing_crashes.md) to reproduce and debug the crash manually.
 
+## Hub
+
+In case you're running multiple `syz-manager` instances, there's a way connect them together and allow to exchange programs and reproducers, see the details [here](hub.md).
+
 ## Reporting bugs
 
 Check [here](linux/reporting_kernel_bugs.md) for the instructions on how to report Linux kernel bugs.
-
-## Other
-
-[How to connect several managers via Hub](hub.md)

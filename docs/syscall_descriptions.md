@@ -2,7 +2,7 @@
 
 `syzkaller` uses declarative description of syscall interfaces to manipulate
 programs (sequences of syscalls). Below you can see (hopefully self-explanatory)
-excerpt from the description:
+excerpt from the descriptions:
 
 ```
 open(file filename, flags flags[open_flags], mode flags[open_mode]) fd
@@ -11,7 +11,7 @@ close(fd fd)
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 ```
 
-The description is contained in `sys/OS/*.txt` files.
+The descriptions are contained in `sys/$OS/*.txt` files.
 For example see the [sys/linux/dev_snd_midi.txt](/sys/linux/dev_snd_midi.txt) file
 for descriptions of the Linux MIDI interfaces.
 
@@ -43,31 +43,43 @@ and is used for actual execution (interpretation) of programs by [executor](/exe
 
 ## Describing new system calls
 
-This section describes how to extend syzkaller to allow fuzz testing of a new system call;
-this is particularly useful for kernel developers who are proposing new system calls.
+This section describes how to extend syzkaller to allow fuzz testing of more kernel interfaces.
+This is particularly useful for kernel developers who are proposing new system calls.
 
-Syscall interfaces are manually-written. There is an
+Currently all syscall descriptions are manually-written. There is an
 [open issue](https://github.com/google/syzkaller/issues/590) to provide some aid
-for this process and some ongoing work, but we are yet there.
-There is also [headerparser](headerparser_usage.md) utility that can auto-generate
+for this process and some ongoing work, but we are not there yet to have a
+fully-automated way to generate descriptions.
+There is a helper [headerparser](headerparser_usage.md) utility that can auto-generate
 some parts of descriptions from header files.
 
-First, add a declarative description of the new system call to the appropriate file:
- - Various `sys/linux/<subsystem>.txt` files hold system calls for particular kernel
-   subsystems, for example `bpf` or `socket`.
- - [sys/linux/sys.txt](/sys/linux/sys.txt) holds descriptions for more general system calls.
- - An entirely new subsystem can be added as a new `sys/linux/<new>.txt` file.
+To enable fuzzing of a new kernel interface:
 
-The description of the syntax can be found [here](syscall_descriptions_syntax.md).
+1. Study the interface, find out which syscalls are required to use it.
 
-After adding/changing descriptions run:
-```
-make extract TARGETOS=linux SOURCEDIR=$KSRC
-make generate
-make
-```
+2. Using [syntax documentation](syscall_descriptions_syntax.md) and
+   [existing descriptions](/sys/linux/) as an example, add a declarative
+   description of this interface to the appropriate file:
 
-Here `make extract` generates/updates the `*.const` files.
+    - `sys/linux/<subsystem>.txt` files hold system calls for particular kernel
+      subsystems, for example [bpf.txt](/sys/linux/bpf.txt) or [socket.txt](/sys/linux/socket.txt).
+    - [sys/linux/sys.txt](/sys/linux/sys.txt) holds descriptions for more general system calls.
+    - An entirely new subsystem can be added as a new `sys/linux/<new>.txt` file.
+    - Use `dev_*.txt` filename format for descriptions of `/dev/` devices.
+    - Similarly, use `socket_*.txt` for sockets.
+
+3. After adding/changing descriptions run:
+
+    ``` bash
+    make extract TARGETOS=linux SOURCEDIR=$KSRC
+    make generate
+    make
+    ```
+
+4. Run syzkaller. Make sure that the newly added interface in being reached by
+   syzkaller using the [coverage](coverage.md) information page.
+
+In the instructions above `make extract` generates/updates the `*.const` files.
 `$KSRC` should point to the _latest_ kernel checkout.\
 _Note_: for Linux the _latest_ kernel checkout generally means the
 [mainline](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/) tree.\
@@ -92,8 +104,8 @@ Note: `sudo make install_prerequisites` will success even with some package fail
 install, `sudo apt-get update && sudo apt-get upgrade` might be required to make this
 more efficient.
 
-If you want to fuzz the new subsystem that you described locally, you may find
-the `enable_syscalls` configuration parameter useful to specifically target
+If you want to fuzz only the new subsystem that you described locally, you may
+find the `enable_syscalls` configuration parameter useful to specifically target
 the new system calls.
 
 When updating existing syzkaller descriptions, note, that unless there's a drastic

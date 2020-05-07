@@ -1,5 +1,7 @@
 # Setup: Ubuntu host, Odroid C2 board, arm64 kernel
 
+Note: these instructions are currently outdated, but can still be used as a reference.
+
 These are the instructions on how to fuzz the kernel on an [Odroid C2](http://www.hardkernel.com/main/products/prdt_info.php) board using Ubuntu 14.04 on the host machine and Ubuntu on the Odroid.
 
 ## Hardware setup

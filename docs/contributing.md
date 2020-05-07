@@ -1,8 +1,8 @@
 # How to contribute to syzkaller
 
-## Guidelines
+If you want to contribute to the project, feel free to send a pull request following the guidelines below.
 
-If you want to contribute to the project, feel free to send a pull request.
+## Guidelines
 
 Before sending a pull request you need to [sign Google CLA](https://cla.developers.google.com/)
 (if you don't a bot will ask you to do that) and add yourself to
@@ -33,7 +33,7 @@ an issue without closing it, add `Update #NNN`.
 - Run `make presubmit` and ensure that it passes before sending a PR.
   It may require some additional packages to be installed (try `sudo make install_prerequisites`).
 - `*.const` files are checked-in with the `*.txt` changes in the same commit.
-- Rebase your pull request onto the master branch before submitting.
+- Rebase your working branch onto the master branch before sending a pull request.
 - If you're asked to add some fixes to your pull requested, please squash the new commits with the old ones.
 
 ## What to work on
