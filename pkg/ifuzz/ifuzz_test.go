@@ -37,7 +37,7 @@ func TestMode(t *testing.T) {
 
 func TestDecode(t *testing.T) {
 	seed := time.Now().UnixNano()
-	if os.Getenv("TRAVIS") != "" {
+	if os.Getenv("CI") != "" {
 		seed = 0 // required for deterministic coverage reports
 	}
 	t.Logf("seed=%v", seed)

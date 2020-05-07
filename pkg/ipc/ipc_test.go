@@ -38,7 +38,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, bool, bool) {
 		iters = 10
 	}
 	seed := time.Now().UnixNano()
-	if os.Getenv("TRAVIS") != "" {
+	if os.Getenv( "CI") != "" {
 		seed = 0 // required for deterministic coverage reports
 	}
 	rs := rand.NewSource(seed)

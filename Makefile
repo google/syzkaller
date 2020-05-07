@@ -24,7 +24,7 @@ define newline
 
 
 endef
-ENV := $(subst \n,$(newline),$(shell TRAVIS=$(TRAVIS)\
+ENV := $(subst \n,$(newline),$(shell CI=$(CI)\
 	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
 	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
 	go run tools/syz-env/env.go))
@@ -334,8 +334,8 @@ presubmit: descriptions
 presubmit_parallel: test test_race arch
 
 test: descriptions
-ifeq ("$(TRAVIS)$(shell go version | grep 1.13)", "true")
-	# Collect coverage report for codecov.io when testing Go 1.14 on travis (uploaded in .travis.yml).
+ifeq ("$(CI)$(shell go version | grep 1.13)", "true")
+	# Collect coverage report for codecov.io when testing Go 1.14 on CI (uploaded in .travis.yml).
 	env CGO_ENABLED=1 $(GO) test -short -coverprofile=coverage.txt ./...
 else
 	# Executor tests use cgo.

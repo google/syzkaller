@@ -25,7 +25,7 @@ var (
 
 func randSource(t *testing.T) rand.Source {
 	seed := time.Now().UnixNano()
-	if os.Getenv("TRAVIS") != "" {
+	if os.Getenv( "CI") != "" {
 		seed = 0 // required for deterministic coverage reports
 	}
 	t.Logf("seed=%v", seed)
