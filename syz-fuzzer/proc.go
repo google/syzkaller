@@ -277,6 +277,11 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	if opts.Flags&ipc.FlagDedupCover == 0 {
 		log.Fatalf("dedup cover is not enabled")
 	}
+	for _, call := range p.Calls {
+		if !proc.fuzzer.choiceTable.Enabled(call.Meta.ID) {
+			panic(fmt.Sprintf("executing disabled syscall %v", call.Meta.Name))
+		}
+	}
 
 	// Limit concurrency window and do leak checking once in a while.
 	ticket := proc.fuzzer.gate.Enter()

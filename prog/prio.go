@@ -254,7 +254,7 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 	return &ChoiceTable{target, run, enabledCalls}
 }
 
-func (ct *ChoiceTable) enabled(call int) bool {
+func (ct *ChoiceTable) Enabled(call int) bool {
 	return ct.runs[call] != nil
 }
 
@@ -262,13 +262,13 @@ func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
 	if bias < 0 {
 		bias = ct.calls[r.Intn(len(ct.calls))].ID
 	}
-	if !ct.enabled(bias) {
+	if !ct.Enabled(bias) {
 		panic("bias to disabled syscall")
 	}
 	run := ct.runs[bias]
 	x := r.Intn(run[len(run)-1]) + 1
 	res := sort.SearchInts(run, x)
-	if !ct.enabled(res) {
+	if !ct.Enabled(res) {
 		panic("selected disabled syscall")
 	}
 	return res
