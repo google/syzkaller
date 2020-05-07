@@ -20,6 +20,7 @@ cp ${KASAN_CONFIG} .config
 scripts/kconfig/merge_config.sh -m .config ${KCSAN_ADD}
 make ${MAKE_VARS} olddefconfig
 
+util_add_usb_bits
 util_add_syzbot_extra_bits
 
 cp .config ${KCSAN_CONFIG}
