@@ -1,7 +1,8 @@
 # How syzkaller works
 
-Below is the generic descriptions of how syzkaller works.
-Check [this](linux/internals.md) for Linux kernel specific things.
+Generic description of how syzkaller works are [below](internals.md#overview).
+
+Linux kernel specific internals can be found [here](linux/internals.md).
 
 ## Overview
 
@@ -11,11 +12,11 @@ red labels indicate corresponding configuration options.
 ![Process structure for syzkaller](process_structure.png?raw=true)
 
 The `syz-manager` process starts, monitors and restarts several VM instances, and starts a `syz-fuzzer` process inside of the VMs.
-It is responsible for persistent corpus and crash storage.
-As opposed to `syz-fuzzer` processes, it runs on a host with stable kernel which does not experience white-noise fuzzer load.
+`syz-manager` is responsible for persistent corpus and crash storage.
+It runs on a host with stable kernel which does not experience white-noise fuzzer load.
 
 The `syz-fuzzer` process runs inside of presumably unstable VMs.
-The `syz-fuzzer` guides fuzzing process itself (input generation, mutation, minimization, etc) and sends inputs that trigger new coverage back to the `syz-manager` process via RPC.
+The `syz-fuzzer` guides fuzzing process (input generation, mutation, minimization, etc.) and sends inputs that trigger new coverage back to the `syz-manager` process via RPC.
 It also starts transient `syz-executor` processes.
 
 Each `syz-executor` process executes a single input (a sequence of syscalls).
@@ -25,6 +26,10 @@ It is designed to be as simple as possible (to not interfere with fuzzing proces
 ## Syscall descriptions
 
 The `syz-fuzzer` process generates programs to be executed by `syz-executor` based on syscall descriptions described [here](syscall_descriptions.md).
+
+## Coverage
+
+Syzkaller is a coverage-guided fuzzer. The details about coverage collection can be found [here](coverage.md).
 
 ## Crash reports
 
@@ -48,7 +53,7 @@ and up to 100 `logN` and `reportN` files, one pair per test machine crash:
      ...
 ```
 
-Descriptions are extracted using a set of [regular expressions](/pkg/report/report.go#L33).
+Descriptions are extracted using a set of [regular expressions](/pkg/report/).
 This set may need to be extended if you are using a different kernel architecture, or are just seeing a previously unseen kernel error messages.
 
 `logN` files contain raw `syzkaller` logs and include kernel console output as well as programs executed before the crash.
@@ -69,7 +74,3 @@ However, frequently they mean a kernel lockup or something similarly bad (here a
 [1](https://groups.google.com/d/msg/syzkaller/zfuHHRXL7Zg/Tc5rK8bdCAAJ),
 [2](https://groups.google.com/d/msg/syzkaller/kY_ml6TCm9A/wDd5fYFXBQAJ),
 [3](https://groups.google.com/d/msg/syzkaller/OM7CXieBCoY/etzvFPX3AQAJ)).
-
-## Coverage
-
-Syzkaller coverage description can be found from [here](coverage.md).

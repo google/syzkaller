@@ -1,14 +1,15 @@
 # How to set up syzkaller
 
-Below are the generic instructions for how to set up syzkaller to fuzz the Linux kernel.
-Instructions for a particular VM type or kernel arch can be found on these pages:
+Generic instructions on how to set up Linux kernel fuzzing with syzkaller are [below](setup.md#install).
+
+Instructions for a particular VM type or kernel architecture can be found on these pages:
 
 - [Setup: Ubuntu host, QEMU vm, x86-64 kernel](setup_ubuntu-host_qemu-vm_x86-64-kernel.md)
 - [Setup: Linux host, QEMU vm, arm64 kernel](setup_linux-host_qemu-vm_arm64-kernel.md)
 - [Setup: Linux host, QEMU vm, arm kernel](setup_linux-host_qemu-vm_arm-kernel.md)
 - [Setup: Linux host, Android device, arm32/64 kernel](setup_linux-host_android-device_arm-kernel.md)
 - [Setup: Linux isolated host](setup_linux-host_isolated.md)
-- [Setup: Ubuntu host, Odroid C2 board, arm64 kernel](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md)
+- [Setup: Ubuntu host, Odroid C2 board, arm64 kernel](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md) [outdated]
 
 ## Install
 
@@ -56,6 +57,10 @@ Note: older versions of Go toolchain formatted code in a slightly
 [different way](https://github.com/golang/go/issues/25161).
 So if you are seeing unrelated code formatting diffs after running `make generate`
 or `make format`, you may be using `Go 1.10` or older. In such case update to `Go 1.13+`.
+
+### Environment
+
+You might need to properly setup `binutils` if you're fuzzing in a cross-arch environment as described [here](coverage.md#binutils).
 
 ### C Compiler
 
