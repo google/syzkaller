@@ -379,7 +379,7 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg,
 	// TODO: reduce priority of less specialized ctors.
 	var metas []*Syscall
 	for _, meta := range metas0 {
-		if s.ct.enabled(meta.ID) {
+		if s.ct.Enabled(meta.ID) {
 			metas = append(metas, meta)
 		}
 	}

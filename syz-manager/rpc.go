@@ -18,12 +18,13 @@ import (
 )
 
 type RPCServer struct {
-	mgr             RPCManagerView
-	target          *prog.Target
-	enabledSyscalls []int
-	stats           *Stats
-	sandbox         string
-	batchSize       int
+	mgr                   RPCManagerView
+	target                *prog.Target
+	configEnabledSyscalls []int
+	targetEnabledSyscalls map[*prog.Syscall]bool
+	stats                 *Stats
+	sandbox               string
+	batchSize             int
 
 	mu           sync.Mutex
 	fuzzers      map[string]*Fuzzer
@@ -50,7 +51,7 @@ type BugFrames struct {
 // RPCManagerView restricts interface between RPCServer and Manager.
 type RPCManagerView interface {
 	fuzzerConnect() ([]rpctype.RPCInput, BugFrames)
-	machineChecked(result *rpctype.CheckArgs)
+	machineChecked(result *rpctype.CheckArgs, enabledSyscalls map[*prog.Syscall]bool)
 	newInput(inp rpctype.RPCInput, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.RPCCandidate
 	rotateCorpus() bool
@@ -58,13 +59,13 @@ type RPCManagerView interface {
 
 func startRPCServer(mgr *Manager) (int, error) {
 	serv := &RPCServer{
-		mgr:             mgr,
-		target:          mgr.target,
-		enabledSyscalls: mgr.enabledSyscalls,
-		stats:           mgr.stats,
-		sandbox:         mgr.cfg.Sandbox,
-		fuzzers:         make(map[string]*Fuzzer),
-		rnd:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		mgr:                   mgr,
+		target:                mgr.target,
+		configEnabledSyscalls: mgr.configEnabledSyscalls,
+		stats:                 mgr.stats,
+		sandbox:               mgr.cfg.Sandbox,
+		fuzzers:               make(map[string]*Fuzzer),
+		rnd:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	serv.batchSize = 5
 	if serv.batchSize < mgr.cfg.Procs {
@@ -95,7 +96,7 @@ func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) er
 	serv.fuzzers[a.Name] = f
 	r.MemoryLeakFrames = bugFrames.memoryLeaks
 	r.DataRaceFrames = bugFrames.dataRaces
-	r.EnabledCalls = serv.enabledSyscalls
+	r.EnabledCalls = serv.configEnabledSyscalls
 	r.GitRevision = prog.GitRevision
 	r.TargetRevision = serv.target.Revision
 	// TODO: temporary disabled b/c we suspect this negatively affects fuzzing.
@@ -195,14 +196,14 @@ func (serv *RPCServer) Check(a *rpctype.CheckArgs, r *int) error {
 	if serv.checkResult != nil {
 		return nil
 	}
-	serv.mgr.machineChecked(a)
+	serv.targetEnabledSyscalls = make(map[*prog.Syscall]bool)
+	for _, call := range a.EnabledCalls[serv.sandbox] {
+		serv.targetEnabledSyscalls[serv.target.Syscalls[call]] = true
+	}
+	serv.mgr.machineChecked(a, serv.targetEnabledSyscalls)
 	a.DisabledCalls = nil
 	serv.checkResult = a
-	calls := make(map[*prog.Syscall]bool)
-	for _, call := range a.EnabledCalls[serv.sandbox] {
-		calls[serv.target.Syscalls[call]] = true
-	}
-	serv.rotator = prog.MakeRotator(serv.target, calls, serv.rnd)
+	serv.rotator = prog.MakeRotator(serv.target, serv.targetEnabledSyscalls, serv.rnd)
 	return nil
 }
 
@@ -219,6 +220,12 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	if len(p.Calls) > prog.MaxCalls {
 		log.Logf(0, "rejecting too long program from fuzzer: %v calls\n%s", len(p.Calls), a.RPCInput.Prog)
 		return nil
+	}
+	for _, call := range p.Calls {
+		if !serv.targetEnabledSyscalls[call.Meta] {
+			log.Logf(0, "rejecting program with disabled call %v:\n%s", call.Meta.Name, a.RPCInput.Prog)
+			return nil
+		}
 	}
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
