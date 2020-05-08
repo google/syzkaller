@@ -286,7 +286,11 @@ func TestJobWithoutPatch(t *testing.T) {
 	_, extBugID, err := email.RemoveAddrContext(sender)
 	c.expectOK(err)
 
+	// Patch testing should happen for bugs with fix commits too.
+	c.incomingEmail(sender, "#syz fix: some commit title\n")
+
 	c.incomingEmail(sender, "#syz test git://mygit.com/git.git 5e6a2eea\n", EmailOptMessageID(1))
+	c.expectNoEmail()
 	pollResp := c.client2.pollJobs(build.Manager)
 	c.expectEQ(pollResp.Type, dashapi.JobTestPatch)
 	testBuild := testBuild(2)
