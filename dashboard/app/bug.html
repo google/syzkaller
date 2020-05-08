@@ -31,6 +31,7 @@ Page with details about a single bug.
 	{{template "bug_list" .DupOf}}
 	{{template "bug_list" .Dups}}
 	{{template "bug_list" .Similar}}
+	{{template "job_list" .TestPatchJobs}}
 
 	{{if .SampleReport}}
 	<br><b>Sample crash report:</b><br>

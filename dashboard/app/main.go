@@ -63,7 +63,7 @@ type uiAdminPage struct {
 	Header   *uiHeader
 	Log      []byte
 	Managers []*uiManager
-	Jobs     []*uiJob
+	Jobs     *uiJobList
 }
 
 type uiManager struct {
@@ -120,6 +120,7 @@ type uiBugPage struct {
 	SampleReport  []byte
 	Crashes       *uiCrashTable
 	FixBisections *uiCrashTable
+	TestPatchJobs *uiJobList
 }
 
 type uiBugGroup struct {
@@ -133,6 +134,11 @@ type uiBugGroup struct {
 	ShowStatus    bool
 	ShowIndex     int
 	Bugs          []*uiBug
+}
+
+type uiJobList struct {
+	PerBug bool
+	Jobs   []*uiJob
 }
 
 type uiBug struct {
@@ -306,7 +312,7 @@ func handleAdmin(c context.Context, w http.ResponseWriter, r *http.Request) erro
 		Header:   hdr,
 		Log:      errorLog,
 		Managers: managers,
-		Jobs:     jobs,
+		Jobs:     &uiJobList{Jobs: jobs},
 	}
 	return serveTemplate(w, "admin.html", data)
 }
@@ -384,6 +390,10 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 	}
+	testPatchJobs, err := loadTestPatchJobs(c, bug)
+	if err != nil {
+		return err
+	}
 	data := &uiBugPage{
 		Header:       hdr,
 		Now:          timeNow(c),
@@ -395,6 +405,10 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Similar:      similar,
 		SampleReport: sampleReport,
 		Crashes:      crashesTable,
+		TestPatchJobs: &uiJobList{
+			PerBug: true,
+			Jobs:   testPatchJobs,
+		},
 	}
 	// bug.BisectFix is set to BisectNot in two cases :
 	// - no fix bisections have been performed on the bug
@@ -429,14 +443,9 @@ func findBugByID(c context.Context, r *http.Request) (*Bug, error) {
 }
 
 func getUIJob(c context.Context, bug *Bug, jobType JobType) (*uiJob, error) {
-	job, _, jobKey, _, err := loadBisectJob(c, bug, jobType)
+	job, crash, jobKey, _, err := loadBisectJob(c, bug, jobType)
 	if err != nil {
 		return nil, err
-	}
-	crash := new(Crash)
-	crashKey := db.NewKey(c, "Crash", "", job.CrashID, bug.key(c))
-	if err := db.Get(c, crashKey, crash); err != nil {
-		return nil, fmt.Errorf("failed to get crash: %v", err)
 	}
 	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
 	if err != nil {
@@ -1050,6 +1059,25 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	keys, err := db.NewQuery("Job").
 		Order("-Created").
 		Limit(80).
+		GetAll(c, &jobs)
+	if err != nil {
+		return nil, err
+	}
+	var results []*uiJob
+	for i, job := range jobs {
+		results = append(results, makeUIJob(job, keys[i], nil, nil, nil))
+	}
+	return results, nil
+}
+
+func loadTestPatchJobs(c context.Context, bug *Bug) ([]*uiJob, error) {
+	bugKey := bug.key(c)
+	var jobs []*Job
+	keys, err := db.NewQuery("Job").
+		Ancestor(bugKey).
+		Filter("Type=", JobTestPatch).
+		Filter("Finished>=", time.Time{}).
+		Order("-Finished").
 		GetAll(c, &jobs)
 	if err != nil {
 		return nil, err
