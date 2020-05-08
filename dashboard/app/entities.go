@@ -38,12 +38,15 @@ type Manager struct {
 // ManagerStats holds per-day manager runtime stats.
 // Has Manager as parent entity. Keyed by Date.
 type ManagerStats struct {
-	Date             int // YYYYMMDD
-	MaxCorpus        int64
-	MaxCover         int64
-	TotalFuzzingTime time.Duration
-	TotalCrashes     int64
-	TotalExecs       int64
+	Date              int // YYYYMMDD
+	MaxCorpus         int64
+	MaxPCs            int64 // coverage
+	MaxCover          int64 // what we call feedback signal everywhere else
+	TotalFuzzingTime  time.Duration
+	TotalCrashes      int64
+	CrashTypes        int64 // unique crash types
+	SuppressedCrashes int64
+	TotalExecs        int64
 }
 
 type Build struct {

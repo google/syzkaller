@@ -460,14 +460,17 @@ type ManagerStatsReq struct {
 	Addr string
 
 	// Current level:
-	UpTime time.Duration
-	Corpus uint64
-	Cover  uint64
+	UpTime     time.Duration
+	Corpus     uint64
+	PCs        uint64 // coverage
+	Cover      uint64 // what we call feedback signal everywhere else
+	CrashTypes uint64
 
 	// Delta since last sync:
-	FuzzingTime time.Duration
-	Crashes     uint64
-	Execs       uint64
+	FuzzingTime       time.Duration
+	Crashes           uint64
+	SuppressedCrashes uint64
+	Execs             uint64
 }
 
 func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {

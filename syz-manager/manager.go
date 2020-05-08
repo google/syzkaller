@@ -1138,7 +1138,7 @@ func (mgr *Manager) checkUsedFiles() {
 func (mgr *Manager) dashboardReporter() {
 	webAddr := publicWebAddr(mgr.cfg.HTTP)
 	var lastFuzzingTime time.Duration
-	var lastCrashes, lastExecs uint64
+	var lastCrashes, lastSuppressedCrashes, lastExecs uint64
 	for {
 		time.Sleep(time.Minute)
 		mgr.mu.Lock()
@@ -1147,16 +1147,20 @@ func (mgr *Manager) dashboardReporter() {
 			continue
 		}
 		crashes := mgr.stats.crashes.get()
+		suppressedCrashes := mgr.stats.crashSuppressed.get()
 		execs := mgr.stats.execTotal.get()
 		req := &dashapi.ManagerStatsReq{
-			Name:        mgr.cfg.Name,
-			Addr:        webAddr,
-			UpTime:      time.Since(mgr.firstConnect),
-			Corpus:      uint64(len(mgr.corpus)),
-			Cover:       mgr.stats.corpusSignal.get(),
-			FuzzingTime: mgr.fuzzingTime - lastFuzzingTime,
-			Crashes:     crashes - lastCrashes,
-			Execs:       execs - lastExecs,
+			Name:              mgr.cfg.Name,
+			Addr:              webAddr,
+			UpTime:            time.Since(mgr.firstConnect),
+			Corpus:            uint64(len(mgr.corpus)),
+			PCs:               mgr.stats.corpusCover.get(),
+			Cover:             mgr.stats.corpusSignal.get(),
+			CrashTypes:        mgr.stats.crashTypes.get(),
+			FuzzingTime:       mgr.fuzzingTime - lastFuzzingTime,
+			Crashes:           crashes - lastCrashes,
+			SuppressedCrashes: suppressedCrashes - lastSuppressedCrashes,
+			Execs:             execs - lastExecs,
 		}
 		mgr.mu.Unlock()
 
@@ -1167,6 +1171,7 @@ func (mgr *Manager) dashboardReporter() {
 		mgr.mu.Lock()
 		lastFuzzingTime += req.FuzzingTime
 		lastCrashes += req.Crashes
+		lastSuppressedCrashes += req.SuppressedCrashes
 		lastExecs += req.Execs
 		mgr.mu.Unlock()
 	}
