@@ -57,7 +57,7 @@ var executorOpts = Options{
 
 func testTarget(t *testing.T, target *prog.Target, full bool) {
 	seed := time.Now().UnixNano()
-	if os.Getenv( "CI") != "" {
+	if os.Getenv("CI") != "" {
 		seed = 0 // required for deterministic coverage reports
 	}
 	rs := rand.NewSource(seed)
@@ -98,7 +98,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 	// Frequently lots of tests fail at the same, which produces/tmp/log
 	// tens of thounds of lines of output. Limit amount of output.
 	maxFailures := uint32(10)
-	if os.Getenv( "CI") != "" {
+	if os.Getenv("CI") != "" {
 		maxFailures = 1
 	}
 	if atomic.LoadUint32(&failedTests) > maxFailures {
