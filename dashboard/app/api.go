@@ -960,11 +960,18 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 		if cur := int64(req.Corpus); cur > stats.MaxCorpus {
 			stats.MaxCorpus = cur
 		}
+		if cur := int64(req.PCs); cur > stats.MaxPCs {
+			stats.MaxPCs = cur
+		}
 		if cur := int64(req.Cover); cur > stats.MaxCover {
 			stats.MaxCover = cur
 		}
+		if cur := int64(req.CrashTypes); cur > stats.CrashTypes {
+			stats.CrashTypes = cur
+		}
 		stats.TotalFuzzingTime += req.FuzzingTime
 		stats.TotalCrashes += int64(req.Crashes)
+		stats.SuppressedCrashes += int64(req.SuppressedCrashes)
 		stats.TotalExecs += int64(req.Execs)
 		return nil
 	})
