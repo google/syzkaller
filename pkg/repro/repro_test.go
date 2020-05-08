@@ -19,7 +19,7 @@ func initTest(t *testing.T) (*rand.Rand, int) {
 		iters = 100
 	}
 	seed := time.Now().UnixNano()
-	if os.Getenv( "CI") != "" {
+	if os.Getenv("CI") != "" {
 		seed = 0 // required for deterministic coverage reports
 	}
 	rs := rand.NewSource(seed)

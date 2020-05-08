@@ -547,7 +547,7 @@ func checkFlagSupported(target *Target, flag string) bool {
 	return cmd.Run() == nil
 }
 
-var runningOnCI = os.Getenv( "CI") != ""
+var runningOnCI = os.Getenv("CI") != ""
 
 // <algorithm> is included by executor, so we test is as well.
 const simpleProg = `
