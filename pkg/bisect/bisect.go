@@ -380,8 +380,8 @@ func (env *env) test() (*testResult, error) {
 		if verr, ok := err.(*osutil.VerboseError); ok {
 			env.log("%v", verr.Title)
 			env.saveDebugFile(current.Hash, 0, verr.Output)
-		} else if verr, ok := err.(build.KernelBuildError); ok {
-			env.log("%v", verr.Title)
+		} else if verr, ok := err.(*build.KernelError); ok {
+			env.log("%s", verr.Report)
 			env.saveDebugFile(current.Hash, 0, verr.Output)
 		} else {
 			env.log("%v", err)

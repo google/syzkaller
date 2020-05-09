@@ -452,12 +452,16 @@ func (ctx *linux) getMaintainers(file string) ([]string, error) {
 	if ctx.kernelSrc == "" {
 		return nil, nil
 	}
-	mtrs, err := ctx.getMaintainersImpl(file, false)
+	return GetLinuxMaintainers(ctx.kernelSrc, file)
+}
+
+func GetLinuxMaintainers(kernelSrc, file string) ([]string, error) {
+	mtrs, err := getMaintainersImpl(kernelSrc, file, false)
 	if err != nil {
 		return nil, err
 	}
 	if len(mtrs) <= 1 {
-		mtrs, err = ctx.getMaintainersImpl(file, true)
+		mtrs, err = getMaintainersImpl(kernelSrc, file, true)
 		if err != nil {
 			return nil, err
 		}
@@ -465,7 +469,7 @@ func (ctx *linux) getMaintainers(file string) ([]string, error) {
 	return mtrs, nil
 }
 
-func (ctx *linux) getMaintainersImpl(file string, blame bool) ([]string, error) {
+func getMaintainersImpl(kernelSrc, file string, blame bool) ([]string, error) {
 	// See #1441 re --git-min-percent.
 	args := []string{"--no-n", "--no-rolestats", "--git-min-percent=15"}
 	if blame {
@@ -473,7 +477,7 @@ func (ctx *linux) getMaintainersImpl(file string, blame bool) ([]string, error) 
 	}
 	args = append(args, "-f", file)
 	script := filepath.FromSlash("scripts/get_maintainer.pl")
-	output, err := osutil.RunCmd(time.Minute, ctx.kernelSrc, script, args...)
+	output, err := osutil.RunCmd(time.Minute, kernelSrc, script, args...)
 	if err != nil {
 		return nil, err
 	}

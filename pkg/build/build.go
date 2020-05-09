@@ -8,10 +8,12 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 )
 
 // Params is input arguments for the Image function.
@@ -61,7 +63,7 @@ func Image(params *Params) (string, error) {
 	}
 	err = builder.build(params)
 	if err != nil {
-		return "", extractRootCause(err)
+		return "", extractRootCause(err, params.TargetOS, params.KernelDir)
 	}
 	sign := ""
 	if signer, ok := builder.(signer); ok {
@@ -81,8 +83,15 @@ func Clean(targetOS, targetArch, vmType, kernelDir string) error {
 	return builder.clean(kernelDir, targetArch)
 }
 
-type KernelBuildError struct {
-	*osutil.VerboseError
+type KernelError struct {
+	Report      []byte
+	Output      []byte
+	Maintainers []string
+	guiltyFile  string
+}
+
+func (err *KernelError) Error() string {
+	return string(err.Report)
 }
 
 type builder interface {
@@ -158,7 +167,7 @@ func CompilerIdentity(compiler string) (string, error) {
 	return "", fmt.Errorf("no output from compiler --version")
 }
 
-func extractRootCause(err error) error {
+func extractRootCause(err error, OS, kernelSrc string) error {
 	if err == nil {
 		return nil
 	}
@@ -166,25 +175,63 @@ func extractRootCause(err error) error {
 	if !ok {
 		return err
 	}
-	cause := extractCauseInner(verr.Output)
-	if cause != "" {
-		verr.Title = cause
+	reason, file := extractCauseInner(verr.Output, kernelSrc)
+	if len(reason) == 0 {
+		return err
 	}
-	return KernelBuildError{verr}
+	kernelErr := &KernelError{
+		Report:     reason,
+		Output:     verr.Output,
+		guiltyFile: file,
+	}
+	if file != "" && OS == "linux" {
+		maintainers, err := report.GetLinuxMaintainers(kernelSrc, file)
+		if err != nil {
+			kernelErr.Output = append(kernelErr.Output, err.Error()...)
+		}
+		kernelErr.Maintainers = maintainers
+	}
+	return kernelErr
 }
 
-func extractCauseInner(s []byte) string {
+func extractCauseInner(s []byte, kernelSrc string) ([]byte, string) {
 	lines := extractCauseRaw(s)
-	const maxLines = 10
+	const maxLines = 20
 	if len(lines) > maxLines {
 		lines = lines[:maxLines]
 	}
+	var stripPrefix []byte
+	if kernelSrc != "" {
+		stripPrefix = []byte(kernelSrc)
+		if stripPrefix[len(stripPrefix)-1] != filepath.Separator {
+			stripPrefix = append(stripPrefix, filepath.Separator)
+		}
+	}
+	file := ""
+	for i := range lines {
+		if stripPrefix != nil {
+			lines[i] = bytes.Replace(lines[i], stripPrefix, nil, -1)
+		}
+		if file == "" {
+			match := fileRe.FindSubmatch(lines[i])
+			if match != nil {
+				file = string(match[1])
+				if file[0] == '/' {
+					// We already removed kernel source prefix,
+					// if we still have an absolute path, it's probably pointing
+					// to compiler/system libraries (not going to work).
+					file = ""
+				}
+			}
+		}
+	}
+	file = strings.TrimPrefix(file, "./")
 	res := bytes.Join(lines, []byte{'\n'})
 	// gcc uses these weird quotes around identifiers, which may be
 	// mis-rendered by systems that don't understand utf-8.
 	res = bytes.Replace(res, []byte("‘"), []byte{'\''}, -1)
 	res = bytes.Replace(res, []byte("’"), []byte{'\''}, -1)
-	return string(res)
+	return res, file
 }
 
 func extractCauseRaw(s []byte) [][]byte {
@@ -229,3 +276,5 @@ var buildFailureCauses = [...]buildFailureCause{
 	{weak: true, pattern: []byte("collect2: error: ")},
 	{weak: true, pattern: []byte("FAILED: Build did NOT complete")},
 }
+
+var fileRe = regexp.MustCompile(`^([a-zA-Z0-9_\-/.]+):[0-9]+:([0-9]+:)? `)
