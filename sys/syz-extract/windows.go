@@ -9,7 +9,7 @@ import (
 
 type windows struct{}
 
-func (*windows) prepare(sourcedir string, build bool, arches []string) error {
+func (*windows) prepare(sourcedir string, build bool, arches []*Arch) error {
 	return nil
 }
 

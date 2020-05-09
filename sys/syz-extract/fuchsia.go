@@ -13,7 +13,7 @@ import (
 
 type fuchsia struct{}
 
-func (*fuchsia) prepare(sourcedir string, build bool, arches []string) error {
+func (*fuchsia) prepare(sourcedir string, build bool, arches []*Arch) error {
 	if sourcedir == "" {
 		return fmt.Errorf("provide path to kernel checkout via -sourcedir flag (or make extract SOURCEDIR)")
 	}

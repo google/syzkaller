@@ -14,7 +14,7 @@ import (
 
 type freebsd struct{}
 
-func (*freebsd) prepare(sourcedir string, build bool, arches []string) error {
+func (*freebsd) prepare(sourcedir string, build bool, arches []*Arch) error {
 	if sourcedir == "" {
 		return fmt.Errorf("provide path to kernel checkout via -sourcedir flag (or make extract SOURCEDIR)")
 	}
