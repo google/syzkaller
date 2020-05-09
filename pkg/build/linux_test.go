@@ -8,6 +8,8 @@ package build
 import (
 	"bytes"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 	"text/template"
 
@@ -15,6 +17,7 @@ import (
 )
 
 func TestElfBinarySignature(t *testing.T) {
+	t.Parallel()
 	enumerateFlags(t, nil, []string{"-g", "-O1", "-O2", "-no-pie", "-static"})
 }
 
@@ -24,18 +27,28 @@ func enumerateFlags(t *testing.T, flags, allFlags []string) {
 		enumerateFlags(t, append(flags, allFlags[0]), allFlags[1:])
 		return
 	}
-	t.Logf("testing: %+v", flags)
-	sign1 := sign(t, flags, false, false)
-	sign2 := sign(t, flags, false, true)
-	sign3 := sign(t, flags, true, false)
-	if sign1 != sign2 {
-		t.Errorf("signature has changed after a comment-only change")
-	}
-	if sign1 == sign3 {
-		t.Errorf("signature has not changed after a change")
-	}
-
-	//func elfBinarySignature(bin string) (string, error) {
+	t.Run(strings.Join(flags, "-"), func(t *testing.T) {
+		t.Parallel()
+		sign1, sign2 := "", ""
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			sign1 = sign(t, flags, false, false)
+			wg.Done()
+		}()
+		go func() {
+			sign2 = sign(t, flags, false, true)
+			wg.Done()
+		}()
+		sign3 := sign(t, flags, true, false)
+		wg.Wait()
+		if sign1 != sign2 {
+			t.Errorf("signature has changed after a comment-only change")
+		}
+		if sign1 == sign3 {
+			t.Errorf("signature has not changed after a change")
+		}
+	})
 }
 
 func sign(t *testing.T, flags []string, changed, comment bool) string {
