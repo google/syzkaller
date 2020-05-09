@@ -52,17 +52,20 @@ func (*linux) prepareArch(arch *Arch) error {
 	// So we create empty stubs in buildDir/syzkaller and add -IbuildDir/syzkaller
 	// as the last flag so it won't override real kernel headers.
 	for hdr, data := range map[string]string{
+		// This is the only compiler header kernel uses,
+		// need to provide it since we use -nostdinc below.
+		"stdarg.h": `
+#pragma once
+#define va_list __builtin_va_list
+#define va_start __builtin_va_start
+#define va_end __builtin_va_end
+#define va_arg __builtin_va_arg
+#define va_copy __builtin_va_copy
+#define __va_copy __builtin_va_copy
+`,
 		"asm/a.out.h": "",
 		"asm/prctl.h": "",
 		"asm/mce.h":   "",
-		"asm/kvm_host.h": `
-#define KVM_USER_MEM_SLOTS 1
-#define KVM_MAX_VCPUS 1
-struct kvm_vm_stat {};
-struct kvm_vcpu_stat {};
-struct kvm_arch {};
-struct kvm_vcpu_arch {};
-`,
 	} {
 		fullPath := filepath.Join(arch.buildDir, "syzkaller", hdr)
 		if err := osutil.MkdirAll(filepath.Dir(fullPath)); err != nil {
@@ -123,13 +126,18 @@ struct kvm_vcpu_arch {};
 }
 
 func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
+	if info.File == "dev_kvm.txt" && arch.target.Arch == "arm" {
+		// Hack: KVM is not supported on ARM anymore. We may want some more official support
+		// for marking descriptions arch-specific, but so far this combination is the only one.
+		// Note: syz-sysgen also ignores this file for arm.
+		return nil, nil, nil
+	}
 	headerArch := arch.target.KernelHeaderArch
 	sourceDir := arch.sourceDir
 	buildDir := arch.buildDir
 	args := []string{
-		// This would be useful to ensure that we don't include any host headers,
-		// but kernel includes at least <stdarg.h>
-		// "-nostdinc",
+		// This makes the build completely hermetic, only kernel headers are used.
+		"-nostdinc",
 		"-w", "-fmessage-length=0",
 		"-O3", // required to get expected values for some __builtin_constant_p
 		"-I.",
@@ -138,6 +146,8 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + sourceDir + "/arch/" + headerArch + "/include",
 		"-I" + buildDir + "/arch/" + headerArch + "/include/generated/uapi",
 		"-I" + buildDir + "/arch/" + headerArch + "/include/generated",
+		"-I" + sourceDir + "/arch/" + headerArch + "/include/asm/mach-malta",
+		"-I" + sourceDir + "/arch/" + headerArch + "/include/asm/mach-generic",
 		"-I" + buildDir + "/include",
 		"-I" + sourceDir + "/include",
 		"-I" + sourceDir + "/arch/" + headerArch + "/include/uapi",
@@ -145,9 +155,8 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + sourceDir + "/include/uapi",
 		"-I" + buildDir + "/include/generated/uapi",
 		"-I" + sourceDir,
+		"-I" + sourceDir + "/include/linux",
 		"-I" + buildDir + "/syzkaller",
-		"-I" + sourceDir + "/arch/" + headerArch + "/include/asm/mach-malta",
-		"-I" + sourceDir + "/arch/" + headerArch + "/include/asm/mach-generic",
 		"-include", sourceDir + "/include/linux/kconfig.h",
 	}
 	args = append(args, arch.target.CrossCFlags...)

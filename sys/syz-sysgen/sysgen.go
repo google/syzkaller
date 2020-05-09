@@ -69,8 +69,8 @@ func main() {
 
 	data := &ExecutorData{}
 	for _, OS := range OSList {
-		top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), nil)
-		if top == nil {
+		descriptions := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), nil)
+		if descriptions == nil {
 			os.Exit(1)
 		}
 		osutil.MkdirAll(filepath.Join("sys", OS, "gen"))
@@ -110,6 +110,15 @@ func main() {
 				consts := compiler.DeserializeConstsGlob(filepath.Join("sys", OS, "*_"+job.Target.Arch+".const"), eh)
 				if consts == nil {
 					return
+				}
+				top := descriptions
+				if OS == "linux" && job.Target.Arch == "arm" {
+					// Hack: KVM is not supported on ARM anymore.
+					// Note: syz-extract also ignores this file for arm.
+					top = descriptions.Filter(func(n ast.Node) bool {
+						pos, _, _ := n.Info()
+						return pos.File != "dev_kvm.txt"
+					})
 				}
 				if OS == "test" {
 					constInfo := compiler.ExtractConsts(top, job.Target, eh)
