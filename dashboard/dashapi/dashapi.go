@@ -301,6 +301,7 @@ type BugReport struct {
 	ExtID             string // arbitrary reporting ID forwarded from BugUpdate.ExtID
 	First             bool   // Set for first report for this bug (Type == ReportNew).
 	Moderation        bool
+	NoRepro           bool // We don't expect repro (e.g. for build/boot errors).
 	Title             string
 	Link              string // link to the bug on dashboard
 	CreditEmail       string // email for the Reported-by tag

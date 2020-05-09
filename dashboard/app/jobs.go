@@ -663,12 +663,13 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 	default:
 		return nil, fmt.Errorf("unknown job type %v", job.Type)
 	}
+	kernelRepo := kernelRepoInfo(build)
 	rep := &dashapi.BugReport{
 		Type:         typ,
 		Config:       reportingConfig,
 		JobID:        extJobID(jobKey),
 		ExtID:        job.ExtID,
-		CC:           job.CC,
+		CC:           append(job.CC, kernelRepo.CC...),
 		Log:          crashLog,
 		LogLink:      externalLink(c, textCrashLog, job.CrashLog),
 		Report:       report,
@@ -681,8 +682,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *db.Key, config i
 		PatchLink:    externalLink(c, textPatch, job.Patch),
 	}
 	if job.Type == JobBisectCause || job.Type == JobBisectFix {
-		kernelRepo := kernelRepoInfo(build)
-		rep.Maintainers = append(crash.Maintainers, kernelRepo.CC...)
+		rep.Maintainers = append(crash.Maintainers, kernelRepo.Maintainers...)
 		rep.ExtID = bugReporting.ExtID
 		if bugReporting.CC != "" {
 			rep.CC = strings.Split(bugReporting.CC, "|")

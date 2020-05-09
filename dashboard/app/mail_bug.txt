@@ -14,7 +14,7 @@ git tree:       {{.KernelRepoAlias}}
 {{end}}{{if .ReproSyzLink}}syz repro:      {{.ReproSyzLink}}
 {{end}}{{if .ReproCLink}}C reproducer:   {{.ReproCLink}}
 {{end}}{{if and .Moderation .Maintainers}}CC:             {{.Maintainers}}
-{{end}}{{if and (not .ReproCLink) (not .ReproSyzLink)}}
+{{end}}{{if and (not .NoRepro) (not .ReproCLink) (not .ReproSyzLink)}}
 Unfortunately, I don't have any reproducer for this crash yet.
 {{end}}
 {{if .BisectCause}}{{if .BisectCause.Commit}}The bug was bisected to:
