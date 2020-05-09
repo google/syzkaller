@@ -19,6 +19,7 @@ import (
 )
 
 type ConstInfo struct {
+	File     string
 	Consts   []string
 	Includes []string
 	Incdirs  []string
@@ -153,6 +154,7 @@ func convertConstInfo(infos map[string]*constInfo) map[string]*ConstInfo {
 			continue
 		}
 		res[file] = &ConstInfo{
+			File:     file,
 			Consts:   toArray(info.consts),
 			Includes: info.includeArray,
 			Incdirs:  info.incdirArray,
