@@ -304,12 +304,13 @@ func createNotification(c context.Context, typ dashapi.BugNotif, public bool, te
 		Title:     bug.displayTitle(),
 		Text:      text,
 		Public:    public,
+		CC:        kernelRepo.CC,
 	}
 	if public {
-		notif.Maintainers = append(crash.Maintainers, kernelRepo.CC...)
+		notif.Maintainers = append(crash.Maintainers, kernelRepo.Maintainers...)
 	}
 	if (public || reporting.moderation) && bugReporting.CC != "" {
-		notif.CC = strings.Split(bugReporting.CC, "|")
+		notif.CC = append(notif.CC, strings.Split(bugReporting.CC, "|")...)
 	}
 	return notif, nil
 }
@@ -421,7 +422,8 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		LogLink:      externalLink(c, textCrashLog, crash.Log),
 		Report:       report,
 		ReportLink:   externalLink(c, textCrashReport, crash.Report),
-		Maintainers:  append(crash.Maintainers, kernelRepo.CC...),
+		CC:           kernelRepo.CC,
+		Maintainers:  append(crash.Maintainers, kernelRepo.Maintainers...),
 		ReproC:       reproC,
 		ReproCLink:   externalLink(c, textReproC, crash.ReproC),
 		ReproSyz:     reproSyz,
@@ -431,7 +433,10 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *db.Key
 		HappenedOn:   managersToRepos(c, bug.Namespace, bug.HappenedOn),
 	}
 	if bugReporting.CC != "" {
-		rep.CC = strings.Split(bugReporting.CC, "|")
+		rep.CC = append(rep.CC, strings.Split(bugReporting.CC, "|")...)
+	}
+	if build.Type == BuildFailed {
+		rep.Maintainers = append(rep.Maintainers, kernelRepo.BuildMaintainers...)
 	}
 	if bug.BisectCause == BisectYes && !job.isUnreliableBisect() {
 		rep.BisectCause = bisectFromJob(c, rep, job)
@@ -471,6 +476,7 @@ func fillBugReport(c context.Context, rep *dashapi.BugReport, bug *Bug, bugRepor
 	rep.KernelCommitDate = build.KernelCommitDate
 	rep.KernelConfig = kernelConfig
 	rep.KernelConfigLink = externalLink(c, textKernelConfig, build.KernelConfig)
+	rep.NoRepro = build.Type == BuildFailed
 	for _, addr := range bug.UNCC {
 		rep.CC = email.RemoveFromEmailList(rep.CC, addr)
 		rep.Maintainers = email.RemoveFromEmailList(rep.Maintainers, addr)

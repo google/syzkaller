@@ -161,6 +161,10 @@ type KernelRepo struct {
 	ReportingPriority int
 	// Additional CC list to add to all bugs reported on this repo.
 	CC []string
+	// Additional CC list to add to bugs if we are mailing maintainers.
+	Maintainers []string
+	// Additional CC list to add to build/boot bugs if we are mailing maintainers.
+	BuildMaintainers []string
 }
 
 var (
@@ -316,7 +320,8 @@ func checkKernelRepos(ns string, cfg *Config) {
 		if prio := repo.ReportingPriority; prio < 0 || prio > 9 {
 			panic(fmt.Sprintf("%v: bad kernel repo reporting priority %v for %q", ns, prio, repo.Alias))
 		}
-		for _, email := range repo.CC {
+		emails := append(append(append([]string{}, repo.CC...), repo.Maintainers...), repo.BuildMaintainers...)
+		for _, email := range emails {
 			if _, err := mail.ParseAddress(email); err != nil {
 				panic(fmt.Sprintf("bad email address %q: %v", email, err))
 			}
