@@ -51,7 +51,7 @@ type File struct {
 }
 
 type Extractor interface {
-	prepare(sourcedir string, build bool, arches []string) error
+	prepare(sourcedir string, build bool, arches []*Arch) error
 	prepareArch(arch *Arch) error
 	processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error)
 }
@@ -87,14 +87,14 @@ func main() {
 	if extractor == nil {
 		failf("unknown os: %v", OS)
 	}
-	if err := extractor.prepare(*flagSourceDir, *flagBuild, archArray); err != nil {
-		failf("%v", err)
-	}
-
 	arches, err := createArches(OS, archArray, files)
 	if err != nil {
 		failf("%v", err)
 	}
+	if err := extractor.prepare(*flagSourceDir, *flagBuild, arches); err != nil {
+		failf("%v", err)
+	}
+
 	jobC := make(chan interface{}, len(archArray)*len(files))
 	for _, arch := range arches {
 		jobC <- arch

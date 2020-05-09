@@ -16,7 +16,7 @@ import (
 
 type linux struct{}
 
-func (*linux) prepare(sourcedir string, build bool, arches []string) error {
+func (*linux) prepare(sourcedir string, build bool, arches []*Arch) error {
 	if sourcedir == "" {
 		return fmt.Errorf("provide path to kernel checkout via -sourcedir flag (or make extract SOURCEDIR)")
 	}
@@ -24,14 +24,19 @@ func (*linux) prepare(sourcedir string, build bool, arches []string) error {
 		// Run 'make mrproper', otherwise out-of-tree build fails.
 		// However, it takes unreasonable amount of time,
 		// so first check few files and if they are missing hope for best.
-		if osutil.IsExist(filepath.Join(sourcedir, ".config")) ||
-			osutil.IsExist(filepath.Join(sourcedir, "init/main.o")) ||
-			osutil.IsExist(filepath.Join(sourcedir, "include/generated/compile.h")) {
-			fmt.Printf("make mrproper\n")
-			out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper",
-				"-j", fmt.Sprint(runtime.NumCPU()))
-			if err != nil {
-				return fmt.Errorf("make mrproper failed: %v\n%s", err, out)
+		for _, a := range arches {
+			arch := a.target.KernelArch
+			if osutil.IsExist(filepath.Join(sourcedir, ".config")) ||
+				osutil.IsExist(filepath.Join(sourcedir, "init/main.o")) ||
+				osutil.IsExist(filepath.Join(sourcedir, "include/config")) ||
+				osutil.IsExist(filepath.Join(sourcedir, "include/generated/compile.h")) ||
+				osutil.IsExist(filepath.Join(sourcedir, "arch", arch, "include", "generated")) {
+				fmt.Printf("make mrproper ARCH=%v\n", arch)
+				out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper", "ARCH="+arch,
+					"-j", fmt.Sprint(runtime.NumCPU()))
+				if err != nil {
+					return fmt.Errorf("make mrproper failed: %v\n%s", err, out)
+				}
 			}
 		}
 	} else {
