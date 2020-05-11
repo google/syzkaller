@@ -23,6 +23,11 @@ func (ctx *freebsd) ContainsCrash(output []byte) bool {
 	return containsCrash(output, freebsdOopses, ctx.ignores)
 }
 
+// TOV: Dummy i-face (unused currently, but needed for compiling)
+func (ctx *freebsd) ParseMulti(output []byte) []*Report {
+	return nil
+}
+
 func (ctx *freebsd) Parse(output []byte) *Report {
 	rep := &Report{
 		Output: output,

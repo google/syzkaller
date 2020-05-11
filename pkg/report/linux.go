@@ -127,6 +127,11 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 	return containsCrash(output, linuxOopses, ctx.ignores)
 }
 
+// TOV: Dummy i-face (unused currently, but needed for compiling)
+func (ctx *linux) ParseMulti(output []byte) []*Report {
+	return nil
+}
+
 func (ctx *linux) Parse(output []byte) *Report {
 	oops, startPos, context := ctx.findFirstOops(output)
 	if oops == nil {
@@ -138,7 +143,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 			StartPos: startPos,
 		}
 		endPos, reportEnd, report, prefix := ctx.findReport(output, oops, startPos, context, questionable)
-		rep.EndPos = endPos
+		rep.EndPos = endPos  // ! TOV: That's full span end position (not the report we would like to return now)
 		title, corrupted, format := extractDescription(report[:reportEnd], oops, linuxStackParams)
 		if title == "" {
 			prefix = nil
@@ -148,6 +153,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 				panic(fmt.Sprintf("non matching oops for %q context=%q in:\n%s\n",
 					oops.header, context, report))
 			}
+			reportEnd = rep.EndPos - rep.StartPos  // ? TOV: Added reportEnd full span as we start relying on it below
 		}
 		rep.Title = title
 		rep.Corrupted = corrupted != ""
@@ -157,7 +163,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 			rep.Report = append(rep.Report, '\n')
 		}
 		rep.reportPrefixLen = len(rep.Report)
-		rep.Report = append(rep.Report, report...)
+		// rep.Report = append(rep.Report, report...)
+		rep.Report = append(rep.Report, report[:reportEnd]...)  // ? TOV: TODO: Recheck reliability of reportEnd
 		if !rep.Corrupted {
 			rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
 		}

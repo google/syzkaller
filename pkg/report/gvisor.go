@@ -39,6 +39,11 @@ func (ctx *gvisor) ContainsCrash(output []byte) bool {
 	return containsCrash(output, gvisorOopses, ctx.ignores)
 }
 
+// TOV: Dummy i-face (unused currently, but needed for compiling)
+func (ctx *gvisor) ParseMulti(output []byte) []*Report {
+	return nil
+}
+
 func (ctx *gvisor) Parse(output []byte) *Report {
 	rep := simpleLineParser(output, gvisorOopses, nil, ctx.ignores)
 	if rep == nil {

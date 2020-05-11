@@ -34,6 +34,11 @@ func (ctx *akaros) ContainsCrash(output []byte) bool {
 	return containsCrash(output, akarosOopses, ctx.ignores)
 }
 
+// TOV: Dummy i-face (unused currently, but needed for compiling)
+func (ctx *akaros) ParseMulti(output []byte) []*Report {
+	return nil
+}
+
 func (ctx *akaros) Parse(output []byte) *Report {
 	rep := simpleLineParser(output, akarosOopses, akarosStackParams, ctx.ignores)
 	if rep == nil {

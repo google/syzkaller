@@ -54,6 +54,11 @@ func (ctx *netbsd) ContainsCrash(output []byte) bool {
 	return containsCrash(output, netbsdOopses, ctx.ignores)
 }
 
+// TOV: Dummy i-face (unused currently, but needed for compiling)
+func (ctx *netbsd) ParseMulti(output []byte) []*Report {
+	return nil
+}
+
 func (ctx *netbsd) Parse(output []byte) *Report {
 	stripped := bytes.Replace(output, []byte{'\r', '\n'}, []byte{'\n'}, -1)
 	stripped = bytes.Replace(stripped, []byte{'\n', '\r'}, []byte{'\n'}, -1)

@@ -24,6 +24,9 @@ type Reporter interface {
 	// Returns nil if no oops found.
 	Parse(output []byte) *Report
 
+	// ? TOV: Need separate i-face, as using the same^ f-s up all dep-s
+	ParseMulti(output []byte) []*Report
+
 	// Symbolize symbolizes rep.Report and fills in Maintainers.
 	Symbolize(rep *Report) error
 }
@@ -185,6 +188,36 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 		rep.Report = rep.Report[:pos]
 	}
 	return rep
+}
+
+// TOV: Report multiple (all) issues in the log (not just the 1st one^)
+func (wrap *reporterWrapper) ParseMulti(output []byte) []*Report {
+	var repAr []*Report  // ? TOV: needed?
+	// TOV: We expect full report body is piled up originally into 0-th element only
+ 	for i, SymbNToRepEnd := 0, 1;  i < len(output);  i += SymbNToRepEnd {
+		// TOV: Start parsing FROM the end of previous valis report part found
+		rep := wrap.Reporter.Parse(output[i:])  // TOV: Expected all rep text is collected in 0th el-t
+		if rep == nil {
+			//return nil
+			break; // TOV: Looks like we have no chance to continue search - nothing found anymore
+		}
+		rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
+		rep.Suppressed = matchesAny(rep.Output, wrap.suppressions)
+		if bytes.Contains(rep.Output, gceConsoleHangup) {
+			rep.Corrupted = true
+		}
+		rep.Type = extractReportType(rep)
+		if match := reportFrameRe.FindStringSubmatch(rep.Title); match != nil {
+			rep.Frame = match[1]
+		}
+		if pos := bytes.Index(rep.Report, []byte(VMDiagnosisStart)); pos != -1 {
+			rep.Report = rep.Report[:pos]
+		}
+		repAr = append(repAr, rep)  // TOV: dyn.array fillers
+		// ? TOV: Length of real valid report part with symb.span to it's start added
+		SymbNToRepEnd = rep.StartPos + len(rep.Report)
+	}
+	return repAr
 }
 
 func extractReportType(rep *Report) Type {

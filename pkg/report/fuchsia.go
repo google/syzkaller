@@ -55,6 +55,11 @@ func (ctx *fuchsia) ContainsCrash(output []byte) bool {
 	return containsCrash(output, zirconOopses, ctx.ignores)
 }
 
+// TOV: Dummy i-face (unused currently, but needed for compiling)
+func (ctx *fuchsia) ParseMulti(output []byte) []*Report {
+	return nil
+}
+
 func (ctx *fuchsia) Parse(output []byte) *Report {
 	// We symbolize here because zircon output does not contain even function names.
 	symbolized := ctx.symbolize(output)
