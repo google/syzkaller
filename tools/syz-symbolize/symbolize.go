@@ -50,42 +50,35 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to open input file: %v\n", err)
 		os.Exit(1)
 	}
-	// rep := reporter.Parse(text)
-	// if rep == nil {
-	// 	rep = &report.Report{Report: text}
-	// } else if *flagOutDir != "" {
-	// 	saveCrash(rep, *flagOutDir)
-	// }
-	//if err := reporter.Symbolize(rep); err != nil {
 
-	repVec := reporter.ParseMulti(text)	// TOV: Var Arr of reports
+	// Vector/array of reports
+	repVec := reporter.ParseMulti(text)
 	repN := len(repVec)
-	if 0 == repN {
-		// TOV: If cannot parse, just push everything out
-		// repVec = append(repVec, &report.Report{Report: text})
-		rep := &report.Report{Report: text}  // TOV: Only one single heap goes to out
-		// TOV: There are no _fields_ to print, except for "Report", right?
-		//      How it was supposed to print that inexistent stuff then?  TODO: Check
-		//
+	if repN == 0 {
+		// If cannot parse, just push everything out. Only one single heap goes to out.
+		rep := &report.Report{Report: text}
+		// There are no _fields_ to print, except for "Report", right?
+		// How it was supposed to print that inexistent stuff then?
 		if err := reporter.Symbolize(rep); err != nil {
 			fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
 			os.Exit(1)
 		}
+		// This should print empty fields except for the last
 		fmt.Printf("TITLE: %v\n", rep.Title)
 		fmt.Printf("CORRUPTED: %v (%v)\n", rep.Corrupted, rep.CorruptedReason)
 		fmt.Printf("MAINTAINERS: %v\n", rep.Maintainers)
 		fmt.Printf("\n")
 		os.Stdout.Write(rep.Report)
 	} else {
-		// TOV: Loop through the vector of reports
-		for i := 0;  i < repN;  i++ {
+		// Loop through the vector of reports
+		for i := 0; i < repN; i++ {
 			if *flagOutDir != "" {
-				// TOV: TODO: Once per iteration in a loop
+				// Once per iteration in a loop
 				saveCrash(repVec[i], *flagOutDir)
 			}
 			if err := reporter.Symbolize(repVec[i]); err != nil {
 				fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
-				// TOV: Do we really have to exit in case of single report symbolizing failure?
+				// Do we really have to exit in case of single report symbolizing failure?
 				//os.Exit(1)
 			} else {
 				fmt.Printf("TITLE: %v\n", repVec[i].Title)
@@ -103,9 +96,9 @@ func saveCrash(rep *report.Report, path string) {
 	id := sig.String()
 	dir := filepath.Join(path, id)
 	osutil.MkdirAll(dir)
-	// TOV: "Title" is the only thing that bothers us here?
-	//      TODO: Why to exit on every single fail??
-	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title + "\n")); err != nil {
+	// "Title" is the most important thing for config bisection
+	// Do we really want to drop everything on every single write out fail? (We do not even use it now ;)
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(rep.Title+"\n")); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to write description: %v", err)
 		os.Exit(1)
 	}

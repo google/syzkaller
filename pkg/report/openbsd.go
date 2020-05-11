@@ -56,9 +56,10 @@ func (ctx *openbsd) ContainsCrash(output []byte) bool {
 	return containsCrash(output, openbsdOopses, ctx.ignores)
 }
 
-// TOV: Dummy i-face (unused currently, but needed for compiling)
 func (ctx *openbsd) ParseMulti(output []byte) []*Report {
-	return nil
+	// Dummy i-face (OS dependent) placeholder.
+	// Valuable functionality is general and kept in wrapper currently.
+	panic("Not implemented. Should not be used.")
 }
 
 func (ctx *openbsd) Parse(output []byte) *Report {

@@ -127,9 +127,10 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 	return containsCrash(output, linuxOopses, ctx.ignores)
 }
 
-// TOV: Dummy i-face (unused currently, but needed for compiling)
 func (ctx *linux) ParseMulti(output []byte) []*Report {
-	return nil
+	// Dummy i-face (OS dependent) placeholder.
+	// Valuable functionality is general and kept in wrapper currently.
+	panic("Not implemented. Should not be used.")
 }
 
 func (ctx *linux) Parse(output []byte) *Report {
@@ -143,7 +144,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 			StartPos: startPos,
 		}
 		endPos, reportEnd, report, prefix := ctx.findReport(output, oops, startPos, context, questionable)
-		rep.EndPos = endPos  // ! TOV: That's full span end position (not the report we would like to return now)
+		rep.EndPos = endPos // This is full span till the end of the log, not the relevant report end
 		title, corrupted, format := extractDescription(report[:reportEnd], oops, linuxStackParams)
 		if title == "" {
 			prefix = nil
@@ -153,7 +154,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 				panic(fmt.Sprintf("non matching oops for %q context=%q in:\n%s\n",
 					oops.header, context, report))
 			}
-			reportEnd = rep.EndPos - rep.StartPos  // ? TOV: Added reportEnd full span as we start relying on it below
+			// Added reportEnd full span calc-n as we start relying on it below
+			reportEnd = rep.EndPos - rep.StartPos
 		}
 		rep.Title = title
 		rep.Corrupted = corrupted != ""
@@ -163,8 +165,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 			rep.Report = append(rep.Report, '\n')
 		}
 		rep.reportPrefixLen = len(rep.Report)
-		// rep.Report = append(rep.Report, report...)
-		rep.Report = append(rep.Report, report[:reportEnd]...)  // ? TOV: TODO: Recheck reliability of reportEnd
+		// Reliability of reportEnd is fine. We do not need evyrything down to the end of log.
+		rep.Report = append(rep.Report, report[:reportEnd]...)
 		if !rep.Corrupted {
 			rep.Corrupted, rep.CorruptedReason = ctx.isCorrupted(title, report, format)
 		}

@@ -190,16 +190,17 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 	return rep
 }
 
-// TOV: Report multiple (all) issues in the log (not just the 1st one^)
+// Report multiple (all) issues from the log (not just the 1st one into "Title" and all
+// the rest into Report as in the original Parse)
 func (wrap *reporterWrapper) ParseMulti(output []byte) []*Report {
-	var repAr []*Report  // ? TOV: needed?
-	// TOV: We expect full report body is piled up originally into 0-th element only
- 	for i, SymbNToRepEnd := 0, 1;  i < len(output);  i += SymbNToRepEnd {
-		// TOV: Start parsing FROM the end of previous valis report part found
-		rep := wrap.Reporter.Parse(output[i:])  // TOV: Expected all rep text is collected in 0th el-t
+	var repAr []*Report
+	// Get the split reports vector (for every specific bug/crash in the log) instead of
+	// report heap where everything is piled up on top of the same single string element
+	for i, SymbNToRepEnd := 0, 1; i < len(output); i += SymbNToRepEnd {
+		// Start parsing FROM the end of previous valis report part found
+		rep := wrap.Reporter.Parse(output[i:])
 		if rep == nil {
-			//return nil
-			break; // TOV: Looks like we have no chance to continue search - nothing found anymore
+			break // Looks like we have no chance to continue search - nothing found anymore
 		}
 		rep.Title = sanitizeTitle(replaceTable(dynamicTitleReplacement, rep.Title))
 		rep.Suppressed = matchesAny(rep.Output, wrap.suppressions)
@@ -213,8 +214,8 @@ func (wrap *reporterWrapper) ParseMulti(output []byte) []*Report {
 		if pos := bytes.Index(rep.Report, []byte(VMDiagnosisStart)); pos != -1 {
 			rep.Report = rep.Report[:pos]
 		}
-		repAr = append(repAr, rep)  // TOV: dyn.array fillers
-		// ? TOV: Length of real valid report part with symb.span to it's start added
+		repAr = append(repAr, rep)
+		// Length of the real particular valid report part with symbol span from its start added
 		SymbNToRepEnd = rep.StartPos + len(rep.Report)
 	}
 	return repAr

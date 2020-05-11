@@ -18,9 +18,10 @@ func (ctx *stub) ContainsCrash(output []byte) bool {
 	panic("not implemented")
 }
 
-// TOV: Dummy i-face (unused currently, but needed for compiling)
 func (ctx *stub) ParseMulti(output []byte) []*Report {
-	return nil
+	// Dummy i-face (OS dependent) placeholder.
+	// Valuable functionality is general and kept in wrapper currently.
+	panic("Not implemented. Should not be used.")
 }
 
 func (ctx *stub) Parse(output []byte) *Report {
