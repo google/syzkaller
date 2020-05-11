@@ -208,6 +208,7 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:           8,
 			PageSize:          4 << 10,
+			CCompiler:         "c++",
 			CFlags:            []string{"-m64"},
 			CrossCFlags:       []string{"-m64", "-static"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
@@ -217,10 +218,8 @@ var List = map[string]map[string]*Target{
 			PtrSize:        4,
 			PageSize:       4 << 10,
 			Int64Alignment: 4,
+			CCompiler:      "c++",
 			CFlags:         []string{"-m32"},
-			// The story behind -B/usr/lib32 is not completely clear, but it helps in some cases.
-			// For context see discussion in https://github.com/google/syzkaller/pull/1202
-			CrossCFlags:       []string{"-m32", "-static", "-B/usr/lib32"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
@@ -360,7 +359,6 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "kernel.full",
-		CPP:                    "g++",
 	},
 	"netbsd": {
 		BuildOS:                "linux",
@@ -445,12 +443,6 @@ func init() {
 			}
 		}
 		target.BuildOS = goos
-		if runtime.GOOS == "freebsd" && runtime.GOARCH == "amd64" && target.PtrSize == 4 {
-			// -m32 alone does not work on freebsd with gcc.
-			// TODO(dvyukov): consider switching to clang on freebsd instead.
-			target.CFlags = append(target.CFlags, "-B/usr/lib32")
-			target.CrossCFlags = append(target.CrossCFlags, "-B/usr/lib32")
-		}
 	}
 }
 
