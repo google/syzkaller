@@ -141,7 +141,7 @@ func main() {
 		}
 	}
 
-	if !failed {
+	if !failed && *flagArch == "" {
 		failed = checkUnsupportedCalls(arches)
 	}
 	for _, arch := range arches {
