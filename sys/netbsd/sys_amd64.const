@@ -91,6 +91,7 @@ SF_APPEND = 262144
 SF_ARCHIVED = 65536
 SF_IMMUTABLE = 131072
 SYS___clone = 287
+SYS___getcwd = 296
 SYS___vfork14 = 282
 SYS_chdir = 12
 SYS_chflags = 34
