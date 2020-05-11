@@ -220,6 +220,7 @@ var List = map[string]map[string]*Target{
 			Int64Alignment: 4,
 			CCompiler:      "c++",
 			CFlags:         []string{"-m32"},
+			CrossCFlags:    []string{"-m32", "-static"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
