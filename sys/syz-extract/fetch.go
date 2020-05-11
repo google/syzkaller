@@ -47,6 +47,7 @@ func extract(info *compiler.ConstInfo, cc string, args []string, params *extract
 		for _, errMsg := range []string{
 			`error: [‘']([a-zA-Z0-9_]+)[’'] undeclared`,
 			`note: in expansion of macro [‘']([a-zA-Z0-9_]+)[’']`,
+			`note: expanded from macro [‘']([a-zA-Z0-9_]+)[’']`,
 			`error: use of undeclared identifier [‘']([a-zA-Z0-9_]+)[’']`,
 		} {
 			re := regexp.MustCompile(errMsg)
