@@ -89,6 +89,12 @@ func Complete(cfg *Config) error {
 			return fmt.Errorf("failed to read workdir_template: %v", err)
 		}
 	}
+	if cfg.Image != "" {
+		if !osutil.IsExist(cfg.Image) {
+			return fmt.Errorf("bad config param image: can't find %v", cfg.Image)
+		}
+		cfg.Image = osutil.Abs(cfg.Image)
+	}
 	if cfg.Syzkaller == "" {
 		return fmt.Errorf("config param syzkaller is empty")
 	}
@@ -135,6 +141,7 @@ func (cfg *Config) CompleteKernelDirs() {
 	if cfg.KernelBuildSrc == "" {
 		cfg.KernelBuildSrc = cfg.KernelSrc
 	}
+	cfg.KernelBuildSrc = osutil.Abs(cfg.KernelBuildSrc)
 }
 
 func checkSSHParams(cfg *Config) error {
@@ -151,6 +158,7 @@ func checkSSHParams(cfg *Config) error {
 	if info.Mode()&0077 != 0 {
 		return fmt.Errorf("sshkey %v is unprotected, ssh will reject it, do chmod 0600", cfg.SSHKey)
 	}
+	cfg.SSHKey = osutil.Abs(cfg.SSHKey)
 	return nil
 }
 
