@@ -27,6 +27,7 @@ var (
 	flagIncludes  = flag.String("includedirs", "", "path to other kernel source include dirs separated by commas")
 	flagBuildDir  = flag.String("builddir", "", "path to kernel build dir")
 	flagArch      = flag.String("arch", "", "comma-separated list of arches to generate (all by default)")
+	flagUseClang  = flag.Bool("use_clang", false, "compile with Clang instead of the default compiler")
 )
 
 type Arch struct {
@@ -34,6 +35,7 @@ type Arch struct {
 	sourceDir   string
 	includeDirs string
 	buildDir    string
+	useClang    bool
 	build       bool
 	files       []*File
 	err         error
@@ -170,7 +172,11 @@ func createArches(OS string, archArray, files []string) ([]*Arch, error) {
 			buildDir = *flagSourceDir
 		}
 
-		target := targets.Get(OS, archStr)
+		compiler := "default"
+		if *flagUseClang {
+			compiler = "clang"
+		}
+		target := targets.Get(OS, archStr, compiler)
 		if target == nil {
 			return nil, fmt.Errorf("unknown arch: %v", archStr)
 		}
@@ -180,6 +186,7 @@ func createArches(OS string, archArray, files []string) ([]*Arch, error) {
 			sourceDir:   *flagSourceDir,
 			includeDirs: *flagIncludes,
 			buildDir:    buildDir,
+			useClang:    *flagUseClang,
 			build:       *flagBuild,
 			done:        make(chan bool),
 		}

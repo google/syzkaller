@@ -90,6 +90,8 @@ ifeq ("$(TARGETOS)", "trusty")
 	TARGETGOARCH := $(HOSTARCH)
 endif
 
+SYZ_CLANG ?= 0
+
 .PHONY: all host target \
 	manager runtest fuzzer executor \
 	ci hub \
@@ -196,7 +198,7 @@ ifeq ($(TARGETOS),fuchsia)
 	$(MAKE) generate_fidl TARGETARCH=arm64
 else
 endif
-	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR) $(FILES)
+	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR) -use_clang=$(SYZ_CLANG) $(FILES)
 
 bin/syz-extract:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(HOSTGO) build $(GOHOSTFLAGS) -o $@ ./sys/syz-extract

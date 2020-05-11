@@ -24,7 +24,9 @@ type Target struct {
 	DataOffset       uint64
 	Int64Alignment   uint64
 	CFlags           []string
-	CCompilerPrefix  string
+	cflagsCommon     []string
+	cflagsCompiler   map[string][]string
+	Triple           string
 	CCompiler        string
 	KernelArch       string
 	KernelHeaderArch string
@@ -65,14 +67,23 @@ type osCommon struct {
 	CPP string
 	// Common CFLAGS for this OS.
 	cflags []string
+	// Default compiler.
+	defaultCompiler string
 }
 
-func Get(OS, arch string) *Target {
+func Get(OS, arch, compiler string) *Target {
 	target := List[OS][arch]
 	if target == nil {
 		return nil
 	}
+	if compiler == "default" || compiler == "" {
+		compiler = target.osCommon.defaultCompiler
+	}
 	target.init.Do(target.lazyInit)
+	cflagsCompiler := target.cflagsCompiler[compiler]
+	if cflagsCompiler != nil {
+		target.CFlags = append(target.CFlags, cflagsCompiler...)
+	}
 	return target
 }
 
@@ -137,8 +148,8 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-m64"},
-			CCompilerPrefix:  "x86_64-linux-gnu-",
+			cflagsCommon:     []string{"-m64"},
+			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "x86_64",
 			KernelHeaderArch: "x86",
 			NeedSyscallDefine: func(nr uint64) bool {
@@ -152,41 +163,47 @@ var List = map[string]map[string]*Target{
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
-			CFlags:           []string{"-m32"},
-			CCompilerPrefix:  "x86_64-linux-gnu-",
+			cflagsCommon:     []string{"-m32"},
+			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "i386",
 			KernelHeaderArch: "x86",
 		},
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CCompilerPrefix:  "aarch64-linux-gnu-",
+			Triple:           "aarch64-linux-gnu",
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
 		},
 		"arm": {
-			VMArch:           "arm64",
-			PtrSize:          4,
-			PageSize:         4 << 10,
-			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
-			CCompilerPrefix:  "arm-linux-gnueabi-",
+			VMArch:       "arm64",
+			PtrSize:      4,
+			PageSize:     4 << 10,
+			cflagsCommon: []string{"-D__LINUX_ARM_ARCH__=6"},
+			cflagsCompiler: map[string][]string{
+				"gcc": []string{"-march=armv6"},
+			},
+			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
 		},
 		"mips64le": {
-			VMArch:           "mips64le",
-			PtrSize:          8,
-			PageSize:         4 << 10,
-			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
-			CCompilerPrefix:  "mips64el-linux-gnuabi64-",
+			VMArch:       "mips64le",
+			PtrSize:      8,
+			PageSize:     4 << 10,
+			cflagsCommon: []string{"-mabi=64", "-EL"},
+			cflagsCompiler: map[string][]string{
+				"gcc": []string{"-march=mips64r2"},
+			},
+			Triple:           "mips64el-linux-gnuabi64",
 			KernelArch:       "mips",
 			KernelHeaderArch: "mips",
 		},
 		"ppc64le": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-D__powerpc64__"},
-			CCompilerPrefix:  "powerpc64le-linux-gnu-",
+			cflagsCommon:     []string{"-D__powerpc64__"},
+			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
 		},
@@ -336,6 +353,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
 		cflags:                 []string{"-static"},
+		defaultCompiler:        "gcc",
 	},
 	"freebsd": {
 		SyscallNumbers:         true,
@@ -447,10 +465,17 @@ func initTarget(target *Target, OS, arch string) {
 		// https://github.com/google/syzkaller/pull/619
 		// https://github.com/google/syzkaller/issues/387
 		// https://github.com/google/syzkaller/commit/06db3cec94c54e1cf720cdd5db72761514569d56
-		target.CCompilerPrefix = ""
+		target.Triple = ""
+	}
+	if OS == "linux" && target.Triple != "" {
+		if target.cflagsCompiler == nil {
+			target.cflagsCompiler = make(map[string][]string)
+		}
+		target.cflagsCompiler["clang"] = append(target.cflagsCompiler["clang"], "--target="+target.Triple)
+		target.cflagsCompiler["clang"] = append(target.cflagsCompiler["clang"], "-ferror-limit=0")
 	}
 	if target.CCompiler == "" {
-		target.CCompiler = target.CCompilerPrefix + "gcc"
+		target.CCompiler = strings.Join([]string{target.Triple, "gcc"}, "-")
 	}
 	if target.CPP == "" {
 		target.CPP = "cpp"
@@ -464,6 +489,7 @@ func initTarget(target *Target, OS, arch string) {
 		target.CPP = target.CCompiler
 	}
 	target.CFlags = append(append([]string{}, target.osCommon.cflags...), target.CFlags...)
+	target.CFlags = append(append([]string{}, target.cflagsCommon...), target.CFlags...)
 	target.CFlags = append(append([]string{}, commonCFlags...), target.CFlags...)
 }
 

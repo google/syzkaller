@@ -36,7 +36,7 @@ func impl() ([]Var, error) {
 	targetOS := or(os.Getenv("TARGETOS"), hostOS)
 	targetArch := or(os.Getenv("TARGETARCH"), hostArch)
 	targetVMArch := or(os.Getenv("TARGETVMARCH"), targetArch)
-	target := targets.Get(targetOS, targetArch)
+	target := targets.Get(targetOS, targetArch, "default")
 	if target == nil {
 		return nil, fmt.Errorf("unknown target %v/%v", targetOS, targetArch)
 	}
