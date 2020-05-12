@@ -76,11 +76,17 @@ func loadPartial(cfg *Config) (*Config, error) {
 }
 
 func Complete(cfg *Config) error {
-	if cfg.TargetOS == "" || cfg.TargetVMArch == "" || cfg.TargetArch == "" {
-		return fmt.Errorf("target parameters are not filled in")
-	}
-	if cfg.Workdir == "" {
-		return fmt.Errorf("config param workdir is empty")
+	if err := checkNonEmpty(
+		cfg.TargetOS, "target",
+		cfg.TargetVMArch, "target",
+		cfg.TargetArch, "target",
+		cfg.Workdir, "workdir",
+		cfg.Syzkaller, "syzkaller",
+		cfg.HTTP, "http",
+		cfg.Type, "type",
+		cfg.SSHUser, "ssh_user",
+	); err != nil {
+		return err
 	}
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
 	if cfg.WorkdirTemplate != "" {
@@ -95,17 +101,8 @@ func Complete(cfg *Config) error {
 		}
 		cfg.Image = osutil.Abs(cfg.Image)
 	}
-	if cfg.Syzkaller == "" {
-		return fmt.Errorf("config param syzkaller is empty")
-	}
 	if err := completeBinaries(cfg); err != nil {
 		return err
-	}
-	if cfg.HTTP == "" {
-		return fmt.Errorf("config param http is empty")
-	}
-	if cfg.Type == "" {
-		return fmt.Errorf("config param type is empty")
 	}
 	if cfg.Procs < 1 || cfg.Procs > 32 {
 		return fmt.Errorf("bad config param procs: '%v', want [1, 32]", cfg.Procs)
@@ -120,15 +117,33 @@ func Complete(cfg *Config) error {
 	}
 	cfg.CompleteKernelDirs()
 
-	if cfg.HubClient != "" && (cfg.Name == "" || cfg.HubAddr == "" || cfg.HubKey == "") {
-		return fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
+	if cfg.HubClient != "" {
+		if err := checkNonEmpty(
+			cfg.Name, "name",
+			cfg.HubAddr, "hub_addr",
+			cfg.HubKey, "hub_key",
+		); err != nil {
+			return err
+		}
 	}
-	if cfg.DashboardClient != "" && (cfg.Name == "" ||
-		cfg.DashboardAddr == "" ||
-		cfg.DashboardKey == "") {
-		return fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
+	if cfg.DashboardClient != "" {
+		if err := checkNonEmpty(
+			cfg.Name, "name",
+			cfg.DashboardAddr, "dashboard_addr",
+			cfg.DashboardKey, "dashboard_key",
+		); err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
+func checkNonEmpty(fields ...string) error {
+	for i := 0; i < len(fields); i += 2 {
+		if fields[i] == "" {
+			return fmt.Errorf("config param %v is empty", fields[i+1])
+		}
+	}
 	return nil
 }
 
@@ -145,9 +160,6 @@ func (cfg *Config) CompleteKernelDirs() {
 }
 
 func checkSSHParams(cfg *Config) error {
-	if cfg.SSHUser == "" {
-		return fmt.Errorf("bad config syzkaller param: ssh user is empty")
-	}
 	if cfg.SSHKey == "" {
 		return nil
 	}
