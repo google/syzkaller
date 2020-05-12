@@ -22,7 +22,7 @@ func DiagnoseFreeBSD(w io.Writer) ([]byte, bool) {
 		"ps",
 		"show all locks",
 		"show malloc",
-		"show ktr",
+		"show uma",
 	}
 	for _, c := range commands {
 		w.Write([]byte(c + "\n"))
