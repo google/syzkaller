@@ -117,7 +117,7 @@ func main() {
 					// Note: syz-extract also ignores this file for arm.
 					top = descriptions.Filter(func(n ast.Node) bool {
 						pos, _, _ := n.Info()
-						return pos.File != "dev_kvm.txt"
+						return !strings.HasSuffix(pos.File, "_kvm.txt")
 					})
 				}
 				if OS == "test" {
