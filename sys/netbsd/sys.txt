@@ -52,10 +52,11 @@ chown(file ptr[in, filename], uid uid, gid gid)
 lchown(file ptr[in, filename], uid uid, gid gid)
 fchown(fd fd, uid uid, gid gid)
 fchownat(dirfd fd_dir, file ptr[in, filename], uid uid, gid gid, flags flags[at_flags])
+access(pathname ptr[in, filename], mode flags[access_mode])
 chflags(file ptr[in, filename], flags flags[chflags_flags])
 fchflags(fd fd, flags flags[chflags_flags])
 lchflags(file ptr[in, filename], flags flags[chflags_flags])
-faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[open_mode], flags flags[faccessat_flags])
+faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[access_mode], flags flags[faccessat_flags])
 utimes(filename ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
@@ -251,6 +252,7 @@ sched_param {
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 at_flags = AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW
+access_mode = R_OK, W_OK, X_OK, F_OK
 linkat_flags = AT_SYMLINK_FOLLOW
 unlinkat_flags = 0, AT_REMOVEDIR
 flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
