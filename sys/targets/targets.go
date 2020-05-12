@@ -195,8 +195,8 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:           8,
 			PageSize:          4 << 10,
-			CCompiler:         "c++",
-			CFlags:            []string{"-m64", "-static"},
+			CCompiler:         "clang",
+			CFlags:            []string{"-m64"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 		"386": {
@@ -204,8 +204,8 @@ var List = map[string]map[string]*Target{
 			PtrSize:           4,
 			PageSize:          4 << 10,
 			Int64Alignment:    4,
-			CCompiler:         "c++",
-			CFlags:            []string{"-m32", "-static"},
+			CCompiler:         "clang",
+			CFlags:            []string{"-m32"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
@@ -344,6 +344,8 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "kernel.full",
+		CPP:                    "g++",
+		cflags:                 []string{"-static", "-lc++"},
 	},
 	"netbsd": {
 		BuildOS:                "linux",
@@ -425,6 +427,12 @@ func init() {
 			if host := List[goos][runtime.GOARCH]; host != nil {
 				target.CCompiler = host.CCompiler
 				target.CPP = host.CPP
+				if goos == "freebsd" {
+					// For some configurations -no-pie is passed to the compiler,
+					// which is not used by clang.
+					// Ensure clang does not complain about it.
+					target.CFlags = append(target.CFlags, "-Wno-unused-command-line-argument")
+				}
 			}
 		}
 		target.BuildOS = goos
