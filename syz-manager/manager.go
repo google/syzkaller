@@ -470,26 +470,13 @@ func (mgr *Manager) loadCorpus() {
 		fallthrough
 	case currentDBVersion:
 	}
-	broken, tooLong := 0, 0
+	broken := 0
 	for key, rec := range mgr.corpusDB.Records {
-		p, err := mgr.target.Deserialize(rec.Val, prog.NonStrict)
-		if err != nil {
+		bad, disabled := checkProgram(mgr.target, mgr.targetEnabledSyscalls, rec.Val)
+		if bad {
 			mgr.corpusDB.Delete(key)
 			broken++
 			continue
-		}
-		if len(p.Calls) > prog.MaxCalls {
-			mgr.corpusDB.Delete(key)
-			tooLong++
-			continue
-		}
-
-		disabled := false
-		for _, c := range p.Calls {
-			if !mgr.targetEnabledSyscalls[c.Meta] {
-				disabled = true
-				break
-			}
 		}
 		if disabled {
 			// This program contains a disabled syscall.
@@ -505,8 +492,8 @@ func (mgr *Manager) loadCorpus() {
 		})
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	log.Logf(0, "%-24v: %v (deleted %v broken, %v too long)",
-		"corpus", len(mgr.candidates), broken, tooLong)
+	log.Logf(0, "%-24v: %v (deleted %v broken)",
+		"corpus", len(mgr.candidates), broken)
 
 	// Now this is ugly.
 	// We duplicate all inputs in the corpus and shuffle the second part.
@@ -523,6 +510,22 @@ func (mgr *Manager) loadCorpus() {
 		panic(fmt.Sprintf("loadCorpus: bad phase %v", mgr.phase))
 	}
 	mgr.phase = phaseLoadedCorpus
+}
+
+func checkProgram(target *prog.Target, enabled map[*prog.Syscall]bool, data []byte) (bad, disabled bool) {
+	p, err := target.Deserialize(data, prog.NonStrict)
+	if err != nil {
+		return true, true
+	}
+	if len(p.Calls) > prog.MaxCalls {
+		return true, true
+	}
+	for _, c := range p.Calls {
+		if !enabled[c.Meta] {
+			return false, true
+		}
+	}
+	return false, false
 }
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {

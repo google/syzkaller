@@ -21,7 +21,7 @@ func (mgr *Manager) hubSyncLoop() {
 		cfg:           mgr.cfg,
 		target:        mgr.target,
 		stats:         mgr.stats,
-		enabledCalls:  mgr.checkResult.EnabledCalls[mgr.cfg.Sandbox],
+		enabledCalls:  mgr.targetEnabledSyscalls,
 		leak:          mgr.checkResult.Features[host.FeatureLeak].Enabled,
 		fresh:         mgr.fresh,
 		hubReproQueue: mgr.hubReproQueue,
@@ -37,7 +37,7 @@ type HubConnector struct {
 	cfg            *mgrconfig.Config
 	target         *prog.Target
 	stats          *Stats
-	enabledCalls   []int
+	enabledCalls   map[*prog.Syscall]bool
 	leak           bool
 	fresh          bool
 	hubCorpus      map[hash.Sig]bool
@@ -80,8 +80,8 @@ func (hc *HubConnector) connect(corpus [][]byte) (*rpctype.RPCClient, error) {
 		Manager: hc.cfg.Name,
 		Fresh:   hc.fresh,
 	}
-	for _, id := range hc.enabledCalls {
-		a.Calls = append(a.Calls, hc.target.Syscalls[id].Name)
+	for call := range hc.enabledCalls {
+		a.Calls = append(a.Calls, call.Name)
 	}
 	hubCorpus := make(map[hash.Sig]bool)
 	for _, inp := range corpus {
@@ -171,8 +171,10 @@ func (hc *HubConnector) processProgs(progs [][]byte) int {
 	dropped := 0
 	candidates := make([][]byte, 0, len(progs))
 	for _, inp := range progs {
-		p, err := hc.target.Deserialize(inp, prog.NonStrict)
-		if err != nil || len(p.Calls) > prog.MaxCalls {
+		bad, disabled := checkProgram(hc.target, hc.enabledCalls, inp)
+		if bad || disabled {
+			log.Logf(0, "rejecting program from hub (bad=%v, disabled=%v):\n%s",
+				bad, disabled, inp)
 			dropped++
 			continue
 		}
@@ -185,7 +187,10 @@ func (hc *HubConnector) processProgs(progs [][]byte) int {
 func (hc *HubConnector) processRepros(repros [][]byte) int {
 	dropped := 0
 	for _, repro := range repros {
-		if _, err := hc.target.Deserialize(repro, prog.NonStrict); err != nil {
+		bad, disabled := checkProgram(hc.target, hc.enabledCalls, repro)
+		if bad || disabled {
+			log.Logf(0, "rejecting repro from hub (bad=%v, disabled=%v):\n%s",
+				bad, disabled, repro)
 			dropped++
 			continue
 		}

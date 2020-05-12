@@ -211,21 +211,10 @@ func (serv *RPCServer) NewInput(a *rpctype.NewInputArgs, r *int) error {
 	inputSignal := a.Signal.Deserialize()
 	log.Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
 		a.Name, a.Call, inputSignal.Len(), len(a.Cover))
-	p, err := serv.target.Deserialize(a.RPCInput.Prog, prog.NonStrict)
-	if err != nil {
-		// This should not happen, but we see such cases episodically (probably corrupted VM memory).
-		log.Logf(0, "failed to deserialize program from fuzzer: %v\n%s", err, a.RPCInput.Prog)
+	bad, disabled := checkProgram(serv.target, serv.targetEnabledSyscalls, a.RPCInput.Prog)
+	if bad || disabled {
+		log.Logf(0, "rejecting program from fuzzer (bad=%v, disabled=%v):\n%s", bad, disabled, a.RPCInput.Prog)
 		return nil
-	}
-	if len(p.Calls) > prog.MaxCalls {
-		log.Logf(0, "rejecting too long program from fuzzer: %v calls\n%s", len(p.Calls), a.RPCInput.Prog)
-		return nil
-	}
-	for _, call := range p.Calls {
-		if !serv.targetEnabledSyscalls[call.Meta] {
-			log.Logf(0, "rejecting program with disabled call %v:\n%s", call.Meta.Name, a.RPCInput.Prog)
-			return nil
-		}
 	}
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
