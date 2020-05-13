@@ -382,8 +382,9 @@ check_links:
 # Check that the diff is empty. This is meant to be executed after generating
 # and formatting the code to make sure that everything is committed.
 check_diff:
-	@if [ "$(shell git diff --name-only)" != "" ]; then \
-		git diff; \
+	@if [ "$(shell git --no-pager diff --name-only)" != "" ]; then \
+		git --no-pager diff; \
 		echo -e "\n\nSome files are not formatted/regenerated (include them into commit):"; \
-		git diff --name-only; \
+		git --no-pager diff --name-only; \
+		false; \
 	fi
