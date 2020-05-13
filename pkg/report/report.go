@@ -42,6 +42,8 @@ type Report struct {
 	// StartPos/EndPos denote region of output with oops message(s).
 	StartPos int
 	EndPos   int
+	// SkipPos is position in output where parsing for the next report should start.
+	SkipPos int
 	// Suppressed indicates whether the report should not be reported to user.
 	Suppressed bool
 	// Corrupted indicates whether the report is truncated of corrupted in some other way.
@@ -183,6 +185,15 @@ func (wrap *reporterWrapper) Parse(output []byte) *Report {
 	}
 	if pos := bytes.Index(rep.Report, []byte(VMDiagnosisStart)); pos != -1 {
 		rep.Report = rep.Report[:pos]
+	}
+	rep.SkipPos = len(output)
+	if pos := bytes.IndexByte(output[rep.StartPos:], '\n'); pos != -1 {
+		rep.SkipPos = rep.StartPos + pos
+	}
+	if rep.EndPos < rep.SkipPos {
+		// This generally should not happen.
+		// But openbsd does some hacks with /r/n which may lead to off-by-one EndPos.
+		rep.EndPos = rep.SkipPos
 	}
 	return rep
 }
