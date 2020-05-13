@@ -23,7 +23,6 @@ type Target struct {
 	NumPages            uint64
 	DataOffset          uint64
 	Int64Alignment      uint64
-	CFlags              []string
 	CrossCFlags         []string
 	CCompilerPrefix     string
 	CCompiler           string
@@ -81,7 +80,6 @@ var List = map[string]map[string]*Target{
 		"64": {
 			PtrSize:  8,
 			PageSize: 4 << 10,
-			CFlags:   []string{"-m64"},
 			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le
 			CrossCFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
@@ -95,7 +93,6 @@ var List = map[string]map[string]*Target{
 		"64_fork": {
 			PtrSize:  8,
 			PageSize: 8 << 10,
-			CFlags:   []string{"-m64"},
 			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le
 			CrossCFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
@@ -110,7 +107,6 @@ var List = map[string]map[string]*Target{
 			PtrSize:        4,
 			PageSize:       8 << 10,
 			Int64Alignment: 4,
-			CFlags:         []string{"-m32"},
 			CrossCFlags:    []string{"-m32", "-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
@@ -124,7 +120,6 @@ var List = map[string]map[string]*Target{
 		"32_fork_shmem": {
 			PtrSize:     4,
 			PageSize:    4 << 10,
-			CFlags:      []string{"-m32"},
 			CrossCFlags: []string{"-m32", "-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
@@ -140,7 +135,6 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-m64"},
 			CrossCFlags:      []string{"-m64", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "x86_64",
@@ -156,7 +150,6 @@ var List = map[string]map[string]*Target{
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
-			CFlags:           []string{"-m32"},
 			CrossCFlags:      []string{"-m32", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "i386",
@@ -174,7 +167,6 @@ var List = map[string]map[string]*Target{
 			VMArch:           "arm64",
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-m32", "-D__ARM_EABI__"},
 			CrossCFlags:      []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6", "-static"},
 			CCompilerPrefix:  "arm-linux-gnueabi-",
 			KernelArch:       "arm",
@@ -184,20 +176,14 @@ var List = map[string]map[string]*Target{
 			VMArch:           "mips64le",
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-D_MIPS_SZLONG=64", "-D__MIPSEL__", "-D__KERNEL__", "-D_MIPS_SIM=_MIPS_SIM_ABI64"},
 			CrossCFlags:      []string{"-static", "-march=mips64r2", "-mabi=64", "-EL"},
 			CCompilerPrefix:  "mips64el-linux-gnuabi64-",
 			KernelArch:       "mips",
 			KernelHeaderArch: "mips",
 		},
 		"ppc64le": {
-			PtrSize:  8,
-			PageSize: 4 << 10,
-			CFlags: []string{
-				"-D__powerpc64__",
-				"-D__LITTLE_ENDIAN__=1",
-				"-D__BYTE_ORDER__=__ORDER_LITTLE_ENDIAN__",
-			},
+			PtrSize:          8,
+			PageSize:         4 << 10,
 			CrossCFlags:      []string{"-D__powerpc64__", "-static"},
 			CCompilerPrefix:  "powerpc64le-linux-gnu-",
 			KernelArch:       "powerpc",
@@ -209,7 +195,6 @@ var List = map[string]map[string]*Target{
 			PtrSize:           8,
 			PageSize:          4 << 10,
 			CCompiler:         "c++",
-			CFlags:            []string{"-m64"},
 			CrossCFlags:       []string{"-m64", "-static"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
@@ -219,7 +204,6 @@ var List = map[string]map[string]*Target{
 			PageSize:          4 << 10,
 			Int64Alignment:    4,
 			CCompiler:         "c++",
-			CFlags:            []string{"-m32"},
 			CrossCFlags:       []string{"-m32", "-static"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
@@ -228,7 +212,6 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:  8,
 			PageSize: 4 << 10,
-			CFlags:   []string{"-m64"},
 			CrossCFlags: []string{"-m64", "-static",
 				"--sysroot", os.ExpandEnv("${SOURCEDIR}/../dest/"),
 			},
@@ -239,7 +222,6 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:     8,
 			PageSize:    4 << 10,
-			CFlags:      []string{"-m64"},
 			CCompiler:   "c++",
 			CrossCFlags: []string{"-m64", "-static", "-lutil"},
 			NeedSyscallDefine: func(nr uint64) bool {
