@@ -59,11 +59,11 @@ func impl() ([]Var, error) {
 		{"TARGETARCH", targetArch},
 		{"TARGETVMARCH", targetVMArch},
 		{"CC", target.CCompiler},
-		{"ADDCFLAGS", strings.Join(target.CrossCFlags, " ")},
+		{"ADDCFLAGS", strings.Join(target.CFlags, " ")},
 		{"NCORES", strconv.Itoa(parallelism)},
 		{"EXE", target.ExeExtension},
 		{"NATIVEBUILDOS", target.BuildOS},
-		{"NO_CROSS_COMPILER", target.BrokenCrossCompiler},
+		{"NO_CROSS_COMPILER", target.BrokenCompiler},
 	}
 	return vars, nil
 }
