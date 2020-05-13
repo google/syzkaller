@@ -185,7 +185,7 @@ static void use_temporary_dir(void)
 #endif
 
 #if GOOS_akaros || GOOS_netbsd || GOOS_freebsd || GOOS_openbsd || GOOS_test
-#if (SYZ_EXECUTOR || SYS_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER && (SYZ_EXECUTOR || SYZ_USE_TMP_DIR)
+#if (SYZ_EXECUTOR || SYZ_REPEAT) && SYZ_EXECUTOR_USES_FORK_SERVER && (SYZ_EXECUTOR || SYZ_USE_TMP_DIR)
 #include <dirent.h>
 #include <stdio.h>
 #include <string.h>
