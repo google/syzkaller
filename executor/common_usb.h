@@ -168,6 +168,8 @@ const char* usb_class_to_string(unsigned value)
 	return "unknown";
 }
 
+// A helper function that allows to see what kind of device is being emulated.
+// Useful for debugging.
 static void analyze_usb_device(struct usb_device_index* index)
 {
 	debug("analyze_usb_device: idVendor = %04x\n", (unsigned)index->dev->idVendor);
@@ -497,6 +499,8 @@ static bool analyze_control_request_vendor(struct usb_device_index* index, struc
 	return true;
 }
 
+// A helper function that prints a request in readable form and returns whether descriptions for this
+// request exist. Needs to be updated manually when new descriptions are added. Useful for debugging.
 static void analyze_control_request(int fd, struct usb_ctrlrequest* ctrl)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -560,7 +564,7 @@ static const char default_lang_id[] = {
 // lookup_connect_response_in() is a helper function that returns a response to a USB IN request
 // based on syzkaller-generated arguments provided to syz_usb_connect* pseudo-syscalls. The data
 // and its length to be used as a response are returned in *response_data and *response_length.
-// The return value of this function indicates whether the request is known to syzkaller.
+// The return value of this function lookup_connect_response_inindicates whether the request is known to syzkaller.
 
 static bool lookup_connect_response_in(int fd, const struct vusb_connect_descriptors* descs,
 				       const struct usb_ctrlrequest* ctrl,
@@ -636,7 +640,7 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 		break;
 	}
 
-	fail("lookup_connect_response_in: unknown request");
+	debug("lookup_connect_response_in: unknown request");
 	return false;
 }
 
@@ -662,7 +666,7 @@ static bool lookup_connect_response_out_generic(int fd, const struct vusb_connec
 		break;
 	}
 
-	fail("lookup_connect_response_out: unknown request");
+	debug("lookup_connect_response_out: unknown request");
 	return false;
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_connect
