@@ -80,7 +80,7 @@ func (*linux) prepareArch(arch *Arch) error {
 	}
 	target := arch.target
 	var cflags []string
-	for _, flag := range target.CrossCFlags {
+	for _, flag := range target.CFlags {
 		if !strings.HasPrefix(flag, "-W") {
 			cflags = append(cflags, flag)
 		}
@@ -159,7 +159,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		"-I" + buildDir + "/syzkaller",
 		"-include", sourceDir + "/include/linux/kconfig.h",
 	}
-	args = append(args, arch.target.CrossCFlags...)
+	args = append(args, arch.target.CFlags...)
 	for _, incdir := range info.Incdirs {
 		args = append(args, "-I"+sourceDir+"/"+incdir)
 	}
