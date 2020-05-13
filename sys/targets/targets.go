@@ -63,6 +63,8 @@ type osCommon struct {
 	KernelObject string
 	// Name of cpp(1) executable.
 	CPP string
+	// Common CFLAGS for this OS.
+	cflags []string
 }
 
 func Get(OS, arch string) *Target {
@@ -135,7 +137,7 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-m64", "-static"},
+			CFlags:           []string{"-m64"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "x86_64",
 			KernelHeaderArch: "x86",
@@ -150,7 +152,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
-			CFlags:           []string{"-m32", "-static"},
+			CFlags:           []string{"-m32"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "i386",
 			KernelHeaderArch: "x86",
@@ -158,7 +160,6 @@ var List = map[string]map[string]*Target{
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-static"},
 			CCompilerPrefix:  "aarch64-linux-gnu-",
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
@@ -167,7 +168,7 @@ var List = map[string]map[string]*Target{
 			VMArch:           "arm64",
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6", "-static"},
+			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
 			CCompilerPrefix:  "arm-linux-gnueabi-",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
@@ -176,7 +177,7 @@ var List = map[string]map[string]*Target{
 			VMArch:           "mips64le",
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-static", "-march=mips64r2", "-mabi=64", "-EL"},
+			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
 			CCompilerPrefix:  "mips64el-linux-gnuabi64-",
 			KernelArch:       "mips",
 			KernelHeaderArch: "mips",
@@ -184,7 +185,7 @@ var List = map[string]map[string]*Target{
 		"ppc64le": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CFlags:           []string{"-D__powerpc64__", "-static"},
+			CFlags:           []string{"-D__powerpc64__"},
 			CCompilerPrefix:  "powerpc64le-linux-gnu-",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
@@ -334,6 +335,7 @@ var oses = map[string]osCommon{
 		ExecutorUsesShmem:      true,
 		ExecutorUsesForkServer: true,
 		KernelObject:           "vmlinux",
+		cflags:                 []string{"-static"},
 	},
 	"freebsd": {
 		SyscallNumbers:         true,
@@ -461,6 +463,7 @@ func initTarget(target *Target, OS, arch string) {
 		target.CCompiler = fmt.Sprintf("cant-build-%v-on-%v", target.OS, runtime.GOOS)
 		target.CPP = target.CCompiler
 	}
+	target.CFlags = append(append([]string{}, target.osCommon.cflags...), target.CFlags...)
 	target.CFlags = append(append([]string{}, commonCFlags...), target.CFlags...)
 }
 
