@@ -224,6 +224,18 @@ func IsSuppressed(reporter Reporter, output []byte) bool {
 		bytes.Contains(output, gceConsoleHangup)
 }
 
+// ParseAll returns all successive reports in output.
+func ParseAll(reporter Reporter, output []byte) (reports []*Report) {
+	for {
+		rep := reporter.Parse(output)
+		if rep == nil {
+			return
+		}
+		reports = append(reports, rep)
+		output = output[rep.SkipPos:]
+	}
+}
+
 // GCE console connection sometimes fails with this message.
 // The message frequently happens right after a kernel panic.
 // So if we see it in output where we recognized a crash, we mark the report as corrupted
