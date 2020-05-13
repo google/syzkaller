@@ -50,21 +50,30 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to open input file: %v\n", err)
 		os.Exit(1)
 	}
-	rep := reporter.Parse(text)
-	if rep == nil {
-		rep = &report.Report{Report: text}
-	} else if *flagOutDir != "" {
-		saveCrash(rep, *flagOutDir)
+	reps := report.ParseAll(reporter, text)
+	if len(reps) == 0 {
+		rep := &report.Report{Report: text}
+		if err := reporter.Symbolize(rep); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
+			os.Exit(1)
+		}
+		os.Stdout.Write(rep.Report)
+		return
 	}
-	if err := reporter.Symbolize(rep); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
-		os.Exit(1)
+	for _, rep := range reps {
+		if *flagOutDir != "" {
+			saveCrash(rep, *flagOutDir)
+		}
+		if err := reporter.Symbolize(rep); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
+		}
+		fmt.Printf("TITLE: %v\n", rep.Title)
+		fmt.Printf("CORRUPTED: %v (%v)\n", rep.Corrupted, rep.CorruptedReason)
+		fmt.Printf("MAINTAINERS: %v\n", rep.Maintainers)
+		fmt.Printf("\n")
+		os.Stdout.Write(rep.Report)
+		fmt.Printf("\n\n")
 	}
-	fmt.Printf("TITLE: %v\n", rep.Title)
-	fmt.Printf("CORRUPTED: %v (%v)\n", rep.Corrupted, rep.CorruptedReason)
-	fmt.Printf("MAINTAINERS: %v\n", rep.Maintainers)
-	fmt.Printf("\n")
-	os.Stdout.Write(rep.Report)
 }
 
 func saveCrash(rep *report.Report, path string) {
