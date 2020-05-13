@@ -24,8 +24,8 @@ resource fd_usb[int32]: -1
 # They are mostly targeted to cover the enumeration process.
 syz_usb_connect(speed flags[usb_device_speed], dev_len len[dev], dev ptr[in, usb_device_descriptor], conn_descs ptr[in, vusb_connect_descriptors]) fd_usb (timeout[3000], prog_timeout[3000])
 syz_usb_control_io(fd fd_usb, descs ptr[in, vusb_descriptors], resps ptr[in, vusb_responses]) (timeout[300])
-syz_usb_ep_write(fd fd_usb, ep int16[0:31], len len[data], data ptr[in, array[int8, 0:256]]) (timeout[300])
-syz_usb_ep_read(fd fd_usb, ep int16[0:31], len len[data], data buffer[out]) (timeout[300])
+syz_usb_ep_write(fd fd_usb, ep int8, len len[data], data ptr[in, array[int8, 0:256]]) (timeout[300])
+syz_usb_ep_read(fd fd_usb, ep int8, len len[data], data buffer[out]) (timeout[300])
 syz_usb_disconnect(fd fd_usb) (timeout[300])
 
 usb_device_speed = USB_SPEED_UNKNOWN, USB_SPEED_LOW, USB_SPEED_FULL, USB_SPEED_HIGH, USB_SPEED_WIRELESS, USB_SPEED_SUPER, USB_SPEED_SUPER_PLUS
@@ -1334,11 +1334,18 @@ vusb_responses_uac1 {
 include <drivers/net/wireless/ath/ath9k/htc_hst.h>
 include <drivers/net/wireless/ath/ath9k/hif_usb.h>
 
+define USB_ENDPOINT_ATH9K_BULK_OUT_ADDRESS	(1)
+define USB_ENDPOINT_ATH9K_BULK_IN_ADDRESS	(2 | USB_DIR_IN)
+define USB_ENDPOINT_ATH9K_INT_IN_ADDRESS	(3 | USB_DIR_IN)
+define USB_ENDPOINT_ATH9K_INT_OUT_ADDRESS	(4)
+define USB_ENDPOINT_ATH9K_BULK_EXTRA1_ADDRESS	(5)
+define USB_ENDPOINT_ATH9K_BULK_EXTRA2_ADDRESS	(6)
+
 resource fd_usb_ath9k[fd_usb]
 
 syz_usb_connect_ath9k(speed const[USB_SPEED_HIGH], dev_len len[dev], dev ptr[in, usb_device_descriptor_ath9k], conn_descs const[0]) fd_usb_ath9k (timeout[3000], prog_timeout[3000])
-syz_usb_ep_write$ath9k_ep1(fd fd_usb_ath9k, ep const[0x1], len bytesize[data], data ptr[in, ath9k_bulk_frame]) (timeout[300])
-syz_usb_ep_write$ath9k_ep2(fd fd_usb_ath9k, ep const[0x2], len bytesize[data], data ptr[in, htc_frame]) (timeout[300])
+syz_usb_ep_write$ath9k_ep1(fd fd_usb_ath9k, ep const[USB_ENDPOINT_ATH9K_BULK_IN_ADDRESS], len bytesize[data], data ptr[in, ath9k_bulk_frame]) (timeout[300])
+syz_usb_ep_write$ath9k_ep2(fd fd_usb_ath9k, ep const[USB_ENDPOINT_ATH9K_INT_IN_ADDRESS], len bytesize[data], data ptr[in, htc_frame]) (timeout[300])
 
 usb_device_descriptor_ath9k {
 	inner	usb_device_descriptor_fixed_t[0x200, USB_CLASS_VENDOR_SPEC, USB_SUBCLASS_VENDOR_SPEC, 0xff, 64, 0xcf3, 0x9271, 0x108, array[usb_config_descriptor_ath9k, 1]]
@@ -1360,13 +1367,6 @@ usb_endpoint_descriptors_ath9k {
 	bulk_extra1	usb_endpoint_descriptor_fixed_t[USB_ENDPOINT_ATH9K_BULK_EXTRA1_ADDRESS, USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES, 512, 0, void]
 	bulk_extra2	usb_endpoint_descriptor_fixed_t[USB_ENDPOINT_ATH9K_BULK_EXTRA2_ADDRESS, USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES, 512, 0, void]
 } [packed]
-
-define USB_ENDPOINT_ATH9K_BULK_OUT_ADDRESS	(1)
-define USB_ENDPOINT_ATH9K_BULK_IN_ADDRESS	(2 | USB_DIR_IN)
-define USB_ENDPOINT_ATH9K_INT_IN_ADDRESS	(3 | USB_DIR_IN)
-define USB_ENDPOINT_ATH9K_INT_OUT_ADDRESS	(4)
-define USB_ENDPOINT_ATH9K_BULK_EXTRA1_ADDRESS	(5)
-define USB_ENDPOINT_ATH9K_BULK_EXTRA2_ADDRESS	(6)
 
 define USB_ENDPOINT_ATH9K_BULK_ATTRIBUTES	(USB_ENDPOINT_XFER_BULK)
 define USB_ENDPOINT_ATH9K_INT_ATTRIBUTES	(USB_ENDPOINT_XFER_INT)

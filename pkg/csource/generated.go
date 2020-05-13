@@ -2430,12 +2430,17 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 #define USB_MAX_EP_NUM 32
 #define USB_MAX_FDS 6
 
+struct usb_endpoint_index {
+	struct usb_endpoint_descriptor desc;
+	int handle;
+};
+
 struct usb_iface_index {
 	struct usb_interface_descriptor* iface;
 	uint8 bInterfaceNumber;
 	uint8 bAlternateSetting;
 	uint8 bInterfaceClass;
-	struct usb_endpoint_descriptor eps[USB_MAX_EP_NUM];
+	struct usb_endpoint_index eps[USB_MAX_EP_NUM];
 	int eps_num;
 };
 
@@ -2496,7 +2501,7 @@ static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_d
 			struct usb_iface_index* iface = &index->ifaces[index->ifaces_num - 1];
 			debug("parse_usb_descriptor: found endpoint #%u at %p\n", iface->eps_num, buffer + offset);
 			if (iface->eps_num < USB_MAX_EP_NUM) {
-				memcpy(&iface->eps[iface->eps_num], buffer + offset, sizeof(iface->eps[iface->eps_num]));
+				memcpy(&iface->eps[iface->eps_num].desc, buffer + offset, sizeof(iface->eps[iface->eps_num].desc));
 				iface->eps_num++;
 			}
 		}
@@ -3364,6 +3369,24 @@ static int lookup_interface(int fd, uint8 bInterfaceNumber, uint8 bAlternateSett
 }
 #endif
 
+#if SYZ_EXECUTOR || __NR_syz_usb_ep_write || __NR_syz_usb_ep_read
+static int lookup_endpoint(int fd, uint8 bEndpointAddress)
+{
+	struct usb_device_index* index = lookup_usb_index(fd);
+	int ep;
+
+	if (!index)
+		return -1;
+	if (index->iface_cur < 0)
+		return -1;
+
+	for (ep = 0; index->ifaces[index->iface_cur].eps_num; ep++)
+		if (index->ifaces[index->iface_cur].eps[ep].desc.bEndpointAddress == bEndpointAddress)
+			return index->ifaces[index->iface_cur].eps[ep].handle;
+	return -1;
+}
+#endif
+
 static void set_interface(int fd, int n)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -3374,21 +3397,26 @@ static void set_interface(int fd, int n)
 
 	if (index->iface_cur >= 0 && index->iface_cur < index->ifaces_num) {
 		for (ep = 0; ep < index->ifaces[index->iface_cur].eps_num; ep++) {
-			int rv = usb_raw_ep_disable(fd, ep);
+			int rv = usb_raw_ep_disable(fd, index->ifaces[index->iface_cur].eps[ep].handle);
 			if (rv < 0) {
-				debug("set_interface: failed to disable endpoint %d\n", ep);
+				debug("set_interface: failed to disable endpoint 0x%02x\n",
+				      index->ifaces[index->iface_cur].eps[ep].desc.bEndpointAddress);
 			} else {
-				debug("set_interface: endpoint %d disabled\n", ep);
+				debug("set_interface: endpoint 0x%02x disabled\n",
+				      index->ifaces[index->iface_cur].eps[ep].desc.bEndpointAddress);
 			}
 		}
 	}
 	if (n >= 0 && n < index->ifaces_num) {
 		for (ep = 0; ep < index->ifaces[n].eps_num; ep++) {
-			int rv = usb_raw_ep_enable(fd, &index->ifaces[n].eps[ep]);
+			int rv = usb_raw_ep_enable(fd, &index->ifaces[n].eps[ep].desc);
 			if (rv < 0) {
-				debug("set_interface: failed to enable endpoint %d\n", ep);
+				debug("set_interface: failed to enable endpoint 0x%02x\n",
+				      index->ifaces[n].eps[ep].desc.bEndpointAddress);
 			} else {
-				debug("set_interface: endpoint %d enabled as %d\n", ep, rv);
+				debug("set_interface: endpoint 0x%02x enabled as %d\n",
+				      index->ifaces[n].eps[ep].desc.bEndpointAddress, rv);
+				index->ifaces[n].eps[ep].handle = rv;
 			}
 		}
 		index->iface_cur = n;
@@ -3686,12 +3714,19 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 static volatile long syz_usb_ep_write(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
 	int fd = a0;
-	uint16 ep = a1;
+	uint8 ep = a1;
 	uint32 len = a2;
 	char* data = (char*)a3;
 
+	int ep_handle = lookup_endpoint(fd, ep);
+	if (ep_handle < 0) {
+		debug("syz_usb_ep_write: endpoint not found\n");
+		return -1;
+	}
+	debug("syz_usb_ep_write: endpoint handle: %d\n", ep_handle);
+
 	struct usb_raw_ep_io_data io_data;
-	io_data.inner.ep = ep;
+	io_data.inner.ep = ep_handle;
 	io_data.inner.flags = 0;
 	if (len > sizeof(io_data.data))
 		len = sizeof(io_data.data);
@@ -3714,12 +3749,19 @@ static volatile long syz_usb_ep_write(volatile long a0, volatile long a1, volati
 static volatile long syz_usb_ep_read(volatile long a0, volatile long a1, volatile long a2, volatile long a3)
 {
 	int fd = a0;
-	uint16 ep = a1;
+	uint8 ep = a1;
 	uint32 len = a2;
 	char* data = (char*)a3;
 
+	int ep_handle = lookup_endpoint(fd, ep);
+	if (ep_handle < 0) {
+		debug("syz_usb_ep_read: endpoint not found\n");
+		return -1;
+	}
+	debug("syz_usb_ep_read: endpoint handle: %d\n", ep_handle);
+
 	struct usb_raw_ep_io_data io_data;
-	io_data.inner.ep = ep;
+	io_data.inner.ep = ep_handle;
 	io_data.inner.flags = 0;
 	if (len > sizeof(io_data.data))
 		len = sizeof(io_data.data);

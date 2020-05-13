@@ -9,20 +9,33 @@
 #define USB_MAX_EP_NUM 32
 #define USB_MAX_FDS 6
 
+struct usb_endpoint_index {
+	// Copy of the endpoint descriptor:
+	struct usb_endpoint_descriptor desc;
+	// Raw Gadget endpoint handle used for this endpoint (Linux only):
+	int handle;
+};
+
 struct usb_iface_index {
+	// Pointer to where the original interface descriptor is stored:
 	struct usb_interface_descriptor* iface;
+	// Cached copied of some of the interface attributes:
 	uint8 bInterfaceNumber;
 	uint8 bAlternateSetting;
 	uint8 bInterfaceClass;
-	struct usb_endpoint_descriptor eps[USB_MAX_EP_NUM];
+	// Endpoint indexes:
+	struct usb_endpoint_index eps[USB_MAX_EP_NUM];
 	int eps_num;
 };
 
 struct usb_device_index {
+	// Pointer to where the original descriptors are stored:
 	struct usb_device_descriptor* dev;
 	struct usb_config_descriptor* config;
+	// Cached copied of some of the device attributes:
 	uint8 bDeviceClass;
 	uint8 bMaxPower;
+	// Config and interface attributes/indexes:
 	int config_length;
 	struct usb_iface_index ifaces[USB_MAX_IFACE_NUM];
 	int ifaces_num;
@@ -75,7 +88,7 @@ static bool parse_usb_descriptor(const char* buffer, size_t length, struct usb_d
 			struct usb_iface_index* iface = &index->ifaces[index->ifaces_num - 1];
 			debug("parse_usb_descriptor: found endpoint #%u at %p\n", iface->eps_num, buffer + offset);
 			if (iface->eps_num < USB_MAX_EP_NUM) {
-				memcpy(&iface->eps[iface->eps_num], buffer + offset, sizeof(iface->eps[iface->eps_num]));
+				memcpy(&iface->eps[iface->eps_num].desc, buffer + offset, sizeof(iface->eps[iface->eps_num].desc));
 				iface->eps_num++;
 			}
 		}
