@@ -54,7 +54,7 @@ func build(target *prog.Target, src []byte, file string, warn bool) (string, err
 	} else {
 		flags = append(flags, file)
 	}
-	flags = append(flags, sysTarget.CrossCFlags...)
+	flags = append(flags, sysTarget.CFlags...)
 	if sysTarget.PtrSize == 4 {
 		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
 		flags = append(flags, "-Wno-overflow")

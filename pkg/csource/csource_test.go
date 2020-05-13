@@ -32,7 +32,7 @@ func TestGenerate(t *testing.T) {
 			continue
 		}
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
-			if err := sysTarget.BrokenCrossCompiler; err != "" {
+			if err := sysTarget.BrokenCompiler; err != "" {
 				t.Skipf("target compiler is broken: %v", err)
 			}
 			full := !checked[target.OS]

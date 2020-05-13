@@ -15,20 +15,20 @@ import (
 type Target struct {
 	init sync.Once
 	osCommon
-	OS                  string
-	Arch                string
-	VMArch              string // e.g. amd64 for 386, or arm64 for arm
-	PtrSize             uint64
-	PageSize            uint64
-	NumPages            uint64
-	DataOffset          uint64
-	Int64Alignment      uint64
-	CrossCFlags         []string
-	CCompilerPrefix     string
-	CCompiler           string
-	KernelArch          string
-	KernelHeaderArch    string
-	BrokenCrossCompiler string
+	OS               string
+	Arch             string
+	VMArch           string // e.g. amd64 for 386, or arm64 for arm
+	PtrSize          uint64
+	PageSize         uint64
+	NumPages         uint64
+	DataOffset       uint64
+	Int64Alignment   uint64
+	CFlags           []string
+	CCompilerPrefix  string
+	CCompiler        string
+	KernelArch       string
+	KernelHeaderArch string
+	BrokenCompiler   string
 	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
 	NeedSyscallDefine func(nr uint64) bool
 }
@@ -81,7 +81,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:  8,
 			PageSize: 4 << 10,
 			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le
-			CrossCFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
+			CFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
@@ -94,7 +94,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:  8,
 			PageSize: 8 << 10,
 			// Compile with -no-pie due to issues with ASan + ASLR on ppc64le
-			CrossCFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
+			CFlags: []string{"-m64", "-fsanitize=address", "-no-pie"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				SyscallPrefix:          "SYS_",
@@ -107,7 +107,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:        4,
 			PageSize:       8 << 10,
 			Int64Alignment: 4,
-			CrossCFlags:    []string{"-m32", "-static"},
+			CFlags:         []string{"-m32", "-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,
@@ -118,9 +118,9 @@ var List = map[string]map[string]*Target{
 			},
 		},
 		"32_fork_shmem": {
-			PtrSize:     4,
-			PageSize:    4 << 10,
-			CrossCFlags: []string{"-m32", "-static"},
+			PtrSize:  4,
+			PageSize: 4 << 10,
+			CFlags:   []string{"-m32", "-static"},
 			osCommon: osCommon{
 				SyscallNumbers:         true,
 				Int64SyscallArgs:       true,
@@ -135,7 +135,7 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CrossCFlags:      []string{"-m64", "-static"},
+			CFlags:           []string{"-m64", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "x86_64",
 			KernelHeaderArch: "x86",
@@ -150,7 +150,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
-			CrossCFlags:      []string{"-m32", "-static"},
+			CFlags:           []string{"-m32", "-static"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "i386",
 			KernelHeaderArch: "x86",
@@ -158,7 +158,7 @@ var List = map[string]map[string]*Target{
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CrossCFlags:      []string{"-static"},
+			CFlags:           []string{"-static"},
 			CCompilerPrefix:  "aarch64-linux-gnu-",
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
@@ -167,7 +167,7 @@ var List = map[string]map[string]*Target{
 			VMArch:           "arm64",
 			PtrSize:          4,
 			PageSize:         4 << 10,
-			CrossCFlags:      []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6", "-static"},
+			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6", "-static"},
 			CCompilerPrefix:  "arm-linux-gnueabi-",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
@@ -176,7 +176,7 @@ var List = map[string]map[string]*Target{
 			VMArch:           "mips64le",
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CrossCFlags:      []string{"-static", "-march=mips64r2", "-mabi=64", "-EL"},
+			CFlags:           []string{"-static", "-march=mips64r2", "-mabi=64", "-EL"},
 			CCompilerPrefix:  "mips64el-linux-gnuabi64-",
 			KernelArch:       "mips",
 			KernelHeaderArch: "mips",
@@ -184,7 +184,7 @@ var List = map[string]map[string]*Target{
 		"ppc64le": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CrossCFlags:      []string{"-D__powerpc64__", "-static"},
+			CFlags:           []string{"-D__powerpc64__", "-static"},
 			CCompilerPrefix:  "powerpc64le-linux-gnu-",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
@@ -195,7 +195,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:           8,
 			PageSize:          4 << 10,
 			CCompiler:         "c++",
-			CrossCFlags:       []string{"-m64", "-static"},
+			CFlags:            []string{"-m64", "-static"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 		"386": {
@@ -204,7 +204,7 @@ var List = map[string]map[string]*Target{
 			PageSize:          4 << 10,
 			Int64Alignment:    4,
 			CCompiler:         "c++",
-			CrossCFlags:       []string{"-m32", "-static"},
+			CFlags:            []string{"-m32", "-static"},
 			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
@@ -212,7 +212,7 @@ var List = map[string]map[string]*Target{
 		"amd64": {
 			PtrSize:  8,
 			PageSize: 4 << 10,
-			CrossCFlags: []string{"-m64", "-static",
+			CFlags: []string{"-m64", "-static",
 				"--sysroot", os.ExpandEnv("${SOURCEDIR}/../dest/"),
 			},
 			CCompiler: os.ExpandEnv("${SOURCEDIR}/../tools/bin/x86_64--netbsd-g++"),
@@ -220,10 +220,10 @@ var List = map[string]map[string]*Target{
 	},
 	"openbsd": {
 		"amd64": {
-			PtrSize:     8,
-			PageSize:    4 << 10,
-			CCompiler:   "c++",
-			CrossCFlags: []string{"-m64", "-static", "-lutil"},
+			PtrSize:   8,
+			PageSize:  4 << 10,
+			CCompiler: "c++",
+			CFlags:    []string{"-m64", "-static", "-lutil"},
 			NeedSyscallDefine: func(nr uint64) bool {
 				switch nr {
 				case 8: // SYS___tfork
@@ -257,7 +257,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			KernelHeaderArch: "x64",
 			CCompiler:        os.ExpandEnv("${SOURCEDIR}/prebuilt/third_party/clang/linux-x64/bin/clang"),
-			CrossCFlags: []string{
+			CFlags: []string{
 				"-Wno-deprecated",
 				"--target=x86_64-fuchsia",
 				"-ldriver",
@@ -280,7 +280,7 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			KernelHeaderArch: "arm64",
 			CCompiler:        os.ExpandEnv("${SOURCEDIR}/prebuilt/third_party/clang/linux-x64/bin/clang"),
-			CrossCFlags: []string{
+			CFlags: []string{
 				"-Wno-deprecated",
 				"--target=aarch64-fuchsia",
 				"-ldriver",
@@ -313,7 +313,7 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch:  "x86",
 			NeedSyscallDefine: dontNeedSyscallDefine,
 			CCompiler:         os.ExpandEnv("${SOURCEDIR}/toolchain/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++"),
-			CrossCFlags: []string{
+			CFlags: []string{
 				"-static",
 			},
 		},
@@ -461,7 +461,7 @@ func initTarget(target *Target, OS, arch string) {
 		target.CCompiler = fmt.Sprintf("cant-build-%v-on-%v", target.OS, runtime.GOOS)
 		target.CPP = target.CCompiler
 	}
-	target.CrossCFlags = append(append([]string{}, commonCFlags...), target.CrossCFlags...)
+	target.CFlags = append(append([]string{}, commonCFlags...), target.CFlags...)
 }
 
 func (target *Target) lazyInit() {
@@ -471,13 +471,13 @@ func (target *Target) lazyInit() {
 	if target.OS != runtime.GOOS || !runningOnCI {
 		// On CI we want to fail loudly if cross-compilation breaks.
 		if _, err := exec.LookPath(target.CCompiler); err != nil {
-			target.BrokenCrossCompiler = fmt.Sprintf("%v is missing", target.CCompiler)
+			target.BrokenCompiler = fmt.Sprintf("%v is missing", target.CCompiler)
 			return
 		}
 	}
 	flags := make(map[string]*bool)
 	var wg sync.WaitGroup
-	for _, flag := range target.CrossCFlags {
+	for _, flag := range target.CFlags {
 		if !optionalCFlags[flag] {
 			continue
 		}
@@ -490,10 +490,10 @@ func (target *Target) lazyInit() {
 		}(flag)
 	}
 	wg.Wait()
-	for i := 0; i < len(target.CrossCFlags); i++ {
-		if res := flags[target.CrossCFlags[i]]; res != nil && !*res {
-			copy(target.CrossCFlags[i:], target.CrossCFlags[i+1:])
-			target.CrossCFlags = target.CrossCFlags[:len(target.CrossCFlags)-1]
+	for i := 0; i < len(target.CFlags); i++ {
+		if res := flags[target.CFlags[i]]; res != nil && !*res {
+			copy(target.CFlags[i:], target.CFlags[i+1:])
+			target.CFlags = target.CFlags[:len(target.CFlags)-1]
 			i--
 		}
 	}
@@ -507,11 +507,11 @@ func (target *Target) lazyInit() {
 		return // On CI all compilers are expected to work, so we don't do the following check.
 	}
 	args := []string{"-x", "c++", "-", "-o", "/dev/null"}
-	args = append(args, target.CrossCFlags...)
+	args = append(args, target.CFlags...)
 	cmd := exec.Command(target.CCompiler, args...)
 	cmd.Stdin = strings.NewReader(simpleProg)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		target.BrokenCrossCompiler = string(out)
+		target.BrokenCompiler = string(out)
 		return
 	}
 }
