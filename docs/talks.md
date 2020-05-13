@@ -39,6 +39,10 @@ at Linux Collaboration Summit 2013
 
 ## Articles
 
+* From [Collabora](https://twitter.com/Collabora):
+  * [syzkaller: fuzzing the kernel](https://www.collabora.com/news-and-blog/blog/2020/03/26/syzkaller-fuzzing-the-kernel/)
+  * [Using syzkaller to detect programming bugs in the Linux kernel](https://www.collabora.com/news-and-blog/blog/2020/04/17/using-syzkaller-to-detect-programming-bugs-in-linux/)
+  * [Using syzkaller: fuzzing your changes](https://www.collabora.com/news-and-blog/blog/2020/05/12/using-syzkaller-fuzzing-your-changes/)
 * From [HardenedLinux](https://github.com/hardenedlinux) project:
   * [Kernel QA with syzkaller and qemu](https://github.com/hardenedlinux/Debian-GNU-Linux-Profiles/blob/master/docs/harbian_qa/fuzz_testing/syzkaller_general.md) (tutorial on how to setup syzkaller with qemu)
   * [Syzkaller crash DEMO](https://github.com/hardenedlinux/Debian-GNU-Linux-Profiles/blob/master/docs/harbian_qa/fuzz_testing/syzkaller_crash_demo.md) (tutorial on how to extend syzkaller with new syscalls)
