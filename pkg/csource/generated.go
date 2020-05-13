@@ -2583,7 +2583,6 @@ const char* usb_class_to_string(unsigned value)
 	}
 	return "unknown";
 }
-
 static void analyze_usb_device(struct usb_device_index* index)
 {
 	debug("analyze_usb_device: idVendor = %04x\n", (unsigned)index->dev->idVendor);
@@ -2908,7 +2907,6 @@ static bool analyze_control_request_vendor(struct usb_device_index* index, struc
 {
 	return true;
 }
-
 static void analyze_control_request(int fd, struct usb_ctrlrequest* ctrl)
 {
 	struct usb_device_index* index = lookup_usb_index(fd);
@@ -3042,7 +3040,7 @@ static bool lookup_connect_response_in(int fd, const struct vusb_connect_descrip
 		break;
 	}
 
-	fail("lookup_connect_response_in: unknown request");
+	debug("lookup_connect_response_in: unknown request");
 	return false;
 }
 
@@ -3065,7 +3063,7 @@ static bool lookup_connect_response_out_generic(int fd, const struct vusb_connec
 		break;
 	}
 
-	fail("lookup_connect_response_out: unknown request");
+	debug("lookup_connect_response_out: unknown request");
 	return false;
 }
 #endif
@@ -3228,6 +3226,36 @@ struct usb_raw_ep_io {
 	__u8 data[0];
 };
 
+#define USB_RAW_EPS_NUM_MAX 30
+#define USB_RAW_EP_NAME_MAX 16
+#define USB_RAW_EP_ADDR_ANY 0xff
+
+struct usb_raw_ep_caps {
+	__u32 type_control : 1;
+	__u32 type_iso : 1;
+	__u32 type_bulk : 1;
+	__u32 type_int : 1;
+	__u32 dir_in : 1;
+	__u32 dir_out : 1;
+};
+
+struct usb_raw_ep_limits {
+	__u16 maxpacket_limit;
+	__u16 max_streams;
+	__u32 reserved;
+};
+
+struct usb_raw_ep_info {
+	__u8 name[USB_RAW_EP_NAME_MAX];
+	__u32 addr;
+	struct usb_raw_ep_caps caps;
+	struct usb_raw_ep_limits limits;
+};
+
+struct usb_raw_eps_info {
+	struct usb_raw_ep_info eps[USB_RAW_EPS_NUM_MAX];
+};
+
 #define USB_RAW_IOCTL_INIT _IOW('U', 0, struct usb_raw_init)
 #define USB_RAW_IOCTL_RUN _IO('U', 1)
 #define USB_RAW_IOCTL_EVENT_FETCH _IOR('U', 2, struct usb_raw_event)
@@ -3239,6 +3267,11 @@ struct usb_raw_ep_io {
 #define USB_RAW_IOCTL_EP_READ _IOWR('U', 8, struct usb_raw_ep_io)
 #define USB_RAW_IOCTL_CONFIGURE _IO('U', 9)
 #define USB_RAW_IOCTL_VBUS_DRAW _IOW('U', 10, __u32)
+#define USB_RAW_IOCTL_EPS_INFO _IOR('U', 11, struct usb_raw_eps_info)
+#define USB_RAW_IOCTL_EP0_STALL _IO('U', 12)
+#define USB_RAW_IOCTL_EP_SET_HALT _IOW('U', 13, __u32)
+#define USB_RAW_IOCTL_EP_CLEAR_HALT _IOW('U', 14, __u32)
+#define USB_RAW_IOCTL_EP_SET_WEDGE _IOW('U', 15, __u32)
 
 static int usb_raw_open()
 {
@@ -3306,6 +3339,11 @@ static int usb_raw_configure(int fd)
 static int usb_raw_vbus_draw(int fd, uint32 power)
 {
 	return ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW, power);
+}
+
+static int usb_raw_ep0_stall(int fd)
+{
+	return ioctl(fd, USB_RAW_IOCTL_EP0_STALL, 0);
 }
 
 #if SYZ_EXECUTOR || __NR_syz_usb_control_io
@@ -3470,13 +3508,15 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len, const ch
 			bool response_found = false;
 			NONFAILING(response_found = lookup_connect_response_in(fd, descs, &event.ctrl, &response_data, &response_length));
 			if (!response_found) {
-				debug("syz_usb_connect: unknown control IN request\n");
-				return -1;
+				debug("syz_usb_connect: unknown request, stalling\n");
+				usb_raw_ep0_stall(fd);
+				continue;
 			}
 		} else {
 			if (!lookup_connect_response_out(fd, descs, &event.ctrl, &done)) {
-				debug("syz_usb_connect: unknown control OUT request\n");
-				return -1;
+				debug("syz_usb_connect: unknown request, stalling\n");
+				usb_raw_ep0_stall(fd);
+				continue;
 			}
 			response_data = NULL;
 			response_length = event.ctrl.wLength;
@@ -3584,7 +3624,8 @@ static volatile long syz_usb_control_io(volatile long a0, volatile long a1, vola
 	if ((event.ctrl.bRequestType & USB_DIR_IN) && event.ctrl.wLength) {
 		NONFAILING(response_found = lookup_control_response(descs, resps, &event.ctrl, &response_data, &response_length));
 		if (!response_found) {
-			debug("syz_usb_control_io: unknown control IN request\n");
+			debug("syz_usb_connect: unknown request, stalling\n");
+			usb_raw_ep0_stall(fd);
 			return -1;
 		}
 	} else {
