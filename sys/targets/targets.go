@@ -432,6 +432,9 @@ func init() {
 					// which is not used by clang.
 					// Ensure clang does not complain about it.
 					target.CFlags = append(target.CFlags, "-Wno-unused-command-line-argument")
+					// When building executor for the test OS, clang needs
+					// to link against the c++ library.
+					target.CFlags = append(target.CFlags, "-lc++")
 				}
 			}
 		}
