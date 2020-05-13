@@ -186,22 +186,10 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	if rep == nil {
 		return
 	}
-	checkReport(t, rep, test)
-	if rep.StartPos != 0 {
-		// If we parse from StartPos, we must find the same report.
-		rep1 := reporter.Parse(test.Log[rep.StartPos:])
-		if rep1 == nil || rep1.Title != rep.Title {
-			t.Fatalf("did not find the same report from rep.StartPos=%v", rep.StartPos)
-		}
-		// If we parse from EndPos, we must not find the same report.
-		rep2 := reporter.Parse(test.Log[rep.EndPos:])
-		if rep2 != nil && rep2.Title == rep.Title {
-			t.Fatalf("found the same report after rep.EndPos=%v", rep.EndPos)
-		}
-	}
+	checkReport(t, reporter, rep, test)
 }
 
-func checkReport(t *testing.T, rep *Report, test *ParseTest) {
+func checkReport(t *testing.T, reporter Reporter, rep *Report, test *ParseTest) {
 	if test.HasReport && !bytes.Equal(rep.Report, test.Report) {
 		t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", rep.Report, test.Report)
 	}
@@ -214,6 +202,9 @@ func checkReport(t *testing.T, rep *Report, test *ParseTest) {
 	if rep.EndPos > len(rep.Output) {
 		t.Fatalf("EndPos=%v > len(Output)=%v", rep.EndPos, len(rep.Output))
 	}
+	if rep.SkipPos <= rep.StartPos || rep.SkipPos > rep.EndPos {
+		t.Fatalf("bad SkipPos=%v: StartPos=%v EndPos=%v", rep.SkipPos, rep.StartPos, rep.EndPos)
+	}
 	if test.StartLine != "" {
 		if test.EndLine == "" {
 			test.EndLine = test.StartLine
@@ -224,6 +215,18 @@ func checkReport(t *testing.T, rep *Report, test *ParseTest) {
 			t.Fatalf("bad start/end pos %v-%v, want %v-%v, line %q",
 				rep.StartPos, rep.EndPos, startPos, endPos,
 				string(test.Log[rep.StartPos:rep.EndPos]))
+		}
+	}
+	if rep.StartPos != 0 {
+		// If we parse from StartPos, we must find the same report.
+		rep1 := reporter.Parse(test.Log[rep.StartPos:])
+		if rep1 == nil || rep1.Title != rep.Title || rep1.StartPos != 0 {
+			t.Fatalf("did not find the same report from rep.StartPos=%v", rep.StartPos)
+		}
+		// If we parse from EndPos, we must not find the same report.
+		rep2 := reporter.Parse(test.Log[rep.EndPos:])
+		if rep2 != nil && rep2.Title == rep.Title {
+			t.Fatalf("found the same report after rep.EndPos=%v", rep.EndPos)
 		}
 	}
 }
