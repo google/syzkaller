@@ -24,7 +24,7 @@ type Target struct {
 	DataOffset       uint64
 	Int64Alignment   uint64
 	CFlags           []string
-	CCompilerPrefix  string
+	Triple           string
 	CCompiler        string
 	KernelArch       string
 	KernelHeaderArch string
@@ -138,7 +138,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			CFlags:           []string{"-m64"},
-			CCompilerPrefix:  "x86_64-linux-gnu-",
+			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "x86_64",
 			KernelHeaderArch: "x86",
 			NeedSyscallDefine: func(nr uint64) bool {
@@ -153,14 +153,14 @@ var List = map[string]map[string]*Target{
 			PageSize:         4 << 10,
 			Int64Alignment:   4,
 			CFlags:           []string{"-m32"},
-			CCompilerPrefix:  "x86_64-linux-gnu-",
+			Triple:           "x86_64-linux-gnu",
 			KernelArch:       "i386",
 			KernelHeaderArch: "x86",
 		},
 		"arm64": {
 			PtrSize:          8,
 			PageSize:         4 << 10,
-			CCompilerPrefix:  "aarch64-linux-gnu-",
+			Triple:           "aarch64-linux-gnu",
 			KernelArch:       "arm64",
 			KernelHeaderArch: "arm64",
 		},
@@ -169,7 +169,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          4,
 			PageSize:         4 << 10,
 			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6"},
-			CCompilerPrefix:  "arm-linux-gnueabi-",
+			Triple:           "arm-linux-gnueabi",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
 		},
@@ -178,7 +178,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			CFlags:           []string{"-march=mips64r2", "-mabi=64", "-EL"},
-			CCompilerPrefix:  "mips64el-linux-gnuabi64-",
+			Triple:           "mips64el-linux-gnuabi64",
 			KernelArch:       "mips",
 			KernelHeaderArch: "mips",
 		},
@@ -186,7 +186,7 @@ var List = map[string]map[string]*Target{
 			PtrSize:          8,
 			PageSize:         4 << 10,
 			CFlags:           []string{"-D__powerpc64__"},
-			CCompilerPrefix:  "powerpc64le-linux-gnu-",
+			Triple:           "powerpc64le-linux-gnu",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
 		},
@@ -458,10 +458,13 @@ func initTarget(target *Target, OS, arch string) {
 		// https://github.com/google/syzkaller/pull/619
 		// https://github.com/google/syzkaller/issues/387
 		// https://github.com/google/syzkaller/commit/06db3cec94c54e1cf720cdd5db72761514569d56
-		target.CCompilerPrefix = ""
+		target.Triple = ""
 	}
 	if target.CCompiler == "" {
-		target.CCompiler = target.CCompilerPrefix + "gcc"
+		target.CCompiler = "gcc"
+		if target.Triple != "" {
+			target.CCompiler = target.Triple + "-" + target.CCompiler
+		}
 	}
 	if target.CPP == "" {
 		target.CPP = "cpp"
