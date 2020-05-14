@@ -16,7 +16,7 @@ for F in $(find . -name "*.go" -o -name "*.sh" -o -name "*.cc" -o -name "*.h" \
 	# Ignore untracked files.
 	git ls-files --error-unmatch $F >/dev/null 2>&1
 	if [ $? -ne 0 ]; then continue; fi
-	echo "$F: does not have the standard copyright statement (please add)"
+	echo "$F:1:1: The file does not have the standard copyright statement (please add)."
 	FAILED="1"
 done
 if [ "$FAILED" != "" ]; then exit 1; fi
