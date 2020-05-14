@@ -26,6 +26,8 @@ type Target struct {
 	CFlags           []string
 	Triple           string
 	CCompiler        string
+	KernelCompiler   string // override CC when running kernel make
+	KernelLinker     string // override LD when running kernel make
 	KernelArch       string
 	KernelHeaderArch string
 	BrokenCompiler   string
@@ -455,6 +457,15 @@ func initTarget(target *Target, OS, arch string) {
 			target.CCompiler = target.Triple + "-" + target.CCompiler
 		}
 	}
+	if useClang {
+		target.CCompiler = "clang"
+		target.KernelCompiler = "clang"
+		target.KernelLinker = "ld.lld"
+		if target.Triple != "" {
+			target.CFlags = append(target.CFlags, "--target="+target.Triple)
+		}
+		target.CFlags = append(target.CFlags, "-ferror-limit=0")
+	}
 	if target.CPP == "" {
 		target.CPP = "cpp"
 	}
@@ -530,6 +541,7 @@ func checkFlagSupported(target *Target, flag string) bool {
 }
 
 var runningOnCI = os.Getenv("CI") != ""
+var useClang = os.Getenv("SYZ_CLANG") != ""
 
 // <algorithm> is included by executor, so we test is as well.
 const simpleProg = `

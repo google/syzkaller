@@ -96,6 +96,12 @@ func (*linux) prepareArch(arch *Arch) error {
 	if target.Triple != "" {
 		makeArgs = append(makeArgs, "CROSS_COMPILE="+target.Triple+"-")
 	}
+	if target.KernelCompiler != "" {
+		makeArgs = append(makeArgs, "CC="+target.KernelCompiler)
+	}
+	if target.KernelLinker != "" {
+		makeArgs = append(makeArgs, "LD="+target.KernelLinker)
+	}
 	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
 	if err != nil {
 		return fmt.Errorf("make defconfig failed: %v\n%s", err, out)
