@@ -89,10 +89,12 @@ func (*linux) prepareArch(arch *Arch) error {
 	buildDir := arch.buildDir
 	makeArgs := []string{
 		"ARCH=" + target.KernelArch,
-		"CROSS_COMPILE=" + target.CCompilerPrefix,
 		"CFLAGS=" + strings.Join(cflags, " "),
 		"O=" + buildDir,
 		"-j", fmt.Sprint(runtime.NumCPU()),
+	}
+	if target.Triple != "" {
+		makeArgs = append(makeArgs, "CROSS_COMPILE="+target.Triple+"-")
 	}
 	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
 	if err != nil {
@@ -172,7 +174,7 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 		AddSource:      "#include <asm/unistd.h>",
 		ExtractFromELF: true,
 	}
-	cc := arch.target.CCompilerPrefix + "gcc"
+	cc := arch.target.CCompiler
 	res, undeclared, err := extract(info, cc, args, params)
 	if err != nil {
 		return nil, nil, err
