@@ -477,8 +477,9 @@ func initTarget(target *Target, OS, arch string) {
 		target.CCompiler = fmt.Sprintf("cant-build-%v-on-%v", target.OS, runtime.GOOS)
 		target.CPP = target.CCompiler
 	}
-	target.CFlags = append(append([]string{}, target.osCommon.cflags...), target.CFlags...)
-	target.CFlags = append(append([]string{}, commonCFlags...), target.CFlags...)
+	for _, flags := range [][]string{commonCFlags, target.osCommon.cflags} {
+		target.CFlags = append(target.CFlags, flags...)
+	}
 }
 
 func (target *Target) lazyInit() {
