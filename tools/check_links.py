@@ -18,13 +18,12 @@ links = []
 
 for doc in docs:
 	with open(doc) as f:
-		data = f.read()
-		r = link_re.findall(data)
-		for link in r:
-			links += [(doc, link)]
+		for i, line in enumerate(f.readlines()):
+			for match in link_re.finditer(line):
+				links += [(doc, match.group(1), i + 1, match.start(1))]
 
 def filter_link(args):
-	(doc, link) = args
+	(doc, link, line, col) = args
 	if link.startswith('http'):
 		return False
 	if link.startswith('#'):
@@ -36,17 +35,17 @@ def filter_link(args):
 links = list(filter(filter_link, links))
 
 def fix_link(args):
-	(doc, link) = args
+	(doc, link, line, col) = args
 	link = link.split('#')[0]
 	link = link.split('?')[0]
-	return (doc, link)
+	return (doc, link, line, col)
 
 links = list(map(fix_link, links))
 
 errors = []
 
 def check_link(args):
-	(doc, link) = args
+	(doc, link, line, col) = args
 	path = os.path.dirname(doc)
 	full_link = None
 	if link[0] == '/':
@@ -66,7 +65,7 @@ if len(errors) == 0:
 	print('%d links checked: OK' % (len(links),))
 	sys.exit(0)
 
-for (doc, link) in errors:
-	print('File %s linked from %s not found' % (link, doc))
+for (doc, link, line, col) in errors:
+	print('%s:%d:%d: Broken link %s.' % (doc, line, col, link))
 
 sys.exit(2)
