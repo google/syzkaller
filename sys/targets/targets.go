@@ -554,10 +554,10 @@ func checkFlagSupported(target *Target, flag string) bool {
 var runningOnCI = os.Getenv("CI") != ""
 var useClang = os.Getenv("SYZ_CLANG") != ""
 
-// <algorithm> is included by executor, so we test is as well.
 const simpleProg = `
 #include <stdio.h>
-#include <algorithm>
+#include <dirent.h> // ensures that system headers are installed
+#include <algorithm> // ensures that C++ headers are installed
 int main() { printf("Hello, World!\n"); }
 `
 
