@@ -27,6 +27,7 @@ endef
 ENV := $(subst \n,$(newline),$(shell CI=$(CI)\
 	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
 	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
+	SYZ_CLANG=$(SYZ_CLANG) \
 	go run tools/syz-env/env.go))
 # Uncomment in case of emergency.
 # $(info $(ENV))
