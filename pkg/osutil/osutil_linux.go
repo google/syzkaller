@@ -106,7 +106,7 @@ var (
 
 func initSandbox() (bool, uint32, uint32, error) {
 	sandboxOnce.Do(func() {
-		if syscall.Getuid() != 0 || os.Getenv("SYZ_DISABLE_SANDBOXING") == "yes" {
+		if syscall.Getuid() != 0 || os.Getenv("CI") != "" || os.Getenv("SYZ_DISABLE_SANDBOXING") == "yes" {
 			sandboxEnabled = false
 			return
 		}
