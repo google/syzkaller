@@ -4,14 +4,29 @@
 package host
 
 import (
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
 func isSupported(c *prog.Syscall, target *prog.Target, sandbox string) (bool, string) {
-	return true, ""
+	switch c.CallName {
+	case "syz_usb_connect", "syz_usb_disconnect":
+		reason := checkUSBEmulation()
+		return reason == "", reason
+	default:
+		return true, ""
+	}
 }
 
 func init() {
 	checkFeature[FeatureCoverage] = unconditionallyEnabled
 	checkFeature[FeatureComparisons] = unconditionallyEnabled
+	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
+}
+
+func checkUSBEmulation() string {
+	if err := osutil.IsAccessible("/dev/vhci"); err != nil {
+		return err.Error()
+	}
+	return ""
 }
