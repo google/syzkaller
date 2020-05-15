@@ -28,7 +28,7 @@ ENV := $(subst \n,$(newline),$(shell CI=$(CI)\
 	SOURCEDIR=$(SOURCEDIR) HOSTOS=$(HOSTOS) HOSTARCH=$(HOSTARCH) \
 	TARGETOS=$(TARGETOS) TARGETARCH=$(TARGETARCH) TARGETVMARCH=$(TARGETVMARCH) \
 	SYZ_CLANG=$(SYZ_CLANG) \
-	go run tools/syz-env/env.go))
+	go run tools/syz-make/make.go))
 # Uncomment in case of emergency.
 # $(info $(ENV))
 $(eval $(ENV))
@@ -36,7 +36,7 @@ ifneq ("$(SYZERROR)", "")
 $(error $(SYZERROR))
 endif
 ifeq ("$(NCORES)", "")
-$(error syz-env failed)
+$(error syz-make failed)
 endif
 MAKEFLAGS += " -j$(NCORES) "
 export MAKEFLAGS
