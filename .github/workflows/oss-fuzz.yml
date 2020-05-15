@@ -1,4 +1,7 @@
-name: CIFuzz
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+name: oss-fuzz
 # The action is broken, disable for now.
 # https://github.com/google/oss-fuzz/issues/3670
 on:
@@ -25,4 +28,3 @@ jobs:
       with:
         name: artifacts
         path: ./out/artifacts
-
