@@ -177,7 +177,7 @@ static int vhci_usb_attach(int fd)
 
 static int vhci_usb_recv(int fd, void* buf, size_t size)
 {
-	uint8_t *ptr = (uint8_t *)buf;
+	uint8_t* ptr = (uint8_t*)buf;
 	ssize_t done;
 
 	while (1) {
@@ -193,7 +193,7 @@ static int vhci_usb_recv(int fd, void* buf, size_t size)
 
 static int vhci_usb_send(int fd, void* buf, size_t size)
 {
-	uint8_t *ptr = (uint8_t *)buf;
+	uint8_t* ptr = (uint8_t*)buf;
 	ssize_t done;
 
 	while (1) {
@@ -210,8 +210,8 @@ static int vhci_usb_send(int fd, void* buf, size_t size)
 /* -------------------------------------------------------------------------- */
 
 static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
-    const char* dev, const struct vusb_connect_descriptors* descs,
-    lookup_connect_out_response_t lookup_connect_response_out)
+					  const char* dev, const struct vusb_connect_descriptors* descs,
+					  lookup_connect_out_response_t lookup_connect_response_out)
 {
 	struct usb_device_index* index;
 	int portnum, fd, rv;
@@ -293,13 +293,13 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 		if (req.u.ctrl.bmRequestType & UE_DIR_IN) {
 			bool response_found = false;
-			NONFAILING(response_found = lookup_connect_response_in(fd, descs, (const usb_ctrlrequest *)&req.u.ctrl, &response_data, &response_length));
+			NONFAILING(response_found = lookup_connect_response_in(fd, descs, (const usb_ctrlrequest*)&req.u.ctrl, &response_data, &response_length));
 			if (!response_found) {
 				debug("syz_usb_connect: unknown control IN request\n");
 				goto err;
 			}
 		} else {
-			if (!lookup_connect_response_out(fd, descs, (const usb_ctrlrequest *)&req.u.ctrl, &done)) {
+			if (!lookup_connect_response_out(fd, descs, (const usb_ctrlrequest*)&req.u.ctrl, &done)) {
 				debug("syz_usb_connect: unknown control OUT request\n");
 				goto err;
 			}
@@ -353,7 +353,7 @@ err:
 
 #if SYZ_EXECUTOR || __NR_syz_usb_connect
 static volatile long syz_usb_connect(volatile long a0, volatile long a1,
-    volatile long a2, volatile long a3)
+				     volatile long a2, volatile long a3)
 {
 	uint64 speed = a0;
 	uint64 dev_len = a1;
@@ -361,7 +361,7 @@ static volatile long syz_usb_connect(volatile long a0, volatile long a1,
 	const struct vusb_connect_descriptors* descs = (const struct vusb_connect_descriptors*)a3;
 
 	return syz_usb_connect_impl(speed, dev_len, dev, descs,
-	    &lookup_connect_response_out_generic);
+				    &lookup_connect_response_out_generic);
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_connect
 

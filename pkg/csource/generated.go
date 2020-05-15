@@ -409,6 +409,17 @@ void child()
 #include <string.h>
 #include <sys/syscall.h>
 
+#if GOOS_netbsd
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
+#include "common_usb_netbsd.h"
+static void setup_usb(void)
+{
+	if (chmod("/dev/vhci", 0666))
+		fail("failed to chmod /dev/vhci");
+}
+#endif
+#endif
+
 #if GOOS_openbsd
 
 #define __syscall syscall
@@ -3073,7 +3084,7 @@ static bool lookup_connect_response_out_generic(int fd, const struct vusb_connec
 }
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
+#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k)
 #define ATH9K_FIRMWARE_DOWNLOAD 0x30
 #define ATH9K_FIRMWARE_DOWNLOAD_COMP 0x31
 
@@ -3108,7 +3119,7 @@ static bool lookup_connect_response_out_ath9k(int fd, const struct vusb_connect_
 
 #endif
 
-#if SYZ_EXECUTOR || __NR_syz_usb_control_io
+#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_control_io)
 
 struct vusb_descriptor {
 	uint8 req_type;
@@ -3797,6 +3808,7 @@ static volatile long syz_usb_disconnect(volatile long a0)
 }
 #endif
 
+#elif GOOS_netbsd
 #else
 #error "unknown OS"
 #endif

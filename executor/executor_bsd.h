@@ -160,7 +160,7 @@ static bool cover_check(uint64 pc)
 #if GOOS_netbsd
 #define SYZ_HAVE_FEATURES 1
 static feature_t features[] = {
-	{ "usb", setup_usb },
+    {"usb", setup_usb},
 };
 
 static void setup_machine(void)
