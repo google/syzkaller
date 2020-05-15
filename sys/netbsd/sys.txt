@@ -79,6 +79,10 @@ setreuid(ruid uid, euid uid)
 setregid(rgid gid, egid gid)
 getgroups(size len[list], list ptr[inout, array[gid]])
 setgroups(size len[list], list ptr[in, array[gid]])
+__getlogin(buf buffer[out], size len[buf])
+getsid(pid pid) pid
+#__setlogin(buf buffer[in])		#Unsure about effects on test process
+#setsid() pid		#Unsure about effects on test process
 
 link(old ptr[in, filename], new ptr[in, filename])
 linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
