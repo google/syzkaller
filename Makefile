@@ -208,7 +208,8 @@ bin/syz-extract:
 
 # `generate` does *not* depend on any kernel sources, and generates everything
 # in one pass, for all arches. It can be run on a bare syzkaller checkout.
-generate: descriptions generate_go
+generate: descriptions
+	$(MAKE) generate_go
 	$(MAKE) format
 
 generate_go: format_cpp
