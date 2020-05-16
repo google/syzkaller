@@ -357,8 +357,8 @@ clean:
 	rm -rf ./bin .descriptions sys/*/gen executor/defs.h executor/syscalls.h
 
 # For a tupical Ubuntu/Debian distribution.
-# We use "|| true" for apt-get install because packages are all different on different distros,
-# and we want to install at least golangci-lint on Travis CI.
+# We use "|| true" for apt-get install because packages are all different on different distros.
+# Also see tools/syz-env for container approach.
 install_prerequisites:
 	uname -a
 	sudo apt-get update

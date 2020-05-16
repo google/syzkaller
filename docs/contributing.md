@@ -85,3 +85,28 @@ This adds git origin `my-origin` with your repository and checks out new branch 
 - Nagivate to [github.com/google/syzkaller](https://github.com/google/syzkaller) and you should see green `Compare & pull request` button, press it. Then press `Create pull request`. Now your pull request should show up on [pull requests page](https://github.com/google/syzkaller/pulls).
 - If you don't see `Create pull request` button for any reason, you can create pull request manually. For that nagivate to [pull requests page](https://github.com/google/syzkaller/pulls), press `New pull request`, then `compare across forks` and choose `google/syzkaller`/`master` as base and `YOUR_GITHUB_USERNAME/syzkaller`/`my-branch` as compare and press `Create pull request`.
 - If you decided to rebase commits in `my-branch` (e.g. to rebase them onto updated master) after you created a pull-request, you will need to do a force push: `git push -f my-origin my-branch`.
+
+### Using syz-env
+
+Developing syzkaller requires a number of tools installed (Go toolchain, C/C++ cross-compilers, golangci-lint, etc).
+Installing all of them may be cumbersome, e.g. due broken/missing packages.
+[syz-env](/tools/syz-env) provides a working hermetic development environment based on a Docker container.
+If you don't yet have Docker installed, see [documentation](https://docs.docker.com/engine/install),
+in particular regarding enabling [sudo-less](https://docs.docker.com/engine/install/linux-postinstall)
+Docker (Googlers see go/docker).
+
+It's recommended to create an alias for `syz-env` script:
+```
+alias syz-env="$(go env GOPATH)/src/github.com/google/syzkaller/tools/syz-env"
+```
+Then it can be used to wrap almost any make invocation as:
+```
+syz-env make format
+syz-env make presubmit
+syz-env make extract SOURCEDIR=~/linux
+```
+Or other commands/scripts, e.g.:
+```
+syz-env go test -short ./pkg/csource
+```
+Or you may run the shell inside of the container with just `syz-env` and look around.
