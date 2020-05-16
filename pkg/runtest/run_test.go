@@ -21,7 +21,12 @@ func Test(t *testing.T) {
 	case "openbsd":
 		t.Skipf("broken on %v", runtime.GOOS)
 	}
+	// Test only one target in short mode (each takes 5+ seconds to run).
+	shortTarget := targets.Get("test", "64")
 	for _, sysTarget := range targets.List["test"] {
+		if testing.Short() && sysTarget != shortTarget {
+			continue
+		}
 		sysTarget1 := targets.Get(sysTarget.OS, sysTarget.Arch)
 		t.Run(sysTarget1.Arch, func(t *testing.T) {
 			t.Parallel()
@@ -34,10 +39,6 @@ func test(t *testing.T, sysTarget *targets.Target) {
 	target, err := prog.GetTarget(sysTarget.OS, sysTarget.Arch)
 	if err != nil {
 		t.Fatal(err)
-	}
-	if testing.Short() && target.PtrSize == 4 {
-		// Building 32-bit binaries fails on travis (see comments in Makefile).
-		t.Skip("skipping in short mode")
 	}
 	executor, err := csource.BuildFile(target, filepath.FromSlash("../../executor/executor.cc"))
 	if err != nil {
