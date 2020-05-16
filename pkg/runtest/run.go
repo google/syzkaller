@@ -190,7 +190,8 @@ func (ctx *Context) generatePrograms(progs chan *RunRequest) error {
 				}
 			}
 			properties := map[string]bool{
-				"sandbox=" + sandbox: true,
+				"arch=" + ctx.Target.Arch: true,
+				"sandbox=" + sandbox:      true,
 			}
 			for _, threaded := range []bool{false, true} {
 				name := name
