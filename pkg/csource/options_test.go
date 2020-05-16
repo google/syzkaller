@@ -148,7 +148,7 @@ func allOptionsSingle(OS string) []Options {
 		}
 		opts = append(opts, enumerateField(OS, opt, i)...)
 	}
-	return opts
+	return dedup(opts)
 }
 
 func allOptionsPermutations(OS string) []Options {
@@ -161,7 +161,21 @@ func allOptionsPermutations(OS string) []Options {
 		}
 		opts = newOpts
 	}
-	return opts
+	return dedup(opts)
+}
+
+func dedup(opts []Options) []Options {
+	pos := 0
+	dedup := make(map[Options]bool)
+	for _, opt := range opts {
+		if dedup[opt] {
+			continue
+		}
+		dedup[opt] = true
+		opts[pos] = opt
+		pos++
+	}
+	return opts[:pos]
 }
 
 func enumerateField(OS string, opt Options, field int) []Options {
