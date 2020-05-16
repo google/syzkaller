@@ -62,13 +62,12 @@ func (env *testEnv) headCommit() int {
 	return int(commit)
 }
 
-func runBisection(t *testing.T, test BisectionTest) (*Result, error) {
+func createTestRepo(t *testing.T) string {
 	baseDir, err := ioutil.TempDir("", "syz-bisect-test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(baseDir)
-	repo := vcs.CreateTestRepo(t, baseDir, "repo")
+	repo := vcs.CreateTestRepo(t, baseDir, "")
 	if !repo.SupportsBisection() {
 		t.Skip("bisection is unsupported by git (probably too old version)")
 	}
@@ -91,10 +90,15 @@ func runBisection(t *testing.T, test BisectionTest) (*Result, error) {
 			}
 		}
 	}
-	r, err := vcs.NewRepo("test", "64", repo.Dir)
+	return baseDir
+}
+
+func runBisection(t *testing.T, baseDir string, test BisectionTest) (*Result, error) {
+	r, err := vcs.NewRepo("test", "64", baseDir)
 	if err != nil {
 		t.Fatal(err)
 	}
+	r.SwitchCommit("master")
 	sc, err := r.GetCommitByTitle(fmt.Sprint(test.startCommit))
 	if err != nil {
 		t.Fatal(err)
@@ -107,10 +111,10 @@ func runBisection(t *testing.T, test BisectionTest) (*Result, error) {
 			TargetOS:     "test",
 			TargetVMArch: "64",
 			Type:         "qemu",
-			KernelSrc:    repo.Dir,
+			KernelSrc:    baseDir,
 		},
 		Kernel: KernelConfig{
-			Repo:   repo.Dir,
+			Repo:   baseDir,
 			Commit: sc.Hash,
 		},
 	}
@@ -318,57 +322,83 @@ func TestBisectionResults(t *testing.T) {
 			noopChange:      true,
 		},
 	}
-	for _, test := range tests {
-		test := test
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			if test.expectErr &&
-				(test.commitLen != 0 ||
-					test.expectRep ||
-					test.oldestLatest != 0 ||
-					test.culprit != 0) {
-				t.Fatalf("expecting non-default values on error")
-			}
-			if test.brokenStart > test.brokenEnd {
-				t.Fatalf("bad broken start/end: %v/%v",
-					test.brokenStart, test.brokenEnd)
-			}
-			if test.sameBinaryStart > test.sameBinaryEnd {
-				t.Fatalf("bad same binary start/end: %v/%v",
-					test.sameBinaryStart, test.sameBinaryEnd)
-			}
-			res, err := runBisection(t, test)
-			if test.expectErr != (err != nil) {
-				t.Fatalf("returned error: %v", err)
-			}
-			if err != nil {
-				if res != nil {
-					t.Fatalf("got both result and error: '%v' %+v", err, *res)
+	// Creating new repos takes majority of the test time,
+	// so we reuse them across tests.
+	repoCache := make(chan string, len(tests))
+	t.Run("group", func(t *testing.T) {
+		for _, test := range tests {
+			test := test
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+				checkTest(t, test)
+				repoDir := ""
+				select {
+				case repoDir = <-repoCache:
+				default:
+					repoDir = createTestRepo(t)
 				}
-				return
-			}
-			if len(res.Commits) != test.commitLen {
-				t.Fatalf("expected %d commits got %d commits", test.commitLen, len(res.Commits))
-			}
-			expectedTitle := fmt.Sprint(test.culprit)
-			if len(res.Commits) == 1 && expectedTitle != res.Commits[0].Title {
-				t.Fatalf("expected commit '%v' got '%v'", expectedTitle, res.Commits[0].Title)
-			}
-			if test.expectRep != (res.Report != nil) {
-				t.Fatalf("got rep: %v, want: %v", res.Report, test.expectRep)
-			}
-			if res.NoopChange != test.noopChange {
-				t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
-			}
-			if res.IsRelease != test.isRelease {
-				t.Fatalf("got release change: %v, want: %v", res.IsRelease, test.isRelease)
-			}
-			if test.oldestLatest != 0 && fmt.Sprint(test.oldestLatest) != res.Commit.Title ||
-				test.oldestLatest == 0 && res.Commit != nil {
-				t.Fatalf("expected latest/oldest: %v got '%v'",
-					test.oldestLatest, res.Commit.Title)
-			}
-		})
+				defer func() {
+					repoCache <- repoDir
+				}()
+				res, err := runBisection(t, repoDir, test)
+				if test.expectErr != (err != nil) {
+					t.Fatalf("returned error: %v", err)
+				}
+				if err != nil {
+					if res != nil {
+						t.Fatalf("got both result and error: '%v' %+v", err, *res)
+					}
+					return
+				}
+				if len(res.Commits) != test.commitLen {
+					t.Fatalf("expected %d commits got %d commits", test.commitLen, len(res.Commits))
+				}
+				expectedTitle := fmt.Sprint(test.culprit)
+				if len(res.Commits) == 1 && expectedTitle != res.Commits[0].Title {
+					t.Fatalf("expected commit '%v' got '%v'", expectedTitle, res.Commits[0].Title)
+				}
+				if test.expectRep != (res.Report != nil) {
+					t.Fatalf("got rep: %v, want: %v", res.Report, test.expectRep)
+				}
+				if res.NoopChange != test.noopChange {
+					t.Fatalf("got noop change: %v, want: %v", res.NoopChange, test.noopChange)
+				}
+				if res.IsRelease != test.isRelease {
+					t.Fatalf("got release change: %v, want: %v", res.IsRelease, test.isRelease)
+				}
+				if test.oldestLatest != 0 && fmt.Sprint(test.oldestLatest) != res.Commit.Title ||
+					test.oldestLatest == 0 && res.Commit != nil {
+					t.Fatalf("expected latest/oldest: %v got '%v'",
+						test.oldestLatest, res.Commit.Title)
+				}
+			})
+		}
+	})
+	for {
+		select {
+		case dir := <-repoCache:
+			os.RemoveAll(dir)
+		default:
+			return
+		}
+	}
+}
+
+func checkTest(t *testing.T, test BisectionTest) {
+	if test.expectErr &&
+		(test.commitLen != 0 ||
+			test.expectRep ||
+			test.oldestLatest != 0 ||
+			test.culprit != 0) {
+		t.Fatalf("expecting non-default values on error")
+	}
+	if test.brokenStart > test.brokenEnd {
+		t.Fatalf("bad broken start/end: %v/%v",
+			test.brokenStart, test.brokenEnd)
+	}
+	if test.sameBinaryStart > test.sameBinaryEnd {
+		t.Fatalf("bad same binary start/end: %v/%v",
+			test.sameBinaryStart, test.sameBinaryEnd)
 	}
 }
 
