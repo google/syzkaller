@@ -1,4 +1,5 @@
-# TODO: all these results are wrong, correct answers are:
+# 32_shmem has 4-byte alignment for int64 and everything goes havoc.
+# requires: -arch=32_shmem
 
 syz_compare(&AUTO="1200000034067800", AUTO, &AUTO=@bf4={0x12, {0x34, 0x56, 0x78}}, AUTO)
 syz_compare(&AUTO="1200000034060000", AUTO, &AUTO=@bf5={0x12, {0x34, 0x56}}, AUTO)
