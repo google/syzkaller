@@ -50,7 +50,7 @@ func TestRotationCoverage(t *testing.T) {
 		counters[call.Name] = 0
 	}
 	rotator := MakeRotator(target, calls, rand.New(rs))
-	for iter := 0; iter < 5e3; iter++ {
+	for iter := 0; iter < 1e3; iter++ {
 		for call := range rotator.Select() {
 			counters[call.Name]++
 		}
