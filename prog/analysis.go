@@ -108,11 +108,11 @@ type ArgCtx struct {
 }
 
 func ForeachSubArg(arg Arg, f func(Arg, *ArgCtx)) {
-	foreachArgImpl(arg, ArgCtx{}, f)
+	foreachArgImpl(arg, &ArgCtx{}, f)
 }
 
 func ForeachArg(c *Call, f func(Arg, *ArgCtx)) {
-	ctx := ArgCtx{}
+	ctx := &ArgCtx{}
 	if c.Ret != nil {
 		foreachArgImpl(c.Ret, ctx, f)
 	}
@@ -123,8 +123,10 @@ func ForeachArg(c *Call, f func(Arg, *ArgCtx)) {
 	}
 }
 
-func foreachArgImpl(arg Arg, ctx ArgCtx, f func(Arg, *ArgCtx)) {
-	f(arg, &ctx)
+func foreachArgImpl(arg Arg, ctx *ArgCtx, f func(Arg, *ArgCtx)) {
+	ctx0 := *ctx
+	defer func() { *ctx = ctx0 }()
+	f(arg, ctx)
 	if ctx.Stop {
 		return
 	}
