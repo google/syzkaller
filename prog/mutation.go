@@ -178,8 +178,7 @@ func (ctx *mutator) mutateArg() bool {
 			return false
 		}
 		s := analyze(ctx.ct, ctx.corpus, p, c)
-		chosenIdx := randomChoice(ma.priorities, r)
-		arg, argCtx := ma.args[chosenIdx], ma.ctxes[chosenIdx]
+		arg, argCtx := ma.chooseArg(r.Rand)
 		calls, ok1 := p.Target.mutateArg(r, s, arg, argCtx, &updateSizes)
 		if !ok1 {
 			ok = false
@@ -204,38 +203,22 @@ func (ctx *mutator) mutateArg() bool {
 
 // Select a call based on the complexity of the arguments.
 func chooseCall(p *Prog, r *randGen) int {
+	var prioSum float64
 	var callPriorities []float64
-	noArgs := true
-
 	for _, c := range p.Calls {
-		totalPrio := float64(0)
+		var totalPrio float64
 		ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
 			prio, stopRecursion := arg.Type().getMutationPrio(p.Target, arg, false)
 			totalPrio += prio
 			ctx.Stop = stopRecursion
 		})
-		callPriorities = append(callPriorities, totalPrio)
-		if len(c.Args) > 0 {
-			noArgs = false
-		}
+		prioSum += totalPrio
+		callPriorities = append(callPriorities, prioSum)
 	}
-
-	// Calls without arguments.
-	if noArgs {
-		return -1
+	if prioSum == 0 {
+		return -1 // All calls are without arguments.
 	}
-	return randomChoice(callPriorities, r)
-}
-
-// Generate a random index from a given 1-D array of priorities.
-func randomChoice(priorities []float64, r *randGen) int {
-	sum := float64(0)
-	probs := make([]float64, len(priorities))
-	for i, prio := range priorities {
-		sum += prio
-		probs[i] = sum
-	}
-	return sort.SearchFloat64s(probs, sum*r.Float64())
+	return sort.SearchFloat64s(callPriorities, prioSum*r.Float64())
 }
 
 func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updateSizes *bool) ([]*Call, bool) {
@@ -486,10 +469,16 @@ func (t *ConstType) mutate(r *randGen, s *state, arg Arg, ctx ArgCtx) (calls []*
 
 type mutationArgs struct {
 	target        *Target
-	args          []Arg
-	ctxes         []ArgCtx
-	priorities    []float64
 	ignoreSpecial bool
+	prioSum       float64
+	args          []mutationArg
+	argsBuffer    [16]mutationArg
+}
+
+type mutationArg struct {
+	arg      Arg
+	ctx      ArgCtx
+	priority float64
 }
 
 const (
@@ -516,9 +505,18 @@ func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
 		return
 	}
 
-	ma.args = append(ma.args, arg)
-	ma.ctxes = append(ma.ctxes, *ctx)
-	ma.priorities = append(ma.priorities, prio)
+	if len(ma.args) == 0 {
+		ma.args = ma.argsBuffer[:0]
+	}
+	ma.prioSum += prio
+	ma.args = append(ma.args, mutationArg{arg, *ctx, ma.prioSum})
+}
+
+func (ma *mutationArgs) chooseArg(r *rand.Rand) (Arg, ArgCtx) {
+	goal := ma.prioSum * r.Float64()
+	chosenIdx := sort.Search(len(ma.args), func(i int) bool { return ma.args[i].priority >= goal })
+	arg := ma.args[chosenIdx]
+	return arg.arg, arg.ctx
 }
 
 // TODO: find a way to estimate optimal priority values.

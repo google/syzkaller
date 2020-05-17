@@ -275,8 +275,7 @@ func (g *Gen) MutateArg(arg0 Arg) (calls []*Call) {
 			// and updateSizes to caller so that Mutate can act accordingly.
 			return
 		}
-		idx := g.r.Intn(len(ma.args))
-		arg, ctx := ma.args[idx], ma.ctxes[idx]
+		arg, ctx := ma.chooseArg(g.r.Rand)
 		newCalls, ok := g.r.target.mutateArg(g.r, g.s, arg, ctx, &updateSizes)
 		if !ok {
 			continue
