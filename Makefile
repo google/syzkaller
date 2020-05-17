@@ -389,7 +389,7 @@ check_links:
 check_diff:
 	@if [ "$(shell git --no-pager diff --name-only)" != "" ]; then \
 		git --no-pager diff; \
-		echo -e "\n\nSome files are not formatted/regenerated (include them into commit):"; \
-		git --no-pager diff --name-only; \
+		git --no-pager diff --name-only | \
+			sed "s#.*#&:1:1: The file is not formatted/regenerated. Run 'make generate' and include it into the commit.#g"; \
 		false; \
 	fi
