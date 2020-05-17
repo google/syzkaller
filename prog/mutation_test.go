@@ -6,7 +6,6 @@ package prog
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"math/rand"
 	"testing"
 )
@@ -179,38 +178,6 @@ func TestSizeMutateArg(t *testing.T) {
 				}
 			})
 		}
-	}
-}
-
-func TestRandomChoice(t *testing.T) {
-	t.Parallel()
-	target, err := GetTarget("test", "64")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := newRand(target, randSource(t))
-	priorities := []float64{1, 1, 1, 1, 1, 1, 1, 1, 2}
-
-	const (
-		maxIters    = 100000
-		searchedIdx = 8
-		prob        = 0.2
-		eps         = 0.01
-	)
-
-	var index, count int
-	for i := 0; i < maxIters; i++ {
-		index = randomChoice(priorities, r)
-
-		if index == searchedIdx {
-			count++
-		}
-	}
-
-	diff := math.Abs(prob*maxIters - float64(count))
-	if diff > eps*maxIters {
-		t.Fatalf("The difference (%f) is higher than %f%%", diff, eps*100)
 	}
 }
 
