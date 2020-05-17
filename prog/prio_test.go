@@ -30,12 +30,11 @@ func TestNormalizePrio(t *testing.T) {
 
 // Test static priorities assigned based on argument direction.
 func TestStaticPriorities(t *testing.T) {
-	target, rs, iters := initTest(t)
-	if iters < 100 {
-		// Both -short and -race reduce iters to 10 which is not enough
-		// for this probabilistic test.
-		iters = 100
-	}
+	target := initTargetTest(t, "linux", "amd64")
+	rs := rand.NewSource(0)
+	// The test is probabilistic and needs some sensible number of iterations to succeed.
+	// If it fails try to increase the number a bit.
+	const iters = 5e4
 	// The first call is the one that creates a resource and the rest are calls that can use that resource.
 	tests := [][]string{
 		{"open", "read", "write", "mmap"},
@@ -49,7 +48,7 @@ func TestStaticPriorities(t *testing.T) {
 		referenceCall := syscalls[0]
 		for _, call := range syscalls {
 			count := 0
-			for it := 0; it < iters*10000; it++ {
+			for it := 0; it < iters; it++ {
 				chosenCall := target.Syscalls[ct.choose(r, target.SyscallMap[call].ID)].Name
 				if call == referenceCall {
 					counter[chosenCall]++

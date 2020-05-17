@@ -86,9 +86,10 @@ func TestEnabledCalls(t *testing.T) {
 		enabled[target.SyscallMap[c]] = true
 	}
 	ct := target.BuildChoiceTable(nil, enabled)
-	for i := 0; i < 100; i++ {
+	const tries = 10
+	for i := 0; i < tries; i++ {
 		p := target.Generate(rs, 50, ct)
-		for it := 0; it < iters/10; it++ {
+		for it := 0; it < iters/tries; it++ {
 			p.Mutate(rs, 50, ct, nil)
 		}
 		for _, c := range p.Calls {
