@@ -155,9 +155,9 @@ func TestSizeMutateArg(t *testing.T) {
 	target, rs, iters := initRandomTargetTest(t, "test", "64")
 	r := newRand(target, rs)
 	ct := target.DefaultChoiceTable()
-	for i := 0; i < 100; i++ {
+	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 10, ct)
-		for it := 0; it < iters; it++ {
+		for it := 0; it < 10; it++ {
 			p1 := p.Clone()
 			ctx := &mutator{
 				p:      p1,
@@ -441,9 +441,9 @@ func runMutationTests(t *testing.T, tests [][2]string, valid bool) {
 				t.Fatalf("failed to deserialize the program: %v", err)
 			}
 			want := goal.Serialize()
-			iters := int(1e6)
-			if !valid {
-				iters /= 10
+			iters := iterCount()
+			if valid {
+				iters = 1e6 // it will stop after reaching the goal
 			}
 			for i := 0; i < iters; i++ {
 				p1 := p.Clone()
