@@ -1867,7 +1867,7 @@ error:
 #include "common_kvm_amd64.h"
 #elif GOARCH_arm64
 #include "common_kvm_arm64.h"
-#else
+#elif !GOARCH_arm
 static long syz_kvm_setup_cpu(volatile long a0, volatile long a1, volatile long a2, volatile long a3, volatile long a4, volatile long a5, volatile long a6, volatile long a7)
 {
 	return 0;
