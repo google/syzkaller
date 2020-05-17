@@ -67,7 +67,7 @@ func ParseGlob(glob string, errorHandler ErrorHandler) *Description {
 			errorHandler(Pos{}, fmt.Sprintf("failed to read input file: %v", err))
 			return nil
 		}
-		desc1 := Parse(data, filepath.Base(f), errorHandler)
+		desc1 := Parse(data, f, errorHandler)
 		if desc1 == nil {
 			desc = nil
 		}
