@@ -820,11 +820,3 @@ static bool lookup_control_response(const struct vusb_descriptors* descs, const 
 }
 
 #endif // SYZ_EXECUTOR || __NR_syz_usb_control_io
-
-#if GOOS_linux
-#include "common_usb_linux.h"
-#elif GOOS_netbsd
-// Included in common_bsd.h
-#else
-#error "unknown OS"
-#endif // GOOS_linux

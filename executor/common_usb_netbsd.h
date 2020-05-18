@@ -309,7 +309,7 @@ static volatile long syz_usb_connect_impl(uint64 speed, uint64 dev_len,
 
 		if ((req.u.ctrl.bmRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD &&
 		    req.u.ctrl.bRequest == USB_REQ_SET_CONFIGURATION) {
-			/* XXX XXX: Something to do? */
+			/* TODO: possibly revisit */
 		}
 
 		if (response_length > sizeof(data))
