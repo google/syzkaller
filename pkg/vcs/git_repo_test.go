@@ -285,6 +285,16 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 		cc:          []string{userEmail},
 		tags:        []string{"638dbf7851da8e255af5"},
 	},
+	{
+		description: `Reported-by: syzbot+3e3c7cfa8093f8de047e@my.mail.com
+
+Comment out an assertion that's now bogus and add a comment.
+`,
+		title:  "Reported-by: syzbot+3e3c7cfa8093f8de047e@my.mail.com",
+		author: userEmail,
+		cc:     []string{userEmail},
+		tags:   []string{"3e3c7cfa8093f8de047e"},
+	},
 }
 
 func TestBisect(t *testing.T) {
