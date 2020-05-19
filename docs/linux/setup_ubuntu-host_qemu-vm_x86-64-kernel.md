@@ -4,7 +4,7 @@ These are the instructions on how to fuzz the x86-64 kernel in a QEMU with Ubunt
 
 ## GCC
 
-While you may use GCC that is available from your distro, it's preferable to get the lastest one from [this](/docs/syzbot.md#crash-does-not-reproduce) list. Download and unpack into `$GCC`, and you should have GCC binaries in `$GCC/bin/`
+While you may use GCC that is available from your distro, it's preferable to get the lastest GCC from [this](/docs/syzbot.md#crash-does-not-reproduce) list. Download and unpack into `$GCC`, and you should have GCC binaries in `$GCC/bin/`
 
 ``` bash
 $ ls $GCC/bin/
