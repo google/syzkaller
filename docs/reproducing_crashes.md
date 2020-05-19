@@ -17,7 +17,7 @@ Now, run `syz-prog2c` tool on the program. It will give you executable C source.
 
 If the crash is not reproducible with `-threaded/collide=0` flags, then you need this last step. You can think of threaded/collide mode as if each syscall is executed in its own thread. To mode such execution mode, move individual syscalls into separate threads. You can see an example here: https://groups.google.com/d/msg/syzkaller/fHZ42YrQM-Y/Z4Xf-BbUDgAJ.
 
-This process is automated to some degree in the `syz-repro` utility. You need to give it your manager config and a crash report file:
+This process is automated to some degree in the `syz-repro` utility. You need to give it your manager config and a crash report file. And you can refer to the [example config file](/pkg/mgrconfig/testdata/qemu.cfg).
 ```
 ./syz-repro -config my.cfg crash-qemu-1-1455745459265726910
 ```
