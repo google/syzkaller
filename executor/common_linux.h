@@ -1463,7 +1463,7 @@ static long syz_extract_tcp_res(volatile long a0, volatile long a1, volatile lon
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "common_usb.h"
+#include "common_usb_linux.h"
 #endif
 
 #if SYZ_EXECUTOR || __NR_syz_open_dev

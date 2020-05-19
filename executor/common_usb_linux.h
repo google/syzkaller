@@ -5,6 +5,8 @@
 
 // Linux-specific implementation of syz_usb_* pseudo-syscalls.
 
+#include "common_usb.h"
+
 #define UDC_NAME_LENGTH_MAX 128
 
 struct usb_raw_init {
