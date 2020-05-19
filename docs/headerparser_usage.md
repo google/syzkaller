@@ -8,7 +8,9 @@ information about the ioctl argument struct types it expects.
 However, in certain cases the number of argument struct types might be high, increasing the amount of manual
 effort that goes into writing the description files for the struct types.
 
-In order to ease the effort of writing ioctl argument type description files, headerlib does a best-effort job at generating them for you. You will still need to manually select the appropriate syzkaller data type from the list of types [here](https://github.com/google/syzkaller/blob/master/docs/syscall_descriptions_syntax.md).
+In order to ease the effort of writing ioctl argument type description files, headerlib does a best-effort job at
+generating them for you. You will still need to manually select the appropriate syzkaller data type from the list
+of types [here](/docs/syscall_descriptions_syntax.md).
 
 ## Dependencies
 Headerlib uses pycparser. You can install pycparser using pip.

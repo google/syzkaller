@@ -37,7 +37,7 @@ For actual manipulations `syzkaller` uses in-memory AST-like representation cons
 The in-memory representation can be [transformed](/prog/encoding.go) to/from
 textual form to store in on-disk corpus, show to humans, etc.
 
-There is also another [binary representation](https://github.com/google/syzkaller/blob/master/prog/decodeexec.go)
+There is also another [binary representation](/prog/decodeexec.go)
 of the programs (called `exec`), that is much simpler, does not contains rich type information (irreversible)
 and is used for actual execution (interpretation) of programs by [executor](/executor/executor.cc).
 
