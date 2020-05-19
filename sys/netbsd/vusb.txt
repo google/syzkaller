@@ -1,0 +1,11 @@
+# Copyright 2020 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# This is a special fd for USB fuzzing and should only be used with syz_usb_* pseudo-syscalls.
+# We don't inherit it from the fd resource, to discourage syzkaller calling raw ioctls on it.
+resource fd_usb[int32]: -1
+
+# These are generic pseudo-syscalls for emulating arbitrary USB devices.
+# They are mostly targeted to cover the enumeration process.
+syz_usb_connect(speed intptr, dev_len len[dev], dev buffer[in], conn_descs buffer[in]) fd_usb (timeout[3000], prog_timeout[3000])
+syz_usb_disconnect(fd fd_usb) (timeout[300])
