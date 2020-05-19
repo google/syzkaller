@@ -684,7 +684,7 @@ static bool lookup_connect_response_out_generic(int fd, const struct vusb_connec
 }
 #endif // SYZ_EXECUTOR || __NR_syz_usb_connect
 
-#if SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
+#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k)
 
 // drivers/net/wireless/ath/ath9k/hif_usb.h
 #define ATH9K_FIRMWARE_DOWNLOAD 0x30
@@ -721,7 +721,7 @@ static bool lookup_connect_response_out_ath9k(int fd, const struct vusb_connect_
 
 #endif // SYZ_EXECUTOR || __NR_syz_usb_connect_ath9k
 
-#if SYZ_EXECUTOR || __NR_syz_usb_control_io
+#if GOOS_linux && (SYZ_EXECUTOR || __NR_syz_usb_control_io)
 
 struct vusb_descriptor {
 	uint8 req_type;
@@ -820,9 +820,3 @@ static bool lookup_control_response(const struct vusb_descriptors* descs, const 
 }
 
 #endif // SYZ_EXECUTOR || __NR_syz_usb_control_io
-
-#if GOOS_linux
-#include "common_usb_linux.h"
-#else
-#error "unknown OS"
-#endif // GOOS_linux
