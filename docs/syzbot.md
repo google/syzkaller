@@ -200,14 +200,16 @@ reply with a `#syz fix: commit-title` so that syzbot can close the bug report.
 However, sometimes it can't extract a reproducer at all, or can only extract a
 syzkaller reproducer. syzkaller reproducers are programs in a special syzkaller
 notation and they can be executed on the target system with a little bit more
-effort. See [this](https://github.com/google/syzkaller/blob/master/docs/executing_syzkaller_programs.md)
-for instructions.
+effort. See [this](/docs/executing_syzkaller_programs.md) for instructions.
 
 A syskaller program can also give you an idea as to what syscalls with what
 arguments were executed (note that some calls can actually be executed in
 parallel).
 
-A syzkaller program can be converted to an almost equivalent C source using `syz-prog2c` utility. `syz-prog2c` has lots of flags in common with [syz-execprog](https://github.com/google/syzkaller/blob/master/docs/executing_syzkaller_programs.md), e.g. `-threaded`/`-collide` which control if the syscalls are executed sequentially or in parallel. An example invocation:
+A syzkaller program can be converted to an almost equivalent C source using `syz-prog2c` utility. `syz-prog2c`
+has lots of flags in common with [syz-execprog](/docs/executing_syzkaller_programs.md),
+e.g. `-threaded`/`-collide` which control if the syscalls are executed sequentially or in parallel.
+An example invocation:
 
 ```
 syz-prog2c -prog repro.syz.txt -enable=all -threaded -collide -repeat -procs=8 -sandbox=namespace -segv -tmpdir -waitrepeat
@@ -249,7 +251,7 @@ qemu-system-x86_64 -smp 2 -m 4G -enable-kvm -cpu host \
     -device scsi-hd,bus=scsi.0,drive=d0 \
     -drive file=stretch.img,format=raw,if=none,id=d0 \
     -append "root=/dev/sda console=ttyS0 earlyprintk=serial rodata=n \
-      oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 \      
+      oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 \
       security=apparmor ima_policy=tcb workqueue.watchdog_thresh=140 \
       nf-conntrack-ftp.ports=20000 nf-conntrack-tftp.ports=20000 \
       nf-conntrack-sip.ports=20000 nf-conntrack-irc.ports=20000 \
@@ -409,4 +411,4 @@ Kernel configs, sysctls and command line arguments that `syzbot` uses are availa
 
 ## Is syzbot code available?
 
-Yes, it is [here](https://github.com/google/syzkaller/tree/master/dashboard/app).
+Yes, it is [here](/dashboard/app).

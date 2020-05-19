@@ -25,7 +25,7 @@ The particular setup described below requires the following hardware:
 7. USB hub with [Per Port Power Switching support](http://www.gniibe.org/development/ac-power-control-by-USB-hub/index.html) (like D-Link DUB H7, **silver** edition).
 8. [USB-DC Plug Cable](http://www.hardkernel.com/main/products/prdt_info.php?g_code=G141637559827)
 
-If you decide to use a different setup, you will need to update [Odroid-related code](https://github.com/google/syzkaller/blob/master/vm/odroid/odroid.go) in syzkaller manager.
+If you decide to use a different setup, you will need to update [Odroid-related code](/vm/odroid/odroid.go) in syzkaller manager.
 
 ### Setup Odroid
 

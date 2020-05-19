@@ -24,6 +24,14 @@ for doc in docs:
 			for match in link_re.finditer(line):
 				links += [(doc, match.group(1), i + 1, match.start(1))]
 
+errors = []
+
+for link in links:
+	(doc, link, line, col) = link
+	for prefix in ['https://github.com/google/syzkaller/blob/master', 'https://github.com/google/syzkaller/tree/master']:
+		if link.startswith(prefix):
+			errors += ['%s:%d:%d: Replace absolute link with %s.' % (doc, line, col, link[len(prefix):])]
+
 def filter_link(args):
 	(doc, link, line, col) = args
 	if link.startswith('http'):
@@ -44,8 +52,6 @@ def fix_link(args):
 
 links = list(map(fix_link, links))
 
-errors = []
-
 def check_link(args):
 	(doc, link, line, col) = args
 	path = os.path.dirname(doc)
@@ -61,13 +67,14 @@ def check_link(args):
 
 for link in links:
 	if not check_link(link):
-		errors += [link]
+		(doc, link, line, col) = link
+		errors += ['%s:%d:%d: Broken link %s.' % (doc, line, col, link)]
 
 if len(errors) == 0:
-	print('%d links checked: OK' % (len(links),))
+	print('%d links checked: OK' % len(links))
 	sys.exit(0)
 
-for (doc, link, line, col) in errors:
-	print('%s:%d:%d: Broken link %s.' % (doc, line, col, link))
+for error in errors:
+	print(error)
 
 sys.exit(2)
