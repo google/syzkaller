@@ -34,7 +34,6 @@ jobs:
   arch:
     runs-on: ubuntu-latest
     needs: [smoke]
-    if: ${{ needs.smoke.result == 'success' }}
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -50,7 +49,6 @@ jobs:
   fuzzit:
     runs-on: ubuntu-latest
     needs: [smoke]
-    if: ${{ needs.smoke.result == 'success' }}
     steps:
       - name: checkout
         uses: actions/checkout@v2
