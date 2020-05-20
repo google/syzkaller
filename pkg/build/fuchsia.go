@@ -44,6 +44,7 @@ func (fu fuchsia) build(params *Params) error {
 		"--args", fmt.Sprintf(`syzkaller_dir="%s"`, syzDir),
 		"--with-base", "//bundles:tools",
 		"--with-base", "//src/testing/fuzzing/syzkaller",
+		"--variant", "kasan",
 	); err != nil {
 		return err
 	}
@@ -64,7 +65,7 @@ func (fu fuchsia) build(params *Params) error {
 	for src, dst := range map[string]string{
 		"out/" + arch + "/obj/build/images/fvm.blk": "image",
 		".ssh/pkey": "key",
-		"out/" + arch + ".zircon/kernel-" + arch + "-clang/obj/kernel/zircon.elf": "obj/zircon.elf",
+		"out/" + arch + ".zircon/kernel-" + arch + "-kasan/obj/kernel/zircon.elf": "obj/zircon.elf",
 		"out/" + arch + ".zircon/multiboot.bin":                                   "kernel",
 		"out/" + arch + "/fuchsia-ssh.zbi":                                        "initrd",
 	} {
