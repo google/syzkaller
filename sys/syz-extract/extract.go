@@ -110,7 +110,7 @@ func main() {
 					close(j.done)
 					if j.err == nil {
 						for _, f := range j.files {
-							f.info = infos[f.name]
+							f.info = infos[filepath.Join("sys", j.target.OS, f.name)]
 							jobC <- f
 						}
 					}
@@ -293,7 +293,7 @@ func processFile(extractor Extractor, arch *Arch, file *File) (map[string]uint64
 	inname := filepath.Join("sys", arch.target.OS, file.name)
 	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
 	if file.info == nil {
-		return nil, nil, fmt.Errorf("input file %v is missing", inname)
+		return nil, nil, fmt.Errorf("const info for input file %v is missing", inname)
 	}
 	if len(file.info.Consts) == 0 {
 		os.Remove(outname)
