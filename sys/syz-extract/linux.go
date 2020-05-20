@@ -134,7 +134,7 @@ func (*linux) prepareArch(arch *Arch) error {
 }
 
 func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
-	if info.File == "dev_kvm.txt" && arch.target.Arch == "arm" {
+	if strings.HasSuffix(info.File, "_kvm.txt") && arch.target.Arch == "arm" {
 		// Hack: KVM is not supported on ARM anymore. We may want some more official support
 		// for marking descriptions arch-specific, but so far this combination is the only one.
 		// Note: syz-sysgen also ignores this file for arm.
