@@ -22,6 +22,7 @@ func init() {
 	checkFeature[FeatureCoverage] = unconditionallyEnabled
 	checkFeature[FeatureComparisons] = unconditionallyEnabled
 	checkFeature[FeatureUSBEmulation] = checkUSBEmulation
+	checkFeature[FeatureExtraCoverage] = checkUSBEmulation
 }
 
 func checkUSBEmulation() string {
