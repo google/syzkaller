@@ -410,7 +410,7 @@ void child()
 #include <sys/syscall.h>
 
 #if GOOS_netbsd
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || SYZ_USB
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>

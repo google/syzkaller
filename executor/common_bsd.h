@@ -12,7 +12,7 @@
 #include <sys/syscall.h>
 
 #if GOOS_netbsd
-#if SYZ_EXECUTOR || __NR_syz_usb_connect
+#if SYZ_EXECUTOR || SYZ_USB
 #include "common_usb_netbsd.h"
 static void setup_usb(void)
 {
