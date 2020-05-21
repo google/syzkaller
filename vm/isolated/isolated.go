@@ -274,10 +274,10 @@ func (inst *instance) repair() error {
 		} else {
 			log.Logf(2, "isolated: ssh succeeded, trying to reboot by ssh")
 			inst.ssh("reboot") // reboot will return an error, ignore it
+			if err := inst.waitRebootAndSSH(5*60, 30*time.Minute); err != nil {
+				return fmt.Errorf("waitRebootAndSSH failed: %v", err)
+			}
 		}
-	}
-	if err := inst.waitRebootAndSSH(5*60, 30*time.Minute); err != nil {
-		return fmt.Errorf("waitRebootAndSSH failed: %v", err)
 	}
 	if inst.cfg.StartupScript != "" {
 		log.Logf(2, "isolated: executing startup_script")
