@@ -410,7 +410,7 @@ void child()
 #include <sys/syscall.h>
 
 #if GOOS_netbsd
-#if SYZ_EXECUTOR || SYZ_USB
+#if SYZ_EXECUTOR || __NR_syz_usb_connect
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -1560,6 +1560,8 @@ static volatile long syz_usb_disconnect(volatile long a0)
 }
 #endif
 
+#endif
+#if SYZ_EXECUTOR || SYZ_USB
 static void setup_usb(void)
 {
 	if (chmod("/dev/vhci", 0666))
