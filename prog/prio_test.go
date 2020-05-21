@@ -7,8 +7,6 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestNormalizePrio(t *testing.T) {
@@ -71,6 +69,9 @@ func TestStaticPriorities(t *testing.T) {
 }
 
 func TestPrioDeterminism(t *testing.T) {
+	if raceEnabled {
+		t.Skip("skipping in race mode, too slow")
+	}
 	target, rs, iters := initTest(t)
 	ct := target.DefaultChoiceTable()
 	var corpus []*Prog
@@ -79,8 +80,8 @@ func TestPrioDeterminism(t *testing.T) {
 	}
 	ct0 := target.BuildChoiceTable(corpus, nil)
 	ct1 := target.BuildChoiceTable(corpus, nil)
-	if diff := cmp.Diff(ct0.runs, ct1.runs); diff != "" {
-		t.Fatal(diff)
+	if !reflect.DeepEqual(ct0.runs, ct1.runs) {
+		t.Fatal("non-deterministic ChoiceTable")
 	}
 	for i := 0; i < iters; i++ {
 		seed := rs.Int63()
