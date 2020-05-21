@@ -401,6 +401,9 @@ func (r *randGen) createResource(s *state, res *ResourceType, dir Dir) (arg Arg,
 				allres = append(allres, res1...)
 			}
 		}
+		sort.SliceStable(allres, func(i, j int) bool {
+			return allres[i].Type().Name() < allres[j].Type().Name()
+		})
 		if len(allres) != 0 {
 			// Bingo!
 			arg := MakeResultArg(res, dir, allres[r.Intn(len(allres))], 0)
